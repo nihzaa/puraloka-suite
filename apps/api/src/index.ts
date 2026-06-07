@@ -3,6 +3,7 @@ import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import jwt from '@fastify/jwt'
 import dotenv from 'dotenv'
+import projectRoutes from './routes/v1/projects.js'
 
 dotenv.config()
 
@@ -37,12 +38,15 @@ app.get('/health', async () => {
   }
 })
 
+await app.register(projectRoutes)
+
 const PORT = Number(process.env.PORT) || 3001
 
 try {
   await app.listen({ port: PORT, host: '0.0.0.0' })
   console.log(`\n🚀 Puraloka Suite API running on http://localhost:${PORT}`)
-  console.log(`📋 Health check: http://localhost:${PORT}/health\n`)
+  console.log(`📋 Health check: http://localhost:${PORT}/health`)
+  console.log(`📊 Projects: http://localhost:${PORT}/api/v1/projects\n`)
 } catch (err) {
   app.log.error(err)
   process.exit(1)
