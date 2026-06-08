@@ -5,14 +5,32 @@ export const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
-// Sisipkan token otomatis di setiap request
 api.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
-    const token = localStorage.getItem("puraloka_token");
+    const token = getCookie("puraloka_token");
     if (token) config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
+
+function setCookie(name: string, value: string, days = 7) {
+  const expires = new Date(Date.now() + days * 864e5).toUTCString();
+  document.cookie = `${name}=${value}; expires=${expires}; path=/; SameSite=Lax`;
+}
+
+function getCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  return (
+    document.cookie
+      .split("; ")
+      .find((r) => r.startsWith(`${name}=`))
+      ?.split("=")[1] ?? null
+  );
+}
+
+function deleteCookie(name: string) {
+  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+}
 
 export interface PuralokaUser {
   id: string;
@@ -25,18 +43,20 @@ export interface PuralokaUser {
 
 export async function login(email: string, password: string) {
   const { data } = await api.post("/api/v1/auth/login", { email, password });
+  setCookie("puraloka_token", data.session.access_token);
+  setCookie("puraloka_refresh", data.session.refresh_token);
   if (typeof window !== "undefined") {
-    localStorage.setItem("puraloka_token", data.session.access_token);
-    localStorage.setItem("puraloka_refresh", data.session.refresh_token);
     localStorage.setItem("puraloka_user", JSON.stringify(data.user));
   }
   return data.user as PuralokaUser;
 }
 
 export function logout() {
-  localStorage.removeItem("puraloka_token");
-  localStorage.removeItem("puraloka_refresh");
-  localStorage.removeItem("puraloka_user");
+  deleteCookie("puraloka_token");
+  deleteCookie("puraloka_refresh");
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("puraloka_user");
+  }
 }
 
 export function getStoredUser(): PuralokaUser | null {
