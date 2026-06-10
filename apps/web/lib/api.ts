@@ -20,12 +20,8 @@ function setCookie(name: string, value: string, days = 7) {
 
 function getCookie(name: string): string | null {
   if (typeof document === "undefined") return null;
-  return (
-    document.cookie
-      .split("; ")
-      .find((r) => r.startsWith(`${name}=`))
-      ?.split("=")[1] ?? null
-  );
+  const entry = document.cookie.split("; ").find((r) => r.startsWith(`${name}=`));
+  return entry ? entry.slice(name.length + 1) : null;
 }
 
 function deleteCookie(name: string) {

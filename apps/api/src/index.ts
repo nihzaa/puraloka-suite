@@ -5,6 +5,8 @@ import jwt from '@fastify/jwt'
 import dotenv from 'dotenv'
 import projectRoutes from './routes/v1/projects.js'
 import authRoutes from './routes/v1/auth.js'
+import dashboardRoutes from './routes/v1/dashboard.js'
+import kasbonRoutes from './routes/v1/kasbons.js'
 import { supabase } from './utils/supabase.js'
 
 dotenv.config()
@@ -42,10 +44,30 @@ app.get('/health', async () => {
 
 await app.register(authRoutes)
 await app.register(projectRoutes)
+await app.register(dashboardRoutes)
+await app.register(kasbonRoutes)
 
 const PORT = Number(process.env.PORT) || 3001
 
 try {
+    // Debug: test dashboard tables
+app.get('/debug/tables', async () => {
+  const [p, inv, pay, k, ma] = await Promise.all([
+    supabase.from('projects').select('id, name, status, contract_value').limit(3),
+    supabase.from('invoices').select('id, invoice_number, status, amount_due').limit(3),
+    supabase.from('payments').select('id, amount_paid, paid_at').limit(3),
+    supabase.from('kasbons').select('id, amount, status, kasbon_date').limit(3),
+    supabase.from('mandor_assignments').select('id, status').limit(3),
+  ])
+  return {
+    projects: { data: p.data, error: p.error },
+    invoices: { data: inv.data, error: inv.error },
+    payments: { data: pay.data, error: pay.error },
+    kasbons: { data: k.data, error: k.error },
+    mandor_assignments: { data: ma.data, error: ma.error },
+  }
+})
+
     // Debug: test supabase connection
 app.get('/debug/users', async () => {
   const { data, error } = await supabase

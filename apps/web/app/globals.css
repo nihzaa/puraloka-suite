@@ -1,17 +1,31 @@
 @import "tailwindcss";
 
 @theme {
-  --color-ink: #16140f;
-  --color-ink-soft: #2b2823;
-  --color-paper: #faf8f3;
-  --color-paper-pure: #ffffff;
-  --color-amber: #d97706;
-  --color-amber-deep: #b45309;
-  --color-amber-glow: #fbbf24;
-  --color-clay: #57534e;
-  --color-line: #e7e2d6;
-  --color-success: #15803d;
-  --color-danger: #b91c1c;
+  --color-page: #080c14;
+  --color-navy-deep: #003366;
+  --color-navy-mid: #0050a0;
+  --color-blue-accent: #40a0ff;
+  --color-blue-glow: rgba(0,51,102,0.6);
+  --color-text-primary: #e8ecf4;
+  --color-text-secondary: rgba(232,236,244,0.5);
+  --color-text-muted: rgba(232,236,244,0.3);
+  --color-glass-bg: rgba(255,255,255,0.04);
+  --color-glass-border: rgba(255,255,255,0.08);
+  --color-glass-hover: rgba(255,255,255,0.07);
+  --color-sidebar-bg: rgba(0,10,30,0.95);
+  --color-sidebar-border: rgba(0,51,102,0.4);
+  --color-success: #4ade80;
+  --color-success-bg: rgba(34,197,94,0.1);
+  --color-success-border: rgba(34,197,94,0.2);
+  --color-warning: #fbbf24;
+  --color-warning-bg: rgba(251,191,36,0.1);
+  --color-warning-border: rgba(251,191,36,0.2);
+  --color-danger: #f87171;
+  --color-danger-bg: rgba(239,68,68,0.1);
+  --color-danger-border: rgba(239,68,68,0.2);
+  --color-info: #a78bfa;
+  --color-info-bg: rgba(139,92,246,0.1);
+  --color-info-border: rgba(139,92,246,0.2);
 
   --font-display: var(--font-display);
   --font-body: var(--font-body);
@@ -22,8 +36,8 @@
 }
 
 body {
-  background: var(--color-paper);
-  color: var(--color-ink);
+  background: #080c14;
+  color: #e8ecf4;
   font-family: var(--font-body), sans-serif;
 }
 
@@ -31,7 +45,7 @@ body {
   font-family: var(--font-display), sans-serif;
 }
 
-/* Subtle grain texture for atmosphere */
+/* Grain overlay for texture */
 .grain::before {
   content: "";
   position: fixed;
@@ -42,6 +56,18 @@ body {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
+/* Grain for dark glass pages */
+.grain-dark::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Rise animations */
 @keyframes rise {
   from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }
@@ -52,3 +78,49 @@ body {
 .rise-2 { animation-delay: 0.12s; }
 .rise-3 { animation-delay: 0.2s; }
 .rise-4 { animation-delay: 0.28s; }
+.rise-5 { animation-delay: 0.36s; }
+.rise-6 { animation-delay: 0.44s; }
+
+/* Glass shimmer loading skeleton */
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.glass-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 0%,
+    rgba(255, 255, 255, 0.07) 50%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+/* Blue glow pulse */
+@keyframes blue-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(64, 160, 255, 0); }
+  50% { box-shadow: 0 0 12px 2px rgba(64, 160, 255, 0.2); }
+}
+
+.blue-pulse {
+  animation: blue-pulse 2.5s ease-in-out infinite;
+}
+
+/* Scrollbar for dark glass */
+.dark-scroll::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.dark-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.dark-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 99px;
+}
+.dark-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(64, 160, 255, 0.3);
+}

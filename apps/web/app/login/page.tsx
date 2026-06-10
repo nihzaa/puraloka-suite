@@ -26,72 +26,122 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="grain min-h-screen flex">
+    <div
+      className="grain-dark"
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        background: `
+          radial-gradient(ellipse at 15% 30%, rgba(0,51,102,0.5) 0%, transparent 45%),
+          radial-gradient(ellipse at 85% 70%, rgba(0,80,160,0.25) 0%, transparent 45%),
+          radial-gradient(ellipse at 50% 100%, rgba(0,30,80,0.3) 0%, transparent 50%),
+          #080c14
+        `,
+        color: "#e8ecf4",
+      }}
+    >
       {/* ── Left: Brand panel ── */}
-      <div className="hidden lg:flex lg:w-[46%] relative overflow-hidden bg-[var(--color-ink)] text-[var(--color-paper)]">
-        {/* Blueprint grid */}
-        <div
-          className="absolute inset-0 opacity-[0.07]"
-          style={{
-            backgroundImage:
-              "linear-gradient(var(--color-paper) 1px, transparent 1px), linear-gradient(90deg, var(--color-paper) 1px, transparent 1px)",
-            backgroundSize: "48px 48px",
-          }}
-        />
-        {/* Amber glow */}
-        <div className="absolute -bottom-32 -left-32 w-[28rem] h-[28rem] rounded-full bg-[var(--color-amber)] opacity-20 blur-[120px]" />
+      <div
+        className="rise"
+        style={{
+          display: "none",
+          flex: "0 0 46%",
+          position: "relative",
+          overflow: "hidden",
+          padding: "56px",
+          flexDirection: "column",
+          justifyContent: "space-between",
+        }}
+        // shown on lg via inline media hack — we'll use a class trick below
+      >
+        {/* Blueprint grid overlay */}
+        <div style={{
+          position: "absolute",
+          inset: 0,
+          opacity: 0.04,
+          backgroundImage: "linear-gradient(rgba(64,160,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(64,160,255,1) 1px, transparent 1px)",
+          backgroundSize: "48px 48px",
+          pointerEvents: "none",
+        }} />
+        {/* Blue radial glow */}
+        <div style={{
+          position: "absolute",
+          bottom: "-8rem",
+          left: "-8rem",
+          width: "28rem",
+          height: "28rem",
+          borderRadius: "50%",
+          background: "#003366",
+          opacity: 0.4,
+          filter: "blur(120px)",
+          pointerEvents: "none",
+        }} />
 
-        <div className="relative z-10 flex flex-col justify-between p-14 w-full">
-          <div className="rise rise-1">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-[var(--color-amber)] flex items-center justify-center">
-                <span className="font-display font-extrabold text-[var(--color-ink)] text-xl">P</span>
-              </div>
-              <span className="font-display font-semibold text-lg tracking-tight">
-                Puraloka Suite
-              </span>
+        <div style={{ position: "relative", zIndex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: 10,
+              background: "#003366",
+              border: "1px solid rgba(64,160,255,0.3)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: "0 0 20px rgba(64,160,255,0.25)",
+            }}>
+              <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 18, color: "#40a0ff" }}>P</span>
             </div>
+            <span style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 17, color: "#e8ecf4" }}>
+              Puraloka Suite
+            </span>
           </div>
+        </div>
 
-          <div className="rise rise-2 max-w-md">
-            <h1 className="font-display text-5xl font-bold leading-[1.05] tracking-tight">
-              Manajemen konstruksi,
-              <span className="text-[var(--color-amber-glow)]"> dari lapangan sampai laporan.</span>
-            </h1>
-            <p className="mt-6 text-[var(--color-paper)]/60 text-base leading-relaxed">
-              Kelola proyek, keuangan, mandor, dan progres dalam satu platform terpadu untuk Puraloka Persada.
-            </p>
-          </div>
+        <div style={{ position: "relative", zIndex: 1, maxWidth: 420 }}>
+          <h1 style={{ fontFamily: "var(--font-display)", fontSize: 48, fontWeight: 700, lineHeight: 1.05, letterSpacing: "-0.02em", color: "#e8ecf4" }}>
+            Manajemen konstruksi,
+            <span style={{ color: "#40a0ff" }}> dari lapangan sampai laporan.</span>
+          </h1>
+          <p style={{ marginTop: 20, color: "rgba(232,236,244,0.5)", fontSize: 15, lineHeight: 1.65 }}>
+            Kelola proyek, keuangan, mandor, dan progres dalam satu platform terpadu untuk Puraloka Persada.
+          </p>
+        </div>
 
-          <div className="rise rise-3 flex items-center gap-6 text-sm text-[var(--color-paper)]/40">
-            <span>Estimasi RAB</span>
-            <span className="w-1 h-1 rounded-full bg-[var(--color-paper)]/30" />
-            <span>Monitoring Realtime</span>
-            <span className="w-1 h-1 rounded-full bg-[var(--color-paper)]/30" />
-            <span>Laporan Keuangan</span>
-          </div>
+        <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 20, fontSize: 13, color: "rgba(232,236,244,0.3)" }}>
+          <span>Estimasi RAB</span>
+          <span style={{ width: 3, height: 3, borderRadius: "50%", background: "rgba(232,236,244,0.2)" }} />
+          <span>Monitoring Realtime</span>
+          <span style={{ width: 3, height: 3, borderRadius: "50%", background: "rgba(232,236,244,0.2)" }} />
+          <span>Laporan Keuangan</span>
         </div>
       </div>
 
       {/* ── Right: Login form ── */}
-      <div className="flex-1 flex items-center justify-center px-6 py-12 relative z-10">
-        <div className="w-full max-w-sm rise rise-2">
-          <div className="lg:hidden flex items-center gap-3 mb-10">
-            <div className="w-10 h-10 rounded-lg bg-[var(--color-amber)] flex items-center justify-center">
-              <span className="font-display font-extrabold text-[var(--color-ink)] text-xl">P</span>
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "48px 24px", position: "relative", zIndex: 10 }}>
+        <div className="rise rise-2" style={{ width: "100%", maxWidth: 360 }}>
+
+          {/* Mobile logo */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 36 }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: 9,
+              background: "#003366",
+              border: "1px solid rgba(64,160,255,0.3)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: "0 0 16px rgba(64,160,255,0.2)",
+            }}>
+              <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 16, color: "#40a0ff" }}>P</span>
             </div>
-            <span className="font-display font-semibold text-lg">Puraloka Suite</span>
+            <span style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 15, color: "#e8ecf4" }}>Puraloka Suite</span>
           </div>
 
-          <h2 className="font-display text-3xl font-bold tracking-tight">Selamat datang</h2>
-          <p className="mt-2 text-[var(--color-clay)] text-sm">
+          <h2 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700, letterSpacing: "-0.02em", color: "#e8ecf4", marginBottom: 6 }}>
+            Selamat datang
+          </h2>
+          <p style={{ fontSize: 13, color: "rgba(232,236,244,0.4)", marginBottom: 32 }}>
             Masuk untuk melanjutkan ke dashboard Anda.
           </p>
 
-          <form onSubmit={handleLogin} className="mt-10 space-y-5">
+          <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div>
-              <label className="block text-sm font-medium mb-2 text-[var(--color-ink-soft)]">
-                Email
+              <label style={{ display: "block", fontSize: 12, fontWeight: 500, marginBottom: 8, color: "rgba(232,236,244,0.5)", letterSpacing: "0.04em" }}>
+                EMAIL
               </label>
               <input
                 type="email"
@@ -99,13 +149,32 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="nama@puraloka.id"
-                className="w-full px-4 py-3 rounded-xl border border-[var(--color-line)] bg-[var(--color-paper-pure)] text-[var(--color-ink)] placeholder:text-[var(--color-clay)]/50 focus:outline-none focus:border-[var(--color-amber)] focus:ring-2 focus:ring-[var(--color-amber)]/15 transition"
+                style={{
+                  width: "100%",
+                  padding: "12px 16px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  background: "rgba(255,255,255,0.04)",
+                  color: "#e8ecf4",
+                  fontSize: 14,
+                  outline: "none",
+                  transition: "border-color 0.15s, box-shadow 0.15s",
+                  backdropFilter: "blur(8px)",
+                }}
+                onFocus={e => {
+                  e.target.style.borderColor = "rgba(64,160,255,0.5)";
+                  e.target.style.boxShadow = "0 0 0 3px rgba(64,160,255,0.12)";
+                }}
+                onBlur={e => {
+                  e.target.style.borderColor = "rgba(255,255,255,0.1)";
+                  e.target.style.boxShadow = "none";
+                }}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2 text-[var(--color-ink-soft)]">
-                Password
+              <label style={{ display: "block", fontSize: 12, fontWeight: 500, marginBottom: 8, color: "rgba(232,236,244,0.5)", letterSpacing: "0.04em" }}>
+                PASSWORD
               </label>
               <input
                 type="password"
@@ -113,12 +182,36 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 placeholder="••••••••"
-                className="w-full px-4 py-3 rounded-xl border border-[var(--color-line)] bg-[var(--color-paper-pure)] text-[var(--color-ink)] placeholder:text-[var(--color-clay)]/50 focus:outline-none focus:border-[var(--color-amber)] focus:ring-2 focus:ring-[var(--color-amber)]/15 transition"
+                style={{
+                  width: "100%",
+                  padding: "12px 16px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  background: "rgba(255,255,255,0.04)",
+                  color: "#e8ecf4",
+                  fontSize: 14,
+                  outline: "none",
+                  transition: "border-color 0.15s, box-shadow 0.15s",
+                  backdropFilter: "blur(8px)",
+                }}
+                onFocus={e => {
+                  e.target.style.borderColor = "rgba(64,160,255,0.5)";
+                  e.target.style.boxShadow = "0 0 0 3px rgba(64,160,255,0.12)";
+                }}
+                onBlur={e => {
+                  e.target.style.borderColor = "rgba(255,255,255,0.1)";
+                  e.target.style.boxShadow = "none";
+                }}
               />
             </div>
 
             {error && (
-              <div className="text-sm text-[var(--color-danger)] bg-[var(--color-danger)]/8 border border-[var(--color-danger)]/20 rounded-lg px-4 py-3">
+              <div style={{
+                fontSize: 12, color: "#f87171",
+                background: "rgba(239,68,68,0.08)",
+                border: "1px solid rgba(248,113,113,0.2)",
+                borderRadius: 10, padding: "10px 14px",
+              }}>
                 {error}
               </div>
             )}
@@ -126,23 +219,62 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 rounded-xl bg-[var(--color-ink)] text-[var(--color-paper)] font-semibold hover:bg-[var(--color-ink-soft)] active:scale-[0.99] transition disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{
+                width: "100%",
+                padding: "13px",
+                borderRadius: 12,
+                border: "none",
+                background: loading ? "rgba(0,51,102,0.6)" : "#003366",
+                color: "#e8ecf4",
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: loading ? "not-allowed" : "pointer",
+                transition: "all 0.15s",
+                opacity: loading ? 0.7 : 1,
+                boxShadow: "0 0 20px rgba(64,160,255,0.15)",
+                marginTop: 4,
+              }}
+              onMouseEnter={e => { if (!loading) e.currentTarget.style.background = "#0050a0"; }}
+              onMouseLeave={e => { if (!loading) e.currentTarget.style.background = "#003366"; }}
             >
               {loading ? "Memproses..." : "Masuk"}
             </button>
           </form>
 
-          <div className="mt-6 flex items-center gap-4">
-            <div className="flex-1 h-px bg-[var(--color-line)]" />
-            <span className="text-xs text-[var(--color-clay)] uppercase tracking-wider">atau</span>
-            <div className="flex-1 h-px bg-[var(--color-line)]" />
+          <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "24px 0" }}>
+            <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.07)" }} />
+            <span style={{ fontSize: 11, color: "rgba(232,236,244,0.3)", textTransform: "uppercase", letterSpacing: "0.08em" }}>atau</span>
+            <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.07)" }} />
           </div>
 
           <button
             type="button"
-            className="mt-6 w-full py-3.5 rounded-xl border border-[var(--color-line)] bg-[var(--color-paper-pure)] font-medium hover:border-[var(--color-clay)]/40 active:scale-[0.99] transition flex items-center justify-center gap-3"
+            style={{
+              width: "100%",
+              padding: "12px",
+              borderRadius: 12,
+              border: "1px solid rgba(255,255,255,0.08)",
+              background: "rgba(255,255,255,0.03)",
+              color: "rgba(232,236,244,0.7)",
+              fontSize: 13,
+              fontWeight: 500,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 10,
+              transition: "all 0.15s",
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+              e.currentTarget.style.borderColor = "rgba(64,160,255,0.2)";
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = "rgba(255,255,255,0.03)";
+              e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
+            }}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24">
+            <svg width="16" height="16" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
               <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
               <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>

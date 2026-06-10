@@ -1,5 +1,5 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
-import { supabase } from '../utils/supabase.js'
+import { supabase, supabaseAuth } from '../utils/supabase.js'
 
 // Tipe untuk user yang sudah terautentikasi
 export interface AuthUser {
@@ -28,8 +28,8 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
 
   const token = authHeader.replace('Bearer ', '')
 
-  // Verifikasi token via Supabase
-  const { data: authData, error: authError } = await supabase.auth.getUser(token)
+  // Verifikasi token via dedicated auth client (keeps service-role client clean for data queries)
+  const { data: authData, error: authError } = await supabaseAuth.auth.getUser(token)
 
   if (authError || !authData.user) {
     return reply.status(401).send({ error: 'Token tidak valid atau sudah expired' })
