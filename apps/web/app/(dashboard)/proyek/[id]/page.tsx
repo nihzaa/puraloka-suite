@@ -2,14 +2,18 @@
 
 import { useEffect, useReducer, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, getStoredUser } from "@/lib/api";
 import {
   MapPin, Calendar, ChevronLeft, RefreshCw,
   User, TrendingUp,
   Clock, CloudRain, Sun, Cloud, Users,
   CheckCircle2, AlertCircle,
   Wallet, Receipt,
+  Pencil, Trash2,
+  CreditCard, CheckSquare, Banknote,
 } from "lucide-react";
+import { ProjectModal } from "@/components/project-modal";
+import { useToast } from "@/components/toast";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -280,10 +284,17 @@ function ProjectDetailContent() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
+  const { showToast } = useToast();
 
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const currentUser = getStoredUser();
+  const isAdmin = currentUser?.role === "admin";
 
   useEffect(() => { if (id) fetchProject(); }, [id]);
 
@@ -298,6 +309,24 @@ function ProjectDetailContent() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      await api.patch(`/api/v1/projects/${id}/status`, { status: "cancelled" });
+      showToast("success", "Proyek berhasil diarsipkan.");
+      router.push("/proyek");
+    } catch {
+      showToast("error", "Gagal mengarsipkan proyek. Coba lagi.");
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  }
+
+  function handleEditSuccess() {
+    fetchProject();
+    showToast("success", "Proyek berhasil diperbarui!");
   }
 
   if (loading) {
@@ -396,10 +425,15 @@ function ProjectDetailContent() {
           </div>
 
           {/* Action buttons */}
-          <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-            <ActionBtn>Edit</ActionBtn>
-            <ActionBtn>Lihat Invoice</ActionBtn>
-            <ActionBtn navy>Bagikan ke Klien</ActionBtn>
+          <div style={{ display: "flex", gap: 8, flexShrink: 0, flexWrap: "wrap" }}>
+            <ActionBtn onClick={() => setShowEditModal(true)}>
+              <Pencil size={13} /> Edit
+            </ActionBtn>
+            {isAdmin && (
+              <ActionBtn danger onClick={() => setShowDeleteConfirm(true)}>
+                <Trash2 size={13} /> Hapus
+              </ActionBtn>
+            )}
           </div>
         </div>
       </div>
@@ -812,9 +846,72 @@ function ProjectDetailContent() {
 
       {/* ── Notes ── */}
       {p.notes && (
-        <div className="rise rise-6" style={{ ...card, padding: 24 }}>
+        <div className="rise rise-6" style={{ ...card, padding: 24, marginBottom: 20 }}>
           <SectionTitle>Catatan</SectionTitle>
           <p style={{ fontSize: 13, color: C.mid, lineHeight: 1.7 }}>{p.notes}</p>
+        </div>
+      )}
+
+      {/* ── Activity Feed ── */}
+      <ActivityFeed project={p} />
+
+      {/* ── Edit modal ── */}
+      {showEditModal && (
+        <ProjectModal
+          mode="edit"
+          projectId={id}
+          initialData={{
+            name: p.name,
+            location: p.location,
+            client_id: (p.clients as any)?.id ?? "",
+            pm_id: (p.pm as any)?.id ?? "",
+            description: p.description ?? "",
+            contract_model: p.contract_model,
+            contract_value: String(Math.round(Number(p.contract_value))),
+            tax_scheme: p.tax_scheme,
+            commission_pct: p.commission_pct ? String(p.commission_pct) : "",
+            retention_pct: String(p.retention_pct ?? 5),
+            start_date: p.start_date,
+            end_date: p.end_date,
+          }}
+          onClose={() => setShowEditModal(false)}
+          onSuccess={handleEditSuccess}
+        />
+      )}
+
+      {/* ── Delete confirmation ── */}
+      {showDeleteConfirm && (
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 24 }}
+          onClick={e => { if (e.target === e.currentTarget) setShowDeleteConfirm(false); }}
+        >
+          <div style={{ background: "#FFFFFF", borderRadius: 16, padding: 28, maxWidth: 420, width: "100%", boxShadow: "0 24px 48px rgba(0,0,0,0.18)" }}>
+            <div style={{ width: 44, height: 44, borderRadius: "50%", background: C.redBg, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+              <Trash2 size={20} style={{ color: C.red }} />
+            </div>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 8 }}>Hapus proyek ini?</h3>
+            <p style={{ fontSize: 13, color: C.mid, lineHeight: 1.6, marginBottom: 24 }}>
+              Semua data terkait akan diarsipkan. Proyek akan ditandai sebagai <strong>Batal</strong> dan tidak akan muncul di daftar aktif.
+            </p>
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+                style={{ padding: "9px 18px", borderRadius: 8, border: "1px solid #E5E7EB", background: "#FFFFFF", fontSize: 13, fontWeight: 500, color: C.mid, cursor: "pointer" }}
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: deleting ? "#9CA3AF" : C.red, color: "#FFFFFF", fontSize: 13, fontWeight: 600, cursor: deleting ? "not-allowed" : "pointer", transition: "background 0.15s" }}
+                onMouseEnter={e => { if (!deleting) e.currentTarget.style.background = "#991B1B"; }}
+                onMouseLeave={e => { if (!deleting) e.currentTarget.style.background = C.red; }}
+              >
+                {deleting ? "Mengarsipkan..." : "Ya, Hapus"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -824,24 +921,25 @@ function ProjectDetailContent() {
 
 // ─── Small sub-components ─────────────────────────────────────────────────────
 
-function ActionBtn({ children, navy }: { children: React.ReactNode; navy?: boolean }) {
+function ActionBtn({ children, navy, danger, onClick }: {
+  children: React.ReactNode; navy?: boolean; danger?: boolean; onClick?: () => void;
+}) {
+  const bg = navy ? "#003366" : danger ? "#FEF2F2" : "#FFFFFF";
+  const col = navy ? "#FFFFFF" : danger ? "#B91C1C" : "#374151";
+  const border = navy ? "none" : danger ? "1px solid #FECACA" : "1px solid #E5E7EB";
+  const hoverBg = navy ? "#002244" : danger ? "#FEE2E2" : "#F9FAFB";
+  const hoverBorder = navy ? "#002244" : danger ? "#F87171" : "#D1D5DB";
   return (
     <button
+      onClick={onClick}
       style={{
-        padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 500,
+        display: "inline-flex", alignItems: "center", gap: 5,
+        padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: 500,
         cursor: "pointer", transition: "all 0.12s",
-        border: navy ? "none" : "1px solid #E5E7EB",
-        background: navy ? "#003366" : "#FFFFFF",
-        color: navy ? "#FFFFFF" : "#374151",
+        border, background: bg, color: col,
       }}
-      onMouseEnter={e => {
-        e.currentTarget.style.background = navy ? "#002244" : "#F9FAFB";
-        e.currentTarget.style.borderColor = navy ? "#002244" : "#D1D5DB";
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.background = navy ? "#003366" : "#FFFFFF";
-        e.currentTarget.style.borderColor = navy ? "#003366" : "#E5E7EB";
-      }}
+      onMouseEnter={e => { e.currentTarget.style.background = hoverBg; e.currentTarget.style.borderColor = hoverBorder; }}
+      onMouseLeave={e => { e.currentTarget.style.background = bg; e.currentTarget.style.borderColor = navy ? "transparent" : danger ? "#FECACA" : "#E5E7EB"; }}
     >
       {children}
     </button>
@@ -871,6 +969,133 @@ function QuickStat({ label, value, valueColor, divider }: {
     }}>
       <div style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 500, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</div>
       <div style={{ fontSize: 18, fontWeight: 700, color: valueColor ?? "#111827", fontFamily: "var(--font-display)", lineHeight: 1.2 }}>{value}</div>
+    </div>
+  );
+}
+
+// ─── Activity Feed ────────────────────────────────────────────────────────────
+
+interface ActivityItem {
+  id: string;
+  type: "progress" | "kasbon" | "invoice" | "milestone";
+  title: string;
+  subtitle: string;
+  date: string;
+  iconBg: string;
+  iconColor: string;
+  icon: React.ReactNode;
+}
+
+function ActivityFeed({ project: p }: { project: Project }) {
+  const items: ActivityItem[] = [];
+
+  // Progress logs
+  for (const log of (p.progress_logs ?? [])) {
+    items.push({
+      id: `prog-${log.id}`,
+      type: "progress",
+      title: `Progress diperbarui ke ${log.pct_overall}%`,
+      subtitle: `oleh ${log.reporter?.name ?? "—"}${log.weather ? ` · ${log.weather}` : ""}${log.worker_count != null ? ` · ${log.worker_count} pekerja` : ""}`,
+      date: log.logged_at,
+      iconBg: "#EBF2FF", iconColor: "#003366",
+      icon: <TrendingUp size={14} />,
+    });
+  }
+
+  // Kasbons from all work scopes
+  for (const ma of (p.mandor_assignments ?? [])) {
+    for (const ws of (ma.work_scopes ?? [])) {
+      for (const k of (ws.kasbons ?? [])) {
+        const statusLabel = k.status === "approved" ? "disetujui" : k.status === "settled" ? "lunas" : "diajukan";
+        items.push({
+          id: `kasbon-${k.id}`,
+          type: "kasbon",
+          title: `Kasbon ${fmt(Number(k.amount))} ${statusLabel}`,
+          subtitle: `oleh ${ma.mandor?.name ?? "—"} · ${ws.scope_name}`,
+          date: k.kasbon_date,
+          iconBg: "#FFFBEB", iconColor: "#D97706",
+          icon: <Banknote size={14} />,
+        });
+      }
+    }
+  }
+
+  // Invoices that are paid
+  for (const inv of (p.invoices ?? [])) {
+    if (Number(inv.amount_paid) > 0 && inv.paid_date) {
+      items.push({
+        id: `inv-${inv.id}`,
+        type: "invoice",
+        title: `${inv.invoice_number} terbayar ${fmt(Number(inv.amount_paid))}`,
+        subtitle: `Invoice ${INVOICE_TYPE_LABEL[inv.invoice_type] ?? inv.invoice_type}`,
+        date: inv.paid_date,
+        iconBg: "#F0FDF4", iconColor: "#15803d",
+        icon: <CreditCard size={14} />,
+      });
+    }
+  }
+
+  // Milestones completed
+  for (const m of (p.milestones ?? [])) {
+    if (m.status === "completed" && m.completed_at) {
+      items.push({
+        id: `ms-${m.id}`,
+        type: "milestone",
+        title: `Milestone "${m.title}" selesai`,
+        subtitle: `Target: ${fmtDateShort(m.target_date)}`,
+        date: m.completed_at,
+        iconBg: "#EBF2FF", iconColor: "#003366",
+        icon: <CheckSquare size={14} />,
+      });
+    }
+  }
+
+  // Sort newest first
+  items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  const timeAgo = (d: string) => {
+    const days = Math.floor((Date.now() - new Date(d).getTime()) / 86400000);
+    if (days === 0) return "Hari ini";
+    if (days === 1) return "Kemarin";
+    if (days < 30) return `${days} hari lalu`;
+    const months = Math.floor(days / 30);
+    return `${months} bulan lalu`;
+  };
+
+  return (
+    <div className="rise rise-6" style={{ ...card, padding: 24 }}>
+      <SectionTitle>Aktivitas Terbaru</SectionTitle>
+      {items.length === 0 ? (
+        <p style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "16px 0" }}>
+          Belum ada aktivitas untuk proyek ini.
+        </p>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+          {items.slice(0, 20).map((item, idx) => (
+            <div key={item.id} style={{
+              display: "flex", alignItems: "flex-start", gap: 12,
+              paddingTop: idx === 0 ? 0 : 12,
+              paddingBottom: idx === items.slice(0, 20).length - 1 ? 0 : 12,
+              borderBottom: idx === items.slice(0, 20).length - 1 ? "none" : "1px solid #F3F4F6",
+            }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
+                background: item.iconBg, color: item.iconColor,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                {item.icon}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 500, color: C.text, lineHeight: 1.4 }}>{item.title}</div>
+                <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{item.subtitle}</div>
+              </div>
+              <div style={{ fontSize: 11, color: C.muted, flexShrink: 0, marginTop: 2 }}>
+                {timeAgo(item.date)}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

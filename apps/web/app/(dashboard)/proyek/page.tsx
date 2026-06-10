@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useReducer, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import {
   MapPin, Calendar, ArrowRight, Search, Plus,
   Building2, CheckCircle2, PauseCircle, FileText, RefreshCw,
 } from "lucide-react";
+import { ProjectModal } from "@/components/project-modal";
+import { useToast } from "@/components/toast";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -49,21 +51,12 @@ const initials = (name: string) =>
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
 const C = {
-  navy: "#003366",
-  navyLight: "#EBF2FF",
-  text: "#111827",
-  mid: "#6B7280",
-  muted: "#9CA3AF",
-  border: "#E5E7EB",
-  bg: "#F8F9FA",
-  green: "#15803d",
-  greenBg: "#F0FDF4",
-  greenBorder: "#BBF7D0",
-  red: "#B91C1C",
-  redBg: "#FEF2F2",
-  yellow: "#D97706",
-  yellowBg: "#FFFBEB",
-  yellowBorder: "#FDE68A",
+  navy: "#003366", navyLight: "#EBF2FF",
+  text: "#111827", mid: "#6B7280", muted: "#9CA3AF",
+  border: "#E5E7EB", bg: "#F8F9FA",
+  green: "#15803d", greenBg: "#F0FDF4", greenBorder: "#BBF7D0",
+  red: "#B91C1C", redBg: "#FEF2F2",
+  yellow: "#D97706", yellowBg: "#FFFBEB", yellowBorder: "#FDE68A",
 };
 
 const card: React.CSSProperties = {
@@ -74,11 +67,12 @@ const card: React.CSSProperties = {
 };
 
 const STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
-  active:    { label: "Aktif",    color: C.navy,   bg: C.navyLight },
-  completed: { label: "Selesai",  color: C.green,  bg: C.greenBg },
-  on_hold:   { label: "Ditunda",  color: C.yellow, bg: C.yellowBg },
-  draft:     { label: "Draft",    color: C.muted,  bg: "#F3F4F6" },
-  cancelled: { label: "Batal",    color: C.red,    bg: C.redBg },
+  active:      { label: "Aktif",       color: C.navy,   bg: C.navyLight },
+  in_progress: { label: "Berlangsung", color: C.navy,   bg: C.navyLight },
+  completed:   { label: "Selesai",     color: C.green,  bg: C.greenBg },
+  on_hold:     { label: "Ditunda",     color: C.yellow, bg: C.yellowBg },
+  draft:       { label: "Draft",       color: C.muted,  bg: "#F3F4F6" },
+  cancelled:   { label: "Batal",       color: C.red,    bg: C.redBg },
 };
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -156,12 +150,22 @@ export default function ProyekPage() {
 
 function ProyekContent() {
   const router = useRouter();
+  const { showToast } = useToast();
+
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Search with debounce
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sort, setSort] = useState<SortKey>("newest");
+
+  // Modal state
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => { fetchProjects(); }, []);
 
@@ -176,6 +180,17 @@ function ProyekContent() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleSearchChange(val: string) {
+    setSearchInput(val);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setSearch(val), 300);
+  }
+
+  function handleCreateSuccess() {
+    fetchProjects();
+    showToast("success", "Proyek berhasil dibuat!");
   }
 
   // Filter + sort
@@ -196,8 +211,7 @@ function ProyekContent() {
       if (sort === "value_desc") return Number(b.contract_value) - Number(a.contract_value);
       if (sort === "progress_desc") return Number(b.progress_pct) - Number(a.progress_pct);
       if (sort === "deadline_asc") return new Date(a.end_date).getTime() - new Date(b.end_date).getTime();
-      // newest — default
-      return 0;
+      return 0; // newest — API already returns desc by created_at
     });
 
   const STATUS_TABS: { key: StatusFilter; label: string; icon: React.ReactNode }[] = [
@@ -214,6 +228,8 @@ function ProyekContent() {
     return acc;
   }, {});
 
+  const isFiltered = search.trim() !== "" || statusFilter !== "all";
+
   return (
     <div style={{ padding: "32px 36px 64px", width: "100%" }}>
 
@@ -228,6 +244,7 @@ function ProyekContent() {
           </p>
         </div>
         <button
+          onClick={() => setShowModal(true)}
           style={{
             display: "flex", alignItems: "center", gap: 6,
             padding: "10px 18px", borderRadius: 8, border: "none",
@@ -249,14 +266,15 @@ function ProyekContent() {
           <div style={{ flex: 1, position: "relative" }}>
             <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.muted, pointerEvents: "none" }} />
             <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Cari nama proyek atau klien..."
+              value={searchInput}
+              onChange={e => handleSearchChange(e.target.value)}
+              placeholder="Cari nama proyek, klien, atau lokasi..."
               style={{
                 width: "100%", padding: "9px 12px 9px 34px",
                 border: "1px solid #E5E7EB", borderRadius: 8,
                 fontSize: 13, color: C.text, background: "#FFFFFF",
                 outline: "none", transition: "border-color 0.15s, box-shadow 0.15s",
+                boxSizing: "border-box",
               }}
               onFocus={e => { e.target.style.borderColor = C.navy; e.target.style.boxShadow = "0 0 0 3px rgba(0,51,102,0.08)"; }}
               onBlur={e => { e.target.style.borderColor = "#E5E7EB"; e.target.style.boxShadow = "none"; }}
@@ -278,37 +296,44 @@ function ProyekContent() {
           </select>
         </div>
 
-        {/* Status tabs */}
-        <div style={{ display: "flex", gap: 4 }}>
-          {STATUS_TABS.map(tab => {
-            const active = statusFilter === tab.key;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setStatusFilter(tab.key)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 5,
-                  padding: "6px 12px", borderRadius: 6, border: "none",
-                  fontSize: 12, fontWeight: active ? 600 : 400,
-                  cursor: "pointer", transition: "all 0.12s",
-                  background: active ? C.navyLight : "transparent",
-                  color: active ? C.navy : C.mid,
-                }}
-                onMouseEnter={e => { if (!active) { e.currentTarget.style.background = "#F3F4F6"; e.currentTarget.style.color = C.text; } }}
-                onMouseLeave={e => { if (!active) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.mid; } }}
-              >
-                {tab.label}
-                <span style={{
-                  fontSize: 10, fontWeight: 600,
-                  background: active ? "rgba(0,51,102,0.12)" : "#F3F4F6",
-                  color: active ? C.navy : C.muted,
-                  padding: "1px 6px", borderRadius: 99,
-                }}>
-                  {counts[tab.key] ?? 0}
-                </span>
-              </button>
-            );
-          })}
+        {/* Status tabs + result count */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 4 }}>
+            {STATUS_TABS.map(tab => {
+              const active = statusFilter === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setStatusFilter(tab.key)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 5,
+                    padding: "6px 12px", borderRadius: 6, border: "none",
+                    fontSize: 12, fontWeight: active ? 600 : 400,
+                    cursor: "pointer", transition: "all 0.12s",
+                    background: active ? C.navyLight : "transparent",
+                    color: active ? C.navy : C.mid,
+                  }}
+                  onMouseEnter={e => { if (!active) { e.currentTarget.style.background = "#F3F4F6"; e.currentTarget.style.color = C.text; } }}
+                  onMouseLeave={e => { if (!active) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.mid; } }}
+                >
+                  {tab.label}
+                  <span style={{
+                    fontSize: 10, fontWeight: 600,
+                    background: active ? "rgba(0,51,102,0.12)" : "#F3F4F6",
+                    color: active ? C.navy : C.muted,
+                    padding: "1px 6px", borderRadius: 99,
+                  }}>
+                    {counts[tab.key] ?? 0}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {!loading && isFiltered && (
+            <span style={{ fontSize: 12, color: C.muted, flexShrink: 0 }}>
+              {filtered.length} proyek ditemukan
+            </span>
+          )}
         </div>
       </div>
 
@@ -339,19 +364,20 @@ function ProyekContent() {
           <Building2 size={40} style={{ color: "#E5E7EB", marginBottom: 12 }} />
           <p style={{ fontSize: 15, fontWeight: 600, color: C.text, marginBottom: 6 }}>Belum ada proyek</p>
           <p style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>
-            {search || statusFilter !== "all"
-              ? "Tidak ada proyek yang sesuai filter."
-              : "Mulai tambahkan proyek pertama Anda."}
+            {isFiltered ? "Tidak ada proyek yang sesuai filter." : "Mulai tambahkan proyek pertama Anda."}
           </p>
-          <button
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "10px 18px", borderRadius: 8, border: "none",
-              background: C.navy, color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer",
-            }}
-          >
-            <Plus size={14} /> Tambah Proyek
-          </button>
+          {!isFiltered && (
+            <button
+              onClick={() => setShowModal(true)}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "10px 18px", borderRadius: 8, border: "none",
+                background: C.navy, color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer",
+              }}
+            >
+              <Plus size={14} /> Tambah Proyek
+            </button>
+          )}
         </div>
       ) : (
         <div className="rise rise-2" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
@@ -363,6 +389,15 @@ function ProyekContent() {
             />
           ))}
         </div>
+      )}
+
+      {/* ── Modal ── */}
+      {showModal && (
+        <ProjectModal
+          mode="create"
+          onClose={() => setShowModal(false)}
+          onSuccess={handleCreateSuccess}
+        />
       )}
     </div>
   );
