@@ -13,6 +13,7 @@ export default async function userRoutes(app: FastifyInstance) {
     let query = supabase
       .from('users')
       .select('id, name, email, phone, role')
+      .eq('is_active', true)
       .order('name', { ascending: true })
 
     if (role) {

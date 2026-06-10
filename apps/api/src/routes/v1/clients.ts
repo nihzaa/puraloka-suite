@@ -11,6 +11,7 @@ export default async function clientRoutes(app: FastifyInstance) {
     const { data, error } = await supabase
       .from('clients')
       .select('id, company_name, contact_person, phone, email, client_type, address')
+      .eq('is_active', true)
       .order('contact_person', { ascending: true })
 
     if (error) return reply.status(500).send({ error: error.message })
