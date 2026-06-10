@@ -126,8 +126,13 @@ export default async function projectRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'Field wajib: name, location, client_id, contract_model, contract_value, start_date, end_date' })
     }
 
+    if (!pm_id) {
+      return reply.status(400).send({ error: 'Project Manager wajib dipilih' })
+    }
+
     const retPct = retention_pct ?? 5
     const retAmount = Number(contract_value) * (retPct / 100)
+    const createdBy = request.currentUser!.id
 
     const { data: project, error: projError } = await supabase
       .from('projects')
@@ -135,7 +140,7 @@ export default async function projectRoutes(app: FastifyInstance) {
         name,
         location,
         client_id,
-        pm_id: pm_id || null,
+        pm_id,
         description: description || null,
         contract_model,
         contract_value: Number(contract_value),
@@ -145,13 +150,17 @@ export default async function projectRoutes(app: FastifyInstance) {
         retention_amount: retAmount,
         start_date,
         end_date,
-        status: 'active',
+        status: 'draft',
         progress_pct: 0,
+        created_by: createdBy,
       })
       .select('id, name, status, created_at')
       .single()
 
-    if (projError) return reply.status(500).send({ error: projError.message })
+    if (projError) {
+      app.log.error({ projError }, 'Failed to create project')
+      return reply.status(500).send({ error: projError.message })
+    }
 
     // Create termin_schedules if contract_model is termin
     if (contract_model === 'termin' && termin_schedules && termin_schedules.length > 0) {

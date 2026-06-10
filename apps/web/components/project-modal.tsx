@@ -102,12 +102,21 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
 
   // Load clients + PMs on mount
   useEffect(() => {
-    api.get<{ clients: ClientOption[] }>("/api/v1/clients")
-      .then(r => setClients(r.data.clients ?? []))
-      .catch(() => {});
-    api.get<{ users: UserOption[] }>("/api/v1/users?role=pm")
-      .then(r => setPms(r.data.users ?? []))
-      .catch(() => {});
+    async function loadDropdownData() {
+      try {
+        const [clientsRes, pmsRes] = await Promise.all([
+          api.get<{ clients: ClientOption[] }>("/api/v1/clients"),
+          api.get<{ users: UserOption[] }>("/api/v1/users?role=pm"),
+        ]);
+        console.log("[modal] clients loaded:", clientsRes.data.clients?.length);
+        console.log("[modal] PMs loaded:", pmsRes.data.users?.length);
+        setClients(clientsRes.data.clients ?? []);
+        setPms(pmsRes.data.users ?? []);
+      } catch (err) {
+        console.error("[modal] Failed to load dropdown data:", err);
+      }
+    }
+    loadDropdownData();
   }, []);
 
   const set = useCallback(<K extends keyof ProjectFormData>(key: K, val: ProjectFormData[K]) => {
@@ -122,6 +131,7 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
     if (!form.name.trim()) e.name = "Nama proyek wajib diisi";
     if (!form.location.trim()) e.location = "Lokasi wajib diisi";
     if (!form.client_id) e.client_id = "Pilih klien";
+    if (!form.pm_id) e.pm_id = "Pilih Project Manager";
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -331,9 +341,9 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
                   ))}
                 </select>
               </Field>
-              <Field label="Project Manager" error={errors.pm_id}>
+              <Field label="Project Manager *" error={errors.pm_id}>
                 <select style={inputStyle} value={form.pm_id} onChange={e => set("pm_id", e.target.value)}>
-                  <option value="">-- Pilih PM (opsional) --</option>
+                  <option value="">-- Pilih PM --</option>
                   {pms.map(u => (
                     <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
                   ))}
