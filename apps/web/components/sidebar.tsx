@@ -33,17 +33,19 @@ function navLink(active: boolean): React.CSSProperties {
   return {
     display: "flex",
     alignItems: "center",
-    gap: 10,
-    padding: "8px 14px",
+    gap: 8,
+    padding: "0 14px",
     margin: "1px 8px",
-    borderRadius: 8,
-    fontSize: 13.5,
+    height: 38,
+    borderRadius: 6,
+    fontSize: 14,
     fontWeight: active ? 500 : 400,
     textDecoration: "none",
     transition: "all 0.15s",
-    borderLeft: active ? "3px solid #40a0ff" : "3px solid transparent",
-    color: active ? "#40a0ff" : "rgba(232,236,244,0.45)",
-    background: active ? "rgba(64,160,255,0.08)" : "transparent",
+    borderLeft: active ? "3px solid #003366" : "3px solid transparent",
+    color: active ? "#003366" : "#6B7280",
+    background: active ? "#EBF2FF" : "transparent",
+    position: "relative",
   };
 }
 
@@ -70,10 +72,8 @@ export function Sidebar() {
     <aside
       style={{
         width: 220,
-        background: "rgba(0,10,30,0.95)",
-        backdropFilter: "blur(24px)",
-        WebkitBackdropFilter: "blur(24px)",
-        borderRight: "1px solid rgba(0,51,102,0.35)",
+        background: "#FFFFFF",
+        borderRight: "1px solid #E5E7EB",
         height: "100vh",
         position: "fixed",
         top: 0,
@@ -87,29 +87,29 @@ export function Sidebar() {
       {/* Logo */}
       <div style={{
         padding: "20px 16px 16px",
-        borderBottom: "1px solid rgba(0,51,102,0.25)",
+        borderBottom: "1px solid #E5E7EB",
         display: "flex",
         alignItems: "center",
         gap: 10,
       }}>
         <div style={{
-          width: 32,
-          height: 32,
-          borderRadius: 8,
+          width: 36,
+          height: 36,
+          borderRadius: 10,
           background: "#003366",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           flexShrink: 0,
-          boxShadow: "0 0 16px rgba(64,160,255,0.3), 0 0 4px rgba(64,160,255,0.15)",
+          boxShadow: "0 2px 8px rgba(0,51,102,0.3)",
         }}>
-          <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 15, color: "#40a0ff" }}>P</span>
+          <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 16, color: "#FFFFFF" }}>P</span>
         </div>
         <div>
-          <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14, color: "#e8ecf4", lineHeight: 1 }}>
+          <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "#111827", lineHeight: 1, letterSpacing: "-0.3px" }}>
             Puraloka
           </div>
-          <div style={{ fontSize: 10, color: "rgba(64,160,255,0.7)", marginTop: 2 }}>Suite</div>
+          <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 2, letterSpacing: "0.05em" }}>Suite</div>
         </div>
       </div>
 
@@ -121,7 +121,7 @@ export function Sidebar() {
           fontWeight: 600,
           letterSpacing: "0.12em",
           textTransform: "uppercase",
-          color: "rgba(232,236,244,0.2)",
+          color: "#9CA3AF",
         }}>
           Menu
         </div>
@@ -134,44 +134,50 @@ export function Sidebar() {
               style={navLink(active)}
               onMouseEnter={(e) => {
                 if (!active) {
-                  e.currentTarget.style.color = "rgba(232,236,244,0.75)";
-                  e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+                  e.currentTarget.style.color = "#111827";
+                  e.currentTarget.style.background = "#F3F4F6";
                 }
               }}
               onMouseLeave={(e) => {
                 if (!active) {
-                  e.currentTarget.style.color = "rgba(232,236,244,0.45)";
+                  e.currentTarget.style.color = "#6B7280";
                   e.currentTarget.style.background = "transparent";
                 }
               }}
             >
               <Icon size={16} strokeWidth={active ? 2.5 : 1.75} style={{ flexShrink: 0 }} />
-              <span>{label}</span>
+              <span style={{ flex: 1 }}>{label}</span>
+              {active && (
+                <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#003366", flexShrink: 0 }} />
+              )}
             </Link>
           );
         })}
       </nav>
 
       {/* Bottom */}
-      <div style={{ padding: "12px 8px", borderTop: "1px solid rgba(0,51,102,0.25)" }}>
+      <div style={{ padding: "12px 8px", borderTop: "1px solid #E5E7EB" }}>
         <Link
           href="/pengaturan"
           style={navLink(pathname.startsWith("/pengaturan"))}
           onMouseEnter={(e) => {
             if (!pathname.startsWith("/pengaturan")) {
-              e.currentTarget.style.color = "rgba(232,236,244,0.75)";
-              e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+              e.currentTarget.style.color = "#111827";
+              e.currentTarget.style.background = "#F3F4F6";
             }
           }}
           onMouseLeave={(e) => {
             if (!pathname.startsWith("/pengaturan")) {
-              e.currentTarget.style.color = "rgba(232,236,244,0.45)";
+              e.currentTarget.style.color = "#6B7280";
               e.currentTarget.style.background = "transparent";
             }
           }}
         >
           <Settings size={16} strokeWidth={1.75} style={{ flexShrink: 0 }} />
-          <span>Pengaturan</span>
+          <span style={{ flex: 1 }}>Pengaturan</span>
+          {pathname.startsWith("/pengaturan") && (
+            <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#003366", flexShrink: 0 }} />
+          )}
         </Link>
 
         {user && (
@@ -179,45 +185,50 @@ export function Sidebar() {
             display: "flex",
             alignItems: "center",
             gap: 10,
-            padding: "8px 10px",
+            padding: "10px 12px",
             marginTop: 8,
-            borderRadius: 8,
-            background: "rgba(255,255,255,0.03)",
+            borderRadius: 10,
+            background: "#F9FAFB",
+            border: "1px solid #E5E7EB",
           }}>
             <div style={{
-              width: 28,
-              height: 28,
+              width: 32,
+              height: 32,
               borderRadius: "50%",
-              background: "#003366",
-              border: "1px solid rgba(64,160,255,0.3)",
+              background: "#EBF2FF",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               flexShrink: 0,
-              fontSize: 11,
-              fontWeight: 700,
-              color: "#40a0ff",
+              fontSize: 13,
+              fontWeight: 600,
+              color: "#003366",
             }}>
               {user.name.charAt(0).toUpperCase()}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 500, color: "rgba(232,236,244,0.75)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {user.name}
               </div>
-              <div style={{ fontSize: 10, color: "rgba(232,236,244,0.3)", marginTop: 1 }}>
+              <div style={{
+                display: "inline-block", marginTop: 3,
+                fontSize: 10, textTransform: "uppercase", letterSpacing: "0.03em",
+                background: "#EBF2FF", color: "#003366",
+                borderRadius: 4, padding: "1px 6px", fontWeight: 600,
+              }}>
                 {roleLabel[user.role] ?? user.role}
               </div>
             </div>
             <button
               onClick={handleLogout}
               title="Keluar"
-              style={{ padding: 6, borderRadius: 6, background: "transparent", border: "none", cursor: "pointer", color: "rgba(232,236,244,0.25)", flexShrink: 0, display: "flex", alignItems: "center" }}
+              style={{ padding: 6, borderRadius: 6, background: "transparent", border: "none", cursor: "pointer", color: "#9CA3AF", flexShrink: 0, display: "flex", alignItems: "center" }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.color = "#f87171";
-                e.currentTarget.style.background = "rgba(248,113,113,0.1)";
+                e.currentTarget.style.color = "#B91C1C";
+                e.currentTarget.style.background = "#FEF2F2";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = "rgba(232,236,244,0.25)";
+                e.currentTarget.style.color = "#9CA3AF";
                 e.currentTarget.style.background = "transparent";
               }}
             >

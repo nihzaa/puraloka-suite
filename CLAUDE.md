@@ -18,9 +18,8 @@ Platform bernama **Puraloka Suite** — web dashboard admin + mobile app + backe
 | Web Dashboard | Next.js 16 + Tailwind CSS v4 + TypeScript |
 | Mobile | React Native + Expo (belum disetup) |
 | Database | PostgreSQL via Supabase |
-| Auth | Supabase Auth (email/password + Google OAuth) |
+| Auth | Supabase Auth (email/password + Google OAuth aktif) |
 | Storage | Supabase Storage |
-| Realtime | Supabase Realtime |
 | Package Manager | pnpm (monorepo dengan pnpm workspaces) |
 | Language | TypeScript semua layer |
 
@@ -48,6 +47,7 @@ puraloka-suite/
 - Project URL: `https://tgozokxyvwmyvajgqfxw.supabase.co`
 - Region: Southeast Asia (Singapore)
 - Auth providers aktif: Email/Password, Google OAuth
+- **RLS: DISABLED di semua tabel** (sengaja untuk development, perlu diaktifkan kembali dengan proper policies sebelum production)
 
 ---
 
@@ -91,33 +91,29 @@ puraloka-suite/
 ## Business Logic Kritis
 
 ### Contract Models
-Setiap proyek punya `contract_model`:
 - `termin` — tagih klien per tahap sesuai `termin_schedules`
-- `komisi` — lo lapor semua pengeluaran via `expense_reports`, tagih total pengeluaran + persentase komisi (`commission_pct`)
+- `komisi` — lapor pengeluaran via `expense_reports`, tagih total + `commission_pct`
 
 ### Tax Schemes
 - `pph_final` — default untuk klien perorangan, PPh final pasal 4(2) tarif 2%
-- `ppn` — untuk B2B, PPN 11% (disiapkan, belum jadi fitur utama)
+- `ppn` — untuk B2B, PPN 11%
 
 ### Mandor Payment Systems
-Setiap `work_scope` punya `payment_system` sendiri:
 - `harian` — bayar per minggu, input total upah langsung (tidak dirinci per tukang)
 - `borongan` — bayar setelah selesai, ada settlement akhir
-- `progress_pct` — bayar per persentase progress, ada kasbon limit 80% dari earned value
+- `progress_pct` — bayar per persentase progress, kasbon limit 80% dari earned value
 
 ### Kasbon Rules
 - Berlaku untuk SEMUA payment_system
 - Selalu di level mandor (bukan per tukang individual)
 - Tujuan: `gaji_tukang`, `uang_makan`, `pembelian_alat`, `operasional`, `lain_lain`
-- Fund source: `owner_advance` (talangan owner) atau `client_fund` (dari DP klien)
-- Untuk `progress_pct`: kasbon limit = 80% dari earned value (bisa di-override per scope)
-- Melebihi limit → warning + butuh approval override dari admin
+- Fund source: `owner_advance` atau `client_fund`
 
 ### Roles & Access
-- `admin` — akses penuh semua data, bisa register user baru
-- `pm` — kelola proyek yang di-assign, input progress, kelola mandor
-- `mandor` — lihat scope pekerjaan sendiri, input progress, lihat kasbon sendiri
-- `client` — lihat progress proyek mereka saja, lihat invoice, tidak bisa edit apapun
+- `admin` — akses penuh, bisa register user baru
+- `pm` — kelola proyek yang di-assign
+- `mandor` — lihat scope sendiri, input progress, lihat kasbon sendiri
+- `client` — read-only portal proyek mereka
 
 ---
 
@@ -134,6 +130,9 @@ Setiap `work_scope` punya `payment_system` sendiri:
 | POST | `/api/v1/auth/refresh` | Refresh token |
 | GET | `/api/v1/projects` | List semua proyek + join clients & PM |
 | GET | `/api/v1/projects/:id` | Detail proyek + semua nested data |
+| GET | `/api/v1/dashboard?period=` | Dashboard aggregation data |
+
+**Period params:** `last_30_days`, `last_3_months`, `last_6_months`, `this_year`, `all_time`
 
 **Auth header:** `Authorization: Bearer <token>`
 
@@ -150,7 +149,8 @@ apps/api/src/
 └── routes/
     └── v1/
         ├── auth.ts       → Auth routes
-        └── projects.ts   → Projects routes
+        ├── projects.ts   → Projects routes
+        └── dashboard.ts  → Dashboard aggregation route
 ```
 
 ---
@@ -163,49 +163,48 @@ apps/web/
 │   ├── globals.css                   → Design tokens (Tailwind v4 @theme)
 │   ├── page.tsx                      → Root redirect ke /dashboard
 │   ├── login/
-│   │   └── page.tsx                  → Login page (sudah ada, berfungsi)
+│   │   └── page.tsx                  → Login page (berfungsi, email+password)
 │   └── (dashboard)/
-│       ├── layout.tsx                → Dashboard layout (placeholder, belum dibangun)
+│       ├── layout.tsx                → Dashboard layout dengan sidebar
 │       └── dashboard/
-│           └── page.tsx              → Dashboard home (placeholder)
+│           └── page.tsx              → Dashboard home (BERFUNGSI dengan data real)
+├── components/
+│   ├── sidebar.tsx                   → Sidebar navigasi
+│   └── topbar.tsx                    → Top navigation bar
 ├── lib/
 │   ├── supabase.ts                   → Supabase client (anon key)
-│   └── api.ts                        → Axios client + login/logout/getStoredUser
+│   └── api.ts                        → Axios client + login/logout/cookie handling
 └── middleware.ts                     → Auth guard (redirect berdasarkan cookie token)
 ```
 
 ---
 
-## Design System — "Architectural Precision"
+## Design System — AKAN DIUBAH KE LIGHT THEME
 
-**Konsep:** Modern, bersih, industrial/blueprint. Konsisten di web dan mobile.
+**Status saat ini:** Dark theme dengan navy/blue accent
+**Target redesign:** Light theme modern
+
+**Warna brand:**
+- Logo/Brand: `#003366` (navy deep) → akan jadi AKSEN, bukan warna utama
+- Aksen sekunder: `#0066CC` untuk link dan icon aktif
+
+**Target color system (light theme):**
+- Background: `#F8F9FA` warm white
+- Surface/card: `#FFFFFF` dengan shadow tipis
+- Aksen utama: `#003366` untuk tombol, active state, highlight
+- Text primary: `#111827`
+- Text secondary: `#6B7280`
+- Border: `#E5E7EB`
+- Success: `#15803d`, Warning: `#D97706`, Danger: `#B91C1C`
 
 **Fonts:**
-- Display/Headings: `Bricolage Grotesque` (geometric, architectural)
-- Body: `Plus Jakarta Sans` (clean, Indonesian-made)
+- Display/Headings: `Bricolage Grotesque`
+- Body: `Plus Jakarta Sans`
 
-**CSS Variables (dari globals.css):**
-```css
---color-ink: #16140f          /* near-black, primary text */
---color-ink-soft: #2b2823     /* sidebar background */
---color-paper: #faf8f3        /* warm off-white background */
---color-paper-pure: #ffffff   /* pure white for cards */
---color-amber: #d97706        /* primary accent */
---color-amber-deep: #b45309   /* hover state */
---color-amber-glow: #fbbf24   /* highlight */
---color-clay: #57534e         /* secondary text */
---color-line: #e7e2d6         /* borders/dividers */
---color-success: #15803d
---color-danger: #b91c1c
-```
-
-**Prinsip UI yang HARUS dijaga:**
-- Tidak boleh pakai font Inter, Roboto, Arial, system fonts
-- Tidak boleh pakai purple gradient on white (cliché)
-- Selalu gunakan CSS variables di atas untuk warna
-- Animasi: class `rise`, `rise-1`, `rise-2`, dst (sudah didefinisikan di globals.css)
-- Dark sidebar (`--color-ink-soft`) + light content area (`--color-paper`)
-- Tailwind v4 — config via `@theme` di CSS, bukan `tailwind.config.js`
+**Prinsip UI:**
+- Clean, modern, enterprise-grade seperti Notion/Stripe/Linear light mode
+- Tidak boleh terlihat seperti template generik
+- Konsisten di web dan mobile nanti
 
 ---
 
@@ -214,7 +213,9 @@ apps/web/
 2. Tidak ada token → redirect ke `/login`
 3. Login sukses → token disimpan di cookie + user data di localStorage
 4. Semua API call otomatis sisipkan token via axios interceptor
-5. Token expire → perlu refresh atau login ulang
+5. Token expire → hapus cookie manual, login ulang
+
+**Catatan penting:** Token Supabase expire setelah ~1 jam. Kalau dashboard return 401, hapus cookie `puraloka_token` dan `puraloka_refresh` di DevTools → Application → Cookies, lalu login ulang.
 
 ---
 
@@ -237,10 +238,61 @@ NEXT_PUBLIC_SUPABASE_KEY=<publishable key>
 
 ---
 
+## Cara Menjalankan
+
+**Backend API:**
+```bash
+cd E:\Project\puraloka-suite\apps\api
+node --loader ts-node/esm src/index.ts
+```
+
+**Frontend Web:**
+```bash
+cd E:\Project\puraloka-suite\apps\web
+pnpm dev
+```
+
+---
+
 ## Seed Data (sudah ada di database)
-- 5 proyek aktif/completed di Bandung
-- 12 users (1 admin: nizarzul16@gmail.com, 2 PM, 4 mandor, 5 client)
-- Data lengkap: termin, invoice, kasbon, progress logs, milestones, dll
+- 5 proyek (4 aktif, 1 selesai) di Bandung
+- 12 users: 1 admin (nizarzul16@gmail.com), 2 PM, 4 mandor, 5 client
+- Data lengkap: termin, invoice, kasbon, progress logs, milestones, payments
+- Data periode: Februari - Mei 2026
+
+---
+
+## Status Dashboard (SUDAH BERFUNGSI)
+Dashboard home page sudah menampilkan data real:
+- ✅ KPI cards: proyek aktif, total kontrak, invoice outstanding, kas bersih
+- ✅ Cashflow area chart 8 minggu
+- ✅ Donut chart distribusi status proyek
+- ✅ Progress bar per proyek aktif
+- ✅ Tabel invoice belum lunas
+- ✅ Alert banner invoice overdue
+- ✅ Period filter: 30 hari, 3 bulan, 6 bulan, tahun ini, semua
+- ✅ Auth guard (redirect ke login jika tidak ada token)
+
+---
+
+## Known Issues & TODO
+
+### Harus diselesaikan sebelum production:
+1. **RLS policies** — RLS saat ini DISABLED. Perlu dibuat proper RLS policies per role sebelum production
+2. **Token refresh** — belum ada auto-refresh token, user harus login ulang kalau expired
+3. **Google OAuth** — provider aktif di Supabase tapi belum diwire ke tombol login di frontend
+
+### Next development tasks (urutan prioritas):
+1. **Redesign UI ke light theme** — dengan aksen #003366, style modern clean
+2. **Draggable widget dashboard** — pakai `react-grid-layout`, layout tersimpan per user
+3. **Halaman Proyek** — list + detail proyek
+4. **Halaman Keuangan** — invoice, expense, cashflow
+5. **Halaman Mandor** — assignment, kasbon, upah
+6. **Halaman Laporan** — export PDF/Excel
+7. **More API endpoints** — mandor, kasbon, invoices, expenses, progress
+8. **Remote config untuk mobile** — CMS dari dashboard untuk kontrol banner/widget mobile
+9. **Mobile app** — React Native Expo (belum disetup)
+10. **Google OAuth** — implementasi di frontend
 
 ---
 
@@ -250,17 +302,3 @@ NEXT_PUBLIC_SUPABASE_KEY=<publishable key>
 - Files: `kebab-case`
 - Git branches: `feature/nama-fitur`
 - Commit: Conventional Commits (`feat:`, `fix:`, `chore:`, dll)
-
----
-
-## Yang Belum Dibangun (Next Steps)
-1. **Dashboard layout** — sidebar navigasi + header + content area
-2. **Dashboard home** — summary cards + list proyek + notifikasi
-3. **Halaman Proyek** — list + detail proyek
-4. **Halaman Keuangan** — invoice, expense, cashflow
-5. **Halaman Mandor** — assignment, kasbon, upah
-6. **Halaman Laporan** — export PDF/Excel
-7. **Client Portal** — view-only untuk klien
-8. **Mobile app** — React Native Expo (belum disetup sama sekali)
-9. **More API endpoints** — mandor, kasbon, invoices, expenses, progress
-10. **Google OAuth** — implementasi di frontend login page

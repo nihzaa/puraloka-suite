@@ -26,16 +26,15 @@ export function Topbar() {
   return (
     <header
       style={{
-        height: 52,
+        height: 56,
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
         padding: "0 24px",
         flexShrink: 0,
-        background: "rgba(8,12,20,0.8)",
-        backdropFilter: "blur(16px)",
-        WebkitBackdropFilter: "blur(16px)",
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        background: "#FFFFFF",
+        borderBottom: "1px solid #E5E7EB",
+        boxShadow: "0 1px 0 #E5E7EB",
         position: "sticky",
         top: 0,
         zIndex: 40,
@@ -43,9 +42,9 @@ export function Topbar() {
     >
       {/* Breadcrumb */}
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <span style={{ fontSize: 12, color: "rgba(232,236,244,0.25)" }}>Puraloka Suite</span>
-        <span style={{ fontSize: 12, color: "rgba(232,236,244,0.15)" }}>/</span>
-        <span style={{ fontSize: 12, fontWeight: 500, color: "rgba(232,236,244,0.6)" }}>{title}</span>
+        <span style={{ fontSize: 13, color: "#9CA3AF" }}>Puraloka Suite</span>
+        <span style={{ fontSize: 13, color: "#D1D5DB" }}>/</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>{title}</span>
       </div>
 
       {/* Right actions */}
@@ -65,8 +64,8 @@ export function Topbar() {
               width: 6,
               height: 6,
               borderRadius: "50%",
-              background: "#40a0ff",
-              border: "1.5px solid rgba(8,12,20,0.9)",
+              background: "#003366",
+              border: "1.5px solid #FFFFFF",
             }}
           />
         </div>
@@ -80,25 +79,25 @@ function IconBtn({ children, title }: { children: React.ReactNode; title?: strin
     <button
       title={title}
       style={{
-        width: 32,
-        height: 32,
+        width: 36,
+        height: 36,
         borderRadius: 8,
         background: "transparent",
         border: "none",
         cursor: "pointer",
-        color: "rgba(232,236,244,0.35)",
+        color: "#6B7280",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         transition: "all 0.15s",
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = "rgba(64,160,255,0.08)";
-        e.currentTarget.style.color = "#40a0ff";
+        e.currentTarget.style.background = "#F3F4F6";
+        e.currentTarget.style.color = "#111827";
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.background = "transparent";
-        e.currentTarget.style.color = "rgba(232,236,244,0.35)";
+        e.currentTarget.style.color = "#6B7280";
       }}
     >
       {children}
