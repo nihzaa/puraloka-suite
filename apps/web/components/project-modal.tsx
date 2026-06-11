@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useReducer } from "react";
+import { createPortal } from "react-dom";
 import { X, Plus, Trash2, ChevronRight, ChevronLeft, Check } from "lucide-react";
 import { api } from "@/lib/api";
 
@@ -92,6 +93,9 @@ const DEFAULT_FORM: ProjectFormData = {
 // ─── Main modal ───────────────────────────────────────────────────────────────
 
 export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess }: ProjectModalProps) {
+  const [mounted, setMounted] = useReducer(() => true, false);
+  useEffect(setMounted, [setMounted]);
+
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<ProjectFormData>(() => ({ ...DEFAULT_FORM, ...initialData }));
   const [clients, setClients] = useState<ClientOption[]>([]);
@@ -256,7 +260,9 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
 
   const isLastStep = step === totalSteps;
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div
       style={{
         position: "fixed", inset: 0,
@@ -549,7 +555,8 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

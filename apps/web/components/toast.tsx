@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, createContext, useContext, useCallback, useReducer } from "react";
+import { createPortal } from "react-dom";
 import { CheckCircle2, XCircle, X } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -50,7 +51,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      {mounted && (
+      {mounted && createPortal(
         <div style={{
           position: "fixed", bottom: 24, right: 24,
           display: "flex", flexDirection: "column", gap: 10,
@@ -59,7 +60,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           {toasts.map(t => (
             <ToastItem key={t.id} toast={t} onDismiss={dismiss} />
           ))}
-        </div>
+        </div>,
+        document.body
       )}
     </ToastContext.Provider>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useReducer, useState } from "react";
+import { createPortal } from "react-dom";
 import { useParams, useRouter } from "next/navigation";
 import { api, getStoredUser } from "@/lib/api";
 import {
@@ -839,7 +840,7 @@ function ProjectDetailContent() {
       )}
 
       {/* ── Delete confirmation ── */}
-      {showDeleteConfirm && (
+      {showDeleteConfirm && createPortal(
         <div
           style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 24 }}
           onClick={e => { if (e.target === e.currentTarget) setShowDeleteConfirm(false); }}
@@ -871,7 +872,8 @@ function ProjectDetailContent() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

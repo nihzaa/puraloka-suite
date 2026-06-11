@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { X, Upload, Trash2, Loader2, Camera } from "lucide-react";
 import { createProgressLog } from "@/lib/api";
 import { uploadProgressPhoto } from "@/lib/storage";
@@ -194,11 +195,14 @@ export function ProgressLogModal({
     }
   };
 
-  if (!isOpen) return null;
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
+  if (!isOpen || !mounted) return null;
 
   const anyUploading = photos.some(p => p.uploading);
 
-  return (
+  return createPortal(
     <>
       {/* ── Backdrop ── */}
       <div
@@ -620,6 +624,7 @@ export function ProgressLogModal({
         input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
         input[type=number] { -moz-appearance: textfield; }
       `}</style>
-    </>
+    </>,
+    document.body
   );
 }
