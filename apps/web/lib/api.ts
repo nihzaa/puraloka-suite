@@ -145,3 +145,75 @@ export function getStoredUser(): PuralokaUser | null {
   const raw = localStorage.getItem("puraloka_user");
   return raw ? JSON.parse(raw) : null;
 }
+
+// ─── Progress Log types ───────────────────────────────────────────────────────
+
+export interface ProgressPhoto {
+  id: string;
+  url: string;
+  caption: string | null;
+  taken_at: string | null;
+}
+
+export interface ProgressLog {
+  id: string;
+  pct_overall: number;
+  weather: string | null;
+  worker_count: number | null;
+  notes: string | null;
+  logged_at: string;
+  created_at: string;
+  reporter: { id: string; name: string; role: string } | null;
+  photos: ProgressPhoto[];
+}
+
+export interface ProgressLogMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface CreateProgressLogPayload {
+  pct_overall: number;
+  weather?: string;
+  worker_count?: number;
+  notes?: string;
+  logged_at?: string;
+  photos?: Array<{ url: string; caption?: string; taken_at?: string }>;
+}
+
+// ─── Progress Log API functions ───────────────────────────────────────────────
+
+export async function getProgressLogs(
+  projectId: string,
+  page = 1,
+  limit = 20
+): Promise<{ data: ProgressLog[]; meta: ProgressLogMeta }> {
+  const { data } = await api.get<{ data: ProgressLog[]; meta: ProgressLogMeta }>(
+    `/api/v1/projects/${projectId}/progress-logs`,
+    { params: { page, limit } }
+  );
+  return data;
+}
+
+export async function createProgressLog(
+  projectId: string,
+  payload: CreateProgressLogPayload
+): Promise<{ data: ProgressLog }> {
+  const { data } = await api.post<{ data: ProgressLog }>(
+    `/api/v1/projects/${projectId}/progress-logs`,
+    payload
+  );
+  return data;
+}
+
+export async function deleteProgressLog(
+  projectId: string,
+  logId: string
+): Promise<{ success: boolean }> {
+  const { data } = await api.delete<{ success: boolean }>(
+    `/api/v1/projects/${projectId}/progress-logs/${logId}`
+  );
+  return data;
+}

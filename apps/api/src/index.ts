@@ -9,6 +9,7 @@ import dashboardRoutes from './routes/v1/dashboard.js'
 import kasbonRoutes from './routes/v1/kasbons.js'
 import clientRoutes from './routes/v1/clients.js'
 import userRoutes from './routes/v1/users.js'
+import progressRoutes from './routes/v1/progress.js'
 
 dotenv.config()
 
@@ -47,6 +48,7 @@ await app.register(dashboardRoutes)
 await app.register(kasbonRoutes)
 await app.register(clientRoutes)
 await app.register(userRoutes)
+await app.register(progressRoutes)
 
 const PORT = Number(process.env.PORT) || 3001
 

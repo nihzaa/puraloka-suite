@@ -4,16 +4,16 @@ import { useEffect, useReducer, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api, getStoredUser } from "@/lib/api";
 import {
-  MapPin, Calendar, ChevronLeft, RefreshCw,
+  MapPin, Calendar, RefreshCw,
   User, TrendingUp,
-  Clock, CloudRain, Sun, Cloud, Users,
-  CheckCircle2, AlertCircle,
+  Clock, CheckCircle2, AlertCircle,
   Wallet, Receipt,
   Pencil, Trash2,
   CreditCard, CheckSquare, Banknote,
 } from "lucide-react";
 import { ProjectModal } from "@/components/project-modal";
 import { useToast } from "@/components/toast";
+import { ProgressSection } from "@/components/progress-section";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -87,9 +87,6 @@ const fmtDate = (d: string) =>
 
 const fmtDateShort = (d: string) =>
   new Date(d).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
-
-const fmtDateTime = (d: string) =>
-  new Date(d).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
 const daysUntil = (d: string) =>
   Math.ceil((new Date(d).getTime() - Date.now()) / 86400000);
@@ -681,54 +678,16 @@ function ProjectDetailContent() {
         </div>
       )}
 
-      {/* ── Progress logs ── */}
-      <div className="rise rise-4" style={{ ...card, padding: 24, marginBottom: 20 }}>
-        <SectionTitle>Log Progress Lapangan</SectionTitle>
-        {(p.progress_logs?.length ?? 0) === 0 ? (
-          <div style={{ textAlign: "center", padding: "24px 0", color: C.muted, fontSize: 13 }}>
-            Belum ada log progress untuk proyek ini.
-          </div>
-        ) : (
-          <div style={{ paddingLeft: 16, position: "relative" }}>
-            <div style={{ position: "absolute", left: 19, top: 8, bottom: 8, width: 2, background: "#E5E7EB" }} />
-            {(p.progress_logs ?? []).map(log => (
-              <div key={log.id} style={{ display: "flex", gap: 16, paddingBottom: 16, position: "relative" }}>
-                <div style={{
-                  width: 8, height: 8, borderRadius: "50%", background: C.navy,
-                  flexShrink: 0, marginTop: 8, position: "relative", zIndex: 1,
-                  border: "2px solid #F8F9FA",
-                }} />
-                <div style={{ ...card, borderRadius: 10, padding: "12px 16px", flex: 1 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 8 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 800, color: C.navy }}>{log.pct_overall}%</span>
-                      <div>
-                        {log.weather && (
-                          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: C.muted }}>
-                            {log.weather === "Cerah" ? <Sun size={11} /> : log.weather === "Hujan" ? <CloudRain size={11} /> : <Cloud size={11} />}
-                            {log.weather}
-                          </div>
-                        )}
-                        {log.worker_count !== null && (
-                          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: C.muted }}>
-                            <Users size={11} /> {log.worker_count} pekerja
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div style={{ fontSize: 11, color: C.muted }}>{fmtDateTime(log.logged_at)}</div>
-                      {log.reporter && <div style={{ fontSize: 11, color: C.navy, marginTop: 2 }}>oleh {log.reporter.name}</div>}
-                    </div>
-                  </div>
-                  {log.notes && (
-                    <p style={{ fontSize: 12, color: C.mid, lineHeight: 1.5 }}>{log.notes}</p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+      {/* ── Progress logs (dynamic section with photo support) ── */}
+      <div className="rise rise-4" style={{ marginBottom: 20 }}>
+        <ProgressSection
+          projectId={p.id}
+          workScopes={(p.mandor_assignments ?? []).flatMap(ma =>
+            (ma.work_scopes ?? []).map(ws => ({ id: ws.id, scope_name: ws.scope_name }))
+          )}
+          userRole={currentUser?.role}
+          userId={currentUser?.id}
+        />
       </div>
 
       {/* ── Milestones ── */}
