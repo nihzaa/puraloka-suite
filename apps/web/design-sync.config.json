@@ -1,0 +1,15 @@
+{
+  "pkg": "web",
+  "globalName": "PuralokaSuite",
+  "shape": "package",
+  "srcDir": "components",
+  "tsconfig": "./tsconfig.json",
+  "entry": "nonexistent.js",
+  "libOverrides": {
+    "bundle.mjs": "Next.js app components — stub next/navigation, next/link, next/image, next-themes to prevent scheduler bundling error"
+  },
+  "componentSrcMap": {
+    "InvoicePDF": null,
+    "TerminPaymentModal": null
+  }
+}
