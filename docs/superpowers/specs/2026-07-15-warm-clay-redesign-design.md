@@ -29,6 +29,21 @@ Arah yang dipilih setelah eksplorasi mockup (3 varian palet dibandingkan langsun
 
 ---
 
+## 2A. Konvensi Kode Komponen (Arsitektur, bukan cuma Visual)
+
+Redesign ini juga menaikkan level konvensi penulisan komponen ke pola yang sudah terbukti di project lain milik user (`automation-tjs/admin-dashboard`), yang mengikuti standar **shadcn/ui** — pola paling umum dipakai di ekosistem React/Next.js modern:
+
+- **Lokasi terpusat**: primitive/base component di `apps/web/components/ui/` (satu file per komponen: `button.tsx`, `card.tsx`, `badge.tsx`, dst). Komponen spesifik domain/fitur (mis. `rab-section.tsx`, `mandor-section.tsx`) tetap di `apps/web/components/` root seperti sekarang — hanya primitive yang pindah ke `ui/`.
+- **Styling via Tailwind utility class**, bukan inline `style={{ background: "var(--navy)" }}`. Warna tetap bersumber dari CSS custom property (design token §3), tapi diekspos ke Tailwind lewat `@theme` mapping (mis. `bg-primary` → `var(--primary)`), sehingga dipakai sebagai class (`className="bg-primary"`), bukan inline style.
+- **Varian komponen via `class-variance-authority` (cva)** — setiap komponen dengan variant (Button: primary/secondary/accent/danger/ghost; Badge: ok/warn/danger/info) didefinisikan sebagai satu `cva(...)` config, bukan lookup object manual.
+- **`cn()` helper** (`clsx` + `tailwind-merge`) di `apps/web/lib/utils.ts` untuk menggabungkan className dengan aman (menghindari konflik utility class yang saling override).
+- **`data-slot` attribute** pada elemen root tiap komponen (mis. `data-slot="card"`) — memudahkan styling kontekstual dari parent (`has-data-[slot=...]`) dan konsisten dengan pola automation-tjs.
+- Dependency baru yang perlu ditambahkan ke `apps/web/package.json`: `clsx`, `tailwind-merge`, `class-variance-authority`. Headless primitive library (`@base-ui/react`, dipakai automation-tjs untuk Dialog/Select/dsb yang butuh accessibility behavior kompleks) **ditunda** — baru dievaluasi saat fase yang benar-benar butuh (Modal/Dialog di fase halaman, bukan fase design system dasar).
+
+Ini adalah keputusan arsitektur, bukan sekadar penempatan file — migrasi dari inline-style ke utility-class+cva adalah upgrade konvensi kode yang disengaja, disetujui user secara eksplisit setelah membandingkan dengan `automation-tjs`.
+
+---
+
 ## 3. Design Tokens
 
 ### 3.1 Warna — Light Mode
