@@ -37,6 +37,24 @@
   --info-bg:          #EFF6FF;
   --info-border:      #BFDBFE;
 
+  /* ─── Warm Clay tokens — Light ───────────────────────────────── */
+  --primary:          #003B5C;
+  --primary-soft:      #E4EEF2;
+  --accent:            #E08A3C;
+  --accent-soft:       #FBE8D3;
+  --accent-2:          #C75D3D;
+
+  --radius-sm:         10px;
+  --radius-md:         14px;
+  --radius-lg:         20px;
+  --radius-xl:         24px;
+  --radius-pill:       999px;
+  --radius-dense:      8px;
+
+  --shadow-2:          0 8px 20px -6px rgba(43,38,33,0.14), 0 2px 6px rgba(43,38,33,0.06);
+  --shadow-inset:      inset 0 1px 0 rgba(255,255,255,0.6);
+  --shadow-press:      0 1px 1px rgba(43,38,33,0.08);
+
   --shadow-sm:        0 1px 2px rgba(0,0,0,0.06);
   --shadow-md:        0 4px 12px rgba(0,0,0,0.08);
   --shadow-lg:        0 8px 24px rgba(0,0,0,0.10);
@@ -73,6 +91,17 @@
   --info:             #60A5FA;
   --info-bg:          rgba(96,165,250,0.10);
   --info-border:      rgba(96,165,250,0.25);
+
+  /* ─── Warm Clay tokens — Dark ─────────────────────────────────── */
+  --primary:           #4D9FFF;
+  --primary-soft:      rgba(77,159,255,0.12);
+  --accent:            #E8A868;
+  --accent-soft:       rgba(232,168,104,0.14);
+  --accent-2:          #D97F5E;
+
+  --shadow-2:          0 8px 20px -6px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.25);
+  --shadow-inset:      inset 0 1px 0 rgba(255,255,255,0.04);
+  --shadow-press:      0 1px 1px rgba(0,0,0,0.35);
 
   --shadow-sm:        0 1px 2px rgba(0,0,0,0.30);
   --shadow-md:        0 4px 12px rgba(0,0,0,0.40);
