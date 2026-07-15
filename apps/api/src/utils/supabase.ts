@@ -11,7 +11,13 @@ export const supabaseAuth = createClient(supabaseUrl, supabaseKey, {
   auth: { persistSession: false, autoRefreshToken: false },
 })
 
-// Admin client: service role, never has user JWT set — bypasses RLS on all data queries
+// Admin client: service role with explicit Authorization header to bypass RLS.
+// We force the service-role key in every request so that even if the auth state
+// from supabaseAuth.getUser() bleeds into shared memory, our data queries always
+// present the service-role key to the database.
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: { persistSession: false, autoRefreshToken: false },
+  global: {
+    headers: { Authorization: `Bearer ${supabaseKey}` },
+  },
 })
