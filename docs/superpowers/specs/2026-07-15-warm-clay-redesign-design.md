@@ -136,7 +136,7 @@ Semua `-bg` varian status di dark mode pakai formula `rgba(<hex>, 0.12–0.16)` 
 ## 4. Komponen
 
 ### 4.1 Button
-- **Primary**: `--primary` bg, teks putih, radius `--radius-md`, `--shadow-2` resting, hover lift, active press.
+- **Primary**: `--primary` bg, teks putih, radius `--radius-md`, `--shadow-1` + `--shadow-inset` resting (naik ke `--shadow-2` saat hover — sama seperti KPI card, supaya efek hover terasa kontras), active press.
 - **Secondary/ghost**: `--surface-2` bg, `--text-primary`, border `--border`.
 - **Accent** (CTA hangat, dipakai untuk aksi "fun"/promosi minor, bukan aksi utama): `--accent` bg.
 - **Danger**: `--danger` bg, dipakai untuk reject/delete.
