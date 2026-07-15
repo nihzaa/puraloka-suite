@@ -1,36 +1,42 @@
 import axios from "axios";
 
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  baseURL: "",
   headers: { "Content-Type": "application/json" },
+  // HttpOnly cookies dikirim otomatis oleh browser untuk same-origin dan
+  // cross-origin request jika backend men-set credentials: true di CORS
+  withCredentials: true,
 });
 
-// ─── Request interceptor: attach token ────────────────────────────────────────
-
+// ─── Request interceptor: attach token dari localStorage (fallback compat) ────
+// Token utama kini di HttpOnly cookie yang dikirim otomatis via withCredentials.
+// Interceptor ini hanya sebagai fallback saat transisi (misal: user lama masih
+// punya token di localStorage setelah upgrade).
 api.interceptors.request.use((config) => {
-  if (typeof window !== "undefined") {
-    const token = getCookie("puraloka_token");
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-  }
   return config;
 });
 
 // ─── Response interceptor: auto token refresh ────────────────────────────────
 
 let isRefreshing = false;
-let failedQueue: Array<{ resolve: (token: string) => void; reject: (err: unknown) => void }> = [];
+let failedQueue: Array<{ resolve: () => void; reject: (err: unknown) => void }> = [];
 
-function processQueue(error: unknown, token: string | null = null) {
+function processQueue(error: unknown) {
   failedQueue.forEach((prom) => {
     if (error) prom.reject(error);
-    else prom.resolve(token!);
+    else prom.resolve();
   });
   failedQueue = [];
 }
 
 function clearAuthAndRedirect() {
-  deleteCookie("puraloka_token");
-  deleteCookie("puraloka_refresh");
+  // Minta server hapus cookie HttpOnly (client tidak bisa hapus sendiri)
+  axios.post(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/logout`,
+    {},
+    { withCredentials: true }
+  ).catch(() => {});
+
   if (typeof window !== "undefined") {
     localStorage.removeItem("puraloka_user");
     window.location.href = "/login";
@@ -46,12 +52,11 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // If another refresh is already in-flight, queue this request
+    // Jika refresh sudah dalam proses, antri request ini
     if (isRefreshing) {
-      return new Promise<string>((resolve, reject) => {
+      return new Promise<void>((resolve, reject) => {
         failedQueue.push({ resolve, reject });
-      }).then((token) => {
-        originalRequest.headers["Authorization"] = `Bearer ${token}`;
+      }).then(() => {
         return api(originalRequest);
       });
     }
@@ -59,33 +64,19 @@ api.interceptors.response.use(
     originalRequest._retry = true;
     isRefreshing = true;
 
-    const refreshToken = getCookie("puraloka_refresh");
-
-    if (!refreshToken) {
-      isRefreshing = false;
-      clearAuthAndRedirect();
-      return Promise.reject(error);
-    }
-
     try {
-      const { data } = await axios.post(
+      // Kirim refresh request — server baca HttpOnly cookie puraloka_refresh
+      // dan set ulang kedua cookie dengan token baru
+      await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/refresh`,
-        { refresh_token: refreshToken }
+        {},
+        { withCredentials: true }
       );
 
-      const newToken: string = data.session.access_token;
-      const newRefresh: string = data.session.refresh_token;
-
-      setCookie("puraloka_token", newToken);
-      setCookie("puraloka_refresh", newRefresh);
-
-      api.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
-      originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
-
-      processQueue(null, newToken);
+      processQueue(null);
       return api(originalRequest);
     } catch (refreshError) {
-      processQueue(refreshError, null);
+      processQueue(refreshError);
       clearAuthAndRedirect();
       return Promise.reject(refreshError);
     } finally {
@@ -94,23 +85,6 @@ api.interceptors.response.use(
   }
 );
 
-// ─── Cookie helpers ───────────────────────────────────────────────────────────
-
-function setCookie(name: string, value: string, days = 7) {
-  const expires = new Date(Date.now() + days * 864e5).toUTCString();
-  document.cookie = `${name}=${value}; expires=${expires}; path=/; SameSite=Lax`;
-}
-
-function getCookie(name: string): string | null {
-  if (typeof document === "undefined") return null;
-  const entry = document.cookie.split("; ").find((r) => r.startsWith(`${name}=`));
-  return entry ? entry.slice(name.length + 1) : null;
-}
-
-function deleteCookie(name: string) {
-  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
-}
-
 // ─── Auth helpers ─────────────────────────────────────────────────────────────
 
 export interface PuralokaUser {
@@ -118,32 +92,65 @@ export interface PuralokaUser {
   name: string;
   email: string;
   phone: string | null;
-  role: "admin" | "pm" | "mandor" | "client";
+  role: string;
   avatar_url?: string | null;
 }
 
-export async function login(email: string, password: string) {
+export async function login(email: string, password: string): Promise<{ user: PuralokaUser; homePortal: string }> {
   const { data } = await api.post("/api/v1/auth/login", { email, password });
-  setCookie("puraloka_token", data.session.access_token);
-  setCookie("puraloka_refresh", data.session.refresh_token);
+  // Token disimpan di HttpOnly cookie oleh server — tidak perlu sentuh cookie di JS
   if (typeof window !== "undefined") {
     localStorage.setItem("puraloka_user", JSON.stringify(data.user));
+    localStorage.setItem("puraloka_permissions", JSON.stringify(data.permissions ?? []));
+    // Set plain cookie so middleware can read role for redirects
+    document.cookie = `puraloka_role=${data.user.role};path=/;max-age=604800;SameSite=Lax`;
   }
-  return data.user as PuralokaUser;
+  return { user: data.user as PuralokaUser, homePortal: (data.homePortal as string) ?? "dashboard" };
+}
+
+export function getStoredPermissions(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = localStorage.getItem("puraloka_permissions");
+    if (!raw) return new Set();
+    return new Set(JSON.parse(raw) as string[]);
+  } catch {
+    return new Set();
+  }
+}
+
+export function hasPermission(key: string): boolean {
+  return getStoredPermissions().has(key);
 }
 
 export function logout() {
-  deleteCookie("puraloka_token");
-  deleteCookie("puraloka_refresh");
+  // Minta server hapus HttpOnly cookie
+  api.post("/api/v1/auth/logout").catch(() => {});
   if (typeof window !== "undefined") {
     localStorage.removeItem("puraloka_user");
+    localStorage.removeItem("puraloka_permissions");
+    document.cookie = "puraloka_role=;path=/;max-age=0";
   }
 }
 
 export function getStoredUser(): PuralokaUser | null {
   if (typeof window === "undefined") return null;
   const raw = localStorage.getItem("puraloka_user");
-  return raw ? JSON.parse(raw) : null;
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as PuralokaUser;
+  } catch {
+    // MEDIUM-5: Data corrupt atau di-tamper — hapus dan paksa login ulang
+    localStorage.removeItem("puraloka_user");
+    return null;
+  }
+}
+
+// ─── Request cancellation helper ─────────────────────────────────────────────
+// Pakai di useEffect: const ctrl = makeAbortController(); api.get(..., { signal: ctrl.signal })
+// return () => ctrl.abort()
+export function makeAbortController() {
+  return new AbortController()
 }
 
 // ─── Progress Log types ───────────────────────────────────────────────────────
@@ -175,7 +182,12 @@ export interface ProgressLogMeta {
 }
 
 export interface CreateProgressLogPayload {
-  pct_overall: number;
+  mode?: "daily" | "detail";
+  pct_overall?: number;
+  // mode=detail fields
+  rab_item_id?: string;
+  pct_completion?: number;
+  // common fields
   weather?: string;
   worker_count?: number;
   notes?: string;
@@ -216,4 +228,94 @@ export async function deleteProgressLog(
     `/api/v1/projects/${projectId}/progress-logs/${logId}`
   );
   return data;
+}
+
+// ─── Milestone types ──────────────────────────────────────────────────────────
+
+export interface Milestone {
+  id: string;
+  project_id: string;
+  title: string;
+  description: string | null;
+  target_date: string;
+  completed_at: string | null;
+  status: string;
+  sort_order: number | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  creator: { id: string; name: string } | null;
+}
+
+export interface CreateMilestonePayload {
+  title: string;
+  description?: string;
+  target_date: string;
+  sort_order?: number;
+}
+
+export interface UpdateMilestonePayload {
+  title?: string;
+  description?: string;
+  target_date?: string;
+  completed_at?: string | null;
+  status?: string;
+  sort_order?: number;
+}
+
+// ─── Milestone API functions ──────────────────────────────────────────────────
+
+export async function getMilestones(
+  projectId: string
+): Promise<{ data: Milestone[] }> {
+  const { data } = await api.get<{ data: Milestone[] }>(
+    `/api/v1/projects/${projectId}/milestones`
+  );
+  return data;
+}
+
+export async function createMilestone(
+  projectId: string,
+  payload: CreateMilestonePayload
+): Promise<{ data: Milestone }> {
+  const { data } = await api.post<{ data: Milestone }>(
+    `/api/v1/projects/${projectId}/milestones`,
+    payload
+  );
+  return data;
+}
+
+export async function updateMilestone(
+  projectId: string,
+  milestoneId: string,
+  payload: UpdateMilestonePayload
+): Promise<{ data: Milestone }> {
+  const { data } = await api.patch<{ data: Milestone }>(
+    `/api/v1/projects/${projectId}/milestones/${milestoneId}`,
+    payload
+  );
+  return data;
+}
+
+export async function deleteMilestone(
+  projectId: string,
+  milestoneId: string
+): Promise<{ success: boolean }> {
+  const { data } = await api.delete<{ success: boolean }>(
+    `/api/v1/projects/${projectId}/milestones/${milestoneId}`
+  );
+  return data;
+}
+
+// ─── Contract generation ──────────────────────────────────────────────────────
+
+export async function generateContract(
+  projectId: string,
+  params: Record<string, string | number>
+): Promise<Blob> {
+  const res = await api.get(
+    `/api/v1/projects/${projectId}/contracts/generate`,
+    { params, responseType: 'blob' }
+  );
+  return res.data as Blob;
 }

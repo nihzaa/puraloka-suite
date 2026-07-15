@@ -85,8 +85,8 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
       style={{
         display: "flex", alignItems: "flex-start", gap: 12,
         padding: "14px 16px", borderRadius: 12,
-        background: isSuccess ? "#F0FDF4" : "#FEF2F2",
-        border: `1px solid ${isSuccess ? "#BBF7D0" : "#FECACA"}`,
+        background: isSuccess ? "var(--success-bg)" : "var(--danger-bg)",
+        border: `1px solid ${isSuccess ? "var(--success-border)" : "var(--danger-border)"}`,
         boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
         pointerEvents: "all",
         minWidth: 280, maxWidth: 380,
@@ -96,8 +96,8 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
       }}
     >
       {isSuccess
-        ? <CheckCircle2 size={18} style={{ color: "#15803d", flexShrink: 0, marginTop: 1 }} />
-        : <XCircle size={18} style={{ color: "#B91C1C", flexShrink: 0, marginTop: 1 }} />
+        ? <CheckCircle2 size={18} style={{ color: "var(--success)", flexShrink: 0, marginTop: 1 }} />
+        : <XCircle size={18} style={{ color: "var(--danger)", flexShrink: 0, marginTop: 1 }} />
       }
       <p style={{
         flex: 1, fontSize: 13, fontWeight: 500, lineHeight: 1.5,
@@ -113,7 +113,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
           borderRadius: 4, display: "flex", alignItems: "center",
           transition: "color 0.1s",
         }}
-        onMouseEnter={e => { e.currentTarget.style.color = isSuccess ? "#15803d" : "#B91C1C"; }}
+        onMouseEnter={e => { e.currentTarget.style.color = isSuccess ? "var(--success)" : "var(--danger)"; }}
         onMouseLeave={e => { e.currentTarget.style.color = isSuccess ? "#4ADE80" : "#F87171"; }}
       >
         <X size={14} />

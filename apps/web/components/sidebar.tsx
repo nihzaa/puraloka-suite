@@ -2,25 +2,28 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   LayoutDashboard,
   FolderKanban,
   Wallet,
+  PiggyBank,
+  Receipt,
   HardHat,
   BarChart3,
   Settings,
   LogOut,
+  ChevronDown,
+  Users,
+  Contact,
+  ShoppingCart,
+  Building2,
+  ShieldCheck,
+  CalendarDays,
+  Menu,
 } from "lucide-react";
 import { getStoredUser, logout, type PuralokaUser } from "@/lib/api";
-
-const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/proyek", label: "Proyek", icon: FolderKanban },
-  { href: "/keuangan", label: "Keuangan", icon: Wallet },
-  { href: "/mandor", label: "Mandor", icon: HardHat },
-  { href: "/laporan", label: "Laporan", icon: BarChart3 },
-];
+import { useSidebar } from "@/lib/sidebar-context";
 
 const roleLabel: Record<string, string> = {
   admin: "Administrator",
@@ -29,34 +32,40 @@ const roleLabel: Record<string, string> = {
   client: "Klien",
 };
 
-function navLink(active: boolean): React.CSSProperties {
-  return {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    padding: "0 14px",
-    margin: "1px 8px",
-    height: 38,
-    borderRadius: 6,
-    fontSize: 14,
-    fontWeight: active ? 500 : 400,
-    textDecoration: "none",
-    transition: "all 0.15s",
-    borderLeft: active ? "3px solid #003366" : "3px solid transparent",
-    color: active ? "#003366" : "#6B7280",
-    background: active ? "#EBF2FF" : "transparent",
-    position: "relative",
-  };
-}
-
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { collapsed, toggle } = useSidebar();
   const [user, setUser] = useState<PuralokaUser | null>(null);
+  const [perms, setPerms] = useState<Set<string>>(new Set());
+  const [keuanganOpen, setKeuanganOpen] = useState(false);
+  const [pengaturanOpen, setPengaturanOpen] = useState(false);
+
+  const W = collapsed ? 64 : 220;
 
   useEffect(() => {
     setUser(getStoredUser());
+    setPerms(new Set(
+      (() => {
+        try {
+          const raw = localStorage.getItem("puraloka_permissions");
+          return raw ? (JSON.parse(raw) as string[]) : [];
+        } catch { return []; }
+      })()
+    ));
   }, []);
+
+  useEffect(() => {
+    if (pathname.startsWith("/keuangan") || pathname.startsWith("/kas")) {
+      setKeuanganOpen(true);
+    }
+  }, [pathname]);
+
+  useEffect(() => {
+    if (pathname.startsWith("/pengaturan")) {
+      setPengaturanOpen(true);
+    }
+  }, [pathname]);
 
   function handleLogout() {
     logout();
@@ -68,153 +77,326 @@ export function Sidebar() {
     return pathname.startsWith(href);
   }
 
+  const keuanganActive = isActive("/keuangan") || isActive("/kas");
+
+  function navStyle(active: boolean): React.CSSProperties {
+    return {
+      display: "flex",
+      alignItems: "center",
+      gap: collapsed ? 0 : 8,
+      padding: collapsed ? "0" : "0 14px",
+      justifyContent: collapsed ? "center" : "flex-start",
+      margin: "1px 6px",
+      height: 38,
+      borderRadius: 8,
+      fontSize: 14,
+      fontWeight: active ? 500 : 400,
+      textDecoration: "none",
+      transition: "all 0.15s",
+      borderLeft: collapsed ? "none" : (active ? "3px solid var(--navy)" : "3px solid transparent"),
+      color: active ? "var(--navy)" : "var(--text-secondary)",
+      background: active ? "var(--navy-light)" : "transparent",
+      position: "relative",
+      flexShrink: 0,
+      overflow: "hidden",
+      whiteSpace: "nowrap",
+    };
+  }
+
+  function subStyle(active: boolean): React.CSSProperties {
+    return {
+      display: "flex",
+      alignItems: "center",
+      gap: 7,
+      padding: "0 14px 0 34px",
+      margin: "1px 6px",
+      height: 34,
+      borderRadius: 8,
+      fontSize: 13,
+      fontWeight: active ? 500 : 400,
+      textDecoration: "none",
+      transition: "all 0.15s",
+      color: active ? "var(--navy)" : "var(--text-secondary)",
+      background: active ? "var(--navy-light)" : "transparent",
+      borderLeft: active ? "3px solid var(--navy)" : "3px solid transparent",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+    };
+  }
+
+  const onHover = (e: React.MouseEvent<HTMLElement>, active: boolean) => {
+    if (!active) {
+      (e.currentTarget as HTMLElement).style.color = "var(--text-primary)";
+      (e.currentTarget as HTMLElement).style.background = "var(--surface-hover)";
+    }
+  };
+  const offHover = (e: React.MouseEvent<HTMLElement>, active: boolean) => {
+    if (!active) {
+      (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)";
+      (e.currentTarget as HTMLElement).style.background = "transparent";
+    }
+  };
+
   return (
     <aside
       style={{
-        width: 220,
-        background: "#FFFFFF",
-        borderRight: "1px solid #E5E7EB",
+        width: W,
+        background: "var(--surface)",
+        borderRight: "1px solid var(--border)",
         height: "100vh",
         position: "fixed",
         top: 0,
         left: 0,
         display: "flex",
         flexDirection: "column",
-        overflowY: "auto",
+        overflowY: "hidden",
+        overflowX: "hidden",
         zIndex: 50,
+        transition: "width 0.2s ease",
       }}
     >
-      {/* Logo */}
+      {/* Logo + toggle */}
       <div style={{
-        padding: "20px 16px 16px",
-        borderBottom: "1px solid #E5E7EB",
+        padding: collapsed ? "16px 0" : "16px 12px 14px",
+        borderBottom: "1px solid var(--border)",
         display: "flex",
         alignItems: "center",
-        gap: 10,
+        justifyContent: collapsed ? "center" : "space-between",
+        gap: 8,
+        flexShrink: 0,
       }}>
-        <div style={{
-          width: 36,
-          height: 36,
-          borderRadius: 10,
-          background: "#003366",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-          boxShadow: "0 2px 8px rgba(0,51,102,0.3)",
-        }}>
-          <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 16, color: "#FFFFFF" }}>P</span>
-        </div>
-        <div>
-          <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "#111827", lineHeight: 1, letterSpacing: "-0.3px" }}>
-            Puraloka
+        {!collapsed && (
+          <div style={{ display: "flex", alignItems: "center", gap: 10, overflow: "hidden" }}>
+            <div style={{
+              width: 34, height: 34, borderRadius: 9,
+              background: "var(--navy)", display: "flex",
+              alignItems: "center", justifyContent: "center",
+              flexShrink: 0, boxShadow: "0 2px 8px var(--navy-glow)",
+            }}>
+              <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 15, color: "#fff" }}>P</span>
+            </div>
+            <div style={{ overflow: "hidden" }}>
+              <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14, color: "var(--text-primary)", lineHeight: 1, letterSpacing: "-0.3px", whiteSpace: "nowrap" }}>
+                Puraloka
+              </div>
+              <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2, letterSpacing: "0.05em" }}>Suite</div>
+            </div>
           </div>
-          <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 2, letterSpacing: "0.05em" }}>Suite</div>
-        </div>
+        )}
+
+        {collapsed && (
+          <div style={{
+            width: 34, height: 34, borderRadius: 9,
+            background: "var(--navy)", display: "flex",
+            alignItems: "center", justifyContent: "center",
+            boxShadow: "0 2px 8px var(--navy-glow)",
+          }}>
+            <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 15, color: "#fff" }}>P</span>
+          </div>
+        )}
+
+        {!collapsed && (
+          <button
+            onClick={toggle}
+            title={collapsed ? "Buka sidebar" : "Tutup sidebar"}
+            style={{
+              padding: 6, borderRadius: 6, background: "transparent", border: "none",
+              cursor: "pointer", color: "var(--text-muted)", flexShrink: 0,
+              display: "flex", alignItems: "center",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-hover)"; e.currentTarget.style.color = "var(--text-primary)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-muted)"; }}
+          >
+            <Menu size={16} />
+          </button>
+        )}
       </div>
 
-      {/* Navigation */}
-      <nav style={{ flex: 1, paddingTop: 8, paddingBottom: 8 }}>
-        <div style={{
-          padding: "16px 16px 6px",
-          fontSize: 10,
-          fontWeight: 600,
-          letterSpacing: "0.12em",
-          textTransform: "uppercase",
-          color: "#9CA3AF",
-        }}>
-          Menu
+      {/* Tombol expand saat collapsed */}
+      {collapsed && (
+        <div style={{ padding: "8px 0 4px", display: "flex", justifyContent: "center", flexShrink: 0 }}>
+          <button
+            onClick={toggle}
+            title="Buka sidebar"
+            style={{
+              padding: 7, borderRadius: 8, background: "transparent", border: "none",
+              cursor: "pointer", color: "var(--text-muted)", display: "flex", alignItems: "center",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-hover)"; e.currentTarget.style.color = "var(--text-primary)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-muted)"; }}
+          >
+            <Menu size={16} />
+          </button>
         </div>
-        {navItems.map(({ href, label, icon: Icon }) => {
-          const active = isActive(href);
-          return (
-            <Link
-              key={href}
-              href={href}
-              style={navLink(active)}
-              onMouseEnter={(e) => {
-                if (!active) {
-                  e.currentTarget.style.color = "#111827";
-                  e.currentTarget.style.background = "#F3F4F6";
-                }
+      )}
+
+      {/* Navigation */}
+      <nav style={{ flex: 1, paddingTop: collapsed ? 4 : 8, paddingBottom: 8, overflowY: "auto", overflowX: "hidden", minHeight: 0 }}>
+        {!collapsed && (
+          <div style={{ padding: "12px 14px 6px", fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+            Menu
+          </div>
+        )}
+
+        {/* Dashboard */}
+        <NavItem href="/dashboard" label="Dashboard" icon={LayoutDashboard} active={isActive("/dashboard")} collapsed={collapsed} onHover={onHover} offHover={offHover} navStyle={navStyle} />
+
+        {perms.has("projects:view") && (
+          <NavItem href="/proyek" label="Proyek" icon={FolderKanban} active={isActive("/proyek")} collapsed={collapsed} onHover={onHover} offHover={offHover} navStyle={navStyle} />
+        )}
+
+        {perms.has("clients:view") && (
+          <NavItem href="/klien" label="Klien" icon={Contact} active={isActive("/klien")} collapsed={collapsed} onHover={onHover} offHover={offHover} navStyle={navStyle} />
+        )}
+
+        {/* Keuangan dropdown — hidden when collapsed (show both links directly) */}
+        {(perms.has("finance:view") || perms.has("cash:view")) && !collapsed && (
+          <div>
+            <button
+              onClick={() => setKeuanganOpen(o => !o)}
+              style={{
+                display: "flex", alignItems: "center", gap: 8,
+                padding: "0 14px", margin: "1px 6px", height: 38,
+                borderRadius: 8, fontSize: 14, fontWeight: keuanganActive ? 500 : 400,
+                background: "transparent", border: "none",
+                borderLeft: keuanganActive ? "3px solid var(--navy)" : "3px solid transparent",
+                color: keuanganActive ? "var(--navy)" : "var(--text-secondary)",
+                cursor: "pointer", width: "calc(100% - 12px)", textAlign: "left",
+                transition: "all 0.15s", whiteSpace: "nowrap",
               }}
-              onMouseLeave={(e) => {
-                if (!active) {
-                  e.currentTarget.style.color = "#6B7280";
-                  e.currentTarget.style.background = "transparent";
-                }
-              }}
+              onMouseEnter={e => { if (!keuanganActive) { e.currentTarget.style.color = "var(--text-primary)"; e.currentTarget.style.background = "var(--surface-hover)"; } }}
+              onMouseLeave={e => { if (!keuanganActive) { e.currentTarget.style.color = "var(--text-secondary)"; e.currentTarget.style.background = "transparent"; } }}
             >
-              <Icon size={16} strokeWidth={active ? 2.5 : 1.75} style={{ flexShrink: 0 }} />
-              <span style={{ flex: 1 }}>{label}</span>
-              {active && (
-                <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#003366", flexShrink: 0 }} />
-              )}
-            </Link>
-          );
-        })}
+              <Wallet size={16} strokeWidth={keuanganActive ? 2.5 : 1.75} style={{ flexShrink: 0 }} />
+              <span style={{ flex: 1 }}>Keuangan</span>
+              <ChevronDown size={14} style={{ flexShrink: 0, transform: keuanganOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s", color: keuanganActive ? "var(--navy)" : "var(--text-muted)" }} />
+            </button>
+            <div style={{ overflow: "hidden", maxHeight: keuanganOpen ? "100px" : "0px", transition: "max-height 0.2s ease" }}>
+              <div style={{ paddingTop: 2, paddingBottom: 4 }}>
+                {perms.has("finance:view") && (
+                  <Link href="/keuangan" style={subStyle(isActive("/keuangan"))} onMouseEnter={e => onHover(e, isActive("/keuangan"))} onMouseLeave={e => offHover(e, isActive("/keuangan"))}>
+                    <Receipt size={14} strokeWidth={isActive("/keuangan") ? 2.5 : 1.75} style={{ flexShrink: 0 }} />
+                    <span>Invoice & Bayar</span>
+                  </Link>
+                )}
+                {perms.has("cash:view") && (
+                  <Link href="/kas" style={subStyle(isActive("/kas"))} onMouseEnter={e => onHover(e, isActive("/kas"))} onMouseLeave={e => offHover(e, isActive("/kas"))}>
+                    <PiggyBank size={14} strokeWidth={isActive("/kas") ? 2.5 : 1.75} style={{ flexShrink: 0 }} />
+                    <span>Kas & Pengeluaran</span>
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Collapsed: show keuangan icons tanpa dropdown */}
+        {(perms.has("finance:view") || perms.has("cash:view")) && collapsed && (
+          <>
+            {perms.has("finance:view") && (
+              <NavItem href="/keuangan" label="Invoice & Bayar" icon={Receipt} active={isActive("/keuangan")} collapsed={collapsed} onHover={onHover} offHover={offHover} navStyle={navStyle} />
+            )}
+            {perms.has("cash:view") && (
+              <NavItem href="/kas" label="Kas & Pengeluaran" icon={PiggyBank} active={isActive("/kas")} collapsed={collapsed} onHover={onHover} offHover={offHover} navStyle={navStyle} />
+            )}
+          </>
+        )}
+
+        {perms.has("procurement:view") && (
+          <NavItem href="/procurement" label="Pengadaan" icon={ShoppingCart} active={isActive("/procurement")} collapsed={collapsed} onHover={onHover} offHover={offHover} navStyle={navStyle} />
+        )}
+
+        {perms.has("mandor:view") && (
+          <NavItem href="/mandor" label="Mandor" icon={HardHat} active={isActive("/mandor")} collapsed={collapsed} onHover={onHover} offHover={offHover} navStyle={navStyle} />
+        )}
+
+        {perms.has("reports:view") && (
+          <NavItem href="/laporan" label="Laporan" icon={BarChart3} active={isActive("/laporan")} collapsed={collapsed} onHover={onHover} offHover={offHover} navStyle={navStyle} />
+        )}
+
+        {(perms.has("projects:view") || perms.has("mandor:view")) && (
+          <NavItem href="/kalender" label="Kalender" icon={CalendarDays} active={isActive("/kalender")} collapsed={collapsed} onHover={onHover} offHover={offHover} navStyle={navStyle} />
+        )}
+
+        {perms.has("users:manage") && (
+          <NavItem href="/users" label="User" icon={Users} active={isActive("/users")} collapsed={collapsed} onHover={onHover} offHover={offHover} navStyle={navStyle} />
+        )}
+
+        {perms.has("users:manage") && (
+          <NavItem href="/audit" label="Audit Trail" icon={ShieldCheck} active={isActive("/audit")} collapsed={collapsed} onHover={onHover} offHover={offHover} navStyle={navStyle} />
+        )}
       </nav>
 
       {/* Bottom */}
-      <div style={{ padding: "12px 8px", borderTop: "1px solid #E5E7EB" }}>
-        <Link
-          href="/pengaturan"
-          style={navLink(pathname.startsWith("/pengaturan"))}
-          onMouseEnter={(e) => {
-            if (!pathname.startsWith("/pengaturan")) {
-              e.currentTarget.style.color = "#111827";
-              e.currentTarget.style.background = "#F3F4F6";
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!pathname.startsWith("/pengaturan")) {
-              e.currentTarget.style.color = "#6B7280";
-              e.currentTarget.style.background = "transparent";
-            }
-          }}
-        >
-          <Settings size={16} strokeWidth={1.75} style={{ flexShrink: 0 }} />
-          <span style={{ flex: 1 }}>Pengaturan</span>
-          {pathname.startsWith("/pengaturan") && (
-            <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#003366", flexShrink: 0 }} />
-          )}
-        </Link>
+      <div style={{ padding: collapsed ? "8px 4px" : "10px 8px", borderTop: "1px solid var(--border)", flexShrink: 0 }}>
+        {/* Pengaturan */}
+        {!collapsed && perms.has("users:roles:manage") ? (
+          <div>
+            <button
+              onClick={() => setPengaturanOpen(o => !o)}
+              style={{
+                display: "flex", alignItems: "center", gap: 8,
+                padding: "0 14px", margin: "1px 6px", height: 38,
+                borderRadius: 8, fontSize: 14, fontWeight: pathname.startsWith("/pengaturan") ? 500 : 400,
+                background: "transparent", border: "none",
+                borderLeft: pathname.startsWith("/pengaturan") ? "3px solid var(--navy)" : "3px solid transparent",
+                color: pathname.startsWith("/pengaturan") ? "var(--navy)" : "var(--text-secondary)",
+                cursor: "pointer", width: "calc(100% - 12px)", textAlign: "left",
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={e => { if (!pathname.startsWith("/pengaturan")) { e.currentTarget.style.color = "var(--text-primary)"; e.currentTarget.style.background = "var(--surface-hover)"; } }}
+              onMouseLeave={e => { if (!pathname.startsWith("/pengaturan")) { e.currentTarget.style.color = "var(--text-secondary)"; e.currentTarget.style.background = "transparent"; } }}
+            >
+              <Settings size={16} strokeWidth={pathname.startsWith("/pengaturan") ? 2.5 : 1.75} style={{ flexShrink: 0 }} />
+              <span style={{ flex: 1 }}>Pengaturan</span>
+              <ChevronDown size={14} style={{ flexShrink: 0, transform: pengaturanOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s", color: pathname.startsWith("/pengaturan") ? "var(--navy)" : "var(--text-muted)" }} />
+            </button>
+            <div style={{ overflow: "hidden", maxHeight: pengaturanOpen ? "80px" : "0px", transition: "max-height 0.2s ease" }}>
+              <div style={{ paddingTop: 2, paddingBottom: 2 }}>
+                <Link href="/pengaturan" style={subStyle(pathname === "/pengaturan")} onMouseEnter={e => onHover(e, pathname === "/pengaturan")} onMouseLeave={e => offHover(e, pathname === "/pengaturan")}>
+                  <Building2 size={13} strokeWidth={2} style={{ flexShrink: 0 }} />
+                  <span>Profil Perusahaan</span>
+                </Link>
+                <Link href="/pengaturan/roles" style={subStyle(pathname.startsWith("/pengaturan/roles"))} onMouseEnter={e => onHover(e, pathname.startsWith("/pengaturan/roles"))} onMouseLeave={e => offHover(e, pathname.startsWith("/pengaturan/roles"))}>
+                  <ShieldCheck size={13} strokeWidth={2} style={{ flexShrink: 0 }} />
+                  <span>Role & Akses</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        ) : !collapsed ? (
+          <Link href="/pengaturan" style={navStyle(pathname.startsWith("/pengaturan"))} onMouseEnter={e => onHover(e, pathname.startsWith("/pengaturan"))} onMouseLeave={e => offHover(e, pathname.startsWith("/pengaturan"))}>
+            <Settings size={16} strokeWidth={1.75} style={{ flexShrink: 0 }} />
+            <span style={{ flex: 1 }}>Pengaturan</span>
+          </Link>
+        ) : (
+          <NavItem href="/pengaturan" label="Pengaturan" icon={Settings} active={pathname.startsWith("/pengaturan")} collapsed={collapsed} onHover={onHover} offHover={offHover} navStyle={navStyle} />
+        )}
 
-        {user && (
+        {/* User info */}
+        {user && !collapsed && (
           <div style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            padding: "10px 12px",
-            marginTop: 8,
-            borderRadius: 10,
-            background: "#F9FAFB",
-            border: "1px solid #E5E7EB",
+            display: "flex", alignItems: "center", gap: 8,
+            padding: "8px 10px", marginTop: 6,
+            borderRadius: 10, background: "var(--surface-subtle)", border: "1px solid var(--border)",
           }}>
             <div style={{
-              width: 32,
-              height: 32,
-              borderRadius: "50%",
-              background: "#EBF2FF",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-              fontSize: 13,
-              fontWeight: 600,
-              color: "#003366",
+              width: 30, height: 30, borderRadius: "50%",
+              background: "var(--navy-light)", display: "flex",
+              alignItems: "center", justifyContent: "center",
+              flexShrink: 0, fontSize: 12, fontWeight: 600, color: "var(--navy)",
             }}>
               {user.name.charAt(0).toUpperCase()}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {user.name}
               </div>
               <div style={{
-                display: "inline-block", marginTop: 3,
+                display: "inline-block", marginTop: 2,
                 fontSize: 10, textTransform: "uppercase", letterSpacing: "0.03em",
-                background: "#EBF2FF", color: "#003366",
-                borderRadius: 4, padding: "1px 6px", fontWeight: 600,
+                background: "var(--navy-light)", color: "var(--navy)",
+                borderRadius: 4, padding: "1px 5px", fontWeight: 600,
               }}>
                 {roleLabel[user.role] ?? user.role}
               </div>
@@ -222,15 +404,32 @@ export function Sidebar() {
             <button
               onClick={handleLogout}
               title="Keluar"
-              style={{ padding: 6, borderRadius: 6, background: "transparent", border: "none", cursor: "pointer", color: "#9CA3AF", flexShrink: 0, display: "flex", alignItems: "center" }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "#B91C1C";
-                e.currentTarget.style.background = "#FEF2F2";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "#9CA3AF";
-                e.currentTarget.style.background = "transparent";
-              }}
+              style={{ padding: 5, borderRadius: 6, background: "transparent", border: "none", cursor: "pointer", color: "var(--text-muted)", flexShrink: 0, display: "flex", alignItems: "center" }}
+              onMouseEnter={e => { e.currentTarget.style.color = "var(--danger)"; e.currentTarget.style.background = "var(--danger-bg)"; }}
+              onMouseLeave={e => { e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.background = "transparent"; }}
+            >
+              <LogOut size={13} />
+            </button>
+          </div>
+        )}
+
+        {/* Collapsed: logout icon saja */}
+        {user && collapsed && (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, paddingTop: 4 }}>
+            <div style={{
+              width: 30, height: 30, borderRadius: "50%",
+              background: "var(--navy-light)", display: "flex",
+              alignItems: "center", justifyContent: "center",
+              fontSize: 12, fontWeight: 600, color: "var(--navy)",
+            }}>
+              {user.name.charAt(0).toUpperCase()}
+            </div>
+            <button
+              onClick={handleLogout}
+              title="Keluar"
+              style={{ padding: 6, borderRadius: 6, background: "transparent", border: "none", cursor: "pointer", color: "var(--text-muted)", display: "flex", alignItems: "center" }}
+              onMouseEnter={e => { e.currentTarget.style.color = "var(--danger)"; e.currentTarget.style.background = "var(--danger-bg)"; }}
+              onMouseLeave={e => { e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.background = "transparent"; }}
             >
               <LogOut size={13} />
             </button>
@@ -238,5 +437,94 @@ export function Sidebar() {
         )}
       </div>
     </aside>
+  );
+}
+
+// ── Reusable nav item ──────────────────────────────────────────────────────────
+function NavItem({
+  href, label, icon: Icon, active, collapsed, onHover, offHover, navStyle,
+}: {
+  href: string;
+  label: string;
+  icon: React.ElementType;
+  active: boolean;
+  collapsed: boolean;
+  onHover: (e: React.MouseEvent<HTMLElement>, active: boolean) => void;
+  offHover: (e: React.MouseEvent<HTMLElement>, active: boolean) => void;
+  navStyle: (active: boolean) => React.CSSProperties;
+}) {
+  const [tooltipTop, setTooltipTop] = useState(0);
+  const [hovered, setHovered] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  if (!collapsed) {
+    return (
+      <Link
+        href={href}
+        style={navStyle(active)}
+        onMouseEnter={e => onHover(e, active)}
+        onMouseLeave={e => offHover(e, active)}
+      >
+        <Icon size={16} strokeWidth={active ? 2.5 : 1.75} style={{ flexShrink: 0 }} />
+        <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span>
+        {active && <span style={{ width: 4, height: 4, borderRadius: "50%", background: "var(--navy)", flexShrink: 0 }} />}
+      </Link>
+    );
+  }
+
+  return (
+    <div ref={wrapRef} style={{ position: "relative" }}>
+      <Link
+        href={href}
+        style={navStyle(active)}
+        onMouseEnter={e => {
+          const rect = wrapRef.current?.getBoundingClientRect();
+          if (rect) setTooltipTop(rect.top + rect.height / 2);
+          setHovered(true);
+          onHover(e, active);
+        }}
+        onMouseLeave={e => { setHovered(false); offHover(e, active); }}
+      >
+        <Icon size={16} strokeWidth={active ? 2.5 : 1.75} style={{ flexShrink: 0 }} />
+      </Link>
+
+      {/* Custom tooltip rendered at fixed position */}
+      <div
+        style={{
+          position: "fixed",
+          left: 70,
+          top: tooltipTop,
+          transform: hovered ? "translateY(-50%) translateX(0)" : "translateY(-50%) translateX(-6px)",
+          pointerEvents: "none",
+          zIndex: 9999,
+          opacity: hovered ? 1 : 0,
+          transition: "opacity 0.15s ease, transform 0.15s ease",
+          display: "flex",
+          alignItems: "center",
+        }}
+      >
+        {/* Arrow */}
+        <div style={{
+          width: 0, height: 0,
+          borderTop: "5px solid transparent",
+          borderBottom: "5px solid transparent",
+          borderRight: "5px solid #1F2937",
+          flexShrink: 0,
+        }} />
+        <div style={{
+          background: "#1F2937",
+          color: "#F9FAFB",
+          fontSize: 12,
+          fontWeight: 500,
+          padding: "5px 10px",
+          borderRadius: 6,
+          whiteSpace: "nowrap",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+          letterSpacing: "0.01em",
+        }}>
+          {label}
+        </div>
+      </div>
+    </div>
   );
 }

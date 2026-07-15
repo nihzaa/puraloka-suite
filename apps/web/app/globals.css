@@ -3,46 +3,108 @@
 @theme {
   --font-display: var(--font-display);
   --font-body: var(--font-body);
-
-  --color-bg: #F8F9FA;
-  --color-surface: #FFFFFF;
-  --color-surface-raised: #FFFFFF;
-  --color-border: #E5E7EB;
-  --color-border-strong: #D1D5DB;
-
-  --color-text-primary: #111827;
-  --color-text-secondary: #6B7280;
-  --color-text-muted: #9CA3AF;
-
-  --color-navy: #003366;
-  --color-navy-mid: #0050A0;
-  --color-navy-light: #EBF2FF;
-  --color-navy-glow: rgba(0,51,102,0.08);
-
-  --color-success: #15803d;
-  --color-success-bg: #F0FDF4;
-  --color-success-border: #BBF7D0;
-  --color-warning: #D97706;
-  --color-warning-bg: #FFFBEB;
-  --color-warning-border: #FDE68A;
-  --color-danger: #B91C1C;
-  --color-danger-bg: #FEF2F2;
-  --color-danger-border: #FECACA;
-  --color-info: #1D4ED8;
-  --color-info-bg: #EFF6FF;
-  --color-info-border: #BFDBFE;
 }
 
+/* ─── Design Tokens — Light ──────────────────────────────────────── */
+:root {
+  --bg:               #F8F9FA;
+  --surface:          #FFFFFF;
+  --surface-raised:   #FFFFFF;
+  --surface-subtle:   #F9FAFB;
+  --surface-hover:    #F3F4F6;
+  --border:           #E5E7EB;
+  --border-strong:    #D1D5DB;
+
+  --text-primary:     #111827;
+  --text-secondary:   #6B7280;
+  --text-muted:       #9CA3AF;
+
+  --navy:             #003366;
+  --navy-mid:         #0050A0;
+  --navy-light:       #EBF2FF;
+  --navy-glow:        rgba(0,51,102,0.08);
+
+  --success:          #15803d;
+  --success-bg:       #F0FDF4;
+  --success-border:   #BBF7D0;
+  --warning:          #D97706;
+  --warning-bg:       #FFFBEB;
+  --warning-border:   #FDE68A;
+  --danger:           #B91C1C;
+  --danger-bg:        #FEF2F2;
+  --danger-border:    #FECACA;
+  --info:             #1D4ED8;
+  --info-bg:          #EFF6FF;
+  --info-border:      #BFDBFE;
+
+  --shadow-sm:        0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md:        0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg:        0 8px 24px rgba(0,0,0,0.10);
+}
+
+/* ─── Design Tokens — Dark ───────────────────────────────────────── */
+.dark {
+  --bg:               #0F1117;
+  --surface:          #1A1D27;
+  --surface-raised:   #212536;
+  --surface-subtle:   #161921;
+  --surface-hover:    #252840;
+  --border:           #2A2D3E;
+  --border-strong:    #363A52;
+
+  --text-primary:     #F1F3F9;
+  --text-secondary:   #9098B8;
+  --text-muted:       #5C6380;
+
+  --navy:             #4D9FFF;
+  --navy-mid:         #6EB3FF;
+  --navy-light:       rgba(77,159,255,0.12);
+  --navy-glow:        rgba(77,159,255,0.10);
+
+  --success:          #22C55E;
+  --success-bg:       rgba(34,197,94,0.10);
+  --success-border:   rgba(34,197,94,0.25);
+  --warning:          #F59E0B;
+  --warning-bg:       rgba(245,158,11,0.10);
+  --warning-border:   rgba(245,158,11,0.25);
+  --danger:           #EF4444;
+  --danger-bg:        rgba(239,68,68,0.10);
+  --danger-border:    rgba(239,68,68,0.25);
+  --info:             #60A5FA;
+  --info-bg:          rgba(96,165,250,0.10);
+  --info-border:      rgba(96,165,250,0.25);
+
+  --shadow-sm:        0 1px 2px rgba(0,0,0,0.30);
+  --shadow-md:        0 4px 12px rgba(0,0,0,0.40);
+  --shadow-lg:        0 8px 24px rgba(0,0,0,0.50);
+}
+
+/* ─── Global reset + transition ─────────────────────────────────── */
 * { box-sizing: border-box; }
 
+/* Smooth theme morphing — semua warna transition serentak */
+*, *::before, *::after {
+  transition:
+    background-color 220ms ease,
+    border-color 220ms ease,
+    color 220ms ease,
+    box-shadow 220ms ease,
+    fill 220ms ease,
+    stroke 220ms ease;
+}
+
+/* Exclude transitions yang tidak perlu */
+.no-transition, .no-transition * { transition: none !important; }
+
 body {
-  background: var(--color-bg);
-  color: var(--color-text-primary);
+  background: var(--bg);
+  color: var(--text-primary);
   font-family: var(--font-body), sans-serif;
 }
 
 .font-display { font-family: var(--font-display), sans-serif; }
 
+/* ─── Animations ─────────────────────────────────────────────────── */
 @keyframes rise {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
@@ -60,8 +122,84 @@ body {
   100% { background-position: 200% center; }
 }
 
-/* Light scrollbar */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ─── Utility classes — pakai CSS vars ──────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+}
+.card-raised {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+}
+.page-bg { background: var(--bg); }
+.surface { background: var(--surface); }
+.surface-subtle { background: var(--surface-subtle); }
+.text-primary { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+.text-muted-color { color: var(--text-muted); }
+.border-token { border-color: var(--border); }
+.input-base {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  outline: none;
+  width: 100%;
+}
+.input-base:focus {
+  border-color: var(--navy);
+  box-shadow: 0 0 0 3px var(--navy-glow);
+}
+.input-base::placeholder { color: var(--text-muted); }
+select.input-base { cursor: pointer; }
+
+/* ─── Scrollbar ──────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ─── Animation helper classes ───────────────────────────────────── */
+.rise-2b { animation: rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 0.12s; }
+.rise-3b { animation: rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 0.17s; }
+
+/* ─── Print styles ───────────────────────────────────────────────── */
+@media print {
+  /* Sembunyikan semua kecuali konten print */
+  body > *:not(#__next) { display: none !important; }
+  nav, header, aside, [data-no-print] { display: none !important; }
+
+  #print-content {
+    display: block !important;
+    overflow: visible !important;
+    max-height: none !important;
+    padding: 0 !important;
+  }
+
+  /* Pastikan warna latar belakang cetak */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Page breaks */
+  .page-break-before { page-break-before: always; }
+  .page-break-after { page-break-after: always; }
+  .no-page-break { page-break-inside: avoid; }
+
+  @page {
+    margin: 1.5cm 2cm;
+    size: A4 portrait;
+  }
+}
