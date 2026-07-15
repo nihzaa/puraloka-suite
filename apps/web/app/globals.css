@@ -183,7 +183,7 @@ body {
 .page-bg { background: var(--bg); }
 .surface { background: var(--surface); }
 .surface-subtle { background: var(--surface-subtle); }
-.text-primary { color: var(--text-primary); }
+.text-body { color: var(--text-primary); }
 .text-secondary { color: var(--text-secondary); }
 .text-muted-color { color: var(--text-muted); }
 .border-token { border-color: var(--border); }
