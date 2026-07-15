@@ -1,0 +1,112 @@
+YANG SUDAH ADA:
+
+List proyek dengan filter & search
+Detail proyek lengkap (info, termin, mandor, kasbon, milestone, progress logs, invoice, aktivitas)
+Quick stats bar (hari berjalan, hari tersisa, invoice terbayar, total kasbon)
+Progress gauge
+Tambah proyek modal (tapi submit masih error)
+
+
+YANG BELUM ADA — FUNGSIONAL:
+Input & Aksi:
+
+Form log progress lapangan (+ foto)
+Tambah & edit milestone per proyek
+Update status milestone (berlangsung → selesai)
+Update status termin (pending → billed → paid)
+Generate invoice dari termin yang sudah billed
+Catat pembayaran masuk dari klien
+Form ajukan kasbon baru dari detail proyek
+Approve/tolak kasbon dari detail proyek
+Update progress per work scope mandor
+Upload foto progress lapangan
+Upload dokumen proyek (kontrak, gambar kerja, dll)
+Edit proyek (modal pre-filled)
+Hapus/arsipkan proyek
+
+Notifikasi & Alert:
+
+Alert kalau ada milestone yang terlambat
+Alert invoice jatuh tempo
+Alert kasbon melebihi limit 80% earned value
+Notifikasi ke mandor kalau kasbon disetujui/ditolak
+
+
+YANG BELUM ADA — DATA & INFORMASI:
+Financial:
+
+RAB (Rencana Anggaran Biaya) per proyek — breakdown estimasi biaya per kategori sebelum proyek mulai
+Realisasi vs RAB — perbandingan pengeluaran aktual vs yang dianggarkan
+Cashflow projection — proyeksi uang masuk dari termin yang belum dibayar
+Retention tracking — kapan retensi bisa dicairkan
+Profit margin estimasi — nilai kontrak dikurangi semua pengeluaran (kasbon + expense)
+
+Operasional:
+
+Bobot pekerjaan per work scope — berapa % dari total proyek yang diwakili scope ini
+S-Curve progress — grafik rencana vs realisasi progress per minggu
+Gantt chart sederhana — timeline visual semua milestone dan work scope
+Foto before/after per area pekerjaan
+Daftar subkontraktor (kalau ada vendor di luar mandor tetap)
+Weather log otomatis berdasarkan lokasi proyek
+Checklist serah terima — daftar item yang harus dicek saat serah terima
+
+Klien:
+
+Link portal klien — URL unik untuk klien lihat progress tanpa login
+Laporan progress mingguan otomatis ke klien (PDF)
+Berita acara digital — dokumen persetujuan progress yang bisa ditandatangani digital
+Chat/komentar per proyek antara PM dan klien
+
+Tim:
+
+Assignment task harian ke tukang via mandor
+Absensi tukang per hari per proyek
+Biaya tukang vs budget upah
+
+
+YANG BELUM ADA — UX:
+
+Export detail proyek ke PDF (laporan proyek lengkap)
+Print termin schedule
+Share progress snapshot ke WhatsApp
+Timeline view alternatif (selain list/card)
+Comparison view — bandingkan 2 proyek side by side
+Duplicate proyek sebagai template untuk proyek serupa
+
+
+Prioritas yang gue rekomendasiin untuk dikerjakan sekarang (yang paling impactful untuk operasional harian):
+
+Fix submit tambah proyek (error 500)
+Log progress + foto
+Update status termin → generate invoice
+Catat pembayaran masuk
+Ajukan kasbon baru
+Tambah/update milestone
+S-Curve progress chart
+Export PDF laporan proyek
+
+
+Fungsional yang masih bolong:
+
+Buat Kasbon dari halaman Keuangan — Tab Kasbon sudah ada tapi tidak ada tombol "+ Kasbon Baru". User harus ke halaman Mandor. Kecil tapi annoying.
+
+Laporan / Export — Tidak ada sama sekali. Invoice, kasbon, cashflow tidak bisa di-export ke PDF/Excel. Ini yang paling sering diminta di aplikasi konstruksi.
+
+Notifikasi — Tabel notifications sudah ada di DB tapi tidak dipakai. Tidak ada sistem notif saat kasbon diajukan, invoice jatuh tempo, atau upah menunggu persetujuan.
+
+Portal Client — Klien belum bisa login dan lihat proyek mereka. Sudah ada di roadmap, tabelnya sudah siap.
+
+Production-readiness:
+
+RLS Policies — Saat ini semua data bisa diakses siapapun yang punya token. Ini security risk nyata kalau app dibuka ke lebih dari satu user aktif.
+
+Google OAuth — Button login Google sudah ada di UI tapi tidak terhubung.
+
+Auto token refresh — CLAUDE.md bilang selesai tapi perlu verifikasi apakah interceptor berjalan dengan benar.
+
+UX kecil yang terasa:
+
+Dashboard home — Widget bisa di-drag untuk atur ulang posisi (react-grid-layout).
+
+Mobile app — Belum disetup sama sekali (React Native Expo).
