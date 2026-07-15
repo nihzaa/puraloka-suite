@@ -1,25 +1,43 @@
 import { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
-import { authenticate, requireRole } from '../../plugins/auth.js'
+import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { createNotification, createNotifications, getProjectAdminsAndPM } from '../../utils/notifications.js'
 
 export default async function projectRoutes(app: FastifyInstance) {
 
-  // GET /api/v1/projects — list all projects
+  // GET /api/v1/projects — list projects (exclude soft-deleted)
+  // Role client: hanya proyek milik client yang terhubung via clients.user_id
   app.get('/api/v1/projects', {
     preHandler: [authenticate]
-  }, async (_request, reply) => {
-    const { data, error } = await supabase
+  }, async (request, reply) => {
+    const currentUser = request.currentUser!
+
+    let q = supabase
       .from('projects')
       .select(`
         id, name, description, location, contract_model, tax_scheme,
         contract_value, commission_pct, retention_pct, retention_amount,
         start_date, end_date, actual_end_date, status, progress_pct, notes,
         created_at, updated_at,
-        clients ( id, contact_person, phone, client_type ),
+        clients ( id, contact_person, phone, client_type, user_id ),
         pm:users!projects_pm_id_fkey ( id, name, email, phone )
       `)
+      .eq('is_deleted', false)
       .order('created_at', { ascending: false })
 
+    // Client hanya lihat proyek mereka sendiri
+    if (currentUser.role === 'client') {
+      const { data: clientRecord } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('user_id', currentUser.id)
+        .single()
+
+      if (!clientRecord) return { total: 0, projects: [] }
+      q = q.eq('client_id', clientRecord.id)
+    }
+
+    const { data, error } = await q
     if (error) return reply.status(500).send({ error: error.message })
     return { total: data.length, projects: data }
   })
@@ -29,20 +47,23 @@ export default async function projectRoutes(app: FastifyInstance) {
     preHandler: [authenticate]
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
+    const currentUser = request.currentUser!
 
-    const [projectRes, logsRes, invoicesRes] = await Promise.all([
+    const [projectRes, logsRes, invoicesRes, scopelessKasbonsRes] = await Promise.all([
       supabase
         .from('projects')
         .select(`
           id, name, description, location, contract_model, tax_scheme,
           contract_value, commission_pct, retention_pct, retention_amount,
-          kasbon_limit_pct, start_date, end_date, actual_end_date,
+          start_date, end_date, actual_end_date,
           status, progress_pct, notes, created_at, updated_at,
+          pm_id, client_id,
           clients ( id, contact_person, phone, email, address, client_type ),
           pm:users!projects_pm_id_fkey ( id, name, email, phone ),
           termin_schedules (
             id, termin_number, label, amount, pct_of_contract,
-            target_date, status, notes
+            target_date, status, notes,
+            trigger_type, trigger_pct, due_days
           ),
           milestones (
             id, title, description, target_date, completed_at,
@@ -53,22 +74,25 @@ export default async function projectRoutes(app: FastifyInstance) {
             mandor:users!mandor_assignments_mandor_id_fkey ( id, name, phone ),
             work_scopes (
               id, scope_name, description, payment_system, borongan_value,
-              kasbon_limit_pct, progress_pct_done, status, start_date, end_date,
+              progress_pct_done, status, start_date, end_date,
               kasbons ( id, amount, fund_source, purpose, kasbon_date, status, notes ),
               borongan_settlements ( id, borongan_value, total_kasbon, remaining_balance, settled_at )
             )
           )
         `)
         .eq('id', id)
+        .eq('is_deleted', false)
         .single(),
 
       supabase
         .from('progress_logs')
         .select(`
-          id, pct_overall, weather, worker_count, notes, logged_at,
+          id, mode, pct_overall, weather, worker_count, notes, logged_at,
           reporter:users!progress_logs_reported_by_fkey ( id, name )
         `)
         .eq('project_id', id)
+        .eq('mode', 'daily')
+        .not('pct_overall', 'is', null)
         .order('logged_at', { ascending: false })
         .limit(20),
 
@@ -81,22 +105,54 @@ export default async function projectRoutes(app: FastifyInstance) {
         `)
         .eq('project_id', id)
         .order('issued_date', { ascending: false }),
+
+      // Kasbon tanpa scope (project_id langsung, work_scope_id null)
+      supabase
+        .from('kasbons')
+        .select('id, amount, fund_source, purpose, kasbon_date, status, notes, requested_by')
+        .eq('project_id', id)
+        .is('work_scope_id', null)
+        .order('kasbon_date', { ascending: false }),
     ])
 
-    if (projectRes.error) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    if (projectRes.error || !projectRes.data) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+
+    const project = projectRes.data as typeof projectRes.data & { pm_id: string; client_id: string }
+
+    // Ownership check — admin bebas; PM hanya proyeknya; mandor harus assigned ke proyek ini; client hanya proyeknya
+    if (currentUser.role === 'pm' && project.pm_id !== currentUser.id) {
+      return reply.status(403).send({ error: 'Akses ditolak' })
+    }
+    if (currentUser.role === 'mandor') {
+      const assigned = (project.mandor_assignments as unknown as Array<{ mandor: { id: string } | null }> | null)
+        ?.some(a => a.mandor?.id === currentUser.id) ?? false
+      if (!assigned) return reply.status(403).send({ error: 'Akses ditolak' })
+    }
+    if (currentUser.role === 'client') {
+      // Cek client_id cocok dengan user ini — perlu join ke clients table via auth_id
+      const { data: clientRow } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('auth_id', currentUser.auth_id)
+        .single()
+      if (!clientRow || project.client_id !== clientRow.id) {
+        return reply.status(403).send({ error: 'Akses ditolak' })
+      }
+    }
 
     return {
       project: {
-        ...projectRes.data,
+        ...project,
         progress_logs: logsRes.data ?? [],
         invoices: invoicesRes.data ?? [],
+        scopeless_kasbons: scopelessKasbonsRes.data ?? [],
       }
     }
   })
 
   // POST /api/v1/projects — create new project (admin or pm)
   app.post('/api/v1/projects', {
-    preHandler: [authenticate, requireRole('admin', 'pm')]
+    preHandler: [authenticate, requirePermission('projects:create')]
   }, async (request, reply) => {
     const body = request.body as {
       name: string
@@ -115,6 +171,9 @@ export default async function projectRoutes(app: FastifyInstance) {
         label: string
         pct_of_contract: number
         target_date?: string
+        trigger_type?: 'on_sign' | 'on_progress' | 'on_retention'
+        trigger_pct?: number | null
+        due_days?: number | null
       }>
     }
 
@@ -128,6 +187,15 @@ export default async function projectRoutes(app: FastifyInstance) {
 
     if (!pm_id) {
       return reply.status(400).send({ error: 'Project Manager wajib dipilih' })
+    }
+
+    const VALID_CONTRACT_MODELS = ['termin', 'komisi']
+    const VALID_TAX_SCHEMES = ['pph_final', 'ppn']
+    if (!VALID_CONTRACT_MODELS.includes(contract_model)) {
+      return reply.status(400).send({ error: `contract_model tidak valid. Pilih: ${VALID_CONTRACT_MODELS.join(', ')}` })
+    }
+    if (tax_scheme && !VALID_TAX_SCHEMES.includes(tax_scheme)) {
+      return reply.status(400).send({ error: `tax_scheme tidak valid. Pilih: ${VALID_TAX_SCHEMES.join(', ')}` })
     }
 
     const retPct = retention_pct ?? 5
@@ -171,6 +239,9 @@ export default async function projectRoutes(app: FastifyInstance) {
         pct_of_contract: Number(t.pct_of_contract),
         amount: Number(contract_value) * (Number(t.pct_of_contract) / 100),
         target_date: t.target_date || null,
+        trigger_type: t.trigger_type ?? 'on_progress',
+        trigger_pct: t.trigger_pct ?? null,
+        due_days: t.due_days ?? null,
         status: 'pending',
       }))
       const { error: terminError } = await supabase.from('termin_schedules').insert(rows)
@@ -195,12 +266,27 @@ export default async function projectRoutes(app: FastifyInstance) {
       await supabase.from('project_expense_categories').insert(cats)
     }
 
+    // ── Fire-and-forget: notif ke PM yang di-assign ──────────────────────────
+    if (pm_id && project) {
+      createNotification({
+        user_id:     pm_id,
+        title:       'Anda Di-assign Sebagai PM',
+        message:     `Anda ditugaskan sebagai Project Manager di proyek "${project.name}"`,
+        type:        'project_assigned',
+        priority:    'high',
+        project_id:  project.id,
+        action_url:  `/proyek/${project.id}`,
+        action_type: 'view_project',
+        action_data: { project_id: project.id },
+      })
+    }
+
     return reply.status(201).send({ project })
   })
 
   // PUT /api/v1/projects/:id — update project fields (admin or pm)
   app.put('/api/v1/projects/:id', {
-    preHandler: [authenticate, requireRole('admin', 'pm')]
+    preHandler: [authenticate, requirePermission('projects:edit')]
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const body = request.body as Record<string, unknown>
@@ -223,6 +309,11 @@ export default async function projectRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'Tidak ada field yang diupdate' })
     }
 
+    const { data: existing } = await supabase
+      .from('projects').select('id, is_deleted').eq('id', id).single()
+    if (!existing) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    if (existing.is_deleted) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+
     updates.updated_at = new Date().toISOString()
 
     const { data, error } = await supabase
@@ -238,7 +329,7 @@ export default async function projectRoutes(app: FastifyInstance) {
 
   // PATCH /api/v1/projects/:id/status — update status only (admin)
   app.patch('/api/v1/projects/:id/status', {
-    preHandler: [authenticate, requireRole('admin')]
+    preHandler: [authenticate, requirePermission('projects:status')]
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const { status } = request.body as { status: string }
@@ -247,6 +338,11 @@ export default async function projectRoutes(app: FastifyInstance) {
     if (!status || !valid.includes(status)) {
       return reply.status(400).send({ error: `Status harus salah satu dari: ${valid.join(', ')}` })
     }
+
+    const { data: existing } = await supabase
+      .from('projects').select('id, is_deleted').eq('id', id).single()
+    if (!existing) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    if (existing.is_deleted) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
 
     const updates: Record<string, unknown> = { status, updated_at: new Date().toISOString() }
     if (status === 'completed') updates.actual_end_date = new Date().toISOString().split('T')[0]
@@ -259,6 +355,59 @@ export default async function projectRoutes(app: FastifyInstance) {
       .single()
 
     if (error) return reply.status(500).send({ error: error.message })
+
+    // ── Fire-and-forget: notif ke admin + PM saat status berubah ─────────────
+    if (data) {
+      try {
+        const recipients = await getProjectAdminsAndPM(id)
+        createNotifications(recipients.map(uid => ({
+          user_id:     uid,
+          title:       'Status Proyek Berubah',
+          message:     `Status proyek "${data.name}" berubah ke ${status}`,
+          type:        'project_status_changed' as const,
+          priority:    'normal' as const,
+          project_id:  id,
+          action_url:  `/proyek/${id}`,
+          action_type: 'view_project',
+          action_data: { project_id: id, new_status: status },
+        })))
+      } catch { /* ignore */ }
+    }
+
     return { project: data }
+  })
+
+  // DELETE /api/v1/projects/:id — SOFT DELETE only (admin only)
+  // Proyek tidak pernah benar-benar dihapus dari DB.
+  // Data keuangan (invoice, kasbon, expense) tetap ada dan terlindungi oleh FK RESTRICT.
+  app.delete('/api/v1/projects/:id', {
+    preHandler: [authenticate, requirePermission('projects:delete')]
+  }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+
+    // Cek proyek ada dan belum dihapus
+    const { data: existing } = await supabase
+      .from('projects')
+      .select('id, name, is_deleted')
+      .eq('id', id)
+      .single()
+
+    if (!existing) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    if (existing.is_deleted) return reply.status(409).send({ error: 'Proyek sudah dihapus sebelumnya' })
+
+    const { error } = await supabase
+      .from('projects')
+      .update({
+        is_deleted: true,
+        deleted_at: new Date().toISOString(),
+        deleted_by: request.currentUser!.id,
+        status: 'cancelled',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+
+    if (error) return reply.status(500).send({ error: error.message })
+
+    return reply.send({ success: true, message: `Proyek "${existing.name}" berhasil dihapus (soft-delete)` })
   })
 }

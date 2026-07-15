@@ -14,6 +14,9 @@ interface TerminRow {
   label: string;
   pct_of_contract: number;
   target_date: string;
+  trigger_type: "on_sign" | "on_progress" | "on_retention";
+  trigger_pct: string;    // hanya untuk on_progress (threshold %)
+  due_days: string;       // hanya untuk on_retention (hari setelah serah terima)
 }
 
 export interface ProjectFormData {
@@ -46,17 +49,17 @@ interface ProjectModalProps {
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
 const C = {
-  navy: "#003366", navyLight: "#EBF2FF",
-  text: "#111827", mid: "#6B7280", muted: "#9CA3AF",
-  border: "#E5E7EB", bg: "#F8F9FA",
-  green: "#15803d", greenBg: "#F0FDF4",
-  red: "#B91C1C", redBg: "#FEF2F2",
+  navy: "var(--navy)", navyLight: "var(--navy-light)",
+  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
+  border: "var(--border)", bg: "var(--bg)",
+  green: "var(--success)", greenBg: "var(--success-bg)",
+  red: "var(--danger)", redBg: "var(--danger-bg)",
 };
 
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "9px 12px",
   border: "1px solid #E5E7EB", borderRadius: 8,
-  fontSize: 13, color: C.text, background: "#FFFFFF",
+  fontSize: 13, color: C.text, background: "var(--surface)",
   outline: "none", transition: "border-color 0.15s, box-shadow 0.15s",
   boxSizing: "border-box",
 };
@@ -87,7 +90,13 @@ const DEFAULT_FORM: ProjectFormData = {
   commission_pct: "",
   retention_pct: "5",
   start_date: "", end_date: "",
-  termin_schedules: [{ label: "Termin 1", pct_of_contract: 100, target_date: "" }],
+  termin_schedules: [
+    { label: "Tahap 1 — DP Kontrak", pct_of_contract: 30, target_date: "", trigger_type: "on_sign", trigger_pct: "", due_days: "" },
+    { label: "Tahap 2", pct_of_contract: 20, target_date: "", trigger_type: "on_progress", trigger_pct: "40", due_days: "" },
+    { label: "Tahap 3", pct_of_contract: 20, target_date: "", trigger_type: "on_progress", trigger_pct: "70", due_days: "" },
+    { label: "Tahap 4 — Selesai", pct_of_contract: 25, target_date: "", trigger_type: "on_progress", trigger_pct: "100", due_days: "" },
+    { label: "Retensi", pct_of_contract: 5, target_date: "", trigger_type: "on_retention", trigger_pct: "", due_days: "90" },
+  ],
 };
 
 // ─── Main modal ───────────────────────────────────────────────────────────────
@@ -112,8 +121,6 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
           api.get<{ clients: ClientOption[] }>("/api/v1/clients"),
           api.get<{ users: UserOption[] }>("/api/v1/users?role=pm"),
         ]);
-        console.log("[modal] clients loaded:", clientsRes.data.clients?.length);
-        console.log("[modal] PMs loaded:", pmsRes.data.users?.length);
         setClients(clientsRes.data.clients ?? []);
         setPms(pmsRes.data.users ?? []);
       } catch (err) {
@@ -209,6 +216,9 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
               label: t.label,
               pct_of_contract: Number(t.pct_of_contract),
               target_date: t.target_date || undefined,
+              trigger_type: t.trigger_type,
+              trigger_pct: t.trigger_pct ? Number(t.trigger_pct) : null,
+              due_days: t.due_days ? Number(t.due_days) : null,
             }))
           : undefined,
       };
@@ -234,7 +244,10 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
 
   function addTermin() {
     const n = form.termin_schedules.length + 1;
-    set("termin_schedules", [...form.termin_schedules, { label: `Termin ${n}`, pct_of_contract: 0, target_date: "" }]);
+    set("termin_schedules", [...form.termin_schedules, {
+      label: `Termin ${n}`, pct_of_contract: 0, target_date: "",
+      trigger_type: "on_progress", trigger_pct: "", due_days: "",
+    }]);
   }
 
   function removeTermin(i: number) {
@@ -273,7 +286,7 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div style={{
-        background: "#FFFFFF", borderRadius: 16, width: "100%", maxWidth: 600,
+        background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 600,
         boxShadow: "0 24px 48px rgba(0,0,0,0.18)",
         maxHeight: "90vh", display: "flex", flexDirection: "column",
       }}>
@@ -286,7 +299,7 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
             <button
               onClick={onClose}
               style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, padding: 4, borderRadius: 6, display: "flex" }}
-              onMouseEnter={e => { e.currentTarget.style.background = "#F3F4F6"; e.currentTarget.style.color = C.text; }}
+              onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-hover)"; e.currentTarget.style.color = C.text; }}
               onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.color = C.muted; }}
             >
               <X size={18} />
@@ -302,8 +315,8 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
                     width: 28, height: 28, borderRadius: "50%",
                     display: "flex", alignItems: "center", justifyContent: "center",
                     fontSize: 11, fontWeight: 700,
-                    background: step > s.n ? C.navy : step === s.n ? C.navy : "#F3F4F6",
-                    color: step >= s.n ? "#FFFFFF" : C.muted,
+                    background: step > s.n ? C.navy : step === s.n ? C.navy : "var(--surface-hover)",
+                    color: step >= s.n ? "var(--surface)" : C.muted,
                     transition: "all 0.2s",
                     flexShrink: 0,
                   }}>
@@ -316,7 +329,7 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
                 {idx < STEPS.length - 1 && (
                   <div style={{
                     flex: 1, height: 2, marginBottom: 16, marginLeft: 4, marginRight: 4,
-                    background: step > s.n ? C.navy : "#E5E7EB",
+                    background: step > s.n ? C.navy : "var(--border)",
                     transition: "background 0.2s",
                   }} />
                 )}
@@ -430,8 +443,8 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
               {/* Total indicator */}
               <div style={{
                 padding: "10px 14px", borderRadius: 8,
-                background: Math.abs(terminTotal - 100) < 0.01 ? "#F0FDF4" : "#FEF2F2",
-                border: `1px solid ${Math.abs(terminTotal - 100) < 0.01 ? "#BBF7D0" : "#FECACA"}`,
+                background: Math.abs(terminTotal - 100) < 0.01 ? "var(--success-bg)" : "var(--danger-bg)",
+                border: `1px solid ${Math.abs(terminTotal - 100) < 0.01 ? "var(--success-border)" : "var(--danger-border)"}`,
                 display: "flex", justifyContent: "space-between", alignItems: "center",
               }}>
                 <span style={{ fontSize: 13, color: Math.abs(terminTotal - 100) < 0.01 ? C.green : C.red, fontWeight: 600 }}>
@@ -447,47 +460,101 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
                 <p style={{ fontSize: 12, color: C.red, margin: 0 }}>{errors._termin}</p>
               )}
 
-              {form.termin_schedules.map((t, i) => (
-                <div key={i} style={{ border: "1px solid #E5E7EB", borderRadius: 10, padding: "14px 16px", background: "#FAFAFA" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: C.navy }}>Termin {i + 1}</span>
-                    {form.termin_schedules.length > 1 && (
-                      <button
-                        onClick={() => removeTermin(i)}
-                        style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, display: "flex", padding: 4, borderRadius: 4 }}
-                        onMouseEnter={e => { e.currentTarget.style.color = C.red; e.currentTarget.style.background = "#FEF2F2"; }}
-                        onMouseLeave={e => { e.currentTarget.style.color = C.muted; e.currentTarget.style.background = "none"; }}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    )}
+              {form.termin_schedules.map((t, i) => {
+                const TRIGGER_LABELS: Record<string, string> = {
+                  on_sign: "Saat TTD Kontrak",
+                  on_progress: "Saat Progress Capai ...",
+                  on_retention: "Retensi (hari setelah serah terima)",
+                };
+                return (
+                  <div key={i} style={{ border: "1px solid #E5E7EB", borderRadius: 10, padding: "14px 16px", background: "#FAFAFA" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: C.navy }}>Termin {i + 1}</span>
+                        <span style={{
+                          fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 20,
+                          background: t.trigger_type === "on_sign" ? "#DBEAFE" : t.trigger_type === "on_retention" ? "#FEF3C7" : C.navyLight,
+                          color: t.trigger_type === "on_sign" ? "var(--info)" : t.trigger_type === "on_retention" ? "#B45309" : C.navy,
+                        }}>
+                          {t.trigger_type === "on_sign" ? "ON SIGN" : t.trigger_type === "on_retention" ? "RETENSI" : `ON PROGRESS ≥ ${t.trigger_pct || "?"}%`}
+                        </span>
+                      </div>
+                      {form.termin_schedules.length > 1 && (
+                        <button
+                          onClick={() => removeTermin(i)}
+                          style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, display: "flex", padding: 4, borderRadius: 4 }}
+                          onMouseEnter={e => { e.currentTarget.style.color = C.red; e.currentTarget.style.background = "var(--danger-bg)"; }}
+                          onMouseLeave={e => { e.currentTarget.style.color = C.muted; e.currentTarget.style.background = "none"; }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 90px 1fr", gap: 10, marginBottom: 10 }}>
+                      <Field label="Label" error={errors[`termin_label_${i}`]}>
+                        <input style={inputStyle} value={t.label} onChange={e => updateTermin(i, "label", e.target.value)} placeholder={`Termin ${i + 1}`} />
+                      </Field>
+                      <Field label="Persentase (%)">
+                        <input
+                          style={inputStyle} type="number" min="0" max="100" step="0.5"
+                          value={t.pct_of_contract}
+                          onChange={e => updateTermin(i, "pct_of_contract", Number(e.target.value))}
+                        />
+                      </Field>
+                      <Field label="Nilai (auto)">
+                        <input
+                          style={{ ...inputStyle, background: "var(--surface-subtle)", color: C.mid }}
+                          disabled
+                          value={`Rp ${Math.round(contractVal * (Number(t.pct_of_contract) / 100)).toLocaleString("id-ID")}`}
+                        />
+                      </Field>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      <Field label="Trigger Pembayaran">
+                        <select
+                          style={inputStyle}
+                          value={t.trigger_type}
+                          onChange={e => updateTermin(i, "trigger_type", e.target.value)}
+                        >
+                          <option value="on_sign">Saat TTD Kontrak</option>
+                          <option value="on_progress">Saat Progress Capai (%)</option>
+                          <option value="on_retention">Retensi (setelah serah terima)</option>
+                        </select>
+                      </Field>
+
+                      {t.trigger_type === "on_progress" && (
+                        <Field label="Threshold Progress (%)">
+                          <input
+                            style={inputStyle} type="number" min="1" max="100" step="1"
+                            value={t.trigger_pct}
+                            onChange={e => updateTermin(i, "trigger_pct", e.target.value)}
+                            placeholder="Contoh: 40"
+                          />
+                        </Field>
+                      )}
+
+                      {t.trigger_type === "on_retention" && (
+                        <Field label="Jatuh Tempo (hari setelah serah terima)">
+                          <input
+                            style={inputStyle} type="number" min="1" step="1"
+                            value={t.due_days}
+                            onChange={e => updateTermin(i, "due_days", e.target.value)}
+                            placeholder="Contoh: 90"
+                          />
+                        </Field>
+                      )}
+
+                      {t.trigger_type === "on_sign" && (
+                        <Field label="Target Tanggal (opsional)">
+                          <input style={inputStyle} type="date" value={t.target_date} onChange={e => updateTermin(i, "target_date", e.target.value)} />
+                        </Field>
+                      )}
+                    </div>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 100px 1fr", gap: 10 }}>
-                    <Field label="Label" error={errors[`termin_label_${i}`]}>
-                      <input style={inputStyle} value={t.label} onChange={e => updateTermin(i, "label", e.target.value)} placeholder={`Termin ${i + 1}`} />
-                    </Field>
-                    <Field label="Persentase (%)">
-                      <input
-                        style={inputStyle} type="number" min="0" max="100" step="0.5"
-                        value={t.pct_of_contract}
-                        onChange={e => updateTermin(i, "pct_of_contract", Number(e.target.value))}
-                      />
-                    </Field>
-                    <Field label="Nilai (auto)">
-                      <input
-                        style={{ ...inputStyle, background: "#F9FAFB", color: C.mid }}
-                        disabled
-                        value={`Rp ${Math.round(contractVal * (Number(t.pct_of_contract) / 100)).toLocaleString("id-ID")}`}
-                      />
-                    </Field>
-                  </div>
-                  <div style={{ marginTop: 10 }}>
-                    <Field label="Target Tanggal">
-                      <input style={inputStyle} type="date" value={t.target_date} onChange={e => updateTermin(i, "target_date", e.target.value)} />
-                    </Field>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
 
               <button
                 onClick={addTermin}
@@ -499,7 +566,7 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
                   transition: "all 0.12s",
                 }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = C.navy; e.currentTarget.style.color = C.navy; e.currentTarget.style.background = C.navyLight; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = "#E5E7EB"; e.currentTarget.style.color = C.mid; e.currentTarget.style.background = "transparent"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = C.mid; e.currentTarget.style.background = "transparent"; }}
               >
                 <Plus size={14} /> Tambah Termin
               </button>
@@ -507,7 +574,7 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
           )}
 
           {submitError && (
-            <div style={{ marginTop: 16, padding: "10px 14px", borderRadius: 8, background: "#FEF2F2", border: "1px solid #FECACA", fontSize: 13, color: C.red }}>
+            <div style={{ marginTop: 16, padding: "10px 14px", borderRadius: 8, background: "var(--danger-bg)", border: "1px solid #FECACA", fontSize: 13, color: C.red }}>
               {submitError}
             </div>
           )}
@@ -524,12 +591,12 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
             style={{
               display: "flex", alignItems: "center", gap: 5,
               padding: "9px 16px", borderRadius: 8,
-              border: "1px solid #E5E7EB", background: "#FFFFFF",
+              border: "1px solid #E5E7EB", background: "var(--surface)",
               fontSize: 13, fontWeight: 500, color: C.mid, cursor: "pointer",
               transition: "all 0.12s",
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = "#F9FAFB"; e.currentTarget.style.color = C.text; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "#FFFFFF"; e.currentTarget.style.color = C.mid; }}
+            onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-subtle)"; e.currentTarget.style.color = C.text; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "var(--surface)"; e.currentTarget.style.color = C.mid; }}
           >
             {step > 1 && <ChevronLeft size={14} />}
             {step === 1 ? "Batal" : "Kembali"}
@@ -541,8 +608,8 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
             style={{
               display: "flex", alignItems: "center", gap: 5,
               padding: "9px 20px", borderRadius: 8, border: "none",
-              background: submitting ? "#9CA3AF" : C.navy,
-              color: "#FFFFFF", fontSize: 13, fontWeight: 600,
+              background: submitting ? "var(--text-muted)" : C.navy,
+              color: "var(--surface)", fontSize: 13, fontWeight: 600,
               cursor: submitting ? "not-allowed" : "pointer",
               transition: "background 0.15s",
             }}
@@ -567,7 +634,7 @@ function Field({ label, error, children }: { label: string; error?: string; chil
     <div>
       <label style={labelStyle}>{label}</label>
       {children}
-      {error && <p style={{ fontSize: 11, color: "#B91C1C", marginTop: 4, marginBottom: 0 }}>{error}</p>}
+      {error && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 4, marginBottom: 0 }}>{error}</p>}
     </div>
   );
 }
@@ -582,22 +649,22 @@ function RadioCard({ label, description, checked, onClick }: {
       onClick={onClick}
       style={{
         flex: 1, padding: "12px 14px", borderRadius: 10, cursor: "pointer",
-        border: `2px solid ${checked ? "#003366" : "#E5E7EB"}`,
-        background: checked ? "#EBF2FF" : "#FFFFFF",
+        border: `2px solid ${checked ? "var(--navy)" : "var(--border)"}`,
+        background: checked ? "var(--navy-light)" : "var(--surface)",
         transition: "all 0.15s",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
         <div style={{
           width: 14, height: 14, borderRadius: "50%", flexShrink: 0,
-          border: `2px solid ${checked ? "#003366" : "#D1D5DB"}`,
+          border: `2px solid ${checked ? "var(--navy)" : "var(--border-strong)"}`,
           display: "flex", alignItems: "center", justifyContent: "center",
         }}>
-          {checked && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#003366" }} />}
+          {checked && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--navy)" }} />}
         </div>
-        <span style={{ fontSize: 13, fontWeight: 600, color: checked ? "#003366" : "#374151" }}>{label}</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: checked ? "var(--navy)" : "#374151" }}>{label}</span>
       </div>
-      <p style={{ fontSize: 11, color: "#9CA3AF", margin: 0, paddingLeft: 22, lineHeight: 1.4 }}>{description}</p>
+      <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0, paddingLeft: 22, lineHeight: 1.4 }}>{description}</p>
     </div>
   );
 }

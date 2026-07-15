@@ -1,11 +1,29 @@
 import { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate } from '../../plugins/auth.js'
+import { sendWelcomeEmail } from '../../utils/email.js'
+
+const COOKIE_OPTS = {
+  httpOnly: true,
+  sameSite: 'lax' as const,
+  path: '/',
+  secure: process.env.NODE_ENV === 'production',
+  maxAge: 7 * 24 * 60 * 60,
+}
+
 
 export default async function authRoutes(app: FastifyInstance) {
 
   // POST /api/v1/auth/login
-  app.post('/api/v1/auth/login', async (request, reply) => {
+  app.post('/api/v1/auth/login', {
+    config: {
+      rateLimit: {
+        max: 10,
+        timeWindow: '1 minute',
+        errorResponseBuilder: () => ({ error: 'Terlalu banyak percobaan login, coba lagi dalam 1 menit' }),
+      }
+    }
+  }, async (request, reply) => {
     const { email, password } = request.body as {
       email: string
       password: string
@@ -13,6 +31,10 @@ export default async function authRoutes(app: FastifyInstance) {
 
     if (!email || !password) {
       return reply.status(400).send({ error: 'Email dan password wajib diisi' })
+    }
+
+    if (password.length < 8) {
+      return reply.status(400).send({ error: 'Password minimal 8 karakter' })
     }
 
     // Login via Supabase Auth
@@ -42,14 +64,27 @@ export default async function authRoutes(app: FastifyInstance) {
       .update({ last_login_at: new Date().toISOString() })
       .eq('id', user.id)
 
-    return {
+    // Ambil permissions + portal home secara paralel
+    const [permsResult, roleResult] = await Promise.all([
+      supabase.rpc('get_role_permissions', { role_name: user.role }),
+      supabase.from('roles').select('portal').eq('name', user.role).single(),
+    ])
+    const permissions = (permsResult.data ?? []).map((r: { permission_key: string }) => r.permission_key)
+    const homePortal = roleResult.data?.portal ?? 'dashboard'
+
+    // Set HttpOnly cookies — tidak bisa dibaca JS di browser
+    reply
+      .setCookie('puraloka_token', data.session.access_token, COOKIE_OPTS)
+      .setCookie('puraloka_refresh', data.session.refresh_token, COOKIE_OPTS)
+
+    return reply.send({
       user,
+      permissions,
+      homePortal,
       session: {
-        access_token: data.session.access_token,
-        refresh_token: data.session.refresh_token,
         expires_at: data.session.expires_at
       }
-    }
+    })
   })
 
   // POST /api/v1/auth/register — hanya admin yang bisa daftarkan user baru
@@ -57,7 +92,6 @@ export default async function authRoutes(app: FastifyInstance) {
     preHandler: [authenticate]
   }, async (request, reply) => {
 
-    // Cek apakah yang register adalah admin
     if (request.currentUser?.role !== 'admin') {
       return reply.status(403).send({ error: 'Hanya admin yang bisa mendaftarkan user baru' })
     }
@@ -67,11 +101,20 @@ export default async function authRoutes(app: FastifyInstance) {
       password: string
       name: string
       phone?: string
-      role: 'admin' | 'pm' | 'mandor' | 'client'
+      role: string
     }
 
     if (!email || !password || !name || !role) {
       return reply.status(400).send({ error: 'Email, password, name, dan role wajib diisi' })
+    }
+
+    if (password.length < 8) {
+      return reply.status(400).send({ error: 'Password minimal 8 karakter' })
+    }
+
+    const { data: roleRow } = await supabase.from('roles').select('id').eq('name', role).single()
+    if (!roleRow) {
+      return reply.status(400).send({ error: `Role '${role}' tidak valid` })
     }
 
     // Buat auth user di Supabase
@@ -99,10 +142,15 @@ export default async function authRoutes(app: FastifyInstance) {
       .single()
 
     if (userError) {
-      return reply.status(500).send({ error: userError.message })
+      // Rollback: hapus auth user yang sudah dibuat
+      await supabase.auth.admin.deleteUser(authData.user.id)
+      return reply.status(500).send({ error: 'Gagal menyimpan data user' })
     }
 
-    return { message: 'User berhasil didaftarkan', user }
+    // Fire-and-forget welcome email
+    sendWelcomeEmail({ to: email, name, role, password }).catch(() => {})
+
+    return reply.status(201).send({ message: 'User berhasil didaftarkan', user })
   })
 
   // GET /api/v1/auth/me — ambil data user yang sedang login
@@ -112,12 +160,15 @@ export default async function authRoutes(app: FastifyInstance) {
     return { user: request.currentUser }
   })
 
-  // POST /api/v1/auth/refresh — refresh token
+  // POST /api/v1/auth/refresh — refresh token via cookie atau body
   app.post('/api/v1/auth/refresh', async (request, reply) => {
-    const { refresh_token } = request.body as { refresh_token: string }
+    // Coba ambil refresh token dari HttpOnly cookie dulu, fallback ke body
+    const refreshTokenFromCookie = request.cookies?.puraloka_refresh
+    const { refresh_token: refreshTokenFromBody } = (request.body ?? {}) as { refresh_token?: string }
+    const refresh_token = refreshTokenFromCookie ?? refreshTokenFromBody
 
     if (!refresh_token) {
-      return reply.status(400).send({ error: 'Refresh token wajib diisi' })
+      return reply.status(400).send({ error: 'Refresh token tidak ditemukan' })
     }
 
     const { data, error } = await supabase.auth.refreshSession({
@@ -125,15 +176,87 @@ export default async function authRoutes(app: FastifyInstance) {
     })
 
     if (error || !data.session) {
+      // Hapus cookie yang sudah tidak valid
+      reply
+        .clearCookie('puraloka_token', { path: '/' })
+        .clearCookie('puraloka_refresh', { path: '/' })
       return reply.status(401).send({ error: 'Refresh token tidak valid' })
     }
 
-    return {
+    // Update HttpOnly cookies dengan token baru
+    reply
+      .setCookie('puraloka_token', data.session.access_token, COOKIE_OPTS)
+      .setCookie('puraloka_refresh', data.session.refresh_token, COOKIE_OPTS)
+
+    return reply.send({
       session: {
         access_token: data.session.access_token,
         refresh_token: data.session.refresh_token,
         expires_at: data.session.expires_at
       }
+    })
+  })
+
+  // POST /api/v1/auth/google-callback — tukar Supabase OAuth session → HttpOnly cookie
+  // Whitelist-only: hanya email yang sudah ada di tabel users yang boleh masuk
+  app.post('/api/v1/auth/google-callback', async (request, reply) => {
+    const { access_token, refresh_token } = request.body as {
+      access_token: string
+      refresh_token?: string
     }
+
+    if (!access_token) {
+      return reply.status(400).send({ error: 'access_token wajib diisi' })
+    }
+
+    // Verifikasi access_token ke Supabase
+    const { data: { user: supaUser }, error: tokenError } = await supabase.auth.getUser(access_token)
+    if (tokenError || !supaUser) {
+      return reply.status(401).send({ error: 'Token tidak valid' })
+    }
+
+    // Whitelist check: email harus sudah ada di tabel users
+    const { data: user } = await supabase
+      .from('users')
+      .select('id, auth_id, name, email, phone, role, avatar_url')
+      .eq('email', supaUser.email!)
+      .single()
+
+    if (!user) {
+      return reply.status(403).send({ error: 'Akun belum terdaftar. Hubungi admin untuk mendapatkan akses.' })
+    }
+
+    // Jika auth_id belum diisi (user dibuat sebelum Google OAuth aktif), update sekarang
+    if (!user.auth_id) {
+      await supabase.from('users').update({ auth_id: supaUser.id }).eq('id', user.id)
+    }
+
+    // Update last_login_at
+    await supabase.from('users').update({ last_login_at: new Date().toISOString() }).eq('id', user.id)
+
+    // Ambil permissions + portal home
+    const [permsResult2, roleResult2] = await Promise.all([
+      supabase.rpc('get_role_permissions', { role_name: user.role }),
+      supabase.from('roles').select('portal').eq('name', user.role).single(),
+    ])
+    const permissions = (permsResult2.data ?? []).map((r: { permission_key: string }) => r.permission_key)
+    const homePortal = roleResult2.data?.portal ?? 'dashboard'
+
+    // Set HttpOnly cookies
+    reply
+      .setCookie('puraloka_token', access_token, COOKIE_OPTS)
+    if (refresh_token) {
+      reply.setCookie('puraloka_refresh', refresh_token, COOKIE_OPTS)
+    }
+
+    return reply.send({ user, permissions, homePortal })
+  })
+
+  // POST /api/v1/auth/logout — hapus cookie server-side
+  app.post('/api/v1/auth/logout', async (_request, reply) => {
+    reply
+      .clearCookie('puraloka_token', { path: '/' })
+      .clearCookie('puraloka_refresh', { path: '/' })
+    return reply.send({ success: true })
   })
 }

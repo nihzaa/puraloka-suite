@@ -65,6 +65,14 @@ export default async function dashboardRoutes(app: FastifyInstance) {
       .not('status', 'eq', 'rejected')
     if (periodStart) allKasbonsQuery = allKasbonsQuery.gte('kasbon_date', periodStart)
 
+    // Supplier payments yang terhubung ke kas (cash_account_id tidak null)
+    let supplierPaymentsQuery = supabase
+      .from('supplier_payments')
+      .select('amount, payment_date')
+      .not('cash_account_id', 'is', null)
+    if (periodStart) supplierPaymentsQuery = supplierPaymentsQuery.gte('payment_date', periodStart)
+
+    // Promise.allSettled: jika 1 query gagal, widget lain tetap tampil
     const [
       projectsRes,
       invoicesRes,
@@ -75,13 +83,15 @@ export default async function dashboardRoutes(app: FastifyInstance) {
       milestonesRes,
       mandorRes,
       taxRes,
-    ] = await Promise.all([
+      supplierPaymentsRes,
+    ] = await Promise.allSettled([
       supabase.from('projects')
         .select(`
           id, name, status, contract_value, progress_pct, location, end_date, contract_model,
           clients!projects_client_id_fkey ( contact_person ),
           pm:users!projects_pm_id_fkey ( name )
         `)
+        .eq('is_deleted', false)
         .order('created_at', { ascending: false }),
 
       supabase.from('invoices')
@@ -147,17 +157,20 @@ export default async function dashboardRoutes(app: FastifyInstance) {
       supabase.from('tax_records')
         .select('id, tax_type, base_amount, rate_pct, tax_amount, period_month, status')
         .order('period_month', { ascending: false }),
+
+      supplierPaymentsQuery,
     ])
 
-    const projects = projectsRes.data ?? []
-    const invoices = invoicesRes.data ?? []
-    const payments = paymentsRes.data ?? []
-    const allKasbons = allKasbonsRes.data ?? []
-    const pendingKasbons = pendingKasbonsRes.data ?? []
-    const recentActivity = recentActivityRes.data ?? []
-    const milestones = milestonesRes.data ?? []
-    const mandorAssignments = mandorRes.data ?? []
-    const taxRecords = taxRes.data ?? []
+    const projects         = projectsRes.status      === 'fulfilled' ? (projectsRes.value.data      ?? []) : []
+    const invoices         = invoicesRes.status       === 'fulfilled' ? (invoicesRes.value.data       ?? []) : []
+    const payments         = paymentsRes.status       === 'fulfilled' ? (paymentsRes.value.data       ?? []) : []
+    const allKasbons       = allKasbonsRes.status     === 'fulfilled' ? (allKasbonsRes.value.data     ?? []) : []
+    const pendingKasbons   = pendingKasbonsRes.status === 'fulfilled' ? (pendingKasbonsRes.value.data ?? []) : []
+    const recentActivity   = recentActivityRes.status === 'fulfilled' ? (recentActivityRes.value.data ?? []) : []
+    const milestones       = milestonesRes.status     === 'fulfilled' ? (milestonesRes.value.data     ?? []) : []
+    const mandorAssignments = mandorRes.status        === 'fulfilled' ? (mandorRes.value.data         ?? []) : []
+    const taxRecords       = taxRes.status            === 'fulfilled' ? (taxRes.value.data            ?? []) : []
+    const supplierPayments = supplierPaymentsRes.status === 'fulfilled' ? (supplierPaymentsRes.value.data ?? []) : []
 
     // Non-time-based KPIs (always all data)
     const activeProjects = projects.filter((p: any) => p.status === 'active')
@@ -206,12 +219,14 @@ export default async function dashboardRoutes(app: FastifyInstance) {
         invoice_overdue: invoiceOverdueCount,
         milestone_late: milestoneLateCount,
       },
-      cashflow_8w: buildCashflowWeeks(today, numWeeks, payments as any[], allKasbons as any[]),
+      cashflow_8w: buildCashflowWeeks(today, numWeeks, payments as any[], allKasbons as any[], supplierPayments as any[]),
       status_distribution: Object.entries(statusMap).map(([status, count]) => ({ status, count })),
       active_progress: activeProjects.map((p: any) => ({
         id: p.id,
         name: p.name,
         progress_pct: Number(p.progress_pct),
+        end_date: p.end_date,
+        contract_value: Number(p.contract_value ?? 0),
       })),
       outstanding_invoices: invoices,
       pending_kasbons: pendingKasbons,
@@ -235,7 +250,8 @@ function buildCashflowWeeks(
   today: Date,
   numWeeks: number,
   payments: Array<{ amount_paid: number; paid_at: string }>,
-  kasbons: Array<{ amount: number; kasbon_date: string; status: string }>
+  kasbons: Array<{ amount: number; kasbon_date: string; status: string }>,
+  supplierPayments: Array<{ amount: number; payment_date: string }> = []
 ) {
   const weeks = []
   for (let w = numWeeks - 1; w >= 0; w--) {
@@ -252,11 +268,15 @@ function buildCashflowWeeks(
       .filter(p => p.paid_at >= startStr && p.paid_at <= endStr)
       .reduce((s, p) => s + Number(p.amount_paid ?? 0), 0)
 
-    const expense = kasbons
+    const kasbonExpense = kasbons
       .filter(k => k.kasbon_date >= startStr && k.kasbon_date <= endStr && k.status !== 'rejected')
       .reduce((s, k) => s + Number(k.amount ?? 0), 0)
 
-    weeks.push({ week_label: label, week_start: startStr, income, expense })
+    const supplierExpense = supplierPayments
+      .filter(sp => sp.payment_date >= startStr && sp.payment_date <= endStr)
+      .reduce((s, sp) => s + Number(sp.amount ?? 0), 0)
+
+    weeks.push({ week_label: label, week_start: startStr, income, expense: kasbonExpense + supplierExpense })
   }
   return weeks
 }
