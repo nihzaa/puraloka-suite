@@ -136,6 +136,26 @@
 /* Exclude transitions yang tidak perlu */
 .no-transition, .no-transition * { transition: none !important; }
 
+/* ─── Warm Clay motion utilities ─────────────────────────────────── */
+.clay-hover {
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+.clay-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
+}
+.clay-press:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: var(--shadow-press);
+  transition: transform 100ms ease, box-shadow 100ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clay-hover, .clay-hover:hover, .clay-press:active {
+    transform: none !important;
+  }
+}
+
 body {
   background: var(--bg);
   color: var(--text-primary);
