@@ -19,15 +19,15 @@ export interface ProgressSectionProps {
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
 const C = {
-  navy: "#003366",
-  text: "#111827",
-  mid: "#6B7280",
-  muted: "#9CA3AF",
-  border: "#E5E7EB",
+  navy: "var(--navy)",
+  text: "var(--text-primary)",
+  mid: "var(--text-secondary)",
+  muted: "var(--text-muted)",
+  border: "var(--border)",
 };
 
 const card: React.CSSProperties = {
-  background: "#FFFFFF",
+  background: "var(--surface)",
   border: `1px solid ${C.border}`,
   borderRadius: 14,
   boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
@@ -107,7 +107,7 @@ export function ProgressSection({
             {total > 0 && !loading && (
               <span style={{
                 fontSize: 11, fontWeight: 600, color: C.navy,
-                background: "#EBF2FF", padding: "2px 8px", borderRadius: 99,
+                background: "var(--navy-light)", padding: "2px 8px", borderRadius: 99,
               }}>
                 {total} log
               </span>
@@ -120,7 +120,7 @@ export function ProgressSection({
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
                 padding: "8px 14px", borderRadius: 10, border: "none",
-                background: C.navy, color: "#FFFFFF",
+                background: C.navy, color: "var(--surface)",
                 fontSize: 13, fontWeight: 600, cursor: "pointer",
                 transition: "background 0.15s", flexShrink: 0,
               }}

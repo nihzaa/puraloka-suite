@@ -21,17 +21,17 @@ export interface ProgressLogListProps {
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
 const C = {
-  navy: "#003366",
-  navyLight: "#EBF2FF",
-  text: "#111827",
-  mid: "#6B7280",
-  muted: "#9CA3AF",
-  border: "#E5E7EB",
-  bg: "#F8F9FA",
-  green: "#15803d",
-  greenBg: "#F0FDF4",
-  red: "#B91C1C",
-  redBg: "#FEF2F2",
+  navy: "var(--navy)",
+  navyLight: "var(--navy-light)",
+  text: "var(--text-primary)",
+  mid: "var(--text-secondary)",
+  muted: "var(--text-muted)",
+  border: "var(--border)",
+  bg: "var(--bg)",
+  green: "var(--success)",
+  greenBg: "var(--success-bg)",
+  red: "var(--danger)",
+  redBg: "var(--danger-bg)",
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -76,7 +76,7 @@ function Lightbox({ url, onClose }: { url: string; onClose: () => void }) {
         style={{
           position: "absolute", top: 20, right: 20, width: 40, height: 40,
           borderRadius: "50%", border: "none", background: "rgba(255,255,255,0.15)",
-          color: "#FFFFFF", cursor: "pointer", display: "flex", alignItems: "center",
+          color: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center",
           justifyContent: "center", zIndex: 1,
         }}
       >
@@ -110,7 +110,7 @@ function PhotoGrid({ photos }: { photos: ProgressLog["photos"] }) {
   });
 
   const cellStyle = (extra?: React.CSSProperties): React.CSSProperties => ({
-    overflow: "hidden", borderRadius: 8, position: "relative", background: "#F3F4F6",
+    overflow: "hidden", borderRadius: 8, position: "relative", background: "var(--surface-hover)",
     ...extra,
   });
 
@@ -170,7 +170,7 @@ function PhotoGrid({ photos }: { photos: ProgressLog["photos"] }) {
                 }}
                 onClick={() => setLightboxUrl(photos[3].url)}
               >
-                <span style={{ color: "#FFFFFF", fontSize: 22, fontWeight: 700 }}>+{extra}</span>
+                <span style={{ color: "var(--surface)", fontSize: 22, fontWeight: 700 }}>+{extra}</span>
               </div>
             )}
           </div>
@@ -195,13 +195,13 @@ function LogSkeleton() {
       <div style={{ width: 44, flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center" }}>
         <div style={{
           width: 44, height: 52, borderRadius: 10,
-          background: "linear-gradient(90deg, #F3F4F6 0%, #E5E7EB 50%, #F3F4F6 100%)",
+          background: "linear-gradient(90deg, var(--surface-hover) 0%, var(--border) 50%, var(--surface-hover) 100%)",
           backgroundSize: "200% 100%", animation: "shimmer 1.5s ease-in-out infinite",
         }} />
       </div>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
-        <div style={{ height: 16, width: "40%", borderRadius: 6, background: "linear-gradient(90deg, #F3F4F6 0%, #E5E7EB 50%, #F3F4F6 100%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s ease-in-out infinite" }} />
-        <div style={{ height: 80, borderRadius: 12, background: "linear-gradient(90deg, #F3F4F6 0%, #E5E7EB 50%, #F3F4F6 100%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s ease-in-out infinite" }} />
+        <div style={{ height: 16, width: "40%", borderRadius: 6, background: "linear-gradient(90deg, var(--surface-hover) 0%, var(--border) 50%, var(--surface-hover) 100%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s ease-in-out infinite" }} />
+        <div style={{ height: 80, borderRadius: 12, background: "linear-gradient(90deg, var(--surface-hover) 0%, var(--border) 50%, var(--surface-hover) 100%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s ease-in-out infinite" }} />
       </div>
     </div>
   );
@@ -258,7 +258,7 @@ function LogCard({
           display: "flex", flexDirection: "column", alignItems: "center",
           boxShadow: "0 2px 8px rgba(0,51,102,0.2)",
         }}>
-          <span style={{ fontSize: 22, fontWeight: 800, color: "#FFFFFF", lineHeight: 1.1, fontFamily: "var(--font-display)" }}>
+          <span style={{ fontSize: 22, fontWeight: 800, color: "var(--surface)", lineHeight: 1.1, fontFamily: "var(--font-display)" }}>
             {day}
           </span>
           <span style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.7)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
@@ -269,7 +269,7 @@ function LogCard({
 
       {/* Card */}
       <div style={{
-        flex: 1, background: "#FFFFFF", border: `1px solid ${C.border}`,
+        flex: 1, background: "var(--surface)", border: `1px solid ${C.border}`,
         borderRadius: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.05)", overflow: "hidden",
       }}>
         {/* Card header */}
@@ -306,7 +306,7 @@ function LogCard({
                 <span style={{
                   display: "inline-flex", alignItems: "center", gap: 4,
                   fontSize: 11, color: C.mid, padding: "2px 8px",
-                  borderRadius: 99, background: "#F9FAFB", border: `1px solid ${C.border}`,
+                  borderRadius: 99, background: "var(--surface-subtle)", border: `1px solid ${C.border}`,
                 }}>
                   {weather.icon} {weather.label}
                 </span>
@@ -327,7 +327,7 @@ function LogCard({
               onClick={() => setConfirmDelete(true)}
               style={{
                 width: 28, height: 28, borderRadius: 8, border: "none",
-                background: "#FEF2F2", cursor: "pointer",
+                background: "var(--danger-bg)", cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 color: C.red, flexShrink: 0,
               }}
@@ -345,7 +345,7 @@ function LogCard({
                 disabled={deleting}
                 style={{
                   padding: "4px 10px", borderRadius: 6, border: "none",
-                  background: C.red, color: "#FFFFFF", fontSize: 11, fontWeight: 600,
+                  background: C.red, color: "var(--surface)", fontSize: 11, fontWeight: 600,
                   cursor: deleting ? "not-allowed" : "pointer",
                 }}
               >
@@ -356,7 +356,7 @@ function LogCard({
                 disabled={deleting}
                 style={{
                   padding: "4px 10px", borderRadius: 6, border: `1px solid ${C.border}`,
-                  background: "#FFFFFF", color: C.mid, fontSize: 11, cursor: "pointer",
+                  background: "var(--surface)", color: C.mid, fontSize: 11, cursor: "pointer",
                 }}
               >
                 Batal
@@ -413,9 +413,9 @@ export function ProgressLogList({
       }}>
         <div style={{
           width: 56, height: 56, borderRadius: "50%",
-          background: "#F3F4F6", display: "flex", alignItems: "center", justifyContent: "center",
+          background: "var(--surface-hover)", display: "flex", alignItems: "center", justifyContent: "center",
         }}>
-          <Camera size={24} style={{ color: "#D1D5DB" }} />
+          <Camera size={24} style={{ color: "var(--border-strong)" }} />
         </div>
         <p style={{ fontSize: 14, fontWeight: 600, color: "#374151", margin: 0 }}>
           Belum ada log progress
@@ -450,7 +450,7 @@ export function ProgressLogList({
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               padding: "9px 18px", borderRadius: 10, border: `1px solid ${C.border}`,
-              background: "#FFFFFF", fontSize: 13, fontWeight: 500, color: C.mid,
+              background: "var(--surface)", fontSize: 13, fontWeight: 500, color: C.mid,
               cursor: "pointer",
             }}
           >
