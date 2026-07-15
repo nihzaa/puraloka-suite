@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "Puraloka Suite",
+    "slug": "puraloka-suite",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "puraloka",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#003366"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.puraloka.suite"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#003366"
+      },
+      "package": "com.puraloka.suite"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-camera",
+        { "cameraPermission": "Izinkan Puraloka Suite mengakses kamera untuk foto progress lapangan." }
+      ],
+      [
+        "expo-image-picker",
+        { "photosPermission": "Izinkan Puraloka Suite mengakses galeri untuk upload foto progress." }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
