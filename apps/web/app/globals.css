@@ -1,8 +1,19 @@
 @import "tailwindcss";
 
-@theme {
-  --font-display: var(--font-display);
-  --font-body: var(--font-body);
+@theme inline {
+  --font-display:      var(--font-display);
+  --font-body:         var(--font-body);
+
+  --color-primary:      var(--primary);
+  --color-primary-soft: var(--primary-soft);
+  --color-accent:       var(--accent);
+  --color-accent-soft:  var(--accent-soft);
+  --color-accent-2:     var(--accent-2);
+
+  --radius-sm:          var(--radius-sm);
+  --radius-md:          var(--radius-md);
+  --radius-lg:          var(--radius-lg);
+  --radius-xl:          var(--radius-xl);
 }
 
 /* ─── Design Tokens — Light ──────────────────────────────────────── */
