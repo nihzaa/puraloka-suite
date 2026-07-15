@@ -15,3 +15,17 @@ npm-debug.log*
 # Worktrees
 .worktrees
 
+# Claude Code local tool state
+.claude/
+
+# Personal scratch files
+prompt.txt
+
+# Design-sync tool artifacts (auto-generated, not source)
+apps/web/.design-sync/
+apps/web/.ds-sync/
+apps/web/ds-bundle/
+
+# Supabase CLI local cache
+supabase/.temp/
+
