@@ -3,4 +3,15 @@
 .env.local
 dist
 .next
+tools/cloudflared.exe
+
+# Log files
+*.log
+api.log
+api-err.log
+api-out.log
+npm-debug.log*
+
+# Worktrees
+.worktrees
 
