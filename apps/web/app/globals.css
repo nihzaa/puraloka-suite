@@ -142,7 +142,14 @@
 
 /* ─── Warm Clay motion utilities ─────────────────────────────────── */
 .clay-hover {
-  transition: transform 180ms ease, box-shadow 180ms ease;
+  transition:
+    background-color 220ms ease,
+    border-color 220ms ease,
+    color 220ms ease,
+    fill 220ms ease,
+    stroke 220ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
 }
 .clay-hover:hover {
   transform: translateY(-2px);
@@ -151,7 +158,14 @@
 .clay-press:active {
   transform: translateY(0) scale(0.98);
   box-shadow: var(--shadow-press);
-  transition: transform 100ms ease, box-shadow 100ms ease;
+  transition:
+    background-color 220ms ease,
+    border-color 220ms ease,
+    color 220ms ease,
+    fill 220ms ease,
+    stroke 220ms ease,
+    transform 100ms ease,
+    box-shadow 100ms ease;
 }
 
 @media (prefers-reduced-motion: reduce) {
