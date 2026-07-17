@@ -1,7 +1,7 @@
 # 03 — Platform & Intelligence Architecture
 
 **Repository:** Puraloka Suite Architecture Repository
-**Dokumen:** 4 dari 5 (lihat [00](00-vision-and-business-architecture.md), [01](01-application-and-data-architecture.md), [02](02-security-and-compliance-architecture.md), [04](04-roadmap-governance-and-delivery.md))
+**Dokumen:** 4 dari 6 (lihat [00](00-vision-and-business-architecture.md), [01](01-application-and-data-architecture.md), [02](02-security-and-compliance-architecture.md), [04](04-roadmap-governance-and-delivery.md), [05](05-design-system-and-ui-ux-architecture.md))
 **Upstream dependency:** Mengasumsikan [Modular Monolith Strategy](01-application-and-data-architecture.md#modular-monolith-strategy) dan [Service Extraction Strategy](01-application-and-data-architecture.md#service-extraction-strategy) dari dokumen 01.
 **Status:** Living document
 

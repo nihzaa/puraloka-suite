@@ -1,7 +1,7 @@
 # 02 — Security & Compliance Architecture
 
 **Repository:** Puraloka Suite Architecture Repository
-**Dokumen:** 3 dari 5 (lihat [00](00-vision-and-business-architecture.md), [01](01-application-and-data-architecture.md), [03](03-platform-and-intelligence-architecture.md), [04](04-roadmap-governance-and-delivery.md))
+**Dokumen:** 3 dari 6 (lihat [00](00-vision-and-business-architecture.md), [01](01-application-and-data-architecture.md), [03](03-platform-and-intelligence-architecture.md), [04](04-roadmap-governance-and-delivery.md), [05](05-design-system-and-ui-ux-architecture.md))
 **Upstream dependency:** Bagian [Dynamic Permission Engine](01-application-and-data-architecture.md#dynamic-permission-engine) dan gap RLS di [00](00-vision-and-business-architecture.md#arsitektur-auth--otorisasi-bercampur-bukan-murni-satu-pola) adalah dasar dari sebagian besar temuan di dokumen ini.
 **Status:** Living document
 **Standar acuan:** OWASP Top 10 (2021), OWASP ASVS 4.0, NIST Cybersecurity Framework, CIS Controls v8

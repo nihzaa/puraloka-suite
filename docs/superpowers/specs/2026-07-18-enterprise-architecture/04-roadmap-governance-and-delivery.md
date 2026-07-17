@@ -1,7 +1,7 @@
 # 04 — Roadmap, Governance & Delivery
 
 **Repository:** Puraloka Suite Architecture Repository
-**Dokumen:** 5 dari 5 (lihat [00](00-vision-and-business-architecture.md), [01](01-application-and-data-architecture.md), [02](02-security-and-compliance-architecture.md), [03](03-platform-and-intelligence-architecture.md))
+**Dokumen:** 5 dari 6 (lihat [00](00-vision-and-business-architecture.md), [01](01-application-and-data-architecture.md), [02](02-security-and-compliance-architecture.md), [03](03-platform-and-intelligence-architecture.md), [05](05-design-system-and-ui-ux-architecture.md))
 **Upstream dependency:** Dokumen ini mensintesis temuan dari keempat dokumen sebelumnya menjadi urutan eksekusi konkret. Setiap item roadmap merujuk balik ke bagian relevan di dokumen 00-03.
 **Status:** Living document — ini dokumen yang paling sering direvisi seiring setiap fase selesai
 
@@ -220,4 +220,4 @@ Setelah Phase 1 selesai dan diverifikasi (5 gate governance terpenuhi), urutan a
 
 ---
 
-*Ini adalah dokumen terakhir dari 5-dokumen Puraloka Suite Architecture Repository. Kembali ke [00 — Vision & Business Architecture](00-vision-and-business-architecture.md) untuk ringkasan menyeluruh.*
+*Dokumen governance ini dilengkapi oleh [05 — Design System & UI/UX Architecture](05-design-system-and-ui-ux-architecture.md) yang menerapkan proses phase-gate yang sama untuk domain desain. Kembali ke [00 — Vision & Business Architecture](00-vision-and-business-architecture.md) untuk ringkasan menyeluruh.*

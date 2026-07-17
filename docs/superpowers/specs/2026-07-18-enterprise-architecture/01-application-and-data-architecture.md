@@ -1,7 +1,7 @@
 # 01 — Application & Data Architecture
 
 **Repository:** Puraloka Suite Architecture Repository
-**Dokumen:** 2 dari 5 (lihat [00](00-vision-and-business-architecture.md), [02](02-security-and-compliance-architecture.md), [03](03-platform-and-intelligence-architecture.md), [04](04-roadmap-governance-and-delivery.md))
+**Dokumen:** 2 dari 6 (lihat [00](00-vision-and-business-architecture.md), [02](02-security-and-compliance-architecture.md), [03](03-platform-and-intelligence-architecture.md), [04](04-roadmap-governance-and-delivery.md), [05](05-design-system-and-ui-ux-architecture.md))
 **Upstream dependency:** Dokumen ini mengasumsikan pembaca sudah familiar dengan [Domain Map](00-vision-and-business-architecture.md#domain-map--bounded-contexts) dan [Current State Assessment](00-vision-and-business-architecture.md#current-state-assessment) di dokumen 00.
 **Status:** Living document
 
