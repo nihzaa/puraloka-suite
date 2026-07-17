@@ -1,7 +1,7 @@
 # 00 — Vision & Business Architecture
 
 **Repository:** Puraloka Suite Architecture Repository
-**Dokumen:** 1 dari 6 (lihat [01](01-application-and-data-architecture.md), [02](02-security-and-compliance-architecture.md), [03](03-platform-and-intelligence-architecture.md), [04](04-roadmap-governance-and-delivery.md), [05](05-design-system-and-ui-ux-architecture.md))
+**Dokumen:** 1 dari 7 (lihat [01](01-application-and-data-architecture.md), [02](02-security-and-compliance-architecture.md), [03](03-platform-and-intelligence-architecture.md), [04](04-roadmap-governance-and-delivery.md), [05](05-design-system-and-ui-ux-architecture.md), [06](06-agentic-ai-and-automation-architecture.md))
 **Status:** Living document — direvisi seiring evolusi produk, bukan snapshot statis
 **Tanggal disusun:** 18 Juli 2026
 **Audiens:** Founder, future engineering hires, technical co-founder/CTO candidates, investor/partner due diligence, enterprise procurement evaluation

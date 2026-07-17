@@ -1,7 +1,7 @@
 # 03 — Platform & Intelligence Architecture
 
 **Repository:** Puraloka Suite Architecture Repository
-**Dokumen:** 4 dari 6 (lihat [00](00-vision-and-business-architecture.md), [01](01-application-and-data-architecture.md), [02](02-security-and-compliance-architecture.md), [04](04-roadmap-governance-and-delivery.md), [05](05-design-system-and-ui-ux-architecture.md))
+**Dokumen:** 4 dari 7 (lihat [00](00-vision-and-business-architecture.md), [01](01-application-and-data-architecture.md), [02](02-security-and-compliance-architecture.md), [04](04-roadmap-governance-and-delivery.md), [05](05-design-system-and-ui-ux-architecture.md), [06](06-agentic-ai-and-automation-architecture.md))
 **Upstream dependency:** Mengasumsikan [Modular Monolith Strategy](01-application-and-data-architecture.md#modular-monolith-strategy) dan [Service Extraction Strategy](01-application-and-data-architecture.md#service-extraction-strategy) dari dokumen 01.
 **Status:** Living document
 
@@ -184,6 +184,8 @@ Tidak ada automation/event platform — setiap "automasi" (notifikasi, milestone
 ---
 
 ## AI Architecture
+
+> **Catatan rujukan (ditambahkan setelah [06 — Agentic AI & Automation Architecture](06-agentic-ai-and-automation-architecture.md) ditulis):** Tabel 8-agent di bagian ["Delapan Agent"](#delapan-agent--spesifikasi-toolsmemorypermissionguardrail) di bawah **digabung dan diperluas** menjadi [Unified AI Agent Catalog](06-agentic-ai-and-automation-architecture.md#section-4--unified-ai-agent-catalog) 14-agent di doc 06 — AI CFO, AI Project Manager (→ AI Project Director), AI Scheduler, AI Procurement Officer (→ AI Procurement Manager), AI Contract Analyst, AI Estimator, AI Auditor, dan AI Assistant (→ AI Executive Assistant) semuanya dipertahankan di sana dengan cakupan diperluas, ditambah 6 agent baru (AI COO, AI Finance Controller, AI Risk Officer, AI Document Analyst, AI CRM Assistant, AI Tender Analyst). **Doc 06 adalah sumber kebenaran tunggal untuk katalog agent** — bagian di bawah ini dipertahankan sebagai konteks historis/prinsip desain dasar (yang tetap berlaku penuh), bukan daftar agent yang aktif dirujuk.
 
 ### Prinsip Desain
 

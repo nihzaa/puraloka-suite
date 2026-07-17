@@ -1,7 +1,7 @@
 # 05 — Design System & UI/UX Architecture
 
 **Repository:** Puraloka Suite Architecture Repository
-**Dokumen:** 6 dari 6 (lihat [00](00-vision-and-business-architecture.md), [01](01-application-and-data-architecture.md), [02](02-security-and-compliance-architecture.md), [03](03-platform-and-intelligence-architecture.md), [04](04-roadmap-governance-and-delivery.md))
+**Dokumen:** 6 dari 7 (lihat [00](00-vision-and-business-architecture.md), [01](01-application-and-data-architecture.md), [02](02-security-and-compliance-architecture.md), [03](03-platform-and-intelligence-architecture.md), [04](04-roadmap-governance-and-delivery.md), [06](06-agentic-ai-and-automation-architecture.md))
 **Upstream dependency:** Dokumen ini setara pentingnya dengan [02 — Security Architecture](02-security-and-compliance-architecture.md) dan [01 — Application Architecture](01-application-and-data-architecture.md) — bukan lampiran kosmetik. Mengasumsikan pembaca familiar dengan [Module Catalog](00-vision-and-business-architecture.md#module-catalog--tiering) dan [L1-L4 Evolution Model](01-application-and-data-architecture.md#l1--l4-evolution-model).
 **Status:** Living document
 **Relasi dengan dokumen desain existing:** Dokumen ini **tidak menggantikan** [Warm Clay Redesign Spec](../2026-07-15-warm-clay-redesign-design.md) (disetujui 2026-07-15, sedang rollout 8 fase). Warm Clay tetap **identitas visual** Puraloka Suite. Dokumen ini mendefinisikan **arsitektur interaksi, navigasi, dan pengalaman** yang beroperasi di atas token Warm Clay, ditarik dari pola SaaS modern (Linear, Stripe, Attio, Raycast, Cursor) — lihat [Hubungan dengan Warm Clay](#hubungan-dengan-warm-clay) untuk pembagian tanggung jawab yang eksplisit.
