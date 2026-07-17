@@ -154,9 +154,10 @@ Item yang **secara eksplisit tidak akan dibangun** kecuali ada perubahan fundame
 
 - **Full EAV (entity-attribute-value) untuk seluruh sistem** — anti-pattern performa; JSONB spec fields yang sudah ada cukup untuk kebutuhan fleksibilitas nyata
 - **Multi-currency di L1/L2** — tidak relevan untuk kontraktor domestik Indonesia; hanya dipertimbangkan jika L4 regional benar terjadi
-- **BIM viewer 3D native** — investasi besar (rendering engine, format IFC/Revit), nilai belum tervalidasi; integrasi dengan tool BIM eksisting (Autodesk, dll.) lebih masuk akal daripada membangun viewer sendiri
+- **BIM viewer 3D native + Clash Detection** — investasi besar (rendering engine, format IFC/Revit), nilai belum tervalidasi; integrasi dengan tool BIM eksisting (Autodesk, dll.) lebih masuk akal daripada membangun viewer sendiri (lihat [Module Catalog — Project Delivery](00-vision-and-business-architecture.md#domain-project-delivery-core))
 - **LMS (Learning Management System) penuh** — tidak ada sinyal permintaan apa pun
 - **ESG/Sustainability Reporting native** — hanya relevan jika klien enterprise besar mewajibkan; integrasi/ekspor data ke tool ESG pihak ketiga lebih masuk akal
+- **Facilities Management / O&M penuh (post-construction asset lifecycle)** — lini bisnis berbeda dari kontraktor; digital handover package (deliverable proyek) tetap Tier 3/Optional, tapi mengelola aset bertahun-tahun setelah serah terima bukan bisnis Puraloka kecuali model bisnis berubah nyata (lihat [Module Catalog — Facilities Management](00-vision-and-business-architecture.md#domain-facilities-management--om-handover-domain-baru--hilang-sepenuhnya))
 - **Microservices sebagai default arsitektur** — modular monolith tetap default permanen kecuali driver nyata muncul (lihat [Service Extraction Strategy](01-application-and-data-architecture.md#service-extraction-strategy))
 - **Kafka sebagai starting point event infrastructure** — selalu mulai dari primitif lebih sederhana, naik tier hanya dengan bukti kebutuhan nyata
 - **Membangun ulang Supabase Auth/Storage sendiri** — Generic Domain yang sudah solved

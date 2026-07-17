@@ -263,63 +263,192 @@ graph LR
 
 ## Module Catalog & Tiering
 
-Katalog modul lengkap sesuai cakupan yang diminta, diklasifikasikan ke 4 tier. Tier menentukan **kapan** (jika pernah) sebuah modul layak dibangun — bukan seberapa "keren" modul itu terdengar.
+### Kelengkapan Cakupan — Jawaban Langsung
+
+**Tidak.** Versi awal katalog ini (module-level saja, tanpa submodule/dependency) tidak lengkap dibanding cakupan kapabilitas komersial Procore, Autodesk Construction Cloud (ACC), Oracle Primavera P6/Unifier, dan SAP untuk konstruksi. Revisi ini (18 Juli 2026) hasil gap analysis eksplisit terhadap keempat platform tersebut, terstruktur ulang dengan **Domain → Module → Submodule → Tier → Build Priority → Dependency**.
+
+**Ringkasan gap yang ditemukan (detail per kategori di bawah tabel):**
+
+1. **Capability domain yang hilang sama sekali** — Capital Planning & Program Management (kekuatan inti Primavera Unifier: portofolio proyek, bukan satu proyek), Facilities Management/O&M Handover (arah ekspansi Procore & ACC pasca-konstruksi), Insurance & Surety/Bonding, Marketplace/Ecosystem (kapabilitas SaaS murni).
+2. **Modul yang hilang di dalam domain existing** — RFI (Request for Information), Submittals, Punch List/Snagging, Meeting Minutes/Transmittals di Project Delivery; General Ledger/COA, Retention/Retainage, Budget vs Actual Cost Control terpisah dari EVM di Finance; Time & Attendance terpisah dari wage report di Field Ops; Drawing/Model Versioning & Clash Detection terpisah dari "BIM" generik di Engineering.
+3. **Platform capability yang hilang** — Multi-language i18n framework (bukan cuma multi-tax), Data Import/Export & Migration Toolkit, Public API rate-limiting/versioning formal.
+4. **SaaS capability yang hilang sama sekali** — Tenant Provisioning & Lifecycle, Usage Metering & Billing, Plan/Entitlement Management, Marketplace/App Ecosystem, Multi-region Data Residency.
+5. **AI capability yang belum eksplisit** — AI Document Intelligence (ekstraksi otomatis dari gambar kerja/kontrak discan, beda dari "AI Contract Analyst" yang fokus klausul), AI Anomaly Detection untuk procurement (selain finansial), Predictive Delay Risk (beda dari AI Scheduler yang reaktif).
+6. **Administration capability yang hilang** — Tenant Admin Console (beda dari System Administration internal), Feature Flag Management, Data Residency & Compliance Console, White-labeling/Branding per tenant.
+
+Tabel di bawah menggabungkan katalog original dengan seluruh temuan gap ini dalam satu struktur konsisten.
+
+### Skema Klasifikasi
 
 - **Tier 1** — Dibutuhkan untuk operasional Puraloka Persada dalam 24 bulan ke depan
 - **Tier 2** — Kemungkinan besar berguna jika Puraloka Suite berkembang jadi ERP kontraktor yang lebih besar (L2)
 - **Tier 3** — Ditujukan untuk ekspansi SaaS / pelanggan enterprise (L3-L4)
-- **Tier 4** — Eksplisit di luar cakupan kecuali ada permintaan pasar kuat
+- **Tier 4** — Eksplisit di luar cakupan kecuali ada permintaan pasar kuat (banyak beririsan dengan [Never Build List](04-roadmap-governance-and-delivery.md#never-build-list))
+- **Build Priority** — `Now` / `Next` / `Later` / `Optional`, selaras dengan [Foundational Engines Prioritization](04-roadmap-governance-and-delivery.md#foundational-engines-prioritization) dan [Phase 0-9](04-roadmap-governance-and-delivery.md#phase-0-9-transformation-program); modul Tier 3/4 nyaris selalu `Later`/`Optional` kecuali ada dependency struktural yang memaksa lebih awal
+- **Dependency** — Modul/engine lain yang harus ada lebih dulu; `—` berarti tidak ada dependency keras
 
-| Modul | Tier | Status Hari Ini | Catatan |
-|---|---|---|---|
-| Project Management | 1 | ✅ Matang | RAB, Kurva-S, EVM, milestone |
-| Field Operations / Daily Reports | 1 | ✅ Matang | Progress log dual-mode, foto |
-| Procurement | 1 | ✅ Matang | MR/PO/GR, FIFO stock |
-| Inventory / Warehouse | 1 | ✅ Sebagian | Stock usage/opname ada; multi-warehouse belum |
-| Vendor Management | 1 | ✅ Sebagian | Supplier CRUD ada; scoring/evaluasi belum |
-| Subcontractor Management | 1 | ✅ Sebagian | Mandor assignment ada; formal subkontrak (bukan mandor) belum dibedakan |
-| Accounting / Finance | 1 | ✅ Sebagian | Cash mgmt, invoice, payment ada; GL/COA penuh belum |
-| Tax | 1 | ✅ Sebagian | PPh final & PPN dasar ada; pelaporan SPT belum |
-| Document Management | 1 | ✅ Matang | Kategori, visibility, access log |
-| Customer Portal | 1 | ✅ Matang | 4 halaman client portal |
-| Notification Platform | 1 | ✅ Matang (mekanisme), ⚠️ hardcoded (routing) | Lihat [01](01-application-and-data-architecture.md) |
-| Audit Platform | 1 | ✅ Matang | `/audit`, diff view, filter |
-| System Administration | 1 | ✅ Sebagian | Company profile, roles viewer; belum ada tenant/org admin |
-| Executive Management (BI dasar) | 1 | ✅ Sebagian | Dashboard KPI; drilldown analytics belum |
-| Equipment Management | 2 | ❌ Belum ada | Terpisah dari Fleet — alat berat non-kendaraan |
-| Fleet Management | 2 | ❌ Belum ada | Kendaraan, GPS tracking |
-| CRM | 2 | ❌ Belum ada | Lead → prospek → kontrak deal |
-| Tender Management | 2 | ❌ Belum ada | Proses lelang/tender sebelum kontrak |
-| Estimating | 2 | ❌ Belum ada | Biasanya cikal-bakal RAB, saat ini RAB dimulai manual |
-| BOQ / AHSP | 2 | ❌ Belum ada | Bill of Quantity & Analisa Harga Satuan Pekerjaan — standar konstruksi Indonesia |
-| Quality Control | 2 | ❌ Belum ada | Checklist QC per item pekerjaan |
-| HSE (Health, Safety, Environment) | 2 | ❌ Belum ada | Incident report, safety checklist |
-| Payroll | 2 | ❌ Belum ada | Saat ini wage report manual, bukan payroll penuh |
-| Human Resource | 2 | ❌ Belum ada | Employee record di luar mandor/worker |
-| Business Intelligence (lanjutan) | 2 | ⚠️ Dasar saja | Drilldown, custom report builder belum |
-| Automation Platform | 2 | ❌ Belum ada | Lihat [Dynamic Engines](01-application-and-data-architecture.md) |
-| Workflow Platform | 2 | ❌ Belum ada | Approval chain masih hardcoded per modul |
-| API Platform (untuk integrasi eksternal) | 2 | ❌ Belum ada | API internal ada, belum ada public API/webhook |
-| Asset Management (non-equipment) | 2 | ❌ Belum ada | Aset kantor/kantor proyek |
-| Maintenance Management | 2 | ❌ Belum ada | Terkait Equipment Management |
-| Risk Management (formal) | 2 | ⚠️ Implisit | Ada di proses, belum ada modul risk register formal |
-| Engineering / BIM | 3 | ❌ Belum ada | Viewer 3D model — investasi besar, nilai belum tervalidasi |
-| Legal & Compliance (formal) | 3 | ❌ Belum ada | Kontrak generation ada (PDF), case management belum |
-| AI Platform | 3 | ❌ Belum ada | Lihat [03](03-platform-and-intelligence-architecture.md) |
-| Integration Platform (marketplace) | 3 | ❌ Belum ada | Untuk pelanggan SaaS pihak ketiga |
-| Developer Platform | 3 | ❌ Belum ada | Public API docs, SDK, sandbox — hanya relevan jika ada pelanggan eksternal |
-| Knowledge Management | 3 | ❌ Belum ada | Wiki internal, best practices |
-| Observability Platform (produk) | 3 | ❌ Belum ada | Untuk multi-tenant SaaS; observability *internal* adalah Tier 1 (lihat [03](03-platform-and-intelligence-architecture.md)) |
-| Backup Platform (self-service) | 3 | ❌ Belum ada | Backup internal wajib ada lebih awal secara operasional (lihat [02](02-security-and-compliance-architecture.md)); ini soal *self-service per tenant* |
-| Sales (formal, di luar CRM) | 3 | ❌ Belum ada | Quote-to-cash formal |
-| Learning Management | 4 | ❌ Belum ada | Tidak ada sinyal permintaan |
-| ESG Reporting | 4 | ❌ Belum ada | Relevan hanya jika klien enterprise mewajibkan |
-| Sustainability Reporting | 4 | ❌ Belum ada | Sama seperti ESG |
-| Multi-currency | 4 | ❌ Belum ada | Tidak relevan untuk kontraktor domestik Indonesia |
-| Multi-country tax | 4 | ❌ Belum ada | Tidak relevan kecuali ekspansi regional benar terjadi (L4) |
-| Full HRIS/Payroll kompleks (BPJS, PPh 21 penuh) | 4 | ❌ Belum ada | Integrasi ke software payroll pihak ketiga lebih masuk akal daripada membangun sendiri |
+### Domain: Project Delivery (Core)
 
-**Prinsip tiering:** modul Tier 3/4 bukan berarti "tidak penting" — melainkan "tidak layak investasi rekayasa sebelum ada sinyal permintaan yang jelas." Membangun BIM viewer atau ESG reporting hari ini, saat Payroll dan Workflow Engine (Tier 1-2) belum matang, adalah kesalahan prioritas klasik.
+| Module | Submodule | Tier | Build Priority | Dependency |
+|---|---|---|---|---|
+| Project Management | RAB (Rencana Anggaran Biaya) | 1 | Now (matang) | — |
+| Project Management | Kurva-S & EVM | 1 | Now (matang) | RAB |
+| Project Management | Milestone Tracking | 1 | Now (matang) | — |
+| Project Management | Change Order | 1 | Now (matang) | RAB |
+| Project Management | Gantt / WBS Scheduling | 1 | Now (matang) | RAB |
+| Field Operations | Daily/Progress Reports (dual-mode) | 1 | Now (matang) | RAB |
+| Field Operations | Photo Documentation | 1 | Now (matang) | Document Management |
+| Field Operations | **RFI (Request for Information)** *(baru)* | 2 | Next | Workflow Engine |
+| Field Operations | **Submittals** *(baru)* | 2 | Next | Document Management, Workflow Engine |
+| Field Operations | **Punch List / Snagging** *(baru)* | 2 | Next | Field Ops core |
+| Field Operations | **Meeting Minutes & Transmittals** *(baru)* | 2 | Later | Document Management |
+| Quality Control | QC Checklist per item pekerjaan | 2 | Next | RAB item structure |
+| Quality Control | **Inspection & Test Plan (ITP)** *(baru)* | 2 | Later | QC Checklist |
+| HSE | Incident Report | 2 | Next | — |
+| HSE | Safety Checklist | 2 | Next | — |
+| HSE | **Toolbox Talks / Safety Briefing Log** *(baru)* | 2 | Later | HSE core |
+| HSE | **Permit-to-Work** *(baru)* | 3 | Later | Workflow Engine |
+| Document Management | Kategori, visibility, access log | 1 | Now (matang) | — |
+| Document Management | **Drawing/Model Versioning** *(baru, dipisah dari BIM generik)* | 2 | Later | Document Management core |
+| Engineering / BIM | 3D Model Viewer | 4 | **Never Build (native)** | Lihat [Never Build List](04-roadmap-governance-and-delivery.md#never-build-list) — integrasi dengan tool BIM eksisting (Autodesk, dll.) lebih masuk akal daripada rendering engine sendiri |
+| Engineering / BIM | Clash Detection | 4 | **Never Build (native)** | Sama seperti di atas — turunan langsung dari keputusan tidak membangun viewer sendiri |
+| Customer Portal | 4 halaman client portal | 1 | Now (matang) | — |
+
+### Domain: Sales & Pre-Construction (Supporting — belum ada sama sekali)
+
+| Module | Submodule | Tier | Build Priority | Dependency |
+|---|---|---|---|---|
+| CRM | Lead → Prospek → Deal | 2 | Later | — |
+| Tender Management | Proses lelang/tender pra-kontrak | 2 | Later | CRM |
+| Tender Management | **Bid Comparison / Bid Leveling** *(baru)* | 2 | Later | Tender core |
+| Estimating | Cikal-bakal RAB dari estimasi awal | 2 | Later | RAB |
+| BOQ / AHSP | Bill of Quantity & Analisa Harga Satuan | 2 | Next | Estimating |
+| Sales (quote-to-cash formal) | Di luar CRM dasar | 3 | Optional | CRM |
+
+**Catatan urutan:** BOQ/AHSP dinaikkan ke `Next` (dari sekadar Tier 2 tanpa prioritas eksplisit) karena ini standar baku konstruksi Indonesia dan secara alami menjadi *input* ke RAB — nilai tambahnya lebih tinggi dari modul Tier 2 lain yang murni ekspansi horizontal.
+
+### Domain: Supply Chain (Supporting)
+
+| Module | Submodule | Tier | Build Priority | Dependency |
+|---|---|---|---|---|
+| Procurement | MR / PO / GR, FIFO stock | 1 | Now (matang) | — |
+| Inventory / Warehouse | Stock usage/opname | 1 | Now (sebagian) | Procurement |
+| Inventory / Warehouse | **Multi-warehouse** *(gap eksplisit)* | 2 | Later | Inventory core |
+| Vendor Management | Supplier CRUD | 1 | Now (sebagian) | — |
+| Vendor Management | **Vendor Scoring & Evaluation** *(baru)* | 2 | Later | Vendor core, riwayat PO |
+| Subcontractor Management | Mandor assignment | 1 | Now (sebagian) | — |
+| Subcontractor Management | **Formal Subkontrak (non-mandor)** *(baru — beda entitas dari mandor tradisional)* | 2 | Later | Subcontractor core, Legal |
+| Equipment Management | Alat berat non-kendaraan | 2 | Later | Asset Management |
+| Fleet Management | Kendaraan, GPS tracking | 2 | Later | Asset Management |
+| Maintenance Management | Terkait Equipment/Fleet | 2 | Later | Equipment Management |
+| Asset Management | Aset kantor/proyek (non-equipment) | 2 | Later | — |
+
+### Domain: Finance & Compliance (Supporting)
+
+| Module | Submodule | Tier | Build Priority | Dependency |
+|---|---|---|---|---|
+| Finance / Cash Management | Cash accounts, transfer, invoice, payment | 1 | Now (matang) | — |
+| Accounting | **General Ledger / Chart of Accounts** *(baru, dipisah dari "Finance" generik)* | 2 | Later | Finance core |
+| Accounting | **Retention / Retainage Tracking** *(baru — standar kontrak konstruksi)* | 2 | Next | Invoice/Payment |
+| Accounting | **Budget vs Actual Cost Control** *(baru, dipisah dari EVM — EVM untuk progress, ini untuk cost governance)* | 2 | Next | RAB, Finance core |
+| Tax | PPh final & PPN dasar | 1 | Now (sebagian) | — |
+| Tax | **Pelaporan SPT** *(gap eksplisit)* | 2 | Later | Tax core |
+| Payroll | Wage report manual (belum payroll penuh) | 2 | Optional | Integrasi pihak ketiga direkomendasikan — lihat [Never Build List](04-roadmap-governance-and-delivery.md#never-build-list) |
+| Legal & Compliance | Kontrak generation (PDF) | 1 | Now (sebagian) | — |
+| Legal & Compliance | **Case Management** *(gap eksplisit)* | 3 | Optional | Legal core |
+| Insurance & Surety | **Bonding & Insurance Certificate Tracking** *(domain baru — hilang sepenuhnya)* | 3 | Later | Vendor Management, Legal |
+| Risk Management | Risk Register formal | 2 | Next | — |
+| Audit Platform | `/audit`, diff view, filter | 1 | Now (matang) | — |
+
+### Domain: People & Knowledge (Supporting/Generic)
+
+| Module | Submodule | Tier | Build Priority | Dependency |
+|---|---|---|---|---|
+| Human Resource | Employee record di luar mandor/worker | 2 | Later | — |
+| Field Operations | **Time & Attendance** *(baru, dipisah dari wage report — presensi harian vs laporan upah mingguan adalah dua hal berbeda)* | 2 | Next | HR core |
+| Knowledge Management | Wiki internal, best practices | 3 | Later | AI Assistant (untuk jadi berguna, lihat [03](03-platform-and-intelligence-architecture.md#knowledge-platform-disebut-di-brief-awal-sebagai-knowledge-management)) |
+| Learning Management | — | 4 | Optional | Tidak ada sinyal permintaan |
+
+### Domain: Capital Planning & Program Management (Core untuk Unifier-class — domain baru, hilang sepenuhnya)
+
+| Module | Submodule | Tier | Build Priority | Dependency |
+|---|---|---|---|---|
+| Portfolio Management | **Multi-project program rollup** *(baru — beda dari dashboard multi-proyek yang sudah ada; ini agregasi capital budget lintas program, bukan sekadar list proyek)* | 3 | Later | company_id migration (L2), BI lanjutan |
+| Capital Planning | **Long-range capital budget planning** *(baru)* | 3 | Optional | Portfolio Management |
+
+**Rationale domain baru ini:** Primavera Unifier secara spesifik unggul di sini — mengelola *program* proyek (bukan satu proyek), dengan capital planning jangka panjang lintas tahun anggaran. Puraloka Suite hari ini kuat di level proyek tunggal (RAB/EVM/Gantt) tapi tidak punya lapisan program di atasnya. Ini **valid sebagai domain Tier 3** — hanya bernilai nyata begitu ada banyak proyek/company untuk digabungkan (butuh L2 `company_id` dulu sebagai prasyarat struktural).
+
+### Domain: Facilities Management & O&M Handover (domain baru — hilang sepenuhnya)
+
+| Module | Submodule | Tier | Build Priority | Dependency |
+|---|---|---|---|---|
+| O&M Handover | **Digital handover package (as-built, warranty, O&M manual)** *(baru)* | 3 | Optional | Document Management |
+| Facilities Management | **Post-construction asset lifecycle** *(baru)* | 4 | **Never Build** kecuali model bisnis berubah | O&M Handover |
+
+**Rationale:** Ini arah ekspansi nyata di Procore/ACC (dari "bangun" ke "kelola aset setelah selesai dibangun"), tapi merupakan lini bisnis yang **berbeda** dari core kontraktor Puraloka Persada hari ini. Digital handover package (Tier 3/Optional) masih masuk akal sebagai *deliverable* proyek konstruksi biasa — tapi Facilities Management penuh (mengelola aset bertahun-tahun setelah serah terima) eksplisit **Never Build** kecuali Puraloka benar-benar berubah menjadi pemain O&M, bukan hanya kontraktor. Lihat entri sejenis di [Never Build List](04-roadmap-governance-and-delivery.md#never-build-list).
+
+### Domain: Platform Services (Generic/Supporting)
+
+| Module | Submodule | Tier | Build Priority | Dependency |
+|---|---|---|---|---|
+| Notification Platform | Delivery mechanism | 1 | Now (matang) | — |
+| Notification Platform | Routing rules (dynamic) | 1 | Next | [Dynamic Notification Engine](01-application-and-data-architecture.md#dynamic-notification-routing-engine) |
+| System Administration | Company profile, roles viewer | 1 | Now (sebagian) | — |
+| Automation Platform | Trigger/Event Engine | 2 | Next | [03](03-platform-and-intelligence-architecture.md#automation-platform--event-platform) |
+| Workflow Platform | Approval chain generik | 2 | Next | [Dynamic Workflow Engine](01-application-and-data-architecture.md#dynamic-workflow--approval-engine) |
+| API Platform | Public API untuk integrasi eksternal | 2 | Later | Butuh pelanggan eksternal (L3 gate) |
+| API Platform | **Rate Limiting & Versioning formal** *(baru — gap platform capability)* | 3 | Later | API Platform core |
+| Integration Platform | Marketplace pihak ketiga | 3 | Optional | API Platform, **Marketplace/Ecosystem** (lihat SaaS Platform di bawah) |
+| Developer Platform | Public API docs, SDK, sandbox | 3 | Optional | API Platform |
+| Observability Platform (produk) | Untuk pelanggan multi-tenant | 3 | Later | Observability internal ([03](03-platform-and-intelligence-architecture.md#observability-architecture)) sudah Tier 1 |
+| Backup Platform (self-service) | Self-service per tenant | 3 | Later | Backup internal ([02](02-security-and-compliance-architecture.md)) sudah prasyarat lebih awal |
+| **Data Import/Export & Migration Toolkit** *(baru — gap platform capability)* | Onboarding data pelanggan baru dari Excel/sistem lama | 3 | Later | — |
+| **Internationalization (i18n) Framework** *(baru — gap platform capability, beda dari multi-tax)* | Multi-bahasa UI, bukan sekadar multi-mata-uang/pajak | 4 | Optional | Hanya jika ekspansi regional (L4) nyata |
+| Executive Management | Dashboard KPI dasar | 1 | Now (sebagian) | — |
+| Business Intelligence | Drilldown, custom report builder | 2 | Later | Dashboard core |
+
+### Domain: SaaS Operations Platform (domain baru — hilang sepenuhnya, spesifik untuk L3)
+
+Domain ini secara struktural **tidak relevan sebelum Phase 8** ([04](04-roadmap-governance-and-delivery.md#phase-8--multi-tenant-saas-platform)) — dicantumkan di sini untuk kelengkapan katalog, bukan sebagai pekerjaan yang didekati lebih awal.
+
+| Module | Submodule | Tier | Build Priority | Dependency |
+|---|---|---|---|---|
+| Tenant Lifecycle | **Self-service Provisioning & Onboarding** *(baru)* | 3 | Optional (gate: Phase 8) | `company_id`/tenant_id migration (L2/L3, [01](01-application-and-data-architecture.md#entity-strategy)) |
+| Tenant Lifecycle | **Tenant Suspension/Offboarding & Data Export** *(baru)* | 3 | Optional (gate: Phase 8) | Tenant Provisioning |
+| Billing & Metering | **Usage Metering** *(baru)* | 3 | Optional (gate: Phase 8) | Tenant Lifecycle |
+| Billing & Metering | **Plan/Entitlement Management** *(baru — menentukan modul apa aktif per tenant, terhubung ke Module Catalog tiering ini sendiri)* | 3 | Optional (gate: Phase 8) | Billing core |
+| Billing & Metering | **Invoicing & Payment Gateway (untuk pelanggan SaaS, beda dari invoice ke klien proyek)** *(baru)* | 3 | Optional (gate: Phase 8) | Billing core |
+| Marketplace / Ecosystem | **Third-party App Directory** *(baru)* | 4 | Optional | Integration Platform, Developer Platform |
+| Tenant Admin Console | **Admin panel lintas-tenant untuk operator Puraloka Suite (bukan admin per company)** *(baru — beda dari System Administration internal)* | 3 | Optional (gate: Phase 8) | Tenant Lifecycle |
+| Data Residency & Compliance | **Multi-region Data Residency** *(baru)* | 4 | Optional | Hanya jika ekspansi regional (L4) atau persyaratan kontraktual pelanggan enterprise |
+| White-labeling | **Branding per tenant (logo, warna, domain kustom)** *(baru)* | 3 | Optional (gate: Phase 8) | Tenant Lifecycle |
+
+**Kenapa seluruh domain ini `Optional` dan bukan `Next`/`Later` seperti domain lain:** [04 — Phase 8 gate](04-roadmap-governance-and-delivery.md#phase-8--multi-tenant-saas-platform) eksplisit menyatakan fase ini **tidak dimulai** tanpa komitmen pelanggan eksternal nyata. Membangun *satu pun* submodule di domain ini sebelum itu adalah *enterprise theater* — dilarang eksplisit di [Non-Goals](#non-goals).
+
+### Domain: AI Platform (Tier 3 — pelengkap 8 agent di [03](03-platform-and-intelligence-architecture.md#ai-architecture))
+
+Delapan agent (CFO, PM, Scheduler, Procurement Officer, Contract Analyst, Estimator, Auditor, Assistant) sudah dispesifikasi penuh di [03](03-platform-and-intelligence-architecture.md#ai-architecture) dengan tools/memory/permission/guardrail masing-masing. Gap analysis menemukan **3 kapabilitas AI tambahan** yang secara konsep berbeda dari kedelapan agent tersebut (bukan duplikat):
+
+| Module | Submodule | Tier | Build Priority | Dependency |
+|---|---|---|---|---|
+| AI Document Intelligence | **Ekstraksi otomatis dari gambar kerja/kontrak hasil scan (OCR + structured extraction)** *(baru — beda dari AI Contract Analyst yang menganalisis klausul teks, ini menangani dokumen non-terstruktur/gambar)* | 3 | Optional | AI Agent Registry, Document Management |
+| AI Anomaly Detection | **Deteksi pola tidak wajar di procurement (harga supplier, volume order)** *(baru — beda dari AI Auditor yang fokus approval/kasbon finansial)* | 3 | Optional | AI Agent Registry, Procurement historical data |
+| AI Predictive Delay Risk | **Prediksi risiko keterlambatan proyek dari pola historis (proaktif, beda dari AI Scheduler yang reaktif terhadap dependency conflict yang sudah terjadi)** *(baru)* | 3 | Optional | AI Agent Registry, volume data historis multi-proyek cukup besar |
+
+Ketiganya mengikuti prinsip guardrail yang sama dengan 8 agent existing ([03](03-platform-and-intelligence-architecture.md#prinsip-guardrail-lintas-agent)) — least privilege, no silent write, audit setiap panggilan. Build priority `Optional` karena bergantung pada volume data historis yang baru cukup besar di L2/L3, konsisten dengan alasan AI Contract Analyst/Estimator juga `Optional` di [03](03-platform-and-intelligence-architecture.md#nownextlateroptional-untuk-ai-platform).
+
+### Domain: Tetap Tier 4 / Never Build (tidak berubah dari analisis awal)
+
+| Module | Tier | Alasan |
+|---|---|---|
+| ESG Reporting | 4 | Relevan hanya jika klien enterprise mewajibkan |
+| Sustainability Reporting | 4 | Sama seperti ESG |
+| Multi-currency | 4 | Tidak relevan untuk kontraktor domestik Indonesia |
+| Multi-country tax | 4 | Tidak relevan kecuali ekspansi regional benar terjadi (L4) |
+| Full HRIS/Payroll kompleks (BPJS, PPh 21 penuh) | 4 | Integrasi pihak ketiga lebih masuk akal — lihat [Never Build List](04-roadmap-governance-and-delivery.md#never-build-list) |
+| Full i18n multi-bahasa | 4 | Hanya jika L4 regional benar terjadi |
+
+**Prinsip tiering (tidak berubah):** modul Tier 3/4 bukan berarti "tidak penting" — melainkan "tidak layak investasi rekayasa sebelum ada sinyal permintaan yang jelas." Membangun BIM viewer, Facilities Management, atau SaaS Billing hari ini, saat Payroll dan Workflow Engine (Tier 1-2) belum matang, adalah kesalahan prioritas klasik. **Ini berlaku sama ketatnya untuk seluruh modul baru yang ditemukan gap analysis ini** — kelengkapan katalog bukan izin untuk membangun semuanya sekarang.
 
 ---
 
