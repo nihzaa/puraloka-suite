@@ -8,7 +8,7 @@
 
 ## 1. Purpose
 
-Memberikan satu titik untuk menjawab "seberapa sehat implementasi Engineering Constitution ini secara keseluruhan?" — tanpa harus membuka 38 file lain satu-satu untuk melihat Success Metrics masing-masing.
+Memberikan satu titik untuk menjawab "seberapa sehat implementasi Engineering Constitution ini secara keseluruhan?" — tanpa harus membuka 39 file lain satu-satu untuk melihat Success Metrics masing-masing.
 
 ## 2. Background
 

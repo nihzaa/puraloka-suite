@@ -1,6 +1,6 @@
 # Glossary — Definisi Istilah Otoritatif
 
-**Kedudukan:** Sesuai [ADR-001 § Kesenjangan 3](adr/ADR-001-structure-and-governance-model.md), ini adalah **satu-satunya sumber definisi** untuk istilah yang dipakai lintas 39 file Engineering Constitution. Jika sebuah file mendefinisikan istilah secara berbeda dari sini, file itu **salah** — laporkan sebagai inkonsistensi untuk diperbaiki, bukan dianggap definisi alternatif yang sah.
+**Kedudukan:** Sesuai [ADR-001 § Kesenjangan 3](adr/ADR-001-structure-and-governance-model.md), ini adalah **satu-satunya sumber definisi** untuk istilah yang dipakai lintas 40 file Engineering Constitution (39 file asli + [40-ai-governance-and-agent-engineering-standard.md](07-domain-specific/40-ai-governance-and-agent-engineering-standard.md) sejak v1.1). Jika sebuah file mendefinisikan istilah secara berbeda dari sini, file itu **salah** — laporkan sebagai inkonsistensi untuk diperbaiki, bukan dianggap definisi alternatif yang sah.
 **Prinsip penyusunan:** Setiap definisi di sini **diwarisi**, bukan dibuat baru, dari [Enterprise Architecture Repository](../00-vision-and-business-architecture.md) atau [Phase 1 Planning Package](../Phase1/00-current-state-audit.md) — glosarium ini adalah kompilasi, bukan sumber definisi independen kedua.
 
 ---
@@ -99,4 +99,4 @@
 
 ---
 
-*Istilah baru yang muncul selama penulisan 39 file constitution ditambahkan ke sini secara berkelanjutan (living document, sama seperti seluruh Engineering Constitution — lihat [Amendment Process](00-principles/00-engineering-principles.md#9-amendment-process)).*
+*Istilah baru yang muncul selama penulisan constitution (39 file asli, kini 40 sejak v1.1) ditambahkan ke sini secara berkelanjutan (living document, sama seperti seluruh Engineering Constitution — lihat [Amendment Process](00-principles/00-engineering-principles.md#9-amendment-process)).*

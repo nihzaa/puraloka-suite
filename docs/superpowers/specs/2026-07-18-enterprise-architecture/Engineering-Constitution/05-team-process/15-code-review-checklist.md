@@ -8,11 +8,11 @@
 
 ## 1. Purpose
 
-Memberikan reviewer satu titik masuk untuk verifikasi PR, tanpa harus membuka 39 file Engineering Constitution satu per satu setiap kali review — checklist ini mengagregasi, bukan menggantikan detail di file sumber.
+Memberikan reviewer satu titik masuk untuk verifikasi PR, tanpa harus membuka seluruh 40 file Engineering Constitution satu per satu setiap kali review — checklist ini mengagregasi, bukan menggantikan detail di file sumber.
 
 ## 2. Background
 
-Setiap file Engineering Constitution punya Bagian 10 "Checklist" sendiri ([ADR-002 § format 12-bagian](../adr/ADR-002-enforcement-levels-and-template.md)) — file ini mengumpulkan item yang **paling sering relevan lintas domain** (bukan seluruh item dari 39 file, yang akan membuat checklist ini sendiri tidak terpakai karena terlalu panjang). Item spesifik-domain (mis. constraint RAB) tetap dirujuk ke file sumbernya untuk PR yang menyentuh domain tersebut.
+Setiap file Engineering Constitution punya Bagian 10 "Checklist" sendiri ([ADR-002 § format 12-bagian](../adr/ADR-002-enforcement-levels-and-template.md)) — file ini mengumpulkan item yang **paling sering relevan lintas domain** (bukan seluruh item dari 40 file, yang akan membuat checklist ini sendiri tidak terpakai karena terlalu panjang). Item spesifik-domain (mis. constraint RAB) tetap dirujuk ke file sumbernya untuk PR yang menyentuh domain tersebut.
 
 ## 3. Principles
 

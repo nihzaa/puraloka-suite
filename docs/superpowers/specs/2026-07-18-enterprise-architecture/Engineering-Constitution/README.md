@@ -1,7 +1,8 @@
 # Puraloka Suite — Engineering Constitution
 
-**Status:** Living document — lihat [00-principles/00-engineering-principles.md § Amendment Process](00-principles/00-engineering-principles.md#9-amendment-process) untuk cara mengusulkan perubahan.
-**Kedudukan:** Ini adalah standar kerja mengikat untuk seluruh implementasi Puraloka Suite, Phase 1 hingga Phase 9. Bersama [Enterprise Architecture Repository](../00-vision-and-business-architecture.md) dan [Phase 1 Planning Package](../Phase1/00-current-state-audit.md), ketiganya adalah **satu-satunya source of truth** — tidak ada roadmap atau standar kedua yang boleh bertentangan dengan ketiganya tanpa ADR eksplisit.
+**Versi:** v1.1 — ✅ **FROZEN, Governance Baseline resmi Puraloka Suite.** Lihat [IMPROVEMENT-PLAN-v1.1.md § 13 — Implementation Summary & Freeze Declaration](IMPROVEMENT-PLAN-v1.1.md#13-implementation-summary--freeze-declaration) untuk ringkasan lengkap G1-G7 beserta commit hash. Repository Baseline (Git tag) menunjuk commit yang sama: `engineering-constitution-v1.1`.
+**Status:** Living document — Frozen **tidak berarti statis selamanya**, berarti perubahan berikutnya mengikuti proses formal, bukan diedit bebas. Lihat [00-principles/00-engineering-principles.md § Amendment Process](00-principles/00-engineering-principles.md#9-amendment-process) untuk cara mengusulkan perubahan (menghasilkan v1.2, v1.3, dst.).
+**Kedudukan:** Ini adalah standar kerja mengikat untuk seluruh implementasi Puraloka Suite, Phase 1 hingga Phase 9. Bersama [Enterprise Architecture Repository](../00-vision-and-business-architecture.md) dan [Phase 1 Planning Package](../Phase1/00-current-state-audit.md), ketiganya adalah **satu-satunya source of truth** — tidak ada roadmap atau standar kedua yang boleh bertentangan dengan ketiganya tanpa ADR eksplisit. [Master Delivery Blueprint](../Master-Delivery-Blueprint/README.md) adalah lapisan orkestrasi *di atas* ketiganya (urutan eksekusi, dependency, siapa mengerjakan apa) — merujuk balik ke ketiga sumber ini untuk isi, tidak menduplikasi atau menggantikannya ([Master-Delivery-Blueprint/README.md § Kedudukan](../Master-Delivery-Blueprint/README.md)).
 **Struktur & rasional:** [ADR-001 — Structure and Governance Model](adr/ADR-001-structure-and-governance-model.md). Format 12-bagian & kosakata RFC 2119: [ADR-002 — Enforcement Levels and Template](adr/ADR-002-enforcement-levels-and-template.md).
 
 ---
@@ -105,14 +106,22 @@ Setiap file punya header maturity badge di baris kedua (setelah judul), sesuai [
 
 ```mermaid
 graph TB
-    ARCH[Enterprise Architecture Repository\n00-06] --> CONST[Engineering Constitution\nini]
+    ARCH[Enterprise Architecture Repository\n00-06] --> CONST[Engineering Constitution\nini — v1.1 Frozen]
     PHASE1[Phase 1 Planning Package] --> CONST
     CONST --> IMPL[Implementasi Phase 1-9]
     ARCH -.audit temuan.-> PHASE1
     PHASE1 -.gap teknis.-> CONST
+    ARCH --> BP[Master Delivery Blueprint\norkestrasi eksekusi]
+    PHASE1 --> BP
+    CONST --> BP
+    BP -.tidak menduplikasi, hanya merujuk.-> CONST
 ```
 
-**Prinsip:** Architecture Repository menjawab "arsitektur seperti apa yang kita bangun." Phase 1 Planning menjawab "bagaimana urutan mengerjakan fondasi Phase 1 secara spesifik." Engineering Constitution menjawab "bagaimana **setiap baris kode**, di fase mana pun, harus ditulis, direview, dan dirilis." Ketiganya saling melengkapi, tidak ada yang menggantikan yang lain.
+**Prinsip:** Architecture Repository menjawab "arsitektur seperti apa yang kita bangun." Phase 1 Planning menjawab "bagaimana urutan mengerjakan fondasi Phase 1 secara spesifik." Engineering Constitution menjawab "bagaimana **setiap baris kode**, di fase mana pun, harus ditulis, direview, dan dirilis." Ketiganya saling melengkapi, tidak ada yang menggantikan yang lain. Master Delivery Blueprint mengorkestrasi ketiganya (urutan eksekusi, dependency) tanpa menjadi source of truth keempat — detail lengkap: [Master-Delivery-Blueprint/README.md](../Master-Delivery-Blueprint/README.md).
+
+---
+
+**Engineering Constitution v1.1 — FROZEN.** Baseline resmi ini dicapai lewat [IMPROVEMENT-PLAN-v1.1.md](IMPROVEMENT-PLAN-v1.1.md) (7 item G1-G7, Batch J/K/L), menambah file [40-ai-governance-and-agent-engineering-standard.md](07-domain-specific/40-ai-governance-and-agent-engineering-standard.md) dan memperluas 6 file existing tanpa mengubah struktur 9-folder. Perubahan berikutnya WAJIB mengikuti [Amendment Process](00-principles/00-engineering-principles.md#9-amendment-process).
 
 ---
 

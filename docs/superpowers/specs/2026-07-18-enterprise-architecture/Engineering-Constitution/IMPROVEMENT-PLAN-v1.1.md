@@ -1,7 +1,7 @@
 # Engineering Constitution v1.1 — Improvement Plan
 
-**Status:** Menunggu persetujuan (Draft, belum ada implementasi).
-**Kedudukan:** Rencana perbaikan terhadap 39 file existing Engineering Constitution, disusun dari dua audit evidence-based ([lihat Bagian 8 — Metodologi Audit](#8-metodologi-audit-dan-sumber-temuan)). Dokumen ini **bukan** amandemen itu sendiri — begitu tiap item diimplementasikan dan disetujui, entry ringkas dicatat di [amendments/](amendments/) sesuai [00-principles/00-engineering-principles.md § 9 Amendment Process](00-principles/00-engineering-principles.md#9-amendment-process).
+**Status:** ✅ **IMPLEMENTED & FROZEN** — seluruh 7 item (G1-G7) selesai diimplementasikan, diverifikasi, dan di-commit (Batch J/K/L). Lihat [Bagian 13 — Implementation Summary & Freeze Declaration](#13-implementation-summary--freeze-declaration) untuk ringkasan lengkap dan commit hash tiap item.
+**Kedudukan:** Rencana perbaikan terhadap 39 file existing Engineering Constitution (kini 40 setelah G1), disusun dari dua audit evidence-based ([lihat Bagian 8 — Metodologi Audit](#8-metodologi-audit-dan-sumber-temuan)). Dokumen ini **bukan** amandemen itu sendiri — begitu tiap item diimplementasikan dan disetujui, entry ringkas dicatat di [amendments/](amendments/) sesuai [00-principles/00-engineering-principles.md § 9 Amendment Process](00-principles/00-engineering-principles.md#9-amendment-process). **Sejak status Frozen (Bagian 13), dokumen ini tidak lagi diedit** — perubahan berikutnya terhadap Engineering Constitution WAJIB dokumen v1.2+ baru mengikuti Amendment Process.
 **Prinsip yang mengikat rencana ini:** Single Source of Truth, Architecture First, Documentation Driven Development, No Duplicate Documentation, Backward Compatible whenever possible, ADR hanya dibuat bila memenuhi kriteria [19-architecture-decision-record-guide.md § Mandatory Rule #1](06-governance/19-architecture-decision-record-guide.md#4-mandatory-rules).
 
 ---
@@ -212,6 +212,41 @@ Dua audit independen dijalankan sebelum rencana ini disusun:
 
 Item yang secara eksplisit **dikonfirmasi tetap tepat ditunda** (bukan gap, YAGNI valid): contract/chaos/load testing, adopsi OpenTelemetry/W3C Trace Context formal, Anti-Corruption Layer formal untuk batas multi-tenant, AI Provider Failover otomatis (doc06 eksplisit **menolak** ini by design untuk task finansial/reasoning, bukan sekadar belum sempat dibangun). Item-item ini **tidak** masuk rencana v1.1 — akan ditinjau ulang saat kondisi pemicu masing-masing (service extraction nyata, tim besar, Phase 8 mendekat) benar-benar terjadi.
 
+## 13. Implementation Summary & Freeze Declaration
+
+**Seluruh 7 item (G1-G7) selesai diimplementasikan, diverifikasi, dan di-commit** lewat tiga batch terpisah, masing-masing melalui audit-ulang-terhadap-kode-nyata sebelum implementasi, self-review, dan repository validation menyeluruh sebelum commit — sesuai proses yang dijanjikan Bagian 7.
+
+| Item | Batch | File Terdampak | Commit Hash | Catatan |
+|---|---|---|---|---|
+| G2 — Dependency/Vulnerability Scanning | J | `11-devsecops-standard.md`, `23-dependency-management.md` | `5765ceb` | Menutup referensi melingkar 23↔11 (23 kini memegang kriteria severity, 11 memegang mekanisme deteksi) |
+| G3 — OWASP ASVS V2/V3/V9 | J | `07-security-engineering-standard.md`, `38-security-checklist.md` | `5765ceb` | Diverifikasi terhadap kode nyata (`apps/web/lib/api.ts`, `apps/api/src/index.ts`), bukan saran generik |
+| G1 — AI Governance & Agent Engineering Standard | K | Baru: `40-ai-governance-and-agent-engineering-standard.md`; extend: `36-ai-coding-guideline.md`, `38-security-checklist.md`, `README.md` | `f66e059` | 17 Mandatory Rule, 16 topik AI Governance + Agent Engineering; README diupdate 39→40 file |
+| G4 — Ubiquitous Language Enforcement | L | `04-domain-driven-design-rules.md` | `655a2da` | Recommended Rule #3 baru, mekanisme verifikasi via code review checklist |
+| G5 — Aksesibilitas (WCAG) | L | `12-ui-engineering-standard.md` | `655a2da` | **Dikoreksi saat self-review** — draft awal duplikasi standar WCAG yang sudah ada di [05-design-system-and-ui-ux-architecture.md § Accessibility Standards](../05-design-system-and-ui-ux-architecture.md#accessibility-standards); ditulis ulang untuk merujuk, bukan mendefinisikan ulang |
+| G6 — Multi-Tenancy Cross-Reference | L | `05-database-engineering-standard.md` | `655a2da` | Minimal — 1 kalimat + link ke Blueprint, sesuai rencana |
+| G7 — DORA Four Keys Placeholder | L | `37-engineering-metrics.md` | `655a2da` | Target belum terukur (nol pipeline CI/CD), bukan angka karangan |
+
+**Findings dicatat selama proses, tidak diperbaiki (di luar scope tiap batch saat ditemukan):**
+
+| # | Finding | Lokasi | Alasan Tidak Diperbaiki |
+|---|---|---|---|
+| F1 | "Engineering Constitution — 39 file, selesai" basi (kini 40) | `08-metrics-and-closing/39-final-engineering-manifesto.md` | Di luar scope Batch K/L; file bukan target batch manapun |
+| F2 | "lintas 39 file Engineering Constitution" basi | `GLOSSARY.md` | Di luar scope Batch K/L |
+| F3 | "39 file" disebut 2×, basi | `05-team-process/15-code-review-checklist.md` | Di luar scope Batch K/L |
+| F4 | "39 file" disebut di 3 lokasi (README Blueprint, traceability matrix, ADR-003) | `Master-Delivery-Blueprint/` | **MUST NOT** diubah — eksplisit dilarang aturan batch ("Jangan pernah mengubah Blueprint") |
+| F5 | "38 file lain" basi (line 11) — dikoreksi ulang saat Freeze: "36 file" di baris lain **terverifikasi tetap akurat** (36 file di folder 01-07, tidak berubah sejak file 40 masuk `07-domain-specific/`), bukan stale seperti dugaan awal Batch L | `08-metrics-and-closing/37-engineering-metrics.md` | Di luar scope spesifik G7 (soal DORA, bukan akurasi hitungan file); sempat tidak sengaja diperbaiki lalu di-revert di Batch L untuk menjaga scope discipline |
+
+**Resolusi findings F1-F5 di Freeze ini:** Konsisten [00-principles/00-engineering-principles.md § 9 Amendment Process](00-principles/00-engineering-principles.md#9-amendment-process), perbaikan typo/kejelasan tanpa mengubah makna aturan **MUST NOT** butuh ADR atau justifikasi khusus — PR langsung cukup. F1, F2, F3, F5 (di dalam Engineering Constitution, bukan Blueprint) diperbaiki sebagai bagian aktivitas Freeze ini (lihat commit Freeze) karena declaring v1.1 sebagai baseline resmi **MUST** konsisten secara internal terhadap jumlah file yang benar-benar ada — F4 (Blueprint) **tetap tidak diperbaiki**, tercatat sebagai temuan untuk siklus kerja Blueprint terpisah, karena aturan "Jangan pernah mengubah Blueprint" mengikat penuh bahkan saat Freeze.
+
+**Deklarasi Freeze:**
+
+Per konfirmasi eksplisit pemilik proyek, Engineering Constitution v1.1 (40 file + README + GLOSSARY + 3 ADR) dinyatakan sebagai **baseline engineering resmi Puraloka Suite** — standar mengikat untuk seluruh implementasi Phase 1 sampai Phase 9, sampai amandemen berikutnya disahkan lewat proses yang sama ([19-architecture-decision-record-guide.md](06-governance/19-architecture-decision-record-guide.md) untuk perubahan MUST/struktural, PR langsung untuk SHOULD/MAY/typo).
+
+**Efek Freeze:**
+1. `IMPROVEMENT-PLAN-v1.1.md` (dokumen ini) **tidak diedit lagi** setelah commit Freeze — dokumen sejarah, bukan living document.
+2. Perubahan berikutnya terhadap Engineering Constitution **WAJIB** dokumen versi baru (v1.2, v1.3, dst.) mengikuti pola yang sama, atau amandemen individual per [Amendment Process](00-principles/00-engineering-principles.md#9-amendment-process) tanpa nomor versi payung jika perubahannya kecil dan terisolasi.
+3. Git tag `engineering-constitution-v1.1` menunjuk commit Freeze ini sebagai **Repository Baseline** — titik rollback dan acuan audit terpisah dari Governance Baseline (dokumen ini).
+
 ---
 
-*Menunggu persetujuan untuk mulai Batch J.*
+*Engineering Constitution v1.1 — IMPLEMENTED & FROZEN. Governance Baseline resmi Puraloka Suite.*

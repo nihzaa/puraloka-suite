@@ -1,18 +1,18 @@
 # 39 — Final Engineering Manifesto
 
-> **Maturity:** 🟢 Enforced — bukan sebagai kode yang diverifikasi otomatis, tapi sebagai ringkasan prinsip yang seluruhnya sudah diturunkan konsisten dari 38 file sebelumnya, bukan klaim baru yang belum terbukti.
+> **Maturity:** 🟢 Enforced — bukan sebagai kode yang diverifikasi otomatis, tapi sebagai ringkasan prinsip yang seluruhnya sudah diturunkan konsisten dari 39 file sebelumnya (40 total sejak v1.1 menambah [40-ai-governance-and-agent-engineering-standard.md](../07-domain-specific/40-ai-governance-and-agent-engineering-standard.md)), bukan klaim baru yang belum terbukti.
 
-**Kedudukan:** Batch 8 — Metrics & Penutup. File penutup Engineering Constitution. Tidak memperkenalkan aturan baru — merangkum semangat yang mengikat seluruh 38 file sebelumnya menjadi pernyataan singkat yang bisa diingat tanpa membuka dokumen.
+**Kedudukan:** Batch 8 — Metrics & Penutup. File penutup Engineering Constitution asli (39 file); v1.1 menambah [40-ai-governance-and-agent-engineering-standard.md](../07-domain-specific/40-ai-governance-and-agent-engineering-standard.md) setelah file ini ditulis — manifesto ini tetap berlaku penuh untuk file 40, semangatnya tidak berubah oleh penambahan konten. Tidak memperkenalkan aturan baru — merangkum semangat yang mengikat seluruh file sebelumnya menjadi pernyataan singkat yang bisa diingat tanpa membuka dokumen.
 
 ---
 
 ## 1. Purpose
 
-Menjawab pertanyaan "kalau saya hanya bisa mengingat satu hal dari seluruh Engineering Constitution ini, apa itu?" — dan memberikan jangkar semangat yang bisa dirujuk saat aturan spesifik di 38 file lain tidak secara eksplisit mencakup situasi baru yang dihadapi.
+Menjawab pertanyaan "kalau saya hanya bisa mengingat satu hal dari seluruh Engineering Constitution ini, apa itu?" — dan memberikan jangkar semangat yang bisa dirujuk saat aturan spesifik di file lain tidak secara eksplisit mencakup situasi baru yang dihadapi.
 
 ## 2. Background
 
-Engineering Constitution ini ditulis dalam konteks spesifik: Puraloka Suite, sebuah aplikasi konstruksi yang menangani uang sungguhan (kasbon, invoice, pembayaran mandor) untuk bisnis nyata (Puraloka Persada, milik Nizar) — bukan proyek pembelajaran atau prototipe. Setiap aturan di 38 file sebelumnya berakar dari kenyataan ini: [00-principles/00-engineering-principles.md](../00-principles/00-engineering-principles.md) menetapkan correctness-before-speed dan fail-closed karena kesalahan di sini berarti kerugian finansial nyata, bukan sekadar bug kosmetik.
+Engineering Constitution ini ditulis dalam konteks spesifik: Puraloka Suite, sebuah aplikasi konstruksi yang menangani uang sungguhan (kasbon, invoice, pembayaran mandor) untuk bisnis nyata (Puraloka Persada, milik Nizar) — bukan proyek pembelajaran atau prototipe. Setiap aturan di file sebelumnya berakar dari kenyataan ini: [00-principles/00-engineering-principles.md](../00-principles/00-engineering-principles.md) menetapkan correctness-before-speed dan fail-closed karena kesalahan di sini berarti kerugian finansial nyata, bukan sekadar bug kosmetik.
 
 ## 3. Manifesto
 
@@ -28,13 +28,13 @@ Engineering Constitution ini ditulis dalam konteks spesifik: Puraloka Suite, seb
 
 6. **YAGNI ditegakkan dengan disiplin, bukan sebagai alasan malas.** Kompleksitas (microservices, event sourcing, saga pattern, caching preventif) ditambahkan saat bukti kebutuhan nyata ada — bukan diasumsikan akan dibutuhkan "someday."
 
-7. **Setiap MUST rule di 38 file sebelumnya punya alasan yang bisa dijelaskan — bukan aturan sewenang-wenang.** Jika sebuah aturan terasa tidak masuk akal untuk situasi baru yang dihadapi, itu sinyal untuk mengajukan ADR mengubahnya ([06-governance/19-architecture-decision-record-guide.md](../06-governance/19-architecture-decision-record-guide.md)), bukan sinyal untuk diam-diam mengabaikannya.
+7. **Setiap MUST rule di file sebelumnya punya alasan yang bisa dijelaskan — bukan aturan sewenang-wenang.** Jika sebuah aturan terasa tidak masuk akal untuk situasi baru yang dihadapi, itu sinyal untuk mengajukan ADR mengubahnya ([06-governance/19-architecture-decision-record-guide.md](../06-governance/19-architecture-decision-record-guide.md)), bukan sinyal untuk diam-diam mengabaikannya.
 
 8. **Constitution ini hidup, bukan batu yang dipahat sekali.** Ia akan diubah lewat Amendment Process ([00-principles/00-engineering-principles.md § 9](../00-principles/00-engineering-principles.md#9-amendment-process)) seiring Puraloka Suite tumbuh dari L1 (single-tenant internal) menuju L2, L3, L4 — tapi perubahan selalu disengaja dan terdokumentasi, tidak pernah diam-diam.
 
 ## 4. Penutup
 
-39 file ini, dari [00-principles/00-engineering-principles.md](../00-principles/00-engineering-principles.md) sampai file ini, adalah satu dokumen hidup yang mengikat cara Puraloka Suite dibangun — Phase 1 sampai Phase 9, oleh siapa pun yang menyentuh kodenya, manusia atau AI. Ia dibangun dengan cara yang sama yang dituntutnya dari kode: diverifikasi langsung terhadap kondisi nyata (bukan diasumsikan), jujur tentang apa yang sudah ada dan apa yang masih menjadi target, dan siap diperdebatkan lewat ADR saat konteks berubah.
+File-file ini (39 file asli + [40-ai-governance-and-agent-engineering-standard.md](../07-domain-specific/40-ai-governance-and-agent-engineering-standard.md) sejak v1.1), dari [00-principles/00-engineering-principles.md](../00-principles/00-engineering-principles.md) sampai penambahan terakhir, adalah satu dokumen hidup yang mengikat cara Puraloka Suite dibangun — Phase 1 sampai Phase 9, oleh siapa pun yang menyentuh kodenya, manusia atau AI. Ia dibangun dengan cara yang sama yang dituntutnya dari kode: diverifikasi langsung terhadap kondisi nyata (bukan diasumsikan), jujur tentang apa yang sudah ada dan apa yang masih menjadi target, dan siap diperdebatkan lewat ADR saat konteks berubah.
 
 Selamat bekerja.
 
@@ -42,8 +42,8 @@ Selamat bekerja.
 
 - [00-principles/00-engineering-principles.md](../00-principles/00-engineering-principles.md)
 - [README.md](../README.md)
-- Seluruh 38 file Engineering Constitution ini
+- Seluruh 40 file Engineering Constitution (39 file asli + [40-ai-governance-and-agent-engineering-standard.md](../07-domain-specific/40-ai-governance-and-agent-engineering-standard.md) sejak v1.1)
 
 ---
 
-*Engineering Constitution — 39 file, selesai.*
+*Engineering Constitution — 39 file asli selesai; 40 file dan v1.1 Frozen sejak [IMPROVEMENT-PLAN-v1.1.md § 13](../IMPROVEMENT-PLAN-v1.1.md#13-implementation-summary--freeze-declaration).*

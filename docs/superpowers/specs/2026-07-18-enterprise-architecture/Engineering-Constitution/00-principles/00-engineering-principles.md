@@ -2,7 +2,7 @@
 
 > **Maturity:** 🟢 Enforced (prinsip filosofis, berlaku sejak dokumen ini disahkan — tidak menunggu implementasi kode apa pun)
 
-**Kedudukan:** File paling fondasional di seluruh Engineering Constitution — 38 file lain mewarisi nilai yang ditetapkan di sini. Jika ada aturan spesifik di file lain yang tampak bertentangan dengan prinsip di sini, **prinsip di sini yang menang** kecuali ada ADR eksplisit yang mendokumentasikan pengecualian.
+**Kedudukan:** File paling fondasional di seluruh Engineering Constitution — 39 file lain (40 total sejak v1.1) mewarisi nilai yang ditetapkan di sini. Jika ada aturan spesifik di file lain yang tampak bertentangan dengan prinsip di sini, **prinsip di sini yang menang** kecuali ada ADR eksplisit yang mendokumentasikan pengecualian.
 
 ---
 
