@@ -19,7 +19,7 @@
 **Ringkasan untuk pembaca Blueprint:** Enam prinsip ini mengikat **cara** setiap Program di bawah dieksekusi — bukan hanya kode yang ditulis, tapi juga bagaimana Program direncanakan. Konkretnya untuk delivery planning:
 - **Correctness before speed** → tidak ada Program yang di-fast-track dengan mengorbankan test coverage pada domain finansial-kritis (lihat [07-quality-and-validation-gates.md](07-quality-and-validation-gates.md)).
 - **Fail-closed** → setiap Decision Gate ([11-decision-gates-and-change-management.md](11-decision-gates-and-change-management.md)) defaultnya **menahan** progres ke Program berikutnya sampai kriteria terpenuhi, bukan default lanjut kecuali ada yang keberatan.
-- **Strict YAGNI** → Program yang scope-nya spekulatif (Phase 8 tanpa pelanggan committed, Phase 9 detail mendalam) sengaja **tidak** direncanakan rinci di Blueprint ini — lihat [04-delivery-orchestration.md § Horizon Jauh](04-delivery-orchestration.md).
+- **Strict YAGNI** → Program yang scope-nya spekulatif (Phase 8 tanpa pelanggan committed, Phase 9 detail mendalam) sengaja **tidak** direncanakan rinci di Blueprint ini — lihat [09-saas-and-tenancy-readiness.md § 3-4](09-saas-and-tenancy-readiness.md#3-multi-tenant-saas-readiness-checklist-l2--l3--kontribusi-baru).
 
 ## 3. Program Structure — Kontribusi Baru
 

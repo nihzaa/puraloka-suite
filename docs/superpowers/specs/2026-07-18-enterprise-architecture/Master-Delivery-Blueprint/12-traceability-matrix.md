@@ -76,7 +76,7 @@ Matrix di bawah dikelompokkan per **pertanyaan** yang biasa diajukan (bukan per 
 Untuk modul/kapabilitas berdampak tinggi, index berikut mengumpulkan **semua** lokasi yang membahasnya lintas 4 kelompok dokumen — nilai tambah dibanding Bagian 2-5 (yang dikelompokkan per kategori pertanyaan) adalah pandangan **vertikal** per satu kapabilitas:
 
 ### Permission Engine / RBAC
-- **Apa:** [00-vision-and-business-architecture.md](../00-vision-and-business-architecture.md), [01-application-and-data-architecture.md § Dynamic Permission Engine](../01-application-and-data-architecture.md)
+- **Apa:** [00-vision-and-business-architecture.md](../00-vision-and-business-architecture.md), [01-application-and-data-architecture.md § Dynamic Permission Engine](../01-application-and-data-architecture.md#dynamic-permission-engine)
 - **Kondisi hari ini:** [Phase1/00-current-state-audit.md § 1](../Phase1/00-current-state-audit.md#1-permission-engine--current-state)
 - **Gap:** [Phase1/01-gap-analysis.md § Gap 1](../Phase1/01-gap-analysis.md#gap-1--permission-engine-tiga-mekanisme-paralel)
 - **Aturan kode:** [Engineering-Constitution/03-core-implementation/06-api-engineering-standard.md](../Engineering-Constitution/03-core-implementation/06-api-engineering-standard.md), [Engineering-Constitution/03-core-implementation/05-database-engineering-standard.md](../Engineering-Constitution/03-core-implementation/05-database-engineering-standard.md)
@@ -102,7 +102,7 @@ Untuk modul/kapabilitas berdampak tinggi, index berikut mengumpulkan **semua** l
 - **Readiness checklist:** [09-saas-and-tenancy-readiness.md § 2](09-saas-and-tenancy-readiness.md#2-multi-company-readiness-checklist-l1--l2--kontribusi-baru)
 
 ### AI Agent Registry
-- **Apa:** [03-platform-and-intelligence-architecture.md § AI Architecture](../03-platform-and-intelligence-architecture.md#ai-architecture) (8 agent awal), [06-agentic-ai-and-automation-architecture.md § Katalog 14 Agent](../06-agentic-ai-and-automation-architecture.md)
+- **Apa:** [03-platform-and-intelligence-architecture.md § AI Architecture](../03-platform-and-intelligence-architecture.md#ai-architecture) (8 agent awal), [06-agentic-ai-and-automation-architecture.md § Katalog 14 Agent](../06-agentic-ai-and-automation-architecture.md#katalog-14-agent)
 - **Guardrail:** [Engineering-Constitution/GLOSSARY.md — HITL](../Engineering-Constitution/GLOSSARY.md)
 - **Gate keras:** [02-master-dependency-graph.md § 2, B→E](02-master-dependency-graph.md#2-kenapa-setiap-panah-ada-justifikasi-teknis-eksplisit)
 - **Sequencing 140 automation:** [08-platform-rollout-orchestration.md § 2](08-platform-rollout-orchestration.md#2-ai--automation-rollout)
