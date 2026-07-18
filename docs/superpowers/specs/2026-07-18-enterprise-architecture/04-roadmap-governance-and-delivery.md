@@ -84,7 +84,7 @@ Gate keluar: User me-review dan menyetujui isi repository ini (lihat [Definition
 
 ### Phase 4 — Enterprise Modules
 **Tujuan:** Modul yang bernilai untuk grup usaha dengan beberapa company (mendekati L2 penuh) — Payroll dasar, HR dasar, GL/Accounting yang lebih formal.
-**Prasyarat:** Company/tenant model dari Phase 5 di bawah **secara konseptual perlu matang** sebelum modul-modul ini bernilai penuh — namun karena roadmap ini eksplisit meminta Phase 4 (Enterprise Modules) sebelum Phase 7 (Multi Company), interpretasi yang benar adalah: modul-modul ini dibangun *single-company-aware* dulu di Phase 4, dan mendapat kesadaran multi-company saat Phase 7 menambahkan `company_id`. Ini valid selama modul di Phase 4 dirancang tidak berasumsi hardcoded satu company (mis. jangan hardcode nama Puraloka Persada di logic).
+**Prasyarat:** Company/tenant model dari Phase 7 di bawah **secara konseptual perlu matang** sebelum modul-modul ini bernilai penuh — namun karena roadmap ini eksplisit meminta Phase 4 (Enterprise Modules) sebelum Phase 7 (Multi Company), interpretasi yang benar adalah: modul-modul ini dibangun *single-company-aware* dulu di Phase 4, dan mendapat kesadaran multi-company saat Phase 7 menambahkan `company_id`. Ini valid selama modul di Phase 4 dirancang tidak berasumsi hardcoded satu company (mis. jangan hardcode nama Puraloka Persada di logic).
 
 ### Phase 5 — Automation Platform
 **Cakupan:** Trigger Engine (cron job otomatis menggantikan trigger manual `/sistem`), Event Engine in-process, migrasi notifikasi menjadi event-consumer. Lihat [03](03-platform-and-intelligence-architecture.md#automation-platform--event-platform).
