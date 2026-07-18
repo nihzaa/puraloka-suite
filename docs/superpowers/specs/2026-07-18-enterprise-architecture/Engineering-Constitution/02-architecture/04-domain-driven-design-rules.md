@@ -1,6 +1,6 @@
 # 04 — Domain-Driven Design Rules
 
-> **Maturity:** 🟡 Partial — Bounded Context sudah *implisit* konsisten (satu file route per domain bisnis, lihat [02-folder-architecture.md](../01-foundations/02-folder-architecture.md)), tapi tidak ada dokumen yang secara eksplisit memetakan batasnya sampai [00-vision-and-business-architecture.md](../../00-vision-and-business-architecture.md) ditulis. Ubiquitous Language (istilah domain konsisten kode ↔ bisnis) belum diverifikasi sistematis.
+> **Maturity:** 🟡 Partial — Bounded Context sudah *implisit* konsisten (satu file route per domain bisnis, lihat [02-folder-architecture.md](../01-foundations/02-folder-architecture.md)), tapi tidak ada dokumen yang secara eksplisit memetakan batasnya sampai [00-vision-and-business-architecture.md](../../00-vision-and-business-architecture.md) ditulis. Ubiquitous Language (istilah domain konsisten kode ↔ bisnis) sudah 100% konsisten di kode existing (diverifikasi), tapi verifikasinya masih manual — v1.1 menambah mekanisme verifikasi konkret (Recommended Rule #3) karena AI coding assistant kini menulis kode di repo ini, menaikkan risiko istilah asing menyelinap masuk dibanding saat murni ditulis manusia yang familiar konteks bisnis.
 
 **Kedudukan:** Batch 2 — Prinsip Arsitektur. Melengkapi [03-clean-architecture-rules.md](03-clean-architecture-rules.md) — Clean Architecture memisahkan *layer teknis*, file ini memisahkan *batas domain*. Istilah DDD dasar (Aggregate Root, Bounded Context) didefinisikan di [GLOSSARY.md](../GLOSSARY.md).
 
@@ -31,6 +31,7 @@ Puraloka Suite hari ini secara *tidak sengaja* sudah mengikuti sebagian prinsip 
 
 1. Saat menulis dokumentasi atau komentar kode untuk domain finansial, istilah **SHOULD** dicek dulu terhadap [GLOSSARY.md](../GLOSSARY.md) dan CLAUDE.md — jika istilah baru muncul dan berpotensi dipakai berulang, **SHOULD** ditambahkan ke GLOSSARY.md pada PR yang sama.
 2. Relasi antar Bounded Context (mis. `work_scopes.rab_category_id` menghubungkan konteks Mandor ke konteks RAB) **SHOULD** didokumentasikan sebagai koneksi eksplisit opsional, bukan foreign key yang wajib — pola yang sudah diterapkan konsisten di Mandor ↔ RAB Link (CLAUDE.md, internal) (nullable FK, bukan constraint wajib) karena kedua konteks tetap valid berdiri sendiri.
+3. Code review ([05-team-process/15-code-review-checklist.md](../05-team-process/15-code-review-checklist.md)) **SHOULD** eksplisit memeriksa daftar istilah terlarang di Mandatory Rule #1 (`advance`, `installment`, `contractor`, `lump-sum`, dan padanan Inggris generik lain untuk istilah domain baku) sebagai item checklist tersendiri, bukan diasumsikan reviewer otomatis menyadarinya — mekanisme verifikasi konkret yang sebelumnya tidak ada, relevan terutama untuk PR yang dihasilkan AI coding assistant ([07-domain-specific/36-ai-coding-guideline.md](../07-domain-specific/36-ai-coding-guideline.md)) yang tidak punya konteks bisnis bawaan sekuat manusia yang bekerja langsung dengan Nizar/PM/mandor.
 
 ## 6. Anti-Pattern
 
@@ -73,6 +74,7 @@ Konsisten Mandatory Rule #4 — disambiguasi eksplisit sudah menjadi pola nyata 
 - [ ] Bounded Context baru sudah dipetakan ke Module Catalog sebelum implementasi
 - [ ] Invariant finansial-kritis punya enforcement server-side (constraint atau validasi API), bukan hanya di UI
 - [ ] Istilah ambigu lintas konteks (mis. "progress") diberi nama yang membedakan konteksnya
+- [ ] Code review memeriksa daftar istilah terlarang secara eksplisit, bukan diasumsikan otomatis tersadari
 
 ## 11. Success Metrics
 
@@ -81,6 +83,7 @@ Konsisten Mandatory Rule #4 — disambiguasi eksplisit sudah menjadi pola nyata 
 | Kolom/istilah domain finansial tanpa constraint server-side | Menurun dari baseline audit Sub-Fase 1A | Audit manual per domain finansial-kritis |
 | Istilah domain baru yang tidak konsisten CLAUDE.md/GLOSSARY.md | 0 per PR | Code review checklist |
 | Domain baru tanpa pemetaan Module Catalog sebelum implementasi | 0 | Review PR yang menambah route file domain baru |
+| PR dari AI coding assistant dengan istilah terlarang lolos review | 0 | Audit sampling PR yang ditandai AI-generated |
 
 ## 12. References
 
@@ -89,6 +92,8 @@ Konsisten Mandatory Rule #4 — disambiguasi eksplisit sudah menjadi pola nyata 
 - [03-clean-architecture-rules.md](03-clean-architecture-rules.md)
 - [GLOSSARY.md — Aggregate Root, Bounded Context](../GLOSSARY.md)
 - CLAUDE.md § Business Logic Kritis (internal — sumber istilah domain baku)
+- [05-team-process/15-code-review-checklist.md](../05-team-process/15-code-review-checklist.md)
+- [07-domain-specific/36-ai-coding-guideline.md](../07-domain-specific/36-ai-coding-guideline.md)
 
 ---
 

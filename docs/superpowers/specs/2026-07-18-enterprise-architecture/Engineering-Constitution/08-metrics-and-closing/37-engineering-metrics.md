@@ -49,6 +49,12 @@ Setiap file Engineering Constitution (Bagian 11, sesuai [ADR-002](../adr/ADR-002
 - Log level production (target minimal `info`)
 - Log finansial-kritis tanpa `correlation_id` (target 0)
 
+**Delivery Performance — DORA Four Keys** (v1.1, target masa depan — belum terukur hari ini karena nol pipeline CI/CD, [05-team-process/11-devsecops-standard.md](../05-team-process/11-devsecops-standard.md)):
+- Deployment frequency — target diukur begitu pipeline CI/CD aktif, belum ada baseline
+- Lead time for changes (commit → production) — target diukur begitu pipeline aktif
+- Mean time to recovery (MTTR) — target diukur begitu incident tracking ada ([05-team-process/21-checklist-before-release.md](../05-team-process/21-checklist-before-release.md) rollback discipline sebagai prasyarat)
+- Change failure rate — target diukur begitu dependency scanning ([11-devsecops-standard.md Mandatory Rule #5](../05-team-process/11-devsecops-standard.md#4-mandatory-rules)) dan test gate aktif, saling melengkapi sebagai sumber data
+
 ## 7. Anti-Pattern
 
 **Metric Vanity Tanpa Tindak Lanjut** — melaporkan "coverage 90% tercapai!" tanpa memeriksa apakah assertion di test tersebut benar-benar bermakna (lihat [08-testing-standard.md Anti-Pattern](../04-quality-and-observability/08-testing-standard.md#6-anti-pattern) "Coverage Number Tanpa Assertion Bermakna") — angka agregat yang terlihat baik tapi menyembunyikan kualitas rendah di baliknya.
@@ -71,6 +77,8 @@ Tidak berlaku dalam bentuk kode — file ini murni agregasi metric. 🔵 Designe
 - Seluruh 36 file `01-foundations/` sampai `07-domain-specific/` (sumber Success Metrics individual)
 - [38-security-checklist.md](38-security-checklist.md)
 - [adr/ADR-002-enforcement-levels-and-template.md](../adr/ADR-002-enforcement-levels-and-template.md)
+- [05-team-process/11-devsecops-standard.md](../05-team-process/11-devsecops-standard.md)
+- [05-team-process/21-checklist-before-release.md](../05-team-process/21-checklist-before-release.md)
 
 ---
 

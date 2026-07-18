@@ -8,7 +8,7 @@
 
 ## 1. Purpose
 
-Menetapkan bagaimana skema database dirancang dan dievolusikan supaya integritas data (financial correctness, tenant isolation) ditegakkan **di level database**, bukan hanya diasumsikan benar dari disiplin application layer yang bisa gagal atau ter-bypass.
+Menetapkan bagaimana skema database dirancang dan dievolusikan supaya integritas data (financial correctness, tenant isolation) ditegakkan **di level database**, bukan hanya diasumsikan benar dari disiplin application layer yang bisa gagal atau ter-bypass. Untuk "tenant isolation" secara spesifik (batas company/tenant, bukan RLS role-based yang jadi fokus utama file ini): checklist readiness lengkap ada di [Master-Delivery-Blueprint/09-saas-and-tenancy-readiness.md](../../Master-Delivery-Blueprint/09-saas-and-tenancy-readiness.md) — **MUST** dibaca sebelum fitur apa pun yang menyentuh batas company/tenant dirancang, mencegah desain yang harus di-retrofit isolasi datanya setelah terlanjur dibangun asumsi single-tenant.
 
 ## 2. Background
 
@@ -97,6 +97,7 @@ Literal role string hardcode di policy — bertentangan Mandatory Rule #3 (setel
 - [22-project-conventions.md](../01-foundations/22-project-conventions.md)
 - [34-schema-migration-policy.md](34-schema-migration-policy.md)
 - [GLOSSARY.md — Expand-Contract Migration, RLS, RBAC](../GLOSSARY.md)
+- [Master-Delivery-Blueprint/09-saas-and-tenancy-readiness.md](../../Master-Delivery-Blueprint/09-saas-and-tenancy-readiness.md)
 
 ---
 
