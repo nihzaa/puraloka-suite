@@ -26,7 +26,8 @@ Memindahkan verifikasi yang saat ini bergantung pada disiplin manual developer (
 2. Begitu ESLint aktif di `apps/api` ([01-coding-standards.md Mandatory Rule #6](../01-foundations/01-coding-standards.md#4-mandatory-rules) tertutup), pipeline **MUST** menjalankan lint di kedua app pada setiap PR — **MUST** memblokir merge untuk error (bukan warning) lint.
 3. Begitu Vitest terpasang dan ada test, pipeline **MUST** menjalankan seluruh test suite pada setiap PR — **MUST** memblokir merge jika ada test yang gagal.
 4. Secret scanning (mendeteksi kredensial yang tidak sengaja ter-commit) **MUST** aktif di pipeline sebelum akhir Sub-Fase 1A — **MUST** memblokir merge jika terdeteksi pola kredensial di diff.
-5. Pipeline **MUST NOT** memiliki kemampuan bypass diam-diam (mis. label PR yang melewati semua check tanpa jejak) — override status check yang gagal **MUST** memerlukan justifikasi eksplisit tercatat (komentar PR minimal), konsisten prinsip audit trail.
+5. Dependency vulnerability scanning (`pnpm audit` atau setara) **MUST** aktif di pipeline sebelum akhir Sub-Fase 1A, dijalankan pada setiap PR yang mengubah `package.json`/`pnpm-lock.yaml` — **MUST** memblokir merge jika ditemukan kerentanan Critical/High tanpa mitigasi terdokumentasi ([06-governance/23-dependency-management.md Mandatory Rule #2](../06-governance/23-dependency-management.md#4-mandatory-rules) mendefinisikan severity response ini; file ini adalah tempat aturan itu **secara resmi menjadi Mandatory**, menutup referensi melingkar yang sebelumnya ada di kedua file). Ini terpisah dari review manual per-package saat penambahan dependency baru ([03-core-implementation/07-security-engineering-standard.md Recommended Rule #2](../03-core-implementation/07-security-engineering-standard.md#5-recommended-rules)) — item ini adalah gate otomatis berkelanjutan, bukan pengganti review manual satu kali saat dependency ditambahkan.
+6. Pipeline **MUST NOT** memiliki kemampuan bypass diam-diam (mis. label PR yang melewati semua check tanpa jejak) — override status check yang gagal **MUST** memerlukan justifikasi eksplisit tercatat (komentar PR minimal), konsisten prinsip audit trail.
 
 ## 5. Recommended Rules
 
@@ -65,7 +66,7 @@ Gate paralel per-app, memblokir merge jika gagal — konsisten Mandatory Rule #1
 
 ## 9. Migration Strategy
 
-**Seluruh Mandatory Rules di file ini** — 🔵 Designed murni, N/A untuk migrasi mundur karena tidak ada pipeline existing. Urutan implementasi mengikuti [Phase1/02 § 1A.5](../../Phase1/02-target-architecture.md#1a5-cicd-foundation): (1) `tsc --noEmit` gate — bisa langsung diaktifkan karena `strict: true` sudah aktif, (2) lint gate — menunggu ESLint `apps/api` tertutup, (3) test gate — menunggu Vitest + test pertama tertulis, (4) secret scanning — independen, bisa ditambahkan kapan saja, target sebelum akhir Sub-Fase 1A.
+**Seluruh Mandatory Rules di file ini** — 🔵 Designed murni, N/A untuk migrasi mundur karena tidak ada pipeline existing. Urutan implementasi mengikuti [Phase1/02 § 1A.5](../../Phase1/02-target-architecture.md#1a5-cicd-foundation): (1) `tsc --noEmit` gate — bisa langsung diaktifkan karena `strict: true` sudah aktif, (2) lint gate — menunggu ESLint `apps/api` tertutup, (3) test gate — menunggu Vitest + test pertama tertulis, (4) secret scanning — independen, bisa ditambahkan kapan saja, target sebelum akhir Sub-Fase 1A, (5) dependency vulnerability scanning — independen dari (1)-(4), bisa ditambahkan kapan saja karena `pnpm audit` tidak butuh infrastruktur lain, target sebelum akhir Sub-Fase 1A.
 
 ## 10. Checklist
 
@@ -73,6 +74,7 @@ Gate paralel per-app, memblokir merge jika gagal — konsisten Mandatory Rule #1
 - [ ] Lint jadi required status check (setelah ESLint `apps/api` aktif)
 - [ ] Test suite jadi required status check (setelah Vitest aktif)
 - [ ] Secret scanning aktif di pipeline
+- [ ] Dependency vulnerability scanning aktif di pipeline, memblokir merge untuk kerentanan Critical/High tanpa mitigasi terdokumentasi
 - [ ] Tidak ada jalur bypass status check tanpa jejak
 
 ## 11. Success Metrics
@@ -82,6 +84,7 @@ Gate paralel per-app, memblokir merge jika gagal — konsisten Mandatory Rule #1
 | PR yang di-merge dengan status check gagal tanpa justifikasi | 0 | Audit riwayat PR |
 | Error `tsc --noEmit` lolos ke `main` | 0 | CI gate aktif |
 | Waktu pipeline CI end-to-end | Dijaga wajar (belum ada angka baseline) | Dashboard CI, ditinjau ulang setelah data terkumpul |
+| Kerentanan Critical/High lolos ke `main` tanpa mitigasi terdokumentasi | 0 | `pnpm audit` gate aktif di CI |
 
 ## 12. References
 
@@ -90,6 +93,7 @@ Gate paralel per-app, memblokir merge jika gagal — konsisten Mandatory Rule #1
 - [01-foundations/01-coding-standards.md](../01-foundations/01-coding-standards.md)
 - [04-quality-and-observability/08-testing-standard.md](../04-quality-and-observability/08-testing-standard.md)
 - [20-checklist-before-merge.md](20-checklist-before-merge.md)
+- [06-governance/23-dependency-management.md](../06-governance/23-dependency-management.md)
 
 ---
 

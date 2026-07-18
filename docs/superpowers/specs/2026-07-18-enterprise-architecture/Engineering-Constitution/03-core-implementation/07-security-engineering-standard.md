@@ -1,6 +1,6 @@
 # 07 — Security Engineering Standard
 
-> **Maturity:** 🟡 Partial — RLS aktif di 50 tabel dan fail-closed sudah prinsip desain existing, tapi RLS-RBAC desync (lihat [05-database-engineering-standard.md](05-database-engineering-standard.md)) dan permission engine tiga-jalur (lihat [06-api-engineering-standard.md](06-api-engineering-standard.md)) adalah dua gap keamanan terbesar yang belum tertutup.
+> **Maturity:** 🟡 Partial — RLS aktif di 50 tabel dan fail-closed sudah prinsip desain existing, tapi RLS-RBAC desync (lihat [05-database-engineering-standard.md](05-database-engineering-standard.md)) dan permission engine tiga-jalur (lihat [06-api-engineering-standard.md](06-api-engineering-standard.md)) adalah dua gap keamanan terbesar yang belum tertutup. Session/token lifecycle (Mandatory Rule #7) dan CORS/transport (Mandatory Rule #8) diverifikasi terhadap kode nyata (`apps/web/lib/api.ts`, `apps/api/src/index.ts`) — sebagian sudah diterapkan baik (silent refresh via HttpOnly cookie, CORS whitelist eksplisit), sebagian belum diformalkan sebagai aturan wajib.
 
 **Kedudukan:** Batch 3 — Implementasi Inti. Mengonsolidasikan requirement keamanan dari [02-security-and-compliance-architecture.md](../../02-security-and-compliance-architecture.md) dan [Phase1/07-security-review.md](../../Phase1/07-security-review.md) menjadi aturan wajib per-PR. Melengkapi [05-database-engineering-standard.md](05-database-engineering-standard.md) (RLS) dan [06-api-engineering-standard.md](06-api-engineering-standard.md) (otorisasi endpoint).
 
@@ -13,6 +13,8 @@ Menerjemahkan threat model dan checklist keamanan di level arsitektur ([02-secur
 ## 2. Background
 
 [02-security-and-compliance-architecture.md § Current State](../../02-security-and-compliance-architecture.md#current-state--postur-keamanan-terverifikasi) mengonfirmasi RLS aktif di 50 tabel, soft-delete untuk proyek, pagination cap, file size guard, dan `audit_logs.user_id ON DELETE SET NULL` sudah diterapkan — postur keamanan dasar sudah lebih baik dari banyak aplikasi tahap serupa. Namun [Phase1/07-security-review.md § OWASP Top 10](../../Phase1/07-security-review.md#owasp-top-10--relevansi-langsung-ke-phase-1) mengidentifikasi Broken Access Control (A01) sebagai risiko tertinggi langsung — bukan karena RLS tidak ada, tapi karena RLS dan RBAC v2 berjalan sebagai dua sistem independen yang bisa divergen tanpa peringatan.
+
+**Audit v1.1 (OWASP ASVS V2/V3/V9):** File ini sebelumnya nol sebutan session/token lifecycle dan TLS/CORS/security headers — bukan berarti kode tidak punya mekanismenya (`apps/web/lib/api.ts` sudah punya silent refresh via cookie `HttpOnly`, `apps/api/src/index.ts` sudah punya CORS whitelist eksplisit dengan regex origin), tapi mekanisme itu belum pernah diformalkan sebagai aturan wajib di Constitution. CLAUDE.md § Auth Flow sudah mencatat gejala nyata: "Token Supabase expire setelah ~1 jam. Jika masih 401 padahal ada token, hapus cookie... lalu login ulang" — ini sinyal bahwa refresh flow existing punya celah yang belum diformalkan penanganannya.
 
 ## 3. Principles
 
@@ -28,6 +30,8 @@ Menerjemahkan threat model dan checklist keamanan di level arsitektur ([02-secur
 4. Endpoint yang menerima file upload **MUST** memvalidasi tipe MIME dan ukuran sebelum diproses — **MUST NOT** mempercayai ekstensi file dari nama file sebagai satu-satunya validasi.
 5. Data finansial-kritis yang di-expose ke role tertentu (mis. serapan aktual kas ke client portal) **MUST** diperiksa eksplisit terhadap keputusan desain "Client portal — full transparansi kecuali serapan aktual kas & cashflow kas" (CLAUDE.md § ERP Proyek Upgrade — Keputusan Desain, internal) sebelum endpoint baru dibuka ke portal client/mandor — **MUST NOT** meng-expose kolom finansial baru ke portal tanpa keputusan eksplisit ini direview ulang.
 6. Perubahan yang memperluas RLS policy atau permission scope **MUST** disertai audit log entry atau setidaknya justifikasi eksplisit di deskripsi PR — **MUST NOT** memperluas akses secara diam-diam tanpa jejak.
+7. Token sesi (access token) **MUST** disimpan di cookie `HttpOnly` untuk web client — **MUST NOT** disimpan di `localStorage`/`sessionStorage` untuk token yang dipakai otorisasi API (mencegah pencurian token lewat XSS); token refresh **MUST** dipicu otomatis oleh klien saat menerima 401 (pola existing di `apps/web/lib/api.ts`), **MUST NOT** memaksa pengguna login ulang manual selama refresh token masih valid — kondisi "401 padahal ada token" yang tercatat CLAUDE.md **MUST** diperlakukan sebagai bug refresh flow yang diperbaiki, bukan perilaku normal yang diterima.
+8. Endpoint API **MUST** membatasi origin lewat CORS whitelist eksplisit (pola existing: regex-based allowlist di `apps/api/src/index.ts`) — **MUST NOT** memakai `origin: true`/wildcard `*` yang mengizinkan origin apa pun. Whitelist yang menyertakan pola broad (LAN range, subdomain tunneling seperti `*.trycloudflare.com`) **MUST** ditandai eksplisit sebagai kebutuhan development/LAN access (CLAUDE.md § HP/LAN access, internal) — **MUST** direview ulang dan dipersempit sebelum deployment production/multi-tenant pertama (Phase 8, [Master-Delivery-Blueprint/09-saas-and-tenancy-readiness.md](../../Master-Delivery-Blueprint/09-saas-and-tenancy-readiness.md)), bukan dibawa apa adanya ke lingkungan yang melayani pelanggan eksternal.
 
 ## 5. Recommended Rules
 
@@ -69,6 +73,10 @@ Default `true` saat field tidak eksplisit di-set adalah fail-open — bertentang
 
 **Untuk Mandatory Rule #2, #3, #4, #5** — N/A, sudah konsisten diterapkan di kode existing.
 
+**Untuk Mandatory Rule #7 (session/token lifecycle)** — 🟡 Partial, mekanisme (HttpOnly cookie + silent refresh) sudah ada di `apps/web/lib/api.ts` — **MUST** diverifikasi/diperbaiki begitu file ini disentuh untuk pekerjaan Sub-Fase 1A, memperbaiki celah "401 padahal ada token" yang tercatat CLAUDE.md sebagai bagian pekerjaan yang sama, bukan ditunda terpisah.
+
+**Untuk Mandatory Rule #8 (CORS whitelist)** — 🟡 Partial, whitelist existing sudah eksplisit (bukan wildcard) tapi belum direview ulang untuk production/multi-tenant — **MUST** menjadi bagian Entry Criteria Program F ([Master-Delivery-Blueprint/04-delivery-orchestration.md § 3](../../Master-Delivery-Blueprint/04-delivery-orchestration.md#3-entry-criteria--operasionalisasi-per-program)), tidak diaudit ulang sebelum itu karena whitelist LAN/tunneling saat ini masih sesuai kebutuhan development.
+
 ## 10. Checklist
 
 - [ ] Fungsi otorisasi baru fail-closed (default tolak, bukan default izin)
@@ -76,6 +84,8 @@ Default `true` saat field tidak eksplisit di-set adalah fail-open — bertentang
 - [ ] Input user ke SQL memakai parameterized query
 - [ ] File upload baru divalidasi MIME type + ukuran
 - [ ] Ekspansi RLS/permission scope tercatat di PR description atau audit log
+- [ ] Token sesi disimpan `HttpOnly`, tidak di `localStorage`/`sessionStorage`
+- [ ] Endpoint API baru tunduk CORS whitelist eksplisit, bukan wildcard
 
 ## 11. Success Metrics
 
@@ -84,6 +94,8 @@ Default `true` saat field tidak eksplisit di-set adalah fail-open — bertentang
 | Fungsi otorisasi baru yang fail-open (terdeteksi review) | 0 | Code review checklist |
 | Kredensial ditemukan di git history baru | 0 | Pre-commit secret scanning (target [05-team-process/11-devsecops-standard.md](../05-team-process/11-devsecops-standard.md)) |
 | RLS policy baru hardcode role string | 0 | Lihat [05-database-engineering-standard.md § Success Metrics](05-database-engineering-standard.md#11-success-metrics) |
+| Token sesi disimpan di `localStorage`/`sessionStorage` (bukan `HttpOnly`) | 0 | Code review checklist |
+| Endpoint dengan CORS wildcard (`origin: true`/`*`) | 0 | Audit konfigurasi `apps/api/src/index.ts` |
 
 ## 12. References
 
@@ -93,6 +105,8 @@ Default `true` saat field tidak eksplisit di-set adalah fail-open — bertentang
 - [06-api-engineering-standard.md](06-api-engineering-standard.md)
 - [GLOSSARY.md — Fail-Closed](../GLOSSARY.md)
 - [08-metrics-and-closing/38-security-checklist.md](../08-metrics-and-closing/38-security-checklist.md)
+- [Master-Delivery-Blueprint/09-saas-and-tenancy-readiness.md](../../Master-Delivery-Blueprint/09-saas-and-tenancy-readiness.md)
+- CLAUDE.md § Auth Flow (internal — gejala nyata refresh token yang jadi dasar Mandatory Rule #7)
 
 ---
 
