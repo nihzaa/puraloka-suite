@@ -1,6 +1,6 @@
 # 38 — Security Checklist
 
-> **Maturity:** 🟡 Partial — checklist ini mengagregasi item MUST keamanan dari [03-core-implementation/07-security-engineering-standard.md](../03-core-implementation/07-security-engineering-standard.md) dan file terkait lain; status sama dengan sumbernya (sebagian Enforced, sebagian Partial menunggu Sub-Fase 1A). v1.1: menambah item session/token/CORS ([07 Mandatory Rule #7-8](../03-core-implementation/07-security-engineering-standard.md#4-mandatory-rules)) dan dependency scanning ([11 Mandatory Rule #5](../05-team-process/11-devsecops-standard.md#4-mandatory-rules)).
+> **Maturity:** 🟡 Partial — checklist ini mengagregasi item MUST keamanan dari [03-core-implementation/07-security-engineering-standard.md](../03-core-implementation/07-security-engineering-standard.md) dan file terkait lain; status sama dengan sumbernya (sebagian Enforced, sebagian Partial menunggu Sub-Fase 1A). v1.1 Batch J: menambah item session/token/CORS ([07 Mandatory Rule #7-8](../03-core-implementation/07-security-engineering-standard.md#4-mandatory-rules)) dan dependency scanning ([11 Mandatory Rule #5](../05-team-process/11-devsecops-standard.md#4-mandatory-rules)). v1.1 Batch K: menambah kategori AI Product Agent (🔵 Designed, kondisional — hanya berlaku begitu rilis pertama menyentuh domain ini).
 
 **Kedudukan:** Batch 8 — Metrics & Penutup. Titik verifikasi keamanan tunggal, mengagregasi [03-core-implementation/07-security-engineering-standard.md](../03-core-implementation/07-security-engineering-standard.md) dan [02-security-and-compliance-architecture.md § Security Checklist](../../02-security-and-compliance-architecture.md#security-checklist-ringkas-actionable) menjadi satu daftar yang bisa dicek cepat sebelum rilis besar.
 
@@ -51,6 +51,12 @@ Memberikan satu checklist ringkas yang bisa dijalankan sebelum rilis besar atau 
 - [ ] Migration berisiko tinggi (RLS, constraint baru) punya rencana rollback tertulis ([03-core-implementation/34-schema-migration-policy.md](../03-core-implementation/34-schema-migration-policy.md))
 - [ ] Perubahan RLS/permission scope tercatat di PR description atau audit log
 
+**AI Product Agent (jika rilis menyentuh domain ini):**
+- [ ] Prompt disimpan sebagai data versioned, bukan hardcode di kode ([07-domain-specific/40-ai-governance-and-agent-engineering-standard.md Mandatory Rule #1](../07-domain-specific/40-ai-governance-and-agent-engineering-standard.md#4-mandatory-rules))
+- [ ] Setiap panggilan agent tercatat ke `ai_agent_audit_logs` dengan cost tracking
+- [ ] Tool call agent divalidasi ulang terhadap permission engine saat eksekusi, bukan hanya saat registrasi
+- [ ] Aksi finansial agent tunduk tiering approval limit sesuai nominal, tidak ada bypass untuk Tier 3-4
+
 ## 7. Anti-Pattern
 
 **Checklist Dijalankan Sebagai Formalitas** — mencentang semua item tanpa benar-benar memverifikasi (mis. mencentang "tidak ada kredensial di log" tanpa benar-benar membaca log sample) — kehilangan seluruh nilai checklist sebagai gate nyata.
@@ -70,6 +76,7 @@ Tidak berlaku dalam bentuk kode — file ini murni checklist. Migration Strategy
 | Rilis besar finansial-kritis tanpa checklist dijalankan | 0 | Audit riwayat rilis |
 | Item checklist gagal tanpa keputusan eksplisit (fix atau accepted risk) | 0 | Review dokumentasi rilis |
 | Rilis dengan dependency Critical/High belum dimitigasi | 0 | `pnpm audit` gate ([11-devsecops-standard.md](../05-team-process/11-devsecops-standard.md)) |
+| Rilis domain AI agent tanpa checklist AI Product Agent dijalankan | 0 | Audit riwayat rilis (kondisional, sejak agent pertama live) |
 
 ## 12. References
 
@@ -77,6 +84,7 @@ Tidak berlaku dalam bentuk kode — file ini murni checklist. Migration Strategy
 - [03-core-implementation/07-security-engineering-standard.md](../03-core-implementation/07-security-engineering-standard.md)
 - [05-team-process/11-devsecops-standard.md](../05-team-process/11-devsecops-standard.md)
 - [05-team-process/21-checklist-before-release.md](../05-team-process/21-checklist-before-release.md)
+- [07-domain-specific/40-ai-governance-and-agent-engineering-standard.md](../07-domain-specific/40-ai-governance-and-agent-engineering-standard.md)
 
 ---
 

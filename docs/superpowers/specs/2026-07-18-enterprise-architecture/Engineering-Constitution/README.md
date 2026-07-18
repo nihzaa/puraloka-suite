@@ -21,20 +21,20 @@ Baca folder secara berurutan (00 → 08) pada hari pertama bergabung — urutan 
 5. [04-quality-and-observability/](04-quality-and-observability/08-testing-standard.md) — Testing, Performance, Observability, Error Handling, Logging
 6. [05-team-process/](05-team-process/14-git-workflow-standard.md) — Git, Code Review, DoR/DoD, Checklist Merge/Release, DevSecOps
 7. [06-governance/](06-governance/19-architecture-decision-record-guide.md) — ADR, Tech Debt, Refactoring, Dependency/Library/Package, Versioning, Documentation
-8. [07-domain-specific/](07-domain-specific/12-ui-engineering-standard.md) — UI, Feature Flag, Configuration, Event-Driven, AI Coding
+8. [07-domain-specific/](07-domain-specific/12-ui-engineering-standard.md) — UI, Feature Flag, Configuration, Event-Driven, AI Coding, AI Governance & Agent Engineering
 9. [08-metrics-and-closing/](08-metrics-and-closing/39-final-engineering-manifesto.md) — Metrics, Security Checklist, Manifesto
 
 **Sebelum mulai:** baca [GLOSSARY.md](GLOSSARY.md) sekilas — istilah teknis yang dipakai berulang (Aggregate Root, RLS, idempotency, fail-closed, dst.) didefinisikan sekali di sana, bukan diulang per file.
 
 ### Jalur 2 — Engineer Berpengalaman (Referensi, Cari Aturan Spesifik)
 
-Jangan baca berurutan — langsung ke file yang relevan dengan pekerjaan yang sedang dikerjakan. Gunakan tabel [Peta Lengkap 39 File](#peta-lengkap-39-file) di bawah untuk mencari berdasarkan topik.
+Jangan baca berurutan — langsung ke file yang relevan dengan pekerjaan yang sedang dikerjakan. Gunakan tabel [Peta Lengkap 40 File](#peta-lengkap-40-file) di bawah untuk mencari berdasarkan topik.
 
 **Aturan cepat:** Setiap aturan **MUST** di file mana pun adalah blocking merge — jika kode yang Anda tulis melanggar satu, PR tidak akan lolos [Checklist Before Merge](05-team-process/20-checklist-before-merge.md). Setiap aturan **SHOULD** boleh dideviasi dengan justifikasi tertulis di deskripsi PR.
 
 ### Jalur 3 — Reviewer (Verifikasi PR terhadap Checklist)
 
-Mulai dari [05-team-process/15-code-review-checklist.md](05-team-process/15-code-review-checklist.md) dan [05-team-process/20-checklist-before-merge.md](05-team-process/20-checklist-before-merge.md) — keduanya mengagregasi item Checklist dari seluruh file lain yang relevan (lihat [ADR-002 § Bagian 10](adr/ADR-002-enforcement-levels-and-template.md)), jadi tidak perlu membuka 39 file satu-satu untuk review rutin.
+Mulai dari [05-team-process/15-code-review-checklist.md](05-team-process/15-code-review-checklist.md) dan [05-team-process/20-checklist-before-merge.md](05-team-process/20-checklist-before-merge.md) — keduanya mengagregasi item Checklist dari seluruh file lain yang relevan (lihat [ADR-002 § Bagian 10](adr/ADR-002-enforcement-levels-and-template.md)), jadi tidak perlu membuka 40 file satu-satu untuk review rutin.
 
 ---
 
@@ -52,7 +52,7 @@ Setiap file punya header maturity badge di baris kedua (setelah judul), sesuai [
 
 ---
 
-## Peta Lengkap 39 File
+## Peta Lengkap 40 File
 
 | # | File | Folder | Batch | Status Cakupan Hari Ini |
 |---|---|---|---|---|
@@ -92,6 +92,7 @@ Setiap file punya header maturity badge di baris kedua (setelah judul), sesuai [
 | 27 | Configuration Standard | `07-domain-specific/` | 7 | 🔵 |
 | 35 | Event-Driven Guideline | `07-domain-specific/` | 7 | 🔵 |
 | 36 | AI Coding Guideline | `07-domain-specific/` | 7 | 🔵 |
+| 40 | AI Governance & Agent Engineering Standard | `07-domain-specific/` | K (v1.1) | 🔵 |
 | 37 | Engineering Metrics | `08-metrics-and-closing/` | 8 | 🔵 |
 | 38 | Security Checklist | `08-metrics-and-closing/` | 8 | 🟡 |
 | 39 | Final Engineering Manifesto | `08-metrics-and-closing/` | 8 | 🟢 |

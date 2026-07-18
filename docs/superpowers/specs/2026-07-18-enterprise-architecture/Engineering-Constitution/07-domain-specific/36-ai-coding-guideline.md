@@ -68,6 +68,7 @@ N/A — pola sudah 100% konsisten dipraktikkan sepanjang riwayat kolaborasi AI-h
 - [06-agentic-ai-and-automation-architecture.md § Prinsip 3-6](../../06-agentic-ai-and-automation-architecture.md#prinsip-3--human-approval-boundaries)
 - [GLOSSARY.md — HITL](../GLOSSARY.md)
 - [00-principles/00-engineering-principles.md](../00-principles/00-engineering-principles.md)
+- [40-ai-governance-and-agent-engineering-standard.md](40-ai-governance-and-agent-engineering-standard.md) (domain berbeda — AI *product* agent yang menjadi bagian aplikasi, bukan AI coding assistant yang menulis kode)
 
 ---
 
