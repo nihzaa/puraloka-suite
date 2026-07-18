@@ -8,8 +8,11 @@
 
 ## Sub-Fase 1A — Security Foundation
 
+### Architecture Review Gate (v1.1 — item baru)
+- [ ] Architecture Review (Gate 1 doc04, [§ Architecture Governance & Phase Gates](../04-roadmap-governance-and-delivery.md#architecture-governance--phase-gates)) dilakukan dan didokumentasikan **sebelum** implementasi Sub-Fase 1A dimulai — untuk solo developer, ini berbentuk dokumentasi tertulis singkat + jeda minimal 1 hari sebelum eksekusi (sesuai definisi gate itu sendiri), dicatat sebagai entry terpisah (tanggal + ringkasan keputusan), bukan diasumsikan otomatis terpenuhi oleh checklist teknis di bawah *(v1.1: item ini sebelumnya tidak ada — Phase 1A Readiness Review menemukan Sub-Fase 1A bisa dinyatakan 100% selesai secara harfiah tanpa Gate 1 doc04 pernah benar-benar dilakukan; item ini menutup gap tersebut)*
+
 ### Permission Engine
-- [ ] 4 pemanggilan `requireRole` dihapus dan diganti `requirePermission` yang setara ([00 § 1.3](00-current-state-audit.md#13-call-site-inventory--requirerole-4-lokasi-harus-dihapus))
+- [ ] 5 pemanggilan `requireRole` dihapus dan diganti `requirePermission` yang setara *(v1.1: dikoreksi dari 4 — lihat [02-target-architecture.md § 1A.1](02-target-architecture.md#1a1-permission-engine-v2--desain-konsolidasi), angka lama tidak diverifikasi ulang sejak audit awal; jumlah final **MUST** diverifikasi ulang langsung terhadap `apps/api/src/` di awal eksekusi 1A, tidak diasumsikan dari dokumen ini)*
 - [ ] Fungsi `requireRole` dihapus dari `apps/api/src/plugins/auth.ts` (bukan hanya tidak dipanggil — benar-benar dihapus, mencegah dipakai lagi di masa depan)
 - [ ] Seluruh 21 baris authorization-gate inline yang teridentifikasi ([00 § 1.5](00-current-state-audit.md#15-call-site-inventory--inline-role--x-57-kejadian-11-file)) dimigrasikan ke `requirePermission`, dicentang satu per satu (bukan diasumsikan "sudah semua")
 - [ ] 36 baris data-scoping inline diberi komentar eksplisit menandai jenisnya (mencegah tertukar sebagai authorization gate di refactor masa depan)

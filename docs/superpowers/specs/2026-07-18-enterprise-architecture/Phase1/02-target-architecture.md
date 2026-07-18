@@ -44,9 +44,9 @@ graph TB
 
 | Sebelum | Sesudah |
 |---|---|
-| `requireRole(...roles)` — hardcoded array | **Dihapus total** setelah 4 call site bermigrasi |
-| `requirePermission(key)` — sudah ada, dipertahankan | Dipertahankan, **cakupan diperluas** ke 21 authorization-gate inline yang teridentifikasi |
-| Inline `.role === 'x'` untuk otorisasi | Dihapus untuk 21 kasus authorization-gate; **dipertahankan** untuk 36 kasus data-scoping (dengan komentar eksplisit menandai jenisnya) |
+| `requireRole(...roles)` — hardcoded array | **Dihapus total** setelah 5 call site bermigrasi *(v1.1: dikoreksi dari 4 — verifikasi ulang langsung terhadap `apps/api/src/` per Phase 1A Readiness Review menemukan 5 call site nyata, bukan 4; angka lama tidak pernah diverifikasi ulang sejak audit awal)* |
+| `requirePermission(key)` — **sudah menjadi pola dominan**, dipertahankan | Dipertahankan, **cakupan diperluas** ke sisa authorization-gate inline yang teridentifikasi *(v1.1: `requirePermission()` sudah dipakai di 102 call site nyata per verifikasi Readiness Review — mayoritas pekerjaan migrasi API-layer sudah selesai sebelum Sub-Fase 1A dimulai; item ini adalah menuntaskan sisa, bukan membangun pola dari nol)* |
+| Inline `.role === 'x'` untuk otorisasi | Dihapus untuk kasus authorization-gate; **dipertahankan** untuk kasus data-scoping (dengan komentar eksplisit menandai jenisnya) — jumlah persis kedua kategori **MUST** diverifikasi ulang di awal Sub-Fase 1A (lihat catatan v1.1 di bawah), bukan diasumsikan dari angka lama |
 
 **Kontrak API tidak berubah** — `requirePermission(key: string)` tetap punya tanda tangan yang sama. Ini penting untuk migration strategy (lihat [03-migration-strategy.md](03-migration-strategy.md)): refactor ini adalah *penggantian isi*, bukan *perubahan interface*, sehingga risiko regresi ke pemanggil lebih rendah.
 
@@ -56,7 +56,7 @@ Brief meminta dukungan RBAC + ABAC + PBAC eksplisit. Berikut posisi jujur masing
 
 | Model | Status Phase 1 | Rationale |
 |---|---|---|
-| **RBAC** | ✅ Dikonsolidasi penuh (ini fokus utama 1A) | Sudah ada fondasinya (migration 050), tinggal disatukan |
+| **RBAC** | ✅ Dikonsolidasi penuh (ini fokus utama 1A) | **v1.1: dikoreksi** — bukan sekadar "ada fondasinya," `role_permissions`/`has_permission()`/`requirePermission()` (migration 050) **sudah menjadi pola dominan** di kode nyata (102 dari ~107 total call site otorisasi API sudah memakainya, terverifikasi langsung per Phase 1A Readiness Review). Sisa pekerjaan 1A untuk RBAC adalah **menuntaskan migrasi 5 call site `requireRole` terakhir dan menyinkronkan RLS** ke sumber yang sama — bukan "membangun Permission Engine," karena Permission Engine API-layer-nya sudah dibangun dan sudah berjalan. |
 | **PBAC** (Policy-Based) | 🟡 Fondasi diletakkan, implementasi minimal | Kasus nyata yang sudah teramati di kode (PM hanya boleh approve kasbon untuk proyek yang dia pimpin — `finance.ts:273` dkk) adalah PBAC sederhana: kombinasi role + resource ownership. Desain skema mengakomodasi ini (lihat 1A.1.1), tapi **generalisasi penuh PBAC (arbitrary policy rules) ditunda ke Phase 1C/2** — Phase 1A hanya menutup pola yang **sudah ada** di kode, bukan membangun policy engine generik dari nol |
 | **ABAC** (Attribute-Based) | 🔴 Tidak dalam cakupan Phase 1 | Butuh atribut environment (waktu, lokasi, device) yang belum ada kebutuhan nyata — mendesain ABAC generik sekarang adalah *fantasy architecture* yang eksplisit dilarang prinsip governing [00](../00-vision-and-business-architecture.md#non-goals). Dicatat sebagai kapabilitas masa depan (skema di bawah menyisakan ruang, tidak menutup opsi), bukan dikerjakan sekarang |
 
