@@ -29,3 +29,6 @@ apps/web/ds-bundle/
 # Supabase CLI local cache
 supabase/.temp/
 
+# Test coverage reports (auto-generated, not source)
+coverage/
+

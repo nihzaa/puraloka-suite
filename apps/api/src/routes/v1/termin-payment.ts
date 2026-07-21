@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { calculateTax } from '../../lib/tax-calculation.js'
 
 /**
  * Endpoint pembayaran termin:
@@ -170,11 +171,8 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
         const seq = String((count ?? 0) + 1).padStart(3, '0')
         const invoiceNumber = `INV/PRL/${year}/${seq}`
 
-        // Hitung pajak
-        const baseAmount = Number(termin.amount)
-        const taxRate = project.tax_scheme === 'ppn' ? 0.11 : 0.02
-        const taxAmount = parseFloat((baseAmount * taxRate).toFixed(2))
-        const totalAmount = parseFloat((baseAmount + taxAmount).toFixed(2))
+        // Hitung pajak — logic diekstrak ke lib/tax-calculation.ts (Task 1.2.1, testable tanpa HTTP/DB)
+        const { baseAmount, taxAmount, totalAmount } = calculateTax(Number(termin.amount), project.tax_scheme)
 
         const dueDate = new Date(paid_at)
         dueDate.setDate(dueDate.getDate() + 14)
