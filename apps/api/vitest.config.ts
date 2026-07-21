@@ -23,6 +23,13 @@ export default defineConfig({
     // exit 1 pada repo yang sepenuhnya sehat, memblokir verifikasi infrastruktur
     // itu sendiri. Dihapus otomatis begitu Task 1.2.x (ekstraksi lib/) dimulai.
     passWithNoTests: true,
+    // Task 1.3.1 — file test dijalankan SEQUENTIAL, bukan default paralel.
+    // Ditemukan: integration test yang memakai schema `test` bersama
+    // (resetTestSchema di kasbons.test.ts, destruktif) race dengan test lain
+    // yang memakai schema sama secara bersamaan ("schema already exists" /
+    // koneksi ditutup di tengah query lain). Berlaku untuk seluruh Feature 1.3
+    // (kasbon/CO/procurement), bukan hanya kasbon.
+    fileParallelism: false,
     coverage: {
       provider: 'v8',
       include: ['src/lib/**/*.ts'],
