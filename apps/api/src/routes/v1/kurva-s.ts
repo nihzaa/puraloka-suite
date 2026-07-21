@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate } from '../../plugins/auth.js'
+import { normalCDF, calculateEVM } from '../../lib/evm-calculation.js'
 
 /**
  * Endpoint: GET /api/v1/projects/:projectId/kurva-s
@@ -182,15 +183,8 @@ export default async function kurvaSRoutes(app: FastifyInstance) {
         }
       } else {
         // Fallback: distribusi normal CDF jika belum ada jadwal manual
+        // normalCDF diekstrak ke lib/evm-calculation.ts (Task 1.2.2, testable tanpa HTTP/DB)
         const rabValueForCDF = totalRABValue > 0 ? totalRABValue : contractValue
-        function normalCDF(x: number, mu = 0.5, sigma = 0.2): number {
-          const z = (x - mu) / sigma
-          const t = 1 / (1 + 0.2316419 * Math.abs(z))
-          const poly = t * (0.319381530 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))))
-          const phi = Math.exp(-0.5 * z * z) / Math.sqrt(2 * Math.PI)
-          const cdf = 1 - phi * poly
-          return z >= 0 ? cdf : 1 - cdf
-        }
         // CDF sebagai nilai absolut per minggu (delta tiap minggu)
         let prevCdf = 0
         for (let i = 0; i < totalWeeks; i++) {
@@ -355,14 +349,8 @@ export default async function kurvaSRoutes(app: FastifyInstance) {
       const pvPct = latestRencana
       const pv = bac * pvPct / 100
 
-      const cpi = ac > 0 ? parseFloat((ev / ac).toFixed(4)) : null
-      const spi = pv > 0 ? parseFloat((ev / pv).toFixed(4)) : null
-      const sv = parseFloat((ev - pv).toFixed(2))
-      const cv = parseFloat((ev - ac).toFixed(2))
-      const eac = (cpi && cpi > 0) ? parseFloat((ac + (bac - ev) / cpi).toFixed(2)) : null
-      const etc = eac !== null ? parseFloat((eac - ac).toFixed(2)) : null
-      const vac = eac !== null ? parseFloat((bac - eac).toFixed(2)) : null
-      const tcpi = (bac - ev) > 0 && (bac - ac) > 0 ? parseFloat(((bac - ev) / (bac - ac)).toFixed(4)) : null
+      // Formula EVM diekstrak ke lib/evm-calculation.ts (Task 1.2.2, testable tanpa HTTP/DB)
+      const { cpi, spi, sv, cv, eac, etc, vac, tcpi } = calculateEVM({ bac, ac, ev, pv })
 
       return reply.send({
         meta: {
