@@ -1,4 +1,13 @@
 import { defineConfig } from 'vitest/config'
+import dotenv from 'dotenv'
+
+// Task 1.1.2 — Vitest tidak otomatis memuat .env seperti runtime aplikasi
+// (yang pakai dotenv.config() manual di src/utils/supabase.ts). Tanpa ini,
+// DIRECT_URL/DATABASE_URL tidak terlihat oleh test, gagal dengan error
+// membingungkan seolah connection string salah padahal env belum termuat.
+// Pakai `dotenv` (dependency existing, sama seperti runtime aplikasi) —
+// bukan `vite`, yang hanya transitive dependency, tidak boleh diimpor langsung.
+dotenv.config()
 
 // Konfigurasi test — Sub-Fase 1A (Financial Test Suite).
 // Coverage gate HANYA untuk src/lib/ (pure function kalkulasi finansial),
