@@ -478,6 +478,36 @@ export default async function procurementRoutes(app: FastifyInstance) {
     if (!po) return reply.status(404).send({ error: 'PO tidak ditemukan' })
     if (po.status === 'cancelled') return reply.status(400).send({ error: 'PO sudah dibatalkan' })
 
+    // Validasi over-receipt: qty_received (GR confirmed existing) + qty baru
+    // tidak boleh melebihi qty_ordered per item PO. Dicek di sini sebagai
+    // early warning saat GR dibuat — guard terakhir yang benar-benar mencegah
+    // stok bertambah berlebih ada di /confirm (trigger sync_po_receipt_status
+    // hanya menghitung dari GR berstatus 'confirmed', bukan draft).
+    const poItemIds = body.items.map(i => i.po_item_id)
+    const { data: poItems, error: poItemsErr } = await supabase
+      .from('purchase_order_items')
+      .select('id, qty_ordered, qty_received, material:materials(name)')
+      .in('id', poItemIds)
+    if (poItemsErr) return reply.status(500).send({ error: poItemsErr.message })
+
+    const poItemMap = new Map((poItems ?? []).map(i => [i.id, i]))
+    for (const item of body.items) {
+      const poItem = poItemMap.get(item.po_item_id)
+      if (!poItem) return reply.status(404).send({ error: `PO item ${item.po_item_id} tidak ditemukan` })
+
+      const qtyReceivedConfirmed = Number(poItem.qty_received ?? 0)
+      const qtyOrdered = Number(poItem.qty_ordered)
+      const qtyBaru = Number(item.qty_received)
+      const sisa = qtyOrdered - qtyReceivedConfirmed
+
+      if (qtyBaru > sisa) {
+        const materialName = (poItem.material as any)?.name ?? item.material_id
+        return reply.status(400).send({
+          error: `Over-receipt: ${materialName} — qty diterima (${qtyBaru}) melebihi sisa PO (${sisa} dari total ${qtyOrdered}, sudah diterima ${qtyReceivedConfirmed})`
+        })
+      }
+    }
+
     const { data: gr, error: grError } = await supabase
       .from('goods_receipts')
       .insert({
@@ -512,6 +542,43 @@ export default async function procurementRoutes(app: FastifyInstance) {
     const { data: gr } = await supabase.from('goods_receipts').select('id, status, po_id, supplier_id').eq('id', id).single()
     if (!gr) return reply.status(404).send({ error: 'GR tidak ditemukan' })
     if (gr.status === 'confirmed') return reply.status(400).send({ error: 'GR sudah dikonfirmasi' })
+
+    // Validasi over-receipt — guard TERAKHIR sebelum trigger sync_po_receipt_status
+    // benar-benar menambah stok (hanya jalan saat status berubah jadi confirmed).
+    // Dicek ulang di sini (bukan hanya saat create GR) karena race: dua GR draft
+    // untuk PO yang sama bisa lolos validasi create (belum ada yang confirmed
+    // saat itu), tapi jika keduanya dikonfirmasi totalnya bisa melebihi PO.
+    const { data: grItems, error: grItemsErr } = await supabase
+      .from('goods_receipt_items')
+      .select('po_item_id, qty_received, material:materials(name)')
+      .eq('gr_id', id)
+    if (grItemsErr) return reply.status(500).send({ error: grItemsErr.message })
+
+    const poItemIds = [...new Set((grItems ?? []).map(i => i.po_item_id))]
+    if (poItemIds.length > 0) {
+      const { data: poItems, error: poItemsErr } = await supabase
+        .from('purchase_order_items')
+        .select('id, qty_ordered, qty_received')
+        .in('id', poItemIds)
+      if (poItemsErr) return reply.status(500).send({ error: poItemsErr.message })
+
+      const poItemMap = new Map((poItems ?? []).map(i => [i.id, i]))
+      for (const grItem of (grItems ?? [])) {
+        const poItem = poItemMap.get(grItem.po_item_id)
+        if (!poItem) continue
+        const qtyReceivedConfirmed = Number(poItem.qty_received ?? 0)
+        const qtyOrdered = Number(poItem.qty_ordered)
+        const qtyBaru = Number(grItem.qty_received)
+        const sisa = qtyOrdered - qtyReceivedConfirmed
+
+        if (qtyBaru > sisa) {
+          const materialName = (grItem.material as any)?.name ?? grItem.po_item_id
+          return reply.status(400).send({
+            error: `Over-receipt: ${materialName} — qty GR ini (${qtyBaru}) melebihi sisa PO (${sisa} dari total ${qtyOrdered}, sudah dikonfirmasi ${qtyReceivedConfirmed} dari GR lain). GR ini tidak bisa dikonfirmasi.`
+          })
+        }
+      }
+    }
 
     const { data, error } = await supabase
       .from('goods_receipts')
