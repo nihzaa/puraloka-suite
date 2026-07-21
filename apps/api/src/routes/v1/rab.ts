@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import * as XLSX from 'xlsx'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { bubbleUpProgress } from '../../lib/rab-aggregation.js'
 
 // ─── Type untuk baris RAB hasil parse ──────────────────────────────────────
 
@@ -775,6 +776,8 @@ export default async function rabRoutes(app: FastifyInstance) {
       }
 
       // Bubble-up recalculation jika progress berubah (sama seperti progress.ts mode=detail)
+      // Logic diekstrak ke lib/rab-aggregation.ts (Task 1.2.3, testable tanpa HTTP/DB;
+      // sebelumnya duplikat identik di rab.ts dan progress.ts)
       if (progress_pct !== undefined) {
         const { data: allItems } = await supabase
           .from('rab_items')
@@ -782,47 +785,20 @@ export default async function rabRoutes(app: FastifyInstance) {
           .eq('project_id', projectId)
 
         if (allItems && allItems.length > 0) {
-          // Lapis 1: recalculate setiap category/subcategory dari item di bawahnya
-          const itemsByParent = new Map<string, typeof allItems>()
-          for (const it of allItems) {
-            if (it.level === 'item' && it.parent_id) {
-              const list = itemsByParent.get(it.parent_id) ?? []
-              list.push(it)
-              itemsByParent.set(it.parent_id, list)
-            }
-          }
+          const { categoryProgress, overallProgress } = bubbleUpProgress(allItems)
 
-          const catUpdates: Promise<unknown>[] = []
-          for (const [parentId, children] of itemsByParent.entries()) {
-            const totalW = children.reduce((s, c) => s + (c.weight_pct ?? 0), 0)
-            if (totalW <= 0) continue
-            const wp = children.reduce((s, c) => s + (c.weight_pct ?? 0) * (c.progress_pct ?? 0) / 100, 0)
-            catUpdates.push(
-              Promise.resolve(
-                supabase
-                  .from('rab_items')
-                  .update({ progress_pct: parseFloat(((wp / totalW) * 100).toFixed(2)), updated_at: new Date().toISOString() })
-                  .eq('id', parentId)
-              )
-            )
-          }
+          const catUpdates = Array.from(categoryProgress.entries()).map(([parentId, pct]) =>
+            supabase
+              .from('rab_items')
+              .update({ progress_pct: pct, updated_at: new Date().toISOString() })
+              .eq('id', parentId)
+          )
           if (catUpdates.length > 0) await Promise.all(catUpdates)
 
-          // Lapis 2: recalculate project dari categories terbaru
-          const { data: updatedCats } = await supabase
-            .from('rab_items')
-            .select('weight_pct, progress_pct')
-            .eq('project_id', projectId)
-            .eq('level', 'category')
-
-          if (updatedCats && updatedCats.length > 0) {
-            const overall = updatedCats.reduce(
-              (sum, cat) => sum + (cat.weight_pct ?? 0) * (cat.progress_pct ?? 0) / 100,
-              0
-            )
+          if (overallProgress !== null) {
             await supabase
               .from('projects')
-              .update({ progress_pct: Math.min(100, Math.max(0, parseFloat(overall.toFixed(2)))), updated_at: new Date().toISOString() })
+              .update({ progress_pct: overallProgress, updated_at: new Date().toISOString() })
               .eq('id', projectId)
           }
         }
