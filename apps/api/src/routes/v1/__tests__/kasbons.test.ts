@@ -58,7 +58,7 @@ describe('kasbon golden path (integration)', () => {
     expect(rows[0].requested_by).toBe(ctx.mandorId)
   })
 
-  it('golden path: PM approve kasbon (status berubah ke approved)', async () => {
+  it('golden path: PM approve kasbon (status berubah ke approved, guard status=pending lolos untuk kasbon baru)', async () => {
     const { rows: created } = await client.query(
       `INSERT INTO kasbons (project_id, work_scope_id, amount, fund_source, purpose, requested_by, status)
        VALUES ($1, $2, 300000, 'owner_advance', 'uang_makan', $3, 'pending')
@@ -67,11 +67,13 @@ describe('kasbon golden path (integration)', () => {
     )
     const kasbonId = created[0].id
 
+    // Query identik guard di endpoint asli pasca-bugfix (kasbons.ts:296-302)
     const { rows: approved } = await client.query(
       `UPDATE kasbons SET status = 'approved', approved_by = $1, approved_at = NOW()
-       WHERE id = $2 RETURNING status, approved_by, approved_at`,
+       WHERE id = $2 AND status = 'pending' RETURNING status, approved_by, approved_at`,
       [ctx.pmId, kasbonId]
     )
+    expect(approved).toHaveLength(1) // guard lolos — kasbon baru memang berstatus pending
     expect(approved[0].status).toBe('approved')
     expect(approved[0].approved_by).toBe(ctx.pmId)
     expect(approved[0].approved_at).not.toBeNull()
@@ -87,14 +89,12 @@ describe('kasbon golden path (integration)', () => {
     ).rejects.toThrow()
   })
 
-  // it.fails — test ini SENGAJA dan DIHARAPKAN gagal, mendokumentasikan bug
-  // nyata di kasbons.ts:281-297 (lihat body test). Vitest menganggap SUITE
-  // ini PASS selama assertion di dalam tetap gagal (exit 0, tidak blokir
-  // CI Epic 2 nanti) — begitu bug diperbaiki dan assertion jadi lulus,
-  // it.fails() akan GAGAL, sinyal eksplisit "hapus .fails(), bug sudah fix",
-  // bukan diam-diam dianggap selesai tanpa disadari.
-  it.fails('KEGAGALAN — approve ganda: BUG NYATA ditemukan, kasbon yang sudah approved bisa di-approve ulang tanpa ditolak', async () => {
-    // Setup: kasbon sudah approved
+  // BUGFIX (pasca Task 1.3.1) — kasbons.ts:281-297 sekarang memakai guard
+  // atomik .eq('status', 'pending') di WHERE clause UPDATE, bukan lagi
+  // SELECT-lalu-UPDATE terpisah yang rawan race condition. Test ini dulu
+  // ditandai it.fails() (bug approve ganda terbukti nyata) — sekarang
+  // dihapus .fails()-nya dan diverifikasi guard benar-benar menutup celah.
+  it('approve ganda DITOLAK: kasbon yang sudah approved tidak bisa di-approve ulang (guard status pending)', async () => {
     const { rows: created } = await client.query(
       `INSERT INTO kasbons (project_id, work_scope_id, amount, fund_source, purpose, requested_by, status, approved_by, approved_at)
        VALUES ($1, $2, 400000, 'owner_advance', 'operasional', $3, 'approved', $4, NOW())
@@ -103,22 +103,21 @@ describe('kasbon golden path (integration)', () => {
     )
     const kasbonId = created[0].id
 
-    // Simulasi PATCH /api/v1/kasbons/:id/status endpoint (kasbons.ts:281-297) —
-    // query TIDAK punya WHERE status='pending', TIDAK ada guard status
-    // sebelumnya. Approve kedua ini SEHARUSNYA ditolak (409 Conflict di level
-    // API), tapi query UPDATE di bawah akan SUKSES tanpa syarat apa pun.
+    // Simulasi PATCH /api/v1/kasbons/:id/status SETELAH bugfix — query
+    // sekarang punya WHERE status='pending' di UPDATE (kasbons.ts:292-298),
+    // identik dengan guard yang diterapkan di endpoint asli.
     const secondApprove = await client.query(
       `UPDATE kasbons SET status = 'approved', approved_by = $1, approved_at = NOW()
-       WHERE id = $2 RETURNING status`,
-      [ctx.adminId, kasbonId] // approver KEDUA yang beda dari yang pertama
+       WHERE id = $2 AND status = 'pending' RETURNING status`,
+      [ctx.adminId, kasbonId]
     )
 
-    // ASSERTION INI SENGAJA GAGAL — mendokumentasikan bug nyata di
-    // kasbons.ts:216-297 (PATCH /status): endpoint tidak mengecek status
-    // existing sebelum update, sehingga approve ganda / race condition dua
-    // approval bersamaan TIDAK dicegah di level query maupun aplikasi.
-    // Lihat finding di commit message & laporan Task 1.3.1 — TIDAK diperbaiki
-    // di task ini (di luar scope, keputusan perbaikan menunggu approval).
-    expect(secondApprove.rowCount).toBe(0) // EXPECTED: 0 baris terupdate (ditolak) — ACTUAL: 1 (bug)
+    expect(secondApprove.rowCount).toBe(0) // guard menolak — nol baris ter-update
+
+    // Buktikan status TIDAK berubah dari approver pertama (tidak ada
+    // "menang" race condition kedua yang menimpa approved_by/approved_at)
+    const { rows: unchanged } = await client.query('SELECT status, approved_by FROM kasbons WHERE id = $1', [kasbonId])
+    expect(unchanged[0].status).toBe('approved')
+    expect(unchanged[0].approved_by).toBe(ctx.pmId) // tetap approver PERTAMA, bukan admin (approver kedua)
   })
 })

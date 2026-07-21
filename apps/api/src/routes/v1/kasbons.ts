@@ -289,14 +289,24 @@ export default async function kasbonRoutes(app: FastifyInstance) {
       updateData.cash_account_id = cash_account_id ?? null
     }
 
+    // Guard atomik: hanya update jika status SAAT INI masih 'pending' — mencegah
+    // approve/reject ganda dan race condition dua approval bersamaan (filter
+    // status ikut serta dalam WHERE clause tunggal di level DB, bukan
+    // SELECT-lalu-UPDATE terpisah yang rawan race).
     const { data, error } = await supabase
       .from('kasbons')
       .update(updateData)
       .eq('id', id)
+      .eq('status', 'pending')
       .select()
-      .single()
+      .maybeSingle()
 
     if (error) return reply.status(500).send({ error: error.message })
+    if (!data) {
+      const { data: current } = await supabase.from('kasbons').select('status').eq('id', id).single()
+      if (!current) return reply.status(404).send({ error: 'Kasbon tidak ditemukan' })
+      return reply.status(409).send({ error: `Kasbon sudah berstatus '${current.status}', tidak bisa diproses ulang` })
+    }
 
     // ── Fire-and-forget: notif ke mandor yang mengajukan ─────────────────────
     try {
