@@ -156,12 +156,26 @@ CREATE INDEX idx_permission_scopes_user ON permission_scopes(user_id, permission
 
 ---
 
-## 5. Migration Plan
+## 5. Deployment Order — Review → Migration → Verification → Merge
 
-1. Tulis `060_permission_scopes.sql` + `061_audit_tax_permissions.sql` (masing-masing kembar 2 folder). 061 = `INSERT INTO permissions` (`audit:view`, `finance:tax:submit`) + `INSERT INTO role_permissions` (baris default, pola `by name lookup` seperti migration 050, komentar SQL menandai default instalasi awal — bukan business rule).
-2. **Commit + review + push dulu; migration BELUM di-apply ke dev** (sesuai arahan founder — apply setelah review, supaya perubahan kecil pasca-review tidak menyisakan DB dev yang telanjur berubah).
-3. Apply ke Supabase dev, lalu verifikasi teknis: `SELECT * FROM get_role_permissions('admin')` mengandung kedua key baru (memastikan seed jalan, bukan memvalidasi "siapa seharusnya boleh" — itu bukan pertanyaan migration).
-4. Regression test (Epic 1 suite), baru lanjut ke perubahan kode route (T3.2).
+**Prinsip (arahan founder):** migration mengikuti kode yang **sudah disetujui**, bukan sebaliknya. DB dev **tidak** diubah selama masih fase review — kalau reviewer minta perubahan migration setelah DB telanjur berubah, histori dev jadi kotor.
+
+Urutan wajib:
+1. Push branch `feature/epic-3-permission-consolidation` → buka PR.
+2. **Code review** (PR). Migration `060`/`061` masih file di branch, **belum di-apply**.
+3. Setelah PR **disetujui** → apply `060` lalu `061` ke Supabase dev.
+4. **Smoke test** (checklist di bawah) + regression test (Epic 1 suite, 53/53).
+5. Semua hijau → **baru merge** ke `main`.
+
+**Smoke test checklist (setelah migration apply, sebelum merge):**
+- [ ] Migration 060 sukses (`permission_scopes` ada — `\d permission_scopes`)
+- [ ] Migration 061 sukses (`audit:view` + `finance:tax:submit` ada di `permissions`)
+- [ ] `get_role_permissions('admin')` mengandung `audit:view` + `finance:tax:submit`
+- [ ] Admin login → `GET /api/v1/audit` → 200
+- [ ] Admin login → `PATCH /reports/rekap-pajak/:id/status` → berfungsi
+- [ ] PM login → endpoint sesuai `role_permissions` saat itu (bukan diasumsikan)
+- [ ] Permission cache (`_permissionCache`) terisi benar — tidak ada 500 "Gagal memuat permission"
+- [ ] Regression: `pnpm test` 53/53, `pnpm lint` 0 error, CI hijau
 
 **Rollback plan:**
 - Migration 060 & 061 additive murni (CREATE TABLE, INSERT) — rollback = `DROP TABLE permission_scopes CASCADE;` (060) + `DELETE FROM permissions WHERE key IN ('audit:view', 'finance:tax:submit');` (061 — cascade otomatis membersihkan `role_permissions` terkait via FK `ON DELETE CASCADE`).
@@ -240,7 +254,7 @@ Temuan audit ini menjadi input untuk scope Epic 4 (RLS): daftar literal role yan
 - **2 titik business rule** (`cash.ts:473`, `kasbons.ts:126`) — ini `autoApprove` (menentukan *hasil* submit, bukan *boleh submit atau tidak*). Memaksanya jadi permission bisa salah model — **tidak** dimigrasi tanpa keputusan desain workflow terpisah.
 - **2 titik data-scoping** (`reports.ts:82`, `users.ts:12`) — sah per ADR-004 Rule #1, cukup diberi komentar "bukan authorization gate".
 
-**Keputusan founder:** Epic 3 ditutup sesuai definisi sempitnya (4 `requireRole` — selesai). 3 titik authorization murni **tidak** dimasukkan ke Epic 3 (menjaga integritas kontrak scope), melainkan dijadikan **Epic 3.5** terpisah — lihat [epic-3.5-inline-authorization.md](epic-3.5-inline-authorization.md). 2 business rule (`autoApprove`) dan 2 data-scoping dicatat di situ juga, dengan klasifikasi + rekomendasi masing-masing (business rule: tidak disentuh tanpa desain workflow; data-scoping: cukup komentar).
+**Keputusan founder:** Epic 3 ditutup sesuai definisi sempitnya (4 `requireRole` — selesai). 3 titik authorization murni **tidak** dimasukkan ke Epic 3 (menjaga integritas kontrak scope), melainkan dijadikan **Architecture Remediation 3.5** terpisah — lihat [architecture-remediation-3.5-inline-authorization.md](architecture-remediation-3.5-inline-authorization.md). 2 business rule (`autoApprove`) dan 2 data-scoping dicatat di situ juga, dengan klasifikasi + rekomendasi masing-masing (business rule: tidak disentuh tanpa desain workflow; data-scoping: cukup komentar).
 
 ---
 

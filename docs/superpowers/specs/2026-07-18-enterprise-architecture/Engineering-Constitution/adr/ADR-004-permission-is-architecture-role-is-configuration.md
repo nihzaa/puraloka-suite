@@ -33,6 +33,7 @@ Bahaya terbesar bukan pada 4 titik itu — melainkan **regresi di masa depan**: 
 3. **Permission MUST dinamai sebagai business capability, bukan jabatan.** `finance:tax:submit` ✅; `pm:approve`, `admin:delete`, `director:view` ❌ dilarang. *(Verifikasi: code review — nama key baru direview terhadap pola `module:resource:action`.)*
 4. **Permission key adalah public contract — MUST NOT diganti setelah dipakai.** Sekali sebuah key dipublikasikan (dirujuk UI/API/RLS/audit/workflow/notifikasi/AI agent), key itu **MUST NOT** di-rename. Kebutuhan baru ditutup dengan **menambah** key baru dan mendeprekasi yang lama secara sadar — persis seperti versioning API endpoint. *(Verifikasi: code review — rename key = perubahan breaking, ditolak kecuali disertai deprecation plan eksplisit.)*
 5. **Assignment permission↔role MUST berupa data, bukan kode.** Mapping hidup di `role_permissions`, diubah lewat UI Role Management. Seed di migration hanya bootstrap instalasi awal — **MUST NOT** diperlakukan atau didokumentasikan sebagai business rule permanen. *(Verifikasi: code review — tidak ada mapping role→permission hardcoded di luar migration seed.)*
+6. **Business rule MUST NOT ditulis ulang menjadi permission hanya untuk menghapus role check.** Otorisasi (boleh/tolak akses) berbeda dari business rule (mis. `autoApprove` — apakah hasil submit langsung disetujui atau perlu review) dan dari data-scoping (data mana yang terlihat). Hanya **authorization gate** yang tunduk Rule #1. Membungkus workflow/business rule jadi permission (`cash:expense:autoapprove` ❌ semata untuk menghilangkan `role === 'admin'`) adalah over-engineering yang mengaburkan model — capability "boleh membuat expense" ≠ "expense-nya langsung ter-approve". Jika sebuah role check adalah business rule, **remediasinya adalah desain workflow** (kemungkinan Program B — Workflow Engine), bukan penggantian mekanis ke `requirePermission`. *(Verifikasi: audit kepatuhan — setiap role check yang diusulkan jadi permission MUST bisa menjawab "capability apa yang diamankan?"; jika tidak bisa, ia bukan authorization dan tidak dimigrasi.)*
 
 ## Recommended Rules
 
@@ -86,6 +87,7 @@ Dipakai langsung oleh reviewer sebagai gate merge — sebuah PR yang menyentuh o
 - [ ] Permission baru merepresentasikan business capability (`module:resource:action`), bukan jabatan.
 - [ ] Tidak ada permission key existing yang di-rename (hanya tambah/deprekasi).
 - [ ] Seluruh authorization gate memakai `requirePermission(...)`; mapping role→permission hanya di `role_permissions`/UI.
+- [ ] Role check yang **business rule** (mis. `autoApprove`) atau **data-scoping** TIDAK dipaksa jadi permission — hanya authorization gate yang dimigrasi.
 
 ## Success Metrics
 

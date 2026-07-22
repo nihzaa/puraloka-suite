@@ -1,6 +1,6 @@
-# Epic 3.5 — Inline Role-Based Authorization Cleanup
+# Architecture Remediation 3.5 — Inline Role-Based Authorization
 
-**Status:** Backlog — ditemukan oleh Architecture Compliance Audit di akhir Epic 3 ([epic-3-execution-plan.md § 9](epic-3-execution-plan.md)). Dipisah dari Epic 3 secara sadar (keputusan founder) agar kontrak scope Epic 3 ("4 call site `requireRole`") tetap utuh — Epic 3.5 menangani lapisan otorisasi inline yang lebih dalam.
+**Status:** Architecture Remediation — bukan feature, enhancement, atau technical debt biasa, melainkan hasil **Architecture Compliance Audit terhadap ADR-004** di akhir Epic 3 ([epic-3-execution-plan.md § 9](epic-3-execution-plan.md)). Dipisah dari Epic 3 secara sadar (keputusan founder) agar kontrak scope Epic 3 ("4 call site `requireRole`") tetap utuh. Alur: **Epic 3 → Compliance Audit → Architecture Remediation 3.5 → Epic 4.**
 
 **Sumber prinsip:** [ADR-004](../../Engineering-Constitution/adr/ADR-004-permission-is-architecture-role-is-configuration.md). Dokumen ini adalah penerapan lanjutan, bukan aturan baru.
 
