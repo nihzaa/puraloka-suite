@@ -1,5 +1,7 @@
 # Puraloka Suite — Context for Claude Code
 
+> **WAJIB baca AUTOPILOT.md di awal setiap sesi sebelum tindakan apa pun.**
+
 ## AUTONOMOUS EXECUTION MODE
 
 Ketika sudah ada roadmap/ADR/Epic/execution plan yang disetujui, **lanjutkan mengerjakan dependency berikutnya secara otomatis**. Jangan berhenti hanya untuk bertanya "mau lanjut?". Bertindaklah seperti senior engineer yang membaca sprint lalu jalan sendiri, lapor progres secara asynchronous — bukan minta izin tiap langkah.

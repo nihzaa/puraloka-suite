@@ -124,6 +124,11 @@ Skipped tests: **0** (grep `.skip/.only/.todo` = 0).
 **Verdict CONDITIONAL PASS adalah verdict akhir yang benar:** tidak FAIL (nol implementation gap), tidak PASS penuh (item governance/external nyata masih terbuka, dan itu memang bukan sesuatu yang boleh engineering putuskan sendiri). Ini persis definisi CONDITIONAL PASS: "implementation complete but blocked by governance items."
 3. **Infrastruktur**: migration tracking drift (schema benar, tracking tidak) perlu rekonsiliasi.
 
-**Rekomendasi:** Sub-Fase 1A boleh dinyatakan "implementation complete". Gate 1A→1B **belum** boleh diajukan sampai: (a) founder memutuskan F5.5, (b) 2 endpoint role-literal dibereskan (Remediation 3.6 — kecil, ~1 PR), (c) smoke test login manual dijalankan. Migration tracking drift bisa paralel (tidak memblokir 1B secara fungsional).
+**Rekomendasi (STATUS TERKINI — ketiga syarat RESOLVED):** Sub-Fase 1A "implementation complete". Gate 1A→1B ✅ **APPROVED founder (2026-07-23)** — ketiga syarat lama sudah ditutup:
+- ~~(a) founder memutuskan F5.5~~ → ✅ **RESOLVED**: append-only applied (PR #13, `d9ea114`).
+- ~~(b) 2 endpoint role-literal dibereskan ("Remediation 3.6")~~ → ✅ **RESOLVED** (PR #10): sudah permission-based, bukan fase remediasi terpisah — cek `apps/api/src/routes/v1/progress.ts:260-263` (`hasPermission('progress:manage') || mandor-owner`) dan `cash.ts:41` (`requirePermission('cash:view')`). Konsisten dengan §Technical Debt yang menandai ini "SUDAH DIPERBAIKI". Istilah "Remediation 3.6" **tidak jadi fase** — diselesaikan sebagai bugfix biasa.
+- ~~(c) smoke test login manual~~ → ✅ **RESOLVED**: 4 role login-verified (PR #12, [gate-1a-preconditions-response.md § #2b](gate-1a-preconditions-response.md)).
 
-**Phase 1A tidak dinyatakan "finished" (PASS penuh) sampai ketiga item di atas ditutup.**
+Migration tracking drift: 058 mismatch nyata diperbaiki; rekonsiliasi 52→70. Sisa (043-047 apply, tracking 073) non-blocking.
+
+**Verdict: CONDITIONAL PASS → sekarang efektif PASS untuk lingkup engineering** — nol implementation gap, Gate approved. Item 1B (enum→FK) & governance ke depan bukan bagian 1A.

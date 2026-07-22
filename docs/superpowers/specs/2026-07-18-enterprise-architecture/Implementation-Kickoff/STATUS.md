@@ -2,6 +2,8 @@
 
 **Single source of truth** untuk status eksekusi Sub-Fase 1A (Foundation Hardening / Program A). Diupdate saat sebuah Epic/unit ditutup administratif — bukan diasumsikan dari commit. Status di dokumen lain (`02-phase-1a-sequence.md`, `05-feature-implementation-order.md`, `01-capability-to-task-mapping.md`) merujuk ke sini.
 
+> **Penomoran:** "Sub-Fase 1A" adalah bagian pertama **Program A (= Phase 1)**. Program A-F ↔ Phase 1-9; di dalam Program A ada Sub-Fase 1A-1D. Selalu tulis "Sub-Fase 1B" (jangan "1B" telanjang). Peta otoritatif: [../Master-Delivery-Blueprint/NUMBERING-GLOSSARY.md](../Master-Delivery-Blueprint/NUMBERING-GLOSSARY.md).
+
 Legenda: ✅ selesai & merged · 🔵 pending · ⏳ pending, unblocked · ⚠️ catatan
 
 | Unit | Epic | Nama | Status | Bukti |
@@ -17,14 +19,16 @@ Legenda: ✅ selesai & merged · 🔵 pending · ⏳ pending, unblocked · ⚠�
 
 ## Gate 1A → 1B
 
-**Seluruh implementasi Sub-Fase 1A SELESAI & merged:** Epic 1 (test suite) ✅ · Epic 2 (CI/CD) ✅ · Epic 3 (permission engine) ✅ · Remediation 3.5 (inline auth) ✅ · Epic 4 (RLS sync, expand+contract) ✅ · Epic 5 (audit trail F5.1-F5.4) ✅. `requireRole` dihapus ✅, RLS 100% permission-based ✅, 113 test hijau ✅, CI main hijau ✅.
+**Seluruh implementasi Sub-Fase 1A SELESAI & merged:** Epic 1 (test suite) ✅ · Epic 2 (CI/CD) ✅ · Epic 3 (permission engine) ✅ · Remediation 3.5 (inline auth) ✅ · Epic 4 (RLS sync, expand+contract) ✅ · Epic 5 (audit trail **F5.1-F5.5, append-only applied via PR #13**) ✅. `requireRole` dihapus ✅, RLS 100% permission-based ✅, 119 test hijau ✅, CI main hijau ✅.
 
-**Tersisa sebelum Gate boleh diajukan (keputusan founder, bukan implementasi):**
-- F5.5 append-only trigger — aktifkan? (073 dorman) — [epic-5-decisions.md](epic-5-decisions.md)
-- Verifikasi manual login per-role (smoke test) — ✅ **DIJALANKAN** (4 role login-verified, authorization semua benar; `direktur` automated-only karena enum). Lihat [gate-1a-preconditions-response.md § #2b](gate-1a-preconditions-response.md).
-- Migration drift — ✅ **DIPERBAIKI** (058 3 kolom hilang re-apply; `schema_migrations` rekonsiliasi 52→70, deep-verify column-level). Sisa: apply 043-047 saat fitur dibangun.
-- F5.5 append-only — ✅ **APPLIED** (audit_logs immutable). Maintenance koreksi audit: DROP trigger sementara → edit → re-create (jalur terkontrol).
-- **Founder approval eksplisit** untuk lanjut ke 1B — bukan otomatis saat checklist penuh.
+**Gate 1A→1B: ✅ APPROVED oleh founder (2026-07-23).** Ketiga pemblokir RESOLVED:
+- **F5.5 append-only** — ✅ **APPLIED** (PR #13, `d9ea114`; trigger `trg_audit_logs_no_update/no_delete` di DB, audit_logs immutable). Maintenance koreksi audit: DROP trigger sementara → edit → re-create.
+- **Smoke test login 4 role** — ✅ **DIJALANKAN** (admin/pm/mandor/client login-verified, authorization semua benar; `direktur` automated-only karena enum). Lihat [gate-1a-preconditions-response.md § #2b](gate-1a-preconditions-response.md).
+- **Approval eksplisit** — ✅ diberikan.
+
+Migration drift — ✅ **DIPERBAIKI** (058 3 kolom re-apply; `schema_migrations` rekonsiliasi 52→70, deep-verify column-level). Sisa non-blocking: apply 043-047 saat fitur dibangun.
+
+⚠️ **Drift tracking baru (dicatat, belum diperbaiki — bukan run ini):** migration 073 sudah applied (trigger ada di DB) tapi **belum tercatat di `schema_migrations`** (apply lewat pg langsung di PR #13, bukan supabase push). Rekonsiliasi tracking 073 = item run implementasi berikutnya, bukan planning ini.
 
 ## Kandidat item Sub-Fase 1B (dicatat, jangan mengambang)
 
