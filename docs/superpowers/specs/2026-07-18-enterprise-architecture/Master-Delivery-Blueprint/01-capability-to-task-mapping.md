@@ -42,10 +42,10 @@ Matrix berikut hanya mencakup Capability dengan Build Priority **Now** atau **Ne
 
 | Initiative | Epic | Feature (contoh) | Fase/Program | Status Hari Ini |
 |---|---|---|---|---|
-| Perbaiki Permission Engine | Konsolidasi 3 mekanisme otorisasi | Hapus `requireRole`, migrasi inline role check ke `requirePermission()` | Program A (Phase 1, item #1 tertinggi) | 🟡 Sebagian (103 call site `requirePermission`, 57 inline masih ada) |
-| | Sinkronisasi RLS ↔ RBAC v2 | RLS policy baca dari `role_permissions`, bukan hardcode 4 role | Program A (Phase 1, item #1) | 🔴 Belum — 0 referensi RBAC v2 di RLS |
-| Bangun Test Suite Finansial | Unit test kalkulasi murni | Test `calculateEVM`, bubble-up progress, dst | Program A (Phase 1, item #2) | 🔴 Belum — 0% coverage |
-| | Integration test Golden Path | Approve kasbon end-to-end, bayar termin end-to-end | Program A (Phase 1, item #2) | 🔴 Belum |
+| Perbaiki Permission Engine | Konsolidasi 3 mekanisme otorisasi | Hapus `requireRole`, migrasi inline role check ke `requirePermission()` | Program A (Phase 1, item #1 tertinggi) | 🟢 Epic 3 selesai (`requireRole`=0, `requirePermission`=107, merged) · 🔵 3 gate inline tersisa → Architecture Remediation 3.5 |
+| | Sinkronisasi RLS ↔ RBAC v2 | RLS policy baca dari `role_permissions`, bukan hardcode 4 role | Program A (Phase 1, item #1) | ⏳ Epic 4 — pending, unblocked (Epic 3 selesai); masih 0 referensi RBAC v2 di RLS |
+| Bangun Test Suite Finansial | Unit test kalkulasi murni | Test `calculateEVM`, bubble-up progress, dst | Program A (Phase 1, item #2) | 🟢 Epic 1 selesai — 53 test (merged) |
+| | Integration test Golden Path | Approve kasbon end-to-end, bayar termin end-to-end | Program A (Phase 1, item #2) | 🟢 Epic 1 selesai — 3 golden-path (kasbon/CO/procurement) |
 | Bangun Workflow Engine | Skema generik | `workflow_definitions`/`states`/`transitions` | Program B (Phase 2, item #5) | 🔵 Didesain ([Phase1/02 § 1C](../Phase1/02-target-architecture.md#sub-fase-1c--workflow-foundation)), belum diimplementasikan |
 | | Migrasi Kasbon ke Workflow Engine | Approval chain kasbon lewat state machine generik | Program B, urutan pertama (paling sederhana — strangler-fig) | 🔵 Belum dimulai |
 | | Migrasi Change Order | Approval CO lewat state machine generik | Program B, urutan kedua | 🔵 Belum dimulai |
@@ -81,6 +81,23 @@ Matrix berikut hanya mencakup Capability dengan Build Priority **Now** atau **Ne
 | | 7 agent lanjutan (CFO, PM, Scheduler, dst) | Sesuai spesifikasi [03](../03-platform-and-intelligence-architecture.md#ai-architecture) | Program E (Phase 6), bertahap setelah pilot tervalidasi | 🔵 Belum dibangun |
 
 **Dependency kritis:** AI Agent Registry **MUST NOT** dimulai sebelum Program A (Permission Engine) dan Program B (Workflow Engine) selesai — guardrail AI didesain [03](../03-platform-and-intelligence-architecture.md#ai-architecture) bergantung penuh pada RBAC/PBAC solid. Ini gate paling eksplisit di seluruh doc 04.
+
+### Capability 6 — CECEP: Cost Intelligence Core (Domain: Sales & Pre-Construction + Project Delivery, Program C)
+
+**Ditambahkan pasca-planning arsitektur CECEP selesai** (12 fase, seluruhnya Derived & Frozen: [`CECEP/32-cecep-roadmap-v2.md`](../CECEP/32-cecep-roadmap-v2.md)). Sumber Module Catalog: [doc 00 § Domain Sales & Pre-Construction](../00-vision-and-business-architecture.md#domain-sales--pre-construction-supporting--belum-ada-sama-sekali) (revisi baris CECEP, 9 modul menggantikan baris "BOQ/AHSP" tunggal lama).
+
+| Initiative | Epic | Feature (contoh) | Fase/Program | Status Hari Ini |
+|---|---|---|---|---|
+| Bangun Assembly Library & AHSP | Cost Code + Resource Identity (Milestone 1) | Registry identitas lintas domain, Aggregate Root tunggal | Program C, **CECEP Milestone 1** ([`CECEP/49`](../CECEP/49-phase11-implementation-roadmap.md)) | 🔵 Belum dibangun — planning selesai |
+| | Assembly + AHSP 4 sumber (Milestone 2) | Nasional (Bina Marga/Cipta Karya)/Company/Project/Custom, Calculation Strategy Contract | Program C, CECEP Milestone 2 | 🔵 Belum dibangun — planning selesai ([`CECEP/42`](../CECEP/42-phase5-calculation-strategy-architecture.md)) |
+| | Price Book & Productivity Library | 4 jenis Price Book bertingkat, Productivity Record | Program C, CECEP Milestone 2 | 🔵 Belum dibangun |
+| Bangun RAP & Cost Control | RAP Builder + Risk Allowance Entry | Target biaya internal, buffer risiko eksplisit (Milestone 3) | Program C, CECEP Milestone 3 | 🔵 Belum dibangun — root cause gap finansial `01 §3.2` sudah dianalisis penuh |
+| | Cost Control basis RAP | Migrasi `bac` dari `totalRABValue` ke RAP Version Frozen | Program C, CECEP Milestone 4, **MUST setelah** EVM existing (`kurva-s.ts`) diverifikasi test coverage (Program A item #2) | 🔵 Belum dibangun — gap ditutup di [`CECEP/52`](../CECEP/52-gap-closure-cashflow-baseline-analytics.md#gap-2--cost-baseline-vs-budget-baseline-pembeda-tegas) |
+| | Cashflow Forecast (proyeksi) | Mewarisi pola normal-CDF existing `kurva-s.ts`, basis RAP+WBS | Program C, CECEP Milestone 4 | 🔵 Belum dibangun |
+| Bangun Company Intelligence Loop | Historical Cost Intelligence | Lessons Learned→Variance→Root Cause→update Assembly/Price Book/Productivity (3 target serentak, satu Domain Event) | Program C, CECEP Milestone 4 | 🔵 Belum dibangun — domain paling matang secara planning ([`CECEP/44`](../CECEP/44-phase6-derive-domain-model.md) §13) |
+| | AI Estimation (Excel-first) | Perluasan `rab.ts` parser existing, draft Estimate Item | Program E (Phase 6, Tier 3, **gate: Program A+B selesai**, sama seperti AI Agent Registry Capability 5) | 🔵 Belum dibangun |
+
+**Dependency kritis:** CECEP's Approval Workflow (Estimate Version/Price Book/Lessons Learned, 3 titik pemakaian, [`CECEP/47`](../CECEP/47-phase9-automation-architecture.md) §3) dirancang merujuk RBAC/Workflow Engine generik — **MUST NOT** dimulai sebelum atau tanpa Program B (Workflow Engine, Capability 2 di atas) tersedia, supaya tidak membangun implementasi approval keempat yang harus dimigrasi ulang (mengulang persis alasan Program B ada). CECEP juga menambah logic finansial baru (RAP, Cost Control) — **MUST** menunggu Test Suite Finansial (Program A item #2, Capability 2) sebagai jaring pengaman, konsisten Risk Register #2 ([`04`](../04-roadmap-governance-and-delivery.md#risk-register)). Detail lengkap: [`CECEP/51`](../CECEP/51-final-audit-and-main-roadmap-position.md#bagian-4--kapan-main-roadmap-ini-dikerjakan).
 
 ## 3. Format Task — Contoh Ilustratif (Bukan Daftar Lengkap)
 
