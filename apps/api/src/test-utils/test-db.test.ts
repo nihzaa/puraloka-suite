@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import type { Client } from 'pg'
-import { createTestClient, assertTestIsolation, ensureTestSchema, closeTestClient } from './test-db'
+import { createTestClient, assertTestIsolation, ensureTestSchema, closeTestClient, TEST_SCHEMA } from './test-db'
 
 // Task 1.1.2 — verifikasi infrastruktur test database, BUKAN test bisnis.
 // Membuktikan: schema test bisa dibuat, koneksi terkunci ke schema test,
@@ -32,7 +32,7 @@ describe('test database isolation (Task 1.1.2)', () => {
     const { rows: tableCheck } = await client.query(
       `SELECT table_schema FROM information_schema.tables WHERE table_name = '_isolation_probe'`
     )
-    expect(tableCheck.every((r) => r.table_schema === 'test')).toBe(true)
+    expect(tableCheck.every((r) => r.table_schema === TEST_SCHEMA)).toBe(true)
     await client.query('DROP TABLE _isolation_probe')
   })
 })
