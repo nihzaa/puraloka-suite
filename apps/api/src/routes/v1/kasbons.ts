@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { createNotifications, getProjectAdminsAndPM } from '../../utils/notifications.js'
+import { logAuditEvent } from '../../utils/audit.js'
 
 export default async function kasbonRoutes(app: FastifyInstance) {
 
@@ -310,6 +311,17 @@ export default async function kasbonRoutes(app: FastifyInstance) {
       if (!current) return reply.status(404).send({ error: 'Kasbon tidak ditemukan' })
       return reply.status(409).send({ error: `Kasbon sudah berstatus '${current.status}', tidak bisa diproses ulang` })
     }
+
+    // Audit: perubahan status kasbon (finansial-kritis, severity critical)
+    void logAuditEvent(request, {
+      tableName: 'kasbons',
+      recordId: id,
+      action: 'kasbon.status',
+      actorId: user.id,
+      oldValues: { status: 'pending' },
+      newValues: { status },
+      severity: 'critical',
+    })
 
     // ── Fire-and-forget: notif ke mandor yang mengajukan ─────────────────────
     try {

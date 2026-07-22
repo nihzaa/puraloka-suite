@@ -25,6 +25,12 @@ Di luar keenam itu: jangan tanya, kerjakan. Laporkan hasil, bukan minta izin mel
 
 **Engineering Default Rule #2 — blocker teknis diselesaikan sendiri:** kalau blocker disebabkan keterbatasan/perilaku teknis — PostgreSQL/Supabase/framework/compiler, RLS recursion, deadlock, locking, transaction semantics, query planner, migration conflict — **jangan berhenti bertanya**. Wajib: (1) root-cause analysis, (2) bandingkan dengan best practice resmi, (3) implementasikan solusi kanonik, (4) verifikasi dengan test otomatis, lalu lanjut sprint. Tulis ADR bila solusinya berdampak arsitektur lintas-modul (dokumentasi, bukan minta izin). Berhenti HANYA bila ada ≥2 solusi kanonik dengan konsekuensi arsitektur yang berbeda material (mis. SECURITY DEFINER helper vs denormalisasi ownership vs JWT-claim cache) — itu baru keputusan arsitektur. "Bug teknis tanpa ADR" bukan alasan berhenti; bug bukan keputusan produk.
 
+## Mission Continuity Rule
+
+Jangan optimalkan penyelesaian tiket/epic tunggal — optimalkan penyelesaian **seluruh misi** (mis. seluruh Phase/Sub-Fase). Kalau menyelesaikan satu akar masalah sekarang menghapus pekerjaan di beberapa epic ke depan, selesaikan segera. Selalu lihat ke depan; hindari optimasi lokal; optimalkan global lintas seluruh scope.
+
+**Git strategy untuk misi multi-epic:** kalau diberi mandat menyelesaikan sebuah Phase/scope penuh secara otonom, kerjakan **lokal** sampai seluruh scope Done — jangan PR/push per-epic (mahal: CI berkali-kali, context-switch, branch kecil-kecil). Setelah seluruh scope mencapai Done + semua audit hijau (typecheck, lint, test, architecture, permission, migration, RLS, regression, docs), baru: commit (boleh beberapa commit logis) → push sekali → **satu PR** → tunggu CI → merge → update STATUS. Pengecualian: kalau perubahan menyentuh DB live tunggal, tetap verifikasi jaring pengaman sebelum operasi destruktif. Default per-epic-PR tetap berlaku untuk kerja normal (bukan mandat scope-penuh).
+
 ## Tentang Project
 Aplikasi manajemen konstruksi untuk **Puraloka Persada** milik Nizar (nihzaa).
 Platform bernama **Puraloka Suite** — web dashboard admin + mobile app + backend API.

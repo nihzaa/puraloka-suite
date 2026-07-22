@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { logAuditEvent } from '../../utils/audit.js'
 
 export default async function userRoutes(app: FastifyInstance) {
 
@@ -41,6 +42,13 @@ export default async function userRoutes(app: FastifyInstance) {
       }
     }
 
+    // Ambil role lama untuk audit (hanya jika role akan diubah)
+    let oldRole: string | undefined
+    if (role) {
+      const { data: before } = await supabase.from('users').select('role').eq('id', id).single()
+      oldRole = before?.role
+    }
+
     const updates: Record<string, unknown> = {}
     if (name) updates.name = name.trim()
     if (phone !== undefined) updates.phone = phone || null
@@ -48,6 +56,20 @@ export default async function userRoutes(app: FastifyInstance) {
     if (Object.keys(updates).length === 0) return reply.status(400).send({ error: 'Tidak ada field yang diubah' })
     const { data, error } = await supabase.from('users').update(updates).eq('id', id).select().single()
     if (error) return reply.status(500).send({ error: error.message })
+
+    // Audit: perubahan role user (privilege escalation-sensitive, severity critical)
+    if (role && oldRole !== undefined && oldRole !== role) {
+      void logAuditEvent(request, {
+        tableName: 'users',
+        recordId: id,
+        action: 'user.role',
+        actorId: request.currentUser!.id,
+        oldValues: { role: oldRole },
+        newValues: { role },
+        severity: 'critical',
+      })
+    }
+
     return { user: data }
   })
 

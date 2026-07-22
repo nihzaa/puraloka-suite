@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { bubbleUpProgress } from '../../lib/rab-aggregation.js'
+import { logAuditEvent } from '../../utils/audit.js'
 
 // ─── Type untuk baris RAB hasil parse ──────────────────────────────────────
 
@@ -773,6 +774,21 @@ export default async function rabRoutes(app: FastifyInstance) {
       if (error) {
         app.log.error(error)
         return reply.status(500).send({ error: 'Gagal memperbarui item RAB' })
+      }
+
+      // Audit: override komponen biaya RAB (rab_materials.override)
+      if (hasPct) {
+        void logAuditEvent(request, {
+          tableName: 'rab_items',
+          recordId: itemId,
+          action: 'rab_materials.override',
+          actorId: request.currentUser!.id,
+          newValues: {
+            material_pct: data.material_pct, upah_pct: data.upah_pct,
+            alat_pct: data.alat_pct, other_pct: data.other_pct,
+          },
+          severity: 'warning',
+        })
       }
 
       // Bubble-up recalculation jika progress berubah (sama seperti progress.ts mode=detail)

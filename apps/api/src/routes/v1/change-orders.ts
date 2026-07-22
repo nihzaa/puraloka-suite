@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { createNotifications, getProjectAdminsAndPM } from '../../utils/notifications.js'
+import { logAuditEvent } from '../../utils/audit.js'
 
 const CO_SELECT = `
   id,
@@ -570,23 +571,18 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
         .update({ contract_value: newContractValue })
         .eq('id', coFull.project_id)
 
-      // 3. Log to audit_logs
-      ;(async () => {
-        try {
-          await supabase.from('audit_logs').insert({
-            table_name:  'change_orders',
-            record_id:   id,
-            action:      'change_order_approved',
-            user_id:     user.id,
-            new_values:  {
-              co_number:             coFull.co_number,
-              old_contract_value:    project.contract_value,
-              new_contract_value:    newContractValue,
-              total_amount_delta:    coFull.total_amount_delta,
-            },
-          })
-        } catch { /* ignore */ }
-      })()
+      // 3. Log to audit_logs via helper terpusat (severity critical — contract.value
+      //    berubah). diff/ip/user_agent diisi otomatis oleh logAuditEvent.
+      void logAuditEvent(request, {
+        tableName: 'change_orders',
+        recordId: id,
+        action: 'change_order_approved',
+        actorId: user.id,
+        oldValues: { contract_value: project.contract_value },
+        newValues: { contract_value: newContractValue },
+        severity: 'critical',
+        reason: `CO ${coFull.co_number} approved (delta ${coFull.total_amount_delta})`,
+      })
 
       // 4. Fire-and-forget: notify PM + submitter
       ;(async () => {
