@@ -27,11 +27,55 @@ Jawaban terhadap 5 hal yang harus ditutup sebelum Gate 1A→1B. Semua dengan buk
 **Kesimpulan #1:**
 - Fix bukan scope-preserving (flip semantik) — klaim dikoreksi.
 - Lockout `direktur` teoretis, **0 user nyata terdampak**.
-- **Isu arsitektur laten ditemukan (bukan Phase 1A, dicatat):** RBAC v2 mendukung role custom (auth.ts `role: string`, UI buat role), tapi `users.role` masih enum 4-nilai → role custom **tak pernah bisa dipakai user** sampai enum diganti ke TEXT/FK. Ini gap yang membuat "role custom" belum berfungsi end-to-end. Kandidat pekerjaan Sub-Fase 1B (Configuration/RBAC completion).
+- **Isu arsitektur laten → ITEM 1B EKSPLISIT (bukan sekadar "dicatat"):** RBAC v2 mendukung role custom (auth.ts `role: string`, UI `/pengaturan/roles`, `POST /api/v1/roles`), tapi `users.role` masih enum `user_role` 4-nilai → role custom (mis. `direktur`) bisa dibuat di tabel `roles` + `role_permissions` **tapi TAK PERNAH bisa di-assign ke user** (`INSERT ... role='direktur'` ditolak enum). Ini membuat "RBAC v2 config-driven" **setengah jadi** — separuh sistem (permission, policy, UI) data-driven, separuh (`users.role`) masih hardcode enum.
+
+  **Keputusan yang harus diambil di Sub-Fase 1B (jangan mengambang):**
+  - **Opsi A (perbaiki):** migrasi `users.role` dari enum → `TEXT` dengan FK ke `roles(name)` (atau `role_id UUID FK`). Menuntaskan RBAC v2 config-driven end-to-end. Additive-safe via expand-contract (kolom baru + backfill + swap). Ini melengkapi ADR-004 di level user-assignment.
+  - **Opsi B (tunda dengan alasan):** biarkan enum 4-nilai sampai ada kebutuhan bisnis nyata untuk role ke-5 yang di-assign ke user. Risiko: UI Role Management menjanjikan sesuatu (buat role) yang tidak benar-benar bisa dipakai — misleading.
+  - **Rekomendasi:** Opsi A masuk scope 1B (Configuration Foundation) — karena 1B memang tentang membuat sistem config-driven, dan enum role adalah hardcode terakhir yang bertentangan dengan itu. Dicatat sebagai kandidat item 1B di [STATUS.md](STATUS.md); keputusan final saat 1B kickoff.
 
 ---
 
-## #2 — Smoke Test Checklist (dijalankan founder dengan kredensial Auth)
+## #2b — HASIL SMOKE TEST LIVE (dijalankan, dengan coverage jujur)
+
+Dijalankan langsung: login betulan tiap role (via HttpOnly cookie), hit endpoint nyata. Untuk role tanpa login (pm=0 auth_id), dibuat akun Auth + link auth_id + password test (hanya menambah auth link, tidak sentuh data lain). `direktur` **tidak bisa** ditest live (enum `user_role` 4-nilai, tak ada user).
+
+**Kredensial test yang dibuat** (untuk founder re-run): admin `nizarzul16@gmail.com`/`nizar123` (seed), pm `rizky@puraloka.id`/`SmokeTestPM123!` (dibuat), mandor `hendra@puraloka.id`/`SmokeMandor123!` (password di-set), client `andi.k@gmail.com`/`SmokeClient123!` (password di-set).
+
+| Role | Endpoint | Actual | Expected | Verifikasi | Status |
+|---|---|---|---|---|---|
+| admin | GET /cash/accounts/:id | 200 | 200 | **LOGIN** | ✅ |
+| admin | GET /audit | 200 | 200 | **LOGIN** | ✅ |
+| admin | PATCH /reports/rekap-pajak/:id/status (body benar) | 200 | 200 | **LOGIN** | ✅ |
+| admin | DELETE /progress-logs/:id (bukan milik) | 200 | 200 | **LOGIN** | ✅ (admin punya progress:manage) |
+| pm | GET /cash/accounts/:id | 200 | 200/403 | **LOGIN** | ✅ |
+| pm | GET /audit | **403** | 403 | **LOGIN** | ✅ (audit admin-only, pm ditolak) |
+| pm | DELETE /progress-logs/:id | 404/200 | 200/404 | **LOGIN** | ✅ (authz lolos) |
+| **mandor** | GET /cash/accounts/:id | **403** | 403 | **LOGIN** | ✅ (**fix cash bekerja**) |
+| **mandor** | GET /audit | **403** | 403 | **LOGIN** | ✅ |
+| **mandor** | PATCH /reports/rekap-pajak/:id/status | **403** | 403 | **LOGIN** | ✅ |
+| **mandor** | DELETE /progress-logs/:id (bukan milik) | **403** | 403 | **LOGIN** | ✅ (**fix progress bekerja**) |
+| **client** | GET /cash/accounts/:id | **403** | 403 | **LOGIN** | ✅ |
+| **client** | GET /audit | **403** | 403 | **LOGIN** | ✅ |
+| **client** | PATCH /reports/rekap-pajak/:id/status | **403** | 403 | **LOGIN** | ✅ |
+| **client** | DELETE /progress-logs/:id (bukan milik) | **403** | 403 | **LOGIN** | ✅ |
+| direktur | (semua) | — | — | **automated-only** (via has_permission) | ⚠️ tak bisa login (enum) |
+
+**Coverage jujur:**
+- **LOGIN-verified (betulan):** admin, pm, mandor, client — **semua 4 role bisa login & tervalidasi live**, termasuk NEGATIVE test (mandor/client ditolak dengan benar di kedua endpoint yang di-fix + audit + tax).
+- **Automated-only (tak bisa login):** `direktur` — enum `user_role` mencegahnya jadi user. Diverifikasi via `has_permission` di RLS harness (§#5), bukan login.
+
+**Dua "FAIL" awal ternyata bug test, bukan authorization:**
+1. PATCH rekap-pajak 500 → karena smoke test kirim body kosong; dengan `{"status":"reported"}` → 200 (authz admin/pm lolos benar).
+2. DELETE 404 (bukan 403) → karena path project `x` invalid (fetch 404 sebelum authz); dengan project_id benar → mandor/client **403** ✅.
+
+**Efek samping (dibereskan):** 1 progress_log dummy terhapus saat test admin-DELETE positif → di-restore dari seed (founder konfirmasi data dummy, tidak masalah).
+
+**Kesimpulan #2b: authorization gate SEMUA benar — 4 role login-verified, negative test lolos, 2 endpoint yang di-fix terbukti menolak role yang seharusnya ditolak.**
+
+---
+
+## #2 — Smoke Test Checklist (referensi — untuk re-run founder)
 
 Jalankan API + login tiap role. Ekspektasi (berdasarkan `role_permissions` saat ini):
 
@@ -72,6 +116,22 @@ Audit menyeluruh 81 kolom + 62 fungsi + 68 tabel dari semua file migration vs sc
 **Rekonsiliasi — SUDAH DILAKUKAN:** `schema_migrations` di-rekonsiliasi. Untuk **setiap** migration yang objek schema-nya **terverifikasi ada di DB** (query per-objek), ditandai `applied`: 039,040,041,048,058,060,061,062,063,065,066,067,068,069,070,071,072,074. Tracking naik dari 52 → **70 entri**. Yang **sengaja TIDAK** ditandai: 030/064 (tak ada file, nomor di-skip), 059 (seed supabase-only), 073 (dorman), 043-047 (fitur belum di-apply/belum ada di kode — jangan tandai yang belum apply). Sekarang `schema_migrations` akurat mencerminkan schema nyata.
 
 **Sisa (bukan blocker 1B):** apply 043-047 saat fiturnya dibangun (RAB material tracking, field opname, asset, GL — semua 0 referensi kode saat ini). Ke depan: konsisten pakai satu jalur apply.
+
+### Verifikasi rekonsiliasi COLUMN-LEVEL (menjawab kedalaman cek #1)
+
+Konfirmasi: 18 migration yang direkonsiliasi diverifikasi **per-objek** (column/function/table/permission/policy), **bukan** "tabel-exists" dangkal — justru pola dangkal itu yang membuat 058 lolos padahal parsial. Deep verify:
+
+| Migration | Objek dicek | Hasil |
+|---|---|---|
+| 039 (material mgmt) | 7 | ALL PRESENT |
+| 040 (supplier) | 10 | ALL PRESENT |
+| 041 (procurement wf) | 14 | ALL PRESENT |
+| 048 (clients link) | 1 col | ALL PRESENT |
+| 058 (procurement enh) | 5 col | ALL PRESENT (setelah re-apply) |
+| 060/061/062/065/067/069/072 | 1-5 tiap | ALL PRESENT |
+| 063/066/071/074 (policy/role-assign) | policy count + role grant | PASS (materials v2=5, operational v2=9, contract old dropped=0, cash:view→admin+pm) |
+
+**Nol objek hilang di 18 migration.** Rekonsiliasi tidak dangkal — kalau ada yang parsial seperti 058, deep verify menangkapnya.
 
 ---
 

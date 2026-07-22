@@ -21,10 +21,14 @@ Legenda: ✅ selesai & merged · 🔵 pending · ⏳ pending, unblocked · ⚠�
 
 **Tersisa sebelum Gate boleh diajukan (keputusan founder, bukan implementasi):**
 - F5.5 append-only trigger — aktifkan? (073 dorman) — [epic-5-decisions.md](epic-5-decisions.md)
-- Verifikasi manual login per-role (smoke test end-to-end) — belum, butuh kredensial Supabase Auth
+- Verifikasi manual login per-role (smoke test) — ✅ **DIJALANKAN** (4 role login-verified, authorization semua benar; `direktur` automated-only karena enum). Lihat [gate-1a-preconditions-response.md § #2b](gate-1a-preconditions-response.md).
+- Migration drift — ✅ **DIPERBAIKI** (058 3 kolom hilang re-apply; `schema_migrations` rekonsiliasi 52→70, deep-verify column-level). Sisa: apply 043-047 saat fitur dibangun.
+- F5.5 append-only — founder **setujui aktifkan** (audit_logs only); tunggu instruksi apply terpisah (073 dorman).
 - **Founder approval eksplisit** untuk lanjut ke 1B — bukan otomatis saat checklist penuh.
 
-Catatan pekerjaan terpisah (bukan blocker 1A): rekonsiliasi drift jalur migration (`schema_migrations` tracking berhenti di 057) — [epic-5-decisions.md § 3](epic-5-decisions.md).
+## Kandidat item Sub-Fase 1B (dicatat, jangan mengambang)
+
+- **`users.role` enum → data-driven** (dari #1 gate response): RBAC v2 config-driven setengah jadi — `users.role` masih enum `user_role` 4-nilai, role custom (`direktur`) tak bisa di-assign ke user. **Keputusan 1B:** migrasi enum→TEXT/FK ke `roles` (Opsi A, direkomendasi — menuntaskan config-driven) atau tunda dengan alasan (Opsi B). Detail: [gate-1a-preconditions-response.md § #1](gate-1a-preconditions-response.md).
 
 ## Disiplin deployment (disepakati, jaga terus)
 
