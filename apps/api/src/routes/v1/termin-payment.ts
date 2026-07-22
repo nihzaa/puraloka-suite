@@ -38,7 +38,7 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
       const currentUser = request.currentUser!
 
       // Parse multipart
-      let fields: Record<string, string> = {}
+      const fields: Record<string, string> = {}
       let proofFile: { data: Buffer; mimetype: string; filename: string } | null = null
 
       try {

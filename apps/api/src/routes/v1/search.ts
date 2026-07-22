@@ -142,7 +142,7 @@ export default async function searchRoutes(app: FastifyInstance) {
 
     // ── Milestones ────────────────────────────────────────────────────
     if (user.role !== 'mandor') {
-      let mq = supabase
+      const mq = supabase
         .from('milestones')
         .select('id, title, status, target_date, project:projects!milestones_project_id_fkey(id, name, pm_id, is_deleted)')
         .ilike('title', ilike)

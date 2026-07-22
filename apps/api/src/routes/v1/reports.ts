@@ -440,7 +440,7 @@ export default async function reportsRoutes(app: FastifyInstance) {
 
     // Fetch kasbons scoped to project via work_scopes join.
     // Filter project_id in TypeScript to avoid unreliable nested-join filter syntax.
-    let kasbonQ = supabase.from('kasbons').select(`
+    const kasbonQ = supabase.from('kasbons').select(`
       id, amount, purpose, fund_source, status, kasbon_date, approved_at,
       scope:work_scopes!inner(
         id, scope_name,

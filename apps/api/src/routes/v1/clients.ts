@@ -62,7 +62,7 @@ export default async function clientRoutes(app: FastifyInstance) {
     const projectIds = projects.map(p => p.id)
 
     // Invoice summary untuk semua proyek klien ini
-    let invoiceSummary = { total: 0, outstanding: 0, overdue: 0, paid: 0 }
+    const invoiceSummary = { total: 0, outstanding: 0, overdue: 0, paid: 0 }
     if (projectIds.length > 0) {
       const { data: invoices } = await supabase
         .from('invoices')
