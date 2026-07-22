@@ -17,7 +17,14 @@ Legenda: ✅ selesai & merged · 🔵 pending · ⏳ pending, unblocked · ⚠�
 
 ## Gate 1A → 1B
 
-Belum tercapai. Butuh: seluruh authorization-gate termigrasi (Epic 3 ✅ + Remediation 3.5 🔵), `requireRole` dihapus (✅), RLS kelompok Finansial minimal expand (Epic 4 ⏳), test suite (✅), CI hijau (✅). **Founder approval eksplisit** tetap wajib — bukan otomatis saat checklist penuh.
+**Seluruh implementasi Sub-Fase 1A SELESAI & merged:** Epic 1 (test suite) ✅ · Epic 2 (CI/CD) ✅ · Epic 3 (permission engine) ✅ · Remediation 3.5 (inline auth) ✅ · Epic 4 (RLS sync, expand+contract) ✅ · Epic 5 (audit trail F5.1-F5.4) ✅. `requireRole` dihapus ✅, RLS 100% permission-based ✅, 113 test hijau ✅, CI main hijau ✅.
+
+**Tersisa sebelum Gate boleh diajukan (keputusan founder, bukan implementasi):**
+- F5.5 append-only trigger — aktifkan? (073 dorman) — [epic-5-decisions.md](epic-5-decisions.md)
+- Verifikasi manual login per-role (smoke test end-to-end) — belum, butuh kredensial Supabase Auth
+- **Founder approval eksplisit** untuk lanjut ke 1B — bukan otomatis saat checklist penuh.
+
+Catatan pekerjaan terpisah (bukan blocker 1A): rekonsiliasi drift jalur migration (`schema_migrations` tracking berhenti di 057) — [epic-5-decisions.md § 3](epic-5-decisions.md).
 
 ## Disiplin deployment (disepakati, jaga terus)
 
