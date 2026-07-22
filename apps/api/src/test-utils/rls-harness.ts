@@ -68,6 +68,7 @@ export async function asUser<T>(
  * Ambil satu `users.auth_id` untuk role built-in tertentu (admin/pm/mandor/client)
  * dari data dev — dipakai test untuk mengimpersonasi user nyata per role.
  * Mengembalikan null jika tidak ada user aktif dengan role itu yang punya auth_id.
+ * (Catatan: di dev, tidak semua seed user punya auth_id — test SKIP jika null.)
  */
 export async function authIdForRole(client: Client, role: string): Promise<string | null> {
   const { rows } = await client.query(
@@ -75,4 +76,26 @@ export async function authIdForRole(client: Client, role: string): Promise<strin
     [role]
   )
   return rows[0]?.auth_id ?? null
+}
+
+/**
+ * Mandor ber-`auth_id` yang PUNYA minimal satu assignment aktif — dipakai test
+ * ownership isolation (mandor tanpa assignment tidak membuktikan apa-apa).
+ * Return { authId, userId, assignedProjectCount } atau null.
+ */
+export async function assignedMandor(
+  client: Client
+): Promise<{ authId: string; userId: string; assignedProjectCount: number } | null> {
+  const { rows } = await client.query(`
+    SELECT u.id AS user_id, u.auth_id,
+           count(DISTINCT ma.project_id)::int AS n
+    FROM public.users u
+    JOIN public.mandor_assignments ma ON ma.mandor_id = u.id
+    WHERE u.role = 'mandor' AND u.auth_id IS NOT NULL AND u.is_active = true
+    GROUP BY u.id, u.auth_id
+    ORDER BY n DESC
+    LIMIT 1
+  `)
+  if (!rows[0]) return null
+  return { authId: rows[0].auth_id, userId: rows[0].user_id, assignedProjectCount: rows[0].n }
 }
