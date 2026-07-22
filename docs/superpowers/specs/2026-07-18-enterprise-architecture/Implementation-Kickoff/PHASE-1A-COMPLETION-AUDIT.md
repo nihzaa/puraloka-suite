@@ -33,13 +33,13 @@
 | TODO/FIXME/XXX/HACK | grep | 0 | PASS |
 | Temp/debug files (`_*.mjs`) | find | 0 | PASS |
 | Skipped/only/todo tests | grep `.skip/.only/.todo` | 0 | PASS |
-| **Inline role-literal authorization tersisa** | audit 55 `user.role ===` | **2 endpoint** (lihat bawah) | **FAIL (minor)** |
+| **Inline role-literal authorization murni tersisa** | re-audit pasca-remediasi | **0** | PASS |
 
-**Temuan FAIL — 2 endpoint dengan role-literal authorization sebagai satu-satunya gate** (terlewat Epic 3 & Remediation 3.5 karena bukan `requireRole`/`.includes`):
-- `cash.ts:40` `GET /api/v1/cash/accounts/:id` — preHandler cuma `authenticate`; authorization via `role === 'mandor'/'client' → 403` + `role === 'pm' && ownership`.
-- `progress.ts:240` `DELETE /progress-logs/:logId` — preHandler cuma `authenticate`; authorization via `role === 'mandor'/'client'` inline.
+**Temuan awal (2 endpoint) — SUDAH DIPERBAIKI langsung** (bugfix kecil-terisolasi-aman, bukan fase remediasi baru):
+- `cash.ts:40` `GET /cash/accounts/:id` — `role === 'mandor'/'client' → 403` diganti `requirePermission('cash:view')` di preHandler; PM-ownership check dipertahankan (data-scoping). `cash:view` di-seed admin+pm (migration 074).
+- `progress.ts:240` `DELETE /progress-logs/:logId` — inline role check diganti `hasPermission('progress:manage') || (mandor-owner)`; client tertolak otomatis.
 
-**Bukan lubang keamanan** (endpoint tetap ter-authenticate, logika ownership benar), tapi secara ADR-004 ini role-literal authorization yang seharusnya permission-based. Diklasifikasi **technical debt**, dicatat di §6 (future backlog) — bukan diperbaiki dalam audit ini agar audit tetap read-only/objektif. 51 `user.role ===` lainnya adalah **data-scoping ownership** yang sah per ADR-004 Rule #1 (kombinasi role + `ownership !== user.id`).
+Re-audit: **0 authorization gate murni role-literal**. Semua `user.role ===` yang tersisa adalah **data-scoping ownership** sah per ADR-004 Rule #1 (pola `role === 'x' && ownership !== user.id`) atau business-rule ber-komentar (`autoApprove`). Bonus: fix `cash:view` juga membuat role kustom `direktur` (yang sudah punya `cash:view` via UI) dapat akses konsisten — gate role-literal lama justru tidak menangani role di luar 4 built-in.
 
 ---
 
@@ -103,20 +103,25 @@ Skipped tests: **0** (grep `.skip/.only/.todo` = 0).
 - **Migration tracking drift** — `schema_migrations` berhenti di 057; 058-073 tak tercatat. Rekonsiliasi jalur apply (supabase CLI vs pg manual) diperlukan agar `db push`/`db diff` andal.
 
 ### Future backlog (technical debt kode)
-- **2 endpoint role-literal authorization** (`cash.ts:40`, `progress.ts:240`) → migrasi ke `requirePermission`/`hasPermission` (Remediation 3.6 kecil). Bukan lubang keamanan, tapi menuntaskan ADR-004 100%.
-- **39 lint warning** unused-vars pre-existing (bukan Phase 1A) — cleanup opsional.
+- ~~2 endpoint role-literal authorization~~ — **SUDAH DIPERBAIKI** (bugfix langsung, cash:view + progress:manage, migration 074; re-audit 0 tersisa). Bukan dipromosikan jadi fase remediasi karena kecil-terisolasi-aman.
+- **39 lint warning** unused-vars pre-existing (bukan Phase 1A) — cleanup opsional, tidak memblokir.
 
 ---
 
 ## 7. Final Readiness Report
 
-### Status: **CONDITIONAL PASS**
+### Status: **CONDITIONAL PASS** — implementasi 100% complete, blocked HANYA oleh governance/external
 
-**Sub-Fase 1A implementation objektif SELESAI** — seluruh Deliverable/DoD/Exit Criteria teknis PASS dengan bukti terverifikasi: `requireRole`=0, RLS 100% permission-based (0 policy literal-role), audit trail helper + instrumentasi, 113 test hijau (0 skip), typecheck/lint/build bersih, CI main hijau, 8 PR merged.
+**Revisi pasca-remediasi:** temuan kode minor (2 endpoint role-literal) **sudah ditutup langsung** sebagai bugfix (bukan dipromosikan jadi debt). Tidak ada lagi implementation gap. Re-audit: **0 authorization gate role-literal**.
 
-**Diblokir dari "PASS penuh" oleh:**
-1. **Governance** (bukan implementasi): F5.5 append-only + Gate 1A→1B approval menunggu founder.
-2. **Satu temuan kode minor** (§2 FAIL): 2 endpoint masih role-literal authorization — technical debt, bukan lubang keamanan, dicatat sebagai backlog. Ini mencegah klaim "no role-literal authorization anywhere" yang ketat, sehingga audit jujur menurunkannya dari PASS penuh ke CONDITIONAL.
+**Sub-Fase 1A implementation objektif SELESAI** — seluruh Deliverable/DoD/Exit Criteria teknis PASS terverifikasi: `requireRole`=0, **0 role-literal authorization** (kode & RLS), RLS 100% permission-based, audit trail helper + instrumentasi, 113 test hijau (0 skip), typecheck/lint/build bersih, CI main hijau, 9 PR merged.
+
+**Yang tersisa BUKAN implementasi — semuanya external/governance (di luar kewenangan engineering):**
+1. **Governance decision founder:** F5.5 append-only (aktifkan?) + Gate 1A→1B approval.
+2. **Product/external:** smoke test login manual per-role (butuh kredensial Supabase Auth); `payment.deleted` (endpoint belum ada, keputusan bisnis).
+3. **Infrastruktur (paralel, tidak memblokir 1B fungsional):** migration tracking drift — rekonsiliasi jalur apply.
+
+**Verdict CONDITIONAL PASS adalah verdict akhir yang benar:** tidak FAIL (nol implementation gap), tidak PASS penuh (item governance/external nyata masih terbuka, dan itu memang bukan sesuatu yang boleh engineering putuskan sendiri). Ini persis definisi CONDITIONAL PASS: "implementation complete but blocked by governance items."
 3. **Infrastruktur**: migration tracking drift (schema benar, tracking tidak) perlu rekonsiliasi.
 
 **Rekomendasi:** Sub-Fase 1A boleh dinyatakan "implementation complete". Gate 1A→1B **belum** boleh diajukan sampai: (a) founder memutuskan F5.5, (b) 2 endpoint role-literal dibereskan (Remediation 3.6 — kecil, ~1 PR), (c) smoke test login manual dijalankan. Migration tracking drift bisa paralel (tidak memblokir 1B secara fungsional).

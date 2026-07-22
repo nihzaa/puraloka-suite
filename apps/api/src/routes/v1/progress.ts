@@ -254,11 +254,12 @@ export default async function progressRoutes(app: FastifyInstance) {
       return reply.status(404).send({ error: 'Log tidak ditemukan' })
     }
 
-    if (user.role === 'mandor' && log.reported_by !== user.id) {
-      return reply.status(403).send({ error: 'Anda hanya bisa hapus log milik sendiri' })
-    }
-
-    if (user.role === 'client') {
+    // Authorization (ADR-004): boleh hapus jika punya progress:manage (admin/pm),
+    // ATAU mandor pemilik log (ownership). Selain itu ditolak — termasuk client
+    // (tak punya progress:manage & bukan mandor-owner).
+    const canManage = await hasPermission(request, 'progress:manage')
+    const isOwnerMandor = user.role === 'mandor' && log.reported_by === user.id
+    if (!canManage && !isOwnerMandor) {
       return reply.status(403).send({ error: 'Akses ditolak' })
     }
 

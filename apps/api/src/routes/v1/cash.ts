@@ -38,7 +38,7 @@ export default async function cashRoutes(app: FastifyInstance) {
 
   // GET /api/v1/cash/accounts/:id — detail akun + history transfer
   app.get<{ Params: { id: string } }>('/api/v1/cash/accounts/:id', {
-    preHandler: [authenticate]
+    preHandler: [authenticate, requirePermission('cash:view')]
   }, async (request, reply) => {
     const { id } = request.params
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
@@ -82,17 +82,15 @@ export default async function cashRoutes(app: FastifyInstance) {
     const currentUser = request.currentUser!
     const acct = accountRes.data as typeof accountRes.data & { owner: { id: string } | null; projects: { id: string } | null }
 
-    // PM hanya bisa lihat akun kas proyeknya sendiri
+    // PM hanya bisa lihat akun kas proyeknya sendiri (data-scoping ownership,
+    // bukan authorization gate — ADR-004 Rule #1; akses cash:view sudah dijamin
+    // permission gate di preHandler, ini menyempitkan ke proyek milik PM).
     if (currentUser.role === 'pm') {
       const projectId = acct.projects?.id ?? null
       if (projectId) {
         const { data: proj } = await supabase.from('projects').select('pm_id').eq('id', projectId).single()
         if (!proj || proj.pm_id !== currentUser.id) return reply.status(403).send({ error: 'Akses ditolak' })
       }
-    }
-    // Mandor & client tidak punya akses ke detail kas
-    if (currentUser.role === 'mandor' || currentUser.role === 'client') {
-      return reply.status(403).send({ error: 'Akses ditolak' })
     }
 
     return reply.send({
