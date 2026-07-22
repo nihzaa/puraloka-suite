@@ -46,12 +46,21 @@ describe('Epic 4 contract: no literal-role policies remain', () => {
 })
 
 describe('Epic 4 contract: access still correct after dropping old policies', () => {
+  // RLS via has_permission (join role_permissions) + SECURITY DEFINER helpers is
+  // heavier than a plain query; a per-table impersonated tx round-trip against the
+  // shared dev DB can exceed the 5s default. Batch into one impersonated tx and
+  // give explicit headroom.
   it('admin still reads all contracted tables', async () => {
-    for (const t of ['materials', 'invoices', 'kasbons', 'cash_accounts', 'workers']) {
-      const r = await asUser(client, adminId, (c) => c.query(`SELECT count(*)::int AS n FROM ${t}`))
-      expect(r.rows[0].n).toBeGreaterThanOrEqual(0)
-    }
-  })
+    const counts = await asUser(client, adminId, async (c) => {
+      const out: number[] = []
+      for (const t of ['materials', 'invoices', 'kasbons', 'cash_accounts', 'workers']) {
+        const r = await c.query(`SELECT count(*)::int AS n FROM ${t}`)
+        out.push(r.rows[0].n)
+      }
+      return out
+    })
+    expect(counts.every((n) => n >= 0)).toBe(true)
+  }, 20000)
 
   it('assigned mandor still reads own-scope data, no leak', async () => {
     const m = await assignedMandor(client)
