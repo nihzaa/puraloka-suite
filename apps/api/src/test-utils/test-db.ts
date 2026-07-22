@@ -9,7 +9,20 @@ import { join } from 'node:path'
 // sama, via koneksi langsung (DIRECT_URL, session-mode pooler) — bukan lewat
 // REST/@supabase/supabase-js, yang secara default hanya expose schema public.
 
-const TEST_SCHEMA = 'test'
+// Schema test bisa di-override via env TEST_SCHEMA agar CI run paralel (dan test
+// lokal yang berjalan bersamaan CI) TIDAK berbagi schema `test` yang sama —
+// akar race condition "type user_role already exists" (dua run DROP+CREATE +
+// runMigrations bersamaan saling menimpa). CI set TEST_SCHEMA=test_<run_id>.
+// Divalidasi ketat (hanya [a-z0-9_], huruf depan) karena diinterpolasi ke DDL.
+export const TEST_SCHEMA = (() => {
+  const raw = process.env.TEST_SCHEMA ?? 'test'
+  if (!/^[a-z][a-z0-9_]*$/.test(raw)) {
+    throw new Error(
+      `TEST_SCHEMA tidak valid: "${raw}". Hanya huruf kecil, angka, underscore (awali huruf).`
+    )
+  }
+  return raw
+})()
 
 function getDirectUrl(): string {
   const url = process.env.DIRECT_URL

@@ -43,6 +43,16 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          # Schema test unik per run → tidak ada race antar CI run paralel yang
+          # berbagi Supabase dev DB (akar "type user_role already exists").
+          TEST_SCHEMA: test_${{ github.run_id }}
+
+      - name: Drop per-run test schema
+        if: always()
+        run: pnpm exec tsx src/test-utils/drop-test-schema.ts
+        env:
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          TEST_SCHEMA: test_${{ github.run_id }}
 
       - name: Build
         run: pnpm build
