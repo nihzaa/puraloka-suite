@@ -217,6 +217,31 @@ Bukan testing fungsional — audit kepatuhan terhadap ADR-004. **MUST** lulus se
 
 Temuan audit ini menjadi input untuk scope Epic 4 (RLS): daftar literal role yang tersisa di RLS policy adalah persis yang Epic 4 migrasikan ke `has_permission()`.
 
+### Hasil Audit (dijalankan setelah commit 5) — TEMUAN PENTING
+
+- ✅ `requireRole`: **0** di seluruh `src/` (helper dihapus). Ini scope Epic 3 sebagaimana didefinisikan — **selesai penuh**.
+- ✅ `requirePermission`: **107** call site (103 + 4 migrasi).
+- ⚠️ **Namun audit prinsip menemukan lapisan lebih dalam yang belum tercakup Epic 3:** ~57 pemakaian `user.role === '...'` + 3 `['admin','pm'].includes(user.role)` tersebar di 12 file route. Ini **melebihi** 4 `requireRole` yang jadi scope Epic 3 — konsisten dengan gap yang [00-vision:486](../../00-vision-and-business-architecture.md) sudah tandai ("pengecekan inline `user.role === ...` tersebar di logic bisnis, terpisah dari guard permission").
+
+**Audit presisi per titik (bukan angka kasar) — dilakukan atas arahan founder sebelum keputusan scope:**
+
+| File:baris | Kode | Kategori | Langgar ADR-004? | Permission tepat |
+|---|---|---|---|---|
+| `notifications.ts:154` | `if(!['admin','pm'].includes(role)) return 403` (approve/reject kasbon) | **Authorization** murni | ✅ Ya | `mandor:kasbon:approve` (sudah ada) |
+| `notifications.ts:229` | idem (approve/reject wage report) | **Authorization** murni | ✅ Ya | `mandor:wage:approve` (sudah ada) |
+| `progress.ts:313` | `if(!['admin','pm'].includes(role)) return 403` (edit kategori foto) | **Authorization** murni | ✅ Ya | `documents:manage` (sudah ada) |
+| `cash.ts:473` | `autoApprove = role==='admin'\|\|'pm'` | **Business rule** (workflow: hasil submit auto-approved vs submitted, bukan gate akses) | ⚠️ Tidak murni | Jangan dipaksa jadi permission tanpa desain — bisa salah model |
+| `kasbons.ts:126` | `isAdminOrPm → autoApprove` | **Business rule** (sama: auto-approve kasbon sendiri) | ⚠️ Tidak murni | Sama seperti cash.ts:473 |
+| `reports.ts:82` | `canViewFinance` → memfilter kolom finansial yang di-fetch (endpoint sudah punya guard) | **Data-scoping** (field-level filtering dalam 1 endpoint) | 🟡 Borderline | Cukup komentar; migrasi opsional ke `finance:view` |
+| `users.ts:12` | `isAdmin` → `showAll` (admin lihat user nonaktif) | **Data-scoping** (bukan deny; endpoint sudah `authenticate`) | 🟡 Borderline | Cukup komentar |
+
+**Hasil audit — angka sebenarnya bukan 7:**
+- **3 titik authorization murni** (`notifications.ts:154,229`, `progress.ts:313`) — allow/deny nyata (`return 403`), jelas melanggar ADR-004. **Ketiganya bisa migrasi dengan key yang SUDAH ADA** — tidak perlu permission baru.
+- **2 titik business rule** (`cash.ts:473`, `kasbons.ts:126`) — ini `autoApprove` (menentukan *hasil* submit, bukan *boleh submit atau tidak*). Memaksanya jadi permission bisa salah model — **tidak** dimigrasi tanpa keputusan desain workflow terpisah.
+- **2 titik data-scoping** (`reports.ts:82`, `users.ts:12`) — sah per ADR-004 Rule #1, cukup diberi komentar "bukan authorization gate".
+
+**Keputusan founder:** Epic 3 ditutup sesuai definisi sempitnya (4 `requireRole` — selesai). 3 titik authorization murni **tidak** dimasukkan ke Epic 3 (menjaga integritas kontrak scope), melainkan dijadikan **Epic 3.5** terpisah — lihat [epic-3.5-inline-authorization.md](epic-3.5-inline-authorization.md). 2 business rule (`autoApprove`) dan 2 data-scoping dicatat di situ juga, dengan klasifikasi + rekomendasi masing-masing (business rule: tidak disentuh tanpa desain workflow; data-scoping: cukup komentar).
+
 ---
 
 *Status implementasi: branch `feature/epic-3-permission-consolidation`. Commit 1 (`permission_scopes`, migration 060) dan commit 2 (`audit:view`+`finance:tax:submit`, migration 061) sudah dibuat — migration BELUM di-apply ke dev (menunggu review). Selanjutnya: migrasi 4 route + hapus `requireRole` + compliance audit Bagian 9.*
