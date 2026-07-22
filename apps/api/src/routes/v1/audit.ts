@@ -1,13 +1,13 @@
 import type { FastifyInstance } from 'fastify'
-import { authenticate, requireRole } from '../../plugins/auth.js'
+import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { supabase } from '../../utils/supabase.js'
 
 export default async function auditRoutes(app: FastifyInstance) {
 
-  // GET /api/v1/audit — list audit logs (admin only)
+  // GET /api/v1/audit — list audit logs
   // Query params: table_name, action, user_id, project_id, from, to, page, limit
   app.get('/api/v1/audit', {
-    preHandler: [authenticate, requireRole('admin')]
+    preHandler: [authenticate, requirePermission('audit:view')]
   }, async (request, reply) => {
     const {
       table_name, action, user_id, project_id,
@@ -56,7 +56,7 @@ export default async function auditRoutes(app: FastifyInstance) {
 
   // GET /api/v1/audit/tables — distinct table names + action types untuk filter dropdown
   app.get('/api/v1/audit/meta', {
-    preHandler: [authenticate, requireRole('admin')]
+    preHandler: [authenticate, requirePermission('audit:view')]
   }, async (_request, reply) => {
     const [tablesRes, actionsRes] = await Promise.all([
       supabase.from('audit_logs').select('table_name').order('table_name'),

@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import PDFDocument from 'pdfkit'
 import { supabase } from '../../utils/supabase.js'
-import { authenticate, requirePermission, requireRole } from '../../plugins/auth.js'
+import { authenticate, requirePermission } from '../../plugins/auth.js'
 
 function fmt(n: number) {
   return 'Rp ' + n.toLocaleString('id-ID')
@@ -964,7 +964,7 @@ export default async function reportsRoutes(app: FastifyInstance) {
   // Rekap pajak (PPh/PPN) per proyek + per bulan + export-ready
   // Query: ?project_id= &from= &to= &status= &tax_type=
   app.get('/api/v1/reports/rekap-pajak', {
-    preHandler: [authenticate, requireRole('admin')]
+    preHandler: [authenticate, requirePermission('finance:tax:view')]
   }, async (request, reply) => {
     const { project_id, from, to, status, tax_type } = request.query as Record<string, string>
 
@@ -1035,7 +1035,7 @@ export default async function reportsRoutes(app: FastifyInstance) {
   // ── PATCH /api/v1/reports/rekap-pajak/:id/status ─────────────────────────────
   // Update status tax_record: pending → reported (sudah dilaporkan ke DJP)
   app.patch('/api/v1/reports/rekap-pajak/:id/status', {
-    preHandler: [authenticate, requireRole('admin')]
+    preHandler: [authenticate, requirePermission('finance:tax:submit')]
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const { status, efaktur_number } = request.body as { status: string; efaktur_number?: string }

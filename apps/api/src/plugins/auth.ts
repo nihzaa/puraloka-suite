@@ -56,21 +56,6 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
   request.currentUser = user as AuthUser
 }
 
-// Guard: hanya role tertentu yang boleh akses (legacy — dipertahankan untuk backward compat)
-export function requireRole(...roles: string[]) {
-  return async (request: FastifyRequest, reply: FastifyReply) => {
-    if (!request.currentUser) {
-      return reply.status(401).send({ error: 'Belum login' })
-    }
-
-    if (!roles.includes(request.currentUser.role)) {
-      return reply.status(403).send({
-        error: `Akses ditolak. Butuh role: ${roles.join(' atau ')}`
-      })
-    }
-  }
-}
-
 // Guard: cek permission spesifik dari tabel role_permissions (RBAC modular)
 // Permission cache di-load sekali per request via Supabase RPC, tidak ada N+1
 export function requirePermission(permissionKey: string) {

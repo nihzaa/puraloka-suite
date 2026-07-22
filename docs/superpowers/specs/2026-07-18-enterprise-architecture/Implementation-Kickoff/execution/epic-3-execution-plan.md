@@ -79,6 +79,8 @@ Sesuai `05-feature-implementation-order.md` Epic 3 (1A.1):
 
 Nomor migration: **`060`**, bukan `059` — `059_seed_dummy_data.sql` sudah terpakai di `supabase/migrations/` (seed data dummy, bukan schema migration, sengaja tidak dibackfill ke `db/migrations` — kondisi ini dicatat sebagai keputusan sadar, bukan diperbaiki diam-diam di Epic 3 ini). Ditulis kembar ke `db/migrations/060_...sql` dan `supabase/migrations/060_...sql` (identik), sesuai pola seluruh migration sebelumnya di repo.
 
+**Catatan pemecahan (aktual saat implementasi):** migration dipecah jadi **dua** file untuk histori yang lebih bersih (sesuai arahan founder saat eksekusi) — `060_permission_scopes.sql` (tabel saja, task ini) dan `061_audit_tax_permissions.sql` (permission catalog + seed, task T3.2). Pemisahan ini memastikan perubahan desain `permission_scopes` di masa depan tidak menyeret commit permission catalog, dan sebaliknya.
+
 ```sql
 CREATE TABLE permission_scopes (
   id             UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -114,10 +116,10 @@ CREATE INDEX idx_permission_scopes_user ON permission_scopes(user_id, permission
 
 **Kenapa endpoint #4 butuh key baru, dan kenapa `submit` bukan `view`/`manage`:** "melihat rekap" dan "menyetor laporan ke DJP" adalah dua capability berbeda secara nyata — satu baca, satu aksi yang mengubah status kepatuhan pajak (`pending → reported`, komentar kode `reports.ts:1036`: "sudah dilaporkan ke DJP"). Nama `submit` mengikuti pola aksi spesifik yang sudah dipakai di seluruh catalog (`finance:invoice:pay`, `cash:expense:approve` — bukan `*:manage` generik).
 
-> Migration 060 juga mengisi `role_permissions` (bootstrap data — lihat Bagian 5). Tidak dibahas di sini: itu seed tanpa makna arsitektural, bukan keputusan desain.
+> Migration 061 juga mengisi `role_permissions` (bootstrap data — lihat Bagian 5). Tidak dibahas di sini: itu seed tanpa makna arsitektural, bukan keputusan desain.
 
 **Acceptance criteria per titik migrasi:**
-- [ ] `permissions` (dan default `role_permissions` seed) di-deploy lebih dulu (bagian migration 060) sebelum kode route diubah.
+- [ ] `permissions` (dan default `role_permissions` seed) di-deploy lebih dulu (migration 061) sebelum kode route diubah.
 - [ ] Kode: 1 baris `requireRole('admin')` → `requirePermission(key)` sesuai tabel di atas — **kode tidak pernah menyebut nama role**, hanya permission key. **Tidak ada perubahan lain** di file yang sama pada task ini.
 - [ ] Test manual sebelum & sesudah migrasi terhadap kombinasi role yang *hari ini* punya permission tersebut (ditentukan dari isi `role_permissions` saat itu, bukan diasumsikan dari nama role) — hasil harus identik, dicatat per commit (`06-testing-execution-plan.md:13`).
 - [ ] Commit terpisah per file (4 commit untuk T3.2.1-T3.2.4), bukan 1 commit gabungan — konsisten `07-release-and-rollback-plan.md:15` ("branch per Task menjaga PR tetap kecil dan revertable").
@@ -144,8 +146,8 @@ CREATE INDEX idx_permission_scopes_user ON permission_scopes(user_id, permission
 
 | File | Jenis perubahan |
 |---|---|
-| `db/migrations/060_permission_scopes_and_audit_tax_keys.sql` | Baru — `permission_scopes` table + `permissions` (`audit:view`, `finance:tax:submit`) + default `role_permissions` seed (dapat diubah admin kapan saja via UI) |
-| `supabase/migrations/060_permission_scopes_and_audit_tax_keys.sql` | Baru — identik dengan di atas |
+| `db/migrations/060_permission_scopes.sql` (+ kembar `supabase/`) | Baru — `permission_scopes` table saja |
+| `db/migrations/061_audit_tax_permissions.sql` (+ kembar `supabase/`) | Baru — `permissions` (`audit:view`, `finance:tax:submit`) + default `role_permissions` seed (dapat diubah admin kapan saja via UI) |
 | `apps/api/src/routes/v1/audit.ts` | Baris 10, 59: `requireRole('admin')` → `requirePermission('audit:view')`; import diperbarui |
 | `apps/api/src/routes/v1/reports.ts` | Baris 967: `requireRole('admin')` → `requirePermission('finance:tax:view')` (key existing); Baris 1038: → `requirePermission('finance:tax:submit')` (key baru); import diperbarui |
 | `apps/api/src/plugins/auth.ts` | Baris 60-72: fungsi `requireRole` dihapus (setelah T3.3 prasyarat lengkap) |
@@ -154,15 +156,29 @@ CREATE INDEX idx_permission_scopes_user ON permission_scopes(user_id, permission
 
 ---
 
-## 5. Migration Plan
+## 5. Deployment Order — Review → Migration → Verification → Merge
 
-1. Tulis `060_permission_scopes_and_audit_tax_keys.sql` (kembar 2 folder) — buat `permission_scopes` + `INSERT INTO permissions` (`audit:view`, `finance:tax:submit`) + `INSERT INTO role_permissions` (baris default, sama pola `by name lookup` seperti migration 050, dengan komentar SQL `-- Default seed instalasi awal, dapat diubah admin kapan saja via /pengaturan/roles — bukan business rule`).
-2. Jalankan migration di Supabase dev.
-3. Verifikasi teknis: `SELECT * FROM get_role_permissions('admin')` mengandung kedua key baru (memastikan seed jalan, bukan memvalidasi "siapa seharusnya boleh" — itu bukan pertanyaan migration).
-4. Baru setelah verifikasi ini lulus, lanjut ke perubahan kode route (T3.2).
+**Prinsip (arahan founder):** migration mengikuti kode yang **sudah disetujui**, bukan sebaliknya. DB dev **tidak** diubah selama masih fase review — kalau reviewer minta perubahan migration setelah DB telanjur berubah, histori dev jadi kotor.
+
+Urutan wajib:
+1. Push branch `feature/epic-3-permission-consolidation` → buka PR.
+2. **Code review** (PR). Migration `060`/`061` masih file di branch, **belum di-apply**.
+3. Setelah PR **disetujui** → apply `060` lalu `061` ke Supabase dev.
+4. **Smoke test** (checklist di bawah) + regression test (Epic 1 suite, 53/53).
+5. Semua hijau → **baru merge** ke `main`.
+
+**Smoke test checklist (setelah migration apply, sebelum merge):**
+- [ ] Migration 060 sukses (`permission_scopes` ada — `\d permission_scopes`)
+- [ ] Migration 061 sukses (`audit:view` + `finance:tax:submit` ada di `permissions`)
+- [ ] `get_role_permissions('admin')` mengandung `audit:view` + `finance:tax:submit`
+- [ ] Admin login → `GET /api/v1/audit` → 200
+- [ ] Admin login → `PATCH /reports/rekap-pajak/:id/status` → berfungsi
+- [ ] PM login → endpoint sesuai `role_permissions` saat itu (bukan diasumsikan)
+- [ ] Permission cache (`_permissionCache`) terisi benar — tidak ada 500 "Gagal memuat permission"
+- [ ] Regression: `pnpm test` 53/53, `pnpm lint` 0 error, CI hijau
 
 **Rollback plan:**
-- Migration 060 bersifat additive murni (CREATE TABLE, INSERT) — rollback = `DROP TABLE permission_scopes CASCADE;` + `DELETE FROM permissions WHERE key IN ('audit:view', 'finance:tax:submit');` (cascade otomatis membersihkan `role_permissions` terkait via FK `ON DELETE CASCADE`).
+- Migration 060 & 061 additive murni (CREATE TABLE, INSERT) — rollback = `DROP TABLE permission_scopes CASCADE;` (060) + `DELETE FROM permissions WHERE key IN ('audit:view', 'finance:tax:submit');` (061 — cascade otomatis membersihkan `role_permissions` terkait via FK `ON DELETE CASCADE`).
 - Rollback kode route (T3.2): revert commit per-file individual (bukan revert gabungan) — karena tiap titik migrasi adalah commit terpisah, revert satu titik tidak memengaruhi 3 titik lain.
 - Rollback T3.3 (hapus `requireRole`): karena hanya dieksekusi setelah seluruh T3.2 `completed` dan diverifikasi, rollback-nya adalah mengembalikan fungsi dari git history — **tidak ada** kondisi di mana T3.3 di-revert tanpa juga me-revert T3.2 (dependency searah).
 - Tidak ada maintenance window khusus dibutuhkan — migration additive, tidak mengunci tabel besar, tidak ada downtime.
@@ -201,4 +217,45 @@ Sempat diajukan di percakapan: membuat ~30-40 role bisnis konstruksi (Project Di
 
 ---
 
-*Menunggu review/approval sebelum implementasi dimulai — sesuai permintaan eksplisit: dokumen ini tidak dieksekusi sampai disetujui.*
+## 9. Architecture Compliance Audit — Gate Wajib Sebelum Epic 4
+
+Bukan testing fungsional — audit kepatuhan terhadap ADR-004. **MUST** lulus seluruhnya sebelum Epic 4 dimulai (bukan hanya "test hijau"). Ini penutup Epic 3 yang sebenarnya.
+
+- [ ] `grep -rn "requireRole(" apps/api/src/` → **0 hasil** (termasuk plugins, bukan hanya routes).
+- [ ] `grep -rn "user\.role\s*===\|user\.role\s*==" apps/api/src/routes apps/api/src/plugins` → setiap hasil (jika ada) diverifikasi **bukan** authorization gate dan sudah diberi komentar eksplisit.
+- [ ] `grep -rn "\.role\b" apps/api/src` untuk `switch`/`includes` → tidak ada yang dipakai sebagai authorization.
+- [ ] Tidak ada literal nama role sebagai authorization di service/business logic (kasbons.ts, change-orders.ts — titik yang [00-vision:486](../../00-vision-and-business-architecture.md) tandai sebagai inline role check; catatan: sebagian ini adalah *data-scoping* PM-ownership yang sah, bukan authorization gate — bedakan eksplisit).
+- [ ] Seluruh authorization gate memakai `requirePermission(...)`.
+- [ ] Fungsi `requireRole` sudah tidak ada di `plugins/auth.ts`.
+- [ ] `pnpm test` 53/53 lulus, `pnpm lint` 0 error, CI hijau.
+
+Temuan audit ini menjadi input untuk scope Epic 4 (RLS): daftar literal role yang tersisa di RLS policy adalah persis yang Epic 4 migrasikan ke `has_permission()`.
+
+### Hasil Audit (dijalankan setelah commit 5) — TEMUAN PENTING
+
+- ✅ `requireRole`: **0** di seluruh `src/` (helper dihapus). Ini scope Epic 3 sebagaimana didefinisikan — **selesai penuh**.
+- ✅ `requirePermission`: **107** call site (103 + 4 migrasi).
+- ⚠️ **Namun audit prinsip menemukan lapisan lebih dalam yang belum tercakup Epic 3:** ~57 pemakaian `user.role === '...'` + 3 `['admin','pm'].includes(user.role)` tersebar di 12 file route. Ini **melebihi** 4 `requireRole` yang jadi scope Epic 3 — konsisten dengan gap yang [00-vision:486](../../00-vision-and-business-architecture.md) sudah tandai ("pengecekan inline `user.role === ...` tersebar di logic bisnis, terpisah dari guard permission").
+
+**Audit presisi per titik (bukan angka kasar) — dilakukan atas arahan founder sebelum keputusan scope:**
+
+| File:baris | Kode | Kategori | Langgar ADR-004? | Permission tepat |
+|---|---|---|---|---|
+| `notifications.ts:154` | `if(!['admin','pm'].includes(role)) return 403` (approve/reject kasbon) | **Authorization** murni | ✅ Ya | `mandor:kasbon:approve` (sudah ada) |
+| `notifications.ts:229` | idem (approve/reject wage report) | **Authorization** murni | ✅ Ya | `mandor:wage:approve` (sudah ada) |
+| `progress.ts:313` | `if(!['admin','pm'].includes(role)) return 403` (edit kategori foto) | **Authorization** murni | ✅ Ya | `documents:manage` (sudah ada) |
+| `cash.ts:473` | `autoApprove = role==='admin'\|\|'pm'` | **Business rule** (workflow: hasil submit auto-approved vs submitted, bukan gate akses) | ⚠️ Tidak murni | Jangan dipaksa jadi permission tanpa desain — bisa salah model |
+| `kasbons.ts:126` | `isAdminOrPm → autoApprove` | **Business rule** (sama: auto-approve kasbon sendiri) | ⚠️ Tidak murni | Sama seperti cash.ts:473 |
+| `reports.ts:82` | `canViewFinance` → memfilter kolom finansial yang di-fetch (endpoint sudah punya guard) | **Data-scoping** (field-level filtering dalam 1 endpoint) | 🟡 Borderline | Cukup komentar; migrasi opsional ke `finance:view` |
+| `users.ts:12` | `isAdmin` → `showAll` (admin lihat user nonaktif) | **Data-scoping** (bukan deny; endpoint sudah `authenticate`) | 🟡 Borderline | Cukup komentar |
+
+**Hasil audit — angka sebenarnya bukan 7:**
+- **3 titik authorization murni** (`notifications.ts:154,229`, `progress.ts:313`) — allow/deny nyata (`return 403`), jelas melanggar ADR-004. **Ketiganya bisa migrasi dengan key yang SUDAH ADA** — tidak perlu permission baru.
+- **2 titik business rule** (`cash.ts:473`, `kasbons.ts:126`) — ini `autoApprove` (menentukan *hasil* submit, bukan *boleh submit atau tidak*). Memaksanya jadi permission bisa salah model — **tidak** dimigrasi tanpa keputusan desain workflow terpisah.
+- **2 titik data-scoping** (`reports.ts:82`, `users.ts:12`) — sah per ADR-004 Rule #1, cukup diberi komentar "bukan authorization gate".
+
+**Keputusan founder:** Epic 3 ditutup sesuai definisi sempitnya (4 `requireRole` — selesai). 3 titik authorization murni **tidak** dimasukkan ke Epic 3 (menjaga integritas kontrak scope), melainkan dijadikan **Architecture Remediation 3.5** terpisah — lihat [architecture-remediation-3.5-inline-authorization.md](architecture-remediation-3.5-inline-authorization.md). 2 business rule (`autoApprove`) dan 2 data-scoping dicatat di situ juga, dengan klasifikasi + rekomendasi masing-masing (business rule: tidak disentuh tanpa desain workflow; data-scoping: cukup komentar).
+
+---
+
+*Status implementasi: branch `feature/epic-3-permission-consolidation`. Commit 1 (`permission_scopes`, migration 060) dan commit 2 (`audit:view`+`finance:tax:submit`, migration 061) sudah dibuat — migration BELUM di-apply ke dev (menunggu review). Selanjutnya: migrasi 4 route + hapus `requireRole` + compliance audit Bagian 9.*
