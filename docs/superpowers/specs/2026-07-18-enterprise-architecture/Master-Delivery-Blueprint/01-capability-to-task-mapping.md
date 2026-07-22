@@ -43,7 +43,7 @@ Matrix berikut hanya mencakup Capability dengan Build Priority **Now** atau **Ne
 | Initiative | Epic | Feature (contoh) | Fase/Program | Status Hari Ini |
 |---|---|---|---|---|
 | Perbaiki Permission Engine | Konsolidasi 3 mekanisme otorisasi | Hapus `requireRole`, migrasi inline role check ke `requirePermission()` | Program A (Phase 1, item #1 tertinggi) | 🟢 Epic 3 selesai (`requireRole`=0, `requirePermission`=107, merged) · 🔵 3 gate inline tersisa → Architecture Remediation 3.5 |
-| | Sinkronisasi RLS ↔ RBAC v2 | RLS policy baca dari `role_permissions`, bukan hardcode 4 role | Program A (Phase 1, item #1) | ⏳ Epic 4 — pending, unblocked (Epic 3 selesai); masih 0 referensi RBAC v2 di RLS |
+| | Sinkronisasi RLS ↔ RBAC v2 | RLS policy baca dari `role_permissions`, bukan hardcode 4 role | Program A (Phase 1, item #1) | 🟢 Epic 4 SELESAI (PR #4-#7 merged) — RLS 100% permission-based via `has_permission()` + SECURITY DEFINER ownership (ADR-005); expand+contract tuntas, 0 policy literal-role tersisa |
 | Bangun Test Suite Finansial | Unit test kalkulasi murni | Test `calculateEVM`, bubble-up progress, dst | Program A (Phase 1, item #2) | 🟢 Epic 1 selesai — 53 test (merged) |
 | | Integration test Golden Path | Approve kasbon end-to-end, bayar termin end-to-end | Program A (Phase 1, item #2) | 🟢 Epic 1 selesai — 3 golden-path (kasbon/CO/procurement) |
 | Bangun Workflow Engine | Skema generik | `workflow_definitions`/`states`/`transitions` | Program B (Phase 2, item #5) | 🔵 Didesain ([Phase1/02 § 1C](../Phase1/02-target-architecture.md#sub-fase-1c--workflow-foundation)), belum diimplementasikan |

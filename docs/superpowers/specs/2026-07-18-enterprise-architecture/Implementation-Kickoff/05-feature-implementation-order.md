@@ -64,7 +64,7 @@
 
 | Feature | Task | Subtask | Depends On |
 |---|---|---|---|
-| **F5.1 — Schema** | T5.1.1 3 kolom nullable | Migration 067 | Independen (bisa mulai kapan saja setelah Epic 1 dimulai) |
+| **F5.1 — Schema** | T5.1.1 3 kolom nullable | Migration **072** (aktual — 067-071 terpakai Epic 4) | Independen (bisa mulai kapan saja setelah Epic 1 dimulai) |
 | **F5.2 — Helper** | T5.2.1 `audit.ts` | `logAuditEvent`, fire-and-forget | T5.1.1 |
 | **F5.3 — Migrasi Existing** | T5.3.1 `change-orders.ts:576` | Pakai helper baru, isi `severity: 'critical'` | T5.2.1 |
 | **F5.4 — Instrumentasi 6 Event** | T5.4.1 `kasbon.status` | Prioritas tertinggi | T5.2.1 |
@@ -73,7 +73,7 @@
 | | T5.4.4 `project.status` | | T5.4.3 |
 | | T5.4.5 `invoice.amount` | | T5.4.4 |
 | | T5.4.6 `rab_materials.override` | | T5.4.5 |
-| **F5.5 — Append-Only Trigger (Kondisional)** | T5.5.1 | Migration 068 — **butuh keputusan founder eksplisit dulu** | Keputusan founder (lihat [09-definition-of-ready.md](09-definition-of-ready.md)) |
+| **F5.5 — Append-Only Trigger (Kondisional)** | T5.5.1 | Migration **073** (dorman, belum apply) — **butuh keputusan founder eksplisit dulu** | Keputusan founder (lihat [09-definition-of-ready.md](09-definition-of-ready.md), [epic-5-decisions.md](epic-5-decisions.md)) |
 
 ---
 
