@@ -9,8 +9,8 @@ Legenda: ✅ selesai & merged · 🔵 pending · ⏳ pending, unblocked · ⚠�
 | 1A.4 | Epic 1 | Financial Test Suite | ✅ **Selesai** (merged `main`) | 53 test, 4 pure function + 3 golden-path; menemukan+fix 2 bug (kasbon double-approve, GR over-receipt) |
 | 1A.5 | Epic 2 | CI/CD Foundation | ✅ **Selesai** (merged `main`) | ESLint `apps/api` + `.github/workflows/ci.yml`; CI hijau; 5 GitHub Secrets di-set |
 | 1A.1 | Epic 3 | Permission Engine Consolidation | ✅ **Selesai** (PR #2, merge `818eeb5`) | `requireRole`=0, `requirePermission`=107; migration 060+061 **applied ke dev**; CI main hijau (1m57s). ⚠️ smoke test login-based belum diverifikasi manual |
-| — | Arch. Remediation 3.5 | Inline authorization gate cleanup | 🔵 **Pending** (berikutnya) | 3 gate: `notifications.ts:154,229`, `progress.ts:313` → key existing + helper `hasPermission()` |
-| 1A.2 | Epic 4 | RLS Synchronization | ⏳ **Pending, unblocked** | Prasyarat (Epic 3) selesai. Gap terbesar Phase 1A: RLS nol referensi RBAC v2. Migration mulai 062+ |
+| — | Arch. Remediation 3.5 | Inline authorization gate cleanup | ✅ **Selesai** (PR #3, merge `233c8b4`) | 3 gate → `hasPermission()` helper (kasbon/wage/foto); audit ulang: 0 role-literal authorization. autoApprove & data-scoping diberi komentar, tidak dimigrasi |
+| 1A.2 | Epic 4 | RLS Synchronization | 🚧 **In progress** | Prasyarat (Epic 3 + Remediation 3.5) selesai. Gap terbesar Phase 1A: RLS nol referensi RBAC v2. `has_permission()` SQL function + migrasi per-kelompok tabel. Migration mulai 062+ |
 | 1A.3 | Epic 5 | Audit Trail Helper | 🔵 **Pending** (boleh paralel) | `logAuditEvent` + instrumentasi 6 event |
 
 ## Gate 1A → 1B
