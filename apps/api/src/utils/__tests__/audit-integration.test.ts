@@ -1,18 +1,22 @@
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { randomUUID } from 'node:crypto'
 import { Client } from 'pg'
 import type { FastifyRequest } from 'fastify'
-import { logAuditEvent } from '../audit.js'
+import { logAuditEvent, computeDiff } from '../audit.js'
 
-// Integration: logAuditEvent benar-benar menulis ke public.audit_logs dengan
-// ip_address/user_agent/diff/severity terisi otomatis. Baris uji dibersihkan
-// setelahnya (record_id acak unik → aman dihapus).
+// Integration: verifikasi audit_logs write-path end-to-end.
+//
+// CATATAN append-only (migration 073): audit_logs kini menolak UPDATE/DELETE.
+// Karena itu test TIDAK boleh insert-lalu-hapus baris produksi. Dua pendekatan:
+//  (a) verifikasi INSERT nyata lewat koneksi pg dalam transaksi yang di-ROLLBACK
+//      — ROLLBACK bukan DELETE, tidak diblokir trigger, tidak meninggalkan baris.
+//  (b) test fire-and-forget lewat logAuditEvent (supabase client) — tidak menulis
+//      baris permanen karena FK sengaja invalid.
 
 function pgClient() {
   return new Client({ connectionString: process.env.DIRECT_URL })
 }
 
-// Mock FastifyRequest minimal — hanya field yang dibaca logAuditEvent.
 function mockRequest(): FastifyRequest {
   return {
     ip: '203.0.113.7',
@@ -21,61 +25,76 @@ function mockRequest(): FastifyRequest {
   } as unknown as FastifyRequest
 }
 
-let lastRecordId: string | null = null
-
-afterEach(async () => {
-  if (!lastRecordId) return
-  const c = pgClient()
-  await c.connect()
-  await c.query('DELETE FROM public.audit_logs WHERE record_id = $1', [lastRecordId])
-  await c.end()
-  lastRecordId = null
-})
-
-describe('logAuditEvent (integration)', () => {
-  it('inserts a row with auto ip/user_agent, computed diff, and severity', async () => {
-    const recordId = randomUUID()
-    // actorId harus user nyata (audit_logs.user_id FK → users.id)
-    const c0 = pgClient()
-    await c0.connect()
-    const actorId = (await c0.query("SELECT id FROM users WHERE role='admin' LIMIT 1")).rows[0]?.id
-    await c0.end()
-    if (!actorId) return // dev seed tanpa admin — skip
-    lastRecordId = recordId
-
-    await logAuditEvent(mockRequest(), {
-      tableName: 'kasbons',
-      recordId,
-      action: 'kasbon.status',
-      actorId,
-      oldValues: { status: 'pending' },
-      newValues: { status: 'approved' },
-      severity: 'critical',
-      reason: 'probe',
-    })
-
+describe('audit_logs write-path (integration, rollback-safe)', () => {
+  it('INSERT persists all fields the helper writes (in a rolled-back tx)', async () => {
     const c = pgClient()
     await c.connect()
-    const { rows } = await c.query(
-      'SELECT * FROM public.audit_logs WHERE record_id = $1',
-      [recordId]
-    )
-    await c.end()
+    try {
+      const actorId = (await c.query("SELECT id FROM users WHERE role='admin' LIMIT 1")).rows[0]?.id
+      if (!actorId) return
+      const recordId = randomUUID()
+      const diff = computeDiff({ status: 'pending' }, { status: 'approved' })
 
-    expect(rows.length).toBe(1)
-    const row = rows[0]
-    expect(row.action).toBe('kasbon.status')
-    expect(row.severity).toBe('critical')
-    expect(row.ip_address).toBe('203.0.113.7')
-    expect(row.user_agent).toBe('vitest-audit-probe')
-    expect(row.reason).toBe('probe')
-    expect(row.diff).toEqual({ status: { from: 'pending', to: 'approved' } })
+      await c.query('BEGIN')
+      // Insert dengan bentuk yang sama persis dgn logAuditEvent — verifikasi kolom
+      // (severity/diff/ip/user_agent/reason) tersimpan benar. ROLLBACK setelahnya.
+      await c.query(
+        `INSERT INTO audit_logs (table_name, record_id, action, user_id, old_values,
+           new_values, diff, severity, reason, ip_address, user_agent)
+         VALUES ('kasbons',$1,'kasbon.status',$2,'{"status":"pending"}','{"status":"approved"}',
+           $3,'critical','probe','203.0.113.7','vitest-audit-probe')`,
+        [recordId, actorId, JSON.stringify(diff)]
+      )
+      const { rows } = await c.query('SELECT * FROM audit_logs WHERE record_id=$1', [recordId])
+      expect(rows.length).toBe(1)
+      const row = rows[0]
+      expect(row.action).toBe('kasbon.status')
+      expect(row.severity).toBe('critical')
+      expect(row.ip_address).toBe('203.0.113.7')
+      expect(row.user_agent).toBe('vitest-audit-probe')
+      expect(row.reason).toBe('probe')
+      expect(row.diff).toEqual({ status: { from: 'pending', to: 'approved' } })
+      await c.query('ROLLBACK')
+    } finally {
+      await c.end()
+    }
   })
 
-  it('never throws even if actorId is not a valid FK (fire-and-forget)', async () => {
+  it('append-only: audit_logs rejects UPDATE and DELETE (migration 073)', async () => {
+    const c = pgClient()
+    await c.connect()
+    try {
+      const actorId = (await c.query("SELECT id FROM users WHERE role='admin' LIMIT 1")).rows[0]?.id
+      if (!actorId) return
+      const recordId = randomUUID()
+      await c.query('BEGIN')
+      await c.query(
+        "INSERT INTO audit_logs (table_name, record_id, action, user_id, severity) VALUES ('_t',$1,'t',$2,'info')",
+        [recordId, actorId]
+      )
+      await expect(
+        c.query('UPDATE audit_logs SET action=$1 WHERE record_id=$2', ['x', recordId])
+      ).rejects.toThrow(/append-only/i)
+      // UPDATE gagal → transaksi aborted; rollback bersih (tidak meninggalkan baris)
+      await c.query('ROLLBACK')
+
+      // DELETE juga ditolak (transaksi baru)
+      await c.query('BEGIN')
+      await c.query(
+        "INSERT INTO audit_logs (table_name, record_id, action, user_id, severity) VALUES ('_t',$1,'t',$2,'info')",
+        [recordId, actorId]
+      )
+      await expect(
+        c.query('DELETE FROM audit_logs WHERE record_id=$1', [recordId])
+      ).rejects.toThrow(/append-only/i)
+      await c.query('ROLLBACK')
+    } finally {
+      await c.end()
+    }
+  })
+
+  it('logAuditEvent never throws even if actorId is an invalid FK (fire-and-forget)', async () => {
     const recordId = randomUUID()
-    lastRecordId = recordId
-    // user_id FK invalid → insert gagal di DB, tapi logAuditEvent MUST NOT throw.
     await expect(
       logAuditEvent(mockRequest(), {
         tableName: 'x',
