@@ -78,7 +78,7 @@ puraloka-suite/
 - Project URL: `https://tgozokxyvwmyvajgqfxw.supabase.co`
 - Region: Southeast Asia (Singapore)
 - Auth providers aktif: Email/Password, Google OAuth
-- **RLS: DISABLED di semua tabel** (sengaja untuk development, perlu diaktifkan kembali dengan proper policies sebelum production)
+- **RLS: AKTIF & 100% permission-based** (Epic 4, Sub-Fase 1A). Policy membaca `has_permission()` (dari `role_permissions`) + helper ownership `SECURITY DEFINER` (ADR-005) — bukan literal role. Migration 049 (RLS awal literal-role) sudah di-contract/dihapus (migration 071). API tetap pakai service_role (bypass RLS) — RLS adalah lapis pertahanan kedua untuk akses non-service-role.
 
 ---
 

@@ -1,6 +1,6 @@
 # ADR-004 — Permission adalah Arsitektur, Role adalah Konfigurasi
 
-**Status:** Menunggu persetujuan founder
+**Status:** Diterima — diterapkan penuh di Epic 3, Remediation 3.5, dan Epic 4 (RLS), semua merged ke main (PR #2-#7). RLS + API layer kini 100% permission-based.
 **Tanggal:** 2026-07-23
 **Kedudukan:** Architecture Principle mengikat seluruh roadmap — bukan keputusan lokal Epic 3. Melengkapi [07-security-engineering-standard.md](../03-core-implementation/07-security-engineering-standard.md), [06-api-engineering-standard.md](../03-core-implementation/06-api-engineering-standard.md), dan [05-database-engineering-standard.md](../03-core-implementation/05-database-engineering-standard.md) dengan satu prinsip tunggal yang menyatukan aturan otorisasi yang sebelumnya tersebar di ketiganya.
 
