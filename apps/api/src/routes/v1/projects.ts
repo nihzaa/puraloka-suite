@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { createNotification, createNotifications, getProjectAdminsAndPM } from '../../utils/notifications.js'
+import { logAuditEvent } from '../../utils/audit.js'
 
 export default async function projectRoutes(app: FastifyInstance) {
 
@@ -340,7 +341,7 @@ export default async function projectRoutes(app: FastifyInstance) {
     }
 
     const { data: existing } = await supabase
-      .from('projects').select('id, is_deleted').eq('id', id).single()
+      .from('projects').select('id, is_deleted, status').eq('id', id).single()
     if (!existing) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
     if (existing.is_deleted) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
 
@@ -355,6 +356,19 @@ export default async function projectRoutes(app: FastifyInstance) {
       .single()
 
     if (error) return reply.status(500).send({ error: error.message })
+
+    // Audit: perubahan status proyek
+    if (data) {
+      void logAuditEvent(request, {
+        tableName: 'projects',
+        recordId: id,
+        action: 'project.status',
+        actorId: request.currentUser!.id,
+        oldValues: { status: existing.status },
+        newValues: { status },
+        severity: 'warning',
+      })
+    }
 
     // ── Fire-and-forget: notif ke admin + PM saat status berubah ─────────────
     if (data) {

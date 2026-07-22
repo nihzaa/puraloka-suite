@@ -3,6 +3,7 @@ import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { validateMime } from '../../utils/mime.js'
 import { createNotifications, getAllAdmins, getProjectAdminsAndPM } from '../../utils/notifications.js'
+import { logAuditEvent } from '../../utils/audit.js'
 
 const ALLOWED_IMAGE_PDF = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
 
@@ -415,6 +416,16 @@ export default async function financeRoutes(app: FastifyInstance) {
       .single()
 
     if (invErr) return reply.status(500).send({ error: invErr.message })
+
+    // Audit: pembuatan invoice — nilai tagihan (invoice.amount)
+    void logAuditEvent(request, {
+      tableName: 'invoices',
+      recordId: invoice.id,
+      action: 'invoice.amount',
+      actorId: currentUser.id,
+      newValues: { invoice_number: invoice.invoice_number, total_amount: totalAmount },
+      severity: 'critical',
+    })
 
     // ── Post-insert: insert line items (expense_billing) ─────────────────────
     if (body.invoice_type === 'expense_billing' && body.line_items && body.line_items.length > 0) {
