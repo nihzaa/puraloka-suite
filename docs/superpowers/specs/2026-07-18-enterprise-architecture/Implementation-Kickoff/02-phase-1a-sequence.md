@@ -2,7 +2,7 @@
 
 **Sumber tunggal:** [Phase1/05-rollout-plan.md](../Phase1/05-rollout-plan.md) (urutan), [Phase1/03-migration-strategy.md](../Phase1/03-migration-strategy.md) (prosedur per migrasi), [Phase1/02-target-architecture.md](../Phase1/02-target-architecture.md) (desain). Dokumen ini **tidak mendesain ulang** — ia memecah Sub-Fase 1A menjadi lima unit eksekusi (1A.1–1A.5) dengan Objective/Dependency/Input/Output/Deliverable/Rollback/Definition of Done yang eksplisit, sesuatu yang belum ada dalam bentuk ini di korpus manapun.
 
-> **Status eksekusi:** lihat ledger terpusat [STATUS.md](STATUS.md). Per 2026-07-23 **seluruh implementasi Sub-Fase 1A SELESAI & merged**: 1A.4 (Epic 1) ✅ · 1A.5 (Epic 2) ✅ · 1A.1 (Epic 3) ✅ · Remediation 3.5 ✅ · 1A.2 (Epic 4, RLS expand+contract) ✅ · 1A.3 (Epic 5, F5.1-F5.4) ✅. Tersisa keputusan founder (F5.5 append-only, smoke test login, Gate 1A→1B approval) — bukan implementasi.
+> **Status eksekusi:** lihat ledger terpusat [STATUS.md](STATUS.md). Per 2026-07-23 **seluruh implementasi Sub-Fase 1A SELESAI & merged**: 1A.4 (Epic 1) ✅ · 1A.5 (Epic 2) ✅ · 1A.1 (Epic 3) ✅ · Remediation 3.5 ✅ · 1A.2 (Epic 4, RLS expand+contract) ✅ · 1A.3 (Epic 5, **F5.1-F5.5 — append-only applied via PR #13**) ✅. **Gate 1A→1B: ✅ APPROVED founder** (F5.5 applied, smoke test 4 role dijalankan). Tidak ada blocker implementasi tersisa.
 
 ---
 

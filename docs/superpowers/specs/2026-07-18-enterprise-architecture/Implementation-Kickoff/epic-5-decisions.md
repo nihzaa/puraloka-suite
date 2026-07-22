@@ -1,8 +1,8 @@
 # Epic 5 — Audit Trail Helper: Keputusan & Temuan
 
-Epic 5 F5.1-F5.4 selesai otonom (helper terpusat + instrumentasi event). Dokumen ini mencatat tiga hal yang **bukan** keputusan teknis murni — untuk founder.
+Epic 5 F5.1-F5.4 selesai otonom (helper terpusat + instrumentasi event); **F5.5 kini juga SELESAI** (append-only applied via PR #13). Dokumen ini mencatat tiga hal yang **bukan** keputusan teknis murni — untuk founder.
 
-## 1. F5.5 — Append-Only Trigger (butuh keputusan founder)
+## 1. F5.5 — Append-Only Trigger — ✅ RESOLVED (applied PR #13)
 
 **Apa:** trigger DB yang menolak `UPDATE`/`DELETE` pada `audit_logs` — menjadikan audit trail immutable (append-only). Sekali aktif, **tidak seorang pun** (termasuk admin) bisa mengubah/menghapus baris audit lewat jalur normal.
 
@@ -12,9 +12,11 @@ Epic 5 F5.1-F5.4 selesai otonom (helper terpusat + instrumentasi event). Dokumen
 
 DoR ([09-definition-of-ready.md](09-definition-of-ready.md)) eksplisit: F5.5 **MUST NOT** dimulai tanpa keputusan founder — berbeda dari task lain yang DoR-nya murni teknis.
 
-**Status:** migration disiapkan (`db/migrations/073_audit_append_only.sql`) tapi **TIDAK di-apply** sampai founder memutuskan. Default: tidak aktif.
+**Status:** ✅ **RESOLVED** — founder menyetujui aktifkan (audit_logs only), migration 073 **applied** via PR #13 (`d9ea114`). Trigger `trg_audit_logs_no_update`/`trg_audit_logs_no_delete` aktif di DB; audit_logs immutable (UPDATE/DELETE ditolak, INSERT boleh). Diverifikasi dari koneksi baru. Test integration di-refactor rollback-safe + test khusus memverifikasi immutability (regression guard).
 
-**Keputusan yang dibutuhkan:** aktifkan append-only sekarang? (ya → aku apply 073; tidak → 073 tetap sebagai file dorman, audit tetap mutable seperti sekarang).
+**Catatan maintenance:** koreksi baris audit yang salah (jarang) lewat DROP trigger sementara → edit → re-create — jalur terkontrol, service_role/superuser.
+
+**Drift tracking (belum diperbaiki):** 073 trigger ada di DB tapi belum tercatat di `schema_migrations` (apply lewat pg langsung). Rekonsiliasi = item run implementasi berikutnya.
 
 ## 2. Temuan: `payment.deleted` tidak bisa diinstrumentasi
 

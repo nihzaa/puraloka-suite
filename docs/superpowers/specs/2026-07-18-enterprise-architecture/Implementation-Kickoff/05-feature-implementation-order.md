@@ -73,7 +73,7 @@
 | | T5.4.4 `project.status` | | T5.4.3 |
 | | T5.4.5 `invoice.amount` | | T5.4.4 |
 | | T5.4.6 `rab_materials.override` | | T5.4.5 |
-| **F5.5 — Append-Only Trigger (Kondisional)** | T5.5.1 | Migration **073** (dorman, belum apply) — **butuh keputusan founder eksplisit dulu** | Keputusan founder (lihat [09-definition-of-ready.md](09-definition-of-ready.md), [epic-5-decisions.md](epic-5-decisions.md)) |
+| **F5.5 — Append-Only Trigger (Kondisional)** | T5.5.1 | Migration **073** ✅ **APPLIED** (PR #13, `d9ea114`) — founder menyetujui, audit_logs immutable | Keputusan founder ✅ diberikan (lihat [epic-5-decisions.md](epic-5-decisions.md)) |
 
 ---
 

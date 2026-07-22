@@ -54,7 +54,8 @@ Dijalankan langsung: login betulan tiap role (via HttpOnly cookie), hit endpoint
 | **mandor** | GET /cash/accounts/:id | **403** | 403 | **LOGIN** | ✅ (**fix cash bekerja**) |
 | **mandor** | GET /audit | **403** | 403 | **LOGIN** | ✅ |
 | **mandor** | PATCH /reports/rekap-pajak/:id/status | **403** | 403 | **LOGIN** | ✅ |
-| **mandor** | DELETE /progress-logs/:id (bukan milik) | **403** | 403 | **LOGIN** | ✅ (**fix progress bekerja**) |
+| **mandor** | DELETE /progress-logs/:id (bukan milik) | **403** | 403 | **LOGIN** | ✅ (**fix progress bekerja** — negative) |
+| **mandor** | DELETE /progress-logs/:id (**MILIKNYA**) | **200** | 200 | **LOGIN** | ✅ (**positive path** — ownership; log terhapus, verified) |
 | **client** | GET /cash/accounts/:id | **403** | 403 | **LOGIN** | ✅ |
 | **client** | GET /audit | **403** | 403 | **LOGIN** | ✅ |
 | **client** | PATCH /reports/rekap-pajak/:id/status | **403** | 403 | **LOGIN** | ✅ |
@@ -106,7 +107,7 @@ Audit menyeluruh 81 kolom + 62 fungsi + 68 tabel dari semua file migration vs sc
 | **Mismatch nyata BERDAMPAK** (dipakai kode) | 046 (audit diff/severity) | tak ter-apply | ✅ Fixed saat Epic 5 |
 | | 058 (procurement: min_stock, canceled_at, cancel_notes) | **apply PARSIAL** (2 dari 5 kolom masuk, 3 hilang) | ✅ **Fixed sekarang** (re-apply idempotent) |
 | **Mismatch TAK berdampak** (fitur belum diimplementasi, **0 referensi kode**) | 043 (RAB material tracking), 044 (field opname), 045 (asset mgmt), 047 (general ledger) | tabel+kolom di file tapi tak ada di DB; **tak ada kode yang query** | Dicatat — bukan bug (tak ada yang error). Apply saat fiturnya dibangun |
-| **Dorman by design** | 073 (append-only) | sengaja belum apply | Menunggu #4 |
+| **Applied (PR #13)** | 073 (append-only) | ✅ applied — audit_logs immutable | ⚠️ trigger di DB tapi belum tercatat `schema_migrations` (rekonsiliasi = run implementasi berikutnya) |
 | **Tracking table** | `schema_migrations` | berhenti di 057; 058-074 tak tercatat (apply manual pg, bukan `supabase db push`) | Rekonsiliasi (bawah) |
 
 **Jawaban lugas atas pertanyaanmu:** bukan cuma tracking beda — **ada schema mismatch nyata** (046, 058) yang **berdampak ke fitur yang dipakai** (audit gagal insert, procurement min_stock/cancel error). Keduanya **sudah diperbaiki**. Sisanya (043-047) mismatch tapi zero-impact (fitur belum ada di kode). Tidak ada lagi drift berdampak setelah 058 di-fix.
@@ -143,7 +144,7 @@ Konfirmasi: 18 migration yang direkonsiliasi diverifikasi **per-objek** (column/
 - Hanya audit trail yang immutable — best practice forensik standar.
 - `service_role`/superuser masih bisa DROP trigger untuk maintenance terencana.
 
-**Rekomendasi:** aman diaktifkan. Trade-off satu-satunya: koreksi baris audit yang salah harus lewat DROP trigger sementara (jarang, terkontrol). Keputusan tetap milikmu.
+**Status: ✅ RESOLVED — founder menyetujui, applied via PR #13** (`d9ea114`). audit_logs immutable. Trade-off satu-satunya: koreksi baris audit yang salah lewat DROP trigger sementara (jarang, terkontrol).
 
 ---
 
@@ -161,4 +162,5 @@ Status: **ditambahkan** di PR ini (lihat `rls-fixed-endpoints.test.ts`) — memv
 2. **2 bug drift diperbaiki** (046 sebelumnya, 058 sekarang).
 3. **Isu arsitektur laten ditemukan** (users.role enum vs RBAC v2 custom role) — dicatat untuk 1B.
 4. Regression test security ditambahkan.
-5. F5.5 & tracking rekonsiliasi tetap keputusan/pekerjaan terpisah.
+5. **F5.5 append-only ✅ APPLIED (PR #13)** — audit_logs immutable. Sisa: rekonsiliasi tracking 073 di `schema_migrations` (run implementasi berikutnya) + apply 043-047 saat fitur dibangun.
+6. **Gate 1A→1B ✅ APPROVED founder** (2026-07-23).
