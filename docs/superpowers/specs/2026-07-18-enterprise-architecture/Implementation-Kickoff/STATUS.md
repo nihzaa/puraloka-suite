@@ -13,7 +13,7 @@ Legenda: ✅ selesai & merged · 🔵 pending · ⏳ pending, unblocked · ⚠�
 | 1A.2 | Epic 4 | RLS Synchronization | ✅ **SELESAI 100%** (PR #4-#7 merged) | `has_permission()` (062) + harness + fix recursion (065/ADR-005) + expand 4 kelompok (063,066,067/068,069/070) + **contract (071 — drop 59 policy literal-role)**. RLS kini HANYA has_permission + ownership helpers, nol auth_role() literal. Capability: progress/workers/finance/cash:manage (admin+pm default, UI-configurable). 106 test hijau. Safety: WAL archiving on + daily backup + dry-run + in-tx verify. Rollback: re-create dari 049 |
 | — | CI race fix | Per-run test schema | ✅ **Selesai** (PR #6) | Root cause "type user_role already exists" di main: shared `test` schema. Fix: TEST_SCHEMA=test_<run_id> unik per CI run + cleanup |
 | — | ADR-005 | RLS ownership via SECURITY DEFINER | ✅ **Diterima** | Fix infinite recursion `projects ↔ mandor_assignments` (bug pre-existing 049, ditemukan RLS harness). Helper `is_assigned_mandor`/`is_pm_of_project`/`is_owning_client` |
-| 1A.3 | Epic 5 | Audit Trail Helper | 🟢 **F5.1-F5.4 SELESAI** · F5.5 gated | `audit.ts` helper terpusat (logAuditEvent, computeDiff, fire-and-forget, auto ip/user_agent) + migration 072 (correlation_id/workflow_id/reason + defensive diff/severity). Instrumentasi 5/6 event (kasbon.status, project.status, user.role, invoice.amount, rab_materials.override, + change_order). `payment.deleted` N/A (endpoint delete belum ada). 113 test hijau. **Ditemukan+fix bug drift: migration 046 tak ter-apply** (kolom diff/severity hilang). ⏳ **F5.5 append-only trigger = GATE founder** (073 dorman) — lihat [epic-5-decisions.md](epic-5-decisions.md) |
+| 1A.3 | Epic 5 | Audit Trail Helper | 🟢 **SELESAI (F5.1-F5.5)** | `audit.ts` helper terpusat + migration 072. Instrumentasi 5/6 event. `payment.deleted` N/A. **F5.5 append-only trigger (073) APPLIED** — audit_logs immutable (UPDATE/DELETE ditolak, INSERT boleh); founder setujui, applied 2026-07-23. 119 test hijau (test integration di-refactor jadi rollback-safe + test khusus verifikasi immutability). Bug drift 046 fixed |
 
 ## Gate 1A → 1B
 
@@ -23,7 +23,7 @@ Legenda: ✅ selesai & merged · 🔵 pending · ⏳ pending, unblocked · ⚠�
 - F5.5 append-only trigger — aktifkan? (073 dorman) — [epic-5-decisions.md](epic-5-decisions.md)
 - Verifikasi manual login per-role (smoke test) — ✅ **DIJALANKAN** (4 role login-verified, authorization semua benar; `direktur` automated-only karena enum). Lihat [gate-1a-preconditions-response.md § #2b](gate-1a-preconditions-response.md).
 - Migration drift — ✅ **DIPERBAIKI** (058 3 kolom hilang re-apply; `schema_migrations` rekonsiliasi 52→70, deep-verify column-level). Sisa: apply 043-047 saat fitur dibangun.
-- F5.5 append-only — founder **setujui aktifkan** (audit_logs only); tunggu instruksi apply terpisah (073 dorman).
+- F5.5 append-only — ✅ **APPLIED** (audit_logs immutable). Maintenance koreksi audit: DROP trigger sementara → edit → re-create (jalur terkontrol).
 - **Founder approval eksplisit** untuk lanjut ke 1B — bukan otomatis saat checklist penuh.
 
 ## Kandidat item Sub-Fase 1B (dicatat, jangan mengambang)
