@@ -1,5 +1,24 @@
 # Puraloka Suite — Context for Claude Code
 
+## AUTONOMOUS EXECUTION MODE
+
+Ketika sudah ada roadmap/ADR/Epic/execution plan yang disetujui, **lanjutkan mengerjakan dependency berikutnya secara otomatis**. Jangan berhenti hanya untuk bertanya "mau lanjut?". Bertindaklah seperti senior engineer yang membaca sprint lalu jalan sendiri, lapor progres secara asynchronous — bukan minta izin tiap langkah.
+
+**BOLEH otonom** (implement → test → commit → push → buka PR → merge jika prasyarat terpenuhi → update dokumentasi/STATUS → lanjut task berikutnya) bila SEMUA benar:
+- ada ADR/Epic/execution plan yang jelas · tidak mengubah requirement bisnis · tidak menambah scope · bukan breaking change · tidak menyentuh production · dapat diverifikasi CI/test · dapat di-revert via git.
+
+Merge policy proyek ini: branch + PR (bukan langsung `main` untuk kode), CI hijau wajib, urutan **Review → Migration → Verification → Merge** (migration di-apply ke dev SETELAH PR logic-nya benar, sebelum merge). Update `STATUS.md` adalah bagian Definition of Done — lakukan tanpa diminta.
+
+**WAJIB berhenti & tanya** hanya bila:
+1. **Production** — deploy production, apply migration production, rotate secret, delete data.
+2. **Requirement berubah** — ADR/workflow/business logic perlu diubah.
+3. **Trade-off produk** — ≥2 desain sama-sama valid, butuh keputusan produk.
+4. **CI merah** — perbaiki dulu, jangan lanjut sprint (ini "berhenti untuk fix", bukan "berhenti untuk tanya").
+5. **Blocker kredensial/eksternal** — password, API key, Supabase Auth login, approval eksternal.
+6. User eksplisit minta review sebelum lanjut.
+
+Di luar keenam itu: jangan tanya, kerjakan. Laporkan hasil, bukan minta izin melangkah.
+
 ## Tentang Project
 Aplikasi manajemen konstruksi untuk **Puraloka Persada** milik Nizar (nihzaa).
 Platform bernama **Puraloka Suite** — web dashboard admin + mobile app + backend API.

@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
-import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { authenticate, requirePermission, hasPermission } from '../../plugins/auth.js'
 
 export default async function notificationRoutes(app: FastifyInstance) {
 
@@ -151,8 +151,8 @@ export default async function notificationRoutes(app: FastifyInstance) {
 
     // ── approve_kasbon / reject_kasbon ──────────────────────────────────────
     if (actionType === 'approve_kasbon' || actionType === 'reject_kasbon') {
-      if (!['admin', 'pm'].includes(user.role)) {
-        return reply.status(403).send({ error: 'Hanya admin atau PM yang bisa menyetujui/menolak kasbon' })
+      if (!(await hasPermission(request, 'mandor:kasbon:approve'))) {
+        return reply.status(403).send({ error: 'Akses ditolak. Butuh permission: mandor:kasbon:approve' })
       }
 
       const kasbonId = actionData?.kasbon_id as string | undefined
@@ -226,8 +226,8 @@ export default async function notificationRoutes(app: FastifyInstance) {
 
     // ── approve_wage_report / reject_wage_report ────────────────────────────
     else if (actionType === 'approve_wage_report' || actionType === 'reject_wage_report') {
-      if (!['admin', 'pm'].includes(user.role)) {
-        return reply.status(403).send({ error: 'Hanya admin atau PM yang bisa menyetujui/menolak laporan upah' })
+      if (!(await hasPermission(request, 'mandor:wage:approve'))) {
+        return reply.status(403).send({ error: 'Akses ditolak. Butuh permission: mandor:wage:approve' })
       }
 
       const reportId = actionData?.report_id as string | undefined

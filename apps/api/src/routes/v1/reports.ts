@@ -79,6 +79,8 @@ export default async function reportsRoutes(app: FastifyInstance) {
     if (!project_id) return reply.status(400).send({ error: 'project_id wajib diisi' })
 
     const user = request.currentUser!
+    // Data-scoping, bukan authorization gate (ADR-004 Rule #1): endpoint sudah
+    // ter-authenticate; ini hanya menentukan apakah kolom finansial ikut di-fetch.
     const canViewFinance = user.role === 'admin' || user.role === 'pm'
 
     const [

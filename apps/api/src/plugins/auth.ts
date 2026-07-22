@@ -1,4 +1,4 @@
-import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
+import { FastifyRequest, FastifyReply } from 'fastify'
 import { supabase, supabaseAuth } from '../utils/supabase.js'
 
 // Tipe untuk user yang sudah terautentikasi
@@ -56,30 +56,48 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
   request.currentUser = user as AuthUser
 }
 
-// Guard: cek permission spesifik dari tabel role_permissions (RBAC modular)
-// Permission cache di-load sekali per request via Supabase RPC, tidak ada N+1
+// Load permission set untuk role user ke cache per-request (sekali per request, no N+1).
+// Return null jika RPC gagal (dibedakan dari "role tanpa permission" = Set kosong).
+async function loadPermissionCache(request: FastifyRequest): Promise<Set<string> | null> {
+  if (request._permissionCache) return request._permissionCache
+  const { data, error } = await supabase.rpc('get_role_permissions', {
+    role_name: request.currentUser!.role
+  })
+  if (error) return null
+  request._permissionCache = new Set(
+    (data ?? []).map((r: { permission_key: string }) => r.permission_key)
+  )
+  return request._permissionCache
+}
+
+// Guard preHandler: cek permission spesifik dari tabel role_permissions (RBAC modular).
+// Permission cache di-load sekali per request via Supabase RPC, tidak ada N+1.
 export function requirePermission(permissionKey: string) {
   return async (request: FastifyRequest, reply: FastifyReply) => {
     if (!request.currentUser) {
       return reply.status(401).send({ error: 'Belum login' })
     }
 
-    if (!request._permissionCache) {
-      const { data, error } = await supabase.rpc('get_role_permissions', {
-        role_name: request.currentUser.role
-      })
-      if (error) {
-        return reply.status(500).send({ error: 'Gagal memuat permission' })
-      }
-      request._permissionCache = new Set(
-        (data ?? []).map((r: { permission_key: string }) => r.permission_key)
-      )
+    const cache = await loadPermissionCache(request)
+    if (!cache) {
+      return reply.status(500).send({ error: 'Gagal memuat permission' })
     }
 
-    if (!request._permissionCache.has(permissionKey)) {
+    if (!cache.has(permissionKey)) {
       return reply.status(403).send({
         error: `Akses ditolak. Butuh permission: ${permissionKey}`
       })
     }
   }
+}
+
+// Cek permission secara programatik di DALAM body handler (bukan preHandler) —
+// untuk authorization gate yang bergantung pada kondisi runtime (mis. action_type
+// notifikasi). Mengembalikan boolean, tidak mengirim response. Fail-closed:
+// return false jika belum login atau RPC gagal (ADR-004 Mandatory Rule #1).
+export async function hasPermission(request: FastifyRequest, permissionKey: string): Promise<boolean> {
+  if (!request.currentUser) return false
+  const cache = await loadPermissionCache(request)
+  if (!cache) return false
+  return cache.has(permissionKey)
 }

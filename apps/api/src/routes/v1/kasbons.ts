@@ -123,6 +123,9 @@ export default async function kasbonRoutes(app: FastifyInstance) {
       if (!asgn) return reply.status(403).send({ error: 'Anda tidak memiliki assignment aktif di proyek ini' })
     }
 
+    // Business rule, BUKAN authorization gate (ADR-004 Rule #6): menentukan
+    // apakah kasbon langsung approved — bukan boleh/tidak mengajukan. Jangan
+    // migrasikan ke permission; ini kandidat Workflow Engine (Program B).
     const isAdminOrPm = user.role === 'admin' || user.role === 'pm'
     const autoApprove = isAdminOrPm && (body.auto_approve !== false)
 

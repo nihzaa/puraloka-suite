@@ -469,7 +469,9 @@ export default async function cashRoutes(app: FastifyInstance) {
     }
 
     const currentUser = (request as any).currentUser!
-    // PM langsung auto-approved, mandor masih submitted
+    // Business rule, BUKAN authorization gate (ADR-004 Rule #6): menentukan
+    // apakah expense langsung approved vs submitted — bukan boleh/tidak submit.
+    // Jangan migrasikan ke permission; ini kandidat Workflow Engine (Program B).
     const autoApprove = currentUser.role === 'admin' || currentUser.role === 'pm'
 
     const { data, error } = await supabase

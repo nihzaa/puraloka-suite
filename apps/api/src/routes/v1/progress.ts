@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
-import { authenticate } from '../../plugins/auth.js'
+import { authenticate, hasPermission } from '../../plugins/auth.js'
 import { bubbleUpProgress } from '../../lib/rab-aggregation.js'
 
 export default async function progressRoutes(app: FastifyInstance) {
@@ -303,15 +303,14 @@ export default async function progressRoutes(app: FastifyInstance) {
   })
 
   // PATCH /api/v1/projects/:projectId/photos/:photoId
-  // Update kategori foto (admin/pm only)
+  // Update kategori foto — butuh permission documents:manage
   app.patch('/api/v1/projects/:projectId/photos/:photoId', {
     preHandler: [authenticate]
   }, async (request, reply) => {
     const { projectId, photoId } = request.params as { projectId: string; photoId: string }
-    const user = request.currentUser!
 
-    if (!['admin', 'pm'].includes(user.role)) {
-      return reply.status(403).send({ error: 'Akses ditolak' })
+    if (!(await hasPermission(request, 'documents:manage'))) {
+      return reply.status(403).send({ error: 'Akses ditolak. Butuh permission: documents:manage' })
     }
 
     const { category, caption } = request.body as { category?: string; caption?: string }

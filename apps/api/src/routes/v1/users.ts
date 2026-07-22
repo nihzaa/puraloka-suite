@@ -9,6 +9,8 @@ export default async function userRoutes(app: FastifyInstance) {
   app.get('/api/v1/users', { preHandler: [authenticate] }, async (request, reply) => {
     const { role, all } = request.query as { role?: string; all?: string }
 
+    // Data-scoping, bukan authorization gate (ADR-004 Rule #1): endpoint sudah
+    // ter-authenticate; ini hanya menentukan apakah user nonaktif ikut ditampilkan.
     const isAdmin = request.currentUser?.role === 'admin'
     const showAll = all === 'true' && isAdmin
 
