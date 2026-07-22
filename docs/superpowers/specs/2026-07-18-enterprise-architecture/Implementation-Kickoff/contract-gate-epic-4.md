@@ -1,6 +1,13 @@
 # Epic 4 — Contract Phase Gate (RLS)
 
-**Status:** Menunggu keputusan founder. Ini satu-satunya bagian Epic 4 yang **tidak** dieksekusi otonom — sesuai policy (production + operasional + verifikasi eksternal).
+**Status:** ✅ **SELESAI** (PR #7, migration 071). Contract dieksekusi setelah konfirmasi jaring pengaman (WAL archiving `on` + Supabase daily backup, terverifikasi via `pg_settings`; PITR granular hanya terlihat di dashboard tapi minimal backup harian cukup). Dry-run di transaksi rollback membuktikan akses tetap benar sebelum apply nyata; apply dengan verifikasi in-transaction (0 policy literal-role sebelum commit). 106 test hijau. Dokumen ini dipertahankan sebagai catatan keputusan.
+
+---
+
+## Catatan penting untuk environment ini
+Hanya ada **1 Supabase project** (`puraloka-suite-dev` = DB live, tidak ada prod terpisah). Contract di sini destructive pada DB tunggal — jaring pengaman (backup) diverifikasi ada sebelum eksekusi. Kalau kelak pindah ke arsitektur multi-environment, contract untuk perubahan RLS berikutnya tetap harus lewat maintenance window + PITR verified per bagian di bawah.
+
+---
 
 ## Apa yang sudah selesai (expand phase, otonom)
 
