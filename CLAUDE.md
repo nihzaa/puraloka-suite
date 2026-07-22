@@ -19,6 +19,10 @@ Merge policy proyek ini: branch + PR (bukan langsung `main` untuk kode), CI hija
 
 Di luar keenam itu: jangan tanya, kerjakan. Laporkan hasil, bukan minta izin melangkah.
 
+**Engineering Default Rule:** kalau ada beberapa pendekatan implementasi dan tidak ada ADR yang memilih salah satu, **pilih sendiri** yang: (1) paling maintainable jangka panjang, (2) menambah verifikasi otomatis, (3) mengurangi technical debt, (4) behavior-preserving, (5) tidak memperluas scope sprint. Dokumentasikan alasannya di commit/PR, lalu lanjut. **Adanya beberapa alternatif teknis bukan alasan berhenti bertanya** — hanya berhenti kalau alternatif itu mengubah business behavior, product requirement, security model, atau deployment risk. Bila sebuah subsistem belum punya test harness, membangunnya adalah task pertama sprint (bukan alasan menunda verifikasi).
+
+**Engineering Default Rule #2 — blocker teknis diselesaikan sendiri:** kalau blocker disebabkan keterbatasan/perilaku teknis — PostgreSQL/Supabase/framework/compiler, RLS recursion, deadlock, locking, transaction semantics, query planner, migration conflict — **jangan berhenti bertanya**. Wajib: (1) root-cause analysis, (2) bandingkan dengan best practice resmi, (3) implementasikan solusi kanonik, (4) verifikasi dengan test otomatis, lalu lanjut sprint. Tulis ADR bila solusinya berdampak arsitektur lintas-modul (dokumentasi, bukan minta izin). Berhenti HANYA bila ada ≥2 solusi kanonik dengan konsekuensi arsitektur yang berbeda material (mis. SECURITY DEFINER helper vs denormalisasi ownership vs JWT-claim cache) — itu baru keputusan arsitektur. "Bug teknis tanpa ADR" bukan alasan berhenti; bug bukan keputusan produk.
+
 ## Tentang Project
 Aplikasi manajemen konstruksi untuk **Puraloka Persada** milik Nizar (nihzaa).
 Platform bernama **Puraloka Suite** — web dashboard admin + mobile app + backend API.
