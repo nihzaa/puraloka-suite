@@ -10,7 +10,8 @@ Legenda: ✅ selesai & merged · 🔵 pending · ⏳ pending, unblocked · ⚠�
 | 1A.5 | Epic 2 | CI/CD Foundation | ✅ **Selesai** (merged `main`) | ESLint `apps/api` + `.github/workflows/ci.yml`; CI hijau; 5 GitHub Secrets di-set |
 | 1A.1 | Epic 3 | Permission Engine Consolidation | ✅ **Selesai** (PR #2, merge `818eeb5`) | `requireRole`=0, `requirePermission`=107; migration 060+061 **applied ke dev**; CI main hijau (1m57s). ⚠️ smoke test login-based belum diverifikasi manual |
 | — | Arch. Remediation 3.5 | Inline authorization gate cleanup | ✅ **Selesai** (PR #3, merge `233c8b4`) | 3 gate → `hasPermission()` helper (kasbon/wage/foto); audit ulang: 0 role-literal authorization. autoApprove & data-scoping diberi komentar, tidak dimigrasi |
-| 1A.2 | Epic 4 | RLS Synchronization | 🚧 **In progress** | Prasyarat (Epic 3 + Remediation 3.5) selesai. Gap terbesar Phase 1A: RLS nol referensi RBAC v2. `has_permission()` SQL function + migrasi per-kelompok tabel. Migration mulai 062+ |
+| 1A.2 | Epic 4 | RLS Synchronization | 🚧 **In progress** (PR #4) | `has_permission()` (062) + RLS harness + Referensi (063) + **fix recursion via SECURITY DEFINER/ADR-005 (065)** + Operasional (066). ✅ Selesai: Referensi, Operasional. ⏳ Berikutnya: Field ops, lalu Financial (butuh gate maintenance-window + PITR). 74 test hijau |
+| — | ADR-005 | RLS ownership via SECURITY DEFINER | ✅ **Diterima** | Fix infinite recursion `projects ↔ mandor_assignments` (bug pre-existing 049, ditemukan RLS harness). Helper `is_assigned_mandor`/`is_pm_of_project`/`is_owning_client` |
 | 1A.3 | Epic 5 | Audit Trail Helper | 🔵 **Pending** (boleh paralel) | `logAuditEvent` + instrumentasi 6 event |
 
 ## Gate 1A → 1B
