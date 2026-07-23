@@ -262,9 +262,11 @@ export default async function settingsRoutes(app: FastifyInstance) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(body.effective_from)) {
       return reply.status(400).send({ error: 'effective_from harus format YYYY-MM-DD (tanggal WIB)' })
     }
-    // Validasi nilai tarif pajak (fraksi 0..1) — config invalid ditolak, bukan diterima.
-    if (body.key.startsWith('tax.') && (typeof body.value !== 'number' || body.value < 0 || body.value > 1)) {
-      return reply.status(400).send({ error: `Tarif ${body.key} harus angka fraksi 0..1 (mis. 0.11 untuk 11%)` })
+    // Validasi: semua key tarif/persentase (rate/pct) = FRAKSI 0..1 (konvensi seragam
+    // financial_config). Config invalid ditolak, bukan diterima diam.
+    const isRateKey = body.key.includes('rate') || body.key.includes('pct')
+    if (isRateKey && (typeof body.value !== 'number' || body.value < 0 || body.value > 1)) {
+      return reply.status(400).send({ error: `Nilai ${body.key} harus angka fraksi 0..1 (mis. 0.11 untuk 11%)` })
     }
 
     // Snapshot nilai berlaku SEBELUM ubah (untuk audit from→to).

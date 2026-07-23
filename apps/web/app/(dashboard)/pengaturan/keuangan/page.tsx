@@ -29,9 +29,11 @@ interface ConfigRow {
 
 // Kelompok config finansial yang dikelola halaman ini. Menambah retensi/denda kelak
 // = tambah entri di sini + backend (config-first).
+const pctFmt = (v: number) => `${(v * 100).toFixed(2)}%`;   // financial_config = fraksi 0..1
 const FINANCE_KEYS: { key: string; label: string; hint: string; format: (v: number) => string }[] = [
-  { key: "tax.ppn_rate", label: "PPN", hint: "Pajak Pertambahan Nilai (klien badan/B2B)", format: (v) => `${(v * 100).toFixed(2)}%` },
-  { key: "tax.pph_final_rate", label: "PPh Final 4(2)", hint: "PPh final jasa konstruksi (klien perorangan)", format: (v) => `${(v * 100).toFixed(2)}%` },
+  { key: "tax.ppn_rate", label: "PPN", hint: "Pajak Pertambahan Nilai (klien badan/B2B)", format: pctFmt },
+  { key: "tax.pph_final_rate", label: "PPh Final 4(2)", hint: "PPh final jasa konstruksi (klien perorangan)", format: pctFmt },
+  { key: "retention.default_pct", label: "Retensi (default proyek baru)", hint: "Persentase ditahan sampai akhir masa pemeliharaan; bisa di-override per proyek", format: pctFmt },
 ];
 
 function hasFinancePerm(): boolean {

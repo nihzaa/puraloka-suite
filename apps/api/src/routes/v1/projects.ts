@@ -3,6 +3,8 @@ import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { createNotification, createNotifications, getProjectAdminsAndPM } from '../../utils/notifications.js'
 import { logAuditEvent } from '../../utils/audit.js'
+import { getEffectiveFinancialValue } from '../../utils/financial-config.js'
+import { todayWIB } from '../../lib/financial-config.js'
 
 export default async function projectRoutes(app: FastifyInstance) {
 
@@ -199,7 +201,14 @@ export default async function projectRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: `tax_scheme tidak valid. Pilih: ${VALID_TAX_SCHEMES.join(', ')}` })
     }
 
-    const retPct = retention_pct ?? 5
+    // Default retensi dari config effective-dated (Q1) bila tak di-override per proyek.
+    // financial_config simpan fraksi (0.05); kolom projects.retention_pct = persen (×100).
+    // Fallback aman ke 5 bila config hilang (getEffectiveFinancialValue sudah berisik).
+    let retPct = retention_pct
+    if (retPct === undefined || retPct === null) {
+      const frac = Number(await getEffectiveFinancialValue('retention.default_pct', todayWIB()))
+      retPct = Number.isFinite(frac) ? Math.round(frac * 100 * 100) / 100 : 5
+    }
     const retAmount = Number(contract_value) * (retPct / 100)
     const createdBy = request.currentUser!.id
 

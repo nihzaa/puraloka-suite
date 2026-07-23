@@ -14,6 +14,7 @@ import { selectEffectiveValue, todayWIB, type EffectiveRow } from '../lib/financ
 const STATIC_FALLBACK: Record<string, number> = {
   'tax.ppn_rate': 0.11,
   'tax.pph_final_rate': 0.02,
+  'retention.default_pct': 0.05,   // fraksi (5%); kolom projects.retention_pct = ×100
 }
 
 function loudFallback(key: string, reason: string): number | undefined {
