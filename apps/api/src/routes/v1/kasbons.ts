@@ -3,6 +3,7 @@ import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { createNotifications, getProjectAdminsAndPM } from '../../utils/notifications.js'
 import { logAuditEvent } from '../../utils/audit.js'
+import { syncKasbonWorkflowInstance } from '../../utils/kasbon-workflow.js'
 
 export default async function kasbonRoutes(app: FastifyInstance) {
 
@@ -181,6 +182,11 @@ export default async function kasbonRoutes(app: FastifyInstance) {
 
     if (error) return reply.status(500).send({ error: error.message })
 
+    // ── Dual-write shadow (Sub-Fase 1C): catat state ke workflow_instances.
+    // kasbons.status tetap otoritatif; ini bayangan, fire-and-forget. Mencakup
+    // jalur "pengajuan baru" (pending) DAN autoApprove (approved).
+    if (data) void syncKasbonWorkflowInstance(request, data.id as string, data.status as string)
+
     // ── Fire-and-forget: notif ke admin + PM jika kasbon masih pending ───────
     if (!autoApprove && data && resolvedProjectId) {
       try {
@@ -322,6 +328,10 @@ export default async function kasbonRoutes(app: FastifyInstance) {
       newValues: { status },
       severity: 'critical',
     })
+
+    // Dual-write shadow (Sub-Fase 1C): jalur approve/reject. Fire-and-forget;
+    // kasbons.status tetap otoritatif. correlation_id sama dgn audit event (request.id).
+    void syncKasbonWorkflowInstance(request, id, status)
 
     // ── Fire-and-forget: notif ke mandor yang mengajukan ─────────────────────
     try {
