@@ -24,6 +24,8 @@ import cashRoutes from './routes/v1/cash.js'
 import mandorRoutes from './routes/v1/mandor.js'
 import reportsRoutes from './routes/v1/reports.js'
 import settingsRoutes from './routes/v1/settings.js'
+import menuRoutes from './routes/v1/menu.js'
+import moduleRoutes from './routes/v1/modules.js'
 import notificationRoutes from './routes/v1/notifications.js'
 import procurementRoutes from './routes/v1/procurement.js'
 import rolesRoutes from './routes/v1/roles.js'
@@ -126,6 +128,8 @@ await app.register(cashRoutes)
 await app.register(mandorRoutes)
 await app.register(reportsRoutes)
 await app.register(settingsRoutes)
+await app.register(menuRoutes)
+await app.register(moduleRoutes)
 await app.register(notificationRoutes)
 await app.register(procurementRoutes)
 await app.register(rolesRoutes)
