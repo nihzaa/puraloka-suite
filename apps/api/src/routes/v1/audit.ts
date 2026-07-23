@@ -24,7 +24,7 @@ export default async function auditRoutes(app: FastifyInstance) {
       .select(`
         id, table_name, record_id, action,
         old_values, new_values, created_at,
-        user:users!audit_logs_user_id_fkey(id, name, email, role)
+        user:users!audit_logs_user_id_fkey(id, name, email, roles:role_id(name))
       `, { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(offset, offset + pageSize - 1)
@@ -43,8 +43,20 @@ export default async function auditRoutes(app: FastifyInstance) {
     const { data, error, count } = await q
     if (error) return reply.status(500).send({ error: error.message })
 
+    // FASE 3 CONTRACT: flatten user.roles.name → user.role (frontend audit page
+    // menampilkan log.user.role sebagai string). Enum di-drop; role via FK.
+    const logs = (data ?? []).map(log => {
+      const u = log.user as { roles?: { name: string } | { name: string }[] | null } | null
+      if (u) {
+        const embed = u.roles
+        ;(u as Record<string, unknown>).role = (Array.isArray(embed) ? embed[0] : embed)?.name ?? null
+        delete (u as Record<string, unknown>).roles
+      }
+      return log
+    })
+
     return reply.send({
-      logs: data ?? [],
+      logs,
       meta: {
         total: count ?? 0,
         page: pageNum,

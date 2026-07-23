@@ -46,9 +46,11 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
   // FASE 2 SWAP READ (1B.4): role di-resolve dari FK role_id (join roles.name),
   // fallback ke enum `role` jika role_id null (jaring pengaman, mustahil pasca-078).
   // Nilai `role` tetap berupa nama role (string) — kontrak get_role_permissions/RLS sama.
+  // FASE 3 CONTRACT: role HANYA dari FK (kolom enum `role` di-drop). Supabase
+  // mengetik embed sebagai array — ambil elemen pertama (relasi many-to-one).
   const { data: user, error: userError } = await supabase
     .from('users')
-    .select('id, auth_id, name, email, phone, role, role_id, roles:role_id ( name )')
+    .select('id, auth_id, name, email, phone, role_id, roles:role_id ( name )')
     .eq('auth_id', authData.user.id)
     .single()
 
@@ -56,7 +58,8 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
     return reply.status(403).send({ error: 'User tidak terdaftar di sistem' })
   }
 
-  const resolvedRole = (user.roles as unknown as { name: string } | null)?.name ?? user.role
+  const embed = user.roles as { name: string } | { name: string }[] | null | undefined
+  const resolvedRole = (Array.isArray(embed) ? embed[0] : embed)?.name ?? ''
   request.currentUser = { ...user, role: resolvedRole } as AuthUser
 }
 

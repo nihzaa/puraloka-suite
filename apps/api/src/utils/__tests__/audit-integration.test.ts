@@ -30,7 +30,7 @@ describe('audit_logs write-path (integration, rollback-safe)', () => {
     const c = pgClient()
     await c.connect()
     try {
-      const actorId = (await c.query("SELECT id FROM users WHERE role='admin' LIMIT 1")).rows[0]?.id
+      const actorId = (await c.query("SELECT u.id FROM users u JOIN roles r ON r.id=u.role_id WHERE r.name='admin' LIMIT 1")).rows[0]?.id
       if (!actorId) return
       const recordId = randomUUID()
       const diff = computeDiff({ status: 'pending' }, { status: 'approved' })
@@ -64,7 +64,7 @@ describe('audit_logs write-path (integration, rollback-safe)', () => {
     const c = pgClient()
     await c.connect()
     try {
-      const actorId = (await c.query("SELECT id FROM users WHERE role='admin' LIMIT 1")).rows[0]?.id
+      const actorId = (await c.query("SELECT u.id FROM users u JOIN roles r ON r.id=u.role_id WHERE r.name='admin' LIMIT 1")).rows[0]?.id
       if (!actorId) return
       const recordId = randomUUID()
       await c.query('BEGIN')

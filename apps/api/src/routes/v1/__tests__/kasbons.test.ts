@@ -25,6 +25,9 @@ import { seedProjectContext, type SeedProjectContext } from './_seed-helpers'
 const MIGRATION_SUBSET = [
   '001_extensions_and_enums.sql',
   '002_users_and_clients.sql',
+  '050_rbac_foundation.sql',
+  '078_users_role_id_expand.sql',
+  '080_users_role_contract.sql',
   '003_projects_and_contracts.sql',
   '007_mandor_workscopes_kasbons.sql',
   '056_kasbon_scope_optional.sql',

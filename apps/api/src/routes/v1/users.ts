@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
+import { flattenUserRole } from '../../utils/user-role.js'
 
 export default async function userRoutes(app: FastifyInstance) {
 
@@ -15,18 +16,24 @@ export default async function userRoutes(app: FastifyInstance) {
     const isAdmin = request.currentUser?.role === 'admin'
     const showAll = all === 'true' && isAdmin
 
+    // FASE 3 CONTRACT: role dibaca via FK (roles.name), kolom enum di-drop.
     let query = supabase
       .from('users')
-      .select('id, name, email, phone, role, is_active, created_at')
-      .order('role')
+      .select('id, name, email, phone, role_id, roles:role_id ( name ), is_active, created_at')
       .order('name')
 
-    if (role) query = query.eq('role', role)
+    if (role) {
+      // Filter by nama role → resolve role_id dulu.
+      const { data: roleRow } = await supabase.from('roles').select('id').eq('name', role).single()
+      query = query.eq('role_id', roleRow?.id ?? '00000000-0000-0000-0000-000000000000')
+    }
     if (!showAll) query = query.eq('is_active', true)
 
     const { data, error } = await query
     if (error) return reply.status(500).send({ error: error.message })
-    return { users: data }
+    // Flatten roles.name → role, jaga bentuk response yang sama (frontend baca `role`).
+    const users = (data ?? []).map(flattenUserRole)
+    return { users }
   })
 
   // PATCH /api/v1/users/:id — update data user (admin only)
@@ -44,17 +51,20 @@ export default async function userRoutes(app: FastifyInstance) {
       roleId = roleRow.id // FASE 1 EXPAND: untuk dual-write role_id
     }
 
-    // Ambil role lama untuk audit (hanya jika role akan diubah)
+    // Ambil role lama untuk audit (hanya jika role akan diubah).
+    // FASE 3 CONTRACT: baca nama role dari FK (roles.name), bukan kolom enum yang di-drop.
     let oldRole: string | undefined
     if (role) {
-      const { data: before } = await supabase.from('users').select('role').eq('id', id).single()
-      oldRole = before?.role
+      const { data: before } = await supabase
+        .from('users').select('roles:role_id ( name )').eq('id', id).single()
+      const embed = before?.roles as { name: string } | { name: string }[] | null | undefined
+      oldRole = (Array.isArray(embed) ? embed[0] : embed)?.name
     }
 
     const updates: Record<string, unknown> = {}
     if (name) updates.name = name.trim()
     if (phone !== undefined) updates.phone = phone || null
-    if (role) { updates.role = role; updates.role_id = roleId } // dual-write FASE 1 EXPAND
+    if (role) updates.role_id = roleId // FASE 3 CONTRACT: role_id satu-satunya sumber (enum di-drop)
     if (Object.keys(updates).length === 0) return reply.status(400).send({ error: 'Tidak ada field yang diubah' })
     const { data, error } = await supabase.from('users').update(updates).eq('id', id).select().single()
     if (error) return reply.status(500).send({ error: error.message })

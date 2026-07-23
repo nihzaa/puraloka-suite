@@ -124,16 +124,18 @@ export default async function searchRoutes(app: FastifyInstance) {
     if (user.role === 'admin') {
       const { data } = await supabase
         .from('users')
-        .select('id, name, email, role, is_active')
+        .select('id, name, email, role_id, roles:role_id ( name ), is_active')
         .or(`name.ilike.${ilike},email.ilike.${ilike}`)
         .limit(cap)
 
       for (const u of data ?? []) {
+        const embed = u.roles as { name: string } | { name: string }[] | null | undefined
+        const roleName = (Array.isArray(embed) ? embed[0] : embed)?.name ?? '-'
         results.push({
           type: 'user',
           id: u.id,
           title: u.name,
-          sub: `${u.email} · ${u.role}`,
+          sub: `${u.email} · ${roleName}`,
           url: `/users`,
           meta: u.is_active ? 'Aktif' : 'Nonaktif',
         })

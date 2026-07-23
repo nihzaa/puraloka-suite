@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate } from '../../plugins/auth.js'
 import { sendWelcomeEmail } from '../../utils/email.js'
+import { flattenUserRole } from '../../utils/user-role.js'
 
 const COOKIE_OPTS = {
   httpOnly: true,
@@ -47,16 +48,17 @@ export default async function authRoutes(app: FastifyInstance) {
       return reply.status(401).send({ error: 'Email atau password salah' })
     }
 
-    // Ambil data user dari tabel users
-    const { data: user, error: userError } = await supabase
+    // Ambil data user dari tabel users. FASE 3 CONTRACT: role via FK (enum di-drop).
+    const { data: userRow, error: userError } = await supabase
       .from('users')
-      .select('id, auth_id, name, email, phone, role, avatar_url')
+      .select('id, auth_id, name, email, phone, role_id, roles:role_id ( name ), avatar_url')
       .eq('auth_id', data.user.id)
       .single()
 
-    if (userError || !user) {
+    if (userError || !userRow) {
       return reply.status(403).send({ error: 'Akun belum terdaftar di sistem Puraloka Suite' })
     }
+    const user = flattenUserRole(userRow)
 
     // Update last_login_at
     await supabase
@@ -136,8 +138,8 @@ export default async function authRoutes(app: FastifyInstance) {
         name,
         email,
         phone: phone ?? null,
-        role,               // FASE 1 EXPAND: enum masih sumber kebenaran (read path)
-        role_id: roleRow.id // dual-write FK (dipakai read path mulai FASE 2 SWAP)
+        role_id: roleRow.id // FASE 3 CONTRACT: role_id satu-satunya sumber (enum di-drop).
+                            // Menerima role custom apa pun yang ada di tabel roles.
       })
       .select()
       .single()
@@ -216,16 +218,17 @@ export default async function authRoutes(app: FastifyInstance) {
       return reply.status(401).send({ error: 'Token tidak valid' })
     }
 
-    // Whitelist check: email harus sudah ada di tabel users
-    const { data: user } = await supabase
+    // Whitelist check: email harus sudah ada di tabel users. FASE 3: role via FK.
+    const { data: userRow } = await supabase
       .from('users')
-      .select('id, auth_id, name, email, phone, role, avatar_url')
+      .select('id, auth_id, name, email, phone, role_id, roles:role_id ( name ), avatar_url')
       .eq('email', supaUser.email!)
       .single()
 
-    if (!user) {
+    if (!userRow) {
       return reply.status(403).send({ error: 'Akun belum terdaftar. Hubungi admin untuk mendapatkan akses.' })
     }
+    const user = flattenUserRole(userRow)
 
     // Jika auth_id belum diisi (user dibuat sebelum Google OAuth aktif), update sekarang
     if (!user.auth_id) {

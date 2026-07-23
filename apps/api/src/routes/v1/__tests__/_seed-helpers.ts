@@ -21,18 +21,19 @@ export interface SeedProjectContext {
  * (ajukan sebagai mandor, approve sebagai PM/admin).
  */
 export async function seedProjectContext(client: Client): Promise<SeedProjectContext> {
+  // Sub-Fase 1B.4 CONTRACT: users.role enum di-drop; role via FK role_id.
   const { rows: adminRows } = await client.query(
-    `INSERT INTO users (name, email, role) VALUES ('Admin Test', 'admin-test@puraloka.test', 'admin') RETURNING id`
+    `INSERT INTO users (name, email, role_id) VALUES ('Admin Test', 'admin-test@puraloka.test', (SELECT id FROM roles WHERE name='admin')) RETURNING id`
   )
   const adminId = adminRows[0].id
 
   const { rows: pmRows } = await client.query(
-    `INSERT INTO users (name, email, role) VALUES ('PM Test', 'pm-test@puraloka.test', 'pm') RETURNING id`
+    `INSERT INTO users (name, email, role_id) VALUES ('PM Test', 'pm-test@puraloka.test', (SELECT id FROM roles WHERE name='pm')) RETURNING id`
   )
   const pmId = pmRows[0].id
 
   const { rows: mandorRows } = await client.query(
-    `INSERT INTO users (name, email, role) VALUES ('Mandor Test', 'mandor-test@puraloka.test', 'mandor') RETURNING id`
+    `INSERT INTO users (name, email, role_id) VALUES ('Mandor Test', 'mandor-test@puraloka.test', (SELECT id FROM roles WHERE name='mandor')) RETURNING id`
   )
   const mandorId = mandorRows[0].id
 
