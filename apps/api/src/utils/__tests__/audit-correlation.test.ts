@@ -28,20 +28,28 @@ const entry = { tableName: 'kasbons', recordId: 'r1', action: 'kasbon.status', a
 
 beforeEach(() => insertMock.mockClear())
 
-describe('logAuditEvent — correlation_id (1D.2)', () => {
-  it('mengisi correlation_id dari request.id saat tidak diberikan eksplisit', async () => {
-    await logAuditEvent(req('req-uuid-123'), entry)
+const REQ_UUID = 'f415a0b6-4fe0-41c0-8290-0944b1e880ae'
+const EXPLICIT_UUID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
+
+describe('logAuditEvent — correlation_id (1D.2 + guard uuid)', () => {
+  it('mengisi correlation_id dari request.id (UUID) saat tidak diberikan eksplisit', async () => {
+    await logAuditEvent(req(REQ_UUID), entry)
     expect(insertMock).toHaveBeenCalledTimes(1)
-    expect(insertMock.mock.calls[0][0]).toMatchObject({ correlation_id: 'req-uuid-123' })
+    expect(insertMock.mock.calls[0][0]).toMatchObject({ correlation_id: REQ_UUID })
   })
 
-  it('correlationId eksplisit MENANG atas request.id', async () => {
-    await logAuditEvent(req('req-uuid-123'), { ...entry, correlationId: 'explicit-xyz' })
-    expect(insertMock.mock.calls[0][0]).toMatchObject({ correlation_id: 'explicit-xyz' })
+  it('correlationId eksplisit (UUID) MENANG atas request.id', async () => {
+    await logAuditEvent(req(REQ_UUID), { ...entry, correlationId: EXPLICIT_UUID })
+    expect(insertMock.mock.calls[0][0]).toMatchObject({ correlation_id: EXPLICIT_UUID })
   })
 
   it('null bila request.id tidak ada (bukan string "undefined")', async () => {
     await logAuditEvent(req(undefined), entry)
+    expect(insertMock.mock.calls[0][0]).toMatchObject({ correlation_id: null })
+  })
+
+  it('null bila request.id BUKAN UUID (mis. request-id header proxy) — audit tak boleh gagal', async () => {
+    await logAuditEvent(req('proxy-request-id-123'), entry)
     expect(insertMock.mock.calls[0][0]).toMatchObject({ correlation_id: null })
   })
 

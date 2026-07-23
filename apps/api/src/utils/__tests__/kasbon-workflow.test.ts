@@ -34,7 +34,8 @@ vi.mock('../supabase.js', () => ({
 
 const { syncKasbonWorkflowInstance, reconcileKasbonWorkflow } = await import('../kasbon-workflow.js')
 
-function req(id = 'req-1'): FastifyRequest {
+const REQ_UUID = 'f415a0b6-4fe0-41c0-8290-0944b1e880ae'
+function req(id: string | undefined = REQ_UUID): FastifyRequest {
   return { id, log: { error: vi.fn() } } as unknown as FastifyRequest
 }
 
@@ -60,7 +61,7 @@ describe('syncKasbonWorkflowInstance — dual-write per jalur', () => {
       entity_type: 'kasbon',
       entity_id: 'k-123',
       current_state: state,
-      correlation_id: 'req-1',
+      correlation_id: REQ_UUID,
     })
     expect(opts).toEqual({ onConflict: 'entity_type,entity_id' })
   })
@@ -79,8 +80,11 @@ describe('syncKasbonWorkflowInstance — dual-write per jalur', () => {
     expect(r.log.error).toHaveBeenCalled()
   })
 
-  it('correlation_id null bila request.id tak ada', async () => {
+  it('correlation_id null bila request.id tak ada / bukan UUID (guard kolom uuid)', async () => {
     await syncKasbonWorkflowInstance({ id: undefined, log: { error: vi.fn() } } as unknown as FastifyRequest, 'k', 'pending')
+    expect((upsertMock.mock.calls[0][0] as Record<string, unknown>).correlation_id).toBeNull()
+    upsertMock.mockClear()
+    await syncKasbonWorkflowInstance({ id: 'proxy-abc', log: { error: vi.fn() } } as unknown as FastifyRequest, 'k', 'pending')
     expect((upsertMock.mock.calls[0][0] as Record<string, unknown>).correlation_id).toBeNull()
   })
 })

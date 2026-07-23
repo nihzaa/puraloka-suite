@@ -71,6 +71,11 @@ const app = Fastify({
   // Satu UUID per request, dipakai TIGA konsumen: (1) korelasi log line,
   // (2) audit_logs.correlation_id, (3) workflow_instances.correlation_id (1C).
   // Bukan tiga sistem ID terpisah yang harus disinkronkan manual.
+  //
+  // requestIdHeader:false WAJIB — default Fastify memakai header `request-id`
+  // dari proxy/klien sebagai req.id (bisa non-UUID). Karena correlation_id kolom
+  // bertipe uuid, req.id HARUS UUID → matikan trust header, genReqId selalu jalan.
+  requestIdHeader: false,
   genReqId: () => randomUUID(),
 })
 
