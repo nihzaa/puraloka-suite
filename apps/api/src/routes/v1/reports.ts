@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import PDFDocument from 'pdfkit'
 import { supabase } from '../../utils/supabase.js'
-import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { authenticate, requirePermission, hasPermission } from '../../plugins/auth.js'
 
 function fmt(n: number) {
   return 'Rp ' + n.toLocaleString('id-ID')
@@ -79,9 +79,10 @@ export default async function reportsRoutes(app: FastifyInstance) {
     if (!project_id) return reply.status(400).send({ error: 'project_id wajib diisi' })
 
     const user = request.currentUser!
-    // Data-scoping, bukan authorization gate (ADR-004 Rule #1): endpoint sudah
-    // ter-authenticate; ini hanya menentukan apakah kolom finansial ikut di-fetch.
-    const canViewFinance = user.role === 'admin' || user.role === 'pm'
+    // F5 (AKTA 0): capability `finance:view:all` (org-wide finance), BUKAN role
+    // literal `admin||pm`. Sengaja BUKAN `finance:view` (dimiliki mandor/client utk
+    // data ter-scope) supaya scope tetap admin+pm — grantable ke direktur via UI.
+    const canViewFinance = await hasPermission(request, 'finance:view:all')
 
     const [
       projectRes,
