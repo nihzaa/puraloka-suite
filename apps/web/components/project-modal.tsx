@@ -128,7 +128,25 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
       }
     }
     loadDropdownData();
-  }, []);
+
+    // AKTA 3 Q4/Q5: pre-fill default DP%, retensi, masa pemeliharaan dari config
+    // (bukan hardcode). HANYA saat buat proyek baru — jangan timpa data edit.
+    if (mode === "create") {
+      api.get<{ dp_default_pct: number; maintenance_days: number; retention_pct: number }>("/api/v1/settings/project-defaults")
+        .then(({ data }) => {
+          setForm(prev => ({
+            ...prev,
+            retention_pct: String(data.retention_pct),
+            termin_schedules: prev.termin_schedules.map(t =>
+              t.trigger_type === "on_sign" ? { ...t, pct_of_contract: data.dp_default_pct }
+              : t.trigger_type === "on_retention" ? { ...t, pct_of_contract: data.retention_pct, due_days: String(data.maintenance_days) }
+              : t
+            ),
+          }));
+        })
+        .catch(() => { /* pakai default hardcode bila config tak terbaca */ });
+    }
+  }, [mode]);
 
   const set = useCallback(<K extends keyof ProjectFormData>(key: K, val: ProjectFormData[K]) => {
     setForm(prev => ({ ...prev, [key]: val }));

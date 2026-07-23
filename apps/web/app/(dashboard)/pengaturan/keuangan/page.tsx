@@ -60,6 +60,9 @@ export default function KeuanganSettingsPage() {
   const [toast, setToast] = useState<{ type: "ok" | "err"; msg: string } | null>(null);
   const [kasbonLimitOn, setKasbonLimitOn] = useState(false);
   const [togglingKasbon, setTogglingKasbon] = useState(false);
+  const [dpPct, setDpPct] = useState("");
+  const [maintDays, setMaintDays] = useState("");
+  const [savingDefaults, setSavingDefaults] = useState(false);
 
   useEffect(() => {
     setCanEdit(hasFinancePerm());
@@ -67,7 +70,24 @@ export default function KeuanganSettingsPage() {
     api.get<{ enabled: boolean }>("/api/v1/settings/kasbon-limit")
       .then(({ data }) => setKasbonLimitOn(data.enabled))
       .catch(() => {});
+    api.get<{ dp_default_pct: number; maintenance_days: number }>("/api/v1/settings/project-defaults")
+      .then(({ data }) => { setDpPct(String(data.dp_default_pct)); setMaintDays(String(data.maintenance_days)); })
+      .catch(() => {});
   }, []);
+
+  async function saveProjectDefaults() {
+    const dp = parseFloat(dpPct), md = parseInt(maintDays);
+    if (isNaN(dp) || dp < 0 || dp > 100) { setToast({ type: "err", msg: "DP harus 0–100%" }); return; }
+    if (isNaN(md) || md < 0 || md > 3650) { setToast({ type: "err", msg: "Masa pemeliharaan 0–3650 hari" }); return; }
+    setSavingDefaults(true);
+    try {
+      await api.put("/api/v1/settings/project-defaults", { dp_default_pct: dp, maintenance_days: md });
+      setToast({ type: "ok", msg: "Default proyek baru disimpan" });
+    } catch (e) {
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      setToast({ type: "err", msg: msg ?? "Gagal menyimpan" });
+    } finally { setSavingDefaults(false); }
+  }
 
   async function toggleKasbonLimit(next: boolean) {
     setTogglingKasbon(true);
@@ -228,6 +248,42 @@ export default function KeuanganSettingsPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Default Proyek Baru — DP% + masa pemeliharaan (Q4/Q5) */}
+      {!loading && (
+        <div style={{ ...card, padding: "18px 20px", marginTop: 16 }}>
+          <div style={{ fontSize: 15, fontWeight: 600, color: C.text }}>Default Proyek Baru</div>
+          <p style={{ margin: "4px 0 14px", fontSize: 13, color: C.mid }}>
+            Nilai awal yang otomatis terisi saat membuat proyek — tetap bisa diubah per proyek.
+          </p>
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+            <label style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1, minWidth: 160 }}>
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: C.text }}>Uang muka (DP) default</span>
+              <div style={{ position: "relative" }}>
+                <input type="number" step="1" min="0" max="100" value={dpPct} onChange={(e) => setDpPct(e.target.value)} disabled={!canEdit}
+                  style={{ width: "100%", padding: "10px 30px 10px 12px", borderRadius: 9, border: `1px solid ${C.border}`, fontSize: 14, boxSizing: "border-box" }} />
+                <span style={{ position: "absolute", right: 12, top: 11, fontSize: 13, color: C.muted }}>%</span>
+              </div>
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1, minWidth: 160 }}>
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: C.text }}>Masa pemeliharaan default</span>
+              <div style={{ position: "relative" }}>
+                <input type="number" step="1" min="0" max="3650" value={maintDays} onChange={(e) => setMaintDays(e.target.value)} disabled={!canEdit}
+                  style={{ width: "100%", padding: "10px 44px 10px 12px", borderRadius: 9, border: `1px solid ${C.border}`, fontSize: 14, boxSizing: "border-box" }} />
+                <span style={{ position: "absolute", right: 12, top: 11, fontSize: 13, color: C.muted }}>hari</span>
+              </div>
+            </label>
+          </div>
+          {canEdit && (
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 14 }}>
+              <button onClick={saveProjectDefaults} disabled={savingDefaults}
+                style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 18px", borderRadius: 9, background: C.navy, color: "#fff", border: "none", fontSize: 13, fontWeight: 500, cursor: savingDefaults ? "default" : "pointer", opacity: savingDefaults ? 0.7 : 1 }}>
+                <Check size={14} /> {savingDefaults ? "Menyimpan…" : "Simpan default"}
+              </button>
+            </div>
+          )}
         </div>
       )}
 

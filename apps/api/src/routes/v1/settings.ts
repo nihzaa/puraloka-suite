@@ -3,7 +3,8 @@ import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { validateMime } from '../../utils/mime.js'
 import { clearConfigCache } from '../../utils/config.js'
-import { setFinancialConfig } from '../../utils/financial-config.js'
+import { setFinancialConfig, getEffectiveFinancialValue } from '../../utils/financial-config.js'
+import { todayWIB } from '../../lib/financial-config.js'
 import { logAuditEvent } from '../../utils/audit.js'
 
 const ALLOWED_IMAGES = ['image/jpeg', 'image/png', 'image/webp']
@@ -289,6 +290,60 @@ export default async function settingsRoutes(app: FastifyInstance) {
       severity: 'critical',
     })
     return reply.send({ ok: true, key: body.key, effective_from: body.effective_from })
+  })
+
+  // ── GET /api/v1/settings/project-defaults ─────────────────────────────────────
+  // Default form proyek baru (DP%, masa pemeliharaan, retensi). Read authenticated
+  // (project-modal memakainya untuk pre-fill).
+  app.get('/api/v1/settings/project-defaults', {
+    preHandler: [authenticate],
+  }, async (_request, reply) => {
+    const { data } = await supabase
+      .from('company_settings').select('key, value')
+      .in('key', ['project.dp_default_pct', 'project.maintenance_days'])
+    const map: Record<string, unknown> = {}
+    for (const r of data ?? []) map[r.key] = r.value
+    // Retensi default dari financial_config (effective hari ini), disajikan sebagai persen.
+    const retFrac = Number(await getEffectiveFinancialValue('retention.default_pct', todayWIB()))
+    return reply.send({
+      dp_default_pct: Number(map['project.dp_default_pct'] ?? 30),
+      maintenance_days: Number(map['project.maintenance_days'] ?? 90),
+      retention_pct: Number.isFinite(retFrac) ? Math.round(retFrac * 100 * 100) / 100 : 5,
+    })
+  })
+
+  // ── PUT /api/v1/settings/project-defaults ─────────────────────────────────────
+  // Ubah default DP% & masa pemeliharaan. Money-affecting → settings:finance:manage. Audit.
+  app.put('/api/v1/settings/project-defaults', {
+    preHandler: [authenticate, requirePermission('settings:finance:manage')],
+  }, async (request, reply) => {
+    const body = request.body as { dp_default_pct?: number; maintenance_days?: number }
+    const updates: { key: string; value: number }[] = []
+    if (body.dp_default_pct !== undefined) {
+      if (typeof body.dp_default_pct !== 'number' || body.dp_default_pct < 0 || body.dp_default_pct > 100)
+        return reply.status(400).send({ error: 'dp_default_pct harus 0..100 (persen)' })
+      updates.push({ key: 'project.dp_default_pct', value: body.dp_default_pct })
+    }
+    if (body.maintenance_days !== undefined) {
+      if (typeof body.maintenance_days !== 'number' || body.maintenance_days < 0 || body.maintenance_days > 3650)
+        return reply.status(400).send({ error: 'maintenance_days harus 0..3650 hari' })
+      updates.push({ key: 'project.maintenance_days', value: body.maintenance_days })
+    }
+    if (updates.length === 0) return reply.status(400).send({ error: 'Tidak ada field yang diubah' })
+
+    for (const u of updates) {
+      const { error } = await supabase.from('company_settings')
+        .update({ value: u.value as never, updated_by: request.currentUser!.id, updated_at: new Date().toISOString() })
+        .eq('key', u.key)
+      if (error) return reply.status(500).send({ error: error.message })
+    }
+    clearConfigCache()
+    void logAuditEvent(request, {
+      tableName: 'company_settings', recordId: 'project.defaults', action: 'project.defaults',
+      actorId: request.currentUser!.id, newValues: Object.fromEntries(updates.map(u => [u.key, u.value])),
+      severity: 'info',
+    })
+    return reply.send({ ok: true })
   })
 
   // ── GET /api/v1/settings/kasbon-limit ─────────────────────────────────────────
