@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
-import { authenticate } from '../../plugins/auth.js'
+import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { sendWelcomeEmail } from '../../utils/email.js'
 import { flattenUserRole } from '../../utils/user-role.js'
 
@@ -90,13 +90,12 @@ export default async function authRoutes(app: FastifyInstance) {
   })
 
   // POST /api/v1/auth/register — hanya admin yang bisa daftarkan user baru
+  // F1 (AKTA 0 lockout fix): otorisasi via permission `users:manage`, BUKAN role
+  // literal 'admin'. Sebelumnya register tak punya requirePermission sama sekali —
+  // otorisasi 100% role literal yang melockout role custom (direktur punya users:manage).
   app.post('/api/v1/auth/register', {
-    preHandler: [authenticate]
+    preHandler: [authenticate, requirePermission('users:manage')]
   }, async (request, reply) => {
-
-    if (request.currentUser?.role !== 'admin') {
-      return reply.status(403).send({ error: 'Hanya admin yang bisa mendaftarkan user baru' })
-    }
 
     const { email, password, name, phone, role } = request.body as {
       email: string

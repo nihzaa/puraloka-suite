@@ -904,10 +904,9 @@ export default async function procurementRoutes(app: FastifyInstance) {
     const { data: mr } = await supabase.from('material_requests').select('id, status, requested_by').eq('id', id).single()
     if (!mr) return reply.status(404).send({ error: 'MR tidak ditemukan' })
     if (mr.status !== 'draft') return reply.status(400).send({ error: 'Hanya MR draft yang bisa dihapus' })
-    const user = request.currentUser!
-    if (user.role !== 'admin' && user.role !== 'pm' && mr.requested_by !== user.id) {
-      return reply.status(403).send({ error: 'Tidak diizinkan menghapus MR milik orang lain' })
-    }
+    // F4 (AKTA 0 lockout fix): otorisasi = capability `procurement:mr:manage` (preHandler).
+    // Role literal admin/pm dihapus — melockout role custom (direktur punya
+    // procurement:mr:manage). Pemegang capability = authority hapus MR draft.
     await supabase.from('material_request_items').delete().eq('mr_id', id)
     const { error } = await supabase.from('material_requests').delete().eq('id', id)
     if (error) return reply.status(500).send({ error: error.message })

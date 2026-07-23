@@ -512,14 +512,13 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
 
   // ── PATCH /api/v1/change-orders/:id/approve ────────────────────────────────
   app.patch<{ Params: { id: string } }>(
+    // F2 (AKTA 0 lockout fix): otorisasi via capability `change_order:approve`
+    // (di-seed ke admin, migration 084 — scope identik), BUKAN role literal 'admin'.
+    // Kini admin bisa memberikan capability ini ke direktur/role custom via UI.
     '/api/v1/change-orders/:id/approve',
-    { preHandler: [authenticate, requirePermission('projects:edit')] },
+    { preHandler: [authenticate, requirePermission('change_order:approve')] },
     async (request, reply) => {
       const user = request.currentUser!
-      if (user.role !== 'admin') {
-        return reply.status(403).send({ error: 'Hanya admin yang bisa menyetujui change order' })
-      }
-
       const { id } = request.params
 
       const { data: coFull } = await supabase
@@ -635,15 +634,13 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
     Params: { id: string }
     Body: { reason?: string }
   }>(
+    // F3 (AKTA 0 lockout fix): capability `change_order:approve` (approve+reject
+    // satu authority), BUKAN role literal 'admin'.
     '/api/v1/change-orders/:id/reject',
-    { preHandler: [authenticate, requirePermission('projects:edit')] },
+    { preHandler: [authenticate, requirePermission('change_order:approve')] },
     async (request, reply) => {
       const { id } = request.params
       const user = request.currentUser!
-
-      if (user.role !== 'admin') {
-        return reply.status(403).send({ error: 'Hanya admin yang bisa menolak change order' })
-      }
 
       const { data: coInfo } = await supabase
         .from('change_orders')
