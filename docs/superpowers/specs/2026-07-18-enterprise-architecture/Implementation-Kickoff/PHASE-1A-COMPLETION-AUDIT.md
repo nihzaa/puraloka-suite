@@ -33,13 +33,30 @@
 | TODO/FIXME/XXX/HACK | grep | 0 | PASS |
 | Temp/debug files (`_*.mjs`) | find | 0 | PASS |
 | Skipped/only/todo tests | grep `.skip/.only/.todo` | 0 | PASS |
-| **Inline role-literal authorization murni tersisa** | re-audit pasca-remediasi | **0** | PASS |
+| ~~**Inline role-literal authorization murni tersisa**~~ | ~~re-audit pasca-remediasi~~ | ~~**0**~~ | ❌ **KLAIM TIDAK AKURAT — lihat koreksi di bawah** |
+
+> ## ⚠️ KOREKSI (2026-07-24) — klaim "0 role-literal authorization" TIDAK AKURAT
+>
+> Re-audit menyeluruh (AKTA 0) menemukan bahwa audit 1A ini **tidak lengkap**. Grep-nya hanya mengecek pola `.includes(user.role)` dan pola inline `role === 'x' && ownership`, sehingga **MELEWATKAN gate `role !== 'admin'` / `role === 'admin'` yang berdiri sendiri**. Empat pure authorization gate lolos:
+>
+> | # | Lokasi | Gate | Dampak lockout |
+> |---|---|---|---|
+> | F1 | `auth.ts:97` (register) | `role !== 'admin'` — **tanpa `requirePermission` sama sekali** | `direktur` (punya `users:manage`) tak bisa daftarkan user |
+> | F2 | `change-orders.ts:519` (approve) | `role !== 'admin'` (+`projects:edit`) | `direktur` (punya `projects:edit`) tak bisa approve CO |
+> | F3 | `change-orders.ts:644` (reject) | `role !== 'admin'` (+`projects:edit`) | `direktur` tak bisa reject CO |
+> | F4 | `procurement.ts:908` (MR delete) | `role !== 'admin' && !== 'pm'` (+owner) | `direktur` (punya `procurement:mr:manage`) tak bisa hapus MR draft non-miliknya |
+>
+> **Ini bug lockout yang SAMA KELASNYA dengan `cash:view` — dan sekarang lebih relevan** karena sejak 1B.4 role custom (`direktur`) benar-benar assignable. Gate `role === 'admin'` literal memblokir `direktur` meski ia punya semua permission.
+>
+> Ditambah beberapa **soft capability filter** (bukan 403 tapi menyembunyikan data dari role custom): `reports.ts:84` (finance), `search.ts:58/78/122` (clients/invoices/users). Lengkap: [role-literal-reaudit-2026-07-24.md](role-literal-reaudit-2026-07-24.md).
+>
+> **Perbaikan** = derive-capability (buat permission spesifik, seed ke role berhak) sesuai ADR-004 — dijadwalkan di AKTA 3, **bukan** ditambal ad-hoc. Klaim "0 role-literal" yang benar hanya berlaku untuk 3 gate yang di-remediasi 3.5 + 2 gate bugfix PR#10 (kasbon/wage/foto/cash/progress) — **bukan seluruh codebase**.
 
 **Temuan awal (2 endpoint) — SUDAH DIPERBAIKI langsung** (bugfix kecil-terisolasi-aman, bukan fase remediasi baru):
 - `cash.ts:40` `GET /cash/accounts/:id` — `role === 'mandor'/'client' → 403` diganti `requirePermission('cash:view')` di preHandler; PM-ownership check dipertahankan (data-scoping). `cash:view` di-seed admin+pm (migration 074).
 - `progress.ts:240` `DELETE /progress-logs/:logId` — inline role check diganti `hasPermission('progress:manage') || (mandor-owner)`; client tertolak otomatis.
 
-Re-audit: **0 authorization gate murni role-literal**. Semua `user.role ===` yang tersisa adalah **data-scoping ownership** sah per ADR-004 Rule #1 (pola `role === 'x' && ownership !== user.id`) atau business-rule ber-komentar (`autoApprove`). Bonus: fix `cash:view` juga membuat role kustom `direktur` (yang sudah punya `cash:view` via UI) dapat akses konsisten — gate role-literal lama justru tidak menangani role di luar 4 built-in.
+Re-audit ~~**0**~~ (lihat koreksi di atas): yang benar-benar 0 hanya **gate yang di-scope oleh remediasi 3.5 + bugfix PR#10**. Empat gate lain (register, CO approve/reject, MR delete) **tidak masuk radar grep 1A** dan masih ada — akan diperbaiki sebagai derive-capability di AKTA 3. `user.role ===` yang memang **data-scoping ownership** (pola `role === 'x' && ownership !== user.id`) tetap sah per ADR-004 Rule #1.
 
 ---
 
@@ -103,7 +120,7 @@ Skipped tests: **0** (grep `.skip/.only/.todo` = 0).
 - **Migration tracking drift** — `schema_migrations` berhenti di 057; 058-073 tak tercatat. Rekonsiliasi jalur apply (supabase CLI vs pg manual) diperlukan agar `db push`/`db diff` andal.
 
 ### Future backlog (technical debt kode)
-- ~~2 endpoint role-literal authorization~~ — **SUDAH DIPERBAIKI** (bugfix langsung, cash:view + progress:manage, migration 074; re-audit 0 tersisa). Bukan dipromosikan jadi fase remediasi karena kecil-terisolasi-aman.
+- ~~2 endpoint role-literal authorization~~ — 2 gate (cash:view + progress:manage) diperbaiki PR#10. **TAPI re-audit AKTA 0 (2026-07-24) menemukan 4 gate LAIN yang terlewat** (register, CO approve/reject, MR delete) + soft filter (reports/search). Lihat koreksi di §3 + [role-literal-reaudit-2026-07-24.md](role-literal-reaudit-2026-07-24.md). Perbaikan = derive-capability di AKTA 3.
 - **39 lint warning** unused-vars pre-existing (bukan Phase 1A) — cleanup opsional, tidak memblokir.
 
 ---
@@ -112,9 +129,9 @@ Skipped tests: **0** (grep `.skip/.only/.todo` = 0).
 
 ### Status: **CONDITIONAL PASS** — implementasi 100% complete, blocked HANYA oleh governance/external
 
-**Revisi pasca-remediasi:** temuan kode minor (2 endpoint role-literal) **sudah ditutup langsung** sebagai bugfix (bukan dipromosikan jadi debt). Tidak ada lagi implementation gap. Re-audit: **0 authorization gate role-literal**.
+**Revisi pasca-remediasi:** 2 endpoint (cash:view + progress:manage) ditutup sebagai bugfix. **KOREKSI 2026-07-24:** klaim "0 authorization gate role-literal" TIDAK AKURAT — 4 gate lain terlewat radar grep 1A (§3). Perbaikan dijadwalkan AKTA 3 (derive-capability).
 
-**Sub-Fase 1A implementation objektif SELESAI** — seluruh Deliverable/DoD/Exit Criteria teknis PASS terverifikasi: `requireRole`=0, **0 role-literal authorization** (kode & RLS), RLS 100% permission-based, audit trail helper + instrumentasi, 113 test hijau (0 skip), typecheck/lint/build bersih, CI main hijau, 9 PR merged.
+**Sub-Fase 1A implementation objektif SELESAI** untuk scope yang diverifikasi — `requireRole`=0, RLS 100% permission-based (nol literal-role di RLS ✅ terverifikasi menyeluruh), audit trail helper + instrumentasi, 113 test hijau (0 skip), typecheck/lint/build bersih, CI main hijau, 9 PR merged. **Catatan akurasi:** klaim "0 role-literal authorization di KODE" hanya benar untuk gate yang di-scope remediasi 3.5+PR#10; re-audit menyeluruh AKTA 0 menemukan 4 gate kode yang terlewat (RLS tetap bersih — yang keliru hanya audit sisi kode aplikasi).
 
 **Yang tersisa BUKAN implementasi — semuanya external/governance (di luar kewenangan engineering):**
 1. **Governance decision founder:** F5.5 append-only (aktifkan?) + Gate 1A→1B approval.
