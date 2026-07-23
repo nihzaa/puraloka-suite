@@ -581,8 +581,9 @@ export default async function rabRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { projectId } = request.params
 
-      // Ambil file dari multipart — RAB Excel bisa besar, set limit 100 MB
-      const file = await request.file({ limits: { fileSize: 100 * 1024 * 1024 } })
+      // Ambil file dari multipart. Cap 10MB — RAB Excel realistis < beberapa MB;
+      // 100MB lama = anomali (cap lain 2/5MB) + risiko DoS/memori (AKTA 1 census B2).
+      const file = await request.file({ limits: { fileSize: 10 * 1024 * 1024 } })
       if (!file) {
         return reply.status(400).send({ error: 'File tidak ditemukan' })
       }
