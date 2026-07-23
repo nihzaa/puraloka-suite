@@ -291,6 +291,45 @@ export default async function settingsRoutes(app: FastifyInstance) {
     return reply.send({ ok: true, key: body.key, effective_from: body.effective_from })
   })
 
+  // ── GET /api/v1/settings/kasbon-limit ─────────────────────────────────────────
+  // Status toggle batas kasbon (Q2). Read authenticated.
+  app.get('/api/v1/settings/kasbon-limit', {
+    preHandler: [authenticate],
+  }, async (_request, reply) => {
+    const { data } = await supabase
+      .from('company_settings').select('value').eq('key', 'kasbon.limit.enabled').maybeSingle()
+    return reply.send({ enabled: data?.value === true })
+  })
+
+  // ── PUT /api/v1/settings/kasbon-limit ─────────────────────────────────────────
+  // Nyalakan/matikan enforcement batas kasbon. Governance ketat (money-affecting =
+  // settings:finance:manage, Q7). Audit critical.
+  app.put('/api/v1/settings/kasbon-limit', {
+    preHandler: [authenticate, requirePermission('settings:finance:manage')],
+  }, async (request, reply) => {
+    const body = request.body as { enabled?: boolean }
+    if (typeof body.enabled !== 'boolean') {
+      return reply.status(400).send({ error: 'Field `enabled` (boolean) wajib' })
+    }
+    const { data: prev } = await supabase
+      .from('company_settings').select('value').eq('key', 'kasbon.limit.enabled').maybeSingle()
+
+    const { error } = await supabase
+      .from('company_settings')
+      .update({ value: body.enabled as never, updated_by: request.currentUser!.id, updated_at: new Date().toISOString() })
+      .eq('key', 'kasbon.limit.enabled')
+    if (error) return reply.status(500).send({ error: error.message })
+    clearConfigCache()
+
+    void logAuditEvent(request, {
+      tableName: 'company_settings', recordId: 'kasbon.limit.enabled', action: 'kasbon.limit.toggle',
+      actorId: request.currentUser!.id,
+      oldValues: { enabled: prev?.value === true }, newValues: { enabled: body.enabled },
+      severity: 'critical',
+    })
+    return reply.send({ enabled: body.enabled })
+  })
+
   // ── POST /api/v1/settings/company/logo ────────────────────────────────────────
   // Upload company logo. Admin only.
   app.post('/api/v1/settings/company/logo', {

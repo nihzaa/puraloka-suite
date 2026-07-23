@@ -58,8 +58,28 @@ export default function KeuanganSettingsPage() {
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ type: "ok" | "err"; msg: string } | null>(null);
+  const [kasbonLimitOn, setKasbonLimitOn] = useState(false);
+  const [togglingKasbon, setTogglingKasbon] = useState(false);
 
-  useEffect(() => { setCanEdit(hasFinancePerm()); load(); }, []);
+  useEffect(() => {
+    setCanEdit(hasFinancePerm());
+    load();
+    api.get<{ enabled: boolean }>("/api/v1/settings/kasbon-limit")
+      .then(({ data }) => setKasbonLimitOn(data.enabled))
+      .catch(() => {});
+  }, []);
+
+  async function toggleKasbonLimit(next: boolean) {
+    setTogglingKasbon(true);
+    try {
+      await api.put("/api/v1/settings/kasbon-limit", { enabled: next });
+      setKasbonLimitOn(next);
+      setToast({ type: "ok", msg: next ? "Batas kasbon diaktifkan" : "Batas kasbon dimatikan" });
+    } catch (e) {
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      setToast({ type: "err", msg: msg ?? "Gagal mengubah batas kasbon" });
+    } finally { setTogglingKasbon(false); }
+  }
 
   async function load() {
     setLoading(true);
@@ -208,6 +228,44 @@ export default function KeuanganSettingsPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Batas Kasbon — toggle enforcement (Q2, default OFF) */}
+      {!loading && (
+        <div style={{ ...card, padding: "18px 20px", marginTop: 16 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: C.text }}>Batas Kasbon</div>
+              <p style={{ margin: "4px 0 0", fontSize: 13, color: C.mid, lineHeight: 1.5 }}>
+                Membatasi kasbon maksimal sebesar persentase (default 80%, diatur per proyek) dari
+                <b> earned value</b> untuk pekerjaan sistem <b>progress</b>. Saat aktif, kasbon yang melebihi
+                batas <b>ditolak saat disetujui</b>. Pekerjaan harian & borongan tidak terpengaruh.
+              </p>
+              {kasbonLimitOn && (
+                <div style={{ display: "flex", gap: 8, marginTop: 10, fontSize: 12.5, color: C.text, background: C.amberBg, padding: "9px 12px", borderRadius: 9 }}>
+                  <AlertTriangle size={14} color={C.amber} style={{ flexShrink: 0, marginTop: 1 }} />
+                  Aktif — persetujuan kasbon di atas batas akan diblokir. Matikan bila perlu mencairkan lebih dulu.
+                </div>
+              )}
+            </div>
+            {/* Toggle switch */}
+            <button
+              onClick={() => canEdit && !togglingKasbon && toggleKasbonLimit(!kasbonLimitOn)}
+              disabled={!canEdit || togglingKasbon}
+              aria-pressed={kasbonLimitOn}
+              title={canEdit ? (kasbonLimitOn ? "Matikan" : "Aktifkan") : "Butuh permission settings:finance:manage"}
+              style={{
+                position: "relative", width: 46, height: 26, borderRadius: 13, border: "none", flexShrink: 0,
+                background: kasbonLimitOn ? C.green : C.border, cursor: canEdit && !togglingKasbon ? "pointer" : "not-allowed",
+                transition: "background 0.2s", opacity: canEdit ? 1 : 0.5,
+              }}>
+              <span style={{
+                position: "absolute", top: 3, left: kasbonLimitOn ? 23 : 3, width: 20, height: 20, borderRadius: "50%",
+                background: "#fff", transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+              }} />
+            </button>
+          </div>
         </div>
       )}
 
