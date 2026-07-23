@@ -4,6 +4,7 @@ import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { createNotifications, getProjectAdminsAndPM } from '../../utils/notifications.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { syncKasbonWorkflowInstance } from '../../utils/kasbon-workflow.js'
+import { enforceKasbonLimit } from '../../utils/kasbon-limit.js'
 
 export default async function kasbonRoutes(app: FastifyInstance) {
 
@@ -285,6 +286,17 @@ export default async function kasbonRoutes(app: FastifyInstance) {
         return reply.status(400).send({
           error: `Saldo ${acct.name} tidak mencukupi. Saldo: Rp ${Number(acct.balance).toLocaleString('id-ID')}, dibutuhkan: Rp ${Number(kasbon.amount).toLocaleString('id-ID')}`
         })
+      }
+    }
+
+    // Batas kasbon (config-first Q2): bila enforcement ON (default OFF), tolak approve
+    // yang melebihi batas % earned value untuk scope progress_pct. Fail-open saat OFF
+    // → nol perubahan perilaku hari ini.
+    if (status === 'approved') {
+      const { data: k } = await supabase.from('kasbons').select('amount').eq('id', id).single()
+      const limitCheck = await enforceKasbonLimit(id, Number(k?.amount) || 0)
+      if (!limitCheck.allowed) {
+        return reply.status(400).send({ error: limitCheck.reason })
       }
     }
 
