@@ -13,6 +13,20 @@ Backfill & dual-write sudah dibangun dan diuji **sekarang** (mumpung taruhan nol
 
 ---
 
+## Kriteria fase CONTRACT (kapan pindah sumber kebenaran)
+
+> **Koreksi founder (2026-07-24):** kriteria "tunggu dual-write matang / tunggu traffic nyata" **DITOLAK** — traffic baru ada setelah deploy, deploy baru setelah Phase 1. Kriteria itu tak akan pernah terpenuhi dan malah memaksa deploy dengan dual-write aktif = **DUA sumber kebenaran di jalur uang** (justru yang mau dihindari).
+
+CONTRACT dijalankan ketika **ketiganya** benar:
+
+1. **Engine stabil:** engine (`workflow_transitions` + `canTransition()`) **tidak butuh perubahan selama 2 migrasi modul berturut-turut**. (Menghindari mengunci desain engine berdasar n=1.)
+2. **Nol divergensi lintas modul:** rekonsiliasi nol divergensi di **semua** modul yang sudah dual-write.
+3. **SEBELUM deployment produksi** — bukan sesudah. **TIDAK boleh deploy dengan dual-write masih aktif.**
+
+Alasan Arah A (perluas dual-write dulu, bukan langsung contract): risiko generalisasi engine — `canTransition()` baru teruji terhadap n=1 (kasbon, itupun sebagian: `settled` tak ada code path → realistis 3 transisi). Contract sekarang = mengunci desain engine berdasar satu modul. Kalau modul berikutnya butuh perubahan engine, lebih baik ketahuan selagi modul awal masih reversible.
+
+---
+
 ## Prosedur cutover produksi (jalankan berurutan)
 
 ### 0. Prasyarat

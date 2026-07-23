@@ -296,3 +296,15 @@ document.cookie = `${name}=${value}; expires=${expires}; path=/; SameSite=Lax`;
 - **CRITICAL-1 ✅:** Migration 049 applied ke Supabase — RLS enable di ~46 tabel; 3 helper functions: `auth_role()`, `auth_user_id()`, `auth_client_id()`; defense-in-depth strategy: API tetap pakai service_role (bypass RLS), client browser gunakan anon key (enforce RLS). Test manual per role diperlukan untuk verifikasi end-to-end.
 
 ```
+
+---
+
+## Temuan Terbuka (Open Findings)
+
+### 24 Juli 2026 — ditemukan saat migrasi modul kasbon ke workflow engine (Sub-Fase 1C)
+
+- **OPEN-1 🟡 `kasbons.status='settled'` tidak punya code path.** Enum `kasbon_status` (migration 001) memuat `settled`, dan seed data punya 7 kasbon `settled`, TAPI **tidak ada endpoint/kode yang pernah menulis** `kasbons.status='settled'` (hanya `finance.ts` yang membacanya + `worker_kasbons` yang punya `is_settled` sendiri — tabel berbeda). Ditemukan saat memetakan jalur status untuk dual-write.
+
+  **Konteks bisnis (kenapa kemungkinan FITUR BELUM DIBANGUN, bukan state mati):** kasbon mandor secara bisnis memang dilunasi dari **settlement scope/borongan** (`borongan_settlements`, `progress_payments`). Jadi state `settled` sangat mungkin memang direncanakan untuk pelunasan kasbon terhadap settlement — mekanismenya yang belum diimplementasikan (belum ada endpoint yang mentransisikan kasbon approved → settled saat settlement terjadi).
+
+  **Status:** dicatat sebagai temuan terbuka, **belum dikerjakan** (di luar scope migrasi 1C). Backfill 082 + workflow definition tetap mencakup `settled` (7 baris seed di-backfill benar), jadi tidak ada masalah data. Yang perlu diputuskan kelak: apakah membangun mekanisme pelunasan kasbon dari settlement (fitur baru), atau `settled` memang tidak dipakai (hapus dari enum + workflow). **Keputusan produk**, bukan teknis.
