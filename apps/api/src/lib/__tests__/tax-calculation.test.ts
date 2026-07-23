@@ -46,4 +46,32 @@ describe('calculateTax', () => {
     expect(result.taxAmount).toBe(36666.67)
     expect(result.totalAmount).toBe(370000) // 333333.33 + 36666.67, dibulatkan toFixed(2)
   })
+
+  // Sub-Fase 1B.1 — rate injection: caller boleh meng-inject tarif dari Config Engine.
+  describe('rate injection (1B.1)', () => {
+    it('memakai rate yang di-inject bila diberikan (override konstanta)', () => {
+      const result = calculateTax(1000000, 'ppn', 0.10)
+      expect(result.taxRate).toBe(0.10)
+      expect(result.taxAmount).toBe(100000)
+      expect(result.totalAmount).toBe(1100000)
+    })
+
+    it('jatuh ke konstanta bila rate undefined (backward compatible)', () => {
+      const result = calculateTax(1000000, 'ppn', undefined)
+      expect(result.taxRate).toBe(TAX_RATE_BY_SCHEME.ppn)
+    })
+
+    it('mengabaikan rate tidak valid (di luar 0..1) dan pakai konstanta — fail-safe', () => {
+      expect(calculateTax(1000000, 'ppn', -0.5).taxRate).toBe(TAX_RATE_BY_SCHEME.ppn)
+      expect(calculateTax(1000000, 'ppn', 11).taxRate).toBe(TAX_RATE_BY_SCHEME.ppn)
+      expect(calculateTax(1000000, 'ppn', NaN).taxRate).toBe(TAX_RATE_BY_SCHEME.ppn)
+    })
+
+    it('rate 0 valid (tarif nol, mis. pembebasan pajak)', () => {
+      const result = calculateTax(1000000, 'ppn', 0)
+      expect(result.taxRate).toBe(0)
+      expect(result.taxAmount).toBe(0)
+      expect(result.totalAmount).toBe(1000000)
+    })
+  })
 })
