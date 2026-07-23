@@ -92,3 +92,21 @@ Sumber otoritas domain untuk keputusan produk. Aturan tulis: tiap konsep menyert
 7. **Rumus finansial** (pajak, retensi, EVM) = tetap kode ber-test [C]; hanya angka yang config.
 
 Konsep ber-❓ yang **mahal salah** → masuk kuesioner AKTA 2. Sisanya diputuskan di atas.
+
+---
+
+## Jawaban kuesioner owner (2026-07-24) — MENGIKAT
+
+**Prinsip utama:** SEMUA praktik bisnis/operasional/permission ember [A] **HARUS bisa diubah dari UI** (halaman pengaturan web). "Ada kolom DB" = BELUM SELESAI. Ini DoD tiap item [A]. Ember [C] tetap di kode.
+
+1. **Retensi** = **5% sebagai NILAI AWAL** (bukan konstanta). Global default 5% diatur di UI, override per proyek, effective-dated.
+2. **kasbon_limit_pct** = **HIDUPKAN sebagai config, JANGAN drop**. Default enforcement **MATI** (perilaku hari ini tak berubah). UI: toggle on/off + input % + scope (global/override per proyek). Additive-first.
+3. **Denda keterlambatan** = Puraloka **SAAT INI TIDAK PAKAI** (fakta domain). Tapi **bangun penuh sebagai config, DEFAULT OFF**: toggle + besaran (mis. 1‰/hari) + plafon (mis. 5%), UI, effective-dated. Nyalakan tanpa deploy saat praktik berubah.
+4. **Uang muka (DP)** = per kontrak via termin on_sign, dengan **default % disetel di UI** (auto-terisi proyek baru, override per proyek, boleh kosong).
+5. **Masa pemeliharaan** = per kontrak, dengan **default hari disetel di UI** (auto-terisi, override).
+6. **Approve/Reject Change Order** = derive `change_order:approve`, seed awal admin (perilaku tak berubah), **grantable ke role custom via UI role editor**, hapus role-literal. **Pola sama untuk SEMUA lockout AKTA 0 (F1-F4)** — jangan tambal beda-beda.
+7. **Ubah tarif finansial** = permission terpisah **`settings:finance:manage`** (assignable via UI), lebih ketat dari settings biasa.
+
+**ANTI SELF-LOCKOUT (wajib):** permission kritikal (pengelola role/permission, `settings:finance:manage`) **tak boleh dicabut dari pemegang terakhir** (sistem tolak dgn pesan jelas); role admin bawaan tak bisa dihapus/dilucuti; semua perubahan permission → audit_logs; test buktikan self-lockout ditolak.
+
+**Arahan census:** satukan 2 daftar unit → 1 lookup UI-managed; kasbon purposes + kategori pekerjaan → lookup extensible UI; RAB cap 100MB → turunkan wajar (config [B]); tax effective-dating prioritas tinggi + test (ubah tarif → invoice lama tak berubah).
