@@ -35,11 +35,13 @@ export default async function userRoutes(app: FastifyInstance) {
     const { name, phone, role } = request.body as { name?: string; phone?: string; role?: string }
 
     // Dynamic role validation: query roles table
+    let roleId: string | undefined
     if (role !== undefined) {
       const { data: roleRow } = await supabase.from('roles').select('id').eq('name', role).single()
       if (!roleRow) {
         return reply.status(400).send({ error: `Role '${role}' tidak valid` })
       }
+      roleId = roleRow.id // FASE 1 EXPAND: untuk dual-write role_id
     }
 
     // Ambil role lama untuk audit (hanya jika role akan diubah)
@@ -52,7 +54,7 @@ export default async function userRoutes(app: FastifyInstance) {
     const updates: Record<string, unknown> = {}
     if (name) updates.name = name.trim()
     if (phone !== undefined) updates.phone = phone || null
-    if (role) updates.role = role
+    if (role) { updates.role = role; updates.role_id = roleId } // dual-write FASE 1 EXPAND
     if (Object.keys(updates).length === 0) return reply.status(400).send({ error: 'Tidak ada field yang diubah' })
     const { data, error } = await supabase.from('users').update(updates).eq('id', id).select().single()
     if (error) return reply.status(500).send({ error: error.message })

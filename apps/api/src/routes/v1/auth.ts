@@ -136,7 +136,8 @@ export default async function authRoutes(app: FastifyInstance) {
         name,
         email,
         phone: phone ?? null,
-        role
+        role,               // FASE 1 EXPAND: enum masih sumber kebenaran (read path)
+        role_id: roleRow.id // dual-write FK (dipakai read path mulai FASE 2 SWAP)
       })
       .select()
       .single()
