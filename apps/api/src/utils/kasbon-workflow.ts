@@ -13,6 +13,7 @@
 import type { FastifyRequest } from 'fastify'
 import { supabase } from './supabase.js'
 import { mapKasbonStatusToWorkflowState } from '../lib/kasbon-workflow.js'
+import { asUuidOrNull } from './uuid.js'
 
 const WORKFLOW_KEY = 'kasbon_approval'
 const ENTITY_TYPE = 'kasbon'
@@ -48,7 +49,8 @@ export async function syncKasbonWorkflowInstance(
         entity_id: kasbonId,
         current_state: state,
         entered_state_at: nowIso,
-        correlation_id: request.id ? String(request.id) : null,
+        // correlation_id kolom uuid — guard: null bila request.id bukan UUID valid.
+        correlation_id: asUuidOrNull(request.id),
         updated_at: nowIso,
       }, { onConflict: 'entity_type,entity_id' })
 

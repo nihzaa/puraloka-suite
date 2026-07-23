@@ -1,5 +1,6 @@
 import type { FastifyRequest } from 'fastify'
 import { supabase } from './supabase.js'
+import { asUuidOrNull } from './uuid.js'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Audit Trail Helper terpusat (Epic 5 / 1A.3)
@@ -74,8 +75,10 @@ export async function logAuditEvent(request: FastifyRequest, entry: AuditEntry):
       diff,
       severity: entry.severity ?? 'info',
       reason: entry.reason ?? null,
-      // 1D.2: eksplisit menang; selain itu pakai request.id (genReqId).
-      correlation_id: entry.correlationId ?? (request.id ? String(request.id) : null),
+      // 1D.2: eksplisit menang; selain itu request.id (genReqId). Kolom uuid →
+      // guard asUuidOrNull: nilai non-UUID jadi null (insert audit tak boleh gagal
+      // karena correlation_id — sama seperti dual-write, fire-and-forget).
+      correlation_id: asUuidOrNull(entry.correlationId) ?? asUuidOrNull(request.id),
       workflow_id: entry.workflowId ?? null,
       ip_address: request.ip,
       user_agent: request.headers['user-agent'] ?? null,
