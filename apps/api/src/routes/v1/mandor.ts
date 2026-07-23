@@ -2,6 +2,7 @@
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { supabase } from '../../utils/supabase.js'
 import { createNotifications, getProjectAdminsAndPM } from '../../utils/notifications.js'
+import { flattenUserRole } from '../../utils/user-role.js'
 
 export default async function mandorRoutes(app: FastifyInstance) {
 
@@ -817,7 +818,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
     const { mandor_id } = request.params as { mandor_id: string }
 
     const [mandorRes, assignmentsRes, kasbonsRes] = await Promise.all([
-      supabase.from('users').select('id, name, phone, email, role, is_active').eq('id', mandor_id).single(),
+      supabase.from('users').select('id, name, phone, email, role_id, roles:role_id ( name ), is_active').eq('id', mandor_id).single(),
       supabase.from('mandor_assignments')
         .select(`
           id, assigned_at,
@@ -885,7 +886,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
     }))
 
     return reply.send({
-      mandor: mandorRes.data,
+      mandor: flattenUserRole(mandorRes.data),
       kpi: { totalPaid, totalKasbonOutstanding, activeScopeCount, activeWorkersThisMonth, totalRegisteredWorkers },
       assignments: enrichedAssignments,
       reports: (reportsRes as any).data ?? [],

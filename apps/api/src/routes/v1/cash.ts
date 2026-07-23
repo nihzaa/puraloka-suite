@@ -21,7 +21,7 @@ export default async function cashRoutes(app: FastifyInstance) {
       .from('cash_accounts')
       .select(`
         id, name, type, balance, currency, notes, is_active, created_at,
-        owner:users!cash_accounts_owner_id_fkey ( id, name, role ),
+        owner:users!cash_accounts_owner_id_fkey ( id, name ),
         projects ( id, name )
       `)
       .order('type')
@@ -50,7 +50,7 @@ export default async function cashRoutes(app: FastifyInstance) {
         .from('cash_accounts')
         .select(`
           id, name, type, balance, currency, notes, is_active, created_at,
-          owner:users!cash_accounts_owner_id_fkey ( id, name, role ),
+          owner:users!cash_accounts_owner_id_fkey ( id, name ),
           projects ( id, name )
         `)
         .eq('id', id)
@@ -133,7 +133,7 @@ export default async function cashRoutes(app: FastifyInstance) {
       })
       .select(`
         id, name, type, balance, currency, notes, is_active, created_at,
-        owner:users!cash_accounts_owner_id_fkey ( id, name, role ),
+        owner:users!cash_accounts_owner_id_fkey ( id, name ),
         projects ( id, name )
       `)
       .single()
@@ -358,7 +358,7 @@ export default async function cashRoutes(app: FastifyInstance) {
         category:project_expense_categories ( id, name, type ),
         petty_cash:cash_accounts!project_expenses_petty_cash_id_fkey ( id, name, type ),
         main_cash:cash_accounts!project_expenses_main_cash_id_fkey ( id, name, type ),
-        submitter:users!project_expenses_submitted_by_fkey ( id, name, role ),
+        submitter:users!project_expenses_submitted_by_fkey ( id, name ),
         reviewer:users!project_expenses_reviewed_by_fkey ( id, name )
       `)
       .order('expense_date', { ascending: false })

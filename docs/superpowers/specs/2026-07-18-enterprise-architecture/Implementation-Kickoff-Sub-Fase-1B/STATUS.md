@@ -11,22 +11,26 @@ Gate 1A→1B ✅ approved (2026-07-23). Migration mulai 075 (074 terakhir).
 
 | Epic | Nama | Status | Bukti |
 |---|---|---|---|
-| **1B.1** | Configuration Engine | ✅ **Selesai (PR #15, CI hijau)** — belum merge | migration 075 company_settings + seed tax; `GET/PUT /settings/config`; `utils/config.ts` (cache+fallback); F1.3 rate injection (DANGER GATE approved — `calculateTax` +param rate opsional, tetap pure). 123 test hijau. Angka invoice tak berubah (seed = konstanta), E2E ubah 0.11→0.12 terbaca lalu restore. |
-| **1B.2** | Menu Registry | ✅ **Selesai (PR #16, CI hijau)** — belum merge | migration 076 menu_items (`required_permissions TEXT[]` match-ANY, parent_id); `GET /menu`; sidebar DB-driven + cache. **Paritas per-role 4/4 IDENTIK** (admin/pm/mandor/client), [execution/1b2-visual-parity-evidence.md](execution/1b2-visual-parity-evidence.md). sidebar 0 error TS baru. |
-| **1B.3** | Module Registry & Feature Flags | ✅ **Selesai (PR #17, CI running)** — belum merge | migration 077 modules+feature_flags; 14 modul seed enabled (additive-first); `GET/PATCH /modules`, `GET/PUT /feature-flags`; `utils/modules.ts` (isModuleEnabled FAIL-OPEN, isFeatureEnabled FAIL-CLOSED). Integrasi flag LIVE ditunda (registry siap). 126 test hijau (+7 gating). |
-| — | **Gate Core 1B** | ⏳ **unblocked** — tunggu merge #15→#16→#17 | 1B.1-1B.3 selesai + additive-first terverifikasi (14 modul ON, 4/4 menu role identik, angka pajak tak berubah). Merge urut karena penomoran migration 075→076→077. |
-| **1B.4** | users.role enum→FK | 🔴 **Red-Line, pending keputusan founder (Opsi A/B)** | [execution/1b4-role-enum-migration.md](execution/1b4-role-enum-migration.md); DANGER GATE sebelum eksekusi |
+| **1B.1** | Configuration Engine | ✅ **SELESAI & MERGED** (PR #15, `4bfc257`) | migration 075 company_settings + seed tax; `GET/PUT /settings/config`; `utils/config.ts` (cache+fallback); F1.3 rate injection (DANGER GATE approved — `calculateTax` +param rate opsional, tetap pure). Angka invoice tak berubah (seed = konstanta), E2E ubah 0.11→0.12 terbaca lalu restore. |
+| **1B.2** | Menu Registry | ✅ **SELESAI & MERGED** (PR #16, `bb7a5f0`) | migration 076 menu_items (`required_permissions TEXT[]` match-ANY, parent_id); `GET /menu`; sidebar DB-driven + cache. **Paritas per-role 4/4 IDENTIK** (admin/pm/mandor/client), [execution/1b2-visual-parity-evidence.md](execution/1b2-visual-parity-evidence.md). sidebar 0 error TS baru. |
+| **1B.3** | Module Registry & Feature Flags | ✅ **SELESAI & MERGED** (PR #17, `d29e8bc`) | migration 077 modules+feature_flags; 14 modul seed enabled (additive-first); `GET/PATCH /modules`, `GET/PUT /feature-flags`; `utils/modules.ts` (isModuleEnabled FAIL-OPEN, isFeatureEnabled FAIL-CLOSED). Integrasi flag LIVE ditunda (registry siap). |
+| — | **Gate Core 1B** | ✅ **LULUS** | 1B.1-1B.3 merged + additive-first terverifikasi (14 modul ON, 4/4 menu role identik, angka pajak tak berubah). |
+| **1B.4** | users.role enum→FK | ✅ **SELESAI** (PR #18) | Red-Line #1, DANGER GATE Opsi A **penuh** disetujui founder. Expand-Contract: 078 EXPAND (role_id FK+backfill+dual-write) · 079 SWAP (auth_role FK, identik enum 23 user) · 080 CONTRACT (drop enum+type, role_id NOT NULL, read path FK-only). **Verifikasi public 7/7 TUNTAS: role custom `direktur` assignable** (tujuan tercapai). |
 
 ## Day-1 (sebelum migration 1B pertama)
 - ✅ Rekonsiliasi drift tracking 073 (append-only trigger, ditandai di `schema_migrations`)
 - ✅ Baseline test 119 hijau + menu per-role tercatat (additive-first baseline)
 
-## Keputusan founder menggantung
-- **1B.4 Opsi A (migrasi enum→FK) vs Opsi B (tunda)** — tidak memblokir core 1B (1B.1-1B.3 selesai). Detail [02 § 1B.4](02-sub-fase-1b-sequence.md). **← titik berhenti berikutnya (DANGER GATE).**
-- ✅ **Strategi caching menu 1B.2** — RESOLVED: cache localStorage + revalidate-on-mount (fetch tiap sidebar mount, cache untuk render instan).
+## Keputusan founder — SEMUA RESOLVED
+- ✅ **1B.4 Opsi A penuh** (EXPAND+SWAP+CONTRACT) — dijalankan, enum di-drop, role custom assignable.
+- ✅ **Strategi caching menu 1B.2** — cache localStorage + revalidate-on-mount.
+- ✅ **F1.3 rate injection** (Red-Line #2 finansial) — `calculateTax` tetap pure, caller inject tarif dari config.
 
-## Migration applied ke dev (belum merge)
-075 company_settings · 076 menu_items · 077 modules+feature_flags — semua applied + tracked di `schema_migrations`. Twin folder `db/migrations` + `supabase/migrations` sinkron.
+## Migration applied ke dev
+075 company_settings · 076 menu_items · 077 modules+feature_flags · 078 role_id EXPAND · 079 auth_role SWAP · 080 CONTRACT (drop enum) — semua applied + tracked di `schema_migrations` (6/6). Twin folder `db/migrations` + `supabase/migrations` sinkron.
+
+## Penutupan fase
+Audit lengkap: [PHASE-1B-COMPLETION-AUDIT.md](PHASE-1B-COMPLETION-AUDIT.md) — 18 kriteria bukti diverifikasi ulang, **drift check 080 = NOL DRIFT**, smoke per-role 4/4 + direktur assignable, 2 lesson learned (quirk pooler DDL, sequencing migration destruktif di DB bersama).
 
 ## Disiplin (AUTOPILOT)
 Green-Zone 1B.1-1B.3 (additive, otonom, merge saat CI hijau) · Red-Line #1 di 1B.4 (DANGER GATE) · Red-Line #2 di 1B.1 F1.3 (tax calc, DANGER GATE ringan) · additive-first: nol fitur/menu existing hilang · verify column-level + koneksi baru.

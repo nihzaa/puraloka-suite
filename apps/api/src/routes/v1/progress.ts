@@ -30,7 +30,7 @@ export default async function progressRoutes(app: FastifyInstance) {
       .from('progress_logs')
       .select(`
         id, mode, pct_overall, pct_completion, rab_item_id, weather, worker_count, notes, logged_at, created_at,
-        reporter:users!progress_logs_reported_by_fkey ( id, name, role ),
+        reporter:users!progress_logs_reported_by_fkey ( id, name ),
         rab_item:rab_items ( id, name, category_code, weight_pct ),
         photos:project_photos ( id, url, caption, taken_at )
       `)
@@ -166,7 +166,7 @@ export default async function progressRoutes(app: FastifyInstance) {
         .from('progress_logs')
         .select(`
           id, mode, pct_overall, pct_completion, rab_item_id, weather, worker_count, notes, logged_at, created_at,
-          reporter:users!progress_logs_reported_by_fkey ( id, name, role ),
+          reporter:users!progress_logs_reported_by_fkey ( id, name ),
           rab_item:rab_items ( id, name, category_code, weight_pct ),
           photos:project_photos ( id, url, caption, taken_at )
         `)
@@ -225,7 +225,7 @@ export default async function progressRoutes(app: FastifyInstance) {
       .from('progress_logs')
       .select(`
         id, mode, pct_overall, pct_completion, rab_item_id, weather, worker_count, notes, logged_at, created_at,
-        reporter:users!progress_logs_reported_by_fkey ( id, name, role ),
+        reporter:users!progress_logs_reported_by_fkey ( id, name ),
         photos:project_photos ( id, url, caption, taken_at )
       `)
       .eq('id', log.id)
