@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { calculateTax } from '../../lib/tax-calculation.js'
-import { getTaxRate } from '../../utils/config.js'
+import { getTaxRate } from '../../utils/financial-config.js'
 
 /**
  * Endpoint pembayaran termin:
@@ -172,10 +172,13 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
         const seq = String((count ?? 0) + 1).padStart(3, '0')
         const invoiceNumber = `INV/PRL/${year}/${seq}`
 
-        // Hitung pajak — logic diekstrak ke lib/tax-calculation.ts (Task 1.2.1, testable tanpa HTTP/DB).
-        // Sub-Fase 1B.1: tarif dibaca dari Config Engine (company_settings) lalu di-inject.
-        // getTaxRate fail-safe: jatuh ke konstanta 0.11/0.02 jika config hilang/korup.
-        const taxRate = await getTaxRate(project.tax_scheme)
+        // Hitung pajak — rumus di lib/tax-calculation.ts (struktur = kode ber-test [C3]).
+        // AKTA 3 (config-first, effective-dated): tarif dibaca EFFECTIVE pada tanggal
+        // dokumen (issued_date = paid_at). ANCHOR DATE = issued_date invoice (C2) —
+        // lihat DOMAIN.md § Anchor Date Pajak untuk asumsi PPN vs PPh final. atDate
+        // mudah diubah bila anchor per-skema perlu dibedakan.
+        const taxAnchorDate = String(paid_at).slice(0, 10) // 'YYYY-MM-DD' (WIB, dari form)
+        const taxRate = await getTaxRate(project.tax_scheme, taxAnchorDate)
         const { baseAmount, taxAmount, totalAmount } = calculateTax(Number(termin.amount), project.tax_scheme, taxRate)
 
         const dueDate = new Date(paid_at)
