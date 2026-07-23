@@ -3,6 +3,8 @@ import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { validateMime } from '../../utils/mime.js'
 import { clearConfigCache } from '../../utils/config.js'
+import { setFinancialConfig } from '../../utils/financial-config.js'
+import { logAuditEvent } from '../../utils/audit.js'
 
 const ALLOWED_IMAGES = ['image/jpeg', 'image/png', 'image/webp']
 
@@ -228,6 +230,63 @@ export default async function settingsRoutes(app: FastifyInstance) {
     // Buang cache config in-process agar nilai baru langsung terbaca kalkulasi.
     clearConfigCache()
     return reply.send({ updated: results })
+  })
+
+  // ── GET /api/v1/settings/finance ──────────────────────────────────────────────
+  // Riwayat config finansial effective-dated (tarif pajak, retensi, denda). Read auth.
+  app.get('/api/v1/settings/finance', {
+    preHandler: [authenticate],
+  }, async (_request, reply) => {
+    const { data, error } = await supabase
+      .from('financial_config')
+      .select('key, value, value_type, effective_from, effective_to, note, updated_at:created_at')
+      .order('key', { ascending: true })
+      .order('effective_from', { ascending: false })
+    if (error) return reply.status(500).send({ error: error.message })
+    return reply.send({ config: data ?? [] })
+  })
+
+  // ── PUT /api/v1/settings/finance ──────────────────────────────────────────────
+  // Set nilai config finansial baru berlaku sejak tanggal (effective-dated, governance
+  // ketat: settings:finance:manage — Q7). Close-then-insert anti-gap (C4). Audit critical.
+  app.put('/api/v1/settings/finance', {
+    preHandler: [authenticate, requirePermission('settings:finance:manage')],
+  }, async (request, reply) => {
+    const body = request.body as {
+      key?: string; value?: unknown; value_type?: 'number' | 'string' | 'boolean' | 'json'
+      effective_from?: string; note?: string
+    }
+    if (!body.key || body.value === undefined || !body.effective_from) {
+      return reply.status(400).send({ error: 'Wajib: key, value, effective_from (YYYY-MM-DD)' })
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(body.effective_from)) {
+      return reply.status(400).send({ error: 'effective_from harus format YYYY-MM-DD (tanggal WIB)' })
+    }
+    // Validasi nilai tarif pajak (fraksi 0..1) — config invalid ditolak, bukan diterima.
+    if (body.key.startsWith('tax.') && (typeof body.value !== 'number' || body.value < 0 || body.value > 1)) {
+      return reply.status(400).send({ error: `Tarif ${body.key} harus angka fraksi 0..1 (mis. 0.11 untuk 11%)` })
+    }
+
+    // Snapshot nilai berlaku SEBELUM ubah (untuk audit from→to).
+    const { data: prev } = await supabase
+      .from('financial_config').select('value').eq('key', body.key).is('effective_to', null).maybeSingle()
+
+    const result = await setFinancialConfig({
+      key: body.key, value: body.value, valueType: body.value_type ?? 'number',
+      effectiveFrom: body.effective_from, note: body.note,
+      updatedBy: (request.currentUser as { id?: string } | undefined)?.id ?? null,
+    })
+    if (!result.ok) return reply.status(409).send({ error: result.error })
+
+    // Audit: perubahan tarif finansial = kepatuhan-kritis, severity critical.
+    void logAuditEvent(request, {
+      tableName: 'financial_config', recordId: body.key, action: 'finance.config',
+      actorId: request.currentUser!.id,
+      oldValues: { value: prev?.value ?? null },
+      newValues: { value: body.value, effective_from: body.effective_from },
+      severity: 'critical',
+    })
+    return reply.send({ ok: true, key: body.key, effective_from: body.effective_from })
   })
 
   // ── POST /api/v1/settings/company/logo ────────────────────────────────────────

@@ -37,9 +37,22 @@ Sumber otoritas domain untuk keputusan produk. Aturan tulis: tiap konsep menyert
 
 | Konsep | Implikasi sistem |
 |---|---|
-| **PPh final 4(2) 2%** [repo] | `tax_scheme='pph_final'`, tarif `company_settings.tax.pph_final_rate=0.02`. **Default untuk klien perorangan** [repo CLAUDE.md]. |
-| **PPN 11%** [repo] | `tax_scheme='ppn'`, `tax.ppn_rate=0.11`. Untuk B2B/badan. |
-| **Kapan pakai apa** [repo+❓] | **KEPUTUSAN (tak ditanya):** default `pph_final` karena klien Puraloka mayoritas perorangan [repo]. `ppn` dipilih manual saat klien badan. Rumus = kode ber-test [C3]; tarif = config effective-dated [A1]. |
+| **PPh final 4(2) 2%** [repo] | `tax_scheme='pph_final'`, tarif effective-dated `financial_config.tax.pph_final_rate`. **Default untuk klien perorangan** [repo CLAUDE.md]. |
+| **PPN 11%** [repo] | `tax_scheme='ppn'`, `financial_config.tax.ppn_rate`. Untuk B2B/badan. |
+| **Kapan pakai apa** [repo+❓] | **KEPUTUSAN (tak ditanya):** default `pph_final` karena klien Puraloka mayoritas perorangan [repo]. `ppn` dipilih manual saat klien badan. Rumus = kode ber-test [C3]; tarif = config effective-dated (migration 086). |
+
+### ❓ Anchor Date Pajak (perlu konfirmasi owner — C2)
+
+Effective-dating perlu tahu **tanggal mana** yang menentukan tarif berlaku (`atDate`).
+
+**Asumsi sistem saat ini (mudah diubah — `getTaxRate(scheme, atDate)` menerima parameter):**
+- **atDate = `issued_date` invoice** untuk KEDUA skema. Dalam sistem ini invoice di-generate **saat pembayaran termin** (`termin-payment.ts`), jadi `issued_date = paid_at` — praktis titik pembayaran.
+
+**❓ Yang perlu dikonfirmasi (jangan ditebak — perbedaan pajak nyata):**
+- **PPN**: tax point lazimnya **tanggal faktur pajak** (saat penyerahan/invoice). Dalam sistem = `issued_date`. ✅ kemungkinan benar.
+- **PPh final 4(2)** (jasa konstruksi): lazimnya dipotong **saat PEMBAYARAN**, bukan saat faktur. Dalam sistem, karena invoice = saat bayar, `issued_date ≈ payment date` → praktis sama. TAPI kalau kelak invoice bisa dibuat sebelum bayar, anchor pph_final mungkin perlu = **tanggal pembayaran** terpisah.
+
+**Karena itu:** `getTaxRate` menerima `atDate` eksplisit → mengubah anchor per-skema = ganti satu argumen, bukan refactor. Owner konfirmasi bila anchor per-skema perlu dibedakan.
 
 ## 4. Tenaga Kerja & Upah
 
