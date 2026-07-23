@@ -6,6 +6,7 @@ import cookie from '@fastify/cookie'
 import rateLimit from '@fastify/rate-limit'
 import multipart from '@fastify/multipart'
 import dotenv from 'dotenv'
+import { randomUUID } from 'node:crypto'
 import projectRoutes from './routes/v1/projects.js'
 import authRoutes from './routes/v1/auth.js'
 import dashboardRoutes from './routes/v1/dashboard.js'
@@ -33,22 +34,44 @@ import changeOrderRoutes from './routes/v1/change-orders.js'
 import rabScheduleRoutes from './routes/v1/rab-schedule.js'
 import auditRoutes from './routes/v1/audit.js'
 import searchRoutes from './routes/v1/search.js'
+import { supabase } from './utils/supabase.js'
+import { registerObservability } from './utils/observability.js'
 
 dotenv.config()
 
 if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET env var is required')
 
+// ── Sub-Fase 1D.1 — Structured Logging (environment-aware) ───────────────────
+// Production: JSON terstruktur ke stdout (TANPA transport pino-pretty) supaya bisa
+// di-ingest log aggregator. Development: pino-pretty agar terbaca manusia.
+// Ini perubahan KONFIGURASI, bukan ganti library — Pino sudah dipakai; pino-pretty
+// hanya transport-nya.
+//
+// ⚠️ Risiko yang disadari (Phase1/03-migration-strategy.md § Migrasi 1D): kalau
+// NODE_ENV tidak diset benar di server, log bisa berubah format tak terduga.
+// Nilai NODE_ENV di-log eksplisit saat start (lihat blok listen) agar terverifikasi,
+// bukan diasumsikan.
+const isProduction = process.env.NODE_ENV === 'production'
+
 const app = Fastify({
-  logger: {
-    transport: {
-      target: 'pino-pretty',
-      options: {
-        colorize: true,
-        translateTime: 'SYS:standard',
-        ignore: 'pid,hostname'
-      }
-    }
-  }
+  logger: isProduction
+    ? { level: process.env.LOG_LEVEL ?? 'info' }
+    : {
+        level: process.env.LOG_LEVEL ?? 'info',
+        transport: {
+          target: 'pino-pretty',
+          options: {
+            colorize: true,
+            translateTime: 'SYS:standard',
+            ignore: 'pid,hostname'
+          }
+        }
+      },
+  // ── Sub-Fase 1D.2 — Correlation ID ─────────────────────────────────────────
+  // Satu UUID per request, dipakai TIGA konsumen: (1) korelasi log line,
+  // (2) audit_logs.correlation_id, (3) workflow_instances.correlation_id (1C).
+  // Bukan tiga sistem ID terpisah yang harus disinkronkan manual.
+  genReqId: () => randomUUID(),
 })
 
 await app.register(cors, {
@@ -86,6 +109,10 @@ await app.register(multipart, {
   limits: { fileSize: 5 * 1024 * 1024, files: 1 },
 })
 
+// 1D.3 — instrumentasi OTel (opt-in via OTEL_ENABLED=true; default no-op).
+// Didaftarkan SEBELUM route agar instrumentasi membungkus handler.
+await registerObservability(app)
+
 app.setErrorHandler((err: Error & { statusCode?: number }, _req, reply) => {
   const status = (err as any).statusCode ?? 500
   if (status >= 500) {
@@ -95,17 +122,47 @@ app.setErrorHandler((err: Error & { statusCode?: number }, _req, reply) => {
   return reply.status(status).send({ error: err.message })
 })
 
-app.get('/health', async () => {
+// ── Sub-Fase 1D.3 — /health diperluas: cek konektivitas DB ───────────────────
+// Sebelumnya /health hanya enumerasi route → selalu "ok" walau DB mati (health
+// check yang tak pernah gagal tidak berguna untuk load balancer/uptime monitor).
+// Sekarang benar-benar menyentuh DB dengan query murah + timeout, dan mengembalikan
+// 503 bila DB tak terjangkau.
+app.get('/health', async (_request, reply) => {
   const routes = app.printRoutes({ commonPrefix: false })
   const groups = [...new Set(
     routes.split('\n')
       .map(l => l.match(/\/api\/v1\/([^\/\s]+)/)?.[1])
       .filter((g): g is string => Boolean(g))
   )]
+
+  // Query paling murah yang membuktikan koneksi hidup + RLS/PostgREST responsif.
+  // Timeout eksplisit supaya /health tidak menggantung saat DB lambat.
+  const startedAt = Date.now()
+  let dbStatus: 'ok' | 'error' = 'ok'
+  let dbError: string | undefined
+  try {
+    const probe = supabase.from('roles').select('id', { head: true, count: 'exact' }).limit(1)
+    const timeout = new Promise<never>((_, rej) =>
+      setTimeout(() => rej(new Error('db probe timeout 3s')), 3000))
+    const { error } = await Promise.race([probe, timeout]) as { error?: { message: string } }
+    if (error) { dbStatus = 'error'; dbError = error.message }
+  } catch (e) {
+    dbStatus = 'error'
+    dbError = (e as Error).message
+  }
+  const dbLatencyMs = Date.now() - startedAt
+
+  const healthy = dbStatus === 'ok'
+  if (!healthy) reply.status(503)
+
   return {
-    status: 'ok',
+    status: healthy ? 'ok' : 'degraded',
     app: 'Puraloka Suite API',
     timestamp: new Date().toISOString(),
+    env: process.env.NODE_ENV ?? 'development',
+    checks: {
+      database: { status: dbStatus, latencyMs: dbLatencyMs, ...(dbError ? { error: dbError } : {}) },
+    },
     routeGroups: groups,
   }
 })
@@ -145,6 +202,10 @@ try {
   await app.listen({ port: PORT, host: HOST })
   console.log(`\n🚀 Puraloka Suite API running on http://localhost:${PORT}`)
   console.log(`📋 Health check: http://localhost:${PORT}/health`)
+  // 1D.1 — cetak NODE_ENV & mode logger secara eksplisit. Risiko yang disebut
+  // migration-strategy adalah "NODE_ENV salah set diam-diam"; ini membuatnya
+  // terverifikasi tiap start, bukan diasumsikan benar.
+  console.log(`🔧 NODE_ENV=${process.env.NODE_ENV ?? '(unset → development)'} · logger=${isProduction ? 'json (production)' : 'pino-pretty (dev)'}`)
 
   // Print registered route groups so every restart is self-verifying
   const routes = app.printRoutes({ commonPrefix: false })
