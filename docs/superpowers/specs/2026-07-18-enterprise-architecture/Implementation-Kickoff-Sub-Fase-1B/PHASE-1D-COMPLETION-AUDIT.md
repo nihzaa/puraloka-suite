@@ -84,9 +84,21 @@ Sebelum 1D: `/health` hanya enumerasi route → **selalu** `ok` walau DB mati (t
 
 ---
 
-## 5. Status PR
+## 5. Status PR & insiden CI
 
-PR **#19** (`feature/1d-observability`) — `feat(1d): Observability Foundation`. Merge menunggu CI hijau (disiplin: CI hijau wajib sebelum merge).
+PR **#19** (`feature/1d-observability`) — `feat(1d): Observability Foundation`.
+
+### Insiden: CI merah pada push pertama — **kesalahan urutan verifikasi**
+
+**Apa yang terjadi:** CI gagal di step *Typecheck* dengan `TS2493: Tuple type '[]' of length '0' has no element at index '0'` pada `audit-correlation.test.ts`. Penyebab: `vi.fn(async () => ...)` tanpa parameter bertipe membuat `mock.calls` bertipe tuple kosong, sehingga `calls[0][0]` ditolak `tsc`.
+
+**Kenapa lolos di lokal:** aku menjalankan `tsc --noEmit` **sebelum** file test itu dibuat, lalu setelahnya hanya menjalankan `vitest` (yang tidak melakukan typecheck penuh). Jadi bukan "CI lebih ketat" — memang verifikasi lokalku tidak lengkap.
+
+**Perbaikan:** tipe parameter mock dieksplisitkan (`_payload: Record<string, unknown>`), lalu **tsc + full suite + lint dijalankan ulang** sebelum push.
+
+**Lesson:** jalankan `tsc --noEmit` **setelah** menambah/mengubah file test, bukan sebelumnya. `vitest run` hijau ≠ typecheck lolos — keduanya gate terpisah di CI.
+
+**Catatan positif:** CI berfungsi sebagaimana mestinya — menangkap gap verifikasi lokal sebelum masuk `main`. Ini alasan disiplin "CI hijau wajib sebelum merge" dipertahankan.
 
 ---
 
