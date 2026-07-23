@@ -22,7 +22,7 @@ import {
   CalendarDays,
   Menu,
 } from "lucide-react";
-import { getStoredUser, logout, type PuralokaUser } from "@/lib/api";
+import { getStoredUser, logout, api, type PuralokaUser } from "@/lib/api";
 import { useSidebar } from "@/lib/sidebar-context";
 
 const roleLabel: Record<string, string> = {
@@ -32,12 +32,40 @@ const roleLabel: Record<string, string> = {
   client: "Klien",
 };
 
+// ── Menu Registry (Sub-Fase 1B.2): struktur menu dari DB (GET /api/v1/menu) ──────
+// Nama icon (string di DB) → komponen lucide. ADDITIVE-FIRST: hanya sumber struktur
+// yang pindah ke DB; visibility TETAP di client via perms.has() match-ANY, styling
+// & interaksi (collapse/tooltip/dropdown) identik dengan versi hardcode sebelumnya.
+const ICONS: Record<string, React.ElementType> = {
+  LayoutDashboard, FolderKanban, Wallet, PiggyBank, Receipt, HardHat,
+  BarChart3, Settings, Users, Contact, ShoppingCart, Building2,
+  ShieldCheck, CalendarDays,
+};
+function iconFor(name: string): React.ElementType {
+  return ICONS[name] ?? FolderKanban;
+}
+
+interface MenuNode {
+  id: string;
+  key: string;
+  label: string;
+  href: string | null;
+  icon: string;
+  required_permissions: string[];
+  sort_order: number;
+  section: string;
+  children: MenuNode[];
+}
+
+const MENU_CACHE_KEY = "puraloka_menu";
+
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { collapsed, toggle } = useSidebar();
   const [user, setUser] = useState<PuralokaUser | null>(null);
   const [perms, setPerms] = useState<Set<string>>(new Set());
+  const [menu, setMenu] = useState<MenuNode[]>([]);
   const [keuanganOpen, setKeuanganOpen] = useState(false);
   const [pengaturanOpen, setPengaturanOpen] = useState(false);
 
@@ -53,6 +81,18 @@ export function Sidebar() {
         } catch { return []; }
       })()
     ));
+
+    // Menu: pakai cache dulu (render instan), lalu revalidate dari API.
+    try {
+      const cached = localStorage.getItem(MENU_CACHE_KEY);
+      if (cached) setMenu(JSON.parse(cached) as MenuNode[]);
+    } catch {}
+    api.get<{ menu: MenuNode[] }>("/api/v1/menu")
+      .then(({ data }) => {
+        setMenu(data.menu);
+        try { localStorage.setItem(MENU_CACHE_KEY, JSON.stringify(data.menu)); } catch {}
+      })
+      .catch(() => { /* pakai cache; sidebar tidak boleh gagal render */ });
   }, []);
 
   useEffect(() => {
@@ -77,7 +117,17 @@ export function Sidebar() {
     return pathname.startsWith(href);
   }
 
+  // Match-ANY: tampil jika tanpa permission (array kosong) ATAU punya salah satu.
+  function canSee(node: MenuNode): boolean {
+    if (!node.required_permissions || node.required_permissions.length === 0) return true;
+    return node.required_permissions.some(p => perms.has(p));
+  }
+
   const keuanganActive = isActive("/keuangan") || isActive("/kas");
+
+  const mainMenu = menu.filter(m => m.section === "main");
+  const bottomMenu = menu.filter(m => m.section === "bottom");
+  const pengaturanNode = bottomMenu.find(m => m.key === "pengaturan");
 
   function navStyle(active: boolean): React.CSSProperties {
     return {
@@ -230,7 +280,7 @@ export function Sidebar() {
         </div>
       )}
 
-      {/* Navigation */}
+      {/* Navigation — struktur dari menu_items (section='main') */}
       <nav style={{ flex: 1, paddingTop: collapsed ? 4 : 8, paddingBottom: 8, overflowY: "auto", overflowX: "hidden", minHeight: 0 }}>
         {!collapsed && (
           <div style={{ padding: "12px 14px 6px", fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
@@ -238,140 +288,137 @@ export function Sidebar() {
           </div>
         )}
 
-        {/* Dashboard */}
-        <NavItem href="/dashboard" label="Dashboard" icon={LayoutDashboard} active={isActive("/dashboard")} collapsed={collapsed} onHover={onHover} offHover={offHover} navStyle={navStyle} />
+        {mainMenu.map(node => {
+          if (!canSee(node)) return null;
 
-        {perms.has("projects:view") && (
-          <NavItem href="/proyek" label="Proyek" icon={FolderKanban} active={isActive("/proyek")} collapsed={collapsed} onHover={onHover} offHover={offHover} navStyle={navStyle} />
-        )}
+          // Node dropdown (punya children) — mis. Keuangan.
+          if (node.children.length > 0) {
+            const visibleChildren = node.children.filter(canSee);
+            if (visibleChildren.length === 0) return null;
 
-        {perms.has("clients:view") && (
-          <NavItem href="/klien" label="Klien" icon={Contact} active={isActive("/klien")} collapsed={collapsed} onHover={onHover} offHover={offHover} navStyle={navStyle} />
-        )}
+            // Expanded: dropdown collapsible. Collapsed: tampilkan children sebagai ikon langsung.
+            if (!collapsed) {
+              return (
+                <div key={node.key}>
+                  <button
+                    onClick={() => setKeuanganOpen(o => !o)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 8,
+                      padding: "0 14px", margin: "1px 6px", height: 38,
+                      borderRadius: 8, fontSize: 14, fontWeight: keuanganActive ? 500 : 400,
+                      background: "transparent", border: "none",
+                      borderLeft: keuanganActive ? "3px solid var(--navy)" : "3px solid transparent",
+                      color: keuanganActive ? "var(--navy)" : "var(--text-secondary)",
+                      cursor: "pointer", width: "calc(100% - 12px)", textAlign: "left",
+                      transition: "all 0.15s", whiteSpace: "nowrap",
+                    }}
+                    onMouseEnter={e => { if (!keuanganActive) { e.currentTarget.style.color = "var(--text-primary)"; e.currentTarget.style.background = "var(--surface-hover)"; } }}
+                    onMouseLeave={e => { if (!keuanganActive) { e.currentTarget.style.color = "var(--text-secondary)"; e.currentTarget.style.background = "transparent"; } }}
+                  >
+                    {(() => { const Icon = iconFor(node.icon); return <Icon size={16} strokeWidth={keuanganActive ? 2.5 : 1.75} style={{ flexShrink: 0 }} />; })()}
+                    <span style={{ flex: 1 }}>{node.label}</span>
+                    <ChevronDown size={14} style={{ flexShrink: 0, transform: keuanganOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s", color: keuanganActive ? "var(--navy)" : "var(--text-muted)" }} />
+                  </button>
+                  <div style={{ overflow: "hidden", maxHeight: keuanganOpen ? "100px" : "0px", transition: "max-height 0.2s ease" }}>
+                    <div style={{ paddingTop: 2, paddingBottom: 4 }}>
+                      {visibleChildren.map(child => {
+                        const ChildIcon = iconFor(child.icon);
+                        const active = isActive(child.href ?? "");
+                        return (
+                          <Link key={child.key} href={child.href ?? "#"} style={subStyle(active)} onMouseEnter={e => onHover(e, active)} onMouseLeave={e => offHover(e, active)}>
+                            <ChildIcon size={14} strokeWidth={active ? 2.5 : 1.75} style={{ flexShrink: 0 }} />
+                            <span>{child.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              );
+            }
 
-        {/* Keuangan dropdown — hidden when collapsed (show both links directly) */}
-        {(perms.has("finance:view") || perms.has("cash:view")) && !collapsed && (
-          <div>
-            <button
-              onClick={() => setKeuanganOpen(o => !o)}
-              style={{
-                display: "flex", alignItems: "center", gap: 8,
-                padding: "0 14px", margin: "1px 6px", height: 38,
-                borderRadius: 8, fontSize: 14, fontWeight: keuanganActive ? 500 : 400,
-                background: "transparent", border: "none",
-                borderLeft: keuanganActive ? "3px solid var(--navy)" : "3px solid transparent",
-                color: keuanganActive ? "var(--navy)" : "var(--text-secondary)",
-                cursor: "pointer", width: "calc(100% - 12px)", textAlign: "left",
-                transition: "all 0.15s", whiteSpace: "nowrap",
-              }}
-              onMouseEnter={e => { if (!keuanganActive) { e.currentTarget.style.color = "var(--text-primary)"; e.currentTarget.style.background = "var(--surface-hover)"; } }}
-              onMouseLeave={e => { if (!keuanganActive) { e.currentTarget.style.color = "var(--text-secondary)"; e.currentTarget.style.background = "transparent"; } }}
-            >
-              <Wallet size={16} strokeWidth={keuanganActive ? 2.5 : 1.75} style={{ flexShrink: 0 }} />
-              <span style={{ flex: 1 }}>Keuangan</span>
-              <ChevronDown size={14} style={{ flexShrink: 0, transform: keuanganOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s", color: keuanganActive ? "var(--navy)" : "var(--text-muted)" }} />
-            </button>
-            <div style={{ overflow: "hidden", maxHeight: keuanganOpen ? "100px" : "0px", transition: "max-height 0.2s ease" }}>
-              <div style={{ paddingTop: 2, paddingBottom: 4 }}>
-                {perms.has("finance:view") && (
-                  <Link href="/keuangan" style={subStyle(isActive("/keuangan"))} onMouseEnter={e => onHover(e, isActive("/keuangan"))} onMouseLeave={e => offHover(e, isActive("/keuangan"))}>
-                    <Receipt size={14} strokeWidth={isActive("/keuangan") ? 2.5 : 1.75} style={{ flexShrink: 0 }} />
-                    <span>Invoice & Bayar</span>
-                  </Link>
-                )}
-                {perms.has("cash:view") && (
-                  <Link href="/kas" style={subStyle(isActive("/kas"))} onMouseEnter={e => onHover(e, isActive("/kas"))} onMouseLeave={e => offHover(e, isActive("/kas"))}>
-                    <PiggyBank size={14} strokeWidth={isActive("/kas") ? 2.5 : 1.75} style={{ flexShrink: 0 }} />
-                    <span>Kas & Pengeluaran</span>
-                  </Link>
-                )}
+            // Collapsed: children sebagai NavItem ikon langsung (tanpa dropdown).
+            return (
+              <div key={node.key}>
+                {visibleChildren.map(child => (
+                  <NavItem key={child.key} href={child.href ?? "#"} label={child.label} icon={iconFor(child.icon)} active={isActive(child.href ?? "")} collapsed={collapsed} onHover={onHover} offHover={offHover} navStyle={navStyle} />
+                ))}
               </div>
-            </div>
-          </div>
-        )}
+            );
+          }
 
-        {/* Collapsed: show keuangan icons tanpa dropdown */}
-        {(perms.has("finance:view") || perms.has("cash:view")) && collapsed && (
-          <>
-            {perms.has("finance:view") && (
-              <NavItem href="/keuangan" label="Invoice & Bayar" icon={Receipt} active={isActive("/keuangan")} collapsed={collapsed} onHover={onHover} offHover={offHover} navStyle={navStyle} />
-            )}
-            {perms.has("cash:view") && (
-              <NavItem href="/kas" label="Kas & Pengeluaran" icon={PiggyBank} active={isActive("/kas")} collapsed={collapsed} onHover={onHover} offHover={offHover} navStyle={navStyle} />
-            )}
-          </>
-        )}
-
-        {perms.has("procurement:view") && (
-          <NavItem href="/procurement" label="Pengadaan" icon={ShoppingCart} active={isActive("/procurement")} collapsed={collapsed} onHover={onHover} offHover={offHover} navStyle={navStyle} />
-        )}
-
-        {perms.has("mandor:view") && (
-          <NavItem href="/mandor" label="Mandor" icon={HardHat} active={isActive("/mandor")} collapsed={collapsed} onHover={onHover} offHover={offHover} navStyle={navStyle} />
-        )}
-
-        {perms.has("reports:view") && (
-          <NavItem href="/laporan" label="Laporan" icon={BarChart3} active={isActive("/laporan")} collapsed={collapsed} onHover={onHover} offHover={offHover} navStyle={navStyle} />
-        )}
-
-        {(perms.has("projects:view") || perms.has("mandor:view")) && (
-          <NavItem href="/kalender" label="Kalender" icon={CalendarDays} active={isActive("/kalender")} collapsed={collapsed} onHover={onHover} offHover={offHover} navStyle={navStyle} />
-        )}
-
-        {perms.has("users:manage") && (
-          <NavItem href="/users" label="User" icon={Users} active={isActive("/users")} collapsed={collapsed} onHover={onHover} offHover={offHover} navStyle={navStyle} />
-        )}
-
-        {perms.has("users:manage") && (
-          <NavItem href="/audit" label="Audit Trail" icon={ShieldCheck} active={isActive("/audit")} collapsed={collapsed} onHover={onHover} offHover={offHover} navStyle={navStyle} />
-        )}
+          // Node biasa (link tunggal).
+          return (
+            <NavItem key={node.key} href={node.href ?? "#"} label={node.label} icon={iconFor(node.icon)} active={isActive(node.href ?? "")} collapsed={collapsed} onHover={onHover} offHover={offHover} navStyle={navStyle} />
+          );
+        })}
       </nav>
 
-      {/* Bottom */}
+      {/* Bottom — struktur dari menu_items (section='bottom') */}
       <div style={{ padding: collapsed ? "8px 4px" : "10px 8px", borderTop: "1px solid var(--border)", flexShrink: 0 }}>
-        {/* Pengaturan */}
-        {!collapsed && perms.has("users:roles:manage") ? (
-          <div>
-            <button
-              onClick={() => setPengaturanOpen(o => !o)}
-              style={{
-                display: "flex", alignItems: "center", gap: 8,
-                padding: "0 14px", margin: "1px 6px", height: 38,
-                borderRadius: 8, fontSize: 14, fontWeight: pathname.startsWith("/pengaturan") ? 500 : 400,
-                background: "transparent", border: "none",
-                borderLeft: pathname.startsWith("/pengaturan") ? "3px solid var(--navy)" : "3px solid transparent",
-                color: pathname.startsWith("/pengaturan") ? "var(--navy)" : "var(--text-secondary)",
-                cursor: "pointer", width: "calc(100% - 12px)", textAlign: "left",
-                transition: "all 0.15s",
-              }}
-              onMouseEnter={e => { if (!pathname.startsWith("/pengaturan")) { e.currentTarget.style.color = "var(--text-primary)"; e.currentTarget.style.background = "var(--surface-hover)"; } }}
-              onMouseLeave={e => { if (!pathname.startsWith("/pengaturan")) { e.currentTarget.style.color = "var(--text-secondary)"; e.currentTarget.style.background = "transparent"; } }}
-            >
-              <Settings size={16} strokeWidth={pathname.startsWith("/pengaturan") ? 2.5 : 1.75} style={{ flexShrink: 0 }} />
-              <span style={{ flex: 1 }}>Pengaturan</span>
-              <ChevronDown size={14} style={{ flexShrink: 0, transform: pengaturanOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s", color: pathname.startsWith("/pengaturan") ? "var(--navy)" : "var(--text-muted)" }} />
-            </button>
-            <div style={{ overflow: "hidden", maxHeight: pengaturanOpen ? "80px" : "0px", transition: "max-height 0.2s ease" }}>
-              <div style={{ paddingTop: 2, paddingBottom: 2 }}>
-                <Link href="/pengaturan" style={subStyle(pathname === "/pengaturan")} onMouseEnter={e => onHover(e, pathname === "/pengaturan")} onMouseLeave={e => offHover(e, pathname === "/pengaturan")}>
-                  <Building2 size={13} strokeWidth={2} style={{ flexShrink: 0 }} />
-                  <span>Profil Perusahaan</span>
-                </Link>
-                <Link href="/pengaturan/roles" style={subStyle(pathname.startsWith("/pengaturan/roles"))} onMouseEnter={e => onHover(e, pathname.startsWith("/pengaturan/roles"))} onMouseLeave={e => offHover(e, pathname.startsWith("/pengaturan/roles"))}>
-                  <ShieldCheck size={13} strokeWidth={2} style={{ flexShrink: 0 }} />
-                  <span>Role & Akses</span>
-                </Link>
+        {/* Pengaturan: dropdown jika punya children yang boleh dilihat (users:roles:manage);
+            selain itu link tunggal ke href parent. */}
+        {pengaturanNode && (() => {
+          const visibleChildren = pengaturanNode.children.filter(canSee);
+          const hasDropdown = visibleChildren.length > 0;
+          const pengaturanHref = pengaturanNode.href ?? "/pengaturan";
+          const PIcon = iconFor(pengaturanNode.icon);
+
+          if (!collapsed && hasDropdown) {
+            return (
+              <div>
+                <button
+                  onClick={() => setPengaturanOpen(o => !o)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    padding: "0 14px", margin: "1px 6px", height: 38,
+                    borderRadius: 8, fontSize: 14, fontWeight: pathname.startsWith("/pengaturan") ? 500 : 400,
+                    background: "transparent", border: "none",
+                    borderLeft: pathname.startsWith("/pengaturan") ? "3px solid var(--navy)" : "3px solid transparent",
+                    color: pathname.startsWith("/pengaturan") ? "var(--navy)" : "var(--text-secondary)",
+                    cursor: "pointer", width: "calc(100% - 12px)", textAlign: "left",
+                    transition: "all 0.15s",
+                  }}
+                  onMouseEnter={e => { if (!pathname.startsWith("/pengaturan")) { e.currentTarget.style.color = "var(--text-primary)"; e.currentTarget.style.background = "var(--surface-hover)"; } }}
+                  onMouseLeave={e => { if (!pathname.startsWith("/pengaturan")) { e.currentTarget.style.color = "var(--text-secondary)"; e.currentTarget.style.background = "transparent"; } }}
+                >
+                  <PIcon size={16} strokeWidth={pathname.startsWith("/pengaturan") ? 2.5 : 1.75} style={{ flexShrink: 0 }} />
+                  <span style={{ flex: 1 }}>{pengaturanNode.label}</span>
+                  <ChevronDown size={14} style={{ flexShrink: 0, transform: pengaturanOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s", color: pathname.startsWith("/pengaturan") ? "var(--navy)" : "var(--text-muted)" }} />
+                </button>
+                <div style={{ overflow: "hidden", maxHeight: pengaturanOpen ? "80px" : "0px", transition: "max-height 0.2s ease" }}>
+                  <div style={{ paddingTop: 2, paddingBottom: 2 }}>
+                    {visibleChildren.map(child => {
+                      const ChildIcon = iconFor(child.icon);
+                      const childHref = child.href ?? "#";
+                      // Active: exact untuk /pengaturan (profil), startsWith untuk /pengaturan/roles.
+                      const active = childHref === "/pengaturan" ? pathname === "/pengaturan" : pathname.startsWith(childHref);
+                      return (
+                        <Link key={child.key} href={childHref} style={subStyle(active)} onMouseEnter={e => onHover(e, active)} onMouseLeave={e => offHover(e, active)}>
+                          <ChildIcon size={13} strokeWidth={2} style={{ flexShrink: 0 }} />
+                          <span>{child.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        ) : !collapsed ? (
-          <Link href="/pengaturan" style={navStyle(pathname.startsWith("/pengaturan"))} onMouseEnter={e => onHover(e, pathname.startsWith("/pengaturan"))} onMouseLeave={e => offHover(e, pathname.startsWith("/pengaturan"))}>
-            <Settings size={16} strokeWidth={1.75} style={{ flexShrink: 0 }} />
-            <span style={{ flex: 1 }}>Pengaturan</span>
-          </Link>
-        ) : (
-          <NavItem href="/pengaturan" label="Pengaturan" icon={Settings} active={pathname.startsWith("/pengaturan")} collapsed={collapsed} onHover={onHover} offHover={offHover} navStyle={navStyle} />
-        )}
+            );
+          }
+
+          if (!collapsed) {
+            return (
+              <Link href={pengaturanHref} style={navStyle(pathname.startsWith("/pengaturan"))} onMouseEnter={e => onHover(e, pathname.startsWith("/pengaturan"))} onMouseLeave={e => offHover(e, pathname.startsWith("/pengaturan"))}>
+                <PIcon size={16} strokeWidth={1.75} style={{ flexShrink: 0 }} />
+                <span style={{ flex: 1 }}>{pengaturanNode.label}</span>
+              </Link>
+            );
+          }
+
+          return (
+            <NavItem href={pengaturanHref} label={pengaturanNode.label} icon={PIcon} active={pathname.startsWith("/pengaturan")} collapsed={collapsed} onHover={onHover} offHover={offHover} navStyle={navStyle} />
+          );
+        })()}
 
         {/* User info */}
         {user && !collapsed && (
