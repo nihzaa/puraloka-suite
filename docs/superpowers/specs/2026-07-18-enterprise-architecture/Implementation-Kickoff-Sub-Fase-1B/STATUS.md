@@ -15,7 +15,7 @@ Gate 1A→1B ✅ approved (2026-07-23). Migration mulai 075 (074 terakhir).
 | **1B.2** | Menu Registry | 🔵 pending | migration 076 menu_items + sidebar DB-driven; [execution/1b2-menu-registry.md](execution/1b2-menu-registry.md) |
 | **1B.3** | Module Registry & Feature Flags | 🔵 pending | migration 077 modules+feature_flags; execution di [02 § 1B.3](02-sub-fase-1b-sequence.md) (skip execution/ — CRUD standar) |
 | — | **Gate Core 1B** | 🔵 pending | 1B.1-1B.3 selesai + additive-first terverifikasi |
-| **1B.4** | users.role enum→FK | 🔴 **Red-Line, pending keputusan founder (Opsi A/B)** | [execution/1b4-role-enum-migration.md](execution/1b4-role-enum-migration.md); DANGER GATE sebelum eksekusi |
+| **1B.4** | users.role enum→FK | ✅ **Selesai (PR #18)** — belum merge | Red-Line #1, DANGER GATE Opsi A **penuh** disetujui founder. Expand-Contract: 078 EXPAND (role_id FK+backfill+dual-write) · 079 SWAP (auth_role FK, identik enum 23 user) · 080 CONTRACT (drop enum+type, role_id NOT NULL, read path FK-only). **Verifikasi public 7/7 TUNTAS: role custom `direktur` assignable** (tujuan tercapai). 119 test hijau, lint 0 error. |
 
 ## Day-1 (sebelum migration 1B pertama)
 - ⏳ Rekonsiliasi drift tracking 073 (append-only trigger di DB, belum di `schema_migrations`)
