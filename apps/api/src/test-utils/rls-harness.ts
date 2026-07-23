@@ -71,8 +71,11 @@ export async function asUser<T>(
  * (Catatan: di dev, tidak semua seed user punya auth_id — test SKIP jika null.)
  */
 export async function authIdForRole(client: Client, role: string): Promise<string | null> {
+  // Sub-Fase 1B.4 CONTRACT: role via FK (roles.name), kolom enum di-drop.
   const { rows } = await client.query(
-    "SELECT auth_id FROM public.users WHERE role = $1 AND auth_id IS NOT NULL AND is_active = true LIMIT 1",
+    `SELECT u.auth_id FROM public.users u
+     JOIN public.roles r ON r.id = u.role_id
+     WHERE r.name = $1 AND u.auth_id IS NOT NULL AND u.is_active = true LIMIT 1`,
     [role]
   )
   return rows[0]?.auth_id ?? null
@@ -90,8 +93,9 @@ export async function assignedMandor(
     SELECT u.id AS user_id, u.auth_id,
            count(DISTINCT ma.project_id)::int AS n
     FROM public.users u
+    JOIN public.roles r ON r.id = u.role_id
     JOIN public.mandor_assignments ma ON ma.mandor_id = u.id
-    WHERE u.role = 'mandor' AND u.auth_id IS NOT NULL AND u.is_active = true
+    WHERE r.name = 'mandor' AND u.auth_id IS NOT NULL AND u.is_active = true
     GROUP BY u.id, u.auth_id
     ORDER BY n DESC
     LIMIT 1
