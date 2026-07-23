@@ -37,11 +37,13 @@ Baca dokumen ini urut, lalu bandingkan realita kode/DB vs dokumen:
 
 1. `CLAUDE.md` — briefing repo
 2. `AUTOPILOT.md` — charter ini
-3. `STATUS.md` — status hidup fase aktif
-4. `NUMBERING-GLOSSARY.md` — peta penomoran (Program A-F ↔ Sub-Fase 1A-1D)
-5. Kickoff fase aktif: dokumen perencanaan `00-10` + semua `GATE-*-MANIFEST` fase itu
-6. `AUDIT_REPORT.md` — temuan keamanan/kualitas terbuka
-7. Completion-audit fase **sebelumnya** (mis. `PHASE-1A-COMPLETION-AUDIT.md`)
+3. `DOMAIN.md` — **otoritas domain konstruksi** (§11) — praktik bisnis + jawaban owner
+4. `HARDCODE-CENSUS.md` — inventaris aturan bisnis + ember [A]/[B]/[C] (§12)
+5. `STATUS.md` — status hidup fase aktif
+6. `NUMBERING-GLOSSARY.md` — peta penomoran (Program A-F ↔ Sub-Fase 1A-1D)
+7. Kickoff fase aktif: dokumen perencanaan `00-10` + semua `GATE-*-MANIFEST` fase itu
+8. `AUDIT_REPORT.md` — temuan keamanan/kualitas terbuka
+9. Completion-audit fase **sebelumnya** (mis. `PHASE-1A-COMPLETION-AUDIT.md`)
 
 **Jika ada kontradiksi antar dokumen, atau dokumen vs kode/DB nyata → laporkan + rekonsiliasi lebih dulu (KO Verify, §6). Jangan diam-diam pilih satu sisi.** Contoh nyata yang harus dicegah: dokumen bilang "F5.5 dorman" padahal trigger sudah ada di DB.
 
@@ -120,6 +122,25 @@ Daftar **tertutup**. Kalau sebuah aksi cocok salah satu, **jangan lakukan otonom
 ## 9. Definition of Done (tiap slice)
 
 Slice belum "done" sampai semua benar: test slice hijau + full suite hijau; typecheck/lint/build 0 error; STATUS.md + docs terkait diperbarui, nol teks basi; diff di-review CC sendiri; additive-first terjaga (nol fitur/menu existing hilang); UI sesuai bar (skill frontend-design dipakai untuk layar baru); tidak ada Red-Line yang dilewati diam-diam.
+
+**DoD tambahan untuk item config ember [A] (§12):** belum "done" sampai bisa **diubah dari halaman UI pengaturan** — tersimpan di DB saja **tidak cukup**. Live E2E wajib untuk apa pun yang menulis ke DB (pelajaran bug UUID: unit test ber-mock tak kena constraint DB).
+
+---
+
+## 11. OTORITAS DOMAIN (config-first)
+
+- `DOMAIN.md` + `HARDCODE-CENSUS.md` adalah **sumber otoritas produk/domain**, dibaca di Session Start (§2).
+- Pertanyaan produk/domain yang jawabannya **ADA atau bisa DITURUNKAN** dari `DOMAIN.md` → **PUTUSKAN SENDIRI**, catat alasan di commit/dokumen, **JANGAN tanya**.
+- **Tanya HANYA** kalau: (a) menyentuh Red-Line §5, (b) `DOMAIN.md` benar-benar tak menjawab **DAN** salah pilih mahal untuk dibalik, atau (c) keputusan bisnis/uang milik owner (tarif, kebijakan denda, siapa berhak approve apa).
+- Menemukan `DOMAIN.md` keliru/kurang saat kerja → **PERBAIKI dokumennya sekalian** (anti teks-basi, §6).
+
+## 12. CONFIG-FIRST
+
+- Aturan bisnis baru **DEFAULT-nya config**, bukan konstanta di kode.
+- Menulis konstanta bisnis di kode = butuh **justifikasi eksplisit di komentar** + masuk `HARDCODE-CENSUS.md` ember **[C]**.
+- Ember **[C]** (RLS on/off, fail-closed default, invariant double-entry, immutability audit_logs, STRUKTUR rumus finansial, integritas FK/constraint) **TIDAK BOLEH dijadikan config**, apa pun permintaannya — kalau ada permintaan begitu, itu **Red-Line**, angkat ke owner.
+- **Config finansial** (tarif, retensi, denda, % apa pun yang masuk perhitungan uang) **WAJIB effective-dated** (`berlaku_dari/berlaku_sampai`); perhitungan memakai nilai yang berlaku saat dokumen **diterbitkan**, bukan nilai terkini. Governance wajib: perubahan tercatat `audit_logs`, validasi range/tipe, permission khusus (`settings:finance:manage`), default fail-closed bila config hilang.
+- **Anti self-lockout:** permission kritikal tak boleh dicabut dari pemegang terakhir; role admin bawaan tak bisa dilucuti; semua perubahan permission → audit.
 
 ---
 
