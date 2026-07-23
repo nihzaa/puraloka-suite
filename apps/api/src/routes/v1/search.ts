@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify'
-import { authenticate } from '../../plugins/auth.js'
+import { authenticate, hasPermission } from '../../plugins/auth.js'
 import { supabase } from '../../utils/supabase.js'
 
 export default async function searchRoutes(app: FastifyInstance) {
@@ -58,7 +58,8 @@ export default async function searchRoutes(app: FastifyInstance) {
     }
 
     // ── Clients ───────────────────────────────────────────────────────
-    if (user.role === 'admin' || user.role === 'pm') {
+    // F6 (AKTA 0): capability, bukan role literal (direktur punya clients:view).
+    if (await hasPermission(request, 'clients:view')) {
       const { data } = await supabase
         .from('clients')
         .select('id, name, phone, email')
@@ -78,7 +79,9 @@ export default async function searchRoutes(app: FastifyInstance) {
     }
 
     // ── Invoices ──────────────────────────────────────────────────────
-    if (user.role === 'admin' || user.role === 'pm') {
+    // F7 (AKTA 0): capability finance:view:all (org-wide) — scope admin+pm identik,
+    // BUKAN finance:view (terlalu luas, mandor punya).
+    if (await hasPermission(request, 'finance:view:all')) {
       const { data } = await supabase
         .from('invoices')
         .select('id, invoice_number, total_amount, status, project:projects!invoices_project_id_fkey(id, name)')
@@ -121,7 +124,8 @@ export default async function searchRoutes(app: FastifyInstance) {
     }
 
     // ── Users ─────────────────────────────────────────────────────────
-    if (user.role === 'admin') {
+    // F8 (AKTA 0): capability users:manage, bukan role literal (direktur punya).
+    if (await hasPermission(request, 'users:manage')) {
       const { data } = await supabase
         .from('users')
         .select('id, name, email, role_id, roles:role_id ( name ), is_active')
