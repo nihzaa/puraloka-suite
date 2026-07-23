@@ -42,10 +42,13 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
     return reply.status(401).send({ error: 'Token tidak valid atau sudah expired' })
   }
 
-  // Ambil data user dari tabel users berdasarkan auth_id
+  // Ambil data user dari tabel users berdasarkan auth_id.
+  // FASE 2 SWAP READ (1B.4): role di-resolve dari FK role_id (join roles.name),
+  // fallback ke enum `role` jika role_id null (jaring pengaman, mustahil pasca-078).
+  // Nilai `role` tetap berupa nama role (string) — kontrak get_role_permissions/RLS sama.
   const { data: user, error: userError } = await supabase
     .from('users')
-    .select('id, auth_id, name, email, phone, role')
+    .select('id, auth_id, name, email, phone, role, role_id, roles:role_id ( name )')
     .eq('auth_id', authData.user.id)
     .single()
 
@@ -53,7 +56,8 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
     return reply.status(403).send({ error: 'User tidak terdaftar di sistem' })
   }
 
-  request.currentUser = user as AuthUser
+  const resolvedRole = (user.roles as unknown as { name: string } | null)?.name ?? user.role
+  request.currentUser = { ...user, role: resolvedRole } as AuthUser
 }
 
 // Load permission set untuk role user ke cache per-request (sekali per request, no N+1).
