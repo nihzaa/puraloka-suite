@@ -89,7 +89,7 @@ describe('syncKasbonWorkflowInstance — dual-write per jalur', () => {
   })
 })
 
-describe('reconcileKasbonWorkflow — deteksi divergensi', () => {
+describe('reconcileKasbonWorkflow — deteksi divergensi (via generik)', () => {
   it('ok=true bila setiap kasbon punya instance dengan state cocok', async () => {
     kasbonsData.value = [{ id: 'a', status: 'pending' }, { id: 'b', status: 'approved' }]
     instancesData.value = [{ entity_id: 'a', current_state: 'pending' }, { entity_id: 'b', current_state: 'approved' }]
@@ -104,7 +104,7 @@ describe('reconcileKasbonWorkflow — deteksi divergensi', () => {
     instancesData.value = []
     const r = await reconcileKasbonWorkflow()
     expect(r.ok).toBe(false)
-    expect(r.mismatches[0]).toMatchObject({ kasbonId: 'a', problem: 'missing_instance', workflowState: null })
+    expect(r.mismatches[0]).toMatchObject({ entityId: 'a', problem: 'missing_instance', workflowState: null })
   })
 
   it('mendeteksi state MISMATCH (kasbon approved tapi instance masih pending)', async () => {
@@ -112,7 +112,7 @@ describe('reconcileKasbonWorkflow — deteksi divergensi', () => {
     instancesData.value = [{ entity_id: 'a', current_state: 'pending' }]
     const r = await reconcileKasbonWorkflow()
     expect(r.ok).toBe(false)
-    expect(r.mismatches[0]).toMatchObject({ kasbonId: 'a', kasbonStatus: 'approved', workflowState: 'pending', problem: 'state_mismatch' })
+    expect(r.mismatches[0]).toMatchObject({ entityId: 'a', sourceStatus: 'approved', workflowState: 'pending', problem: 'state_mismatch' })
   })
 
   it('throw bila baca kasbons gagal (jangan lapor ok palsu)', async () => {
