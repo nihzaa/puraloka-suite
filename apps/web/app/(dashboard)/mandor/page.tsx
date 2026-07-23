@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useReducer, useRef, useState } from "
 import { useRouter, useSearchParams } from "next/navigation";
 import { createPortal } from "react-dom";
 import { api, getStoredUser } from "@/lib/api";
+import { useUnits } from "@/lib/use-units";
 import * as XLSX from "xlsx";
 import {
   HardHat, Plus, ChevronRight, RefreshCw, CheckCircle2, Clock,
@@ -224,12 +225,6 @@ const REPORT_STATUS: Record<string, { label: string; color: string; bg: string; 
 
 const PAYMENT_SYSTEM: Record<string, string> = {
   harian: "Harian", borongan: "Borongan", progress_pct: "Progress %",
-};
-
-const UNIT_LABELS: Record<string, string> = {
-  m2: "m²", m3: "m³", m: "m", m_linear: "m'", kg: "kg", ton: "ton",
-  unit: "unit", buah: "buah", titik: "titik", batang: "batang",
-  lembar: "lembar", set: "set", ls: "ls", hari: "hari", minggu: "minggu",
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -3066,6 +3061,7 @@ function ScopeDetailModal({ data, loading: isLoading, onClose, onRefresh, onAddI
   onAddItem: () => void;
 }) {
   const mounted = useMounted();
+  const { symbolOf } = useUnits(); // resolver satuan dari master `units` (fallback legacy)
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
 
   if (!mounted) return null;
@@ -3176,14 +3172,14 @@ function ScopeDetailModal({ data, loading: isLoading, onClose, onRefresh, onAddI
                                 </div>
                               )}
                               <div style={{ fontSize: 12, color: C.mid }}>
-                                {item.volume.toLocaleString("id-ID")} {UNIT_LABELS[item.unit] ?? item.unit} × {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(item.unit_price)}/{UNIT_LABELS[item.unit] ?? item.unit}
+                                {item.volume.toLocaleString("id-ID")} {symbolOf(item.unit)} × {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(item.unit_price)}/{symbolOf(item.unit)}
                               </div>
                               <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
                                 <div style={{ flex: 1, height: 4, borderRadius: 3, background: C.border, overflow: "hidden" }}>
                                   <div style={{ height: "100%", borderRadius: 3, background: pctColor, width: `${pct}%` }} />
                                 </div>
                                 <span style={{ fontSize: 11, color: pctColor, fontWeight: 600, flexShrink: 0 }}>
-                                  {Number(item.volume_done).toLocaleString("id-ID")}/{Number(item.volume).toLocaleString("id-ID")} {UNIT_LABELS[item.unit] ?? item.unit} ({pct.toFixed(0)}%)
+                                  {Number(item.volume_done).toLocaleString("id-ID")}/{Number(item.volume).toLocaleString("id-ID")} {symbolOf(item.unit)} ({pct.toFixed(0)}%)
                                 </span>
                               </div>
                             </div>
@@ -3214,6 +3210,7 @@ function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
   onSuccess: () => void;
 }) {
   const mounted = useMounted();
+  const { grouped, symbolOf } = useUnits(); // dropdown satuan dari master `units`; mandor simpan code
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
 
   const [itemName, setItemName] = useState("");
@@ -3255,14 +3252,20 @@ function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
     } finally { setLoading(false); }
   }
 
-  const UNITS_GROUPED = [
-    { group: "Area", opts: [["m2","m²"],["m3","m³"]] },
-    { group: "Panjang", opts: [["m","m"],["m_linear","m'"]] },
-    { group: "Berat (Baja)", opts: [["kg","kg"],["ton","ton"]] },
-    { group: "Unit/Buah", opts: [["unit","unit"],["buah","buah"],["titik","titik"],["batang","batang"],["lembar","lembar"]] },
-    { group: "Set/Lot", opts: [["set","set"],["ls","ls (lump sum)"]] },
-    { group: "Waktu", opts: [["hari","hari"],["minggu","minggu"]] },
+  // Satuan dari master `units` (sumber tunggal). Fallback statis dipertahankan agar
+  // dropdown tetap terisi bila master belum termuat / fetch gagal (nilai = code).
+  const FALLBACK_UNITS_GROUPED: { group: string; opts: [string, string][] }[] = [
+    { group: "Area", opts: [["m2", "m²"]] },
+    { group: "Volume", opts: [["m3", "m³"]] },
+    { group: "Panjang", opts: [["m", "m"], ["m_linear", "m'"]] },
+    { group: "Berat", opts: [["kg", "kg"], ["ton", "ton"]] },
+    { group: "Unit/Buah", opts: [["unit", "unit"], ["buah", "buah"], ["titik", "titik"], ["batang", "batang"], ["lembar", "lembar"]] },
+    { group: "Set/Lot", opts: [["set", "set"], ["ls", "ls"]] },
+    { group: "Waktu", opts: [["hari", "hari"], ["minggu", "minggu"]] },
   ];
+  const UNITS_GROUPED: { group: string; opts: [string, string][] }[] = grouped.length > 0
+    ? grouped.map(g => ({ group: g.label, opts: g.items.map(u => [u.code, u.symbol] as [string, string]) }))
+    : FALLBACK_UNITS_GROUPED;
 
   if (!mounted) return null;
   return createPortal(
@@ -3302,7 +3305,7 @@ function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Volume ({UNIT_LABELS[unit] ?? unit})</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Volume ({symbolOf(unit)})</label>
               <input value={volume} onChange={e => setVolume(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="0" style={inputStyle} required />
             </div>
             <div>
@@ -3317,7 +3320,7 @@ function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
             </div>
           )}
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Volume Sudah Dikerjakan ({UNIT_LABELS[unit] ?? unit}) — opsional</label>
+            <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Volume Sudah Dikerjakan ({symbolOf(unit)}) — opsional</label>
             <input value={volumeDone} onChange={e => setVolumeDone(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="0" style={inputStyle} />
           </div>
           <div>
