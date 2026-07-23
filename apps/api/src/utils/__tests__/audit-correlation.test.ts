@@ -4,7 +4,11 @@ import type { FastifyRequest } from 'fastify'
 // Sub-Fase 1D.2 — correlation_id diisi OTOMATIS dari request.id (Fastify genReqId).
 // Supabase di-mock: yang diuji adalah PAYLOAD yang dikirim ke insert, bukan DB.
 
-const insertMock = vi.fn(async () => ({ error: null }))
+// Parameter di-tipe eksplisit supaya `mock.calls[0][0]` valid secara tipe
+// (tanpa ini, calls bertipe tuple kosong → TS2493).
+const insertMock = vi.fn(async (_payload: Record<string, unknown>) => ({
+  error: null as { message: string } | null,
+}))
 vi.mock('../supabase.js', () => ({
   supabase: { from: vi.fn(() => ({ insert: insertMock })) },
 }))
@@ -42,7 +46,7 @@ describe('logAuditEvent — correlation_id (1D.2)', () => {
   })
 
   it('tetap fire-and-forget: tidak throw walau insert gagal', async () => {
-    insertMock.mockResolvedValueOnce({ error: { message: 'boom' } } as never)
+    insertMock.mockResolvedValueOnce({ error: { message: 'boom' } })
     await expect(logAuditEvent(req('x'), entry)).resolves.toBeUndefined()
   })
 })
