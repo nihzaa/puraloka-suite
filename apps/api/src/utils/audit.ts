@@ -54,6 +54,12 @@ export function computeDiff(
  * Catat satu audit event. Fire-and-forget: error di-log tapi TIDAK PERNAH
  * di-throw ke pemanggil — audit yang gagal tidak boleh menggagalkan aksi bisnis.
  * ip_address & user_agent diambil otomatis dari request.
+ *
+ * Sub-Fase 1D.2 — correlation_id diisi OTOMATIS dari `request.id` (Fastify genReqId,
+ * UUID per-request). Semua audit event dalam satu request jadi punya correlation_id
+ * sama, dan ID itu identik dengan `reqId` di structured log → bisa ditelusuri bolak-balik.
+ * `entry.correlationId` eksplisit tetap menang bila diberikan (mis. job background
+ * yang mengaitkan ke request asal).
  */
 export async function logAuditEvent(request: FastifyRequest, entry: AuditEntry): Promise<void> {
   try {
@@ -68,7 +74,8 @@ export async function logAuditEvent(request: FastifyRequest, entry: AuditEntry):
       diff,
       severity: entry.severity ?? 'info',
       reason: entry.reason ?? null,
-      correlation_id: entry.correlationId ?? null,
+      // 1D.2: eksplisit menang; selain itu pakai request.id (genReqId).
+      correlation_id: entry.correlationId ?? (request.id ? String(request.id) : null),
       workflow_id: entry.workflowId ?? null,
       ip_address: request.ip,
       user_agent: request.headers['user-agent'] ?? null,
