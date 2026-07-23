@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { api, getStoredUser } from "@/lib/api";
+import { useUnits } from "@/lib/use-units";
 import { createPortal } from "react-dom";
 import {
   Package, Truck, ClipboardList, ShoppingCart, CheckSquare,
@@ -308,7 +309,7 @@ function MaterialsTab() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: "", unit: "sak", category_id: "", unit_price: "", min_stock: "", description: "" });
 
-  const UNITS = ["sak", "batang", "m³", "m²", "m", "kg", "ton", "liter", "unit", "lembar", "rol", "set", "buah"];
+  const { units } = useUnits(); // sumber tunggal satuan (master `units`); procurement simpan symbol
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -389,7 +390,7 @@ function MaterialsTab() {
             <Input label="Nama Material *" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Semen Portland 50kg" />
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <Select label="Satuan *" value={form.unit} onChange={e => setForm(f => ({ ...f, unit: e.target.value }))}>
-                {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                {units.map(u => <option key={u.code} value={u.symbol}>{u.symbol}</option>)}
               </Select>
               <Select label="Kategori" value={form.category_id} onChange={e => setForm(f => ({ ...f, category_id: e.target.value }))}>
                 <option value="">— Pilih Kategori —</option>
@@ -591,7 +592,7 @@ function CreateMrModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
   const [items, setItems] = useState([{ material_id: "", qty: "", unit: "", unit_price_est: "", notes: "" }]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const UNITS = ["sak", "batang", "m³", "m²", "m", "kg", "ton", "liter", "unit", "lembar", "rol", "set", "buah"];
+  const { units } = useUnits(); // sumber tunggal satuan (master `units`); procurement simpan symbol
 
   useEffect(() => {
     Promise.all([
@@ -681,7 +682,7 @@ function CreateMrModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
                     <label style={{ display: "block", fontSize: 11, fontWeight: 500, color: C.mid, marginBottom: 4 }}>Satuan *</label>
                     <select value={item.unit} onChange={e => updateItem(idx, "unit", e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: C.surface }}>
                       <option value="">—</option>
-                      {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                      {units.map(u => <option key={u.code} value={u.symbol}>{u.symbol}</option>)}
                     </select>
                   </div>
                   <div>
@@ -897,7 +898,7 @@ function CreatePoModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
   const [items, setItems] = useState([{ material_id: "", qty: "", unit: "", unit_price: "" }]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const UNITS = ["sak", "batang", "m³", "m²", "m", "kg", "ton", "liter", "unit", "lembar", "rol", "set", "buah"];
+  const { units } = useUnits(); // sumber tunggal satuan (master `units`); procurement simpan symbol
 
   useEffect(() => {
     Promise.all([
@@ -1010,7 +1011,7 @@ function CreatePoModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
                     <label style={{ display: "block", fontSize: 11, fontWeight: 500, color: C.mid, marginBottom: 4 }}>Satuan *</label>
                     <select value={item.unit} onChange={e => updateItem(idx, "unit", e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: C.surface }}>
                       <option value="">—</option>
-                      {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                      {units.map(u => <option key={u.code} value={u.symbol}>{u.symbol}</option>)}
                     </select>
                   </div>
                   <div>
