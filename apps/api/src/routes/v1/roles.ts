@@ -1,6 +1,8 @@
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { supabase } from '../../utils/supabase.js'
+import { assertNoCriticalLockout } from '../../utils/role-guard.js'
+import { logAuditEvent } from '../../utils/audit.js'
 
 export default async function rolesRoutes(app: FastifyInstance) {
 
@@ -142,23 +144,37 @@ export default async function rolesRoutes(app: FastifyInstance) {
   app.delete('/api/v1/roles/:id', { preHandler: [authenticate, requirePermission('users:roles:manage')] }, async (request, reply) => {
     const { id } = request.params as { id: string }
 
-    // Cek apakah masih ada user dengan role ini
     const { data: existing } = await supabase.from('roles').select('name, is_builtin').eq('id', id).single()
     if (!existing) return reply.status(404).send({ error: 'Role tidak ditemukan' })
 
+    // Anti-lockout 1: role bawaan tak boleh dihapus (juga ditegakkan trigger DB,
+    // ini pesan yang lebih jelas di layer API).
+    if (existing.is_builtin) {
+      return reply.status(409).send({ error: `Role bawaan '${existing.name}' tidak bisa dihapus.` })
+    }
+
+    // Cek user aktif — FASE 3 CONTRACT (1B.4): via role_id, BUKAN kolom `role` yg di-drop.
     const { count } = await supabase
       .from('users')
       .select('*', { count: 'exact', head: true })
-      .eq('role', existing.name)
+      .eq('role_id', id)
       .eq('is_active', true)
 
     if ((count ?? 0) > 0) {
       return reply.status(409).send({ error: `Tidak bisa hapus role '${existing.name}' — masih ada ${count} user aktif` })
     }
 
+    // Anti-lockout 2: jangan hapus role yang jadi pemegang terakhir permission kritikal.
+    const lockoutMsg = await assertNoCriticalLockout({ type: 'delete_role', roleId: id })
+    if (lockoutMsg) return reply.status(409).send({ error: lockoutMsg })
+
     const { error } = await supabase.from('roles').delete().eq('id', id)
     if (error) return reply.status(500).send({ error: error.message })
 
+    void logAuditEvent(request, {
+      tableName: 'roles', recordId: id, action: 'role.deleted',
+      actorId: request.currentUser!.id, oldValues: { name: existing.name }, severity: 'critical',
+    })
     return reply.send({ success: true })
   })
 
@@ -212,20 +228,39 @@ export default async function rolesRoutes(app: FastifyInstance) {
     const { data: role } = await supabase.from('roles').select('id, name').eq('id', id).single()
     if (!role) return reply.status(404).send({ error: 'Role tidak ditemukan' })
 
-    // Delete all existing permissions for this role
+    // Resolve permission_ids → keys (untuk cek lockout + audit).
+    const { data: permRows } = await supabase
+      .from('permissions').select('id, key').in('id', permission_ids.length ? permission_ids : ['__none__'])
+    const newKeys = (permRows ?? []).map(p => p.key as string)
+
+    // Anti-lockout: jangan mencabut permission kritikal dari pemegang aktif terakhir.
+    const lockoutMsg = await assertNoCriticalLockout({
+      type: 'set_permissions', roleId: id, newPermissionKeys: newKeys,
+    })
+    if (lockoutMsg) return reply.status(409).send({ error: lockoutMsg })
+
+    // Snapshot lama untuk audit.
+    const { data: oldRows } = await supabase
+      .from('role_permissions').select('permissions:permission_id ( key )').eq('role_id', id)
+    const oldKeys = (oldRows ?? [])
+      .map(r => { const e = r.permissions as { key: string } | { key: string }[] | null; return (Array.isArray(e) ? e[0] : e)?.key })
+      .filter(Boolean)
+
+    // Replace-all.
     await supabase.from('role_permissions').delete().eq('role_id', id)
-
-    // Insert new permission set
     if (permission_ids.length > 0) {
-      const rows = permission_ids.map((pid) => ({
-        role_id: id,
-        permission_id: pid,
-        granted_by: request.currentUser!.id,
-      }))
-
+      const rows = permission_ids.map((pid) => ({ role_id: id, permission_id: pid, granted_by: request.currentUser!.id }))
       const { error } = await supabase.from('role_permissions').insert(rows)
       if (error) return reply.status(500).send({ error: error.message })
     }
+
+    // Audit: perubahan permission role = privilege-sensitive, severity critical.
+    void logAuditEvent(request, {
+      tableName: 'role_permissions', recordId: id, action: 'role.permissions',
+      actorId: request.currentUser!.id,
+      oldValues: { permissions: oldKeys.sort() }, newValues: { permissions: [...newKeys].sort() },
+      severity: 'critical',
+    })
 
     return reply.send({ success: true, count: permission_ids.length })
   })
