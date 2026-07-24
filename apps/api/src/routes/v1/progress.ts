@@ -27,7 +27,56 @@ export default async function progressRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { projectId } = request.params
       const { file_base64, file_name, progress_log_id, caption } = request.body ?? {}
+      const user = request.currentUser!
       if (!file_base64) return reply.status(400).send({ error: 'File tidak ditemukan' })
+
+      // ── OTORISASI (ADR-004) — WAJIB sebelum menulis apa pun ke storage/DB ────
+      // service_role bypass RLS & table-RLS dormant → gate di handler adalah SATU-
+      // SATUNYA penjaga. Tanpa ini, user terautentikasi mana pun bisa menulis ke
+      // folder proyek siapa saja / menautkan foto ke log milik orang lain.
+      const canManageProgress = await hasPermission(request, 'progress:manage') // admin/pm
+      let isAssignedToProject = false
+      if (!canManageProgress) {
+        // Tanpa cabang literal role (ADR-004): siapa pun yang PUNYA assignment aktif di
+        // proyek ini boleh upload. Non-mandor tanpa progress:manage otomatis tak punya.
+        // enum assignment_status = active | completed | terminated (TIDAK ada 'cancelled').
+        // Nilai enum yang salah membuat PostgREST ERROR & data null → dulu diam-diam
+        // dianggap "tak ditugaskan" = SEMUA mandor sah tertolak 403 (gagal-tertutup senyap).
+        const { data: asg, error: asgErr } = await supabase
+          .from('mandor_assignments')
+          .select('id')
+          .eq('project_id', projectId)
+          .eq('mandor_id', user.id)
+          .neq('status', 'terminated')
+          .limit(1)
+        if (asgErr) {
+          // JANGAN diam: kegagalan query otorisasi harus terlihat, bukan menyamar
+          // sebagai "tidak berhak".
+          app.log.error({ asgErr, projectId, userId: user.id }, 'cek assignment gagal')
+          return reply.status(500).send({ error: 'Gagal memeriksa hak akses proyek' })
+        }
+        isAssignedToProject = (asg?.length ?? 0) > 0
+      }
+      if (!canManageProgress && !isAssignedToProject) {
+        return reply.status(403).send({ error: 'Akses ditolak' })
+      }
+
+      // Attach ke log yang sudah ada → log WAJIB milik proyek ini (cegah lintas-proyek).
+      // Pola sama DELETE progress-log: 404 utk "tak ada / bukan proyek ini" (tak
+      // membocorkan mana yang benar terjadi), 403 utk "ada tapi tak berhak".
+      if (progress_log_id) {
+        const { data: log } = await supabase
+          .from('progress_logs')
+          .select('id, reported_by, project_id')
+          .eq('id', progress_log_id)
+          .eq('project_id', projectId)
+          .maybeSingle()
+        if (!log) return reply.status(404).send({ error: 'Log tidak ditemukan' })
+        // Mandor hanya boleh menautkan ke log MILIKNYA sendiri; admin/pm bebas.
+        if (!canManageProgress && log.reported_by !== user.id) {
+          return reply.status(403).send({ error: 'Akses ditolak' })
+        }
+      }
 
       const buffer = Buffer.from(file_base64, 'base64')
       if (buffer.byteLength > PHOTO_MAX_MB * 1024 * 1024) {
