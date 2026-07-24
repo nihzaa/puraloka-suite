@@ -1,6 +1,6 @@
 # 12 — Cross-Document Traceability Matrix & Master Capability Matrix Index
 
-**Kedudukan dokumen ini:** Orkestrasi Baru sepenuhnya — tidak diminta eksplisit di 35-item brief asli, diminta user di pesan susulan sebagai "mission control" yang mengorkestrasi seluruh repository. Ini adalah **index tunggal** yang menjawab "di mana X dibahas?" lintas seluruh 75 file corpus (7 Architecture Repository + 10 Phase1 + 44 Engineering Constitution + 1 ADR top-level + 13 Blueprint) tanpa memindahkan atau mengubah isi satu pun dari 75 file tersebut.
+**Kedudukan dokumen ini:** Orkestrasi Baru sepenuhnya — tidak diminta eksplisit di 35-item brief asli, diminta user di pesan susulan sebagai "mission control" yang mengorkestrasi seluruh repository. Ini adalah **index tunggal** yang menjawab "di mana X dibahas?" lintas seluruh corpus dokumen (7 Architecture Repository + 10 Phase1 + 44 Engineering Constitution + 1 ADR top-level + 14 Blueprint + **52 CECEP + 29 Enterprise Architecture Framework**, ditambahkan pasca-planning CECEP selesai) tanpa memindahkan atau mengubah isi satu pun file sumber.
 
 ---
 
@@ -21,6 +21,23 @@ Matrix di bawah dikelompokkan per **pertanyaan** yang biasa diajukan (bukan per 
 | Bagaimana desain visual/interaksi (UI/UX) diatur? | [05-design-system-and-ui-ux-architecture.md](../05-design-system-and-ui-ux-architecture.md) |
 | Apa katalog AI agent dan automation (140 item)? | [06-agentic-ai-and-automation-architecture.md](../06-agentic-ai-and-automation-architecture.md) |
 | Apa saja yang secara sengaja TIDAK akan dibangun? | [04-roadmap-governance-and-delivery.md § Never Build List](../04-roadmap-governance-and-delivery.md#never-build-list) (juga: [Engineering-Constitution/06-governance/18-never-build-list.md](../Engineering-Constitution/06-governance/18-never-build-list.md) — versi aturan kode yang mengoperasionalkannya) |
+
+## 2b. "Bagaimana CECEP (Cost Intelligence Core) didesain?" — CECEP Planning (52 file) + Enterprise Architecture Framework (29 file)
+
+CECEP adalah isi utama [Phase 3 roadmap besar](../04-roadmap-governance-and-delivery.md#phase-3--construction-core-modules-termasuk-cecep) — planning arsitekturnya SELESAI penuh (12 fase, mode Derivation ketat) sebelum masuk fase eksekusi Phase 0-9 di atas.
+
+| Pertanyaan | Lokasi Otoritatif |
+|---|---|
+| Apa roadmap 12-fase CECEP, dan status tiap fase? | [CECEP/32-cecep-roadmap-v2.md](../CECEP/32-cecep-roadmap-v2.md) — seluruh 12 fase Derived & Frozen |
+| Apa misi asli CECEP, dan apakah roadmap masih selaras? | [CECEP/29-context-integrity-audit.md](../CECEP/29-context-integrity-audit.md) (audit awal, temuan drift G-K), [CECEP/51-final-audit-and-main-roadmap-position.md](../CECEP/51-final-audit-and-main-roadmap-position.md) (audit final pasca-12-fase, Traceability Matrix bisnis) |
+| 16 Capability CECEP, boundary, dan interaksinya? | [CECEP/35](../CECEP/35-phase3-capability-architecture.md), [CECEP/36](../CECEP/36-phase3-capability-boundary-validation.md), [CECEP/37](../CECEP/37-phase3-capability-interaction-map.md) |
+| 13 Domain Model CECEP (Aggregate Root, Business Responsibility)? | [CECEP/44-phase6-derive-domain-model.md](../CECEP/44-phase6-derive-domain-model.md) |
+| AHSP 4 sumber, Calculation Strategy? | [CECEP/42-phase5-calculation-strategy-architecture.md](../CECEP/42-phase5-calculation-strategy-architecture.md) |
+| ACL ke data existing Puraloka Suite (`project_expenses`/`kasbons`)? | [CECEP/46-phase8-integration-architecture.md](../CECEP/46-phase8-integration-architecture.md) |
+| Urutan implementasi CECEP (4 milestone)? | [CECEP/49-phase11-implementation-roadmap.md](../CECEP/49-phase11-implementation-roadmap.md) |
+| Governance/aturan derivasi yang mengikat seluruh planning CECEP? | [CECEP/30](../CECEP/30-cecep-constitution.md), [CECEP/40](../CECEP/40-architecture-derivation-constitution.md), [CECEP/41](../CECEP/41-evidence-hierarchy.md) |
+| Kenapa ada folder terpisah "Enterprise Architecture Framework"? | [enterprise-architecture-framework/README.md](../enterprise-architecture-framework/README.md) — metodologi generik (Rule Engine, Integration Ontology, AI epistemology) yang ditemukan TIDAK spesifik CECEP saat audit, dipisah eksplisit ([CECEP/31-adr-cecep-framework-separation.md](../CECEP/31-adr-cecep-framework-separation.md)); **bukan bagian roadmap eksekusi manapun saat ini** — reusable candidate untuk modul Puraloka Suite lain di masa depan, belum diklaim proyek apa pun |
+| Eksekusi CECEP di Master Delivery Blueprint? | [01-capability-to-task-mapping.md § Capability 6](01-capability-to-task-mapping.md#capability-6--cecep-cost-intelligence-core-domain-sales--pre-construction--project-delivery-program-c) |
 
 ## 3. "Bagaimana Phase 1 spesifik dikerjakan?" — Phase 1 Planning Package
 
@@ -69,6 +86,7 @@ Matrix di bawah dikelompokkan per **pertanyaan** yang biasa diajukan (bukan per 
 | Bagaimana tahu sudah "siap" L2/L3? | [09-saas-and-tenancy-readiness.md](09-saas-and-tenancy-readiness.md) |
 | Bagaimana mengukur keberhasilan (engineering/product/business)? | [10-kpi-and-fitness-functions.md](10-kpi-and-fitness-functions.md) |
 | Kapan butuh ADR, bagaimana Blueprint sendiri diupdate? | [11-decision-gates-and-change-management.md](11-decision-gates-and-change-management.md) |
+| Bagaimana kickoff package Program 2-9 ditulis nanti (readiness score, day-one checklist, dst)? | [13-implementation-kickoff-playbook.md](13-implementation-kickoff-playbook.md) — template, diisi saat Program sebelumnya selesai, bukan sekarang |
 | Di mana X dibahas? (pertanyaan yang menjawab dirinya sendiri) | Dokumen ini |
 
 ## 6. Master Capability Matrix Index — Modul ke Seluruh Lokasi Terkait
@@ -90,9 +108,10 @@ Untuk modul/kapabilitas berdampak tinggi, index berikut mengumpulkan **semua** l
 
 ### RAB / Kurva-S / EVM
 - **Apa:** [00-vision-and-business-architecture.md § Domain: Project Delivery](../00-vision-and-business-architecture.md#domain-project-delivery-core)
-- **Status:** ✅ Matang — [01-capability-to-task-mapping.md § Capability 1](01-capability-to-task-mapping.md#capability-1--mengelola-anggaran--progres-proyek-domain-project-delivery-program-a--program-c)
+- **Status:** ✅ Matang (basis RAB) — [01-capability-to-task-mapping.md § Capability 1](01-capability-to-task-mapping.md#capability-1--mengelola-anggaran--progres-proyek-domain-project-delivery-program-a--program-c)
 - **Aturan kode:** [Engineering-Constitution/03-core-implementation/03-core-implementation](../Engineering-Constitution/02-architecture/03-clean-architecture-rules.md) (contoh ekstraksi `calculateEVM`)
 - **Test priority:** [Phase1/00-current-state-audit.md § 4.1](../Phase1/00-current-state-audit.md#41-enam-file-finansial-kritis-prioritas-test-coverage)
+- **⚠️ Perubahan basis akan datang (CECEP Milestone 4):** `bac` existing di `kurva-s.ts` memakai `totalRABValue` — CECEP akan menggantikannya dengan RAP Version Frozen (Cost Baseline), menutup root cause EVM yang selama ini menyembunyikan pembengkakan biaya kecil di balik margin RAB. Lihat [CECEP/52 § Gap 2](../CECEP/52-gap-closure-cashflow-baseline-analytics.md#gap-2--cost-baseline-vs-budget-baseline-pembeda-tegas). Migrasi ini **MUST** menunggu Test Suite Finansial (Program A item #2) sebelum menyentuh `kurva-s.ts`/`evm-calculation.ts` existing.
 
 ### company_id / Multi-Company
 - **Apa:** [01-application-and-data-architecture.md § Entity Strategy](../01-application-and-data-architecture.md#entity-strategy)

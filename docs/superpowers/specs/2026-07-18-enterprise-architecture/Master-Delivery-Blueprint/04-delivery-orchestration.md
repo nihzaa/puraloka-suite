@@ -33,7 +33,7 @@
 | **M2 — Jaring Pengaman Finansial** | Program A | `pnpm test` menjalankan test suite dan menunjukkan coverage report untuk enam file finansial-kritis; CI pipeline berjalan otomatis di setiap PR |
 | **M3 — Kasbon di Atas Workflow Engine** | Program B | Approval kasbon berjalan lewat state machine generik yang sama dipakai domain lain — didemokan lewat perbandingan sebelum/sesudah: kasbon dan (nanti) change order memakai kode approval yang identik, bukan dua implementasi terpisah |
 | **M4 — Approval Chain Generik Penuh** | Program B | Change Order dan Procurement juga sudah di atas Workflow Engine — 3 domain finansial, 1 mesin approval |
-| **M5 — Kedalaman Domain Konstruksi** | Program C | Minimal 1-2 modul Tier 2 (RFI, QC Checklist, atau HSE — dipilih berdasarkan kebutuhan operasional nyata saat Program dimulai, [04 § Phase 3](../04-roadmap-governance-and-delivery.md#phase-3--construction-core-modules)) berjalan dan dipakai di proyek nyata |
+| **M5 — Kedalaman Domain Konstruksi** | Program C | **CECEP Milestone 1-2** (Cost Code/Resource Identity/Assembly/AHSP/Price Book berjalan, [CECEP/49](../CECEP/49-phase11-implementation-roadmap.md)) — cakupan utama Program C sejak planning CECEP selesai — **DAN/ATAU** minimal 1-2 modul Tier 2 lain (RFI, QC Checklist, atau HSE — dipilih berdasarkan kebutuhan operasional nyata saat Program dimulai, [04 § Phase 3](../04-roadmap-governance-and-delivery.md#phase-3--construction-core-modules-termasuk-cecep)) berjalan dan dipakai di proyek nyata |
 | **M6 — Kesiapan Multi-Company** | Program D | `company_id` ada di seluruh tabel transaksional, dual-axis RLS aktif — didemokan lewat skenario nyata: dua "company" berbeda dalam satu instance, data terisolasi terverifikasi |
 | **M7 — Otomasi Tanpa Klik Manual** | Program E | `check-milestones`/`check-deadlines` berjalan via scheduler — didemokan lewat log yang menunjukkan eksekusi otomatis tanpa trigger manual dari `/sistem` |
 | **M8 — AI Pilot Hidup** | Program E | AI Assistant (1 agent pilot) merespons query nyata dengan guardrail teraudit — didemokan lewat percakapan nyata + audit log yang menunjukkan setiap aksi tercatat |
@@ -47,7 +47,7 @@
 |---|---|
 | Program A | Tidak ada — ini titik mulai, hanya 5 gate umum + persetujuan user atas dokumen ini |
 | Program B | M2 (Jaring Pengaman Finansial) tercapai — test suite **MUST** sudah berjalan sebelum migrasi approval chain dimulai |
-| Program C (Epic RFI/Submittals) | M3 atau M4 tercapai (Workflow Engine tersedia) — Epic non-Workflow (QC/HSE/Punch List) tidak butuh entry criteria tambahan, bisa mulai begitu Program A selesai |
+| Program C (Epic RFI/Submittals, **CECEP Milestone 3-4** — Approval Workflow) | M3 atau M4 tercapai (Workflow Engine tersedia) — Epic non-Workflow (QC/HSE/Punch List, **CECEP Milestone 1-2**) tidak butuh entry criteria tambahan, bisa mulai begitu Program A selesai |
 | Program D (bagian 1, Phase 4) | M1 (Otorisasi Terpadu) tercapai — modul Enterprise baru **MUST** dibangun di atas Permission Engine yang sudah konsisten |
 | Program D (bagian 2, Phase 7 — `company_id`) | M2 tercapai (test suite ada — migrasi skema paling invasif butuh jaring pengaman); minimal 2 kontributor tersedia untuk review (lihat [03-team-topology-and-resourcing.md § 5](03-team-topology-and-resourcing.md#5-resourcing-per-program--estimasi-kualitatif): migrasi ini tidak solo-safe) |
 | Program E (bagian 1, Trigger/Event) | M1 dan M2 tercapai |
@@ -66,6 +66,8 @@
 | Program D | M6 tercapai + verifikasi manual isolasi data 2 company (tidak cukup hanya lolos test otomatis untuk perubahan seinvasif ini) |
 | Program E | M7 dan M8 tercapai + audit log AI Agent pilot menunjukkan nol pelanggaran guardrail selama periode observasi |
 | Program F | M9 tercapai sebagai prasyarat + infrastruktur billing/tenant berjalan untuk minimal 1 pelanggan nyata (bukan sandbox/demo) |
+
+**Begitu Exit Criteria satu Program tercapai:** kickoff package Program berikutnya ditulis mengikuti [13-implementation-kickoff-playbook.md](13-implementation-kickoff-playbook.md) — bukan sebelum itu (lihat prinsip governing di file tersebut, kenapa menulis kickoff detail lebih awal adalah investasi yang basi sebelum dipakai).
 
 ## 5. Prinsip Governance yang Mengikat Bagian Ini
 
