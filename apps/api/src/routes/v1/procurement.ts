@@ -2,6 +2,18 @@ import { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { createNotification, createNotifications, getAllAdmins } from '../../utils/notifications.js'
+import { evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain } from '../../utils/approval.js'
+import { logAuditEvent } from '../../utils/audit.js'
+import { computeMrAmount } from '../../lib/mr-amount.js'
+
+/** Nilai MR untuk dasar syarat nominal rantai — aturannya di lib/mr-amount.ts (murni, ber-test). */
+async function mrApprovalAmount(mrId: string): Promise<number> {
+  const { data } = await supabase
+    .from('material_request_items')
+    .select('qty_requested, unit_price_est')
+    .eq('mr_id', mrId)
+  return computeMrAmount(data ?? [])
+}
 
 export default async function procurementRoutes(app: FastifyInstance) {
 
@@ -281,17 +293,71 @@ export default async function procurementRoutes(app: FastifyInstance) {
   })
 
   // PATCH /api/v1/procurement/material-requests/:id/approve
+  // 2A-5 (ADR-007): berapa level & siapa yang boleh = rantai approval (config),
+  // bukan satu requirePermission tetap. Seed = 1 langkah dengan permission yang
+  // sama persis (`procurement:mr:manage`) → perilaku hari ini tidak berubah.
   app.patch('/api/v1/procurement/material-requests/:id/approve', {
-    preHandler: [authenticate, requirePermission('procurement:mr:manage')]
+    preHandler: [authenticate]
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const { action, rejection_notes } = request.body as { action: 'approve' | 'reject'; rejection_notes?: string }
 
     if (!['approve', 'reject'].includes(action)) return reply.status(400).send({ error: 'action harus approve atau reject' })
 
+    // Gerbang KASAR sebelum entitas di-fetch → urutan lama 403-sebelum-404 terjaga.
+    const coarse = await canParticipateInChain(request, 'material_request')
+    if (coarse.configError) {
+      app.log.error({ configError: coarse.configError }, 'baca rantai approval gagal')
+      return reply.status(500).send({ error: 'Gagal memeriksa konfigurasi approval' })
+    }
+    if (!coarse.ok) return reply.status(403).send({ error: 'Akses ditolak' })
+
     const { data: mr } = await supabase.from('material_requests').select('id, status, requested_by, mr_number').eq('id', id).single()
     if (!mr) return reply.status(404).send({ error: 'MR tidak ditemukan' })
     if (mr.status !== 'submitted') return reply.status(400).send({ error: 'Hanya MR submitted yang bisa di-approve/reject' })
+
+    if (action === 'approve') {
+      const decision = await evaluateEntityApproval(request, {
+        entityType: 'material_request', entityId: id, amount: await mrApprovalAmount(id),
+      })
+      // Gagal baca konfigurasi TIDAK boleh menyamar jadi "tidak berhak" (Phase 1 §4E).
+      if (decision.configError) {
+        app.log.error({ configError: decision.configError, id }, 'evaluasi rantai approval gagal')
+        return reply.status(500).send({ error: 'Gagal memeriksa konfigurasi approval' })
+      }
+      if (!decision.allowed) {
+        if (decision.reason === 'already_approved') {
+          return reply.status(409).send({ error: 'MR sudah disetujui penuh' })
+        }
+        return reply.status(403).send({ error: 'Akses ditolak' })
+      }
+
+      if (decision.step) {
+        const rec = await recordApproval({
+          entityType: 'material_request', entityId: id, level: decision.step.level, approvedBy: request.currentUser!.id,
+        })
+        if (!rec.ok) return reply.status(500).send({ error: 'Gagal mencatat persetujuan: ' + rec.error })
+
+        // Bukan langkah terakhir → MR TETAP 'submitted', belum boleh jadi PO.
+        if (!decision.isFinalStep) {
+          const next = decision.applicable.find(s => s.level > decision.step!.level)
+          void logAuditEvent(request, {
+            tableName: 'material_requests', recordId: id, action: 'material_request.approval.level',
+            actorId: request.currentUser!.id,
+            newValues: { level: decision.step.level, of: decision.applicable.length },
+            severity: 'critical',
+          })
+          return reply.send({
+            success: true,
+            pending_next_level: true,
+            message: `Persetujuan level ${decision.step.level} tercatat. Menunggu persetujuan level ${next?.level ?? '-'}.`,
+          })
+        }
+      }
+    } else {
+      // Ditolak → jejak dibersihkan supaya rantai mulai dari level 1 bila diajukan ulang.
+      await clearApprovalProgress('material_request', id)
+    }
 
     const updates: Record<string, unknown> = {
       status: action === 'approve' ? 'approved' : 'rejected',

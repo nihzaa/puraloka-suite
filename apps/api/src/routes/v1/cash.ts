@@ -2,6 +2,8 @@ import type { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { validateMime } from '../../utils/mime.js'
+import { evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain } from '../../utils/approval.js'
+import { logAuditEvent } from '../../utils/audit.js'
 
 const ALLOWED_IMAGE_PDF = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
 
@@ -511,8 +513,11 @@ export default async function cashRoutes(app: FastifyInstance) {
   })
 
   // PATCH /api/v1/cash/expenses/:id/status — approve atau reject
+  // 2A-5 (ADR-007): berapa level & siapa yang boleh = rantai approval (config),
+  // bukan satu requirePermission tetap. Seed = 1 langkah dengan permission yang
+  // sama persis (`cash:expense:approve`) → perilaku hari ini tidak berubah.
   app.patch<{ Params: { id: string } }>('/api/v1/cash/expenses/:id/status', {
-    preHandler: [authenticate, requirePermission('cash:expense:approve')]
+    preHandler: [authenticate]
   }, async (request, reply) => {
     const { id } = request.params
     const { status, notes } = request.body as { status: 'approved' | 'rejected'; notes?: string }
@@ -520,6 +525,14 @@ export default async function cashRoutes(app: FastifyInstance) {
     if (!['approved', 'rejected'].includes(status)) {
       return reply.status(400).send({ error: 'status harus approved atau rejected' })
     }
+
+    // Gerbang KASAR sebelum entitas di-fetch → urutan lama 403-sebelum-404 terjaga.
+    const coarse = await canParticipateInChain(request, 'project_expense')
+    if (coarse.configError) {
+      app.log.error({ configError: coarse.configError }, 'baca rantai approval gagal')
+      return reply.status(500).send({ error: 'Gagal memeriksa konfigurasi approval' })
+    }
+    if (!coarse.ok) return reply.status(403).send({ error: 'Akses ditolak' })
 
     const { data: expense } = await supabase
       .from('project_expenses')
@@ -530,6 +543,28 @@ export default async function cashRoutes(app: FastifyInstance) {
     if (!expense) return reply.status(404).send({ error: 'Pengeluaran tidak ditemukan' })
     if (expense.status === 'approved' && status === 'approved') {
       return reply.status(400).send({ error: 'Pengeluaran sudah disetujui' })
+    }
+
+    // Evaluasi rantai (nilai pengeluaran = dasar syarat nominal).
+    let expenseDecision: Awaited<ReturnType<typeof evaluateEntityApproval>> | null = null
+    if (status === 'approved') {
+      expenseDecision = await evaluateEntityApproval(request, {
+        entityType: 'project_expense', entityId: id, amount: Number(expense.total_amount) || 0,
+      })
+      // Gagal baca konfigurasi TIDAK boleh menyamar jadi "tidak berhak" (Phase 1 §4E).
+      if (expenseDecision.configError) {
+        app.log.error({ configError: expenseDecision.configError, id }, 'evaluasi rantai approval gagal')
+        return reply.status(500).send({ error: 'Gagal memeriksa konfigurasi approval' })
+      }
+      if (!expenseDecision.allowed) {
+        if (expenseDecision.reason === 'already_approved') {
+          return reply.status(409).send({ error: 'Pengeluaran sudah disetujui penuh' })
+        }
+        return reply.status(403).send({ error: 'Akses ditolak' })
+      }
+    } else {
+      // Ditolak → jejak dibersihkan supaya rantai mulai dari level 1 bila diajukan ulang.
+      await clearApprovalProgress('project_expense', id)
     }
 
     // Cek saldo kalau approve dari petty_cash
@@ -558,6 +593,33 @@ export default async function cashRoutes(app: FastifyInstance) {
       if (acc && Number(acc.balance) < Number(expense.total_amount)) {
         return reply.status(400).send({
           error: `Saldo kas utama (${acc.name}) tidak mencukupi untuk approve pengeluaran ini`
+        })
+      }
+    }
+
+    // Catat persetujuan SETELAH semua validasi (termasuk cek saldo) supaya
+    // permintaan yang gagal tidak meninggalkan jejak level yang tak pernah terjadi.
+    if (expenseDecision?.step) {
+      const rec = await recordApproval({
+        entityType: 'project_expense', entityId: id,
+        level: expenseDecision.step.level, approvedBy: (request as any).currentUser!.id,
+      })
+      if (!rec.ok) return reply.status(500).send({ error: 'Gagal mencatat persetujuan: ' + rec.error })
+
+      // Bukan langkah terakhir → status TETAP, kas belum berkurang.
+      if (!expenseDecision.isFinalStep) {
+        const step = expenseDecision.step
+        const next = expenseDecision.applicable.find(s => s.level > step.level)
+        void logAuditEvent(request, {
+          tableName: 'project_expenses', recordId: id, action: 'project_expense.approval.level',
+          actorId: (request as any).currentUser!.id,
+          newValues: { level: step.level, of: expenseDecision.applicable.length },
+          severity: 'critical',
+        })
+        return reply.send({
+          expense: null,
+          pending_next_level: true,
+          message: `Persetujuan level ${step.level} tercatat. Menunggu persetujuan level ${next?.level ?? '-'}.`,
         })
       }
     }
