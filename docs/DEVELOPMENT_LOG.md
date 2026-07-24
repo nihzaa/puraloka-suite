@@ -225,6 +225,32 @@
 
 ---
 
+### 2026-07-25 — Fix — Rekonsiliasi drift tracking schema_migrations (059 & 101)
+**Status**: Done
+**Files affected**:
+- `supabase_migrations.schema_migrations` (dev DB — 059 & 101 ditandai applied, tidak ada SQL baru dijalankan)
+**Notes**: **CATATAN GAP:** log ini berhenti di 058 (Juni); migration 059–101 dikerjakan di era enterprise-architecture (Phase 1/2) dan dicatat di spec docs + deskripsi PR, bukan di sini. Entry ini menghidupkan lagi DEVELOPMENT_LOG sebagai jejak drift migration project-wide.
+
+**Drift yang direkonsiliasi** (ditemukan saat mau apply migration 102 / Program C): `supabase db push` akan mencoba apply **059, 101, dan 102** — bukan hanya 102, karena 059 & 101 sudah ter-apply di dev tapi TIDAK tercatat di `schema_migrations`.
+- **059 `seed_dummy_data`** — 🔴 BAHAYA kalau dijalankan ulang: menulis kolom `users.role` yang sudah di-DROP di Sub-Fase 1B.4 → pasti gagal `42703`, dan push berhenti separuh jalan sebelum sampai 102. Bukti sudah ter-apply: 20 baris user seed `a0000000-%` ADA di dev.
+- **101 `notification_routing_rules`** — di-apply manual saat Sub-Fase 2B (idempoten). Bukti: tabel `notification_rules` ada dengan 14 aturan ter-seed.
+- **Tindakan:** `INSERT ... ON CONFLICT DO NOTHING` menandai 059 & 101 applied di `schema_migrations`. **Nol SQL schema dijalankan** — murni koreksi tracking, sama pola seperti rekonsiliasi 073 (Sub-Fase 1B, `Implementation-Kickoff-Sub-Fase-1B/04-database-migration-plan.md`) dan drift 058.
+- **Sesudahnya:** `db push`/`db diff` hanya menyisakan 102 (sudah di-apply via DIRECT_URL, dicatat manual — lihat entry migration 102 di bawah). Verifikasi drift lewat objek NYATA di DB, bukan asumsi.
+
+**Akar berulang:** dua jalur apply (`supabase db push` yang butuh SUPABASE_ACCESS_TOKEN vs `DIRECT_URL` via pg manual) + tidak ada `config.toml`. Setiap migration yang di-apply manual WAJIB langsung dicatat di `schema_migrations` di transaksi yang sama, supaya `db push` berikutnya tidak menabrak seed lama.
+
+---
+
+### 2026-07-25 — Feature — CECEP Cost Code Registry (Migration 102, Program C)
+**Status**: Done
+**Files affected**:
+- `db/migrations/102_cecep_cost_code_registry.sql` + kembar `supabase/migrations/` (applied ke dev via DIRECT_URL, dicatat di schema_migrations)
+- `apps/api/src/routes/v1/__tests__/cost-code-registry.test.ts` (16 test)
+- `docs/superpowers/specs/2026-07-18-enterprise-architecture/Engineering-Constitution/adr/ADR-009-cecep-persistence-derivation.md`
+**Notes**: Tabel CECEP PERTAMA (Program C = Phase 3, Milestone 1). Cost Code = Shared Kernel lintas 17 domain. Hard guard di DB: (1) baris tak boleh dihapus (deprecate, bukan delete), (2) transisi lifecycle draft→active→deprecated + deprecated→active (reaktivasi, keputusan founder — dipensiunkan = status operasional bukan hapus permanen), kembali ke draft ditolak. Kolom sengaja di-exclude (ADR-009): parent_id (CBS domain terpisah), unit (kandidat Assembly/AHSP), company_id (Phase 7). Otorisasi capability ADR-004: `cecep:cost_code:manage` (admin) + `:view` (admin+pm). Guard mutation-proof (5 mutasi → merah, dipulihkan → 16/16 hijau). Verifikasi pasca-apply lewat koneksi baru (quirk pooler).
+
+---
+
 <!-- Template untuk entry baru:
 
 ### YYYY-MM-DD HH:MM — [Kategori] — [Deskripsi]
