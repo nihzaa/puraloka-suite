@@ -22,6 +22,7 @@ import {
   Landmark,
   Ruler,
   Layers,
+  Coins,
   CalendarDays,
   Menu,
 } from "lucide-react";
@@ -42,7 +43,7 @@ const roleLabel: Record<string, string> = {
 const ICONS: Record<string, React.ElementType> = {
   LayoutDashboard, FolderKanban, Wallet, PiggyBank, Receipt, HardHat,
   BarChart3, Settings, Users, Contact, ShoppingCart, Building2,
-  ShieldCheck, CalendarDays, Landmark, Ruler, Layers,
+  ShieldCheck, CalendarDays, Landmark, Ruler, Layers, Coins,
 };
 function iconFor(name: string): React.ElementType {
   return ICONS[name] ?? FolderKanban;
