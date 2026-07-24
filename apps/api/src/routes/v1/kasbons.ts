@@ -85,9 +85,12 @@ export default async function kasbonRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'Wajib isi project_id atau work_scope_id' })
     }
 
-    const validPurposes = ['gaji_tukang', 'uang_makan', 'pembelian_alat', 'operasional', 'lain_lain']
+    // Tujuan kasbon = master `kasbon_purposes` (config-first A4). Validasi terhadap
+    // lookup AKTIF → tujuan baru yang ditambah dari UI langsung valid tanpa deploy.
+    const { data: purposeRow } = await supabase.from('kasbon_purposes')
+      .select('code').eq('code', body.purpose).eq('is_active', true).maybeSingle()
+    if (!purposeRow) return reply.status(400).send({ error: 'purpose tidak valid' })
     const validSources  = ['owner_advance', 'client_fund']
-    if (!validPurposes.includes(body.purpose)) return reply.status(400).send({ error: 'purpose tidak valid' })
     if (!validSources.includes(body.fund_source)) return reply.status(400).send({ error: 'fund_source tidak valid' })
     if (Number(body.amount) <= 0) return reply.status(400).send({ error: 'amount harus lebih dari 0' })
 

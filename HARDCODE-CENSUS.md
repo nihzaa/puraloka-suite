@@ -18,7 +18,7 @@ Inventarisasi aturan bisnis/operasional yang tertanam di kode (AKTA 1). Sumber p
 | A1 | `lib/tax-calculation.ts:3-5` + `company_settings` | PPN 0.11 / PPh final 0.02 | [A] ✅ **SUDAH** (1B.1) | Tarif pajak berubah regulasi. Sudah config + effective... **BELUM** (lihat catatan) | Salah tarif → invoice salah hitung |
 | A2 | `003_projects...:20` `retention_pct DEFAULT 5.00` | Retensi 5% | [A] | Persentase retensi = kebijakan/negosiasi per proyek. Kolom per-proyek ADA, tapi **DEFAULT hardcode** + tak ada tabel kebijakan default perusahaan | Salah → retensi & pembayaran akhir salah |
 | A3 | `003_projects...:22` `kasbon_limit_pct DEFAULT 80.00` | Kasbon max 80% earned | [A] ⚠️ **DEAD** | Migration 056 hapus enforcement (kolom work_scopes di-drop) TAPI `projects.kasbon_limit_pct` **masih ada, tak dipakai**. Aturan bisnis "batas kasbon" hilang diam-diam | Bila dihidupkan lagi → harus config, bukan 80 hardcode. Sekarang: kolom yatim |
-| A4 | `kasbons.ts:88` `validPurposes` + enum `kasbon_purpose` | 5: gaji_tukang, uang_makan, pembelian_alat, operasional, lain_lain | [A] | Kategori tujuan kasbon = taksonomi operasional, bisa nambah (mis. "transport", "sewa alat") | Nambah butuh migration enum + edit kode. Harus jadi tabel lookup config |
+| A4 | ~~`kasbons.ts:88` `validPurposes` + enum `kasbon_purpose`~~ ✅ **SELESAI** (migration 096) | 5 tujuan → master `kasbon_purposes` | [A] | Taksonomi tujuan kasbon bisa nambah | ~~enum + hardcode~~ → `kasbons.purpose` di-konversi enum→TEXT; validasi via lookup aktif; kelola di `/pengaturan/kasbon-purposes` (`kasbon_purposes:manage`). Tujuan baru langsung valid tanpa deploy |
 | A5 | enum `expense_category_type` (5) + `expense_category_templates` | material, labor, equipment, operational, other | [A] | Kategori pengeluaran = taksonomi akuntansi operasional | Sama — nambah kategori butuh deploy |
 | A6 | ~~`mandor/page.tsx:3258` `UNITS_GROUPED` (~15) **vs** `procurement/page.tsx` `UNITS` (13)~~ ✅ **SELESAI** (migration 090, PR #32) | **DUA daftar satuan divergen** → satu master `units` | [A] | Satuan pekerjaan/material = master data. Dua sumber kebenaran berbeda = bug konsistensi | ~~Item mandor & procurement pakai satuan beda~~ → sumber tunggal, kelola di `/pengaturan/satuan` |
 | A7 | ~~`mandor/page.tsx` item kategori (CATEGORY_LABELS 12)~~ ✅ **SELESAI** (migration 094) | Kategori pekerjaan → master `work_categories` | [A] | Klasifikasi pekerjaan = master data | ~~Hardcode di UI~~ → sumber tunggal, kelola di `/pengaturan/kategori-pekerjaan` (`work_categories:manage`), pola sama units #32 |
@@ -63,6 +63,16 @@ Inventarisasi aturan bisnis/operasional yang tertanam di kode (AKTA 1). Sumber p
 | C8 | `utils/workflow-sync.ts` fail-closed, `canTransition` fail-closed | Default tolak transisi | Melonggarkan = transisi approval liar |
 
 ---
+
+## Status penutupan [A] (assessment 2026-07-24, penutupan Phase 1)
+
+**SELESAI config-first:** A1 (tax effective-dated), A2 (retensi), A3 (kasbon limit toggle), A4 (kasbon purposes), A6 (units), A7 (work categories), A11 (F1-F4 derive-capability), A12 (F5-F8 derive-capability). Denda (baru) juga selesai.
+
+**DITUNDA — dengan alasan eksplisit (bukan digantung):**
+- **A5 (expense category types + templates):** Taksonomi pengeluaran SUDAH berbasis TABEL (`expense_category_templates`, di-clone per proyek) — bukan hardcode divergen seperti units. Yang tersisa: (1) enum `expense_category_type` (material/labor/equipment/operational/other) = klasifikasi akuntansi STABIL (jarang berubah, borderline [B]); (2) belum ada UI kelola template. **Ditunda** — bukan "business practice yang sering berubah", infrastruktur config sudah ada. Kandidat: UI kelola template (nice-to-have), bukan urgensi §12.
+- **A8/A9/A10 (enum payment_system / contract_model / tax_scheme):** [A]/[C] **batas → tetap [C] untuk nilai enum-nya.** Tiap nilai punya ALUR KALKULASI/INVOICE khusus di kode (harian vs borongan vs progress_pct; termin vs komisi; pph_final vs ppn). Menjadikan nilai baru "config" = membuat nilai yang tak punya code path = rusak (panduan founder: "jangan jadikan nilai baru auto tanpa kode"). Tarif (yang [A] asli) SUDAH config (A1). Struktur tetap kode = benar. **Ditunda permanen kecuali ada model bayar/kontrak/pajak baru (butuh kode + ADR).**
+- **A13 (cash autoApprove admin||pm):** BUKAN authorization gate — business rule "siapa auto-approve expense" (didokumentasikan ADR-004 Rule #6 di cash.ts:473). Rumahnya = **Workflow Engine Phase 2 (Program B)**, bukan permission murni. Retire 1C (ADR-006) tidak mengubah ini — Phase 2 = engine sebenarnya. **Ditunda ke Phase 2.**
+- **A14 (klausa kontrak boilerplate):** Template teks hukum editable = fitur "contract template editor" tersendiri (lebih besar dari lookup). **Ditunda** sebagai fitur produk, bukan lookup config sederhana.
 
 ## Catatan lintas-ember
 

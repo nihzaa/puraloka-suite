@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { api, getStoredUser } from "@/lib/api";
 import { useUnits } from "@/lib/use-units";
 import { useWorkCategories } from "@/lib/use-work-categories";
+import { useKasbonPurposes } from "@/lib/use-kasbon-purposes";
 import * as XLSX from "xlsx";
 import {
   HardHat, Plus, ChevronRight, RefreshCw, CheckCircle2, Clock,
@@ -323,6 +324,7 @@ function MandorPageInner() {
   const isMandor = currentUser?.role === "mandor";
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { labelOf: kasbonPurposeLabel } = useKasbonPurposes(); // tujuan kasbon dari master (A4)
 
   const [tab, setTab] = useState<TabKey>("laporan");
   const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -965,17 +967,13 @@ function MandorPageInner() {
                   settled:  { label: "Settled", color: C.mid, bg: "var(--surface-subtle)", border: C.border },
                 };
                 const st = statusMap[k.status] ?? statusMap.pending;
-                const purposeLabel: Record<string, string> = {
-                  gaji_tukang: "Gaji Tukang", uang_makan: "Uang Makan",
-                  pembelian_alat: "Pembelian Alat", operasional: "Operasional", lain_lain: "Lain-lain",
-                };
                 return (
                   <div key={k.id} style={{ ...card, padding: "14px 18px", border: `1px solid ${st.border}`, background: k.status === "pending" ? C.yellowBg : "var(--surface)" }}>
                     <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
                           <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 10, background: st.bg, color: st.color, border: `1px solid ${st.border}` }}>{st.label}</span>
-                          <span style={{ fontSize: 11, background: "var(--surface-hover)", color: C.mid, padding: "2px 8px", borderRadius: 4 }}>{purposeLabel[k.purpose] ?? k.purpose}</span>
+                          <span style={{ fontSize: 11, background: "var(--surface-hover)", color: C.mid, padding: "2px 8px", borderRadius: 4 }}>{kasbonPurposeLabel(k.purpose)}</span>
                           <span style={{ fontSize: 11, background: "var(--surface-hover)", color: C.mid, padding: "2px 8px", borderRadius: 4 }}>{k.fund_source === "owner_advance" ? "Dana Owner" : "Dana Klien"}</span>
                         </div>
                         <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 2 }}>
@@ -2623,6 +2621,7 @@ function AddKasbonModal({ assignments, onClose, onSuccess }: {
 
 function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   const mounted = useMounted();
+  const { purposes: kasbonPurposes } = useKasbonPurposes(); // tujuan kasbon dari master (A4)
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
 
   const [scopes, setScopes] = useState<MandorScope[]>([]);
@@ -2799,11 +2798,10 @@ function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () => void; 
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Keperluan <span style={{ color: C.red }}>*</span></label>
             <select value={purpose} onChange={e => setPurpose(e.target.value)} style={inputStyle}>
-              <option value="gaji_tukang">Gaji Tukang</option>
-              <option value="uang_makan">Uang Makan</option>
-              <option value="pembelian_alat">Pembelian Alat</option>
-              <option value="operasional">Operasional</option>
-              <option value="lain_lain">Lain-lain</option>
+              {(kasbonPurposes.length > 0
+                ? kasbonPurposes.map(p => [p.code, p.label] as [string, string])
+                : [["gaji_tukang", "Gaji Tukang"], ["uang_makan", "Uang Makan"], ["pembelian_alat", "Pembelian Alat"], ["operasional", "Operasional"], ["lain_lain", "Lain-lain"]] as [string, string][]
+              ).map(([code, label]) => <option key={code} value={code}>{label}</option>)}
             </select>
           </div>
 
