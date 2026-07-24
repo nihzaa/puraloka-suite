@@ -1,0 +1,138 @@
+# ADR-009 — Persistensi CECEP diturunkan, bukan dikarang (mulai Cost Code Registry)
+
+**Status:** Diterima · **Fase:** Program C (= Phase 3), CECEP Milestone 1
+**Terkait:** [ADR-004](ADR-004-permission-is-architecture-role-is-configuration.md) ·
+CECEP [`03b` §A.3](../../CECEP/03b-phase-c5-core-domain-discovery.md) ·
+[`44` §1](../../CECEP/44-phase6-derive-domain-model.md) ·
+[`45` §B/§J](../../CECEP/45-phase7-data-architecture.md) ·
+[`49`](../../CECEP/49-phase11-implementation-roadmap.md) ·
+[`34` DoD](../../CECEP/34-roadmap-definition-of-done.md) ·
+[`41` Evidence Hierarchy](../../CECEP/41-evidence-hierarchy.md)
+
+## Konteks — celah yang nyata, bukan kelalaian
+
+Perencanaan CECEP (40 dokumen) berstatus **Derived & Frozen**, tapi **nol DDL**: tidak
+ada satu pun `CREATE TABLE` di seluruh set. Itu disengaja dan dinyatakan eksplisit:
+
+> **`45` §J — Persistence — Tetap Di Luar Cakupan.** *"keputusan fisik (tabel/index/
+> partition) BUKAN bagian Fase 7 — itu Fase 11/Fase 12."*
+
+Tapi Fase 11 (`49`) menyatakan dirinya *"introduces 0 new business concepts, 1 build
+sequence… No new discovery is performed in this phase"* — isinya urutan 4 milestone,
+bukan skema. Fase 12 (`50`) adalah paket dokumentasi.
+
+**Kesimpulan jujur: desain persistensi CECEP tidak ada di dokumen mana pun.** Ia bukan
+hilang — ia memang pekerjaan pertama implementasi. ADR ini menetapkan *bagaimana*
+pekerjaan itu dilakukan supaya tidak melanggar disiplin CECEP sendiri.
+
+## Masalahnya: menulis skema itu mudah melanggar konstitusi CECEP
+
+DoD CECEP (`34` poin 8) mewajibkan Trace Status per keputusan desain, dihitung lewat
+10-Level Evidence Hierarchy (`41`), dan menyatakan **"❌ Invented DILARANG bertahan"**.
+Skema tabel penuh kolom, dan setiap kolom adalah keputusan desain. Menambah satu kolom
+"karena nanti pasti perlu" = persis pelanggaran yang dilarang.
+
+## Keputusan
+
+1. **Setiap kolom harus punya jejak ke artefak Frozen.** Kolom yang tidak bisa
+   ditelusuri **tidak ditulis**, meski terasa jelas akan dibutuhkan. Kebutuhan yang
+   muncul belakangan ditambahkan lewat migration baru dengan jejaknya sendiri —
+   additive, sama seperti pola denda/kasbon-limit di Phase 1.
+2. **Yang sengaja TIDAK ditulis dicatat sebagai Open**, bukan didiamkan. Daftar Open
+   adalah bagian dari deliverable, bukan tanda pekerjaan belum selesai.
+3. **Satu Aggregate Root per migration.** Cost Code Registry lebih dulu — ia Shared
+   Kernel yang direferensikan hampir semua domain (`03b` §A.3: *"hampir semua domain
+   punya panah MENUJU Cost Code"*). Salah bentuk di sini menular ke 17 domain.
+4. **Otorisasi lewat capability, bukan role** (ADR-004). Registry ini dimiliki fungsi
+   Cost Engineering/Company Standard; domain hilir *"hanya mereferensikan, tidak pernah
+   membuat sepihak"* (`03b` §A.3) → capability tulis terpisah dari capability baca.
+
+## Penerapan pertama: Cost Code Registry (migration 102)
+
+| Keputusan | Jejak | Trace Status |
+|---|---|---|
+| Tabel `cost_codes`, satu registry per perusahaan | `03b` §A.3 "Aggregate Root: Ya — SATU per perusahaan" | ✓ Fully Derived |
+| `code` unik & stabil sebagai identitas lintas domain | `03b` §A.3 "identitas tetap meski deskripsi/kategori berubah"; `44` §1 Business Responsibility | ✓ Fully Derived |
+| `name`, `description`, `category` boleh berubah | `03b` §A.3 "deskripsi/kategori berubah seiring waktu" | ✓ Fully Derived |
+| `status`: draft / active / deprecated | `03b` §A.3 Lifecycle, eksplisit | ✓ Fully Derived |
+| Tidak boleh dihapus (deprecate, bukan delete) | `03b` §A.3 "tidak dihapus, riwayat historis tetap merujuknya" | ✓ Fully Derived |
+| `activated_at` / `deprecated_at` | Domain Event `CostCodeActivated` / `CostCodeDeprecated` (`03b` §A.3) — waktu kejadian harus terekam agar event punya makna | ✓ Fully Derived |
+| **`deprecated` → `active` SAH** (reaktivasi) | keputusan founder, lihat §Reaktivasi di bawah | **✓ Resolved by ADR** |
+| **`draft` → `deprecated` SAH** (jalan keluar draft salah ketik) | konsekuensi langsung larangan hapus; tanpa ini draft salah ketik jadi sampah abadi | **✓ Resolved by ADR** |
+| Kembali ke `draft` DITOLAK dari status mana pun | draft = keadaan pra-publikasi; identitas yang pernah terbit & mungkin sudah dirujuk tak bisa berpura-pura belum ada | ✓ Resolved by ADR |
+
+### Reaktivasi: kenapa `deprecated → active` sah
+
+Keputusan founder, menutup satu-satunya baris ⚠️ yang tersisa di ADR ini:
+
+> **Identitas Cost Code stabil, dan "dipensiunkan" adalah STATUS OPERASIONAL —
+> bukan penghapusan permanen.**
+
+Konsekuensinya kalau reaktivasi dilarang: kode yang dipensiunkan karena salah paham
+hanya bisa dipakai lagi dengan membuat **identitas baru**. Itu justru memecah
+traceability lintas 17 domain — persis hal yang Cost Code ada untuk mencegahnya
+(`44` §1: *"kalau identitas itu boleh berbeda-beda per domain, angka RAB tidak akan
+pernah bisa ditemukan lagi di Procurement/Progress/EVM"*). Jadi melarang reaktivasi
+bukan sekadar lebih ketat — ia bertentangan dengan alasan Cost Code diciptakan.
+
+**Mekanisme:** saat aktif kembali, `activated_at` di-**refresh** dan `deprecated_at`
+di-**kosongkan**. `activated_at` berarti *"sejak kapan identitas ini berlaku sekarang"*,
+bukan arsip aktivasi pertama. Riwayat pensiun-dan-aktif-lagi ada di `audit_logs`,
+bukan di baris tabelnya — konsisten dengan Epic 5 (audit sebagai satu-satunya rekam
+jejak perubahan, bukan kolom historis tersebar).
+
+**Yang tetap ditolak:** kembali ke `draft`. Draft adalah keadaan pra-publikasi;
+begitu terbit, identitas mungkin sudah dirujuk domain lain dan tak bisa berpura-pura
+belum pernah ada.
+
+### Yang sengaja TIDAK ditulis (Open, bukan lupa)
+
+| Tidak ditulis | Alasan |
+|---|---|
+| **Hierarki (`parent_id`)** | CBS adalah domain TERPISAH (`44` §3). Cost Code disebut *"titik temu WBS+CBS"* (`37`) — titik temu, bukan pemilik pohon. Menaruh hierarki di sini akan mendahului keputusan CBS yang belum dibangun. **❌ Invented kalau ditulis sekarang.** |
+| **Satuan (`unit`)** | "Pekerjaan generik" terasa pasti punya satuan, tapi tidak ada satu pun artefak Frozen yang menyatakannya milik Cost Code — kandidat kuatnya justru Assembly/AHSP (`44` §4). Tabel `units` sudah ada (migration 090) dan siap dirujuk saat jejaknya jelas. |
+| **`company_id`** | Multi-company adalah Phase 7 (Program D). Menambahkannya sekarang = mendahului keputusan tenancy. "SATU registry per perusahaan" hari ini dipenuhi karena instance ini memang satu perusahaan. |
+
+Ketiganya additive di kemudian hari — menambah kolom nullable jauh lebih murah daripada
+membongkar hierarki yang salah bentuk setelah 17 domain terlanjur merujuknya.
+
+## Penerapan kedua: RBS / Resource Identity Registry (migration 103)
+
+Aggregate Root kedua (`44` §2, `03b` §A.5) — "shared kernel kedua terpenting setelah
+Cost Code, dipakai 10 domain hilir". Pola sama, **bentuk berbeda karena sumbernya
+berbeda** (bukan Cost Code yang di-copy):
+
+| Keputusan | Jejak | Trace Status |
+|---|---|---|
+| Tabel `resources`, satu Registry company-level | `03b` §A.5 "Aggregate Root: Ya — RBS Registry (Company-level)" | ✓ Fully Derived |
+| `code` unik & stabil sebagai identitas lintas domain | `03b` §A.5 "identitas tetap, atribut deskriptif bisa berubah"; `44` §2 | ✓ Fully Derived |
+| `category` WAJIB: labor/equipment/material/subcontract | `35` #5 "RBS (Labor/Equipment/Material/Subcontract, `01` §4)"; `04a` "kategori sebagai atribut" | ✓ Fully Derived |
+| Lifecycle `active` / `inactive` (2 status, **tak ada draft**) | `03b` §A.5 "Active → Inactive"; hanya event `ResourceDeactivated` | ✓ Fully Derived |
+| Larangan hapus (trigger) | `03b` §A.5 "riwayat tetap merujuknya" | ✓ Fully Derived |
+| `deactivated_at` | Domain Event `ResourceDeactivated` (`03b` §A.5) | ✓ Fully Derived |
+| Baca/tulis dipisah jadi 2 capability | `03b` §A.5 "domain hilir merujuk, tidak membuat definisi sendiri-sendiri" | ✓ Fully Derived |
+| **`inactive` → `active` (reaktivasi) SAH** | prinsip founder dari §Reaktivasi ditransfer — wording lifecycle identik ("riwayat tetap merujuknya") | ✓ Resolved by ADR |
+
+**Kenapa reaktivasi ditransfer, bukan ditanya ulang:** keputusan founder di
+§Reaktivasi menetapkan *prinsip* — "dinonaktifkan = status operasional, bukan
+penghapusan permanen; identitas baru memecah traceability" — bukan pengecualian
+khusus Cost Code. RBS punya wording lifecycle identik dan alasan yang sama (No Data
+Duplication). Menanyakannya lagi = berhenti untuk hal yang sudah diputus.
+
+### Yang sengaja TIDAK ditulis di RBS (Open)
+
+| Tidak ditulis | Alasan |
+|---|---|
+| **`unit`** | SAMA seperti Cost Code — nol artefak Frozen menaruh satuan di RBS, dan kontrak **Price Book Entry** (`45` §C) pun tidak memuat unit di 11 elemennya. Kepemilikan satuan resource baru dipaksa jelas di Assembly/AHSP (Milestone 2), tempat koefisien "0,7 OH Tukang Besi" menuntut satuan. `units` (migration 090) menunggu. |
+| **`company_id`** | Phase 7 (Program D). |
+
+## Aturan
+
+- **JANGAN** menambah kolom ke tabel CECEP tanpa baris jejak di ADR ini atau ADR
+  penerusnya. "Nanti pasti perlu" bukan jejak.
+- **JANGAN** menghapus baris Cost Code. Deprecate. Ditegakkan di DB, bukan sopan santun
+  aplikasi — riwayat historis merujuknya.
+- Domain hilir **MUST** merujuk `cost_codes.id`, tidak menyalin `code` sebagai teks
+  bebas — kalau disalin, traceability lintas domain (alasan Cost Code ada) hilang.
+- Setiap migration CECEP berikutnya **WAJIB** membawa tabel jejak seperti di atas,
+  termasuk daftar "sengaja tidak ditulis".
