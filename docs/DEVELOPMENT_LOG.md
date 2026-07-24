@@ -275,6 +275,17 @@
 ---
 
 
+### 2026-07-25 — Feature — CECEP Productivity Library (Migration 105, Program C)
+**Status**: Done
+**Files affected**:
+- `db/migrations/105_cecep_productivity_library.sql` + kembar (applied ke dev)
+- `apps/api/src/routes/v1/__tests__/productivity-library.test.ts` (12 test)
+- ADR-009 (penerapan keempat)
+**Notes**: Milestone 2 domain #2. Aggregate Root = kombinasi (resource × cost_code × versi) — domain PERTAMA yang merujuk DUA Shared Kernel Milestone 1. productivity_value>0, source national_bootstrap/company_baseline/variance (label, bukan FK ke Reference Library yang tertunda). Immutable-entity-per-version DITURUNKAN dari "+ versi" sbg identitas AR (bukan keputusan tertunda seperti CBS). Hard guard: immutable + no-delete (fakta historis basis Variance Analysis). Mutation-proof: 2 mutasi → 2 test merah each, dipulihkan → 12/12. Exclude: unit, company_id.
+
+---
+
+
 <!-- Template untuk entry baru:
 
 ### YYYY-MM-DD HH:MM — [Kategori] — [Deskripsi]
