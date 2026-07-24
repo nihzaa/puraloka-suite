@@ -18,6 +18,7 @@ Legenda: ✅ selesai & merged · ♻️ dibangun lalu diretire · 📌 backlog �
 - **RLS — dipisah tegas (koreksi):** (a) **TABLE RLS = defense-in-depth DORMANT** (API service_role bypass; web tak query tabel) — terbukti memfilter per role di DB, tapi nol di live path. (b) **STORAGE RLS = LIVE PATH** (browser akses langsung anon key) — **sempat BOCOR** (anon baca semua file bucket privat) → **DITUTUP (PR #39, migration 097)**. Detail: [PHASE-1-COMPLETION-AUDIT.md](PHASE-1-COMPLETION-AUDIT.md) §4.
 - **Otorisasi handler = satu-satunya penegak live** untuk data-via-API → kini **ber-jaring 22 test integrasi 403** (11 endpoint sensitif, mutation-tested) — PR #40, §4C.
 - **Fitur foto sempat TIDAK PERNAH berfungsi** (bucket tak ada; 36 baris `project_photos` ternyata seed Unsplash) → **diperbaiki PR #40**, **diverifikasi ulang PR #41** yang menemukan 2 cacat lagi: `bodyLimit` base64 (foto 2MB ditolak 413 sebelum validasi) + all-or-nothing yang bisa menghilangkan laporan mandor bersinyal buruk. Kini: log tetap tersimpan meski foto gagal + **retry attach**. CLAUDE.md dikoreksi.
+- **Retry-attach diverifikasi lagi (PR #42):** sempat NOL ownership check (bisa menautkan foto ke log orang lain) + gate perbaikannya sempat gagal-tertutup senyap (bug enum) — keduanya dipatch, kini mutation-tested dua arah.
 - **Backlog produk (bukan hutang Phase 1):** OPEN-1 (`kasbons.status='settled'` — mekanisme settlement belum dibangun). Lihat AUDIT_REPORT.
 
 ## Verdict
