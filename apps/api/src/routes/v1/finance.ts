@@ -784,8 +784,10 @@ export default async function financeRoutes(app: FastifyInstance) {
             .from('payment-proofs')
             .upload(filename, buf, { contentType: detectedMime, upsert: false })
           if (!uploadErr) {
-            const { data: urlData } = supabase.storage.from('payment-proofs').getPublicUrl(filename)
-            proofUrl = urlData?.publicUrl ?? null
+            // Bucket privat (migration 097): signed URL, bukan public URL (pola documents.ts).
+            const { data: urlData } = await supabase.storage.from('payment-proofs')
+              .createSignedUrl(filename, 60 * 60 * 24 * 365 * 10)
+            proofUrl = urlData?.signedUrl ?? null
           }
         } else {
           await part.toBuffer()

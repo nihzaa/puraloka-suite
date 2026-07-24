@@ -405,8 +405,10 @@ export default async function cashRoutes(app: FastifyInstance) {
             .from('expense-receipts')
             .upload(filename, buf, { contentType: detectedMime })
           if (!uploadErr) {
-            const { data: urlData } = supabase.storage.from('expense-receipts').getPublicUrl(filename)
-            receiptUrl = urlData?.publicUrl ?? null
+            // Bucket privat (migration 097): pakai signed URL (bukan public URL) — pola documents.ts.
+            const { data: urlData } = await supabase.storage.from('expense-receipts')
+              .createSignedUrl(filename, 60 * 60 * 24 * 365 * 10)
+            receiptUrl = urlData?.signedUrl ?? null
           }
         } else {
           await part.toBuffer()
