@@ -26,7 +26,7 @@ Scope: seluruh Phase 1 (= Program A) — Sub-Fase 1A, 1B, 1C, 1D + program Confi
 
 ## 3. Bukti kualitas (CI-gated, apps/api)
 
-- **lint 0 error · tsc 0 · 255 test · build 0** (main pasca #40).
+- **lint 0 error · tsc 0 · 261 test · build 0** (main pasca #41).
 - Live E2E terhadap DB dev NYATA (bukan mock) per slice finansial + master-data.
 
 ## 4. RLS — HASIL JUJUR (dipisah tegas: TABLE vs STORAGE)
@@ -72,6 +72,13 @@ Karena TABLE RLS dormant, **seluruh otorisasi data-via-API bertumpu pada handler
 - **MUTATION-TESTED (bukti jaring nyata, bukan vacuous):** `requirePermission('change_order:approve')` dihapus dari route CO approve → test NEGATIF **MERAH**. Dikembalikan setelah uji.
 - **Sisa (kecil, tercatat):** ~34 test `rls-*` + 9 anti-lockout tetap menjaga LOGIKA `has_permission` per role. Cakupan 403 saat ini 11 endpoint paling sensitif (uang + permission); endpoint lain masih mengandalkan code review — perluasan bertahap direkomendasikan seiring Phase 2.
 
+## 4D. Verifikasi lanjutan fix foto (PR #41) — 2 temuan, keduanya dipatch
+
+Fix OPEN-4 (#40) diverifikasi ulang; **dua cacat nyata ditemukan & ditutup**:
+
+1. **🔴 `bodyLimit` vs overhead base64 — "gagal senyap bentuk baru".** Endpoint upload menerima base64 (cap 10MB file → body **~13.4MB**), TAPI Fastify default `bodyLimit` **1MB** dan **tak ada `bodyLimit` di mana pun**. **Bukti empiris sebelum patch: foto ~2MB → 413 `FST_ERR_CTP_BODY_TOO_LARGE`, ditolak SEBELUM validasi MIME/size custom jalan.** Fix: `bodyLimit` eksplisit **per-route** (foto 15MB; **`documents.ts` kena bug identik** — cap 20MB vs 1MB → 28MB); pesan 413 diterjemahkan ("Ukuran file terlalu besar untuk diunggah"). **+6 test regresi** (2MB & 8MB lolos, 16MB tetap 413).
+2. **Foto gagal ≠ laporan batal.** Fix #40 sempat membuat kegagalan foto membatalkan SELURUH progress log — berbahaya di lapangan (sinyal buruk; foto jauh lebih rentan gagal daripada teks) → laporan harian bisa hilang gara-gara foto. **Arsitektur sudah mendukung pemisahan** (diverifikasi: `progress_logs` tak punya kolom foto; `project_photos.progress_log_id` **NULLABLE**). Fix: log **tetap tersimpan** dgn foto yang berhasil; yang gagal dilaporkan jelas + **retry attach** (`progress_log_id` di endpoint upload + banner "Coba upload ulang") tanpa mengetik ulang.
+
 ## 5. Koreksi tercatat jujur (over-reach tidak disembunyikan)
 
 - **F5/F7 over-grant** tertangkap sebelum commit → derive `finance:view:all` (scope terjaga).
@@ -104,18 +111,18 @@ Key ini bypass RLS SEPENUHNYA → kebocorannya = akses penuh DB tanpa filter apa
 1. ✅ 1A/1B/1D selesai & ter-audit; Config-First (AKTA 0-5) merged (#24-#38).
 2. ♻️ 1C Workflow Engine **sengaja diretire** (ADR-006) — penutupan yang benar, bukan menggantung.
 3. ✅ **BLOCKER-1 STORAGE RLS (live path) BOCOR → DITUTUP (#39)**. Anon bisa baca semua file bucket privat; kini `service_role`-only + signed URL, diverifikasi tertutup (anon 0/1).
-4. ✅ **BLOCKER-2 FITUR FOTO tak pernah berfungsi → DIPERBAIKI (#40)**. Bucket tak pernah ada (36 baris `project_photos` ternyata seed Unsplash); kini bucket privat + policy ketat + upload lewat API + kegagalan tak senyap. CLAUDE.md dikoreksi.
+4. ✅ **BLOCKER-2 FITUR FOTO tak pernah berfungsi → DIPERBAIKI (#40) + DIVERIFIKASI ULANG (#41)**. Bucket tak pernah ada (36 baris `project_photos` ternyata seed Unsplash); kini bucket privat + policy ketat + upload lewat API. Verifikasi lanjutan menemukan **2 cacat lagi yang keduanya dipatch** (§4D): `bodyLimit` base64 (foto 2MB sempat 413 sebelum validasi) + alur all-or-nothing yang berisiko menghilangkan laporan mandor. CLAUDE.md dikoreksi.
 5. ✅ **BLOCKER-3 Jaring otorisasi wiring nol → DITUTUP (#40)**. 22 test integrasi 403 (11 endpoint sensitif), **mutation-tested** (hapus preHandler → merah).
 6. ⚠️ **TABLE RLS = defense-in-depth dormant** (bukan penegak live) — STATUS JUJUR yang tercatat, bukan cacat: otorisasi handler ADA, benar, dan kini **ber-jaring test**.
 
-**Angka penutup:** 255 test · lint 0 error · tsc 0 · build 0 · migration 075-098 tracked.
+**Angka penutup:** 261 test · lint 0 error · tsc 0 · build 0 · migration 075-098 tracked.
 
 ## 9. Prasyarat masuk fase berikutnya
 
 **Phase 2 = Dynamic Workflow Engine** (Program B, roadmap 04):
 
 1. ✅ **Permission engine solid** — RBAC v2 + derive-capability + anti-self-lockout.
-2. ✅ **Jaring pengaman sebelum refactor** — 255 test; **termasuk 22 test 403** yang akan menangkap preHandler hilang saat Phase 2 me-refactor (alasan utama dikerjakan sekarang).
+2. ✅ **Jaring pengaman sebelum refactor** — 261 test; **termasuk 22 test 403** yang akan menangkap preHandler hilang saat Phase 2 me-refactor (alasan utama dikerjakan sekarang).
 3. 📌 **A13 (autoApprove)** menunggu Phase 2 (rumah yang benar).
 4. ⚠️ **Phase 2 = engine sebenarnya, bukan revival 1C otomatis** — kutip kebutuhan approval multi-langkah (ADR-006).
 5. ⚠️ **Gate MOBILE (klien direct-Supabase mana pun):** (a) rapatkan TABLE RLS PM scope (**OPEN-3**) + storage policy scoped-by-proyek; (b) test per role di jalur itu. Tak menghalangi Phase 2 (server-side).
