@@ -35,6 +35,7 @@ import rabScheduleRoutes from './routes/v1/rab-schedule.js'
 import auditRoutes from './routes/v1/audit.js'
 import searchRoutes from './routes/v1/search.js'
 import unitsRoutes from './routes/v1/units.js'
+import workCategoriesRoutes from './routes/v1/work-categories.js'
 import { supabase } from './utils/supabase.js'
 import { registerObservability } from './utils/observability.js'
 
@@ -201,6 +202,7 @@ await app.register(rabScheduleRoutes)
 await app.register(auditRoutes)
 await app.register(searchRoutes)
 await app.register(unitsRoutes)
+await app.register(workCategoriesRoutes)
 
 const PORT = Number(process.env.PORT) || 3001
 
