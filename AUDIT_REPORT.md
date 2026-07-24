@@ -308,3 +308,13 @@ document.cookie = `${name}=${value}; expires=${expires}; path=/; SameSite=Lax`;
   **Konteks bisnis (kenapa kemungkinan FITUR BELUM DIBANGUN, bukan state mati):** kasbon mandor secara bisnis memang dilunasi dari **settlement scope/borongan** (`borongan_settlements`, `progress_payments`). Jadi state `settled` sangat mungkin memang direncanakan untuk pelunasan kasbon terhadap settlement — mekanismenya yang belum diimplementasikan (belum ada endpoint yang mentransisikan kasbon approved → settled saat settlement terjadi).
 
   **Status:** dicatat sebagai temuan terbuka, **belum dikerjakan** (di luar scope migrasi 1C). Backfill 082 + workflow definition tetap mencakup `settled` (7 baris seed di-backfill benar), jadi tidak ada masalah data. Yang perlu diputuskan kelak: apakah membangun mekanisme pelunasan kasbon dari settlement (fitur baru), atau `settled` memang tidak dipakai (hapus dari enum + workflow). **Keputusan produk**, bukan teknis.
+
+### 24 Juli 2026 — tabel workflow YATIM pasca fase CONTRACT 1C (PR #34)
+
+- **OPEN-2 🟡 Tabel `workflow_*` yatim (nol pembaca/penulis bisnis).** Setelah fase CONTRACT (PR #34) menghapus seluruh kode dual-write shadow + 7 modul workflow, tabel `workflow_definitions`, `workflow_states`, `workflow_transitions`, `workflow_instances`, dan `approval_delegations` (dibuat 081, seed 082/083) **tidak lagi punya satu pun pembaca atau penulis** di kode aplikasi. Ini yatim — pola yang sama dengan `kasbon_limit_pct` yang ditandai di census sebelumnya.
+
+  **Riwayat & KOREKSI over-reach:** migration **092** sempat men-DROP kelima tabel ini sebagai bagian CONTRACT. Itu **melebihi** persetujuan founder (yang disetujui: pensiunkan dual-write *shadow* = hentikan tulisan + kode; founder secara eksplisit **menahan** keputusan drop tabel: "drop lewat migration terpisah setelah temuan yatim dilaporkan + rekomendasi"). Migration **093** **mengembalikan** kelima tabel (struktur + seed config; `workflow_instances` kosong — data bayangan turunan tak dipulihkan) supaya keputusan keep/drop kembali ke founder.
+
+  **Rekomendasi:** DROP lewat migration terpisah **setelah keputusan founder** — tabel benar-benar mati (nol pembaca/penulis, engine di-retire, lihat ADR-006). Alternatif: dipertahankan HANYA bila ada rencana konkret menghidupkan workflow engine (mis. approval berjenjang PO di atas nominal tertentu). Tanpa rencana konkret, mempertahankan tabel yatim = technical debt.
+
+  **Status:** menunggu keputusan founder (JANGAN drop tanpa keputusan). Behavior saat ini: tabel ada, nol dampak (tak disentuh kode apa pun).

@@ -32,6 +32,13 @@ Gate 1A→1B ✅ approved (2026-07-23). Migration mulai 075 (074 terakhir).
 ## Penutupan fase
 Audit lengkap: [PHASE-1B-COMPLETION-AUDIT.md](PHASE-1B-COMPLETION-AUDIT.md) — 18 kriteria bukti diverifikasi ulang, **drift check 080 = NOL DRIFT**, smoke per-role 4/4 + direktur assignable, 2 lesson learned (quirk pooler DDL, sequencing migration destruktif di DB bersama).
 
+## Sub-Fase 1C — Workflow Engine: DIBANGUN lalu DIRETIRE (2026-07-24)
+
+- **Dibangun:** foundation 081 (`workflow_definitions/states/transitions/instances` + `approval_delegations`) + dual-write shadow modul kasbon (082) & change_order (083). Kolom `status` tabel sumber TETAP otoritatif; `workflow_instances` hanya bayangan.
+- **Diretire (CONTRACT, PR #34):** setelah 2 migrasi modul dengan engine stabil, founder memilih fase CONTRACT. **Rekonsiliasi NOL divergensi** dibuktikan (kasbon 56/56, change_order 2/2, nol orphan) → kode dual-write + 7 modul dihapus; kolom `status` sumber = satu-satunya sumber kebenaran. **Behavior-preserving.**
+- **Tabel yatim:** migration 092 sempat drop tabel (over-reach) → dikembalikan 093 (keputusan drop ditahan founder). Temuan terbuka: **AUDIT_REPORT OPEN-2**; keputusan & rasional: **[ADR-006](../Engineering-Constitution/adr/ADR-006-retire-workflow-engine-shadow.md)**.
+- **Kapan revive:** hanya dengan bukti kebutuhan approval multi-langkah (mis. PO berjenjang, SLA/eskalasi) — ADR baru, bukan default. Approval satu-langkah dijawab permission derive-capability (ADR-004).
+
 ## Disiplin (AUTOPILOT)
 Green-Zone 1B.1-1B.3 (additive, otonom, merge saat CI hijau) · Red-Line #1 di 1B.4 (DANGER GATE) · Red-Line #2 di 1B.1 F1.3 (tax calc, DANGER GATE ringan) · additive-first: nol fitur/menu existing hilang · verify column-level + koneksi baru.
 
