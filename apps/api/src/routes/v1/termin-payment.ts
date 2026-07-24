@@ -146,10 +146,11 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
           return reply.status(500).send({ error: 'Gagal upload bukti transfer: ' + uploadErr.message })
         }
 
-        const { data: { publicUrl } } = supabase.storage
+        // Bucket privat (migration 097): signed URL, bukan public URL (pola documents.ts).
+        const { data: signed } = await supabase.storage
           .from('payment-proofs')
-          .getPublicUrl(uploadData.path)
-        proofUrl = publicUrl
+          .createSignedUrl(uploadData.path, 60 * 60 * 24 * 365 * 10)
+        proofUrl = signed?.signedUrl ?? null
       }
 
       // ── 3. Cek / buat invoice ───────────────────────────────────────────────
