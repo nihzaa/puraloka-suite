@@ -1,7 +1,8 @@
 import { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
-import { createNotification, createNotifications, getProjectAdminsAndPM } from '../../utils/notifications.js'
+import { createNotification, createNotifications } from '../../utils/notifications.js'
+import { resolveRecipients } from '../../utils/notification-routing.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { getEffectiveFinancialValue } from '../../utils/financial-config.js'
 import { todayWIB } from '../../lib/financial-config.js'
@@ -392,7 +393,7 @@ export default async function projectRoutes(app: FastifyInstance) {
     // ── Fire-and-forget: notif ke admin + PM saat status berubah ─────────────
     if (data) {
       try {
-        const recipients = await getProjectAdminsAndPM(id)
+        const recipients = await resolveRecipients('project_status_changed', { projectId: id })
         createNotifications(recipients.map(uid => ({
           user_id:     uid,
           title:       'Status Proyek Berubah',

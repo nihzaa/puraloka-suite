@@ -1,7 +1,8 @@
 import { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate } from '../../plugins/auth.js'
-import { createNotifications, getProjectAdminsAndPM } from '../../utils/notifications.js'
+import { createNotifications } from '../../utils/notifications.js'
+import { resolveRecipients } from '../../utils/notification-routing.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { enforceKasbonLimit } from '../../utils/kasbon-limit.js'
 import { evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain } from '../../utils/approval.js'
@@ -200,7 +201,7 @@ export default async function kasbonRoutes(app: FastifyInstance) {
         const amtFmt      = Number(body.amount).toLocaleString('id-ID')
         const context     = scopeName ? `${scopeName} - ${projectName}` : projectName
 
-        const recipients = await getProjectAdminsAndPM(resolvedProjectId)
+        const recipients = await resolveRecipients('kasbon_pending', { projectId: resolvedProjectId })
         createNotifications(recipients.map(uid => ({
           user_id:     uid,
           title:       'Kasbon Baru Diajukan',

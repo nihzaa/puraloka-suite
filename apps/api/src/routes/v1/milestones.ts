@@ -1,7 +1,8 @@
 import type { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
-import { createNotifications, getAllAdmins } from '../../utils/notifications.js'
+import { createNotifications } from '../../utils/notifications.js'
+import { resolveRecipients } from '../../utils/notification-routing.js'
 
 export default async function milestoneRoutes(app: FastifyInstance) {
   // ── GET /api/v1/projects/:projectId/milestones ──────────────────────────────
@@ -155,7 +156,7 @@ export default async function milestoneRoutes(app: FastifyInstance) {
       // ── Fire-and-forget: notif ke admin jika milestone selesai ───────────
       if (status === 'completed' && data) {
         try {
-          const adminIds = await getAllAdmins()
+          const adminIds = await resolveRecipients('milestone_completed')
           const { data: proj } = await supabase.from('projects').select('name').eq('id', request.params.projectId).single()
           createNotifications(adminIds.map(uid => ({
             user_id:     uid,
