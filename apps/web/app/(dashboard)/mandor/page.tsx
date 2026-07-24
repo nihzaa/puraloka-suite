@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createPortal } from "react-dom";
 import { api, getStoredUser } from "@/lib/api";
 import { useUnits } from "@/lib/use-units";
+import { useWorkCategories } from "@/lib/use-work-categories";
 import * as XLSX from "xlsx";
 import {
   HardHat, Plus, ChevronRight, RefreshCw, CheckCircle2, Clock,
@@ -3062,6 +3063,7 @@ function ScopeDetailModal({ data, loading: isLoading, onClose, onRefresh, onAddI
 }) {
   const mounted = useMounted();
   const { symbolOf } = useUnits(); // resolver satuan dari master `units` (fallback legacy)
+  const { labelOf } = useWorkCategories(); // resolver kategori dari master `work_categories`
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
 
   if (!mounted) return null;
@@ -3149,7 +3151,7 @@ function ScopeDetailModal({ data, loading: isLoading, onClose, onRefresh, onAddI
                   <div key={cat}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                       <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 10, background: catColor.bg, color: catColor.color }}>
-                        {CATEGORY_LABELS[cat] ?? cat}
+                        {labelOf(cat)}
                       </span>
                       <span style={{ fontSize: 11, color: C.muted }}>{catItems.length} item · {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(catTotal)}</span>
                     </div>
@@ -3211,6 +3213,7 @@ function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
 }) {
   const mounted = useMounted();
   const { grouped, symbolOf } = useUnits(); // dropdown satuan dari master `units`; mandor simpan code
+  const { categories: workCategories } = useWorkCategories(); // dropdown kategori dari master `work_categories`
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
 
   const [itemName, setItemName] = useState("");
@@ -3289,7 +3292,10 @@ function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
             <div>
               <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Kategori</label>
               <select value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
-                {Object.entries(CATEGORY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                {(workCategories.length > 0
+                  ? workCategories.map(c => [c.code, c.label] as [string, string])
+                  : Object.entries(CATEGORY_LABELS)
+                ).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
             </div>
             <div>
