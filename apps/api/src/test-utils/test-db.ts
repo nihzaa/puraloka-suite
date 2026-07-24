@@ -99,7 +99,40 @@ export async function resetTestSchema(): Promise<void> {
   const client = new Client({ connectionString: getDirectUrl() })
   await client.connect()
   try {
-    await client.query(`DROP SCHEMA IF EXISTS ${TEST_SCHEMA} CASCADE`)
+    // FLAKE FIX (intermiten, ~30-50% run penuh): DROP SCHEMA ... CASCADE butuh
+    // ACCESS EXCLUSIVE pada tiap objek di dalamnya. Koneksi test file sebelumnya
+    // kadang belum benar-benar lepas di sisi server (pooler session-mode menutup
+    // secara asinkron), jadi DROP MENUNGGU. Default Postgres `lock_timeout = 0` =
+    // menunggu TANPA BATAS → hook timeout vitest 60s menembak duluan dan seluruh
+    // file divonis GAGAL, padahal tak ada yang salah dengan test-nya (file yang
+    // sama lulus 5/5 saat dijalankan sendirian).
+    //
+    // Kanonik: batasi tunggu lock, lalu coba ulang — beberapa detik sudah cukup
+    // bagi koneksi sebelumnya untuk benar-benar tutup. Gagal setelah semua
+    // percobaan = pesan eksplisit, BUKAN timeout tanpa penjelasan.
+    await client.query(`SET lock_timeout = '10s'`)
+
+    const RETRYABLE = new Set(['55P03', '40P01']) // lock_not_available, deadlock_detected
+    let lastErr: unknown
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        await client.query(`DROP SCHEMA IF EXISTS ${TEST_SCHEMA} CASCADE`)
+        lastErr = undefined
+        break
+      } catch (err) {
+        lastErr = err
+        if (!RETRYABLE.has((err as { code?: string }).code ?? '')) throw err
+        await new Promise(r => setTimeout(r, attempt * 2000))
+      }
+    }
+    if (lastErr) {
+      throw new Error(
+        `Gagal DROP SCHEMA ${TEST_SCHEMA} setelah 3 percobaan — masih ada koneksi lain ` +
+          `yang memegang lock di schema itu. Pastikan setiap suite memanggil closeTestClient() ` +
+          `di afterAll. Penyebab asli: ${(lastErr as Error).message}`
+      )
+    }
+
     await client.query(`CREATE SCHEMA ${TEST_SCHEMA}`)
   } finally {
     await client.end()
