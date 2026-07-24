@@ -1,6 +1,7 @@
 import { Client } from 'pg'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { connectWithRetry } from './connect-with-retry.js'
 
 // Task 1.1.2 (Sub-Fase 1A, Epic 1) — koneksi test terisolasi.
 // Prasyarat keras dari Phase1/06-test-strategy.md: test TIDAK PERNAH menyentuh
@@ -41,8 +42,7 @@ function getDirectUrl(): string {
  * secara default kecuali skema di-qualify eksplisit (mis. `public.table`).
  */
 export async function createTestClient(): Promise<Client> {
-  const client = new Client({ connectionString: getDirectUrl() })
-  await client.connect()
+  const client = await connectWithRetry({ connectionString: getDirectUrl() })
   // "extensions" ditambahkan sebagai fallback — Supabase menginstall
   // uuid-ossp/pgcrypto di schema `extensions` (bukan `public`), dikonfirmasi
   // via pg_extension.extnamespace saat Task 1.3.1. Ditempatkan SETELAH
@@ -75,8 +75,7 @@ export async function assertTestIsolation(client: Client): Promise<void> {
  * (mis. sebelum setiap test run), tidak menghapus/mengubah schema public.
  */
 export async function ensureTestSchema(): Promise<void> {
-  const client = new Client({ connectionString: getDirectUrl() })
-  await client.connect()
+  const client = await connectWithRetry({ connectionString: getDirectUrl() })
   try {
     await client.query(`CREATE SCHEMA IF NOT EXISTS ${TEST_SCHEMA}`)
   } finally {
@@ -96,8 +95,7 @@ export async function ensureTestSchema(): Promise<void> {
  * parameter, untuk mencegah kesalahan pemanggilan yang fatal.
  */
 export async function resetTestSchema(): Promise<void> {
-  const client = new Client({ connectionString: getDirectUrl() })
-  await client.connect()
+  const client = await connectWithRetry({ connectionString: getDirectUrl() })
   try {
     // FLAKE FIX (intermiten, ~30-50% run penuh): DROP SCHEMA ... CASCADE butuh
     // ACCESS EXCLUSIVE pada tiap objek di dalamnya. Koneksi test file sebelumnya

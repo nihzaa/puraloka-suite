@@ -262,6 +262,19 @@
 ---
 
 
+### 2026-07-25 — Feature — CECEP Versioned Price Book (Migration 104, Program C)
+**Status**: Done
+**Files affected**:
+- `db/migrations/104_cecep_price_book.sql` + kembar `supabase/migrations/` (applied ke dev via DIRECT_URL)
+- `apps/api/src/routes/v1/__tests__/price-book.test.ts` (17 test)
+- ADR-009 (penerapan ketiga + bagian "CBS diblokir")
+**Notes**: Milestone 2 domain #1 (dari 5). Aggregate Root per entry (`44` §5). 8-atribut wajib (version/effective/expired/location/currency/supplier/confidence/verified_by), confidence high/medium/low, Money VO (amount+currency), referensi RBS (migration 103). Hard guard: (1) IMMUTABLE begitu ≠ draft — harga tak berubah retroaktif (inti alasan Price Book ada), (2) lifecycle draft→verified→active→expired maju saja, (3) entry non-draft tak boleh dihapus (draft boleh). Mutation-proof: 3 mutasi → 3 test merah, dipulihkan → 17/17, diff kosong. Exclude: unit, company_id.
+
+**KEPUTUSAN URUTAN:** Price Book dibangun SEBELUM CBS meski `49` mendaftar CBS dulu — Assembly TIDAK mereferensikan CBS (bukan rantai FK), dan CBS punya 2 keputusan domain BELUM DIAMBIL (`03b` B.4 rumah Standard CBS, B.5 pola versioning) yang tak ditutup di 44/45/46. Menulis CBS = ❌ Invented (dilarang DoD). CBS ditunda sampai keputusan versioning diambil; tak memblokir Milestone 2 (hanya Estimate Item/Milestone 3 butuh CBS). Detail di ADR-009 §"CBS diblokir".
+
+---
+
+
 <!-- Template untuk entry baru:
 
 ### YYYY-MM-DD HH:MM — [Kategori] — [Deskripsi]

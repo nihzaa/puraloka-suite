@@ -126,6 +126,73 @@ Duplication). Menanyakannya lagi = berhenti untuk hal yang sudah diputus.
 | **`unit`** | SAMA seperti Cost Code — nol artefak Frozen menaruh satuan di RBS, dan kontrak **Price Book Entry** (`45` §C) pun tidak memuat unit di 11 elemennya. Kepemilikan satuan resource baru dipaksa jelas di Assembly/AHSP (Milestone 2), tempat koefisien "0,7 OH Tukang Besi" menuntut satuan. `units` (migration 090) menunggu. |
 | **`company_id`** | Phase 7 (Program D). |
 
+## Penerapan ketiga: Versioned Price Book (migration 104)
+
+Aggregate Root **per entry** (`44` §5, `03b` §A.6). Struktur 8-atribut wajib
+seragam lintas 4 jenis harga.
+
+**Menyimpang dari daftar urut `49` — dengan alasan, bukan sembarangan.** `49`
+menulis "CBS → Assembly → Price Book", tapi itu **bukan rantai FK**: Assembly tidak
+mereferensikan CBS (`37 §2`/`44 §4` — input Assembly = Reference Library/RBS/Formula),
+dan CBS dirujuk Estimate Item (Milestone 3). CBS punya dua keputusan yang `03b`
+tandai *belum diambil* (B.4 rumah Standard CBS, B.5 pola versioning) dan TIDAK
+ditutup di `44`/`45`/`46` — lihat §CBS-diblokir. Price Book fully-derived, kontrak
+lengkap (`45` §C), versioning justru sudah resolved, hanya butuh RBS. Urutan
+antar-Milestone (1→2→3→4) tetap utuh; ini penataan di dalam Milestone 2 mengikuti
+dependency nyata.
+
+| Keputusan | Jejak | Trace Status |
+|---|---|---|
+| `price_book_entries`, root per entry (bukan Price Book satu entity besar) | `03b` §A.6; `44` §5 "konsekuensi langsung Foundational Principle Ketiga" | ✓ Fully Derived |
+| `resource_id` FK → RBS (merujuk, tak menyalin) | `03b` §A.6 Context Mapping "Price Book Entry → RBS entry" | ✓ Fully Derived |
+| `amount` + `currency` (Money VO) | `45` §143 "Money (amount, currency)" | ✓ Fully Derived |
+| 8-atribut wajib: version/effective/expired/location/currency/supplier/confidence/verified_by | `03b` §A.6 Shared Kernel (disebut eksplisit) | ✓ Fully Derived |
+| `confidence_level` ∈ high/medium/low | `03b` baris 37 "High/Medium/Low" | ✓ Fully Derived |
+| Lifecycle draft→verified→active→expired | `03b` §A.6 Lifecycle, eksplisit | ✓ Fully Derived |
+| **Immutable begitu ≠ draft** (harga tak berubah retroaktif) | `44` §5 "immutable begitu terpakai"; `45` §C "Allowed Mutation: hanya Draft→Verified" | ✓ Fully Derived |
+| Larangan hapus entry non-draft (draft boleh) | konsekuensi "immutable + dirujuk Estimate Item"; consumer merujuk entry AKTIF | ✓ Fully Derived |
+| 4 jenis harga = kategori resource, BUKAN field sendiri | `03b` §A.6 "struktur seragam"; No Data Duplication | ✓ Fully Derived |
+| Satu view + satu manage (verifikasi ⊂ manage), tidak dipecah per kategori | `03b` §A.6 "pemilik fungsional beda… struktur seragam" → siapa-boleh via ADR-004, bukan 4 capability (No-Menu Test) | ✓ Fully Derived |
+
+### Yang sengaja TIDAK ditulis di Price Book (Open)
+
+| Tidak ditulis | Alasan |
+|---|---|
+| **`unit`** | Kontrak Price Book Entry (`45` §C) tidak memuat unit di 11 elemennya; harga per satuan resource, tapi satuan milik resource (resolusinya masih ditunda — migration 103). |
+| **`company_id`** | Phase 7 (Program D). |
+
+### Catatan: kepemilikan verifikasi (segregation of duties)
+
+`03b` §A.6 menyebut pemilik fungsional berbeda per kategori (Material→Procurement,
+Labor→HR/Payroll, Subcontract→Procurement/Legal). Hari ini verifikasi = bagian
+`cecep:price:manage`. Bila kelak perlu **pemisahan tugas** (yang membuat harga ≠
+yang memverifikasi), itu capability tambahan `cecep:price:verify` — additive, lewat
+ADR baru, bukan ditebak sekarang.
+
+## CBS diblokir — dua keputusan domain belum diambil (dilaporkan, tidak ditebak)
+
+CBS (`44` §3) diberi ✓ Fully Derived untuk *keberadaannya*, tapi **dua keputusan
+struktural yang menentukan bentuk tabelnya belum ada di artefak Frozen mana pun**:
+
+1. **B.5 — pola versioning Company CBS Template.** `03b` §B.5 eksplisit: *"belum
+   jelas apakah setiap revisinya adalah entity baru (mengikuti pola Price Book) atau
+   field `version_number` yang di-mutate di tempat… keputusan yang belum diambil."*
+   Ini menentukan bentuk tabel (baris-per-versi vs kolom versi) — tidak bisa ditulis
+   tanpa memilih. Lifecycle "superseded" *mengarah* ke pola Price Book (immutable,
+   entity baru per versi) dan Konstitusi CECEP menyukai konsistensi pola — tapi `03b`
+   menuntut keputusan eksplisit, dan CBS adalah kategori yang dirujuk Estimate Item;
+   salah bentuk = mahal dibongkar.
+2. **B.4 — rumah Standard CBS.** Bagian "External Reference Data / Reference Library"
+   yang statusnya *Candidate* (`03b` §B.4), `46` menyatakan bootstrap-nya "tidak
+   didesain detail… housekeeping Fase 11". Belum jelas Standard CBS tinggal di CBS
+   atau di engine Reference Library terpisah.
+
+Menulis CBS sekarang = memilih dua-duanya tanpa dasar Frozen = **❌ Invented** yang
+dilarang DoD `34` poin 8. Maka CBS **ditunda** sampai keputusan versioning diambil.
+Ini tidak memblokir Milestone 2: Price Book, Productivity, dan Formula Engine tidak
+bergantung CBS; hanya Estimate Item (Milestone 3) yang butuh CBS, jadi keputusan ini
+punya waktu untuk diambil sebelum jadi penghalang.
+
 ## Aturan
 
 - **JANGAN** menambah kolom ke tabel CECEP tanpa baris jejak di ADR ini atau ADR
