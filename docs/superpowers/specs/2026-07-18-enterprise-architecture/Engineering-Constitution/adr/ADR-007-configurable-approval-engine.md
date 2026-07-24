@@ -59,3 +59,45 @@ Bangun **Approval Engine berbasis konfigurasi**, dengan kontrak berikut:
 - **JANGAN** menaruh literal role di tabel/kode approval — selalu lewat `permissions.key` (ADR-004).
 - Migrasi modul **WAJIB** behavior-preserving + dibuktikan test (positif *dan* negatif) + mutation-tested (pelajaran §4C/§4E: test negatif saja meloloskan bug gagal-tertutup).
 - Default konfigurasi awal **WAJIB** mereproduksi perilaku existing persis.
+
+---
+
+## Status implementasi (Phase 2 / Program B — Sub-Fase 2A)
+
+| Slice | Isi | Bukti | PR |
+|---|---|---|---|
+| 2A-1/2 | Fondasi: migration 099 (`approval_chains`/`approval_steps`/`approval_progress`), logika murni `lib/approval-engine.ts` | 16 unit test | #43 |
+| 2A-3 | Modul **pertama**: `kasbon` (strangler-fig) | mutation-tested; bonus: bug trigger pre-existing (migration 100) | #44 |
+| 2A-4 | **UI** kelola rantai + anti-lockout | 8 test, 2 mutasi merah | #45 |
+| 2A-5 | Modul sisanya: `change_order`, `material_request`, `project_expense` | jaring authz 403 diperluas + E2E berjenjang | (PR ini) |
+
+Keempat modul kini membaca rantai dari konfigurasi. **Aturan §4 terpenuhi:** seed
+tetap 1 langkah dengan permission yang persis sama seperti sebelumnya, jadi
+perilaku hari ini tidak berubah sampai founder menambah level dari UI.
+
+### Test yang menjaga janji "bisa berjenjang"
+
+Sampai 2A-4, perilaku berjenjang hanya pernah dibuktikan lewat skrip E2E manual —
+**tidak ada** yang menjaganya di CI. `approval-chain-berjenjang.test.ts` menutup
+lubang itu dan mengunci invariant yang paling mahal kalau jebol:
+
+> **Uang tidak bergerak sebelum level terakhir.** Approve level 1 pada rantai 2
+> level TIDAK mengubah status entitas maupun nilai kontrak proyek.
+
+Dimutasi untuk membuktikan test-nya tidak kosong: menghapus penahapan
+(`isFinalStep`) membuat 2 test merah.
+
+### Keputusan turunan: nilai entitas yang TIDAK DIKETAHUI bersifat fail-closed
+
+`material_requests` tak menyimpan total; nilainya dihitung dari
+Σ(qty × estimasi harga), dan estimasi boleh kosong. Kalau item tanpa estimasi
+dihitung **nol**, maka *"kosongkan harganya"* menjadi cara sepele melewati ambang
+"di atas Rp X harus naik ke direktur" — celah bawaan desain, bukan bug.
+
+**Aturan:** satu saja item tanpa estimasi → nilai dianggap **tidak diketahui** dan
+diperlakukan **melampaui semua ambang**. Data yang hilang harus *menambah*
+pengawasan, bukan menguranginya. Ini penerapan langsung prinsip fail-closed §6.
+Dikunci di `lib/mr-amount.ts` + test yang secara eksplisit menguji celahnya.
+
+Efeknya hari ini nol (rantai seed tanpa ambang); aturan ini menjaga saat ambang
+mulai dipakai.

@@ -12,6 +12,7 @@ import settingsRoutes from '../settings.js'
 import rolesRoutes from '../roles.js'
 import authRoutes from '../auth.js'
 import projectRoutes from '../projects.js'
+import procurementRoutes from '../procurement.js'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TEST INTEGRASI OTORISASI (403) — jaring pengaman wiring preHandler.
@@ -56,6 +57,9 @@ const SPECS: Spec[] = [
   { name: 'approve change order',    routes: changeOrderRoutes, method: 'PATCH',  url: `/api/v1/change-orders/${UUID}/approve`,        permission: 'change_order:approve',    allow: 'admin', deny: 'pm',     payload: {} },
   { name: 'reject change order',     routes: changeOrderRoutes, method: 'PATCH',  url: `/api/v1/change-orders/${UUID}/reject`,         permission: 'change_order:approve',    allow: 'admin', deny: 'pm',     payload: {} },
   { name: 'approve expense kas',     routes: cashRoutes,        method: 'PATCH',  url: `/api/v1/cash/expenses/${UUID}/status`,         permission: 'cash:expense:approve',    allow: 'admin', deny: 'pm',     payload: { status: 'approved' } },
+  // deny = client, BUKAN mandor: `procurement:mr:manage` di-seed ke admin/direktur/pm/mandor
+  // (diverifikasi ke DB, bukan diasumsikan) — jadi mandor memang berhak, dulu maupun sekarang.
+  { name: 'approve material request',routes: procurementRoutes, method: 'PATCH',  url: `/api/v1/procurement/material-requests/${UUID}/approve`, permission: 'procurement:mr:manage', allow: 'admin', deny: 'client', payload: { action: 'approve' } },
   { name: 'ubah config finansial',   routes: settingsRoutes,    method: 'PUT',    url: '/api/v1/settings/finance',                     permission: 'settings:finance:manage', allow: 'admin', deny: 'pm',     payload: { key: 'tax.ppn_rate', value: 0.11, effective_from: '2030-01-01' } },
   { name: 'ubah permission role',    routes: rolesRoutes,       method: 'PUT',    url: `/api/v1/roles/${UUID}/permissions`,            permission: 'users:roles:manage',      allow: 'admin', deny: 'pm',     payload: { permission_ids: [] } },
   { name: 'register user baru',      routes: authRoutes,        method: 'POST',   url: '/api/v1/auth/register',                        permission: 'users:manage',            allow: 'admin', deny: 'mandor', payload: {} },
@@ -90,7 +94,9 @@ function actAs(role: string) {
 
 beforeAll(async () => {
   client = await createRlsClient()
-  for (const role of ['admin', 'pm', 'mandor']) {
+  // 'client' ditambahkan untuk MR: `procurement:mr:manage` dipegang admin/pm/mandor/
+  // direktur, jadi satu-satunya role yang benar-benar TIDAK berhak adalah client.
+  for (const role of ['admin', 'pm', 'mandor', 'client']) {
     AUTH[role] = (await authIdForRole(client, role)) ?? ''
   }
 }, 60_000)

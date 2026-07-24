@@ -3,6 +3,7 @@ import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { createNotifications, getProjectAdminsAndPM } from '../../utils/notifications.js'
 import { logAuditEvent } from '../../utils/audit.js'
+import { evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain } from '../../utils/approval.js'
 
 const CO_SELECT = `
   id,
@@ -507,12 +508,23 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
   app.patch<{ Params: { id: string } }>(
     // F2 (AKTA 0 lockout fix): otorisasi via capability `change_order:approve`
     // (di-seed ke admin, migration 084 — scope identik), BUKAN role literal 'admin'.
-    // Kini admin bisa memberikan capability ini ke direktur/role custom via UI.
+    // 2A-5 (ADR-007): siapa yang boleh & berapa level kini dibaca dari rantai
+    // approval (config), bukan satu requirePermission tetap. Seed = 1 langkah
+    // dengan permission yang sama persis → perilaku hari ini tidak berubah.
     '/api/v1/change-orders/:id/approve',
-    { preHandler: [authenticate, requirePermission('change_order:approve')] },
+    { preHandler: [authenticate] },
     async (request, reply) => {
       const user = request.currentUser!
       const { id } = request.params
+
+      // Gerbang KASAR sebelum entitas di-fetch: menjaga urutan lama 403-sebelum-404
+      // (tak berwenang tidak boleh tahu apakah id-nya ada).
+      const coarse = await canParticipateInChain(request, 'change_order')
+      if (coarse.configError) {
+        app.log.error({ configError: coarse.configError }, 'baca rantai approval gagal')
+        return reply.status(500).send({ error: 'Gagal memeriksa konfigurasi approval' })
+      }
+      if (!coarse.ok) return reply.status(403).send({ error: 'Akses ditolak' })
 
       const { data: coFull } = await supabase
         .from('change_orders')
@@ -526,6 +538,48 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
       if (!coFull) return reply.status(404).send({ error: 'Change order tidak ditemukan' })
       if (coFull.status !== 'submitted') {
         return reply.status(400).send({ error: 'Hanya change order berstatus submitted yang bisa diapprove' })
+      }
+
+      // Dasar syarat nominal = NILAI MUTLAK delta. CO kerja kurang −500jt sama
+      // signifikannya dengan kerja tambah +500jt; keduanya mengubah nilai kontrak
+      // sebesar itu, jadi ambang "di atas Rp X naik ke direktur" harus kena dua-duanya.
+      const decision = await evaluateEntityApproval(request, {
+        entityType: 'change_order', entityId: id,
+        amount: Math.abs(Number(coFull.total_amount_delta) || 0),
+      })
+      // Gagal baca konfigurasi TIDAK boleh menyamar jadi "tidak berhak" (Phase 1 §4E).
+      if (decision.configError) {
+        app.log.error({ configError: decision.configError, id }, 'evaluasi rantai approval gagal')
+        return reply.status(500).send({ error: 'Gagal memeriksa konfigurasi approval' })
+      }
+      if (!decision.allowed) {
+        if (decision.reason === 'already_approved') {
+          return reply.status(409).send({ error: 'Change order sudah disetujui penuh' })
+        }
+        return reply.status(403).send({ error: 'Akses ditolak' })
+      }
+
+      // Catat persetujuan level ini. Bila BUKAN langkah terakhir, CO TETAP
+      // 'submitted' — nilai kontrak baru berubah di langkah final.
+      if (decision.step) {
+        const rec = await recordApproval({
+          entityType: 'change_order', entityId: id, level: decision.step.level, approvedBy: user.id,
+        })
+        if (!rec.ok) return reply.status(500).send({ error: 'Gagal mencatat persetujuan: ' + rec.error })
+
+        if (!decision.isFinalStep) {
+          const next = decision.applicable.find(s => s.level > decision.step!.level)
+          void logAuditEvent(request, {
+            tableName: 'change_orders', recordId: id, action: 'change_order.approval.level',
+            actorId: user.id, newValues: { level: decision.step.level, of: decision.applicable.length },
+            severity: 'critical',
+          })
+          return reply.send({
+            data: null,
+            pending_next_level: true,
+            message: `Persetujuan level ${decision.step.level} tercatat. Menunggu persetujuan level ${next?.level ?? '-'}.`,
+          })
+        }
       }
 
       // Get current project contract_value and RAB total
@@ -626,11 +680,20 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
   }>(
     // F3 (AKTA 0 lockout fix): capability `change_order:approve` (approve+reject
     // satu authority), BUKAN role literal 'admin'.
+    // 2A-5: otoritas menolak = ikut rantai yang sama — siapa pun yang berhak
+    // menyetujui di level mana pun boleh menolak, seperti pola kasbon.
     '/api/v1/change-orders/:id/reject',
-    { preHandler: [authenticate, requirePermission('change_order:approve')] },
+    { preHandler: [authenticate] },
     async (request, reply) => {
       const { id } = request.params
       const user = request.currentUser!
+
+      const coarse = await canParticipateInChain(request, 'change_order')
+      if (coarse.configError) {
+        app.log.error({ configError: coarse.configError }, 'baca rantai approval gagal')
+        return reply.status(500).send({ error: 'Gagal memeriksa konfigurasi approval' })
+      }
+      if (!coarse.ok) return reply.status(403).send({ error: 'Akses ditolak' })
 
       const { data: coInfo } = await supabase
         .from('change_orders')
@@ -659,6 +722,10 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
         app.log.error(error)
         return reply.status(500).send({ error: 'Gagal menolak change order' })
       }
+
+      // Ditolak → jejak persetujuan dibersihkan supaya rantai mulai dari level 1
+      // lagi bila CO ini diajukan ulang.
+      await clearApprovalProgress('change_order', id)
 
       // Fire-and-forget: notify submitter
       ;(async () => {
