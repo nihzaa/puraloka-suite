@@ -70,9 +70,9 @@ const app = Fastify({
         }
       },
   // ── Sub-Fase 1D.2 — Correlation ID ─────────────────────────────────────────
-  // Satu UUID per request, dipakai TIGA konsumen: (1) korelasi log line,
-  // (2) audit_logs.correlation_id, (3) workflow_instances.correlation_id (1C).
-  // Bukan tiga sistem ID terpisah yang harus disinkronkan manual.
+  // Satu UUID per request, dipakai DUA konsumen: (1) korelasi log line,
+  // (2) audit_logs.correlation_id. (Konsumen ke-3 workflow_instances dihapus saat
+  // fase CONTRACT 1C — engine diretire, lihat ADR-006.)
   //
   // requestIdHeader:false WAJIB — default Fastify memakai header `request-id`
   // dari proxy/klien sebagai req.id (bisa non-UUID). Karena correlation_id kolom

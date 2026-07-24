@@ -1,6 +1,6 @@
 # ADR-006 — Pensiun Workflow Engine (dual-write shadow diretire, permission derive cukup)
 
-**Status:** Diterima (keputusan founder 2026-07-24 + bukti engineering)
+**Status:** Diterima (keputusan founder 2026-07-24 + bukti engineering). **Tabel workflow_* di-DROP** via migration 095 (founder OK, AUDIT OPEN-2 ditutup) — desain tetap tersimpan di ADR ini + migration 081 idempoten untuk revival.
 **Tanggal:** 2026-07-24
 **Kedudukan:** Menutup eksperimen Sub-Fase 1C (workflow foundation 081-083). Melengkapi [ADR-004](ADR-004-permission-is-architecture-role-is-configuration.md) (permission = arsitektur). Konsekuensi didokumentasikan di AUDIT_REPORT OPEN-2 + runbook-kasbon-workflow-cutover.
 
