@@ -109,8 +109,12 @@ export default function MandorProgressPage() {
           const url = await uploadProgressPhoto(projectId, ph.file);
           uploadedPhotos.push({ url, caption: ph.caption });
           setPhotos((prev) => prev.map((p) => p.id === ph.id ? { ...p, uploading: false, uploadedUrl: url } : p));
-        } catch {
-          setPhotos((prev) => prev.map((p) => p.id === ph.id ? { ...p, uploading: false, error: "Gagal upload" } : p));
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : "Gagal upload";
+          setPhotos((prev) => prev.map((p) => p.id === ph.id ? { ...p, uploading: false, error: msg } : p));
+          // JANGAN ditelan (OPEN-4): dulu foto di-drop diam-diam & log tetap tersimpan
+          // tanpa foto. Sekarang batalkan simpan supaya user tahu fotonya tidak masuk.
+          throw new Error(`Foto "${ph.file.name}" gagal diupload: ${msg}. Progress TIDAK disimpan.`);
         }
       }
 
@@ -128,7 +132,7 @@ export default function MandorProgressPage() {
       setNotes(""); setWorkersCount(""); setPhotos([]); setScopeId("");
       loadLogs(projectId);
     } catch (err: any) {
-      showToast(err?.response?.data?.error ?? "Gagal menyimpan progress", false);
+      showToast(err?.response?.data?.error ?? err?.message ?? "Gagal menyimpan progress", false);
     } finally {
       setSaving(false);
     }

@@ -7,6 +7,7 @@ import { api, getStoredUser } from "@/lib/api";
 import { useUnits } from "@/lib/use-units";
 import { useWorkCategories } from "@/lib/use-work-categories";
 import { useKasbonPurposes } from "@/lib/use-kasbon-purposes";
+import { uploadKasbonPhoto } from "@/lib/storage";
 import * as XLSX from "xlsx";
 import {
   HardHat, Plus, ChevronRight, RefreshCw, CheckCircle2, Clock,
@@ -2505,17 +2506,9 @@ function AddKasbonModal({ assignments, onClose, onSuccess }: {
     try {
       let photoUrl: string | undefined;
       if (photoFile) {
-        const { createClient } = await import("@supabase/supabase-js");
-        const sb = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_KEY!
-        );
-        const ext = photoFile.name.split(".").pop();
-        const path = `worker-kasbons/${Date.now()}.${ext}`;
-        const { error: upErr } = await sb.storage.from("kasbon-photos").upload(path, photoFile, { upsert: true });
-        if (upErr) throw new Error("Gagal upload foto: " + upErr.message);
-        const { data: { publicUrl } } = sb.storage.from("kasbon-photos").getPublicUrl(path);
-        photoUrl = publicUrl;
+        // Upload lewat API (bucket kasbon-photos privat + service_role-only, migration 098).
+        // Dulu upload langsung browser→storage ke bucket yang TIDAK ADA → selalu gagal (OPEN-4).
+        photoUrl = await uploadKasbonPhoto(photoFile);
       }
       await api.post("/api/v1/mandor/worker-kasbons", {
         worker_id: workerId,
@@ -2680,17 +2673,9 @@ function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () => void; 
     try {
       let photoUrl: string | undefined;
       if (photoFile) {
-        const { createClient } = await import("@supabase/supabase-js");
-        const sb = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_KEY!
-        );
-        const ext = photoFile.name.split(".").pop();
-        const path = `mandor-kasbons/${Date.now()}.${ext}`;
-        const { error: upErr } = await sb.storage.from("kasbon-photos").upload(path, photoFile, { upsert: true });
-        if (upErr) throw new Error("Gagal upload foto: " + upErr.message);
-        const { data: { publicUrl } } = sb.storage.from("kasbon-photos").getPublicUrl(path);
-        photoUrl = publicUrl;
+        // Upload lewat API (bucket kasbon-photos privat + service_role-only, migration 098).
+        // Dulu upload langsung browser→storage ke bucket yang TIDAK ADA → selalu gagal (OPEN-4).
+        photoUrl = await uploadKasbonPhoto(photoFile);
       }
       await api.post("/api/v1/kasbons", {
         project_id: projectId,
