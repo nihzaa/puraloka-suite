@@ -2,7 +2,8 @@ import type { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { validateMime } from '../../utils/mime.js'
-import { createNotifications, getAllAdmins, getProjectAdminsAndPM } from '../../utils/notifications.js'
+import { createNotifications } from '../../utils/notifications.js'
+import { resolveRecipients } from '../../utils/notification-routing.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { computeAndPersistPenalty, estimatePenalty } from '../../utils/penalty.js'
 
@@ -465,7 +466,7 @@ export default async function financeRoutes(app: FastifyInstance) {
     // ── Fire-and-forget: notif ke admin saat invoice baru dibuat ─────────────
     if (invoice) {
       try {
-        const adminIds = await getAllAdmins()
+        const adminIds = await resolveRecipients('invoice_created')
         const projName = (invoice.projects as any)?.name ?? ''
         createNotifications(adminIds.map(uid => ({
           user_id:     uid,
@@ -874,7 +875,7 @@ export default async function financeRoutes(app: FastifyInstance) {
 
     // ── Fire-and-forget: notif ke admin + PM saat pembayaran diterima ────────
     try {
-      const recipients = await getProjectAdminsAndPM(invoice.project_id)
+      const recipients = await resolveRecipients('invoice_paid', { projectId: invoice.project_id })
       const amtFmt = amountPaid.toLocaleString('id-ID')
       createNotifications(recipients.map(uid => ({
         user_id:     uid,

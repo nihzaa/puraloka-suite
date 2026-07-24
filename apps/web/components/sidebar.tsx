@@ -24,6 +24,7 @@ import {
   Layers,
   Coins,
   GitBranch,
+  BellRing,
   CalendarDays,
   Menu,
 } from "lucide-react";
@@ -44,7 +45,7 @@ const roleLabel: Record<string, string> = {
 const ICONS: Record<string, React.ElementType> = {
   LayoutDashboard, FolderKanban, Wallet, PiggyBank, Receipt, HardHat,
   BarChart3, Settings, Users, Contact, ShoppingCart, Building2,
-  ShieldCheck, CalendarDays, Landmark, Ruler, Layers, Coins, GitBranch,
+  ShieldCheck, CalendarDays, Landmark, Ruler, Layers, Coins, GitBranch, BellRing,
 };
 function iconFor(name: string): React.ElementType {
   return ICONS[name] ?? FolderKanban;

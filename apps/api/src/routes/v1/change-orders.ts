@@ -1,7 +1,8 @@
 import type { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
-import { createNotifications, getProjectAdminsAndPM } from '../../utils/notifications.js'
+import { createNotifications } from '../../utils/notifications.js'
+import { resolveRecipients } from '../../utils/notification-routing.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain } from '../../utils/approval.js'
 
@@ -480,7 +481,7 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
       // Fire-and-forget: notif ke admin + PM
       ;(async () => {
         try {
-          const recipients = await getProjectAdminsAndPM(co.project_id)
+          const recipients = await resolveRecipients('change_order_submitted', { projectId: co.project_id })
           const { data: proj } = await supabase.from('projects').select('name').eq('id', co.project_id).single()
           const deltaText = co.total_amount_delta >= 0
             ? `+Rp ${Math.abs(co.total_amount_delta).toLocaleString('id-ID')}`

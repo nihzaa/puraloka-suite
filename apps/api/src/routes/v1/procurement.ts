@@ -1,7 +1,8 @@
 import { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
-import { createNotification, createNotifications, getAllAdmins } from '../../utils/notifications.js'
+import { createNotification, createNotifications } from '../../utils/notifications.js'
+import { resolveRecipients } from '../../utils/notification-routing.js'
 import { evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain } from '../../utils/approval.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { computeMrAmount } from '../../lib/mr-amount.js'
@@ -280,7 +281,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
     // Notif ke semua admin
     try {
-      const admins = await getAllAdmins()
+      const admins = await resolveRecipients('material_request_submitted')
       createNotifications(admins.map(uid => ({
         user_id: uid, title: 'Material Request Baru',
         message: `${(mr.project as any)?.name ?? 'Proyek'}: MR ${mr.mr_number} menunggu persetujuan`,

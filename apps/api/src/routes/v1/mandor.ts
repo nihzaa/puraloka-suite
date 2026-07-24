@@ -1,7 +1,8 @@
 ﻿import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { supabase } from '../../utils/supabase.js'
-import { createNotifications, getProjectAdminsAndPM } from '../../utils/notifications.js'
+import { createNotifications } from '../../utils/notifications.js'
+import { resolveRecipients } from '../../utils/notification-routing.js'
 import { flattenUserRole } from '../../utils/user-role.js'
 import { validateMime } from '../../utils/mime.js'
 
@@ -1152,7 +1153,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
         .single()
 
       if (assignInfo?.project_id) {
-        const recipients = await getProjectAdminsAndPM(assignInfo.project_id)
+        const recipients = await resolveRecipients('wage_report_submitted', { projectId: assignInfo.project_id })
         const mandorName = (assignInfo.mandor as any)?.name ?? user.name
         createNotifications(recipients.map(uid => ({
           user_id:     uid,
@@ -1356,7 +1357,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
     try {
       const projectId = (scope.assignment as any)?.project_id
       if (projectId) {
-        const recipients = await getProjectAdminsAndPM(projectId)
+        const recipients = await resolveRecipients('kasbon_submitted', { projectId })
         createNotifications(recipients.map(uid => ({
           user_id:    uid,
           title:      'Penagihan Progress Diajukan',
