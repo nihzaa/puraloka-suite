@@ -1,6 +1,6 @@
 // Guard UUID untuk kolom bertipe uuid (Sub-Fase 1C/1D fix).
 //
-// correlation_id di audit_logs & workflow_instances bertipe UUID. request.id
+// correlation_id di audit_logs bertipe UUID. request.id
 // (Fastify) TIDAK dijamin UUID: bila ada header `request-id` dari proxy/klien,
 // Fastify memakainya apa adanya. Menulis non-UUID ke kolom uuid → insert GAGAL
 // (22P02) → write hilang / divergensi. Guard ini menormalkan: UUID valid dipakai,

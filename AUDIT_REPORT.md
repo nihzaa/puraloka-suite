@@ -317,4 +317,4 @@ document.cookie = `${name}=${value}; expires=${expires}; path=/; SameSite=Lax`;
 
   **Rekomendasi:** DROP lewat migration terpisah **setelah keputusan founder** — tabel benar-benar mati (nol pembaca/penulis, engine di-retire, lihat ADR-006). Alternatif: dipertahankan HANYA bila ada rencana konkret menghidupkan workflow engine (mis. approval berjenjang PO di atas nominal tertentu). Tanpa rencana konkret, mempertahankan tabel yatim = technical debt.
 
-  **Status:** menunggu keputusan founder (JANGAN drop tanpa keputusan). Behavior saat ini: tabel ada, nol dampak (tak disentuh kode apa pun).
+  **Status:** ✅ **DITUTUP (2026-07-24).** Founder memutuskan **DROP** (alasan: tabel yatim = anti-pattern; desain aman di ADR-006 + 081 idempoten → revival tetap mungkin). Dieksekusi via **migration 095 tersendiri** (bukan diselipkan), setelah verifikasi ulang nol pembaca/penulis kode. Reversible via `git revert` + re-apply 081-083.
