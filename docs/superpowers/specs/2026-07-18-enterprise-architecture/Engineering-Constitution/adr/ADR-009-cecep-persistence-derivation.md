@@ -169,6 +169,30 @@ Labor→HR/Payroll, Subcontract→Procurement/Legal). Hari ini verifikasi = bagi
 yang memverifikasi), itu capability tambahan `cecep:price:verify` — additive, lewat
 ADR baru, bukan ditebak sekarang.
 
+## Penerapan keempat: Productivity Library (migration 105)
+
+Aggregate Root: Productivity Record = **kombinasi (RBS + Cost Code + versi)**
+(`44` §6, `03b` §A.6b). Domain pertama yang merujuk **dua** Shared Kernel Milestone 1.
+
+| Keputusan | Jejak | Trace Status |
+|---|---|---|
+| `productivity_records`, AR = kombinasi resource×cost_code×versi | `44` §6 / `03b` §A.6b (identitas AR eksplisit) | ✓ Fully Derived |
+| `resource_id` + `cost_code_id` FK (merujuk dua kernel) | `03b` §A.6b Context Mapping | ✓ Fully Derived |
+| `productivity_value` > 0 | Business Responsibility (produktivitas = qty resource per pekerjaan) | ✓ Fully Derived |
+| `source` ∈ national_bootstrap/company_baseline/variance | `03b` §A.6b Lifecycle "Bootstrap → Company Baseline → Updated (variance)" | ✓ Fully Derived |
+| **Immutable-entity-per-version** (perbaikan = versi baru) | `44` §6 "+ versi" sebagai IDENTITAS AR; `ProductivityRecordUpdatedFromVariance` | ✓ Fully Derived |
+| UNIQUE (resource, cost_code, versi) | identitas AR | ✓ Fully Derived |
+| Larangan hapus (fakta historis basis Variance) | `03b` §A.6b Ownership "AI Learning Loop"; prinsip riwayat CECEP | ✓ Fully Derived |
+
+**Versioning di sini BUKAN keputusan tertunda** (beda dari CBS): "+ versi" adalah
+bagian identitas AR yang dinyatakan eksplisit sebagai alasan derivasinya — jadi
+immutable-per-version diturunkan, bukan dipilih. `source='national_bootstrap'` hanya
+LABEL provenance, **bukan FK** ke Reference Library (B.4 yang tertunda) → Productivity
+tak terblokir CBS/Reference Library.
+
+Exclude (ADR-009): `unit` (coefficient tanpa satuan sampai unit resource+cost_code
+diputus), `company_id` (Phase 7).
+
 ## CBS diblokir — dua keputusan domain belum diambil (dilaporkan, tidak ditebak)
 
 CBS (`44` §3) diberi ✓ Fully Derived untuk *keberadaannya*, tapi **dua keputusan
