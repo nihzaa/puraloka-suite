@@ -3,7 +3,6 @@ import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { createNotifications, getProjectAdminsAndPM } from '../../utils/notifications.js'
 import { logAuditEvent } from '../../utils/audit.js'
-import { syncChangeOrderWorkflowInstance } from '../../utils/change-order-workflow.js'
 
 const CO_SELECT = `
   id,
@@ -170,9 +169,6 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
         return reply.status(500).send({ error: 'Gagal membuat change order' })
       }
 
-      // Dual-write shadow (Sub-Fase 1C): jalur create (draft). change_orders.status
-      // tetap otoritatif; fire-and-forget.
-      if (data) void syncChangeOrderWorkflowInstance(request, (data as { id: string }).id, 'draft')
 
       return reply.status(201).send({ data })
     }
@@ -480,9 +476,6 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
         return reply.status(500).send({ error: 'Gagal mengsubmit change order' })
       }
 
-      // Dual-write shadow (Sub-Fase 1C): jalur submit (draft → submitted).
-      void syncChangeOrderWorkflowInstance(request, id, 'submitted')
-
       // Fire-and-forget: notif ke admin + PM
       ;(async () => {
         try {
@@ -570,9 +563,6 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
         app.log.error(coErr)
         return reply.status(500).send({ error: 'Gagal menyetujui change order' })
       }
-
-      // Dual-write shadow (Sub-Fase 1C): jalur approve (submitted → approved).
-      void syncChangeOrderWorkflowInstance(request, id, 'approved')
 
       // 2. Update projects.contract_value
       const newContractValue = (project.contract_value ?? 0) + coFull.total_amount_delta
@@ -669,9 +659,6 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
         app.log.error(error)
         return reply.status(500).send({ error: 'Gagal menolak change order' })
       }
-
-      // Dual-write shadow (Sub-Fase 1C): jalur reject (submitted → rejected).
-      void syncChangeOrderWorkflowInstance(request, id, 'rejected')
 
       // Fire-and-forget: notify submitter
       ;(async () => {
