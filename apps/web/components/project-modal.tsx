@@ -34,6 +34,13 @@ export interface ProjectFormData {
   retention_pct: string;
   start_date: string;
   end_date: string;
+  // Denda — override per proyek (opsional; false = ikuti aturan global)
+  penalty_override: boolean;
+  penalty_enabled: boolean;
+  penalty_basis: string;
+  penalty_rate_permil: string;   // ‰/hari
+  penalty_cap_pct: string;       // %
+  penalty_grace_days: string;    // hari
   // Step 3
   termin_schedules: TerminRow[];
 }
@@ -90,6 +97,8 @@ const DEFAULT_FORM: ProjectFormData = {
   commission_pct: "",
   retention_pct: "5",
   start_date: "", end_date: "",
+  penalty_override: false, penalty_enabled: false, penalty_basis: "invoice_telat",
+  penalty_rate_permil: "1", penalty_cap_pct: "5", penalty_grace_days: "0",
   termin_schedules: [
     { label: "Tahap 1 — DP Kontrak", pct_of_contract: 30, target_date: "", trigger_type: "on_sign", trigger_pct: "", due_days: "" },
     { label: "Tahap 2", pct_of_contract: 20, target_date: "", trigger_type: "on_progress", trigger_pct: "40", due_days: "" },
@@ -229,6 +238,12 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
         retention_pct: Number(form.retention_pct) || 5,
         start_date: form.start_date,
         end_date: form.end_date,
+        // Override denda per proyek: null = ikuti global effective. Simpan fraksi (‰→/1000, %→/100).
+        penalty_enabled:      form.penalty_override ? form.penalty_enabled : null,
+        penalty_basis:        form.penalty_override ? form.penalty_basis : null,
+        penalty_rate_per_day: form.penalty_override ? (Number(form.penalty_rate_permil) || 0) / 1000 : null,
+        penalty_cap_pct:      form.penalty_override ? (Number(form.penalty_cap_pct) || 0) / 100 : null,
+        penalty_grace_days:   form.penalty_override ? (Number(form.penalty_grace_days) || 0) : null,
         termin_schedules: form.contract_model === "termin"
           ? form.termin_schedules.map(t => ({
               label: t.label,
@@ -443,6 +458,43 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
               <Field label="Retensi (%)" error={errors.retention_pct}>
                 <input style={inputStyle} type="number" min="0" max="50" step="0.5" value={form.retention_pct} onChange={e => set("retention_pct", e.target.value)} placeholder="5" />
               </Field>
+
+              {/* Denda — override per proyek (syarat kontrak; default ikuti aturan global) */}
+              <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 14px", background: "var(--surface-subtle)" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                  <input type="checkbox" checked={form.penalty_override} onChange={e => set("penalty_override", e.target.checked)} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>Atur denda khusus proyek ini</span>
+                </label>
+                <p style={{ margin: "4px 0 0 24px", fontSize: 11.5, color: "var(--text-muted)" }}>
+                  {form.penalty_override ? "Nilai di bawah menimpa aturan denda global untuk proyek ini." : "Mengikuti aturan denda global (Konfigurasi Keuangan)."}
+                </p>
+                {form.penalty_override && (
+                  <div style={{ marginLeft: 24, marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: "var(--text-primary)" }}>
+                      <input type="checkbox" checked={form.penalty_enabled} onChange={e => set("penalty_enabled", e.target.checked)} />
+                      Denda aktif untuk proyek ini
+                    </label>
+                    <Field label="Basis denda">
+                      <select style={inputStyle} value={form.penalty_basis} onChange={e => set("penalty_basis", e.target.value)}>
+                        <option value="invoice_telat">Nilai invoice yang telat</option>
+                        <option value="outstanding_proyek">Sisa outstanding proyek</option>
+                        <option value="kontrak_total">Nilai kontrak total</option>
+                      </select>
+                    </Field>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+                      <Field label="Tarif (‰/hari)">
+                        <input style={inputStyle} type="number" min="0" step="0.1" value={form.penalty_rate_permil} onChange={e => set("penalty_rate_permil", e.target.value)} placeholder="1" />
+                      </Field>
+                      <Field label="Cap (%)">
+                        <input style={inputStyle} type="number" min="0" max="100" step="0.1" value={form.penalty_cap_pct} onChange={e => set("penalty_cap_pct", e.target.value)} placeholder="5" />
+                      </Field>
+                      <Field label="Grace (hari)">
+                        <input style={inputStyle} type="number" min="0" step="1" value={form.penalty_grace_days} onChange={e => set("penalty_grace_days", e.target.value)} placeholder="0" />
+                      </Field>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <Field label="Tanggal Mulai *" error={errors.start_date}>

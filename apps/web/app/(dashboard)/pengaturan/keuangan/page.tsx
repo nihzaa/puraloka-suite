@@ -36,6 +36,15 @@ const FINANCE_KEYS: { key: string; label: string; hint: string; format: (v: numb
   { key: "retention.default_pct", label: "Retensi (default proyek baru)", hint: "Persentase ditahan sampai akhir masa pemeliharaan; bisa di-override per proyek", format: pctFmt },
 ];
 
+const BASIS_LABELS: Record<string, string> = {
+  invoice_telat: "Nilai invoice yang telat",
+  outstanding_proyek: "Sisa outstanding proyek",
+  kontrak_total: "Nilai kontrak total",
+};
+interface PenaltyTerms {
+  enabled: boolean; basis: string; ratePerDay: number; capPct: number; graceDays: number;
+}
+
 function hasFinancePerm(): boolean {
   try {
     const raw = localStorage.getItem("puraloka_permissions");
@@ -63,6 +72,17 @@ export default function KeuanganSettingsPage() {
   const [dpPct, setDpPct] = useState("");
   const [maintDays, setMaintDays] = useState("");
   const [savingDefaults, setSavingDefaults] = useState(false);
+  // Denda keterlambatan (config effective-dated, DEFAULT OFF)
+  const [penalty, setPenalty] = useState<PenaltyTerms | null>(null);
+  const [pModal, setPModal] = useState(false);
+  const [pEnabled, setPEnabled] = useState(false);
+  const [pBasis, setPBasis] = useState("invoice_telat");
+  const [pRate, setPRate] = useState("");     // ‰/hari
+  const [pCap, setPCap] = useState("");       // %
+  const [pGrace, setPGrace] = useState("");   // hari
+  const [pFrom, setPFrom] = useState(todayWIB());
+  const [pNote, setPNote] = useState("");
+  const [savingPenalty, setSavingPenalty] = useState(false);
 
   useEffect(() => {
     setCanEdit(hasFinancePerm());
@@ -73,7 +93,52 @@ export default function KeuanganSettingsPage() {
     api.get<{ dp_default_pct: number; maintenance_days: number }>("/api/v1/settings/project-defaults")
       .then(({ data }) => { setDpPct(String(data.dp_default_pct)); setMaintDays(String(data.maintenance_days)); })
       .catch(() => {});
+    api.get<{ effective: PenaltyTerms }>("/api/v1/settings/penalty")
+      .then(({ data }) => setPenalty(data.effective))
+      .catch(() => {});
   }, []);
+
+  function openPenaltyModal() {
+    if (!penalty) return;
+    setPEnabled(penalty.enabled);
+    setPBasis(penalty.basis);
+    setPRate(String(penalty.ratePerDay * 1000));   // fraksi → ‰
+    setPCap(String(penalty.capPct * 100));         // fraksi → %
+    setPGrace(String(penalty.graceDays));
+    setPFrom(todayWIB());
+    setPNote("");
+    setPModal(true);
+  }
+
+  async function savePenalty() {
+    if (!penalty) return;
+    const rate = parseFloat(pRate), cap = parseFloat(pCap), grace = parseInt(pGrace);
+    if (isNaN(rate) || rate < 0 || rate > 1000) { setToast({ type: "err", msg: "Tarif denda 0–1000‰/hari" }); return; }
+    if (isNaN(cap) || cap < 0 || cap > 100) { setToast({ type: "err", msg: "Cap denda 0–100%" }); return; }
+    if (isNaN(grace) || grace < 0 || grace > 3650) { setToast({ type: "err", msg: "Grace 0–3650 hari" }); return; }
+    // Hanya PUT key yang berubah (hindari baris timeline redundan). Semua effective-dated.
+    const puts: { key: string; value: unknown; value_type: string }[] = [];
+    if (pEnabled !== penalty.enabled) puts.push({ key: "penalty.enabled", value: pEnabled, value_type: "boolean" });
+    if (pBasis !== penalty.basis) puts.push({ key: "penalty.basis", value: pBasis, value_type: "string" });
+    if (rate / 1000 !== penalty.ratePerDay) puts.push({ key: "penalty.rate_per_day", value: rate / 1000, value_type: "number" });
+    if (cap / 100 !== penalty.capPct) puts.push({ key: "penalty.cap_pct", value: cap / 100, value_type: "number" });
+    if (grace !== penalty.graceDays) puts.push({ key: "penalty.grace_days", value: grace, value_type: "number" });
+    if (puts.length === 0) { setToast({ type: "err", msg: "Tidak ada perubahan" }); return; }
+    setSavingPenalty(true);
+    try {
+      for (const p of puts) {
+        await api.put("/api/v1/settings/finance", { ...p, effective_from: pFrom, note: pNote.trim() || undefined });
+      }
+      setToast({ type: "ok", msg: `Aturan denda diperbarui, berlaku ${pFrom}` });
+      setPModal(false);
+      const { data } = await api.get<{ effective: PenaltyTerms }>("/api/v1/settings/penalty");
+      setPenalty(data.effective);
+      await load();
+    } catch (e) {
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      setToast({ type: "err", msg: msg ?? "Gagal menyimpan aturan denda" });
+    } finally { setSavingPenalty(false); }
+  }
 
   async function saveProjectDefaults() {
     const dp = parseFloat(dpPct), md = parseInt(maintDays);
@@ -321,6 +386,124 @@ export default function KeuanganSettingsPage() {
                 background: "#fff", transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
               }} />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Denda Keterlambatan — config effective-dated, DEFAULT OFF */}
+      {!loading && penalty && (
+        <div style={{ ...card, padding: "18px 20px", marginTop: 16 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 15, fontWeight: 600, color: C.text }}>Denda Keterlambatan</span>
+                <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: penalty.enabled ? C.green : C.muted, background: penalty.enabled ? C.greenBg : C.bg, padding: "2px 8px", borderRadius: 5 }}>
+                  {penalty.enabled ? "Aktif" : "Nonaktif"}
+                </span>
+              </div>
+              <p style={{ margin: "4px 0 0", fontSize: 13, color: C.mid, lineHeight: 1.5 }}>
+                Denda keterlambatan bayar invoice. <b>Default nonaktif</b> — Puraloka belum menerapkan denda.
+                Saat aktif, denda dihitung otomatis saat invoice lunas telat (tarif berlaku sesuai tanggal), dengan batas maksimum.
+              </p>
+              {penalty.enabled ? (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 18px", marginTop: 12, fontSize: 12.5, color: C.text }}>
+                  <span><b>{(penalty.ratePerDay * 1000).toFixed(2)}‰</b>/hari</span>
+                  <span>Cap <b>{(penalty.capPct * 100).toFixed(2)}%</b></span>
+                  <span>Grace <b>{penalty.graceDays}</b> hari</span>
+                  <span>Basis: <b>{BASIS_LABELS[penalty.basis] ?? penalty.basis}</b></span>
+                </div>
+              ) : (
+                <div style={{ marginTop: 10, fontSize: 12, color: C.muted }}>
+                  Konfigurasi tersimpan: {(penalty.ratePerDay * 1000).toFixed(2)}‰/hari · cap {(penalty.capPct * 100).toFixed(2)}% · grace {penalty.graceDays} hari · basis {BASIS_LABELS[penalty.basis] ?? penalty.basis}
+                </div>
+              )}
+              {penalty.enabled && (
+                <div style={{ display: "flex", gap: 8, marginTop: 10, fontSize: 12.5, color: C.text, background: C.amberBg, padding: "9px 12px", borderRadius: 9 }}>
+                  <AlertTriangle size={14} color={C.amber} style={{ flexShrink: 0, marginTop: 1 }} />
+                  Denda AKTIF — invoice yang dibayar telat akan dikenai denda. Bisa diputihkan per invoice (dengan alasan) di halaman Keuangan.
+                </div>
+              )}
+            </div>
+            {canEdit && (
+              <button onClick={openPenaltyModal}
+                style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 9, background: C.navy, color: "#fff", border: "none", fontSize: 13, fontWeight: 500, cursor: "pointer", flexShrink: 0 }}>
+                <Plus size={14} /> Ubah aturan
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal aturan denda */}
+      {pModal && (
+        <div onClick={(e) => { if (e.target === e.currentTarget) setPModal(false); }}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ ...card, width: "100%", maxWidth: 480, padding: 0, maxHeight: "92vh", overflowY: "auto" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 22px", borderBottom: `1px solid ${C.border}` }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Aturan Denda Keterlambatan</h2>
+                <p style={{ margin: "2px 0 0", fontSize: 12, color: C.muted }}>Berlaku sejak tanggal (WIB). Nilai lama tetap untuk dokumen bertanggal sebelumnya.</p>
+              </div>
+              <button onClick={() => setPModal(false)} style={{ padding: 6, background: "transparent", border: "none", cursor: "pointer", color: C.muted }}><X size={18} /></button>
+            </div>
+            <div style={{ padding: 22, display: "flex", flexDirection: "column", gap: 16 }}>
+              {/* Enabled toggle */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Aktifkan denda</div>
+                  <div style={{ fontSize: 12, color: C.muted }}>Default nonaktif — nyalakan hanya bila menerapkan denda.</div>
+                </div>
+                <button type="button" onClick={() => setPEnabled(v => !v)} aria-pressed={pEnabled}
+                  style={{ position: "relative", width: 46, height: 26, borderRadius: 13, border: "none", flexShrink: 0, background: pEnabled ? C.green : C.border, cursor: "pointer", transition: "background 0.2s" }}>
+                  <span style={{ position: "absolute", top: 3, left: pEnabled ? 23 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
+                </button>
+              </div>
+              <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 600, color: C.text }}>Basis denda</span>
+                <select value={pBasis} onChange={(e) => setPBasis(e.target.value)}
+                  style={{ padding: "10px 12px", borderRadius: 9, border: `1px solid ${C.border}`, fontSize: 14, boxSizing: "border-box", background: C.surface }}>
+                  {Object.entries(BASIS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </label>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+                <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Tarif (‰/hari)</span>
+                  <input type="number" step="0.1" min="0" value={pRate} onChange={(e) => setPRate(e.target.value)} placeholder="1"
+                    style={{ padding: "10px 10px", borderRadius: 9, border: `1px solid ${C.border}`, fontSize: 14, boxSizing: "border-box" }} />
+                </label>
+                <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Cap (%)</span>
+                  <input type="number" step="0.1" min="0" max="100" value={pCap} onChange={(e) => setPCap(e.target.value)} placeholder="5"
+                    style={{ padding: "10px 10px", borderRadius: 9, border: `1px solid ${C.border}`, fontSize: 14, boxSizing: "border-box" }} />
+                </label>
+                <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Grace (hari)</span>
+                  <input type="number" step="1" min="0" value={pGrace} onChange={(e) => setPGrace(e.target.value)} placeholder="0"
+                    style={{ padding: "10px 10px", borderRadius: 9, border: `1px solid ${C.border}`, fontSize: 14, boxSizing: "border-box" }} />
+                </label>
+              </div>
+              <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 600, color: C.text }}>Berlaku sejak</span>
+                <input type="date" value={pFrom} onChange={(e) => setPFrom(e.target.value)}
+                  style={{ padding: "10px 12px", borderRadius: 9, border: `1px solid ${C.border}`, fontSize: 14, boxSizing: "border-box" }} />
+              </label>
+              <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 600, color: C.text }}>Catatan <span style={{ color: C.muted, fontWeight: 400 }}>(opsional)</span></span>
+                <input type="text" value={pNote} onChange={(e) => setPNote(e.target.value)} placeholder="mis. Syarat kontrak baru 2027"
+                  style={{ padding: "10px 12px", borderRadius: 9, border: `1px solid ${C.border}`, fontSize: 14, boxSizing: "border-box" }} />
+              </label>
+              <div style={{ display: "flex", gap: 8, fontSize: 12, color: C.mid, background: C.bg, padding: "10px 12px", borderRadius: 9 }}>
+                <Info size={14} color={C.navy} style={{ flexShrink: 0, marginTop: 1 }} />
+                Bisa di-override per proyek (syarat kontrak tiap klien) saat membuat/mengedit proyek. Nilai override menang atas default global.
+              </div>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                <button onClick={() => setPModal(false)} style={{ padding: "9px 16px", borderRadius: 9, background: "transparent", border: `1px solid ${C.border}`, fontSize: 13, cursor: "pointer", color: C.mid }}>Batal</button>
+                <button onClick={savePenalty} disabled={savingPenalty}
+                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 18px", borderRadius: 9, background: C.navy, color: "#fff", border: "none", fontSize: 13, fontWeight: 500, cursor: savingPenalty ? "default" : "pointer", opacity: savingPenalty ? 0.7 : 1 }}>
+                  <Check size={14} /> {savingPenalty ? "Menyimpan…" : "Simpan aturan"}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
