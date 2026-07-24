@@ -846,15 +846,19 @@ export default async function mandorRoutes(app: FastifyInstance) {
   app.get('/api/v1/mandor/list', {
     preHandler: [authenticate, requirePermission('mandor:assign')]
   }, async (_request, reply) => {
+    // 1B.4 CONTRACT: role via FK `role_id`, BUKAN kolom `role` yang sudah di-drop.
+    // Sebelum perbaikan ini endpoint membalas 500 (42703) → dropdown assign mandor
+    // kosong, sehingga mandor tak bisa ditugaskan ke proyek sama sekali.
     const { data, error } = await supabase
       .from('users')
-      .select('id, name, phone, email, is_active')
-      .eq('role', 'mandor')
+      .select('id, name, phone, email, is_active, roles!inner(name)')
+      .eq('roles.name', 'mandor')
       .eq('is_active', true)
       .order('name')
 
     if (error) return reply.status(500).send({ error: error.message })
-    return reply.send({ mandors: data ?? [] })
+    const mandors = (data ?? []).map(({ roles: _roles, ...u }) => u)
+    return reply.send({ mandors })
   })
 
 

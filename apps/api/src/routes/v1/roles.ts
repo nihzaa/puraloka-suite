@@ -18,21 +18,24 @@ export default async function rolesRoutes(app: FastifyInstance) {
 
     if (error) return reply.status(500).send({ error: error.message })
 
-    // Enrich dengan user count per role
-    const { data: userCounts } = await supabase
+    // Enrich dengan user count per role.
+    // 1B.4 CONTRACT: dihitung per `role_id`, BUKAN kolom `role` yang sudah di-drop
+    // (query lama membalas 42703, `error` tak diperiksa → SEMUA role tampil 0 user).
+    const { data: userCounts, error: countErr } = await supabase
       .from('users')
-      .select('role')
+      .select('role_id')
       .eq('is_active', true)
+    if (countErr) return reply.status(500).send({ error: countErr.message })
 
     const countMap: Record<string, number> = {}
     for (const u of userCounts ?? []) {
-      countMap[u.role] = (countMap[u.role] ?? 0) + 1
+      if (u.role_id) countMap[u.role_id] = (countMap[u.role_id] ?? 0) + 1
     }
 
     const enriched = (roles ?? []).map((r: any) => ({
       ...r,
       permission_count: r.role_permissions?.[0]?.count ?? 0,
-      user_count: countMap[r.name] ?? 0,
+      user_count: countMap[r.id] ?? 0,
       role_permissions: undefined,
     }))
 
