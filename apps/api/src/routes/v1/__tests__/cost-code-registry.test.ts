@@ -116,19 +116,52 @@ describe('Lifecycle draft → active → deprecated', () => {
     expect(row.deprecated_at).not.toBeNull()
   }, 30_000)
 
-  it('NEGATIF: active → draft DITOLAK (mundur tidak sah)', async () => {
+  it('NEGATIF: active → draft DITOLAK (identitas terbit tak bisa jadi draft lagi)', async () => {
     const id = await newCode('CC-103')
     await setStatus(id, 'active')
-    await expect(setStatus(id, 'draft')).rejects.toThrow(/Transisi status Cost Code tidak sah/)
+    await expect(setStatus(id, 'draft')).rejects.toThrow(/tidak bisa kembali jadi draft/)
     expect((await readCode(id)).status, 'status tak boleh berubah setelah ditolak').toBe('active')
   }, 30_000)
 
-  it('NEGATIF: deprecated → active DITOLAK (identitas pensiun tak dihidupkan lagi)', async () => {
+  it('deprecated → active DIIZINKAN: activated_at di-refresh, deprecated_at dikosongkan', async () => {
+    // Keputusan founder (ADR-009): dipensiunkan = status OPERASIONAL, bukan
+    // penghapusan permanen. Kode yang dipensiunkan karena salah paham harus bisa
+    // dipakai lagi TANPA membuat identitas baru — identitas baru justru memecah
+    // traceability lintas 17 domain, hal yang Cost Code ada untuk mencegahnya.
     const id = await newCode('CC-104')
     await setStatus(id, 'active')
     await setStatus(id, 'deprecated')
-    await expect(setStatus(id, 'active')).rejects.toThrow(/Transisi status Cost Code tidak sah/)
+    const pensiun = await readCode(id)
+    expect(pensiun.deprecated_at).not.toBeNull()
+
+    await setStatus(id, 'active')
+    const hidup = await readCode(id)
+    expect(hidup.status).toBe('active')
+    expect(hidup.deprecated_at, 'jejak pensiun harus hilang saat aktif kembali').toBeNull()
+    expect(hidup.activated_at, 'activated_at wajib di-refresh, bukan yang lama').not.toBeNull()
+    expect(
+      hidup.activated_at!.getTime(),
+      'activated_at harus >= waktu pensiun sebelumnya (di-refresh, bukan disimpan)',
+    ).toBeGreaterThanOrEqual(pensiun.deprecated_at!.getTime())
+  }, 30_000)
+
+  it('NEGATIF: deprecated → draft DITOLAK (identitas terbit tak bisa jadi draft lagi)', async () => {
+    const id = await newCode('CC-106')
+    await setStatus(id, 'deprecated')
+    await expect(setStatus(id, 'draft')).rejects.toThrow(/tidak bisa kembali jadi draft/)
     expect((await readCode(id)).status).toBe('deprecated')
+  }, 30_000)
+
+  it('siklus penuh aktif→pensiun→aktif lagi bisa berulang tanpa merusak constraint', async () => {
+    const id = await newCode('CC-107')
+    for (let i = 0; i < 2; i++) {
+      await setStatus(id, 'active')
+      await setStatus(id, 'deprecated')
+    }
+    await setStatus(id, 'active')
+    const row = await readCode(id)
+    expect(row.status).toBe('active')
+    expect(row.deprecated_at).toBeNull()
   }, 30_000)
 
   it('update non-status (mis. ganti nama) tidak terpengaruh guard transisi', async () => {

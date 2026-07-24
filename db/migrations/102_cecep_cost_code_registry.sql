@@ -85,17 +85,23 @@ CREATE TRIGGER trg_cost_codes_no_delete
   BEFORE DELETE ON cost_codes
   FOR EACH ROW EXECUTE FUNCTION fn_cost_codes_no_delete();
 
--- ─── 3. HARD GUARD: transisi lifecycle satu arah ────────────────────────────
+-- ─── 3. HARD GUARD: transisi lifecycle ──────────────────────────────────────
 --
--- Diizinkan : draft→active, draft→deprecated, active→deprecated (+ status tetap)
--- Ditolak   : active→draft, deprecated→apa pun
+-- Diizinkan : draft→active, draft→deprecated, active→deprecated,
+--             deprecated→active (+ status tetap)
+-- Ditolak   : kembali ke 'draft' dari status mana pun
 --
--- ⚠️ CATATAN JEJAK (ADR-009, bukan ✓ Fully Derived): `03b` §A.3 menyatakan
--- urutannya "Draft → Active → Deprecated" tapi TIDAK menyatakan apakah mundur
--- boleh. Dua tafsir sama-sama mungkin, jadi dipilih yang fail-closed —
--- menghidupkan kembali identitas yang sudah pensiun bisa menabrak data hilir
--- yang terlanjur menganggapnya pensiun. Melonggarkan nanti murah (ubah trigger);
--- memperketat setelah data terlanjur bolak-balik status, mahal.
+-- ✓ Resolved by ADR-009 (keputusan founder): `03b` §A.3 menyatakan urutan
+-- "Draft → Active → Deprecated" tapi tidak menyatakan apakah mundur boleh.
+-- Diputuskan **deprecated→active SAH** dengan alasan: identitas Cost Code stabil,
+-- dan "dipensiunkan" adalah STATUS OPERASIONAL — bukan penghapusan permanen.
+-- Kode yang dipensiunkan karena salah paham harus bisa dipakai lagi tanpa membuat
+-- identitas baru (identitas baru justru memecah traceability lintas 17 domain,
+-- yaitu hal yang Cost Code ada untuk mencegahnya).
+--
+-- Kembali ke 'draft' tetap DITOLAK: draft adalah keadaan pra-publikasi. Identitas
+-- yang pernah terbit dan mungkin sudah dirujuk domain lain tidak bisa berpura-pura
+-- belum pernah ada.
 --
 -- draft→deprecated DIIZINKAN: draft yang salah ketik belum pernah dirujuk siapa
 -- pun, dan karena hapus dilarang, tanpa jalan ini ia jadi sampah abadi. Ini
@@ -110,20 +116,25 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  IF NOT (
-       (OLD.status = 'draft'  AND NEW.status IN ('active', 'deprecated'))
-    OR (OLD.status = 'active' AND NEW.status = 'deprecated')
-  ) THEN
+  IF NEW.status = 'draft' THEN
     RAISE EXCEPTION
-      'Transisi status Cost Code tidak sah: % → % (code=%). Alur sah: '
-      'draft→active, draft→deprecated, active→deprecated.',
-      OLD.status, NEW.status, NEW.code
+      'Transisi status Cost Code tidak sah: % → draft (code=%). Identitas yang '
+      'pernah terbit tidak bisa kembali jadi draft. Alur sah: draft→active, '
+      'draft→deprecated, active→deprecated, deprecated→active.',
+      OLD.status, NEW.code
       USING ERRCODE = 'check_violation';
   END IF;
 
   -- Cap waktu event diisi otomatis supaya tidak bergantung disiplin pemanggil.
-  IF NEW.status = 'active'     AND NEW.activated_at  IS NULL THEN NEW.activated_at  := now(); END IF;
-  IF NEW.status = 'deprecated' AND NEW.deprecated_at IS NULL THEN NEW.deprecated_at := now(); END IF;
+  IF NEW.status = 'active' THEN
+    -- Di-refresh juga saat diaktifkan KEMBALI: activated_at berarti "sejak kapan
+    -- identitas ini berlaku sekarang". Riwayat aktivasi sebelumnya ada di audit_logs,
+    -- bukan di baris ini.
+    NEW.activated_at  := now();
+    NEW.deprecated_at := NULL;
+  ELSIF NEW.status = 'deprecated' AND NEW.deprecated_at IS NULL THEN
+    NEW.deprecated_at := now();
+  END IF;
 
   RETURN NEW;
 END $function$;

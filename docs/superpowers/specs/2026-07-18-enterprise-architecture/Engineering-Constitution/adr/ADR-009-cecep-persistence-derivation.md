@@ -57,6 +57,33 @@ Skema tabel penuh kolom, dan setiap kolom adalah keputusan desain. Menambah satu
 | `status`: draft / active / deprecated | `03b` §A.3 Lifecycle, eksplisit | ✓ Fully Derived |
 | Tidak boleh dihapus (deprecate, bukan delete) | `03b` §A.3 "tidak dihapus, riwayat historis tetap merujuknya" | ✓ Fully Derived |
 | `activated_at` / `deprecated_at` | Domain Event `CostCodeActivated` / `CostCodeDeprecated` (`03b` §A.3) — waktu kejadian harus terekam agar event punya makna | ✓ Fully Derived |
+| **`deprecated` → `active` SAH** (reaktivasi) | keputusan founder, lihat §Reaktivasi di bawah | **✓ Resolved by ADR** |
+| **`draft` → `deprecated` SAH** (jalan keluar draft salah ketik) | konsekuensi langsung larangan hapus; tanpa ini draft salah ketik jadi sampah abadi | **✓ Resolved by ADR** |
+| Kembali ke `draft` DITOLAK dari status mana pun | draft = keadaan pra-publikasi; identitas yang pernah terbit & mungkin sudah dirujuk tak bisa berpura-pura belum ada | ✓ Resolved by ADR |
+
+### Reaktivasi: kenapa `deprecated → active` sah
+
+Keputusan founder, menutup satu-satunya baris ⚠️ yang tersisa di ADR ini:
+
+> **Identitas Cost Code stabil, dan "dipensiunkan" adalah STATUS OPERASIONAL —
+> bukan penghapusan permanen.**
+
+Konsekuensinya kalau reaktivasi dilarang: kode yang dipensiunkan karena salah paham
+hanya bisa dipakai lagi dengan membuat **identitas baru**. Itu justru memecah
+traceability lintas 17 domain — persis hal yang Cost Code ada untuk mencegahnya
+(`44` §1: *"kalau identitas itu boleh berbeda-beda per domain, angka RAB tidak akan
+pernah bisa ditemukan lagi di Procurement/Progress/EVM"*). Jadi melarang reaktivasi
+bukan sekadar lebih ketat — ia bertentangan dengan alasan Cost Code diciptakan.
+
+**Mekanisme:** saat aktif kembali, `activated_at` di-**refresh** dan `deprecated_at`
+di-**kosongkan**. `activated_at` berarti *"sejak kapan identitas ini berlaku sekarang"*,
+bukan arsip aktivasi pertama. Riwayat pensiun-dan-aktif-lagi ada di `audit_logs`,
+bukan di baris tabelnya — konsisten dengan Epic 5 (audit sebagai satu-satunya rekam
+jejak perubahan, bukan kolom historis tersebar).
+
+**Yang tetap ditolak:** kembali ke `draft`. Draft adalah keadaan pra-publikasi;
+begitu terbit, identitas mungkin sudah dirujuk domain lain dan tak bisa berpura-pura
+belum pernah ada.
 
 ### Yang sengaja TIDAK ditulis (Open, bukan lupa)
 
