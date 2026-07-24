@@ -7,6 +7,10 @@ import { validateMime } from '../../utils/mime.js'
 const PHOTO_BUCKET = 'project-photos'
 const PHOTO_ALLOWED = ['image/jpeg', 'image/png', 'image/webp']
 const PHOTO_MAX_MB = 10
+// bodyLimit HARUS > cap file: base64 menambah ~33% + overhead JSON. Tanpa ini,
+// Fastify (default 1MB) menolak 413 SEBELUM validasi custom jalan → foto valid
+// ditolak diam-diam. Diverifikasi: 2MB foto = 413 sebelum patch ini.
+const PHOTO_BODY_LIMIT = 15 * 1024 * 1024
 
 export default async function progressRoutes(app: FastifyInstance) {
 
@@ -14,12 +18,15 @@ export default async function progressRoutes(app: FastifyInstance) {
   // Upload foto progress LEWAT API (bukan browser→storage langsung). Bucket
   // `project-photos` privat + policy service_role-only (migration 098) — browser
   // tak boleh menulis langsung. Baca via signed URL (pola documents.ts).
-  app.post<{ Params: { projectId: string }; Body: { file_base64?: string; file_name?: string } }>(
+  app.post<{
+    Params: { projectId: string }
+    Body: { file_base64?: string; file_name?: string; progress_log_id?: string; caption?: string }
+  }>(
     '/api/v1/projects/:projectId/photos/upload',
-    { preHandler: [authenticate] },
+    { preHandler: [authenticate], bodyLimit: PHOTO_BODY_LIMIT },
     async (request, reply) => {
       const { projectId } = request.params
-      const { file_base64, file_name } = request.body ?? {}
+      const { file_base64, file_name, progress_log_id, caption } = request.body ?? {}
       if (!file_base64) return reply.status(400).send({ error: 'File tidak ditemukan' })
 
       const buffer = Buffer.from(file_base64, 'base64')
@@ -48,7 +55,26 @@ export default async function progressRoutes(app: FastifyInstance) {
         .from(PHOTO_BUCKET).createSignedUrl(storagePath, 60 * 60 * 24 * 365 * 10)
       if (!urlData?.signedUrl) return reply.status(500).send({ error: 'Gagal membuat URL foto' })
 
-      return reply.status(201).send({ url: urlData.signedUrl, size_kb: Math.ceil(buffer.byteLength / 1024) })
+      const url = urlData.signedUrl
+      const size_kb = Math.ceil(buffer.byteLength / 1024)
+
+      // RETRY/ATTACH: bila `progress_log_id` diberikan, langsung tautkan foto ke log
+      // yang SUDAH tersimpan. Ini yang membuat "log tersimpan dulu, foto menyusul"
+      // mungkin — mandor bersinyal buruk tak kehilangan laporan hariannya.
+      if (progress_log_id) {
+        const { data: photo, error: insErr } = await supabase.from('project_photos').insert({
+          project_id: projectId,
+          progress_log_id,
+          url,
+          caption: caption ?? null,
+          file_size_kb: size_kb,
+          uploaded_by: request.currentUser!.id,
+        }).select('id, url, caption').single()
+        if (insErr) return reply.status(500).send({ error: 'Foto terupload tapi gagal ditautkan: ' + insErr.message })
+        return reply.status(201).send({ url, size_kb, photo })
+      }
+
+      return reply.status(201).send({ url, size_kb })
     }
   )
 

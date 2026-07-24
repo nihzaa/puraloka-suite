@@ -121,8 +121,13 @@ await app.register(multipart, {
 // Didaftarkan SEBELUM route agar instrumentasi membungkus handler.
 await registerObservability(app)
 
-app.setErrorHandler((err: Error & { statusCode?: number }, _req, reply) => {
+app.setErrorHandler((err: Error & { statusCode?: number; code?: string }, _req, reply) => {
   const status = (err as any).statusCode ?? 500
+  // Body melebihi bodyLimit → pesan Fastify default berbahasa Inggris & teknis
+  // ("Request body is too large"). Terjemahkan supaya user paham (upload foto/dokumen).
+  if (err.code === 'FST_ERR_CTP_BODY_TOO_LARGE') {
+    return reply.status(413).send({ error: 'Ukuran file terlalu besar untuk diunggah' })
+  }
   if (status >= 500) {
     app.log.error(err)
     return reply.status(500).send({ error: 'Internal server error' })

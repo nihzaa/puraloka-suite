@@ -8,6 +8,8 @@ import { validateMime } from '../../utils/mime.js'
 const KASBON_PHOTO_BUCKET = 'kasbon-photos'
 const KASBON_PHOTO_ALLOWED = ['image/jpeg', 'image/png', 'image/webp']
 const KASBON_PHOTO_MAX_MB = 10
+// Lihat catatan di progress.ts: base64 +33% → bodyLimit wajib > cap file.
+const KASBON_PHOTO_BODY_LIMIT = 15 * 1024 * 1024
 
 export default async function mandorRoutes(app: FastifyInstance) {
 
@@ -16,7 +18,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
   // service_role-only (migration 098) — browser tak menulis langsung. Signed URL.
   app.post<{ Body: { file_base64?: string; file_name?: string } }>(
     '/api/v1/mandor/kasbon-photo/upload',
-    { preHandler: [authenticate] },
+    { preHandler: [authenticate], bodyLimit: KASBON_PHOTO_BODY_LIMIT },
     async (request, reply) => {
       const { file_base64, file_name } = request.body ?? {}
       if (!file_base64) return reply.status(400).send({ error: 'File tidak ditemukan' })
