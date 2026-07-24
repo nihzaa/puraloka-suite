@@ -590,7 +590,7 @@ Dashboard home page sudah menampilkan data real:
 |---|---|---|---|
 | 1 | Redesign UI ke light theme | ✅ SELESAI | |
 | 2 | Dashboard home | ✅ SELESAI | KPI, chart, period filter, data real |
-| 3 | Halaman Proyek | ✅ SELESAI | List + detail: RAB, Kurva S, dokumen, milestone, progress log+foto, kontrak PDF |
+| 3 | Halaman Proyek | ✅ SELESAI | List + detail: RAB, Kurva S, dokumen, milestone, progress log+foto, kontrak PDF. ⚠️ **KOREKSI 2026-07-24:** upload **foto** sebelumnya TIDAK PERNAH berfungsi (bucket `project-photos`/`kasbon-photos` tak pernah ada → upload selalu gagal; 36 baris `project_photos` ternyata seed URL Unsplash, bukan upload nyata). Diperbaiki: bucket dibuat privat + policy service_role-only (migration 098), upload dialihkan lewat API, kegagalan tak lagi senyap. Lihat AUDIT_REPORT OPEN-4. |
 | 4 | Pembayaran Termin | ✅ SELESAI | PM tandai terbayar + upload bukti |
 | 5 | Halaman Keuangan | ✅ SELESAI | Invoice, kasbon lintas proyek, expense view |
 | 6 | Manajemen Kas | ✅ SELESAI | Akun kas, transfer dana, pengeluaran; saldo via DB trigger |
@@ -627,7 +627,7 @@ Dashboard home page sudah menampilkan data real:
 | 28 | RAB Komponen Biaya | ✅ SELESAI | Migration 052: rab_items + material/upah/alat/other pct, constraint total=0 atau 99.9–100.1; API PATCH komponen biaya + bulk; UI kolom komponen toggle + KomponenBar visual + inline edit |
 | 29 | Progress Log Dual Mode | ✅ SELESAI | Migration 052: progress_logs + mode + rab_item_id + pct_completion; API mode=daily (general) vs mode=detail (per RAB item, recalculate project %); UI modal mode toggle + RAB item picker |
 | 30 | Mandor ↔ RAB Link | ✅ SELESAI | Migration 052: work_scopes.rab_category_id; API accept rab_category_id saat buat scope; UI dropdown sub-kategori RAB di AddScopeModal |
-| 31 | ERP Phase 5: Document + Photo | ✅ SELESAI | Migration 055: project_photos.category + document_access_logs; API role-based doc filter + PATCH visibility + access-log; document-section.tsx upgrade; photo-gallery.tsx baru (lightbox, kategori) |
+| 31 | ERP Phase 5: Document + Photo | ✅ SELESAI (foto diperbaiki 098) | Migration 055: project_photos.category + document_access_logs; API role-based doc filter + PATCH visibility + access-log; document-section.tsx upgrade; photo-gallery.tsx baru (lightbox, kategori). ⚠️ **Jalur UPLOAD foto baru benar-benar hidup sejak migration 098** (sebelumnya bucket tak ada → gagal senyap). |
 | 32 | ERP Phase 6: Portal Upgrade | ✅ SELESAI | Client portal: Kurva S tab (2 garis, tanpa aktual kas). Mandor portal: halaman Rekapitulasi (earned/paid/outstanding/kasbon/sisa bersih) + nav item |
 | 33 | Kasbon Redesign | ✅ SELESAI | Migration 056: work_scope_id nullable, project_id langsung, hapus kasbon_limit_pct. API fixes: GET filter project-based, PATCH PM isolation via project_id. UI: scope opsional di form, double bars per scope (progress + kasbon), project kasbon summary bar |
 

@@ -3,8 +3,53 @@ import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { supabase } from '../../utils/supabase.js'
 import { createNotifications, getProjectAdminsAndPM } from '../../utils/notifications.js'
 import { flattenUserRole } from '../../utils/user-role.js'
+import { validateMime } from '../../utils/mime.js'
+
+const KASBON_PHOTO_BUCKET = 'kasbon-photos'
+const KASBON_PHOTO_ALLOWED = ['image/jpeg', 'image/png', 'image/webp']
+const KASBON_PHOTO_MAX_MB = 10
 
 export default async function mandorRoutes(app: FastifyInstance) {
+
+  // ── POST /api/v1/mandor/kasbon-photo/upload ────────────────────────────────
+  // Upload foto nota kasbon LEWAT API. Bucket `kasbon-photos` privat +
+  // service_role-only (migration 098) — browser tak menulis langsung. Signed URL.
+  app.post<{ Body: { file_base64?: string; file_name?: string } }>(
+    '/api/v1/mandor/kasbon-photo/upload',
+    { preHandler: [authenticate] },
+    async (request, reply) => {
+      const { file_base64, file_name } = request.body ?? {}
+      if (!file_base64) return reply.status(400).send({ error: 'File tidak ditemukan' })
+
+      const buffer = Buffer.from(file_base64, 'base64')
+      if (buffer.byteLength > KASBON_PHOTO_MAX_MB * 1024 * 1024) {
+        return reply.status(400).send({ error: `Ukuran foto maksimal ${KASBON_PHOTO_MAX_MB}MB` })
+      }
+      let detectedType: string
+      try {
+        detectedType = validateMime(buffer, KASBON_PHOTO_ALLOWED)
+      } catch (e: unknown) {
+        return reply.status(400).send({ error: (e as Error).message })
+      }
+
+      const ext = detectedType.split('/')[1].replace('jpeg', 'jpg')
+      const safe = (file_name ?? 'nota').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 60)
+      const storagePath = `worker-kasbons/${Date.now()}_${safe}.${ext}`
+
+      const { error: upErr } = await supabase.storage
+        .from(KASBON_PHOTO_BUCKET).upload(storagePath, buffer, { contentType: detectedType, upsert: false })
+      if (upErr) {
+        app.log.error({ upErr }, 'upload foto kasbon gagal')
+        return reply.status(500).send({ error: 'Gagal upload foto ke storage: ' + upErr.message })
+      }
+
+      const { data: urlData } = await supabase.storage
+        .from(KASBON_PHOTO_BUCKET).createSignedUrl(storagePath, 60 * 60 * 24 * 365 * 10)
+      if (!urlData?.signedUrl) return reply.status(500).send({ error: 'Gagal membuat URL foto' })
+
+      return reply.status(201).send({ url: urlData.signedUrl })
+    }
+  )
 
   // â”€â”€â”€ WORKERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 

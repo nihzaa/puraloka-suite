@@ -2,8 +2,55 @@ import { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, hasPermission } from '../../plugins/auth.js'
 import { bubbleUpProgress } from '../../lib/rab-aggregation.js'
+import { validateMime } from '../../utils/mime.js'
+
+const PHOTO_BUCKET = 'project-photos'
+const PHOTO_ALLOWED = ['image/jpeg', 'image/png', 'image/webp']
+const PHOTO_MAX_MB = 10
 
 export default async function progressRoutes(app: FastifyInstance) {
+
+  // ── POST /api/v1/projects/:projectId/photos/upload ─────────────────────────
+  // Upload foto progress LEWAT API (bukan browser→storage langsung). Bucket
+  // `project-photos` privat + policy service_role-only (migration 098) — browser
+  // tak boleh menulis langsung. Baca via signed URL (pola documents.ts).
+  app.post<{ Params: { projectId: string }; Body: { file_base64?: string; file_name?: string } }>(
+    '/api/v1/projects/:projectId/photos/upload',
+    { preHandler: [authenticate] },
+    async (request, reply) => {
+      const { projectId } = request.params
+      const { file_base64, file_name } = request.body ?? {}
+      if (!file_base64) return reply.status(400).send({ error: 'File tidak ditemukan' })
+
+      const buffer = Buffer.from(file_base64, 'base64')
+      if (buffer.byteLength > PHOTO_MAX_MB * 1024 * 1024) {
+        return reply.status(400).send({ error: `Ukuran foto maksimal ${PHOTO_MAX_MB}MB` })
+      }
+      let detectedType: string
+      try {
+        detectedType = validateMime(buffer, PHOTO_ALLOWED)
+      } catch (e: unknown) {
+        return reply.status(400).send({ error: (e as Error).message })
+      }
+
+      const ext = detectedType.split('/')[1].replace('jpeg', 'jpg')
+      const safe = (file_name ?? 'foto').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 60)
+      const storagePath = `${projectId}/${Date.now()}_${safe}.${ext}`
+
+      const { error: upErr } = await supabase.storage
+        .from(PHOTO_BUCKET).upload(storagePath, buffer, { contentType: detectedType, upsert: false })
+      if (upErr) {
+        app.log.error({ upErr }, 'upload foto progress gagal')
+        return reply.status(500).send({ error: 'Gagal upload foto ke storage: ' + upErr.message })
+      }
+
+      const { data: urlData } = await supabase.storage
+        .from(PHOTO_BUCKET).createSignedUrl(storagePath, 60 * 60 * 24 * 365 * 10)
+      if (!urlData?.signedUrl) return reply.status(500).send({ error: 'Gagal membuat URL foto' })
+
+      return reply.status(201).send({ url: urlData.signedUrl, size_kb: Math.ceil(buffer.byteLength / 1024) })
+    }
+  )
 
   // GET /api/v1/projects/:projectId/progress-logs
   app.get('/api/v1/projects/:projectId/progress-logs', {
