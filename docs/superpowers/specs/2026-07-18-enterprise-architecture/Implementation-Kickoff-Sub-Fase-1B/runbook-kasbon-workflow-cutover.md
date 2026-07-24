@@ -82,3 +82,15 @@ WHERE wi.id IS NULL OR wi.current_state <> k.status::text;
 ## Divergence detection (selama dual-write)
 
 `reconcileKasbonWorkflow()` (utils/kasbon-workflow.ts) mengembalikan `{ totalKasbons, totalInstances, matched, mismatches[], ok }`. Dual-write best-effort bisa menyimpang diam-diam bila upsert gagal (di-log keras, tapi tetap tak menjatuhkan operasi kasbon) — rekonsiliasi adalah jaring pengaman yang membuktikan konsistensi sebelum fase CONTRACT. **Nol divergensi selama dual-write = prasyarat DANGER GATE CONTRACT.**
+
+---
+
+## OUTCOME — Fase CONTRACT DIEKSEKUSI (2026-07-24, PR #34)
+
+**Keputusan founder:** setelah 2 migrasi modul (kasbon 082 + change_order 083) dengan engine stabil, jalankan **CONTRACT** — bukan menambah modul ke-3 (procurement), melainkan **mempensiunkan dual-write shadow**; `kasbons.status`/`change_orders.status` jadi **satu-satunya sumber kebenaran**.
+
+**Prasyarat terbukti:** rekonsiliasi **NOL divergensi** — kasbon 56/56 cocok, change_order 2/2 cocok, nol orphan dua arah (fungsi mapping nyata vs DB dev nyata).
+
+**Dieksekusi:** hapus 6 call-site dual-write + 7 modul shadow + 5 test; migration 092 `DROP` `workflow_instances/transitions/states/definitions` + `approval_delegations`. Behavior-preserving (shadow selalu fire-and-forget, nol pembaca bisnis). Reversible via `git revert`.
+
+**Konsekuensi untuk AKTA 5 (procurement):** dual-write **tidak lagi berlaku** — tak ada workflow engine untuk di-dual-write. Procurement sudah punya status sendiri (MR/PO/GR) sebagai sumber kebenaran. Melanjutkan workflow-engine untuk procurement = **keputusan arsitektur BARU** (menghidupkan kembali engine), bukan kelanjutan otomatis. Menunggu arahan founder.
