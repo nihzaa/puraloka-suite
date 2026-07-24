@@ -121,6 +121,7 @@ Key ini bypass RLS SEPENUHNYA → kebocorannya = akses penuh DB tanpa filter apa
 2. ♻️ 1C Workflow Engine **sengaja diretire** (ADR-006) — penutupan yang benar, bukan menggantung.
 3. ✅ **BLOCKER-1 STORAGE RLS (live path) BOCOR → DITUTUP (#39)**. Anon bisa baca semua file bucket privat; kini `service_role`-only + signed URL, diverifikasi tertutup (anon 0/1).
 4. ✅ **BLOCKER-2 FITUR FOTO tak pernah berfungsi → DIPERBAIKI (#40) + DIVERIFIKASI ULANG (#41)**. Bucket tak pernah ada (36 baris `project_photos` ternyata seed Unsplash); kini bucket privat + policy ketat + upload lewat API. Verifikasi lanjutan menemukan **2 cacat lagi yang keduanya dipatch** (§4D): `bodyLimit` base64 (foto 2MB sempat 413 sebelum validasi) + alur all-or-nothing yang berisiko menghilangkan laporan mandor. CLAUDE.md dikoreksi.
+5. ✅ **Verifikasi berlapis #41 & #42** menemukan 4 cacat lagi pada perbaikan sebelumnya (bodyLimit base64, all-or-nothing, nol ownership retry-attach, gate gagal-tertutup) — SEMUA dipatch & mutation-tested (§4D, §4E).
 5. ✅ **BLOCKER-3 Jaring otorisasi wiring nol → DITUTUP (#40)**. 22 test integrasi 403 (11 endpoint sensitif), **mutation-tested** (hapus preHandler → merah).
 6. ⚠️ **TABLE RLS = defense-in-depth dormant** (bukan penegak live) — STATUS JUJUR yang tercatat, bukan cacat: otorisasi handler ADA, benar, dan kini **ber-jaring test**.
 

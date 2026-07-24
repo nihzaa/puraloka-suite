@@ -23,7 +23,13 @@ Legenda: ✅ selesai & merged · ♻️ dibangun lalu diretire · 📌 backlog �
 
 ## Verdict
 
-✅ **PHASE 1 (Program A) DINYATAKAN TUNTAS** — 3 blocker ditutup & diverifikasi: storage leak (#39), fitur foto tak pernah jalan (#40), jaring otorisasi 403 nol (#40). Bukti objektif + prasyarat Phase 2: **[PHASE-1-COMPLETION-AUDIT.md](PHASE-1-COMPLETION-AUDIT.md)**.
+✅ **PHASE 1 (Program A) DINYATAKAN TUNTAS** — **7 temuan ditutup & diverifikasi** lewat 4 putaran verifikasi berlapis:
+- **#39** storage RLS bocor (anon baca semua file bucket privat)
+- **#40** fitur foto tak pernah jalan · jaring otorisasi 403 nol
+- **#41** `bodyLimit` base64 (foto 2MB ditolak sebelum validasi) · all-or-nothing yang bisa menghilangkan laporan mandor
+- **#42** retry-attach nol ownership check · gate perbaikannya gagal-tertutup senyap
+
+Tiap putaran verifikasi menemukan cacat baru pada perbaikan putaran sebelumnya — semua dipatch + **mutation-tested**. Bukti objektif + prasyarat Phase 2: **[PHASE-1-COMPLETION-AUDIT.md](PHASE-1-COMPLETION-AUDIT.md)**.
 
 ---
 *Dibuat 2026-07-24 (penutupan Phase 1). Rollup — detail tetap di audit per sub-fase yang ditaut.*
