@@ -1,4 +1,5 @@
 import { Client } from 'pg'
+import { connectWithRetry } from './connect-with-retry.js'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // RLS Test Harness (Epic 4)
@@ -28,9 +29,9 @@ function getDirectUrl(): string {
 }
 
 export async function createRlsClient(): Promise<Client> {
-  const client = new Client({ connectionString: getDirectUrl() })
-  await client.connect()
-  return client
+  // Tahan blip pooler transient di connect() (lihat connect-with-retry.ts) —
+  // dulu satu blip di beforeAll menggugurkan seluruh file test.
+  return connectWithRetry({ connectionString: getDirectUrl() })
 }
 
 /**
