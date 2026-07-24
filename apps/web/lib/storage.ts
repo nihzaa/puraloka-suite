@@ -29,6 +29,23 @@ export async function uploadProgressPhoto(projectId: string, file: File): Promis
 }
 
 /**
+ * Upload foto DAN langsung tautkan ke progress log yang SUDAH tersimpan (retry).
+ * Dipakai saat log berhasil disimpan tapi sebagian foto gagal (sinyal jelek) —
+ * mandor bisa coba ulang tanpa kehilangan laporan.
+ */
+export async function attachProgressPhoto(
+  projectId: string,
+  progressLogId: string,
+  file: File,
+  caption?: string
+): Promise<string> {
+  return postPhoto(`/api/v1/projects/${projectId}/photos/upload`, file, {
+    progress_log_id: progressLogId,
+    caption,
+  });
+}
+
+/**
  * Upload foto nota kasbon tukang. THROW bila gagal (bucket `kasbon-photos`,
  * privat + service_role-only — migration 098).
  */
@@ -36,10 +53,14 @@ export async function uploadKasbonPhoto(file: File): Promise<string> {
   return postPhoto("/api/v1/mandor/kasbon-photo/upload", file);
 }
 
-async function postPhoto(endpoint: string, file: File): Promise<string> {
+async function postPhoto(
+  endpoint: string,
+  file: File,
+  extra?: Record<string, unknown>
+): Promise<string> {
   const file_base64 = await fileToBase64(file);
   try {
-    const { data } = await api.post<{ url: string }>(endpoint, { file_base64, file_name: file.name });
+    const { data } = await api.post<{ url: string }>(endpoint, { file_base64, file_name: file.name, ...extra });
     if (!data?.url) throw new Error("Server tidak mengembalikan URL foto");
     return data.url;
   } catch (err) {

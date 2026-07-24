@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { api, createProgressLog } from "@/lib/api";
-import { uploadProgressPhoto } from "@/lib/storage";
+import { uploadProgressPhoto, attachProgressPhoto } from "@/lib/storage";
 import { Plus, Image, X, Check, Loader2, AlertCircle, Calendar } from "lucide-react";
 
 const C = {
@@ -45,6 +45,9 @@ export default function MandorProgressPage() {
   const [workersCount, setWorkersCount] = useState("");
   const [photos, setPhotos] = useState<PhotoEntry[]>([]);
   const [saving, setSaving] = useState(false);
+  // Foto yang gagal terupload padahal log SUDAH tersimpan → bisa dicoba ulang
+  // tanpa mengetik ulang laporan (lihat handleSubmit).
+  const [retry, setRetry] = useState<{ logId: string; items: PhotoEntry[] } | null>(null);
 
   function showToast(msg: string, ok = true) {
     setToast({ msg, ok });
@@ -96,15 +99,43 @@ export default function MandorProgressPage() {
     setPhotos((prev) => prev.filter((p) => p.id !== id));
   }
 
+  /** Coba upload ulang foto yang gagal, tautkan ke log yang sudah tersimpan. */
+  async function retryFailedPhotos() {
+    if (!retry || !projectId) return;
+    setSaving(true);
+    const stillFailed: PhotoEntry[] = [];
+    for (const ph of retry.items) {
+      try {
+        await attachProgressPhoto(projectId, retry.logId, ph.file, ph.caption || undefined);
+      } catch {
+        stillFailed.push(ph);
+      }
+    }
+    setSaving(false);
+    if (stillFailed.length === 0) {
+      setRetry(null); setPhotos([]);
+      showToast("Semua foto berhasil diupload");
+    } else {
+      setRetry({ logId: retry.logId, items: stillFailed });
+      setPhotos(stillFailed);
+      showToast(`${stillFailed.length} foto masih gagal — coba lagi saat sinyal membaik`, false);
+    }
+    loadLogs(projectId);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!projectId || !notes) return;
     setSaving(true);
     try {
-      // Upload photos first
+      // Upload foto. Kegagalan foto TIDAK membatalkan laporan: mandor sering di lokasi
+      // bersinyal buruk dan foto (file besar) jauh lebih rentan gagal daripada teks.
+      // All-or-nothing = laporan harian hilang gara-gara foto. Foto = tabel terpisah
+      // (project_photos.progress_log_id nullable) sehingga log sah tanpa foto.
       const uploadedPhotos: { url: string; caption: string }[] = [];
+      const failedPhotos: PhotoEntry[] = [];
       for (const ph of photos) {
-        setPhotos((prev) => prev.map((p) => p.id === ph.id ? { ...p, uploading: true } : p));
+        setPhotos((prev) => prev.map((p) => p.id === ph.id ? { ...p, uploading: true, error: null } : p));
         try {
           const url = await uploadProgressPhoto(projectId, ph.file);
           uploadedPhotos.push({ url, caption: ph.caption });
@@ -112,13 +143,11 @@ export default function MandorProgressPage() {
         } catch (e) {
           const msg = e instanceof Error ? e.message : "Gagal upload";
           setPhotos((prev) => prev.map((p) => p.id === ph.id ? { ...p, uploading: false, error: msg } : p));
-          // JANGAN ditelan (OPEN-4): dulu foto di-drop diam-diam & log tetap tersimpan
-          // tanpa foto. Sekarang batalkan simpan supaya user tahu fotonya tidak masuk.
-          throw new Error(`Foto "${ph.file.name}" gagal diupload: ${msg}. Progress TIDAK disimpan.`);
+          failedPhotos.push(ph);
         }
       }
 
-      await createProgressLog(projectId, {
+      const created = await createProgressLog(projectId, {
         pct_overall: 0,
         weather: weather || undefined,
         worker_count: workersCount ? Number(workersCount) : undefined,
@@ -127,9 +156,20 @@ export default function MandorProgressPage() {
         photos: uploadedPhotos.map((p) => ({ url: p.url, caption: p.caption || undefined })),
       });
 
-      showToast("Progress berhasil dicatat");
+      const logId = created?.data?.id;
       setShowModal(false);
-      setNotes(""); setWorkersCount(""); setPhotos([]); setScopeId("");
+      setNotes(""); setWorkersCount(""); setScopeId("");
+
+      if (failedPhotos.length > 0 && logId) {
+        // Laporan AMAN tersimpan; foto yang gagal bisa dicoba ulang tanpa mengetik ulang.
+        setPhotos(failedPhotos);
+        setRetry({ logId, items: failedPhotos });
+        showToast(`Progress TERSIMPAN, tapi ${failedPhotos.length} foto GAGAL terupload — coba upload ulang.`, false);
+      } else {
+        setPhotos([]);
+        setRetry(null);
+        showToast("Progress berhasil dicatat");
+      }
       loadLogs(projectId);
     } catch (err: any) {
       showToast(err?.response?.data?.error ?? err?.message ?? "Gagal menyimpan progress", false);
@@ -151,6 +191,33 @@ export default function MandorProgressPage() {
           Input Progress
         </button>
       </div>
+
+      {/* Banner: laporan sudah tersimpan, tapi sebagian foto gagal terupload.
+          Mandor bisa coba ulang tanpa mengetik ulang laporan. */}
+      {retry && retry.items.length > 0 && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", padding: "12px 14px", marginBottom: 16, borderRadius: 10, background: "var(--warning-bg)", border: "1px solid #FDE68A" }}>
+          <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>
+            <strong>Progress sudah tersimpan.</strong> {retry.items.length} foto gagal terupload
+            (kemungkinan sinyal lemah). Laporanmu aman — foto bisa dicoba lagi.
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={retryFailedPhotos}
+              disabled={saving}
+              style={{ padding: "8px 14px", borderRadius: 8, background: C.navy, color: "var(--surface)", border: "none", cursor: saving ? "default" : "pointer", fontSize: 13, fontWeight: 600, opacity: saving ? 0.7 : 1 }}
+            >
+              {saving ? "Mengupload…" : "Coba upload ulang"}
+            </button>
+            <button
+              onClick={() => { setRetry(null); setPhotos([]); }}
+              disabled={saving}
+              style={{ padding: "8px 12px", borderRadius: 8, background: "transparent", border: `1px solid ${C.border}`, color: C.mid, cursor: "pointer", fontSize: 13 }}
+            >
+              Lewati
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Project selector for log history */}
       <div style={{ marginBottom: 16 }}>

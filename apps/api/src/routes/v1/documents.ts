@@ -84,7 +84,10 @@ export default async function documentRoutes(app: FastifyInstance) {
     }
   }>(
     '/api/v1/projects/:projectId/documents/upload',
-    { preHandler: [authenticate, requirePermission('documents:manage')] },
+    // bodyLimit wajib > MAX_SIZE_MB: base64 menambah ~33%. Tanpa ini Fastify (default
+    // 1MB) menolak 413 sebelum validasi → dokumen valid gagal diam-diam (bug lama,
+    // sekelas temuan foto OPEN-4; diperbaiki bersamaan).
+    { preHandler: [authenticate, requirePermission('documents:manage')], bodyLimit: 28 * 1024 * 1024 },
     async (request, reply) => {
       const { projectId } = request.params
       const { title, doc_type, is_visible_to_client, file_base64, file_name, file_type } = request.body
