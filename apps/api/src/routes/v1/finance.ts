@@ -4,6 +4,7 @@ import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { validateMime } from '../../utils/mime.js'
 import { createNotifications, getAllAdmins, getProjectAdminsAndPM } from '../../utils/notifications.js'
 import { logAuditEvent } from '../../utils/audit.js'
+import { computeAndPersistPenalty, estimatePenalty } from '../../utils/penalty.js'
 
 const ALLOWED_IMAGE_PDF = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
 
@@ -754,7 +755,7 @@ export default async function financeRoutes(app: FastifyInstance) {
     // Ambil data invoice
     const { data: invoice, error: invErr } = await supabase
       .from('invoices')
-      .select('id, status, total_amount, amount_paid, amount_due, project_id')
+      .select('id, status, total_amount, amount_paid, amount_due, project_id, due_date, penalty_waived')
       .eq('id', id)
       .single()
 
@@ -852,6 +853,23 @@ export default async function financeRoutes(app: FastifyInstance) {
       })
       .eq('id', id)
 
+    // ── Denda otoritatif: saat invoice LUNAS telat, hitung sekali & persist ──────
+    // Fire-and-forget: TIDAK memblokir/ menggagalkan pencatatan pembayaran. Default OFF →
+    // computeAndPersistPenalty balik 'disabled' tanpa efek. Anchor hari telat = paidAt.
+    if (newStatus === 'paid') {
+      void (async () => {
+        try {
+          const { data: proj } = await supabase.from('projects')
+            .select('id, contract_value, penalty_enabled, penalty_basis, penalty_rate_per_day, penalty_cap_pct, penalty_grace_days')
+            .eq('id', invoice.project_id).maybeSingle()
+          await computeAndPersistPenalty({
+            invoice: { id: invoice.id, project_id: invoice.project_id, total_amount: invoice.total_amount, due_date: (invoice as { due_date: string }).due_date, penalty_waived: (invoice as { penalty_waived?: boolean }).penalty_waived },
+            project: proj, paidDate: paidAt, createdBy: request.currentUser!.id,
+          })
+        } catch { /* never block payment */ }
+      })()
+    }
+
     // ── Fire-and-forget: notif ke admin + PM saat pembayaran diterima ────────
     try {
       const recipients = await getProjectAdminsAndPM(invoice.project_id)
@@ -870,6 +888,78 @@ export default async function financeRoutes(app: FastifyInstance) {
     } catch { /* ignore */ }
 
     return reply.status(201).send({ payment, invoiceStatus: newStatus })
+  })
+
+  // ── PATCH /api/v1/finance/invoice/:id/waive-penalty ─────────────────────────
+  // Putihkan (waive) / batalkan pemutihan denda invoice. ALASAN WAJIB. Gated
+  // finance:penalty:waive + audit critical (cegah "akali dgn ubah tanggal" — syarat #3).
+  app.patch<{ Params: { id: string } }>('/api/v1/finance/invoice/:id/waive-penalty', {
+    preHandler: [authenticate, requirePermission('finance:penalty:waive')],
+  }, async (request, reply) => {
+    const { id } = request.params
+    const body = request.body as { waived?: boolean; reason?: string }
+    const waived = body.waived !== false // default true (memutihkan)
+    if (!body.reason || !String(body.reason).trim()) {
+      return reply.status(400).send({ error: 'Alasan wajib diisi (tercatat di audit)' })
+    }
+    const { data: prev } = await supabase.from('invoices')
+      .select('id, penalty_waived, penalty_waived_reason').eq('id', id).maybeSingle()
+    if (!prev) return reply.status(404).send({ error: 'Invoice tidak ditemukan' })
+
+    const { error } = await supabase.from('invoices').update({
+      penalty_waived: waived,
+      penalty_waived_reason: String(body.reason).trim(),
+      penalty_waived_by: request.currentUser!.id,
+      penalty_waived_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }).eq('id', id)
+    if (error) return reply.status(500).send({ error: error.message })
+
+    // Waiver membebaskan denda: void angka otoritatif yang mungkin sudah dipersist
+    // (kasus: invoice lunas telat lalu diputihkan). Peristiwa waive tetap terekam audit.
+    if (waived) {
+      await supabase.from('invoice_penalties').delete().eq('invoice_id', id)
+    }
+
+    void logAuditEvent(request, {
+      tableName: 'invoices', recordId: id, action: waived ? 'penalty.waive' : 'penalty.unwaive',
+      actorId: request.currentUser!.id,
+      oldValues: { penalty_waived: prev.penalty_waived ?? false },
+      newValues: { penalty_waived: waived, reason: String(body.reason).trim() },
+      severity: 'critical',
+    })
+    return reply.send({ ok: true, penalty_waived: waived })
+  })
+
+  // ── GET /api/v1/finance/invoice/:id/penalty ─────────────────────────────────
+  // Denda invoice: angka OTORITATIF (dipersist, jika ada) + ESTIMASI on-read (tampilan,
+  // dilabeli 'estimate' + as_of, BUKAN angka resmi — menutup lubang event-driven #4).
+  app.get<{ Params: { id: string } }>('/api/v1/finance/invoice/:id/penalty', {
+    preHandler: [authenticate, requirePermission('finance:view:all')],
+  }, async (request, reply) => {
+    const { id } = request.params
+    const { data: inv } = await supabase.from('invoices')
+      .select('id, project_id, total_amount, due_date, status, penalty_waived, penalty_waived_reason')
+      .eq('id', id).maybeSingle()
+    if (!inv) return reply.status(404).send({ error: 'Invoice tidak ditemukan' })
+
+    const { data: proj } = inv.project_id
+      ? await supabase.from('projects')
+          .select('id, contract_value, penalty_enabled, penalty_basis, penalty_rate_per_day, penalty_cap_pct, penalty_grace_days')
+          .eq('id', inv.project_id).maybeSingle()
+      : { data: null }
+
+    const { data: authoritative } = await supabase.from('invoice_penalties')
+      .select('*').eq('invoice_id', id).maybeSingle()
+
+    const estimate = await estimatePenalty({ invoice: inv, project: proj })
+    return reply.send({
+      invoice_id: id,
+      waived: inv.penalty_waived === true,
+      waived_reason: inv.penalty_waived_reason ?? null,
+      authoritative: authoritative ?? null,   // angka resmi (immutable) bila invoice sudah lunas telat
+      estimate,                                // estimasi tampilan (as_of), non-otoritatif
+    })
   })
 
   // ── GET /api/v1/finance/cashflow-transactions ────────────────────────────────

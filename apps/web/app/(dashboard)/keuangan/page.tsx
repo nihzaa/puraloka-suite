@@ -311,8 +311,10 @@ function InvoiceRow({ inv, onPayClick, onPdfClick, loadingPdf, canEdit }: { inv:
   const days = daysUntil(inv.due_date);
   const overdue = inv.status !== "paid" && inv.status !== "cancelled" && days < 0;
   const dueSoon = !overdue && inv.status !== "paid" && inv.status !== "cancelled" && days >= 0 && days <= 7;
+  const [dendaOpen, setDendaOpen] = useState(false);
 
   return (
+    <>
     <tr
       style={{ borderBottom: "1px solid #F3F4F6", background: overdue ? "#FEF9F9" : "transparent" }}
       onMouseEnter={e => { if (!overdue) e.currentTarget.style.background = "#FAFBFF"; }}
@@ -390,9 +392,114 @@ function InvoiceRow({ inv, onPayClick, onPdfClick, loadingPdf, canEdit }: { inv:
           >
             <FileText size={11} /> {loadingPdf ? "..." : "PDF"}
           </button>
+          {/* Denda: estimasi/otoritatif + pemutihan. Muncul utk invoice belum lunas telat / lunas. */}
+          {inv.status !== "cancelled" && (
+            <button onClick={() => setDendaOpen(true)} title="Denda keterlambatan"
+              style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 9px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: overdue ? C.red : C.mid, fontSize: 11, cursor: "pointer", whiteSpace: "nowrap" }}>
+              <AlertTriangle size={11} /> Denda
+            </button>
+          )}
         </div>
       </td>
     </tr>
+    {dendaOpen && createPortal(<PenaltyModal invoiceId={inv.id} invoiceNumber={inv.invoice_number} onClose={() => setDendaOpen(false)} />, document.body)}
+    </>
+  );
+}
+
+// ─── Denda invoice: estimasi on-read (dilabeli) + angka otoritatif + pemutihan ──
+interface PenaltyInfo {
+  waived: boolean; waived_reason: string | null;
+  authoritative: { penalty_amount: number; days_late: number; base_amount: number; anchor_date: string; basis: string } | null;
+  estimate: { estimate: true; as_of: string; enabled: boolean; applicable: boolean; reason: string; daysLate: number; baseAmount: number; penaltyAmount: number; basis: string };
+}
+function PenaltyModal({ invoiceId, invoiceNumber, onClose }: { invoiceId: string; invoiceNumber: string; onClose: () => void }) {
+  const [info, setInfo] = useState<PenaltyInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const canWaive = (() => { try { return (JSON.parse(localStorage.getItem("puraloka_permissions") || "[]") as string[]).includes("finance:penalty:waive"); } catch { return false; } })();
+  const fmtIdr = (n: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+  const BASIS: Record<string, string> = { invoice_telat: "nilai invoice telat", outstanding_proyek: "sisa outstanding", kontrak_total: "nilai kontrak" };
+
+  const loadInfo = () => {
+    setLoading(true);
+    api.get<PenaltyInfo>(`/api/v1/finance/invoice/${invoiceId}/penalty`)
+      .then(({ data }) => setInfo(data))
+      .catch((e) => setErr(e?.response?.data?.error ?? "Gagal memuat denda"))
+      .finally(() => setLoading(false));
+  };
+  useEffect(loadInfo, [invoiceId]);
+
+  async function submitWaive(waived: boolean) {
+    if (!reason.trim()) { setErr("Alasan wajib diisi"); return; }
+    setBusy(true); setErr(null);
+    try {
+      await api.patch(`/api/v1/finance/invoice/${invoiceId}/waive-penalty`, { waived, reason: reason.trim() });
+      setReason(""); loadInfo();
+    } catch (e) {
+      setErr((e as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Gagal menyimpan");
+    } finally { setBusy(false); }
+  }
+
+  const auth = info?.authoritative;
+  const est = info?.estimate;
+  return (
+    <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 460, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", maxHeight: "90vh", overflowY: "auto" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid var(--border)" }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>Denda Keterlambatan</h2>
+            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{invoiceNumber}</div>
+          </div>
+          <button onClick={onClose} style={{ padding: 6, border: "none", background: "transparent", cursor: "pointer", color: "var(--text-muted)" }}><X size={18} /></button>
+        </div>
+        <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+          {loading ? <div style={{ textAlign: "center", padding: 20, color: "var(--text-muted)", fontSize: 13 }}>Memuat…</div> : (
+            <>
+              {info?.waived && (
+                <div style={{ padding: "10px 12px", borderRadius: 9, background: "var(--warning-bg)", border: "1px solid #FDE68A", fontSize: 12.5, color: "var(--text-primary)" }}>
+                  <b>Denda diputihkan.</b> {info.waived_reason && <span style={{ color: "var(--text-secondary)" }}>Alasan: {info.waived_reason}</span>}
+                </div>
+              )}
+              {!est?.enabled && !auth && (
+                <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>Denda keterlambatan <b>nonaktif</b> untuk invoice ini. Aktifkan di Konfigurasi Keuangan atau atur per proyek.</div>
+              )}
+              {auth ? (
+                <div style={{ padding: "12px 14px", borderRadius: 10, background: "var(--danger-bg)", border: "1px solid var(--danger-border)" }}>
+                  <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)", marginBottom: 4 }}>Denda resmi (tercatat)</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: "var(--danger)", fontFamily: "var(--font-display)" }}>{fmtIdr(Number(auth.penalty_amount))}</div>
+                  <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>{auth.days_late} hari telat · basis {BASIS[auth.basis] ?? auth.basis} {fmtIdr(Number(auth.base_amount))} · per {auth.anchor_date}</div>
+                </div>
+              ) : est?.enabled && (
+                <div style={{ padding: "12px 14px", borderRadius: 10, background: "var(--surface-subtle)", border: "1px dashed var(--border)" }}>
+                  <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)", marginBottom: 4 }}>Estimasi per {est.as_of} · belum final</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: est.applicable ? "var(--warning)" : "var(--text-muted)", fontFamily: "var(--font-display)" }}>{fmtIdr(Number(est.penaltyAmount))}</div>
+                  <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>
+                    {est.applicable ? `${est.daysLate} hari telat · basis ${BASIS[est.basis] ?? est.basis} ${fmtIdr(Number(est.baseAmount))}` : est.reason === "not_late" ? "Belum jatuh tempo / belum telat" : est.reason === "waived" ? "Diputihkan" : "Tidak berlaku"}
+                  </div>
+                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6 }}>Estimasi tampilan — angka resmi dihitung saat invoice lunas.</div>
+                </div>
+              )}
+              {err && <div style={{ fontSize: 12.5, color: "var(--danger)" }}>{err}</div>}
+              {canWaive && (
+                <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-primary)", marginBottom: 6 }}>{info?.waived ? "Batalkan pemutihan" : "Putihkan denda invoice ini"}</div>
+                  <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Alasan (wajib — tercatat di audit)"
+                    style={{ width: "100%", padding: "9px 11px", borderRadius: 8, border: "1px solid var(--border)", fontSize: 13, boxSizing: "border-box", marginBottom: 8 }} />
+                  <button onClick={() => submitWaive(!info?.waived)} disabled={busy || !reason.trim()}
+                    style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: busy || !reason.trim() ? "#94A3B8" : (info?.waived ? "var(--navy)" : "var(--danger)"), color: "#fff", fontSize: 13, fontWeight: 600, cursor: busy || !reason.trim() ? "not-allowed" : "pointer" }}>
+                    {busy ? "Menyimpan…" : info?.waived ? "Batalkan pemutihan" : "Putihkan denda"}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 

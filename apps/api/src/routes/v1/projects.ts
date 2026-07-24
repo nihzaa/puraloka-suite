@@ -20,6 +20,7 @@ export default async function projectRoutes(app: FastifyInstance) {
       .select(`
         id, name, description, location, contract_model, tax_scheme,
         contract_value, commission_pct, retention_pct, retention_amount,
+        penalty_enabled, penalty_basis, penalty_rate_per_day, penalty_cap_pct, penalty_grace_days,
         start_date, end_date, actual_end_date, status, progress_pct, notes,
         created_at, updated_at,
         clients ( id, contact_person, phone, client_type, user_id ),
@@ -58,6 +59,7 @@ export default async function projectRoutes(app: FastifyInstance) {
         .select(`
           id, name, description, location, contract_model, tax_scheme,
           contract_value, commission_pct, retention_pct, retention_amount,
+          penalty_enabled, penalty_basis, penalty_rate_per_day, penalty_cap_pct, penalty_grace_days,
           start_date, end_date, actual_end_date,
           status, progress_pct, notes, created_at, updated_at,
           pm_id, client_id,
@@ -226,6 +228,12 @@ export default async function projectRoutes(app: FastifyInstance) {
         commission_pct: commission_pct ? Number(commission_pct) : null,
         retention_pct: retPct,
         retention_amount: retAmount,
+        // Override denda per proyek (null = pakai global effective — syarat founder #2).
+        penalty_enabled:      (body as Record<string, unknown>).penalty_enabled ?? null,
+        penalty_basis:        (body as Record<string, unknown>).penalty_basis ?? null,
+        penalty_rate_per_day: (body as Record<string, unknown>).penalty_rate_per_day ?? null,
+        penalty_cap_pct:      (body as Record<string, unknown>).penalty_cap_pct ?? null,
+        penalty_grace_days:   (body as Record<string, unknown>).penalty_grace_days ?? null,
         start_date,
         end_date,
         status: 'draft',
@@ -308,6 +316,8 @@ export default async function projectRoutes(app: FastifyInstance) {
       'commission_pct', 'retention_pct', 'retention_amount',
       'start_date', 'end_date', 'actual_end_date',
       'status', 'progress_pct', 'notes',
+      // Override denda per proyek (syarat kontrak — null = pakai global effective).
+      'penalty_enabled', 'penalty_basis', 'penalty_rate_per_day', 'penalty_cap_pct', 'penalty_grace_days',
     ]
 
     const updates: Record<string, unknown> = {}

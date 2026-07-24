@@ -3,6 +3,7 @@ import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { calculateTax } from '../../lib/tax-calculation.js'
 import { getTaxRate } from '../../utils/financial-config.js'
+import { computeAndPersistPenalty } from '../../utils/penalty.js'
 
 /**
  * Endpoint pembayaran termin:
@@ -238,7 +239,7 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
       // ── 5. Update invoice ───────────────────────────────────────────────────
       const { data: inv } = await supabase
         .from('invoices')
-        .select('total_amount, amount_paid')
+        .select('id, project_id, total_amount, amount_paid, due_date, penalty_waived')
         .eq('id', invoiceId)
         .single()
 
@@ -256,6 +257,21 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
             paid_date: newStatus === 'paid' ? paid_at : null,
           })
           .eq('id', invoiceId)
+
+        // Denda otoritatif saat invoice lunas telat (default OFF → no-op). Fire-and-forget.
+        if (newStatus === 'paid') {
+          void (async () => {
+            try {
+              const { data: proj } = await supabase.from('projects')
+                .select('id, contract_value, penalty_enabled, penalty_basis, penalty_rate_per_day, penalty_cap_pct, penalty_grace_days')
+                .eq('id', inv.project_id).maybeSingle()
+              await computeAndPersistPenalty({
+                invoice: { id: inv.id, project_id: inv.project_id, total_amount: inv.total_amount, due_date: inv.due_date, penalty_waived: inv.penalty_waived },
+                project: proj, paidDate: paid_at, createdBy: currentUser.id,
+              })
+            } catch { /* never block */ }
+          })()
+        }
       }
 
       // ── 6. Update termin status → paid ──────────────────────────────────────

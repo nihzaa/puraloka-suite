@@ -83,8 +83,29 @@ Effective-dating perlu tahu **tanggal mana** yang menentukan tarif berlaku (`atD
 
 | Konsep | Implikasi sistem |
 |---|---|
-| **Denda keterlambatan** ❓ | **Belum ada** field/logika denda. Standar Indonesia: 1‰/hari, cap 5% nilai kontrak. Kebijakan Puraloka = Q5. Bila diaktifkan → field per-kontrak + config default effective-dated. |
+| **Denda keterlambatan** ✅ DIBANGUN (migration 091, default OFF) | Mesin denda config-first, effective-dated. **Puraloka SAAT INI TIDAK menerapkan denda** — mesin dibangun agar bisa DINYALAKAN tanpa deploy. Lihat § Denda di bawah. |
 | **Jaminan pelaksanaan/uang muka** ❓ | Belum ada. Umumnya bank guarantee %. Tidak dibangun kecuali diminta. |
+
+### § Denda Keterlambatan — keputusan mengikat (founder ack 2026-07-24, DANGER GATE Red-Line §5#2)
+
+**Status Puraloka: DEFAULT OFF.** Klien mayoritas perorangan, hubungan personal → denda belum diterapkan. Mesin dibangun penuh supaya bisa dinyalakan dari UI tanpa deploy. Saat OFF: nol perubahan perilaku.
+
+**Rumus:** `denda = min(base × rate_per_day × hari_telat, base × cap_pct)`.
+
+**5 parameter — SEMUA config effective-dated** (financial_config, reuse EXCLUDE anti-overlap):
+- `penalty.enabled` (default false), `penalty.basis` (default `invoice_telat`), `penalty.rate_per_day` (default 0.001 = 1‰/hari), `penalty.cap_pct` (default 0.05 = 5%), `penalty.grace_days` (default 0 = H+1).
+
+**Basis (enum):** `invoice_telat` (default — base = total_amount invoice) · `outstanding_proyek` (Σ amount_due invoice proyek belum lunas) · `kontrak_total` (contract_value).
+
+**Override per proyek (WAJIB):** kolom `projects.penalty_*` nullable — null = pakai global effective. Denda = syarat kontrak, beda per klien → override menang per-field (pola COALESCE seperti retensi).
+
+**Waiver per invoice (WAJIB):** `invoices.penalty_waived` + reason wajib + `penalty_waived_by/at`. Gated `finance:penalty:waive` + audit_logs (severity critical). Tujuan: cegah "akali dengan ubah tanggal".
+
+**Otoritatif vs estimasi:**
+- **Otoritatif** (angka resmi): dihitung SEKALI saat invoice **lunas telat**, dipersist immutable di `invoice_penalties` (UNIQUE per invoice). Event-driven — tidak butuh cron.
+- **Estimasi** (tampilan): compute-on-read saat invoice belum lunas (menutup lubang "belum bayar = tak ada angka untuk menagih"). **Dilabeli `estimate` + `as_of`, TIDAK dipersist, BUKAN dasar pembukuan/invoice** → tidak melanggar C5 (bukan compute-on-read untuk angka resmi).
+
+**❓ ANCHOR (C2):** Terms (rate/cap/grace/basis/enabled) = override proyek ?? global effective **pada `due_date` invoice** (= "sesuai kontrak", bukan global terkini — syarat founder #2). Hari telat = tanggal WIB (Asia/Jakarta) `anchor − due_date − grace`; anchor = `paid_date` (otoritatif) / today WIB (estimasi). Bila founder ingin terms di-anchor ke tanggal kontrak proyek (start_date) alih-alih due_date, ganti satu argumen di `resolveProjectPenaltyTerms` — tanpa refactor.
 
 ## 8. Realita Puraloka [repo]
 

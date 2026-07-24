@@ -5,6 +5,8 @@ import { validateMime } from '../../utils/mime.js'
 import { clearConfigCache } from '../../utils/config.js'
 import { setFinancialConfig, getEffectiveFinancialValue } from '../../utils/financial-config.js'
 import { todayWIB } from '../../lib/financial-config.js'
+import { getGlobalPenaltyTerms } from '../../utils/penalty.js'
+import { PENALTY_BASES } from '../../lib/penalty.js'
 import { logAuditEvent } from '../../utils/audit.js'
 
 const ALLOWED_IMAGES = ['image/jpeg', 'image/png', 'image/webp']
@@ -247,6 +249,16 @@ export default async function settingsRoutes(app: FastifyInstance) {
     return reply.send({ config: data ?? [] })
   })
 
+  // ── GET /api/v1/settings/penalty ──────────────────────────────────────────────
+  // Terms denda GLOBAL yang BERLAKU hari ini (resolved) — untuk ringkasan & prefill
+  // override proyek. Detail riwayat effective-dated tetap via GET /settings/finance.
+  app.get('/api/v1/settings/penalty', {
+    preHandler: [authenticate],
+  }, async (_request, reply) => {
+    const terms = await getGlobalPenaltyTerms(todayWIB())
+    return reply.send({ bases: PENALTY_BASES, effective: terms })
+  })
+
   // ── PUT /api/v1/settings/finance ──────────────────────────────────────────────
   // Set nilai config finansial baru berlaku sejak tanggal (effective-dated, governance
   // ketat: settings:finance:manage — Q7). Close-then-insert anti-gap (C4). Audit critical.
@@ -268,6 +280,16 @@ export default async function settingsRoutes(app: FastifyInstance) {
     const isRateKey = body.key.includes('rate') || body.key.includes('pct')
     if (isRateKey && (typeof body.value !== 'number' || body.value < 0 || body.value > 1)) {
       return reply.status(400).send({ error: `Nilai ${body.key} harus angka fraksi 0..1 (mis. 0.11 untuk 11%)` })
+    }
+    // Guard khusus key denda (config-first, effective-dated seperti tarif pajak).
+    if (body.key === 'penalty.basis' && !PENALTY_BASES.includes(body.value as never)) {
+      return reply.status(400).send({ error: `penalty.basis harus salah satu: ${PENALTY_BASES.join(', ')}` })
+    }
+    if (body.key === 'penalty.grace_days' && (typeof body.value !== 'number' || !Number.isInteger(body.value) || body.value < 0 || body.value > 3650)) {
+      return reply.status(400).send({ error: 'penalty.grace_days harus bilangan bulat 0..3650 hari' })
+    }
+    if (body.key === 'penalty.enabled' && typeof body.value !== 'boolean') {
+      return reply.status(400).send({ error: 'penalty.enabled harus boolean (true/false)' })
     }
 
     // Snapshot nilai berlaku SEBELUM ubah (untuk audit from→to).
