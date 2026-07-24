@@ -1,9 +1,10 @@
 import { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
-import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { authenticate } from '../../plugins/auth.js'
 import { createNotifications, getProjectAdminsAndPM } from '../../utils/notifications.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { enforceKasbonLimit } from '../../utils/kasbon-limit.js'
+import { evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain } from '../../utils/approval.js'
 
 export default async function kasbonRoutes(app: FastifyInstance) {
 
@@ -221,8 +222,15 @@ export default async function kasbonRoutes(app: FastifyInstance) {
   })
 
   // PATCH /api/v1/kasbons/:id/status — approve/reject kasbon mandor
+  //
+  // GERBANG APPROVAL = KONFIGURASI (ADR-007, Phase 2/2A). `requirePermission` statis
+  // diganti evaluasi rantai `approval_chains` supaya jumlah level & siapa yang boleh
+  // menyetujui bisa diubah dari UI tanpa deploy.
+  // BEHAVIOR-PRESERVING: seed = TEPAT 1 langkah dgn permission 'mandor:kasbon:approve'
+  // → keputusan identik gerbang lama (tanpa permission = 403). Berjenjang baru aktif
+  // bila founder menambah level di UI.
   app.patch('/api/v1/kasbons/:id/status', {
-    preHandler: [authenticate, requirePermission('mandor:kasbon:approve')]
+    preHandler: [authenticate]
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const user = request.currentUser!
@@ -230,6 +238,34 @@ export default async function kasbonRoutes(app: FastifyInstance) {
 
     if (!['approved', 'rejected'].includes(status)) {
       return reply.status(400).send({ error: 'Status harus approved atau rejected' })
+    }
+
+    // Gerbang KASAR dulu (sebelum entitas di-fetch) supaya urutan lama terjaga:
+    // tak berwenang = 403 tanpa membocorkan apakah id-nya ada (403-sebelum-404).
+    const coarse = await canParticipateInChain(request, 'kasbon')
+    if (coarse.configError) {
+      app.log.error({ configError: coarse.configError }, 'baca rantai approval gagal')
+      return reply.status(500).send({ error: 'Gagal memeriksa konfigurasi approval' })
+    }
+    if (!coarse.ok) return reply.status(403).send({ error: 'Akses ditolak' })
+
+    // Nilai kasbon → dasar syarat nominal rantai (mis. "di atas Rp X butuh level 2").
+    const { data: kasbonAmt } = await supabase.from('kasbons').select('amount').eq('id', id).maybeSingle()
+    if (!kasbonAmt) return reply.status(404).send({ error: 'Kasbon tidak ditemukan' })
+
+    const decision = await evaluateEntityApproval(request, {
+      entityType: 'kasbon', entityId: id, amount: Number(kasbonAmt.amount) || 0,
+    })
+    // Kegagalan baca konfigurasi TIDAK boleh menyamar jadi "tidak berhak" (Phase 1 §4E).
+    if (decision.configError) {
+      app.log.error({ configError: decision.configError, id }, 'evaluasi rantai approval gagal')
+      return reply.status(500).send({ error: 'Gagal memeriksa konfigurasi approval' })
+    }
+    if (!decision.allowed) {
+      if (decision.reason === 'already_approved') {
+        return reply.status(409).send({ error: 'Kasbon sudah disetujui penuh' })
+      }
+      return reply.status(403).send({ error: 'Akses ditolak' })
     }
 
     // Project isolation untuk PM: hanya boleh approve kasbon di proyek sendiri
@@ -295,6 +331,34 @@ export default async function kasbonRoutes(app: FastifyInstance) {
       if (!limitCheck.allowed) {
         return reply.status(400).send({ error: limitCheck.reason })
       }
+    }
+
+    // Catat persetujuan level ini. Bila BUKAN langkah terakhir, kasbon TETAP 'pending'
+    // menunggu level berikutnya — status sumber baru berubah di langkah final.
+    if (status === 'approved' && decision.step) {
+      const rec = await recordApproval({
+        entityType: 'kasbon', entityId: id, level: decision.step.level, approvedBy: user.id,
+      })
+      if (!rec.ok) return reply.status(500).send({ error: 'Gagal mencatat persetujuan: ' + rec.error })
+
+      if (!decision.isFinalStep) {
+        const next = decision.applicable.find(s => s.level > decision.step!.level)
+        void logAuditEvent(request, {
+          tableName: 'kasbons', recordId: id, action: 'kasbon.approval.level',
+          actorId: user.id, newValues: { level: decision.step.level, of: decision.applicable.length },
+          severity: 'critical',
+        })
+        return reply.send({
+          data: null,
+          pending_next_level: true,
+          message: `Persetujuan level ${decision.step.level} tercatat. Menunggu persetujuan level ${next?.level ?? '-'}.`,
+        })
+      }
+    }
+
+    // Ditolak → jejak persetujuan dibersihkan supaya rantai mulai dari awal bila diajukan lagi.
+    if (status === 'rejected') {
+      await clearApprovalProgress('kasbon', id)
     }
 
     const updateData: Record<string, unknown> = {
