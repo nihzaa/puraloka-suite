@@ -251,6 +251,17 @@
 
 ---
 
+### 2026-07-25 — Feature — CECEP RBS / Resource Identity Registry (Migration 103, Program C)
+**Status**: Done
+**Files affected**:
+- `db/migrations/103_cecep_resource_registry.sql` + kembar `supabase/migrations/` (applied ke dev via DIRECT_URL)
+- `apps/api/src/routes/v1/__tests__/resource-registry.test.ts` (15 test)
+- ADR-009 (penerapan kedua ditambahkan)
+**Notes**: Aggregate Root KEDUA Milestone 1 — RBS "shared kernel kedua, dipakai 10 domain hilir". Bentuk beda dari Cost Code (diturunkan, bukan disamakan): lifecycle 2 status active↔inactive (TAK ada draft, resource aktif sejak dibuat); `category` WAJIB dari himpunan Labor/Equipment/Material/Subcontract (`35` #5). Reaktivasi inactive→active SAH — prinsip founder dari Cost Code ditransfer (wording lifecycle identik). Hard guard larangan hapus + mutation-proof (2 mutasi → 5 test merah, dipulihkan → 15/15). Exclude (ADR-009): `unit` (Price Book Entry pun tak memuatnya — resolusi di Assembly/AHSP Milestone 2), `company_id` (Phase 7). Verifikasi pasca-apply lewat koneksi baru.
+
+---
+
+
 <!-- Template untuk entry baru:
 
 ### YYYY-MM-DD HH:MM — [Kategori] — [Deskripsi]

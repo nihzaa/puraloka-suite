@@ -96,6 +96,36 @@ belum pernah ada.
 Ketiganya additive di kemudian hari — menambah kolom nullable jauh lebih murah daripada
 membongkar hierarki yang salah bentuk setelah 17 domain terlanjur merujuknya.
 
+## Penerapan kedua: RBS / Resource Identity Registry (migration 103)
+
+Aggregate Root kedua (`44` §2, `03b` §A.5) — "shared kernel kedua terpenting setelah
+Cost Code, dipakai 10 domain hilir". Pola sama, **bentuk berbeda karena sumbernya
+berbeda** (bukan Cost Code yang di-copy):
+
+| Keputusan | Jejak | Trace Status |
+|---|---|---|
+| Tabel `resources`, satu Registry company-level | `03b` §A.5 "Aggregate Root: Ya — RBS Registry (Company-level)" | ✓ Fully Derived |
+| `code` unik & stabil sebagai identitas lintas domain | `03b` §A.5 "identitas tetap, atribut deskriptif bisa berubah"; `44` §2 | ✓ Fully Derived |
+| `category` WAJIB: labor/equipment/material/subcontract | `35` #5 "RBS (Labor/Equipment/Material/Subcontract, `01` §4)"; `04a` "kategori sebagai atribut" | ✓ Fully Derived |
+| Lifecycle `active` / `inactive` (2 status, **tak ada draft**) | `03b` §A.5 "Active → Inactive"; hanya event `ResourceDeactivated` | ✓ Fully Derived |
+| Larangan hapus (trigger) | `03b` §A.5 "riwayat tetap merujuknya" | ✓ Fully Derived |
+| `deactivated_at` | Domain Event `ResourceDeactivated` (`03b` §A.5) | ✓ Fully Derived |
+| Baca/tulis dipisah jadi 2 capability | `03b` §A.5 "domain hilir merujuk, tidak membuat definisi sendiri-sendiri" | ✓ Fully Derived |
+| **`inactive` → `active` (reaktivasi) SAH** | prinsip founder dari §Reaktivasi ditransfer — wording lifecycle identik ("riwayat tetap merujuknya") | ✓ Resolved by ADR |
+
+**Kenapa reaktivasi ditransfer, bukan ditanya ulang:** keputusan founder di
+§Reaktivasi menetapkan *prinsip* — "dinonaktifkan = status operasional, bukan
+penghapusan permanen; identitas baru memecah traceability" — bukan pengecualian
+khusus Cost Code. RBS punya wording lifecycle identik dan alasan yang sama (No Data
+Duplication). Menanyakannya lagi = berhenti untuk hal yang sudah diputus.
+
+### Yang sengaja TIDAK ditulis di RBS (Open)
+
+| Tidak ditulis | Alasan |
+|---|---|
+| **`unit`** | SAMA seperti Cost Code — nol artefak Frozen menaruh satuan di RBS, dan kontrak **Price Book Entry** (`45` §C) pun tidak memuat unit di 11 elemennya. Kepemilikan satuan resource baru dipaksa jelas di Assembly/AHSP (Milestone 2), tempat koefisien "0,7 OH Tukang Besi" menuntut satuan. `units` (migration 090) menunggu. |
+| **`company_id`** | Phase 7 (Program D). |
+
 ## Aturan
 
 - **JANGAN** menambah kolom ke tabel CECEP tanpa baris jejak di ADR ini atau ADR
