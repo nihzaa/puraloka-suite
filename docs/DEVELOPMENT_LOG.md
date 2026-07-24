@@ -310,6 +310,19 @@
 ---
 
 
+### 2026-07-25 — Feature — CECEP CBS / Cost Breakdown Structure (Migration 108) — MENUTUP Milestone 2
+**Status**: Done
+**Files affected**:
+- `db/migrations/108_cecep_cbs.sql` + kembar (applied ke dev) — cbs_templates + cbs_nodes
+- `apps/api/src/routes/v1/__tests__/cbs.test.ts` (14 test)
+- ADR-009 (penerapan ketujuh + status Milestone 2 TUNTAS)
+**Notes**: Domain ke-6 (TERAKHIR) Milestone 2. DUA keputusan founder membuka blokir: (1) versioning = immutable-per-versi (pola Price Book) — B.5 03b yang tadinya "belum diambil"; (2) Standard CBS = label source (standard/company/project, pola Assembly) — B.4 Reference Library ditunda. Company CBS Template (parent) + cbs_nodes (HIERARKI — parent_id yang sengaja di-exclude dari Cost Code kini tinggal di sini, memvalidasi keputusan itu). cbs_nodes.cost_code_id nullable (node pengelompok boleh tanpa). 5 hard guard: parent immutable begitu active, transisi maju saja, no-delete non-draft, node beku saat template non-draft, integritas hierarki (parent se-template + tak self). Mutation-proof: 5 guard → merah, dipulihkan → 14/14. Exclude: Project CBS snapshot (M3), company_id.
+
+**✅ MILESTONE 2 TUNTAS 6/6**: Cost Code+RBS (M1) · Price Book (104) · Productivity (105) · Formula (106) · Assembly (107) · CBS (108). Semua Aggregate Root knowledge-layer CECEP berdiri. Berikutnya Milestone 3 (Estimate Item merujuk Cost Code/Assembly/CBS/WBS — semua prasyarat kini ada).
+
+---
+
+
 <!-- Template untuk entry baru:
 
 ### YYYY-MM-DD HH:MM — [Kategori] — [Deskripsi]

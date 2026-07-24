@@ -252,7 +252,43 @@ yang jadi prasyaratnya. **CBS adalah satu-satunya yang tersisa, dan diblokir** (
 bawah). Assembly — konsumen utama knowledge layer ("semua Estimate Item merujuk
 Assembly") — sudah berdiri, jadi Milestone 2 fungsional untuk jalur Assembly→Estimate.
 
-## CBS diblokir — dua keputusan domain belum diambil (dilaporkan, tidak ditebak)
+## Penerapan ketujuh: CBS (migration 108) — MENUTUP Milestone 2
+
+Aggregate Root: Company CBS Template (`44` §3, `03b` §A.2) + `cbs_nodes` (hierarki).
+Domain ke-6 Milestone 2. **Dua keputusan yang tadinya memblokir kini diputus
+founder** (lihat §"CBS diblokir" di bawah — kini teratasi):
+
+- **B.5 versioning → IMMUTABLE PER VERSI** (pola Price Book). Tiap revisi = versi
+  baru; versi lama tetap 'superseded'. Konsisten 4 domain M2 lain.
+- **B.4 Standard CBS → LABEL `source`** (pola Assembly). source ∈
+  standard/company/project, tanpa tabel Reference Library terpisah.
+
+| Keputusan | Jejak | Trace Status |
+|---|---|---|
+| `cbs_templates` AR + `cbs_nodes` hierarki | `03b` §A.2 / `44` §3 | ✓ Fully Derived |
+| versioning immutable-per-versi | **keputusan founder** (B.5 dibuka) | ✓ Resolved by founder |
+| `source` label standard/company/project | **keputusan founder** (B.4 dibuka) | ✓ Resolved by founder |
+| `cbs_nodes.parent_id` (hierarki) | `03b` §A.2 "posisi hierarki"; INILAH tempat hierarki yang di-exclude dari Cost Code | ✓ Fully Derived |
+| `cbs_nodes.cost_code_id` nullable FK | `03b` §A.2 "CBS Node → Cost Code"; node pengelompok boleh tanpa | ✓ Fully Derived |
+| Immutable begitu active + node beku saat template non-draft | `44` §3 anti-retroaktif; "berubah bersama" | ✓ Fully Derived |
+| Integritas hierarki: parent se-template, tak self | necessity struktural (hierarki milik satu Template) | ✓ Fully Derived |
+| No-delete non-draft; lifecycle draft→active→superseded | `03b` §A.2 lifecycle | ✓ Fully Derived |
+
+**Validasi keputusan Cost Code:** `parent_id` yang sengaja di-exclude dari Cost Code
+(migration 102) memang tinggal di sini — "Cost Code titik temu, bukan pemilik pohon"
+terbukti benar.
+
+Exclude (ADR-009): **Project CBS snapshot** (`03b` §A.2 "beku saat snapshot" —
+mekanisme level-Project, Milestone 3), `company_id` (Phase 7).
+
+## ✅ MILESTONE 2 TUNTAS (6/6 domain)
+
+Cost Code + RBS (M1, prasyarat) · Price Book (104) · Productivity (105) ·
+Formula (106) · Assembly (107) · **CBS (108)**. Semua Aggregate Root knowledge-layer
+CECEP berdiri. Jalur berikutnya: Milestone 3 (Estimate Item merujuk Cost Code,
+Assembly, CBS Node, WBS) — kini semua prasyaratnya ada.
+
+## Riwayat: CBS diblokir — dua keputusan domain (kini teratasi oleh founder)
 
 CBS (`44` §3) diberi ✓ Fully Derived untuk *keberadaannya*, tapi **dua keputusan
 struktural yang menentukan bentuk tabelnya belum ada di artefak Frozen mana pun**:
