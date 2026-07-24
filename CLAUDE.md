@@ -1,6 +1,8 @@
 # Puraloka Suite — Context for Claude Code
 
 > **WAJIB baca AUTOPILOT.md di awal setiap sesi sebelum tindakan apa pun.**
+>
+> **Status Phase 1 (rollup + verdict):** `docs/superpowers/specs/2026-07-18-enterprise-architecture/PHASE-1-STATUS.md` (peta 1A/1B/1C/1D + config-first) & `…/PHASE-1-COMPLETION-AUDIT.md` (verdict + hasil jujur RLS table-dormant / storage-fixed / otorisasi). Phase 1 = Program A; Phase 2 = Program B (Workflow Engine, belum dibuka).
 
 ## AUTONOMOUS EXECUTION MODE
 

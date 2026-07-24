@@ -15,7 +15,7 @@ Legenda: ✅ selesai & merged · ♻️ dibangun lalu diretire · 📌 backlog �
 ## Catatan penting
 
 - **1C bukan fitur selesai.** Workflow engine dibangun (kasbon + change_order dual-write) lalu **diretire** via fase CONTRACT (rekonsiliasi nol divergensi terbukti; permission derive-capability ADR-004 cukup untuk approval satu-langkah). Tabel workflow di-drop (migration 095). Revival butuh ADR baru + bukti kebutuhan approval multi-langkah. Lihat ADR-006.
-- **RLS: defense-in-depth, TIDAK di live path.** Diverifikasi memfilter baris per role di level DB, TAPI API pakai service_role (bypass RLS) dan web hanya auth+storage. Detail jujur: [PHASE-1-COMPLETION-AUDIT.md](PHASE-1-COMPLETION-AUDIT.md) § RLS.
+- **RLS — dipisah tegas (koreksi):** (a) **TABLE RLS = defense-in-depth DORMANT** (API service_role bypass; web tak query tabel) — terbukti memfilter per role di DB, tapi nol di live path. (b) **STORAGE RLS = LIVE PATH** (browser akses langsung anon key) — **sempat BOCOR** (anon baca semua file bucket privat) → **DITUTUP (PR #39, migration 097)**. Detail: [PHASE-1-COMPLETION-AUDIT.md](PHASE-1-COMPLETION-AUDIT.md) §4. Otorisasi handler = satu-satunya penegak live untuk data-via-API; jaring test wiring tipis (§4C).
 - **Backlog produk (bukan hutang Phase 1):** OPEN-1 (`kasbons.status='settled'` — mekanisme settlement belum dibangun). Lihat AUDIT_REPORT.
 
 ## Verdict
