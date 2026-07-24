@@ -88,6 +88,8 @@ Verifikasi endpoint retry-attach (`progress_log_id`) dari #41:
 
 **Pelajaran (dicatat):** test negatif saja **tidak cukup** untuk gate otorisasi — bug gagal-tertutup lolos. Wajib ada **test positif** ("yang berhak BISA") + **mutation test dua arah**. Kini: mutasi matikan-cek → merah; mutasi kembalikan-bug-enum → merah.
 
+**Caveat kejujuran (tercatat):** test otorisasi & ownership bergantung koneksi DB dev nyata. Satu kali run penuh sempat menunjukkan **22 test SKIPPED** (blip koneksi pooler) — dua run berikutnya 267/267 hijau. Test yang di-skip BUKAN test lulus: CI bisa hijau tanpa jaring otorisasi benar-benar berjalan. **Rekomendasi hardening (pra-produksi):** buat harness gagal-keras (bukan skip) saat DB tak terjangkau, atau tambah retry koneksi.
+
 ## 5. Koreksi tercatat jujur (over-reach tidak disembunyikan)
 
 - **F5/F7 over-grant** tertangkap sebelum commit → derive `finance:view:all` (scope terjaga).
