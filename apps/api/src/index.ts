@@ -37,6 +37,7 @@ import searchRoutes from './routes/v1/search.js'
 import unitsRoutes from './routes/v1/units.js'
 import workCategoriesRoutes from './routes/v1/work-categories.js'
 import kasbonPurposesRoutes from './routes/v1/kasbon-purposes.js'
+import approvalChainRoutes from './routes/v1/approval-chains.js'
 import { supabase } from './utils/supabase.js'
 import { registerObservability } from './utils/observability.js'
 
@@ -210,6 +211,7 @@ await app.register(searchRoutes)
 await app.register(unitsRoutes)
 await app.register(workCategoriesRoutes)
 await app.register(kasbonPurposesRoutes)
+await app.register(approvalChainRoutes)
 
 const PORT = Number(process.env.PORT) || 3001
 
