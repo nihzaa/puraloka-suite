@@ -297,6 +297,19 @@
 ---
 
 
+### 2026-07-25 — Feature — CECEP Assembly / AHSP (Migration 107, Program C) — capstone Milestone 2
+**Status**: Done
+**Files affected**:
+- `db/migrations/107_cecep_assembly.sql` + kembar (applied ke dev) — 2 tabel: assemblies + assembly_components
+- `apps/api/src/routes/v1/__tests__/assembly.test.ts` (16 test)
+- ADR-009 (penerapan keenam + status Milestone 2)
+**Notes**: Domain TERAKHIR Milestone 2 (kecuali CBS yang diblokir). Aggregate Root Assembly (parent) + assembly_components (resource requirement lines, koefisien AHSP "0,7 OH Tukang Besi"). Merujuk DUA Shared Kernel (Cost Code + RBS). 4 sumber (national/company/project/custom) dalam satu tabel. sequence = JSONB (Value Object). Formula TIDAK disimpan sbg FK (formula_reference milik Strategy Contract = M3). 4 hard guard: parent immutable begitu ≠ draft, transisi maju saja, no-delete non-draft, komponen beku saat parent non-draft ("berubah BERSAMA sebagai satu paket"). Mutation-proof: 4 guard → merah, dipulihkan → 16/16. Exclude: unit, formula_id, company_id.
+
+**MILESTONE 2 STATUS**: 5 dari 6 domain SELESAI (Price Book 104, Productivity 105, Formula 106, Assembly 107 + Cost Code/RBS dari M1). CBS satu-satunya tersisa & DIBLOKIR (keputusan versioning B.5 + rumah Standard CBS B.4 belum diambil di artefak Frozen — perlu keputusan founder). Assembly (konsumen utama knowledge layer) sudah berdiri.
+
+---
+
+
 <!-- Template untuk entry baru:
 
 ### YYYY-MM-DD HH:MM — [Kategori] — [Deskripsi]

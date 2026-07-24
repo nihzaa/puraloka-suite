@@ -217,6 +217,41 @@ Formula Definition lebih dulu — tapi tabel Strategy-nya baru relevan di Milest
 
 Exclude (ADR-009): `company_id` (Phase 7). `unit` tak relevan (formula murni logika).
 
+## Penerapan keenam: Assembly / AHSP (migration 107) — capstone Milestone 2
+
+Aggregate Root: Assembly (`44` §4, `03b` §A.4) — "memiliki penuh sequence, resource
+requirement, waste factor-nya sendiri". Parent `assemblies` + child
+`assembly_components` (resource requirement lines). Merujuk **dua** Shared Kernel
+(Cost Code + RBS). Domain terakhir Milestone 2 (mengonsumsi domain lain).
+
+| Keputusan | Jejak | Trace Status |
+|---|---|---|
+| `assemblies` Aggregate Root + `assembly_components` child | `03b` §A.4 (Assembly owns sequence/requirement/waste; Resource dirujuk) | ✓ Fully Derived |
+| `cost_code_id` FK (Assembly = cara mengerjakan Cost Code) | `03b` §A.4 Context Mapping "Assembly → Cost Code" | ✓ Fully Derived |
+| `source` ∈ national/company/project/custom | `42`/`01` §1 "empat sumber DALAM satu sistem" | ✓ Fully Derived |
+| `waste_factor` bagian paket | `44` §4 Business Responsibility | ✓ Fully Derived |
+| `sequence` JSONB (Value Object, tanpa identitas) | `03b` §A.4 "Sequence step adalah Value Object" | ✓ Fully Derived |
+| `assembly_components.coefficient` > 0, FK RBS | `03b` §A.4 "resource requirement"; koefisien AHSP | ✓ Fully Derived |
+| Lifecycle draft→active→superseded; revisi = versi baru | `44` §4 "Revised v1.1, v1.2 → Superseded" | ✓ Fully Derived |
+| Immutable parent begitu ≠ draft + komponen beku saat parent non-draft | `44` §4 "berubah BERSAMA sebagai satu paket" + anti-retroaktif | ✓ Fully Derived |
+| No-delete non-draft | Estimate Item merujuk Assembly aktif | ✓ Fully Derived |
+
+### Yang sengaja TIDAK ditulis di Assembly (Open)
+
+| Tidak ditulis | Alasan |
+|---|---|
+| **`unit`** | koefisien komponen ("0,7 OH") butuh satuan resource+cost_code yang masih ditunda. |
+| **`formula_id`** | `42` §1 menaruh `formula_reference` di **Strategy Contract** (bagian Estimate Item, Milestone 3), bukan di Assembly. Formula Engine "dipanggil" saat kalkulasi (Domain Service), tak dimiliki Assembly. Menariknya ke sini = mendahului M3. |
+| **`company_id`** | Phase 7. |
+
+## Status Milestone 2
+
+Lima dari enam domain Milestone 2 SELESAI: Price Book (104), Productivity (105),
+Formula (106), Assembly (107) — plus dua Shared Kernel Milestone 1 (Cost Code, RBS)
+yang jadi prasyaratnya. **CBS adalah satu-satunya yang tersisa, dan diblokir** (di
+bawah). Assembly — konsumen utama knowledge layer ("semua Estimate Item merujuk
+Assembly") — sudah berdiri, jadi Milestone 2 fungsional untuk jalur Assembly→Estimate.
+
 ## CBS diblokir — dua keputusan domain belum diambil (dilaporkan, tidak ditebak)
 
 CBS (`44` §3) diberi ✓ Fully Derived untuk *keberadaannya*, tapi **dua keputusan
