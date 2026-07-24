@@ -15,12 +15,14 @@ Legenda: ✅ selesai & merged · ♻️ dibangun lalu diretire · 📌 backlog �
 ## Catatan penting
 
 - **1C bukan fitur selesai.** Workflow engine dibangun (kasbon + change_order dual-write) lalu **diretire** via fase CONTRACT (rekonsiliasi nol divergensi terbukti; permission derive-capability ADR-004 cukup untuk approval satu-langkah). Tabel workflow di-drop (migration 095). Revival butuh ADR baru + bukti kebutuhan approval multi-langkah. Lihat ADR-006.
-- **RLS — dipisah tegas (koreksi):** (a) **TABLE RLS = defense-in-depth DORMANT** (API service_role bypass; web tak query tabel) — terbukti memfilter per role di DB, tapi nol di live path. (b) **STORAGE RLS = LIVE PATH** (browser akses langsung anon key) — **sempat BOCOR** (anon baca semua file bucket privat) → **DITUTUP (PR #39, migration 097)**. Detail: [PHASE-1-COMPLETION-AUDIT.md](PHASE-1-COMPLETION-AUDIT.md) §4. Otorisasi handler = satu-satunya penegak live untuk data-via-API; jaring test wiring tipis (§4C).
+- **RLS — dipisah tegas (koreksi):** (a) **TABLE RLS = defense-in-depth DORMANT** (API service_role bypass; web tak query tabel) — terbukti memfilter per role di DB, tapi nol di live path. (b) **STORAGE RLS = LIVE PATH** (browser akses langsung anon key) — **sempat BOCOR** (anon baca semua file bucket privat) → **DITUTUP (PR #39, migration 097)**. Detail: [PHASE-1-COMPLETION-AUDIT.md](PHASE-1-COMPLETION-AUDIT.md) §4.
+- **Otorisasi handler = satu-satunya penegak live** untuk data-via-API → kini **ber-jaring 22 test integrasi 403** (11 endpoint sensitif, mutation-tested) — PR #40, §4C.
+- **Fitur foto sempat TIDAK PERNAH berfungsi** (bucket tak ada; 36 baris `project_photos` ternyata seed Unsplash) → **diperbaiki PR #40** (bucket privat + policy ketat + upload lewat API + kegagalan tak senyap). CLAUDE.md dikoreksi.
 - **Backlog produk (bukan hutang Phase 1):** OPEN-1 (`kasbons.status='settled'` — mekanisme settlement belum dibangun). Lihat AUDIT_REPORT.
 
 ## Verdict
 
-Lihat **[PHASE-1-COMPLETION-AUDIT.md](PHASE-1-COMPLETION-AUDIT.md)** untuk verdict objektif (Phase 1 layak dinyatakan tuntas + prasyarat masuk Phase 2).
+✅ **PHASE 1 (Program A) DINYATAKAN TUNTAS** — 3 blocker ditutup & diverifikasi: storage leak (#39), fitur foto tak pernah jalan (#40), jaring otorisasi 403 nol (#40). Bukti objektif + prasyarat Phase 2: **[PHASE-1-COMPLETION-AUDIT.md](PHASE-1-COMPLETION-AUDIT.md)**.
 
 ---
 *Dibuat 2026-07-24 (penutupan Phase 1). Rollup — detail tetap di audit per sub-fase yang ditaut.*

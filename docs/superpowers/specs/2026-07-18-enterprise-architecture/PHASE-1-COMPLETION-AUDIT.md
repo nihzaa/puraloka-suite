@@ -18,7 +18,7 @@ Scope: seluruh Phase 1 (= Program A) — Sub-Fase 1A, 1B, 1C, 1D + program Confi
 
 ## 2. Bukti DB dev (query 2026-07-24)
 
-- **Migration 075–096 tracked 22/22** di `supabase_migrations.schema_migrations` (090-096 sempat applied-tanpa-tracking dari raw-SQL E2E → **direkonsiliasi**; migrasi idempoten).
+- **Migration 075–098 tracked 24/24** (nihil yang lolos) di `supabase_migrations.schema_migrations` (090-098 sempat applied-tanpa-tracking dari raw-SQL E2E → **direkonsiliasi**; migrasi idempoten).
 - **Master data config** (dari UI): `units`=18, `work_categories`=12, `kasbon_purposes`=5.
 - **`financial_config`** = 8 key effective-dated aktif (tax ppn/pph, retention, penalty enabled/basis/rate/cap/grace) + anti-overlap EXCLUDE constraint.
 - **Tabel `workflow_*` = 0** (di-drop migration 095, engine diretire).
@@ -26,7 +26,7 @@ Scope: seluruh Phase 1 (= Program A) — Sub-Fase 1A, 1B, 1C, 1D + program Confi
 
 ## 3. Bukti kualitas (CI-gated, apps/api)
 
-- **lint 0 error · tsc 0 · 233 test · build 0** (main pasca #38).
+- **lint 0 error · tsc 0 · 255 test · build 0** (main pasca #40).
 - Live E2E terhadap DB dev NYATA (bukan mock) per slice finansial + master-data.
 
 ## 4. RLS — HASIL JUJUR (dipisah tegas: TABLE vs STORAGE)
@@ -62,14 +62,15 @@ Browser akses `storage.objects` LANGSUNG dgn anon key → policy storage = **sat
 - **Fix (migration 097, PR #39):** bucket privat = akses hanya `service_role` + signed URL; `payment-proofs` dijadikan privat. **Live re-test: anon `project-documents` 0/1 (dulu 1/1)** → ditutup.
 - **Status STORAGE RLS setelah fix: AMAN** untuk anon + akses langsung tak sah. Gate mobile sama seperti table (scoped-by-proyek bila mobile upload/baca langsung).
 
-## 4C. Jaring pengaman OTORISASI (handler = satu-satunya penegak live, ukur ketebalannya)
+## 4C. Jaring pengaman OTORISASI — gap DITUTUP (PR #40)
 
-Karena TABLE RLS dormant, **seluruh otorisasi data-via-API bertumpu pada handler Fastify TANPA cadangan DB**. Ketebalan test-nya (233 test):
+Karena TABLE RLS dormant, **seluruh otorisasi data-via-API bertumpu pada handler Fastify TANPA cadangan DB**. Kondisi awal: **nol** test HTTP yang assert 403 → bila satu preHandler terhapus saat refactor, tak ada yang merah (persis CRITICAL-1 historis). **Ditutup sekarang, bukan ditunda ke pra-produksi** (justru paling murah dilakukan sebelum Phase 2 me-refactor).
 
-- **~34 test `rls-*` + 9 anti-lockout** memverifikasi **LOGIKA otorisasi** — `has_permission()` per role (fungsi PERSIS yang dipanggil `requirePermission`/`hasPermission` saat runtime) + ownership recursion. Ini membuktikan *grant permission benar per role*.
-- **NOL test meng-inject request HTTP** lewat stack handler Fastify (`app.inject`) untuk assert endpoint balas **403** ke role yang tak berhak. Wiring "endpoint Y benar-benar dipasang `requirePermission(Z)`" **tidak diuji di lapisan HTTP** — hanya dijaga code review + korektnya `has_permission`.
-- **Risiko terbesar Phase 1:** bila satu `requirePermission` preHandler terhapus/salah dari route, **tak ada test yang merah** (persis CRITICAL-1 historis: "satu endpoint lupa gate → seluruh tabel terbuka"). Endpoint sensitif tanpa negative-test HTTP: register, CO approve/reject, finance pay, kasbon approve, users, settings finance, dst.
-- **Rekomendasi (hardening pra-produksi, bukan penghalang Phase 1):** tambah test integrasi tipis (`app.inject` + token per role → assert 403) untuk ~10 endpoint paling sensitif. Menutup gap wiring yang saat ini nol.
+- **+22 test integrasi** (`routes/v1/__tests__/authz-endpoints.test.ts`): **11 endpoint sensitif × (positif + negatif)** — buat invoice, bayar invoice, putihkan denda, approve kasbon, approve & reject CO, approve expense kas, PUT settings/finance, PUT roles permissions, register user, hapus proyek.
+- **Yang nyata diuji:** route module **ASLI** didaftarkan → rantai preHandler asli (`authenticate` + `requirePermission`); tabel `users` + RPC `get_role_permissions` **ASLI** (DB dev). **Yang di-stub HANYA verifikasi token** (`supabaseAuth.auth.getUser`) — itu autentikasi, bukan otorisasi (login nyata butuh password = blocker kredensial).
+- **Asersi:** role tak berhak → **HARUS 403**; role berhak → **BUKAN 403** (gate lolos; status lain wajar krn payload dummy).
+- **MUTATION-TESTED (bukti jaring nyata, bukan vacuous):** `requirePermission('change_order:approve')` dihapus dari route CO approve → test NEGATIF **MERAH**. Dikembalikan setelah uji.
+- **Sisa (kecil, tercatat):** ~34 test `rls-*` + 9 anti-lockout tetap menjaga LOGIKA `has_permission` per role. Cakupan 403 saat ini 11 endpoint paling sensitif (uang + permission); endpoint lain masih mengandalkan code review — perluasan bertahap direkomendasikan seiring Phase 2.
 
 ## 5. Koreksi tercatat jujur (over-reach tidak disembunyikan)
 
@@ -80,6 +81,7 @@ Karena TABLE RLS dormant, **seluruh otorisasi data-via-API bertumpu pada handler
 
 ## 6. Item terbuka / backlog (BUKAN penghalang Phase 1)
 
+- ✅ **OPEN-4** (fitur foto) & **OPEN-5** (jaring 403) DITUTUP di #40.
 - 📌 **OPEN-1** `kasbons.status='settled'` tanpa code path → **backlog produk** (fitur settlement, fase berikutnya). Bukan bug.
 - 🔵 **[A] ditunda** (alasan eksplisit di HARDCODE-CENSUS): A5 (templates sudah table-based), A8/A9/A10 (enum coupled code = [C]), A13 (autoApprove → Phase 2 workflow), A14 (contract template editor).
 
@@ -95,26 +97,29 @@ Key ini bypass RLS SEPENUHNYA → kebocorannya = akses penuh DB tanpa filter apa
 - [ ] **Rotasi**: prosedur rotasi key + pemisahan key dev vs prod (jangan pakai key dev di prod).
 - [ ] **Prinsip**: service_role hanya di server (Fastify). Tak pernah dikirim ke browser/mobile.
 
-## 8. VERDICT
+## 8. VERDICT FINAL
 
-**Phase 1 (Core Platform Foundation) LAYAK DINYATAKAN TUNTAS** — setelah blocker storage ditutup. Catatan jujur, terdokumentasi:
+**Phase 1 (Core Platform Foundation / Program A) DINYATAKAN TUNTAS** — semua blocker ditutup & diverifikasi:
 
 1. ✅ 1A/1B/1D selesai & ter-audit; Config-First (AKTA 0-5) merged (#24-#38).
-2. ♻️ 1C Workflow Engine **sengaja diretire** (ADR-006) — penutupan yang benar.
-3. ✅ **STORAGE RLS (live path) sempat BOCOR → DITUTUP (#39)**. Ini yang membuat Phase 1 layak tuntas: bila storage masih bocor, Phase 1 TIDAK boleh dinyatakan selesai. Sudah diverifikasi tertutup.
-4. ⚠️ **TABLE RLS = defense-in-depth dormant** (bukan penegak live) — STATUS JUJUR, bukan cacat.
-5. ⚠️ **Jaring pengaman otorisasi TIPIS di lapisan wiring**: logika `has_permission` ter-test, tapi NOL test HTTP `app.inject` yang assert 403 per endpoint. Direkomendasikan hardening (bukan penghalang, karena otorisasi handler ADA & benar — hanya wiring-nya tak ada negative-test otomatis).
+2. ♻️ 1C Workflow Engine **sengaja diretire** (ADR-006) — penutupan yang benar, bukan menggantung.
+3. ✅ **BLOCKER-1 STORAGE RLS (live path) BOCOR → DITUTUP (#39)**. Anon bisa baca semua file bucket privat; kini `service_role`-only + signed URL, diverifikasi tertutup (anon 0/1).
+4. ✅ **BLOCKER-2 FITUR FOTO tak pernah berfungsi → DIPERBAIKI (#40)**. Bucket tak pernah ada (36 baris `project_photos` ternyata seed Unsplash); kini bucket privat + policy ketat + upload lewat API + kegagalan tak senyap. CLAUDE.md dikoreksi.
+5. ✅ **BLOCKER-3 Jaring otorisasi wiring nol → DITUTUP (#40)**. 22 test integrasi 403 (11 endpoint sensitif), **mutation-tested** (hapus preHandler → merah).
+6. ⚠️ **TABLE RLS = defense-in-depth dormant** (bukan penegak live) — STATUS JUJUR yang tercatat, bukan cacat: otorisasi handler ADA, benar, dan kini **ber-jaring test**.
+
+**Angka penutup:** 255 test · lint 0 error · tsc 0 · build 0 · migration 075-098 tracked.
 
 ## 9. Prasyarat masuk fase berikutnya
 
 **Phase 2 = Dynamic Workflow Engine** (Program B, roadmap 04):
 
-1. ✅ **Permission engine solid** — terpenuhi (RBAC v2 + derive-capability + anti-self-lockout).
-2. ✅ **Test coverage jaring pengaman finansial** — 233 test, pure-logic finansial ber-test.
+1. ✅ **Permission engine solid** — RBAC v2 + derive-capability + anti-self-lockout.
+2. ✅ **Jaring pengaman sebelum refactor** — 255 test; **termasuk 22 test 403** yang akan menangkap preHandler hilang saat Phase 2 me-refactor (alasan utama dikerjakan sekarang).
 3. 📌 **A13 (autoApprove)** menunggu Phase 2 (rumah yang benar).
 4. ⚠️ **Phase 2 = engine sebenarnya, bukan revival 1C otomatis** — kutip kebutuhan approval multi-langkah (ADR-006).
-5. ⚠️ **Gate MOBILE (klien direct-Supabase mana pun):** (a) rapatkan TABLE RLS PM scope (OPEN-3) + storage policy scoped-by-proyek; (b) test per role di jalur itu. Tak menghalangi Phase 2 (server-side).
-6. 📋 **Hardening pra-produksi (direkomendasikan sebelum go-live, bukan sebelum Phase 2):** (a) test integrasi 403 per endpoint sensitif (§4C); (b) checklist crown-jewel key (§7); (c) OPEN-4 (bucket foto langsung-browser yang tak ada).
+5. ⚠️ **Gate MOBILE (klien direct-Supabase mana pun):** (a) rapatkan TABLE RLS PM scope (**OPEN-3**) + storage policy scoped-by-proyek; (b) test per role di jalur itu. Tak menghalangi Phase 2 (server-side).
+6. 📋 **Pra-produksi (sebelum go-live):** (a) checklist crown-jewel key (§7); (b) perluas cakupan test 403 ke endpoint lain secara bertahap.
 
 ---
 *Metode reproducible: `pnpm test` (apps/api), query `schema_migrations`/`financial_config`/`units`/`work_categories`/`kasbon_purposes`, RLS test via `SET ROLE authenticated` + `request.jwt.claims`. Semua angka di atas hasil query langsung DB dev 2026-07-24.*
