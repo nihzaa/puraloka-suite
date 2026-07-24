@@ -41,7 +41,7 @@ Baca dokumen ini urut, lalu bandingkan realita kode/DB vs dokumen:
 4. `HARDCODE-CENSUS.md` — inventaris aturan bisnis + ember [A]/[B]/[C] (§12)
 5. `STATUS.md` — status hidup fase aktif
 6. `NUMBERING-GLOSSARY.md` — peta penomoran (Program A-F ↔ Sub-Fase 1A-1D)
-7. **`PHASE-1-STATUS.md`** (rollup 1A/1B/1C/1D + config-first) + **`PHASE-1-COMPLETION-AUDIT.md`** (verdict + hasil jujur RLS/storage/otorisasi) — di `docs/superpowers/specs/2026-07-18-enterprise-architecture/`. **Baca dulu ini untuk nyambung cepat** dengan status Phase 1.
+7. **`PHASE-1-STATUS.md`** (rollup 1A/1B/1C/1D + config-first) + **`PHASE-1-COMPLETION-AUDIT.md`** (verdict + hasil jujur RLS/storage/otorisasi) — di `docs/superpowers/specs/2026-07-18-enterprise-architecture/`. **Baca dulu ini untuk nyambung cepat** dengan status Phase 1. Untuk Phase 2 (Program B, SELESAI): **`PHASE-2-STATUS.md`** di folder yang sama.
 8. Kickoff fase aktif: dokumen perencanaan `00-10` + semua `GATE-*-MANIFEST` fase itu
 9. `AUDIT_REPORT.md` — temuan keamanan/kualitas terbuka (cek OPEN-1..OPEN-4 + STORAGE-1)
 10. Completion-audit fase **sebelumnya** (mis. `PHASE-1A-COMPLETION-AUDIT.md`)
