@@ -307,7 +307,7 @@ document.cookie = `${name}=${value}; expires=${expires}; path=/; SameSite=Lax`;
 
   **Konteks bisnis (kenapa kemungkinan FITUR BELUM DIBANGUN, bukan state mati):** kasbon mandor secara bisnis memang dilunasi dari **settlement scope/borongan** (`borongan_settlements`, `progress_payments`). Jadi state `settled` sangat mungkin memang direncanakan untuk pelunasan kasbon terhadap settlement — mekanismenya yang belum diimplementasikan (belum ada endpoint yang mentransisikan kasbon approved → settled saat settlement terjadi).
 
-  **Status:** dicatat sebagai temuan terbuka, **belum dikerjakan** (di luar scope migrasi 1C). Backfill 082 + workflow definition tetap mencakup `settled` (7 baris seed di-backfill benar), jadi tidak ada masalah data. Yang perlu diputuskan kelak: apakah membangun mekanisme pelunasan kasbon dari settlement (fitur baru), atau `settled` memang tidak dipakai (hapus dari enum + workflow). **Keputusan produk**, bukan teknis.
+  **Status (diperbarui 2026-07-24):** 📌 **BACKLOG PRODUK fase berikutnya** (keputusan founder — JANGAN dibangun sebagai cleanup Phase 1). Ini fitur *settlement* yang memang belum ada: kasbon mandor dilunasi dari settlement scope/borongan (`borongan_settlements`/`progress_payments` — lihat DOMAIN.md), dan mekanisme transisi kasbon `approved → settled` saat settlement terjadi belum dibangun. Bukan bug/data rusak (7 baris seed `settled` valid). Diangkat ke backlog produk, bukan hutang teknis Phase 1. (Catatan: referensi workflow di temuan asli sudah tak relevan — engine 1C diretire, ADR-006.)
 
 ### 24 Juli 2026 — tabel workflow YATIM pasca fase CONTRACT 1C (PR #34)
 
