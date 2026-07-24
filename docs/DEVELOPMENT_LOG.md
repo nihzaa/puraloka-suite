@@ -286,6 +286,17 @@
 ---
 
 
+### 2026-07-25 — Feature — CECEP Formula Engine / Formula Definition (Migration 106, Program C)
+**Status**: Done
+**Files affected**:
+- `db/migrations/106_cecep_formula_definitions.sql` + kembar (applied ke dev)
+- `apps/api/src/routes/v1/__tests__/formula-definitions.test.ts` (13 test)
+- ADR-009 (penerapan kelima)
+**Notes**: Milestone 2 domain #3. Aggregate Root = Formula Definition (Formula+Version+Variable+Parameter+Expression). Formula Engine sendiri = Domain Service (lapisan aplikasi, bukan tabel). Generik — dibangun SEBELUM Assembly yang mengonsumsinya. Variable/parameter = JSONB (bagian komposisi, bukan tabel anak). Lifecycle draft→tested→active→superseded. Hard guard: immutable begitu ≠ draft (anti perubahan retroaktif ke Estimate Item), transisi maju saja, no-delete non-draft. Mutation-proof: 3 mutasi → merah, dipulihkan → 13/13. Calculation Strategy Contract SENGAJA bukan di sini (`42`: struktur bagian Estimate Item = Milestone 3). Exclude: company_id.
+
+---
+
+
 <!-- Template untuk entry baru:
 
 ### YYYY-MM-DD HH:MM — [Kategori] — [Deskripsi]

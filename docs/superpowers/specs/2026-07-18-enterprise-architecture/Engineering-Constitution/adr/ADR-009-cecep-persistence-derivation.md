@@ -193,6 +193,30 @@ tak terblokir CBS/Reference Library.
 Exclude (ADR-009): `unit` (coefficient tanpa satuan sampai unit resource+cost_code
 diputus), `company_id` (Phase 7).
 
+## Penerapan kelima: Formula Engine / Formula Definition (migration 106)
+
+Aggregate Root: Formula Definition (`Formula + Version + Variable + Parameter +
+Expression`) — `44` §7, `03b` §A.7, `02` §8. Formula Engine sendiri = **Domain
+Service** (lapisan aplikasi, bukan tabel).
+
+| Keputusan | Jejak | Trace Status |
+|---|---|---|
+| `formula_definitions`, Entity = Formula Definition | `03b` §A.7 / `02` §8 (komposisi eksplisit) | ✓ Fully Derived |
+| `expression` TEXT (dievaluasi Domain Service, bukan DB) | `03b` §A.7 "Calculation Logic murni" | ✓ Fully Derived |
+| `variables`/`parameters` JSONB (bagian komposisi, bukan tabel anak) | `03b` §A.7 "Variable/Parameter bagian Formula Definition", tanpa identitas mandiri | ✓ Fully Derived |
+| Lifecycle draft→tested→active→superseded | `03b` §A.7 Lifecycle, eksplisit | ✓ Fully Derived |
+| Immutable begitu ≠ draft; formula baru = versi baru | `44` §7 "diedit tanpa deploy" utk DRAFT; konsistensi anti-perubahan retroaktif (pola Price Book) | ✓ Fully Derived |
+| Larangan hapus non-draft | Assembly/Estimate merujuk formula aktif | ✓ Fully Derived |
+| UNIQUE (code, versi) | identitas ter-versi | ✓ Fully Derived |
+| view + manage capability | `03b` §A.7 Ownership "dibuat/diedit user tanpa coding" | ✓ Fully Derived |
+
+**Calculation Strategy Contract sengaja BUKAN di sini:** `42` §1 menyatakannya
+"struktur, BUKAN Aggregate Root baru", dan `42` §2 menaruhnya "dicatat sebagai bagian
+Estimate Item" (Milestone 3). Ia merujuk `formula_reference` → tabel ini, jadi butuh
+Formula Definition lebih dulu — tapi tabel Strategy-nya baru relevan di Milestone 3.
+
+Exclude (ADR-009): `company_id` (Phase 7). `unit` tak relevan (formula murni logika).
+
 ## CBS diblokir — dua keputusan domain belum diambil (dilaporkan, tidak ditebak)
 
 CBS (`44` §3) diberi ✓ Fully Derived untuk *keberadaannya*, tapi **dua keputusan
