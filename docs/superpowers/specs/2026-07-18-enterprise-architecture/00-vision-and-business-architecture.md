@@ -321,11 +321,20 @@ Tabel di bawah menggabungkan katalog original dengan seluruh temuan gap ini dala
 | CRM | Lead → Prospek → Deal | 2 | Later | — |
 | Tender Management | Proses lelang/tender pra-kontrak | 2 | Later | CRM |
 | Tender Management | **Bid Comparison / Bid Leveling** *(baru)* | 2 | Later | Tender core |
-| Estimating | Cikal-bakal RAB dari estimasi awal | 2 | Later | RAB |
-| BOQ / AHSP | Bill of Quantity & Analisa Harga Satuan | 2 | Next | Estimating |
+| CECEP (Cost Intelligence Core) | AHSP — 4 sumber: Nasional/Company/Project/Custom | 1 | Next | RAB (existing) |
+| CECEP (Cost Intelligence Core) | Assembly Library (superset AHSP, method engineering) | 1 | Next | AHSP |
+| CECEP (Cost Intelligence Core) | RAP Builder + Contingency/Risk Allowance | 1 | Next | Assembly Library, Price Book |
+| CECEP (Cost Intelligence Core) | Price Book bertingkat (4 jenis, versioned) | 1 | Next | Resource Identity |
+| CECEP (Cost Intelligence Core) | Productivity Library | 2 | Next | Resource Identity, Historical Cost Intelligence |
+| CECEP (Cost Intelligence Core) | Cost Control basis RAP *(menggantikan basis RAB di `kurva-s.ts`)* | 1 | Next | RAP Builder |
+| CECEP (Cost Intelligence Core) | Cashflow Forecast (proyeksi, bukan aktual) | 2 | Next | Estimate Version, WBS |
+| CECEP (Cost Intelligence Core) | Historical Cost Intelligence (Company Intelligence Loop) | 2 | Next | Lessons Learned/Variance |
+| CECEP (Cost Intelligence Core) | AI Estimation (Excel-first) + AI Recommendation | 3 | Later | Historical Cost Intelligence |
+| BOQ | Tampilan turunan RAB Builder (quantity-only) | 1 | Next | RAB (existing), Assembly Library |
+| Estimating | Cikal-bakal RAB dari estimasi awal (Tender Estimation) | 2 | Next | CECEP Assembly Library |
 | Sales (quote-to-cash formal) | Di luar CRM dasar | 3 | Optional | CRM |
 
-**Catatan urutan:** BOQ/AHSP dinaikkan ke `Next` (dari sekadar Tier 2 tanpa prioritas eksplisit) karena ini standar baku konstruksi Indonesia dan secara alami menjadi *input* ke RAB — nilai tambahnya lebih tinggi dari modul Tier 2 lain yang murni ekspansi horizontal.
+**Catatan urutan (revisi — CECEP menggantikan baris "BOQ/AHSP" lama):** Baris "BOQ/AHSP" tunggal yang sebelumnya ada di sini digantikan sembilan baris CECEP di atas — bukan penyederhanaan, tapi klarifikasi bahwa "BOQ/AHSP" ternyata adalah pintu masuk ke satu Core Platform penuh (16 capability, 13 domain, Company Intelligence Loop), bukan satu modul tunggal. Perencanaan arsitektur lengkapnya (12 fase, seluruhnya Derived & Frozen) ada di [`CECEP/32-cecep-roadmap-v2.md`](CECEP/32-cecep-roadmap-v2.md). Dinaikkan ke `Next` (bukan Later) untuk mayoritas baris karena ini standar baku konstruksi Indonesia, secara langsung memperdalam diferensiator produk (§ Product Positioning: "kedalaman modul EVM/Kurva-S" vs Procore/Primavera/SAP), dan CECEP Cost Control basis RAP menutup root cause nyata (`kurva-s.ts` existing masih memakai `bac=totalRABValue`, bukan RAP — lihat [CECEP/52](CECEP/52-gap-closure-cashflow-baseline-analytics.md#gap-2--cost-baseline-vs-budget-baseline-pembeda-tegas)). AI Estimation/Recommendation tetap Tier 3/Later — konsisten batas eksplisit CECEP sendiri (isi AI sengaja belum didalami di luar prioritas jalur input, [CECEP/48](CECEP/48-phase10-ai-cost-engineering.md)).
 
 ### Domain: Supply Chain (Supporting)
 

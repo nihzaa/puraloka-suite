@@ -12,7 +12,7 @@
 
 ---
 
-## Peta 12 File + Pemetaan ke 35 Item Brief Asli
+## Peta 14 File + Pemetaan ke 35 Item Brief Asli
 
 | # File | Kedudukan | Item Brief Asli yang Dicakup |
 |---|---|---|
@@ -29,6 +29,7 @@
 | [10-kpi-and-fitness-functions.md](10-kpi-and-fitness-functions.md) | **Orkestrasi Baru** | 29. KPI Engineering, 30. KPI Product, 31. KPI Business, 32. Architecture Fitness Functions |
 | [11-decision-gates-and-change-management.md](11-decision-gates-and-change-management.md) | Campuran | 33. Decision Gates, 34. Change Management Process, 35. Continuous Improvement Process |
 | [12-traceability-matrix.md](12-traceability-matrix.md) | **Orkestrasi Baru** | *(Tidak diminta eksplisit di 35-list asli, diminta user di pesan susulan)* — Cross-Document Traceability Matrix + Master Capability Matrix index |
+| [13-implementation-kickoff-playbook.md](13-implementation-kickoff-playbook.md) | **Orkestrasi Baru** | *(Ditambahkan pasca-[Implementation-Kickoff/](../Implementation-Kickoff/00-executive-summary.md) selesai)* — template 11-bagian reusable untuk kickoff package Program 2-9, TIDAK diisi sekarang (YAGNI — ditulis saat gilirannya tiba, lihat § Prinsip Governing di file itu) |
 
 ---
 
