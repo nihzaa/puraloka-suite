@@ -342,6 +342,37 @@ configurable** ("jangan hardcode validator") — selaras arah ADR-007.
 
 Exclude (ADR-009): `unit` (quantity Estimate Item), Project CBS snapshot, `company_id`.
 
+## Penerapan kesepuluh: Estimate Version approval via engine ADR-007 (migration 111)
+
+Keputusan founder pasca-discovery: **wire lewat engine approval yang SUDAH ADA
+(ADR-007), bukan jalur approval kelima.** Diperkuat mandat CECEP sendiri (`47` §3):
+approval_steps WAJIB merujuk RBAC existing, SATU mekanisme di TIGA titik (Estimate
+Version, Price Book, Lessons Learned). Routing 7-dimensi (`44` §12) DITUNDA ke Fase
+12 (bukti kebutuhan, hindari over-engineering — pelajaran ADR-006).
+
+| Keputusan | Jejak | Trace Status |
+|---|---|---|
+| capability `cecep:estimate:approve` (bukan literal role) | ADR-004 | ✓ |
+| `approval_chains` row entity_type='estimate_version', seed 1 langkah | ADR-007 pattern + `47` §3 | ✓ |
+| endpoint submit/approve/reject via engine (pola 4 modul) | `47` §3 "reuse RBAC, satu mekanisme"; ADR-007 | ✓ |
+| total_amount = basis ambang nominal OPSIONAL | `44` §12 (contract_value/cost_threshold); `min_amount` nullable | ✓ |
+| under_review→draft (reject) ditambah ke transisi | jalur reject: estimasi ditolak balik ke draft utk revisi | ✓ |
+
+**Gap 7-dimensi TIDAK ditutup, sengaja:** engine me-routing by entity_type + amount
+(2 dari 7 dimensi). Sisanya (project_type/estimate_type/risk_level/branch; company =
+Phase 7) = routing lebih kaya yang `47` §3 sendiri taruh di Fase 12. Membangunnya
+tanpa bukti kebutuhan = anti-pola ADR-006. Founder pilih "pakai apa adanya".
+
+**Verifikasi tidak vacuous:** mutasi gerbang `canParticipateInChain` → 2 test authz
+merah; mutasi penahapan `isFinalStep` (uji berjenjang 2-level) → 1 test merah
+(estimasi tak boleh approved sebelum level terakhir). Cabang `decision.allowed=false`
+(no_permission multi-level) di-cover di lapisan engine (`lib/approval-engine.test.ts`
+16 test + `approval-chain-berjenjang.test.ts`).
+
+**✅ MILESTONE 3 — jalur Estimate + approval berdiri.** WBS (109), Estimate chain
+(110), approval (111). Sisa M3 (Lessons Learned/Historical Cost Intelligence §13,
+Approval di Price Book/Lessons — titik ke-2 & ke-3) = domain berikutnya.
+
 ## Riwayat: CBS diblokir — dua keputusan domain (kini teratasi oleh founder)
 
 CBS (`44` §3) diberi ✓ Fully Derived untuk *keberadaannya*, tapi **dua keputusan
