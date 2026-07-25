@@ -5,6 +5,7 @@ import { logAuditEvent } from '../../utils/audit.js'
 import {
   evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain,
 } from '../../utils/approval.js'
+import { computeRab, computeBoq, type EstimateItemRow } from '../../lib/rab-readmodel.js'
 
 // CECEP Milestone 3 — approval Estimate Version LEWAT engine ADR-007 (bukan jalur
 // approval kelima). Keputusan founder pasca-discovery + mandat `47` §3 CECEP
@@ -18,6 +19,47 @@ import {
 // yang boleh menyetujui (ADR-007).
 
 export default async function estimateVersionRoutes(app: FastifyInstance) {
+
+  // ── GET /rab — read-model breakdown biaya (Milestone 4, no tabel baru) ──────
+  // RAB = render Estimate Item jadi breakdown per CBS (`37` §3). Turunan murni;
+  // angka dihitung lib/rab-readmodel.ts (ber-test terhadap hitungan manual).
+  app.get<{ Params: { id: string } }>(
+    '/api/v1/estimate-versions/:id/rab',
+    { preHandler: [authenticate, requirePermission('cecep:estimate:view')] },
+    async (request, reply) => {
+      const { id } = request.params
+      const { data: v } = await supabase
+        .from('estimate_versions').select('id, status, total_amount').eq('id', id).maybeSingle()
+      if (!v) return reply.status(404).send({ error: 'Estimate Version tidak ditemukan' })
+
+      const { data: items, error } = await supabase
+        .from('estimate_items')
+        .select('cost_code_id, cbs_node_id, quantity, amount')
+        .eq('estimate_version_id', id)
+      if (error) return reply.status(500).send({ error: error.message })
+
+      const rab = computeRab((items ?? []) as EstimateItemRow[])
+      return reply.send({ estimate_version_id: id, status: v.status, ...rab })
+    })
+
+  // ── GET /boq — kuantitas saja, TANPA harga (dokumen supplier) ───────────────
+  app.get<{ Params: { id: string } }>(
+    '/api/v1/estimate-versions/:id/boq',
+    { preHandler: [authenticate, requirePermission('cecep:estimate:view')] },
+    async (request, reply) => {
+      const { id } = request.params
+      const { data: v } = await supabase
+        .from('estimate_versions').select('id').eq('id', id).maybeSingle()
+      if (!v) return reply.status(404).send({ error: 'Estimate Version tidak ditemukan' })
+
+      const { data: items, error } = await supabase
+        .from('estimate_items')
+        .select('cost_code_id, cbs_node_id, quantity, amount')
+        .eq('estimate_version_id', id)
+      if (error) return reply.status(500).send({ error: error.message })
+
+      return reply.send({ estimate_version_id: id, lines: computeBoq((items ?? []) as EstimateItemRow[]) })
+    })
 
   // ── PATCH /submit — draft → under_review (author mengajukan) ────────────────
   // Submit = tindakan penyusun (manage), BUKAN approval. Perlu minimal 1 item
