@@ -1,0 +1,44 @@
+name: CI Isolation (manual)
+
+# Operasi setup/verifikasi project Supabase CI — dijalankan manual (workflow_dispatch)
+# karena secret CI_* hidup di GitHub Secrets, bukan lokal. Berbagi concurrency group
+# dengan CI utama supaya tak balapan akses DB.
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'inventory (read-only, A1)'
+        required: true
+        default: inventory
+        type: choice
+        options: [inventory]
+
+concurrency:
+  group: ci-shared-dev-db
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: .
+
+      # A1 — inventaris READ-ONLY project CI. Job MERAH (exit 2) bila TIDAK kosong.
+      - name: A1 Inventory CI project (read-only)
+        if: ${{ inputs.action == 'inventory' }}
+        run: node scripts/ci-project-inventory.mjs
+        env:
+          CI_DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
