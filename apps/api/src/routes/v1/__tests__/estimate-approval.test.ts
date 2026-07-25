@@ -115,6 +115,20 @@ describe('RAB/BOQ read-model — angka dari DB nyata cocok hitungan manual', () 
     expect(body.groups.reduce((s: number, g: { subtotal: number }) => s + g.subtotal, 0)).toBe(4_000_000)
   }, 30_000)
 
+  it('GET /cashflow-forecast: Σ pencairan = total_amount version (dari DB nyata)', async () => {
+    const { rows: v } = await client.query(
+      `INSERT INTO estimate_versions (scenario_id, version_number, total_amount, created_by)
+       VALUES ($1,(SELECT COALESCE(MAX(version_number),0)+1 FROM estimate_versions WHERE scenario_id=$1),12000000,$2) RETURNING id`,
+      [scenarioId, adminUserId])
+    actAs(adminAuth)
+    const r = await req('GET', `/api/v1/estimate-versions/${v[0].id}/cashflow-forecast?periods=6`)
+    expect(r.statusCode, r.body).toBe(200)
+    const body = JSON.parse(r.body)
+    expect(body.forecast).toHaveLength(6)
+    const sum = body.forecast.reduce((s: number, p: { disbursement: number }) => s + p.disbursement, 0)
+    expect(sum).toBeCloseTo(12_000_000, 2) // Σ = baseline persis (bukan 99,4%)
+  }, 30_000)
+
   it('GET /boq: kuantitas per cost code, response tak memuat amount', async () => {
     const { rows: v } = await client.query(
       `INSERT INTO estimate_versions (scenario_id, version_number, created_by)
