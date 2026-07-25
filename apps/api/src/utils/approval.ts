@@ -8,7 +8,9 @@ import { evaluateApproval, type ApprovalDecision, type ApprovalStep } from '../l
 //
 // Kolom `status` tabel sumber TETAP sumber kebenaran — util ini tidak menyimpannya.
 
-export type ApprovalEntityType = 'kasbon' | 'change_order' | 'material_request' | 'project_expense'
+export type ApprovalEntityType =
+  | 'kasbon' | 'change_order' | 'material_request' | 'project_expense'
+  | 'estimate_version' // CECEP Milestone 3 — approval via engine yang sama (ADR-007, 47 §3)
 
 /** Ambil langkah rantai aktif untuk sebuah entitas. */
 async function loadSteps(entityType: ApprovalEntityType): Promise<{ steps: ApprovalStep[]; error?: string }> {

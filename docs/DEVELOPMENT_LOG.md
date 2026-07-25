@@ -347,6 +347,22 @@
 ---
 
 
+### 2026-07-25 — Feature — CECEP Estimate Version approval via engine ADR-007 (Migration 111, Program C)
+**Status**: Done
+**Files affected**:
+- `db/migrations/111_cecep_estimate_approval.sql` + kembar (applied ke dev) — chain + capability + relaksasi transisi reject
+- `apps/api/src/routes/v1/estimate-versions.ts` (baru) — submit/approve/reject via engine
+- `apps/api/src/utils/approval.ts` (+ 'estimate_version' ke union type)
+- `apps/api/src/index.ts` (registrasi route)
+- `apps/api/src/routes/v1/__tests__/estimate-approval.test.ts` (8 test) + authz-endpoints.test.ts (+2 = 28)
+- ADR-009 (penerapan kesepuluh)
+**Notes**: Milestone 3 approval. Keputusan founder pasca-discovery: WIRE lewat engine ADR-007 yang SUDAH ADA (bukan jalur kelima) — selaras mandat CECEP 47 §3 ("reuse RBAC existing, satu mekanisme 3 titik"). Pola IDENTIK 4 modul: canParticipateInChain → evaluateEntityApproval → recordApproval. submit (draft→under_review, cecep:estimate:manage), approve (via engine, cecep:estimate:approve, total_amount=basis ambang opsional), reject (under_review→draft). Routing 7-dimensi sengaja DITUNDA (Fase 12, hindari over-engineering ADR-006). Mutation-proof: gerbang canParticipateInChain → 2 authz merah, penahapan isFinalStep (uji berjenjang 2-level) → 1 merah. Cleanup test dev pakai session_replication_role=replica (guard no-delete blokir CASCADE). Gate: tsc 0, lint 0, 465 test hijau (50 file).
+
+**✅ MILESTONE 3 jalur Estimate + approval berdiri**: WBS (109) + Estimate chain (110) + approval (111). Sisa M3: Lessons Learned/Historical Cost Intelligence (§13), titik approval ke-2 & ke-3 (Price Book Verified By, Lessons Propagation).
+
+---
+
+
 <!-- Template untuk entry baru:
 
 ### YYYY-MM-DD HH:MM — [Kategori] — [Deskripsi]
