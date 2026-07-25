@@ -14,6 +14,7 @@ import authRoutes from '../auth.js'
 import projectRoutes from '../projects.js'
 import procurementRoutes from '../procurement.js'
 import estimateVersionRoutes from '../estimate-versions.js'
+import lessonsLearnedRoutes from '../lessons-learned.js'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TEST INTEGRASI OTORISASI (403) — jaring pengaman wiring preHandler.
@@ -65,6 +66,11 @@ const SPECS: Spec[] = [
   // requirePermission preHandler) — pm TANPA cecep:estimate:approve → 403.
   { name: 'approve estimasi',        routes: estimateVersionRoutes, method: 'PATCH', url: `/api/v1/estimate-versions/${UUID}/approve`, permission: 'cecep:estimate:approve', allow: 'admin', deny: 'pm', payload: {} },
   { name: 'reject estimasi',         routes: estimateVersionRoutes, method: 'PATCH', url: `/api/v1/estimate-versions/${UUID}/reject`,  permission: 'cecep:estimate:approve', allow: 'admin', deny: 'pm', payload: {} },
+  // Lessons Learned approve = memicu write-back ke knowledge base. Gerbang kasar
+  // canParticipateInChain menjaga 403-sebelum-404: pm (tanpa cecep:lessons:approve)
+  // TAK boleh tahu apakah id lesson-nya ada.
+  { name: 'approve lessons learned', routes: lessonsLearnedRoutes, method: 'PATCH', url: `/api/v1/lessons-learned/${UUID}/approve`, permission: 'cecep:lessons:approve', allow: 'admin', deny: 'pm', payload: {} },
+  { name: 'reject lessons learned',  routes: lessonsLearnedRoutes, method: 'PATCH', url: `/api/v1/lessons-learned/${UUID}/reject`,  permission: 'cecep:lessons:approve', allow: 'admin', deny: 'pm', payload: {} },
   { name: 'ubah config finansial',   routes: settingsRoutes,    method: 'PUT',    url: '/api/v1/settings/finance',                     permission: 'settings:finance:manage', allow: 'admin', deny: 'pm',     payload: { key: 'tax.ppn_rate', value: 0.11, effective_from: '2030-01-01' } },
   { name: 'ubah permission role',    routes: rolesRoutes,       method: 'PUT',    url: `/api/v1/roles/${UUID}/permissions`,            permission: 'users:roles:manage',      allow: 'admin', deny: 'pm',     payload: { permission_ids: [] } },
   { name: 'register user baru',      routes: authRoutes,        method: 'POST',   url: '/api/v1/auth/register',                        permission: 'users:manage',            allow: 'admin', deny: 'mandor', payload: {} },
