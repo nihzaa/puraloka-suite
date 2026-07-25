@@ -44,9 +44,14 @@ master ada di sheet visible (`Upah Bahan`, `HARGA BAHAN`).
 | `12` | 6× (Control) | (PPN 12%? / bulan?) — ambigu | perjelas → config |
 
 ### 1.5 Silent-failure & rounding (scan 174 rb formula)
-- **`IFERROR/IFNA/ISERROR` = 0** di SEMUA file → **tak ada error yang ditelan**. Kegagalan VLOOKUP
+> **Klaim "NOL" diverifikasi DUA metode berbeda** (disiplin: "tidak ada" butuh ≥2 metode). Metode A =
+> scan formula-string openpyxl; Metode B = grep XML mentah elemen `<f>` (bypass openpyxl). Pola diperluas
+> case-insensitive: `IFERROR|IFNA|ISERROR|ISERR|ISNA|ISBLANK`; external `[N]` + path `C:\`/`\\` + `.xls*`.
+- **error-func = 0** di SEMUA file (kedua metode) → **tak ada error yang ditelan**. Kegagalan VLOOKUP
   justru **TAMPAK** sebagai `#N/A` dan merambat ke SUM (rapuh, tapi bukan "gagal senyap").
-- **`external[N]` di formula = 0** → link eksternal phantom **tak** dipakai perhitungan (nol stale-cache).
+- **`external` di formula = 0** (kedua metode) → link eksternal phantom **tak** dipakai perhitungan.
+  Catatan: file **punya** part `xl/externalLinks/` (476/38/484 — target 5.461 defined-name mati + cache),
+  tapi **nol `<f>` merujuknya** → nol stale-cache di angka. **D3/D7 tetap kelas rendah** (terkonfirmasi 2×).
 - **ROUND inventory:** main/Khusus **2.759× `ROUNDDOWN(x,−2)`** (HSP→Rp100) + `ROUNDUP(x,0)` (take-off
   pekerja/bahan bulat ke atas). **Control: 0 `ROUNDDOWN`** (HSP TAK dibulatkan) + 1.585× `ROUNDUP(0)`.
 
@@ -76,7 +81,7 @@ langsung kalau **tak** mengubah angka.
 
 | # | Cacat | Lokasi | Dampak angka | Usul perbaikan | Kelas |
 |---|---|---|---|---|---|
-| **D1** | **PPN: rumus LUPA faktor DPP nilai lain 11/12** (bukan salah label). Per PMK 131/2024: tarif 12%, tapi BKP non-mewah & JKP (jasa konstruksi) pakai **DPP nilai lain 11/12** → efektif 11%. Excel hitung `0,12 × DPP penuh` = **12%** (kelebihan 1 poin). Label "11%" **BENAR** (tarif efektif); rumusnya yang cacat. | REKAPITULASI Control D19 | Excel over-charge **12% vs 11% efektif** → contoh 1,66 M = **+Rp16,6 jt** | Model **DUA angka + effective-date**: `ppn_rate` (0,12) × `dpp_factor` (11/12; mewah=1) + `dasar_hukum`. Formula tunggal PPN = `ppn_rate × dpp_factor × DPP` (tanpa cabang mewah di kode). Simpan 11/12 **presisi penuh** (bukan 0,9167) → e-Faktur/Coretax bisa tampil "DPP nilai lain + tarif 12%". **Pakai config PPN EXISTING** (`financial_config`), JANGAN bikin setting kedua. | ubah-angka → **flag DEFAULT OFF per-PROYEK + ADR** (proyek lama kontrak-tanda-tangan tak berubah); split dpp_factor sendiri number-preserving utk invoice |
+| **D1** | **PPN: rumus LUPA faktor DPP nilai lain 11/12** (bukan salah label). Per PMK 131/2024: tarif 12%, tapi BKP non-mewah & JKP (jasa konstruksi) pakai **DPP nilai lain 11/12** → efektif 11%. Excel hitung `0,12 × DPP penuh` = **12%** (kelebihan 1 poin). Label "11%" **BENAR** (tarif efektif); rumusnya yang cacat. | REKAPITULASI Control D19 | Excel over-charge **12% vs 11% efektif** → contoh 1,66 M = **+Rp16,6 jt** | Model **DUA angka + effective-date**: `ppn_rate` (0,12) × `dpp_factor` (11/12; mewah=1) + `dasar_hukum`. Formula tunggal PPN = `ppn_rate × dpp_factor × DPP` (tanpa cabang mewah di kode). Simpan 11/12 **presisi penuh** (bukan 0,9167) → e-Faktur/Coretax bisa tampil "DPP nilai lain + tarif 12%". **Pakai config PPN EXISTING** (`financial_config`), JANGAN bikin setting kedua. | ubah-angka → **flag DEFAULT OFF per-PROYEK + ADR** (proyek lama kontrak-tanda-tangan tak berubah); split dpp_factor invoice tanpa flag HANYA jika 3 syarat §5 lulus (rasional+regresi+historis-beku) |
 | **D2** | **Pembulatan HSP inkonsisten antar file resmi** | main/Khusus `ROUNDDOWN(−2)` vs Control tanpa bulat | <Rp100/item × ribuan item → selisih total jutaan | Adopsi SE-baku `ROUNDDOWN(−2)` (founder). Simpan `hsp_raw`+`hsp_rounded`; rantai dokumen dari rounded | ubah-angka → **flag+ADR** |
 | **D3** | 5.461 defined name eksternal phantom + 59 `#REF!` | semua file | **NOL** (tak dipakai formula) | Abaikan saat import; sistem pakai FK eksplisit, bukan named range | tak ubah-angka → langsung |
 | **D4** | Konstanta hardcoded (50, 0,006165, 3,14, densitas) | ratusan formula | tergantung asumsi; π=3,14 bias ~0,05% | Parameter bernama (sak_size, rebar_coef, π penuh, density table) | ubah-angka (π) → **flag+ADR**; sisanya config |
@@ -102,13 +107,22 @@ Diminta founder: "cek di mana PPN hidup sekarang; jangan bikin setting kedua; la
   bukan bug), TAPI **penyajian DPP nilai lain HILANG** (e-Faktur butuh "DPP×11/12 + tarif 12%", tak
   terwakili oleh 0,11 tunggal). `STATIC_FALLBACK`/`TAX_RATE_BY_SCHEME` meng-hardcode 0,11 sebagai fallback
   (loud, dapat diterima); `settings.ts` bahkan menuliskan asumsi "0.11 untuk 11%" di pesan guard.
-- **Usul (belum dibangun):** tambah `tax.ppn_dpp_factor` (default 11/12) ke `financial_config`; ubah makna
-  `tax.ppn_rate` → 0,12 statutory; `getTaxRate`→`getPpnComponents(rate, dpp_factor)`; formula tunggal.
-  Karena 0,12×11/12 = 0,11 **persis**, total invoice **TIDAK berubah** → split ini **number-preserving**
-  untuk invoice → boleh langsung (tanpa flag), sekaligus memulihkan presentasi e-Faktur. Untuk CECEP RAB:
-  paritas flag OFF = `0,12 × DPP penuh` (tiru Excel, 12%); flag ON = config bersama (11%), **per-proyek**.
+- **Usul (belum dibangun):** tambah `tax.ppn_dpp_factor` (11/12) ke `financial_config`; `tax.ppn_rate` → 0,12
+  statutory; `getTaxRate`→`getPpnComponents`; formula tunggal.
+  **⚠️ KOREKSI founder: "0,12×11/12 = 0,11 persis" HANYA benar rasional, TIDAK di float** (dibuktikan node):
+  `0,12*(11/12) = 0.109999999999999987`; `dpp_factor` dibulatkan 0,916667 → **drift +Rp66** pada invoice 1,66 M.
+  Maka split boleh **tanpa flag HANYA jika 3 syarat**, kalau tidak → **flag DEFAULT OFF**:
+    - **(a) Simpan 11/12 RASIONAL** (numerator+denominator integer) ATAU NUMERIC presisi penuh
+      **kali-dulu-bagi-belakangan**. JANGAN pernah simpan 0,9167/0,916667 dalam bentuk apa pun.
+    - **(b) REGRESSION TEST WAJIB:** hitung ulang SEMUA invoice + tax_records existing dgn model dua-angka,
+      assert **identik sampai rupiah** dgn nilai tersimpan. Satu saja bergeser → **BERHENTI & lapor** (jangan
+      perbaiki sendiri, jangan bulatkan agar cocok).
+    - **(c) Invoice historis TAK PERNAH dihitung ulang** — nilai tersimpan = final & mengikat. Split hanya
+      mengubah MODEL untuk dokumen BARU.
+  Untuk CECEP RAB: paritas flag OFF = `0,12 × DPP penuh` (tiru Excel, 12%); flag ON = config bersama (11%),
+  **per-proyek** (proyek lama kontrak-tanda-tangan tak berubah).
 
-| **D10** | PPN model = satu fraksi terkolaps 0,11 (bukan rate×dpp_factor) → presentasi DPP nilai lain hilang | `financial-config.ts`, `tax-calculation.ts`, `settings.ts` | angka sama (11%), presentasi e-Faktur salah/hilang | Dua angka rate×dpp_factor di `financial_config` bersama (lihat §5) | number-preserving → langsung; presentasi = perbaikan |
+| **D10** | PPN model = satu fraksi terkolaps 0,11 (bukan rate×dpp_factor) → presentasi DPP nilai lain hilang | `financial-config.ts`, `tax-calculation.ts`, `settings.ts` | angka sama (11%) TAPI split naif drift **+Rp66** (float, dibuktikan); presentasi e-Faktur hilang | Dua angka rasional + 3 syarat §5 (rasional-exact, regresi semua invoice, historis beku) | tanpa flag HANYA jika 3 syarat lulus; jika tidak → **flag OFF** |
 
 ## 3. Control vs Khusus — bukan subset, tapi KOMPLEMENTER
 
