@@ -9,11 +9,11 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: 'inventory (read-only, A1)'
+        description: 'inventory (read-only, A1) | setup (migrate+seed, A2)'
         required: true
         default: inventory
         type: choice
-        options: [inventory]
+        options: [inventory, setup]
 
 concurrency:
   group: ci-isolation-ops-${{ github.run_id }}
@@ -42,5 +42,12 @@ jobs:
       - name: A1 Inventory CI project (read-only)
         if: ${{ inputs.action == 'inventory' }}
         run: node scripts/ci-project-inventory.mjs
+        env:
+          CI_DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      # A2 — setup: apply migrasi 001..116 + seed data uji minimal ke project CI.
+      - name: A2 Setup CI project (migrate + seed)
+        if: ${{ inputs.action == 'setup' }}
+        run: node scripts/ci-project-setup.mjs
         env:
           CI_DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
