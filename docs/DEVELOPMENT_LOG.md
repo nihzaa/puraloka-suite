@@ -462,6 +462,18 @@
 ---
 
 
+### 2026-07-25 — Feature — CECEP RAB Compute: BOQ + take-off + orchestrator (PURE) — jalur RAB tuntas
+**Status**: Done — otonom, paritas-dulu, DB-free (lanjutan engine)
+**Files affected**:
+- `apps/api/src/lib/rab-compute.ts` (baru, murni; import ahsp-engine)
+- `apps/api/src/lib/rab-compute.test.ts` (7 golden-number test)
+**Notes**: Melengkapi jalur "hitung RAB" sisi murni: `computeVolume` (BOQ Σ(P×L×Qty) area − pengurang bukaan), `computeLaborCount`/`computeMaterialTakeoff` (ROUNDUP kebutuhan pekerja/bahan), `computeRabDocument` (orchestrator end-to-end: item AHSP/lump-sum → HSP → Vol×HSP-rounded → subtotal kelompok → bobot% base TOTAL BIAYA → PPN → grand total). Golden angka PERSIS Excel (Control DINDING BATA MERAH + rantai): Volume 164,5−55=109,5; Pekerja 4, Tukang 2, Bata 7875, Semen 32 Zak, Pasir 5; RAB 3 item (2 AHSP + 1 lump-sum SMKK) → HSP 278300/266600/1jt, total 27,83jt/13,33jt/1jt, subtotal 41,16jt, bobot 97,628%, PPN 12% 5.059.200, grand 47.219.200 — semua rantai dokumen bilangan bulat eksak. Gate: tsc 0, lint 0, 7 test hijau (total engine+rab = 17 golden test). Orchestrator = target yang akan dipanggil golden-file harness begitu RAB nyata datang.
+
+**Belum**: parser Excel→RabItemInput (dibangun bersama golden-file nyata), seed DB (nunggu CI isolation), wiring config effective-date.
+
+---
+
+
 <!-- Template untuk entry baru:
 
 ### YYYY-MM-DD HH:MM — [Kategori] — [Deskripsi]
