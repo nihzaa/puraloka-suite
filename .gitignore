@@ -29,6 +29,15 @@ apps/web/ds-bundle/
 # Supabase CLI local cache
 supabase/.temp/
 
+# AHSP source workbooks (~97 MB, resmi SE 47/2026) — JANGAN pernah masuk git.
+# Sumber seed koefisien + template output RAB; hanya di disk lokal.
+_source/
+
+# Graphify tooling artifacts (auto-generated, not source)
+graphify-out/
+.graphifyignore
+.claudeignore
+
 # Test coverage reports (auto-generated, not source)
 coverage/
 
