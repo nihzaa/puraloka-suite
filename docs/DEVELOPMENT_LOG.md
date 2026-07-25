@@ -323,6 +323,17 @@
 ---
 
 
+### 2026-07-25 — Feature — CECEP WBS / Work Breakdown Structure (Migration 109, Program C) — Milestone 3 dibuka
+**Status**: Done
+**Files affected**:
+- `db/migrations/109_cecep_wbs.sql` + kembar (applied ke dev)
+- `apps/api/src/routes/v1/__tests__/wbs.test.ts` (9 test)
+- ADR-009 (penerapan kedelapan)
+**Notes**: Milestone 3 domain #1 (non-approval). WBS Node = child dari Aggregate Project (bukan root), lensa Planning ("kapan & di mana"), paralel CBS (Cost), bertemu di Cost Code. Hierarki (parent_id) + cost_code_id nullable. Lifecycle draft→baseline→revised + re-baseline (revised→baseline diizinkan — planning berulang, WBS bukan basis-uang immutable; ⚠️ ringan dilaporkan, murah dibalik). Hard guard: lifecycle (tak bisa balik draft) + integritas hierarki (parent se-project). Mutation-proof: 2 guard → merah, dipulihkan → 9/9. Exclude: planned_start/end (integrasi Gantt keputusan tersendiri), company_id. 10 tabel CECEP di dev sekarang.
+
+---
+
+
 <!-- Template untuk entry baru:
 
 ### YYYY-MM-DD HH:MM — [Kategori] — [Deskripsi]
