@@ -29,7 +29,13 @@ const files = fs.readdirSync(dir).filter(f => /^\d+_.*\.sql$/.test(f)).sort()
 // di sini: ia cash-management (kritis) yang kebetulan menyinggung storage → tetap fatal.
 const STORAGE_ONLY = new Set(['012', '014', '015', '097', '098'])
 
-let applied = 0, skipped = 0, storageSkipped = []
+// Migrasi PURE-DATA (tanpa DDL) = seed. Config-seed (roles/permissions — self-contained)
+// LOLOS normal. Yang GAGAL pasti DEMO-seed (FK ke data contoh yang tak ada di project
+// fresh, mis. 024 work_scope_items → work_scopes) → TAK dibutuhkan test CI (test bikin
+// datanya sendiri) → skip. Migrasi ber-DDL yang gagal TETAP fatal (masalah nyata).
+const hasDDL = (sql) => /\b(CREATE|ALTER|DROP)\s+(TABLE|FUNCTION|TRIGGER|POLICY|VIEW|TYPE|INDEX|SCHEMA|EXTENSION|SEQUENCE|MATERIALIZED|DOMAIN|AGGREGATE|CONSTRAINT)/i.test(sql)
+
+let applied = 0, skipped = 0, storageSkipped = [], demoSkipped = []
 for (const f of files) {
   const version = f.match(/^(\d+)_/)[1]
   const { rows } = await c.query(`SELECT 1 FROM supabase_migrations.schema_migrations WHERE version=$1`, [version])
@@ -53,13 +59,21 @@ for (const f of files) {
       console.warn(`  storage-skip ${f} → ${e.message.split('\n')[0]}`)
       continue
     }
-    console.error(`\nFATAL migration GAGAL: ${f}\n  ${e.message}`)
+    if (!hasDDL(sql)) {
+      // Pure-data yang gagal = DEMO-seed (FK ke data contoh) → skip + catat + lanjut.
+      await c.query(`INSERT INTO supabase_migrations.schema_migrations (version, name) VALUES ($1,$2) ON CONFLICT DO NOTHING`, [version, f + ' [DEMO-SEED-SKIPPED]'])
+      demoSkipped.push(`${f}: ${e.message.split('\n')[0]}`)
+      console.warn(`  demo-seed-skip ${f} → ${e.message.split('\n')[0]}`)
+      continue
+    }
+    console.error(`\nFATAL migration GAGAL (ber-DDL): ${f}\n  ${e.message}`)
     await c.end()
     process.exit(1)
   }
 }
-console.log(`MIGRATIONS: applied=${applied} skipped(applied)=${skipped} storage-skipped=${storageSkipped.length} total=${files.length}`)
+console.log(`MIGRATIONS: applied=${applied} skipped(applied)=${skipped} storage-skipped=${storageSkipped.length} demo-skipped=${demoSkipped.length} total=${files.length}`)
 if (storageSkipped.length) console.log('  storage-skipped:\n   ' + storageSkipped.join('\n   '))
+if (demoSkipped.length) console.log('  demo-seed-skipped:\n   ' + demoSkipped.join('\n   '))
 
 // ── 3. seed data uji minimal (idempoten, per-item non-fatal) ───────────────
 const seedErrors = []
