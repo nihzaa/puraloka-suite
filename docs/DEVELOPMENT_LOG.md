@@ -407,6 +407,20 @@
 ---
 
 
+### 2026-07-25 — Feature — CECEP Lessons Learned WRITE-BACK via engine (Migration 114, Program C) — Company Intelligence Loop DITUTUP
+**Status**: Done
+**Files affected**:
+- `db/migrations/114_cecep_lessons_writeback.sql` + kembar (applied ke dev) — proposals table + chain lessons_learned + fn_propagate_lesson + relaksasi approved→propagated
+- `apps/api/src/routes/v1/lessons-learned.ts` (baru) — submit/approve(+propagate)/reject
+- `apps/api/src/utils/approval.ts` (+ 'lessons_learned' union), index.ts (registrasi)
+- `apps/api/src/routes/v1/__tests__/lessons-writeback.test.ts` (5) + authz (+2 = 34)
+**Notes**: TITIK STOP DILEWATI dengan keputusan founder. Write-back Company Intelligence Loop via engine ADR-007 (titik ke-3, 47 §3). Keputusan founder: lesson simpan USULAN KONKRET (lesson_propagation_proposals: productivity/price_book, nilai + resource + cost_code), approve lesson via engine = commit usulan. Nilai apa adanya source='variance', blending nanti. fn_propagate_lesson ATOMIK: approve final → status approved → propagasi membuat VERSI BARU (productivity source=variance; price_book status verified verified_by=approver) PERSIS dari usulan → status propagated. Tak pernah mutate versi lama (immutability M1-M2 menegakkan). Traceability created_record_id terisi. Assembly propagation ditunda (multi-komponen). Mutation-proof: gerbang canParticipateInChain (vs jaring authz, 403-sebelum-404) → 2 merah; propagasi dilewati → 3 merah. Gate: tsc 0, lint 0, 510 test hijau (55 file). 17 tabel CECEP.
+
+**✅ CECEP MILESTONE 4 SELESAI — Company Intelligence Loop hidup DENGAN gerbang manusia**: RAB/BOQ (#60), Cashflow (#61), ACL (#62), Lessons struktur (#63), write-back (ini). "AI tidak boleh langsung belajar. Harus ada approval." ditegakkan.
+
+---
+
+
 <!-- Template untuk entry baru:
 
 ### YYYY-MM-DD HH:MM — [Kategori] — [Deskripsi]

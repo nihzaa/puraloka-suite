@@ -10,7 +10,8 @@ import { evaluateApproval, type ApprovalDecision, type ApprovalStep } from '../l
 
 export type ApprovalEntityType =
   | 'kasbon' | 'change_order' | 'material_request' | 'project_expense'
-  | 'estimate_version' // CECEP Milestone 3 — approval via engine yang sama (ADR-007, 47 §3)
+  | 'estimate_version'  // CECEP Milestone 3 — approval via engine yang sama (ADR-007, 47 §3)
+  | 'lessons_learned'   // CECEP Milestone 4 — titik approval ke-3 (47 §3); approve = memicu write-back
 
 /** Ambil langkah rantai aktif untuk sebuah entitas. */
 async function loadSteps(entityType: ApprovalEntityType): Promise<{ steps: ApprovalStep[]; error?: string }> {
