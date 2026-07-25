@@ -421,6 +421,35 @@
 ---
 
 
+### 2026-07-25 — Feature — CECEP Fondasi UNIT (Migration 115, Program C) — prasyarat seed AHSP
+**Status**: Done (applied ke dev) — 🛑 STOP untuk review founder sebelum seed
+**Files affected**:
+- `db/migrations/115_cecep_unit_foundation.sql` + kembar (applied ke dev)
+- `apps/api/src/routes/v1/__tests__/unit-foundation.test.ts` (9 test, tx rollback → nol residu)
+- `apps/api/src/routes/v1/__tests__/lessons-writeback.test.ts` (fix: resource insert + unit_code='OH')
+- `apps/api/scripts/cleanup-cecep-residue.mjs` (item 1b — dry-run teruji, belum --execute)
+- `docs/…/CECEP/CI-ISOLATION-SETUP.md` (item 1a — checklist provisioning founder)
+**Notes**: Keputusan founder — EXTEND tabel `units` existing (090), BUKAN vocabulary kedua. Kode existing (m/buah/batang) dipertahankan (mandor menyimpannya sbg nilai). Ditambah: kolom `dimension` (backfill dari category: weight→mass, ls→lumpsum; NOT NULL + CHECK 8 nilai) + satuan tenaga AHSP OH(labor_day)/jam(time). `resources.unit_code` FK NOT NULL immutable begitu direferensikan komponen/harga (guard `trg_resources_unit_immutable`). `assemblies.output_unit_code` FK NOT NULL, ditambahkan ke guard immutability 107 (beku begitu ≠ draft). Coefficient tetap polos; price_book tanpa kolom unit (Zero-Invention ADR-006). Mutation-proof: disable→red→restore untuk KEDUA guard (tx rollback, dev utuh) + assertion berpasangan di test. Gate: tsc 0, lint 0, 519 test hijau (56 file). Item 0 (verifikasi nol create endpoint) + item 1a/1b (CI isolation) dilaporkan; 1a menunggu provisioning founder.
+
+**🛑 TITIK STOP**: seed AHSP (20-30 pekerjaan kurasi) BELUM dimulai — menunggu founder review fondasi unit + verifikasi endpoint (perintah verbatim: "Jangan mulai (b) seed sebelum saya lihat…").
+
+---
+
+
+### 2026-07-25 — Feature — CECEP satuan OJ + dimensi labor_time (Migration 116) + AHSP recon
+**Status**: Done (applied ke dev) — 🛑 STOP untuk review founder sebelum seed/engine
+**Files affected**:
+- `db/migrations/116_cecep_unit_labor_time.sql` + kembar (applied ke dev)
+- `apps/api/src/routes/v1/__tests__/unit-foundation.test.ts` (OH→labor_time + OJ)
+- `docs/…/CECEP/AHSP-RECON-REPORT.md` (recon a-j + keputusan founder terkunci)
+- `.gitignore` (_source/ 97 MB + graphify artifacts)
+**Notes**: Keputusan founder pasca-recon AHSP SE 47/2026. OH & OJ berbagi dimensi `labor_time` (orang×waktu, sebanding 1 OH=7 OJ per SNI — dok saja, TANPA converter; pembeda tenaga/alat/kalender via resources.category, bukan dimension). `labor_day` (115) di-rename `labor_time`; `jam`/`hari`=time. Aman rename langsung (labor_day cuma di CHECK+seed OH, nol baris hidup — diverifikasi). Recon read-only workbook: koef 16126 literal vs 43 formula-cache (nol di thin-slice); kamus satuan dari data; harga=ilustrasi; 3143 item; peta paritas 16 perhitungan (Definition of Done engine); pembulatan HANYA HSP ROUNDDOWN(-2). Keputusan terkunci: hsp_raw+hsp_rounded (rantai dokumen dari rounded, tak dicampur), rounding mode/step config effective-date tapi tahap=struktural Ember[C], PPN config effective-date, cacat Excel (PPN 11% vs 0,12; beda pembulatan antar file) TIDAK diselesaikan diam-diam → daftar cacat + tanya. Disiplin paritas: reproduksi Excel dulu, fix pengubah-angka = flag DEFAULT OFF + ADR. Gate: 9 test unit-foundation hijau (tx-rollback, nol residu). m'→alias m_linear.
+
+**🛑 TITIK STOP**: teardown total workbook (VBA, defined names, hidden sheets, daftar cacat, Control vs Khusus) sedang dikerjakan sbg laporan; seed + engine belum dibangun — menunggu review founder.
+
+---
+
+
 <!-- Template untuk entry baru:
 
 ### YYYY-MM-DD HH:MM — [Kategori] — [Deskripsi]

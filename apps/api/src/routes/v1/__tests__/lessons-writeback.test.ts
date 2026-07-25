@@ -84,7 +84,7 @@ beforeAll(async () => {
      VALUES ($1,$2,'[TEST] Loop Intelijen','Bandung',CURRENT_DATE,CURRENT_DATE+30,$2) RETURNING id`, [cl[0].id, adminUserId])
   projectId = pr[0].id
   const { rows: rr } = await client.query(
-    `INSERT INTO resources (code,name,category,created_by) VALUES ('RBS-LLWB-TK','Tukang Besi','labor',$1) RETURNING id`, [adminUserId])
+    `INSERT INTO resources (code,name,category,unit_code,created_by) VALUES ('RBS-LLWB-TK','Tukang Besi','labor','OH',$1) RETURNING id`, [adminUserId])
   resourceId = rr[0].id
   const { rows: cc } = await client.query(
     `INSERT INTO cost_codes (code,name,created_by) VALUES ('CC-LLWB-PB','Pembesian',$1) RETURNING id`, [adminUserId])
