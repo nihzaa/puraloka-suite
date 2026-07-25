@@ -6,6 +6,7 @@ import {
   evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain,
 } from '../../utils/approval.js'
 import { computeRab, computeBoq, type EstimateItemRow } from '../../lib/rab-readmodel.js'
+import { forecastCashflow } from '../../lib/cashflow-forecast.js'
 
 // CECEP Milestone 3 — approval Estimate Version LEWAT engine ADR-007 (bukan jalur
 // approval kelima). Keputusan founder pasca-discovery + mandat `47` §3 CECEP
@@ -59,6 +60,27 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
       if (error) return reply.status(500).send({ error: error.message })
 
       return reply.send({ estimate_version_id: id, lines: computeBoq((items ?? []) as EstimateItemRow[]) })
+    })
+
+  // ── GET /cashflow-forecast — proyeksi pencairan kas (Milestone 4) ───────────
+  // Read-model: distribusikan total estimasi ke N periode via normal-CDF (`52`
+  // Gap 1). Angka dihitung lib/cashflow-forecast.ts (ber-test: Σ = baseline persis).
+  // Fallback agregat (tanpa jadwal per-cost-code) = pola normal-CDF, sesuai `52`.
+  app.get<{ Params: { id: string }; Querystring: { periods?: string } }>(
+    '/api/v1/estimate-versions/:id/cashflow-forecast',
+    { preHandler: [authenticate, requirePermission('cecep:estimate:view')] },
+    async (request, reply) => {
+      const { id } = request.params
+      const periods = Math.max(1, Math.min(104, Number(request.query.periods) || 12)) // cap 2 tahun mingguan
+      const { data: v } = await supabase
+        .from('estimate_versions').select('id, status, total_amount').eq('id', id).maybeSingle()
+      if (!v) return reply.status(404).send({ error: 'Estimate Version tidak ditemukan' })
+
+      const forecast = forecastCashflow(Number(v.total_amount) || 0, periods)
+      return reply.send({
+        estimate_version_id: id, status: v.status,
+        baseline_total: Number(v.total_amount) || 0, periods, forecast,
+      })
     })
 
   // ── PATCH /submit — draft → under_review (author mengajukan) ────────────────

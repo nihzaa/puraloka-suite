@@ -374,6 +374,17 @@
 ---
 
 
+### 2026-07-25 — Feature — CECEP Cashflow Forecast read-model (Program C, Milestone 4)
+**Status**: Done
+**Files affected**:
+- `apps/api/src/lib/cashflow-forecast.ts` + `.test.ts` (8 test angka) — fungsi murni forecastCashflow
+- `apps/api/src/routes/v1/estimate-versions.ts` (GET /cashflow-forecast)
+- `apps/api/src/routes/v1/__tests__/estimate-approval.test.ts` (+1 test integrasi)
+**Notes**: Milestone 4 read-model #2. Cashflow Forecast = proyeksi pencairan kas ke depan (`52` Gap 1), read-model tanpa tabel baru. MEWARISI normalCDF (mu=0.5,sigma=0.2) dari kurva-s.ts (Zero-Invention). SATU penyimpangan dilaporkan: dinormalisasi ke massa CDF total supaya Σ pencairan = baseline PERSIS 100% (kurva-s pakai CDF mentah → truncate ~99,4%, wajar untuk kurva progres visual tapi salah untuk forecast pencairan yang harus habiskan 100% budget). Test angka manual: Σ=baseline persis, S-curve (tengah>ujung), monoton, simetris mu=0.5, edge 0/1 periode. Gate: tsc 0, lint 0, 483 test hijau (52 file). No migration.
+
+---
+
+
 <!-- Template untuk entry baru:
 
 ### YYYY-MM-DD HH:MM — [Kategori] — [Deskripsi]
