@@ -363,6 +363,17 @@
 ---
 
 
+### 2026-07-25 — Feature — CECEP RAB/BOQ read-model (Program C, Milestone 4 dibuka)
+**Status**: Done
+**Files affected**:
+- `apps/api/src/lib/rab-readmodel.ts` + `.test.ts` (7 test angka) — fungsi murni computeRab/computeBoq
+- `apps/api/src/routes/v1/estimate-versions.ts` (GET /rab, GET /boq)
+- `apps/api/src/routes/v1/__tests__/estimate-approval.test.ts` (+2 test integrasi angka)
+**Notes**: Milestone 4 read-model #1. RAB/BOQ = read-model dari Estimate Item (TIDAK ada tabel baru, `37` §3/`49` M4). computeRab: breakdown per CBS + subtotal + grand total = Σ amount. computeBoq: kuantitas per Cost Code TANPA harga (dokumen supplier). DISIPLIN M4: angka diuji terhadap hitungan MANUAL hardcoded (bukan "query jalan") — seed 3 item {1jt, 2,5jt, 500rb} → assert grand_total=4jt; string numeric dijumlah bukan konkat; desimal tanpa drift; BOQ tak bocorkan harga. Endpoint gate cecep:estimate:view. Gate: tsc 0, lint 0, 474 test hijau (51 file). No migration (read-model murni).
+
+---
+
+
 <!-- Template untuk entry baru:
 
 ### YYYY-MM-DD HH:MM — [Kategori] — [Deskripsi]

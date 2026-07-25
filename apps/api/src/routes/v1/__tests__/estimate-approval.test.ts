@@ -25,7 +25,7 @@ let costCodeId: string
 
 const actAs = (a: string) =>
   vi.spyOn(supabaseAuth.auth, 'getUser').mockResolvedValue({ data: { user: { id: a } }, error: null } as never)
-const req = (method: 'PATCH', url: string, payload?: unknown) =>
+const req = (method: 'GET' | 'PATCH', url: string, payload?: unknown) =>
   app.inject({ method, url, payload: payload as never, headers: { authorization: 'Bearer t' } })
 
 async function newVersionWithItem(): Promise<string> {
@@ -91,6 +91,47 @@ beforeAll(async () => {
 
 afterEach(() => { vi.restoreAllMocks() })
 afterAll(async () => { await purge(); await app.close(); await client.end() })
+
+describe('RAB/BOQ read-model — angka dari DB nyata cocok hitungan manual', () => {
+  it('GET /rab: grand total = jumlah amount item yang di-seed', async () => {
+    // Seed 3 item bernilai TAHU di satu version, lewat DB langsung (bypass API).
+    const { rows: v } = await client.query(
+      `INSERT INTO estimate_versions (scenario_id, version_number, created_by)
+       VALUES ($1,(SELECT COALESCE(MAX(version_number),0)+1 FROM estimate_versions WHERE scenario_id=$1),$2) RETURNING id`,
+      [scenarioId, adminUserId])
+    const vid = v[0].id
+    for (const amt of [1_000_000, 2_500_000, 500_000]) {
+      await client.query(
+        `INSERT INTO estimate_items (estimate_version_id, cost_code_id, quantity, amount) VALUES ($1,$2,1,$3)`,
+        [vid, costCodeId, amt])
+    }
+    actAs(adminAuth)
+    const r = await req('GET', `/api/v1/estimate-versions/${vid}/rab`)
+    expect(r.statusCode, r.body).toBe(200)
+    const body = JSON.parse(r.body)
+    // MANUAL: 1.000.000 + 2.500.000 + 500.000 = 4.000.000
+    expect(body.grand_total).toBe(4_000_000)
+    // subtotal = grand total (semua item CBS null → satu grup)
+    expect(body.groups.reduce((s: number, g: { subtotal: number }) => s + g.subtotal, 0)).toBe(4_000_000)
+  }, 30_000)
+
+  it('GET /boq: kuantitas per cost code, response tak memuat amount', async () => {
+    const { rows: v } = await client.query(
+      `INSERT INTO estimate_versions (scenario_id, version_number, created_by)
+       VALUES ($1,(SELECT COALESCE(MAX(version_number),0)+1 FROM estimate_versions WHERE scenario_id=$1),$2) RETURNING id`,
+      [scenarioId, adminUserId])
+    const vid = v[0].id
+    await client.query(
+      `INSERT INTO estimate_items (estimate_version_id, cost_code_id, quantity, amount) VALUES ($1,$2,7,9999999)`,
+      [vid, costCodeId])
+    actAs(adminAuth)
+    const r = await req('GET', `/api/v1/estimate-versions/${vid}/boq`)
+    expect(r.statusCode).toBe(200)
+    const body = JSON.parse(r.body)
+    expect(body.lines[0].quantity).toBe(7)
+    expect(r.body).not.toContain('9999999') // harga tak bocor ke BOQ
+  }, 30_000)
+})
 
 describe('Submit — draft → under_review', () => {
   it('admin submit estimasi ber-item → under_review', async () => {
