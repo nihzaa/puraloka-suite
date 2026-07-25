@@ -76,7 +76,7 @@ langsung kalau **tak** mengubah angka.
 
 | # | Cacat | Lokasi | Dampak angka | Usul perbaikan | Kelas |
 |---|---|---|---|---|---|
-| **D1** | **PPN label "11%" tapi faktor `0,12`** | REKAPITULASI Control D19 | 12% vs 11% → contoh 1,66 M = **+Rp16,6 jt** | PPN config effective-date. **TIDAK diselesaikan diam-diam → TANYA founder** rate mana yang sah utk SE 47/2026 | ubah-angka → **flag+ADR**, tapi rate = **config** |
+| **D1** | **PPN: rumus LUPA faktor DPP nilai lain 11/12** (bukan salah label). Per PMK 131/2024: tarif 12%, tapi BKP non-mewah & JKP (jasa konstruksi) pakai **DPP nilai lain 11/12** → efektif 11%. Excel hitung `0,12 × DPP penuh` = **12%** (kelebihan 1 poin). Label "11%" **BENAR** (tarif efektif); rumusnya yang cacat. | REKAPITULASI Control D19 | Excel over-charge **12% vs 11% efektif** → contoh 1,66 M = **+Rp16,6 jt** | Model **DUA angka + effective-date**: `ppn_rate` (0,12) × `dpp_factor` (11/12; mewah=1) + `dasar_hukum`. Formula tunggal PPN = `ppn_rate × dpp_factor × DPP` (tanpa cabang mewah di kode). Simpan 11/12 **presisi penuh** (bukan 0,9167) → e-Faktur/Coretax bisa tampil "DPP nilai lain + tarif 12%". **Pakai config PPN EXISTING** (`financial_config`), JANGAN bikin setting kedua. | ubah-angka → **flag DEFAULT OFF per-PROYEK + ADR** (proyek lama kontrak-tanda-tangan tak berubah); split dpp_factor sendiri number-preserving utk invoice |
 | **D2** | **Pembulatan HSP inkonsisten antar file resmi** | main/Khusus `ROUNDDOWN(−2)` vs Control tanpa bulat | <Rp100/item × ribuan item → selisih total jutaan | Adopsi SE-baku `ROUNDDOWN(−2)` (founder). Simpan `hsp_raw`+`hsp_rounded`; rantai dokumen dari rounded | ubah-angka → **flag+ADR** |
 | **D3** | 5.461 defined name eksternal phantom + 59 `#REF!` | semua file | **NOL** (tak dipakai formula) | Abaikan saat import; sistem pakai FK eksplisit, bukan named range | tak ubah-angka → langsung |
 | **D4** | Konstanta hardcoded (50, 0,006165, 3,14, densitas) | ratusan formula | tergantung asumsi; π=3,14 bias ~0,05% | Parameter bernama (sak_size, rebar_coef, π penuh, density table) | ubah-angka (π) → **flag+ADR**; sisanya config |
@@ -86,7 +86,29 @@ langsung kalau **tak** mengubah angka.
 | **D8** | Kapabilitas tak lengkap per file | Khusus: tak ada REKAP/PPN/Kurva-S; Control: tak ada take-off/DB penuh; **eskalasi tak dihitung** (ESCON broken); analisa alat berat tak ada blok khusus | cakupan | Satukan semua di sistem (rekap+PPN+kurva-s+take-off+eskalasi+alat) | fitur baru, di luar paritas dasar |
 | **D9** | Range VLOOKUP statis `$C$5:$J$672` + 43 koefisien-formula `=<sel lain>` di tengah kolom | domain sheets | item baru di luar range → `#N/A`-ish | Relasi tabel, bukan range statis | tak ubah-angka → langsung |
 
-> **Cacat yang butuh keputusan Anda SEKARANG: D1 (rate PPN 11% vs 12% untuk SE 47/2026).**
+> **D1 SUDAH diputus founder (PMK 131/2024): dua angka `ppn_rate×dpp_factor`, lihat §5.**
+
+### Discovery — jalur PPN existing (single source of truth) + temuan model
+
+Diminta founder: "cek di mana PPN hidup sekarang; jangan bikin setting kedua; lapor kalau hardcode."
+
+- **SUDAH ADA & effective-dated (bagus):** `financial_config` (key/value/effective_from/effective_to,
+  half-open, anti-gap close-then-insert, anti-overlap 23P01) → `getTaxRate(scheme, atDate)` →
+  `calculateTax()`. `termin-payment.ts:183-184` memanggilnya dengan **anchor tanggal dokumen**
+  (`getTaxRate(project.tax_scheme, paid_at)`). Governance: `PUT /settings/finance`
+  (`settings:finance:manage`), guard rate 0..1. **CECEP WAJIB pakai ini, bukan config PPN kedua.**
+- **TEMUAN (deficiency, D10):** model menyimpan PPN sebagai **satu fraksi terkolaps `tax.ppn_rate=0,11`**,
+  BUKAN dua angka `ppn_rate(0,12) × dpp_factor(11/12)`. Akibat: **angka invoice existing BENAR** (11% efektif —
+  bukan bug), TAPI **penyajian DPP nilai lain HILANG** (e-Faktur butuh "DPP×11/12 + tarif 12%", tak
+  terwakili oleh 0,11 tunggal). `STATIC_FALLBACK`/`TAX_RATE_BY_SCHEME` meng-hardcode 0,11 sebagai fallback
+  (loud, dapat diterima); `settings.ts` bahkan menuliskan asumsi "0.11 untuk 11%" di pesan guard.
+- **Usul (belum dibangun):** tambah `tax.ppn_dpp_factor` (default 11/12) ke `financial_config`; ubah makna
+  `tax.ppn_rate` → 0,12 statutory; `getTaxRate`→`getPpnComponents(rate, dpp_factor)`; formula tunggal.
+  Karena 0,12×11/12 = 0,11 **persis**, total invoice **TIDAK berubah** → split ini **number-preserving**
+  untuk invoice → boleh langsung (tanpa flag), sekaligus memulihkan presentasi e-Faktur. Untuk CECEP RAB:
+  paritas flag OFF = `0,12 × DPP penuh` (tiru Excel, 12%); flag ON = config bersama (11%), **per-proyek**.
+
+| **D10** | PPN model = satu fraksi terkolaps 0,11 (bukan rate×dpp_factor) → presentasi DPP nilai lain hilang | `financial-config.ts`, `tax-calculation.ts`, `settings.ts` | angka sama (11%), presentasi e-Faktur salah/hilang | Dua angka rate×dpp_factor di `financial_config` bersama (lihat §5) | number-preserving → langsung; presentasi = perbaikan |
 
 ## 3. Control vs Khusus — bukan subset, tapi KOMPLEMENTER
 
