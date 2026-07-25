@@ -421,6 +421,21 @@
 ---
 
 
+### 2026-07-25 — Feature — CECEP Fondasi UNIT (Migration 115, Program C) — prasyarat seed AHSP
+**Status**: Done (applied ke dev) — 🛑 STOP untuk review founder sebelum seed
+**Files affected**:
+- `db/migrations/115_cecep_unit_foundation.sql` + kembar (applied ke dev)
+- `apps/api/src/routes/v1/__tests__/unit-foundation.test.ts` (9 test, tx rollback → nol residu)
+- `apps/api/src/routes/v1/__tests__/lessons-writeback.test.ts` (fix: resource insert + unit_code='OH')
+- `apps/api/scripts/cleanup-cecep-residue.mjs` (item 1b — dry-run teruji, belum --execute)
+- `docs/…/CECEP/CI-ISOLATION-SETUP.md` (item 1a — checklist provisioning founder)
+**Notes**: Keputusan founder — EXTEND tabel `units` existing (090), BUKAN vocabulary kedua. Kode existing (m/buah/batang) dipertahankan (mandor menyimpannya sbg nilai). Ditambah: kolom `dimension` (backfill dari category: weight→mass, ls→lumpsum; NOT NULL + CHECK 8 nilai) + satuan tenaga AHSP OH(labor_day)/jam(time). `resources.unit_code` FK NOT NULL immutable begitu direferensikan komponen/harga (guard `trg_resources_unit_immutable`). `assemblies.output_unit_code` FK NOT NULL, ditambahkan ke guard immutability 107 (beku begitu ≠ draft). Coefficient tetap polos; price_book tanpa kolom unit (Zero-Invention ADR-006). Mutation-proof: disable→red→restore untuk KEDUA guard (tx rollback, dev utuh) + assertion berpasangan di test. Gate: tsc 0, lint 0, 519 test hijau (56 file). Item 0 (verifikasi nol create endpoint) + item 1a/1b (CI isolation) dilaporkan; 1a menunggu provisioning founder.
+
+**🛑 TITIK STOP**: seed AHSP (20-30 pekerjaan kurasi) BELUM dimulai — menunggu founder review fondasi unit + verifikasi endpoint (perintah verbatim: "Jangan mulai (b) seed sebelum saya lihat…").
+
+---
+
+
 <!-- Template untuk entry baru:
 
 ### YYYY-MM-DD HH:MM — [Kategori] — [Deskripsi]
