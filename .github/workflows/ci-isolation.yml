@@ -1,8 +1,10 @@
 name: CI Isolation (manual)
 
 # Operasi setup/verifikasi project Supabase CI — dijalankan manual (workflow_dispatch)
-# karena secret CI_* hidup di GitHub Secrets, bukan lokal. Berbagi concurrency group
-# dengan CI utama supaya tak balapan akses DB.
+# karena secret CI_* hidup di GitHub Secrets, bukan lokal. Menyentuh project CI (bukan
+# dev), jadi TAK boleh berbagi group dengan CI utama — kalau berbagi, run inventaris
+# yang PENDING dibatalkan tiap ada CI baru masuk group (cancel older-pending). Group
+# sendiri, per-run unik, supaya tak pernah dibatalkan run lain.
 on:
   workflow_dispatch:
     inputs:
@@ -14,7 +16,7 @@ on:
         options: [inventory]
 
 concurrency:
-  group: ci-shared-dev-db
+  group: ci-isolation-ops-${{ github.run_id }}
   cancel-in-progress: false
 
 jobs:
