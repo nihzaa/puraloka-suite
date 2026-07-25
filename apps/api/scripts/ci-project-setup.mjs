@@ -104,11 +104,14 @@ for (const [role, email, name] of USERS) {
   })
 }
 
-// 1 client — insert minimal, isi kolom NOT NULL yang ada secara dinamis.
+// 1 client — kolom NOT NULL: contact_person, phone, created_by (company_name nullable).
 await seed('client', async () => {
-  const { rows: has } = await c.query(`SELECT 1 FROM clients WHERE name='CI Seed Client' LIMIT 1`)
+  const { rows: has } = await c.query(`SELECT 1 FROM clients WHERE contact_person='CI Seed Client' LIMIT 1`)
   if (has.length) return
-  await c.query(`INSERT INTO clients (name) VALUES ('CI Seed Client')`)
+  await c.query(
+    `INSERT INTO clients (contact_person, phone, created_by)
+     VALUES ('CI Seed Client', '0800000000',
+             (SELECT id FROM public.users WHERE email='ci-admin@puraloka.test' LIMIT 1))`)
 })
 
 // 1 cost_code (CECEP) — created_by admin.

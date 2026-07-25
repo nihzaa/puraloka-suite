@@ -6,16 +6,13 @@ on:
   push:
     branches: [main]
 
-# Semua job test menulis ke DB Supabase dev yang SAMA (handler pakai service_role →
-# schema `public`; RLS-harness tests bypass TEST_SCHEMA). Tanpa serialisasi, CI run
-# paralel saling menimpa fixture di dev — mis. dua run menyisipkan approval_steps
-# level 2 ke rantai yang sama → "duplicate key (chain_id, level)", atau satu run
-# menghapus rantai uji milik run lain di tengah jalan → 404. Serialkan SEMUA run yang
-# berbagi dev (group konstan lintas branch/PR/main). JANGAN cancel-in-progress: run
-# yang dibatalkan di tengah bisa meninggalkan residu untuk run berikutnya.
-# Solusi PERMANEN: DB CI terpisah (lihat CECEP/CI-ISOLATION-SETUP.md).
+# CI kini memakai project Supabase CI TERPISAH (puraloka-suite-ci) — bukan dev.
+# Test handler tetap menulis ke schema `public` project CI (service_role) + RLS-harness
+# bypass TEST_SCHEMA, jadi run paralel masih bisa saling menimpa fixture di project CI.
+# Serialkan SEMUA run yang berbagi project CI (group konstan). JANGAN cancel-in-progress:
+# run yang dibatalkan di tengah bisa meninggalkan residu. Dev TIDAK LAGI disentuh CI.
 concurrency:
-  group: ci-shared-dev-db
+  group: ci-shared-ci-db
   cancel-in-progress: false
 
 jobs:
@@ -47,23 +44,29 @@ jobs:
       - name: Typecheck
         run: pnpm exec tsc --noEmit
 
+      # Apply-pending migrasi + seed uji ke project CI (idempoten: skip yang sudah
+      # applied, apply yang baru, re-seed jika hilang). BUKAN push-semua tiap run.
+      - name: Prepare CI project (apply pending migrations + seed)
+        run: node scripts/ci-project-setup.mjs
+        env:
+          CI_DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
       - name: Test
         run: pnpm test
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SUPABASE_URL: ${{ secrets.CI_SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.CI_SUPABASE_SECRET_KEY }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          DIRECT_URL: ${{ secrets.DIRECT_URL }}
-          # Schema test unik per run → tidak ada race antar CI run paralel yang
-          # berbagi Supabase dev DB (akar "type user_role already exists").
+          DATABASE_URL: ${{ secrets.CI_DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+          # Schema test unik per run → tak ada race antar CI run paralel di project CI.
           TEST_SCHEMA: test_${{ github.run_id }}
 
       - name: Drop per-run test schema
         if: always()
         run: pnpm exec tsx src/test-utils/drop-test-schema.ts
         env:
-          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
           TEST_SCHEMA: test_${{ github.run_id }}
 
       - name: Build
