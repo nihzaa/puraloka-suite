@@ -450,6 +450,18 @@
 ---
 
 
+### 2026-07-25 — Feature — CECEP AHSP Calculation Engine (PURE, paritas Excel) — inti kalkulasi
+**Status**: Done — otonom (aba-aba founder "mulai saja kalo yakin"), paritas-dulu, DB-free
+**Files affected**:
+- `apps/api/src/lib/ahsp-engine.ts` (baru, murni tanpa I/O)
+- `apps/api/src/lib/ahsp-engine.test.ts` (10 golden-number test dari sel Excel)
+**Notes**: Inti engine kalkulasi AHSP dibangun sebagai FUNGSI MURNI (nol sentuh DB → nol residu dev → tak butuh CI isolation maupun golden-file, menghormati urutan founder: seed DB tetap menunggu CI isolation). Reproduksi rantai workbook SE 47/2026 sampai rupiah: `computeAhsp` (Σκoef×HSD per grup A/B/C → D → +BUK → hspRaw → applyRounding → hspRounded), `computeRabLineTotal`, `computePpn`, `computeRabRollup`. Paritas-dulu: default meniru file utama (ROUNDDOWN Rp100, agregat desimal penuh); semua param (BUK, rounding, PPN) di-INJECT. DUA nilai HSP (raw internal + rounded rantai-dokumen). PPN rasional (kali-dulu-bagi-belakangan) → 11/12 tak pernah 0,9167 (D10). Golden test angka PERSIS Excel: Pasangan Dinding 3.6.1.1 HSP=278300, 3.6.1.2 HSP=266600, REKAP PPN=198.940.750,846 grand=1.856.780.341,23, mini-RAB rantai bulat eksak; koreksi 11/12 terbukti tanpa drift (naif 0,916667 melenceng +Rp66). Gate: tsc 0, lint 0, 10 test hijau.
+
+**Belum**: seed DB koefisien (menunggu CI isolation founder), engine↔config effective-date wiring (BUK/PPN/rounding + flag koreksi D1/D2 per-proyek), golden-file dari RAB nyata founder.
+
+---
+
+
 <!-- Template untuk entry baru:
 
 ### YYYY-MM-DD HH:MM — [Kategori] — [Deskripsi]
