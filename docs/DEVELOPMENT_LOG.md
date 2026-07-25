@@ -385,6 +385,16 @@
 ---
 
 
+### 2026-07-25 — Feature — CECEP ACL Actual Cost (Migration 112, Program C, Milestone 4)
+**Status**: Done
+**Files affected**:
+- `db/migrations/112_cecep_acl_actual_cost.sql` + kembar (applied ke dev)
+- `apps/api/src/routes/v1/__tests__/acl-actual-cost.test.ts` (7 test)
+**Notes**: Milestone 4 — SATU-SATUNYA tabel baru M4. ACL Anti-Corruption Layer (doc 46): tabel translasi category_id (project_expenses existing) ↔ cost_code_id (CECEP). Dikonsumsi READ-ONLY oleh Cost Control + Historical Cost Intelligence; TIDAK mengubah project_expenses/kasbons (Zero-Invention). Keputusan modeling: category_id UNIK (resolusi deterministik, satu category→satu cost code); banyak category→satu cost code diizinkan (rollup). Test: FK integrity (category & cost_code harus ada), UNIQUE, rollup, CASCADE dari kategori (tak sentuh cost code). Gate: tsc 0, lint 0, 490 test hijau (53 file). 14 tabel CECEP di dev.
+
+---
+
+
 <!-- Template untuk entry baru:
 
 ### YYYY-MM-DD HH:MM — [Kategori] — [Deskripsi]
