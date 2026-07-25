@@ -57,14 +57,19 @@ beforeAll(async () => {
 afterAll(async () => { if (client) { await q('ROLLBACK'); await client.end() } })
 
 describe('units: dimension terisi + satuan tenaga AHSP (config-first, EXTEND 090)', () => {
-  it('semua unit punya dimension sah; OH=labor_day, jam=time, weight→mass, ls→lumpsum', async () => {
+  it('dimension sah & konsisten: OH+OJ=labor_time, jam+hari=time, weight→mass, ls→lumpsum', async () => {
     const { rows: nulls } = await q(`SELECT code FROM units WHERE dimension IS NULL`)
     expect(nulls, 'tak boleh ada unit tanpa dimension').toHaveLength(0)
     const { rows } = await q(
-      `SELECT code,dimension FROM units WHERE code IN ('OH','jam','m2','kg','ls') ORDER BY code`)
+      `SELECT code,dimension FROM units WHERE code IN ('OH','OJ','jam','hari','m2','kg','ls') ORDER BY code`)
     const map = Object.fromEntries(rows.map(r => [r.code, r.dimension]))
-    expect(map.OH).toBe('labor_day')
+    // OH & OJ berbagi labor_time (sebanding 1 OH=7 OJ, migration 116); pembeda
+    // tenaga/alat via resources.category, bukan dimension.
+    expect(map.OH).toBe('labor_time')
+    expect(map.OJ).toBe('labor_time')
+    // jam & hari (alat/kalender) = time murni, BUKAN labor_time.
     expect(map.jam).toBe('time')
+    expect(map.hari).toBe('time')
     expect(map.m2).toBe('area')
     expect(map.kg).toBe('mass')
     expect(map.ls).toBe('lumpsum')

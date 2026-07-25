@@ -215,3 +215,29 @@ menghitung **BOQ** (`Hitungan Volume`), **produktivitas/crew**, dan **take-off b
 borongan/aktual. **RAP** (anggaran pelaksanaan: harga riil, borongan mandor, realisasi, settlement)
 memang **TIDAK ada** di file ini → **jalur terpisah**, benar. Paritas Excel menuntaskan sisi RAB + BOQ +
 produktivitas; RAP dibangun terpisah di atas fondasi yang sama (resources/units/CBS).
+
+---
+
+## Keputusan founder — TERKUNCI (2026-07-25)
+
+1. **Satuan OJ & dimensi `labor_time`** (migration 116, applied dev): OH & OJ berbagi satu dimensi
+   `labor_time` (orang×waktu, sebanding 1 OH=7 OJ per SNI — **dokumentasi saja, TANPA converter**).
+   Pembeda tenaga/alat/kalender via `resources.category`, **bukan** diduplikasi di `unit.dimension`.
+   `jam` & `hari` (alat/kalender) = `time`. (`labor_day` dari 115 → di-rename `labor_time`.)
+2. **`m'` (meter-lari)** → **alias impor** ke `m_linear` existing (090), bukan kode baru. Masuk tabel
+   alias yang bisa direview saat parser dibangun (belum).
+3. **Pembulatan HSP** = **`ROUNDDOWN` ke Rp100 resmi (SE-baku)**, TAPI simpan **DUA nilai**:
+   `hsp_raw` (desimal penuh) + `hsp_rounded`. **Aturan keras:** seluruh rantai dokumen resmi
+   (HSP→subtotal→total→PPN→grand total) dihitung dari nilai **SUDAH dibulatkan** — supaya penjumlahan
+   dokumen cetak selalu cocok; **jangan pernah dicampur**. `hsp_raw` hanya untuk analisis internal,
+   margin, RAP — **tak pernah** masuk rantai dokumen. Mode + step pembulatan = **config ber-effective-date**
+   (SE berubah 68/2024→47/2026; pemilik proyek kadang minta penyajian beda). Tapi **adanya tahap
+   pembulatan = struktural (Ember [C]), tak bisa dimatikan dari UI**.
+4. **PPN** = **config ber-effective-date**, bukan konstanta di mana pun.
+5. **Inkonsistensi 11% vs 0,12** & **beda pembulatan HSP antar file** → **TIDAK diselesaikan diam-diam**.
+   Masuk **Daftar Cacat Excel** (dokumen terpisah), lalu **tanya founder**.
+6. **Disiplin paritas**: reproduksi angka Excel PERSIS **dulu** (termasuk yang cacat). Perbaikan yang
+   **mengubah angka** → **config flag DEFAULT OFF** (pola denda keterlambatan) + **satu ADR per perbaikan**
+   (cacat apa, kenapa, dampak angka). Dengan semua flag OFF, golden-file test vs Excel **harus lulus**.
+   Perbaikan yang **tak mengubah angka** (validasi, audit, cegah override senyap, unit eksplisit) →
+   boleh langsung tanpa flag.
