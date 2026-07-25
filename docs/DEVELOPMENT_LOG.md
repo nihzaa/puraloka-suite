@@ -334,6 +334,19 @@
 ---
 
 
+### 2026-07-25 — Feature — CECEP Estimate Aggregate Chain (Migration 110, Program C)
+**Status**: Done
+**Files affected**:
+- `db/migrations/110_cecep_estimate_chain.sql` + kembar (applied ke dev) — scenarios + estimate_versions + estimate_items
+- `apps/api/src/routes/v1/__tests__/estimate-chain.test.ts` (14 test)
+- ADR-009 (penerapan kesembilan)
+**Notes**: Milestone 3 domain #2 (non-approval). Scenario→Estimate Version→Estimate Item ("derivasi terkuat di seluruh dokumen"). Estimate Item = child, pertemuan Cost Code(WAJIB)+Assembly+CBS+WBS(nullable) jadi satu angka. 5 hard guard: scenario transisi, version transisi maju saja, version total+identitas immutable begitu ≠ draft, version no-delete non-draft, item beku begitu version ≠ draft ("perubahan Item lewat Version"). Mutation-proof: 5 guard → merah, dipulihkan → 14/14.
+
+⚠️ LINGKUP: STRUKTUR Estimate Version dibangun (status 5-nilai + guard struktural), TAPI ALUR APPROVAL BELUM DI-WIRE — siapa boleh approve via engine ADR-007 = discovery step 2, menunggu keputusan founder. Belum ada jalur API approval. Sinyal discovery: 44 §12 = "Approval Chain Definition configurable, jangan hardcode" (selaras ADR-007). Exclude: unit, Project CBS snapshot, company_id. 13 tabel CECEP di dev.
+
+---
+
+
 <!-- Template untuk entry baru:
 
 ### YYYY-MM-DD HH:MM — [Kategori] — [Deskripsi]

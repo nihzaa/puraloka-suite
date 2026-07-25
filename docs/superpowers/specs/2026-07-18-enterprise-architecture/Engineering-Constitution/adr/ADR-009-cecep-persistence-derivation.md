@@ -312,6 +312,36 @@ Exclude (ADR-009): tanggal `planned_start/end` (isyarat "kapan" ada tapi kolom t
 disebut di atribut Frozen; integrasi Gantt↔WBS keputusan tersendiri, additive nanti),
 `company_id` (Phase 7).
 
+## Penerapan kesembilan: Estimate Aggregate Chain (migration 110)
+
+Scenario → Estimate Version → Estimate Item (`44` §9-11, `03b` §A.9a-c) — "contoh
+derivasi terkuat di seluruh dokumen". Scenario & Estimate Version = Aggregate Root;
+Estimate Item = child entity (bukan root, "tak sah di luar konteks satu Version").
+
+| Keputusan | Jejak | Trace Status |
+|---|---|---|
+| `scenarios` (root, of Project), lifecycle active→branched→archived | `03b` §A.9c | ✓ Fully Derived |
+| `estimate_versions` (root, of Scenario), lifecycle 5 status | `03b` §A.9b | ✓ Fully Derived |
+| `estimate_items` (child, of Version), FK Cost Code+Assembly+CBS+WBS | `03b` §A.9a "pertemuan 4 domain" | ✓ Fully Derived |
+| cost_code WAJIB; assembly/cbs/wbs nullable | `03b` §A.9a (identitas pekerjaan wajib; klasifikasi progresif) | ✓ Fully Derived |
+| total & identitas Version immutable begitu ≠ draft | `03b` §A.9b "total & status approval konsisten"; angka disetujui tak retroaktif | ✓ Fully Derived |
+| item beku begitu Version ≠ draft | `03b` §A.9b "perubahan Item harus lewat Version" | ✓ Fully Derived |
+| Version no-delete non-draft | jadi acuan Budget/RAB/RAP/EVM | ✓ Fully Derived |
+
+### ⚠️ Lingkup: STRUKTUR dibangun, ALUR APPROVAL belum di-wire (sengaja)
+
+Kolom status Estimate Version (draft→under_review→approved→frozen→superseded) +
+guard **struktural** (transisi maju saja, immutable begitu ≠ draft) DIBANGUN. Tapi
+**tidak ada integrasi engine approval**: SIAPA yang boleh memicu under_review→
+approved, lewat `approval_chains` (ADR-007) atau bukan, adalah keputusan integrasi
+TERPISAH — **discovery step 2, menunggu keputusan founder**. Belum ada jalur API
+approval; sampai wiring itu ada, transisi hanya via service_role. Ini disengaja
+sesuai instruksi: bangun semua KECUALI alur approval. Sinyal awal discovery: `44`
+§12 mendefinisikan approval CECEP sebagai **Approval Chain Definition yang
+configurable** ("jangan hardcode validator") — selaras arah ADR-007.
+
+Exclude (ADR-009): `unit` (quantity Estimate Item), Project CBS snapshot, `company_id`.
+
 ## Riwayat: CBS diblokir — dua keputusan domain (kini teratasi oleh founder)
 
 CBS (`44` §3) diberi ✓ Fully Derived untuk *keberadaannya*, tapi **dua keputusan
