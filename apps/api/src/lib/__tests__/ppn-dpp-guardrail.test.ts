@@ -62,18 +62,31 @@ describe('D10 (b) — regresi SEMUA tax_record existing (internal-konsisten + re
     expect(mismatches, `tax_record tak konsisten (tax != base×rate):\n${mismatches.join('\n')}`).toEqual([])
   }, 60_000)
 
-  it('regime 11% (ppn): model dua-angka mereproduksi tax tersimpan PERSIS; catat cakupan', async () => {
+  it('regime 11% (ppn): model dua-angka mereproduksi tax tersimpan PERSIS; CAKUPAN dilaporkan eksplisit', async () => {
     const { rows } = await client.query(
       `SELECT id, base_amount::float8 AS base, rate_pct::float8 AS rate, tax_amount::float8 AS tax
          FROM tax_records WHERE tax_scheme = 'ppn'`)
     const ppn11 = rows.filter(r => Math.round(r.rate) === 11)
-    // Cakupan (bukan kegagalan): berapa ppn record, berapa yang di regime 11%.
-    console.info(`[D10 guardrail] tax_record ppn total=${rows.length}, regime-11%=${ppn11.length} (sisanya era tarif lain → split per-proyek harus menjaganya, syarat c)`)
+
+    // CAKUPAN WAJIB EKSPLISIT (founder): jangan hijau tanpa keterangan. Nol baris ber-PPN
+    // = LULUS VACUOUS (tak ada yang diuji), BUKAN "terbukti aman untuk data PPN nyata".
+    const banner = `[D10 GUARDRAIL] PPN records diperiksa: total=${rows.length}, regime-11%=${ppn11.length}`
+    if (rows.length === 0) {
+      console.warn(
+        `${banner}\n  ⚠️  VACUOUS: 0 record ber-PPN di lingkungan ini → regresi (b) TIDAK menguji data nyata.\n` +
+        `      Bukti number-preserving datang HANYA dari (a) model-equivalence.\n` +
+        `      JANGAN nyalakan split dpp_factor pada lingkungan yang punya invoice PPN nyata\n` +
+        `      sebelum guardrail ini dijalankan ULANG DI LINGKUNGAN ITU dan benar-benar memeriksa baris.`)
+    } else {
+      console.info(banner)
+    }
+
     const shifted = ppn11
       .filter(r => round2(ppnTwoNumber(r.base)) !== round2(r.tax))
       .map(r => `id=${r.id} base=${r.base} stored=${r.tax} twoNumber=${round2(ppnTwoNumber(r.base))}`)
     // Regime 11%: split HARUS number-preserving. Kalau ada yang bergeser → berhenti & lapor.
     expect(shifted, `PPN 11% bergeser oleh model dua-angka:\n${shifted.join('\n')}`).toEqual([])
-    // Nol ppn record → pemecahan trivially safe utk data existing; (a) menutup future.
+    // Assertion cakupan eksplisit: dokumentasikan berapa yang diregresi (0 = vacuous, tercatat).
+    expect(ppn11.length, `regime-11% ppn diregresi = ${ppn11.length} (0 = vacuous, lihat peringatan di atas)`).toBeGreaterThanOrEqual(0)
   }, 60_000)
 })
