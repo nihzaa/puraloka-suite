@@ -288,6 +288,30 @@ Formula (106) · Assembly (107) · **CBS (108)**. Semua Aggregate Root knowledge
 CECEP berdiri. Jalur berikutnya: Milestone 3 (Estimate Item merujuk Cost Code,
 Assembly, CBS Node, WBS) — kini semua prasyaratnya ada.
 
+## Penerapan kedelapan: WBS (migration 109) — Milestone 3 dibuka
+
+WBS Node = child dari Aggregate **Project** (`03b` §A.1), BUKAN root sendiri. Lensa
+Planning ("kapan & di mana"), paralel dengan CBS (Cost), bertemu di Cost Code.
+
+| Keputusan | Jejak | Trace Status |
+|---|---|---|
+| `wbs_nodes` child of Project (project_id FK) | `03b` §A.1 "child entity di Aggregate Project" | ✓ Fully Derived |
+| `parent_id` hierarki + `cost_code_id` nullable | `03b` §A.1 "WBS Node → Cost Code" | ✓ Fully Derived |
+| Lifecycle draft→baseline→revised | `03b` §A.1 Lifecycle | ✓ Fully Derived |
+| Integritas hierarki (parent se-project, tak self) | necessity struktural | ✓ Fully Derived |
+| **revised→baseline (re-baseline) diizinkan** | planning berulang; WBS BUKAN basis-uang immutable — lihat catatan | ⚠️→ dilaporkan, murah dibalik |
+
+**Catatan re-baseline (⚠️ ringan, dilaporkan):** `03b` §A.1 menulis "Draft → Baseline →
+Revised" tanpa eksplisit soal re-baseline. Dipilih MENGIZINKAN revised→baseline karena
+WBS adalah planning artifact yang di-baseline ulang secara wajar, dan revisi WBS TIDAK
+mengubah biaya Estimate (biaya dari Cost Code+Assembly+Price, bukan dari WBS). Murah
+dibalik (WBS bukan basis nominal) — beda dari CBS versioning yang mahal. Dilaporkan
+sebagai catatan, bukan gerbang.
+
+Exclude (ADR-009): tanggal `planned_start/end` (isyarat "kapan" ada tapi kolom tak
+disebut di atribut Frozen; integrasi Gantt↔WBS keputusan tersendiri, additive nanti),
+`company_id` (Phase 7).
+
 ## Riwayat: CBS diblokir — dua keputusan domain (kini teratasi oleh founder)
 
 CBS (`44` §3) diberi ✓ Fully Derived untuk *keberadaannya*, tapi **dua keputusan
