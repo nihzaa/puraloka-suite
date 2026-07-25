@@ -6,6 +6,18 @@ on:
   push:
     branches: [main]
 
+# Semua job test menulis ke DB Supabase dev yang SAMA (handler pakai service_role →
+# schema `public`; RLS-harness tests bypass TEST_SCHEMA). Tanpa serialisasi, CI run
+# paralel saling menimpa fixture di dev — mis. dua run menyisipkan approval_steps
+# level 2 ke rantai yang sama → "duplicate key (chain_id, level)", atau satu run
+# menghapus rantai uji milik run lain di tengah jalan → 404. Serialkan SEMUA run yang
+# berbagi dev (group konstan lintas branch/PR/main). JANGAN cancel-in-progress: run
+# yang dibatalkan di tengah bisa meninggalkan residu untuk run berikutnya.
+# Solusi PERMANEN: DB CI terpisah (lihat CECEP/CI-ISOLATION-SETUP.md).
+concurrency:
+  group: ci-shared-dev-db
+  cancel-in-progress: false
+
 jobs:
   api:
     name: API — lint, typecheck, test, build

@@ -205,6 +205,12 @@ describe('Berjenjang (2 level) — endpoint pending → final via engine', () =>
   // (pending), baru approve level 2 → approved. Ini yang tak tertangkap uji 1-level.
   let level2Id: string
   beforeAll(async () => {
+    // Self-healing: rantai seed 'estimate_version' hanya 1 level; level ≥2 = residu
+    // run sebelumnya yang mati sebelum afterAll. Bersihkan dulu supaya INSERT tak
+    // kena "duplicate key (chain_id, level)". (CI juga di-serialkan — lihat ci.yml.)
+    await client.query(
+      `DELETE FROM approval_steps WHERE level >= 2 AND chain_id IN
+        (SELECT id FROM approval_chains WHERE entity_type='estimate_version')`)
     const { rows } = await client.query(
       `INSERT INTO approval_steps (chain_id, level, required_permission, label)
        SELECT id, 2, 'settings:finance:manage', '[TEST] L2' FROM approval_chains

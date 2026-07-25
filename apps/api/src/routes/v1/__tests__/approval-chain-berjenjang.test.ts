@@ -112,6 +112,11 @@ beforeAll(async () => {
   // Kedua permission dimiliki admin — yang diuji di sini mekanika BERJENJANG-nya
   // (penahapan & penundaan efek), bukan pemisahan orang; siapa-boleh-apa sudah
   // dikunci jaring authz 403 + unit test engine.
+  // Self-healing: rantai seed 'change_order' hanya 1 level; level ≥2 = residu run
+  // yang mati sebelum afterAll. Bersihkan dulu supaya INSERT tak kena duplicate key.
+  await client.query(
+    `DELETE FROM approval_steps WHERE level >= 2 AND chain_id IN
+      (SELECT id FROM approval_chains WHERE entity_type = 'change_order')`)
   const { rows: st } = await client.query(
     `INSERT INTO approval_steps (chain_id, level, required_permission, label)
      SELECT id, 2, 'settings:finance:manage', '[TEST] Level 2'
