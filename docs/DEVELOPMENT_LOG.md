@@ -395,6 +395,18 @@
 ---
 
 
+### 2026-07-25 — Feature — CECEP Lessons Learned STRUKTUR (Migration 113, Program C, Milestone 4)
+**Status**: Done
+**Files affected**:
+- `db/migrations/113_cecep_lessons_learned.sql` + kembar (applied ke dev) — lessons_learned_records + root_cause_analyses
+- `apps/api/src/routes/v1/__tests__/lessons-learned.test.ts` (11 test)
+**Notes**: Milestone 4 — Lessons Learned STRUKTUR SAJA. Aggregate Root lessons_learned_records (Variance=VO embedded, variance_amount GENERATED = actual-planned tak bisa bohong), root_cause_analyses (child revisable saat draft). Lifecycle draft→under_review→approved DIBANGUN; approved→propagated (WRITE-BACK) SENGAJA DITOLAK guard (verbatim founder 03b §A.12: "AI tidak boleh langsung belajar. Harus ada approval."). 6 hard guard: transisi (propagated ditolak = titik STOP dijaga), variance beku begitu ≠ draft, root cause beku, no-delete non-draft. Mutation-proof: 3 guard → merah (termasuk guard STOP). Gate: tsc 0, lint 0, 501 test hijau (54 file). 16 tabel CECEP di dev.
+
+**🛑 TITIK STOP TERCAPAI**: write-back Lessons Learned (propagasi ke Assembly/Price Book/Productivity) BELUM di-wire. Discovery + laporan ke founder sebelum wire (apa ditulis balik, approval gate, interaksi immutability M1-M2).
+
+---
+
+
 <!-- Template untuk entry baru:
 
 ### YYYY-MM-DD HH:MM — [Kategori] — [Deskripsi]
