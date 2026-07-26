@@ -7,6 +7,8 @@ import {
 } from '../../utils/approval.js'
 import { computeRab, computeBoq, type EstimateItemRow } from '../../lib/rab-readmodel.js'
 import { forecastCashflow } from '../../lib/cashflow-forecast.js'
+import { computeAhsp, computeRabLineTotal, type RoundingRule } from '../../lib/ahsp-engine.js'
+import { resolvePrices, type PriceBookEntryRow } from '../../lib/price-resolver.js'
 
 // CECEP Milestone 3 — approval Estimate Version LEWAT engine ADR-007 (bukan jalur
 // approval kelima). Keputusan founder pasca-discovery + mandat `47` §3 CECEP
@@ -81,6 +83,152 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
         estimate_version_id: id, status: v.status,
         baseline_total: Number(v.total_amount) || 0, periods, forecast,
       })
+    })
+
+  // ── POST /items — tambah item dari ASSEMBLY (M3: jalur hitung ter-telusur) ──
+  // Rantai explainability penuh: assembly (koefisien, edisi) × price book
+  // (harga per resource, ter-resolve by tanggal+lokasi) → engine paritas →
+  // amount = hsp_rounded × quantity. C1: BUK & rounding WAJIB dari caller —
+  // TIDAK ada default diam-diam (config effective-date menyusul sebagai Lapis 1).
+  app.post<{ Params: { id: string }
+             Body: { assembly_id?: string; quantity?: number; price_date?: string
+                     location?: string | null; buk_fraction?: number; rounding?: RoundingRule
+                     cbs_node_id?: string; wbs_node_id?: string; notes?: string } }>(
+    '/api/v1/estimate-versions/:id/items',
+    { preHandler: [authenticate, requirePermission('cecep:estimate:manage')] },
+    async (request, reply) => {
+      const { id } = request.params
+      const b = request.body ?? {}
+      if (!b.assembly_id) return reply.status(400).send({ error: 'assembly_id wajib' })
+      if (typeof b.quantity !== 'number' || b.quantity <= 0) {
+        return reply.status(400).send({ error: 'quantity wajib angka > 0' })
+      }
+      if (typeof b.buk_fraction !== 'number' || b.buk_fraction < 0 || b.buk_fraction > 1) {
+        return reply.status(400).send({ error: 'buk_fraction wajib angka 0..1 — tidak ada default' })
+      }
+      if (!b.rounding || !['down', 'up', 'nearest', 'none'].includes(b.rounding.mode)
+          || typeof b.rounding.step !== 'number') {
+        return reply.status(400).send({ error: "rounding wajib {mode:'down'|'up'|'nearest'|'none', step:number}" })
+      }
+      const priceDate = b.price_date ?? new Date().toISOString().slice(0, 10)
+
+      const { data: v } = await supabase
+        .from('estimate_versions').select('id, status').eq('id', id).maybeSingle()
+      if (!v) return reply.status(404).send({ error: 'Estimate Version tidak ditemukan' })
+      if (v.status !== 'draft') {
+        return reply.status(409).send({ error: 'Item hanya bisa ditambah saat Estimate Version draft' })
+      }
+
+      const { data: asm, error: asmErr } = await supabase
+        .from('assemblies')
+        .select(`id, code, name, status, cost_code_id, output_unit_code,
+                 components:assembly_components(coefficient,
+                   resource:resources(id, code, name, category, unit_code))`)
+        .eq('id', b.assembly_id).maybeSingle()
+      if (asmErr) return reply.status(500).send({ error: asmErr.message })
+      if (!asm) return reply.status(404).send({ error: 'Assembly tidak ditemukan' })
+      if (asm.status !== 'active') {
+        return reply.status(409).send({ error: `Assembly berstatus ${asm.status} — hanya assembly active yang bisa dipakai estimasi` })
+      }
+
+      type CompRow = { coefficient: number
+        resource: { id: string; code: string; name: string; category: string; unit_code: string } | null }
+      const comps = ((asm.components ?? []) as unknown as CompRow[]).filter(c => c.resource)
+      const resourceIds = comps.map(c => c.resource!.id)
+
+      const { data: pbe, error: pbErr } = await supabase
+        .from('price_book_entries')
+        .select('id, resource_id, amount, currency, version_number, effective_date, expired_date, location, status')
+        .in('resource_id', resourceIds)
+      if (pbErr) return reply.status(500).send({ error: pbErr.message })
+
+      const { resolved, missing } = resolvePrices(
+        (pbe ?? []) as PriceBookEntryRow[], resourceIds, priceDate, b.location ?? null)
+      if (missing.length) {
+        const missCodes = comps.filter(c => missing.includes(c.resource!.id)).map(c => c.resource!.code)
+        return reply.status(422).send({
+          error: `Harga tidak ter-resolve dari price book (tanggal ${priceDate}${b.location ? `, lokasi ${b.location}` : ''})`,
+          missing: missCodes })
+      }
+
+      const GROUP: Record<string, 'tenaga' | 'bahan' | 'alat'> =
+        { labor: 'tenaga', material: 'bahan', equipment: 'alat' }
+      const unmappable = comps.filter(c => !GROUP[c.resource!.category]).map(c => c.resource!.code)
+      if (unmappable.length) {
+        return reply.status(422).send({ error: 'Kategori resource tanpa pemetaan grup AHSP', unmappable })
+      }
+      const engineComps = comps.map(c => ({
+        group: GROUP[c.resource!.category], name: c.resource!.name, unit: c.resource!.unit_code,
+        coefficient: Number(c.coefficient), hsd: Number(resolved.get(c.resource!.id)!.entry.amount),
+      }))
+      const hsp = computeAhsp(engineComps, b.buk_fraction, b.rounding)
+      const amount = computeRabLineTotal(b.quantity, hsp.hspRounded)
+
+      const { data: item, error: insErr } = await supabase
+        .from('estimate_items')
+        .insert({
+          estimate_version_id: id, cost_code_id: asm.cost_code_id, assembly_id: asm.id,
+          cbs_node_id: b.cbs_node_id ?? null, wbs_node_id: b.wbs_node_id ?? null,
+          quantity: b.quantity, amount, notes: b.notes ?? null,
+        })
+        .select('id').single()
+      if (insErr) return reply.status(500).send({ error: insErr.message })
+
+      // total_amount = Σ item (hanya sah saat draft; guard DB menegakkan)
+      const { data: sums } = await supabase
+        .from('estimate_items').select('amount').eq('estimate_version_id', id)
+      const total = (sums ?? []).reduce((s, r) => s + Number(r.amount), 0)
+      await supabase.from('estimate_versions')
+        .update({ total_amount: total, updated_by: request.currentUser!.id }).eq('id', id)
+
+      void logAuditEvent(request, {
+        tableName: 'estimate_items', recordId: item.id, action: 'estimate.item_added',
+        actorId: request.currentUser!.id,
+        newValues: { assembly: asm.code, quantity: b.quantity, amount, hsp: hsp.hspRounded },
+      })
+      return reply.status(201).send({
+        item: { id: item.id, assembly_id: asm.id, assembly_code: asm.code,
+                quantity: b.quantity, amount },
+        hsp: hsp, // groupTotals + subtotalD + bukAmount + hspRaw + hspRounded
+        prices: comps.map(c => {
+          const r = resolved.get(c.resource!.id)!
+          return { resource: c.resource!.code, amount: Number(r.entry.amount),
+                   price_book_entry_id: r.entry.id, effective_date: r.entry.effective_date,
+                   location: r.entry.location, matched_location: r.matched_location }
+        }),
+        version_total: total,
+      })
+    })
+
+  // ── DELETE /items/:itemId — buang item (draft-only; total di-recompute) ─────
+  app.delete<{ Params: { id: string; itemId: string } }>(
+    '/api/v1/estimate-versions/:id/items/:itemId',
+    { preHandler: [authenticate, requirePermission('cecep:estimate:manage')] },
+    async (request, reply) => {
+      const { id, itemId } = request.params
+      const { data: v } = await supabase
+        .from('estimate_versions').select('id, status').eq('id', id).maybeSingle()
+      if (!v) return reply.status(404).send({ error: 'Estimate Version tidak ditemukan' })
+      if (v.status !== 'draft') {
+        return reply.status(409).send({ error: 'Item hanya bisa dihapus saat Estimate Version draft' })
+      }
+      const { error: delErr, count } = await supabase
+        .from('estimate_items').delete({ count: 'exact' })
+        .eq('id', itemId).eq('estimate_version_id', id)
+      if (delErr) return reply.status(500).send({ error: delErr.message })
+      if (!count) return reply.status(404).send({ error: 'Item tidak ditemukan di versi ini' })
+
+      const { data: sums } = await supabase
+        .from('estimate_items').select('amount').eq('estimate_version_id', id)
+      const total = (sums ?? []).reduce((s, r) => s + Number(r.amount), 0)
+      await supabase.from('estimate_versions')
+        .update({ total_amount: total, updated_by: request.currentUser!.id }).eq('id', id)
+
+      void logAuditEvent(request, {
+        tableName: 'estimate_items', recordId: itemId, action: 'estimate.item_removed',
+        actorId: request.currentUser!.id, newValues: { version_total: total },
+      })
+      return reply.send({ ok: true, version_total: total })
     })
 
   // ── PATCH /submit — draft → under_review (author mengajukan) ────────────────
