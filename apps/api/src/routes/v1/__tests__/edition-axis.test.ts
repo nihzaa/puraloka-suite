@@ -72,7 +72,7 @@ beforeAll(async () => {
     `INSERT INTO users (name, email, role) VALUES ('Uji Edn', 'edn-uji@puraloka.test', 'admin') RETURNING id`)
   userId = u.rows[0].id
   const cl = await client.query(
-    `INSERT INTO clients (name, created_by) VALUES ('Klien Uji', $1) RETURNING id`, [userId])
+    `INSERT INTO clients (contact_person, phone, created_by) VALUES ('Klien Uji', '08', $1) RETURNING id`, [userId])
   clientId = cl.rows[0].id
   const p = await client.query(
     `INSERT INTO projects (client_id, pm_id, name, location, start_date, end_date, created_by)
