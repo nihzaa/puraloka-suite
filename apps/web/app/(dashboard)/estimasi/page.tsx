@@ -46,6 +46,11 @@ interface VersionDetail {
   id: string; version_number: number; status: string; total_amount: number;
   edition: { code: string; name: string } | null; items: EstItem[];
 }
+interface Rollup {
+  estimate_version_id: string; at_date: string; ppn_rate: number;
+  groups: { name: string; subtotal: number }[];
+  totalBiaya: number; ppn: number; grandTotal: number;
+}
 interface PriceEntry {
   id: string; amount: number; version_number: number; effective_date: string;
   expired_date: string | null; location: string | null; supplier: string | null;
@@ -91,6 +96,7 @@ function KomposerTab() {
   const [projectId, setProjectId] = useState("");
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [openVersion, setOpenVersion] = useState<VersionDetail | null>(null);
+  const [rollup, setRollup] = useState<Rollup | null>(null);
   const [editions, setEditions] = useState<Edition[]>([]);
   const [showNewScenario, setShowNewScenario] = useState(false);
   const [showAddItem, setShowAddItem] = useState(false);
@@ -112,6 +118,10 @@ function KomposerTab() {
   const openDetail = async (versionId: string) => {
     const r = await api.get<{ data: VersionDetail }>(`/api/v1/estimate-versions/${versionId}`);
     setOpenVersion(r.data.data);
+    if ((r.data.data.items ?? []).length > 0) {
+      const rr = await api.get<Rollup>(`/api/v1/estimate-versions/${versionId}/rollup`);
+      setRollup(rr.data);
+    } else setRollup(null);
   };
   const refreshDetail = async () => { if (openVersion) await openDetail(openVersion.id); await loadScenarios(projectId); };
 
@@ -224,6 +234,32 @@ function KomposerTab() {
               </tr></tfoot>
             </table>
           </div>
+
+          {rollup && (
+            <div style={{ marginTop: 16, borderTop: `1px solid ${C.border}`, paddingTop: 14 }}>
+              <h4 style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 700, color: C.mid, textTransform: "uppercase", letterSpacing: .4 }}>
+                Rekapitulasi per Kategori
+              </h4>
+              <table style={{ width: "100%", borderCollapse: "collapse", maxWidth: 520 }}>
+                <tbody>
+                  {rollup.groups.map(g => (
+                    <tr key={g.name}>
+                      <td style={{ ...td, borderBottom: "none", padding: "4px 10px" }}>{g.name}</td>
+                      <td style={{ ...td, borderBottom: "none", padding: "4px 10px", textAlign: "right" }}>{fmtRp(g.subtotal)}</td>
+                    </tr>
+                  ))}
+                  <tr><td style={{ ...td, padding: "6px 10px", fontWeight: 600 }}>TOTAL BIAYA</td>
+                      <td style={{ ...td, padding: "6px 10px", textAlign: "right", fontWeight: 600 }}>{fmtRp(rollup.totalBiaya)}</td></tr>
+                  <tr><td style={{ ...td, borderBottom: "none", padding: "4px 10px" }}>
+                        PPN ({(rollup.ppn_rate * 100).toFixed(0)}%, berlaku {rollup.at_date})
+                      </td>
+                      <td style={{ ...td, borderBottom: "none", padding: "4px 10px", textAlign: "right" }}>{fmtRp(rollup.ppn)}</td></tr>
+                  <tr><td style={{ ...td, borderBottom: "none", padding: "6px 10px", fontWeight: 800, color: C.navy }}>GRAND TOTAL</td>
+                      <td style={{ ...td, borderBottom: "none", padding: "6px 10px", textAlign: "right", fontWeight: 800, color: C.navy }}>{fmtRp(rollup.grandTotal)}</td></tr>
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
