@@ -50,7 +50,12 @@ ON CONFLICT (code) DO NOTHING;
 -- Sekarang seluruh baris punya dimension → kunci NOT NULL + himpunan sah.
 ALTER TABLE units ALTER COLUMN dimension SET NOT NULL;
 DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'units_dimension_valid') THEN
+  -- conrelid = 'units'::regclass → resolve via search_path (schema-scoped).
+  -- Cek conname polos melihat SEMUA schema → di test-schema salah skip bila
+  -- `public` sudah punya constraint yang sama (bug portabilitas kelas-012).
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint
+                 WHERE conname = 'units_dimension_valid'
+                   AND conrelid = 'units'::regclass) THEN
     ALTER TABLE units ADD CONSTRAINT units_dimension_valid CHECK (
       dimension IN ('length','area','volume','mass','count','time','lumpsum','labor_day'));
   END IF;
