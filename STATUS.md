@@ -1,6 +1,6 @@
 # STATUS — Puraloka Suite (penunjuk satu pintu)
 
-**Diperbarui:** 2026-07-26 · File ini adalah `STATUS.md` yang diwajibkan AUTOPILOT §2
+**Diperbarui:** 2026-07-27 · File ini adalah `STATUS.md` yang diwajibkan AUTOPILOT §2
 — penunjuk TIPIS, bukan duplikasi konten. Update tanggal + baris "Fase aktif" setiap
 kali keadaan berubah; detail selalu di dokumen rujukan.
 
@@ -11,6 +11,11 @@ test); **tertahan di gerbang CI isolation** sebelum seed AHSP. Titik STOP menung
 founder: (a) ack seed AHSP, (b) keputusan sumbu EDISI, (c) dpp_factor split.
 Keputusan founder 2026-07-26 (header `docs/ERP_MASTER_PLAN.md`): **CECEP Option 2 —
 tuntaskan CECEP sampai siap-pakai sebelum modul besar lain.**
+
+Sisipan saat jeda gate (sesuai PETA §3 #2, tidak menyela CECEP): **celah 3-way match
+procurement DITUTUP 2026-07-27** (invoice manual wajib link GR, harga vs PO, anti
+invoice dobel + migration 121) — detail: `docs/DEVELOPMENT_LOG.md` entry 2026-07-27
++ taksonomi §6.
 
 Phase 1 (Program A) ✅ · Phase 2 (Program B) ✅.
 
