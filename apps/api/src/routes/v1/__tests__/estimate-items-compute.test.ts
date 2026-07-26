@@ -1,0 +1,188 @@
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
+import Fastify, { type FastifyInstance } from 'fastify'
+import type { Client } from 'pg'
+import { createRlsClient, authIdForRole } from '../../../test-utils/rls-harness.js'
+import { supabaseAuth } from '../../../utils/supabase.js'
+import estimateVersionRoutes from '../estimate-versions.js'
+
+// CECEP M3 — jalur hitung ter-telusur: Estimate Item dari ASSEMBLY × PRICE BOOK.
+//
+// GOLDEN: assembly 3.6.1.1 verbatim + harga price book (nilai ilustrasi SE sebagai
+// fixture) + BUK 10% + ROUNDDOWN-100 → HSP 278300 → amount = 278300 × qty.
+// Juga: harga tak ter-resolve → 422 (fail-loud) · versi non-draft → 409 ·
+// delete item → total di-recompute.
+
+let app: FastifyInstance
+let client: Client
+let adminAuth: string
+let adminUserId: string
+let versionId: string
+let assemblyId: string
+
+const actAs = (a: string) =>
+  vi.spyOn(supabaseAuth.auth, 'getUser').mockResolvedValue({ data: { user: { id: a } }, error: null } as never)
+const post = (url: string, payload: unknown) =>
+  app.inject({ method: 'POST', url, payload: payload as never, headers: { authorization: 'Bearer t' } })
+const del = (url: string) =>
+  app.inject({ method: 'DELETE', url, headers: { authorization: 'Bearer t' } })
+
+// Verbatim 3.6.1.1 + harga ilustrasi SE (fixture price book, BUKAN harga nyata).
+const KOEF: Record<string, [category: string, unit: string, koef: number, harga: number]> = {
+  'TEST-EI-PEKERJA':       ['labor',    'OH',   0.4,    100000],
+  'TEST-EI-TUKANG-BATU':   ['labor',    'OH',   0.2,    145000],
+  'TEST-EI-KEPALA-TUKANG': ['labor',    'OH',   0.02,   175000],
+  'TEST-EI-MANDOR':        ['labor',    'OH',   0.0067, 200000],
+  'TEST-EI-BATA-MERAH':    ['material', 'buah', 143.81, 700],
+  'TEST-EI-SEMEN-PC':      ['material', 'kg',   43.5,   1300],
+  'TEST-EI-PASIR-PASANG':  ['material', 'm3',   0.08,   275000],
+}
+const BODY = { quantity: 10, buk_fraction: 0.1, rounding: { mode: 'down', step: 100 }, price_date: '2026-06-01' }
+
+async function purge() {
+  await client.query(`SET session_replication_role = 'replica'`)
+  try {
+    await client.query(`DELETE FROM estimate_items WHERE estimate_version_id IN
+      (SELECT ev.id FROM estimate_versions ev JOIN scenarios s ON s.id=ev.scenario_id
+       JOIN projects p ON p.id=s.project_id WHERE p.name = '[TEST-EI] Proyek')`)
+    await client.query(`DELETE FROM estimate_versions WHERE scenario_id IN
+      (SELECT s.id FROM scenarios s JOIN projects p ON p.id=s.project_id WHERE p.name = '[TEST-EI] Proyek')`)
+    await client.query(`DELETE FROM scenarios WHERE project_id IN
+      (SELECT id FROM projects WHERE name = '[TEST-EI] Proyek')`)
+    await client.query(`DELETE FROM projects WHERE name = '[TEST-EI] Proyek'`)
+    await client.query(`DELETE FROM clients WHERE contact_person = '[TEST-EI] Klien'`)
+    await client.query(`DELETE FROM price_book_entries WHERE resource_id IN
+      (SELECT id FROM resources WHERE code LIKE 'TEST-EI-%')`)
+    await client.query(`DELETE FROM assembly_components WHERE assembly_id IN
+      (SELECT id FROM assemblies WHERE code = '[TEST-EI]3.6.1.1')`)
+    await client.query(`DELETE FROM assemblies WHERE code = '[TEST-EI]3.6.1.1'`)
+    await client.query(`DELETE FROM resources WHERE code LIKE 'TEST-EI-%'`)
+    await client.query(`DELETE FROM cost_codes WHERE code = '[TEST-EI]CC'`)
+    await client.query(`DELETE FROM ahsp_editions WHERE code = 'SE-TEST-EI'`)
+  } finally {
+    await client.query(`SET session_replication_role = 'origin'`)
+  }
+}
+
+beforeAll(async () => {
+  client = await createRlsClient()
+  adminAuth = (await authIdForRole(client, 'admin')) as string
+  await purge()
+
+  const { rows: u } = await client.query(
+    `SELECT u.id FROM users u JOIN roles r ON r.id=u.role_id WHERE r.name='admin' LIMIT 1`)
+  adminUserId = u[0].id
+
+  const { rows: ed } = await client.query(
+    `INSERT INTO ahsp_editions (code, name) VALUES ('SE-TEST-EI', '[TEST] Edisi EI') RETURNING id`)
+  const { rows: cc } = await client.query(
+    `INSERT INTO cost_codes (code, name, created_by) VALUES ('[TEST-EI]CC', '[TEST] Dinding', $1) RETURNING id`,
+    [adminUserId])
+  for (const [code, [category, unit]] of Object.entries(KOEF)) {
+    await client.query(
+      `INSERT INTO resources (code, name, category, unit_code, created_by)
+       VALUES ($1, $1, $2, $3, $4) ON CONFLICT (code) DO NOTHING`, [code, category, unit, adminUserId])
+  }
+  const { rows: a } = await client.query(
+    `INSERT INTO assemblies (code, name, cost_code_id, source, version_number, waste_factor,
+                             sequence, output_unit_code, edition_id, created_by)
+     VALUES ('[TEST-EI]3.6.1.1', '[TEST] dinding 1 batu tipe M', $1, 'national', 1, 0,
+             '[]'::jsonb, 'm2', $2, $3) RETURNING id`, [cc[0].id, ed[0].id, adminUserId])
+  assemblyId = a[0].id
+  let sort = 0
+  for (const [code, [, , koef]] of Object.entries(KOEF)) {
+    await client.query(
+      `INSERT INTO assembly_components (assembly_id, resource_id, coefficient, sort_order)
+       SELECT $1, id, $2, $3 FROM resources WHERE code = $4`, [assemblyId, koef, sort++, code])
+  }
+  await client.query(`UPDATE assemblies SET status='active' WHERE id=$1`, [assemblyId])
+
+  // price book: entry ACTIVE (wajib jejak verified) per resource, berlaku sejak 2026-01-01
+  for (const [code, [, , , harga]] of Object.entries(KOEF)) {
+    await client.query(
+      `INSERT INTO price_book_entries (resource_id, amount, effective_date, status, verified_by, verified_at, created_by)
+       SELECT id, $1, '2026-01-01', 'active', $2, now(), $2 FROM resources WHERE code = $3`,
+      [harga, adminUserId, code])
+  }
+
+  const { rows: cl } = await client.query(
+    `INSERT INTO clients (contact_person, phone, created_by) VALUES ('[TEST-EI] Klien', '08', $1) RETURNING id`,
+    [adminUserId])
+  const { rows: pr } = await client.query(
+    `INSERT INTO projects (client_id, pm_id, name, location, start_date, end_date, created_by)
+     VALUES ($1, $2, '[TEST-EI] Proyek', 'Bandung', CURRENT_DATE, CURRENT_DATE + 30, $2) RETURNING id`,
+    [cl[0].id, adminUserId])
+  const { rows: sc } = await client.query(
+    `INSERT INTO scenarios (project_id, name, created_by) VALUES ($1, '[TEST-EI] Skenario', $2) RETURNING id`,
+    [pr[0].id, adminUserId])
+  const { rows: ev } = await client.query(
+    `INSERT INTO estimate_versions (scenario_id, version_number, total_amount, created_by)
+     VALUES ($1, 1, 0, $2) RETURNING id`, [sc[0].id, adminUserId])
+  versionId = ev[0].id
+
+  app = Fastify()
+  await app.register(estimateVersionRoutes)
+  await app.ready()
+}, 120_000)
+
+afterAll(async () => {
+  await purge()
+  await app?.close()
+  await client?.end()
+})
+
+describe('POST /estimate-versions/:id/items — GOLDEN dari assembly × price book', () => {
+  it('qty 10 → HSP 278300 → amount 2.783.000; total versi ikut; provenance harga kembali', async () => {
+    actAs(adminAuth)
+    const res = await post(`/api/v1/estimate-versions/${versionId}/items`,
+      { ...BODY, assembly_id: assemblyId })
+    expect(res.statusCode).toBe(201)
+    const j = res.json()
+    expect(j.hsp.hspRounded).toBe(278300)
+    expect(j.hsp.hspRaw).toBeCloseTo(278362.7, 6)
+    expect(j.item.amount).toBe(2783000)
+    expect(j.version_total).toBe(2783000)
+    expect(j.prices).toHaveLength(7)
+    expect(j.prices[0].price_book_entry_id).toBeTruthy() // ter-telusur ke Price Book
+    const { rows } = await client.query(
+      `SELECT total_amount FROM estimate_versions WHERE id=$1`, [versionId])
+    expect(Number(rows[0].total_amount)).toBe(2783000)
+  })
+
+  it('price_date SEBELUM effective harga → 422 fail-loud dgn daftar resource', async () => {
+    actAs(adminAuth)
+    const res = await post(`/api/v1/estimate-versions/${versionId}/items`,
+      { ...BODY, assembly_id: assemblyId, price_date: '2025-01-01' })
+    expect(res.statusCode).toBe(422)
+    expect(res.json().missing).toContain('TEST-EI-PEKERJA')
+  })
+
+  it('tanpa buk_fraction → 400 (nol default diam-diam)', async () => {
+    actAs(adminAuth)
+    const res = await post(`/api/v1/estimate-versions/${versionId}/items`,
+      { assembly_id: assemblyId, quantity: 10, rounding: { mode: 'down', step: 100 } })
+    expect(res.statusCode).toBe(400)
+  })
+
+  it('versi non-draft → 409 (item beku setelah keluar draft)', async () => {
+    actAs(adminAuth)
+    await client.query(`UPDATE estimate_versions SET status='under_review' WHERE id=$1`, [versionId])
+    const res = await post(`/api/v1/estimate-versions/${versionId}/items`,
+      { ...BODY, assembly_id: assemblyId })
+    expect(res.statusCode).toBe(409)
+    await client.query(`SET session_replication_role='replica'`)
+    await client.query(`UPDATE estimate_versions SET status='draft' WHERE id=$1`, [versionId])
+    await client.query(`SET session_replication_role='origin'`)
+  })
+})
+
+describe('DELETE /estimate-versions/:id/items/:itemId', () => {
+  it('hapus item → total versi di-recompute ke 0', async () => {
+    actAs(adminAuth)
+    const { rows } = await client.query(
+      `SELECT id FROM estimate_items WHERE estimate_version_id=$1`, [versionId])
+    expect(rows.length).toBeGreaterThan(0)
+    const res = await del(`/api/v1/estimate-versions/${versionId}/items/${rows[0].id}`)
+    expect(res.statusCode).toBe(200)
+    expect(res.json().version_total).toBe(0)
+  })
+})
