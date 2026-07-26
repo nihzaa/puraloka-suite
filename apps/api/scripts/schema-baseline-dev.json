@@ -1,5 +1,6 @@
 {
   "tables": [
+    "ahsp_editions",
     "approval_chains",
     "approval_progress",
     "approval_steps",
@@ -92,6 +93,116 @@
     "workers"
   ],
   "columns": [
+    {
+      "key": "ahsp_editions.id",
+      "type": "uuid",
+      "udt": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()",
+      "len": null,
+      "prec": null,
+      "scale": null
+    },
+    {
+      "key": "ahsp_editions.code",
+      "type": "text",
+      "udt": "text",
+      "nullable": "NO",
+      "default": null,
+      "len": null,
+      "prec": null,
+      "scale": null
+    },
+    {
+      "key": "ahsp_editions.name",
+      "type": "text",
+      "udt": "text",
+      "nullable": "NO",
+      "default": null,
+      "len": null,
+      "prec": null,
+      "scale": null
+    },
+    {
+      "key": "ahsp_editions.se_number",
+      "type": "text",
+      "udt": "text",
+      "nullable": "YES",
+      "default": null,
+      "len": null,
+      "prec": null,
+      "scale": null
+    },
+    {
+      "key": "ahsp_editions.publish_date",
+      "type": "date",
+      "udt": "date",
+      "nullable": "YES",
+      "default": null,
+      "len": null,
+      "prec": null,
+      "scale": null
+    },
+    {
+      "key": "ahsp_editions.source_file",
+      "type": "text",
+      "udt": "text",
+      "nullable": "YES",
+      "default": null,
+      "len": null,
+      "prec": null,
+      "scale": null
+    },
+    {
+      "key": "ahsp_editions.source_sha256",
+      "type": "text",
+      "udt": "text",
+      "nullable": "YES",
+      "default": null,
+      "len": null,
+      "prec": null,
+      "scale": null
+    },
+    {
+      "key": "ahsp_editions.imported_at",
+      "type": "timestamp with time zone",
+      "udt": "timestamptz",
+      "nullable": "YES",
+      "default": null,
+      "len": null,
+      "prec": null,
+      "scale": null
+    },
+    {
+      "key": "ahsp_editions.imported_by",
+      "type": "uuid",
+      "udt": "uuid",
+      "nullable": "YES",
+      "default": null,
+      "len": null,
+      "prec": null,
+      "scale": null
+    },
+    {
+      "key": "ahsp_editions.is_active",
+      "type": "boolean",
+      "udt": "bool",
+      "nullable": "NO",
+      "default": "true",
+      "len": null,
+      "prec": null,
+      "scale": null
+    },
+    {
+      "key": "ahsp_editions.created_at",
+      "type": "timestamp with time zone",
+      "udt": "timestamptz",
+      "nullable": "NO",
+      "default": "now()",
+      "len": null,
+      "prec": null,
+      "scale": null
+    },
     {
       "key": "approval_chains.id",
       "type": "uuid",
@@ -467,6 +578,86 @@
       "type": "text",
       "udt": "text",
       "nullable": "NO",
+      "default": null,
+      "len": null,
+      "prec": null,
+      "scale": null
+    },
+    {
+      "key": "assemblies.edition_id",
+      "type": "uuid",
+      "udt": "uuid",
+      "nullable": "YES",
+      "default": null,
+      "len": null,
+      "prec": null,
+      "scale": null
+    },
+    {
+      "key": "assemblies.is_import_baseline",
+      "type": "boolean",
+      "udt": "bool",
+      "nullable": "NO",
+      "default": "false",
+      "len": null,
+      "prec": null,
+      "scale": null
+    },
+    {
+      "key": "assemblies.edited_from",
+      "type": "uuid",
+      "udt": "uuid",
+      "nullable": "YES",
+      "default": null,
+      "len": null,
+      "prec": null,
+      "scale": null
+    },
+    {
+      "key": "assemblies.edit_type",
+      "type": "text",
+      "udt": "text",
+      "nullable": "YES",
+      "default": null,
+      "len": null,
+      "prec": null,
+      "scale": null
+    },
+    {
+      "key": "assemblies.edit_reason",
+      "type": "text",
+      "udt": "text",
+      "nullable": "YES",
+      "default": null,
+      "len": null,
+      "prec": null,
+      "scale": null
+    },
+    {
+      "key": "assemblies.derived_from_assembly_id",
+      "type": "uuid",
+      "udt": "uuid",
+      "nullable": "YES",
+      "default": null,
+      "len": null,
+      "prec": null,
+      "scale": null
+    },
+    {
+      "key": "assemblies.derived_from_edition_id",
+      "type": "uuid",
+      "udt": "uuid",
+      "nullable": "YES",
+      "default": null,
+      "len": null,
+      "prec": null,
+      "scale": null
+    },
+    {
+      "key": "assemblies.created_in_estimate_id",
+      "type": "uuid",
+      "udt": "uuid",
+      "nullable": "YES",
       "default": null,
       "len": null,
       "prec": null,
@@ -2694,6 +2885,16 @@
     },
     {
       "key": "estimate_versions.updated_by",
+      "type": "uuid",
+      "udt": "uuid",
+      "nullable": "YES",
+      "default": null,
+      "len": null,
+      "prec": null,
+      "scale": null
+    },
+    {
+      "key": "estimate_versions.edition_id",
       "type": "uuid",
       "udt": "uuid",
       "nullable": "YES",
@@ -10915,6 +11116,18 @@
   ],
   "constraints": [
     {
+      "key": "ahsp_editions:f",
+      "def": "FOREIGN KEY (imported_by) REFERENCES users(id) ON DELETE SET NULL"
+    },
+    {
+      "key": "ahsp_editions:p",
+      "def": "PRIMARY KEY (id)"
+    },
+    {
+      "key": "ahsp_editions:u",
+      "def": "UNIQUE (code)"
+    },
+    {
       "key": "approval_chains:f",
       "def": "FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL"
     },
@@ -10960,6 +11173,14 @@
     },
     {
       "key": "assemblies:c",
+      "def": "CHECK (((edit_type IS NULL) OR (edit_type = ANY (ARRAY['correction'::text, 'deviation'::text]))))"
+    },
+    {
+      "key": "assemblies:c",
+      "def": "CHECK (((source <> 'national'::text) OR (edition_id IS NOT NULL)))"
+    },
+    {
+      "key": "assemblies:c",
       "def": "CHECK ((jsonb_typeof(sequence) = 'array'::text))"
     },
     {
@@ -10988,6 +11209,26 @@
     },
     {
       "key": "assemblies:f",
+      "def": "FOREIGN KEY (created_in_estimate_id) REFERENCES estimate_versions(id)"
+    },
+    {
+      "key": "assemblies:f",
+      "def": "FOREIGN KEY (derived_from_assembly_id) REFERENCES assemblies(id)"
+    },
+    {
+      "key": "assemblies:f",
+      "def": "FOREIGN KEY (derived_from_edition_id) REFERENCES ahsp_editions(id)"
+    },
+    {
+      "key": "assemblies:f",
+      "def": "FOREIGN KEY (edited_from) REFERENCES assemblies(id)"
+    },
+    {
+      "key": "assemblies:f",
+      "def": "FOREIGN KEY (edition_id) REFERENCES ahsp_editions(id)"
+    },
+    {
+      "key": "assemblies:f",
       "def": "FOREIGN KEY (output_unit_code) REFERENCES units(code)"
     },
     {
@@ -11000,7 +11241,7 @@
     },
     {
       "key": "assemblies:u",
-      "def": "UNIQUE (code, version_number)"
+      "def": "UNIQUE NULLS NOT DISTINCT (code, edition_id, source, version_number)"
     },
     {
       "key": "assembly_components:c",
@@ -11397,6 +11638,10 @@
     {
       "key": "estimate_versions:f",
       "def": "FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL"
+    },
+    {
+      "key": "estimate_versions:f",
+      "def": "FOREIGN KEY (edition_id) REFERENCES ahsp_editions(id)"
     },
     {
       "key": "estimate_versions:f",
@@ -12893,6 +13138,14 @@
   ],
   "indexes": [
     {
+      "key": "ahsp_editions",
+      "def": "CREATE UNIQUE INDEX ahsp_editions_code_key ON public.ahsp_editions USING btree (code)"
+    },
+    {
+      "key": "ahsp_editions",
+      "def": "CREATE UNIQUE INDEX ahsp_editions_pkey ON public.ahsp_editions USING btree (id)"
+    },
+    {
       "key": "approval_chains",
       "def": "CREATE UNIQUE INDEX approval_chains_entity_type_key ON public.approval_chains USING btree (entity_type)"
     },
@@ -12930,6 +13183,10 @@
     },
     {
       "key": "assemblies",
+      "def": "CREATE INDEX idx_assemblies_edition ON public.assemblies USING btree (edition_id)"
+    },
+    {
+      "key": "assemblies",
       "def": "CREATE INDEX idx_assemblies_status ON public.assemblies USING btree (status)"
     },
     {
@@ -12938,7 +13195,7 @@
     },
     {
       "key": "assemblies",
-      "def": "CREATE UNIQUE INDEX assembly_identity ON public.assemblies USING btree (code, version_number)"
+      "def": "CREATE UNIQUE INDEX assembly_identity ON public.assemblies USING btree (code, edition_id, source, version_number) NULLS NOT DISTINCT"
     },
     {
       "key": "assembly_components",
@@ -14359,12 +14616,16 @@
       "def": "CREATE OR REPLACE FUNCTION public.float8_dist(double precision, double precision) RETURNS double precision LANGUAGE c IMMUTABLE PARALLEL SAFE STRICT AS '$libdir/btree_gist', $function$float8_dist$function$"
     },
     {
+      "key": "fn_assembly_baseline_immutable()",
+      "def": "CREATE OR REPLACE FUNCTION public.fn_assembly_baseline_immutable() RETURNS trigger LANGUAGE plpgsql AS $function$ BEGIN IF OLD.is_import_baseline THEN IF ( NEW.code, NEW.cost_code_id, NEW.source, NEW.reference_standard, NEW.version_number, NEW.waste_factor, NEW.sequence, NEW.output_unit_code, NEW.edition_id, NEW.is_import_baseline ) IS DISTINCT FROM ( OLD.code, OLD.cost_code_id, OLD.source, OLD.reference_standard, OLD.version_number, OLD.waste_factor, OLD.sequence, OLD.output_unit_code, OLD.edition_id, OLD.is_import_baseline ) THEN RAISE EXCEPTION 'Baseline impor (id=%) IMMUTABLE — jejak \"SE bilang apa\" tak boleh ditimpa. ' 'Edit = buat versi baru (overlay), bukan ubah baseline.', OLD.id USING ERRCODE = 'check_violation'; END IF; END IF; RETURN NEW; END $function$"
+    },
+    {
       "key": "fn_assembly_component_parent_draft()",
       "def": "CREATE OR REPLACE FUNCTION public.fn_assembly_component_parent_draft() RETURNS trigger LANGUAGE plpgsql AS $function$ DECLARE v_status TEXT; v_aid UUID; BEGIN v_aid := COALESCE(NEW.assembly_id, OLD.assembly_id); SELECT status INTO v_status FROM assemblies WHERE id = v_aid; -- Bila parent-nya ikut terhapus (CASCADE), v_status NULL → izinkan (bukan edit -- manual, melainkan pembersihan mengikuti parent draft yang sah dihapus). IF v_status IS NOT NULL AND v_status <> 'draft' THEN RAISE EXCEPTION 'Komponen Assembly hanya bisa diubah saat Assembly berstatus draft (kini %). ' 'Paket kerja yang sudah active beku — buat versi Assembly baru.', v_status USING ERRCODE = 'check_violation'; END IF; RETURN COALESCE(NEW, OLD); END $function$"
     },
     {
       "key": "fn_assembly_immutable()",
-      "def": "CREATE OR REPLACE FUNCTION public.fn_assembly_immutable() RETURNS trigger LANGUAGE plpgsql AS $function$ BEGIN IF OLD.status <> 'draft' THEN IF ( NEW.code, NEW.cost_code_id, NEW.source, NEW.reference_standard, NEW.version_number, NEW.waste_factor, NEW.sequence, NEW.output_unit_code ) IS DISTINCT FROM ( OLD.code, OLD.cost_code_id, OLD.source, OLD.reference_standard, OLD.version_number, OLD.waste_factor, OLD.sequence, OLD.output_unit_code ) THEN RAISE EXCEPTION 'Assembly sudah active/superseded (status=%): paket kerja tak bisa diubah — ' 'Estimate Item yang memakainya tak boleh berubah retroaktif. Buat versi baru.', OLD.status USING ERRCODE = 'check_violation'; END IF; END IF; RETURN NEW; END $function$"
+      "def": "CREATE OR REPLACE FUNCTION public.fn_assembly_immutable() RETURNS trigger LANGUAGE plpgsql AS $function$ BEGIN IF OLD.status <> 'draft' THEN IF ( NEW.code, NEW.cost_code_id, NEW.source, NEW.reference_standard, NEW.version_number, NEW.waste_factor, NEW.sequence, NEW.output_unit_code, NEW.edition_id, NEW.is_import_baseline ) IS DISTINCT FROM ( OLD.code, OLD.cost_code_id, OLD.source, OLD.reference_standard, OLD.version_number, OLD.waste_factor, OLD.sequence, OLD.output_unit_code, OLD.edition_id, OLD.is_import_baseline ) THEN RAISE EXCEPTION 'Assembly sudah active/superseded (status=%): paket kerja/edisi tak bisa diubah — ' 'Estimate Item yang memakainya tak boleh berubah retroaktif. Buat versi baru.', OLD.status USING ERRCODE = 'check_violation'; END IF; END IF; RETURN NEW; END $function$"
     },
     {
       "key": "fn_assembly_no_delete()",
@@ -14415,6 +14676,14 @@
       "def": "CREATE OR REPLACE FUNCTION public.fn_cost_codes_touch_updated_at() RETURNS trigger LANGUAGE plpgsql AS $function$ BEGIN NEW.updated_at := now(); RETURN NEW; END $function$"
     },
     {
+      "key": "fn_edition_no_delete()",
+      "def": "CREATE OR REPLACE FUNCTION public.fn_edition_no_delete() RETURNS trigger LANGUAGE plpgsql AS $function$ BEGIN IF EXISTS (SELECT 1 FROM assemblies WHERE edition_id = OLD.id OR derived_from_edition_id = OLD.id) OR EXISTS (SELECT 1 FROM estimate_versions WHERE edition_id = OLD.id) THEN RAISE EXCEPTION 'Edisi AHSP (code=%) tak boleh dihapus — masih dirujuk assembly/estimasi. ' 'Nonaktifkan (is_active=false), jangan hapus.', OLD.code USING ERRCODE = 'restrict_violation'; END IF; RETURN OLD; END $function$"
+    },
+    {
+      "key": "fn_edition_provenance_immutable()",
+      "def": "CREATE OR REPLACE FUNCTION public.fn_edition_provenance_immutable() RETURNS trigger LANGUAGE plpgsql AS $function$ BEGIN IF ( NEW.code, NEW.se_number, NEW.publish_date, NEW.source_file, NEW.source_sha256, NEW.imported_at ) IS DISTINCT FROM ( OLD.code, OLD.se_number, OLD.publish_date, OLD.source_file, OLD.source_sha256, OLD.imported_at ) THEN RAISE EXCEPTION 'Edisi AHSP (code=%): provenance immutable — edisi menambah, tak pernah diganti. ' 'Hanya is_active/name yang boleh berubah.', OLD.code USING ERRCODE = 'check_violation'; END IF; RETURN NEW; END $function$"
+    },
+    {
       "key": "fn_estimate_item_parent_draft()",
       "def": "CREATE OR REPLACE FUNCTION public.fn_estimate_item_parent_draft() RETURNS trigger LANGUAGE plpgsql AS $function$ DECLARE v_status TEXT; v_vid UUID; BEGIN v_vid := COALESCE(NEW.estimate_version_id, OLD.estimate_version_id); SELECT status INTO v_status FROM estimate_versions WHERE id = v_vid; -- CASCADE dari version draft yang dihapus → v_status NULL, izinkan. IF v_status IS NOT NULL AND v_status <> 'draft' THEN RAISE EXCEPTION 'Estimate Item hanya bisa diubah saat Estimate Version berstatus draft (kini %). ' 'Angka yang direview/disetujui beku — buat versi baru.', v_status USING ERRCODE = 'check_violation'; END IF; RETURN COALESCE(NEW, OLD); END $function$"
     },
@@ -14424,7 +14693,7 @@
     },
     {
       "key": "fn_estimate_version_immutable()",
-      "def": "CREATE OR REPLACE FUNCTION public.fn_estimate_version_immutable() RETURNS trigger LANGUAGE plpgsql AS $function$ BEGIN IF OLD.status <> 'draft' THEN IF ( NEW.scenario_id, NEW.version_number, NEW.total_amount ) IS DISTINCT FROM ( OLD.scenario_id, OLD.version_number, OLD.total_amount ) THEN RAISE EXCEPTION 'Estimate Version sudah keluar dari draft (status=%): total & identitas beku ' '— angka yang direview/disetujui tak boleh berubah. Buat versi baru.', OLD.status USING ERRCODE = 'check_violation'; END IF; END IF; RETURN NEW; END $function$"
+      "def": "CREATE OR REPLACE FUNCTION public.fn_estimate_version_immutable() RETURNS trigger LANGUAGE plpgsql AS $function$ BEGIN IF OLD.status <> 'draft' THEN IF ( NEW.scenario_id, NEW.version_number, NEW.total_amount, NEW.edition_id ) IS DISTINCT FROM ( OLD.scenario_id, OLD.version_number, OLD.total_amount, OLD.edition_id ) THEN RAISE EXCEPTION 'Estimate Version sudah keluar dari draft (status=%): total/identitas/edisi beku ' '— angka yang direview/disetujui tak boleh berubah. Buat versi baru.', OLD.status USING ERRCODE = 'check_violation'; END IF; END IF; RETURN NEW; END $function$"
     },
     {
       "key": "fn_estimate_version_no_delete()",
@@ -15473,6 +15742,18 @@
   ],
   "triggers": [
     {
+      "key": "ahsp_editions.trg_edition_no_delete",
+      "def": "CREATE TRIGGER trg_edition_no_delete BEFORE DELETE ON public.ahsp_editions FOR EACH ROW EXECUTE FUNCTION fn_edition_no_delete()"
+    },
+    {
+      "key": "ahsp_editions.trg_edition_provenance_immutable",
+      "def": "CREATE TRIGGER trg_edition_provenance_immutable BEFORE UPDATE ON public.ahsp_editions FOR EACH ROW EXECUTE FUNCTION fn_edition_provenance_immutable()"
+    },
+    {
+      "key": "assemblies.trg_assembly_baseline_immutable",
+      "def": "CREATE TRIGGER trg_assembly_baseline_immutable BEFORE UPDATE ON public.assemblies FOR EACH ROW EXECUTE FUNCTION fn_assembly_baseline_immutable()"
+    },
+    {
       "key": "assemblies.trg_assembly_immutable",
       "def": "CREATE TRIGGER trg_assembly_immutable BEFORE UPDATE ON public.assemblies FOR EACH ROW EXECUTE FUNCTION fn_assembly_immutable()"
     },
@@ -15910,6 +16191,11 @@
     }
   ],
   "rls": [
+    {
+      "key": "ahsp_editions",
+      "on": true,
+      "force": false
+    },
     {
       "key": "approval_chains",
       "on": true,
@@ -16362,6 +16648,18 @@
     }
   ],
   "policies": [
+    {
+      "key": "ahsp_editions.ahsp_editions_read",
+      "cmd": "SELECT",
+      "qual": "has_permission('cecep:edition:view'::text)",
+      "withcheck": null
+    },
+    {
+      "key": "ahsp_editions.ahsp_editions_write",
+      "cmd": "ALL",
+      "qual": "has_permission('cecep:edition:manage'::text)",
+      "withcheck": "has_permission('cecep:edition:manage'::text)"
+    },
     {
       "key": "approval_chains.approval_chains_read",
       "cmd": "SELECT",
