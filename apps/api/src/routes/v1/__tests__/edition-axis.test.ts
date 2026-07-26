@@ -27,6 +27,7 @@ const CECEP = [
   '115_cecep_unit_foundation.sql',
   '116_cecep_unit_labor_time.sql',
   '117_cecep_edition_axis.sql',
+  '118_cecep_edition_provenance_write_once.sql',
 ]
 
 let client: Client
@@ -34,7 +35,6 @@ let userId: string
 let clientId: string
 let projectId: string
 let costCodeId: string
-let resourceId: string
 const edn: Record<string, string> = {} // code → id
 
 async function newAssembly(over: Record<string, unknown> = {}): Promise<string> {
@@ -82,10 +82,9 @@ beforeAll(async () => {
   const c = await client.query(
     `INSERT INTO cost_codes (code, name, created_by) VALUES ('CC-EDN', 'Pembesian', $1) RETURNING id`, [userId])
   costCodeId = c.rows[0].id
-  const r = await client.query(
+  await client.query(
     `INSERT INTO resources (code, name, category, unit_code, created_by)
-     VALUES ('RBS-EDN', 'Tukang Besi', 'labor', 'OH', $1) RETURNING id`, [userId])
-  resourceId = r.rows[0].id
+     VALUES ('RBS-EDN', 'Tukang Besi', 'labor', 'OH', $1)`, [userId])
 
   const eds = await client.query(`SELECT code, id FROM ahsp_editions`)
   for (const row of eds.rows) edn[row.code] = row.id
@@ -100,10 +99,22 @@ describe('Registry EDISI — provenance & seed', () => {
     expect(edn['SE-47-2026']).toBeTruthy()
   })
 
-  it('provenance immutable: ubah se_number DITOLAK', async () => {
+  it('provenance WRITE-ONCE (118): isi source_file saat NULL BOLEH (impor pertama)', async () => {
     await expect(client.query(
-      `UPDATE ahsp_editions SET se_number = 'PALSU' WHERE code = 'SE-47-2026'`))
-      .rejects.toThrow(/provenance immutable|menambah, tak pernah/i)
+      `UPDATE ahsp_editions SET source_file='se47.xlsm', source_sha256='abc', imported_at=now()
+       WHERE code = 'SE-47-2026'`)).resolves.toBeTruthy()
+  })
+
+  it('provenance WRITE-ONCE (118): ubah nilai TERISI DITOLAK', async () => {
+    await expect(client.query(
+      `UPDATE ahsp_editions SET source_sha256 = 'DIGANTI' WHERE code = 'SE-47-2026'`))
+      .rejects.toThrow(/write-once|sudah terisi/i)
+  })
+
+  it('identitas edisi (code/publish_date) tetap beku', async () => {
+    await expect(client.query(
+      `UPDATE ahsp_editions SET publish_date = '1999-01-01' WHERE code = 'SE-47-2026'`))
+      .rejects.toThrow(/identitas.*immutable|immutable/i)
   })
 
   it('is_active BOLEH diubah (operasional, bukan provenance)', async () => {

@@ -40,6 +40,7 @@ import kasbonPurposesRoutes from './routes/v1/kasbon-purposes.js'
 import approvalChainRoutes from './routes/v1/approval-chains.js'
 import notificationRuleRoutes from './routes/v1/notification-rules.js'
 import estimateVersionRoutes from './routes/v1/estimate-versions.js'
+import ahspRoutes from './routes/v1/ahsp.js'
 import lessonsLearnedRoutes from './routes/v1/lessons-learned.js'
 import { supabase } from './utils/supabase.js'
 import { registerObservability } from './utils/observability.js'
@@ -217,6 +218,7 @@ await app.register(kasbonPurposesRoutes)
 await app.register(approvalChainRoutes)
 await app.register(notificationRuleRoutes)
 await app.register(estimateVersionRoutes)
+await app.register(ahspRoutes)
 await app.register(lessonsLearnedRoutes)
 
 const PORT = Number(process.env.PORT) || 3001
