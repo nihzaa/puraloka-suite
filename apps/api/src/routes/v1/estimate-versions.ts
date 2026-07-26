@@ -10,6 +10,7 @@ import { forecastCashflow } from '../../lib/cashflow-forecast.js'
 import {
   computeAhsp, computeRabLineTotal, computeRabRollup, type RoundingRule, type RabGroupInput,
 } from '../../lib/ahsp-engine.js'
+import { computeMaterialAggregation, type TakeoffLineInput } from '../../lib/rab-compute.js'
 import { resolvePrices, type PriceBookEntryRow } from '../../lib/price-resolver.js'
 import { getTaxRate } from '../../utils/financial-config.js'
 
@@ -225,6 +226,59 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
       return reply.send({
         estimate_version_id: v.id, at_date: atDate, ppn_rate: ppnRate, ...rollup,
       })
+    })
+
+  // ── GET /estimate-versions/:id/material-takeoff — agregasi kebutuhan (D2) ───
+  // Langkah 6 build-order CECEP (MATERIAL-RAP-COMPANY-UI-DESIGN.md §D2): satu
+  // baris per resource (BUKAN disimpan mentah — view/komputasi dari
+  // estimate_item × assembly_component), dengan drill-down "kenapa semennya
+  // sebanyak ini". qtyAhsp = angka ANGGARAN (D8: koefisien AHSP sudah mengandung
+  // waste — bukan target akurasi lapangan presisi). Item lump-sum (assembly_id
+  // NULL) TIDAK punya komponen material — dilewati dari agregasi (sesuai desain:
+  // take-off hanya bermakna untuk pekerjaan beranalisa).
+  app.get<{ Params: { id: string } }>(
+    '/api/v1/estimate-versions/:id/material-takeoff',
+    { preHandler: [authenticate, requirePermission('cecep:estimate:view')] },
+    async (request, reply) => {
+      const { data: v } = await supabase
+        .from('estimate_versions').select('id').eq('id', request.params.id).maybeSingle()
+      if (!v) return reply.status(404).send({ error: 'Estimate Version tidak ditemukan' })
+
+      const { data: items, error } = await supabase
+        .from('estimate_items')
+        .select(`id, quantity,
+                 assembly:assemblies(code, name,
+                   components:assembly_components(coefficient,
+                     resource:resources(id, code, name, category, unit_code)))`)
+        .eq('estimate_version_id', request.params.id)
+        .not('assembly_id', 'is', null)
+      if (error) return reply.status(500).send({ error: error.message })
+
+      type CompRow = { coefficient: number
+        resource: { id: string; code: string; name: string; category: string; unit_code: string } | null }
+      type ItemRow = { id: string; quantity: number
+        assembly: { code: string; name: string; components: CompRow[] } | null }
+
+      const lines: TakeoffLineInput[] = []
+      const categoryByResource = new Map<string, string>()
+      for (const it of (items ?? []) as unknown as ItemRow[]) {
+        if (!it.assembly) continue
+        for (const c of it.assembly.components) {
+          if (!c.resource) continue
+          lines.push({
+            estimateItemId: it.id, workName: `${it.assembly.code} — ${it.assembly.name}`,
+            volume: Number(it.quantity), resourceId: c.resource.id, resourceName: c.resource.name,
+            unitCode: c.resource.unit_code, coefficient: Number(c.coefficient),
+          })
+          categoryByResource.set(c.resource.id, c.resource.category)
+        }
+      }
+      // Kategori dibawa untuk UI (filter bahan/tenaga/alat) — take-off "kebutuhan
+      // belanja" utamanya relevan utk bahan, tapi tenaga/alat tetap ditelusuri.
+      const materials = computeMaterialAggregation(lines).map(a => ({
+        ...a, category: categoryByResource.get(a.resourceId) ?? null,
+      }))
+      return reply.send({ estimate_version_id: v.id, materials })
     })
 
   // ── POST /items — tambah item dari ASSEMBLY atau LUMP-SUM (M3+misi d) ───────

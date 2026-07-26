@@ -43,6 +43,55 @@ export function computeMaterialTakeoff(volume: number, coefficient: number, pack
   return applyRounding((volume * coefficient) / packSize, CEIL_1)
 }
 
+// ── D2 — Agregasi material lintas item (satu baris/resource, tetap tertelusur) ─
+// Rancangan MATERIAL-RAP-COMPANY-UI-DESIGN.md §D2: BUKAN disimpan mentah — view/
+// komputasi dari (estimate_item × assembly_component). Satu resource dipakai N
+// item (semen di kolom/balok/plesteran) → SATU baris teragregasi, dengan rincian
+// drill-down "kenapa semennya sebanyak ini" (analog rollup RAB tapi sumbu =
+// resource, bukan cost code).
+export interface TakeoffLineInput {
+  estimateItemId: string
+  workName: string      // nama pekerjaan (assembly/cost_code) — utk drill-down
+  volume: number         // quantity di estimate_items
+  resourceId: string
+  resourceName: string
+  unitCode: string
+  coefficient: number    // qty resource per 1 satuan-output assembly
+}
+export interface TakeoffDetail { estimateItemId: string; workName: string; volume: number; coefficient: number; subQty: number }
+export interface MaterialAggregateLine {
+  resourceId: string; resourceName: string; unitCode: string
+  qtyAhsp: number         // Σ(volume × coefficient) — angka anggaran (D8: sudah mengandung waste)
+  details: TakeoffDetail[]
+}
+
+export function computeMaterialAggregation(lines: TakeoffLineInput[]): MaterialAggregateLine[] {
+  const byResource = new Map<string, MaterialAggregateLine>()
+  for (const l of lines) {
+    const subQty = l.volume * l.coefficient
+    let agg = byResource.get(l.resourceId)
+    if (!agg) {
+      agg = { resourceId: l.resourceId, resourceName: l.resourceName, unitCode: l.unitCode, qtyAhsp: 0, details: [] }
+      byResource.set(l.resourceId, agg)
+    }
+    agg.qtyAhsp += subQty
+    agg.details.push({ estimateItemId: l.estimateItemId, workName: l.workName, volume: l.volume, coefficient: l.coefficient, subQty })
+  }
+  return [...byResource.values()]
+}
+
+// ── D5 — Dua satuan (satuan AHSP + satuan belanja) ───────────────────────────
+// TANPA engine konversi (ADR-006): faktor kemasan = DATA EKSPLISIT per resource
+// (material_pack: factor = qty-AHSP per 1 buy_unit; mis. semen 50kg/zak → factor=50).
+// Pembulatan KE ATAS hanya di angka belanja — qty_ahsp TIDAK dibulatkan (kembali ke
+// analisa kapan pun). Paralel pola hsp_raw/hsp_rounded: simpan KEDUA, jangan campur.
+export interface DualUnitResult { qtyAhsp: number; buyUnitCode: string; qtyBuyRounded: number }
+
+export function computeDualUnit(qtyAhsp: number, buyUnitCode: string, packFactor: number): DualUnitResult {
+  if (packFactor <= 0) throw new Error('computeDualUnit: packFactor harus > 0')
+  return { qtyAhsp, buyUnitCode, qtyBuyRounded: applyRounding(qtyAhsp / packFactor, CEIL_1) }
+}
+
 // ── Orchestrator RAB end-to-end ──────────────────────────────────────────────
 export interface RabItemInput {
   code: string
