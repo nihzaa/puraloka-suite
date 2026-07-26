@@ -1,6 +1,6 @@
 # STATUS — Puraloka Suite (penunjuk satu pintu)
 
-**Diperbarui:** 2026-07-26 · File ini adalah `STATUS.md` yang diwajibkan AUTOPILOT §2
+**Diperbarui:** 2026-07-27 · File ini adalah `STATUS.md` yang diwajibkan AUTOPILOT §2
 — penunjuk TIPIS, bukan duplikasi konten. Update tanggal + baris "Fase aktif" setiap
 kali keadaan berubah; detail selalu di dokumen rujukan.
 
@@ -33,6 +33,11 @@ disentuh) → **(d)** alur item-tak-di-katalog (lump-sum dulu, lalu create-assem
 company di-tengah-estimasi — menyentuh gerbang immutability `assemblies`, disebut
 eksplisit saat dikerjakan). AI-import edisi baru = inisiatif terpisah, tak
 bertabrakan (parser+auditor, bukan penghasil angka).
+
+Sisipan saat jeda gate (sesuai PETA §3 #2, tidak menyela CECEP): **celah 3-way match
+procurement DITUTUP 2026-07-27** (invoice manual wajib link GR, harga vs PO, anti
+invoice dobel + migration 121) — detail: `docs/DEVELOPMENT_LOG.md` entry 2026-07-27
++ taksonomi §6.
 
 Phase 1 (Program A) ✅ · Phase 2 (Program B) ✅.
 

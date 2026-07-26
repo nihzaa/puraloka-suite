@@ -138,7 +138,7 @@ Jantung ERP kontraktor. Lihat skor Lima Pembeda di bawah.
 | Purchase Order | ✅ | + cancel + auto-number (trigger) |
 | Kontrak payung / blanket order | 🔴 | |
 | Goods Receipt Note (GRN) | ✅ | Koreksi dari 🟡: create + confirm + trigger auto-stok |
-| **3-way match (PO–GRN–Invoice)** | 🟡 | Sebagian ADA: guard over-receipt GR vs PO (`procurement.ts:641`) + invoice auto dari GR ter-link `goods_receipt_id` (`:672`). Celah: (a) invoice MANUAL tanpa link PO/GR & tanpa validasi, (b) tak ada cek harga vs PO, (c) auto-invoice tidak cek duplikat vs invoice manual (komentar `:659` ≠ kode) → potensi invoice dobel. Kandidat prioritas tinggi |
+| **3-way match (PO–GRN–Invoice)** | ✅ | Ketiga celah DITUTUP 2026-07-27 (PR feat/procurement-3way-match): (a) invoice manual wajib ter-link `goods_receipt_id` + supplier dicek cocok GR + insert whitelist field, (b) total invoice ≤ nilai GR pada HARGA PO (`lib/three-way-match.ts`, murni ber-test), (c) anti-dobel 3 lapis — satu GR satu invoice (409), nomor faktur unik per supplier (409), auto-invoice saat GR confirm cek invoice existing; backstop DB migration 121 (2 partial unique index). Guard over-receipt GR vs PO tetap. Test: 24 (unit+integration+route, positif & negatif, mutation-tested) |
 | Evaluasi kinerja vendor | 🔴 | |
 | Jadwal pembayaran vendor | ✅ | Koreksi dari 🟡: aging + overdue + alokasi FIFO |
 | Impor & kepabeanan | ⛔ | Dicoret (scope domestik) |

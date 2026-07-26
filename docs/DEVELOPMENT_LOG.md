@@ -474,6 +474,19 @@
 ---
 
 
+### 2026-07-27 — Feature — Procurement: tutup celah 3-way match PO–GR–Invoice (Migration 121)
+**Status**: Done
+**Files affected**:
+- `apps/api/src/lib/three-way-match.ts` (baru) — nilai GR pada harga PO + ceiling invoice (murni, ber-test)
+- `apps/api/src/routes/v1/procurement.ts` — POST supplier-invoices diperketat + auto-invoice cek existing
+- `db/migrations/121_supplier_invoice_3way_guards.sql` + kembar — 2 partial unique index
+- `apps/api/src/lib/__tests__/three-way-match.test.ts` (11) + `.../supplier-invoice-3way-db.test.ts` (4, schema-test verbatim 121) + `.../supplier-invoice-3way.test.ts` (9, route-level fixture [TEST-3WAY])
+- `docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md` §6 (+ kembaran EA) 🟡→✅ · `docs/PETA-PRIORITAS-ERP.md` §3 #2 SELESAI
+**Notes**: PETA-PRIORITAS §3 item #2, diselipkan saat jeda gate CECEP (sesuai catatan PETA — tidak menyela Option 2). Tiga celah: (a) invoice manual kini WAJIB `goods_receipt_id` + supplier dicek cocok GR + project_id diturunkan dari GR + insert whitelist (spread `...body` dihapus — mass-assignment tertutup); (b) total invoice ≤ nilai GR pada HARGA PO — harga aktual GR sengaja bukan basis (selisih harga justru yang harus tertangkap); tagihan di bawah plafon diizinkan (diskon); (c) anti-dobel 3 lapis: satu GR satu invoice (409), nomor faktur unik per supplier (409), auto-invoice saat GR confirm cek invoice existing (komentar lama `:659` akhirnya = kode) — backstop race: `uq_supplier_invoices_gr` + `uq_supplier_invoices_supplier_number` (partial, NULL bebas — auto-invoice & baris legacy pra-121 tetap sah). Prasyarat index diverifikasi dev: nol duplikat existing. Endpoint POST manual API-only (nol pemanggil web/mobile — additive-first aman). Mutation-proof: 3 guard dicabut → 4 test merah, dipulihkan → 9/9.
+
+---
+
+
 <!-- Template untuk entry baru:
 
 ### YYYY-MM-DD HH:MM — [Kategori] — [Deskripsi]

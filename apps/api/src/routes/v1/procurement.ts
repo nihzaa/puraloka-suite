@@ -6,6 +6,7 @@ import { resolveRecipients } from '../../utils/notification-routing.js'
 import { evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain } from '../../utils/approval.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { computeMrAmount } from '../../lib/mr-amount.js'
+import { grValueAtPoPrices, validateInvoiceCeiling } from '../../lib/three-way-match.js'
 
 /** Nilai MR untuk dasar syarat nominal rantai — aturannya di lib/mr-amount.ts (murni, ber-test). */
 async function mrApprovalAmount(mrId: string): Promise<number> {
@@ -656,22 +657,33 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
     if (error) return reply.status(500).send({ error: error.message })
 
-    // Auto-buat supplier invoice dari GR (opsional — hanya jika tidak ada invoice manual)
+    // Auto-buat supplier invoice dari GR — HANYA jika GR ini belum punya invoice
+    // (invoice manual ber-link GR yang dientri lebih dulu menang; cegah dobel).
+    // Backstop race: unique index uq_supplier_invoices_gr (migration 121) —
+    // insert kalah race gagal senyap di try/catch ini, tidak menghasilkan dobel.
     try {
-      const { data: grItems } = await supabase
-        .from('goods_receipt_items')
-        .select('qty_received, unit_price')
-        .eq('gr_id', id)
-      const totalAmount = (grItems ?? []).reduce((s, i) => s + (i.qty_received * i.unit_price), 0)
+      const { data: existingInvoice } = await supabase
+        .from('supplier_invoices')
+        .select('id')
+        .eq('goods_receipt_id', id)
+        .limit(1)
 
-      if (totalAmount > 0) {
-        const { data: po } = await supabase.from('goods_receipts').select('po_id, project_id, supplier_id').eq('id', id).single()
-        if (po) {
-          await supabase.from('supplier_invoices').insert({
-            supplier_id: po.supplier_id, project_id: po.project_id,
-            goods_receipt_id: id, total_amount: totalAmount,
-            description: `Invoice dari GR ${data?.gr_number}`,
-          })
+      if (!existingInvoice || existingInvoice.length === 0) {
+        const { data: grItems } = await supabase
+          .from('goods_receipt_items')
+          .select('qty_received, unit_price')
+          .eq('gr_id', id)
+        const totalAmount = (grItems ?? []).reduce((s, i) => s + (i.qty_received * i.unit_price), 0)
+
+        if (totalAmount > 0) {
+          const { data: po } = await supabase.from('goods_receipts').select('po_id, project_id, supplier_id').eq('id', id).single()
+          if (po) {
+            await supabase.from('supplier_invoices').insert({
+              supplier_id: po.supplier_id, project_id: po.project_id,
+              goods_receipt_id: id, total_amount: totalAmount,
+              description: `Invoice dari GR ${data?.gr_number}`,
+            })
+          }
         }
       }
     } catch { /* non-blocking */ }
@@ -713,21 +725,109 @@ export default async function procurementRoutes(app: FastifyInstance) {
   })
 
   // POST /api/v1/procurement/supplier-invoices — input manual bon supplier
+  // 3-way match (PETA-PRIORITAS §3 #2): wajib ter-link GR, satu GR satu invoice,
+  // total tidak boleh melebihi nilai GR pada harga PO.
   app.post('/api/v1/procurement/supplier-invoices', {
     preHandler: [authenticate, requirePermission('procurement:po:manage')]
   }, async (request, reply) => {
     const body = request.body as {
-      supplier_id: string; project_id?: string; invoice_number?: string
+      supplier_id: string; goods_receipt_id?: string; invoice_number?: string
       invoice_date?: string; due_date?: string; total_amount: number; description?: string; notes?: string
     }
     if (!body.supplier_id || !body.total_amount) return reply.status(400).send({ error: 'supplier_id dan total_amount wajib diisi' })
+    if (!body.goods_receipt_id) {
+      return reply.status(400).send({
+        error: 'goods_receipt_id wajib diisi — invoice supplier harus ter-link Goods Receipt (3-way match PO–GR–Invoice)'
+      })
+    }
 
+    const { data: gr } = await supabase
+      .from('goods_receipts')
+      .select('id, po_id, project_id, supplier_id, gr_number')
+      .eq('id', body.goods_receipt_id)
+      .single()
+    if (!gr) return reply.status(404).send({ error: 'Goods Receipt tidak ditemukan' })
+    if (gr.supplier_id !== body.supplier_id) {
+      return reply.status(400).send({ error: 'supplier_id tidak cocok dengan supplier pada GR tersebut' })
+    }
+
+    // Anti-dobel #1: satu GR maksimal satu invoice (manual ATAU auto dari confirm)
+    const { data: existingForGr } = await supabase
+      .from('supplier_invoices')
+      .select('id, invoice_number')
+      .eq('goods_receipt_id', gr.id)
+      .limit(1)
+    if (existingForGr && existingForGr.length > 0) {
+      return reply.status(409).send({
+        error: `GR ${gr.gr_number} sudah punya invoice — satu GR hanya boleh ditagih sekali. Hapus/periksa invoice yang ada sebelum entri ulang.`
+      })
+    }
+
+    // Anti-dobel #2: nomor faktur supplier tidak boleh dientri dua kali
+    if (body.invoice_number) {
+      const { data: dupNumber } = await supabase
+        .from('supplier_invoices')
+        .select('id')
+        .eq('supplier_id', body.supplier_id)
+        .eq('invoice_number', body.invoice_number)
+        .limit(1)
+      if (dupNumber && dupNumber.length > 0) {
+        return reply.status(409).send({
+          error: `Nomor faktur ${body.invoice_number} sudah pernah dientri untuk supplier ini — potensi tagihan dobel.`
+        })
+      }
+    }
+
+    // Validasi harga vs PO: total invoice ≤ nilai GR pada harga PO
+    const { data: grItems, error: giError } = await supabase
+      .from('goods_receipt_items')
+      .select('po_item_id, qty_received')
+      .eq('gr_id', gr.id)
+    if (giError) return reply.status(500).send({ error: giError.message })
+
+    const poItemIds = [...new Set((grItems ?? []).map(i => i.po_item_id))]
+    let poItems: Array<{ id: string; unit_price: number }> = []
+    if (poItemIds.length > 0) {
+      const { data, error: piError } = await supabase
+        .from('purchase_order_items')
+        .select('id, unit_price')
+        .in('id', poItemIds)
+      if (piError) return reply.status(500).send({ error: piError.message })
+      poItems = data ?? []
+    }
+
+    const matchValue = grValueAtPoPrices(grItems ?? [], poItems)
+    const verdict = validateInvoiceCeiling(Number(body.total_amount), matchValue)
+    if (!verdict.ok) {
+      return reply.status(400).send({
+        error: `Total invoice (${Number(body.total_amount)}) melebihi nilai GR pada harga PO (${matchValue}) — selisih ${verdict.excess}. Periksa qty/harga, atau revisi PO bila harga memang berubah.`
+      })
+    }
+
+    // Insert dengan field whitelist (bukan spread body — cegah mass-assignment)
     const { data, error } = await supabase
       .from('supplier_invoices')
-      .insert({ ...body, created_by: request.currentUser!.id })
+      .insert({
+        supplier_id: body.supplier_id,
+        project_id: gr.project_id,
+        goods_receipt_id: gr.id,
+        invoice_number: body.invoice_number ?? null,
+        invoice_date: body.invoice_date ?? undefined,
+        due_date: body.due_date ?? null,
+        total_amount: Number(body.total_amount),
+        description: body.description ?? null,
+        notes: body.notes ?? null,
+        created_by: request.currentUser!.id,
+      })
       .select('id, invoice_number, total_amount, status')
       .single()
-    if (error) return reply.status(500).send({ error: error.message })
+    if (error) {
+      // 23505 = unique_violation (uq_supplier_invoices_gr / _supplier_number, migration 121)
+      if ((error as { code?: string }).code === '23505') {
+        return reply.status(409).send({ error: 'Invoice duplikat terdeteksi (GR atau nomor faktur sudah dipakai)' })
+      }
+      return reply.status(500).send({ error: error.message })
+    }
     return reply.status(201).send({ supplier_invoice: data })
   })
 
