@@ -105,6 +105,24 @@ afterAll(async () => {
   await client?.end()
 })
 
+describe('GET /cecep/resources', () => {
+  it('daftar resource + filter by nama (q)', async () => {
+    actAs(adminAuth)
+    const res = await get('/api/v1/cecep/resources?q=TEST-SEMEN')
+    expect(res.statusCode).toBe(200)
+    const rows = res.json().data
+    expect(rows.some((r: { code: string }) => r.code === 'TEST-SEMEN-PC')).toBe(true)
+  })
+
+  it('filter by category', async () => {
+    actAs(adminAuth)
+    const res = await get('/api/v1/cecep/resources?category=labor&q=TEST-PEKERJA')
+    expect(res.statusCode).toBe(200)
+    const rows = res.json().data
+    expect(rows.every((r: { category: string }) => r.category === 'labor')).toBe(true)
+  })
+})
+
 describe('GET /cecep/editions', () => {
   it('registry edisi terbaca (berisi edisi test)', async () => {
     actAs(adminAuth)

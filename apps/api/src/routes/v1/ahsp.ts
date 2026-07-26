@@ -23,6 +23,28 @@ interface ComponentRow {
 
 export default async function ahspRoutes(app: FastifyInstance) {
 
+  // ── GET /cecep/resources — registry resource (RBS), untuk picker Price Book ─
+  // Terpisah dari /cecep/assemblies: sebagian resource (mis. yang di-seed via
+  // impor batch) belum tentu dipakai assembly manapun, tapi tetap perlu diberi
+  // harga di price book. Pagination cap 200 (kebijakan pagination existing).
+  app.get<{ Querystring: { q?: string; category?: string; limit?: string } }>(
+    '/api/v1/cecep/resources',
+    { preHandler: [authenticate, requirePermission('cecep:resource:view')] },
+    async (request, reply) => {
+      const limit = Math.max(1, Math.min(200, Number(request.query.limit) || 100))
+      let q = supabase
+        .from('resources')
+        .select('id, code, name, category, unit_code, status')
+        .eq('status', 'active')
+        .order('name')
+        .limit(limit)
+      if (request.query.category) q = q.eq('category', request.query.category)
+      if (request.query.q) q = q.ilike('name', `%${request.query.q}%`)
+      const { data, error } = await q
+      if (error) return reply.status(500).send({ error: error.message })
+      return reply.send({ data })
+    })
+
   // ── GET /cecep/editions — registry edisi + provenance ──────────────────────
   app.get(
     '/api/v1/cecep/editions',
