@@ -196,7 +196,9 @@ describe('POST /cecep/assemblies — buat analisa COMPANY mid-estimasi (§2.2)',
       buk_fraction: 0.1, rounding: { mode: 'down', step: 100 },
     })
     expect(item.statusCode).toBe(201)
-    // 2kg x Rp25000 x qty10 x 1.1 BUK = 550000, ROUNDDOWN-100 tetap 550000
-    expect(item.json().hsp.hspRounded).toBe(550000)
+    // HSP per satuan-output: 2kg x Rp25000 = 50000, x1.1 BUK = 55000, ROUNDDOWN-100 tetap 55000
+    expect(item.json().hsp.hspRounded).toBe(55000)
+    // amount = hspRounded x qty10 = 550000
+    expect(item.json().item.amount).toBe(550000)
   })
 })
