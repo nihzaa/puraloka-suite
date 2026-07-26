@@ -83,16 +83,20 @@ async function main() {
         `SELECT id FROM resources WHERE lower(name)=lower($1) AND unit_code=$2 LIMIT 1`,
         [r.name, r.unit_code])
       if (found.rows.length) { resIdByCode[r.code] = found.rows[0].id; resReused++; continue }
-      const ins = await c.query(
-        `INSERT INTO resources (code, name, category, unit_code, created_by)
-         VALUES ($1,$2,$3,$4,$5)
-         ON CONFLICT (code) DO NOTHING RETURNING id`,
-        [r.code, r.name, r.category, r.unit_code, adminId])
-      if (ins.rows.length) { resIdByCode[r.code] = ins.rows[0].id; resNew++ }
-      else {
-        const again = await c.query(`SELECT id FROM resources WHERE code=$1`, [r.code])
-        resIdByCode[r.code] = again.rows[0].id; resReused++
+      // Kode dataset bisa bentrok dgn resource LAIN di DB (penomoran dataset bisa
+      // bergeser antar regen). Identitas sejati = (nama, unit) — kalau kode bentrok,
+      // JANGAN ambil by-code (itu resource berbeda!); pakai kode alternatif.
+      let code = r.code, inserted = null
+      for (let sfx = 0; sfx < 5 && !inserted; sfx++) {
+        const tryCode = sfx === 0 ? code : `${code}-${sfx + 1}`
+        const ins = await c.query(
+          `INSERT INTO resources (code, name, category, unit_code, created_by)
+           VALUES ($1,$2,$3,$4,$5) ON CONFLICT (code) DO NOTHING RETURNING id`,
+          [tryCode, r.name, r.category, r.unit_code, adminId])
+        if (ins.rows.length) inserted = ins.rows[0].id
       }
+      if (!inserted) throw new Error(`Gagal insert resource ${r.code} (${r.name}) — kode bentrok beruntun`)
+      resIdByCode[r.code] = inserted; resNew++
     }
     console.log(`resources: ${resNew} baru, ${resReused} reuse`)
 
