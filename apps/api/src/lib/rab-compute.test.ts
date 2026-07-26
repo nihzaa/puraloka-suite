@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
   computeVolume, computeLaborCount, computeMaterialTakeoff, computeRabDocument,
-  type RabItemInput,
+  computeMaterialAggregation, computeDualUnit,
+  type RabItemInput, type TakeoffLineInput,
 } from './rab-compute.js'
 import type { AhspComponent } from './ahsp-engine.js'
 
@@ -92,5 +93,51 @@ describe('computeRabDocument — RAB end-to-end EKSAK (AHSP + lump-sum)', () => 
     expect(doc.totalBiaya).toBe(42_160_000)
     expect(doc.ppn).toBeCloseTo(5_059_200, 6) // 42.160.000 × 0,12
     expect(doc.grandTotal).toBeCloseTo(47_219_200, 6)
+  })
+})
+
+describe('computeMaterialAggregation — D2 (satu baris/resource, drill-down tertelusur)', () => {
+  // Semen dipakai di 3 pekerjaan berbeda (kolom/balok/plesteran) → SATU baris teragregasi.
+  const lines: TakeoffLineInput[] = [
+    { estimateItemId: 'item-1', workName: 'Kolom K1', volume: 10, resourceId: 'r-semen', resourceName: 'Semen (PC)', unitCode: 'kg', coefficient: 43.5 },
+    { estimateItemId: 'item-2', workName: 'Balok B1', volume: 20, resourceId: 'r-semen', resourceName: 'Semen (PC)', unitCode: 'kg', coefficient: 32.95 },
+    { estimateItemId: 'item-3', workName: 'Plesteran', volume: 100, resourceId: 'r-semen', resourceName: 'Semen (PC)', unitCode: 'kg', coefficient: 7.776 },
+    { estimateItemId: 'item-4', workName: 'Kolom K1', volume: 10, resourceId: 'r-bata', resourceName: 'Bata merah', unitCode: 'buah', coefficient: 143.81 },
+  ]
+  const agg = computeMaterialAggregation(lines)
+
+  it('satu resource dipakai N item → SATU baris (bukan N baris)', () => {
+    expect(agg).toHaveLength(2) // semen + bata, bukan 4
+  })
+  it('qtyAhsp = Σ(volume × coefficient) EKSAK', () => {
+    const semen = agg.find(a => a.resourceId === 'r-semen')!
+    // 10×43.5 + 20×32.95 + 100×7.776 = 435 + 659 + 777.6 = 1871.6
+    expect(semen.qtyAhsp).toBeCloseTo(1871.6, 9)
+  })
+  it('drill-down: rincian per item asal tetap tertelusur ("kenapa semennya sebanyak ini")', () => {
+    const semen = agg.find(a => a.resourceId === 'r-semen')!
+    expect(semen.details).toHaveLength(3)
+    expect(semen.details.find(d => d.estimateItemId === 'item-2')).toMatchObject({
+      workName: 'Balok B1', volume: 20, coefficient: 32.95, subQty: 659,
+    })
+  })
+  it('resource yang dipakai 1 item tetap 1 baris + 1 detail', () => {
+    const bata = agg.find(a => a.resourceId === 'r-bata')!
+    expect(bata.qtyAhsp).toBeCloseTo(1438.1, 9)
+    expect(bata.details).toHaveLength(1)
+  })
+})
+
+describe('computeDualUnit — D5 (satuan AHSP + satuan belanja, TANPA engine konversi)', () => {
+  it('Semen 1.620 kg → 32,4 sak → ROUNDUP beli 33 sak (contoh desain persis)', () => {
+    const r = computeDualUnit(1620, 'sak', 50) // factor 50kg/sak = data eksplisit Lapis 2
+    expect(r.qtyAhsp).toBe(1620)       // TIDAK dibulatkan — kembali ke analisa kapan pun
+    expect(r.qtyBuyRounded).toBe(33)   // ROUNDUP(1620/50) = ROUNDUP(32.4) = 33
+  })
+  it('pas habis (tanpa sisa) tidak dibulatkan naik palsu', () => {
+    expect(computeDualUnit(1600, 'sak', 50).qtyBuyRounded).toBe(32)
+  })
+  it('packFactor <= 0 ditolak (nol tebak satuan tak valid)', () => {
+    expect(() => computeDualUnit(100, 'sak', 0)).toThrow(/packFactor harus > 0/)
   })
 })
