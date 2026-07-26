@@ -227,20 +227,75 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
       })
     })
 
-  // ── POST /items — tambah item dari ASSEMBLY (M3: jalur hitung ter-telusur) ──
-  // Rantai explainability penuh: assembly (koefisien, edisi) × price book
-  // (harga per resource, ter-resolve by tanggal+lokasi) → engine paritas →
-  // amount = hsp_rounded × quantity. C1: BUK & rounding WAJIB dari caller —
-  // TIDAK ada default diam-diam (config effective-date menyusul sebagai Lapis 1).
+  // ── POST /items — tambah item dari ASSEMBLY atau LUMP-SUM (M3+misi d) ───────
+  // Rantai explainability penuh (jalur assembly): assembly (koefisien, edisi) ×
+  // price book (harga per resource, ter-resolve by tanggal+lokasi) → engine
+  // paritas → amount = hsp_rounded × quantity. C1: BUK & rounding WAJIB dari
+  // caller — TIDAK ada default diam-diam (config effective-date Lapis 1 menyusul).
+  //
+  // item_type='lumpsum' (desain §2.3 AHSP-EDITION-BUILDER-DESIGN.md): untuk
+  // pekerjaan BUKAN-beranalisa (lift/pompa/septictank/air kerja) — JANGAN
+  // dipaksa jadi AHSP. amount diinput langsung, TANPA assembly/price-book/engine.
+  // Butuh flag eksplisit supaya tak tertukar dgn lupa isi assembly_id (fail-loud,
+  // bukan silent-default).
   app.post<{ Params: { id: string }
-             Body: { assembly_id?: string; quantity?: number; price_date?: string
+             Body: { item_type?: 'assembly' | 'lumpsum'
+                     assembly_id?: string; quantity?: number; price_date?: string
                      location?: string | null; buk_fraction?: number; rounding?: RoundingRule
+                     cost_code_id?: string; amount?: number
                      cbs_node_id?: string; wbs_node_id?: string; notes?: string } }>(
     '/api/v1/estimate-versions/:id/items',
     { preHandler: [authenticate, requirePermission('cecep:estimate:manage')] },
     async (request, reply) => {
       const { id } = request.params
       const b = request.body ?? {}
+      const itemType = b.item_type ?? 'assembly'
+      if (!['assembly', 'lumpsum'].includes(itemType)) {
+        return reply.status(400).send({ error: "item_type wajib 'assembly' atau 'lumpsum'" })
+      }
+
+      const { data: v } = await supabase
+        .from('estimate_versions').select('id, status').eq('id', id).maybeSingle()
+      if (!v) return reply.status(404).send({ error: 'Estimate Version tidak ditemukan' })
+      if (v.status !== 'draft') {
+        return reply.status(409).send({ error: 'Item hanya bisa ditambah saat Estimate Version draft' })
+      }
+
+      if (itemType === 'lumpsum') {
+        if (!b.cost_code_id) return reply.status(400).send({ error: 'cost_code_id wajib untuk item lumpsum' })
+        if (typeof b.amount !== 'number' || b.amount <= 0) {
+          return reply.status(400).send({ error: 'amount wajib angka > 0 untuk item lumpsum (tidak ada default)' })
+        }
+        const { data: cc } = await supabase
+          .from('cost_codes').select('id').eq('id', b.cost_code_id).maybeSingle()
+        if (!cc) return reply.status(404).send({ error: 'Cost code tidak ditemukan' })
+
+        const { data: item, error: insErr } = await supabase
+          .from('estimate_items')
+          .insert({
+            estimate_version_id: id, cost_code_id: cc.id, assembly_id: null,
+            cbs_node_id: b.cbs_node_id ?? null, wbs_node_id: b.wbs_node_id ?? null,
+            quantity: 1, amount: b.amount, notes: b.notes ?? null,
+          })
+          .select('id').single()
+        if (insErr) return reply.status(500).send({ error: insErr.message })
+
+        const { data: sums } = await supabase
+          .from('estimate_items').select('amount').eq('estimate_version_id', id)
+        const total = (sums ?? []).reduce((s, r) => s + Number(r.amount), 0)
+        await supabase.from('estimate_versions')
+          .update({ total_amount: total, updated_by: request.currentUser!.id }).eq('id', id)
+
+        void logAuditEvent(request, {
+          tableName: 'estimate_items', recordId: item.id, action: 'estimate.item_added_lumpsum',
+          actorId: request.currentUser!.id, newValues: { amount: b.amount, cost_code_id: cc.id },
+        })
+        return reply.status(201).send({
+          item: { id: item.id, item_type: 'lumpsum', amount: b.amount },
+          version_total: total,
+        })
+      }
+
       if (!b.assembly_id) return reply.status(400).send({ error: 'assembly_id wajib' })
       if (typeof b.quantity !== 'number' || b.quantity <= 0) {
         return reply.status(400).send({ error: 'quantity wajib angka > 0' })
@@ -253,13 +308,6 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: "rounding wajib {mode:'down'|'up'|'nearest'|'none', step:number}" })
       }
       const priceDate = b.price_date ?? new Date().toISOString().slice(0, 10)
-
-      const { data: v } = await supabase
-        .from('estimate_versions').select('id, status').eq('id', id).maybeSingle()
-      if (!v) return reply.status(404).send({ error: 'Estimate Version tidak ditemukan' })
-      if (v.status !== 'draft') {
-        return reply.status(409).send({ error: 'Item hanya bisa ditambah saat Estimate Version draft' })
-      }
 
       const { data: asm, error: asmErr } = await supabase
         .from('assemblies')
