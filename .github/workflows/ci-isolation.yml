@@ -9,11 +9,11 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: 'inventory (read-only, A1) | setup (migrate+seed, A2)'
+        description: 'inventory (A1) | setup (A2) | setup-clean (WIPE + replay bersih)'
         required: true
         default: inventory
         type: choice
-        options: [inventory, setup]
+        options: [inventory, setup, setup-clean]
 
 concurrency:
   group: ci-isolation-ops-${{ github.run_id }}
@@ -51,3 +51,11 @@ jobs:
         run: node scripts/ci-project-setup.mjs
         env:
           CI_DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      # A2 — setup-clean: WIPE project CI lalu replay BERSIH sekali dari nol (angka jujur).
+      - name: A2 Setup CLEAN (wipe + replay + seed)
+        if: ${{ inputs.action == 'setup-clean' }}
+        run: node scripts/ci-project-setup.mjs
+        env:
+          CI_DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+          WIPE: '1'

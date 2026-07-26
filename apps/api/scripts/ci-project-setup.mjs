@@ -15,6 +15,20 @@ try { console.log('Target host:', new URL(url.replace('postgresql://', 'http://'
 const c = new pg.Client({ connectionString: url })
 await c.connect()
 
+// ── 0. (opsional) WIPE — replay BERSIH dari nol. HANYA bila WIPE=1 (project CI disposable).
+if (process.env.WIPE === '1') {
+  console.log('WIPE: DROP SCHEMA public CASCADE + reset schema_migrations …')
+  await c.query(`DROP SCHEMA IF EXISTS public CASCADE`)
+  await c.query(`CREATE SCHEMA public`)
+  await c.query(`GRANT ALL ON SCHEMA public TO postgres`)
+  await c.query(`GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role`)
+  await c.query(`DROP TABLE IF EXISTS supabase_migrations.schema_migrations`)
+  // Storage rows dari migrasi (project-photos dst) — bersihkan juga supaya replay storage bersih.
+  await c.query(`DELETE FROM storage.buckets WHERE id IN
+    ('project-photos','project-documents','payment-proofs','kasbon-photos','expense-receipts','company-assets')`).catch(() => {})
+  console.log('WIPE selesai — project CI benar-benar kosong.')
+}
+
 // ── 1. tabel pelacak migrasi ──────────────────────────────────────────────
 await c.query(`CREATE SCHEMA IF NOT EXISTS supabase_migrations`)
 await c.query(`CREATE TABLE IF NOT EXISTS supabase_migrations.schema_migrations
@@ -24,25 +38,26 @@ await c.query(`CREATE TABLE IF NOT EXISTS supabase_migrations.schema_migrations
 const dir = path.resolve(process.cwd(), '..', '..', 'db', 'migrations')
 const files = fs.readdirSync(dir).filter(f => /^\d+_.*\.sql$/.test(f)).sort()
 
-// Migrasi PURE-STORAGE (bucket + RLS storage.objects) — TAK dibutuhkan test CI (upload
-// foto tak diuji di CI). Boleh dilewati bila gagal (mis. izin storage.objects). 016 TIDAK
-// di sini: ia cash-management (kritis) yang kebetulan menyinggung storage → tetap fatal.
-const STORAGE_ONLY = new Set(['012', '014', '015', '097', '098'])
+// DAFTAR EKSPLISIT migrasi yang BOLEH dilewati BILA GAGAL — beserta alasan + klasifikasi.
+// HANYA storage (upload tak diuji CI) & demo-data (test menyediakan fixturenya sendiri).
+// Migrasi GAGAL di LUAR daftar ini = HARD FAIL — config/referensi/backfill WAJIB ada
+// (pelajaran `unit`: yang tak dikenal HARUS gagal keras, bukan dilewati diam-diam).
+const SKIP_ALLOWLIST = {
+  '012': { class: 'storage', reason: 'bucket+RLS project-photos; di-supersede 097/098; upload tak diuji CI' },
+  '014': { class: 'storage', reason: 'bucket dokumen; storage tak diuji CI' },
+  '015': { class: 'storage', reason: 'bucket bukti bayar; storage tak diuji CI' },
+  '097': { class: 'storage', reason: 'lockdown bucket privat; storage tak diuji CI' },
+  '098': { class: 'storage', reason: 'photo buckets strict; storage tak diuji CI' },
+  '024': { class: 'demo',    reason: 'seed work_scope_items (FK data contoh); test + seed fixture menyediakan datanya' },
+}
 
-// Migrasi PURE-DATA (tanpa DDL) = seed. Config-seed (roles/permissions — self-contained)
-// LOLOS normal. Yang GAGAL pasti DEMO-seed (FK ke data contoh yang tak ada di project
-// fresh, mis. 024 work_scope_items → work_scopes) → TAK dibutuhkan test CI (test bikin
-// datanya sendiri) → skip. Migrasi ber-DDL yang gagal TETAP fatal (masalah nyata).
-const hasDDL = (sql) => /\b(CREATE|ALTER|DROP)\s+(TABLE|FUNCTION|TRIGGER|POLICY|VIEW|TYPE|INDEX|SCHEMA|EXTENSION|SEQUENCE|MATERIALIZED|DOMAIN|AGGREGATE|CONSTRAINT)/i.test(sql)
-
-let applied = 0, skipped = 0, storageSkipped = [], demoSkipped = []
+let applied = 0, alreadyThere = 0
+const skippedList = []
 for (const f of files) {
   const version = f.match(/^(\d+)_/)[1]
   const { rows } = await c.query(`SELECT 1 FROM supabase_migrations.schema_migrations WHERE version=$1`, [version])
-  if (rows.length) { skipped++; continue }
-  // Perbaikan sintaks: `CREATE POLICY IF NOT EXISTS` TIDAK sah di PostgreSQL (policy tak
-  // punya IF NOT EXISTS). Di DB fresh, policy belum ada → `CREATE POLICY` polos sudah benar.
-  let sql = fs.readFileSync(path.join(dir, f), 'utf8').replace(/CREATE POLICY IF NOT EXISTS/gi, 'CREATE POLICY')
+  if (rows.length) { alreadyThere++; continue }
+  const sql = fs.readFileSync(path.join(dir, f), 'utf8')
   try {
     await c.query('BEGIN')
     await c.query(sql)
@@ -52,28 +67,21 @@ for (const f of files) {
     if (applied % 25 === 0) console.log(`  …applied ${applied} (terakhir ${f})`)
   } catch (e) {
     await c.query('ROLLBACK')
-    if (STORAGE_ONLY.has(version)) {
-      // Storage-only gagal (izin storage.objects) → catat sbg applied + lanjut (tak dibutuhkan CI).
-      await c.query(`INSERT INTO supabase_migrations.schema_migrations (version, name) VALUES ($1,$2) ON CONFLICT DO NOTHING`, [version, f + ' [STORAGE-SKIPPED]'])
-      storageSkipped.push(`${f}: ${e.message.split('\n')[0]}`)
-      console.warn(`  storage-skip ${f} → ${e.message.split('\n')[0]}`)
+    const allow = SKIP_ALLOWLIST[version]
+    if (allow) {
+      await c.query(`INSERT INTO supabase_migrations.schema_migrations (version, name) VALUES ($1,$2) ON CONFLICT DO NOTHING`, [version, `${f} [SKIP:${allow.class}]`])
+      skippedList.push(`${f} [${allow.class}] — ${allow.reason} — gagal: ${e.message.split('\n')[0]}`)
+      console.warn(`  skip(allowlist:${allow.class}) ${f} → ${e.message.split('\n')[0]}`)
       continue
     }
-    if (!hasDDL(sql)) {
-      // Pure-data yang gagal = DEMO-seed (FK ke data contoh) → skip + catat + lanjut.
-      await c.query(`INSERT INTO supabase_migrations.schema_migrations (version, name) VALUES ($1,$2) ON CONFLICT DO NOTHING`, [version, f + ' [DEMO-SEED-SKIPPED]'])
-      demoSkipped.push(`${f}: ${e.message.split('\n')[0]}`)
-      console.warn(`  demo-seed-skip ${f} → ${e.message.split('\n')[0]}`)
-      continue
-    }
-    console.error(`\nFATAL migration GAGAL (ber-DDL): ${f}\n  ${e.message}`)
+    console.error(`\nHARD FAIL — migrasi GAGAL di LUAR allowlist: ${f}\n  ${e.message}`)
+    console.error(`  (config/referensi/backfill WAJIB ada — TIDAK dilewati. Perbaiki migrasinya / lapor founder.)`)
     await c.end()
     process.exit(1)
   }
 }
-console.log(`MIGRATIONS: applied=${applied} skipped(applied)=${skipped} storage-skipped=${storageSkipped.length} demo-skipped=${demoSkipped.length} total=${files.length}`)
-if (storageSkipped.length) console.log('  storage-skipped:\n   ' + storageSkipped.join('\n   '))
-if (demoSkipped.length) console.log('  demo-seed-skipped:\n   ' + demoSkipped.join('\n   '))
+console.log(`\nMIGRATIONS: applied=${applied}  sudah-ada=${alreadyThere}  skip-allowlist=${skippedList.length}  total-file=${files.length}`)
+if (skippedList.length) console.log('  DAFTAR SKIP (eksplisit, allowlist):\n   - ' + skippedList.join('\n   - '))
 
 // ── 3. seed data uji minimal (idempoten, per-item non-fatal) ───────────────
 const seedErrors = []
