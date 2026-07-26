@@ -39,7 +39,7 @@ const RESOURCES = [
   ['AHSP-TUKANG-BATU',  'Tukang batu',                              'labor',    'OH'],
   ['AHSP-KEPALA-TUKANG','Kepala tukang',                            'labor',    'OH'],
   ['AHSP-MANDOR',       'Mandor',                                   'labor',    'OH'],
-  ['AHSP-BATA-MERAH',   'Bata merah',                               'material', 'bh'],
+  ['AHSP-BATA-MERAH',   'Bata merah',                               'material', 'buah'],
   ['AHSP-SEMEN-PC',     'Semen portland (PC)',                      'material', 'kg'],
   ['AHSP-PASIR-PASANG', 'Pasir pasang (quarry - lokasi pekerjaan)', 'material', 'm3'],
 ]

@@ -33,20 +33,28 @@ const KOEF: Record<string, [group: string, unit: string, koef: number, hargaSE: 
   'TEST-TUKANG-BATU':   ['labor',    'OH', 0.2,    145000],
   'TEST-KEPALA-TUKANG': ['labor',    'OH', 0.02,   175000],
   'TEST-MANDOR':        ['labor',    'OH', 0.0067, 200000],
-  'TEST-BATA-MERAH':    ['material', 'bh', 143.81, 700],
+  'TEST-BATA-MERAH':    ['material', 'buah', 143.81, 700],
   'TEST-SEMEN-PC':      ['material', 'kg', 43.5,   1300],
   'TEST-PASIR-PASANG':  ['material', 'm3', 0.08,   275000],
 }
 const PRICES = Object.fromEntries(Object.entries(KOEF).map(([c, v]) => [c, v[3]]))
 
 async function purge() {
-  await client.query(`DELETE FROM assembly_components WHERE assembly_id IN
-    (SELECT id FROM assemblies WHERE code LIKE '[TEST-AHSP]%')`)
-  await client.query(`DELETE FROM assemblies WHERE code LIKE '[TEST-AHSP]%'`)
-  await client.query(`DELETE FROM resources WHERE code LIKE 'TEST-%' AND code IN
-    (${Object.keys(KOEF).map((_, i) => `$${i + 1}`).join(',')})`, Object.keys(KOEF))
-  await client.query(`DELETE FROM cost_codes WHERE code = '[TEST-AHSP]CC'`)
-  await client.query(`DELETE FROM ahsp_editions WHERE code = 'SE-TEST-AHSP'`)
+  // Pola cleanup rumah (estimate-approval.test.ts): guard no-delete resources/edisi
+  // benar untuk produksi; untuk bongkar fixture [TEST], trigger dimatikan HANYA di
+  // sesi ini via session_replication_role — perilaku produksi tak tersentuh.
+  await client.query(`SET session_replication_role = 'replica'`)
+  try {
+    await client.query(`DELETE FROM assembly_components WHERE assembly_id IN
+      (SELECT id FROM assemblies WHERE code LIKE '[TEST-AHSP]%')`)
+    await client.query(`DELETE FROM assemblies WHERE code LIKE '[TEST-AHSP]%'`)
+    await client.query(`DELETE FROM resources WHERE code IN
+      (${Object.keys(KOEF).map((_, i) => `$${i + 1}`).join(',')})`, Object.keys(KOEF))
+    await client.query(`DELETE FROM cost_codes WHERE code = '[TEST-AHSP]CC'`)
+    await client.query(`DELETE FROM ahsp_editions WHERE code = 'SE-TEST-AHSP'`)
+  } finally {
+    await client.query(`SET session_replication_role = 'origin'`)
+  }
 }
 
 beforeAll(async () => {
