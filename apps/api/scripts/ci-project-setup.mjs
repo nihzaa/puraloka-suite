@@ -172,5 +172,18 @@ await seed('fixture project+mandor2+assignments+log', async () => {
 })
 
 console.log(`\nSEED: ${seedErrors.length ? 'ADA ISU (' + seedErrors.length + ') — lihat di atas' : 'BERSIH'}`)
+
+// ── DIAGNOSTIK state (evidence, bukan tebakan) ─────────────────────────────
+const one = async (q) => { try { return JSON.stringify((await c.query(q)).rows) } catch (e) { return 'ERR ' + e.message.split('\n')[0] } }
+console.log('\n[DIAG] roles:', await one(`SELECT count(*)::int n FROM roles`))
+console.log('[DIAG] role_permissions total:', await one(`SELECT count(*)::int n FROM role_permissions`))
+console.log('[DIAG] permissions admin (via join):', await one(`SELECT count(*)::int n FROM role_permissions rp JOIN roles r ON r.id=rp.role_id WHERE r.name='admin'`))
+console.log('[DIAG] admin users aktif:', await one(`SELECT count(*)::int n FROM users u JOIN roles r ON r.id=u.role_id WHERE r.name='admin' AND u.is_active=true AND u.auth_id IS NOT NULL`))
+console.log('[DIAG] get_role_permissions(admin):', await one(`SELECT count(*)::int n FROM get_role_permissions('admin')`))
+
+// ── PostgREST reload schema — DROP SCHEMA public bisa menyisakan cache stale ──
+await c.query(`NOTIFY pgrst, 'reload schema'`).catch(() => {})
+console.log('[pgrst] NOTIFY reload schema dikirim')
+
 await c.end()
 // Seed non-fatal: exit 0 supaya migrasi tetap tercatat; isu seed dilaporkan utk ditindak.
