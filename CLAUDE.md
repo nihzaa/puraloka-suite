@@ -2,6 +2,10 @@
 
 > **WAJIB baca AUTOPILOT.md di awal setiap sesi sebelum tindakan apa pun.**
 >
+> **Lalu baca `STATUS.md` (root)** — penunjuk satu-pintu: fase aktif, keputusan terbuka menunggu founder, dan peta "ke mana membaca apa". Dokumen induk prioritas + registry semua dokumen rencana (mana AKTIF/STALE): `docs/PETA-PRIORITAS-ERP.md`. Status per-menu ERP terverifikasi kode: `docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md`. ⚠️ Angka "migration 001-058" di bawah SUDAH BASI — migration nyata s.d. 116; dev nyata 90 tabel; jangan percaya klaim skala di file ini tanpa cek `STATUS.md`.
+>
+> **Tripwire arsitektur (2026-07-26):** modul ber-ledger apa pun (WIP/PSAK, commitment ledger, GL, `financial_events`) WAJIB didahului keputusan multi-company — lihat `docs/KEPUTUSAN-MULTI-COMPANY.md`.
+>
 > **Status Phase 1 (rollup + verdict):** `docs/superpowers/specs/2026-07-18-enterprise-architecture/PHASE-1-STATUS.md` (peta 1A/1B/1C/1D + config-first) & `…/PHASE-1-COMPLETION-AUDIT.md` (verdict + hasil jujur RLS table-dormant / storage-fixed / otorisasi). Phase 1 = Program A. **Phase 2 = Program B SELESAI** — approval berjenjang + routing notifikasi kini konfigurasi UI; rollup: `…/PHASE-2-STATUS.md`.
 
 ## AUTONOMOUS EXECUTION MODE
