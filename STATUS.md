@@ -6,33 +6,51 @@ kali keadaan berubah; detail selalu di dokumen rujukan.
 
 ## Fase aktif
 
-**Phase 3 / Program C (CECEP)** — migration 102–119, 65 test-file (585 test) hijau.
-**RANTAI "BIKIN RAB DARI UI" TERSAMBUNG (thin-slice)**: menu `/estimasi` (3 tab:
-Komposer · Katalog AHSP · Harga) → skenario → versi (menyatakan edisi) → item dari
-assembly × price book → engine paritas → total + Ajukan. PR #86–#90 merged:
-sumbu EDISI (117/118) · seed verbatim 3.6.1.1–10 ber-provenance (golden 278300 dari
-data dev) · price-resolver + POST items ter-telusur (provenance price_book_entry_id)
-· scenario/versi/price-book endpoints · UI /estimasi + menu 119.
-CI isolation TUNTAS (project CI terpisah; repo public + branch protection).
-Analisis SE47-vs-Cibuluh selesai (report untracked — nunggu keputusan masking;
-temuan: SE = SNI-2013 modernisasi, upah −33%, mortar M/S/N/O = 1:2/3/4/5).
+**Phase 3 / Program C (CECEP)** — migration 102–121, 70 test-file hijau (PR #86–96).
 Keputusan founder 2026-07-26 (header `docs/ERP_MASTER_PLAN.md`): **CECEP Option 2 —
 tuntaskan CECEP sampai siap-pakai sebelum modul besar lain.**
-**Impor PENUH katalog SE-47-2026 SELESAI** (PR #91 merged, migration 120): 2.620
-assemblies aktif ber-edisi (dari 10 thin-slice) · 2.429 resources · 15.149 komponen ·
-terverifikasi 100% struktural (dataset↔DB↔workbook, nol mismatch) + fungsional
-(2.573 HSP cocok persis vs F workbook; 42 selisih = cacat internal workbook
-terdokumentasi per-analisa, bukan bug pipeline) · idempotent (identity constraint
-117 + cek existing) — re-import file sama = no-op aman.
 
-Sisa ke siap-pakai penuh (urutan disepakati, lihat plan
-`humming-weaving-snail.md`): **(b)** polish UI tab Harga (confidence_level +
-expired_date belum di form) → **(c)** endpoint+UI rekap RAB per kategori + PPN
-(pakai flat `tax.ppn_rate` 0.11 — split dpp_factor 11/12 TETAP gated D10, jangan
-disentuh) → **(d)** alur item-tak-di-katalog (lump-sum dulu, lalu create-assembly
-company di-tengah-estimasi — menyentuh gerbang immutability `assemblies`, disebut
-eksplisit saat dikerjakan). AI-import edisi baru = inisiatif terpisah, tak
-bertabrakan (parser+auditor, bukan penghasil angka).
+**Build order 10 langkah (`.../CECEP/MATERIAL-RAP-COMPANY-UI-DESIGN.md`) — status
+per-langkah, verified 2026-07-26/27:**
+- ✅ **1** CI isolation tuntas (project CI terpisah; repo public + branch protection)
+- 🟡 **2** Config Lapis1/2 — PPN reuse (`tax.ppn_rate` existing); **BUK & rounding
+  BELUM di-config**, masih wajib eksplisit per-request (C1, tanpa default diam-diam)
+- ✅ **3** Metode per-estimasi + wiring engine↔config (engine paritas nyambung)
+- ✅ **4** Seed AHSP nasional PENUH: 2.620 assemblies (SE-47-2026) + 2.429 resources +
+  15.149 komponen, terverifikasi 100% struktural (dataset↔DB↔workbook, nol mismatch)
+  + fungsional (2.573 HSP cocok persis vs F workbook; 42 selisih = cacat internal
+  workbook terdokumentasi, bukan bug pipeline). Idempotent — re-import file sama =
+  no-op aman
+- ✅ **5** Endpoint hitung RAB end-to-end + golden-file (HSP 278300, dari data dev)
+- ❌ **6 Material Take-off** (agregasi, BBS besi per-Ø, `steel_profiles`) — **0
+  tabel, BELUM DIMULAI** — **titik-bocor #1 MASIH TERBUKA** (tanpa pagu, belanja
+  material tak terkendali)
+- ❌ **7 RAP/Pagu** + sambung realisasi — **0 tabel, BELUM DIMULAI** (butuh 6)
+- 🟡 **8** AHSP Company: struktur DB ada sejak 107/117; **endpoint create-assembly
+  hidup** (PR #96, `POST /cecep/assemblies`, `source='company'`, mid-estimasi)
+- ⏸️ **9** dpp_factor split PPN — sengaja ditunda (gerbang D10, butuh guardrail
+  di-run ulang di env ber-PPN nyata + aba-aba founder)
+- 🟡 **10** UI `/estimasi` (Komposer+Katalog+Harga+rekap-PPN) hidup; **layar
+  Material/RAP belum ada**
+
+**Rantai "bikin RAB dari UI" hidup end-to-end** (langkah 1/3/4/5 + sebagian 2/8/10):
+proyek → skenario → versi (menyatakan edisi) → item dari **katalog** / **custom
+company mid-estimasi** (§2.2, menyentuh gerbang immutability `assemblies`, ditutup
+approval desain) / **lump-sum** (§2.3, pekerjaan bukan-beranalisa) → price book
+(lifecycle draft→verified→active) → engine paritas → **rekap per kategori + PPN**
+→ Ajukan. Tiap rupiah ter-telusur ke `price_book_entry_id` + koefisien + edisi.
+
+**PR #86–96 merged** (sumbu edisi 117/118 · thin-slice+seed penuh · price-resolver
++ compute path · scenario/price-book endpoints · UI 3-tab · rekap+PPN · polish
+harga · item-custom/lump-sum). Analisis SE47-vs-Cibuluh selesai (report untracked
+— nunggu keputusan masking; temuan: SE = SNI-2013 modernisasi, upah −33%, mortar
+M/S/N/O = 1:2/3/4/5). AI-import edisi baru (masa depan) = inisiatif terpisah, tak
+bertabrakan (parser+auditor, bukan penghasil angka) — lihat plan
+`humming-weaving-snail.md`.
+
+**Prioritas berikutnya (mengikat, urutan build-order): langkah 6 (Material
+Take-off) → 7 (RAP/Pagu).** Ini yang menutup titik-bocor #1 sesungguhnya —
+JANGAN anggap CECEP "siap-pakai" sebelum keduanya ada.
 
 Sisipan saat jeda gate (sesuai PETA §3 #2, tidak menyela CECEP): **celah 3-way match
 procurement DITUTUP 2026-07-27** (invoice manual wajib link GR, harga vs PO, anti
