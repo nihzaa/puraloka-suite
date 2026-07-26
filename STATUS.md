@@ -6,7 +6,7 @@ kali keadaan berubah; detail selalu di dokumen rujukan.
 
 ## Fase aktif
 
-**Phase 3 / Program C (CECEP)** — migration 102–121, 70 test-file hijau (PR #86–96).
+**Phase 3 / Program C (CECEP)** — migration 102–121, 71 test-file hijau (PR #86–98).
 Keputusan founder 2026-07-26 (header `docs/ERP_MASTER_PLAN.md`): **CECEP Option 2 —
 tuntaskan CECEP sampai siap-pakai sebelum modul besar lain.**
 
@@ -22,10 +22,12 @@ per-langkah, verified 2026-07-26/27:**
   workbook terdokumentasi, bukan bug pipeline). Idempotent — re-import file sama =
   no-op aman
 - ✅ **5** Endpoint hitung RAB end-to-end + golden-file (HSP 278300, dari data dev)
-- ❌ **6 Material Take-off** (agregasi, BBS besi per-Ø, `steel_profiles`) — **0
-  tabel, BELUM DIMULAI** — **titik-bocor #1 MASIH TERBUKA** (tanpa pagu, belanja
-  material tak terkendali)
-- ❌ **7 RAP/Pagu** + sambung realisasi — **0 tabel, BELUM DIMULAI** (butuh 6)
+- 🟡 **6 Material Take-off** — **D2 agregasi lintas item SELESAI** (PR #98,
+  `computeMaterialAggregation` pure+golden, `GET .../material-takeoff`, satu baris
+  per resource + drill-down provenance, tanpa tabel baru). **D3 (BBS besi per-Ø),
+  D4 (steel_profiles), D5-storage (`material_pack` dua-satuan tersimpan) — BELUM
+  DIMULAI**, butuh migrasi baru. **Titik-bocor #1 mulai tertutup, belum tuntas**
+- ❌ **7 RAP/Pagu** + sambung realisasi — **0 tabel, BELUM DIMULAI** (butuh 6 tuntas)
 - 🟡 **8** AHSP Company: struktur DB ada sejak 107/117; **endpoint create-assembly
   hidup** (PR #96, `POST /cecep/assemblies`, `source='company'`, mid-estimasi)
 - ⏸️ **9** dpp_factor split PPN — sengaja ditunda (gerbang D10, butuh guardrail
