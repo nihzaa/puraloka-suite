@@ -458,7 +458,7 @@ function HargaTab() {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead><tr>
             <th style={th}>Resource</th><th style={{ ...th, textAlign: "right" }}>Harga</th><th style={th}>Sat</th>
-            <th style={th}>Berlaku</th><th style={th}>Lokasi</th><th style={th}>Status</th><th style={th}>Aksi</th>
+            <th style={th}>Berlaku</th><th style={th}>Lokasi</th><th style={th}>Keyakinan</th><th style={th}>Status</th><th style={th}>Aksi</th>
           </tr></thead>
           <tbody>
             {entries.map(en => (
@@ -468,6 +468,11 @@ function HargaTab() {
                 <td style={td}>{en.resource?.unit_code}</td>
                 <td style={td}>{en.effective_date}{en.expired_date ? ` → ${en.expired_date}` : ""}</td>
                 <td style={td}>{en.location ?? <span style={{ color: C.muted }}>umum</span>}</td>
+                <td style={td}>{en.confidence_level
+                  ? <span style={{ fontSize: 11, fontWeight: 600, color: en.confidence_level === "high" ? C.green : en.confidence_level === "low" ? C.red : C.yellow }}>
+                      {en.confidence_level === "high" ? "Tinggi" : en.confidence_level === "low" ? "Rendah" : "Sedang"}
+                    </span>
+                  : <span style={{ color: C.muted }}>—</span>}</td>
                 <td style={td}><StatusBadge s={en.status} /></td>
                 <td style={{ ...td, whiteSpace: "nowrap" }}>
                   {en.status === "draft" && <button style={btnGhost} onClick={() => void transition(en.id, "verified")}><BadgeCheck size={13} /> Verifikasi</button>}
@@ -477,7 +482,7 @@ function HargaTab() {
                 </td>
               </tr>
             ))}
-            {entries.length === 0 && <tr><td style={{ ...td, color: C.muted }} colSpan={7}>Belum ada entry harga.</td></tr>}
+            {entries.length === 0 && <tr><td style={{ ...td, color: C.muted }} colSpan={8}>Belum ada entry harga.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -487,40 +492,56 @@ function HargaTab() {
 }
 
 function NewPriceModal({ onClose, onDone }: { onClose: () => void; onDone: () => Promise<void> }) {
+  const [query, setQuery] = useState("");
   const [resources, setResources] = useState<{ code: string; name: string; unit_code: string }[]>([]);
   const [resourceCode, setResourceCode] = useState("");
   const [amount, setAmount] = useState("");
   const [effective, setEffective] = useState(new Date().toISOString().slice(0, 10));
+  const [expired, setExpired] = useState("");
   const [location, setLocation] = useState("");
   const [supplier, setSupplier] = useState("");
+  const [confidence, setConfidence] = useState<"" | "high" | "medium" | "low">("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
+  // Registry resource penuh (2.400+ entri) — cari-sambil-ketik via /cecep/resources,
+  // BUKAN union dari assembly (workaround lama; sekarang mencakup resource yang
+  // belum dipakai assembly manapun tapi tetap perlu diberi harga).
   useEffect(() => {
-    // daftar resource dari katalog assembly (union sederhana; registry resource penuh menyusul)
-    api.get<{ data: Assembly[] }>("/api/v1/cecep/assemblies").then(r => {
-      const seen = new Map<string, { code: string; name: string; unit_code: string }>();
-      for (const a of r.data.data ?? []) for (const cmp of a.components) {
-        if (cmp.resource) seen.set(cmp.resource.code, cmp.resource);
-      }
-      setResources([...seen.values()].sort((a, b) => a.code.localeCompare(b.code)));
-    }).catch(() => {});
-  }, []);
+    const t = setTimeout(() => {
+      const q = query.trim() ? `?q=${encodeURIComponent(query.trim())}&limit=50` : "?limit=50";
+      api.get<{ data: { code: string; name: string; unit_code: string }[] }>(`/api/v1/cecep/resources${q}`)
+        .then(r => setResources(r.data.data ?? [])).catch(() => {});
+    }, 250);
+    return () => clearTimeout(t);
+  }, [query]);
 
   return (
     <Modal title="Entry Harga Baru (lahir draft)" onClose={onClose}>
-      {label("Resource")}
-      <select style={inputStyle} value={resourceCode} onChange={e => setResourceCode(e.target.value)}>
-        <option value="">— pilih resource —</option>
+      {label("Cari resource")}
+      <input style={inputStyle} value={query} onChange={e => setQuery(e.target.value)} placeholder="ketik nama resource… mis. semen" />
+      <select style={{ ...inputStyle, marginTop: 6 }} size={6} value={resourceCode} onChange={e => setResourceCode(e.target.value)}>
         {resources.map(r => <option key={r.code} value={r.code}>{r.name} ({r.code}, per {r.unit_code})</option>)}
+        {resources.length === 0 && <option value="" disabled>— tidak ada hasil —</option>}
       </select>
       {label("Harga (Rp)")}
       <input style={inputStyle} type="number" min="0" step="any" value={amount} onChange={e => setAmount(e.target.value)} />
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <div>{label("Berlaku sejak")}
           <input style={inputStyle} type="date" value={effective} onChange={e => setEffective(e.target.value)} /></div>
+        <div>{label("Berlaku sampai (opsional)")}
+          <input style={inputStyle} type="date" value={expired} onChange={e => setExpired(e.target.value)} /></div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <div>{label("Lokasi (kosong = umum)")}
           <input style={inputStyle} value={location} onChange={e => setLocation(e.target.value)} placeholder="mis. Bandung" /></div>
+        <div>{label("Tingkat keyakinan")}
+          <select style={inputStyle} value={confidence} onChange={e => setConfidence(e.target.value as typeof confidence)}>
+            <option value="">— tak ditentukan —</option>
+            <option value="high">Tinggi (mis. penawaran resmi supplier)</option>
+            <option value="medium">Sedang (mis. survei pasar)</option>
+            <option value="low">Rendah (mis. perkiraan/estimasi)</option>
+          </select></div>
       </div>
       {label("Supplier (opsional)")}
       <input style={inputStyle} value={supplier} onChange={e => setSupplier(e.target.value)} />
@@ -532,7 +553,8 @@ function NewPriceModal({ onClose, onDone }: { onClose: () => void; onDone: () =>
           try {
             await api.post("/api/v1/cecep/price-book", {
               resource_code: resourceCode, amount: Number(amount), effective_date: effective,
-              location: location || null, supplier: supplier || null,
+              expired_date: expired || null, location: location || null, supplier: supplier || null,
+              confidence_level: confidence || null,
             });
             await onDone();
           } catch (e) { setErr((e as { response?: { data?: { error?: string } } }).response?.data?.error ?? "Gagal menyimpan"); }
