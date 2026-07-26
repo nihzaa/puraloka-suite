@@ -6,6 +6,19 @@
 
 ---
 
+## ⚖️ KEPUTUSAN URUTAN — CECEP Option 2 (resmi, founder, 2026-07-26)
+
+**Founder memilih OPTION 2 (disiplin):** **TUNTASKAN CECEP** (Construction Estimation &
+Cost Engineering Platform — M1–M4 + fondasi engine + **sumbu edisi** + seed AHSP + endpoint
+CRUD/hitung, sampai bisa dipakai bikin RAB nyata dari UI) **SEBELUM** memulai modul besar lain
+(GL/Phase 7, Payroll/HR penuh, Asset Management, enhancement SCM/Subkontraktor, Mobile fase 2–3).
+
+Tidak ada ambiguitas urutan lagi: **CECEP dulu sampai siap-pakai, baru modul berikutnya.**
+Peta jarak & urutan modul belum-mulai: lihat bagian "Urutan Modul Belum Mulai" di bawah / rollup
+CECEP di `docs/superpowers/specs/2026-07-18-enterprise-architecture/CECEP/`.
+
+---
+
 ## Visi
 
 ERP konstruksi terintegrasi untuk kontraktor menengah Indonesia, mencakup project management, mandor payroll, client invoicing, procurement, inventory, reporting, dan mobile field operations — semuanya dalam satu platform terpadu untuk **CV Puraloka Persada**.
