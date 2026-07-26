@@ -173,6 +173,22 @@ await seed('fixture project+mandor2+assignments+log', async () => {
 
 console.log(`\nSEED: ${seedErrors.length ? 'ADA ISU (' + seedErrors.length + ') — lihat di atas' : 'BERSIH'}`)
 
+// ── RESTORE GRANTS untuk PostgREST ─────────────────────────────────────────
+// DROP SCHEMA public CASCADE (WIPE) menghapus grant default Supabase → objek yang
+// dibuat migrasi TAK punya privilege utk service_role/anon/authenticated → PostgREST
+// (dipakai handler) ditolak → 403 walau data benar (direct-pg jalan). Grant ulang.
+try {
+  for (const role of ['anon', 'authenticated', 'service_role']) {
+    await c.query(`GRANT USAGE ON SCHEMA public TO ${role}`)
+    await c.query(`GRANT ALL ON ALL TABLES IN SCHEMA public TO ${role}`)
+    await c.query(`GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO ${role}`)
+    await c.query(`GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO ${role}`)
+    await c.query(`ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO ${role}`)
+    await c.query(`ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO ${role}`)
+  }
+  console.log('[grants] restore GRANT public → anon/authenticated/service_role OK')
+} catch (e) { console.warn('[grants] gagal:', e.message.split('\n')[0]) }
+
 // ── DIAGNOSTIK state (evidence, bukan tebakan) ─────────────────────────────
 const one = async (q) => { try { return JSON.stringify((await c.query(q)).rows) } catch (e) { return 'ERR ' + e.message.split('\n')[0] } }
 console.log('\n[DIAG] roles:', await one(`SELECT count(*)::int n FROM roles`))
