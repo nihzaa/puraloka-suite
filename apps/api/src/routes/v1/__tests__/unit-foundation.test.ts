@@ -45,9 +45,11 @@ beforeAll(async () => {
     `INSERT INTO resources (code,name,category,unit_code,created_by)
      VALUES ('RBS-UNIT-REF','Semen','material','kg',$1) RETURNING id`, [userId])
   resourceRef = r[0].id
+  // source='company': test ini menguji guard UNIT, bukan sumbu edisi. Sejak 117,
+  // national WAJIB edition_id — pakai company agar test tetap fokus & bebas seed edisi.
   const { rows: a } = await q(
     `INSERT INTO assemblies (code,name,cost_code_id,source,output_unit_code,created_by)
-     VALUES ('ASM-UNIT','Pas bata',$1,'national','m2',$2) RETURNING id`, [ccId, userId])
+     VALUES ('ASM-UNIT','Pas bata',$1,'company','m2',$2) RETURNING id`, [ccId, userId])
   asmId = a[0].id
   // komponen membuat resourceRef "terreferensi" (dan asmId punya isi utk diaktifkan)
   await q(`INSERT INTO assembly_components (assembly_id,resource_id,coefficient) VALUES ($1,$2,1)`,
@@ -125,7 +127,7 @@ describe('assemblies.output_unit_code IMMUTABLE per versi (guard — bukti mutas
     await expectOk(async () => {
       const { rows } = await q(
         `INSERT INTO assemblies (code,name,cost_code_id,source,output_unit_code,created_by)
-         VALUES ('ASM-DRAFT','x',$1,'national','m2',$2) RETURNING id`, [ccId, userId])
+         VALUES ('ASM-DRAFT','x',$1,'company','m2',$2) RETURNING id`, [ccId, userId])
       await q(`UPDATE assemblies SET output_unit_code='m3' WHERE id=$1`, [rows[0].id])
     })
   })

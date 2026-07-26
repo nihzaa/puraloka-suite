@@ -26,8 +26,12 @@ ALTER TABLE audit_logs
 
 DO $$
 BEGIN
+  -- conrelid regclass = schema-scoped (cek conname polos melihat semua schema —
+  -- anti-pattern kelas-115: salah skip di schema test bila public punya constraint sama)
   IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint WHERE conname = 'audit_logs_severity_check'
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'audit_logs_severity_check'
+      AND conrelid = 'audit_logs'::regclass
   ) THEN
     ALTER TABLE audit_logs ADD CONSTRAINT audit_logs_severity_check
       CHECK (severity IN ('info', 'warning', 'critical'));

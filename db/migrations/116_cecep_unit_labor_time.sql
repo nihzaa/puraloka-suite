@@ -17,7 +17,7 @@
 -- 115), NOL baris hidup (resources/assemblies) merujuknya (diverifikasi).
 
 -- 1. Perluas himpunan dimensi sah: labor_day → labor_time.
-ALTER TABLE units DROP CONSTRAINT units_dimension_valid;
+ALTER TABLE units DROP CONSTRAINT IF EXISTS units_dimension_valid;
 UPDATE units SET dimension = 'labor_time' WHERE dimension = 'labor_day';
 ALTER TABLE units ADD CONSTRAINT units_dimension_valid CHECK (
   dimension IN ('length','area','volume','mass','count','time','lumpsum','labor_time'));
