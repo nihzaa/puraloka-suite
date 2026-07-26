@@ -7,8 +7,11 @@ import {
 } from '../../utils/approval.js'
 import { computeRab, computeBoq, type EstimateItemRow } from '../../lib/rab-readmodel.js'
 import { forecastCashflow } from '../../lib/cashflow-forecast.js'
-import { computeAhsp, computeRabLineTotal, type RoundingRule } from '../../lib/ahsp-engine.js'
+import {
+  computeAhsp, computeRabLineTotal, computeRabRollup, type RoundingRule, type RabGroupInput,
+} from '../../lib/ahsp-engine.js'
 import { resolvePrices, type PriceBookEntryRow } from '../../lib/price-resolver.js'
+import { getTaxRate } from '../../utils/financial-config.js'
 
 // CECEP Milestone 3 — approval Estimate Version LEWAT engine ADR-007 (bukan jalur
 // approval kelima). Keputusan founder pasca-discovery + mandat `47` §3 CECEP
@@ -181,6 +184,47 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
       if (error) return reply.status(500).send({ error: error.message })
       if (!v) return reply.status(404).send({ error: 'Estimate Version tidak ditemukan' })
       return reply.send({ data: v })
+    })
+
+  // ── GET /estimate-versions/:id/rollup — rekap per kategori (cost code) + PPN ─
+  // Misi (c): SUM item per cost_code -> TOTAL BIAYA -> PPN -> GRAND TOTAL
+  // (computeRabRollup, sama seperti REKAPITULASI workbook). PPN pakai tarif FLAT
+  // ber-effective-date (financial_config 'tax.ppn_rate') via getTaxRate — model
+  // dua-angka (rate x dpp_factor 11/12, PMK 131/2024) SENGAJA TIDAK dinyalakan;
+  // itu gerbang terpisah (D10 guardrail, NEXT-EXEC-PREP.md §1) yang butuh
+  // guardrail dijalankan ulang di lingkungan target sebelum aktif. Di sini
+  // dppNum=dppDen=1 -> computePpn == dpp x rate persis (ekuivalen matematis).
+  app.get<{ Params: { id: string }; Querystring: { at_date?: string } }>(
+    '/api/v1/estimate-versions/:id/rollup',
+    { preHandler: [authenticate, requirePermission('cecep:estimate:view')] },
+    async (request, reply) => {
+      const { data: v, error } = await supabase
+        .from('estimate_versions')
+        .select(`id, created_at,
+                 items:estimate_items(amount, cost_code:cost_codes(code, name))`)
+        .eq('id', request.params.id).maybeSingle()
+      if (error) return reply.status(500).send({ error: error.message })
+      if (!v) return reply.status(404).send({ error: 'Estimate Version tidak ditemukan' })
+
+      type ItemRow = { amount: number; cost_code: { code: string; name: string } | null }
+      const items = (v.items ?? []) as unknown as ItemRow[]
+      const byGroup = new Map<string, { name: string; lineTotals: number[] }>()
+      for (const it of items) {
+        const key = it.cost_code?.code ?? '(tanpa kategori)'
+        const name = it.cost_code?.name ?? '(tanpa kategori)'
+        if (!byGroup.has(key)) byGroup.set(key, { name, lineTotals: [] })
+        byGroup.get(key)!.lineTotals.push(Number(it.amount))
+      }
+      const groups: RabGroupInput[] = [...byGroup.entries()]
+        .map(([code, g]) => ({ name: `${code} — ${g.name}`, lineTotals: g.lineTotals }))
+
+      const atDate = request.query.at_date ?? (v.created_at as string).slice(0, 10)
+      const ppnRate = await getTaxRate('ppn', atDate)
+      const rollup = computeRabRollup(groups, { rate: ppnRate, dppNum: 1, dppDen: 1 })
+
+      return reply.send({
+        estimate_version_id: v.id, at_date: atDate, ppn_rate: ppnRate, ...rollup,
+      })
     })
 
   // ── POST /items — tambah item dari ASSEMBLY (M3: jalur hitung ter-telusur) ──
