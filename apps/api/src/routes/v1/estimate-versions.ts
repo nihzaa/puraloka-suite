@@ -85,6 +85,104 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
       })
     })
 
+  // ── GET /projects/:projectId/scenarios — daftar skenario + ringkas versi ────
+  app.get<{ Params: { projectId: string } }>(
+    '/api/v1/projects/:projectId/scenarios',
+    { preHandler: [authenticate, requirePermission('cecep:estimate:view')] },
+    async (request, reply) => {
+      const { data, error } = await supabase
+        .from('scenarios')
+        .select(`id, name, purpose, status, created_at,
+                 versions:estimate_versions(id, version_number, status, total_amount, edition_id)`)
+        .eq('project_id', request.params.projectId)
+        .order('created_at', { ascending: false })
+        .limit(100)
+      if (error) return reply.status(500).send({ error: error.message })
+      return reply.send({ data })
+    })
+
+  // ── POST /projects/:projectId/scenarios — buat skenario (wadah estimasi) ────
+  app.post<{ Params: { projectId: string }; Body: { name?: string; purpose?: string } }>(
+    '/api/v1/projects/:projectId/scenarios',
+    { preHandler: [authenticate, requirePermission('cecep:estimate:manage')] },
+    async (request, reply) => {
+      const name = request.body?.name?.trim()
+      if (!name) return reply.status(400).send({ error: 'name wajib' })
+      const { data: proj } = await supabase
+        .from('projects').select('id').eq('id', request.params.projectId).maybeSingle()
+      if (!proj) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      const { data: row, error } = await supabase
+        .from('scenarios')
+        .insert({ project_id: proj.id, name, purpose: request.body?.purpose ?? null,
+                  created_by: request.currentUser!.id })
+        .select('id').single()
+      if (error) return reply.status(500).send({ error: error.message })
+      void logAuditEvent(request, {
+        tableName: 'scenarios', recordId: row.id, action: 'estimate.scenario_created',
+        actorId: request.currentUser!.id, newValues: { name, project_id: proj.id },
+      })
+      return reply.status(201).send({ id: row.id })
+    })
+
+  // ── POST /scenarios/:scenarioId/versions — versi estimasi baru (draft) ──────
+  // Estimasi MENYATAKAN edisi (117): edition_code opsional saat draft, permanen
+  // begitu keluar draft (guard DB). version_number = lanjutan (identitas unik).
+  app.post<{ Params: { scenarioId: string }; Body: { edition_code?: string } }>(
+    '/api/v1/scenarios/:scenarioId/versions',
+    { preHandler: [authenticate, requirePermission('cecep:estimate:manage')] },
+    async (request, reply) => {
+      const { data: sc } = await supabase
+        .from('scenarios').select('id, status').eq('id', request.params.scenarioId).maybeSingle()
+      if (!sc) return reply.status(404).send({ error: 'Skenario tidak ditemukan' })
+      if (sc.status === 'archived') {
+        return reply.status(409).send({ error: 'Skenario sudah diarsip — buat skenario baru' })
+      }
+      let editionId: string | null = null
+      if (request.body?.edition_code) {
+        const { data: ed } = await supabase
+          .from('ahsp_editions').select('id, is_active')
+          .eq('code', request.body.edition_code).maybeSingle()
+        if (!ed) return reply.status(404).send({ error: `Edisi ${request.body.edition_code} tidak ditemukan` })
+        if (!ed.is_active) return reply.status(409).send({ error: `Edisi ${request.body.edition_code} nonaktif` })
+        editionId = ed.id
+      }
+      const { data: prev } = await supabase
+        .from('estimate_versions').select('version_number')
+        .eq('scenario_id', sc.id).order('version_number', { ascending: false }).limit(1)
+      const next = ((prev?.[0]?.version_number as number | undefined) ?? 0) + 1
+      const { data: row, error } = await supabase
+        .from('estimate_versions')
+        .insert({ scenario_id: sc.id, version_number: next, total_amount: 0,
+                  edition_id: editionId, created_by: request.currentUser!.id })
+        .select('id, version_number').single()
+      if (error) return reply.status(500).send({ error: error.message })
+      void logAuditEvent(request, {
+        tableName: 'estimate_versions', recordId: row.id, action: 'estimate.version_created',
+        actorId: request.currentUser!.id,
+        newValues: { scenario_id: sc.id, version_number: next, edition_code: request.body?.edition_code ?? null },
+      })
+      return reply.status(201).send({ id: row.id, version_number: row.version_number, status: 'draft' })
+    })
+
+  // ── GET /estimate-versions/:id — detail + items (untuk komposer UI) ─────────
+  app.get<{ Params: { id: string } }>(
+    '/api/v1/estimate-versions/:id',
+    { preHandler: [authenticate, requirePermission('cecep:estimate:view')] },
+    async (request, reply) => {
+      const { data: v, error } = await supabase
+        .from('estimate_versions')
+        .select(`id, scenario_id, version_number, status, total_amount,
+                 approved_by, approved_at, frozen_at, created_at,
+                 edition:ahsp_editions!estimate_versions_edition_id_fkey(code, name),
+                 items:estimate_items(id, quantity, amount, sort_order, notes,
+                   cost_code:cost_codes(code, name),
+                   assembly:assemblies(id, code, name, output_unit_code, source, version_number))`)
+        .eq('id', request.params.id).maybeSingle()
+      if (error) return reply.status(500).send({ error: error.message })
+      if (!v) return reply.status(404).send({ error: 'Estimate Version tidak ditemukan' })
+      return reply.send({ data: v })
+    })
+
   // ── POST /items — tambah item dari ASSEMBLY (M3: jalur hitung ter-telusur) ──
   // Rantai explainability penuh: assembly (koefisien, edisi) × price book
   // (harga per resource, ter-resolve by tanggal+lokasi) → engine paritas →
