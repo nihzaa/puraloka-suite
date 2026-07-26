@@ -122,6 +122,47 @@ await seed('cost_code', async () => {
      WHERE NOT EXISTS (SELECT 1 FROM cost_codes WHERE code='CC-CI-SEED')`)
 })
 
+// FIXTURE DEMO — dibutuhkan photo-attach-ownership.test.ts (progress_log milik mandor X +
+// mandor Y yang JUGA ditugaskan di proyek yang sama) & recipient-resolution.test.ts
+// (1 proyek ber-PM). Idempoten. Ini mengganti data demo yang di-skip (024) dgn yang minimal-lengkap.
+await seed('fixture project+mandor2+assignments+log', async () => {
+  const uid = async (email) => (await c.query(`SELECT id FROM public.users WHERE email=$1 LIMIT 1`, [email])).rows[0]?.id
+  const adminId = await uid('ci-admin@puraloka.test')
+  const pmId = await uid('ci-pm@puraloka.test')
+  const mandor1Id = await uid('ci-mandor@puraloka.test')
+  const { rows: cl } = await c.query(`SELECT id FROM clients WHERE contact_person='CI Seed Client' LIMIT 1`)
+  const clientId = cl[0]?.id
+  if (!adminId || !pmId || !mandor1Id || !clientId) throw new Error('prasyarat user/client belum lengkap')
+
+  // mandor kedua (Y) — dibuat kalau belum ada
+  let m2 = await uid('ci-mandor2@puraloka.test')
+  if (!m2) {
+    const { rows: mr } = await c.query(`SELECT id FROM roles WHERE name='mandor'`)
+    const { rows: au } = await c.query(`INSERT INTO auth.users (id) VALUES (gen_random_uuid()) RETURNING id`)
+    const { rows: nu } = await c.query(
+      `INSERT INTO public.users (name,email,role_id,auth_id,is_active)
+       VALUES ('CI Mandor 2','ci-mandor2@puraloka.test',$1,$2,true) RETURNING id`, [mr[0].id, au[0].id])
+    m2 = nu[0].id
+  }
+  // project (idempoten by name)
+  let projId = (await c.query(`SELECT id FROM projects WHERE name='CI Seed Project' LIMIT 1`)).rows[0]?.id
+  if (!projId) {
+    const { rows: pr } = await c.query(
+      `INSERT INTO projects (client_id, pm_id, name, location, start_date, end_date, created_by)
+       VALUES ($1,$2,'CI Seed Project','Bandung',CURRENT_DATE,CURRENT_DATE+30,$3) RETURNING id`,
+      [clientId, pmId, adminId])
+    projId = pr[0].id
+  }
+  // mandor_assignments: X & Y di proyek yang sama (status default 'active' ≠ terminated)
+  for (const mid of [mandor1Id, m2]) {
+    const { rows: has } = await c.query(`SELECT 1 FROM mandor_assignments WHERE project_id=$1 AND mandor_id=$2 LIMIT 1`, [projId, mid])
+    if (!has.length) await c.query(`INSERT INTO mandor_assignments (project_id, mandor_id, assigned_by) VALUES ($1,$2,$3)`, [projId, mid, adminId])
+  }
+  // progress_log milik mandor X (owner) di proyek itu
+  const { rows: hasLog } = await c.query(`SELECT 1 FROM progress_logs WHERE project_id=$1 AND reported_by=$2 LIMIT 1`, [projId, mandor1Id])
+  if (!hasLog.length) await c.query(`INSERT INTO progress_logs (project_id, reported_by, pct_overall) VALUES ($1,$2,10)`, [projId, mandor1Id])
+})
+
 console.log(`\nSEED: ${seedErrors.length ? 'ADA ISU (' + seedErrors.length + ') — lihat di atas' : 'BERSIH'}`)
 await c.end()
 // Seed non-fatal: exit 0 supaya migrasi tetap tercatat; isu seed dilaporkan utk ditindak.
