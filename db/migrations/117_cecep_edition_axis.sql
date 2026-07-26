@@ -65,7 +65,10 @@ ALTER TABLE assemblies ADD COLUMN IF NOT EXISTS created_in_estimate_id   UUID;  
 
 -- national WAJIB menyatakan edisi (§3.4). company/project/custom boleh NULL.
 DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'assembly_national_needs_edition') THEN
+  -- conrelid regclass = schema-scoped via search_path (anti-pattern kelas-115 dihindari)
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint
+                 WHERE conname = 'assembly_national_needs_edition'
+                   AND conrelid = 'assemblies'::regclass) THEN
     ALTER TABLE assemblies ADD CONSTRAINT assembly_national_needs_edition
       CHECK (source <> 'national' OR edition_id IS NOT NULL);
   END IF;
@@ -203,7 +206,9 @@ ALTER TABLE estimate_versions ADD COLUMN IF NOT EXISTS edition_id UUID REFERENCE
 
 -- FK assemblies.created_in_estimate_id → estimate_versions (ditunda dari §2 krn urutan).
 DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'assemblies_created_in_estimate_fk') THEN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint
+                 WHERE conname = 'assemblies_created_in_estimate_fk'
+                   AND conrelid = 'assemblies'::regclass) THEN
     ALTER TABLE assemblies ADD CONSTRAINT assemblies_created_in_estimate_fk
       FOREIGN KEY (created_in_estimate_id) REFERENCES estimate_versions(id);
   END IF;
