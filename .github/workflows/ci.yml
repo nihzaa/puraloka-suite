@@ -51,6 +51,16 @@ jobs:
         env:
           CI_DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
+      # 4a — SCHEMA-DIFF: buktikan skema `public` CI (dari migrasi bersih) = dev.
+      # Baseline dev (schema-baseline-dev.json) di-generate lokal dari dev (read-only)
+      # & di-commit. Step ini introspeksi project CI lalu diff. INFORMATIONAL
+      # (continue-on-error) — outputnya laporan drift yang dibaca dari run summary.
+      - name: Schema-diff vs dev baseline (4a)
+        continue-on-error: true
+        run: node scripts/schema-fingerprint.mjs compare scripts/schema-baseline-dev.json
+        env:
+          FP_URL: ${{ secrets.CI_DIRECT_URL }}
+
       - name: Test
         run: pnpm test
         env:

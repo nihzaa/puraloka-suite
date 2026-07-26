@@ -40,7 +40,12 @@ Jawaban terhadap 5 hal yang harus ditutup sebelum Gate 1A→1B. Semua dengan buk
 
 Dijalankan langsung: login betulan tiap role (via HttpOnly cookie), hit endpoint nyata. Untuk role tanpa login (pm=0 auth_id), dibuat akun Auth + link auth_id + password test (hanya menambah auth link, tidak sentuh data lain). `direktur` **tidak bisa** ditest live (enum `user_role` 4-nilai, tak ada user).
 
-**Kredensial test yang dibuat** (untuk founder re-run): admin `nizarzul16@gmail.com`/`nizar123` (seed), pm `rizky@puraloka.id`/`SmokeTestPM123!` (dibuat), mandor `hendra@puraloka.id`/`SmokeMandor123!` (password di-set), client `andi.k@gmail.com`/`SmokeClient123!` (password di-set).
+**Kredensial test yang dibuat** (untuk founder re-run): admin `<email-admin>`/`<REDACTED>` (seed), pm `<email-pm>`/`<REDACTED>` (dibuat), mandor `<email-mandor>`/`<REDACTED>` (password di-set), client `<email-client>`/`<REDACTED>` (password di-set).
+
+> ⚠️ **CATATAN KEAMANAN (repo kini public):** kredensial test plaintext yang semula di baris ini
+> sudah diredaksi. Nilai aslinya tetap ada di **riwayat git** — redaksi saja TIDAK cukup.
+> Password terkait (admin dev + pm/mandor/client test) **wajib dirotasi** oleh founder. Lihat
+> laporan sweep dokumen publik untuk detail.
 
 | Role | Endpoint | Actual | Expected | Verifikasi | Status |
 |---|---|---|---|---|---|
