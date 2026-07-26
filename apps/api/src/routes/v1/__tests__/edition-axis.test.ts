@@ -15,6 +15,7 @@ const BASE = [
   '003_projects_and_contracts.sql',
 ]
 const CECEP = [
+  '076_menu_items.sql',   // 090 menyisipkan entri menu → butuh tabelnya
   '090_units_lookup.sql',
   '102_cecep_cost_code_registry.sql',
   '103_cecep_resource_registry.sql',
