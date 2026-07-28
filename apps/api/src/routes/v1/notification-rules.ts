@@ -18,8 +18,8 @@ const RULE_SELECT = `
 export default async function notificationRuleRoutes(app: FastifyInstance) {
 
   // ── GET /api/v1/notification-rules ─────────────────────────────────────────
-  app.get('/api/v1/notification-rules', { preHandler: [authenticate] }, async (_request, reply) => {
-    const { data, error } = await supabase
+  app.get('/api/v1/notification-rules', { preHandler: [authenticate] }, async (request, reply) => {
+    const { data, error } = await request.db!
       .from('notification_rules').select(RULE_SELECT).order('event_type')
     if (error) return reply.status(500).send({ error: error.message })
     return reply.send({ rules: data ?? [] })
@@ -34,7 +34,7 @@ export default async function notificationRuleRoutes(app: FastifyInstance) {
       if (typeof request.body?.is_active !== 'boolean') {
         return reply.status(400).send({ error: 'is_active (boolean) wajib' })
       }
-      const { data, error } = await supabase.from('notification_rules')
+      const { data, error } = await request.db!.from('notification_rules')
         .update({
           is_active: request.body.is_active,
           updated_by: request.currentUser!.id,
@@ -73,11 +73,11 @@ export default async function notificationRuleRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: 'permission_key wajib untuk target bertipe permission' })
       }
 
-      const { data: rule } = await supabase.from('notification_rules')
+      const { data: rule } = await request.db!.from('notification_rules')
         .select('id').eq('event_type', eventType).maybeSingle()
       if (!rule) return reply.status(404).send({ error: 'Aturan tidak ditemukan' })
 
-      const { data, error } = await supabase.from('notification_rule_targets').insert({
+      const { data, error } = await request.db!.from('notification_rule_targets').insert({
         rule_id: rule.id,
         target_type,
         role_name: target_type === 'role' ? role_name : null,
@@ -107,15 +107,15 @@ export default async function notificationRuleRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('notifications:rules:manage')] },
     async (request, reply) => {
       const { id } = request.params
-      const { data: target } = await supabase.from('notification_rule_targets')
+      const { data: target } = await request.db!.from('notification_rule_targets')
         .select('id, rule_id, target_type, role_name, permission_key').eq('id', id).maybeSingle()
       if (!target) return reply.status(404).send({ error: 'Penerima tidak ditemukan' })
 
       // SAFETY: aturan AKTIF tanpa target = notifikasi menguap tanpa jejak (bug #47).
       // Menonaktifkan aturan tetap boleh — niatnya eksplisit dan terekam audit.
       const [{ data: rule }, { count }] = await Promise.all([
-        supabase.from('notification_rules').select('is_active, event_type').eq('id', target.rule_id).maybeSingle(),
-        supabase.from('notification_rule_targets').select('id', { count: 'exact', head: true })
+        request.db!.from('notification_rules').select('is_active, event_type').eq('id', target.rule_id).maybeSingle(),
+        request.db!.from('notification_rule_targets').select('id', { count: 'exact', head: true })
           .eq('rule_id', target.rule_id),
       ])
       if (rule?.is_active && (count ?? 0) <= 1) {
@@ -125,7 +125,7 @@ export default async function notificationRuleRoutes(app: FastifyInstance) {
         })
       }
 
-      const { error } = await supabase.from('notification_rule_targets').delete().eq('id', id)
+      const { error } = await request.db!.from('notification_rule_targets').delete().eq('id', id)
       if (error) return reply.status(500).send({ error: error.message })
 
       void logAuditEvent(request, {

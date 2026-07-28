@@ -162,7 +162,7 @@ export default async function settingsRoutes(app: FastifyInstance) {
     preHandler: [authenticate],
   }, async (request, reply) => {
     const { category } = request.query as { category?: string }
-    let query = supabase
+    let query = request.db!
       .from('company_settings')
       .select('key, value, value_type, category, description, updated_at')
       .order('category', { ascending: true })
@@ -195,7 +195,7 @@ export default async function settingsRoutes(app: FastifyInstance) {
       }
 
       // Key harus sudah terdaftar — endpoint ini hanya mengubah nilai, bukan membuat key baru.
-      const { data: existing, error: fetchErr } = await supabase
+      const { data: existing, error: fetchErr } = await request.db!
         .from('company_settings')
         .select('key, value_type')
         .eq('key', key)
@@ -221,7 +221,7 @@ export default async function settingsRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: `Tarif ${key} harus fraksi 0..1 (mis. 0.11 untuk 11%)` })
       }
 
-      const { error: updErr } = await supabase
+      const { error: updErr } = await request.db!
         .from('company_settings')
         .update({ value: value as never, updated_by: userId, updated_at: new Date().toISOString() })
         .eq('key', key)
@@ -241,8 +241,8 @@ export default async function settingsRoutes(app: FastifyInstance) {
   // Riwayat config finansial effective-dated (tarif pajak, retensi, denda). Read auth.
   app.get('/api/v1/settings/finance', {
     preHandler: [authenticate],
-  }, async (_request, reply) => {
-    const { data, error } = await supabase
+  }, async (request, reply) => {
+    const { data, error } = await request.db!
       .from('financial_config')
       .select('key, value, value_type, effective_from, effective_to, note, updated_at:created_at')
       .order('key', { ascending: true })
@@ -295,7 +295,7 @@ export default async function settingsRoutes(app: FastifyInstance) {
     }
 
     // Snapshot nilai berlaku SEBELUM ubah (untuk audit from→to).
-    const { data: prev } = await supabase
+    const { data: prev } = await request.db!
       .from('financial_config').select('value').eq('key', body.key).is('effective_to', null).maybeSingle()
 
     const result = await setFinancialConfig({
@@ -321,8 +321,8 @@ export default async function settingsRoutes(app: FastifyInstance) {
   // (project-modal memakainya untuk pre-fill).
   app.get('/api/v1/settings/project-defaults', {
     preHandler: [authenticate],
-  }, async (_request, reply) => {
-    const { data } = await supabase
+  }, async (request, reply) => {
+    const { data } = await request.db!
       .from('company_settings').select('key, value')
       .in('key', ['project.dp_default_pct', 'project.maintenance_days'])
     const map: Record<string, unknown> = {}
@@ -356,7 +356,7 @@ export default async function settingsRoutes(app: FastifyInstance) {
     if (updates.length === 0) return reply.status(400).send({ error: 'Tidak ada field yang diubah' })
 
     for (const u of updates) {
-      const { error } = await supabase.from('company_settings')
+      const { error } = await request.db!.from('company_settings')
         .update({ value: u.value as never, updated_by: request.currentUser!.id, updated_at: new Date().toISOString() })
         .eq('key', u.key)
       if (error) return reply.status(500).send({ error: error.message })
@@ -374,8 +374,8 @@ export default async function settingsRoutes(app: FastifyInstance) {
   // Status toggle batas kasbon (Q2). Read authenticated.
   app.get('/api/v1/settings/kasbon-limit', {
     preHandler: [authenticate],
-  }, async (_request, reply) => {
-    const { data } = await supabase
+  }, async (request, reply) => {
+    const { data } = await request.db!
       .from('company_settings').select('value').eq('key', 'kasbon.limit.enabled').maybeSingle()
     return reply.send({ enabled: data?.value === true })
   })
@@ -390,10 +390,10 @@ export default async function settingsRoutes(app: FastifyInstance) {
     if (typeof body.enabled !== 'boolean') {
       return reply.status(400).send({ error: 'Field `enabled` (boolean) wajib' })
     }
-    const { data: prev } = await supabase
+    const { data: prev } = await request.db!
       .from('company_settings').select('value').eq('key', 'kasbon.limit.enabled').maybeSingle()
 
-    const { error } = await supabase
+    const { error } = await request.db!
       .from('company_settings')
       .update({ value: body.enabled as never, updated_by: request.currentUser!.id, updated_at: new Date().toISOString() })
       .eq('key', 'kasbon.limit.enabled')

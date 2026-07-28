@@ -276,7 +276,7 @@ export default async function progressRoutes(app: FastifyInstance) {
 
         if (overallProgress !== null) {
           newOverall = overallProgress
-          await supabase
+          await request.db!
             .from('projects')
             .update({ progress_pct: newOverall, updated_at: new Date().toISOString() })
             .eq('id', projectId)

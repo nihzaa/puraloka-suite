@@ -27,7 +27,7 @@ export default async function kurvaSRoutes(app: FastifyInstance) {
 
       // ── Fetch semua data yang dibutuhkan paralel ─────────────────────────
       const [projRes, progressRes, milestoneRes, rabRes, scheduleRes, absorptionRes] = await Promise.all([
-        supabase
+        request.db!
           .from('projects')
           .select('start_date, end_date, contract_value, progress_pct')
           .eq('id', projectId)
@@ -86,7 +86,7 @@ export default async function kurvaSRoutes(app: FastifyInstance) {
       // AC = semua uang yang keluar untuk proyek: kasbon + project_expenses + upah mandor + settlement
       const [kasbonRes, expenseRes, wageRes, progressPayRes, boronganRes] = await Promise.all([
         // Kasbon approved (uang operasional ke mandor)
-        supabase
+        request.db!
           .from('kasbons')
           .select('amount, kasbon_date, work_scopes!inner(mandor_assignments!inner(project_id))')
           .eq('work_scopes.mandor_assignments.project_id', projectId)

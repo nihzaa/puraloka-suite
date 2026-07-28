@@ -17,7 +17,7 @@ export default async function unitsRoutes(app: FastifyInstance) {
   // Default: hanya aktif (untuk dropdown). ?all=true: termasuk nonaktif (untuk kelola).
   app.get('/api/v1/units', { preHandler: [authenticate] }, async (request, reply) => {
     const includeInactive = (request.query as { all?: string })?.all === 'true'
-    let q = supabase.from('units')
+    let q = request.db!.from('units')
       .select('code, symbol, label, category, sort_order, is_active')
       .order('sort_order', { ascending: true }).order('code', { ascending: true })
     if (!includeInactive) q = q.eq('is_active', true)
@@ -44,7 +44,7 @@ export default async function unitsRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'Wajib: code, symbol, label, category' })
     }
 
-    const { data, error } = await supabase.from('units').insert({
+    const { data, error } = await request.db!.from('units').insert({
       code,
       symbol: String(body.symbol).trim(),
       label: String(body.label).trim(),
@@ -91,11 +91,11 @@ export default async function unitsRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'Tidak ada field yang diubah' })
     }
 
-    const { data: prev } = await supabase.from('units')
+    const { data: prev } = await request.db!.from('units')
       .select('symbol, label, category, sort_order, is_active').eq('code', code).maybeSingle()
     if (!prev) return reply.status(404).send({ error: `Satuan "${code}" tidak ditemukan` })
 
-    const { data, error } = await supabase.from('units').update(patch as never)
+    const { data, error } = await request.db!.from('units').update(patch as never)
       .eq('code', code).select('code, symbol, label, category, sort_order, is_active').single()
     if (error) return reply.status(500).send({ error: error.message })
 

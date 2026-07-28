@@ -78,7 +78,7 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
 
       // Validasi cash account jika disertakan
       if (cash_account_id) {
-        const { data: acct } = await supabase
+        const { data: acct } = await request.db!
           .from('cash_accounts')
           .select('id, is_active')
           .eq('id', cash_account_id)
@@ -104,7 +104,7 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
       }
 
       // Ambil project untuk invoice generation
-      const { data: project } = await supabase
+      const { data: project } = await request.db!
         .from('projects')
         .select('id, name, contract_value, tax_scheme, clients(id)')
         .eq('id', projectId)
@@ -263,7 +263,7 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
         if (newStatus === 'paid') {
           void (async () => {
             try {
-              const { data: proj } = await supabase.from('projects')
+              const { data: proj } = await request.db!.from('projects')
                 .select('id, contract_value, penalty_enabled, penalty_basis, penalty_rate_per_day, penalty_cap_pct, penalty_grace_days')
                 .eq('id', inv.project_id).maybeSingle()
               await computeAndPersistPenalty({

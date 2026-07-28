@@ -838,7 +838,7 @@ export default async function rabRoutes(app: FastifyInstance) {
           if (catUpdates.length > 0) await Promise.all(catUpdates)
 
           if (overallProgress !== null) {
-            await supabase
+            await request.db!
               .from('projects')
               .update({ progress_pct: overallProgress, updated_at: new Date().toISOString() })
               .eq('id', projectId)

@@ -115,7 +115,7 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const name = request.body?.name?.trim()
       if (!name) return reply.status(400).send({ error: 'name wajib' })
-      const { data: proj } = await supabase
+      const { data: proj } = await request.db!
         .from('projects').select('id').eq('id', request.params.projectId).maybeSingle()
       if (!proj) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
       const { data: row, error } = await supabase
@@ -146,7 +146,7 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
       }
       let editionId: string | null = null
       if (request.body?.edition_code) {
-        const { data: ed } = await supabase
+        const { data: ed } = await request.db!
           .from('ahsp_editions').select('id, is_active')
           .eq('code', request.body.edition_code).maybeSingle()
         if (!ed) return reply.status(404).send({ error: `Edisi ${request.body.edition_code} tidak ditemukan` })
@@ -420,7 +420,7 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
         if (typeof b.amount !== 'number' || b.amount <= 0) {
           return reply.status(400).send({ error: 'amount wajib angka > 0 untuk item lumpsum (tidak ada default)' })
         }
-        const { data: cc } = await supabase
+        const { data: cc } = await request.db!
           .from('cost_codes').select('id').eq('id', b.cost_code_id).maybeSingle()
         if (!cc) return reply.status(404).send({ error: 'Cost code tidak ditemukan' })
 
@@ -463,7 +463,7 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
       }
       const priceDate = b.price_date ?? new Date().toISOString().slice(0, 10)
 
-      const { data: asm, error: asmErr } = await supabase
+      const { data: asm, error: asmErr } = await request.db!
         .from('assemblies')
         .select(`id, code, name, status, cost_code_id, output_unit_code,
                  components:assembly_components(coefficient,
@@ -480,7 +480,7 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
       const comps = ((asm.components ?? []) as unknown as CompRow[]).filter(c => c.resource)
       const resourceIds = comps.map(c => c.resource!.id)
 
-      const { data: pbe, error: pbErr } = await supabase
+      const { data: pbe, error: pbErr } = await request.db!
         .from('price_book_entries')
         .select('id, resource_id, amount, currency, version_number, effective_date, expired_date, location, status')
         .in('resource_id', resourceIds)

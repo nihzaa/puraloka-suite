@@ -149,7 +149,7 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
       }
 
       // Verify project exists and is not deleted
-      const { data: project } = await supabase
+      const { data: project } = await request.db!
         .from('projects')
         .select('id, name, is_deleted')
         .eq('id', projectId)
@@ -491,7 +491,7 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
       ;(async () => {
         try {
           const recipients = await resolveRecipients('change_order_submitted', { projectId: co.project_id })
-          const { data: proj } = await supabase.from('projects').select('name').eq('id', co.project_id).single()
+          const { data: proj } = await request.db!.from('projects').select('name').eq('id', co.project_id).single()
           const deltaText = co.total_amount_delta >= 0
             ? `+Rp ${Math.abs(co.total_amount_delta).toLocaleString('id-ID')}`
             : `-Rp ${Math.abs(co.total_amount_delta).toLocaleString('id-ID')}`
@@ -593,7 +593,7 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
       }
 
       // Get current project contract_value and RAB total
-      const { data: project } = await supabase
+      const { data: project } = await request.db!
         .from('projects')
         .select('id, name, contract_value, pm_id')
         .eq('id', coFull.project_id)
@@ -630,7 +630,7 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
 
       // 2. Update projects.contract_value
       const newContractValue = (project.contract_value ?? 0) + coFull.total_amount_delta
-      await supabase
+      await request.db!
         .from('projects')
         .update({ contract_value: newContractValue })
         .eq('id', coFull.project_id)
@@ -741,7 +741,7 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
       ;(async () => {
         try {
           if (!coInfo.submitted_by) return
-          const { data: proj } = await supabase.from('projects').select('name').eq('id', coInfo.project_id).single()
+          const { data: proj } = await request.db!.from('projects').select('name').eq('id', coInfo.project_id).single()
 
           createNotifications([{
             user_id:     coInfo.submitted_by,

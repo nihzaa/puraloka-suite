@@ -166,7 +166,7 @@ export default async function milestoneRoutes(app: FastifyInstance) {
       if (status === 'completed' && data) {
         try {
           const adminIds = await resolveRecipients('milestone_completed')
-          const { data: proj } = await supabase.from('projects').select('name').eq('id', request.params.projectId).single()
+          const { data: proj } = await request.db!.from('projects').select('name').eq('id', request.params.projectId).single()
           createNotifications(adminIds.map(uid => ({
             user_id:     uid,
             title:       'Milestone Selesai',

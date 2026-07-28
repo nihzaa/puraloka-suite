@@ -121,7 +121,7 @@ export default async function rabScheduleRoutes(app: FastifyInstance) {
       if (!item) return reply.status(404).send({ error: 'Item RAB tidak ditemukan' })
 
       // Ambil project start_date untuk hitung week_number
-      const { data: proj } = await supabase
+      const { data: proj } = await request.db!
         .from('projects')
         .select('start_date')
         .eq('id', projectId)
@@ -291,7 +291,7 @@ export default async function rabScheduleRoutes(app: FastifyInstance) {
 
       if (!rabItem) return reply.status(404).send({ error: 'Item RAB tidak ditemukan' })
 
-      const { data: proj } = await supabase
+      const { data: proj } = await request.db!
         .from('projects')
         .select('start_date')
         .eq('id', projectId)

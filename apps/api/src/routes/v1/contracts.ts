@@ -238,7 +238,7 @@ export default async function contractRoutes(app: FastifyInstance) {
       // ── Fetch data ─────────────────────────────────────────────────────────
 
       const [projRes, rabRes] = await Promise.all([
-        supabase
+        request.db!
           .from('projects')
           .select(`
             id, name, location, contract_value,
