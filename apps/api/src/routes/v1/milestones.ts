@@ -165,7 +165,7 @@ export default async function milestoneRoutes(app: FastifyInstance) {
       // ── Fire-and-forget: notif ke admin jika milestone selesai ───────────
       if (status === 'completed' && data) {
         try {
-          const adminIds = await resolveRecipients('milestone_completed')
+          const adminIds = await resolveRecipients('milestone_completed', { companyId: request.companyId! })
           const { data: proj } = await request.db!.from('projects').select('name').eq('id', request.params.projectId).single()
           createNotifications(adminIds.map(uid => ({
             user_id:     uid,

@@ -490,7 +490,7 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
       // Fire-and-forget: notif ke admin + PM
       ;(async () => {
         try {
-          const recipients = await resolveRecipients('change_order_submitted', { projectId: co.project_id })
+          const recipients = await resolveRecipients('change_order_submitted', { projectId: co.project_id, companyId: request.companyId! })
           const { data: proj } = await request.db!.from('projects').select('name').eq('id', co.project_id).single()
           const deltaText = co.total_amount_delta >= 0
             ? `+Rp ${Math.abs(co.total_amount_delta).toLocaleString('id-ID')}`

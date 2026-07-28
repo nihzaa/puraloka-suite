@@ -393,7 +393,7 @@ export default async function projectRoutes(app: FastifyInstance) {
     // ── Fire-and-forget: notif ke admin + PM saat status berubah ─────────────
     if (data) {
       try {
-        const recipients = await resolveRecipients('project_status_changed', { projectId: id })
+        const recipients = await resolveRecipients('project_status_changed', { projectId: id, companyId: request.companyId! })
         createNotifications(recipients.map(uid => ({
           user_id:     uid,
           title:       'Status Proyek Berubah',

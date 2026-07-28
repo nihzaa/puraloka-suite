@@ -1171,7 +1171,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
         .single()
 
       if (assignInfo?.project_id) {
-        const recipients = await resolveRecipients('wage_report_submitted', { projectId: assignInfo.project_id })
+        const recipients = await resolveRecipients('wage_report_submitted', { projectId: assignInfo.project_id, companyId: request.companyId! })
         const mandorName = (assignInfo.mandor as any)?.name ?? user.name
         createNotifications(recipients.map(uid => ({
           user_id:     uid,
@@ -1375,7 +1375,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
     try {
       const projectId = (scope.assignment as any)?.project_id
       if (projectId) {
-        const recipients = await resolveRecipients('kasbon_submitted', { projectId })
+        const recipients = await resolveRecipients('kasbon_submitted', { projectId, companyId: request.companyId! })
         createNotifications(recipients.map(uid => ({
           user_id:    uid,
           title:      'Penagihan Progress Diajukan',

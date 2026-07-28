@@ -72,18 +72,23 @@ describe('Resolusi penerima (terhadap skema nyata)', () => {
         WHERE r.name = 'admin' AND u.is_active = true`)
     expect(rows[0].n, 'prasyarat: dev harus punya minimal 1 admin aktif').toBeGreaterThan(0)
 
-    const ids = await resolveRecipients('invoice_created')
+    const { rows: co } = await client.query(`SELECT id FROM companies ORDER BY created_at LIMIT 1`)
+    const ids = await resolveRecipients('invoice_created', { companyId: co[0].id })
     expect(ids.length, 'admin tidak menerima notifikasi apa pun bila ini 0').toBe(rows[0].n)
   }, 30_000)
 
   it('event ber-target admin + PM memuat keduanya, tanpa duplikat', async () => {
+    // T4g: companyId diambil dari PROYEKNYA, bukan ditebak — resolusi penerima
+    // kini dibatasi keanggotaan company, jadi memakai company yang salah akan
+    // menghasilkan nol penerima dan test jadi hampa.
     const { rows } = await client.query(
-      `SELECT id, pm_id FROM projects WHERE pm_id IS NOT NULL AND is_deleted = false LIMIT 1`)
+      `SELECT id, pm_id, company_id FROM projects
+        WHERE pm_id IS NOT NULL AND is_deleted = false AND company_id IS NOT NULL LIMIT 1`)
     expect(rows.length, 'prasyarat: butuh 1 proyek ber-PM').toBe(1)
-    const { id: projectId, pm_id } = rows[0]
+    const { id: projectId, pm_id, company_id: companyId } = rows[0]
 
-    const ids = await resolveRecipients('kasbon_submitted', { projectId })
-    const admins = await resolveRecipients('invoice_created')
+    const ids = await resolveRecipients('kasbon_submitted', { projectId, companyId })
+    const admins = await resolveRecipients('invoice_created', { companyId })
 
     // WAJIB: tanpa baris ini, loop di bawah jadi HAMPA saat resolusi admin rusak
     // (himpunan kosong → nol iterasi → test tetap hijau). Persis kondisi yang
@@ -96,6 +101,8 @@ describe('Resolusi penerima (terhadap skema nyata)', () => {
   }, 30_000)
 
   it('event tak dikenal → kosong dan TIDAK melempar (notifikasi wajib fire-and-forget)', async () => {
-    await expect(resolveRecipients('__event_tidak_ada__')).resolves.toEqual([])
+    const { rows: co } = await client.query(`SELECT id FROM companies ORDER BY created_at LIMIT 1`)
+    await expect(resolveRecipients('__event_tidak_ada__', { companyId: co[0].id }))
+      .resolves.toEqual([])
   }, 30_000)
 })

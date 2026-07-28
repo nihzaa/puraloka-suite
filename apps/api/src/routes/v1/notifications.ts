@@ -316,7 +316,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
     // Approaching milestones
     for (const ms of approachingRes.data ?? []) {
       const proj = ms.projects as any
-      const recipients = await resolveRecipients('milestone_approaching', { projectId: ms.project_id })
+      const recipients = await resolveRecipients('milestone_approaching', { projectId: ms.project_id, companyId: request.companyId! })
 
       // Cek apakah sudah ada notif approaching untuk milestone ini hari ini
       const { count } = await request.db!
@@ -349,7 +349,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
     // Overdue milestones
     for (const ms of overdueRes.data ?? []) {
       const proj = ms.projects as any
-      const recipients = await resolveRecipients('milestone_overdue', { projectId: ms.project_id })
+      const recipients = await resolveRecipients('milestone_overdue', { projectId: ms.project_id, companyId: request.companyId! })
 
       // Maksimal sekali per hari per milestone
       const { count } = await request.db!
@@ -461,7 +461,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
         isUrgent = daysLeft <= 1
       }
 
-      const recipients = await resolveRecipients('invoice_due', { projectId: proj.id })
+      const recipients = await resolveRecipients('invoice_due', { projectId: proj.id, companyId: request.companyId! })
       const fmt = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
       for (const uid of recipients) {
@@ -498,7 +498,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
       if (!isOverdue && ![7, 3, 1].includes(daysLeft)) continue
       if (await alreadySent(type, `project_end_${p.id}`)) continue
 
-      const recipients = await resolveRecipients('project_deadline', { projectId: p.id })
+      const recipients = await resolveRecipients('project_deadline', { projectId: p.id, companyId: request.companyId! })
       for (const uid of recipients) {
         await createNotification({
           user_id:     uid,
@@ -535,7 +535,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
       if (await alreadySent('kasbon_pending', k.id)) continue
 
       const daysWaiting = Math.round((now.getTime() - new Date(k.kasbon_date).getTime()) / 86_400_000)
-      const recipients = await resolveRecipients('kasbon_pending', { projectId: proj.id })
+      const recipients = await resolveRecipients('kasbon_pending', { projectId: proj.id, companyId: request.companyId! })
       const fmt = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
       const mandorName = (k.mandor as any)?.name ?? 'Mandor'
 
@@ -572,7 +572,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
       if (await alreadySent('invoice_overdue', inv.id)) continue
 
       const daysLate = Math.round((now.getTime() - new Date(inv.due_date).getTime()) / 86_400_000)
-      const recipients = await resolveRecipients('invoice_overdue', { projectId: proj.id })
+      const recipients = await resolveRecipients('invoice_overdue', { projectId: proj.id, companyId: request.companyId! })
       const fmt = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
       for (const uid of recipients) {

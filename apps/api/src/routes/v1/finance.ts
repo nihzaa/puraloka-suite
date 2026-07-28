@@ -742,7 +742,7 @@ export default async function financeRoutes(app: FastifyInstance) {
     // ── Fire-and-forget: notif ke admin saat invoice baru dibuat ─────────────
     if (invoice) {
       try {
-        const adminIds = await resolveRecipients('invoice_created')
+        const adminIds = await resolveRecipients('invoice_created', { companyId: request.companyId! })
         const projName = (invoice.projects as any)?.name ?? ''
         createNotifications(adminIds.map(uid => ({
           user_id:     uid,
@@ -1157,7 +1157,7 @@ export default async function financeRoutes(app: FastifyInstance) {
 
     // ── Fire-and-forget: notif ke admin + PM saat pembayaran diterima ────────
     try {
-      const recipients = await resolveRecipients('invoice_paid', { projectId: invoice.project_id })
+      const recipients = await resolveRecipients('invoice_paid', { projectId: invoice.project_id, companyId: request.companyId! })
       const amtFmt = amountPaid.toLocaleString('id-ID')
       createNotifications(recipients.map(uid => ({
         user_id:     uid,

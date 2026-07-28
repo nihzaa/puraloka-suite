@@ -201,7 +201,7 @@ export default async function kasbonRoutes(app: FastifyInstance) {
         const amtFmt      = Number(body.amount).toLocaleString('id-ID')
         const context     = scopeName ? `${scopeName} - ${projectName}` : projectName
 
-        const recipients = await resolveRecipients('kasbon_pending', { projectId: resolvedProjectId })
+        const recipients = await resolveRecipients('kasbon_pending', { projectId: resolvedProjectId, companyId: request.companyId! })
         createNotifications(recipients.map(uid => ({
           user_id:     uid,
           title:       'Kasbon Baru Diajukan',
