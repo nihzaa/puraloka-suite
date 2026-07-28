@@ -25,10 +25,20 @@ kali keadaan berubah; detail selalu di dokumen rujukan.
 > dan 5 selesai penuh. Selama itu sistem berisi tepat satu company.
 
 **Program D — Multi-Tenant (AKTIF).** Tahap: T0 ADR ✅ → **T1 audit 94 tabel ✅** →
-**T2 skema inti ✅ (migration 126, applied ke dev)** → **T3 `company_id` [RED-LINE
-— BERHENTI, butuh Dokumen Audit Pra-Eksekusi + ack founder]** → T4 repository
-wrapper (XL) → T5 RLS dual-axis → T6 numbering → T7 exit criteria L2.
+**T2 skema inti ✅ (migration 126)** → **T3 `company_id` ✅ (migration 127)** →
+**T4 repository wrapper (XL) ← BERIKUTNYA** → T5 RLS dual-axis → T6 numbering → T7 exit criteria L2.
 CECEP langkah 7+ dilanjutkan **setelah T7**.
+
+**T3 SELESAI (migration 127, applied ke dev 2026-07-29)** — 32 tabel dapat
+`company_id`, 23.030 baris. Verifikasi: jumlah baris **tidak berubah** · nol NULL
+di 20 tabel terkunci · **2.620 AHSP nasional tetap milik bersama** · angka bisnis
+identik (kontrak 4,883 M · invoice 2,092 M · kas 222 jt). **Dua pengaman disentuh
+atas keputusan founder, bukan tafsiran saya:** segel append-only `audit_logs`
+(073) dibuka sekali lalu dipasang kembali + dicek eksplisit, dan gerbang
+immutability komponen CECEP (107) dilonggarkan **permanen tapi sempit** — hanya
+`company_id`; ubah koefisien/resource pada assembly aktif TETAP ditolak. Bukti
+keempat pengaman masih menolak: diuji langsung di dev. 43 test hijau.
+Detail: `.../adr/ADR-011-T3-AUDIT-PRA-EKSEKUSI.md` §10.
 
 **T1 — 3 temuan yang mengubah rencana** (`.../adr/ADR-011-T1-AUDIT-KLASIFIKASI-TABEL.md`):
 **F1** 7 tabel PUNYA jalur ke `projects` tapi rantainya LEMAH (FK nullable) → tak
@@ -157,7 +167,9 @@ Phase 1 (Program A) ✅ · Phase 2 (Program B) ✅.
    apakah butuh level `tenants` di atas `companies` sekarang atau cukup nanti.
    Default sementara: cukup `companies` + `parent_company_id`. ADR-011 §3.
 
-**C. (BARU, MEMBLOKIR T3) Ack + 2 jawaban — dokumen SUDAH SIAP dibaca:**
+~~**C. Ack + 2 jawaban T3**~~ — **TERJAWAB 2026-07-29** (Q1=privat, Q2=sekarang;
+   plus 2 keputusan gerbang di §10b dokumen). T3 SELESAI di-apply ke dev.
+   Rincian lama:
    **`.../adr/ADR-011-T3-AUDIT-PRA-EKSEKUSI.md`** (baca §0 ringkasan 1 menit →
    §5 apa yang bisa rusak → §7 yang tidak diverifikasi). Angka nyata: **32 tabel,
    23.030 baris** (2.180 → tenant-1; 20.850 sengaja tetap NULL = milik bersama,

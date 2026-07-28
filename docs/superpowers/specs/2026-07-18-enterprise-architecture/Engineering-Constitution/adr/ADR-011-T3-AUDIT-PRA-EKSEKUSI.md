@@ -1,6 +1,8 @@
 # T3 — Dokumen Audit Pra-Eksekusi (menunggu ack tertulis founder)
 
-**Tanggal:** 2026-07-29 · **Status:** ✅ **ACK DITERIMA 2026-07-29** — founder
+**Tanggal:** 2026-07-29 · **Status:** ✅ **SELESAI — T3 di-apply ke dev 2026-07-29**
+(migration `127_multitenant_company_id.sql`; hasil di §10)
+**Ack:** diterima 2026-07-29 — founder
 menyetujui kedua rekomendasi. **Q1 = PRIVAT** (`suppliers` → kategori B) ·
 **Q2 = SEKARANG** (`SET NOT NULL` dijalankan di T3c, tidak ditunda ke T4).
 Eksekusi dilanjutkan setelah uji rollback (§6) dilampirkan.
@@ -315,6 +317,112 @@ Ditafsirkan eksplisit (supaya tak ada ambiguitas di kemudian hari):
 | **Q2** | **SEKARANG** | T3c (`SET NOT NULL` + index + CHECK) dijalankan segera setelah verifikasi §4 hijau, tidak menunggu T4. Konsekuensi diterima sadar: risiko **R-3** menjadi nyata — endpoint yang menulis tanpa `company_id` akan gagal keras di dev. Itu memang tujuannya (fail-loud), dan berarti **T4 harus menyusul cepat** |
 
 **Syarat yang TETAP saya jalankan meski ack sudah ada:** uji rollback di schema
-test terisolasi (§6 poin 1) dilakukan **sebelum** T3 disentuh di dev, dan hasilnya
-dilampirkan ke PR. Dokumen ini menjanjikannya; persetujuan founder tidak
-menghapus janji itu.
+test terisolasi (§6 poin 1) dilakukan **sebelum** T3 disentuh di dev. Dokumen ini
+menjanjikannya; persetujuan founder tidak menghapus janji itu.
+
+### Hasil uji rollback — 17/17 HIJAU (`multitenant-t3-rollback.test.ts`)
+
+Dijalankan terhadap Postgres nyata di schema terisolasi, memakai file migrasi
+**verbatim** (126 lalu 127), bukan tulis-ulang:
+
+| # | Yang dibuktikan | Hasil |
+|---|---|---|
+| 1 | 127 berjalan penuh: 32 kolom + FK + backfill + NOT NULL + CHECK + index | ✅ |
+| 2 | 20 tabel benar-benar `NOT NULL`; 12 tabel AB tetap nullable **by design** | ✅ |
+| 3 | Backfill menyeluruh — nol NULL tersisa di 20 tabel B | ✅ |
+| 4 | **Katalog nasional tetap milik bersama** — 0 baris `source='national'` ter-klaim | ✅ |
+| 5 | Komponen mengikuti induknya — 0 baris beda tenant dari analisanya | ✅ |
+| 6 | CHECK **menolak** upaya meng-klaim katalog nasional lewat `UPDATE` biasa | ✅ |
+| 7 | **Jumlah baris tiap tabel tidak berubah** — backfill hanya mengisi kolom | ✅ |
+| 8 | 127 idempoten — re-run = no-op | ✅ |
+| 9 | **Rollback: skema kembali persis** ke keadaan pasca-126 | ✅ |
+| 10 | Rollback: constraint bikinan 127 hilang seluruhnya | ✅ |
+| 11 | Rollback: **data existing utuh** — nilai kontrak & jumlah assembly nasional identik | ✅ |
+| 12 | Rollback tidak menyisakan fungsi yatim (`project_company_id` ikut terbuang) | ✅ |
+| 13 | **127 bisa dijalankan LAGI setelah rollback** — bukti rollback benar-benar bersih | ✅ |
+| 14 | **Fail-loud:** backfill MENOLAK jalan saat `companies` berisi >1 baris | ✅ |
+
+Poin 13 dan 14 yang paling menentukan. **13** membedakan "rollback yang kelihatan
+berhasil" dari "rollback yang benar-benar mengembalikan keadaan" — kalau ada sisa
+tertinggal, re-apply pasti gagal. **14** adalah pengaman inti T3b: begitu tenant
+lebih dari satu, "milik siapa" tak dapat diturunkan mekanis, dan migrasi memilih
+**berhenti** daripada menebak lalu mencampur data dua perusahaan.
+
+Satu temuan dari uji ini: `company_members` & `document_number_series` lahir
+membawa `company_id` sendiri di migrasi 126, jadi hitungan "kolom yang 127
+tambahkan" harus mengecualikan keduanya — kalau tidak, angka 32 terbaca 34.
+
+
+---
+
+## 10. Hasil eksekusi — 2026-07-29
+
+### 10a. Angka nyata vs prediksi dokumen
+
+| | Diprediksi §2 | Nyata | |
+|---|---:|---:|---|
+| Tabel dapat kolom | 32 | **32** | ✅ |
+| Baris tersentuh | 23.030 | **23.030** | ✅ |
+| Jumlah baris berubah? | 0 | **0** | ✅ backfill hanya mengisi kolom |
+| NULL tersisa di tabel terkunci | 0 | **0** | ✅ |
+| Baris yatim | 0 | **0** | ✅ |
+| Katalog nasional ter-klaim | 0 | **0** | ✅ 2.620 tetap milik bersama |
+| Komponen beda tenant dari induk | 0 | **0** | ✅ |
+
+**Angka bisnis identik sebelum & sesudah** — bukti tak ada data yang bergeser:
+kontrak `Rp 4.883.000.000` · invoice `Rp 2.092.560.000` · kas `Rp 222.475.000`.
+
+Nullability akhir: **20 tabel NOT NULL**, 12 tabel AB nullable *by design*
+(NULL di sana bermakna "milik bersama", bukan "belum diisi").
+
+### 10b. DUA PENGAMAN yang tidak terlihat di dokumen ini sebelumnya
+
+Keduanya baru muncul saat migrasi menyentuh dev, **tidak** terdeteksi uji rollback
+karena schema test tidak menirunya. Ini kegagalan cakupan uji saya, dan keduanya
+sudah ditambahkan ke schema test agar tak terulang.
+
+**(1) Segel append-only `audit_logs` (migrasi 073)** — `UPDATE`/`DELETE` ditolak
+mentah, jadi backfill 1.555 baris mustahil tanpa membukanya.
+→ **Keputusan founder: buka sekali.** Alasan yang dipilih founder: supaya semua
+audit log punya identitas perusahaan sejak awal, sehingga filter UI lurus tanpa
+pengecualian `OR IS NULL` yang bisa terlupa di satu layar dan menghilangkan 1.555
+catatan lama dari pandangan.
+Cakupan dibuat **sesempit mungkin**: hanya trigger `trg_audit_logs_no_update`,
+hanya selama `UPDATE` itu, langsung dipasang kembali, **plus** pemeriksaan
+eksplisit yang **membatalkan seluruh migrasi** kalau segel gagal terpasang lagi —
+karena "audit trail diam-diam jadi bisa diubah" adalah kegagalan paling senyap
+di migrasi ini. Sengaja **tidak** memakai `session_replication_role='replica'`
+yang akan mematikan SELURUH trigger di SEMUA tabel.
+
+**(2) Gerbang immutability komponen CECEP (migrasi 107)** — komponen assembly
+ber-status ≠ `draft` tak boleh diubah; seluruh 3.037 assembly dev berstatus
+`active`, jadi 2.683 komponen Cibuluh tak bisa dilabeli.
+→ **Dilaporkan ke founder sebagai "menyentuh gerbang", bukan ditafsirkan sendiri.**
+**Keputusan founder: buka HANYA untuk kolom `company_id`.** Guard 107 diperbarui
+permanen di migrasi 127 (tercatat & bisa direview, bukan trigger yang dimatikan
+diam-diam): mengubah `coefficient`/`resource_id`/`sort_order`/`assembly_id` pada
+assembly aktif **tetap ditolak** — nol pelonggaran pada isi analisa. Yang
+diizinkan hanya `UPDATE` yang **seluruh** kolom isinya identik dan hanya
+`company_id` yang berbeda.
+
+### 10c. Bukti pengaman masih berdiri — diuji langsung di dev, bukan diasumsikan
+
+| Percobaan | Hasil |
+|---|---|
+| `UPDATE audit_logs` | **DITOLAK** — "append-only: UPDATE ditolak" |
+| `DELETE audit_logs` | **DITOLAK** — "append-only: DELETE ditolak" |
+| Ubah koefisien komponen assembly aktif | **DITOLAK** — "hanya bisa diubah saat draft" |
+| Klaim katalog nasional (`UPDATE company_id`) | **DITOLAK** — CHECK constraint |
+
+Plus 23 test otomatis (`multitenant-t3-rollback.test.ts`), di antaranya tiga yang
+khusus menjaga pelonggaran guard tetap sempit: ubah koefisien ditolak · ganti
+`resource_id` ditolak · **`UPDATE` campuran (`company_id` + koefisien sekaligus)
+ditolak** — celah paling halus, yaitu menyelundupkan perubahan isi dengan
+membonceng label kepemilikan.
+
+### 10d. Yang berubah dari rencana
+
+- `suppliers`: AB → **B** (ack Q1 = privat). B jadi 18 tabel, AB 10 tabel.
+- Dua pelonggaran guard di §10b — **tidak ada di dokumen versi pra-ack**, karena
+  saya belum memeriksa trigger saat menyusunnya. Keduanya diputuskan founder,
+  bukan saya.
