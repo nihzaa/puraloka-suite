@@ -24,10 +24,33 @@ kali keadaan berubah; detail selalu di dokumen rujukan.
 > **GERBANG MUTLAK:** tenant kedua TIDAK BOLEH dibuat di produksi sebelum Tahap 4
 > dan 5 selesai penuh. Selama itu sistem berisi tepat satu company.
 
-**Program D — Multi-Tenant (AKTIF).** Tahap: T0 ADR ✅ → T1 audit 94 tabel →
-T2 skema inti (`companies`, `company_members`, `document_number_series`) →
-T3 `company_id` [RED-LINE] → T4 repository wrapper (XL) → T5 RLS dual-axis →
-T6 numbering → T7 exit criteria L2. CECEP langkah 7+ dilanjutkan **setelah T7**.
+**Program D — Multi-Tenant (AKTIF).** Tahap: T0 ADR ✅ → **T1 audit 94 tabel ✅** →
+**T2 skema inti ✅ (migration 124, applied ke dev)** → **T3 `company_id` [RED-LINE
+— BERHENTI, butuh Dokumen Audit Pra-Eksekusi + ack founder]** → T4 repository
+wrapper (XL) → T5 RLS dual-axis → T6 numbering → T7 exit criteria L2.
+CECEP langkah 7+ dilanjutkan **setelah T7**.
+
+**T1 — 3 temuan yang mengubah rencana** (`.../adr/ADR-011-T1-AUDIT-KLASIFIKASI-TABEL.md`):
+**F1** 7 tabel PUNYA jalur ke `projects` tapi rantainya LEMAH (FK nullable) → tak
+bisa mewarisi tenancy. Bukan cacat: `cash_accounts.project_id` nullable karena
+memang ada kas tingkat perusahaan (40% data dev). · **F2** policy RLS nyata **198**,
+bukan 293 seperti tertulis di ADR. · **F3** **8 tabel RLS-nya ENABLED tapi NOL
+policy** (`rab_items`, `rab_schedule`, `rab_absorption_log`, `change_orders`,
+`change_order_items`, `work_scope_item_specs`, `document_access_logs`,
+`company_profile`) — karena RESTRICTIVE di-AND dengan hasil OR permissive, nol
+permissive = tabel TAK TERBACA begitu RLS ditegakkan. Dibuktikan empiris.
+Maka T5 wajib didahului **T5a-0**. Klasifikasi final: **32 tabel** dapat kolom
+`company_id` di T3 (1 anchor + 11 AB + 17 B + 3 dari D); 48 mewarisi; 12 bersama.
+
+**T2 — migration 124 applied ke dev** (additive murni, nol ubah data existing):
+`companies` + `company_members` + `document_number_series` + `auth_company_id()`
++ `is_member_of()`. Tenant pertama di-seed **dibaca dari `company_profile`**
+(`puraloka-persada`), 23 user jadi anggota dengan **peran dipertahankan persis**
+(0 divergensi vs `users.role_id`). 20 test hijau, termasuk penjaga P1:
+`auth_company_id()` mengembalikan NULL saat tak dapat ditentukan — **tidak** jatuh
+ke "satu-satunya company yang ada". `project_company_id()` sengaja **ditunda ke
+T3** (butuh `projects.company_id`; dry-run membuktikan membuatnya sekarang =
+migrasi gagal).
 
 **Tiga penajaman wajib (ADR-011 §9.5, masuk DoD tahapnya masing-masing):**
 **P1** company pertama = tenant biasa (nol `DEFAULT_COMPANY_ID`, nol cabang

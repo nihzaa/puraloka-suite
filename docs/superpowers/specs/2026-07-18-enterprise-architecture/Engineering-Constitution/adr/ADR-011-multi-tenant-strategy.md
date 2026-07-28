@@ -58,7 +58,7 @@ sebagai jangkar tenancy.**
    yang sudah ada (`project_id → projects.company_id`), bukan menciptakan sumbu baru.
 3. **Skala puluhan tenant, tim 1–4 orang.** Database-per-tenant = N koneksi pool,
    N migration run, N backup, N monitoring — kegagalan operasional yang pasti.
-4. **293 policy RLS sudah ditulis.** Menambah satu axis jauh lebih murah daripada
+4. **198 policy RLS sudah ditulis** (dihitung ulang di audit T1). Menambah satu axis jauh lebih murah daripada
    membuang semuanya.
 
 ### Ditolak (agar tidak dibahas ulang)
@@ -251,11 +251,11 @@ createTenantDb(companyId) → TenantDb
 
 ## 7. Lapis 2 — RLS dual-axis
 
-**Strategi: komposisi, bukan mengedit 293 policy.** Menyunting 293 policy tak bisa
+**Strategi: komposisi, bukan mengedit 198 policy.** Menyunting 198 policy tak bisa
 direview manusia dan tak bisa di-rollback sebagian.
 
 **Kuncinya:** Postgres membedakan `PERMISSIVE` (di-OR) dan `RESTRICTIVE` (di-AND).
-Semua 293 policy existing permissive.
+Seluruh **198** policy existing bersifat permissive (angka dikoreksi oleh audit T1 — sebelumnya tertulis 293).
 ```sql
 CREATE POLICY "tenant_isolation" ON <table>
   AS RESTRICTIVE FOR ALL
@@ -263,7 +263,7 @@ CREATE POLICY "tenant_isolation" ON <table>
   WITH CHECK (company_id = auth_company_id());
 ```
 Satu policy restriktif per tabel di-AND dengan seluruh policy permissive existing,
-**tanpa menyentuh satu pun dari 293**. Axis role dipegang policy lama; axis company
+**tanpa menyentuh satu pun dari 198**. Axis role dipegang policy lama; axis company
 policy baru. Rollback = `DROP POLICY tenant_isolation` — granular & instan.
 
 - Kategori C: `USING (project_company_id(project_id) = auth_company_id())`
@@ -329,11 +329,11 @@ terpisah, ack sendiri).
 | Tahap | Isi | Ukuran | Gerbang |
 |---|---|---|---|
 | **T0** | ADR ini + amandemen KEPUTUSAN-MULTI-COMPANY §2 | S | [G] |
-| **T1** | Audit klasifikasi 94 tabel; **verifikasi rantai FK NOT NULL** tiap kandidat C | M | [G] |
-| **T2** | Migration: `companies`, `company_members`, `document_number_series`, fungsi auth; seed tenant pertama dari `company_profile` (dibaca, bukan hardcoded); FK untuk `feature_flags.company_id` | M | [G] additive murni |
+| **T1** ✅ | Audit klasifikasi 94 tabel; verifikasi rantai FK NOT NULL tiap kandidat C → **`ADR-011-T1-AUDIT-KLASIFIKASI-TABEL.md`** (3 temuan: F1 rantai lemah, F2 policy 198≠293, F3 8 tabel nol-policy) | M | [G] |
+| **T2** ✅ | Migration **124**: `companies`, `company_members`, `document_number_series`, `auth_company_id()`, `is_member_of()`; seed tenant pertama dari `company_profile` (dibaca, bukan hardcoded); FK `feature_flags.company_id`. `project_company_id()` **ditunda ke T3** (butuh `projects.company_id`). 20 test hijau | M | [G] additive murni |
 | **T3** | `company_id` pada tabel B: ADD nullable [G] → backfill **[R]** → SET NOT NULL **[R]** + index | L | **[R]** |
 | **T4** | Wrapper + migrasi 53 file bergelombang (4a fondasi+cache fix · 4b search/dashboard/projects · 4c finansial · 4d operasional · 4e sisanya · 4f lint aktif) | XL | [G] |
-| **T5** | 5a policy restriktif [G] · 5b test isolasi 2 company [G] · 5c pindah dari service_role **[R]** | L | sebagian **[R]** |
+| **T5** | **5a-0 policy permissive dasar utk 8 tabel ber-nol-policy** [G] · 5a policy restriktif [G] · 5b test isolasi 2 company + kill-switch [G] · 5c pindah dari service_role **[R]** | L | sebagian **[R]** |
 | **T6** | Numbering (paralel T4): seed seri **[R]** · UNIQUE baru [G] · ganti trigger **[R]** · lepas UNIQUE lama **[R]** | M | **[R]** |
 | **T7** | UI company switcher, Menu Registry per-company, exit criteria L2 | M | [G] |
 | **T8** | L3 (Tenant Lifecycle, Billing, SLA) — **tidak dirinci sekarang** (doc 09 §5 #2: verifikasi ulang komitmen pelanggan sebelum **setiap** item) | — | — |
@@ -348,7 +348,7 @@ T0 → T1 → T2 → T3 → T4 → T5 → T7
 ### Pemetaan ke checklist L2 (doc 09 §2)
 | Checklist | Dipenuhi |
 |---|---|
-| `company_id` seluruh tabel transaksional, audit lengkap | T1 + T3 |
+| `company_id` seluruh tabel transaksional, audit lengkap | T1 ✅ (32 tabel teridentifikasi) + T3 |
 | Dual-axis RLS aktif | T5a + T5c |
 | Isolasi 2 company diverifikasi **manual** | T5b |
 | User A tak lihat data B lewat jalur manapun | T4 (khususnya `search.ts`, `reports.ts`) + T5 |
