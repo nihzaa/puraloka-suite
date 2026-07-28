@@ -231,7 +231,9 @@ export default async function settingsRoutes(app: FastifyInstance) {
     }
 
     // Buang cache config in-process agar nilai baru langsung terbaca kalkulasi.
-    clearConfigCache()
+    // Di-scope ke company request ini — tenant lain tak perlu ikut kehilangan
+    // cache-nya hanya karena perusahaan ini mengubah setting-nya sendiri.
+    clearConfigCache(request.companyId)
     return reply.send({ updated: results })
   })
 
@@ -359,7 +361,7 @@ export default async function settingsRoutes(app: FastifyInstance) {
         .eq('key', u.key)
       if (error) return reply.status(500).send({ error: error.message })
     }
-    clearConfigCache()
+    clearConfigCache(request.companyId)
     void logAuditEvent(request, {
       tableName: 'company_settings', recordId: 'project.defaults', action: 'project.defaults',
       actorId: request.currentUser!.id, newValues: Object.fromEntries(updates.map(u => [u.key, u.value])),
@@ -396,7 +398,7 @@ export default async function settingsRoutes(app: FastifyInstance) {
       .update({ value: body.enabled as never, updated_by: request.currentUser!.id, updated_at: new Date().toISOString() })
       .eq('key', 'kasbon.limit.enabled')
     if (error) return reply.status(500).send({ error: error.message })
-    clearConfigCache()
+    clearConfigCache(request.companyId)
 
     void logAuditEvent(request, {
       tableName: 'company_settings', recordId: 'kasbon.limit.enabled', action: 'kasbon.limit.toggle',
@@ -412,7 +414,6 @@ export default async function settingsRoutes(app: FastifyInstance) {
   app.post('/api/v1/settings/company/logo', {
     preHandler: [authenticate, requirePermission('settings:manage')],
   }, async (request, reply) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const parts = (request as any).parts()
     let logoUrl: string | null = null
 

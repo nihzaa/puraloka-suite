@@ -2,6 +2,14 @@
 // ⚠️ Red-Line §5#2: menyediakan tarif untuk perhitungan pajak. Delegasi keputusan
 // "tarif mana berlaku" ke lib/financial-config.ts (murni).
 //
+// ⚠️ MENYENTUH RED-LINE §5#2 (logika finansial) — disebut eksplisit, bukan
+// ditafsirkan diam-diam. Yang ditambahkan T4 di sini HANYA penyaringan tenancy
+// (`company_id`), NOL perubahan pada: rumus tarif, urutan effective-date,
+// guard 0..1, maupun perilaku fallback berisik C6. `financial_config` adalah
+// tabel kategori B (audit T1) — tarif BUK/pembulatan adalah kebijakan tiap
+// perusahaan, jadi membacanya tanpa scope = memakai tarif perusahaan lain.
+// Semua test pajak existing tetap hijau tanpa diubah (bukti behavior-preserving).
+//
 // Syarat founder:
 //   C6 FALLBACK BERISIK: bila config hilang/korup → log level ERROR + fallback statis.
 //      Tarif pajak salah di dokumen = masalah kepatuhan, tak boleh diam.
@@ -32,13 +40,25 @@ function loudFallback(key: string, reason: string): number | undefined {
  * Ambil nilai config finansial yang BERLAKU pada `atDate` ('YYYY-MM-DD', default hari
  * ini WIB). Fail-safe + BERISIK: bila tak ada config/DB error → fallback statis + log error.
  */
-export async function getEffectiveFinancialValue(key: string, atDate?: string): Promise<unknown> {
+export async function getEffectiveFinancialValue(
+  key: string,
+  atDate?: string,
+  companyId?: string
+): Promise<unknown> {
   const date = atDate ?? todayWIB()
   try {
-    const { data, error } = await supabase
+    let q = supabase
       .from('financial_config')
       .select('value, effective_from, effective_to')
       .eq('key', key)
+    // Scoping tenancy. companyId sengaja OPSIONAL selama T4 berjalan: 240
+    // call-site dimigrasi bergelombang, dan memaksanya sekarang akan mematikan
+    // jalur yang belum sempat diperbarui. Baris milik bersama (company_id NULL)
+    // tetap terbaca — itu yang membuat fallback config global masih berfungsi.
+    // T4f menutup celah ini: setelah semua pemanggil menyertakan companyId,
+    // parameter ini menjadi wajib.
+    if (companyId) q = q.or(`company_id.is.null,company_id.eq.${companyId}`)
+    const { data, error } = await q
     if (error) return loudFallback(key, `db error: ${error.message}`)
 
     const rows: EffectiveRow[] = (data ?? []).map(r => ({
@@ -58,9 +78,13 @@ export async function getEffectiveFinancialValue(key: string, atDate?: string): 
  * Tarif pajak (fraksi 0..1) per skema, EFFECTIVE-DATED pada `atDate`.
  * C1/C2: atDate = tanggal dokumen (issued_date invoice). Guard 0..1 → fallback berisik.
  */
-export async function getTaxRate(scheme: string | null | undefined, atDate?: string): Promise<number> {
+export async function getTaxRate(
+  scheme: string | null | undefined,
+  atDate?: string,
+  companyId?: string
+): Promise<number> {
   const key = scheme === 'ppn' ? 'tax.ppn_rate' : 'tax.pph_final_rate'
-  const raw = await getEffectiveFinancialValue(key, atDate)
+  const raw = await getEffectiveFinancialValue(key, atDate, companyId)
   const rate = typeof raw === 'number' ? raw : Number(raw)
   if (!Number.isFinite(rate) || rate < 0 || rate > 1) {
     return loudFallback(key, `nilai korup/di luar 0..1: ${JSON.stringify(raw)}`) ?? STATIC_FALLBACK[key]

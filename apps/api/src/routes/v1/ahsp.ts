@@ -198,6 +198,11 @@ export default async function ahspRoutes(app: FastifyInstance) {
         .insert({
           code: b.code.trim(), name: b.name.trim(), cost_code_id: cc.id,
           source: 'company', version_number: 1, waste_factor: b.waste_factor ?? 0,
+          // T4: assembly source='company' WAJIB bertuan (CHECK
+          // assemblies_source_company_konsisten, migrasi 127) — hanya katalog
+          // nasional yang boleh company_id NULL. Diambil dari company aktif
+          // request, bukan ditebak.
+          company_id: request.companyId,
           sequence: [], output_unit_code: unit.code,
           created_in_estimate_id: b.created_in_estimate_id ?? null,
           derived_from_assembly_id: b.derived_from_assembly_id ?? null,

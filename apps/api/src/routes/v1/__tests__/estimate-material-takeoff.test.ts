@@ -44,6 +44,8 @@ async function purge() {
   }
 }
 
+let companyId: string
+
 beforeAll(async () => {
   client = await createRlsClient()
   adminAuth = (await authIdForRole(client, 'admin')) as string
@@ -66,12 +68,17 @@ beforeAll(async () => {
     `INSERT INTO resources (code, name, category, unit_code, created_by)
      VALUES ('TEST-MTO-BATA', '[TEST] Bata', 'material', 'buah', $1) RETURNING id`, [adminUserId])
 
+  // T3/T4: assembly source='company' WAJIB bertuan (CHECK
+  // assemblies_source_company_konsisten, migrasi 127). Company diambil dari DB.
+  const { rows: co } = await client.query(`SELECT id FROM companies ORDER BY created_at LIMIT 1`)
+  companyId = co[0].id
+
   // Assembly A: Kolom (pakai Semen k=43.5) — Assembly B: Plesteran (pakai Semen k=7.776 + Bata k=10)
   const { rows: asmA } = await client.query(
     `INSERT INTO assemblies (code, name, cost_code_id, source, version_number, waste_factor,
-                             sequence, output_unit_code, created_by)
-     VALUES ('[TEST-MTO]KOLOM', '[TEST] Kolom', $1, 'company', 1, 0, '[]'::jsonb, 'm3', $2)
-     RETURNING id`, [costCodeId, adminUserId])
+                             sequence, output_unit_code, created_by, company_id)
+     VALUES ('[TEST-MTO]KOLOM', '[TEST] Kolom', $1, 'company', 1, 0, '[]'::jsonb, 'm3', $2, $3)
+     RETURNING id`, [costCodeId, adminUserId, companyId])
   await client.query(
     `INSERT INTO assembly_components (assembly_id, resource_id, coefficient, sort_order)
      VALUES ($1, $2, 43.5, 0)`, [asmA[0].id, semenId])
@@ -79,9 +86,9 @@ beforeAll(async () => {
 
   const { rows: asmB } = await client.query(
     `INSERT INTO assemblies (code, name, cost_code_id, source, version_number, waste_factor,
-                             sequence, output_unit_code, created_by)
-     VALUES ('[TEST-MTO]PLESTER', '[TEST] Plesteran', $1, 'company', 1, 0, '[]'::jsonb, 'm2', $2)
-     RETURNING id`, [costCodeId, adminUserId])
+                             sequence, output_unit_code, created_by, company_id)
+     VALUES ('[TEST-MTO]PLESTER', '[TEST] Plesteran', $1, 'company', 1, 0, '[]'::jsonb, 'm2', $2, $3)
+     RETURNING id`, [costCodeId, adminUserId, companyId])
   await client.query(
     `INSERT INTO assembly_components (assembly_id, resource_id, coefficient, sort_order)
      VALUES ($1, $2, 7.776, 0), ($1, $3, 10, 1)`, [asmB[0].id, semenId, bata[0].id])

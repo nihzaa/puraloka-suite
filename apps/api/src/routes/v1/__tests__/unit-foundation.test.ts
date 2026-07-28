@@ -32,12 +32,19 @@ async function expectOk(fn: () => Promise<unknown>) {
   await q('ROLLBACK TO SAVEPOINT sp')
 }
 
+let companyId: string
+
 beforeAll(async () => {
   client = await createRlsClient()
   await q('BEGIN')
   const { rows: u } = await q(
     `SELECT u.id FROM users u JOIN roles r ON r.id=u.role_id WHERE r.name='admin' LIMIT 1`)
   userId = u[0].id
+  // T3/T4: assembly source='company' WAJIB bertuan (CHECK
+  // assemblies_source_company_konsisten, migrasi 127). Ambil company nyata dari
+  // DB — bukan UUID karangan, supaya FK-nya sah.
+  const { rows: co } = await q(`SELECT id FROM companies ORDER BY created_at LIMIT 1`)
+  companyId = co[0].id
   const { rows: cc } = await q(
     `INSERT INTO cost_codes (code,name,created_by) VALUES ('CC-UNIT-TEST','x',$1) RETURNING id`, [userId])
   ccId = cc[0].id
@@ -48,8 +55,8 @@ beforeAll(async () => {
   // source='company': test ini menguji guard UNIT, bukan sumbu edisi. Sejak 117,
   // national WAJIB edition_id — pakai company agar test tetap fokus & bebas seed edisi.
   const { rows: a } = await q(
-    `INSERT INTO assemblies (code,name,cost_code_id,source,output_unit_code,created_by)
-     VALUES ('ASM-UNIT','Pas bata',$1,'company','m2',$2) RETURNING id`, [ccId, userId])
+    `INSERT INTO assemblies (code,name,cost_code_id,source,output_unit_code,created_by,company_id)
+     VALUES ('ASM-UNIT','Pas bata',$1,'company','m2',$2,$3) RETURNING id`, [ccId, userId, companyId])
   asmId = a[0].id
   // komponen membuat resourceRef "terreferensi" (dan asmId punya isi utk diaktifkan)
   await q(`INSERT INTO assembly_components (assembly_id,resource_id,coefficient) VALUES ($1,$2,1)`,
@@ -126,8 +133,8 @@ describe('assemblies.output_unit_code IMMUTABLE per versi (guard — bukti mutas
   it('KONTROL-NEGATIF: assembly DRAFT boleh ganti output_unit', async () => {
     await expectOk(async () => {
       const { rows } = await q(
-        `INSERT INTO assemblies (code,name,cost_code_id,source,output_unit_code,created_by)
-         VALUES ('ASM-DRAFT','x',$1,'company','m2',$2) RETURNING id`, [ccId, userId])
+        `INSERT INTO assemblies (code,name,cost_code_id,source,output_unit_code,created_by,company_id)
+         VALUES ('ASM-DRAFT','x',$1,'company','m2',$2,$3) RETURNING id`, [ccId, userId, companyId])
       await q(`UPDATE assemblies SET output_unit_code='m3' WHERE id=$1`, [rows[0].id])
     })
   })
