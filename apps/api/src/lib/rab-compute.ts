@@ -92,6 +92,83 @@ export function computeDualUnit(qtyAhsp: number, buyUnitCode: string, packFactor
   return { qtyAhsp, buyUnitCode, qtyBuyRounded: applyRounding(qtyAhsp / packFactor, CEIL_1) }
 }
 
+// ── D3 — BBS besi per DIAMETER (jalur geometri, TERPISAH dari koef AHSP) ──────
+// Desain §D3: diameter hidup di level ITEM + BBS, BUKAN di analisa AHSP (yang
+// per-kg). Take-off AHSP besi = kg KASAR anggaran; BBS = kg PRESISI per Ø.
+//
+// Faktor berat kg/m = REBAR_KG_PER_M_FACTOR × d²(mm). Konstanta 0,006165 adalah
+// Lapis 2 (data referensi fisik): turunan ρ baja 7850 kg/m³ × π/4 ÷ 10⁶ =
+// 0,0061654 — diverifikasi cocok tabel baku SNI (D10 0,617 · D16 1,578 · D25
+// 3,853) sampai 3-4 desimal. BUKAN angka bisnis, BUKAN karangan.
+export const REBAR_KG_PER_M_FACTOR = 0.006165
+
+/** kg/m batang tulangan polos/sirip diameter d (mm). */
+export function rebarWeightPerM(diameterMm: number, factor = REBAR_KG_PER_M_FACTOR): number {
+  if (diameterMm <= 0) throw new Error('rebarWeightPerM: diameterMm harus > 0')
+  return factor * diameterMm * diameterMm
+}
+
+export interface RebarBarInput {
+  rebarType: 'BjTP' | 'BjTS'
+  diameterMm: number
+  barCount: number
+  lengthPerBarM: number
+  /** kg/m eksplisit (bila ingin override konstanta, mis. angka historis tersimpan). */
+  weightKgPerM?: number
+}
+export interface RebarTakeoffLine {
+  rebarType: 'BjTP' | 'BjTS'; diameterMm: number
+  barCount: number; lengthPerBarM: number
+  totalLengthM: number; weightKgPerM: number; totalWeightKg: number
+}
+
+/** Satu baris BBS: jumlah batang × panjang → meter → kg (geometri, tanpa waste AHSP). */
+export function computeRebarBar(input: RebarBarInput): RebarTakeoffLine {
+  if (input.barCount <= 0) throw new Error('computeRebarBar: barCount harus > 0')
+  if (input.lengthPerBarM <= 0) throw new Error('computeRebarBar: lengthPerBarM harus > 0')
+  const weightKgPerM = input.weightKgPerM ?? rebarWeightPerM(input.diameterMm)
+  const totalLengthM = input.barCount * input.lengthPerBarM
+  return {
+    rebarType: input.rebarType, diameterMm: input.diameterMm,
+    barCount: input.barCount, lengthPerBarM: input.lengthPerBarM,
+    totalLengthM, weightKgPerM, totalWeightKg: totalLengthM * weightKgPerM,
+  }
+}
+
+export interface RebarSummaryLine { rebarType: 'BjTP' | 'BjTS'; diameterMm: number; totalWeightKg: number; barCount: number }
+
+/** Rekap "Total Besi <Ø>" ala BBS: gabung per (tipe, diameter) lintas baris/item. */
+export function summarizeRebarByDiameter(lines: RebarTakeoffLine[]): RebarSummaryLine[] {
+  const by = new Map<string, RebarSummaryLine>()
+  for (const l of lines) {
+    const key = `${l.rebarType}|${l.diameterMm}`
+    const cur = by.get(key)
+    if (cur) { cur.totalWeightKg += l.totalWeightKg; cur.barCount += l.barCount }
+    else by.set(key, { rebarType: l.rebarType, diameterMm: l.diameterMm, totalWeightKg: l.totalWeightKg, barCount: l.barCount })
+  }
+  return [...by.values()].sort((a, b) => a.rebarType.localeCompare(b.rebarType) || a.diameterMm - b.diameterMm)
+}
+
+// ── D4 — Take-off baja profil (WF/H/siku) ────────────────────────────────────
+// Desain §D4: analisa nasional 2.3 generik PER KG "Baja Profil"; katalog profil +
+// berat/m TIDAK ADA di nasional → data referensi Lapis 2 (`steel_profiles`).
+// Take-off = panjang × kg/m (dari tabel) → kg → feed analisa per-kg.
+export interface SteelMemberInput {
+  designation: string        // mis. 'WF 350x175x7x11'
+  pieceCount: number
+  lengthPerPieceM: number
+  weightKgPerM: number       // dari katalog steel_profiles — DATA, bukan tebakan
+}
+export interface SteelTakeoffLine extends SteelMemberInput { totalLengthM: number; totalWeightKg: number }
+
+export function computeSteelMember(input: SteelMemberInput): SteelTakeoffLine {
+  if (input.pieceCount <= 0) throw new Error('computeSteelMember: pieceCount harus > 0')
+  if (input.lengthPerPieceM <= 0) throw new Error('computeSteelMember: lengthPerPieceM harus > 0')
+  if (input.weightKgPerM <= 0) throw new Error('computeSteelMember: weightKgPerM harus > 0')
+  const totalLengthM = input.pieceCount * input.lengthPerPieceM
+  return { ...input, totalLengthM, totalWeightKg: totalLengthM * input.weightKgPerM }
+}
+
 // ── Orchestrator RAB end-to-end ──────────────────────────────────────────────
 export interface RabItemInput {
   code: string

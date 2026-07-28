@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest'
 import {
   computeVolume, computeLaborCount, computeMaterialTakeoff, computeRabDocument,
   computeMaterialAggregation, computeDualUnit,
-  type RabItemInput, type TakeoffLineInput,
+  rebarWeightPerM, computeRebarBar, summarizeRebarByDiameter, computeSteelMember,
+  REBAR_KG_PER_M_FACTOR,
+  type RabItemInput, type TakeoffLineInput, type RebarTakeoffLine,
 } from './rab-compute.js'
 import type { AhspComponent } from './ahsp-engine.js'
 
@@ -139,5 +141,64 @@ describe('computeDualUnit — D5 (satuan AHSP + satuan belanja, TANPA engine kon
   })
   it('packFactor <= 0 ditolak (nol tebak satuan tak valid)', () => {
     expect(() => computeDualUnit(100, 'sak', 0)).toThrow(/packFactor harus > 0/)
+  })
+})
+
+describe('D3 — BBS besi per diameter (geometri, terpisah dari koef AHSP)', () => {
+  it('faktor kg/m = 0,006165 x d^2 — cocok tabel baku SNI s.d. 3 desimal', () => {
+    expect(REBAR_KG_PER_M_FACTOR).toBe(0.006165)
+    expect(rebarWeightPerM(10)).toBeCloseTo(0.617, 3)   // baku SNI D10 = 0,617
+    expect(rebarWeightPerM(13)).toBeCloseTo(1.042, 3)   // D13 = 1,042
+    expect(rebarWeightPerM(16)).toBeCloseTo(1.578, 3)   // D16 = 1,578
+    expect(rebarWeightPerM(25)).toBeCloseTo(3.853, 3)   // D25 = 3,853
+  })
+  it('satu baris BBS: 20 batang D16 x 11,7 m -> 234 m -> 369,3082 kg', () => {
+    const r = computeRebarBar({ rebarType: 'BjTS', diameterMm: 16, barCount: 20, lengthPerBarM: 11.7 })
+    expect(r.totalLengthM).toBeCloseTo(234, 9)
+    expect(r.weightKgPerM).toBeCloseTo(1.57824, 6)
+    expect(r.totalWeightKg).toBeCloseTo(369.3082, 4)
+  })
+  it('weightKgPerM boleh di-override (angka historis tersimpan tak berubah)', () => {
+    const r = computeRebarBar({ rebarType: 'BjTP', diameterMm: 16, barCount: 10, lengthPerBarM: 10, weightKgPerM: 1.6 })
+    expect(r.totalWeightKg).toBeCloseTo(160, 9) // 100 m x 1,6 — bukan konstanta default
+  })
+  it('rekap "Total Besi <D>" gabung per tipe+diameter lintas baris', () => {
+    const lines: RebarTakeoffLine[] = [
+      computeRebarBar({ rebarType: 'BjTS', diameterMm: 16, barCount: 20, lengthPerBarM: 11.7 }),
+      computeRebarBar({ rebarType: 'BjTP', diameterMm: 10, barCount: 30, lengthPerBarM: 6 }),
+      computeRebarBar({ rebarType: 'BjTS', diameterMm: 16, barCount: 5,  lengthPerBarM: 11.7 }),
+    ]
+    const sum = summarizeRebarByDiameter(lines)
+    expect(sum).toHaveLength(2) // (BjTP,10) + (BjTS,16) — bukan 3
+    const d16 = sum.find(s => s.diameterMm === 16)!
+    expect(d16.barCount).toBe(25)                       // 20 + 5
+    expect(d16.totalWeightKg).toBeCloseTo(461.6353, 3)  // 25 x 11,7 x 1,57824
+    const d10 = sum.find(s => s.diameterMm === 10)!
+    expect(d10.totalWeightKg).toBeCloseTo(110.97, 4)    // 180 m x 0,6165
+  })
+  it('input tak valid ditolak (nol tebak)', () => {
+    expect(() => computeRebarBar({ rebarType: 'BjTS', diameterMm: 16, barCount: 0, lengthPerBarM: 1 })).toThrow(/barCount/)
+    expect(() => rebarWeightPerM(0)).toThrow(/diameterMm/)
+  })
+})
+
+describe('D4 — take-off baja profil (kg dari katalog, feed analisa per-kg)', () => {
+  it('WF 350x175x7x11 (DAFTAR BESI Cibuluh: 595 kg / 12 m) x 4 batang = 2380 kg', () => {
+    const kgPerM = 595 / 12 // 49,58333 — dari tabel referensi, bukan karangan
+    const r = computeSteelMember({
+      designation: 'WF 350x175x7x11', pieceCount: 4, lengthPerPieceM: 12, weightKgPerM: kgPerM,
+    })
+    expect(r.totalLengthM).toBe(48)
+    expect(r.totalWeightKg).toBeCloseTo(2380, 6) // = 4 x 595 persis
+  })
+  it('potongan non-standar tetap benar (panjang bebas x kg/m)', () => {
+    const r = computeSteelMember({
+      designation: 'WF 200x100x5.5x8', pieceCount: 3, lengthPerPieceM: 4.5, weightKgPerM: 256 / 12,
+    })
+    expect(r.totalLengthM).toBeCloseTo(13.5, 9)
+    expect(r.totalWeightKg).toBeCloseTo(288, 6) // 13,5 x 21,3333
+  })
+  it('input tak valid ditolak', () => {
+    expect(() => computeSteelMember({ designation: 'X', pieceCount: 1, lengthPerPieceM: 1, weightKgPerM: 0 })).toThrow(/weightKgPerM/)
   })
 })
