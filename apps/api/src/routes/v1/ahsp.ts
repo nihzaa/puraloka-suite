@@ -46,6 +46,83 @@ export default async function ahspRoutes(app: FastifyInstance) {
       return reply.send({ data })
     })
 
+  // ── GET /cecep/steel-profiles — katalog profil baja (D4, Lapis 2) ───────────
+  // Katalog profil + berat/m TIDAK ADA di AHSP nasional (nasional generik per-kg)
+  // → data referensi ter-seed (migration 123, sumber DAFTAR BESI verbatim).
+  app.get<{ Querystring: { type?: string; q?: string; limit?: string } }>(
+    '/api/v1/cecep/steel-profiles',
+    { preHandler: [authenticate, requirePermission('cecep:takeoff:view')] },
+    async (request, reply) => {
+      const limit = Math.max(1, Math.min(200, Number(request.query.limit) || 100))
+      let q = supabase
+        .from('steel_profiles')
+        .select('id, profile_type, designation, h_mm, b_mm, t1_mm, t2_mm, weight_per_bar_kg, standard_length_m, weight_kg_per_m, source_note')
+        .eq('is_active', true)
+        .order('profile_type').order('designation')
+        .limit(limit)
+      if (request.query.type) q = q.eq('profile_type', request.query.type)
+      if (request.query.q) q = q.ilike('designation', `%${request.query.q}%`)
+      const { data, error } = await q
+      if (error) return reply.status(500).send({ error: error.message })
+      return reply.send({ data })
+    })
+
+  // ── GET/POST /cecep/material-pack — faktor kemasan per resource (D5) ────────
+  app.get<{ Querystring: { resource?: string } }>(
+    '/api/v1/cecep/material-pack',
+    { preHandler: [authenticate, requirePermission('cecep:takeoff:view')] },
+    async (request, reply) => {
+      let q = supabase
+        .from('material_pack')
+        .select('id, buy_unit_code, factor, round_up, note, resource:resources(id, code, name, unit_code)')
+        .limit(200)
+      if (request.query.resource) {
+        const { data: r } = await supabase
+          .from('resources').select('id').eq('code', request.query.resource).maybeSingle()
+        if (!r) return reply.status(404).send({ error: `Resource ${request.query.resource} tidak ditemukan` })
+        q = q.eq('resource_id', r.id)
+      }
+      const { data, error } = await q
+      if (error) return reply.status(500).send({ error: error.message })
+      return reply.send({ data })
+    })
+
+  app.post<{ Body: { resource_code?: string; buy_unit_code?: string; factor?: number
+                     round_up?: boolean; note?: string } }>(
+    '/api/v1/cecep/material-pack',
+    { preHandler: [authenticate, requirePermission('cecep:refdata:manage')] },
+    async (request, reply) => {
+      const b = request.body ?? {}
+      if (!b.resource_code) return reply.status(400).send({ error: 'resource_code wajib' })
+      if (!b.buy_unit_code) return reply.status(400).send({ error: 'buy_unit_code wajib' })
+      if (typeof b.factor !== 'number' || b.factor <= 0) {
+        return reply.status(400).send({ error: 'factor wajib angka > 0 (satuan AHSP per 1 satuan belanja)' })
+      }
+      const { data: r } = await supabase
+        .from('resources').select('id').eq('code', b.resource_code).maybeSingle()
+      if (!r) return reply.status(404).send({ error: `Resource ${b.resource_code} tidak ditemukan` })
+      const { data: u } = await supabase
+        .from('units').select('code').eq('code', b.buy_unit_code).maybeSingle()
+      if (!u) return reply.status(404).send({ error: `Satuan ${b.buy_unit_code} tidak ditemukan` })
+
+      const { data: row, error } = await supabase
+        .from('material_pack')
+        .insert({ resource_id: r.id, buy_unit_code: u.code, factor: b.factor,
+                  round_up: b.round_up ?? true, note: b.note ?? null,
+                  created_by: request.currentUser!.id })
+        .select('id').single()
+      if (error) {
+        const dup = /material_pack_unik|duplicate/i.test(error.message)
+        return reply.status(dup ? 409 : 500).send({ error: error.message })
+      }
+      void logAuditEvent(request, {
+        tableName: 'material_pack', recordId: row.id, action: 'cecep.material_pack_created',
+        actorId: request.currentUser!.id,
+        newValues: { resource_code: b.resource_code, buy_unit_code: b.buy_unit_code, factor: b.factor },
+      })
+      return reply.status(201).send({ id: row.id })
+    })
+
   // ── GET /cecep/cost-codes — registry cost code, untuk picker UI ─────────────
   app.get<{ Querystring: { q?: string; limit?: string } }>(
     '/api/v1/cecep/cost-codes',

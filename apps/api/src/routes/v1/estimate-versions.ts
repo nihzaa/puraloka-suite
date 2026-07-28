@@ -10,7 +10,10 @@ import { forecastCashflow } from '../../lib/cashflow-forecast.js'
 import {
   computeAhsp, computeRabLineTotal, computeRabRollup, type RoundingRule, type RabGroupInput,
 } from '../../lib/ahsp-engine.js'
-import { computeMaterialAggregation, type TakeoffLineInput } from '../../lib/rab-compute.js'
+import {
+  computeMaterialAggregation, computeRebarBar, summarizeRebarByDiameter,
+  type TakeoffLineInput, type RebarTakeoffLine,
+} from '../../lib/rab-compute.js'
 import { resolvePrices, type PriceBookEntryRow } from '../../lib/price-resolver.js'
 import { getTaxRate } from '../../utils/financial-config.js'
 
@@ -279,6 +282,103 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
         ...a, category: categoryByResource.get(a.resourceId) ?? null,
       }))
       return reply.send({ estimate_version_id: v.id, materials })
+    })
+
+  // ── BBS besi per diameter (D3) — jalur input GEOMETRI, terpisah dari AHSP ───
+  // Desain §D3: diameter hidup di level ITEM + BBS, BUKAN di analisa (koef AHSP
+  // besi per-kg). Take-off AHSP = kg KASAR anggaran; BBS = kg PRESISI per Ø
+  // untuk pagu belanja. weight_kg_per_m DISIMPAN per baris (angka historis tak
+  // berubah bila konstanta direvisi kelak).
+  app.get<{ Params: { id: string } }>(
+    '/api/v1/estimate-versions/:id/rebar-takeoff',
+    { preHandler: [authenticate, requirePermission('cecep:takeoff:view')] },
+    async (request, reply) => {
+      const { data: v } = await supabase
+        .from('estimate_versions').select('id').eq('id', request.params.id).maybeSingle()
+      if (!v) return reply.status(404).send({ error: 'Estimate Version tidak ditemukan' })
+
+      const { data: items } = await supabase
+        .from('estimate_items').select('id').eq('estimate_version_id', request.params.id)
+      const itemIds = (items ?? []).map(i => i.id)
+      if (itemIds.length === 0) return reply.send({ estimate_version_id: v.id, lines: [], summary: [] })
+
+      const { data: rows, error } = await supabase
+        .from('rebar_takeoff')
+        .select('id, estimate_item_id, rebar_type, diameter_mm, bar_count, length_per_bar_m, weight_kg_per_m, total_weight_kg, notes')
+        .in('estimate_item_id', itemIds)
+        .order('rebar_type').order('diameter_mm')
+      if (error) return reply.status(500).send({ error: error.message })
+
+      const lines: RebarTakeoffLine[] = (rows ?? []).map(r => ({
+        rebarType: r.rebar_type as 'BjTP' | 'BjTS', diameterMm: Number(r.diameter_mm),
+        barCount: r.bar_count, lengthPerBarM: Number(r.length_per_bar_m),
+        totalLengthM: r.bar_count * Number(r.length_per_bar_m),
+        weightKgPerM: Number(r.weight_kg_per_m), totalWeightKg: Number(r.total_weight_kg),
+      }))
+      return reply.send({
+        estimate_version_id: v.id, lines: rows ?? [],
+        summary: summarizeRebarByDiameter(lines), // rekap "Total Besi <Ø>" ala BBS
+      })
+    })
+
+  app.post<{ Params: { id: string; itemId: string }
+             Body: { rebar_type?: 'BjTP' | 'BjTS'; diameter_mm?: number
+                     bar_count?: number; length_per_bar_m?: number
+                     weight_kg_per_m?: number; notes?: string } }>(
+    '/api/v1/estimate-versions/:id/items/:itemId/rebar',
+    { preHandler: [authenticate, requirePermission('cecep:takeoff:manage')] },
+    async (request, reply) => {
+      const b = request.body ?? {}
+      if (b.rebar_type !== 'BjTP' && b.rebar_type !== 'BjTS') {
+        return reply.status(400).send({ error: "rebar_type wajib 'BjTP' (polos) atau 'BjTS' (sirip)" })
+      }
+      if (typeof b.diameter_mm !== 'number' || b.diameter_mm <= 0) {
+        return reply.status(400).send({ error: 'diameter_mm wajib angka > 0' })
+      }
+      if (typeof b.bar_count !== 'number' || b.bar_count <= 0) {
+        return reply.status(400).send({ error: 'bar_count wajib angka > 0' })
+      }
+      if (typeof b.length_per_bar_m !== 'number' || b.length_per_bar_m <= 0) {
+        return reply.status(400).send({ error: 'length_per_bar_m wajib angka > 0' })
+      }
+
+      const { data: v } = await supabase
+        .from('estimate_versions').select('id, status').eq('id', request.params.id).maybeSingle()
+      if (!v) return reply.status(404).send({ error: 'Estimate Version tidak ditemukan' })
+      if (v.status !== 'draft') {
+        return reply.status(409).send({ error: 'BBS hanya bisa diubah saat Estimate Version draft' })
+      }
+      const { data: item } = await supabase
+        .from('estimate_items').select('id').eq('id', request.params.itemId)
+        .eq('estimate_version_id', request.params.id).maybeSingle()
+      if (!item) return reply.status(404).send({ error: 'Item tidak ditemukan di versi ini' })
+
+      // Hitung lewat lib pure (ber-golden-test) — nol aritmetika ad-hoc di route.
+      const line = computeRebarBar({
+        rebarType: b.rebar_type, diameterMm: b.diameter_mm,
+        barCount: b.bar_count, lengthPerBarM: b.length_per_bar_m,
+        weightKgPerM: b.weight_kg_per_m,
+      })
+
+      const { data: row, error } = await supabase
+        .from('rebar_takeoff')
+        .insert({
+          estimate_item_id: item.id, rebar_type: line.rebarType, diameter_mm: line.diameterMm,
+          bar_count: line.barCount, length_per_bar_m: line.lengthPerBarM,
+          weight_kg_per_m: line.weightKgPerM, total_weight_kg: line.totalWeightKg,
+          notes: b.notes ?? null, created_by: request.currentUser!.id,
+        })
+        .select('id').single()
+      if (error) {
+        const dup = /rebar_takeoff_unik|duplicate/i.test(error.message)
+        return reply.status(dup ? 409 : 500).send({ error: error.message })
+      }
+      void logAuditEvent(request, {
+        tableName: 'rebar_takeoff', recordId: row.id, action: 'cecep.rebar_added',
+        actorId: request.currentUser!.id,
+        newValues: { item: item.id, type: line.rebarType, d: line.diameterMm, kg: line.totalWeightKg },
+      })
+      return reply.status(201).send({ id: row.id, ...line })
     })
 
   // ── POST /items — tambah item dari ASSEMBLY atau LUMP-SUM (M3+misi d) ───────
