@@ -1,8 +1,26 @@
-import { FastifyInstance } from 'fastify'
+import { FastifyInstance, FastifyRequest } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { flattenUserRole } from '../../utils/user-role.js'
+
+/**
+ * T4g — id user yang jadi ANGGOTA company aktif request ini.
+ *
+ * `users` kategori D: identitas hidup LINTAS tenant (satu orang bisa jadi
+ * anggota >1 perusahaan, ADR-011 D6), jadi tabelnya sengaja TIDAK punya
+ * `company_id`. Batas yang berlaku di sini adalah KEANGGOTAAN, bukan kepemilikan
+ * baris — tanpa ini, admin tenant A bisa membaca, mengubah role, bahkan
+ * menonaktifkan akun user tenant B.
+ */
+async function idAnggotaCompany(request: FastifyRequest): Promise<string[]> {
+  const { data } = await request.db!
+    .unsafe('company_members', 'sumber keanggotaan; di-scope manual ke company aktif')
+    .select('user_id')
+    .eq('company_id', request.companyId!)
+    .eq('is_active', true)
+  return (data ?? []).map((m: { user_id: string }) => m.user_id)
+}
 
 export default async function userRoutes(app: FastifyInstance) {
 
@@ -16,6 +34,8 @@ export default async function userRoutes(app: FastifyInstance) {
     const isAdmin = request.currentUser?.role === 'admin'
     const showAll = all === 'true' && isAdmin
 
+    const idAnggota = await idAnggotaCompany(request)
+
     // FASE 3 CONTRACT: role dibaca via FK (roles.name), kolom enum di-drop.
     let query = supabase
       .from('users')
@@ -28,6 +48,7 @@ export default async function userRoutes(app: FastifyInstance) {
       query = query.eq('role_id', roleRow?.id ?? '00000000-0000-0000-0000-000000000000')
     }
     if (!showAll) query = query.eq('is_active', true)
+    query = query.in('id', idAnggota)
 
     const { data, error } = await query
     if (error) return reply.status(500).send({ error: error.message })
@@ -40,6 +61,11 @@ export default async function userRoutes(app: FastifyInstance) {
   app.patch('/api/v1/users/:id', { preHandler: [authenticate, requirePermission('users:manage')] }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const { name, phone, role } = request.body as { name?: string; phone?: string; role?: string }
+
+    // T4g: batas KEANGGOTAAN — user di luar company aktif tak boleh disentuh.
+    if (!(await idAnggotaCompany(request)).includes(id)) {
+      return reply.status(404).send({ error: 'User tidak ditemukan' })
+    }
 
     // Dynamic role validation: query roles table
     let roleId: string | undefined
@@ -90,6 +116,11 @@ export default async function userRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string }
     if (id === request.currentUser?.id) {
       return reply.status(400).send({ error: 'Tidak bisa mengubah status akun sendiri' })
+    }
+    // T4g: batas KEANGGOTAAN — menonaktifkan akun user tenant lain = penolakan
+    // layanan lintas perusahaan.
+    if (!(await idAnggotaCompany(request)).includes(id)) {
+      return reply.status(404).send({ error: 'User tidak ditemukan' })
     }
     const { data: current } = await supabase.from('users').select('is_active').eq('id', id).single()
     if (!current) return reply.status(404).send({ error: 'User tidak ditemukan' })

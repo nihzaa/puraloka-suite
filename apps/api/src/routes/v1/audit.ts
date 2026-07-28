@@ -19,6 +19,11 @@ export default async function auditRoutes(app: FastifyInstance) {
     const pageSize = Math.min(100, Math.max(1, parseInt(limit)))
     const offset = (pageNum - 1) * pageSize
 
+    // T4g: audit_logs kategori D — `company_id` NOT NULL diisi saat TULIS (tak
+    // pernah lewat join), jadi di-scope eksplisit di sini dengan .eq() di bawah.
+    // Tanpa ini, admin tenant A membaca SELURUH jejak audit semua tenant: diff
+    // nilai kontrak, pemutihan denda, perubahan role — data paling sensitif
+    // yang ada di sistem.
     let q = supabase
       .from('audit_logs')
       .select(`
@@ -26,6 +31,7 @@ export default async function auditRoutes(app: FastifyInstance) {
         old_values, new_values, created_at,
         user:users!audit_logs_user_id_fkey(id, name, email, roles:role_id(name))
       `, { count: 'exact' })
+      .eq('company_id', request.companyId!)
       .order('created_at', { ascending: false })
       .range(offset, offset + pageSize - 1)
 
@@ -69,10 +75,13 @@ export default async function auditRoutes(app: FastifyInstance) {
   // GET /api/v1/audit/tables — distinct table names + action types untuk filter dropdown
   app.get('/api/v1/audit/meta', {
     preHandler: [authenticate, requirePermission('audit:view')]
-  }, async (_request, reply) => {
+  }, async (request, reply) => {
+    // Dropdown filter pun di-scope: daftar tabel/aksi milik tenant lain
+    // membocorkan modul apa yang mereka pakai.
+    const cid = request.companyId!
     const [tablesRes, actionsRes] = await Promise.all([
-      supabase.from('audit_logs').select('table_name').order('table_name'),
-      supabase.from('audit_logs').select('action').order('action'),
+      supabase.from('audit_logs').select('table_name').eq('company_id', cid).order('table_name'),
+      supabase.from('audit_logs').select('action').eq('company_id', cid).order('action'),
     ])
 
     const tables  = [...new Set((tablesRes.data ?? []).map((r: any) => r.table_name))].filter(Boolean)
