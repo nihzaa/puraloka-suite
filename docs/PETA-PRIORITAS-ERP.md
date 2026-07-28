@@ -53,7 +53,8 @@ dipercaya tanpa cek) · **SELESAI** (tugasnya tuntas, jadi arsip) · **ASPIRASIO
 | `Engineering-Constitution/` (53 file: 40 standar + 10 ADR + amendments) | **REFERENSI (mengikat)** | Termasuk `18-never-build-list.md` (enforced) dan ADR-004/005/007/008/009 |
 | `CECEP/` (49 file) | **AKTIF** | Planning SELESAI (Derived & Frozen); build order 10 langkah TERKUNCI di `MATERIAL-RAP-COMPANY-UI-DESIGN.md`. Progres verified 2026-07-26/27 (PR #86–94): **langkah 1 CI isolation ✅ · 4 seed AHSP nasional ✅ (2.620 assemblies, verified 100%) · 5 endpoint hitung + golden ✅ · 2 config Lapis1/2 sebagian (PPN reuse; BUK/rounding BELUM di-config, masih wajib eksplisit per-request) · 8 AHSP Company sebagian (struktur DB ada, endpoint create-assembly sedang dikerjakan) · 10 UI sebagian (`/estimasi`: komposer+katalog+harga+rekap PPN hidup; layar Material/RAP belum ada)**. **Langkah 6 (Material take-off/BBS/steel_profiles) dan 7 (RAP/Pagu) BELUM DIMULAI — 0 tabel di migration manapun** — ini titik-bocor #1 yang jadi alasan utama CECEP diprioritaskan, JANGAN dianggap selesai sebelum keduanya ada. Langkah 9 (dpp_factor split) sengaja ditunda (gerbang D10). |
 | `enterprise-architecture-framework/` (32 file) | **REFERENSI** | Metodologi generik, sengaja dipisah dari CECEP (ADR framework-separation) |
-| `superpowers/plans/2026-07-15-warm-clay-design-system.md` | **SELESAI** | Worktree-nya 0 commit ahead, sudah merged |
+| `superpowers/specs/2026-07-15-warm-clay-redesign-design.md` | **AKTIF — rollout BERJALAN** | ⚠️ **Koreksi 2026-07-29:** entri lama di sini menyebutnya "SELESAI, worktree 0 commit ahead" — itu **salah**, terverifikasi ulang: `feature/warm-clay-design-system` **121 commit ahead dari main, belum merge**. Spec identitas visual "Warm Clay" (claymorphism-lite, navy+amber/terracotta, disetujui 2026-07-15) — acuan visual **wajib** untuk semua layar baru (AUTOPILOT §1.2). Lihat juga `05-design-system-and-ui-ux-architecture.md` (arsitektur interaksi/navigasi di atas token ini — command palette, density mode; mengutip Linear/Stripe/Attio/Raycast tapi HANYA pola interaksi, bukan bahasa visual) |
+| `superpowers/plans/2026-07-15-warm-clay-design-system.md` | **AKTIF** | Rencana implementasi 8 fase untuk rollout di atas — status per-fase harus dicek ke branch, JANGAN percaya "selesai" tanpa verifikasi `git log main..feature/warm-clay-design-system` |
 
 ### Hierarki otoritas kalau bentrok
 `AUTOPILOT.md` (Red-Line) → `DOMAIN.md` + keputusan owner tertanggal (mis. header
@@ -165,3 +166,58 @@ gerbang mobile; (4) data historis tahan aturan baru — kuat (effective-dating +
 baseline snapshot; pola WAJIB dipertahankan di modul baru); (5) UI orang lapangan —
 paling lemah (mobile tipis, input mandor nyatanya masih WhatsApp) — naik prioritas
 setelah CECEP siap-pakai, selaras keputusan Mobile Phase 2–3 ditunda.
+
+---
+
+## 7. UI/UX — acuan wajib, JANGAN desain tanpa baca ini dulu
+
+Ranking §3 dan taksonomi menilai **fungsi** (route+UI hidup atau tidak) — bukan
+**kualitas visual/interaksi**. Ini bagian yang sengaja terpisah supaya tidak
+tercampur: item taksonomi ✅ berarti "berfungsi", BUKAN otomatis berarti "sudah
+sesuai bar desain di bawah".
+
+**Dua dokumen wajib dibaca SEBELUM membuat/mengubah layar apa pun** (urutan ini,
+bukan sembarang):
+
+1. **`docs/superpowers/specs/2026-07-15-warm-clay-redesign-design.md`** —
+   identitas visual "Warm Clay" (disetujui 2026-07-15): claymorphism-lite, navy
+   (`--primary`) tetap identitas finansial, amber/terracotta (`--accent`,
+   `--accent-2`) sebagai "kehidupan" visual selektif, tactile (shadow berlapis,
+   hover lift, klik "tertekan"), dark mode warga kelas satu (bukan invert
+   otomatis), tipografi Bricolage Grotesque + Plus Jakarta Sans dieksploitasi
+   lebih berani. Konvensi kode setara **shadcn/ui**: primitive di
+   `apps/web/components/ui/`, `cva` untuk varian, `cn()` helper, `data-slot`.
+   **Status rollout: BERJALAN, 121 commit ahead di `feature/warm-clay-design-system`,
+   BELUM merge ke main** — cek `git log main..feature/warm-clay-design-system`
+   untuk progres riil, jangan percaya klaim "selesai" di dokumen lain.
+2. **`docs/superpowers/specs/2026-07-18-enterprise-architecture/05-design-system-and-ui-ux-architecture.md`** —
+   arsitektur interaksi/navigasi DI ATAS token Warm Clay (bukan pengganti).
+   Mengutip pola **Linear, Stripe, Attio, Raycast, Cursor** — tapi eksplisit:
+   yang diambil HANYA pola interaksi (command palette, density mode,
+   keyboard-first), **BUKAN bahasa visual** mereka (jangan re-skin jadi flat
+   Linear). Filosofi 3 pilar berurutan saat berkonflik: **trust before speed**
+   (ini software uang — aksi finansial/approval tak pernah dipercepat sampai
+   mengorbankan kejelasan) → **density with intent** (density mode per-pengguna,
+   bukan satu breakpoint) → **command-first, mouse-optional** (keyboard adalah
+   akselerator untuk power user, bukan prasyarat untuk mandor lapangan).
+   Status: dokumen baru, 0 implementasi — Now/Next/Later per bagian.
+
+**Kenapa dua dokumen, bukan satu:** disiplin yang sama dengan sumbu unit/edisi/
+company — jangan campur dua keputusan independen dalam satu artefak. Warm Clay
+menjawab "seperti apa rupa Puraloka" (visual); dokumen 05 menjawab "bagaimana
+pengguna bergerak & bertindak" (interaksi). Referensi Linear/Stripe/Attio DI
+DOKUMEN 05 ADALAH untuk pola kerja, bukan izin meniru warnanya — kalau ada
+implementasi yang re-skin ke estetika Linear literal, itu pelanggaran, bukan
+"pakai referensi 05".
+
+**Aturan operasional yang sudah mengikat (AUTOPILOT §1.2, §9):** setiap layar
+baru **wajib** baca skill `frontend-design` dulu; masuk Definition of Done —
+slice belum "done" kalau UI-nya tidak sesuai bar ini. Ini bukan rekomendasi
+baru dari dokumen ini, hanya ditautkan di sini supaya tidak terlewat saat
+mencari "acuan UI/UX ada di mana".
+
+**Bukan Never Build, tapi TUNDA sadar (Now/Next/Later dokumen 05):** workspace
+switcher & contextual sub-nav ala Linear, AI-native interaction layer (Later —
+gerbang sama dengan Program E/Automation), density toggle 3-mode tersimpan
+backend (Next, setelah Warm Clay Phase 1–3 selesai). Jangan bangun ini
+mendahului rollout Warm Clay dasar.

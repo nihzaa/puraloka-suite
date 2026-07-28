@@ -40,6 +40,15 @@ diam-diam. Kalau kamu menemukan ADR yang mengamandemen ADR lain, ADR yang lebih
 baru menang — tapi tetap laporkan keduanya, jangan berasumsi yang lama sudah tak
 relevan sama sekali (bisa jadi diamandemen sebagian saja).
 
+## 2b. UI/UX — baca sebelum membuat/mengubah layar apa pun
+
+Menyentuh frontend? Baca `docs/PETA-PRIORITAS-ERP.md` §7 dulu — dua dokumen
+acuan wajib (Warm Clay = identitas visual, dokumen 05 = arsitektur interaksi),
+status rollout riil (belum merge, cek branch — jangan percaya klaim "selesai"),
+dan aturan "referensi Linear/Stripe/Attio di dokumen 05 untuk POLA INTERAKSI
+saja, bukan izin meniru bahasa visualnya". AUTOPILOT §1.2 mewajibkan skill
+`frontend-design` untuk layar baru — bagian DoD, bukan opsional.
+
 ## 3. TRIPWIRE & GUARDRAIL YANG SUDAH TERBUKTI BEKERJA — jangan dilonggarkan
 
 Ini bukan teori — `KEPUTUSAN-MULTI-COMPANY.md` §2 pernah menulis dua tripwire,
