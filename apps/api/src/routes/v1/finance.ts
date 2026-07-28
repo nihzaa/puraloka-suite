@@ -6,6 +6,7 @@ import { createNotifications } from '../../utils/notifications.js'
 import { resolveRecipients } from '../../utils/notification-routing.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { computeAndPersistPenalty, estimatePenalty } from '../../utils/penalty.js'
+import { computeAging, retentionOutstanding, validateDpDeduction } from '../../lib/ar-register.js'
 
 const ALLOWED_IMAGE_PDF = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
 
@@ -195,6 +196,209 @@ export default async function financeRoutes(app: FastifyInstance) {
     return reply.send({ invoices: data ?? [], total: count ?? (data?.length ?? 0) })
   })
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // REGISTER PIUTANG (PETA §3 #3) — AR aging + retensi + uang muka
+  // Compute-on-read untuk TAMPILAN register (bukan angka pembukuan resmi yang
+  // dipersist) — konsisten pola estimasi penalty (DOMAIN §7).
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // ── GET /api/v1/finance/ar-aging?as_of=YYYY-MM-DD ───────────────────────────
+  // Bucket 30/60/90: current | 1–30 | 31–60 | 61–90 | >90 hari lewat jatuh tempo.
+  app.get('/api/v1/finance/ar-aging', {
+    preHandler: [authenticate, requirePermission('finance:view:all')]
+  }, async (request, reply) => {
+    const q = request.query as Record<string, string>
+    const asOf = q.as_of && /^\d{4}-\d{2}-\d{2}$/.test(q.as_of)
+      ? q.as_of
+      : new Date().toISOString().split('T')[0]
+
+    let query = supabase
+      .from('invoices')
+      .select(`
+        id, invoice_number, invoice_type, issued_date, due_date, total_amount, amount_paid, amount_due, status,
+        project:projects(id, name, client:clients(id, company_name, contact_person))
+      `)
+      .in('status', ['sent', 'partial', 'overdue'])
+      .gt('amount_due', 0)
+      .order('due_date', { ascending: true })
+      .limit(1000)
+    if (q.project_id) query = query.eq('project_id', q.project_id)
+
+    const { data, error } = await query
+    if (error) return reply.status(500).send({ error: error.message })
+
+    const summary = computeAging(
+      (data ?? []).map(i => ({ id: i.id, due_date: i.due_date, amount_due: i.amount_due, status: i.status })),
+      asOf
+    )
+    const byId = new Map(summary.rows.map(r => [r.id, r]))
+    const rows = (data ?? [])
+      .filter(i => byId.has(i.id))
+      .map(i => {
+        const agingRow = byId.get(i.id)!
+        const proj = i.project as unknown as { id: string; name: string; client?: { id: string; company_name: string | null; contact_person: string } | null } | null
+        return {
+          id: i.id,
+          invoice_number: i.invoice_number,
+          invoice_type: i.invoice_type,
+          issued_date: i.issued_date,
+          due_date: i.due_date,
+          total_amount: Number(i.total_amount),
+          amount_due: Number(i.amount_due),
+          status: i.status,
+          days_past_due: agingRow.days_past_due,
+          bucket: agingRow.bucket,
+          project: proj ? { id: proj.id, name: proj.name } : null,
+          client: proj?.client ? { id: proj.client.id, name: proj.client.company_name ?? proj.client.contact_person } : null,
+        }
+      })
+
+    return {
+      as_of: asOf,
+      buckets: summary.buckets,
+      total_outstanding: summary.total,
+      invoice_count: summary.count,
+      truncated: (data ?? []).length >= 1000,
+      rows,
+    }
+  })
+
+  // ── GET /api/v1/finance/retention-register ──────────────────────────────────
+  // Per proyek: retensi ditahan (Σ invoices.retensi_amount) vs dicairkan
+  // (Σ invoice retention_release) + jadwal termin on_retention. Tanggal jatuh
+  // tempo pencairan = ESTIMASI (end_date proyek + due_days) — BAST formal belum
+  // ada di sistem (DOMAIN §1), bukan angka resmi.
+  app.get('/api/v1/finance/retention-register', {
+    preHandler: [authenticate, requirePermission('finance:view:all')]
+  }, async (_request, reply) => {
+    const today = new Date().toISOString().split('T')[0]
+
+    const [invRes, projRes, terminRes] = await Promise.all([
+      supabase.from('invoices')
+        .select('project_id, invoice_type, retensi_amount, total_amount, status')
+        .neq('status', 'cancelled')
+        .limit(2000),
+      supabase.from('projects')
+        .select('id, name, status, end_date, retention_pct, retention_amount, is_deleted, client:clients(id, company_name, contact_person)')
+        .eq('is_deleted', false)
+        .limit(500),
+      supabase.from('termin_schedules')
+        .select('id, project_id, label, amount, pct_of_contract, status, due_days, trigger_type')
+        .eq('trigger_type', 'on_retention')
+        .limit(500),
+    ])
+    if (invRes.error) return reply.status(500).send({ error: invRes.error.message })
+    if (projRes.error) return reply.status(500).send({ error: projRes.error.message })
+    if (terminRes.error) return reply.status(500).send({ error: terminRes.error.message })
+
+    const withheldByProject = new Map<string, number>()
+    const releasedByProject = new Map<string, number>()
+    for (const inv of invRes.data ?? []) {
+      if (inv.status === 'draft') continue
+      if (inv.invoice_type === 'retention_release') {
+        releasedByProject.set(inv.project_id, (releasedByProject.get(inv.project_id) ?? 0) + Number(inv.total_amount ?? 0))
+      } else {
+        withheldByProject.set(inv.project_id, (withheldByProject.get(inv.project_id) ?? 0) + Number(inv.retensi_amount ?? 0))
+      }
+    }
+    const terminByProject = new Map<string, Array<{ id: string; label: string; amount: number; pct_of_contract: number; status: string; due_days: number | null }>>()
+    for (const t of terminRes.data ?? []) {
+      const list = terminByProject.get(t.project_id) ?? []
+      list.push({ id: t.id, label: t.label, amount: Number(t.amount), pct_of_contract: Number(t.pct_of_contract), status: t.status, due_days: t.due_days })
+      terminByProject.set(t.project_id, list)
+    }
+
+    const rows = (projRes.data ?? [])
+      .map(p => {
+        const withheld = withheldByProject.get(p.id) ?? 0
+        const released = releasedByProject.get(p.id) ?? 0
+        const outstanding = retentionOutstanding(withheld, released)
+        const termins = terminByProject.get(p.id) ?? []
+        const dueDays = termins.find(t => t.due_days != null)?.due_days ?? null
+        let estimatedReleaseDue: string | null = null
+        if (p.end_date && dueDays != null) {
+          const d = new Date(`${p.end_date}T00:00:00Z`)
+          d.setUTCDate(d.getUTCDate() + dueDays)
+          estimatedReleaseDue = d.toISOString().split('T')[0]
+        }
+        const client = p.client as unknown as { id: string; company_name: string | null; contact_person: string } | null
+        return {
+          project: { id: p.id, name: p.name, status: p.status, end_date: p.end_date },
+          client: client ? { id: client.id, name: client.company_name ?? client.contact_person } : null,
+          retention_pct: p.retention_pct != null ? Number(p.retention_pct) : null,
+          contract_retention_amount: p.retention_amount != null ? Number(p.retention_amount) : null,
+          withheld,
+          released,
+          outstanding,
+          on_retention_termins: termins,
+          estimated_release_due: estimatedReleaseDue,
+          is_due_estimate: estimatedReleaseDue != null && estimatedReleaseDue <= today && outstanding > 0,
+        }
+      })
+      .filter(r => r.withheld > 0 || r.released > 0 || r.on_retention_termins.length > 0)
+
+    const total_outstanding = rows.reduce((s, r) => s + r.outstanding, 0)
+    return { as_of: today, total_outstanding, rows }
+  })
+
+  // ── GET /api/v1/finance/dp-register ─────────────────────────────────────────
+  // Per proyek: DP ditagih/terbayar (invoice termin on_sign) vs sudah dipotong
+  // (Σ dp_deduction_amount) → sisa DP yang masih harus di-recoup di invoice
+  // progres berikutnya. Basis saldo = DP TERBAYAR (bukan sekadar ditagih).
+  app.get('/api/v1/finance/dp-register', {
+    preHandler: [authenticate, requirePermission('finance:view:all')]
+  }, async (_request, reply) => {
+    const [invRes, projRes] = await Promise.all([
+      supabase.from('invoices')
+        .select('project_id, total_amount, amount_paid, dp_deduction_amount, status, termin_schedules(trigger_type)')
+        .neq('status', 'cancelled')
+        .limit(2000),
+      supabase.from('projects')
+        .select('id, name, status, contract_value, is_deleted, client:clients(id, company_name, contact_person)')
+        .eq('is_deleted', false)
+        .limit(500),
+    ])
+    if (invRes.error) return reply.status(500).send({ error: invRes.error.message })
+    if (projRes.error) return reply.status(500).send({ error: projRes.error.message })
+
+    const agg = new Map<string, { dpBilled: number; dpPaid: number; recouped: number }>()
+    const bump = (pid: string, fn: (a: { dpBilled: number; dpPaid: number; recouped: number }) => void) => {
+      const a = agg.get(pid) ?? { dpBilled: 0, dpPaid: 0, recouped: 0 }
+      fn(a); agg.set(pid, a)
+    }
+    for (const inv of invRes.data ?? []) {
+      const embed = inv.termin_schedules as { trigger_type?: string } | { trigger_type?: string }[] | null
+      const trig = (Array.isArray(embed) ? embed[0] : embed)?.trigger_type
+      if (trig === 'on_sign') {
+        bump(inv.project_id, a => {
+          a.dpBilled += Number(inv.total_amount ?? 0)
+          a.dpPaid += Number(inv.amount_paid ?? 0)
+        })
+      }
+      if (Number(inv.dp_deduction_amount ?? 0) > 0) {
+        bump(inv.project_id, a => { a.recouped += Number(inv.dp_deduction_amount ?? 0) })
+      }
+    }
+
+    const rows = (projRes.data ?? [])
+      .filter(p => agg.has(p.id))
+      .map(p => {
+        const a = agg.get(p.id)!
+        const client = p.client as unknown as { id: string; company_name: string | null; contact_person: string } | null
+        return {
+          project: { id: p.id, name: p.name, status: p.status, contract_value: Number(p.contract_value ?? 0) },
+          client: client ? { id: client.id, name: client.company_name ?? client.contact_person } : null,
+          dp_billed: a.dpBilled,
+          dp_paid: a.dpPaid,
+          recouped: a.recouped,
+          remaining_to_recoup: a.dpPaid - a.recouped,
+        }
+      })
+
+    const total_remaining = rows.reduce((s, r) => s + r.remaining_to_recoup, 0)
+    return { total_remaining_to_recoup: total_remaining, rows }
+  })
+
   // ── POST /api/v1/finance/invoices ────────────────────────────────────────────
   // Buat invoice baru — mendukung semua tipe:
   //   termin_billing    : tagih termin, wajib termin_schedule_id
@@ -232,6 +436,9 @@ export default async function financeRoutes(app: FastifyInstance) {
       tax_amount?: number
       retensi_pct?: number
       retensi_amount?: number
+      // Potongan uang muka (DP recoupment) — hanya termin_billing non-on_sign (migration 124)
+      dp_deduction_amount?: number
+      dp_deduction_pct?: number
       due_date: string
       issued_date?: string
       notes?: string
@@ -278,10 +485,11 @@ export default async function financeRoutes(app: FastifyInstance) {
     }
 
     // ── Validasi termin jika termin_billing ──────────────────────────────────
+    let terminTriggerType: string | null = null
     if (body.termin_schedule_id) {
       const { data: termin } = await supabase
         .from('termin_schedules')
-        .select('id, status, project_id')
+        .select('id, status, project_id, trigger_type')
         .eq('id', body.termin_schedule_id)
         .single()
       if (!termin) return reply.status(404).send({ error: 'Termin tidak ditemukan' })
@@ -291,6 +499,7 @@ export default async function financeRoutes(app: FastifyInstance) {
       if (termin.status === 'billed' || termin.status === 'paid') {
         return reply.status(400).send({ error: 'Termin ini sudah pernah ditagih' })
       }
+      terminTriggerType = termin.trigger_type ?? null
     }
 
     // ── Validasi expense line items (expense_billing) ────────────────────────
@@ -366,7 +575,46 @@ export default async function financeRoutes(app: FastifyInstance) {
 
     const taxAmount     = Number(body.tax_amount ?? 0)
     const retensiAmount = Number(body.retensi_amount ?? 0)
-    const totalAmount   = parseFloat((baseAmount + commissionAmount - retensiAmount + taxAmount).toFixed(2))
+
+    // ── Potongan uang muka (DP recoupment) — PETA §3 #3, migration 124 ───────
+    // Hanya invoice termin progres (bukan termin on_sign = invoice DP itu
+    // sendiri). Saldo = DP TERBAYAR (Σ amount_paid invoice termin on_sign) −
+    // yang sudah dipotong di invoice lain. Fail-closed via validateDpDeduction.
+    const dpDeduction = Number(body.dp_deduction_amount ?? 0)
+    if (dpDeduction > 0) {
+      if (body.invoice_type !== 'termin_billing') {
+        return reply.status(400).send({ error: 'Potongan uang muka hanya berlaku untuk invoice termin (progres)' })
+      }
+      if (terminTriggerType === 'on_sign') {
+        return reply.status(400).send({ error: 'Tidak bisa memotong uang muka pada invoice DP (termin on_sign) itu sendiri' })
+      }
+
+      const { data: projInvoices, error: dpErr } = await supabase
+        .from('invoices')
+        .select('amount_paid, dp_deduction_amount, status, termin_schedules(trigger_type)')
+        .eq('project_id', body.project_id)
+        .neq('status', 'cancelled')
+      if (dpErr) return reply.status(500).send({ error: dpErr.message })
+
+      let dpPaid = 0
+      let alreadyRecouped = 0
+      for (const inv of projInvoices ?? []) {
+        const embed = inv.termin_schedules as { trigger_type?: string } | { trigger_type?: string }[] | null
+        const trig = (Array.isArray(embed) ? embed[0] : embed)?.trigger_type
+        if (trig === 'on_sign') dpPaid += Number(inv.amount_paid ?? 0)
+        alreadyRecouped += Number(inv.dp_deduction_amount ?? 0)
+      }
+
+      const verdict = validateDpDeduction({
+        deduction: dpDeduction,
+        dpPaid,
+        alreadyRecouped,
+        invoiceNet: baseAmount + commissionAmount - retensiAmount,
+      })
+      if (!verdict.ok) return reply.status(400).send({ error: verdict.error })
+    }
+
+    const totalAmount   = parseFloat((baseAmount + commissionAmount - retensiAmount - dpDeduction + taxAmount).toFixed(2))
 
     // ── Generate nomor invoice ───────────────────────────────────────────────
     const { data: companyRow } = await supabase
@@ -378,15 +626,20 @@ export default async function financeRoutes(app: FastifyInstance) {
     const now = new Date()
     const year = now.getFullYear()
     const month = String(now.getMonth() + 1).padStart(2, '0')
-    const monthStart = `${year}-${month}-01`
-    const monthEnd = `${year}-${month}-${String(new Date(year, now.getMonth() + 1, 0).getDate()).padStart(2, '0')}`
-    const { count: monthCount } = await supabase
+    // Sequence = MAX segmen terakhir nomor existing prefix bulan ini + 1.
+    // Basis lama (COUNT per issued_date bulan berjalan) tabrakan saat ada
+    // invoice terhapus atau issued_date backdate (nomor sama → unique violation).
+    const numberPrefix = `${prefix}/${year}/${month}/`
+    const { data: monthNumbers } = await supabase
       .from('invoices')
-      .select('id', { count: 'exact', head: true })
-      .gte('issued_date', monthStart)
-      .lte('issued_date', monthEnd)
-    const seq = String((monthCount ?? 0) + 1).padStart(3, '0')
-    const invoiceNumber = `${prefix}/${year}/${month}/${seq}`
+      .select('invoice_number')
+      .like('invoice_number', `${numberPrefix}%`)
+    const maxSeq = (monthNumbers ?? []).reduce((max, r) => {
+      const n = parseInt(String(r.invoice_number).slice(numberPrefix.length), 10)
+      return Number.isFinite(n) && n > max ? n : max
+    }, 0)
+    const seq = String(maxSeq + 1).padStart(3, '0')
+    const invoiceNumber = `${numberPrefix}${seq}`
     const issuedDate = body.issued_date ?? now.toISOString().split('T')[0]
 
     // ── Insert invoice ───────────────────────────────────────────────────────
@@ -404,6 +657,8 @@ export default async function financeRoutes(app: FastifyInstance) {
         tax_amount:         taxAmount,
         retensi_pct:        body.retensi_pct ?? null,
         retensi_amount:     retensiAmount,
+        dp_deduction_amount: dpDeduction,
+        dp_deduction_pct:   body.dp_deduction_pct ?? null,
         total_amount:       totalAmount,
         amount_paid:        0,
         amount_due:         totalAmount,
