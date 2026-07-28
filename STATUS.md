@@ -1,14 +1,33 @@
 # STATUS — Puraloka Suite (penunjuk satu pintu)
 
-**Diperbarui:** 2026-07-28 · File ini adalah `STATUS.md` yang diwajibkan AUTOPILOT §2
+**Diperbarui:** 2026-07-28 (rev-2: multi-tenant) · File ini adalah `STATUS.md` yang diwajibkan AUTOPILOT §2
 — penunjuk TIPIS, bukan duplikasi konten. Update tanggal + baris "Fase aktif" setiap
 kali keadaan berubah; detail selalu di dokumen rujukan.
 
 ## Fase aktif
 
-**Phase 3 / Program C (CECEP)** — migration 102–123, 72 test-file hijau (PR #86–101).
-Keputusan founder 2026-07-26 (header `docs/ERP_MASTER_PLAN.md`): **CECEP Option 2 —
-tuntaskan CECEP sampai siap-pakai sebelum modul besar lain.**
+> ### 🔄 PERUBAHAN ARAH BESAR — 2026-07-28
+> **CECEP DIBEKUKAN. Multi-tenant (Program D / L2→L3) jadi prioritas tunggal.**
+>
+> Pemicu: founder menetapkan sistem akan dijual sebagai **SaaS** (calon pelanggan
+> konkret sudah ada) DAN akan ada **badan usaha kedua**. Ini memicu **kedua tripwire**
+> di `docs/KEPUTUSAN-MULTI-COMPANY.md` §2 sekaligus.
+>
+> Keputusan lengkap + roadmap 8 tahap: **`.../Engineering-Constitution/adr/ADR-011-multi-tenant-strategy.md`** (ACCEPTED).
+> Mandat "CECEP Option 2" (2026-07-26) **dicabut** oleh keputusan ini.
+>
+> **GERBANG MUTLAK:** tenant kedua TIDAK BOLEH dibuat di produksi sebelum Tahap 4
+> dan 5 selesai penuh. Selama itu sistem berisi tepat satu company.
+
+**Program D — Multi-Tenant (AKTIF).** Tahap: T0 ADR ✅ → T1 audit 94 tabel →
+T2 skema inti (`companies`, `company_members`, `document_number_series`) →
+T3 `company_id` [RED-LINE] → T4 repository wrapper (XL) → T5 RLS dual-axis →
+T6 numbering → T7 exit criteria L2. CECEP langkah 7+ dilanjutkan **setelah T7**.
+
+**Phase 3 / Program C (CECEP) — DIBEKUKAN di langkah 6.** migration 102–123,
+72 test-file hijau (PR #86–101). Langkah 1/3/4/5/6 ✅ selesai; langkah 7 (RAP/Pagu)
+**ditahan** — ia commitment ledger, wajib menunggu multi-tenant (tripwire #1).
+Kompensasi: RAP nanti lahir dengan `company_id` sejak baris pertama → nol backfill.
 
 **Build order 10 langkah (`.../CECEP/MATERIAL-RAP-COMPANY-UI-DESIGN.md`) — status
 per-langkah, verified 2026-07-26/28:**
@@ -84,6 +103,15 @@ Phase 1 (Program A) ✅ · Phase 2 (Program B) ✅.
 | Peta penomoran Program A–F ↔ Phase 0–9 | `.../Master-Delivery-Blueprint/NUMBERING-GLOSSARY.md` (⚠️ "Phase 7" EA = multi-company; "Fase 7" ERP_MASTER_PLAN = GL — selalu sebut sumber) |
 
 ## Keputusan terbuka menunggu Nizar
+
+**A. (BARU, memblokir T1 multi-tenant) "≥2 kontributor review"** — checklist L2
+   (`09-saas-and-tenancy-readiness.md` §2 item 6) eksplisit: migrasi ini **tidak
+   solo-safe**. Tim saat ini 1 orang. Opsi: reviewer eksternal untuk T3 & T5 saja
+   (dua tahap paling berisiko), atau ack tertulis founder yang mengakui pengecualian
+   secara sadar. Detail: ADR-011 §10 R7.
+**B. (BARU, tidak memblokir) Pelanggan pertama punya >1 badan usaha?** Menentukan
+   apakah butuh level `tenants` di atas `companies` sekarang atau cukup nanti.
+   Default sementara: cukup `companies` + `parent_company_id`. ADR-011 §3.
 
 0. **KEAMANAN (mendesak, repo public):** rotasi 4 password test yang sempat bocor di
    `gate-1a-preconditions-response.md` (sudah diredaksi; nilai asli tetap di riwayat
