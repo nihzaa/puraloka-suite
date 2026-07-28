@@ -25,7 +25,7 @@ kali keadaan berubah; detail selalu di dokumen rujukan.
 > dan 5 selesai penuh. Selama itu sistem berisi tepat satu company.
 
 **Program D — Multi-Tenant (AKTIF).** Tahap: T0 ADR ✅ → **T1 audit 94 tabel ✅** →
-**T2 skema inti ✅ (migration 124, applied ke dev)** → **T3 `company_id` [RED-LINE
+**T2 skema inti ✅ (migration 126, applied ke dev)** → **T3 `company_id` [RED-LINE
 — BERHENTI, butuh Dokumen Audit Pra-Eksekusi + ack founder]** → T4 repository
 wrapper (XL) → T5 RLS dual-axis → T6 numbering → T7 exit criteria L2.
 CECEP langkah 7+ dilanjutkan **setelah T7**.
@@ -42,7 +42,7 @@ permissive = tabel TAK TERBACA begitu RLS ditegakkan. Dibuktikan empiris.
 Maka T5 wajib didahului **T5a-0**. Klasifikasi final: **32 tabel** dapat kolom
 `company_id` di T3 (1 anchor + 11 AB + 17 B + 3 dari D); 48 mewarisi; 12 bersama.
 
-**T2 — migration 124 applied ke dev** (additive murni, nol ubah data existing):
+**T2 — migration 126 applied ke dev** (additive murni, nol ubah data existing):
 `companies` + `company_members` + `document_number_series` + `auth_company_id()`
 + `is_member_of()`. Tenant pertama di-seed **dibaca dari `company_profile`**
 (`puraloka-persada`), 23 user jadi anggota dengan **peran dipertahankan persis**
@@ -128,7 +128,7 @@ Sisipan saat jeda gate (sesuai PETA §3, tidak menyela CECEP):
   `docs/DEVELOPMENT_LOG.md` entry 2026-07-27 + taksonomi §6.
 - **#3 register piutang SELESAI 2026-07-28** — halaman `/piutang` (AR aging
   30/60/90 + register retensi + register DP) + potongan uang muka (recoupment)
-  di invoice progres (migration 124/125) — detail: `docs/DEVELOPMENT_LOG.md`
+  di invoice progres (migration 126/125) — detail: `docs/DEVELOPMENT_LOG.md`
   entry 2026-07-28 + taksonomi §14–15. ⚠️ Melahirkan keputusan terbuka #5.
 
 Phase 1 (Program A) ✅ · Phase 2 (Program B) ✅.

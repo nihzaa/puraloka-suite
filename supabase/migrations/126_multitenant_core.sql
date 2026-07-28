@@ -1,5 +1,5 @@
 -- ============================================================
--- 124 — MULTI-TENANT: skema inti (Tahap T2 dari ADR-011)
+-- 126 — MULTI-TENANT: skema inti (Tahap T2 dari ADR-011)
 --
 -- ADDITIVE MURNI. Nol perubahan pada data existing, nol kolom yang di-drop,
 -- nol tabel yang disentuh selain yang dibuat di sini. Aman untuk re-run.
@@ -154,7 +154,7 @@ DECLARE
   v_code     TEXT;
 BEGIN
   IF EXISTS (SELECT 1 FROM companies) THEN
-    RAISE NOTICE '124: companies sudah terisi — seed dilewati (idempoten).';
+    RAISE NOTICE '126: companies sudah terisi — seed dilewati (idempoten).';
     RETURN;
   END IF;
 
@@ -163,7 +163,7 @@ BEGIN
   IF v_profile IS NULL THEN
     -- Fail-loud: lebih baik migrasi berhenti daripada melahirkan tenant
     -- bernama tebakan. Nol default diam-diam.
-    RAISE EXCEPTION '124: company_profile kosong — tenant pertama tak dapat di-seed. '
+    RAISE EXCEPTION '126: company_profile kosong — tenant pertama tak dapat di-seed. '
                     'Isi company_profile dulu, lalu jalankan ulang migrasi ini.';
   END IF;
 
@@ -198,7 +198,7 @@ BEGIN
   WHERE u.role_id IS NOT NULL
   ON CONFLICT (company_id, user_id) DO NOTHING;
 
-  RAISE NOTICE '124: tenant pertama "%" (code=%) + % anggota.',
+  RAISE NOTICE '126: tenant pertama "%" (code=%) + % anggota.',
     v_profile.company_name, v_code, (SELECT count(*) FROM company_members WHERE company_id = v_company);
 END $$;
 

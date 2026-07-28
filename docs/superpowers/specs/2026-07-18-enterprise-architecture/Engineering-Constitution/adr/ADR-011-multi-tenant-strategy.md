@@ -330,7 +330,7 @@ terpisah, ack sendiri).
 |---|---|---|---|
 | **T0** | ADR ini + amandemen KEPUTUSAN-MULTI-COMPANY §2 | S | [G] |
 | **T1** ✅ | Audit klasifikasi 94 tabel; verifikasi rantai FK NOT NULL tiap kandidat C → **`ADR-011-T1-AUDIT-KLASIFIKASI-TABEL.md`** (3 temuan: F1 rantai lemah, F2 policy 198≠293, F3 8 tabel nol-policy) | M | [G] |
-| **T2** ✅ | Migration **124**: `companies`, `company_members`, `document_number_series`, `auth_company_id()`, `is_member_of()`; seed tenant pertama dari `company_profile` (dibaca, bukan hardcoded); FK `feature_flags.company_id`. `project_company_id()` **ditunda ke T3** (butuh `projects.company_id`). 20 test hijau | M | [G] additive murni |
+| **T2** ✅ | Migration **126**: `companies`, `company_members`, `document_number_series`, `auth_company_id()`, `is_member_of()`; seed tenant pertama dari `company_profile` (dibaca, bukan hardcoded); FK `feature_flags.company_id`. `project_company_id()` **ditunda ke T3** (butuh `projects.company_id`). 20 test hijau | M | [G] additive murni |
 | **T3** | `company_id` pada tabel B: ADD nullable [G] → backfill **[R]** → SET NOT NULL **[R]** + index | L | **[R]** |
 | **T4** | Wrapper + migrasi 53 file bergelombang (4a fondasi+cache fix · 4b search/dashboard/projects · 4c finansial · 4d operasional · 4e sisanya · 4f lint aktif) | XL | [G] |
 | **T5** | **5a-0 policy permissive dasar utk 8 tabel ber-nol-policy** [G] · 5a policy restriktif [G] · 5b test isolasi 2 company + kill-switch [G] · 5c pindah dari service_role **[R]** | L | sebagian **[R]** |

@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 // ============================================================
-// T2 — Skema inti multi-tenant (ADR-011 §4, migration 124)
+// T2 — Skema inti multi-tenant (ADR-011 §4, migration 126)
 //
 // Dijalankan terhadap schema `test` terisolasi, memakai FILE MIGRATION ASLI —
 // bukan tulis-ulang skema — supaya yang diuji adalah artefak yang benar-benar
@@ -24,11 +24,11 @@ import { join } from 'node:path'
 // ============================================================
 
 let c: Client
-const MIG = join(import.meta.dirname, '../../../../../../db/migrations/124_multitenant_core.sql')
+const MIG = join(import.meta.dirname, '../../../../../../db/migrations/126_multitenant_core.sql')
 
-// Skema minimal yang dibutuhkan 124: users, roles, company_profile, feature_flags.
+// Skema minimal yang dibutuhkan 126: users, roles, company_profile, feature_flags.
 // Sengaja dibuat manual & sempit supaya test ini cepat dan tidak ikut menyeret
-// 123 migration lain — yang diuji adalah 124, bukan seluruh sejarah skema.
+// 125 migration lain — yang diuji adalah 126, bukan seluruh sejarah skema.
 async function bootstrapPrasyarat(cl: Client) {
   await cl.query(`
     CREATE TABLE roles (
@@ -53,7 +53,7 @@ async function bootstrapPrasyarat(cl: Client) {
     CREATE TABLE permissions (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(), key TEXT UNIQUE);
   `)
-  // has_permission()/auth_user_id() dipakai policy 124. Di schema test kita beri
+  // has_permission()/auth_user_id() dipakai policy 126. Di schema test kita beri
   // stub agar CREATE POLICY bisa di-resolve; perilaku RLS-nya sendiri diuji di
   // T5, bukan di sini (konsisten dgn catatan runMigrations: test app-level
   // memakai service_role yang bypass RLS).
@@ -80,7 +80,7 @@ async function bootstrapPrasyarat(cl: Client) {
     VALUES ('CV Uji Beton Sejahtera', 'Jl. Test No. 1', 'INV-UJI', 'Penanda Tangan')`)
 }
 
-async function applyMigrasi124(cl: Client) {
+async function applyMigrasi126(cl: Client) {
   await cl.query(readFileSync(MIG, 'utf-8'))
 }
 
@@ -96,7 +96,7 @@ beforeAll(async () => {
   await assertTestIsolation(c)
   await c.query('SET client_min_messages TO WARNING')
   await bootstrapPrasyarat(c)
-  await applyMigrasi124(c)
+  await applyMigrasi126(c)
 }, 120_000)
 
 afterAll(async () => {
@@ -205,7 +205,7 @@ describe('T2 — seed tenant pertama (dibaca, bukan dihardcode)', () => {
   })
 
   it('idempoten — re-run migrasi TIDAK melahirkan tenant kedua', async () => {
-    await applyMigrasi124(c)
+    await applyMigrasi126(c)
     const r = await c.query(`SELECT count(*)::int n FROM companies`)
     expect(r.rows[0].n).toBe(1)
     const m = await c.query(`SELECT count(*)::int n FROM company_members`)

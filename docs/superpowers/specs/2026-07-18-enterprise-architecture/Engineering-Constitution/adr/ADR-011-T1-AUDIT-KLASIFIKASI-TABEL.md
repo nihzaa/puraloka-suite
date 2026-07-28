@@ -243,6 +243,14 @@ Catatan: `company_profile` tidak perlu diperbaiki — ia dibuang di T4 (§5 D).
 3. **Perilaku 719 call-site** terhadap klasifikasi ini — T4.
 4. **Angka baris** adalah snapshot dev 2026-07-29, bukan produksi (produksi belum ada).
 
+**Catatan validitas pasca-PR #103 (register piutang, migration 124/125):**
+diperiksa ulang 2026-07-29 — PR itu **tidak menambah tabel** (hanya
+`ALTER TABLE invoices` + 1 baris `menu_items`), jadi klasifikasi 94 tabel di
+dokumen ini **tetap berlaku utuh**. `invoices` sudah kategori C sejak awal
+(mewarisi via `project_id` NOT NULL); menambah kolom uang tidak mengubah sumbu
+tenancy-nya. Migration multi-tenant dinomori ulang **124 → 126** karena 124/125
+telanjur dipakai PR #103.
+
 ---
 
 ## 9. Koreksi yang harus masuk ke ADR-011
