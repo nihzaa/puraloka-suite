@@ -119,27 +119,27 @@ describe('T2 — struktur skema inti', () => {
     ])
     // Sekaligus buktikan isolasi: yang barusan dibuat BUKAN di public.
     expect((await c.query(`SELECT current_schema() AS s`)).rows[0].s).not.toBe('public')
-  })
+  }, 30_000)
 
   it('code perusahaan divalidasi format slug — huruf besar/spasi ditolak', async () => {
     await expect(
       c.query(`INSERT INTO companies (code, name) VALUES ('Huruf Besar','X')`)
     ).rejects.toThrow(/companies_code_format/)
-  })
+  }, 30_000)
 
   it('code unik — dua tenant tak boleh berbagi code', async () => {
     const kode = (await c.query(`SELECT code FROM companies LIMIT 1`)).rows[0].code
     await expect(
       c.query(`INSERT INTO companies (code, name) VALUES ($1,'Kembar')`, [kode])
     ).rejects.toThrow(/companies_code_unique/)
-  })
+  }, 30_000)
 
   it('company tak boleh jadi induk dirinya sendiri', async () => {
     const id = (await c.query(`SELECT id FROM companies LIMIT 1`)).rows[0].id
     await expect(
       c.query(`UPDATE companies SET parent_company_id=$1 WHERE id=$1`, [id])
     ).rejects.toThrow(/companies_no_self_parent/)
-  })
+  }, 30_000)
 
   it('feature_flags.company_id akhirnya punya FK (yatim sejak migration 077)', async () => {
     // 'feature_flags'::regclass di-resolve lewat search_path koneksi ini —
@@ -150,7 +150,7 @@ describe('T2 — struktur skema inti', () => {
          AND conrelid = 'feature_flags'::regclass`
     )
     expect(r.rowCount).toBe(1)
-  })
+  }, 30_000)
 
   it('document_number_series unik per (company, jenis, periode)', async () => {
     const cid = (await c.query(`SELECT id FROM companies LIMIT 1`)).rows[0].id
@@ -160,7 +160,7 @@ describe('T2 — struktur skema inti', () => {
       c.query(`INSERT INTO document_number_series (company_id, doc_type, period) VALUES ($1,'invoice','2026')`, [cid])
     ).rejects.toThrow(/dns_unique/)
     await c.query(`DELETE FROM document_number_series WHERE company_id=$1`, [cid])
-  })
+  }, 30_000)
 
   it('last_number tak boleh negatif (counter monoton naik)', async () => {
     const cid = (await c.query(`SELECT id FROM companies LIMIT 1`)).rows[0].id
@@ -168,7 +168,7 @@ describe('T2 — struktur skema inti', () => {
       c.query(`INSERT INTO document_number_series (company_id, doc_type, period, last_number)
                VALUES ($1,'po','-',-1)`, [cid])
     ).rejects.toThrow(/last_number/)
-  })
+  }, 30_000)
 })
 
 describe('T2 — seed tenant pertama (dibaca, bukan dihardcode)', () => {
@@ -180,7 +180,7 @@ describe('T2 — seed tenant pertama (dibaca, bukan dihardcode)', () => {
     expect(r.rows[0].invoice_prefix).toBe('INV-UJI')
     // Penjaga guardrail "jangan hardcode Puraloka Persada di logic":
     expect(r.rows[0].name).not.toMatch(/puraloka/i)
-  })
+  }, 30_000)
 
   it('SEMUA user existing jadi anggota, dengan peran yang DIPERTAHANKAN', async () => {
     const r = await c.query(
@@ -194,7 +194,7 @@ describe('T2 — seed tenant pertama (dibaca, bukan dihardcode)', () => {
       `SELECT count(*)::int n FROM company_members cm
        JOIN users u ON u.id=cm.user_id WHERE cm.role_id IS DISTINCT FROM u.role_id`)
     expect(beda.rows[0].n).toBe(0)
-  })
+  }, 30_000)
 
   it('tepat satu company default per user', async () => {
     const r = await c.query(
@@ -202,7 +202,7 @@ describe('T2 — seed tenant pertama (dibaca, bukan dihardcode)', () => {
          SELECT user_id FROM company_members WHERE is_default
          GROUP BY user_id HAVING count(*) > 1) x`)
     expect(r.rows[0].n).toBe(0)
-  })
+  }, 30_000)
 
   it('idempoten — re-run migrasi TIDAK melahirkan tenant kedua', async () => {
     await applyMigrasi126(c)
@@ -210,19 +210,19 @@ describe('T2 — seed tenant pertama (dibaca, bukan dihardcode)', () => {
     expect(r.rows[0].n).toBe(1)
     const m = await c.query(`SELECT count(*)::int n FROM company_members`)
     expect(m.rows[0].n).toBe(3)
-  })
+  }, 30_000)
 })
 
 describe('T2 — guard penghapusan tenant', () => {
   it('DELETE company ditolak dengan pesan yang mengarahkan ke nonaktifkan', async () => {
     await expect(c.query(`DELETE FROM companies`)).rejects.toThrow(/tidak boleh dihapus/)
-  })
+  }, 30_000)
 
   it('nonaktifkan (is_active=false) tetap boleh — itu jalur yang benar', async () => {
     await c.query(`UPDATE companies SET is_active=false`)
     expect((await c.query(`SELECT is_active FROM companies`)).rows[0].is_active).toBe(false)
     await c.query(`UPDATE companies SET is_active=true`)
-  })
+  }, 30_000)
 })
 
 describe('T2 — P1: company pertama diperlakukan tenant biasa (ADR-011 §9.5)', () => {
@@ -237,7 +237,7 @@ describe('T2 — P1: company pertama diperlakukan tenant biasa (ADR-011 §9.5)',
     const r = await c.query(`SELECT auth_company_id() AS cid`)
     await c.query(`ROLLBACK`)
     expect(r.rows[0].cid).toBeNull()
-  })
+  }, 30_000)
 
   it('auth_company_id() memakai default keanggotaan saat user dikenali', async () => {
     const u = (await c.query(
@@ -248,7 +248,7 @@ describe('T2 — P1: company pertama diperlakukan tenant biasa (ADR-011 §9.5)',
     const r = await c.query(`SELECT auth_company_id() AS cid`)
     await c.query(`ROLLBACK`)
     expect(r.rows[0].cid).toBe(expected)
-  })
+  }, 30_000)
 
   it('app.company_id eksplisit MENANG atas default keanggotaan (company switcher)', async () => {
     const kedua = (await c.query(
@@ -265,7 +265,7 @@ describe('T2 — P1: company pertama diperlakukan tenant biasa (ADR-011 §9.5)',
     await c.query(`ALTER TABLE companies DISABLE TRIGGER trg_company_no_casual_delete`)
     await c.query(`DELETE FROM companies WHERE id=$1`, [kedua])
     await c.query(`ALTER TABLE companies ENABLE TRIGGER trg_company_no_casual_delete`)
-  })
+  }, 30_000)
 
   it('is_member_of() jujur: false untuk company yang bukan miliknya', async () => {
     const u = (await c.query(
@@ -283,7 +283,7 @@ describe('T2 — P1: company pertama diperlakukan tenant biasa (ADR-011 §9.5)',
     await c.query(`ALTER TABLE companies DISABLE TRIGGER trg_company_no_casual_delete`)
     await c.query(`DELETE FROM companies WHERE id=$1`, [asing])
     await c.query(`ALTER TABLE companies ENABLE TRIGGER trg_company_no_casual_delete`)
-  })
+  }, 30_000)
 })
 
 describe('T2 — dua tenant berdampingan (bibit fixture P2)', () => {
@@ -316,7 +316,7 @@ describe('T2 — dua tenant berdampingan (bibit fixture P2)', () => {
     await c.query(`ALTER TABLE companies DISABLE TRIGGER trg_company_no_casual_delete`)
     await c.query(`DELETE FROM companies WHERE id=$1`, [b])
     await c.query(`ALTER TABLE companies ENABLE TRIGGER trg_company_no_casual_delete`)
-  })
+  }, 30_000)
 
   it('keanggotaan ganda di company yang SAMA ditolak', async () => {
     const cid = (await c.query(`SELECT id FROM companies LIMIT 1`)).rows[0].id
@@ -326,7 +326,7 @@ describe('T2 — dua tenant berdampingan (bibit fixture P2)', () => {
       c.query(`INSERT INTO company_members (company_id,user_id,role_id) VALUES ($1,$2,$3)`,
         [cid, u, rid])
     ).rejects.toThrow(/company_members_unique/)
-  })
+  }, 30_000)
 
   it('menghapus company mem-CASCADE keanggotaannya, tanpa menyentuh users', async () => {
     const b = (await c.query(
@@ -344,5 +344,5 @@ describe('T2 — dua tenant berdampingan (bibit fixture P2)', () => {
       `SELECT count(*)::int n FROM company_members WHERE company_id=$1`, [b])).rows[0].n).toBe(0)
     // user TIDAK ikut terhapus — identitas hidup lintas tenant (kategori D).
     expect((await c.query(`SELECT count(*)::int n FROM users`)).rows[0].n).toBe(sebelum)
-  })
+  }, 30_000)
 })

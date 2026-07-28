@@ -437,6 +437,16 @@ aturannya ditulis di sini, bukan ditemukan ulang tiap tahap:
    menunggu ~9 menit lalu membaca log.
 4. **"Hijau di lokal" bukan bukti.** Bukti adalah run summary CI. Konsisten dengan
    AUTOPILOT §6 — dan T2 baru saja membuktikan kenapa aturan itu ada.
+5. **Setiap `it()` yang menjalankan DDL WAJIB punya timeout eksplisit** (pola
+   repo: `}, 30_000)` / `60_000`). Default vitest 5 detik cukup di lokal
+   (koneksi hangat, DB tak diperebutkan) tapi **selalu kurang di CI** yang
+   berbagi database. T3 gagal persis karena ini: 10 test mati di `5002ms`,
+   semuanya timeout — nol kegagalan assertion. Gejalanya menipu karena terlihat
+   seperti "test-nya salah", padahal migrasinya benar.
+6. **Schema test WAJIB meniru trigger/guard yang ada di dev**, bukan hanya tabel.
+   T3 lolos uji rollback lalu gagal DUA KALI di dev karena schema test tidak
+   punya `audit_logs` append-only (073) dan guard komponen assembly (107).
+   Uji yang tidak menirukan pengaman produksi = uji yang lulusnya kebetulan.
 
 ## 10. Risiko + mitigasi
 

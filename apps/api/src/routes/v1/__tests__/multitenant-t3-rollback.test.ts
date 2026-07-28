@@ -204,14 +204,14 @@ afterAll(async () => {
 describe('T3 — migrasi 127 berjalan benar', () => {
   it('pasca-126: hanya feature_flags yang punya company_id (kolom yatim 077)', () => {
     expect(sebelum.kolom).toEqual(['feature_flags'])
-  })
+  }, 60_000)
 
   it('127 berjalan penuh tanpa error', async () => {
     await c.query(sql127())
     const { kolom } = await cap(c)
     expect(kolom.sort()).toEqual([...SEMUA].sort())
     expect(kolom).toHaveLength(32)
-  })
+  }, 60_000)
 
   it('20 tabel benar-benar NOT NULL, 12 tabel AB tetap nullable BY DESIGN', async () => {
     const r = await c.query(
@@ -220,14 +220,14 @@ describe('T3 — migrasi 127 berjalan benar', () => {
     const map = Object.fromEntries(r.rows.map((x) => [x.table_name, x.is_nullable]))
     for (const t of NOT_NULL) expect(`${t}=${map[t]}`).toBe(`${t}=NO`)
     for (const t of NULLABLE) expect(`${t}=${map[t]}`).toBe(`${t}=YES`)
-  })
+  }, 60_000)
 
   it('backfill: tabel B terisi penuh, nol NULL tersisa', async () => {
     for (const t of NOT_NULL) {
       const n = (await c.query(`SELECT count(*)::int n FROM ${t} WHERE company_id IS NULL`)).rows[0].n
       expect(`${t}:${n}`).toBe(`${t}:0`)
     }
-  })
+  }, 60_000)
 
   it('KATALOG NASIONAL tetap milik bersama — nol baris ter-klaim tenant', async () => {
     // Penjaga nilai jual produk: 3 assembly national HARUS tetap NULL.
@@ -237,26 +237,26 @@ describe('T3 — migrasi 127 berjalan benar', () => {
     const c2 = (await c.query(
       `SELECT count(*)::int n FROM assemblies WHERE source='company' AND company_id IS NOT NULL`)).rows[0].n
     expect(c2).toBe(2)
-  })
+  }, 60_000)
 
   it('komponen mengikuti induknya — nol yang beda tenant dari analisanya', async () => {
     const n = (await c.query(
       `SELECT count(*)::int n FROM assembly_components ac JOIN assemblies a ON a.id=ac.assembly_id
        WHERE ac.company_id IS DISTINCT FROM a.company_id`)).rows[0].n
     expect(n).toBe(0)
-  })
+  }, 60_000)
 
   it('CHECK menolak upaya meng-klaim katalog nasional lewat UPDATE biasa', async () => {
     const cid = (await c.query(`SELECT id FROM companies`)).rows[0].id
     await expect(
       c.query(`UPDATE assemblies SET company_id=$1 WHERE source='national'`, [cid])
     ).rejects.toThrow(/assemblies_source_company_konsisten/)
-  })
+  }, 60_000)
 
   it('JUMLAH BARIS tiap tabel tidak berubah — backfill hanya mengisi kolom', async () => {
     const { baris } = await cap(c)
     expect(baris).toEqual(sebelum.baris)
-  })
+  }, 60_000)
 
   it('GERBANG CECEP tetap berdiri: ubah koefisien pd assembly aktif TETAP DITOLAK', async () => {
     // Ini bagian terpenting dari pelonggaran guard 107 — membuktikan yang
@@ -264,13 +264,13 @@ describe('T3 — migrasi 127 berjalan benar', () => {
     await expect(
       c.query(`UPDATE assembly_components SET coefficient = 99 WHERE coefficient = 1.5`)
     ).rejects.toThrow(/berstatus draft/)
-  })
+  }, 60_000)
 
   it('gerbang juga menolak ganti resource_id pd assembly aktif', async () => {
     await expect(
       c.query(`UPDATE assembly_components SET resource_id = gen_random_uuid()`)
     ).rejects.toThrow(/berstatus draft/)
-  })
+  }, 60_000)
 
   it('gerbang menolak UPDATE campuran (company_id + koefisien sekaligus)', async () => {
     // Celah paling halus: menyelundupkan perubahan isi dgn membonceng company_id.
@@ -278,54 +278,54 @@ describe('T3 — migrasi 127 berjalan benar', () => {
     await expect(
       c.query(`UPDATE assembly_components SET company_id=$1, coefficient=77`, [cid])
     ).rejects.toThrow(/berstatus draft/)
-  })
+  }, 60_000)
 
   it('SEGEL audit_logs terpasang KEMBALI setelah backfill (kegagalan paling senyap)', async () => {
     const t = await c.query(
       `SELECT tgenabled FROM pg_trigger WHERE tgrelid='audit_logs'::regclass
          AND tgname='trg_audit_logs_no_update'`)
     expect(t.rows[0]?.tgenabled).toBe('O')   // 'O' = aktif, 'D' = mati
-  })
+  }, 60_000)
 
   it('audit_logs KEMBALI menolak UPDATE biasa — segel benar-benar berfungsi lagi', async () => {
     // Bukan cuma "trigger tercatat aktif", tapi benar-benar memblokir.
     await expect(
       c.query(`UPDATE audit_logs SET label='diubah'`)
     ).rejects.toThrow(/append-only/)
-  })
+  }, 60_000)
 
   it('audit_logs terisi penuh — 1.555 baris dev setara, nol NULL', async () => {
     const n = (await c.query(`SELECT count(*)::int n FROM audit_logs WHERE company_id IS NULL`)).rows[0].n
     expect(n).toBe(0)
-  })
+  }, 60_000)
 
   it('project_company_id() hidup dan mengembalikan tenant proyek', async () => {
     const p = (await c.query(`SELECT id, company_id FROM projects LIMIT 1`)).rows[0]
     const r = await c.query(`SELECT project_company_id($1) AS v`, [p.id])
     expect(r.rows[0].v).toBe(p.company_id)
-  })
+  }, 60_000)
 
   it('idempoten — 127 re-run = no-op, bukan error', async () => {
     await c.query(sql127())
     const { baris } = await cap(c)
     expect(baris).toEqual(sebelum.baris)
-  })
+  }, 60_000)
 })
 
 describe('T3 — ROLLBACK mengembalikan keadaan persis pasca-126', () => {
   it('rollback berjalan tanpa error', async () => {
     await rollback127(c)
-  })
+  }, 60_000)
 
   it('skema kembali persis: hanya feature_flags yang punya company_id', async () => {
     const { kolom } = await cap(c)
     expect(kolom).toEqual(sebelum.kolom)
-  })
+  }, 60_000)
 
   it('constraint bikinan 127 hilang seluruhnya', async () => {
     const { constraints } = await cap(c)
     expect(constraints).toEqual(sebelum.constraints)
-  })
+  }, 60_000)
 
   it('DATA EXISTING UTUH — nol baris hilang atau berubah', async () => {
     const { baris } = await cap(c)
@@ -335,14 +335,14 @@ describe('T3 — ROLLBACK mengembalikan keadaan persis pasca-126', () => {
     expect(v).toBe(3500000)
     const a = (await c.query(`SELECT count(*)::int n FROM assemblies WHERE source='national'`)).rows[0].n
     expect(a).toBe(3)
-  })
+  }, 60_000)
 
   it('project_company_id() ikut terbuang (tak menyisakan fungsi yatim)', async () => {
     const n = (await c.query(
       `SELECT count(*)::int n FROM pg_proc p JOIN pg_namespace ns ON ns.oid=p.pronamespace
        WHERE ns.nspname = current_schema() AND p.proname='project_company_id'`)).rows[0].n
     expect(n).toBe(0)
-  })
+  }, 60_000)
 
   it('127 bisa dijalankan LAGI setelah rollback (rollback benar-benar bersih)', async () => {
     await c.query(sql127())
@@ -350,7 +350,7 @@ describe('T3 — ROLLBACK mengembalikan keadaan persis pasca-126', () => {
     expect(kolom).toHaveLength(32)
     const nulls = (await c.query(`SELECT count(*)::int n FROM projects WHERE company_id IS NULL`)).rows[0].n
     expect(nulls).toBe(0)
-  })
+  }, 60_000)
 })
 
 describe('T3 — fail-loud saat tenant lebih dari satu', () => {
@@ -363,5 +363,5 @@ describe('T3 — fail-loud saat tenant lebih dari satu', () => {
     await c.query(`ALTER TABLE companies DISABLE TRIGGER trg_company_no_casual_delete`)
     await c.query(`DELETE FROM companies WHERE code='tenant-kedua'`)
     await c.query(`ALTER TABLE companies ENABLE TRIGGER trg_company_no_casual_delete`)
-  })
+  }, 60_000)
 })
