@@ -1,4 +1,5 @@
 import { FastifyInstance } from 'fastify'
+import { proyekMilikTenant } from '../../utils/tenant-guard.js'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, hasPermission } from '../../plugins/auth.js'
 import { bubbleUpProgress } from '../../lib/rab-aggregation.js'
@@ -26,6 +27,10 @@ export default async function progressRoutes(app: FastifyInstance) {
     { preHandler: [authenticate], bodyLimit: PHOTO_BODY_LIMIT },
     async (request, reply) => {
       const { projectId } = request.params
+
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
       const { file_base64, file_name, progress_log_id, caption } = request.body ?? {}
       const user = request.currentUser!
       if (!file_base64) return reply.status(400).send({ error: 'File tidak ditemukan' })
@@ -132,6 +137,10 @@ export default async function progressRoutes(app: FastifyInstance) {
     preHandler: [authenticate]
   }, async (request, reply) => {
     const { projectId } = request.params as { projectId: string }
+
+    if (!(await proyekMilikTenant(request, projectId))) {
+      return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    }
     const query = request.query as { page?: string; limit?: string }
 
     const page = Math.max(1, parseInt(query.page ?? '1', 10))
@@ -170,6 +179,10 @@ export default async function progressRoutes(app: FastifyInstance) {
     preHandler: [authenticate]
   }, async (request, reply) => {
     const { projectId } = request.params as { projectId: string }
+
+    if (!(await proyekMilikTenant(request, projectId))) {
+      return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    }
     const body = request.body as {
       mode?: 'daily' | 'detail'
       pct_overall?: number
@@ -363,6 +376,10 @@ export default async function progressRoutes(app: FastifyInstance) {
     preHandler: [authenticate]
   }, async (request, reply) => {
     const { projectId, logId } = request.params as { projectId: string; logId: string }
+
+    if (!(await proyekMilikTenant(request, projectId))) {
+      return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    }
     const user = request.currentUser!
 
     const { data: log, error: fetchError } = await supabase
@@ -401,6 +418,10 @@ export default async function progressRoutes(app: FastifyInstance) {
     preHandler: [authenticate]
   }, async (request, reply) => {
     const { projectId } = request.params as { projectId: string }
+
+    if (!(await proyekMilikTenant(request, projectId))) {
+      return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    }
     const { category } = request.query as { category?: string }
 
     const VALID_CATEGORIES = ['progress', 'defect', 'serah_terima', 'other']
@@ -431,6 +452,10 @@ export default async function progressRoutes(app: FastifyInstance) {
     preHandler: [authenticate]
   }, async (request, reply) => {
     const { projectId, photoId } = request.params as { projectId: string; photoId: string }
+
+    if (!(await proyekMilikTenant(request, projectId))) {
+      return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    }
 
     if (!(await hasPermission(request, 'documents:manage'))) {
       return reply.status(403).send({ error: 'Akses ditolak. Butuh permission: documents:manage' })

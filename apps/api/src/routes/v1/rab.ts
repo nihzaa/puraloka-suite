@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import { proyekMilikTenant } from '../../utils/tenant-guard.js'
 import * as XLSX from 'xlsx'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
@@ -416,6 +417,10 @@ export default async function rabRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { projectId } = request.params
 
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
+
       const { data, error } = await supabase
         .from('rab_items')
         .select('*')
@@ -445,6 +450,10 @@ export default async function rabRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { projectId } = request.params
 
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
+
       const { data, error } = await supabase
         .from('rab_items')
         .select('id, category_code, name, total_price, weight_pct, level, sort_order')
@@ -469,6 +478,10 @@ export default async function rabRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { projectId } = request.params
 
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
+
       const { data, error } = await supabase
         .from('rab_items')
         .select('id, category_code, name, unit, weight_pct, progress_pct, parent_id, sort_order')
@@ -492,6 +505,10 @@ export default async function rabRoutes(app: FastifyInstance) {
     { preHandler: [authenticate] },
     async (request, reply) => {
       const { projectId } = request.params
+
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
 
       const { data, error } = await supabase
         .from('rab_items')
@@ -580,6 +597,10 @@ export default async function rabRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('projects:edit')] },
     async (request, reply) => {
       const { projectId } = request.params
+
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
 
       // Ambil file dari multipart. Cap 10MB — RAB Excel realistis < beberapa MB;
       // 100MB lama = anomali (cap lain 2/5MB) + risiko DoS/memori (AKTA 1 census B2).
@@ -731,6 +752,10 @@ export default async function rabRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('projects:edit')] },
     async (request, reply) => {
       const { projectId, itemId } = request.params
+
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
       const { progress_pct, material_pct, upah_pct, alat_pct, other_pct } = request.body
 
       const updateFields: Record<string, unknown> = { updated_at: new Date().toISOString() }
@@ -835,6 +860,10 @@ export default async function rabRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('projects:edit')] },
     async (request, reply) => {
       const { projectId } = request.params
+
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
       const { items } = request.body
 
       if (!Array.isArray(items) || items.length === 0) {
@@ -888,6 +917,10 @@ export default async function rabRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('projects:edit')] },
     async (request, reply) => {
       const { projectId, itemId } = request.params
+
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
       const { planned_start, planned_end, dep_rules } = request.body
 
       const updateFields: Record<string, unknown> = { updated_at: new Date().toISOString() }
@@ -928,6 +961,10 @@ export default async function rabRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('projects:edit')] },
     async (request, reply) => {
       const { projectId } = request.params
+
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
 
       const { error } = await supabase
         .from('rab_items')

@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import { proyekMilikTenant } from '../../utils/tenant-guard.js'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { createNotifications } from '../../utils/notifications.js'
@@ -11,6 +12,10 @@ export default async function milestoneRoutes(app: FastifyInstance) {
     { preHandler: [authenticate] },
     async (request, reply) => {
       const { projectId } = request.params
+
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
 
       const { data, error } = await supabase
         .from('milestones')
@@ -54,6 +59,10 @@ export default async function milestoneRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('milestones:manage')] },
     async (request, reply) => {
       const { projectId } = request.params
+
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
       const { title, description, target_date, sort_order } = request.body
 
       if (!title?.trim()) {

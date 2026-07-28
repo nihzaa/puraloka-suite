@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import { proyekMilikTenant } from '../../utils/tenant-guard.js'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate } from '../../plugins/auth.js'
 import { normalCDF, calculateEVM } from '../../lib/evm-calculation.js'
@@ -19,6 +20,10 @@ export default async function kurvaSRoutes(app: FastifyInstance) {
     { preHandler: [authenticate] },
     async (request, reply) => {
       const { projectId } = request.params
+
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
 
       // ── Fetch semua data yang dibutuhkan paralel ─────────────────────────
       const [projRes, progressRes, milestoneRes, rabRes, scheduleRes, absorptionRes] = await Promise.all([
