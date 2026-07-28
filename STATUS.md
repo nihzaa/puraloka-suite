@@ -26,8 +26,39 @@ kali keadaan berubah; detail selalu di dokumen rujukan.
 
 **Program D — Multi-Tenant (AKTIF).** Tahap: T0 ADR ✅ → **T1 audit 94 tabel ✅** →
 **T2 skema inti ✅ (migration 126)** → **T3 `company_id` ✅ (migration 127)** →
-**T4 repository wrapper (XL) ← BERIKUTNYA** → T5 RLS dual-axis → T6 numbering → T7 exit criteria L2.
+**T4 repository wrapper — SEBAGIAN BESAR SELESAI** → T5 RLS dual-axis → T6 numbering → T7 exit criteria L2.
 CECEP langkah 7+ dilanjutkan **setelah T7**.
+
+**T4 (wrapper) — status jujur per 2026-07-29:**
+✅ **T4a fondasi**: `tenant-db.ts` (scope otomatis per kategori) · peta tenancy
+**di-generate dari skema** (97 tabel, cocok persis dgn audit T1) · `request.db`
+di auth plugin · **fix cache config per-company** (ADR sebut "bug yang AKAN
+terjadi") · **migration 128** jaring pengaman (isi `company_id` saat INSERT,
+TOLAK saat ambigu).
+✅ **T4b–T4d**: `search` · `finance` · `dashboard` · `cash` · `kasbons` ·
+`projects` · `reports` · `procurement` · `mandor`.
+✅ **T4f penegak**: ratchet (akses supabase mentah tak boleh naik — **diuji
+benar-benar menggigit**, bukan diasumsikan) + P3 (peta vs skema hidup; tabel
+baru tanpa kategori = build merah).
+🟡 **T4e sisa**: ~25 file kecil (`documents`, `progress`, `milestones`,
+`termin-payment`, `contracts`, dll) + tabel kategori C di file besar yang
+belum tersentuh. Ratchet menahan agar tak bertambah.
+
+**KEBOCORAN NYATA yang ditutup T4** (bukan hipotetis — ini query yang benar-benar
+berjalan tanpa saringan tenancy): KPI halaman depan · 11 query dashboard
+keuangan · AR aging · DP recoupment · arus kas · `invoices`+`milestones` di
+search · daftar MR/PO/GR/stok · laporan proyek & mandor. Plus **3 celah akses
+by-id**: `?project_id=` di arus kas & laporan, dan `MR/:id` + `PO/:id` yang
+mengambil baris hanya dengan `.eq('id', …)` — data perusahaan lain terbaca
+lengkap hanya dengan mengetahui id-nya.
+
+**Dua temuan dari pembacaan dokumen perencanaan** (ADR-011 §10):
+**R4** urutan di `plugins/auth.ts` load-bearing (resolusi company WAJIB sebelum
+`loadPermissionCache`) — sudah benar tapi tak terdokumentasi; komentar
+peringatan ditambahkan. · **R5 TERVERIFIKASI NYATA**: `auth_client_id()`
+(049:23-28) memetakan user→client **tanpa saringan company**; sejak `clients`
+jadi kategori B, satu orang yang jadi klien di 2 perusahaan bikin portal klien
+menampilkan proyek perusahaan yang salah. **Wajib diperbaiki di T5.**
 
 **T3 SELESAI (migration 127, applied ke dev 2026-07-29)** — 32 tabel dapat
 `company_id`, 23.030 baris. Verifikasi: jumlah baris **tidak berubah** · nol NULL
