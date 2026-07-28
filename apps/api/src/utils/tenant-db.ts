@@ -54,12 +54,19 @@ export class TenantDbError extends Error {
  * `.insert()` diperlakukan khusus: nilai company_id DIISIKAN, bukan difilter —
  * baris baru lahir langsung bertuan, tak perlu diingat pemanggil.
  */
+//
+// Tipe: `ScopedTable` MENIRU bentuk builder Supabase agar inferensi hasil query
+// tetap hidup di pemanggil. Kalau ia dibiarkan `any`, setiap `.reduce((s, x) =>
+// …)` di 38 file kehilangan tipe dan harus dianotasi tangan satu per satu —
+// biaya yang menular ke seluruh codebase hanya karena pembungkus ini.
+type BuilderSupabase = ReturnType<SupabaseClient['from']>
+
 export interface ScopedTable {
-  select(kolom?: string, opsi?: { count?: 'exact' | 'planned' | 'estimated'; head?: boolean }): any
-  insert(nilai: any, opsi?: any): any
-  update(nilai: any, opsi?: any): any
-  delete(opsi?: any): any
-  upsert(nilai: any, opsi?: any): any
+  select: BuilderSupabase['select']
+  insert: BuilderSupabase['insert']
+  update: BuilderSupabase['update']
+  delete: BuilderSupabase['delete']
+  upsert: BuilderSupabase['upsert']
 }
 
 /**

@@ -19,7 +19,7 @@ export default async function kasbonRoutes(app: FastifyInstance) {
     const lim = Math.min(Math.max(1, Number(limit) || 100), 200)
     const off = Math.max(0, Number(offset) || 0)
 
-    let q = supabase
+    let q = request.db!
       .from('kasbons')
       .select(`
         id, amount, fund_source, purpose, kasbon_date,
@@ -89,7 +89,7 @@ export default async function kasbonRoutes(app: FastifyInstance) {
 
     // Tujuan kasbon = master `kasbon_purposes` (config-first A4). Validasi terhadap
     // lookup AKTIF → tujuan baru yang ditambah dari UI langsung valid tanpa deploy.
-    const { data: purposeRow } = await supabase.from('kasbon_purposes')
+    const { data: purposeRow } = await request.db!.from('kasbon_purposes')
       .select('code').eq('code', body.purpose).eq('is_active', true).maybeSingle()
     if (!purposeRow) return reply.status(400).send({ error: 'purpose tidak valid' })
     const validSources  = ['owner_advance', 'client_fund']
@@ -173,7 +173,7 @@ export default async function kasbonRoutes(app: FastifyInstance) {
       insertData.cash_account_id = body.cash_account_id ?? null
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await request.db!
       .from('kasbons')
       .insert(insertData)
       .select(`
@@ -251,7 +251,7 @@ export default async function kasbonRoutes(app: FastifyInstance) {
     if (!coarse.ok) return reply.status(403).send({ error: 'Akses ditolak' })
 
     // Nilai kasbon → dasar syarat nominal rantai (mis. "di atas Rp X butuh level 2").
-    const { data: kasbonAmt } = await supabase.from('kasbons').select('amount').eq('id', id).maybeSingle()
+    const { data: kasbonAmt } = await request.db!.from('kasbons').select('amount').eq('id', id).maybeSingle()
     if (!kasbonAmt) return reply.status(404).send({ error: 'Kasbon tidak ditemukan' })
 
     const decision = await evaluateEntityApproval(request, {
@@ -292,7 +292,7 @@ export default async function kasbonRoutes(app: FastifyInstance) {
       }
 
       if (projectId) {
-        const { data: project } = await supabase.from('projects').select('pm_id').eq('id', projectId).single()
+        const { data: project } = await request.db!.from('projects').select('pm_id').eq('id', projectId).single()
         if (project?.pm_id !== user.id) return reply.status(403).send({ error: 'Akses ditolak' })
       }
     }
@@ -327,7 +327,7 @@ export default async function kasbonRoutes(app: FastifyInstance) {
     // yang melebihi batas % earned value untuk scope progress_pct. Fail-open saat OFF
     // → nol perubahan perilaku hari ini.
     if (status === 'approved') {
-      const { data: k } = await supabase.from('kasbons').select('amount').eq('id', id).single()
+      const { data: k } = await request.db!.from('kasbons').select('amount').eq('id', id).single()
       const limitCheck = await enforceKasbonLimit(id, Number(k?.amount) || 0)
       if (!limitCheck.allowed) {
         return reply.status(400).send({ error: limitCheck.reason })
@@ -377,7 +377,7 @@ export default async function kasbonRoutes(app: FastifyInstance) {
     // approve/reject ganda dan race condition dua approval bersamaan (filter
     // status ikut serta dalam WHERE clause tunggal di level DB, bukan
     // SELECT-lalu-UPDATE terpisah yang rawan race).
-    const { data, error } = await supabase
+    const { data, error } = await request.db!
       .from('kasbons')
       .update(updateData)
       .eq('id', id)
@@ -387,7 +387,7 @@ export default async function kasbonRoutes(app: FastifyInstance) {
 
     if (error) return reply.status(500).send({ error: error.message })
     if (!data) {
-      const { data: current } = await supabase.from('kasbons').select('status').eq('id', id).single()
+      const { data: current } = await request.db!.from('kasbons').select('status').eq('id', id).single()
       if (!current) return reply.status(404).send({ error: 'Kasbon tidak ditemukan' })
       return reply.status(409).send({ error: `Kasbon sudah berstatus '${current.status}', tidak bisa diproses ulang` })
     }

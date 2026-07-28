@@ -19,7 +19,7 @@ export default async function cashRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const { type, project_id, include_inactive } = request.query as Record<string, string>
 
-    let q = supabase
+    let q = request.db!
       .from('cash_accounts')
       .select(`
         id, name, type, balance, currency, notes, is_active, created_at,
@@ -48,7 +48,7 @@ export default async function cashRoutes(app: FastifyInstance) {
     }
 
     const [accountRes, transfersRes, expensesRes] = await Promise.all([
-      supabase
+      request.db!
         .from('cash_accounts')
         .select(`
           id, name, type, balance, currency, notes, is_active, created_at,
@@ -58,7 +58,7 @@ export default async function cashRoutes(app: FastifyInstance) {
         .eq('id', id)
         .single(),
 
-      supabase
+      request.db!
         .from('cash_transfers')
         .select(`
           id, amount, transfer_date, status, ref_number, notes, proof_url, created_at,
@@ -90,7 +90,7 @@ export default async function cashRoutes(app: FastifyInstance) {
     if (currentUser.role === 'pm') {
       const projectId = acct.projects?.id ?? null
       if (projectId) {
-        const { data: proj } = await supabase.from('projects').select('pm_id').eq('id', projectId).single()
+        const { data: proj } = await request.db!.from('projects').select('pm_id').eq('id', projectId).single()
         if (!proj || proj.pm_id !== currentUser.id) return reply.status(403).send({ error: 'Akses ditolak' })
       }
     }
@@ -122,7 +122,7 @@ export default async function cashRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'Kas kecil membutuhkan owner_id dan project_id' })
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await request.db!
       .from('cash_accounts')
       .insert({
         name: body.name,
@@ -156,7 +156,7 @@ export default async function cashRoutes(app: FastifyInstance) {
     if (body.notes !== undefined) updates.notes = body.notes
     if (body.is_active !== undefined) updates.is_active = body.is_active
 
-    const { data, error } = await supabase
+    const { data, error } = await request.db!
       .from('cash_accounts')
       .update(updates)
       .eq('id', id)
@@ -179,7 +179,7 @@ export default async function cashRoutes(app: FastifyInstance) {
     const lim = Math.min(Math.max(1, Number(limit) || 50), 200)
     const off = Math.max(0, Number(offset) || 0)
 
-    let q = supabase
+    let q = request.db!
       .from('cash_transfers')
       .select(`
         id, amount, transfer_date, status, ref_number, notes, proof_url,
@@ -226,7 +226,7 @@ export default async function cashRoutes(app: FastifyInstance) {
     // Cek saldo akun asal (jika langsung confirmed)
     const targetStatus = body.status ?? 'pending'
     if (targetStatus === 'confirmed') {
-      const { data: fromAcc } = await supabase
+      const { data: fromAcc } = await request.db!
         .from('cash_accounts')
         .select('balance, name')
         .eq('id', body.from_account_id)
@@ -239,7 +239,7 @@ export default async function cashRoutes(app: FastifyInstance) {
       }
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await request.db!
       .from('cash_transfers')
       .insert({
         from_account_id: body.from_account_id,
@@ -270,7 +270,7 @@ export default async function cashRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const { id } = request.params
 
-    const { data: transfer } = await supabase
+    const { data: transfer } = await request.db!
       .from('cash_transfers')
       .select('id, status, amount, from_account_id')
       .eq('id', id)
@@ -281,7 +281,7 @@ export default async function cashRoutes(app: FastifyInstance) {
     if (transfer.status === 'cancelled') return reply.status(400).send({ error: 'Transfer sudah dibatalkan' })
 
     // Cek saldo
-    const { data: fromAcc } = await supabase
+    const { data: fromAcc } = await request.db!
       .from('cash_accounts')
       .select('balance, name')
       .eq('id', transfer.from_account_id)
@@ -293,7 +293,7 @@ export default async function cashRoutes(app: FastifyInstance) {
       })
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await request.db!
       .from('cash_transfers')
       .update({
         status: 'confirmed',
@@ -315,7 +315,7 @@ export default async function cashRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const { id } = request.params
 
-    const { data: transfer } = await supabase
+    const { data: transfer } = await request.db!
       .from('cash_transfers')
       .select('id, status')
       .eq('id', id)
@@ -324,7 +324,7 @@ export default async function cashRoutes(app: FastifyInstance) {
     if (!transfer) return reply.status(404).send({ error: 'Transfer tidak ditemukan' })
     if (transfer.status === 'cancelled') return reply.status(400).send({ error: 'Transfer sudah dibatalkan' })
 
-    const { data, error } = await supabase
+    const { data, error } = await request.db!
       .from('cash_transfers')
       .update({ status: 'cancelled', updated_at: new Date().toISOString() })
       .eq('id', id)
@@ -443,7 +443,7 @@ export default async function cashRoutes(app: FastifyInstance) {
 
     // Cek saldo kas kecil jika dari petty cash
     if (source === 'petty_cash' && petty_cash_id) {
-      const { data: acc } = await supabase
+      const { data: acc } = await request.db!
         .from('cash_accounts')
         .select('balance, name')
         .eq('id', petty_cash_id)
@@ -458,7 +458,7 @@ export default async function cashRoutes(app: FastifyInstance) {
 
     // Cek saldo kas utama jika dari main_cash (hanya saat admin/pm yg langsung approve)
     if (source === 'main_cash' && main_cash_id) {
-      const { data: acc } = await supabase
+      const { data: acc } = await request.db!
         .from('cash_accounts')
         .select('balance, name, type')
         .eq('id', main_cash_id)
@@ -569,7 +569,7 @@ export default async function cashRoutes(app: FastifyInstance) {
 
     // Cek saldo kalau approve dari petty_cash
     if (status === 'approved' && expense.expense_source === 'petty_cash' && expense.petty_cash_id) {
-      const { data: acc } = await supabase
+      const { data: acc } = await request.db!
         .from('cash_accounts')
         .select('balance, name')
         .eq('id', expense.petty_cash_id)
@@ -584,7 +584,7 @@ export default async function cashRoutes(app: FastifyInstance) {
 
     // Cek saldo kalau approve dari main_cash
     if (status === 'approved' && expense.expense_source === 'main_cash' && expense.main_cash_id) {
-      const { data: acc } = await supabase
+      const { data: acc } = await request.db!
         .from('cash_accounts')
         .select('balance, name')
         .eq('id', expense.main_cash_id)
@@ -670,14 +670,16 @@ export default async function cashRoutes(app: FastifyInstance) {
   // GET /api/v1/cash/summary
   app.get('/api/v1/cash/summary', {
     preHandler: [authenticate]
-  }, async (_request, reply) => {
+  }, async (request, reply) => {
+    // T4c: project_expenses kategori C — disaring lewat daftar project tenant.
+    const idProyek = await request.db!.projectIds()
     const [accountsRes, pendingTransfersRes, pendingExpensesRes, expensesThisMonthRes] = await Promise.all([
-      supabase
+      request.db!
         .from('cash_accounts')
         .select('id, type, balance')
         .eq('is_active', true),
 
-      supabase
+      request.db!
         .from('cash_transfers')
         .select('id, amount')
         .eq('status', 'pending'),
@@ -685,11 +687,13 @@ export default async function cashRoutes(app: FastifyInstance) {
       supabase
         .from('project_expenses')
         .select('id, total_amount')
+        .in('project_id', idProyek)
         .eq('status', 'submitted'),
 
       supabase
         .from('project_expenses')
         .select('total_amount')
+        .in('project_id', idProyek)
         .eq('status', 'approved')
         .gte('expense_date', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]),
     ])
@@ -739,7 +743,7 @@ export default async function cashRoutes(app: FastifyInstance) {
       }
 
       // Belum ada — clone dari template global ke project_expense_categories
-      const { data: templates } = await supabase
+      const { data: templates } = await request.db!
         .from('expense_category_templates')
         .select('id, name, type, parent_id, sort_order')
         .eq('is_active', true)
@@ -798,7 +802,7 @@ export default async function cashRoutes(app: FastifyInstance) {
     }
 
     // Tidak ada project_id — return template global (untuk dropdown tanpa project)
-    const { data, error } = await supabase
+    const { data, error } = await request.db!
       .from('expense_category_templates')
       .select('id, name, type, parent_id, sort_order')
       .eq('is_active', true)

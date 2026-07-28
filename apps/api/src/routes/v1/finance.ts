@@ -102,18 +102,9 @@ export default async function financeRoutes(app: FastifyInstance) {
         .gte('settled_at', dateFromTs).lte('settled_at', dateToTs),
     ])
 
-    // Tipe eksplisit: wrapper mengembalikan hasil bertipe longgar (bentuk
-    // builder Supabase tak bisa dipertahankan lewat pembungkus tipis), jadi
-    // bentuk baris dinyatakan di sini — di titik pemakaian, bukan dengan
-    // melonggarkan tipe wrapper untuk seluruh codebase.
-    type BarisInvoice = { id: string; total_amount: number; amount_paid: number
-      amount_due: number; status: string; due_date: string }
-    type BarisKasbon = { id?: string; amount: number }
-    type BarisKas = { id: string; name: string; type: string; balance: number }
-
-    const invoices      = (invoicesRes.data ?? []) as BarisInvoice[]
-    const kasbonPending = (kasbonPendingRes.data ?? []) as BarisKasbon[]
-    const cashAccounts  = (cashAccountsRes.data ?? []) as BarisKas[]
+    const invoices      = invoicesRes.data ?? []
+    const kasbonPending = kasbonPendingRes.data ?? []
+    const cashAccounts  = cashAccountsRes.data ?? []
 
     // AR / Invoice aggregation
     const totalInvoiced    = invoices.reduce((s, i) => s + Number(i.total_amount), 0)
@@ -158,10 +149,8 @@ export default async function financeRoutes(app: FastifyInstance) {
     const totalKeluar   = laborCost + nonLaborCost
 
     // Advance beredar: kasbon mandor yang masih approved (belum settled)
-    const advanceBeredar     = ((kasbonAllActiveRes.data ?? []) as BarisKasbon[])
-      .reduce((s, k) => s + Number(k.amount), 0)
-    const kasbonSettledPeriod = ((kasbonSettledRes.data ?? []) as BarisKasbon[])
-      .reduce((s, k) => s + Number(k.amount), 0)
+    const advanceBeredar     = (kasbonAllActiveRes.data ?? []).reduce((s, k) => s + Number(k.amount), 0)
+    const kasbonSettledPeriod = (kasbonSettledRes.data ?? []).reduce((s, k) => s + Number(k.amount), 0)
 
     // Upah pending approval (alert)
     const wagePendingTotal = (wageApprovedRes.data ?? []).reduce((s, w) => s + Number(w.net_amount), 0)
@@ -866,7 +855,7 @@ export default async function financeRoutes(app: FastifyInstance) {
     ])
 
     const payments = paymentsRes.data ?? []
-    const kasbons  = (kasbonsRes.data ?? []) as Array<{ amount: number; kasbon_date: string | null }>
+    const kasbons  = kasbonsRes.data ?? []
     const expenses = expensesRes.data ?? []
     const wages    = wagesRes.data ?? []
 
