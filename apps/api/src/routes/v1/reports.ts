@@ -1,6 +1,25 @@
 import type { FastifyInstance } from 'fastify'
 import PDFDocument from 'pdfkit'
 import { supabase } from '../../utils/supabase.js'
+import type { FastifyReply, FastifyRequest } from 'fastify'
+
+/**
+ * T4d — resolusi daftar proyek yang BOLEH dibaca request ini.
+ *
+ * Dipakai endpoint laporan LINTAS-PROYEK. Mengembalikan `null` bila filter
+ * `?project_id=` menunjuk proyek milik tenant lain — pemanggil membalas 404.
+ *
+ * Kenapa satu helper, bukan diulang per-endpoint: 3 endpoint × belasan query;
+ * satu kelupaan sudah cukup membocorkan laporan keuangan lintas perusahaan.
+ */
+async function proyekBolehDibaca(
+  request: FastifyRequest,
+  projectId: string | null
+): Promise<string[] | null> {
+  const milikTenant = await request.db!.projectIds()
+  if (!projectId) return milikTenant
+  return milikTenant.includes(projectId) ? [projectId] : null
+}
 import { authenticate, requirePermission, hasPermission } from '../../plugins/auth.js'
 
 function fmt(n: number) {
@@ -83,6 +102,16 @@ export default async function reportsRoutes(app: FastifyInstance) {
     // literal `admin||pm`. Sengaja BUKAN `finance:view` (dimiliki mandor/client utk
     // data ter-scope) supaya scope tetap admin+pm — grantable ke direktur via UI.
     const canViewFinance = await hasPermission(request, 'finance:view:all')
+
+    // T4d — GERBANG KEPEMILIKAN. Seluruh query di bawah adalah tabel kategori C
+    // yang disaring `project_id` dari QUERY STRING. Tanpa pemeriksaan ini, siapa
+    // pun bisa membaca laporan lengkap proyek perusahaan lain hanya dengan
+    // menebak/mengetahui id-nya — termasuk nilai kontrak, invoice, dan upah.
+    // Diperiksa SEKALI di sini, bukan diulang di 14 query (satu kelupaan =
+    // seluruh gerbang tak berguna).
+    if (!(await request.db!.projectIds()).includes(project_id)) {
+      return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    }
 
     const [
       projectRes,
@@ -243,6 +272,9 @@ export default async function reportsRoutes(app: FastifyInstance) {
     const projectId  = q.project_id || null
     const user       = request.currentUser!
 
+    const idProyek = await proyekBolehDibaca(request, projectId)
+    if (idProyek === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+
     let invoiceQ = supabase
       .from('invoices')
       .select(`
@@ -250,6 +282,7 @@ export default async function reportsRoutes(app: FastifyInstance) {
         status, issued_date, due_date, paid_date,
         projects!inner(id, name, contract_model)
       `)
+      .in('project_id', idProyek)
       .gte('issued_date', dateFrom).lte('issued_date', dateTo)
       .neq('status', 'cancelled')
 
@@ -260,6 +293,7 @@ export default async function reportsRoutes(app: FastifyInstance) {
         invoices!inner(id, invoice_number, project_id,
           projects!inner(id, name))
       `)
+      .in('invoices.project_id', idProyek)
       .gte('paid_at', dateFrom + 'T00:00:00').lte('paid_at', dateTo + 'T23:59:59')
 
     if (projectId) {
@@ -351,12 +385,14 @@ export default async function reportsRoutes(app: FastifyInstance) {
     `).in('status', ['approved', 'settled'])
       .gte('kasbon_date', dateFrom).lte('kasbon_date', dateTo)
 
-    if (projectId) {
-      payQ     = payQ.eq('invoices.project_id', projectId)
-      expQ     = expQ.eq('project_id', projectId)
-      wageQ    = wageQ.eq('assignment.project_id', projectId)
-      kasbonQ  = kasbonQ.eq('scope.assignment.project_id', projectId)
-    }
+    // T4d: SELALU di-scope. `projectId` hanya MEMPERSEMPIT lebih jauh — kalau
+    // tak diisi, cakupannya seluruh proyek TENANT, bukan seluruh proyek di DB.
+    const idProyekCf = await proyekBolehDibaca(request, projectId)
+    if (idProyekCf === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    payQ    = payQ.in('invoices.project_id', idProyekCf)
+    expQ    = expQ.in('project_id', idProyekCf)
+    wageQ   = wageQ.in('assignment.project_id', idProyekCf)
+    kasbonQ = kasbonQ.in('scope.assignment.project_id', idProyekCf)
 
     const [pR, eR, wR, kR] = await Promise.all([
       Promise.resolve(payQ),
@@ -433,7 +469,10 @@ export default async function reportsRoutes(app: FastifyInstance) {
         work_scope_items(id, item_name, unit, volume, volume_done)
       )
     `)
-    if (projectId) assignQ = assignQ.eq('project_id', projectId)
+    // T4d: SELALU di-scope; projectId hanya mempersempit.
+    const idProyekMd = await proyekBolehDibaca(request, projectId)
+    if (idProyekMd === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    assignQ = assignQ.in('project_id', idProyekMd)
 
     let wageQ = supabase.from('weekly_wage_reports').select(`
       id, net_amount, week_start, week_end, status, paid_at,
@@ -452,9 +491,7 @@ export default async function reportsRoutes(app: FastifyInstance) {
       )
     `).in('status', ['approved', 'settled'])
 
-    if (projectId) {
-      wageQ = wageQ.eq('assignment.project_id', projectId)
-    }
+    wageQ = wageQ.in('assignment.project_id', idProyekMd)
 
     const [aR, wR, kR] = await Promise.all([
       Promise.resolve(assignQ),
@@ -529,7 +566,10 @@ export default async function reportsRoutes(app: FastifyInstance) {
       .gte('expense_date', dateFrom).lte('expense_date', dateTo)
       .order('expense_date', { ascending: false })
 
-    if (projectId) expQ = expQ.eq('project_id', projectId)
+    // T4d: SELALU di-scope; projectId hanya mempersempit.
+    const idProyekEx = await proyekBolehDibaca(request, projectId)
+    if (idProyekEx === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    expQ = expQ.in('project_id', idProyekEx)
 
     // Fetch semua kategori untuk resolve nama parent di backend
     const catScope = projectId
