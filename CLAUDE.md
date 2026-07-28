@@ -1,5 +1,10 @@
 # Puraloka Suite — Context for Claude Code
 
+> **WAJIB baca `docs/PROTOKOL-SESI.md` di awal SETIAP sesi, sebelum tindakan apa
+> pun** — urutan boot, hierarki otoritas, tripwire, disiplin bukti, etika
+> multi-sesi, dan Definition of Done. Ini mendahului AUTOPILOT.md dalam urutan
+> baca (bukan mengganti isinya).
+>
 > **WAJIB baca AUTOPILOT.md di awal setiap sesi sebelum tindakan apa pun.**
 >
 > **Lalu baca `STATUS.md` (root)** — penunjuk satu-pintu: fase aktif, keputusan terbuka menunggu founder, dan peta "ke mana membaca apa". Dokumen induk prioritas + registry semua dokumen rencana (mana AKTIF/STALE): `docs/PETA-PRIORITAS-ERP.md`. Status per-menu ERP terverifikasi kode: `docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md`. ⚠️ Angka "migration 001-058" di bawah SUDAH BASI — migration nyata s.d. 116; dev nyata 90 tabel; jangan percaya klaim skala di file ini tanpa cek `STATUS.md`.

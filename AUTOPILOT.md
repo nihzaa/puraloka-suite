@@ -25,7 +25,14 @@
 **Aturan produk yang mengikat setiap keputusan:**
 
 1. **ADDITIVE-FIRST.** JANGAN pernah menghapus atau menonaktifkan fitur/menu yang sudah ada — semuanya relevan untuk operasi Puraloka Persada. Menambah fitur/menu baru yang lengkap **sangat didorong**. Kalau sebuah perubahan berpotensi menghilangkan kapabilitas existing, itu **Red-Line** (§5), bukan keputusan otonom.
-2. **UI bar: enterprise, tidak generik.** Extend design system "Architectural Precision" (Bricolage Grotesque display + Plus Jakarta Sans body, aksen navy `#003366`, light theme, kartu putih, border `#E5E7EB`, rasa Notion/Stripe/Linear). Setiap layar baru **wajib** membaca skill `frontend-design` dulu. Tidak boleh terlihat seperti default framework.
+2. **UI bar: enterprise, tidak generik.** Identitas visual = **Warm Clay** (claymorphism-lite, navy `--primary` tetap identitas finansial + amber/terracotta sebagai kehidupan visual, tactile shadow, dark mode kelas satu — lihat `docs/superpowers/specs/2026-07-15-warm-clay-redesign-design.md`; arsitektur interaksi di atasnya: `docs/superpowers/specs/2026-07-18-enterprise-architecture/05-design-system-and-ui-ux-architecture.md`, ringkasan cara pakai: `docs/PETA-PRIORITAS-ERP.md` §7). ⚠️ Rollout Warm Clay **sedang berjalan** di `feature/warm-clay-design-system` — cek status riil ke branch, jangan asumsikan sudah final.
+   **Setiap layar baru WAJIB baca skill secara berurutan** (bukan pilih salah satu):
+   - `frontend-design` — arah estetika & satu keputusan berani yang membuatnya tak generik.
+   - `ui-ux-pro-max` — keputusan konkret: palet, pasangan font, spacing, pola komponen (database 50+ style/161 palet/99 guideline UX; prioritas 1–10: accessibility & touch-target di atas dekorasi).
+   - `design-system` — kalau menyentuh/menambah token (primitive→semantic→component), bukan cuma memakai yang sudah ada.
+   - `ui-animation` — kalau ada interaksi bergerak (transisi, hover, loading state).
+   - `a11y-audit` — WAJIB untuk komponen baru (WCAG 2.1 AA) — software ini dipakai mandor lapangan low-tech, aksesibilitas bukan opsional.
+   Tidak boleh terlihat seperti default framework, dan tidak boleh re-skin ke bahasa visual referensi lain (Linear/Stripe/Attio di dokumen 05 hanya untuk pola interaksi).
 3. **Roadmap-aware.** Setiap pekerjaan diturunkan dari blueprint/kickoff yang sudah ada — **jangan mengarang scope dari nama fase**. Kalau scope tak jelas dari dokumen, itu temuan yang dilaporkan, bukan celah untuk berimprovisasi.
 4. **Konsistensi data operasi nyata.** Model bisnis mengikuti realita lapangan yang sudah didokumentasikan (kasbon kolektif vs per-individu, worker pindah scope dalam satu mandor, dll). Jangan menyederhanakan realita jadi asumsi sistem.
 
@@ -68,7 +75,7 @@ Kerjakan langsung, ambil keputusan sendiri, commit/merge saat CI hijau:
 - Keputusan arsitektur/teknis yang **reversible**
 - Migration **ADDITIVE** (tabel baru, kolom baru nullable/default, index) — selama tidak mengubah/menghapus objek existing
 - Kode fitur backend & frontend, refactor reversible
-- UI/UX (dengan skill `frontend-design`)
+- UI/UX (dengan skill desain berurutan sesuai §1.2 — `frontend-design` + `ui-ux-pro-max` + `a11y-audit` minimal)
 - Menulis & menjalankan test
 - Commit, PR, dan **merge non-destruktif** saat CI hijau
 - Update dokumen, STATUS, log
@@ -115,14 +122,25 @@ Daftar **tertutup**. Kalau sebuah aksi cocok salah satu, **jangan lakukan otonom
 ## 8. Skills & MCP
 
 - Pakai proaktif semua skill terpasang (termasuk superpowers) dan MCP relevan (Gmail, Google Calendar, Google Drive, Motion). Skill/MCP berlaku lintas project.
-- Skill/tool kurang → cari & install dari registry tepercaya TANPA minta izin (npm resmi, library skill resmi). Catat tiap install di INSTALL-LOG.md: nama, versi, sumber, alasan.
+- Skill/tool kurang → cari & install dari registry tepercaya TANPA minta izin (npm resmi, library skill resmi). Catat tiap install di `INSTALL-LOG.md`: nama, versi, sumber, alasan.
 - Guardrail install: jangan install dari sumber tak dikenal, atau yang menuntut secret baru / akses sistem luas, tanpa mem-flag dulu (Red-Line #5). Aksi MCP irreversible/eksternal → Red-Line #6.
+
+**Skill teknis relevan proyek ini (sudah terpasang, pakai proaktif — bukan cuma skill desain di §1.2):**
+- `postgres-pro` — EXPLAIN analysis, JSONB, VACUUM — relevan RLS dual-axis (Program D).
+- `db-migration-safety` — checklist sebelum ALTER/backfill — WAJIB untuk T3 ADR-011 (`company_id` backfill, Red-Line).
+- `security-audit-webapp` — OWASP checklist endpoint/form/query baru.
+- `performance-audit` — deteksi N+1/over-fetching — relevan `search.ts`/`reports.ts` (gelombang pertama kebocoran tenant per ADR-011 §6).
+- `react-best-practices` — pola performa React/Next.js (Vercel Engineering).
+- `webapp-testing` — Playwright: verifikasi UI nyata di browser sebelum klaim "selesai" (§9 sudah mewajibkan test browser untuk perubahan frontend; ini skill konkretnya).
+- `varlock` — proteksi secret/.env/API key. **Relevan langsung**: `STATUS.md` mencatat 4 password test bocor karena repo jadi public.
+- `github-actions` — debug status/log GitHub Actions — pakai saat CI stuck/gagal (lihat pola antrian `concurrency.group: ci-shared-ci-db`).
+- `fastify-typescript` — pola Fastify+TypeScript (route/plugin/schema/error-handling/security). ⚠️ **Skill ini mengasumsikan Prisma+Jest — proyek pakai Supabase client + Vitest** (lihat `INSTALL-LOG.md`). Pakai polanya, abaikan contoh kode Prisma/Jest, jangan sarankan migrasi ORM.
 
 ---
 
 ## 9. Definition of Done (tiap slice)
 
-Slice belum "done" sampai semua benar: test slice hijau + full suite hijau; typecheck/lint/build 0 error; STATUS.md + docs terkait diperbarui, nol teks basi; diff di-review CC sendiri; additive-first terjaga (nol fitur/menu existing hilang); UI sesuai bar (skill frontend-design dipakai untuk layar baru); tidak ada Red-Line yang dilewati diam-diam.
+Slice belum "done" sampai semua benar: test slice hijau + full suite hijau; typecheck/lint/build 0 error; STATUS.md + docs terkait diperbarui, nol teks basi; diff di-review CC sendiri; additive-first terjaga (nol fitur/menu existing hilang); UI sesuai bar (skill desain §1.2 dipakai untuk layar baru — bukan cuma frontend-design); tidak ada Red-Line yang dilewati diam-diam.
 
 **DoD tambahan untuk item config ember [A] (§12):** belum "done" sampai bisa **diubah dari halaman UI pengaturan** — tersimpan di DB saja **tidak cukup**. Live E2E wajib untuk apa pun yang menulis ke DB (pelajaran bug UUID: unit test ber-mock tak kena constraint DB).
 
