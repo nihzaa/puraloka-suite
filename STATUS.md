@@ -136,7 +136,9 @@ Phase 1 (Program A) ✅ · Phase 2 (Program B) ✅.
 | Log berjalan harian (per-migration/PR) | `docs/DEVELOPMENT_LOG.md` |
 | Peta prioritas + registry semua dokumen rencana (mana AKTIF/STALE) | `docs/PETA-PRIORITAS-ERP.md` ← **dokumen induk** |
 | Status per-menu ERP terverifikasi kode | `docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md` |
-| Keputusan multi-company + tripwire | `docs/KEPUTUSAN-MULTI-COMPANY.md` |
+| Strategi multi-tenant (AKTIF, ACCEPTED) | `.../Engineering-Constitution/adr/ADR-011-multi-tenant-strategy.md` |
+| Klasifikasi 94 tabel A/AB/B/C/D + 3 temuan T1 | `.../Engineering-Constitution/adr/ADR-011-T1-AUDIT-KLASIFIKASI-TABEL.md` |
+| Keputusan multi-company + tripwire (SUPERSEDED oleh ADR-011) | `docs/KEPUTUSAN-MULTI-COMPANY.md` |
 | Status Phase 1/2 + temuan RLS/storage | `docs/superpowers/specs/2026-07-18-enterprise-architecture/PHASE-{1,2}-STATUS.md` |
 | Urutan build CECEP (terkunci, 10 langkah) | `.../CECEP/MATERIAL-RAP-COMPANY-UI-DESIGN.md` + `.../CECEP/NEXT-EXEC-PREP.md` |
 | Peta penomoran Program A–F ↔ Phase 0–9 | `.../Master-Delivery-Blueprint/NUMBERING-GLOSSARY.md` (⚠️ "Phase 7" EA = multi-company; "Fase 7" ERP_MASTER_PLAN = GL — selalu sebut sumber) |
@@ -151,8 +153,16 @@ Phase 1 (Program A) ✅ · Phase 2 (Program B) ✅.
    apakah butuh level `tenants` di atas `companies` sekarang atau cukup nanti.
    Default sementara: cukup `companies` + `parent_company_id`. ADR-011 §3.
 
-**Mandat eksekusi (founder 2026-07-28):** T1 & T2 dikerjakan **otonom** (additive
-murni, nol ubah data). **Berhenti wajib lapor sebelum T3.**
+**C. (BARU, MEMBLOKIR T3) Ack tertulis Dokumen Audit Pra-Eksekusi.**
+   T1 & T2 SELESAI (PR #106). T3 menambah `company_id` ke **32 tabel** +
+   **backfill data** = Red-Line. Sesuai keputusan A, sebelum T3 saya siapkan
+   **Dokumen Audit Pra-Eksekusi** berisi: (1) diff SQL lengkap — bukan ringkasan,
+   (2) angka sebelum/sesudah per tabel hasil dry-run, (3) rencana rollback yang
+   sudah DIUJI, (4) daftar apa yang TIDAK diverifikasi. Founder membaca lalu
+   memberi ack tertulis di PR. **Tanpa ack itu T3 tidak dijalankan.**
+
+**Mandat eksekusi (founder 2026-07-28):** T1 & T2 otonom ✅ **SELESAI**.
+Berhenti di gerbang T3 sesuai rencana — menunggu keputusan C.
 
 0. **KEAMANAN (mendesak, repo public):** rotasi 4 password test yang sempat bocor di
    `gate-1a-preconditions-response.md` (sudah diredaksi; nilai asli tetap di riwayat
