@@ -1,17 +1,17 @@
 # STATUS — Puraloka Suite (penunjuk satu pintu)
 
-**Diperbarui:** 2026-07-27 · File ini adalah `STATUS.md` yang diwajibkan AUTOPILOT §2
+**Diperbarui:** 2026-07-28 · File ini adalah `STATUS.md` yang diwajibkan AUTOPILOT §2
 — penunjuk TIPIS, bukan duplikasi konten. Update tanggal + baris "Fase aktif" setiap
 kali keadaan berubah; detail selalu di dokumen rujukan.
 
 ## Fase aktif
 
-**Phase 3 / Program C (CECEP)** — migration 102–121, 71 test-file hijau (PR #86–98).
+**Phase 3 / Program C (CECEP)** — migration 102–123, 72 test-file hijau (PR #86–101).
 Keputusan founder 2026-07-26 (header `docs/ERP_MASTER_PLAN.md`): **CECEP Option 2 —
 tuntaskan CECEP sampai siap-pakai sebelum modul besar lain.**
 
 **Build order 10 langkah (`.../CECEP/MATERIAL-RAP-COMPANY-UI-DESIGN.md`) — status
-per-langkah, verified 2026-07-26/27:**
+per-langkah, verified 2026-07-26/28:**
 - ✅ **1** CI isolation tuntas (project CI terpisah; repo public + branch protection)
 - 🟡 **2** Config Lapis1/2 — PPN reuse (`tax.ppn_rate` existing); **BUK & rounding
   BELUM di-config**, masih wajib eksplisit per-request (C1, tanpa default diam-diam)
@@ -22,14 +22,19 @@ per-langkah, verified 2026-07-26/27:**
   workbook terdokumentasi, bukan bug pipeline). Idempotent — re-import file sama =
   no-op aman
 - ✅ **5** Endpoint hitung RAB end-to-end + golden-file (HSP 278300, dari data dev)
-- 🟡 **6 Material Take-off** — **D2 agregasi lintas item SELESAI** (PR #98,
-  `computeMaterialAggregation` pure+golden, `GET .../material-takeoff`, satu baris
-  per resource + drill-down provenance, tanpa tabel baru). **D3 (BBS besi per-Ø),
-  D4 (steel_profiles), D5-storage (`material_pack` dua-satuan tersimpan) — BELUM
-  DIMULAI**, butuh migrasi baru. **Titik-bocor #1 mulai tertutup, belum tuntas**
+- ✅ **6 Material Take-off SELESAI** — D2 agregasi lintas item (PR #98: satu baris
+  per resource + drill-down provenance) · D3 BBS besi per-Ø + D4 katalog profil baja
+  + D5 faktor kemasan (PR #100, migration 122/123: `rebar_takeoff`, `steel_profiles`
+  58 profil ter-seed dari DAFTAR BESI verbatim, `material_pack`). Konstanta besi
+  0,006165 diverifikasi = turunan fisika (ρ7850×π/4÷1e6) DAN cocok tabel baku SNI.
+  **Titik-bocor #1: sisi take-off tertutup; pagu (langkah 7) masih terbuka**
 - ❌ **7 RAP/Pagu** + sambung realisasi — **0 tabel, BELUM DIMULAI** (butuh 6 tuntas)
-- 🟡 **8** AHSP Company: struktur DB ada sejak 107/117; **endpoint create-assembly
-  hidup** (PR #96, `POST /cecep/assemblies`, `source='company'`, mid-estimasi)
+- 🟡 **8** AHSP Company: struktur DB ada sejak 107/117 · endpoint create-assembly
+  hidup (PR #96) · **KATALOG COMPANY TER-SEED** (PR #101): 417 analisa Cibuluh +
+  2.682 koefisien, verifikasi DB 100% nol-mismatch, idempoten. Paritas 87,1%
+  (metode Cibuluh terverifikasi: BUK 10% → TRUNC Rp10 pada TOTAL, bukan per-kolom;
+  status per-analisa TERSIMPAN: exact 366 / cacat-SUM-workbook 39 / unexplained 6).
+  **Belum ada**: tombol Edit (correction/deviation) & Duplikat national→company di UI
 - ⏸️ **9** dpp_factor split PPN — sengaja ditunda (gerbang D10, butuh guardrail
   di-run ulang di env ber-PPN nyata + aba-aba founder)
 - 🟡 **10** UI `/estimasi` (Komposer+Katalog+Harga+rekap-PPN) hidup; **layar
@@ -50,9 +55,14 @@ M/S/N/O = 1:2/3/4/5). AI-import edisi baru (masa depan) = inisiatif terpisah, ta
 bertabrakan (parser+auditor, bukan penghasil angka) — lihat plan
 `humming-weaving-snail.md`.
 
-**Prioritas berikutnya (mengikat, urutan build-order): langkah 6 (Material
-Take-off) → 7 (RAP/Pagu).** Ini yang menutup titik-bocor #1 sesungguhnya —
-JANGAN anggap CECEP "siap-pakai" sebelum keduanya ada.
+**Katalog AHSP di dev (terverifikasi 2026-07-28):** 2.620 nasional (SE-47-2026) +
+418 company (417 Cibuluh + 1 fixture) · 2.827 resources · 58 profil baja.
+
+**Prioritas berikutnya (mengikat, urutan build-order): langkah 7 (RAP/Pagu, D6)**
+— `rap_budget` / `rap_material_line` / `rap_labor_line` / `rap_change_log` + kunci
+pagu. Ini sisa terakhir yang menutup titik-bocor #1 ("tanpa pagu, belanja material
+tak terkendali"). Lalu langkah 8 (UI builder AHSP company: edit + duplikat) & 10
+(layar Material/RAP).
 
 Sisipan saat jeda gate (sesuai PETA §3 #2, tidak menyela CECEP): **celah 3-way match
 procurement DITUTUP 2026-07-27** (invoice manual wajib link GR, harga vs PO, anti
