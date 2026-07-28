@@ -513,7 +513,20 @@ Turunan: `lib/role-guard.ts` (CRITICAL_PERMISSIONS + anti-lockout) menghitung ho
 **secara global** → pasca multi-company harus per-company, kalau tidak admin tenant A
 menghalangi perubahan role di tenant B. Masuk lingkup T4.
 
-### R5 — `auth_client_id()` & portal klien (SEDANG)
+### R5 — `auth_client_id()` & portal klien (SEDANG) — **DIVERIFIKASI 2026-07-29**
+
+**Terkonfirmasi nyata, bukan dugaan.** `db/migrations/049_rls_policies.sql:23-28`:
+```sql
+CREATE OR REPLACE FUNCTION auth_client_id()
+RETURNS UUID LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  SELECT id FROM clients WHERE user_id = (SELECT id FROM users WHERE auth_id = auth.uid())
+$$;
+```
+Nol penyaringan company. Sejak T3, `clients` kategori **B** (`company_id NOT NULL`),
+jadi satu orang yang jadi klien di dua perusahaan menghasilkan **>1 baris** dan
+`SELECT` tanpa `LIMIT`/urutan akan mengembalikan salah satu **secara acak** —
+portal klien menampilkan proyek perusahaan yang salah. Wajib diperbaiki di
+**T5**, sebelum service_role dilepas.
 `auth_client_id()` (049:23-28) memetakan user→client. Klien = entitas per-company.
 Satu orang bisa jadi klien di dua company → fungsi ini harus menghormati
 `auth_company_id()`, kalau tidak portal klien menampilkan proyek lintas company.

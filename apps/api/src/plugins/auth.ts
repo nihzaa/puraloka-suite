@@ -122,6 +122,13 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
   request.currentUser = { ...user, role: resolvedRole } as AuthUser
 
   // Resolusi company + pemasangan akses DB ber-scope.
+  //
+  // ⚠️ URUTAN INI LOAD-BEARING (ADR-011 §10 R4). Resolusi company WAJIB terjadi
+  // SEBELUM loadPermissionCache() dipanggil pertama kali: cache permission
+  // di-key oleh role, dan di masa depan peran dibaca dari company_members
+  // (peran bisa BERBEDA per company). Kalau cache terisi lebih dulu, request
+  // akan memakai permission dari company yang salah — dan itu gagal DIAM-DIAM,
+  // bukan error. Jangan pindahkan blok ini ke bawah tanpa membaca R4.
   const hasil = await resolveCompanyId(request, user.id)
   if ('error' in hasil) {
     return reply.status(hasil.status).send({ error: hasil.error })

@@ -1,4 +1,4 @@
-import { FastifyInstance } from 'fastify'
+import { FastifyInstance, FastifyRequest } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { createNotification, createNotifications } from '../../utils/notifications.js'
@@ -15,6 +15,20 @@ async function mrApprovalAmount(mrId: string): Promise<number> {
     .select('qty_requested, unit_price_est')
     .eq('mr_id', mrId)
   return computeMrAmount(data ?? [])
+}
+
+/**
+ * T4d — daftar proyek yang BOLEH dibaca request ini.
+ * Mengembalikan `null` bila `?project_id=` menunjuk proyek tenant lain
+ * (pemanggil membalas 404). Lihat pola kembar di `reports.ts`.
+ */
+async function proyekBolehDibaca(
+  request: FastifyRequest,
+  projectId: string | null | undefined
+): Promise<string[] | null> {
+  const milikTenant = await request.db!.projectIds()
+  if (!projectId) return milikTenant
+  return milikTenant.includes(projectId) ? [projectId] : null
 }
 
 export default async function procurementRoutes(app: FastifyInstance) {
@@ -199,7 +213,10 @@ export default async function procurementRoutes(app: FastifyInstance) {
       .order('created_at', { ascending: false })
       .limit(200)
 
-    if (project_id) q = q.eq('project_id', project_id)
+    // T4d: SELALU di-scope ke proyek tenant; project_id hanya mempersempit.
+    const idProyekMr = await proyekBolehDibaca(request, project_id)
+    if (idProyekMr === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    q = q.in('project_id', idProyekMr)
     if (status) q = q.eq('status', status)
     // mandor hanya lihat MR milik sendiri
     if (currentUser.role === 'mandor') q = q.eq('requested_by', currentUser.id)
@@ -222,7 +239,12 @@ export default async function procurementRoutes(app: FastifyInstance) {
         approved_by:users!material_requests_approved_by_fkey(id, name),
         items:material_request_items(*, material:materials(id, name, unit, unit_price))
       `)
-      .eq('id', id).single()
+      // T4d: filter tenant DI QUERY YANG SAMA — tanpa ini, MR perusahaan lain
+      // terbaca lengkap hanya dengan mengetahui id-nya. Memakai .in() alih-alih
+      // round-trip cek terpisah: satu query, dan "bukan milik saya" otomatis
+      // jadi 404 yang sama dengan "tidak ada" (nol kebocoran keberadaan).
+      .in('project_id', await request.db!.projectIds())
+      .eq('id', id).maybeSingle()
     if (error || !data) return reply.status(404).send({ error: 'MR tidak ditemukan' })
     return { material_request: data }
   })
@@ -405,7 +427,9 @@ export default async function procurementRoutes(app: FastifyInstance) {
       .order('created_at', { ascending: false })
       .limit(200)
 
-    if (project_id) q = q.eq('project_id', project_id)
+    const idProyekPo = await proyekBolehDibaca(request, project_id)
+    if (idProyekPo === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    q = q.in('project_id', idProyekPo)
     if (supplier_id) q = q.eq('supplier_id', supplier_id)
     if (status) q = q.eq('status', status)
 
@@ -428,7 +452,8 @@ export default async function procurementRoutes(app: FastifyInstance) {
         mr:material_requests(id, mr_number),
         items:purchase_order_items(*, material:materials(id, name, unit))
       `)
-      .eq('id', id).single()
+      .in('project_id', await request.db!.projectIds())   // T4d: sama spt MR detail
+      .eq('id', id).maybeSingle()
     if (error || !data) return reply.status(404).send({ error: 'PO tidak ditemukan' })
     return { purchase_order: data }
   })
@@ -522,7 +547,9 @@ export default async function procurementRoutes(app: FastifyInstance) {
       `)
       .order('created_at', { ascending: false }).limit(200)
 
-    if (project_id) q = q.eq('project_id', project_id)
+    const idProyekGr = await proyekBolehDibaca(request, project_id)
+    if (idProyekGr === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    q = q.in('project_id', idProyekGr)
     if (supplier_id) q = q.eq('supplier_id', supplier_id)
     if (status) q = q.eq('status', status)
 
@@ -711,7 +738,14 @@ export default async function procurementRoutes(app: FastifyInstance) {
       .order('invoice_date', { ascending: false }).limit(200)
 
     if (supplier_id) q = q.eq('supplier_id', supplier_id)
-    if (project_id) q = q.eq('project_id', project_id)
+    if (project_id) {
+      // supplier_invoices sudah ter-scope wrapper (kategori B); filter proyek
+      // tetap divalidasi agar tak dipakai membaca proyek tenant lain.
+      if (!(await request.db!.projectIds()).includes(project_id)) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
+      q = q.eq('project_id', project_id)
+    }
     if (status) q = q.eq('status', status)
 
     const { data, error } = await q
@@ -963,7 +997,10 @@ export default async function procurementRoutes(app: FastifyInstance) {
       .select('id, qty_on_hand, qty_reserved, last_updated_at, project:projects(id, name), material:materials(id, name, unit, category:material_categories(name))')
       .order('last_updated_at', { ascending: false })
 
-    if (project_id) q = q.eq('project_id', project_id)
+    const idProyekSt = await proyekBolehDibaca(request, project_id)
+    if (idProyekSt === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    q = q.in('project_id', idProyekSt)
+
 
     const { data, error } = await q.limit(500)
     if (error) return reply.status(500).send({ error: error.message })
@@ -1187,7 +1224,9 @@ export default async function procurementRoutes(app: FastifyInstance) {
     if (from) q = q.gte('order_date', from)
     if (to) q = q.lte('order_date', to)
     if (supplier_id) q = q.eq('supplier_id', supplier_id)
-    if (project_id) q = q.eq('project_id', project_id)
+    const idProyekLp = await proyekBolehDibaca(request, project_id)
+    if (idProyekLp === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    q = q.in('project_id', idProyekLp)
     const { data, error } = await q.limit(500)
     if (error) return reply.status(500).send({ error: error.message })
 
