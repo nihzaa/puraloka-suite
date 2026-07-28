@@ -1,14 +1,48 @@
 # STATUS — Puraloka Suite (penunjuk satu pintu)
 
-**Diperbarui:** 2026-07-28 · File ini adalah `STATUS.md` yang diwajibkan AUTOPILOT §2
+**Diperbarui:** 2026-07-28 (rev-2: multi-tenant) · File ini adalah `STATUS.md` yang diwajibkan AUTOPILOT §2
 — penunjuk TIPIS, bukan duplikasi konten. Update tanggal + baris "Fase aktif" setiap
 kali keadaan berubah; detail selalu di dokumen rujukan.
 
 ## Fase aktif
 
-**Phase 3 / Program C (CECEP)** — migration 102–123, 72 test-file hijau (PR #86–101).
-Keputusan founder 2026-07-26 (header `docs/ERP_MASTER_PLAN.md`): **CECEP Option 2 —
-tuntaskan CECEP sampai siap-pakai sebelum modul besar lain.**
+> ### 🔄 PERUBAHAN ARAH BESAR — 2026-07-28
+> **CECEP DITUNDA. Multi-tenant (Program D / L2→L3) jadi prioritas tunggal.**
+>
+> Pemicu: founder menetapkan sistem akan dijual sebagai **SaaS** (calon pelanggan
+> konkret sudah ada) DAN akan ada **badan usaha kedua**. Ini memicu **kedua tripwire**
+> di `docs/KEPUTUSAN-MULTI-COMPANY.md` §2 sekaligus.
+>
+> Keputusan lengkap + roadmap 8 tahap: **`.../Engineering-Constitution/adr/ADR-011-multi-tenant-strategy.md`** (ACCEPTED).
+> Mandat "CECEP Option 2" (2026-07-26) **ditunda**, bukan dicabut — CECEP dilanjutkan
+> setelah multi-tenant TUNTAS (bukan setengah matang).
+>
+> **Rasionalisasi founder:** sistem **belum dipakai operasional nyata (masih
+> development)** → nol data produksi = waktu TERMURAH untuk retrofit pondasi.
+> Titik-bocor #1 belum menimbulkan kerugian aktual.
+>
+> **GERBANG MUTLAK:** tenant kedua TIDAK BOLEH dibuat di produksi sebelum Tahap 4
+> dan 5 selesai penuh. Selama itu sistem berisi tepat satu company.
+
+**Program D — Multi-Tenant (AKTIF).** Tahap: T0 ADR ✅ → T1 audit 94 tabel →
+T2 skema inti (`companies`, `company_members`, `document_number_series`) →
+T3 `company_id` [RED-LINE] → T4 repository wrapper (XL) → T5 RLS dual-axis →
+T6 numbering → T7 exit criteria L2. CECEP langkah 7+ dilanjutkan **setelah T7**.
+
+**Tiga penajaman wajib (ADR-011 §9.5, masuk DoD tahapnya masing-masing):**
+**P1** company pertama = tenant biasa (nol `DEFAULT_COMPANY_ID`, nol cabang
+"kalau cuma satu company") → T2 · **P2** isolasi dibuktikan sebelum tenant kedua
+nyata via fixture TENANT-A/B + **uji kill-switch** (matikan wrapper → test tetap
+hijau karena RLS, dan sebaliknya; kalau merah berarti lapisnya cuma satu) → T5b ·
+**P3** tabel ke-95 tak bisa lahir tanpa klasifikasi (CI merah kalau tabel di
+schema tak ada di peta kategori) → T4a.
+
+**Phase 3 / Program C (CECEP) — DITUNDA di langkah 6 (hasil 1–6 TETAP UTUH & dipakai).**
+migration 102–123, 72 test-file hijau (PR #86–101). Langkah 1/3/4/5/6 ✅ selesai;
+langkah 7 (RAP/Pagu) **ditahan** — ia commitment ledger, wajib menunggu multi-tenant
+(tripwire #1). Kompensasi: RAP nanti lahir dengan `company_id` sejak baris pertama
+→ nol backfill. **Syarat lanjut CECEP: multi-tenant TUNTAS** (seluruh checklist L2
+doc 09 §2 tercentang), bukan sekadar "tahapnya sudah dikerjakan".
 
 **Build order 10 langkah (`.../CECEP/MATERIAL-RAP-COMPANY-UI-DESIGN.md`) — status
 per-langkah, verified 2026-07-26/28:**
@@ -58,11 +92,12 @@ bertabrakan (parser+auditor, bukan penghasil angka) — lihat plan
 **Katalog AHSP di dev (terverifikasi 2026-07-28):** 2.620 nasional (SE-47-2026) +
 418 company (417 Cibuluh + 1 fixture) · 2.827 resources · 58 profil baja.
 
-**Prioritas berikutnya (mengikat, urutan build-order): langkah 7 (RAP/Pagu, D6)**
-— `rap_budget` / `rap_material_line` / `rap_labor_line` / `rap_change_log` + kunci
-pagu. Ini sisa terakhir yang menutup titik-bocor #1 ("tanpa pagu, belanja material
-tak terkendali"). Lalu langkah 8 (UI builder AHSP company: edit + duplikat) & 10
-(layar Material/RAP).
+**Prioritas CECEP SETELAH multi-tenant tuntas** (bukan sekarang — lihat kotak
+perubahan arah di atas): langkah 7 (RAP/Pagu, D6) — `rap_budget` /
+`rap_material_line` / `rap_labor_line` / `rap_change_log` + kunci pagu, **lahir
+dengan `company_id` sejak baris pertama**. Lalu langkah 8 (UI builder AHSP company:
+edit + duplikat — jadi jauh lebih bermakna pasca-multi-tenant karena
+`source='company'` akhirnya punya arti "company yang mana") & 10 (layar Material/RAP).
 
 Sisipan saat jeda gate (sesuai PETA §3 #2, tidak menyela CECEP): **celah 3-way match
 procurement DITUTUP 2026-07-27** (invoice manual wajib link GR, harga vs PO, anti
@@ -84,6 +119,17 @@ Phase 1 (Program A) ✅ · Phase 2 (Program B) ✅.
 | Peta penomoran Program A–F ↔ Phase 0–9 | `.../Master-Delivery-Blueprint/NUMBERING-GLOSSARY.md` (⚠️ "Phase 7" EA = multi-company; "Fase 7" ERP_MASTER_PLAN = GL — selalu sebut sumber) |
 
 ## Keputusan terbuka menunggu Nizar
+
+~~**A. "≥2 kontributor review"**~~ — **TERJAWAB 2026-07-28**: ack tertulis founder +
+   **Dokumen Audit Pra-Eksekusi** wajib untuk T3 & T5 (diff lengkap · angka
+   sebelum/sesudah hasil dry-run · rencana rollback teruji · daftar yang TIDAK
+   diverifikasi). Pengecualian diakui sadar. Detail: ADR-011 §10 R7.
+**B. (tidak memblokir) Pelanggan pertama punya >1 badan usaha?** Menentukan
+   apakah butuh level `tenants` di atas `companies` sekarang atau cukup nanti.
+   Default sementara: cukup `companies` + `parent_company_id`. ADR-011 §3.
+
+**Mandat eksekusi (founder 2026-07-28):** T1 & T2 dikerjakan **otonom** (additive
+murni, nol ubah data). **Berhenti wajib lapor sebelum T3.**
 
 0. **KEAMANAN (mendesak, repo public):** rotasi 4 password test yang sempat bocor di
    `gate-1a-preconditions-response.md` (sudah diredaksi; nilai asli tetap di riwayat

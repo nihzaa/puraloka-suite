@@ -58,13 +58,32 @@ tidak relevan"). **Resolusi: Never Build List benar; entri taksonomi sudah dikor
 | Posisi roadmap | Phase 7 (Program D). ADR-009 meng-exclude `company_id` dari 17 tabel CECEP secara sadar, 17× |
 | Konteks isolasi | RLS table **dormant** (API pakai service_role) → menambah kolom sekarang TIDAK memberi isolasi apa pun; isolasi nyata harus lewat layer API |
 
-### Keputusan yang direkomendasikan
+### ⚠️ STATUS: KEDUA TRIPWIRE AKTIF — keputusan di bawah SUDAH DIGANTI (2026-07-28)
 
-**JANGAN tambahkan `company_id` sekarang.** Tetap Phase 7 sesuai ADR-009/roadmap.
-Alasan: (a) tidak lolos uji ambiguitas §0 — retrofit lossless; (b) bukan blind-spot,
-melainkan keputusan sadar terdokumentasi dengan jalur retrofit yang sudah dirancang;
-(c) tanpa RLS live, kolomnya kosmetik; (d) keputusan founder 2026-07-26 di
-ERP_MASTER_PLAN: **tuntaskan CECEP dulu sebelum modul besar lain** — menyisipkan
+> **Rekomendasi "JANGAN tambahkan `company_id` sekarang" di bawah TIDAK LAGI
+> BERLAKU.** Kedua tripwire §2 di bawah terpicu pada 2026-07-28:
+>
+> - **Tripwire #2 terjawab founder:** sistem akan dijual sebagai SaaS (**calon
+>   pelanggan konkret sudah ada**) DAN founder akan membentuk badan usaha kedua.
+> - **Tripwire #1 akan tersentuh:** CECEP langkah 7 (RAP/Pagu) = commitment ledger.
+>
+> Keputusan pengganti: **`docs/superpowers/specs/2026-07-18-enterprise-architecture/Engineering-Constitution/adr/ADR-011-multi-tenant-strategy.md`** (ACCEPTED).
+> Mandat "tuntaskan CECEP dulu" **ditunda founder 2026-07-28**: CECEP DITUNDA
+> (bukan dibekukan — hasil langkah 1–6 tetap utuh & dipakai), multi-tenant
+> dikerjakan **tuntas** dulu (ADR-011 §2 D1). Rasionalisasi: sistem belum dipakai
+> operasional nyata → nol data produksi = waktu termurah untuk retrofit pondasi.
+>
+> Dokumen ini **tidak salah** — kondisinya berubah persis lewat mekanisme tripwire
+> yang ia rancang sendiri. Bagian di bawah dipertahankan sebagai jejak alasan
+> historis; **jangan diikuti sebagai instruksi.**
+
+### ~~Keputusan yang direkomendasikan~~ (SUPERSEDED — lihat kotak di atas)
+
+~~**JANGAN tambahkan `company_id` sekarang.**~~ Tetap Phase 7 sesuai ADR-009/roadmap.
+Alasan historis: (a) tidak lolos uji ambiguitas §0 — retrofit lossless; (b) bukan
+blind-spot, melainkan keputusan sadar terdokumentasi dengan jalur retrofit yang sudah
+dirancang; (c) tanpa RLS live, kolomnya kosmetik; (d) keputusan founder 2026-07-26 di
+ERP_MASTER_PLAN: tuntaskan CECEP dulu sebelum modul besar lain — menyisipkan
 migrasi ±37 tabel sekarang menabrak mandat itu.
 
 ### DUA TRIPWIRE — kondisi yang MEWAJIBKAN keputusan ini dibuka ulang lebih awal
