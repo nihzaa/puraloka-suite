@@ -4,6 +4,7 @@ import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { calculateTax } from '../../lib/tax-calculation.js'
 import { getTaxRate } from '../../utils/financial-config.js'
 import { computeAndPersistPenalty } from '../../utils/penalty.js'
+import { proyekMilikTenant } from '../../utils/tenant-guard.js'
 
 /**
  * Endpoint pembayaran termin:
@@ -37,6 +38,13 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('finance:termin:pay')] },
     async (request, reply) => {
       const { projectId, terminId } = request.params
+      // T4g: handler ini memverifikasi termin.project_id === projectId, TAPI
+      // tak pernah memverifikasi projectId milik tenant. Tanpa gerbang ini,
+      // tenant A mencatat pembayaran termin tenant B, membuat invoice di
+      // proyek B, dan mengupload bukti transfer ke folder storage B.
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
       const currentUser = request.currentUser!
 
       // Parse multipart
@@ -297,6 +305,13 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
     { preHandler: [authenticate] },
     async (request, reply) => {
       const { projectId, terminId } = request.params
+      // T4g: handler ini memverifikasi termin.project_id === projectId, TAPI
+      // tak pernah memverifikasi projectId milik tenant. Tanpa gerbang ini,
+      // tenant A mencatat pembayaran termin tenant B, membuat invoice di
+      // proyek B, dan mengupload bukti transfer ke folder storage B.
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
 
       const { data: termin } = await supabase
         .from('termin_schedules')

@@ -4,6 +4,7 @@ import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { validateMime } from '../../utils/mime.js'
 import { evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain } from '../../utils/approval.js'
 import { logAuditEvent } from '../../utils/audit.js'
+import { proyekBolehDibaca, proyekMilikTenant } from '../../utils/tenant-guard.js'
 
 const ALLOWED_IMAGE_PDF = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
 
@@ -120,6 +121,12 @@ export default async function cashRoutes(app: FastifyInstance) {
     }
     if (body.type === 'petty_cash' && (!body.owner_id || !body.project_id)) {
       return reply.status(400).send({ error: 'Kas kecil membutuhkan owner_id dan project_id' })
+    }
+    // T4g: akun kas ini ter-scope company (kategori B), tapi `project_id`-nya
+    // datang dari body — tanpa cek, akun tenant A bisa menunjuk proyek tenant B
+    // (data korup, dan laporan kas per-proyek jadi salah di kedua sisi).
+    if (body.project_id && !(await proyekMilikTenant(request, body.project_id))) {
+      return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
     }
 
     const { data, error } = await request.db!
@@ -367,7 +374,10 @@ export default async function cashRoutes(app: FastifyInstance) {
       .order('created_at', { ascending: false })
       .range(off2, off2 + lim2 - 1)
 
-    if (project_id)    q = q.eq('project_id', project_id)
+    // T4g: SELALU di-scope; project_id hanya mempersempit.
+    const idProyekExp = await proyekBolehDibaca(request, project_id)
+    if (idProyekExp === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    q = q.in('project_id', idProyekExp)
     if (status)        q = q.eq('status', status)
     if (category_id)   q = q.eq('category_id', category_id)
     if (petty_cash_id) q = q.eq('petty_cash_id', petty_cash_id)
@@ -427,6 +437,12 @@ export default async function cashRoutes(app: FastifyInstance) {
 
     if (!project_id || !category_id || !description || !unit_price) {
       return reply.status(400).send({ error: 'project_id, category_id, description, unit_price wajib diisi' })
+    }
+    // T4g: project_id datang dari BODY. Tanpa gerbang ini, tenant A mencatat
+    // pengeluaran (yang untuk admin/pm langsung auto-approved) ke proyek tenant
+    // B dan mengunggah notanya ke folder storage milik B.
+    if (!(await proyekMilikTenant(request, project_id))) {
+      return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
     }
 
     const source = (expense_source ?? 'petty_cash') as 'petty_cash' | 'main_cash' | 'personal'
@@ -536,11 +552,17 @@ export default async function cashRoutes(app: FastifyInstance) {
 
     const { data: expense } = await supabase
       .from('project_expenses')
-      .select('id, status, expense_source, petty_cash_id, main_cash_id, total_amount')
+      .select('id, status, expense_source, petty_cash_id, main_cash_id, total_amount, project_id')
       .eq('id', id)
-      .single()
+      .maybeSingle()
 
     if (!expense) return reply.status(404).send({ error: 'Pengeluaran tidak ditemukan' })
+    // T4g: approve/reject pengeluaran tenant lain = memindahkan uang di
+    // pembukuan mereka. Diperiksa SETELAH gerbang approval (403) supaya urutan
+    // 403-sebelum-404 yang sudah ada tetap terjaga.
+    if (!(await proyekMilikTenant(request, expense.project_id))) {
+      return reply.status(404).send({ error: 'Pengeluaran tidak ditemukan' })
+    }
     if (expense.status === 'approved' && status === 'approved') {
       return reply.status(400).send({ error: 'Pengeluaran sudah disetujui' })
     }
@@ -649,11 +671,15 @@ export default async function cashRoutes(app: FastifyInstance) {
 
     const { data: expense } = await supabase
       .from('project_expenses')
-      .select('id, status')
+      .select('id, status, project_id')
       .eq('id', id)
-      .single()
+      .maybeSingle()
 
     if (!expense) return reply.status(404).send({ error: 'Pengeluaran tidak ditemukan' })
+    // T4g: pengeluaran kategori C — verifikasi proyeknya milik tenant ini.
+    if (!(await proyekMilikTenant(request, expense.project_id))) {
+      return reply.status(404).send({ error: 'Pengeluaran tidak ditemukan' })
+    }
     if (expense.status === 'approved') {
       return reply.status(400).send({ error: 'Tidak bisa hapus pengeluaran yang sudah disetujui' })
     }
