@@ -437,12 +437,20 @@ aturannya ditulis di sini, bukan ditemukan ulang tiap tahap:
    menunggu ~9 menit lalu membaca log.
 4. **"Hijau di lokal" bukan bukti.** Bukti adalah run summary CI. Konsisten dengan
    AUTOPILOT §6 — dan T2 baru saja membuktikan kenapa aturan itu ada.
-5. **Setiap `it()` yang menjalankan DDL WAJIB punya timeout eksplisit** (pola
-   repo: `}, 30_000)` / `60_000`). Default vitest 5 detik cukup di lokal
-   (koneksi hangat, DB tak diperebutkan) tapi **selalu kurang di CI** yang
-   berbagi database. T3 gagal persis karena ini: 10 test mati di `5002ms`,
-   semuanya timeout — nol kegagalan assertion. Gejalanya menipu karena terlihat
-   seperti "test-nya salah", padahal migrasinya benar.
+5. **Timeout: DISELESAIKAN DI AKAR, bukan per-file.** Default vitest 5 detik
+   salah untuk repo ini — mayoritas test adalah *integration* test terhadap
+   Postgres nyata lewat pooler, bukan unit test in-memory. Cukup di lokal
+   (koneksi hangat), rutin tembus di CI (satu DB dipakai bersama, sequential).
+   Gejalanya menipu: `Test timed out in 5000ms` terbaca seperti "test/kode
+   salah" padahal tak ada yang salah — **tiga kali** membuat CI merah di sesi
+   T3/T4 (supplier-invoice-3way, estimate-custom-item, ahsp-endpoint), masing-
+   masing memakan satu siklus ±9 menit untuk didiagnosis ulang.
+   Setelah kejadian ketiga: `testTimeout: 30_000` dipasang **global** di
+   `vitest.config.ts` (14 file punya kerentanan yang sama — menambal satu per
+   satu berarti menunggu masing-masing menggigit dulu). Test yang butuh lebih
+   lama (DDL 32 tabel, rollback penuh) tetap menyatakan timeout-nya sendiri.
+   30 detik, bukan angka besar sembarang: longgar untuk query lambat lintas
+   jaringan, tapi tetap menangkap test yang benar-benar menggantung.
 6. **Schema test WAJIB meniru trigger/guard yang ada di dev**, bukan hanya tabel.
    T3 lolos uji rollback lalu gagal DUA KALI di dev karena schema test tidak
    punya `audit_logs` append-only (073) dan guard komponen assembly (107).
