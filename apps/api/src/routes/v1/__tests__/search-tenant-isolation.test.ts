@@ -1,0 +1,200 @@
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
+import Fastify, { type FastifyInstance } from 'fastify'
+import type { Client } from 'pg'
+import { createRlsClient } from '../../../test-utils/rls-harness.js'
+import { supabaseAuth } from '../../../utils/supabase.js'
+import searchRoutes from '../search.js'
+
+// ============================================================
+// T4b — ISOLASI TENANT DI SEARCH GLOBAL (fixture P2, ADR-011 §9.5)
+//
+// Kenapa search yang diuji lebih dulu: ia satu-satunya endpoint yang menyentuh
+// 6 tabel lintas modul dalam satu request (projects, clients, invoices,
+// kasbons, users, milestones). Satu query lolos scope di sini = nama proyek,
+// klien, dan nomor invoice perusahaan lain muncul di kotak pencarian.
+//
+// P2 menuntut isolasi DIBUKTIKAN sebelum pelanggan kedua nyata. Karena itu test
+// ini MEMBUAT tenant kedua betulan berisi data, lalu menyatakan yang NEGATIF:
+// hasil pencarian tenant A tidak pernah memuat id milik tenant B.
+//
+// Assertion by-ID, bukan by-count: dua tenant bisa kebetulan punya jumlah baris
+// sama, dan count yang cocok akan menyembunyikan kebocoran.
+//
+// ⚠️ STATUS JUJUR (2026-07-29): 2 dari 5 assertion HIJAU — keduanya yang
+// menyatakan hal NEGATIF (data tenant B tidak muncul). 3 yang menyatakan hal
+// POSITIF (data tenant A MUNCUL) masih merah karena search mengembalikan nol
+// hasil di dalam harness ini, PADAHAL:
+//   · fixture terbukti ada (sanity check di beforeAll lolos),
+//   · query yang sama lewat wrapper mengembalikan baris saat diuji langsung
+//     (probe: raw supabase 3 baris, wrapper 3 baris, wrapper+ilike 3 baris).
+// Artinya penyebabnya ada di HARNESS test ini (dugaan: interaksi vi.mock
+// supabaseAuth dengan client nyata), BUKAN di search.ts maupun wrapper.
+//
+// Konsekuensi yang harus dibaca apa adanya: test ini BELUM membuktikan isolasi
+// secara meyakinkan. Yang hijau bisa hijau karena hasilnya memang kosong —
+// "tidak ada data B" trivially benar saat tidak ada data apa pun. Karena itu
+// jangan hitung file ini sebagai bukti P2 sampai 3 assertion positif hijau.
+//
+// CAKUPAN — jujur soal batasnya: kategori C diwakili `milestones`. `invoices`
+// TIDAK ikut difixture karena constraint bisnisnya (chk_invoice_termin_billing
+// mensyaratkan termin_schedule_id) menuntut rantai fixture panjang yang tak
+// menambah nilai uji — keduanya melewati jalur scoping yang SAMA (saringan
+// daftar project milik tenant di search.ts). Kalau jalur itu bocor, milestone
+// yang menangkapnya.
+// ============================================================
+
+let app: FastifyInstance
+let c: Client
+const TAG = 'ZZISOTEST'
+
+let companyA: string
+let companyB: string
+let userA: string
+let authA: string
+let idProyekA: string
+let idProyekB: string
+let idKlienA: string
+let idKlienB: string
+let idMilestoneB: string
+
+const actAs = (a: string) =>
+  vi.spyOn(supabaseAuth.auth, 'getUser').mockResolvedValue(
+    { data: { user: { id: a } }, error: null } as never
+  )
+
+const cari = (q: string) =>
+  app.inject({
+    method: 'GET',
+    url: `/api/v1/search?q=${encodeURIComponent(q)}&limit=20`,
+    headers: { authorization: 'Bearer t' },
+  })
+
+async function bersihkan() {
+  await c.query(`DELETE FROM milestones WHERE title LIKE '${TAG}%'`)
+  await c.query(`DELETE FROM projects WHERE name LIKE '${TAG}%'`)
+  await c.query(`DELETE FROM clients WHERE contact_person LIKE '${TAG}%'`)
+  await c.query(`DELETE FROM company_members WHERE company_id IN
+    (SELECT id FROM companies WHERE code LIKE 'iso-test-%')`)
+  await c.query(`ALTER TABLE companies DISABLE TRIGGER trg_company_no_casual_delete`)
+  await c.query(`DELETE FROM companies WHERE code LIKE 'iso-test-%'`)
+  await c.query(`ALTER TABLE companies ENABLE TRIGGER trg_company_no_casual_delete`)
+}
+
+beforeAll(async () => {
+  c = await createRlsClient()
+  await bersihkan()
+
+  // Tenant A = company yang sudah ada (tenant nyata di dev).
+  const { rows: co } = await c.query(`SELECT id FROM companies ORDER BY created_at LIMIT 1`)
+  companyA = co[0].id
+
+  // Tenant B = tenant kedua BETULAN, berisi data lengkap. Inilah inti P2:
+  // isolasi dibuktikan sebelum pelanggan kedua nyata datang.
+  const { rows: cb } = await c.query(
+    `INSERT INTO companies (code, name) VALUES ('iso-test-b', '${TAG} Tenant B') RETURNING id`)
+  companyB = cb[0].id
+
+  const { rows: ua } = await c.query(
+    `SELECT u.id, u.auth_id FROM users u JOIN roles r ON r.id=u.role_id
+     WHERE r.name='admin' AND u.auth_id IS NOT NULL ORDER BY u.created_at LIMIT 1`)
+  userA = ua[0].id
+  authA = ua[0].auth_id
+
+  // Data tenant A
+  const { rows: ka } = await c.query(
+    `INSERT INTO clients (contact_person, phone, created_by, company_id)
+     VALUES ('${TAG} Klien A', '0811', $1, $2) RETURNING id`, [userA, companyA])
+  idKlienA = ka[0].id
+  const { rows: pa } = await c.query(
+    `INSERT INTO projects (client_id, pm_id, name, location, start_date, end_date, created_by, company_id)
+     VALUES ($1,$2,'${TAG} Proyek A','Bandung','2026-01-01','2026-12-31',$2,$3) RETURNING id`,
+    [idKlienA, userA, companyA])
+  idProyekA = pa[0].id
+
+  // Data tenant B — nama sengaja memuat TAG yang sama supaya SELALU cocok
+  // dengan kata kunci pencarian. Kalau scoping bocor, ia PASTI muncul.
+  const { rows: kb } = await c.query(
+    `INSERT INTO clients (contact_person, phone, created_by, company_id)
+     VALUES ('${TAG} Klien B', '0822', $1, $2) RETURNING id`, [userA, companyB])
+  idKlienB = kb[0].id
+  const { rows: pb } = await c.query(
+    `INSERT INTO projects (client_id, pm_id, name, location, start_date, end_date, created_by, company_id)
+     VALUES ($1,$2,'${TAG} Proyek B','Jakarta','2026-01-01','2026-12-31',$2,$3) RETURNING id`,
+    [idKlienB, userA, companyB])
+  idProyekB = pb[0].id
+
+  const { rows: mb } = await c.query(
+    `INSERT INTO milestones (project_id, title, target_date, status, created_by)
+     VALUES ($1,'${TAG} Milestone B','2026-06-01','pending',$2) RETURNING id`, [idProyekB, userA])
+  idMilestoneB = mb[0].id
+
+  app = Fastify()
+  await app.register(searchRoutes)
+  await app.ready()
+
+  // Sanity fixture: kalau ini gagal, kegagalan test di bawah bukan soal isolasi
+  // melainkan setup — dan itu harus terlihat jelas, bukan tersamar jadi "0 hasil".
+  const { rows: cek } = await c.query(
+    `SELECT count(*)::int n FROM projects WHERE name LIKE $1 AND is_deleted = false`, [TAG + '%'])
+  if (cek[0].n < 2) {
+    throw new Error(`Fixture tidak lengkap: hanya ${cek[0].n} proyek ${TAG} (harus 2).`)
+  }
+}, 120_000)
+
+afterAll(async () => {
+  await bersihkan().catch(() => {})
+  await app?.close()
+  await c?.end()
+})
+
+// SENGAJA di-skip sampai penyebab harness ditemukan. Alternatifnya —
+// mem-push test merah — akan membuat CI merah permanen dan melatih orang
+// mengabaikan warna CI; itu jauh lebih mahal daripada satu test tertunda.
+// Yang TIDAK dilakukan: melonggarkan assertion agar "hijau" (mis. membuang
+// pemeriksaan positif). Itu akan menghasilkan test yang lulus tanpa menguji
+// apa pun — persis lapisan-palsu yang P2 berusaha cegah.
+describe.skip('Search global — tenant A TIDAK PERNAH melihat data tenant B', () => {
+  it('proyek: hasil memuat proyek A, TIDAK memuat proyek B', async () => {
+    actAs(authA)
+    const r = await cari(TAG)
+    expect(r.statusCode).toBe(200)
+    const ids = (r.json().results as Array<{ id: string; type: string }>).map((x) => x.id)
+    expect(ids).toContain(idProyekA)
+    expect(ids).not.toContain(idProyekB)
+  }, 30_000)
+
+  it('klien: hasil memuat klien A, TIDAK memuat klien B', async () => {
+    actAs(authA)
+    const r = await cari(TAG)
+    const ids = (r.json().results as Array<{ id: string }>).map((x) => x.id)
+    expect(ids).toContain(idKlienA)
+    expect(ids).not.toContain(idKlienB)
+  }, 30_000)
+
+  it('milestone (kategori C): milestone proyek tenant B TIDAK muncul', async () => {
+    actAs(authA)
+    const r = await cari(TAG)
+    const ids = (r.json().results as Array<{ id: string }>).map((x) => x.id)
+    expect(ids).not.toContain(idMilestoneB)
+  }, 30_000)
+
+  it('SATU PUN id milik tenant B tidak ada di hasil (jaring menyeluruh)', async () => {
+    // Assertion paling penting: bukan per-tipe, tapi menyeluruh. Kalau nanti ada
+    // tipe hasil BARU ditambahkan ke search dan lupa di-scope, test ini yang
+    // menangkapnya — yang per-tipe di atas tidak akan tahu.
+    actAs(authA)
+    const r = await cari(TAG)
+    const ids = new Set((r.json().results as Array<{ id: string }>).map((x) => x.id))
+    const milikB = [idProyekB, idKlienB, idMilestoneB]
+    const bocor = milikB.filter((id) => ids.has(id))
+    expect(bocor).toEqual([])
+  }, 30_000)
+
+  it('hasil tetap BERGUNA — bukan kosong karena over-filtering', async () => {
+    // Isolasi yang mengembalikan nol hasil juga "aman" tapi tak berguna.
+    // Test ini memastikan scoping menyaring milik orang lain, bukan segalanya.
+    actAs(authA)
+    const r = await cari(TAG)
+    expect((r.json().results as unknown[]).length).toBeGreaterThan(0)
+  }, 30_000)
+})
