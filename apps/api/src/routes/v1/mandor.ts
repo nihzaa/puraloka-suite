@@ -1,4 +1,4 @@
-﻿import type { FastifyInstance } from 'fastify'
+﻿import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { supabase } from '../../utils/supabase.js'
 import { createNotifications } from '../../utils/notifications.js'
@@ -11,6 +11,20 @@ const KASBON_PHOTO_ALLOWED = ['image/jpeg', 'image/png', 'image/webp']
 const KASBON_PHOTO_MAX_MB = 10
 // Lihat catatan di progress.ts: base64 +33% → bodyLimit wajib > cap file.
 const KASBON_PHOTO_BODY_LIMIT = 15 * 1024 * 1024
+
+/**
+ * T4d — daftar proyek yang BOLEH dibaca request ini. `null` bila `project_id`
+ * menunjuk proyek tenant lain (pemanggil membalas 404). Kembaran helper di
+ * `reports.ts` dan `procurement.ts`.
+ */
+async function proyekBolehDibaca(
+  request: FastifyRequest,
+  projectId: string | null | undefined
+): Promise<string[] | null> {
+  const milikTenant = await request.db!.projectIds()
+  if (!projectId) return milikTenant
+  return milikTenant.includes(projectId) ? [projectId] : null
+}
 
 export default async function mandorRoutes(app: FastifyInstance) {
 
@@ -293,7 +307,9 @@ export default async function mandorRoutes(app: FastifyInstance) {
     if (user.role === 'mandor') q = q.eq('mandor_id', user.id)
     else if (mandor_id) q = q.eq('mandor_id', mandor_id)
 
-    if (project_id) q = q.eq('project_id', project_id)
+    const idProyekWk = await proyekBolehDibaca(request, project_id)
+    if (idProyekWk === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    q = q.in('project_id', idProyekWk)
     if (is_settled !== undefined) q = q.eq('is_settled', is_settled === 'true')
 
     const { data, error } = await q
@@ -406,7 +422,9 @@ export default async function mandorRoutes(app: FastifyInstance) {
       .order('assigned_at', { ascending: false })
 
     if (user.role === 'mandor') q = q.eq('mandor_id', user.id)
-    if (project_id) q = q.eq('project_id', project_id)
+    const idProyekAsg = await proyekBolehDibaca(request, project_id)
+    if (idProyekAsg === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    q = q.in('project_id', idProyekAsg)
 
     const { data, error } = await q
     if (error) return reply.status(500).send({ error: error.message })
@@ -981,15 +999,15 @@ export default async function mandorRoutes(app: FastifyInstance) {
       q = q.in('assignment_id', ids)
     }
 
-    if (project_id) {
-      const { data: asgn } = await supabase
-        .from('mandor_assignments')
-        .select('id')
-        .eq('project_id', project_id)
-      const ids = (asgn ?? []).map((a: any) => a.id)
-      if (ids.length === 0) return reply.send({ reports: [] })
-      q = q.in('assignment_id', ids)
-    }
+    // T4d: SELALU di-scope. Tanpa project_id, cakupannya seluruh assignment
+    // TENANT (bukan seluruh assignment di DB seperti sebelumnya).
+    const idProyekWr = await proyekBolehDibaca(request, project_id)
+    if (idProyekWr === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    const { data: asgnScope } = await supabase
+      .from('mandor_assignments').select('id').in('project_id', idProyekWr)
+    const idAsgn = (asgnScope ?? []).map((a: { id: string }) => a.id)
+    if (idAsgn.length === 0) return reply.send({ reports: [] })
+    q = q.in('assignment_id', idAsgn)
 
     const { data, error } = await q
     if (error) return reply.status(500).send({ error: error.message })
@@ -1759,7 +1777,11 @@ export default async function mandorRoutes(app: FastifyInstance) {
       .select('id, mandor_id, project_id')
       .eq('status', 'active')
     if (user.role === 'mandor') asgQ = asgQ.eq('mandor_id', user.id)
-    if (project_id) asgQ = asgQ.eq('project_id', project_id)
+    // T4d: seluruh angka summary di bawah diturunkan dari asgIds, jadi cukup
+    // men-scope query assignment ini — sisanya ikut otomatis.
+    const idProyekSum = await proyekBolehDibaca(request, project_id)
+    if (idProyekSum === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    asgQ = asgQ.in('project_id', idProyekSum)
     const { data: assignments } = await asgQ
     const asgIds = (assignments ?? []).map((a: any) => a.id)
 
@@ -1833,7 +1855,11 @@ export default async function mandorRoutes(app: FastifyInstance) {
       .select('id, mandor_id, project_id, project:projects(id, name)')
       .eq('status', 'active')
     if (user.role === 'mandor') asgQ = asgQ.eq('mandor_id', user.id)
-    if (project_id) asgQ = asgQ.eq('project_id', project_id)
+    // T4d: seluruh angka summary di bawah diturunkan dari asgIds, jadi cukup
+    // men-scope query assignment ini — sisanya ikut otomatis.
+    const idProyekSum = await proyekBolehDibaca(request, project_id)
+    if (idProyekSum === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    asgQ = asgQ.in('project_id', idProyekSum)
     const { data: assignments } = await asgQ
     const asgIds = (assignments ?? []).map((a: any) => a.id)
 
