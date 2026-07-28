@@ -248,7 +248,7 @@ Rekomendasi: jika alat mayoritas sewa, cukup tracking sewa + utilisasi ringan.
 | **General Ledger + COA** | 🔵 | Migration 047 = forward-draft (**belum di-apply ke dev** per schema-diff 4a; desainnya sudah benar: rule di AccountingEngine app-layer, bukan stempel per-baris — lihat `JOURNAL-READY-METADATA-DESIGN.md` §H). ⚠️ KEPUTUSAN TERBUKA: in-app (ERP_MASTER_PLAN Modul 10) vs akuntansi eksternal + export. Lihat PETA-PRIORITAS §5 |
 | Jurnal umum | 🔵 | idem |
 | **Accounts Payable** | ✅ | Koreksi dari 🟡: supplier invoice + payment + aging + FIFO + overdue |
-| **Accounts Receivable** | 🟡 | Invoice + payment + notif overdue ✅; aging bucket 30/60/90 🔴 |
+| **Accounts Receivable** | ✅ | Koreksi dari 🟡 (2026-07-28): invoice + payment + notif overdue + **aging bucket 30/60/90** (`GET /finance/ar-aging`, `lib/ar-register.ts` ber-test, halaman `/piutang`) |
 | Bank & kas | ✅ | |
 | Rekonsiliasi bank | 🔴 | Rekomendasi: eksternal |
 | Kas kecil / petty cash | ✅ | |
@@ -271,11 +271,11 @@ Rekomendasi: jika alat mayoritas sewa, cukup tracking sewa + utilisasi ringan.
 | Progress billing / payment application | ✅ | Berbasis termin; bukan per kuantitas BOQ terpasang |
 | Termin | ✅ | |
 | Interim Payment Certificate (IPC) | 🔴 | Koreksi dari 🟡: 0 hit |
-| Pelepasan retensi | 🟡 | `invoice_type='retention_release'` ada; register jatuh tempo retensi 🔴 |
-| Pemotongan uang muka | 🔴 | Koreksi dari 🟡: DP sebagai termin ada, recoupment di invoice progres 0 hit |
+| Pelepasan retensi | ✅ | 2026-07-28: `retention_release` + **register retensi** (`GET /finance/retention-register`: ditahan vs dicairkan per proyek + estimasi jatuh tempo `end_date + due_days`, DILABELI estimasi karena BAST formal belum ada) di `/piutang` |
+| Pemotongan uang muka | ✅ | 2026-07-28: recoupment DP di invoice progres HIDUP — migration 124 (`invoices.dp_deduction_amount/pct`), validasi saldo = DP TERBAYAR − sudah dipotong (`lib/ar-register.ts`), toggle di form invoice termin + register DP (`GET /finance/dp-register`) di `/piutang`. ⚠️ Terbuka: perlakuan pajak atas porsi DP yang dipotong (lihat DEVELOPMENT_LOG 2026-07-28) |
 | Penagihan pekerjaan tambah | 🟡 | Via CO→contract_value→termin manual |
 | Invoice & faktur pajak | ✅ | + PDF + QR verifikasi publik (`/verify/invoice/[id]`) |
-| Follow-up penagihan | 🟡 | Notif + email overdue ✅; AR aging 🔴 |
+| Follow-up penagihan | ✅ | Koreksi dari 🟡 (2026-07-28): notif + email overdue + AR aging bucket 30/60/90 di `/piutang` |
 | Nota kredit | 🔴 | |
 
 ---
