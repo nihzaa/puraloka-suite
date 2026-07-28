@@ -48,9 +48,18 @@ const KATEGORI_D = {
 }
 
 function loadUrl() {
+  // Presedens: env eksplisit > .env lokal. Di CI tak ada file .env sama sekali
+  // (kredensial datang dari secrets), jadi membaca file duluan = crash ENOENT.
   if (process.env.FP_URL) return process.env.FP_URL
-  const txt = readFileSync(resolve(__dirname, '..', '.env'), 'utf8')
-  return txt.match(/^DIRECT_URL\s*=\s*(.+)$/m)[1].trim().replace(/^["']|["']$/g, '')
+  if (process.env.DIRECT_URL) return process.env.DIRECT_URL
+  try {
+    const txt = readFileSync(resolve(__dirname, '..', '.env'), 'utf8')
+    const m = txt.match(/^DIRECT_URL\s*=\s*(.+)$/m)
+    if (m) return m[1].trim().replace(/^["']|["']$/g, '')
+  } catch { /* tak ada .env — jatuh ke pesan di bawah */ }
+  throw new Error(
+    'Tidak ada koneksi DB: set FP_URL atau DIRECT_URL, atau sediakan apps/api/.env.'
+  )
 }
 
 /** Jalur FK terkuat (seluruhnya NOT NULL) menuju `projects`. Null bila tak ada. */

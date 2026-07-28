@@ -186,7 +186,21 @@ export default async function reportsRoutes(app: FastifyInstance) {
 
       canViewFinance ? supabase.from('documents').select('id, name, document_type, file_url, created_at').eq('project_id', project_id).order('created_at', { ascending: false }) : Promise.resolve({ data: [], error: null }),
 
-      supabase.from('kurva_s_points').select('week_number, plan_pct, actual_pct').eq('project_id', project_id).order('week_number'),
+      // TABEL `kurva_s_points` TIDAK ADA di database — diverifikasi 2026-07-29
+      // (information_schema kosong). Query ini selalu error, tertelan
+      // Promise.allSettled, dan `kurvaSPoints` selalu [] sejak ditulis.
+      // Frontend (laporan/page.tsx:790) merender chart hanya bila length > 0,
+      // jadi ia diam-diam tak pernah tampil.
+      //
+      // Kontrak respons DIPERTAHANKAN (tetap mengirim array kosong) supaya nol
+      // perubahan bagi frontend — menghapus fieldnya = breaking change di luar
+      // lingkup T4. Yang dihapus hanya query hantunya.
+      //
+      // Ditemukan oleh gerbang P3 (tenancy-ratchet) pada run pertamanya: tabel
+      // dipakai kode tapi tak ada di peta. Kurva-S yang BERFUNGSI ada di
+      // endpoint terpisah GET /projects/:id/kurva-s (kurva-s.ts) yang menghitung
+      // dari rab_schedule + progress_logs, bukan dari tabel ini.
+      Promise.resolve({ data: [], error: null }),
     ])
 
     const get = <T>(r: PromiseSettledResult<{ data: T | null; error: unknown }>) =>

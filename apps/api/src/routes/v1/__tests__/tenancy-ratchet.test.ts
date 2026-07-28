@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { execFileSync } from 'node:child_process'
+
 
 // ============================================================
 // T4f — PENEGAK (ratchet + P3). Tanpa ini, T4 membusuk pelan-pelan.
@@ -118,25 +118,59 @@ describe('T4f — P3: peta tenancy sinkron dengan skema (ADR-011 §9.5)', () => 
     expect(asing).toEqual([])
   })
 
-  it('peta SINKRON dengan skema DB — tabel baru wajib terklasifikasi', () => {
-    // Inti P3: tabel ke-98 yang lahir tanpa kategori bikin build MERAH, bukan
-    // diam-diam jadi lubang tenancy. Generator `check` membandingkan file di
-    // repo vs hasil generate dari skema hidup; exit != 0 kalau beda.
+  it('SETIAP tabel yang dipakai lewat wrapper ada di peta (gerbang P3 sebenarnya)', () => {
+    // KOREKSI DESAIN. Versi pertama test ini menjalankan `gen-tenant-map check`,
+    // yaitu membandingkan peta (di-generate dari DB **dev**) dengan skema DB
+    // yang sedang terhubung. Di CI itu SELALU gagal — bukan karena ada tabel tak
+    // terklasifikasi, melainkan karena CI memakai project Supabase BERBEDA yang
+    // skemanya wajar berbeda. Repo ini sudah mengakui itu: langkah "Schema-diff
+    // vs dev baseline" di ci.yml sengaja `continue-on-error: true` alias
+    // INFORMATIONAL. Saya membuat perbandingan yang sama jadi gerbang keras —
+    // itu keliru, dan hasilnya 3 CI merah beruntun.
     //
-    // Dilewati kalau DIRECT_URL tak ada (mis. kontributor tanpa akses DB) —
-    // tapi TIDAK dilewati di CI, karena di sanalah gerbangnya harus menggigit.
-    if (!process.env.DIRECT_URL) {
-      console.warn('[P3] DIRECT_URL kosong — cek sinkronisasi peta dilewati.')
-      return
+    // Yang benar-benar dijaga P3: JANGAN ADA tabel yang dipakai kode tapi tak
+    // punya kategori. Itu bisa diperiksa TANPA database — silang-periksa nama
+    // tabel di `.from()/.viaProject()/.shared()` terhadap peta. Deterministik,
+    // jalan di mesin mana pun, dan menangkap persis kasus yang dimaksud.
+    const isiPeta = readFileSync(
+      join(import.meta.dirname, '..', '..', '..', 'utils', 'tenant-map.generated.ts'),
+      'utf8'
+    )
+    const terdaftar = new Set(
+      [...isiPeta.matchAll(/^\s*'([a-z_]+)':\s*\{ kategori:/gm)].map((m) => m[1])
+    )
+    expect(terdaftar.size).toBeGreaterThan(90)
+
+    const dipakai = new Map<string, string>()
+    const telusuri = (dir: string) => {
+      for (const entri of readdirSync(dir, { withFileTypes: true })) {
+        const path = join(dir, entri.name)
+        if (entri.isDirectory()) {
+          if (entri.name === '__tests__') continue
+          telusuri(path)
+          continue
+        }
+        if (!entri.name.endsWith('.ts')) continue
+        const isi = readFileSync(path, 'utf8')
+        // Hanya jalur BER-WRAPPER. `.unsafe()` sengaja tak dihitung — ia memang
+        // pintu keluar untuk kasus yang tak tercakup peta.
+        for (const m of isi.matchAll(/\.(?:from|viaProject|shared)\(\s*'([a-z_]+)'/g)) {
+          if (!dipakai.has(m[1])) dipakai.set(m[1], entri.name)
+        }
+      }
     }
-    const skrip = join(import.meta.dirname, '..', '..', '..', '..', 'scripts', 'gen-tenant-map.mjs')
-    try {
-      execFileSync(process.execPath, [skrip, 'check'], { stdio: 'pipe', encoding: 'utf8' })
-    } catch (e) {
-      const err = e as { stderr?: string; stdout?: string }
+    telusuri(DIR_ROUTES)
+
+    const asing = [...dipakai.entries()].filter(([t]) => !terdaftar.has(t))
+    if (asing.length > 0) {
       throw new Error(
-        `Peta tenancy TIDAK sinkron dengan skema.\n${err.stderr ?? err.stdout ?? String(e)}`
+        'Tabel dipakai lewat wrapper TAPI tak ada di peta tenancy:\n' +
+          asing.map(([t, f]) => `  '${t}' (${f})`).join('\n') +
+          '\n\nJalankan: node scripts/gen-tenant-map.mjs emit — lalu commit hasilnya.\n' +
+          'Kalau ini tabel BARU: pastikan kategorinya benar dulu (ADR-011 §5). ' +
+          'Tabel tanpa kategori = lubang tenancy yang tak terlihat.'
       )
     }
-  }, 60_000)
+    expect(asing).toEqual([])
+  })
 })
