@@ -64,10 +64,14 @@ pagu. Ini sisa terakhir yang menutup titik-bocor #1 ("tanpa pagu, belanja materi
 tak terkendali"). Lalu langkah 8 (UI builder AHSP company: edit + duplikat) & 10
 (layar Material/RAP).
 
-Sisipan saat jeda gate (sesuai PETA §3 #2, tidak menyela CECEP): **celah 3-way match
-procurement DITUTUP 2026-07-27** (invoice manual wajib link GR, harga vs PO, anti
-invoice dobel + migration 121) — detail: `docs/DEVELOPMENT_LOG.md` entry 2026-07-27
-+ taksonomi §6.
+Sisipan saat jeda gate (sesuai PETA §3, tidak menyela CECEP):
+- **#2 celah 3-way match procurement DITUTUP 2026-07-27** (invoice manual wajib
+  link GR, harga vs PO, anti invoice dobel + migration 121) — detail:
+  `docs/DEVELOPMENT_LOG.md` entry 2026-07-27 + taksonomi §6.
+- **#3 register piutang SELESAI 2026-07-28** — halaman `/piutang` (AR aging
+  30/60/90 + register retensi + register DP) + potongan uang muka (recoupment)
+  di invoice progres (migration 124/125) — detail: `docs/DEVELOPMENT_LOG.md`
+  entry 2026-07-28 + taksonomi §14–15. ⚠️ Melahirkan keputusan terbuka #5.
 
 Phase 1 (Program A) ✅ · Phase 2 (Program B) ✅.
 
@@ -98,3 +102,10 @@ Phase 1 (Program A) ✅ · Phase 2 (Program B) ✅.
 2. GL in-app vs akuntansi eksternal (`docs/PETA-PRIORITAS-ERP.md` §5).
 3. Entitas PT/CV kedua realistis 1–2 tahun? (`docs/KEPUTUSAN-MULTI-COMPANY.md` §2).
 4. Aktifkan trigger audit append-only 073 (Red-Line by design).
+5. **Pajak atas potongan DP** (baru 2026-07-28): saat DP dipotong di invoice
+   progres, pajak invoice progres saat ini tetap dihitung dari nilai progres
+   PENUH (sebelum potongan DP) — konsisten kalkulasi existing, TIDAK diubah.
+   Porsi DP sudah kena pajak saat invoice DP diterbitkan → berpotensi pajak
+   dobel atas porsi DP. Perlu keputusan owner + konfirmasi konsultan pajak:
+   DPP invoice progres = nilai progres penuh ATAU dikurangi potongan DP.
+   (`docs/DEVELOPMENT_LOG.md` entry 2026-07-28.)

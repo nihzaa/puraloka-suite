@@ -102,7 +102,7 @@ export function Sidebar() {
   }, []);
 
   useEffect(() => {
-    if (pathname.startsWith("/keuangan") || pathname.startsWith("/kas")) {
+    if (pathname.startsWith("/keuangan") || pathname.startsWith("/kas") || pathname.startsWith("/piutang")) {
       setKeuanganOpen(true);
     }
   }, [pathname]);
@@ -129,7 +129,7 @@ export function Sidebar() {
     return node.required_permissions.some(p => perms.has(p));
   }
 
-  const keuanganActive = isActive("/keuangan") || isActive("/kas");
+  const keuanganActive = isActive("/keuangan") || isActive("/kas") || isActive("/piutang");
 
   const mainMenu = menu.filter(m => m.section === "main");
   const bottomMenu = menu.filter(m => m.section === "bottom");
@@ -325,7 +325,7 @@ export function Sidebar() {
                     <span style={{ flex: 1 }}>{node.label}</span>
                     <ChevronDown size={14} style={{ flexShrink: 0, transform: keuanganOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s", color: keuanganActive ? "var(--navy)" : "var(--text-muted)" }} />
                   </button>
-                  <div style={{ overflow: "hidden", maxHeight: keuanganOpen ? "100px" : "0px", transition: "max-height 0.2s ease" }}>
+                  <div style={{ overflow: "hidden", maxHeight: keuanganOpen ? "140px" : "0px", transition: "max-height 0.2s ease" }}>
                     <div style={{ paddingTop: 2, paddingBottom: 4 }}>
                       {visibleChildren.map(child => {
                         const ChildIcon = iconFor(child.icon);

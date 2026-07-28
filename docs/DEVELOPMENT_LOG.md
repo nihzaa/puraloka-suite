@@ -487,6 +487,24 @@
 ---
 
 
+### 2026-07-28 — Feature — Register Piutang: AR aging 30/60/90 + retensi + DP recoupment (Migration 124–125)
+**Status**: Done
+**Files affected**:
+- `db/migrations/124_invoice_dp_recoupment.sql` + kembar (applied dev, verifikasi pg_attribute) — `invoices.dp_deduction_amount/pct`, pola retensi (033)
+- `db/migrations/125_menu_piutang.sql` + kembar (applied dev) — menu `keuangan-piutang` DB-driven (1B.2), gated `finance:view:all`
+- `apps/api/src/lib/ar-register.ts` (baru, murni ber-test) — bucket aging presisi batas 30/60/90, filter status piutang, `validateDpDeduction` (saldo = DP TERBAYAR − sudah dipotong, fail-closed)
+- `apps/api/src/routes/v1/finance.ts` — POST invoices terima potongan DP (hanya `termin_billing` non-`on_sign`); GET `/finance/ar-aging` (+`as_of`,`project_id`) + `/finance/retention-register` + `/finance/dp-register` (permission `finance:view:all`); **fix pra-eksisting**: penomoran invoice pindah dari COUNT `issued_date` bulan berjalan → MAX segmen nomor prefix bulan (basis lama tabrakan unique saat ada invoice terhapus/backdated; terpicu test)
+- `apps/web/app/(dashboard)/piutang/page.tsx` (baru) — spektrum umur piutang (bar proporsional per bucket, klik = filter), tabel invoice terbuka, register retensi (+ badge "siap ditagih" bila estimasi lewat), register DP (+ progres pemotongan)
+- `apps/web/app/(dashboard)/keuangan/page.tsx` — form invoice termin: toggle "Potong Uang Muka (DP)" + saldo dari dp-register + validasi + ringkasan
+- `apps/web/components/sidebar.tsx` — dropdown Keuangan mengenali `/piutang` (active + auto-open + maxHeight 3 anak)
+- Test: `lib/__tests__/ar-register.test.ts` (17) + `routes/v1/__tests__/ar-register.test.ts` (11 route-level, fixture `[TEST-AR]`, positif & negatif termasuk authz mandor 403)
+**Notes**: PETA §3 item #3, disisipkan saat jeda gate CECEP (pola #2 — tidak menyela Option 2). Compute-on-read hanya untuk TAMPILAN register (pola estimasi penalty DOMAIN §7), bukan angka pembukuan persist — tripwire ledger TIDAK tersentuh (nol tabel ledger). Estimasi jatuh tempo retensi = `end_date + due_days` DILABELI estimasi (BAST formal belum ada). Mutation-proof: guard on_sign + guard saldo dicabut → 8 test merah, dipulihkan → 11/11. Gate: tsc 0 (api+web), lint 0 error, 677 test hijau (74 file), build api+web sukses (route `/piutang` ter-generate).
+
+⚠️ **KEPUTUSAN TERBUKA (owner + konsultan pajak)**: pajak invoice progres saat ini dihitung dari nilai progres PENUH sebelum potongan DP (kalkulasi existing dipertahankan, tidak disentuh — Red-Line pajak). Porsi DP sudah kena pajak saat invoice DP terbit → potensi pajak dobel atas porsi DP. Bila diputuskan DPP = nilai progres − potongan DP, perubahan = satu rumus di form + validasi backend (kecil, terlokalisir).
+
+---
+
+
 <!-- Template untuk entry baru:
 
 ### YYYY-MM-DD HH:MM — [Kategori] — [Deskripsi]

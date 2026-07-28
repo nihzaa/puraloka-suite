@@ -112,7 +112,7 @@ interface CashflowPoint { label: string; masuk: number; keluar: number; net: num
 
 interface Project { id: string; name: string; contract_model: string; contract_value: number; commission_pct: number | null; retention_pct: number; tax_scheme: string }
 
-interface TerminSchedule { id: string; termin_number: number; label: string; amount: number; pct_of_contract: number; status: string; target_date: string | null }
+interface TerminSchedule { id: string; termin_number: number; label: string; amount: number; pct_of_contract: number; status: string; target_date: string | null; trigger_type?: string | null }
 
 interface ProjectDetail extends Project {
   termin_schedules: TerminSchedule[];
@@ -2357,6 +2357,10 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
   const [description, setDescription] = useState("");
   const [useRetensi, setUseRetensi] = useState(false);
   const [retensiPct, setRetensiPct] = useState("");
+  // Potongan uang muka (DP recoupment) — saldo dari GET /finance/dp-register
+  const [useDpDeduction, setUseDpDeduction] = useState(false);
+  const [dpDeductionAmount, setDpDeductionAmount] = useState("");
+  const [dpAvailable, setDpAvailable] = useState<number | null>(null);
   const [issuedDate, setIssuedDate] = useState(new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState(() => {
     const d = new Date(); d.setDate(d.getDate() + 30);
@@ -2380,6 +2384,7 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
     if (!projectId) {
       setProjectDetail(null); setTerminId(""); setBaseAmount(""); setDescription("");
       setCommissionPct(""); setRetensiPct(""); setUseRetensi(false);
+      setUseDpDeduction(false); setDpDeductionAmount(""); setDpAvailable(null);
       setLineItems([]); setBillableExpenses([]); setCommissionFeeSuggest(null); setCommissionFeeAmount("");
       return;
     }
@@ -2397,6 +2402,18 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
       })
       .catch(() => {})
       .finally(() => setLoadingProject(false));
+  }, [projectId]);
+
+  // Saldo DP yang masih bisa dipotong (recoupment) untuk proyek terpilih
+  useEffect(() => {
+    if (!projectId) return;
+    setUseDpDeduction(false); setDpDeductionAmount("");
+    api.get<{ rows: { project: { id: string }; remaining_to_recoup: number }[] }>("/api/v1/finance/dp-register")
+      .then(r => {
+        const row = r.data.rows.find(x => x.project.id === projectId);
+        setDpAvailable(row ? row.remaining_to_recoup : 0);
+      })
+      .catch(() => setDpAvailable(null));
   }, [projectId]);
 
   // Load billable expenses saat mode expense_billing dipilih
@@ -2501,7 +2518,13 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
   const pengeluaran   = parseFloat(totalPengeluaran) || 0;
   const komisiPct     = parseFloat(commissionPct) || 0;
   const komisiAmt     = invoiceMode === "commission_billing" ? Math.round(pengeluaran * komisiPct / 100) : 0;
-  const totalInvoice  = base - retensiAmt + taxAmount;
+
+  // Potongan DP: hanya invoice termin progres (bukan termin on_sign = invoice DP-nya sendiri)
+  const selectedTermin = projectDetail?.termin_schedules.find(ts => ts.id === terminId);
+  const dpEligible    = invoiceMode === "termin_billing" && !!terminId
+    && selectedTermin?.trigger_type !== "on_sign" && (dpAvailable ?? 0) > 0;
+  const dpAmt         = dpEligible && useDpDeduction ? (parseFloat(dpDeductionAmount) || 0) : 0;
+  const totalInvoice  = base - retensiAmt - dpAmt + taxAmount;
 
   const isTermin     = invoiceMode === "termin_billing";
   const isExpBilling = invoiceMode === "expense_billing";
@@ -2533,6 +2556,11 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
     if (!isExpBilling && !isCommFee && !isTermin && (!baseAmount || base <= 0)) { setError("Nominal dasar harus lebih dari 0"); return; }
     if (!dueDate) { setError("Jatuh tempo wajib diisi"); return; }
     if (useRetensi && (!retensiPct || parseFloat(retensiPct) <= 0)) { setError("Persentase retensi harus lebih dari 0"); return; }
+    if (dpEligible && useDpDeduction) {
+      if (dpAmt <= 0) { setError("Nominal potongan uang muka harus lebih dari 0"); return; }
+      if (dpAvailable != null && dpAmt > dpAvailable) { setError(`Potongan uang muka melebihi saldo DP (maks ${fmt(dpAvailable)})`); return; }
+      if (dpAmt > netAfterRet) { setError("Potongan uang muka melebihi nilai tagihan setelah retensi"); return; }
+    }
 
     setLoading(true);
     try {
@@ -2546,6 +2574,10 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
         tax_amount: taxAmount,
       };
       if (useRetensi) { payload.retensi_pct = parseFloat(retensiPct); payload.retensi_amount = retensiAmt; }
+      if (dpAmt > 0) {
+        payload.dp_deduction_amount = dpAmt;
+        if (base > 0) payload.dp_deduction_pct = Math.round((dpAmt / base) * 10000) / 100;
+      }
 
       if (isTermin) {
         payload.termin_schedule_id = terminId;
@@ -2877,6 +2909,35 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
               )}
             </div>
 
+            {/* ── Potongan Uang Muka (DP recoupment) — hanya termin progres ── */}
+            {dpEligible && (
+              <div style={{ padding: "10px 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: useDpDeduction ? C.blueBg : "var(--surface-subtle)" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13 }}>
+                  <input type="checkbox" checked={useDpDeduction} onChange={e => {
+                    setUseDpDeduction(e.target.checked);
+                    if (e.target.checked && !dpDeductionAmount && dpAvailable != null) {
+                      setDpDeductionAmount(String(Math.min(dpAvailable, Math.max(netAfterRet, 0))));
+                    }
+                  }} style={{ width: 14, height: 14 }} />
+                  <span style={{ fontWeight: 600, color: C.text }}>Potong Uang Muka (DP)</span>
+                  <span style={{ marginLeft: "auto", fontSize: 12, color: C.mid }}>Saldo DP: <b style={{ color: C.navy }}>{fmt(dpAvailable ?? 0)}</b></span>
+                </label>
+                {useDpDeduction && (
+                  <div style={{ marginTop: 10 }}>
+                    <label style={labelStyle}>Nominal Potongan DP</label>
+                    <div style={{ position: "relative" }}>
+                      <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: C.muted }}>Rp</span>
+                      <input type="number" min={0} max={dpAvailable ?? undefined} value={dpDeductionAmount}
+                        onChange={e => setDpDeductionAmount(e.target.value)} style={inputRpStyle} />
+                    </div>
+                    <div style={{ marginTop: 6, fontSize: 11, color: C.muted }}>
+                      DP yang sudah dibayar klien dipotong dari tagihan ini. Sisa DP setelah invoice ini: {fmt(Math.max((dpAvailable ?? 0) - dpAmt, 0))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* ── Tanggal ── */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div>
@@ -2909,6 +2970,7 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
                   )}
                   {!isExpBilling && <SummaryRow label={isCommFee ? "Fee Komisi" : "Nominal Dasar"} value={fmt(base)} />}
                   {useRetensi && retensiAmt > 0 && <SummaryRow label={`Potongan Retensi (${retensiPct}%)`} value={`-${fmt(retensiAmt)}`} valueColor={C.red} />}
+                  {dpAmt > 0 && <SummaryRow label="Potongan Uang Muka (DP)" value={`-${fmt(dpAmt)}`} valueColor={C.blue} />}
                   <SummaryRow label={taxLabel} value={`-${fmt(taxAmount)}`} valueColor={C.muted} />
                   <div style={{ borderTop: `2px solid ${C.border}`, marginTop: 4, paddingTop: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span style={{ fontSize: 13, fontWeight: 800, color: C.text }}>TOTAL INVOICE</span>
