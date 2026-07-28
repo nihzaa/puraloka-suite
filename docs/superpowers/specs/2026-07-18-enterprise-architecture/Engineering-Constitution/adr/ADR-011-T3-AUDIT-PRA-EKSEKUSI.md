@@ -1,6 +1,9 @@
 # T3 — Dokumen Audit Pra-Eksekusi (menunggu ack tertulis founder)
 
-**Tanggal:** 2026-07-29 · **Status:** ⛔ **MENUNGGU ACK — T3 BELUM DIJALANKAN**
+**Tanggal:** 2026-07-29 · **Status:** ✅ **ACK DITERIMA 2026-07-29** — founder
+menyetujui kedua rekomendasi. **Q1 = PRIVAT** (`suppliers` → kategori B) ·
+**Q2 = SEKARANG** (`SET NOT NULL` dijalankan di T3c, tidak ditunda ke T4).
+Eksekusi dilanjutkan setelah uji rollback (§6) dilampirkan.
 **Dasar:** ADR-011 §10 R7 — keputusan founder 2026-07-28 memilih *"Anda review
 sendiri + saya buat audit tertulis"* menggantikan syarat "≥2 kontributor review".
 
@@ -300,12 +303,18 @@ batasnya adalah audit yang menyesatkan.
 
 ---
 
-## 9. Ack founder
+## 9. Ack founder — DITERIMA 2026-07-29
 
-Untuk melanjutkan, balas di PR T3 dengan kalimat yang menyebut ketiganya:
+> **Founder:** *"untuk pertanyaan kamu yg Q1 dan Q2 saya setuju dengan rekomendasi mu"*
 
-> "Saya sudah membaca Dokumen Audit Pra-Eksekusi T3. Q1 = [bersama / **privat**],
-> Q2 = [sekarang / setelah T4]. Lanjutkan T3."
+Ditafsirkan eksplisit (supaya tak ada ambiguitas di kemudian hari):
 
-Tanpa itu, T3b dan T3c tidak dijalankan. T3a (ADD COLUMN kosong) juga ditahan
-supaya tidak ada perubahan skema setengah jalan tanpa keputusan.
+| | Keputusan | Akibat konkret |
+|---|---|---|
+| **Q1** | **PRIVAT** | `suppliers` pindah AB → **B**. B jadi **18 tabel / 197 baris**; AB jadi **10 tabel / 21.055 baris**. 5 baris supplier yang tadinya NULL kini → tenant-1. Total keseluruhan tetap 23.030 |
+| **Q2** | **SEKARANG** | T3c (`SET NOT NULL` + index + CHECK) dijalankan segera setelah verifikasi §4 hijau, tidak menunggu T4. Konsekuensi diterima sadar: risiko **R-3** menjadi nyata — endpoint yang menulis tanpa `company_id` akan gagal keras di dev. Itu memang tujuannya (fail-loud), dan berarti **T4 harus menyusul cepat** |
+
+**Syarat yang TETAP saya jalankan meski ack sudah ada:** uji rollback di schema
+test terisolasi (§6 poin 1) dilakukan **sebelum** T3 disentuh di dev, dan hasilnya
+dilampirkan ke PR. Dokumen ini menjanjikannya; persetujuan founder tidak
+menghapus janji itu.
