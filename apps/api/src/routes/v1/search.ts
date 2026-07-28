@@ -95,8 +95,7 @@ export default async function searchRoutes(app: FastifyInstance) {
     if (await hasPermission(request, 'finance:view:all')) {
       // Kategori C: tenancy lewat project. Search lintas-proyek, jadi disaring
       // dengan daftar project milik tenant ini (bukan viaProject yang butuh 1 project).
-      const { data: proyekTenant } = await request.db!.from('projects').select('id')
-      const idProyek = (proyekTenant ?? []).map((p: { id: string }) => p.id)
+      const idProyek = await request.db!.projectIds()
       const { data } = idProyek.length === 0 ? { data: [] } : await supabase
         .from('invoices')
         .select('id, invoice_number, total_amount, status, project:projects!invoices_project_id_fkey(id, name)')
@@ -179,8 +178,7 @@ export default async function searchRoutes(app: FastifyInstance) {
     // ── Milestones ────────────────────────────────────────────────────
     if (user.role !== 'mandor') {
       // Kategori C: sama seperti invoices — disaring lewat daftar project tenant.
-      const { data: proyekTenant } = await request.db!.from('projects').select('id')
-      const idProyek = (proyekTenant ?? []).map((p: { id: string }) => p.id)
+      const idProyek = await request.db!.projectIds()
       const { data } = idProyek.length === 0 ? { data: [] } : await supabase
         .from('milestones')
         .select('id, title, status, target_date, project:projects!milestones_project_id_fkey(id, name, pm_id, is_deleted)')

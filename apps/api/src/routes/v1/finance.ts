@@ -45,6 +45,16 @@ export default async function financeRoutes(app: FastifyInstance) {
       periodLabel = `${fmtLabel(dateFrom)} – ${fmtLabel(dateTo)}`
     }
 
+    // T4c — SCOPING TENANT. Dashboard ini agregat LINTAS-PROYEK, jadi tabel
+    // kategori C disaring lewat daftar id milik tenant (project / invoice /
+    // assignment / work_scope), bukan viaProject() yang butuh satu project.
+    // Sebelum perubahan ini, seluruh query di bawah berjalan TANPA saringan
+    // tenancy apa pun — angka dashboard akan mencampur dua perusahaan.
+    const db = request.db!
+    const [idProyek, idInvoice, idAssignment, idScope] = await Promise.all([
+      db.projectIds(), db.invoiceIds(), db.assignmentIds(), db.workScopeIds(),
+    ])
+
     const [
       invoicesRes, paymentsRes, kasbonPendingRes,
       cashAccountsRes, wageApprovedRes,
@@ -53,41 +63,57 @@ export default async function financeRoutes(app: FastifyInstance) {
       wageRes, progressRes, settlementRes,
     ] = await Promise.all([
       // Invoice & AR (all time — untuk outstanding/overdue tidak dibatasi periode)
-      supabase.from('invoices').select('id, total_amount, amount_paid, amount_due, status, due_date').neq('status', 'cancelled'),
+      supabase.from('invoices').select('id, total_amount, amount_paid, amount_due, status, due_date')
+        .in('project_id', idProyek).neq('status', 'cancelled'),
       // Pendapatan diterima dalam periode
-      supabase.from('payments').select('amount_paid').gte('paid_at', dateFromTs).lte('paid_at', dateToTs),
+      supabase.from('payments').select('amount_paid')
+        .in('invoice_id', idInvoice).gte('paid_at', dateFromTs).lte('paid_at', dateToTs),
       // Kasbon pending (all time — untuk alert)
-      supabase.from('kasbons').select('id, amount').eq('status', 'pending'),
+      db.from('kasbons').select('id, amount').eq('status', 'pending'),
       // Saldo kas real-time (all time)
-      supabase.from('cash_accounts').select('id, name, type, balance').eq('is_active', true),
+      db.from('cash_accounts').select('id, name, type, balance').eq('is_active', true),
       // Laporan upah pending approval (all time — untuk alert)
-      supabase.from('weekly_wage_reports').select('net_amount').eq('status', 'approved'),
+      supabase.from('weekly_wage_reports').select('net_amount')
+        .in('assignment_id', idAssignment).eq('status', 'approved'),
       // Pengeluaran proyek dalam periode — join kategori untuk split per type
       supabase.from('project_expenses')
         .select('total_amount, category:project_expense_categories(type)')
+        .in('project_id', idProyek)
         .eq('status', 'approved')
         .gte('expense_date', dateFrom).lte('expense_date', dateTo),
       // Kasbon settled dalam periode (untuk hitung berapa yang sudah lunas)
-      supabase.from('kasbons').select('amount').eq('status', 'settled')
+      db.from('kasbons').select('amount').eq('status', 'settled')
         .gte('settled_at', dateFromTs).lte('settled_at', dateToTs),
       // Semua kasbon active (approved, not yet settled) — advance beredar
-      supabase.from('kasbons').select('amount').in('status', ['approved']),
+      db.from('kasbons').select('amount').in('status', ['approved']),
       // Upah mandor dibayar dalam periode
-      supabase.from('weekly_wage_reports').select('net_amount').eq('status', 'paid')
+      supabase.from('weekly_wage_reports').select('net_amount')
+        .in('assignment_id', idAssignment).eq('status', 'paid')
         .gte('paid_at', dateFromTs).lte('paid_at', dateToTs),
       // Progress payments dalam periode
-      supabase.from('progress_payments').select('gross_payment').eq('status', 'approved')
+      supabase.from('progress_payments').select('gross_payment')
+        .in('work_scope_id', idScope).eq('status', 'approved')
         .not('paid_at', 'is', null)
         .gte('paid_at', dateFromTs).lte('paid_at', dateToTs),
       // Settlement borongan dalam periode
       supabase.from('borongan_settlements').select('net_payment')
+        .in('work_scope_id', idScope)
         .not('settled_at', 'is', null)
         .gte('settled_at', dateFromTs).lte('settled_at', dateToTs),
     ])
 
-    const invoices      = invoicesRes.data ?? []
-    const kasbonPending = kasbonPendingRes.data ?? []
-    const cashAccounts  = cashAccountsRes.data ?? []
+    // Tipe eksplisit: wrapper mengembalikan hasil bertipe longgar (bentuk
+    // builder Supabase tak bisa dipertahankan lewat pembungkus tipis), jadi
+    // bentuk baris dinyatakan di sini — di titik pemakaian, bukan dengan
+    // melonggarkan tipe wrapper untuk seluruh codebase.
+    type BarisInvoice = { id: string; total_amount: number; amount_paid: number
+      amount_due: number; status: string; due_date: string }
+    type BarisKasbon = { id?: string; amount: number }
+    type BarisKas = { id: string; name: string; type: string; balance: number }
+
+    const invoices      = (invoicesRes.data ?? []) as BarisInvoice[]
+    const kasbonPending = (kasbonPendingRes.data ?? []) as BarisKasbon[]
+    const cashAccounts  = (cashAccountsRes.data ?? []) as BarisKas[]
 
     // AR / Invoice aggregation
     const totalInvoiced    = invoices.reduce((s, i) => s + Number(i.total_amount), 0)
@@ -105,7 +131,7 @@ export default async function financeRoutes(app: FastifyInstance) {
     const totalKas          = totalKasMain + totalKasCollector + totalKasPetty
 
     // Expense split per category type
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const expenses = (expenseRes.data ?? []) as any[]
     let materialCost = 0, laborExpenseCost = 0, equipmentCost = 0, operationalCost = 0, otherCost = 0
     for (const e of expenses) {
@@ -132,8 +158,10 @@ export default async function financeRoutes(app: FastifyInstance) {
     const totalKeluar   = laborCost + nonLaborCost
 
     // Advance beredar: kasbon mandor yang masih approved (belum settled)
-    const advanceBeredar     = (kasbonAllActiveRes.data ?? []).reduce((s, k) => s + Number(k.amount), 0)
-    const kasbonSettledPeriod = (kasbonSettledRes.data ?? []).reduce((s, k) => s + Number(k.amount), 0)
+    const advanceBeredar     = ((kasbonAllActiveRes.data ?? []) as BarisKasbon[])
+      .reduce((s, k) => s + Number(k.amount), 0)
+    const kasbonSettledPeriod = ((kasbonSettledRes.data ?? []) as BarisKasbon[])
+      .reduce((s, k) => s + Number(k.amount), 0)
 
     // Upah pending approval (alert)
     const wagePendingTotal = (wageApprovedRes.data ?? []).reduce((s, w) => s + Number(w.net_amount), 0)
@@ -273,9 +301,11 @@ export default async function financeRoutes(app: FastifyInstance) {
   }, async (_request, reply) => {
     const today = new Date().toISOString().split('T')[0]
 
+    const idProyekAr = await _request.db!.projectIds()
     const [invRes, projRes, terminRes] = await Promise.all([
       supabase.from('invoices')
         .select('project_id, invoice_type, retensi_amount, total_amount, status')
+        .in('project_id', idProyekAr)
         .neq('status', 'cancelled')
         .limit(2000),
       supabase.from('projects')
@@ -348,9 +378,11 @@ export default async function financeRoutes(app: FastifyInstance) {
   app.get('/api/v1/finance/dp-register', {
     preHandler: [authenticate, requirePermission('finance:view:all')]
   }, async (_request, reply) => {
+    const idProyekDp = await _request.db!.projectIds()
     const [invRes, projRes] = await Promise.all([
       supabase.from('invoices')
         .select('project_id, total_amount, amount_paid, dp_deduction_amount, status, termin_schedules(trigger_type)')
+        .in('project_id', idProyekDp)
         .neq('status', 'cancelled')
         .limit(2000),
       supabase.from('projects')
@@ -817,18 +849,24 @@ export default async function financeRoutes(app: FastifyInstance) {
     const rangeStart = months[0].start
     const rangeEnd = months[months.length - 1].end
 
+    const dbCf = _request.db!
+    const [idInvCf, idAsgCf] = await Promise.all([dbCf.invoiceIds(), dbCf.assignmentIds()])
+    const idProyekCf = await dbCf.projectIds()
     const [paymentsRes, kasbonsRes, expensesRes, wagesRes] = await Promise.all([
-      supabase.from('payments').select('amount_paid, paid_at').gte('paid_at', rangeStart).lte('paid_at', rangeEnd),
-      supabase.from('kasbons').select('amount, kasbon_date').eq('status', 'approved')
+      supabase.from('payments').select('amount_paid, paid_at')
+        .in('invoice_id', idInvCf).gte('paid_at', rangeStart).lte('paid_at', rangeEnd),
+      dbCf.from('kasbons').select('amount, kasbon_date').eq('status', 'approved')
         .gte('kasbon_date', rangeStart).lte('kasbon_date', rangeEnd),
-      supabase.from('project_expenses').select('total_amount, expense_date').eq('status', 'approved')
+      supabase.from('project_expenses').select('total_amount, expense_date')
+        .in('project_id', idProyekCf).eq('status', 'approved')
         .gte('expense_date', rangeStart).lte('expense_date', rangeEnd),
-      supabase.from('weekly_wage_reports').select('net_amount, paid_at').eq('status', 'paid')
+      supabase.from('weekly_wage_reports').select('net_amount, paid_at')
+        .in('assignment_id', idAsgCf).eq('status', 'paid')
         .gte('paid_at', rangeStart).lte('paid_at', rangeEnd),
     ])
 
     const payments = paymentsRes.data ?? []
-    const kasbons  = kasbonsRes.data ?? []
+    const kasbons  = (kasbonsRes.data ?? []) as Array<{ amount: number; kasbon_date: string | null }>
     const expenses = expensesRes.data ?? []
     const wages    = wagesRes.data ?? []
 
@@ -1350,7 +1388,7 @@ export default async function financeRoutes(app: FastifyInstance) {
       Promise.all(queries) as Promise<Array<{ src: string; data: unknown[] | null; error: unknown }>>,
       catScope,
     ])
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const catNameMap = new Map<string, string>((allCats ?? []).map((c: any) => [c.id, c.name]))
 
     const purposeLabel: Record<string, string> = {
@@ -1358,14 +1396,14 @@ export default async function financeRoutes(app: FastifyInstance) {
       pembelian_alat: 'Pembelian Alat', operasional: 'Operasional', lain_lain: 'Lain-lain',
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const txns: any[] = []
     let totalIn = 0, totalOut = 0
     let byTypePayment = 0, byTypeExpense = 0, byTypeWage = 0, byTypeKasbon = 0, byTypeProgressPayment = 0, byTypeSettlementBorongan = 0
 
     for (const res of results) {
       if (!res.data) continue
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       for (const row of res.data as any[]) {
         if (res.src === 'payment') {
           const amt = Number(row.amount_paid)
@@ -1633,28 +1671,49 @@ export default async function financeRoutes(app: FastifyInstance) {
     const dateFromTs = dateFrom + 'T00:00:00'
     const dateToTs   = dateTo   + 'T23:59:59'
 
+    // T4c: arus kas juga agregat lintas-proyek. Saat `projectId` diberikan,
+    // proyek itu WAJIB milik tenant ini — kalau tidak, siapa pun bisa membaca
+    // arus kas proyek perusahaan lain hanya dengan menebak id-nya.
+    const dbAk = request.db!
+    const [idProyekAk, idInvAk, idAsgAk, idScopeAk] = await Promise.all([
+      dbAk.projectIds(), dbAk.invoiceIds(), dbAk.assignmentIds(), dbAk.workScopeIds(),
+    ])
+    if (projectId && !idProyekAk.includes(projectId)) {
+      return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    }
+    const proyekTerpakai = projectId ? [projectId] : idProyekAk
+    const invTerpakai = projectId
+      ? (await supabase.from('invoices').select('id').eq('project_id', projectId)).data?.map(r => r.id) ?? []
+      : idInvAk
+
     const [payRes, expRes, wageRes, kasbonRes, ppRes, bsRes] = await Promise.all([
       typeFilter.includes('payment')
-        ? (projectId
-            ? supabase.from('payments').select('amount_paid, paid_at, invoices!inner(project_id)').gte('paid_at', dateFromTs).lte('paid_at', dateToTs).eq('invoices.project_id', projectId)
-            : supabase.from('payments').select('amount_paid, paid_at').gte('paid_at', dateFromTs).lte('paid_at', dateToTs))
+        ? supabase.from('payments').select('amount_paid, paid_at')
+            .in('invoice_id', invTerpakai).gte('paid_at', dateFromTs).lte('paid_at', dateToTs)
         : Promise.resolve({ data: [] }),
       typeFilter.includes('expense')
-        ? (projectId
-            ? supabase.from('project_expenses').select('total_amount, expense_date').eq('status', 'approved').eq('project_id', projectId).gte('expense_date', dateFrom).lte('expense_date', dateTo)
-            : supabase.from('project_expenses').select('total_amount, expense_date').eq('status', 'approved').gte('expense_date', dateFrom).lte('expense_date', dateTo))
+        ? supabase.from('project_expenses').select('total_amount, expense_date')
+            .in('project_id', proyekTerpakai).eq('status', 'approved')
+            .gte('expense_date', dateFrom).lte('expense_date', dateTo)
         : Promise.resolve({ data: [] }),
       typeFilter.includes('wage')
-        ? supabase.from('weekly_wage_reports').select('net_amount, paid_at').eq('status', 'paid').gte('paid_at', dateFromTs).lte('paid_at', dateToTs)
+        ? supabase.from('weekly_wage_reports').select('net_amount, paid_at')
+            .in('assignment_id', idAsgAk).eq('status', 'paid')
+            .gte('paid_at', dateFromTs).lte('paid_at', dateToTs)
         : Promise.resolve({ data: [] }),
       typeFilter.includes('kasbon')
-        ? supabase.from('kasbons').select('amount, kasbon_date').in('status', ['approved', 'settled']).gte('kasbon_date', dateFrom).lte('kasbon_date', dateTo)
+        ? dbAk.from('kasbons').select('amount, kasbon_date')
+            .in('status', ['approved', 'settled']).gte('kasbon_date', dateFrom).lte('kasbon_date', dateTo)
         : Promise.resolve({ data: [] }),
       typeFilter.includes('progress_payment')
-        ? supabase.from('progress_payments').select('gross_payment, paid_at').eq('status', 'approved').not('paid_at', 'is', null).gte('paid_at', dateFromTs).lte('paid_at', dateToTs)
+        ? supabase.from('progress_payments').select('gross_payment, paid_at')
+            .in('work_scope_id', idScopeAk).eq('status', 'approved').not('paid_at', 'is', null)
+            .gte('paid_at', dateFromTs).lte('paid_at', dateToTs)
         : Promise.resolve({ data: [] }),
       typeFilter.includes('settlement_borongan')
-        ? supabase.from('borongan_settlements').select('net_payment, settled_at').not('settled_at', 'is', null).gte('settled_at', dateFromTs).lte('settled_at', dateToTs)
+        ? supabase.from('borongan_settlements').select('net_payment, settled_at')
+            .in('work_scope_id', idScopeAk).not('settled_at', 'is', null)
+            .gte('settled_at', dateFromTs).lte('settled_at', dateToTs)
         : Promise.resolve({ data: [] }),
     ])
 
@@ -1679,17 +1738,17 @@ export default async function financeRoutes(app: FastifyInstance) {
       periodMap.set(p, { masuk: cur.masuk + masuk, keluar: cur.keluar + keluar })
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     for (const row of (payRes.data || []) as any[]) add(row.paid_at, Number(row.amount_paid), 0)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     for (const row of (expRes.data || []) as any[]) add(row.expense_date, 0, Number(row.total_amount))
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     for (const row of (wageRes.data || []) as any[]) add(row.paid_at, 0, Number(row.net_amount))
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     for (const row of (kasbonRes.data || []) as any[]) add(row.kasbon_date, 0, Number(row.amount))
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     for (const row of (ppRes.data || []) as any[]) add(row.paid_at, 0, Number(row.gross_payment))
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     for (const row of (bsRes.data || []) as any[]) add(row.settled_at, 0, Number(row.net_payment))
 
     const chartData = Array.from(periodMap.entries())

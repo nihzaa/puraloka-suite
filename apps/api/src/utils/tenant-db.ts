@@ -97,6 +97,38 @@ export interface TenantDb {
 
   /** Client mentah — untuk .rpc()/.storage yang tak punya konsep tabel. */
   readonly raw: SupabaseClient
+
+  /**
+   * Daftar id project milik company ini.
+   *
+   * Dipakai untuk menyaring tabel kategori C pada layar LINTAS-PROYEK (dashboard
+   * keuangan, laporan, search) — di sana tak ada satu project sebagai konteks,
+   * jadi `viaProject()` tidak berlaku. Pola: `.in('project_id', await
+   * db.projectIds())`.
+   *
+   * Di-memo per instance (satu instance = satu request), jadi 10 query kategori C
+   * dalam satu handler tetap sekali hit DB.
+   */
+  projectIds(): Promise<string[]>
+
+  /**
+   * Daftar id invoice milik company ini — untuk tabel C yang mewarisi lewat
+   * invoice (`payments`, `invoice_line_items`, `invoice_penalties`).
+   * Pola: `.in('invoice_id', await db.invoiceIds())`.
+   */
+  invoiceIds(): Promise<string[]>
+
+  /**
+   * Daftar id work_scope milik company ini — untuk tabel C berhop-jauh yang
+   * mewarisi lewat work_scope → mandor_assignment → project
+   * (`progress_payments`, `borongan_settlements`, `daily_wage_logs`).
+   */
+  workScopeIds(): Promise<string[]>
+
+  /**
+   * Daftar id mandor_assignment milik company ini — untuk `weekly_wage_reports`.
+   */
+  assignmentIds(): Promise<string[]>
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -154,9 +186,54 @@ export function createTenantDb(companyId: string | null | undefined): TenantDb {
   const entri = (tabel: string) =>
     (PETA_TENANCY as Record<string, { kategori: string } | undefined>)[tabel]
 
+  let memoProjectIds: Promise<string[]> | null = null
+  let memoInvoiceIds: Promise<string[]> | null = null
+  let memoScopeIds: Promise<string[]> | null = null
+  let memoAssignmentIds: Promise<string[]> | null = null
+
+  /** Ambil kolom `id` dari tabel, disaring `kolom IN (nilai)`. Fail-loud. */
+  const idsVia = async (tabel: string, kolom: string, nilai: string[]) => {
+    if (nilai.length === 0) return []
+    const { data, error } = await supabase.from(tabel).select('id').in(kolom, nilai)
+    if (error) throw new TenantDbError(`Gagal memuat id ${tabel}: ${error.message}`)
+    return (data ?? []).map((r: { id: string }) => r.id)
+  }
+
   return {
     companyId,
     raw: supabase,
+
+    projectIds() {
+      memoProjectIds ??= (async () => {
+        const { data, error } = await supabase
+          .from('projects').select('id').eq('company_id', companyId)
+        if (error) {
+          // Fail-loud: mengembalikan [] akan membuat handler menampilkan "nol
+          // data" seolah tenant memang tak punya proyek — kesalahan yang
+          // menyamar jadi keadaan normal.
+          throw new TenantDbError(`Gagal memuat daftar project tenant: ${error.message}`)
+        }
+        return (data ?? []).map((r: { id: string }) => r.id)
+      })()
+      return memoProjectIds
+    },
+
+    invoiceIds() {
+      memoInvoiceIds ??= (async () => idsVia('invoices', 'project_id', await this.projectIds()))()
+      return memoInvoiceIds
+    },
+
+    assignmentIds() {
+      memoAssignmentIds ??= (async () =>
+        idsVia('mandor_assignments', 'project_id', await this.projectIds()))()
+      return memoAssignmentIds
+    },
+
+    workScopeIds() {
+      memoScopeIds ??= (async () =>
+        idsVia('work_scopes', 'assignment_id', await this.assignmentIds()))()
+      return memoScopeIds
+    },
 
     from(tabel) {
       const e = entri(tabel)
