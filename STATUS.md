@@ -26,7 +26,7 @@ kali keadaan berubah; detail selalu di dokumen rujukan.
 
 **Program D — Multi-Tenant (AKTIF).** Tahap: T0 ADR ✅ → **T1 audit 94 tabel ✅** →
 **T2 skema inti ✅ (migration 126)** → **T3 `company_id` ✅ (migration 127)** →
-**T4 repository wrapper — SEBAGIAN BESAR SELESAI** → T5 RLS dual-axis → T6 numbering → T7 exit criteria L2.
+**T4 repository wrapper — FONDASI selesai, PERMUKAAN belum** → T5 RLS dual-axis → T6 numbering → T7 exit criteria L2.
 CECEP langkah 7+ dilanjutkan **setelah T7**.
 
 **T4 (wrapper) — status jujur per 2026-07-29:**
@@ -40,9 +40,18 @@ TOLAK saat ambigu).
 ✅ **T4f penegak**: ratchet (akses supabase mentah tak boleh naik — **diuji
 benar-benar menggigit**, bukan diasumsikan) + P3 (peta vs skema hidup; tabel
 baru tanpa kategori = build merah).
-🟡 **T4e sisa**: ~25 file kecil (`documents`, `progress`, `milestones`,
-`termin-payment`, `contracts`, dll) + tabel kategori C di file besar yang
-belum tersentuh. Ratchet menahan agar tak bertambah.
+🔴 **T4 BELUM SELESAI — audit keamanan independen 2026-07-29 menemukan permukaan
+jauh lebih luas dari yang saya laporkan sebelumnya.** Detail lengkap + skenario
+per-modul: **`.../adr/ADR-011-T4-AUDIT-CELAH-TENANCY.md`**.
+Sisa: **478 akses `supabase` mentah** (dari 584). Modul yang seluruh filenya
+belum ter-scope: `clients` (PII) · `audit` (jejak semua tenant) · `users`+`roles`
+(mendekati account-takeover lintas tenant) · `settings` · `estimate-versions` ·
+`documents` (signed URL 10 th ke kontrak tenant lain) · `termin-payment` ·
+`lessons-learned`.
+**Dua yang paling merugikan dan bukan sekadar 'baca':** `settings` — config
+finansial DIPAKAI BERSAMA, tenant A mengubah tarif PPN **menimpa** tenant B
+(korupsi data aktif) · `notification-routing` — notifikasi & **email** berisi
+nama proyek/invoice/nominal tenant lain **didorong** ke admin yang salah.
 
 **KEBOCORAN NYATA yang ditutup T4** (bukan hipotetis — ini query yang benar-benar
 berjalan tanpa saringan tenancy): KPI halaman depan · 11 query dashboard

@@ -7,7 +7,7 @@ sebelumnya bahwa T4 "sebagian besar selesai".
 
 > **Kenapa dokumen ini ada:** saya memigrasi ±160 call-site dan melaporkan "kebocoran
 > besar sudah ditutup". Audit independen menemukan permukaan yang jauh lebih luas —
-> termasuk **tiga kelas cacat yang tidak akan tertutup oleh migrasi call-site sama
+> termasuk **dua kelas cacat yang tidak akan tertutup oleh migrasi call-site sama
 > sekali** (§3). Melaporkan progres tanpa dokumen ini akan menyesatkan.
 
 ---
@@ -118,7 +118,7 @@ foldernya.
 
 ---
 
-## 3. TIGA CACAT YANG TIDAK AKAN TERTUTUP OLEH MIGRASI CALL-SITE
+## 3. DUA CACAT YANG TIDAK AKAN TERTUTUP OLEH MIGRASI CALL-SITE
 
 Ini yang paling penting dari audit, dan yang paling mudah terlewat kalau hanya
 mengejar angka ratchet turun.
