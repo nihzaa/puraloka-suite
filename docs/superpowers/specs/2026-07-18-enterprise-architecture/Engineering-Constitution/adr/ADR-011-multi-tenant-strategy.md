@@ -415,6 +415,29 @@ lalu **CI test** membandingkan daftar tabel di schema vs daftar terklasifikasi:
 Ketiganya masuk Definition of Done tahapnya masing-masing (P1→T2, P2→T5b,
 P3→T4a), bukan "kalau sempat".
 
+### 9.6 Aturan test untuk seluruh T3–T7 (dipelajari dari kegagalan CI T2)
+
+Test T2 hijau di lokal tapi merah di CI. Bukan flaky — bug nyata: suite langsung
+`createTestClient()` tanpa `resetTestSchema()`, jadi ia **menumpang** schema yang
+kebetulan tertinggal dari run sebelumnya. Lokal punya sisa itu, CI tidak.
+
+Kelas bug ini akan berulang di T3–T5 (semuanya menjalankan migration), jadi
+aturannya ditulis di sini, bukan ditemukan ulang tiap tahap:
+
+1. **Setiap suite yang menjalankan migration WAJIB `resetTestSchema()` sendiri
+   sebelum `createTestClient()`.** Bergantung pada sisa suite lain = test yang
+   lulusnya kebetulan.
+2. **Jangan pernah merangkai nama schema ke dalam query.** Pakai
+   `current_schema()` dan `'tabel'::regclass` — keduanya mengikuti `search_path`
+   koneksi. Konstanta `TEST_SCHEMA` membuat assertion menguji hal yang berbeda
+   dari yang sebenarnya terjadi.
+3. **Verifikasi dari schema yang benar-benar baru sebelum push**, bukan dari
+   schema lokal yang sudah terisi: `TEST_SCHEMA=test_sim_<n> pnpm vitest run <file>`.
+   Ini mereproduksi kondisi CI dalam hitungan detik, jauh lebih murah daripada
+   menunggu ~9 menit lalu membaca log.
+4. **"Hijau di lokal" bukan bukti.** Bukti adalah run summary CI. Konsisten dengan
+   AUTOPILOT §6 — dan T2 baru saja membuktikan kenapa aturan itu ada.
+
 ## 10. Risiko + mitigasi
 
 ### R1 — Kebocoran cross-tenant saat transisi (KRITIS)
