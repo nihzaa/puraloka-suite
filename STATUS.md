@@ -153,13 +153,18 @@ Phase 1 (Program A) ✅ · Phase 2 (Program B) ✅.
    apakah butuh level `tenants` di atas `companies` sekarang atau cukup nanti.
    Default sementara: cukup `companies` + `parent_company_id`. ADR-011 §3.
 
-**C. (BARU, MEMBLOKIR T3) Ack tertulis Dokumen Audit Pra-Eksekusi.**
-   T1 & T2 SELESAI (PR #106). T3 menambah `company_id` ke **32 tabel** +
-   **backfill data** = Red-Line. Sesuai keputusan A, sebelum T3 saya siapkan
-   **Dokumen Audit Pra-Eksekusi** berisi: (1) diff SQL lengkap — bukan ringkasan,
-   (2) angka sebelum/sesudah per tabel hasil dry-run, (3) rencana rollback yang
-   sudah DIUJI, (4) daftar apa yang TIDAK diverifikasi. Founder membaca lalu
-   memberi ack tertulis di PR. **Tanpa ack itu T3 tidak dijalankan.**
+**C. (BARU, MEMBLOKIR T3) Ack + 2 jawaban — dokumen SUDAH SIAP dibaca:**
+   **`.../adr/ADR-011-T3-AUDIT-PRA-EKSEKUSI.md`** (baca §0 ringkasan 1 menit →
+   §5 apa yang bisa rusak → §7 yang tidak diverifikasi). Angka nyata: **32 tabel,
+   23.030 baris** (2.180 → tenant-1; 20.850 sengaja tetap NULL = milik bersama,
+   termasuk 2.620 AHSP nasional yang TIDAK boleh jadi milik satu pelanggan).
+   Dua pertanyaan yang harus dijawab dulu:
+   **Q1** `suppliers` bersama atau **privat**? (rekomendasi saya: **privat** —
+   relasi supplier = rahasia dagang; salah ke arah "terlalu terbuka" jauh lebih
+   sulit diperbaiki setelah pelanggan kedua masuk. Cuma 5 baris: murah sekarang)
+   · **Q2** `SET NOT NULL` **sekarang** atau setelah T4? (rekomendasi: sekarang —
+   error di dev = informasi murah, konsisten P1).
+   **Tanpa ack, T3a/T3b/T3c tidak dijalankan.**
 
 **Mandat eksekusi (founder 2026-07-28):** T1 & T2 otonom ✅ **SELESAI**.
 Berhenti di gerbang T3 sesuai rencana — menunggu keputusan C.
