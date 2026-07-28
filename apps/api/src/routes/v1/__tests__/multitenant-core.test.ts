@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import type { Client } from 'pg'
-import { createTestClient, assertTestIsolation, TEST_SCHEMA } from '../../../test-utils/test-db.js'
+import { createTestClient, assertTestIsolation, resetTestSchema, closeTestClient } from '../../../test-utils/test-db.js'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -85,36 +85,40 @@ async function applyMigrasi124(cl: Client) {
 }
 
 beforeAll(async () => {
+  // resetTestSchema() DULU, baru createTestClient() — pola wajib semua suite yang
+  // menjalankan migration (lihat edition-axis.test.ts). Suite lain juga me-reset
+  // schema yang sama; tanpa reset sendiri, suite ini bergantung pada sisa
+  // pekerjaan suite sebelumnya. Itulah penyebab gagal di CI (schema
+  // test_<run_id> tidak ada) padahal lokal lulus: lokal kebetulan punya schema
+  // `test` yang tertinggal dari run terdahulu.
+  await resetTestSchema()
   c = await createTestClient()
   await assertTestIsolation(c)
-  // bersih-bersih residu run sebelumnya
-  await c.query(`DROP TABLE IF EXISTS document_number_series, company_members, companies,
-                 feature_flags, company_profile, users, roles, permissions CASCADE`)
-  await c.query(`DROP FUNCTION IF EXISTS auth_company_id(), is_member_of(UUID),
-                 has_permission(TEXT), auth_user_id(), fn_company_no_casual_delete() CASCADE`)
+  await c.query('SET client_min_messages TO WARNING')
   await bootstrapPrasyarat(c)
   await applyMigrasi124(c)
 }, 120_000)
 
 afterAll(async () => {
-  await c?.query(`DROP TABLE IF EXISTS document_number_series, company_members, companies,
-                  feature_flags, company_profile, users, roles, permissions CASCADE`).catch(() => {})
-  await c?.query(`DROP FUNCTION IF EXISTS auth_company_id(), is_member_of(UUID),
-                  has_permission(TEXT), auth_user_id(), fn_company_no_casual_delete() CASCADE`).catch(() => {})
-  await c?.end()
+  if (c) await closeTestClient(c)
 })
 
 describe('T2 — struktur skema inti', () => {
   it('membuat 3 tabel inti di schema test (bukan public)', async () => {
+    // current_schema(), BUKAN konstanta TEST_SCHEMA: di CI nama schema-nya
+    // test_<run_id> dan yang menentukan tabel mendarat di mana adalah
+    // search_path koneksi ini, bukan nilai env. Memakai konstanta membuat
+    // assertion menguji hal yang berbeda dari yang sebenarnya terjadi.
     const r = await c.query(
       `SELECT table_name FROM information_schema.tables
-       WHERE table_schema=$1 AND table_name IN
-         ('companies','company_members','document_number_series') ORDER BY 1`,
-      [TEST_SCHEMA]
+       WHERE table_schema = current_schema() AND table_name IN
+         ('companies','company_members','document_number_series') ORDER BY 1`
     )
     expect(r.rows.map((x) => x.table_name)).toEqual([
       'companies', 'company_members', 'document_number_series',
     ])
+    // Sekaligus buktikan isolasi: yang barusan dibuat BUKAN di public.
+    expect((await c.query(`SELECT current_schema() AS s`)).rows[0].s).not.toBe('public')
   })
 
   it('code perusahaan divalidasi format slug — huruf besar/spasi ditolak', async () => {
@@ -138,11 +142,12 @@ describe('T2 — struktur skema inti', () => {
   })
 
   it('feature_flags.company_id akhirnya punya FK (yatim sejak migration 077)', async () => {
+    // 'feature_flags'::regclass di-resolve lewat search_path koneksi ini —
+    // otomatis menunjuk schema test yang sedang dipakai, tanpa merangkai nama.
     const r = await c.query(
       `SELECT 1 FROM pg_constraint
        WHERE conname='feature_flags_company_id_fkey'
-         AND conrelid=($1||'.feature_flags')::regclass`,
-      [TEST_SCHEMA]
+         AND conrelid = 'feature_flags'::regclass`
     )
     expect(r.rowCount).toBe(1)
   })
