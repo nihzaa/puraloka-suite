@@ -61,7 +61,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
     const user = request.currentUser!
     const { mandor_id, search, tipe, status } = request.query as Record<string, string>
 
-    let q = supabase
+    let q = request.db!
       .from('workers')
       .select('id, name, phone, notes, tipe, skills, is_active, created_at, mandor:users!workers_mandor_id_fkey(id, name)')
       .order('name')
@@ -130,7 +130,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
   app.get('/api/v1/mandor/workers/:id/history', { preHandler: [authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string }
 
-    const { data: worker } = await supabase.from('workers').select('id, name').eq('id', id).single()
+    const { data: worker } = await request.db!.from('workers').select('id, name').eq('id', id).single()
     if (!worker) return reply.status(404).send({ error: 'Pekerja tidak ditemukan' })
 
     const { data, error } = await supabase
@@ -163,7 +163,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
     // Mandor selalu dikaitkan ke dirinya sendiri. Admin/PM bisa kirim mandor_id atau biarkan null.
     const mandorId = user.role === 'mandor' ? user.id : (body.mandor_id ?? null)
 
-    const { data, error } = await supabase
+    const { data, error } = await request.db!
       .from('workers')
       .insert({
         mandor_id: mandorId,
@@ -191,7 +191,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
 
     // Ownership check: mandor hanya boleh edit worker miliknya sendiri
     if (user.role === 'mandor') {
-      const { data: existing } = await supabase.from('workers').select('mandor_id').eq('id', id).single()
+      const { data: existing } = await request.db!.from('workers').select('mandor_id').eq('id', id).single()
       if (!existing) return reply.status(404).send({ error: 'Tukang tidak ditemukan' })
       if (existing.mandor_id !== user.id) return reply.status(403).send({ error: 'Akses ditolak' })
     }
@@ -204,7 +204,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
     if (body.skills !== undefined) update.skills = body.skills
     if (body.is_active !== undefined) update.is_active = body.is_active
 
-    const { data, error } = await supabase
+    const { data, error } = await request.db!
       .from('workers')
       .update(update)
       .eq('id', id)
@@ -221,7 +221,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
     const user = request.currentUser!
 
     // Cek apakah tukang ada + ownership check untuk mandor
-    const { data: worker } = await supabase
+    const { data: worker } = await request.db!
       .from('workers').select('id, name, mandor_id').eq('id', id).single()
     if (!worker) return reply.status(404).send({ error: 'Tukang tidak ditemukan' })
 
@@ -240,7 +240,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
       return reply.status(409).send({ error: `${worker.name} masih punya laporan upah yang belum selesai. Selesaikan atau tolak laporan tersebut dulu.` })
     }
 
-    const { error } = await supabase.from('workers').delete().eq('id', id)
+    const { error } = await request.db!.from('workers').delete().eq('id', id)
     if (error) return reply.status(500).send({ error: error.message })
     return reply.status(204).send()
   })
@@ -322,7 +322,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
 
     // Pastikan worker benar-benar milik mandor ini
     const mandorId = user.role === 'mandor' ? user.id : (body.mandor_id ?? user.id)
-    const { data: worker } = await supabase
+    const { data: worker } = await request.db!
       .from('workers').select('id, mandor_id').eq('id', body.worker_id).single()
     if (!worker || worker.mandor_id !== mandorId) {
       return reply.status(403).send({ error: 'Tukang tidak ditemukan atau bukan milik mandor ini' })
@@ -648,7 +648,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
     if (currentUser.role === 'pm') {
       const projectId = scope.assignment?.project?.id ?? null
       if (projectId) {
-        const { data: proj } = await supabase.from('projects').select('pm_id').eq('id', projectId).single()
+        const { data: proj } = await request.db!.from('projects').select('pm_id').eq('id', projectId).single()
         if (!proj || proj.pm_id !== currentUser.id) return reply.status(403).send({ error: 'Akses ditolak' })
       }
     }
@@ -914,7 +914,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
             .limit(10)
         : Promise.resolve({ data: [] }),
       // Pekerja aktif terdaftar di bawah mandor ini
-      supabase.from('workers').select('id').eq('mandor_id', mandor_id).eq('is_active', true),
+      request.db!.from('workers').select('id').eq('mandor_id', mandor_id).eq('is_active', true),
     ])
 
     const totalPaid = ((paidRes as any).data ?? []).reduce((s: number, r: any) => s + Number(r.net_amount), 0)
@@ -1192,7 +1192,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
 
     // Validasi cash account jika bayar upah
     if (status === 'paid' && cash_account_id) {
-      const { data: acct } = await supabase
+      const { data: acct } = await request.db!
         .from('cash_accounts')
         .select('id, is_active, balance, name')
         .eq('id', cash_account_id)
@@ -1401,7 +1401,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
 
     if (body.status === 'approved') {
       if (!body.cash_account_id) return reply.status(400).send({ error: 'cash_account_id wajib saat approve' })
-      const { data: acct } = await supabase.from('cash_accounts').select('id, balance, is_active, name').eq('id', body.cash_account_id).single()
+      const { data: acct } = await request.db!.from('cash_accounts').select('id, balance, is_active, name').eq('id', body.cash_account_id).single()
       if (!acct || !acct.is_active) return reply.status(400).send({ error: 'Akun kas tidak valid' })
       const toPay = body.actual_payment ?? Number((existing as any).gross_payment)
       if (Number(acct.balance) < toPay) {
@@ -1529,7 +1529,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
     if (existingSettlement) return reply.status(409).send({ error: 'Settlement untuk scope ini sudah ada' })
 
     if (body.cash_account_id && body.net_payment > 0) {
-      const { data: acct } = await supabase.from('cash_accounts').select('id, balance, is_active, name').eq('id', body.cash_account_id).single()
+      const { data: acct } = await request.db!.from('cash_accounts').select('id, balance, is_active, name').eq('id', body.cash_account_id).single()
       if (!acct || !acct.is_active) return reply.status(400).send({ error: 'Akun kas tidak valid' })
       if (Number(acct.balance) < body.net_payment) {
         return reply.status(400).send({ error: `Saldo ${acct.name} tidak cukup. Saldo: Rp ${Number(acct.balance).toLocaleString('id-ID')}` })
@@ -1622,7 +1622,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
     if (!existing) return reply.status(404).send({ error: 'Kasbon tukang tidak ditemukan' })
 
     if (status === 'approved' && cash_account_id) {
-      const { data: acct } = await supabase.from('cash_accounts').select('id, balance, is_active, name').eq('id', cash_account_id).single()
+      const { data: acct } = await request.db!.from('cash_accounts').select('id, balance, is_active, name').eq('id', cash_account_id).single()
       if (!acct || !acct.is_active) return reply.status(400).send({ error: 'Akun kas tidak valid' })
       if (Number(acct.balance) < Number(existing.amount)) {
         return reply.status(400).send({ error: `Saldo ${acct.name} tidak cukup. Saldo: Rp ${Number(acct.balance).toLocaleString('id-ID')}` })
@@ -1690,7 +1690,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
     if (scopeIds.length === 0) return reply.send({ scopes: [] })
 
     const [kasbonRes, progressRes, settlementRes, itemsRes] = await Promise.all([
-      supabase
+      request.db!
         .from('kasbons')
         .select('work_scope_id, amount, status')
         .in('work_scope_id', scopeIds)
@@ -1788,7 +1788,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
         .gte('week_start', windowStart)
         .lte('week_start', windowEnd),
       // Total pekerja aktif terdaftar (is_active = true)
-      supabase
+      request.db!
         .from('workers')
         .select('id')
         .in('mandor_id', mandorIds)
@@ -1861,7 +1861,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
 
     // Kasbons yang belum lunas (settled_at IS NULL, status approved atau pending)
     const { data: kasbons } = scopeIds.length > 0
-      ? await supabase
+      ? await request.db!
           .from('kasbons')
           .select('id, amount, status, settled_at')
           .in('work_scope_id', scopeIds)

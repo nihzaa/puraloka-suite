@@ -56,7 +56,7 @@ export default async function reportsRoutes(app: FastifyInstance) {
     preHandler: [authenticate]
   }, async (request, reply) => {
     const user = request.currentUser!
-    let q = supabase
+    let q = request.db!
       .from('projects')
       .select('id, name, location, status, contract_model, contract_value, start_date, end_date, pm_id')
       .eq('is_deleted', false)
@@ -98,7 +98,7 @@ export default async function reportsRoutes(app: FastifyInstance) {
       documentRes,
       kurvaSRes,
     ] = await Promise.allSettled([
-      supabase.from('projects').select(`
+      request.db!.from('projects').select(`
         id, name, location, status, contract_model, contract_value,
         commission_pct, retention_pct, start_date, end_date, description,
         created_at, updated_at,
@@ -134,7 +134,7 @@ export default async function reportsRoutes(app: FastifyInstance) {
         )
       `).eq('project_id', project_id),
 
-      canViewFinance ? supabase.from('kasbons').select(`
+      canViewFinance ? request.db!.from('kasbons').select(`
         id, amount, purpose, fund_source, status, kasbon_date, approved_at,
         scope:work_scopes!inner(
           id, scope_name,
@@ -163,7 +163,7 @@ export default async function reportsRoutes(app: FastifyInstance) {
     const get = <T>(r: PromiseSettledResult<{ data: T | null; error: unknown }>) =>
       r.status === 'fulfilled' ? (r.value.data ?? null) : null
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const projectSettled = projectRes as PromiseSettledResult<{ data: any; error: any }>
     if (projectSettled.status === 'rejected' || projectSettled.value?.error) {
       const err = projectSettled.status === 'rejected' ? projectSettled.reason : projectSettled.value.error
@@ -173,7 +173,7 @@ export default async function reportsRoutes(app: FastifyInstance) {
     if (!project) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
 
     // Ringkasan keuangan
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const invoices = (get<any[]>(invoiceRes as PromiseSettledResult<{ data: any[]; error: unknown }>) ?? [])
     const totalInvoiced = invoices.reduce((s: number, i: { total_amount: number }) => s + Number(i.total_amount), 0)
     const totalPaid     = invoices.reduce((s: number, i: { amount_paid: number }) => s + Number(i.amount_paid), 0)
@@ -181,27 +181,27 @@ export default async function reportsRoutes(app: FastifyInstance) {
 
     // Resolve parent category name for expenses
     const { data: projCats } = await supabase.from('project_expense_categories').select('id, name, parent_id').eq('project_id', project_id)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const projCatMap = new Map<string, string>((projCats ?? []).map((c: any) => [c.id, c.name]))
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const rawExpenses = (get<any[]>(expenseRes as PromiseSettledResult<{ data: any[]; error: unknown }>) ?? [])
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const expenses = rawExpenses.map((e: any) => ({
       ...e,
       category_label: e.category ? (e.category.parent_id ? `${projCatMap.get(e.category.parent_id) ?? e.category.name} › ${e.category.name}` : e.category.name) : 'Lainnya',
     }))
     const totalExpense = expenses.reduce((s: number, e: { total_amount: number }) => s + Number(e.total_amount), 0)
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const kasbons = (get<any[]>(kasbonRes as PromiseSettledResult<{ data: any[]; error: unknown }>) ?? [])
     const totalKasbon = kasbons.reduce((s: number, k: { amount: number }) => s + Number(k.amount), 0)
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const wages = (get<any[]>(wageRes as PromiseSettledResult<{ data: any[]; error: unknown }>) ?? [])
     const totalWage = wages.reduce((s: number, w: { net_amount: number }) => s + Number(w.net_amount), 0)
 
     // Progress fisik terbaru
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const progressLogs = (get<any[]>(progressRes as PromiseSettledResult<{ data: any[]; error: unknown }>) ?? [])
     const latestProgress = progressLogs.length > 0 ? Number(progressLogs[0].pct_overall) : 0
 
@@ -277,9 +277,9 @@ export default async function reportsRoutes(app: FastifyInstance) {
 
     if (invRes.error) return reply.status(500).send({ error: 'Gagal memuat data keuangan' })
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const invoices = (invRes.data ?? []) as any[]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const payments = (payRes.data ?? []) as any[]
 
     const totalInvoiced   = invoices.reduce((s, i) => s + Number(i.total_amount), 0)
@@ -340,7 +340,7 @@ export default async function reportsRoutes(app: FastifyInstance) {
     `).eq('status', 'paid').gte('paid_at', fromTs).lte('paid_at', toTs)
 
     // kasbon_date is DATE NOT NULL — more reliable than approved_at (nullable TIMESTAMPTZ)
-    let kasbonQ = supabase.from('kasbons').select(`
+    let kasbonQ = request.db!.from('kasbons').select(`
       id, amount, purpose, fund_source, kasbon_date, approved_at,
       scope:work_scopes!inner(
         assignment:mandor_assignments!inner(
@@ -365,13 +365,13 @@ export default async function reportsRoutes(app: FastifyInstance) {
       Promise.resolve(kasbonQ),
     ])
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const payments  = (pR.data ?? []) as any[]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const expenses  = (eR.data ?? []) as any[]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const wages     = (wR.data ?? []) as any[]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const kasbons   = (kR.data ?? []) as any[]
 
     const totalIn       = payments.reduce((s, p) => s + Number(p.amount_paid), 0)
@@ -443,7 +443,7 @@ export default async function reportsRoutes(app: FastifyInstance) {
 
     // Fetch kasbons scoped to project via work_scopes join.
     // Filter project_id in TypeScript to avoid unreliable nested-join filter syntax.
-    const kasbonQ = supabase.from('kasbons').select(`
+    const kasbonQ = request.db!.from('kasbons').select(`
       id, amount, purpose, fund_source, status, kasbon_date, approved_at,
       scope:work_scopes!inner(
         id, scope_name,
@@ -462,13 +462,13 @@ export default async function reportsRoutes(app: FastifyInstance) {
       Promise.resolve(kasbonQ),
     ])
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const assignments = (aR.data ?? []) as any[]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const wages       = (wR.data ?? []) as any[]
     // Filter kasbons in TypeScript: by project_id (via scope.assignment.project_id)
     // and by date range using kasbon_date (always set, unlike approved_at which can be null)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const allKasbons  = (kR.data ?? []) as any[]
     const kasbons = allKasbons.filter((k: any) => {
       // kasbon_date is DATE (always set, NOT NULL) — use it as primary date anchor
@@ -540,16 +540,16 @@ export default async function reportsRoutes(app: FastifyInstance) {
     if (error) return reply.status(500).send({ error: 'Gagal memuat data pengeluaran' })
 
     // Build lookup map id → name untuk resolve parent
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const catMap = new Map<string, string>((allCats ?? []).map((c: any) => [c.id, c.name]))
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const resolveLabel = (cat: any) => {
       if (!cat) return 'Lainnya'
       if (cat.parent_id) return `${catMap.get(cat.parent_id) ?? cat.name} › ${cat.name}`
       return cat.name
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const expenses = ((data ?? []) as any[]).map(e => ({
       ...e,
       category_label: resolveLabel(e.category),
@@ -616,7 +616,7 @@ export default async function reportsRoutes(app: FastifyInstance) {
       if (!projectId) return reply.status(400).send({ error: 'project_id wajib untuk tipe project' })
 
       const [projRes, milRes, progRes, invRes] = await Promise.all([
-        supabase.from('projects').select('id, name, location, status, contract_value, start_date, end_date, clients(contact_person, phone), pm:users!projects_pm_id_fkey(name)').eq('id', projectId).eq('is_deleted', false).single(),
+        request.db!.from('projects').select('id, name, location, status, contract_value, start_date, end_date, clients(contact_person, phone), pm:users!projects_pm_id_fkey(name)').eq('id', projectId).eq('is_deleted', false).single(),
         supabase.from('milestones').select('name, target_date, actual_date, status').eq('project_id', projectId).order('target_date'),
         supabase.from('progress_logs').select('pct_overall, notes, logged_at').eq('project_id', projectId).order('logged_at', { ascending: false }).limit(20),
         supabase.from('invoices').select('invoice_number, total_amount, amount_paid, amount_due, status, issued_date, due_date').eq('project_id', projectId).order('issued_date'),
@@ -726,7 +726,7 @@ export default async function reportsRoutes(app: FastifyInstance) {
         projects!inner(id, name),
         work_scopes(id, scope_name, payment_system, status, progress_pct_done)
       `)
-      const kasbonQ = supabase.from('kasbons').select(`
+      const kasbonQ = request.db!.from('kasbons').select(`
         id, amount, purpose, fund_source, status, kasbon_date,
         scope:work_scopes!inner(assignment:mandor_assignments!inner(id, project_id, mandor:users!mandor_assignments_mandor_id_fkey(id, name)))
       `).in('status', ['approved', 'settled'])
@@ -738,11 +738,11 @@ export default async function reportsRoutes(app: FastifyInstance) {
         .gte('paid_at', dateFrom + 'T00:00:00').lte('paid_at', dateTo + 'T23:59:59')
 
       const [aR, kR, wR] = await Promise.all([assignQ, kasbonQ, wageQ])
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const assignments = (aR.data ?? []) as any[]
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const kasbons     = ((kR.data ?? []) as any[]).filter((k: any) => !projectId || k.scope?.assignment?.project_id === projectId)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const wages       = (wR.data ?? []) as any[]
 
       const grandWage   = wages.reduce((s, w) => s + Number(w.net_amount), 0)
@@ -774,7 +774,7 @@ export default async function reportsRoutes(app: FastifyInstance) {
       ]
       y = drawTableHeader(doc, acols, y)
       for (const a of assignments) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         for (const s of (a.work_scopes as any[] ?? [])) {
           const rh = 20
           if (y > doc.page.height - 80) { doc.addPage(); y = 40 }
@@ -829,9 +829,9 @@ export default async function reportsRoutes(app: FastifyInstance) {
         `).gte('paid_at', dateFrom + 'T00:00:00').lte('paid_at', dateTo + 'T23:59:59'),
       ])
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const invoices = (invRes.data ?? []) as any[]
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const payments = (payRes.data ?? []) as any[]
 
       const totalInvoiced    = invoices.reduce((s, i) => s + Number(i.total_amount), 0)
@@ -945,12 +945,12 @@ export default async function reportsRoutes(app: FastifyInstance) {
     const [progRes, milestoneRes, projectRes] = await Promise.all([
       Promise.resolve(progressQ),
       supabase.from('milestones').select('*').eq('project_id', project_id).order('target_date'),
-      supabase.from('projects').select('id, name, location, start_date, end_date, status').eq('id', project_id).eq('is_deleted', false).single(),
+      request.db!.from('projects').select('id, name, location, start_date, end_date, status').eq('id', project_id).eq('is_deleted', false).single(),
     ])
 
     if (projectRes.error) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const logs      = (progRes.data ?? []) as any[]
     const latestPct = logs.length > 0 ? Number(logs[0].pct_overall) : 0
 
@@ -996,7 +996,7 @@ export default async function reportsRoutes(app: FastifyInstance) {
     if (error) return reply.status(500).send({ error: error.message })
 
     // Filter by project_id if provided
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     let records = (data ?? []) as any[]
     if (project_id) {
       records = records.filter((r: any) => r.invoice?.project?.id === project_id)

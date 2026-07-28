@@ -26,8 +26,8 @@ export default async function procurementRoutes(app: FastifyInstance) {
   // GET /api/v1/procurement/material-categories
   app.get('/api/v1/procurement/material-categories', {
     preHandler: [authenticate]
-  }, async (_req, reply) => {
-    const { data, error } = await supabase
+  }, async (request, reply) => {
+    const { data, error } = await request.db!
       .from('material_categories')
       .select('id, name, description, sort_order')
       .order('sort_order')
@@ -45,7 +45,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const { category_id, search, is_active } = request.query as Record<string, string>
 
-    let q = supabase
+    let q = request.db!
       .from('materials')
       .select('id, code, name, unit, unit_price, description, is_active, category:material_categories(id, name)')
       .order('name')
@@ -70,7 +70,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
     }
     if (!body.name || !body.unit) return reply.status(400).send({ error: 'name dan unit wajib diisi' })
 
-    const { data, error } = await supabase
+    const { data, error } = await request.db!
       .from('materials')
       .insert({ ...body, created_by: request.currentUser!.id })
       .select('id, name, unit, unit_price, code')
@@ -90,7 +90,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
     for (const k of allowed) { if (k in body) updates[k] = body[k] }
     if (!Object.keys(updates).length) return reply.status(400).send({ error: 'Tidak ada field yang diupdate' })
 
-    const { data, error } = await supabase.from('materials').update(updates).eq('id', id).select('id, name').single()
+    const { data, error } = await request.db!.from('materials').update(updates).eq('id', id).select('id, name').single()
     if (error) return reply.status(500).send({ error: error.message })
     return { material: data }
   })
@@ -105,7 +105,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const { search, is_active } = request.query as Record<string, string>
 
-    let q = supabase
+    let q = request.db!
       .from('suppliers')
       .select(`
         id, code, name, contact_person, phone, email, address, city,
@@ -129,11 +129,11 @@ export default async function procurementRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const [supplierRes, invoicesRes, paymentsRes] = await Promise.all([
-      supabase.from('suppliers').select('*').eq('id', id).single(),
-      supabase.from('supplier_invoices')
+      request.db!.from('suppliers').select('*').eq('id', id).single(),
+      request.db!.from('supplier_invoices')
         .select('id, invoice_number, invoice_date, due_date, total_amount, amount_paid, amount_due, status, description, project:projects(id, name)')
         .eq('supplier_id', id).order('invoice_date', { ascending: false }).limit(50),
-      supabase.from('supplier_payments')
+      request.db!.from('supplier_payments')
         .select('id, amount, payment_date, payment_method, reference_number, notes')
         .eq('supplier_id', id).order('payment_date', { ascending: false }).limit(50),
     ])
@@ -151,7 +151,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
     }
     if (!body.name) return reply.status(400).send({ error: 'Nama supplier wajib diisi' })
 
-    const { data, error } = await supabase
+    const { data, error } = await request.db!
       .from('suppliers')
       .insert({ ...body, created_by: request.currentUser!.id })
       .select('id, name, phone, payment_terms')
@@ -171,7 +171,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
     for (const k of allowed) { if (k in body) updates[k] = body[k] }
     if (!Object.keys(updates).length) return reply.status(400).send({ error: 'Tidak ada field yang diupdate' })
 
-    const { data, error } = await supabase.from('suppliers').update(updates).eq('id', id).select('id, name').single()
+    const { data, error } = await request.db!.from('suppliers').update(updates).eq('id', id).select('id, name').single()
     if (error) return reply.status(500).send({ error: error.message })
     return { supplier: data }
   })
@@ -452,7 +452,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
     // Ambil payment_terms dari supplier jika tidak disupply
     let paymentTerms = body.payment_terms
     if (!paymentTerms) {
-      const { data: sup } = await supabase.from('suppliers').select('payment_terms').eq('id', body.supplier_id).single()
+      const { data: sup } = await request.db!.from('suppliers').select('payment_terms').eq('id', body.supplier_id).single()
       paymentTerms = sup?.payment_terms ?? 'cod'
     }
 
@@ -662,7 +662,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
     // Backstop race: unique index uq_supplier_invoices_gr (migration 121) —
     // insert kalah race gagal senyap di try/catch ini, tidak menghasilkan dobel.
     try {
-      const { data: existingInvoice } = await supabase
+      const { data: existingInvoice } = await request.db!
         .from('supplier_invoices')
         .select('id')
         .eq('goods_receipt_id', id)
@@ -678,7 +678,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
         if (totalAmount > 0) {
           const { data: po } = await supabase.from('goods_receipts').select('po_id, project_id, supplier_id').eq('id', id).single()
           if (po) {
-            await supabase.from('supplier_invoices').insert({
+            await request.db!.from('supplier_invoices').insert({
               supplier_id: po.supplier_id, project_id: po.project_id,
               goods_receipt_id: id, total_amount: totalAmount,
               description: `Invoice dari GR ${data?.gr_number}`,
@@ -701,7 +701,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const { supplier_id, project_id, status } = request.query as Record<string, string>
 
-    let q = supabase
+    let q = request.db!
       .from('supplier_invoices')
       .select(`
         id, invoice_number, invoice_date, due_date, total_amount, amount_paid, amount_due, status, description, created_at,
@@ -752,7 +752,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
     }
 
     // Anti-dobel #1: satu GR maksimal satu invoice (manual ATAU auto dari confirm)
-    const { data: existingForGr } = await supabase
+    const { data: existingForGr } = await request.db!
       .from('supplier_invoices')
       .select('id, invoice_number')
       .eq('goods_receipt_id', gr.id)
@@ -765,7 +765,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
     // Anti-dobel #2: nomor faktur supplier tidak boleh dientri dua kali
     if (body.invoice_number) {
-      const { data: dupNumber } = await supabase
+      const { data: dupNumber } = await request.db!
         .from('supplier_invoices')
         .select('id')
         .eq('supplier_id', body.supplier_id)
@@ -805,7 +805,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
     }
 
     // Insert dengan field whitelist (bukan spread body — cegah mass-assignment)
-    const { data, error } = await supabase
+    const { data, error } = await request.db!
       .from('supplier_invoices')
       .insert({
         supplier_id: body.supplier_id,
@@ -846,7 +846,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
     // Validasi saldo kas jika cash_account_id diberikan
     if (body.cash_account_id) {
-      const { data: acct } = await supabase
+      const { data: acct } = await request.db!
         .from('cash_accounts')
         .select('balance, name')
         .eq('id', body.cash_account_id)
@@ -857,7 +857,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
       }
     }
 
-    const { data: payment, error: payError } = await supabase
+    const { data: payment, error: payError } = await request.db!
       .from('supplier_payments')
       .insert({
         supplier_id: body.supplier_id, amount: Number(body.amount),
@@ -875,7 +875,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
     let allocations = body.allocations
     // Auto-FIFO jika tidak ada alokasi manual
     if (!allocations || allocations.length === 0) {
-      const { data: unpaidInvoices } = await supabase
+      const { data: unpaidInvoices } = await request.db!
         .from('supplier_invoices')
         .select('id, amount_due')
         .eq('supplier_id', body.supplier_id)
@@ -895,7 +895,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
     if (allocations.length > 0) {
       const rows = allocations.map(a => ({ payment_id: payment.id, ...a }))
-      const { error: allocError } = await supabase.from('supplier_payment_allocations').insert(rows)
+      const { error: allocError } = await request.db!.from('supplier_payment_allocations').insert(rows)
       if (allocError) app.log.error({ allocError }, 'Failed to insert payment allocations')
     }
 
@@ -907,7 +907,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
     preHandler: [authenticate, requirePermission('procurement:view')]
   }, async (request, reply) => {
     const query = request.query as { cash_account_id?: string; supplier_id?: string; limit?: string }
-    let q = supabase
+    let q = request.db!
       .from('supplier_payments')
       .select(`
         id, amount, payment_date, payment_method, reference_number, notes, created_at,
@@ -929,11 +929,11 @@ export default async function procurementRoutes(app: FastifyInstance) {
   // GET /api/v1/procurement/supplier-invoices/overdue — alert jatuh tempo
   app.get('/api/v1/procurement/supplier-invoices/overdue', {
     preHandler: [authenticate, requirePermission('procurement:view')]
-  }, async (_req, reply) => {
+  }, async (request, reply) => {
     const today = new Date()
     const in3days = new Date(today); in3days.setDate(today.getDate() + 3)
 
-    const { data, error } = await supabase
+    const { data, error } = await request.db!
       .from('supplier_invoices')
       .select('id, invoice_number, invoice_date, due_date, amount_due, supplier:suppliers(id, name, phone)')
       .neq('status', 'paid')
@@ -1137,7 +1137,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
   // GET /api/v1/procurement/dashboard — KPI summary
   app.get('/api/v1/procurement/dashboard', {
     preHandler: [authenticate, requirePermission('procurement:view')]
-  }, async (_req, reply) => {
+  }, async (request, reply) => {
     const today = new Date().toISOString().split('T')[0]
     const in7days = new Date(); in7days.setDate(in7days.getDate() + 7)
     const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]
@@ -1145,7 +1145,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
     const [mrRes, poRes, invRes, stockRes] = await Promise.all([
       supabase.from('material_requests').select('id, status').in('status', ['draft', 'submitted']),
       supabase.from('purchase_orders').select('id, status, total_amount, order_date').gte('order_date', startOfMonth),
-      supabase.from('supplier_invoices').select('id, due_date, amount_due, status').neq('status', 'paid'),
+      request.db!.from('supplier_invoices').select('id, due_date, amount_due, status').neq('status', 'paid'),
       supabase.from('project_stocks').select('id, qty_on_hand, material:materials(min_stock)').not('material', 'is', null),
     ])
 
@@ -1224,9 +1224,9 @@ export default async function procurementRoutes(app: FastifyInstance) {
   // GET /api/v1/procurement/reports/aging — aging hutang supplier
   app.get('/api/v1/procurement/reports/aging', {
     preHandler: [authenticate, requirePermission('procurement:view')]
-  }, async (_req, reply) => {
+  }, async (request, reply) => {
     const today = new Date()
-    const { data, error } = await supabase
+    const { data, error } = await request.db!
       .from('supplier_invoices')
       .select('id, invoice_number, invoice_date, due_date, total_amount, amount_due, amount_paid, status, description, supplier:suppliers(id, name), project:projects(id, name)')
       .neq('status', 'paid')
@@ -1257,7 +1257,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string }
     const { min_stock } = request.body as { min_stock: number }
     if (min_stock == null || min_stock < 0) return reply.status(400).send({ error: 'min_stock harus >= 0' })
-    const { data, error } = await supabase.from('materials').update({ min_stock: Number(min_stock) }).eq('id', id).select('id, name, min_stock').single()
+    const { data, error } = await request.db!.from('materials').update({ min_stock: Number(min_stock) }).eq('id', id).select('id, name, min_stock').single()
     if (error) return reply.status(500).send({ error: error.message })
     return { material: data }
   })
