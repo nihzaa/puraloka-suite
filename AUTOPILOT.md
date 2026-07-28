@@ -122,8 +122,19 @@ Daftar **tertutup**. Kalau sebuah aksi cocok salah satu, **jangan lakukan otonom
 ## 8. Skills & MCP
 
 - Pakai proaktif semua skill terpasang (termasuk superpowers) dan MCP relevan (Gmail, Google Calendar, Google Drive, Motion). Skill/MCP berlaku lintas project.
-- Skill/tool kurang → cari & install dari registry tepercaya TANPA minta izin (npm resmi, library skill resmi). Catat tiap install di INSTALL-LOG.md: nama, versi, sumber, alasan.
+- Skill/tool kurang → cari & install dari registry tepercaya TANPA minta izin (npm resmi, library skill resmi). Catat tiap install di `INSTALL-LOG.md`: nama, versi, sumber, alasan.
 - Guardrail install: jangan install dari sumber tak dikenal, atau yang menuntut secret baru / akses sistem luas, tanpa mem-flag dulu (Red-Line #5). Aksi MCP irreversible/eksternal → Red-Line #6.
+
+**Skill teknis relevan proyek ini (sudah terpasang, pakai proaktif — bukan cuma skill desain di §1.2):**
+- `postgres-pro` — EXPLAIN analysis, JSONB, VACUUM — relevan RLS dual-axis (Program D).
+- `db-migration-safety` — checklist sebelum ALTER/backfill — WAJIB untuk T3 ADR-011 (`company_id` backfill, Red-Line).
+- `security-audit-webapp` — OWASP checklist endpoint/form/query baru.
+- `performance-audit` — deteksi N+1/over-fetching — relevan `search.ts`/`reports.ts` (gelombang pertama kebocoran tenant per ADR-011 §6).
+- `react-best-practices` — pola performa React/Next.js (Vercel Engineering).
+- `webapp-testing` — Playwright: verifikasi UI nyata di browser sebelum klaim "selesai" (§9 sudah mewajibkan test browser untuk perubahan frontend; ini skill konkretnya).
+- `varlock` — proteksi secret/.env/API key. **Relevan langsung**: `STATUS.md` mencatat 4 password test bocor karena repo jadi public.
+- `github-actions` — debug status/log GitHub Actions — pakai saat CI stuck/gagal (lihat pola antrian `concurrency.group: ci-shared-ci-db`).
+- `fastify-typescript` — pola Fastify+TypeScript (route/plugin/schema/error-handling/security). ⚠️ **Skill ini mengasumsikan Prisma+Jest — proyek pakai Supabase client + Vitest** (lihat `INSTALL-LOG.md`). Pakai polanya, abaikan contoh kode Prisma/Jest, jangan sarankan migrasi ORM.
 
 ---
 
