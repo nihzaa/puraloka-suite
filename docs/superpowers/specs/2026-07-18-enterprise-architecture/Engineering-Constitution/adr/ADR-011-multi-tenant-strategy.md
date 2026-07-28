@@ -353,9 +353,67 @@ T0 → T1 → T2 → T3 → T4 → T5 → T7
 | Isolasi 2 company diverifikasi **manual** | T5b |
 | User A tak lihat data B lewat jalur manapun | T4 (khususnya `search.ts`, `reports.ts`) + T5 |
 | Menu Registry per-company | T7 |
-| ≥2 kontributor review | T7 — **butuh keputusan founder, tim = 1 orang** |
+| ≥2 kontributor review | **DIGANTI** ack tertulis + Dokumen Audit Pra-Eksekusi (T3 & T5) — §10 R7 |
 
 ---
+
+### 9.5 Tiga penajaman (agar rancangan tidak "cukup baik" tapi benar)
+
+Tiga hal di bawah bukan fitur tambahan — mereka menutup celah yang, tanpa
+ditulis eksplisit, hampir pasti terlewat karena hari ini sistem cuma berisi
+**satu** company sehingga semua bug isolasi tampak "tidak terjadi".
+
+**P1 — Company pertama diperlakukan sebagai tenant biasa, BUKAN kasus khusus.**
+Godaan terbesar retrofit single→multi adalah menulis jalan pintas untuk tenant
+yang sudah ada ("kalau cuma satu company, lewati resolusi"). Jalan pintas itu
+menjadi lubang permanen: jalur yang tak pernah dieksekusi di dev adalah jalur
+yang tak pernah diuji, dan ia baru dijalankan pertama kali **di produksi, oleh
+tenant kedua**.
+
+Aturan mengikat sejak T2:
+- Tidak ada konstanta `DEFAULT_COMPANY_ID` di kode aplikasi. Company pertama
+  lahir dari migration + dibaca dari DB, sama seperti company ke-50.
+- Tidak ada cabang `if (companies.length === 1)` di mana pun.
+- `auth_company_id()` yang mengembalikan NULL = **error keras**, bukan
+  "ya sudah pakai satu-satunya yang ada".
+- Konsekuensi diterima sadar: fase awal jadi sedikit lebih repot (setiap request
+  harus benar-benar meresolusi company). Itu justru intinya — kerepotan itu yang
+  membuat jalur multi-tenant teruji ribuan kali sebelum tenant kedua ada.
+
+**P2 — Isolasi dibuktikan SEBELUM tenant kedua nyata (fixture "tenant hantu").**
+Checklist L2 mensyaratkan "isolasi 2 company diverifikasi". Kalau menunggu
+pelanggan kedua, verifikasinya terjadi saat data nyata sudah masuk — waktu
+paling mahal dan paling tidak bisa di-rollback.
+
+Karena itu di **T5b** dibuat dua company fixture (`TENANT-A`, `TENANT-B`) berisi
+data lengkap **di lingkungan test**, dan test isolasi menyatakan yang negatif,
+bukan yang positif:
+- Untuk **setiap** tabel kategori B & C: user tenant A `SELECT` → 0 baris milik B.
+- Untuk **setiap endpoint list** yang sudah dimigrasi: respons tenant A tak
+  pernah memuat id milik B (dicek by-id, bukan by-count — count bisa kebetulan sama).
+- Jalur agregat khusus: `search.ts`, `dashboard.ts`, `reports.ts` diuji terpisah
+  karena merekalah yang menggabungkan banyak tabel sekaligus.
+- **Uji kill-switch**: matikan wrapper (lapis 1) → test isolasi **harus tetap
+  hijau** karena RLS (lapis 2) menahan; lalu matikan RLS → **harus tetap hijau**
+  karena wrapper menahan. Kalau salah satu dimatikan lalu test langsung merah,
+  artinya sistem hanya punya SATU lapis pertahanan yang nyata, bukan dua. Ini
+  satu-satunya cara membedakan "defense-in-depth" sungguhan dari klaim.
+
+**P3 — Tabel baru tidak bisa lahir tanpa klasifikasi (ratchet ke depan).**
+Audit T1 mengklasifikasi 94 tabel **hari ini**. Tabel ke-95 lahir minggu depan
+(RAP/Pagu CECEP langkah 7 adalah yang pertama) — dan tanpa penegak, ia lahir
+tanpa `company_id`, persis mengulang masalah yang sedang diperbaiki.
+
+Penegaknya: peta tabel→kategori di-generate dari migration (sudah disebut §6 #1),
+lalu **CI test** membandingkan daftar tabel di schema vs daftar terklasifikasi:
+- tabel di DB tapi tak ada di peta → **build merah**, pesan: "tabel X belum
+  diklasifikasi A/AB/B/C/D — lihat ADR-011 §5".
+- Efeknya, klasifikasi jadi bagian dari menulis migration, bukan pekerjaan
+  audit yang harus diulang tiap enam bulan.
+- Berlaku juga mundur: menghapus klasifikasi tanpa menghapus tabel = merah.
+
+Ketiganya masuk Definition of Done tahapnya masing-masing (P1→T2, P2→T5b,
+P3→T4a), bukan "kalau sempat".
 
 ## 10. Risiko + mitigasi
 

@@ -29,6 +29,14 @@ T2 skema inti (`companies`, `company_members`, `document_number_series`) →
 T3 `company_id` [RED-LINE] → T4 repository wrapper (XL) → T5 RLS dual-axis →
 T6 numbering → T7 exit criteria L2. CECEP langkah 7+ dilanjutkan **setelah T7**.
 
+**Tiga penajaman wajib (ADR-011 §9.5, masuk DoD tahapnya masing-masing):**
+**P1** company pertama = tenant biasa (nol `DEFAULT_COMPANY_ID`, nol cabang
+"kalau cuma satu company") → T2 · **P2** isolasi dibuktikan sebelum tenant kedua
+nyata via fixture TENANT-A/B + **uji kill-switch** (matikan wrapper → test tetap
+hijau karena RLS, dan sebaliknya; kalau merah berarti lapisnya cuma satu) → T5b ·
+**P3** tabel ke-95 tak bisa lahir tanpa klasifikasi (CI merah kalau tabel di
+schema tak ada di peta kategori) → T4a.
+
 **Phase 3 / Program C (CECEP) — DITUNDA di langkah 6 (hasil 1–6 TETAP UTUH & dipakai).**
 migration 102–123, 72 test-file hijau (PR #86–101). Langkah 1/3/4/5/6 ✅ selesai;
 langkah 7 (RAP/Pagu) **ditahan** — ia commitment ledger, wajib menunggu multi-tenant
