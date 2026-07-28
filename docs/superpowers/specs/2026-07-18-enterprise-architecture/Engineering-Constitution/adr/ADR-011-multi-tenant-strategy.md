@@ -1,6 +1,6 @@
 # ADR-011 — Strategi Multi-Tenant Puraloka Suite
 
-**Status:** ACCEPTED (keputusan founder 2026-07-28)
+**Status:** ACCEPTED (keputusan founder 2026-07-28, direvisi hari yang sama: 'ditunda' bukan 'dibekukan')
 **Tanggal:** 2026-07-28
 **Pengambil keputusan:** Nizar (founder)
 **Mengamandemen:** `docs/KEPUTUSAN-MULTI-COMPANY.md` §2 ("JANGAN tambahkan `company_id` sekarang")
@@ -33,7 +33,7 @@ rancang sendiri. Gerbang L3 di `Master-Delivery-Blueprint/09-saas-and-tenancy-re
 
 | # | Keputusan | Konsekuensi |
 |---|---|---|
-| D1 | **Bekukan CECEP** — multi-tenant dikerjakan tuntas dulu | Langkah 7 (RAP/Pagu) & seterusnya ditahan sampai Tahap 7 selesai. Titik-bocor #1 sengaja dibiarkan terbuka sementara, sadar. |
+| D1 | **CECEP DITUNDA (bukan dibekukan)** — multi-tenant diselesaikan **tuntas, tidak setengah matang**, baru CECEP dilanjutkan | Langkah 7 (RAP/Pagu) & seterusnya ditahan sampai T7 selesai. **Rasionalisasi founder 2026-07-28: sistem belum dipakai operasional nyata (masih development)** → titik-bocor #1 belum menimbulkan kerugian aktual, dan retrofit pondasi saat nol data produksi adalah waktu termurah. CECEP langkah 1–6 yang sudah selesai TETAP UTUH & dipakai. |
 | D2 | Katalog AHSP nasional **dipakai bersama** semua tenant | 2.620 assembly `source='national'` → `company_id NULL` |
 | D3 | Salinan AHSP company **privat** — hanya pemiliknya | 418 assembly Cibuluh → `company_id` tenant pertama |
 | D4 | Harga: **acuan bersama + boleh ditimpa per perusahaan** | `price_book_entries.company_id NULLABLE`; resolusi berlapis |
@@ -381,11 +381,25 @@ yang di-review founder**, bukan deskripsi.
 ke shared selektif. Salah arah ke privat → bisa diperbaiki; salah arah ke shared →
 kebocoran harga, **tidak bisa ditarik kembali**.
 
-### R3 — CECEP tertahan (TINGGI, sudah diputuskan)
-Founder memilih **bekukan CECEP** (D1). Titik-bocor #1 (belanja material tanpa
-pagu) sengaja dibiarkan terbuka selama T0–T7 — keputusan sadar, bukan kelalaian.
-Kompensasi: RAP/Pagu nanti lahir dengan `company_id` sejak baris pertama → nol
-backfill, nol Red-Line untuk modul itu.
+### R3 — CECEP tertunda (RENDAH setelah rasionalisasi founder)
+Founder memilih **tunda CECEP** (D1), dengan alasan yang menurunkan risiko ini dari
+TINGGI ke RENDAH: **sistem belum dipakai operasional nyata — masih development.**
+
+Konsekuensi penting dari fakta itu:
+- Titik-bocor #1 (belanja material tanpa pagu) **belum menimbulkan kerugian aktual**;
+  ia risiko potensial, bukan kebocoran berjalan.
+- **Nol data produksi = waktu termurah untuk retrofit pondasi.** Menunda multi-tenant
+  sampai ada data operasional justru melipatgandakan biayanya.
+- Mandat founder: multi-tenant harus **tuntas, tidak setengah matang** — tidak boleh
+  ada tahap yang ditinggal separuh lalu ditinggal pindah ke CECEP.
+
+Kompensasi tetap berlaku: RAP/Pagu nanti lahir dengan `company_id` sejak baris
+pertama → nol backfill, nol Red-Line untuk modul itu.
+
+**Konsekuensi operasional yang mengikat:** karena "tuntas" adalah syarat, setiap
+tahap T1–T7 punya Exit Criteria eksplisit (§9) dan **tidak boleh dilewati sebagian**.
+Definisi "tuntas" = seluruh checklist L2 doc 09 §2 tercentang, bukan "tahapnya sudah
+dikerjakan".
 
 Catatan: langkah 8 CECEP (UI builder AHSP company) **jauh lebih bermakna**
 pasca-multi-company — `source='company'` akhirnya punya arti "company yang mana",

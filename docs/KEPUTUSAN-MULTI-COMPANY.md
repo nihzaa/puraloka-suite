@@ -68,8 +68,10 @@ tidak relevan"). **Resolusi: Never Build List benar; entri taksonomi sudah dikor
 > - **Tripwire #1 akan tersentuh:** CECEP langkah 7 (RAP/Pagu) = commitment ledger.
 >
 > Keputusan pengganti: **`docs/superpowers/specs/2026-07-18-enterprise-architecture/Engineering-Constitution/adr/ADR-011-multi-tenant-strategy.md`** (ACCEPTED).
-> Mandat "tuntaskan CECEP dulu" **dicabut founder 2026-07-28**: CECEP DIBEKUKAN,
-> multi-tenant dikerjakan tuntas dulu (ADR-011 §2 D1).
+> Mandat "tuntaskan CECEP dulu" **ditunda founder 2026-07-28**: CECEP DITUNDA
+> (bukan dibekukan — hasil langkah 1–6 tetap utuh & dipakai), multi-tenant
+> dikerjakan **tuntas** dulu (ADR-011 §2 D1). Rasionalisasi: sistem belum dipakai
+> operasional nyata → nol data produksi = waktu termurah untuk retrofit pondasi.
 >
 > Dokumen ini **tidak salah** — kondisinya berubah persis lewat mekanisme tripwire
 > yang ia rancang sendiri. Bagian di bawah dipertahankan sebagai jejak alasan
