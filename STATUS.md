@@ -112,14 +112,16 @@ Phase 1 (Program A) ✅ · Phase 2 (Program B) ✅.
 
 ## Keputusan terbuka menunggu Nizar
 
-**A. (BARU, memblokir T1 multi-tenant) "≥2 kontributor review"** — checklist L2
-   (`09-saas-and-tenancy-readiness.md` §2 item 6) eksplisit: migrasi ini **tidak
-   solo-safe**. Tim saat ini 1 orang. Opsi: reviewer eksternal untuk T3 & T5 saja
-   (dua tahap paling berisiko), atau ack tertulis founder yang mengakui pengecualian
-   secara sadar. Detail: ADR-011 §10 R7.
-**B. (BARU, tidak memblokir) Pelanggan pertama punya >1 badan usaha?** Menentukan
+~~**A. "≥2 kontributor review"**~~ — **TERJAWAB 2026-07-28**: ack tertulis founder +
+   **Dokumen Audit Pra-Eksekusi** wajib untuk T3 & T5 (diff lengkap · angka
+   sebelum/sesudah hasil dry-run · rencana rollback teruji · daftar yang TIDAK
+   diverifikasi). Pengecualian diakui sadar. Detail: ADR-011 §10 R7.
+**B. (tidak memblokir) Pelanggan pertama punya >1 badan usaha?** Menentukan
    apakah butuh level `tenants` di atas `companies` sekarang atau cukup nanti.
    Default sementara: cukup `companies` + `parent_company_id`. ADR-011 §3.
+
+**Mandat eksekusi (founder 2026-07-28):** T1 & T2 dikerjakan **otonom** (additive
+murni, nol ubah data). **Berhenti wajib lapor sebelum T3.**
 
 0. **KEAMANAN (mendesak, repo public):** rotasi 4 password test yang sempat bocor di
    `gate-1a-preconditions-response.md` (sudah diredaksi; nilai asli tetap di riwayat

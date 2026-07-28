@@ -424,19 +424,43 @@ Sering terlewat karena portal jarang disentuh — **catat eksplisit di T5**.
 Mitigasi: index covering `projects(id, company_id)`, pola `(SELECT auth_company_id())`,
 baseline EXPLAIN ANALYZE sebelum T5c.
 
-### R7 — "≥2 kontributor" vs tim 1 orang (SEDANG, organisasional)
-Doc 09 §2 item 6 eksplisit: "migrasi ini tidak solo-safe". Tak bisa dipecahkan
-teknis. **Diangkat ke founder di T0**, bukan ditemukan di T7. Opsi: reviewer
-eksternal untuk T3 & T5 saja (dua tahap paling berisiko), atau ack tertulis founder
-yang mengakui pengecualian secara sadar.
+### R7 — "≥2 kontributor" vs tim 1 orang — **TERJAWAB founder 2026-07-28**
+Doc 09 §2 item 6 eksplisit: "migrasi ini tidak solo-safe". Tak bisa dipecahkan teknis.
+
+**Keputusan founder: ack tertulis + audit rinci, BUKAN reviewer eksternal.**
+
+Mekanisme pengganti yang mengikat (ini menggantikan "≥2 kontributor", jadi harus
+lebih ketat dari review biasa — bukan sekadar dilewati):
+
+Untuk **T3** (tambah `company_id` + backfill) dan **T5** (aktifkan RLS) — dua tahap
+paling berisiko — WAJIB disiapkan **Dokumen Audit Pra-Eksekusi** berisi:
+1. **Diff lengkap** SQL/kode yang akan dijalankan (bukan ringkasan).
+2. **Angka sebelum/sesudah per tabel** hasil dry-run — mis. T3: "2.620 assembly →
+   `company_id NULL`, 418 → tenant-1" (angka konkret, bukan deskripsi).
+3. **Rencana rollback** yang sudah diuji, bukan diasumsikan.
+4. **Daftar apa yang TIDAK diverifikasi** (batas pengetahuan yang jujur).
+
+Founder me-review dokumen itu dan memberi **ack tertulis eksplisit** sebelum
+eksekusi. Ack tersimpan di PR sebagai jejak.
+
+**Pengecualian ini diakui sadar dan tercatat** — bukan syarat yang dilupakan.
+Konsekuensi yang diterima: tidak ada mata kedua yang independen; mitigasinya adalah
+kedalaman dokumentasi + reversibilitas (setiap tahap T3/T5 dirancang dapat
+di-rollback granular).
 
 ---
 
 ## 11. Pertanyaan terbuka tersisa untuk founder
 
-1. **≥2 kontributor review** (R7) — bagaimana dipenuhi dengan tim 1 orang?
+1. ~~**≥2 kontributor review**~~ — **TERJAWAB 2026-07-28**: ack tertulis founder +
+   Dokumen Audit Pra-Eksekusi untuk T3 & T5 (lihat §10 R7).
 2. **Pelanggan pertama punya >1 badan usaha?** Menentukan `tenants` vs `companies`
-   sekarang atau nanti (§3, ditunda sampai terbukti perlu).
+   sekarang atau nanti (§3, ditunda sampai terbukti perlu). **Tidak memblokir T1–T2.**
+
+### Mandat eksekusi otonom (founder 2026-07-28)
+Founder memberi green-light **T1 dan T2 dikerjakan otonom** tanpa tanya per-langkah
+(keduanya additive murni, nol perubahan data existing). **Berhenti wajib lapor
+sebelum T3** — di sanalah Dokumen Audit Pra-Eksekusi pertama disiapkan.
 
 ---
 
