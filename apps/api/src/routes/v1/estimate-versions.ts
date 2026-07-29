@@ -230,6 +230,8 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
     '/api/v1/estimate-versions/:id',
     { preHandler: [authenticate, requirePermission('cecep:estimate:view')] },
     async (request, reply) => {
+      // T4h: tanpa saringan ini, detail estimasi + seluruh itemnya terbaca
+      // lintas tenant hanya dengan mengetahui id versi.
       const { data: v, error } = await supabase
         .from('estimate_versions')
         .select(`id, scenario_id, version_number, status, total_amount,
@@ -238,7 +240,8 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
                  items:estimate_items(id, quantity, amount, sort_order, notes,
                    cost_code:cost_codes(code, name),
                    assembly:assemblies(id, code, name, output_unit_code, source, version_number))`)
-        .eq('id', request.params.id).maybeSingle()
+        .eq('id', request.params.id)
+        .in('scenario_id', await skenarioIdsTenant(request)).maybeSingle()
       if (error) return reply.status(500).send({ error: error.message })
       if (!v) return reply.status(404).send({ error: 'Estimate Version tidak ditemukan' })
       return reply.send({ data: v })
@@ -260,7 +263,8 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
         .from('estimate_versions')
         .select(`id, created_at,
                  items:estimate_items(amount, cost_code:cost_codes(code, name))`)
-        .eq('id', request.params.id).maybeSingle()
+        .eq('id', request.params.id)
+        .in('scenario_id', await skenarioIdsTenant(request)).maybeSingle()
       if (error) return reply.status(500).send({ error: error.message })
       if (!v) return reply.status(404).send({ error: 'Estimate Version tidak ditemukan' })
 
@@ -611,8 +615,11 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('cecep:estimate:manage')] },
     async (request, reply) => {
       const { id, itemId } = request.params
+      // T4h: DELETE item sebelumnya tanpa gerbang, padahal POST item di atasnya
+      // sudah punya — inkonsistensi dalam satu file yang sama.
       const { data: v } = await supabase
-        .from('estimate_versions').select('id, status').eq('id', id).maybeSingle()
+        .from('estimate_versions').select('id, status').eq('id', id)
+        .in('scenario_id', await skenarioIdsTenant(request)).maybeSingle()
       if (!v) return reply.status(404).send({ error: 'Estimate Version tidak ditemukan' })
       if (v.status !== 'draft') {
         return reply.status(409).send({ error: 'Item hanya bisa dihapus saat Estimate Version draft' })
