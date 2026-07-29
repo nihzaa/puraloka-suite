@@ -12,7 +12,7 @@ import { createPortal } from "react-dom";
 import { api } from "@/lib/api";
 import {
   Calculator, Plus, X, ChevronRight, ChevronDown, BookOpen, Coins,
-  Layers, Send, Trash2, CheckCircle2, BadgeCheck, PlayCircle, CircleOff,
+  Layers, Send, Trash2, CheckCircle2, BadgeCheck, PlayCircle, CircleOff, Pencil,
 } from "lucide-react";
 
 const C = {
@@ -574,7 +574,22 @@ function KatalogTab() {
   const [open, setOpen] = useState<string | null>(null);
   const [hsp, setHsp] = useState<Record<string, HspLive | "memuat" | "gagal">>({});
   const [adopsi, setAdopsi] = useState<Assembly | null>(null);
+  const [editAsm, setEditAsm] = useState<Assembly | null>(null);
+  const [aktivasi, setAktivasi] = useState<string | null>(null); // id sedang diaktifkan
   const [pesan, setPesan] = useState("");
+
+  async function aktifkan(a: Assembly) {
+    setAktivasi(a.id);
+    try {
+      await api.patch(`/api/v1/cecep/assemblies/${a.id}/activate`);
+      setPesan(`Analisa "${a.code}" diaktifkan — sudah bisa dipakai di estimasi.`);
+      muat();
+    } catch (e: unknown) {
+      const x = e as { response?: { data?: { error?: string } } };
+      setPesan("");
+      window.alert(x?.response?.data?.error ?? "Gagal mengaktifkan analisa");
+    } finally { setAktivasi(null); }
+  }
 
   useEffect(() => {
     api.get<{ data: Edition[] }>("/api/v1/cecep/editions").then(r => {
@@ -676,6 +691,14 @@ function KatalogTab() {
                 }}>
                   {a.source === "national" ? "NASIONAL" : "PERUSAHAAN"}
                 </span>
+                {a.status === "draft" && (
+                  <span style={{
+                    fontSize: 10.5, fontWeight: 700, borderRadius: 999, padding: "2px 8px",
+                    whiteSpace: "nowrap", color: C.yellow, border: `1px solid ${C.yellow}`,
+                  }}>
+                    DRAFT
+                  </span>
+                )}
               </button>
 
               {open === a.id && (
@@ -688,18 +711,31 @@ function KatalogTab() {
                   )}
                   {detail && <RincianAnalisa d={detail} />}
 
-                  {a.source === "national" && (
-                    <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}`,
-                                  display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                      <button onClick={() => setAdopsi(a)} style={btnGhost}>
-                        <Plus size={13} /> Jadikan analisa perusahaan
+                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}`,
+                                display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                    {a.source === "national" && (
+                      <>
+                        <button onClick={() => setAdopsi(a)} style={btnGhost}>
+                          <Plus size={13} /> Jadikan analisa perusahaan
+                        </button>
+                        <span style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.5 }}>
+                          Menyalin analisa ini supaya koefisiennya bisa Anda sesuaikan.
+                          Analisa nasional tidak berubah.
+                        </span>
+                      </>
+                    )}
+                    <button onClick={() => setEditAsm(a)} style={btnGhost}>
+                      <Pencil size={13} /> Edit (versi baru)
+                    </button>
+                    {a.status === "draft" && (
+                      <button onClick={() => void aktifkan(a)} disabled={aktivasi === a.id}
+                        style={{ ...btnGhost, color: C.green,
+                                 cursor: aktivasi === a.id ? "wait" : "pointer",
+                                 opacity: aktivasi === a.id ? 0.7 : 1 }}>
+                        <PlayCircle size={13} /> {aktivasi === a.id ? "Mengaktifkan…" : "Aktifkan"}
                       </button>
-                      <span style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.5 }}>
-                        Menyalin analisa ini supaya koefisiennya bisa Anda sesuaikan.
-                        Analisa nasional tidak berubah.
-                      </span>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -719,6 +755,22 @@ function KatalogTab() {
           onDone={(kode) => {
             setAdopsi(null);
             setPesan(`Analisa "${kode}" dibuat di katalog perusahaan.`);
+            muat();
+          }}
+        />
+      )}
+
+      {editAsm && (
+        <EditAssemblyModal
+          asal={editAsm}
+          onClose={() => setEditAsm(null)}
+          onDone={(sourceBaru) => {
+            setEditAsm(null);
+            setPesan(
+              sourceBaru === "company"
+                ? "Versi baru dibuat di katalog perusahaan (masih draft — aktifkan untuk dipakai)."
+                : "Versi baru dibuat (masih draft — aktifkan untuk dipakai)."
+            );
             muat();
           }}
         />
@@ -972,6 +1024,181 @@ function AdopsiModal({ asal, onClose, onDone }: {
             cursor: simpan ? "wait" : "pointer", opacity: simpan ? 0.7 : 1,
           }}>
             {simpan ? "Menyalin…" : "Salin ke katalog perusahaan"}
+          </button>
+          <button type="button" onClick={onClose} style={btnGhost}>Batal</button>
+        </div>
+      </form>
+    </div>,
+    document.body
+  );
+}
+
+/**
+ * Edit (versi baru) — correction (perbaikan, tetap berlabel sumber asal) atau
+ * deviation (cara kerja sengaja beda; kalau asalnya nasional, otomatis jadi
+ * milik perusahaan). Tak pernah mengubah baris asal — analisa yang sudah
+ * dipakai estimasi tetap ke versi lama.
+ */
+function EditAssemblyModal({ asal, onClose, onDone }: {
+  asal: Assembly; onClose: () => void; onDone: (sourceBaru: string) => void;
+}) {
+  const [editType, setEditType] = useState<"correction" | "deviation">("correction");
+  const [alasan, setAlasan] = useState("");
+  const [koef, setKoef] = useState<Record<string, string>>({});
+  const [simpan, setSimpan] = useState(false);
+  const [err, setErr] = useState("");
+
+  const komponen = [...asal.components].sort((a, b) => a.sort_order - b.sort_order);
+  const jadiCompany = editType === "deviation" && asal.source === "national";
+
+  async function kirim(e: React.FormEvent) {
+    e.preventDefault();
+    setSimpan(true); setErr("");
+    try {
+      const diubah = komponen
+        .filter(c => c.resource && koef[c.resource.code]?.trim())
+        .map(c => ({ resource_code: c.resource!.code, coefficient: Number(koef[c.resource!.code]) }))
+        .filter(x => Number.isFinite(x.coefficient) && x.coefficient > 0);
+
+      if (diubah.length === 0) {
+        setErr("Ubah minimal satu koefisien — versi baru identik dengan asalnya tidak dibuat.");
+        setSimpan(false);
+        return;
+      }
+      if (!alasan.trim()) {
+        setErr("Alasan wajib diisi — tercatat sebagai jejak audit.");
+        setSimpan(false);
+        return;
+      }
+
+      const r = await api.post<{ data: { source: string } }>(
+        `/api/v1/cecep/assemblies/${asal.id}/edit`,
+        { edit_type: editType, reason: alasan.trim(), components: diubah });
+      onDone(r.data.data.source);
+    } catch (e: unknown) {
+      const x = e as { response?: { data?: { error?: string } } };
+      setErr(x?.response?.data?.error ?? "Gagal membuat versi baru");
+    } finally { setSimpan(false); }
+  }
+
+  return createPortal(
+    <div
+      role="dialog" aria-modal="true" aria-label="Edit analisa (versi baru)"
+      onKeyDown={e => { if (e.key === "Escape") onClose(); }}
+      style={{
+        position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 70,
+        display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
+      }} onClick={onClose}>
+      <form onClick={e => e.stopPropagation()} onSubmit={kirim} style={{
+        ...card, width: "100%", maxWidth: 660, maxHeight: "88vh", overflowY: "auto", padding: 22,
+      }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+          <div>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: "0 0 4px" }}>
+              Edit <code style={{ color: C.navy }}>{asal.code}</code> (versi baru)
+            </h2>
+            <p style={{ fontSize: 12.5, color: C.mid, margin: 0, lineHeight: 1.55 }}>
+              Membuat versi {asal.version_number + 1} berstatus draft. Analisa yang sudah
+              dipakai di estimasi tetap memakai versi {asal.version_number} — tidak berubah.
+            </p>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Tutup"
+            style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}>
+            <X size={17} color={C.mid} />
+          </button>
+        </div>
+
+        {err && (
+          <div style={{ marginTop: 14, padding: "9px 12px", background: C.redBg,
+                        border: `1px solid ${C.red}`, borderRadius: 8, fontSize: 12.5, color: C.text }}>
+            {err}
+          </div>
+        )}
+
+        <div style={{ display: "grid", gap: 14, marginTop: 18 }}>
+          <div>
+            <label style={lbl}>Jenis perubahan</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="button" onClick={() => setEditType("correction")}
+                style={{ ...btnGhost, flex: 1, justifyContent: "center",
+                         background: editType === "correction" ? C.bg : "none",
+                         borderColor: editType === "correction" ? C.navy : C.border,
+                         color: editType === "correction" ? C.navy : C.mid }}>
+                Perbaikan (correction)
+              </button>
+              <button type="button" onClick={() => setEditType("deviation")}
+                style={{ ...btnGhost, flex: 1, justifyContent: "center",
+                         background: editType === "deviation" ? C.bg : "none",
+                         borderColor: editType === "deviation" ? C.navy : C.border,
+                         color: editType === "deviation" ? C.navy : C.mid }}>
+                Penyimpangan (deviation)
+              </button>
+            </div>
+            <p style={{ fontSize: 11.5, color: C.muted, margin: "6px 0 0", lineHeight: 1.5 }}>
+              {editType === "correction"
+                ? `Angka semula salah (mis. salah baca sumber). Hasil tetap "${asal.source === "national" ? "nasional" : "perusahaan"}" — labelnya dipertahankan.`
+                : jadiCompany
+                  ? "Cara kerja tim ini sengaja berbeda dari standar nasional. Hasil OTOMATIS jadi milik perusahaan — katalog nasional tetap murni."
+                  : "Cara kerja sengaja diubah dari versi sebelumnya."}
+            </p>
+          </div>
+          <div>
+            <label style={lbl}>Alasan</label>
+            <input value={alasan} onChange={e => setAlasan(e.target.value)}
+              placeholder={editType === "correction"
+                ? "Mis. koefisien terbaca 0,07, seharusnya 0,7"
+                : "Mis. tim kami butuh waktu lebih lama untuk pekerjaan ini"}
+              required style={inputStyle} />
+          </div>
+        </div>
+
+        <div style={{ marginTop: 20 }}>
+          <p style={{ fontSize: 12.5, fontWeight: 600, color: C.text, margin: "0 0 4px" }}>
+            Ubah koefisien
+          </p>
+          <p style={{ fontSize: 11.5, color: C.muted, margin: "0 0 10px", lineHeight: 1.5 }}>
+            Kosongkan yang tidak berubah. Minimal satu koefisien wajib diubah.
+          </p>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+            <thead>
+              <tr>
+                <th style={th}>Uraian</th>
+                <th style={{ ...th, textAlign: "right" }}>Sekarang</th>
+                <th style={{ ...th, textAlign: "right", width: 130 }}>Jadi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {komponen.map((c, i) => c.resource && (
+                <tr key={i}>
+                  <td style={{ ...td, lineHeight: 1.45 }}>
+                    {c.resource.name}
+                    <span style={{ color: C.muted, marginLeft: 6 }}>{c.resource.unit_code}</span>
+                  </td>
+                  <td style={{ ...td, textAlign: "right", fontFamily: "monospace", color: C.mid }}>
+                    {Number(c.coefficient)}
+                  </td>
+                  <td style={{ ...td, textAlign: "right" }}>
+                    <input
+                      value={koef[c.resource.code] ?? ""}
+                      onChange={e => setKoef(k => ({ ...k, [c.resource!.code]: e.target.value }))}
+                      placeholder={String(Number(c.coefficient))}
+                      inputMode="decimal"
+                      style={{ ...inputStyle, textAlign: "right", fontFamily: "monospace", padding: "6px 8px" }}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div style={{ display: "flex", gap: 9, marginTop: 20 }}>
+          <button type="submit" disabled={simpan} style={{
+            padding: "9px 16px", borderRadius: 9, border: "none", background: C.navy,
+            color: "#fff", fontSize: 13, fontWeight: 600,
+            cursor: simpan ? "wait" : "pointer", opacity: simpan ? 0.7 : 1,
+          }}>
+            {simpan ? "Menyimpan…" : "Buat versi baru (draft)"}
           </button>
           <button type="button" onClick={onClose} style={btnGhost}>Batal</button>
         </div>
