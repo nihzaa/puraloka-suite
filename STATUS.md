@@ -46,10 +46,22 @@ permanen (`t7-exit-criteria-l2.test.ts`) — memeriksa gabungan klaim "multi-ten
 selesai" terhadap **database**, bukan dokumen, karena klaim tingkat-program bisa
 runtuh tanpa satu pun test tahap jadi merah.
 
-**Kelima kriteria hijau:** company_id di 31 tabel B/AB/ANCHOR · 79 policy tenant,
+**(d) Menu Registry per company (migration 136)** — item checklist L2 yang sempat
+**terlewat** pada PR #108 dan ditutup di PR berikutnya. `menu_items` tetap katalog
+**global**; yang per-company hanya **pengecualian** di `company_menu_settings`.
+Nol baris = seluruh menu tampil, jadi migrasinya **netral**. Alternatif "salin 23
+menu per tenant" ditolak: menu adalah struktur aplikasi, bukan data pelanggan —
+menyalinnya berarti tiap menu baru di rilis berikutnya harus di-backfill, dan
+tenant yang terlewat diam-diam kehilangan fitur. **Bukan lapis keamanan** —
+menyembunyikan menu tidak menutup endpoint-nya (ada test yang menegaskan ini).
+Jebakan yang ikut ditutup: menyembunyikan menu induk tadinya menaikkan anaknya
+jadi **menu utama** — kebalikan dari yang diminta.
+
+**Keenam kriteria hijau:** company_id di 31 tabel B/AB/ANCHOR · 79 policy tenant,
 nol policy tak-terevaluasi, nol tabel mati · counter penomoran + UNIQUE global
 sudah dilepas · `auth_company_id()` berbasis keanggotaan (bukan "company
-satu-satunya") · nol helper per-baris. **802 test hijau.**
+satu-satunya") · Menu Registry per-company ter-isolasi · nol helper per-baris.
+**809 test hijau.**
 
 **T6 SELESAI (migration 135, PR #107).** `COUNT(*)+1` (migrasi 041) diganti counter
 transaksional. **Empat cacat, semuanya dibuktikan di dev — bukan teori:**

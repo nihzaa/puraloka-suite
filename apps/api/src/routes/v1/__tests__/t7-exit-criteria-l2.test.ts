@@ -129,7 +129,28 @@ describe('L2 · kriteria 4 — company switcher berbasis keanggotaan', () => {
   }, 60_000)
 })
 
-describe('L2 · kriteria 5 — biaya RLS tidak membuat sistem tak terpakai', () => {
+describe('L2 · kriteria 5 — Menu Registry per company', () => {
+  it('mekanisme pengecualian menu per company tersedia dan ter-isolasi', async () => {
+    // Item checklist L2 yang sempat terlewat saat T7 pertama dikerjakan —
+    // ditambahkan ke gerbang ini supaya "lengkap" berarti benar-benar lengkap,
+    // bukan lengkap menurut yang kebetulan saya periksa.
+    expect(
+      await hitung(`SELECT count(*)::int n FROM information_schema.tables
+        WHERE table_schema='public' AND table_name='company_menu_settings'`),
+      'company_menu_settings hilang — menu kembali seragam untuk semua tenant'
+    ).toBe(1)
+
+    expect(
+      await hitung(`SELECT count(*)::int n FROM pg_policies
+        WHERE schemaname='public' AND tablename='company_menu_settings'
+          AND policyname='tenant_isolation'`),
+      'pengaturan menu tanpa isolasi tenant — satu perusahaan bisa mengubah ' +
+        'tampilan perusahaan lain'
+    ).toBe(1)
+  }, 60_000)
+})
+
+describe('L2 · kriteria 6 — biaya RLS tidak membuat sistem tak terpakai', () => {
   it('seluruh helper konstan dievaluasi sebagai InitPlan', async () => {
     // Bagian dari exit criteria, bukan kerapian: tanpa ini T5c menghasilkan
     // sistem dengan query 3,5 detik — secara teknis "aman", secara praktis mati.
