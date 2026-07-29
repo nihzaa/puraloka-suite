@@ -338,7 +338,7 @@ export default async function kasbonRoutes(app: FastifyInstance) {
     // menunggu level berikutnya — status sumber baru berubah di langkah final.
     if (status === 'approved' && decision.step) {
       const rec = await recordApproval({
-        entityType: 'kasbon', entityId: id, level: decision.step.level, approvedBy: user.id,
+        entityType: 'kasbon', entityId: id, level: decision.step.level, approvedBy: user.id, companyId: request.companyId!,
       })
       if (!rec.ok) return reply.status(500).send({ error: 'Gagal mencatat persetujuan: ' + rec.error })
 
@@ -359,7 +359,7 @@ export default async function kasbonRoutes(app: FastifyInstance) {
 
     // Ditolak → jejak persetujuan dibersihkan supaya rantai mulai dari awal bila diajukan lagi.
     if (status === 'rejected') {
-      await clearApprovalProgress('kasbon', id)
+      await clearApprovalProgress('kasbon', id, request.companyId!)
     }
 
     const updateData: Record<string, unknown> = {

@@ -358,7 +358,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
       if (decision.step) {
         const rec = await recordApproval({
-          entityType: 'material_request', entityId: id, level: decision.step.level, approvedBy: request.currentUser!.id,
+          entityType: 'material_request', entityId: id, level: decision.step.level, approvedBy: request.currentUser!.id, companyId: request.companyId!,
         })
         if (!rec.ok) return reply.status(500).send({ error: 'Gagal mencatat persetujuan: ' + rec.error })
 
@@ -380,7 +380,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
       }
     } else {
       // Ditolak → jejak dibersihkan supaya rantai mulai dari level 1 bila diajukan ulang.
-      await clearApprovalProgress('material_request', id)
+      await clearApprovalProgress('material_request', id, request.companyId!)
     }
 
     const updates: Record<string, unknown> = {

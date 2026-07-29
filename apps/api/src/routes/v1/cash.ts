@@ -586,7 +586,7 @@ export default async function cashRoutes(app: FastifyInstance) {
       }
     } else {
       // Ditolak → jejak dibersihkan supaya rantai mulai dari level 1 bila diajukan ulang.
-      await clearApprovalProgress('project_expense', id)
+      await clearApprovalProgress('project_expense', id, request.companyId!)
     }
 
     // Cek saldo kalau approve dari petty_cash
@@ -624,7 +624,7 @@ export default async function cashRoutes(app: FastifyInstance) {
     if (expenseDecision?.step) {
       const rec = await recordApproval({
         entityType: 'project_expense', entityId: id,
-        level: expenseDecision.step.level, approvedBy: (request as any).currentUser!.id,
+        level: expenseDecision.step.level, approvedBy: (request as any).currentUser!.id, companyId: request.companyId!,
       })
       if (!rec.ok) return reply.status(500).send({ error: 'Gagal mencatat persetujuan: ' + rec.error })
 

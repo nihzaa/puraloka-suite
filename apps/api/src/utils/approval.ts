@@ -13,12 +13,23 @@ export type ApprovalEntityType =
   | 'estimate_version'  // CECEP Milestone 3 — approval via engine yang sama (ADR-007, 47 §3)
   | 'lessons_learned'   // CECEP Milestone 4 — titik approval ke-3 (47 §3); approve = memicu write-back
 
-/** Ambil langkah rantai aktif untuk sebuah entitas. */
-async function loadSteps(entityType: ApprovalEntityType): Promise<{ steps: ApprovalStep[]; error?: string }> {
+/**
+ * Ambil langkah rantai aktif untuk sebuah entitas — MILIK COMPANY INI.
+ *
+ * T4h: tanpa `company_id`, rantai approval efektif DIPAKAI BERSAMA semua tenant.
+ * Tenant A mengubah/menonaktifkan langkah approval akan mengubah alur approval
+ * tenant B — termasuk melumpuhkannya total, karena `steps.length === 0`
+ * bersifat fail-closed (nol orang bisa approve).
+ */
+async function loadSteps(
+  entityType: ApprovalEntityType,
+  companyId: string,
+): Promise<{ steps: ApprovalStep[]; error?: string }> {
   const { data, error } = await supabase
     .from('approval_chains')
     .select('id, is_active, approval_steps ( level, required_permission, min_amount, label )')
     .eq('entity_type', entityType)
+    .eq('company_id', companyId)
     .maybeSingle()
   if (error) return { steps: [], error: error.message }
   if (!data || data.is_active === false) return { steps: [] }
@@ -27,12 +38,17 @@ async function loadSteps(entityType: ApprovalEntityType): Promise<{ steps: Appro
 }
 
 /** Level yang SUDAH disetujui untuk entitas ini. */
-async function loadApprovedLevels(entityType: ApprovalEntityType, entityId: string): Promise<number[]> {
+async function loadApprovedLevels(
+  entityType: ApprovalEntityType,
+  entityId: string,
+  companyId: string,
+): Promise<number[]> {
   const { data } = await supabase
     .from('approval_progress')
     .select('level')
     .eq('entity_type', entityType)
     .eq('entity_id', entityId)
+    .eq('company_id', companyId)
   return (data ?? []).map(r => Number(r.level))
 }
 
@@ -60,7 +76,7 @@ export async function evaluateEntityApproval(
   request: FastifyRequest,
   params: { entityType: ApprovalEntityType; entityId: string; amount: number | null },
 ): Promise<EntityApprovalResult> {
-  const { steps, error } = await loadSteps(params.entityType)
+  const { steps, error } = await loadSteps(params.entityType, request.companyId!)
   if (error) {
     return { allowed: false, reason: 'no_steps', step: null, isFinalStep: false, applicable: [], configError: error }
   }
@@ -68,7 +84,7 @@ export async function evaluateEntityApproval(
   if (!perms) {
     return { allowed: false, reason: 'no_steps', step: null, isFinalStep: false, applicable: [], configError: 'get_role_permissions gagal' }
   }
-  const approvedLevels = await loadApprovedLevels(params.entityType, params.entityId)
+  const approvedLevels = await loadApprovedLevels(params.entityType, params.entityId, request.companyId!)
   return evaluateApproval({ steps, amount: params.amount, approvedLevels, userPermissions: perms })
 }
 
@@ -84,7 +100,7 @@ export async function canParticipateInChain(
   request: FastifyRequest,
   entityType: ApprovalEntityType,
 ): Promise<{ ok: boolean; configError?: string }> {
-  const { steps, error } = await loadSteps(entityType)
+  const { steps, error } = await loadSteps(entityType, request.companyId!)
   if (error) return { ok: false, configError: error }
   if (steps.length === 0) return { ok: false } // fail-closed
   const perms = await loadUserPermissions(request)
@@ -99,6 +115,8 @@ export async function recordApproval(params: {
   level: number
   approvedBy: string
   note?: string | null
+  /** T4h: wajib — jejak approval milik company mana. */
+  companyId: string
 }): Promise<{ ok: boolean; error?: string }> {
   const { error } = await supabase.from('approval_progress').insert({
     entity_type: params.entityType,
@@ -106,6 +124,7 @@ export async function recordApproval(params: {
     level: params.level,
     approved_by: params.approvedBy,
     note: params.note ?? null,
+    company_id: params.companyId,
   })
   // 23505 = level ini sudah tercatat (race/dobel) → aman diperlakukan sukses-idempoten.
   if (error && (error as { code?: string }).code !== '23505') return { ok: false, error: error.message }
@@ -113,6 +132,11 @@ export async function recordApproval(params: {
 }
 
 /** Bersihkan jejak persetujuan (dipakai saat entitas ditolak → rantai diulang dari awal). */
-export async function clearApprovalProgress(entityType: ApprovalEntityType, entityId: string): Promise<void> {
-  await supabase.from('approval_progress').delete().eq('entity_type', entityType).eq('entity_id', entityId)
+export async function clearApprovalProgress(
+  entityType: ApprovalEntityType,
+  entityId: string,
+  companyId: string,
+): Promise<void> {
+  await supabase.from('approval_progress').delete()
+    .eq('entity_type', entityType).eq('entity_id', entityId).eq('company_id', companyId)
 }

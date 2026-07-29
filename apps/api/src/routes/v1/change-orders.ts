@@ -573,7 +573,7 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
       // 'submitted' — nilai kontrak baru berubah di langkah final.
       if (decision.step) {
         const rec = await recordApproval({
-          entityType: 'change_order', entityId: id, level: decision.step.level, approvedBy: user.id,
+          entityType: 'change_order', entityId: id, level: decision.step.level, approvedBy: user.id, companyId: request.companyId!,
         })
         if (!rec.ok) return reply.status(500).send({ error: 'Gagal mencatat persetujuan: ' + rec.error })
 
@@ -735,7 +735,7 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
 
       // Ditolak → jejak persetujuan dibersihkan supaya rantai mulai dari level 1
       // lagi bila CO ini diajukan ulang.
-      await clearApprovalProgress('change_order', id)
+      await clearApprovalProgress('change_order', id, request.companyId!)
 
       // Fire-and-forget: notify submitter
       ;(async () => {

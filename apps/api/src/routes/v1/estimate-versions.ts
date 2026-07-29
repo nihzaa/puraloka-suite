@@ -718,7 +718,7 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
 
       if (decision.step) {
         const rec = await recordApproval({
-          entityType: 'estimate_version', entityId: id, level: decision.step.level, approvedBy: user.id,
+          entityType: 'estimate_version', entityId: id, level: decision.step.level, approvedBy: user.id, companyId: request.companyId!,
         })
         if (!rec.ok) return reply.status(500).send({ error: 'Gagal mencatat persetujuan: ' + rec.error })
 
@@ -780,7 +780,7 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
 
       // Ditolak → jejak persetujuan dibersihkan (rantai mulai dari awal bila diajukan
       // ulang), status kembali ke draft agar bisa direvisi.
-      await clearApprovalProgress('estimate_version', id)
+      await clearApprovalProgress('estimate_version', id, request.companyId!)
       const { error } = await supabase.from('estimate_versions')
         .update({ status: 'draft', updated_by: user.id }).eq('id', id)
       if (error) return reply.status(500).send({ error: error.message })
