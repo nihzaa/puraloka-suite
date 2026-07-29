@@ -43,8 +43,29 @@ beforeAll(async () => {
   userId = ua.id
   authIdA = ua.auth_id
 
+  // Company tenant A HARUS yang benar-benar dimiliki user impersonasi, bukan
+  // "yang tertua". Keduanya kebetulan sama di dev, tapi TIDAK di CI: seed CI
+  // membuat user SETELAH migrasi 126 berjalan, jadi user itu tak pernah dapat
+  // baris `company_members`, dan company tertua adalah company yang bukan
+  // miliknya. Test yang memakai company salah lalu melaporkan "bocor" —
+  // padahal yang salah adalah fixture-nya.
   companyA = (await c.query(
-    `SELECT id FROM companies ORDER BY created_at LIMIT 1`)).rows[0].id
+    `SELECT cm.company_id FROM company_members cm
+      WHERE cm.user_id = $1 AND cm.is_active
+      ORDER BY cm.is_default DESC LIMIT 1`, [userId]
+  )).rows[0]?.company_id
+    ?? (await c.query(`SELECT id FROM companies ORDER BY created_at LIMIT 1`)).rows[0].id
+
+  // Pastikan user ini memang anggota company A — kalau tidak, `auth_company_id()`
+  // memulangkan company lain (atau NULL) dan seluruh test di bawah mengukur hal
+  // yang salah. Lebih baik membuat keanggotaannya daripada diam-diam menguji
+  // konfigurasi yang tak pernah terjadi di produksi.
+  await c.query(
+    `INSERT INTO company_members (company_id, user_id, role_id, is_default, is_active, created_by)
+     SELECT $1, $2, u.role_id, true, true, $2 FROM users u WHERE u.id = $2
+     ON CONFLICT (company_id, user_id) DO UPDATE SET is_active = true, is_default = true`,
+    [companyA, userId]
+  )
   companyB = (await c.query(
     `INSERT INTO companies (code, name) VALUES ('uji-killswitch', 'Tenant B (kill-switch)')
      RETURNING id`)).rows[0].id
@@ -108,6 +129,28 @@ function tanpaRls<T>(fn: () => Promise<T>): Promise<T> {
     return await fn()
   })
 }
+
+describe('T5b — prasyarat fixture', () => {
+  it('auth_company_id() untuk user uji benar-benar memulangkan company A', async () => {
+    // Dijalankan PALING AWAL dan sengaja berdiri sendiri. Kalau prasyarat ini
+    // tak dipegang, seluruh assertion "tidak bocor" di bawahnya jadi tak
+    // bermakna — bisa hijau karena isolasi bekerja, bisa merah karena
+    // fixture-nya yang salah company, dan keduanya terlihat sama.
+    //
+    // Pernah terjadi: test memilih companyA sebagai "company tertua". Benar di
+    // dev, salah di CI (user seed CI tak punya baris company_members, jadi
+    // company tertua bukan miliknya) — dan gejalanya muncul sebagai laporan
+    // "RAB tenant lain bocor" yang menyesatkan.
+    const v = await sebagaiTenantA(async () =>
+      (await c.query(`SELECT auth_company_id() v`)).rows[0].v
+    )
+    expect(
+      v,
+      'fixture salah: user uji tidak teresolusi ke company A, jadi test di bawah ' +
+        'mengukur company yang keliru'
+    ).toBe(companyA)
+  }, 60_000)
+})
 
 describe('T5b — KILL-SWITCH 1: wrapper dimatikan, RLS harus menahan', () => {
   it('SELECT polos tanpa filter company tidak memulangkan proyek tenant lain', async () => {
