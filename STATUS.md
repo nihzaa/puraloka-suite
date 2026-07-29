@@ -24,6 +24,32 @@ kali keadaan berubah; detail selalu di dokumen rujukan.
 > **GERBANG MUTLAK:** tenant kedua TIDAK BOLEH dibuat di produksi sebelum Tahap 4
 > dan 5 selesai penuh. Selama itu sistem berisi tepat satu company.
 
+---
+
+### 🗺 PETA HORIZON — supaya konteks tidak hilang antar sesi
+
+Empat tingkat evolusi (`00-vision-and-business-architecture.md`). **Kita di mana
+dan apa pemicu naik tingkat:**
+
+| | Artinya | Status | Pemicu naik tingkat |
+|---|---|---|---|
+| **L1** | Satu perusahaan, pengguna internal | ✅ terlampaui | — |
+| **L2** | **Grup usaha** — beberapa PT/CV milik sendiri, data terisolasi | ✅ **arsitektur selesai** (T0–T7). ⚠️ **belum bisa dari UI** — buat badan usaha kedua masih perlu SQL manual | — |
+| **L2 penuh** | Sama, tapi founder bisa kelola sendiri dari UI | ✅ **SELESAI** (T9, migrasi 137). Buat PT/CV kedua dari `/pengaturan/perusahaan` — tak perlu SQL lagi | — |
+| **L3** | **SaaS komersial** — kontraktor LAIN berlangganan | ⛔ **BELUM & SENGAJA**. Isi: tenant lifecycle, billing, observability-produk, SLA, support | **Pelanggan eksternal committed** — "mutlak, bukan negotiable" (doc 09 §3) |
+| **L4** | Regional, multi-currency | ⛔ 5–10 th, sengaja tak dirinci | — |
+
+**⚠️ Jangan bangun apa pun dari daftar L3 sebelum ada pelanggan berbayar.**
+Dokumen visi menyebut itu ***enterprise theater*** — istilahnya sendiri, bukan
+tafsiran. Checklist lengkap L2→L3:
+`Master-Delivery-Blueprint/09-saas-and-tenancy-readiness.md` §3.
+
+**Bedanya L2 dan L3 dalam satu kalimat:** L2 = *beberapa badan usaha MILIK
+ANDA*; L3 = *perusahaan ORANG LAIN membayar untuk memakai sistem ini*. Membuat
+badan usaha dari UI **tidak** menjadikan sistem ini SaaS.
+
+---
+
 **Program D — Multi-Tenant (AKTIF).** Tahap: T0 ADR ✅ → **T1 audit 94 tabel ✅** →
 **T2 skema inti ✅ (migration 126)** → **T3 `company_id` ✅ (migration 127)** →
 **T4 repository wrapper ✅** → **T5a/T5b RLS dual-axis ✅ (migration 131–133)** →
@@ -56,6 +82,28 @@ tenant yang terlewat diam-diam kehilangan fitur. **Bukan lapis keamanan** —
 menyembunyikan menu tidak menutup endpoint-nya (ada test yang menegaskan ini).
 Jebakan yang ikut ditutup: menyembunyikan menu induk tadinya menaikkan anaknya
 jadi **menu utama** — kebalikan dari yang diminta.
+
+**T9 SELESAI (migrasi 137)** — L2 penuh dari UI. Mendirikan PT/CV kedua tak lagi
+butuh SQL manual: halaman `/pengaturan/perusahaan` + endpoint `POST /companies`.
+
+**Otorisasi — keputusan founder 2026-07-29: hanya PEMILIK GRUP** (Opsi B;
+rekomendasi saya Opsi A "permission baru" tidak dipakai, founder pilih yang lebih
+ketat). Kenapa bukan permission biasa: seluruh 89 permission dievaluasi **dalam
+konteks company aktif** ("boleh apa orang ini di perusahaan ini"), sementara
+mendirikan badan usaha adalah tindakan **di atas** semua perusahaan — memaksakannya
+ke model per-company berarti bertanya "di perusahaan mana Anda boleh mendirikan
+perusahaan?". Temuan yang membuat ini penting: `settings:manage` (satu-satunya
+kandidat yang ada) dipegang admin **dan direktur** — memakainya berarti direktur
+di PT anak bisa mendirikan badan usaha atas nama grup.
+
+Model: **tanpa tabel `group_owners`**. Grup = pohon `parent_company_id` yang sudah
+ada; kepemilikan ditaruh di akarnya (`companies.owner_user_id`), anak mewarisi.
+`is_group_owner()` fail-closed. **Kepemilikan grup BUKAN gerbang akses data** —
+nol policy RLS membacanya, dijaga test.
+
+Endpoint menjamin **company + keanggotaan pembuat lahir bersama**; kalau keanggotaan
+gagal, company-nya dibatalkan. Itu menutup kegagalan paling mungkin dari INSERT
+manual: perusahaan yang **tak bisa dimasuki siapa pun**, termasuk pembuatnya.
 
 **Keenam kriteria hijau:** company_id di 31 tabel B/AB/ANCHOR · 79 policy tenant,
 nol policy tak-terevaluasi, nol tabel mati · counter penomoran + UNIQUE global
