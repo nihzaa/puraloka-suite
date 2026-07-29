@@ -7,6 +7,7 @@ import { resolveRecipients } from '../../utils/notification-routing.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { computeAndPersistPenalty, estimatePenalty } from '../../utils/penalty.js'
 import { computeAging, retentionOutstanding, validateDpDeduction } from '../../lib/ar-register.js'
+import { proyekBolehDibaca, proyekMilikTenant } from '../../utils/tenant-guard.js'
 
 const ALLOWED_IMAGE_PDF = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
 
@@ -204,7 +205,11 @@ export default async function financeRoutes(app: FastifyInstance) {
       .range(off, off + lim - 1)
 
     if (status) q = q.eq('status', status)
-    if (project_id) q = q.eq('project_id', project_id)
+    // T4g: SELALU di-scope; project_id hanya mempersempit. Sebelumnya tanpa
+    // parameter itu = SELURUH invoice semua perusahaan.
+    const idProyekInv = await proyekBolehDibaca(request, project_id)
+    if (idProyekInv === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    q = q.in('project_id', idProyekInv)
     if (type) q = q.eq('invoice_type', type)
 
     const { data, error, count } = await q
@@ -239,7 +244,9 @@ export default async function financeRoutes(app: FastifyInstance) {
       .gt('amount_due', 0)
       .order('due_date', { ascending: true })
       .limit(1000)
-    if (q.project_id) query = query.eq('project_id', q.project_id)
+    const idProyekAging = await proyekBolehDibaca(request, q.project_id)
+    if (idProyekAging === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    query = query.in('project_id', idProyekAging)
 
     const { data, error } = await query
     if (error) return reply.status(500).send({ error: error.message })
@@ -492,11 +499,14 @@ export default async function financeRoutes(app: FastifyInstance) {
     }
 
     // ── Validasi project exists dan akses ────────────────────────────────────
-    const { data: project } = await supabase
+    // T4g: lewat wrapper — proyek di luar company aktif tak terlihat, jadi
+    // otomatis jadi 404. Tanpa ini, admin tenant A bisa MEMBUAT INVOICE yang
+    // menempel ke proyek tenant B (cek pm_id di bawah hanya berlaku utk role PM).
+    const { data: project } = await request.db!
       .from('projects')
       .select('id, pm_id, commission_pct, is_deleted')
       .eq('id', body.project_id)
-      .single()
+      .maybeSingle()
     if (!project || project.is_deleted) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
 
     // PM hanya bisa buat invoice untuk proyek sendiri; admin bebas
@@ -771,12 +781,16 @@ export default async function financeRoutes(app: FastifyInstance) {
     if (!allowed.includes(status)) {
       return reply.status(400).send({ error: `Status harus salah satu dari: ${allowed.join(', ')}` })
     }
+    // T4g: invoices kategori C. Saringan dipasang di UPDATE-nya sendiri —
+    // kalau invoice bukan milik tenant, nol baris terubah dan hasilnya 404,
+    // bukan "berhasil mengubah status invoice perusahaan lain".
     const { data, error } = await supabase
       .from('invoices')
       .update({ status, updated_at: new Date().toISOString() })
       .eq('id', id)
+      .in('project_id', await request.db!.projectIds())
       .select('id, status')
-      .single()
+      .maybeSingle()
     if (error) return reply.status(500).send({ error: error.message })
     return reply.send({ invoice: data })
   })
@@ -802,6 +816,10 @@ export default async function financeRoutes(app: FastifyInstance) {
         recorder:users!payments_recorded_by_fkey ( id, name ),
         cash_account:cash_accounts!payments_cash_account_id_fkey ( id, name, type )
       `)
+      // T4g: payments kategori C (mewarisi lewat invoice). Tanpa ini, seluruh
+      // riwayat pembayaran semua perusahaan terbaca — termasuk nominal,
+      // metode, bank, dan bukti transfernya.
+      .in('invoice_id', await request.db!.invoiceIds())
       .order('paid_at', { ascending: false })
       .range(off, off + lim - 1)
 
@@ -882,9 +900,10 @@ export default async function financeRoutes(app: FastifyInstance) {
   // Summary kasbon per mandor: total, breakdown per purpose, per project
   app.get('/api/v1/finance/kasbon-summary', {
     preHandler: [authenticate]
-  }, async (_request, reply) => {
+  }, async (request, reply) => {
     // Step 1: Ambil semua kasbons (flat, tanpa nested join yang rawan null)
-    const { data: kasbons, error: kErr } = await supabase
+    // T4g: lewat wrapper — kasbons kategori B, jadi .from() menyaring company.
+    const { data: kasbons, error: kErr } = await request.db!
       .from('kasbons')
       .select('id, amount, purpose, fund_source, status, kasbon_date, work_scope_id')
       .in('status', ['approved', 'pending', 'settled'])
@@ -1001,7 +1020,8 @@ export default async function financeRoutes(app: FastifyInstance) {
     const lim = Math.min(Math.max(1, Number(limit) || 100), 200)
     const off = Math.max(0, Number(offset) || 0)
 
-    let q = supabase
+    // T4g: lewat wrapper — kasbons kategori B.
+    let q = request.db!
       .from('kasbons')
       .select(`
         id, amount, fund_source, purpose, kasbon_date, work_scope_id,
@@ -1036,11 +1056,14 @@ export default async function financeRoutes(app: FastifyInstance) {
     const { id } = request.params
 
     // Ambil data invoice
+    // T4g: tanpa saringan ini, tenant A mencatat pembayaran atas invoice
+    // tenant B DAN mengunggah bukti transfer ke folder storage mereka.
     const { data: invoice, error: invErr } = await supabase
       .from('invoices')
       .select('id, status, total_amount, amount_paid, amount_due, project_id, due_date, penalty_waived')
       .eq('id', id)
-      .single()
+      .in('project_id', await request.db!.projectIds())
+      .maybeSingle()
 
     if (invErr || !invoice) return reply.status(404).send({ error: 'Invoice tidak ditemukan' })
     if (invoice.status === 'cancelled') return reply.status(400).send({ error: 'Invoice sudah dibatalkan' })
@@ -1187,8 +1210,10 @@ export default async function financeRoutes(app: FastifyInstance) {
     if (!body.reason || !String(body.reason).trim()) {
       return reply.status(400).send({ error: 'Alasan wajib diisi (tercatat di audit)' })
     }
+    // T4g: memutihkan denda invoice tenant lain = mengubah tagihan mereka.
     const { data: prev } = await supabase.from('invoices')
-      .select('id, penalty_waived, penalty_waived_reason').eq('id', id).maybeSingle()
+      .select('id, penalty_waived, penalty_waived_reason').eq('id', id)
+      .in('project_id', await request.db!.projectIds()).maybeSingle()
     if (!prev) return reply.status(404).send({ error: 'Invoice tidak ditemukan' })
 
     const { error } = await supabase.from('invoices').update({
@@ -1225,7 +1250,7 @@ export default async function financeRoutes(app: FastifyInstance) {
     const { id } = request.params
     const { data: inv } = await supabase.from('invoices')
       .select('id, project_id, total_amount, due_date, status, penalty_waived, penalty_waived_reason')
-      .eq('id', id).maybeSingle()
+      .eq('id', id).in('project_id', await request.db!.projectIds()).maybeSingle()
     if (!inv) return reply.status(404).send({ error: 'Invoice tidak ditemukan' })
 
     const { data: proj } = inv.project_id
@@ -1516,6 +1541,12 @@ export default async function financeRoutes(app: FastifyInstance) {
     if (!project_id) {
       return reply.status(400).send({ error: 'project_id wajib diisi' })
     }
+    // T4g: cek kepemilikan SEBELUM apa pun. Cek pm_id di bawah hanya berlaku
+    // untuk role PM — admin tenant A tanpa gerbang ini bisa membaca pengeluaran
+    // tertagih & saran komisi proyek tenant B.
+    if (!(await proyekMilikTenant(request, project_id))) {
+      return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    }
 
     // PM hanya bisa lihat proyek sendiri
     const currentUser = (request as any).currentUser!
@@ -1561,6 +1592,10 @@ export default async function financeRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const { project_id } = request.query as Record<string, string>
     if (!project_id) return reply.status(400).send({ error: 'project_id wajib diisi' })
+    // T4g: gerbang kepemilikan — cek pm_id di bawah hanya berlaku untuk role PM.
+    if (!(await proyekMilikTenant(request, project_id))) {
+      return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    }
 
     const currentUser = (request as any).currentUser!
     const { data: proj } = await supabase
@@ -1768,11 +1803,19 @@ export default async function financeRoutes(app: FastifyInstance) {
     const { date_from, date_to, project_id } = request.query as Record<string, string>
 
     // Fetch all projects (or single if filtered)
-    let projectQ = supabase
+    // T4g: lewat wrapper — projects ANCHOR, .from() menyaring company.
+    // Seluruh angka profitabilitas di bawah diturunkan dari daftar ini, jadi
+    // men-scope satu query ini cukup: query turunannya memakai projectIds.
+    let projectQ = request.db!
       .from('projects')
       .select('id, name, contract_model, contract_value, commission_pct')
       .eq('is_deleted', false)
-    if (project_id) projectQ = projectQ.eq('id', project_id)
+    if (project_id) {
+      if (!(await proyekMilikTenant(request, project_id))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
+      projectQ = projectQ.eq('id', project_id)
+    }
     const { data: projects } = await projectQ
 
     if (!projects || projects.length === 0) return reply.send({ projects: [], totals: {} })
