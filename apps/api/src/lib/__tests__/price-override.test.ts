@@ -127,3 +127,77 @@ describe('Harga khusus proyek — tidak menyembunyikan kesalahan', () => {
     expect(missing, 'harga resource lain bocor jadi harga resource ini').toEqual(['r1'])
   })
 })
+
+// ============================================================
+// SUMBU LINGKUP — harga company menang atas harga nasional.
+//
+// Ditemukan saat memverifikasi HSP terhadap workbook: Pekerja terhitung
+// Rp 100.000 (nasional SE-47) padahal harga company Cibuluh Rp 110.000,
+// sehingga HSP jadi 18.398,75 — bukan 17.778,75 yang cocok workbook.
+//
+// Sebabnya urutan: harga nasional di-seed ber-tanggal 2026 sementara harga
+// company ber-tanggal 2019 (mengikuti tahun workbook-nya). Dengan tanggal
+// sebagai penentu utama, acuan nasional MENGALAHKAN harga yang sengaja
+// diputuskan dipakai badan usaha.
+//
+// Secara makna juga begitu: workbook SE-47 sendiri menyatakan harganya "diubah
+// sesuai harga daerah masing-masing" — ia acuan, bukan pengikat.
+// ============================================================
+describe('Sumbu lingkup — harga sendiri menang atas acuan nasional', () => {
+  const nasional = (amount: number, tanggal: string): PriceBookEntryRow => ({
+    id: 'nas', resource_id: 'r1', amount, currency: 'IDR', version_number: 1,
+    effective_date: tanggal, expired_date: null, location: null, status: 'active',
+    company_id: null,
+  })
+  const milikKita = (amount: number, tanggal: string, loc: string | null = null): PriceBookEntryRow => ({
+    id: 'comp', resource_id: 'r1', amount, currency: 'IDR', version_number: 1,
+    effective_date: tanggal, expired_date: null, location: loc, status: 'active',
+    company_id: 'c1',
+  })
+
+  it('harga company menang meski TANGGALNYA LEBIH LAMA', () => {
+    // Kasus nyata: nasional 2026 Rp 100.000 vs company 2019 Rp 110.000.
+    const { resolved } = resolvePrices(
+      [nasional(100_000, '2026-01-01'), milikKita(110_000, '2019-01-01')],
+      ['r1'], HARI_INI)
+    expect(
+      resolved.get('r1')!.entry.amount,
+      'harga acuan nasional mengalahkan harga badan usaha sendiri'
+    ).toBe(110_000)
+  })
+
+  it('jatuh ke harga nasional bila badan usaha belum punya harganya', () => {
+    // 257 resource memang belum punya harga company — acuan nasional yang
+    // dipakai, dan itu benar.
+    const { resolved } = resolvePrices([nasional(100_000, '2026-01-01')], ['r1'], HARI_INI)
+    expect(resolved.get('r1')!.entry.amount).toBe(100_000)
+  })
+
+  it('di antara sesama harga company, yang TERBARU tetap menang', () => {
+    // Sumbu lingkup tidak menggantikan sumbu waktu — ia hanya di atasnya.
+    const { resolved } = resolvePrices(
+      [milikKita(110_000, '2019-01-01'), milikKita(150_000, '2026-01-01')],
+      ['r1'], HARI_INI)
+    expect(resolved.get('r1')!.entry.amount).toBe(150_000)
+  })
+
+  it('override PROYEK tetap menang atas harga company', () => {
+    // Urutan penuh: override proyek → harga company → harga nasional.
+    const { resolved } = resolvePrices(
+      [nasional(100_000, '2026-01-01'), milikKita(110_000, '2019-01-01')],
+      ['r1'], HARI_INI, null, [khusus(5_000_000)])
+    expect(resolved.get('r1')!.entry.amount).toBe(5_000_000)
+    expect(resolved.get('r1')!.override).toBeTruthy()
+  })
+
+  it('tanpa company_id sama sekali, perilaku seperti sebelum sumbu ini ada', () => {
+    // Menjaga pemanggil lama: entry tanpa kolom company_id tak boleh berubah
+    // perilakunya.
+    const tanpaKolom: PriceBookEntryRow = {
+      id: 'x', resource_id: 'r1', amount: 7_000, currency: 'IDR', version_number: 1,
+      effective_date: '2026-01-01', expired_date: null, location: null, status: 'active',
+    }
+    const { resolved } = resolvePrices([tanpaKolom], ['r1'], HARI_INI)
+    expect(resolved.get('r1')!.entry.amount).toBe(7_000)
+  })
+})

@@ -3,6 +3,9 @@ import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { computeAhsp, type AhspComponent, type ResourceGroup, type RoundingRule } from '../../lib/ahsp-engine.js'
+import {
+  resolvePrices, type PriceBookEntryRow, type ProjectPriceOverrideRow,
+} from '../../lib/price-resolver.js'
 
 // CECEP — AHSP katalog + kalkulator HSP (thin-slice pertama, 4e).
 //
@@ -329,6 +332,127 @@ export default async function ahspRoutes(app: FastifyInstance) {
         assembly: { id: asm.id, code: asm.code, name: asm.name, output_unit: asm.output_unit_code },
         input: { buk_fraction, rounding },
         result, // { groupTotals, subtotalD, bukAmount, hspRaw, hspRounded }
+      })
+    })
+
+  // ── GET /cecep/assemblies/:id/hsp-live — HSP dari harga YANG SEDANG BERLAKU ─
+  //
+  // Beda dengan POST /hsp di atas: yang itu menuntut pemanggil mengirim peta
+  // harga sendiri (dipakai simulasi "bagaimana kalau harga X jadi Y"). Yang ini
+  // MENGAMBIL harga dari price book — persis seperti sheet analisa Excel yang
+  // nge-link ke HS.UPAH/HS.BAHAN.
+  //
+  // Ada karena layar katalog butuh menampilkan HSP begitu analisa dibuka, dan
+  // tanpa endpoint ini UI harus mengambil price book lalu menerapkan aturan
+  // resolusi harga sendiri — menyalin logika (status active, masa berlaku,
+  // preferensi lokasi, override proyek) ke frontend, tempat ia pasti menyimpang
+  // diam-diam dari yang di backend.
+  //
+  // TIDAK fail-loud saat harga kurang. Berbeda dengan menyusun RAB — di sini
+  // pengguna sedang MELIHAT katalog, dan menolak menampilkan apa pun hanya
+  // karena satu komponen belum berharga membuat 43% katalog jadi layar error.
+  // Yang kurang dilaporkan eksplisit di `missing_prices` supaya terlihat mana
+  // yang perlu diisi, dan `hsp_partial` menandai angkanya belum utuh.
+  app.get<{ Params: { id: string }
+            Querystring: { price_date?: string; location?: string; project_id?: string
+                           buk_fraction?: string; rounding_step?: string } }>(
+    '/api/v1/cecep/assemblies/:id/hsp-live',
+    { preHandler: [authenticate, requirePermission('cecep:assembly:view')] },
+    async (request, reply) => {
+      const priceDate = request.query.price_date ?? new Date().toISOString().slice(0, 10)
+      const buk = request.query.buk_fraction != null ? Number(request.query.buk_fraction) : 0.1
+      const step = request.query.rounding_step != null ? Number(request.query.rounding_step) : 0
+      if (!(buk >= 0 && buk <= 1)) {
+        return reply.status(400).send({ error: 'buk_fraction wajib 0..1' })
+      }
+
+      const { data: asm, error } = await request.db!
+        .from('assemblies')
+        .select(`id, code, name, output_unit_code, status, source,
+                 components:assembly_components(coefficient, sort_order,
+                   resource:resources(id, code, name, category, unit_code))`)
+        .eq('id', request.params.id)
+        .maybeSingle()
+      if (error) return reply.status(500).send({ error: error.message })
+      if (!asm) return reply.status(404).send({ error: 'Assembly tidak ditemukan' })
+
+      type Comp = {
+        coefficient: number
+        resource: { id: string; code: string; name: string; category: string; unit_code: string } | null
+      }
+      const rows = ((asm.components ?? []) as unknown as Comp[]).filter((x) => x.resource)
+      const resourceIds = rows.map((x) => x.resource!.id)
+
+      const { data: pbe } = await request.db!
+        .from('price_book_entries')
+        .select('id, resource_id, amount, currency, version_number, effective_date, expired_date, location, status, company_id')
+        .in('resource_id', resourceIds)
+
+      // Harga khusus proyek ikut dihormati bila layar dibuka DARI konteks
+      // proyek — supaya angka di katalog sama dengan yang nanti masuk RAB
+      // proyek itu, bukan angka acuan yang berbeda.
+      let overrides: ProjectPriceOverrideRow[] = []
+      if (request.query.project_id) {
+        if (!(await request.db!.projectIds()).includes(request.query.project_id)) {
+          return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+        }
+        const { data: ov } = await request.db!
+          .viaProject('project_price_override', request.query.project_id)
+          .select('id, project_id, resource_id, amount, currency, effective_date, expired_date, reason')
+          .in('resource_id', resourceIds)
+        overrides = (ov ?? []) as ProjectPriceOverrideRow[]
+      }
+
+      const { resolved, missing } = resolvePrices(
+        (pbe ?? []) as PriceBookEntryRow[], resourceIds, priceDate,
+        request.query.location ?? null, overrides)
+
+      const comps: AhspComponent[] = []
+      const rincian: unknown[] = []
+      const tanpaHarga: string[] = []
+      for (const row of rows) {
+        const r = row.resource!
+        const group = GROUP_BY_CATEGORY[r.category]
+        const hit = resolved.get(r.id)
+        if (!group || !hit) {
+          if (!hit) tanpaHarga.push(r.code)
+          rincian.push({
+            resource_code: r.code, resource_name: r.name, unit: r.unit_code,
+            coefficient: Number(row.coefficient), category: r.category,
+            amount: null, subtotal: null, sumber: null,
+          })
+          continue
+        }
+        const hsd = Number(hit.entry.amount)
+        comps.push({ group, name: r.name, unit: r.unit_code, coefficient: Number(row.coefficient), hsd })
+        rincian.push({
+          resource_code: r.code, resource_name: r.name, unit: r.unit_code,
+          coefficient: Number(row.coefficient), category: r.category,
+          amount: hsd,
+          subtotal: Number((Number(row.coefficient) * hsd).toFixed(4)),
+          sumber: hit.override ? 'override_proyek' : 'price_book',
+          override_reason: hit.override?.reason ?? null,
+          effective_date: hit.entry.effective_date,
+        })
+      }
+
+      const result = comps.length
+        ? computeAhsp(comps, buk, { mode: step > 0 ? 'down' : 'none', step })
+        : null
+
+      return reply.send({
+        assembly: {
+          id: asm.id, code: asm.code, name: asm.name,
+          output_unit: asm.output_unit_code, source: asm.source, status: asm.status,
+        },
+        input: { price_date: priceDate, location: request.query.location ?? null,
+                 project_id: request.query.project_id ?? null, buk_fraction: buk },
+        components: rincian,
+        // Ditandai eksplisit: HSP yang dihitung dari sebagian komponen BUKAN
+        // HSP. Tanpa penanda ini angkanya terlihat sah padahal kurang.
+        hsp_partial: missing.length > 0,
+        missing_prices: tanpaHarga,
+        result,
       })
     })
 }

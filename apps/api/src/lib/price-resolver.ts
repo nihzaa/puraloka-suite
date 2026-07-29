@@ -30,6 +30,14 @@ export interface PriceBookEntryRow {
   expired_date: string | null
   location: string | null
   status: string
+  /**
+   * NULL = harga NASIONAL (acuan, dipakai bersama seluruh badan usaha).
+   * Terisi = harga milik badan usaha itu.
+   *
+   * Opsional agar pemanggil lama tetap berlaku: tanpa kolom ini, perilaku
+   * persis seperti sebelum sumbu lingkup ada.
+   */
+  company_id?: string | null
 }
 
 export interface ResolvedPrice {
@@ -98,15 +106,37 @@ export function resolvePrice(
     && (e.location === null || (location != null && e.location === location)))
   if (!usable.length) return null
 
-  const rank = (e: PriceBookEntryRow): [number, string, number] => [
-    location != null && e.location === location ? 1 : 0, // lokasi persis menang
+  // Urutan kemenangan, dari yang paling menentukan:
+  //   1. LINGKUP  — harga milik badan usaha menang atas harga nasional.
+  //   2. LOKASI   — lokasi persis menang atas entry umum.
+  //   3. TANGGAL  — lalu yang berlaku paling baru.
+  //   4. VERSI    — tie-break terakhir.
+  //
+  // Lingkup diletakkan PALING ATAS, bukan setelah tanggal. Alasannya konkret:
+  // harga nasional SE-47 di-seed ber-tanggal 2026 sementara harga company
+  // Cibuluh ber-tanggal 2019 (mengikuti tahun workbook-nya). Kalau tanggal yang
+  // menang, harga acuan nasional MENGALAHKAN harga yang sengaja diputuskan
+  // dipakai badan usaha — terbukti di dev: Pekerja terhitung Rp 100.000
+  // (nasional) padahal Cibuluh Rp 110.000, dan HSP jadi 18.398,75 bukan
+  // 17.778,75 yang cocok dengan workbook.
+  //
+  // Secara makna juga begitu: workbook SE-47 sendiri menyatakan harganya
+  // "diubah sesuai harga daerah masing-masing" — ia acuan, bukan pengikat.
+  // Harga yang lebih baru tapi bukan milik kita tidak lebih benar daripada
+  // harga kita sendiri yang lebih lama.
+  const rank = (e: PriceBookEntryRow): [number, number, string, number] => [
+    e.company_id != null ? 1 : 0,                        // harga sendiri menang
+    location != null && e.location === location ? 1 : 0, // lalu lokasi persis
     e.effective_date,                                    // lalu paling baru
     e.version_number,                                    // lalu versi tertinggi
   ]
   let best = usable[0]
   for (const e of usable.slice(1)) {
-    const [al, ad, av] = rank(e); const [bl, bd, bv] = rank(best)
-    if (al > bl || (al === bl && (ad > bd || (ad === bd && av > bv)))) best = e
+    const [ac, al, ad, av] = rank(e); const [bc, bl, bd, bv] = rank(best)
+    if (ac > bc
+      || (ac === bc && (al > bl
+        || (al === bl && (ad > bd
+          || (ad === bd && av > bv)))))) best = e
   }
   return { entry: best, matched_location: location != null && best.location === location }
 }
