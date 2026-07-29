@@ -382,11 +382,22 @@ per-langkah, verified 2026-07-26/28:**
   "discovery, jangan bangun"; titik sambung `resource_id` ↔ material procurement
   belum dipastikan.
 - 🟡 **8** AHSP Company: struktur DB ada sejak 107/117 · endpoint create-assembly
-  hidup (PR #96) · **KATALOG COMPANY TER-SEED** (PR #101): 417 analisa Cibuluh +
-  2.682 koefisien, verifikasi DB 100% nol-mismatch, idempoten. Paritas 87,1%
-  (metode Cibuluh terverifikasi: BUK 10% → TRUNC Rp10 pada TOTAL, bukan per-kolom;
-  status per-analisa TERSIMPAN: exact 366 / cacat-SUM-workbook 39 / unexplained 6).
+  hidup (PR #96) · **KATALOG COMPANY TER-SEED** (PR #101): 420 analisa Cibuluh +
+  2.698 koefisien, verifikasi DB 100% nol-mismatch, idempoten. Paritas: exact 368 /
+  cacat-SUM-workbook 39 / unexplained 6 / no_hsp 7.
   **Belum ada**: tombol Edit (correction/deviation) & Duplikat national→company di UI
+  **Koreksi bug parser (2026-07-30, migrasi 141):** `extract-ahsp-cibuluh.py`
+  mensyaratkan spasi wajib antara "1" dan kode satuan (`\b` gagal di 3 baris
+  workbook tanpa spasi: "1 M1BONGKARAN...", "1M3 PASANGAN BALOK GORDING
+  KY.KRUING/BORNEO"). Akibatnya 3 blok analisa (B.4, STD-58, STD-59) tak
+  terdeteksi — komponennya bocor ke blok B.3 sebelumnya (dedup resource
+  menjumlahkan koefisien: Pekerja 0,05+0,043=0,093, Mandor 0,025+0,02=0,045,
+  SEHARUSNYA murni 0,05/0,025). Diverifikasi manual thd baris mentah workbook
+  (0 regresi pada 433 blok lain yg sudah benar). B.3 lama diarsipkan
+  `status='superseded'`, baris baru `edit_type='correction'` dgn koefisien
+  benar (`edited_from` → baris lama, audit trail utuh). B.4/58/59 di-seed baru
+  (existing di dataset, belum pernah ada di DB). Ditemukan lewat pertanyaan
+  founder soal selisih HSP — bukan proses audit terjadwal.
 - ⏸️ **9** dpp_factor split PPN — sengaja ditunda (gerbang D10, butuh guardrail
   di-run ulang di env ber-PPN nyata + aba-aba founder)
 - 🟡 **10** UI `/estimasi` (Komposer+Katalog+Harga+rekap-PPN) hidup; **layar
@@ -407,8 +418,9 @@ M/S/N/O = 1:2/3/4/5). AI-import edisi baru (masa depan) = inisiatif terpisah, ta
 bertabrakan (parser+auditor, bukan penghasil angka) — lihat plan
 `humming-weaving-snail.md`.
 
-**Katalog AHSP di dev (terverifikasi 2026-07-28):** 2.620 nasional (SE-47-2026) +
-418 company (417 Cibuluh + 1 fixture) · 2.827 resources · 58 profil baja.
+**Katalog AHSP di dev (terverifikasi 2026-07-30):** 2.620 nasional (SE-47-2026) +
+421 company (420 Cibuluh aktif+1 superseded + 1 fixture) · 2.827 resources ·
+58 profil baja.
 
 **Prioritas CECEP SETELAH multi-tenant tuntas** (bukan sekarang — lihat kotak
 perubahan arah di atas): langkah 7 (RAP/Pagu, D6) — `rap_budget` /

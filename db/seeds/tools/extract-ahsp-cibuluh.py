@@ -53,8 +53,33 @@ UNIT_MAP = {
 }
 
 # Header blok: kolom B diawali "1 <SATUAN>" (mis. "1 M2 PASANGAN ...").
-HDR_RE = re.compile(r"^\s*1\s+(M1|M2|M3|M'|M\"|M|BH|BUAH|KG|TITIK|UNIT|LS|SET|ZAK|LBR|BTG|TON)\b", re.I)
-OUT_UNIT_RE = re.compile(r"^\s*1\s+(M1|M2|M3|M'|M|BH|BUAH|KG|TITIK|UNIT|LS|SET|ZAK|LBR|BTG|TON)\b", re.I)
+#
+# BUG DITEMUKAN 2026-07-30 (audit ulang atas permintaan founder, dipicu selisih
+# koefisien pada CIB-BGK-B.3 vs workbook): `\s+` mensyaratkan SPASI WAJIB antara
+# "1" dan satuan. Tiga baris di workbook diketik TANPA spasi:
+#   "1M3 PASANGAN BALOK GORDING KY.KRUING"   (ANALISA STANDAR no.58)
+#   "1M3 PASANGAN BALOK GORDING KY.BORNEO"   (ANALISA STANDAR no.59)
+#   "1 M1BONGKARAN TALANG/LISPLANG"          (ANALBONGKAR no.B.4)
+# Regex lama gagal cocok pada ketiganya, sehingga parser tidak pernah melihat
+# blok baru dimulai — komponennya (Pekerja/Mandor dsb) jatuh ke blok SEBELUMNYA
+# yang belum ditutup, dan dedup resource (baris 188 dst) MENJUMLAHKAN
+# koefisiennya ke komponen bernama sama. Dampak nyata: CIB-STD-57 tercemar 4
+# komponen milik analisa 58+59 (bukan hanya salah koefisien — 2 analisa
+# HILANG total dari dataset). Diverifikasi: menjumlahkan 14 komponen tercampur
+# CIB-STD-57 = Rp 881.023, sementara hsp_workbook tersimpan (milik blok 57
+# ASLI, sebelum tercemar) = Rp 304.410 — bukan salah bulat, beda ~3×.
+#
+# PERBAIKAN: `\s*` (spasi opsional) + lookahead non-alfanumerik-atau-huruf-besar
+# di akhir kode satuan, menggantikan `\b` (word boundary) yang gagal saat
+# karakter sesudah satuan adalah huruf (mis. "M1B..." — tak ada boundary di
+# situ). Diuji terhadap SELURUH 7 sheet analisa: menangkap PERSIS 3 blok di
+# atas, NOL regresi pada 433 blok yang sudah terdeteksi regex lama.
+HDR_RE = re.compile(
+    r'^\s*1\s*(M1|M2|M3|M\'|M"|M|BH|BUAH|KG|TITIK|UNIT|LS|SET|ZAK|LBR|BTG|TON)'
+    r'(?=[^A-Za-z0-9]|$|[A-Z])', re.I)
+OUT_UNIT_RE = re.compile(
+    r'^\s*1\s*(M1|M2|M3|M\'|M|BH|BUAH|KG|TITIK|UNIT|LS|SET|ZAK|LBR|BTG|TON)'
+    r'(?=[^A-Za-z0-9]|$|[A-Z])', re.I)
 
 SECTION_MARKERS = {
     'bahan :': 'material', 'bahan:': 'material',
