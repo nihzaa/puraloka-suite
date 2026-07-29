@@ -986,6 +986,7 @@ function HargaTab() {
   const [entries, setEntries] = useState<PriceEntry[]>([]);
   const [status, setStatus] = useState("");
   const [showNew, setShowNew] = useState(false);
+  const [prefill, setPrefill] = useState<{ code: string; name: string; unit_code: string } | null>(null);
   const [err, setErr] = useState("");
 
   const load = useCallback(async () => {
@@ -994,6 +995,11 @@ function HargaTab() {
     setEntries(r.data.data ?? []);
   }, [status]);
   useEffect(() => { void load(); }, [load]);
+
+  function isiHarga(r: { code: string; name: string; unit_code: string }) {
+    setPrefill(r);
+    setShowNew(true);
+  }
 
   const transition = async (id: string, to: string) => {
     setErr("");
@@ -1013,6 +1019,9 @@ function HargaTab() {
         <span style={{ fontSize: 12, color: C.muted }}>Alur: draft → verified → active (maju saja, dijaga database). Hanya <b>active</b> yang dipakai menghitung.</span>
       </div>
       {err && <div style={{ background: C.redBg, color: C.red, borderRadius: 8, padding: "8px 12px", fontSize: 12.5, marginBottom: 10 }}>{err}</div>}
+
+      <PrioritasHarga onIsi={isiHarga} />
+
       <div style={{ overflowX: "auto", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12 }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead><tr>
@@ -1045,15 +1054,115 @@ function HargaTab() {
           </tbody>
         </table>
       </div>
-      {showNew && <NewPriceModal onClose={() => setShowNew(false)} onDone={async () => { setShowNew(false); await load(); }} />}
+      {showNew && (
+        <NewPriceModal
+          initial={prefill}
+          onClose={() => { setShowNew(false); setPrefill(null); }}
+          onDone={async () => { setShowNew(false); setPrefill(null); await load(); }}
+        />
+      )}
     </div>
   );
 }
 
-function NewPriceModal({ onClose, onDone }: { onClose: () => void; onDone: () => Promise<void> }) {
-  const [query, setQuery] = useState("");
-  const [resources, setResources] = useState<{ code: string; name: string; unit_code: string }[]>([]);
-  const [resourceCode, setResourceCode] = useState("");
+interface ResourceTanpaHarga {
+  resource_id: string; code: string; name: string; category: string
+  unit_code: string; dipakai_analisa: number;
+}
+
+/**
+ * Daftar bahan/upah tanpa harga, diurutkan DAMPAK — bukan abjad.
+ *
+ * "Sewa Tripot" sendiri memblokir 213 analisa; mengisi harganya langsung
+ * menghidupkan 213 baris HSP sekaligus. Mengurutkan abjad berarti orang mengisi
+ * yang dampaknya kecil dulu, sekadar karena namanya duluan di huruf A.
+ */
+function PrioritasHarga({ onIsi }: { onIsi: (r: { code: string; name: string; unit_code: string }) => void }) {
+  const [data, setData] = useState<ResourceTanpaHarga[]>([]);
+  const [total, setTotal] = useState(0);
+  const [buka, setBuka] = useState(true);
+
+  const muat = useCallback(() => {
+    api.get<{ data: ResourceTanpaHarga[]; total_tanpa_harga: number }>(
+      "/api/v1/cecep/prices/missing?limit=15")
+      .then(r => { setData(r.data.data ?? []); setTotal(r.data.total_tanpa_harga ?? 0); })
+      .catch(() => {});
+  }, []);
+  useEffect(() => { muat(); }, [muat]);
+
+  if (total === 0) return null; // tak ada gunanya menunjukkan daftar kosong
+
+  return (
+    <div style={{ ...card, marginBottom: 14, background: C.yellowBg, borderColor: C.yellow }}>
+      <button onClick={() => setBuka(b => !b)} aria-expanded={buka}
+        style={{ display: "flex", width: "100%", alignItems: "center", gap: 9,
+                 padding: "11px 14px", background: "none", border: "none", cursor: "pointer",
+                 textAlign: "left" }}>
+        {buka ? <ChevronDown size={15} color={C.text} /> : <ChevronRight size={15} color={C.text} />}
+        <CircleOff size={15} color={C.yellow} style={{ flexShrink: 0 }} />
+        <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+          {total} bahan/upah belum punya harga
+        </span>
+        <span style={{ fontSize: 12, color: C.mid }}>
+          — mengisi yang berdampak besar dulu menghidupkan lebih banyak analisa sekaligus
+        </span>
+      </button>
+
+      {buka && (
+        <div style={{ borderTop: `1px solid ${C.yellow}`, padding: "4px 14px 12px" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+            <thead>
+              <tr>
+                <th style={th}>Bahan / upah</th>
+                <th style={th}>Kategori</th>
+                <th style={{ ...th, textAlign: "right" }}>Dipakai</th>
+                <th style={th}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map(r => (
+                <tr key={r.resource_id}>
+                  <td style={td}>
+                    {r.name}
+                    <span style={{ color: C.muted, marginLeft: 6, fontSize: 11.5 }}>{r.unit_code}</span>
+                  </td>
+                  <td style={{ ...td, color: C.mid }}>{r.category}</td>
+                  <td style={{ ...td, textAlign: "right", fontFamily: "monospace" }}>
+                    {r.dipakai_analisa} analisa
+                  </td>
+                  <td style={{ ...td, whiteSpace: "nowrap" }}>
+                    <button
+                      onClick={() => onIsi({ code: r.code, name: r.name, unit_code: r.unit_code })}
+                      style={btnGhost}
+                    >
+                      <Plus size={13} /> Isi harga
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {total > data.length && (
+            <p style={{ fontSize: 11.5, color: C.mid, margin: "8px 2px 0" }}>
+              Menampilkan {data.length} dari {total} — sisanya dampaknya lebih kecil.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function NewPriceModal({ initial, onClose, onDone }: {
+  initial?: { code: string; name: string; unit_code: string } | null;
+  onClose: () => void; onDone: () => Promise<void>;
+}) {
+  // `initial` datang dari daftar prioritas — resource-nya sudah pasti dipilih,
+  // jadi kolom cari langsung menampilkan hasilnya tanpa menunggu ketikan.
+  const [query, setQuery] = useState(initial?.name ?? "");
+  const [resources, setResources] = useState<{ code: string; name: string; unit_code: string }[]>(
+    initial ? [initial] : []);
+  const [resourceCode, setResourceCode] = useState(initial?.code ?? "");
   const [amount, setAmount] = useState("");
   const [effective, setEffective] = useState(new Date().toISOString().slice(0, 10));
   const [expired, setExpired] = useState("");
@@ -1067,12 +1176,19 @@ function NewPriceModal({ onClose, onDone }: { onClose: () => void; onDone: () =>
   // BUKAN union dari assembly (workaround lama; sekarang mencakup resource yang
   // belum dipakai assembly manapun tapi tetap perlu diberi harga).
   useEffect(() => {
+    // Saat resource sudah dipastikan lewat prefill, ketikan pertama (nama
+    // resource itu sendiri, yang dipakai untuk mengisi kolom cari) TIDAK boleh
+    // memicu pencarian ulang — kalau nama itu tak cocok persis hasil server,
+    // dropdown-nya berganti isi tanpa alasan yang terlihat pengguna, padahal
+    // resource-nya sudah benar dipilih.
+    if (initial && query === initial.name) return;
     const t = setTimeout(() => {
       const q = query.trim() ? `?q=${encodeURIComponent(query.trim())}&limit=50` : "?limit=50";
       api.get<{ data: { code: string; name: string; unit_code: string }[] }>(`/api/v1/cecep/resources${q}`)
         .then(r => setResources(r.data.data ?? [])).catch(() => {});
     }, 250);
     return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
 
   return (
