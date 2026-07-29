@@ -53,6 +53,29 @@ describe('T5a — kelengkapan policy tenant', () => {
     ).toEqual([])
   }, 30_000)
 
+  it('tak ada tabel ber-policy yang RLS-nya mati', async () => {
+    // Policy yang terpasang di tabel TANPA row-level security tidak dievaluasi
+    // sama sekali. Ia tetap muncul di pg_policies, tetap terbaca benar saat
+    // review, dan menjaga persis nol.
+    //
+    // Ini bukan skenario hipotetis: migrasi 130 memasang policy untuk 8 tabel
+    // dengan asumsi RLS-nya sudah menyala. Benar di dev — yang punya
+    // `rls_auto_enable()` di luar jalur migrasi — dan SALAH di database yang
+    // dibangun bersih dari migrasi. Di CI, `rab_items` tenant lain benar-benar
+    // bocor. Ditutup migrasi 134; test ini menjaga agar tak terulang.
+    const { rows } = await c.query(
+      `SELECT DISTINCT p.tablename
+         FROM pg_policies p
+         JOIN pg_class ct    ON ct.relname = p.tablename
+         JOIN pg_namespace n ON n.oid = ct.relnamespace AND n.nspname = 'public'
+        WHERE p.schemaname = 'public' AND ct.relkind = 'r' AND NOT ct.relrowsecurity`
+    )
+    expect(
+      rows.map((r) => r.tablename),
+      'punya policy tapi RLS mati = penjaga yang tampak ada tapi tak pernah bertugas'
+    ).toEqual([])
+  }, 30_000)
+
   it('policy tenant_isolation SELALU restrictive, tak pernah permissive', async () => {
     // Satu kata yang salah membalik arti policy: permissive di-OR (melebarkan),
     // restrictive di-AND (membatasi). Keduanya "jalan" tanpa error.
