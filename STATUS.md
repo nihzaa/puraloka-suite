@@ -320,6 +320,32 @@ per-langkah, verified 2026-07-26/28:**
 - 🟡 **2** Config Lapis1/2 — PPN reuse (`tax.ppn_rate` existing); **BUK & rounding
   BELUM di-config**, masih wajib eksplisit per-request (C1, tanpa default diam-diam)
 - ✅ **3** Metode per-estimasi + wiring engine↔config (engine paritas nyambung)
+- ✅ **4b HARGA POKOK TER-SEED (2026-07-29)** — menutup celah yang ditemukan lewat
+  pertanyaan founder: analisa sudah **nge-link** ke harga (nol kolom harga di
+  `assembly_components`, sesuai desain), tapi **harga pokoknya belum pernah
+  di-seed** — 2.766 resource dipakai analisa, **NOL** punya harga, sehingga
+  **100% analisa tak bisa menghitung HSP**. Rumus `=HS.BAHAN!D569` sudah
+  terpasang; sheet harganya yang kosong.
+  **Hasil: `price_book_entries` 67 → 2.625 baris.** HSP lengkap: nasional
+  **2.091/2.620 (80%)**, company **237/418 (57%)**.
+  **Paritas terverifikasi vs workbook sampai dua desimal** — B.2 BONGKARAN
+  RANGKA `17.778,75` sistem = `17.778,75` workbook; 4 dari 5 blok cocok persis.
+  **Pencocokan LEWAT RUMUS, bukan nama**: cocok-by-nama hanya 12% karena nama di
+  analisa dan di sheet harga memang beda penulisan (`"Pekerja"` → `"Pekerja /
+  Pembantu Tukang"`); rumus Excel-nya yang dipanen → 12% → **77%**.
+  **21 konflik rumus DITOLAK, tidak ditebak** — mis. `"Asbes Gelombang"` menunjuk
+  D181 (Rp 60.000, benar) di satu tempat dan D194 = `"Genteng Morando Glasur"`
+  (Rp 8.000) di tempat lain; keduanya sah secara Excel, isian workbook-nya yang
+  salah (kelas sama dgn 42 cacat internal terdokumentasi). **257 resource sengaja
+  dibiarkan tanpa harga** → fail-loud saat dipakai, founder mengisi lewat UI.
+  Lingkup: nasional `company_id NULL` (dipakai bersama; workbook SE-47 sendiri
+  menyatakan *"diubah sesuai harga daerah masing-masing"*) · Cibuluh → company
+  founder, Kab. Bandung (keputusan founder 2026-07-29). Idempoten.
+  ⚠️ **TEMUAN TERBUKA (bukan dari pekerjaan harga)**: blok `B.3 BONGKARAN KERAMIK`
+  koefisiennya berselisih — sistem 0,093/0,045 vs workbook 0,05/0,025. **Harganya
+  identik persis**; yang beda koefisien, berasal dari **impor analisa (langkah
+  8)**. Dataset mencatat sendiri alasannya (`"workbook 2 baris (0.043)"`) tapi
+  blok B.3 di workbook hanya 2 baris — perlu ditelusuri terpisah.
 - ✅ **4** Seed AHSP nasional PENUH: 2.620 assemblies (SE-47-2026) + 2.429 resources +
   15.149 komponen, terverifikasi 100% struktural (dataset↔DB↔workbook, nol mismatch)
   + fungsional (2.573 HSP cocok persis vs F workbook; 42 selisih = cacat internal

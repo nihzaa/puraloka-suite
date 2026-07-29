@@ -14,7 +14,7 @@ import {
   computeMaterialAggregation, computeRebarBar, summarizeRebarByDiameter,
   type TakeoffLineInput, type RebarTakeoffLine,
 } from '../../lib/rab-compute.js'
-import { resolvePrices, type PriceBookEntryRow } from '../../lib/price-resolver.js'
+import { resolvePrices, type PriceBookEntryRow, type ProjectPriceOverrideRow } from '../../lib/price-resolver.js'
 import { getTaxRate } from '../../utils/financial-config.js'
 
 // CECEP Milestone 3 — approval Estimate Version LEWAT engine ADR-007 (bukan jalur
@@ -551,8 +551,32 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
         .in('resource_id', resourceIds)
       if (pbErr) return reply.status(500).send({ error: pbErr.message })
 
+      // Harga khusus proyek (migrasi 140) — MENANG atas price book, tanpa
+      // menyentuhnya. Inilah yang membuat dua proyek dalam periode berlaku yang
+      // sama bisa memakai harga berbeda untuk resource yang sama, sementara
+      // harga acuannya tetap utuh untuk proyek lain.
+      // `.unsafe()`: versi dicari lewat id-nya untuk MENEMUKAN proyeknya —
+      // jadi `.viaProject()` yang justru mensyaratkan project_id tak bisa
+      // dipakai di sini. Aman: `versiMilikTenant(request, id)` di awal handler
+      // sudah memastikan versi ini milik company aktif.
+      const { data: verProj } = await request.db!
+        .unsafe('estimate_versions', 'mencari project_id DARI versi; gerbang tenant sudah lewat versiMilikTenant()')
+        .select('scenario:scenarios(project_id)')
+        .eq('id', id)
+        .maybeSingle()
+      const scVer = (verProj as { scenario?: { project_id?: string } | { project_id?: string }[] } | null)?.scenario
+      const proyekVersi = (Array.isArray(scVer) ? scVer[0] : scVer)?.project_id ?? null
+
+      const { data: ovr } = proyekVersi
+        ? await request.db!
+            .viaProject('project_price_override', proyekVersi)
+            .select('id, project_id, resource_id, amount, currency, effective_date, expired_date, reason')
+            .in('resource_id', resourceIds)
+        : { data: [] as unknown[] }
+
       const { resolved, missing } = resolvePrices(
-        (pbe ?? []) as PriceBookEntryRow[], resourceIds, priceDate, b.location ?? null)
+        (pbe ?? []) as PriceBookEntryRow[], resourceIds, priceDate, b.location ?? null,
+        (ovr ?? []) as ProjectPriceOverrideRow[])
       if (missing.length) {
         const missCodes = comps.filter(c => missing.includes(c.resource!.id)).map(c => c.resource!.code)
         return reply.status(422).send({
@@ -579,6 +603,42 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
           estimate_version_id: id, cost_code_id: asm.cost_code_id, assembly_id: asm.id,
           cbs_node_id: b.cbs_node_id ?? null, wbs_node_id: b.wbs_node_id ?? null,
           quantity: b.quantity, amount, notes: b.notes ?? null,
+          // Provenance harga (migrasi 139). Sebelumnya rincian ini hanya
+          // dikembalikan ke pemanggil lalu hilang begitu response ditutup —
+          // sehingga pertanyaan "kenapa RAB ini segini" setahun kemudian hanya
+          // bisa ditebak. Rekonstruksi tidak bisa diandalkan: harganya mungkin
+          // sudah expired, dan price_date yang dipakai tak tersimpan.
+          price_date: priceDate,
+          price_location: b.location ?? null,
+          hsp_snapshot: {
+            hsp: {
+              groupTotals: hsp.groupTotals,
+              subtotalD: hsp.subtotalD,
+              bukAmount: hsp.bukAmount,
+              bukFraction: b.buk_fraction,
+              hspRaw: hsp.hspRaw,
+              hspRounded: hsp.hspRounded,
+              rounding: b.rounding,
+            },
+            prices: comps.map((cc) => {
+              const r = resolved.get(cc.resource!.id)!
+              return {
+                resource_id: cc.resource!.id,
+                resource_code: cc.resource!.code,
+                coefficient: cc.coefficient,
+                amount: Number(r.entry.amount),
+                price_book_entry_id: r.entry.id,
+                effective_date: r.entry.effective_date,
+                location: r.entry.location,
+                matched_location: r.matched_location,
+                // Asal harga dicatat eksplisit. Tanpa ini, harga override
+                // terlihat persis seperti harga acuan di snapshot — dan
+                // pertanyaan "kenapa proyek ini beda" kembali tak terjawab.
+                sumber: r.override ? 'override_proyek' : 'price_book',
+                override_reason: r.override?.reason ?? null,
+              }
+            }),
+          },
         })
         .select('id').single()
       if (insErr) return reply.status(500).send({ error: insErr.message })
