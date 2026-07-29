@@ -226,14 +226,25 @@ Phase 1 (Program A) ✅ · Phase 2 (Program B) ✅.
    error di dev = informasi murah, konsisten P1).
    **Tanpa ack, T3a/T3b/T3c tidak dijalankan.**
 
-**Mandat eksekusi (founder 2026-07-28):** T1 & T2 otonom ✅ **SELESAI**.
-Berhenti di gerbang T3 sesuai rencana — menunggu keputusan C.
+**Mandat eksekusi (founder 2026-07-29):** *"saya setuju apa aja yang kamu
+putuskan asal hasilnya terbaik"* — keputusan TEKNIS diambil sendiri, tanpa
+bertanya per-langkah. Yang tetap dilaporkan (bukan ditanyakan): keputusan yang
+mengubah **jaminan sistem** (mis. membuka gerbang immutability, melepas
+service_role) dan keputusan **produk/pajak**. Dokumen Audit Pra-Eksekusi T5
+tetap dibuat — bukan untuk minta izin, tapi karena founder sendiri
+menetapkannya 2026-07-28 sebagai pengganti reviewer kedua, dan ia disiplin yang
+berguna untuk tahap paling berisiko.
 
-0. **KEAMANAN (mendesak, repo public):** rotasi 4 password test yang sempat bocor di
-   `gate-1a-preconditions-response.md` (sudah diredaksi; nilai asli tetap di riwayat
-   git) — terutama login admin dev.
-1. Masking angka Cibuluh di dokumen public (4 baris AHSP-GOLDEN-PROVENANCE +
-   report SE47-vs-Cibuluh yang masih untracked).
+~~0. **KEAMANAN: rotasi 4 password test**~~ — **DITUNDA atas keputusan founder
+   2026-07-29.** Alasan founder: sistem belum dipakai operasional nyata, dan repo
+   akan **dikembalikan ke private** sebelum go-live.
+   ⚠️ **Syarat yang mengikat:** rotasi tetap WAJIB dilakukan **sebelum**
+   (a) data operasional nyata masuk, ATAU (b) pengguna di luar founder diberi
+   akses — mana yang lebih dulu. Nilai lama tetap ada di riwayat git; mengubah
+   repo jadi private **tidak menghapus** yang sudah terlanjur ter-index/ter-clone.
+~~1. Masking angka Cibuluh~~ — report SE47-vs-Cibuluh sudah tak ada di working
+   tree (diverifikasi 2026-07-29). Ikut ditunda bersama keputusan #0 (alasan
+   sama: repo akan private).
 1b. Drop policy dev `"Allow all access on users"` (only-in-dev, permisif, tanpa
    migrasi pembuat — temuan schema-diff 4a) + konfirmasi migrasi 043–047
    (GL/asset/opname/SCM) tetap forward-draft.
@@ -241,7 +252,9 @@ Berhenti di gerbang T3 sesuai rencana — menunggu keputusan C.
    (570 estimate_items dll — dry-run sudah dilaporkan).
 2. GL in-app vs akuntansi eksternal (`docs/PETA-PRIORITAS-ERP.md` §5).
 3. Entitas PT/CV kedua realistis 1–2 tahun? (`docs/KEPUTUSAN-MULTI-COMPANY.md` §2).
-4. Aktifkan trigger audit append-only 073 (Red-Line by design).
+~~4. Aktifkan trigger audit append-only 073~~ — **SUDAH AKTIF** (diverifikasi
+   query ke dev 2026-07-29: `trg_audit_logs_no_update`/`no_delete` tgenabled='O').
+   Sempat dibuka SEKALI saat backfill T3 lalu dipasang kembali + dicek eksplisit.
 5. **Pajak atas potongan DP** (baru 2026-07-28): saat DP dipotong di invoice
    progres, pajak invoice progres saat ini tetap dihitung dari nilai progres
    PENUH (sebelum potongan DP) — konsisten kalkulasi existing, TIDAK diubah.
