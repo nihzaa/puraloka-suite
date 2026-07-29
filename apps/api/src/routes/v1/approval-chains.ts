@@ -13,8 +13,8 @@ import { logAuditEvent } from '../../utils/audit.js'
 export default async function approvalChainRoutes(app: FastifyInstance) {
 
   // ── GET /api/v1/approval-chains — semua rantai + langkahnya ────────────────
-  app.get('/api/v1/approval-chains', { preHandler: [authenticate] }, async (_request, reply) => {
-    const { data, error } = await supabase
+  app.get('/api/v1/approval-chains', { preHandler: [authenticate] }, async (request, reply) => {
+    const { data, error } = await request.db!
       .from('approval_chains')
       .select('id, entity_type, label, is_active, approval_steps ( id, level, required_permission, min_amount, label )')
       .order('entity_type', { ascending: true })
@@ -35,7 +35,7 @@ export default async function approvalChainRoutes(app: FastifyInstance) {
       if (typeof request.body?.is_active !== 'boolean') {
         return reply.status(400).send({ error: 'is_active (boolean) wajib' })
       }
-      const { data, error } = await supabase.from('approval_chains')
+      const { data, error } = await request.db!.from('approval_chains')
         .update({ is_active: request.body.is_active, updated_by: request.currentUser!.id, updated_at: new Date().toISOString() })
         .eq('entity_type', entityType).select('entity_type, is_active').maybeSingle()
       if (error) return reply.status(500).send({ error: error.message })
@@ -65,7 +65,7 @@ export default async function approvalChainRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: 'min_amount harus angka >= 0 atau kosong' })
       }
 
-      const { data: chain } = await supabase.from('approval_chains')
+      const { data: chain } = await request.db!.from('approval_chains')
         .select('id, approval_steps ( level )').eq('entity_type', entityType).maybeSingle()
       if (!chain) return reply.status(404).send({ error: 'Rantai tidak ditemukan' })
 
@@ -75,7 +75,7 @@ export default async function approvalChainRoutes(app: FastifyInstance) {
         return reply.status(409).send({ error: `Level ${nextLevel} sudah ada` })
       }
 
-      const { data, error } = await supabase.from('approval_steps').insert({
+      const { data, error } = await request.db!.from('approval_steps').insert({
         chain_id: chain.id, level: nextLevel, required_permission,
         min_amount: min_amount ?? null, label: label ?? null,
       }).select('id, level, required_permission, min_amount, label').single()
@@ -109,7 +109,7 @@ export default async function approvalChainRoutes(app: FastifyInstance) {
       if (b.label !== undefined) patch.label = b.label
       if (Object.keys(patch).length === 0) return reply.status(400).send({ error: 'Tidak ada field yang diubah' })
 
-      const { data, error } = await supabase.from('approval_steps').update(patch)
+      const { data, error } = await request.db!.from('approval_steps').update(patch)
         .eq('id', id).select('id, level, required_permission, min_amount, label').maybeSingle()
       if (error) {
         if ((error as { code?: string }).code === '23503') {
@@ -131,12 +131,12 @@ export default async function approvalChainRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('approval:chains:manage')] },
     async (request, reply) => {
       const { id } = request.params
-      const { data: step } = await supabase.from('approval_steps')
+      const { data: step } = await request.db!.from('approval_steps')
         .select('id, chain_id, level').eq('id', id).maybeSingle()
       if (!step) return reply.status(404).send({ error: 'Langkah tidak ditemukan' })
 
       // ANTI-LOCKOUT: rantai kosong = fail-closed = nol orang bisa menyetujui modul itu.
-      const { count } = await supabase.from('approval_steps')
+      const { count } = await request.db!.from('approval_steps')
         .select('id', { count: 'exact', head: true }).eq('chain_id', step.chain_id)
       if ((count ?? 0) <= 1) {
         return reply.status(400).send({
@@ -144,7 +144,7 @@ export default async function approvalChainRoutes(app: FastifyInstance) {
         })
       }
 
-      const { error } = await supabase.from('approval_steps').delete().eq('id', id)
+      const { error } = await request.db!.from('approval_steps').delete().eq('id', id)
       if (error) return reply.status(500).send({ error: error.message })
       void logAuditEvent(request, {
         tableName: 'approval_steps', recordId: id, action: 'approval.step.delete',

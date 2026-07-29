@@ -30,6 +30,24 @@ export default defineConfig({
     // koneksi ditutup di tengah query lain). Berlaku untuk seluruh Feature 1.3
     // (kasbon/CO/procurement), bukan hanya kasbon.
     fileParallelism: false,
+    // Default vitest 5 detik terlalu ketat untuk repo ini: mayoritas test adalah
+    // INTEGRATION test terhadap Postgres nyata (Supabase pooler, lintas jaringan),
+    // bukan unit test in-memory. Di lokal 5 detik cukup karena koneksi hangat dan
+    // DB tidak diperebutkan; di CI — yang berbagi satu database dan berjalan
+    // sequential — test yang sama rutin menembus 5 detik.
+    //
+    // Gejalanya menipu: "Test timed out in 5000ms" terlihat seperti test/kode
+    // yang salah, padahal tidak ada yang salah. Sudah tiga kali membuat CI merah
+    // di sesi T3/T4 (supplier-invoice-3way, estimate-custom-item, ahsp-endpoint),
+    // masing-masing menghabiskan satu siklus ~9 menit untuk didiagnosis ulang.
+    //
+    // 30 detik dipilih, bukan angka besar sembarang: cukup longgar untuk query
+    // lintas jaringan yang lambat, tapi tetap menangkap test yang benar-benar
+    // menggantung (hang) alih-alih membiarkannya berjalan sampai job timeout.
+    // Test yang butuh lebih lama (DDL 32 tabel, rollback penuh) tetap menyatakan
+    // timeout-nya sendiri secara eksplisit — lihat ADR-011 §9.6.
+    testTimeout: 30_000,
+    hookTimeout: 120_000,
     coverage: {
       provider: 'v8',
       include: ['src/lib/**/*.ts'],

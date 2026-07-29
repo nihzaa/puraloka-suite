@@ -19,7 +19,7 @@ export default async function priceBookRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('cecep:price:view')] },
     async (request, reply) => {
       const limit = Math.max(1, Math.min(200, Number(request.query.limit) || 100)) // cap 200
-      let q = supabase
+      let q = request.db!
         .from('price_book_entries')
         .select(`id, amount, currency, version_number, effective_date, expired_date,
                  location, supplier, confidence_level, status, verified_at, created_at,
@@ -29,7 +29,7 @@ export default async function priceBookRoutes(app: FastifyInstance) {
       if (request.query.status) q = q.eq('status', request.query.status)
       if (request.query.location) q = q.eq('location', request.query.location)
       if (request.query.resource) {
-        const { data: r } = await supabase
+        const { data: r } = await request.db!
           .from('resources').select('id').eq('code', request.query.resource).maybeSingle()
         if (!r) return reply.status(404).send({ error: `Resource ${request.query.resource} tidak ditemukan` })
         q = q.eq('resource_id', r.id)
@@ -55,7 +55,7 @@ export default async function priceBookRoutes(app: FastifyInstance) {
 
       let resourceId = b.resource_id ?? null
       if (!resourceId && b.resource_code) {
-        const { data: r } = await supabase
+        const { data: r } = await request.db!
           .from('resources').select('id').eq('code', b.resource_code).maybeSingle()
         if (!r) return reply.status(404).send({ error: `Resource ${b.resource_code} tidak ditemukan` })
         resourceId = r.id
@@ -63,13 +63,13 @@ export default async function priceBookRoutes(app: FastifyInstance) {
       if (!resourceId) return reply.status(400).send({ error: 'resource_id atau resource_code wajib' })
 
       // version_number = lanjutan tertinggi utk (resource, location) — jejak revisi harga
-      const { data: prev } = await supabase
+      const { data: prev } = await request.db!
         .from('price_book_entries').select('version_number')
         .eq('resource_id', resourceId)
         .order('version_number', { ascending: false }).limit(1)
       const version = ((prev?.[0]?.version_number as number | undefined) ?? 0) + 1
 
-      const { data: row, error } = await supabase
+      const { data: row, error } = await request.db!
         .from('price_book_entries')
         .insert({
           resource_id: resourceId, amount: b.amount, effective_date: b.effective_date,
@@ -98,7 +98,7 @@ export default async function priceBookRoutes(app: FastifyInstance) {
       if (!target || !['verified', 'active', 'expired'].includes(target)) {
         return reply.status(400).send({ error: "status wajib 'verified' | 'active' | 'expired'" })
       }
-      const { data: cur } = await supabase
+      const { data: cur } = await request.db!
         .from('price_book_entries').select('id, status').eq('id', request.params.id).maybeSingle()
       if (!cur) return reply.status(404).send({ error: 'Entry tidak ditemukan' })
 
@@ -107,7 +107,7 @@ export default async function priceBookRoutes(app: FastifyInstance) {
         patch.verified_by = request.currentUser!.id
         patch.verified_at = new Date().toISOString()
       }
-      const { error } = await supabase
+      const { error } = await request.db!
         .from('price_book_entries').update(patch).eq('id', request.params.id)
       if (error) {
         // guard DB menolak transisi tak sah (mundur/lompat) → surface apa adanya

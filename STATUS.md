@@ -24,10 +24,179 @@ kali keadaan berubah; detail selalu di dokumen rujukan.
 > **GERBANG MUTLAK:** tenant kedua TIDAK BOLEH dibuat di produksi sebelum Tahap 4
 > dan 5 selesai penuh. Selama itu sistem berisi tepat satu company.
 
-**Program D — Multi-Tenant (AKTIF).** Tahap: T0 ADR ✅ → T1 audit 94 tabel →
-T2 skema inti (`companies`, `company_members`, `document_number_series`) →
-T3 `company_id` [RED-LINE] → T4 repository wrapper (XL) → T5 RLS dual-axis →
-T6 numbering → T7 exit criteria L2. CECEP langkah 7+ dilanjutkan **setelah T7**.
+**Program D — Multi-Tenant (AKTIF).** Tahap: T0 ADR ✅ → **T1 audit 94 tabel ✅** →
+**T2 skema inti ✅ (migration 126)** → **T3 `company_id` ✅ (migration 127)** →
+**T4 repository wrapper ✅** → **T5a/T5b RLS dual-axis ✅ (migration 131–133)** →
+**T5c DITUNDA atas rekomendasi audit — menunggu keputusan founder** → T6 numbering
+→ T7 exit criteria L2. CECEP langkah 7+ dilanjutkan **setelah T7**.
+
+---
+
+### ⏸ SATU-SATUNYA KEPUTUSAN YANG MENUNGGU FOUNDER: T5c
+
+**Pertanyaannya:** kapan API berhenti memakai `service_role` (yang mem-bypass RLS)
+dan mulai berjalan sebagai user-nya sendiri?
+
+**Rekomendasi saya: TUNDA.** Bukan karena belum siap — delapan prasyaratnya sudah
+lunas — tapi karena aritmetikanya:
+
+- **Manfaat hari ini nol.** Satu tenant, satu pemakai (founder), nol data
+  operasional. Tak ada satu pun kebocoran yang dicegah T5c hari ini yang belum
+  dicegah wrapper.
+- **Risiko hari ini nyata.** 60+ endpoint berubah perilaku serentak, dan **nol**
+  di antaranya pernah dijalankan tanpa `service_role`.
+- **Keamanan TIDAK berkurang karena ditunda.** Ini bagian yang paling mudah salah
+  dibaca: policy-nya **sudah terpasang penuh** (79 policy, migrasi 131) dan
+  **sudah terbukti menahan** — uji kill-switch menunjukkan kalau wrapper dilewati,
+  RLS menangkap kebocorannya. Yang ditunda bukan perlindungannya, melainkan
+  keputusan menjadikan RLS satu-satunya penjaga. Lapisnya ada; ia belum jadi
+  lapis terdepan.
+
+**Pemicu untuk mengeksekusi** (mana pun lebih dulu): perusahaan kedua di-onboard ·
+ada pemakai di luar founder · data operasional nyata masuk. Ketiganya juga pemicu
+rotasi kredensial yang sudah tercatat — sebaiknya satu paket "sebelum operasional".
+
+Angka lengkap, daftar jujur yang belum terbukti, dan urutan eksekusi saat waktunya
+tiba: **`.../adr/ADR-011-T5c-AUDIT-PRA-EKSEKUSI.md`**.
+
+---
+
+**T5a/T5b SELESAI (migration 131, applied ke dev 2026-07-29).** Axis COMPANY
+ditambahkan lewat **komposisi**, bukan menyunting 218 policy existing: Postgres
+meng-AND policy RESTRICTIVE dengan hasil OR seluruh PERMISSIVE, jadi satu policy
+restriktif per tabel menambah axis tenant tanpa menyentuh satu pun policy role —
+dan bisa di-rollback granular. **79 policy + 16 helper SECURITY DEFINER**,
+di-generate dari peta tenancy (yang di-generate dari skema), bukan diketik tangan.
+
+**T5b — uji kill-switch (P2) membuktikan dua lapis benar-benar independen:**
+wrapper dimatikan → RLS menahan · RLS dimatikan → predikat wrapper menahan.
+Diverifikasi **uji mutasi**: DROP policy → kebocoran benar terjadi. Tanpa itu,
+"satu lapis bekerja dan satunya menumpang" terlihat persis sama dengan "dua lapis
+bekerja" — sampai lapis itu gagal.
+
+**⚠️ TEMUAN PERFORMA yang membuat T5c mustahil sebelum diperbaiki (migration 132).**
+Baseline `EXPLAIN ANALYZE` service_role vs authenticated:
+
+| query | bypass | RLS (sebelum) | RLS (sesudah 132) |
+|---|---:|---:|---:|
+| `assembly_components` (17.853) | 2,2 ms | **3.524 ms** | **5,1 ms** |
+| `assemblies` (3.038) | 1,2 ms | 598 ms | 2,5 ms |
+
+Akarnya bukan policy T5a: `has_permission()` — meski `STABLE` — dipanggil **sekali
+per baris** selama ia berdiri sebagai ekspresi biasa; tiap panggilan menjalankan
+join 3 tabel + `auth_role()`. Pembandingnya ada di baris yang sama:
+`auth_company_id()` dibungkus `(SELECT …)`, jadi `InitPlan`, terukur 0,37 ms
+**sekali**. **173 policy di 92 tabel** ditulis ulang dengan pola yang sama,
+di-generate dari `pg_policies`. Dry-run membandingkan **368 sel** (92 tabel × 4
+peran): **seluruhnya identik** — murni performa, nol perubahan visibilitas.
+Dijaga test permanen (`rls-initplan.test.ts`) karena bentuk yang salah adalah
+bentuk yang paling natural diketik, dan CI tetap hijau saat ia muncul.
+
+**⚠️ KEBOCORAN NYATA yang ditemukan CI, bukan review (migration 134).** Di
+database yang dibangun **bersih dari migrasi** — yaitu produksi masa depan — 8
+tabel punya policy lengkap (dari 130 & 131) tetapi `relrowsecurity = false`.
+**Policy di tabel tanpa RLS tidak dievaluasi sama sekali**: ia tetap muncul di
+`pg_policies`, tetap terbaca benar saat review, dan menjaga persis nol. Di CI,
+`rab_items` milik tenant lain benar-benar terbaca.
+
+Tak ketahuan di dev karena dev punya `rls_auto_enable()` — fungsi yang **hanya
+ada di dev** (terkonfirmasi schema-diff) — sehingga tabel itu sudah ter-RLS lewat
+jalur di luar migrasi. Migrasi 130 karena itu mengasumsikan RLS sudah menyala:
+benar di dev, salah di mana pun selain dev. **Inilah alasan CI dijalankan
+terhadap database bersih** — selisih antara "berlaku di dev" dan "berlaku dari
+migrasi" tak bisa dilihat dari dev. Diverifikasi dengan mereproduksi kondisi CI
+di dev: RLS dimatikan → bocor; 134 dijalankan → tertutup. Migrasi memverifikasi
+dua arah untuk SELURUH tabel, plus test permanen.
+
+**R5 DITUTUP (migration 133).** Bukan hipotetis — terbukti: fungsi lama
+memulangkan baris klien **company B** untuk user yang company aktifnya **A**.
+Behavior-preserving pada 1 tenant (nilai identik sebelum/sesudah), benar pada
+banyak tenant. Ada test regresinya.
+
+**Temuan sampingan T5a (dicatat, di luar lingkup migrasi):** 104 `scenarios` +
+413 `lessons_learned_records` — semua bernama `[TEST]` — adalah **yatim**: project
+induknya terhapus, anaknya selamat karena trigger no-delete memblokir cascade.
+Postgres sendiri menolak mem-VALIDATE ulang FK-nya. Residu dev sebelum CI dipisah;
+skrip pembersihnya sudah ada (`cleanup-cecep-residue.mjs`). Policy T5a **benar** —
+menyembunyikan baris yang pemiliknya tak ada memang perilaku yang diharapkan.
+Tabel berisi data nyata terbukti 100% sehat (`rab_items` 373/373, `invoices` 26/26).
+
+**T4 (wrapper) — status jujur per 2026-07-29:**
+✅ **T4a fondasi**: `tenant-db.ts` (scope otomatis per kategori) · peta tenancy
+**di-generate dari skema** (97 tabel, cocok persis dgn audit T1) · `request.db`
+di auth plugin · **fix cache config per-company** (ADR sebut "bug yang AKAN
+terjadi") · **migration 128** jaring pengaman (isi `company_id` saat INSERT,
+TOLAK saat ambigu).
+✅ **T4b–T4d**: `search` · `finance` · `dashboard` · `cash` · `kasbons` ·
+`projects` · `reports` · `procurement` · `mandor`.
+✅ **T4f penegak**: ratchet (akses supabase mentah tak boleh naik — **diuji
+benar-benar menggigit**, bukan diasumsikan) + P3 (peta vs skema hidup; tabel
+baru tanpa kategori = build merah).
+🟢 **T4 — SELURUH temuan DUA RONDE audit keamanan DITUTUP (2026-07-29).**
+Ronde 1 menemukan permukaan jauh lebih luas dari laporan awal saya; ronde 2
+(verifikasi ulang) menemukan pola "gerbang di GET, hilang di PATCH/DELETE" di
+4 modul. Keduanya kini tertutup: ±40 endpoint tulis + belasan jalur baca.
+Sisa `supabase` mentah **476** (dari 584) — itu adopsi wrapper, BUKAN celah;
+sisanya sudah bergerbang eksplisit. Detail lengkap + skenario
+per-modul: **`.../adr/ADR-011-T4-AUDIT-CELAH-TENANCY.md`**.
+Sisa: **478 akses `supabase` mentah** (dari 584). Modul yang seluruh filenya
+belum ter-scope: `clients` (PII) · `audit` (jejak semua tenant) · `users`+`roles`
+(mendekati account-takeover lintas tenant) · `settings` · `estimate-versions` ·
+`documents` (signed URL 10 th ke kontrak tenant lain) · `termin-payment` ·
+`lessons-learned`.
+**Dua yang paling merugikan dan bukan sekadar 'baca':** `settings` — config
+finansial DIPAKAI BERSAMA, tenant A mengubah tarif PPN **menimpa** tenant B
+(korupsi data aktif) · `notification-routing` — notifikasi & **email** berisi
+nama proyek/invoice/nominal tenant lain **didorong** ke admin yang salah.
+
+**KEBOCORAN NYATA yang ditutup T4** (bukan hipotetis — ini query yang benar-benar
+berjalan tanpa saringan tenancy): KPI halaman depan · 11 query dashboard
+keuangan · AR aging · DP recoupment · arus kas · `invoices`+`milestones` di
+search · daftar MR/PO/GR/stok · laporan proyek & mandor. Plus **3 celah akses
+by-id**: `?project_id=` di arus kas & laporan, dan `MR/:id` + `PO/:id` yang
+mengambil baris hanya dengan `.eq('id', …)` — data perusahaan lain terbaca
+lengkap hanya dengan mengetahui id-nya.
+
+**Dua temuan dari pembacaan dokumen perencanaan** (ADR-011 §10):
+**R4** urutan di `plugins/auth.ts` load-bearing (resolusi company WAJIB sebelum
+`loadPermissionCache`) — sudah benar tapi tak terdokumentasi; komentar
+peringatan ditambahkan. · **R5 TERVERIFIKASI NYATA**: `auth_client_id()`
+(049:23-28) memetakan user→client **tanpa saringan company**; sejak `clients`
+jadi kategori B, satu orang yang jadi klien di 2 perusahaan bikin portal klien
+menampilkan proyek perusahaan yang salah. **✅ DITUTUP migration 133 (T5).**
+
+**T3 SELESAI (migration 127, applied ke dev 2026-07-29)** — 32 tabel dapat
+`company_id`, 23.030 baris. Verifikasi: jumlah baris **tidak berubah** · nol NULL
+di 20 tabel terkunci · **2.620 AHSP nasional tetap milik bersama** · angka bisnis
+identik (kontrak 4,883 M · invoice 2,092 M · kas 222 jt). **Dua pengaman disentuh
+atas keputusan founder, bukan tafsiran saya:** segel append-only `audit_logs`
+(073) dibuka sekali lalu dipasang kembali + dicek eksplisit, dan gerbang
+immutability komponen CECEP (107) dilonggarkan **permanen tapi sempit** — hanya
+`company_id`; ubah koefisien/resource pada assembly aktif TETAP ditolak. Bukti
+keempat pengaman masih menolak: diuji langsung di dev. 43 test hijau.
+Detail: `.../adr/ADR-011-T3-AUDIT-PRA-EKSEKUSI.md` §10.
+
+**T1 — 3 temuan yang mengubah rencana** (`.../adr/ADR-011-T1-AUDIT-KLASIFIKASI-TABEL.md`):
+**F1** 7 tabel PUNYA jalur ke `projects` tapi rantainya LEMAH (FK nullable) → tak
+bisa mewarisi tenancy. Bukan cacat: `cash_accounts.project_id` nullable karena
+memang ada kas tingkat perusahaan (40% data dev). · **F2** policy RLS nyata **198**,
+bukan 293 seperti tertulis di ADR. · **F3** **8 tabel RLS-nya ENABLED tapi NOL
+policy** (`rab_items`, `rab_schedule`, `rab_absorption_log`, `change_orders`,
+`change_order_items`, `work_scope_item_specs`, `document_access_logs`,
+`company_profile`) — karena RESTRICTIVE di-AND dengan hasil OR permissive, nol
+permissive = tabel TAK TERBACA begitu RLS ditegakkan. Dibuktikan empiris.
+Maka T5 wajib didahului **T5a-0**. Klasifikasi final: **32 tabel** dapat kolom
+`company_id` di T3 (1 anchor + 11 AB + 17 B + 3 dari D); 48 mewarisi; 12 bersama.
+
+**T2 — migration 126 applied ke dev** (additive murni, nol ubah data existing):
+`companies` + `company_members` + `document_number_series` + `auth_company_id()`
++ `is_member_of()`. Tenant pertama di-seed **dibaca dari `company_profile`**
+(`puraloka-persada`), 23 user jadi anggota dengan **peran dipertahankan persis**
+(0 divergensi vs `users.role_id`). 20 test hijau, termasuk penjaga P1:
+`auth_company_id()` mengembalikan NULL saat tak dapat ditentukan — **tidak** jatuh
+ke "satu-satunya company yang ada". `project_company_id()` sengaja **ditunda ke
+T3** (butuh `projects.company_id`; dry-run membuktikan membuatnya sekarang =
+migrasi gagal).
 
 **Tiga penajaman wajib (ADR-011 §9.5, masuk DoD tahapnya masing-masing):**
 **P1** company pertama = tenant biasa (nol `DEFAULT_COMPANY_ID`, nol cabang
@@ -105,7 +274,7 @@ Sisipan saat jeda gate (sesuai PETA §3, tidak menyela CECEP):
   `docs/DEVELOPMENT_LOG.md` entry 2026-07-27 + taksonomi §6.
 - **#3 register piutang SELESAI 2026-07-28** — halaman `/piutang` (AR aging
   30/60/90 + register retensi + register DP) + potongan uang muka (recoupment)
-  di invoice progres (migration 124/125) — detail: `docs/DEVELOPMENT_LOG.md`
+  di invoice progres (migration 126/125) — detail: `docs/DEVELOPMENT_LOG.md`
   entry 2026-07-28 + taksonomi §14–15. ⚠️ Melahirkan keputusan terbuka #5.
 
 Phase 1 (Program A) ✅ · Phase 2 (Program B) ✅.
@@ -117,7 +286,9 @@ Phase 1 (Program A) ✅ · Phase 2 (Program B) ✅.
 | Log berjalan harian (per-migration/PR) | `docs/DEVELOPMENT_LOG.md` |
 | Peta prioritas + registry semua dokumen rencana (mana AKTIF/STALE) | `docs/PETA-PRIORITAS-ERP.md` ← **dokumen induk** |
 | Status per-menu ERP terverifikasi kode | `docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md` |
-| Keputusan multi-company + tripwire | `docs/KEPUTUSAN-MULTI-COMPANY.md` |
+| Strategi multi-tenant (AKTIF, ACCEPTED) | `.../Engineering-Constitution/adr/ADR-011-multi-tenant-strategy.md` |
+| Klasifikasi 94 tabel A/AB/B/C/D + 3 temuan T1 | `.../Engineering-Constitution/adr/ADR-011-T1-AUDIT-KLASIFIKASI-TABEL.md` |
+| Keputusan multi-company + tripwire (SUPERSEDED oleh ADR-011) | `docs/KEPUTUSAN-MULTI-COMPANY.md` |
 | Status Phase 1/2 + temuan RLS/storage | `docs/superpowers/specs/2026-07-18-enterprise-architecture/PHASE-{1,2}-STATUS.md` |
 | Urutan build CECEP (terkunci, 10 langkah) | `.../CECEP/MATERIAL-RAP-COMPANY-UI-DESIGN.md` + `.../CECEP/NEXT-EXEC-PREP.md` |
 | Peta penomoran Program A–F ↔ Phase 0–9 | `.../Master-Delivery-Blueprint/NUMBERING-GLOSSARY.md` (⚠️ "Phase 7" EA = multi-company; "Fase 7" ERP_MASTER_PLAN = GL — selalu sebut sumber) |
@@ -132,14 +303,40 @@ Phase 1 (Program A) ✅ · Phase 2 (Program B) ✅.
    apakah butuh level `tenants` di atas `companies` sekarang atau cukup nanti.
    Default sementara: cukup `companies` + `parent_company_id`. ADR-011 §3.
 
-**Mandat eksekusi (founder 2026-07-28):** T1 & T2 dikerjakan **otonom** (additive
-murni, nol ubah data). **Berhenti wajib lapor sebelum T3.**
+~~**C. Ack + 2 jawaban T3**~~ — **TERJAWAB 2026-07-29** (Q1=privat, Q2=sekarang;
+   plus 2 keputusan gerbang di §10b dokumen). T3 SELESAI di-apply ke dev.
+   Rincian lama:
+   **`.../adr/ADR-011-T3-AUDIT-PRA-EKSEKUSI.md`** (baca §0 ringkasan 1 menit →
+   §5 apa yang bisa rusak → §7 yang tidak diverifikasi). Angka nyata: **32 tabel,
+   23.030 baris** (2.180 → tenant-1; 20.850 sengaja tetap NULL = milik bersama,
+   termasuk 2.620 AHSP nasional yang TIDAK boleh jadi milik satu pelanggan).
+   Dua pertanyaan yang harus dijawab dulu:
+   **Q1** `suppliers` bersama atau **privat**? (rekomendasi saya: **privat** —
+   relasi supplier = rahasia dagang; salah ke arah "terlalu terbuka" jauh lebih
+   sulit diperbaiki setelah pelanggan kedua masuk. Cuma 5 baris: murah sekarang)
+   · **Q2** `SET NOT NULL` **sekarang** atau setelah T4? (rekomendasi: sekarang —
+   error di dev = informasi murah, konsisten P1).
+   **Tanpa ack, T3a/T3b/T3c tidak dijalankan.**
 
-0. **KEAMANAN (mendesak, repo public):** rotasi 4 password test yang sempat bocor di
-   `gate-1a-preconditions-response.md` (sudah diredaksi; nilai asli tetap di riwayat
-   git) — terutama login admin dev.
-1. Masking angka Cibuluh di dokumen public (4 baris AHSP-GOLDEN-PROVENANCE +
-   report SE47-vs-Cibuluh yang masih untracked).
+**Mandat eksekusi (founder 2026-07-29):** *"saya setuju apa aja yang kamu
+putuskan asal hasilnya terbaik"* — keputusan TEKNIS diambil sendiri, tanpa
+bertanya per-langkah. Yang tetap dilaporkan (bukan ditanyakan): keputusan yang
+mengubah **jaminan sistem** (mis. membuka gerbang immutability, melepas
+service_role) dan keputusan **produk/pajak**. Dokumen Audit Pra-Eksekusi T5
+tetap dibuat — bukan untuk minta izin, tapi karena founder sendiri
+menetapkannya 2026-07-28 sebagai pengganti reviewer kedua, dan ia disiplin yang
+berguna untuk tahap paling berisiko.
+
+~~0. **KEAMANAN: rotasi 4 password test**~~ — **DITUNDA atas keputusan founder
+   2026-07-29.** Alasan founder: sistem belum dipakai operasional nyata, dan repo
+   akan **dikembalikan ke private** sebelum go-live.
+   ⚠️ **Syarat yang mengikat:** rotasi tetap WAJIB dilakukan **sebelum**
+   (a) data operasional nyata masuk, ATAU (b) pengguna di luar founder diberi
+   akses — mana yang lebih dulu. Nilai lama tetap ada di riwayat git; mengubah
+   repo jadi private **tidak menghapus** yang sudah terlanjur ter-index/ter-clone.
+~~1. Masking angka Cibuluh~~ — report SE47-vs-Cibuluh sudah tak ada di working
+   tree (diverifikasi 2026-07-29). Ikut ditunda bersama keputusan #0 (alasan
+   sama: repo akan private).
 1b. Drop policy dev `"Allow all access on users"` (only-in-dev, permisif, tanpa
    migrasi pembuat — temuan schema-diff 4a) + konfirmasi migrasi 043–047
    (GL/asset/opname/SCM) tetap forward-draft.
@@ -147,7 +344,9 @@ murni, nol ubah data). **Berhenti wajib lapor sebelum T3.**
    (570 estimate_items dll — dry-run sudah dilaporkan).
 2. GL in-app vs akuntansi eksternal (`docs/PETA-PRIORITAS-ERP.md` §5).
 3. Entitas PT/CV kedua realistis 1–2 tahun? (`docs/KEPUTUSAN-MULTI-COMPANY.md` §2).
-4. Aktifkan trigger audit append-only 073 (Red-Line by design).
+~~4. Aktifkan trigger audit append-only 073~~ — **SUDAH AKTIF** (diverifikasi
+   query ke dev 2026-07-29: `trg_audit_logs_no_update`/`no_delete` tgenabled='O').
+   Sempat dibuka SEKALI saat backfill T3 lalu dipasang kembali + dicek eksplisit.
 5. **Pajak atas potongan DP** (baru 2026-07-28): saat DP dipotong di invoice
    progres, pajak invoice progres saat ini tetap dihitung dari nilai progres
    PENUH (sebelum potongan DP) — konsisten kalkulasi existing, TIDAK diubah.

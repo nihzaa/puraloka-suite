@@ -17,7 +17,7 @@ export default async function clientRoutes(app: FastifyInstance) {
     const user = request.currentUser!
     const { all, search } = request.query as { all?: string; search?: string }
 
-    let q = supabase
+    let q = request.db!
       .from('clients')
       .select(CLIENT_SELECT)
       .order('contact_person', { ascending: true })
@@ -44,8 +44,8 @@ export default async function clientRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string }
 
     const [clientRes, projectsRes] = await Promise.all([
-      supabase.from('clients').select(CLIENT_SELECT).eq('id', id).single(),
-      supabase
+      request.db!.from('clients').select(CLIENT_SELECT).eq('id', id).single(),
+      request.db!
         .from('projects')
         .select('id, name, status, contract_value, start_date, end_date, progress_pct')
         .eq('client_id', id)
@@ -117,7 +117,7 @@ export default async function clientRoutes(app: FastifyInstance) {
     if (!body.contact_person?.trim()) return reply.status(400).send({ error: 'Nama kontak wajib diisi' })
     if (!body.phone?.trim()) return reply.status(400).send({ error: 'Nomor telepon wajib diisi' })
 
-    const { data, error } = await supabase
+    const { data, error } = await request.db!
       .from('clients')
       .insert({
         contact_person: body.contact_person.trim(),
@@ -170,7 +170,7 @@ export default async function clientRoutes(app: FastifyInstance) {
     if (body.client_type !== undefined) update.client_type = body.client_type
     if (body.notes !== undefined) update.notes = body.notes?.trim() ?? null
 
-    const { data, error } = await supabase
+    const { data, error } = await request.db!
       .from('clients')
       .update(update)
       .eq('id', id)
@@ -188,10 +188,10 @@ export default async function clientRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
 
-    const { data: existing } = await supabase.from('clients').select('is_active').eq('id', id).single()
+    const { data: existing } = await request.db!.from('clients').select('is_active').eq('id', id).single()
     if (!existing) return reply.status(404).send({ error: 'Klien tidak ditemukan' })
 
-    const { data, error } = await supabase
+    const { data, error } = await request.db!
       .from('clients')
       .update({ is_active: !existing.is_active, updated_at: new Date().toISOString() })
       .eq('id', id)

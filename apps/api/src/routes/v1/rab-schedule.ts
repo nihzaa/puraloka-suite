@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import { proyekMilikTenant } from '../../utils/tenant-guard.js'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 
@@ -36,6 +37,10 @@ export default async function rabScheduleRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { projectId } = request.params
 
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
+
       const { data, error } = await supabase
         .from('rab_schedule')
         .select(`
@@ -61,6 +66,10 @@ export default async function rabScheduleRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { projectId, itemId } = request.params
 
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
+
       const { data, error } = await supabase
         .from('rab_schedule')
         .select('id, week_start, week_number, material_pct, upah_pct, alat_pct, other_pct, notes, created_at')
@@ -80,6 +89,10 @@ export default async function rabScheduleRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('projects:edit')] },
     async (request, reply) => {
       const { projectId } = request.params
+
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
       const body = request.body as {
         rab_item_id: string
         week_start: string   // ISO date string "2026-02-03"
@@ -108,7 +121,7 @@ export default async function rabScheduleRoutes(app: FastifyInstance) {
       if (!item) return reply.status(404).send({ error: 'Item RAB tidak ditemukan' })
 
       // Ambil project start_date untuk hitung week_number
-      const { data: proj } = await supabase
+      const { data: proj } = await request.db!
         .from('projects')
         .select('start_date')
         .eq('id', projectId)
@@ -150,6 +163,10 @@ export default async function rabScheduleRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { projectId, id } = request.params
 
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
+
       const { error } = await supabase
         .from('rab_schedule')
         .delete()
@@ -172,6 +189,10 @@ export default async function rabScheduleRoutes(app: FastifyInstance) {
     { preHandler: [authenticate] },
     async (request, reply) => {
       const { projectId } = request.params
+
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
 
       const { data, error } = await supabase
         .from('rab_absorption_log')
@@ -198,6 +219,10 @@ export default async function rabScheduleRoutes(app: FastifyInstance) {
     { preHandler: [authenticate] },
     async (request, reply) => {
       const { projectId, itemId } = request.params
+
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
 
       const { data, error } = await supabase
         .from('rab_absorption_log')
@@ -232,6 +257,10 @@ export default async function rabScheduleRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('projects:edit')] },
     async (request, reply) => {
       const { projectId } = request.params
+
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
       const body = request.body as {
         rab_item_id: string
         week_start: string
@@ -262,7 +291,7 @@ export default async function rabScheduleRoutes(app: FastifyInstance) {
 
       if (!rabItem) return reply.status(404).send({ error: 'Item RAB tidak ditemukan' })
 
-      const { data: proj } = await supabase
+      const { data: proj } = await request.db!
         .from('projects')
         .select('start_date')
         .eq('id', projectId)
@@ -364,6 +393,10 @@ export default async function rabScheduleRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { projectId } = request.params
 
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
+
       const { data: logs, error } = await supabase
         .from('rab_absorption_log')
         .select('rab_item_id, material_pct, upah_pct, alat_pct, other_pct')
@@ -390,6 +423,10 @@ export default async function rabScheduleRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('projects:edit')] },
     async (request, reply) => {
       const { projectId, id } = request.params
+
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
 
       const { error } = await supabase
         .from('rab_absorption_log')

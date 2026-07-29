@@ -1,4 +1,5 @@
-import type { FastifyInstance } from 'fastify'
+import type { FastifyInstance, FastifyRequest } from 'fastify'
+import { proyekMilikTenant } from '../../utils/tenant-guard.js'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { createNotifications } from '../../utils/notifications.js'
@@ -69,6 +70,21 @@ async function recalcTotalDelta(coId: string): Promise<void> {
     .eq('id', coId)
 }
 
+/**
+ * T4h — apakah change order milik company aktif?
+ *
+ * `change_orders` kategori C via `project_id`. 10 endpoint di file ini di-key
+ * oleh CO id, dan yang paling berbahaya adalah `approve`: ia meng-UPDATE
+ * `projects.contract_value`. Tanpa gerbang ini, tenant A bisa menyetujui CO
+ * tenant B dan MENGUBAH NILAI KONTRAK proyek mereka.
+ */
+async function coMilikTenant(request: FastifyRequest, coId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('change_orders').select('project_id').eq('id', coId).maybeSingle()
+  if (!data?.project_id) return false
+  return (await request.db!.projectIds()).includes(data.project_id)
+}
+
 export default async function changeOrderRoutes(app: FastifyInstance) {
 
   // ── GET /api/v1/projects/:projectId/change-orders ──────────────────────────
@@ -77,6 +93,10 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
     { preHandler: [authenticate] },
     async (request, reply) => {
       const { projectId } = request.params
+
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
       const { status } = request.query
 
       let q = supabase
@@ -104,6 +124,10 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
     { preHandler: [authenticate] },
     async (request, reply) => {
       const { id } = request.params
+
+      if (!(await coMilikTenant(request, id))) {
+        return reply.status(404).send({ error: 'Change Order tidak ditemukan' })
+      }
 
       const { data, error } = await supabase
         .from('change_orders')
@@ -133,6 +157,10 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('projects:edit')] },
     async (request, reply) => {
       const { projectId } = request.params
+
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
       const { title, description, billing_mode } = request.body
 
       if (!title?.trim()) {
@@ -140,7 +168,7 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
       }
 
       // Verify project exists and is not deleted
-      const { data: project } = await supabase
+      const { data: project } = await request.db!
         .from('projects')
         .select('id, name, is_deleted')
         .eq('id', projectId)
@@ -189,6 +217,10 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('projects:edit')] },
     async (request, reply) => {
       const { id } = request.params
+
+      if (!(await coMilikTenant(request, id))) {
+        return reply.status(404).send({ error: 'Change Order tidak ditemukan' })
+      }
       const { title, description, billing_mode } = request.body
 
       const { data: existing } = await supabase
@@ -234,6 +266,10 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { id } = request.params
 
+      if (!(await coMilikTenant(request, id))) {
+        return reply.status(404).send({ error: 'Change Order tidak ditemukan' })
+      }
+
       const { data: existing } = await supabase
         .from('change_orders')
         .select('id, status')
@@ -275,6 +311,10 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('projects:edit')] },
     async (request, reply) => {
       const { id } = request.params
+
+      if (!(await coMilikTenant(request, id))) {
+        return reply.status(404).send({ error: 'Change Order tidak ditemukan' })
+      }
       const { item_type, description, amount_delta, rab_item_id, unit, volume_delta, unit_price, notes, sort_order } = request.body
 
       const { data: existing } = await supabase
@@ -352,6 +392,11 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('projects:edit')] },
     async (request, reply) => {
       const { id, itemId } = request.params
+      // T4j: POST .../items di atas SUDAH memanggil coMilikTenant; PUT & DELETE
+      // item terlewat — inkonsistensi dalam satu file yang sama.
+      if (!(await coMilikTenant(request, id))) {
+        return reply.status(404).send({ error: 'Change Order tidak ditemukan' })
+      }
 
       const { data: existing } = await supabase
         .from('change_orders')
@@ -405,6 +450,11 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('projects:edit')] },
     async (request, reply) => {
       const { id, itemId } = request.params
+      // T4j: POST .../items di atas SUDAH memanggil coMilikTenant; PUT & DELETE
+      // item terlewat — inkonsistensi dalam satu file yang sama.
+      if (!(await coMilikTenant(request, id))) {
+        return reply.status(404).send({ error: 'Change Order tidak ditemukan' })
+      }
 
       const { data: existing } = await supabase
         .from('change_orders')
@@ -440,6 +490,10 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('projects:edit')] },
     async (request, reply) => {
       const { id } = request.params
+
+      if (!(await coMilikTenant(request, id))) {
+        return reply.status(404).send({ error: 'Change Order tidak ditemukan' })
+      }
 
       const { data: co } = await supabase
         .from('change_orders')
@@ -481,8 +535,8 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
       // Fire-and-forget: notif ke admin + PM
       ;(async () => {
         try {
-          const recipients = await resolveRecipients('change_order_submitted', { projectId: co.project_id })
-          const { data: proj } = await supabase.from('projects').select('name').eq('id', co.project_id).single()
+          const recipients = await resolveRecipients('change_order_submitted', { projectId: co.project_id, companyId: request.companyId! })
+          const { data: proj } = await request.db!.from('projects').select('name').eq('id', co.project_id).single()
           const deltaText = co.total_amount_delta >= 0
             ? `+Rp ${Math.abs(co.total_amount_delta).toLocaleString('id-ID')}`
             : `-Rp ${Math.abs(co.total_amount_delta).toLocaleString('id-ID')}`
@@ -518,6 +572,7 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
       const user = request.currentUser!
       const { id } = request.params
 
+
       // Gerbang KASAR sebelum entitas di-fetch: menjaga urutan lama 403-sebelum-404
       // (tak berwenang tidak boleh tahu apakah id-nya ada).
       const coarse = await canParticipateInChain(request, 'change_order')
@@ -526,6 +581,13 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
         return reply.status(500).send({ error: 'Gagal memeriksa konfigurasi approval' })
       }
       if (!coarse.ok) return reply.status(403).send({ error: 'Akses ditolak' })
+
+      // T4h: gerbang tenant SETELAH gerbang izin — urutan 403-sebelum-404 yang
+      // sudah ada sengaja dipertahankan (user tak berwenang tak boleh tahu
+      // apakah id-nya ada).
+      if (!(await coMilikTenant(request, id))) {
+        return reply.status(404).send({ error: 'Change Order tidak ditemukan' })
+      }
 
       const { data: coFull } = await supabase
         .from('change_orders')
@@ -564,7 +626,7 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
       // 'submitted' — nilai kontrak baru berubah di langkah final.
       if (decision.step) {
         const rec = await recordApproval({
-          entityType: 'change_order', entityId: id, level: decision.step.level, approvedBy: user.id,
+          entityType: 'change_order', entityId: id, level: decision.step.level, approvedBy: user.id, companyId: request.companyId!,
         })
         if (!rec.ok) return reply.status(500).send({ error: 'Gagal mencatat persetujuan: ' + rec.error })
 
@@ -584,7 +646,7 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
       }
 
       // Get current project contract_value and RAB total
-      const { data: project } = await supabase
+      const { data: project } = await request.db!
         .from('projects')
         .select('id, name, contract_value, pm_id')
         .eq('id', coFull.project_id)
@@ -621,7 +683,7 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
 
       // 2. Update projects.contract_value
       const newContractValue = (project.contract_value ?? 0) + coFull.total_amount_delta
-      await supabase
+      await request.db!
         .from('projects')
         .update({ contract_value: newContractValue })
         .eq('id', coFull.project_id)
@@ -687,6 +749,7 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
     { preHandler: [authenticate] },
     async (request, reply) => {
       const { id } = request.params
+
       const user = request.currentUser!
 
       const coarse = await canParticipateInChain(request, 'change_order')
@@ -726,13 +789,13 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
 
       // Ditolak → jejak persetujuan dibersihkan supaya rantai mulai dari level 1
       // lagi bila CO ini diajukan ulang.
-      await clearApprovalProgress('change_order', id)
+      await clearApprovalProgress('change_order', id, request.companyId!)
 
       // Fire-and-forget: notify submitter
       ;(async () => {
         try {
           if (!coInfo.submitted_by) return
-          const { data: proj } = await supabase.from('projects').select('name').eq('id', coInfo.project_id).single()
+          const { data: proj } = await request.db!.from('projects').select('name').eq('id', coInfo.project_id).single()
 
           createNotifications([{
             user_id:     coInfo.submitted_by,

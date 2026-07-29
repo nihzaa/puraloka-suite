@@ -7,6 +7,7 @@ import { resolveRecipients } from '../../utils/notification-routing.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { computeAndPersistPenalty, estimatePenalty } from '../../utils/penalty.js'
 import { computeAging, retentionOutstanding, validateDpDeduction } from '../../lib/ar-register.js'
+import { proyekBolehDibaca, proyekMilikTenant } from '../../utils/tenant-guard.js'
 
 const ALLOWED_IMAGE_PDF = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
 
@@ -45,6 +46,16 @@ export default async function financeRoutes(app: FastifyInstance) {
       periodLabel = `${fmtLabel(dateFrom)} – ${fmtLabel(dateTo)}`
     }
 
+    // T4c — SCOPING TENANT. Dashboard ini agregat LINTAS-PROYEK, jadi tabel
+    // kategori C disaring lewat daftar id milik tenant (project / invoice /
+    // assignment / work_scope), bukan viaProject() yang butuh satu project.
+    // Sebelum perubahan ini, seluruh query di bawah berjalan TANPA saringan
+    // tenancy apa pun — angka dashboard akan mencampur dua perusahaan.
+    const db = request.db!
+    const [idProyek, idInvoice, idAssignment, idScope] = await Promise.all([
+      db.projectIds(), db.invoiceIds(), db.assignmentIds(), db.workScopeIds(),
+    ])
+
     const [
       invoicesRes, paymentsRes, kasbonPendingRes,
       cashAccountsRes, wageApprovedRes,
@@ -53,34 +64,41 @@ export default async function financeRoutes(app: FastifyInstance) {
       wageRes, progressRes, settlementRes,
     ] = await Promise.all([
       // Invoice & AR (all time — untuk outstanding/overdue tidak dibatasi periode)
-      supabase.from('invoices').select('id, total_amount, amount_paid, amount_due, status, due_date').neq('status', 'cancelled'),
+      supabase.from('invoices').select('id, total_amount, amount_paid, amount_due, status, due_date')
+        .in('project_id', idProyek).neq('status', 'cancelled'),
       // Pendapatan diterima dalam periode
-      supabase.from('payments').select('amount_paid').gte('paid_at', dateFromTs).lte('paid_at', dateToTs),
+      supabase.from('payments').select('amount_paid')
+        .in('invoice_id', idInvoice).gte('paid_at', dateFromTs).lte('paid_at', dateToTs),
       // Kasbon pending (all time — untuk alert)
-      supabase.from('kasbons').select('id, amount').eq('status', 'pending'),
+      db.from('kasbons').select('id, amount').eq('status', 'pending'),
       // Saldo kas real-time (all time)
-      supabase.from('cash_accounts').select('id, name, type, balance').eq('is_active', true),
+      db.from('cash_accounts').select('id, name, type, balance').eq('is_active', true),
       // Laporan upah pending approval (all time — untuk alert)
-      supabase.from('weekly_wage_reports').select('net_amount').eq('status', 'approved'),
+      supabase.from('weekly_wage_reports').select('net_amount')
+        .in('assignment_id', idAssignment).eq('status', 'approved'),
       // Pengeluaran proyek dalam periode — join kategori untuk split per type
       supabase.from('project_expenses')
         .select('total_amount, category:project_expense_categories(type)')
+        .in('project_id', idProyek)
         .eq('status', 'approved')
         .gte('expense_date', dateFrom).lte('expense_date', dateTo),
       // Kasbon settled dalam periode (untuk hitung berapa yang sudah lunas)
-      supabase.from('kasbons').select('amount').eq('status', 'settled')
+      db.from('kasbons').select('amount').eq('status', 'settled')
         .gte('settled_at', dateFromTs).lte('settled_at', dateToTs),
       // Semua kasbon active (approved, not yet settled) — advance beredar
-      supabase.from('kasbons').select('amount').in('status', ['approved']),
+      db.from('kasbons').select('amount').in('status', ['approved']),
       // Upah mandor dibayar dalam periode
-      supabase.from('weekly_wage_reports').select('net_amount').eq('status', 'paid')
+      supabase.from('weekly_wage_reports').select('net_amount')
+        .in('assignment_id', idAssignment).eq('status', 'paid')
         .gte('paid_at', dateFromTs).lte('paid_at', dateToTs),
       // Progress payments dalam periode
-      supabase.from('progress_payments').select('gross_payment').eq('status', 'approved')
+      supabase.from('progress_payments').select('gross_payment')
+        .in('work_scope_id', idScope).eq('status', 'approved')
         .not('paid_at', 'is', null)
         .gte('paid_at', dateFromTs).lte('paid_at', dateToTs),
       // Settlement borongan dalam periode
       supabase.from('borongan_settlements').select('net_payment')
+        .in('work_scope_id', idScope)
         .not('settled_at', 'is', null)
         .gte('settled_at', dateFromTs).lte('settled_at', dateToTs),
     ])
@@ -105,7 +123,7 @@ export default async function financeRoutes(app: FastifyInstance) {
     const totalKas          = totalKasMain + totalKasCollector + totalKasPetty
 
     // Expense split per category type
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const expenses = (expenseRes.data ?? []) as any[]
     let materialCost = 0, laborExpenseCost = 0, equipmentCost = 0, operationalCost = 0, otherCost = 0
     for (const e of expenses) {
@@ -187,7 +205,11 @@ export default async function financeRoutes(app: FastifyInstance) {
       .range(off, off + lim - 1)
 
     if (status) q = q.eq('status', status)
-    if (project_id) q = q.eq('project_id', project_id)
+    // T4g: SELALU di-scope; project_id hanya mempersempit. Sebelumnya tanpa
+    // parameter itu = SELURUH invoice semua perusahaan.
+    const idProyekInv = await proyekBolehDibaca(request, project_id)
+    if (idProyekInv === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    q = q.in('project_id', idProyekInv)
     if (type) q = q.eq('invoice_type', type)
 
     const { data, error, count } = await q
@@ -222,7 +244,9 @@ export default async function financeRoutes(app: FastifyInstance) {
       .gt('amount_due', 0)
       .order('due_date', { ascending: true })
       .limit(1000)
-    if (q.project_id) query = query.eq('project_id', q.project_id)
+    const idProyekAging = await proyekBolehDibaca(request, q.project_id)
+    if (idProyekAging === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    query = query.in('project_id', idProyekAging)
 
     const { data, error } = await query
     if (error) return reply.status(500).send({ error: error.message })
@@ -273,9 +297,11 @@ export default async function financeRoutes(app: FastifyInstance) {
   }, async (_request, reply) => {
     const today = new Date().toISOString().split('T')[0]
 
+    const idProyekAr = await _request.db!.projectIds()
     const [invRes, projRes, terminRes] = await Promise.all([
       supabase.from('invoices')
         .select('project_id, invoice_type, retensi_amount, total_amount, status')
+        .in('project_id', idProyekAr)
         .neq('status', 'cancelled')
         .limit(2000),
       supabase.from('projects')
@@ -348,9 +374,11 @@ export default async function financeRoutes(app: FastifyInstance) {
   app.get('/api/v1/finance/dp-register', {
     preHandler: [authenticate, requirePermission('finance:view:all')]
   }, async (_request, reply) => {
+    const idProyekDp = await _request.db!.projectIds()
     const [invRes, projRes] = await Promise.all([
       supabase.from('invoices')
         .select('project_id, total_amount, amount_paid, dp_deduction_amount, status, termin_schedules(trigger_type)')
+        .in('project_id', idProyekDp)
         .neq('status', 'cancelled')
         .limit(2000),
       supabase.from('projects')
@@ -471,11 +499,14 @@ export default async function financeRoutes(app: FastifyInstance) {
     }
 
     // ── Validasi project exists dan akses ────────────────────────────────────
-    const { data: project } = await supabase
+    // T4g: lewat wrapper — proyek di luar company aktif tak terlihat, jadi
+    // otomatis jadi 404. Tanpa ini, admin tenant A bisa MEMBUAT INVOICE yang
+    // menempel ke proyek tenant B (cek pm_id di bawah hanya berlaku utk role PM).
+    const { data: project } = await request.db!
       .from('projects')
       .select('id, pm_id, commission_pct, is_deleted')
       .eq('id', body.project_id)
-      .single()
+      .maybeSingle()
     if (!project || project.is_deleted) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
 
     // PM hanya bisa buat invoice untuk proyek sendiri; admin bebas
@@ -617,12 +648,15 @@ export default async function financeRoutes(app: FastifyInstance) {
     const totalAmount   = parseFloat((baseAmount + commissionAmount - retensiAmount - dpDeduction + taxAmount).toFixed(2))
 
     // ── Generate nomor invoice ───────────────────────────────────────────────
-    const { data: companyRow } = await supabase
-      .from('company_profile')
+    // T4i: prefix nomor invoice diambil dari `companies` (ter-scope), bukan
+    // company_profile single-row. Tanpa ini, mengubah prefix di satu perusahaan
+    // ikut mengubah penomoran invoice perusahaan lain.
+    const { data: companyRow } = await request.db!
+      .unsafe('companies', 'tabel tenant itu sendiri; di-scope eq(id, companyId)')
       .select('invoice_prefix')
-      .limit(1)
-      .single()
-    const prefix = companyRow?.invoice_prefix ?? 'INV'
+      .eq('id', request.companyId!)
+      .maybeSingle()
+    const prefix = (companyRow as { invoice_prefix?: string } | null)?.invoice_prefix ?? 'INV'
     const now = new Date()
     const year = now.getFullYear()
     const month = String(now.getMonth() + 1).padStart(2, '0')
@@ -721,7 +755,7 @@ export default async function financeRoutes(app: FastifyInstance) {
     // ── Fire-and-forget: notif ke admin saat invoice baru dibuat ─────────────
     if (invoice) {
       try {
-        const adminIds = await resolveRecipients('invoice_created')
+        const adminIds = await resolveRecipients('invoice_created', { companyId: request.companyId! })
         const projName = (invoice.projects as any)?.name ?? ''
         createNotifications(adminIds.map(uid => ({
           user_id:     uid,
@@ -750,12 +784,16 @@ export default async function financeRoutes(app: FastifyInstance) {
     if (!allowed.includes(status)) {
       return reply.status(400).send({ error: `Status harus salah satu dari: ${allowed.join(', ')}` })
     }
+    // T4g: invoices kategori C. Saringan dipasang di UPDATE-nya sendiri —
+    // kalau invoice bukan milik tenant, nol baris terubah dan hasilnya 404,
+    // bukan "berhasil mengubah status invoice perusahaan lain".
     const { data, error } = await supabase
       .from('invoices')
       .update({ status, updated_at: new Date().toISOString() })
       .eq('id', id)
+      .in('project_id', await request.db!.projectIds())
       .select('id, status')
-      .single()
+      .maybeSingle()
     if (error) return reply.status(500).send({ error: error.message })
     return reply.send({ invoice: data })
   })
@@ -781,6 +819,10 @@ export default async function financeRoutes(app: FastifyInstance) {
         recorder:users!payments_recorded_by_fkey ( id, name ),
         cash_account:cash_accounts!payments_cash_account_id_fkey ( id, name, type )
       `)
+      // T4g: payments kategori C (mewarisi lewat invoice). Tanpa ini, seluruh
+      // riwayat pembayaran semua perusahaan terbaca — termasuk nominal,
+      // metode, bank, dan bukti transfernya.
+      .in('invoice_id', await request.db!.invoiceIds())
       .order('paid_at', { ascending: false })
       .range(off, off + lim - 1)
 
@@ -817,13 +859,19 @@ export default async function financeRoutes(app: FastifyInstance) {
     const rangeStart = months[0].start
     const rangeEnd = months[months.length - 1].end
 
+    const dbCf = _request.db!
+    const [idInvCf, idAsgCf] = await Promise.all([dbCf.invoiceIds(), dbCf.assignmentIds()])
+    const idProyekCf = await dbCf.projectIds()
     const [paymentsRes, kasbonsRes, expensesRes, wagesRes] = await Promise.all([
-      supabase.from('payments').select('amount_paid, paid_at').gte('paid_at', rangeStart).lte('paid_at', rangeEnd),
-      supabase.from('kasbons').select('amount, kasbon_date').eq('status', 'approved')
+      supabase.from('payments').select('amount_paid, paid_at')
+        .in('invoice_id', idInvCf).gte('paid_at', rangeStart).lte('paid_at', rangeEnd),
+      dbCf.from('kasbons').select('amount, kasbon_date').eq('status', 'approved')
         .gte('kasbon_date', rangeStart).lte('kasbon_date', rangeEnd),
-      supabase.from('project_expenses').select('total_amount, expense_date').eq('status', 'approved')
+      supabase.from('project_expenses').select('total_amount, expense_date')
+        .in('project_id', idProyekCf).eq('status', 'approved')
         .gte('expense_date', rangeStart).lte('expense_date', rangeEnd),
-      supabase.from('weekly_wage_reports').select('net_amount, paid_at').eq('status', 'paid')
+      supabase.from('weekly_wage_reports').select('net_amount, paid_at')
+        .in('assignment_id', idAsgCf).eq('status', 'paid')
         .gte('paid_at', rangeStart).lte('paid_at', rangeEnd),
     ])
 
@@ -855,9 +903,10 @@ export default async function financeRoutes(app: FastifyInstance) {
   // Summary kasbon per mandor: total, breakdown per purpose, per project
   app.get('/api/v1/finance/kasbon-summary', {
     preHandler: [authenticate]
-  }, async (_request, reply) => {
+  }, async (request, reply) => {
     // Step 1: Ambil semua kasbons (flat, tanpa nested join yang rawan null)
-    const { data: kasbons, error: kErr } = await supabase
+    // T4g: lewat wrapper — kasbons kategori B, jadi .from() menyaring company.
+    const { data: kasbons, error: kErr } = await request.db!
       .from('kasbons')
       .select('id, amount, purpose, fund_source, status, kasbon_date, work_scope_id')
       .in('status', ['approved', 'pending', 'settled'])
@@ -974,7 +1023,8 @@ export default async function financeRoutes(app: FastifyInstance) {
     const lim = Math.min(Math.max(1, Number(limit) || 100), 200)
     const off = Math.max(0, Number(offset) || 0)
 
-    let q = supabase
+    // T4g: lewat wrapper — kasbons kategori B.
+    let q = request.db!
       .from('kasbons')
       .select(`
         id, amount, fund_source, purpose, kasbon_date, work_scope_id,
@@ -1009,11 +1059,14 @@ export default async function financeRoutes(app: FastifyInstance) {
     const { id } = request.params
 
     // Ambil data invoice
+    // T4g: tanpa saringan ini, tenant A mencatat pembayaran atas invoice
+    // tenant B DAN mengunggah bukti transfer ke folder storage mereka.
     const { data: invoice, error: invErr } = await supabase
       .from('invoices')
       .select('id, status, total_amount, amount_paid, amount_due, project_id, due_date, penalty_waived')
       .eq('id', id)
-      .single()
+      .in('project_id', await request.db!.projectIds())
+      .maybeSingle()
 
     if (invErr || !invoice) return reply.status(404).send({ error: 'Invoice tidak ditemukan' })
     if (invoice.status === 'cancelled') return reply.status(400).send({ error: 'Invoice sudah dibatalkan' })
@@ -1130,7 +1183,7 @@ export default async function financeRoutes(app: FastifyInstance) {
 
     // ── Fire-and-forget: notif ke admin + PM saat pembayaran diterima ────────
     try {
-      const recipients = await resolveRecipients('invoice_paid', { projectId: invoice.project_id })
+      const recipients = await resolveRecipients('invoice_paid', { projectId: invoice.project_id, companyId: request.companyId! })
       const amtFmt = amountPaid.toLocaleString('id-ID')
       createNotifications(recipients.map(uid => ({
         user_id:     uid,
@@ -1160,8 +1213,10 @@ export default async function financeRoutes(app: FastifyInstance) {
     if (!body.reason || !String(body.reason).trim()) {
       return reply.status(400).send({ error: 'Alasan wajib diisi (tercatat di audit)' })
     }
+    // T4g: memutihkan denda invoice tenant lain = mengubah tagihan mereka.
     const { data: prev } = await supabase.from('invoices')
-      .select('id, penalty_waived, penalty_waived_reason').eq('id', id).maybeSingle()
+      .select('id, penalty_waived, penalty_waived_reason').eq('id', id)
+      .in('project_id', await request.db!.projectIds()).maybeSingle()
     if (!prev) return reply.status(404).send({ error: 'Invoice tidak ditemukan' })
 
     const { error } = await supabase.from('invoices').update({
@@ -1198,7 +1253,7 @@ export default async function financeRoutes(app: FastifyInstance) {
     const { id } = request.params
     const { data: inv } = await supabase.from('invoices')
       .select('id, project_id, total_amount, due_date, status, penalty_waived, penalty_waived_reason')
-      .eq('id', id).maybeSingle()
+      .eq('id', id).in('project_id', await request.db!.projectIds()).maybeSingle()
     if (!inv) return reply.status(404).send({ error: 'Invoice tidak ditemukan' })
 
     const { data: proj } = inv.project_id
@@ -1240,6 +1295,16 @@ export default async function financeRoutes(app: FastifyInstance) {
     const dateFromTs  = dateFrom + 'T00:00:00'
     const dateToTs    = dateTo   + 'T23:59:59'
 
+    // T4j: SELALU di-scope. Tanpa `?project_id=`, seluruh sub-query di bawah
+    // (payments, expenses, wage, kasbon, progress payment, settlement) dulu
+    // berjalan tanpa saringan tenant sama sekali — buku besar transaksi semua
+    // perusahaan (nominal, vendor, nama mandor, nama proyek) terbuka.
+    const idProyekTx = await proyekBolehDibaca(request, projectId)
+    if (idProyekTx === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    const [idInvTx, idAsgTx, idScopeTx] = await Promise.all([
+      request.db!.invoiceIds(), request.db!.assignmentIds(), request.db!.workScopeIds(),
+    ])
+
     const queries: Promise<unknown>[] = []
 
     // 1. payments (masuk)
@@ -1250,6 +1315,7 @@ export default async function financeRoutes(app: FastifyInstance) {
           invoices!inner(id, invoice_number, project_id,
             projects!inner(id, name))`)
         .gte('paid_at', dateFromTs).lte('paid_at', dateToTs)
+      q1 = q1.in('invoice_id', idInvTx)   // T4j
       if (projectId) q1 = q1.eq('invoices.project_id', projectId)
       queries.push(Promise.resolve(q1).then(r => ({ src: 'payment', data: r.data, error: r.error })))
     } else {
@@ -1265,6 +1331,7 @@ export default async function financeRoutes(app: FastifyInstance) {
           category:project_expense_categories(id, name, type, parent_id)`)
         .eq('status', 'approved')
         .gte('expense_date', dateFromTs.split('T')[0]).lte('expense_date', dateToTs.split('T')[0])
+      q2 = q2.in('project_id', idProyekTx)   // T4j
       if (projectId) q2 = q2.eq('project_id', projectId)
       if (categoryId) q2 = q2.eq('category_id', categoryId)
       queries.push(Promise.resolve(q2).then(r => ({ src: 'expense', data: r.data, error: r.error })))
@@ -1283,6 +1350,7 @@ export default async function financeRoutes(app: FastifyInstance) {
           scope:work_scopes(id, scope_name)`)
         .eq('status', 'paid')
         .gte('paid_at', dateFromTs).lte('paid_at', dateToTs)
+      q3 = q3.in('assignment_id', idAsgTx)   // T4j
       if (projectId) q3 = q3.eq('assignment.project_id', projectId)
       queries.push(Promise.resolve(q3).then(r => ({ src: 'wage', data: r.data, error: r.error })))
     } else {
@@ -1301,6 +1369,7 @@ export default async function financeRoutes(app: FastifyInstance) {
               projects!inner(id, name)))`)
         .in('status', ['approved', 'settled'])
         .gte('kasbon_date', dateFrom).lte('kasbon_date', dateTo)
+      q4 = q4.in('work_scope_id', idScopeTx)   // T4j
       if (projectId) q4 = q4.eq('scope.assignment.project_id', projectId)
       queries.push(Promise.resolve(q4).then(r => ({ src: 'kasbon', data: r.data, error: r.error })))
     } else {
@@ -1319,6 +1388,7 @@ export default async function financeRoutes(app: FastifyInstance) {
         .eq('status', 'approved')
         .not('paid_at', 'is', null)
         .gte('paid_at', dateFromTs).lte('paid_at', dateToTs)
+      q5 = q5.in('work_scope_id', idScopeTx)   // T4j
       if (projectId) q5 = q5.eq('scope.assignment.project_id', projectId)
       queries.push(Promise.resolve(q5).then(r => ({ src: 'progress_payment', data: r.data, error: r.error })))
     } else {
@@ -1336,6 +1406,7 @@ export default async function financeRoutes(app: FastifyInstance) {
               projects!inner(id, name)))`)
         .not('settled_at', 'is', null)
         .gte('settled_at', dateFromTs).lte('settled_at', dateToTs)
+      q6 = q6.in('work_scope_id', idScopeTx)   // T4j
       if (projectId) q6 = q6.eq('scope.assignment.project_id', projectId)
       queries.push(Promise.resolve(q6).then(r => ({ src: 'settlement_borongan', data: r.data, error: r.error })))
     } else {
@@ -1345,12 +1416,12 @@ export default async function financeRoutes(app: FastifyInstance) {
     // Fetch kategori untuk resolve parent name (paralel dengan queries di atas sudah selesai)
     const catScope = projectId
       ? supabase.from('project_expense_categories').select('id, name, parent_id').eq('project_id', projectId)
-      : supabase.from('project_expense_categories').select('id, name, parent_id')
+      : supabase.from('project_expense_categories').select('id, name, parent_id').in('project_id', idProyekTx)
     const [results, { data: allCats }] = await Promise.all([
       Promise.all(queries) as Promise<Array<{ src: string; data: unknown[] | null; error: unknown }>>,
       catScope,
     ])
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const catNameMap = new Map<string, string>((allCats ?? []).map((c: any) => [c.id, c.name]))
 
     const purposeLabel: Record<string, string> = {
@@ -1358,14 +1429,14 @@ export default async function financeRoutes(app: FastifyInstance) {
       pembelian_alat: 'Pembelian Alat', operasional: 'Operasional', lain_lain: 'Lain-lain',
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const txns: any[] = []
     let totalIn = 0, totalOut = 0
     let byTypePayment = 0, byTypeExpense = 0, byTypeWage = 0, byTypeKasbon = 0, byTypeProgressPayment = 0, byTypeSettlementBorongan = 0
 
     for (const res of results) {
       if (!res.data) continue
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       for (const row of res.data as any[]) {
         if (res.src === 'payment') {
           const amt = Number(row.amount_paid)
@@ -1489,6 +1560,12 @@ export default async function financeRoutes(app: FastifyInstance) {
     if (!project_id) {
       return reply.status(400).send({ error: 'project_id wajib diisi' })
     }
+    // T4g: cek kepemilikan SEBELUM apa pun. Cek pm_id di bawah hanya berlaku
+    // untuk role PM — admin tenant A tanpa gerbang ini bisa membaca pengeluaran
+    // tertagih & saran komisi proyek tenant B.
+    if (!(await proyekMilikTenant(request, project_id))) {
+      return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    }
 
     // PM hanya bisa lihat proyek sendiri
     const currentUser = (request as any).currentUser!
@@ -1534,6 +1611,10 @@ export default async function financeRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const { project_id } = request.query as Record<string, string>
     if (!project_id) return reply.status(400).send({ error: 'project_id wajib diisi' })
+    // T4g: gerbang kepemilikan — cek pm_id di bawah hanya berlaku untuk role PM.
+    if (!(await proyekMilikTenant(request, project_id))) {
+      return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    }
 
     const currentUser = (request as any).currentUser!
     const { data: proj } = await supabase
@@ -1585,11 +1666,14 @@ export default async function financeRoutes(app: FastifyInstance) {
     const { invoiceId } = request.params
 
     // Verifikasi invoice ada dan user punya akses
+    // T4j: cek pm_id di bawah hanya berlaku untuk role PM — admin & role lain
+    // sebelumnya membaca rincian invoice (nominal, nota vendor) tenant mana pun.
     const { data: inv } = await supabase
       .from('invoices')
       .select('id, project_id, projects(pm_id)')
       .eq('id', invoiceId)
-      .single()
+      .in('project_id', await request.db!.projectIds())
+      .maybeSingle()
     if (!inv) return reply.status(404).send({ error: 'Invoice tidak ditemukan' })
 
     const currentUser = (request as any).currentUser!
@@ -1633,28 +1717,49 @@ export default async function financeRoutes(app: FastifyInstance) {
     const dateFromTs = dateFrom + 'T00:00:00'
     const dateToTs   = dateTo   + 'T23:59:59'
 
+    // T4c: arus kas juga agregat lintas-proyek. Saat `projectId` diberikan,
+    // proyek itu WAJIB milik tenant ini — kalau tidak, siapa pun bisa membaca
+    // arus kas proyek perusahaan lain hanya dengan menebak id-nya.
+    const dbAk = request.db!
+    const [idProyekAk, idInvAk, idAsgAk, idScopeAk] = await Promise.all([
+      dbAk.projectIds(), dbAk.invoiceIds(), dbAk.assignmentIds(), dbAk.workScopeIds(),
+    ])
+    if (projectId && !idProyekAk.includes(projectId)) {
+      return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    }
+    const proyekTerpakai = projectId ? [projectId] : idProyekAk
+    const invTerpakai = projectId
+      ? (await supabase.from('invoices').select('id').eq('project_id', projectId)).data?.map(r => r.id) ?? []
+      : idInvAk
+
     const [payRes, expRes, wageRes, kasbonRes, ppRes, bsRes] = await Promise.all([
       typeFilter.includes('payment')
-        ? (projectId
-            ? supabase.from('payments').select('amount_paid, paid_at, invoices!inner(project_id)').gte('paid_at', dateFromTs).lte('paid_at', dateToTs).eq('invoices.project_id', projectId)
-            : supabase.from('payments').select('amount_paid, paid_at').gte('paid_at', dateFromTs).lte('paid_at', dateToTs))
+        ? supabase.from('payments').select('amount_paid, paid_at')
+            .in('invoice_id', invTerpakai).gte('paid_at', dateFromTs).lte('paid_at', dateToTs)
         : Promise.resolve({ data: [] }),
       typeFilter.includes('expense')
-        ? (projectId
-            ? supabase.from('project_expenses').select('total_amount, expense_date').eq('status', 'approved').eq('project_id', projectId).gte('expense_date', dateFrom).lte('expense_date', dateTo)
-            : supabase.from('project_expenses').select('total_amount, expense_date').eq('status', 'approved').gte('expense_date', dateFrom).lte('expense_date', dateTo))
+        ? supabase.from('project_expenses').select('total_amount, expense_date')
+            .in('project_id', proyekTerpakai).eq('status', 'approved')
+            .gte('expense_date', dateFrom).lte('expense_date', dateTo)
         : Promise.resolve({ data: [] }),
       typeFilter.includes('wage')
-        ? supabase.from('weekly_wage_reports').select('net_amount, paid_at').eq('status', 'paid').gte('paid_at', dateFromTs).lte('paid_at', dateToTs)
+        ? supabase.from('weekly_wage_reports').select('net_amount, paid_at')
+            .in('assignment_id', idAsgAk).eq('status', 'paid')
+            .gte('paid_at', dateFromTs).lte('paid_at', dateToTs)
         : Promise.resolve({ data: [] }),
       typeFilter.includes('kasbon')
-        ? supabase.from('kasbons').select('amount, kasbon_date').in('status', ['approved', 'settled']).gte('kasbon_date', dateFrom).lte('kasbon_date', dateTo)
+        ? dbAk.from('kasbons').select('amount, kasbon_date')
+            .in('status', ['approved', 'settled']).gte('kasbon_date', dateFrom).lte('kasbon_date', dateTo)
         : Promise.resolve({ data: [] }),
       typeFilter.includes('progress_payment')
-        ? supabase.from('progress_payments').select('gross_payment, paid_at').eq('status', 'approved').not('paid_at', 'is', null).gte('paid_at', dateFromTs).lte('paid_at', dateToTs)
+        ? supabase.from('progress_payments').select('gross_payment, paid_at')
+            .in('work_scope_id', idScopeAk).eq('status', 'approved').not('paid_at', 'is', null)
+            .gte('paid_at', dateFromTs).lte('paid_at', dateToTs)
         : Promise.resolve({ data: [] }),
       typeFilter.includes('settlement_borongan')
-        ? supabase.from('borongan_settlements').select('net_payment, settled_at').not('settled_at', 'is', null).gte('settled_at', dateFromTs).lte('settled_at', dateToTs)
+        ? supabase.from('borongan_settlements').select('net_payment, settled_at')
+            .in('work_scope_id', idScopeAk).not('settled_at', 'is', null)
+            .gte('settled_at', dateFromTs).lte('settled_at', dateToTs)
         : Promise.resolve({ data: [] }),
     ])
 
@@ -1679,17 +1784,17 @@ export default async function financeRoutes(app: FastifyInstance) {
       periodMap.set(p, { masuk: cur.masuk + masuk, keluar: cur.keluar + keluar })
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     for (const row of (payRes.data || []) as any[]) add(row.paid_at, Number(row.amount_paid), 0)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     for (const row of (expRes.data || []) as any[]) add(row.expense_date, 0, Number(row.total_amount))
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     for (const row of (wageRes.data || []) as any[]) add(row.paid_at, 0, Number(row.net_amount))
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     for (const row of (kasbonRes.data || []) as any[]) add(row.kasbon_date, 0, Number(row.amount))
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     for (const row of (ppRes.data || []) as any[]) add(row.paid_at, 0, Number(row.gross_payment))
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     for (const row of (bsRes.data || []) as any[]) add(row.settled_at, 0, Number(row.net_payment))
 
     const chartData = Array.from(periodMap.entries())
@@ -1720,11 +1825,19 @@ export default async function financeRoutes(app: FastifyInstance) {
     const { date_from, date_to, project_id } = request.query as Record<string, string>
 
     // Fetch all projects (or single if filtered)
-    let projectQ = supabase
+    // T4g: lewat wrapper — projects ANCHOR, .from() menyaring company.
+    // Seluruh angka profitabilitas di bawah diturunkan dari daftar ini, jadi
+    // men-scope satu query ini cukup: query turunannya memakai projectIds.
+    let projectQ = request.db!
       .from('projects')
       .select('id, name, contract_model, contract_value, commission_pct')
       .eq('is_deleted', false)
-    if (project_id) projectQ = projectQ.eq('id', project_id)
+    if (project_id) {
+      if (!(await proyekMilikTenant(request, project_id))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
+      projectQ = projectQ.eq('id', project_id)
+    }
     const { data: projects } = await projectQ
 
     if (!projects || projects.length === 0) return reply.send({ projects: [], totals: {} })

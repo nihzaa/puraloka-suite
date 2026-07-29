@@ -16,7 +16,7 @@ export default async function projectRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const currentUser = request.currentUser!
 
-    let q = supabase
+    let q = request.db!
       .from('projects')
       .select(`
         id, name, description, location, contract_model, tax_scheme,
@@ -32,7 +32,7 @@ export default async function projectRoutes(app: FastifyInstance) {
 
     // Client hanya lihat proyek mereka sendiri
     if (currentUser.role === 'client') {
-      const { data: clientRecord } = await supabase
+      const { data: clientRecord } = await request.db!
         .from('clients')
         .select('id')
         .eq('user_id', currentUser.id)
@@ -55,7 +55,7 @@ export default async function projectRoutes(app: FastifyInstance) {
     const currentUser = request.currentUser!
 
     const [projectRes, logsRes, invoicesRes, scopelessKasbonsRes] = await Promise.all([
-      supabase
+      request.db!
         .from('projects')
         .select(`
           id, name, description, location, contract_model, tax_scheme,
@@ -113,7 +113,7 @@ export default async function projectRoutes(app: FastifyInstance) {
         .order('issued_date', { ascending: false }),
 
       // Kasbon tanpa scope (project_id langsung, work_scope_id null)
-      supabase
+      request.db!
         .from('kasbons')
         .select('id, amount, fund_source, purpose, kasbon_date, status, notes, requested_by')
         .eq('project_id', id)
@@ -136,7 +136,7 @@ export default async function projectRoutes(app: FastifyInstance) {
     }
     if (currentUser.role === 'client') {
       // Cek client_id cocok dengan user ini — perlu join ke clients table via auth_id
-      const { data: clientRow } = await supabase
+      const { data: clientRow } = await request.db!
         .from('clients')
         .select('id')
         .eq('auth_id', currentUser.auth_id)
@@ -215,7 +215,7 @@ export default async function projectRoutes(app: FastifyInstance) {
     const retAmount = Number(contract_value) * (retPct / 100)
     const createdBy = request.currentUser!.id
 
-    const { data: project, error: projError } = await supabase
+    const { data: project, error: projError } = await request.db!
       .from('projects')
       .insert({
         name,
@@ -271,7 +271,7 @@ export default async function projectRoutes(app: FastifyInstance) {
     }
 
     // Clone global expense_category_templates to project_expense_categories
-    const { data: templates } = await supabase
+    const { data: templates } = await request.db!
       .from('expense_category_templates')
       .select('id, name, description')
 
@@ -330,14 +330,14 @@ export default async function projectRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'Tidak ada field yang diupdate' })
     }
 
-    const { data: existing } = await supabase
+    const { data: existing } = await request.db!
       .from('projects').select('id, is_deleted').eq('id', id).single()
     if (!existing) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
     if (existing.is_deleted) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
 
     updates.updated_at = new Date().toISOString()
 
-    const { data, error } = await supabase
+    const { data, error } = await request.db!
       .from('projects')
       .update(updates)
       .eq('id', id)
@@ -360,7 +360,7 @@ export default async function projectRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: `Status harus salah satu dari: ${valid.join(', ')}` })
     }
 
-    const { data: existing } = await supabase
+    const { data: existing } = await request.db!
       .from('projects').select('id, is_deleted, status').eq('id', id).single()
     if (!existing) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
     if (existing.is_deleted) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
@@ -368,7 +368,7 @@ export default async function projectRoutes(app: FastifyInstance) {
     const updates: Record<string, unknown> = { status, updated_at: new Date().toISOString() }
     if (status === 'completed') updates.actual_end_date = new Date().toISOString().split('T')[0]
 
-    const { data, error } = await supabase
+    const { data, error } = await request.db!
       .from('projects')
       .update(updates)
       .eq('id', id)
@@ -393,7 +393,7 @@ export default async function projectRoutes(app: FastifyInstance) {
     // ── Fire-and-forget: notif ke admin + PM saat status berubah ─────────────
     if (data) {
       try {
-        const recipients = await resolveRecipients('project_status_changed', { projectId: id })
+        const recipients = await resolveRecipients('project_status_changed', { projectId: id, companyId: request.companyId! })
         createNotifications(recipients.map(uid => ({
           user_id:     uid,
           title:       'Status Proyek Berubah',
@@ -420,7 +420,7 @@ export default async function projectRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string }
 
     // Cek proyek ada dan belum dihapus
-    const { data: existing } = await supabase
+    const { data: existing } = await request.db!
       .from('projects')
       .select('id, name, is_deleted')
       .eq('id', id)
@@ -429,7 +429,7 @@ export default async function projectRoutes(app: FastifyInstance) {
     if (!existing) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
     if (existing.is_deleted) return reply.status(409).send({ error: 'Proyek sudah dihapus sebelumnya' })
 
-    const { error } = await supabase
+    const { error } = await request.db!
       .from('projects')
       .update({
         is_deleted: true,

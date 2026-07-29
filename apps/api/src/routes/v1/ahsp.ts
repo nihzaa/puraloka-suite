@@ -33,7 +33,7 @@ export default async function ahspRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('cecep:resource:view')] },
     async (request, reply) => {
       const limit = Math.max(1, Math.min(200, Number(request.query.limit) || 100))
-      let q = supabase
+      let q = request.db!
         .from('resources')
         .select('id, code, name, category, unit_code, status')
         .eq('status', 'active')
@@ -54,7 +54,7 @@ export default async function ahspRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('cecep:takeoff:view')] },
     async (request, reply) => {
       const limit = Math.max(1, Math.min(200, Number(request.query.limit) || 100))
-      let q = supabase
+      let q = request.db!
         .from('steel_profiles')
         .select('id, profile_type, designation, h_mm, b_mm, t1_mm, t2_mm, weight_per_bar_kg, standard_length_m, weight_kg_per_m, source_note')
         .eq('is_active', true)
@@ -72,12 +72,12 @@ export default async function ahspRoutes(app: FastifyInstance) {
     '/api/v1/cecep/material-pack',
     { preHandler: [authenticate, requirePermission('cecep:takeoff:view')] },
     async (request, reply) => {
-      let q = supabase
+      let q = request.db!
         .from('material_pack')
         .select('id, buy_unit_code, factor, round_up, note, resource:resources(id, code, name, unit_code)')
         .limit(200)
       if (request.query.resource) {
-        const { data: r } = await supabase
+        const { data: r } = await request.db!
           .from('resources').select('id').eq('code', request.query.resource).maybeSingle()
         if (!r) return reply.status(404).send({ error: `Resource ${request.query.resource} tidak ditemukan` })
         q = q.eq('resource_id', r.id)
@@ -98,14 +98,14 @@ export default async function ahspRoutes(app: FastifyInstance) {
       if (typeof b.factor !== 'number' || b.factor <= 0) {
         return reply.status(400).send({ error: 'factor wajib angka > 0 (satuan AHSP per 1 satuan belanja)' })
       }
-      const { data: r } = await supabase
+      const { data: r } = await request.db!
         .from('resources').select('id').eq('code', b.resource_code).maybeSingle()
       if (!r) return reply.status(404).send({ error: `Resource ${b.resource_code} tidak ditemukan` })
-      const { data: u } = await supabase
+      const { data: u } = await request.db!
         .from('units').select('code').eq('code', b.buy_unit_code).maybeSingle()
       if (!u) return reply.status(404).send({ error: `Satuan ${b.buy_unit_code} tidak ditemukan` })
 
-      const { data: row, error } = await supabase
+      const { data: row, error } = await request.db!
         .from('material_pack')
         .insert({ resource_id: r.id, buy_unit_code: u.code, factor: b.factor,
                   round_up: b.round_up ?? true, note: b.note ?? null,
@@ -129,7 +129,7 @@ export default async function ahspRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('cecep:cost_code:view')] },
     async (request, reply) => {
       const limit = Math.max(1, Math.min(200, Number(request.query.limit) || 100))
-      let q = supabase.from('cost_codes').select('id, code, name').order('code').limit(limit)
+      let q = request.db!.from('cost_codes').select('id, code, name').order('code').limit(limit)
       if (request.query.q) q = q.ilike('name', `%${request.query.q}%`)
       const { data, error } = await q
       if (error) return reply.status(500).send({ error: error.message })
@@ -168,17 +168,17 @@ export default async function ahspRoutes(app: FastifyInstance) {
         }
       }
 
-      const { data: cc } = await supabase
+      const { data: cc } = await request.db!
         .from('cost_codes').select('id').eq('id', b.cost_code_id).maybeSingle()
       if (!cc) return reply.status(404).send({ error: 'Cost code tidak ditemukan' })
 
-      const { data: unit } = await supabase
+      const { data: unit } = await request.db!
         .from('units').select('code').eq('code', b.output_unit_code).maybeSingle()
       if (!unit) return reply.status(404).send({ error: `Satuan ${b.output_unit_code} tidak ditemukan` })
 
       // Resolusi resource_code -> id; fail-loud kalau ada yang tak dikenal (nol tebak).
       const codes = b.components.map(c => c.resource_code)
-      const { data: resources, error: resErr } = await supabase
+      const { data: resources, error: resErr } = await request.db!
         .from('resources').select('id, code').in('code', codes)
       if (resErr) return reply.status(500).send({ error: resErr.message })
       const byCode = new Map((resources ?? []).map(r => [r.code, r.id]))
@@ -193,11 +193,16 @@ export default async function ahspRoutes(app: FastifyInstance) {
         if (!ev) return reply.status(404).send({ error: 'Estimate Version (created_in_estimate_id) tidak ditemukan' })
       }
 
-      const { data: asm, error: asmErr } = await supabase
+      const { data: asm, error: asmErr } = await request.db!
         .from('assemblies')
         .insert({
           code: b.code.trim(), name: b.name.trim(), cost_code_id: cc.id,
           source: 'company', version_number: 1, waste_factor: b.waste_factor ?? 0,
+          // T4: assembly source='company' WAJIB bertuan (CHECK
+          // assemblies_source_company_konsisten, migrasi 127) — hanya katalog
+          // nasional yang boleh company_id NULL. Diambil dari company aktif
+          // request, bukan ditebak.
+          company_id: request.companyId,
           sequence: [], output_unit_code: unit.code,
           created_in_estimate_id: b.created_in_estimate_id ?? null,
           derived_from_assembly_id: b.derived_from_assembly_id ?? null,
@@ -210,12 +215,12 @@ export default async function ahspRoutes(app: FastifyInstance) {
         assembly_id: asm.id, resource_id: byCode.get(c.resource_code)!,
         coefficient: c.coefficient, sort_order: i,
       }))
-      const { error: compErr } = await supabase.from('assembly_components').insert(rows)
+      const { error: compErr } = await request.db!.from('assembly_components').insert(rows)
       if (compErr) return reply.status(500).send({ error: compErr.message })
 
       // Aktifkan langsung (§2.2: "hanya dipakai sendiri", tanpa approval) supaya
       // bisa langsung dipakai POST /estimate-versions/:id/items (butuh status active).
-      const { error: actErr } = await supabase
+      const { error: actErr } = await request.db!
         .from('assemblies').update({ status: 'active' }).eq('id', asm.id)
       if (actErr) return reply.status(500).send({ error: actErr.message })
 
@@ -231,8 +236,8 @@ export default async function ahspRoutes(app: FastifyInstance) {
   app.get(
     '/api/v1/cecep/editions',
     { preHandler: [authenticate, requirePermission('cecep:edition:view')] },
-    async (_request, reply) => {
-      const { data, error } = await supabase
+    async (request, reply) => {
+      const { data, error } = await request.db!
         .from('ahsp_editions')
         .select('id, code, name, se_number, publish_date, source_file, source_sha256, imported_at, is_active')
         .order('publish_date', { ascending: false })
@@ -246,7 +251,7 @@ export default async function ahspRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('cecep:assembly:view')] },
     async (request, reply) => {
       const limit = Math.max(1, Math.min(200, Number(request.query.limit) || 100)) // cap 200 (kebijakan pagination)
-      let q = supabase
+      let q = request.db!
         .from('assemblies')
         .select(`id, code, name, source, version_number, status, waste_factor,
                  output_unit_code, is_import_baseline, edit_type,
@@ -257,7 +262,7 @@ export default async function ahspRoutes(app: FastifyInstance) {
         .limit(limit)
       if (request.query.source) q = q.eq('source', request.query.source)
       if (request.query.edition) {
-        const { data: ed } = await supabase
+        const { data: ed } = await request.db!
           .from('ahsp_editions').select('id').eq('code', request.query.edition).maybeSingle()
         if (!ed) return reply.status(404).send({ error: `Edisi ${request.query.edition} tidak ditemukan` })
         q = q.eq('edition_id', ed.id)
@@ -287,7 +292,7 @@ export default async function ahspRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: "rounding wajib {mode:'down'|'up'|'nearest'|'none', step:number}" })
       }
 
-      const { data: asm, error } = await supabase
+      const { data: asm, error } = await request.db!
         .from('assemblies')
         .select(`id, code, name, output_unit_code, status,
                  components:assembly_components(coefficient, sort_order,

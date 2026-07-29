@@ -10,7 +10,7 @@ import { normalizeCategoryCode, validateCategoryInput } from '../../lib/work-cat
 export default async function workCategoriesRoutes(app: FastifyInstance) {
   app.get('/api/v1/work-categories', { preHandler: [authenticate] }, async (request, reply) => {
     const includeInactive = (request.query as { all?: string })?.all === 'true'
-    let q = supabase.from('work_categories')
+    let q = request.db!.from('work_categories')
       .select('code, label, sort_order, is_active')
       .order('sort_order', { ascending: true }).order('code', { ascending: true })
     if (!includeInactive) q = q.eq('is_active', true)
@@ -28,7 +28,7 @@ export default async function workCategoriesRoutes(app: FastifyInstance) {
     if (!v.ok) return reply.status(400).send({ error: v.error })
     if (body.label === undefined) return reply.status(400).send({ error: 'Wajib: code, label' })
 
-    const { data, error } = await supabase.from('work_categories').insert({
+    const { data, error } = await request.db!.from('work_categories').insert({
       code, label: String(body.label).trim(), sort_order: body.sort_order ?? 0,
       updated_by: request.currentUser!.id,
     }).select('code, label, sort_order, is_active').single()
@@ -57,11 +57,11 @@ export default async function workCategoriesRoutes(app: FastifyInstance) {
     if (body.is_active !== undefined) patch.is_active = !!body.is_active
     if (Object.keys(patch).length <= 2) return reply.status(400).send({ error: 'Tidak ada field yang diubah' })
 
-    const { data: prev } = await supabase.from('work_categories')
+    const { data: prev } = await request.db!.from('work_categories')
       .select('label, sort_order, is_active').eq('code', code).maybeSingle()
     if (!prev) return reply.status(404).send({ error: `Kategori "${code}" tidak ditemukan` })
 
-    const { data, error } = await supabase.from('work_categories').update(patch as never)
+    const { data, error } = await request.db!.from('work_categories').update(patch as never)
       .eq('code', code).select('code, label, sort_order, is_active').single()
     if (error) return reply.status(500).send({ error: error.message })
     void logAuditEvent(request, {

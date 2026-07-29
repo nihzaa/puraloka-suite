@@ -28,13 +28,15 @@ export default async function lessonsLearnedRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { id } = request.params
       const { data: l } = await supabase
-        .from('lessons_learned_records').select('id, status').eq('id', id).maybeSingle()
+        .from('lessons_learned_records').select('id, status').eq('id', id)
+        .in('project_id', await request.db!.projectIds()).maybeSingle()
       if (!l) return reply.status(404).send({ error: 'Lessons Learned tidak ditemukan' })
       if (l.status !== 'draft') {
         return reply.status(400).send({ error: 'Hanya lessons learned draft yang bisa diajukan' })
       }
       const { error } = await supabase.from('lessons_learned_records')
         .update({ status: 'under_review', updated_by: request.currentUser!.id }).eq('id', id)
+        .in('project_id', await request.db!.projectIds())
       if (error) return reply.status(500).send({ error: error.message })
       void logAuditEvent(request, {
         tableName: 'lessons_learned_records', recordId: id, action: 'lessons.submitted',
@@ -59,7 +61,8 @@ export default async function lessonsLearnedRoutes(app: FastifyInstance) {
       if (!coarse.ok) return reply.status(403).send({ error: 'Akses ditolak' })
 
       const { data: l } = await supabase
-        .from('lessons_learned_records').select('id, status, variance_amount').eq('id', id).maybeSingle()
+        .from('lessons_learned_records').select('id, status, variance_amount').eq('id', id)
+        .in('project_id', await request.db!.projectIds()).maybeSingle()
       if (!l) return reply.status(404).send({ error: 'Lessons Learned tidak ditemukan' })
       if (l.status !== 'under_review') {
         return reply.status(400).send({ error: 'Hanya lessons learned under_review yang bisa disetujui' })
@@ -80,7 +83,7 @@ export default async function lessonsLearnedRoutes(app: FastifyInstance) {
 
       if (decision.step) {
         const rec = await recordApproval({
-          entityType: 'lessons_learned', entityId: id, level: decision.step.level, approvedBy: user.id,
+          entityType: 'lessons_learned', entityId: id, level: decision.step.level, approvedBy: user.id, companyId: request.companyId!,
         })
         if (!rec.ok) return reply.status(500).send({ error: 'Gagal mencatat persetujuan: ' + rec.error })
 
@@ -98,6 +101,7 @@ export default async function lessonsLearnedRoutes(app: FastifyInstance) {
       // Langkah final: set approved, lalu PROPAGASI ATOMIK (fungsi DB) → propagated.
       const { error: upErr } = await supabase.from('lessons_learned_records')
         .update({ status: 'approved', approved_by: user.id, updated_by: user.id }).eq('id', id)
+        .in('project_id', await request.db!.projectIds())
       if (upErr) return reply.status(500).send({ error: upErr.message })
 
       const { data: propagated, error: propErr } = await supabase.rpc('fn_propagate_lesson', {
@@ -134,15 +138,17 @@ export default async function lessonsLearnedRoutes(app: FastifyInstance) {
       if (!coarse.ok) return reply.status(403).send({ error: 'Akses ditolak' })
 
       const { data: l } = await supabase
-        .from('lessons_learned_records').select('id, status').eq('id', id).maybeSingle()
+        .from('lessons_learned_records').select('id, status').eq('id', id)
+        .in('project_id', await request.db!.projectIds()).maybeSingle()
       if (!l) return reply.status(404).send({ error: 'Lessons Learned tidak ditemukan' })
       if (l.status !== 'under_review') {
         return reply.status(400).send({ error: 'Hanya lessons learned under_review yang bisa ditolak' })
       }
 
-      await clearApprovalProgress('lessons_learned', id)
+      await clearApprovalProgress('lessons_learned', id, request.companyId!)
       const { error } = await supabase.from('lessons_learned_records')
         .update({ status: 'draft', updated_by: user.id }).eq('id', id)
+        .in('project_id', await request.db!.projectIds())
       if (error) return reply.status(500).send({ error: error.message })
       void logAuditEvent(request, {
         tableName: 'lessons_learned_records', recordId: id, action: 'lessons.rejected',

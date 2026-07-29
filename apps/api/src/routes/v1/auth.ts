@@ -113,7 +113,12 @@ export default async function authRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'Password minimal 8 karakter' })
     }
 
-    const { data: roleRow } = await supabase.from('roles').select('id').eq('name', role).single()
+    // T4i: lewat wrapper — `roles` kategori AB. `roles.name` UNIQUE GLOBAL
+    // (migration 050), jadi tanpa saringan ini admin tenant A yang tahu/menebak
+    // nama role custom tenant B bisa mendaftarkan user dengan role_id milik B
+    // dan mewarisi permission set perusahaan lain.
+    const { data: roleRow } = await request.db!
+      .from('roles').select('id').eq('name', role).maybeSingle()
     if (!roleRow) {
       return reply.status(400).send({ error: `Role '${role}' tidak valid` })
     }

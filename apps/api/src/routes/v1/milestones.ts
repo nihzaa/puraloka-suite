@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import { proyekMilikTenant } from '../../utils/tenant-guard.js'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { createNotifications } from '../../utils/notifications.js'
@@ -11,6 +12,10 @@ export default async function milestoneRoutes(app: FastifyInstance) {
     { preHandler: [authenticate] },
     async (request, reply) => {
       const { projectId } = request.params
+
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
 
       const { data, error } = await supabase
         .from('milestones')
@@ -54,6 +59,10 @@ export default async function milestoneRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('milestones:manage')] },
     async (request, reply) => {
       const { projectId } = request.params
+
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
       const { title, description, target_date, sort_order } = request.body
 
       if (!title?.trim()) {
@@ -116,7 +125,12 @@ export default async function milestoneRoutes(app: FastifyInstance) {
     '/api/v1/projects/:projectId/milestones/:milestoneId',
     { preHandler: [authenticate, requirePermission('milestones:manage')] },
     async (request, reply) => {
-      const { milestoneId } = request.params
+      const { projectId, milestoneId } = request.params
+      // T4h: PATCH/DELETE sebelumnya tak punya gerbang (GET/POST sudah), jadi
+      // milestone tenant lain bisa diubah/dihapus hanya dgn tahu id-nya.
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
       const { title, description, target_date, completed_at, status, sort_order } = request.body
 
       const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
@@ -132,6 +146,7 @@ export default async function milestoneRoutes(app: FastifyInstance) {
         .from('milestones')
         .update(updates)
         .eq('id', milestoneId)
+        .eq('project_id', projectId)
         .select(`
           id,
           project_id,
@@ -156,8 +171,8 @@ export default async function milestoneRoutes(app: FastifyInstance) {
       // ── Fire-and-forget: notif ke admin jika milestone selesai ───────────
       if (status === 'completed' && data) {
         try {
-          const adminIds = await resolveRecipients('milestone_completed')
-          const { data: proj } = await supabase.from('projects').select('name').eq('id', request.params.projectId).single()
+          const adminIds = await resolveRecipients('milestone_completed', { companyId: request.companyId! })
+          const { data: proj } = await request.db!.from('projects').select('name').eq('id', request.params.projectId).single()
           createNotifications(adminIds.map(uid => ({
             user_id:     uid,
             title:       'Milestone Selesai',
@@ -181,12 +196,18 @@ export default async function milestoneRoutes(app: FastifyInstance) {
     '/api/v1/projects/:projectId/milestones/:milestoneId',
     { preHandler: [authenticate, requirePermission('milestones:manage')] },
     async (request, reply) => {
-      const { milestoneId } = request.params
+      const { projectId, milestoneId } = request.params
+      // T4h: PATCH/DELETE sebelumnya tak punya gerbang (GET/POST sudah), jadi
+      // milestone tenant lain bisa diubah/dihapus hanya dgn tahu id-nya.
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
 
       const { error } = await supabase
         .from('milestones')
         .delete()
         .eq('id', milestoneId)
+        .eq('project_id', projectId)
 
       if (error) {
         app.log.error(error)

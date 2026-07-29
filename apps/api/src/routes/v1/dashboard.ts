@@ -56,17 +56,24 @@ export default async function dashboardRoutes(app: FastifyInstance) {
     in14Days.setDate(today.getDate() + 14)
     const in14DaysStr = in14Days.toISOString().split('T')[0]
 
+    // T4c — SCOPING TENANT. Dashboard = agregat lintas-proyek, jadi tabel
+    // kategori C disaring lewat daftar id milik tenant. Tanpa ini, KPI di
+    // halaman depan mencampur angka dua perusahaan.
+    const db = request.db!
+    const [idProyek, idInvoice] = await Promise.all([db.projectIds(), db.invoiceIds()])
+
     // Build payment and kasbon queries scoped to period
     let paymentsQuery = supabase.from('payments').select('amount_paid, paid_at')
+      .in('invoice_id', idInvoice)
     if (periodStart) paymentsQuery = paymentsQuery.gte('paid_at', periodStart)
 
-    let allKasbonsQuery = supabase.from('kasbons')
+    let allKasbonsQuery = db.from('kasbons')
       .select('id, amount, status, kasbon_date, fund_source, purpose')
       .not('status', 'eq', 'rejected')
     if (periodStart) allKasbonsQuery = allKasbonsQuery.gte('kasbon_date', periodStart)
 
     // Supplier payments yang terhubung ke kas (cash_account_id tidak null)
-    let supplierPaymentsQuery = supabase
+    let supplierPaymentsQuery = db
       .from('supplier_payments')
       .select('amount, payment_date')
       .not('cash_account_id', 'is', null)
@@ -85,7 +92,7 @@ export default async function dashboardRoutes(app: FastifyInstance) {
       taxRes,
       supplierPaymentsRes,
     ] = await Promise.allSettled([
-      supabase.from('projects')
+      db.from('projects')
         .select(`
           id, name, status, contract_value, progress_pct, location, end_date, contract_model,
           clients!projects_client_id_fkey ( contact_person ),
@@ -102,6 +109,7 @@ export default async function dashboardRoutes(app: FastifyInstance) {
             clients!projects_client_id_fkey ( contact_person )
           )
         `)
+        .in('project_id', idProyek)
         .in('status', ['sent', 'partial', 'overdue'])
         .order('due_date', { ascending: true }),
 
@@ -109,7 +117,7 @@ export default async function dashboardRoutes(app: FastifyInstance) {
 
       allKasbonsQuery,
 
-      supabase.from('kasbons')
+      db.from('kasbons')
         .select(`
           id, amount, fund_source, purpose, kasbon_date, notes, status, created_at,
           work_scopes!kasbons_work_scope_id_fkey (
@@ -129,6 +137,7 @@ export default async function dashboardRoutes(app: FastifyInstance) {
           projects!progress_logs_project_id_fkey ( id, name ),
           reporter:users!reported_by ( name )
         `)
+        .in('project_id', idProyek)
         .gte('logged_at', sevenDaysAgoStr + 'T00:00:00+07:00')
         .lte('logged_at', todayStr + 'T23:59:59+07:00')
         .order('logged_at', { ascending: false }),
@@ -138,6 +147,7 @@ export default async function dashboardRoutes(app: FastifyInstance) {
           id, title, target_date, completed_at, status,
           projects!milestones_project_id_fkey ( id, name )
         `)
+        .in('project_id', idProyek)
         .not('status', 'eq', 'completed')
         .lte('target_date', in14DaysStr)
         .order('target_date', { ascending: true }),
@@ -152,10 +162,12 @@ export default async function dashboardRoutes(app: FastifyInstance) {
             kasbons!kasbons_work_scope_id_fkey ( amount, status, kasbon_date )
           )
         `)
+        .in('project_id', idProyek)
         .eq('status', 'active'),
 
       supabase.from('tax_records')
         .select('id, tax_type, base_amount, rate_pct, tax_amount, period_month, status')
+        .in('invoice_id', idInvoice)
         .order('period_month', { ascending: false }),
 
       supplierPaymentsQuery,

@@ -1,14 +1,42 @@
-import type { FastifyInstance } from 'fastify'
+import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { supabase } from '../../utils/supabase.js'
 import { assertNoCriticalLockout } from '../../utils/role-guard.js'
 import { logAuditEvent } from '../../utils/audit.js'
 
+/**
+ * T4g — pastikan role boleh disentuh company aktif.
+ *
+ * `roles` kategori AB: `company_id` NULL = role bawaan sistem (dipakai semua
+ * tenant), terisi = role custom milik tenant itu. Guard `is_builtin` yang sudah
+ * ada mencegah role bawaan diubah, TAPI tidak mencegah tenant A mengedit atau
+ * menghapus role CUSTOM milik tenant B — itu yang ditutup di sini.
+ *
+ * Return: pesan error bila tidak boleh, `null` bila boleh.
+ */
+async function tolakRoleTenantLain(
+  request: FastifyRequest,
+  roleId: string
+): Promise<string | null> {
+  // Lewat wrapper: `roles` kategori AB, jadi .from() sudah menyaring
+  // "NULL (bawaan) ATAU milik company ini". Baris tenant lain otomatis tak
+  // terlihat → maybeSingle() mengembalikan null → dijawab 404 di bawah.
+  const { data } = await request.db!
+    .from('roles').select('company_id').eq('id', roleId).maybeSingle()
+  if (!data) return 'Role tidak ditemukan'
+  // NULL = role bawaan; ditangani guard is_builtin di pemanggil.
+  if (data.company_id === null) return null
+  return data.company_id === request.companyId ? null : 'Role tidak ditemukan'
+}
+
 export default async function rolesRoutes(app: FastifyInstance) {
 
   // GET /api/v1/roles — list semua role + jumlah permissions + jumlah user
   app.get('/api/v1/roles', { preHandler: [authenticate] }, async (request, reply) => {
-    const { data: roles, error } = await supabase
+    // T4i: lewat wrapper — `roles` kategori AB, jadi .from() menyaring
+    // "bawaan (NULL) ATAU milik company ini". Role custom tenant lain (label,
+    // deskripsi, jumlah pemakai) tak lagi ikut terdaftar.
+    const { data: roles, error } = await request.db!
       .from('roles')
       .select(`
         id, name, label, description, is_builtin, portal, color, sort_order, created_at,
@@ -121,6 +149,9 @@ export default async function rolesRoutes(app: FastifyInstance) {
       name?: string
     }
 
+    const tolakP = await tolakRoleTenantLain(request, id)
+    if (tolakP) return reply.status(404).send({ error: tolakP })
+
     const { data: existing } = await supabase.from('roles').select('is_builtin').eq('id', id).single()
     if (!existing) return reply.status(404).send({ error: 'Role tidak ditemukan' })
 
@@ -146,6 +177,9 @@ export default async function rolesRoutes(app: FastifyInstance) {
   // DELETE /api/v1/roles/:id — hapus role custom (built-in protected by DB trigger)
   app.delete('/api/v1/roles/:id', { preHandler: [authenticate, requirePermission('users:roles:manage')] }, async (request, reply) => {
     const { id } = request.params as { id: string }
+
+    const tolakD = await tolakRoleTenantLain(request, id)
+    if (tolakD) return reply.status(404).send({ error: tolakD })
 
     const { data: existing } = await supabase.from('roles').select('name, is_builtin').eq('id', id).single()
     if (!existing) return reply.status(404).send({ error: 'Role tidak ditemukan' })
@@ -206,6 +240,10 @@ export default async function rolesRoutes(app: FastifyInstance) {
   // GET /api/v1/roles/:id/permissions — permissions yang dimiliki role ini
   app.get('/api/v1/roles/:id/permissions', { preHandler: [authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string }
+    // T4i: PATCH/DELETE/PUT sudah dijaga tolakRoleTenantLain, GET-nya terlewat —
+    // izin role custom tenant lain bisa dibaca hanya dgn tahu id-nya.
+    const tolakGet = await tolakRoleTenantLain(request, id)
+    if (tolakGet) return reply.status(404).send({ error: tolakGet })
 
     const { data, error } = await supabase
       .from('role_permissions')
@@ -226,6 +264,11 @@ export default async function rolesRoutes(app: FastifyInstance) {
     if (!Array.isArray(permission_ids)) {
       return reply.status(400).send({ error: 'permission_ids harus array' })
     }
+
+    // T4g: role custom tenant lain tak boleh diubah izinnya — itu jalur
+    // privilege-escalation lintas perusahaan.
+    const tolakPerm = await tolakRoleTenantLain(request, id)
+    if (tolakPerm) return reply.status(404).send({ error: tolakPerm })
 
     // Verify role exists
     const { data: role } = await supabase.from('roles').select('id, name').eq('id', id).single()

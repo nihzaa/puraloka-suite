@@ -1,16 +1,31 @@
-﻿import type { FastifyInstance } from 'fastify'
+﻿import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { supabase } from '../../utils/supabase.js'
 import { createNotifications } from '../../utils/notifications.js'
 import { resolveRecipients } from '../../utils/notification-routing.js'
 import { flattenUserRole } from '../../utils/user-role.js'
 import { validateMime } from '../../utils/mime.js'
+import { proyekMilikTenant, scopeIdsTenant } from '../../utils/tenant-guard.js'
 
 const KASBON_PHOTO_BUCKET = 'kasbon-photos'
 const KASBON_PHOTO_ALLOWED = ['image/jpeg', 'image/png', 'image/webp']
 const KASBON_PHOTO_MAX_MB = 10
 // Lihat catatan di progress.ts: base64 +33% → bodyLimit wajib > cap file.
 const KASBON_PHOTO_BODY_LIMIT = 15 * 1024 * 1024
+
+/**
+ * T4d — daftar proyek yang BOLEH dibaca request ini. `null` bila `project_id`
+ * menunjuk proyek tenant lain (pemanggil membalas 404). Kembaran helper di
+ * `reports.ts` dan `procurement.ts`.
+ */
+async function proyekBolehDibaca(
+  request: FastifyRequest,
+  projectId: string | null | undefined
+): Promise<string[] | null> {
+  const milikTenant = await request.db!.projectIds()
+  if (!projectId) return milikTenant
+  return milikTenant.includes(projectId) ? [projectId] : null
+}
 
 export default async function mandorRoutes(app: FastifyInstance) {
 
@@ -61,7 +76,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
     const user = request.currentUser!
     const { mandor_id, search, tipe, status } = request.query as Record<string, string>
 
-    let q = supabase
+    let q = request.db!
       .from('workers')
       .select('id, name, phone, notes, tipe, skills, is_active, created_at, mandor:users!workers_mandor_id_fkey(id, name)')
       .order('name')
@@ -130,7 +145,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
   app.get('/api/v1/mandor/workers/:id/history', { preHandler: [authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string }
 
-    const { data: worker } = await supabase.from('workers').select('id, name').eq('id', id).single()
+    const { data: worker } = await request.db!.from('workers').select('id, name').eq('id', id).single()
     if (!worker) return reply.status(404).send({ error: 'Pekerja tidak ditemukan' })
 
     const { data, error } = await supabase
@@ -163,7 +178,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
     // Mandor selalu dikaitkan ke dirinya sendiri. Admin/PM bisa kirim mandor_id atau biarkan null.
     const mandorId = user.role === 'mandor' ? user.id : (body.mandor_id ?? null)
 
-    const { data, error } = await supabase
+    const { data, error } = await request.db!
       .from('workers')
       .insert({
         mandor_id: mandorId,
@@ -191,7 +206,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
 
     // Ownership check: mandor hanya boleh edit worker miliknya sendiri
     if (user.role === 'mandor') {
-      const { data: existing } = await supabase.from('workers').select('mandor_id').eq('id', id).single()
+      const { data: existing } = await request.db!.from('workers').select('mandor_id').eq('id', id).single()
       if (!existing) return reply.status(404).send({ error: 'Tukang tidak ditemukan' })
       if (existing.mandor_id !== user.id) return reply.status(403).send({ error: 'Akses ditolak' })
     }
@@ -204,7 +219,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
     if (body.skills !== undefined) update.skills = body.skills
     if (body.is_active !== undefined) update.is_active = body.is_active
 
-    const { data, error } = await supabase
+    const { data, error } = await request.db!
       .from('workers')
       .update(update)
       .eq('id', id)
@@ -221,7 +236,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
     const user = request.currentUser!
 
     // Cek apakah tukang ada + ownership check untuk mandor
-    const { data: worker } = await supabase
+    const { data: worker } = await request.db!
       .from('workers').select('id, name, mandor_id').eq('id', id).single()
     if (!worker) return reply.status(404).send({ error: 'Tukang tidak ditemukan' })
 
@@ -240,7 +255,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
       return reply.status(409).send({ error: `${worker.name} masih punya laporan upah yang belum selesai. Selesaikan atau tolak laporan tersebut dulu.` })
     }
 
-    const { error } = await supabase.from('workers').delete().eq('id', id)
+    const { error } = await request.db!.from('workers').delete().eq('id', id)
     if (error) return reply.status(500).send({ error: error.message })
     return reply.status(204).send()
   })
@@ -263,6 +278,9 @@ export default async function mandorRoutes(app: FastifyInstance) {
         )
       `)
       .eq('status', 'active')
+      // T4j: cabang role di bawah hanya MENYEMPITKAN untuk mandor; admin/pm
+      // sebelumnya melihat scope aktif SEMUA perusahaan.
+      .in('assignment_id', await request.db!.assignmentIds())
       .order('scope_name')
 
     if (user.role === 'mandor') {
@@ -293,7 +311,9 @@ export default async function mandorRoutes(app: FastifyInstance) {
     if (user.role === 'mandor') q = q.eq('mandor_id', user.id)
     else if (mandor_id) q = q.eq('mandor_id', mandor_id)
 
-    if (project_id) q = q.eq('project_id', project_id)
+    const idProyekWk = await proyekBolehDibaca(request, project_id)
+    if (idProyekWk === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    q = q.in('project_id', idProyekWk)
     if (is_settled !== undefined) q = q.eq('is_settled', is_settled === 'true')
 
     const { data, error } = await q
@@ -316,13 +336,19 @@ export default async function mandorRoutes(app: FastifyInstance) {
       photo_url?: string
     }
 
+    // T4j: project_id dari BODY (kolom kategori C). Tanpa validasi, kasbon
+    // tukang fiktif muncul di daftar kasbon perusahaan lain — GET-nya menyaring
+    // project_id dengan benar, tapi tak bisa tahu barisnya disuntik dari luar.
+    if (body.project_id && !(await proyekMilikTenant(request, body.project_id))) {
+      return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    }
     if (!body.worker_id || !body.project_id || !body.amount) {
       return reply.status(400).send({ error: 'worker_id, project_id, dan amount wajib diisi' })
     }
 
     // Pastikan worker benar-benar milik mandor ini
     const mandorId = user.role === 'mandor' ? user.id : (body.mandor_id ?? user.id)
-    const { data: worker } = await supabase
+    const { data: worker } = await request.db!
       .from('workers').select('id, mandor_id').eq('id', body.worker_id).single()
     if (!worker || worker.mandor_id !== mandorId) {
       return reply.status(403).send({ error: 'Tukang tidak ditemukan atau bukan milik mandor ini' })
@@ -359,11 +385,14 @@ export default async function mandorRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'nominal harus lebih dari 0' })
     }
 
+    // T4h: worker_kasbons kategori C via project_id — mencatat cicilan atas
+    // kasbon tukang tenant lain = mengubah catatan utang mereka.
     const { data: existing, error: fetchErr } = await supabase
       .from('worker_kasbons')
       .select('id, amount, amount_settled, is_settled')
       .eq('id', id)
-      .single()
+      .in('project_id', await request.db!.projectIds())
+      .maybeSingle()
 
     if (fetchErr || !existing) return reply.status(404).send({ error: 'Kasbon tidak ditemukan' })
     if (existing.is_settled) return reply.status(400).send({ error: 'Kasbon sudah lunas' })
@@ -406,7 +435,9 @@ export default async function mandorRoutes(app: FastifyInstance) {
       .order('assigned_at', { ascending: false })
 
     if (user.role === 'mandor') q = q.eq('mandor_id', user.id)
-    if (project_id) q = q.eq('project_id', project_id)
+    const idProyekAsg = await proyekBolehDibaca(request, project_id)
+    if (idProyekAsg === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    q = q.in('project_id', idProyekAsg)
 
     const { data, error } = await q
     if (error) return reply.status(500).send({ error: error.message })
@@ -455,6 +486,13 @@ export default async function mandorRoutes(app: FastifyInstance) {
     if (!body.project_id || !body.mandor_id) {
       return reply.status(400).send({ error: 'project_id dan mandor_id wajib diisi' })
     }
+    // T4j: ini AKAR subsistem mandor — work_scopes, kasbons, wage reports,
+    // progress payments, dan settlement semuanya mewarisi tenancy dari
+    // mandor_assignments.project_id. Satu celah di sini mencemari seluruh
+    // rantai turunannya di pembukuan perusahaan lain.
+    if (!(await proyekMilikTenant(request, body.project_id))) {
+      return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    }
 
     const { data, error } = await supabase
       .from('mandor_assignments')
@@ -488,12 +526,17 @@ export default async function mandorRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string }
     const body = request.body as { status?: string; notes?: string }
 
+    // T4h: saringan dipasang di UPDATE-nya — nol baris terubah kalau assignment
+    // bukan milik tenant, jadi hasilnya 404 alih-alih "berhasil mengubah
+    // penugasan perusahaan lain".
     const { data, error } = await supabase
       .from('mandor_assignments')
       .update({ ...body, updated_at: new Date().toISOString() })
       .eq('id', id)
+      .in('project_id', await request.db!.projectIds())
       .select()
-      .single()
+      .maybeSingle()
+    if (!error && !data) return reply.status(404).send({ error: 'Penugasan tidak ditemukan' })
     if (error) return reply.status(500).send({ error: error.message })
     return reply.send({ assignment: data })
   })
@@ -573,6 +616,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
       .from('work_scopes')
       .update({ ...allowed, updated_at: new Date().toISOString() })
       .eq('id', id)
+      .in('id', await scopeIdsTenant(request))
       .select()
       .single()
     if (error) return reply.status(500).send({ error: error.message })
@@ -595,8 +639,13 @@ export default async function mandorRoutes(app: FastifyInstance) {
       return reply.status(409).send({ error: 'Scope tidak bisa dihapus karena sudah ada laporan upah' })
     }
 
-    const { error } = await supabase.from('work_scopes').delete().eq('id', id)
+    // T4h: saringan di DELETE-nya sendiri — scope tenant lain tak akan terhapus.
+    const { data: dihapus, error } = await supabase.from('work_scopes').delete()
+      .eq('id', id).in('id', await scopeIdsTenant(request)).select('id')
     if (error) return reply.status(500).send({ error: error.message })
+    if (!dihapus || dihapus.length === 0) {
+      return reply.status(404).send({ error: 'Scope tidak ditemukan' })
+    }
     return reply.status(204).send()
   })
 
@@ -619,7 +668,8 @@ export default async function mandorRoutes(app: FastifyInstance) {
           )
         `)
         .eq('id', id)
-        .single(),
+        .in('assignment_id', await request.db!.assignmentIds())   // T4j
+        .maybeSingle(),
       supabase
         .from('work_scope_items')
         .select(`
@@ -648,7 +698,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
     if (currentUser.role === 'pm') {
       const projectId = scope.assignment?.project?.id ?? null
       if (projectId) {
-        const { data: proj } = await supabase.from('projects').select('pm_id').eq('id', projectId).single()
+        const { data: proj } = await request.db!.from('projects').select('pm_id').eq('id', projectId).single()
         if (!proj || proj.pm_id !== currentUser.id) return reply.status(403).send({ error: 'Akses ditolak' })
       }
     }
@@ -674,6 +724,10 @@ export default async function mandorRoutes(app: FastifyInstance) {
     }
     if (Number(body.volume) <= 0) return reply.status(400).send({ error: 'volume harus lebih dari 0' })
     if (Number(body.unit_price) < 0) return reply.status(400).send({ error: 'unit_price tidak boleh negatif' })
+    // T4h: menambah item ke scope tenant lain = mencemari pekerjaan mereka.
+    if (!(await scopeIdsTenant(request)).includes(scopeId)) {
+      return reply.status(404).send({ error: 'Scope tidak ditemukan' })
+    }
 
     const { data: item, error } = await supabase
       .from('work_scope_items')
@@ -869,6 +923,17 @@ export default async function mandorRoutes(app: FastifyInstance) {
   app.get('/api/v1/mandor/profile/:mandor_id', { preHandler: [authenticate] }, async (request, reply) => {
     const { mandor_id } = request.params as { mandor_id: string }
 
+    // T4j: profil mandor memuat penugasan, kasbon, dan riwayat upah. Batasnya
+    // KEANGGOTAAN — mandor yang bukan anggota company aktif tak boleh dibuka.
+    const { data: anggotaMandor } = await request.db!
+      .unsafe('company_members', 'cek keanggotaan mandor; di-scope eq(company_id) di bawah')
+      .select('user_id')
+      .eq('company_id', request.companyId!)
+      .eq('user_id', mandor_id)
+      .maybeSingle()
+    if (!anggotaMandor) return reply.status(404).send({ error: 'Mandor tidak ditemukan' })
+
+    const idProyekProfil = await request.db!.projectIds()
     const [mandorRes, assignmentsRes, kasbonsRes] = await Promise.all([
       supabase.from('users').select('id, name, phone, email, role_id, roles:role_id ( name ), is_active').eq('id', mandor_id).single(),
       supabase.from('mandor_assignments')
@@ -878,10 +943,12 @@ export default async function mandorRoutes(app: FastifyInstance) {
           work_scopes(id, scope_name, payment_system, status, borongan_value, progress_pct_done, start_date, end_date)
         `)
         .eq('mandor_id', mandor_id)
+        .in('project_id', idProyekProfil)   // T4j
         .eq('status', 'active'),
       supabase.from('worker_kasbons')
         .select('id, amount, amount_settled, purpose, kasbon_date, worker:workers(id, name), project:projects(id, name)')
         .eq('mandor_id', mandor_id)
+        .in('project_id', idProyekProfil)   // T4j
         .eq('is_settled', false)
         .order('kasbon_date', { ascending: false }),
     ])
@@ -914,7 +981,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
             .limit(10)
         : Promise.resolve({ data: [] }),
       // Pekerja aktif terdaftar di bawah mandor ini
-      supabase.from('workers').select('id').eq('mandor_id', mandor_id).eq('is_active', true),
+      request.db!.from('workers').select('id').eq('mandor_id', mandor_id).eq('is_active', true),
     ])
 
     const totalPaid = ((paidRes as any).data ?? []).reduce((s: number, r: any) => s + Number(r.net_amount), 0)
@@ -981,15 +1048,15 @@ export default async function mandorRoutes(app: FastifyInstance) {
       q = q.in('assignment_id', ids)
     }
 
-    if (project_id) {
-      const { data: asgn } = await supabase
-        .from('mandor_assignments')
-        .select('id')
-        .eq('project_id', project_id)
-      const ids = (asgn ?? []).map((a: any) => a.id)
-      if (ids.length === 0) return reply.send({ reports: [] })
-      q = q.in('assignment_id', ids)
-    }
+    // T4d: SELALU di-scope. Tanpa project_id, cakupannya seluruh assignment
+    // TENANT (bukan seluruh assignment di DB seperti sebelumnya).
+    const idProyekWr = await proyekBolehDibaca(request, project_id)
+    if (idProyekWr === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    const { data: asgnScope } = await supabase
+      .from('mandor_assignments').select('id').in('project_id', idProyekWr)
+    const idAsgn = (asgnScope ?? []).map((a: { id: string }) => a.id)
+    if (idAsgn.length === 0) return reply.send({ reports: [] })
+    q = q.in('assignment_id', idAsgn)
 
     const { data, error } = await q
     if (error) return reply.status(500).send({ error: error.message })
@@ -1015,7 +1082,8 @@ export default async function mandorRoutes(app: FastifyInstance) {
           reviewer:users!weekly_wage_reports_reviewed_by_fkey(id, name)
         `)
         .eq('id', id)
-        .single(),
+        .in('assignment_id', await request.db!.assignmentIds())   // T4j
+        .maybeSingle(),
       supabase
         .from('wage_items')
         .select('id, worker_name, worker_id, days_worked, daily_rate, overtime_hours, overtime_rate, subtotal, notes')
@@ -1066,6 +1134,14 @@ export default async function mandorRoutes(app: FastifyInstance) {
 
     if (!body.assignment_id || !body.scope_id || !body.week_start || !body.items?.length) {
       return reply.status(400).send({ error: 'assignment_id, scope_id, week_start, dan items wajib diisi' })
+    }
+    // T4j: assignment_id & scope_id datang dari BODY — tanpa validasi, laporan
+    // upah lahir menempel ke penugasan/scope perusahaan lain.
+    if (!(await request.db!.assignmentIds()).includes(body.assignment_id)) {
+      return reply.status(404).send({ error: 'Penugasan tidak ditemukan' })
+    }
+    if (!(await scopeIdsTenant(request)).includes(body.scope_id)) {
+      return reply.status(404).send({ error: 'Scope tidak ditemukan' })
     }
 
     // Validasi deductions
@@ -1153,7 +1229,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
         .single()
 
       if (assignInfo?.project_id) {
-        const recipients = await resolveRecipients('wage_report_submitted', { projectId: assignInfo.project_id })
+        const recipients = await resolveRecipients('wage_report_submitted', { projectId: assignInfo.project_id, companyId: request.companyId! })
         const mandorName = (assignInfo.mandor as any)?.name ?? user.name
         createNotifications(recipients.map(uid => ({
           user_id:     uid,
@@ -1192,7 +1268,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
 
     // Validasi cash account jika bayar upah
     if (status === 'paid' && cash_account_id) {
-      const { data: acct } = await supabase
+      const { data: acct } = await request.db!
         .from('cash_accounts')
         .select('id, is_active, balance, name')
         .eq('id', cash_account_id)
@@ -1228,13 +1304,18 @@ export default async function mandorRoutes(app: FastifyInstance) {
       update.cash_account_id = cash_account_id ?? null
     }
 
+    // T4j: approve/reject/tandai-lunas laporan upah tenant lain = mengeluarkan
+    // uang dari pembukuan mereka. Lookup cash_account di atas sudah ter-scope,
+    // tapi BARIS LAPORANNYA belum — saringan dipasang di UPDATE-nya sendiri.
     const { data, error } = await supabase
       .from('weekly_wage_reports')
       .update(update)
       .eq('id', id)
+      .in('assignment_id', await request.db!.assignmentIds())
       .select()
-      .single()
+      .maybeSingle()
     if (error) return reply.status(500).send({ error: error.message })
+    if (!data) return reply.status(404).send({ error: 'Laporan upah tidak ditemukan' })
     return reply.send({ report: data })
   })
 
@@ -1245,7 +1326,8 @@ export default async function mandorRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string }
 
     const { data: existing } = await supabase
-      .from('weekly_wage_reports').select('status').eq('id', id).single()
+      .from('weekly_wage_reports').select('status').eq('id', id)
+      .in('assignment_id', await request.db!.assignmentIds()).maybeSingle()
     if (!existing) return reply.status(404).send({ error: 'Laporan tidak ditemukan' })
     if (!['draft', 'submitted'].includes(existing.status)) {
       return reply.status(409).send({ error: 'Laporan yang sudah approved/paid tidak bisa dihapus' })
@@ -1281,6 +1363,9 @@ export default async function mandorRoutes(app: FastifyInstance) {
       `)
       .order('created_at', { ascending: false })
 
+    // T4j: SELALU di-scope; cabang role di bawah hanya menyempitkan lagi.
+    // Sebelumnya admin/pm melihat data SEMUA perusahaan.
+    q = q.in('work_scope_id', await scopeIdsTenant(request))
     if (work_scope_id) q = q.eq('work_scope_id', work_scope_id)
     if (status) q = q.eq('status', status)
 
@@ -1309,6 +1394,11 @@ export default async function mandorRoutes(app: FastifyInstance) {
       notes?: string
     }
 
+    // T4j: work_scope_id dari BODY. Cabang cek mandor_id di bawah hanya berlaku
+    // untuk role mandor — admin/pm lolos tanpa cek tenant sama sekali.
+    if (body.work_scope_id && !(await scopeIdsTenant(request)).includes(body.work_scope_id)) {
+      return reply.status(404).send({ error: 'Scope tidak ditemukan' })
+    }
     if (!body.work_scope_id || body.pct_completed == null || body.gross_payment == null) {
       return reply.status(400).send({ error: 'work_scope_id, pct_completed, dan gross_payment wajib diisi' })
     }
@@ -1357,7 +1447,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
     try {
       const projectId = (scope.assignment as any)?.project_id
       if (projectId) {
-        const recipients = await resolveRecipients('kasbon_submitted', { projectId })
+        const recipients = await resolveRecipients('kasbon_submitted', { projectId, companyId: request.companyId! })
         createNotifications(recipients.map(uid => ({
           user_id:    uid,
           title:      'Penagihan Progress Diajukan',
@@ -1390,6 +1480,13 @@ export default async function mandorRoutes(app: FastifyInstance) {
     if (!['approved', 'rejected'].includes(body.status)) {
       return reply.status(400).send({ error: 'status harus approved atau rejected' })
     }
+    // T4h: progress_payments kategori C via work_scope_id — konfirmasi
+    // pembayaran progres tenant lain = mengeluarkan uang dari pembukuan mereka.
+    const { data: ppCek } = await supabase
+      .from('progress_payments').select('work_scope_id').eq('id', id).maybeSingle()
+    if (!ppCek || !(await scopeIdsTenant(request)).includes(ppCek.work_scope_id)) {
+      return reply.status(404).send({ error: 'Pembayaran progres tidak ditemukan' })
+    }
 
     const { data: existing } = await supabase
       .from('progress_payments')
@@ -1401,7 +1498,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
 
     if (body.status === 'approved') {
       if (!body.cash_account_id) return reply.status(400).send({ error: 'cash_account_id wajib saat approve' })
-      const { data: acct } = await supabase.from('cash_accounts').select('id, balance, is_active, name').eq('id', body.cash_account_id).single()
+      const { data: acct } = await request.db!.from('cash_accounts').select('id, balance, is_active, name').eq('id', body.cash_account_id).single()
       if (!acct || !acct.is_active) return reply.status(400).send({ error: 'Akun kas tidak valid' })
       const toPay = body.actual_payment ?? Number((existing as any).gross_payment)
       if (Number(acct.balance) < toPay) {
@@ -1479,6 +1576,9 @@ export default async function mandorRoutes(app: FastifyInstance) {
       `)
       .order('settled_at', { ascending: false })
 
+    // T4j: SELALU di-scope; cabang role di bawah hanya menyempitkan lagi.
+    // Sebelumnya admin/pm melihat data SEMUA perusahaan.
+    q = q.in('work_scope_id', await scopeIdsTenant(request))
     if (work_scope_id) q = q.eq('work_scope_id', work_scope_id)
 
     if (user.role === 'mandor') {
@@ -1510,6 +1610,12 @@ export default async function mandorRoutes(app: FastifyInstance) {
       notes?: string
     }
 
+    // T4j: settlement memindahkan uang dari cash_account DAN menandai scope
+    // 'completed'. Endpoint ini admin/pm-only dan tak punya cabang cek
+    // kepemilikan sama sekali sebelum ini.
+    if (body.work_scope_id && !(await scopeIdsTenant(request)).includes(body.work_scope_id)) {
+      return reply.status(404).send({ error: 'Scope tidak ditemukan' })
+    }
     if (!body.work_scope_id || body.borongan_value == null || body.net_payment == null) {
       return reply.status(400).send({ error: 'work_scope_id, borongan_value, dan net_payment wajib diisi' })
     }
@@ -1529,7 +1635,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
     if (existingSettlement) return reply.status(409).send({ error: 'Settlement untuk scope ini sudah ada' })
 
     if (body.cash_account_id && body.net_payment > 0) {
-      const { data: acct } = await supabase.from('cash_accounts').select('id, balance, is_active, name').eq('id', body.cash_account_id).single()
+      const { data: acct } = await request.db!.from('cash_accounts').select('id, balance, is_active, name').eq('id', body.cash_account_id).single()
       if (!acct || !acct.is_active) return reply.status(400).send({ error: 'Akun kas tidak valid' })
       if (Number(acct.balance) < body.net_payment) {
         return reply.status(400).send({ error: `Saldo ${acct.name} tidak cukup. Saldo: Rp ${Number(acct.balance).toLocaleString('id-ID')}` })
@@ -1592,6 +1698,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
       .from('work_scopes')
       .update({ borongan_value_override, updated_at: new Date().toISOString() })
       .eq('id', id)
+      .in('id', await scopeIdsTenant(request))
       .select('id, scope_name, borongan_value, borongan_value_override')
       .single()
     if (error) return reply.status(500).send({ error: error.message })
@@ -1614,15 +1721,17 @@ export default async function mandorRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'status harus approved atau rejected' })
     }
 
+    // T4h: worker_kasbons kategori C via project_id.
     const { data: existing } = await supabase
       .from('worker_kasbons')
       .select('id, amount, mandor_id, worker_id, project_id')
       .eq('id', id)
-      .single()
+      .in('project_id', await request.db!.projectIds())
+      .maybeSingle()
     if (!existing) return reply.status(404).send({ error: 'Kasbon tukang tidak ditemukan' })
 
     if (status === 'approved' && cash_account_id) {
-      const { data: acct } = await supabase.from('cash_accounts').select('id, balance, is_active, name').eq('id', cash_account_id).single()
+      const { data: acct } = await request.db!.from('cash_accounts').select('id, balance, is_active, name').eq('id', cash_account_id).single()
       if (!acct || !acct.is_active) return reply.status(400).send({ error: 'Akun kas tidak valid' })
       if (Number(acct.balance) < Number(existing.amount)) {
         return reply.status(400).send({ error: `Saldo ${acct.name} tidak cukup. Saldo: Rp ${Number(acct.balance).toLocaleString('id-ID')}` })
@@ -1690,7 +1799,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
     if (scopeIds.length === 0) return reply.send({ scopes: [] })
 
     const [kasbonRes, progressRes, settlementRes, itemsRes] = await Promise.all([
-      supabase
+      request.db!
         .from('kasbons')
         .select('work_scope_id, amount, status')
         .in('work_scope_id', scopeIds)
@@ -1759,7 +1868,11 @@ export default async function mandorRoutes(app: FastifyInstance) {
       .select('id, mandor_id, project_id')
       .eq('status', 'active')
     if (user.role === 'mandor') asgQ = asgQ.eq('mandor_id', user.id)
-    if (project_id) asgQ = asgQ.eq('project_id', project_id)
+    // T4d: seluruh angka summary di bawah diturunkan dari asgIds, jadi cukup
+    // men-scope query assignment ini — sisanya ikut otomatis.
+    const idProyekSum = await proyekBolehDibaca(request, project_id)
+    if (idProyekSum === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    asgQ = asgQ.in('project_id', idProyekSum)
     const { data: assignments } = await asgQ
     const asgIds = (assignments ?? []).map((a: any) => a.id)
 
@@ -1788,7 +1901,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
         .gte('week_start', windowStart)
         .lte('week_start', windowEnd),
       // Total pekerja aktif terdaftar (is_active = true)
-      supabase
+      request.db!
         .from('workers')
         .select('id')
         .in('mandor_id', mandorIds)
@@ -1833,7 +1946,11 @@ export default async function mandorRoutes(app: FastifyInstance) {
       .select('id, mandor_id, project_id, project:projects(id, name)')
       .eq('status', 'active')
     if (user.role === 'mandor') asgQ = asgQ.eq('mandor_id', user.id)
-    if (project_id) asgQ = asgQ.eq('project_id', project_id)
+    // T4d: seluruh angka summary di bawah diturunkan dari asgIds, jadi cukup
+    // men-scope query assignment ini — sisanya ikut otomatis.
+    const idProyekSum = await proyekBolehDibaca(request, project_id)
+    if (idProyekSum === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    asgQ = asgQ.in('project_id', idProyekSum)
     const { data: assignments } = await asgQ
     const asgIds = (assignments ?? []).map((a: any) => a.id)
 
@@ -1861,7 +1978,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
 
     // Kasbons yang belum lunas (settled_at IS NULL, status approved atau pending)
     const { data: kasbons } = scopeIds.length > 0
-      ? await supabase
+      ? await request.db!
           .from('kasbons')
           .select('id, amount, status, settled_at')
           .in('work_scope_id', scopeIds)

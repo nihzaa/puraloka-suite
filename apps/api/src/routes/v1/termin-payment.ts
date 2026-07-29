@@ -4,6 +4,7 @@ import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { calculateTax } from '../../lib/tax-calculation.js'
 import { getTaxRate } from '../../utils/financial-config.js'
 import { computeAndPersistPenalty } from '../../utils/penalty.js'
+import { proyekMilikTenant } from '../../utils/tenant-guard.js'
 
 /**
  * Endpoint pembayaran termin:
@@ -37,6 +38,13 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('finance:termin:pay')] },
     async (request, reply) => {
       const { projectId, terminId } = request.params
+      // T4g: handler ini memverifikasi termin.project_id === projectId, TAPI
+      // tak pernah memverifikasi projectId milik tenant. Tanpa gerbang ini,
+      // tenant A mencatat pembayaran termin tenant B, membuat invoice di
+      // proyek B, dan mengupload bukti transfer ke folder storage B.
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
       const currentUser = request.currentUser!
 
       // Parse multipart
@@ -78,7 +86,7 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
 
       // Validasi cash account jika disertakan
       if (cash_account_id) {
-        const { data: acct } = await supabase
+        const { data: acct } = await request.db!
           .from('cash_accounts')
           .select('id, is_active')
           .eq('id', cash_account_id)
@@ -104,7 +112,7 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
       }
 
       // Ambil project untuk invoice generation
-      const { data: project } = await supabase
+      const { data: project } = await request.db!
         .from('projects')
         .select('id, name, contract_value, tax_scheme, clients(id)')
         .eq('id', projectId)
@@ -263,7 +271,7 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
         if (newStatus === 'paid') {
           void (async () => {
             try {
-              const { data: proj } = await supabase.from('projects')
+              const { data: proj } = await request.db!.from('projects')
                 .select('id, contract_value, penalty_enabled, penalty_basis, penalty_rate_per_day, penalty_cap_pct, penalty_grace_days')
                 .eq('id', inv.project_id).maybeSingle()
               await computeAndPersistPenalty({
@@ -297,6 +305,13 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
     { preHandler: [authenticate] },
     async (request, reply) => {
       const { projectId, terminId } = request.params
+      // T4g: handler ini memverifikasi termin.project_id === projectId, TAPI
+      // tak pernah memverifikasi projectId milik tenant. Tanpa gerbang ini,
+      // tenant A mencatat pembayaran termin tenant B, membuat invoice di
+      // proyek B, dan mengupload bukti transfer ke folder storage B.
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
 
       const { data: termin } = await supabase
         .from('termin_schedules')

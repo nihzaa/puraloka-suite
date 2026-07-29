@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { validateMime } from '../../utils/mime.js'
+import { proyekMilikTenant } from '../../utils/tenant-guard.js'
 
 const BUCKET = 'project-documents'
 const ALLOWED_TYPES = [
@@ -42,6 +43,12 @@ export default async function documentRoutes(app: FastifyInstance) {
     { preHandler: [authenticate] },
     async (request, reply) => {
       const { projectId } = request.params
+      // T4g: dokumen kategori C. Tanpa gerbang ini, `file_url` (signed URL
+      // berlaku 10 TAHUN) ke kontrak/SPK/berita-acara tenant lain bocor —
+      // dan uploadnya menulis ke folder storage milik mereka.
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
       const role = request.currentUser!.role
 
       let query = supabase
@@ -90,6 +97,12 @@ export default async function documentRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('documents:manage')], bodyLimit: 28 * 1024 * 1024 },
     async (request, reply) => {
       const { projectId } = request.params
+      // T4g: dokumen kategori C. Tanpa gerbang ini, `file_url` (signed URL
+      // berlaku 10 TAHUN) ke kontrak/SPK/berita-acara tenant lain bocor —
+      // dan uploadnya menulis ke folder storage milik mereka.
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
       const { title, doc_type, is_visible_to_client, file_base64, file_name, file_type } = request.body
 
       if (!title?.trim()) return reply.status(400).send({ error: 'Judul dokumen wajib diisi' })
@@ -160,18 +173,26 @@ export default async function documentRoutes(app: FastifyInstance) {
     '/api/v1/projects/:projectId/documents/:documentId',
     { preHandler: [authenticate, requirePermission('documents:manage')] },
     async (request, reply) => {
-      const { documentId } = request.params
+      const { projectId, documentId } = request.params
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
       const { is_visible_to_client } = request.body
 
       const updateFields: Record<string, unknown> = { updated_at: new Date().toISOString() }
       if (is_visible_to_client !== undefined) updateFields.is_visible_to_client = is_visible_to_client
 
+      // T4j: gerbang proyek di atas memeriksa `projectId` DARI URL, tapi UPDATE
+      // ini dulu hanya menyaring `documentId` — artinya penyerang yang memang
+      // punya satu proyek sah bisa lolos gerbang lalu menyebut documentId milik
+      // tenant lain. Filter kepemilikan HARUS ada di query yang memutasi.
       const { data, error } = await supabase
         .from('documents')
         .update(updateFields)
         .eq('id', documentId)
+        .eq('project_id', projectId)
         .select(SELECT_FIELDS)
-        .single()
+        .maybeSingle()
 
       if (error) {
         app.log.error(error)
@@ -198,6 +219,20 @@ export default async function documentRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: 'Action tidak valid' })
       }
 
+      // T4g: dokumen wajib milik proyek tenant ini. Dampaknya lebih kecil dari
+      // endpoint lain (tak mengembalikan data), tapi tanpa cek ini tenant A bisa
+      // menyuntik baris ke log akses dokumen tenant B — mengotori jejak audit
+      // yang justru dipakai untuk menyelidiki akses mencurigakan.
+      // Lewat wrapper: `documents` kategori C, jadi .viaProject() butuh project.
+      // Di sini project-nya BELUM diketahui (hanya documentId), jadi .unsafe()
+      // dengan alasan — lalu hasilnya divalidasi proyeknya di baris berikutnya.
+      const { data: docTenant } = await request.db!
+        .unsafe('documents', 'resolusi project_id dari documentId; divalidasi tepat di bawah')
+        .select('project_id').eq('id', documentId).maybeSingle()
+      if (!docTenant || !(await proyekMilikTenant(request, docTenant.project_id))) {
+        return reply.status(404).send({ error: 'Dokumen tidak ditemukan' })
+      }
+
       // Fire-and-forget, tidak pernah throw ke caller
       ;(async () => {
         try {
@@ -220,13 +255,17 @@ export default async function documentRoutes(app: FastifyInstance) {
     '/api/v1/projects/:projectId/documents/:documentId',
     { preHandler: [authenticate, requirePermission('documents:manage')] },
     async (request, reply) => {
-      const { documentId } = request.params
+      const { projectId, documentId } = request.params
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
 
       const { data: doc, error: fetchError } = await supabase
         .from('documents')
         .select('id, file_url')
         .eq('id', documentId)
-        .single()
+        .eq('project_id', projectId)   // T4g: dokumen HARUS milik proyek di URL
+        .maybeSingle()
 
       if (fetchError || !doc) {
         return reply.status(404).send({ error: 'Dokumen tidak ditemukan' })

@@ -16,7 +16,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
     const lim = Math.min(Math.max(1, Number(limit) || 30), 100)
     const off = Math.max(0, Number(offset) || 0)
 
-    let q = supabase
+    let q = request.db!
       .from('notifications')
       .select(`
         id, user_id, project_id, title, message, channel,
@@ -44,7 +44,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const user = request.currentUser!
 
-    const { count, error } = await supabase
+    const { count, error } = await request.db!
       .from('notifications')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
@@ -63,7 +63,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
     const user = request.currentUser!
     const { id } = request.params as { id: string }
 
-    const { data, error } = await supabase
+    const { data, error } = await request.db!
       .from('notifications')
       .update({ is_read: true, read_at: new Date().toISOString() })
       .eq('id', id)
@@ -84,7 +84,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const user = request.currentUser!
 
-    const { error } = await supabase
+    const { error } = await request.db!
       .from('notifications')
       .update({ is_read: true, read_at: new Date().toISOString() })
       .eq('user_id', user.id)
@@ -102,7 +102,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
     const user = request.currentUser!
     const { id } = request.params as { id: string }
 
-    const { error } = await supabase
+    const { error } = await request.db!
       .from('notifications')
       .delete()
       .eq('id', id)
@@ -134,7 +134,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
     }
 
     // Ambil notifikasi
-    const { data: notif, error: nErr } = await supabase
+    const { data: notif, error: nErr } = await request.db!
       .from('notifications')
       .select('id, user_id, action_type, action_data, is_actioned')
       .eq('id', id)
@@ -159,7 +159,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
       if (!kasbonId) return reply.status(400).send({ error: 'action_data.kasbon_id tidak ada' })
 
       // Cek kasbon masih pending
-      const { data: kasbon } = await supabase
+      const { data: kasbon } = await request.db!
         .from('kasbons')
         .select('id, status, amount')
         .eq('id', kasbonId)
@@ -184,7 +184,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
         }
       }
 
-      const { error: kErr } = await supabase
+      const { error: kErr } = await request.db!
         .from('kasbons')
         .update(updatePayload)
         .eq('id', kasbonId)
@@ -194,7 +194,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
       resultMessage = body.action === 'approve' ? 'Kasbon disetujui' : 'Kasbon ditolak'
 
       // Kirim notifikasi balik ke mandor yang mengajukan
-      const { data: kasbonFull } = await supabase
+      const { data: kasbonFull } = await request.db!
         .from('kasbons')
         .select(`
           amount, requested_by,
@@ -233,11 +233,16 @@ export default async function notificationRoutes(app: FastifyInstance) {
       const reportId = actionData?.report_id as string | undefined
       if (!reportId) return reply.status(400).send({ error: 'action_data.report_id tidak ada' })
 
+      // T4i: weekly_wage_reports kategori C via assignment_id. Cabang
+      // approve_kasbon persis di atas SUDAH pakai request.db!; cabang ini
+      // terlewat — inkonsistensi dalam satu fungsi yang sama.
+      const idAsgNotif = await request.db!.assignmentIds()
       const { data: report } = await supabase
         .from('weekly_wage_reports')
         .select('id, status')
         .eq('id', reportId)
-        .single()
+        .in('assignment_id', idAsgNotif)
+        .maybeSingle()
 
       if (!report) return reply.status(404).send({ error: 'Laporan upah tidak ditemukan' })
       if (!['submitted', 'draft'].includes(report.status)) {
@@ -257,6 +262,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
         .from('weekly_wage_reports')
         .update(update)
         .eq('id', reportId)
+        .in('assignment_id', idAsgNotif)
 
       if (rErr) return reply.status(500).send({ error: rErr.message })
 
@@ -268,7 +274,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
     }
 
     // ── Mark notification as actioned ───────────────────────────────────────
-    await supabase
+    await request.db!
       .from('notifications')
       .update({
         is_actioned: true,
@@ -287,7 +293,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
   // jika notif sudah ada dalam 24 jam terakhir untuk kombinasi (type, project, milestone).
   app.get('/api/v1/notifications/check-milestones', {
     preHandler: [authenticate, requirePermission('notifications:milestone:check')]
-  }, async (_request, reply) => {
+  }, async (request, reply) => {
     const today = new Date()
     const todayStr = today.toISOString().split('T')[0]
     const in3Days = new Date(today.getTime() + 3 * 86_400_000).toISOString().split('T')[0]
@@ -316,10 +322,10 @@ export default async function notificationRoutes(app: FastifyInstance) {
     // Approaching milestones
     for (const ms of approachingRes.data ?? []) {
       const proj = ms.projects as any
-      const recipients = await resolveRecipients('milestone_approaching', { projectId: ms.project_id })
+      const recipients = await resolveRecipients('milestone_approaching', { projectId: ms.project_id, companyId: request.companyId! })
 
       // Cek apakah sudah ada notif approaching untuk milestone ini hari ini
-      const { count } = await supabase
+      const { count } = await request.db!
         .from('notifications')
         .select('id', { count: 'exact', head: true })
         .eq('type', 'milestone_approaching')
@@ -349,10 +355,10 @@ export default async function notificationRoutes(app: FastifyInstance) {
     // Overdue milestones
     for (const ms of overdueRes.data ?? []) {
       const proj = ms.projects as any
-      const recipients = await resolveRecipients('milestone_overdue', { projectId: ms.project_id })
+      const recipients = await resolveRecipients('milestone_overdue', { projectId: ms.project_id, companyId: request.companyId! })
 
       // Maksimal sekali per hari per milestone
-      const { count } = await supabase
+      const { count } = await request.db!
         .from('notifications')
         .select('id', { count: 'exact', head: true })
         .eq('type', 'milestone_overdue')
@@ -391,7 +397,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
   // Dedup: max 1 notif per (type, record_id, hari).
   app.get('/api/v1/notifications/check-deadlines', {
     preHandler: [authenticate, requirePermission('notifications:milestone:check')]
-  }, async (_request, reply) => {
+  }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
     const {
@@ -420,7 +426,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
 
     // Helper: cek apakah notif dengan type+action_data sudah dikirim hari ini
     async function alreadySent(type: string, recordId: string): Promise<boolean> {
-      const { count } = await supabase
+      const { count } = await request.db!
         .from('notifications')
         .select('id', { count: 'exact', head: true })
         .eq('type', type)
@@ -432,12 +438,16 @@ export default async function notificationRoutes(app: FastifyInstance) {
     // ── 1. Termin yang sudah bisa ditagih tapi masih pending ─────────────────
     // Termin on_progress: project.progress_pct >= trigger_pct
     // Termin on_sign: langsung bisa ditagih
+    // T4i: sama seperti invoice di bawah — data yang jadi ISI notifikasi wajib
+    // di-scope, bukan cuma penerimanya.
+    const idProyekTermin = await request.db!.projectIds()
     const { data: termins } = await supabase
       .from('termin_schedules')
       .select(`
         id, termin_number, amount, trigger_type, trigger_pct, due_date,
         project:projects!termin_schedules_project_id_fkey(id, name, progress_pct, pm_id, status)
       `)
+      .in('project_id', idProyekTermin)
       .eq('status', 'pending')
       .not('projects.status', 'in', '("cancelled","completed")')
 
@@ -461,7 +471,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
         isUrgent = daysLeft <= 1
       }
 
-      const recipients = await resolveRecipients('invoice_due', { projectId: proj.id })
+      const recipients = await resolveRecipients('invoice_due', { projectId: proj.id, companyId: request.companyId! })
       const fmt = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
       for (const uid of recipients) {
@@ -482,7 +492,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
     }
 
     // ── 2. Proyek mendekati/melewati tanggal selesai ─────────────────────────
-    const { data: endingProjects } = await supabase
+    const { data: endingProjects } = await request.db!
       .from('projects')
       .select('id, name, end_date, pm_id, progress_pct')
       .in('status', ['active', 'in_progress'])
@@ -498,7 +508,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
       if (!isOverdue && ![7, 3, 1].includes(daysLeft)) continue
       if (await alreadySent(type, `project_end_${p.id}`)) continue
 
-      const recipients = await resolveRecipients('project_deadline', { projectId: p.id })
+      const recipients = await resolveRecipients('project_deadline', { projectId: p.id, companyId: request.companyId! })
       for (const uid of recipients) {
         await createNotification({
           user_id:     uid,
@@ -519,7 +529,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
     }
 
     // ── 3. Kasbon pending > 3 hari tanpa tindakan ────────────────────────────
-    const { data: stalKasbons } = await supabase
+    const { data: stalKasbons } = await request.db!
       .from('kasbons')
       .select(`
         id, amount, purpose, kasbon_date,
@@ -535,7 +545,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
       if (await alreadySent('kasbon_pending', k.id)) continue
 
       const daysWaiting = Math.round((now.getTime() - new Date(k.kasbon_date).getTime()) / 86_400_000)
-      const recipients = await resolveRecipients('kasbon_pending', { projectId: proj.id })
+      const recipients = await resolveRecipients('kasbon_pending', { projectId: proj.id, companyId: request.companyId! })
       const fmt = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
       const mandorName = (k.mandor as any)?.name ?? 'Mandor'
 
@@ -557,12 +567,18 @@ export default async function notificationRoutes(app: FastifyInstance) {
     }
 
     // ── 4. Invoice overdue (due_date sudah lewat, belum paid) ────────────────
+    // T4i: check-deadlines membaca invoice/termin lalu MENGIRIM notifikasi &
+    // email berdasarkan isinya. Penerimanya sudah di-scope (resolveRecipients),
+    // tapi DATANYA belum — jadi isi pesannya bisa memuat nomor invoice & nominal
+    // tenant lain. Disaring di sumbernya.
+    const idProyekDl = await request.db!.projectIds()
     const { data: overdueInvoices } = await supabase
       .from('invoices')
       .select(`
         id, invoice_number, total_amount, amount_due, due_date,
         project:projects!invoices_project_id_fkey(id, name, pm_id)
       `)
+      .in('project_id', idProyekDl)
       .in('status', ['sent', 'partial'])
       .lt('due_date', today)
 
@@ -572,7 +588,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
       if (await alreadySent('invoice_overdue', inv.id)) continue
 
       const daysLate = Math.round((now.getTime() - new Date(inv.due_date).getTime()) / 86_400_000)
-      const recipients = await resolveRecipients('invoice_overdue', { projectId: proj.id })
+      const recipients = await resolveRecipients('invoice_overdue', { projectId: proj.id, companyId: request.companyId! })
       const fmt = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
       for (const uid of recipients) {

@@ -127,10 +127,22 @@ describe('Retry-attach foto — ownership progress_log_id', () => {
     expect(res.statusCode).toBe(400) // gagal di validasi MIME = kedua gate sudah lewat
   }, 30_000)
 
-  it('NEGATIF: upload TANPA attach pun butuh akses proyek (mandor tak ditugaskan → 403)', async () => {
+  it('NEGATIF: proyek TAK ADA → 404 (bukan 403 — jangan bocorkan keberadaan)', async () => {
     if (!otherMandorAuth) return expect.unreachable('fixture mandor tidak tersedia')
     actAs(otherMandorAuth)
-    const res = await upload(NON_EXISTENT, {}) // proyek yang tak ada = pasti tak ditugaskan
-    expect(res.statusCode).toBe(403)
+    const res = await upload(NON_EXISTENT, {})
+    // DIUBAH di T4e (sebelumnya 403). Gerbang tenant kini berjalan LEBIH DULU:
+    // Catatan cakupan: kasus "proyek MILIK tenant tapi mandor tak ditugaskan →
+    // tetap 403" TIDAK diuji di sini karena fixture-nya sengaja memilih
+    // `otherMandorAuth` yang JUSTRU ditugaskan (lihat komentar FIXTURE KRITIS
+    // di beforeAll — itu prasyarat test kepemilikan log di atas). Jalur 403 itu
+    // sudah dijaga test "LOLOS kedua gate" yang membuktikan gate proyek dilewati
+    // saat penugasan ada.
+    // proyek di luar company aktif — termasuk yang tak ada sama sekali —
+    // dijawab 404. Ini perbaikan, bukan regresi: 403 "kamu tak ditugaskan"
+    // MENGKONFIRMASI bahwa proyek itu ADA, dan bagi tenant lain itu sendiri
+    // sudah kebocoran (menebak id → tahu proyek perusahaan lain eksis).
+    expect(res.statusCode).toBe(404)
   }, 30_000)
+
 })
