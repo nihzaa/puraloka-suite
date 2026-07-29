@@ -335,6 +335,248 @@ export default async function ahspRoutes(app: FastifyInstance) {
       })
     })
 
+  // ── POST /cecep/assemblies/:id/adopt — salin analisa jadi milik company ────
+  //
+  // Kebutuhan founder 2026-07-29: "AHSP nasional mau jadi AHSP company juga,
+  // tapi KOEFISIENNYA bisa disesuaikan — analisa Cibuluh yang lama tetap ada."
+  //
+  // KENAPA MENYALIN, BUKAN MENYUNTING YANG ADA:
+  //   Analisa nasional dipakai BERSAMA seluruh badan usaha (company_id NULL).
+  //   Menyuntingnya berarti mengubah katalog milik semua orang hanya karena
+  //   satu tim punya kebiasaan berbeda. Guard `fn_assembly_immutable` juga
+  //   menolaknya — dan itu benar.
+  //
+  // KENAPA TIDAK PERLU MENYALIN UNTUK SEKADAR GANTI HARGA:
+  //   Harga bukan bagian analisa (nol kolom harga di assembly_components).
+  //   Untuk memakai analisa nasional dengan harga sendiri, cukup isi price book
+  //   company — harga company sudah menang atas nasional (sumbu lingkup).
+  //   Endpoint ini HANYA untuk yang mau mengubah KOEFISIEN.
+  //
+  // JEJAK ASAL-USUL: `derived_from_assembly_id` + `derived_from_edition_id`
+  // diisi, jadi pertanyaan "salinan ini asalnya dari mana, dan sudah diubah
+  // apa" selalu terjawab dari data. Tanpa itu, salinan yang koefisiennya
+  // berbeda tak bisa dibedakan dari analisa yang memang disusun sendiri.
+  app.post<{ Params: { id: string }
+             Body: { code?: string; name?: string; reason?: string
+                     components?: { resource_code: string; coefficient: number }[] } }>(
+    '/api/v1/cecep/assemblies/:id/adopt',
+    { preHandler: [authenticate, requirePermission('cecep:assembly:manage')] },
+    async (request, reply) => {
+      const b = request.body ?? {}
+
+      const { data: asal, error: errAsal } = await request.db!
+        .from('assemblies')
+        .select(`id, code, name, source, cost_code_id, output_unit_code, edition_id,
+                 reference_standard, waste_factor, status,
+                 components:assembly_components(coefficient, sort_order, notes,
+                   resource:resources(id, code, name, unit_code))`)
+        .eq('id', request.params.id)
+        .maybeSingle()
+      if (errAsal) return reply.status(500).send({ error: errAsal.message })
+      if (!asal) return reply.status(404).send({ error: 'Analisa tidak ditemukan' })
+
+      // Menyalin analisa yang SUDAH milik company sendiri tidak dilarang, tapi
+      // hampir selalu bukan yang dimaksud — biasanya orang ingin menyalin dari
+      // katalog nasional. Ditolak dengan penjelasan, bukan diam-diam membuat
+      // duplikat yang membingungkan.
+      if (asal.source !== 'national') {
+        return reply.status(400).send({
+          error: `Analisa ini sudah bersumber "${asal.source}", bukan katalog nasional. ` +
+                 'Untuk mengubah koefisiennya, sunting langsung selagi berstatus draft.',
+        })
+      }
+
+      const kode = b.code?.trim() || `${asal.code}-CO`
+      if (!/^[A-Za-z0-9][A-Za-z0-9.\-_/]{1,58}$/.test(kode)) {
+        return reply.status(400).send({
+          error: 'Kode hanya boleh huruf, angka, titik, strip, garis bawah, dan garis miring (2–60 karakter)',
+        })
+      }
+
+      const { data: bentrok } = await request.db!
+        .from('assemblies').select('id').eq('code', kode).eq('source', 'company').maybeSingle()
+      if (bentrok) {
+        return reply.status(409).send({ error: `Kode "${kode}" sudah dipakai analisa company lain` })
+      }
+
+      type KompAsal = {
+        coefficient: number; sort_order: number | null; notes: string | null
+        resource: { id: string; code: string; name: string; unit_code: string } | null
+      }
+      const kompAsal = ((asal.components ?? []) as unknown as KompAsal[]).filter((x) => x.resource)
+      if (kompAsal.length === 0) {
+        return reply.status(400).send({ error: 'Analisa asal tidak punya komponen untuk disalin' })
+      }
+
+      // Koefisien pengganti bersifat OPSIONAL dan PARSIAL: yang tidak disebut
+      // memakai koefisien asli. Tanpa itu, mengubah satu koefisien memaksa
+      // pengguna mengetik ulang seluruh komponen — dan salah ketik di situ
+      // menghasilkan analisa yang diam-diam berbeda dari yang dimaksud.
+      const ganti = new Map<string, number>()
+      for (const c of b.components ?? []) {
+        if (!c.resource_code || typeof c.coefficient !== 'number' || c.coefficient <= 0) {
+          return reply.status(400).send({
+            error: `Koefisien tak valid untuk "${c.resource_code}" — wajib angka > 0`,
+          })
+        }
+        if (!kompAsal.some((k) => k.resource!.code === c.resource_code)) {
+          return reply.status(400).send({
+            error: `"${c.resource_code}" bukan komponen analisa ini. Endpoint ini menyalin ` +
+                   'lalu menyesuaikan koefisien; untuk menambah komponen baru, buat analisa sendiri.',
+          })
+        }
+        ganti.set(c.resource_code, c.coefficient)
+      }
+
+      const { data: baru, error: errBuat } = await request.db!
+        .from('assemblies')
+        .insert({
+          code: kode,
+          name: b.name?.trim() || asal.name,
+          source: 'company',
+          company_id: request.companyId!,
+          cost_code_id: asal.cost_code_id,
+          output_unit_code: asal.output_unit_code,
+          edition_id: asal.edition_id,
+          reference_standard: asal.reference_standard,
+          waste_factor: asal.waste_factor,
+          version_number: 1,
+          status: 'draft',
+          derived_from_assembly_id: asal.id,
+          derived_from_edition_id: asal.edition_id,
+          // `deviation` = koefisien perusahaan menyimpang dari standar
+          // nasional; itu persis maknanya di sini. Bukan `correction` — kita
+          // tidak menyatakan angka nasionalnya salah, hanya bahwa cara kerja
+          // tim ini berbeda. (Nilai sah: correction | deviation | NULL.)
+          // NULL saat koefisien tidak diubah sama sekali: salinan yang identik
+          // bukan penyimpangan.
+          edit_type: ganti.size > 0 ? 'deviation' : null,
+          edit_reason: b.reason?.trim() || 'Adopsi katalog nasional ke katalog perusahaan',
+          created_by: request.currentUser!.id,
+        })
+        .select('id, code, name, source, status')
+        .single()
+
+      if (errBuat || !baru) {
+        request.log.error({ err: errBuat }, 'gagal menyalin analisa')
+        return reply.status(500).send({ error: errBuat?.message ?? 'Gagal menyalin analisa' })
+      }
+
+      const { error: errKomp } = await request.db!
+        .from('assembly_components')
+        .insert(kompAsal.map((k, i) => ({
+          assembly_id: baru.id,
+          resource_id: k.resource!.id,
+          coefficient: ganti.get(k.resource!.code) ?? k.coefficient,
+          sort_order: k.sort_order ?? i,
+          notes: k.notes,
+          company_id: request.companyId!,
+        })))
+
+      if (errKomp) {
+        // Analisa tanpa komponen tak bisa dihitung dan tak bisa diperbaiki dari
+        // UI — lebih baik tak jadi dibuat daripada lahir mati.
+        await request.db!.from('assemblies').delete().eq('id', baru.id)
+        request.log.error({ err: errKomp }, 'gagal menyalin komponen; analisa dibatalkan')
+        return reply.status(500).send({
+          error: 'Gagal menyalin komponen analisa. Tidak ada yang dibuat.',
+        })
+      }
+
+      const diubah = kompAsal
+        .filter((k) => ganti.has(k.resource!.code) && ganti.get(k.resource!.code) !== Number(k.coefficient))
+        .map((k) => ({
+          resource_code: k.resource!.code,
+          dari: Number(k.coefficient),
+          jadi: ganti.get(k.resource!.code)!,
+        }))
+
+      void logAuditEvent(request, {
+        tableName: 'assemblies',
+        recordId: baru.id,
+        action: 'cecep.assembly_adopted',
+        actorId: request.currentUser!.id,
+        newValues: {
+          kode_baru: baru.code, dari_analisa: asal.code,
+          komponen: kompAsal.length, koefisien_diubah: diubah,
+        },
+        reason: b.reason?.trim() || 'Adopsi katalog nasional ke katalog perusahaan',
+      })
+
+      return reply.status(201).send({
+        data: baru,
+        asal: { id: asal.id, code: asal.code, name: asal.name },
+        komponen_disalin: kompAsal.length,
+        koefisien_diubah: diubah,
+      })
+    })
+
+  // ── GET /cecep/prices/missing — daftar prioritas harga yang belum diisi ────
+  //
+  // Kebutuhan founder: 252 resource belum berharga, dan satu resource bisa
+  // memblokir puluhan analisa sekaligus — "Sewa Tripot" saja dipakai 213
+  // analisa. Diurutkan dari DAMPAK TERBESAR supaya mengisi 4 baris teratas
+  // langsung menghidupkan ratusan analisa, bukan mengisi berurutan abjad.
+  app.get<{ Querystring: { source?: string; limit?: string } }>(
+    '/api/v1/cecep/prices/missing',
+    { preHandler: [authenticate, requirePermission('cecep:price:view')] },
+    async (request, reply) => {
+      const limit = Math.max(1, Math.min(200, Number(request.query.limit) || 50))
+      const source = request.query.source
+
+      // Dampak = berapa analisa yang tak bisa dihitung gara-gara resource ini.
+      // Dihitung di aplikasi karena wrapper tenant tidak menyediakan jalur SQL
+      // mentah, dan menembusnya berarti melewati scoping otomatis. Batas 20.000
+      // baris cukup untuk ~18.000 komponen yang ada; kalau kelak terlampaui,
+      // angkanya jadi kurang — itu sebabnya `total_tanpa_harga` dilaporkan
+      // terpisah agar selisihnya terlihat, bukan tersamar.
+      const { data, error } = await request.db!
+        .from('assembly_components')
+        .select(`resource_id, assembly:assemblies!inner(source),
+                 resource:resources!inner(id, code, name, category, unit_code)`)
+        .limit(20000)
+
+      if (error) return reply.status(500).send({ error: error.message })
+
+      type Row = {
+        resource_id: string
+        assembly: { source: string } | { source: string }[]
+        resource: { id: string; code: string; name: string; category: string; unit_code: string }
+      }
+      const pakai = new Map<string, { r: Row['resource']; n: number }>()
+      for (const row of (data ?? []) as unknown as Row[]) {
+        const asm = Array.isArray(row.assembly) ? row.assembly[0] : row.assembly
+        if (source && asm?.source !== source) continue
+        const k = row.resource_id
+        const cur = pakai.get(k) ?? { r: row.resource, n: 0 }
+        cur.n += 1
+        pakai.set(k, cur)
+      }
+
+      const ids = [...pakai.keys()]
+      const { data: berharga } = await request.db!
+        .from('price_book_entries')
+        .select('resource_id')
+        .in('resource_id', ids)
+        .eq('status', 'active')
+      const sudah = new Set((berharga ?? []).map((x: { resource_id: string }) => x.resource_id))
+
+      const daftar = [...pakai.values()]
+        .filter((x) => !sudah.has(x.r.id))
+        .sort((a, b) => b.n - a.n)
+        .slice(0, limit)
+        .map((x) => ({
+          resource_id: x.r.id, code: x.r.code, name: x.r.name,
+          category: x.r.category, unit_code: x.r.unit_code,
+          dipakai_analisa: x.n,
+        }))
+
+      return reply.send({
+        data: daftar,
+        total_tanpa_harga: [...pakai.values()].filter((x) => !sudah.has(x.r.id)).length,
+      })
+    })
+
   // ── GET /cecep/assemblies/:id/hsp-live — HSP dari harga YANG SEDANG BERLAKU ─
   //
   // Beda dengan POST /hsp di atas: yang itu menuntut pemanggil mengirim peta
