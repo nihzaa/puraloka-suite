@@ -14,6 +14,18 @@ import type { FastifyRequest } from 'fastify'
 // gerbang tak berguna.
 // ============================================================
 
+/**
+ * Daftar id `work_scopes` milik company aktif.
+ *
+ * Rantainya: work_scopes.assignment_id → mandor_assignments.project_id →
+ * projects.company_id. Dipakai menyaring endpoint yang di-key oleh scope id
+ * (PATCH/DELETE work-scopes, scope-items, progress) — tanpa itu, siapa pun
+ * pemegang `mandor:scope:manage` bisa mengubah pekerjaan perusahaan lain.
+ */
+export async function scopeIdsTenant(request: FastifyRequest): Promise<string[]> {
+  return request.db!.workScopeIds()
+}
+
 /** True bila `projectId` milik company aktif request ini. */
 export async function proyekMilikTenant(
   request: FastifyRequest,

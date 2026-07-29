@@ -5,6 +5,7 @@ import { createNotifications } from '../../utils/notifications.js'
 import { resolveRecipients } from '../../utils/notification-routing.js'
 import { flattenUserRole } from '../../utils/user-role.js'
 import { validateMime } from '../../utils/mime.js'
+import { proyekMilikTenant, scopeIdsTenant } from '../../utils/tenant-guard.js'
 
 const KASBON_PHOTO_BUCKET = 'kasbon-photos'
 const KASBON_PHOTO_ALLOWED = ['image/jpeg', 'image/png', 'image/webp']
@@ -375,11 +376,14 @@ export default async function mandorRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'nominal harus lebih dari 0' })
     }
 
+    // T4h: worker_kasbons kategori C via project_id — mencatat cicilan atas
+    // kasbon tukang tenant lain = mengubah catatan utang mereka.
     const { data: existing, error: fetchErr } = await supabase
       .from('worker_kasbons')
       .select('id, amount, amount_settled, is_settled')
       .eq('id', id)
-      .single()
+      .in('project_id', await request.db!.projectIds())
+      .maybeSingle()
 
     if (fetchErr || !existing) return reply.status(404).send({ error: 'Kasbon tidak ditemukan' })
     if (existing.is_settled) return reply.status(400).send({ error: 'Kasbon sudah lunas' })
@@ -506,12 +510,17 @@ export default async function mandorRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string }
     const body = request.body as { status?: string; notes?: string }
 
+    // T4h: saringan dipasang di UPDATE-nya — nol baris terubah kalau assignment
+    // bukan milik tenant, jadi hasilnya 404 alih-alih "berhasil mengubah
+    // penugasan perusahaan lain".
     const { data, error } = await supabase
       .from('mandor_assignments')
       .update({ ...body, updated_at: new Date().toISOString() })
       .eq('id', id)
+      .in('project_id', await request.db!.projectIds())
       .select()
-      .single()
+      .maybeSingle()
+    if (!error && !data) return reply.status(404).send({ error: 'Penugasan tidak ditemukan' })
     if (error) return reply.status(500).send({ error: error.message })
     return reply.send({ assignment: data })
   })
@@ -591,6 +600,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
       .from('work_scopes')
       .update({ ...allowed, updated_at: new Date().toISOString() })
       .eq('id', id)
+      .in('id', await scopeIdsTenant(request))
       .select()
       .single()
     if (error) return reply.status(500).send({ error: error.message })
@@ -613,8 +623,13 @@ export default async function mandorRoutes(app: FastifyInstance) {
       return reply.status(409).send({ error: 'Scope tidak bisa dihapus karena sudah ada laporan upah' })
     }
 
-    const { error } = await supabase.from('work_scopes').delete().eq('id', id)
+    // T4h: saringan di DELETE-nya sendiri — scope tenant lain tak akan terhapus.
+    const { data: dihapus, error } = await supabase.from('work_scopes').delete()
+      .eq('id', id).in('id', await scopeIdsTenant(request)).select('id')
     if (error) return reply.status(500).send({ error: error.message })
+    if (!dihapus || dihapus.length === 0) {
+      return reply.status(404).send({ error: 'Scope tidak ditemukan' })
+    }
     return reply.status(204).send()
   })
 
@@ -692,6 +707,10 @@ export default async function mandorRoutes(app: FastifyInstance) {
     }
     if (Number(body.volume) <= 0) return reply.status(400).send({ error: 'volume harus lebih dari 0' })
     if (Number(body.unit_price) < 0) return reply.status(400).send({ error: 'unit_price tidak boleh negatif' })
+    // T4h: menambah item ke scope tenant lain = mencemari pekerjaan mereka.
+    if (!(await scopeIdsTenant(request)).includes(scopeId)) {
+      return reply.status(404).send({ error: 'Scope tidak ditemukan' })
+    }
 
     const { data: item, error } = await supabase
       .from('work_scope_items')
@@ -1263,7 +1282,8 @@ export default async function mandorRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string }
 
     const { data: existing } = await supabase
-      .from('weekly_wage_reports').select('status').eq('id', id).single()
+      .from('weekly_wage_reports').select('status').eq('id', id)
+      .in('assignment_id', await request.db!.assignmentIds()).maybeSingle()
     if (!existing) return reply.status(404).send({ error: 'Laporan tidak ditemukan' })
     if (!['draft', 'submitted'].includes(existing.status)) {
       return reply.status(409).send({ error: 'Laporan yang sudah approved/paid tidak bisa dihapus' })
@@ -1407,6 +1427,13 @@ export default async function mandorRoutes(app: FastifyInstance) {
 
     if (!['approved', 'rejected'].includes(body.status)) {
       return reply.status(400).send({ error: 'status harus approved atau rejected' })
+    }
+    // T4h: progress_payments kategori C via work_scope_id — konfirmasi
+    // pembayaran progres tenant lain = mengeluarkan uang dari pembukuan mereka.
+    const { data: ppCek } = await supabase
+      .from('progress_payments').select('work_scope_id').eq('id', id).maybeSingle()
+    if (!ppCek || !(await scopeIdsTenant(request)).includes(ppCek.work_scope_id)) {
+      return reply.status(404).send({ error: 'Pembayaran progres tidak ditemukan' })
     }
 
     const { data: existing } = await supabase
@@ -1610,6 +1637,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
       .from('work_scopes')
       .update({ borongan_value_override, updated_at: new Date().toISOString() })
       .eq('id', id)
+      .in('id', await scopeIdsTenant(request))
       .select('id, scope_name, borongan_value, borongan_value_override')
       .single()
     if (error) return reply.status(500).send({ error: error.message })
@@ -1632,11 +1660,13 @@ export default async function mandorRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'status harus approved atau rejected' })
     }
 
+    // T4h: worker_kasbons kategori C via project_id.
     const { data: existing } = await supabase
       .from('worker_kasbons')
       .select('id, amount, mandor_id, worker_id, project_id')
       .eq('id', id)
-      .single()
+      .in('project_id', await request.db!.projectIds())
+      .maybeSingle()
     if (!existing) return reply.status(404).send({ error: 'Kasbon tukang tidak ditemukan' })
 
     if (status === 'approved' && cash_account_id) {
