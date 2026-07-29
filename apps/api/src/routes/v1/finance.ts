@@ -1295,6 +1295,16 @@ export default async function financeRoutes(app: FastifyInstance) {
     const dateFromTs  = dateFrom + 'T00:00:00'
     const dateToTs    = dateTo   + 'T23:59:59'
 
+    // T4j: SELALU di-scope. Tanpa `?project_id=`, seluruh sub-query di bawah
+    // (payments, expenses, wage, kasbon, progress payment, settlement) dulu
+    // berjalan tanpa saringan tenant sama sekali — buku besar transaksi semua
+    // perusahaan (nominal, vendor, nama mandor, nama proyek) terbuka.
+    const idProyekTx = await proyekBolehDibaca(request, projectId)
+    if (idProyekTx === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    const [idInvTx, idAsgTx, idScopeTx] = await Promise.all([
+      request.db!.invoiceIds(), request.db!.assignmentIds(), request.db!.workScopeIds(),
+    ])
+
     const queries: Promise<unknown>[] = []
 
     // 1. payments (masuk)
@@ -1305,6 +1315,7 @@ export default async function financeRoutes(app: FastifyInstance) {
           invoices!inner(id, invoice_number, project_id,
             projects!inner(id, name))`)
         .gte('paid_at', dateFromTs).lte('paid_at', dateToTs)
+      q1 = q1.in('invoice_id', idInvTx)   // T4j
       if (projectId) q1 = q1.eq('invoices.project_id', projectId)
       queries.push(Promise.resolve(q1).then(r => ({ src: 'payment', data: r.data, error: r.error })))
     } else {
@@ -1320,6 +1331,7 @@ export default async function financeRoutes(app: FastifyInstance) {
           category:project_expense_categories(id, name, type, parent_id)`)
         .eq('status', 'approved')
         .gte('expense_date', dateFromTs.split('T')[0]).lte('expense_date', dateToTs.split('T')[0])
+      q2 = q2.in('project_id', idProyekTx)   // T4j
       if (projectId) q2 = q2.eq('project_id', projectId)
       if (categoryId) q2 = q2.eq('category_id', categoryId)
       queries.push(Promise.resolve(q2).then(r => ({ src: 'expense', data: r.data, error: r.error })))
@@ -1338,6 +1350,7 @@ export default async function financeRoutes(app: FastifyInstance) {
           scope:work_scopes(id, scope_name)`)
         .eq('status', 'paid')
         .gte('paid_at', dateFromTs).lte('paid_at', dateToTs)
+      q3 = q3.in('assignment_id', idAsgTx)   // T4j
       if (projectId) q3 = q3.eq('assignment.project_id', projectId)
       queries.push(Promise.resolve(q3).then(r => ({ src: 'wage', data: r.data, error: r.error })))
     } else {
@@ -1356,6 +1369,7 @@ export default async function financeRoutes(app: FastifyInstance) {
               projects!inner(id, name)))`)
         .in('status', ['approved', 'settled'])
         .gte('kasbon_date', dateFrom).lte('kasbon_date', dateTo)
+      q4 = q4.in('work_scope_id', idScopeTx)   // T4j
       if (projectId) q4 = q4.eq('scope.assignment.project_id', projectId)
       queries.push(Promise.resolve(q4).then(r => ({ src: 'kasbon', data: r.data, error: r.error })))
     } else {
@@ -1374,6 +1388,7 @@ export default async function financeRoutes(app: FastifyInstance) {
         .eq('status', 'approved')
         .not('paid_at', 'is', null)
         .gte('paid_at', dateFromTs).lte('paid_at', dateToTs)
+      q5 = q5.in('work_scope_id', idScopeTx)   // T4j
       if (projectId) q5 = q5.eq('scope.assignment.project_id', projectId)
       queries.push(Promise.resolve(q5).then(r => ({ src: 'progress_payment', data: r.data, error: r.error })))
     } else {
@@ -1391,6 +1406,7 @@ export default async function financeRoutes(app: FastifyInstance) {
               projects!inner(id, name)))`)
         .not('settled_at', 'is', null)
         .gte('settled_at', dateFromTs).lte('settled_at', dateToTs)
+      q6 = q6.in('work_scope_id', idScopeTx)   // T4j
       if (projectId) q6 = q6.eq('scope.assignment.project_id', projectId)
       queries.push(Promise.resolve(q6).then(r => ({ src: 'settlement_borongan', data: r.data, error: r.error })))
     } else {
@@ -1400,7 +1416,7 @@ export default async function financeRoutes(app: FastifyInstance) {
     // Fetch kategori untuk resolve parent name (paralel dengan queries di atas sudah selesai)
     const catScope = projectId
       ? supabase.from('project_expense_categories').select('id, name, parent_id').eq('project_id', projectId)
-      : supabase.from('project_expense_categories').select('id, name, parent_id')
+      : supabase.from('project_expense_categories').select('id, name, parent_id').in('project_id', idProyekTx)
     const [results, { data: allCats }] = await Promise.all([
       Promise.all(queries) as Promise<Array<{ src: string; data: unknown[] | null; error: unknown }>>,
       catScope,
@@ -1650,11 +1666,14 @@ export default async function financeRoutes(app: FastifyInstance) {
     const { invoiceId } = request.params
 
     // Verifikasi invoice ada dan user punya akses
+    // T4j: cek pm_id di bawah hanya berlaku untuk role PM — admin & role lain
+    // sebelumnya membaca rincian invoice (nominal, nota vendor) tenant mana pun.
     const { data: inv } = await supabase
       .from('invoices')
       .select('id, project_id, projects(pm_id)')
       .eq('id', invoiceId)
-      .single()
+      .in('project_id', await request.db!.projectIds())
+      .maybeSingle()
     if (!inv) return reply.status(404).send({ error: 'Invoice tidak ditemukan' })
 
     const currentUser = (request as any).currentUser!

@@ -392,6 +392,11 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('projects:edit')] },
     async (request, reply) => {
       const { id, itemId } = request.params
+      // T4j: POST .../items di atas SUDAH memanggil coMilikTenant; PUT & DELETE
+      // item terlewat — inkonsistensi dalam satu file yang sama.
+      if (!(await coMilikTenant(request, id))) {
+        return reply.status(404).send({ error: 'Change Order tidak ditemukan' })
+      }
 
       const { data: existing } = await supabase
         .from('change_orders')
@@ -445,6 +450,11 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('projects:edit')] },
     async (request, reply) => {
       const { id, itemId } = request.params
+      // T4j: POST .../items di atas SUDAH memanggil coMilikTenant; PUT & DELETE
+      // item terlewat — inkonsistensi dalam satu file yang sama.
+      if (!(await coMilikTenant(request, id))) {
+        return reply.status(404).send({ error: 'Change Order tidak ditemukan' })
+      }
 
       const { data: existing } = await supabase
         .from('change_orders')

@@ -278,6 +278,9 @@ export default async function mandorRoutes(app: FastifyInstance) {
         )
       `)
       .eq('status', 'active')
+      // T4j: cabang role di bawah hanya MENYEMPITKAN untuk mandor; admin/pm
+      // sebelumnya melihat scope aktif SEMUA perusahaan.
+      .in('assignment_id', await request.db!.assignmentIds())
       .order('scope_name')
 
     if (user.role === 'mandor') {
@@ -333,6 +336,12 @@ export default async function mandorRoutes(app: FastifyInstance) {
       photo_url?: string
     }
 
+    // T4j: project_id dari BODY (kolom kategori C). Tanpa validasi, kasbon
+    // tukang fiktif muncul di daftar kasbon perusahaan lain — GET-nya menyaring
+    // project_id dengan benar, tapi tak bisa tahu barisnya disuntik dari luar.
+    if (body.project_id && !(await proyekMilikTenant(request, body.project_id))) {
+      return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    }
     if (!body.worker_id || !body.project_id || !body.amount) {
       return reply.status(400).send({ error: 'worker_id, project_id, dan amount wajib diisi' })
     }
@@ -476,6 +485,13 @@ export default async function mandorRoutes(app: FastifyInstance) {
 
     if (!body.project_id || !body.mandor_id) {
       return reply.status(400).send({ error: 'project_id dan mandor_id wajib diisi' })
+    }
+    // T4j: ini AKAR subsistem mandor — work_scopes, kasbons, wage reports,
+    // progress payments, dan settlement semuanya mewarisi tenancy dari
+    // mandor_assignments.project_id. Satu celah di sini mencemari seluruh
+    // rantai turunannya di pembukuan perusahaan lain.
+    if (!(await proyekMilikTenant(request, body.project_id))) {
+      return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
     }
 
     const { data, error } = await supabase
@@ -652,7 +668,8 @@ export default async function mandorRoutes(app: FastifyInstance) {
           )
         `)
         .eq('id', id)
-        .single(),
+        .in('assignment_id', await request.db!.assignmentIds())   // T4j
+        .maybeSingle(),
       supabase
         .from('work_scope_items')
         .select(`
@@ -906,6 +923,17 @@ export default async function mandorRoutes(app: FastifyInstance) {
   app.get('/api/v1/mandor/profile/:mandor_id', { preHandler: [authenticate] }, async (request, reply) => {
     const { mandor_id } = request.params as { mandor_id: string }
 
+    // T4j: profil mandor memuat penugasan, kasbon, dan riwayat upah. Batasnya
+    // KEANGGOTAAN — mandor yang bukan anggota company aktif tak boleh dibuka.
+    const { data: anggotaMandor } = await request.db!
+      .unsafe('company_members', 'cek keanggotaan mandor; di-scope eq(company_id) di bawah')
+      .select('user_id')
+      .eq('company_id', request.companyId!)
+      .eq('user_id', mandor_id)
+      .maybeSingle()
+    if (!anggotaMandor) return reply.status(404).send({ error: 'Mandor tidak ditemukan' })
+
+    const idProyekProfil = await request.db!.projectIds()
     const [mandorRes, assignmentsRes, kasbonsRes] = await Promise.all([
       supabase.from('users').select('id, name, phone, email, role_id, roles:role_id ( name ), is_active').eq('id', mandor_id).single(),
       supabase.from('mandor_assignments')
@@ -915,10 +943,12 @@ export default async function mandorRoutes(app: FastifyInstance) {
           work_scopes(id, scope_name, payment_system, status, borongan_value, progress_pct_done, start_date, end_date)
         `)
         .eq('mandor_id', mandor_id)
+        .in('project_id', idProyekProfil)   // T4j
         .eq('status', 'active'),
       supabase.from('worker_kasbons')
         .select('id, amount, amount_settled, purpose, kasbon_date, worker:workers(id, name), project:projects(id, name)')
         .eq('mandor_id', mandor_id)
+        .in('project_id', idProyekProfil)   // T4j
         .eq('is_settled', false)
         .order('kasbon_date', { ascending: false }),
     ])
@@ -1052,7 +1082,8 @@ export default async function mandorRoutes(app: FastifyInstance) {
           reviewer:users!weekly_wage_reports_reviewed_by_fkey(id, name)
         `)
         .eq('id', id)
-        .single(),
+        .in('assignment_id', await request.db!.assignmentIds())   // T4j
+        .maybeSingle(),
       supabase
         .from('wage_items')
         .select('id, worker_name, worker_id, days_worked, daily_rate, overtime_hours, overtime_rate, subtotal, notes')
@@ -1103,6 +1134,14 @@ export default async function mandorRoutes(app: FastifyInstance) {
 
     if (!body.assignment_id || !body.scope_id || !body.week_start || !body.items?.length) {
       return reply.status(400).send({ error: 'assignment_id, scope_id, week_start, dan items wajib diisi' })
+    }
+    // T4j: assignment_id & scope_id datang dari BODY — tanpa validasi, laporan
+    // upah lahir menempel ke penugasan/scope perusahaan lain.
+    if (!(await request.db!.assignmentIds()).includes(body.assignment_id)) {
+      return reply.status(404).send({ error: 'Penugasan tidak ditemukan' })
+    }
+    if (!(await scopeIdsTenant(request)).includes(body.scope_id)) {
+      return reply.status(404).send({ error: 'Scope tidak ditemukan' })
     }
 
     // Validasi deductions
@@ -1265,13 +1304,18 @@ export default async function mandorRoutes(app: FastifyInstance) {
       update.cash_account_id = cash_account_id ?? null
     }
 
+    // T4j: approve/reject/tandai-lunas laporan upah tenant lain = mengeluarkan
+    // uang dari pembukuan mereka. Lookup cash_account di atas sudah ter-scope,
+    // tapi BARIS LAPORANNYA belum — saringan dipasang di UPDATE-nya sendiri.
     const { data, error } = await supabase
       .from('weekly_wage_reports')
       .update(update)
       .eq('id', id)
+      .in('assignment_id', await request.db!.assignmentIds())
       .select()
-      .single()
+      .maybeSingle()
     if (error) return reply.status(500).send({ error: error.message })
+    if (!data) return reply.status(404).send({ error: 'Laporan upah tidak ditemukan' })
     return reply.send({ report: data })
   })
 
@@ -1319,6 +1363,9 @@ export default async function mandorRoutes(app: FastifyInstance) {
       `)
       .order('created_at', { ascending: false })
 
+    // T4j: SELALU di-scope; cabang role di bawah hanya menyempitkan lagi.
+    // Sebelumnya admin/pm melihat data SEMUA perusahaan.
+    q = q.in('work_scope_id', await scopeIdsTenant(request))
     if (work_scope_id) q = q.eq('work_scope_id', work_scope_id)
     if (status) q = q.eq('status', status)
 
@@ -1347,6 +1394,11 @@ export default async function mandorRoutes(app: FastifyInstance) {
       notes?: string
     }
 
+    // T4j: work_scope_id dari BODY. Cabang cek mandor_id di bawah hanya berlaku
+    // untuk role mandor — admin/pm lolos tanpa cek tenant sama sekali.
+    if (body.work_scope_id && !(await scopeIdsTenant(request)).includes(body.work_scope_id)) {
+      return reply.status(404).send({ error: 'Scope tidak ditemukan' })
+    }
     if (!body.work_scope_id || body.pct_completed == null || body.gross_payment == null) {
       return reply.status(400).send({ error: 'work_scope_id, pct_completed, dan gross_payment wajib diisi' })
     }
@@ -1524,6 +1576,9 @@ export default async function mandorRoutes(app: FastifyInstance) {
       `)
       .order('settled_at', { ascending: false })
 
+    // T4j: SELALU di-scope; cabang role di bawah hanya menyempitkan lagi.
+    // Sebelumnya admin/pm melihat data SEMUA perusahaan.
+    q = q.in('work_scope_id', await scopeIdsTenant(request))
     if (work_scope_id) q = q.eq('work_scope_id', work_scope_id)
 
     if (user.role === 'mandor') {
@@ -1555,6 +1610,12 @@ export default async function mandorRoutes(app: FastifyInstance) {
       notes?: string
     }
 
+    // T4j: settlement memindahkan uang dari cash_account DAN menandai scope
+    // 'completed'. Endpoint ini admin/pm-only dan tak punya cabang cek
+    // kepemilikan sama sekali sebelum ini.
+    if (body.work_scope_id && !(await scopeIdsTenant(request)).includes(body.work_scope_id)) {
+      return reply.status(404).send({ error: 'Scope tidak ditemukan' })
+    }
     if (!body.work_scope_id || body.borongan_value == null || body.net_payment == null) {
       return reply.status(400).send({ error: 'work_scope_id, borongan_value, dan net_payment wajib diisi' })
     }

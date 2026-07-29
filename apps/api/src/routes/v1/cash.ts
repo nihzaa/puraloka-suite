@@ -753,6 +753,11 @@ export default async function cashRoutes(app: FastifyInstance) {
     preHandler: [authenticate]
   }, async (request, reply) => {
     const { project_id } = request.query as Record<string, string>
+    // T4j: project_id dipakai membaca (dan pada /categories juga MENYISIPKAN
+    // template kategori ke) proyek mana pun tanpa cek kepemilikan.
+    if (project_id && !(await proyekMilikTenant(request, project_id))) {
+      return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    }
 
     if (project_id) {
       const { data: projCats, error } = await supabase

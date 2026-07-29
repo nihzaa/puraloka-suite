@@ -182,12 +182,17 @@ export default async function documentRoutes(app: FastifyInstance) {
       const updateFields: Record<string, unknown> = { updated_at: new Date().toISOString() }
       if (is_visible_to_client !== undefined) updateFields.is_visible_to_client = is_visible_to_client
 
+      // T4j: gerbang proyek di atas memeriksa `projectId` DARI URL, tapi UPDATE
+      // ini dulu hanya menyaring `documentId` — artinya penyerang yang memang
+      // punya satu proyek sah bisa lolos gerbang lalu menyebut documentId milik
+      // tenant lain. Filter kepemilikan HARUS ada di query yang memutasi.
       const { data, error } = await supabase
         .from('documents')
         .update(updateFields)
         .eq('id', documentId)
+        .eq('project_id', projectId)
         .select(SELECT_FIELDS)
-        .single()
+        .maybeSingle()
 
       if (error) {
         app.log.error(error)
