@@ -277,3 +277,64 @@ diminta menyetujui sesuatu yang sebenarnya tak berisiko.
   `check-deadlines` yang membaca invoice/termin lintas tenant.
 - **`estimate-versions` GET detail** — sudah ditutup di ronde ini, tapi modul
   CECEP lain belum diaudit ulang.
+
+
+---
+
+## 12. Ronde ketiga — audit final sebelum merge (2026-07-29 malam)
+
+Dijalankan sebagai **verifikasi akhir**, bukan karena ada dugaan sisa. Ia
+menemukan **19 celah lagi** — dan yang penting: **satu KELAS celah** yang dua
+ronde sebelumnya tak sentuh sama sekali.
+
+### 12.1 Kelas yang terlewat: id entitas datang dari BODY, bukan URL
+
+Dua audit pertama (dan perbaikan saya) berfokus pada pola `.eq('id', param)` —
+id dari URL. Akibatnya seluruh **jalur create** yang menyebut `project_id`,
+`work_scope_id`, atau `assignment_id` **di body** lolos tanpa pernah diperiksa.
+
+Yang paling berbahaya di antaranya: **`POST /mandor/assignments`**. Ia akar
+subsistem mandor — `work_scopes`, `kasbons`, `weekly_wage_reports`,
+`progress_payments`, dan `borongan_settlements` **semuanya** mewarisi tenancy
+dari `mandor_assignments.project_id`. Satu celah di sini mencemari seluruh
+rantai turunannya di pembukuan perusahaan lain, dan tak satu pun endpoint
+turunan itu bisa mendeteksinya (mereka menyaring dengan benar — barisnya
+memang "sah" menurut kolomnya).
+
+### 12.2 Celah paling halus: gerbang benar, query salah
+
+`PATCH /projects/:projectId/documents/:documentId` **sudah** memanggil
+`proyekMilikTenant(request, projectId)` — gerbangnya ada dan benar. Tapi
+`UPDATE`-nya hanya menyaring `documentId`:
+
+```js
+.update(updateFields).eq('id', documentId)   // tanpa .eq('project_id', projectId)
+```
+
+Artinya penyerang yang **memang punya satu proyek sah** lolos gerbang, lalu
+menyebut `documentId` milik tenant lain dan tetap memutasinya.
+
+**Pelajaran yang berlaku umum:** gerbang di parameter URL **tidak** membatasi
+baris mana yang dimutasi. Saringan wajib ada **di query yang memutasi**, bukan
+hanya di pemeriksaan sebelumnya.
+
+### 12.3 Rekap tiga ronde
+
+| Ronde | Temuan | Kelas yang ditemukan |
+|---|---:|---|
+| 1 | ±30 | agregat tanpa filter · by-id tanpa saringan · config dipakai bersama |
+| 2 | ±25 | gerbang di GET hilang di PATCH/DELETE (4 modul) |
+| 3 | 19 | **id dari BODY** · gerbang benar tapi query mutasi tak disaring |
+
+Total ±74 celah di ±60 endpoint. Ratchet: 584 → **468**.
+
+### 12.4 Kenapa tiga ronde, dan apakah ronde keempat perlu
+
+Tiap ronde menemukan **kelas berbeda**, bukan sisa acak dari ronde sebelumnya —
+itu tanda audit berhenti menemukan hal baru bukan karena habis, tapi karena
+lensanya sama. Ronde 3 memakai instruksi yang eksplisit menyebut "id dari
+body/params" sebagai pola yang dicari, dan itulah yang menemukan kelas baru.
+
+Ronde keempat **layak dijalankan setelah T5 (RLS)**, dengan lensa berbeda lagi:
+saat itu RLS jadi lapis kedua, dan yang perlu diuji adalah apakah dua lapis itu
+benar-benar independen (uji kill-switch P2), bukan lagi mencari celah call-site.
