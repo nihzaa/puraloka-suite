@@ -33,7 +33,10 @@ export default async function rolesRoutes(app: FastifyInstance) {
 
   // GET /api/v1/roles — list semua role + jumlah permissions + jumlah user
   app.get('/api/v1/roles', { preHandler: [authenticate] }, async (request, reply) => {
-    const { data: roles, error } = await supabase
+    // T4i: lewat wrapper — `roles` kategori AB, jadi .from() menyaring
+    // "bawaan (NULL) ATAU milik company ini". Role custom tenant lain (label,
+    // deskripsi, jumlah pemakai) tak lagi ikut terdaftar.
+    const { data: roles, error } = await request.db!
       .from('roles')
       .select(`
         id, name, label, description, is_builtin, portal, color, sort_order, created_at,
@@ -237,6 +240,10 @@ export default async function rolesRoutes(app: FastifyInstance) {
   // GET /api/v1/roles/:id/permissions — permissions yang dimiliki role ini
   app.get('/api/v1/roles/:id/permissions', { preHandler: [authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string }
+    // T4i: PATCH/DELETE/PUT sudah dijaga tolakRoleTenantLain, GET-nya terlewat —
+    // izin role custom tenant lain bisa dibaca hanya dgn tahu id-nya.
+    const tolakGet = await tolakRoleTenantLain(request, id)
+    if (tolakGet) return reply.status(404).send({ error: tolakGet })
 
     const { data, error } = await supabase
       .from('role_permissions')

@@ -233,11 +233,16 @@ export default async function notificationRoutes(app: FastifyInstance) {
       const reportId = actionData?.report_id as string | undefined
       if (!reportId) return reply.status(400).send({ error: 'action_data.report_id tidak ada' })
 
+      // T4i: weekly_wage_reports kategori C via assignment_id. Cabang
+      // approve_kasbon persis di atas SUDAH pakai request.db!; cabang ini
+      // terlewat — inkonsistensi dalam satu fungsi yang sama.
+      const idAsgNotif = await request.db!.assignmentIds()
       const { data: report } = await supabase
         .from('weekly_wage_reports')
         .select('id, status')
         .eq('id', reportId)
-        .single()
+        .in('assignment_id', idAsgNotif)
+        .maybeSingle()
 
       if (!report) return reply.status(404).send({ error: 'Laporan upah tidak ditemukan' })
       if (!['submitted', 'draft'].includes(report.status)) {
@@ -257,6 +262,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
         .from('weekly_wage_reports')
         .update(update)
         .eq('id', reportId)
+        .in('assignment_id', idAsgNotif)
 
       if (rErr) return reply.status(500).send({ error: rErr.message })
 
@@ -432,12 +438,16 @@ export default async function notificationRoutes(app: FastifyInstance) {
     // ── 1. Termin yang sudah bisa ditagih tapi masih pending ─────────────────
     // Termin on_progress: project.progress_pct >= trigger_pct
     // Termin on_sign: langsung bisa ditagih
+    // T4i: sama seperti invoice di bawah — data yang jadi ISI notifikasi wajib
+    // di-scope, bukan cuma penerimanya.
+    const idProyekTermin = await request.db!.projectIds()
     const { data: termins } = await supabase
       .from('termin_schedules')
       .select(`
         id, termin_number, amount, trigger_type, trigger_pct, due_date,
         project:projects!termin_schedules_project_id_fkey(id, name, progress_pct, pm_id, status)
       `)
+      .in('project_id', idProyekTermin)
       .eq('status', 'pending')
       .not('projects.status', 'in', '("cancelled","completed")')
 
@@ -557,12 +567,18 @@ export default async function notificationRoutes(app: FastifyInstance) {
     }
 
     // ── 4. Invoice overdue (due_date sudah lewat, belum paid) ────────────────
+    // T4i: check-deadlines membaca invoice/termin lalu MENGIRIM notifikasi &
+    // email berdasarkan isinya. Penerimanya sudah di-scope (resolveRecipients),
+    // tapi DATANYA belum — jadi isi pesannya bisa memuat nomor invoice & nominal
+    // tenant lain. Disaring di sumbernya.
+    const idProyekDl = await request.db!.projectIds()
     const { data: overdueInvoices } = await supabase
       .from('invoices')
       .select(`
         id, invoice_number, total_amount, amount_due, due_date,
         project:projects!invoices_project_id_fkey(id, name, pm_id)
       `)
+      .in('project_id', idProyekDl)
       .in('status', ['sent', 'partial'])
       .lt('due_date', today)
 

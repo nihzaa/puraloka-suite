@@ -38,7 +38,7 @@ const DIR_ROUTES = join(import.meta.dirname, '..', '..')
  *
  * Kalau gagal karena angkanya TURUN: bagus — turunkan ambangnya ke angka baru.
  */
-const AMBANG_SUPABASE_MENTAH = 478
+const AMBANG_SUPABASE_MENTAH = 476
 
 function hitungSupabaseMentah(): { total: number; perFile: Record<string, number> } {
   const perFile: Record<string, number> = {}
