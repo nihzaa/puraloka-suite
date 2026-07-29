@@ -648,12 +648,15 @@ export default async function financeRoutes(app: FastifyInstance) {
     const totalAmount   = parseFloat((baseAmount + commissionAmount - retensiAmount - dpDeduction + taxAmount).toFixed(2))
 
     // ── Generate nomor invoice ───────────────────────────────────────────────
-    const { data: companyRow } = await supabase
-      .from('company_profile')
+    // T4i: prefix nomor invoice diambil dari `companies` (ter-scope), bukan
+    // company_profile single-row. Tanpa ini, mengubah prefix di satu perusahaan
+    // ikut mengubah penomoran invoice perusahaan lain.
+    const { data: companyRow } = await request.db!
+      .unsafe('companies', 'tabel tenant itu sendiri; di-scope eq(id, companyId)')
       .select('invoice_prefix')
-      .limit(1)
-      .single()
-    const prefix = companyRow?.invoice_prefix ?? 'INV'
+      .eq('id', request.companyId!)
+      .maybeSingle()
+    const prefix = (companyRow as { invoice_prefix?: string } | null)?.invoice_prefix ?? 'INV'
     const now = new Date()
     const year = now.getFullYear()
     const month = String(now.getMonth() + 1).padStart(2, '0')

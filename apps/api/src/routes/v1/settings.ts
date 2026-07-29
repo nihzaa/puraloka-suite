@@ -22,22 +22,26 @@ export default async function settingsRoutes(app: FastifyInstance) {
       .select(`
         id, invoice_number, invoice_type, total_amount, amount_due,
         issued_date, due_date, paid_date, status,
-        projects ( id, name ),
+        projects ( id, name, company_id ),
         termin_schedules ( id, label, termin_number )
       `)
       .eq('id', id)
-      .single()
+      .maybeSingle()
 
     if (error || !data) {
       return reply.status(404).send({ found: false })
     }
 
-    // Also fetch company name for display
-    const { data: company } = await supabase
-      .from('company_profile')
-      .select('company_name, logo_url')
-      .limit(1)
-      .single()
+    // T4i: endpoint PUBLIK (tanpa auth), jadi tak ada request.db!. Perusahaan
+    // diturunkan DARI INVOICE-nya sendiri — bukan dari "baris pertama
+    // company_profile" yang dulu berarti semua invoice menampilkan nama & logo
+    // perusahaan yang sama, siapa pun penerbitnya.
+    const proj = (data as { projects?: { company_id?: string } | { company_id?: string }[] }).projects
+    const companyId = (Array.isArray(proj) ? proj[0] : proj)?.company_id
+    const { data: companyRow } = companyId
+      ? await supabase.from('companies').select('name, logo_url').eq('id', companyId).maybeSingle()
+      : { data: null }
+    const company = companyRow ? { company_name: companyRow.name, logo_url: companyRow.logo_url } : null
 
     return reply.send({
       found: true,
@@ -61,13 +65,26 @@ export default async function settingsRoutes(app: FastifyInstance) {
   // Return company profile (single row). All roles can read (needed for PDF generation).
   app.get('/api/v1/settings/company', {
     preHandler: [authenticate],
-  }, async (_request, reply) => {
-    const { data, error } = await supabase
-      .from('company_profile')
+  }, async (request, reply) => {
+    // T4i: BACA DARI `companies`, bukan `company_profile`.
+    //
+    // `company_profile` adalah tabel SINGLE-ROW tanpa kolom company_id — semua
+    // tenant berbagi satu baris. PUT dari satu perusahaan MENIMPA profil yang
+    // dipakai perusahaan lain, termasuk NOMOR REKENING BANK yang muncul di PDF
+    // invoice mereka. Itu korupsi data lintas-perusahaan, bukan sekadar
+    // kebocoran baca.
+    //
+    // Tidak butuh migrasi data: migration 126 sudah menyalin seluruh isinya ke
+    // `companies` (diverifikasi 2026-07-29 — nol kolom hilang, nol nilai beda).
+    // `companies` kategori ANCHOR, jadi request.db! menyaringnya otomatis.
+    // Nama kolomnya sama persis kecuali company_name -> name (di-alias di bawah
+    // supaya bentuk respons untuk frontend TIDAK berubah).
+    const { data: row, error } = await request.db!
+      .unsafe('companies', 'tabel tenant itu sendiri; di-scope eq(id, companyId)')
       .select('*')
-      .order('updated_at', { ascending: true })
-      .limit(1)
-      .single()
+      .eq('id', request.companyId!)
+      .maybeSingle()
+    const data = row ? { ...row, company_name: (row as { name: string }).name } : null
 
     if (error) {
       // If no row exists yet, return defaults
@@ -112,12 +129,9 @@ export default async function settingsRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'Nama perusahaan tidak boleh kosong' })
     }
 
-    // Get the existing row id
-    const { data: existing } = await supabase
-      .from('company_profile')
-      .select('id')
-      .limit(1)
-      .single()
+    // T4i: barisnya adalah company aktif itu sendiri — tak perlu "cari baris
+    // pertama" seperti pola single-row lama.
+    const existing = { id: request.companyId! }
 
     const updateData: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
@@ -133,23 +147,18 @@ export default async function settingsRoutes(app: FastifyInstance) {
       if (key in body) updateData[key] = (body as Record<string, unknown>)[key]
     }
 
-    let data, error
-    if (existing?.id) {
-      // Update existing row
-      ;({ data, error } = await supabase
-        .from('company_profile')
-        .update(updateData)
-        .eq('id', existing.id)
-        .select()
-        .single())
-    } else {
-      // Insert first row
-      ;({ data, error } = await supabase
-        .from('company_profile')
-        .insert({ company_name: body.company_name ?? 'Puraloka Persada', ...updateData })
-        .select()
-        .single())
+    // company_name di body -> kolom `name` di companies.
+    if ('company_name' in updateData) {
+      updateData.name = updateData.company_name
+      delete updateData.company_name
     }
+    const { data: row, error } = await request.db!
+      .unsafe('companies', 'tabel tenant itu sendiri; di-scope eq(id, companyId)')
+      .update(updateData)
+      .eq('id', existing.id)
+      .select()
+      .maybeSingle()
+    const data = row ? { ...row, company_name: (row as { name: string }).name } : null
 
     if (error) return reply.status(500).send({ error: error.message })
     return reply.send({ company: data })
@@ -457,23 +466,13 @@ export default async function settingsRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'File logo tidak ditemukan dalam request' })
     }
 
-    // Update logo_url in company_profile
-    const { data: existing } = await supabase
-      .from('company_profile')
-      .select('id')
-      .limit(1)
-      .single()
-
-    if (existing?.id) {
-      await supabase
-        .from('company_profile')
-        .update({ logo_url: logoUrl, updated_at: new Date().toISOString() })
-        .eq('id', existing.id)
-    } else {
-      await supabase
-        .from('company_profile')
-        .insert({ company_name: 'Puraloka Persada', logo_url: logoUrl })
-    }
+    // T4i: logo disimpan di `companies` (ter-scope), bukan company_profile
+    // single-row. Tanpa ini, mengganti logo di satu perusahaan mengubah logo
+    // yang tercetak di invoice perusahaan lain.
+    await request.db!
+      .unsafe('companies', 'tabel tenant itu sendiri; di-scope eq(id, companyId)')
+      .update({ logo_url: logoUrl, updated_at: new Date().toISOString() })
+      .eq('id', request.companyId!)
 
     return reply.send({ logo_url: logoUrl })
   })
