@@ -1070,6 +1070,11 @@ export default async function procurementRoutes(app: FastifyInstance) {
     if (!project_id || !material_id || !qty || !movement_type) {
       return reply.status(400).send({ error: 'project_id, material_id, qty, movement_type wajib diisi' })
     }
+    // T4j: memutasi project_stocks & stock_movements proyek mana pun, dan
+    // gerbangnya cuma permission `procurement:view` yang luas.
+    if ((await proyekBolehDibaca(request, project_id)) === null) {
+      return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    }
     if (!['usage', 'return', 'adjustment'].includes(movement_type)) {
       return reply.status(400).send({ error: 'movement_type harus: usage, return, atau adjustment' })
     }
@@ -1364,6 +1369,10 @@ export default async function procurementRoutes(app: FastifyInstance) {
     const { project_id, notes, items } = body
     if (!project_id || !items?.length) {
       return reply.status(400).send({ error: 'project_id dan items wajib diisi' })
+    }
+    // T4j: opname menulis rekonsiliasi stok massal — proyek wajib milik tenant.
+    if ((await proyekBolehDibaca(request, project_id)) === null) {
+      return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
     }
 
     // Ambil semua stok proyek ini sekaligus
