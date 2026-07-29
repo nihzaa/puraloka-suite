@@ -194,9 +194,44 @@ for (const sname of SHEET_ANALISA) {
     })
   }
 }
-// Satu nama-di-analisa bisa muncul di banyak analisa; ambil unik.
+// Satu nama-di-analisa bisa muncul di banyak analisa. Kalau semuanya menunjuk
+// harga yang sama, tak ada masalah. Kalau BERBEDA, itu konflik yang harus
+// dilaporkan — bukan diam-diam diambil salah satu.
+//
+// Konflik nyata yang ditemukan di workbook ini: "Asbes Gelombang" muncul dua
+// kali; satu menunjuk HS.BAHAN!D181 (Rp 60.000, benar), satu menunjuk D194 =
+// "Genteng Morando Glasur" (Rp 8.000). Rumus keduanya sah secara Excel — yang
+// salah adalah isian workbook-nya. Kelas yang sama dengan 42 cacat internal
+// yang sudah terdokumentasi saat impor analisa.
+//
+// Sikap: yang berkonflik TIDAK dipetakan sama sekali. Memilih salah satu
+// berarti menebak, dan menebak harga material menghasilkan angka anggaran yang
+// salah tanpa gejala. Resource-nya dibiarkan tanpa harga → fail-loud saat
+// dipakai, dan founder mengisinya lewat UI dengan angka yang ia yakini.
+const perNamaAnalisa = new Map()
+for (const p of pemetaan) {
+  if (!p.nama_di_analisa) continue
+  const list = perNamaAnalisa.get(p.nama_di_analisa) ?? []
+  list.push(p)
+  perNamaAnalisa.set(p.nama_di_analisa, list)
+}
+
 const petaUnik = new Map()
-for (const p of pemetaan) if (p.nama_di_analisa) petaUnik.set(p.nama_di_analisa, p)
+const konflik = []
+for (const [nama, list] of perNamaAnalisa) {
+  const beda = [...new Set(list.map((x) => `${x.sheet_harga}!${x.baris_harga}|${x.amount}`))]
+  if (beda.length > 1) {
+    konflik.push({
+      nama_di_analisa: nama,
+      kandidat: [...new Map(list.map((x) => [
+        `${x.sheet_harga}!${x.baris_harga}`,
+        { ref: `${x.sheet_harga}!${x.baris_harga}`, nama_di_harga: x.nama_di_harga, amount: x.amount },
+      ])).values()],
+    })
+    continue // TIDAK dipetakan — lihat alasan di atas
+  }
+  petaUnik.set(nama, list[0])
+}
 
 const dataset = {
   meta: {
@@ -216,6 +251,7 @@ const dataset = {
       dilewati: upah.dilewati.length + bahan.dilewati.length,
       nama_ganda_beda_harga: ganda.length,
       pemetaan_lewat_rumus: petaUnik.size,
+      konflik_rumus_diabaikan: konflik.length,
     },
     catatan_pemetaan:
       'Pencocokan harga→resource memakai PEMETAAN LEWAT RUMUS (`mapping`), bukan ' +
@@ -227,6 +263,7 @@ const dataset = {
     a.category.localeCompare(b.category) || a.nama.localeCompare(b.nama)),
   mapping: [...petaUnik.values()].sort((a, b) =>
     a.nama_di_analisa.localeCompare(b.nama_di_analisa)),
+  mapping_conflicts: konflik,
   skipped: [...upah.dilewati, ...bahan.dilewati],
   duplicates: ganda,
 }
@@ -239,6 +276,7 @@ console.log(`  unik   : ${perNama.size}`)
 console.log(`  dilewati: ${dataset.skipped.length}`)
 console.log(`  nama ganda beda harga: ${ganda.length}`)
 console.log(`  pemetaan lewat rumus  : ${petaUnik.size}`)
+console.log(`  konflik rumus (diabaikan): ${konflik.length}`)
 if (dataset.skipped.filter((s) => s.alasan === 'satuan tak dikenal').length) {
   console.log('\n  ⚠ satuan tak dikenal (peta perlu ditambah):')
   for (const s of dataset.skipped.filter((s) => s.alasan === 'satuan tak dikenal').slice(0, 12)) {

@@ -16,7 +16,8 @@
       "unik": 710,
       "dilewati": 9,
       "nama_ganda_beda_harga": 2,
-      "pemetaan_lewat_rumus": 390
+      "pemetaan_lewat_rumus": 369,
+      "konflik_rumus_diabaikan": 21
     },
     "catatan_pemetaan": "Pencocokan harga→resource memakai PEMETAAN LEWAT RUMUS (`mapping`), bukan kemiripan nama: nama di analisa dan di sheet harga memang berbeda penulisan (cocok-by-nama hanya 12%). Rumus `=HS.BAHAN!D569` menyatakan baris harga mana yang dimaksud — itu keputusan penyusun workbook."
   },
@@ -6477,15 +6478,6 @@
       "category": "material"
     },
     {
-      "nama_di_analisa": "Asbes Gelombang",
-      "nama_di_harga": "Genteng Morando Glasur 18 bh/m2",
-      "sheet_harga": "HS.BAHAN",
-      "baris_harga": 194,
-      "amount": 8000,
-      "unit_code": "buah",
-      "category": "material"
-    },
-    {
       "nama_di_analisa": "Asbes Glb ( 80 x 180 cm )",
       "nama_di_harga": "Asbes Gelombang 5 mm 80 x 180",
       "sheet_harga": "HS.BAHAN",
@@ -6828,15 +6820,6 @@
       "category": "material"
     },
     {
-      "nama_di_analisa": "Cat Dasar",
-      "nama_di_harga": "Cat Dasar Tembok indo.9000 sealer water base",
-      "sheet_harga": "HS.BAHAN",
-      "baris_harga": 666,
-      "amount": 27500,
-      "unit_code": "kg",
-      "category": "material"
-    },
-    {
       "nama_di_analisa": "Cat Dasar sealer water base",
       "nama_di_harga": "Cat Dasar Tembok indo.9000 sealer water base",
       "sheet_harga": "HS.BAHAN",
@@ -7040,15 +7023,6 @@
       "sheet_harga": "HS.BAHAN",
       "baris_harga": 540,
       "amount": 50000,
-      "unit_code": "buah",
-      "category": "material"
-    },
-    {
-      "nama_di_analisa": "Down Light",
-      "nama_di_harga": "Down Light FBS 014 New Extra 5\" silver",
-      "sheet_harga": "HS.BAHAN",
-      "baris_harga": 485,
-      "amount": 48000,
       "unit_code": "buah",
       "category": "material"
     },
@@ -7449,15 +7423,6 @@
       "category": "material"
     },
     {
-      "nama_di_analisa": "Kaca",
-      "nama_di_harga": "Kaca Rayband 5 mm ( ASAHI )",
-      "sheet_harga": "HS.BAHAN",
-      "baris_harga": 168,
-      "amount": 130000,
-      "unit_code": "m2",
-      "category": "material"
-    },
-    {
       "nama_di_analisa": "Kaca 5 mm",
       "nama_di_harga": "Kaca 5 mm",
       "sheet_harga": "HS.BAHAN",
@@ -7548,15 +7513,6 @@
       "category": "material"
     },
     {
-      "nama_di_analisa": "Kanstin",
-      "nama_di_harga": "Kaansteen Saluran uk.60x10/16x40 cm",
-      "sheet_harga": "HS.BAHAN",
-      "baris_harga": 656,
-      "amount": 76000,
-      "unit_code": "buah",
-      "category": "material"
-    },
-    {
       "nama_di_analisa": "Kapur Padam",
       "nama_di_harga": "Cabluk",
       "sheet_harga": "HS.BAHAN",
@@ -7589,15 +7545,6 @@
       "sheet_harga": "HS.BAHAN",
       "baris_harga": 556,
       "amount": 2000000,
-      "unit_code": "m3",
-      "category": "material"
-    },
-    {
-      "nama_di_analisa": "Kaso-Kaso ( 5/7 cm )",
-      "nama_di_harga": "Kayu Balok Borneo",
-      "sheet_harga": "HS.BAHAN",
-      "baris_harga": 554,
-      "amount": 6000000,
       "unit_code": "m3",
       "category": "material"
     },
@@ -7818,15 +7765,6 @@
       "category": "material"
     },
     {
-      "nama_di_analisa": "Kayu Kamper, Papan",
-      "nama_di_harga": "Kayu Balok Kruing",
-      "sheet_harga": "HS.BAHAN",
-      "baris_harga": 553,
-      "amount": 7000000,
-      "unit_code": "m3",
-      "category": "material"
-    },
-    {
       "nama_di_analisa": "Kayu Kelas II, Papan",
       "nama_di_harga": "Kayu Papan Lokal Kls. II",
       "sheet_harga": "HS.BAHAN",
@@ -7899,15 +7837,6 @@
       "category": "material"
     },
     {
-      "nama_di_analisa": "Kayu Lokal Kls II, Papan",
-      "nama_di_harga": "Kayu Papan Lokal Kls. II",
-      "sheet_harga": "HS.BAHAN",
-      "baris_harga": 549,
-      "amount": 3500000,
-      "unit_code": "m3",
-      "category": "material"
-    },
-    {
       "nama_di_analisa": "Kayu Lokal KLS II, Papan",
       "nama_di_harga": "Kayu Papan Lokal Kls. II",
       "sheet_harga": "HS.BAHAN",
@@ -7953,15 +7882,6 @@
       "category": "labor"
     },
     {
-      "nama_di_analisa": "Kepala Tukang",
-      "nama_di_harga": "Kepala Tukang Batu / Tembok",
-      "sheet_harga": "HS.UPAH",
-      "baris_harga": 13,
-      "amount": 159500,
-      "unit_code": "OH",
-      "category": "labor"
-    },
-    {
       "nama_di_analisa": "Kepala Tukang Batu",
       "nama_di_harga": "Kepala Tukang Batu / Tembok",
       "sheet_harga": "HS.UPAH",
@@ -7994,15 +7914,6 @@
       "sheet_harga": "HS.UPAH",
       "baris_harga": 15,
       "amount": 159500,
-      "unit_code": "OH",
-      "category": "labor"
-    },
-    {
-      "nama_di_analisa": "Kepala Tukang Kayu",
-      "nama_di_harga": "Kepala Tukang Besi",
-      "sheet_harga": "HS.UPAH",
-      "baris_harga": 17,
-      "amount": 165000,
       "unit_code": "OH",
       "category": "labor"
     },
@@ -8412,15 +8323,6 @@
       "category": "material"
     },
     {
-      "nama_di_analisa": "List Gypsum",
-      "nama_di_harga": "List Gypsuum 20 cm",
-      "sheet_harga": "HS.BAHAN",
-      "baris_harga": 606,
-      "amount": 16500,
-      "unit_code": "m1",
-      "category": "material"
-    },
-    {
       "nama_di_analisa": "List kayu 2/4",
       "nama_di_harga": "List Profil Kamper 4 cm",
       "sheet_harga": "HS.BAHAN",
@@ -8547,15 +8449,6 @@
       "category": "material"
     },
     {
-      "nama_di_analisa": "Multipleks, t = 9 mm",
-      "nama_di_harga": "List Gypsuum 10 cm",
-      "sheet_harga": "HS.BAHAN",
-      "baris_harga": 605,
-      "amount": 16000,
-      "unit_code": "m1",
-      "category": "material"
-    },
-    {
       "nama_di_analisa": "Mur Baut",
       "nama_di_harga": "Mur Baud",
       "sheet_harga": "HS.BAHAN",
@@ -8592,15 +8485,6 @@
       "category": "material"
     },
     {
-      "nama_di_analisa": "Paku 2\" - 5\"",
-      "nama_di_harga": "Paku uk. 2\" - 5\"",
-      "sheet_harga": "HS.BAHAN",
-      "baris_harga": 141,
-      "amount": 25000,
-      "unit_code": "kg",
-      "category": "material"
-    },
-    {
       "nama_di_analisa": "Paku 5 - 7",
       "nama_di_harga": "Paku uk. 2\" - 5\"",
       "sheet_harga": "HS.BAHAN",
@@ -8628,15 +8512,6 @@
       "category": "material"
     },
     {
-      "nama_di_analisa": "Paku biasa 1\" - 2\"",
-      "nama_di_harga": "Paku uk. 3\" - 6\"",
-      "sheet_harga": "HS.BAHAN",
-      "baris_harga": 142,
-      "amount": 25000,
-      "unit_code": "kg",
-      "category": "material"
-    },
-    {
       "nama_di_analisa": "Paku biasa 1/2\" - 1\"",
       "nama_di_harga": "Paku 1/2\" - 1\"",
       "sheet_harga": "HS.BAHAN",
@@ -8656,15 +8531,6 @@
     },
     {
       "nama_di_analisa": "Paku biasa 10 cm",
-      "nama_di_harga": "Paku uk. 2\" - 5\"",
-      "sheet_harga": "HS.BAHAN",
-      "baris_harga": 141,
-      "amount": 25000,
-      "unit_code": "kg",
-      "category": "material"
-    },
-    {
-      "nama_di_analisa": "Paku biasa 2\" - 5\"",
       "nama_di_harga": "Paku uk. 2\" - 5\"",
       "sheet_harga": "HS.BAHAN",
       "baris_harga": 141,
@@ -8723,15 +8589,6 @@
       "sheet_harga": "HS.BAHAN",
       "baris_harga": 145,
       "amount": 24000,
-      "unit_code": "kg",
-      "category": "material"
-    },
-    {
-      "nama_di_analisa": "Paku Skrup",
-      "nama_di_harga": "Paku sekrup",
-      "sheet_harga": "HS.BAHAN",
-      "baris_harga": 150,
-      "amount": 23000,
       "unit_code": "kg",
       "category": "material"
     },
@@ -8949,33 +8806,6 @@
       "baris_harga": 515,
       "amount": 3500,
       "unit_code": "m1",
-      "category": "material"
-    },
-    {
-      "nama_di_analisa": "Pipa Galvanis",
-      "nama_di_harga": "Pipa Galvanis Medium A.SII Ø 3\"",
-      "sheet_harga": "HS.BAHAN",
-      "baris_harga": 254,
-      "amount": 329166,
-      "unit_code": "m1",
-      "category": "material"
-    },
-    {
-      "nama_di_analisa": "Pipa PVC",
-      "nama_di_harga": "Pipa PVC AW Ø 6\"",
-      "sheet_harga": "HS.BAHAN",
-      "baris_harga": 242,
-      "amount": 127100,
-      "unit_code": "m1",
-      "category": "material"
-    },
-    {
-      "nama_di_analisa": "Plamir",
-      "nama_di_harga": "Plamuur Tembok",
-      "sheet_harga": "HS.BAHAN",
-      "baris_harga": 659,
-      "amount": 20500,
-      "unit_code": "kg",
       "category": "material"
     },
     {
@@ -9636,15 +9466,6 @@
       "category": "material"
     },
     {
-      "nama_di_analisa": "Tk. Besi",
-      "nama_di_harga": "Tukang Kayu",
-      "sheet_harga": "HS.UPAH",
-      "baris_harga": 14,
-      "amount": 137500,
-      "unit_code": "OH",
-      "category": "labor"
-    },
-    {
       "nama_di_analisa": "Tk. Besi Profil",
       "nama_di_harga": "Tukang Besi",
       "sheet_harga": "HS.UPAH",
@@ -9816,15 +9637,6 @@
       "category": "material"
     },
     {
-      "nama_di_analisa": "Ubin Keramik, uk. 30 x 30 cm",
-      "nama_di_harga": "Keramik 30 x 30 KW 1 DN Warna/Corak/Anti Slip",
-      "sheet_harga": "HS.BAHAN",
-      "baris_harga": 630,
-      "amount": 70000,
-      "unit_code": "dus",
-      "category": "material"
-    },
-    {
       "nama_di_analisa": "Urinoir Ex - Toto",
       "nama_di_harga": "Urinoar Lengkap Warna Standard Ex-TOTO",
       "sheet_harga": "HS.BAHAN",
@@ -9922,6 +9734,433 @@
       "amount": 69000,
       "unit_code": "kg",
       "category": "material"
+    }
+  ],
+  "mapping_conflicts": [
+    {
+      "nama_di_analisa": "Paku biasa 2\" - 5\"",
+      "kandidat": [
+        {
+          "ref": "HS.BAHAN!141",
+          "nama_di_harga": "Paku uk. 2\" - 5\"",
+          "amount": 25000
+        },
+        {
+          "ref": "HS.BAHAN!140",
+          "nama_di_harga": "Paku 1/2\" - 1\"",
+          "amount": 25000
+        }
+      ]
+    },
+    {
+      "nama_di_analisa": "Kepala Tukang Kayu",
+      "kandidat": [
+        {
+          "ref": "HS.UPAH!15",
+          "nama_di_harga": "Kepala Tukang Kayu",
+          "amount": 159500
+        },
+        {
+          "ref": "HS.UPAH!17",
+          "nama_di_harga": "Kepala Tukang Besi",
+          "amount": 165000
+        }
+      ]
+    },
+    {
+      "nama_di_analisa": "Kayu Kamper, Papan",
+      "kandidat": [
+        {
+          "ref": "HS.BAHAN!546",
+          "nama_di_harga": "Kayu Papan Kamper",
+          "amount": 11000000
+        },
+        {
+          "ref": "HS.BAHAN!552",
+          "nama_di_harga": "Kayu Balok Kamper",
+          "amount": 9700000
+        },
+        {
+          "ref": "HS.BAHAN!553",
+          "nama_di_harga": "Kayu Balok Kruing",
+          "amount": 7000000
+        }
+      ]
+    },
+    {
+      "nama_di_analisa": "Kayu Lokal Kls II, Papan",
+      "kandidat": [
+        {
+          "ref": "HS.BAHAN!549",
+          "nama_di_harga": "Kayu Papan Lokal Kls. II",
+          "amount": 3500000
+        },
+        {
+          "ref": "HS.BAHAN!544",
+          "nama_di_harga": "Bambu",
+          "amount": 20000
+        }
+      ]
+    },
+    {
+      "nama_di_analisa": "Paku biasa 1\" - 2\"",
+      "kandidat": [
+        {
+          "ref": "HS.BAHAN!140",
+          "nama_di_harga": "Paku 1/2\" - 1\"",
+          "amount": 25000
+        },
+        {
+          "ref": "HS.BAHAN!142",
+          "nama_di_harga": "Paku uk. 3\" - 6\"",
+          "amount": 25000
+        }
+      ]
+    },
+    {
+      "nama_di_analisa": "Multipleks, t = 9 mm",
+      "kandidat": [
+        {
+          "ref": "HS.BAHAN!582",
+          "nama_di_harga": "Multipleks 9 mm 120 x 240",
+          "amount": 155000
+        },
+        {
+          "ref": "HS.BAHAN!605",
+          "nama_di_harga": "List Gypsuum 10 cm",
+          "amount": 16000
+        }
+      ]
+    },
+    {
+      "nama_di_analisa": "Paku Skrup",
+      "kandidat": [
+        {
+          "ref": "HS.BAHAN!150",
+          "nama_di_harga": "Paku sekrup",
+          "amount": 23000
+        },
+        {
+          "ref": "HS.BAHAN!148",
+          "nama_di_harga": "Paku gipsump ( 20.00 m2 / kg )",
+          "amount": 23000
+        }
+      ]
+    },
+    {
+      "nama_di_analisa": "Kaso-Kaso ( 5/7 cm )",
+      "kandidat": [
+        {
+          "ref": "HS.BAHAN!555",
+          "nama_di_harga": "Kayu Balok Lokal Kls. II",
+          "amount": 3000000
+        },
+        {
+          "ref": "HS.BAHAN!552",
+          "nama_di_harga": "Kayu Balok Kamper",
+          "amount": 9700000
+        },
+        {
+          "ref": "HS.BAHAN!554",
+          "nama_di_harga": "Kayu Balok Borneo",
+          "amount": 6000000
+        },
+        {
+          "ref": "HS.BAHAN!551",
+          "nama_di_harga": "Kayu Balok Jati",
+          "amount": 16000000
+        }
+      ]
+    },
+    {
+      "nama_di_analisa": "Asbes Gelombang",
+      "kandidat": [
+        {
+          "ref": "HS.BAHAN!180",
+          "nama_di_harga": "Asbes Gelombang 5 mm 80 x 180",
+          "amount": 50000
+        },
+        {
+          "ref": "HS.BAHAN!181",
+          "nama_di_harga": "Asbes Gelombang 6 mm 80 x 180",
+          "amount": 60000
+        },
+        {
+          "ref": "HS.BAHAN!194",
+          "nama_di_harga": "Genteng Morando Glasur 18 bh/m2",
+          "amount": 8000
+        }
+      ]
+    },
+    {
+      "nama_di_analisa": "Paku 2\" - 5\"",
+      "kandidat": [
+        {
+          "ref": "HS.BAHAN!140",
+          "nama_di_harga": "Paku 1/2\" - 1\"",
+          "amount": 25000
+        },
+        {
+          "ref": "HS.BAHAN!141",
+          "nama_di_harga": "Paku uk. 2\" - 5\"",
+          "amount": 25000
+        }
+      ]
+    },
+    {
+      "nama_di_analisa": "List Gypsum",
+      "kandidat": [
+        {
+          "ref": "HS.BAHAN!603",
+          "nama_di_harga": "List Gypsuum 6 cm",
+          "amount": 11400
+        },
+        {
+          "ref": "HS.BAHAN!604",
+          "nama_di_harga": "List Gypsuum 7 cm",
+          "amount": 14000
+        },
+        {
+          "ref": "HS.BAHAN!605",
+          "nama_di_harga": "List Gypsuum 10 cm",
+          "amount": 16000
+        },
+        {
+          "ref": "HS.BAHAN!606",
+          "nama_di_harga": "List Gypsuum 20 cm",
+          "amount": 16500
+        }
+      ]
+    },
+    {
+      "nama_di_analisa": "Pipa Galvanis",
+      "kandidat": [
+        {
+          "ref": "HS.BAHAN!249",
+          "nama_di_harga": "Pipa Galvanis Medium A.SII Ø 1/2\"",
+          "amount": 37500
+        },
+        {
+          "ref": "HS.BAHAN!250",
+          "nama_di_harga": "Pipa Galvanis Medium A.SII Ø 3/4\"",
+          "amount": 49666
+        },
+        {
+          "ref": "HS.BAHAN!251",
+          "nama_di_harga": "Pipa Galvanis Medium A.SII Ø 1\"",
+          "amount": 73166
+        },
+        {
+          "ref": "HS.BAHAN!252",
+          "nama_di_harga": "Pipa Galvanis Medium A.SII Ø 1 1/2\"",
+          "amount": 118833
+        },
+        {
+          "ref": "HS.BAHAN!253",
+          "nama_di_harga": "Pipa Galvanis Medium A.SII Ø 2\"",
+          "amount": 158500
+        },
+        {
+          "ref": "HS.BAHAN!254",
+          "nama_di_harga": "Pipa Galvanis Medium A.SII Ø 3\"",
+          "amount": 329166
+        }
+      ]
+    },
+    {
+      "nama_di_analisa": "Pipa PVC",
+      "kandidat": [
+        {
+          "ref": "HS.BAHAN!235",
+          "nama_di_harga": "Pipa PVC AW Ø 1/2\"",
+          "amount": 4000
+        },
+        {
+          "ref": "HS.BAHAN!236",
+          "nama_di_harga": "Pipa PVC AW Ø 3/4\"",
+          "amount": 5300
+        },
+        {
+          "ref": "HS.BAHAN!237",
+          "nama_di_harga": "Pipa PVC AW Ø 1\"",
+          "amount": 8000
+        },
+        {
+          "ref": "HS.BAHAN!238",
+          "nama_di_harga": "Pipa PVC AW Ø 1 1/2\"",
+          "amount": 13600
+        },
+        {
+          "ref": "HS.BAHAN!239",
+          "nama_di_harga": "Pipa PVC AW Ø 2\"",
+          "amount": 17500
+        },
+        {
+          "ref": "HS.BAHAN!240",
+          "nama_di_harga": "Pipa PVC AW Ø 3\"",
+          "amount": 35500
+        },
+        {
+          "ref": "HS.BAHAN!241",
+          "nama_di_harga": "Pipa PVC AW Ø 4\"",
+          "amount": 57300
+        },
+        {
+          "ref": "HS.BAHAN!242",
+          "nama_di_harga": "Pipa PVC AW Ø 6\"",
+          "amount": 127100
+        }
+      ]
+    },
+    {
+      "nama_di_analisa": "Kaca",
+      "kandidat": [
+        {
+          "ref": "HS.BAHAN!164",
+          "nama_di_harga": "Kaca 3 mm",
+          "amount": 85000
+        },
+        {
+          "ref": "HS.BAHAN!166",
+          "nama_di_harga": "Kaca Es 3 mm",
+          "amount": 90000
+        },
+        {
+          "ref": "HS.BAHAN!167",
+          "nama_di_harga": "Kaca Es 5 mm",
+          "amount": 125000
+        },
+        {
+          "ref": "HS.BAHAN!168",
+          "nama_di_harga": "Kaca Rayband 5 mm ( ASAHI )",
+          "amount": 130000
+        }
+      ]
+    },
+    {
+      "nama_di_analisa": "Ubin Keramik, uk. 30 x 30 cm",
+      "kandidat": [
+        {
+          "ref": "HS.BAHAN!629",
+          "nama_di_harga": "Keramik 30 x 30 KW I DN Putih Polos",
+          "amount": 55000
+        },
+        {
+          "ref": "HS.BAHAN!630",
+          "nama_di_harga": "Keramik 30 x 30 KW 1 DN Warna/Corak/Anti Slip",
+          "amount": 70000
+        }
+      ]
+    },
+    {
+      "nama_di_analisa": "Kanstin",
+      "kandidat": [
+        {
+          "ref": "HS.BAHAN!654",
+          "nama_di_harga": "Kaansteen uk.60x15x30",
+          "amount": 56500
+        },
+        {
+          "ref": "HS.BAHAN!653",
+          "nama_di_harga": "Kaansteen uk.60x15x24",
+          "amount": 42000
+        },
+        {
+          "ref": "HS.BAHAN!652",
+          "nama_di_harga": "Kaansteen uk.60x10/16x40",
+          "amount": 56750
+        },
+        {
+          "ref": "HS.BAHAN!655",
+          "nama_di_harga": "Kaansteen Saluran uk.60x15x30",
+          "amount": 54000
+        },
+        {
+          "ref": "HS.BAHAN!656",
+          "nama_di_harga": "Kaansteen Saluran uk.60x10/16x40 cm",
+          "amount": 76000
+        }
+      ]
+    },
+    {
+      "nama_di_analisa": "Plamir",
+      "kandidat": [
+        {
+          "ref": "HS.BAHAN!685",
+          "nama_di_harga": "Dempul Kayu Cap Kucing",
+          "amount": 32500
+        },
+        {
+          "ref": "HS.BAHAN!659",
+          "nama_di_harga": "Plamuur Tembok",
+          "amount": 20500
+        }
+      ]
+    },
+    {
+      "nama_di_analisa": "Cat Dasar",
+      "kandidat": [
+        {
+          "ref": "HS.BAHAN!667",
+          "nama_di_harga": "Cat Dasar Alkali",
+          "amount": 31200
+        },
+        {
+          "ref": "HS.BAHAN!666",
+          "nama_di_harga": "Cat Dasar Tembok indo.9000 sealer water base",
+          "amount": 27500
+        }
+      ]
+    },
+    {
+      "nama_di_analisa": "Kepala Tukang",
+      "kandidat": [
+        {
+          "ref": "HS.UPAH!13",
+          "nama_di_harga": "Kepala Tukang Batu / Tembok",
+          "amount": 159500
+        },
+        {
+          "ref": "HS.UPAH!17",
+          "nama_di_harga": "Kepala Tukang Besi",
+          "amount": 165000
+        }
+      ]
+    },
+    {
+      "nama_di_analisa": "Tk. Besi",
+      "kandidat": [
+        {
+          "ref": "HS.UPAH!16",
+          "nama_di_harga": "Tukang Besi",
+          "amount": 132000
+        },
+        {
+          "ref": "HS.UPAH!14",
+          "nama_di_harga": "Tukang Kayu",
+          "amount": 137500
+        }
+      ]
+    },
+    {
+      "nama_di_analisa": "Down Light",
+      "kandidat": [
+        {
+          "ref": "HS.BAHAN!483",
+          "nama_di_harga": "Down Light FBS 014 New Extra 4\" silver",
+          "amount": 35000
+        },
+        {
+          "ref": "HS.BAHAN!484",
+          "nama_di_harga": "Down Light FBS 014 New Extra 4\" White",
+          "amount": 31000
+        },
+        {
+          "ref": "HS.BAHAN!485",
+          "nama_di_harga": "Down Light FBS 014 New Extra 5\" silver",
+          "amount": 48000
+        }
+      ]
     }
   ],
   "skipped": [
