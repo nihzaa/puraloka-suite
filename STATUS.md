@@ -332,7 +332,29 @@ per-langkah, verified 2026-07-26/28:**
   58 profil ter-seed dari DAFTAR BESI verbatim, `material_pack`). Konstanta besi
   0,006165 diverifikasi = turunan fisika (ρ7850×π/4÷1e6) DAN cocok tabel baku SNI.
   **Titik-bocor #1: sisi take-off tertutup; pagu (langkah 7) masih terbuka**
-- ❌ **7 RAP/Pagu** + sambung realisasi — **0 tabel, BELUM DIMULAI** (butuh 6 tuntas)
+- ✅ **7 RAP/Pagu SELESAI** (migrasi 138) — gerbang tripwire #1 terbuka setelah
+  multi-tenant tuntas, jadi RAP lahir **dengan tenancy sejak baris pertama, nol
+  backfill** (persis kompensasi yang dijanjikan saat CECEP ditunda).
+  4 tabel: `rap_budget` · `rap_material_line` · `rap_labor_line` · `rap_change_log`.
+  **Beda RAB dan RAP:** RAB = rencana **jual** (harga pasar + upah harian lewat
+  AHSP); RAP = rencana **belanja** (harga supplier + **borongan** mandor) —
+  selisihnya margin yang dikelola. Qty material **diturunkan** dari take-off
+  langkah 6 memakai fungsi agregasi yang **sama** (bukan salinan logika), lalu
+  **disalin** ke `qty_ahsp` — pagu adalah komitmen, dan angka yang ikut berubah
+  tiap RAB/katalog AHSP disunting bukan komitmen. Hanya kategori **bahan** yang
+  masuk pagu material; tenaga/alat lewat `rap_labor_line` (borongan) supaya upah
+  tidak dianggarkan dua kali. `pagu` kolom **GENERATED** di DB — satu-satunya
+  cara ia berbeda dari qty × harga adalah kalau diisi manual, dan itu tak bisa.
+  **Lock**: line beku (guard DB, bukan hanya endpoint) · **tak bisa dibuka lagi**
+  (kalau bisa: sunting → kunci ulang → change log kosong) · perubahan sesudahnya
+  lewat `rap_change_log` yang **wajib beralasan** dan **tak punya policy
+  UPDATE/DELETE** (jejak yang bisa disunting bukan jejak). Menolak lock saat pagu
+  masih nol seluruhnya — biasanya harga supplier belum diisi, dan lock tak bisa
+  dibatalkan. Permission `cecep:rap:view|manage` di-seed ke role yang **persis
+  sama** dengan `cecep:estimate:*` (scope tak melebar).
+  **D7 (sambung realisasi) SENGAJA belum dibangun** — desainnya sendiri menandai
+  "discovery, jangan bangun"; titik sambung `resource_id` ↔ material procurement
+  belum dipastikan.
 - 🟡 **8** AHSP Company: struktur DB ada sejak 107/117 · endpoint create-assembly
   hidup (PR #96) · **KATALOG COMPANY TER-SEED** (PR #101): 417 analisa Cibuluh +
   2.682 koefisien, verifikasi DB 100% nol-mismatch, idempoten. Paritas 87,1%
