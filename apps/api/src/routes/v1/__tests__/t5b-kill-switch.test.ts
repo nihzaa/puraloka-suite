@@ -226,3 +226,43 @@ describe('T5b — kedua lapis benar-benar berbeda, bukan satu lapis yang sama', 
     ).toBe(lewatWrapper)
   }, 60_000)
 })
+
+describe('R5 — auth_client_id() menyaring company', () => {
+  it('orang yang jadi klien di 2 perusahaan mendapat baris company AKTIF', async () => {
+    // BUG NYATA yang ditutup migrasi 133, bukan skenario hipotetis. Definisi
+    // lama (049) mengambil `clients` hanya lewat user_id — tanpa filter company
+    // dan tanpa LIMIT — sehingga memulangkan baris SEMBARANG begitu satu orang
+    // terdaftar sebagai klien di lebih dari satu perusahaan.
+    //
+    // Terukur sebelum perbaikan: fungsi memulangkan baris company B untuk user
+    // yang company aktifnya A. Fungsi ini dipakai policy portal klien, jadi
+    // akibat nyatanya adalah klien melihat proyek perusahaan yang keliru.
+    const asal = (await c.query(
+      `SELECT u.auth_id, u.id uid, c.id cid FROM clients c
+         JOIN users u ON u.id = c.user_id
+        WHERE u.auth_id IS NOT NULL AND c.company_id = $1 LIMIT 1`, [companyA]
+    )).rows[0]
+    if (!asal) return // lingkungan tanpa klien ber-auth_id
+
+    // Orang yang SAMA didaftarkan sebagai klien di tenant B.
+    await c.query(
+      `INSERT INTO clients (contact_person, phone, created_by, company_id, user_id)
+       VALUES ('[UJI-T5b] orang sama di B', '08', $1, $2, $1)`, [asal.uid, companyB]
+    )
+
+    await c.query('SAVEPOINT r5')
+    await c.query("SELECT set_config('role', 'authenticated', true)")
+    await c.query(
+      `SELECT set_config('request.jwt.claims',
+         json_build_object('sub', $1::text, 'role', 'authenticated')::text, true)`,
+      [asal.auth_id]
+    )
+    const hasil = (await c.query(`SELECT auth_client_id() v`)).rows[0].v
+    await c.query('ROLLBACK TO SAVEPOINT r5')
+
+    expect(
+      hasil,
+      'auth_client_id() memulangkan baris klien dari company lain — kebocoran lintas-tenant'
+    ).toBe(asal.cid)
+  }, 60_000)
+})

@@ -26,8 +26,84 @@ kali keadaan berubah; detail selalu di dokumen rujukan.
 
 **Program D — Multi-Tenant (AKTIF).** Tahap: T0 ADR ✅ → **T1 audit 94 tabel ✅** →
 **T2 skema inti ✅ (migration 126)** → **T3 `company_id` ✅ (migration 127)** →
-**T4 repository wrapper — FONDASI selesai, PERMUKAAN belum** → T5 RLS dual-axis → T6 numbering → T7 exit criteria L2.
-CECEP langkah 7+ dilanjutkan **setelah T7**.
+**T4 repository wrapper ✅** → **T5a/T5b RLS dual-axis ✅ (migration 131–133)** →
+**T5c DITUNDA atas rekomendasi audit — menunggu keputusan founder** → T6 numbering
+→ T7 exit criteria L2. CECEP langkah 7+ dilanjutkan **setelah T7**.
+
+---
+
+### ⏸ SATU-SATUNYA KEPUTUSAN YANG MENUNGGU FOUNDER: T5c
+
+**Pertanyaannya:** kapan API berhenti memakai `service_role` (yang mem-bypass RLS)
+dan mulai berjalan sebagai user-nya sendiri?
+
+**Rekomendasi saya: TUNDA.** Bukan karena belum siap — delapan prasyaratnya sudah
+lunas — tapi karena aritmetikanya:
+
+- **Manfaat hari ini nol.** Satu tenant, satu pemakai (founder), nol data
+  operasional. Tak ada satu pun kebocoran yang dicegah T5c hari ini yang belum
+  dicegah wrapper.
+- **Risiko hari ini nyata.** 60+ endpoint berubah perilaku serentak, dan **nol**
+  di antaranya pernah dijalankan tanpa `service_role`.
+- **Keamanan TIDAK berkurang karena ditunda.** Ini bagian yang paling mudah salah
+  dibaca: policy-nya **sudah terpasang penuh** (79 policy, migrasi 131) dan
+  **sudah terbukti menahan** — uji kill-switch menunjukkan kalau wrapper dilewati,
+  RLS menangkap kebocorannya. Yang ditunda bukan perlindungannya, melainkan
+  keputusan menjadikan RLS satu-satunya penjaga. Lapisnya ada; ia belum jadi
+  lapis terdepan.
+
+**Pemicu untuk mengeksekusi** (mana pun lebih dulu): perusahaan kedua di-onboard ·
+ada pemakai di luar founder · data operasional nyata masuk. Ketiganya juga pemicu
+rotasi kredensial yang sudah tercatat — sebaiknya satu paket "sebelum operasional".
+
+Angka lengkap, daftar jujur yang belum terbukti, dan urutan eksekusi saat waktunya
+tiba: **`.../adr/ADR-011-T5c-AUDIT-PRA-EKSEKUSI.md`**.
+
+---
+
+**T5a/T5b SELESAI (migration 131, applied ke dev 2026-07-29).** Axis COMPANY
+ditambahkan lewat **komposisi**, bukan menyunting 218 policy existing: Postgres
+meng-AND policy RESTRICTIVE dengan hasil OR seluruh PERMISSIVE, jadi satu policy
+restriktif per tabel menambah axis tenant tanpa menyentuh satu pun policy role —
+dan bisa di-rollback granular. **79 policy + 16 helper SECURITY DEFINER**,
+di-generate dari peta tenancy (yang di-generate dari skema), bukan diketik tangan.
+
+**T5b — uji kill-switch (P2) membuktikan dua lapis benar-benar independen:**
+wrapper dimatikan → RLS menahan · RLS dimatikan → predikat wrapper menahan.
+Diverifikasi **uji mutasi**: DROP policy → kebocoran benar terjadi. Tanpa itu,
+"satu lapis bekerja dan satunya menumpang" terlihat persis sama dengan "dua lapis
+bekerja" — sampai lapis itu gagal.
+
+**⚠️ TEMUAN PERFORMA yang membuat T5c mustahil sebelum diperbaiki (migration 132).**
+Baseline `EXPLAIN ANALYZE` service_role vs authenticated:
+
+| query | bypass | RLS (sebelum) | RLS (sesudah 132) |
+|---|---:|---:|---:|
+| `assembly_components` (17.853) | 2,2 ms | **3.524 ms** | **5,1 ms** |
+| `assemblies` (3.038) | 1,2 ms | 598 ms | 2,5 ms |
+
+Akarnya bukan policy T5a: `has_permission()` — meski `STABLE` — dipanggil **sekali
+per baris** selama ia berdiri sebagai ekspresi biasa; tiap panggilan menjalankan
+join 3 tabel + `auth_role()`. Pembandingnya ada di baris yang sama:
+`auth_company_id()` dibungkus `(SELECT …)`, jadi `InitPlan`, terukur 0,37 ms
+**sekali**. **173 policy di 92 tabel** ditulis ulang dengan pola yang sama,
+di-generate dari `pg_policies`. Dry-run membandingkan **368 sel** (92 tabel × 4
+peran): **seluruhnya identik** — murni performa, nol perubahan visibilitas.
+Dijaga test permanen (`rls-initplan.test.ts`) karena bentuk yang salah adalah
+bentuk yang paling natural diketik, dan CI tetap hijau saat ia muncul.
+
+**R5 DITUTUP (migration 133).** Bukan hipotetis — terbukti: fungsi lama
+memulangkan baris klien **company B** untuk user yang company aktifnya **A**.
+Behavior-preserving pada 1 tenant (nilai identik sebelum/sesudah), benar pada
+banyak tenant. Ada test regresinya.
+
+**Temuan sampingan T5a (dicatat, di luar lingkup migrasi):** 104 `scenarios` +
+413 `lessons_learned_records` — semua bernama `[TEST]` — adalah **yatim**: project
+induknya terhapus, anaknya selamat karena trigger no-delete memblokir cascade.
+Postgres sendiri menolak mem-VALIDATE ulang FK-nya. Residu dev sebelum CI dipisah;
+skrip pembersihnya sudah ada (`cleanup-cecep-residue.mjs`). Policy T5a **benar** —
+menyembunyikan baris yang pemiliknya tak ada memang perilaku yang diharapkan.
+Tabel berisi data nyata terbukti 100% sehat (`rab_items` 373/373, `invoices` 26/26).
 
 **T4 (wrapper) — status jujur per 2026-07-29:**
 ✅ **T4a fondasi**: `tenant-db.ts` (scope otomatis per kategori) · peta tenancy
@@ -71,7 +147,7 @@ lengkap hanya dengan mengetahui id-nya.
 peringatan ditambahkan. · **R5 TERVERIFIKASI NYATA**: `auth_client_id()`
 (049:23-28) memetakan user→client **tanpa saringan company**; sejak `clients`
 jadi kategori B, satu orang yang jadi klien di 2 perusahaan bikin portal klien
-menampilkan proyek perusahaan yang salah. **Wajib diperbaiki di T5.**
+menampilkan proyek perusahaan yang salah. **✅ DITUTUP migration 133 (T5).**
 
 **T3 SELESAI (migration 127, applied ke dev 2026-07-29)** — 32 tabel dapat
 `company_id`, 23.030 baris. Verifikasi: jumlah baris **tidak berubah** · nol NULL
