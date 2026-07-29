@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify'
+import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
@@ -28,6 +28,43 @@ import { getTaxRate } from '../../utils/financial-config.js'
 // `estimate_versions.status` tetap sumber kebenaran; engine hanya gerbang SIAPA
 // yang boleh menyetujui (ADR-007).
 
+/**
+ * T4g — apakah estimate_version milik company aktif?
+ *
+ * Rantainya: estimate_versions.scenario_id → scenarios.project_id → projects.
+ * Seluruh modul estimasi (16 endpoint) di-key oleh id versi/skenario/item, jadi
+ * tanpa gerbang ini tenant A bisa membaca DAN mengubah estimasi tenant B —
+ * termasuk approve, reject, dan mengubah itemnya — hanya dgn mengetahui id-nya.
+ *
+ * Satu query, di-memo per request lewat projectIds() milik wrapper.
+ */
+async function versiMilikTenant(request: FastifyRequest, versionId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('estimate_versions')
+    .select('scenario:scenarios!inner(project_id)')
+    .eq('id', versionId)
+    .maybeSingle()
+  const sc = data?.scenario as { project_id: string } | { project_id: string }[] | undefined
+  const projectId = (Array.isArray(sc) ? sc[0] : sc)?.project_id
+  if (!projectId) return false
+  return (await request.db!.projectIds()).includes(projectId)
+}
+
+/** Daftar id scenario milik tenant — dipakai menyaring query versi. */
+async function skenarioIdsTenant(request: FastifyRequest): Promise<string[]> {
+  const { data } = await supabase
+    .from('scenarios').select('id').in('project_id', await request.db!.projectIds())
+  return (data ?? []).map((r: { id: string }) => r.id)
+}
+
+/** Idem untuk scenario_id. */
+async function skenarioMilikTenant(request: FastifyRequest, scenarioId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('scenarios').select('project_id').eq('id', scenarioId).maybeSingle()
+  if (!data?.project_id) return false
+  return (await request.db!.projectIds()).includes(data.project_id)
+}
+
 export default async function estimateVersionRoutes(app: FastifyInstance) {
 
   // ── GET /rab — read-model breakdown biaya (Milestone 4, no tabel baru) ──────
@@ -38,6 +75,10 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('cecep:estimate:view')] },
     async (request, reply) => {
       const { id } = request.params
+
+      if (!(await versiMilikTenant(request, id))) {
+        return reply.status(404).send({ error: 'Estimasi tidak ditemukan' })
+      }
       const { data: v } = await supabase
         .from('estimate_versions').select('id, status, total_amount').eq('id', id).maybeSingle()
       if (!v) return reply.status(404).send({ error: 'Estimate Version tidak ditemukan' })
@@ -58,6 +99,10 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('cecep:estimate:view')] },
     async (request, reply) => {
       const { id } = request.params
+
+      if (!(await versiMilikTenant(request, id))) {
+        return reply.status(404).send({ error: 'Estimasi tidak ditemukan' })
+      }
       const { data: v } = await supabase
         .from('estimate_versions').select('id').eq('id', id).maybeSingle()
       if (!v) return reply.status(404).send({ error: 'Estimate Version tidak ditemukan' })
@@ -80,6 +125,10 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('cecep:estimate:view')] },
     async (request, reply) => {
       const { id } = request.params
+
+      if (!(await versiMilikTenant(request, id))) {
+        return reply.status(404).send({ error: 'Estimasi tidak ditemukan' })
+      }
       const periods = Math.max(1, Math.min(104, Number(request.query.periods) || 12)) // cap 2 tahun mingguan
       const { data: v } = await supabase
         .from('estimate_versions').select('id, status, total_amount').eq('id', id).maybeSingle()
@@ -97,6 +146,10 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
     '/api/v1/projects/:projectId/scenarios',
     { preHandler: [authenticate, requirePermission('cecep:estimate:view')] },
     async (request, reply) => {
+      // T4g: gerbang proyek — skenario+versi tenant lain tak boleh terbaca.
+      if (!(await request.db!.projectIds()).includes(request.params.projectId)) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
       const { data, error } = await supabase
         .from('scenarios')
         .select(`id, name, purpose, status, created_at,
@@ -139,7 +192,8 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('cecep:estimate:manage')] },
     async (request, reply) => {
       const { data: sc } = await supabase
-        .from('scenarios').select('id, status').eq('id', request.params.scenarioId).maybeSingle()
+        .from('scenarios').select('id, status').eq('id', request.params.scenarioId)
+        .in('project_id', await request.db!.projectIds()).maybeSingle()
       if (!sc) return reply.status(404).send({ error: 'Skenario tidak ditemukan' })
       if (sc.status === 'archived') {
         return reply.status(409).send({ error: 'Skenario sudah diarsip — buat skenario baru' })
@@ -244,7 +298,8 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('cecep:estimate:view')] },
     async (request, reply) => {
       const { data: v } = await supabase
-        .from('estimate_versions').select('id').eq('id', request.params.id).maybeSingle()
+        .from('estimate_versions').select('id').eq('id', request.params.id)
+        .in('scenario_id', await skenarioIdsTenant(request)).maybeSingle()
       if (!v) return reply.status(404).send({ error: 'Estimate Version tidak ditemukan' })
 
       const { data: items, error } = await supabase
@@ -294,7 +349,8 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('cecep:takeoff:view')] },
     async (request, reply) => {
       const { data: v } = await supabase
-        .from('estimate_versions').select('id').eq('id', request.params.id).maybeSingle()
+        .from('estimate_versions').select('id').eq('id', request.params.id)
+        .in('scenario_id', await skenarioIdsTenant(request)).maybeSingle()
       if (!v) return reply.status(404).send({ error: 'Estimate Version tidak ditemukan' })
 
       const { data: items } = await supabase
@@ -343,7 +399,8 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
       }
 
       const { data: v } = await supabase
-        .from('estimate_versions').select('id, status').eq('id', request.params.id).maybeSingle()
+        .from('estimate_versions').select('id, status').eq('id', request.params.id)
+        .in('scenario_id', await skenarioIdsTenant(request)).maybeSingle()
       if (!v) return reply.status(404).send({ error: 'Estimate Version tidak ditemukan' })
       if (v.status !== 'draft') {
         return reply.status(409).send({ error: 'BBS hanya bisa diubah saat Estimate Version draft' })
@@ -402,6 +459,10 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('cecep:estimate:manage')] },
     async (request, reply) => {
       const { id } = request.params
+
+      if (!(await versiMilikTenant(request, id))) {
+        return reply.status(404).send({ error: 'Estimasi tidak ditemukan' })
+      }
       const b = request.body ?? {}
       const itemType = b.item_type ?? 'assembly'
       if (!['assembly', 'lumpsum'].includes(itemType)) {
@@ -583,6 +644,10 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, requirePermission('cecep:estimate:manage')] },
     async (request, reply) => {
       const { id } = request.params
+
+      if (!(await versiMilikTenant(request, id))) {
+        return reply.status(404).send({ error: 'Estimasi tidak ditemukan' })
+      }
       const { data: v } = await supabase
         .from('estimate_versions').select('id, status').eq('id', id).maybeSingle()
       if (!v) return reply.status(404).send({ error: 'Estimate Version tidak ditemukan' })
@@ -621,6 +686,13 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
         return reply.status(500).send({ error: 'Gagal memeriksa konfigurasi approval' })
       }
       if (!coarse.ok) return reply.status(403).send({ error: 'Akses ditolak' })
+
+      // T4g: gerbang tenant SETELAH gerbang izin — urutan 403-sebelum-404
+      // yang sudah ada sengaja dipertahankan (Phase 1). Kalau dibalik,
+      // user tanpa izin dapat 404 dan kehilangan pesan 'akses ditolak'.
+      if (!(await versiMilikTenant(request, id))) {
+        return reply.status(404).send({ error: 'Estimasi tidak ditemukan' })
+      }
 
       const { data: v } = await supabase
         .from('estimate_versions').select('id, status, total_amount').eq('id', id).maybeSingle()
@@ -683,6 +755,7 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
     { preHandler: [authenticate] },
     async (request, reply) => {
       const { id } = request.params
+
       const user = request.currentUser!
 
       const coarse = await canParticipateInChain(request, 'estimate_version')
@@ -691,6 +764,12 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
         return reply.status(500).send({ error: 'Gagal memeriksa konfigurasi approval' })
       }
       if (!coarse.ok) return reply.status(403).send({ error: 'Akses ditolak' })
+
+      // T4g: gerbang tenant SETELAH gerbang izin — urutan 403-sebelum-404 yang
+      // sudah ada sengaja dipertahankan (Phase 1).
+      if (!(await versiMilikTenant(request, id))) {
+        return reply.status(404).send({ error: 'Estimasi tidak ditemukan' })
+      }
 
       const { data: v } = await supabase
         .from('estimate_versions').select('id, status').eq('id', id).maybeSingle()
