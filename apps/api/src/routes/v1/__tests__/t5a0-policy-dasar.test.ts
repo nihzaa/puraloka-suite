@@ -39,20 +39,49 @@ describe('T5a-0 — tak boleh ada tabel RLS-enabled tanpa policy', () => {
     ).toEqual([])
   }, 30_000)
 
-  it('nol policy permisif tanpa syarat (USING true FOR ALL)', async () => {
-    // Policy `FOR ALL USING (true)` menelan semua policy sah di tabel yang sama
-    // karena permissive di-OR. Satu yang lolos = seluruh axis role tabel itu
-    // tak berarti apa-apa (kasus nyata: "Allow all access on users", dibuang
+  it('nol policy permisif tanpa syarat (USING true) pada tabel ber-tenant', async () => {
+    // Policy `USING (true)` menelan semua policy sah di tabel yang sama karena
+    // permissive di-OR. Satu yang lolos = seluruh axis role tabel itu tak
+    // berarti apa-apa (kasus nyata: "Allow all access on users", dibuang
     // migration 129).
+    //
+    // Versi pertama test ini hanya memeriksa `cmd='ALL'` — dan karena itu
+    // MELEWATKAN tiga policy `USING(true)` ber-`cmd='SELECT'` yang ada di dev
+    // (materials, material_categories, expense_category_templates). Batasan
+    // `cmd='ALL'` dibuang: baca-semua-tanpa-syarat sama berbahayanya dengan
+    // tulis-semua-tanpa-syarat kalau tabelnya memang milik tenant.
+    //
+    // Yang TIDAK dianggap pelanggaran: tabel kategori A — kosakata bersama yang
+    // memang tak punya `company_id` sama sekali (mis. material_categories:
+    // 10 baris "Beton & Semen", "Besi & Baja"). Di sana `USING(true)` adalah
+    // pernyataan yang benar, bukan kelalaian. Pembedanya bukan selera:
+    // ada-tidaknya kolom `company_id` di tabel itu.
     const { rows } = await c.query(`
-      SELECT tablename, policyname FROM pg_policies
-       WHERE schemaname = 'public' AND qual = 'true' AND cmd = 'ALL'
-       ORDER BY tablename`)
+      SELECT p.tablename, p.policyname FROM pg_policies p
+       WHERE p.schemaname = 'public' AND p.qual = 'true'
+         AND EXISTS (
+           SELECT 1 FROM information_schema.columns col
+            WHERE col.table_schema = 'public' AND col.table_name = p.tablename
+              AND col.column_name = 'company_id')
+       ORDER BY p.tablename`)
+
+    // Tabel ber-`company_id` yang punya policy USING(true) hanya aman kalau ada
+    // policy RESTRICTIVE yang mempersempitnya kembali — itulah mekanisme T5a.
+    // Jadi yang dilaporkan hanya yang TIDAK terlindungi restrictive.
+    const pelanggar: string[] = []
+    for (const r of rows) {
+      const { rows: pel } = await c.query(
+        `SELECT 1 FROM pg_policies WHERE schemaname='public'
+          AND tablename=$1 AND permissive='RESTRICTIVE'`, [r.tablename])
+      if (pel.length === 0) pelanggar.push(`${r.tablename}.${r.policyname}`)
+    }
+
     expect(
-      rows.map((r) => `${r.tablename}.${r.policyname}`),
-      'Policy permisif tanpa syarat membatalkan seluruh policy sah di tabelnya.'
+      pelanggar,
+      'Policy permisif tanpa syarat di tabel ber-company_id TANPA policy ' +
+        'restrictive yang mempersempitnya = data terbaca lintas company.'
     ).toEqual([])
-  }, 30_000)
+  }, 60_000)
 
   it('policy T5a-0 memakai has_permission(), BUKAN literal nama role (ADR-004)', async () => {
     // ADR-004 Mandatory Rule #2: dilarang auth_role() = 'admin' / role IN (...).

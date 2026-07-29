@@ -664,15 +664,31 @@ export default async function financeRoutes(app: FastifyInstance) {
     // Basis lama (COUNT per issued_date bulan berjalan) tabrakan saat ada
     // invoice terhapus atau issued_date backdate (nomor sama → unique violation).
     const numberPrefix = `${prefix}/${year}/${month}/`
-    const { data: monthNumbers } = await supabase
-      .from('invoices')
-      .select('invoice_number')
-      .like('invoice_number', `${numberPrefix}%`)
-    const maxSeq = (monthNumbers ?? []).reduce((max, r) => {
-      const n = parseInt(String(r.invoice_number).slice(numberPrefix.length), 10)
-      return Number.isFinite(n) && n > max ? n : max
-    }, 0)
-    const seq = String(maxSeq + 1).padStart(3, '0')
+    // T6: nomor diambil dari counter transaksional per (company, jenis, periode),
+    // bukan dihitung dari baris yang ada.
+    //
+    // Basis sebelumnya — MAX segmen terakhir — punya dua cacat yang tak terlihat
+    // selama masih satu tenant:
+    //   · Query-nya memakai klien MENTAH (`supabase.from`), jadi ia memindai
+    //     invoice SELURUH company. Prefix per-company menyamarkannya, tapi
+    //     defaultnya sama ('INV') untuk company baru — jadi tenant kedua akan
+    //     melanjutkan penomoran tenant pertama.
+    //   · MAX tetap membaca baris yang ADA. Menghapus invoice terakhir membuat
+    //     nomornya lahir kembali — nomor kembar untuk dokumen yang sudah terkirim
+    //     ke klien.
+    // Counter tidak punya keduanya: ia per-company by construction, dan tak
+    // pernah mundur saat baris dihapus.
+    const { data: nomorUrut, error: nomorErr } = await supabase.rpc('next_document_number', {
+      p_company_id: request.companyId!,
+      p_doc_type:   'invoice',
+      p_period:     `${year}-${month}`,
+      p_prefix:     numberPrefix,
+    })
+    if (nomorErr) {
+      request.log.error({ err: nomorErr }, 'gagal mengambil nomor invoice')
+      return reply.status(500).send({ error: 'Gagal membuat nomor invoice' })
+    }
+    const seq = String(nomorUrut).padStart(3, '0')
     const invoiceNumber = `${numberPrefix}${seq}`
     const issuedDate = body.issued_date ?? now.toISOString().split('T')[0]
 
