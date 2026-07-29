@@ -13,6 +13,16 @@ export const api = axios.create({
 // Interceptor ini hanya sebagai fallback saat transisi (misal: user lama masih
 // punya token di localStorage setelah upgrade).
 api.interceptors.request.use((config) => {
+  // T7 — company switcher: kirim perusahaan yang dipilih user.
+  //
+  // Header ini adalah PERMINTAAN, bukan penentu. Backend (`resolveCompanyId`)
+  // memverifikasinya terhadap keanggotaan user dan membalas 403 bila bukan
+  // haknya — jadi nilai palsu di localStorage tidak membuka data perusahaan
+  // lain. Tanpa header ini, backend memakai perusahaan default user.
+  if (typeof window !== "undefined") {
+    const companyId = localStorage.getItem("puraloka_company_id");
+    if (companyId) config.headers["x-company-id"] = companyId;
+  }
   return config;
 });
 
@@ -129,6 +139,10 @@ export function logout() {
   if (typeof window !== "undefined") {
     localStorage.removeItem("puraloka_user");
     localStorage.removeItem("puraloka_permissions");
+    // T7: pilihan perusahaan ikut dibuang. Kalau tertinggal, orang berikutnya
+    // yang login di perangkat ini mengirim x-company-id milik user sebelumnya
+    // dan langsung ditolak 403 — aman, tapi ia terkunci tanpa tahu sebabnya.
+    localStorage.removeItem("puraloka_company_id");
     document.cookie = "puraloka_role=;path=/;max-age=0";
   }
 }
