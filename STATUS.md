@@ -1,6 +1,6 @@
 # STATUS — Puraloka Suite (penunjuk satu pintu)
 
-**Diperbarui:** 2026-07-28 (rev-2: multi-tenant) · File ini adalah `STATUS.md` yang diwajibkan AUTOPILOT §2
+**Diperbarui:** 2026-07-30 (rev-3: CECEP langkah 8 selesai) · File ini adalah `STATUS.md` yang diwajibkan AUTOPILOT §2
 — penunjuk TIPIS, bukan duplikasi konten. Update tanggal + baris "Fase aktif" setiap
 kali keadaan berubah; detail selalu di dokumen rujukan.
 
@@ -381,11 +381,41 @@ per-langkah, verified 2026-07-26/28:**
   **D7 (sambung realisasi) SENGAJA belum dibangun** — desainnya sendiri menandai
   "discovery, jangan bangun"; titik sambung `resource_id` ↔ material procurement
   belum dipastikan.
-- 🟡 **8** AHSP Company: struktur DB ada sejak 107/117 · endpoint create-assembly
+- ✅ **8** AHSP Company: struktur DB ada sejak 107/117 · endpoint create-assembly
   hidup (PR #96) · **KATALOG COMPANY TER-SEED** (PR #101): 420 analisa Cibuluh +
   2.698 koefisien, verifikasi DB 100% nol-mismatch, idempoten. Paritas: exact 368 /
   cacat-SUM-workbook 39 / unexplained 6 / no_hsp 7.
-  **Belum ada**: tombol Edit (correction/deviation) & Duplikat national→company di UI
+  **Duplikat national→company**: sudah ada sejak PR #101 (endpoint `/adopt` +
+  tombol "Jadikan analisa perusahaan"). **Edit (correction/deviation) — SELESAI
+  (2026-07-30):** endpoint baru `POST /cecep/assemblies/:id/edit` — dua jenis
+  sesuai §1.1–1.2 AHSP-EDITION-BUILDER-DESIGN.md: `correction` (perbaikan,
+  source+edition_id TETAP sama, label dipertahankan) vs `deviation` (cara kerja
+  sengaja beda; kalau asalnya national, OTOMATIS fork ke company — national
+  tetap murni). Baris asal TAK PERNAH di-mutate (immutability M1-M2) — hanya
+  dibaca lalu disalin ke versi baru (`version_number+1`, `edited_from` → asal).
+  Gap tersembunyi yang ikut ketahuan & ditutup: `/adopt` dan `/edit` sama-sama
+  melahirkan baris `draft`, tapi TIDAK ADA cara mengaktifkannya dari UI (picker
+  komposer hanya menampilkan `status=active`) — endpoint baru
+  `PATCH /cecep/assemblies/:id/activate` menutup ini utk kedua alur sekaligus.
+  UI: tombol "Edit (versi baru)" + badge DRAFT + tombol "Aktifkan" di setiap
+  baris KatalogTab (estimasi/page.tsx), modal pilih correction/deviation +
+  ubah koefisien opsional-parsial (pola sama `AdopsiModal`). 8 test baru
+  (869 total API, dari 861). **Diverifikasi E2E via Playwright (browser
+  sungguhan, login admin nyata)** — alur penuh login→/estimasi→Katalog→filter
+  →expand→Edit→pilih deviation→ubah koefisien→submit (201)→Aktifkan (200),
+  semua terlihat benar di screenshot: badge DRAFT muncul/hilang tepat waktu,
+  koefisien tersimpan sesuai input.
+  **BUG PRE-EXISTING ikut ketahuan & diperbaiki lewat verifikasi ini
+  (middleware.ts):** `ROLE_ALLOWED.admin` dan `.pm` **tidak menyertakan
+  `/estimasi`** sejak halaman itu dibuat (PR #90) — middleware terakhir
+  disentuh sebelum halaman ini ada (commit `1b42e96`, app-shell awal), tak
+  pernah diupdate. Akibatnya admin/pm redirect balik ke `/dashboard` setiap
+  kali mencoba buka `/estimasi` — **seluruh CECEP (langkah 1-8, 10 bulanan
+  kerja) sebenarnya TAK BISA DIAKSES dari UI sejak awal**, hanya API yang
+  pernah teruji. Ditambahkan `/estimasi` ke kedua daftar. **Tidak ada test
+  untuk middleware.ts sama sekali** (web app tak punya test runner terpasang)
+  — celah coverage terbuka, dicatat sebagai temuan, di luar scope PR ini
+  (butuh setup vitest/jest utk apps/web, pekerjaan tersendiri).
   **Koreksi bug parser (2026-07-30, migrasi 141):** `extract-ahsp-cibuluh.py`
   mensyaratkan spasi wajib antara "1" dan kode satuan (`\b` gagal di 3 baris
   workbook tanpa spasi: "1 M1BONGKARAN...", "1M3 PASANGAN BALOK GORDING
@@ -422,12 +452,12 @@ bertabrakan (parser+auditor, bukan penghasil angka) — lihat plan
 421 company (420 Cibuluh aktif+1 superseded + 1 fixture) · 2.827 resources ·
 58 profil baja.
 
-**Prioritas CECEP SETELAH multi-tenant tuntas** (bukan sekarang — lihat kotak
-perubahan arah di atas): langkah 7 (RAP/Pagu, D6) — `rap_budget` /
-`rap_material_line` / `rap_labor_line` / `rap_change_log` + kunci pagu, **lahir
-dengan `company_id` sejak baris pertama**. Lalu langkah 8 (UI builder AHSP company:
-edit + duplikat — jadi jauh lebih bermakna pasca-multi-tenant karena
-`source='company'` akhirnya punya arti "company yang mana") & 10 (layar Material/RAP).
+**Sisa build-order 10 langkah (2026-07-30):** langkah 1/3/4/5/6/7/8 ✅ SELESAI.
+Langkah 9 (dpp_factor split PPN) ⏸️ sengaja ditunda — gerbang D10, butuh
+guardrail di-run ulang di environment ber-PPN nyata + aba-aba founder eksplisit,
+bukan tugas teknis biasa. Langkah 10 sebagian: Komposer+Katalog+Harga+rekap-PPN
+sudah hidup di `/estimasi`; **layar Material/RAP terpisah belum ada** (data RAP
+migrasi 138 sudah bisa ditulis via API, hanya belum punya UI sendiri).
 
 Sisipan saat jeda gate (sesuai PETA §3, tidak menyela CECEP):
 - **#2 celah 3-way match procurement DITUTUP 2026-07-27** (invoice manual wajib

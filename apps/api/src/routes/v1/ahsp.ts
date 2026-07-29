@@ -511,6 +511,233 @@ export default async function ahspRoutes(app: FastifyInstance) {
       })
     })
 
+  // ── POST /cecep/assemblies/:id/edit — versi baru (correction | deviation) ──
+  //
+  // Menutup janji pesan error /adopt ("sunting langsung selagi berstatus
+  // draft") dan §1.1–1.2 AHSP-EDITION-BUILDER-DESIGN.md: assembly APA PUN
+  // (national maupun company, draft maupun active) bisa diberi versi baru
+  // dengan koefisien berbeda — TANPA mutate baris lama (guard
+  // fn_assembly_immutable/fn_assembly_baseline_immutable menolaknya, dan itu
+  // benar: assembly active dipakai estimate_items, is_import_baseline adalah
+  // jejak "SE bilang apa").
+  //
+  // DUA JENIS, DITENTUKAN CALLER (bukan ditebak dari isi perubahan):
+  //   - correction: impor salah baca, dibetulkan supaya COCOK sumber aslinya.
+  //     `source`+`edition_id` TETAP SAMA — label dipertahankan (tetap "SE
+  //     47/2026" atau tetap "company"). Assembly BUKAN national juga sah
+  //     dikoreksi (migrasi 141 adalah preseden manual utk kasus ini — company
+  //     Cibuluh yang salah baca parser; endpoint ini adalah jalur API-nya).
+  //   - deviation: cara kerja SENGAJA diubah beda dari sumber asal. Kalau
+  //     asalnya 'national', hasil OTOMATIS di-fork ke 'company' (national
+  //     tetap murni — deviasi tak pernah menimpa katalog bersama); kalau
+  //     asalnya sudah 'company', tetap 'company' (tak ada tempat lain untuk
+  //     di-fork). `edition_id` dipertahankan sebagai provenance INDUK bila ada.
+  //
+  // SAFETY: assembly SUMBER (yang diberi versi baru) TIDAK diubah sama sekali
+  // — hanya dibaca lalu disalin. estimate_items yang sudah memakainya tetap
+  // menunjuk versi lama (immutability M1-M2, §1.3): edit tak pernah mengubah
+  // RAB yang sudah dibuat, hanya menyediakan versi baru untuk RAB berikutnya.
+  app.post<{ Params: { id: string }
+             Body: { edit_type?: string; reason?: string; name?: string
+                     components?: { resource_code: string; coefficient: number }[] } }>(
+    '/api/v1/cecep/assemblies/:id/edit',
+    { preHandler: [authenticate, requirePermission('cecep:assembly:manage')] },
+    async (request, reply) => {
+      const b = request.body ?? {}
+
+      if (b.edit_type !== 'correction' && b.edit_type !== 'deviation') {
+        return reply.status(400).send({
+          error: "edit_type wajib 'correction' (perbaikan, tetap cocok sumber asal) " +
+                 "atau 'deviation' (cara kerja sengaja beda, fork ke company)",
+        })
+      }
+      if (!b.reason?.trim()) {
+        return reply.status(400).send({ error: 'reason wajib — alasan edit tercatat sebagai jejak audit' })
+      }
+
+      const { data: asal, error: errAsal } = await request.db!
+        .from('assemblies')
+        .select(`id, code, name, source, cost_code_id, output_unit_code, edition_id,
+                 reference_standard, waste_factor, version_number, status,
+                 components:assembly_components(coefficient, sort_order, notes,
+                   resource:resources(id, code, name, unit_code))`)
+        .eq('id', request.params.id)
+        .maybeSingle()
+      if (errAsal) return reply.status(500).send({ error: errAsal.message })
+      if (!asal) return reply.status(404).send({ error: 'Analisa tidak ditemukan' })
+
+      type KompAsal = {
+        coefficient: number; sort_order: number | null; notes: string | null
+        resource: { id: string; code: string; name: string; unit_code: string } | null
+      }
+      const kompAsal = ((asal.components ?? []) as unknown as KompAsal[]).filter((x) => x.resource)
+      if (kompAsal.length === 0) {
+        return reply.status(400).send({ error: 'Analisa asal tidak punya komponen untuk diberi versi baru' })
+      }
+
+      // Koefisien pengganti OPSIONAL+PARSIAL — pola sama dgn /adopt (L411-429):
+      // yang tak disebut memakai koefisien asli, cegah ketik-ulang massal.
+      const ganti = new Map<string, number>()
+      for (const c of b.components ?? []) {
+        if (!c.resource_code || typeof c.coefficient !== 'number' || c.coefficient <= 0) {
+          return reply.status(400).send({
+            error: `Koefisien tak valid untuk "${c.resource_code}" — wajib angka > 0`,
+          })
+        }
+        if (!kompAsal.some((k) => k.resource!.code === c.resource_code)) {
+          return reply.status(400).send({
+            error: `"${c.resource_code}" bukan komponen analisa ini. Endpoint ini membuat versi ` +
+                   'baru dari komponen yang sudah ada; untuk menambah komponen baru, buat analisa sendiri.',
+          })
+        }
+        ganti.set(c.resource_code, c.coefficient)
+      }
+      if (ganti.size === 0) {
+        return reply.status(400).send({
+          error: 'Tidak ada koefisien yang diubah — versi baru identik dengan asalnya tidak dibuat',
+        })
+      }
+
+      // deviation dari national WAJIB fork; deviation dari company tetap company.
+      // correction TIDAK PERNAH mengubah source (itulah yang membuatnya "tetap
+      // cocok sumber asal" — kalau source berubah, itu deviation, bukan correction).
+      const sourceBaru = b.edit_type === 'deviation' && asal.source === 'national' ? 'company' : asal.source
+      if (sourceBaru === 'company' && !request.companyId) {
+        return reply.status(400).send({ error: 'Company aktif tidak diketahui — tak bisa fork ke company' })
+      }
+
+      const kodeBaru = asal.code
+      const versiBaru = asal.version_number + 1
+      // assembly_identity: UNIQUE NULLS NOT DISTINCT (code, edition_id, source, version_number).
+      // Kalau deviation berpindah source (national→company), (code, edition_id, version_number)
+      // yang sama di source BEDA tak bertabrakan — tapi kalau correction (source tetap sama)
+      // dan versi ini kebetulan sudah pernah dibuat, gagal jelas, bukan diam-diam menimpa.
+      const { data: bentrok } = await request.db!
+        .from('assemblies').select('id')
+        .eq('code', kodeBaru).eq('source', sourceBaru).eq('version_number', versiBaru)
+        .maybeSingle()
+      if (bentrok) {
+        return reply.status(409).send({
+          error: `Versi ${versiBaru} untuk "${kodeBaru}" (source=${sourceBaru}) sudah ada`,
+        })
+      }
+
+      const { data: baru, error: errBuat } = await request.db!
+        .from('assemblies')
+        .insert({
+          code: kodeBaru,
+          name: b.name?.trim() || asal.name,
+          source: sourceBaru,
+          company_id: sourceBaru === 'company' ? request.companyId! : null,
+          cost_code_id: asal.cost_code_id,
+          output_unit_code: asal.output_unit_code,
+          // Provenance edisi dipertahankan sbg INDUK meski deviation fork ke
+          // company (§1.1: "edition_id tetap menunjuk edisi INDUK") — bukan
+          // diklaim sbg national baru (source sudah berubah, itu cukup).
+          edition_id: asal.edition_id,
+          reference_standard: asal.reference_standard,
+          waste_factor: asal.waste_factor,
+          version_number: versiBaru,
+          status: 'draft',
+          edited_from: asal.id,
+          edit_type: b.edit_type,
+          edit_reason: b.reason.trim(),
+          created_by: request.currentUser!.id,
+        })
+        .select('id, code, name, source, version_number, status, edit_type')
+        .single()
+
+      if (errBuat || !baru) {
+        request.log.error({ err: errBuat }, 'gagal membuat versi baru assembly')
+        return reply.status(500).send({ error: errBuat?.message ?? 'Gagal membuat versi baru' })
+      }
+
+      const { error: errKomp } = await request.db!
+        .from('assembly_components')
+        .insert(kompAsal.map((k, i) => ({
+          assembly_id: baru.id,
+          resource_id: k.resource!.id,
+          coefficient: ganti.get(k.resource!.code) ?? k.coefficient,
+          sort_order: k.sort_order ?? i,
+          notes: k.notes,
+          company_id: sourceBaru === 'company' ? request.companyId! : null,
+        })))
+
+      if (errKomp) {
+        await request.db!.from('assemblies').delete().eq('id', baru.id)
+        request.log.error({ err: errKomp }, 'gagal menyalin komponen; versi baru dibatalkan')
+        return reply.status(500).send({
+          error: 'Gagal menyalin komponen ke versi baru. Tidak ada yang dibuat.',
+        })
+      }
+
+      const diubah = kompAsal
+        .filter((k) => ganti.has(k.resource!.code) && ganti.get(k.resource!.code) !== Number(k.coefficient))
+        .map((k) => ({
+          resource_code: k.resource!.code,
+          dari: Number(k.coefficient),
+          jadi: ganti.get(k.resource!.code)!,
+        }))
+
+      void logAuditEvent(request, {
+        tableName: 'assemblies',
+        recordId: baru.id,
+        action: b.edit_type === 'correction' ? 'cecep.assembly_corrected' : 'cecep.assembly_deviated',
+        actorId: request.currentUser!.id,
+        newValues: {
+          kode: baru.code, versi_baru: versiBaru, dari_versi: asal.version_number,
+          source_asal: asal.source, source_baru: sourceBaru, koefisien_diubah: diubah,
+        },
+        reason: b.reason.trim(),
+      })
+
+      return reply.status(201).send({
+        data: baru,
+        asal: { id: asal.id, code: asal.code, version_number: asal.version_number, source: asal.source },
+        koefisien_diubah: diubah,
+      })
+    })
+
+  // ── PATCH /cecep/assemblies/:id/activate — draft → active ──────────────────
+  //
+  // Menutup gap: /adopt dan /edit SENGAJA melahirkan baris berstatus 'draft'
+  // (versi baru layak direview dulu — koefisien yang diketik/diubah manusia
+  // bisa salah ketik), tapi picker komposer (KatalogTab, estimasi/page.tsx
+  // L360) hanya menampilkan status='active'. Tanpa endpoint ini draft yang
+  // dihasilkan kedua endpoint itu tak pernah bisa dipakai dari UI.
+  //
+  // Transisi draft→active dijaga DB (fn_assembly_status_transition, 107):
+  // hanya satu arah, tak bisa mundur. Endpoint ini TIDAK menduplikasi guard
+  // itu — ia mengandalkannya (UPDATE yang melanggar aturan gagal di DB,
+  // dilaporkan sebagai 500 dengan pesan asli, bukan ditebak lolos di sini).
+  app.patch<{ Params: { id: string } }>(
+    '/api/v1/cecep/assemblies/:id/activate',
+    { preHandler: [authenticate, requirePermission('cecep:assembly:manage')] },
+    async (request, reply) => {
+      const { data: asm, error: errGet } = await request.db!
+        .from('assemblies').select('id, code, status').eq('id', request.params.id).maybeSingle()
+      if (errGet) return reply.status(500).send({ error: errGet.message })
+      if (!asm) return reply.status(404).send({ error: 'Analisa tidak ditemukan' })
+      if (asm.status !== 'draft') {
+        return reply.status(400).send({
+          error: `Analisa berstatus "${asm.status}" — hanya draft yang bisa diaktifkan`,
+        })
+      }
+
+      const { data: updated, error: errUpd } = await request.db!
+        .from('assemblies').update({ status: 'active' }).eq('id', asm.id)
+        .select('id, code, status, activated_at').single()
+      if (errUpd || !updated) {
+        return reply.status(500).send({ error: errUpd?.message ?? 'Gagal mengaktifkan analisa' })
+      }
+
+      void logAuditEvent(request, {
+        tableName: 'assemblies', recordId: asm.id, action: 'cecep.assembly_activated',
+        actorId: request.currentUser!.id, newValues: { code: asm.code, status: 'active' },
+      })
+      return reply.send({ data: updated })
+    })
+
   // ── GET /cecep/prices/missing — daftar prioritas harga yang belum diisi ────
   //
   // Kebutuhan founder: 252 resource belum berharga, dan satu resource bisa
