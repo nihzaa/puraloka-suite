@@ -547,7 +547,7 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
 
       const { data: pbe, error: pbErr } = await request.db!
         .from('price_book_entries')
-        .select('id, resource_id, amount, currency, version_number, effective_date, expired_date, location, status')
+        .select('id, resource_id, amount, currency, version_number, effective_date, expired_date, location, status, company_id')
         .in('resource_id', resourceIds)
       if (pbErr) return reply.status(500).send({ error: pbErr.message })
 
