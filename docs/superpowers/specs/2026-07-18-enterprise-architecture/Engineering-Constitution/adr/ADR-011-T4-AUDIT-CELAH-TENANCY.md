@@ -179,3 +179,80 @@ Pakai ini sebagai template, bukan menulis pola baru.
 - Tidak mencakup Storage policy (bucket) selain yang tersirat di §2.8.
 - Angka 478 adalah **baris ber-`supabase` mentah**, bukan jumlah kerentanan;
   sebagian di antaranya aman (tabel kategori A, atau sudah ada gate lain).
+
+
+---
+
+## 11. Ronde kedua — audit VERIFIKASI ULANG (2026-07-29 sore)
+
+Audit kedua dijalankan **setelah** perbaikan ronde pertama, oleh agen terpisah,
+untuk memeriksa mana yang benar-benar tertutup. Ia menemukan **pola yang saya
+lewatkan secara sistematis**, bukan sekadar sisa acak.
+
+### 11.1 Pola yang terlewat: "gerbang di GET, hilang di PATCH/DELETE"
+
+Berulang identik di **empat** modul terpisah: `milestones` · `change-orders` ·
+`estimate-versions` · `mandor`. Penyebabnya cara kerja saya sendiri: memperbaiki
+**endpoint-demi-endpoint** mengikuti daftar temuan, bukan **file-demi-file
+dengan checklist**. Endpoint baca lebih menonjol di laporan audit, jadi jalur
+tulis di file yang sama ikut terlewat.
+
+**Yang ditutup di ronde kedua (19 endpoint tulis):**
+
+| Modul | Endpoint | Kalau tidak ditutup |
+|---|---|---|
+| `mandor` | PATCH/DELETE `work-scopes/:id` | ubah/hapus pekerjaan proyek tenant lain — **nol pengecekan apa pun**, bahkan role |
+| `mandor` | PATCH `progress-payments/:id/confirm` | **uang keluar** dari pembukuan tenant lain |
+| `mandor` | PATCH `worker-kasbons/:id/status` & `/cicilan` | ubah catatan utang tukang mereka |
+| `mandor` | PATCH `assignments/:id`, DELETE `wage-reports/:id`, POST `work-scopes/:id/items` | mencemari data operasional mereka |
+| `change-orders` | PATCH `/:id/approve` | **mengubah `contract_value`** proyek tenant lain |
+| `change-orders` | GET/PUT/DELETE `/:id`, CRUD items, submit, reject | seluruh siklus CO |
+| `estimate-versions` | GET `/:id`, GET `/:id/rollup`, DELETE `items/:itemId` | baca detail+item, hapus item estimasi mereka |
+| `milestones` | PATCH/DELETE `/:milestoneId` | ubah/hapus milestone mereka |
+| `lessons-learned` | submit/approve/reject | approve memicu write-back ke katalog **bersama** |
+| `utils/approval.ts` | 4 fungsi | rantai approval dipakai bersama → tenant A **melumpuhkan** approval tenant B (fail-closed) |
+
+### 11.2 Kesalahan berulang saya: urutan 403-sebelum-404
+
+**Dua kali** saya memasang gerbang tenant SEBELUM gerbang izin, padahal kode
+yang saya sunting memuat komentar eksplisit *"Gerbang KASAR sebelum fetch
+entitas → urutan 403-sebelum-404"*. Test otorisasi menangkap keduanya.
+
+Akar penyebabnya sama: **regex bulk-edit yang hanya cocok di 1 dari 2 handler**
+(komentar di keduanya beda panjang). Pelajarannya: untuk penempatan yang
+**urutannya bermakna**, bulk-edit tidak cukup — tiap lokasi harus dilihat.
+
+### 11.3 Dua klaim audit yang SALAH (diverifikasi ke sumber)
+
+1. *"`approval_chains` tak punya `company_id`"* → **kolomnya ADA** sejak
+   migration 127. Auditor membaca migration pembuat tabel, bukan skema kini.
+2. *"`POST /finance/invoices` tak pernah memanggil gerbang"* → **sudah pakai
+   `request.db!`** sejak commit sebelumnya. Auditor membaca keadaan lama.
+
+Dicatat bukan untuk mendiskreditkan auditnya — sisanya akurat dan berharga —
+tapi sebagai aturan kerja: **temuan audit wajib diverifikasi ke sumber sebelum
+ditindaklanjuti**, sama seperti temuan sendiri.
+
+### 11.4 Ratchet mengukur apa (klarifikasi penting)
+
+Angka ratchet **tetap 478** setelah ronde kedua. Itu BUKAN berarti tak ada
+kemajuan: perbaikan ronde ini menambahkan **saringan** pada query yang sudah
+ada, bukan memindahkannya ke wrapper. **Ratchet mengukur adopsi wrapper, bukan
+cakupan gerbang.** Keduanya metrik berbeda dan tidak boleh dikira sama —
+kalau tertukar, "angka tidak turun" akan salah dibaca sebagai "tidak ada
+perbaikan".
+
+### 11.5 Yang MASIH terbuka setelah ronde kedua
+
+- **`procurement.ts`** — siklus MR/PO/GR (submit/approve/reject/cancel/confirm),
+  dashboard KPI lintas-tenant. **Belum dikerjakan.**
+- **`settings.ts` `company_profile`** — profil perusahaan (nama, alamat, **nomor
+  rekening bank**, logo, prefix invoice) dipakai bersama semua tenant; PUT satu
+  tenant menimpa yang dipakai tenant lain **termasuk di PDF invoice mereka**.
+  → butuh Dokumen Audit Pra-Eksekusi + ack founder (menyentuh data).
+- **`roles.ts` GET list & GET `/:id/permissions`** · **`auth.ts` register**
+  (`roles.name` UNIQUE global → role custom tenant lain bisa dirujuk).
+- **`notifications.ts`** cabang `approve_wage_report` di `/:id/action`, dan
+  `check-deadlines` yang membaca invoice/termin lintas tenant.
+- **`estimate-versions` GET detail** — sudah ditutup di ronde ini, tapi modul
+  CECEP lain belum diaudit ulang.
