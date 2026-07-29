@@ -32,13 +32,58 @@ beforeAll(async () => {
   c = await createRlsClient()
   await c.query('BEGIN')
 
+  // Fixture DIBUAT SENDIRI, tidak menumpang data lingkungan.
+  //
+  // Versi pertama test ini mengambil `resources`/`projects`/`estimate_versions`
+  // yang kebetulan ada — benar di dev, MERAH di CI yang databasenya di-seed
+  // berbeda (TypeError: reading 'id' of undefined). Assertion yang bergantung
+  // bentuk data lingkungan adalah test yang lulusnya kebetulan.
   userId = (await c.query(`SELECT id FROM users LIMIT 1`)).rows[0].id
-  projectId = (await c.query(`SELECT id FROM projects LIMIT 1`)).rows[0].id
-  versionId = (await c.query(`SELECT id FROM estimate_versions LIMIT 1`)).rows[0].id
-  const r = (await c.query(
+
+  const companyId = (await c.query(
+    `SELECT company_id FROM company_members WHERE user_id = $1 AND is_active LIMIT 1`,
+    [userId]
+  )).rows[0]?.company_id
+    ?? (await c.query(`SELECT id FROM companies ORDER BY created_at LIMIT 1`)).rows[0].id
+
+  const clientId = (await c.query(
+    `INSERT INTO clients (contact_person, phone, created_by, company_id)
+     VALUES ('[UJI-RAP] Klien', '08', $1, $2) RETURNING id`, [userId, companyId]
+  )).rows[0].id
+
+  projectId = (await c.query(
+    `INSERT INTO projects (client_id, pm_id, name, location, start_date, end_date,
+                           created_by, company_id)
+     VALUES ($1, $2, '[UJI-RAP] Proyek', 'Bandung', '2026-01-01', '2026-12-31', $2, $3)
+     RETURNING id`, [clientId, userId, companyId]
+  )).rows[0].id
+
+  const scenarioId = (await c.query(
+    `INSERT INTO scenarios (project_id, name, created_by)
+     VALUES ($1, '[UJI-RAP] Skenario', $2) RETURNING id`, [projectId, userId]
+  )).rows[0].id
+
+  versionId = (await c.query(
+    `INSERT INTO estimate_versions (scenario_id, version_number, status)
+     VALUES ($1, 1, 'draft') RETURNING id`, [scenarioId]
+  )).rows[0].id
+
+  // Resource: pakai yang ada bila tersedia, buat sendiri bila tidak — supaya
+  // test berjalan sama di lingkungan ber-seed maupun kosong.
+  const adaResource = (await c.query(
     `SELECT id, unit_code FROM resources WHERE unit_code IS NOT NULL LIMIT 1`)).rows[0]
-  resourceId = r.id
-  unitCode = r.unit_code
+  if (adaResource) {
+    resourceId = adaResource.id
+    unitCode = adaResource.unit_code
+  } else {
+    const unit = (await c.query(`SELECT code FROM units LIMIT 1`)).rows[0]?.code ?? 'kg'
+    resourceId = (await c.query(
+      `INSERT INTO resources (code, name, category, unit_code, created_by)
+       VALUES ('[UJI-RAP]RES', 'Material uji RAP', 'material', $1, $2) RETURNING id`,
+      [unit, userId]
+    )).rows[0].id
+    unitCode = unit
+  }
 }, 180_000)
 
 afterAll(async () => {
