@@ -92,6 +92,22 @@ peran): **seluruhnya identik** — murni performa, nol perubahan visibilitas.
 Dijaga test permanen (`rls-initplan.test.ts`) karena bentuk yang salah adalah
 bentuk yang paling natural diketik, dan CI tetap hijau saat ia muncul.
 
+**⚠️ KEBOCORAN NYATA yang ditemukan CI, bukan review (migration 134).** Di
+database yang dibangun **bersih dari migrasi** — yaitu produksi masa depan — 8
+tabel punya policy lengkap (dari 130 & 131) tetapi `relrowsecurity = false`.
+**Policy di tabel tanpa RLS tidak dievaluasi sama sekali**: ia tetap muncul di
+`pg_policies`, tetap terbaca benar saat review, dan menjaga persis nol. Di CI,
+`rab_items` milik tenant lain benar-benar terbaca.
+
+Tak ketahuan di dev karena dev punya `rls_auto_enable()` — fungsi yang **hanya
+ada di dev** (terkonfirmasi schema-diff) — sehingga tabel itu sudah ter-RLS lewat
+jalur di luar migrasi. Migrasi 130 karena itu mengasumsikan RLS sudah menyala:
+benar di dev, salah di mana pun selain dev. **Inilah alasan CI dijalankan
+terhadap database bersih** — selisih antara "berlaku di dev" dan "berlaku dari
+migrasi" tak bisa dilihat dari dev. Diverifikasi dengan mereproduksi kondisi CI
+di dev: RLS dimatikan → bocor; 134 dijalankan → tertutup. Migrasi memverifikasi
+dua arah untuk SELURUH tabel, plus test permanen.
+
 **R5 DITUTUP (migration 133).** Bukan hipotetis — terbukti: fungsi lama
 memulangkan baris klien **company B** untuk user yang company aktifnya **A**.
 Behavior-preserving pada 1 tenant (nilai identik sebelum/sesudah), benar pada
