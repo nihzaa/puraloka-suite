@@ -121,3 +121,137 @@ export default async function priceBookRoutes(app: FastifyInstance) {
       return reply.send({ ok: true, status: target })
     })
 }
+
+// ============================================================
+// HARGA KHUSUS PER PROYEK (migrasi 140).
+//
+// Kebutuhan nyata: "cor lantai di acuan Rp 6,7 jt, tapi untuk proyek INI pakai
+// Rp 5 jt — harga acuannya harus TETAP." Dan dalam periode berlaku yang sama,
+// tiap proyek boleh memakai harga berbeda.
+//
+// Sumbu waktu (effective/expired) dan lokasi tidak bisa menjawab itu: keduanya
+// berlaku lintas proyek. Karena itu override hidup di tabelnya sendiri dan
+// dievaluasi LEBIH DULU dari price book — yang tak pernah tersentuh.
+// ============================================================
+export async function projectPriceOverrideRoutes(app: FastifyInstance) {
+
+  // ── GET /projects/:projectId/price-overrides ───────────────────────────────
+  app.get<{ Params: { projectId: string } }>(
+    '/api/v1/projects/:projectId/price-overrides',
+    { preHandler: [authenticate, requirePermission('cecep:price:view')] },
+    async (request, reply) => {
+      const { projectId } = request.params
+      if (!(await request.db!.projectIds()).includes(projectId)) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
+
+      const { data, error } = await request.db!
+        .viaProject('project_price_override', projectId)
+        .select(`id, resource_id, amount, currency, effective_date, expired_date,
+                 reason, notes, created_at, resource:resources(code, name, unit_code, category)`)
+        .order('created_at', { ascending: false })
+
+      if (error) return reply.status(500).send({ error: error.message })
+      return reply.send({ data: data ?? [] })
+    })
+
+  // ── POST /projects/:projectId/price-overrides ──────────────────────────────
+  app.post<{ Params: { projectId: string } }>(
+    '/api/v1/projects/:projectId/price-overrides',
+    { preHandler: [authenticate, requirePermission('cecep:price:manage')] },
+    async (request, reply) => {
+      const { projectId } = request.params
+      if (!(await request.db!.projectIds()).includes(projectId)) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
+
+      const b = request.body as {
+        resource_id?: string; amount?: number; reason?: string
+        effective_date?: string | null; expired_date?: string | null; notes?: string
+      }
+      if (!b.resource_id) return reply.status(400).send({ error: 'resource_id wajib diisi' })
+      if (typeof b.amount !== 'number' || b.amount < 0) {
+        return reply.status(400).send({ error: 'amount wajib angka >= 0' })
+      }
+      // Alasan WAJIB — harga yang menyimpang dari acuan tanpa alasan tertulis
+      // adalah persis yang ditanyakan belakangan dan tak terjawab.
+      if (!b.reason?.trim()) {
+        return reply.status(400).send({
+          error: 'Alasan wajib diisi — menjelaskan kenapa proyek ini memakai harga berbeda',
+        })
+      }
+
+      const { data, error } = await request.db!
+        .viaProject('project_price_override', projectId)
+        .insert({
+          project_id: projectId,
+          resource_id: b.resource_id,
+          amount: b.amount,
+          effective_date: b.effective_date ?? null,
+          expired_date: b.expired_date ?? null,
+          reason: b.reason.trim(),
+          notes: b.notes?.trim() || null,
+          created_by: request.currentUser!.id,
+          updated_by: request.currentUser!.id,
+        })
+        .select('id, resource_id, amount, effective_date, expired_date, reason')
+        .single()
+
+      if (error) {
+        if (/ppo_unik|duplicate/i.test(error.message)) {
+          return reply.status(409).send({
+            error: 'Sudah ada harga khusus untuk material ini pada tanggal berlaku yang sama',
+          })
+        }
+        return reply.status(500).send({ error: error.message })
+      }
+
+      await logAuditEvent(request, {
+        tableName: 'project_price_override',
+        recordId: data.id,
+        action: 'cecep.price_override_set',
+        actorId: request.currentUser!.id,
+        newValues: { resource_id: b.resource_id, amount: b.amount, project_id: projectId },
+        reason: b.reason.trim(),
+      })
+
+      return reply.status(201).send({ data })
+    })
+
+  // ── DELETE /price-overrides/:id — kembali ke harga acuan ───────────────────
+  app.delete<{ Params: { id: string } }>(
+    '/api/v1/price-overrides/:id',
+    { preHandler: [authenticate, requirePermission('cecep:price:manage')] },
+    async (request, reply) => {
+      const proyekTenant = await request.db!.projectIds()
+      if (proyekTenant.length === 0) {
+        return reply.status(404).send({ error: 'Harga khusus tidak ditemukan' })
+      }
+
+      // `.unsafe()`: dicari HANYA lewat id-nya, proyeknya belum diketahui, jadi
+      // `.viaProject()` yang mensyaratkan project_id tak bisa dipakai.
+      // Lingkupnya dijaga `.in('project_id', proyekTenant)`.
+      const { data, error } = await request.db!
+        .unsafe('project_price_override',
+                'lookup by id; proyek belum diketahui — di-scope .in(project_id, proyekTenant)')
+        .delete()
+        .eq('id', request.params.id)
+        .in('project_id', proyekTenant)
+        .select('id, project_id, resource_id, amount')
+        .maybeSingle()
+
+      if (error) return reply.status(500).send({ error: error.message })
+      if (!data) return reply.status(404).send({ error: 'Harga khusus tidak ditemukan' })
+
+      await logAuditEvent(request, {
+        tableName: 'project_price_override',
+        recordId: data.id,
+        action: 'cecep.price_override_removed',
+        actorId: request.currentUser!.id,
+        oldValues: { resource_id: data.resource_id, amount: data.amount },
+        reason: 'Kembali memakai harga acuan',
+      })
+
+      return reply.send({ ok: true })
+    })
+}
