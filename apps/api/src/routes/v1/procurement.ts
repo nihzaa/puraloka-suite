@@ -257,6 +257,11 @@ export default async function procurementRoutes(app: FastifyInstance) {
       project_id: string; needed_date?: string; notes?: string
       items: Array<{ material_id: string; qty_requested: number; unit: string; unit_price_est?: number; notes?: string }>
     }
+    // T4i: project_id dari BODY — tanpa validasi, tenant A membuat MR yang
+    // menempel ke proyek tenant B.
+    if (body.project_id && (await proyekBolehDibaca(request, body.project_id)) === null) {
+      return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    }
     if (!body.project_id || !body.items?.length) {
       return reply.status(400).send({ error: 'project_id dan items wajib diisi' })
     }
@@ -295,11 +300,17 @@ export default async function procurementRoutes(app: FastifyInstance) {
     preHandler: [authenticate, requirePermission('procurement:mr:manage')]
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
-    const { data: mr } = await supabase.from('material_requests').select('id, status, mr_number, project:projects(name)').eq('id', id).single()
+    // T4i: MR kategori C via project_id — tanpa saringan ini, tenant A men-submit
+    // permintaan material tenant B (dan memicu notifikasi ke approver mereka).
+    const idProyekMr = await request.db!.projectIds()
+    const { data: mr } = await supabase.from('material_requests')
+      .select('id, status, mr_number, project:projects(name)')
+      .eq('id', id).in('project_id', idProyekMr).maybeSingle()
     if (!mr) return reply.status(404).send({ error: 'MR tidak ditemukan' })
     if (mr.status !== 'draft') return reply.status(400).send({ error: 'Hanya MR draft yang bisa disubmit' })
 
-    const { error } = await supabase.from('material_requests').update({ status: 'submitted' }).eq('id', id)
+    const { error } = await supabase.from('material_requests')
+      .update({ status: 'submitted' }).eq('id', id).in('project_id', idProyekMr)
     if (error) return reply.status(500).send({ error: error.message })
 
     // Notif ke semua admin
@@ -336,7 +347,11 @@ export default async function procurementRoutes(app: FastifyInstance) {
     }
     if (!coarse.ok) return reply.status(403).send({ error: 'Akses ditolak' })
 
-    const { data: mr } = await supabase.from('material_requests').select('id, status, requested_by, mr_number').eq('id', id).single()
+    // T4i: saringan tenant dipasang di fetch INI — yang sudah berada SETELAH
+    // gerbang 403 di atas, jadi urutan 403-sebelum-404 tetap terjaga.
+    const { data: mr } = await supabase.from('material_requests')
+      .select('id, status, requested_by, mr_number')
+      .eq('id', id).in('project_id', await request.db!.projectIds()).maybeSingle()
     if (!mr) return reply.status(404).send({ error: 'MR tidak ditemukan' })
     if (mr.status !== 'submitted') return reply.status(400).send({ error: 'Hanya MR submitted yang bisa di-approve/reject' })
 
@@ -467,6 +482,10 @@ export default async function procurementRoutes(app: FastifyInstance) {
       expected_delivery_date?: string; delivery_address?: string; notes?: string; payment_terms?: string
       items: Array<{ material_id: string; mr_item_id?: string; qty_ordered: number; unit: string; unit_price: number; notes?: string }>
     }
+    // T4i: idem — PO menempel ke proyek tenant lain, lengkap dgn nilai & supplier.
+    if (body.project_id && (await proyekBolehDibaca(request, body.project_id)) === null) {
+      return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    }
     if (!body.project_id || !body.supplier_id || !body.items?.length) {
       return reply.status(400).send({ error: 'project_id, supplier_id, dan items wajib diisi' })
     }
@@ -520,7 +539,11 @@ export default async function procurementRoutes(app: FastifyInstance) {
     const updates: Record<string, unknown> = { status }
     if (status === 'sent') updates.sent_at = new Date().toISOString()
 
-    const { data, error } = await supabase.from('purchase_orders').update(updates).eq('id', id).select('id, po_number, status').single()
+    // T4i: PO kategori C via project_id. Saringan di UPDATE-nya sendiri —
+    // nol baris terubah kalau bukan milik tenant, jadi 404 bukan "berhasil".
+    const { data, error } = await supabase.from('purchase_orders').update(updates)
+      .eq('id', id).in('project_id', await request.db!.projectIds())
+      .select('id, po_number, status').maybeSingle()
     if (error) return reply.status(500).send({ error: error.message })
     return { purchase_order: data }
   })
@@ -569,7 +592,12 @@ export default async function procurementRoutes(app: FastifyInstance) {
     if (!body.po_id || !body.items?.length) return reply.status(400).send({ error: 'po_id dan items wajib diisi' })
 
     // Ambil project_id dan supplier_id dari PO
-    const { data: po } = await supabase.from('purchase_orders').select('id, project_id, supplier_id, status').eq('id', body.po_id).single()
+    // T4i: GR mewarisi project_id & supplier_id DARI PO. Tanpa saringan, tenant
+    // A mencatat penerimaan barang atas PO tenant B — dan barisnya lahir
+    // memakai project/supplier milik B.
+    const { data: po } = await supabase.from('purchase_orders')
+      .select('id, project_id, supplier_id, status')
+      .eq('id', body.po_id).in('project_id', await request.db!.projectIds()).maybeSingle()
     if (!po) return reply.status(404).send({ error: 'PO tidak ditemukan' })
     if (po.status === 'cancelled') return reply.status(400).send({ error: 'PO sudah dibatalkan' })
 
@@ -634,7 +662,12 @@ export default async function procurementRoutes(app: FastifyInstance) {
     preHandler: [authenticate, requirePermission('procurement:po:manage')]
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
-    const { data: gr } = await supabase.from('goods_receipts').select('id, status, po_id, supplier_id').eq('id', id).single()
+    // T4i: konfirmasi GR memicu trigger penambahan STOK + auto-create
+    // supplier_invoice. Tanpa saringan, tenant A menambah stok & hutang di
+    // pembukuan tenant B.
+    const { data: gr } = await supabase.from('goods_receipts')
+      .select('id, status, po_id, supplier_id')
+      .eq('id', id).in('project_id', await request.db!.projectIds()).maybeSingle()
     if (!gr) return reply.status(404).send({ error: 'GR tidak ditemukan' })
     if (gr.status === 'confirmed') return reply.status(400).send({ error: 'GR sudah dikonfirmasi' })
 
@@ -1105,7 +1138,10 @@ export default async function procurementRoutes(app: FastifyInstance) {
     preHandler: [authenticate, requirePermission('procurement:mr:manage')]
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
-    const { data: mr } = await supabase.from('material_requests').select('id, status, requested_by').eq('id', id).single()
+    // T4i: MR kategori C — saringan di fetch; aksi di bawah memakai `id`
+    // yang sudah terbukti milik tenant.
+    const { data: mr } = await supabase.from('material_requests').select('id, status, requested_by')
+      .eq('id', id).in('project_id', await request.db!.projectIds()).maybeSingle()
     if (!mr) return reply.status(404).send({ error: 'MR tidak ditemukan' })
     if (mr.status !== 'draft') return reply.status(400).send({ error: 'Hanya MR draft yang bisa dihapus' })
     // F4 (AKTA 0 lockout fix): otorisasi = capability `procurement:mr:manage` (preHandler).
@@ -1122,7 +1158,10 @@ export default async function procurementRoutes(app: FastifyInstance) {
     preHandler: [authenticate, requirePermission('procurement:mr:manage')]
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
-    const { data: mr } = await supabase.from('material_requests').select('id, status').eq('id', id).single()
+    // T4i: MR kategori C — saringan di fetch; aksi di bawah memakai `id`
+    // yang sudah terbukti milik tenant.
+    const { data: mr } = await supabase.from('material_requests').select('id, status')
+      .eq('id', id).in('project_id', await request.db!.projectIds()).maybeSingle()
     if (!mr) return reply.status(404).send({ error: 'MR tidak ditemukan' })
     if (mr.status !== 'draft') return reply.status(400).send({ error: 'Hanya MR draft yang bisa ditambah item' })
     const body = request.body as { material_id: string; qty_requested: number; unit: string; unit_price_est?: number; notes?: string }
@@ -1141,7 +1180,10 @@ export default async function procurementRoutes(app: FastifyInstance) {
     preHandler: [authenticate, requirePermission('procurement:mr:manage')]
   }, async (request, reply) => {
     const { id, itemId } = request.params as { id: string; itemId: string }
-    const { data: mr } = await supabase.from('material_requests').select('id, status').eq('id', id).single()
+    // T4i: MR kategori C — saringan di fetch; aksi di bawah memakai `id`
+    // yang sudah terbukti milik tenant.
+    const { data: mr } = await supabase.from('material_requests').select('id, status')
+      .eq('id', id).in('project_id', await request.db!.projectIds()).maybeSingle()
     if (!mr) return reply.status(404).send({ error: 'MR tidak ditemukan' })
     if (mr.status !== 'draft') return reply.status(400).send({ error: 'Hanya item MR draft yang bisa dihapus' })
     const { error } = await supabase.from('material_request_items').delete().eq('id', itemId).eq('mr_id', id)
@@ -1155,7 +1197,10 @@ export default async function procurementRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const { notes } = (request.body ?? {}) as { notes?: string }
-    const { data: po } = await supabase.from('purchase_orders').select('id, status, mr_id').eq('id', id).single()
+    // T4i: PO kategori C. Membatalkan PO tenant lain juga me-revert status MR
+    // mereka — satu aksi, dua tabel tercemar.
+    const { data: po } = await supabase.from('purchase_orders').select('id, status, mr_id')
+      .eq('id', id).in('project_id', await request.db!.projectIds()).maybeSingle()
     if (!po) return reply.status(404).send({ error: 'PO tidak ditemukan' })
     if (['fully_received', 'cancelled'].includes(po.status)) return reply.status(400).send({ error: `PO dengan status ${po.status} tidak bisa dibatalkan` })
     const { error } = await supabase.from('purchase_orders').update({ status: 'cancelled', notes }).eq('id', id)
@@ -1179,11 +1224,18 @@ export default async function procurementRoutes(app: FastifyInstance) {
     const in7days = new Date(); in7days.setDate(in7days.getDate() + 7)
     const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]
 
+    // T4i: KPI dashboard adalah AGREGAT lintas-proyek. Tiga dari empat query
+    // di bawah kategori C — tanpa saringan, angka MR pending, nilai PO bulan
+    // ini, dan peringatan stok mencampur seluruh perusahaan.
+    const idProyekDash = await request.db!.projectIds()
     const [mrRes, poRes, invRes, stockRes] = await Promise.all([
-      supabase.from('material_requests').select('id, status').in('status', ['draft', 'submitted']),
-      supabase.from('purchase_orders').select('id, status, total_amount, order_date').gte('order_date', startOfMonth),
+      supabase.from('material_requests').select('id, status')
+        .in('project_id', idProyekDash).in('status', ['draft', 'submitted']),
+      supabase.from('purchase_orders').select('id, status, total_amount, order_date')
+        .in('project_id', idProyekDash).gte('order_date', startOfMonth),
       request.db!.from('supplier_invoices').select('id, due_date, amount_due, status').neq('status', 'paid'),
-      supabase.from('project_stocks').select('id, qty_on_hand, material:materials(min_stock)').not('material', 'is', null),
+      supabase.from('project_stocks').select('id, qty_on_hand, material:materials(min_stock)')
+        .in('project_id', idProyekDash).not('material', 'is', null),
     ])
 
     const mrPendingApproval = (mrRes.data ?? []).filter(m => m.status === 'submitted').length
