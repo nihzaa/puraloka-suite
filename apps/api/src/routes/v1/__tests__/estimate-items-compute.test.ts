@@ -146,6 +146,28 @@ describe('POST /estimate-versions/:id/items — GOLDEN dari assembly × price bo
     const { rows } = await client.query(
       `SELECT total_amount FROM estimate_versions WHERE id=$1`, [versionId])
     expect(Number(rows[0].total_amount)).toBe(2783000)
+
+    // Provenance harga TERSIMPAN, bukan hanya dikembalikan (migrasi 139).
+    // Sebelumnya rincian ini hilang begitu response ditutup, sehingga angka
+    // 2.783.000 tak bisa menjelaskan dirinya sendiri setahun kemudian.
+    const { rows: prov } = await client.query(
+      `SELECT price_date, hsp_snapshot, provenance_captured
+         FROM estimate_items WHERE id=$1`, [j.item.id])
+    expect(prov[0].provenance_captured, 'item baru tanpa provenance').toBe(true)
+    // `pg` memulangkan DATE sebagai objek Date, bukan string — dibandingkan
+    // lewat komponen tanggalnya supaya tak bergantung zona waktu mesin.
+    const pd = new Date(prov[0].price_date)
+    expect(`${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, '0')}-${String(pd.getDate()).padStart(2, '0')}`)
+      .toBe('2026-06-01')
+
+    const snap = prov[0].hsp_snapshot
+    expect(snap.hsp.hspRounded, 'HSP di snapshot ≠ HSP yang dipakai').toBe(278300)
+    expect(snap.prices, 'daftar harga tak lengkap di snapshot').toHaveLength(7)
+    expect(snap.prices[0].price_book_entry_id, 'snapshot kehilangan jejak ke price book')
+      .toBeTruthy()
+    // Angka harus bisa direkonstruksi DARI snapshot saja — itu ujian
+    // sebenarnya "cukup menjelaskan", bukan sekadar "kolomnya terisi".
+    expect(j.item.amount).toBe(BODY.quantity * snap.hsp.hspRounded)
   })
 
   it('price_date SEBELUM effective harga → 422 fail-loud dgn daftar resource', async () => {

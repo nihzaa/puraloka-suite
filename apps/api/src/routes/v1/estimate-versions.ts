@@ -579,6 +579,37 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
           estimate_version_id: id, cost_code_id: asm.cost_code_id, assembly_id: asm.id,
           cbs_node_id: b.cbs_node_id ?? null, wbs_node_id: b.wbs_node_id ?? null,
           quantity: b.quantity, amount, notes: b.notes ?? null,
+          // Provenance harga (migrasi 139). Sebelumnya rincian ini hanya
+          // dikembalikan ke pemanggil lalu hilang begitu response ditutup —
+          // sehingga pertanyaan "kenapa RAB ini segini" setahun kemudian hanya
+          // bisa ditebak. Rekonstruksi tidak bisa diandalkan: harganya mungkin
+          // sudah expired, dan price_date yang dipakai tak tersimpan.
+          price_date: priceDate,
+          price_location: b.location ?? null,
+          hsp_snapshot: {
+            hsp: {
+              groupTotals: hsp.groupTotals,
+              subtotalD: hsp.subtotalD,
+              bukAmount: hsp.bukAmount,
+              bukFraction: b.buk_fraction,
+              hspRaw: hsp.hspRaw,
+              hspRounded: hsp.hspRounded,
+              rounding: b.rounding,
+            },
+            prices: comps.map((cc) => {
+              const r = resolved.get(cc.resource!.id)!
+              return {
+                resource_id: cc.resource!.id,
+                resource_code: cc.resource!.code,
+                coefficient: cc.coefficient,
+                amount: Number(r.entry.amount),
+                price_book_entry_id: r.entry.id,
+                effective_date: r.entry.effective_date,
+                location: r.entry.location,
+                matched_location: r.matched_location,
+              }
+            }),
+          },
         })
         .select('id').single()
       if (insErr) return reply.status(500).send({ error: insErr.message })
