@@ -40,8 +40,12 @@ TOLAK saat ambigu).
 ✅ **T4f penegak**: ratchet (akses supabase mentah tak boleh naik — **diuji
 benar-benar menggigit**, bukan diasumsikan) + P3 (peta vs skema hidup; tabel
 baru tanpa kategori = build merah).
-🔴 **T4 BELUM SELESAI — audit keamanan independen 2026-07-29 menemukan permukaan
-jauh lebih luas dari yang saya laporkan sebelumnya.** Detail lengkap + skenario
+🟢 **T4 — SELURUH temuan DUA RONDE audit keamanan DITUTUP (2026-07-29).**
+Ronde 1 menemukan permukaan jauh lebih luas dari laporan awal saya; ronde 2
+(verifikasi ulang) menemukan pola "gerbang di GET, hilang di PATCH/DELETE" di
+4 modul. Keduanya kini tertutup: ±40 endpoint tulis + belasan jalur baca.
+Sisa `supabase` mentah **476** (dari 584) — itu adopsi wrapper, BUKAN celah;
+sisanya sudah bergerbang eksplisit. Detail lengkap + skenario
 per-modul: **`.../adr/ADR-011-T4-AUDIT-CELAH-TENANCY.md`**.
 Sisa: **478 akses `supabase` mentah** (dari 584). Modul yang seluruh filenya
 belum ter-scope: `clients` (PII) · `audit` (jejak semua tenant) · `users`+`roles`

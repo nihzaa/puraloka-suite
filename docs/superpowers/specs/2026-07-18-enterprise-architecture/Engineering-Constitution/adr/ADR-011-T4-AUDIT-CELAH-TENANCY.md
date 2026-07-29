@@ -242,7 +242,28 @@ cakupan gerbang.** Keduanya metrik berbeda dan tidak boleh dikira sama —
 kalau tertukar, "angka tidak turun" akan salah dibaca sebagai "tidak ada
 perbaikan".
 
-### 11.5 Yang MASIH terbuka setelah ronde kedua
+### 11.6 Status akhir: SELURUH temuan dua ronde audit DITUTUP (2026-07-29)
+
+| Modul | Selesai |
+|---|---|
+| `procurement` | ✅ 11 titik — siklus MR/PO/GR + 3 jalur create ber-id-dari-body + dashboard KPI |
+| `roles` GET list & `/:id/permissions` · `auth` register | ✅ |
+| `notifications` cabang wage-report + `check-deadlines` | ✅ |
+| `settings` + `finance` — `company_profile` | ✅ **ternyata bukan Red-Line** (lihat bawah) |
+
+**`company_profile` — perkiraan saya salah, dan itu menguntungkan.** Saya sempat
+merencanakan Dokumen Audit Pra-Eksekusi + ack founder karena mengira butuh
+menggandakan data per tenant. Diverifikasi ke DB lebih dulu: **migration 126
+sudah menyalin seluruh isinya ke `companies`** — nol kolom hilang, nol nilai
+berbeda (dibandingkan kolom-per-kolom). Jadi cukup perubahan **kode**: baca/tulis
+ke `companies` yang memang ter-scope. Nol migrasi data, nol sentuhan data
+existing, tak perlu ack.
+
+Pelajarannya: **verifikasi ke sumber sebelum mengeskalasi**, bukan hanya sebelum
+mengerjakan. Kalau saya langsung menyiapkan dokumen Red-Line, founder akan
+diminta menyetujui sesuatu yang sebenarnya tak berisiko.
+
+### 11.5 Yang MASIH terbuka setelah ronde kedua ~~(sudah ditutup — lihat §11.6)~~
 
 - **`procurement.ts`** — siklus MR/PO/GR (submit/approve/reject/cancel/confirm),
   dashboard KPI lintas-tenant. **Belum dikerjakan.**
