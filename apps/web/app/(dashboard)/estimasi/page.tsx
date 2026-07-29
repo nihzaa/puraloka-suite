@@ -7,7 +7,7 @@
 // Paritas C1: BUK & pembulatan SELALU terlihat & dikirim eksplisit dari form —
 // tidak ada angka bisnis tersembunyi di kode UI.
 
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { api } from "@/lib/api";
 import {
@@ -89,6 +89,12 @@ const th: React.CSSProperties = { textAlign: "left", padding: "8px 10px", fontSi
 const td: React.CSSProperties = { padding: "9px 10px", fontSize: 13, color: C.text, borderBottom: `1px solid ${C.border}`, verticalAlign: "top" };
 const btnPrimary: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 6, background: C.navy, color: "#fff", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer" };
 const btnGhost: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 6, background: C.surface, color: C.text, border: `1px solid ${C.border}`, borderRadius: 8, padding: "7px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" };
+const card: React.CSSProperties = { background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" };
+const lbl: React.CSSProperties = { display: "block", fontSize: 12.5, fontWeight: 600, color: C.text, marginBottom: 5 };
+// Baris penutup lembar analisa: label rata kanan menempel ke angkanya, supaya
+// mata membaca "Jumlah ..... Rp X" sebagai satu baris, bukan dua kolom terpisah.
+const tfLabel: React.CSSProperties = { padding: "6px 10px", fontSize: 12.5, color: C.mid, textAlign: "right" };
+const tfAngka: React.CSSProperties = { padding: "6px 10px", fontSize: 12.5, color: C.text, textAlign: "right", fontFamily: "monospace" };
 
 // ══ TAB 1 — KOMPOSER ══════════════════════════════════════════════════════════
 function KomposerTab() {
@@ -527,68 +533,451 @@ function AddItemModal({ version, onClose, onDone }:
 }
 
 // ══ TAB 2 — KATALOG AHSP ══════════════════════════════════════════════════════
+//
+// Rincian sengaja disusun MENYERUPAI LEMBAR ANALISA yang biasa dibaca: band
+// A tenaga / B bahan / C alat, angka rata kanan, garis ganda sebelum HSP.
+// Bukan tabel generik — orang yang terbiasa membaca AHSP mencari bentuk itu,
+// dan menyusunnya berbeda memaksa mereka menerjemahkan ulang tiap kali.
+//
+// Yang membedakan dari versi sebelumnya: dulu hanya koefisien yang tampil.
+// Koefisien tanpa harga tidak menjawab pertanyaan yang sebenarnya dibawa orang
+// ke layar ini — "berapa harga pekerjaan ini".
+
+interface HspKomponen {
+  resource_code: string; resource_name: string; unit: string;
+  coefficient: number; category: string;
+  amount: number | null; subtotal: number | null;
+  sumber: string | null; override_reason: string | null; effective_date: string | null;
+}
+interface HspLive {
+  assembly: { id: string; code: string; name: string; output_unit: string; source: string; status: string };
+  input: { price_date: string; location: string | null; buk_fraction: number };
+  components: HspKomponen[];
+  hsp_partial: boolean;
+  missing_prices: string[];
+  result: { groupTotals: Record<string, number>; subtotalD: number
+            bukAmount: number; hspRaw: number; hspRounded: number } | null;
+}
+
+const GRUP_LABEL: Record<string, { huruf: string; judul: string }> = {
+  labor:     { huruf: "A", judul: "Tenaga" },
+  material:  { huruf: "B", judul: "Bahan" },
+  equipment: { huruf: "C", judul: "Alat" },
+};
+
 function KatalogTab() {
   const [editions, setEditions] = useState<Edition[]>([]);
   const [edition, setEdition] = useState("");
+  const [sumber, setSumber] = useState("");
+  const [cari, setCari] = useState("");
   const [assemblies, setAssemblies] = useState<Assembly[]>([]);
   const [open, setOpen] = useState<string | null>(null);
+  const [hsp, setHsp] = useState<Record<string, HspLive | "memuat" | "gagal">>({});
+  const [adopsi, setAdopsi] = useState<Assembly | null>(null);
+  const [pesan, setPesan] = useState("");
 
   useEffect(() => {
     api.get<{ data: Edition[] }>("/api/v1/cecep/editions").then(r => {
       const eds = r.data.data ?? [];
       setEditions(eds);
-      const seeded = eds.find(e => e.source_sha256); // edisi yang sudah ter-impor
+      const seeded = eds.find(e => e.source_sha256);
       if (seeded) setEdition(seeded.code);
     }).catch(() => {});
   }, []);
-  useEffect(() => {
-    const q = edition ? `?edition=${encodeURIComponent(edition)}` : "";
-    api.get<{ data: Assembly[] }>(`/api/v1/cecep/assemblies${q}`).then(r => setAssemblies(r.data.data ?? [])).catch(() => {});
-  }, [edition]);
+
+  const muat = useCallback(() => {
+    const p = new URLSearchParams();
+    if (edition) p.set("edition", edition);
+    if (sumber) p.set("source", sumber);
+    p.set("limit", "200");
+    api.get<{ data: Assembly[] }>(`/api/v1/cecep/assemblies?${p}`)
+      .then(r => setAssemblies(r.data.data ?? [])).catch(() => {});
+  }, [edition, sumber]);
+  useEffect(() => { muat(); }, [muat]);
+
+  // HSP dimuat SAAT analisa dibuka, bukan untuk 3.038 baris sekaligus:
+  // memuat semuanya berarti ribuan resolusi harga untuk data yang tak dilihat.
+  function bukaAnalisa(a: Assembly) {
+    if (open === a.id) return setOpen(null);
+    setOpen(a.id);
+    if (hsp[a.id] && hsp[a.id] !== "gagal") return;
+    setHsp(h => ({ ...h, [a.id]: "memuat" }));
+    api.get<HspLive>(`/api/v1/cecep/assemblies/${a.id}/hsp-live`)
+      .then(r => setHsp(h => ({ ...h, [a.id]: r.data })))
+      .catch(() => setHsp(h => ({ ...h, [a.id]: "gagal" })));
+  }
+
+  // Pencarian di sisi klien: daftar sudah dibatasi 200 baris oleh API, jadi
+  // menyaring lagi ke server hanya menambah bolak-balik tanpa hasil berbeda.
+  const terlihat = assemblies.filter(a => {
+    if (!cari.trim()) return true;
+    const q = cari.toLowerCase();
+    return a.name.toLowerCase().includes(q) || a.code.toLowerCase().includes(q);
+  });
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
-        <select value={edition} onChange={e => setEdition(e.target.value)} style={{ ...inputStyle, width: 300 }}>
-          <option value="">— semua edisi/sumber —</option>
-          {editions.map(e => <option key={e.id} value={e.code}>{e.code} — {e.name}</option>)}
+      {/* role=status: hasil salin analisa diumumkan pembaca layar, bukan hanya
+          terlihat — pengguna yang tak melihat layar tetap tahu tindakannya
+          berhasil. */}
+      {pesan && (
+        <div role="status" style={{ ...card, padding: "10px 14px", marginBottom: 12, display: "flex",
+                      alignItems: "center", gap: 8, background: C.greenBg, borderColor: C.green }}>
+          <CheckCircle2 size={15} color={C.green} />
+          <span style={{ fontSize: 13, color: C.text }}>{pesan}</span>
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: 9, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
+        <input
+          value={cari} onChange={e => setCari(e.target.value)}
+          placeholder="Cari nama atau kode analisa…"
+          style={{ ...inputStyle, flex: 1, minWidth: 220 }}
+        />
+        <select value={sumber} onChange={e => setSumber(e.target.value)} style={{ ...inputStyle, width: 168 }}>
+          <option value="">Semua sumber</option>
+          <option value="national">Katalog nasional</option>
+          <option value="company">Katalog perusahaan</option>
         </select>
-        <span style={{ fontSize: 12.5, color: C.muted }}>{assemblies.length} analisa</span>
+        <select value={edition} onChange={e => setEdition(e.target.value)} style={{ ...inputStyle, width: 230 }}>
+          <option value="">Semua edisi</option>
+          {editions.map(e => <option key={e.id} value={e.code}>{e.code}</option>)}
+        </select>
+        <span style={{ fontSize: 12.5, color: C.muted, whiteSpace: "nowrap" }}>
+          {terlihat.length} analisa
+        </span>
       </div>
+
       <div style={{ display: "grid", gap: 8 }}>
-        {assemblies.map(a => (
-          <div key={a.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10 }}>
-            <button onClick={() => setOpen(open === a.id ? null : a.id)}
-              style={{ display: "flex", width: "100%", alignItems: "center", gap: 10, padding: "11px 14px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}>
-              {open === a.id ? <ChevronDown size={15} color={C.mid} /> : <ChevronRight size={15} color={C.mid} />}
-              <code style={{ fontSize: 12, color: C.navy, fontWeight: 700, minWidth: 76 }}>{a.code}</code>
-              <span style={{ flex: 1, fontSize: 13, color: C.text }}>{a.name}</span>
-              <span style={{ fontSize: 11.5, color: C.muted }}>per {a.output_unit_code}</span>
-              {a.is_import_baseline && <span title="Baseline impor — jejak 'SE bilang apa', immutable" style={{ fontSize: 10.5, fontWeight: 700, color: C.navy, border: `1px solid ${C.border}`, borderRadius: 999, padding: "1px 8px" }}>BASELINE</span>}
-              <StatusBadge s={a.status} />
-            </button>
-            {open === a.id && (
-              <div style={{ borderTop: `1px solid ${C.border}`, padding: "8px 14px 12px", overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead><tr><th style={th}>Komponen</th><th style={th}>Kategori</th><th style={th}>Sat</th><th style={{ ...th, textAlign: "right" }}>Koefisien</th></tr></thead>
-                  <tbody>
-                    {[...a.components].sort((x, y) => x.sort_order - y.sort_order).map((cmp, i) => (
-                      <tr key={i}>
-                        <td style={td}>{cmp.resource?.name}</td>
-                        <td style={{ ...td, color: C.mid }}>{cmp.resource?.category}</td>
-                        <td style={td}>{cmp.resource?.unit_code}</td>
-                        <td style={{ ...td, textAlign: "right", fontFamily: "monospace" }}>{Number(cmp.coefficient)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        ))}
-        {assemblies.length === 0 && <p style={{ color: C.muted, fontSize: 13 }}>Tidak ada analisa untuk filter ini.</p>}
+        {terlihat.map(a => {
+          const h = hsp[a.id];
+          const detail = h && h !== "memuat" && h !== "gagal" ? h : null;
+          return (
+            <div key={a.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10 }}>
+              <button onClick={() => bukaAnalisa(a)}
+                aria-expanded={open === a.id}
+                aria-label={`${a.code} — ${a.name}. ${open === a.id ? "Tutup" : "Buka"} rincian harga.`}
+                style={{ display: "flex", width: "100%", alignItems: "flex-start", gap: 10,
+                         padding: "11px 14px", background: "none", border: "none",
+                         cursor: "pointer", textAlign: "left" }}>
+                <span style={{ paddingTop: 2 }}>
+                  {open === a.id ? <ChevronDown size={15} color={C.mid} /> : <ChevronRight size={15} color={C.mid} />}
+                </span>
+                <code style={{ fontSize: 12, color: C.navy, fontWeight: 700, minWidth: 84, paddingTop: 1 }}>{a.code}</code>
+                <span style={{ flex: 1, fontSize: 13, color: C.text, lineHeight: 1.45 }}>{a.name}</span>
+                <span style={{ fontSize: 11.5, color: C.muted, whiteSpace: "nowrap", paddingTop: 1 }}>
+                  per {a.output_unit_code}
+                </span>
+                <span style={{
+                  fontSize: 10.5, fontWeight: 700, borderRadius: 999, padding: "2px 8px",
+                  whiteSpace: "nowrap",
+                  color: a.source === "national" ? C.mid : C.navy,
+                  border: `1px solid ${C.border}`,
+                }}>
+                  {a.source === "national" ? "NASIONAL" : "PERUSAHAAN"}
+                </span>
+              </button>
+
+              {open === a.id && (
+                <div style={{ borderTop: `1px solid ${C.border}`, padding: "12px 14px 14px" }}>
+                  {h === "memuat" && <p style={{ fontSize: 12.5, color: C.muted, margin: 0 }}>Menghitung…</p>}
+                  {h === "gagal" && (
+                    <p style={{ fontSize: 12.5, color: C.red, margin: 0 }}>
+                      Gagal memuat rincian harga. Coba tutup dan buka lagi.
+                    </p>
+                  )}
+                  {detail && <RincianAnalisa d={detail} />}
+
+                  {a.source === "national" && (
+                    <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}`,
+                                  display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                      <button onClick={() => setAdopsi(a)} style={btnGhost}>
+                        <Plus size={13} /> Jadikan analisa perusahaan
+                      </button>
+                      <span style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.5 }}>
+                        Menyalin analisa ini supaya koefisiennya bisa Anda sesuaikan.
+                        Analisa nasional tidak berubah.
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+        {terlihat.length === 0 && (
+          <p style={{ color: C.muted, fontSize: 13 }}>
+            {cari ? `Tidak ada analisa yang cocok dengan "${cari}".` : "Tidak ada analisa untuk filter ini."}
+          </p>
+        )}
       </div>
+
+      {adopsi && (
+        <AdopsiModal
+          asal={adopsi}
+          onClose={() => setAdopsi(null)}
+          onDone={(kode) => {
+            setAdopsi(null);
+            setPesan(`Analisa "${kode}" dibuat di katalog perusahaan.`);
+            muat();
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+/**
+ * Rincian satu analisa, disusun seperti lembar AHSP: band per grup, angka rata
+ * kanan, garis ganda sebelum HSP.
+ */
+function RincianAnalisa({ d }: { d: HspLive }) {
+  const perGrup = (["labor", "material", "equipment"] as const)
+    .map(k => ({ k, label: GRUP_LABEL[k], rows: d.components.filter(c => c.category === k) }))
+    .filter(g => g.rows.length > 0);
+
+  return (
+    <div>
+      {d.hsp_partial && (
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "9px 11px",
+                      background: C.yellowBg, border: `1px solid ${C.yellow}`, borderRadius: 8,
+                      marginBottom: 12 }}>
+          <CircleOff size={14} color={C.yellow} style={{ flexShrink: 0, marginTop: 1 }} />
+          <span style={{ fontSize: 12, color: C.text, lineHeight: 1.5 }}>
+            {d.missing_prices.length} bahan/upah belum punya harga, jadi HSP di bawah
+            <strong> belum lengkap</strong>. Isi harganya di tab Harga:{" "}
+            <span style={{ color: C.mid }}>{d.missing_prices.slice(0, 4).join(", ")}
+              {d.missing_prices.length > 4 && ` +${d.missing_prices.length - 4} lagi`}</span>
+          </span>
+        </div>
+      )}
+
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+          <thead>
+            <tr>
+              <th style={{ ...th, width: "42%" }}>Uraian</th>
+              <th style={th}>Sat</th>
+              <th style={{ ...th, textAlign: "right" }}>Koefisien</th>
+              <th style={{ ...th, textAlign: "right" }}>Harga satuan</th>
+              <th style={{ ...th, textAlign: "right" }}>Jumlah</th>
+            </tr>
+          </thead>
+          <tbody>
+            {perGrup.map(g => (
+              <Fragment key={g.k}>
+                <tr>
+                  <td colSpan={5} style={{
+                    padding: "8px 6px 4px", fontSize: 11, fontWeight: 700,
+                    color: C.mid, letterSpacing: "0.05em", textTransform: "uppercase",
+                  }}>
+                    {g.label.huruf}. {g.label.judul}
+                  </td>
+                </tr>
+                {g.rows.map((c, i) => (
+                  <tr key={`${g.k}-${i}`}>
+                    <td style={{ ...td, lineHeight: 1.45 }}>
+                      {c.resource_name}
+                      {c.sumber === "override_proyek" && (
+                        <span title={c.override_reason ?? ""} style={{
+                          marginLeft: 6, fontSize: 10, fontWeight: 700, color: C.navy,
+                          border: `1px solid ${C.border}`, borderRadius: 999, padding: "1px 6px",
+                        }}>KHUSUS PROYEK</span>
+                      )}
+                    </td>
+                    <td style={{ ...td, color: C.mid }}>{c.unit}</td>
+                    <td style={{ ...td, textAlign: "right", fontFamily: "monospace" }}>
+                      {Number(c.coefficient)}
+                    </td>
+                    <td style={{ ...td, textAlign: "right", fontFamily: "monospace",
+                                 color: c.amount == null ? C.yellow : C.text }}>
+                      {c.amount == null ? "belum ada" : fmtRp(c.amount)}
+                    </td>
+                    <td style={{ ...td, textAlign: "right", fontFamily: "monospace",
+                                 color: c.subtotal == null ? C.muted : C.text }}>
+                      {c.subtotal == null ? "—" : fmtRp(Math.round(c.subtotal))}
+                    </td>
+                  </tr>
+                ))}
+              </Fragment>
+            ))}
+          </tbody>
+          {d.result && (
+            <tfoot>
+              <tr>
+                <td colSpan={4} style={{ ...tfLabel, borderTop: `1px solid ${C.border}` }}>
+                  D. Jumlah
+                </td>
+                <td style={{ ...tfAngka, borderTop: `1px solid ${C.border}` }}>
+                  {fmtRp(Math.round(d.result.subtotalD))}
+                </td>
+              </tr>
+              <tr>
+                <td colSpan={4} style={tfLabel}>
+                  Keuntungan &amp; overhead {Math.round(d.input.buk_fraction * 100)}%
+                </td>
+                <td style={tfAngka}>{fmtRp(Math.round(d.result.bukAmount))}</td>
+              </tr>
+              <tr>
+                <td colSpan={4} style={{
+                  ...tfLabel, fontWeight: 700, color: C.text, fontSize: 13,
+                  borderTop: `3px double ${C.border}`, paddingTop: 9,
+                }}>
+                  Harga satuan pekerjaan, per {d.assembly.output_unit}
+                </td>
+                <td style={{
+                  ...tfAngka, fontWeight: 700, color: C.navy, fontSize: 14,
+                  borderTop: `3px double ${C.border}`, paddingTop: 9,
+                }}>
+                  {fmtRp(Math.round(d.result.hspRounded))}
+                </td>
+              </tr>
+            </tfoot>
+          )}
+        </table>
+      </div>
+
+      <p style={{ fontSize: 11.5, color: C.muted, margin: "10px 0 0", lineHeight: 1.5 }}>
+        Harga per {new Date(d.input.price_date).toLocaleDateString("id-ID",
+          { day: "numeric", month: "long", year: "numeric" })}.
+        Mengubah harga di tab Harga langsung mengubah angka di sini.
+      </p>
+    </div>
+  );
+}
+
+/** Salin analisa nasional jadi milik perusahaan, koefisien bisa disesuaikan. */
+function AdopsiModal({ asal, onClose, onDone }: {
+  asal: Assembly; onClose: () => void; onDone: (kode: string) => void;
+}) {
+  const [kode, setKode] = useState(`${asal.code}-CO`);
+  const [alasan, setAlasan] = useState("");
+  const [koef, setKoef] = useState<Record<string, string>>({});
+  const [simpan, setSimpan] = useState(false);
+  const [err, setErr] = useState("");
+
+  const komponen = [...asal.components].sort((a, b) => a.sort_order - b.sort_order);
+
+  async function kirim(e: React.FormEvent) {
+    e.preventDefault();
+    setSimpan(true); setErr("");
+    try {
+      const diubah = komponen
+        .filter(c => c.resource && koef[c.resource.code]?.trim())
+        .map(c => ({ resource_code: c.resource!.code, coefficient: Number(koef[c.resource!.code]) }))
+        .filter(x => Number.isFinite(x.coefficient) && x.coefficient > 0);
+
+      const r = await api.post<{ data: { code: string } }>(
+        `/api/v1/cecep/assemblies/${asal.id}/adopt`,
+        { code: kode.trim(), reason: alasan.trim() || undefined,
+          components: diubah.length ? diubah : undefined });
+      onDone(r.data.data.code);
+    } catch (e: unknown) {
+      const x = e as { response?: { data?: { error?: string } } };
+      setErr(x?.response?.data?.error ?? "Gagal menyalin analisa");
+    } finally { setSimpan(false); }
+  }
+
+  return createPortal(
+    <div
+      role="dialog" aria-modal="true" aria-label="Jadikan analisa perusahaan"
+      onKeyDown={e => { if (e.key === "Escape") onClose(); }}
+      style={{
+        position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 70,
+        display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
+      }} onClick={onClose}>
+      <form onClick={e => e.stopPropagation()} onSubmit={kirim} style={{
+        ...card, width: "100%", maxWidth: 660, maxHeight: "88vh", overflowY: "auto", padding: 22,
+      }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+          <div>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: "0 0 4px" }}>
+              Jadikan analisa perusahaan
+            </h2>
+            <p style={{ fontSize: 12.5, color: C.mid, margin: 0, lineHeight: 1.55 }}>
+              Menyalin <code style={{ color: C.navy }}>{asal.code}</code> ke katalog perusahaan.
+              Analisa nasionalnya tidak berubah, dan tetap bisa dipakai seperti biasa.
+            </p>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Tutup"
+            style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}>
+            <X size={17} color={C.mid} />
+          </button>
+        </div>
+
+        {err && (
+          <div style={{ marginTop: 14, padding: "9px 12px", background: C.redBg,
+                        border: `1px solid ${C.red}`, borderRadius: 8, fontSize: 12.5, color: C.text }}>
+            {err}
+          </div>
+        )}
+
+        <div style={{ display: "grid", gap: 14, marginTop: 18 }}>
+          <div>
+            <label style={lbl}>Kode analisa baru</label>
+            <input value={kode} onChange={e => setKode(e.target.value)} required style={inputStyle} />
+          </div>
+          <div>
+            <label style={lbl}>Alasan menyesuaikan</label>
+            <input value={alasan} onChange={e => setAlasan(e.target.value)}
+              placeholder="Mis. tim kami butuh waktu lebih lama untuk pekerjaan ini"
+              style={inputStyle} />
+          </div>
+        </div>
+
+        <div style={{ marginTop: 20 }}>
+          <p style={{ fontSize: 12.5, fontWeight: 600, color: C.text, margin: "0 0 4px" }}>
+            Sesuaikan koefisien
+          </p>
+          <p style={{ fontSize: 11.5, color: C.muted, margin: "0 0 10px", lineHeight: 1.5 }}>
+            Kosongkan yang tidak berubah — yang dikosongkan memakai angka aslinya.
+          </p>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+            <thead>
+              <tr>
+                <th style={th}>Uraian</th>
+                <th style={{ ...th, textAlign: "right" }}>Asli</th>
+                <th style={{ ...th, textAlign: "right", width: 130 }}>Jadi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {komponen.map((c, i) => c.resource && (
+                <tr key={i}>
+                  <td style={{ ...td, lineHeight: 1.45 }}>
+                    {c.resource.name}
+                    <span style={{ color: C.muted, marginLeft: 6 }}>{c.resource.unit_code}</span>
+                  </td>
+                  <td style={{ ...td, textAlign: "right", fontFamily: "monospace", color: C.mid }}>
+                    {Number(c.coefficient)}
+                  </td>
+                  <td style={{ ...td, textAlign: "right" }}>
+                    <input
+                      value={koef[c.resource.code] ?? ""}
+                      onChange={e => setKoef(k => ({ ...k, [c.resource!.code]: e.target.value }))}
+                      placeholder={String(Number(c.coefficient))}
+                      inputMode="decimal"
+                      style={{ ...inputStyle, textAlign: "right", fontFamily: "monospace", padding: "6px 8px" }}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div style={{ display: "flex", gap: 9, marginTop: 20 }}>
+          <button type="submit" disabled={simpan} style={{
+            padding: "9px 16px", borderRadius: 9, border: "none", background: C.navy,
+            color: "#fff", fontSize: 13, fontWeight: 600,
+            cursor: simpan ? "wait" : "pointer", opacity: simpan ? 0.7 : 1,
+          }}>
+            {simpan ? "Menyalin…" : "Salin ke katalog perusahaan"}
+          </button>
+          <button type="button" onClick={onClose} style={btnGhost}>Batal</button>
+        </div>
+      </form>
+    </div>,
+    document.body
   );
 }
 
