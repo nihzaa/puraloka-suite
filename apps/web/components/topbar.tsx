@@ -6,6 +6,7 @@ import { Search, Command } from "lucide-react";
 import { NotificationPanel } from "@/components/notification-panel";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { CommandPalette } from "@/components/command-palette";
+import { CompanySwitcher } from "@/components/company-switcher";
 
 const breadcrumbMap: Record<string, string> = {
   "/dashboard":    "Dashboard",
@@ -69,11 +70,18 @@ export function Topbar() {
           zIndex: 40,
         }}
       >
-        {/* Breadcrumb */}
+        {/* Breadcrumb + perusahaan aktif.
+            Switcher ditaruh di KIRI bersama breadcrumb, bukan di antara tombol
+            aksi di kanan: perusahaan aktif adalah KONTEKS halaman ini — sekelas
+            dengan "sedang di halaman apa" — bukan sesuatu yang dilakukan.
+            Ia menampilkan diri hanya bila user punya lebih dari satu perusahaan. */}
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Puraloka Suite</span>
           <span style={{ fontSize: 13, color: "var(--border-strong)" }}>/</span>
           <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{title}</span>
+          <div style={{ marginLeft: 10 }}>
+            <CompanySwitcher />
+          </div>
         </div>
 
         {/* Right actions */}

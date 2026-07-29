@@ -27,8 +27,49 @@ kali keadaan berubah; detail selalu di dokumen rujukan.
 **Program D — Multi-Tenant (AKTIF).** Tahap: T0 ADR ✅ → **T1 audit 94 tabel ✅** →
 **T2 skema inti ✅ (migration 126)** → **T3 `company_id` ✅ (migration 127)** →
 **T4 repository wrapper ✅** → **T5a/T5b RLS dual-axis ✅ (migration 131–133)** →
-**T5c DITUNDA atas rekomendasi audit — menunggu keputusan founder** → T6 numbering
-→ T7 exit criteria L2. CECEP langkah 7+ dilanjutkan **setelah T7**.
+**T5c DITUNDA sampai pemicunya muncul** → **T6 numbering ✅ (migration 135)** →
+**T7 ✅ switcher + exit criteria L2**. **CECEP langkah 7+ kini boleh dilanjutkan**
+(gerbang D1 terbuka).
+
+**T7 SELESAI.** Tiga bagian: (a) endpoint `GET /api/v1/my/companies` — daftar
+perusahaan milik user; satu-satunya tempat yang **sengaja** tidak memakai wrapper
+tenant, karena yang ditanyakan justru "company mana saja yang boleh saya pakai";
+lingkupnya dijaga `company_members.user_id`. (b) `CompanySwitcher` di topbar —
+ditaruh di kiri bersama breadcrumb (perusahaan aktif itu **konteks**, bukan aksi),
+menampilkan diri hanya bila user punya >1 perusahaan; berpindah = simpan + reload
+penuh, karena memperbarui sebagian layar akan menampilkan campuran dua perusahaan
+sekaligus — bentuk kesalahan paling berbahaya di aplikasi multi-tenant karena
+tampak wajar. Header `x-company-id` adalah **permintaan**, bukan penentu: backend
+memverifikasinya ke keanggotaan dan membalas 403 bila bukan haknya, jadi nilai
+palsu di localStorage tak membuka apa pun. (c) **exit criteria L2** jadi test
+permanen (`t7-exit-criteria-l2.test.ts`) — memeriksa gabungan klaim "multi-tenant
+selesai" terhadap **database**, bukan dokumen, karena klaim tingkat-program bisa
+runtuh tanpa satu pun test tahap jadi merah.
+
+**Kelima kriteria hijau:** company_id di 31 tabel B/AB/ANCHOR · 79 policy tenant,
+nol policy tak-terevaluasi, nol tabel mati · counter penomoran + UNIQUE global
+sudah dilepas · `auth_company_id()` berbasis keanggotaan (bukan "company
+satu-satunya") · nol helper per-baris. **802 test hijau.**
+
+**T6 SELESAI (migration 135, PR #107).** `COUNT(*)+1` (migrasi 041) diganti counter
+transaksional. **Empat cacat, semuanya dibuktikan di dev — bukan teori:**
+(1) nomor **berlanjut lintas company** — company A dapat `MR-2026-006`, company B
+berikutnya `MR-2026-007`, bukan 001; dari lompatan itu tenant B bisa menyimpulkan
+volume dokumen tenant A · (2) nomor **dipakai ulang setelah dihapus** — `COUNT(*)`
+menghitung yang ADA, bukan yang PERNAH ada; untuk PO ke supplier/invoice ke klien
+itu cacat audit · (3) **rentan balapan** — diuji 2 koneksi nyata: transaksi kedua
+mengantre menunggu kunci, bukan dapat nomor kembar · (4) **`UNIQUE` global** —
+inilah yang membuat (1)-(3) tak bisa diperbaiki hanya dengan ganti generator,
+karena dua tenant WAJIB boleh sama-sama punya `MR-2026-001`.
+
+**Invoice ikut diperbaiki** — cacatnya identik tapi tersamar: query `MAX`-nya
+memakai klien **mentah** sehingga memindai invoice seluruh company; yang
+menyembunyikannya cuma prefix per-company, dan default prefix company baru **sama**
+(`INV`). Sinkronisasi counter menangani **dua format** (`INV/PRL/YYYY/NNN` lama vs
+`INV/YYYY/MM/NNN` sekarang) — ketahuan dari dry-run yang memulangkan nol baris;
+tanpa itu invoice berikutnya bertabrakan dengan `INV/PRL/2026/026` yang **sudah
+terkirim ke klien**. Counter sengaja tak pernah mundur: lubang pada urutan nomor
+adalah perilaku yang benar, nomor kembar tidak. Diverifikasi uji mutasi.
 
 ---
 

@@ -13,6 +13,53 @@ const ALLOWED_IMAGES = ['image/jpeg', 'image/png', 'image/webp']
 
 export default async function settingsRoutes(app: FastifyInstance) {
 
+  // ── GET /api/v1/my/companies ─────────────────────────────────────────────
+  // T7: daftar perusahaan yang boleh diakses user ini — fondasi company
+  // switcher di UI.
+  //
+  // SENGAJA tidak memakai `request.db!`: wrapper menyaring ke company AKTIF,
+  // sementara justru itu yang mau diganti. Sumber kebenarannya `company_members`
+  // milik user, jadi lingkupnya ditentukan `user_id` — bukan company aktif.
+  //
+  // Tidak butuh permission khusus: setiap user berhak tahu ia anggota
+  // perusahaan mana. Yang TIDAK boleh adalah melihat perusahaan yang bukan
+  // haknya, dan itu dijaga filter `user_id` di bawah.
+  app.get('/api/v1/my/companies', { preHandler: [authenticate] }, async (request, reply) => {
+    const { data, error } = await supabase
+      .from('company_members')
+      .select('company_id, is_default, companies ( id, code, name, logo_url )')
+      .eq('user_id', request.currentUser!.id)
+      .eq('is_active', true)
+
+    if (error) {
+      request.log.error({ err: error }, 'gagal memuat daftar perusahaan user')
+      return reply.status(500).send({ error: 'Gagal memuat daftar perusahaan' })
+    }
+
+    type BarisKeanggotaan = {
+      company_id: string
+      is_default: boolean
+      companies: { id: string; code: string; name: string; logo_url: string | null } | null
+    }
+
+    const daftar = ((data ?? []) as unknown as BarisKeanggotaan[])
+      .filter((r) => r.companies !== null)
+      .map((r) => ({
+        id: r.companies!.id,
+        code: r.companies!.code,
+        name: r.companies!.name,
+        logo_url: r.companies!.logo_url,
+        is_default: r.is_default,
+        is_active: r.company_id === request.companyId,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+
+    // Sengaja mengembalikan `active_company_id` juga: UI tak perlu menebak
+    // company mana yang sedang dipakai request ini, dan tak ada dua sumber
+    // kebenaran yang bisa berbeda.
+    return reply.send({ data: daftar, active_company_id: request.companyId })
+  })
+
   // ── GET /api/v1/public/invoice/:id ────────────────────────────────────────────
   // Public endpoint — no auth required — for QR verification page
   app.get('/api/v1/public/invoice/:id', async (request, reply) => {
