@@ -53,6 +53,14 @@ async function main() {
       `SELECT u.id FROM users u JOIN roles r ON r.id=u.role_id WHERE r.name='admin' ORDER BY u.created_at LIMIT 1`)
     const adminId = admin.rows[0]?.id ?? null
 
+    // company_id wajib untuk source='company' (constraint assemblies_source_company_konsisten).
+    // Ambil dari baris Cibuluh yang sudah ada di dev — badan usaha yang sama untuk
+    // seluruh katalog Cibuluh, bukan proyek per-baris.
+    const cibCompany = await c.query(
+      `SELECT company_id FROM assemblies WHERE source='company' AND code LIKE 'CIB-%' AND company_id IS NOT NULL LIMIT 1`)
+    const companyId = cibCompany.rows[0]?.company_id ?? null
+    if (!companyId) throw new Error('company_id tidak ditemukan — belum ada baris CIB-% company existing untuk dirujuk.')
+
     // 1. Unit yang dipakai harus sudah ada — fail-loud (nol tebak satuan).
     const needUnits = [...new Set([
       ...ds.resources.map(r => r.unit_code), ...ds.analyses.map(a => a.output_unit),
@@ -74,6 +82,7 @@ async function main() {
       ccBySheet[sh] = r.rows[0].id
     }
     console.log(`cost codes: ${sheets.length} sheet siap`)
+    console.log(`company_id dipakai: ${companyId}`)
 
     // 3. Resources — REUSE by (lower(name), unit_code) supaya tak menduplikasi
     //    resource nasional yang sudah ada (mis. "Semen Portland" kg).
@@ -118,11 +127,11 @@ async function main() {
       const ins = await c.query(
         `INSERT INTO assemblies
            (code, name, cost_code_id, source, reference_standard, version_number,
-            waste_factor, sequence, output_unit_code, edition_id, is_import_baseline, created_by)
-         VALUES ($1,$2,$3,'company',$4,1,0,$5::jsonb,$6,NULL,true,$7) RETURNING id`,
+            waste_factor, sequence, output_unit_code, edition_id, is_import_baseline, created_by, company_id)
+         VALUES ($1,$2,$3,'company',$4,1,0,$5::jsonb,$6,NULL,true,$7,$8) RETURNING id`,
         [a.code, a.uraian.slice(0, 500), ccBySheet[a.sheet],
          'SNI 2013 (workbook Cibuluh)', JSON.stringify([{ note: noteParts.join(' · ') }]),
-         a.output_unit, adminId])
+         a.output_unit, adminId, companyId])
       const asmId = ins.rows[0].id
 
       const vals = [], params = [asmId]
