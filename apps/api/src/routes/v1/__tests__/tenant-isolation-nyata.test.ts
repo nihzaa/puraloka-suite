@@ -90,25 +90,45 @@ describe('P2 — kategori B/ANCHOR: milik tenant, tak bocor', () => {
 })
 
 describe('P2 — kategori AB: katalog bersama tetap bersama', () => {
-  it('AHSP nasional terlihat oleh KEDUA tenant', async () => {
-    // Ini yang membuat katalog nasional jadi nilai jual produk, bukan aset satu
-    // pelanggan. Kalau angka B jauh lebih kecil dari 2.620, berarti scoping
-    // terlalu ketat dan tenant baru kehilangan katalognya.
+  it('AHSP nasional (company_id NULL) terlihat oleh KEDUA tenant', async () => {
+    // Inilah yang membuat katalog nasional jadi nilai jual produk, bukan aset
+    // satu pelanggan: tenant BARU langsung mewarisinya.
+    //
+    // Ambangnya dihitung dari DB, bukan angka hardcode. Versi pertama memakai
+    // `> 2000` (jumlah seed dev) dan itu salah secara prinsip — CI memakai
+    // database berbeda yang seedny berbeda pula.
+    const nasional = (await c.query(
+      `SELECT count(*)::int n FROM assemblies WHERE company_id IS NULL`)).rows[0].n
     const a = (await barisKategoriAB('assemblies', companyA)).rows[0].n
     const b = (await barisKategoriAB('assemblies', companyB)).rows[0].n
-    expect(a, 'tenant A kehilangan katalog').toBeGreaterThan(2000)
-    expect(b, 'tenant BARU tak mewarisi katalog nasional').toBeGreaterThan(2000)
+
+    // Tenant B baru dibuat & belum punya assembly sendiri → ia melihat PERSIS
+    // katalog bersama. Tenant A melihat itu plus miliknya.
+    expect(b, 'tenant baru tak mewarisi katalog bersama').toBe(nasional)
+    expect(a, 'tenant A kehilangan katalog bersama').toBeGreaterThanOrEqual(nasional)
   }, 30_000)
 
   it('AHSP company milik A TIDAK ikut terlihat tenant B', async () => {
+    // Fixture dibuat SENDIRI, tidak menumpang data lingkungan. Versi pertama
+    // test ini mengasumsikan tenant A sudah punya assembly company (benar di
+    // dev: 418 Cibuluh) — dan MERAH di CI, yang databasenya tak punya seed itu.
+    // Assertion yang bergantung bentuk data lingkungan = test yang lulusnya
+    // kebetulan.
+    const cc = (await c.query(`SELECT id FROM cost_codes LIMIT 1`)).rows[0].id
+    await c.query(
+      `INSERT INTO assemblies (code, name, cost_code_id, source, output_unit_code, created_by, company_id)
+       VALUES ('[UJI-P2]ASM', 'Assembly milik A', $1, 'company', 'm2', $2, $3)`,
+      [cc, userId, companyA])
+
     const a = (await barisKategoriAB('assemblies', companyA)).rows[0].n
     const b = (await barisKategoriAB('assemblies', companyB)).rows[0].n
-    // A = nasional + miliknya sendiri; B = nasional saja. Selisihnya persis
-    // jumlah assembly company milik A.
     const milikA = (await c.query(
       `SELECT count(*)::int n FROM assemblies WHERE company_id = $1`, [companyA])).rows[0].n
+
+    // A = nasional (bersama) + miliknya sendiri; B = nasional saja.
+    // Selisihnya PERSIS jumlah assembly company milik A.
+    expect(milikA, 'fixture yang baru dibuat harus terhitung').toBeGreaterThan(0)
     expect(a - b).toBe(milikA)
-    expect(milikA, 'fixture: tenant A harus punya assembly company').toBeGreaterThan(0)
   }, 30_000)
 })
 
