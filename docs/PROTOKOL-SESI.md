@@ -86,6 +86,11 @@ Belum selesai sebelum:
 - `STATUS.md` di-update (tanggal + fase aktif + keputusan terbuka baru bila ada)
   — bagian DoD, bukan opsional. Dokumen lain yang jadi basi akibat kerja ini
   ikut dikoreksi di PR yang sama.
+- **`docs/ROADMAP.md` di-update** bila kerja ini menyelesaikan/mengubah item di
+  sana: status + nomor PR + tanggal. **Status tanpa bukti PR tidak dihitung.**
+  Inilah yang membedakan tracker hidup dari daftar keinginan yang membusuk —
+  repo ini sudah punya 8 kontradiksi terdokumentasi akibat dokumen rencana yang
+  tak pernah diperbarui (`PETA-PRIORITAS-ERP.md` §2).
 - Laporan akhir memuat: (1) apa yang berubah + link PR, (2) bukti verifikasi,
   (3) dokumen apa yang di-update, (4) keputusan terbuka baru untuk founder,
   (5) apa yang SENGAJA tidak disentuh dan kenapa.

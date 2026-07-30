@@ -38,7 +38,8 @@ dipercaya tanpa cek) · **SELESAI** (tugasnya tuntas, jadi arsip) · **ASPIRASIO
 | `DEVELOPMENT_LOG.md` | **AKTIF** | Log berjalan de-facto (entry terakhir 2026-07-25) — sumber status harian terbaik |
 | `ERP-KONTRAKTOR-TAKSONOMI-MENU.md` | **AKTIF (terverifikasi)** | Dikoreksi sesi ini; kembaran di folder EA identik |
 | `KEPUTUSAN-MULTI-COMPANY.md` | **AKTIF (rekomendasi)** | Menunggu ack owner → lalu jadi ADR |
-| `PETA-PRIORITAS-ERP.md` | **AKTIF** | Dokumen ini |
+| `PETA-PRIORITAS-ERP.md` | **AKTIF** | Dokumen ini — kini fungsinya **registry dokumen** (§1) + alasan ranking (§3). Daftar pekerjaannya pindah ke `ROADMAP.md` |
+| `ROADMAP.md` | **AKTIF (baru 2026-07-31)** | **Satu-satunya daftar pekerjaan.** Merge dari 5 sumber (`ERP_MASTER_PLAN` 13 Modul, PETA §3, Blueprint 6 Capability, `STATUS.md` §AUDIT, build-order CECEP) + tracker hidup dengan bukti PR per item |
 
 ### docs/superpowers/specs/2026-07-18-enterprise-architecture/
 | Dokumen/folder | Status | Catatan |
@@ -79,6 +80,14 @@ List + ADR → kickoff/desain per-modul (CECEP dkk) → dokumen status → dokum
 ---
 
 ## 3. URUTAN PEMBANGUNAN — ranking KERUGIAN-JIKA-TIDAK-ADA
+
+> ⚠️ **SUPERSEDED 2026-07-31 → [`ROADMAP.md`](./ROADMAP.md).** Ranking di bawah
+> sudah di-merge ke sana bersama empat sumber lain, di-dedup, dan diurutkan
+> ulang berdasar kondisi kode terkini. **Status per-item di tabel bawah tidak
+> lagi dipelihara** — beberapa sudah selesai sejak ditulis (#2 3-way match,
+> #3 register piutang), dan #1 CECEP kini tuntas kecuali langkah 9.
+> Bagian ini dipertahankan sebagai **alasan** di balik ranking (kolom
+> "kerugian nyata jika ditunda" masih berguna), bukan sebagai daftar kerja.
 
 Konteks bisnis: kontraktor Indonesia, proyek pabrik & gudang, pemberi kerja swasta +
 pemerintah, tim kecil, sistem mandor/borongan. Dinilai dengan 5 kriteria kualitas

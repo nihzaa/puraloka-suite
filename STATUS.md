@@ -508,8 +508,9 @@ Phase 1 (Program A) ✅ · Phase 2 (Program B) ✅.
 
 | Butuh | Baca |
 |---|---|
+| **"Apa pekerjaan berikutnya?"** | **`docs/ROADMAP.md`** ← satu-satunya daftar pekerjaan + tracker |
 | Log berjalan harian (per-migration/PR) | `docs/DEVELOPMENT_LOG.md` |
-| Peta prioritas + registry semua dokumen rencana (mana AKTIF/STALE) | `docs/PETA-PRIORITAS-ERP.md` ← **dokumen induk** |
+| Registry dokumen rencana (mana AKTIF/STALE) | `docs/PETA-PRIORITAS-ERP.md` (§3-nya SUPERSEDED oleh ROADMAP) |
 | Status per-menu ERP terverifikasi kode | `docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md` |
 | Strategi multi-tenant (AKTIF, ACCEPTED) | `.../Engineering-Constitution/adr/ADR-011-multi-tenant-strategy.md` |
 | Klasifikasi 94 tabel A/AB/B/C/D + 3 temuan T1 | `.../Engineering-Constitution/adr/ADR-011-T1-AUDIT-KLASIFIKASI-TABEL.md` |
