@@ -567,9 +567,13 @@ kode bilang "sudah") — jangan percaya ketiganya lagi:
    Dua entri `auditConfig.ignoreGhsas` ber-alasan terverifikasi (xlsx =
    false-positive versi-dari-URL; brace-expansion = tak bisa di-override tanpa
    mematikan ESLint, dan tak punya permukaan serang di runtime).
-3. **`@typescript-eslint/no-explicit-any` di-set `"off"`** di `apps/api/eslint.config.mjs`,
-   padahal `01-coding-standards` MUST #3 menyebut rule itu sebagai mekanisme verifikasinya.
-   Aturan dinonaktifkan tanpa amandemen.
+3. ~~**`@typescript-eslint/no-explicit-any` di-set `"off"`**~~ — **✅ DITUTUP
+   2026-07-31** (A3). Dinyalakan sebagai `warn` + ratchet per-rule
+   (`apps/api/scripts/lint-ratchet.mjs`; ambang 227 `any` + 16 `unused-vars`),
+   dan step Lint di CI job `api` kini memanggil ratchet itu.
+   Mematikan rule sambil tetap menuliskan MUST di dokumen adalah bentuk
+   terburuk — standarnya **terlihat** ditegakkan padahal tidak. Kini aturan
+   selaras dengan praktik, hutangnya terukur, dan tak bisa diam-diam bertambah.
 4. ~~**Nol audit aksesibilitas**~~ — **✅ DITUTUP 2026-07-31** (A4).
    `eslint-plugin-jsx-a11y` diaktifkan penuh. Sebelumnya `eslint-config-next`
    hanya membawa segelintir rule bawaan (cuma `alt-text` aktif) — jadi "cuma 3

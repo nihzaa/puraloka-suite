@@ -38,8 +38,12 @@ jobs:
         run: pnpm install --frozen-lockfile
         working-directory: .
 
-      - name: Lint
-        run: pnpm lint
+      # A3: ratchet, bukan `pnpm lint` polos. `no-explicit-any` sebelumnya
+      # di-set "off" padahal `01-coding-standards.md` MUST #3 menyebut rule
+      # itu sebagai mekanisme verifikasinya sendiri. Kini `warn` + jumlahnya
+      # dikunci per-rule — lihat apps/api/scripts/lint-ratchet.mjs.
+      - name: Lint (ratchet — nol error, warning tak boleh bertambah)
+        run: pnpm lint:ratchet
 
       - name: Typecheck
         run: pnpm exec tsc --noEmit
