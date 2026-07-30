@@ -97,14 +97,35 @@ export default async function rapRoutes(app: FastifyInstance) {
       // Turunkan kuantitas dari take-off RAB. Memakai fungsi agregasi yang SAMA
       // dengan endpoint /material-takeoff — bukan menyalin logikanya — supaya
       // pagu tak pernah berbeda dari take-off yang dilihat di layar RAB.
-      const { data: items } = await request.db!
-        .viaProject('estimate_items', projectId)
+      //
+      // BUG DITEMUKAN 2026-07-30 (verifikasi E2E, bukan laporan): kode lama
+      // memanggil `.viaProject('estimate_items', projectId)`. Peta tenancy
+      // (`tenant-map.generated.ts`) mendaftarkan `estimate_items` dengan
+      // `lewat: 'estimate_version_id'` — bukan `project_id` (tabel ini memang
+      // tak punya kolom itu). Argumen KEDUA `viaProject()` harus berupa ID yang
+      // cocok dengan kolom `lewat` yang terdaftar, BUKAN selalu projectId
+      // secara harfiah — nama fungsinya menyesatkan, tapi kontraknya generik.
+      // Mengirim `projectId` di sana memfilter `.eq('estimate_version_id',
+      // projectId)`, yang TAK PERNAH match (projectId bukan UUID versi) →
+      // `items` selalu kosong, gagal SENYAP (bukan error, endpoint tetap 201).
+      // Argumen yang benar: `body.estimate_version_id` (sudah diverifikasi
+      // milik `projectId` tepat di atas).
+      const { data: items, error: errItems } = await request.db!
+        .viaProject('estimate_items', body.estimate_version_id)
         .select(`id, quantity,
                  assembly:assemblies(code, name,
                    components:assembly_components(coefficient,
                      resource:resources(id, code, name, category, unit_code)))`)
-        .eq('estimate_version_id', body.estimate_version_id)
         .not('assembly_id', 'is', null)
+      if (errItems) {
+        // RAP (rap_budget) SUDAH ter-INSERT di atas — tanpa rollback ini, baris
+        // gagal senyap: caller dikira "RAP tidak dibuat" padahal ada di DB,
+        // yatim tanpa baris material (pola sama /adopt: batalkan, jangan
+        // biarkan lahir setengah jadi).
+        await request.db!.viaProject('rap_budget', projectId).delete().eq('id', rap.id)
+        request.log.error({ err: errItems }, 'gagal membaca take-off estimate_items utk derivasi RAP; RAP dibatalkan')
+        return reply.status(500).send({ error: 'Gagal membaca take-off RAB — RAP tidak dibuat' })
+      }
 
       type CompRow = {
         coefficient: number
@@ -140,8 +161,15 @@ export default async function rapRoutes(app: FastifyInstance) {
 
       const agregat = computeMaterialAggregation(lines)
       if (agregat.length > 0) {
+        // viaProject(tabel, id): id harus cocok kolom `lewat` terdaftar tabel
+        // ini (`rap_budget_id`, bukan project_id — tabel ini pun tak punya
+        // kolom itu). `.insert()` sendiri tak menerapkan filter apa pun (lihat
+        // scoped() — hanya select/update/delete yang difilter), jadi memakai
+        // projectId di sini kebetulan tak menimbulkan bug DATA, tapi tetap
+        // salah secara tipe/semantik — diperbaiki sekalian biar tak menyesatkan
+        // pembaca berikutnya yang mengira argumen ini benar-benar dipakai.
         const { error: errLine } = await request.db!
-          .viaProject('rap_material_line', projectId)
+          .viaProject('rap_material_line', rap.id)
           .insert(agregat.map((a) => ({
             rap_budget_id: rap.id,
             resource_id: a.resourceId,
@@ -178,16 +206,18 @@ export default async function rapRoutes(app: FastifyInstance) {
       const rap = await ambilRap(request, request.params.id)
       if (!rap) return reply.status(404).send({ error: 'RAP tidak ditemukan' })
 
+      // viaProject(tabel, id): id harus cocok kolom `lewat` terdaftar
+      // (`rap_budget_id`, bukan `rap.project_id` — bug ditemukan 2026-07-30
+      // via verifikasi E2E: dua `.eq('rap_budget_id', ...)` dgn nilai beda
+      // saling AND, hasilnya SELALU nol baris, gagal senyap tanpa error).
       const { data: material } = await request.db!
-        .viaProject('rap_material_line', rap.project_id)
+        .viaProject('rap_material_line', rap.id)
         .select(`id, resource_id, qty_ahsp, qty_adjusted, unit_code, supplier_price,
                  supplier_id, pagu, notes, resource:resources(code, name)`)
-        .eq('rap_budget_id', rap.id)
 
       const { data: labor } = await request.db!
-        .viaProject('rap_labor_line', rap.project_id)
+        .viaProject('rap_labor_line', rap.id)
         .select('id, work_scope_id, description, borongan_value, notes')
-        .eq('rap_budget_id', rap.id)
 
       const totalMaterial = (material ?? []).reduce(
         (s: number, r: { pagu: string | number }) => s + Number(r.pagu ?? 0), 0)
@@ -244,10 +274,9 @@ export default async function rapRoutes(app: FastifyInstance) {
       patch.updated_at = new Date().toISOString()
 
       const { data, error } = await request.db!
-        .viaProject('rap_material_line', rap.project_id)
+        .viaProject('rap_material_line', rap.id)
         .update(patch)
         .eq('id', request.params.lineId)
-        .eq('rap_budget_id', rap.id)
         .select('id, qty_ahsp, qty_adjusted, supplier_price, pagu')
         .maybeSingle()
 
@@ -279,7 +308,7 @@ export default async function rapRoutes(app: FastifyInstance) {
       }
 
       const { data, error } = await request.db!
-        .viaProject('rap_labor_line', rap.project_id)
+        .viaProject('rap_labor_line', rap.id)
         .insert({
           rap_budget_id: rap.id,
           work_scope_id: body.work_scope_id ?? null,
@@ -309,11 +338,11 @@ export default async function rapRoutes(app: FastifyInstance) {
       // biasanya harga supplier belum sempat diisi. Ditolak dengan penjelasan,
       // bukan dibiarkan menghasilkan komitmen kosong yang tak bisa dibuka lagi.
       const { data: baris } = await request.db!
-        .viaProject('rap_material_line', rap.project_id)
-        .select('pagu').eq('rap_budget_id', rap.id)
+        .viaProject('rap_material_line', rap.id)
+        .select('pagu')
       const { data: upah } = await request.db!
-        .viaProject('rap_labor_line', rap.project_id)
-        .select('borongan_value').eq('rap_budget_id', rap.id)
+        .viaProject('rap_labor_line', rap.id)
+        .select('borongan_value')
 
       const total =
         (baris ?? []).reduce((s: number, r: { pagu: string | number }) => s + Number(r.pagu ?? 0), 0) +
@@ -378,7 +407,7 @@ export default async function rapRoutes(app: FastifyInstance) {
       }
 
       const { data, error } = await request.db!
-        .viaProject('rap_change_log', rap.project_id)
+        .viaProject('rap_change_log', rap.id)
         .insert({
           rap_budget_id: rap.id,
           line_table: body.line_table,
@@ -405,9 +434,8 @@ export default async function rapRoutes(app: FastifyInstance) {
       if (!rap) return reply.status(404).send({ error: 'RAP tidak ditemukan' })
 
       const { data, error } = await request.db!
-        .viaProject('rap_change_log', rap.project_id)
+        .viaProject('rap_change_log', rap.id)
         .select('id, line_table, line_id, field_name, old_value, new_value, reason, changed_at, changed_by')
-        .eq('rap_budget_id', rap.id)
         .order('changed_at', { ascending: false })
 
       if (error) return reply.status(500).send({ error: error.message })
