@@ -539,11 +539,34 @@ kode bilang "sudah") — jangan percaya ketiganya lagi:
 | Taksonomi + `02-security`: "trigger append-only 073 masih DORMAN" | **Sudah aktif** — `tgenabled='O'` |
 | `Engineering-Constitution/08-testing`: "nol infrastruktur test" | **883 test hijau** — badge beku sejak v1.1 Juli-18 |
 
-**Gap NYATA yang terverifikasi (belum dikerjakan, urut dampak):**
-1. **`apps/web` sama sekali di luar CI** — `ci.yml` hanya punya job `api`.
-   Frontend bisa rusak tanpa ketahuan. Termasuk seluruh aturan WCAG yang hidup di web.
-2. **Nol dependency scanning & secret scanning** — `11-devsecops` MUST #4/#5,
-   satu-satunya item ber-label **Critical** yang tersisa. `grep audit .github/workflows/` → nihil.
+**Gap NYATA yang terverifikasi (urut dampak):**
+1. ~~**`apps/web` sama sekali di luar CI**~~ — **✅ DITUTUP 2026-07-31** (A1).
+   Job `web` (lint-ratchet + typecheck + build) kini ada di `ci.yml`, tanpa
+   `needs: api` supaya kegagalan frontend terlihat cepat.
+   **Dua bug pre-existing ikut ketahuan & diperbaiki** — keduanya hanya bisa
+   bersembunyi karena web tak pernah di-CI: (a) **5 error TS2322** di
+   `components/ui/*.tsx` — `@types/react@18` milik `apps/mobile` ikut termuat
+   lewat hoist pnpm, `LegacyRef` React 18 (masih mengizinkan string ref)
+   bentrok dengan `Ref` React 19; akarnya `jsx: "react-jsx"` yang meng-import
+   `react/jsx-runtime` implisit di tiap `.tsx`, ditutup lewat `paths` di
+   `apps/web/tsconfig.json`. (b) **6.070 dari 6.503 lint problem ternyata SEMU**
+   — dari `ds-bundle/` (keluaran bundler, sudah di `.gitignore` tapi tetap
+   dipindai eslint). Kode asli hanya 433; kini 0 error + 431 warning terkunci
+   ratchet per-rule (`apps/web/scripts/lint-ratchet.mjs`).
+2. ~~**Nol dependency scanning & secret scanning**~~ — **✅ DITUTUP 2026-07-31** (A2).
+   Job `keamanan`: `pnpm audit --audit-level=high` + gitleaks atas SELURUH
+   riwayat (`fetch-depth: 0` — rahasia yang di-commit lalu dihapus tetap
+   terdeteksi; relevan karena repo sempat publik).
+   **Audit pertama menemukan 1 critical + 35 high yang nyata** → ditutup:
+   `axios`/`next` di-upgrade langsung · 11 paket transitif dipaksa lewat
+   `overrides` di **`pnpm-workspace.yaml`** (⚠️ sejak pnpm v10 dibaca dari sana,
+   BUKAN `package.json` — kalau salah tempat ia diabaikan diam-diam) ·
+   `xlsx` dipindah ke tarball resmi SheetJS 0.20.3 (npm mentok di 0.18.5 yang
+   rentan; jalur `XLSX.read` atas unggahan pengguna ada di `rab.ts:627`) ·
+   pnpm 11.5.2 → 11.8.0 di 5 tempat. Hasil: **exit code 0**.
+   Dua entri `auditConfig.ignoreGhsas` ber-alasan terverifikasi (xlsx =
+   false-positive versi-dari-URL; brace-expansion = tak bisa di-override tanpa
+   mematikan ESLint, dan tak punya permukaan serang di runtime).
 3. **`@typescript-eslint/no-explicit-any` di-set `"off"`** di `apps/api/eslint.config.mjs`,
    padahal `01-coding-standards` MUST #3 menyebut rule itu sebagai mekanisme verifikasinya.
    Aturan dinonaktifkan tanpa amandemen.

@@ -619,7 +619,6 @@ function KeuanganContent() {
       };
 
       const React = await import("react");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const blob = await pdf(
         React.createElement(InvoicePDF, { invoice: invoiceData, company, qrDataUrl }) as any
       ).toBlob();

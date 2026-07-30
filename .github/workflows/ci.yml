@@ -27,7 +27,7 @@ jobs:
 
       - uses: pnpm/action-setup@v4
         with:
-          version: 11.5.2
+          version: 11.8.0
 
       - uses: actions/setup-node@v4
         with:
@@ -81,3 +81,90 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+  # ── A1 (STATUS.md §AUDIT) — apps/web SEBELUMNYA SAMA SEKALI DI LUAR CI ─────
+  # Sampai 2026-07-31 hanya job `api` yang ada: frontend bisa rusak (tsc error,
+  # build gagal, lint error baru) tanpa CI tahu, dan seluruh aturan WCAG yang
+  # hidup di sisi web tak pernah tersentuh penegakan apa pun.
+  #
+  # SENGAJA tanpa `needs: api` — kegagalan frontend harus terlihat cepat dan
+  # tak menunggu test DB yang ~12 menit. Job ini juga tidak menyentuh DB sama
+  # sekali, jadi tak ikut antre di concurrency group project CI.
+  web:
+    name: Web — lint (ratchet), typecheck, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.8.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: .
+
+      # Ratchet, bukan `pnpm lint` polos: 315 error menumpuk selama web di luar
+      # CI. Aturannya diturunkan ke `warn` (eslint.config.mjs) lalu jumlahnya
+      # DIKUNCI per-rule — boleh turun, tak boleh naik. Nol error tetap wajib.
+      # Alasan lengkap: apps/web/scripts/lint-ratchet.mjs
+      - name: Lint (ratchet — nol error, warning tak boleh bertambah)
+        run: pnpm lint:ratchet
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Build
+        run: pnpm build
+
+  # ── A2 (STATUS.md §AUDIT) — dependency & secret scanning ──────────────────
+  # `11-devsecops-standard.md` MUST #4 (secret scanning) & MUST #5 (`pnpm audit`
+  # memblokir merge untuk CVE Critical/High) adalah SATU-SATUNYA item ber-label
+  # Critical yang masih terbuka sampai 2026-07-31 — nol penegakan di workflow
+  # mana pun. `23-dependency-management.md` MUST #2 bergantung penuh padanya.
+  #
+  # Relevansinya naik karena repo ini SEMPAT PUBLIK dengan 4 password test di
+  # riwayat git (repo dijadikan private 2026-07-31, tapi riwayatnya tetap ada).
+  keamanan:
+    name: Keamanan — dependency audit + secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Secret scan butuh riwayat penuh: rahasia yang di-commit lalu dihapus
+          # di commit berikutnya TETAP ada di riwayat dan tetap bisa dipulihkan.
+          # Depth 1 hanya melihat snapshot terakhir — persis yang gagal ditangkap.
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.8.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # MUST #5: Critical/High memblokir merge. Moderate/Low dilaporkan tapi
+      # tidak memblokir — ambang ini yang tertulis di standar, bukan pilihan
+      # sembarang. Kalau gagal: upgrade paketnya, jangan longgarkan ambang.
+      - name: Dependency audit (Critical/High memblokir)
+        run: pnpm audit --audit-level=high
+
+      # MUST #4: secret scanning atas SELURUH riwayat (fetch-depth: 0 di atas),
+      # bukan hanya diff PR — rahasia lama yang belum dirotasi tetap terdeteksi.
+      - name: Secret scan (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
