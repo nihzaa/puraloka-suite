@@ -505,6 +505,54 @@
 ---
 
 
+### 2026-07-30 — Fix — Koreksi bug parser AHSP Cibuluh: 3 blok analisa tak terdeteksi (Migration 141, PR #117)
+**Status**: Done · **PR**: #117 (squash-merged, CI hijau)
+**Files affected**:
+- `db/seeds/tools/extract-ahsp-cibuluh.py` — regex `HDR_RE`/`OUT_UNIT_RE`: `\b` diganti lookahead eksplisit
+- `db/migrations/141_koreksi_cib_bgk_b3_koefisien.sql` + kembar (applied dev) — arsipkan baris lama `superseded`, baris baru `edit_type='correction'` + `edited_from`
+- `db/seeds/ahsp-cibuluh-dataset.json` — regenerasi 417→420 analisa, 2.682→2.698 koefisien
+- `apps/api/scripts/seed-ahsp-cibuluh.mjs` — isi `company_id` (constraint `assemblies_source_company_konsisten`)
+**Notes**: Regex mensyaratkan spasi wajib antara "1" dan kode satuan; `\b` gagal cocok saat kode satuan langsung disambung huruf. Tiga baris workbook memakai format itu (`"1 M1BONGKARAN…"`, `"1M3 PASANGAN BALOK GORDING KY.KRUING/BORNEO"`) → parser tak pernah melihat blok baru dimulai, komponennya bocor ke blok B.3 sebelumnya, dedup resource menjumlahkan koefisien (Pekerja 0,05+0,043=0,093; Mandor 0,025+0,02=0,045). Diverifikasi manual thd baris mentah workbook: **0 regresi pada 433 blok lain**. Migrasi 141 punya safety check — berhenti (RAISE EXCEPTION) bila `estimate_items` sudah memakai assembly lama. **Ditemukan lewat pertanyaan founder soal selisih HSP, bukan audit terjadwal.**
+
+---
+
+
+### 2026-07-30 — Feature — CECEP langkah 8: Edit AHSP (correction/deviation) + Aktifkan draft (PR #118)
+**Status**: Done · **PR**: #118 (squash-merged, CI hijau 16m28s)
+**Files affected**:
+- `apps/api/src/routes/v1/ahsp.ts` — `POST /cecep/assemblies/:id/edit` (correction: source+edition tetap; deviation: fork ke company bila asalnya national) + `PATCH /cecep/assemblies/:id/activate`
+- `apps/web/app/(dashboard)/estimasi/page.tsx` — tombol "Edit (versi baru)", badge DRAFT, tombol "Aktifkan", `EditAssemblyModal`
+- `apps/web/middleware.ts` — **fix bug pre-existing**: `/estimasi` tak pernah ada di `ROLE_ALLOWED` admin/pm
+- `apps/api/src/routes/v1/__tests__/ahsp-endpoint.test.ts` — 8 test baru (869 total)
+**Notes**: Baris asal TAK PERNAH di-mutate (immutability M1-M2) — hanya dibaca lalu disalin ke versi baru (`version_number+1`, `edited_from`). **Bug middleware ditemukan lewat verifikasi E2E Playwright dengan login admin nyata**: `/estimasi` tak ada di daftar role sejak halaman itu dibuat (PR #90) — artinya seluruh CECEP (langkah 1-8) tak bisa diakses dari UI sejak awal, hanya API yang pernah teruji. Kelas bug yang hanya bisa ditangkap uji end-to-end, bukan test handler.
+
+---
+
+
+### 2026-07-30 — Feature — CECEP langkah 10: UI Material & RAP + fix bug viaProject (PR #119)
+**Status**: Done · **PR**: #119 (squash-merged, CI hijau 17m45s)
+**Files affected**:
+- `apps/web/app/(dashboard)/estimasi/page.tsx` — tab ke-4 "Material & RAP": picker proyek→RAP, tabel material (qty RAB beku vs qty disesuaikan, harga supplier, pagu computed), tabel borongan, tombol Kunci Pagu, badge draft/locked, Log Perubahan
+- `apps/api/src/routes/v1/rap.ts` — **fix bug pre-existing** `viaProject(tabel, ID_SALAH)` di 8 titik
+- `apps/api/src/routes/v1/__tests__/cecep-rap-endpoint.test.ts` (baru) — 9 test HTTP (878 total)
+**Notes**: Bug: `rap_material_line`/`rap_labor_line`/`rap_change_log` terdaftar di peta tenancy dengan `lewat:'rap_budget_id'`, tapi kode lama mengirim `projectId`/`rap.project_id`. Akibatnya `POST /projects/:id/rap` melaporkan `baris_material` benar tapi **tabelnya selalu kosong** (gagal senyap, tetap 201), dan `GET /rap/:id` punya dua `.eq('rap_budget_id')` bernilai beda yang saling AND → selalu nol baris. Test existing hanya menguji trigger DB via INSERT manual, tak pernah lewat jalur HTTP — celah itu ditutup 9 test baru. Ditambah error handling berisik + rollback RAP yatim bila derivasi gagal.
+
+---
+
+
+### 2026-07-31 — Fix — Cost Baseline EVM: BAC dari pagu RAP terkunci, bukan RAB
+**Status**: Done
+**Files affected**:
+- `apps/api/src/routes/v1/kurva-s.ts` — query `rap_budget` status `locked` via `viaProject`; BAC berjenjang: pagu RAP → RAB → `contract_value`; `bacSource` + `paguRAP` diekspos di `meta.evm`
+- `apps/web/components/kurva-s-section.tsx` — label basis BAC eksplisit ("pagu RAP (biaya)" / "nilai RAB (termasuk margin)"), sub-label EAC ikut menyesuaikan, penjelasan di panel info EVM
+- `apps/api/src/routes/v1/__tests__/kurva-s-bac-baseline.test.ts` (baru) — 5 test (883 total)
+**Notes**: BAC lama = `totalRABValue`, yaitu nilai **JUAL** ke klien yang sudah mengandung margin/BUK. Memakainya sebagai "biaya yang dianggarkan" membuat **CPI/SPI sistematis terlalu optimistis** — pembengkakan biaya kecil tersembunyi di balik bantalan margin sampai margin itu habis. Ini akar masalah yang `CECEP/03` §6 catat sejak awal dan `CECEP/52` Gap-2 tetapkan solusinya (Cost Baseline = RAP Frozen); prasyaratnya baru lunas setelah RAP live (migrasi 138, PR #119). Hanya RAP `locked` yang dipakai — RAP draft masih berubah, dan baseline yang bergerak bukan baseline. **Regresi dijaga**: proyek tanpa RAP terkunci memakai perilaku lama persis (test khusus), supaya angka proyek berjalan tak berubah mendadak. Mutation-proof: fix dicabut → 2 test inti merah, test regresi tetap hijau; dipulihkan → 5/5. Ratchet tenancy sempat merah karena versi awal memakai `supabase` mentah → diperbaiki ke `viaProject` (query jadi ter-scope tenant sekalian). Gate: tsc 0 (api+web), lint API 0 error, 883 test hijau (95 file), build web sukses.
+
+**Ditemukan saat**: pembacaan menyeluruh 233 file `docs/` atas permintaan founder — bukan dari laporan bug. Temuan lain dari pembacaan itu (belum dikerjakan): `apps/web` sama sekali di luar CI, nol dependency/secret scanning, `no-explicit-any` dimatikan tanpa amandemen, nol audit WCAG.
+
+---
+
+
 <!-- Template untuk entry baru:
 
 ### YYYY-MM-DD HH:MM — [Kategori] — [Deskripsi]

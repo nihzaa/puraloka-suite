@@ -1,6 +1,6 @@
 # STATUS — Puraloka Suite (penunjuk satu pintu)
 
-**Diperbarui:** 2026-07-30 (rev-4: CECEP langkah 8 & 10 selesai — build-order 10 langkah tuntas kecuali langkah 9 yang sengaja ditunda) · File ini adalah `STATUS.md` yang diwajibkan AUTOPILOT §2
+**Diperbarui:** 2026-07-31 (rev-5: audit 233 file docs + BAC EVM diperbaiki + repo jadi PRIVATE) · File ini adalah `STATUS.md` yang diwajibkan AUTOPILOT §2
 — penunjuk TIPIS, bukan duplikasi konten. Update tanggal + baris "Fase aktif" setiap
 kali keadaan berubah; detail selalu di dokumen rujukan.
 
@@ -517,6 +517,65 @@ Phase 1 (Program A) ✅ · Phase 2 (Program B) ✅.
 | Status Phase 1/2 + temuan RLS/storage | `docs/superpowers/specs/2026-07-18-enterprise-architecture/PHASE-{1,2}-STATUS.md` |
 | Urutan build CECEP (terkunci, 10 langkah) | `.../CECEP/MATERIAL-RAP-COMPANY-UI-DESIGN.md` + `.../CECEP/NEXT-EXEC-PREP.md` |
 | Peta penomoran Program A–F ↔ Phase 0–9 | `.../Master-Delivery-Blueprint/NUMBERING-GLOSSARY.md` (⚠️ "Phase 7" EA = multi-company; "Fase 7" ERP_MASTER_PLAN = GL — selalu sebut sumber) |
+
+## 📖 AUDIT DOKUMENTASI MENYELURUH — 2026-07-31
+
+**Seluruh 233 file `docs/` dibaca isinya** (bukan judul) atas permintaan founder,
+lalu tiap klaim penting **diverifikasi silang ke kode/DB nyata**. Hasil ringkas:
+
+**Tindakan yang sudah diambil:**
+- 🔒 **Repo dijadikan PRIVATE.** `CECEP/SE47-VS-CIBULUH-ANALYSIS.md` ternyata
+  ter-commit padahal isinya sendiri memperingatkan *"UNTRACKED — jangan commit,
+  memuat angka RAB Cibuluh nyata"* — nilai kontrak Rp 3,67 M + rincian per item,
+  di repo publik. Ini juga menutup paparan 4 password test yang rotasinya ditunda.
+- ✅ **BAC EVM diperbaiki** (lihat DEVELOPMENT_LOG 2026-07-31) — temuan
+  berdampak-tertinggi dari audit ini.
+
+**Tiga klaim dokumen yang ternyata SUDAH USANG** (dokumen bilang "belum",
+kode bilang "sudah") — jangan percaya ketiganya lagi:
+| Klaim | Kenyataan (diverifikasi ke DB dev) |
+|---|---|
+| `ADR-011-T5c` R5: "`auth_client_id()` belum filter company" | **Sudah** — migrasi 133 |
+| Taksonomi + `02-security`: "trigger append-only 073 masih DORMAN" | **Sudah aktif** — `tgenabled='O'` |
+| `Engineering-Constitution/08-testing`: "nol infrastruktur test" | **883 test hijau** — badge beku sejak v1.1 Juli-18 |
+
+**Gap NYATA yang terverifikasi (belum dikerjakan, urut dampak):**
+1. **`apps/web` sama sekali di luar CI** — `ci.yml` hanya punya job `api`.
+   Frontend bisa rusak tanpa ketahuan. Termasuk seluruh aturan WCAG yang hidup di web.
+2. **Nol dependency scanning & secret scanning** — `11-devsecops` MUST #4/#5,
+   satu-satunya item ber-label **Critical** yang tersisa. `grep audit .github/workflows/` → nihil.
+3. **`@typescript-eslint/no-explicit-any` di-set `"off"`** di `apps/api/eslint.config.mjs`,
+   padahal `01-coding-standards` MUST #3 menyebut rule itu sebagai mekanisme verifikasinya.
+   Aturan dinonaktifkan tanpa amandemen.
+4. **Nol audit aksesibilitas** — tak ada `axe-core`/`jsx-a11y`. Pengguna nyata
+   (mandor/tukang, perangkat lama) justru yang paling terdampak.
+5. **T10** (`ADR-011-T9` §5): `auth_role()` baca `users.role_id` (peran global),
+   bukan `company_members.role_id` (peran per-company). Diverifikasi di DB: benar.
+   Tak bergejala hari ini (satu company), menggigit saat badan usaha kedua dibuat.
+6. **ADR-011-T4 belum tuntas** — 468 akses `supabase` mentah tersisa di 9 modul
+   (`clients`, `users`, `roles`, `settings`, `audit`, `documents`, dst). Ratchet
+   `tenancy-ratchet.test.ts` mencegah memburuk, tapi tidak menyelesaikan.
+7. **Rekonsiliasi pagu RAP vs realisasi belanja** (§D7) — gerbang "jangan bangun"
+   sudah lewat karena RAP kini live. Sisa terbesar Lima Pembeda #1.
+
+**Rancangan matang yang terlantar** (ada spesifikasinya, belum dibangun):
+`ERP_MASTER_PLAN.md` Modul 9a (RAB hard-guard di MR, lengkap rumus validasi),
+9b (PO ke WhatsApp/email), 10 (GL + Chart of Accounts + tabel auto-jurnal per
+event) · `AHSP-EDITION-BUILDER-DESIGN` §3.5 (laporan perbandingan antar-edisi —
+sumbu edisi sudah ada, manfaatnya belum dipanen) · `GOLDEN-FILE-SPEC` (paritas
+end-to-end satu RAB nyata; harness ada, fixture nyata belum).
+
+**Cacat administratif dokumen** (kecil, menyesatkan pembaca baru):
+`SUB-FASE-1B-COMPLETION-AUDIT.md` masih template kosong berdampingan dengan
+`PHASE-1B-COMPLETION-AUDIT.md` yang terisi · `CI-ISOLATION-SETUP.md` masih
+tertulis "⛔ MENUNGGU PROVISIONING FOUNDER" padahal sudah tuntas ·
+`runbook-kasbon-workflow-cutover.md` merujuk objek DB yang sudah di-drop.
+
+⚠️ **`Phase1/` JANGAN DIPINDAH** — disitasi 123× oleh Engineering-Constitution
+(dokumen mengikat) **dan** oleh `apps/api/vitest.config.ts:15` di kode produksi.
+Selesai sebagai fase kerja, hidup sebagai basis bukti.
+
+---
 
 ## Keputusan terbuka menunggu Nizar
 

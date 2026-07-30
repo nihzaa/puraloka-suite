@@ -3,8 +3,11 @@
 **Tujuan dokumen:** peta lengkap modul & menu ERP kontraktor kelas profesional,
 dipetakan ke status Puraloka Suite **hasil verifikasi kode nyata** — bukan perkiraan.
 
-**Verifikasi:** 2026-07-26, langsung ke migration (`supabase/migrations/` s.d. **116**),
-route API (`apps/api/src/routes/v1/` — 34 file), UI (`apps/web/`), dan dokumen status.
+**Verifikasi:** basis 2026-07-26 (migration s.d. 116), **diperbarui sebagian 2026-07-31**
+untuk §5 Budget & Cost Control + Lima Pembeda #1/#2 (migration s.d. **141**; RAP live,
+BAC dari pagu RAP). Baris di luar §5 masih bertanggal 26 Juli — perlakukan sebagai
+"terverifikasi saat itu", bukan hari ini. Verifikasi langsung ke migration, route API
+(`apps/api/src/routes/v1/`), UI (`apps/web/`), dan dokumen status.
 Temuan metodologis penting: ada **tiga lapisan** yang mudah tertukar —
 (a) migration SQL, (b) lib/engine + test, (c) route HTTP + UI. Banyak item hanya
 sampai (a) atau (b). Status di bawah menilai **end-to-end (c)**, dengan catatan
@@ -113,7 +116,7 @@ Jantung ERP kontraktor. Lihat skor Lima Pembeda di bawah.
 | Menu | Status | Catatan |
 |---|---|---|
 | **RAB (anggaran penawaran)** | ✅ | `rab_items` + komponen biaya + upload Excel; jalur CECEP estimate→RAB masih DB-only |
-| **RAP (anggaran pelaksanaan)** | 🔴 | Dirancang lengkap di `CECEP/MATERIAL-RAP-COMPANY-UI-DESIGN.md` §D6 — langkah 7 build order, kode nol |
+| **RAP (anggaran pelaksanaan)** | ✅ | **Live (2026-07-30/31)**: migrasi 138 (`rap_budget`/`rap_material_line`/`rap_labor_line`/`rap_change_log`) + `routes/v1/rap.ts` + UI tab "Material & RAP" di `/estimasi`. Qty diturunkan dari take-off, harga supplier & borongan mandor manual, kunci pagu (guard DB, tak bisa dibuka), perubahan pasca-kunci lewat change-log ber-alasan |
 | Revisi & transfer anggaran | 🔴 | |
 | Commitment tracking (PO + borongan) | 🔴 | |
 | Actual Cost Ledger (ACL) | 🟡 | ⚠️ Koreksi: 112 = `cost_code_category_map` (mapping, anti-corruption layer), BUKAN ledger; actual cost tersebar, diagregasi ad-hoc di `kurva-s.ts` |
@@ -124,7 +127,8 @@ Jantung ERP kontraktor. Lihat skor Lima Pembeda di bawah.
 | Profitabilitas per proyek / per cost code | 🟡 | `/finance/profitability` per proyek ✅; per cost code 🔴 |
 | **WIP / persentase penyelesaian (PSAK)** | 🔴 | |
 | **Cost Value Reconciliation (CVR)** | 🔴 | |
-| Pagu belanja per material | 🔴 | Dirancang (§D6), kode nol |
+| Pagu belanja per material | ✅ | Live bersama RAP — `rap_material_line.pagu` kolom GENERATED (`qty_adjusted × supplier_price`), beku setelah lock |
+| **Cost Baseline EVM (BAC)** | ✅ | **2026-07-31**: BAC berjenjang — pagu RAP terkunci (BIAYA) → RAB → contract_value. Sebelumnya selalu RAB (nilai JUAL, mengandung margin) sehingga CPI/SPI sistematis optimistis — akar masalah `CECEP/03` §6, solusi `CECEP/52` Gap-2. `meta.evm.bacSource` menyatakan basis yang dipakai; UI menyebutnya eksplisit. Mutation-tested |
 
 ---
 
@@ -379,7 +383,7 @@ Ditemukan saat verifikasi (bukti = route/UI nyata):
 | # | Kriteria | Posisi hari ini (terverifikasi) |
 |---|---|---|
 | 1 | **Angka finansial selalu bisa dipertanggungjawabkan** | Kuat sebagian: audit trail + diff + correlation_id + QR invoice ✅; **gap: trigger append-only (073) dorman** — audit log masih bisa diubah diam-diam oleh service_role |
-| 2 | **Cost control berlapis benar-benar jalan** | 2/5 — lihat Lima Pembeda |
+| 2 | **Cost control berlapis benar-benar jalan** | 3/5 (naik 2026-07-31: RAP live + BAC dari pagu RAP) — lihat Lima Pembeda |
 | 3 | **Sistem tahan orang** (tidak bergantung satu orang jujur) | Kuat: approval berjenjang ber-invariant CI, permission-based RBAC, anti-lockout ✅; sisa: RLS table dormant (gerbang mobile), checklist service_role ☐ |
 | 4 | **Data historis tidak rusak oleh aturan baru** | Kuat: effective-dating config finansial, baseline snapshot CO, penalty immutable ✅ — pola WAJIB dipertahankan di modul baru |
 | 5 | **UI tidak bikin pusing orang lapangan** | Lemah: mobile 9 screen tanpa offline/geotag; input harian mandor nyatanya masih WhatsApp (DOMAIN.md §8) |
@@ -390,11 +394,17 @@ Ditemukan saat verifikasi (bukti = route/UI nyata):
 
 # LIMA PEMBEDA ERP KONTRAKTOR ASLI — SKOR TERVERIFIKASI
 
-1. **Cost control berlapis** (RAB→RAP→commitment→aktual→forecast) — **2/5**.
-   RAB ✅; RAP dirancang belum dibangun; commitment 🔴; aktual tersebar (ACL = mapping
-   saja); forecast endpoint tanpa UI.
-2. **EVM** — **3.5/5**. SUDAH ADA (koreksi status lama). Kelemahan di kualitas
-   input (PV manual, EV self-reported), bukan di mesin hitung.
+1. **Cost control berlapis** (RAB→RAP→commitment→aktual→forecast) — **3/5**
+   *(naik dari 2/5, 2026-07-31)*. RAB ✅; **RAP ✅ live** (migrasi 138 + UI, pagu
+   terkunci ber-guard DB); commitment 🔴 (PO+borongan belum diadu ke pagu);
+   aktual tersebar (ACL = mapping saja); forecast endpoint tanpa UI.
+   Sisa terbesar: **rekonsiliasi pagu RAP vs realisasi belanja** (§D7 desain
+   CECEP — gerbang "jangan bangun" sudah lewat karena RAP kini ada).
+2. **EVM** — **4/5** *(naik dari 3.5/5, 2026-07-31)*. Mesin hitung sudah lengkap,
+   dan **basis BAC kini benar**: pagu RAP terkunci (biaya) dipakai lebih dulu
+   sebelum RAB (nilai jual). Sebelumnya CPI/SPI sistematis optimistis karena
+   margin RAB menyamarkan pembengkakan. Sisa kelemahan ada di kualitas *input*
+   (PV dari `rab_schedule` manual, EV self-reported), bukan di rumus.
 3. **WIP / pengakuan pendapatan (PSAK)** — **0/5**. Nihil. Bisa dibangun sebagai
    laporan tanpa GL penuh.
 4. **Rekonsiliasi material** — **1.5/5**. Stok/usage/opname ✅ live; sisi teoritis

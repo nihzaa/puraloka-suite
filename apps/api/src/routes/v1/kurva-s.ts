@@ -124,6 +124,28 @@ export default async function kurvaSRoutes(app: FastifyInstance) {
           .order('settlement_date'),
       ])
 
+      // ── Cost Baseline untuk EVM: pagu RAP yang SUDAH DIKUNCI ──────────────
+      //
+      // BAC (Budget At Completion) harus berupa BIAYA yang dianggarkan, bukan
+      // nilai JUAL. RAB = harga ke klien — sudah mengandung margin/BUK, jadi
+      // memakainya sebagai BAC membuat CPI/SPI sistematis terlalu optimistis:
+      // pembengkakan biaya kecil tersembunyi di balik bantalan margin sampai
+      // margin itu habis. Ini akar masalah yang CECEP/03 §6 catat sejak awal
+      // dan CECEP/52 Gap-2 tetapkan solusinya: Cost Baseline = RAP Frozen.
+      //
+      // Hanya RAP ber-status 'locked' yang dipakai — RAP draft masih berubah,
+      // dan baseline yang bergerak bukan baseline. Bila proyek belum punya RAP
+      // terkunci, perilaku LAMA dipertahankan apa adanya (fallback RAB →
+      // contract_value) supaya proyek berjalan tidak berubah angkanya
+      // mendadak; `bacSource` di respons menyatakan basis mana yang dipakai.
+      const rapLockedRes = await request.db!
+        .viaProject('rap_budget', projectId)
+        .select('id, rap_material_line(pagu), rap_labor_line(borongan_value)')
+        .eq('status', 'locked')
+        .order('locked_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
       // Total durasi proyek dalam minggu
       const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / 86400000) + 1
       const totalWeeks = Math.ceil(totalDays / 7)
@@ -346,7 +368,22 @@ export default async function kurvaSRoutes(app: FastifyInstance) {
       const latestRencana = rencanaPerWeek[Math.min(nowWeekIdx < 0 ? totalWeeks - 1 : nowWeekIdx, totalWeeks - 1)] ?? 0
 
       // EVM — pakai serapan dana (bukan aktual kas) sebagai AC untuk PM view
-      const bac = totalRABValue > 0 ? totalRABValue : contractValue
+      //
+      // BAC berjenjang: pagu RAP terkunci (biaya) → RAB (jual) → contract_value.
+      // Urutannya sengaja: yang paling benar dulu, turun ke yang tersedia.
+      type PaguRow = { pagu: string | number }
+      type BoronganRow = { borongan_value: string | number }
+      const rapRow = rapLockedRes.data as
+        | { rap_material_line?: PaguRow[]; rap_labor_line?: BoronganRow[] }
+        | null
+      const paguRAP = rapRow
+        ? (rapRow.rap_material_line ?? []).reduce((s, r) => s + Number(r.pagu ?? 0), 0)
+          + (rapRow.rap_labor_line ?? []).reduce((s, r) => s + Number(r.borongan_value ?? 0), 0)
+        : 0
+
+      const bacSource: 'rap_locked' | 'rab' | 'contract_value' =
+        paguRAP > 0 ? 'rap_locked' : totalRABValue > 0 ? 'rab' : 'contract_value'
+      const bac = paguRAP > 0 ? paguRAP : totalRABValue > 0 ? totalRABValue : contractValue
       const ac = totalAC                    // aktual kas (internal only)
       const acSerapan = totalSerapan        // serapan dana manual
       const evPct = Number(proj.progress_pct ?? 0)
@@ -371,7 +408,7 @@ export default async function kurvaSRoutes(app: FastifyInstance) {
           latestSerapanPct,
           latestRencanaPct: latestRencana,
           deviasi: parseFloat((latestSerapanPct - latestRencana).toFixed(2)),
-          evm: { bac, ac, acSerapan, ev, pv, sv, cv, cpi, spi, eac, etc, vac, tcpi, evPct, pvPct, acPct: latestActual },
+          evm: { bac, bacSource, paguRAP, ac, acSerapan, ev, pv, sv, cv, cpi, spi, eac, etc, vac, tcpi, evPct, pvPct, acPct: latestActual },
         },
         chartData,
         milestones,
