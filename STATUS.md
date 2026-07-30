@@ -1,6 +1,6 @@
 # STATUS — Puraloka Suite (penunjuk satu pintu)
 
-**Diperbarui:** 2026-07-30 (rev-3: CECEP langkah 8 selesai) · File ini adalah `STATUS.md` yang diwajibkan AUTOPILOT §2
+**Diperbarui:** 2026-07-30 (rev-4: CECEP langkah 8 & 10 selesai — build-order 10 langkah tuntas kecuali langkah 9 yang sengaja ditunda) · File ini adalah `STATUS.md` yang diwajibkan AUTOPILOT §2
 — penunjuk TIPIS, bukan duplikasi konten. Update tanggal + baris "Fase aktif" setiap
 kali keadaan berubah; detail selalu di dokumen rujukan.
 
@@ -430,15 +430,48 @@ per-langkah, verified 2026-07-26/28:**
   founder soal selisih HSP — bukan proses audit terjadwal.
 - ⏸️ **9** dpp_factor split PPN — sengaja ditunda (gerbang D10, butuh guardrail
   di-run ulang di env ber-PPN nyata + aba-aba founder)
-- 🟡 **10** UI `/estimasi` (Komposer+Katalog+Harga+rekap-PPN) hidup; **layar
-  Material/RAP belum ada**
+- ✅ **10** UI `/estimasi` (Komposer+Katalog+Harga+rekap-PPN) hidup + **layar
+  Material & RAP — SELESAI (2026-07-30)**: tab ke-4 di `/estimasi`, picker
+  proyek→RAP existing atau buat baru dari versi estimasi (skenario/versi sama
+  yang dipakai tab Komposer). Tabel Material (qty RAB beku vs qty disesuaikan
+  editable, harga supplier editable, pagu read-only computed) + Tabel Tenaga
+  Kerja Borongan + tombol Kunci Pagu + badge status draft/locked + Log
+  Perubahan (arsip pasca-lock, murni catatan — tak mengubah pagu tersimpan).
+  Reuse skema DB migrasi 138 + endpoint API `rap.ts` (langkah 7) yang sudah ada.
+  **BUG API PRE-EXISTING ditemukan & diperbaiki saat verifikasi E2E** (bukan
+  buatan sesi ini, sudah ada sejak migrasi 138/PR RAP — belum pernah teruji
+  lewat jalur HTTP, hanya trigger DB via INSERT manual): endpoint
+  `POST /projects/:id/rap` dan seluruh endpoint turunan RAP (`GET/PATCH
+  material`, `POST labor`, `PATCH lock`, `POST/GET change-log`) memanggil
+  `.viaProject(tabel, ID_YANG_SALAH)` — tabel `rap_material_line`/
+  `rap_labor_line`/`rap_change_log` terdaftar di peta tenancy dengan
+  `lewat: 'rap_budget_id'` (bukan `project_id` — tabel-tabel ini memang tak
+  punya kolom itu), tapi kode lama selalu mengirim `projectId`/`rap.project_id`
+  sebagai argumen. Akibatnya: `POST /projects/:id/rap` selalu melaporkan
+  `baris_material` benar tapi **rap_material_line selalu kosong** (query SELECT
+  `estimate_items` filter salah kolom → 0 baris, gagal SENYAP tanpa error);
+  `GET /rap/:id` dan endpoint lain punya DUA `.eq('rap_budget_id', ...)` dengan
+  nilai BERBEDA yang saling AND → SELALU nol baris. Bug ini baru ketahuan
+  karena diverifikasi end-to-end lewat browser sungguhan (login admin nyata,
+  create RAP dari item RAB nyata) — test unit existing (`cecep-rap-pagu.test.ts`)
+  tak pernah menyentuh jalur ini. Diperbaiki: semua panggilan `viaProject`
+  untuk tabel ber-`lewat` khusus memakai ID yang benar (`rap.id`, bukan
+  `rap.project_id`); ditambah error handling berisik (sebelumnya `error` dari
+  query take-off tak pernah dicek) + rollback RAP yatim bila derivasi gagal.
+  9 test HTTP baru (`cecep-rap-endpoint.test.ts`) menutup celah coverage ini —
+  878 test total API (dari 869). Diverifikasi E2E penuh: create RAP → edit
+  qty/harga → tambah borongan → kunci pagu → catat perubahan pasca-lock,
+  semua lewat browser sungguhan dengan screenshot terverifikasi.
 
-**Rantai "bikin RAB dari UI" hidup end-to-end** (langkah 1/3/4/5 + sebagian 2/8/10):
+**Rantai "bikin RAB dari UI" hidup end-to-end** (langkah 1/3/4/5/8/10 + sebagian 2):
 proyek → skenario → versi (menyatakan edisi) → item dari **katalog** / **custom
 company mid-estimasi** (§2.2, menyentuh gerbang immutability `assemblies`, ditutup
 approval desain) / **lump-sum** (§2.3, pekerjaan bukan-beranalisa) → price book
 (lifecycle draft→verified→active) → engine paritas → **rekap per kategori + PPN**
 → Ajukan. Tiap rupiah ter-telusur ke `price_book_entry_id` + koefisien + edisi.
+**Rantai "bikin RAP dari UI"** (langkah 6/7/10) juga hidup end-to-end sekarang:
+RAB disetujui → RAP diturunkan dari take-off → sesuaikan qty/harga supplier →
+kunci pagu → catat perubahan pasca-lock.
 
 **PR #86–96 merged** (sumbu edisi 117/118 · thin-slice+seed penuh · price-resolver
 + compute path · scenario/price-book endpoints · UI 3-tab · rekap+PPN · polish
@@ -452,12 +485,13 @@ bertabrakan (parser+auditor, bukan penghasil angka) — lihat plan
 421 company (420 Cibuluh aktif+1 superseded + 1 fixture) · 2.827 resources ·
 58 profil baja.
 
-**Sisa build-order 10 langkah (2026-07-30):** langkah 1/3/4/5/6/7/8 ✅ SELESAI.
-Langkah 9 (dpp_factor split PPN) ⏸️ sengaja ditunda — gerbang D10, butuh
-guardrail di-run ulang di environment ber-PPN nyata + aba-aba founder eksplisit,
-bukan tugas teknis biasa. Langkah 10 sebagian: Komposer+Katalog+Harga+rekap-PPN
-sudah hidup di `/estimasi`; **layar Material/RAP terpisah belum ada** (data RAP
-migrasi 138 sudah bisa ditulis via API, hanya belum punya UI sendiri).
+**Build-order 10 langkah — SELESAI kecuali langkah 9 (2026-07-30):** langkah
+1/3/4/5/6/7/8/10 ✅ SELESAI. Langkah 9 (dpp_factor split PPN) ⏸️ sengaja
+ditunda — gerbang D10, butuh guardrail di-run ulang di environment ber-PPN
+nyata + aba-aba founder eksplisit, bukan tugas teknis biasa (satu-satunya
+sisa build-order CECEP; bukan blocker teknis, menunggu kondisi eksternal).
+~~Langkah 10 sebagian: layar Material/RAP terpisah belum ada~~ — kini tab
+ke-4 "Material & RAP" di `/estimasi`, lihat detail langkah 8/10 di atas.
 
 Sisipan saat jeda gate (sesuai PETA §3, tidak menyela CECEP):
 - **#2 celah 3-way match procurement DITUTUP 2026-07-27** (invoice manual wajib

@@ -13,6 +13,7 @@ import { api } from "@/lib/api";
 import {
   Calculator, Plus, X, ChevronRight, ChevronDown, BookOpen, Coins,
   Layers, Send, Trash2, CheckCircle2, BadgeCheck, PlayCircle, CircleOff, Pencil,
+  Lock, ClipboardList, Package, HardHat, History,
 } from "lucide-react";
 
 const C = {
@@ -57,6 +58,29 @@ interface PriceEntry {
   confidence_level: string | null; status: string;
   resource: { code: string; name: string; category: string; unit_code: string } | null;
 }
+interface RapSummary {
+  id: string; name: string; status: string; notes: string | null;
+  estimate_version_id: string; locked_at: string | null; created_at: string;
+}
+interface RapMaterialLine {
+  id: string; qty_ahsp: number; qty_adjusted: number; unit_code: string;
+  supplier_price: number; supplier_id: string | null; pagu: number; notes: string | null;
+  resource: { code: string; name: string } | null;
+}
+interface RapLaborLine {
+  id: string; description: string; borongan_value: number; notes: string | null;
+  work_scope_id: string | null;
+}
+interface RapDetail {
+  data: RapSummary;
+  material: RapMaterialLine[];
+  labor: RapLaborLine[];
+  total: { material: number; labor: number; pagu: number };
+}
+interface RapChangeLogEntry {
+  id: string; line_table: string; line_id: string; field_name: string | null;
+  old_value: string | null; new_value: string | null; reason: string; changed_at: string;
+}
 
 // ── Kerangka kecil bersama ────────────────────────────────────────────────────
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
@@ -81,6 +105,7 @@ function StatusBadge({ s }: { s: string }) {
     draft: [C.mid, C.bg], under_review: [C.yellow, C.yellowBg], approved: [C.green, C.greenBg],
     frozen: [C.navy, C.bg], superseded: [C.muted, C.bg],
     verified: [C.yellow, C.yellowBg], active: [C.green, C.greenBg], expired: [C.muted, C.bg],
+    locked: [C.navy, C.bg],
   };
   const [fg, bg] = map[s] ?? [C.mid, C.bg];
   return <span style={{ fontSize: 11, fontWeight: 700, color: fg, background: bg, border: `1px solid ${C.border}`, borderRadius: 999, padding: "2px 9px" }}>{s}</span>;
@@ -1208,6 +1233,451 @@ function EditAssemblyModal({ asal, onClose, onDone }: {
   );
 }
 
+// ══ TAB 4 — MATERIAL & RAP ══════════════════════════════════════════════════
+//
+// RAP (Rencana Anggaran Pelaksanaan) ≠ RAB (Rencana Anggaran Biaya, tab Komposer):
+// RAB = rencana JUAL ke klien (harga pasar + upah harian lewat AHSP). RAP = rencana
+// BELANJA internal (harga supplier nyata + borongan mandor) — selisihnya margin yang
+// dikelola. Qty material DITURUNKAN dari take-off RAB (qty_ahsp, beku) lalu boleh
+// DISESUAIKAN (qty_adjusted) sebelum dikunci — itu satu-satunya titik penyesuaian.
+//
+// Sekali dikunci: baris material/labor beku total (guard DB, bukan hanya UI) — tak
+// ada jalur "buka kunci". Penyesuaian sesudahnya HANYA lewat catatan change-log
+// (murni arsip administratif, TIDAK mengubah pagu tersimpan).
+function RapTab() {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectId, setProjectId] = useState("");
+  const [rapList, setRapList] = useState<RapSummary[]>([]);
+  const [rapId, setRapId] = useState("");
+  const [detail, setDetail] = useState<RapDetail | null>(null);
+  const [changeLog, setChangeLog] = useState<RapChangeLogEntry[]>([]);
+  const [showLogTable, setShowLogTable] = useState(false);
+  const [showNewRap, setShowNewRap] = useState(false);
+  const [showAddLabor, setShowAddLabor] = useState(false);
+  const [showLogForm, setShowLogForm] = useState<{ table: "rap_material_line" | "rap_labor_line"; id: string; label: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [pesan, setPesan] = useState("");
+
+  useEffect(() => {
+    api.get<{ projects: Project[] }>("/api/v1/projects").then(r => setProjects(r.data.projects ?? [])).catch(() => {});
+  }, []);
+
+  const loadRapList = useCallback(async (pid: string) => {
+    if (!pid) { setRapList([]); setRapId(""); return; }
+    const r = await api.get<{ data: RapSummary[] }>(`/api/v1/projects/${pid}/rap`);
+    setRapList(r.data.data ?? []);
+  }, []);
+  useEffect(() => { void loadRapList(projectId); setRapId(""); setDetail(null); }, [projectId, loadRapList]);
+
+  const loadDetail = useCallback(async (id: string) => {
+    if (!id) { setDetail(null); return; }
+    const r = await api.get<RapDetail>(`/api/v1/rap/${id}`);
+    setDetail(r.data);
+  }, []);
+  useEffect(() => { void loadDetail(rapId); }, [rapId, loadDetail]);
+
+  const loadChangeLog = useCallback(async (id: string) => {
+    const r = await api.get<{ data: RapChangeLogEntry[] }>(`/api/v1/rap/${id}/change-log`);
+    setChangeLog(r.data.data ?? []);
+  }, []);
+  useEffect(() => { if (showLogTable && rapId) void loadChangeLog(rapId); }, [showLogTable, rapId, loadChangeLog]);
+
+  const refresh = async () => { await loadDetail(rapId); await loadRapList(projectId); if (showLogTable) await loadChangeLog(rapId); };
+
+  const locked = detail?.data.status === "locked";
+
+  async function simpanQty(line: RapMaterialLine, field: "qty_adjusted" | "supplier_price", value: string) {
+    const num = Number(value);
+    if (!Number.isFinite(num) || num < 0) return;
+    setErr("");
+    try {
+      await api.patch(`/api/v1/rap/${rapId}/material/${line.id}`, { [field]: num });
+      await refresh();
+    } catch (e) {
+      setErr((e as { response?: { data?: { error?: string } } }).response?.data?.error ?? "Gagal menyimpan");
+    }
+  }
+
+  async function kunciPagu() {
+    if (!detail) return;
+    if (!window.confirm(
+      `Kunci pagu "${detail.data.name}"? Baris material & tenaga kerja tidak bisa diubah lagi setelah ini — hanya bisa dicatat via log perubahan.`
+    )) return;
+    setBusy(true); setErr("");
+    try {
+      await api.patch(`/api/v1/rap/${rapId}/lock`);
+      setPesan("Pagu dikunci — baris material & tenaga kerja kini beku.");
+      await refresh();
+    } catch (e) {
+      setErr((e as { response?: { data?: { error?: string } } }).response?.data?.error ?? "Gagal mengunci pagu");
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <div>
+      {pesan && (
+        <div role="status" style={{ ...card, padding: "10px 14px", marginBottom: 12, display: "flex",
+                      alignItems: "center", gap: 8, background: C.greenBg, borderColor: C.green }}>
+          <CheckCircle2 size={15} color={C.green} />
+          <span style={{ fontSize: 13, color: C.text }}>{pesan}</span>
+        </div>
+      )}
+      {err && <div style={{ background: C.redBg, color: C.red, border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px 12px", fontSize: 12.5, marginBottom: 10 }}>{err}</div>}
+
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}>
+        <select value={projectId} onChange={e => setProjectId(e.target.value)} style={{ ...inputStyle, width: 280 }}>
+          <option value="">— Pilih proyek —</option>
+          {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+        {projectId && rapList.length > 0 && (
+          <select value={rapId} onChange={e => setRapId(e.target.value)} style={{ ...inputStyle, width: 260 }}>
+            <option value="">— Pilih RAP —</option>
+            {rapList.map(r => <option key={r.id} value={r.id}>{r.name} ({r.status})</option>)}
+          </select>
+        )}
+        {projectId && (
+          <button style={btnPrimary} onClick={() => setShowNewRap(true)}><Plus size={15} /> RAP Baru</button>
+        )}
+      </div>
+
+      {projectId && rapList.length === 0 && (
+        <p style={{ color: C.muted, fontSize: 13 }}>
+          Belum ada RAP di proyek ini — buat satu dari versi estimasi yang sudah disusun di tab Komposer.
+        </p>
+      )}
+
+      {detail && (
+        <div style={{ display: "grid", gap: 16 }}>
+          <div style={{ ...card, padding: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                <ClipboardList size={16} color={C.navy} />
+                <strong style={{ fontSize: 14.5 }}>{detail.data.name}</strong>
+                <StatusBadge s={detail.data.status} />
+              </div>
+              {!locked && (
+                <button style={{ ...btnGhost, color: C.navy }} disabled={busy || detail.total.pagu <= 0} onClick={() => void kunciPagu()}>
+                  <Lock size={13} /> Kunci Pagu
+                </button>
+              )}
+            </div>
+            {detail.data.notes && <p style={{ fontSize: 12.5, color: C.mid, margin: "8px 0 0" }}>{detail.data.notes}</p>}
+            <div style={{ display: "flex", gap: 24, marginTop: 14, flexWrap: "wrap" }}>
+              <div>
+                <div style={{ fontSize: 11, color: C.muted, textTransform: "uppercase", letterSpacing: .4 }}>Pagu Material</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: C.text, fontFamily: "monospace" }}>{fmtRp(detail.total.material)}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 11, color: C.muted, textTransform: "uppercase", letterSpacing: .4 }}>Borongan Tenaga Kerja</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: C.text, fontFamily: "monospace" }}>{fmtRp(detail.total.labor)}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 11, color: C.muted, textTransform: "uppercase", letterSpacing: .4 }}>Total Pagu</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: C.navy, fontFamily: "monospace" }}>{fmtRp(detail.total.pagu)}</div>
+              </div>
+            </div>
+          </div>
+
+          <div style={card}>
+            <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 8 }}>
+              <Package size={15} color={C.navy} />
+              <strong style={{ fontSize: 13.5 }}>Material</strong>
+              <span style={{ fontSize: 11.5, color: C.muted }}>({detail.material.length} item)</span>
+            </div>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead><tr>
+                  <th style={th}>Material</th><th style={{ ...th, textAlign: "right" }}>Qty RAB</th>
+                  <th style={{ ...th, textAlign: "right", width: 110 }}>Qty Disesuaikan</th>
+                  <th style={th}>Sat</th>
+                  <th style={{ ...th, textAlign: "right", width: 140 }}>Harga Supplier</th>
+                  <th style={{ ...th, textAlign: "right" }}>Pagu</th><th style={th} />
+                </tr></thead>
+                <tbody>
+                  {detail.material.map(m => (
+                    <tr key={m.id}>
+                      <td style={td}>{m.resource?.name ?? "—"}</td>
+                      <td style={{ ...td, textAlign: "right", fontFamily: "monospace", color: C.mid }}>{Number(m.qty_ahsp).toLocaleString("id-ID")}</td>
+                      <td style={{ ...td, textAlign: "right" }}>
+                        {locked ? Number(m.qty_adjusted).toLocaleString("id-ID") : (
+                          <input defaultValue={Number(m.qty_adjusted)} inputMode="decimal"
+                            onBlur={e => e.target.value !== String(Number(m.qty_adjusted)) && void simpanQty(m, "qty_adjusted", e.target.value)}
+                            style={{ ...inputStyle, textAlign: "right", fontFamily: "monospace", padding: "5px 8px" }} />
+                        )}
+                      </td>
+                      <td style={td}>{m.unit_code}</td>
+                      <td style={{ ...td, textAlign: "right" }}>
+                        {locked ? fmtRp(Number(m.supplier_price)) : (
+                          <input defaultValue={Number(m.supplier_price)} inputMode="decimal"
+                            onBlur={e => e.target.value !== String(Number(m.supplier_price)) && void simpanQty(m, "supplier_price", e.target.value)}
+                            style={{ ...inputStyle, textAlign: "right", fontFamily: "monospace", padding: "5px 8px" }} />
+                        )}
+                      </td>
+                      <td style={{ ...td, textAlign: "right", fontWeight: 600, fontFamily: "monospace" }}>{fmtRp(Number(m.pagu))}</td>
+                      <td style={{ ...td, width: 36 }}>
+                        {locked && (
+                          <button title="Catat perubahan (arsip)" style={{ background: "none", border: "none", cursor: "pointer", color: C.muted }}
+                            onClick={() => setShowLogForm({ table: "rap_material_line", id: m.id, label: m.resource?.name ?? m.id })}>
+                            <Pencil size={13} />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {detail.material.length === 0 && (
+                    <tr><td style={td} colSpan={7}><span style={{ color: C.muted }}>Tidak ada baris material — versi estimasi ini mungkin tidak punya item berkategori material.</span></td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div style={card}>
+            <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <HardHat size={15} color={C.navy} />
+                <strong style={{ fontSize: 13.5 }}>Tenaga Kerja (Borongan)</strong>
+              </div>
+              {!locked && <button style={btnGhost} onClick={() => setShowAddLabor(true)}><Plus size={13} /> Tambah</button>}
+            </div>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead><tr>
+                  <th style={th}>Uraian Pekerjaan</th><th style={{ ...th, textAlign: "right" }}>Nilai Borongan</th><th style={th} />
+                </tr></thead>
+                <tbody>
+                  {detail.labor.map(l => (
+                    <tr key={l.id}>
+                      <td style={td}>{l.description}</td>
+                      <td style={{ ...td, textAlign: "right", fontWeight: 600, fontFamily: "monospace" }}>{fmtRp(Number(l.borongan_value))}</td>
+                      <td style={{ ...td, width: 36 }}>
+                        {locked && (
+                          <button title="Catat perubahan (arsip)" style={{ background: "none", border: "none", cursor: "pointer", color: C.muted }}
+                            onClick={() => setShowLogForm({ table: "rap_labor_line", id: l.id, label: l.description })}>
+                            <Pencil size={13} />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {detail.labor.length === 0 && (
+                    <tr><td style={td} colSpan={3}><span style={{ color: C.muted }}>Belum ada borongan tenaga kerja.</span></td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div style={card}>
+            <button onClick={() => setShowLogTable(s => !s)}
+              style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "12px 16px",
+                       background: "none", border: "none", cursor: "pointer", textAlign: "left" }}>
+              <History size={15} color={C.mid} />
+              <strong style={{ fontSize: 13.5, color: C.text }}>Log Perubahan</strong>
+              <span style={{ fontSize: 11.5, color: C.muted }}>— catatan penyesuaian di luar sistem, tak mengubah pagu tersimpan</span>
+              {showLogTable ? <ChevronDown size={14} color={C.mid} style={{ marginLeft: "auto" }} /> : <ChevronRight size={14} color={C.mid} style={{ marginLeft: "auto" }} />}
+            </button>
+            {showLogTable && (
+              <div style={{ overflowX: "auto", borderTop: `1px solid ${C.border}` }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead><tr>
+                    <th style={th}>Waktu</th><th style={th}>Field</th><th style={th}>Lama</th><th style={th}>Baru</th><th style={th}>Alasan</th>
+                  </tr></thead>
+                  <tbody>
+                    {changeLog.map(l => (
+                      <tr key={l.id}>
+                        <td style={{ ...td, fontSize: 12, color: C.mid }}>{new Date(l.changed_at).toLocaleString("id-ID")}</td>
+                        <td style={td}>{l.field_name ?? "—"}</td>
+                        <td style={{ ...td, color: C.mid }}>{l.old_value ?? "—"}</td>
+                        <td style={td}>{l.new_value ?? "—"}</td>
+                        <td style={td}>{l.reason}</td>
+                      </tr>
+                    ))}
+                    {changeLog.length === 0 && (
+                      <tr><td style={td} colSpan={5}><span style={{ color: C.muted }}>Belum ada catatan perubahan.</span></td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {showNewRap && projectId && (
+        <NewRapModal projectId={projectId} onClose={() => setShowNewRap(false)}
+          onDone={async (id) => { setShowNewRap(false); await loadRapList(projectId); setRapId(id); }} />
+      )}
+      {showAddLabor && detail && (
+        <AddLaborModal rapId={detail.data.id} onClose={() => setShowAddLabor(false)}
+          onDone={async () => { setShowAddLabor(false); await refresh(); }} />
+      )}
+      {showLogForm && detail && (
+        <ChangeLogModal rapId={detail.data.id} table={showLogForm.table} lineId={showLogForm.id} label={showLogForm.label}
+          onClose={() => setShowLogForm(null)}
+          onDone={async () => { setShowLogForm(null); setPesan("Catatan perubahan disimpan."); if (showLogTable) await loadChangeLog(detail.data.id); }} />
+      )}
+    </div>
+  );
+}
+
+function NewRapModal({ projectId, onClose, onDone }: { projectId: string; onClose: () => void; onDone: (id: string) => void }) {
+  const [scenarios, setScenarios] = useState<Scenario[]>([]);
+  const [versionId, setVersionId] = useState("");
+  const [name, setName] = useState("RAP");
+  const [notes, setNotes] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    api.get<{ data: Scenario[] }>(`/api/v1/projects/${projectId}/scenarios`).then(r => setScenarios(r.data.data ?? [])).catch(() => {});
+  }, [projectId]);
+
+  const allVersions = scenarios.flatMap(sc => sc.versions.map(v => ({ ...v, scenarioName: sc.name })));
+
+  async function kirim(e: React.FormEvent) {
+    e.preventDefault();
+    if (!versionId) { setErr("Pilih versi estimasi sumber take-off terlebih dahulu"); return; }
+    setBusy(true); setErr("");
+    try {
+      const r = await api.post<{ data: { id: string } }>(`/api/v1/projects/${projectId}/rap`, {
+        estimate_version_id: versionId, name: name.trim() || undefined, notes: notes.trim() || undefined,
+      });
+      onDone(r.data.data.id);
+    } catch (e) {
+      setErr((e as { response?: { data?: { error?: string } } }).response?.data?.error ?? "Gagal membuat RAP");
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <Modal title="RAP Baru" onClose={onClose}>
+      <form onSubmit={kirim}>
+        {err && <div style={{ marginBottom: 12, padding: "9px 12px", background: C.redBg, border: `1px solid ${C.red}`, borderRadius: 8, fontSize: 12.5, color: C.text }}>{err}</div>}
+        <label style={lbl}>Versi estimasi (sumber take-off material)</label>
+        <select value={versionId} onChange={e => setVersionId(e.target.value)} required style={{ ...inputStyle, marginBottom: 12 }}>
+          <option value="">— Pilih versi —</option>
+          {allVersions.map(v => (
+            <option key={v.id} value={v.id}>{v.scenarioName} · v{v.version_number} ({v.status}) · {fmtRp(Number(v.total_amount))}</option>
+          ))}
+        </select>
+        {allVersions.length === 0 && <p style={{ fontSize: 12, color: C.muted, margin: "-6px 0 12px" }}>Belum ada versi estimasi di proyek ini — buat dulu di tab Komposer.</p>}
+        <label style={lbl}>Nama RAP</label>
+        <input value={name} onChange={e => setName(e.target.value)} style={{ ...inputStyle, marginBottom: 12 }} />
+        <label style={lbl}>Catatan (opsional)</label>
+        <input value={notes} onChange={e => setNotes(e.target.value)} style={{ ...inputStyle, marginBottom: 16 }} />
+        <div style={{ display: "flex", gap: 9 }}>
+          <button type="submit" disabled={busy} style={{ ...btnPrimary, opacity: busy ? .7 : 1, cursor: busy ? "wait" : "pointer" }}>
+            {busy ? "Membuat…" : "Buat RAP"}
+          </button>
+          <button type="button" onClick={onClose} style={btnGhost}>Batal</button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function AddLaborModal({ rapId, onClose, onDone }: { rapId: string; onClose: () => void; onDone: () => void }) {
+  const [description, setDescription] = useState("");
+  const [value, setValue] = useState("");
+  const [notes, setNotes] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  async function kirim(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true); setErr("");
+    try {
+      await api.post(`/api/v1/rap/${rapId}/labor`, {
+        description: description.trim(), borongan_value: value ? Number(value) : undefined, notes: notes.trim() || undefined,
+      });
+      onDone();
+    } catch (e) {
+      setErr((e as { response?: { data?: { error?: string } } }).response?.data?.error ?? "Gagal menambah borongan");
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <Modal title="Tambah Borongan Tenaga Kerja" onClose={onClose}>
+      <form onSubmit={kirim}>
+        {err && <div style={{ marginBottom: 12, padding: "9px 12px", background: C.redBg, border: `1px solid ${C.red}`, borderRadius: 8, fontSize: 12.5, color: C.text }}>{err}</div>}
+        <label style={lbl}>Uraian pekerjaan</label>
+        <input value={description} onChange={e => setDescription(e.target.value)} required
+          placeholder="Mis. Borongan pasangan bata + plester lantai 1" style={{ ...inputStyle, marginBottom: 12 }} />
+        <label style={lbl}>Nilai borongan (Rp)</label>
+        <input value={value} onChange={e => setValue(e.target.value)} inputMode="decimal" style={{ ...inputStyle, marginBottom: 16 }} />
+        <label style={lbl}>Catatan (opsional)</label>
+        <input value={notes} onChange={e => setNotes(e.target.value)} style={{ ...inputStyle, marginBottom: 16 }} />
+        <div style={{ display: "flex", gap: 9 }}>
+          <button type="submit" disabled={busy} style={{ ...btnPrimary, opacity: busy ? .7 : 1, cursor: busy ? "wait" : "pointer" }}>
+            {busy ? "Menyimpan…" : "Tambah"}
+          </button>
+          <button type="button" onClick={onClose} style={btnGhost}>Batal</button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+/** Catatan arsip murni — TIDAK mengubah pagu tersimpan (baris beku sesuai desain). */
+function ChangeLogModal({ rapId, table, lineId, label, onClose, onDone }: {
+  rapId: string; table: string; lineId: string; label: string; onClose: () => void; onDone: () => void;
+}) {
+  const [fieldName, setFieldName] = useState("");
+  const [oldValue, setOldValue] = useState("");
+  const [newValue, setNewValue] = useState("");
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  async function kirim(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true); setErr("");
+    try {
+      await api.post(`/api/v1/rap/${rapId}/change-log`, {
+        line_table: table, line_id: lineId, field_name: fieldName.trim() || undefined,
+        old_value: oldValue.trim() || undefined, new_value: newValue.trim() || undefined, reason: reason.trim(),
+      });
+      onDone();
+    } catch (e) {
+      setErr((e as { response?: { data?: { error?: string } } }).response?.data?.error ?? "Gagal menyimpan catatan");
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <Modal title={`Catat Perubahan — ${label}`} onClose={onClose}>
+      <form onSubmit={kirim}>
+        <p style={{ fontSize: 12, color: C.mid, margin: "0 0 14px", lineHeight: 1.55 }}>
+          Pagu sudah dikunci dan tak bisa diubah lagi. Catatan ini hanya arsip administratif
+          (mis. harga supplier berubah setelah negosiasi ulang) — angka pagu tersimpan TIDAK berubah.
+        </p>
+        {err && <div style={{ marginBottom: 12, padding: "9px 12px", background: C.redBg, border: `1px solid ${C.red}`, borderRadius: 8, fontSize: 12.5, color: C.text }}>{err}</div>}
+        <label style={lbl}>Field yang berubah (opsional)</label>
+        <input value={fieldName} onChange={e => setFieldName(e.target.value)} placeholder="Mis. supplier_price" style={{ ...inputStyle, marginBottom: 12 }} />
+        <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ flex: 1 }}>
+            <label style={lbl}>Nilai lama (opsional)</label>
+            <input value={oldValue} onChange={e => setOldValue(e.target.value)} style={{ ...inputStyle, marginBottom: 12 }} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={lbl}>Nilai baru (opsional)</label>
+            <input value={newValue} onChange={e => setNewValue(e.target.value)} style={{ ...inputStyle, marginBottom: 12 }} />
+          </div>
+        </div>
+        <label style={lbl}>Alasan (wajib)</label>
+        <input value={reason} onChange={e => setReason(e.target.value)} required
+          placeholder="Mis. supplier menaikkan harga semen setelah pagu dikunci" style={{ ...inputStyle, marginBottom: 16 }} />
+        <div style={{ display: "flex", gap: 9 }}>
+          <button type="submit" disabled={busy} style={{ ...btnPrimary, opacity: busy ? .7 : 1, cursor: busy ? "wait" : "pointer" }}>
+            {busy ? "Menyimpan…" : "Simpan Catatan"}
+          </button>
+          <button type="button" onClick={onClose} style={btnGhost}>Batal</button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
 // ══ TAB 3 — HARGA (PRICE BOOK) ════════════════════════════════════════════════
 function HargaTab() {
   const [entries, setEntries] = useState<PriceEntry[]>([]);
@@ -1472,6 +1942,7 @@ const TABS = [
   { key: "komposer", label: "Komposer", icon: Calculator },
   { key: "katalog", label: "Katalog AHSP", icon: BookOpen },
   { key: "harga", label: "Harga", icon: Coins },
+  { key: "rap", label: "Material & RAP", icon: ClipboardList },
 ] as const;
 
 export default function EstimasiPage() {
@@ -1500,6 +1971,7 @@ export default function EstimasiPage() {
       {tab === "komposer" && <KomposerTab />}
       {tab === "katalog" && <KatalogTab />}
       {tab === "harga" && <HargaTab />}
+      {tab === "rap" && <RapTab />}
     </div>
   );
 }
