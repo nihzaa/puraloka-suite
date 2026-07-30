@@ -164,7 +164,17 @@ jobs:
 
       # MUST #4: secret scanning atas SELURUH riwayat (fetch-depth: 0 di atas),
       # bukan hanya diff PR — rahasia lama yang belum dirotasi tetap terdeteksi.
+      #
+      # Binary langsung, BUKAN `gitleaks/gitleaks-action@v2`: action resmi
+      # menuntut `GITLEAKS_LICENSE` untuk repo milik organisasi dan gagal tanpa
+      # itu. Memanggil binary-nya sendiri bebas lisensi, versinya ter-pin
+      # (hasilnya reproducible), dan perilakunya identik dengan yang bisa
+      # dijalankan siapa pun secara lokal untuk memverifikasi ulang:
+      #   gitleaks detect --source . --config .gitleaks.toml --redact
       - name: Secret scan (gitleaks)
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSI=8.30.1
+          curl -sSL -o /tmp/gitleaks.tar.gz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${VERSI}/gitleaks_${VERSI}_linux_x64.tar.gz"
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          /tmp/gitleaks detect --source . --config .gitleaks.toml --redact --no-banner --verbose

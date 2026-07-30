@@ -570,8 +570,19 @@ kode bilang "sudah") — jangan percaya ketiganya lagi:
 3. **`@typescript-eslint/no-explicit-any` di-set `"off"`** di `apps/api/eslint.config.mjs`,
    padahal `01-coding-standards` MUST #3 menyebut rule itu sebagai mekanisme verifikasinya.
    Aturan dinonaktifkan tanpa amandemen.
-4. **Nol audit aksesibilitas** — tak ada `axe-core`/`jsx-a11y`. Pengguna nyata
-   (mandor/tukang, perangkat lama) justru yang paling terdampak.
+4. ~~**Nol audit aksesibilitas**~~ — **✅ DITUTUP 2026-07-31** (A4).
+   `eslint-plugin-jsx-a11y` diaktifkan penuh. Sebelumnya `eslint-config-next`
+   hanya membawa segelintir rule bawaan (cuma `alt-text` aktif) — jadi "cuma 3
+   temuan a11y" selama ini menyesatkan: sisanya memang tak pernah diperiksa.
+   **Begitu dinyalakan: 498 temuan.** 255 `label-has-associated-control`
+   (pembaca layar tak bisa menyebutkan field yang sedang diisi) · 117+115
+   `click-events`/`no-static-element-interactions` (**bisa diklik tapi tak bisa
+   dijangkau keyboard** — melanggar MUST #7 langsung) · 11 lainnya.
+   Diturunkan ke `warn` + ratchet per-rule (pola A1). **Dua rule dimatikan
+   dengan alasan terverifikasi satu per satu**, bukan diasumsikan:
+   `alt-text` (3 temuan semuanya bukan `<img>` HTML — `Image` dari lucide-react
+   & @react-pdf/renderer) dan `no-autofocus` (4 temuan semuanya field pertama
+   di dalam **modal**, yang justru pola benar untuk dialog).
 5. **T10** (`ADR-011-T9` §5): `auth_role()` baca `users.role_id` (peran global),
    bukan `company_members.role_id` (peran per-company). Diverifikasi di DB: benar.
    Tak bergejala hari ini (satu company), menggigit saat badan usaha kedua dibuat.

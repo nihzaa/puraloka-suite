@@ -1,0 +1,54 @@
+# Konfigurasi gitleaks — dipakai job `keamanan` di .github/workflows/ci.yml
+#
+# A2 (STATUS.md §AUDIT): secret scanning ditambahkan 2026-07-31 untuk memenuhi
+# `11-devsecops-standard.md` MUST #4. Pemindaian menyasar SELURUH riwayat
+# (`fetch-depth: 0`), bukan hanya diff PR — rahasia yang di-commit lalu dihapus
+# di commit berikutnya tetap bisa dipulihkan siapa pun yang punya klon repo.
+#
+# Hasil pemindaian pertama atas 574 commit (24,7 MB): 1 temuan, dan itu KUNCI
+# PUBLIK (lihat allowlist di bawah). Tidak ada satu pun `sb_secret_` /
+# service-role key yang pernah masuk riwayat — diverifikasi dengan menjalankan
+# gitleaks TANPA config sama sekali, hasilnya tetap 1 temuan yang sama.
+#
+# ⚠️ ATURAN MAIN ALLOWLIST — baca sebelum menambah entri:
+#   1. Allowlist BUKAN tempat membuang temuan yang merepotkan. Ia hanya untuk
+#      temuan yang TERBUKTI bukan rahasia, atau sudah tidak bisa disalahgunakan.
+#   2. Tiap entri WAJIB menyebut: apa yang ditemukan dan kenapa aman.
+#   3. Rahasia yang MASIH BERLAKU tidak boleh di-allowlist. Rotasi dulu.
+
+[extend]
+useDefault = true
+
+[allowlist]
+  description = "Temuan yang terbukti bukan rahasia"
+
+  regexes = [
+    # Supabase PUBLISHABLE key (`sb_publishable_…`) di
+    # `apps/web/.design-sync/lib/bundle.mjs`.
+    #
+    # Kunci ini memang DIRANCANG untuk dikirim ke browser — namanya di
+    # `.env.local` berawalan `NEXT_PUBLIC_`, yang artinya Next.js menyisipkannya
+    # ke bundle klien dan siapa pun bisa membacanya lewat DevTools. Yang
+    # melindungi data bukan kerahasiaan kunci ini, melainkan RLS di database.
+    #
+    # gitleaks menandainya karena bentuknya menyerupai kunci API generik. Yang
+    # berbahaya adalah `sb_secret_…` (service-role, mem-bypass RLS) — dan itu
+    # hidup HANYA di `apps/api/.env` yang ter-gitignore, tak pernah masuk
+    # riwayat (diverifikasi lewat pemindaian tanpa config).
+    '''sb_publishable_[A-Za-z0-9_-]+''',
+
+    # VAPID public key — separuh publik dari pasangan kunci Web Push, memang
+    # dikirim ke browser saat mendaftarkan subscription. Pasangan privatnya
+    # (`VAPID_PRIVATE_KEY`) ada di `apps/api/.env` yang ter-gitignore.
+    '''BCtMWjpUmaiZBRRSHvp19e0NjD-z7LwJj9f5u5xnthnL4hxVsi18SOE6CBigwFC6auq5lZkfEJbA9vhoRfk1bRA''',
+  ]
+
+  paths = [
+    # Lockfile: hash integritas paket, bukan kredensial. Panjang & acak,
+    # jadi rutin memicu deteksi entropi-tinggi secara keliru.
+    '''pnpm-lock\.yaml$''',
+    # Baseline skema hasil introspeksi DB — nama tabel/kolom/tipe, nol nilai.
+    '''apps/api/scripts/schema-baseline-dev\.json$''',
+    # Worktree git lokal: salinan kerja cabang lain, bukan bagian repo utama.
+    '''^\.worktrees/''',
+  ]
