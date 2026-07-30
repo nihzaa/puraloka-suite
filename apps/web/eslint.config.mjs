@@ -1,10 +1,75 @@
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
+import jsxA11y from "eslint-plugin-jsx-a11y";
 
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+
+  // ── A4 (STATUS.md §AUDIT) — penegakan aksesibilitas ───────────────────────
+  //
+  // `12-ui-engineering-standard.md` MUST #6–8 (kontras 4.5:1, keyboard Level 1,
+  // indikator non-warna) sebelumnya NOL penegakan: `eslint-plugin-jsx-a11y`
+  // tak terpasang sama sekali. `eslint-config-next` membawa segelintir rule
+  // a11y sebagai bawaan (terdeteksi hanya `alt-text` yang aktif), jauh dari
+  // cakupan penuh — jadi "ada beberapa temuan a11y" selama ini menyesatkan:
+  // yang lain memang tak pernah diperiksa.
+  //
+  // Ini bukan kepatuhan formalitas. Taksonomi menilai Kriteria Kualitas #5
+  // ("UI tidak bikin pusing orang lapangan") sebagai LEMAH, dan pengguna nyata
+  // sistem ini — mandor & tukang di perangkat lama, sering di bawah sinar
+  // matahari — persis kelompok yang paling dirugikan kontras rendah dan target
+  // sentuh kecil.
+  //
+  // Hanya RULE-nya yang diaktifkan, bukan `flatConfigs.recommended` utuh:
+  // `eslint-config-next` sudah mendaftarkan plugin `jsx-a11y`, dan mendaftarkan
+  // ulang membuat ESLint mati dengan `Cannot redefine plugin "jsx-a11y"`.
+  {
+    rules: {
+      ...jsxA11y.flatConfigs.recommended.rules,
+
+      // 498 temuan saat rule dinyalakan pertama kali (2026-07-31) — bukti
+      // bahwa selama ini memang tak pernah diperiksa. Diturunkan ke `warn` +
+      // dikunci ratchet per-rule, alasan sama persis dengan A1: memaksa
+      // `error` berarti gate ini tak akan pernah dipasang sama sekali, dan
+      // memperbaiki 498 sekaligus lintas puluhan file justru berisiko regresi.
+      //
+      // Ini bukan "diabaikan" — angkanya terkunci di scripts/lint-ratchet.mjs
+      // dan hanya boleh turun. Prioritas perbaikan (dampak ke pengguna nyata):
+      //   1. click-events-have-key-events + no-static-element-interactions
+      //      (225) — elemen bisa diklik tapi TAK BISA dijangkau keyboard.
+      //      Melanggar 12-ui-engineering-standard MUST #7 secara langsung.
+      //   2. label-has-associated-control (255) — pembaca layar tak bisa
+      //      menyebutkan field apa yang sedang diisi.
+      "jsx-a11y/label-has-associated-control": "warn",
+      "jsx-a11y/click-events-have-key-events": "warn",
+      "jsx-a11y/no-static-element-interactions": "warn",
+      "jsx-a11y/no-noninteractive-element-interactions": "warn",
+
+      // MATI — keempat temuannya adalah `autoFocus` pada field PERTAMA di
+      // dalam MODAL (`CreateCoModal`, `UploadModalContent`, `MilestoneModal`,
+      // form tambah pekerja), diverifikasi satu per satu.
+      //
+      // Untuk dialog, memindahkan fokus ke dalamnya saat terbuka justru pola
+      // yang BENAR — tanpa itu pengguna keyboard tertinggal di belakang modal.
+      // Rule ini menyasar `autoFocus` saat pemuatan halaman, yang memang
+      // membingungkan karena memindahkan fokus tanpa diminta. Kasus di sini
+      // kebalikannya: fokus berpindah sebagai respons atas aksi pengguna.
+      "jsx-a11y/no-autofocus": "off",
+
+      // MATI, bukan warn — 3 temuannya SEMUA false positive, diverifikasi
+      // satu per satu lewat import-nya:
+      //   • mandor-portal/progress/page.tsx:353 → `Image` dari lucide-react
+      //     (ikon SVG, bukan gambar)
+      //   • invoice-pdf.tsx:221,410 → `Image` dari @react-pdf/renderer,
+      //     merender ke PDF; tak ada DOM, tak ada pembaca layar.
+      // Menambal `alt=""` di sini bukan perbaikan aksesibilitas — itu prop
+      // yang tak dikenal komponennya, sekadar membungkam linter.
+      // Nyalakan lagi begitu ada `<img>` HTML sungguhan di kode ini.
+      "jsx-a11y/alt-text": "off",
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

@@ -32,6 +32,21 @@ import { ESLint } from 'eslint'
  * yang terjadi adalah hutang bergeser, bukan berkurang.
  */
 const AMBANG = {
+  // ── Aksesibilitas (A4, 2026-07-31) ──────────────────────────────────────
+  // Angka ini muncul saat `eslint-plugin-jsx-a11y` dinyalakan PERTAMA KALI —
+  // sebelumnya nol penegakan, jadi 498 temuan ini memang tak pernah terlihat.
+  // Prioritas perbaikan menurut dampak ke pengguna nyata (mandor & tukang,
+  // perangkat lama, sering di bawah sinar matahari):
+  //   1. click-events + no-static-element-interactions (232) — bisa diklik
+  //      tapi TAK BISA dijangkau keyboard. Melanggar MUST #7 langsung.
+  //   2. label-has-associated-control (255) — pembaca layar tak bisa
+  //      menyebutkan field apa yang sedang diisi.
+  'jsx-a11y/label-has-associated-control': 255,
+  'jsx-a11y/click-events-have-key-events': 117,
+  'jsx-a11y/no-static-element-interactions': 115,
+  'jsx-a11y/no-noninteractive-element-interactions': 11,
+
+  // ── Hutang lint lain ────────────────────────────────────────────────────
   '@typescript-eslint/no-explicit-any': 194,
   'react-hooks/set-state-in-effect': 71,
   '@typescript-eslint/no-unused-vars': 71,
@@ -40,7 +55,6 @@ const AMBANG = {
   'react-hooks/static-components': 14,
   '@next/next/no-img-element': 11,
   'react-hooks/immutability': 4,
-  'jsx-a11y/alt-text': 3,
   'react-hooks/purity': 2,
   'react-hooks/rules-of-hooks': 1,
   '@typescript-eslint/no-unused-expressions': 1,
