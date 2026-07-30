@@ -43,6 +43,9 @@ interface Milestone {
 
 interface EvmValues {
   bac: number;
+  /** Basis BAC yang dipakai — RAP terkunci (biaya) lebih benar daripada RAB (nilai jual). */
+  bacSource?: "rap_locked" | "rab" | "contract_value";
+  paguRAP?: number;
   ac: number;
   ev: number;
   pv: number;
@@ -344,8 +347,21 @@ export function KurvaSSection({ projectId, userRole }: Props) {
                 <Info size={13} />
               </button>
             </div>
+            {/* Basis BAC disebut eksplisit: angka CPI/SPI berubah arti tergantung
+                basisnya, dan perubahan diam-diam pada angka yang dipakai
+                mengambil keputusan adalah bentuk kesalahan yang paling sulit
+                terdeteksi. */}
             <span style={{ fontSize: 11, color: C.muted }}>
               BAC: {fmt(evm.bac)}
+              {evm.bacSource === "rap_locked" && (
+                <span style={{ color: C.green, marginLeft: 6 }}>· pagu RAP (biaya)</span>
+              )}
+              {evm.bacSource === "rab" && (
+                <span style={{ marginLeft: 6 }}>· nilai RAB (termasuk margin)</span>
+              )}
+              {evm.bacSource === "contract_value" && (
+                <span style={{ marginLeft: 6 }}>· nilai kontrak</span>
+              )}
             </span>
           </div>
 
@@ -359,7 +375,12 @@ export function KurvaSSection({ projectId, userRole }: Props) {
               <strong style={{ color: C.text }}>EVM (Earned Value Management)</strong> — sistem pengukuran kinerja proyek berdasarkan perbandingan biaya rencana, biaya aktual, dan nilai pekerjaan yang telah diselesaikan.<br />
               <strong>CPI</strong> (Cost Performance Index): efisiensi biaya. ≥1 = hemat, &lt;1 = boros.&nbsp;
               <strong>SPI</strong> (Schedule Performance Index): efisiensi jadwal. ≥1 = cepat, &lt;1 = terlambat.&nbsp;
-              <strong>EAC</strong>: perkiraan total biaya akhir. <strong>VAC</strong>: selisih antara anggaran dan EAC.
+              <strong>EAC</strong>: perkiraan total biaya akhir. <strong>VAC</strong>: selisih antara anggaran dan EAC.<br />
+              <strong style={{ color: C.text }}>Basis BAC</strong> — semua angka di atas dihitung terhadap BAC.
+              Bila proyek sudah punya <strong>pagu RAP terkunci</strong>, BAC memakai pagu itu (rencana belanja
+              nyata). Bila belum, BAC memakai nilai RAB — dan RAB adalah harga jual yang sudah mengandung margin,
+              sehingga CPI cenderung terlihat lebih baik daripada keadaan sebenarnya. Kunci pagu RAP di tab
+              Material &amp; RAP untuk mendapat angka yang jujur.
             </div>
           )}
 
@@ -380,7 +401,9 @@ export function KurvaSSection({ projectId, userRole }: Props) {
             <EvmCard
               label="EAC — Estimasi Total"
               value={evm.eac}
-              sub={evm.eac !== null ? `vs RAB ${fmt(evm.bac)}` : undefined}
+              sub={evm.eac !== null
+                ? `vs ${evm.bacSource === "rap_locked" ? "pagu RAP" : "RAB"} ${fmt(evm.bac)}`
+                : undefined}
               isRupiah={true}
               colorIndex={evm.eac !== null && evm.bac > 0 ? evm.bac / (evm.eac || 1) : null}
               goodAbove={true}
