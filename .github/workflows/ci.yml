@@ -141,8 +141,23 @@ jobs:
       - name: Typecheck
         run: ./node_modules/.bin/tsc --noEmit
 
+      # Env dummy khusus build. `lib/supabase.ts` memanggil createClient() di
+      # module scope, jadi klien ikut dievaluasi saat Next.js MEM-PRERENDER
+      # halaman — `/auth/callback` mati dengan "supabaseUrl is required" kalau
+      # variabelnya kosong (run 30598325258). Build lokal lolos hanya karena ada
+      # .env.local, jadi kegagalan ini memang cuma muncul di CI.
+      #
+      # Nilai dummy aman: yang diuji step ini adalah apakah proyek BISA di-build,
+      # bukan apakah ia bisa bicara dengan Supabase. Tak ada halaman yang menarik
+      # data build-time dari Supabase — semuanya client-side atau dynamic.
+      # Memakai kredensial asli di sini justru menaruh rahasia di log CI.
       - name: Build
         run: ./node_modules/.bin/next build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_KEY: sb_publishable_placeholder_untuk_build_ci
+          NEXT_PUBLIC_API_URL: http://localhost:3001
+          NEXT_PUBLIC_VAPID_PUBLIC_KEY: ''
 
   # ── A2 (STATUS.md §AUDIT) — dependency & secret scanning ──────────────────
   # `11-devsecops-standard.md` MUST #4 (secret scanning) & MUST #5 (`pnpm audit`
