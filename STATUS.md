@@ -240,11 +240,18 @@ Ronde 1 menemukan permukaan jauh lebih luas dari laporan awal saya; ronde 2
 Sisa `supabase` mentah **476** (dari 584) — itu adopsi wrapper, BUKAN celah;
 sisanya sudah bergerbang eksplisit. Detail lengkap + skenario
 per-modul: **`.../adr/ADR-011-T4-AUDIT-CELAH-TENANCY.md`**.
-Sisa: **478 akses `supabase` mentah** (dari 584). Modul yang seluruh filenya
-belum ter-scope: `clients` (PII) · `audit` (jejak semua tenant) · `users`+`roles`
-(mendekati account-takeover lintas tenant) · `settings` · `estimate-versions` ·
-`documents` (signed URL 10 th ke kontrak tenant lain) · `termin-payment` ·
-`lessons-learned`.
+Sisa: **468 akses `supabase` mentah** (dari 584).
+
+⚠️ **Daftar "modul yang seluruh filenya belum ter-scope" di revisi sebelumnya
+SUDAH USANG — jangan dipakai sebagai daftar kerja.** Diperiksa ulang satu per
+satu 2026-07-31: `users` (gerbang keanggotaan → 404 sebelum tulis) · `documents`
+(6 panggilan `proyekMilikTenant`, seluruh 5 rutenya tertutup) · `audit`,
+`roles`, `clients`, `settings`, `lessons-learned`, `estimate-versions`
+(semuanya sudah punya gerbang eksplisit). Yang tersisa adalah **hutang adopsi
+wrapper**, bukan lubang terbuka — ratchet menjaganya tak bertambah.
+
+Pelajarannya: klaim keamanan yang usang tidak netral. Ia membuat orang
+mengerjakan ulang yang sudah beres, dan menutupi yang benar-benar terbuka.
 **Dua yang paling merugikan dan bukan sekadar 'baca' — KEDUANYA kini DITUTUP
 (2026-07-31):** `settings`/config finansial — ✅ migrasi 145 + `companyId` wajib
 di `setFinancialConfig()`; sebelumnya penutupan rentang menyapu SELURUH
