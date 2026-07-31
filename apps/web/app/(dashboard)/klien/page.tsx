@@ -151,7 +151,7 @@ function ClientModal({
           <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: C.text }}>
             {client ? "Edit Klien" : "Tambah Klien"}
           </h2>
-          <button onClick={onClose} style={{ padding: 6, border: "none", background: "none", cursor: "pointer", color: C.mid, borderRadius: 6 }}>
+          <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, border: "none", background: "none", cursor: "pointer", color: C.mid, borderRadius: 6 }}>
             <X size={18} />
           </button>
         </div>
@@ -274,7 +274,7 @@ function DetailPanel({ clientId, onClose, onEdit, onCreateProject }: {
         <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
           <h2 style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700, color: C.text }}>Detail Klien</h2>
           <div style={{ display: "flex", gap: 4 }}>
-            <button
+            <button aria-label="Edit klien"
               onClick={onEdit}
               title="Edit klien"
               style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", border: `1px solid ${C.border}`, background: "var(--surface)", borderRadius: 7, cursor: "pointer", fontSize: 12, fontWeight: 500, color: C.mid }}
@@ -283,7 +283,7 @@ function DetailPanel({ clientId, onClose, onEdit, onCreateProject }: {
             >
               <Edit2 size={12} /> Edit
             </button>
-            <button onClick={onClose} style={{ padding: 6, border: "none", background: "none", cursor: "pointer", color: C.mid, borderRadius: 6 }}><X size={16} /></button>
+            <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, border: "none", background: "none", cursor: "pointer", color: C.mid, borderRadius: 6 }}><X size={16} /></button>
           </div>
         </div>
 
@@ -690,7 +690,7 @@ export default function KlienPage() {
                   {/* Actions */}
                   <td style={{ padding: "12px 16px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 4, justifyContent: "flex-end" }}>
-                      <button
+                      <button aria-label="Lihat proyek"
                         onClick={() => setDetailId(c.id)}
                         title="Lihat proyek"
                         style={{ padding: 6, border: "none", background: "none", cursor: "pointer", color: C.muted, borderRadius: 6, display: "flex" }}
@@ -699,7 +699,7 @@ export default function KlienPage() {
                       >
                         <FolderKanban size={14} />
                       </button>
-                      <button
+                      <button aria-label="Edit"
                         onClick={() => { setEditClient(c); setShowModal(true); }}
                         title="Edit"
                         style={{ padding: 6, border: "none", background: "none", cursor: "pointer", color: C.muted, borderRadius: 6, display: "flex" }}
@@ -709,7 +709,7 @@ export default function KlienPage() {
                         <Edit2 size={14} />
                       </button>
                       {isAdmin && (
-                        <button
+                        <button aria-label={c.is_active ? "Nonaktifkan" : "Aktifkan"}
                           onClick={() => toggleActive(c)}
                           disabled={togglingId === c.id}
                           title={c.is_active ? "Nonaktifkan" : "Aktifkan"}
@@ -720,7 +720,13 @@ export default function KlienPage() {
                           {c.is_active ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
                         </button>
                       )}
+                      {/* Namanya menyertakan nama klien, bukan sekadar "Lihat
+                          detail": tombol ini berulang di setiap baris, dan
+                          pembaca layar yang menelusuri tombol satu per satu
+                          akan mendengar "lihat detail" sepuluh kali tanpa tahu
+                          detail SIAPA. */}
                       <button
+                        aria-label={`Lihat detail ${c.company_name ?? c.contact_person}`}
                         onClick={() => setDetailId(c.id)}
                         style={{ padding: 6, border: "none", background: "none", cursor: "pointer", color: C.muted, borderRadius: 6, display: "flex" }}
                         onMouseEnter={e => { e.currentTarget.style.color = C.navy; }}

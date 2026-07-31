@@ -387,7 +387,7 @@ function ProyekContent() {
             />
           </div>
           {/* Sort */}
-          <select
+          <select aria-label="Urutan"
             value={sort}
             onChange={e => setSort(e.target.value as SortKey)}
             style={{
@@ -404,7 +404,7 @@ function ProyekContent() {
           {/* View toggle */}
           <div style={{ display: "flex", border: "1px solid #E5E7EB", borderRadius: 8, overflow: "hidden" }}>
             {(["grid", "list"] as ViewMode[]).map(v => (
-              <button
+              <button aria-label={v === "grid" ? "Grid" : "List"}
                 key={v}
                 onClick={() => setViewMode(v)}
                 title={v === "grid" ? "Grid" : "List"}

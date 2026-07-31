@@ -309,6 +309,7 @@ export default function NotificationsPage() {
 
         {/* Read filter */}
         <select
+          aria-label="Saring status baca"
           value={readFilter}
           onChange={e => setReadFilter(e.target.value as "all" | "unread")}
           style={{
@@ -323,6 +324,7 @@ export default function NotificationsPage() {
 
         {/* Type filter */}
         <select
+          aria-label="Saring jenis notifikasi"
           value={typeFilter}
           onChange={e => setTypeFilter(e.target.value as TypeFilter)}
           style={{
@@ -539,7 +541,7 @@ export default function NotificationsPage() {
                       {/* Row actions */}
                       <div style={{ display: "flex", flexDirection: "column", gap: 4, flexShrink: 0 }}>
                         {!notif.is_read && (
-                          <button
+                          <button aria-label="Tandai dibaca"
                             onClick={e => { e.stopPropagation(); markRead(notif.id); }}
                             title="Tandai dibaca"
                             style={{
@@ -551,7 +553,7 @@ export default function NotificationsPage() {
                             <Check size={13} />
                           </button>
                         )}
-                        <button
+                        <button aria-label="Hapus notifikasi"
                           onClick={e => { e.stopPropagation(); deleteNotif(notif.id); }}
                           title="Hapus notifikasi"
                           style={{

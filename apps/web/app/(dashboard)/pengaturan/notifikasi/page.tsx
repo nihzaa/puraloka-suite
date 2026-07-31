@@ -198,7 +198,7 @@ function RuleCard({ rule, roles, perms, canManage, onToggle, onAdd, onRemove }: 
               <Icon size={13} color={C.navy} />
               <span style={{ color: C.muted }}>{meta.text}:</span> {label}
               {canManage && (
-                <button onClick={() => onRemove(t.id)} title="Hapus penerima"
+                <button aria-label="Hapus penerima" onClick={() => onRemove(t.id)} title="Hapus penerima"
                   style={{ background: "none", border: "none", cursor: "pointer", padding: 0, marginLeft: 2, display: "flex" }}>
                   <Trash2 size={13} color={C.red} />
                 </button>
@@ -210,7 +210,7 @@ function RuleCard({ rule, roles, perms, canManage, onToggle, onAdd, onRemove }: 
 
       {canManage && (adding ? (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12, alignItems: "center" }}>
-          <select value={type} onChange={e => { setType(e.target.value as TargetType); setValue(""); }} style={{ ...input, width: 150 }}>
+          <select aria-label="Jenis" value={type} onChange={e => { setType(e.target.value as TargetType); setValue(""); }} style={{ ...input, width: 150 }}>
             {(Object.keys(TARGET_META) as TargetType[]).map(k => (
               <option key={k} value={k}>{TARGET_META[k].text}</option>
             ))}

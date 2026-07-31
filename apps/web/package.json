@@ -9,6 +9,7 @@
     "lint": "eslint",
     "lint:ratchet": "node scripts/lint-ratchet.mjs",
     "tata-letak": "node scripts/tata-letak-ratchet.mjs",
+    "a11y": "node scripts/a11y-ratchet.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

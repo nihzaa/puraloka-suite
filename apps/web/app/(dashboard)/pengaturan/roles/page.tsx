@@ -314,7 +314,7 @@ function RolesContent() {
                   {/* Action buttons */}
                   {canManage && (
                     <div style={{ display: "flex", gap: 4, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-                      <button
+                      <button aria-label="Edit role"
                         title="Edit role"
                         onClick={() => setEditRole(role)}
                         style={{ padding: 5, borderRadius: 5, border: "none", background: "transparent", cursor: "pointer", color: C.muted, display: "flex" }}
@@ -324,7 +324,7 @@ function RolesContent() {
                         <Pencil size={12} />
                       </button>
                       {!role.is_builtin && (
-                        <button
+                        <button aria-label="Hapus role"
                           title="Hapus role"
                           onClick={() => setDeleteRole(role)}
                           style={{ padding: 5, borderRadius: 5, border: "none", background: "transparent", cursor: "pointer", color: C.muted, display: "flex" }}
@@ -575,7 +575,7 @@ function RoleFormModal({ role, roles, onClose, onSaved, setToast }: {
         {/* Header */}
         <div style={{ padding: "18px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{isEdit ? "Edit Role" : "Tambah Role Baru"}</div>
-          <button onClick={onClose} style={{ padding: 6, borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", color: C.muted, display: "flex" }}>
+          <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", color: C.muted, display: "flex" }}>
             <X size={16} />
           </button>
         </div>

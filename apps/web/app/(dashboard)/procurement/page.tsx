@@ -80,7 +80,7 @@ function Modal({ title, onClose, children, width = 520 }: { title: string; onClo
       <div style={{ position: "relative", background: C.surface, borderRadius: 16, width: "100%", maxWidth: width, maxHeight: "90vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
         <div style={{ padding: "20px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, background: C.surface, zIndex: 1 }}>
           <span style={{ fontWeight: 700, fontSize: 16, color: C.text }}>{title}</span>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: C.mid, padding: 4, borderRadius: 6 }}><X size={18} /></button>
+          <button aria-label="Tutup" onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: C.mid, padding: 4, borderRadius: 6 }}><X size={18} /></button>
         </div>
         <div style={{ padding: 24 }}>{children}</div>
       </div>
@@ -669,7 +669,7 @@ function CreateMrModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
                 <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr auto", gap: 8, alignItems: "end" }}>
                   <div>
                     <label style={{ display: "block", fontSize: 11, fontWeight: 500, color: C.mid, marginBottom: 4 }}>Material *</label>
-                    <select value={item.material_id} onChange={e => handleMaterialSelect(idx, e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: C.surface }}>
+                    <select aria-label="Material" value={item.material_id} onChange={e => handleMaterialSelect(idx, e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: C.surface }}>
                       <option value="">— Pilih —</option>
                       {materials.map(m => <option key={m.id} value={m.id}>{m.name} ({m.unit})</option>)}
                     </select>
@@ -680,7 +680,7 @@ function CreateMrModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
                   </div>
                   <div>
                     <label style={{ display: "block", fontSize: 11, fontWeight: 500, color: C.mid, marginBottom: 4 }}>Satuan *</label>
-                    <select value={item.unit} onChange={e => updateItem(idx, "unit", e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: C.surface }}>
+                    <select aria-label="Satuan" value={item.unit} onChange={e => updateItem(idx, "unit", e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: C.surface }}>
                       <option value="">—</option>
                       {units.map(u => <option key={u.code} value={u.symbol}>{u.symbol}</option>)}
                     </select>
@@ -811,7 +811,7 @@ function KirimPoModal({ po, onClose, onSuccess }: { po: PoRingkas; onClose: () =
           </pre>
 
           {data.sudah_dikirim?.whatsapp_at && (
-            <div style={{ marginTop: 10, fontSize: 12, color: "#D97706" }}>
+            <div style={{ marginTop: 10, fontSize: 12, color: "#B45309" }}>
               Sudah pernah dikirim via WhatsApp pada{" "}
               {new Date(data.sudah_dikirim.whatsapp_at).toLocaleString("id-ID")}. Mengirim
               ulang akan menambah catatan baru, bukan menimpa yang lama.
@@ -1144,7 +1144,7 @@ function CreatePoModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
                 <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr auto", gap: 8, alignItems: "end" }}>
                   <div>
                     <label style={{ display: "block", fontSize: 11, fontWeight: 500, color: C.mid, marginBottom: 4 }}>Material *</label>
-                    <select value={item.material_id} onChange={e => { updateItem(idx, "material_id", e.target.value); const mat = materials.find(m => m.id === e.target.value); if (mat) setItems(prev => prev.map((it, j) => j === idx ? { ...it, material_id: e.target.value, unit: mat.unit, unit_price: mat.unit_price ? String(mat.unit_price) : "" } : it)); }} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: C.surface }}>
+                    <select aria-label="Material" value={item.material_id} onChange={e => { updateItem(idx, "material_id", e.target.value); const mat = materials.find(m => m.id === e.target.value); if (mat) setItems(prev => prev.map((it, j) => j === idx ? { ...it, material_id: e.target.value, unit: mat.unit, unit_price: mat.unit_price ? String(mat.unit_price) : "" } : it)); }} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: C.surface }}>
                       <option value="">— Pilih —</option>
                       {materials.map(m => <option key={m.id} value={m.id}>{m.name} ({m.unit})</option>)}
                     </select>
@@ -1155,7 +1155,7 @@ function CreatePoModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
                   </div>
                   <div>
                     <label style={{ display: "block", fontSize: 11, fontWeight: 500, color: C.mid, marginBottom: 4 }}>Satuan *</label>
-                    <select value={item.unit} onChange={e => updateItem(idx, "unit", e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: C.surface }}>
+                    <select aria-label="Satuan" value={item.unit} onChange={e => updateItem(idx, "unit", e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: C.surface }}>
                       <option value="">—</option>
                       {units.map(u => <option key={u.code} value={u.symbol}>{u.symbol}</option>)}
                     </select>
@@ -2125,11 +2125,11 @@ function LaporanPengadaanTab() {
             <Input label="" type="date" value={filters.from} onChange={e => setFilters(f => ({ ...f, from: e.target.value }))} style={{ width: 150 }} />
             <span style={{ fontSize: 13, color: C.mid, paddingTop: 4 }}>s/d</span>
             <Input label="" type="date" value={filters.to} onChange={e => setFilters(f => ({ ...f, to: e.target.value }))} style={{ width: 150 }} />
-            <select value={filters.supplier_id} onChange={e => setFilters(f => ({ ...f, supplier_id: e.target.value }))} style={{ padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, minWidth: 160 }}>
+            <select aria-label="Supplier" value={filters.supplier_id} onChange={e => setFilters(f => ({ ...f, supplier_id: e.target.value }))} style={{ padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, minWidth: 160 }}>
               <option value="">Semua Supplier</option>
               {suppliers.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
-            <select value={filters.project_id} onChange={e => setFilters(f => ({ ...f, project_id: e.target.value }))} style={{ padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, minWidth: 160 }}>
+            <select aria-label="Proyek" value={filters.project_id} onChange={e => setFilters(f => ({ ...f, project_id: e.target.value }))} style={{ padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, minWidth: 160 }}>
               <option value="">Semua Proyek</option>
               {projects.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
@@ -2216,7 +2216,7 @@ function LaporanPengadaanTab() {
               {[
                 { label: "Belum Jatuh Tempo", key: "current", color: C.success, bg: C.successBg },
                 { label: "1–30 Hari", key: "days_1_30", color: C.warning, bg: C.warningBg },
-                { label: "31–60 Hari", key: "days_31_60", color: "#D97706", bg: "#FEF3C7" },
+                { label: "31–60 Hari", key: "days_31_60", color: "#B45309", bg: "#FEF3C7" },
                 { label: "61–90 Hari", key: "days_61_90", color: "#EA580C", bg: "#FFF7ED" },
                 { label: "> 90 Hari", key: "over_90", color: C.danger, bg: C.dangerBg },
               ].map(b => (

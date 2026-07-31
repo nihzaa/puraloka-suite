@@ -184,7 +184,7 @@ function AddUnitCard({ existing, onDone, onError }: { existing: UnitRow[]; onDon
         <Labeled label="Simbol"><input value={symbol} onChange={e => setSymbol(e.target.value)} placeholder="cth: dus" style={inputStyle} /></Labeled>
         <Labeled label="Nama"><input value={label} onChange={e => setLabel(e.target.value)} placeholder="cth: Dus / Kardus" style={inputStyle} /></Labeled>
         <Labeled label="Kategori">
-          <select value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
+          <select aria-label="Kategori" value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
             {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
           </select>
         </Labeled>
@@ -239,12 +239,12 @@ function UnitRowItem({ unit, canManage, onSaved, onError }: {
         <input value={label} onChange={e => setLabel(e.target.value)} style={inputStyle} />
         <input value={sortOrder} onChange={e => setSortOrder(e.target.value.replace(/[^0-9]/g, ""))} style={inputStyle} />
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <select value={category} onChange={e => setCategory(e.target.value)} style={{ ...inputStyle, width: 110 }}>
+          <select aria-label="Kategori" value={category} onChange={e => setCategory(e.target.value)} style={{ ...inputStyle, width: 110 }}>
             {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
           </select>
-          <button onClick={() => patch({ symbol, label, category, sort_order: Number(sortOrder) || 0 })} disabled={busy}
+          <button aria-label="Simpan" onClick={() => patch({ symbol, label, category, sort_order: Number(sortOrder) || 0 })} disabled={busy}
             title="Simpan" style={{ padding: 7, borderRadius: 7, border: "none", background: C.green, color: "#fff", cursor: "pointer" }}><Check size={14} /></button>
-          <button onClick={() => { setEditing(false); setSymbol(unit.symbol); setLabel(unit.label); setCategory(unit.category); setSortOrder(String(unit.sort_order)); }}
+          <button aria-label="Batal" onClick={() => { setEditing(false); setSymbol(unit.symbol); setLabel(unit.label); setCategory(unit.category); setSortOrder(String(unit.sort_order)); }}
             title="Batal" style={{ padding: 7, borderRadius: 7, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, cursor: "pointer" }}><X size={14} /></button>
         </div>
       </div>
@@ -263,9 +263,9 @@ function UnitRowItem({ unit, canManage, onSaved, onError }: {
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
         {canManage ? (
           <>
-            <button onClick={() => setEditing(true)} title="Edit"
+            <button aria-label="Edit" onClick={() => setEditing(true)} title="Edit"
               style={{ padding: "5px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer" }}>Edit</button>
-            <button onClick={() => patch({ is_active: !unit.is_active })} disabled={busy}
+            <button aria-label={unit.is_active ? "Nonaktifkan" : "Aktifkan"} onClick={() => patch({ is_active: !unit.is_active })} disabled={busy}
               title={unit.is_active ? "Nonaktifkan" : "Aktifkan"}
               style={{ padding: 6, borderRadius: 7, border: `1px solid ${C.border}`, background: "var(--surface)", color: unit.is_active ? C.mid : C.green, cursor: "pointer" }}>
               {unit.is_active ? <EyeOff size={13} /> : <Eye size={13} />}

@@ -165,8 +165,8 @@ function RowItem({ row, canManage, onSaved, onError }: { row: WorkCategoryRow; c
         <input value={label} onChange={e => setLabel(e.target.value)} style={inputStyle} />
         <input value={sortOrder} onChange={e => setSortOrder(e.target.value.replace(/[^0-9]/g, ""))} style={inputStyle} />
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <button onClick={() => patch({ label, sort_order: Number(sortOrder) || 0 })} disabled={busy} title="Simpan" style={{ padding: 7, borderRadius: 7, border: "none", background: C.green, color: "#fff", cursor: "pointer" }}><Check size={14} /></button>
-          <button onClick={() => { setEditing(false); setLabel(row.label); setSortOrder(String(row.sort_order)); }} title="Batal" style={{ padding: 7, borderRadius: 7, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, cursor: "pointer" }}><X size={14} /></button>
+          <button aria-label="Simpan" onClick={() => patch({ label, sort_order: Number(sortOrder) || 0 })} disabled={busy} title="Simpan" style={{ padding: 7, borderRadius: 7, border: "none", background: C.green, color: "#fff", cursor: "pointer" }}><Check size={14} /></button>
+          <button aria-label="Batal" onClick={() => { setEditing(false); setLabel(row.label); setSortOrder(String(row.sort_order)); }} title="Batal" style={{ padding: 7, borderRadius: 7, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, cursor: "pointer" }}><X size={14} /></button>
         </div>
       </div>
     );
@@ -179,7 +179,7 @@ function RowItem({ row, canManage, onSaved, onError }: { row: WorkCategoryRow; c
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
         {canManage ? (
           <>
-            <button onClick={() => setEditing(true)} title="Edit" style={{ padding: "5px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer" }}>Edit</button>
+            <button aria-label="Edit" onClick={() => setEditing(true)} title="Edit" style={{ padding: "5px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer" }}>Edit</button>
             <button onClick={() => patch({ is_active: !row.is_active })} disabled={busy} title={row.is_active ? "Nonaktifkan" : "Aktifkan"} style={{ padding: 6, borderRadius: 7, border: `1px solid ${C.border}`, background: "var(--surface)", color: row.is_active ? C.mid : C.green, cursor: "pointer" }}>
               {row.is_active ? <EyeOff size={13} /> : <Eye size={13} />}
             </button>

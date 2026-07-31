@@ -235,7 +235,7 @@ export default function MandorKasbonPage() {
                 <label style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>
                   Proyek <span style={{ color: C.red }}>*</span>
                 </label>
-                <select
+                <select aria-label="Proyek"
                   value={form.project_id}
                   onChange={(e) => handleProjectChange(e.target.value)}
                   required
@@ -310,7 +310,7 @@ export default function MandorKasbonPage() {
 
               <div>
                 <label style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Tanggal</label>
-                <input
+                <input aria-label="Tanggal"
                   type="date"
                   value={form.kasbon_date}
                   onChange={(e) => setForm((f) => ({ ...f, kasbon_date: e.target.value }))}

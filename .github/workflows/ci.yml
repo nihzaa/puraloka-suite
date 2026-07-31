@@ -145,6 +145,13 @@ jobs:
       - name: Tata letak (token lebar halaman)
         run: node scripts/tata-letak-ratchet.mjs
 
+      # Audit axe dengan login NYATA menemukan 296 pelanggaran WCAG AA yang
+      # SELURUHNYA lolos eslint-plugin-jsx-a11y — plugin itu tak punya rule
+      # untuk kontrol yang berdiri tanpa label sama sekali. Semuanya sudah
+      # ditutup; ini menjaga agar tak tumbuh lagi.
+      - name: Aksesibilitas (kontrol wajib punya nama)
+        run: node scripts/a11y-ratchet.mjs
+
       - name: Typecheck
         run: ./node_modules/.bin/tsc --noEmit
 

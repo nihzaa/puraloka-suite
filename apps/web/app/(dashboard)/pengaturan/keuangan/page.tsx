@@ -371,7 +371,7 @@ export default function KeuanganSettingsPage() {
               )}
             </div>
             {/* Toggle switch */}
-            <button
+            <button aria-label={canEdit ? (kasbonLimitOn ? "Matikan" : "Aktifkan") : "Butuh permission settings:finance:manage"}
               onClick={() => canEdit && !togglingKasbon && toggleKasbonLimit(!kasbonLimitOn)}
               disabled={!canEdit || togglingKasbon}
               aria-pressed={kasbonLimitOn}
@@ -484,7 +484,7 @@ export default function KeuanganSettingsPage() {
               </div>
               <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <span style={{ fontSize: 12.5, fontWeight: 600, color: C.text }}>Berlaku sejak</span>
-                <input type="date" value={pFrom} onChange={(e) => setPFrom(e.target.value)}
+                <input aria-label="Tanggal mulai" type="date" value={pFrom} onChange={(e) => setPFrom(e.target.value)}
                   style={{ padding: "10px 12px", borderRadius: 9, border: `1px solid ${C.border}`, fontSize: 14, boxSizing: "border-box" }} />
               </label>
               <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -530,7 +530,7 @@ export default function KeuanganSettingsPage() {
               </label>
               <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <span style={{ fontSize: 12.5, fontWeight: 600, color: C.text }}>Berlaku sejak</span>
-                <input type="date" value={effFrom} onChange={(e) => setEffFrom(e.target.value)}
+                <input aria-label="Tanggal mulai" type="date" value={effFrom} onChange={(e) => setEffFrom(e.target.value)}
                   style={{ padding: "10px 12px", borderRadius: 9, border: `1px solid ${C.border}`, fontSize: 14, boxSizing: "border-box" }} />
               </label>
               <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>

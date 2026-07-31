@@ -260,7 +260,7 @@ export default function LaporanUpahPage() {
               {/* Minggu */}
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Tanggal Mulai Minggu (Senin) *</label>
-                <input type="date" value={weekStart} onChange={(e) => setWeekStart(e.target.value)}
+                <input aria-label="Tanggal mulai" type="date" value={weekStart} onChange={(e) => setWeekStart(e.target.value)}
                   style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13 }} />
               </div>
               {/* Catatan */}

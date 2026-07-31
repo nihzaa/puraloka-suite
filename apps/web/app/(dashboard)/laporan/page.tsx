@@ -407,7 +407,7 @@ function LaporanContent() {
         <div>
           <label style={{ fontSize: 10, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>Proyek</label>
           <div style={{ position: "relative" }}>
-            <select value={projectId} onChange={e => setProjectId(e.target.value)}
+            <select aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)}
               style={{ padding: "8px 32px 8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: "var(--surface)", minWidth: 220, appearance: "none" }}>
               {(tab === "keuangan" || tab === "cashflow" || tab === "mandor" || tab === "pengeluaran") && (
                 <option value="">Semua Proyek</option>
@@ -419,18 +419,18 @@ function LaporanContent() {
         </div>
         <div>
           <label style={{ fontSize: 10, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>Dari Tanggal</label>
-          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+          <input aria-label="Tanggal mulai" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
             style={{ padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: "var(--surface)" }} />
         </div>
         <div>
           <label style={{ fontSize: 10, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>Sampai Tanggal</label>
-          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+          <input aria-label="Tanggal akhir" type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
             style={{ padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: "var(--surface)" }} />
         </div>
         {selectedProject?.start_date && (() => {
           const isFromStart = dateFrom === selectedProject.start_date;
           return (
-            <button
+            <button aria-label={`Set tanggal mulai ke ${selectedProject.start_date}`}
               onClick={() => setDateFrom(selectedProject.start_date)}
               title={`Set tanggal mulai ke ${selectedProject.start_date}`}
               style={{

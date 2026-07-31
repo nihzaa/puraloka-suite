@@ -83,6 +83,12 @@ const eslintConfig = defineConfig([
     // karena ini keluaran bundler, bukan kode yang kita tulis. Tanpa baris ini
     // angka lint tidak bisa dipakai sebagai ukuran apa pun.
     "ds-bundle/**",
+    // Sandbox milik alat DesignSync (skrip + node_modules-nya sendiri). Sudah
+    // di .gitignore:26 — tidak ter-track git, tidak ikut ter-build, dan bukan
+    // kode yang kita tulis. Kelas yang persis sama dengan `ds-bundle/**` di
+    // atas: selama ia ikut dipindai, angka ratchet naik-turun mengikuti isi
+    // sandbox alat, bukan mengikuti kode kita — sehingga tak berarti apa-apa.
+    ".ds-sync/**",
   ]),
 
   // ── Hutang lint yang diturunkan ke `warn` + dijaga RATCHET ────────────────

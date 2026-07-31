@@ -686,20 +686,20 @@ function MandorPageInner() {
               {/* Filter bar */}
               {!isMandor && (
                 <div style={{ ...card, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                  <select value={filterMandorId} onChange={e => { setFilterMandorId(e.target.value); updateFilter("mandor_id", e.target.value); }}
+                  <select aria-label="Mandor" value={filterMandorId} onChange={e => { setFilterMandorId(e.target.value); updateFilter("mandor_id", e.target.value); }}
                     style={{ padding: "6px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", color: C.text, minWidth: 160 }}>
                     <option value="">Semua Mandor</option>
                     {mandorList.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                   </select>
-                  <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); updateFilter("status", e.target.value); }}
+                  <select aria-label="Status" value={filterStatus} onChange={e => { setFilterStatus(e.target.value); updateFilter("status", e.target.value); }}
                     style={{ padding: "6px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", color: C.text }}>
                     <option value="">Semua Status</option>
                     {Object.entries(REPORT_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                   </select>
-                  <input type="date" value={filterDateFrom} onChange={e => { setFilterDateFrom(e.target.value); updateFilter("date_from", e.target.value); }}
+                  <input aria-label="Tanggal mulai" type="date" value={filterDateFrom} onChange={e => { setFilterDateFrom(e.target.value); updateFilter("date_from", e.target.value); }}
                     style={{ padding: "6px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", color: C.text }} />
                   <span style={{ fontSize: 12, color: C.muted }}>s/d</span>
-                  <input type="date" value={filterDateTo} onChange={e => { setFilterDateTo(e.target.value); updateFilter("date_to", e.target.value); }}
+                  <input aria-label="Tanggal akhir" type="date" value={filterDateTo} onChange={e => { setFilterDateTo(e.target.value); updateFilter("date_to", e.target.value); }}
                     style={{ padding: "6px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", color: C.text }} />
                   {(filterMandorId || filterStatus || filterDateFrom || filterDateTo) && (
                     <button onClick={resetFilters} style={{ padding: "6px 12px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: 12, color: C.mid, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
@@ -806,7 +806,7 @@ function MandorPageInner() {
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 {/* 4A — Filter bar */}
                 <div style={{ ...card, padding: "10px 16px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                  <select value={kasbonFilterMandorId} onChange={e => setKasbonFilterMandorId(e.target.value)}
+                  <select aria-label="Mandor" value={kasbonFilterMandorId} onChange={e => setKasbonFilterMandorId(e.target.value)}
                     style={{ padding: "6px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", color: C.text, minWidth: 150 }}>
                     <option value="">Semua Mandor</option>
                     {uniqueMandors.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
@@ -915,7 +915,7 @@ function MandorPageInner() {
                                 </button>
                               )}
                               {k.photo_url && (
-                                <button type="button" onClick={() => setLightboxPhoto(k.photo_url!)}
+                                <button aria-label="Lihat foto nota" type="button" onClick={() => setLightboxPhoto(k.photo_url!)}
                                   style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: C.blue, display: "flex", alignItems: "center", gap: 3, fontSize: 11 }} title="Lihat foto nota">
                                   <Camera size={12} /> Foto
                                 </button>
@@ -1004,7 +1004,7 @@ function MandorPageInner() {
                           <div style={{ fontSize: 11, color: C.muted }}>menunggu approval</div>
                         )}
                         {k.photo_url && (
-                          <button type="button" onClick={() => setLightboxPhoto(k.photo_url!)}
+                          <button aria-label="Lihat foto nota" type="button" onClick={() => setLightboxPhoto(k.photo_url!)}
                             style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: C.blue, display: "flex", alignItems: "center", gap: 3, fontSize: 11 }} title="Lihat foto nota">
                             <Camera size={12} /> Foto Nota
                           </button>
@@ -1386,12 +1386,12 @@ function MandorPageInner() {
                           </div>
                           {/* Actions */}
                           <div style={{ display: "flex", gap: 4 }}>
-                            <button onClick={() => setShowWorkerForm({ worker: w })}
+                            <button aria-label="Edit" onClick={() => setShowWorkerForm({ worker: w })}
                               style={{ padding: "5px 7px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", color: C.mid, display: "flex", alignItems: "center" }}
                               title="Edit">
                               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                             </button>
-                            <button onClick={() => setDeleteWorkerConfirm(w)}
+                            <button aria-label="Hapus" onClick={() => setDeleteWorkerConfirm(w)}
                               style={{ padding: "5px 7px", borderRadius: 6, border: `1px solid ${C.redBorder}`, background: C.redBg, cursor: "pointer", color: C.red, display: "flex", alignItems: "center" }}
                               title="Hapus">
                               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
@@ -1815,7 +1815,7 @@ function CreateWageReportModal({ onClose, onSuccess }: {
             <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: C.text }}>Ajukan Laporan Upah</h2>
             <p style={{ margin: "2px 0 0", fontSize: 13, color: C.muted }}>Rincian upah tukang mingguan</p>
           </div>
-          <button onClick={onClose} style={{ padding: 6, borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}>
+          <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}>
             <X size={18} />
           </button>
         </div>
@@ -1872,7 +1872,7 @@ function CreateWageReportModal({ onClose, onSuccess }: {
             </div>
             <div>
               <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Minggu (Senin) <span style={{ color: C.red }}>*</span></label>
-              <input type="date" value={weekStart} onChange={e => setWeekStart(e.target.value)} style={inputStyle} />
+              <input aria-label="Tanggal mulai" type="date" value={weekStart} onChange={e => setWeekStart(e.target.value)} style={inputStyle} />
             </div>
           </div>
 
@@ -2079,7 +2079,7 @@ function WageReportDetailModal({ data, onClose, onApprove }: {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 12, fontWeight: 600, padding: "3px 10px", borderRadius: 10, background: st.bg, color: st.color, border: `1px solid ${st.border}` }}>{st.label}</span>
-            <button onClick={onClose} style={{ padding: 6, borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
+            <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
           </div>
         </div>
 
@@ -2233,7 +2233,7 @@ function WageReportDetailModal({ data, onClose, onApprove }: {
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                     <div>
                       <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Tanggal Bayar</label>
-                      <input type="date" value={paidAt} onChange={e => setPaidAt(e.target.value)}
+                      <input aria-label="Tanggal" type="date" value={paidAt} onChange={e => setPaidAt(e.target.value)}
                         style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
                     </div>
                     <div>
@@ -2364,7 +2364,7 @@ function WorkerFormModal({ mandorId: initialMandorId, mandorName: initialMandorN
               </div>
             )}
           </div>
-          <button onClick={onClose} style={{ padding: 6, borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
+          <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -2372,7 +2372,7 @@ function WorkerFormModal({ mandorId: initialMandorId, mandorName: initialMandorN
           {!isMandor && !initialMandorId && !isEdit && (
             <div>
               <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Mandor <span style={{ color: C.red }}>*</span></label>
-              <select value={mandorId} onChange={e => setMandorId(e.target.value)} style={inputStyle}>
+              <select aria-label="Mandor" value={mandorId} onChange={e => setMandorId(e.target.value)} style={inputStyle}>
                 <option value="">-- Pilih mandor --</option>
                 {mandorOptions.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
               </select>
@@ -2537,7 +2537,7 @@ function AddKasbonModal({ assignments, onClose, onSuccess }: {
       <div style={{ background: "var(--surface)", borderRadius: 16, width: 480, padding: 24, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", maxHeight: "90vh", overflowY: "auto" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
           <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Catat Kasbon Tukang</h2>
-          <button onClick={onClose} style={{ padding: 6, borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
+          <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
@@ -2561,7 +2561,7 @@ function AddKasbonModal({ assignments, onClose, onSuccess }: {
             </div>
             <div>
               <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Tanggal</label>
-              <input type="date" value={date} onChange={e => setDate(e.target.value)} style={inputStyle} />
+              <input aria-label="Tanggal" type="date" value={date} onChange={e => setDate(e.target.value)} style={inputStyle} />
             </div>
           </div>
           <div>
@@ -2705,7 +2705,7 @@ function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () => void; 
       <div style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", maxHeight: "90vh" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: `1px solid ${C.border}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #D97706, #FBBF24)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #B45309, #FBBF24)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Banknote size={17} color="var(--surface)" />
             </div>
             <div>
@@ -2713,7 +2713,7 @@ function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () => void; 
               <p style={{ margin: 0, fontSize: 11, color: C.muted }}>Pengajuan akan dikirim ke admin/PM untuk disetujui</p>
             </div>
           </div>
-          <button onClick={onClose} style={{ padding: 6, borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
+          <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
         </div>
 
         <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14, overflowY: "auto", flex: 1 }}>
@@ -2732,7 +2732,7 @@ function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () => void; 
             {projects.length === 0 ? (
               <div style={{ ...inputStyle, color: C.muted }}>Memuat...</div>
             ) : (
-              <select value={projectId} onChange={e => { setProjectId(e.target.value); setScopeId(""); }} style={inputStyle} required>
+              <select aria-label="Proyek" value={projectId} onChange={e => { setProjectId(e.target.value); setScopeId(""); }} style={inputStyle} required>
                 <option value="">-- Pilih proyek --</option>
                 {projects.map(p => (
                   <option key={p.id} value={p.id}>{p.name}</option>
@@ -2775,7 +2775,7 @@ function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () => void; 
             </div>
             <div>
               <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Tanggal</label>
-              <input type="date" value={kasbonDate} onChange={e => setKasbonDate(e.target.value)} style={inputStyle} />
+              <input aria-label="Tanggal" type="date" value={kasbonDate} onChange={e => setKasbonDate(e.target.value)} style={inputStyle} />
             </div>
           </div>
 
@@ -2885,27 +2885,27 @@ function AddAssignmentModal({ mandors, onClose, onSuccess }: {
             <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Assign Mandor ke Proyek</h2>
             <p style={{ margin: 0, fontSize: 12, color: C.muted, marginTop: 2 }}>Satu mandor bisa memiliki beberapa scope pekerjaan</p>
           </div>
-          <button onClick={onClose} style={{ padding: 6, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
+          <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
           {error && <div style={{ padding: "10px 14px", borderRadius: 8, background: C.redBg, color: C.red, fontSize: 13, border: `1px solid ${C.redBorder}` }}>{error}</div>}
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Proyek</label>
-            <select value={projectId} onChange={e => setProjectId(e.target.value)} style={inputStyle} required>
+            <select aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} style={inputStyle} required>
               <option value="">-- Pilih proyek --</option>
               {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Mandor</label>
-            <select value={mandorId} onChange={e => setMandorId(e.target.value)} style={inputStyle} required>
+            <select aria-label="Mandor" value={mandorId} onChange={e => setMandorId(e.target.value)} style={inputStyle} required>
               <option value="">-- Pilih mandor --</option>
               {mandors.map(m => <option key={m.id} value={m.id}>{m.name}{m.phone ? ` (${m.phone})` : ""}</option>)}
             </select>
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Tanggal Mulai Tugas</label>
-            <input type="date" value={assignedAt} onChange={e => setAssignedAt(e.target.value)} style={inputStyle} />
+            <input aria-label="Tanggal" type="date" value={assignedAt} onChange={e => setAssignedAt(e.target.value)} style={inputStyle} />
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Catatan (opsional)</label>
@@ -2975,7 +2975,7 @@ function AddScopeModal({ assignmentId, onClose, onSuccess }: {
             <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Tambah Scope Pekerjaan</h2>
             <p style={{ margin: 0, fontSize: 12, color: C.muted, marginTop: 2 }}>Rincian item pekerjaan bisa ditambahkan setelah scope dibuat</p>
           </div>
-          <button onClick={onClose} style={{ padding: 6, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
+          <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14, overflowY: "auto" }}>
           {error && <div style={{ padding: "10px 14px", borderRadius: 8, background: C.redBg, color: C.red, fontSize: 13, border: `1px solid ${C.redBorder}` }}>{error}</div>}
@@ -3016,11 +3016,11 @@ function AddScopeModal({ assignmentId, onClose, onSuccess }: {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div>
               <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Tanggal Mulai</label>
-              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={inputStyle} />
+              <input aria-label="Tanggal mulai" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={inputStyle} />
             </div>
             <div>
               <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Target Selesai</label>
-              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={inputStyle} />
+              <input aria-label="Tanggal akhir" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={inputStyle} />
             </div>
           </div>
           <div style={{ display: "flex", gap: 10, paddingTop: 4 }}>
@@ -3088,7 +3088,7 @@ function ScopeDetailModal({ data, loading: isLoading, onClose, onRefresh, onAddI
             <button onClick={onAddItem} style={{ padding: "6px 12px", borderRadius: 7, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
               <Plus size={12} /> Tambah Item
             </button>
-            <button onClick={onClose} style={{ padding: 6, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
+            <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
           </div>
         </div>
 
@@ -3263,7 +3263,7 @@ function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
             <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Tambah Item Pekerjaan</h2>
             <p style={{ margin: 0, fontSize: 12, color: C.muted, marginTop: 2 }}>Rincian pekerjaan: sipil, baja WF, MEP, finishing</p>
           </div>
-          <button onClick={onClose} style={{ padding: 6, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
+          <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14, overflowY: "auto" }}>
           {error && <div style={{ padding: "10px 14px", borderRadius: 8, background: C.redBg, color: C.red, fontSize: 13, border: `1px solid ${C.redBorder}` }}>{error}</div>}
@@ -3274,7 +3274,7 @@ function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div>
               <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Kategori</label>
-              <select value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
+              <select aria-label="Kategori" value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
                 {(workCategories.length > 0
                   ? workCategories.map(c => [c.code, c.label] as [string, string])
                   : Object.entries(CATEGORY_LABELS)
@@ -3283,7 +3283,7 @@ function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
             </div>
             <div>
               <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Satuan</label>
-              <select value={unit} onChange={e => setUnit(e.target.value)} style={inputStyle}>
+              <select aria-label="Satuan" value={unit} onChange={e => setUnit(e.target.value)} style={inputStyle}>
                 {UNITS_GROUPED.map(g => (
                   <optgroup key={g.group} label={g.group}>
                     {g.opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}

@@ -208,7 +208,7 @@ export default function KasbonTukangPage() {
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Proyek *</label>
-                <select value={form.project_id} onChange={(e) => setForm((f) => ({ ...f, project_id: e.target.value, scope_id: "" }))}
+                <select aria-label="Proyek" value={form.project_id} onChange={(e) => setForm((f) => ({ ...f, project_id: e.target.value, scope_id: "" }))}
                   style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13 }}>
                   <option value="">Pilih proyek...</option>
                   {assignments.map((a) => (
@@ -219,7 +219,7 @@ export default function KasbonTukangPage() {
               {scopesForProject.length > 0 && (
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Scope (opsional)</label>
-                  <select value={form.scope_id} onChange={(e) => setForm((f) => ({ ...f, scope_id: e.target.value }))}
+                  <select aria-label="Lingkup" value={form.scope_id} onChange={(e) => setForm((f) => ({ ...f, scope_id: e.target.value }))}
                     style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13 }}>
                     <option value="">Semua scope</option>
                     {scopesForProject.map((s: any) => (
@@ -236,7 +236,7 @@ export default function KasbonTukangPage() {
                 </div>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Tanggal</label>
-                  <input type="date" value={form.kasbon_date} onChange={(e) => setForm((f) => ({ ...f, kasbon_date: e.target.value }))}
+                  <input aria-label="Tanggal" type="date" value={form.kasbon_date} onChange={(e) => setForm((f) => ({ ...f, kasbon_date: e.target.value }))}
                     style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13 }} />
                 </div>
               </div>

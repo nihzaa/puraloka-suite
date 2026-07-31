@@ -309,7 +309,7 @@ export function NotificationPanel({ unreadCount, onCountChange }: NotificationPa
 
   // ── Bell button (rendered inline, not in portal) ───────────────────────────
   const bellButton = (
-    <button
+    <button aria-label="Notifikasi"
       ref={btnRef}
       onClick={() => setOpen(v => !v)}
       title="Notifikasi"
@@ -395,7 +395,7 @@ export function NotificationPanel({ unreadCount, onCountChange }: NotificationPa
         </div>
         <div style={{ display: "flex", gap: 4 }}>
           {unreadCount > 0 && (
-            <button
+            <button aria-label="Tandai semua dibaca"
               onClick={markAllRead}
               title="Tandai semua dibaca"
               style={{

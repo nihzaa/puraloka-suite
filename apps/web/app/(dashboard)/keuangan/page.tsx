@@ -376,7 +376,7 @@ function InvoiceRow({ inv, onPayClick, onPdfClick, loadingPdf, canEdit }: { inv:
             </span>
           )}
           {/* PDF Download button */}
-          <button
+          <button aria-label="Download PDF"
             onClick={() => onPdfClick(inv)}
             disabled={loadingPdf}
             title="Download PDF"
@@ -394,7 +394,7 @@ function InvoiceRow({ inv, onPayClick, onPdfClick, loadingPdf, canEdit }: { inv:
           </button>
           {/* Denda: estimasi/otoritatif + pemutihan. Muncul utk invoice belum lunas telat / lunas. */}
           {inv.status !== "cancelled" && (
-            <button onClick={() => setDendaOpen(true)} title="Denda keterlambatan"
+            <button aria-label="Denda keterlambatan" onClick={() => setDendaOpen(true)} title="Denda keterlambatan"
               style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 9px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: overdue ? C.red : C.mid, fontSize: 11, cursor: "pointer", whiteSpace: "nowrap" }}>
               <AlertTriangle size={11} /> Denda
             </button>
@@ -454,7 +454,7 @@ function PenaltyModal({ invoiceId, invoiceNumber, onClose }: { invoiceId: string
             <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>Denda Keterlambatan</h2>
             <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{invoiceNumber}</div>
           </div>
-          <button onClick={onClose} style={{ padding: 6, border: "none", background: "transparent", cursor: "pointer", color: "var(--text-muted)" }}><X size={18} /></button>
+          <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, border: "none", background: "transparent", cursor: "pointer", color: "var(--text-muted)" }}><X size={18} /></button>
         </div>
         <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
           {loading ? <div style={{ textAlign: "center", padding: 20, color: "var(--text-muted)", fontSize: 13 }}>Memuat…</div> : (
@@ -1001,14 +1001,14 @@ function KeuanganContent() {
                 })}
                 {overviewPeriod === "custom" && (
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: 4 }}>
-                    <input
+                    <input aria-label="Tanggal mulai"
                       type="date"
                       value={overviewFrom}
                       onChange={e => setOverviewFrom(e.target.value)}
                       style={{ padding: "5px 8px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 12, color: C.text, outline: "none" }}
                     />
                     <span style={{ color: C.muted, fontSize: 12 }}>–</span>
-                    <input
+                    <input aria-label="Tanggal akhir"
                       type="date"
                       value={overviewTo}
                       onChange={e => setOverviewTo(e.target.value)}
@@ -1830,12 +1830,12 @@ function KeuanganContent() {
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 20, alignItems: "flex-end" }}>
               <div>
                 <label style={{ fontSize: 11, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Dari</label>
-                <input type="date" value={arusFrom} onChange={e => setArusFrom(e.target.value)}
+                <input aria-label="Tanggal mulai" type="date" value={arusFrom} onChange={e => setArusFrom(e.target.value)}
                   style={{ padding: "7px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: "var(--surface)" }} />
               </div>
               <div>
                 <label style={{ fontSize: 11, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Sampai</label>
-                <input type="date" value={arusTo} onChange={e => setArusTo(e.target.value)}
+                <input aria-label="Tanggal akhir" type="date" value={arusTo} onChange={e => setArusTo(e.target.value)}
                   style={{ padding: "7px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: "var(--surface)" }} />
               </div>
               <div>
@@ -2101,12 +2101,12 @@ function KeuanganContent() {
             <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap", alignItems: "flex-end" }}>
               <div>
                 <label style={{ fontSize: 11, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Dari</label>
-                <input type="date" value={profitFrom} onChange={e => setProfitFrom(e.target.value)}
+                <input aria-label="Tanggal mulai" type="date" value={profitFrom} onChange={e => setProfitFrom(e.target.value)}
                   style={{ padding: "7px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: "var(--surface)" }} />
               </div>
               <div>
                 <label style={{ fontSize: 11, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Sampai</label>
-                <input type="date" value={profitTo} onChange={e => setProfitTo(e.target.value)}
+                <input aria-label="Tanggal akhir" type="date" value={profitTo} onChange={e => setProfitTo(e.target.value)}
                   style={{ padding: "7px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: "var(--surface)" }} />
               </div>
               <div>
@@ -2639,7 +2639,7 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
             </div>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: 0 }}>Buat Invoice Baru</h3>
           </div>
-          <button onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", color: C.muted, padding: 4 }}><X size={18} /></button>
+          <button aria-label="Tutup" onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", color: C.muted, padding: 4 }}><X size={18} /></button>
         </div>
 
         {/* Body */}
@@ -2648,7 +2648,7 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
           {/* ── Proyek ── */}
           <div>
             <label style={labelStyle}>Proyek <span style={{ color: C.red }}>*</span></label>
-            <select value={projectId} onChange={e => setProjectId(e.target.value)} required style={inputStyle}>
+            <select aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} required style={inputStyle}>
               <option value="">-- Pilih proyek --</option>
               {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
@@ -2941,11 +2941,11 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div>
                 <label style={labelStyle}>Tanggal Terbit</label>
-                <input type="date" value={issuedDate} onChange={e => setIssuedDate(e.target.value)} style={inputStyle} />
+                <input aria-label="Tanggal" type="date" value={issuedDate} onChange={e => setIssuedDate(e.target.value)} style={inputStyle} />
               </div>
               <div>
                 <label style={labelStyle}>Jatuh Tempo <span style={{ color: C.red }}>*</span></label>
-                <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} required style={inputStyle} />
+                <input aria-label="Tanggal" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} required style={inputStyle} />
               </div>
             </div>
 
@@ -3087,7 +3087,7 @@ function PayInvoiceModal({ invoice, onClose, onSuccess }: { invoice: Invoice; on
               <p style={{ fontSize: 11, color: C.muted, margin: 0 }}>{invoice.invoice_number} · {invoice.projects?.name}</p>
             </div>
           </div>
-          <button onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", color: C.muted, padding: 4 }}><X size={18} /></button>
+          <button aria-label="Tutup" onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", color: C.muted, padding: 4 }}><X size={18} /></button>
         </div>
 
         <div style={{ padding: "20px 24px", overflowY: "auto", flex: 1 }}>
@@ -3113,7 +3113,7 @@ function PayInvoiceModal({ invoice, onClose, onSuccess }: { invoice: Invoice; on
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
                   <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Tanggal Bayar <span style={{ color: C.red }}>*</span></label>
-                  <input type="date" value={paidAt} onChange={e => setPaidAt(e.target.value)} required
+                  <input aria-label="Tanggal" type="date" value={paidAt} onChange={e => setPaidAt(e.target.value)} required
                     style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
                 </div>
                 <div>
@@ -3302,7 +3302,7 @@ function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: `1px solid ${C.border}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #D97706, #FBBF24)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #B45309, #FBBF24)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Banknote size={17} color="var(--surface)" />
             </div>
             <div>
@@ -3310,7 +3310,7 @@ function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
               <p style={{ fontSize: 11, color: C.muted, margin: 0 }}>Dibuat langsung oleh admin/PM</p>
             </div>
           </div>
-          <button onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", color: C.muted, padding: 4 }}><X size={18} /></button>
+          <button aria-label="Tutup" onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", color: C.muted, padding: 4 }}><X size={18} /></button>
         </div>
 
         {/* Body */}
@@ -3349,7 +3349,7 @@ function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
             </div>
             <div>
               <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Tanggal</label>
-              <input type="date" value={kasbonDate} onChange={e => setKasbonDate(e.target.value)}
+              <input aria-label="Tanggal" type="date" value={kasbonDate} onChange={e => setKasbonDate(e.target.value)}
                 style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
             </div>
           </div>

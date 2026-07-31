@@ -153,7 +153,7 @@ function ChainCard({ chain, perms, canManage, onToggle, onAdd, onPatch, onDelete
           <code style={{ fontSize: 11, color: C.muted }}>{chain.entity_type}</code>
         </div>
         {canManage && (
-          <button onClick={() => onToggle(chain.entity_type, !chain.is_active)}
+          <button aria-label={chain.is_active ? "Nonaktifkan rantai" : "Aktifkan rantai"} onClick={() => onToggle(chain.entity_type, !chain.is_active)}
             aria-pressed={chain.is_active}
             title={chain.is_active ? "Nonaktifkan rantai" : "Aktifkan rantai"}
             style={{ position: "relative", width: 46, height: 26, borderRadius: 13, border: "none", flexShrink: 0, background: chain.is_active ? C.green : C.border, cursor: "pointer", transition: "background .2s" }}>
@@ -224,9 +224,9 @@ function StepRow({ step, perms, canManage, isLast, connector, onPatch, onDelete 
           </select>
           <input value={min} onChange={e => setMin(e.target.value.replace(/[^0-9]/g, ""))} placeholder="ambang (kosong = selalu)" style={input} />
           <div style={{ display: "flex", gap: 6 }}>
-            <button onClick={() => { onPatch(step.id, { required_permission: perm, min_amount: min.trim() === "" ? null : Number(min) }); setEditing(false); }}
+            <button aria-label="Simpan" onClick={() => { onPatch(step.id, { required_permission: perm, min_amount: min.trim() === "" ? null : Number(min) }); setEditing(false); }}
               title="Simpan" style={{ padding: 7, borderRadius: 7, border: "none", background: C.green, color: "#fff", cursor: "pointer" }}><Check size={14} /></button>
-            <button onClick={() => { setEditing(false); setPerm(step.required_permission); setMin(step.min_amount === null ? "" : String(step.min_amount)); }}
+            <button aria-label="Batal" onClick={() => { setEditing(false); setPerm(step.required_permission); setMin(step.min_amount === null ? "" : String(step.min_amount)); }}
               title="Batal" style={{ padding: 7, borderRadius: 7, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, cursor: "pointer" }}><X size={14} /></button>
           </div>
         </div>
@@ -244,8 +244,8 @@ function StepRow({ step, perms, canManage, isLast, connector, onPatch, onDelete 
           </div>
           {canManage && (
             <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-              <button onClick={() => setEditing(true)} style={{ padding: "5px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer" }}>Ubah</button>
-              <button onClick={() => onDelete(step.id)} disabled={isLast}
+              <button aria-label={isLast ? "Tidak bisa dihapus — rantai harus punya minimal 1 level" : "Hapus level"} onClick={() => setEditing(true)} style={{ padding: "5px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer" }}>Ubah</button>
+              <button aria-label={isLast ? "Tidak bisa dihapus — rantai harus punya minimal 1 level" : "Hapus level"} onClick={() => onDelete(step.id)} disabled={isLast}
                 title={isLast ? "Tidak bisa dihapus — rantai harus punya minimal 1 level" : "Hapus level"}
                 style={{ padding: 6, borderRadius: 7, border: `1px solid ${C.border}`, background: "var(--surface)", color: isLast ? C.muted : C.red, cursor: isLast ? "not-allowed" : "pointer", opacity: isLast ? 0.5 : 1 }}>
                 <Trash2 size={13} />

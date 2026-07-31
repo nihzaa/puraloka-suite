@@ -29,7 +29,7 @@ const card: React.CSSProperties = {
 // Ramp urgensi bucket — makin tua umur piutang, makin gelap merahnya.
 const BUCKETS = [
   { key: "current", label: "Belum jatuh tempo", color: "#003366" },
-  { key: "d1_30",   label: "1–30 hari",         color: "#D97706" },
+  { key: "d1_30",   label: "1–30 hari",         color: "#B45309" },
   { key: "d31_60",  label: "31–60 hari",        color: "#C2410C" },
   { key: "d61_90",  label: "61–90 hari",        color: "#B91C1C" },
   { key: "d90_plus", label: ">90 hari",         color: "#7F1D1D" },
@@ -138,7 +138,7 @@ export default function PiutangPage() {
             <div style={{ fontSize: 11, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Total Piutang Berjalan</div>
             <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 800, color: C.navy }}>{aging ? fmt(aging.total_outstanding) : "—"}</div>
           </div>
-          <button onClick={load} disabled={loading} title="Muat ulang"
+          <button aria-label="Muat ulang" onClick={load} disabled={loading} title="Muat ulang"
             style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 13, cursor: "pointer" }}>
             <RefreshCw size={14} style={loading ? { animation: "spin 1s linear infinite" } : undefined} /> Muat ulang
           </button>

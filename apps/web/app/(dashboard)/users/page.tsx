@@ -247,7 +247,7 @@ function AddUserModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
             <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Tambah User Baru</h2>
             <p style={{ margin: 0, fontSize: 12, color: C.muted, marginTop: 2 }}>User akan langsung bisa login setelah dibuat</p>
           </div>
-          <button onClick={onClose} style={{ padding: 6, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
+          <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
           {error && <div style={{ padding: "10px 14px", borderRadius: 8, background: C.redBg, color: C.red, fontSize: 13, border: `1px solid ${C.redBorder}` }}>{error}</div>}
@@ -331,7 +331,7 @@ function EditUserModal({ user, onClose, onSuccess }: { user: UserRecord; onClose
             <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Edit Data User</h2>
             <p style={{ margin: 0, fontSize: 12, color: C.muted, marginTop: 2 }}>{user.email}</p>
           </div>
-          <button onClick={onClose} style={{ padding: 6, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
+          <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
           {error && <div style={{ padding: "10px 14px", borderRadius: 8, background: C.redBg, color: C.red, fontSize: 13, border: `1px solid ${C.redBorder}` }}>{error}</div>}

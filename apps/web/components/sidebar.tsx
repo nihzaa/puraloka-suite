@@ -255,7 +255,7 @@ export function Sidebar() {
         )}
 
         {!collapsed && (
-          <button
+          <button aria-label={collapsed ? "Buka sidebar" : "Tutup sidebar"}
             onClick={toggle}
             title={collapsed ? "Buka sidebar" : "Tutup sidebar"}
             style={{
@@ -277,7 +277,7 @@ export function Sidebar() {
           lalu tak terjadi apa-apa terbaca sebagai aplikasi rusak. */}
       {collapsed && !dipaksaCiut && (
         <div style={{ padding: "8px 0 4px", display: "flex", justifyContent: "center", flexShrink: 0 }}>
-          <button
+          <button aria-label="Buka sidebar"
             onClick={toggle}
             title="Buka sidebar"
             style={{
@@ -460,7 +460,7 @@ export function Sidebar() {
                 {roleLabel[user.role] ?? user.role}
               </div>
             </div>
-            <button
+            <button aria-label="Keluar"
               onClick={handleLogout}
               title="Keluar"
               style={{ padding: 5, borderRadius: 6, background: "transparent", border: "none", cursor: "pointer", color: "var(--text-muted)", flexShrink: 0, display: "flex", alignItems: "center" }}
@@ -483,7 +483,7 @@ export function Sidebar() {
             }}>
               {user.name.charAt(0).toUpperCase()}
             </div>
-            <button
+            <button aria-label="Keluar"
               onClick={handleLogout}
               title="Keluar"
               style={{ padding: 6, borderRadius: 6, background: "transparent", border: "none", cursor: "pointer", color: "var(--text-muted)", display: "flex", alignItems: "center" }}

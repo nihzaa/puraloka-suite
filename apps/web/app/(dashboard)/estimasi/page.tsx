@@ -125,7 +125,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
       <div style={{ background: C.surface, borderRadius: 14, width: "100%", maxWidth: 520, maxHeight: "88vh", overflow: "auto", boxShadow: "0 20px 50px rgba(0,0,0,.25)" }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: `1px solid ${C.border}` }}>
           <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>{title}</h3>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted }}><X size={18} /></button>
+          <button aria-label="Tutup" onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted }}><X size={18} /></button>
         </div>
         <div style={{ padding: 18 }}>{children}</div>
       </div>
@@ -196,7 +196,7 @@ function KomposerTab() {
   return (
     <div>
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}>
-        <select value={projectId} onChange={e => setProjectId(e.target.value)} style={{ ...inputStyle, width: 280 }}>
+        <select aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} style={{ ...inputStyle, width: 280 }}>
           <option value="">— Pilih proyek —</option>
           {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
@@ -294,7 +294,7 @@ function KomposerTab() {
                     <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{fmtRp(Number(it.amount))}</td>
                     <td style={{ ...td, width: 40 }}>
                       {openVersion.status === "draft" && (
-                        <button title="Hapus item" style={{ background: "none", border: "none", cursor: "pointer", color: C.red }}
+                        <button aria-label="Hapus item" title="Hapus item" style={{ background: "none", border: "none", cursor: "pointer", color: C.red }}
                           onClick={async () => {
                             try { await api.delete(`/api/v1/estimate-versions/${openVersion.id}/items/${it.id}`); await refreshDetail(); }
                             catch (e) { setErr((e as { response?: { data?: { error?: string } } }).response?.data?.error ?? "Gagal hapus"); }
@@ -720,7 +720,7 @@ function AddItemModal({ version, onClose, onDone }:
           )}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div>{label("Tanggal harga (price book)")}
-              <input style={inputStyle} type="date" value={priceDate} onChange={e => setPriceDate(e.target.value)} /></div>
+              <input aria-label="Tanggal" style={inputStyle} type="date" value={priceDate} onChange={e => setPriceDate(e.target.value)} /></div>
             <div>{label("Lokasi harga (opsional)")}
               <input style={inputStyle} value={location} onChange={e => setLocation(e.target.value)} placeholder="mis. Bandung" /></div>
           </div>
@@ -1692,7 +1692,7 @@ function RapTab() {
       {err && <div style={{ background: C.redBg, color: C.red, border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px 12px", fontSize: 12.5, marginBottom: 10 }}>{err}</div>}
 
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}>
-        <select value={projectId} onChange={e => setProjectId(e.target.value)} style={{ ...inputStyle, width: 280 }}>
+        <select aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} style={{ ...inputStyle, width: 280 }}>
           <option value="">— Pilih proyek —</option>
           {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
@@ -1783,7 +1783,7 @@ function RapTab() {
                       <td style={{ ...td, textAlign: "right", fontWeight: 600, fontFamily: "monospace" }}>{fmtRp(Number(m.pagu))}</td>
                       <td style={{ ...td, width: 36 }}>
                         {locked && (
-                          <button title="Catat perubahan (arsip)" style={{ background: "none", border: "none", cursor: "pointer", color: C.muted }}
+                          <button aria-label="Catat perubahan (arsip)" title="Catat perubahan (arsip)" style={{ background: "none", border: "none", cursor: "pointer", color: C.muted }}
                             onClick={() => setShowLogForm({ table: "rap_material_line", id: m.id, label: m.resource?.name ?? m.id })}>
                             <Pencil size={13} />
                           </button>
@@ -1819,7 +1819,7 @@ function RapTab() {
                       <td style={{ ...td, textAlign: "right", fontWeight: 600, fontFamily: "monospace" }}>{fmtRp(Number(l.borongan_value))}</td>
                       <td style={{ ...td, width: 36 }}>
                         {locked && (
-                          <button title="Catat perubahan (arsip)" style={{ background: "none", border: "none", cursor: "pointer", color: C.muted }}
+                          <button aria-label="Catat perubahan (arsip)" title="Catat perubahan (arsip)" style={{ background: "none", border: "none", cursor: "pointer", color: C.muted }}
                             onClick={() => setShowLogForm({ table: "rap_labor_line", id: l.id, label: l.description })}>
                             <Pencil size={13} />
                           </button>
@@ -2362,9 +2362,9 @@ function NewPriceModal({ initial, onClose, onDone }: {
       <input style={inputStyle} type="number" min="0" step="any" value={amount} onChange={e => setAmount(e.target.value)} />
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <div>{label("Berlaku sejak")}
-          <input style={inputStyle} type="date" value={effective} onChange={e => setEffective(e.target.value)} /></div>
+          <input aria-label="Tanggal" style={inputStyle} type="date" value={effective} onChange={e => setEffective(e.target.value)} /></div>
         <div>{label("Berlaku sampai (opsional)")}
-          <input style={inputStyle} type="date" value={expired} onChange={e => setExpired(e.target.value)} /></div>
+          <input aria-label="Tanggal" style={inputStyle} type="date" value={expired} onChange={e => setExpired(e.target.value)} /></div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <div>{label("Lokasi (kosong = umum)")}
@@ -2547,7 +2547,7 @@ function CashflowTab() {
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end", marginBottom: 16 }}>
         <div>
           <label htmlFor="cf-proyek" style={LBL}>Proyek</label>
-          <select id="cf-proyek" value={projectId}
+          <select aria-label="Proyek" id="cf-proyek" value={projectId}
             onChange={e => {
               setProjectId(e.target.value); setScenarios([]); setVersionId(""); setData(null);
             }}
@@ -2784,7 +2784,7 @@ function VariansTab() {
     <div>
       <div style={{ marginBottom: 16 }}>
         <label htmlFor="vr-proyek" style={LBL}>Proyek</label>
-        <select id="vr-proyek" value={projectId}
+        <select aria-label="Proyek" id="vr-proyek" value={projectId}
           onChange={e => { setProjectId(e.target.value); setPeta(null); setVarians(null); }}
           style={SEL}>
           <option value="">— pilih proyek —</option>

@@ -338,7 +338,7 @@ export function DocumentSection({ projectId, userRole }: Props) {
                 <div style={{ display: "flex", gap: 5, flexShrink: 0, alignItems: "center" }}>
                   {/* Toggle visibility (admin/pm only) */}
                   {canEdit && (
-                    <button
+                    <button aria-label={doc.is_visible_to_client ? "Sembunyikan dari klien" : "Tampilkan ke klien"}
                       onClick={() => handleToggleVisibility(doc)}
                       disabled={togglingId === doc.id}
                       title={doc.is_visible_to_client ? "Sembunyikan dari klien" : "Tampilkan ke klien"}
@@ -387,7 +387,7 @@ export function DocumentSection({ projectId, userRole }: Props) {
 
                   {/* Delete */}
                   {canEdit && (
-                    <button
+                    <button aria-label="Hapus dokumen"
                       onClick={() => handleDelete(doc)}
                       disabled={deletingId === doc.id}
                       style={{

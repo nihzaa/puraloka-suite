@@ -669,7 +669,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
           {canEdit && (
             <>
               <input ref={fileRef} type="file" accept=".xlsx,.xls,.ods" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) handleUpload(f); }} />
-              <button
+              <button aria-label="Refresh"
                 onClick={() => fileRef.current?.click()}
                 disabled={uploading}
                 style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, background: uploading ? "var(--text-muted)" : C.navy, color: "var(--surface)", border: "none", cursor: uploading ? "not-allowed" : "pointer" }}
@@ -680,7 +680,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
                 {uploading ? "Mengupload..." : hasData ? "Ganti File RAB" : "Upload RAB (.xlsx)"}
               </button>
               {hasData && (
-                <button onClick={load}
+                <button aria-label="Refresh" onClick={load}
                   style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 10px", borderRadius: 8, fontSize: 12, background: "transparent", color: C.mid, border: "1px solid #E5E7EB", cursor: "pointer" }}
                   title="Refresh">
                   <RefreshCw size={13} />

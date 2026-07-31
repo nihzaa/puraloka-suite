@@ -17,7 +17,7 @@ export function ThemeToggle() {
   const isDark = theme === "dark";
 
   return (
-    <button
+    <button aria-label={isDark ? "Ganti ke mode terang" : "Ganti ke mode gelap"}
       onClick={() => setTheme(isDark ? "light" : "dark")}
       title={isDark ? "Ganti ke mode terang" : "Ganti ke mode gelap"}
       style={{

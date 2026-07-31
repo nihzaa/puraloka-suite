@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useReducer, useRef, useState } from "react";
+import { useEffect, useId, useReducer, useRef, useState } from "react";
 import { api, getStoredUser } from "@/lib/api";
 import { Building2, CreditCard, Upload, Save, X, Check, AlertTriangle } from "lucide-react";
 
@@ -359,15 +359,21 @@ function Field({ label, value, onChange, disabled, required, span, textarea, row
     color: "var(--text-primary)", resize: textarea ? "vertical" : undefined,
     boxSizing: "border-box", fontFamily: "inherit",
   };
+  // `<label>` tanpa `htmlFor` hanya terlihat seperti label — pembaca layar
+  // tak menghubungkannya ke field, jadi ia menyebut "kotak teks" tanpa nama.
+  // Terdeteksi axe (`label` ×3 di halaman ini). `useId` dipakai, bukan
+  // menurunkan `id` dari `label`, karena label boleh mengandung spasi/karakter
+  // apa pun dan boleh muncul dua kali di satu halaman.
+  const id = useId();
   return (
     <div style={{ gridColumn: span ? `span ${span}` : undefined }}>
-      <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6 }}>
+      <label htmlFor={id} style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6 }}>
         {label} {required && <span style={{ color: "var(--danger)" }}>*</span>}
       </label>
       {textarea ? (
-        <textarea value={value} onChange={e => onChange(e.target.value)} disabled={disabled} rows={rows ?? 2} placeholder={placeholder} style={style} />
+        <textarea id={id} value={value} onChange={e => onChange(e.target.value)} disabled={disabled} rows={rows ?? 2} placeholder={placeholder} style={style} />
       ) : (
-        <input type="text" value={value} onChange={e => onChange(e.target.value)} disabled={disabled} required={required} placeholder={placeholder} style={style} />
+        <input id={id} type="text" value={value} onChange={e => onChange(e.target.value)} disabled={disabled} required={required} placeholder={placeholder} style={style} />
       )}
     </div>
   );

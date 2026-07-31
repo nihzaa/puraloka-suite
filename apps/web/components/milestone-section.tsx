@@ -284,7 +284,7 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
                   }}
                 >
                   {/* Checkbox circle */}
-                  <button
+                  <button aria-label={isSelesai ? "Tandai belum selesai" : "Tandai selesai"}
                     type="button"
                     onClick={() => handleToggle(m)}
                     disabled={!canEdit || Boolean(togglingId)}

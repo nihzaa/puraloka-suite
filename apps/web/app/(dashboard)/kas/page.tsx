@@ -929,7 +929,7 @@ function CreateAccountModal({ onClose, onSuccess }: { onClose: () => void; onSuc
             <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#003366,#0066CC)", display: "flex", alignItems: "center", justifyContent: "center" }}><Wallet size={17} color="var(--surface)" /></div>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: 0 }}>Buat Akun Kas Baru</h3>
           </div>
-          <button onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", color: C.muted }}><X size={18} /></button>
+          <button aria-label="Tutup" onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", color: C.muted }}><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14, overflowY: "auto" }}>
           <div>
@@ -963,7 +963,7 @@ function CreateAccountModal({ onClose, onSuccess }: { onClose: () => void; onSuc
           {type === "petty_cash" && (
             <div>
               <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Proyek <span style={{ color: C.red }}>*</span></label>
-              <select value={projectId} onChange={e => setProjectId(e.target.value)} style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
+              <select aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                 <option value="">-- Pilih proyek --</option>
                 {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
@@ -1046,7 +1046,7 @@ function CreateTransferModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
             <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#7C3AED,#A78BFA)", display: "flex", alignItems: "center", justifyContent: "center" }}><ArrowRightLeft size={17} color="var(--surface)" /></div>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: 0 }}>Catat Transfer Dana</h3>
           </div>
-          <button onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", color: C.muted }}><X size={18} /></button>
+          <button aria-label="Tutup" onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", color: C.muted }}><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14, overflowY: "auto" }}>
           {/* From → To visual */}
@@ -1080,7 +1080,7 @@ function CreateTransferModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
             </div>
             <div>
               <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Tanggal Transfer</label>
-              <input type="date" value={transferDate} onChange={e => setTransferDate(e.target.value)}
+              <input aria-label="Tanggal" type="date" value={transferDate} onChange={e => setTransferDate(e.target.value)}
                 style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
             </div>
           </div>
@@ -1221,21 +1221,21 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
             <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#B91C1C,#EF4444)", display: "flex", alignItems: "center", justifyContent: "center" }}><ShoppingCart size={17} color="var(--surface)" /></div>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: 0 }}>Catat Pengeluaran Proyek</h3>
           </div>
-          <button onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", color: C.muted }}><X size={18} /></button>
+          <button aria-label="Tutup" onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", color: C.muted }}><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14, overflowY: "auto", flex: 1 }}>
           {/* Proyek + Tanggal */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
               <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Proyek <span style={{ color: C.red }}>*</span></label>
-              <select value={projectId} onChange={e => setProjectId(e.target.value)} required style={{ width: "100%", padding: "9px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
+              <select aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} required style={{ width: "100%", padding: "9px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                 <option value="">-- Pilih proyek --</option>
                 {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </div>
             <div>
               <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Tanggal</label>
-              <input type="date" value={expenseDate} onChange={e => setExpenseDate(e.target.value)} style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+              <input aria-label="Tanggal" type="date" value={expenseDate} onChange={e => setExpenseDate(e.target.value)} style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
             </div>
           </div>
 

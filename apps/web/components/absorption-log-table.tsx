@@ -340,7 +340,7 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
                             </div>
                             <div style={{ position: "relative" }}>
                               {canEdit && confirmDelete !== entry.id && (
-                                <button
+                                <button aria-label="Hapus entri"
                                   onClick={() => setConfirmDelete(entry.id)}
                                   disabled={deleting === entry.id}
                                   style={{

@@ -147,7 +147,7 @@ function WidgetShell({
         <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", flex: 1 }}>
           {title}
         </span>
-        <button
+        <button aria-label="Sembunyikan widget"
           onClick={e => { e.stopPropagation(); onToggleHide(); }}
           title="Sembunyikan widget"
           style={{
@@ -161,8 +161,36 @@ function WidgetShell({
         </button>
       </div>
 
-      {/* Widget content */}
-      <div style={{ flex: 1, overflow: "auto", minHeight: 0 }}>
+      {/* Widget content.
+          `tabIndex={0}` bukan hiasan: area yang bisa di-scroll TAPI tak bisa
+          difokus keyboard membuat isinya tak terjangkau sama sekali bagi orang
+          yang tak memakai tetikus — konten yang berada di bawah lipatan widget
+          praktis tidak ada. Terdeteksi axe (`scrollable-region-focusable`).
+          `role="group"` + nama dari judul widget supaya pembaca layar
+          menyebutnya sebagai sesuatu, bukan "grup" kosong. */}
+      {/* `role="region"`, BUKAN `"group"`: keduanya memberi nama, tapi hanya
+          `region` yang diakui `jsx-a11y/no-noninteractive-tabindex` sebagai
+          alasan sah untuk `tabIndex`. Dengan `group`, dua aturan saling
+          bertabrakan — axe menuntut area scroll bisa difokus, eslint melarang
+          tabIndex di elemen non-interaktif. `region` memenuhi keduanya, dan
+          secara semantik memang lebih tepat: ini bagian halaman yang berdiri
+          sendiri dan punya judul. */}
+      {/* DUA ATURAN BERTABRAKAN DI SATU ELEMEN, dan ini pilihan sadar:
+          · axe (`scrollable-region-focusable`) MENUNTUT area yang bisa di-scroll
+            juga bisa difokus keyboard — kalau tidak, isi yang berada di bawah
+            lipatan widget tak terjangkau sama sekali tanpa tetikus.
+          · rule ini MELARANG `tabIndex` di elemen non-interaktif, karena
+            biasanya itu memang menambah perhentian tab yang tak berguna.
+          Di sini larangan itu tidak berlaku: perhentian tab-nya JUSTRU yang
+          membuat kontennya terbaca. axe mencerminkan dampak ke pengguna nyata,
+          jadi ia yang dimenangkan — dimatikan satu baris, bukan rule-nya. */}
+      <div
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+        tabIndex={0}
+        role="region"
+        aria-label={title}
+        style={{ flex: 1, overflow: "auto", minHeight: 0 }}
+      >
         {children}
       </div>
     </div>

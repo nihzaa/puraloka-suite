@@ -319,7 +319,7 @@ export function MandorSection({
                                 <ScopeBars scope={scope} scopeTotal={Number(scope.borongan_value ?? 0)} />
                               </div>
                               {canEdit && (
-                                <button
+                                <button aria-label="Hapus scope"
                                   onClick={() => handleDeleteScope(scope.id)}
                                   disabled={deletingScopeId === scope.id}
                                   style={{ padding: 5, borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", color: C.muted, flexShrink: 0 }}

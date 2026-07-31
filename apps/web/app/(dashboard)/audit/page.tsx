@@ -38,7 +38,7 @@ const ACTION_COLORS: Record<string, { bg: string; color: string }> = {
   delete:                   { bg: "#FEF2F2", color: "#B91C1C" },
   change_order_approved:    { bg: "#FFF7ED", color: "#C2410C" },
   change_order_rejected:    { bg: "#FEF2F2", color: "#B91C1C" },
-  soft_delete:              { bg: "#FFF7ED", color: "#D97706" },
+  soft_delete:              { bg: "#FFF7ED", color: "#B45309" },
 };
 
 function actionStyle(action: string) {
@@ -60,13 +60,13 @@ function tableIcon(t: string) {
 }
 
 function DiffView({ oldVal, newVal }: { oldVal: Record<string, unknown> | null; newVal: Record<string, unknown> | null }) {
-  if (!oldVal && !newVal) return <span style={{ color: "#9CA3AF", fontSize: 11 }}>Tidak ada data</span>;
+  if (!oldVal && !newVal) return <span style={{ color: "#666D74", fontSize: 11 }}>Tidak ada data</span>;
 
   const allKeys = [...new Set([...Object.keys(oldVal ?? {}), ...Object.keys(newVal ?? {})])];
   const changed = allKeys.filter(k => JSON.stringify((oldVal ?? {})[k]) !== JSON.stringify((newVal ?? {})[k]));
 
   if (changed.length === 0) {
-    return <span style={{ color: "#9CA3AF", fontSize: 11 }}>Tidak ada perubahan nilai</span>;
+    return <span style={{ color: "#666D74", fontSize: 11 }}>Tidak ada perubahan nilai</span>;
   }
 
   return (
@@ -89,7 +89,7 @@ function DiffView({ oldVal, newVal }: { oldVal: Record<string, unknown> | null; 
         </div>
       ))}
       {changed.length > 8 && (
-        <span style={{ fontSize: 10, color: "#9CA3AF" }}>+{changed.length - 8} kolom lainnya</span>
+        <span style={{ fontSize: 10, color: "#666D74" }}>+{changed.length - 8} kolom lainnya</span>
       )}
     </div>
   );
@@ -201,7 +201,7 @@ export default function AuditPage() {
       <div style={{ ...card, padding: "16px 20px", marginBottom: 16, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
         {/* Search */}
         <div style={{ position: "relative", flex: "1 1 200px", minWidth: 180 }}>
-          <Search size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#9CA3AF" }} />
+          <Search size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#666D74" }} />
           <input
             type="text" placeholder="Cari nama, action, ID..."
             value={search}
@@ -211,7 +211,8 @@ export default function AuditPage() {
         </div>
 
         {/* Table filter */}
-        <select
+        <button onClick={()=>{}}><X size={16} /></button>
+      <select aria-label="Tabel"
           value={filterTable}
           onChange={e => setFilterTable(e.target.value)}
           style={{ height: 36, borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 12, padding: "0 10px", flex: "0 0 auto", minWidth: 150 }}
@@ -223,7 +224,7 @@ export default function AuditPage() {
         </select>
 
         {/* Action filter */}
-        <select
+        <select aria-label="Aksi"
           value={filterAction}
           onChange={e => setFilterAction(e.target.value)}
           style={{ height: 36, borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 12, padding: "0 10px", flex: "0 0 auto", minWidth: 160 }}
@@ -236,12 +237,12 @@ export default function AuditPage() {
 
         {/* Date range */}
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          <input
+          <input aria-label="Tanggal mulai"
             type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)}
             style={{ height: 36, borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 12, padding: "0 8px" }}
           />
-          <span style={{ fontSize: 11, color: "#9CA3AF" }}>—</span>
-          <input
+          <span style={{ fontSize: 11, color: "#666D74" }}>—</span>
+          <input aria-label="Tanggal akhir"
             type="date" value={filterTo} onChange={e => setFilterTo(e.target.value)}
             style={{ height: 36, borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 12, padding: "0 8px" }}
           />
@@ -264,7 +265,7 @@ export default function AuditPage() {
           { label: "INSERT", count: logs.filter(l => l.action === "insert").length, color: "#15803d", bg: "#F0FDF4" },
           { label: "UPDATE", count: logs.filter(l => l.action === "update").length, color: "#1D4ED8", bg: "#EFF6FF" },
           { label: "DELETE", count: logs.filter(l => l.action === "delete" || l.action === "soft_delete").length, color: "#B91C1C", bg: "#FEF2F2" },
-          { label: "LAINNYA", count: logs.filter(l => !["insert","update","delete","soft_delete"].includes(l.action)).length, color: "#D97706", bg: "#FFFBEB" },
+          { label: "LAINNYA", count: logs.filter(l => !["insert","update","delete","soft_delete"].includes(l.action)).length, color: "#B45309", bg: "#FFFBEB" },
         ].map(chip => chip.count > 0 && (
           <span key={chip.label} style={{ padding: "3px 10px", borderRadius: 99, fontSize: 11, fontWeight: 700, background: chip.bg, color: chip.color }}>
             {chip.label} · {chip.count}
@@ -275,11 +276,11 @@ export default function AuditPage() {
       {/* Log table */}
       <div style={card}>
         {loading ? (
-          <div style={{ padding: 40, textAlign: "center", color: "#9CA3AF", fontSize: 13 }}>Memuat...</div>
+          <div style={{ padding: 40, textAlign: "center", color: "#666D74", fontSize: 13 }}>Memuat...</div>
         ) : filteredLogs.length === 0 ? (
           <div style={{ padding: 40, textAlign: "center" }}>
             <Database size={28} style={{ color: "#D1D5DB", marginBottom: 8 }} />
-            <p style={{ color: "#9CA3AF", fontSize: 13 }}>Tidak ada log yang cocok</p>
+            <p style={{ color: "#666D74", fontSize: 13 }}>Tidak ada log yang cocok</p>
           </div>
         ) : (
           filteredLogs.map((log, i) => {
@@ -314,7 +315,7 @@ export default function AuditPage() {
                         background: ast.bg, color: ast.color, textTransform: "uppercase",
                       }}>{log.action}</span>
                       <span style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>{log.table_name}</span>
-                      <span style={{ fontSize: 11, color: "#9CA3AF", fontFamily: "monospace" }}>
+                      <span style={{ fontSize: 11, color: "#666D74", fontFamily: "monospace" }}>
                         {log.record_id.slice(0, 8)}…
                       </span>
                     </div>
@@ -338,14 +339,14 @@ export default function AuditPage() {
                       <div style={{ fontSize: 11, fontWeight: 600, color: "#374151" }}>
                         {log.user?.name ?? "—"}
                       </div>
-                      <div style={{ fontSize: 10, color: "#9CA3AF" }}>{log.user?.role ?? ""}</div>
+                      <div style={{ fontSize: 10, color: "#666D74" }}>{log.user?.role ?? ""}</div>
                     </div>
                   </div>
 
                   {/* Timestamp */}
                   <div style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0, minWidth: 140 }}>
                     <Clock size={11} style={{ color: "#D1D5DB" }} />
-                    <span style={{ fontSize: 11, color: "#9CA3AF" }}>{fmtDate(log.created_at)}</span>
+                    <span style={{ fontSize: 11, color: "#666D74" }}>{fmtDate(log.created_at)}</span>
                   </div>
 
                   {/* Expand indicator */}
@@ -358,7 +359,7 @@ export default function AuditPage() {
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 14 }}>
                       {/* Metadata */}
                       <div style={{ background: "#fff", borderRadius: 10, padding: "12px 14px", border: "1px solid #E5E7EB" }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>Detail</div>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: "#666D74", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>Detail</div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                           {[
                             { label: "ID Log", val: log.id },
@@ -369,7 +370,7 @@ export default function AuditPage() {
                             { label: "Waktu", val: fmtDate(log.created_at) },
                           ].map(({ label, val }) => (
                             <div key={label} style={{ display: "flex", gap: 8 }}>
-                              <span style={{ fontSize: 11, color: "#9CA3AF", minWidth: 80, flexShrink: 0 }}>{label}</span>
+                              <span style={{ fontSize: 11, color: "#666D74", minWidth: 80, flexShrink: 0 }}>{label}</span>
                               <span style={{ fontSize: 11, color: "#374151", fontFamily: label === "ID Log" || label === "Record ID" ? "monospace" : "inherit", wordBreak: "break-all" }}>{val}</span>
                             </div>
                           ))}
@@ -378,7 +379,7 @@ export default function AuditPage() {
 
                       {/* Diff */}
                       <div style={{ background: "#fff", borderRadius: 10, padding: "12px 14px", border: "1px solid #E5E7EB" }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: "#666D74", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>
                           Perubahan
                           {log.old_values && <span style={{ marginLeft: 8, padding: "1px 5px", borderRadius: 4, background: "#FEE2E2", color: "#991B1B", fontSize: 9 }}>SEBELUM</span>}
                           {log.new_values && <span style={{ marginLeft: 4, padding: "1px 5px", borderRadius: 4, background: "#DCFCE7", color: "#166534", fontSize: 9 }}>SESUDAH</span>}
@@ -395,13 +396,13 @@ export default function AuditPage() {
                       </summary>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
                         <div>
-                          <div style={{ fontSize: 10, color: "#9CA3AF", marginBottom: 4 }}>old_values</div>
+                          <div style={{ fontSize: 10, color: "#666D74", marginBottom: 4 }}>old_values</div>
                           <pre style={{ fontSize: 10, background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 6, padding: 10, overflow: "auto", maxHeight: 200, margin: 0, color: "#374151" }}>
                             {JSON.stringify(log.old_values, null, 2)}
                           </pre>
                         </div>
                         <div>
-                          <div style={{ fontSize: 10, color: "#9CA3AF", marginBottom: 4 }}>new_values</div>
+                          <div style={{ fontSize: 10, color: "#666D74", marginBottom: 4 }}>new_values</div>
                           <pre style={{ fontSize: 10, background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 6, padding: 10, overflow: "auto", maxHeight: 200, margin: 0, color: "#374151" }}>
                             {JSON.stringify(log.new_values, null, 2)}
                           </pre>
@@ -420,6 +421,7 @@ export default function AuditPage() {
       {meta.pages > 1 && (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 16 }}>
           <button
+            aria-label="Halaman sebelumnya"
             disabled={page <= 1}
             onClick={() => setPage(p => p - 1)}
             style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid #E5E7EB", background: page <= 1 ? "#F9FAFB" : "#fff", cursor: page <= 1 ? "not-allowed" : "pointer" }}
@@ -445,13 +447,14 @@ export default function AuditPage() {
             );
           })}
           <button
+            aria-label="Halaman berikutnya"
             disabled={page >= meta.pages}
             onClick={() => setPage(p => p + 1)}
             style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid #E5E7EB", background: page >= meta.pages ? "#F9FAFB" : "#fff", cursor: page >= meta.pages ? "not-allowed" : "pointer" }}
           >
             <ChevronRight size={14} />
           </button>
-          <span style={{ fontSize: 12, color: "#9CA3AF", marginLeft: 4 }}>
+          <span style={{ fontSize: 12, color: "#666D74", marginLeft: 4 }}>
             Hal. {page} dari {meta.pages} · {meta.total.toLocaleString("id-ID")} entri
           </span>
         </div>

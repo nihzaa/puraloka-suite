@@ -221,7 +221,7 @@ export default function MandorProgressPage() {
 
       {/* Project selector for log history */}
       <div style={{ marginBottom: 16 }}>
-        <select
+        <select aria-label="Proyek"
           value={projectId}
           onChange={(e) => { setProjectId(e.target.value); loadLogs(e.target.value); }}
           style={{ padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, color: C.text, background: "var(--surface)", minWidth: 220 }}
@@ -274,7 +274,7 @@ export default function MandorProgressPage() {
             <form onSubmit={handleSubmit} style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
               <div>
                 <label style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Proyek *</label>
-                <select
+                <select aria-label="Proyek"
                   value={projectId}
                   onChange={(e) => { setProjectId(e.target.value); setScopeId(""); }}
                   required
@@ -302,7 +302,7 @@ export default function MandorProgressPage() {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
                   <label style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Tanggal</label>
-                  <input type="date" value={logDate} onChange={(e) => setLogDate(e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }} />
+                  <input aria-label="Tanggal" type="date" value={logDate} onChange={(e) => setLogDate(e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }} />
                 </div>
                 <div>
                   <label style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Cuaca</label>

@@ -27,20 +27,29 @@
   --border-strong:    #D1D5DB;
 
   --text-primary:     #111827;
-  --text-secondary:   #6B7280;
+  /* #6B7280 sampai 2026-07-31 — lulus di putih (4,83) tapi GAGAL di latar
+   * yang sedikit lebih gelap: 4,39 di --surface-hover, 4,30 di --navy-light.
+   * Baris tabel ter-hover dan badge berlatar biru muda memakai keduanya,
+   * jadi kegagalannya nyata (11 temuan di /users saja).
+   * #5A616B lulus di SELURUH latar terang (5,56-6,26) dan tetap jelas
+   * lebih gelap dari --text-muted (#666D74) — hierarki dua tingkatnya
+   * tetap terbaca, bukan menyatu jadi satu warna. */
+  --text-secondary:   #5A616B;
   /* #9CA3AF sampai 2026-07-31 — GAGAL WCAG AA: kontras 2,53:1 di atas putih,
    * sementara syaratnya 4,5:1. Ditemukan axe-core pada halaman LOGIN, layar
    * pertama yang dilihat setiap pengguna (teks "ATAU" di pemisah tombol).
    * Bukan kasus pinggiran: token ini dipakai 1.001 kali di seluruh aplikasi.
    *
-   * #6D747C = 4,73:1 di atas putih. Sengaja BUKAN #6B7280 (yang 4,83:1),
+   * #666D74 = 5,24:1 di atas putih, dan >=4,66 di SELURUH latar terang
+   * (--bg 4,97 - hover 4,77 - navy-light 4,66). Sengaja BUKAN #6B7280,
    * karena itu nilai --text-secondary — memakainya akan membuat "muted" dan
    * "secondary" identik, menghapus satu tingkat hierarki yang memang dipakai.
    *
-   * ⚠️ Pada latar --surface-hover (#F3F4F6) angkanya 4,30 — masih di bawah
-   * ambang. Teks muted di atas baris ter-hover memang belum lulus; itu
-   * dicatat sebagai sisa, bukan diklaim beres. */
-  --text-muted:       #6D747C;
+   * Nilai #6D747C sempat dipakai sebentar (4,73 di putih) tapi jatuh ke 4,49
+   * di --bg dan 4,30 di --surface-hover — LULUS di halaman login, GAGAL di 14
+   * halaman dashboard. Ketahuan hanya karena audit diulang dengan login nyata,
+   * bukan cuma di halaman login. */
+  --text-muted:       #666D74;
 
   --navy:             #003366;
   /* Teks/ikon yang duduk DI ATAS --navy. Ada sebagai token tersendiri karena
@@ -55,7 +64,13 @@
   --success:          #15803d;
   --success-bg:       #F0FDF4;
   --success-border:   #BBF7D0;
-  --warning:          #D97706;
+  /* #D97706 sampai 2026-07-31 — GAGAL WCAG AA sebagai WARNA TEKS: 3,19:1 di
+   * atas putih dan 3,07:1 di atas --warning-bg (syarat 4,5:1). Terpakai
+   * sebagai teks di banyak tempat ("3 kasbon menunggu", badge di /audit).
+   * #B45309 = 5,02:1 putih / 4,84:1 warning-bg. Nuansanya masih oranye-amber
+   * yang sama, hanya lebih pekat — status "perhatian" tetap terbaca sebagai
+   * peringatan, bukan berubah makna. */
+  --warning:          #B45309;
   --warning-bg:       #FFFBEB;
   --warning-border:   #FDE68A;
   --danger:           #B91C1C;

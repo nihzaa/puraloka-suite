@@ -339,7 +339,7 @@ export function KurvaSSection({ projectId, userRole }: Props) {
               <p style={{ fontSize: 11, fontWeight: 700, color: C.mid, textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>
                 Earned Value Management (EVM)
               </p>
-              <button
+              <button aria-label="Tentang EVM"
                 onClick={() => setShowEvmDetail(v => !v)}
                 title="Tentang EVM"
                 style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: C.muted, display: "flex" }}

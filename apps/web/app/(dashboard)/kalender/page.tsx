@@ -40,7 +40,7 @@ const TYPE_STYLE: Record<string, { color: string; bg: string; icon: React.ReactN
   termin:        { color: "#15803D", bg: "#F0FDF4", icon: <FileText size={10} /> },
   progress:      { color: "#0066CC", bg: "#EFF6FF", icon: <TrendingUp size={10} /> },
   project_end:   { color: "#B91C1C", bg: "#FEF2F2", icon: <Clock size={10} /> },
-  project_start: { color: "#D97706", bg: "#FFFBEB", icon: <Calendar size={10} /> },
+  project_start: { color: "#B45309", bg: "#FFFBEB", icon: <Calendar size={10} /> },
 };
 
 const STATUS_FADED: Record<string, boolean> = {
@@ -196,7 +196,12 @@ export default function KalenderPage() {
             <div key={c.label} style={{ padding: "5px 12px", borderRadius: 20, background: c.bg, border: `1px solid ${c.color}22`, display: "flex", alignItems: "center", gap: 5 }}>
               <span style={{ color: c.color }}>{c.icon}</span>
               <span style={{ fontSize: 12, fontWeight: 700, color: c.color }}>{c.count}</span>
-              <span style={{ fontSize: 11, color: c.color, opacity: 0.8 }}>{c.label}</span>
+              {/* Tanpa `opacity`: warnanya sendiri sudah lulus kontras (mis. ungu
+                  milestone 5,70:1), tapi opacity 0,8 menurunkannya ke 3,7:1 —
+                  di bawah ambang 4,5:1. Opacity memudarkan terhadap LATAR, jadi
+                  ia mengurangi kontras walau warnanya sudah dipilih benar.
+                  Ini legenda: satu-satunya gunanya justru untuk dibaca. */}
+              <span style={{ fontSize: 11, color: c.color }}>{c.label}</span>
             </div>
           ))}
         </div>
@@ -207,7 +212,7 @@ export default function KalenderPage() {
         <div style={card}>
           {/* Month nav */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid var(--border)" }}>
-            <button onClick={prevMonth} style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <button aria-label="Sebelumnya" onClick={prevMonth} style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <ChevronLeft size={15} />
             </button>
             <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>{fmtMonthYear(year, month)}</span>
@@ -215,7 +220,7 @@ export default function KalenderPage() {
               <button onClick={() => { setYear(now.getFullYear()); setMonth(now.getMonth()); setSelectedDay(today); }} style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 11, cursor: "pointer", color: "var(--text-secondary)" }}>
                 Hari ini
               </button>
-              <button onClick={nextMonth} style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <button aria-label="Berikutnya" onClick={nextMonth} style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <ChevronRight size={15} />
               </button>
             </div>
@@ -404,7 +409,7 @@ export default function KalenderPage() {
                         <div style={{ fontSize: 11, fontWeight: 500, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.title}</div>
                         <div style={{ fontSize: 10, color: "var(--text-muted)" }}>{ev.sub}</div>
                       </div>
-                      <span style={{ fontSize: 10, color: daysLeft <= 3 ? "#B91C1C" : daysLeft <= 7 ? "#D97706" : "var(--text-muted)", fontWeight: daysLeft <= 7 ? 700 : 400, flexShrink: 0 }}>
+                      <span style={{ fontSize: 10, color: daysLeft <= 3 ? "#B91C1C" : daysLeft <= 7 ? "#B45309" : "var(--text-muted)", fontWeight: daysLeft <= 7 ? 700 : 400, flexShrink: 0 }}>
                         {daysLeft === 0 ? "Hari ini" : daysLeft === 1 ? "Besok" : `${daysLeft}h`}
                       </span>
                     </div>
