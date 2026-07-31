@@ -108,7 +108,7 @@ interface Photo { id: string; url: string; caption: string | null; taken_at: str
 interface Document { id: string; name: string; document_type: string; file_url: string; created_at: string; }
 interface KurvaSPoint { week_number: number; plan_pct: number; actual_pct: number; }
 
-type TabKey = "ringkasan" | "keuangan" | "cashflow" | "mandor" | "pengeluaran" | "progress" | "pajak";
+type TabKey = "ringkasan" | "keuangan" | "cashflow" | "mandor" | "pengeluaran" | "progress" | "pajak" | "portofolio";
 
 interface TaxRecord {
   id: string; tax_type: string; tax_scheme: string; base_amount: number;
@@ -391,6 +391,10 @@ function LaporanContent() {
     { key: "pengeluaran" as TabKey, label: "Pengeluaran",       icon: <TrendingDown size={12} />,  requireFinance: true },
     { key: "progress"   as TabKey, label: "Progress & Foto",    icon: <Activity size={12} />,      requiresProject: true },
     { key: "pajak"      as TabKey, label: "Rekap Pajak",         icon: <FileText size={12} />,      requireFinance: true },
+    // Portofolio SENGAJA tanpa `requiresProject`: justru pertanyaannya
+    // lintas-proyek ("dari 15 proyek, mana yang menggerus margin?"), jadi
+    // memaksanya memilih satu proyek dulu akan menghilangkan gunanya.
+    { key: "portofolio" as TabKey, label: "Portofolio Biaya",   icon: <BarChart3 size={12} />,     requireFinance: true },
   ] as { key: TabKey; label: string; icon: React.ReactNode; requiresProject?: boolean; requireFinance?: boolean }[]).filter(t => !t.requireFinance || canViewFinance);
 
   return (
@@ -708,6 +712,8 @@ function LaporanContent() {
             )}
           </div>
         )}
+
+        {tab === "portofolio" && <PortofolioTab />}
       </div>
     </div>
   );
@@ -1373,6 +1379,133 @@ function TabProgress({ data }: { data: ProgressData }) {
             <X size={18} color="var(--surface)" />
           </button>
           <img src={lightboxUrl} alt="" style={{ maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain", borderRadius: 8 }} onClick={e => e.stopPropagation()} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * PORTOFOLIO BIAYA — agregasi lintas proyek (ROADMAP #18).
+ *
+ * ── Keputusan tampilan
+ *
+ * KETERBATASAN ditampilkan DI ATAS tabel, bukan sebagai catatan kaki. ROADMAP
+ * #18 mensyaratkannya eksplisit: angka di sini belum diadu ke realisasi
+ * belanja per-material. Angka yang terlihat rapi tanpa peringatan justru yang
+ * paling berbahaya — ia mengundang keputusan yang datanya belum sanggup
+ * menopang, dan catatan kaki tak pernah dibaca sebelum keputusan diambil.
+ *
+ * DASAR PEMBANDING ikut ditampilkan per baris. Dua proyek dengan "serapan 40%"
+ * bisa berarti hal yang sangat berbeda: satu dibanding rencana BELANJA (RAP),
+ * satunya dibanding harga JUAL (RAB) — yang kedua terlihat lebih hemat dari
+ * kenyataan. Tanpa kolom ini keduanya tampak setara.
+ */
+function PortofolioTab() {
+  const [data, setData] = useState<{
+    projectId: string; nama: string; status: string;
+    pagu: number; serapan: number; progressPct: number;
+    dasarPembanding: string; serapanPct: number | null;
+    deviasiPoin: number | null; sisaPagu: number | null;
+  }[]>([]);
+  const [meta, setMeta] = useState<{
+    jumlahProyek: number; totalKontrak: number; totalPagu: number; totalSerapan: number;
+    lewatPagu: number; serapanMendahului: number; tanpaPagu: number; keterbatasan: string[];
+  } | null>(null);
+  const [memuat, setMemuat] = useState(true);
+  const [galat, setGalat] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.get<{ data: typeof data; meta: NonNullable<typeof meta> }>("/api/v1/cost-analytics/portfolio")
+      .then(r => { setData(r.data.data ?? []); setMeta(r.data.meta); })
+      .catch(() => setGalat("Gagal memuat portofolio biaya"))
+      .finally(() => setMemuat(false));
+  }, []);
+
+  const DASAR_LABEL: Record<string, string> = {
+    rap_locked: "RAP (belanja)",
+    rab: "RAB (jual)",
+    contract_value: "Nilai kontrak",
+    tak_ada: "— tak ada",
+  };
+
+  if (memuat) return <div style={{ padding: 24, color: C.mid, fontSize: 13 }}>Memuat portofolio…</div>;
+  if (galat) return <div style={{ padding: 24, color: C.red, fontSize: 13 }}>{galat}</div>;
+
+  return (
+    <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+      {meta && (
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          <KpiCard label="Total pagu" value={fmtCompact(meta.totalPagu)}
+            sub={`${meta.jumlahProyek} proyek`} icon={<Layers size={20} color={C.navy} />} accent={C.navy} />
+          <KpiCard label="Total serapan" value={fmtCompact(meta.totalSerapan)}
+            sub="pengeluaran approved" icon={<TrendingDown size={20} color={C.blue} />} accent={C.blue} />
+          <KpiCard label="Lewat pagu" value={String(meta.lewatPagu)}
+            sub="serapan melampaui rencana" icon={<AlertTriangle size={20} color={meta.lewatPagu > 0 ? C.red : C.green} />}
+            accent={meta.lewatPagu > 0 ? C.red : C.green} />
+          <KpiCard label="Uang mendahului kerja" value={String(meta.serapanMendahului)}
+            sub="serapan > progres +10 poin" icon={<Activity size={20} color={meta.serapanMendahului > 0 ? C.yellow : C.green} />}
+            accent={meta.serapanMendahului > 0 ? C.yellow : C.green} />
+        </div>
+      )}
+
+      {/* Keterbatasan DI ATAS tabel — syarat eksplisit ROADMAP #18. */}
+      {meta && meta.keterbatasan.length > 0 && (
+        <div style={{
+          padding: "12px 15px", borderRadius: 10,
+          background: C.yellowBg, border: `1px solid ${C.yellowBorder}`,
+          fontSize: 12.5, color: C.yellow,
+        }}>
+          <strong>Baca angkanya dengan batas ini:</strong>
+          <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
+            {meta.keterbatasan.map((k, i) => <li key={i} style={{ marginBottom: 4 }}>{k}</li>)}
+          </ul>
+        </div>
+      )}
+
+      {data.length === 0 ? (
+        <EmptyState icon={<Layers size={32} color={C.muted} />} title="Belum ada proyek"
+          desc="Portofolio biaya menampilkan agregasi lintas proyek." />
+      ) : (
+        <div style={{ overflowX: "auto", border: `1px solid ${C.border}`, borderRadius: 10 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+            <thead><tr style={{ background: "var(--surface-subtle)" }}>
+              {["Proyek", "Dasar pagu", "Pagu", "Serapan", "Serapan %", "Progres %", "Deviasi", "Sisa pagu"].map(h => (
+                <th key={h} style={{
+                  padding: "9px 11px", fontSize: 10.5, fontWeight: 700, color: C.mid,
+                  textTransform: "uppercase", letterSpacing: ".04em", whiteSpace: "nowrap",
+                  textAlign: h === "Proyek" || h === "Dasar pagu" ? "left" : "right",
+                }}>{h}</th>
+              ))}
+            </tr></thead>
+            <tbody>
+              {data.map(d => (
+                <tr key={d.projectId} style={{ borderTop: `1px solid ${C.border}` }}>
+                  <td style={{ padding: "9px 11px", fontWeight: 600, color: C.text }}>{d.nama}</td>
+                  {/* Dasar pagu ditulis, bukan disembunyikan: "serapan 40%" ber-
+                      arti berbeda kalau pembandingnya harga jual vs rencana belanja. */}
+                  <td style={{ padding: "9px 11px", fontSize: 11.5, color: d.dasarPembanding === "rap_locked" ? C.green : C.mid }}>
+                    {DASAR_LABEL[d.dasarPembanding] ?? d.dasarPembanding}
+                  </td>
+                  <td style={{ padding: "9px 11px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{d.pagu > 0 ? fmtCompact(d.pagu) : "—"}</td>
+                  <td style={{ padding: "9px 11px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtCompact(d.serapan)}</td>
+                  <td style={{ padding: "9px 11px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600,
+                    color: d.serapanPct == null ? C.muted : d.serapanPct > 100 ? C.red : C.text }}>
+                    {d.serapanPct == null ? "—" : `${d.serapanPct}%`}
+                  </td>
+                  <td style={{ padding: "9px 11px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: C.mid }}>{d.progressPct}%</td>
+                  <td style={{ padding: "9px 11px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600,
+                    color: d.deviasiPoin == null ? C.muted : d.deviasiPoin > 10 ? C.red : d.deviasiPoin < 0 ? C.green : C.text }}>
+                    {d.deviasiPoin == null ? "—" : `${d.deviasiPoin > 0 ? "+" : ""}${d.deviasiPoin}`}
+                  </td>
+                  <td style={{ padding: "9px 11px", textAlign: "right", fontVariantNumeric: "tabular-nums",
+                    color: d.sisaPagu == null ? C.muted : d.sisaPagu < 0 ? C.red : C.text }}>
+                    {d.sisaPagu == null ? "—" : fmtCompact(d.sisaPagu)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
