@@ -7,6 +7,7 @@ import {
 } from '../../utils/approval.js'
 import { computeRab, computeBoq, type EstimateItemRow } from '../../lib/rab-readmodel.js'
 import { forecastCashflow } from '../../lib/cashflow-forecast.js'
+import { petakanKeRab } from '../../lib/estimate-ke-rab.js'
 import {
   computeAhsp, computeRabLineTotal, computeRabRollup, type RoundingRule, type RabGroupInput,
 } from '../../lib/ahsp-engine.js'
@@ -245,6 +246,124 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
       if (error) return reply.status(500).send({ error: error.message })
       if (!v) return reply.status(404).send({ error: 'Estimate Version tidak ditemukan' })
       return reply.send({ data: v })
+    })
+
+  // ── POST /estimate-versions/:id/terapkan-ke-rab ─────────────────────────────
+  //
+  // Menyalin item versi estimasi menjadi `rab_items` proyek.
+  //
+  // ── Kenapa MENYALIN, bukan membuat pembaca membaca dua sumber
+  //
+  // `estimate_items` (Komposer) dan `rab_items` (RAB proyek) selama ini tak
+  // punya FK maupun sinkronisasi — RAB yang disusun rapi di Komposer tak
+  // berpengaruh apa pun pada Kurva S, EVM, dan progress fisik, karena ketiganya
+  // membaca `rab_items`.
+  //
+  // Keputusan founder (2026-07-31): sambungkan lewat penyalinan eksplisit.
+  // Kurva S/EVM tak perlu diubah sama sekali — tetap membaca satu tabel — jadi
+  // angka yang sudah dipakai hari ini tak berisiko bergeser. Upload Excel manual
+  // tetap hidup sebagai jalur alternatif; keduanya menulis ke tabel yang sama.
+  //
+  // ── Menimpa, dan itu disengaja
+  //
+  // RAB proyek adalah SATU daftar, bukan tumpukan. Menambahkan tanpa mengganti
+  // akan menghasilkan item ganda tiap kali tombol ditekan, dan bobot yang
+  // berjumlah 200%. Karena itu baris lama dihapus lebih dulu — dengan jumlahnya
+  // dilaporkan balik, dan dijaga `konfirmasi_timpa` supaya tak pernah terjadi
+  // tanpa pemakai tahu apa yang hilang.
+  app.post<{ Params: { id: string }; Body: { konfirmasi_timpa?: boolean } }>(
+    '/api/v1/estimate-versions/:id/terapkan-ke-rab',
+    { preHandler: [authenticate, requirePermission('projects:edit')] },
+    async (request, reply) => {
+      // `unsafe` beralasan: `estimate_versions` mewarisi tenancy lewat
+      // `scenario_id`, bukan `project_id` — `viaProject` akan menyaring dengan
+      // kolom yang salah dan mengembalikan nol baris tanpa error. Gerbangnya
+      // ada di `.in('scenario_id', skenarioIdsTenant(request))` di baris yang
+      // sama, yang persis pola dipakai seluruh endpoint lain di berkas ini.
+      const { data: v } = await request.db!
+        .unsafe('estimate_versions', 'disaring scenario_id milik tenant di baris yang sama')
+        .select(`id, version_number, status, total_amount,
+                 scenario:scenarios(id, name, project_id),
+                 items:estimate_items(id, quantity, amount, sort_order, hsp_snapshot,
+                   cost_code:cost_codes(code, name),
+                   assembly:assemblies(name, output_unit_code))`)
+        .eq('id', request.params.id)
+        .in('scenario_id', await skenarioIdsTenant(request)).maybeSingle()
+      if (!v) return reply.status(404).send({ error: 'Estimate Version tidak ditemukan' })
+
+      const projectId = (v.scenario as unknown as { project_id?: string } | null)?.project_id
+      if (!projectId) return reply.status(400).send({ error: 'Versi ini tak terikat proyek' })
+
+      type ItemRow = {
+        id: string; quantity: number; amount: number; sort_order: number
+        hsp_snapshot: { result?: { groupTotals?: Record<string, number> } } | null
+        cost_code: { code: string; name: string } | null
+        assembly: { name: string; output_unit_code: string | null } | null
+      }
+      const items = (v.items ?? []) as unknown as ItemRow[]
+      if (!items.length) {
+        return reply.status(400).send({ error: 'Versi ini belum punya item — tak ada yang bisa diterapkan' })
+      }
+
+      // Hitung dampak SEBELUM menghapus apa pun, supaya konfirmasi yang diminta
+      // menyebut angka yang benar.
+      const { data: lama } = await request.db!
+        .viaProject('rab_items', projectId).select('id')
+      const jumlahLama = (lama ?? []).length
+
+      if (jumlahLama > 0 && !request.body?.konfirmasi_timpa) {
+        return reply.status(409).send({
+          error: 'RAB proyek sudah berisi — konfirmasi diperlukan',
+          kode: 'RAB_SUDAH_ADA',
+          akan_dihapus: jumlahLama,
+          akan_dibuat: items.length,
+          petunjuk: 'Kirim ulang dengan `konfirmasi_timpa: true` bila ingin mengganti.',
+        })
+      }
+
+      const baris = petakanKeRab(items.map((it) => ({
+        id: it.id,
+        nama: it.assembly?.name ?? it.cost_code?.name ?? 'Pekerjaan',
+        kode: it.cost_code?.code ?? null,
+        unit: it.assembly?.output_unit_code ?? null,
+        quantity: it.quantity,
+        amount: it.amount,
+        sort_order: it.sort_order,
+        group_totals: it.hsp_snapshot?.result?.groupTotals ?? null,
+      })))
+
+      if (jumlahLama > 0) {
+        const { error: errHapus } = await request.db!
+          .viaProject('rab_items', projectId).delete().neq('id', '00000000-0000-0000-0000-000000000000')
+        if (errHapus) return reply.status(500).send({ error: `Gagal menghapus RAB lama: ${errHapus.message}` })
+      }
+
+      const { data: dibuat, error: errBuat } = await request.db!
+        .viaProject('rab_items', projectId)
+        .insert(baris.map((b) => ({ ...b, project_id: projectId })))
+        .select('id')
+      if (errBuat) return reply.status(500).send({ error: `Gagal menulis RAB: ${errBuat.message}` })
+
+      await logAuditEvent(request, {
+        tableName: 'rab_items', recordId: projectId,
+        action: 'cecep.estimasi_diterapkan_ke_rab',
+        actorId: request.currentUser!.id,
+        severity: jumlahLama > 0 ? 'warning' : 'info',
+        oldValues: jumlahLama > 0 ? { baris_rab_dihapus: jumlahLama } : null,
+        newValues: {
+          estimate_version_id: v.id, versi: v.version_number,
+          skenario: (v.scenario as unknown as { name?: string } | null)?.name ?? null,
+          baris_dibuat: (dibuat ?? []).length,
+          total: baris.reduce((s, b) => s + (b.total_price ?? 0), 0),
+        },
+      })
+
+      return reply.status(201).send({
+        dihapus: jumlahLama,
+        dibuat: (dibuat ?? []).length,
+        total: baris.reduce((s, b) => s + (b.total_price ?? 0), 0),
+        project_id: projectId,
+      })
     })
 
   // ── GET /estimate-versions/:id/rollup — rekap per kategori (cost code) + PPN ─
