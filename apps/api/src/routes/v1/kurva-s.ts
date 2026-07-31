@@ -3,6 +3,7 @@ import { proyekMilikTenant } from '../../utils/tenant-guard.js'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate } from '../../plugins/auth.js'
 import { normalCDF, calculateEVM } from '../../lib/evm-calculation.js'
+import { nilaiRencanaPerMinggu, ringkasCakupan } from '../../lib/rencana-dari-gantt.js'
 
 /**
  * Endpoint: GET /api/v1/projects/:projectId/kurva-s
@@ -53,7 +54,7 @@ export default async function kurvaSRoutes(app: FastifyInstance) {
         // RAB items (semua level) untuk hitung bobot serapan
         supabase
           .from('rab_items')
-          .select('id, weight_pct, total_price, sort_order, level')
+          .select('id, weight_pct, total_price, sort_order, level, planned_start, planned_end')
           .eq('project_id', projectId)
           .gt('weight_pct', 0)
           .order('sort_order'),
@@ -196,6 +197,27 @@ export default async function kurvaSRoutes(app: FastifyInstance) {
       // Setiap baris: nilai = (mat+upah+alat+other)% × total_price item
       const rencanaValuePerWeek: number[] = new Array(totalWeeks).fill(0)
 
+      // Tingkat 2 dihitung di sini supaya cabang `else if` di bawah tetap
+      // bersih. `null` = tak ada satu pun item berjadwal → jatuh ke CDF.
+      // ⚠️ Diambil dari level `category`, BUKAN `item`. Diverifikasi ke dev:
+      // 14 dari 24 kategori punya tanggal rencana, sementara level item hanya
+      // 1 dari 296 — perencanaan Gantt di sistem ini memang disusun per
+      // KATEGORI pekerjaan, bukan per baris RAB. Memfilter `level === 'item'`
+      // membuat cakupan 0,37% dan tingkat-2 tak pernah aktif; filter yang
+      // "kelihatan benar" itulah yang membuat fitur lahir mati.
+      //
+      // Nilai kategori sudah merupakan jumlah anak-anaknya, jadi tak ada
+      // dobel-hitung selama HANYA satu level yang dipakai.
+      const itemsGantt = allRabItems
+        .filter(r => r.level === 'category')
+        .map(r => ({
+          totalPrice: Number(r.total_price ?? 0),
+          plannedStart: (r as { planned_start?: string | null }).planned_start ?? null,
+          plannedEnd: (r as { planned_end?: string | null }).planned_end ?? null,
+        }))
+      const rencanaGantt = hasSchedule ? null : nilaiRencanaPerMinggu(itemsGantt, startDate, totalWeeks)
+      const cakupanGantt = ringkasCakupan(itemsGantt)
+
       if (hasSchedule) {
         for (const row of scheduleRows) {
           const itemPrice = itemPriceMap.get(row.rab_item_id) ?? 0
@@ -208,6 +230,14 @@ export default async function kurvaSRoutes(app: FastifyInstance) {
             rencanaValuePerWeek[weekIdx] += valueThisWeek
           }
         }
+      } else if (rencanaGantt) {
+        // ── TINGKAT 2: turunkan dari tanggal Gantt (`planned_start/end`) ────
+        // Kolomnya sudah ada sejak migrasi 052 dan dipakai Gantt Chart, tapi
+        // kurva-S tak pernah membacanya. Akibatnya PV selalu dari normal CDF —
+        // kurva lonceng yang benar secara matematis tapi TAK ADA HUBUNGANNYA
+        // dengan rencana proyek ini, sehingga SPI mengukur penyimpangan
+        // terhadap tebakan, bukan terhadap rencana.
+        for (let i = 0; i < totalWeeks; i++) rencanaValuePerWeek[i] = rencanaGantt[i]
       } else {
         // Fallback: distribusi normal CDF jika belum ada jadwal manual
         // normalCDF diekstrak ke lib/evm-calculation.ts (Task 1.2.2, testable tanpa HTTP/DB)
@@ -403,6 +433,17 @@ export default async function kurvaSRoutes(app: FastifyInstance) {
           totalWeeks,
           hasRAB,
           hasSchedule,
+          // Sumber kurva rencana — WAJIB ikut dikirim. Tanpa ini pemakai tak
+          // bisa membedakan SPI yang diukur terhadap rencana sungguhan dari
+          // SPI yang diukur terhadap kurva lonceng generik, padahal angkanya
+          // sama-sama terlihat meyakinkan.
+          rencanaSource: hasSchedule ? 'rab_schedule' : rencanaGantt ? 'gantt' : 'normal_cdf',
+          // Cakupan NILAI item yang punya tanggal rencana. PV dari tingkat 2
+          // hanya sekuat cakupannya: 15 dari 296 item = kurva yang mewakili
+          // sebagian kecil pekerjaan.
+          cakupanJadwalPct: cakupanGantt.pctNilai,
+          itemBerjadwal: cakupanGantt.berjadwal,
+          itemTotal: cakupanGantt.total,
           totalRABValue,
           latestActualPct: latestActual,
           latestSerapanPct,
