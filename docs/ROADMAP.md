@@ -55,7 +55,7 @@ pengerjaan. Sumber tiap item disebut supaya bisa ditelusuri ke dokumen aslinya.
 |---|---|---|---|---|
 | 8 | ~~**Rekonsiliasi pagu RAP vs realisasi belanja**~~ | CECEP §D7 · PETA #4 | ⛔ **DIPINDAH ke "Sengaja TIDAK dikerjakan"** — discovery 2026-07-31 membuktikan gerbangnya BELUM terbuka: `rap_material_line` **0 baris**, kecocokan `resources`↔`materials` **0,1%** (2 dari 2.680, granularitas beda), dan `project_expenses` tak punya kolom material sama sekali. Bukti: [`DISCOVERY-RAP-VS-REALISASI.md`](superpowers/specs/2026-07-18-enterprise-architecture/CECEP/DISCOVERY-RAP-VS-REALISASI.md) | — |
 | 9 | **Commitment & varians per cost code** | PETA #5 | Bocor ketahuan SETELAH uang keluar, bukan saat komitmen diteken | Sedang |
-| 10 | **Cost-to-complete forecast (UI)** | PETA #6 | Engine `cashflow-forecast.ts` sudah ada, **tanpa UI** — proyek rugi ketahuan di akhir, bukan saat masih bisa dikoreksi | Kecil |
+| 10 | ~~**Cost-to-complete forecast (UI)**~~ → **Proyeksi Kas (UI)** | PETA #6 | ✅ **Selesai 2026-07-31.** ⚠️ Judul lamanya keliru: *cost-to-complete* (ETC/EAC) **sudah lama tampil** di EVM cards `kurva-s-section.tsx:416`. Yang benar-benar tak ber-UI adalah **cashflow forecast** — endpoint `GET /estimate-versions/:id/cashflow-forecast` hidup sejak Milestone 4 tapi tak pernah dipanggil satu baris pun dari web. Kini jadi tab **Proyeksi Kas** di `/estimasi` | Kecil |
 
 ### Tingkat 2 — Kebocoran di titik paling awal
 
@@ -140,6 +140,7 @@ perbaiki kode barunya — jangan naikkan ambangnya.
 | 2026-07-31 | PR #121 merged (`5bb284d`) — item #2–#5 tuntas. Job `web` hijau untuk PERTAMA KALINYA; sebelumnya `apps/web` nol penegakan CI |
 | 2026-07-31 | Item #7 tuntas. 60 tautan rusak diperbaiki + 3 cacat administratif ditutup + pemindai tautan jadi job CI `dokumentasi`. **Rencana awalnya keliru dan dikoreksi di lapangan** — lihat catatan di bawah |
 | 2026-07-31 | Item #8 **dipindah ke "sengaja tidak dikerjakan"** setelah discovery terukur. ROADMAP menempatkannya di Tingkat 1 dengan asumsi "gerbang sudah lewat" — data membuktikan sebaliknya. Konsekuensi: syarat #18 "kerjakan setelah #8" gugur. Ini contoh ROADMAP bekerja sebagaimana mestinya: status berubah karena **bukti**, bukan karena rencananya begitu |
+| 2026-07-31 | Item #10 tuntas — tab **Proyeksi Kas** di `/estimasi`. Judul item lamanya keliru dan dikoreksi: ETC/EAC sudah lama ber-UI; yang menganggur adalah endpoint cashflow forecast. Ratchet sempat MERAH (73 vs ambang 71) menangkap 2 `set-state-in-effect` baru — diperbaiki dengan memindahkan reset ke handler & membuat effect murni asinkron, bukan menaikkan ambang |
 
 ## Jebakan CI yang sudah dibayar mahal — jangan diulang
 

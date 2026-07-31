@@ -9,11 +9,15 @@
 
 import { Fragment, useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import {
+  ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid,
+  Tooltip, Legend, ResponsiveContainer,
+} from "recharts";
 import { api } from "@/lib/api";
 import {
   Calculator, Plus, X, ChevronRight, ChevronDown, BookOpen, Coins,
   Layers, Send, Trash2, CheckCircle2, BadgeCheck, PlayCircle, CircleOff, Pencil,
-  Lock, ClipboardList, Package, HardHat, History,
+  Lock, ClipboardList, Package, HardHat, History, TrendingUp, Info,
 } from "lucide-react";
 
 const C = {
@@ -32,6 +36,11 @@ interface Project { id: string; name: string }
 interface Edition { id: string; code: string; name: string; publish_date: string | null; source_sha256: string | null; is_active: boolean }
 interface VersionSummary { id: string; version_number: number; status: string; total_amount: number }
 interface Scenario { id: string; name: string; purpose: string | null; status: string; versions: VersionSummary[] }
+interface CashflowPeriod { period: number; disbursement: number; cumulative: number }
+interface CashflowResponse {
+  estimate_version_id: string; status: string;
+  baseline_total: number; periods: number; forecast: CashflowPeriod[];
+}
 interface AsmComponent { coefficient: number; sort_order: number; resource: { code: string; name: string; category: string; unit_code: string } | null }
 interface Assembly {
   id: string; code: string; name: string; source: string; version_number: number; status: string;
@@ -1937,12 +1946,260 @@ function NewPriceModal({ initial, onClose, onDone }: {
   );
 }
 
+// ══ TAB: CASHFLOW FORECAST ════════════════════════════════════════════════════
+// ROADMAP #10. Endpoint `GET /estimate-versions/:id/cashflow-forecast` sudah
+// hidup sejak Milestone 4 — ber-test, dengan invariant Σ pencairan = baseline
+// PERSIS — tapi tak pernah punya UI. Angka yang tak pernah dilihat siapa pun
+// sama nilainya dengan angka yang tak pernah dihitung.
+//
+// Yang ditampilkan adalah PROYEKSI RENCANA (dari baseline estimasi), bukan kas
+// aktual. Bedanya disebut eksplisit di UI: dashboard kas yang tak menyatakan
+// dirinya rencana adalah cara termudah membuat orang salah membaca angkanya.
+function CashflowTab() {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectId, setProjectId] = useState("");
+  const [scenarios, setScenarios] = useState<Scenario[]>([]);
+  const [versionId, setVersionId] = useState("");
+  const [periods, setPeriods] = useState(12);
+  const [data, setData] = useState<CashflowResponse | null>(null);
+  const [memuat, setMemuat] = useState(false);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    api.get<{ projects: Project[] }>("/api/v1/projects")
+      .then(r => setProjects(r.data.projects ?? [])).catch(() => {});
+  }, []);
+
+  // Effect ini TIDAK menulis state secara sinkron — semua setState terjadi di
+  // dalam .then/.catch (asinkron). Menulisnya sinkron memicu render beruntun,
+  // yang ditangkap `react-hooks/set-state-in-effect`. Reset saat proyek berganti
+  // dilakukan di handler pemilih, tempat kejadiannya memang berasal.
+  useEffect(() => {
+    if (!projectId) return;
+    let batal = false;
+    api.get<{ data: Scenario[] }>(`/api/v1/projects/${projectId}/scenarios`)
+      .then(r => { if (!batal) setScenarios(r.data.data ?? []); })
+      .catch(() => { if (!batal) setScenarios([]); });
+    return () => { batal = true; };
+  }, [projectId]);
+
+  // Pemuatan dibungkus effect yang tak menyentuh state secara sinkron: seluruh
+  // setState terjadi setelah `await`, di dalam .then, atau di cleanup-guard.
+  // Pola ini yang membuat `react-hooks/set-state-in-effect` tetap nol di sini.
+  useEffect(() => {
+    if (!versionId) return;
+    let batal = false;
+    const jalan = async () => {
+      setMemuat(true); setErr("");
+      try {
+        const r = await api.get<CashflowResponse>(
+          `/api/v1/estimate-versions/${versionId}/cashflow-forecast?periods=${periods}`);
+        if (!batal) setData(r.data);
+      } catch (e) {
+        if (batal) return;
+        setErr((e as { response?: { data?: { error?: string } } }).response?.data?.error
+          ?? "Gagal memuat proyeksi");
+        setData(null);
+      } finally {
+        if (!batal) setMemuat(false);
+      }
+    };
+    void Promise.resolve().then(jalan);
+    return () => { batal = true; };
+  }, [versionId, periods]);
+
+  // Hanya versi ber-nilai yang bisa diproyeksikan — versi Rp 0 menghasilkan
+  // grafik datar yang tak memberi tahu apa pun. Ditandai di dropdown, bukan
+  // disembunyikan: pengguna berhak tahu versinya ada tapi belum berisi.
+  const semuaVersi = scenarios.flatMap(s =>
+    s.versions.map(v => ({ ...v, scenarioName: s.name })));
+
+  const puncak = data?.forecast.reduce(
+    (a, b) => (b.disbursement > a.disbursement ? b : a), data.forecast[0]) ?? null;
+
+  return (
+    <div>
+      {/* ── Pemilih ─────────────────────────────────────────────────────── */}
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end", marginBottom: 16 }}>
+        <div>
+          <label htmlFor="cf-proyek" style={LBL}>Proyek</label>
+          <select id="cf-proyek" value={projectId}
+            onChange={e => {
+              setProjectId(e.target.value); setScenarios([]); setVersionId(""); setData(null);
+            }}
+            style={SEL}>
+            <option value="">— pilih proyek —</option>
+            {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="cf-versi" style={LBL}>Versi estimasi</label>
+          <select id="cf-versi" value={versionId}
+            onChange={e => { setVersionId(e.target.value); if (!e.target.value) setData(null); }}
+            disabled={!projectId} style={{ ...SEL, minWidth: 280 }}>
+            <option value="">— pilih versi —</option>
+            {semuaVersi.map(v => (
+              <option key={v.id} value={v.id}>
+                {v.scenarioName} · v{v.version_number} · {fmtRp(v.total_amount)}
+                {Number(v.total_amount) > 0 ? "" : "  (belum berisi)"}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="cf-periode" style={LBL}>Jumlah periode</label>
+          <select id="cf-periode" value={periods} onChange={e => setPeriods(Number(e.target.value))} style={SEL}>
+            {[6, 12, 18, 24, 36, 52].map(n => <option key={n} value={n}>{n} periode</option>)}
+          </select>
+        </div>
+      </div>
+
+      {err && (
+        <div role="alert" style={{ padding: "10px 12px", background: C.redBg, color: C.red,
+          borderRadius: 8, fontSize: 13, marginBottom: 14 }}>{err}</div>
+      )}
+
+      {!versionId && !memuat && (
+        <div style={{ padding: "40px 20px", textAlign: "center", color: C.muted, fontSize: 13,
+          border: `1px dashed ${C.border}`, borderRadius: 10 }}>
+          Pilih proyek dan versi estimasi untuk melihat proyeksi pencairan kas.
+        </div>
+      )}
+
+      {memuat && <div style={{ padding: 24, color: C.mid, fontSize: 13 }}>Memuat proyeksi…</div>}
+
+      {data && !memuat && (
+        <>
+          {/* ── Penegasan sifat angka. Bukan hiasan: ini yang membedakan
+                 "rencana" dari "kas nyata", dan salah baca di sini berujung
+                 keputusan belanja yang keliru. ─────────────────────────── */}
+          <div style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "10px 12px",
+            background: C.yellowBg, borderRadius: 8, fontSize: 12.5, color: C.text, marginBottom: 14 }}>
+            <Info size={15} style={{ color: C.yellow, flexShrink: 0, marginTop: 1 }} aria-hidden="true" />
+            <span>
+              <strong>Ini proyeksi rencana, bukan kas nyata.</strong> Angka diturunkan dari
+              baseline estimasi {fmtRp(data.baseline_total)} yang disebar mengikuti kurva-S —
+              pola yang sama dengan Kurva S progres. Realisasi kas sesungguhnya ada di menu Kas.
+            </span>
+          </div>
+
+          {/* ── KPI ───────────────────────────────────────────────────────── */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: 10, marginBottom: 16 }}>
+            <KpiKas label="Baseline total" nilai={fmtRp(data.baseline_total)}
+              ket={`status versi: ${data.status}`} />
+            <KpiKas label="Periode puncak"
+              nilai={puncak ? `Periode ${puncak.period}` : "—"}
+              ket={puncak ? fmtRp(Math.round(puncak.disbursement)) : ""} />
+            <KpiKas label="Pencairan periode 1"
+              nilai={fmtRp(Math.round(data.forecast[0]?.disbursement ?? 0))}
+              ket="awal proyek — kurva-S selalu landai di sini" />
+            <KpiKas label="Dibagi ke"
+              nilai={`${data.periods} periode`}
+              ket="Σ pencairan = baseline persis" />
+          </div>
+
+          {/* ── Chart ─────────────────────────────────────────────────────── */}
+          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12,
+            padding: "16px 12px 8px", marginBottom: 16 }}>
+            <ResponsiveContainer width="100%" height={280}>
+              <ComposedChart data={data.forecast} margin={{ top: 6, right: 12, left: 4, bottom: 4 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="period" tick={{ fontSize: 11, fill: "var(--text-secondary)" }}
+                  label={{ value: "Periode", position: "insideBottom", offset: -2,
+                    style: { fontSize: 11, fill: "var(--text-muted)" } }} />
+                <YAxis tick={{ fontSize: 11, fill: "var(--text-secondary)" }}
+                  tickFormatter={(v: number) => `${(v / 1_000_000).toFixed(0)} jt`} />
+                <Tooltip
+                  // Recharts v3 mengirim ValueType/ReactNode (bisa undefined), bukan
+                  // number — jadi konversi dilakukan di sini, bukan diasumsikan.
+                  formatter={(v, nama) => [fmtRp(Math.round(Number(v) || 0)), String(nama)]}
+                  labelFormatter={(l) => `Periode ${String(l)}`}
+                  contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)",
+                    borderRadius: 8, fontSize: 12 }} />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Area type="monotone" dataKey="cumulative" name="Kumulatif"
+                  stroke="var(--navy)" fill="var(--navy)" fillOpacity={0.10} strokeWidth={2} />
+                <Line type="monotone" dataKey="disbursement" name="Pencairan per periode"
+                  stroke="var(--success)" strokeWidth={2} dot={false} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* ── Tabel ─────────────────────────────────────────────────────── */}
+          <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <caption style={{ captionSide: "top", textAlign: "left", padding: "10px 14px",
+                  fontSize: 12.5, color: C.mid, background: C.surface }}>
+                  Rincian pencairan per periode — kolom kumulatif berakhir persis di baseline.
+                </caption>
+                <thead>
+                  <tr style={{ background: C.bg }}>
+                    <th scope="col" style={TH}>Periode</th>
+                    <th scope="col" style={{ ...TH, textAlign: "right" }}>Pencairan</th>
+                    <th scope="col" style={{ ...TH, textAlign: "right" }}>Kumulatif</th>
+                    <th scope="col" style={{ ...TH, textAlign: "right" }}>% baseline</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.forecast.map(p => {
+                    const pct = data.baseline_total > 0
+                      ? (p.cumulative / data.baseline_total) * 100 : 0;
+                    return (
+                      <tr key={p.period} style={{ borderTop: `1px solid ${C.border}` }}>
+                        <td style={TD}>{p.period}</td>
+                        <td style={{ ...TD, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                          {fmtRp(Math.round(p.disbursement))}
+                        </td>
+                        <td style={{ ...TD, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                          {fmtRp(Math.round(p.cumulative))}
+                        </td>
+                        <td style={{ ...TD, textAlign: "right", fontVariantNumeric: "tabular-nums", color: C.mid }}>
+                          {pct.toFixed(1)}%
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+const LBL: React.CSSProperties = {
+  display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 5,
+};
+const SEL: React.CSSProperties = {
+  padding: "8px 10px", fontSize: 13, borderRadius: 8, border: `1px solid ${C.border}`,
+  background: C.surface, color: C.text, minWidth: 200, minHeight: 38,
+};
+const TH: React.CSSProperties = {
+  padding: "9px 14px", textAlign: "left", fontSize: 12, fontWeight: 700, color: C.mid,
+};
+const TD: React.CSSProperties = { padding: "8px 14px", color: C.text };
+
+function KpiKas({ label, nilai, ket }: { label: string; nilai: string; ket?: string }) {
+  return (
+    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 14px" }}>
+      <div style={{ fontSize: 11.5, fontWeight: 600, color: C.mid, marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 17, fontWeight: 800, color: C.text, fontVariantNumeric: "tabular-nums" }}>{nilai}</div>
+      {ket && <div style={{ fontSize: 11, color: C.muted, marginTop: 3 }}>{ket}</div>}
+    </div>
+  );
+}
+
 // ══ PAGE ══════════════════════════════════════════════════════════════════════
 const TABS = [
   { key: "komposer", label: "Komposer", icon: Calculator },
   { key: "katalog", label: "Katalog AHSP", icon: BookOpen },
   { key: "harga", label: "Harga", icon: Coins },
   { key: "rap", label: "Material & RAP", icon: ClipboardList },
+  { key: "cashflow", label: "Proyeksi Kas", icon: TrendingUp },
 ] as const;
 
 export default function EstimasiPage() {
@@ -1972,6 +2229,7 @@ export default function EstimasiPage() {
       {tab === "katalog" && <KatalogTab />}
       {tab === "harga" && <HargaTab />}
       {tab === "rap" && <RapTab />}
+      {tab === "cashflow" && <CashflowTab />}
     </div>
   );
 }
