@@ -1,0 +1,4766 @@
+{
+  "meta": {
+    "source_file": "RAB Gudang Cibuluh Sumedang bobot.xlsx",
+    "source_sha256": "50c95da87d057e1a52e9bd0cf36c95380a0be90c203150f671c25ee8e5d1d1a0",
+    "source_sheets": [
+      {
+        "sheet": "ANALISA STANDAR",
+        "baris_header": 5
+      },
+      {
+        "sheet": "ANALISA BETON",
+        "baris_header": 5
+      },
+      {
+        "sheet": "ANALISA LISTRIK",
+        "baris_header": 5
+      },
+      {
+        "sheet": "ANALBONGKAR",
+        "baris_header": 4
+      }
+    ],
+    "source_kind": "company (harga satuan DI DALAM baris analisa, kolom E)",
+    "price_context": "Kabupaten Bandung, workbook Gudang Cibuluh Sumedang",
+    "extractor": "apps/api/scripts/extract-harga-analisa-cibuluh.mjs",
+    "kolom": "B=URAIAN C=SAT D=INDEKS E=HARGA (dibaca dari header, bukan diasumsikan)",
+    "sheet_dikecualikan": {
+      "hsp": "memuat item sama dengan harga BERBEDA dari sheet analisa (mis. Dolken kayu 9.500 vs 35.000) — mencampurnya membuat harga mana yang benar tak bisa ditentukan"
+    },
+    "counts": {
+      "prices": 384,
+      "conflicts": 48,
+      "skipped": 102
+    }
+  },
+  "prices": [
+    {
+      "nama": "Akustik",
+      "unit_code": "lembar",
+      "satuan_asli": "Lbr",
+      "amount": 52000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3478"
+    },
+    {
+      "nama": "Akustik Armstrong,",
+      "unit_code": "lembar",
+      "satuan_asli": "Lbr",
+      "amount": 52000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3547"
+    },
+    {
+      "nama": "Akustik uk.  60 x 120 cm",
+      "unit_code": "lembar",
+      "satuan_asli": "Lbr",
+      "amount": 52000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3680"
+    },
+    {
+      "nama": "Alat Bantu",
+      "unit_code": "ls",
+      "satuan_asli": "Ls",
+      "amount": 3365.4,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5428"
+    },
+    {
+      "nama": "Alluminium  Foil / Sisalation",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 7000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3425"
+    },
+    {
+      "nama": "Aluminium Sheet",
+      "unit_code": "lembar",
+      "satuan_asli": "Lbr",
+      "amount": 144000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2166"
+    },
+    {
+      "nama": "Ampelas",
+      "unit_code": "lembar",
+      "satuan_asli": "lbr",
+      "amount": 6000,
+      "muncul": 12,
+      "sumber": "ANALISA STANDAR:5309"
+    },
+    {
+      "nama": "Armature TL 1X36 W",
+      "unit_code": "unit",
+      "satuan_asli": "Unit",
+      "amount": 169000,
+      "muncul": 1,
+      "sumber": "ANALISA LISTRIK:20"
+    },
+    {
+      "nama": "Armature TL 2X36W Type",
+      "unit_code": "unit",
+      "satuan_asli": "Unit",
+      "amount": 270000,
+      "muncul": 1,
+      "sumber": "ANALISA LISTRIK:11"
+    },
+    {
+      "nama": "Asbes",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 14400,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3652"
+    },
+    {
+      "nama": "Asbes Glb ( 80 x 180 cm )",
+      "unit_code": "lembar",
+      "satuan_asli": "lbr",
+      "amount": 50000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:47"
+    },
+    {
+      "nama": "Atap Alluminium  Gelombang",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 57000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3399"
+    },
+    {
+      "nama": "Baja Strip ( 0.2 x 2 ) cm",
+      "unit_code": "kg",
+      "satuan_asli": "kg",
+      "amount": 2800,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4338"
+    },
+    {
+      "nama": "Bak Fibreglass 0,5 m3",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 125000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3825"
+    },
+    {
+      "nama": "Bak Teraso",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 110000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3810"
+    },
+    {
+      "nama": "Balok Kayu 5/7 Ky.Lokal Kls.II",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 3000000,
+      "muncul": 4,
+      "sumber": "ANALISA STANDAR:1723"
+    },
+    {
+      "nama": "Balok Kayu Kaso Albasia 6/6",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 2000000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:1791"
+    },
+    {
+      "nama": "Bambu D.6 s/d 8.p.600 cm",
+      "unit_code": "batang",
+      "satuan_asli": "Btg",
+      "amount": 20000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:221"
+    },
+    {
+      "nama": "Bata Expose",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 1000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:1060"
+    },
+    {
+      "nama": "Bata Merah",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 700,
+      "muncul": 20,
+      "sumber": "ANALISA STANDAR:53"
+    },
+    {
+      "nama": "Bata Pelapis Dinding klingker",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 475,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5081"
+    },
+    {
+      "nama": "Batacote",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 4275,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:1445"
+    },
+    {
+      "nama": "Bathculp",
+      "unit_code": "unit",
+      "satuan_asli": "unit",
+      "amount": 2250000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3854"
+    },
+    {
+      "nama": "Batu Bata",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 700,
+      "muncul": 5,
+      "sumber": "ANALISA STANDAR:3838"
+    },
+    {
+      "nama": "Batu Belah",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 280000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:375"
+    },
+    {
+      "nama": "Batu Belah 15/20 cm",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 280000,
+      "muncul": 13,
+      "sumber": "ANALISA STANDAR:388"
+    },
+    {
+      "nama": "Batu Granit",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 22500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:1382"
+    },
+    {
+      "nama": "Batu Kerikil",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 275000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3919"
+    },
+    {
+      "nama": "Batu Kerikil/ SPLIT 1/2",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 275000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3902"
+    },
+    {
+      "nama": "Batu Split /pecah mesin",
+      "unit_code": "m3",
+      "satuan_asli": "m3",
+      "amount": 275000,
+      "muncul": 7,
+      "sumber": "ANALISA STANDAR:1534"
+    },
+    {
+      "nama": "Batu Tempel Acak Natural",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 60000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5095"
+    },
+    {
+      "nama": "Batu Tempel Andesit Berpola",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 130000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5109"
+    },
+    {
+      "nama": "Batu Tempel Hitam Bakar",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 170000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5123"
+    },
+    {
+      "nama": "Baut besar",
+      "unit_code": "buah",
+      "satuan_asli": "pcs",
+      "amount": 125,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2657"
+    },
+    {
+      "nama": "Baut kecil",
+      "unit_code": "buah",
+      "satuan_asli": "pcs",
+      "amount": 75,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2658"
+    },
+    {
+      "nama": "Besi Beton",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 8500,
+      "muncul": 6,
+      "sumber": "ANALISA STANDAR:547"
+    },
+    {
+      "nama": "Besi Beton Polos",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 8500,
+      "muncul": 9,
+      "sumber": "ANALISA STANDAR:882"
+    },
+    {
+      "nama": "Besi Beton Polos / Ulir",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 8500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:1652"
+    },
+    {
+      "nama": "Besi Canal C.",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 16500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4228"
+    },
+    {
+      "nama": "Besi D.12 cm",
+      "unit_code": "kg",
+      "satuan_asli": "kg",
+      "amount": 8500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4350"
+    },
+    {
+      "nama": "Besi Profil WF.",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 15400,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4216"
+    },
+    {
+      "nama": "Besi Siku 50.50.5",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 16000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4364"
+    },
+    {
+      "nama": "Besi strip",
+      "unit_code": "kg",
+      "satuan_asli": "kg",
+      "amount": 30000,
+      "muncul": 12,
+      "sumber": "ANALISA STANDAR:138"
+    },
+    {
+      "nama": "Besi strip Aisan kkd",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 30000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2637"
+    },
+    {
+      "nama": "Besi Tulangan",
+      "unit_code": "kg",
+      "satuan_asli": "kg",
+      "amount": 12410,
+      "muncul": 42,
+      "sumber": "ANALISA BETON:12"
+    },
+    {
+      "nama": "Beton Site Mix - K.250",
+      "unit_code": "m3",
+      "satuan_asli": "m3",
+      "amount": 1280680,
+      "muncul": 1,
+      "sumber": "ANALISA BETON:11"
+    },
+    {
+      "nama": "Beton Site Mix -150",
+      "unit_code": "m3",
+      "satuan_asli": "m3",
+      "amount": 1035060,
+      "muncul": 1,
+      "sumber": "ANALISA BETON:319"
+    },
+    {
+      "nama": "Beton Site Mix -250",
+      "unit_code": "m3",
+      "satuan_asli": "m3",
+      "amount": 1280680,
+      "muncul": 26,
+      "sumber": "ANALISA BETON:47"
+    },
+    {
+      "nama": "Beton Site Mix -K.250",
+      "unit_code": "m3",
+      "satuan_asli": "m3",
+      "amount": 1280680,
+      "muncul": 1,
+      "sumber": "ANALISA BETON:17"
+    },
+    {
+      "nama": "Biaya Perakitan",
+      "unit_code": "ls",
+      "satuan_asli": "ls",
+      "amount": 1680,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:4352"
+    },
+    {
+      "nama": "Bilik Bambu Hinis Decoratif",
+      "unit_code": "m2",
+      "satuan_asli": "m2",
+      "amount": 25000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3103"
+    },
+    {
+      "nama": "Bilik Bambu hinishitam dekoratif",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 25000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:1087"
+    },
+    {
+      "nama": "Bubung Stel Gelombang",
+      "unit_code": "lembar",
+      "satuan_asli": "Lbr",
+      "amount": 51000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3277"
+    },
+    {
+      "nama": "Buis  Beton d. 20 cm",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 42500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3867"
+    },
+    {
+      "nama": "Buis Beton D. 30 CM",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 70000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3883"
+    },
+    {
+      "nama": "Calci Board",
+      "unit_code": "lembar",
+      "satuan_asli": "Lbr",
+      "amount": 110000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3531"
+    },
+    {
+      "nama": "Cat Besi",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 67000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5470"
+    },
+    {
+      "nama": "Cat Dasar sealer water base",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 27500,
+      "muncul": 3,
+      "sumber": "ANALISA STANDAR:5517"
+    },
+    {
+      "nama": "Cat ICI ExteriorPenutup, 2x",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 110000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5442"
+    },
+    {
+      "nama": "Cat ICI.Exterior Penutup, 2x",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 110000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5550"
+    },
+    {
+      "nama": "Cat Meni",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 27500,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:5335"
+    },
+    {
+      "nama": "Cat Minyak",
+      "unit_code": "ls",
+      "satuan_asli": "ls",
+      "amount": 27500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:32"
+    },
+    {
+      "nama": "Cat Penutup",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 66000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5323"
+    },
+    {
+      "nama": "Cat Penutup, 2x",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 66000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5338"
+    },
+    {
+      "nama": "Cat Penutup, 2x Ex- Catylack",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 110000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5457"
+    },
+    {
+      "nama": "Cat Penutup, 3x",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 66000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5356"
+    },
+    {
+      "nama": "Cat Sanlex Penutup, 2x",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 24000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5534"
+    },
+    {
+      "nama": "Cat tembok ICI Interior",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 72000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5484"
+    },
+    {
+      "nama": "Cat tembok Sanlex",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 24000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5500"
+    },
+    {
+      "nama": "Cat Vinilex Penutup, 2x",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 36000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5518"
+    },
+    {
+      "nama": "Claim Melamic",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 81000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5425"
+    },
+    {
+      "nama": "Compound",
+      "unit_code": "zak",
+      "satuan_asli": "zak",
+      "amount": 67500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3002"
+    },
+    {
+      "nama": "Concrete Block ( CB. 10 )",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 4500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:969"
+    },
+    {
+      "nama": "Concrete Block ( CB. 15 )",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 5000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:990"
+    },
+    {
+      "nama": "Concrete Block ( CB. 20 )",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 6000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:1011"
+    },
+    {
+      "nama": "cotton plester",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 9000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3001"
+    },
+    {
+      "nama": "Cuka bibit",
+      "unit_code": "liter",
+      "satuan_asli": "Lt",
+      "amount": 15000,
+      "muncul": 1,
+      "sumber": "ANALBONGKAR:57"
+    },
+    {
+      "nama": "Dempul  ( wood filler Impra )",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 45000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5408"
+    },
+    {
+      "nama": "Dempul Jadi WOOD FILER",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 45000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5307"
+    },
+    {
+      "nama": "Dolken dia 8 - 10/400 cm",
+      "unit_code": "batang",
+      "satuan_asli": "Btg",
+      "amount": 35000,
+      "muncul": 5,
+      "sumber": "ANALISA STANDAR:1725"
+    },
+    {
+      "nama": "Dolken kayu dia 8 - 10/400 cm",
+      "unit_code": "batang",
+      "satuan_asli": "Btg",
+      "amount": 35000,
+      "muncul": 5,
+      "sumber": "ANALISA STANDAR:12"
+    },
+    {
+      "nama": "Door Closer Kelas Sedang",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 250000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4624"
+    },
+    {
+      "nama": "Door Holder",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 128000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4648"
+    },
+    {
+      "nama": "Door Stop",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 50000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4660"
+    },
+    {
+      "nama": "Dynabolt",
+      "unit_code": "buah",
+      "satuan_asli": "pcs",
+      "amount": 6500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2659"
+    },
+    {
+      "nama": "Engsel Jendela",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 30000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4576"
+    },
+    {
+      "nama": "Engsel Pintu",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 50000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4564"
+    },
+    {
+      "nama": "Fiting Lampu",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 17500,
+      "muncul": 2,
+      "sumber": "ANALISA LISTRIK:141"
+    },
+    {
+      "nama": "Fiting Lampu/Fit.plapond",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 17500,
+      "muncul": 9,
+      "sumber": "ANALISA LISTRIK:44"
+    },
+    {
+      "nama": "Floor Drain",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 15000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4154"
+    },
+    {
+      "nama": "Foot plate (dudukan kuda-kuda) 1.20 m",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 10200,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2653"
+    },
+    {
+      "nama": "Formika",
+      "unit_code": "lembar",
+      "satuan_asli": "Lbr",
+      "amount": 144000,
+      "muncul": 5,
+      "sumber": "ANALISA STANDAR:2182"
+    },
+    {
+      "nama": "Formika 4 \" x   8\"",
+      "unit_code": "lembar",
+      "satuan_asli": "Lbr",
+      "amount": 144000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2231"
+    },
+    {
+      "nama": "Galian Tanah Untuk Rembesan",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 95590,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4203"
+    },
+    {
+      "nama": "Genteng  Bubung  Morando Glazuur",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 8500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3196"
+    },
+    {
+      "nama": "Genteng  Bubung  Morando Natural",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 7500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3182"
+    },
+    {
+      "nama": "Genteng  Bubung  Palentong",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 6500,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:3168"
+    },
+    {
+      "nama": "Genteng  Decra Bond",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 37500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3345"
+    },
+    {
+      "nama": "Genteng  Metal",
+      "unit_code": "lembar",
+      "satuan_asli": "Lbr",
+      "amount": 75000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3303"
+    },
+    {
+      "nama": "Genteng  Palentong  Super",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 4500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3156"
+    },
+    {
+      "nama": "Genteng  Sirap 80/m2                     30 BH'",
+      "unit_code": "m2",
+      "satuan_asli": "m2",
+      "amount": 85000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3316"
+    },
+    {
+      "nama": "Genteng Beton",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 17500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3290"
+    },
+    {
+      "nama": "Genteng Morando Glazuur",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 8000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3144"
+    },
+    {
+      "nama": "Genteng Morando Natural",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 8000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3132"
+    },
+    {
+      "nama": "Genteng Palentong Pres bakar kecil",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 2500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3120"
+    },
+    {
+      "nama": "Gergaji Besi",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 9500,
+      "muncul": 1,
+      "sumber": "ANALBONGKAR:60"
+    },
+    {
+      "nama": "Glass Block uk.20 x 20 cm",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 90000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:1074"
+    },
+    {
+      "nama": "Granito 60/60 /6 bh",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 250000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5260"
+    },
+    {
+      "nama": "Granito uk. 40 x 40 cm polis",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 216000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4964"
+    },
+    {
+      "nama": "Granito uk. 40 x 40 cm Unpolis",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 150000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4979"
+    },
+    {
+      "nama": "GRC , t = 4 mm 1,2 X 2,4",
+      "unit_code": "lembar",
+      "satuan_asli": "Lbr",
+      "amount": 66000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2398"
+    },
+    {
+      "nama": "GRC 4 MM",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 66000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3559"
+    },
+    {
+      "nama": "Grefel Beton 20 Cm",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 32000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4167"
+    },
+    {
+      "nama": "Grefel Beton 30 Cm",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 40000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4177"
+    },
+    {
+      "nama": "Grefel Beton D. 20 Cm",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 32000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4187"
+    },
+    {
+      "nama": "Gypsum",
+      "unit_code": "lembar",
+      "satuan_asli": "Lbr",
+      "amount": 85000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2383"
+    },
+    {
+      "nama": "Gypsum 9 mm",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 85000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3572"
+    },
+    {
+      "nama": "Gypsumboard  9mm",
+      "unit_code": "lembar",
+      "satuan_asli": "lbr",
+      "amount": 85000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2997"
+    },
+    {
+      "nama": "Hak Angin",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 35000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4588"
+    },
+    {
+      "nama": "Harplek, 5 mm",
+      "unit_code": "m2",
+      "satuan_asli": "m2",
+      "amount": 26388.88888888889,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3452"
+    },
+    {
+      "nama": "Hebel 10 X 20 X 40 cm",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 6400,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:1046"
+    },
+    {
+      "nama": "Hollow 2/4 dizincromate",
+      "unit_code": "batang",
+      "satuan_asli": "btg",
+      "amount": 12350,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2999"
+    },
+    {
+      "nama": "Hollow 4/4 dizincromate",
+      "unit_code": "batang",
+      "satuan_asli": "btg",
+      "amount": 84000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2998"
+    },
+    {
+      "nama": "Hollow Block ( HB. 10 )",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 8500,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:879"
+    },
+    {
+      "nama": "Hollow Block ( HB. 15 )",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 8500,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:909"
+    },
+    {
+      "nama": "Hollow Block ( HB. 20 )",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 8500,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:939"
+    },
+    {
+      "nama": "Hook Panjang komplit dg. Ring",
+      "unit_code": "kg",
+      "satuan_asli": "KG",
+      "amount": 24000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3400"
+    },
+    {
+      "nama": "HPL Warna Kayu",
+      "unit_code": "lembar",
+      "satuan_asli": "Lbr",
+      "amount": 277000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:2464"
+    },
+    {
+      "nama": "I j u k",
+      "unit_code": "kg",
+      "satuan_asli": "kg",
+      "amount": 9000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:353"
+    },
+    {
+      "nama": "Isolasi ban",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 7500,
+      "muncul": 3,
+      "sumber": "ANALISA LISTRIK:31"
+    },
+    {
+      "nama": "Jaring Kawat Baja dilas",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 14650,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:1665"
+    },
+    {
+      "nama": "Kabel, NYM 2 x 2,5 mm2",
+      "unit_code": "m1",
+      "satuan_asli": "m",
+      "amount": 7350,
+      "muncul": 1,
+      "sumber": "ANALISA LISTRIK:30"
+    },
+    {
+      "nama": "Kabel, NYM 3 x 2,5 mm2",
+      "unit_code": "m1",
+      "satuan_asli": "m",
+      "amount": 13000,
+      "muncul": 2,
+      "sumber": "ANALISA LISTRIK:208"
+    },
+    {
+      "nama": "Kaca Buram/Es",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 125000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4745"
+    },
+    {
+      "nama": "Kaca Cermin",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 160000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4758"
+    },
+    {
+      "nama": "Kaca Patri",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 750000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4770"
+    },
+    {
+      "nama": "Kaca Polos 3mm",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 85000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:55"
+    },
+    {
+      "nama": "Kaca Rayband 5 mm",
+      "unit_code": "m2",
+      "satuan_asli": "m2",
+      "amount": 130000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:2368"
+    },
+    {
+      "nama": "Kait Angin biasa",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 25000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4612"
+    },
+    {
+      "nama": "Kapur Padam",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 115000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:327"
+    },
+    {
+      "nama": "Kapur Pasang",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 115000,
+      "muncul": 11,
+      "sumber": "ANALISA STANDAR:487"
+    },
+    {
+      "nama": "Kapur Pasang/Padam",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 115000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:852"
+    },
+    {
+      "nama": "Karpet",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 300000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4994"
+    },
+    {
+      "nama": "Kaso Albasah ( 2 x Pakai ) 50 %",
+      "unit_code": "m3",
+      "satuan_asli": "m3",
+      "amount": 2000000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:1805"
+    },
+    {
+      "nama": "Kawat beton",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 30000,
+      "muncul": 10,
+      "sumber": "ANALISA STANDAR:551"
+    },
+    {
+      "nama": "Kawat harmonika",
+      "unit_code": "m2",
+      "satuan_asli": "m2",
+      "amount": 8500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4383"
+    },
+    {
+      "nama": "Kawat Las",
+      "unit_code": "kg",
+      "satuan_asli": "kg",
+      "amount": 22500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:1679"
+    },
+    {
+      "nama": "Kawat las Listrik",
+      "unit_code": "kg",
+      "satuan_asli": "kg",
+      "amount": 18000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4256"
+    },
+    {
+      "nama": "Kawat Nyamuk",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 8500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4336"
+    },
+    {
+      "nama": "Kawat Seng Polos",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 12750,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3545"
+    },
+    {
+      "nama": "Kayu  Papan/balok Albasia",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 2000000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:1692"
+    },
+    {
+      "nama": "Kayu 5/7",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 3000000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:74"
+    },
+    {
+      "nama": "Kayu 5/7 Lokal",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 3000000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:16"
+    },
+    {
+      "nama": "Kayu Albasia 5/7                             (0,12)",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 2000000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:121"
+    },
+    {
+      "nama": "Kayu Borneo,  Balok",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 6000000,
+      "muncul": 3,
+      "sumber": "ANALISA STANDAR:1876"
+    },
+    {
+      "nama": "Kayu Borneo, Balok  5/7",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 6000000,
+      "muncul": 9,
+      "sumber": "ANALISA STANDAR:2796"
+    },
+    {
+      "nama": "Kayu Borneo, Papan",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 6000000,
+      "muncul": 5,
+      "sumber": "ANALISA STANDAR:1903"
+    },
+    {
+      "nama": "Kayu Borneo, Papan  T = 3 cm",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 6000000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3361"
+    },
+    {
+      "nama": "Kayu Borneo.Balok",
+      "unit_code": "m3",
+      "satuan_asli": "m3",
+      "amount": 6000000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2685"
+    },
+    {
+      "nama": "Kayu dolken dia 8 - 10/400 cm",
+      "unit_code": "batang",
+      "satuan_asli": "Btg",
+      "amount": 35000,
+      "muncul": 3,
+      "sumber": "ANALISA STANDAR:135"
+    },
+    {
+      "nama": "Kayu Jati Papan",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 18000000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:3517"
+    },
+    {
+      "nama": "Kayu Jati,  Balok",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 16000000,
+      "muncul": 6,
+      "sumber": "ANALISA STANDAR:1834"
+    },
+    {
+      "nama": "Kayu Jati, Papan",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 18000000,
+      "muncul": 8,
+      "sumber": "ANALISA STANDAR:1916"
+    },
+    {
+      "nama": "Kayu Kamper",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 9700000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2460"
+    },
+    {
+      "nama": "Kayu Kamper,  Balok",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 9700000,
+      "muncul": 8,
+      "sumber": "ANALISA STANDAR:1848"
+    },
+    {
+      "nama": "Kayu Kaso 5/7",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 2000000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:584"
+    },
+    {
+      "nama": "Kayu Kelas II, Papan",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 3500000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:1994"
+    },
+    {
+      "nama": "Kayu Kruing, Balok",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 7000000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:2566"
+    },
+    {
+      "nama": "Kayu Kruing.Balok 8/12",
+      "unit_code": "m3",
+      "satuan_asli": "m3",
+      "amount": 7000000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2671"
+    },
+    {
+      "nama": "Kayu Lokal  Albasiah",
+      "unit_code": "m3",
+      "satuan_asli": "m³",
+      "amount": 2000000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:30"
+    },
+    {
+      "nama": "Kayu Lokal kls 2, Papan",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 3500000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2046"
+    },
+    {
+      "nama": "Kayu Lokal Kls II,  Balok",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 3000000,
+      "muncul": 3,
+      "sumber": "ANALISA STANDAR:1862"
+    },
+    {
+      "nama": "Kayu Lokal Kls II, Balok  5/7, 5/10",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 3000000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:2855"
+    },
+    {
+      "nama": "Kayu papan  Albasia",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 2000000,
+      "muncul": 11,
+      "sumber": "ANALISA STANDAR:123"
+    },
+    {
+      "nama": "Kepala Tukang",
+      "unit_code": "OH",
+      "satuan_asli": "Oh",
+      "amount": 159500,
+      "muncul": 4,
+      "sumber": "ANALISA STANDAR:34"
+    },
+    {
+      "nama": "Kepala Tukang  Pipa",
+      "unit_code": "OH",
+      "satuan_asli": "Oh",
+      "amount": 165000,
+      "muncul": 17,
+      "sumber": "ANALISA STANDAR:3938"
+    },
+    {
+      "nama": "Kepala Tukang Besi",
+      "unit_code": "OH",
+      "satuan_asli": "Oh",
+      "amount": 159500,
+      "muncul": 4,
+      "sumber": "ANALISA STANDAR:1657"
+    },
+    {
+      "nama": "Kepala Tukang Besi Profil",
+      "unit_code": "OH",
+      "satuan_asli": "Oh",
+      "amount": 165000,
+      "muncul": 9,
+      "sumber": "ANALISA STANDAR:4220"
+    },
+    {
+      "nama": "Kepala Tukang Las",
+      "unit_code": "OH",
+      "satuan_asli": "Oh",
+      "amount": 165000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4328"
+    },
+    {
+      "nama": "Kepala Tukang Listrik",
+      "unit_code": "OH",
+      "satuan_asli": "Oh",
+      "amount": 159500,
+      "muncul": 17,
+      "sumber": "ANALISA LISTRIK:35"
+    },
+    {
+      "nama": "Keramik 10 X 20",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 71000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5020"
+    },
+    {
+      "nama": "Keramik 20 X 20",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 57000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5050"
+    },
+    {
+      "nama": "Keramik 7 X 20 / 5 X 20 cm",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 6500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5035"
+    },
+    {
+      "nama": "Keramik Corak ( 20 x 25 cm )",
+      "unit_code": "m2",
+      "satuan_asli": "m2",
+      "amount": 72000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3841"
+    },
+    {
+      "nama": "Keramik, uk. 40 x 40 cm Corak/Warna",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 78000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4919"
+    },
+    {
+      "nama": "Keramik, uk. 40 x 40 cm Putih Polos",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 70000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4904"
+    },
+    {
+      "nama": "Keramik, uk. 60 x 60 cm Polis",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 250000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4934"
+    },
+    {
+      "nama": "Keramik, uk. 60 x 60 cm Unpolis",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 180000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4949"
+    },
+    {
+      "nama": "Kloset Duduk / Monoblock Ex- INA",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 1050000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3710"
+    },
+    {
+      "nama": "Kloset Duduk / Monoblock Ex- TOTO",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 1900000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3723"
+    },
+    {
+      "nama": "Kloset Jongkok Ex - TOTO Putih",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 185000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3751"
+    },
+    {
+      "nama": "Kloset Jongkok Porselen EX - INA",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 140000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3737"
+    },
+    {
+      "nama": "Kolom beton Pracetak",
+      "unit_code": "batang",
+      "satuan_asli": "Btg",
+      "amount": 220000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:106"
+    },
+    {
+      "nama": "Koral 2/3 beton",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 125000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:108"
+    },
+    {
+      "nama": "Koral beton/Kerikil",
+      "unit_code": "m3",
+      "satuan_asli": "m3",
+      "amount": 275000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:1549"
+    },
+    {
+      "nama": "Kran Air",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 35000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4141"
+    },
+    {
+      "nama": "Kuas",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 18000,
+      "muncul": 3,
+      "sumber": "ANALISA STANDAR:5410"
+    },
+    {
+      "nama": "Kunci Lemari",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 15000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4684"
+    },
+    {
+      "nama": "Kunci Selot",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 35000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4636"
+    },
+    {
+      "nama": "Kunci Silinder",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 125000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4552"
+    },
+    {
+      "nama": "Kunci tanam",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 125000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:147"
+    },
+    {
+      "nama": "Kunci Tanam Antik",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 210000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4516"
+    },
+    {
+      "nama": "Kunci Tanam Kamar Mandi",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 75000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4540"
+    },
+    {
+      "nama": "Kunci Tanam Ryl",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 125000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:56"
+    },
+    {
+      "nama": "Kunci Tanam Standard",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 185000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4528"
+    },
+    {
+      "nama": "Kwas",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 18000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:5339"
+    },
+    {
+      "nama": "Ky.Albasia",
+      "unit_code": "m3",
+      "satuan_asli": "m³",
+      "amount": 2000000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:44"
+    },
+    {
+      "nama": "Lampu",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 30000,
+      "muncul": 3,
+      "sumber": "ANALISA LISTRIK:166"
+    },
+    {
+      "nama": "Lampu Merkuri. 80 watt",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 90000,
+      "muncul": 1,
+      "sumber": "ANALISA LISTRIK:140"
+    },
+    {
+      "nama": "Lampu Neon TL. 20 watt Ex- Philips",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 40000,
+      "muncul": 1,
+      "sumber": "ANALISA LISTRIK:67"
+    },
+    {
+      "nama": "Lampu Neon TL. 40 watt Ex- Philips",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 75000,
+      "muncul": 1,
+      "sumber": "ANALISA LISTRIK:79"
+    },
+    {
+      "nama": "Lampu Philips Tornado. 12 watt Ex- Philips",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 29000,
+      "muncul": 1,
+      "sumber": "ANALISA LISTRIK:116"
+    },
+    {
+      "nama": "Lampu Philips Tornado. 15 watt Ex- Philips",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 30000,
+      "muncul": 1,
+      "sumber": "ANALISA LISTRIK:128"
+    },
+    {
+      "nama": "Lampu Philips Tornado. 5watt Ex- Philips",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 27500,
+      "muncul": 1,
+      "sumber": "ANALISA LISTRIK:91"
+    },
+    {
+      "nama": "Lampu Philips Tornado. 8 watt Ex- Philips",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 28000,
+      "muncul": 1,
+      "sumber": "ANALISA LISTRIK:103"
+    },
+    {
+      "nama": "Lampu Pijar 25 watt",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 8000,
+      "muncul": 1,
+      "sumber": "ANALISA LISTRIK:153"
+    },
+    {
+      "nama": "Lampu SL 25 watt",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 44500,
+      "muncul": 1,
+      "sumber": "ANALISA LISTRIK:55"
+    },
+    {
+      "nama": "Lampu SL 8 watt",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 33500,
+      "muncul": 1,
+      "sumber": "ANALISA LISTRIK:43"
+    },
+    {
+      "nama": "Lantai Kerja 1 ; 3 ;5 t = 12 cm",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 129020.91608366434,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4198"
+    },
+    {
+      "nama": "Lem Fox Kuning",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 39500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2478"
+    },
+    {
+      "nama": "Lem Fox Putih",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 20000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2496"
+    },
+    {
+      "nama": "Lem kayu FOX kuning",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 39500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2462"
+    },
+    {
+      "nama": "Lem kayu POX kunimg",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 39500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2074"
+    },
+    {
+      "nama": "Lem Kuning",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 39500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2495"
+    },
+    {
+      "nama": "Lem Parquet",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 30000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5008"
+    },
+    {
+      "nama": "Lem Vinil",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 37500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4995"
+    },
+    {
+      "nama": "Mandor",
+      "unit_code": "OH",
+      "satuan_asli": "Oh",
+      "amount": 176000,
+      "muncul": 413,
+      "sumber": "ANALISA STANDAR:23"
+    },
+    {
+      "nama": "Marmer 60/90",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 108000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5065"
+    },
+    {
+      "nama": "Marmer Citatah 30/30",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 216000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4799"
+    },
+    {
+      "nama": "Marmer Citatah 60/60",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 240000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4784"
+    },
+    {
+      "nama": "Melamic",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 81000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5422"
+    },
+    {
+      "nama": "Meni besi",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 36000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:76"
+    },
+    {
+      "nama": "Meni Besi Zincromate",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 36000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5564"
+    },
+    {
+      "nama": "Menie Besi",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 27500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2445"
+    },
+    {
+      "nama": "Menie kayu",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 27500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3695"
+    },
+    {
+      "nama": "Minyak Bekisting",
+      "unit_code": "liter",
+      "satuan_asli": "Lt",
+      "amount": 33000,
+      "muncul": 10,
+      "sumber": "ANALISA STANDAR:586"
+    },
+    {
+      "nama": "Minyak Cat /Thiner",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 24000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5308"
+    },
+    {
+      "nama": "Multiplek 9 mm",
+      "unit_code": "lembar",
+      "satuan_asli": "Lbr",
+      "amount": 155000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:2476"
+    },
+    {
+      "nama": "Multipleks, t = 12 mm",
+      "unit_code": "lembar",
+      "satuan_asli": "Lbr",
+      "amount": 250000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2463"
+    },
+    {
+      "nama": "Nok Genteng  Beton",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 6500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3329"
+    },
+    {
+      "nama": "Pahat Beton",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 5000,
+      "muncul": 1,
+      "sumber": "ANALBONGKAR:61"
+    },
+    {
+      "nama": "Paku",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 25000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:2809"
+    },
+    {
+      "nama": "Paku   1/2\" - 1\"",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 25000,
+      "muncul": 8,
+      "sumber": "ANALISA STANDAR:2479"
+    },
+    {
+      "nama": "Paku  2\" - 5\"",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 25000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:3518"
+    },
+    {
+      "nama": "Paku 2-5\"",
+      "unit_code": "kg",
+      "satuan_asli": "kg",
+      "amount": 25000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:1807"
+    },
+    {
+      "nama": "Paku 5 - 7",
+      "unit_code": "kg",
+      "satuan_asli": "kg",
+      "amount": 25000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:31"
+    },
+    {
+      "nama": "Paku Asbes",
+      "unit_code": "kg",
+      "satuan_asli": "KG",
+      "amount": 24000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3238"
+    },
+    {
+      "nama": "Paku Biasa",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 25000,
+      "muncul": 4,
+      "sumber": "ANALISA STANDAR:3651"
+    },
+    {
+      "nama": "Paku biasa  2\" -  5\"",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 25000,
+      "muncul": 66,
+      "sumber": "ANALISA STANDAR:17"
+    },
+    {
+      "nama": "Paku biasa 1/2\" - 1\"",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 25000,
+      "muncul": 10,
+      "sumber": "ANALISA STANDAR:3225"
+    },
+    {
+      "nama": "Paku biasa 10 cm",
+      "unit_code": "kg",
+      "satuan_asli": "kg",
+      "amount": 25000,
+      "muncul": 4,
+      "sumber": "ANALISA STANDAR:1835"
+    },
+    {
+      "nama": "Paku Gipsum",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 23000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3064"
+    },
+    {
+      "nama": "Paku GRC/GIPSUM",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 23000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:3560"
+    },
+    {
+      "nama": "Paku Pancing",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 24000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:3251"
+    },
+    {
+      "nama": "Paku Pancing   60  x  230 mm",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 2850,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5066"
+    },
+    {
+      "nama": "Paku Sekrup",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 23000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3519"
+    },
+    {
+      "nama": "Paku Sekrup  3,5\"",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 23000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:3278"
+    },
+    {
+      "nama": "Paku sekrup alumunium",
+      "unit_code": "kg",
+      "satuan_asli": "KG",
+      "amount": 24000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3413"
+    },
+    {
+      "nama": "Paku seng",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 24000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:3374"
+    },
+    {
+      "nama": "Paku Skrup",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 23000,
+      "muncul": 4,
+      "sumber": "ANALISA STANDAR:2443"
+    },
+    {
+      "nama": "Paku Skrup 10 cm",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 475,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3091"
+    },
+    {
+      "nama": "Palu/Godam",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 50000,
+      "muncul": 1,
+      "sumber": "ANALBONGKAR:59"
+    },
+    {
+      "nama": "Panel Beton Pracetak",
+      "unit_code": "lembar",
+      "satuan_asli": "Lbr",
+      "amount": 88,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:105"
+    },
+    {
+      "nama": "Papan Albasah ( 2 x Pakai ) 75 %",
+      "unit_code": "m3",
+      "satuan_asli": "m3",
+      "amount": 2000000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:1806"
+    },
+    {
+      "nama": "Papan kayu Borneo",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 6000000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3089"
+    },
+    {
+      "nama": "Paranet",
+      "unit_code": "m2",
+      "satuan_asli": "m2",
+      "amount": 25000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4502"
+    },
+    {
+      "nama": "Parquet Jati",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 155000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5007"
+    },
+    {
+      "nama": "Pas . Bata + Plesteran 1 : 3",
+      "unit_code": "m2",
+      "satuan_asli": "m2",
+      "amount": 94416,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:4168"
+    },
+    {
+      "nama": "Pas . Bata 1 : 3",
+      "unit_code": "m2",
+      "satuan_asli": "m2",
+      "amount": 80636.5,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4188"
+    },
+    {
+      "nama": "Pas .Plesteran + Acian 1 : 3",
+      "unit_code": "m2",
+      "satuan_asli": "m2",
+      "amount": 23403.6,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4189"
+    },
+    {
+      "nama": "Pas. Bata 1 PC : 3 PS + Plesteran",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 228530,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4199"
+    },
+    {
+      "nama": "Pas. Injuk",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 12000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4204"
+    },
+    {
+      "nama": "Pasir beton",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 275000,
+      "muncul": 30,
+      "sumber": "ANALISA STANDAR:14"
+    },
+    {
+      "nama": "Pasir pasang",
+      "unit_code": "m3",
+      "satuan_asli": "m³",
+      "amount": 270000,
+      "muncul": 106,
+      "sumber": "ANALISA STANDAR:50"
+    },
+    {
+      "nama": "Pasir Urug darat",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 195000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:578"
+    },
+    {
+      "nama": "Paving block Pola Kubus t.6 cm Natural",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 900,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5187"
+    },
+    {
+      "nama": "Paving block Pola Kubus t.6 cm Warna",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 1000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5199"
+    },
+    {
+      "nama": "Paving block Type Fullvape Natural 20x20 cm",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 2900,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5150"
+    },
+    {
+      "nama": "Paving block Type Fullvape Warna 20x 20 cm",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 3100,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5162"
+    },
+    {
+      "nama": "Paving block Type Kubus 8 x 8",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 1600,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5175"
+    },
+    {
+      "nama": "Paving block Type Segi Delapan 20 x 20",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 4000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5174"
+    },
+    {
+      "nama": "Pelat Asbes",
+      "unit_code": "m2",
+      "satuan_asli": "m2",
+      "amount": 14400,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3465"
+    },
+    {
+      "nama": "Pengelasan",
+      "unit_code": "cm",
+      "satuan_asli": "cm",
+      "amount": 2190,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:4324"
+    },
+    {
+      "nama": "Penggantung dan Ramset",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 2500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3003"
+    },
+    {
+      "nama": "Perekat",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 39500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5138"
+    },
+    {
+      "nama": "Perlengkapan  (30% x Harga Urinoir )",
+      "unit_code": "ls",
+      "satuan_asli": "Ls",
+      "amount": 277500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3766"
+    },
+    {
+      "nama": "Perlengkapan ( 12% x Harga Bak )",
+      "unit_code": "ls",
+      "satuan_asli": "Ls",
+      "amount": 15000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3826"
+    },
+    {
+      "nama": "Perlengkapan ( 20% x Harga Bathculp )",
+      "unit_code": "ls",
+      "satuan_asli": "Ls",
+      "amount": 450000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3855"
+    },
+    {
+      "nama": "Perlengkapan 12% x bak",
+      "unit_code": "ls",
+      "satuan_asli": "ls",
+      "amount": 13200,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3813"
+    },
+    {
+      "nama": "Pintu  Alluminium",
+      "unit_code": "m1",
+      "satuan_asli": "M",
+      "amount": 90250,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4307"
+    },
+    {
+      "nama": "Pipa Conduit ( Ex. Ega )",
+      "unit_code": "m1",
+      "satuan_asli": "m",
+      "amount": 3500,
+      "muncul": 2,
+      "sumber": "ANALISA LISTRIK:209"
+    },
+    {
+      "nama": "Pipa GIP 1 1/2\"",
+      "unit_code": "batang",
+      "satuan_asli": "Btg",
+      "amount": 255190,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4202"
+    },
+    {
+      "nama": "Pipa PVC 4\" berlobang Jenis AW",
+      "unit_code": "batang",
+      "satuan_asli": "Btg",
+      "amount": 130320,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4206"
+    },
+    {
+      "nama": "Pipa PVC 4\" Jenis AW + Sambungan",
+      "unit_code": "batang",
+      "satuan_asli": "Btg",
+      "amount": 130320,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4201"
+    },
+    {
+      "nama": "Plamur tembok",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 20500,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:5485"
+    },
+    {
+      "nama": "Plamuur",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 32500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5336"
+    },
+    {
+      "nama": "Plamuur Tembok",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 20500,
+      "muncul": 5,
+      "sumber": "ANALISA STANDAR:587"
+    },
+    {
+      "nama": "Plat Beton penutup & Balok",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 5241236,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4200"
+    },
+    {
+      "nama": "Plat Bondek",
+      "unit_code": "m2",
+      "satuan_asli": "m2",
+      "amount": 125000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:1678"
+    },
+    {
+      "nama": "Plat GRC 4 mm",
+      "unit_code": "lembar",
+      "satuan_asli": "Lbr",
+      "amount": 66000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2446"
+    },
+    {
+      "nama": "Plat strip",
+      "unit_code": "kg",
+      "satuan_asli": "kg",
+      "amount": 30000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:46"
+    },
+    {
+      "nama": "Plat Strip/tali ikat",
+      "unit_code": "kg",
+      "satuan_asli": "kg",
+      "amount": 15000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:2673"
+    },
+    {
+      "nama": "PLD - Diafragma plate",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 750,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2654"
+    },
+    {
+      "nama": "Plint Marmer citatah 10/30",
+      "unit_code": "m2",
+      "satuan_asli": "m2",
+      "amount": 216000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4829"
+    },
+    {
+      "nama": "Plint Marmer citatah 10/60",
+      "unit_code": "m2",
+      "satuan_asli": "m2",
+      "amount": 240000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4814"
+    },
+    {
+      "nama": "Plywood",
+      "unit_code": "lembar",
+      "satuan_asli": "Lbr",
+      "amount": 102000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:3491"
+    },
+    {
+      "nama": "Plywood 4 mm",
+      "unit_code": "lembar",
+      "satuan_asli": "Lbr",
+      "amount": 85000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:148"
+    },
+    {
+      "nama": "Plywood tebal  9 mm",
+      "unit_code": "lembar",
+      "satuan_asli": "Lbr",
+      "amount": 155000,
+      "muncul": 5,
+      "sumber": "ANALISA STANDAR:1724"
+    },
+    {
+      "nama": "Plywood, t = 4 mm",
+      "unit_code": "lembar",
+      "satuan_asli": "Lbr",
+      "amount": 108000,
+      "muncul": 11,
+      "sumber": "ANALISA STANDAR:2150"
+    },
+    {
+      "nama": "Plywood, t = 4 mm (90X220 cm)",
+      "unit_code": "lembar",
+      "satuan_asli": "Lbr",
+      "amount": 108000,
+      "muncul": 4,
+      "sumber": "ANALISA STANDAR:2075"
+    },
+    {
+      "nama": "Prime Mortar /PM.200",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 2425,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:1458"
+    },
+    {
+      "nama": "Profil kaca",
+      "unit_code": "m1",
+      "satuan_asli": "M",
+      "amount": 7500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4308"
+    },
+    {
+      "nama": "PROPIL  Alluminium",
+      "unit_code": "m1",
+      "satuan_asli": "M",
+      "amount": 99750,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4293"
+    },
+    {
+      "nama": "Ramset / Dina bolt",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 2850,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3546"
+    },
+    {
+      "nama": "Ramset/Dinabold",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 47500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2444"
+    },
+    {
+      "nama": "Rel Pintu Dorong ( Marathon )",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 250000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4672"
+    },
+    {
+      "nama": "Reng kayu 3/4 Borneo",
+      "unit_code": "m3",
+      "satuan_asli": "m3",
+      "amount": 6000000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2808"
+    },
+    {
+      "nama": "Residu",
+      "unit_code": "liter",
+      "satuan_asli": "Lt",
+      "amount": 37500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:18"
+    },
+    {
+      "nama": "Rol Cat Tembok",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 30000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:5486"
+    },
+    {
+      "nama": "Roll Door",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 218500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4281"
+    },
+    {
+      "nama": "Roof Light Fibreglass",
+      "unit_code": "lembar",
+      "satuan_asli": "Lbr",
+      "amount": 85000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3224"
+    },
+    {
+      "nama": "Rool Cat",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 30000,
+      "muncul": 4,
+      "sumber": "ANALISA STANDAR:5443"
+    },
+    {
+      "nama": "Rooster / Terawang",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 4300,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:1032"
+    },
+    {
+      "nama": "S i r t u",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 120000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:363"
+    },
+    {
+      "nama": "Sabun",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 15000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:5287"
+    },
+    {
+      "nama": "Saklar Ganda",
+      "unit_code": "unit",
+      "satuan_asli": "Unit",
+      "amount": 18500,
+      "muncul": 1,
+      "sumber": "ANALISA LISTRIK:245"
+    },
+    {
+      "nama": "Saklar Tungal",
+      "unit_code": "unit",
+      "satuan_asli": "Unit",
+      "amount": 18500,
+      "muncul": 1,
+      "sumber": "ANALISA LISTRIK:253"
+    },
+    {
+      "nama": "Sanding",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 78000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5423"
+    },
+    {
+      "nama": "Seal Tape",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 3000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4142"
+    },
+    {
+      "nama": "Sealent",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 47500,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:4733"
+    },
+    {
+      "nama": "Sekrup gypsum",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 475,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3000"
+    },
+    {
+      "nama": "Semen Merah",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 192000,
+      "muncul": 6,
+      "sumber": "ANALISA STANDAR:488"
+    },
+    {
+      "nama": "Semen Mortar/PM.100",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 2375,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:1047"
+    },
+    {
+      "nama": "Semen Nat",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 4000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3842"
+    },
+    {
+      "nama": "Semen Portland",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 1450,
+      "muncul": 127,
+      "sumber": "ANALISA STANDAR:13"
+    },
+    {
+      "nama": "Semen Warna  ( putih )",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 4000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:4877"
+    },
+    {
+      "nama": "Seng  Gelombang , BJLS 30",
+      "unit_code": "lembar",
+      "satuan_asli": "Lbr",
+      "amount": 53000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3373"
+    },
+    {
+      "nama": "Seng Plat , BJLS 30",
+      "unit_code": "lembar",
+      "satuan_asli": "Lbr",
+      "amount": 53000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:3358"
+    },
+    {
+      "nama": "Seng plat ,BJLS.25",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 44400,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:29"
+    },
+    {
+      "nama": "Seng Plat BJLS 30",
+      "unit_code": "lembar",
+      "satuan_asli": "Lbr",
+      "amount": 53000,
+      "muncul": 4,
+      "sumber": "ANALISA STANDAR:4409"
+    },
+    {
+      "nama": "Seng plat, BJLS 25",
+      "unit_code": "lembar",
+      "satuan_asli": "Lbr",
+      "amount": 55000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:144"
+    },
+    {
+      "nama": "Shear Connector",
+      "unit_code": "ls",
+      "satuan_asli": "ls",
+      "amount": 14750,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:1680"
+    },
+    {
+      "nama": "Skrup fixer",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 475,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:4294"
+    },
+    {
+      "nama": "Soda Api",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 15600,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5277"
+    },
+    {
+      "nama": "Spring Knip",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 225000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4600"
+    },
+    {
+      "nama": "Stegerwerk",
+      "unit_code": "ls",
+      "satuan_asli": "ls",
+      "amount": 1500,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:5487"
+    },
+    {
+      "nama": "Stoot Werk",
+      "unit_code": "m2",
+      "satuan_asli": "m2",
+      "amount": 188150,
+      "muncul": 6,
+      "sumber": "ANALISA BETON:62"
+    },
+    {
+      "nama": "Stop kontak",
+      "unit_code": "unit",
+      "satuan_asli": "Unit",
+      "amount": 19000,
+      "muncul": 1,
+      "sumber": "ANALISA LISTRIK:237"
+    },
+    {
+      "nama": "Sungkai t.3mm",
+      "unit_code": "lembar",
+      "satuan_asli": "Lbr",
+      "amount": 156000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2477"
+    },
+    {
+      "nama": "Sunsreen Alluminium",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 195000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4269"
+    },
+    {
+      "nama": "Tali ijuk",
+      "unit_code": "m1",
+      "satuan_asli": "M",
+      "amount": 640,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:222"
+    },
+    {
+      "nama": "Tanah Liat",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 80000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:328"
+    },
+    {
+      "nama": "Teakwood",
+      "unit_code": "lembar",
+      "satuan_asli": "Lbr",
+      "amount": 125000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3504"
+    },
+    {
+      "nama": "Teakwood 4 mm",
+      "unit_code": "lembar",
+      "satuan_asli": "Lbr",
+      "amount": 108000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2323"
+    },
+    {
+      "nama": "Teakwood 4 mm 1,2 x 2,4",
+      "unit_code": "lembar",
+      "satuan_asli": "Lbr",
+      "amount": 102000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2414"
+    },
+    {
+      "nama": "Tee Doos",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 2500,
+      "muncul": 2,
+      "sumber": "ANALISA LISTRIK:210"
+    },
+    {
+      "nama": "Tensioner (pengaku tali angin)",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 7500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2656"
+    },
+    {
+      "nama": "Tepung Gypsum",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 6500,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:3612"
+    },
+    {
+      "nama": "Tepung Gypsum /Cornis",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 6500,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:3586"
+    },
+    {
+      "nama": "Triplek , t = 4 mm",
+      "unit_code": "lembar",
+      "satuan_asli": "Lbr",
+      "amount": 85000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2165"
+    },
+    {
+      "nama": "Triplek t = 4 mm",
+      "unit_code": "lembar",
+      "satuan_asli": "Lbr",
+      "amount": 85000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:2135"
+    },
+    {
+      "nama": "Triplek, 4 mm",
+      "unit_code": "m2",
+      "satuan_asli": "m2",
+      "amount": 26041.666666666668,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3439"
+    },
+    {
+      "nama": "Triplex 3 mm",
+      "unit_code": "lembar",
+      "satuan_asli": "lbr",
+      "amount": 55000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:48"
+    },
+    {
+      "nama": "Tukang",
+      "unit_code": "OH",
+      "satuan_asli": "oh",
+      "amount": 154000,
+      "muncul": 3,
+      "sumber": "ANALISA LISTRIK:238"
+    },
+    {
+      "nama": "Tukang Batu/Tembok",
+      "unit_code": "OH",
+      "satuan_asli": "Oh",
+      "amount": 154000,
+      "muncul": 2,
+      "sumber": "ANALISA BETON:248"
+    },
+    {
+      "nama": "Tukang Cat Semprot",
+      "unit_code": "OH",
+      "satuan_asli": "Oh",
+      "amount": 143000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5431"
+    },
+    {
+      "nama": "Tukang Las",
+      "unit_code": "OH",
+      "satuan_asli": "Oh",
+      "amount": 132000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4327"
+    },
+    {
+      "nama": "Tukang Listrik",
+      "unit_code": "OH",
+      "satuan_asli": "oh",
+      "amount": 154000,
+      "muncul": 19,
+      "sumber": "ANALISA LISTRIK:12"
+    },
+    {
+      "nama": "Tukang Pipa",
+      "unit_code": "OH",
+      "satuan_asli": "Oh",
+      "amount": 132000,
+      "muncul": 17,
+      "sumber": "ANALISA STANDAR:3937"
+    },
+    {
+      "nama": "Ubin Keramik, uk. 20 x 20 cm",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 66000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4844"
+    },
+    {
+      "nama": "Ubin Keramik, uk. 20 x 25 cm",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 72000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4859"
+    },
+    {
+      "nama": "Urinoir Ex - Toto",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 925000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3765"
+    },
+    {
+      "nama": "Urugan Kembali Perataan Tanah",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 70180,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4207"
+    },
+    {
+      "nama": "Urugan Kerikil 3,5 cm",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 125000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4205"
+    },
+    {
+      "nama": "Urugan Pasir T. 5cm",
+      "unit_code": "m3",
+      "satuan_asli": "m³",
+      "amount": 195000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:4166"
+    },
+    {
+      "nama": "Vernis",
+      "unit_code": "liter",
+      "satuan_asli": "Lt",
+      "amount": 57000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:2230"
+    },
+    {
+      "nama": "Vertical Blinds",
+      "unit_code": "m2",
+      "satuan_asli": "m2",
+      "amount": 199500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4491"
+    },
+    {
+      "nama": "Wall Paper L.50 cm",
+      "unit_code": "m1",
+      "satuan_asli": "M",
+      "amount": 115000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5137"
+    },
+    {
+      "nama": "Wastafel Ex - INA",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 575000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3780"
+    },
+    {
+      "nama": "Wastafel Ex - TOTO warna Standar+ Cermin",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 1100000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3795"
+    },
+    {
+      "nama": "Water Drain + Asesories",
+      "unit_code": "set",
+      "satuan_asli": "Set",
+      "amount": 27750,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4116"
+    },
+    {
+      "nama": "WOOD PLANK GRC L.20 CM t.12 mm",
+      "unit_code": "m1",
+      "satuan_asli": "m1",
+      "amount": 45000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3063"
+    },
+    {
+      "nama": "WOOD PLANK GRC L.20 CM t.9mm",
+      "unit_code": "m1",
+      "satuan_asli": "m1",
+      "amount": 40000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3024"
+    },
+    {
+      "nama": "Woodstain",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 69000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5424"
+    }
+  ],
+  "conflicts": [
+    {
+      "nama": "Asbes Gelombang",
+      "unit_code": "lembar",
+      "nilai": [
+        {
+          "amount": 50000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:3237"
+        },
+        {
+          "amount": 60000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:3250"
+        },
+        {
+          "amount": 8000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:3263"
+        }
+      ]
+    },
+    {
+      "nama": "Batu Split /pecah mesin 2/3",
+      "unit_code": "m3",
+      "nilai": [
+        {
+          "amount": 255000,
+          "muncul": 6,
+          "contoh": "ANALISA STANDAR:1474"
+        },
+        {
+          "amount": 275000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:1488"
+        }
+      ]
+    },
+    {
+      "nama": "Beton Site Mix -175",
+      "unit_code": "m3",
+      "nilai": [
+        {
+          "amount": 1119290,
+          "muncul": 12,
+          "contoh": "ANALISA BETON:23"
+        },
+        {
+          "amount": 1280680,
+          "muncul": 1,
+          "contoh": "ANALISA BETON:75"
+        }
+      ]
+    },
+    {
+      "nama": "Cat Dasar",
+      "unit_code": "kg",
+      "nilai": [
+        {
+          "amount": 31200,
+          "muncul": 3,
+          "contoh": "ANALISA STANDAR:5322"
+        },
+        {
+          "amount": 27500,
+          "muncul": 2,
+          "contoh": "ANALISA STANDAR:5441"
+        }
+      ]
+    },
+    {
+      "nama": "Down Light",
+      "unit_code": "buah",
+      "nilai": [
+        {
+          "amount": 35000,
+          "muncul": 1,
+          "contoh": "ANALISA LISTRIK:165"
+        },
+        {
+          "amount": 31000,
+          "muncul": 1,
+          "contoh": "ANALISA LISTRIK:178"
+        },
+        {
+          "amount": 48000,
+          "muncul": 1,
+          "contoh": "ANALISA LISTRIK:195"
+        }
+      ]
+    },
+    {
+      "nama": "Galian Tanah",
+      "unit_code": "m3",
+      "nilai": [
+        {
+          "amount": 95590,
+          "muncul": 3,
+          "contoh": "ANALISA STANDAR:4165"
+        },
+        {
+          "amount": 117610,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:4196"
+        }
+      ]
+    },
+    {
+      "nama": "Jendela Nako",
+      "unit_code": "buah",
+      "nilai": [
+        {
+          "amount": 81000,
+          "muncul": 2,
+          "contoh": "ANALISA STANDAR:54"
+        },
+        {
+          "amount": 50000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:145"
+        }
+      ]
+    },
+    {
+      "nama": "Kaca",
+      "unit_code": "buah",
+      "nilai": [
+        {
+          "amount": 85000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:4696"
+        },
+        {
+          "amount": 90000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:4708"
+        },
+        {
+          "amount": 125000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:4720"
+        },
+        {
+          "amount": 130000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:4732"
+        }
+      ]
+    },
+    {
+      "nama": "Kanstin",
+      "unit_code": "buah",
+      "nilai": [
+        {
+          "amount": 56500,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:5210"
+        },
+        {
+          "amount": 42000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:5217"
+        },
+        {
+          "amount": 56750,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:5224"
+        },
+        {
+          "amount": 54000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:5231"
+        },
+        {
+          "amount": 76000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:5238"
+        }
+      ]
+    },
+    {
+      "nama": "Kaso-Kaso ( 5/7 cm )",
+      "unit_code": "m3",
+      "nilai": [
+        {
+          "amount": 3000000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:2699"
+        },
+        {
+          "amount": 9700000,
+          "muncul": 2,
+          "contoh": "ANALISA STANDAR:2713"
+        },
+        {
+          "amount": 6000000,
+          "muncul": 3,
+          "contoh": "ANALISA STANDAR:2727"
+        },
+        {
+          "amount": 16000000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:2741"
+        }
+      ]
+    },
+    {
+      "nama": "Kayu Borneo",
+      "unit_code": "m3",
+      "nilai": [
+        {
+          "amount": 6000000,
+          "muncul": 2,
+          "contoh": "ANALISA STANDAR:2380"
+        },
+        {
+          "amount": 58187.5,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:2410"
+        }
+      ]
+    },
+    {
+      "nama": "Kayu Borneo 5/7",
+      "unit_code": "m3",
+      "nilai": [
+        {
+          "amount": 2000000,
+          "muncul": 3,
+          "contoh": "ANALISA STANDAR:162"
+        },
+        {
+          "amount": 6000000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:1088"
+        }
+      ]
+    },
+    {
+      "nama": "Kayu Kamper, Papan",
+      "unit_code": "m3",
+      "nilai": [
+        {
+          "amount": 11000000,
+          "muncul": 12,
+          "contoh": "ANALISA STANDAR:1890"
+        },
+        {
+          "amount": 9700000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:3037"
+        },
+        {
+          "amount": 7000000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:3076"
+        }
+      ]
+    },
+    {
+      "nama": "Kayu Lokal Kls II",
+      "unit_code": "m3",
+      "nilai": [
+        {
+          "amount": 3500000,
+          "muncul": 2,
+          "contoh": "ANALISA STANDAR:2117"
+        },
+        {
+          "amount": 58187.5,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:2426"
+        }
+      ]
+    },
+    {
+      "nama": "Kayu Lokal Kls II, Papan",
+      "unit_code": "m3",
+      "nilai": [
+        {
+          "amount": 3500000,
+          "muncul": 7,
+          "contoh": "ANALISA STANDAR:1955"
+        },
+        {
+          "amount": 20000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:2132"
+        }
+      ]
+    },
+    {
+      "nama": "Kepala Tukang Batu",
+      "unit_code": "OH",
+      "nilai": [
+        {
+          "amount": 159500,
+          "muncul": 140,
+          "contoh": "ANALISA STANDAR:113"
+        },
+        {
+          "amount": 165000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:4120"
+        }
+      ]
+    },
+    {
+      "nama": "Kepala Tukang Cat",
+      "unit_code": "OH",
+      "nilai": [
+        {
+          "amount": 159500,
+          "muncul": 10,
+          "contoh": "ANALISA STANDAR:5313"
+        },
+        {
+          "amount": 137500,
+          "muncul": 5,
+          "contoh": "ANALISA STANDAR:5432"
+        }
+      ]
+    },
+    {
+      "nama": "Kepala Tukang Kayu",
+      "unit_code": "OH",
+      "nilai": [
+        {
+          "amount": 159500,
+          "muncul": 149,
+          "contoh": "ANALISA STANDAR:22"
+        },
+        {
+          "amount": 165000,
+          "muncul": 32,
+          "contoh": "ANALISA STANDAR:4342"
+        }
+      ]
+    },
+    {
+      "nama": "Koral beton",
+      "unit_code": "m3",
+      "nilai": [
+        {
+          "amount": 125000,
+          "muncul": 13,
+          "contoh": "ANALISA STANDAR:52"
+        },
+        {
+          "amount": 255000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:1489"
+        },
+        {
+          "amount": 275000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:1564"
+        }
+      ]
+    },
+    {
+      "nama": "Lem Kayu",
+      "unit_code": "kg",
+      "nilai": [
+        {
+          "amount": 20000,
+          "muncul": 15,
+          "contoh": "ANALISA STANDAR:1836"
+        },
+        {
+          "amount": 39500,
+          "muncul": 18,
+          "contoh": "ANALISA STANDAR:2089"
+        },
+        {
+          "amount": 23000,
+          "muncul": 2,
+          "contoh": "ANALISA STANDAR:2412"
+        }
+      ]
+    },
+    {
+      "nama": "List kayu 2/4",
+      "unit_code": "m1",
+      "nilai": [
+        {
+          "amount": 9500,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:1090"
+        },
+        {
+          "amount": 6000000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:3106"
+        }
+      ]
+    },
+    {
+      "nama": "Multipleks, t = 9 mm",
+      "unit_code": "lembar",
+      "nilai": [
+        {
+          "amount": 155000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:2413"
+        },
+        {
+          "amount": 16000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:2429"
+        }
+      ]
+    },
+    {
+      "nama": "Mur Baut",
+      "unit_code": "buah",
+      "nilai": [
+        {
+          "amount": 2500,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:4353"
+        },
+        {
+          "amount": 25000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:4503"
+        }
+      ]
+    },
+    {
+      "nama": "Paku biasa 1\" -  2\"",
+      "unit_code": "kg",
+      "nilai": [
+        {
+          "amount": 25000,
+          "muncul": 24,
+          "contoh": "ANALISA STANDAR:2034"
+        },
+        {
+          "amount": 21000,
+          "muncul": 3,
+          "contoh": "ANALISA STANDAR:2411"
+        }
+      ]
+    },
+    {
+      "nama": "Papan Bekisting",
+      "unit_code": "m2",
+      "nilai": [
+        {
+          "amount": 222720,
+          "muncul": 4,
+          "contoh": "ANALISA BETON:31"
+        },
+        {
+          "amount": 174400,
+          "muncul": 1,
+          "contoh": "ANALISA BETON:68"
+        }
+      ]
+    },
+    {
+      "nama": "Papan Bekisting Ky.Albasi",
+      "unit_code": "m2",
+      "nilai": [
+        {
+          "amount": 211720,
+          "muncul": 1,
+          "contoh": "ANALISA BETON:13"
+        },
+        {
+          "amount": 174400,
+          "muncul": 16,
+          "contoh": "ANALISA BETON:25"
+        },
+        {
+          "amount": 444280,
+          "muncul": 1,
+          "contoh": "ANALISA BETON:155"
+        },
+        {
+          "amount": 434380,
+          "muncul": 1,
+          "contoh": "ANALISA BETON:291"
+        }
+      ]
+    },
+    {
+      "nama": "Papan Bekisting Ky.Lokal 2",
+      "unit_code": "m2",
+      "nilai": [
+        {
+          "amount": 444280,
+          "muncul": 7,
+          "contoh": "ANALISA BETON:173"
+        },
+        {
+          "amount": 394070,
+          "muncul": 1,
+          "contoh": "ANALISA BETON:215"
+        },
+        {
+          "amount": 434380,
+          "muncul": 2,
+          "contoh": "ANALISA BETON:279"
+        }
+      ]
+    },
+    {
+      "nama": "Papan Bekisting Ky.lokal alba",
+      "unit_code": "m2",
+      "nilai": [
+        {
+          "amount": 222720,
+          "muncul": 1,
+          "contoh": "ANALISA BETON:55"
+        },
+        {
+          "amount": 174400,
+          "muncul": 5,
+          "contoh": "ANALISA BETON:61"
+        }
+      ]
+    },
+    {
+      "nama": "Pasir urug",
+      "unit_code": "m3",
+      "nilai": [
+        {
+          "amount": 195000,
+          "muncul": 4,
+          "contoh": "ANALISA STANDAR:316"
+        },
+        {
+          "amount": 295630,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:4197"
+        }
+      ]
+    },
+    {
+      "nama": "Pekerja",
+      "unit_code": "OH",
+      "nilai": [
+        {
+          "amount": 110000,
+          "muncul": 400,
+          "contoh": "ANALISA STANDAR:20"
+        },
+        {
+          "amount": 176000,
+          "muncul": 3,
+          "contoh": "ANALISA LISTRIK:239"
+        }
+      ]
+    },
+    {
+      "nama": "Peralatan",
+      "unit_code": "ls",
+      "nilai": [
+        {
+          "amount": 850,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:4351"
+        },
+        {
+          "amount": 1600,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:4365"
+        }
+      ]
+    },
+    {
+      "nama": "Perlengkapan ( 12% x Harga Wastafel )",
+      "unit_code": "ls",
+      "nilai": [
+        {
+          "amount": 69000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:3781"
+        },
+        {
+          "amount": 132000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:3796"
+        }
+      ]
+    },
+    {
+      "nama": "Perlengkapan ( 35 % x Harga Pipa )",
+      "unit_code": "ls",
+      "nilai": [
+        {
+          "amount": 13125,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:3934"
+        },
+        {
+          "amount": 17383.1,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:3947"
+        },
+        {
+          "amount": 25608.1,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:3960"
+        },
+        {
+          "amount": 41591.549999999996,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:3973"
+        },
+        {
+          "amount": 115208.09999999999,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:3999"
+        }
+      ]
+    },
+    {
+      "nama": "Perlengkapan ( 35% x Harga Pipa )",
+      "unit_code": "ls",
+      "nilai": [
+        {
+          "amount": 55475,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:3986"
+        },
+        {
+          "amount": 1400,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:4012"
+        },
+        {
+          "amount": 1854.9999999999998,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:4025"
+        },
+        {
+          "amount": 2800,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:4038"
+        },
+        {
+          "amount": 4760,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:4051"
+        },
+        {
+          "amount": 6125,
+          "muncul": 2,
+          "contoh": "ANALISA STANDAR:4064"
+        },
+        {
+          "amount": 12425,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:4090"
+        },
+        {
+          "amount": 20055,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:4103"
+        },
+        {
+          "amount": 44485,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:4129"
+        }
+      ]
+    },
+    {
+      "nama": "Perlengkapan ( 6% x Harga Kloset )",
+      "unit_code": "ls",
+      "nilai": [
+        {
+          "amount": 63000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:3711"
+        },
+        {
+          "amount": 114000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:3724"
+        }
+      ]
+    },
+    {
+      "nama": "Plamir",
+      "unit_code": "kg",
+      "nilai": [
+        {
+          "amount": 32500,
+          "muncul": 2,
+          "contoh": "ANALISA STANDAR:5321"
+        },
+        {
+          "amount": 20500,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:5440"
+        }
+      ]
+    },
+    {
+      "nama": "Reng Kayu 2/3",
+      "unit_code": "m3",
+      "nilai": [
+        {
+          "amount": 3000000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:2700"
+        },
+        {
+          "amount": 9700000,
+          "muncul": 2,
+          "contoh": "ANALISA STANDAR:2714"
+        },
+        {
+          "amount": 6000000,
+          "muncul": 2,
+          "contoh": "ANALISA STANDAR:2728"
+        },
+        {
+          "amount": 16000000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:2742"
+        }
+      ]
+    },
+    {
+      "nama": "Semen Warna",
+      "unit_code": "kg",
+      "nilai": [
+        {
+          "amount": 11000,
+          "muncul": 14,
+          "contoh": "ANALISA STANDAR:1381"
+        },
+        {
+          "amount": 4000,
+          "muncul": 5,
+          "contoh": "ANALISA STANDAR:4907"
+        }
+      ]
+    },
+    {
+      "nama": "Seng gelombang, BJLS 25",
+      "unit_code": "lembar",
+      "nilai": [
+        {
+          "amount": 60000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:71"
+        },
+        {
+          "amount": 55000,
+          "muncul": 3,
+          "contoh": "ANALISA STANDAR:167"
+        }
+      ]
+    },
+    {
+      "nama": "Sewa Alat",
+      "unit_code": "jam",
+      "nilai": [
+        {
+          "amount": 150000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:4242"
+        },
+        {
+          "amount": 15000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:4257"
+        }
+      ]
+    },
+    {
+      "nama": "Tukang  Besi Profil",
+      "unit_code": "OH",
+      "nilai": [
+        {
+          "amount": 137500,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:2371"
+        },
+        {
+          "amount": 132000,
+          "muncul": 9,
+          "contoh": "ANALISA STANDAR:4219"
+        }
+      ]
+    },
+    {
+      "nama": "Tukang Batu",
+      "unit_code": "OH",
+      "nilai": [
+        {
+          "amount": 154000,
+          "muncul": 47,
+          "contoh": "ANALISA STANDAR:60"
+        },
+        {
+          "amount": 137500,
+          "muncul": 95,
+          "contoh": "ANALISA STANDAR:112"
+        },
+        {
+          "amount": 132000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:4119"
+        }
+      ]
+    },
+    {
+      "nama": "Tukang Besi",
+      "unit_code": "OH",
+      "nilai": [
+        {
+          "amount": 137500,
+          "muncul": 6,
+          "contoh": "ANALISA STANDAR:981"
+        },
+        {
+          "amount": 132000,
+          "muncul": 1,
+          "contoh": "ANALISA BETON:250"
+        }
+      ]
+    },
+    {
+      "nama": "Tukang Cat",
+      "unit_code": "OH",
+      "nilai": [
+        {
+          "amount": 137500,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:33"
+        },
+        {
+          "amount": 154000,
+          "muncul": 10,
+          "contoh": "ANALISA STANDAR:5312"
+        },
+        {
+          "amount": 143000,
+          "muncul": 4,
+          "contoh": "ANALISA STANDAR:5523"
+        }
+      ]
+    },
+    {
+      "nama": "Tukang Kayu",
+      "unit_code": "OH",
+      "nilai": [
+        {
+          "amount": 137500,
+          "muncul": 147,
+          "contoh": "ANALISA STANDAR:21"
+        },
+        {
+          "amount": 132000,
+          "muncul": 31,
+          "contoh": "ANALISA STANDAR:4341"
+        },
+        {
+          "amount": 154000,
+          "muncul": 3,
+          "contoh": "ANALISA STANDAR:5011"
+        }
+      ]
+    },
+    {
+      "nama": "Ubin Keramik, uk. 30 x 30 cm",
+      "unit_code": "m2",
+      "nilai": [
+        {
+          "amount": 55000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:4874"
+        },
+        {
+          "amount": 70000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:4889"
+        }
+      ]
+    },
+    {
+      "nama": "Upah kerja",
+      "unit_code": "ls",
+      "nilai": [
+        {
+          "amount": 115505,
+          "muncul": 2,
+          "contoh": "ANALISA STANDAR:4169"
+        },
+        {
+          "amount": 112563,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:4190"
+        }
+      ]
+    },
+    {
+      "nama": "Upah Pasang",
+      "unit_code": "m2",
+      "nilai": [
+        {
+          "amount": 89347.5,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:3004"
+        },
+        {
+          "amount": 5650,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:5211"
+        },
+        {
+          "amount": 4200,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:5218"
+        },
+        {
+          "amount": 5675,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:5225"
+        },
+        {
+          "amount": 5400,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:5232"
+        },
+        {
+          "amount": 7600,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:5239"
+        }
+      ]
+    }
+  ],
+  "skipped": [
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 90,
+      "nama": "Kawat duri",
+      "satuan": "M'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 1475,
+      "nama": "Air",
+      "satuan": "Ltr",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 1490,
+      "nama": "Air",
+      "satuan": "Ltr",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 1505,
+      "nama": "Air",
+      "satuan": "Ltr",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 1520,
+      "nama": "Air",
+      "satuan": "Ltr",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 1535,
+      "nama": "Air",
+      "satuan": "Ltr",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 1550,
+      "nama": "Air",
+      "satuan": "Ltr",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 1565,
+      "nama": "Air",
+      "satuan": "Ltr",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 1580,
+      "nama": "Air",
+      "satuan": "Ltr",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 1595,
+      "nama": "Air",
+      "satuan": "Ltr",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 1610,
+      "nama": "Air",
+      "satuan": "Ltr",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 1625,
+      "nama": "Air",
+      "satuan": "Ltr",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 1640,
+      "nama": "Air",
+      "satuan": "Ltr",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 2365,
+      "nama": "Profil Alumunium",
+      "satuan": "m'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 2366,
+      "nama": "Aluminium Strip",
+      "satuan": "m'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 2367,
+      "nama": "Sealant",
+      "satuan": "tube",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 2441,
+      "nama": "Profil Kusen Alumunium 3\" Silver",
+      "satuan": "M'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 2442,
+      "nama": "Besi Hollo 4.4.1",
+      "satuan": "M'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 2448,
+      "nama": "Sealant",
+      "satuan": "tube",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 2494,
+      "nama": "Edging 2.2",
+      "satuan": "rol",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 2650,
+      "nama": "Trusses ZAM-75 t=0.8mm rangka utama",
+      "satuan": "m'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 2651,
+      "nama": "Trusses ZAM-75t=0.5mm rang.penunjang",
+      "satuan": "m'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 2652,
+      "nama": "Reng/G-DB Roof battens t=0.48mm",
+      "satuan": "m'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 2655,
+      "nama": "Wind Braching (tali angin)",
+      "satuan": "m'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 2661,
+      "nama": "Pekerja",
+      "satuan": "0h",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 2662,
+      "nama": "Tukang Besi",
+      "satuan": "0h",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 2663,
+      "nama": "Kepala Tukang besi",
+      "satuan": "0h",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 2664,
+      "nama": "Mandor",
+      "satuan": "0h",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 2810,
+      "nama": "Pekerja",
+      "satuan": "Org",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 2811,
+      "nama": "Tk.Kayu terampil",
+      "satuan": "Org",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 2812,
+      "nama": "Kep. Tukang kayu",
+      "satuan": "Org",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 2818,
+      "nama": "Reng kayu 2/3 K. Borneo",
+      "satuan": "M'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 2820,
+      "nama": "Pekerja",
+      "satuan": "Org",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 2821,
+      "nama": "Tk.Kayu terampil",
+      "satuan": "Org",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 2822,
+      "nama": "Kep. Tukang kayu",
+      "satuan": "Org",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 3412,
+      "nama": "Nok Standard 40 cm  18, SWG 22",
+      "satuan": "M'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 3544,
+      "nama": "Profil Alluminium \" T \"",
+      "satuan": "M'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 3585,
+      "nama": "List Gypsum",
+      "satuan": "M'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 3598,
+      "nama": "List Gypsum",
+      "satuan": "M'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 3611,
+      "nama": "List Gypsum",
+      "satuan": "M'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 3624,
+      "nama": "List Gypsum",
+      "satuan": "M'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 3637,
+      "nama": "List Kayu Profil  1/5",
+      "satuan": "M'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 3933,
+      "nama": "Pipa Galvanis",
+      "satuan": "M'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 3946,
+      "nama": "Pipa Galvanis",
+      "satuan": "M'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 3959,
+      "nama": "Pipa Galvanis",
+      "satuan": "M'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 3972,
+      "nama": "Pipa Galvanis",
+      "satuan": "M'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 3985,
+      "nama": "Pipa Galvanis",
+      "satuan": "M'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 3998,
+      "nama": "Pipa Galvanis",
+      "satuan": "M'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4011,
+      "nama": "Pipa PVC",
+      "satuan": "M'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4024,
+      "nama": "Pipa PVC",
+      "satuan": "M'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4037,
+      "nama": "Pipa PVC",
+      "satuan": "M'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4050,
+      "nama": "Pipa PVC",
+      "satuan": "M'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4063,
+      "nama": "Pipa PVC",
+      "satuan": "M'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4076,
+      "nama": "Pipa PVC",
+      "satuan": "M'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4089,
+      "nama": "Pipa PVC",
+      "satuan": "M'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4102,
+      "nama": "Pipa PVC",
+      "satuan": "M'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4115,
+      "nama": "Bak Cuci Stainless Steel",
+      "satuan": "M'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4128,
+      "nama": "Pipa PVC",
+      "satuan": "M'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4176,
+      "nama": "Urugan Pasir T. 5cm",
+      "satuan": "",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4240,
+      "nama": "Solar",
+      "satuan": "ltr",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4241,
+      "nama": "Pelumas",
+      "satuan": "ltr",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4254,
+      "nama": "Solar",
+      "satuan": "ltr",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4255,
+      "nama": "Pelumas",
+      "satuan": "ltr",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4295,
+      "nama": "Sealant",
+      "satuan": "Tube",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4309,
+      "nama": "Sealant",
+      "satuan": "Tube",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4323,
+      "nama": "Besi Strip  2 x 3",
+      "satuan": "M'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4372,
+      "nama": "Kawat Duri",
+      "satuan": "m'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4374,
+      "nama": "Pekerja Terampil",
+      "satuan": "org",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4375,
+      "nama": "Tukang Kayu",
+      "satuan": "org",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4376,
+      "nama": "Kepala Tukang",
+      "satuan": "org",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4377,
+      "nama": "Mandor",
+      "satuan": "org",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4385,
+      "nama": "Pekerja Terampil",
+      "satuan": "org",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4386,
+      "nama": "Tukang Kayu",
+      "satuan": "org",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4387,
+      "nama": "Kepala Tukang",
+      "satuan": "org",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4388,
+      "nama": "Mandor",
+      "satuan": "org",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4464,
+      "nama": "Profil Allumunium 4\"",
+      "satuan": "m'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4466,
+      "nama": "Sealant",
+      "satuan": "tube",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4478,
+      "nama": "Profil Allumunium",
+      "satuan": "m'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4479,
+      "nama": "Allumunium Strip",
+      "satuan": "m'",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4504,
+      "nama": "Pekerja Terampil",
+      "satuan": "org",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4505,
+      "nama": "Tukang Kayu",
+      "satuan": "org",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4506,
+      "nama": "Kepala Tukang",
+      "satuan": "org",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 4507,
+      "nama": "Mandor",
+      "satuan": "org",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 5340,
+      "nama": "Minyak Cat /Thiner",
+      "satuan": "Ltr",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 5358,
+      "nama": "Minyak Cat /Thiner",
+      "satuan": "Ltr",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 5371,
+      "nama": "Teak Oil",
+      "satuan": "Ltr",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 5383,
+      "nama": "Politur",
+      "satuan": "Ltr",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 5384,
+      "nama": "Politur Jadi",
+      "satuan": "Ltr",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 5397,
+      "nama": "Residu atau Ter",
+      "satuan": "Ltr",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 5407,
+      "nama": "Vernis",
+      "satuan": "Ltr",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 5426,
+      "nama": "Thiner",
+      "satuan": "Ltr",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 5472,
+      "nama": "Minyak Cat /Thiner",
+      "satuan": "Ltr",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 5490,
+      "nama": "Pekerja",
+      "satuan": "org",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 5491,
+      "nama": "Tukang Cat",
+      "satuan": "org",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 5492,
+      "nama": "Kepala Tukang Cat",
+      "satuan": "org",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 5493,
+      "nama": "Mandor",
+      "satuan": "org",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 5506,
+      "nama": "Pekerja",
+      "satuan": "org",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 5507,
+      "nama": "Tukang Cat",
+      "satuan": "org",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 5508,
+      "nama": "Kepala Tukang Cat",
+      "satuan": "org",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 5509,
+      "nama": "Mandor",
+      "satuan": "org",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA STANDAR",
+      "baris": 5566,
+      "nama": "Minyak Cat /Thiner",
+      "satuan": "Ltr",
+      "alasan": "satuan tak dikenal"
+    },
+    {
+      "sheet": "ANALISA BETON",
+      "baris": 224,
+      "nama": "Air",
+      "satuan": "Ltr",
+      "alasan": "satuan tak dikenal"
+    }
+  ]
+}
