@@ -811,7 +811,7 @@ function MandorPageInner() {
                     <option value="">Semua Mandor</option>
                     {uniqueMandors.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                   </select>
-                  <select value={kasbonFilterStatus} onChange={e => setKasbonFilterStatus(e.target.value)}
+                  <select aria-label="Saring status kasbon" value={kasbonFilterStatus} onChange={e => setKasbonFilterStatus(e.target.value)}
                     style={{ padding: "6px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", color: C.text }}>
                     <option value="">Semua Status</option>
                     <option value="aktif">Aktif</option>
@@ -1284,14 +1284,14 @@ function MandorPageInner() {
                     <Search size={13} color={C.muted} />
                     <input value={workerSearch} onChange={e => setWorkerSearch(e.target.value)} placeholder="Cari nama pekerja..." style={{ border: "none", outline: "none", fontSize: 13, width: "100%", color: C.text, background: "transparent" }} />
                   </div>
-                  <select value={workerFilterTipe} onChange={e => setWorkerFilterTipe(e.target.value)}
+                  <select aria-label="Saring tipe tukang" value={workerFilterTipe} onChange={e => setWorkerFilterTipe(e.target.value)}
                     style={{ padding: "7px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, color: C.text, background: "var(--surface)", cursor: "pointer" }}>
                     <option value="">Semua Tipe</option>
                     <option value="tukang">Tukang</option>
                     <option value="laden">Laden</option>
                     <option value="kenek">Kenek</option>
                   </select>
-                  <select value={workerFilterStatus} onChange={e => setWorkerFilterStatus(e.target.value)}
+                  <select aria-label="Saring status tukang" value={workerFilterStatus} onChange={e => setWorkerFilterStatus(e.target.value)}
                     style={{ padding: "7px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, color: C.text, background: "var(--surface)", cursor: "pointer" }}>
                     <option value="">Semua Status</option>
                     <option value="aktif">Aktif</option>
@@ -1835,7 +1835,7 @@ function CreateWageReportModal({ onClose, onSuccess }: {
                   Belum ada assignment mandor aktif. Assign mandor ke proyek terlebih dahulu di halaman detail proyek.
                 </div>
               ) : (
-                <select value={assignmentId} onChange={e => { setAssignmentId(e.target.value); setScopeId(""); }} style={inputStyle}>
+                <select aria-label="Pilih penugasan proyek" value={assignmentId} onChange={e => { setAssignmentId(e.target.value); setScopeId(""); }} style={inputStyle}>
                   <option value="">-- Pilih mandor & proyek --</option>
                   {assignments.map(a => (
                     <option key={a.id} value={a.id}>{a.mandor?.name} — {a.project?.name}</option>
@@ -1862,7 +1862,7 @@ function CreateWageReportModal({ onClose, onSuccess }: {
                   Belum ada scope — tambahkan di detail proyek.
                 </div>
               ) : (
-                <select value={scopeId} onChange={e => setScopeId(e.target.value)} style={inputStyle}>
+                <select aria-label="Pilih lingkup pekerjaan" value={scopeId} onChange={e => setScopeId(e.target.value)} style={inputStyle}>
                   <option value="">-- Pilih scope --</option>
                   {availableScopes.map(s => (
                     <option key={s.id} value={s.id}>{s.scope_name} ({PAYMENT_SYSTEM[s.payment_system]})</option>
@@ -1953,14 +1953,14 @@ function CreateWageReportModal({ onClose, onSuccess }: {
                     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
                         {/* Nama: search dari pekerja di baris items */}
-                        <select value={d.worker_name} onChange={e => updateDeduction(i, "worker_name", e.target.value)} style={{ ...inputStyle, background: "var(--surface)" }}>
+                        <select aria-label="Pilih tukang" value={d.worker_name} onChange={e => updateDeduction(i, "worker_name", e.target.value)} style={{ ...inputStyle, background: "var(--surface)" }}>
                           <option value="">-- Pilih pekerja --</option>
                           {items.filter(it => it.worker_name.trim()).map((it, idx) => (
                             <option key={idx} value={it.worker_name}>{it.worker_name}</option>
                           ))}
                         </select>
                         {/* Kasbon aktif (opsional) */}
-                        <select value={d.worker_kasbon_id} onChange={e => onKasbonSelect(i, e.target.value)} style={{ ...inputStyle, background: "var(--surface)" }}>
+                        <select aria-label="Pilih kasbon yang dipotong" value={d.worker_kasbon_id} onChange={e => onKasbonSelect(i, e.target.value)} style={{ ...inputStyle, background: "var(--surface)" }}>
                           <option value="">-- Link kasbon (opsional) --</option>
                           {projectKasbons.filter(k => !k.is_settled).map(k => (
                             <option key={k.id} value={k.id}>{k.worker?.name} — sisa {fmt(k.amount - k.amount_settled)}</option>
@@ -2238,7 +2238,7 @@ function WageReportDetailModal({ data, onClose, onApprove }: {
                     </div>
                     <div>
                       <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Sumber Kas <span style={{ color: C.red }}>*</span></label>
-                      <select value={cashAccountId} onChange={e => setCashAccountId(e.target.value)}
+                      <select aria-label="Sumber kas pembayaran" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)}
                         style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                         <option value="">— Tidak dari kas —</option>
                         {cashAccounts.map(a => (
@@ -2542,7 +2542,7 @@ function AddKasbonModal({ assignments, onClose, onSuccess }: {
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Mandor / Proyek <span style={{ color: C.red }}>*</span></label>
-            <select value={assignmentId} onChange={e => setAssignmentId(e.target.value)} style={inputStyle}>
+            <select aria-label="Pilih penugasan proyek" value={assignmentId} onChange={e => setAssignmentId(e.target.value)} style={inputStyle}>
               <option value="">-- Pilih mandor --</option>
               {assignments.map(a => <option key={a.id} value={a.id}>{a.mandor?.name} — {a.project?.name}</option>)}
             </select>
@@ -3439,7 +3439,7 @@ function SettlementBoronganModal({ data, cashAccounts, onClose, onSuccess }: {
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Akun Kas *</label>
-            <select value={cashAccountId} onChange={e => setCashAccountId(e.target.value)} style={inputStyle}>
+            <select aria-label="Sumber kas pembayaran" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)} style={inputStyle}>
               <option value="">Pilih akun kas...</option>
               {cashAccounts.map(a => (
                 <option key={a.id} value={a.id}>{a.name} -- {fmtLocal(a.balance)}</option>
@@ -3521,7 +3521,7 @@ function PPConfirmModal({ payment, cashAccounts, loading, onClose, onAction }: {
           {mode === "approve" && (
             <div>
               <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Akun Kas *</label>
-              <select value={cashAccountId} onChange={e => setCashAccountId(e.target.value)} style={inputStyle}>
+              <select aria-label="Sumber kas pembayaran" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)} style={inputStyle}>
                 <option value="">Pilih akun kas...</option>
                 {cashAccounts.map(a => <option key={a.id} value={a.id}>{a.name} -- {fmtLocal(a.balance)}</option>)}
               </select>

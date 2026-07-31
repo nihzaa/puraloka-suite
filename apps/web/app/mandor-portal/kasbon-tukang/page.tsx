@@ -198,7 +198,7 @@ export default function KasbonTukangPage() {
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Tukang *</label>
-                <select value={form.worker_id} onChange={(e) => setForm((f) => ({ ...f, worker_id: e.target.value }))}
+                <select aria-label="Pilih tukang" value={form.worker_id} onChange={(e) => setForm((f) => ({ ...f, worker_id: e.target.value }))}
                   style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13 }}>
                   <option value="">Pilih tukang...</option>
                   {workers.filter((w) => w.is_active).map((w) => (
@@ -242,7 +242,7 @@ export default function KasbonTukangPage() {
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Tujuan</label>
-                <select value={form.purpose} onChange={(e) => setForm((f) => ({ ...f, purpose: e.target.value }))}
+                <select aria-label="Tujuan kasbon" value={form.purpose} onChange={(e) => setForm((f) => ({ ...f, purpose: e.target.value }))}
                   style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13 }}>
                   {Object.entries(PURPOSE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select>

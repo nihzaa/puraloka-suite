@@ -56,7 +56,7 @@ const AKAR = join(import.meta.dirname, '..')
  * menjangkaunya. Itu bukan alasan membiarkannya: modal tetap dipakai manusia.
  * Ia dicatat sebagai hutang yang terukur, bukan diklaim beres.
  */
-const AMBANG = { select: 95, button: 62 }
+const AMBANG = { select: 28, button: 62 }
 
 /**
  * ⚠️ KENAPA ANGKANYA NAIK dari 83/52 — dan kenapa ini BUKAN pelanggaran
@@ -113,6 +113,17 @@ for (const f of [...berkasTsx(join(AKAR, 'app')), ...berkasTsx(join(AKAR, 'compo
   for (let i = 0; i < baris.length; i++) {
     for (const tag of ['select', 'button']) {
       if (!baris[i].includes(`<${tag}`)) continue
+      // KOMENTAR bukan kode. Berkas di repo ini menjelaskan dirinya panjang
+      // lebar, dan kalimat seperti "`<select>` asli hanya bisa diloncati
+      // dengan huruf awal" ikut terhitung sebagai kontrol tanpa nama.
+      // Angka yang digelembungkan laporan palsu melatih pembacanya
+      // mengabaikan penjaga ini — persis yang mau dicegah.
+      const sblm = baris[i].slice(0, baris[i].indexOf(`<${tag}`))
+      if (/(^|\s)(\/\/|\*|\{\/\*)/.test(sblm.trimStart().slice(0, 3)) || sblm.includes('{/*')) continue
+      // Komponen pembungkus generik (`<select {...props}>`) MEWARISI nama dari
+      // pemanggilnya — memberi aria-label di sini justru menimpa nama yang
+      // spesifik dengan yang generik di SELURUH pemakaian.
+      if (baris.slice(i, i + 6).join('\n').includes('{...props}')) continue
       // Tag bisa multi-baris; lihat ke bawah sampai 14 baris — TAPI berhenti
       // di `>` yang menutup tag pembuka ini.
       //
@@ -142,6 +153,21 @@ for (const f of [...berkasTsx(join(AKAR, 'app')), ...berkasTsx(join(AKAR, 'compo
         else if (ch === '>' && kedalaman === 0) break
       }
       if (blok.includes('aria-label') || blok.includes('aria-labelledby')) continue
+      // `<label htmlFor="x">` + `<select id="x">` adalah cara BAKU memberi nama
+      // — dan justru yang paling disarankan, karena labelnya juga TERLIHAT.
+      // Tanpa pengecualian ini, kontrol yang sudah benar ikut dihitung sebagai
+      // pelanggaran, dan "perbaikannya" (menambah aria-label) malah membuat
+      // nama ganda yang membingungkan pembaca layar.
+      const punyaId = blok.match(/\bid=(?:"([^"]+)"|\{`([^`]+)`\})/)
+      if (punyaId) {
+        const idLiteral = punyaId[1]
+        // Template literal (`cc-${x}`) tak bisa dicocokkan persis; samakan
+        // bagian statisnya saja — cukup untuk membedakan "ada label" vs tidak.
+        const cari = idLiteral
+          ? `htmlFor="${idLiteral}"`
+          : `htmlFor={\`${punyaId[2].split('${')[0]}`
+        if (readFileSync(f, 'utf8').includes(cari)) continue
+      }
       // <button> yang isinya teks sudah punya nama dari teksnya sendiri.
       //
       // Ini SENGAJA memakai jendela yang lebih lebar daripada `blok` di atas:

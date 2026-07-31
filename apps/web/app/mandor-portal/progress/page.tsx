@@ -288,7 +288,7 @@ export default function MandorProgressPage() {
               {projectScopes.length > 0 && (
                 <div>
                   <label style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Scope (opsional)</label>
-                  <select
+                  <select aria-label="Pilih lingkup pekerjaan"
                     value={scopeId}
                     onChange={(e) => setScopeId(e.target.value)}
                     style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, color: C.text, background: "var(--surface)" }}
@@ -306,7 +306,7 @@ export default function MandorProgressPage() {
                 </div>
                 <div>
                   <label style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Cuaca</label>
-                  <select value={weather} onChange={(e) => setWeather(e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, color: C.text, background: "var(--surface)" }}>
+                  <select aria-label="Cuaca hari ini" value={weather} onChange={(e) => setWeather(e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, color: C.text, background: "var(--surface)" }}>
                     {WEATHER_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </div>

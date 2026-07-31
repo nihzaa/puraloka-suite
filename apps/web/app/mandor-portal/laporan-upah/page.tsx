@@ -237,7 +237,7 @@ export default function LaporanUpahPage() {
               {/* Proyek */}
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Proyek *</label>
-                <select value={selectedAssignment} onChange={(e) => { setSelectedAssignment(e.target.value); setSelectedScope(""); }}
+                <select aria-label="Pilih proyek" value={selectedAssignment} onChange={(e) => { setSelectedAssignment(e.target.value); setSelectedScope(""); }}
                   style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: "var(--surface)" }}>
                   <option value="">Pilih proyek...</option>
                   {assignments.map((a) => (
@@ -248,7 +248,7 @@ export default function LaporanUpahPage() {
               {/* Scope */}
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Scope Pekerjaan *</label>
-                <select value={selectedScope} onChange={(e) => setSelectedScope(e.target.value)}
+                <select aria-label="Pilih lingkup pekerjaan" value={selectedScope} onChange={(e) => setSelectedScope(e.target.value)}
                   disabled={!selectedAssignment}
                   style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: "var(--surface)", opacity: selectedAssignment ? 1 : 0.5 }}>
                   <option value="">Pilih scope...</option>

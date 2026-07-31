@@ -352,7 +352,7 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
                 <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 6 }}>
                   Metode Pembayaran
                 </label>
-                <select
+                <select aria-label="Metode pembayaran"
                   value={paymentMethod}
                   onChange={e => setPaymentMethod(e.target.value)}
                   style={{ ...inputStyle, background: "var(--surface)" }}

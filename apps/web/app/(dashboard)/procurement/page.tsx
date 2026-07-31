@@ -346,7 +346,7 @@ function MaterialsTab() {
           <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: C.muted }} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari material..." style={{ paddingLeft: 32, padding: "9px 12px 9px 32px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14, width: "100%", boxSizing: "border-box" }} />
         </div>
-        <select value={catFilter} onChange={e => setCatFilter(e.target.value)} style={{ padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14, minWidth: 160 }}>
+        <select aria-label="Saring kategori material" value={catFilter} onChange={e => setCatFilter(e.target.value)} style={{ padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14, minWidth: 160 }}>
           <option value="">Semua Kategori</option>
           {categories.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
@@ -464,7 +464,7 @@ function MaterialRequestsTab() {
   return (
     <div>
       <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap", justifyContent: "space-between" }}>
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14 }}>
+        <select aria-label="Saring status Supplier" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14 }}>
           <option value="">Semua Status</option>
           {["draft","submitted","approved","rejected","partially_ordered","fully_ordered"].map(s => (
             <option key={s} value={s}>{STATUS_BADGE[s]?.label ?? s}</option>
@@ -899,7 +899,7 @@ function PurchaseOrdersTab() {
   return (
     <div>
       <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap", justifyContent: "space-between" }}>
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14 }}>
+        <select aria-label="Saring status Material Request" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14 }}>
           <option value="">Semua Status</option>
           {["draft","sent","confirmed","partially_received","fully_received","cancelled"].map(s => (
             <option key={s} value={s}>{STATUS_BADGE[s]?.label ?? s}</option>
@@ -1109,7 +1109,7 @@ function CreatePoModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
         {approvedMrs.length > 0 && (
           <div style={{ background: C.infoBg, border: `1px solid ${C.info}`, borderRadius: 8, padding: "10px 14px" }}>
             <label style={{ display: "block", fontSize: 12, fontWeight: 500, color: C.info, marginBottom: 6 }}>BUAT DARI MR (Opsional) — Item akan terisi otomatis</label>
-            <select value={form.mr_id} onChange={e => { setForm(f => ({ ...f, mr_id: e.target.value })); if (e.target.value) loadFromMr(e.target.value); }} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: C.surface }}>
+            <select aria-label="Pilih Material Request" value={form.mr_id} onChange={e => { setForm(f => ({ ...f, mr_id: e.target.value })); if (e.target.value) loadFromMr(e.target.value); }} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: C.surface }}>
               <option value="">— Buat PO manual tanpa MR —</option>
               {approvedMrs.map(m => <option key={m.id} value={m.id}>{m.mr_number} — {m.project?.name}</option>)}
             </select>
@@ -1222,7 +1222,7 @@ function GoodsReceiptsTab() {
   return (
     <div>
       <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap", justifyContent: "space-between" }}>
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14 }}>
+        <select aria-label="Saring status Purchase Order" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14 }}>
           <option value="">Semua Status</option>
           <option value="draft">Draft</option>
           <option value="confirmed">Dikonfirmasi</option>
@@ -1477,7 +1477,7 @@ function SupplierInvoicesTab() {
       </div>
 
       <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14 }}>
+        <select aria-label="Saring status Penerimaan barang" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14 }}>
           <option value="">Semua Status</option>
           {["unpaid","partial","paid"].map(s => <option key={s} value={s}>{STATUS_BADGE[s]?.label}</option>)}
         </select>
@@ -1654,7 +1654,7 @@ function StocksTab() {
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari material..."
             style={{ paddingLeft: 32, padding: "9px 12px 9px 32px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14, width: "100%", boxSizing: "border-box" }} />
         </div>
-        <select value={projectFilter} onChange={e => setProjectFilter(e.target.value)}
+        <select aria-label="Saring proyek" value={projectFilter} onChange={e => setProjectFilter(e.target.value)}
           style={{ padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14, minWidth: 200 }}>
           <option value="">Semua Proyek</option>
           {projects.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -1723,7 +1723,7 @@ function StocksTab() {
         <div style={{ marginTop: 28 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
             <span style={{ fontWeight: 700, fontSize: 14, color: C.text }}>Log Arus Material</span>
-            <select value={logProject} onChange={e => setLogProject(e.target.value)}
+            <select aria-label="Saring proyek pada log mutasi" value={logProject} onChange={e => setLogProject(e.target.value)}
               style={{ padding: "7px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13 }}>
               <option value="">— Pilih Proyek —</option>
               {projects.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}

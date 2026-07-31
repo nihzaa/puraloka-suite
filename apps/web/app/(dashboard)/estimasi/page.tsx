@@ -478,7 +478,7 @@ function NewScenarioModal({ projectId, editions, onClose, onDone }:
           menghasilkan katalog kosong tanpa sebab yang terlihat. Menyembunyikan
           juga salah — keduanya memang direncanakan ada, dan menghilangkannya
           membuat pemakai mengira sistem hanya mendukung satu edisi. */}
-      <select style={inputStyle} value={editionCode} onChange={e => setEditionCode(e.target.value)}>
+      <select aria-label="Pilih edisi AHSP" style={inputStyle} value={editionCode} onChange={e => setEditionCode(e.target.value)}>
         <option value="">— tanpa edisi (custom) —</option>
         {editions.filter(e => e.is_active).map(e => (
           <option key={e.id} value={e.code} disabled={(e.jumlah_analisa ?? 0) === 0}>
@@ -685,7 +685,7 @@ function AddItemModal({ version, onClose, onDone }:
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 10 }}>
             <div>{label("Kategori (cost code)")}
-              <select style={inputStyle} value={customCostCodeId} onChange={e => setCustomCostCodeId(e.target.value)}>
+              <select aria-label="Kode biaya item custom" style={inputStyle} value={customCostCodeId} onChange={e => setCustomCostCodeId(e.target.value)}>
                 <option value="">— pilih —</option>
                 {costCodes.map(c => <option key={c.id} value={c.id}>{c.code} — {c.name}</option>)}
               </select></div>
@@ -728,7 +728,7 @@ function AddItemModal({ version, onClose, onDone }:
             <div>{label("BUK %")}
               <input style={inputStyle} type="number" min="0" max="100" step="any" value={bukPct} onChange={e => setBukPct(e.target.value)} /></div>
             <div>{label("Pembulatan")}
-              <select style={inputStyle} value={roundMode} onChange={e => setRoundMode(e.target.value as typeof roundMode)}>
+              <select aria-label="Metode pembulatan" style={inputStyle} value={roundMode} onChange={e => setRoundMode(e.target.value as typeof roundMode)}>
                 <option value="down">ROUNDDOWN</option><option value="up">ROUNDUP</option>
                 <option value="nearest">ROUND</option><option value="none">Tanpa</option>
               </select></div>
@@ -744,7 +744,7 @@ function AddItemModal({ version, onClose, onDone }:
             Untuk pekerjaan yang bukan analisa AHSP (lift, pompa, septictank, air kerja, dll) — harga langsung, tanpa koefisien.
           </p>
           {label("Kategori (cost code)")}
-          <select style={inputStyle} value={lumpCostCodeId} onChange={e => setLumpCostCodeId(e.target.value)}>
+          <select aria-label="Kode biaya item lump-sum" style={inputStyle} value={lumpCostCodeId} onChange={e => setLumpCostCodeId(e.target.value)}>
             <option value="">— pilih —</option>
             {costCodes.map(c => <option key={c.id} value={c.id}>{c.code} — {c.name}</option>)}
           </select>
@@ -1697,7 +1697,7 @@ function RapTab() {
           {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
         {projectId && rapList.length > 0 && (
-          <select value={rapId} onChange={e => setRapId(e.target.value)} style={{ ...inputStyle, width: 260 }}>
+          <select aria-label="Pilih RAP" value={rapId} onChange={e => setRapId(e.target.value)} style={{ ...inputStyle, width: 260 }}>
             <option value="">— Pilih RAP —</option>
             {rapList.map(r => <option key={r.id} value={r.id}>{r.name} ({r.status})</option>)}
           </select>
@@ -1921,7 +1921,7 @@ function NewRapModal({ projectId, onClose, onDone }: { projectId: string; onClos
       <form onSubmit={kirim}>
         {err && <div style={{ marginBottom: 12, padding: "9px 12px", background: C.redBg, border: `1px solid ${C.red}`, borderRadius: 8, fontSize: 12.5, color: C.text }}>{err}</div>}
         <label style={lbl}>Versi estimasi (sumber take-off material)</label>
-        <select value={versionId} onChange={e => setVersionId(e.target.value)} required style={{ ...inputStyle, marginBottom: 12 }}>
+        <select aria-label="Pilih versi estimasi" value={versionId} onChange={e => setVersionId(e.target.value)} required style={{ ...inputStyle, marginBottom: 12 }}>
           <option value="">— Pilih versi —</option>
           {allVersions.map(v => (
             <option key={v.id} value={v.id}>{v.scenarioName} · v{v.version_number} ({v.status}) · {fmtRp(Number(v.total_amount))}</option>
@@ -2354,7 +2354,7 @@ function NewPriceModal({ initial, onClose, onDone }: {
     <Modal title="Entry Harga Baru (lahir draft)" onClose={onClose}>
       {label("Cari resource")}
       <input style={inputStyle} value={query} onChange={e => setQuery(e.target.value)} placeholder="ketik nama resource… mis. semen" />
-      <select style={{ ...inputStyle, marginTop: 6 }} size={6} value={resourceCode} onChange={e => setResourceCode(e.target.value)}>
+      <select aria-label="Pilih resource" style={{ ...inputStyle, marginTop: 6 }} size={6} value={resourceCode} onChange={e => setResourceCode(e.target.value)}>
         {resources.map(r => <option key={r.code} value={r.code}>{r.name} ({r.code}, per {r.unit_code})</option>)}
         {resources.length === 0 && <option value="" disabled>— tidak ada hasil —</option>}
       </select>
@@ -2370,7 +2370,7 @@ function NewPriceModal({ initial, onClose, onDone }: {
         <div>{label("Lokasi (kosong = umum)")}
           <input style={inputStyle} value={location} onChange={e => setLocation(e.target.value)} placeholder="mis. Bandung" /></div>
         <div>{label("Tingkat keyakinan")}
-          <select style={inputStyle} value={confidence} onChange={e => setConfidence(e.target.value as typeof confidence)}>
+          <select aria-label="Tingkat keyakinan harga" style={inputStyle} value={confidence} onChange={e => setConfidence(e.target.value as typeof confidence)}>
             <option value="">— tak ditentukan —</option>
             <option value="high">Tinggi (mis. penawaran resmi supplier)</option>
             <option value="medium">Sedang (mis. survei pasar)</option>

@@ -594,7 +594,7 @@ function KasContent() {
         {tab === "transfer" && (
           <div style={{ padding: 24 }}>
             <div style={{ display: "flex", gap: 10, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
-              <select value={transferStatusFilter} onChange={e => setTransferStatusFilter(e.target.value)}
+              <select aria-label="Saring status transfer" value={transferStatusFilter} onChange={e => setTransferStatusFilter(e.target.value)}
                 style={{ padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none" }}>
                 <option value="all">Semua Status</option>
                 <option value="pending">Menunggu Konfirmasi</option>
@@ -633,7 +633,7 @@ function KasContent() {
         {tab === "pengeluaran" && (
           <div style={{ padding: 24 }}>
             <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-              <select value={expenseStatusFilter} onChange={e => setExpenseStatusFilter(e.target.value)}
+              <select aria-label="Saring status pengeluaran" value={expenseStatusFilter} onChange={e => setExpenseStatusFilter(e.target.value)}
                 style={{ padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none" }}>
                 <option value="all">Semua Status</option>
                 <option value="submitted">Menunggu Review</option>
@@ -954,7 +954,7 @@ function CreateAccountModal({ onClose, onSuccess }: { onClose: () => void; onSuc
           {(type === "petty_cash" || type === "collector") && (
             <div>
               <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Pemegang Kas {type === "petty_cash" ? <span style={{ color: C.red }}>*</span> : null}</label>
-              <select value={ownerId} onChange={e => setOwnerId(e.target.value)} style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
+              <select aria-label="Pemilik akun kas" value={ownerId} onChange={e => setOwnerId(e.target.value)} style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                 <option value="">-- Pilih user --</option>
                 {users.filter(u => type === "petty_cash" ? (u.role === "pm" || u.role === "admin") : true).map(u => <option key={u.id} value={u.id}>{u.name} ({u.role})</option>)}
               </select>
@@ -1053,7 +1053,7 @@ function CreateTransferModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 32px 1fr", gap: 8, alignItems: "end" }}>
             <div>
               <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Dari Akun <span style={{ color: C.red }}>*</span></label>
-              <select value={fromId} onChange={e => setFromId(e.target.value)} required style={{ width: "100%", padding: "9px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
+              <select aria-label="Kas asal transfer" value={fromId} onChange={e => setFromId(e.target.value)} required style={{ width: "100%", padding: "9px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                 <option value="">-- Pilih --</option>
                 {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
@@ -1062,7 +1062,7 @@ function CreateTransferModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
             <div style={{ display: "flex", justifyContent: "center", paddingBottom: 10 }}><ArrowRightLeft size={16} color={C.mid} /></div>
             <div>
               <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Ke Akun <span style={{ color: C.red }}>*</span></label>
-              <select value={toId} onChange={e => setToId(e.target.value)} required style={{ width: "100%", padding: "9px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
+              <select aria-label="Kas tujuan transfer" value={toId} onChange={e => setToId(e.target.value)} required style={{ width: "100%", padding: "9px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                 <option value="">-- Pilih --</option>
                 {accounts.filter(a => a.id !== fromId).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
@@ -1265,7 +1265,7 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
           {expenseSource === "petty_cash" && (
             <div>
               <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Kas Kecil <span style={{ color: C.red }}>*</span></label>
-              <select value={pettyCashId} onChange={e => setPettyCashId(e.target.value)} required={expenseSource === "petty_cash"}
+              <select aria-label="Kas kecil" value={pettyCashId} onChange={e => setPettyCashId(e.target.value)} required={expenseSource === "petty_cash"}
                 style={{ width: "100%", padding: "9px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                 <option value="">-- Pilih kas kecil --</option>
                 {(projectId ? projectPettyCash : accounts).map(a => (
@@ -1289,7 +1289,7 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
                   Tidak ada akun Kas Utama aktif
                 </div>
               ) : (
-                <select value={mainCashId} onChange={e => setMainCashId(e.target.value)} required={expenseSource === "main_cash"}
+                <select aria-label="Kas utama" value={mainCashId} onChange={e => setMainCashId(e.target.value)} required={expenseSource === "main_cash"}
                   style={{ width: "100%", padding: "9px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                   {mainCashAccounts.length > 1 && <option value="">-- Pilih akun kas utama --</option>}
                   {mainCashAccounts.map(a => (
@@ -1312,7 +1312,7 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
           {/* Kategori */}
           <div>
             <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Kategori <span style={{ color: C.red }}>*</span></label>
-            <select value={categoryId} onChange={e => setCategoryId(e.target.value)} required
+            <select aria-label="Kategori pengeluaran" value={categoryId} onChange={e => setCategoryId(e.target.value)} required
               style={{ width: "100%", padding: "9px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
               <option value="">-- Pilih kategori --</option>
               {parentCats.map(p => (

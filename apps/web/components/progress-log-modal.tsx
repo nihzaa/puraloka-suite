@@ -420,7 +420,7 @@ export function ProgressLogModal({
                     <div>
                       <label style={fieldLabel}>{workScopes.length > 0 ? "Scope Pekerjaan" : "Jumlah Pekerja"}</label>
                       {workScopes.length > 0 ? (
-                        <select value={workScopeId} onChange={e => setWorkScopeId(e.target.value)} style={fieldInput}
+                        <select aria-label="Pilih lingkup pekerjaan" value={workScopeId} onChange={e => setWorkScopeId(e.target.value)} style={fieldInput}
                           onFocus={e => { e.target.style.borderColor = "var(--navy)"; }}
                           onBlur={e => { e.target.style.borderColor = "#e2e8f0"; }}>
                           <option value="">— Semua scope</option>
@@ -461,7 +461,7 @@ export function ProgressLogModal({
                         Proyek ini belum memiliki RAB. Upload RAB Excel terlebih dahulu.
                       </div>
                     ) : (
-                      <select value={selectedRabId} onChange={e => setSelectedRabId(e.target.value)} style={fieldInput}
+                      <select aria-label="Pilih item RAB" value={selectedRabId} onChange={e => setSelectedRabId(e.target.value)} style={fieldInput}
                         onFocus={e => { e.target.style.borderColor = "var(--navy)"; }}
                         onBlur={e => { e.target.style.borderColor = "#e2e8f0"; }}>
                         <option value="">— Pilih item pekerjaan</option>

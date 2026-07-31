@@ -257,7 +257,7 @@ export default function MandorKasbonPage() {
                 <p style={{ fontSize: 11, color: C.muted, margin: "0 0 6px" }}>
                   Kosongkan jika kasbon bersifat umum dan tidak terikat scope tertentu.
                 </p>
-                <select
+                <select aria-label="Pilih lingkup pekerjaan"
                   value={form.work_scope_id}
                   onChange={(e) => setForm((f) => ({ ...f, work_scope_id: e.target.value }))}
                   disabled={!form.project_id}
@@ -288,7 +288,7 @@ export default function MandorKasbonPage() {
 
               <div>
                 <label style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Keperluan</label>
-                <select
+                <select aria-label="Tujuan kasbon"
                   value={form.purpose}
                   onChange={(e) => setForm((f) => ({ ...f, purpose: e.target.value }))}
                   style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, color: C.text, background: "var(--surface)" }}
@@ -299,7 +299,7 @@ export default function MandorKasbonPage() {
 
               <div>
                 <label style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Sumber Dana</label>
-                <select
+                <select aria-label="Sumber dana kasbon"
                   value={form.fund_source}
                   onChange={(e) => setForm((f) => ({ ...f, fund_source: e.target.value }))}
                   style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, color: C.text, background: "var(--surface)" }}

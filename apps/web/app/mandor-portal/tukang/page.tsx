@@ -240,7 +240,7 @@ export default function DaftarTukangPage() {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Tipe</label>
-                  <select value={form.tipe} onChange={(e) => setForm((f) => ({ ...f, tipe: e.target.value }))}
+                  <select aria-label="Tipe pekerja" value={form.tipe} onChange={(e) => setForm((f) => ({ ...f, tipe: e.target.value }))}
                     style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13 }}>
                     <option value="">Tidak ditentukan</option>
                     <option value="tukang">Tukang</option>

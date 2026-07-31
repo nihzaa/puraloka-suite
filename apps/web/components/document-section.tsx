@@ -505,7 +505,7 @@ function UploadModalContent({
           {/* Tipe */}
           <div>
             <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6 }}>Tipe Dokumen</label>
-            <select value={uploadType} onChange={e => setUploadType(e.target.value)} style={{ ...inpStyle, background: "var(--surface)" }}>
+            <select aria-label="Jenis dokumen" value={uploadType} onChange={e => setUploadType(e.target.value)} style={{ ...inpStyle, background: "var(--surface)" }}>
               {Object.entries(DOC_TYPE_LABELS).map(([k, v]) => (
                 <option key={k} value={k}>{v}</option>
               ))}

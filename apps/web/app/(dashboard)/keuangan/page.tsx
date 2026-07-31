@@ -1486,7 +1486,7 @@ function KeuanganContent() {
             {kasbonSubTab === "daftar" && (
               <>
                 <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
-                  <select value={kasbonStatusFilter} onChange={e => setKasbonStatusFilter(e.target.value)}
+                  <select aria-label="Saring status kasbon" value={kasbonStatusFilter} onChange={e => setKasbonStatusFilter(e.target.value)}
                     style={{ padding: "7px 11px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, color: C.text, background: "var(--surface)", outline: "none" }}>
                     <option value="all">Semua Status</option>
                     <option value="pending">Menunggu Persetujuan</option>
@@ -1575,7 +1575,7 @@ function KeuanganContent() {
                               {canEdit && k.status === "pending" && approvingKasbonId === k.id && (
                                 <div style={{ marginTop: 8, padding: "10px 12px", borderRadius: 10, background: C.greenBg, border: `1px solid ${C.greenBorder}`, textAlign: "left", minWidth: 230 }}>
                                   <div style={{ fontSize: 11, fontWeight: 600, color: C.green, marginBottom: 6 }}>Potong dari kas:</div>
-                                  <select value={kasbonCashAccountId} onChange={e => setKasbonCashAccountId(e.target.value)}
+                                  <select aria-label="Sumber kas pembayaran kasbon" value={kasbonCashAccountId} onChange={e => setKasbonCashAccountId(e.target.value)}
                                     style={{ width: "100%", padding: "7px 9px", border: `1px solid ${C.border}`, borderRadius: 7, fontSize: 12, background: "var(--surface)", outline: "none", marginBottom: 8, boxSizing: "border-box" }}>
                                     <option value="">— Tanpa potong kas —</option>
                                     {kasbonCashAccounts.map(a => (
@@ -1720,7 +1720,7 @@ function KeuanganContent() {
             {kasbonType === "tukang" && (
               <>
                 <div style={{ display: "flex", gap: 10, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
-                  <select value={workerKasbonFilter} onChange={e => setWorkerKasbonFilter(e.target.value)}
+                  <select aria-label="Saring kasbon tukang" value={workerKasbonFilter} onChange={e => setWorkerKasbonFilter(e.target.value)}
                     style={{ padding: "7px 11px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, color: C.text, background: "var(--surface)", outline: "none" }}>
                     <option value="all">Semua</option>
                     <option value="active">Belum Lunas</option>
@@ -1840,7 +1840,7 @@ function KeuanganContent() {
               </div>
               <div>
                 <label style={{ fontSize: 11, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Proyek</label>
-                <select value={arusProjectId} onChange={e => setArusProjectId(e.target.value)}
+                <select aria-label="Saring proyek pada arus kas" value={arusProjectId} onChange={e => setArusProjectId(e.target.value)}
                   style={{ padding: "7px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: "var(--surface)", minWidth: 160 }}>
                   <option value="">Semua Proyek</option>
                   {arusProjectList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -1866,7 +1866,7 @@ function KeuanganContent() {
               </div>
               <div>
                 <label style={{ fontSize: 11, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Kategori</label>
-                <select value={arusCategoryId} onChange={e => {
+                <select aria-label="Saring kategori pada arus kas" value={arusCategoryId} onChange={e => {
                   const id = e.target.value;
                   const found = arusCategories.find(c => c.id === id);
                   setArusCategoryId(id);
@@ -2111,7 +2111,7 @@ function KeuanganContent() {
               </div>
               <div>
                 <label style={{ fontSize: 11, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Proyek</label>
-                <select value={profitProjectFilter} onChange={e => setProfitProjectFilter(e.target.value)}
+                <select aria-label="Saring proyek pada laba rugi" value={profitProjectFilter} onChange={e => setProfitProjectFilter(e.target.value)}
                   style={{ padding: "7px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: "var(--surface)", minWidth: 160 }}>
                   <option value="">Semua Proyek</option>
                   {arusProjectList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
