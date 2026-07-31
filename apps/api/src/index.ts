@@ -46,6 +46,7 @@ import estimateVersionRoutes from './routes/v1/estimate-versions.js'
 import ahspRoutes from './routes/v1/ahsp.js'
 import priceBookRoutes, { projectPriceOverrideRoutes } from './routes/v1/price-book.js'
 import lessonsLearnedRoutes from './routes/v1/lessons-learned.js'
+import bidRoutes from './routes/v1/bids.js'
 import { supabase } from './utils/supabase.js'
 import { registerObservability } from './utils/observability.js'
 
@@ -271,6 +272,7 @@ await app.register(ahspRoutes)
 await app.register(priceBookRoutes)
 await app.register(projectPriceOverrideRoutes)
 await app.register(lessonsLearnedRoutes)
+await app.register(bidRoutes)
 
 const PORT = Number(process.env.PORT) || 3001
 
