@@ -245,10 +245,16 @@ belum ter-scope: `clients` (PII) · `audit` (jejak semua tenant) · `users`+`rol
 (mendekati account-takeover lintas tenant) · `settings` · `estimate-versions` ·
 `documents` (signed URL 10 th ke kontrak tenant lain) · `termin-payment` ·
 `lessons-learned`.
-**Dua yang paling merugikan dan bukan sekadar 'baca':** `settings` — config
-finansial DIPAKAI BERSAMA, tenant A mengubah tarif PPN **menimpa** tenant B
-(korupsi data aktif) · `notification-routing` — notifikasi & **email** berisi
-nama proyek/invoice/nominal tenant lain **didorong** ke admin yang salah.
+**Dua yang paling merugikan dan bukan sekadar 'baca' — KEDUANYA kini DITUTUP
+(2026-07-31):** `settings`/config finansial — ✅ migrasi 145 + `companyId` wajib
+di `setFinancialConfig()`; sebelumnya penutupan rentang menyapu SELURUH
+perusahaan (lihat butir 5b di atas) · `notification-routing` — ✅ sebagian besar
+sudah ditutup T4g (`companyId` wajib, penerima dibatasi anggota company); sisa
+celahnya `projectPm`/`projectMandors` yang diambil murni lewat `projectId`
+lalu dimasukkan `mergeRecipients` **tanpa** diiris keanggotaan. Belum bisa
+terjadi hari ini (semua pemanggil mengambil projectId dari baris yang sudah
+ber-scope), tapi itu berarti keamanannya bergantung disiplin pemanggil —
+kini diiris ke `idAnggota` sehingga fail-closed.
 
 **KEBOCORAN NYATA yang ditutup T4** (bukan hipotetis — ini query yang benar-benar
 berjalan tanpa saringan tenancy): KPI halaman depan · 11 query dashboard

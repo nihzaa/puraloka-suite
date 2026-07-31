@@ -163,6 +163,25 @@ export async function resolveRecipients(
       : Promise.resolve([] as string[]),
   ])
 
-  const pools: Pools = { byRole, byPermission, projectPm, projectMandors }
+  // Saring PM & mandor proyek ke ANGGOTA company aktif.
+  //
+  // `byRole`/`byPermission` sudah ter-scope sejak awal (keduanya menerima
+  // `idAnggota`), tapi dua pool ini diambil murni lewat `ctx.projectId` — dan
+  // `mergeRecipients` memasukkannya apa adanya. Kalau projectId milik tenant
+  // lain, PM/mandor tenant itu ikut jadi penerima notifikasi yang memuat nama
+  // proyek dan nominal milik perusahaan yang salah.
+  //
+  // Hari ini belum bisa terjadi: seluruh pemanggil mengambil projectId dari
+  // baris yang SUDAH lewat jalur ber-scope. Tapi itu berarti keamanannya
+  // bergantung pada disiplin pemanggil, dan justru itu yang tak boleh —
+  // seluruh alasan wrapper tenant ada adalah supaya lupa satu kali tidak
+  // berakhir jadi kebocoran. Menyaring di sini membuatnya fail-closed.
+  const anggota = new Set(idAnggota)
+  const pools: Pools = {
+    byRole,
+    byPermission,
+    projectPm: projectPm && anggota.has(projectPm) ? projectPm : null,
+    projectMandors: projectMandors.filter((id) => anggota.has(id)),
+  }
   return mergeRecipients(targets, pools)
 }
