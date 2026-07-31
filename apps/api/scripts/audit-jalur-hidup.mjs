@@ -57,6 +57,35 @@ const WAJAR_KOSONG = new Map(Object.entries({
   schema_migrations: 'tabel sistem',
 }))
 
+/**
+ * FORWARD-DRAFT — migrasi yang SENGAJA ditulis tapi belum di-apply.
+ *
+ * Bedanya dengan migrasi hantu itu penting, dan bukan soal istilah:
+ *   • hantu         = tercatat ter-apply, objeknya TIDAK ADA → kecelakaan, telusuri
+ *   • forward-draft = sengaja belum di-apply, menunggu prasyarat → keputusan
+ *
+ * Keduanya tampak IDENTIK dari `pg_class` (sama-sama tak punya tabel), jadi
+ * tanpa daftar ini alat ini melaporkan keputusan sadar sebagai temuan. Itu
+ * bukan sekadar berisik: laporan yang mencampur "kecelakaan" dengan "sudah
+ * diputuskan" melatih pembacanya mengabaikan seluruh bagian itu — dan temuan
+ * sungguhan berikutnya ikut terlewat.
+ *
+ * Terjadi betulan pada jalan pertamanya (2026-07-31): 7 tabel dilaporkan
+ * sebagai hantu baru, padahal sudah tercatat SKEMA-MATI di
+ * `docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md` §19 sejak 2026-07-26.
+ *
+ * Menambah entri WAJIB menyebut alasan + di mana keputusannya tertulis.
+ */
+const FORWARD_DRAFT = new Map(Object.entries({
+  accounts: '047 GL — jangan di-apply sebelum CoA divalidasi akuntan (DEVELOPMENT_LOG 043–047)',
+  journal_entries: 'idem 047',
+  journal_entry_lines: 'idem 047',
+  field_opname_reports: '044 — forward-draft, keputusan terbuka #1b STATUS.md',
+  assets: '045 Modul 12 aset/alat — penyusutan perlu validasi konsultan pajak',
+  asset_movements: 'idem 045',
+  asset_depreciation_logs: 'idem 045',
+}))
+
 function berkasBerulang(dir, ext = '.ts') {
   const hasil = []
   const telusuri = (d) => {
@@ -83,7 +112,7 @@ if (!url) { console.error('FATAL: DIRECT_URL/DATABASE_URL kosong'); process.exit
 const c = new pg.Client({ connectionString: url })
 await c.connect()
 
-const temuan = { hantu: [], kosong: [], libMati: [], endpointMati: [] }
+const temuan = { hantu: [], forwardDraft: [], kosong: [], libMati: [], endpointMati: [] }
 
 try {
   // ── 1 & 2. Tabel: hantu (di migrasi, tak ada di DB) & kosong ─────────────
@@ -118,7 +147,12 @@ try {
   const nyata = new Set(adaDiDb.map((r) => r.relname))
 
   for (const t of diMigrasi) {
-    if (!nyata.has(t)) temuan.hantu.push(t)
+    if (nyata.has(t)) continue
+    // Dipisahkan, BUKAN dibuang: forward-draft tetap dilaporkan supaya
+    // daftarnya tak diam-diam memanjang — tapi di bagiannya sendiri, karena
+    // tindakan yang dituntut keduanya berbeda sama sekali.
+    if (FORWARD_DRAFT.has(t)) temuan.forwardDraft.push(t)
+    else temuan.hantu.push(t)
   }
 
   const isiApi = isiGabungan(berkasBerulang(SRC_API))
@@ -169,7 +203,13 @@ garis('1. MIGRASI HANTU — tabel di migrasi, TIDAK ADA di database')
 if (!temuan.hantu.length) console.log('  ✅ nihil')
 else {
   console.log('  ⚠️  Migrasi tercatat sukses tapi objeknya tak pernah terbentuk.')
+  console.log('     Ini KECELAKAAN, bukan keputusan — telusuri kenapa DDL-nya tak jalan.')
   temuan.hantu.forEach((t) => console.log(`     ${t}`))
+}
+if (temuan.forwardDraft.length) {
+  console.log(`
+  ℹ️  ${temuan.forwardDraft.length} tabel forward-draft (SENGAJA belum di-apply — bukan temuan):`)
+  temuan.forwardDraft.forEach((t) => console.log(`     ${t}  — ${FORWARD_DRAFT.get(t)}`))
 }
 
 garis('2. TABEL KOSONG — ada di DB, nol baris')
