@@ -249,7 +249,7 @@ export default async function ahspRoutes(app: FastifyInstance) {
     })
 
   // ── GET /cecep/assemblies — katalog AHSP (filter edisi/sumber) ──────────────
-  app.get<{ Querystring: { edition?: string; source?: string; limit?: string } }>(
+  app.get<{ Querystring: { edition?: string; source?: string; limit?: string; q?: string } }>(
     '/api/v1/cecep/assemblies',
     { preHandler: [authenticate, requirePermission('cecep:assembly:view')] },
     async (request, reply) => {
@@ -270,9 +270,86 @@ export default async function ahspRoutes(app: FastifyInstance) {
         if (!ed) return reply.status(404).send({ error: `Edisi ${request.query.edition} tidak ditemukan` })
         q = q.eq('edition_id', ed.id)
       }
+
+      // Pencarian di SERVER, bukan menyaring 200 baris yang terlanjur termuat.
+      // Katalog berisi 3.043 analisa sementara respons dibatasi 200 — menyaring
+      // di klien berarti analisa di baris ke-500 TIDAK PERNAH bisa ditemukan,
+      // dan pemakai tak mendapat tanda apa pun bahwa pencariannya tak lengkap.
+      const cari = request.query.q?.trim()
+      if (cari) {
+        const aman = cari.replace(/[%,()]/g, ' ')
+        q = q.or(`name.ilike.%${aman}%,code.ilike.%${aman}%`)
+      }
+
       const { data, error } = await q
       if (error) return reply.status(500).send({ error: error.message })
-      return reply.send({ data })
+
+      // Total sesungguhnya untuk kriteria yang sama — supaya UI bisa jujur
+      // menyebut "menampilkan 200 dari 3.043", bukan mengesankan 200 itu semua.
+      let hitung = request.db!.from('assemblies').select('id', { count: 'exact', head: true })
+      if (request.query.source) hitung = hitung.eq('source', request.query.source)
+      if (request.query.edition) {
+        const { data: ed } = await request.db!
+          .from('ahsp_editions').select('id').eq('code', request.query.edition).maybeSingle()
+        if (ed) hitung = hitung.eq('edition_id', ed.id)
+      }
+      if (cari) {
+        const aman = cari.replace(/[%,()]/g, ' ')
+        hitung = hitung.or(`name.ilike.%${aman}%,code.ilike.%${aman}%`)
+      }
+      const { count } = await hitung
+
+      return reply.send({ data, total: count ?? null, limit })
+    })
+
+  // ── GET /cecep/assemblies/price-coverage — analisa mana yang harganya kurang
+  //
+  // `hsp-live` sudah melaporkan `missing_prices`, TAPI hanya per-analisa dan
+  // hanya saat analisa itu dibuka. Dari 3.043 analisa, tak ada yang akan
+  // mengetahui mana yang bermasalah tanpa membuka satu per satu — jadi analisa
+  // yang tak bisa dihitung HSP-nya baru ketahuan saat sudah dipilih untuk RAB.
+  //
+  // Endpoint ini menjawabnya sekaligus: berapa resource per analisa yang belum
+  // punya harga aktif. Read-model, nol tabel baru.
+  app.get<{ Querystring: { source?: string; edition?: string } }>(
+    '/api/v1/cecep/assemblies/price-coverage',
+    { preHandler: [authenticate, requirePermission('cecep:assembly:view')] },
+    async (request, reply) => {
+      let qa = request.db!.from('assemblies').select('id, edition_id, source').limit(4000)
+      if (request.query.source) qa = qa.eq('source', request.query.source)
+      if (request.query.edition) {
+        const { data: ed } = await request.db!
+          .from('ahsp_editions').select('id').eq('code', request.query.edition).maybeSingle()
+        if (!ed) return reply.status(404).send({ error: `Edisi ${request.query.edition} tidak ditemukan` })
+        qa = qa.eq('edition_id', ed.id)
+      }
+      const { data: asm, error } = await qa
+      if (error) return reply.status(500).send({ error: error.message })
+      const ids = (asm ?? []).map((a) => a.id)
+      if (!ids.length) return reply.send({ data: {}, resource_tanpa_harga: 0 })
+
+      const { data: komp } = await request.db!
+        .from('assembly_components').select('assembly_id, resource_id').in('assembly_id', ids)
+
+      const resourceIds = [...new Set((komp ?? []).map((k) => k.resource_id))]
+      const { data: harga } = await request.db!
+        .from('price_book_entries').select('resource_id').eq('status', 'active')
+        .in('resource_id', resourceIds)
+      const adaHarga = new Set((harga ?? []).map((h) => h.resource_id))
+
+      // { assembly_id: jumlah resource yang BELUM berharga }. Hanya yang > 0
+      // dikirim — mengirim ribuan nol hanya memperbesar respons tanpa informasi.
+      const kurang: Record<string, number> = {}
+      for (const k of komp ?? []) {
+        if (!adaHarga.has(k.resource_id)) kurang[k.assembly_id] = (kurang[k.assembly_id] ?? 0) + 1
+      }
+
+      return reply.send({
+        data: kurang,
+        resource_tanpa_harga: resourceIds.filter((r) => !adaHarga.has(r)).length,
+        analisa_terdampak: Object.keys(kurang).length,
+        analisa_diperiksa: ids.length,
+      })
     })
 
   // ── POST /cecep/assemblies/:id/hsp — hitung HSP (engine paritas) ────────────

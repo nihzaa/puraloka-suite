@@ -198,6 +198,11 @@ function KomposerTab() {
       </div>
       {err && <div style={{ background: C.redBg, color: C.red, border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px 12px", fontSize: 12.5, marginBottom: 10 }}>{err}</div>}
 
+      {/* Panduan sebelum proyek dipilih. Tanpa ini layar benar-benar kosong dan
+          tak ada petunjuk harus mulai dari mana — halaman ini punya 4 langkah
+          berjenjang, dan tak satu pun terlihat sampai langkah pertama diambil. */}
+      {!projectId && <PanduanKomposer jumlahProyek={projects.length} />}
+
       {projectId && scenarios.length === 0 && (
         <p style={{ color: C.muted, fontSize: 13 }}>Belum ada skenario estimasi di proyek ini — buat satu untuk mulai menyusun RAB.</p>
       )}
@@ -408,13 +413,35 @@ function AddItemModal({ version, onClose, onDone }:
   const [lumpAmount, setLumpAmount] = useState("");
   const [lumpNotes, setLumpNotes] = useState("");
 
+  // Analisa yang bisa dipilih = analisa EDISI versi ini + SELURUH analisa
+  // company. Dua panggilan, sengaja.
+  //
+  // Sebelumnya hanya `?edition=...`, dan itu membuang seluruh 423 analisa
+  // company: `assemblies.edition_id` mereka NULL — analisa milik perusahaan
+  // memang tak menempel ke edisi nasional mana pun, karena ia bukan turunan
+  // SE/SNI melainkan susunan sendiri. Akibatnya analisa yang justru dibuat
+  // untuk dipakai tak pernah bisa dipilih saat menyusun RAB.
   useEffect(() => {
-    const q = version.edition ? `?edition=${encodeURIComponent(version.edition.code)}` : "";
-    api.get<{ data: Assembly[] }>(`/api/v1/cecep/assemblies${q}`)
-      .then(r => setAssemblies((r.data.data ?? []).filter(a => a.status === "active")))
+    let batal = false;
+    const edisi = version.edition
+      ? api.get<{ data: Assembly[] }>(`/api/v1/cecep/assemblies?edition=${encodeURIComponent(version.edition.code)}&limit=200`)
+      : api.get<{ data: Assembly[] }>(`/api/v1/cecep/assemblies?source=national&limit=200`);
+    const company = api.get<{ data: Assembly[] }>(`/api/v1/cecep/assemblies?source=company&limit=200`);
+
+    void Promise.all([edisi, company])
+      .then(([e, c]) => {
+        if (batal) return;
+        const gabung = [...(e.data.data ?? []), ...(c.data.data ?? [])];
+        // Dedup by id: analisa company yang KEBETULAN punya edition_id terisi
+        // akan muncul di kedua panggilan.
+        const unik = new Map(gabung.map(a => [a.id, a]));
+        setAssemblies([...unik.values()].filter(a => a.status === "active"));
+      })
       .catch(() => {});
+
     api.get<{ data: CostCodeOpt[] }>("/api/v1/cecep/cost-codes?limit=200")
-      .then(r => setCostCodes(r.data.data ?? [])).catch(() => {});
+      .then(r => { if (!batal) setCostCodes(r.data.data ?? []); }).catch(() => {});
+    return () => { batal = true; };
   }, [version.edition]);
 
   const submitKatalog = async () => {
@@ -464,10 +491,26 @@ function AddItemModal({ version, onClose, onDone }:
 
       {mode === "katalog" && (
         <>
-          {label(`Assembly / AHSP ${version.edition ? `(edisi ${version.edition.code})` : ""}`)}
+          {label(`Assembly / AHSP ${version.edition ? `(edisi ${version.edition.code} + analisa perusahaan)` : "(nasional + analisa perusahaan)"}`)}
+          {/* Dikelompokkan supaya jelas mana milik perusahaan sendiri dan mana
+              turunan edisi nasional — keduanya tampil berdampingan, tapi asalnya
+              menentukan siapa yang bertanggung jawab atas koefisiennya. */}
           <select style={inputStyle} value={assemblyId} onChange={e => setAssemblyId(e.target.value)}>
             <option value="">— pilih pekerjaan —</option>
-            {assemblies.map(a => <option key={a.id} value={a.id}>{a.code} — {a.name} (per {a.output_unit_code})</option>)}
+            {assemblies.some(a => a.source === "company") && (
+              <optgroup label="Analisa Perusahaan">
+                {assemblies.filter(a => a.source === "company").map(a => (
+                  <option key={a.id} value={a.id}>{a.code} — {a.name} (per {a.output_unit_code})</option>
+                ))}
+              </optgroup>
+            )}
+            {assemblies.some(a => a.source !== "company") && (
+              <optgroup label={version.edition ? `Edisi ${version.edition.code}` : "Analisa Nasional"}>
+                {assemblies.filter(a => a.source !== "company").map(a => (
+                  <option key={a.id} value={a.id}>{a.code} — {a.name} (per {a.output_unit_code})</option>
+                ))}
+              </optgroup>
+            )}
           </select>
           <p style={{ fontSize: 11.5, color: C.muted, margin: "6px 0 0" }}>
             Tidak ketemu? Coba tab &quot;Buat Analisa Baru&quot; atau &quot;Harga Langsung&quot; (untuk pekerjaan bukan-beranalisa: lift, pompa, septictank, dll).
@@ -625,6 +668,10 @@ function KatalogTab() {
   const [sumber, setSumber] = useState("");
   const [cari, setCari] = useState("");
   const [assemblies, setAssemblies] = useState<Assembly[]>([]);
+  const [total, setTotal] = useState<number | null>(null);
+  /** { assembly_id: jumlah resource yang belum berharga } — hanya yang > 0. */
+  const [kurangHarga, setKurangHarga] = useState<Record<string, number>>({});
+  const [hanyaKurang, setHanyaKurang] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
   const [hsp, setHsp] = useState<Record<string, HspLive | "memuat" | "gagal">>({});
   const [adopsi, setAdopsi] = useState<Assembly | null>(null);
@@ -654,15 +701,39 @@ function KatalogTab() {
     }).catch(() => {});
   }, []);
 
+  // Pencarian dikirim ke SERVER. Sebelumnya `cari` hanya menyaring 200 baris
+  // yang terlanjur termuat dari 3.043 — analisa di luar 200 pertama tak pernah
+  // bisa ditemukan, tanpa satu pun tanda bahwa pencariannya tidak lengkap.
   const muat = useCallback(() => {
     const p = new URLSearchParams();
     if (edition) p.set("edition", edition);
     if (sumber) p.set("source", sumber);
+    if (cari.trim()) p.set("q", cari.trim());
     p.set("limit", "200");
-    api.get<{ data: Assembly[] }>(`/api/v1/cecep/assemblies?${p}`)
-      .then(r => setAssemblies(r.data.data ?? [])).catch(() => {});
+    api.get<{ data: Assembly[]; total: number | null }>(`/api/v1/cecep/assemblies?${p}`)
+      .then(r => { setAssemblies(r.data.data ?? []); setTotal(r.data.total ?? null); })
+      .catch(() => {});
+  }, [edition, sumber, cari]);
+
+  // Ketikan di-debounce 350 ms supaya tiap huruf tak memicu satu panggilan.
+  useEffect(() => {
+    const t = setTimeout(() => muat(), cari ? 350 : 0);
+    return () => clearTimeout(t);
+  }, [muat, cari]);
+
+  // Cakupan harga dimuat sekali per kombinasi filter — bukan per analisa dibuka.
+  // Tanpa ini, analisa yang HSP-nya tak bisa dihitung baru ketahuan setelah
+  // dipilih masuk RAB.
+  useEffect(() => {
+    let batal = false;
+    const p = new URLSearchParams();
+    if (edition) p.set("edition", edition);
+    if (sumber) p.set("source", sumber);
+    api.get<{ data: Record<string, number> }>(`/api/v1/cecep/assemblies/price-coverage?${p}`)
+      .then(r => { if (!batal) setKurangHarga(r.data.data ?? {}); })
+      .catch(() => { if (!batal) setKurangHarga({}); });
+    return () => { batal = true; };
   }, [edition, sumber]);
-  useEffect(() => { muat(); }, [muat]);
 
   // HSP dimuat SAAT analisa dibuka, bukan untuk 3.038 baris sekaligus:
   // memuat semuanya berarti ribuan resolusi harga untuk data yang tak dilihat.
@@ -678,11 +749,14 @@ function KatalogTab() {
 
   // Pencarian di sisi klien: daftar sudah dibatasi 200 baris oleh API, jadi
   // menyaring lagi ke server hanya menambah bolak-balik tanpa hasil berbeda.
-  const terlihat = assemblies.filter(a => {
-    if (!cari.trim()) return true;
-    const q = cari.toLowerCase();
-    return a.name.toLowerCase().includes(q) || a.code.toLowerCase().includes(q);
-  });
+  // Penyaringan teks sudah dilakukan server (query `q`) — menyaring lagi di
+  // sini hanya akan menyembunyikan hasil yang justru baru saja dicarikan.
+  // Filter "harga belum lengkap" tetap di klien: datanya sudah ada di memori.
+  const terlihat = hanyaKurang
+    ? assemblies.filter(a => (kurangHarga[a.id] ?? 0) > 0)
+    : assemblies;
+  const terpotong = !hanyaKurang && total != null && total > terlihat.length;
+  const jumlahKurang = assemblies.filter(a => (kurangHarga[a.id] ?? 0) > 0).length;
 
   return (
     <div>
@@ -712,9 +786,27 @@ function KatalogTab() {
           <option value="">Semua edisi</option>
           {editions.map(e => <option key={e.id} value={e.code}>{e.code}</option>)}
         </select>
-        <span style={{ fontSize: 12.5, color: C.muted, whiteSpace: "nowrap" }}>
-          {terlihat.length} analisa
+        {/* Jujur soal pemotongan: label lama menulis "N analisa" seolah itu
+            seluruhnya, padahal respons dibatasi 200 dari 3.043. Pemakai yang
+            tak menemukan analisanya perlu tahu bahwa daftarnya memang dipotong,
+            bukan menyimpulkan analisanya tidak ada. */}
+        <span style={{ fontSize: 12.5, color: terpotong ? C.yellow : C.muted, whiteSpace: "nowrap" }}>
+          {terpotong
+            ? `${terlihat.length} dari ${total!.toLocaleString("id-ID")} — persempit dengan pencarian`
+            : `${terlihat.length} analisa`}
         </span>
+        {jumlahKurang > 0 && (
+          <button type="button" onClick={() => setHanyaKurang(v => !v)}
+            aria-pressed={hanyaKurang}
+            style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 10px",
+              fontSize: 12, fontWeight: 600, borderRadius: 8, cursor: "pointer",
+              border: `1px solid ${hanyaKurang ? C.yellow : C.border}`,
+              background: hanyaKurang ? C.yellowBg : C.surface,
+              color: hanyaKurang ? C.yellow : C.mid, whiteSpace: "nowrap" }}>
+            <AlertTriangle size={13} aria-hidden="true" />
+            {hanyaKurang ? "Tampilkan semua" : `${jumlahKurang} harga belum lengkap`}
+          </button>
+        )}
       </div>
 
       <div style={{ display: "grid", gap: 8 }}>
@@ -733,7 +825,27 @@ function KatalogTab() {
                   {open === a.id ? <ChevronDown size={15} color={C.mid} /> : <ChevronRight size={15} color={C.mid} />}
                 </span>
                 <code style={{ fontSize: 12, color: C.navy, fontWeight: 700, minWidth: 84, paddingTop: 1 }}>{a.code}</code>
-                <span style={{ flex: 1, fontSize: 13, color: C.text, lineHeight: 1.45 }}>{a.name}</span>
+                <span style={{ flex: 1, fontSize: 13, color: C.text, lineHeight: 1.45 }}>
+                  {a.name}
+                  {/* Penanda di level DAFTAR, bukan hanya setelah dibuka:
+                      analisa yang HSP-nya tak bisa dihitung penuh harus terlihat
+                      sebelum dipilih masuk RAB, bukan sesudahnya. */}
+                  {(kurangHarga[a.id] ?? 0) > 0 && (
+                    <span title={`${kurangHarga[a.id]} bahan/upah/alat belum punya harga aktif`}
+                      style={{ display: "inline-flex", alignItems: "center", gap: 3, marginLeft: 8,
+                        padding: "1px 7px", borderRadius: 999, background: C.yellowBg,
+                        color: C.yellow, fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>
+                      <AlertTriangle size={10} aria-hidden="true" />
+                      {kurangHarga[a.id]} tanpa harga
+                    </span>
+                  )}
+                  {a.source === "company" && (
+                    <span style={{ marginLeft: 6, padding: "1px 7px", borderRadius: 999,
+                      background: C.greenBg, color: C.green, fontSize: 11, fontWeight: 700 }}>
+                      perusahaan
+                    </span>
+                  )}
+                </span>
                 <span style={{ fontSize: 11.5, color: C.muted, whiteSpace: "nowrap", paddingTop: 1 }}>
                   per {a.output_unit_code}
                 </span>
@@ -1963,6 +2075,77 @@ function NewPriceModal({ initial, onClose, onDone }: {
         }}>Simpan (draft)</button>
       </div>
     </Modal>
+  );
+}
+
+// ── Panduan langkah Komposer ────────────────────────────────────────────────
+//
+// Menyusun RAB di sini berjenjang: proyek → skenario → versi → item. Sebelum
+// langkah pertama diambil, TAK SATU PUN dari ketiga langkah berikutnya terlihat
+// — jadi layarnya kosong dan pemakai baru tak punya petunjuk harus mulai dari
+// mana. Panduan ini yang menutup jarak itu.
+//
+// Ditulis sebagai urutan, bukan daftar fitur: yang dibutuhkan orang di titik ini
+// adalah "apa yang saya lakukan sekarang", bukan "apa saja yang bisa dilakukan".
+function PanduanKomposer({ jumlahProyek }: { jumlahProyek: number }) {
+  const langkah = [
+    {
+      n: 1, judul: "Pilih proyek",
+      isi: jumlahProyek > 0
+        ? `Dropdown di atas — ada ${jumlahProyek} proyek.`
+        : "Belum ada proyek. Buat dulu di menu Proyek.",
+    },
+    {
+      n: 2, judul: "Buat skenario",
+      isi: "Wadah estimasi. Satu proyek boleh punya beberapa — misalnya “Penawaran awal” dan “Revisi klien” — supaya keduanya bisa dibandingkan tanpa saling menimpa.",
+    },
+    {
+      n: 3, judul: "Buat versi + pilih edisi AHSP",
+      isi: "Edisi menentukan koefisien yang dipakai (SE-47/2026, SE-68/2024, SNI-2013). Setelah versi keluar dari status draft, edisinya terkunci — angka yang sudah diajukan tak boleh berubah diam-diam.",
+    },
+    {
+      n: 4, judul: "Tambah item pekerjaan",
+      isi: "Pilih analisa dari katalog lalu isi volume; HSP dihitung dari koefisien × harga. Untuk pekerjaan tanpa analisa (lift, pompa, septictank) pakai mode Harga Langsung.",
+    },
+  ];
+
+  return (
+    <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, padding: "18px 20px",
+      background: C.surface, maxWidth: 720 }}>
+      <h3 style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 800, color: C.text,
+        fontFamily: "var(--font-display, inherit)" }}>
+        Menyusun RAB dari analisa AHSP
+      </h3>
+      <p style={{ margin: "0 0 16px", fontSize: 12.5, color: C.mid, lineHeight: 1.55 }}>
+        Setiap rupiah di RAB yang disusun di sini bisa ditelusuri ke koefisien analisa
+        dan harga sumbernya — berbeda dari RAB yang diunggah sebagai file Excel.
+      </p>
+
+      <ol style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 12 }}>
+        {langkah.map(l => (
+          <li key={l.n} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+            <span aria-hidden="true" style={{ flexShrink: 0, width: 24, height: 24, borderRadius: "50%",
+              background: C.navy, color: "#fff", fontSize: 12, fontWeight: 700,
+              display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {l.n}
+            </span>
+            <span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{l.judul}</span>
+              <span style={{ display: "block", fontSize: 12.5, color: C.mid, lineHeight: 1.55, marginTop: 2 }}>
+                {l.isi}
+              </span>
+            </span>
+          </li>
+        ))}
+      </ol>
+
+      <p style={{ margin: "16px 0 0", paddingTop: 12, borderTop: `1px solid ${C.border}`,
+        fontSize: 12, color: C.muted, lineHeight: 1.55 }}>
+        Sudah punya RAB dalam bentuk file Excel? Unggah langsung di halaman
+        <strong> Proyek → section RAB</strong> — jalur itu tetap tersedia dan tidak
+        digantikan oleh Komposer.
+      </p>
+    </div>
   );
 }
 
