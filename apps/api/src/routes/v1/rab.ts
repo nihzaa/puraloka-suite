@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { proyekMilikTenant } from '../../utils/tenant-guard.js'
+import { susunLookAhead, ringkasLookAhead } from '../../lib/look-ahead.js'
 import * as XLSX from 'xlsx'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
@@ -496,6 +497,77 @@ export default async function rabRoutes(app: FastifyInstance) {
 
       return reply.send({ data: data ?? [] })
     }
+  )
+
+  // ── GET /api/v1/projects/:projectId/rab/look-ahead ──────────────────────
+  // Rolling 3-week look-ahead: apa yang HARUS dikerjakan minggu ini s.d. 3
+  // minggu ke depan, plus yang sudah telat.
+  //
+  // Kurva-S & EVM menjawab "sejauh mana kita menyimpang" — keduanya menoleh ke
+  // BELAKANG. Pertanyaan yang belum dijawab sistem ini: "minggu depan saya
+  // harus menyiapkan apa?" Itu yang dipakai PM tiap Senin, dan yang menentukan
+  // material & mandor disiapkan tepat waktu.
+  //
+  // Datanya sudah ada sejak migrasi 052 (planned_start/end, dipakai Gantt);
+  // yang belum ada cara membacanya sebagai daftar tindakan.
+  app.get<{ Params: { projectId: string }; Querystring: { minggu?: string } }>(
+    '/api/v1/projects/:projectId/rab/look-ahead',
+    { preHandler: [authenticate] },
+    async (request, reply) => {
+      const { projectId } = request.params
+
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
+
+      // Horizon bisa diubah, tapi dibatasi 1–12: di atas itu ia bukan lagi
+      // look-ahead melainkan seluruh jadwal proyek, dan sudah ada Gantt.
+      const mingguRaw = Number(request.query.minggu ?? 3)
+      const minggu = Number.isFinite(mingguRaw) ? Math.min(12, Math.max(1, Math.trunc(mingguRaw))) : 3
+
+      const { data, error } = await supabase
+        .from('rab_items')
+        .select('id, name, category_code, level, progress_pct, total_price, planned_start, planned_end')
+        .eq('project_id', projectId)
+        .not('planned_start', 'is', null)
+        .order('planned_start', { ascending: true })
+
+      if (error) {
+        request.log.error({ err: error }, 'gagal memuat look-ahead')
+        return reply.status(500).send({ error: 'Gagal memuat look-ahead' })
+      }
+
+      type BarisRab = {
+        id: string; name: string; category_code: string | null
+        progress_pct: number | null; total_price: number | null
+        planned_start: string | null; planned_end: string | null
+      }
+      const items = ((data ?? []) as BarisRab[]).map((r) => ({
+        id: r.id,
+        name: r.name,
+        categoryCode: r.category_code,
+        plannedStart: r.planned_start,
+        plannedEnd: r.planned_end,
+        progressPct: Number(r.progress_pct ?? 0),
+        totalPrice: Number(r.total_price ?? 0),
+      }))
+
+      // `new Date()` di ROUTE, bukan di lib — lib-nya sengaja menerima waktu
+      // sebagai argumen supaya deterministik & bisa diuji tanpa memalsukan jam.
+      const baris = susunLookAhead(items, new Date(), minggu)
+
+      return reply.send({
+        data: baris,
+        meta: {
+          minggu,
+          ...ringkasLookAhead(baris),
+          // Jujur soal cakupan: baris tanpa tanggal rencana TIDAK bisa muncul
+          // di sini. Tanpa angka ini, daftar yang pendek terbaca sebagai
+          // "pekerjaan sedikit" padahal artinya "jadwalnya belum diisi".
+          totalBerjadwal: items.length,
+        },
+      })
+    },
   )
 
   // ── GET /api/v1/projects/:projectId/rab/gantt ────────────────────────────
