@@ -22,6 +22,34 @@
 -- `supplier_name` terdenormalisasi karena saat itu tabel `purchase_orders`
 -- belum ada. Sekarang sudah ada, jadi FK yang benar dipakai.
 
+-- ── Menangani DUA keadaan yang berbeda antar-lingkungan ────────────────────
+--
+-- Di dev, 043 tak pernah membuat `po_delivery_log` (migrasi hantu). Di proyek
+-- CI yang bersih, 043 dijalankan berurutan dan `CREATE TABLE IF NOT EXISTS`-nya
+-- BERHASIL — menghasilkan tabel dengan skema LAMA: `po_number TEXT` +
+-- `supplier_name` terdenormalisasi, tanpa `po_id`.
+--
+-- Akibatnya `CREATE TABLE IF NOT EXISTS` di bawah akan dilewati begitu saja di
+-- CI, lalu `CREATE INDEX ... (po_id)` gagal dengan "column po_id does not
+-- exist" — persis yang memerahkan run 30605128816.
+--
+-- Tabel versi 043 DIBUANG bila terdeteksi: ia tak pernah dipakai satu endpoint
+-- pun (nol pembaca, nol penulis), jadi tak ada data yang hilang. Pemeriksaannya
+-- pada KOLOM, bukan keberadaan tabel — supaya migrasi ini aman dijalankan ulang
+-- dan tidak pernah membuang tabel versi baru yang sudah berisi jejak nyata.
+DO $$
+BEGIN
+  IF to_regclass('public.po_delivery_log') IS NOT NULL
+     AND NOT EXISTS (
+       SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'po_delivery_log'
+          AND column_name = 'po_id'
+     )
+  THEN
+    DROP TABLE public.po_delivery_log CASCADE;
+  END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS po_delivery_log (
   id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
