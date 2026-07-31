@@ -60,7 +60,10 @@ export function Topbar() {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "0 24px",
+          // Ikut lebar layar, sama seperti padding halaman. Dulu 24px mati:
+          // di layar 360px topbar sendirian menyumbang 176px overflow.
+          padding: "0 clamp(12px, 3vw, 24px)",
+          gap: 8,
           flexShrink: 0,
           background: "var(--surface)",
           borderBottom: "1px solid var(--border)",
@@ -75,17 +78,30 @@ export function Topbar() {
             aksi di kanan: perusahaan aktif adalah KONTEKS halaman ini — sekelas
             dengan "sedang di halaman apa" — bukan sesuatu yang dilakukan.
             Ia menampilkan diri hanya bila user punya lebih dari satu perusahaan. */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Puraloka Suite</span>
-          <span style={{ fontSize: 13, color: "var(--border-strong)" }}>/</span>
-          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{title}</span>
-          <div style={{ marginLeft: 10 }}>
+        {/* `minWidth: 0` WAJIB: anak flex menolak menyusut di bawah lebar
+            alami isinya (min-width:auto), jadi breadcrumb panjang mendorong
+            seluruh topbar melebar dan memaksa scroll horizontal SEHALAMAN —
+            gejalanya tampak seperti "halamannya kelebaran", padahal
+            penyebabnya di sini. */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
+          {/* "Puraloka Suite /" dilepas di layar sempit — nama aplikasi tak
+              memberi informasi apa pun kepada orang yang SUDAH ada di
+              dalamnya, sementara nama halaman memberi. Yang dikorbankan
+              adalah yang paling sedikit gunanya, bukan yang paling mudah. */}
+          <span className="e11-sembunyi-sempit" style={{ fontSize: 13, color: "var(--text-muted)", whiteSpace: "nowrap" }}>Puraloka Suite</span>
+          <span className="e11-sembunyi-sempit" style={{ fontSize: 13, color: "var(--border-strong)" }}>/</span>
+          <span style={{
+            fontSize: 13, fontWeight: 600, color: "var(--text-primary)",
+            // Judul panjang dipotong dengan elipsis, bukan mendorong layout.
+            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0,
+          }}>{title}</span>
+          <div style={{ marginLeft: 10, flexShrink: 0 }}>
             <CompanySwitcher />
           </div>
         </div>
 
         {/* Right actions */}
-        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
           {/* Search trigger — looks like an input bar */}
           <button
             onClick={() => setPaletteOpen(true)}
@@ -97,8 +113,17 @@ export function Topbar() {
               border: "1px solid var(--border)",
               cursor: "pointer", color: "var(--text-muted)",
               fontSize: 13, transition: "all 0.15s",
-              minWidth: 180,
+              // Dulu `minWidth: 180` mati — penyumbang overflow terbesar di
+              // topbar. Di layar sempit tombol ini menciut jadi ikon saja
+              // (label "Cari..." + hint Ctrl-K disembunyikan lewat CSS), jadi
+              // fungsinya tetap ada dan target sentuhnya tetap ≥34px.
+              minWidth: 0,
             }}
+            // Label teksnya lepas di layar sempit (lihat span di bawah), jadi
+            // aria-label WAJIB — tanpa itu pembaca layar hanya menemukan tombol
+            // tanpa nama. Ia juga tetap benar di layar lebar, karena isinya
+            // sama dengan label yang terlihat.
+            aria-label="Cari (Ctrl+K)"
             onMouseEnter={e => {
               e.currentTarget.style.borderColor = "var(--navy)";
               e.currentTarget.style.color = "var(--text-primary)";
@@ -109,8 +134,8 @@ export function Topbar() {
             }}
           >
             <Search size={13} style={{ flexShrink: 0 }} />
-            <span style={{ flex: 1 }}>Cari...</span>
-            <kbd style={{
+            <span className="e11-sembunyi-sempit" style={{ flex: 1, whiteSpace: "nowrap" }}>Cari...</span>
+            <kbd className="e11-sembunyi-sempit" style={{
               display: "flex", alignItems: "center", gap: 2,
               padding: "1px 5px", borderRadius: 4,
               background: "var(--surface)", border: "1px solid var(--border)",

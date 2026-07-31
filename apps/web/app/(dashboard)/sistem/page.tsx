@@ -63,7 +63,7 @@ export default function SistemPage() {
   };
 
   return (
-    <div style={{ padding: "28px 36px", maxWidth: 720, margin: "0 auto" }}>
+    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-form)", margin: "0 auto" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
         <div style={{ width: 42, height: 42, borderRadius: 12, background: "linear-gradient(135deg, #003366, #0066CC)", display: "flex", alignItems: "center", justifyContent: "center" }}>

@@ -68,14 +68,17 @@ const MENU_CACHE_KEY = "puraloka_menu";
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { collapsed, toggle } = useSidebar();
+  const { collapsed, toggle, dipaksaCiut } = useSidebar();
   const [user, setUser] = useState<PuralokaUser | null>(null);
   const [perms, setPerms] = useState<Set<string>>(new Set());
   const [menu, setMenu] = useState<MenuNode[]>([]);
   const [keuanganOpen, setKeuanganOpen] = useState(false);
   const [pengaturanOpen, setPengaturanOpen] = useState(false);
 
-  const W = collapsed ? 64 : 220;
+  // Token yang SAMA dengan margin shell di (dashboard)/layout.tsx. Kalau
+  // keduanya jadi angka terpisah, salah satunya akan berubah sendiri suatu
+  // hari dan gejalanya halus: konten tertimpa sidebar, atau ada celah kosong.
+  const W = collapsed ? "var(--sidebar-w-ciut)" : "var(--sidebar-w)";
 
   useEffect(() => {
     setUser(getStoredUser());
@@ -269,7 +272,10 @@ export function Sidebar() {
       </div>
 
       {/* Tombol expand saat collapsed */}
-      {collapsed && (
+      {/* Saat ciut karena layar sempit, tombol ini SENGAJA disembunyikan:
+          `toggle()` memang tak berfungsi di lebar itu, dan tombol yang ditekan
+          lalu tak terjadi apa-apa terbaca sebagai aplikasi rusak. */}
+      {collapsed && !dipaksaCiut && (
         <div style={{ padding: "8px 0 4px", display: "flex", justifyContent: "center", flexShrink: 0 }}>
           <button
             onClick={toggle}

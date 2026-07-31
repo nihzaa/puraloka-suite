@@ -7,7 +7,11 @@ import { SidebarProvider, useSidebar } from "@/lib/sidebar-context";
 
 function DashboardShell({ children }: { children: React.ReactNode }) {
   const { collapsed } = useSidebar();
-  const sidebarW = collapsed ? 64 : 220;
+  // Token, bukan angka telanjang: lebar yang sama dipakai sidebar (fixed) DAN
+  // margin shell di sini. Dua angka terpisah pasti berbeda suatu saat, dan
+  // gejalanya halus — konten tertimpa sidebar atau ada celah kosong.
+  // `collapsed` di sini sudah termasuk paksaan layar sempit (sidebar-context).
+  const sidebarW = collapsed ? "var(--sidebar-w-ciut)" : "var(--sidebar-w)";
 
   return (
     <div

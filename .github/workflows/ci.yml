@@ -138,6 +138,13 @@ jobs:
       - name: Lint (ratchet — nol error, warning tak boleh bertambah)
         run: node scripts/lint-ratchet.mjs
 
+      # E11 — tiap halaman dashboard wajib memakai token lebar. Sebelum ini
+      # 13 dari 26 halaman tak memusatkan diri sama sekali (di 1920px isinya
+      # melebar sampai 1700px). Yang dijaga bukan "rapi hari ini" melainkan
+      # halaman ke-27 yang akan disalin dari yang ke-26.
+      - name: Tata letak (token lebar halaman)
+        run: node scripts/tata-letak-ratchet.mjs
+
       - name: Typecheck
         run: ./node_modules/.bin/tsc --noEmit
 

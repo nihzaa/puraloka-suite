@@ -128,7 +128,7 @@ export default function MandorProfilePage() {
   );
 
   return (
-    <div style={{ padding: "28px 32px", background: C.bg, minHeight: "100vh" }}>
+    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", background: C.bg, minHeight: "100vh", width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "flex-start", gap: 16, marginBottom: 28 }}>
         <button

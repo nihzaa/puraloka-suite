@@ -2977,13 +2977,14 @@ const TABS = [
 
 export default function EstimasiPage() {
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("komposer");
-  // `margin: 0 auto` — halaman ini sebelumnya SATU-SATUNYA yang tak punya,
-  // sehingga konten menempel kiri dan sisa kanan menganga di layar lebar.
-  // maxWidth 1400 (bukan 1200 seperti halaman lain): tabel di sini padat kolom
-  // — katalog, harga, varians — dan memaksa 1200 membuat kolomnya berdesakan
-  // sementara ruang di kanan justru terbuang.
+  // Lebar `--w-luas` (E11): tabel di sini padat kolom — katalog, harga,
+  // varians — jadi ia masuk kelompok "luas" bersama procurement/piutang/
+  // laporan, bukan `--w-page` yang dipakai halaman berkartu.
+  // Catatan lama di sini ("satu-satunya yang tak punya margin auto") sudah
+  // tidak berlaku: 13 halaman ternyata bernasib sama, dan semuanya kini
+  // memakai token yang sama. Lihat komentar --w-* di globals.css.
   return (
-    <div style={{ padding: "28px 36px 80px", width: "100%", maxWidth: 1400, margin: "0 auto" }}>
+    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
       <div style={{ marginBottom: 4 }}>
         <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: C.text, fontFamily: "var(--font-display, inherit)" }}>Estimasi</h1>
         <p style={{ margin: "4px 0 0", fontSize: 13, color: C.mid }}>

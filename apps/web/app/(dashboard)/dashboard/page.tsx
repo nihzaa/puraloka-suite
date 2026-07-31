@@ -561,7 +561,7 @@ function DashboardContent() {
   );
 
   return (
-    <div style={{ padding: "28px 36px 80px", width: "100%", maxWidth: 1400, margin: "0 auto" }}>
+    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="rise" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24, gap: 16 }}>

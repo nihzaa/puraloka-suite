@@ -910,7 +910,7 @@ function KeuanganContent() {
   const overdueInvoices = invoices.filter(i => i.status !== "paid" && i.status !== "cancelled" && daysUntil(i.due_date) < 0);
 
   return (
-    <div style={{ padding: "32px 36px 64px", width: "100%" }}>
+    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
 
       {/* ── Header ── */}
       <div className="rise" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>

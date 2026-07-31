@@ -394,7 +394,7 @@ function LaporanContent() {
   ] as { key: TabKey; label: string; icon: React.ReactNode; requiresProject?: boolean; requireFinance?: boolean }[]).filter(t => !t.requireFinance || canViewFinance);
 
   return (
-    <div style={{ padding: "32px 36px 64px", width: "100%" }}>
+    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
 
       {/* Header */}
       <div className="rise" style={{ marginBottom: 24 }}>

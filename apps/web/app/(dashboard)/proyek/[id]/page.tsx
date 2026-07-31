@@ -442,7 +442,7 @@ function ProjectDetailContent() {
   }).length;
 
   return (
-    <div style={{ padding: "32px 36px 64px", width: "100%" }}>
+    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
 
       {/* ── Sticky section navigator ── */}
       <div style={{

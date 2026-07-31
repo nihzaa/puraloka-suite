@@ -263,7 +263,7 @@ export default function NotificationsPage() {
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div style={{ padding: "24px 28px", minHeight: "100vh", background: C.bg }}>
+    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", minHeight: "100vh", background: C.bg, width: "100%", maxWidth: "var(--w-form)", margin: "0 auto" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div>

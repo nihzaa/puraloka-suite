@@ -92,7 +92,7 @@ function Content() {
   if (loading) return <div style={{ padding: 24, color: C.mid }}>Memuat…</div>;
 
   return (
-    <div style={{ padding: "24px 28px", maxWidth: 940 }}>
+    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-form)", margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
         <BellRing size={22} color={C.navy} />
         <h1 style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 700, color: C.text, margin: 0 }}>

@@ -28,9 +28,26 @@
 
   --text-primary:     #111827;
   --text-secondary:   #6B7280;
-  --text-muted:       #9CA3AF;
+  /* #9CA3AF sampai 2026-07-31 — GAGAL WCAG AA: kontras 2,53:1 di atas putih,
+   * sementara syaratnya 4,5:1. Ditemukan axe-core pada halaman LOGIN, layar
+   * pertama yang dilihat setiap pengguna (teks "ATAU" di pemisah tombol).
+   * Bukan kasus pinggiran: token ini dipakai 1.001 kali di seluruh aplikasi.
+   *
+   * #6D747C = 4,73:1 di atas putih. Sengaja BUKAN #6B7280 (yang 4,83:1),
+   * karena itu nilai --text-secondary — memakainya akan membuat "muted" dan
+   * "secondary" identik, menghapus satu tingkat hierarki yang memang dipakai.
+   *
+   * ⚠️ Pada latar --surface-hover (#F3F4F6) angkanya 4,30 — masih di bawah
+   * ambang. Teks muted di atas baris ter-hover memang belum lulus; itu
+   * dicatat sebagai sisa, bukan diklaim beres. */
+  --text-muted:       #6D747C;
 
   --navy:             #003366;
+  /* Teks/ikon yang duduk DI ATAS --navy. Ada sebagai token tersendiri karena
+   * --navy berbalik terang di mode gelap (#4D9FFF), sehingga "putih" yang
+   * benar di sini menjadi salah di sana — tombol Masuk terukur 2,72:1.
+   * Dengan token ini, warna teks ikut berbalik bersama latarnya. */
+  --on-navy:          #FFFFFF;
   --navy-mid:         #0050A0;
   --navy-light:       #EBF2FF;
   --navy-glow:        rgba(0,51,102,0.08);
@@ -71,6 +88,86 @@
   --shadow-sm:        0 1px 2px rgba(0,0,0,0.06);
   --shadow-md:        0 4px 12px rgba(0,0,0,0.08);
   --shadow-lg:        0 8px 24px rgba(0,0,0,0.10);
+
+  /* ─── Tata letak halaman (E11) ──────────────────────────────────
+   *
+   * Sebelum ini tak ada satu pun token tata letak, dan akibatnya terukur:
+   * 26 halaman memakai SEMBILAN lebar berbeda (720/820/840/900/960/1100/
+   * 1200/1400 dan "tanpa batas"), dan 13 di antaranya sama sekali tak
+   * memusatkan diri. Angkanya tak pernah diputuskan — ia diwarisi dari
+   * halaman yang kebetulan disalin lebih dulu.
+   *
+   * Yang dirasakan pengguna (dan yang ditanyakan founder — "bagian samping
+   * kanannya terasa kosong"): pada layar 1920px, halaman tanpa batas
+   * melebar sampai 1700px. Satu baris tabel sepanjang itu tak bisa
+   * diikuti mata dari kolom pertama ke kolom terakhir — dan ruang kanan
+   * tetap terasa menganga karena tak ada yang mengakhirinya.
+   *
+   * Diukur langsung di browser, bukan dikira-kira:
+   *   viewport 1440 → area isi 1220px  (batas 1400 TAK PERNAH aktif)
+   *   viewport 1920 → area isi 1700px tanpa batas · 1280/1500px dengan batas
+   *   viewport 2560 → area isi 2340px tanpa batas · 1280/1500px dengan batas
+   * Karena itu di laptop 1366/1440 batas ini nyaris tak menggigit; ia
+   * terutama menahan pemuaian di layar besar. Itu memang yang diinginkan —
+   * halaman tak berubah rasanya di layar yang selama ini dipakai.
+   *
+   * ⚠️ SOAL RESOLUSI YANG BERBEDA-BEDA. Angka px di bawah adalah BATAS ATAS,
+   * bukan lebar tetap. Tiga hal membuatnya tetap benar di layar mana pun:
+   *   1. `min(…, 100%)` — batas tak pernah melebihi ruang yang tersedia,
+   *      jadi di layar sempit ia otomatis menyerah dan mengikuti induknya.
+   *      Tanpa ini, 1500px pada layar 1024px memaksa scroll horizontal.
+   *   2. `--pad-*` memakai `clamp()` + `vw` — padding IKUT lebar layar.
+   *   3. Sidebar menciut sendiri di bawah 900px (lihat lib/sidebar-context).
+   * Jadi tak ada satu pun "breakpoint desktop" yang diasumsikan. Yang
+   * dipakai px hanyalah batas kenyamanan BACA (±75 karakter/baris), dan itu
+   * memang sifat mata manusia — ia tidak berubah walau monitornya 4K.
+   *
+   * TIGA lebar, bukan satu, karena bentuk isinya memang berbeda:
+   */
+
+  /** Formulir & bacaan satu kolom (pengaturan, profil). Batas ~75 karakter
+   *  per baris — di atas itu mata kehilangan awal baris berikutnya. */
+  --w-form:           min(900px, 100%);
+
+  /** DEFAULT untuk halaman biasa: kartu, daftar, ringkasan campuran.
+   *  1280 dipilih supaya di layar 1440 (paling umum di kantor) batasnya
+   *  belum menggigit — halaman terasa lapang, bukan terjepit. */
+  --w-page:          min(1280px, 100%);
+
+  /** Halaman bertabel padat (estimasi, procurement, piutang, laporan):
+   *  kolomnya banyak dan memaksakan 1280 membuatnya berdesakan. Tetap
+   *  DIBATASI supaya tak pernah menyentuh 1700px.
+   *
+   *  1500, bukan 1600: diukur di browser, 1600 menyisakan hanya 50px di kanan
+   *  pada layar 1920 — terlalu mepet, dan tepi yang nyaris tersentuh terbaca
+   *  sebagai kelalaian, bukan keputusan. 1500 memberi 100px, cukup untuk
+   *  terlihat sengaja berhenti, tanpa mengorbankan lebar kolom yang berarti. */
+  --w-luas:          min(1500px, 100%);
+
+  /** Padding tepi halaman — IKUT LEBAR LAYAR, bukan angka mati.
+   *
+   *  `clamp(min, ideal, maks)`: browser memilih `ideal` selama ia di antara
+   *  min dan maks. `3vw` = 3% lebar viewport, jadi ia mengecil sendiri di
+   *  layar sempit tanpa satu pun media query.
+   *
+   *  Kenapa penting, diukur di browser (sidebar 220px + padding kiri-kanan):
+   *      layar 360px (HP)  → padding tetap 36px ⇒ area isi tinggal **68px**
+   *      layar 390px       → area isi 98px
+   *  Halaman praktis tak terpakai di HP, dan itu bukan kasus pinggiran:
+   *  mandor & tukang membuka sistem ini dari HP, sering perangkat lama.
+   *  Dengan clamp, padding turun ke 16px di HP dan tetap 36px di desktop.
+   *
+   *  Nilai terukur: 360→16px · 768→23px · 1024→31px · ≥1366→36px. */
+  --pad-x:             clamp(16px, 3vw, 36px);
+  --pad-atas:          clamp(20px, 2.5vw, 32px);
+  /** Ruang bawah: bukan hiasan. Tanpa ini baris terakhir tabel menempel
+   *  di tepi jendela dan tak jelas apakah masih ada isi di bawahnya. */
+  --pad-bawah:         clamp(40px, 5vw, 64px);
+
+  /** Lebar sidebar — dipakai layout shell DAN perhitungan lebar isi.
+   *  Dijadikan token supaya keduanya tak bisa berbeda diam-diam. */
+  --sidebar-w:         220px;
+  --sidebar-w-ciut:     64px;
 }
 
 /* ─── Design Tokens — Dark ───────────────────────────────────────── */
@@ -85,9 +182,16 @@
 
   --text-primary:     #F1F3F9;
   --text-secondary:   #9098B8;
-  --text-muted:       #5C6380;
+  /* #5C6380 sampai 2026-07-31 — GAGAL WCAG AA di mode gelap juga, dan lebih
+   * parah dari mode terang: 3,19 di --bg · 2,84 di surface · 2,57 di
+   * surface-raised. Mode gelap tak pernah ikut diaudit sebelumnya.
+   * #8B93B2 lulus ketiganya (6,21 · 5,54 · 5,00). */
+  --text-muted:       #8B93B2;
 
   --navy:             #4D9FFF;
+  /* Di mode gelap --navy adalah biru TERANG, jadi teks di atasnya harus gelap.
+   * #0F1117 = 6,94:1 (lulus AAA). Memakai putih di sini memberi 2,72:1. */
+  --on-navy:          #0F1117;
   --navy-mid:         #6EB3FF;
   --navy-light:       rgba(77,159,255,0.12);
   --navy-glow:        rgba(77,159,255,0.10);
@@ -279,5 +383,41 @@ select.input-base { cursor: pointer; }
   @page {
     margin: 1.5cm 2cm;
     size: A4 portrait;
+  }
+}
+
+/* ─── E11 — utilitas layar sempit ─────────────────────────────────────
+ *
+ * Satu-satunya media query tata letak di aplikasi ini, dan itu disengaja.
+ * Lebar & jarak ditangani `clamp()`/`min()` yang menyesuaikan MULUS ke
+ * resolusi apa pun tanpa ambang; menyembunyikan elemen tak bisa mulus —
+ * ia ada atau tidak ada. Untuk yang biner itulah media query dipakai.
+ *
+ * Ambang 900px sama persis dengan LEBAR_CIUT_OTOMATIS di lib/sidebar-context.tsx.
+ * Kalau salah satunya diubah tanpa yang lain, sidebar dan topbar akan
+ * berganti bentuk pada lebar yang berbeda — terlihat seperti kedip.
+ *
+ * Yang disembunyikan dipilih menurut nilai informasinya, bukan kemudahan:
+ * nama aplikasi ("Puraloka Suite") tak berguna bagi orang yang sudah masuk;
+ * nama halaman berguna, jadi ia bertahan. Fungsi tak pernah dihilangkan —
+ * tombol cari tetap ada, hanya labelnya yang lepas (aria-label tetap ada,
+ * jadi pembaca layar tetap menyebutnya "Cari").
+ */
+@media (max-width: 900px) {
+  .e11-sembunyi-sempit { display: none !important; }
+
+  /* Begitu labelnya lepas, tombol cari tinggal ikon 13px — dan tombol
+   * seukuran itu praktis tak bisa ditekan dengan jempol. Ukuran minimum
+   * ditegakkan di sini, BUKAN diserahkan ke ukuran ikonnya.
+   *
+   * 44px adalah ambang Apple HIG (Material 48dp); dipakai yang lebih kecil
+   * dari keduanya karena ia sudah cukup dan tak mengorbankan ruang topbar.
+   * Ini bukan detail kosmetik: pengguna terbanyak sistem ini di lapangan
+   * adalah mandor & tukang — sering sambil berdiri, sarung tangan, layar
+   * kena matahari. Target yang meleset berarti pekerjaan tak tercatat. */
+  .e11-tombol-cari {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
   }
 }

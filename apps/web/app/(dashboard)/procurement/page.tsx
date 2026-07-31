@@ -2390,7 +2390,7 @@ export default function ProcurementPage() {
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes shimmer { 0%,100% { background-position: 200% 0; } 50% { background-position: -200% 0; } }
       `}</style>
-      <div style={{ padding: "28px 32px 48px" }}>
+      <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
         <div style={{ marginBottom: 16 }}>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Procurement & Inventory</h1>
           <p style={{ fontSize: 13, color: C.mid, marginTop: 4 }}>Kelola supplier, material, PO, penerimaan barang, dan hutang supplier</p>

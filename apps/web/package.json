@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "lint:ratchet": "node scripts/lint-ratchet.mjs",
+    "tata-letak": "node scripts/tata-letak-ratchet.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

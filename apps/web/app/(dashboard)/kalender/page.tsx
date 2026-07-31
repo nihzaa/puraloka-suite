@@ -173,7 +173,7 @@ export default function KalenderPage() {
   const progressCnt  = monthEvents.filter(e => e.type === "progress").length;
 
   return (
-    <div style={{ padding: "28px 36px", maxWidth: 1100, margin: "0 auto" }}>
+    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>

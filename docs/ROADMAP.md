@@ -123,6 +123,9 @@ memberi nilai apa pun, sebagus apa pun rancangannya.
 | E6 | **Komposer tak tersambung ke RAB proyek** | `estimate_items` dan `rab_items` dua sistem terpisah tanpa FK. RAB yang disusun dari analisa AHSP tak berpengaruh apa pun pada Kurva S, EVM, progress fisik | ✅ `d38078a` (tombol "Terapkan ke RAB Proyek") |
 | E7 | **712 analisa (23%) tak bisa hitung HSP** | 255 resource tanpa harga. Ditelusuri: harganya **ADA semua di Excel** — hanya di dalam baris analisa, bukan di sheet daftar harga yang dibaca ekstraktor | ✅ `f93dc11` → `be1a119` (5 putaran) |
 | E8 | **Halaman "ngambang", kanan kosong** | `maxWidth: 1200` tanpa `margin: 0 auto` — satu-satunya halaman yang begitu; audit/dashboard/kalender semuanya punya | ✅ `0739e82` |
+| E11 | **Sistem tata letak lintas halaman** | 26 halaman memakai SEMBILAN lebar berbeda, dan **13 tak memusatkan diri sama sekali** — di 1920px isinya melebar sampai 1700px. Angkanya tak pernah diputuskan siapa pun; ia diwarisi dari halaman yang kebetulan disalin lebih dulu | ✅ token `--w-form/page/luas` + penjaga CI |
+| E14 | **Rate limit tertelan jadi 500** | Login yang kena limit membalas "Internal server error", bukan "coba lagi dalam 1 menit" — user mengira sistemnya rusak lalu mencoba terus, yang justru memperpanjang blokirnya. Regresi 200-bukan-500 ikut tertangkap uji SEBELUM ter-commit | ✅ 8 test + uji mutasi 3 arah |
+| E15 | **Kontras GAGAL WCAG di halaman login** | `--text-muted` 2,53:1 (syarat 4,5:1) di layar PERTAMA yang dilihat semua pengguna; dipakai 1.001×. Mode gelap lebih parah (2,57–3,19) dan tak pernah diaudit. Tombol "Masuk" 2,72:1 — putih di atas biru terang | ✅ 0 pelanggaran axe, terang & gelap |
 
 ### Yang BELUM selesai dari kelompok ini
 
@@ -130,7 +133,6 @@ memberi nilai apa pun, sebagus apa pun rancangannya.
 |---|---|---|---|
 | E9 | **19 harga bentrok butuh keputusan founder** | 17 dari 19 resource tersisa punya beberapa harga di workbook: `Kaso-Kaso 5/7` Rp 3jt/6jt/9,7jt/**16jt** per m³ (jelas jenis kayu berbeda dengan nama sama), `Kanstin` 5 harga, `List Gypsum` 4 harga. **Tidak boleh ditebak** — menyebar ke belasan analisa. Datanya sudah tersaji lengkap (tiap nilai + berapa kali muncul + baris mana) | Kecil — tapi butuh founder |
 | E10 | **81 harga draft menunggu diaktifkan** | Hasil ekstraksi sheet analisa Cibuluh, masuk sebagai `draft` supaya bisa dibedakan dari yang diverifikasi manusia. Draft TIDAK dipakai menghitung HSP. Begitu diaktifkan, **112 analisa perusahaan langsung hidup** | Kecil — tapi butuh founder |
-| E11 | **Sistem tata letak lintas halaman** | Cacat E8 bukan kejadian tunggal: tab-tab `/estimasi` dibangun tambal-per-permintaan, tanpa pernah menetapkan lebar, ritme vertikal, atau kapan memakai panel kanan. Perlu satu keputusan tata letak yang diterapkan menyeluruh, bukan ditambal per halaman. Founder sudah menanyakannya: *"bagian samping kanannya terasa kosong, diisi apa?"* | Sedang |
 | E12 | **Dua edisi AHSP kosong** | `SE-68-2024` & `SNI-2013` terdaftar di registry (migrasi 117, sebagai reference data) tapi nol analisa. Kini ditandai "belum ada analisa" & tak bisa dipilih — tapi isinya tetap belum ada. Menghalangi #20 (perbandingan antar-edisi): tak ada yang bisa dibandingkan. **Butuh file workbook dari founder** | Sedang |
 | E13 | **7 tabel hantu lagi — migrasi 016/044/045** | Ditemukan `audit-jalur-hidup.mjs` pada jalan pertamanya. Ketiga migrasi tercatat ter-apply di `schema_migrations`, tapi `pg_class` tak punya: `accounts`, `journal_entries`, `journal_entry_lines` (016), `field_opname_reports` (044), `assets`, `asset_movements`, `asset_depreciation_logs` (045). Pola yang sama persis dengan 043. **Perlu diputuskan per-tabel**: dipulihkan (kalau fiturnya memang dipakai) atau migrasinya ditandai superseded (kalau memang ditinggalkan) — jangan dibiarkan menggantung sebagai "sudah ada" yang palsu | Sedang |
 
@@ -140,6 +142,32 @@ memberi nilai apa pun, sebagus apa pun rancangannya.
 Berulang kali: ACL cost code (migrasi 112, ber-test, 0 baris), cashflow forecast
 (ber-test, nol pemanggil), kuota RAB (tabelnya bahkan tak pernah terbentuk),
 jejak PO (kolom ada, terisi 0 dari 4). Semuanya "selesai" menurut commit.
+
+**Perbaikan yang "terlihat lebih aman" bisa justru lebih berbahaya.** Saat
+memperbaiki rate-limit, `err.statusCode ?? reply.statusCode ?? 500` terasa lebih
+defensif daripada `?? 500`. Ternyata untuk `throw new Error(...)` biasa,
+`reply.statusCode` masih 200 — sehingga kesalahan server sungguhan terkirim
+sebagai **200 SUKSES**. Monitoring yang menghitung rasio 5xx tak akan pernah
+melihatnya. Tertangkap hanya karena uji perbandingan ("error sungguhan TETAP
+500") ditulis bersama uji utamanya, bukan sesudahnya.
+
+**Verifikasi bisa mengukur benda yang salah tanpa memberi tanda.** Berjam-jam
+terbuang menyimpulkan "token CSS-nya dibuang compiler" — padahal yang terjadi:
+server yang jalan adalah `next start` (bundel produksi lama), bukan `next dev`.
+Sumbernya benar sejak awal. Pelajarannya bukan "periksa server", melainkan:
+kalau hasil ukur tak masuk akal, curigai ALAT UKURNYA sebelum menyimpulkan
+tentang benda yang diukur.
+
+**Aksesibilitas tak pernah diperiksa ≠ aksesibilitas baik.** Satu jalan axe-core
+di halaman login — layar pertama semua orang — menemukan kontras 2,53:1 pada
+token yang dipakai 1.001 kali, plus mode gelap yang tak pernah diaudit sama
+sekali. Lint statis (`jsx-a11y`) tak bisa menemukannya: kontras hanya ada saat
+warna benar-benar dirender.
+
+**Komponen tanpa pemakai dihapus, bukan disimpan "untuk nanti".** `Halaman`
+sempat dibuat sebagai kerangka bersama, lalu ternyata tak cocok dengan halaman
+yang ada (masing-masing punya header sendiri). Menyimpannya berarti melanggar
+§9a yang baru ditulis sehari sebelumnya. Ia dihapus.
 
 **Keyakinan founder soal datanya sendiri terbukti benar tiga kali berturut-turut.**
 "Saya yakin di Excel ada isinya" — dan memang ada, tiga kali, dengan tiga sebab

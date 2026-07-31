@@ -225,7 +225,7 @@ export default function KeuanganSettingsPage() {
     d ? new Date(d + "T00:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "sekarang";
 
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto", padding: "8px 4px 60px" }}>
+    <div style={{ maxWidth: "var(--w-form)", margin: "0 auto", width: "100%", padding: "8px 4px 60px" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
         <div style={{ width: 40, height: 40, borderRadius: 10, background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>

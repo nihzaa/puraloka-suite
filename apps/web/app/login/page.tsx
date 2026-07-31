@@ -214,7 +214,10 @@ function LoginPageInner() {
           border-radius: 8px;
           border: none;
           background: var(--navy);
-          color: #fff;
+          /* Bukan #fff mati: --navy berbalik jadi biru TERANG di mode gelap,
+           * dan putih di atasnya cuma 2,72:1 (syarat 4,5:1) — terukur axe-core.
+           * --on-navy ikut berbalik bersama latarnya. */
+          color: var(--on-navy);
           font-size: 14px;
           font-weight: 600;
           cursor: pointer;

@@ -582,7 +582,7 @@ function MandorPageInner() {
   );
 
   return (
-    <div style={{ padding: "28px 32px", background: C.bg, minHeight: "100vh" }}>
+    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", background: C.bg, minHeight: "100vh", width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
