@@ -35,10 +35,10 @@ Tiga aturan supaya ROADMAP tidak jadi dokumen basi keenam:
 | # | Item | Status | Bukti |
 |---|---|---|---|
 | 1 | **BAC EVM dari pagu RAP** — CPI/SPI tak lagi disamarkan margin RAB | ✅ Selesai | PR #120 (2026-07-31) |
-| 2 | **A1 — `apps/web` masuk CI** + 2 bug pre-existing (5 error TS2322, 6.070 lint semu) | ✅ Selesai | PR #121 |
-| 3 | **A2 — dependency & secret scanning** · 1 critical + 35 high ditutup | ✅ Selesai | PR #121 |
-| 4 | **A4 — aksesibilitas** · 498 temuan terukur + ratchet | ✅ Selesai | PR #121 |
-| 5 | **A3 — `no-explicit-any` dinyalakan** + ratchet (227 terukur) | ✅ Selesai | PR #121 |
+| 2 | **A1 — `apps/web` masuk CI** + 2 bug pre-existing (5 error TS2322, 6.070 lint semu) | ✅ Selesai | PR #121 merged (2026-07-31), commit `5bb284d` |
+| 3 | **A2 — dependency & secret scanning** · 1 critical + 35 high ditutup | ✅ Selesai | PR #121 merged (2026-07-31) |
+| 4 | **A4 — aksesibilitas** · 498 temuan terukur + ratchet | ✅ Selesai | PR #121 merged (2026-07-31) |
+| 5 | **A3 — `no-explicit-any` dinyalakan** + ratchet (227 terukur) | ✅ Selesai | PR #121 merged (2026-07-31) |
 | 6 | **Graphify diperbaiki** — 7.161 node, query berfungsi | ✅ Selesai | 2026-07-31 (di luar git, `graphify-out/` ter-gitignore) |
 | 7 | **Perapian `docs/`** — arsip + perbaikan tautan + 3 cacat administratif | 🔄 Berikutnya | — |
 
@@ -136,3 +136,31 @@ perbaiki kode barunya — jangan naikkan ambangnya.
 | Tanggal | Perubahan |
 |---|---|
 | 2026-07-31 | Dokumen dibuat. Merge dari `ERP_MASTER_PLAN` (13 Modul + FASE 0–7), `PETA-PRIORITAS-ERP` §3 (12 item), `Master-Delivery-Blueprint/01` (6 Capability), `STATUS.md` §AUDIT (7 gap), build-order CECEP (10 langkah). Dedup + urut ulang berdasar dampak. Item #1–#6 sudah selesai di hari yang sama |
+| 2026-07-31 | PR #121 merged (`5bb284d`) — item #2–#5 tuntas. Job `web` hijau untuk PERTAMA KALINYA; sebelumnya `apps/web` nol penegakan CI |
+
+## Jebakan CI yang sudah dibayar mahal — jangan diulang
+
+Empat siklus CI habis di PR #121 untuk dua hal yang tak terlihat dari kode.
+Dicatat di sini supaya tak ada yang membayarnya dua kali.
+
+**1. `pnpm <script>` mati sebelum script-nya jalan.** pnpm v11 memeriksa status
+dependensi sebelum setiap `pnpm run`. Pemeriksaan itu tak bisa memverifikasi
+`xlsx` yang dipasang dari tarball CDN sheetjs — untuk paket ber-URL tarball,
+entri `snapshots:` di lockfile v9 memang kosong (`{}`, `pnpm-lock.yaml:14900`)
+sementara `integrity`-nya hidup di blok `packages:` (`:7072`). Gejalanya
+menyesatkan: `pnpm install --frozen-lockfile` **berhasil**, step script
+sesudahnya yang mati dengan `ERR_PNPM_MISSING_TARBALL_INTEGRITY`.
+→ Job `web` memanggil binari langsung (`node scripts/…`, `./node_modules/.bin/tsc`,
+`./node_modules/.bin/next build`). **Jangan "dirapikan" jadi `pnpm <script>`.**
+`verifyDepsBeforeRun: false` di `pnpm-workspace.yaml` menolong lokal, **tidak di CI**.
+
+**2. Konfigurasi pnpm harus di `pnpm-workspace.yaml`, bukan `.npmrc`/`package.json`.**
+Di tempat yang salah ia diabaikan **diam-diam** — tanpa peringatan apa pun. Sudah
+menggigit dua kali di PR yang sama: `overrides` di `package.json`, lalu `.npmrc`
+yang ternyata berisi JSON (`.npmrc` kini dihapus; `allowBuilds` sudah di tempat benar).
+
+**3. `next build` butuh env, meski cuma dummy.** `lib/supabase.ts` memanggil
+`createClient()` di module scope, jadi klien ikut dievaluasi saat prerender —
+`/auth/callback` mati dengan "supabaseUrl is required". Lokal selalu lolos karena
+ada `.env.local`, jadi kegagalannya eksklusif CI. Step Build memakai nilai dummy;
+kredensial asli justru akan menaruh rahasia di log CI.
