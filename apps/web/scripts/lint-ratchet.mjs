@@ -41,7 +41,7 @@ const AMBANG = {
   //      tapi TAK BISA dijangkau keyboard. Melanggar MUST #7 langsung.
   //   2. label-has-associated-control (255) — pembaca layar tak bisa
   //      menyebutkan field apa yang sedang diisi.
-  'jsx-a11y/label-has-associated-control': 255,
+  'jsx-a11y/label-has-associated-control': 253, // turun dari 255 (2026-07-31)
   'jsx-a11y/click-events-have-key-events': 117,
   'jsx-a11y/no-static-element-interactions': 115,
   'jsx-a11y/no-noninteractive-element-interactions': 11,

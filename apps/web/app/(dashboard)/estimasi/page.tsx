@@ -820,8 +820,16 @@ const GRUP_LABEL: Record<string, { huruf: string; judul: string }> = {
 
 function KatalogTab() {
   const [editions, setEditions] = useState<Edition[]>([]);
-  const [edition, setEdition] = useState("");
-  const [sumber, setSumber] = useState("");
+  /**
+   * Satu nilai untuk seluruh penyaringan katalog:
+   *   ""                → semua
+   *   "company"         → analisa perusahaan saja
+   *   "national"        → analisa nasional saja
+   *   "edition:<kode>"  → satu edisi nasional
+   */
+  const [saring, setSaring] = useState("");
+  const edition = saring.startsWith("edition:") ? saring.slice(8) : "";
+  const sumber = saring === "company" || saring === "national" ? saring : "";
   const [cari, setCari] = useState("");
   const [assemblies, setAssemblies] = useState<Assembly[]>([]);
   const [total, setTotal] = useState<number | null>(null);
@@ -849,12 +857,14 @@ function KatalogTab() {
   }
 
   useEffect(() => {
-    api.get<{ data: Edition[] }>("/api/v1/cecep/editions").then(r => {
-      const eds = r.data.data ?? [];
-      setEditions(eds);
-      const seeded = eds.find(e => e.source_sha256);
-      if (seeded) setEdition(seeded.code);
-    }).catch(() => {});
+    // TIDAK memilih edisi secara otomatis. Sebelumnya edisi ber-`source_sha256`
+    // dipilih sendiri saat halaman dibuka — akibatnya katalog terbuka dalam
+    // keadaan TERSARING ("SE-47-2026 — nasional saja") tanpa pemakai memintanya,
+    // dan 423 analisa perusahaan tak terlihat sejak awal. Default: tampilkan
+    // semua, biarkan penyaringan jadi tindakan sadar.
+    api.get<{ data: Edition[] }>("/api/v1/cecep/editions")
+      .then(r => setEditions(r.data.data ?? []))
+      .catch(() => {});
   }, []);
 
   // SELURUH katalog dimuat sekali (limit 5.000), lalu pencarian dilakukan di
@@ -876,6 +886,27 @@ function KatalogTab() {
   }, [edition, sumber]);
 
   useEffect(() => { muat(); }, [muat]);
+
+  // Jumlah per pilihan saringan, supaya dropdown bisa menyebut angkanya sendiri
+  // ("Analisa perusahaan saja (423)") alih-alih memaksa pemakai memilih dulu
+  // untuk tahu ada isinya atau tidak.
+  const [jumlahPerSaring, setJumlahPerSaring] = useState<Record<string, number>>({});
+  useEffect(() => {
+    let batal = false;
+    void Promise.all([
+      api.get<{ total: number | null }>("/api/v1/cecep/assemblies?limit=1"),
+      api.get<{ total: number | null }>("/api/v1/cecep/assemblies?source=company&limit=1"),
+      api.get<{ total: number | null }>("/api/v1/cecep/assemblies?source=national&limit=1"),
+    ])
+      .then(([s, c, n]) => {
+        if (batal) return;
+        setJumlahPerSaring({
+          semua: s.data.total ?? 0, company: c.data.total ?? 0, national: n.data.total ?? 0,
+        });
+      })
+      .catch(() => {});
+    return () => { batal = true; };
+  }, []);
 
   // Cakupan harga dimuat sekali per kombinasi filter — bukan per analisa dibuka.
   // Tanpa ini, analisa yang HSP-nya tak bisa dihitung baru ketahuan setelah
@@ -940,24 +971,31 @@ function KatalogTab() {
           placeholder="Cari nama atau kode analisa…"
           style={{ ...inputStyle, flex: 1, minWidth: 220 }}
         />
-        <select value={sumber} onChange={e => setSumber(e.target.value)} style={{ ...inputStyle, width: 168 }}>
-          <option value="">Semua sumber</option>
-          <option value="national">Katalog nasional</option>
-          <option value="company">Katalog perusahaan</option>
-        </select>
-        {/* Memilih edisi tertentu MENYARING analisa perusahaan keluar — mereka
-            tak menempel ke edisi mana pun. Disebutkan di opsinya sendiri supaya
-            hilangnya 420 analisa tak terasa seperti kesalahan sistem. */}
-        <select value={edition} onChange={e => setEdition(e.target.value)}
-          disabled={sumber === "company"}
-          title={sumber === "company" ? "Analisa perusahaan tidak terikat edisi" : undefined}
-          style={{ ...inputStyle, width: 260, opacity: sumber === "company" ? 0.5 : 1 }}>
-          <option value="">Semua edisi + analisa perusahaan</option>
-          {editions.map(e => (
-            <option key={e.id} value={e.code}>
-              {e.code}
-              {(e.jumlah_analisa ?? 0) === 0 ? " (kosong)" : ` (${e.jumlah_analisa})`}
-              {" — nasional saja"}
+        {/* SATU dropdown, bukan dua yang saling memengaruhi.
+            Sebelumnya "sumber" dan "edisi" terpisah, dan salah satunya bisa
+            mematikan yang lain — pemakai harus memahami hubungan keduanya
+            sebelum bisa menyaring. Di sini tiap pilihan menyebutkan sendiri apa
+            yang akan tampil, beserta jumlahnya. */}
+        <select value={saring} onChange={e => setSaring(e.target.value)}
+          aria-label="Saring katalog" style={{ ...inputStyle, minWidth: 300 }}>
+          <option value="">Semua ({(jumlahPerSaring.semua ?? 0).toLocaleString("id-ID")})</option>
+          <option value="company">
+            Analisa perusahaan saja ({(jumlahPerSaring.company ?? 0).toLocaleString("id-ID")})
+          </option>
+          <option value="national">
+            Analisa nasional saja ({(jumlahPerSaring.national ?? 0).toLocaleString("id-ID")})
+          </option>
+          {editions.filter(e => (e.jumlah_analisa ?? 0) > 0).map(e => (
+            <option key={e.id} value={`edition:${e.code}`}>
+              Edisi {e.code} ({e.jumlah_analisa!.toLocaleString("id-ID")})
+            </option>
+          ))}
+          {/* Edisi kosong tetap terlihat supaya jelas ia terdaftar tapi belum
+              berisi — menyembunyikannya membuat pemakai mengira sistem hanya
+              mendukung satu edisi. */}
+          {editions.filter(e => (e.jumlah_analisa ?? 0) === 0).map(e => (
+            <option key={e.id} value={`edition:${e.code}`} disabled>
+              Edisi {e.code} — belum ada analisa
             </option>
           ))}
         </select>
@@ -2939,8 +2977,13 @@ const TABS = [
 
 export default function EstimasiPage() {
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("komposer");
+  // `margin: 0 auto` — halaman ini sebelumnya SATU-SATUNYA yang tak punya,
+  // sehingga konten menempel kiri dan sisa kanan menganga di layar lebar.
+  // maxWidth 1400 (bukan 1200 seperti halaman lain): tabel di sini padat kolom
+  // — katalog, harga, varians — dan memaksa 1200 membuat kolomnya berdesakan
+  // sementara ruang di kanan justru terbuang.
   return (
-    <div style={{ padding: "24px 28px", maxWidth: 1200 }}>
+    <div style={{ padding: "28px 36px 80px", width: "100%", maxWidth: 1400, margin: "0 auto" }}>
       <div style={{ marginBottom: 4 }}>
         <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: C.text, fontFamily: "var(--font-display, inherit)" }}>Estimasi</h1>
         <p style={{ margin: "4px 0 0", fontSize: 13, color: C.mid }}>

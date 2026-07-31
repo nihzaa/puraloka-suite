@@ -73,8 +73,18 @@ export default async function priceBookRoutes(app: FastifyInstance) {
       if (idResource) q = q.eq('resource_id', idResource)
       if (idCari) q = q.in('resource_id', idCari)
 
-      const { data, error } = await q
-      if (error) return reply.status(500).send({ error: error.message })
+      // PostgREST membatasi respons di 1.000 baris — batas KERAS yang tak bisa
+      // ditembus `.limit()`. Diambil bertahap per 1.000 supaya price book yang
+      // berisi 2.957 entri benar-benar terbaca utuh.
+      const HALAMAN = 1000
+      const data: unknown[] = []
+      for (let mulai = 0; mulai < limit; mulai += HALAMAN) {
+        const akhir = Math.min(mulai + HALAMAN, limit) - 1
+        const { data: bagian, error: errBagian } = await q.range(mulai, akhir)
+        if (errBagian) return reply.status(500).send({ error: errBagian.message })
+        data.push(...(bagian ?? []))
+        if (!bagian || bagian.length < akhir - mulai + 1) break
+      }
 
       // Total sesungguhnya untuk kriteria YANG SAMA — supaya UI bisa jujur
       // menyebut "200 dari 2.637", bukan mengesankan 200 itu seluruhnya.

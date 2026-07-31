@@ -309,8 +309,23 @@ export default async function ahspRoutes(app: FastifyInstance) {
         q = q.or(`name.ilike.%${aman}%,code.ilike.%${aman}%`)
       }
 
-      const { data, error } = await q
-      if (error) return reply.status(500).send({ error: error.message })
+      // PostgREST membatasi respons di 1.000 baris — batas KERAS yang tak bisa
+      // ditembus `.limit()` maupun `.range()`. Diverifikasi: minta 5.000 tetap
+      // dapat 1.000, padahal katalog berisi 3.043.
+      //
+      // Karena itu diambil bertahap per 1.000 sampai lengkap. Katalog adalah
+      // data referensi yang dibaca sebagai daftar utuh; memotongnya di 1.000
+      // membuat analisa di baris ke-1.500 tak pernah terlihat, dan pemakai
+      // menyimpulkan analisanya tidak ada.
+      const HALAMAN = 1000
+      const data: unknown[] = []
+      for (let mulai = 0; mulai < limit; mulai += HALAMAN) {
+        const akhir = Math.min(mulai + HALAMAN, limit) - 1
+        const { data: bagian, error: errBagian } = await q.range(mulai, akhir)
+        if (errBagian) return reply.status(500).send({ error: errBagian.message })
+        data.push(...(bagian ?? []))
+        if (!bagian || bagian.length < akhir - mulai + 1) break  // sudah habis
+      }
 
       // Total sesungguhnya untuk kriteria yang sama — supaya UI bisa jujur
       // menyebut "menampilkan 200 dari 3.043", bukan mengesankan 200 itu semua.
