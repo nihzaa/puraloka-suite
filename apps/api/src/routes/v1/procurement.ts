@@ -1,12 +1,63 @@
 import { FastifyInstance, FastifyRequest } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
-import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { authenticate, requirePermission, hasPermission } from '../../plugins/auth.js'
 import { createNotification, createNotifications } from '../../utils/notifications.js'
 import { resolveRecipients } from '../../utils/notification-routing.js'
 import { evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain } from '../../utils/approval.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { computeMrAmount } from '../../lib/mr-amount.js'
 import { grValueAtPoPrices, validateInvoiceCeiling } from '../../lib/three-way-match.js'
+import { periksaKuota, type KuotaRab } from '../../lib/kuota-rab-material.js'
+
+/**
+ * Modul 9a — kumpulkan bahan pemeriksaan kuota RAB untuk sebuah MR.
+ *
+ * `sudah_di_mr` DIHITUNG ULANG dari `material_request_items` setiap kali, tidak
+ * membaca kolom cache `project_rab_materials.requested_quantity`. Cache yang
+ * dipercaya buta akan menyimpang begitu ada satu jalur tulis yang lupa
+ * memperbaruinya — dan penyimpangan pada angka kuota berarti pembelian lolos
+ * melebihi RAB tanpa ada yang tahu.
+ *
+ * MR berstatus `draft` dan `rejected` TIDAK dihitung: draft belum diajukan, dan
+ * yang ditolak tidak akan pernah dibeli. Memasukkannya membuat kuota tampak
+ * habis oleh permintaan yang tak pernah terjadi.
+ */
+async function bahanPeriksaKuota(mrId: string, projectId: string) {
+  const [itemsRes, kuotaRes, mrLainRes] = await Promise.all([
+    supabase.from('material_request_items')
+      .select('material_id, qty_requested').eq('mr_id', mrId),
+    supabase.from('project_rab_materials')
+      .select('material_id, rab_quantity, material:materials(name, unit)')
+      .eq('project_id', projectId),
+    supabase.from('material_requests')
+      .select('id, status').eq('project_id', projectId)
+      .in('status', ['submitted', 'approved', 'partially_ordered', 'fully_ordered']),
+  ])
+
+  const idMrLain = (mrLainRes.data ?? []).map((m) => m.id).filter((id) => id !== mrId)
+  const sudahDiMr = new Map<string, number>()
+  if (idMrLain.length) {
+    const { data } = await supabase.from('material_request_items')
+      .select('material_id, qty_requested').in('mr_id', idMrLain)
+    for (const it of data ?? []) {
+      const n = Number(it.qty_requested)
+      sudahDiMr.set(it.material_id,
+        (sudahDiMr.get(it.material_id) ?? 0) + (Number.isFinite(n) ? n : 0))
+    }
+  }
+
+  const kuota: KuotaRab[] = (kuotaRes.data ?? []).map((k) => {
+    const m = k.material as unknown as { name?: string; unit?: string } | null
+    return {
+      material_id: k.material_id,
+      material_name: m?.name,
+      unit: m?.unit ?? null,
+      rab_quantity: k.rab_quantity,
+    }
+  })
+
+  return { items: itemsRes.data ?? [], sudahDiMr, kuota }
+}
 
 /** Nilai MR untuk dasar syarat nominal rantai — aturannya di lib/mr-amount.ts (murni, ber-test). */
 async function mrApprovalAmount(mrId: string): Promise<number> {
@@ -295,6 +346,109 @@ export default async function procurementRoutes(app: FastifyInstance) {
     return reply.status(201).send({ material_request: mr })
   })
 
+  // ── Modul 9a — kuota RAB material per proyek ─────────────────────────────
+  // GET /api/v1/projects/:projectId/rab-materials
+  app.get('/api/v1/projects/:projectId/rab-materials', {
+    preHandler: [authenticate, requirePermission('procurement:view')]
+  }, async (request, reply) => {
+    const { projectId } = request.params as { projectId: string }
+    if ((await proyekBolehDibaca(request, projectId)) === null) {
+      return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    }
+
+    const { data, error } = await supabase.from('project_rab_materials')
+      .select('id, material_id, rab_quantity, rab_unit_cost, notes, material:materials(id, name, unit)')
+      .eq('project_id', projectId).order('created_at')
+    if (error) return reply.status(500).send({ error: error.message })
+
+    // `terpakai` dihitung ulang dari MR hidup, bukan dibaca dari kolom cache —
+    // alasan lengkap di bahanPeriksaKuota().
+    const { data: mrHidup } = await supabase.from('material_requests')
+      .select('id').eq('project_id', projectId)
+      .in('status', ['submitted', 'approved', 'partially_ordered', 'fully_ordered'])
+    const terpakai = new Map<string, number>()
+    if (mrHidup?.length) {
+      const { data: items } = await supabase.from('material_request_items')
+        .select('material_id, qty_requested').in('mr_id', mrHidup.map((m) => m.id))
+      for (const it of items ?? []) {
+        const n = Number(it.qty_requested)
+        terpakai.set(it.material_id,
+          (terpakai.get(it.material_id) ?? 0) + (Number.isFinite(n) ? n : 0))
+      }
+    }
+
+    return reply.send({
+      data: (data ?? []).map((k) => {
+        const dipakai = terpakai.get(k.material_id) ?? 0
+        const batas = Number(k.rab_quantity) || 0
+        return {
+          ...k,
+          terpakai: dipakai,
+          sisa: Number((batas - dipakai).toFixed(3)),
+          serapan_pct: batas > 0 ? Number(((dipakai / batas) * 100).toFixed(1)) : null,
+        }
+      }),
+    })
+  })
+
+  // PUT /api/v1/projects/:projectId/rab-materials — set/ubah kuota satu material
+  app.put('/api/v1/projects/:projectId/rab-materials', {
+    preHandler: [authenticate, requirePermission('procurement:mr:manage')]
+  }, async (request, reply) => {
+    const { projectId } = request.params as { projectId: string }
+    const body = request.body as {
+      material_id: string; rab_quantity: number; rab_unit_cost?: number; notes?: string
+    }
+    if ((await proyekBolehDibaca(request, projectId)) === null) {
+      return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    }
+    if (!body?.material_id || !(Number(body.rab_quantity) > 0)) {
+      return reply.status(400).send({ error: 'material_id dan rab_quantity (> 0) wajib diisi' })
+    }
+
+    const { data, error } = await supabase.from('project_rab_materials')
+      .upsert({
+        project_id: projectId,
+        material_id: body.material_id,
+        rab_quantity: Number(body.rab_quantity),
+        rab_unit_cost: Number(body.rab_unit_cost) || 0,
+        notes: body.notes ?? null,
+        created_by: request.currentUser!.id,
+      }, { onConflict: 'project_id,material_id' })
+      .select('id, material_id, rab_quantity, rab_unit_cost')
+      .single()
+    if (error) return reply.status(500).send({ error: error.message })
+
+    await logAuditEvent(request, {
+      tableName: 'project_rab_materials', recordId: data.id,
+      action: 'procurement.kuota_rab_diset',
+      actorId: request.currentUser!.id,
+      newValues: { material_id: data.material_id, rab_quantity: data.rab_quantity },
+    })
+    return reply.send({ data })
+  })
+
+  // GET /api/v1/procurement/material-requests/:id/quota-check
+  // Pemeriksaan KERING: memberi tahu hasilnya tanpa mengubah apa pun, supaya UI
+  // bisa memperingatkan SEBELUM pengguna menekan submit dan ditolak 422.
+  app.get('/api/v1/procurement/material-requests/:id/quota-check', {
+    preHandler: [authenticate, requirePermission('procurement:view')]
+  }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const { data: mr } = await supabase.from('material_requests')
+      .select('id, project_id, mr_number')
+      .eq('id', id).in('project_id', await request.db!.projectIds()).maybeSingle()
+    if (!mr) return reply.status(404).send({ error: 'MR tidak ditemukan' })
+
+    const bahan = await bahanPeriksaKuota(id, mr.project_id)
+    const hasil = periksaKuota(bahan.items, bahan.sudahDiMr, bahan.kuota)
+    return reply.send({
+      mr_number: mr.mr_number,
+      ...hasil,
+      bisa_override: await hasPermission(request, 'procurement:mr:override_quota'),
+    })
+  })
+
   // PATCH /api/v1/procurement/material-requests/:id/submit
   app.patch('/api/v1/procurement/material-requests/:id/submit', {
     preHandler: [authenticate, requirePermission('procurement:mr:manage')]
@@ -304,10 +458,61 @@ export default async function procurementRoutes(app: FastifyInstance) {
     // permintaan material tenant B (dan memicu notifikasi ke approver mereka).
     const idProyekMr = await request.db!.projectIds()
     const { data: mr } = await supabase.from('material_requests')
-      .select('id, status, mr_number, project:projects(name)')
+      .select('id, status, mr_number, project_id, project:projects(name)')
       .eq('id', id).in('project_id', idProyekMr).maybeSingle()
     if (!mr) return reply.status(404).send({ error: 'MR tidak ditemukan' })
     if (mr.status !== 'draft') return reply.status(400).send({ error: 'Hanya MR draft yang bisa disubmit' })
+
+    // ── Modul 9a — HARD-GUARD kuota RAB ────────────────────────────────────
+    // Ditempatkan di SUBMIT, bukan create: draft adalah ruang kerja, dan
+    // memblokir penyusunan membuat PM tak bisa menyiapkan permintaan sama
+    // sekali. Yang dijaga adalah PENGAJUAN — titik saat permintaan menjadi
+    // kewajiban yang akan berujung PO.
+    const { override_reason } = (request.body ?? {}) as { override_reason?: string }
+    const bahan = await bahanPeriksaKuota(id, mr.project_id)
+    const hasil = periksaKuota(bahan.items, bahan.sudahDiMr, bahan.kuota)
+
+    if (!hasil.lolos) {
+      const alasan = (override_reason ?? '').trim()
+
+      // Override hanya untuk pemegang capability khusus, dan WAJIB beralasan.
+      // Capability terpisah dari `procurement:mr:manage` supaya "boleh mengajukan
+      // MR" tidak otomatis berarti "boleh melampaui RAB" — kalau sama, guard ini
+      // hanya jadi tombol yang selalu bisa ditekan sendiri oleh pengajunya.
+      const bolehOverride = await hasPermission(request, 'procurement:mr:override_quota')
+
+      if (!bolehOverride || alasan.length < 10) {
+        return reply.status(422).send({
+          error: 'Permintaan melebihi volume RAB',
+          kode: 'KUOTA_RAB_TERLAMPAUI',
+          pelanggaran: hasil.pelanggaran,
+          tanpa_kuota: hasil.tanpa_kuota,
+          bisa_override: bolehOverride,
+          petunjuk: bolehOverride
+            ? 'Kirim ulang dengan `override_reason` minimal 10 karakter.'
+            : 'Kurangi volume, atau minta admin dengan wewenang override.',
+        })
+      }
+
+      // Override DICATAT sebelum status berubah: kalau pencatatannya gagal,
+      // MR tidak boleh terlanjur submitted tanpa jejak siapa yang mengizinkan.
+      const { error: errOverride } = await supabase.from('mr_quota_override').insert({
+        mr_id: id, project_id: mr.project_id, reason: alasan,
+        pelanggaran: hasil.pelanggaran, overridden_by: request.currentUser!.id,
+      })
+      if (errOverride) {
+        return reply.status(500).send({ error: `Gagal mencatat override: ${errOverride.message}` })
+      }
+
+      await logAuditEvent(request, {
+        tableName: 'material_requests', recordId: id,
+        action: 'procurement.mr_kuota_rab_dioverride',
+        actorId: request.currentUser!.id,
+        severity: 'warning',
+        reason: alasan,
+        newValues: { mr_number: mr.mr_number, pelanggaran: hasil.pelanggaran },
+      })
+    }
 
     const { error } = await supabase.from('material_requests')
       .update({ status: 'submitted' }).eq('id', id).in('project_id', idProyekMr)

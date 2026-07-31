@@ -4,7 +4,7 @@
 // Penegak: `node scripts/gen-tenant-map.mjs check` (CI) — build MERAH kalau
 // ada tabel yang belum terklasifikasi (ADR-011 §9.5 P3).
 //
-// 103 tabel · A=12 · AB=12 · ANCHOR=1 · B=19 · C=53 · D=6
+// 105 tabel · A=12 · AB=12 · ANCHOR=1 · B=19 · C=55 · D=6
 //
 // Arti kategori (ADR-011 §5 + audit T1):
 //   ANCHOR akar tenancy (projects) — company_id NOT NULL
@@ -76,6 +76,7 @@ export const PETA_TENANCY = {
   'menu_items': { kategori: 'A' },
   'milestones': { kategori: 'C', lewat: 'project_id' },  // milestones.project_id
   'modules': { kategori: 'A' },
+  'mr_quota_override': { kategori: 'C', lewat: 'project_id' },  // mr_quota_override.project_id
   'notification_rule_targets': { kategori: 'B' },
   'notification_rules': { kategori: 'B' },
   'notifications': { kategori: 'B' },
@@ -90,6 +91,7 @@ export const PETA_TENANCY = {
   'project_expenses': { kategori: 'C', lewat: 'project_id' },  // project_expenses.project_id
   'project_photos': { kategori: 'C', lewat: 'project_id' },  // project_photos.project_id
   'project_price_override': { kategori: 'C', lewat: 'project_id' },  // project_price_override.project_id
+  'project_rab_materials': { kategori: 'C', lewat: 'project_id' },  // project_rab_materials.project_id
   'project_stocks': { kategori: 'C', lewat: 'project_id' },  // project_stocks.project_id
   'projects': { kategori: 'ANCHOR' },
   'purchase_order_items': { kategori: 'C', lewat: 'po_id' },  // purchase_order_items.po_id → purchase_orders.project_id

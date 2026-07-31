@@ -61,7 +61,7 @@ pengerjaan. Sumber tiap item disebut supaya bisa ditelusuri ke dokumen aslinya.
 
 | # | Item | Sumber | Kenapa penting | Ukuran |
 |---|---|---|---|---|
-| 11 | **Modul 9a — RAB hard-guard di Material Request** | ERP_MASTER_PLAN | Rancangan lengkap termasuk rumus validasi kuota. Menolak MR melebihi volume RAB; override hanya admin dengan alasan tertulis. Menutup kebocoran di titik paling awal | Sedang |
+| 11 | **Modul 9a — RAB hard-guard di Material Request** | ERP_MASTER_PLAN | ✅ **Selesai 2026-07-31** (migrasi 142). Submit MR ditolak 422 bila `sudah_di_MR + diminta > volume_RAB`; override butuh capability BARU `procurement:mr:override_quota` (admin & direktur saja — sengaja lebih sempit dari `mr:manage` yang juga dipegang pm & mandor) + alasan ≥10 karakter, tercatat di `mr_quota_override` + audit. ⚠️ **Temuan serius:** migrasi 043 tercatat SUKSES tapi `project_rab_materials` tak pernah ada di DB — dipulihkan 142 dengan blok verifikasi `RAISE EXCEPTION` | Sedang |
 | 12 | **Modul 9b — PO ke WhatsApp/email vendor** | ERP_MASTER_PLAN | Rancangan siap; mempercepat siklus PO yang kini manual | Kecil |
 
 ### Tingkat 3 — Utang multi-tenant (menggigit saat badan usaha kedua dibuat)
@@ -142,6 +142,7 @@ perbaiki kode barunya — jangan naikkan ambangnya.
 | 2026-07-31 | Item #8 **dipindah ke "sengaja tidak dikerjakan"** setelah discovery terukur. ROADMAP menempatkannya di Tingkat 1 dengan asumsi "gerbang sudah lewat" — data membuktikan sebaliknya. Konsekuensi: syarat #18 "kerjakan setelah #8" gugur. Ini contoh ROADMAP bekerja sebagaimana mestinya: status berubah karena **bukti**, bukan karena rencananya begitu |
 | 2026-07-31 | Item #10 tuntas — tab **Proyeksi Kas** di `/estimasi`. Judul item lamanya keliru dan dikoreksi: ETC/EAC sudah lama ber-UI; yang menganggur adalah endpoint cashflow forecast. Ratchet sempat MERAH (73 vs ambang 71) menangkap 2 `set-state-in-effect` baru — diperbaiki dengan memindahkan reset ke handler & membuat effect murni asinkron, bukan menaikkan ambang |
 | 2026-07-31 | Item #9 tuntas — tab **Varians Biaya** + 4 endpoint. Pola berulang lagi: fondasi ada & ber-test (ACL migrasi 112), yang hilang endpoint+UI. Ratchet API sempat MERAH (17 vs 16 `no-unused-vars`) — sisa refactor, dibersihkan bukan dinaikkan |
+| 2026-07-31 | Item #11 tuntas — hard-guard kuota RAB di submit MR (migrasi 142). Menemukan **migrasi hantu**: 043 tercatat sukses di `schema_migrations` lengkap dengan 9 statement, tapi `pg_class` tak punya `project_rab_materials` maupun `po_delivery_log`. Nol endpoint pernah memakainya, jadi tak ada yang menabraknya sampai sekarang — lihat catatan di bawah |
 
 ## Jebakan CI yang sudah dibayar mahal — jangan diulang
 
@@ -202,3 +203,44 @@ suatu saat pemindahan memang dikerjakan.
 
 **Penjaga baru:** `scripts/cek-tautan-docs.mjs` + job CI `dokumentasi`. Diuji
 mutasi (tautan palsu disisipkan → pemindai merah), bukan sekadar "kebetulan hijau".
+
+---
+
+## Migrasi hantu — 043 tercatat sukses tanpa pernah membuat tabelnya
+
+Ditemukan 2026-07-31 saat mengerjakan #11. Layak dicatat karena **bisa berulang
+dan tak berbunyi**.
+
+`supabase_migrations.schema_migrations` memuat versi `043` lengkap dengan 9
+statement tersimpan — termasuk `CREATE INDEX` dan `CREATE TRIGGER` yang merujuk
+`project_rab_materials`. Tapi `pg_class`, diperiksa lewat koneksi baru, tak
+punya satu pun dari `project_rab_materials` maupun `po_delivery_log`.
+
+Migrasi terlihat berhasil sementara objeknya nihil. Siapa pun yang membaca
+daftar migrasi akan menyimpulkan Modul 9a sudah punya fondasi DB. Tak ada yang
+menabraknya selama berbulan-bulan karena **nol endpoint pernah memakai tabel
+itu** — cacatnya baru muncul saat fiturnya benar-benar dibangun.
+
+**Cara memeriksa, bukan mengandaikan:**
+
+```sql
+-- JANGAN percaya schema_migrations sendirian
+SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+ WHERE n.nspname = 'public' AND c.relname = '<tabel_yang_diharapkan>';
+```
+
+Wajib lewat **koneksi baru** — katalog bisa basi pada koneksi yang sama
+(`reference-supabase-pooler-ddl`).
+
+**Perlakuan yang dipakai di 142, dan yang seharusnya dipakai lagi:**
+
+1. **Jangan edit migrasi lama.** Berkas yang sudah tercatat di riwayat tak boleh
+   berubah isinya — itu membuat riwayat berbohong pada lingkungan yang benar-benar
+   pernah menjalankannya. Perbaikan datang sebagai migrasi maju yang idempoten.
+2. **Pasang blok verifikasi di akhir migrasi.** 142 diakhiri `DO $$ … RAISE
+   EXCEPTION … $$` yang menggagalkan migrasi bila tabel/capability tak terbentuk.
+   Migrasi yang bisa "sukses" tanpa menghasilkan apa pun adalah cacat desain,
+   bukan nasib buruk.
+3. **Verifikasi pasca-apply lewat koneksi baru**, memeriksa `pg_class`/
+   `pg_attribute`/`pg_policies` — bukan `information_schema` pada koneksi yang
+   sama, dan bukan sekadar "tidak ada error".
