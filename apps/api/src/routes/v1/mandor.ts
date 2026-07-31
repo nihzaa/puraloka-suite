@@ -758,29 +758,67 @@ export default async function mandorRoutes(app: FastifyInstance) {
     return reply.status(201).send({ item })
   })
 
-  // Helper: resolve project_id + mandor_id dari scope-item, return null jika tidak ditemukan
-  async function resolveScopeItemOwnership(itemId: string): Promise<{
+  /**
+   * Resolve project_id + mandor_id dari scope-item; null bila tak ditemukan
+   * ATAU bukan milik company aktif.
+   *
+   * ⚠️ `request` WAJIB — bukan sekadar `itemId`. Versi sebelumnya hanya
+   * memfilter `.eq('id', itemId)` lalu memeriksa `pm_id`/`mandor_id` di
+   * pemanggil. Itu menutup PM & mandor, tapi **admin tidak difilter sama
+   * sekali** — admin di company A yang tahu UUID sebuah scope-item milik
+   * company B bisa PATCH volume/harga-nya, menghapusnya, atau mengubah
+   * realisasi progresnya.
+   *
+   * Dibuktikan di dev (transaksi di-rollback): query by-id yang sama persis
+   * memulangkan baris milik company lain tanpa satu pun saringan tenant.
+   *
+   * Tak bergejala hari ini karena baru ada satu company — dan itu justru
+   * yang membuatnya berbahaya: ia menunggu badan usaha kedua.
+   */
+  async function resolveScopeItemOwnership(request: FastifyRequest, itemId: string): Promise<{
     project_id: string; mandor_id: string; pm_id: string | null
   } | null> {
     const { data } = await supabase
       .from('work_scope_items')
       .select(`
-        scope_id,
+        work_scope_id,
         scope:work_scopes!inner(
           assignment:mandor_assignments!inner(
             mandor_id,
-            project:projects!inner(id, pm_id)
+            project:projects!inner(id, pm_id, company_id)
           )
         )
       `)
       .eq('id', itemId)
       .single()
     if (!data) return null
-    const assignment = (data.scope as any)?.assignment
+    // Saringan tenant: proyek induknya harus milik company aktif.
+    //
+    // Bentuk embed PostgREST dinyatakan eksplisit, bukan `as any`: dengan tipe
+    // ini, menambah/mengganti nama kolom di `select` di atas tanpa menyesuaikan
+    // pembacaan di bawah akan gagal KOMPILASI, bukan diam-diam jadi `undefined`
+    // — dan `undefined !== companyId` kebetulan tetap "aman" (menolak semua),
+    // sehingga salahnya tak akan pernah terlihat sebagai bug.
+    type EmbedScope = {
+      assignment?: { mandor_id?: string; project?: { id?: string; pm_id?: string | null; company_id?: string } }
+    }
+    const scope = data.scope as EmbedScope | EmbedScope[] | null
+    const embed = Array.isArray(scope) ? scope[0] : scope
+    const assignment = embed?.assignment
+    // Saringan tenant ditulis sebagai penjaga terpisah supaya TypeScript bisa
+    // mempersempit tipenya — versi satu-baris (`embed?.a?.p?.company_id !== …`)
+    // menolak lalu TETAP menganggap `assignment` mungkin undefined di bawah.
+    if (!assignment || assignment.project?.company_id !== request.companyId) return null
+    // `!inner` di select menjamin keduanya ada — baris tanpa assignment/project
+    // tak akan terbawa sama sekali. Tapi jaminan itu ada di STRING query, yang
+    // tak dilihat TypeScript; kalau `!inner` suatu saat dilepas, di sinilah
+    // akibatnya muncul. Menolak (null) lebih benar daripada memaksa dengan `!`:
+    // ownership yang tak bisa dipastikan harus jadi 404, bukan diloloskan.
+    if (!assignment.project?.id || !assignment.mandor_id) return null
     return {
-      project_id: assignment?.project?.id ?? null,
-      mandor_id:  assignment?.mandor_id ?? null,
-      pm_id:      assignment?.project?.pm_id ?? null,
+      project_id: assignment.project.id,
+      mandor_id:  assignment.mandor_id,
+      pm_id:      assignment.project.pm_id ?? null,
     }
   }
 
@@ -797,7 +835,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
     }
 
     // Project + ownership isolation
-    const ownership = await resolveScopeItemOwnership(id)
+    const ownership = await resolveScopeItemOwnership(request, id)
     if (!ownership) return reply.status(404).send({ error: 'Item tidak ditemukan' })
     if (user.role === 'pm' && ownership.pm_id !== user.id) {
       return reply.status(403).send({ error: 'Akses ditolak: item bukan di proyek Anda' })
@@ -845,7 +883,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
     const user = request.currentUser!
 
     // Project + ownership isolation untuk semua role non-admin
-    const ownership = await resolveScopeItemOwnership(id)
+    const ownership = await resolveScopeItemOwnership(request, id)
     if (!ownership) return reply.status(404).send({ error: 'Item tidak ditemukan' })
     if (user.role === 'pm' && ownership.pm_id !== user.id) {
       return reply.status(403).send({ error: 'Akses ditolak: item bukan di proyek Anda' })
@@ -873,7 +911,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
 
     // Ownership isolation: mandor hanya bisa update progress scope miliknya
     if (user.role === 'mandor' || user.role === 'pm') {
-      const ownership = await resolveScopeItemOwnership(id)
+      const ownership = await resolveScopeItemOwnership(request, id)
       if (!ownership) return reply.status(404).send({ error: 'Item tidak ditemukan' })
       if (user.role === 'mandor' && ownership.mandor_id !== user.id) {
         return reply.status(403).send({ error: 'Akses ditolak: item bukan milik Anda' })

@@ -10,7 +10,8 @@
     "lint": "eslint src",
     "lint:ratchet": "node scripts/lint-ratchet.mjs",
     "audit:jalur-hidup": "node scripts/audit-jalur-hidup.mjs",
-    "audit:migrasi": "node scripts/rekonsiliasi-schema-migrations.mjs"
+    "audit:migrasi": "node scripts/rekonsiliasi-schema-migrations.mjs",
+    "audit:gerbang": "node scripts/audit-gerbang-tenancy.mjs"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",
