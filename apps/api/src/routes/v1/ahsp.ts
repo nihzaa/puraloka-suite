@@ -245,7 +245,23 @@ export default async function ahspRoutes(app: FastifyInstance) {
         .select('id, code, name, se_number, publish_date, source_file, source_sha256, imported_at, is_active')
         .order('publish_date', { ascending: false })
       if (error) return reply.status(500).send({ error: error.message })
-      return reply.send({ data })
+
+      // Jumlah analisa AKTIF per edisi.
+      //
+      // Registry edisi bisa memuat edisi yang belum diimpor isinya — di dev hari
+      // ini SE-68-2024 dan SNI-2013 terdaftar dengan NOL analisa. Tanpa angka
+      // ini, memilihnya saat membuat versi menghasilkan katalog kosong tanpa
+      // sebab yang terlihat, dan pemakai menyimpulkan sistemnya rusak.
+      const { data: asm } = await request.db!
+        .from('assemblies').select('edition_id').eq('status', 'active').limit(10000)
+      const per = new Map<string, number>()
+      for (const a of asm ?? []) {
+        if (a.edition_id) per.set(a.edition_id, (per.get(a.edition_id) ?? 0) + 1)
+      }
+
+      return reply.send({
+        data: (data ?? []).map((e) => ({ ...e, jumlah_analisa: per.get(e.id) ?? 0 })),
+      })
     })
 
   // ── GET /cecep/assemblies — katalog AHSP (filter edisi/sumber) ──────────────

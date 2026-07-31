@@ -15,6 +15,7 @@ import {
 } from "recharts";
 import { api } from "@/lib/api";
 import { useVirtualList } from "@/lib/use-virtual-list";
+import { PilihCari } from "@/components/pilih-cari";
 import {
   Calculator, Plus, X, ChevronRight, ChevronDown, BookOpen, Coins,
   Layers, Send, Trash2, CheckCircle2, BadgeCheck, PlayCircle, CircleOff, Pencil,
@@ -35,7 +36,12 @@ const fmtRp = (n: number) => `Rp ${Number(n).toLocaleString("id-ID")}`;
 
 // ── Types (bentuk respons API CECEP) ──────────────────────────────────────────
 interface Project { id: string; name: string }
-interface Edition { id: string; code: string; name: string; publish_date: string | null; source_sha256: string | null; is_active: boolean }
+interface Edition {
+  id: string; code: string; name: string; publish_date: string | null;
+  source_sha256: string | null; is_active: boolean;
+  /** Jumlah analisa AKTIF di edisi ini. 0 = terdaftar tapi isinya belum diimpor. */
+  jumlah_analisa?: number;
+}
 interface VersionSummary { id: string; version_number: number; status: string; total_amount: number }
 interface Scenario { id: string; name: string; purpose: string | null; status: string; versions: VersionSummary[] }
 interface CostCodeRingkas { id: string; code: string; name: string; status: string }
@@ -356,10 +362,29 @@ function NewScenarioModal({ projectId, editions, onClose, onDone }:
       {label("Tujuan (opsional)")}
       <input style={inputStyle} value={purpose} onChange={e => setPurpose(e.target.value)} placeholder="tender / rap / studi" />
       {label("Edisi AHSP untuk versi pertama (opsional)")}
+      {/* Edisi yang belum diimpor isinya DITANDAI, bukan disembunyikan.
+          Registry memuat SE-68-2024 & SNI-2013 dengan nol analisa; memilihnya
+          menghasilkan katalog kosong tanpa sebab yang terlihat. Menyembunyikan
+          juga salah — keduanya memang direncanakan ada, dan menghilangkannya
+          membuat pemakai mengira sistem hanya mendukung satu edisi. */}
       <select style={inputStyle} value={editionCode} onChange={e => setEditionCode(e.target.value)}>
         <option value="">— tanpa edisi (custom) —</option>
-        {editions.filter(e => e.is_active).map(e => <option key={e.id} value={e.code}>{e.code} — {e.name}</option>)}
+        {editions.filter(e => e.is_active).map(e => (
+          <option key={e.id} value={e.code} disabled={(e.jumlah_analisa ?? 0) === 0}>
+            {e.code} — {e.name}
+            {(e.jumlah_analisa ?? 0) === 0
+              ? "  (belum ada analisa)"
+              : `  (${e.jumlah_analisa!.toLocaleString("id-ID")} analisa)`}
+          </option>
+        ))}
       </select>
+      {editions.some(e => e.is_active && (e.jumlah_analisa ?? 0) === 0) && (
+        <p style={{ fontSize: 11.5, color: C.muted, margin: "6px 0 0", lineHeight: 1.5 }}>
+          Edisi bertanda “belum ada analisa” terdaftar di registry tapi isinya belum
+          diimpor, jadi belum bisa dipilih. Analisa perusahaan tetap tersedia untuk
+          edisi mana pun.
+        </p>
+      )}
       {err && <p style={{ color: C.red, fontSize: 12.5 }}>{err}</p>}
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
         <button style={btnGhost} onClick={onClose}>Batal</button>
@@ -424,10 +449,13 @@ function AddItemModal({ version, onClose, onDone }:
   // untuk dipakai tak pernah bisa dipilih saat menyusun RAB.
   useEffect(() => {
     let batal = false;
+    // limit 5.000, bukan 200: dropdown yang memotong di 200 dari 2.620 analisa
+    // edisi berarti pekerjaan yang dicari sering tak ada di daftar, tanpa
+    // penjelasan apa pun. Katalog ini data referensi — dimuat utuh sekali.
     const edisi = version.edition
-      ? api.get<{ data: Assembly[] }>(`/api/v1/cecep/assemblies?edition=${encodeURIComponent(version.edition.code)}&limit=200`)
-      : api.get<{ data: Assembly[] }>(`/api/v1/cecep/assemblies?source=national&limit=200`);
-    const company = api.get<{ data: Assembly[] }>(`/api/v1/cecep/assemblies?source=company&limit=200`);
+      ? api.get<{ data: Assembly[] }>(`/api/v1/cecep/assemblies?edition=${encodeURIComponent(version.edition.code)}&limit=5000`)
+      : api.get<{ data: Assembly[] }>(`/api/v1/cecep/assemblies?source=national&limit=5000`);
+    const company = api.get<{ data: Assembly[] }>(`/api/v1/cecep/assemblies?source=company&limit=5000`);
 
     void Promise.all([edisi, company])
       .then(([e, c]) => {
@@ -492,27 +520,34 @@ function AddItemModal({ version, onClose, onDone }:
 
       {mode === "katalog" && (
         <>
-          {label(`Assembly / AHSP ${version.edition ? `(edisi ${version.edition.code} + analisa perusahaan)` : "(nasional + analisa perusahaan)"}`)}
-          {/* Dikelompokkan supaya jelas mana milik perusahaan sendiri dan mana
-              turunan edisi nasional — keduanya tampil berdampingan, tapi asalnya
-              menentukan siapa yang bertanggung jawab atas koefisiennya. */}
-          <select style={inputStyle} value={assemblyId} onChange={e => setAssemblyId(e.target.value)}>
-            <option value="">— pilih pekerjaan —</option>
-            {assemblies.some(a => a.source === "company") && (
-              <optgroup label="Analisa Perusahaan">
-                {assemblies.filter(a => a.source === "company").map(a => (
-                  <option key={a.id} value={a.id}>{a.code} — {a.name} (per {a.output_unit_code})</option>
-                ))}
-              </optgroup>
-            )}
-            {assemblies.some(a => a.source !== "company") && (
-              <optgroup label={version.edition ? `Edisi ${version.edition.code}` : "Analisa Nasional"}>
-                {assemblies.filter(a => a.source !== "company").map(a => (
-                  <option key={a.id} value={a.id}>{a.code} — {a.name} (per {a.output_unit_code})</option>
-                ))}
-              </optgroup>
-            )}
-          </select>
+          <span id="lbl-assembly">
+            {label(`Assembly / AHSP ${version.edition ? `(edisi ${version.edition.code} + analisa perusahaan)` : "(nasional + analisa perusahaan)"}`)}
+          </span>
+          {/* Dropdown BISA DICARI: daftarnya memuat 3.040 analisa, dan `<select>`
+              asli hanya bisa diloncati dengan huruf awal. Orang yang tahu
+              barangnya tapi tak hafal urutan katalog praktis tak bisa memakainya.
+              Dikelompokkan supaya jelas mana milik perusahaan sendiri dan mana
+              turunan edisi nasional — asalnya menentukan siapa yang bertanggung
+              jawab atas koefisiennya. */}
+          <PilihCari
+            labelId="lbl-assembly"
+            value={assemblyId}
+            onChange={setAssemblyId}
+            placeholder="— cari pekerjaan (ketik nama atau kode) —"
+            kosong="Tidak ada analisa yang cocok. Coba kata kunci lain, atau buat analisa baru."
+            opsi={[
+              ...assemblies.filter(a => a.source === "company").map(a => ({
+                value: a.id, label: a.name,
+                keterangan: `${a.code} · per ${a.output_unit_code}`,
+                grup: "Analisa Perusahaan",
+              })),
+              ...assemblies.filter(a => a.source !== "company").map(a => ({
+                value: a.id, label: a.name,
+                keterangan: `${a.code} · per ${a.output_unit_code}`,
+                grup: version.edition ? `Edisi ${version.edition.code}` : "Analisa Nasional",
+              })),
+            ]}
+          />
           <p style={{ fontSize: 11.5, color: C.muted, margin: "6px 0 0" }}>
             Tidak ketemu? Coba tab &quot;Buat Analisa Baru&quot; atau &quot;Harga Langsung&quot; (untuk pekerjaan bukan-beranalisa: lift, pompa, septictank, dll).
           </p>
