@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { proyekMilikTenant } from '../../utils/tenant-guard.js'
+import { analisaProyek, ringkasPortofolio, urutkanPerhatian, type BarisProyek } from '../../lib/cost-analytics.js'
 import { agregasiVarians, type CostCodeRef } from '../../lib/varians-cost-code.js'
 
 // ============================================================
@@ -44,6 +45,100 @@ const EXPENSE_TERPAKAI = ['approved', 'paid']
 
 export default async function costControlRoutes(app: FastifyInstance) {
   // ── GET /cost-codes — registry untuk dropdown pemetaan ────────────────────
+  // ── GET /api/v1/cost-analytics/portfolio ───────────────────────────────
+  // Agregasi biaya LINTAS PROYEK (ROADMAP #18).
+  //
+  // Semua laporan yang ada bersifat per-proyek. Yang tak bisa dijawab:
+  // "dari 15 proyek, mana yang paling menggerus margin?" — dan tanpa itu
+  // pemilik tak bisa memutuskan di mana harus turun tangan.
+  //
+  // ⚠️ Respons WAJIB membawa `meta.keterbatasan`. ROADMAP #18 menuliskan
+  // syaratnya sendiri: dashboard ini harus menyatakan EKSPLISIT bahwa
+  // angkanya belum diadu ke realisasi belanja per-material (§D7 masih
+  // terkunci — pemetaan resource↔material baru cocok 0,1%). Angka yang
+  // terlihat rapi tanpa peringatan mengundang keputusan yang datanya belum
+  // sanggup menopang.
+  app.get(
+    '/api/v1/cost-analytics/portfolio',
+    { preHandler: [authenticate, requirePermission('reports:view')] },
+    async (request, reply) => {
+      // Seluruh query lewat wrapper — daftar proyek pun sudah ter-scope tenant.
+      const { data: proyek, error } = await request.db!
+        .from('projects')
+        .select('id, name, status, contract_value, progress_pct')
+        .eq('is_deleted', false)
+        .order('name')
+
+      if (error) {
+        request.log.error({ err: error }, 'gagal memuat portofolio')
+        return reply.status(500).send({ error: 'Gagal memuat analitik biaya' })
+      }
+
+      const ids = (proyek ?? []).map((p: { id: string }) => p.id)
+      if (ids.length === 0) {
+        return reply.send({ data: [], meta: ringkasPortofolio([]) })
+      }
+
+      // Tiga sumber, diambil sekaligus lalu diagregasi di memori. Dipilih
+      // begitu karena jumlah proyek puluhan, bukan ribuan — dan satu query
+      // per proyek akan jadi N+1 yang menyakitkan begitu portofolio tumbuh.
+      const [rabRes, rapRes, expRes] = await Promise.all([
+        request.db!.from('rab_items')
+          .select('project_id, total_price, level')
+          .in('project_id', ids).eq('level', 'category'),
+        request.db!.from('rap_budget')
+          .select('id, project_id, status, rap_material_line(pagu), rap_labor_line(borongan_value)')
+          .in('project_id', ids).eq('status', 'locked'),
+        request.db!.from('project_expenses')
+          .select('project_id, total_amount')
+          .in('project_id', ids).eq('status', 'approved'),
+      ])
+
+      const jumlahkan = <T,>(rows: T[] | null, key: keyof T, val: (r: T) => number) => {
+        const m = new Map<string, number>()
+        for (const r of rows ?? []) {
+          const k = String(r[key])
+          m.set(k, (m.get(k) ?? 0) + val(r))
+        }
+        return m
+      }
+
+      const rabPer = jumlahkan(rabRes.data as { project_id: string; total_price: number }[] | null,
+        'project_id', (r) => Number(r.total_price ?? 0))
+      const expPer = jumlahkan(expRes.data as { project_id: string; total_amount: number }[] | null,
+        'project_id', (r) => Number(r.total_amount ?? 0))
+
+      type RapRow = {
+        project_id: string
+        rap_material_line?: { pagu: number | string }[]
+        rap_labor_line?: { borongan_value: number | string }[]
+      }
+      const rapPer = new Map<string, number>()
+      for (const r of (rapRes.data ?? []) as RapRow[]) {
+        const total = (r.rap_material_line ?? []).reduce((s, x) => s + Number(x.pagu ?? 0), 0)
+          + (r.rap_labor_line ?? []).reduce((s, x) => s + Number(x.borongan_value ?? 0), 0)
+        rapPer.set(r.project_id, (rapPer.get(r.project_id) ?? 0) + total)
+      }
+
+      const baris: BarisProyek[] = (proyek ?? []).map((p: {
+        id: string; name: string; status: string
+        contract_value: number | null; progress_pct: number | null
+      }) => ({
+        projectId: p.id,
+        nama: p.name,
+        status: p.status,
+        contractValue: Number(p.contract_value ?? 0),
+        rabValue: rabPer.get(p.id) ?? 0,
+        paguRAP: rapPer.get(p.id) ?? 0,
+        serapan: expPer.get(p.id) ?? 0,
+        progressPct: Number(p.progress_pct ?? 0),
+      }))
+
+      const hasil = urutkanPerhatian(baris.map(analisaProyek))
+      return reply.send({ data: hasil, meta: ringkasPortofolio(hasil) })
+    },
+  )
+
   app.get<{ Querystring: { status?: string } }>(
     '/api/v1/cost-codes',
     { preHandler: [authenticate, requirePermission('cecep:cost_code:view')] },
