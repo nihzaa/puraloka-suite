@@ -105,6 +105,25 @@ for (const f of readdirSync(RUTE).filter((x) => x.endsWith('.ts'))) {
   }
 }
 
+/**
+ * AMBANG — jumlah rute ber-supabase-mentah yang BELUM bergerbang.
+ *
+ * ⚠️ HANYA BOLEH TURUN. Kalau gagal karena NAIK, beri gerbang tenant pada rute
+ * baru Anda — jangan naikkan angkanya.
+ *
+ * 9 tersisa per 2026-07-31, seluruhnya sudah DIPERIKSA satu per satu dan
+ * dinyatakan sah lintas-tenant by design:
+ *   · auth/login + google-callback       — jalan sebelum tenant bisa diketahui
+ *   · modules (kategori A)               — katalog global, bukan data pelanggan
+ *   · notifications/subscribe (POST+DEL) — menulis baris pemanggil sendiri
+ *   · roles: POST /roles, /permissions, /auth/me/permissions — katalog global
+ *   · mandor/kasbon-photo/upload         — tulis storage, tak membaca apa pun
+ *
+ * Angka ini hasil UKUR sesudah 8 celah nyata ditutup (182 → 192 bergerbang),
+ * bukan target yang dipilih supaya hijau.
+ */
+const AMBANG_TANPA_GERBANG = 9
+
 console.log(`Gerbang yang DITEMUKAN otomatis (${gerbang.size}): ${[...gerbang].sort().join(', ')}`)
 console.log(`\nRute ber-supabase-mentah: ${bergerbang + temuan.length} · bergerbang ${bergerbang} · TANPA gerbang ${temuan.length}`)
 if (temuan.length) {
@@ -113,4 +132,20 @@ if (temuan.length) {
   console.log('\n   Sebagian SAH: endpoint lintas-tenant by design (login, katalog')
   console.log('   bersama, /my/companies), atau gerbangnya di luar 250 baris pertama.')
   console.log('   Yang perlu dilihat: rute yang MENULIS atau membaca by-id.')
+}
+
+// ── Penjaga (ratchet) ──────────────────────────────────────────────────────
+// Dijadikan gerbang CI, bukan sekadar laporan: 8 celah yang ditutup 2026-07-31
+// semuanya LOLOS review manusia selama berbulan-bulan. Yang menemukannya alat,
+// dan alat yang cuma dijalankan saat seseorang ingat tak menjaga apa pun.
+if (temuan.length > AMBANG_TANPA_GERBANG) {
+  console.error(`\n❌ PENJAGA GERBANG GAGAL: ${temuan.length} rute tanpa gerbang (ambang ${AMBANG_TANPA_GERBANG}).`)
+  console.error('   Rute baru yang menyentuh `supabase` mentah WAJIB punya saringan tenant.')
+  console.error('   Pakai `request.db` (.from/.viaProject/.shared), atau gerbang eksplisit')
+  console.error('   (proyekMilikTenant, idAnggotaCompany, dst) lalu balas 404 bila bukan haknya.')
+  console.error('   JANGAN menaikkan ambang di scripts/audit-gerbang-tenancy.mjs.\n')
+  process.exit(1)
+}
+if (temuan.length < AMBANG_TANPA_GERBANG) {
+  console.log(`\n📉 Turun dari ambang (${temuan.length} < ${AMBANG_TANPA_GERBANG}) — kencangkan angkanya.`)
 }

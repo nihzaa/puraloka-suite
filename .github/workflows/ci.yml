@@ -48,6 +48,14 @@ jobs:
       - name: Typecheck
         run: pnpm exec tsc --noEmit
 
+      # Rute baru yang menyentuh `supabase` mentah WAJIB punya saringan tenant.
+      # 8 celah lintas-tenant ditutup 2026-07-31 — semuanya LOLOS review manusia
+      # berbulan-bulan; yang menemukannya alat ini. Alat yang cuma dijalankan
+      # saat seseorang ingat tak menjaga apa pun, jadi ia dijadikan gerbang.
+      # Tak menyentuh DB — murni analisis sumber.
+      - name: Gerbang tenancy (rute tanpa saringan tenant tak boleh bertambah)
+        run: node scripts/audit-gerbang-tenancy.mjs
+
       # Apply-pending migrasi + seed uji ke project CI (idempoten: skip yang sudah
       # applied, apply yang baru, re-seed jika hilang). BUKAN push-semua tiap run.
       - name: Prepare CI project (apply pending migrations + seed)
