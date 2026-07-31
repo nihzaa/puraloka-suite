@@ -54,13 +54,38 @@ const UNIT_MAP = {
   // Salah ketik yang jelas dari konteks (semua barang satuan):
   'bauh': 'buah', 'buag': 'buah',
 
-  // SENGAJA TIDAK DIPETAKAN — ditolak fail-loud:
-  //   'lot','lolt' → borongan tak bersatuan; nilainya bergantung isi lot.
-  //   'VA'         → satuan DAYA listrik, bukan kuantitas yang bisa dikalikan
-  //                  koefisien. Butuh penanganan tersendiri.
-  //   'OJ'         → orang-jam. Beda basis dengan OH (orang-hari) dan
-  //                  mengubahnya butuh faktor jam-kerja — menebak = salah upah.
-  //   'bulan'      → sewa berbasis waktu, bukan kuantitas material.
+  // ── Satuan yang DIPERTAHANKAN APA ADANYA (bukan dikonversi) ──────────────
+  //
+  // Sebelumnya `OJ` dan `lot` ditolak dengan alasan "tak bisa dikonversi ke OH"
+  // dan "borongan tak bersatuan". Alasan itu benar untuk KONVERSI, tapi keliru
+  // untuk PENYIMPANAN — dan akibatnya 118 harga terbuang padahal ada di file.
+  //
+  // Menyimpan `Pekerja (OJ)` = Rp 14.285,71 dengan satuan OJ apa adanya tidak
+  // butuh konversi apa pun: analisa yang memakainya memang berkoefisien OJ.
+  // Yang tak boleh adalah mengubah OJ menjadi OH tanpa faktor jam-kerja — dan
+  // itu tak terjadi di sini.
+  //
+  // Diverifikasi ke DB sebelum diubah: `OJ` dan `lot` SUDAH terdaftar di tabel
+  // `units` dan dipakai 9 resource. Ekstraktor menolak satuan yang sistemnya
+  // sendiri sudah terima.
+  //
+  // Dampaknya besar: `Pekerja ( OJ )` dan `Mandor ( OJ )` masing-masing dipakai
+  // 92 analisa nasional yang selama ini tak bisa dihitung HSP-nya.
+  'oj': 'OJ',
+  'lot': 'lot', 'lolt': 'lot',   // 'lolt' = salah ketik yang jelas dari konteks
+  // Sama-sama sudah terdaftar di tabel `units` dan dipakai resource nyata —
+  // diverifikasi sebelum ditambahkan, bukan diasumsikan sah.
+  'ikat': 'ikat',
+  'buah hari': 'buah_hari', 'buah_hari': 'buah_hari',
+
+  // MASIH ditolak, dan alasannya tetap berlaku:
+  //   'VA'    → satuan DAYA listrik, bukan kuantitas yang bisa dikalikan
+  //             koefisien. Menyimpannya sebagai harga satuan akan membuat
+  //             perkalian koefisien × harga menghasilkan angka tak bermakna.
+  //   'bulan' → sewa berbasis waktu. Bukan ditolak karena tak bisa disimpan,
+  //             melainkan karena belum ada resource ber-satuan bulan di DB —
+  //             menambahkannya lewat jalur seed berarti membuat satuan baru
+  //             diam-diam.
 }
 
 const norm = (s) => String(s ?? '').replace(/\s+/g, ' ').trim()
@@ -101,8 +126,23 @@ for (let i = 0; i < rows.length; i++) {
 
   if (!nama || nama.length < 2) continue
   if (typeof harga !== 'number' || !(harga > 0)) continue
+
+  // Baris ber-nama & ber-harga tapi kolom satuannya KOSONG di workbook — 102
+  // baris, termasuk barang yang jelas ada harganya (`8 TB Hardisk` Rp 1.960.000,
+  // `LCD Monitor 32"` Rp 2.380.000). Sebelumnya semuanya dibuang.
+  //
+  // Satuannya TIDAK ditebak: ia dibawa ke keluaran dengan `unit_code: null` dan
+  // penandanya sendiri, lalu SEEDER yang mengambil satuan dari `resources` —
+  // di mana nilainya sudah ditetapkan saat resource dibuat. Menebak "unit" atau
+  // "buah" di sini akan membuat harga tersimpan dengan satuan yang mungkin
+  // berbeda dari yang dipakai analisa, dan perkalian koefisien × harga jadi
+  // salah tanpa satu pun error.
   if (!satRaw) {
-    dilewati.push({ baris: i + 1, nama: nama.slice(0, 60), alasan: 'tanpa satuan' })
+    hasil.push({
+      baris: i + 1, kode: kode || null, nama,
+      unit_code: null, satuan_asli: null, satuan_dari_resource: true,
+      amount: harga, category: kategori,
+    })
     continue
   }
   const unit = unitOf(satRaw)

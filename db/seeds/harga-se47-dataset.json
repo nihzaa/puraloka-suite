@@ -7,15 +7,15 @@
     "extractor": "apps/api/scripts/extract-harga-se47.mjs",
     "catatan_kode": "Kolom kode SERING KOSONG (3.325 dari 3.381 baris). Extractor sengaja TIDAK mensyaratkan kode — kriterianya nama + satuan + harga. Versi awal yang mensyaratkan kode hanya menemukan 55 baris dari ~3.300.",
     "counts": {
-      "terbaca": 3263,
-      "unik": 3195,
+      "terbaca": 3375,
+      "unik": 3305,
       "per_kategori": {
-        "labor": 52,
-        "material": 2957,
+        "labor": 54,
+        "material": 3065,
         "equipment": 186
       },
-      "dilewati": 118,
-      "nama_ganda_beda_harga": 46
+      "dilewati": 6,
+      "nama_ganda_beda_harga": 48
     }
   },
   "prices": [
@@ -1802,6 +1802,15 @@
       "category": "labor"
     },
     {
+      "baris": 71,
+      "kode": "L.04",
+      "nama": "Mandor ( OJ )",
+      "unit_code": "OJ",
+      "satuan_asli": "OJ",
+      "amount": 28571.428571428572,
+      "category": "labor"
+    },
+    {
       "baris": 44,
       "kode": "L.07",
       "nama": "Mekanik alat berat",
@@ -1862,6 +1871,15 @@
       "unit_code": "OH",
       "satuan_asli": "OH",
       "amount": 100000,
+      "category": "labor"
+    },
+    {
+      "baris": 70,
+      "kode": "L.01",
+      "nama": "Pekerja ( OJ )",
+      "unit_code": "OJ",
+      "satuan_asli": "OJ",
+      "amount": 14285.714285714286,
       "category": "labor"
     },
     {
@@ -2198,6 +2216,26 @@
       "category": "material"
     },
     {
+      "baris": 2775,
+      "kode": null,
+      "nama": "15x500 mm Aluminium Air Rod",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 160000,
+      "category": "material"
+    },
+    {
+      "baris": 2776,
+      "kode": null,
+      "nama": "15x500 mm Copper Air Rod",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 582000,
+      "category": "material"
+    },
+    {
       "baris": 2777,
       "kode": null,
       "nama": "25x3 mm Bare Aluminium Tape",
@@ -2240,6 +2278,16 @@
       "unit_code": "buah",
       "satuan_asli": "buah",
       "amount": 496000,
+      "category": "material"
+    },
+    {
+      "baris": 2605,
+      "kode": null,
+      "nama": "8 TB Hardisk",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 1960000,
       "category": "material"
     },
     {
@@ -2459,6 +2507,16 @@
       "category": "material"
     },
     {
+      "baris": 2664,
+      "kode": null,
+      "nama": "AC Wall Mounted Kap : 12.000 BTUH",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 5300000,
+      "category": "material"
+    },
+    {
       "baris": 2410,
       "kode": null,
       "nama": "AC Wall Mounted Kap : 15.400 BTUH dan aksesoris",
@@ -2474,6 +2532,66 @@
       "unit_code": "unit",
       "satuan_asli": "unit",
       "amount": 67900,
+      "category": "material"
+    },
+    {
+      "baris": 2665,
+      "kode": null,
+      "nama": "AC Wall Mounted Kap : 24.000 BTUH",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 7600000,
+      "category": "material"
+    },
+    {
+      "baris": 2666,
+      "kode": null,
+      "nama": "AC Wall Mounted Kap : 35.000 BTUH",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 10000000,
+      "category": "material"
+    },
+    {
+      "baris": 2660,
+      "kode": null,
+      "nama": "AC Wall Mounted Kap : 5.000 BTUH",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 3200000,
+      "category": "material"
+    },
+    {
+      "baris": 2661,
+      "kode": null,
+      "nama": "AC Wall Mounted Kap : 6.500 BTUH",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 3800000,
+      "category": "material"
+    },
+    {
+      "baris": 2662,
+      "kode": null,
+      "nama": "AC Wall Mounted Kap : 7.000 BTUH",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 4200000,
+      "category": "material"
+    },
+    {
+      "baris": 2663,
+      "kode": null,
+      "nama": "AC Wall Mounted Kap : 9.000 BTUH",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 4500000,
       "category": "material"
     },
     {
@@ -2792,6 +2910,15 @@
       "category": "material"
     },
     {
+      "baris": 2790,
+      "kode": null,
+      "nama": "Alang-alang",
+      "unit_code": "ikat",
+      "satuan_asli": "ikat",
+      "amount": 30000,
+      "category": "material"
+    },
+    {
       "baris": 2587,
       "kode": null,
       "nama": "Alarm Bell",
@@ -2906,6 +3033,26 @@
       "unit_code": "unit",
       "satuan_asli": "unit",
       "amount": 2100000,
+      "category": "material"
+    },
+    {
+      "baris": 2658,
+      "kode": null,
+      "nama": "Antena UHF",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 130000,
+      "category": "material"
+    },
+    {
+      "baris": 2659,
+      "kode": null,
+      "nama": "Antena VHF",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 150000,
       "category": "material"
     },
     {
@@ -3230,6 +3377,66 @@
       "unit_code": "unit",
       "satuan_asli": "unit",
       "amount": 1000000,
+      "category": "material"
+    },
+    {
+      "baris": 2673,
+      "kode": null,
+      "nama": "Axial Fan ; 2.600 CFM",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 780000,
+      "category": "material"
+    },
+    {
+      "baris": 2674,
+      "kode": null,
+      "nama": "Axial Fan ; 2.800 CFM",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 860000,
+      "category": "material"
+    },
+    {
+      "baris": 2675,
+      "kode": null,
+      "nama": "Axial Fan ; 3.200 CFM",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 995000,
+      "category": "material"
+    },
+    {
+      "baris": 2676,
+      "kode": null,
+      "nama": "Axial Fan ; 3.500 CFM",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 1020000,
+      "category": "material"
+    },
+    {
+      "baris": 2677,
+      "kode": null,
+      "nama": "Axial Fan ; 4.000 CFM",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 1350000,
+      "category": "material"
+    },
+    {
+      "baris": 2678,
+      "kode": null,
+      "nama": "Axial Fan ; 5.500 CFM",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 1700000,
       "category": "material"
     },
     {
@@ -4898,6 +5105,16 @@
       "category": "material"
     },
     {
+      "baris": 2681,
+      "kode": null,
+      "nama": "Bifurcated Fan; 1.500 CFM",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 8300000,
+      "category": "material"
+    },
+    {
       "baris": 156,
       "kode": null,
       "nama": "Bilik bambu",
@@ -5150,12 +5367,32 @@
       "category": "material"
     },
     {
+      "baris": 2608,
+      "kode": null,
+      "nama": "Bracket Monitor 32\"",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 88500,
+      "category": "material"
+    },
+    {
       "baris": 2541,
       "kode": null,
       "nama": "Bracket Monitor 43”",
       "unit_code": "buah",
       "satuan_asli": "buah",
       "amount": 77000,
+      "category": "material"
+    },
+    {
+      "baris": 2610,
+      "kode": null,
+      "nama": "Bracket Monitor 50\"",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 150000,
       "category": "material"
     },
     {
@@ -5753,12 +5990,72 @@
       "category": "material"
     },
     {
+      "baris": 2680,
+      "kode": null,
+      "nama": "Ceiling Fan Rotary",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 1500000,
+      "category": "material"
+    },
+    {
       "baris": 2707,
       "kode": null,
       "nama": "Ceiling Fan Sirroco dan aksesoris",
       "unit_code": "unit",
       "satuan_asli": "unit",
       "amount": 140000,
+      "category": "material"
+    },
+    {
+      "baris": 2669,
+      "kode": null,
+      "nama": "Ceiling Fan, 100 CFM",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 1350000,
+      "category": "material"
+    },
+    {
+      "baris": 2670,
+      "kode": null,
+      "nama": "Ceiling Fan, 200 CFM",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 1500000,
+      "category": "material"
+    },
+    {
+      "baris": 2667,
+      "kode": null,
+      "nama": "Ceiling Fan, 50 CFM",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 900000,
+      "category": "material"
+    },
+    {
+      "baris": 2668,
+      "kode": null,
+      "nama": "Ceiling Fan, 75 CFM",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 1200000,
+      "category": "material"
+    },
+    {
+      "baris": 2626,
+      "kode": null,
+      "nama": "Ceiling Speaker",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 680000,
       "category": "material"
     },
     {
@@ -6221,12 +6518,32 @@
       "category": "material"
     },
     {
+      "baris": 2654,
+      "kode": null,
+      "nama": "Connector",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 2550,
+      "category": "material"
+    },
+    {
       "baris": 2589,
       "kode": null,
       "nama": "Control Module",
       "unit_code": "buah",
       "satuan_asli": "Buah",
       "amount": 350000,
+      "category": "material"
+    },
+    {
+      "baris": 2774,
+      "kode": null,
+      "nama": "Copper Air Terminal Base 15 mm",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 189000,
       "category": "material"
     },
     {
@@ -6734,12 +7051,72 @@
       "category": "material"
     },
     {
+      "baris": 2699,
+      "kode": null,
+      "nama": "Exhaust Grille 150 x 150 mm",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 140000,
+      "category": "material"
+    },
+    {
+      "baris": 2716,
+      "kode": null,
+      "nama": "Exhaust Grille 200 x 200 mm",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 160000,
+      "category": "material"
+    },
+    {
+      "baris": 2717,
+      "kode": null,
+      "nama": "Exhaust Grille 600 x 300 mm",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 200000,
+      "category": "material"
+    },
+    {
+      "baris": 2718,
+      "kode": null,
+      "nama": "Exhaust Grille 650 x 350 mm",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 230000,
+      "category": "material"
+    },
+    {
+      "baris": 2719,
+      "kode": null,
+      "nama": "Exhaust Grille 900 x 400 mm",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 300000,
+      "category": "material"
+    },
+    {
       "baris": 2706,
       "kode": null,
       "nama": "Exhaust Grille dia. 4\" dan aksesoris",
       "unit_code": "unit",
       "satuan_asli": "unit",
       "amount": 140000,
+      "category": "material"
+    },
+    {
+      "baris": 2720,
+      "kode": null,
+      "nama": "Exhaust Louvre",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 450000,
       "category": "material"
     },
     {
@@ -6794,6 +7171,46 @@
       "unit_code": "buah",
       "satuan_asli": "buah",
       "amount": 185000,
+      "category": "material"
+    },
+    {
+      "baris": 2697,
+      "kode": null,
+      "nama": "Fan Louvre 1.000 x 400 mm",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 250000,
+      "category": "material"
+    },
+    {
+      "baris": 2698,
+      "kode": null,
+      "nama": "Fan Louvre 1.000 x 450 mm",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 270000,
+      "category": "material"
+    },
+    {
+      "baris": 2695,
+      "kode": null,
+      "nama": "Fan Louvre 750 x 400 mm",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 150000,
+      "category": "material"
+    },
+    {
+      "baris": 2696,
+      "kode": null,
+      "nama": "Fan Louvre 900 x 500 mm",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 220000,
       "category": "material"
     },
     {
@@ -6860,6 +7277,15 @@
       "category": "material"
     },
     {
+      "baris": 2740,
+      "kode": null,
+      "nama": "finish Cat",
+      "unit_code": "lot",
+      "satuan_asli": "lot",
+      "amount": 92000,
+      "category": "material"
+    },
+    {
       "baris": 341,
       "kode": null,
       "nama": "Fire Extinguisher 25 kg dan Aksesoris",
@@ -6902,6 +7328,16 @@
       "unit_code": "unit",
       "satuan_asli": "unit",
       "amount": 135000,
+      "category": "material"
+    },
+    {
+      "baris": 2640,
+      "kode": null,
+      "nama": "Fire Wall + Anti Virus",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 250000,
       "category": "material"
     },
     {
@@ -7586,6 +8022,15 @@
       "unit_code": "kg",
       "satuan_asli": "kg",
       "amount": 52400,
+      "category": "material"
+    },
+    {
+      "baris": 2739,
+      "kode": null,
+      "nama": "Flinkote",
+      "unit_code": "lot",
+      "satuan_asli": "lot",
+      "amount": 56500,
       "category": "material"
     },
     {
@@ -9173,6 +9618,15 @@
       "category": "material"
     },
     {
+      "baris": 2741,
+      "kode": null,
+      "nama": "Hanger + Support",
+      "unit_code": "lot",
+      "satuan_asli": "lolt",
+      "amount": 55000,
+      "category": "material"
+    },
+    {
       "baris": 2086,
       "kode": null,
       "nama": "Hanger tray panjang 2,5 m",
@@ -9398,6 +9852,16 @@
       "category": "material"
     },
     {
+      "baris": 2628,
+      "kode": null,
+      "nama": "Horn Speaker",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 250000,
+      "category": "material"
+    },
+    {
       "baris": 2585,
       "kode": null,
       "nama": "Horn Strobe",
@@ -9434,6 +9898,16 @@
       "category": "material"
     },
     {
+      "baris": 2612,
+      "kode": null,
+      "nama": "Indoor Fix Dome IP Camera",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 465000,
+      "category": "material"
+    },
+    {
       "baris": 336,
       "kode": null,
       "nama": "Indoor Hydrant Box dan Aksesoris",
@@ -9443,12 +9917,82 @@
       "category": "material"
     },
     {
+      "baris": 2671,
+      "kode": null,
+      "nama": "Inline Fan, 500 CFM",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 1300000,
+      "category": "material"
+    },
+    {
+      "baris": 2672,
+      "kode": null,
+      "nama": "Inline Fan, 700 CFM",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 1700000,
+      "category": "material"
+    },
+    {
       "baris": 2828,
       "kode": null,
       "nama": "Insulasi foam",
       "unit_code": "m2",
       "satuan_asli": "m2",
       "amount": 70000,
+      "category": "material"
+    },
+    {
+      "baris": 2690,
+      "kode": null,
+      "nama": "Intake Grille 600 x 300 mm",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 95000,
+      "category": "material"
+    },
+    {
+      "baris": 2691,
+      "kode": null,
+      "nama": "Intake Grille 650 x 350 mm",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 115000,
+      "category": "material"
+    },
+    {
+      "baris": 2692,
+      "kode": null,
+      "nama": "Intake Grille 800 x 350 mm",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 130000,
+      "category": "material"
+    },
+    {
+      "baris": 2693,
+      "kode": null,
+      "nama": "Intake Grille 800 x 400 mm",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 145000,
+      "category": "material"
+    },
+    {
+      "baris": 2694,
+      "kode": null,
+      "nama": "Intake Louvre 700 x 400 mm",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 135000,
       "category": "material"
     },
     {
@@ -10943,6 +11487,16 @@
       "unit_code": "m1",
       "satuan_asli": "m'",
       "amount": 4500,
+      "category": "material"
+    },
+    {
+      "baris": 2229,
+      "kode": null,
+      "nama": "Kabel STP AWG 18 + PVC Conduit HI 20 mm (dari MCFA ke TB) dan aksesoris",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 10700,
       "category": "material"
     },
     {
@@ -12935,6 +13489,16 @@
       "category": "material"
     },
     {
+      "baris": 2611,
+      "kode": null,
+      "nama": "Keyboard + Mouse",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 350000,
+      "category": "material"
+    },
+    {
       "baris": 2837,
       "kode": null,
       "nama": "Kisdam (sewa sheet pile selama 2 bulan)",
@@ -13337,6 +13901,16 @@
       "unit_code": "unit",
       "satuan_asli": "Unit",
       "amount": 77000,
+      "category": "material"
+    },
+    {
+      "baris": 2556,
+      "kode": null,
+      "nama": "Lampu Baret 32 Watt",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 97000,
       "category": "material"
     },
     {
@@ -13808,6 +14382,26 @@
       "category": "material"
     },
     {
+      "baris": 2607,
+      "kode": null,
+      "nama": "LCD Monitor 32\"",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 2380000,
+      "category": "material"
+    },
+    {
+      "baris": 2609,
+      "kode": null,
+      "nama": "LCD Monitor 50\"",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 3500000,
+      "category": "material"
+    },
+    {
       "baris": 2540,
       "kode": null,
       "nama": "LED Monitor 43\" dan aksesoris",
@@ -14141,6 +14735,15 @@
       "category": "material"
     },
     {
+      "baris": 2759,
+      "kode": null,
+      "nama": "Material Bantu",
+      "unit_code": "lot",
+      "satuan_asli": "lot",
+      "amount": 50000,
+      "category": "material"
+    },
+    {
       "baris": 3228,
       "kode": null,
       "nama": "Material Organik",
@@ -14165,6 +14768,16 @@
       "unit_code": "m2",
       "satuan_asli": "m2",
       "amount": 7500,
+      "category": "material"
+    },
+    {
+      "baris": 3226,
+      "kode": null,
+      "nama": "Matras Tipe III, Termasuk angkur / penguat matras",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 9500,
       "category": "material"
     },
     {
@@ -14231,6 +14844,16 @@
       "category": "material"
     },
     {
+      "baris": 2614,
+      "kode": null,
+      "nama": "MDF-SS",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 1450000,
+      "category": "material"
+    },
+    {
       "baris": 2454,
       "kode": null,
       "nama": "MDP Floor Standing",
@@ -14264,6 +14887,16 @@
       "unit_code": "unit",
       "satuan_asli": "unit",
       "amount": 3100000,
+      "category": "material"
+    },
+    {
+      "baris": 2646,
+      "kode": null,
+      "nama": "Media Converter",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 110000,
       "category": "material"
     },
     {
@@ -14591,6 +15224,16 @@
       "category": "material"
     },
     {
+      "baris": 2604,
+      "kode": null,
+      "nama": "Network Video Recorder (NVR) Kapasitas 32 Chanel",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 5500000,
+      "category": "material"
+    },
+    {
       "baris": 2491,
       "kode": null,
       "nama": "Nicad Battery",
@@ -14798,6 +15441,16 @@
       "category": "material"
     },
     {
+      "baris": 2647,
+      "kode": null,
+      "nama": "OTB",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 150000,
+      "category": "material"
+    },
+    {
       "baris": 2431,
       "kode": null,
       "nama": "Outdoor Air Processing Kap. 30.700 Btu/h dan aksesoris",
@@ -14834,6 +15487,16 @@
       "category": "material"
     },
     {
+      "baris": 2613,
+      "kode": null,
+      "nama": "Outdoor Fix Dome IP Camera",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 504000,
+      "category": "material"
+    },
+    {
       "baris": 337,
       "kode": null,
       "nama": "Outdoor Hydrant Box dan Aksesoris",
@@ -14852,12 +15515,32 @@
       "category": "material"
     },
     {
+      "baris": 2641,
+      "kode": null,
+      "nama": "Outlet Data",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 150000,
+      "category": "material"
+    },
+    {
       "baris": 2635,
       "kode": null,
       "nama": "Outlet Telepon",
       "unit_code": "unit",
       "satuan_asli": "unit",
       "amount": 102000,
+      "category": "material"
+    },
+    {
+      "baris": 2622,
+      "kode": null,
+      "nama": "Paging Mic Keypad",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 640000,
       "category": "material"
     },
     {
@@ -15065,6 +15748,16 @@
       "unit_code": "buah",
       "satuan_asli": "buah",
       "amount": 445000,
+      "category": "material"
+    },
+    {
+      "baris": 3065,
+      "kode": null,
+      "nama": "Palem Besar Palem Botol",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 460000,
       "category": "material"
     },
     {
@@ -15797,6 +16490,15 @@
       "category": "material"
     },
     {
+      "baris": 2755,
+      "kode": null,
+      "nama": "Pantek (kedalaman min. 12 m)",
+      "unit_code": "lot",
+      "satuan_asli": "lot",
+      "amount": 245000,
+      "category": "material"
+    },
+    {
       "baris": 175,
       "kode": null,
       "nama": "Papan Cor",
@@ -15992,6 +16694,26 @@
       "unit_code": "m3",
       "satuan_asli": "m3",
       "amount": 120000,
+      "category": "material"
+    },
+    {
+      "baris": 2642,
+      "kode": null,
+      "nama": "Patch Cord",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 30000,
+      "category": "material"
+    },
+    {
+      "baris": 2643,
+      "kode": null,
+      "nama": "Patch Panel 24 Port",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 500000,
       "category": "material"
     },
     {
@@ -21647,6 +22369,16 @@
       "category": "material"
     },
     {
+      "baris": 2603,
+      "kode": null,
+      "nama": "PoE Switch HUB",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 273000,
+      "category": "material"
+    },
+    {
       "baris": 3040,
       "kode": null,
       "nama": "Pohon Baobab di Polybag 250 Liter",
@@ -22862,6 +23594,36 @@
       "category": "material"
     },
     {
+      "baris": 2618,
+      "kode": null,
+      "nama": "Power Amplifier 120 Watt",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 1000000,
+      "category": "material"
+    },
+    {
+      "baris": 2617,
+      "kode": null,
+      "nama": "Power Amplifier 240 Watt",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 1200000,
+      "category": "material"
+    },
+    {
+      "baris": 2616,
+      "kode": null,
+      "nama": "Power Amplifier 360 Watt",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 1500000,
+      "category": "material"
+    },
+    {
       "baris": 2549,
       "kode": null,
       "nama": "Power Amplifier 480 Watt dan aksesoris",
@@ -23120,6 +23882,95 @@
       "unit_code": "m1",
       "satuan_asli": "m'",
       "amount": 60000,
+      "category": "material"
+    },
+    {
+      "baris": 2571,
+      "kode": null,
+      "nama": "Programming, Testing & commisioning",
+      "unit_code": "lot",
+      "satuan_asli": "lot",
+      "amount": 3500000,
+      "category": "material"
+    },
+    {
+      "baris": 2683,
+      "kode": null,
+      "nama": "Propeller Fan, 100 CFM",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 2100000,
+      "category": "material"
+    },
+    {
+      "baris": 2689,
+      "kode": null,
+      "nama": "Propeller Fan, 1200 CFM",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 4500000,
+      "category": "material"
+    },
+    {
+      "baris": 2684,
+      "kode": null,
+      "nama": "Propeller Fan, 150 CFM",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 2300000,
+      "category": "material"
+    },
+    {
+      "baris": 2685,
+      "kode": null,
+      "nama": "Propeller Fan, 370 CFM",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 250000,
+      "category": "material"
+    },
+    {
+      "baris": 2686,
+      "kode": null,
+      "nama": "Propeller Fan, 375 CFM",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 2900000,
+      "category": "material"
+    },
+    {
+      "baris": 2687,
+      "kode": null,
+      "nama": "Propeller Fan, 500 CFM",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 3500000,
+      "category": "material"
+    },
+    {
+      "baris": 2688,
+      "kode": null,
+      "nama": "Propeller Fan, 600 CFM",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 3900000,
+      "category": "material"
+    },
+    {
+      "baris": 2682,
+      "kode": null,
+      "nama": "Propeller Fan, 75 CFM",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 1800000,
       "category": "material"
     },
     {
@@ -23411,12 +24262,32 @@
       "category": "material"
     },
     {
+      "baris": 2624,
+      "kode": null,
+      "nama": "Rack Cabinet",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 670000,
+      "category": "material"
+    },
+    {
       "baris": 2543,
       "kode": null,
       "nama": "Rack Mount 10 U dan aksesoris",
       "unit_code": "unit",
       "satuan_asli": "unit",
       "amount": 77000,
+      "category": "material"
+    },
+    {
+      "baris": 2606,
+      "kode": null,
+      "nama": "Rak 19\" 12 U Lengkap dengan Power Outlet",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 770000,
       "category": "material"
     },
     {
@@ -24014,6 +24885,26 @@
       "category": "material"
     },
     {
+      "baris": 2679,
+      "kode": null,
+      "nama": "Rotary Fan",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 750000,
+      "category": "material"
+    },
+    {
+      "baris": 2639,
+      "kode": null,
+      "nama": "Router Broadband",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 550000,
+      "category": "material"
+    },
+    {
       "baris": 2071,
       "kode": null,
       "nama": "Rubber seal",
@@ -24236,6 +25127,16 @@
       "unit_code": "buah",
       "satuan_asli": "buah",
       "amount": 700,
+      "category": "material"
+    },
+    {
+      "baris": 2615,
+      "kode": null,
+      "nama": "Selector Switch c/w Control Panel",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 850000,
       "category": "material"
     },
     {
@@ -25733,6 +26634,26 @@
       "category": "material"
     },
     {
+      "baris": 2655,
+      "kode": null,
+      "nama": "Splitter TV 6 Port",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 100000,
+      "category": "material"
+    },
+    {
+      "baris": 2656,
+      "kode": null,
+      "nama": "Splitter TV 7 Port",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 125000,
+      "category": "material"
+    },
+    {
       "baris": 2532,
       "kode": null,
       "nama": "Spotlight LED-E27 20W 4000K dan aksesoris",
@@ -26444,6 +27365,16 @@
       "category": "material"
     },
     {
+      "baris": 2645,
+      "kode": null,
+      "nama": "Switch Hub 8 Port",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 250000,
+      "category": "material"
+    },
+    {
       "baris": 3042,
       "kode": null,
       "nama": "Sylvertris di Polybag 100 Liter",
@@ -26477,6 +27408,16 @@
       "unit_code": "buah",
       "satuan_asli": "Buah",
       "amount": 450000,
+      "category": "material"
+    },
+    {
+      "baris": 2619,
+      "kode": null,
+      "nama": "System Controller (Mixer Pre Amp + Equalizer)",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 250000,
       "category": "material"
     },
     {
@@ -27146,12 +28087,42 @@
       "category": "material"
     },
     {
+      "baris": 2657,
+      "kode": null,
+      "nama": "Terminal Bocx TV",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 250000,
+      "category": "material"
+    },
+    {
       "baris": 2576,
       "kode": null,
       "nama": "Terminal Box Fire Alarm",
       "unit_code": "unit",
       "satuan_asli": "unit",
       "amount": 265000,
+      "category": "material"
+    },
+    {
+      "baris": 2625,
+      "kode": null,
+      "nama": "Terminal Box Tata Suara (TBTS)",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 75000,
+      "category": "material"
+    },
+    {
+      "baris": 2634,
+      "kode": null,
+      "nama": "Terminal Box Telepon",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 250000,
       "category": "material"
     },
     {
@@ -27296,6 +28267,46 @@
       "unit_code": "buah",
       "satuan_asli": "buah",
       "amount": 340000,
+      "category": "material"
+    },
+    {
+      "baris": 2649,
+      "kode": null,
+      "nama": "Touch Screen Panel 10\"",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 2500000,
+      "category": "material"
+    },
+    {
+      "baris": 2650,
+      "kode": null,
+      "nama": "Touch Screen Panel 12\"",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 2900000,
+      "category": "material"
+    },
+    {
+      "baris": 2651,
+      "kode": null,
+      "nama": "Touch Screen Panel 14\"",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 3200000,
+      "category": "material"
+    },
+    {
+      "baris": 2648,
+      "kode": null,
+      "nama": "Touch Screen Panel 7\"",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 2300000,
       "category": "material"
     },
     {
@@ -27920,6 +28931,16 @@
       "category": "material"
     },
     {
+      "baris": 2623,
+      "kode": null,
+      "nama": "UPS 1 KVA 4 Jam",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 2475000,
+      "category": "material"
+    },
+    {
       "baris": 2597,
       "kode": null,
       "nama": "UPS 2 KVA 1 Jam",
@@ -28226,6 +29247,16 @@
       "category": "material"
     },
     {
+      "baris": 2620,
+      "kode": null,
+      "nama": "VCD/DVD/MP3/Mp4",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 250000,
+      "category": "material"
+    },
+    {
       "baris": 207,
       "kode": null,
       "nama": "Veeneer tebal 2 mm",
@@ -28325,12 +29356,32 @@
       "category": "material"
     },
     {
+      "baris": 2652,
+      "kode": null,
+      "nama": "Wall Mounted Rack 15U",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 150000,
+      "category": "material"
+    },
+    {
       "baris": 1140,
       "kode": null,
       "nama": "Wall pipe dan puddle flange Ø 8\" (200mm)",
       "unit_code": "buah",
       "satuan_asli": "Buah",
       "amount": 1,
+      "category": "material"
+    },
+    {
+      "baris": 2627,
+      "kode": null,
+      "nama": "Wall Speaker",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 650000,
       "category": "material"
     },
     {
@@ -28559,6 +29610,16 @@
       "category": "material"
     },
     {
+      "baris": 2644,
+      "kode": null,
+      "nama": "Wifi Access Point (Wifi 6 Radius 50 M)",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 1500000,
+      "category": "material"
+    },
+    {
       "baris": 2396,
       "kode": null,
       "nama": "Wireless Access Point Outdoor dan aksesoris",
@@ -28622,6 +29683,16 @@
       "category": "material"
     },
     {
+      "baris": 2602,
+      "kode": null,
+      "nama": "Wiring Management",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 110000,
+      "category": "material"
+    },
+    {
       "baris": 966,
       "kode": null,
       "nama": "WLC dan Pengkabelan",
@@ -28649,12 +29720,32 @@
       "category": "material"
     },
     {
+      "baris": 2653,
+      "kode": null,
+      "nama": "Workstation, Meja+Kursi",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 2550000,
+      "category": "material"
+    },
+    {
       "baris": 1656,
       "kode": null,
       "nama": "Zat Aditif",
       "unit_code": "kg",
       "satuan_asli": "kg",
       "amount": 25000,
+      "category": "material"
+    },
+    {
+      "baris": 2721,
+      "kode": null,
+      "nama": "ZINK BJLS",
+      "unit_code": null,
+      "satuan_asli": null,
+      "satuan_dari_resource": true,
+      "amount": 222000,
       "category": "material"
     },
     {
@@ -28776,576 +29867,6 @@
     }
   ],
   "skipped": [
-    {
-      "baris": 70,
-      "nama": "Pekerja ( OJ )",
-      "satuan": "OJ",
-      "alasan": "satuan tak dikenal"
-    },
-    {
-      "baris": 71,
-      "nama": "Mandor ( OJ )",
-      "satuan": "OJ",
-      "alasan": "satuan tak dikenal"
-    },
-    {
-      "baris": 2229,
-      "nama": "Kabel STP AWG 18 + PVC Conduit HI 20 mm (dari MCFA ke TB) da",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2556,
-      "nama": "Lampu Baret 32 Watt",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2571,
-      "nama": "Programming, Testing & commisioning",
-      "satuan": "lot",
-      "alasan": "satuan tak dikenal"
-    },
-    {
-      "baris": 2602,
-      "nama": "Wiring Management",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2603,
-      "nama": "PoE Switch HUB",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2604,
-      "nama": "Network Video Recorder (NVR) Kapasitas 32 Chanel",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2605,
-      "nama": "8 TB Hardisk",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2606,
-      "nama": "Rak 19\" 12 U Lengkap dengan Power Outlet",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2607,
-      "nama": "LCD Monitor 32\"",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2608,
-      "nama": "Bracket Monitor 32\"",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2609,
-      "nama": "LCD Monitor 50\"",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2610,
-      "nama": "Bracket Monitor 50\"",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2611,
-      "nama": "Keyboard + Mouse",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2612,
-      "nama": "Indoor Fix Dome IP Camera",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2613,
-      "nama": "Outdoor Fix Dome IP Camera",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2614,
-      "nama": "MDF-SS",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2615,
-      "nama": "Selector Switch c/w Control Panel",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2616,
-      "nama": "Power Amplifier 360 Watt",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2617,
-      "nama": "Power Amplifier 240 Watt",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2618,
-      "nama": "Power Amplifier 120 Watt",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2619,
-      "nama": "System Controller (Mixer Pre Amp + Equalizer)",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2620,
-      "nama": "VCD/DVD/MP3/Mp4",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2622,
-      "nama": "Paging Mic Keypad",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2623,
-      "nama": "UPS 1 KVA 4 Jam",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2624,
-      "nama": "Rack Cabinet",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2625,
-      "nama": "Terminal Box Tata Suara (TBTS)",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2626,
-      "nama": "Ceiling Speaker",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2627,
-      "nama": "Wall Speaker",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2628,
-      "nama": "Horn Speaker",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2634,
-      "nama": "Terminal Box Telepon",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2639,
-      "nama": "Router Broadband",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2640,
-      "nama": "Fire Wall + Anti Virus",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2641,
-      "nama": "Outlet Data",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2642,
-      "nama": "Patch Cord",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2643,
-      "nama": "Patch Panel 24 Port",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2644,
-      "nama": "Wifi Access Point (Wifi 6 Radius 50 M)",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2645,
-      "nama": "Switch Hub 8 Port",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2646,
-      "nama": "Media Converter",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2647,
-      "nama": "OTB",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2648,
-      "nama": "Touch Screen Panel 7\"",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2649,
-      "nama": "Touch Screen Panel 10\"",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2650,
-      "nama": "Touch Screen Panel 12\"",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2651,
-      "nama": "Touch Screen Panel 14\"",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2652,
-      "nama": "Wall Mounted Rack 15U",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2653,
-      "nama": "Workstation, Meja+Kursi",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2654,
-      "nama": "Connector",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2655,
-      "nama": "Splitter TV 6 Port",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2656,
-      "nama": "Splitter TV 7 Port",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2657,
-      "nama": "Terminal Bocx TV",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2658,
-      "nama": "Antena UHF",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2659,
-      "nama": "Antena VHF",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2660,
-      "nama": "AC Wall Mounted Kap : 5.000 BTUH",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2661,
-      "nama": "AC Wall Mounted Kap : 6.500 BTUH",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2662,
-      "nama": "AC Wall Mounted Kap : 7.000 BTUH",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2663,
-      "nama": "AC Wall Mounted Kap : 9.000 BTUH",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2664,
-      "nama": "AC Wall Mounted Kap : 12.000 BTUH",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2665,
-      "nama": "AC Wall Mounted Kap : 24.000 BTUH",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2666,
-      "nama": "AC Wall Mounted Kap : 35.000 BTUH",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2667,
-      "nama": "Ceiling Fan, 50 CFM",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2668,
-      "nama": "Ceiling Fan, 75 CFM",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2669,
-      "nama": "Ceiling Fan, 100 CFM",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2670,
-      "nama": "Ceiling Fan, 200 CFM",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2671,
-      "nama": "Inline Fan, 500 CFM",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2672,
-      "nama": "Inline Fan, 700 CFM",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2673,
-      "nama": "Axial Fan ; 2.600 CFM",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2674,
-      "nama": "Axial Fan ; 2.800 CFM",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2675,
-      "nama": "Axial Fan ; 3.200 CFM",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2676,
-      "nama": "Axial Fan ; 3.500 CFM",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2677,
-      "nama": "Axial Fan ; 4.000 CFM",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2678,
-      "nama": "Axial Fan ; 5.500 CFM",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2679,
-      "nama": "Rotary Fan",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2680,
-      "nama": "Ceiling Fan Rotary",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2681,
-      "nama": "Bifurcated Fan; 1.500 CFM",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2682,
-      "nama": "Propeller Fan, 75 CFM",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2683,
-      "nama": "Propeller Fan, 100 CFM",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2684,
-      "nama": "Propeller Fan, 150 CFM",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2685,
-      "nama": "Propeller Fan, 370 CFM",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2686,
-      "nama": "Propeller Fan, 375 CFM",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2687,
-      "nama": "Propeller Fan, 500 CFM",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2688,
-      "nama": "Propeller Fan, 600 CFM",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2689,
-      "nama": "Propeller Fan, 1200 CFM",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2690,
-      "nama": "Intake Grille 600 x 300 mm",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2691,
-      "nama": "Intake Grille 650 x 350 mm",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2692,
-      "nama": "Intake Grille 800 x 350 mm",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2693,
-      "nama": "Intake Grille 800 x 400 mm",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2694,
-      "nama": "Intake Louvre 700 x 400 mm",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2695,
-      "nama": "Fan Louvre 750 x 400 mm",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2696,
-      "nama": "Fan Louvre 900 x 500 mm",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2697,
-      "nama": "Fan Louvre 1.000 x 400 mm",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2698,
-      "nama": "Fan Louvre 1.000 x 450 mm",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2699,
-      "nama": "Exhaust Grille 150 x 150 mm",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2716,
-      "nama": "Exhaust Grille 200 x 200 mm",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2717,
-      "nama": "Exhaust Grille 600 x 300 mm",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2718,
-      "nama": "Exhaust Grille 650 x 350 mm",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2719,
-      "nama": "Exhaust Grille 900 x 400 mm",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2720,
-      "nama": "Exhaust Louvre",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2721,
-      "nama": "ZINK BJLS",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2738,
-      "nama": "Hanger + Support",
-      "satuan": "lot",
-      "alasan": "satuan tak dikenal"
-    },
-    {
-      "baris": 2739,
-      "nama": "Flinkote",
-      "satuan": "lot",
-      "alasan": "satuan tak dikenal"
-    },
-    {
-      "baris": 2740,
-      "nama": "finish Cat",
-      "satuan": "lot",
-      "alasan": "satuan tak dikenal"
-    },
-    {
-      "baris": 2741,
-      "nama": "Hanger + Support",
-      "satuan": "lolt",
-      "alasan": "satuan tak dikenal"
-    },
-    {
-      "baris": 2755,
-      "nama": "Pantek (kedalaman min. 12 m)",
-      "satuan": "lot",
-      "alasan": "satuan tak dikenal"
-    },
-    {
-      "baris": 2759,
-      "nama": "Material Bantu",
-      "satuan": "lot",
-      "alasan": "satuan tak dikenal"
-    },
-    {
-      "baris": 2774,
-      "nama": "Copper Air Terminal Base 15 mm",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2775,
-      "nama": "15x500 mm Aluminium Air Rod",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2776,
-      "nama": "15x500 mm Copper Air Rod",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 2790,
-      "nama": "Alang-alang",
-      "satuan": "ikat",
-      "alasan": "satuan tak dikenal"
-    },
-    {
-      "baris": 3065,
-      "nama": "Palem Besar Palem Botol",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 3145,
-      "nama": "Penutup Tanah Kacang Hias",
-      "alasan": "tanpa satuan"
-    },
-    {
-      "baris": 3226,
-      "nama": "Matras Tipe III, Termasuk angkur / penguat matras",
-      "alasan": "tanpa satuan"
-    },
     {
       "baris": 3330,
       "nama": "- ScaffoldingPipe brancing 3 m",
@@ -29480,6 +30001,11 @@
       "harga_dipakai": 21.5
     },
     {
+      "nama": "Hanger + Support",
+      "harga_lama": 222000,
+      "harga_dipakai": 55000
+    },
+    {
       "nama": "Ijuk",
       "harga_lama": 7000,
       "harga_dipakai": 39700
@@ -29533,6 +30059,11 @@
       "nama": "Semak Alamanda/Bunga Terompet Emas di Polybag 20 Liter",
       "harga_lama": 9000,
       "harga_dipakai": 20000
+    },
+    {
+      "nama": "Penutup tanah Kacang Hias",
+      "harga_lama": 2500,
+      "harga_dipakai": 17000
     },
     {
       "nama": "Palem Jepang di Polybag 50 Liter",

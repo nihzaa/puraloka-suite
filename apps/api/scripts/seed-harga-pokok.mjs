@@ -70,18 +70,61 @@ async function main() {
 
   let totalBaru = 0, totalAda = 0, totalTanpaPasangan = 0
 
-  for (const [label, file, source, companyId, lokasi, tanggal] of [
-    ['NASIONAL (SE-47)', 'harga-se47-dataset.json', 'national', null, null, '2026-01-01'],
-    ['COMPANY (Cibuluh)', 'harga-cibuluh-dataset.json', 'company', company.id,
-     'Kabupaten Bandung', '2019-01-01'],
+  // Tiap sumber punya DUA berkas: daftar harga resmi + harga yang hanya
+  // tertulis di dalam baris analisa. Yang kedua ditambahkan setelah ditemukan
+  // bahwa ratusan resource harganya ADA di workbook tapi bukan di sheet daftar
+  // harga — `Sewa Tripot` (Rp 108.000/hari) sendirian memblokir 213 analisa.
+  //
+  // Urutan berarti: daftar harga resmi dibaca DULU, jadi bila satu nama ada di
+  // keduanya, yang menang adalah versi daftar resmi.
+  for (const [label, files, source, companyId, lokasi, tanggal] of [
+    ['NASIONAL (SE-47)',
+     ['harga-se47-dataset.json', 'harga-analisa-se47-dataset.json'],
+     'national', null, null, '2026-01-01'],
+    ['COMPANY (Cibuluh)',
+     ['harga-cibuluh-dataset.json', 'harga-analisa-cibuluh-dataset.json'],
+     'company', company.id, 'Kabupaten Bandung', '2019-01-01'],
   ]) {
-    const d = JSON.parse(readFileSync(`${SEEDS}/${file}`, 'utf8'))
+    const d = { prices: [], mapping: [] }
+    for (const f of files) {
+      const bagian = JSON.parse(readFileSync(`${SEEDS}/${f}`, 'utf8'))
+      d.prices.push(...(bagian.prices ?? []))
+      d.mapping.push(...(bagian.mapping ?? []))
+    }
 
-    // Jalur 1: pemetaan lewat rumus (pasti). Jalur 2: nama+kategori (cadangan).
+    // Jalur 1: pemetaan lewat rumus (pasti). Jalur 2: nama+kategori. Jalur 3:
+    // nama saja.
+    //
+    // ── Kenapa jalur 3 perlu ada
+    //
+    // Kategori (`labor`/`material`/`equipment`) adalah KLASIFIKASI, bukan
+    // identitas. Sumber yang berbeda mengklasifikasikan barang yang sama secara
+    // berbeda tanpa keduanya keliru: `Sepatu Pancang` tercatat `material` di
+    // resources dan `equipment` di dataset SE-47; `Sewa Tripot` juga berselisih.
+    //
+    // Dengan hanya jalur 2, pasangan seperti ini TAK PERNAH cocok — dan
+    // `Sewa Tripot` sendiri memblokir 213 analisa nasional dari perhitungan HSP,
+    // padahal harganya (Rp 108.000/hari) ada di dataset sejak awal.
+    //
+    // Jalur 3 dipakai HANYA bila jalur 1 dan 2 gagal, dan hanya bila namanya
+    // menghasilkan tepat SATU pasangan — nama yang ambigu tetap dilewati, bukan
+    // diambil salah satunya.
     const viaRumus = new Map()
     for (const m of d.mapping ?? []) viaRumus.set(norm(m.nama_di_analisa), m)
+    // `set` hanya bila BELUM ada: berkas pertama (daftar harga resmi) menang
+    // atas berkas kedua (harga dari dalam analisa) untuk nama yang sama.
     const viaNama = new Map()
-    for (const p of d.prices) viaNama.set(`${p.category}|${norm(p.nama)}`, p)
+    for (const p of d.prices) {
+      const k = `${p.category}|${norm(p.nama)}`
+      if (!viaNama.has(k)) viaNama.set(k, p)
+    }
+
+    const viaNamaSaja = new Map()
+    for (const p of d.prices) {
+      const k = norm(p.nama)
+      if (!viaNamaSaja.has(k)) viaNamaSaja.set(k, [])
+      viaNamaSaja.get(k).push(p)
+    }
 
     // Hanya resource yang BENAR-BENAR dipakai analisa dari sumber ini. Menyeed
     // harga untuk resource yang tak dipakai siapa pun hanya menambah baris mati.
@@ -93,7 +136,14 @@ async function main() {
 
     let baru = 0, sudahAda = 0, tanpaPasangan = 0, satuanBeda = 0
     for (const r of res) {
-      const cocok = viaRumus.get(norm(r.name)) ?? viaNama.get(`${r.category}|${norm(r.name)}`)
+      // Jalur 3 hanya dipakai bila namanya menghasilkan TEPAT SATU pasangan.
+      // Nama yang cocok ke beberapa harga berbeda dibiarkan tanpa pasangan —
+      // memilih salah satunya berarti menebak, dan tebakan pada harga menyebar
+      // ke seluruh analisa yang memakainya.
+      const kandidat = viaNamaSaja.get(norm(r.name))
+      const cocok = viaRumus.get(norm(r.name))
+        ?? viaNama.get(`${r.category}|${norm(r.name)}`)
+        ?? (kandidat?.length === 1 ? kandidat[0] : undefined)
       if (!cocok) { tanpaPasangan++; continue }
 
       // Satuan berbeda dicatat TAPI harganya tetap dipakai: satuan resource
