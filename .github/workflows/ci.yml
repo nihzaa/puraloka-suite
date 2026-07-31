@@ -116,18 +116,33 @@ jobs:
         run: pnpm install --frozen-lockfile
         working-directory: .
 
-      # Ratchet, bukan `pnpm lint` polos: 315 error menumpuk selama web di luar
+      # ⚠️ Ketiga step di bawah memanggil binari LANGSUNG, bukan `pnpm <script>`.
+      # Sengaja, jangan "dirapikan" jadi `pnpm lint:ratchet` dst.
+      #
+      # pnpm v11 menjalankan pemeriksaan status dependensi sebelum setiap
+      # `pnpm run`. Pemeriksaan itu tak bisa memverifikasi `xlsx` yang dipasang
+      # dari tarball CDN sheetjs — untuk paket ber-URL tarball, entri `snapshots:`
+      # di lockfile v9 memang kosong (`{}`, pnpm-lock.yaml:14900) sementara
+      # `integrity`-nya hidup di blok `packages:` (:7072). Job mati dengan
+      # ERR_PNPM_MISSING_TARBALL_INTEGRITY *setelah* install BERHASIL
+      # (run 30598129116: install lulus 19 detik, `pnpm lint:ratchet` yang gagal).
+      #
+      # `verifyDepsBeforeRun: false` di pnpm-workspace.yaml mematikannya secara
+      # lokal tapi TIDAK di CI. Memanggil binari langsung melewati jalur itu
+      # sepenuhnya — tak bergantung pada perilaku config pnpm sama sekali.
+
+      # Ratchet, bukan `eslint` polos: 315 error menumpuk selama web di luar
       # CI. Aturannya diturunkan ke `warn` (eslint.config.mjs) lalu jumlahnya
       # DIKUNCI per-rule — boleh turun, tak boleh naik. Nol error tetap wajib.
       # Alasan lengkap: apps/web/scripts/lint-ratchet.mjs
       - name: Lint (ratchet — nol error, warning tak boleh bertambah)
-        run: pnpm lint:ratchet
+        run: node scripts/lint-ratchet.mjs
 
       - name: Typecheck
-        run: pnpm typecheck
+        run: ./node_modules/.bin/tsc --noEmit
 
       - name: Build
-        run: pnpm build
+        run: ./node_modules/.bin/next build
 
   # ── A2 (STATUS.md §AUDIT) — dependency & secret scanning ──────────────────
   # `11-devsecops-standard.md` MUST #4 (secret scanning) & MUST #5 (`pnpm audit`
