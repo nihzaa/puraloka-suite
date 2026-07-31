@@ -361,7 +361,7 @@ function NewScenarioModal({ projectId, editions, onClose, onDone }:
       <input style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="mis. Penawaran tender" />
       {label("Tujuan (opsional)")}
       <input style={inputStyle} value={purpose} onChange={e => setPurpose(e.target.value)} placeholder="tender / rap / studi" />
-      {label("Edisi AHSP untuk versi pertama (opsional)")}
+      {label("Edisi AHSP nasional untuk versi pertama (opsional)")}
       {/* Edisi yang belum diimpor isinya DITANDAI, bukan disembunyikan.
           Registry memuat SE-68-2024 & SNI-2013 dengan nol analisa; memilihnya
           menghasilkan katalog kosong tanpa sebab yang terlihat. Menyembunyikan
@@ -378,13 +378,22 @@ function NewScenarioModal({ projectId, editions, onClose, onDone }:
           </option>
         ))}
       </select>
-      {editions.some(e => e.is_active && (e.jumlah_analisa ?? 0) === 0) && (
-        <p style={{ fontSize: 11.5, color: C.muted, margin: "6px 0 0", lineHeight: 1.5 }}>
-          Edisi bertanda “belum ada analisa” terdaftar di registry tapi isinya belum
-          diimpor, jadi belum bisa dipilih. Analisa perusahaan tetap tersedia untuk
-          edisi mana pun.
-        </p>
-      )}
+      {/* Kebingungan yang wajar: "analisa perusahaan itu edisi yang mana?"
+          Jawabannya BUKAN salah satu — analisa perusahaan tak menempel ke edisi
+          mana pun (edition_id NULL), karena edisi adalah terbitan resmi
+          pemerintah sementara analisa perusahaan susunan sendiri. Dinyatakan di
+          sini supaya tak perlu ditebak dari perilaku. */}
+      <p style={{ fontSize: 11.5, color: C.muted, margin: "6px 0 0", lineHeight: 1.55 }}>
+        Pilihan ini hanya menentukan <b>analisa nasional</b> mana yang dipakai.
+        {" "}<b>Analisa perusahaan Anda selalu ikut tersedia</b> — ia tidak terikat
+        edisi mana pun, termasuk bila Anda memilih “tanpa edisi”.
+        {editions.some(e => e.is_active && (e.jumlah_analisa ?? 0) === 0) && (
+          <>
+            {" "}Edisi bertanda “belum ada analisa” terdaftar di registry tapi isinya
+            belum diimpor, jadi belum bisa dipilih.
+          </>
+        )}
+      </p>
       {err && <p style={{ color: C.red, fontSize: 12.5 }}>{err}</p>}
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
         <button style={btnGhost} onClick={onClose}>Batal</button>
@@ -783,10 +792,9 @@ function KatalogTab() {
       .catch(() => setHsp(h => ({ ...h, [a.id]: "gagal" })));
   }
 
-  // Pencarian di sisi klien: daftar sudah dibatasi 200 baris oleh API, jadi
-  // menyaring lagi ke server hanya menambah bolak-balik tanpa hasil berbeda.
-  // Penyaringan di KLIEN — sekarang benar, karena seluruh katalog memang ada di
-  // memori. Instan, tanpa debounce, tanpa panggilan server per ketikan.
+  // Penyaringan di KLIEN — benar karena seluruh katalog memang ada di memori
+  // (dimuat utuh, lalu divirtualisasi saat dirender). Instan, tanpa debounce,
+  // tanpa panggilan server per ketikan.
   const terlihat = assemblies.filter(a => {
     if (hanyaKurang && !(kurangHarga[a.id] ?? 0)) return false;
     if (!cari.trim()) return true;
@@ -826,9 +834,21 @@ function KatalogTab() {
           <option value="national">Katalog nasional</option>
           <option value="company">Katalog perusahaan</option>
         </select>
-        <select value={edition} onChange={e => setEdition(e.target.value)} style={{ ...inputStyle, width: 230 }}>
-          <option value="">Semua edisi</option>
-          {editions.map(e => <option key={e.id} value={e.code}>{e.code}</option>)}
+        {/* Memilih edisi tertentu MENYARING analisa perusahaan keluar — mereka
+            tak menempel ke edisi mana pun. Disebutkan di opsinya sendiri supaya
+            hilangnya 420 analisa tak terasa seperti kesalahan sistem. */}
+        <select value={edition} onChange={e => setEdition(e.target.value)}
+          disabled={sumber === "company"}
+          title={sumber === "company" ? "Analisa perusahaan tidak terikat edisi" : undefined}
+          style={{ ...inputStyle, width: 260, opacity: sumber === "company" ? 0.5 : 1 }}>
+          <option value="">Semua edisi + analisa perusahaan</option>
+          {editions.map(e => (
+            <option key={e.id} value={e.code}>
+              {e.code}
+              {(e.jumlah_analisa ?? 0) === 0 ? " (kosong)" : ` (${e.jumlah_analisa})`}
+              {" — nasional saja"}
+            </option>
+          ))}
         </select>
         {/* Jujur soal pemotongan: label lama menulis "N analisa" seolah itu
             seluruhnya, padahal respons dibatasi 200 dari 3.043. Pemakai yang
@@ -2214,7 +2234,7 @@ function PanduanKomposer({ jumlahProyek }: { jumlahProyek: number }) {
     },
     {
       n: 3, judul: "Buat versi + pilih edisi AHSP",
-      isi: "Edisi menentukan koefisien yang dipakai (SE-47/2026, SE-68/2024, SNI-2013). Setelah versi keluar dari status draft, edisinya terkunci — angka yang sudah diajukan tak boleh berubah diam-diam.",
+      isi: "Edisi menentukan analisa NASIONAL mana yang dipakai (SE-47/2026, SE-68/2024, SNI-2013). Analisa perusahaan Anda selalu ikut tersedia — ia tak terikat edisi mana pun. Setelah versi keluar dari status draft, edisinya terkunci: angka yang sudah diajukan tak boleh berubah diam-diam.",
     },
     {
       n: 4, judul: "Tambah item pekerjaan",
