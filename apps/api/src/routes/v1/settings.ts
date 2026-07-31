@@ -358,6 +358,10 @@ export default async function settingsRoutes(app: FastifyInstance) {
       key: body.key, value: body.value, valueType: body.value_type ?? 'number',
       effectiveFrom: body.effective_from, note: body.note,
       updatedBy: (request.currentUser as { id?: string } | undefined)?.id ?? null,
+      // Company AKTIF, bukan company mana pun: tarif pajak milik satu badan
+      // usaha. Sebelum ini argumennya tak ada sama sekali, sehingga penutupan
+      // rentang lama menyapu SELURUH perusahaan (lihat 145 + financial-config.ts).
+      companyId: request.companyId!,
     })
     if (!result.ok) return reply.status(409).send({ error: result.error })
 

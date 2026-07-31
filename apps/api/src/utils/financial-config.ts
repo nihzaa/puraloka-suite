@@ -104,9 +104,24 @@ export async function setFinancialConfig(params: {
   effectiveFrom: string       // 'YYYY-MM-DD'
   note?: string
   updatedBy?: string | null
+  /**
+   * WAJIB — beda dari `getEffectiveFinancialValue` yang companyId-nya opsional.
+   *
+   * Bacaan yang lupa menyaring company hanya memulangkan nilai bersama; TULISAN
+   * yang lupa menyaring company MENIMPA config perusahaan lain. Kerugiannya
+   * tidak setara, jadi ketegasannya juga tidak disamakan: di sini "lupa" harus
+   * gagal saat kompilasi, bukan diam-diam berlaku ke semua tenant.
+   */
+  companyId: string
 }): Promise<{ ok: true } | { ok: false; error: string }> {
-  const { key, value, effectiveFrom, note } = params
+  const { key, value, effectiveFrom, note, companyId } = params
   const valueType = params.valueType ?? 'number'
+
+  // Penjaga runtime, bukan hanya tipe: pemanggil JS (skrip, seed, test lama)
+  // tak dijaga TypeScript, dan string kosong lolos tipe `string`.
+  if (!companyId) {
+    return { ok: false, error: 'companyId wajib — config finansial milik satu perusahaan' }
+  }
 
   // Tutup rentang terbuka lama (effective_to NULL) TEPAT di effectiveFrom → nol gap.
   // Half-open [) berarti rentang lama berlaku sampai < effectiveFrom, baru mulai di
@@ -114,6 +129,9 @@ export async function setFinancialConfig(params: {
   const { error: closeErr } = await supabase
     .from('financial_config')
     .update({ effective_to: effectiveFrom })
+    .eq('company_id', companyId)           // ⚠️ tanpa ini, rentang milik SELURUH
+                                           // perusahaan ikut ditutup — perusahaan
+                                           // lain kehilangan tarif berlakunya.
     .eq('key', key)
     .is('effective_to', null)
     .lt('effective_from', effectiveFrom)   // jangan tutup baris yg mulai == effectiveFrom
@@ -125,6 +143,8 @@ export async function setFinancialConfig(params: {
       key, value: value as never, value_type: valueType,
       effective_from: effectiveFrom, effective_to: null,
       note: note ?? null, updated_by: params.updatedBy ?? null,
+      company_id: companyId,               // NOT NULL sejak migrasi 127 — tanpa
+                                           // ini insert-nya gagal, bukan bocor.
     })
   if (insErr) return { ok: false, error: insErr.message }   // termasuk 23P01 anti-overlap
 

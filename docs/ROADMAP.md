@@ -72,6 +72,8 @@ pengerjaan. Sumber tiap item disebut supaya bisa ditelusuri ke dokumen aslinya.
 | 13 | **T10 — `auth_role()` per-company** | ADR-011-T9 §5 | ✅ **Selesai 2026-07-31** (migrasi 144). Kini baca `company_members.role_id` untuk company aktif, meniru pola `auth_company_id()`; fallback ke `users.role_id` **dipertahankan** supaya user tanpa keanggotaan tak terkunci keluar. Dipakai **100 RLS policy**. Behavior-preserving **dibuktikan**: 23 user diperiksa, nol perubahan jawaban — dan uji rollback membuktikan fungsinya kini benar-benar peka-company (peran global `client` vs peran di company uji `admin` → mengembalikan `admin`) | Kecil |
 | 14 | **ADR-011-T4 — 468 akses `supabase` mentah di 9 modul** | ADR-011-T4 | Ratchet mencegah memburuk, **tidak menyelesaikan**. `clients`, `users`, `roles`, `settings`, `audit`, `documents`, dst | Besar |
 
+| 14b | **`financial_config` anti-overlap lintas-tenant** | Temuan 2026-07-31 | ✅ **Selesai** (migrasi 145). Constraint `no_overlap_financial_config` (086) mengunci `(key, daterange)` SAJA; migrasi 127 menambah `company_id NOT NULL` tapi constraint-nya tak ikut. Akibatnya **badan usaha kedua TIDAK BISA menetapkan tarif pajaknya sendiri** — perusahaan pertama memegang rentang tanggalnya. Dibuktikan di dev sebelum & sesudah (rollback): `23P01` → berhasil. Ikut ditutup: `setFinancialConfig()` menutup rentang lama **tanpa filter company** (menyapu tarif SELURUH perusahaan) dan menyisip tanpa `company_id`; `companyId` kini **wajib** di tipenya, jadi "lupa" gagal saat kompilasi. 6 test + mutation-tested 3 arah | Kecil |
+
 ### Tingkat 4 — Pelaporan & kepatuhan
 
 | # | Item | Sumber | Kenapa penting | Ukuran |

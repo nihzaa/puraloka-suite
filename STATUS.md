@@ -1,6 +1,6 @@
 # STATUS — Puraloka Suite (penunjuk satu pintu)
 
-**Diperbarui:** 2026-07-31 (rev-5: audit 233 file docs + BAC EVM diperbaiki + repo jadi PRIVATE) · File ini adalah `STATUS.md` yang diwajibkan AUTOPILOT §2
+**Diperbarui:** 2026-07-31 (rev-6: E11 sistem tata letak + responsif · financial_config per-company (145) · rate-limit 429) · File ini adalah `STATUS.md` yang diwajibkan AUTOPILOT §2
 — penunjuk TIPIS, bukan duplikasi konten. Update tanggal + baris "Fase aktif" setiap
 kali keadaan berubah; detail selalu di dokumen rujukan.
 
@@ -591,6 +591,20 @@ kode bilang "sudah") — jangan percaya ketiganya lagi:
 5. **T10** (`ADR-011-T9` §5): `auth_role()` baca `users.role_id` (peran global),
    bukan `company_members.role_id` (peran per-company). Diverifikasi di DB: benar.
    Tak bergejala hari ini (satu company), menggigit saat badan usaha kedua dibuat.
+5b. ~~**`financial_config` anti-overlap lintas-tenant**~~ — **✅ DITUTUP 2026-07-31**
+   (migrasi 145). Constraint `no_overlap_financial_config` (086) mengunci
+   `(key, daterange)` saja; migrasi 127 menambah `company_id NOT NULL` tapi
+   constraint-nya **tak ikut diperbarui**. Akibatnya badan usaha KEDUA tak bisa
+   menetapkan tarif pajaknya sendiri — perusahaan pertama memegang rentang
+   tanggalnya, dan tanpa `company_id` dalam perbandingan keduanya dianggap
+   bertabrakan. **Dibuktikan di dev** (transaksi di-rollback): sebelum `23P01
+   exclusion_violation`, sesudah berhasil. Kelas cacat yang persis dijaga
+   tripwire multi-company: nol gejala pada satu tenant, menggigit tepat saat
+   tenant kedua lahir. Ikut ditutup di kode: `setFinancialConfig()` menutup
+   rentang lama **tanpa filter company** (menyapu tarif seluruh perusahaan) dan
+   menyisip tanpa `company_id`; parameter `companyId` kini **wajib** sehingga
+   "lupa" gagal saat kompilasi, bukan diam-diam berlaku ke semua tenant.
+
 6. **ADR-011-T4 belum tuntas** — 468 akses `supabase` mentah tersisa di 9 modul
    (`clients`, `users`, `roles`, `settings`, `audit`, `documents`, dst). Ratchet
    `tenancy-ratchet.test.ts` mencegah memburuk, tapi tidak menyelesaikan.
