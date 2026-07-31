@@ -41,6 +41,7 @@ Tiga aturan supaya ROADMAP tidak jadi dokumen basi keenam:
 | 5 | **A3 — `no-explicit-any` dinyalakan** + ratchet (227 terukur) | ✅ Selesai | PR #121 merged (2026-07-31) |
 | 6 | **Graphify diperbaiki** — 7.161 node, query berfungsi | ✅ Selesai | 2026-07-31 (di luar git, `graphify-out/` ter-gitignore) |
 | 7 | **Perapian `docs/`** — 60 tautan rusak + 3 cacat administratif + pemindai di CI | ✅ Selesai | 2026-07-31, job CI `dokumentasi` |
+| E1–E8 | **Estimasi/CECEP bisa dipakai** — 8 cacat yang membuat halaman tak terpakai | ✅ Selesai | 2026-07-31, 10 commit — lihat §Tingkat 0 |
 
 ---
 
@@ -98,6 +99,54 @@ pengerjaan. Sumber tiap item disebut supaya bisa ditelusuri ke dokumen aslinya.
 
 ---
 
+## Tingkat 0 — Lahir dari pemakaian nyata, bukan dari perencanaan
+
+**Kelompok ini tidak ada di dokumen rencana mana pun.** Ia lahir 2026-07-31 saat
+founder benar-benar membuka `/estimasi` dan mencoba memakainya — dan tiap
+pertanyaannya menemukan cacat yang tak terlihat dari audit kode.
+
+Dicatat di sini karena dua alasan. Pertama, supaya ROADMAP tetap jadi tracker
+yang jujur: 10 commit hari itu tak terwakili sama sekali oleh item #1–#24.
+Kedua, karena polanya sendiri adalah temuan — **fitur bisa "selesai" menurut
+kode dan tetap tak terpakai**, dan yang mengungkapnya cuma pemakaian.
+
+Dinamai Tingkat 0 karena mendahului yang lain: fitur yang tak bisa dipakai tak
+memberi nilai apa pun, sebagus apa pun rancangannya.
+
+| # | Item | Yang ditemukan | Status |
+|---|---|---|---|
+| E1 | **Analisa perusahaan tak pernah muncul di Komposer** | Komposer memfilter `?edition=`, tapi 423 analisa perusahaan punya `edition_id = NULL` — terbuang seluruhnya. Analisa yang justru dibuat untuk dipakai tak pernah bisa dipilih | ✅ `b183ebf` |
+| E2 | **Katalog & harga dipotong diam-diam** | Pencarian hanya menyaring 200 baris yang terlanjur termuat dari 3.043; tab Harga bahkan hanya 100 dari 2.637. Analisa di baris ke-500 tak pernah bisa ditemukan | ✅ `ed2f7e3` + `0739e82` |
+| E3 | **Batas keras 1.000 PostgREST** | Cap API dinaikkan ke 5.000 tapi PostgREST tetap memotong di 1.000 — `.limit()`/`.range()` tak menembusnya. Klaim "muat semua" sempat TIDAK akurat | ✅ `0739e82` (paging bertahap) |
+| E4 | **Dropdown 3.040 pilihan tanpa pencarian** | `<select>` asli hanya bisa diloncati huruf awal. Orang yang tahu barangnya tapi tak hafal urutan katalog praktis tak bisa memakainya | ✅ `fa7b4c4` (`components/pilih-cari.tsx`) |
+| E5 | **Katalog terbuka dalam keadaan TERSARING** | Edisi ber-`source_sha256` dipilih otomatis saat halaman dibuka — 423 analisa perusahaan tak terlihat sejak awal, tanpa pemakai memintanya | ✅ `0739e82` |
+| E6 | **Komposer tak tersambung ke RAB proyek** | `estimate_items` dan `rab_items` dua sistem terpisah tanpa FK. RAB yang disusun dari analisa AHSP tak berpengaruh apa pun pada Kurva S, EVM, progress fisik | ✅ `d38078a` (tombol "Terapkan ke RAB Proyek") |
+| E7 | **712 analisa (23%) tak bisa hitung HSP** | 255 resource tanpa harga. Ditelusuri: harganya **ADA semua di Excel** — hanya di dalam baris analisa, bukan di sheet daftar harga yang dibaca ekstraktor | ✅ `f93dc11` → `be1a119` (5 putaran) |
+| E8 | **Halaman "ngambang", kanan kosong** | `maxWidth: 1200` tanpa `margin: 0 auto` — satu-satunya halaman yang begitu; audit/dashboard/kalender semuanya punya | ✅ `0739e82` |
+
+### Yang BELUM selesai dari kelompok ini
+
+| # | Item | Kenapa penting | Ukuran |
+|---|---|---|---|
+| E9 | **19 harga bentrok butuh keputusan founder** | 17 dari 19 resource tersisa punya beberapa harga di workbook: `Kaso-Kaso 5/7` Rp 3jt/6jt/9,7jt/**16jt** per m³ (jelas jenis kayu berbeda dengan nama sama), `Kanstin` 5 harga, `List Gypsum` 4 harga. **Tidak boleh ditebak** — menyebar ke belasan analisa. Datanya sudah tersaji lengkap (tiap nilai + berapa kali muncul + baris mana) | Kecil — tapi butuh founder |
+| E10 | **81 harga draft menunggu diaktifkan** | Hasil ekstraksi sheet analisa Cibuluh, masuk sebagai `draft` supaya bisa dibedakan dari yang diverifikasi manusia. Draft TIDAK dipakai menghitung HSP. Begitu diaktifkan, **112 analisa perusahaan langsung hidup** | Kecil — tapi butuh founder |
+| E11 | **Sistem tata letak lintas halaman** | Cacat E8 bukan kejadian tunggal: tab-tab `/estimasi` dibangun tambal-per-permintaan, tanpa pernah menetapkan lebar, ritme vertikal, atau kapan memakai panel kanan. Perlu satu keputusan tata letak yang diterapkan menyeluruh, bukan ditambal per halaman. Founder sudah menanyakannya: *"bagian samping kanannya terasa kosong, diisi apa?"* | Sedang |
+| E12 | **Dua edisi AHSP kosong** | `SE-68-2024` & `SNI-2013` terdaftar di registry (migrasi 117, sebagai reference data) tapi nol analisa. Kini ditandai "belum ada analisa" & tak bisa dipilih — tapi isinya tetap belum ada. Menghalangi #20 (perbandingan antar-edisi): tak ada yang bisa dibandingkan. **Butuh file workbook dari founder** | Sedang |
+
+### Pelajaran yang layak diingat
+
+**Fitur bisa lengkap di DB dan lib, tapi mati karena tak ada endpoint atau UI.**
+Berulang kali: ACL cost code (migrasi 112, ber-test, 0 baris), cashflow forecast
+(ber-test, nol pemanggil), kuota RAB (tabelnya bahkan tak pernah terbentuk),
+jejak PO (kolom ada, terisi 0 dari 4). Semuanya "selesai" menurut commit.
+
+**Keyakinan founder soal datanya sendiri terbukti benar tiga kali berturut-turut.**
+"Saya yakin di Excel ada isinya" — dan memang ada, tiga kali, dengan tiga sebab
+berbeda. Audit kode tak akan pernah menemukan itu; hanya orang yang tahu
+datanya yang bisa.
+
+---
+
 ## Sengaja TIDAK dikerjakan
 
 Bukan karena terlupa — masing-masing punya gerbang yang belum terbuka.
@@ -146,6 +195,7 @@ perbaiki kode barunya — jangan naikkan ambangnya.
 | 2026-07-31 | Ratchet tenancy T4f sempat MERAH (486 vs 468) — `cost-control.ts` & endpoint kuota memakai `supabase` mentah. Diperbaiki ke wrapper tenant-db, kembali PERSIS 468. Ditemukan pula jebakan: `viaProject('cost_code_category_map', projectId)` akan menyaring `category_id = projectId` (kolom `lewat` bukan `project_id`) — nol baris tanpa error, pola bug yang sama dengan rap.ts |
 | 2026-07-31 | Item #12 tuntas — pengiriman PO ke vendor kini berjejak (migrasi 143). `po_delivery_log` dibangun ulang setelah jadi korban migrasi hantu 043 yang sama |
 | 2026-07-31 | Item #13 tuntas — `auth_role()` per-company (migrasi 144). Dikerjakan **sekarang justru karena dampaknya masih nol** (1 company, nol user lintas-company): saat badan usaha kedua berisi data nyata, perbedaannya langsung berdampak pada siapa-melihat-apa dan perbaikannya jadi jauh lebih mahal |
+| 2026-07-31 | **Tingkat 0 ditambahkan** — 10 commit Estimasi/harga/UI hari itu TIDAK terwakili sama sekali oleh item #1–#24, karena pekerjaannya lahir dari founder memakai halamannya, bukan dari dokumen rencana. Tanpa dicatat, ROADMAP berhenti jadi tracker yang jujur. Empat item baru (E9–E12) juga lahir dari temuan itu |
 
 ## Jebakan CI yang sudah dibayar mahal — jangan diulang
 
