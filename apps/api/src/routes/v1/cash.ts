@@ -848,10 +848,20 @@ export default async function cashRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const { project_id, date_from, date_to } = request.query as Record<string, string>
 
+    // ⚠️ Gerbang tenant WAJIB di sini, dan justru kasus TANPA `project_id`
+    // yang paling berbahaya: tanpa saringan, endpoint ini menjumlahkan
+    // seluruh pengeluaran approved SEMUA perusahaan jadi satu angka.
+    // Bukan sekadar bocor per-baris — ia menyajikan total keuangan tenant lain.
+    const idProyek = await request.db!.projectIds()
+    if (project_id && !idProyek.includes(project_id)) {
+      return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    }
+
     let q = supabase
       .from('project_expenses')
       .select('total_amount, category_id, category:project_expense_categories(id, name, type, parent_id)')
       .eq('status', 'approved')
+      .in('project_id', idProyek)
 
     if (project_id) q = q.eq('project_id', project_id)
     if (date_from) q = q.gte('expense_date', date_from)

@@ -52,10 +52,15 @@ export default async function moduleRoutes(app: FastifyInstance) {
   // ── GET /api/v1/feature-flags ─────────────────────────────────────────────
   app.get('/api/v1/feature-flags', {
     preHandler: [authenticate],
-  }, async (_request, reply) => {
+  }, async (request, reply) => {
+    // `feature_flags` kategori AB: baris BERSAMA (company_id NULL) + override
+    // per-perusahaan. Tanpa saringan ini, daftar yang dikembalikan memuat
+    // override milik perusahaan lain — termasuk nama flag fitur yang belum
+    // dirilis di sana.
     const { data, error } = await supabase
       .from('feature_flags')
       .select('key, label, is_enabled, rollout_pct, company_id')
+      .or(`company_id.is.null,company_id.eq.${request.companyId}`)
       .order('key', { ascending: true })
     if (error) return reply.status(500).send({ error: error.message })
     return reply.send({ feature_flags: data ?? [] })
@@ -84,7 +89,13 @@ export default async function moduleRoutes(app: FastifyInstance) {
         is_enabled: body.is_enabled,
         rollout_pct: body.rollout_pct ?? 100,
         updated_at: new Date().toISOString(),
-      }, { onConflict: 'key' })
+        // ⚠️ `company_id` + onConflict per-company. Sebelumnya upsert memakai
+        // `onConflict: 'key'` SAJA, jadi perusahaan A yang mengubah sebuah flag
+        // MENIMPA baris perusahaan B — bukan membuat override sendiri.
+        // Migrasi 146 mengganti UNIQUE(key) global jadi UNIQUE(company_id,key);
+        // `onConflict` di sini WAJIB ikut, kalau tidak upsert-nya gagal.
+        company_id: request.companyId,
+      }, { onConflict: 'company_id,key' })
       .select('key, label, is_enabled, rollout_pct')
       .single()
     if (error) return reply.status(500).send({ error: error.message })

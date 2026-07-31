@@ -571,6 +571,20 @@ export default async function mandorRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'borongan_value wajib untuk sistem borongan dan progress_pct' })
     }
 
+    // ⚠️ `assignment_id` datang dari BODY, jadi ia harus diverifikasi — bukan
+    // dipercaya. Tanpa ini, siapa pun berpermission `mandor:scope:manage` bisa
+    // menyisipkan lingkup pekerjaan ke penugasan milik perusahaan lain
+    // (lengkap dengan `borongan_value`, yang langsung jadi nilai kontrak
+    // mandor di sana).
+    const { data: penugasan } = await request.db!
+      .from('mandor_assignments')
+      .select('project_id')
+      .eq('id', body.assignment_id)
+      .maybeSingle()
+    if (!penugasan || !(await request.db!.projectIds()).includes(penugasan.project_id)) {
+      return reply.status(404).send({ error: 'Penugasan tidak ditemukan' })
+    }
+
     const { data, error } = await supabase
       .from('work_scopes')
       .insert({

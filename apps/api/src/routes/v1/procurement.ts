@@ -1400,6 +1400,13 @@ export default async function procurementRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const { project_id } = request.params as { project_id: string }
     const { limit } = request.query as { limit?: string }
+    // ⚠️ `project_id` datang dari URL — tanpa pemeriksaan ini, siapa pun yang
+    // login bisa membaca seluruh mutasi stok proyek perusahaan lain hanya
+    // dengan mengetahui id proyeknya (qty masuk/keluar, nilai, catatan).
+    // Rutenya bahkan tak minta permission khusus, cuma `authenticate`.
+    if (!(await request.db!.projectIds()).includes(project_id)) {
+      return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    }
     const { data, error } = await supabase
       .from('stock_movements')
       .select('id, movement_type, qty, qty_before, qty_after, reference_type, reference_id, notes, created_at, material:materials(id, name, unit), created_by:users(id, name)')

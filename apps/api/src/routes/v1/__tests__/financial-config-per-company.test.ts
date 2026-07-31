@@ -229,3 +229,49 @@ describe('setFinancialConfig() menyaring company saat MENULIS', () => {
     expect(badan).toMatch(/companyId: string/)                  // WAJIB, bukan opsional
   })
 })
+
+
+describe('feature_flags juga unik per-company (migrasi 146)', () => {
+  // Pola cacat yang SAMA dengan financial_config, ditemukan beberapa jam
+  // sesudahnya di tabel berbeda: `UNIQUE (key)` global padahal tabelnya
+  // kategori AB (bersama + override per-perusahaan).
+  //
+  // Dua kali kejadian yang sama bukan kebetulan — keduanya tabel yang lahir
+  // PRA-multi-tenant lalu diberi `company_id` di migrasi 127, tanpa
+  // constraint-nya ikut ditinjau. Karena itu yang diuji di sini bukan cuma
+  // hasilnya, tapi juga BENTUK indexnya (`NULLS NOT DISTINCT`), yang mudah
+  // hilang saat seseorang membuat ulang index dari ingatan.
+
+  it('migrasi 146 memakai (company_id, key) + NULLS NOT DISTINCT', async () => {
+    const { readFileSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const sql = readFileSync(
+      join(import.meta.dirname, '../../../../../../db/migrations/146_feature_flags_per_company.sql'),
+      'utf8')
+
+    expect(sql).toMatch(/DROP CONSTRAINT IF EXISTS feature_flags_key_key/)
+    expect(sql).toMatch(/\(company_id,\s*key\)/)
+    // NULLS NOT DISTINCT wajib: tanpa itu baris BERSAMA (company_id NULL) bisa
+    // dobel, dan pembacaan flag jadi bergantung urutan baris.
+    //
+    // ⚠️ Dicocokkan pada DEFINISI INDEX-nya, bukan di mana pun dalam berkas.
+    // Versi pertama assertion ini hanya `/NULLS NOT DISTINCT/`, dan uji mutasi
+    // membuktikannya tak berguna: menghapus frasa itu dari CREATE INDEX tetap
+    // hijau, karena frasa yang sama masih tertulis di komentar penjelas di
+    // atasnya. Penjaga yang bisa dipuaskan komentar tidak menjaga apa pun.
+    expect(sql).toMatch(/CREATE UNIQUE INDEX[\s\S]{0,200}?\(company_id,\s*key\)\s*NULLS NOT DISTINCT/)
+  })
+
+  it('endpoint feature-flags menyaring & menulis per-company', async () => {
+    const { readFileSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const isi = readFileSync(join(import.meta.dirname, '..', 'modules.ts'), 'utf8')
+
+    // GET: baris bersama + milik sendiri saja.
+    expect(isi).toMatch(/company_id\.is\.null,company_id\.eq\.\$\{request\.companyId\}/)
+    // PUT: upsert membawa company_id DAN onConflict per-company. Kalau
+    // `onConflict` tertinggal di 'key' saja, upsert menimpa baris tenant lain.
+    expect(isi).toMatch(/company_id: request\.companyId/)
+    expect(isi).toMatch(/onConflict: 'company_id,key'/)
+  })
+})

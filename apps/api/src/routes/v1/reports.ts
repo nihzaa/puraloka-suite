@@ -1103,6 +1103,30 @@ export default async function reportsRoutes(app: FastifyInstance) {
     const update: Record<string, unknown> = { status, updated_at: new Date().toISOString() }
     if (efaktur_number !== undefined) update.efaktur_number = efaktur_number || null
 
+    // ⚠️ Gerbang tenant. Tanpa ini `UPDATE … WHERE id = $1` menyunting rekap
+    // pajak perusahaan MANA PUN yang id-nya diketahui — dan yang diubah adalah
+    // status pelaporan pajak + nomor e-Faktur, dua hal yang dipakai saat
+    // berhadapan dengan kantor pajak.
+    //
+    // `tax_records` kategori C: tenancy-nya lewat `invoice_id → invoices.
+    // project_id` (lihat tenant-map). Jadi pemeriksaannya dua langkah —
+    // ambil invoice-nya dulu, lalu pastikan proyeknya milik tenant ini.
+    // `.unsafe()` dengan alasan, BUKAN `.from()` atau `.viaProject()`:
+    // `tax_records` kategori C tapi jalurnya `invoice_id → invoices.project_id`,
+    // bukan `project_id` langsung — jadi `viaProject()` akan menyaring dengan
+    // kolom yang tidak ada. Tenancy-nya dijamin oleh pemeriksaan di bawah
+    // (`proyekBolehDibaca`), bukan oleh wrapper.
+    const { data: rekap } = await request.db!
+      .unsafe('tax_records', 'kategori C lewat invoice_id, bukan project_id — disaring proyekBolehDibaca di bawah')
+      .select('id, invoice:invoices!inner(project_id)')
+      .eq('id', id)
+      .maybeSingle()
+    const invEmbed = rekap?.invoice as { project_id?: string } | { project_id?: string }[] | null
+    const proyekRekap = (Array.isArray(invEmbed) ? invEmbed[0] : invEmbed)?.project_id ?? null
+    if (!proyekRekap || !(await proyekBolehDibaca(request, proyekRekap))) {
+      return reply.status(404).send({ error: 'Record tidak ditemukan' })
+    }
+
     const { data, error } = await supabase
       .from('tax_records')
       .update(update)
