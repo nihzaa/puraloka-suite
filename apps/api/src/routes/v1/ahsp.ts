@@ -253,7 +253,19 @@ export default async function ahspRoutes(app: FastifyInstance) {
     '/api/v1/cecep/assemblies',
     { preHandler: [authenticate, requirePermission('cecep:assembly:view')] },
     async (request, reply) => {
-      const limit = Math.max(1, Math.min(200, Number(request.query.limit) || 100)) // cap 200 (kebijakan pagination)
+      // Cap 5.000, bukan 200 seperti endpoint list lain.
+      //
+      // Katalog AHSP adalah data REFERENSI, bukan transaksi: ia dibaca sebagai
+      // satu daftar utuh untuk dicari-cari, bukan ditelusuri per halaman. Dengan
+      // cap 200, analisa di baris ke-500 tak pernah bisa dilihat tanpa mengetik
+      // kata kunci yang tepat — padahal pemakai justru sedang mencari-cari
+      // karena BELUM tahu kata kuncinya.
+      //
+      // Beban dijaga di dua sisi: respons ~1-2 MB untuk 3.043 baris (sekali,
+      // lalu dicari di memori tanpa menyentuh server lagi), dan UI merender
+      // hanya baris yang terlihat (virtualisasi). Cap tetap ada supaya katalog
+      // yang tumbuh sepuluh kali lipat tak diam-diam melumpuhkan halaman.
+      const limit = Math.max(1, Math.min(5000, Number(request.query.limit) || 100))
       let q = request.db!
         .from('assemblies')
         .select(`id, code, name, source, version_number, status, waste_factor,

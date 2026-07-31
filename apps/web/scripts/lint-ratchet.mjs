@@ -48,7 +48,7 @@ const AMBANG = {
 
   // ── Hutang lint lain ────────────────────────────────────────────────────
   '@typescript-eslint/no-explicit-any': 194,
-  'react-hooks/set-state-in-effect': 71,
+  'react-hooks/set-state-in-effect': 70, // turun dari 71 (2026-07-31, HargaTab)
   '@typescript-eslint/no-unused-vars': 71,
   'react-hooks/exhaustive-deps': 31,
   'react/no-unescaped-entities': 28,

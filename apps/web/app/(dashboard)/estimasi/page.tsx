@@ -14,6 +14,7 @@ import {
   Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
 import { api } from "@/lib/api";
+import { useVirtualList } from "@/lib/use-virtual-list";
 import {
   Calculator, Plus, X, ChevronRight, ChevronDown, BookOpen, Coins,
   Layers, Send, Trash2, CheckCircle2, BadgeCheck, PlayCircle, CircleOff, Pencil,
@@ -701,25 +702,25 @@ function KatalogTab() {
     }).catch(() => {});
   }, []);
 
-  // Pencarian dikirim ke SERVER. Sebelumnya `cari` hanya menyaring 200 baris
-  // yang terlanjur termuat dari 3.043 — analisa di luar 200 pertama tak pernah
-  // bisa ditemukan, tanpa satu pun tanda bahwa pencariannya tidak lengkap.
+  // SELURUH katalog dimuat sekali (limit 5.000), lalu pencarian dilakukan di
+  // memori — instan, tanpa bolak-balik server per ketikan.
+  //
+  // Beratnya dijaga di sisi render, bukan dengan memotong data: daftar
+  // divirtualisasi sehingga browser hanya memegang ~30 baris kapan pun. Cara
+  // lama (potong 200 + cari ke server) membuat analisa di baris ke-500 tak
+  // pernah bisa DILIHAT oleh orang yang sedang mencari-cari justru karena
+  // belum tahu kata kuncinya.
   const muat = useCallback(() => {
     const p = new URLSearchParams();
     if (edition) p.set("edition", edition);
     if (sumber) p.set("source", sumber);
-    if (cari.trim()) p.set("q", cari.trim());
-    p.set("limit", "200");
+    p.set("limit", "5000");
     api.get<{ data: Assembly[]; total: number | null }>(`/api/v1/cecep/assemblies?${p}`)
       .then(r => { setAssemblies(r.data.data ?? []); setTotal(r.data.total ?? null); })
       .catch(() => {});
-  }, [edition, sumber, cari]);
+  }, [edition, sumber]);
 
-  // Ketikan di-debounce 350 ms supaya tiap huruf tak memicu satu panggilan.
-  useEffect(() => {
-    const t = setTimeout(() => muat(), cari ? 350 : 0);
-    return () => clearTimeout(t);
-  }, [muat, cari]);
+  useEffect(() => { muat(); }, [muat]);
 
   // Cakupan harga dimuat sekali per kombinasi filter — bukan per analisa dibuka.
   // Tanpa ini, analisa yang HSP-nya tak bisa dihitung baru ketahuan setelah
@@ -749,14 +750,22 @@ function KatalogTab() {
 
   // Pencarian di sisi klien: daftar sudah dibatasi 200 baris oleh API, jadi
   // menyaring lagi ke server hanya menambah bolak-balik tanpa hasil berbeda.
-  // Penyaringan teks sudah dilakukan server (query `q`) — menyaring lagi di
-  // sini hanya akan menyembunyikan hasil yang justru baru saja dicarikan.
-  // Filter "harga belum lengkap" tetap di klien: datanya sudah ada di memori.
-  const terlihat = hanyaKurang
-    ? assemblies.filter(a => (kurangHarga[a.id] ?? 0) > 0)
-    : assemblies;
-  const terpotong = !hanyaKurang && total != null && total > terlihat.length;
+  // Penyaringan di KLIEN — sekarang benar, karena seluruh katalog memang ada di
+  // memori. Instan, tanpa debounce, tanpa panggilan server per ketikan.
+  const terlihat = assemblies.filter(a => {
+    if (hanyaKurang && !(kurangHarga[a.id] ?? 0)) return false;
+    if (!cari.trim()) return true;
+    const q = cari.toLowerCase();
+    return a.name.toLowerCase().includes(q) || a.code.toLowerCase().includes(q);
+  });
+  // Terpotong hanya kalau katalog melebihi cap 5.000 — praktis tak terjadi
+  // hari ini (3.043), tapi tetap dilaporkan supaya tak diam-diam menyesatkan
+  // kalau katalognya tumbuh.
+  const terpotong = total != null && total > assemblies.length;
   const jumlahKurang = assemblies.filter(a => (kurangHarga[a.id] ?? 0) > 0).length;
+
+  // Tinggi baris seragam ~52px (kode + nama satu baris, padding 11px atas-bawah).
+  const { pasang: pasangKatalog, mulai: vkMulai, akhir: vkAkhir, padTop: vkTop, padBottom: vkBawah, nonaktif: vkOff } = useVirtualList(terlihat.length, 52, { tinggiViewport: 560 });
 
   return (
     <div>
@@ -792,8 +801,10 @@ function KatalogTab() {
             bukan menyimpulkan analisanya tidak ada. */}
         <span style={{ fontSize: 12.5, color: terpotong ? C.yellow : C.muted, whiteSpace: "nowrap" }}>
           {terpotong
-            ? `${terlihat.length} dari ${total!.toLocaleString("id-ID")} — persempit dengan pencarian`
-            : `${terlihat.length} analisa`}
+            ? `${assemblies.length} dari ${total!.toLocaleString("id-ID")} — katalog melebihi batas muat`
+            : cari.trim() || hanyaKurang
+              ? `${terlihat.length.toLocaleString("id-ID")} dari ${assemblies.length.toLocaleString("id-ID")} analisa`
+              : `${terlihat.length.toLocaleString("id-ID")} analisa`}
         </span>
         {jumlahKurang > 0 && (
           <button type="button" onClick={() => setHanyaKurang(v => !v)}
@@ -809,8 +820,17 @@ function KatalogTab() {
         )}
       </div>
 
-      <div style={{ display: "grid", gap: 8 }}>
-        {terlihat.map(a => {
+      {/* Wadah virtual: hanya baris yang terlihat + buffer yang dirender.
+          Dua div berketinggian tetap menjaga panjang scrollbar tetap sesuai
+          jumlah data sesungguhnya, sehingga posisi scroll terasa wajar.
+          Saat data sedikit (<60), virtualisasi mati sendiri dan daftarnya
+          dirender apa adanya. */}
+      <div ref={pasangKatalog} style={{
+        display: "grid", gap: 8,
+        ...(vkOff ? {} : { maxHeight: 560, overflowY: "auto" as const, paddingRight: 4 }),
+      }}>
+        {vkTop > 0 && <div style={{ height: vkTop }} aria-hidden="true" />}
+        {terlihat.slice(vkMulai, vkAkhir).map(a => {
           const h = hsp[a.id];
           const detail = h && h !== "memuat" && h !== "gagal" ? h : null;
           return (
@@ -907,6 +927,7 @@ function KatalogTab() {
             </div>
           );
         })}
+        {vkBawah > 0 && <div style={{ height: vkBawah }} aria-hidden="true" />}
         {terlihat.length === 0 && (
           <p style={{ color: C.muted, fontSize: 13 }}>
             {cari ? `Tidak ada analisa yang cocok dengan "${cari}".` : "Tidak ada analisa untuk filter ini."}
@@ -1822,17 +1843,40 @@ function ChangeLogModal({ rapId, table, lineId, label, onClose, onDone }: {
 // ══ TAB 3 — HARGA (PRICE BOOK) ════════════════════════════════════════════════
 function HargaTab() {
   const [entries, setEntries] = useState<PriceEntry[]>([]);
+  const [total, setTotal] = useState<number | null>(null);
   const [status, setStatus] = useState("");
+  const [cari, setCari] = useState("");
   const [showNew, setShowNew] = useState(false);
   const [prefill, setPrefill] = useState<{ code: string; name: string; unit_code: string } | null>(null);
   const [err, setErr] = useState("");
 
+  // SELURUH price book dimuat sekali (limit 5.000), pencarian di memori.
+  // Sebelumnya UI memanggil tanpa `limit` sehingga hanya dapat 100 dari 2.637 —
+  // harga di luar itu tak pernah terlihat, dan pemakai menginput duplikat
+  // karena mengira harganya belum ada.
   const load = useCallback(async () => {
-    const q = status ? `?status=${status}` : "";
-    const r = await api.get<{ data: PriceEntry[] }>(`/api/v1/cecep/price-book${q}`);
+    const p = new URLSearchParams();
+    if (status) p.set("status", status);
+    p.set("limit", "5000");
+    const r = await api.get<{ data: PriceEntry[]; total: number | null }>(
+      `/api/v1/cecep/price-book?${p}`);
     setEntries(r.data.data ?? []);
+    setTotal(r.data.total ?? null);
   }, [status]);
-  useEffect(() => { void load(); }, [load]);
+
+  // Dibungkus lewat batas asinkron: `load()` menulis state di awal jalannya,
+  // dan memanggilnya sinkron dari effect memicu render beruntun
+  // (`react-hooks/set-state-in-effect`).
+  useEffect(() => { void Promise.resolve().then(load); }, [load]);
+
+  const terlihat = entries.filter(en => {
+    if (!cari.trim()) return true;
+    const q = cari.toLowerCase();
+    return (en.resource?.name ?? "").toLowerCase().includes(q)
+        || (en.resource?.code ?? "").toLowerCase().includes(q);
+  });
+  const terpotong = total != null && total > entries.length;
+  const { pasang: pasangHarga, mulai: vhMulai, akhir: vhAkhir, padTop: vhTop, padBottom: vhBawah, nonaktif: vhOff } = useVirtualList(terlihat.length, 44, { tinggiViewport: 560 });
 
   function isiHarga(r: { code: string; name: string; unit_code: string }) {
     setPrefill(r);
@@ -1853,21 +1897,50 @@ function HargaTab() {
           <option value="draft">draft</option><option value="verified">verified</option>
           <option value="active">active</option><option value="expired">expired</option>
         </select>
+        <label htmlFor="harga-cari" style={{ position: "absolute", width: 1, height: 1,
+          overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" }}>
+          Cari nama atau kode resource
+        </label>
+        <input id="harga-cari" type="search" value={cari} onChange={e => setCari(e.target.value)}
+          placeholder="Cari resource (semen, besi, pekerja…)"
+          style={{ ...inputStyle, width: 260 }} />
         <button style={btnPrimary} onClick={() => setShowNew(true)}><Plus size={14} /> Harga Baru</button>
-        <span style={{ fontSize: 12, color: C.muted }}>Alur: draft → verified → active (maju saja, dijaga database). Hanya <b>active</b> yang dipakai menghitung.</span>
+        {/* Jujur soal pemotongan: 2.637 entri, hanya 200 termuat. Pemakai yang
+            tak menemukan harganya perlu tahu daftarnya memang dipotong — bukan
+            menyimpulkan harganya belum ada lalu menginput duplikat. */}
+        {total != null && (
+          <span style={{ fontSize: 12.5, whiteSpace: "nowrap",
+            color: terpotong ? C.yellow : C.muted }}>
+            {terpotong
+              ? `${entries.length} dari ${total.toLocaleString("id-ID")} — melebihi batas muat`
+              : cari.trim()
+                ? `${terlihat.length.toLocaleString("id-ID")} dari ${entries.length.toLocaleString("id-ID")} harga`
+                : `${terlihat.length.toLocaleString("id-ID")} harga`}
+          </span>
+        )}
       </div>
+      <p style={{ fontSize: 12, color: C.muted, margin: "0 0 12px" }}>
+        Alur: draft → verified → active (maju saja, dijaga database). Hanya <b>active</b> yang
+        dipakai menghitung HSP.
+      </p>
       {err && <div style={{ background: C.redBg, color: C.red, borderRadius: 8, padding: "8px 12px", fontSize: 12.5, marginBottom: 10 }}>{err}</div>}
 
       <PrioritasHarga onIsi={isiHarga} />
 
-      <div style={{ overflowX: "auto", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12 }}>
+      {/* Wadah scroll vertikal untuk virtualisasi + horizontal untuk kolom
+          yang tak muat di layar sempit. Tinggi dibatasi supaya tabel 2.637
+          baris tak mendorong seluruh halaman menjadi sangat panjang. */}
+      <div ref={pasangHarga} style={{ overflowX: "auto", background: C.surface,
+        border: `1px solid ${C.border}`, borderRadius: 12,
+        ...(vhOff ? {} : { maxHeight: 560, overflowY: "auto" as const }) }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead><tr>
             <th style={th}>Resource</th><th style={{ ...th, textAlign: "right" }}>Harga</th><th style={th}>Sat</th>
             <th style={th}>Berlaku</th><th style={th}>Lokasi</th><th style={th}>Keyakinan</th><th style={th}>Status</th><th style={th}>Aksi</th>
           </tr></thead>
           <tbody>
-            {entries.map(en => (
+            {vhTop > 0 && <tr aria-hidden="true"><td colSpan={8} style={{ height: vhTop, padding: 0 }} /></tr>}
+            {terlihat.slice(vhMulai, vhAkhir).map(en => (
               <tr key={en.id}>
                 <td style={td}><b>{en.resource?.name}</b><br /><code style={{ fontSize: 11, color: C.muted }}>{en.resource?.code}</code></td>
                 <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{fmtRp(Number(en.amount))}</td>
@@ -1888,7 +1961,12 @@ function HargaTab() {
                 </td>
               </tr>
             ))}
-            {entries.length === 0 && <tr><td style={{ ...td, color: C.muted }} colSpan={8}>Belum ada entry harga.</td></tr>}
+            {vhBawah > 0 && <tr aria-hidden="true"><td colSpan={8} style={{ height: vhBawah, padding: 0 }} /></tr>}
+            {terlihat.length === 0 && (
+              <tr><td style={{ ...td, color: C.muted }} colSpan={8}>
+                {cari.trim() ? `Tidak ada harga yang cocok dengan "${cari}".` : "Belum ada entry harga."}
+              </td></tr>
+            )}
           </tbody>
         </table>
       </div>

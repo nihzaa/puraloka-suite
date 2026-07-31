@@ -14,11 +14,46 @@ import { logAuditEvent } from '../../utils/audit.js'
 export default async function priceBookRoutes(app: FastifyInstance) {
 
   // ── GET /cecep/price-book — daftar harga (filter resource/status/lokasi) ────
-  app.get<{ Querystring: { resource?: string; status?: string; location?: string; limit?: string } }>(
+  app.get<{ Querystring: {
+    resource?: string; status?: string; location?: string; limit?: string; q?: string
+  } }>(
     '/api/v1/cecep/price-book',
     { preHandler: [authenticate, requirePermission('cecep:price:view')] },
     async (request, reply) => {
-      const limit = Math.max(1, Math.min(200, Number(request.query.limit) || 100)) // cap 200
+      // Cap 5.000 — alasan sama dengan katalog assemblies: price book adalah
+      // data REFERENSI yang dibaca sebagai daftar utuh. Dengan cap 200, harga
+      // di luar 200 teratas tak pernah terlihat dan pemakai menginput duplikat
+      // karena mengira harganya belum ada.
+      const limit = Math.max(1, Math.min(5000, Number(request.query.limit) || 100))
+
+      // Pencarian nama/kode resource dilakukan di SERVER. Price book berisi
+      // 2.637 entri sementara respons dibatasi 200 — tanpa ini, harga yang
+      // berada di luar 200 teratas tak akan pernah bisa ditemukan, dan pemakai
+      // menyimpulkan harganya belum ada lalu menginput duplikat.
+      let idCari: string[] | null = null
+      const cari = request.query.q?.trim()
+      if (cari) {
+        const aman = cari.replace(/[%,()]/g, ' ')
+        const { data: res } = await request.db!
+          .from('resources').select('id')
+          .or(`name.ilike.%${aman}%,code.ilike.%${aman}%`)
+          .limit(500)
+        idCari = (res ?? []).map((r) => r.id)
+        // Nol resource cocok → nol harga. Dikembalikan lebih awal supaya
+        // `.in()` dengan daftar kosong tak menghasilkan seluruh baris.
+        if (!idCari.length) return reply.send({ data: [], total: 0, limit })
+      }
+
+      // `resource=<kode>` (filter lama, satu resource persis) diselesaikan lebih
+      // dulu supaya kriterianya sama untuk daftar maupun penghitungan total.
+      let idResource: string | null = null
+      if (request.query.resource) {
+        const { data: r } = await request.db!
+          .from('resources').select('id').eq('code', request.query.resource).maybeSingle()
+        if (!r) return reply.status(404).send({ error: `Resource ${request.query.resource} tidak ditemukan` })
+        idResource = r.id
+      }
+
       let q = request.db!
         .from('price_book_entries')
         .select(`id, amount, currency, version_number, effective_date, expired_date,
@@ -28,15 +63,23 @@ export default async function priceBookRoutes(app: FastifyInstance) {
         .limit(limit)
       if (request.query.status) q = q.eq('status', request.query.status)
       if (request.query.location) q = q.eq('location', request.query.location)
-      if (request.query.resource) {
-        const { data: r } = await request.db!
-          .from('resources').select('id').eq('code', request.query.resource).maybeSingle()
-        if (!r) return reply.status(404).send({ error: `Resource ${request.query.resource} tidak ditemukan` })
-        q = q.eq('resource_id', r.id)
-      }
+      if (idResource) q = q.eq('resource_id', idResource)
+      if (idCari) q = q.in('resource_id', idCari)
+
       const { data, error } = await q
       if (error) return reply.status(500).send({ error: error.message })
-      return reply.send({ data })
+
+      // Total sesungguhnya untuk kriteria YANG SAMA — supaya UI bisa jujur
+      // menyebut "200 dari 2.637", bukan mengesankan 200 itu seluruhnya.
+      let h = request.db!
+        .from('price_book_entries').select('id', { count: 'exact', head: true })
+      if (request.query.status) h = h.eq('status', request.query.status)
+      if (request.query.location) h = h.eq('location', request.query.location)
+      if (idResource) h = h.eq('resource_id', idResource)
+      if (idCari) h = h.in('resource_id', idCari)
+      const { count } = await h
+
+      return reply.send({ data, total: count ?? null, limit })
     })
 
   // ── POST /cecep/price-book — entry baru (selalu lahir DRAFT) ────────────────
