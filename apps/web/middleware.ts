@@ -15,8 +15,8 @@ const ROLE_ALLOWED: Record<string, string[]> = {
   client:  ["/portal", "/verify"],
   // mandor bisa akses /pm-portal juga — guard di layout PM akan verifikasi apakah dia memang PM di proyek
   mandor:  ["/mandor-portal", "/pm-portal", "/proyek", "/verify"],
-  pm:      ["/pm-portal", "/proyek", "/verify", "/estimasi"],
-  admin:   ["/dashboard", "/proyek", "/keuangan", "/mandor", "/laporan", "/notifications", "/kas", "/users", "/klien", "/procurement", "/pengaturan", "/kalender", "/audit", "/sistem", "/estimasi"],
+  pm:      ["/pm-portal", "/proyek", "/verify", "/estimasi", "/tender", "/piutang"],
+  admin:   ["/dashboard", "/proyek", "/keuangan", "/mandor", "/laporan", "/notifications", "/kas", "/users", "/klien", "/procurement", "/pengaturan", "/kalender", "/audit", "/sistem", "/estimasi", "/tender", "/piutang"],
 };
 
 export function middleware(request: NextRequest) {

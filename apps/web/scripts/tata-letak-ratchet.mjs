@@ -130,3 +130,48 @@ console.log(
   `✅ Tata letak: ${halaman.length} halaman patuh ` +
   `(form ${pakai['--w-form']} · normal ${pakai['--w-page']} · luas ${pakai['--w-luas']})`,
 )
+
+// ── Penjaga JALAN MASUK halaman (§9a) ──────────────────────────────────────
+//
+// Satu halaman baru butuh TIGA hal, dan lupa salah satunya membuat sisanya
+// mati TANPA GEJALA:
+//   1. berkas `page.tsx`            (ada — kalau tidak, ia tak ada di daftar ini)
+//   2. izin rute di `middleware.ts` (kalau tidak: redirect balik ke /dashboard)
+//   3. baris di `menu_items`        (kalau tidak: tak ada tautannya di mana pun)
+//
+// Yang dijaga di sini nomor 2, karena ia satu-satunya yang bisa diperiksa dari
+// sumber tanpa menyentuh DB. Ini BUKAN hipotetis: `/estimasi` tak bisa diakses
+// admin/pm selama berbulan-bulan — seluruh CECEP (10 bulan kerja) hanya teruji
+// lewat API — karena `middleware.ts` tak pernah diperbarui sejak halaman itu
+// lahir. Ketahuan 2026-07-30, dari verifikasi E2E, bukan dari review.
+const middleware = readFileSync(join(AKAR, 'middleware.ts'), 'utf8')
+const takTerdaftar = []
+for (const f of halaman) {
+  const rel = relative(AKAR, f).split('\\').join('/')
+  // 'app/(dashboard)/tender/page.tsx' → '/tender'; hanya rute TINGKAT SATU,
+  // karena middleware memakai prefix (`/proyek` mencakup `/proyek/[id]`).
+  const m = rel.match(/^app\/\(dashboard\)\/([^/]+)\/page\.tsx$/)
+  if (!m || m[1].startsWith('[')) continue
+  // Diperiksa PER-ROLE, bukan "ada di suatu tempat di berkas". Uji mutasi
+  // membuktikan versi pertama tak berguna: menghapus `/tender` dari baris `pm`
+  // tetap hijau karena baris `admin` masih menyebutnya — padahal PM sudah
+  // kehilangan aksesnya. Yang menentukan bukan keberadaan string, melainkan
+  // apakah SETIAP role yang seharusnya berhak benar-benar menyebutnya.
+  const wajib = ['admin', 'pm']
+  const kurang = wajib.filter((role) => {
+    const baris = middleware.match(new RegExp(`^\\s*${role}:\\s*\\[[^\\]]*\\]`, 'm'))
+    return baris ? !baris[0].includes(`"/${m[1]}"`) : true
+  })
+  // Halaman khusus satu role (mis. /users admin-only) tak dianggap kurang
+  // selama SETIDAKNYA admin menyebutnya — yang dijaga adalah "tak terjangkau
+  // siapa pun", bukan menyeragamkan hak akses.
+  if (kurang.includes('admin')) takTerdaftar.push(`/${m[1]} (admin)`)
+}
+if (takTerdaftar.length) {
+  console.error('\n❌ HALAMAN TAK TERDAFTAR DI middleware.ts:\n')
+  takTerdaftar.forEach((r) => console.error(`   ${r}`))
+  console.error('\n   Halaman ini AKAN redirect balik ke /dashboard untuk role mana pun')
+  console.error('   yang tak menyebutnya di ROLE_ALLOWED — persis nasib /estimasi selama')
+  console.error('   berbulan-bulan. Tambahkan rutenya ke role yang berhak.\n')
+  process.exit(1)
+}
