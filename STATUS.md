@@ -692,6 +692,13 @@ berguna untuk tahap paling berisiko.
    (GL/asset/opname/SCM) tetap forward-draft.
 1c. Izin A5 `--execute`: schema `test` residu di dev + residu CECEP
    (570 estimate_items dll — dry-run sudah dilaporkan).
+   **+ TAMBAHAN 2026-07-31:** `lessons_learned_records` **668 baris, 668-nya
+   `[TEST]` dan SELURUHNYA yatim** (project induk sudah terhapus; anaknya
+   selamat karena trigger no-delete memblokir cascade). Nol baris nyata.
+   Ini yang membuat modul Lessons Learned tampak "punya 668 data" di audit
+   jalur hidup padahal isinya nol — dan karena itu sempat terlihat seperti
+   fitur hidup yang cuma kurang UI. **Tidak dihapus tanpa izin** (CLAUDE.md:
+   hapus data = berhenti & tanya).
 2. GL in-app vs akuntansi eksternal (`docs/PETA-PRIORITAS-ERP.md` §5).
 3. Entitas PT/CV kedua realistis 1–2 tahun? (`docs/KEPUTUSAN-MULTI-COMPANY.md` §2).
 ~~4. Aktifkan trigger audit append-only 073~~ — **SUDAH AKTIF** (diverifikasi
