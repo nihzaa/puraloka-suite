@@ -1903,7 +1903,7 @@ function CreateWageReportModal({ onClose, onSuccess }: {
                     <input type="number" placeholder="125000" value={item.daily_rate} onChange={e => updateItem(i, "daily_rate", e.target.value)} style={{ ...inputStyle, background: "var(--surface)" }} />
                     <input type="number" placeholder="0" value={item.overtime_hours} onChange={e => updateItem(i, "overtime_hours", e.target.value)} style={{ ...inputStyle, background: "var(--surface)" }} step="0.5" min="0" />
                     <input type="number" placeholder="15000" value={item.overtime_rate} onChange={e => updateItem(i, "overtime_rate", e.target.value)} style={{ ...inputStyle, background: "var(--surface)" }} />
-                    <button type="button" onClick={() => removeItem(i)} disabled={items.length === 1} style={{ padding: 4, borderRadius: 6, border: "none", background: "transparent", cursor: items.length === 1 ? "not-allowed" : "pointer", color: C.red, opacity: items.length === 1 ? 0.3 : 1 }}>
+                    <button aria-label="Hapus baris" type="button" onClick={() => removeItem(i)} disabled={items.length === 1} style={{ padding: 4, borderRadius: 6, border: "none", background: "transparent", cursor: items.length === 1 ? "not-allowed" : "pointer", color: C.red, opacity: items.length === 1 ? 0.3 : 1 }}>
                       <Trash2 size={13} />
                     </button>
                     {subtotalItem > 0 && (
@@ -1937,7 +1937,7 @@ function CreateWageReportModal({ onClose, onSuccess }: {
                         {t === "kasbon_kolektif" ? "Kolektif" : "Per Individu"}
                       </button>
                     ))}
-                    <button type="button" onClick={() => removeDeduction(i)} style={{ marginLeft: "auto", padding: 4, borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", color: C.red }}>
+                    <button aria-label="Hapus baris" type="button" onClick={() => removeDeduction(i)} style={{ marginLeft: "auto", padding: 4, borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", color: C.red }}>
                       <Trash2 size={13} />
                     </button>
                   </div>
@@ -3329,7 +3329,7 @@ function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
               <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 6, marginBottom: 6 }}>
                 <input value={sp.key} onChange={e => { const s = [...specs]; s[i].key = e.target.value; setSpecs(s); }} placeholder="Nama spec" style={{ ...inputStyle, fontSize: 12 }} />
                 <input value={sp.value} onChange={e => { const s = [...specs]; s[i].value = e.target.value; setSpecs(s); }} placeholder="Nilai" style={{ ...inputStyle, fontSize: 12 }} />
-                <button type="button" onClick={() => setSpecs(specs.filter((_, j) => j !== i))} style={{ padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.redBorder}`, background: C.redBg, cursor: "pointer", color: C.red }}>
+                <button aria-label="Hapus item" type="button" onClick={() => setSpecs(specs.filter((_, j) => j !== i))} style={{ padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.redBorder}`, background: C.redBg, cursor: "pointer", color: C.red }}>
                   <X size={12} />
                 </button>
               </div>

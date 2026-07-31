@@ -172,7 +172,7 @@ export function MilestoneModal({
               </p>
             </div>
           </div>
-          <button
+          <button aria-label="Tutup dialog milestone"
             onClick={handleClose}
             disabled={submitting}
             style={{

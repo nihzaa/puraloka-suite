@@ -393,7 +393,7 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
                             <Pencil size={13} style={{ color: "var(--text-secondary)" }} />
                             Edit
                           </button>
-                          <button
+                          <button aria-label="Hapus milestone"
                             type="button"
                             onClick={() => { setDeleteId(m.id); setOpenMenuId(null); }}
                             style={{

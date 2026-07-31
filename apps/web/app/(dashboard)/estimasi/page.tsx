@@ -699,7 +699,7 @@ function AddItemModal({ version, onClose, onDone }:
               <input style={{ ...inputStyle, flex: 1 }} type="number" step="any" value={c.coefficient} placeholder="koefisien"
                 onChange={e => setCustomComps(cs => cs.map((x, xi) => xi === i ? { ...x, coefficient: e.target.value } : x))} />
               {customComps.length > 1 && (
-                <button style={{ background: "none", border: "none", cursor: "pointer", color: C.red }}
+                <button aria-label="Hapus komponen" style={{ background: "none", border: "none", cursor: "pointer", color: C.red }}
                   onClick={() => setCustomComps(cs => cs.filter((_, xi) => xi !== i))}><X size={16} /></button>
               )}
             </div>

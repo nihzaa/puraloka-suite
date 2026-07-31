@@ -197,7 +197,7 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
               </p>
             </div>
           </div>
-          <button
+          <button aria-label="Tutup dialog pembayaran termin"
             onClick={onClose}
             style={{ background: "transparent", border: "none", cursor: "pointer", color: C.muted, padding: 4, borderRadius: 6 }}
           >
@@ -424,7 +424,7 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
                         {(proofFile.size / 1024).toFixed(0)} KB
                       </div>
                     </div>
-                    <button
+                    <button aria-label="Hapus berkas terpilih"
                       type="button"
                       onClick={removeFile}
                       style={{ background: "transparent", border: "none", cursor: "pointer", color: C.red, padding: 4 }}

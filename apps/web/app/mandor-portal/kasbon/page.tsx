@@ -224,7 +224,7 @@ export default function MandorKasbonPage() {
           <div style={{ position: "relative", background: C.surface, borderRadius: 16, width: "100%", maxWidth: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", zIndex: 1, marginTop: 24 }}>
             <div style={{ padding: "20px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: 0 }}>Ajukan Kasbon</h2>
-              <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: C.mid }}>
+              <button aria-label="Tutup dialog kasbon" onClick={() => setShowModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: C.mid }}>
                 <X size={20} />
               </button>
             </div>

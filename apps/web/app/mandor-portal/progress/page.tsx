@@ -341,7 +341,7 @@ export default function MandorProgressPage() {
                           </div>
                         )}
                         {!ph.uploading && !ph.uploadedUrl && (
-                          <button type="button" onClick={() => removePhoto(ph.id)} style={{ position: "absolute", top: -6, right: -6, background: C.red, border: "none", borderRadius: "50%", width: 18, height: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <button aria-label="Hapus foto" type="button" onClick={() => removePhoto(ph.id)} style={{ position: "absolute", top: -6, right: -6, background: C.red, border: "none", borderRadius: "50%", width: 18, height: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                             <X size={10} color="var(--surface)" />
                           </button>
                         )}

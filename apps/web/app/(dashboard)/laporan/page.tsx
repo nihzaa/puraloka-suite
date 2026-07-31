@@ -1368,7 +1368,7 @@ function TabProgress({ data }: { data: ProgressData }) {
       {lightboxUrl && (
         <div onClick={() => setLightboxUrl(null)}
           style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, cursor: "zoom-out" }}>
-          <button onClick={() => setLightboxUrl(null)}
+          <button aria-label="Tutup pratinjau" onClick={() => setLightboxUrl(null)}
             style={{ position: "absolute", top: 20, right: 20, background: "rgba(255,255,255,0.15)", border: "none", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
             <X size={18} color="var(--surface)" />
           </button>

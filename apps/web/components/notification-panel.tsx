@@ -408,7 +408,7 @@ export function NotificationPanel({ unreadCount, onCountChange }: NotificationPa
               <CheckCheck size={11} /> Tandai Semua Dibaca
             </button>
           )}
-          <button
+          <button aria-label="Tutup panel notifikasi"
             onClick={() => setOpen(false)}
             style={{
               width: 28, height: 28, borderRadius: 6,

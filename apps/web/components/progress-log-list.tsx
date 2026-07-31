@@ -71,7 +71,7 @@ function Lightbox({ url, onClose }: { url: string; onClose: () => void }) {
       }}
       onClick={onClose}
     >
-      <button
+      <button aria-label="Tutup daftar progres"
         onClick={onClose}
         style={{
           position: "absolute", top: 20, right: 20, width: 40, height: 40,
@@ -323,7 +323,7 @@ function LogCard({
 
           {/* Delete button */}
           {canDelete && !confirmDelete && (
-            <button
+            <button aria-label="Hapus catatan progres"
               onClick={() => setConfirmDelete(true)}
               style={{
                 width: 28, height: 28, borderRadius: 8, border: "none",

@@ -497,7 +497,7 @@ function ChangeOrderCard({
                       {isDraft && canManage && (
                         <td style={{ padding: "10px 10px", textAlign: "right" }}>
                           <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                            <button
+                            <button aria-label="Sunting item change order"
                               onClick={() => { setEditingItemId(item.id); setItemForm({ item_type: item.item_type, description: item.description, amount_delta: String(item.amount_delta), unit: item.unit ?? "", volume_delta: item.volume_delta != null ? String(item.volume_delta) : "", unit_price: item.unit_price != null ? String(item.unit_price) : "", notes: item.notes ?? "", rab_item_id: item.rab_item_id ?? "" }); }}
                               style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: C.mid }}
                             >

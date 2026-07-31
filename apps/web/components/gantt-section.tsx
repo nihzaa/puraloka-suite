@@ -474,7 +474,7 @@ function GanttBar({ task, minDate, totalDays, dayWidth, warnings, taskMap, onEdi
 
       {/* Edit button on hover */}
       {canEdit && (
-        <button
+        <button aria-label="Sunting jadwal item"
           onClick={() => onEdit(task)}
           style={{
             position: "absolute",
@@ -1010,7 +1010,7 @@ export function GanttSection({ projectId, userRole, projectStart, projectEnd }: 
                     <Link2 size={9} color={C.muted} style={{ flexShrink: 0 }} />
                   )}
                   {canEdit && (
-                    <button
+                    <button aria-label="Sunting jadwal item"
                       onClick={() => setEditingTask(task)}
                       className="gantt-edit-btn"
                       style={{ background: "none", border: "none", cursor: "pointer", padding: 2, color: C.mid, opacity: 0, flexShrink: 0 }}

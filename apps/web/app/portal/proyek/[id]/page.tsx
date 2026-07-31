@@ -326,16 +326,16 @@ function FotoTab({ projectId }: { projectId: string }) {
           onClick={() => setLightbox(null)}
           style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}
         >
-          <button onClick={() => setLightbox(null)} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", color: "#fff", cursor: "pointer" }}>
+          <button aria-label="Tutup foto" onClick={() => setLightbox(null)} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", color: "#fff", cursor: "pointer" }}>
             <X size={24} />
           </button>
           {lightbox > 0 && (
-            <button onClick={e => { e.stopPropagation(); setLightbox(l => l! - 1); }} style={{ position: "absolute", left: 16, background: "none", border: "none", color: "#fff", cursor: "pointer" }}>
+            <button aria-label="Foto sebelumnya" onClick={e => { e.stopPropagation(); setLightbox(l => l! - 1); }} style={{ position: "absolute", left: 16, background: "none", border: "none", color: "#fff", cursor: "pointer" }}>
               <ChevronLeft size={28} />
             </button>
           )}
           {lightbox < filtered.length - 1 && (
-            <button onClick={e => { e.stopPropagation(); setLightbox(l => l! + 1); }} style={{ position: "absolute", right: 16, background: "none", border: "none", color: "#fff", cursor: "pointer" }}>
+            <button aria-label="Foto berikutnya" onClick={e => { e.stopPropagation(); setLightbox(l => l! + 1); }} style={{ position: "absolute", right: 16, background: "none", border: "none", color: "#fff", cursor: "pointer" }}>
               <ChevronRightIcon size={28} />
             </button>
           )}

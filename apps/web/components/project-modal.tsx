@@ -329,7 +329,7 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
             <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: C.text }}>
               {mode === "create" ? "Tambah Proyek Baru" : "Edit Proyek"}
             </h2>
-            <button
+            <button aria-label="Tutup dialog proyek"
               onClick={onClose}
               style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, padding: 4, borderRadius: 6, display: "flex" }}
               onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-hover)"; e.currentTarget.style.color = C.text; }}
@@ -550,7 +550,7 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
                         </span>
                       </div>
                       {form.termin_schedules.length > 1 && (
-                        <button
+                        <button aria-label="Hapus termin ini"
                           onClick={() => removeTermin(i)}
                           style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, display: "flex", padding: 4, borderRadius: 4 }}
                           onMouseEnter={e => { e.currentTarget.style.color = C.red; e.currentTarget.style.background = "var(--danger-bg)"; }}

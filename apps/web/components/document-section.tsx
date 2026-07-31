@@ -483,7 +483,7 @@ function UploadModalContent({
             </div>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Upload Dokumen</h3>
           </div>
-          <button onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--text-secondary)", padding: 4, borderRadius: 6 }}>
+          <button aria-label="Tutup pratinjau dokumen" onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--text-secondary)", padding: 4, borderRadius: 6 }}>
             <X size={18} />
           </button>
         </div>

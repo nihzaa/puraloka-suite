@@ -138,7 +138,7 @@ function LightboxContent({
           >
             <Download size={13} /> Download
           </a>
-          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.1)", border: "none", cursor: "pointer", color: "var(--surface)", padding: "8px", borderRadius: 8 }}>
+          <button aria-label="Tutup galeri foto" onClick={onClose} style={{ background: "rgba(255,255,255,0.1)", border: "none", cursor: "pointer", color: "var(--surface)", padding: "8px", borderRadius: 8 }}>
             <X size={18} />
           </button>
         </div>
@@ -147,7 +147,7 @@ function LightboxContent({
       {/* Main image area */}
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 16, padding: "0 16px", minHeight: 0 }}>
         {/* Prev */}
-        <button
+        <button aria-label="Foto sebelumnya"
           onClick={prev}
           disabled={idx === 0}
           style={{ background: "rgba(255,255,255,0.1)", border: "none", cursor: idx === 0 ? "default" : "pointer", color: "var(--surface)", borderRadius: 10, padding: "10px 8px", opacity: idx === 0 ? 0.3 : 1, flexShrink: 0 }}
@@ -166,7 +166,7 @@ function LightboxContent({
         </div>
 
         {/* Next */}
-        <button
+        <button aria-label="Foto berikutnya"
           onClick={next}
           disabled={idx === photos.length - 1}
           style={{ background: "rgba(255,255,255,0.1)", border: "none", cursor: idx === photos.length - 1 ? "default" : "pointer", color: "var(--surface)", borderRadius: 10, padding: "10px 8px", opacity: idx === photos.length - 1 ? 0.3 : 1, flexShrink: 0 }}
@@ -211,7 +211,7 @@ function LightboxContent({
                   {CATEGORY_LABEL[cat]}
                 </button>
               ))}
-              <button onClick={() => setEditingCategory(false)} style={{ padding: "5px 8px", borderRadius: 20, fontSize: 11, background: "rgba(255,255,255,0.1)", color: "var(--surface)", border: "none", cursor: "pointer" }}>
+              <button aria-label="Hapus foto" onClick={() => setEditingCategory(false)} style={{ padding: "5px 8px", borderRadius: 20, fontSize: 11, background: "rgba(255,255,255,0.1)", color: "var(--surface)", border: "none", cursor: "pointer" }}>
                 <X size={11} />
               </button>
             </div>

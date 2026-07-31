@@ -314,7 +314,7 @@ export function ProgressLogModal({
                 <p style={{ fontSize: 12, color: "#94a3b8", margin: "2px 0 0" }}>Catat kegiatan &amp; dokumentasi hari ini</p>
               </div>
             </div>
-            <button onClick={handleClose} style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: "#f8fafc", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#94a3b8", flexShrink: 0 }}>
+            <button aria-label="Tutup dialog progres" onClick={handleClose} style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: "#f8fafc", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#94a3b8", flexShrink: 0 }}>
               <X size={15} />
             </button>
           </div>
@@ -565,7 +565,7 @@ export function ProgressLogModal({
                             </div>
                           )}
                           {!entry.uploading && (
-                            <button type="button" onClick={() => removePhoto(entry.id)}
+                            <button aria-label="Hapus foto" type="button" onClick={() => removePhoto(entry.id)}
                               style={{ position: "absolute", top: 4, right: 4, width: 20, height: 20, borderRadius: "50%", border: "none", background: "rgba(220,38,38,0.9)", color: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                               <X size={10} strokeWidth={2.5} />
                             </button>

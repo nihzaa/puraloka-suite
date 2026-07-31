@@ -56,7 +56,7 @@ const AKAR = join(import.meta.dirname, '..')
  * menjangkaunya. Itu bukan alasan membiarkannya: modal tetap dipakai manusia.
  * Ia dicatat sebagai hutang yang terukur, bukan diklaim beres.
  */
-const AMBANG = { select: 28, button: 62 }
+const AMBANG = { select: 28, button: 25 }
 
 /**
  * ⚠️ KENAPA ANGKANYA NAIK dari 83/52 — dan kenapa ini BUKAN pelanggaran

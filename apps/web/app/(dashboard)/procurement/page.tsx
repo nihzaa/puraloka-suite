@@ -689,7 +689,7 @@ function CreateMrModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
                     <label style={{ display: "block", fontSize: 11, fontWeight: 500, color: C.mid, marginBottom: 4 }}>Harga Est. (Rp)</label>
                     <input type="number" value={item.unit_price_est} onChange={e => updateItem(idx, "unit_price_est", e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }} placeholder="0" />
                   </div>
-                  <button onClick={() => removeItem(idx)} disabled={items.length <= 1} style={{ background: "none", border: "none", cursor: items.length <= 1 ? "not-allowed" : "pointer", color: C.danger, padding: 4, opacity: items.length <= 1 ? 0.3 : 1 }}>
+                  <button aria-label="Tutup dialog" onClick={() => removeItem(idx)} disabled={items.length <= 1} style={{ background: "none", border: "none", cursor: items.length <= 1 ? "not-allowed" : "pointer", color: C.danger, padding: 4, opacity: items.length <= 1 ? 0.3 : 1 }}>
                     <X size={16} />
                   </button>
                 </div>
@@ -1164,7 +1164,7 @@ function CreatePoModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
                     <label style={{ display: "block", fontSize: 11, fontWeight: 500, color: C.mid, marginBottom: 4 }}>Harga/Unit (Rp) *</label>
                     <input type="number" value={item.unit_price} onChange={e => updateItem(idx, "unit_price", e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }} />
                   </div>
-                  <button onClick={() => removeItem(idx)} disabled={items.length <= 1} style={{ background: "none", border: "none", cursor: items.length <= 1 ? "not-allowed" : "pointer", color: C.danger, padding: 4, opacity: items.length <= 1 ? 0.3 : 1 }}>
+                  <button aria-label="Tutup dialog" onClick={() => removeItem(idx)} disabled={items.length <= 1} style={{ background: "none", border: "none", cursor: items.length <= 1 ? "not-allowed" : "pointer", color: C.danger, padding: 4, opacity: items.length <= 1 ? 0.3 : 1 }}>
                     <X size={16} />
                   </button>
                 </div>

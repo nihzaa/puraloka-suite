@@ -105,7 +105,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
       }}>
         {toast.message}
       </p>
-      <button
+      <button aria-label="Tutup notifikasi"
         onClick={() => onDismiss(toast.id)}
         style={{
           background: "none", border: "none", cursor: "pointer", padding: 2,

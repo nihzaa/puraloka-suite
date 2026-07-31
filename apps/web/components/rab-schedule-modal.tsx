@@ -296,7 +296,7 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
                 <div style={{ fontSize: 11, color: C.muted }}>Per item RAB, per komponen, per minggu</div>
               </div>
             </div>
-            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: C.muted }}>
+            <button aria-label="Tutup dialog jadwal RAB" onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: C.muted }}>
               <X size={20} />
             </button>
           </div>
@@ -467,7 +467,7 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
                         )}
 
                         {/* Tombol hapus */}
-                        <button
+                        <button aria-label="Hapus baris jadwal"
                           onClick={() => deleteRow(idx)}
                           disabled={deleting === row.id}
                           style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: C.muted, opacity: deleting === row.id ? 0.4 : 1 }}
@@ -677,7 +677,7 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
                 <div style={{ fontSize: 11, color: C.muted }}>Input realisasi serapan per item per minggu · history tersimpan</div>
               </div>
             </div>
-            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: C.muted }}>
+            <button aria-label="Tutup dialog serapan" onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: C.muted }}>
               <X size={20} />
             </button>
           </div>
@@ -841,7 +841,7 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
                         </div>
                       )}
 
-                      <button
+                      <button aria-label="Hapus baris serapan"
                         onClick={() => deleteRow(idx)}
                         disabled={deleting === row.id}
                         style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: C.muted, opacity: deleting === row.id ? 0.4 : 1 }}

@@ -164,7 +164,7 @@ export function ContractGeneratorModal({ projectId, projectName, onClose }: Prop
             </h2>
             <p style={{ fontSize: 12, color: C.muted, margin: 0 }}>{projectName}</p>
           </div>
-          <button
+          <button aria-label="Tutup dialog kontrak"
             onClick={onClose}
             style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: C.muted, borderRadius: 6 }}
           >
