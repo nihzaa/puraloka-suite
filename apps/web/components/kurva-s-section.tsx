@@ -69,6 +69,12 @@ interface Meta {
   totalWeeks: number;
   hasRAB: boolean;
   hasSchedule: boolean;
+  /** Sumber kurva rencana — menentukan seberapa jauh SPI boleh dipercaya. */
+  rencanaSource?: 'rab_schedule' | 'gantt' | 'normal_cdf';
+  /** % NILAI pekerjaan yang punya tanggal rencana (bukan % jumlah baris). */
+  cakupanJadwalPct?: number;
+  itemBerjadwal?: number;
+  itemTotal?: number;
   totalRABValue: number;
   latestActualPct: number;
   latestSerapanPct: number;
@@ -289,15 +295,45 @@ export function KurvaSSection({ projectId, userRole }: Props) {
           <span>RAB belum diupload. Kurva rencana menggunakan distribusi normal. Upload RAB untuk akurasi lebih baik.</span>
         </div>
       )}
-      {meta.hasRAB && !meta.hasSchedule && !isClient && (
+      {/* Sumber kurva rencana — WAJIB terlihat.
+          SPI = EV / PV, jadi seluruh angka SPI hanya sekuat asal-usul PV-nya.
+          Sebelum ini banner hanya membedakan "ada jadwal manual" vs "tidak",
+          dan kalimat "pakai distribusi normal" TETAP tampil walau PV
+          sebenarnya sudah diturunkan dari tanggal Gantt — pesan yang salah
+          justru membuat pemakai meremehkan angka yang benar. */}
+      {meta.hasRAB && !meta.hasSchedule && !isClient && meta.rencanaSource === 'gantt' && (
         <div style={{
           display: "flex", alignItems: "center", gap: 8,
           padding: "10px 14px", borderRadius: 10, marginBottom: 16,
-          background: "#F0F9FF", border: `1px solid #BAE6FD`,
-          fontSize: 12, color: "#0369A1",
+          background: "#F0FDF4", border: `1px solid #BBF7D0`,
+          fontSize: 12, color: "#15803d",
         }}>
-          <AlertTriangle size={14} color="#0EA5E9" />
-          <span>Jadwal rencana serapan belum diinput. Kurva rencana pakai distribusi normal. Isi jadwal di halaman proyek untuk kurva yang akurat.</span>
+          <AlertTriangle size={14} color="#15803d" />
+          <span>
+            Kurva rencana diturunkan dari <strong>tanggal Gantt</strong>
+            {typeof meta.cakupanJadwalPct === 'number' && (
+              <> — mencakup <strong>{meta.cakupanJadwalPct}%</strong> nilai pekerjaan
+                {meta.itemBerjadwal != null && meta.itemTotal != null &&
+                  ` (${meta.itemBerjadwal} dari ${meta.itemTotal} kategori)`}</>
+            )}
+            . Isi jadwal per minggu di halaman proyek untuk rencana yang lebih rinci.
+          </span>
+        </div>
+      )}
+      {meta.hasRAB && !meta.hasSchedule && !isClient && meta.rencanaSource !== 'gantt' && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8,
+          padding: "10px 14px", borderRadius: 10, marginBottom: 16,
+          background: "#FFFBEB", border: `1px solid #FDE68A`,
+          fontSize: 12, color: "#B45309",
+        }}>
+          <AlertTriangle size={14} color="#D97706" />
+          <span>
+            <strong>SPI belum bisa dipercaya.</strong> Belum ada jadwal rencana
+            maupun tanggal Gantt, jadi kurva rencana memakai distribusi normal —
+            bentuk lonceng generik yang tidak mewakili rencana proyek ini.
+            Isi tanggal rencana di Gantt, atau jadwal per minggu di halaman proyek.
+          </span>
         </div>
       )}
 

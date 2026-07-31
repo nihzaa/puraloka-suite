@@ -1,6 +1,6 @@
 # STATUS — Puraloka Suite (penunjuk satu pintu)
 
-**Diperbarui:** 2026-07-31 (rev-6: E11 sistem tata letak + responsif · financial_config per-company (145) · rate-limit 429) · File ini adalah `STATUS.md` yang diwajibkan AUTOPILOT §2
+**Diperbarui:** 2026-07-31 (rev-7: 8 celah tenancy ditutup + gerbangnya jadi gate CI · 296 pelanggaran WCAG ditutup + penjaga a11y · PV EVM berjenjang dari tanggal Gantt · buku migrasi direkonsiliasi (20 migrasi tak tercatat)) · File ini adalah `STATUS.md` yang diwajibkan AUTOPILOT §2
 — penunjuk TIPIS, bukan duplikasi konten. Update tanggal + baris "Fase aktif" setiap
 kali keadaan berubah; detail selalu di dokumen rujukan.
 
