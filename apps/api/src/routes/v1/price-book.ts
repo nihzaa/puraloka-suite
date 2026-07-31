@@ -16,6 +16,7 @@ export default async function priceBookRoutes(app: FastifyInstance) {
   // ── GET /cecep/price-book — daftar harga (filter resource/status/lokasi) ────
   app.get<{ Querystring: {
     resource?: string; status?: string; location?: string; limit?: string; q?: string
+    category?: string
   } }>(
     '/api/v1/cecep/price-book',
     { preHandler: [authenticate, requirePermission('cecep:price:view')] },
@@ -30,14 +31,20 @@ export default async function priceBookRoutes(app: FastifyInstance) {
       // 2.637 entri sementara respons dibatasi 200 — tanpa ini, harga yang
       // berada di luar 200 teratas tak akan pernah bisa ditemukan, dan pemakai
       // menyimpulkan harganya belum ada lalu menginput duplikat.
+      // Pencarian teks DAN filter kategori (upah/bahan/alat) sama-sama
+      // diselesaikan lewat `resources` — keduanya menyempitkan daftar id yang
+      // sama, jadi digabung dalam satu query alih-alih dua kali bolak-balik.
       let idCari: string[] | null = null
       const cari = request.query.q?.trim()
-      if (cari) {
-        const aman = cari.replace(/[%,()]/g, ' ')
-        const { data: res } = await request.db!
-          .from('resources').select('id')
-          .or(`name.ilike.%${aman}%,code.ilike.%${aman}%`)
-          .limit(500)
+      const kategori = request.query.category?.trim()
+      if (cari || kategori) {
+        let qr = request.db!.from('resources').select('id').limit(3000)
+        if (cari) {
+          const aman = cari.replace(/[%,()]/g, ' ')
+          qr = qr.or(`name.ilike.%${aman}%,code.ilike.%${aman}%`)
+        }
+        if (kategori) qr = qr.eq('category', kategori)
+        const { data: res } = await qr
         idCari = (res ?? []).map((r) => r.id)
         // Nol resource cocok → nol harga. Dikembalikan lebih awal supaya
         // `.in()` dengan daftar kosong tak menghasilkan seluruh baris.

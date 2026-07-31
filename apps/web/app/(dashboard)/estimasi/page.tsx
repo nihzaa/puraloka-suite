@@ -2007,10 +2007,30 @@ function ChangeLogModal({ rapId, table, lineId, label, onClose, onDone }: {
 }
 
 // ══ TAB 3 — HARGA (PRICE BOOK) ════════════════════════════════════════════════
+/** Badge jenis harga pokok. Warna dibedakan, TAPI teksnya tetap ditulis —
+ *  membedakan hanya dengan warna menyulitkan yang buta warna. */
+function JenisHarga({ c }: { c: string }) {
+  const peta: Record<string, { label: string; warna: string; bg: string }> = {
+    labor: { label: "upah", warna: C.navy, bg: "var(--bg)" },
+    material: { label: "bahan", warna: C.green, bg: C.greenBg },
+    equipment: { label: "alat", warna: C.yellow, bg: C.yellowBg },
+  };
+  const p = peta[c];
+  if (!p) return null;
+  return (
+    <span style={{ marginLeft: 6, padding: "1px 6px", borderRadius: 999, fontSize: 10.5,
+      fontWeight: 700, color: p.warna, background: p.bg, whiteSpace: "nowrap" }}>
+      {p.label}
+    </span>
+  );
+}
+
 function HargaTab() {
   const [entries, setEntries] = useState<PriceEntry[]>([]);
   const [total, setTotal] = useState<number | null>(null);
   const [status, setStatus] = useState("");
+  /** labor = upah · material = bahan · equipment = alat (kolom resources.category) */
+  const [kategori, setKategori] = useState("");
   const [cari, setCari] = useState("");
   const [showNew, setShowNew] = useState(false);
   const [prefill, setPrefill] = useState<{ code: string; name: string; unit_code: string } | null>(null);
@@ -2023,12 +2043,13 @@ function HargaTab() {
   const load = useCallback(async () => {
     const p = new URLSearchParams();
     if (status) p.set("status", status);
+    if (kategori) p.set("category", kategori);
     p.set("limit", "5000");
     const r = await api.get<{ data: PriceEntry[]; total: number | null }>(
       `/api/v1/cecep/price-book?${p}`);
     setEntries(r.data.data ?? []);
     setTotal(r.data.total ?? null);
-  }, [status]);
+  }, [status, kategori]);
 
   // Dibungkus lewat batas asinkron: `load()` menulis state di awal jalannya,
   // dan memanggilnya sinkron dari effect memicu render beruntun
@@ -2058,7 +2079,18 @@ function HargaTab() {
   return (
     <div>
       <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
-        <select value={status} onChange={e => setStatus(e.target.value)} style={{ ...inputStyle, width: 180 }}>
+        {/* Upah / bahan / alat sudah terpisah di `resources.category` — tinggal
+            disaring. Berguna karena keduanya diperlakukan berbeda: upah berubah
+            per kesepakatan mandor, harga bahan per supplier. */}
+        <select value={kategori} onChange={e => setKategori(e.target.value)}
+          aria-label="Saring jenis harga pokok" style={{ ...inputStyle, width: 170 }}>
+          <option value="">Semua jenis</option>
+          <option value="labor">Upah (tenaga kerja)</option>
+          <option value="material">Bahan / material</option>
+          <option value="equipment">Alat / peralatan</option>
+        </select>
+        <select value={status} onChange={e => setStatus(e.target.value)}
+          aria-label="Saring status harga" style={{ ...inputStyle, width: 160 }}>
           <option value="">Semua status</option>
           <option value="draft">draft</option><option value="verified">verified</option>
           <option value="active">active</option><option value="expired">expired</option>
@@ -2108,7 +2140,14 @@ function HargaTab() {
             {vhTop > 0 && <tr aria-hidden="true"><td colSpan={8} style={{ height: vhTop, padding: 0 }} /></tr>}
             {terlihat.slice(vhMulai, vhAkhir).map(en => (
               <tr key={en.id}>
-                <td style={td}><b>{en.resource?.name}</b><br /><code style={{ fontSize: 11, color: C.muted }}>{en.resource?.code}</code></td>
+                <td style={td}>
+                  <b>{en.resource?.name}</b>
+                  {/* Jenis ditandai per baris, bukan hanya lewat filter: upah
+                      dan bahan diperlakukan berbeda saat memutuskan harga, dan
+                      keduanya berdampingan di daftar yang sama. */}
+                  {en.resource?.category && <JenisHarga c={en.resource.category} />}
+                  <br /><code style={{ fontSize: 11, color: C.muted }}>{en.resource?.code}</code>
+                </td>
                 <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{fmtRp(Number(en.amount))}</td>
                 <td style={td}>{en.resource?.unit_code}</td>
                 <td style={td}>{en.effective_date}{en.expired_date ? ` → ${en.expired_date}` : ""}</td>
