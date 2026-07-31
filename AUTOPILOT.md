@@ -126,6 +126,41 @@ Slice belum "done" sampai semua benar: test slice hijau + full suite hijau; type
 
 **DoD tambahan untuk item config ember [A] (§12):** belum "done" sampai bisa **diubah dari halaman UI pengaturan** — tersimpan di DB saja **tidak cukup**. Live E2E wajib untuk apa pun yang menulis ke DB (pelajaran bug UUID: unit test ber-mock tak kena constraint DB).
 
+### 9a. JALUR HIDUP — syarat yang menutup celah "benar tapi mati"
+
+**Tabel, lib, atau endpoint baru belum "done" sampai ada jalur pemakaian yang
+bisa ditunjuk, DAN jalur itu dibuktikan dengan angka pemakaian nyata.**
+
+Ditambahkan 2026-07-31 setelah lima kasus ditemukan dalam satu hari — semuanya
+**lolos seluruh DoD di atas** dan tetap mati:
+
+| Yang dibangun | Test | Endpoint | UI | Kenyataan |
+|---|---|---|---|---|
+| ACL cost code (migrasi 112) | ✅ ber-test | ❌ nol | ❌ | **0 baris** selama berbulan-bulan |
+| `cashflow-forecast.ts` | ✅ ber-test | ✅ ada | ❌ | **nol pemanggil** dari web |
+| Kuota RAB (migrasi 043) | ✅ ber-test | ❌ | ❌ | **tabelnya tak pernah terbentuk** |
+| Jejak pengiriman PO | — | ❌ | tautan mati | `whatsapp_sent_at` terisi **0 dari 4** |
+| 423 analisa perusahaan | — | ✅ | ✅ ada | **tak pernah muncul** (filter membuangnya) |
+
+Tak satu pun melanggar §9. Semuanya "done" menurut commit. Yang kurang bukan
+kualitas kode — melainkan pertanyaan yang tak pernah ditanyakan: *siapa yang
+memakainya, dan apakah benar-benar dipakai.*
+
+**Yang wajib diperiksa sebelum menyatakan done:**
+
+1. **Tunjuk pemanggilnya.** Tabel baru → endpoint mana yang membacanya/menulisnya?
+   Lib baru → route mana yang memanggilnya? Endpoint baru → berkas UI mana yang
+   memanggilnya? Jawab dengan `grep`, bukan dengan ingatan.
+2. **Hitung pemakaiannya.** `SELECT count(*)` pada tabel baru; `grep -c` pada
+   nama endpoint di `apps/web`. **Nol adalah kegagalan**, bukan "belum sempat".
+3. **Verifikasi objeknya benar-benar ada.** `pg_class`/`pg_attribute` lewat
+   koneksi baru — bukan "migrasi jalan tanpa error". Migrasi 043 tercatat sukses
+   dengan 9 statement dan tabelnya tak pernah ada.
+4. **Kalau memang belum ada pemakainya**, tulis eksplisit di ROADMAP sebagai
+   item terbuka dengan gerbangnya — jangan tandai done.
+
+Pemeriksa otomatis: `node apps/api/scripts/audit-jalur-hidup.mjs`
+
 ---
 
 ## 11. OTORITAS DOMAIN (config-first)
