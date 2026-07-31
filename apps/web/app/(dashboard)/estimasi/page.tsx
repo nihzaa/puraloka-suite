@@ -18,6 +18,7 @@ import {
   Calculator, Plus, X, ChevronRight, ChevronDown, BookOpen, Coins,
   Layers, Send, Trash2, CheckCircle2, BadgeCheck, PlayCircle, CircleOff, Pencil,
   Lock, ClipboardList, Package, HardHat, History, TrendingUp, Info,
+  Scale, AlertTriangle,
 } from "lucide-react";
 
 const C = {
@@ -36,6 +37,25 @@ interface Project { id: string; name: string }
 interface Edition { id: string; code: string; name: string; publish_date: string | null; source_sha256: string | null; is_active: boolean }
 interface VersionSummary { id: string; version_number: number; status: string; total_amount: number }
 interface Scenario { id: string; name: string; purpose: string | null; status: string; versions: VersionSummary[] }
+interface CostCodeRingkas { id: string; code: string; name: string; status: string }
+interface CostMapBaris {
+  category_id: string; category_name: string; type: string | null;
+  cost_code: CostCodeRingkas | null;
+}
+interface CostMapResponse { data: CostMapBaris[]; belum_dipetakan: number }
+interface VariansBaris {
+  cost_code_id: string | null; code: string; name: string; status: string;
+  pagu: number; commitment: number; actual: number; exposure: number;
+  variance: number | null; serapan_pct: number | null; jumlah_kategori: number;
+}
+interface VariansResponse {
+  data: VariansBaris[];
+  meta: {
+    total_actual: number; commitment_total: number; exposure_total: number;
+    jumlah_po_mengikat: number; kategori_total: number; kategori_dipetakan: number;
+    actual_belum_dipetakan: number;
+  };
+}
 interface CashflowPeriod { period: number; disbursement: number; cumulative: number }
 interface CashflowResponse {
   estimate_version_id: string; status: string;
@@ -2193,6 +2213,254 @@ function KpiKas({ label, nilai, ket }: { label: string; nilai: string; ket?: str
   );
 }
 
+// ══ TAB: VARIANS BIAYA per COST CODE ══════════════════════════════════════════
+// ROADMAP #9. Migrasi 112 membangun ACL `cost_code_category_map` supaya belanja
+// existing (yang hanya punya category_id) bisa dibaca per Cost Code. Tabelnya
+// lahir ber-test tapi ISINYA 0 BARIS dan nol endpoint memakainya.
+//
+// Dua fungsi tab ini, berurutan:
+//   1. ALAT PEMETAAN — tanpa peta terisi, laporan varians tak punya bahan.
+//      Itu sebabnya bagian "belum dipetakan" ditaruh di ATAS, bukan disembunyikan.
+//   2. LAPORAN — pagu vs commitment vs actual, dengan exposure sebagai angka
+//      yang sesungguhnya menentukan apakah anggaran akan jebol.
+function VariansTab() {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectId, setProjectId] = useState("");
+  const [peta, setPeta] = useState<CostMapResponse | null>(null);
+  const [varians, setVarians] = useState<VariansResponse | null>(null);
+  const [costCodes, setCostCodes] = useState<CostCodeRingkas[]>([]);
+  const [bukaPeta, setBukaPeta] = useState(false);
+  const [memuat, setMemuat] = useState(false);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    api.get<{ projects: Project[] }>("/api/v1/projects")
+      .then(r => setProjects(r.data.projects ?? [])).catch(() => {});
+    api.get<{ data: CostCodeRingkas[] }>("/api/v1/cost-codes")
+      .then(r => setCostCodes(r.data.data ?? [])).catch(() => {});
+  }, []);
+
+  const muat = useCallback(async (pid: string) => {
+    if (!pid) return;
+    setMemuat(true); setErr("");
+    try {
+      const [p, v] = await Promise.all([
+        api.get<CostMapResponse>(`/api/v1/projects/${pid}/cost-map`),
+        api.get<VariansResponse>(`/api/v1/projects/${pid}/varians`),
+      ]);
+      setPeta(p.data); setVarians(v.data);
+    } catch (e) {
+      setErr((e as { response?: { data?: { error?: string } } }).response?.data?.error
+        ?? "Gagal memuat data varians");
+    } finally { setMemuat(false); }
+  }, []);
+
+  useEffect(() => {
+    if (!projectId) return;
+    let batal = false;
+    void Promise.resolve().then(() => { if (!batal) return muat(projectId); });
+    return () => { batal = true; };
+  }, [projectId, muat]);
+
+  async function simpanPeta(categoryId: string, costCodeId: string) {
+    setErr("");
+    try {
+      await api.put(`/api/v1/cost-map/${categoryId}`,
+        { cost_code_id: costCodeId || null });
+      await muat(projectId);
+    } catch (e) {
+      setErr((e as { response?: { data?: { error?: string } } }).response?.data?.error
+        ?? "Gagal menyimpan pemetaan");
+    }
+  }
+
+  const m = varians?.meta;
+
+  return (
+    <div>
+      <div style={{ marginBottom: 16 }}>
+        <label htmlFor="vr-proyek" style={LBL}>Proyek</label>
+        <select id="vr-proyek" value={projectId}
+          onChange={e => { setProjectId(e.target.value); setPeta(null); setVarians(null); }}
+          style={SEL}>
+          <option value="">— pilih proyek —</option>
+          {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </div>
+
+      {err && (
+        <div role="alert" style={{ padding: "10px 12px", background: C.redBg, color: C.red,
+          borderRadius: 8, fontSize: 13, marginBottom: 14 }}>{err}</div>
+      )}
+
+      {!projectId && !memuat && (
+        <div style={{ padding: "40px 20px", textAlign: "center", color: C.muted, fontSize: 13,
+          border: `1px dashed ${C.border}`, borderRadius: 10 }}>
+          Pilih proyek untuk melihat belanja nyata dikelompokkan per Cost Code.
+        </div>
+      )}
+
+      {memuat && <div style={{ padding: 24, color: C.mid, fontSize: 13 }}>Memuat…</div>}
+
+      {varians && peta && !memuat && (
+        <>
+          {/* ── Peringatan pemetaan. Ditaruh PALING ATAS karena selama peta
+                 kosong, seluruh belanja jatuh ke satu baris "belum dipetakan"
+                 dan laporannya belum berguna. Ini bukan error — ini pekerjaan
+                 yang menunggu, dan pengguna berhak tahu persis berapa. ─── */}
+          {peta.belum_dipetakan > 0 && (
+            <div style={{ display: "flex", gap: 9, alignItems: "flex-start", padding: "11px 13px",
+              background: C.yellowBg, borderRadius: 8, fontSize: 12.5, color: C.text, marginBottom: 14 }}>
+              <AlertTriangle size={15} style={{ color: C.yellow, flexShrink: 0, marginTop: 1 }} aria-hidden="true" />
+              <span>
+                <strong>{peta.belum_dipetakan} dari {peta.data.length} kategori belanja
+                belum dipetakan</strong> ke Cost Code
+                {m && m.actual_belum_dipetakan > 0 && (
+                  <> — mencakup <strong>{fmtRp(m.actual_belum_dipetakan)}</strong> belanja
+                  yang belum bisa dibaca per pos pekerjaan</>)}.
+                {" "}Petakan di bagian bawah halaman ini.
+              </span>
+            </div>
+          )}
+
+          {/* ── KPI ───────────────────────────────────────────────────────── */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: 10, marginBottom: 16 }}>
+            <KpiKas label="Belanja aktual" nilai={fmtRp(m?.total_actual ?? 0)}
+              ket="expense approved/paid" />
+            <KpiKas label="Commitment (PO)" nilai={fmtRp(m?.commitment_total ?? 0)}
+              ket={`${m?.jumlah_po_mengikat ?? 0} PO mengikat — uang belum keluar`} />
+            <KpiKas label="Exposure" nilai={fmtRp(m?.exposure_total ?? 0)}
+              ket="aktual + commitment" />
+            <KpiKas label="Kategori dipetakan"
+              nilai={`${m?.kategori_dipetakan ?? 0} / ${m?.kategori_total ?? 0}`}
+              ket="makin lengkap, makin tajam laporannya" />
+          </div>
+
+          {/* ── Kenapa kolom pagu & commitment per baris kosong ──────────── */}
+          <div style={{ display: "flex", gap: 9, alignItems: "flex-start", padding: "10px 12px",
+            background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8,
+            fontSize: 12, color: C.mid, marginBottom: 14 }}>
+            <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} aria-hidden="true" />
+            <span>
+              Kolom <strong>pagu</strong> dan <strong>commitment per baris</strong> belum terisi:
+              RAP menyimpan pagu per <em>resource</em> dan PO menunjuk <em>material</em>, sementara
+              jembatan keduanya ke Cost Code belum ada. Ditampilkan sebagai “—” (belum diketahui),
+              bukan Rp 0 — supaya tak ada baris yang tampak jebol anggaran padahal pagunya
+              memang belum diketahui.
+            </span>
+          </div>
+
+          {/* ── Tabel varians ─────────────────────────────────────────────── */}
+          <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden", marginBottom: 20 }}>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <caption style={{ captionSide: "top", textAlign: "left", padding: "10px 14px",
+                  fontSize: 12.5, color: C.mid, background: C.surface }}>
+                  Belanja nyata dikelompokkan per Cost Code — urut exposure terbesar.
+                </caption>
+                <thead>
+                  <tr style={{ background: C.bg }}>
+                    <th scope="col" style={TH}>Cost Code</th>
+                    <th scope="col" style={{ ...TH, textAlign: "right" }}>Aktual</th>
+                    <th scope="col" style={{ ...TH, textAlign: "right" }}>Pagu</th>
+                    <th scope="col" style={{ ...TH, textAlign: "right" }}>Sisa</th>
+                    <th scope="col" style={{ ...TH, textAlign: "right" }}>Kategori</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {varians.data.length === 0 && (
+                    <tr><td colSpan={5} style={{ ...TD, textAlign: "center", color: C.muted, padding: 24 }}>
+                      Belum ada belanja approved/paid di proyek ini.
+                    </td></tr>
+                  )}
+                  {varians.data.map(b => {
+                    const belum = b.cost_code_id === null;
+                    return (
+                      <tr key={b.cost_code_id ?? "unmapped"} style={{ borderTop: `1px solid ${C.border}` }}>
+                        <td style={TD}>
+                          <div style={{ fontWeight: belum ? 500 : 600,
+                            color: belum ? C.yellow : C.text }}>{b.name}</div>
+                          {!belum && <div style={{ fontSize: 11, color: C.muted }}>{b.code}</div>}
+                        </td>
+                        <td style={{ ...TD, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                          {fmtRp(b.actual)}
+                        </td>
+                        <td style={{ ...TD, textAlign: "right", color: C.muted }}>
+                          {b.variance === null ? "—" : fmtRp(b.pagu)}
+                        </td>
+                        <td style={{ ...TD, textAlign: "right", fontVariantNumeric: "tabular-nums",
+                          color: b.variance === null ? C.muted : b.variance < 0 ? C.red : C.green }}>
+                          {b.variance === null ? "—" : fmtRp(b.variance)}
+                        </td>
+                        <td style={{ ...TD, textAlign: "right", color: C.mid }}>{b.jumlah_kategori}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* ── Alat pemetaan ─────────────────────────────────────────────── */}
+          <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
+            <button type="button" onClick={() => setBukaPeta(v => !v)}
+              aria-expanded={bukaPeta}
+              style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "12px 14px",
+                background: C.surface, border: "none", cursor: "pointer", fontSize: 13.5,
+                fontWeight: 700, color: C.text, textAlign: "left" }}>
+              {bukaPeta ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+              Pemetaan kategori belanja → Cost Code
+              <span style={{ fontWeight: 500, color: C.mid, fontSize: 12.5 }}>
+                ({peta.data.length - peta.belum_dipetakan}/{peta.data.length} terpetakan)
+              </span>
+            </button>
+
+            {bukaPeta && (
+              <div style={{ overflowX: "auto", borderTop: `1px solid ${C.border}` }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ background: C.bg }}>
+                      <th scope="col" style={TH}>Kategori belanja</th>
+                      <th scope="col" style={TH}>Cost Code</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {peta.data.map(k => (
+                      <tr key={k.category_id} style={{ borderTop: `1px solid ${C.border}` }}>
+                        <td style={TD}>
+                          {k.category_name}
+                          {k.type && <span style={{ fontSize: 11, color: C.muted }}> · {k.type}</span>}
+                        </td>
+                        <td style={{ ...TD, padding: "6px 14px" }}>
+                          <label htmlFor={`cc-${k.category_id}`} style={{
+                            position: "absolute", width: 1, height: 1, overflow: "hidden",
+                            clip: "rect(0 0 0 0)", whiteSpace: "nowrap" }}>
+                            Cost Code untuk kategori {k.category_name}
+                          </label>
+                          <select id={`cc-${k.category_id}`}
+                            value={k.cost_code?.id ?? ""}
+                            onChange={e => void simpanPeta(k.category_id, e.target.value)}
+                            style={{ ...SEL, minWidth: 260, minHeight: 34, padding: "6px 8px" }}>
+                            <option value="">— belum dipetakan —</option>
+                            {costCodes.map(c => (
+                              <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
+                            ))}
+                          </select>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ══ PAGE ══════════════════════════════════════════════════════════════════════
 const TABS = [
   { key: "komposer", label: "Komposer", icon: Calculator },
@@ -2200,6 +2468,7 @@ const TABS = [
   { key: "harga", label: "Harga", icon: Coins },
   { key: "rap", label: "Material & RAP", icon: ClipboardList },
   { key: "cashflow", label: "Proyeksi Kas", icon: TrendingUp },
+  { key: "varians", label: "Varians Biaya", icon: Scale },
 ] as const;
 
 export default function EstimasiPage() {
@@ -2230,6 +2499,7 @@ export default function EstimasiPage() {
       {tab === "harga" && <HargaTab />}
       {tab === "rap" && <RapTab />}
       {tab === "cashflow" && <CashflowTab />}
+      {tab === "varians" && <VariansTab />}
     </div>
   );
 }
