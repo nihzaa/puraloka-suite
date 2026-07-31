@@ -27,7 +27,7 @@ jobs:
 
       - uses: pnpm/action-setup@v4
         with:
-          version: 11.5.2
+          version: 11.8.0
 
       - uses: actions/setup-node@v4
         with:
@@ -38,8 +38,12 @@ jobs:
         run: pnpm install --frozen-lockfile
         working-directory: .
 
-      - name: Lint
-        run: pnpm lint
+      # A3: ratchet, bukan `pnpm lint` polos. `no-explicit-any` sebelumnya
+      # di-set "off" padahal `01-coding-standards.md` MUST #3 menyebut rule
+      # itu sebagai mekanisme verifikasinya sendiri. Kini `warn` + jumlahnya
+      # dikunci per-rule — lihat apps/api/scripts/lint-ratchet.mjs.
+      - name: Lint (ratchet — nol error, warning tak boleh bertambah)
+        run: pnpm lint:ratchet
 
       - name: Typecheck
         run: pnpm exec tsc --noEmit
@@ -81,3 +85,130 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+  # ── A1 (STATUS.md §AUDIT) — apps/web SEBELUMNYA SAMA SEKALI DI LUAR CI ─────
+  # Sampai 2026-07-31 hanya job `api` yang ada: frontend bisa rusak (tsc error,
+  # build gagal, lint error baru) tanpa CI tahu, dan seluruh aturan WCAG yang
+  # hidup di sisi web tak pernah tersentuh penegakan apa pun.
+  #
+  # SENGAJA tanpa `needs: api` — kegagalan frontend harus terlihat cepat dan
+  # tak menunggu test DB yang ~12 menit. Job ini juga tidak menyentuh DB sama
+  # sekali, jadi tak ikut antre di concurrency group project CI.
+  web:
+    name: Web — lint (ratchet), typecheck, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.8.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: .
+
+      # ⚠️ Ketiga step di bawah memanggil binari LANGSUNG, bukan `pnpm <script>`.
+      # Sengaja, jangan "dirapikan" jadi `pnpm lint:ratchet` dst.
+      #
+      # pnpm v11 menjalankan pemeriksaan status dependensi sebelum setiap
+      # `pnpm run`. Pemeriksaan itu tak bisa memverifikasi `xlsx` yang dipasang
+      # dari tarball CDN sheetjs — untuk paket ber-URL tarball, entri `snapshots:`
+      # di lockfile v9 memang kosong (`{}`, pnpm-lock.yaml:14900) sementara
+      # `integrity`-nya hidup di blok `packages:` (:7072). Job mati dengan
+      # ERR_PNPM_MISSING_TARBALL_INTEGRITY *setelah* install BERHASIL
+      # (run 30598129116: install lulus 19 detik, `pnpm lint:ratchet` yang gagal).
+      #
+      # `verifyDepsBeforeRun: false` di pnpm-workspace.yaml mematikannya secara
+      # lokal tapi TIDAK di CI. Memanggil binari langsung melewati jalur itu
+      # sepenuhnya — tak bergantung pada perilaku config pnpm sama sekali.
+
+      # Ratchet, bukan `eslint` polos: 315 error menumpuk selama web di luar
+      # CI. Aturannya diturunkan ke `warn` (eslint.config.mjs) lalu jumlahnya
+      # DIKUNCI per-rule — boleh turun, tak boleh naik. Nol error tetap wajib.
+      # Alasan lengkap: apps/web/scripts/lint-ratchet.mjs
+      - name: Lint (ratchet — nol error, warning tak boleh bertambah)
+        run: node scripts/lint-ratchet.mjs
+
+      - name: Typecheck
+        run: ./node_modules/.bin/tsc --noEmit
+
+      # Env dummy khusus build. `lib/supabase.ts` memanggil createClient() di
+      # module scope, jadi klien ikut dievaluasi saat Next.js MEM-PRERENDER
+      # halaman — `/auth/callback` mati dengan "supabaseUrl is required" kalau
+      # variabelnya kosong (run 30598325258). Build lokal lolos hanya karena ada
+      # .env.local, jadi kegagalan ini memang cuma muncul di CI.
+      #
+      # Nilai dummy aman: yang diuji step ini adalah apakah proyek BISA di-build,
+      # bukan apakah ia bisa bicara dengan Supabase. Tak ada halaman yang menarik
+      # data build-time dari Supabase — semuanya client-side atau dynamic.
+      # Memakai kredensial asli di sini justru menaruh rahasia di log CI.
+      - name: Build
+        run: ./node_modules/.bin/next build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_KEY: sb_publishable_placeholder_untuk_build_ci
+          NEXT_PUBLIC_API_URL: http://localhost:3001
+          NEXT_PUBLIC_VAPID_PUBLIC_KEY: ''
+
+  # ── A2 (STATUS.md §AUDIT) — dependency & secret scanning ──────────────────
+  # `11-devsecops-standard.md` MUST #4 (secret scanning) & MUST #5 (`pnpm audit`
+  # memblokir merge untuk CVE Critical/High) adalah SATU-SATUNYA item ber-label
+  # Critical yang masih terbuka sampai 2026-07-31 — nol penegakan di workflow
+  # mana pun. `23-dependency-management.md` MUST #2 bergantung penuh padanya.
+  #
+  # Relevansinya naik karena repo ini SEMPAT PUBLIK dengan 4 password test di
+  # riwayat git (repo dijadikan private 2026-07-31, tapi riwayatnya tetap ada).
+  keamanan:
+    name: Keamanan — dependency audit + secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Secret scan butuh riwayat penuh: rahasia yang di-commit lalu dihapus
+          # di commit berikutnya TETAP ada di riwayat dan tetap bisa dipulihkan.
+          # Depth 1 hanya melihat snapshot terakhir — persis yang gagal ditangkap.
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.8.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # MUST #5: Critical/High memblokir merge. Moderate/Low dilaporkan tapi
+      # tidak memblokir — ambang ini yang tertulis di standar, bukan pilihan
+      # sembarang. Kalau gagal: upgrade paketnya, jangan longgarkan ambang.
+      - name: Dependency audit (Critical/High memblokir)
+        run: pnpm audit --audit-level=high
+
+      # MUST #4: secret scanning atas SELURUH riwayat (fetch-depth: 0 di atas),
+      # bukan hanya diff PR — rahasia lama yang belum dirotasi tetap terdeteksi.
+      #
+      # Binary langsung, BUKAN `gitleaks/gitleaks-action@v2`: action resmi
+      # menuntut `GITLEAKS_LICENSE` untuk repo milik organisasi dan gagal tanpa
+      # itu. Memanggil binary-nya sendiri bebas lisensi, versinya ter-pin
+      # (hasilnya reproducible), dan perilakunya identik dengan yang bisa
+      # dijalankan siapa pun secara lokal untuk memverifikasi ulang:
+      #   gitleaks detect --source . --config .gitleaks.toml --redact
+      - name: Secret scan (gitleaks)
+        run: |
+          VERSI=8.30.1
+          curl -sSL -o /tmp/gitleaks.tar.gz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${VERSI}/gitleaks_${VERSI}_linux_x64.tar.gz"
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          /tmp/gitleaks detect --source . --config .gitleaks.toml --redact --no-banner --verbose

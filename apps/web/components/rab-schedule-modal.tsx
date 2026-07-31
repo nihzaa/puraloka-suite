@@ -87,7 +87,7 @@ function generateWeeks(startDate: string, endDate: string): Array<{ week_start: 
   const weeks: Array<{ week_start: string; week_number: number }> = [];
   const start = getMondayOf(new Date(startDate));
   const end = new Date(endDate);
-  let current = new Date(start);
+  const current = new Date(start);
   let num = 1;
   while (current <= end) {
     weeks.push({

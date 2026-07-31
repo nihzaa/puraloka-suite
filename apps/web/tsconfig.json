@@ -19,8 +19,58 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
-    }
+      "@/*": ["./*"],
+      // Kunci `react`/`react-dom` ke SATU salinan tipe (React 19 milik web).
+      //
+      // Tanpa ini, file .d.ts di dalam `node_modules/.pnpm/` yang meng-import
+      // 'react' ter-resolve ke direktori HOIST pnpm
+      // (`node_modules/.pnpm/node_modules/@types/react`) yang berisi 18.3.31 —
+      // versi milik apps/mobile (Expo/React Native belum mendukung React 19).
+      // Akibatnya DUA definisi React termuat sekaligus; `LegacyRef` React 18
+      // (masih mengizinkan string ref) bentrok dengan `Ref` React 19 →
+      // 5 error TS2322 di components/ui/*.tsx padahal kodenya benar.
+      //
+      // Diverifikasi dengan `tsc --listFiles`: sebelum baris ini, kedua
+      // index.d.ts (18 dan 19) sama-sama muncul di daftar file.
+      // `typeRoots`/`types` saja tidak cukup — keduanya mengatur pemuatan
+      // OTOMATIS, sedangkan ini jalur `import` eksplisit dari dalam .pnpm/.
+      "react": ["./node_modules/@types/react"],
+      "react-dom": ["./node_modules/@types/react-dom"],
+      // `jsx: "react-jsx"` membuat TS meng-import `react/jsx-runtime` secara
+      // implisit di SETIAP file .tsx. Tanpa dipetakan juga, jalur itu lolos ke
+      // hoist pnpm dan menarik `jsx-runtime.d.ts` React 18 — yang mendefinisikan
+      // ulang `JSX.IntrinsicElements`, sumber bentrok `ref` yang sebenarnya.
+      "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime"],
+      "react/jsx-dev-runtime": ["./node_modules/@types/react/jsx-dev-runtime"]
+    },
+    // Batasi @types yang dimuat OTOMATIS hanya ke milik apps/web sendiri.
+    //
+    // Kenapa perlu: monorepo pnpm ini punya DUA versi @types/react hidup
+    // berdampingan — web di React 19, `apps/mobile` di React 18 (Expo belum
+    // mendukung 19). Keduanya tersimpan di store `.pnpm/` yang sama, dan
+    // TypeScript memuat @types secara otomatis dengan MEMINDAI DIREKTORI —
+    // bukan lewat resolusi dependency. Jadi @types/react@18 ikut termuat
+    // walau ia sama sekali bukan bagian dari pohon dependency web
+    // (diverifikasi: `pnpm ls --filter web` tak memuatnya).
+    //
+    // Akibatnya `LegacyRef` React 18 (yang masih mengizinkan string ref)
+    // bentrok dengan `Ref` React 19 → 5 error TS2322 di components/ui/*.tsx,
+    // padahal kodenya benar (`React.ComponentProps<"span">`, pola resmi 19).
+    //
+    // Error ini SUDAH ADA sebelum job CI web dipasang — diverifikasi dengan
+    // `git stash` lalu typecheck ulang: 5 error yang sama. Tak pernah terlihat
+    // justru karena `apps/web` tak pernah masuk CI (itulah A1).
+    //
+    // `typeRoots` + `types: []` dipakai bersama: typeRoots membatasi TEMPAT
+    // pencarian, `types: []` mematikan pemuatan-otomatis seluruhnya sehingga
+    // hanya tipe yang benar-benar di-`import` yang termuat. Menyamakan versi
+    // React kedua app BUKAN solusi — itu akan merusak mobile.
+    "typeRoots": ["./node_modules/@types"],
+    // Paksa SATU definisi React saja. Tanpa ini, `next-env.d.ts` yang
+    // me-`reference types="next"` ikut menarik @types/react@18 (dibundel di
+    // `next/dist/compiled/@vercel/og`, jadi tak bisa diatasi lewat pnpm
+    // override — ia bukan dependency, ia file di dalam paket next).
+    "types": ["react", "react-dom", "node"]
   },
   "include": [
     "next-env.d.ts",

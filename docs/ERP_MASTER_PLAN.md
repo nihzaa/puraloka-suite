@@ -1,8 +1,25 @@
 # Puraloka Suite — ERP Master Plan
+
+> ## ⚠️ DAFTAR PEKERJAAN DI SINI SUDAH DIGANTI — lihat [`ROADMAP.md`](./ROADMAP.md)
+>
+> **Yang masih berlaku:** RANCANGAN TEKNIS tiap modul — Modul 9a (rumus
+> validasi kuota RAB di MR), 9b (PO ke WhatsApp/email), 10 (Chart of Accounts +
+> tabel auto-jurnal per event bisnis), 11, 12. Isinya konkret dan siap
+> dieksekusi.
+>
+> **Yang SUDAH TIDAK berlaku:** tabel status dan checklist FASE 0–7 di bawah.
+> Contoh nyata: Modul 4 (E-Procurement) masih tertulis "🔴 Not Started" padahal
+> live sejak migrasi 039–042; seluruh checklist FASE 2 masih `[ ]` padahal
+> sudah selesai. Status terverifikasi-ke-kode ada di `ROADMAP.md` dan
+> `ERP-KONTRAKTOR-TAKSONOMI-MENU.md`.
+>
+> Baca dokumen ini untuk **"bagaimana modul X dirancang"** — bukan untuk
+> **"apa yang sudah/belum dikerjakan"**.
+
 **Versi**: 2.0  
 **Dibuat**: 2026-06-15  
 **Diupdate**: 2026-06-17  
-**Status**: Active — Phase 1–6 selesai, Phase 7 (GL) dan Modul 9–13 belum dimulai
+**Status**: RANCANGAN dipakai · tabel status SUPERSEDED oleh `ROADMAP.md` (2026-07-31)
 
 ---
 

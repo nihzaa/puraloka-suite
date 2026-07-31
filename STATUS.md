@@ -508,8 +508,9 @@ Phase 1 (Program A) ✅ · Phase 2 (Program B) ✅.
 
 | Butuh | Baca |
 |---|---|
+| **"Apa pekerjaan berikutnya?"** | **`docs/ROADMAP.md`** ← satu-satunya daftar pekerjaan + tracker |
 | Log berjalan harian (per-migration/PR) | `docs/DEVELOPMENT_LOG.md` |
-| Peta prioritas + registry semua dokumen rencana (mana AKTIF/STALE) | `docs/PETA-PRIORITAS-ERP.md` ← **dokumen induk** |
+| Registry dokumen rencana (mana AKTIF/STALE) | `docs/PETA-PRIORITAS-ERP.md` (§3-nya SUPERSEDED oleh ROADMAP) |
 | Status per-menu ERP terverifikasi kode | `docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md` |
 | Strategi multi-tenant (AKTIF, ACCEPTED) | `.../Engineering-Constitution/adr/ADR-011-multi-tenant-strategy.md` |
 | Klasifikasi 94 tabel A/AB/B/C/D + 3 temuan T1 | `.../Engineering-Constitution/adr/ADR-011-T1-AUDIT-KLASIFIKASI-TABEL.md` |
@@ -539,16 +540,54 @@ kode bilang "sudah") — jangan percaya ketiganya lagi:
 | Taksonomi + `02-security`: "trigger append-only 073 masih DORMAN" | **Sudah aktif** — `tgenabled='O'` |
 | `Engineering-Constitution/08-testing`: "nol infrastruktur test" | **883 test hijau** — badge beku sejak v1.1 Juli-18 |
 
-**Gap NYATA yang terverifikasi (belum dikerjakan, urut dampak):**
-1. **`apps/web` sama sekali di luar CI** — `ci.yml` hanya punya job `api`.
-   Frontend bisa rusak tanpa ketahuan. Termasuk seluruh aturan WCAG yang hidup di web.
-2. **Nol dependency scanning & secret scanning** — `11-devsecops` MUST #4/#5,
-   satu-satunya item ber-label **Critical** yang tersisa. `grep audit .github/workflows/` → nihil.
-3. **`@typescript-eslint/no-explicit-any` di-set `"off"`** di `apps/api/eslint.config.mjs`,
-   padahal `01-coding-standards` MUST #3 menyebut rule itu sebagai mekanisme verifikasinya.
-   Aturan dinonaktifkan tanpa amandemen.
-4. **Nol audit aksesibilitas** — tak ada `axe-core`/`jsx-a11y`. Pengguna nyata
-   (mandor/tukang, perangkat lama) justru yang paling terdampak.
+**Gap NYATA yang terverifikasi (urut dampak):**
+1. ~~**`apps/web` sama sekali di luar CI**~~ — **✅ DITUTUP 2026-07-31** (A1).
+   Job `web` (lint-ratchet + typecheck + build) kini ada di `ci.yml`, tanpa
+   `needs: api` supaya kegagalan frontend terlihat cepat.
+   **Dua bug pre-existing ikut ketahuan & diperbaiki** — keduanya hanya bisa
+   bersembunyi karena web tak pernah di-CI: (a) **5 error TS2322** di
+   `components/ui/*.tsx` — `@types/react@18` milik `apps/mobile` ikut termuat
+   lewat hoist pnpm, `LegacyRef` React 18 (masih mengizinkan string ref)
+   bentrok dengan `Ref` React 19; akarnya `jsx: "react-jsx"` yang meng-import
+   `react/jsx-runtime` implisit di tiap `.tsx`, ditutup lewat `paths` di
+   `apps/web/tsconfig.json`. (b) **6.070 dari 6.503 lint problem ternyata SEMU**
+   — dari `ds-bundle/` (keluaran bundler, sudah di `.gitignore` tapi tetap
+   dipindai eslint). Kode asli hanya 433; kini 0 error + 431 warning terkunci
+   ratchet per-rule (`apps/web/scripts/lint-ratchet.mjs`).
+2. ~~**Nol dependency scanning & secret scanning**~~ — **✅ DITUTUP 2026-07-31** (A2).
+   Job `keamanan`: `pnpm audit --audit-level=high` + gitleaks atas SELURUH
+   riwayat (`fetch-depth: 0` — rahasia yang di-commit lalu dihapus tetap
+   terdeteksi; relevan karena repo sempat publik).
+   **Audit pertama menemukan 1 critical + 35 high yang nyata** → ditutup:
+   `axios`/`next` di-upgrade langsung · 11 paket transitif dipaksa lewat
+   `overrides` di **`pnpm-workspace.yaml`** (⚠️ sejak pnpm v10 dibaca dari sana,
+   BUKAN `package.json` — kalau salah tempat ia diabaikan diam-diam) ·
+   `xlsx` dipindah ke tarball resmi SheetJS 0.20.3 (npm mentok di 0.18.5 yang
+   rentan; jalur `XLSX.read` atas unggahan pengguna ada di `rab.ts:627`) ·
+   pnpm 11.5.2 → 11.8.0 di 5 tempat. Hasil: **exit code 0**.
+   Dua entri `auditConfig.ignoreGhsas` ber-alasan terverifikasi (xlsx =
+   false-positive versi-dari-URL; brace-expansion = tak bisa di-override tanpa
+   mematikan ESLint, dan tak punya permukaan serang di runtime).
+3. ~~**`@typescript-eslint/no-explicit-any` di-set `"off"`**~~ — **✅ DITUTUP
+   2026-07-31** (A3). Dinyalakan sebagai `warn` + ratchet per-rule
+   (`apps/api/scripts/lint-ratchet.mjs`; ambang 227 `any` + 16 `unused-vars`),
+   dan step Lint di CI job `api` kini memanggil ratchet itu.
+   Mematikan rule sambil tetap menuliskan MUST di dokumen adalah bentuk
+   terburuk — standarnya **terlihat** ditegakkan padahal tidak. Kini aturan
+   selaras dengan praktik, hutangnya terukur, dan tak bisa diam-diam bertambah.
+4. ~~**Nol audit aksesibilitas**~~ — **✅ DITUTUP 2026-07-31** (A4).
+   `eslint-plugin-jsx-a11y` diaktifkan penuh. Sebelumnya `eslint-config-next`
+   hanya membawa segelintir rule bawaan (cuma `alt-text` aktif) — jadi "cuma 3
+   temuan a11y" selama ini menyesatkan: sisanya memang tak pernah diperiksa.
+   **Begitu dinyalakan: 498 temuan.** 255 `label-has-associated-control`
+   (pembaca layar tak bisa menyebutkan field yang sedang diisi) · 117+115
+   `click-events`/`no-static-element-interactions` (**bisa diklik tapi tak bisa
+   dijangkau keyboard** — melanggar MUST #7 langsung) · 11 lainnya.
+   Diturunkan ke `warn` + ratchet per-rule (pola A1). **Dua rule dimatikan
+   dengan alasan terverifikasi satu per satu**, bukan diasumsikan:
+   `alt-text` (3 temuan semuanya bukan `<img>` HTML — `Image` dari lucide-react
+   & @react-pdf/renderer) dan `no-autofocus` (4 temuan semuanya field pertama
+   di dalam **modal**, yang justru pola benar untuk dialog).
 5. **T10** (`ADR-011-T9` §5): `auth_role()` baca `users.role_id` (peran global),
    bukan `company_members.role_id` (peran per-company). Diverifikasi di DB: benar.
    Tak bergejala hari ini (satu company), menggigit saat badan usaha kedua dibuat.

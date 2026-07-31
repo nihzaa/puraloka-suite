@@ -6,3 +6,103 @@ allowBuilds:
   puppeteer: true
   sharp: true
   unrs-resolver: true
+
+# ── Kenapa pemeriksaan dependensi pra-script dimatikan ─────────────────────
+#
+# pnpm v11 menjalankan pemeriksaan status dependensi sebelum SETIAP
+# `pnpm <script>`. Pemeriksaan itu tak bisa memverifikasi `xlsx` yang dipasang
+# dari tarball CDN sheetjs: untuk paket ber-URL tarball, entri `snapshots:` di
+# lockfile v9 memang kosong (`{}`) sementara `integrity`-nya hidup di blok
+# `packages:` (pnpm-lock.yaml:7072 vs :14900).
+#
+# Akibatnya setiap `pnpm lint`/`typecheck`/`build` di CI mati dengan
+# ERR_PNPM_MISSING_TARBALL_INTEGRITY — bahkan setelah `pnpm install` di step
+# sebelumnya BERHASIL. Terbukti di run 30594212080: install lulus dalam 31 detik,
+# yang gagal justru step `pnpm lint:ratchet` sesudahnya.
+#
+# Aman: jaminan integritas yang sesungguhnya tetap ada di step install CI yang
+# memakai `--frozen-lockfile`. Yang dimatikan hanya pemeriksaan ULANG sebelum
+# tiap script — bukan verifikasi saat paket benar-benar dipasang.
+#
+# ⚠️ Harus di SINI, bukan `.npmrc`: pnpm v11 membaca konfigurasi ini dari
+#    pnpm-workspace.yaml. Di `.npmrc` ia diabaikan diam-diam — sama seperti
+#    `overrides` di bawah.
+verifyDepsBeforeRun: false
+
+# ── A2 (STATUS.md §AUDIT) — versi aman untuk dependency TRANSITIF ───────────
+#
+# Konteks: step `pnpm audit --audit-level=high` ditambahkan ke CI 2026-07-31.
+# Saat pertama dijalankan: 1 critical + 35 high. Nyaris semuanya TRANSITIF —
+# tak bisa diperbaiki dengan meng-upgrade dependency langsung, karena yang
+# menariknya paket lain (mayoritas apps/mobile: Expo menyeret pohon dependency
+# besar yang tertinggal beberapa versi).
+#
+# ⚠️ LOKASI PENTING: sejak pnpm v10+, `overrides` dibaca dari FILE INI, bukan
+# dari `package.json`. Menaruhnya di package.json tidak menimbulkan error —
+# ia hanya diabaikan diam-diam, dan audit tetap merah tanpa petunjuk kenapa.
+#
+# Kenapa override, bukan melonggarkan ambang audit ke 'critical': ambang high
+# memblokir-merge adalah bunyi `11-devsecops-standard.md` MUST #5 apa adanya.
+# Melonggarkannya = mengubah standar diam-diam, persis governance drift yang
+# A3 justru sedang diperbaiki.
+#
+# Tiap entri = versi PATCH minimum dari advisory, bukan mayor terbaru:
+# menutup lubang tanpa memicu breaking change. Saat paket induk akhirnya ikut
+# naik, override yang tak relevan boleh dihapus (pnpm memperingatkannya).
+overrides:
+  tar: '>=7.5.19'
+  '@xmldom/xmldom': '>=0.8.12'
+  form-data: '>=4.0.6'
+  undici: '>=6.27.0'
+  js-yaml: '>=4.3.0'
+  shell-quote: '>=1.8.5'
+  axios: '>=1.18.0'
+  fast-uri: '>=3.1.4'
+  sharp: '>=0.35.0'
+  postcss: '>=8.5.18'
+  find-my-way: '>=9.6.1'
+
+# ── auditConfig — HANYA untuk temuan yang terbukti tidak berlaku ────────────
+#
+# ⚠️ Daftar ini BUKAN tempat membuang temuan yang merepotkan. Tiap entri wajib
+# menyertakan alasan yang bisa diverifikasi ulang orang lain. Kalau ragu:
+# perbaiki paketnya, jangan tambahkan di sini.
+auditConfig:
+  ignoreGhsas:
+    # xlsx (SheetJS) — Prototype Pollution + ReDoS.
+    #
+    # TERPASANG 0.20.3, DI ATAS kedua ambang (butuh >=0.19.3 dan >=0.20.2).
+    # Verifikasi ulang kapan saja:
+    #   node -e "console.log(require('./apps/api/node_modules/xlsx/package.json').version)"
+    #
+    # Kenapa tetap muncul di audit: sejak 0.18.5 SheetJS berhenti mempublikasi
+    # ke npm dan pindah ke CDN sendiri (cdn.sheetjs.com). Paket ini dipasang
+    # dari URL tarball, dan `pnpm audit` tak bisa membaca versi dari URL —
+    # ia mencocokkan by-name lalu mengasumsikan yang terburuk. Temuan ini
+    # false positive terhadap versi yang benar-benar terpasang.
+    #
+    # Jalur yang benar-benar mem-parse input asing (`XLSX.read` atas file
+    # unggahan pengguna) hanya ada di `apps/api/src/routes/v1/rab.ts:627`;
+    # `apps/web` cuma MENULIS file (`json_to_sheet`/`writeFile`), tak mem-parse.
+    # Keduanya kini di 0.20.3.
+    - GHSA-4r6h-8v6p-xvw6 # Prototype Pollution in sheetJS (butuh >=0.19.3)
+    - GHSA-5pgg-2g8v-p4x9 # SheetJS ReDoS (butuh >=0.20.2)
+
+    # brace-expansion — DoS via ekspansi `{}` (butuh >=5.0.7 / >=5.0.8).
+    #
+    # TIDAK BISA di-override: v5 mengubah bentuk ekspor (`expand` bukan lagi
+    # default export). `minimatch@3` — yang masih dipakai `@eslint/config-array`
+    # dan sejumlah paket lain — memanggilnya dengan cara lama, jadi menaikkan
+    # versinya membuat ESLint MATI TOTAL:
+    #   TypeError: expand is not a function (minimatch/minimatch.js:271)
+    # Diverifikasi 2026-07-31: baik override global maupun `minimatch>brace-
+    # expansion` sama-sama membuat `pnpm lint:ratchet` crash.
+    #
+    # Penilaian paparan: kerentanannya DoS lewat pola glob yang disusun
+    # penyerang. Di repo ini `brace-expansion` hanya dipakai perkakas
+    # build/lint (eslint, glob) atas pola yang KITA tulis sendiri di config —
+    # tak ada satu pun jalur di mana pola glob berasal dari input pengguna.
+    # Tak ada permukaan serang di runtime produksi.
+    #
+    # Cabut entri ini begitu ekosistem eslint pindah ke minimatch modern.
+    - GHSA-mh99-v99m-4gvg # brace-expansion DoS (unbounded expansion → OOM)
