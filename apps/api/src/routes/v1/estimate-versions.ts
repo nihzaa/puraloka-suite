@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify'
+import { jelaskanItem, type HspSnapshot } from '../../lib/explain-item.js'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
@@ -71,6 +72,55 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
   // ── GET /rab — read-model breakdown biaya (Milestone 4, no tabel baru) ──────
   // RAB = render Estimate Item jadi breakdown per CBS (`37` §3). Turunan murni;
   // angka dihitung lib/rab-readmodel.ts (ber-test terhadap hitungan manual).
+  // ── GET /api/v1/estimate-items/:itemId/explain ─────────────────────────
+  // Rangkai jejak satu baris RAB jadi penjelasan yang bisa DIBACAKAN.
+  //
+  // Constraint TERTINGGI CECEP (`01-phase-b` §"strategy-driven, versioned,
+  // explainable, replaceable"), bukan fitur pinggiran: angka RAB dibawa ke
+  // hadapan klien & pemeriksa, dan angka yang tak bisa dipertahankan tak akan
+  // dipakai untuk pekerjaan yang benar-benar bernilai.
+  //
+  // Sumbernya `hsp_snapshot` (migrasi 139) — SNAPSHOT, bukan hitung ulang.
+  // Menghitung ulang hari ini memberi angka LAIN karena harga berubah,
+  // sehingga penjelasannya tak cocok dengan angka di dokumen penawaran —
+  // kebalikan dari tujuan explainability.
+  app.get<{ Params: { itemId: string } }>(
+    '/api/v1/estimate-items/:itemId/explain',
+    { preHandler: [authenticate, requirePermission('cecep:estimate:view')] },
+    async (request, reply) => {
+      const { itemId } = request.params
+
+      // Gerbang tenant lewat versi induknya: `estimate_items` kategori C
+      // (lewat estimate_version_id), jadi kepemilikannya diperiksa di sana.
+      const { data: item } = await request.db!
+        .unsafe('estimate_items', 'kategori C lewat estimate_version_id; dicek versiMilikTenant di bawah')
+        .select('id, description, unit, quantity, price_date, hsp_snapshot, estimate_version_id')
+        .eq('id', itemId)
+        .maybeSingle()
+
+      if (!item || !(await versiMilikTenant(request, item.estimate_version_id))) {
+        return reply.status(404).send({ error: 'Item tidak ditemukan' })
+      }
+
+      const hasil = jelaskanItem(item.hsp_snapshot as HspSnapshot | null, {
+        namaItem: item.description ?? '(tanpa nama)',
+        satuan: item.unit ?? null,
+        volume: item.quantity == null ? null : Number(item.quantity),
+        priceDate: item.price_date ?? null,
+      })
+
+      return reply.send({
+        data: {
+          itemId: item.id,
+          nama: item.description,
+          satuan: item.unit,
+          volume: item.quantity == null ? null : Number(item.quantity),
+          ...hasil,
+        },
+      })
+    },
+  )
+
   app.get<{ Params: { id: string } }>(
     '/api/v1/estimate-versions/:id/rab',
     { preHandler: [authenticate, requirePermission('cecep:estimate:view')] },
