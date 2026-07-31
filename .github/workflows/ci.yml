@@ -107,10 +107,17 @@ jobs:
         with:
           version: 11.8.0
 
+      # TANPA `cache: pnpm` — sengaja, jangan ditambahkan kembali.
+      # `cache: pnpm` membuat setup-node menjalankan pemeriksaan status dependensi
+      # (`runDepsStatusCheck`) SEBELUM step install di bawah. Pemeriksaan itu tak
+      # bisa memverifikasi `xlsx` yang dipasang dari tarball CDN sheetjs — entri
+      # `snapshots:` untuk tarball URL memang kosong di lockfile v9 — sehingga job
+      # mati dengan ERR_PNPM_MISSING_TARBALL_INTEGRITY sebelum sempat menginstal.
+      # Job `api` tak terkena karena urutan step-nya berbeda. Kehilangan cache di
+      # sini murah (job ini ~1 menit); kehilangan job-nya sama sekali tidak.
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
