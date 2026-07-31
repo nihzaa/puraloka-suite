@@ -19,6 +19,7 @@ import { PilihCari } from "@/components/pilih-cari";
 import {
   Calculator, Plus, X, ChevronRight, ChevronDown, BookOpen, Coins,
   Layers, Send, Trash2, CheckCircle2, BadgeCheck, PlayCircle, CircleOff, Pencil,
+  HelpCircle,
   Lock, ClipboardList, Package, HardHat, History, TrendingUp, Info,
   Scale, AlertTriangle,
 } from "lucide-react";
@@ -168,6 +169,7 @@ function KomposerTab() {
   const [showNewScenario, setShowNewScenario] = useState(false);
   const [showAddItem, setShowAddItem] = useState(false);
   const [terapkan, setTerapkan] = useState<VersionDetail | null>(null);
+  const [explainId, setExplainId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
@@ -293,6 +295,15 @@ function KomposerTab() {
                     <td style={td}>{it.assembly?.output_unit_code}</td>
                     <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{fmtRp(Number(it.amount))}</td>
                     <td style={{ ...td, width: 40 }}>
+                      {/* Explainability (#19) — tiap baris harus bisa menjawab
+                          "kenapa angkanya segini?". Tanpa ini, angka RAB hanya
+                          bisa dipertahankan dengan "keluaran sistem". */}
+                      <button aria-label={`Jelaskan perhitungan ${it.assembly?.name ?? "item"}`}
+                        title="Jelaskan perhitungan"
+                        onClick={() => setExplainId(it.id)}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: C.mid, padding: 2, marginRight: 2 }}>
+                        <HelpCircle size={14} />
+                      </button>
                       {openVersion.status === "draft" && (
                         <button aria-label="Hapus item" title="Hapus item" style={{ background: "none", border: "none", cursor: "pointer", color: C.red }}
                           onClick={async () => {
@@ -355,6 +366,7 @@ function KomposerTab() {
       {terapkan && (
         <TerapkanKeRabModal version={terapkan} onClose={() => setTerapkan(null)} />
       )}
+      {explainId && <JelaskanModal itemId={explainId} onClose={() => setExplainId(null)} />}
     </div>
   );
 }
@@ -366,6 +378,143 @@ function KomposerTab() {
 // 409 beserta angka "berapa yang akan dihapus", dan angka itulah yang
 // ditunjukkan sebelum meminta persetujuan. Pemakai menyetujui sesuatu yang
 // spesifik, bukan peringatan umum.
+/**
+ * JELASKAN — merangkai jejak satu baris RAB jadi penjelasan yang bisa DIBACAKAN.
+ *
+ * Constraint TERTINGGI CECEP (#19): angka RAB dibawa ke hadapan klien &
+ * pemeriksa. Kalau ditanya "kenapa segini?" dan jawabannya "keluaran sistem",
+ * angkanya tak bisa dipertahankan.
+ *
+ * Peringatan ditampilkan MENONJOL, bukan disembunyikan di bawah: penjelasan
+ * yang tampak lengkap padahal bolong lebih berbahaya daripada tak ada
+ * penjelasan sama sekali.
+ */
+function JelaskanModal({ itemId, onClose }: { itemId: string; onClose: () => void }) {
+  const [data, setData] = useState<{
+    nama: string; satuan: string | null; volume: number | null; utuh: boolean;
+    langkah: { no: number; judul: string; uraian: string; nilai?: number }[];
+    komponen: { kode: string; koefisien: number; hargaSatuan: number; subtotal: number;
+      sumber: string; tanggalHarga: string | null; alasanOverride: string | null }[];
+    peringatan: string[];
+  } | null>(null);
+  const [memuat, setMemuat] = useState(true);
+  const [galat, setGalat] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.get<{ data: NonNullable<typeof data> }>(`/api/v1/estimate-items/${itemId}/explain`)
+      .then(r => setData(r.data.data))
+      .catch(() => setGalat("Gagal memuat penjelasan"))
+      .finally(() => setMemuat(false));
+  }, [itemId]);
+
+  return createPortal(
+    // Latar gelap dibuat <button> SUNGGUHAN, bukan div ber-onClick. Div yang
+    // hanya bisa diklik tak terjangkau keyboard sama sekali — pola yang sudah
+    // menyumbang 232 pelanggaran WCAG di repo ini. Sebagai <button> ia
+    // otomatis dapat fokus, Enter/Space, dan nama aksesibel.
+    <div
+      role="dialog" aria-modal="true" aria-label="Penjelasan perhitungan item"
+      style={{
+        position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000,
+        display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 16px", overflowY: "auto",
+      }}>
+      <button
+        aria-label="Tutup penjelasan"
+        onClick={onClose}
+        style={{
+          position: "fixed", inset: 0, background: "transparent",
+          border: "none", cursor: "default", padding: 0,
+        }}
+      />
+      <div style={{ position: "relative", width: "100%", maxWidth: 720 }}>
+      <div style={{
+        background: "var(--surface)", borderRadius: 14, width: "100%",
+        boxShadow: "0 20px 60px rgba(0,0,0,.25)", overflow: "hidden",
+      }}>
+        <div style={{ padding: "18px 22px", borderBottom: `1px solid ${C.border}` }}>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Kenapa angkanya segini?</h3>
+          {data && <p style={{ margin: "4px 0 0", fontSize: 12.5, color: C.mid }}>{data.nama}</p>}
+        </div>
+
+        <div style={{ padding: 22 }}>
+          {memuat && <div style={{ color: C.mid, fontSize: 13 }}>Memuat penjelasan…</div>}
+          {galat && <div style={{ color: C.red, fontSize: 13 }}>{galat}</div>}
+
+          {data && data.peringatan.length > 0 && (
+            <div style={{
+              padding: "11px 14px", borderRadius: 10, marginBottom: 16,
+              background: "var(--warning-bg)", border: `1px solid var(--warning-border)`,
+              fontSize: 12.5, color: "var(--warning)",
+            }}>
+              <strong>Penjelasan ini belum utuh:</strong>
+              <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
+                {data.peringatan.map((p, i) => <li key={i} style={{ marginBottom: 3 }}>{p}</li>)}
+              </ul>
+            </div>
+          )}
+
+          {data && data.langkah.length > 0 && (
+            <ol style={{ margin: 0, paddingLeft: 0, listStyle: "none" }}>
+              {data.langkah.map(l => (
+                <li key={l.no} style={{ display: "flex", gap: 12, marginBottom: 14 }}>
+                  <span style={{
+                    flexShrink: 0, width: 24, height: 24, borderRadius: "50%",
+                    background: "var(--navy-light)", color: C.navy, fontSize: 12, fontWeight: 700,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>{l.no}</span>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{l.judul}</div>
+                    <div style={{ fontSize: 12.5, color: C.mid, marginTop: 2 }}>{l.uraian}</div>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+
+          {data && data.komponen.length > 0 && (
+            <div style={{ marginTop: 18 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.mid, textTransform: "uppercase", letterSpacing: ".05em", marginBottom: 8 }}>
+                Rincian komponen
+              </div>
+              <div style={{ overflowX: "auto", border: `1px solid ${C.border}`, borderRadius: 10 }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                  <thead><tr style={{ background: "var(--surface-subtle)" }}>
+                    {["Kode", "Koef.", "Harga satuan", "Subtotal", "Sumber"].map(h => (
+                      <th key={h} style={{ padding: "7px 10px", textAlign: h === "Kode" || h === "Sumber" ? "left" : "right", fontSize: 10.5, color: C.mid, fontWeight: 700, textTransform: "uppercase" }}>{h}</th>
+                    ))}
+                  </tr></thead>
+                  <tbody>
+                    {data.komponen.map((k, i) => (
+                      <tr key={i} style={{ borderTop: `1px solid ${C.border}` }}>
+                        <td style={{ padding: "7px 10px", fontFamily: "ui-monospace, monospace" }}>{k.kode}</td>
+                        <td style={{ padding: "7px 10px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{k.koefisien}</td>
+                        <td style={{ padding: "7px 10px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtRp(k.hargaSatuan)}</td>
+                        <td style={{ padding: "7px 10px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>{fmtRp(k.subtotal)}</td>
+                        <td style={{ padding: "7px 10px", color: C.mid }}>
+                          {k.sumber}{k.tanggalHarga ? ` · ${k.tanggalHarga}` : ""}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div style={{ padding: "14px 22px", borderTop: `1px solid ${C.border}`, textAlign: "right" }}>
+          <button onClick={onClose} style={{
+            padding: "8px 18px", borderRadius: 8, border: `1px solid ${C.border}`,
+            background: "var(--surface)", color: C.text, fontSize: 13, cursor: "pointer",
+          }}>Tutup</button>
+        </div>
+      </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 function TerapkanKeRabModal({ version, onClose }: { version: VersionDetail; onClose: () => void }) {
   const [tahap, setTahap] = useState<"siap" | "konfirmasi" | "selesai">("siap");
   const [dampak, setDampak] = useState<{ akan_dihapus: number; akan_dibuat: number } | null>(null);
