@@ -161,6 +161,37 @@ memakainya, dan apakah benar-benar dipakai.*
 
 Pemeriksa otomatis: `node apps/api/scripts/audit-jalur-hidup.mjs`
 
+### 9b. MENJALANKAN MIGRASI — buku besar WAJIB ikut ditulis
+
+**Apply migrasi lewat skrip sekali-pakai TANPA mencatat ke
+`supabase_migrations.schema_migrations` adalah cacat, bukan jalan pintas.**
+
+Ditemukan 2026-07-31: **20 migrasi** sudah jalan di dev tapi tak tercatat —
+termasuk SELURUH seri multi-tenant 126–137. Sebabnya persis pola di atas:
+DDL-nya dijalankan (`node apply145.mjs` dan sejenisnya), bukunya tidak.
+
+Kenapa berbahaya, dan bukan sekadar rapi-rapian:
+
+1. `ci-project-setup.mjs` memutuskan apa yang perlu dijalankan **murni dari
+   buku itu**. Diarahkan ke dev, ia akan **menjalankan ulang** ke-20 migrasi
+   tersebut — termasuk penulisan ulang policy RLS (131–134) dan backfill (127).
+2. Buku itu juga yang dibaca manusia untuk menjawab *"apakah migrasi X sudah
+   jalan?"*. Buku yang salah membuat jawabannya salah, dan **tak ada gejala apa
+   pun** sampai seseorang bertindak berdasarkan jawaban itu.
+
+Aturannya: skrip apply apa pun **wajib** menulis barisnya dalam transaksi yang
+sama dengan DDL-nya. Kalau DDL berhasil tapi pencatatan gagal, keduanya di-
+rollback — buku dan kenyataan tak boleh berpisah walau sesaat.
+
+**Jangan** menambal dengan `INSERT` semua yang hilang: kalau ada migrasi yang
+memang belum jalan, mencatatnya sebagai "sudah" membuatnya tak akan pernah
+dijalankan — kelas cacat 043–047, tapi dibuat sengaja.
+
+Pemeriksa otomatis (default hanya membaca):
+`node apps/api/scripts/rekonsiliasi-schema-migrations.mjs`
+Ia membuktikan tiap migrasi ke `pg_class`/`pg_proc`/`pg_indexes`/`pg_constraint`
+lebih dulu, dan **menolak mencatat** yang objeknya tak lengkap.
+
 ---
 
 ## 11. OTORITAS DOMAIN (config-first)
