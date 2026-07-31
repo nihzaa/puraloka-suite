@@ -32,7 +32,7 @@ import { ESLint } from 'eslint'
  * yang terjadi hutang bergeser, bukan berkurang.
  */
 const AMBANG = {
-  '@typescript-eslint/no-explicit-any': 227,
+  '@typescript-eslint/no-explicit-any': 226, // turun dari 227 (2026-07-31, ErrorMasuk di index.ts)
   '@typescript-eslint/no-unused-vars': 16,
 }
 

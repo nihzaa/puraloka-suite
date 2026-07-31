@@ -21,7 +21,13 @@ export default async function authRoutes(app: FastifyInstance) {
       rateLimit: {
         max: 10,
         timeWindow: '1 minute',
-        errorResponseBuilder: () => ({ error: 'Terlalu banyak percobaan login, coba lagi dalam 1 menit' }),
+        // `isRateLimit` wajib ada — setErrorHandler memakainya untuk membalas 429.
+        // Tanpa penanda ini balasan jatuh jadi 500 "Internal server error" dan user
+        // yang terkena limit mengira kredensialnya yang salah.
+        errorResponseBuilder: () => ({
+          isRateLimit: true,
+          error: 'Terlalu banyak percobaan login, coba lagi dalam 1 menit',
+        }),
       }
     }
   }, async (request, reply) => {

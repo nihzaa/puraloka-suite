@@ -11,16 +11,46 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     async function handleCallback() {
       try {
-        // Supabase implicit flow: session ada di hash fragment (#access_token=...&refresh_token=...)
-        // getSession() otomatis membaca hash dari window.location dan menyimpan session
-        const { data, error } = await supabase.auth.getSession();
+        const url = new URL(window.location.href);
 
-        if (error || !data.session) {
-          router.replace("/login?error=oauth_failed");
+        // Google/Supabase bisa mengembalikan galat eksplisit di query ATAU hash
+        // (mis. user menekan "Batal" di layar consent). Tangani lebih dulu supaya
+        // tidak tersamar jadi "oauth_failed" yang generik.
+        const hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
+        const oauthError = url.searchParams.get("error") ?? hashParams.get("error");
+        if (oauthError) {
+          const desc = url.searchParams.get("error_description") ?? hashParams.get("error_description");
+          router.replace(
+            `/login?error=oauth_failed${desc ? `&detail=${encodeURIComponent(desc)}` : ""}`
+          );
           return;
         }
 
-        const { access_token, refresh_token } = data.session;
+        // Klien ini berjalan pada flow `implicit` (session datang sebagai hash
+        // `#access_token=...`), sehingga getSession() sudah memadai. Cabang PKCE
+        // `?code=...` tetap disediakan supaya callback tidak diam-diam rusak bila
+        // suatu saat flowType diubah ke 'pkce' — pada PKCE, getSession() hanya
+        // membaca hash dan akan selalu mengembalikan null.
+        const code = url.searchParams.get("code");
+        let session = null;
+
+        if (code) {
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error || !data.session) {
+            router.replace("/login?error=oauth_failed");
+            return;
+          }
+          session = data.session;
+        } else {
+          const { data, error } = await supabase.auth.getSession();
+          if (error || !data.session) {
+            router.replace("/login?error=oauth_failed");
+            return;
+          }
+          session = data.session;
+        }
+
+        const { access_token, refresh_token } = session;
 
         // Kirim token ke API kita — API akan verifikasi whitelist dan set HttpOnly cookie
         const res = await api.post("/api/v1/auth/google-callback", {

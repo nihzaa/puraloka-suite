@@ -1,51 +1,119 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { AxiosError } from "axios";
 import { login } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
+
+/** Batas minimal password yang divalidasi server (auth.ts). Disamakan di sini
+ *  supaya user dapat umpan balik sebelum request terkirim. */
+const PASSWORD_MIN = 8;
 
 function LoginPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const errParam = searchParams.get("error");
+  // Alasan sebenarnya dari penyedia OAuth, bila ada — jauh lebih berguna daripada
+  // "Login Google gagal" yang tidak memberi tahu apa pun.
+  const errDetail = searchParams.get("detail");
   const initialError =
     errParam === "not_registered"
       ? "Akun Google Anda belum terdaftar di sistem. Hubungi admin untuk mendapatkan akses."
       : errParam === "oauth_failed"
-      ? "Login Google gagal. Coba lagi."
+      ? errDetail
+        ? `Login Google gagal: ${errDetail}`
+        : "Login Google gagal. Coba lagi, atau masuk memakai email dan password."
       : "";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
   const [error, setError] = useState(initialError);
+  /** Detik tersisa sebelum boleh mencoba lagi (rate limit 429). 0 = tidak diblokir. */
+  const [cooldown, setCooldown] = useState(0);
+  const errorRef = useRef<HTMLDivElement>(null);
+
+  // Hitung mundur cooldown supaya user tahu KAPAN boleh coba lagi, bukan sekadar
+  // "terlalu banyak percobaan" tanpa akhir yang jelas.
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
+  // Pindahkan fokus pembaca layar ke pesan galat begitu muncul.
+  useEffect(() => {
+    if (error) errorRef.current?.focus();
+  }, [error]);
 
   async function handleGoogleLogin() {
     setOauthLoading(true);
     setError("");
     try {
-      await supabase.auth.signInWithOAuth({
+      // signInWithOAuth mengembalikan { error } alih-alih melempar. Tanpa
+      // memeriksanya, kegagalan (mis. provider mati) hanya membuat tombol
+      // berputar selamanya tanpa pesan apa pun.
+      const { error: oauthErr } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: { redirectTo: `${window.location.origin}/auth/callback` },
       });
+      if (oauthErr) {
+        setError(`Login Google gagal: ${oauthErr.message}`);
+        setOauthLoading(false);
+      }
     } catch {
-      setError("Login Google gagal. Coba lagi.");
+      setError("Login Google gagal. Coba lagi, atau masuk memakai email dan password.");
       setOauthLoading(false);
     }
   }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
+    if (cooldown > 0) return;
+
+    // Validasi lokal: server menolak password <8 karakter dengan 400, yang dulu
+    // ikut tampil sebagai "Email atau password salah" — menyesatkan, karena
+    // kredensialnya belum pernah diperiksa.
+    if (password.length < PASSWORD_MIN) {
+      setError(`Password minimal ${PASSWORD_MIN} karakter.`);
+      return;
+    }
+
     setLoading(true);
     setError("");
     try {
       const { homePortal } = await login(email, password);
       router.push(`/${homePortal}`);
-    } catch {
-      setError("Email atau password salah. Coba lagi.");
+    } catch (err) {
+      const ax = err as AxiosError<{ error?: string }>;
+      const status = ax.response?.status;
+      const serverMsg = ax.response?.data?.error;
+
+      if (!ax.response) {
+        // Tidak ada respons sama sekali → server mati / URL API salah / jaringan
+        // putus. Dulu ini tampil sebagai "password salah" sehingga user mengira
+        // kredensialnya bermasalah padahal backend tidak terjangkau.
+        setError("Tidak dapat terhubung ke server. Periksa koneksi Anda, lalu coba lagi.");
+      } else if (status === 429) {
+        const detik = 60;
+        setCooldown(detik);
+        setError(serverMsg ?? "Terlalu banyak percobaan login. Tunggu sebentar sebelum mencoba lagi.");
+      } else if (status === 401) {
+        // Server sengaja tidak memberi tahu MANA yang salah (email atau password)
+        // — itu praktik keamanan standar agar penyerang tidak bisa menebak email
+        // mana yang terdaftar. Yang kita perbaiki: beri tahu user cara memulihkan.
+        setError("Email atau password salah. Pastikan huruf besar/kecil sudah benar, atau hubungi admin bila lupa password.");
+      } else if (status === 403) {
+        setError(serverMsg ?? "Akun Anda belum terdaftar di sistem. Hubungi admin untuk mendapatkan akses.");
+      } else if (status === 400) {
+        setError(serverMsg ?? "Email dan password wajib diisi.");
+      } else {
+        setError(serverMsg ?? "Terjadi gangguan pada server. Coba beberapa saat lagi.");
+      }
     } finally {
       setLoading(false);
     }
@@ -100,6 +168,39 @@ function LoginPageInner() {
           box-shadow: 0 0 0 3px var(--navy-glow);
         }
         .login-input::placeholder { color: var(--text-muted); }
+        .login-password-wrap { position: relative; display: flex; align-items: center; }
+        /* Ruang kanan supaya teks password tidak tertimpa tombol mata. */
+        .login-input-password { padding-right: 44px; }
+        .login-eye {
+          position: absolute;
+          right: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 34px;
+          height: 34px;
+          border: none;
+          border-radius: 7px;
+          background: transparent;
+          color: var(--text-muted);
+          cursor: pointer;
+          transition: color 0.15s, background 0.15s;
+        }
+        .login-eye:hover { color: var(--text-secondary); background: var(--surface-hover); }
+        .login-eye:focus-visible {
+          outline: 2px solid var(--navy);
+          outline-offset: 1px;
+          color: var(--text-secondary);
+        }
+        /* Fokus keyboard yang terlihat jelas — WCAG 2.4.7. */
+        .login-submit:focus-visible,
+        .login-google:focus-visible {
+          outline: 2px solid var(--navy);
+          outline-offset: 2px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .login-input, .login-submit, .login-google, .login-eye { transition: none; }
+        }
         .login-label {
           display: block;
           font-size: 12px;
@@ -243,40 +344,98 @@ function LoginPageInner() {
             <div className="login-card">
               <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 <div>
-                  <label className="login-label">Email</label>
+                  <label className="login-label" htmlFor="login-email">Email</label>
                   <input
+                    id="login-email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    autoComplete="email"
+                    autoFocus
+                    inputMode="email"
+                    autoCapitalize="none"
+                    spellCheck={false}
                     placeholder="nama@email.com"
                     className="login-input"
                   />
                 </div>
 
                 <div>
-                  <label className="login-label">Password</label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    placeholder="••••••••"
-                    className="login-input"
-                  />
+                  <label className="login-label" htmlFor="login-password">Password</label>
+                  <div className="login-password-wrap">
+                    <input
+                      id="login-password"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      autoComplete="current-password"
+                      placeholder="••••••••"
+                      className="login-input login-input-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="login-eye"
+                      aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+                      aria-pressed={showPassword}
+                      title={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+                      tabIndex={0}
+                    >
+                      {showPassword ? (
+                        // mata tercoret = sedang terlihat, klik untuk menyembunyikan
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                          stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 10 8 10 8a18.5 18.5 0 0 1-2.16 3.19M6.61 6.61A18.15 18.15 0 0 0 2 12s3 8 10 8a9.12 9.12 0 0 0 5.39-1.61" />
+                          <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+                          <line x1="2" y1="2" x2="22" y2="22" />
+                        </svg>
+                      ) : (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                          stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M2 12s3-8 10-8 10 8 10 8-3 8-10 8-10-8-10-8z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 {error && (
-                  <div style={{
-                    fontSize: 12, color: "var(--danger)", background: "var(--danger-bg)",
-                    border: "1px solid var(--danger-border)", borderRadius: 8, padding: "10px 14px",
-                  }}>
-                    {error}
+                  <div
+                    ref={errorRef}
+                    role="alert"
+                    aria-live="assertive"
+                    tabIndex={-1}
+                    style={{
+                      fontSize: 12, color: "var(--danger)", background: "var(--danger-bg)",
+                      border: "1px solid var(--danger-border)", borderRadius: 8, padding: "10px 14px",
+                      display: "flex", alignItems: "flex-start", gap: 8, lineHeight: 1.5, outline: "none",
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      strokeWidth="2" strokeLinecap="round" aria-hidden="true"
+                      style={{ flexShrink: 0, marginTop: 1 }}>
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <span>
+                      {error}
+                      {cooldown > 0 && (
+                        <> Coba lagi dalam <strong>{cooldown} detik</strong>.</>
+                      )}
+                    </span>
                   </div>
                 )}
 
-                <button type="submit" disabled={loading} className="login-submit">
-                  {loading ? "Memproses..." : "Masuk"}
+                <button type="submit" disabled={loading || cooldown > 0} className="login-submit">
+                  {loading
+                    ? "Memproses..."
+                    : cooldown > 0
+                    ? `Tunggu ${cooldown} detik`
+                    : "Masuk"}
                 </button>
               </form>
 

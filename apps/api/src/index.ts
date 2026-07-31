@@ -117,7 +117,13 @@ await app.register(rateLimit, {
   global: false,  // hanya apply ke route yang pakai config rateLimit
   max: 10,
   timeWindow: '1 minute',
-  errorResponseBuilder: () => ({ error: 'Terlalu banyak percobaan, coba lagi dalam 1 menit' }),
+  // `isRateLimit` dibaca oleh setErrorHandler untuk mengembalikan 429 (bukan 500).
+  // Objek ini diteruskan apa adanya sebagai "error", tanpa statusCode — lihat
+  // komentar di setErrorHandler.
+  errorResponseBuilder: () => ({
+    isRateLimit: true,
+    error: 'Terlalu banyak percobaan, coba lagi dalam 1 menit',
+  }),
 })
 await app.register(jwt, {
   secret: process.env.JWT_SECRET!
@@ -130,12 +136,48 @@ await app.register(multipart, {
 // Didaftarkan SEBELUM route agar instrumentasi membungkus handler.
 await registerObservability(app)
 
-app.setErrorHandler((err: Error & { statusCode?: number; code?: string }, _req, reply) => {
-  const status = (err as any).statusCode ?? 500
+/**
+ * Bentuk "error" yang benar-benar sampai ke setErrorHandler.
+ *
+ * Bukan hanya `Error`: @fastify/rate-limit meneruskan objek POLOS hasil
+ * `errorResponseBuilder`, sehingga `message`/`statusCode`/`code` semuanya
+ * undefined di sana. Menuliskan bentuk gabungan ini (alih-alih `any` di tiap
+ * pembacaan) membuat TypeScript ikut menjaga: menambah cabang baru untuk
+ * properti yang tak terdaftar di sini akan gagal kompilasi, bukan lolos diam.
+ */
+type ErrorMasuk = Partial<Error> & {
+  statusCode?: number
+  code?: string
+  /** Ditempelkan sendiri di errorResponseBuilder — lihat registrasi rate-limit. */
+  isRateLimit?: boolean
+  /** Pesan siap-tampil dari errorResponseBuilder (bukan `message`). */
+  error?: string
+}
+
+app.setErrorHandler((err: ErrorMasuk, _req, reply) => {
+  // ⚠️ JANGAN tambahkan `?? reply.statusCode` di sini. Untuk `throw new Error(...)`
+  // biasa, `err.statusCode` undefined DAN `reply.statusCode` masih 200 (belum
+  // pernah di-set) — rantai itu menghasilkan 200, sehingga kesalahan server
+  // sungguhan terkirim sebagai SUKSES. Kasus rate-limit yang dulu memotivasi
+  // penambahan itu sudah ditangani cabang `isRateLimit` di bawah.
+  // Dijaga test: `__tests__/rate-limit-429.test.ts`.
+  const status = err.statusCode ?? 500
   // Body melebihi bodyLimit → pesan Fastify default berbahasa Inggris & teknis
   // ("Request body is too large"). Terjemahkan supaya user paham (upload foto/dokumen).
   if (err.code === 'FST_ERR_CTP_BODY_TOO_LARGE') {
     return reply.status(413).send({ error: 'Ukuran file terlalu besar untuk diunggah' })
+  }
+  // Rate limit (@fastify/rate-limit v11): plugin meneruskan objek polos hasil
+  // `errorResponseBuilder` ke error handler — BUKAN instance Error. Akibatnya
+  // `statusCode`, `code`, dan `message` semuanya undefined, sehingga `status`
+  // jatuh ke 500 dan pesan "terlalu banyak percobaan" tertelan jadi "Internal
+  // server error". User yang salah password beberapa kali lalu diblokir jadi
+  // mengira passwordnya yang bermasalah, padahal ia hanya perlu menunggu.
+  //
+  // Penanda yang andal adalah `isRateLimit` yang kita tempelkan sendiri di
+  // errorResponseBuilder (lihat registrasi plugin di bawah).
+  if (err.isRateLimit) {
+    return reply.status(429).send({ error: err.error })
   }
   if (status >= 500) {
     app.log.error(err)

@@ -62,6 +62,17 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
+    // Endpoint autentikasi TIDAK boleh ikut alur auto-refresh. 401 dari
+    // /auth/login berarti "kredensial salah", bukan "token kedaluwarsa".
+    // Tanpa pengecualian ini, salah password memicu: refresh (gagal, 400) →
+    // clearAuthAndRedirect() → window.location.href = "/login" → halaman
+    // dimuat ulang → pesan "Email atau password salah" IKUT TERHAPUS sebelum
+    // sempat terbaca. Itulah sebabnya form terlihat diam saja saat login gagal.
+    const url: string = originalRequest?.url ?? "";
+    if (/\/auth\/(login|refresh|google-callback)/.test(url)) {
+      return Promise.reject(error);
+    }
+
     // Jika refresh sudah dalam proses, antri request ini
     if (isRefreshing) {
       return new Promise<void>((resolve, reject) => {
