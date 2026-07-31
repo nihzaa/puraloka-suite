@@ -8,6 +8,7 @@ import { logAuditEvent } from '../../utils/audit.js'
 import { computeMrAmount } from '../../lib/mr-amount.js'
 import { grValueAtPoPrices, validateInvoiceCeiling } from '../../lib/three-way-match.js'
 import { periksaKuota, type KuotaRab } from '../../lib/kuota-rab-material.js'
+import type { TenantDb } from '../../utils/tenant-db.js'
 
 /**
  * Modul 9a — kumpulkan bahan pemeriksaan kuota RAB untuk sebuah MR.
@@ -22,22 +23,25 @@ import { periksaKuota, type KuotaRab } from '../../lib/kuota-rab-material.js'
  * yang ditolak tidak akan pernah dibeli. Memasukkannya membuat kuota tampak
  * habis oleh permintaan yang tak pernah terjadi.
  */
-async function bahanPeriksaKuota(mrId: string, projectId: string) {
+async function bahanPeriksaKuota(db: TenantDb, mrId: string, projectId: string) {
   const [itemsRes, kuotaRes, mrLainRes] = await Promise.all([
-    supabase.from('material_request_items')
+    // `material_request_items` mewarisi tenancy lewat mr_id, bukan project_id —
+    // `viaProject` akan menyaring dengan kolom yang salah. Tenancy dijamin oleh
+    // pemanggil, yang sudah memverifikasi MR ini milik tenant.
+    db.unsafe('material_request_items', 'disaring mr_id yang sudah lolos gerbang tenant di pemanggil')
       .select('material_id, qty_requested').eq('mr_id', mrId),
-    supabase.from('project_rab_materials')
-      .select('material_id, rab_quantity, material:materials(name, unit)')
-      .eq('project_id', projectId),
-    supabase.from('material_requests')
-      .select('id, status').eq('project_id', projectId)
+    db.viaProject('project_rab_materials', projectId)
+      .select('material_id, rab_quantity, material:materials(name, unit)'),
+    db.viaProject('material_requests', projectId)
+      .select('id, status')
       .in('status', ['submitted', 'approved', 'partially_ordered', 'fully_ordered']),
   ])
 
   const idMrLain = (mrLainRes.data ?? []).map((m) => m.id).filter((id) => id !== mrId)
   const sudahDiMr = new Map<string, number>()
   if (idMrLain.length) {
-    const { data } = await supabase.from('material_request_items')
+    const { data } = await db
+      .unsafe('material_request_items', 'idMrLain berasal dari viaProject(material_requests) di atas')
       .select('material_id, qty_requested').in('mr_id', idMrLain)
     for (const it of data ?? []) {
       const n = Number(it.qty_requested)
@@ -356,19 +360,22 @@ export default async function procurementRoutes(app: FastifyInstance) {
       return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
     }
 
-    const { data, error } = await supabase.from('project_rab_materials')
+    const { data, error } = await request.db!
+      .viaProject('project_rab_materials', projectId)
       .select('id, material_id, rab_quantity, rab_unit_cost, notes, material:materials(id, name, unit)')
-      .eq('project_id', projectId).order('created_at')
+      .order('created_at')
     if (error) return reply.status(500).send({ error: error.message })
 
     // `terpakai` dihitung ulang dari MR hidup, bukan dibaca dari kolom cache —
     // alasan lengkap di bahanPeriksaKuota().
-    const { data: mrHidup } = await supabase.from('material_requests')
-      .select('id').eq('project_id', projectId)
+    const { data: mrHidup } = await request.db!
+      .viaProject('material_requests', projectId)
+      .select('id')
       .in('status', ['submitted', 'approved', 'partially_ordered', 'fully_ordered'])
     const terpakai = new Map<string, number>()
     if (mrHidup?.length) {
-      const { data: items } = await supabase.from('material_request_items')
+      const { data: items } = await request.db!
+        .unsafe('material_request_items', 'mr_id berasal dari viaProject(material_requests) di atas')
         .select('material_id, qty_requested').in('mr_id', mrHidup.map((m) => m.id))
       for (const it of items ?? []) {
         const n = Number(it.qty_requested)
@@ -406,7 +413,8 @@ export default async function procurementRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'material_id dan rab_quantity (> 0) wajib diisi' })
     }
 
-    const { data, error } = await supabase.from('project_rab_materials')
+    const { data, error } = await request.db!
+      .viaProject('project_rab_materials', projectId)
       .upsert({
         project_id: projectId,
         material_id: body.material_id,
@@ -435,12 +443,13 @@ export default async function procurementRoutes(app: FastifyInstance) {
     preHandler: [authenticate, requirePermission('procurement:view')]
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
-    const { data: mr } = await supabase.from('material_requests')
+    const { data: mr } = await request.db!
+      .unsafe('material_requests', 'lookup by-id, disaring projectIds() milik tenant di baris yang sama')
       .select('id, project_id, mr_number')
       .eq('id', id).in('project_id', await request.db!.projectIds()).maybeSingle()
     if (!mr) return reply.status(404).send({ error: 'MR tidak ditemukan' })
 
-    const bahan = await bahanPeriksaKuota(id, mr.project_id)
+    const bahan = await bahanPeriksaKuota(request.db!, id, mr.project_id)
     const hasil = periksaKuota(bahan.items, bahan.sudahDiMr, bahan.kuota)
     return reply.send({
       mr_number: mr.mr_number,
@@ -469,7 +478,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
     // sekali. Yang dijaga adalah PENGAJUAN — titik saat permintaan menjadi
     // kewajiban yang akan berujung PO.
     const { override_reason } = (request.body ?? {}) as { override_reason?: string }
-    const bahan = await bahanPeriksaKuota(id, mr.project_id)
+    const bahan = await bahanPeriksaKuota(request.db!, id, mr.project_id)
     const hasil = periksaKuota(bahan.items, bahan.sudahDiMr, bahan.kuota)
 
     if (!hasil.lolos) {
@@ -496,7 +505,8 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
       // Override DICATAT sebelum status berubah: kalau pencatatannya gagal,
       // MR tidak boleh terlanjur submitted tanpa jejak siapa yang mengizinkan.
-      const { error: errOverride } = await supabase.from('mr_quota_override').insert({
+      const { error: errOverride } = await request.db!
+        .viaProject('mr_quota_override', mr.project_id).insert({
         mr_id: id, project_id: mr.project_id, reason: alasan,
         pelanggaran: hasil.pelanggaran, overridden_by: request.currentUser!.id,
       })

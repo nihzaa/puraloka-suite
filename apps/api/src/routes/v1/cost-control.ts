@@ -2,7 +2,6 @@ import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { proyekMilikTenant } from '../../utils/tenant-guard.js'
-import { supabase } from '../../utils/supabase.js'
 import { agregasiVarians, type CostCodeRef } from '../../lib/varians-cost-code.js'
 
 // ============================================================
@@ -49,8 +48,9 @@ export default async function costControlRoutes(app: FastifyInstance) {
     '/api/v1/cost-codes',
     { preHandler: [authenticate, requirePermission('cecep:cost_code:view')] },
     async (request, reply) => {
-      let q = supabase
-        .from('cost_codes')
+      // `shared`: `cost_codes` kategori AB — katalog bersama lintas tenant.
+      let q = request.db!
+        .shared('cost_codes')
         .select('id, code, name, description, category, status')
         .order('code')
         .limit(500)
@@ -83,9 +83,13 @@ export default async function costControlRoutes(app: FastifyInstance) {
       if (error) return reply.status(500).send({ error: error.message })
 
       const ids = (kategori ?? []).map((k) => k.id)
+      // `unsafe` beralasan — alasan sama dengan di endpoint /varians:
+      // tabel ini kategori C `lewat: category_id`, jadi viaProject akan
+      // menyaring dengan id yang salah jenis. Tenancy dijamin oleh `ids`.
       const peta = ids.length
-        ? (await supabase
-            .from('cost_code_category_map')
+        ? (await request.db!
+            .unsafe('cost_code_category_map',
+              'disaring lewat ids kategori yang sudah ber-scope tenant via viaProject')
             .select('category_id, cost_code_id, cost_codes(id, code, name, status)')
             .in('category_id', ids)).data ?? []
         : []
@@ -116,8 +120,11 @@ export default async function costControlRoutes(app: FastifyInstance) {
       const costCodeId = request.body?.cost_code_id ?? null
 
       // Gerbang tenancy: kategori milik proyek lain tak boleh disentuh.
-      const { data: kat } = await supabase
-        .from('project_expense_categories')
+      // Lookup by-id tanpa konteks proyek — proyeknya justru yang sedang dicari,
+      // lalu SEGERA diadu ke `proyekMilikTenant`. Itulah gerbangnya.
+      const { data: kat } = await request.db!
+        .unsafe('project_expense_categories',
+          'lookup by-id untuk menemukan project_id, lalu diadu proyekMilikTenant di baris berikutnya')
         .select('id, name, project_id')
         .eq('id', categoryId)
         .maybeSingle()
@@ -125,8 +132,10 @@ export default async function costControlRoutes(app: FastifyInstance) {
         return reply.status(404).send({ error: 'Kategori tidak ditemukan' })
       }
 
-      const { data: lama } = await supabase
-        .from('cost_code_category_map')
+      // Setelah gerbang di atas lolos, categoryId terbukti milik tenant ini.
+      const { data: lama } = await request.db!
+        .unsafe('cost_code_category_map',
+          'categoryId sudah lolos gerbang proyekMilikTenant di atas')
         .select('id, cost_code_id')
         .eq('category_id', categoryId)
         .maybeSingle()
@@ -135,7 +144,9 @@ export default async function costControlRoutes(app: FastifyInstance) {
       // supaya pengguna bisa membatalkan salah-petakan tanpa menghapus kategori.
       if (costCodeId === null) {
         if (lama) {
-          await supabase.from('cost_code_category_map').delete().eq('id', lama.id)
+          await request.db!
+            .unsafe('cost_code_category_map', 'hapus baris yang sudah lolos gerbang tenant di atas')
+            .delete().eq('id', lama.id)
           await logAuditEvent(request, {
             tableName: 'cost_code_category_map', recordId: lama.id,
             action: 'cecep.cost_map_dilepas',
@@ -146,15 +157,16 @@ export default async function costControlRoutes(app: FastifyInstance) {
         return reply.send({ data: null, dilepas: Boolean(lama) })
       }
 
-      const { data: cc } = await supabase
-        .from('cost_codes').select('id, code, name').eq('id', costCodeId).maybeSingle()
+      // `shared`: cost_codes kategori AB, katalog bersama lintas tenant.
+      const { data: cc } = await request.db!
+        .shared('cost_codes').select('id, code, name').eq('id', costCodeId).maybeSingle()
       if (!cc) return reply.status(400).send({ error: 'Cost Code tidak ditemukan' })
 
       // UNIQUE(category_id) di DB menjamin satu kategori → satu cost code
       // (migrasi 112: "resolusi deterministik"). Upsert menghormati itu, bukan
       // melawannya dengan menyisipkan baris kedua.
-      const { data, error } = await supabase
-        .from('cost_code_category_map')
+      const { data, error } = await request.db!
+        .unsafe('cost_code_category_map', 'categoryId sudah lolos gerbang proyekMilikTenant di atas')
         .upsert(
           { category_id: categoryId, cost_code_id: costCodeId,
             updated_by: request.currentUser!.id,
@@ -192,9 +204,16 @@ export default async function costControlRoutes(app: FastifyInstance) {
         .select('id')
       const katIds = (kategori ?? []).map((k) => k.id)
 
+      // `unsafe` beralasan, BUKAN `viaProject`: `cost_code_category_map`
+      // terdaftar kategori C dengan `lewat: 'category_id'`, sehingga
+      // `viaProject(tabel, projectId)` akan menyaring `category_id = projectId`
+      // — id yang berbeda jenis, hasilnya nol baris tanpa satu pun error.
+      // Tenancy di sini sudah dijamin oleh `katIds`, yang berasal dari
+      // `viaProject('project_expense_categories', projectId)` di atas.
       const peta = katIds.length
-        ? (await supabase
-            .from('cost_code_category_map')
+        ? (await request.db!
+            .unsafe('cost_code_category_map',
+              'disaring lewat katIds yang sudah ber-scope tenant via viaProject')
             .select('category_id, cost_code_id, cost_codes(id, code, name, status)')
             .in('category_id', katIds)).data ?? []
         : []
