@@ -99,6 +99,12 @@ export default async function rolesRoutes(app: FastifyInstance) {
         portal: body.portal ?? 'dashboard',
         color: body.color ?? '#6B7280',
         is_builtin: false,
+        // ⚠️ `roles` kategori AB: baris bawaan dipakai BERSAMA
+        // (`company_id NULL`), role buatan pengguna milik SATU perusahaan.
+        // Tanpa kolom ini, role custom lahir sebagai baris bersama — muncul di
+        // daftar perusahaan lain, dan `tolakRoleTenantLain()` pun
+        // meloloskannya karena `company_id === null` memang dianggap bawaan.
+        company_id: request.companyId,
       })
       .select()
       .single()

@@ -105,3 +105,64 @@ describe('resolveScopeItemOwnership menyaring company', () => {
     expect(jml, 'harus dipanggil ketiga rute scope-item').toBe(3)
   })
 })
+
+describe('gerbang tenant pada rute yang ditemukan audit-gerbang', () => {
+  // Kelima celah ini ditemukan dengan meninjau keluaran
+  // `audit-gerbang-tenancy.mjs` satu per satu, bukan dari membaca berurutan.
+  // Yang dikunci di sini BENTUKNYA — kalau saringannya dihapus, cacatnya
+  // kembali dan tak ada gejala apa pun sampai badan usaha kedua berdiri.
+  const baca = (f: string) =>
+    readFileSync(join(import.meta.dirname, '..', f), 'utf8')
+
+  it('rekap-pajak: daftar & ubah status sama-sama disaring proyek', () => {
+    const s = baca('reports.ts')
+    // GET: `.in('invoice.project_id', …)` — tax_records kategori C lewat invoice.
+    expect(s).toMatch(/\.in\('invoice\.project_id', idProyekPajak\)/)
+    // PATCH :id/status: rekap diambil dulu, proyeknya diperiksa, baru di-update.
+    expect(s).toMatch(/proyekBolehDibaca\(request, proyekRekap\)/)
+  })
+
+  it('stok: movements per project_id diperiksa kepemilikannya', () => {
+    expect(baca('procurement.ts'))
+      .toMatch(/projectIds\(\)\)\.includes\(project_id\)/)
+  })
+
+  it('summary pengeluaran disaring ke proyek tenant — termasuk saat tanpa filter', () => {
+    // Justru kasus TANPA `project_id` yang paling berbahaya: tanpa `.in(...)`
+    // ia menjumlahkan pengeluaran SEMUA perusahaan jadi satu angka.
+    //
+    // ⚠️ Dicocokkan DI DALAM handler-nya, bukan di mana pun dalam berkas.
+    // `cash.ts` punya 3 kemunculan `.in('project_id', idProyek)`; uji mutasi
+    // membuktikan assertion se-berkas tak berguna — menghapus yang di sini
+    // tetap hijau karena dua lainnya masih ada.
+    const s = baca('cash.ts')
+    const i = s.indexOf("summary-by-category")
+    expect(i, 'rute summary-by-category hilang').toBeGreaterThan(-1)
+    const handler = s.slice(i, i + 1600)
+    expect(handler).toMatch(/\.in\('project_id', idProyek\)/)
+    expect(handler).toMatch(/projectIds\(\)/)
+  })
+
+  it('work-scope baru: assignment_id dari body DIVERIFIKASI', () => {
+    const s = baca('mandor.ts')
+    expect(s).toMatch(/from\('mandor_assignments'\)[\s\S]{0,200}?eq\('id', body\.assignment_id\)/)
+    expect(s).toMatch(/includes\(penugasan\.project_id\)/)
+  })
+
+  it('daftar mandor dibatasi anggota company aktif', () => {
+    // Di-anchor ke rute `/mandor/list` — sama alasannya dengan cash.ts.
+    const s = baca('mandor.ts')
+    const i = s.indexOf("'/api/v1/mandor/list'")
+    expect(i, 'rute /mandor/list hilang').toBeGreaterThan(-1)
+    const handler = s.slice(i, i + 1600)
+    expect(handler).toMatch(/\.in\('id', idAnggota\)/)
+    expect(handler).toMatch(/eq\('company_id', request\.companyId!\)/)
+  })
+
+  it('role custom lahir dengan company_id, bukan sebagai baris bersama', () => {
+    // `roles` kategori AB: NULL = bawaan (bersama). Role custom tanpa
+    // company_id akan dianggap bawaan oleh tolakRoleTenantLain() dan lolos
+    // ke perusahaan lain.
+    expect(baca('roles.ts')).toMatch(/is_builtin: false,[\s\S]{0,600}?company_id: request\.companyId/)
+  })
+})

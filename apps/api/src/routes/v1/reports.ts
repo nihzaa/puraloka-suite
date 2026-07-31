@@ -1025,8 +1025,18 @@ export default async function reportsRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const { project_id, from, to, status, tax_type } = request.query as Record<string, string>
 
-    let q = supabase
-      .from('tax_records')
+    // ⚠️ Saringan tenant. Tanpa ini daftar rekap pajak memuat SELURUH
+    // perusahaan — lengkap dengan NPWP & nama klien tenant lain, yang bukan
+    // cuma angka tapi data pribadi pihak ketiga.
+    //
+    // `tax_records` kategori C lewat `invoice_id → invoices.project_id`, jadi
+    // disaring pada embed invoice-nya (`!inner` membuat baris tanpa invoice
+    // yang cocok ikut terbuang).
+    const idProyekPajak = await proyekBolehDibaca(request, project_id ?? null)
+    if (idProyekPajak === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+
+    let q = request.db!
+      .unsafe('tax_records', 'kategori C lewat invoice_id; disaring .in(invoice.project_id) di bawah')
       .select(`
         id, tax_type, tax_scheme, base_amount, rate_pct, tax_amount,
         efaktur_number, period_month, status, notes, created_at,
@@ -1037,6 +1047,7 @@ export default async function reportsRoutes(app: FastifyInstance) {
           )
         )
       `)
+      .in('invoice.project_id', idProyekPajak)
       .order('period_month', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(500)

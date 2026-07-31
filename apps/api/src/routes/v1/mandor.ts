@@ -952,15 +952,29 @@ export default async function mandorRoutes(app: FastifyInstance) {
   // GET /api/v1/mandor/list — daftar user mandor (dropdown assign)
   app.get('/api/v1/mandor/list', {
     preHandler: [authenticate, requirePermission('mandor:assign')]
-  }, async (_request, reply) => {
+  }, async (request, reply) => {
     // 1B.4 CONTRACT: role via FK `role_id`, BUKAN kolom `role` yang sudah di-drop.
     // Sebelum perbaikan ini endpoint membalas 500 (42703) → dropdown assign mandor
     // kosong, sehingga mandor tak bisa ditugaskan ke proyek sama sekali.
+    //
+    // ⚠️ `users` kategori D — ia TIDAK punya `company_id`; batas tenant-nya
+    // adalah KEANGGOTAAN (`company_members`). Tanpa saringan ini, dropdown
+    // "assign mandor" menampilkan mandor SELURUH perusahaan lengkap dengan
+    // nomor HP & email — dan menugaskannya akan menarik orang tenant lain
+    // masuk ke proyek kita.
+    const { data: anggota } = await request.db!
+      .unsafe('company_members', 'sumber keanggotaan; di-scope manual ke company aktif')
+      .select('user_id')
+      .eq('company_id', request.companyId!)
+      .eq('is_active', true)
+    const idAnggota = (anggota ?? []).map((m: { user_id: string }) => m.user_id)
+
     const { data, error } = await supabase
       .from('users')
       .select('id, name, phone, email, is_active, roles!inner(name)')
       .eq('roles.name', 'mandor')
       .eq('is_active', true)
+      .in('id', idAnggota)
       .order('name')
 
     if (error) return reply.status(500).send({ error: error.message })
