@@ -170,23 +170,23 @@ inkonsistensi — ini jejak evolusi metodologi itu sendiri (lihat § 4).
 | Lapisan | Dokumen | Ringkasan Satu Baris |
 |---|---|---|
 | Discovery | [`08`](../enterprise-architecture-framework/08-phase-g-enterprise-orchestration-architecture.md) | Enterprise Event Catalog (19 event) + 7 artefak discovery |
-| Philosophy | [`08a`](08a-enterprise-orchestration-philosophy.md) | Definisi Orchestration, batas Orchestrator, 19 section |
-| Philosophy Validation | [`08b`](08b-phase-g0-orchestration-philosophy-validation.md) | Cross-Layer Leak ditemukan+diperbaiki (§ P) |
-| Rule Taxonomy | [`08d`](08d-rule-taxonomy-discovery.md) | 10 jenis Rule → 3 kelompok |
-| Rule Meta Model | [`08e`](08e-rule-meta-model-discovery.md) | Rule+Formula = Executable Knowledge Model |
-| Rule Storage | [`08f`](08f-rule-storage-philosophy.md) | Family→Template→Instance |
-| Information Classification | [`08g`](08g-information-classification-discovery.md) | Computed ≠ Derived, non-ACR |
-| Information Characteristic | [`08h`](08h-information-characteristic-discovery.md) | Dua sumbu Classification×Characteristic |
-| Rule Ontology Validation | [`08i`](08i-rule-ontology-validation.md) | 4 sudut pandang diverifikasi konsisten |
-| Discovery Completion | [`08j`](08j-discovery-completion-assessment.md) | 14 Open Question dinilai, Discovery Completion Rule lahir |
-| Design | [`08c`](08c-orchestration-rule-design.md) v1 (superseded) → [`08c v2`](08c-orchestration-rule-design-v2.md) | Rule-001 s.d. 005 konkret |
-| Stress Test & Freeze | [`08k`](08k-phase-g1-rule-design-validation-freeze.md) | 12 skenario adversarial, 6 perbaikan aditif |
+| Philosophy | [`08a`](../enterprise-architecture-framework/08a-enterprise-orchestration-philosophy.md) | Definisi Orchestration, batas Orchestrator, 19 section |
+| Philosophy Validation | [`08b`](../enterprise-architecture-framework/08b-phase-g0-orchestration-philosophy-validation.md) | Cross-Layer Leak ditemukan+diperbaiki (§ P) |
+| Rule Taxonomy | [`08d`](../enterprise-architecture-framework/08d-rule-taxonomy-discovery.md) | 10 jenis Rule → 3 kelompok |
+| Rule Meta Model | [`08e`](../enterprise-architecture-framework/08e-rule-meta-model-discovery.md) | Rule+Formula = Executable Knowledge Model |
+| Rule Storage | [`08f`](../enterprise-architecture-framework/08f-rule-storage-philosophy.md) | Family→Template→Instance |
+| Information Classification | [`08g`](../enterprise-architecture-framework/08g-information-classification-discovery.md) | Computed ≠ Derived, non-ACR |
+| Information Characteristic | [`08h`](../enterprise-architecture-framework/08h-information-characteristic-discovery.md) | Dua sumbu Classification×Characteristic |
+| Rule Ontology Validation | [`08i`](../enterprise-architecture-framework/08i-rule-ontology-validation.md) | 4 sudut pandang diverifikasi konsisten |
+| Discovery Completion | [`08j`](../enterprise-architecture-framework/08j-discovery-completion-assessment.md) | 14 Open Question dinilai, Discovery Completion Rule lahir |
+| Design | [`08c`](../enterprise-architecture-framework/08c-orchestration-rule-design.md) v1 (superseded) → [`08c v2`](../enterprise-architecture-framework/08c-orchestration-rule-design-v2.md) | Rule-001 s.d. 005 konkret |
+| Stress Test & Freeze | [`08k`](../enterprise-architecture-framework/08k-phase-g1-rule-design-validation-freeze.md) | 12 skenario adversarial, 6 perbaikan aditif |
 | Dashboard (bukan gate) | [`09`](../enterprise-architecture-framework/09-cecep-architecture-readiness-review-v2.md) | Readiness Review v2, status lintas-layer |
 | Transition Brief | [`10`](../enterprise-architecture-framework/10-phase-transition-g-to-h.md) | Handover formal G→H |
 
 | | |
 |---|---|
-| Freeze | 🔒 (Phase G penuh, per [`08k`](08k-phase-g1-rule-design-validation-freeze.md)) |
+| Freeze | 🔒 (Phase G penuh, per [`08k`](../enterprise-architecture-framework/08k-phase-g1-rule-design-validation-freeze.md)) |
 | Dependencies | Phase F.1, `07c` |
 
 ### Phase H — Integration Architecture

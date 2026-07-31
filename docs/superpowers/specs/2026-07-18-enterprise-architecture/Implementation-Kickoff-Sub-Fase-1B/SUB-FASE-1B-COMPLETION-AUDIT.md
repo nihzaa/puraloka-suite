@@ -1,45 +1,30 @@
-# Sub-Fase 1B — Completion Audit (TEMPLATE — diisi di gate akhir)
+# Sub-Fase 1B — Completion Audit (SUPERSEDED)
 
-**Status:** ⏳ KOSONG — diisi saat gate akhir 1B dengan bukti objektif terverifikasi ulang (AUTOPILOT §7). Bukan klaim, bukti.
+> **⚠️ JANGAN kutip berkas ini sebagai bukti. Audit 1B yang sesungguhnya ada di
+> [PHASE-1B-COMPLETION-AUDIT.md](PHASE-1B-COMPLETION-AUDIT.md)** — 18 kriteria,
+> bukti diverifikasi ulang 2026-07-23, drift migrasi 080 = nol.
 
----
+**Status:** ⛔ Template yang tak pernah diisi. Dipertahankan hanya supaya tautan
+lama tidak putus.
 
-## 1. Completion Audit — Deliverable / DoD / Gate
+## Kenapa berkas ini menyesatkan
 
-| # | Requirement | Evidence | Status (PASS/FAIL) | PR ref |
-|---|---|---|---|---|
-| 1B.1 | Config Engine — tax rate config-driven, 8 test tax tetap hijau | _(grep + vitest)_ | _(isi)_ | _(isi)_ |
-| 1B.2 | Menu Registry — sidebar DB-driven, nol menu hilang | _(count menu + smoke)_ | _(isi)_ | _(isi)_ |
-| 1B.3 | Module/Feature Flags — CRUD, modul existing ON | _(query)_ | _(isi)_ | _(isi)_ |
-| 1B.4 | enum→FK (jika Opsi A) — role custom bisa di-assign, nol lockout | _(smoke 4+1 role)_ | _(isi / N/A jika Opsi B)_ | _(isi)_ |
-| Gate | Additive-first — nol fitur/menu existing hilang | _(count before/after)_ | _(isi)_ | — |
+Gate akhir 1B **dijalankan dan lulus**, tapi hasilnya ditulis ke berkas lain
+(`PHASE-1B-COMPLETION-AUDIT.md`). Template ini tertinggal berisi placeholder
+`_(isi)_` di setiap barisnya — sementara `PHASE-1-COMPLETION-AUDIT.md` §1
+menyebutnya berdampingan dengan audit asli sebagai bukti kelengkapan 1B.
 
-## 2. Repository Audit
-- [ ] Nol menu/fitur existing hilang (count before/after per-role)
-- [ ] Tax calc: hasil identik config default (regression)
-- [ ] TODO/FIXME terkait 1B = 0
-- [ ] Temp files = 0
+Sebuah template kosong yang dikutip sebagai bukti lebih berbahaya daripada
+tidak ada berkas sama sekali: pembaca yang tak membukanya akan mengira 1B punya
+dua audit, padahal hanya punya satu.
 
-## 3. Migration Audit
-- [ ] Migration 075-078(+) verified **column-level** (bukan tabel-exists)
-- [ ] `schema_migrations` sinkron (termasuk 073 rekonsiliasi Day-1)
-- [ ] Verifikasi via koneksi baru (DDL persistensi)
+Temuan ini tercatat di `STATUS.md` §AUDIT DOKUMENTASI MENYELURUH (2026-07-31)
+dan ditutup sebagai bagian ROADMAP #7.
 
-## 4. Documentation Audit
-- [ ] STATUS.md mencerminkan realita, nol teks basi
-- [ ] NUMBERING-GLOSSARY status 1B diupdate
-- [ ] Playbook trigger table diupdate
+## Ke mana mencari isinya
 
-## 5. Testing Audit (angka eksak)
-- Tests: _(pass/skip)_ · Typecheck: _(exit)_ · Lint: _(error)_ · Build: _(exit)_
-- Config/menu/flag/RLS test: _(count)_
-- Smoke test per-role live: _(hasil, negative 403)_
-
-## 6. Technical Debt Report
-- Governance: _(isi)_
-- Product: _(isi — mis. 1B.4 Opsi B jika ditunda)_
-- Infrastructure: _(isi)_
-- Backlog: _(isi)_
-
-## 7. Final Readiness — PASS / CONDITIONAL PASS / FAIL
-_(diisi di gate)_
+| Yang dicari | Berkas |
+|---|---|
+| Audit gate akhir 1B (18 kriteria + verdict) | [PHASE-1B-COMPLETION-AUDIT.md](PHASE-1B-COMPLETION-AUDIT.md) |
+| Rollup seluruh Phase 1 (1A–1D) | [../PHASE-1-COMPLETION-AUDIT.md](../PHASE-1-COMPLETION-AUDIT.md) |
+| Peta sub-fase + status config-first | [../PHASE-1-STATUS.md](../PHASE-1-STATUS.md) |

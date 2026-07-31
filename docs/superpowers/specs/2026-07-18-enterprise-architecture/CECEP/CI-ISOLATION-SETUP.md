@@ -1,7 +1,14 @@
 # CI Isolation — Proyek Supabase CI Terpisah (aksi founder)
 
-**Status:** ⛔ MENUNGGU PROVISIONING FOUNDER. Wiring `ci.yml` + seed skema dikerjakan
-setelah 4 secret di bawah tersedia.
+**Status:** ✅ SELESAI (diverifikasi ulang 2026-07-31). Proyek CI terpisah sudah
+di-provision founder, keempat secret terpasang, dan `ci.yml` sudah memakainya —
+`CI_SUPABASE_URL`, `CI_SUPABASE_SECRET_KEY`, `CI_DATABASE_URL`, `CI_DIRECT_URL`
+(`.github/workflows/ci.yml:56,71-75,83`). Bukti terakhir: job API lulus 11m32s di
+run 30599301046 (PR #121) menjalankan seluruh suite terhadap DB CI, bukan dev.
+
+> Berkas ini sempat tertulis "⛔ MENUNGGU PROVISIONING FOUNDER" berbulan-bulan
+> setelah pekerjaannya tuntas — persis pola dokumen basi yang
+> `PETA-PRIORITAS-ERP.md` §2 catat. Dikoreksi sebagai bagian ROADMAP #7.
 
 ## Kenapa
 

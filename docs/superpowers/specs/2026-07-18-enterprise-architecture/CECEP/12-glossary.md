@@ -19,13 +19,13 @@
 
 **Decision Hierarchy** — Hakim terakhir kalau dua layer frozen ternyata bertentangan: Business > Capability > Calculation > Information > Persistence. Dipakai SETELAH konflik terjadi, bukan mencegahnya. *Sumber: [`04`](04-architecture-constitution.md) § 9.*
 
-**Discovery Completion Rule** — Discovery dianggap selesai ketika seluruh Open Question tersisa TIDAK berpotensi mengubah struktur arsitektur (Five Truth Layers/Ownership/Replay/Contract/Version/Structure) — hanya terminologi/metadata/dokumentasi. Prinsip lintas-fase, lahir dari [`08j`](08j-discovery-completion-assessment.md). *Sumber: [`04`](04-architecture-constitution.md) § 15.*
+**Discovery Completion Rule** — Discovery dianggap selesai ketika seluruh Open Question tersisa TIDAK berpotensi mengubah struktur arsitektur (Five Truth Layers/Ownership/Replay/Contract/Version/Structure) — hanya terminologi/metadata/dokumentasi. Prinsip lintas-fase, lahir dari [`08j`](../enterprise-architecture-framework/08j-discovery-completion-assessment.md). *Sumber: [`04`](04-architecture-constitution.md) § 15.*
 
 **Five Truth Layers** — Filosofi inti penyusunan seluruh blueprint dari atas ke bawah: Business → Capability → Calculation → Information → Execution. Layer 5 (Execution) TIDAK PERNAH menciptakan truth baru, hanya mengonsumsi Layer 2-4. *Sumber: [`04`](04-architecture-constitution.md) § 8.*
 
 **Foundational Principles** — Empat filosofi tertinggi CECEP: (1) Company Intelligence Loop, (2) CECEP adalah Company Knowledge System, (3) Everything is Versioned, (4) Everything is Derived, Nothing is Re-entered. *Sumber: [`04`](04-architecture-constitution.md) § 1.*
 
-**Momentum Bias** — Pola risiko: kewaspadaan menurun justru SAAT streak persetujuan lancar, bukan saat kesulitan. Ditemukan founder saat Rule Design (`08c`) ditulis sebelum discovery yang seharusnya mendahuluinya. *Sumber: [`08d`](08d-rule-taxonomy-discovery.md) pembuka.*
+**Momentum Bias** — Pola risiko: kewaspadaan menurun justru SAAT streak persetujuan lancar, bukan saat kesulitan. Ditemukan founder saat Rule Design (`08c`) ditulis sebelum discovery yang seharusnya mendahuluinya. *Sumber: [`08d`](../enterprise-architecture-framework/08d-rule-taxonomy-discovery.md) pembuka.*
 
 **Operational Perspective** — Concern lintas-fase (backup/DR/observability/retention/rollback), diaktifkan progresif di Phase H(Operational Integration)/J(Operational Evolution)/K(Deployment Impact)/L(Operational Blueprint) — BUKAN fase berdiri sendiri. *Sumber: [`04`](04-architecture-constitution.md) § 14.*
 
@@ -41,15 +41,15 @@
 
 **ADR Traceability Log** — Catatan permanen SEMUA ACR, diterima maupun ditolak — bukan hanya mekanisme penolakan. *Sumber: [`04a`](04a-adr-traceability-log.md).*
 
-**Deferred Refinement** — Status untuk Open Question yang TIDAK mengubah struktur fundamental (lolos kriteria Discovery Completion Rule) — dicatat sebagai backlog dokumentasi ringan, tidak memblokir Design. *Sumber: [`08j`](08j-discovery-completion-assessment.md).*
+**Deferred Refinement** — Status untuk Open Question yang TIDAK mengubah struktur fundamental (lolos kriteria Discovery Completion Rule) — dicatat sebagai backlog dokumentasi ringan, tidak memblokir Design. *Sumber: [`08j`](../enterprise-architecture-framework/08j-discovery-completion-assessment.md).*
 
-**Deferred to Phase [X]** — Berbeda dari Deferred Refinement biasa: temuan nyata yang SUDAH diuji cukup dalam untuk memastikan desain saat ini aman, tapi bentuk penyelesaian permanennya sengaja ditinggalkan untuk fase lain yang menjadi domainnya (mis. Event Join Semantics → Deferred to Phase H karena menyentuh Integration Contract). *Sumber: [`08k`](08k-phase-g1-rule-design-validation-freeze.md) § 13.*
+**Deferred to Phase [X]** — Berbeda dari Deferred Refinement biasa: temuan nyata yang SUDAH diuji cukup dalam untuk memastikan desain saat ini aman, tapi bentuk penyelesaian permanennya sengaja ditinggalkan untuk fase lain yang menjadi domainnya (mis. Event Join Semantics → Deferred to Phase H karena menyentuh Integration Contract). *Sumber: [`08k`](../enterprise-architecture-framework/08k-phase-g1-rule-design-validation-freeze.md) § 13.*
 
-**Discovery Completion Assessment** — Prosedur formal: kumpulkan SEMUA Open Question sepanjang satu rantai discovery, uji satu per satu terhadap Discovery Completion Rule, sebelum Design boleh dimulai. *Sumber: [`08j`](08j-discovery-completion-assessment.md).*
+**Discovery Completion Assessment** — Prosedur formal: kumpulkan SEMUA Open Question sepanjang satu rantai discovery, uji satu per satu terhadap Discovery Completion Rule, sebelum Design boleh dimulai. *Sumber: [`08j`](../enterprise-architecture-framework/08j-discovery-completion-assessment.md).*
 
 **Phase Transition Brief** — Dokumen handover formal antar fase (bukan discovery/architecture/design): apa yang selesai, input wajib, apa yang tidak boleh diubah, apa yang harus dijawab fase berikutnya, Acceptance Criteria. Pola berulang untuk setiap transisi fase. *Sumber: [`10`](../enterprise-architecture-framework/10-phase-transition-g-to-h.md).*
 
-**Stress Test (Validation & Freeze)** — Gerbang freeze yang menyerang desain dengan skenario adversarial (collision, circular, cascade, dst.) — BUKAN pemeriksaan grammar/consistency. *Sumber: [`08k`](08k-phase-g1-rule-design-validation-freeze.md).*
+**Stress Test (Validation & Freeze)** — Gerbang freeze yang menyerang desain dengan skenario adversarial (collision, circular, cascade, dst.) — BUKAN pemeriksaan grammar/consistency. *Sumber: [`08k`](../enterprise-architecture-framework/08k-phase-g1-rule-design-validation-freeze.md).*
 
 ---
 
@@ -59,7 +59,7 @@
 
 **Determinism (Calculation)** — Angka yang sama dari input yang sama, setiap kali. *Sumber: [`06b`](06b-phase-e1-calculation-validation-freeze.md) § 14.*
 
-**Determinism (Orchestration)** — Same Input + Same Rule Version + Same Event → Must Produce Same Orchestration Decision. Menjamin KEPUTUSAN sama, BUKAN hasil eksekusi Capability eksternal yang dipanggil. *Sumber: [`08a`](08a-enterprise-orchestration-philosophy.md) § M.*
+**Determinism (Orchestration)** — Same Input + Same Rule Version + Same Event → Must Produce Same Orchestration Decision. Menjamin KEPUTUSAN sama, BUKAN hasil eksekusi Capability eksternal yang dipanggil. *Sumber: [`08a`](../enterprise-architecture-framework/08a-enterprise-orchestration-philosophy.md) § M.*
 
 **Dependency Graph (Formula)** — Graph antar-Formula dengan Circular Detection (algoritma DFS three-color) — dipakai ulang untuk Rule Composition (§ O `08a`). *Sumber: [`06`](06-phase-e-calculation-strategy.md) § D.*
 
@@ -75,73 +75,73 @@
 
 ## D. Informasi (Phase F, `08g`-`08h`)
 
-**Audit Data** — Catatan siapa/kapan/mengapa suatu perubahan terjadi; append-only, kelas SEJATI (bukan dimensi silang). *Sumber: [`08g`](08g-information-classification-discovery.md) § A.9.*
+**Audit Data** — Catatan siapa/kapan/mengapa suatu perubahan terjadi; append-only, kelas SEJATI (bukan dimensi silang). *Sumber: [`08g`](../enterprise-architecture-framework/08g-information-classification-discovery.md) § A.9.*
 
 **Canonical Information Contract** — 11 elemen wajib tiap Information Class: Identity/Meaning/Owner/Lifecycle/Version/Allowed Mutation/Consumers/Producers/Source of Truth/Derivation Rule/**Audit** (elemen ke-11, ditambah via ACR-002). *Sumber: [`07`](07-phase-f-enterprise-data-model.md) § C.*
 
-**Characteristic (Information)** — Sumbu KEDUA (terpisah dari Classification): Versioned/Historical/Auditable/Replayable/Immutable(3 level)/Temporal Scope — cara sebuah objek DIKELOLA dari waktu ke waktu, independen dari jenis sumber kebenarannya. *Sumber: [`08h`](08h-information-characteristic-discovery.md) § B.*
+**Characteristic (Information)** — Sumbu KEDUA (terpisah dari Classification): Versioned/Historical/Auditable/Replayable/Immutable(3 level)/Temporal Scope — cara sebuah objek DIKELOLA dari waktu ke waktu, independen dari jenis sumber kebenarannya. *Sumber: [`08h`](../enterprise-architecture-framework/08h-information-characteristic-discovery.md) § B.*
 
-**Classification (Information)** — Sumbu PERTAMA: 16 kelas jenis sumber kebenaran & cara reproduksi data (Master/Reference/Transactional/Derived/Computed/Knowledge/Configuration/dst). *Sumber: [`07`](07-phase-f-enterprise-data-model.md) § A, diperiksa ulang [`08g`](08g-information-classification-discovery.md).*
+**Classification (Information)** — Sumbu PERTAMA: 16 kelas jenis sumber kebenaran & cara reproduksi data (Master/Reference/Transactional/Derived/Computed/Knowledge/Configuration/dst). *Sumber: [`07`](07-phase-f-enterprise-data-model.md) § A, diperiksa ulang [`08g`](../enterprise-architecture-framework/08g-information-classification-discovery.md).*
 
-**Computed Data** — Snapshot hasil SATU eksekusi tertentu yang melibatkan faktor tidak sepenuhnya internal (state eksternal/waktu eksekusi); menghapusnya BERARTI kehilangan informasi yang tidak bisa direproduksi identik. Kategori SEJAJAR dengan Derived Data, bukan subtype-nya. *Sumber: [`08g`](08g-information-classification-discovery.md) § A.5, § C.*
+**Computed Data** — Snapshot hasil SATU eksekusi tertentu yang melibatkan faktor tidak sepenuhnya internal (state eksternal/waktu eksekusi); menghapusnya BERARTI kehilangan informasi yang tidak bisa direproduksi identik. Kategori SEJAJAR dengan Derived Data, bukan subtype-nya. *Sumber: [`08g`](../enterprise-architecture-framework/08g-information-classification-discovery.md) § A.5, § C.*
 
-**Derived Data (True Derived)** — Nilai yang bisa dihitung ulang KAPAN SAJA dari sumber internal, TIDAK ADA informasi hilang kalau dihapus dan dihitung ulang. *Sumber: [`07`](07-phase-f-enterprise-data-model.md) § A, dipertajam [`08g`](08g-information-classification-discovery.md) § A.4.*
+**Derived Data (True Derived)** — Nilai yang bisa dihitung ulang KAPAN SAJA dari sumber internal, TIDAK ADA informasi hilang kalau dihapus dan dihitung ulang. *Sumber: [`07`](07-phase-f-enterprise-data-model.md) § A, dipertajam [`08g`](../enterprise-architecture-framework/08g-information-classification-discovery.md) § A.4.*
 
-**Historical (dimensi)** — BUKAN kelas sejajar — dimensi silang (Characteristic) yang melekat pada kelas lain begitu tidak aktif lagi, tapi tetap tersimpan/bisa dirujuk. *Sumber: [`08g`](08g-information-classification-discovery.md) § A.7, diformalkan [`08h`](08h-information-characteristic-discovery.md) § B.2.*
+**Historical (dimensi)** — BUKAN kelas sejajar — dimensi silang (Characteristic) yang melekat pada kelas lain begitu tidak aktif lagi, tapi tetap tersimpan/bisa dirujuk. *Sumber: [`08g`](../enterprise-architecture-framework/08g-information-classification-discovery.md) § A.7, diformalkan [`08h`](../enterprise-architecture-framework/08h-information-characteristic-discovery.md) § B.2.*
 
-**Immutable (3 level)** — Full Immutable (Event/Audit/Computed Data), Versioned-Immutable (Master/Knowledge/Configuration — satu versi immutable, versi aktif bisa berpindah), Mutable (Temporary Data, status field). *Sumber: [`08h`](08h-information-characteristic-discovery.md) § B.5.*
+**Immutable (3 level)** — Full Immutable (Event/Audit/Computed Data), Versioned-Immutable (Master/Knowledge/Configuration — satu versi immutable, versi aktif bisa berpindah), Mutable (Temporary Data, status field). *Sumber: [`08h`](../enterprise-architecture-framework/08h-information-characteristic-discovery.md) § B.5.*
 
-**Replay-by-Recompute** — Mekanisme Replay dengan menjalankan ulang proses dari sumber, WAJIB deterministik identik (True Derived Data, Formula). *Sumber: [`08h`](08h-information-characteristic-discovery.md) § C.2.*
+**Replay-by-Recompute** — Mekanisme Replay dengan menjalankan ulang proses dari sumber, WAJIB deterministik identik (True Derived Data, Formula). *Sumber: [`08h`](../enterprise-architecture-framework/08h-information-characteristic-discovery.md) § C.2.*
 
-**Replay-by-Retrieve** — Mekanisme Replay dengan membaca kembali snapshot yang SUDAH tersimpan, tanpa hitung ulang (Computed Data, Snapshot Data). *Sumber: [`08h`](08h-information-characteristic-discovery.md) § C.2.*
+**Replay-by-Retrieve** — Mekanisme Replay dengan membaca kembali snapshot yang SUDAH tersimpan, tanpa hitung ulang (Computed Data, Snapshot Data). *Sumber: [`08h`](../enterprise-architecture-framework/08h-information-characteristic-discovery.md) § C.2.*
 
-**Versioned (dimensi)** — Dimensi silang (Characteristic): objek punya rangkaian versi yang mewakili entitas logis SAMA, versi baru menggantikan "versi aktif" tanpa menghapus versi lama. *Sumber: [`08g`](08g-information-classification-discovery.md) § A.8, diformalkan [`08h`](08h-information-characteristic-discovery.md) § B.1.*
+**Versioned (dimensi)** — Dimensi silang (Characteristic): objek punya rangkaian versi yang mewakili entitas logis SAMA, versi baru menggantikan "versi aktif" tanpa menghapus versi lama. *Sumber: [`08g`](../enterprise-architecture-framework/08g-information-classification-discovery.md) § A.8, diformalkan [`08h`](../enterprise-architecture-framework/08h-information-characteristic-discovery.md) § B.1.*
 
 ---
 
 ## E. Orchestration & Rule (Phase G)
 
-**Authored_by** — Field Rule: `human` | `ai_proposed`. AI boleh mengusulkan Rule Draft, TIDAK BOLEH Published tanpa Approval manusia. *Sumber: [`08e`](08e-rule-meta-model-discovery.md) § D.*
+**Authored_by** — Field Rule: `human` | `ai_proposed`. AI boleh mengusulkan Rule Draft, TIDAK BOLEH Published tanpa Approval manusia. *Sumber: [`08e`](../enterprise-architecture-framework/08e-rule-meta-model-discovery.md) § D.*
 
-**Choreography** — Pola tanpa konduktor pusat, setiap service bereaksi independen. CECEP Hybrid: Choreography untuk reaksi deterministic, Orchestration eksplisit untuk titik bercabang kebijakan. *Sumber: [`08a`](08a-enterprise-orchestration-philosophy.md) § B.*
+**Choreography** — Pola tanpa konduktor pusat, setiap service bereaksi independen. CECEP Hybrid: Choreography untuk reaksi deterministic, Orchestration eksplisit untuk titik bercabang kebijakan. *Sumber: [`08a`](../enterprise-architecture-framework/08a-enterprise-orchestration-philosophy.md) § B.*
 
-**Executable Knowledge Model** — Kategori payung BARU yang menaungi Rule dan Formula: representasi terstruktur non-kode, dieksekusi Engine generik, Enterprise Asset penuh (lifecycle/version/testing/audit/explainability). Rule murni Layer 5; Formula berjejak Layer 3 (definisi) + Layer 5 (eksekusi). *Sumber: [`08e`](08e-rule-meta-model-discovery.md) § B, dipertajam [`08i`](08i-rule-ontology-validation.md) § D.*
+**Executable Knowledge Model** — Kategori payung BARU yang menaungi Rule dan Formula: representasi terstruktur non-kode, dieksekusi Engine generik, Enterprise Asset penuh (lifecycle/version/testing/audit/explainability). Rule murni Layer 5; Formula berjejak Layer 3 (definisi) + Layer 5 (eksekusi). *Sumber: [`08e`](../enterprise-architecture-framework/08e-rule-meta-model-discovery.md) § B, dipertajam [`08i`](../enterprise-architecture-framework/08i-rule-ontology-validation.md) § D.*
 
-**Idempotency Key** — Field pada Rule Execution Instance (bukan Rule Definition): `hash(rule_id + rule_version + trigger_event_id)`, dipakai CAP-013 mendeteksi panggilan duplikat. *Sumber: [`08k`](08k-phase-g1-rule-design-validation-freeze.md) § 9.*
+**Idempotency Key** — Field pada Rule Execution Instance (bukan Rule Definition): `hash(rule_id + rule_version + trigger_event_id)`, dipakai CAP-013 mendeteksi panggilan duplikat. *Sumber: [`08k`](../enterprise-architecture-framework/08k-phase-g1-rule-design-validation-freeze.md) § 9.*
 
-**Orchestration** — Keputusan tentang KAPAN dan URUTAN APA capability yang sudah punya data/kemampuan sendiri (Layer 1-4, frozen) dipanggil bekerja sama — TANPA pernah mengubah apa yang mereka miliki. *Sumber: [`08a`](08a-enterprise-orchestration-philosophy.md) § A.*
+**Orchestration** — Keputusan tentang KAPAN dan URUTAN APA capability yang sudah punya data/kemampuan sendiri (Layer 1-4, frozen) dipanggil bekerja sama — TANPA pernah mengubah apa yang mereka miliki. *Sumber: [`08a`](../enterprise-architecture-framework/08a-enterprise-orchestration-philosophy.md) § A.*
 
-**Rule Composition** — Rule A boleh memicu Rule B, DIIZINKAN, tunduk algoritma acyclic yang sama dengan Dependency Graph Formula. Circular ditolak mutlak. *Sumber: [`08a`](08a-enterprise-orchestration-philosophy.md) § O.*
+**Rule Composition** — Rule A boleh memicu Rule B, DIIZINKAN, tunduk algoritma acyclic yang sama dengan Dependency Graph Formula. Circular ditolak mutlak. *Sumber: [`08a`](../enterprise-architecture-framework/08a-enterprise-orchestration-philosophy.md) § O.*
 
-**Rule Explanation** — Struktur otomatis menjawab "kenapa Rule ini trigger, dengan Scope apa, memanggil apa" — padanan Explanation Tree untuk domain proses (bukan angka). *Sumber: [`08a`](08a-enterprise-orchestration-philosophy.md) § R.*
+**Rule Explanation** — Struktur otomatis menjawab "kenapa Rule ini trigger, dengan Scope apa, memanggil apa" — padanan Explanation Tree untuk domain proses (bukan angka). *Sumber: [`08a`](../enterprise-architecture-framework/08a-enterprise-orchestration-philosophy.md) § R.*
 
-**Rule Family / Template / Instance** — Tiga lapis reuse: Family (pengelompokan tujuan bisnis lintas-company), Template (definisi dengan parameter, opsional), Instance (Template terisi parameter untuk Company/Project tertentu — punya `id` unik, yang benar-benar dieksekusi). *Sumber: [`08f`](08f-rule-storage-philosophy.md) § C.*
+**Rule Family / Template / Instance** — Tiga lapis reuse: Family (pengelompokan tujuan bisnis lintas-company), Template (definisi dengan parameter, opsional), Instance (Template terisi parameter untuk Company/Project tertentu — punya `id` unik, yang benar-benar dieksekusi). *Sumber: [`08f`](../enterprise-architecture-framework/08f-rule-storage-philosophy.md) § C.*
 
-**Rule Group** — Kumpulan Rule ber-trigger sama, dianggap satu kesatuan untuk keperluan Recovery — VIEW/query dinamis, BUKAN Aggregate Root baru. *Sumber: [`08e`](08e-rule-meta-model-discovery.md) § C, diterapkan [`08c v2`](08c-orchestration-rule-design-v2.md) § F.*
+**Rule Group** — Kumpulan Rule ber-trigger sama, dianggap satu kesatuan untuk keperluan Recovery — VIEW/query dinamis, BUKAN Aggregate Root baru. *Sumber: [`08e`](../enterprise-architecture-framework/08e-rule-meta-model-discovery.md) § C, diterapkan [`08c v2`](../enterprise-architecture-framework/08c-orchestration-rule-design-v2.md) § F.*
 
-**Rule Lifecycle** — Draft → Testing → Approved → Published → **Superseded** (revisi normal, sering) → **Deprecated** (penghentian total, jarang) → Archived. *Sumber: [`08a`](08a-enterprise-orchestration-philosophy.md) § J.*
+**Rule Lifecycle** — Draft → Testing → Approved → Published → **Superseded** (revisi normal, sering) → **Deprecated** (penghentian total, jarang) → Archived. *Sumber: [`08a`](../enterprise-architecture-framework/08a-enterprise-orchestration-philosophy.md) § J.*
 
-**Rule Priority** — BUKAN nomor urut bebas — ditentukan Dependency eksplisit dulu, lalu default PARALEL untuk Rule independen; priority number hanya tie-breaker KONDISIONAL untuk resource terbatas yang belum tentu ada. *Sumber: [`08a`](08a-enterprise-orchestration-philosophy.md) § P.*
+**Rule Priority** — BUKAN nomor urut bebas — ditentukan Dependency eksplisit dulu, lalu default PARALEL untuk Rule independen; priority number hanya tie-breaker KONDISIONAL untuk resource terbatas yang belum tentu ada. *Sumber: [`08a`](../enterprise-architecture-framework/08a-enterprise-orchestration-philosophy.md) § P.*
 
-**Rule Scope** — Empat level: Template Rule (Reference/National) → Company Rule → Project Rule → Scenario/Estimate Rule, resolusi paling spesifik menang. *Sumber: [`08a`](08a-enterprise-orchestration-philosophy.md) § Q.*
+**Rule Scope** — Empat level: Template Rule (Reference/National) → Company Rule → Project Rule → Scenario/Estimate Rule, resolusi paling spesifik menang. *Sumber: [`08a`](../enterprise-architecture-framework/08a-enterprise-orchestration-philosophy.md) § Q.*
 
-**Rule Testability** — Given Event → Expected Rule → Expected Action → Expected Outcome, wajib minimal satu Test Case lolos sebelum Approved. *Sumber: [`08a`](08a-enterprise-orchestration-philosophy.md) § S.*
+**Rule Testability** — Given Event → Expected Rule → Expected Action → Expected Outcome, wajib minimal satu Test Case lolos sebelum Approved. *Sumber: [`08a`](../enterprise-architecture-framework/08a-enterprise-orchestration-philosophy.md) § S.*
 
-**Saga** — Pola distributed-transaction dengan Compensation eksplisit — salah satu TEKNIK yang dipakai orkestrasi CECEP, bukan sinonim Orchestration itu sendiri. *Sumber: [`08a`](08a-enterprise-orchestration-philosophy.md) § B.*
+**Saga** — Pola distributed-transaction dengan Compensation eksplisit — salah satu TEKNIK yang dipakai orkestrasi CECEP, bukan sinonim Orchestration itu sendiri. *Sumber: [`08a`](../enterprise-architecture-framework/08a-enterprise-orchestration-philosophy.md) § B.*
 
-**Trigger_type** — Field Rule: `domain_event` (dari Event Catalog bisnis) | `system_signal` (kondisi internal Layer 5, mis. Rule Group gagal total). *Sumber: [`08e`](08e-rule-meta-model-discovery.md) § D.*
+**Trigger_type** — Field Rule: `domain_event` (dari Event Catalog bisnis) | `system_signal` (kondisi internal Layer 5, mis. Rule Group gagal total). *Sumber: [`08e`](../enterprise-architecture-framework/08e-rule-meta-model-discovery.md) § D.*
 
 ---
 
 ## F. Failure & Execution Semantics
 
-**Compensation** — Tindakan pemulihan eksplisit; ISI kompensasi tetap milik capability yang mengeksekusinya, Orchestrator hanya menentukan BAHWA itu harus terjadi. *Sumber: [`08a`](08a-enterprise-orchestration-philosophy.md) § L.*
+**Compensation** — Tindakan pemulihan eksplisit; ISI kompensasi tetap milik capability yang mengeksekusinya, Orchestrator hanya menentukan BAHWA itu harus terjadi. *Sumber: [`08a`](../enterprise-architecture-framework/08a-enterprise-orchestration-philosophy.md) § L.*
 
-**Failure Philosophy** — Enam respons kegagalan: Ignore/Retry/Rollback(**dilarang** level-data)/Compensate/Manual/Stop. *Sumber: [`08a`](08a-enterprise-orchestration-philosophy.md) § L.*
+**Failure Philosophy** — Enam respons kegagalan: Ignore/Retry/Rollback(**dilarang** level-data)/Compensate/Manual/Stop. *Sumber: [`08a`](../enterprise-architecture-framework/08a-enterprise-orchestration-philosophy.md) § L.*
 
-**Recovery Rule** — Rule dengan `trigger_type: system_signal` yang trigger-nya kegagalan total satu Rule Group; DILARANG memanggil Capability yang sama dengan anggota Rule Group yang gagal (mencegah infinite recovery loop). *Sumber: [`08e`](08e-rule-meta-model-discovery.md) § C, diperkuat [`08k`](08k-phase-g1-rule-design-validation-freeze.md) § 7.*
+**Recovery Rule** — Rule dengan `trigger_type: system_signal` yang trigger-nya kegagalan total satu Rule Group; DILARANG memanggil Capability yang sama dengan anggota Rule Group yang gagal (mencegah infinite recovery loop). *Sumber: [`08e`](../enterprise-architecture-framework/08e-rule-meta-model-discovery.md) § C, diperkuat [`08k`](../enterprise-architecture-framework/08k-phase-g1-rule-design-validation-freeze.md) § 7.*
 
-**Rollback (level-data)** — DILARANG MUTLAK — Estimate Version immutable setelah Approved; "pembatalan" hanya sah sebagai Stop (berhenti maju) atau Compensate (perbaiki maju), tidak pernah menghapus jejak. *Sumber: [`08a`](08a-enterprise-orchestration-philosophy.md) § L.*
+**Rollback (level-data)** — DILARANG MUTLAK — Estimate Version immutable setelah Approved; "pembatalan" hanya sah sebagai Stop (berhenti maju) atau Compensate (perbaiki maju), tidak pernah menghapus jejak. *Sumber: [`08a`](../enterprise-architecture-framework/08a-enterprise-orchestration-philosophy.md) § L.*
 
 ---
 
@@ -197,9 +197,9 @@
 
 **"Knowledge Graph"** — Nama DITOLAK, diganti "Architecture Metadata Model" — menghindari konotasi Neo4j/graph database untuk sesuatu yang sebenarnya kewajiban metadata progresif. *Sumber: [`04`](04-architecture-constitution.md) § 13.*
 
-**"Rule = Configuration Data"** — Kesimpulan AWAL yang DITOLAK (terlalu cepat, ronde pertama `08e`) — direvisi jadi Rule = bentuk Executable Knowledge Model, Configuration Data hanya salah satu dimensi parsialnya. *Sumber: [`08e`](08e-rule-meta-model-discovery.md) § A.2, § B.*
+**"Rule = Configuration Data"** — Kesimpulan AWAL yang DITOLAK (terlalu cepat, ronde pertama `08e`) — direvisi jadi Rule = bentuk Executable Knowledge Model, Configuration Data hanya salah satu dimensi parsialnya. *Sumber: [`08e`](../enterprise-architecture-framework/08e-rule-meta-model-discovery.md) § A.2, § B.*
 
-**"Titik Keputusan Tunggal"** — Istilah LAMA yang ditinggalkan setelah Philosophy membuktikan Rule adalah first-class citizen dengan Composition/Priority/Scope — mindset bergeser dari "jawab satu keputusan" ke "desain Orchestration Rule System". *Sumber: [`08`](../enterprise-architecture-framework/08-phase-g-enterprise-orchestration-architecture.md) § H, reframing [`08c v2`](08c-orchestration-rule-design-v2.md) pembuka.*
+**"Titik Keputusan Tunggal"** — Istilah LAMA yang ditinggalkan setelah Philosophy membuktikan Rule adalah first-class citizen dengan Composition/Priority/Scope — mindset bergeser dari "jawab satu keputusan" ke "desain Orchestration Rule System". *Sumber: [`08`](../enterprise-architecture-framework/08-phase-g-enterprise-orchestration-architecture.md) § H, reframing [`08c v2`](../enterprise-architecture-framework/08c-orchestration-rule-design-v2.md) pembuka.*
 
 **"Inheritance/mewarisi properti" sebagai alat uji ontologi** — DITOLAK sebagai alat uji CECEP (dipakai sekali secara naratif di `08e`, ternyata tidak pernah disahkan formal) — digantikan Test of Difference/Equivalence. CECEP tidak punya konsep pewarisan ala OOP untuk relasi ontologisnya. *Sumber: [`14`](../enterprise-architecture-framework/14-phase-h-integration-discovery.md) § 8.*
 

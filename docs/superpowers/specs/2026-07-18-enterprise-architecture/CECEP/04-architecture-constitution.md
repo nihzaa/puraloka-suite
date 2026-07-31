@@ -284,7 +284,7 @@ Status: RESOLVED (dicatat permanen, tidak dihapus meski DITERIMA)
 
 **ADR Traceability Log (indeks pusat, diisi retroaktif + berjalan ke depan):** Lihat [`04a-adr-traceability-log.md`](04a-adr-traceability-log.md) — dokumen terpisah yang mengindeks SEMUA ACR lintas seluruh fase (bukan tersebar per dokumen fase). Tiga ACR retroaktif pertama (Precision Rule leak, elemen Audit hilang, FX Rate versioning) dicatat di sana sebagai ACR-001, ACR-002, ACR-003 meski ketiganya sudah "diterima" secara substansi sebelum revisi governance ini — pencatatan retroaktif ini SENDIRI adalah bukti prinsip traceability dijalankan, bukan cuma dinyatakan.
 
-**Status rantai saat ini:** Phase D, E, dan F sudah FREEZE ([`07b`](07b-phase-f1-information-validation-freeze.md) § 🔒 INFORMATION FREEZE). Phase G (Enterprise Orchestration Architecture) sedang berjalan — Discovery selesai, Enterprise Orchestration Philosophy sudah FREEZE dan tervalidasi lewat Phase G.0 ([`08b`](08b-phase-g0-orchestration-philosophy-validation.md)), **Orchestration Rule Design sedang berjalan** ([`08c`](08c-orchestration-rule-design.md)). Governing rule masing-masing (poin di diagram atas) berlaku otomatis begitu fase itu dimulai, tidak perlu ditetapkan ulang dari nol.
+**Status rantai saat ini:** Phase D, E, dan F sudah FREEZE ([`07b`](07b-phase-f1-information-validation-freeze.md) § 🔒 INFORMATION FREEZE). Phase G (Enterprise Orchestration Architecture) sedang berjalan — Discovery selesai, Enterprise Orchestration Philosophy sudah FREEZE dan tervalidasi lewat Phase G.0 ([`08b`](../enterprise-architecture-framework/08b-phase-g0-orchestration-philosophy-validation.md)), **Orchestration Rule Design sedang berjalan** ([`08c`](../enterprise-architecture-framework/08c-orchestration-rule-design.md)). Governing rule masing-masing (poin di diagram atas) berlaku otomatis begitu fase itu dimulai, tidak perlu ditetapkan ulang dari nol.
 
 ---
 
@@ -457,7 +457,7 @@ Business Truth        >  Capability Truth  >  Calculation Truth  >  Information 
 
 ## 15. Discovery Completion Rule
 
-**Sumber:** [`08j-discovery-completion-assessment.md`](08j-discovery-completion-assessment.md) (Phase G, Rule Design). Founder eksplisit meminta prinsip ini diangkat ke Constitution — bukan hanya berlaku untuk rantai discovery `08d`-`08i`, tapi untuk SETIAP rantai discovery di fase mana pun (Phase H, I, J, K, L, dan discovery lanjutan apa pun di masa depan).
+**Sumber:** [`08j-discovery-completion-assessment.md`](../enterprise-architecture-framework/08j-discovery-completion-assessment.md) (Phase G, Rule Design). Founder eksplisit meminta prinsip ini diangkat ke Constitution — bukan hanya berlaku untuk rantai discovery `08d`-`08i`, tapi untuk SETIAP rantai discovery di fase mana pun (Phase H, I, J, K, L, dan discovery lanjutan apa pun di masa depan).
 
 **Masalah yang dijawab:** Tanpa kriteria berhenti yang eksplisit, discovery bisa berlanjut tanpa batas — setiap dokumen discovery baru hampir selalu bisa menemukan SATU istilah lagi yang bisa dipertajam, SATU sudut pandang lagi yang belum diuji. Pola ini terbukti nyata di Phase G: rantai `08d`→`08e`→`08f` mengubah desain secara fundamental (Rule Design v1 harus ditulis ulang total), tapi `08g`→`08h`→`08i` hanya memperkaya presisi tanpa mengubah satu pun keputusan struktural — sinyal bahwa titik "cukup" sudah terlewati dan discovery lanjutan sudah masuk diminishing returns.
 
@@ -470,7 +470,7 @@ Business Truth        >  Capability Truth  >  Calculation Truth  >  Information 
 - **Ya** → Open Question ini WAJIB diselesaikan dulu sebelum lanjut ke Design (discovery belum selesai).
 - **Tidak** → ditandai **Deferred Refinement**, dicatat sebagai backlog dokumentasi ringan, dan discovery LANJUT ke Design tanpa menunggu jawabannya.
 
-**Prosedur formal — Discovery Completion Assessment:** Sebelum sebuah rantai discovery dianggap tuntas dan Design boleh dimulai, seluruh Open Question yang terkumpul sepanjang rantai itu (dari SEMUA dokumen discovery, bukan hanya dokumen terakhir) dikumpulkan dalam satu tabel dan diuji satu per satu terhadap kriteria di atas — pola yang dipakai pertama kali di [`08j`](08j-discovery-completion-assessment.md).
+**Prosedur formal — Discovery Completion Assessment:** Sebelum sebuah rantai discovery dianggap tuntas dan Design boleh dimulai, seluruh Open Question yang terkumpul sepanjang rantai itu (dari SEMUA dokumen discovery, bukan hanya dokumen terakhir) dikumpulkan dalam satu tabel dan diuji satu per satu terhadap kriteria di atas — pola yang dipakai pertama kali di [`08j`](../enterprise-architecture-framework/08j-discovery-completion-assessment.md).
 
 **Kenapa ini BUKAN alasan untuk terburu-buru:** Prinsip ini tidak membalikkan disiplin "jangan menyimpulkan terlalu cepat" yang sudah berkali-kali terbukti bernilai sepanjang CECEP (Momentum Bias, dsb.) — Discovery Completion Rule hanya berlaku SETELAH sebuah discovery genuinely dijalankan dan Open Question-nya sudah eksplisit terdaftar, bukan sebagai izin melewati discovery yang belum dilakukan. Keduanya saling melengkapi: jangan berhenti sebelum discovery menemukan gap struktural yang nyata (disiplin lama), tapi juga jangan melanjutkan discovery yang tersisa hanya memoles presisi tanpa efek struktural (disiplin baru).
 

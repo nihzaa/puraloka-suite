@@ -159,6 +159,29 @@ jobs:
           NEXT_PUBLIC_API_URL: http://localhost:3001
           NEXT_PUBLIC_VAPID_PUBLIC_KEY: ''
 
+  # ── ROADMAP #7 — integritas dokumentasi ───────────────────────────────────
+  # Dokumen di repo ini dipakai sebagai BUKTI audit (completion audit, ADR,
+  # gate manifest). Tautan yang menunjuk ke ruang hampa membuat bukti itu tak
+  # bisa ditelusuri — dan audit 2026-07-31 menemukan 60 tautan rusak sekaligus
+  # satu template KOSONG yang dikutip sebagai bukti kelengkapan Sub-Fase 1B.
+  #
+  # Tanpa job ini, tautan yang putus baru ketahuan berbulan-bulan kemudian:
+  # persis pola yang PETA-PRIORITAS-ERP.md §2 catat sebagai sumber 8 kontradiksi.
+  # Job sengaja berdiri sendiri — tak butuh instal dependency, tak menyentuh DB,
+  # jadi tak ikut antre di concurrency group dan selesai dalam hitungan detik.
+  dokumentasi:
+    name: Dokumentasi — tautan tidak boleh rusak
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Pindai tautan rusak di docs/ dan *.md akar
+        run: node scripts/cek-tautan-docs.mjs
+
   # ── A2 (STATUS.md §AUDIT) — dependency & secret scanning ──────────────────
   # `11-devsecops-standard.md` MUST #4 (secret scanning) & MUST #5 (`pnpm audit`
   # memblokir merge untuk CVE Critical/High) adalah SATU-SATUNYA item ber-label

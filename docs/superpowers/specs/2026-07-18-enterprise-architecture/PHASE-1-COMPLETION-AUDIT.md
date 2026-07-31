@@ -11,7 +11,7 @@ Scope: seluruh Phase 1 (= Program A) — Sub-Fase 1A, 1B, 1C, 1D + program Confi
 | Sub-Fase | Verdict | Bukti |
 |---|---|---|
 | 1A Foundation Hardening | ✅ selesai | `Implementation-Kickoff/PHASE-1A-COMPLETION-AUDIT.md` (Epic 1-5 + Remediation 3.5 + ADR-005) |
-| 1B Configuration Foundation | ✅ selesai | `PHASE-1B-COMPLETION-AUDIT.md` (18 kriteria, drift 080 = nol) + `SUB-FASE-1B-COMPLETION-AUDIT.md` |
+| 1B Configuration Foundation | ✅ selesai | `PHASE-1B-COMPLETION-AUDIT.md` (18 kriteria, drift 080 = nol) |
 | 1C Workflow Engine | ♻️ dibangun→diretire | `ADR-006` (rasional + nol divergensi) — BUKAN delivered |
 | 1D Observability | ✅ selesai | `PHASE-1D-COMPLETION-AUDIT.md` (141 test saat itu, +11 baru 1D) |
 | Config-First (AKTA 0-5) | ✅ selesai | `CONFIG-FIRST-COMPLETION-AUDIT.md` (#24-#38) |

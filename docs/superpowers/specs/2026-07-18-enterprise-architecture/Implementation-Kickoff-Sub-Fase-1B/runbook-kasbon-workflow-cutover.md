@@ -1,6 +1,21 @@
 # Runbook — Cutover Kasbon ke Workflow Engine (produksi)
 
-**Status: PROSEDUR, belum dieksekusi.** Puraloka Suite belum di-deploy; tidak ada produksi. Dokumen ini menyiapkan prosedur cutover untuk **saat** ada data kasbon nyata (uang & mandor beneran). Di dev hari ini, langkah "jendela waktu" adalah **no-op** (data seed dummy, tak ada approval nyata yang menunggu).
+> **⛔ TIDAK BISA DIJALANKAN LAGI — objek DB-nya sudah dihapus.**
+> Migrasi 092 mem-`DROP` `workflow_instances/transitions/states/definitions` +
+> `approval_delegations`; migrasi 095 menyapu sisa tabel orphan-nya. Workflow
+> Engine Sub-Fase 1C **dibangun lalu diretire** — rasional di
+> [ADR-006](../Engineering-Constitution/adr/ADR-006-retire-workflow-engine-shadow.md) —
+> jadi tak ada engine yang bisa dituju cutover ini.
+>
+> **Approval berjenjang yang hidup sekarang** lahir dari Program B (Phase 2):
+> konfigurasi lewat UI, bukan engine 1C. Lihat `../PHASE-2-STATUS.md` dan
+> migrasi 099 (`approval_engine_config`).
+>
+> Berkas ini disimpan sebagai **riwayat keputusan** — jangan dieksekusi, jangan
+> dikutip sebagai prosedur aktif. Ditandai sebagai bagian ROADMAP #7 (2026-07-31),
+> setelah audit menemukan ia masih berstatus "prosedur siap pakai".
+
+**Status historis (saat ditulis): PROSEDUR, belum dieksekusi.** Puraloka Suite belum di-deploy; tidak ada produksi. Dokumen ini menyiapkan prosedur cutover untuk **saat** ada data kasbon nyata (uang & mandor beneran). Di dev hari ini, langkah "jendela waktu" adalah **no-op** (data seed dummy, tak ada approval nyata yang menunggu).
 
 Backfill & dual-write sudah dibangun dan diuji **sekarang** (mumpung taruhan nol) supaya mekanismenya matang sebelum dipakai di uang sungguhan.
 

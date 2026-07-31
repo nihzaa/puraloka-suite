@@ -40,7 +40,7 @@ Tiga aturan supaya ROADMAP tidak jadi dokumen basi keenam:
 | 4 | **A4 — aksesibilitas** · 498 temuan terukur + ratchet | ✅ Selesai | PR #121 merged (2026-07-31) |
 | 5 | **A3 — `no-explicit-any` dinyalakan** + ratchet (227 terukur) | ✅ Selesai | PR #121 merged (2026-07-31) |
 | 6 | **Graphify diperbaiki** — 7.161 node, query berfungsi | ✅ Selesai | 2026-07-31 (di luar git, `graphify-out/` ter-gitignore) |
-| 7 | **Perapian `docs/`** — arsip + perbaikan tautan + 3 cacat administratif | 🔄 Berikutnya | — |
+| 7 | **Perapian `docs/`** — 60 tautan rusak + 3 cacat administratif + pemindai di CI | ✅ Selesai | 2026-07-31, job CI `dokumentasi` |
 
 ---
 
@@ -137,6 +137,7 @@ perbaiki kode barunya — jangan naikkan ambangnya.
 |---|---|
 | 2026-07-31 | Dokumen dibuat. Merge dari `ERP_MASTER_PLAN` (13 Modul + FASE 0–7), `PETA-PRIORITAS-ERP` §3 (12 item), `Master-Delivery-Blueprint/01` (6 Capability), `STATUS.md` §AUDIT (7 gap), build-order CECEP (10 langkah). Dedup + urut ulang berdasar dampak. Item #1–#6 sudah selesai di hari yang sama |
 | 2026-07-31 | PR #121 merged (`5bb284d`) — item #2–#5 tuntas. Job `web` hijau untuk PERTAMA KALINYA; sebelumnya `apps/web` nol penegakan CI |
+| 2026-07-31 | Item #7 tuntas. 60 tautan rusak diperbaiki + 3 cacat administratif ditutup + pemindai tautan jadi job CI `dokumentasi`. **Rencana awalnya keliru dan dikoreksi di lapangan** — lihat catatan di bawah |
 
 ## Jebakan CI yang sudah dibayar mahal — jangan diulang
 
@@ -164,3 +165,36 @@ yang ternyata berisi JSON (`.npmrc` kini dihapus; `allowBuilds` sudah di tempat 
 `/auth/callback` mati dengan "supabaseUrl is required". Lokal selalu lolos karena
 ada `.env.local`, jadi kegagalannya eksklusif CI. Step Build memakai nilai dummy;
 kredensial asli justru akan menaruh rahasia di log CI.
+
+---
+
+## Catatan hasil #7 — perapian `docs/`
+
+**Rencana awal keliru, dikoreksi setelah memverifikasi ke berkas nyata.**
+Rencana menyebut 60 tautan itu putus dan mengusulkan memindahkan enam folder
+arsip ke `docs/archive/`. Yang benar-benar terjadi berbeda:
+
+**60 tautan rusak bukan berkas hilang — hanya jalur relatifnya salah.** Ke-12
+target (`08a`–`08k`) **ada semua** di `enterprise-architecture-framework/`, tapi
+ditulis seolah bertetangga dengan `CECEP/`. Baris di tabel yang sama bahkan tidak
+konsisten: `08` dan `09` sudah memakai `../enterprise-architecture-framework/`,
+`08a`–`08k` tidak. Diperbaiki dengan menyisipkan prefiks yang benar.
+
+**Pemindahan arsip TIDAK dilakukan — sengaja.** Manfaatnya kosmetik, risikonya
+nyata: 224 dari 234 berkas ada di bawah satu pohon `superpowers/specs/`, dan
+`Phase1/` di dalamnya disitasi 10+ berkas kode produksi termasuk jalur lengkap di
+`apps/api/vitest.config.ts`. Memindahkan tetangganya menaikkan peluang salah
+sasaran tanpa menambah satu pun jaminan. Yang benar-benar mengurangi risiko —
+pemindai tautan otomatis — sudah dipasang, dan itu justru **prasyarat** kalau
+suatu saat pemindahan memang dikerjakan.
+
+**3 cacat administratif ditutup:**
+
+| Cacat | Kenapa berbahaya | Perlakuan |
+|---|---|---|
+| `SUB-FASE-1B-COMPLETION-AUDIT.md` template kosong | `PHASE-1-COMPLETION-AUDIT.md` §1 mengutipnya **berdampingan dengan audit asli** sebagai bukti kelengkapan 1B — pembaca mengira 1B punya dua audit, padahal satu | Ditandai SUPERSEDED + menunjuk ke audit yang terisi; klaim ganda di `PHASE-1-COMPLETION-AUDIT.md` dihapus |
+| `CI-ISOLATION-SETUP.md` "⛔ MENUNGGU PROVISIONING FOUNDER" | Pekerjaannya tuntas berbulan-bulan sebelumnya — keempat secret terpakai di `ci.yml:56,71-75,83` | Status → ✅ dengan bukti run CI |
+| `runbook-kasbon-workflow-cutover.md` | Prosedur cutover ke engine yang objek DB-nya sudah di-`DROP` (migrasi 092/095, engine 1C diretire per ADR-006) | Ditandai TIDAK BISA DIJALANKAN + menunjuk ke Program B yang menggantikannya |
+
+**Penjaga baru:** `scripts/cek-tautan-docs.mjs` + job CI `dokumentasi`. Diuji
+mutasi (tautan palsu disisipkan → pemindai merah), bukan sekadar "kebetulan hijau".
