@@ -7,6 +7,28 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
 
+# ── Kenapa pemeriksaan dependensi pra-script dimatikan ─────────────────────
+#
+# pnpm v11 menjalankan pemeriksaan status dependensi sebelum SETIAP
+# `pnpm <script>`. Pemeriksaan itu tak bisa memverifikasi `xlsx` yang dipasang
+# dari tarball CDN sheetjs: untuk paket ber-URL tarball, entri `snapshots:` di
+# lockfile v9 memang kosong (`{}`) sementara `integrity`-nya hidup di blok
+# `packages:` (pnpm-lock.yaml:7072 vs :14900).
+#
+# Akibatnya setiap `pnpm lint`/`typecheck`/`build` di CI mati dengan
+# ERR_PNPM_MISSING_TARBALL_INTEGRITY — bahkan setelah `pnpm install` di step
+# sebelumnya BERHASIL. Terbukti di run 30594212080: install lulus dalam 31 detik,
+# yang gagal justru step `pnpm lint:ratchet` sesudahnya.
+#
+# Aman: jaminan integritas yang sesungguhnya tetap ada di step install CI yang
+# memakai `--frozen-lockfile`. Yang dimatikan hanya pemeriksaan ULANG sebelum
+# tiap script — bukan verifikasi saat paket benar-benar dipasang.
+#
+# ⚠️ Harus di SINI, bukan `.npmrc`: pnpm v11 membaca konfigurasi ini dari
+#    pnpm-workspace.yaml. Di `.npmrc` ia diabaikan diam-diam — sama seperti
+#    `overrides` di bawah.
+verifyDepsBeforeRun: false
+
 # ── A2 (STATUS.md §AUDIT) — versi aman untuk dependency TRANSITIF ───────────
 #
 # Konteks: step `pnpm audit --audit-level=high` ditambahkan ke CI 2026-07-31.
