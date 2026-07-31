@@ -28,8 +28,8 @@
       "hsp": "memuat item sama dengan harga BERBEDA dari sheet analisa (mis. Dolken kayu 9.500 vs 35.000) — mencampurnya membuat harga mana yang benar tak bisa ditentukan"
     },
     "counts": {
-      "prices": 384,
-      "conflicts": 48,
+      "prices": 401,
+      "conflicts": 38,
       "skipped": 102
     }
   },
@@ -409,6 +409,23 @@
       "amount": 1035060,
       "muncul": 1,
       "sumber": "ANALISA BETON:319"
+    },
+    {
+      "nama": "Beton Site Mix -175",
+      "unit_code": "m3",
+      "satuan_asli": "m3",
+      "amount": 1119290,
+      "muncul": 12,
+      "sumber": "ANALISA BETON:23",
+      "dominan": {
+        "dari_total": 13,
+        "dikalahkan": [
+          {
+            "amount": 1280680,
+            "muncul": 1
+          }
+        ]
+      }
     },
     {
       "nama": "Beton Site Mix -250",
@@ -1083,6 +1100,14 @@
       "sumber": "ANALISA STANDAR:1665"
     },
     {
+      "nama": "Jendela Nako",
+      "unit_code": "m2",
+      "satuan_asli": "M2",
+      "amount": 81000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4395"
+    },
+    {
       "nama": "Kabel, NYM 2 x 2,5 mm2",
       "unit_code": "m1",
       "satuan_asli": "m",
@@ -1097,6 +1122,14 @@
       "amount": 13000,
       "muncul": 2,
       "sumber": "ANALISA LISTRIK:208"
+    },
+    {
+      "nama": "Kaca",
+      "unit_code": "buah",
+      "satuan_asli": "Bh",
+      "amount": 85000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4696"
     },
     {
       "nama": "Kaca Buram/Es",
@@ -1355,6 +1388,27 @@
       "sumber": "ANALISA STANDAR:1848"
     },
     {
+      "nama": "Kayu Kamper, Papan",
+      "unit_code": "m3",
+      "satuan_asli": "M3",
+      "amount": 11000000,
+      "muncul": 12,
+      "sumber": "ANALISA STANDAR:1890",
+      "dominan": {
+        "dari_total": 14,
+        "dikalahkan": [
+          {
+            "amount": 9700000,
+            "muncul": 1
+          },
+          {
+            "amount": 7000000,
+            "muncul": 1
+          }
+        ]
+      }
+    },
+    {
       "nama": "Kayu Kaso 5/7",
       "unit_code": "m3",
       "satuan_asli": "M3",
@@ -1441,6 +1495,23 @@
       "amount": 165000,
       "muncul": 17,
       "sumber": "ANALISA STANDAR:3938"
+    },
+    {
+      "nama": "Kepala Tukang Batu",
+      "unit_code": "OH",
+      "satuan_asli": "Oh",
+      "amount": 159500,
+      "muncul": 140,
+      "sumber": "ANALISA STANDAR:113",
+      "dominan": {
+        "dari_total": 141,
+        "dikalahkan": [
+          {
+            "amount": 165000,
+            "muncul": 1
+          }
+        ]
+      }
     },
     {
       "nama": "Kepala Tukang Besi",
@@ -1587,6 +1658,27 @@
       "sumber": "ANALISA STANDAR:108"
     },
     {
+      "nama": "Koral beton",
+      "unit_code": "m3",
+      "satuan_asli": "m³",
+      "amount": 125000,
+      "muncul": 13,
+      "sumber": "ANALISA STANDAR:52",
+      "dominan": {
+        "dari_total": 15,
+        "dikalahkan": [
+          {
+            "amount": 255000,
+            "muncul": 1
+          },
+          {
+            "amount": 275000,
+            "muncul": 1
+          }
+        ]
+      }
+    },
+    {
       "nama": "Koral beton/Kerikil",
       "unit_code": "m3",
       "satuan_asli": "m3",
@@ -1607,8 +1699,16 @@
       "unit_code": "buah",
       "satuan_asli": "Bh",
       "amount": 18000,
-      "muncul": 3,
+      "muncul": 1,
       "sumber": "ANALISA STANDAR:5410"
+    },
+    {
+      "nama": "Kuas",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 18000,
+      "muncul": 2,
+      "sumber": "ANALISA STANDAR:5471"
     },
     {
       "nama": "Kunci Lemari",
@@ -1843,6 +1943,22 @@
       "sumber": "ANALISA STANDAR:4995"
     },
     {
+      "nama": "List kayu 2/4",
+      "unit_code": "m1",
+      "satuan_asli": "M1",
+      "amount": 9500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:1090"
+    },
+    {
+      "nama": "List Kayu 2/4",
+      "unit_code": "m3",
+      "satuan_asli": "m3",
+      "amount": 6000000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3106"
+    },
+    {
       "nama": "Mandor",
       "unit_code": "OH",
       "satuan_asli": "Oh",
@@ -1947,6 +2063,22 @@
       "sumber": "ANALISA STANDAR:2463"
     },
     {
+      "nama": "Mur Baut",
+      "unit_code": "buah",
+      "satuan_asli": "bh",
+      "amount": 2500,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4353"
+    },
+    {
+      "nama": "Mur Baut",
+      "unit_code": "kg",
+      "satuan_asli": "kg",
+      "amount": 25000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:4503"
+    },
+    {
       "nama": "Nok Genteng  Beton",
       "unit_code": "buah",
       "satuan_asli": "Bh",
@@ -2027,6 +2159,23 @@
       "sumber": "ANALISA STANDAR:17"
     },
     {
+      "nama": "Paku biasa 1\" -  2\"",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 25000,
+      "muncul": 24,
+      "sumber": "ANALISA STANDAR:2034",
+      "dominan": {
+        "dari_total": 27,
+        "dikalahkan": [
+          {
+            "amount": 21000,
+            "muncul": 3
+          }
+        ]
+      }
+    },
+    {
       "nama": "Paku biasa 1/2\" - 1\"",
       "unit_code": "kg",
       "satuan_asli": "Kg",
@@ -2087,8 +2236,16 @@
       "unit_code": "buah",
       "satuan_asli": "Bh",
       "amount": 23000,
-      "muncul": 2,
+      "muncul": 1,
       "sumber": "ANALISA STANDAR:3278"
+    },
+    {
+      "nama": "Paku Sekrup 3,5\"",
+      "unit_code": "kg",
+      "satuan_asli": "Kg",
+      "amount": 23000,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:5247"
     },
     {
       "nama": "Paku sekrup alumunium",
@@ -2145,6 +2302,31 @@
       "amount": 2000000,
       "muncul": 1,
       "sumber": "ANALISA STANDAR:1806"
+    },
+    {
+      "nama": "Papan Bekisting Ky.Albasi",
+      "unit_code": "m2",
+      "satuan_asli": "m2",
+      "amount": 174400,
+      "muncul": 16,
+      "sumber": "ANALISA BETON:25",
+      "dominan": {
+        "dari_total": 19,
+        "dikalahkan": [
+          {
+            "amount": 211720,
+            "muncul": 1
+          },
+          {
+            "amount": 444280,
+            "muncul": 1
+          },
+          {
+            "amount": 434380,
+            "muncul": 1
+          }
+        ]
+      }
     },
     {
       "nama": "Papan kayu Borneo",
@@ -2281,6 +2463,23 @@
       "amount": 4000,
       "muncul": 1,
       "sumber": "ANALISA STANDAR:5174"
+    },
+    {
+      "nama": "Pekerja",
+      "unit_code": "OH",
+      "satuan_asli": "Oh",
+      "amount": 110000,
+      "muncul": 400,
+      "sumber": "ANALISA STANDAR:20",
+      "dominan": {
+        "dari_total": 403,
+        "dikalahkan": [
+          {
+            "amount": 176000,
+            "muncul": 3
+          }
+        ]
+      }
     },
     {
       "nama": "Pelat Asbes",
@@ -2947,6 +3146,23 @@
       "sumber": "ANALISA LISTRIK:238"
     },
     {
+      "nama": "Tukang  Besi Profil",
+      "unit_code": "OH",
+      "satuan_asli": "Oh",
+      "amount": 132000,
+      "muncul": 9,
+      "sumber": "ANALISA STANDAR:4219",
+      "dominan": {
+        "dari_total": 10,
+        "dikalahkan": [
+          {
+            "amount": 137500,
+            "muncul": 1
+          }
+        ]
+      }
+    },
+    {
       "nama": "Tukang Batu/Tembok",
       "unit_code": "OH",
       "satuan_asli": "Oh",
@@ -3001,6 +3217,14 @@
       "amount": 72000,
       "muncul": 1,
       "sumber": "ANALISA STANDAR:4859"
+    },
+    {
+      "nama": "Upah Pasang",
+      "unit_code": "m2",
+      "satuan_asli": "m2",
+      "amount": 89347.5,
+      "muncul": 1,
+      "sumber": "ANALISA STANDAR:3004"
     },
     {
       "nama": "Urinoir Ex - Toto",
@@ -3146,22 +3370,6 @@
       ]
     },
     {
-      "nama": "Beton Site Mix -175",
-      "unit_code": "m3",
-      "nilai": [
-        {
-          "amount": 1119290,
-          "muncul": 12,
-          "contoh": "ANALISA BETON:23"
-        },
-        {
-          "amount": 1280680,
-          "muncul": 1,
-          "contoh": "ANALISA BETON:75"
-        }
-      ]
-    },
-    {
       "nama": "Cat Dasar",
       "unit_code": "kg",
       "nilai": [
@@ -3220,7 +3428,7 @@
       "nilai": [
         {
           "amount": 81000,
-          "muncul": 2,
+          "muncul": 1,
           "contoh": "ANALISA STANDAR:54"
         },
         {
@@ -3232,13 +3440,8 @@
     },
     {
       "nama": "Kaca",
-      "unit_code": "buah",
+      "unit_code": "m2",
       "nilai": [
-        {
-          "amount": 85000,
-          "muncul": 1,
-          "contoh": "ANALISA STANDAR:4696"
-        },
         {
           "amount": 90000,
           "muncul": 1,
@@ -3292,9 +3495,9 @@
       "unit_code": "m3",
       "nilai": [
         {
-          "amount": 3000000,
-          "muncul": 1,
-          "contoh": "ANALISA STANDAR:2699"
+          "amount": 6000000,
+          "muncul": 3,
+          "contoh": "ANALISA STANDAR:2727"
         },
         {
           "amount": 9700000,
@@ -3302,9 +3505,9 @@
           "contoh": "ANALISA STANDAR:2713"
         },
         {
-          "amount": 6000000,
-          "muncul": 3,
-          "contoh": "ANALISA STANDAR:2727"
+          "amount": 3000000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:2699"
         },
         {
           "amount": 16000000,
@@ -3346,27 +3549,6 @@
       ]
     },
     {
-      "nama": "Kayu Kamper, Papan",
-      "unit_code": "m3",
-      "nilai": [
-        {
-          "amount": 11000000,
-          "muncul": 12,
-          "contoh": "ANALISA STANDAR:1890"
-        },
-        {
-          "amount": 9700000,
-          "muncul": 1,
-          "contoh": "ANALISA STANDAR:3037"
-        },
-        {
-          "amount": 7000000,
-          "muncul": 1,
-          "contoh": "ANALISA STANDAR:3076"
-        }
-      ]
-    },
-    {
       "nama": "Kayu Lokal Kls II",
       "unit_code": "m3",
       "nilai": [
@@ -3395,22 +3577,6 @@
           "amount": 20000,
           "muncul": 1,
           "contoh": "ANALISA STANDAR:2132"
-        }
-      ]
-    },
-    {
-      "nama": "Kepala Tukang Batu",
-      "unit_code": "OH",
-      "nilai": [
-        {
-          "amount": 159500,
-          "muncul": 140,
-          "contoh": "ANALISA STANDAR:113"
-        },
-        {
-          "amount": 165000,
-          "muncul": 1,
-          "contoh": "ANALISA STANDAR:4120"
         }
       ]
     },
@@ -3447,60 +3613,23 @@
       ]
     },
     {
-      "nama": "Koral beton",
-      "unit_code": "m3",
-      "nilai": [
-        {
-          "amount": 125000,
-          "muncul": 13,
-          "contoh": "ANALISA STANDAR:52"
-        },
-        {
-          "amount": 255000,
-          "muncul": 1,
-          "contoh": "ANALISA STANDAR:1489"
-        },
-        {
-          "amount": 275000,
-          "muncul": 1,
-          "contoh": "ANALISA STANDAR:1564"
-        }
-      ]
-    },
-    {
       "nama": "Lem Kayu",
       "unit_code": "kg",
       "nilai": [
-        {
-          "amount": 20000,
-          "muncul": 15,
-          "contoh": "ANALISA STANDAR:1836"
-        },
         {
           "amount": 39500,
           "muncul": 18,
           "contoh": "ANALISA STANDAR:2089"
         },
         {
+          "amount": 20000,
+          "muncul": 15,
+          "contoh": "ANALISA STANDAR:1836"
+        },
+        {
           "amount": 23000,
           "muncul": 2,
           "contoh": "ANALISA STANDAR:2412"
-        }
-      ]
-    },
-    {
-      "nama": "List kayu 2/4",
-      "unit_code": "m1",
-      "nilai": [
-        {
-          "amount": 9500,
-          "muncul": 1,
-          "contoh": "ANALISA STANDAR:1090"
-        },
-        {
-          "amount": 6000000,
-          "muncul": 1,
-          "contoh": "ANALISA STANDAR:3106"
         }
       ]
     },
@@ -3521,38 +3650,6 @@
       ]
     },
     {
-      "nama": "Mur Baut",
-      "unit_code": "buah",
-      "nilai": [
-        {
-          "amount": 2500,
-          "muncul": 1,
-          "contoh": "ANALISA STANDAR:4353"
-        },
-        {
-          "amount": 25000,
-          "muncul": 1,
-          "contoh": "ANALISA STANDAR:4503"
-        }
-      ]
-    },
-    {
-      "nama": "Paku biasa 1\" -  2\"",
-      "unit_code": "kg",
-      "nilai": [
-        {
-          "amount": 25000,
-          "muncul": 24,
-          "contoh": "ANALISA STANDAR:2034"
-        },
-        {
-          "amount": 21000,
-          "muncul": 3,
-          "contoh": "ANALISA STANDAR:2411"
-        }
-      ]
-    },
-    {
       "nama": "Papan Bekisting",
       "unit_code": "m2",
       "nilai": [
@@ -3569,32 +3666,6 @@
       ]
     },
     {
-      "nama": "Papan Bekisting Ky.Albasi",
-      "unit_code": "m2",
-      "nilai": [
-        {
-          "amount": 211720,
-          "muncul": 1,
-          "contoh": "ANALISA BETON:13"
-        },
-        {
-          "amount": 174400,
-          "muncul": 16,
-          "contoh": "ANALISA BETON:25"
-        },
-        {
-          "amount": 444280,
-          "muncul": 1,
-          "contoh": "ANALISA BETON:155"
-        },
-        {
-          "amount": 434380,
-          "muncul": 1,
-          "contoh": "ANALISA BETON:291"
-        }
-      ]
-    },
-    {
       "nama": "Papan Bekisting Ky.Lokal 2",
       "unit_code": "m2",
       "nilai": [
@@ -3604,14 +3675,14 @@
           "contoh": "ANALISA BETON:173"
         },
         {
-          "amount": 394070,
-          "muncul": 1,
-          "contoh": "ANALISA BETON:215"
-        },
-        {
           "amount": 434380,
           "muncul": 2,
           "contoh": "ANALISA BETON:279"
+        },
+        {
+          "amount": 394070,
+          "muncul": 1,
+          "contoh": "ANALISA BETON:215"
         }
       ]
     },
@@ -3620,14 +3691,14 @@
       "unit_code": "m2",
       "nilai": [
         {
-          "amount": 222720,
-          "muncul": 1,
-          "contoh": "ANALISA BETON:55"
-        },
-        {
           "amount": 174400,
           "muncul": 5,
           "contoh": "ANALISA BETON:61"
+        },
+        {
+          "amount": 222720,
+          "muncul": 1,
+          "contoh": "ANALISA BETON:55"
         }
       ]
     },
@@ -3644,22 +3715,6 @@
           "amount": 295630,
           "muncul": 1,
           "contoh": "ANALISA STANDAR:4197"
-        }
-      ]
-    },
-    {
-      "nama": "Pekerja",
-      "unit_code": "OH",
-      "nilai": [
-        {
-          "amount": 110000,
-          "muncul": 400,
-          "contoh": "ANALISA STANDAR:20"
-        },
-        {
-          "amount": 176000,
-          "muncul": 3,
-          "contoh": "ANALISA LISTRIK:239"
         }
       ]
     },
@@ -3731,6 +3786,11 @@
       "unit_code": "ls",
       "nilai": [
         {
+          "amount": 6125,
+          "muncul": 2,
+          "contoh": "ANALISA STANDAR:4064"
+        },
+        {
           "amount": 55475,
           "muncul": 1,
           "contoh": "ANALISA STANDAR:3986"
@@ -3754,11 +3814,6 @@
           "amount": 4760,
           "muncul": 1,
           "contoh": "ANALISA STANDAR:4051"
-        },
-        {
-          "amount": 6125,
-          "muncul": 2,
-          "contoh": "ANALISA STANDAR:4064"
         },
         {
           "amount": 12425,
@@ -3814,11 +3869,6 @@
       "unit_code": "m3",
       "nilai": [
         {
-          "amount": 3000000,
-          "muncul": 1,
-          "contoh": "ANALISA STANDAR:2700"
-        },
-        {
           "amount": 9700000,
           "muncul": 2,
           "contoh": "ANALISA STANDAR:2714"
@@ -3827,6 +3877,11 @@
           "amount": 6000000,
           "muncul": 2,
           "contoh": "ANALISA STANDAR:2728"
+        },
+        {
+          "amount": 3000000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:2700"
         },
         {
           "amount": 16000000,
@@ -3856,14 +3911,14 @@
       "unit_code": "lembar",
       "nilai": [
         {
-          "amount": 60000,
-          "muncul": 1,
-          "contoh": "ANALISA STANDAR:71"
-        },
-        {
           "amount": 55000,
           "muncul": 3,
           "contoh": "ANALISA STANDAR:167"
+        },
+        {
+          "amount": 60000,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:71"
         }
       ]
     },
@@ -3884,34 +3939,18 @@
       ]
     },
     {
-      "nama": "Tukang  Besi Profil",
-      "unit_code": "OH",
-      "nilai": [
-        {
-          "amount": 137500,
-          "muncul": 1,
-          "contoh": "ANALISA STANDAR:2371"
-        },
-        {
-          "amount": 132000,
-          "muncul": 9,
-          "contoh": "ANALISA STANDAR:4219"
-        }
-      ]
-    },
-    {
       "nama": "Tukang Batu",
       "unit_code": "OH",
       "nilai": [
         {
-          "amount": 154000,
-          "muncul": 47,
-          "contoh": "ANALISA STANDAR:60"
-        },
-        {
           "amount": 137500,
           "muncul": 95,
           "contoh": "ANALISA STANDAR:112"
+        },
+        {
+          "amount": 154000,
+          "muncul": 47,
+          "contoh": "ANALISA STANDAR:60"
         },
         {
           "amount": 132000,
@@ -3941,11 +3980,6 @@
       "unit_code": "OH",
       "nilai": [
         {
-          "amount": 137500,
-          "muncul": 1,
-          "contoh": "ANALISA STANDAR:33"
-        },
-        {
           "amount": 154000,
           "muncul": 10,
           "contoh": "ANALISA STANDAR:5312"
@@ -3954,6 +3988,11 @@
           "amount": 143000,
           "muncul": 4,
           "contoh": "ANALISA STANDAR:5523"
+        },
+        {
+          "amount": 137500,
+          "muncul": 1,
+          "contoh": "ANALISA STANDAR:33"
         }
       ]
     },
@@ -4012,13 +4051,8 @@
     },
     {
       "nama": "Upah Pasang",
-      "unit_code": "m2",
+      "unit_code": "ls",
       "nilai": [
-        {
-          "amount": 89347.5,
-          "muncul": 1,
-          "contoh": "ANALISA STANDAR:3004"
-        },
         {
           "amount": 5650,
           "muncul": 1,
