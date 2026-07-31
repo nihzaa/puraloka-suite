@@ -26,6 +26,7 @@ import { TerminPaymentModal, type TerminInfo } from "@/components/termin-payment
 import { MandorSection } from "@/components/mandor-section";
 import { ChangeOrderSection } from "@/components/change-order-section";
 import { GanttSection } from "@/components/gantt-section";
+import { LookAheadSection } from "@/components/look-ahead-section";
 import { PhotoGallery } from "@/components/photo-gallery";
 import { RabScheduleModal, AbsorptionLogModal } from "@/components/rab-schedule-modal";
 import { AbsorptionLogTable } from "@/components/absorption-log-table";
@@ -1382,6 +1383,14 @@ function ProjectDetailContent() {
             projectEnd={p.end_date}
           />
         )}
+      </div>
+
+      {/* ── Look-ahead 3 minggu ──
+          Ditaruh TEPAT SESUDAH Gantt, bukan di bawah Kurva-S: keduanya membaca
+          `planned_start/end` yang sama, dan pertanyaan "harus siapkan apa?"
+          muncul persis setelah orang melihat jadwalnya. */}
+      <div id="sec-lookahead" className="rise rise-3" style={{ ...card, padding: 24, marginBottom: 20 }}>
+        <LookAheadSection projectId={p.id} />
       </div>
 
       {/* ── Change Order ── */}
