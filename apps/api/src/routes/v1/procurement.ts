@@ -8,6 +8,7 @@ import { logAuditEvent } from '../../utils/audit.js'
 import { computeMrAmount } from '../../lib/mr-amount.js'
 import { grValueAtPoPrices, validateInvoiceCeiling } from '../../lib/three-way-match.js'
 import { periksaKuota, type KuotaRab } from '../../lib/kuota-rab-material.js'
+import { susunPesanPo, tautanWa } from '../../lib/pesan-po.js'
 import type { TenantDb } from '../../utils/tenant-db.js'
 
 /**
@@ -348,6 +349,144 @@ export default async function procurementRoutes(app: FastifyInstance) {
     if (itemError) return reply.status(500).send({ error: itemError.message })
 
     return reply.status(201).send({ material_request: mr })
+  })
+
+  // ── Modul 9b — kirim PO ke vendor + jejak pengiriman ─────────────────────
+  // GET .../delivery-message — susun teks + tautan wa.me, TANPA mengubah apa pun.
+  // Dipisah dari pencatatan supaya UI bisa menampilkan pratinjau sebelum kirim:
+  // teks yang keluar ke pihak ketiga layak dilihat dulu oleh yang mengirim.
+  app.get('/api/v1/procurement/purchase-orders/:id/delivery-message', {
+    preHandler: [authenticate, requirePermission('procurement:view')]
+  }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const { data: po } = await request.db!
+      .unsafe('purchase_orders', 'lookup by-id, disaring projectIds() milik tenant di baris yang sama')
+      .select(`id, po_number, total_amount, expected_delivery_date, delivery_address,
+               payment_terms, notes, whatsapp_sent_at, email_sent_at,
+               project:projects(name),
+               supplier:suppliers(id, name, contact_person, phone, email),
+               items:purchase_order_items(qty_ordered, unit, unit_price, material:materials(name))`)
+      .eq('id', id).in('project_id', await request.db!.projectIds()).maybeSingle()
+    if (!po) return reply.status(404).send({ error: 'PO tidak ditemukan' })
+
+    const sup = po.supplier as unknown as
+      { name?: string; contact_person?: string; phone?: string; email?: string } | null
+    const { data: perusahaan } = await request.db!.raw
+      .from('company_settings').select('company_name').limit(1).maybeSingle()
+
+    const pesan = susunPesanPo({
+      po_number: po.po_number,
+      nama_proyek: (po.project as unknown as { name?: string } | null)?.name ?? null,
+      nama_supplier: sup?.name ?? null,
+      kontak_person: sup?.contact_person ?? null,
+      tanggal_kirim: po.expected_delivery_date ?? null,
+      alamat_kirim: po.delivery_address ?? null,
+      syarat_bayar: po.payment_terms ?? null,
+      catatan: po.notes ?? null,
+      nama_perusahaan: (perusahaan as { company_name?: string } | null)?.company_name ?? null,
+      total: po.total_amount,
+      items: ((po.items ?? []) as unknown as Array<{
+        qty_ordered: number; unit: string | null; unit_price: number | null
+        material: { name?: string } | null
+      }>).map((it) => ({
+        nama: it.material?.name ?? 'Material',
+        qty: it.qty_ordered, unit: it.unit, harga_satuan: it.unit_price,
+      })),
+    })
+
+    return reply.send({
+      po_number: po.po_number,
+      pesan,
+      // null saat nomornya tak sah — UI WAJIB menyembunyikan tombolnya, bukan
+      // memasang tautan ke nomor ngawur.
+      wa_url: tautanWa(sup?.phone, pesan),
+      email_tujuan: sup?.email ?? null,
+      sudah_dikirim: {
+        whatsapp_at: po.whatsapp_sent_at ?? null,
+        email_at: po.email_sent_at ?? null,
+      },
+    })
+  })
+
+  // POST .../delivery-log — catat bahwa PO SUDAH dikirim.
+  //
+  // Dipanggil UI setelah membuka wa.me. WhatsApp deep-link tak bisa memastikan
+  // pesan benar-benar sampai, jadi yang dicatat adalah "dikirimkan oleh kami" —
+  // status `sent`, bukan `confirmed`. Perbedaan itu dipertahankan supaya tak ada
+  // yang membaca jejak ini sebagai bukti supplier sudah menerima.
+  app.post('/api/v1/procurement/purchase-orders/:id/delivery-log', {
+    preHandler: [authenticate, requirePermission('procurement:po:manage')]
+  }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const body = (request.body ?? {}) as {
+      channel?: 'whatsapp' | 'email' | 'manual'; recipient?: string; notes?: string
+    }
+    const channel = body.channel ?? 'whatsapp'
+    if (!['whatsapp', 'email', 'manual'].includes(channel)) {
+      return reply.status(400).send({ error: 'channel harus whatsapp, email, atau manual' })
+    }
+
+    const { data: po } = await request.db!
+      .unsafe('purchase_orders', 'lookup by-id, disaring projectIds() milik tenant di baris yang sama')
+      .select('id, po_number, project_id, status')
+      .eq('id', id).in('project_id', await request.db!.projectIds()).maybeSingle()
+    if (!po) return reply.status(404).send({ error: 'PO tidak ditemukan' })
+    if (po.status === 'cancelled') {
+      return reply.status(400).send({ error: 'PO yang dibatalkan tidak bisa dikirim' })
+    }
+
+    const { data: log, error } = await request.db!
+      .viaProject('po_delivery_log', po.project_id)
+      .insert({
+        po_id: id, project_id: po.project_id, channel,
+        recipient: body.recipient ?? null, notes: body.notes ?? null,
+        sent_by: request.currentUser!.id,
+      })
+      .select('id, channel, sent_at')
+      .single()
+    if (error) return reply.status(500).send({ error: error.message })
+
+    // Cap waktu di PO = pengiriman TERAKHIR lewat kanal itu. Jejak lengkap tetap
+    // di po_delivery_log; kolom ini hanya jalan pintas untuk daftar PO.
+    const kolomCap = channel === 'email' ? 'email_sent_at'
+      : channel === 'whatsapp' ? 'whatsapp_sent_at' : null
+    const patch: Record<string, string> = {}
+    if (kolomCap) patch[kolomCap] = new Date().toISOString()
+    // PO draft yang dikirim otomatis menjadi `sent` — status yang berbohong
+    // ("draft" padahal sudah di tangan supplier) lebih berbahaya daripada
+    // status yang berubah tanpa diminta.
+    if (po.status === 'draft') { patch.status = 'sent'; patch.sent_at = new Date().toISOString() }
+    if (Object.keys(patch).length) {
+      await request.db!.viaProject('purchase_orders', po.project_id).update(patch).eq('id', id)
+    }
+
+    await logAuditEvent(request, {
+      tableName: 'po_delivery_log', recordId: log.id,
+      action: 'procurement.po_dikirim_ke_vendor',
+      actorId: request.currentUser!.id,
+      newValues: { po_number: po.po_number, channel, recipient: body.recipient ?? null },
+    })
+
+    return reply.status(201).send({ data: log, status_po: patch.status ?? po.status })
+  })
+
+  // GET .../delivery-log — riwayat pengiriman satu PO.
+  app.get('/api/v1/procurement/purchase-orders/:id/delivery-log', {
+    preHandler: [authenticate, requirePermission('procurement:view')]
+  }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const { data: po } = await request.db!
+      .unsafe('purchase_orders', 'lookup by-id, disaring projectIds() milik tenant di baris yang sama')
+      .select('id, project_id')
+      .eq('id', id).in('project_id', await request.db!.projectIds()).maybeSingle()
+    if (!po) return reply.status(404).send({ error: 'PO tidak ditemukan' })
+
+    const { data, error } = await request.db!
+      .viaProject('po_delivery_log', po.project_id)
+      .select('id, channel, recipient, status, notes, sent_at, sender:users!po_delivery_log_sent_by_fkey(name)')
+      .eq('po_id', id).order('sent_at', { ascending: false })
+    if (error) return reply.status(500).send({ error: error.message })
+    return reply.send({ data: data ?? [] })
   })
 
   // ── Modul 9a — kuota RAB material per proyek ─────────────────────────────

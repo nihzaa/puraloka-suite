@@ -8,7 +8,7 @@ import {
   Package, Truck, ClipboardList, ShoppingCart, CheckSquare,
   FileText, AlertTriangle, Plus, X, Check, ChevronDown, Search,
   Building2, Phone, Mail, MapPin, Calendar, RefreshCw, BarChart3, Download,
-  CreditCard, TrendingDown, BoxSelect, Receipt,
+  CreditCard, TrendingDown, BoxSelect, Receipt, Send, History,
 } from "lucide-react";
 
 const C = {
@@ -713,6 +713,150 @@ function CreateMrModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
 // ═══════════════════════════════════════════════════════════════════════════════
 // TAB: PURCHASE ORDERS
 // ═══════════════════════════════════════════════════════════════════════════════
+// ── Tipe & helper untuk pengiriman PO (Modul 9b) ────────────────────────────
+interface PoRingkas {
+  id: string;
+  po_number: string;
+  supplier?: { name?: string; phone?: string | null } | null;
+}
+interface PesanKirimPo {
+  po_number: string;
+  pesan: string;
+  /** null bila nomor supplier tak sah — tombol WA WAJIB disembunyikan. */
+  wa_url: string | null;
+  email_tujuan: string | null;
+  sudah_dikirim: { whatsapp_at: string | null; email_at: string | null };
+}
+interface LogKirimPo {
+  id: string;
+  channel: string;
+  recipient: string | null;
+  status: string;
+  sent_at: string;
+  sender?: { name?: string } | null;
+}
+
+/** Pesan error dari axios tanpa `any` — bentuknya dipersempit, bukan dipercaya. */
+function pesanError(e: unknown, bawaan: string): string {
+  const r = (e as { response?: { data?: { error?: string } } })?.response;
+  return r?.data?.error ?? bawaan;
+}
+
+// ── Modul 9b (ROADMAP #12) — kirim PO ke vendor, dengan jejak ────────────────
+//
+// Versi lama: satu `<a href="wa.me/...">` yang merakit teks di UI dan tak
+// memanggil server sama sekali. Akibatnya `whatsapp_sent_at` terisi pada NOL
+// dari 4 PO — pertanyaan "PO ini sudah dikirim belum, kapan, ke siapa" tak
+// punya jawaban selain ingatan orang.
+//
+// Sekarang: pratinjau pesan (disusun server, memuat rincian item) → buka
+// WhatsApp → catat pengiriman. Pratinjau bukan hiasan: teks ini keluar ke pihak
+// ketiga, dan yang mengirim berhak melihatnya sebelum terkirim.
+function KirimPoModal({ po, onClose, onSuccess }: { po: PoRingkas; onClose: () => void; onSuccess: () => void }) {
+  const [data, setData] = useState<PesanKirimPo | null>(null);
+  const [riwayat, setRiwayat] = useState<LogKirimPo[]>([]);
+  const [memuat, setMemuat] = useState(true);
+  const [mengirim, setMengirim] = useState(false);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    let batal = false;
+    void Promise.all([
+      api.get<PesanKirimPo>(`/api/v1/procurement/purchase-orders/${po.id}/delivery-message`),
+      api.get<{ data: LogKirimPo[] }>(`/api/v1/procurement/purchase-orders/${po.id}/delivery-log`),
+    ])
+      .then(([m, l]) => {
+        if (batal) return;
+        setData(m.data); setRiwayat(l.data.data ?? []);
+      })
+      .catch((e: unknown) => { if (!batal) setErr(pesanError(e, "Gagal memuat pesan")); })
+      .finally(() => { if (!batal) setMemuat(false); });
+    return () => { batal = true; };
+  }, [po.id]);
+
+  async function kirim(channel: "whatsapp" | "email" | "manual") {
+    setMengirim(true); setErr("");
+    try {
+      // WhatsApp dibuka LEBIH DULU, pencatatan menyusul. Kalau urutannya
+      // dibalik dan pembukaan gagal (popup diblokir), jejaknya sudah terlanjur
+      // mengklaim terkirim.
+      if (channel === "whatsapp" && data?.wa_url) window.open(data.wa_url, "_blank", "noopener");
+      await api.post(`/api/v1/procurement/purchase-orders/${po.id}/delivery-log`, {
+        channel,
+        recipient: channel === "email" ? data?.email_tujuan : po.supplier?.phone,
+      });
+      onSuccess();
+    } catch (e: unknown) {
+      setErr(pesanError(e, "Gagal mencatat pengiriman"));
+    } finally { setMengirim(false); }
+  }
+
+  return (
+    <Modal title={`Kirim ${po.po_number} ke Vendor`} onClose={onClose} width={620}>
+      {memuat && <div style={{ padding: 20, fontSize: 13, color: "#6B7280" }}>Memuat pesan…</div>}
+      {err && (
+        <div role="alert" style={{ padding: "10px 12px", background: "#FEE2E2", color: "#B91C1C",
+          borderRadius: 8, fontSize: 13, marginBottom: 12 }}>{err}</div>
+      )}
+
+      {data && !memuat && (
+        <>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "#6B7280", marginBottom: 6 }}>
+            Pratinjau pesan
+          </div>
+          <pre style={{ margin: 0, padding: 12, background: "#F8F9FA", border: "1px solid #E5E7EB",
+            borderRadius: 8, fontSize: 12.5, lineHeight: 1.55, whiteSpace: "pre-wrap",
+            fontFamily: "inherit", maxHeight: 260, overflowY: "auto" }}>
+            {data.pesan}
+          </pre>
+
+          {data.sudah_dikirim?.whatsapp_at && (
+            <div style={{ marginTop: 10, fontSize: 12, color: "#D97706" }}>
+              Sudah pernah dikirim via WhatsApp pada{" "}
+              {new Date(data.sudah_dikirim.whatsapp_at).toLocaleString("id-ID")}. Mengirim
+              ulang akan menambah catatan baru, bukan menimpa yang lama.
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+            {/* Tombol WA disembunyikan kalau nomornya tak sah — tautan ke nomor
+                ngawur lebih buruk daripada tombol yang tak muncul. */}
+            {data.wa_url ? (
+              <Btn onClick={() => void kirim("whatsapp")} loading={mengirim}>
+                <Send size={14} /> Buka WhatsApp &amp; catat
+              </Btn>
+            ) : (
+              <span style={{ fontSize: 12, color: "#B91C1C" }}>
+                Nomor telepon supplier tidak valid — perbaiki di menu Supplier.
+              </span>
+            )}
+            <Btn variant="secondary" onClick={() => void kirim("manual")} loading={mengirim}>
+              Catat sudah dikirim manual
+            </Btn>
+          </div>
+
+          {riwayat.length > 0 && (
+            <div style={{ marginTop: 18, borderTop: "1px solid #E5E7EB", paddingTop: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12,
+                fontWeight: 600, color: "#6B7280", marginBottom: 8 }}>
+                <History size={13} /> Riwayat pengiriman ({riwayat.length})
+              </div>
+              {riwayat.map((r) => (
+                <div key={r.id} style={{ fontSize: 12, color: "#111827", padding: "5px 0",
+                  borderBottom: "1px solid #F3F4F6" }}>
+                  <strong>{r.channel}</strong> · {new Date(r.sent_at).toLocaleString("id-ID")}
+                  {r.sender?.name && ` · oleh ${r.sender.name}`}
+                  {r.recipient && <span style={{ color: "#6B7280" }}> · {r.recipient}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </Modal>
+  );
+}
+
 function PurchaseOrdersTab() {
   const [pos, setPos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -722,6 +866,7 @@ function PurchaseOrdersTab() {
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [cancelNotes, setCancelNotes] = useState("");
   const [cancelling, setCancelling] = useState(false);
+  const [kirimPo, setKirimPo] = useState<PoRingkas | null>(null);
   const user = getStoredUser();
   const canManage = user?.role === "admin" || user?.role === "pm";
 
@@ -805,14 +950,14 @@ function PurchaseOrdersTab() {
                       <X size={13} /> Batalkan
                     </Btn>
                   )}
-                  {po.supplier?.phone && (
-                    <a
-                      href={`https://wa.me/${po.supplier.phone.replace(/^0/, "62").replace(/\D/g, "")}?text=${encodeURIComponent(`Halo ${po.supplier.contact_person ?? po.supplier.name}, berikut PO kami:\n*${po.po_number}*\nProyek: ${po.project?.name}\nTotal: ${fmt(po.total_amount)}\nMohon konfirmasi ketersediaan.`)}`}
-                      target="_blank" rel="noopener noreferrer"
-                      style={{ padding: "8px 12px", background: "#DCFCE7", color: "#15803D", border: "1px solid #15803D", borderRadius: 8, fontSize: 12, fontWeight: 500, textDecoration: "none", display: "flex", alignItems: "center", gap: 4 }}
-                    >
-                      WA
-                    </a>
+                  {/* Modul 9b: pesan disusun di SERVER (lib/pesan-po.ts) — memuat
+                      rincian item, bukan cuma total — dan pengirimannya DICATAT.
+                      Versi lama merakit teks di sini dan tak meninggalkan jejak:
+                      "PO ini sudah dikirim belum?" tak punya jawaban. */}
+                  {po.supplier?.phone && canManage && (
+                    <Btn variant="secondary" onClick={() => setKirimPo(po)} style={{ fontSize: 12 }}>
+                      <Send size={13} /> Kirim ke Vendor
+                    </Btn>
                   )}
                 </div>
               </div>
@@ -822,6 +967,7 @@ function PurchaseOrdersTab() {
       )}
 
       {showCreate && <CreatePoModal onClose={() => setShowCreate(false)} onSuccess={() => { setShowCreate(false); load(); }} />}
+      {kirimPo && <KirimPoModal po={kirimPo} onClose={() => setKirimPo(null)} onSuccess={() => { setKirimPo(null); load(); }} />}
 
       {detailPo && (
         <Modal title={`Detail ${detailPo.po_number}`} onClose={() => setDetailPo(null)} width={680}>

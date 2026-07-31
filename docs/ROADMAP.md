@@ -62,7 +62,7 @@ pengerjaan. Sumber tiap item disebut supaya bisa ditelusuri ke dokumen aslinya.
 | # | Item | Sumber | Kenapa penting | Ukuran |
 |---|---|---|---|---|
 | 11 | **Modul 9a — RAB hard-guard di Material Request** | ERP_MASTER_PLAN | ✅ **Selesai 2026-07-31** (migrasi 142). Submit MR ditolak 422 bila `sudah_di_MR + diminta > volume_RAB`; override butuh capability BARU `procurement:mr:override_quota` (admin & direktur saja — sengaja lebih sempit dari `mr:manage` yang juga dipegang pm & mandor) + alasan ≥10 karakter, tercatat di `mr_quota_override` + audit. ⚠️ **Temuan serius:** migrasi 043 tercatat SUKSES tapi `project_rab_materials` tak pernah ada di DB — dipulihkan 142 dengan blok verifikasi `RAISE EXCEPTION` | Sedang |
-| 12 | **Modul 9b — PO ke WhatsApp/email vendor** | ERP_MASTER_PLAN | Rancangan siap; mempercepat siklus PO yang kini manual | Kecil |
+| 12 | **Modul 9b — PO ke WhatsApp/email vendor** | ERP_MASTER_PLAN | ✅ **Selesai 2026-07-31** (migrasi 143). Tautan WA sebenarnya **sudah ada** tapi tak berguna & tak berjejak: teks dirakit di UI dan hanya memuat TOTAL (supplier tetap harus menelepon untuk tahu isinya), dan tombolnya tak memanggil server sama sekali — `whatsapp_sent_at` terisi pada **0 dari 4 PO**. Kini pesan disusun server dengan **rincian item** (`lib/pesan-po.ts`, 18 test), pengiriman **dicatat** di `po_delivery_log` + audit, dan nomor tak sah menyembunyikan tombolnya alih-alih membuka tautan ngawur. `po_delivery_log` juga korban migrasi hantu 043 — dibangun ulang dengan FK yang benar | Kecil |
 
 ### Tingkat 3 — Utang multi-tenant (menggigit saat badan usaha kedua dibuat)
 
@@ -143,6 +143,8 @@ perbaiki kode barunya — jangan naikkan ambangnya.
 | 2026-07-31 | Item #10 tuntas — tab **Proyeksi Kas** di `/estimasi`. Judul item lamanya keliru dan dikoreksi: ETC/EAC sudah lama ber-UI; yang menganggur adalah endpoint cashflow forecast. Ratchet sempat MERAH (73 vs ambang 71) menangkap 2 `set-state-in-effect` baru — diperbaiki dengan memindahkan reset ke handler & membuat effect murni asinkron, bukan menaikkan ambang |
 | 2026-07-31 | Item #9 tuntas — tab **Varians Biaya** + 4 endpoint. Pola berulang lagi: fondasi ada & ber-test (ACL migrasi 112), yang hilang endpoint+UI. Ratchet API sempat MERAH (17 vs 16 `no-unused-vars`) — sisa refactor, dibersihkan bukan dinaikkan |
 | 2026-07-31 | Item #11 tuntas — hard-guard kuota RAB di submit MR (migrasi 142). Menemukan **migrasi hantu**: 043 tercatat sukses di `schema_migrations` lengkap dengan 9 statement, tapi `pg_class` tak punya `project_rab_materials` maupun `po_delivery_log`. Nol endpoint pernah memakainya, jadi tak ada yang menabraknya sampai sekarang — lihat catatan di bawah |
+| 2026-07-31 | Ratchet tenancy T4f sempat MERAH (486 vs 468) — `cost-control.ts` & endpoint kuota memakai `supabase` mentah. Diperbaiki ke wrapper tenant-db, kembali PERSIS 468. Ditemukan pula jebakan: `viaProject('cost_code_category_map', projectId)` akan menyaring `category_id = projectId` (kolom `lewat` bukan `project_id`) — nol baris tanpa error, pola bug yang sama dengan rap.ts |
+| 2026-07-31 | Item #12 tuntas — pengiriman PO ke vendor kini berjejak (migrasi 143). `po_delivery_log` dibangun ulang setelah jadi korban migrasi hantu 043 yang sama |
 
 ## Jebakan CI yang sudah dibayar mahal — jangan diulang
 
