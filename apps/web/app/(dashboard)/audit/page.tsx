@@ -211,8 +211,7 @@ export default function AuditPage() {
         </div>
 
         {/* Table filter */}
-        <button onClick={()=>{}}><X size={16} /></button>
-      <select aria-label="Tabel"
+        <select aria-label="Tabel"
           value={filterTable}
           onChange={e => setFilterTable(e.target.value)}
           style={{ height: 36, borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 12, padding: "0 10px", flex: "0 0 auto", minWidth: 150 }}
