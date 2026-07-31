@@ -68,7 +68,7 @@ pengerjaan. Sumber tiap item disebut supaya bisa ditelusuri ke dokumen aslinya.
 
 | # | Item | Sumber | Kenapa penting | Ukuran |
 |---|---|---|---|---|
-| 13 | **T10 — `auth_role()` per-company** | ADR-011-T9 §5 | Kini baca `users.role_id` (peran **global**), bukan `company_members.role_id`. Diverifikasi di DB: benar. Orang yang admin di PT A tapi PM di PT B akan dapat peran yang salah | Kecil |
+| 13 | **T10 — `auth_role()` per-company** | ADR-011-T9 §5 | ✅ **Selesai 2026-07-31** (migrasi 144). Kini baca `company_members.role_id` untuk company aktif, meniru pola `auth_company_id()`; fallback ke `users.role_id` **dipertahankan** supaya user tanpa keanggotaan tak terkunci keluar. Dipakai **100 RLS policy**. Behavior-preserving **dibuktikan**: 23 user diperiksa, nol perubahan jawaban — dan uji rollback membuktikan fungsinya kini benar-benar peka-company (peran global `client` vs peran di company uji `admin` → mengembalikan `admin`) | Kecil |
 | 14 | **ADR-011-T4 — 468 akses `supabase` mentah di 9 modul** | ADR-011-T4 | Ratchet mencegah memburuk, **tidak menyelesaikan**. `clients`, `users`, `roles`, `settings`, `audit`, `documents`, dst | Besar |
 
 ### Tingkat 4 — Pelaporan & kepatuhan
@@ -145,6 +145,7 @@ perbaiki kode barunya — jangan naikkan ambangnya.
 | 2026-07-31 | Item #11 tuntas — hard-guard kuota RAB di submit MR (migrasi 142). Menemukan **migrasi hantu**: 043 tercatat sukses di `schema_migrations` lengkap dengan 9 statement, tapi `pg_class` tak punya `project_rab_materials` maupun `po_delivery_log`. Nol endpoint pernah memakainya, jadi tak ada yang menabraknya sampai sekarang — lihat catatan di bawah |
 | 2026-07-31 | Ratchet tenancy T4f sempat MERAH (486 vs 468) — `cost-control.ts` & endpoint kuota memakai `supabase` mentah. Diperbaiki ke wrapper tenant-db, kembali PERSIS 468. Ditemukan pula jebakan: `viaProject('cost_code_category_map', projectId)` akan menyaring `category_id = projectId` (kolom `lewat` bukan `project_id`) — nol baris tanpa error, pola bug yang sama dengan rap.ts |
 | 2026-07-31 | Item #12 tuntas — pengiriman PO ke vendor kini berjejak (migrasi 143). `po_delivery_log` dibangun ulang setelah jadi korban migrasi hantu 043 yang sama |
+| 2026-07-31 | Item #13 tuntas — `auth_role()` per-company (migrasi 144). Dikerjakan **sekarang justru karena dampaknya masih nol** (1 company, nol user lintas-company): saat badan usaha kedua berisi data nyata, perbedaannya langsung berdampak pada siapa-melihat-apa dan perbaikannya jadi jauh lebih mahal |
 
 ## Jebakan CI yang sudah dibayar mahal — jangan diulang
 
