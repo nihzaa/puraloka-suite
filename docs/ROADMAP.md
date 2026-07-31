@@ -53,7 +53,7 @@ pengerjaan. Sumber tiap item disebut supaya bisa ditelusuri ke dokumen aslinya.
 
 | # | Item | Sumber | Kenapa penting | Ukuran |
 |---|---|---|---|---|
-| 8 | **Rekonsiliasi pagu RAP vs realisasi belanja** | CECEP §D7 · PETA #4 | RAP kini live tapi pagunya **tak pernah diadu ke belanja nyata** — terkunci tanpa ada yang tahu terlampaui atau tidak. Gerbang "jangan bangun" sudah lewat. Butuh discovery pemetaan `resources` (CECEP) ↔ `materials` (procurement) dulu — namanya tidak identik | Sedang |
+| 8 | ~~**Rekonsiliasi pagu RAP vs realisasi belanja**~~ | CECEP §D7 · PETA #4 | ⛔ **DIPINDAH ke "Sengaja TIDAK dikerjakan"** — discovery 2026-07-31 membuktikan gerbangnya BELUM terbuka: `rap_material_line` **0 baris**, kecocokan `resources`↔`materials` **0,1%** (2 dari 2.680, granularitas beda), dan `project_expenses` tak punya kolom material sama sekali. Bukti: [`DISCOVERY-RAP-VS-REALISASI.md`](superpowers/specs/2026-07-18-enterprise-architecture/CECEP/DISCOVERY-RAP-VS-REALISASI.md) | — |
 | 9 | **Commitment & varians per cost code** | PETA #5 | Bocor ketahuan SETELAH uang keluar, bukan saat komitmen diteken | Sedang |
 | 10 | **Cost-to-complete forecast (UI)** | PETA #6 | Engine `cashflow-forecast.ts` sudah ada, **tanpa UI** — proyek rugi ketahuan di akhir, bukan saat masih bisa dikoreksi | Kecil |
 
@@ -83,7 +83,7 @@ pengerjaan. Sumber tiap item disebut supaya bisa ditelusuri ke dokumen aslinya.
 
 | # | Item | Sumber | Kenapa penting | Ukuran |
 |---|---|---|---|---|
-| 18 | **Executive Cost Analytics** | CECEP/52 Gap-3 | Agregasi lintas proyek dari 3 sumber yang sudah hidup. **Kerjakan SETELAH #8** — dashboard berbasis angka yang belum diadu realisasi justru memperbesar dampak salah baca | Kecil |
+| 18 | **Executive Cost Analytics** | CECEP/52 Gap-3 | Agregasi lintas proyek dari 3 sumber yang sudah hidup. ⚠️ Syarat lamanya "kerjakan SETELAH #8" **gugur** — #8 ternyata terkunci gerbang. Boleh dikerjakan lebih dulu, TAPI dashboard-nya wajib menyatakan eksplisit bahwa angkanya belum diadu ke realisasi belanja | Kecil |
 | 19 | **Explainability trail** (`/explain` per item) | CECEP/50 · Constraint #1 | Constraint TERTINGGI CECEP, bukan fitur pinggiran. Fondasi sudah ada (migrasi 139/140); yang kurang endpoint+UI yang merangkai jejaknya jadi penjelasan | Sedang |
 | 20 | **Laporan perbandingan antar-edisi AHSP** | AHSP-EDITION-BUILDER §3.5 | Sumbu edisi sudah dibangun penuh tapi **manfaat utamanya belum dipanen**. Taruhannya konkret: pindah edisi mengubah RAB −13,47% pada cakupan terukur | Sedang |
 | 21 | **Baseline schedule + look-ahead** | PETA #11 | PV di EVM dari input manual → SPI kurang terpercaya | Sedang |
@@ -106,6 +106,7 @@ Membangunnya sekarang = pekerjaan yang nilainya belum terbukti.
 | Item | Gerbangnya |
 |---|---|
 | **CECEP langkah 9** — split `dpp_factor` PPN | Menunggu data PPN nyata. Guardrail-nya ada tapi lulus **VACUOUS** (0 `tax_record` ber-PPN di dev) — jadi ia belum membuktikan apa pun |
+| **#8 Rekonsiliasi pagu RAP vs realisasi** | Menunggu **tiga**-nya, bukan salah satu: (1) ada RAP terkunci dengan baris material — kini `rap_material_line` **0 baris**; (2) `project_expenses` punya atribusi item — kini nol kolom material, 72 dari 84 baris belanja buta; (3) ada belanja nyata yang menunjuk pos RAP. Join by-name **dilarang**: kecocokan hanya 0,1% dan granularitasnya beda (item AHSP vs barang toko). Ukur ulang: `node apps/api/scripts/discovery-rap-realisasi.mjs` |
 | **T5c** — lepas `service_role` | Menunggu pemicu: perusahaan kedua di-onboard · pemakai di luar founder · data operasional nyata masuk |
 | **T8 / L3** — SaaS (billing, tenant lifecycle, SLA) | Menunggu pelanggan eksternal **berbayar**. Doc 09 §3 menyebut membangunnya lebih awal sebagai *enterprise theater* |
 | **GL in-app** (Modul 10) | Keputusan owner masih terbuka: in-app vs akuntansi eksternal + export |
@@ -138,6 +139,7 @@ perbaiki kode barunya — jangan naikkan ambangnya.
 | 2026-07-31 | Dokumen dibuat. Merge dari `ERP_MASTER_PLAN` (13 Modul + FASE 0–7), `PETA-PRIORITAS-ERP` §3 (12 item), `Master-Delivery-Blueprint/01` (6 Capability), `STATUS.md` §AUDIT (7 gap), build-order CECEP (10 langkah). Dedup + urut ulang berdasar dampak. Item #1–#6 sudah selesai di hari yang sama |
 | 2026-07-31 | PR #121 merged (`5bb284d`) — item #2–#5 tuntas. Job `web` hijau untuk PERTAMA KALINYA; sebelumnya `apps/web` nol penegakan CI |
 | 2026-07-31 | Item #7 tuntas. 60 tautan rusak diperbaiki + 3 cacat administratif ditutup + pemindai tautan jadi job CI `dokumentasi`. **Rencana awalnya keliru dan dikoreksi di lapangan** — lihat catatan di bawah |
+| 2026-07-31 | Item #8 **dipindah ke "sengaja tidak dikerjakan"** setelah discovery terukur. ROADMAP menempatkannya di Tingkat 1 dengan asumsi "gerbang sudah lewat" — data membuktikan sebaliknya. Konsekuensi: syarat #18 "kerjakan setelah #8" gugur. Ini contoh ROADMAP bekerja sebagaimana mestinya: status berubah karena **bukti**, bukan karena rencananya begitu |
 
 ## Jebakan CI yang sudah dibayar mahal — jangan diulang
 
