@@ -1834,18 +1834,18 @@ function KeuanganContent() {
             {/* Filter Bar */}
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 20, alignItems: "flex-end" }}>
               <div>
-                <label style={{ fontSize: 11, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Dari</label>
-                <input aria-label="Tanggal mulai" type="date" value={arusFrom} onChange={e => setArusFrom(e.target.value)}
+                <label htmlFor="arus-from" style={{ fontSize: 11, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Dari</label>
+                <input id="arus-from" aria-label="Tanggal mulai" type="date" value={arusFrom} onChange={e => setArusFrom(e.target.value)}
                   style={{ padding: "7px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: "var(--surface)" }} />
               </div>
               <div>
-                <label style={{ fontSize: 11, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Sampai</label>
-                <input aria-label="Tanggal akhir" type="date" value={arusTo} onChange={e => setArusTo(e.target.value)}
+                <label htmlFor="arus-to" style={{ fontSize: 11, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Sampai</label>
+                <input id="arus-to" aria-label="Tanggal akhir" type="date" value={arusTo} onChange={e => setArusTo(e.target.value)}
                   style={{ padding: "7px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: "var(--surface)" }} />
               </div>
               <div>
-                <label style={{ fontSize: 11, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Proyek</label>
-                <select aria-label="Saring proyek pada arus kas" value={arusProjectId} onChange={e => setArusProjectId(e.target.value)}
+                <label htmlFor="arus-project-id" style={{ fontSize: 11, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Proyek</label>
+                <select id="arus-project-id" aria-label="Saring proyek pada arus kas" value={arusProjectId} onChange={e => setArusProjectId(e.target.value)}
                   style={{ padding: "7px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: "var(--surface)", minWidth: 160 }}>
                   <option value="">Semua Proyek</option>
                   {arusProjectList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -1870,8 +1870,8 @@ function KeuanganContent() {
                 </div>
               </div>
               <div>
-                <label style={{ fontSize: 11, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Kategori</label>
-                <select aria-label="Saring kategori pada arus kas" value={arusCategoryId} onChange={e => {
+                <label htmlFor="arus-category-id" style={{ fontSize: 11, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Kategori</label>
+                <select id="arus-category-id" aria-label="Saring kategori pada arus kas" value={arusCategoryId} onChange={e => {
                   const id = e.target.value;
                   const found = arusCategories.find(c => c.id === id);
                   setArusCategoryId(id);
@@ -2105,18 +2105,18 @@ function KeuanganContent() {
             {/* Filter bar */}
             <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap", alignItems: "flex-end" }}>
               <div>
-                <label style={{ fontSize: 11, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Dari</label>
-                <input aria-label="Tanggal mulai" type="date" value={profitFrom} onChange={e => setProfitFrom(e.target.value)}
+                <label htmlFor="profit-from" style={{ fontSize: 11, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Dari</label>
+                <input id="profit-from" aria-label="Tanggal mulai" type="date" value={profitFrom} onChange={e => setProfitFrom(e.target.value)}
                   style={{ padding: "7px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: "var(--surface)" }} />
               </div>
               <div>
-                <label style={{ fontSize: 11, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Sampai</label>
-                <input aria-label="Tanggal akhir" type="date" value={profitTo} onChange={e => setProfitTo(e.target.value)}
+                <label htmlFor="profit-to" style={{ fontSize: 11, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Sampai</label>
+                <input id="profit-to" aria-label="Tanggal akhir" type="date" value={profitTo} onChange={e => setProfitTo(e.target.value)}
                   style={{ padding: "7px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: "var(--surface)" }} />
               </div>
               <div>
-                <label style={{ fontSize: 11, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Proyek</label>
-                <select aria-label="Saring proyek pada laba rugi" value={profitProjectFilter} onChange={e => setProfitProjectFilter(e.target.value)}
+                <label htmlFor="profit-project-filter" style={{ fontSize: 11, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Proyek</label>
+                <select id="profit-project-filter" aria-label="Saring proyek pada laba rugi" value={profitProjectFilter} onChange={e => setProfitProjectFilter(e.target.value)}
                   style={{ padding: "7px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: "var(--surface)", minWidth: 160 }}>
                   <option value="">Semua Proyek</option>
                   {arusProjectList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -2652,8 +2652,8 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
 
           {/* ── Proyek ── */}
           <div>
-            <label style={labelStyle}>Proyek <span style={{ color: C.red }}>*</span></label>
-            <select aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} required style={inputStyle}>
+            <label htmlFor="project-id" style={labelStyle}>Proyek <span style={{ color: C.red }}>*</span></label>
+            <select id="project-id" aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} required style={inputStyle}>
               <option value="">-- Pilih proyek --</option>
               {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
@@ -2682,8 +2682,8 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
             {/* ── TERMIN: pilih termin ── */}
             {isTermin && (
               <div>
-                <label style={labelStyle}>Pilih Termin yang Ditagih <span style={{ color: C.red }}>*</span></label>
-                <select aria-label="Pilih termin yang ditagih" value={terminId} onChange={e => setTerminId(e.target.value)} required style={inputStyle}>
+                <label htmlFor="termin-id" style={labelStyle}>Pilih Termin yang Ditagih <span style={{ color: C.red }}>*</span></label>
+                <select id="termin-id" aria-label="Pilih termin yang ditagih" value={terminId} onChange={e => setTerminId(e.target.value)} required style={inputStyle}>
                   <option value="">-- Pilih termin --</option>
                   {projectDetail.termin_schedules.map(t => (
                     <option key={t.id} value={t.id} disabled={t.status === "billed" || t.status === "paid"}>
@@ -2882,8 +2882,8 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
 
             {/* ── Deskripsi ── */}
             <div>
-              <label style={labelStyle}>Deskripsi Invoice</label>
-              <input type="text" value={description} onChange={e => setDescription(e.target.value)} style={inputStyle} placeholder="Tampil di PDF invoice" />
+              <label htmlFor="description" style={labelStyle}>Deskripsi Invoice</label>
+              <input id="description" type="text" value={description} onChange={e => setDescription(e.target.value)} style={inputStyle} placeholder="Tampil di PDF invoice" />
             </div>
 
             {/* ── Retensi toggle ── */}
@@ -2945,19 +2945,19 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
             {/* ── Tanggal ── */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div>
-                <label style={labelStyle}>Tanggal Terbit</label>
-                <input aria-label="Tanggal" type="date" value={issuedDate} onChange={e => setIssuedDate(e.target.value)} style={inputStyle} />
+                <label htmlFor="issued-date" style={labelStyle}>Tanggal Terbit</label>
+                <input id="issued-date" aria-label="Tanggal" type="date" value={issuedDate} onChange={e => setIssuedDate(e.target.value)} style={inputStyle} />
               </div>
               <div>
-                <label style={labelStyle}>Jatuh Tempo <span style={{ color: C.red }}>*</span></label>
-                <input aria-label="Tanggal" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} required style={inputStyle} />
+                <label htmlFor="due-date" style={labelStyle}>Jatuh Tempo <span style={{ color: C.red }}>*</span></label>
+                <input id="due-date" aria-label="Tanggal" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} required style={inputStyle} />
               </div>
             </div>
 
             {/* ── Catatan ── */}
             <div>
-              <label style={labelStyle}>Catatan</label>
-              <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
+              <label htmlFor="notes" style={labelStyle}>Catatan</label>
+              <textarea id="notes" value={notes} onChange={e => setNotes(e.target.value)} rows={2}
                 style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }} />
             </div>
 
@@ -3117,8 +3117,8 @@ function PayInvoiceModal({ invoice, onClose, onSuccess }: { invoice: Invoice; on
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
-                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Tanggal Bayar <span style={{ color: C.red }}>*</span></label>
-                  <input aria-label="Tanggal" type="date" value={paidAt} onChange={e => setPaidAt(e.target.value)} required
+                  <label htmlFor="paid-at" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Tanggal Bayar <span style={{ color: C.red }}>*</span></label>
+                  <input id="paid-at" aria-label="Tanggal" type="date" value={paidAt} onChange={e => setPaidAt(e.target.value)} required
                     style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
                 </div>
                 <div>
@@ -3154,8 +3154,8 @@ function PayInvoiceModal({ invoice, onClose, onSuccess }: { invoice: Invoice; on
               </div>
 
               <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Metode Pembayaran</label>
-                <select aria-label="Metode pembayaran" value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}
+                <label htmlFor="payment-method" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Metode Pembayaran</label>
+                <select id="payment-method" aria-label="Metode pembayaran" value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}
                   style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                   <option value="transfer_bank">Transfer Bank</option>
                   <option value="cash">Tunai</option>
@@ -3167,13 +3167,13 @@ function PayInvoiceModal({ invoice, onClose, onSuccess }: { invoice: Invoice; on
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
-                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>No. Referensi</label>
-                  <input type="text" value={refNumber} onChange={e => setRefNumber(e.target.value)} placeholder="No. TF"
+                  <label htmlFor="ref-number" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>No. Referensi</label>
+                  <input id="ref-number" type="text" value={refNumber} onChange={e => setRefNumber(e.target.value)} placeholder="No. TF"
                     style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
                 </div>
                 <div>
-                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Bank</label>
-                  <input type="text" value={bankName} onChange={e => setBankName(e.target.value)} placeholder="BCA, Mandiri..."
+                  <label htmlFor="bank-name" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Bank</label>
+                  <input id="bank-name" type="text" value={bankName} onChange={e => setBankName(e.target.value)} placeholder="BCA, Mandiri..."
                     style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
                 </div>
               </div>
@@ -3203,8 +3203,8 @@ function PayInvoiceModal({ invoice, onClose, onSuccess }: { invoice: Invoice; on
               </div>
 
               <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Catatan</label>
-                <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
+                <label htmlFor="notes-2" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Catatan</label>
+                <textarea id="notes-2" value={notes} onChange={e => setNotes(e.target.value)} rows={2}
                   style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", resize: "vertical", boxSizing: "border-box", fontFamily: "inherit" }} />
               </div>
 
@@ -3323,8 +3323,8 @@ function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
 
           {/* Work scope (mandor + proyek) */}
           <div>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Work Scope Mandor <span style={{ color: C.red }}>*</span></label>
-            <select aria-label="Work scope mandor yang mengajukan kasbon" value={scopeId} onChange={e => setScopeId(e.target.value)} required
+            <label htmlFor="scope-id" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Work Scope Mandor <span style={{ color: C.red }}>*</span></label>
+            <select id="scope-id" aria-label="Work scope mandor yang mengajukan kasbon" value={scopeId} onChange={e => setScopeId(e.target.value)} required
               style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, color: C.text, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
               <option value="">-- Pilih mandor & scope --</option>
               {scopes.map(s => (
@@ -3353,8 +3353,8 @@ function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
               </div>
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Tanggal</label>
-              <input aria-label="Tanggal" type="date" value={kasbonDate} onChange={e => setKasbonDate(e.target.value)}
+              <label htmlFor="kasbon-date" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Tanggal</label>
+              <input id="kasbon-date" aria-label="Tanggal" type="date" value={kasbonDate} onChange={e => setKasbonDate(e.target.value)}
                 style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
             </div>
           </div>
@@ -3362,8 +3362,8 @@ function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
           {/* Keperluan + Sumber Dana */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Keperluan <span style={{ color: C.red }}>*</span></label>
-              <select aria-label="Keperluan kasbon" value={purpose} onChange={e => setPurpose(e.target.value)}
+              <label htmlFor="purpose" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Keperluan <span style={{ color: C.red }}>*</span></label>
+              <select id="purpose" aria-label="Keperluan kasbon" value={purpose} onChange={e => setPurpose(e.target.value)}
                 style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                 <option value="gaji_tukang">Gaji Tukang</option>
                 <option value="uang_makan">Uang Makan</option>
@@ -3373,8 +3373,8 @@ function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
               </select>
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Sumber Dana</label>
-              <select aria-label="Sumber dana kasbon" value={fundSource} onChange={e => setFundSource(e.target.value)}
+              <label htmlFor="fund-source" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Sumber Dana</label>
+              <select id="fund-source" aria-label="Sumber dana kasbon" value={fundSource} onChange={e => setFundSource(e.target.value)}
                 style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                 <option value="owner_advance">Dana Owner</option>
                 <option value="client_fund">Dana Klien</option>
@@ -3384,8 +3384,8 @@ function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
 
           {/* Catatan */}
           <div>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Keterangan / Alasan</label>
-            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
+            <label htmlFor="notes-3" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Keterangan / Alasan</label>
+            <textarea id="notes-3" value={notes} onChange={e => setNotes(e.target.value)} rows={2}
               placeholder="Contoh: untuk beli material rangka atap minggu ini..."
               style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", resize: "vertical", boxSizing: "border-box", fontFamily: "inherit" }}
               onFocus={e => { e.target.style.borderColor = C.navy; }} onBlur={e => { e.target.style.borderColor = C.border; }} />
@@ -3409,8 +3409,8 @@ function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
             {/* Pilih kas sumber jika auto-approve */}
             {autoApprove && (
               <div style={{ marginTop: 12 }}>
-                <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Potong dari akun kas:</label>
-                <select aria-label="Akun kas yang dipotong untuk kasbon ini" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)}
+                <label htmlFor="cash-account-id" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Potong dari akun kas:</label>
+                <select id="cash-account-id" aria-label="Akun kas yang dipotong untuk kasbon ini" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)}
                   style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 7, fontSize: 12, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                   <option value="">-- Pilih akun kas --</option>
                   {cashAccounts.map(a => (

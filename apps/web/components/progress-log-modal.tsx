@@ -369,8 +369,8 @@ export function ProgressLogModal({
               {/* Tanggal & Cuaca */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                 <div>
-                  <label style={fieldLabel}>Tanggal *</label>
-                  <input type="date" value={loggedAt} max={todayISO()} onChange={e => setLoggedAt(e.target.value)} style={fieldInput}
+                  <label htmlFor="logged-at" style={fieldLabel}>Tanggal *</label>
+                  <input id="logged-at" type="date" value={loggedAt} max={todayISO()} onChange={e => setLoggedAt(e.target.value)} style={fieldInput}
                     onFocus={e => { e.target.style.borderColor = "var(--navy)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,51,102,0.1)"; }}
                     onBlur={e => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }} />
                 </div>
@@ -403,9 +403,9 @@ export function ProgressLogModal({
 
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                     <div>
-                      <label style={fieldLabel}>Progress Keseluruhan</label>
+                      <label htmlFor="pct-overall" style={fieldLabel}>Progress Keseluruhan</label>
                       <div style={{ position: "relative" }}>
-                        <input type="number" value={pctOverall} onChange={e => setPctOverall(e.target.value)} min={0} max={100} step={1} placeholder="0"
+                        <input id="pct-overall" type="number" value={pctOverall} onChange={e => setPctOverall(e.target.value)} min={0} max={100} step={1} placeholder="0"
                           style={{ ...fieldInput, paddingRight: 36 }}
                           onFocus={e => { e.target.style.borderColor = "var(--navy)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,51,102,0.1)"; }}
                           onBlur={e => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }} />
@@ -418,16 +418,23 @@ export function ProgressLogModal({
                       )}
                     </div>
                     <div>
-                      <label style={fieldLabel}>{workScopes.length > 0 ? "Scope Pekerjaan" : "Jumlah Pekerja"}</label>
+                      {/* Label ini BERCABANG ke dua kontrol berbeda, jadi
+                          `htmlFor`-nya ikut bercabang. Codemod `pasangkan-label`
+                          memasang `htmlFor="work-scope-id"` di sini secara
+                          otomatis; itu salah — saat tak ada scope, id itu
+                          menunjuk elemen yang tak dirender, dan labelnya jadi
+                          MATI (lebih buruk daripada tak berpasangan: pembaca
+                          layar menyebut kaitan yang tak ada). */}
+                      <label htmlFor={workScopes.length > 0 ? "work-scope-id" : "worker-count-tunggal"} style={fieldLabel}>{workScopes.length > 0 ? "Scope Pekerjaan" : "Jumlah Pekerja"}</label>
                       {workScopes.length > 0 ? (
-                        <select aria-label="Pilih lingkup pekerjaan" value={workScopeId} onChange={e => setWorkScopeId(e.target.value)} style={fieldInput}
+                        <select id="work-scope-id" aria-label="Pilih lingkup pekerjaan" value={workScopeId} onChange={e => setWorkScopeId(e.target.value)} style={fieldInput}
                           onFocus={e => { e.target.style.borderColor = "var(--navy)"; }}
                           onBlur={e => { e.target.style.borderColor = "#e2e8f0"; }}>
                           <option value="">— Semua scope</option>
                           {workScopes.map(ws => <option key={ws.id} value={ws.id}>{ws.scope_name}</option>)}
                         </select>
                       ) : (
-                        <input type="number" value={workerCount} onChange={e => setWorkerCount(e.target.value)} min={0} placeholder="0 orang" style={fieldInput}
+                        <input id="worker-count-tunggal" type="number" value={workerCount} onChange={e => setWorkerCount(e.target.value)} min={0} placeholder="0 orang" style={fieldInput}
                           onFocus={e => { e.target.style.borderColor = "var(--navy)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,51,102,0.1)"; }}
                           onBlur={e => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }} />
                       )}
@@ -436,8 +443,8 @@ export function ProgressLogModal({
 
                   {workScopes.length > 0 && (
                     <div>
-                      <label style={fieldLabel}>Jumlah Pekerja</label>
-                      <input type="number" value={workerCount} onChange={e => setWorkerCount(e.target.value)} min={0} placeholder="0 orang" style={fieldInput}
+                      <label htmlFor="worker-count" style={fieldLabel}>Jumlah Pekerja</label>
+                      <input id="worker-count" type="number" value={workerCount} onChange={e => setWorkerCount(e.target.value)} min={0} placeholder="0 orang" style={fieldInput}
                         onFocus={e => { e.target.style.borderColor = "var(--navy)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,51,102,0.1)"; }}
                         onBlur={e => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }} />
                     </div>
@@ -496,9 +503,9 @@ export function ProgressLogModal({
                   )}
 
                   <div>
-                    <label style={fieldLabel}>Persentase Selesai Item Ini *</label>
+                    <label htmlFor="pct-completion" style={fieldLabel}>Persentase Selesai Item Ini *</label>
                     <div style={{ position: "relative" }}>
-                      <input type="number" value={pctCompletion} onChange={e => setPctCompletion(e.target.value)} min={0} max={100} step={1} placeholder="0"
+                      <input id="pct-completion" type="number" value={pctCompletion} onChange={e => setPctCompletion(e.target.value)} min={0} max={100} step={1} placeholder="0"
                         style={{ ...fieldInput, paddingRight: 36, fontSize: 20, fontWeight: 700, textAlign: "center" }}
                         onFocus={e => { e.target.style.borderColor = "var(--navy)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,51,102,0.1)"; }}
                         onBlur={e => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }} />
@@ -512,16 +519,16 @@ export function ProgressLogModal({
                   </div>
 
                   <div>
-                    <label style={fieldLabel}>Deskripsi / Catatan</label>
-                    <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Apa yang dikerjakan pada item ini hari ini..." rows={2}
+                    <label htmlFor="description" style={fieldLabel}>Deskripsi / Catatan</label>
+                    <textarea id="description" value={description} onChange={e => setDescription(e.target.value)} placeholder="Apa yang dikerjakan pada item ini hari ini..." rows={2}
                       style={{ ...fieldInput, resize: "vertical", lineHeight: 1.6 }}
                       onFocus={e => { e.target.style.borderColor = "var(--navy)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,51,102,0.1)"; }}
                       onBlur={e => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }} />
                   </div>
 
                   <div>
-                    <label style={fieldLabel}>Jumlah Pekerja</label>
-                    <input type="number" value={workerCount} onChange={e => setWorkerCount(e.target.value)} min={0} placeholder="0 orang" style={fieldInput}
+                    <label htmlFor="worker-count-2" style={fieldLabel}>Jumlah Pekerja</label>
+                    <input id="worker-count-2" type="number" value={workerCount} onChange={e => setWorkerCount(e.target.value)} min={0} placeholder="0 orang" style={fieldInput}
                       onFocus={e => { e.target.style.borderColor = "var(--navy)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,51,102,0.1)"; }}
                       onBlur={e => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }} />
                   </div>
@@ -585,8 +592,8 @@ export function ProgressLogModal({
               {/* Catatan Tambahan (mode daily only in detail section, always for daily) */}
               {mode === "daily" && (
                 <div>
-                  <label style={fieldLabel}>Catatan Tambahan</label>
-                  <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Kendala, temuan, atau hal penting lainnya…" rows={2}
+                  <label htmlFor="notes" style={fieldLabel}>Catatan Tambahan</label>
+                  <textarea id="notes" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Kendala, temuan, atau hal penting lainnya…" rows={2}
                     style={{ ...fieldInput, resize: "vertical", lineHeight: 1.6 }}
                     onFocus={e => { e.target.style.borderColor = "var(--navy)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,51,102,0.1)"; }}
                     onBlur={e => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }} />

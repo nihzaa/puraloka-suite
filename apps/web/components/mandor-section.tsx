@@ -433,20 +433,20 @@ function AssignMandorModal({ projectId, existingMandorIds, onClose, onSuccess }:
         </div>
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Mandor <span style={{ color: C.red }}>*</span></label>
-            <select aria-label="Pilih mandor" value={mandorId} onChange={e => setMandorId(e.target.value)} style={inputStyle}>
+            <label htmlFor="mandor-id" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Mandor <span style={{ color: C.red }}>*</span></label>
+            <select id="mandor-id" aria-label="Pilih mandor" value={mandorId} onChange={e => setMandorId(e.target.value)} style={inputStyle}>
               <option value="">-- Pilih mandor --</option>
               {mandors.map(m => <option key={m.id} value={m.id}>{m.name}{m.phone ? ` (${m.phone})` : ""}</option>)}
             </select>
             {mandors.length === 0 && <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Semua mandor sudah di-assign ke proyek ini</div>}
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Tanggal Assign</label>
-            <input type="date" value={assignedAt} onChange={e => setAssignedAt(e.target.value)} style={inputStyle} />
+            <label htmlFor="assigned-at" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Tanggal Assign</label>
+            <input id="assigned-at" type="date" value={assignedAt} onChange={e => setAssignedAt(e.target.value)} style={inputStyle} />
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Catatan (opsional)</label>
-            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Catatan untuk mandor ini..." style={{ ...inputStyle, resize: "none" }} />
+            <label htmlFor="notes" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Catatan (opsional)</label>
+            <textarea id="notes" value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Catatan untuk mandor ini..." style={{ ...inputStyle, resize: "none" }} />
           </div>
           {error && <div style={{ padding: "8px 12px", background: C.redBg, borderRadius: 8, fontSize: 13, color: C.red }}>{error}</div>}
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
@@ -550,8 +550,8 @@ function AddScopeModal({ assignment, projectId: projectIdProp, onClose, onSucces
 
         <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Nama Scope <span style={{ color: C.red }}>*</span></label>
-            <input value={scopeName} onChange={e => setScopeName(e.target.value)} placeholder="Contoh: Pekerjaan Struktur, Pemasangan Dinding..." style={inputStyle} />
+            <label htmlFor="scope-name" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Nama Scope <span style={{ color: C.red }}>*</span></label>
+            <input id="scope-name" value={scopeName} onChange={e => setScopeName(e.target.value)} placeholder="Contoh: Pekerjaan Struktur, Pemasangan Dinding..." style={inputStyle} />
           </div>
 
           <div>
@@ -586,12 +586,12 @@ function AddScopeModal({ assignment, projectId: projectIdProp, onClose, onSucces
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Tanggal Mulai</label>
-              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={inputStyle} />
+              <label htmlFor="start-date" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Tanggal Mulai</label>
+              <input id="start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={inputStyle} />
             </div>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Tanggal Selesai</label>
-              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={inputStyle} />
+              <label htmlFor="end-date" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Tanggal Selesai</label>
+              <input id="end-date" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={inputStyle} />
             </div>
           </div>
 
@@ -618,8 +618,8 @@ function AddScopeModal({ assignment, projectId: projectIdProp, onClose, onSucces
           )}
 
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Deskripsi (opsional)</label>
-            <textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} placeholder="Detail pekerjaan..." style={{ ...inputStyle, resize: "none" }} />
+            <label htmlFor="description" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Deskripsi (opsional)</label>
+            <textarea id="description" value={description} onChange={e => setDescription(e.target.value)} rows={2} placeholder="Detail pekerjaan..." style={{ ...inputStyle, resize: "none" }} />
           </div>
 
           {error && <div style={{ padding: "8px 12px", background: C.redBg, borderRadius: 8, fontSize: 13, color: C.red }}>{error}</div>}

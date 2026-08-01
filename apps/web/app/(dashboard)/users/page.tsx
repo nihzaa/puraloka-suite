@@ -253,20 +253,20 @@ function AddUserModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
         <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
           {error && <div style={{ padding: "10px 14px", borderRadius: 8, background: C.redBg, color: C.red, fontSize: 13, border: `1px solid ${C.redBorder}` }}>{error}</div>}
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Nama Lengkap</label>
-            <input value={name} onChange={e => setName(e.target.value)} placeholder="cth: Budi Santoso" style={inputStyle} required />
+            <label htmlFor="name" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Nama Lengkap</label>
+            <input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="cth: Budi Santoso" style={inputStyle} required />
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Email</label>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@example.com" style={inputStyle} required />
+            <label htmlFor="email" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Email</label>
+            <input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@example.com" style={inputStyle} required />
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Password</label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 8 karakter" style={inputStyle} required />
+            <label htmlFor="password" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Password</label>
+            <input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 8 karakter" style={inputStyle} required />
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>No. Telepon (opsional)</label>
-            <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="0812-xxxx-xxxx" style={inputStyle} />
+            <label htmlFor="phone" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>No. Telepon (opsional)</label>
+            <input id="phone" value={phone} onChange={e => setPhone(e.target.value)} placeholder="0812-xxxx-xxxx" style={inputStyle} />
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 8 }}>Role</label>
@@ -337,12 +337,12 @@ function EditUserModal({ user, onClose, onSuccess }: { user: UserRecord; onClose
         <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
           {error && <div style={{ padding: "10px 14px", borderRadius: 8, background: C.redBg, color: C.red, fontSize: 13, border: `1px solid ${C.redBorder}` }}>{error}</div>}
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Nama Lengkap</label>
-            <input value={name} onChange={e => setName(e.target.value)} style={inputStyle} required />
+            <label htmlFor="name-2" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Nama Lengkap</label>
+            <input id="name-2" value={name} onChange={e => setName(e.target.value)} style={inputStyle} required />
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>No. Telepon</label>
-            <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="0812-xxxx-xxxx" style={inputStyle} />
+            <label htmlFor="phone-2" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>No. Telepon</label>
+            <input id="phone-2" value={phone} onChange={e => setPhone(e.target.value)} placeholder="0812-xxxx-xxxx" style={inputStyle} />
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 8 }}>Role</label>

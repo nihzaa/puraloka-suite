@@ -41,7 +41,24 @@ const AMBANG = {
   //      tapi TAK BISA dijangkau keyboard. Melanggar MUST #7 langsung.
   //   2. label-has-associated-control (255) — pembaca layar tak bisa
   //      menyebutkan field apa yang sedang diisi.
-  'jsx-a11y/label-has-associated-control': 253, // turun dari 255 (2026-07-31)
+  // 255 → 253 (2026-07-31) → 88 (2026-08-01, codemod `pasangkan-label.mjs`).
+  //
+  // 167 label dipasangkan `htmlFor` ↔ `id`, id DITURUNKAN dari `value={state}`
+  // yang sudah ada — tak dikarang. Efek sampingnya bagus untuk semua orang,
+  // bukan hanya pembaca layar: teks label jadi bisa diketuk untuk memfokuskan
+  // kontrolnya, sehingga target sentuh membesar — persis yang dibutuhkan
+  // mandor di HP, satu tangan, di bawah matahari.
+  //
+  // Satu cacat ketahuan saat memeriksa hasilnya: label di `progress-log-modal`
+  // BERCABANG ke dua kontrol berbeda (`select` scope vs `input` jumlah
+  // pekerja). `htmlFor` statis menunjuk elemen yang tak dirender di salah satu
+  // cabang — label MATI, yang lebih buruk daripada tak berpasangan karena
+  // pembaca layar menyebutkan kaitan yang tak ada. Diperbaiki manual;
+  // pemindaian menyeluruh memastikan hanya satu yang berbentuk begitu.
+  //
+  // 88 sisanya dilewati codemod dengan alasan: di dalam `.map()` (id tak akan
+  // unik) atau tak punya `value={state}`/`name=` untuk menurunkan id.
+  'jsx-a11y/label-has-associated-control': 88,
   'jsx-a11y/click-events-have-key-events': 117,
   'jsx-a11y/no-static-element-interactions': 115,
   'jsx-a11y/no-noninteractive-element-interactions': 11,

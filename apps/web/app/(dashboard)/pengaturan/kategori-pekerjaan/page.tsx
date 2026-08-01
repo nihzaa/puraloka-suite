@@ -121,13 +121,13 @@ function AddCard({ existing, onDone, onError }: { existing: WorkCategoryRow[]; o
     <div style={{ ...card, marginBottom: 18, padding: 18 }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1.6fr", gap: 12, alignItems: "end" }}>
         <div>
-          <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Kode (unik)</label>
-          <input value={code} onChange={e => setCode(e.target.value)} placeholder="cth: mep" style={inputStyle} />
+          <label htmlFor="code" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Kode (unik)</label>
+          <input id="code" value={code} onChange={e => setCode(e.target.value)} placeholder="cth: mep" style={inputStyle} />
           {code && <div style={{ fontSize: 11, color: dup ? C.red : C.muted, marginTop: 3 }}>disimpan sebagai <code>{normalized || "—"}</code>{dup && " (sudah ada)"}</div>}
         </div>
         <div>
-          <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Nama</label>
-          <input value={label} onChange={e => setLabel(e.target.value)} placeholder="cth: Mekanikal Elektrikal Plumbing" style={inputStyle} />
+          <label htmlFor="label" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Nama</label>
+          <input id="label" value={label} onChange={e => setLabel(e.target.value)} placeholder="cth: Mekanikal Elektrikal Plumbing" style={inputStyle} />
         </div>
       </div>
       <div style={{ display: "flex", gap: 8, marginTop: 14 }}>

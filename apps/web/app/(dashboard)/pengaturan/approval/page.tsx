@@ -172,15 +172,15 @@ function ChainCard({ chain, perms, canManage, onToggle, onAdd, onPatch, onDelete
           <div style={{ marginTop: 12, padding: 12, borderRadius: 10, background: "var(--surface-subtle)", border: `1px dashed ${C.border}` }}>
             <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 10 }}>
               <div>
-                <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Siapa yang berhak (permission)</label>
-                <select aria-label="Permission yang berhak menyetujui langkah ini" value={newPerm} onChange={e => setNewPerm(e.target.value)} style={input}>
+                <label htmlFor="new-perm" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Siapa yang berhak (permission)</label>
+                <select id="new-perm" aria-label="Permission yang berhak menyetujui langkah ini" value={newPerm} onChange={e => setNewPerm(e.target.value)} style={input}>
                   <option value="">— pilih permission —</option>
                   {perms.map(p => <option key={p.key} value={p.key}>{p.label ? `${p.label} (${p.key})` : p.key}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Ambang nominal (opsional)</label>
-                <input value={newMin} onChange={e => setNewMin(e.target.value)} placeholder="mis. 50000000" style={input} />
+                <label htmlFor="new-min" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Ambang nominal (opsional)</label>
+                <input id="new-min" value={newMin} onChange={e => setNewMin(e.target.value)} placeholder="mis. 50000000" style={input} />
               </div>
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 10 }}>

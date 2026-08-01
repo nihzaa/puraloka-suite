@@ -301,25 +301,25 @@ export default function MandorProgressPage() {
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Tanggal</label>
-                  <input aria-label="Tanggal" type="date" value={logDate} onChange={(e) => setLogDate(e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }} />
+                  <label htmlFor="log-date" style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Tanggal</label>
+                  <input id="log-date" aria-label="Tanggal" type="date" value={logDate} onChange={(e) => setLogDate(e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Cuaca</label>
-                  <select aria-label="Cuaca hari ini" value={weather} onChange={(e) => setWeather(e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, color: C.text, background: "var(--surface)" }}>
+                  <label htmlFor="weather" style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Cuaca</label>
+                  <select id="weather" aria-label="Cuaca hari ini" value={weather} onChange={(e) => setWeather(e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, color: C.text, background: "var(--surface)" }}>
                     {WEATHER_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </div>
               </div>
 
               <div>
-                <label style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Jumlah Pekerja</label>
-                <input type="number" min="0" placeholder="Opsional" value={workersCount} onChange={(e) => setWorkersCount(e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }} />
+                <label htmlFor="workers-count" style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Jumlah Pekerja</label>
+                <input id="workers-count" type="number" min="0" placeholder="Opsional" value={workersCount} onChange={(e) => setWorkersCount(e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }} />
               </div>
 
               <div>
-                <label style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Catatan Pekerjaan *</label>
-                <textarea placeholder="Deskripsikan pekerjaan hari ini..." value={notes} onChange={(e) => setNotes(e.target.value)} required rows={4} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, resize: "vertical", boxSizing: "border-box" }} />
+                <label htmlFor="notes" style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Catatan Pekerjaan *</label>
+                <textarea id="notes" placeholder="Deskripsikan pekerjaan hari ini..." value={notes} onChange={(e) => setNotes(e.target.value)} required rows={4} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, resize: "vertical", boxSizing: "border-box" }} />
               </div>
 
               {/* Photo upload */}

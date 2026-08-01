@@ -410,9 +410,9 @@ function LaporanContent() {
       {/* Filter Bar */}
       <div className="rise rise-1" style={{ ...card, padding: "16px 20px", marginBottom: 20, display: "flex", gap: 14, flexWrap: "wrap", alignItems: "flex-end" }}>
         <div>
-          <label style={{ fontSize: 10, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>Proyek</label>
+          <label htmlFor="project-id" style={{ fontSize: 10, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>Proyek</label>
           <div style={{ position: "relative" }}>
-            <select aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)}
+            <select id="project-id" aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)}
               style={{ padding: "8px 32px 8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: "var(--surface)", minWidth: 220, appearance: "none" }}>
               {(tab === "keuangan" || tab === "cashflow" || tab === "mandor" || tab === "pengeluaran") && (
                 <option value="">Semua Proyek</option>
@@ -423,13 +423,13 @@ function LaporanContent() {
           </div>
         </div>
         <div>
-          <label style={{ fontSize: 10, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>Dari Tanggal</label>
-          <input aria-label="Tanggal mulai" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+          <label htmlFor="date-from" style={{ fontSize: 10, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>Dari Tanggal</label>
+          <input id="date-from" aria-label="Tanggal mulai" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
             style={{ padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: "var(--surface)" }} />
         </div>
         <div>
-          <label style={{ fontSize: 10, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>Sampai Tanggal</label>
-          <input aria-label="Tanggal akhir" type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+          <label htmlFor="date-to" style={{ fontSize: 10, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>Sampai Tanggal</label>
+          <input id="date-to" aria-label="Tanggal akhir" type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
             style={{ padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: "var(--surface)" }} />
         </div>
         {selectedProject?.start_date && (() => {

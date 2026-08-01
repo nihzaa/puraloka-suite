@@ -178,26 +178,26 @@ function ClientModal({
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div style={{ gridColumn: "1 / -1" }}>
-              <label style={labelStyle}>Nama Kontak <span style={{ color: C.red }}>*</span></label>
-              <input value={form.contact_person} onChange={set("contact_person")} required style={inputStyle} placeholder="Nama lengkap" />
+              <label htmlFor="form" style={labelStyle}>Nama Kontak <span style={{ color: C.red }}>*</span></label>
+              <input id="form" value={form.contact_person} onChange={set("contact_person")} required style={inputStyle} placeholder="Nama lengkap" />
             </div>
             {form.client_type === "perusahaan" && (
               <div style={{ gridColumn: "1 / -1" }}>
-                <label style={labelStyle}>Nama Perusahaan</label>
-                <input value={form.company_name} onChange={set("company_name")} style={inputStyle} placeholder="CV / PT / UD ..." />
+                <label htmlFor="form-2" style={labelStyle}>Nama Perusahaan</label>
+                <input id="form-2" value={form.company_name} onChange={set("company_name")} style={inputStyle} placeholder="CV / PT / UD ..." />
               </div>
             )}
             <div>
-              <label style={labelStyle}>No. Telepon <span style={{ color: C.red }}>*</span></label>
-              <input value={form.phone} onChange={set("phone")} required style={inputStyle} placeholder="08xx..." />
+              <label htmlFor="form-3" style={labelStyle}>No. Telepon <span style={{ color: C.red }}>*</span></label>
+              <input id="form-3" value={form.phone} onChange={set("phone")} required style={inputStyle} placeholder="08xx..." />
             </div>
             <div>
-              <label style={labelStyle}>Email</label>
-              <input type="email" value={form.email} onChange={set("email")} style={inputStyle} placeholder="email@..." />
+              <label htmlFor="form-4" style={labelStyle}>Email</label>
+              <input id="form-4" type="email" value={form.email} onChange={set("email")} style={inputStyle} placeholder="email@..." />
             </div>
             <div style={{ gridColumn: "1 / -1" }}>
-              <label style={labelStyle}>Alamat</label>
-              <input value={form.address} onChange={set("address")} style={inputStyle} placeholder="Jl. ..." />
+              <label htmlFor="form-5" style={labelStyle}>Alamat</label>
+              <input id="form-5" value={form.address} onChange={set("address")} style={inputStyle} placeholder="Jl. ..." />
             </div>
             <div>
               <label style={labelStyle}>{form.client_type === "perusahaan" ? "NPWP" : "NIK"}</label>
@@ -209,8 +209,8 @@ function ClientModal({
               />
             </div>
             <div>
-              <label style={labelStyle}>Catatan</label>
-              <input value={form.notes} onChange={set("notes")} style={inputStyle} placeholder="Opsional..." />
+              <label htmlFor="form-6" style={labelStyle}>Catatan</label>
+              <input id="form-6" value={form.notes} onChange={set("notes")} style={inputStyle} placeholder="Opsional..." />
             </div>
           </div>
 

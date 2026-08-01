@@ -1875,8 +1875,8 @@ function CreateWageReportModal({ onClose, onSuccess }: {
               )}
             </div>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Minggu (Senin) <span style={{ color: C.red }}>*</span></label>
-              <input aria-label="Tanggal mulai" type="date" value={weekStart} onChange={e => setWeekStart(e.target.value)} style={inputStyle} />
+              <label htmlFor="week-start" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Minggu (Senin) <span style={{ color: C.red }}>*</span></label>
+              <input id="week-start" aria-label="Tanggal mulai" type="date" value={weekStart} onChange={e => setWeekStart(e.target.value)} style={inputStyle} />
             </div>
           </div>
 
@@ -1984,8 +1984,8 @@ function CreateWageReportModal({ onClose, onSuccess }: {
 
           {/* Catatan */}
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Catatan</label>
-            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} style={{ ...inputStyle, resize: "vertical" }} placeholder="Catatan tambahan..." />
+            <label htmlFor="notes" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Catatan</label>
+            <textarea id="notes" value={notes} onChange={e => setNotes(e.target.value)} rows={2} style={{ ...inputStyle, resize: "vertical" }} placeholder="Catatan tambahan..." />
           </div>
 
           {/* Summary total */}
@@ -2190,8 +2190,8 @@ function WageReportDetailModal({ data, onClose, onApprove }: {
                     </div>
                   </div>
                   <div>
-                    <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Catatan (opsional)</label>
-                    <textarea value={reviewNotes} onChange={e => setReviewNotes(e.target.value)} rows={2} placeholder="Catatan tambahan..." style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", resize: "none", boxSizing: "border-box" }} />
+                    <label htmlFor="review-notes" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Catatan (opsional)</label>
+                    <textarea id="review-notes" value={reviewNotes} onChange={e => setReviewNotes(e.target.value)} rows={2} placeholder="Catatan tambahan..." style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", resize: "none", boxSizing: "border-box" }} />
                   </div>
                   <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                     <button onClick={() => setShowApproveForm(false)} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 13, cursor: "pointer" }}>Batal</button>
@@ -2207,8 +2207,8 @@ function WageReportDetailModal({ data, onClose, onApprove }: {
                 <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "14px 16px", background: C.redBg, borderRadius: 10, border: `1px solid ${C.redBorder}` }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: C.red }}>Tolak Laporan</div>
                   <div>
-                    <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Alasan Penolakan <span style={{ color: C.red }}>*</span></label>
-                    <textarea value={rejectNotes} onChange={e => setRejectNotes(e.target.value)} rows={3} placeholder="Wajib diisi — jelaskan alasan penolakan..." style={{ width: "100%", padding: "8px 10px", border: `1px solid ${rejectNotes.trim() ? C.border : C.red}`, borderRadius: 8, fontSize: 13, outline: "none", resize: "none", boxSizing: "border-box" }} />
+                    <label htmlFor="reject-notes" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Alasan Penolakan <span style={{ color: C.red }}>*</span></label>
+                    <textarea id="reject-notes" value={rejectNotes} onChange={e => setRejectNotes(e.target.value)} rows={3} placeholder="Wajib diisi — jelaskan alasan penolakan..." style={{ width: "100%", padding: "8px 10px", border: `1px solid ${rejectNotes.trim() ? C.border : C.red}`, borderRadius: 8, fontSize: 13, outline: "none", resize: "none", boxSizing: "border-box" }} />
                     {!rejectNotes.trim() && <div style={{ fontSize: 11, color: C.red, marginTop: 4 }}>Alasan penolakan wajib diisi</div>}
                   </div>
                   <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
@@ -2236,13 +2236,13 @@ function WageReportDetailModal({ data, onClose, onApprove }: {
                   <div style={{ fontSize: 13, fontWeight: 600, color: C.navy }}>Konfirmasi Pembayaran Upah</div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                     <div>
-                      <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Tanggal Bayar</label>
-                      <input aria-label="Tanggal" type="date" value={paidAt} onChange={e => setPaidAt(e.target.value)}
+                      <label htmlFor="paid-at" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Tanggal Bayar</label>
+                      <input id="paid-at" aria-label="Tanggal" type="date" value={paidAt} onChange={e => setPaidAt(e.target.value)}
                         style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
                     </div>
                     <div>
-                      <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Sumber Kas <span style={{ color: C.red }}>*</span></label>
-                      <select aria-label="Sumber kas pembayaran" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)}
+                      <label htmlFor="cash-account-id" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Sumber Kas <span style={{ color: C.red }}>*</span></label>
+                      <select id="cash-account-id" aria-label="Sumber kas pembayaran" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)}
                         style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                         <option value="">— Tidak dari kas —</option>
                         {cashAccounts.map(a => (
@@ -2375,8 +2375,8 @@ function WorkerFormModal({ mandorId: initialMandorId, mandorName: initialMandorN
           {/* Mandor selector — hanya jika dibuka dari header (bukan dari grup) dan bukan mandor */}
           {!isMandor && !initialMandorId && !isEdit && (
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Mandor <span style={{ color: C.red }}>*</span></label>
-              <select aria-label="Mandor" value={mandorId} onChange={e => setMandorId(e.target.value)} style={inputStyle}>
+              <label htmlFor="mandor-id" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Mandor <span style={{ color: C.red }}>*</span></label>
+              <select id="mandor-id" aria-label="Mandor" value={mandorId} onChange={e => setMandorId(e.target.value)} style={inputStyle}>
                 <option value="">-- Pilih mandor --</option>
                 {mandorOptions.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
               </select>
@@ -2384,13 +2384,13 @@ function WorkerFormModal({ mandorId: initialMandorId, mandorName: initialMandorN
           )}
 
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Nama <span style={{ color: C.red }}>*</span></label>
-            <input value={name} onChange={e => setName(e.target.value)} placeholder="Nama pekerja" style={inputStyle} autoFocus />
+            <label htmlFor="name" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Nama <span style={{ color: C.red }}>*</span></label>
+            <input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="Nama pekerja" style={inputStyle} autoFocus />
           </div>
 
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Tipe (opsional)</label>
-            <select aria-label="Tipe pekerja" value={tipe} onChange={e => setTipe(e.target.value)} style={inputStyle}>
+            <label htmlFor="tipe" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Tipe (opsional)</label>
+            <select id="tipe" aria-label="Tipe pekerja" value={tipe} onChange={e => setTipe(e.target.value)} style={inputStyle}>
               <option value="">-- Tidak ditentukan --</option>
               <option value="tukang">Tukang</option>
               <option value="laden">Laden</option>
@@ -2399,8 +2399,8 @@ function WorkerFormModal({ mandorId: initialMandorId, mandorName: initialMandorN
           </div>
 
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>No. HP (opsional)</label>
-            <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="08xxxxxxxxxx, tanpa tanda hubung" style={inputStyle} />
+            <label htmlFor="phone" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>No. HP (opsional)</label>
+            <input id="phone" value={phone} onChange={e => setPhone(e.target.value)} placeholder="08xxxxxxxxxx, tanpa tanda hubung" style={inputStyle} />
           </div>
 
           <div>
@@ -2545,40 +2545,40 @@ function AddKasbonModal({ assignments, onClose, onSuccess }: {
         </div>
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Mandor / Proyek <span style={{ color: C.red }}>*</span></label>
-            <select aria-label="Pilih penugasan proyek" value={assignmentId} onChange={e => setAssignmentId(e.target.value)} style={inputStyle}>
+            <label htmlFor="assignment-id" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Mandor / Proyek <span style={{ color: C.red }}>*</span></label>
+            <select id="assignment-id" aria-label="Pilih penugasan proyek" value={assignmentId} onChange={e => setAssignmentId(e.target.value)} style={inputStyle}>
               <option value="">-- Pilih mandor --</option>
               {assignments.map(a => <option key={a.id} value={a.id}>{a.mandor?.name} — {a.project?.name}</option>)}
             </select>
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Tukang <span style={{ color: C.red }}>*</span></label>
-            <select aria-label="Tukang penerima kasbon" value={workerId} onChange={e => setWorkerId(e.target.value)} style={inputStyle} disabled={!assignmentId}>
+            <label htmlFor="worker-id" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Tukang <span style={{ color: C.red }}>*</span></label>
+            <select id="worker-id" aria-label="Tukang penerima kasbon" value={workerId} onChange={e => setWorkerId(e.target.value)} style={inputStyle} disabled={!assignmentId}>
               <option value="">-- Pilih tukang --</option>
               {workers.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
             </select>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Nominal <span style={{ color: C.red }}>*</span></label>
-              <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" style={inputStyle} />
+              <label htmlFor="amount" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Nominal <span style={{ color: C.red }}>*</span></label>
+              <input id="amount" type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" style={inputStyle} />
             </div>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Tanggal</label>
-              <input aria-label="Tanggal" type="date" value={date} onChange={e => setDate(e.target.value)} style={inputStyle} />
+              <label htmlFor="date" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Tanggal</label>
+              <input id="date" aria-label="Tanggal" type="date" value={date} onChange={e => setDate(e.target.value)} style={inputStyle} />
             </div>
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Tujuan</label>
-            <select aria-label="Tujuan kasbon tukang" value={purpose} onChange={e => setPurpose(e.target.value)} style={inputStyle}>
+            <label htmlFor="purpose" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Tujuan</label>
+            <select id="purpose" aria-label="Tujuan kasbon tukang" value={purpose} onChange={e => setPurpose(e.target.value)} style={inputStyle}>
               <option value="gaji_tukang">Gaji Tukang</option>
               <option value="uang_makan">Uang Makan</option>
               <option value="lain_lain">Lain-lain</option>
             </select>
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Catatan</label>
-            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Catatan kasbon..." style={{ ...inputStyle, resize: "none" }} />
+            <label htmlFor="notes-2" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Catatan</label>
+            <textarea id="notes-2" value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Catatan kasbon..." style={{ ...inputStyle, resize: "none" }} />
           </div>
           {/* D2 — Foto nota */}
           <div>
@@ -2779,8 +2779,8 @@ function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () => void; 
               </div>
             </div>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Tanggal</label>
-              <input aria-label="Tanggal" type="date" value={kasbonDate} onChange={e => setKasbonDate(e.target.value)} style={inputStyle} />
+              <label htmlFor="kasbon-date" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Tanggal</label>
+              <input id="kasbon-date" aria-label="Tanggal" type="date" value={kasbonDate} onChange={e => setKasbonDate(e.target.value)} style={inputStyle} />
             </div>
           </div>
 
@@ -2794,8 +2794,8 @@ function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () => void; 
               awal — dashboard-lah yang tertinggal, bukan sebaliknya. */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Keperluan <span style={{ color: C.red }}>*</span></label>
-              <select aria-label="Keperluan kasbon mandor" value={purpose} onChange={e => setPurpose(e.target.value)} style={inputStyle}>
+              <label htmlFor="purpose-2" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Keperluan <span style={{ color: C.red }}>*</span></label>
+              <select id="purpose-2" aria-label="Keperluan kasbon mandor" value={purpose} onChange={e => setPurpose(e.target.value)} style={inputStyle}>
                 {(kasbonPurposes.length > 0
                   ? kasbonPurposes.map(p => [p.code, p.label] as [string, string])
                   : [["gaji_tukang", "Gaji Tukang"], ["uang_makan", "Uang Makan"], ["pembelian_alat", "Pembelian Alat"], ["operasional", "Operasional"], ["lain_lain", "Lain-lain"]] as [string, string][]
@@ -2911,26 +2911,26 @@ function AddAssignmentModal({ mandors, onClose, onSuccess }: {
         <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
           {error && <div style={{ padding: "10px 14px", borderRadius: 8, background: C.redBg, color: C.red, fontSize: 13, border: `1px solid ${C.redBorder}` }}>{error}</div>}
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Proyek</label>
-            <select aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} style={inputStyle} required>
+            <label htmlFor="project-id" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Proyek</label>
+            <select id="project-id" aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} style={inputStyle} required>
               <option value="">-- Pilih proyek --</option>
               {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Mandor</label>
-            <select aria-label="Mandor" value={mandorId} onChange={e => setMandorId(e.target.value)} style={inputStyle} required>
+            <label htmlFor="mandor-id-2" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Mandor</label>
+            <select id="mandor-id-2" aria-label="Mandor" value={mandorId} onChange={e => setMandorId(e.target.value)} style={inputStyle} required>
               <option value="">-- Pilih mandor --</option>
               {mandors.map(m => <option key={m.id} value={m.id}>{m.name}{m.phone ? ` (${m.phone})` : ""}</option>)}
             </select>
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Tanggal Mulai Tugas</label>
-            <input aria-label="Tanggal" type="date" value={assignedAt} onChange={e => setAssignedAt(e.target.value)} style={inputStyle} />
+            <label htmlFor="assigned-at" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Tanggal Mulai Tugas</label>
+            <input id="assigned-at" aria-label="Tanggal" type="date" value={assignedAt} onChange={e => setAssignedAt(e.target.value)} style={inputStyle} />
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Catatan (opsional)</label>
-            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Deskripsi tugas, area kerja, dll" style={{ ...inputStyle, resize: "vertical" }} />
+            <label htmlFor="notes-3" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Catatan (opsional)</label>
+            <textarea id="notes-3" value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Deskripsi tugas, area kerja, dll" style={{ ...inputStyle, resize: "vertical" }} />
           </div>
           <div style={{ display: "flex", gap: 10, paddingTop: 4 }}>
             <button type="button" onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13, color: C.mid }}>Batal</button>
@@ -3001,12 +3001,12 @@ function AddScopeModal({ assignmentId, onClose, onSuccess }: {
         <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14, overflowY: "auto" }}>
           {error && <div style={{ padding: "10px 14px", borderRadius: 8, background: C.redBg, color: C.red, fontSize: 13, border: `1px solid ${C.redBorder}` }}>{error}</div>}
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Nama Scope Pekerjaan</label>
-            <input value={scopeName} onChange={e => setScopeName(e.target.value)} placeholder="cth: Pekerjaan Struktur Lantai 1, Rangka Baja Atap" style={inputStyle} required />
+            <label htmlFor="scope-name" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Nama Scope Pekerjaan</label>
+            <input id="scope-name" value={scopeName} onChange={e => setScopeName(e.target.value)} placeholder="cth: Pekerjaan Struktur Lantai 1, Rangka Baja Atap" style={inputStyle} required />
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Deskripsi (opsional)</label>
-            <textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} placeholder="Detail lingkup pekerjaan..." style={{ ...inputStyle, resize: "vertical" }} />
+            <label htmlFor="description" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Deskripsi (opsional)</label>
+            <textarea id="description" value={description} onChange={e => setDescription(e.target.value)} rows={2} placeholder="Detail lingkup pekerjaan..." style={{ ...inputStyle, resize: "vertical" }} />
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Sistem Pembayaran</label>
@@ -3036,12 +3036,12 @@ function AddScopeModal({ assignmentId, onClose, onSuccess }: {
           )}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Tanggal Mulai</label>
-              <input aria-label="Tanggal mulai" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={inputStyle} />
+              <label htmlFor="start-date" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Tanggal Mulai</label>
+              <input id="start-date" aria-label="Tanggal mulai" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={inputStyle} />
             </div>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Target Selesai</label>
-              <input aria-label="Tanggal akhir" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={inputStyle} />
+              <label htmlFor="end-date" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Target Selesai</label>
+              <input id="end-date" aria-label="Tanggal akhir" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={inputStyle} />
             </div>
           </div>
           <div style={{ display: "flex", gap: 10, paddingTop: 4 }}>
@@ -3289,13 +3289,13 @@ function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
         <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14, overflowY: "auto" }}>
           {error && <div style={{ padding: "10px 14px", borderRadius: 8, background: C.redBg, color: C.red, fontSize: 13, border: `1px solid ${C.redBorder}` }}>{error}</div>}
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Nama Item Pekerjaan</label>
-            <input value={itemName} onChange={e => setItemName(e.target.value)} placeholder="cth: Kolom Baja WF 200x100, Pasang Keramik 60x60, Cor Pondasi" style={inputStyle} required />
+            <label htmlFor="item-name" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Nama Item Pekerjaan</label>
+            <input id="item-name" value={itemName} onChange={e => setItemName(e.target.value)} placeholder="cth: Kolom Baja WF 200x100, Pasang Keramik 60x60, Cor Pondasi" style={inputStyle} required />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Kategori</label>
-              <select aria-label="Kategori" value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
+              <label htmlFor="category" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Kategori</label>
+              <select id="category" aria-label="Kategori" value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
                 {(workCategories.length > 0
                   ? workCategories.map(c => [c.code, c.label] as [string, string])
                   : Object.entries(CATEGORY_LABELS)
@@ -3303,8 +3303,8 @@ function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
               </select>
             </div>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Satuan</label>
-              <select aria-label="Satuan" value={unit} onChange={e => setUnit(e.target.value)} style={inputStyle}>
+              <label htmlFor="unit" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Satuan</label>
+              <select id="unit" aria-label="Satuan" value={unit} onChange={e => setUnit(e.target.value)} style={inputStyle}>
                 {UNITS_GROUPED.map(g => (
                   <optgroup key={g.group} label={g.group}>
                     {g.opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
@@ -3319,8 +3319,8 @@ function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
               <input value={volume} onChange={e => setVolume(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="0" style={inputStyle} required />
             </div>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Harga/satuan (Rp)</label>
-              <input value={unitPrice} onChange={e => { const r = e.target.value.replace(/\D/g, ""); setUnitPrice(r ? Number(r).toLocaleString("id-ID") : ""); }} placeholder="0" style={inputStyle} required />
+              <label htmlFor="unit-price" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Harga/satuan (Rp)</label>
+              <input id="unit-price" value={unitPrice} onChange={e => { const r = e.target.value.replace(/\D/g, ""); setUnitPrice(r ? Number(r).toLocaleString("id-ID") : ""); }} placeholder="0" style={inputStyle} required />
             </div>
           </div>
           {estSubtotal > 0 && (
@@ -3334,8 +3334,8 @@ function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
             <input value={volumeDone} onChange={e => setVolumeDone(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="0" style={inputStyle} />
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Deskripsi (opsional)</label>
-            <textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} placeholder="Spesifikasi teknis umum, dll" style={{ ...inputStyle, resize: "vertical" }} />
+            <label htmlFor="description-2" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Deskripsi (opsional)</label>
+            <textarea id="description-2" value={description} onChange={e => setDescription(e.target.value)} rows={2} placeholder="Spesifikasi teknis umum, dll" style={{ ...inputStyle, resize: "vertical" }} />
           </div>
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
@@ -3357,8 +3357,8 @@ function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
             ))}
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Catatan (opsional)</label>
-            <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Catatan tambahan..." style={inputStyle} />
+            <label htmlFor="notes-4" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Catatan (opsional)</label>
+            <input id="notes-4" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Catatan tambahan..." style={inputStyle} />
           </div>
           <div style={{ display: "flex", gap: 10, paddingTop: 4 }}>
             <button type="button" onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13, color: C.mid }}>Batal</button>
@@ -3432,17 +3432,17 @@ function SettlementBoronganModal({ data, cashAccounts, onClose, onSuccess }: {
         <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
           {error && <div style={{ padding: "10px 14px", borderRadius: 8, background: "var(--danger-bg)", color: "var(--danger)", fontSize: 13, border: "1px solid #FECACA" }}>{error}</div>}
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Nilai Kontrak Borongan (Rp) *</label>
-            <input type="number" min={1} value={boronganValue} onChange={e => setBoronganValue(e.target.value)} placeholder="0" style={inputStyle} />
+            <label htmlFor="borongan-value" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Nilai Kontrak Borongan (Rp) *</label>
+            <input id="borongan-value" type="number" min={1} value={boronganValue} onChange={e => setBoronganValue(e.target.value)} placeholder="0" style={inputStyle} />
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Total Kasbon Mandor (Rp)</label>
-            <input type="number" min={0} value={totalKasbon} onChange={e => setTotalKasbon(e.target.value)} placeholder="0" style={inputStyle} />
+            <label htmlFor="total-kasbon" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Total Kasbon Mandor (Rp)</label>
+            <input id="total-kasbon" type="number" min={0} value={totalKasbon} onChange={e => setTotalKasbon(e.target.value)} placeholder="0" style={inputStyle} />
             <div style={{ fontSize: 11, color: C.muted, marginTop: 3 }}>Kasbon yang sudah diajukan mandor untuk scope ini</div>
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Pengeluaran Lain (Rp)</label>
-            <input type="number" min={0} value={totalOtherExpense} onChange={e => setTotalOtherExpense(e.target.value)} placeholder="0" style={inputStyle} />
+            <label htmlFor="total-other-expense" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Pengeluaran Lain (Rp)</label>
+            <input id="total-other-expense" type="number" min={0} value={totalOtherExpense} onChange={e => setTotalOtherExpense(e.target.value)} placeholder="0" style={inputStyle} />
           </div>
           <div style={{ background: "var(--navy-light)", borderRadius: 10, padding: "14px 16px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div>
@@ -3459,8 +3459,8 @@ function SettlementBoronganModal({ data, cashAccounts, onClose, onSuccess }: {
             </div>
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Akun Kas *</label>
-            <select aria-label="Sumber kas pembayaran" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)} style={inputStyle}>
+            <label htmlFor="cash-account-id-2" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Akun Kas *</label>
+            <select id="cash-account-id-2" aria-label="Sumber kas pembayaran" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)} style={inputStyle}>
               <option value="">Pilih akun kas...</option>
               {cashAccounts.map(a => (
                 <option key={a.id} value={a.id}>{a.name} -- {fmtLocal(a.balance)}</option>
@@ -3468,8 +3468,8 @@ function SettlementBoronganModal({ data, cashAccounts, onClose, onSuccess }: {
             </select>
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Catatan</label>
-            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Opsional" style={{ ...inputStyle, resize: "none" }} />
+            <label htmlFor="notes-5" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Catatan</label>
+            <textarea id="notes-5" value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Opsional" style={{ ...inputStyle, resize: "none" }} />
           </div>
           <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
             <button type="button" onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: "1px solid #E5E7EB", background: "var(--surface)", fontSize: 13, color: "var(--text-secondary)", cursor: "pointer" }}>Batal</button>
@@ -3541,8 +3541,8 @@ function PPConfirmModal({ payment, cashAccounts, loading, onClose, onAction }: {
           </div>
           {mode === "approve" && (
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Akun Kas *</label>
-              <select aria-label="Sumber kas pembayaran" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)} style={inputStyle}>
+              <label htmlFor="cash-account-id-3" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Akun Kas *</label>
+              <select id="cash-account-id-3" aria-label="Sumber kas pembayaran" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)} style={inputStyle}>
                 <option value="">Pilih akun kas...</option>
                 {cashAccounts.map(a => <option key={a.id} value={a.id}>{a.name} -- {fmtLocal(a.balance)}</option>)}
               </select>

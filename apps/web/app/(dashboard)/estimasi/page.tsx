@@ -1506,12 +1506,12 @@ function AdopsiModal({ asal, onClose, onDone }: {
 
         <div style={{ display: "grid", gap: 14, marginTop: 18 }}>
           <div>
-            <label style={lbl}>Kode analisa baru</label>
-            <input value={kode} onChange={e => setKode(e.target.value)} required style={inputStyle} />
+            <label htmlFor="kode" style={lbl}>Kode analisa baru</label>
+            <input id="kode" value={kode} onChange={e => setKode(e.target.value)} required style={inputStyle} />
           </div>
           <div>
-            <label style={lbl}>Alasan menyesuaikan</label>
-            <input value={alasan} onChange={e => setAlasan(e.target.value)}
+            <label htmlFor="alasan" style={lbl}>Alasan menyesuaikan</label>
+            <input id="alasan" value={alasan} onChange={e => setAlasan(e.target.value)}
               placeholder="Mis. tim kami butuh waktu lebih lama untuk pekerjaan ini"
               style={inputStyle} />
           </div>
@@ -1683,8 +1683,8 @@ function EditAssemblyModal({ asal, onClose, onDone }: {
             </p>
           </div>
           <div>
-            <label style={lbl}>Alasan</label>
-            <input value={alasan} onChange={e => setAlasan(e.target.value)}
+            <label htmlFor="alasan-2" style={lbl}>Alasan</label>
+            <input id="alasan-2" value={alasan} onChange={e => setAlasan(e.target.value)}
               placeholder={editType === "correction"
                 ? "Mis. koefisien terbaca 0,07, seharusnya 0,7"
                 : "Mis. tim kami butuh waktu lebih lama untuk pekerjaan ini"}
@@ -2069,18 +2069,18 @@ function NewRapModal({ projectId, onClose, onDone }: { projectId: string; onClos
     <Modal title="RAP Baru" onClose={onClose}>
       <form onSubmit={kirim}>
         {err && <div style={{ marginBottom: 12, padding: "9px 12px", background: C.redBg, border: `1px solid ${C.red}`, borderRadius: 8, fontSize: 12.5, color: C.text }}>{err}</div>}
-        <label style={lbl}>Versi estimasi (sumber take-off material)</label>
-        <select aria-label="Pilih versi estimasi" value={versionId} onChange={e => setVersionId(e.target.value)} required style={{ ...inputStyle, marginBottom: 12 }}>
+        <label htmlFor="version-id" style={lbl}>Versi estimasi (sumber take-off material)</label>
+        <select id="version-id" aria-label="Pilih versi estimasi" value={versionId} onChange={e => setVersionId(e.target.value)} required style={{ ...inputStyle, marginBottom: 12 }}>
           <option value="">— Pilih versi —</option>
           {allVersions.map(v => (
             <option key={v.id} value={v.id}>{v.scenarioName} · v{v.version_number} ({v.status}) · {fmtRp(Number(v.total_amount))}</option>
           ))}
         </select>
         {allVersions.length === 0 && <p style={{ fontSize: 12, color: C.muted, margin: "-6px 0 12px" }}>Belum ada versi estimasi di proyek ini — buat dulu di tab Komposer.</p>}
-        <label style={lbl}>Nama RAP</label>
-        <input value={name} onChange={e => setName(e.target.value)} style={{ ...inputStyle, marginBottom: 12 }} />
-        <label style={lbl}>Catatan (opsional)</label>
-        <input value={notes} onChange={e => setNotes(e.target.value)} style={{ ...inputStyle, marginBottom: 16 }} />
+        <label htmlFor="name" style={lbl}>Nama RAP</label>
+        <input id="name" value={name} onChange={e => setName(e.target.value)} style={{ ...inputStyle, marginBottom: 12 }} />
+        <label htmlFor="notes" style={lbl}>Catatan (opsional)</label>
+        <input id="notes" value={notes} onChange={e => setNotes(e.target.value)} style={{ ...inputStyle, marginBottom: 16 }} />
         <div style={{ display: "flex", gap: 9 }}>
           <button type="submit" disabled={busy} style={{ ...btnPrimary, opacity: busy ? .7 : 1, cursor: busy ? "wait" : "pointer" }}>
             {busy ? "Membuat…" : "Buat RAP"}
@@ -2116,13 +2116,13 @@ function AddLaborModal({ rapId, onClose, onDone }: { rapId: string; onClose: () 
     <Modal title="Tambah Borongan Tenaga Kerja" onClose={onClose}>
       <form onSubmit={kirim}>
         {err && <div style={{ marginBottom: 12, padding: "9px 12px", background: C.redBg, border: `1px solid ${C.red}`, borderRadius: 8, fontSize: 12.5, color: C.text }}>{err}</div>}
-        <label style={lbl}>Uraian pekerjaan</label>
-        <input value={description} onChange={e => setDescription(e.target.value)} required
+        <label htmlFor="description" style={lbl}>Uraian pekerjaan</label>
+        <input id="description" value={description} onChange={e => setDescription(e.target.value)} required
           placeholder="Mis. Borongan pasangan bata + plester lantai 1" style={{ ...inputStyle, marginBottom: 12 }} />
-        <label style={lbl}>Nilai borongan (Rp)</label>
-        <input value={value} onChange={e => setValue(e.target.value)} inputMode="decimal" style={{ ...inputStyle, marginBottom: 16 }} />
-        <label style={lbl}>Catatan (opsional)</label>
-        <input value={notes} onChange={e => setNotes(e.target.value)} style={{ ...inputStyle, marginBottom: 16 }} />
+        <label htmlFor="value" style={lbl}>Nilai borongan (Rp)</label>
+        <input id="value" value={value} onChange={e => setValue(e.target.value)} inputMode="decimal" style={{ ...inputStyle, marginBottom: 16 }} />
+        <label htmlFor="notes-2" style={lbl}>Catatan (opsional)</label>
+        <input id="notes-2" value={notes} onChange={e => setNotes(e.target.value)} style={{ ...inputStyle, marginBottom: 16 }} />
         <div style={{ display: "flex", gap: 9 }}>
           <button type="submit" disabled={busy} style={{ ...btnPrimary, opacity: busy ? .7 : 1, cursor: busy ? "wait" : "pointer" }}>
             {busy ? "Menyimpan…" : "Tambah"}
@@ -2167,20 +2167,20 @@ function ChangeLogModal({ rapId, table, lineId, label, onClose, onDone }: {
           (mis. harga supplier berubah setelah negosiasi ulang) — angka pagu tersimpan TIDAK berubah.
         </p>
         {err && <div style={{ marginBottom: 12, padding: "9px 12px", background: C.redBg, border: `1px solid ${C.red}`, borderRadius: 8, fontSize: 12.5, color: C.text }}>{err}</div>}
-        <label style={lbl}>Field yang berubah (opsional)</label>
-        <input value={fieldName} onChange={e => setFieldName(e.target.value)} placeholder="Mis. supplier_price" style={{ ...inputStyle, marginBottom: 12 }} />
+        <label htmlFor="field-name" style={lbl}>Field yang berubah (opsional)</label>
+        <input id="field-name" value={fieldName} onChange={e => setFieldName(e.target.value)} placeholder="Mis. supplier_price" style={{ ...inputStyle, marginBottom: 12 }} />
         <div style={{ display: "flex", gap: 10 }}>
           <div style={{ flex: 1 }}>
-            <label style={lbl}>Nilai lama (opsional)</label>
-            <input value={oldValue} onChange={e => setOldValue(e.target.value)} style={{ ...inputStyle, marginBottom: 12 }} />
+            <label htmlFor="old-value" style={lbl}>Nilai lama (opsional)</label>
+            <input id="old-value" value={oldValue} onChange={e => setOldValue(e.target.value)} style={{ ...inputStyle, marginBottom: 12 }} />
           </div>
           <div style={{ flex: 1 }}>
-            <label style={lbl}>Nilai baru (opsional)</label>
-            <input value={newValue} onChange={e => setNewValue(e.target.value)} style={{ ...inputStyle, marginBottom: 12 }} />
+            <label htmlFor="new-value" style={lbl}>Nilai baru (opsional)</label>
+            <input id="new-value" value={newValue} onChange={e => setNewValue(e.target.value)} style={{ ...inputStyle, marginBottom: 12 }} />
           </div>
         </div>
-        <label style={lbl}>Alasan (wajib)</label>
-        <input value={reason} onChange={e => setReason(e.target.value)} required
+        <label htmlFor="reason" style={lbl}>Alasan (wajib)</label>
+        <input id="reason" value={reason} onChange={e => setReason(e.target.value)} required
           placeholder="Mis. supplier menaikkan harga semen setelah pagu dikunci" style={{ ...inputStyle, marginBottom: 16 }} />
         <div style={{ display: "flex", gap: 9 }}>
           <button type="submit" disabled={busy} style={{ ...btnPrimary, opacity: busy ? .7 : 1, cursor: busy ? "wait" : "pointer" }}>

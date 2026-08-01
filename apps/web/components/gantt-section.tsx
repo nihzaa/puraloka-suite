@@ -218,12 +218,12 @@ function EditDateModal({
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <label style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Mulai Rencana</label>
-            <input type="date" value={plannedStart} onChange={e => setPlannedStart(e.target.value)} style={inpStyle} />
+            <label htmlFor="planned-start" style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Mulai Rencana</label>
+            <input id="planned-start" type="date" value={plannedStart} onChange={e => setPlannedStart(e.target.value)} style={inpStyle} />
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <label style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Selesai Rencana</label>
-            <input type="date" value={plannedEnd} onChange={e => setPlannedEnd(e.target.value)} style={inpStyle} />
+            <label htmlFor="planned-end" style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Selesai Rencana</label>
+            <input id="planned-end" type="date" value={plannedEnd} onChange={e => setPlannedEnd(e.target.value)} style={inpStyle} />
           </div>
         </div>
 

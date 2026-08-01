@@ -235,8 +235,8 @@ export default function LaporanUpahPage() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               {/* Proyek */}
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Proyek *</label>
-                <select aria-label="Pilih proyek" value={selectedAssignment} onChange={(e) => { setSelectedAssignment(e.target.value); setSelectedScope(""); }}
+                <label htmlFor="selected-assignment" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Proyek *</label>
+                <select id="selected-assignment" aria-label="Pilih proyek" value={selectedAssignment} onChange={(e) => { setSelectedAssignment(e.target.value); setSelectedScope(""); }}
                   style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: "var(--surface)" }}>
                   <option value="">Pilih proyek...</option>
                   {assignments.map((a) => (
@@ -246,8 +246,8 @@ export default function LaporanUpahPage() {
               </div>
               {/* Scope */}
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Scope Pekerjaan *</label>
-                <select aria-label="Pilih lingkup pekerjaan" value={selectedScope} onChange={(e) => setSelectedScope(e.target.value)}
+                <label htmlFor="selected-scope" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Scope Pekerjaan *</label>
+                <select id="selected-scope" aria-label="Pilih lingkup pekerjaan" value={selectedScope} onChange={(e) => setSelectedScope(e.target.value)}
                   disabled={!selectedAssignment}
                   style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: "var(--surface)", opacity: selectedAssignment ? 1 : 0.5 }}>
                   <option value="">Pilih scope...</option>
@@ -258,14 +258,14 @@ export default function LaporanUpahPage() {
               </div>
               {/* Minggu */}
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Tanggal Mulai Minggu (Senin) *</label>
-                <input aria-label="Tanggal mulai" type="date" value={weekStart} onChange={(e) => setWeekStart(e.target.value)}
+                <label htmlFor="week-start" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Tanggal Mulai Minggu (Senin) *</label>
+                <input id="week-start" aria-label="Tanggal mulai" type="date" value={weekStart} onChange={(e) => setWeekStart(e.target.value)}
                   style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13 }} />
               </div>
               {/* Catatan */}
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Catatan</label>
-                <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Opsional"
+                <label htmlFor="notes" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Catatan</label>
+                <input id="notes" type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Opsional"
                   style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13 }} />
               </div>
             </div>

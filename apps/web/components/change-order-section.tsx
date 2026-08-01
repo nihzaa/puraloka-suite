@@ -173,8 +173,8 @@ function ItemForm({
     <div style={{ border: "1px solid #E5E7EB", borderRadius: 10, padding: "16px", background: "#FAFAFA", display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-          <label style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Tipe</label>
-          <select aria-label="Tipe item change order" value={value.item_type} onChange={set("item_type")} style={inpStyle}>
+          <label htmlFor="value" style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Tipe</label>
+          <select id="value" aria-label="Tipe item change order" value={value.item_type} onChange={set("item_type")} style={inpStyle}>
             <option value="kerja_tambah">Kerja Tambah</option>
             <option value="kerja_kurang">Kerja Kurang</option>
             <option value="perubahan_volume">Perubahan Volume</option>
@@ -202,22 +202,22 @@ function ItemForm({
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-          <label style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Satuan</label>
-          <input type="text" value={value.unit} onChange={set("unit")} placeholder="m², m³, ls..." style={inpStyle} />
+          <label htmlFor="value-2" style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Satuan</label>
+          <input id="value-2" type="text" value={value.unit} onChange={set("unit")} placeholder="m², m³, ls..." style={inpStyle} />
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-          <label style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Delta Volume</label>
-          <input type="number" value={value.volume_delta} onChange={set("volume_delta")} placeholder="mis. 12.5" style={inpStyle} />
+          <label htmlFor="value-3" style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Delta Volume</label>
+          <input id="value-3" type="number" value={value.volume_delta} onChange={set("volume_delta")} placeholder="mis. 12.5" style={inpStyle} />
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-          <label style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Harga Satuan</label>
-          <input type="number" value={value.unit_price} onChange={set("unit_price")} placeholder="Rp/satuan" style={inpStyle} />
+          <label htmlFor="value-4" style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Harga Satuan</label>
+          <input id="value-4" type="number" value={value.unit_price} onChange={set("unit_price")} placeholder="Rp/satuan" style={inpStyle} />
         </div>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-        <label style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Catatan</label>
-        <textarea value={value.notes} onChange={set("notes")} placeholder="Catatan tambahan..." rows={2}
+        <label htmlFor="value-5" style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Catatan</label>
+        <textarea id="value-5" value={value.notes} onChange={set("notes")} placeholder="Catatan tambahan..." rows={2}
           style={{ ...inpStyle, resize: "vertical" }} />
       </div>
 
@@ -687,19 +687,19 @@ function CreateCoModal({
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-          <label style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Judul CO *</label>
-          <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="mis. Penambahan struktur lantai 3" style={inpStyle} autoFocus />
+          <label htmlFor="title" style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Judul CO *</label>
+          <input id="title" type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="mis. Penambahan struktur lantai 3" style={inpStyle} autoFocus />
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-          <label style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Deskripsi</label>
-          <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Latar belakang dan alasan perubahan..." rows={3}
+          <label htmlFor="description" style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Deskripsi</label>
+          <textarea id="description" value={description} onChange={e => setDescription(e.target.value)} placeholder="Latar belakang dan alasan perubahan..." rows={3}
             style={{ ...inpStyle, resize: "vertical" }} />
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-          <label style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Mode Penagihan</label>
-          <select aria-label="Mode penagihan change order" value={billingMode} onChange={e => setBillingMode(e.target.value)} style={inpStyle}>
+          <label htmlFor="billing-mode" style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Mode Penagihan</label>
+          <select id="billing-mode" aria-label="Mode penagihan change order" value={billingMode} onChange={e => setBillingMode(e.target.value)} style={inpStyle}>
             <option value="">— Belum ditentukan —</option>
             <option value="include_termin">Termasuk dalam Termin</option>
             <option value="separate_co">Tagihan CO Tersendiri</option>

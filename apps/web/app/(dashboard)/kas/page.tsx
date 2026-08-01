@@ -951,15 +951,15 @@ function CreateAccountModal({ onClose, onSuccess }: { onClose: () => void; onSuc
             </div>
           </div>
           <div>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Nama Akun <span style={{ color: C.red }}>*</span></label>
-            <input value={name} onChange={e => setName(e.target.value)} required placeholder={type === "main" ? "Kas Utama Nizar" : type === "collector" ? "Kas Ayah" : "Kas Kecil PM Agus – Griya Asri"}
+            <label htmlFor="name" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Nama Akun <span style={{ color: C.red }}>*</span></label>
+            <input id="name" value={name} onChange={e => setName(e.target.value)} required placeholder={type === "main" ? "Kas Utama Nizar" : type === "collector" ? "Kas Ayah" : "Kas Kecil PM Agus – Griya Asri"}
               style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }}
               onFocus={e => { e.target.style.borderColor = C.navy; }} onBlur={e => { e.target.style.borderColor = C.border; }} />
           </div>
           {(type === "petty_cash" || type === "collector") && (
             <div>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Pemegang Kas {type === "petty_cash" ? <span style={{ color: C.red }}>*</span> : null}</label>
-              <select aria-label="Pemilik akun kas" value={ownerId} onChange={e => setOwnerId(e.target.value)} style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
+              <label htmlFor="owner-id" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Pemegang Kas {type === "petty_cash" ? <span style={{ color: C.red }}>*</span> : null}</label>
+              <select id="owner-id" aria-label="Pemilik akun kas" value={ownerId} onChange={e => setOwnerId(e.target.value)} style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                 <option value="">-- Pilih user --</option>
                 {users.filter(u => type === "petty_cash" ? (u.role === "pm" || u.role === "admin") : true).map(u => <option key={u.id} value={u.id}>{u.name} ({u.role})</option>)}
               </select>
@@ -967,8 +967,8 @@ function CreateAccountModal({ onClose, onSuccess }: { onClose: () => void; onSuc
           )}
           {type === "petty_cash" && (
             <div>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Proyek <span style={{ color: C.red }}>*</span></label>
-              <select aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
+              <label htmlFor="project-id" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Proyek <span style={{ color: C.red }}>*</span></label>
+              <select id="project-id" aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                 <option value="">-- Pilih proyek --</option>
                 {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
@@ -983,8 +983,8 @@ function CreateAccountModal({ onClose, onSuccess }: { onClose: () => void; onSuc
             </div>
           </div>
           <div>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Catatan</label>
-            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", resize: "vertical", boxSizing: "border-box", fontFamily: "inherit" }} />
+            <label htmlFor="notes" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Catatan</label>
+            <textarea id="notes" value={notes} onChange={e => setNotes(e.target.value)} rows={2} style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", resize: "vertical", boxSizing: "border-box", fontFamily: "inherit" }} />
           </div>
           {error && <div style={{ padding: "10px 14px", borderRadius: 8, background: C.redBg, border: `1px solid ${C.redBorder}`, fontSize: 13, color: C.red }}>{error}</div>}
           <div style={{ display: "flex", gap: 10 }}>
@@ -1057,8 +1057,8 @@ function CreateTransferModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
           {/* From → To visual */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 32px 1fr", gap: 8, alignItems: "end" }}>
             <div>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Dari Akun <span style={{ color: C.red }}>*</span></label>
-              <select aria-label="Kas asal transfer" value={fromId} onChange={e => setFromId(e.target.value)} required style={{ width: "100%", padding: "9px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
+              <label htmlFor="from-id" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Dari Akun <span style={{ color: C.red }}>*</span></label>
+              <select id="from-id" aria-label="Kas asal transfer" value={fromId} onChange={e => setFromId(e.target.value)} required style={{ width: "100%", padding: "9px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                 <option value="">-- Pilih --</option>
                 {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
@@ -1066,8 +1066,8 @@ function CreateTransferModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
             </div>
             <div style={{ display: "flex", justifyContent: "center", paddingBottom: 10 }}><ArrowRightLeft size={16} color={C.mid} /></div>
             <div>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Ke Akun <span style={{ color: C.red }}>*</span></label>
-              <select aria-label="Kas tujuan transfer" value={toId} onChange={e => setToId(e.target.value)} required style={{ width: "100%", padding: "9px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
+              <label htmlFor="to-id" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Ke Akun <span style={{ color: C.red }}>*</span></label>
+              <select id="to-id" aria-label="Kas tujuan transfer" value={toId} onChange={e => setToId(e.target.value)} required style={{ width: "100%", padding: "9px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                 <option value="">-- Pilih --</option>
                 {accounts.filter(a => a.id !== fromId).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
@@ -1084,8 +1084,8 @@ function CreateTransferModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
               </div>
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Tanggal Transfer</label>
-              <input aria-label="Tanggal" type="date" value={transferDate} onChange={e => setTransferDate(e.target.value)}
+              <label htmlFor="transfer-date" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Tanggal Transfer</label>
+              <input id="transfer-date" aria-label="Tanggal" type="date" value={transferDate} onChange={e => setTransferDate(e.target.value)}
                 style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
             </div>
           </div>
@@ -1101,13 +1101,13 @@ function CreateTransferModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
             </div>
           </div>
           <div>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>No. Referensi</label>
-            <input type="text" value={refNumber} onChange={e => setRefNumber(e.target.value)} placeholder="No. TF / kode transfer"
+            <label htmlFor="ref-number" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>No. Referensi</label>
+            <input id="ref-number" type="text" value={refNumber} onChange={e => setRefNumber(e.target.value)} placeholder="No. TF / kode transfer"
               style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
           </div>
           <div>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Catatan</label>
-            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Misal: Top-up kas kecil PM Agus untuk Proyek Griya Asri"
+            <label htmlFor="notes-2" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Catatan</label>
+            <textarea id="notes-2" value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Misal: Top-up kas kecil PM Agus untuk Proyek Griya Asri"
               style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", resize: "vertical", boxSizing: "border-box", fontFamily: "inherit" }} />
           </div>
           {error && <div style={{ padding: "10px 14px", borderRadius: 8, background: C.redBg, border: `1px solid ${C.redBorder}`, fontSize: 13, color: C.red }}>{error}</div>}
@@ -1231,15 +1231,15 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
           {/* Proyek + Tanggal */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Proyek <span style={{ color: C.red }}>*</span></label>
-              <select aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} required style={{ width: "100%", padding: "9px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
+              <label htmlFor="project-id-2" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Proyek <span style={{ color: C.red }}>*</span></label>
+              <select id="project-id-2" aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} required style={{ width: "100%", padding: "9px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                 <option value="">-- Pilih proyek --</option>
                 {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Tanggal</label>
-              <input aria-label="Tanggal" type="date" value={expenseDate} onChange={e => setExpenseDate(e.target.value)} style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+              <label htmlFor="expense-date" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Tanggal</label>
+              <input id="expense-date" aria-label="Tanggal" type="date" value={expenseDate} onChange={e => setExpenseDate(e.target.value)} style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
             </div>
           </div>
 
@@ -1268,8 +1268,8 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
           {/* Kas Kecil selector */}
           {expenseSource === "petty_cash" && (
             <div>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Kas Kecil <span style={{ color: C.red }}>*</span></label>
-              <select aria-label="Kas kecil" value={pettyCashId} onChange={e => setPettyCashId(e.target.value)} required={expenseSource === "petty_cash"}
+              <label htmlFor="petty-cash-id" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Kas Kecil <span style={{ color: C.red }}>*</span></label>
+              <select id="petty-cash-id" aria-label="Kas kecil" value={pettyCashId} onChange={e => setPettyCashId(e.target.value)} required={expenseSource === "petty_cash"}
                 style={{ width: "100%", padding: "9px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                 <option value="">-- Pilih kas kecil --</option>
                 {(projectId ? projectPettyCash : accounts).map(a => (
@@ -1315,8 +1315,8 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
 
           {/* Kategori */}
           <div>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Kategori <span style={{ color: C.red }}>*</span></label>
-            <select aria-label="Kategori pengeluaran" value={categoryId} onChange={e => setCategoryId(e.target.value)} required
+            <label htmlFor="category-id" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Kategori <span style={{ color: C.red }}>*</span></label>
+            <select id="category-id" aria-label="Kategori pengeluaran" value={categoryId} onChange={e => setCategoryId(e.target.value)} required
               style={{ width: "100%", padding: "9px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
               <option value="">-- Pilih kategori --</option>
               {parentCats.map(p => (
@@ -1330,8 +1330,8 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
 
           {/* Deskripsi */}
           <div>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Deskripsi <span style={{ color: C.red }}>*</span></label>
-            <input value={description} onChange={e => setDescription(e.target.value)} required placeholder="misal: Beli semen 40 sak di Toko Bangunan Maju"
+            <label htmlFor="description" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Deskripsi <span style={{ color: C.red }}>*</span></label>
+            <input id="description" value={description} onChange={e => setDescription(e.target.value)} required placeholder="misal: Beli semen 40 sak di Toko Bangunan Maju"
               style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }}
               onFocus={e => { e.target.style.borderColor = C.navy; }} onBlur={e => { e.target.style.borderColor = C.border; }} />
           </div>
@@ -1339,13 +1339,13 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
           {/* Qty + Unit + Harga */}
           <div style={{ display: "grid", gridTemplateColumns: "80px 80px 1fr", gap: 10 }}>
             <div>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Qty</label>
-              <input type="number" min={0.001} step="0.001" value={qty} onChange={e => setQty(e.target.value)}
+              <label htmlFor="qty" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Qty</label>
+              <input id="qty" type="number" min={0.001} step="0.001" value={qty} onChange={e => setQty(e.target.value)}
                 style={{ width: "100%", padding: "9px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Satuan</label>
-              <input type="text" value={unit} onChange={e => setUnit(e.target.value)} placeholder="sak, kg, m"
+              <label htmlFor="unit" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Satuan</label>
+              <input id="unit" type="text" value={unit} onChange={e => setUnit(e.target.value)} placeholder="sak, kg, m"
                 style={{ width: "100%", padding: "9px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
             </div>
             <div>
@@ -1369,8 +1369,8 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
           {/* Vendor + Nota */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Nama Toko/Supplier</label>
-              <input type="text" value={vendorName} onChange={e => setVendorName(e.target.value)} placeholder="Toko Bangunan Maju"
+              <label htmlFor="vendor-name" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Nama Toko/Supplier</label>
+              <input id="vendor-name" type="text" value={vendorName} onChange={e => setVendorName(e.target.value)} placeholder="Toko Bangunan Maju"
                 style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
             </div>
             <div>
