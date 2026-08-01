@@ -246,9 +246,23 @@ Semua 🔴 — terkonfirmasi. Bangun saat tender mensyaratkan (syarat prakualifi
 
 ## 13. ALAT BERAT & ASET
 
-Semua item 🔴, KECUALI: register aset + mutasi + penyusutan = 🔵 **skema-mati**
-(migration 045: `assets`, `asset_movements`, `asset_depreciation_logs` — 0 kode).
-Rekomendasi: jika alat mayoritas sewa, cukup tracking sewa + utilisasi ringan.
+**Diperbarui 2026-08-01 — dari 🔵 skema-mati jadi ✅ hidup** (ROADMAP #23,
+migrasi 149/150/151).
+
+| Menu | Status | Catatan |
+|---|---|---|
+| Register aset | ✅ | `assets` + UI `/aset`; kode unik **per-company** |
+| Mutasi antar-proyek | ✅ | `asset_movements` + POST `/assets/:id/movements`; lokasi & status aset ikut berubah |
+| Penyusutan | ✅ | Garis lurus & saldo menurun ganda; metode di-**snapshot** per baris log (mengubah metode tak menulis ulang sejarah). `journal_entry_id` sudah disiapkan untuk GL |
+| Sewa alat | ✅ | `asset_rentals`; biaya sewa **berjalan** ikut dihitung, tak muncul mendadak saat ditutup |
+| Utilisasi | ✅ | Diturunkan dari mutasi; periode tumpang tindih dihitung sekali (mencegah >100%) |
+| Maintenance terjadwal | 🔴 | Belum — status `perawatan` ada, jadwalnya belum |
+| Biaya operasional per alat (BBM, operator) | 🔴 | Belum |
+| Integrasi penyusutan → GL | 🔴 | Menunggu Modul 10 (GL in-app) — kolomnya sudah ada |
+
+⚠️ Forward-draft **045 TIDAK dipakai apa adanya**: ditulis sebelum multi-tenant
+(nol `company_id`, nol RLS, `asset_code UNIQUE` global). 149 menulis ulang
+sebagai kategori B/C. 045 dibiarkan di tempatnya — riwayat tak diubah.
 
 ---
 

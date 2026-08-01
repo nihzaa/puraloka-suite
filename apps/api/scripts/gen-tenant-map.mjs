@@ -62,22 +62,54 @@ function loadUrl() {
   )
 }
 
-/** Jalur FK terkuat (seluruhnya NOT NULL) menuju `projects`. Null bila tak ada. */
-function jalurKuatKeProjects(tabel, fkByTable) {
+/**
+ * Jalur FK terkuat (seluruhnya NOT NULL) menuju sebuah AKAR tenancy.
+ *
+ * Akar = `projects` (ANCHOR) ATAU tabel mana pun berkategori B — yakni yang
+ * `company_id`-nya NOT NULL.
+ *
+ * ⚠️ Sampai 2026-08-01 fungsi ini HANYA melacak `projects`, dan itu celah
+ * senyap: tabel anak dari tabel B (yang tak punya rantai ke `projects`) jatuh
+ * ke kategori **A — katalog bersama, TANPA scope sama sekali**. Ketahuan saat
+ * `asset_movements` & `asset_depreciation_logs` lahir: keduanya milik satu
+ * perusahaan lewat `assets.company_id`, tapi digolongkan A sehingga wrapper
+ * tak menyaring apa pun.
+ *
+ * Ini bukan cacat khusus aset — tabel B mana pun yang punya anak akan kena.
+ * Diperbaiki di akar, bukan dengan mengecualikan empat tabel.
+ *
+ * Mengembalikan `{ path, akar }`; `akar` menentukan cara wrapper men-scope:
+ * lewat project, atau lewat induk ber-`company_id`.
+ */
+function jalurKuatKeAkar(tabel, fkByTable, kolomCompany) {
+  const adalahAkarB = (t) => kolomCompany[t] === 'NO'
   const seen = new Set([tabel])
   const antre = [{ t: tabel, path: [] }]
+  // Kandidat lewat induk-B ditampung dulu, TIDAK langsung dikembalikan.
+  // `projects` selalu menang bila ada — bukan karena lebih benar secara teori,
+  // melainkan karena mengubah jalur scope tabel yang SUDAH dipakai adalah
+  // perubahan perilaku diam-diam. `worker_kasbons` punya DUA jalur sah
+  // (project_id NOT NULL dan worker_id → workers.company_id NOT NULL);
+  // memilih yang kedua akan mengubah cara query lama disaring tanpa satu pun
+  // test menyatakannya. Prioritas ini menjaga peta lama tetap identik.
+  let lewatIndukB = null
   while (antre.length) {
     const cur = antre.shift()
     for (const fk of fkByTable[cur.t] ?? []) {
       if (fk.nullable !== 'NO') continue // jalur lemah tak dihitung — lihat audit T1 §4
-      if (fk.tgt === 'projects') return [...cur.path, `${fk.src}.${fk.col}`]
+      const path = [...cur.path, `${fk.src}.${fk.col}`]
+      if (fk.tgt === 'projects') return { path, akar: 'projects' }
+      if (adalahAkarB(fk.tgt)) {
+        if (!lewatIndukB) lewatIndukB = { path, akar: fk.tgt }
+        continue // jangan telusuri lebih dalam lewat akar
+      }
       if (!seen.has(fk.tgt) && fk.tgt !== fk.src) {
         seen.add(fk.tgt)
-        antre.push({ t: fk.tgt, path: [...cur.path, `${fk.src}.${fk.col}`] })
+        antre.push({ t: fk.tgt, path })
       }
     }
   }
-  return null
+  return lewatIndukB
 }
 
 async function bangunPeta() {
@@ -119,9 +151,17 @@ async function bangunPeta() {
       if (nullability === 'NO') { peta[t] = { kategori: 'B' }; continue }
       if (nullability === 'YES') { peta[t] = { kategori: 'AB' }; continue }
 
-      const jalur = jalurKuatKeProjects(t, fkByTable)
-      if (jalur) { peta[t] = { kategori: 'C', lewat: jalur[0].split('.')[1], jalur: jalur.join(' → ') } }
-      else { peta[t] = { kategori: 'A' } }
+      const jalur = jalurKuatKeAkar(t, fkByTable, kolomCompany)
+      if (jalur) {
+        peta[t] = {
+          kategori: 'C',
+          lewat: jalur.path[0].split('.')[1],
+          jalur: jalur.path.join(' → '),
+          // Akar menentukan CARA scope: lewat project, atau lewat induk
+          // ber-company_id. Dicatat supaya wrapper & pembaca peta tak menebak.
+          akar: jalur.akar,
+        }
+      } else { peta[t] = { kategori: 'A' } }
     }
     return peta
   } finally {
