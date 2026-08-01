@@ -118,6 +118,42 @@ kali keadaan berubah; detail selalu di dokumen rujukan.
 > seluruhnya yatim. Penghapusan tetap **menunggu izin founder** (keputusan
 > terbuka #1c).
 
+> ### 2026-08-02 — `apps/web` akhirnya punya harness test (sebelumnya NOL)
+>
+> Sisi API punya 1.215 test tiap CI; sisi web hanya dijaga **bentuk kodenya**
+> (lint, tsc, ratchet), bukan perilakunya. Celahnya konkret: `useTutupEsc`
+> dipasang di **51 tempat** untuk menutup jebakan papan tik, dan
+> `modal-esc-ratchet` menangkap **KEBERADAAN** panggilannya — bukan efeknya.
+> Mengubah `'Escape'` jadi `'Esc'` (nama usang) lolos setiap pemeriksaan
+> statis sementara 51 modal kembali menjebak tanpa gejala.
+>
+> Dipasang **Vitest 3.2.7** (versi sama dengan API — satu runner untuk dua
+> workspace) + Testing Library + jsdom. **29 test**, dan **11 uji mutasi
+> semuanya tertangkap**.
+>
+> **Dua mutasi menemukan test yang LEMAH, lalu diperkuat** — dan itu justru
+> nilai terbesarnya: (1) guard `if (!tutup) return` ternyata tak terjaga, sebab
+> test hanya membuktikan "Esc tak menutup" padahal yang dijaga guard itu adalah
+> listener **tidak dipasang sama sekali**; (2) batas sorotan `Math.min` lolos
+> karena `if (hasil[sorot])` menelan indeks di luar batas diam-diam — yang
+> rusak bukan Enter-nya melainkan **sorotannya**.
+>
+> **Dua kegagalan lingkungan yang menghabiskan waktu paling lama:**
+>
+> · Setiap komponen ber-ikon gagal `Cannot read properties of null (reading
+>   useContext)`. Errornya menuduh React, lalu menuduh komponennya — keduanya
+>   salah alamat. Sebabnya `lucide-react` dan `react` bisa di-resolve dari
+>   **pohon node_modules berbeda**; versi React identik, objeknya berbeda.
+>   `dedupe`, `server.deps.inline`, `resolve.conditions`, dan alias ke jalur
+>   `.pnpm` semuanya dicoba dan tak satu pun menyelesaikannya.
+>
+> · `pnpm add` dari `apps/web` membuat **workspace terpisah** — lockfile
+>   sendiri, root tak diperbarui. CI memakai `--frozen-lockfile` dari root,
+>   jadi ketiga job gagal di "Install dependencies". **Terbukti di CI nyata**
+>   (`0977756` merah), lalu ditutup. Alias diganti `createRequire().resolve()`
+>   supaya tak pecah lagi oleh `pnpm install` — alat yang rusak oleh
+>   `pnpm install` bukan alat.
+
 > ### 2026-08-02 — residu test yang membutakan audit; a11y kontrol nyata
 >
 > **913 baris menumpuk di DB dev, dan itu membutakan alat lain.**
