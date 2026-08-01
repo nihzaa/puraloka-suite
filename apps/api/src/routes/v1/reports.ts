@@ -135,33 +135,33 @@ export default async function reportsRoutes(app: FastifyInstance) {
         pm:users!projects_pm_id_fkey(id, name, phone)
       `).eq('id', project_id).eq('is_deleted', false).single(),
 
-      canViewFinance ? supabase.from('termin_schedules').select('*').eq('project_id', project_id).order('termin_number') : Promise.resolve({ data: [], error: null }),
+      canViewFinance ? request.db!.viaProject('termin_schedules', project_id).select('*').order('termin_number') : Promise.resolve({ data: [], error: null }),
 
-      canViewFinance ? supabase.from('invoices').select(`
+      canViewFinance ? request.db!.viaProject('invoices', project_id).select(`
         id, invoice_number, invoice_type, base_amount, total_amount,
         amount_paid, amount_due, status, issued_date, due_date, paid_date
-      `).eq('project_id', project_id).order('issued_date') : Promise.resolve({ data: [], error: null }),
+      `).order('issued_date') : Promise.resolve({ data: [], error: null }),
 
-      supabase.from('milestones').select('*').eq('project_id', project_id).order('target_date'),
+      request.db!.viaProject('milestones', project_id).select('*').order('target_date'),
 
-      supabase.from('progress_logs').select(`
+      request.db!.viaProject('progress_logs', project_id).select(`
         id, pct_overall, notes, logged_at,
         logger:users!progress_logs_reported_by_fkey(id, name)
-      `).eq('project_id', project_id).order('logged_at', { ascending: false }).limit(50),
+      `).order('logged_at', { ascending: false }).limit(50),
 
-      canViewFinance ? supabase.from('project_expenses').select(`
+      canViewFinance ? request.db!.viaProject('project_expenses', project_id).select(`
         id, description, total_amount, expense_date, expense_source, vendor_name, status,
         category:project_expense_categories(id, name, type, parent_id)
-      `).eq('project_id', project_id).eq('status', 'approved').order('expense_date') : Promise.resolve({ data: [], error: null }),
+      `).eq('status', 'approved').order('expense_date') : Promise.resolve({ data: [], error: null }),
 
-      supabase.from('mandor_assignments').select(`
+      request.db!.viaProject('mandor_assignments', project_id).select(`
         id, created_at,
         mandor:users!mandor_assignments_mandor_id_fkey(id, name, phone),
         work_scopes(
           id, scope_name, payment_system, borongan_value, status,
           progress_pct_done, created_at
         )
-      `).eq('project_id', project_id),
+      `),
 
       canViewFinance ? request.db!.from('kasbons').select(`
         id, amount, purpose, fund_source, status, kasbon_date, approved_at,
@@ -182,13 +182,13 @@ export default async function reportsRoutes(app: FastifyInstance) {
         scope:work_scopes(id, scope_name)
       `).eq('assignment.project_id', project_id).eq('status', 'paid') : Promise.resolve({ data: [], error: null }),
 
-      supabase.from('project_photos').select('id, url, caption, taken_at, progress_log_id').eq('project_id', project_id).order('taken_at', { ascending: false }).limit(20),
+      request.db!.viaProject('project_photos', project_id).select('id, url, caption, taken_at, progress_log_id').order('taken_at', { ascending: false }).limit(20),
 
       // ⚠️ `title`/`doc_type`, BUKAN `name`/`document_type` — kolom itu tak ada,
       // jadi query ini selalu gagal dan daftar dokumen di laporan proyek SELALU
       // kosong tanpa satu pun gejala. Kelas cacat yang sama dengan AC kurva-S
       // (Rp 755,7 jt hilang); diverifikasi ke information_schema 2026-08-01.
-      canViewFinance ? supabase.from('documents').select('id, title, doc_type, file_url, created_at').eq('project_id', project_id).order('created_at', { ascending: false }) : Promise.resolve({ data: [], error: null }),
+      canViewFinance ? request.db!.viaProject('documents', project_id).select('id, title, doc_type, file_url, created_at').order('created_at', { ascending: false }) : Promise.resolve({ data: [], error: null }),
 
       // TABEL `kurva_s_points` TIDAK ADA di database — diverifikasi 2026-07-29
       // (information_schema kosong). Query ini selalu error, tertelan
@@ -227,7 +227,7 @@ export default async function reportsRoutes(app: FastifyInstance) {
     const totalDue      = invoices.reduce((s: number, i: { amount_due: number }) => s + Number(i.amount_due), 0)
 
     // Resolve parent category name for expenses
-    const { data: projCats } = await supabase.from('project_expense_categories').select('id, name, parent_id').eq('project_id', project_id)
+    const { data: projCats } = await request.db!.viaProject('project_expense_categories', project_id).select('id, name, parent_id')
      
     const projCatMap = new Map<string, string>((projCats ?? []).map((c: any) => [c.id, c.name]))
      
