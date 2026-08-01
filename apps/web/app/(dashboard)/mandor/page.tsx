@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useReducer, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createPortal } from "react-dom";
 import { api, getStoredUser, hasPermission } from "@/lib/api";
+import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { useUnits } from "@/lib/use-units";
 import { useWorkCategories } from "@/lib/use-work-categories";
 import { useKasbonPurposes } from "@/lib/use-kasbon-purposes";
@@ -1680,6 +1681,7 @@ function CreateWageReportModal({ onClose, onSuccess }: {
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  useTutupEsc(onClose);
   const mounted = useMounted();
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
 
@@ -2027,6 +2029,7 @@ function WageReportDetailModal({ data, onClose, onApprove }: {
   onClose: () => void;
   onApprove: (id: string, status: "approved" | "rejected" | "paid", notes?: string, cashAccountId?: string, paidAt?: string, paymentMethod?: string) => void;
 }) {
+  useTutupEsc(onClose);
   const mounted = useMounted();
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
   const [reviewNotes, setReviewNotes] = useState("");
@@ -2287,6 +2290,7 @@ function WorkerFormModal({ mandorId: initialMandorId, mandorName: initialMandorN
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  useTutupEsc(onClose);
   const mounted = useMounted();
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
 
@@ -2465,6 +2469,7 @@ function AddKasbonModal({ assignments, onClose, onSuccess }: {
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  useTutupEsc(onClose);
   const mounted = useMounted();
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
   const [assignmentId, setAssignmentId] = useState("");
@@ -2617,6 +2622,7 @@ function AddKasbonModal({ assignments, onClose, onSuccess }: {
 // ─── Modal: Ajukan Kasbon Mandor (mandor mengajukan ke admin) ─────────────────
 
 function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  useTutupEsc(onClose);
   const mounted = useMounted();
   const { purposes: kasbonPurposes } = useKasbonPurposes(); // tujuan kasbon dari master (A4)
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
@@ -2866,6 +2872,7 @@ function AddAssignmentModal({ mandors, onClose, onSuccess }: {
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  useTutupEsc(onClose);
   const mounted = useMounted();
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
 
@@ -2951,6 +2958,7 @@ function AddScopeModal({ assignmentId, onClose, onSuccess }: {
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  useTutupEsc(onClose);
   const mounted = useMounted();
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
 
@@ -3065,6 +3073,7 @@ function ScopeDetailModal({ data, loading: isLoading, onClose, onRefresh, onAddI
   onRefresh: () => void;
   onAddItem: () => void;
 }) {
+  useTutupEsc(onClose);
   const mounted = useMounted();
   const { symbolOf } = useUnits(); // resolver satuan dari master `units` (fallback legacy)
   const { labelOf } = useWorkCategories(); // resolver kategori dari master `work_categories`
@@ -3215,6 +3224,7 @@ function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  useTutupEsc(onClose);
   const mounted = useMounted();
   const { grouped, symbolOf } = useUnits(); // dropdown satuan dari master `units`; mandor simpan code
   const { categories: workCategories } = useWorkCategories(); // dropdown kategori dari master `work_categories`
@@ -3380,6 +3390,7 @@ function SettlementBoronganModal({ data, cashAccounts, onClose, onSuccess }: {
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  useTutupEsc(onClose);
   const mounted = useMounted();
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
 
@@ -3492,6 +3503,7 @@ function PPConfirmModal({ payment, cashAccounts, loading, onClose, onAction }: {
   onClose: () => void;
   onAction: (action: "approved" | "rejected", cashAccountId?: string, notes?: string) => Promise<void>;
 }) {
+  useTutupEsc(onClose);
   const mounted = useMounted();
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
 

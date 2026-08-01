@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useReducer, useState } from "react";
+import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { api, hasPermission } from "@/lib/api";
 import {
   Shield,
@@ -531,6 +532,7 @@ function RoleFormModal({ role, roles, onClose, onSaved, setToast }: {
   onSaved: () => void;
   setToast: (t: { type: "success" | "error"; msg: string }) => void;
 }) {
+  useTutupEsc(onClose);
   const isEdit = !!role;
   const [name, setName] = useState(role?.name ?? "");
   const [label, setLabel] = useState(role?.label ?? "");
@@ -686,6 +688,7 @@ function DeleteRoleModal({ role, onClose, onDeleted, setToast }: {
   onDeleted: () => void;
   setToast: (t: { type: "success" | "error"; msg: string }) => void;
 }) {
+  useTutupEsc(onClose);
   const [deleting, setDeleting] = useState(false);
 
   async function handleDelete() {

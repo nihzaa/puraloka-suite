@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useReducer, useRef, useState } from "react";
+import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import { api, hasPermission } from "@/lib/api";
 import {
@@ -414,6 +415,7 @@ interface PenaltyInfo {
   estimate: { estimate: true; as_of: string; enabled: boolean; applicable: boolean; reason: string; daysLate: number; baseAmount: number; penaltyAmount: number; basis: string };
 }
 function PenaltyModal({ invoiceId, invoiceNumber, onClose }: { invoiceId: string; invoiceNumber: string; onClose: () => void }) {
+  useTutupEsc(onClose);
   const [info, setInfo] = useState<PenaltyInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -2326,6 +2328,7 @@ interface LineItemDraft {
 type InvoiceMode = "termin_billing" | "expense_billing" | "commission_fee" | "commission_billing";
 
 function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  useTutupEsc(onClose);
   const [mounted, mount] = useReducer(() => true, false);
   useEffect(mount, []);
 
@@ -3017,6 +3020,7 @@ const ACCOUNT_TYPE_LABEL: Record<string, string> = {
 };
 
 function PayInvoiceModal({ invoice, onClose, onSuccess }: { invoice: Invoice; onClose: () => void; onSuccess: () => void }) {
+  useTutupEsc(onClose);
   const [mounted, mount] = useReducer(() => true, false);
   useEffect(mount, []);
 
@@ -3228,6 +3232,7 @@ function PayInvoiceModal({ invoice, onClose, onSuccess }: { invoice: Invoice; on
 // ─── Modal: Tambah Kasbon (admin/PM buat langsung, auto-approve) ───────────────
 
 function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  useTutupEsc(onClose);
   const [mounted, mount] = useReducer(() => true, false);
   useEffect(mount, []);
 

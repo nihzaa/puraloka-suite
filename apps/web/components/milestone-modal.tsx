@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import { X, Flag, Check, Loader2 } from "lucide-react";
 import { createMilestone, updateMilestone } from "@/lib/api";
@@ -51,6 +52,7 @@ export function MilestoneModal({
   milestone,
   onSuccess,
 }: MilestoneModalProps) {
+  useTutupEsc(onClose);
   const isEdit = Boolean(milestone);
 
   const [title, setTitle]           = useState("");

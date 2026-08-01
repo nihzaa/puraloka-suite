@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { Sun, CloudRain, Cloud, CloudLightning, Trash2, X, Camera, ChevronDown } from "lucide-react";
 import type { ProgressLog } from "@/lib/api";
 import { deleteProgressLog } from "@/lib/api";
@@ -63,6 +64,7 @@ const WEATHER_META: Record<string, { icon: React.ReactNode; label: string }> = {
 // ─── Lightbox ─────────────────────────────────────────────────────────────────
 
 function Lightbox({ url, onClose }: { url: string; onClose: () => void }) {
+  useTutupEsc(onClose);
   return (
     <div
       style={{

@@ -8,6 +8,7 @@
 // tidak ada angka bisnis tersembunyi di kode UI.
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import {
   ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid,
@@ -121,6 +122,7 @@ interface RapChangeLogEntry {
 
 // ── Kerangka kecil bersama ────────────────────────────────────────────────────
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  useTutupEsc(onClose);
   return createPortal(
     <div style={{ position: "fixed", inset: 0, background: "rgba(17,24,39,.45)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
       <div style={{ background: C.surface, borderRadius: 14, width: "100%", maxWidth: 520, maxHeight: "88vh", overflow: "auto", boxShadow: "0 20px 50px rgba(0,0,0,.25)" }} onClick={(e) => e.stopPropagation()}>
@@ -390,6 +392,7 @@ function KomposerTab() {
  * penjelasan sama sekali.
  */
 function JelaskanModal({ itemId, onClose }: { itemId: string; onClose: () => void }) {
+  useTutupEsc(onClose);
   const [data, setData] = useState<{
     nama: string; satuan: string | null; volume: number | null; utuh: boolean;
     langkah: { no: number; judul: string; uraian: string; nilai?: number }[];

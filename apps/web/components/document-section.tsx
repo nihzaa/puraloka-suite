@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import {
   FileText, Upload, Trash2, File, ExternalLink, X,
@@ -446,6 +447,7 @@ function UploadModalContent({
   uploadVisible, setUploadVisible, uploadFile, setUploadFile,
   uploading, uploadError, onClose, onSubmit,
 }: UploadModalProps) {
+  useTutupEsc(onClose);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {

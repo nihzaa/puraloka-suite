@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import { api, getStoredUser, hasPermission } from "@/lib/api";
 import {
@@ -212,6 +213,7 @@ export default function UsersPage() {
 
 // ─── Modal: Tambah User Baru ──────────────────────────────────────────────────
 function AddUserModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  useTutupEsc(onClose);
   const mounted = useMount();
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
 
@@ -299,6 +301,7 @@ function AddUserModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
 
 // ─── Modal: Edit Data User ────────────────────────────────────────────────────
 function EditUserModal({ user, onClose, onSuccess }: { user: UserRecord; onClose: () => void; onSuccess: () => void }) {
+  useTutupEsc(onClose);
   const mounted = useMount();
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
 

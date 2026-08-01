@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { api, hasPermission } from "@/lib/api";
 import { useUnits } from "@/lib/use-units";
 import { createPortal } from "react-dom";
@@ -73,6 +74,7 @@ function Card({ children, style, onClick }: { children: React.ReactNode; style?:
 
 // ── Modal Shell ──────────────────────────────────────────────────────────────
 function Modal({ title, onClose, children, width = 520 }: { title: string; onClose: () => void; children: React.ReactNode; width?: number }) {
+  useTutupEsc(onClose);
   if (typeof document === "undefined") return null;
   return createPortal(
     <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>

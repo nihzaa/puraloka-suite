@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type JSX } from "react";
+import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import {
   Calendar, ChevronDown, ChevronRight, Settings2,
@@ -135,6 +136,7 @@ function EditDateModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  useTutupEsc(onClose);
   const [plannedStart, setPlannedStart] = useState(task.planned_start?.slice(0, 10) ?? "");
   const [plannedEnd, setPlannedEnd] = useState(task.planned_end?.slice(0, 10) ?? "");
   const [depRules, setDepRules] = useState<DepRule[]>(task.dep_rules ?? []);

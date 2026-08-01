@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useReducer, useState } from "react";
+import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import { api } from "@/lib/api";
 import {
@@ -382,6 +383,7 @@ function AssignMandorModal({ projectId, existingMandorIds, onClose, onSuccess }:
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  useTutupEsc(onClose);
   const mounted = useMounted();
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
 
@@ -479,6 +481,7 @@ function AddScopeModal({ assignment, projectId: projectIdProp, onClose, onSucces
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  useTutupEsc(onClose);
   const mounted = useMounted();
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
 

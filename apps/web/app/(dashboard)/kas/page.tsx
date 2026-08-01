@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useReducer, useRef, useState } from "react";
+import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import { api, hasPermission } from "@/lib/api";
 import {
@@ -880,6 +881,7 @@ function KasContent() {
 
 // ─── Modal: Buat Akun Kas ─────────────────────────────────────────────────────
 function CreateAccountModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  useTutupEsc(onClose);
   const [mounted, mount] = useReducer(() => true, false);
   useEffect(mount, []);
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
@@ -1004,6 +1006,7 @@ function CreateAccountModal({ onClose, onSuccess }: { onClose: () => void; onSuc
 function CreateTransferModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
   accounts: CashAccount[]; onClose: () => void; onSuccess: () => void; onNeedAccounts: () => void;
 }) {
+  useTutupEsc(onClose);
   const [mounted, mount] = useReducer(() => true, false);
   useEffect(mount, []);
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
@@ -1128,6 +1131,7 @@ function CreateTransferModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
 function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
   accounts: CashAccount[]; onClose: () => void; onSuccess: () => void; onNeedAccounts: () => void;
 }) {
+  useTutupEsc(onClose);
   const [mounted, mount] = useReducer(() => true, false);
   useEffect(mount, []);
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useReducer } from "react";
+import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import { X, Plus, Trash2, ChevronRight, ChevronLeft, Check } from "lucide-react";
 import { api } from "@/lib/api";
@@ -111,6 +112,7 @@ const DEFAULT_FORM: ProjectFormData = {
 // ─── Main modal ───────────────────────────────────────────────────────────────
 
 export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess }: ProjectModalProps) {
+  useTutupEsc(onClose);
   const [mounted, setMounted] = useReducer(() => true, false);
   useEffect(setMounted, [setMounted]);
 

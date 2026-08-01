@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import { X, Loader2, ClipboardEdit, ImagePlus, Check, List, CalendarDays } from "lucide-react";
 import { api, createProgressLog } from "@/lib/api";
@@ -87,6 +88,7 @@ export function ProgressLogModal({
   workScopes = [],
   onSuccess,
 }: ProgressLogModalProps) {
+  useTutupEsc(onClose);
   // ── Mode ──────────────────────────────────────────────────────────────────
   const [mode, setMode] = useState<"daily" | "detail">("daily");
 

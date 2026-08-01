@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import { X, Plus, Trash2, CalendarDays, Save, ChevronDown, Clock, AlertTriangle } from "lucide-react";
 import { api } from "@/lib/api";
@@ -156,6 +157,7 @@ interface ScheduleModalProps {
 }
 
 export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose }: ScheduleModalProps) {
+  useTutupEsc(onClose);
   const [items, setItems] = useState<RabItem[]>([]);
   const [selectedItem, setSelectedItem] = useState<RabItem | null>(null);
   const [rows, setRows] = useState<ScheduleRow[]>([]);
@@ -566,6 +568,7 @@ interface AbsorptionModalProps {
 }
 
 export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClose, onSaved }: AbsorptionModalProps) {
+  useTutupEsc(onClose);
   const [items, setItems] = useState<RabItem[]>([]);
   const [selectedItem, setSelectedItem] = useState<RabItem | null>(null);
   const [rows, setRows] = useState<AbsorptionRow[]>([]);

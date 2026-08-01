@@ -227,6 +227,13 @@ jobs:
       - name: Medan hantu (dikirim ke API tapi tak bisa diisi)
         run: node scripts/medan-hantu-ratchet.mjs
 
+      # Modal yang hanya bisa ditutup dengan mengklik latarnya MENJEBAK pemakai
+      # keyboard — Tab berputar di dalamnya, satu-satunya jalan keluar adalah
+      # mengambil tetikus. WCAG 2.1.2 (Level A). Ditemukan 2026-08-01: 36 modal
+      # di seluruh aplikasi, nol penanganan Esc.
+      - name: Modal bisa ditutup dengan Esc
+        run: node scripts/modal-esc-ratchet.mjs
+
       - name: Typecheck
         run: ./node_modules/.bin/tsc --noEmit
 

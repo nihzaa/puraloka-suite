@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import { api, hasPermission } from "@/lib/api";
 import { useRouter } from "next/navigation";
@@ -83,6 +84,7 @@ function ClientModal({
   onClose: () => void;
   onSaved: (c: Client) => void;
 }) {
+  useTutupEsc(onClose);
   const [form, setForm] = useState({
     contact_person: client?.contact_person ?? "",
     phone: client?.phone ?? "",
@@ -250,6 +252,7 @@ function DetailPanel({ clientId, onClose, onEdit, onCreateProject }: {
   onEdit: () => void;
   onCreateProject: () => void;
 }) {
+  useTutupEsc(onClose);
   const [detail, setDetail] = useState<ClientDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();

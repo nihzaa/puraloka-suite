@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import {
   Plus, ChevronDown, ChevronUp, Trash2, Pencil,
@@ -635,6 +636,7 @@ function CreateCoModal({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  useTutupEsc(onClose);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [billingMode, setBillingMode] = useState("");

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import { FileText, X, Download, Loader } from "lucide-react";
 import { generateContract } from "@/lib/api";
@@ -55,6 +56,7 @@ interface Props {
 }
 
 export function ContractGeneratorModal({ projectId, projectName, onClose }: Props) {
+  useTutupEsc(onClose);
   const today = new Date().toISOString().split("T")[0];
 
   const [form, setForm] = useState({

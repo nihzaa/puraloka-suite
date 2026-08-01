@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useReducer, useRef, useState } from "react";
+import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import { api } from "@/lib/api";
 import { X, Upload, CheckCircle2, FileImage, Trash2, Banknote, Wallet } from "lucide-react";
@@ -57,6 +58,7 @@ const ACCOUNT_TYPE_LABEL: Record<string, string> = {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Props) {
+  useTutupEsc(onClose);
   const [paidAt, setPaidAt] = useState(today());
   const [amountPaid, setAmountPaid] = useState(String(Math.round(Number(termin.amount))));
   const [paymentMethod, setPaymentMethod] = useState("transfer_bank");
