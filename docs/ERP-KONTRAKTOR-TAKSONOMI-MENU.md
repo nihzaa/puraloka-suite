@@ -5,7 +5,8 @@ dipetakan ke status Puraloka Suite **hasil verifikasi kode nyata** — bukan per
 
 **Verifikasi:** basis 2026-07-26 (migration s.d. 116), **diperbarui sebagian 2026-07-31**
 untuk §5 Budget & Cost Control + Lima Pembeda #1/#2 (migration s.d. **141**; RAP live,
-BAC dari pagu RAP). Baris di luar §5 masih bertanggal 26 Juli — perlakukan sebagai
+BAC dari pagu RAP), **dan 2026-08-01** untuk §2 CRM (migrasi 147/148: register tender
+live end-to-end). Baris di luar §2 dan §5 masih bertanggal 26 Juli — perlakukan sebagai
 "terverifikasi saat itu", bukan hari ini. Verifikasi langsung ke migration, route API
 (`apps/api/src/routes/v1/`), UI (`apps/web/`), dan dokumen status.
 Temuan metodologis penting: ada **tiga lapisan** yang mudah tertukar —
@@ -57,19 +58,19 @@ lapisan mana yang sudah ada.
 
 | Menu | Status | Catatan |
 |---|---|---|
-| Pipeline lead / prospek | 🔴 | |
-| Register tender / bid | 🔴 | |
-| Keputusan Go / No-Go | 🔴 | |
+| Pipeline lead / prospek | 🟡 | `bids.status='prospek'` (147) — satu status di register tender, belum pipeline lead tersendiri |
+| Register tender / bid | ✅ | Migrasi 147 + `/tender` (2026-08-01), end-to-end |
+| Keputusan Go / No-Go | ✅ | `bids.status` go/no_go + `decision_note`; `no_go`/`batal` sengaja dikeluarkan dari win-rate |
 | Dokumen prakualifikasi | 🔴 | |
-| **Estimating / AHSP** | 🟡 | CECEP: engine (`lib/ahsp-engine.ts`) + 17 tabel + 500+ test — **0 route/UI**; seed AHSP diblokir gate CI isolation + review founder |
+| **Estimating / AHSP** | 🟡 | CECEP: engine (`lib/ahsp-engine.ts`) + 17 tabel + 500+ test; **UI `/estimasi` kini hidup** (2026-07-30 — sebelumnya tak terjangkau `middleware.ts`) + tombol "kenapa angkanya segini?" (2026-08-01). Sisa: seed AHSP diblokir gate CI isolation + review founder |
 | **Quantity takeoff / BOQ** | 🟡 | Read-model `GET /estimate-versions/:id/boq` ada (tanpa UI); CRUD takeoff belum; RAB produksi via upload Excel |
 | Skenario penawaran (what-if) | 🟡 | Tabel `scenarios` (110) DB-only, 0 endpoint |
 | Analisa markup, margin, contingency | 🔴 | Tidak ditemukan di kode |
 | Eskalasi harga | 🔴 | |
 | Generate proposal / dokumen penawaran | 🟡 | Baru kontrak SPK PDF; proposal penawaran belum |
-| Jaminan penawaran (bid bond) | 🔴 | |
-| Analisa menang/kalah | 🔴 | |
-| Backlog / order book | 🔴 | |
+| Jaminan penawaran (bid bond) | 🔴 | Register jaminan = ROADMAP #16 (rantai kontrak) |
+| Analisa menang/kalah | ✅ | `winner_value` memisahkan "kalah karena harga" dari "kalah karena syarat"; win-rate `null` (bukan 0) saat belum ada yang diputus |
+| Backlog / order book | ✅ | `bids.project_id` → nilai dimenangkan yang proyeknya belum selesai (`lib/bid-backlog.ts`) |
 
 ---
 
@@ -350,6 +351,93 @@ Semua 🔴 — terkonfirmasi.
 | Approval mobile | 🟡 | Approve/reject inline dari notifikasi |
 | Checklist inspeksi | 🔴 | |
 | *(Total: 9 screen Expo)* | | dashboard, proyek×2, progress, kasbon×2, mandor, notifikasi, login |
+
+---
+
+## KALAU SELURUH ROADMAP SELESAI — JADI SEBERAPA LENGKAP?
+
+Ditambahkan 2026-08-01 menjawab pertanyaan founder: *"kalau seluruh roadmap
+selesai, ini akan jadi gimana? bukannya menu di taksonomi itu banyak ya?"*
+
+**Jawaban singkat: ROADMAP selesai ≠ taksonomi habis. Dan itu memang disengaja.**
+
+### Angkanya
+
+Dihitung dari **kolom Status**, bukan dari semua tanda yang muncul di baris —
+banyak baris memuat tanda tambahan di kolom Catatan sebagai keterangan
+("Foto ✅, geotag 🔴"), dan ikut menghitungnya menggelembungkan angka ±12%.
+
+| | Jumlah |
+|---|---|
+| Sub-menu di 20 kelompok taksonomi (tertabel) | **183** |
+| — ✅ hidup end-to-end | 53 (29%) |
+| — 🟡 sebagian (ada lapisan, belum utuh) | 48 (26%) |
+| — 🔵 skema-mati (migrasi ada, 0 kode) | 5 |
+| — ⛔ dicoret owner | 6 |
+| — 🔴 belum dimulai | **71 (39%)** |
+| Ditambah 4 kelompok yang seluruhnya 🔴 tanpa tabel (§10 QA/QC, §11 HSE, §13 Alat Berat, §17 Risiko) | ± 40 lagi |
+
+ROADMAP punya **24 item**, 16 sudah ✅. Delapan sisanya (#14, #15, #16, #17,
+#20, #23, #24, dan #8 yang dicoret) **tidak** memetakan 1:1 ke 71 merah itu.
+
+### Kenapa 24 item bisa "cukup" padahal merahnya 71+
+
+Karena satu item ROADMAP sering menutup satu **kelompok** taksonomi sekaligus,
+sementara sebagian besar merah lainnya **sengaja tidak ditargetkan**:
+
+1. **Satu item ROADMAP ≠ satu sub-menu.** #22 (bid register) sendirian
+   mengubah 4 baris §2 dari 🔴 jadi ✅/🟡. #24 (Capability Tier-2) mencakup
+   seluruh §10 QA/QC + §11 HSE — dua kelompok penuh.
+2. **Sebagian besar merah adalah keputusan "tidak dibangun", bukan utang.**
+   §12 HR & Payroll: 8 merah, dan payroll staf/BPJS/PPh 21 sudah diputuskan
+   **pakai tool eksternal**. Membangunnya bukan kemajuan — itu menambah beban
+   pemeliharaan untuk pekerjaan yang sudah beres di tempat lain.
+3. **Sebagian menunggu pemicu bisnis, bukan menunggu waktu.** §10 QA/QC dan
+   §11 HSE ditandai "bangun saat tender mensyaratkan". Membangunnya sekarang =
+   menebak bentuk yang disyaratkan tender yang belum pernah diikuti.
+4. **§13 Alat Berat sengaja diperkecil.** Kalau alat mayoritas **sewa**, register
+   aset + penyusutan adalah jawaban untuk masalah yang tidak dimiliki. ROADMAP #23
+   dengan sadar hanya mengambil versi ringan (tracking sewa + utilisasi).
+
+### Ke mana 71 merah itu bermuara
+
+Dihitung per kelompok, bukan diperkirakan:
+
+| Nasib | Jumlah | Isinya |
+|---|---|---|
+| **Ditutup 8 item ROADMAP sisa** | ± 21 | §3 kontrak (5, via #16) · §5 cost control (7, via #14/#15) · §4 penjadwalan (6, via #21 lanjutan) · §2 sisa (3, via #24) |
+| **Sudah diputus pakai tool eksternal** | ± 12 | §12 payroll/BPJS/PPh 21 · §14 neraca & L/R |
+| **Menunggu pemicu tender** | ± 40 | §10 QA/QC · §11 HSE · §17 risiko — seluruhnya, tak bertabel |
+| **Sengaja diperkecil** | ± 8 | §13 alat berat (sewa saja) · §20 mobile offline/geotag |
+| **Belum punya alasan tertulis** | **± 30** | §9 operasi lapangan (7) · §16 dokumen (5) · §6 procurement (5) · §7 inventory (4) · §8 subkon (4) · sisanya tersebar |
+
+Baris terakhir itu yang paling penting, dan sengaja tidak dihaluskan: **± 30 merah
+belum pernah diputuskan apa pun.** Bukan "dikerjakan nanti" — belum ada
+keputusan bahwa ia dikerjakan atau tidak.
+
+### Yang jujur harus dikatakan
+
+Setelah 24 item ROADMAP tuntas, taksonomi **tidak** akan hijau semua — dan
+tidak seharusnya. Yang tersisa berada di empat kantong di atas, tiga di
+antaranya punya alasan tertulis.
+
+Itu bukan kekurangan rencana. Taksonomi ini **peta ERP kontraktor kelas dunia
+secara umum** — bukan daftar kebutuhan Puraloka. Menghijaukan 100% berarti
+membangun modul untuk masalah yang perusahaan ini belum punya, dan itu persis
+yang dilarang "Never Build List" + scope owner 2026-07-26.
+
+**Yang harus dijaga:** tiap merah yang dilewati wajib punya **alasan tertulis** di
+kolom Catatan. Merah tanpa alasan = utang tersembunyi. Merah dengan alasan =
+keputusan.
+
+Per 2026-08-01 masih ada **± 30 merah tanpa alasan apa pun** — 41% dari seluruh
+merah. Selama itu dibiarkan, pertanyaan "kalau roadmap selesai jadi gimana?" tak
+bisa dijawab dengan pasti, karena tak ada yang tahu 30 baris itu **wajib** atau
+**tidak relevan**. Memutuskannya jauh lebih murah daripada membangunnya, dan
+hasilnya bisa saja "coret" — yang juga kemajuan.
+
+Ini pekerjaan **keputusan founder**, bukan pekerjaan membangun fitur: tiap baris
+cuma perlu satu dari tiga label — *dikerjakan* / *eksternal* / *coret*.
 
 ---
 

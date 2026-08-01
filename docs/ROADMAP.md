@@ -1,6 +1,14 @@
 # ROADMAP — Puraloka Suite
 
-**Satu tempat untuk menjawab "apa berikutnya?"** · Diperbarui: 2026-07-31
+**Satu tempat untuk menjawab "apa berikutnya?"** · Diperbarui: 2026-08-01
+
+> **"Kalau seluruh ROADMAP selesai, jadi selengkap apa?"** Dijawab dengan angka di
+> `ERP-KONTRAKTOR-TAKSONOMI-MENU.md` §"KALAU SELURUH ROADMAP SELESAI".
+> Ringkasnya: 24 item di sini **tidak** memetakan 1:1 ke 71 sub-menu 🔴 taksonomi —
+> satu item sering menutup satu kelompok penuh, dan sebagian besar merah memang
+> sengaja tak ditargetkan. **Temuan yang butuh keputusan founder: ± 30 merah
+> belum punya alasan tertulis** — belum diputus dikerjakan, dieksternalkan, atau
+> dicoret. Memutuskannya jauh lebih murah daripada membangunnya.
 
 > **Kenapa dokumen ini ada.** Rencana kerja sebelumnya tersebar di lima dokumen
 > dengan status yang saling bertentangan: `ERP_MASTER_PLAN.md` masih menandai
