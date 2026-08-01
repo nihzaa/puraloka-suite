@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import type { Client } from 'pg'
-import { createRlsClient } from '../../../test-utils/rls-harness.js'
+import { createRlsClient, wajibAda } from '../../../test-utils/rls-harness.js'
 
 // ============================================================
 // PENJAGA PERMANEN — helper RLS harus jadi InitPlan, bukan panggilan per-baris.
@@ -88,7 +88,7 @@ describe('RLS — helper konstan selalu dibungkus (SELECT ...)', () => {
       `SELECT u.auth_id FROM users u JOIN roles r ON r.id = u.role_id
         WHERE r.name = 'admin' AND u.auth_id IS NOT NULL AND u.is_active = true LIMIT 1`
     )).rows[0]?.auth_id
-    if (!authId) return
+    wajibAda(authId, "user ber-auth_id")
 
     await c.query('BEGIN')
     try {

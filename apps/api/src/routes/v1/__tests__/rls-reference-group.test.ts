@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import type { Client } from 'pg'
-import { createRlsClient, asUser, authIdForRole } from '../../../test-utils/rls-harness.js'
+import { createRlsClient, asUser, authIdForRole, wajibAda } from '../../../test-utils/rls-harness.js'
 
 // RLS verification for Epic 4 — has_permission() function + Reference group
 // (material_categories, materials). Runs against the REAL public schema with
@@ -38,7 +38,7 @@ describe('has_permission() function', () => {
   })
 
   it('returns false for a role that lacks the permission (mandor → procurement:material:manage)', async () => {
-    if (!mandorId) return // skip kalau tidak ada mandor aktif di dev
+    wajibAda(mandorId, "user berperan mandor")
     const r = await asUser(client, mandorId, (c) =>
       c.query("SELECT has_permission('procurement:material:manage') AS ok")
     )
@@ -61,13 +61,13 @@ describe('RLS: materials write policies (has_permission-based, expand)', () => {
   })
 
   it('allows pm to insert (has procurement:material:manage)', async () => {
-    if (!pmId) return
+    wajibAda(pmId, "user berperan pm")
     const r = await asUser(client, pmId, insertMaterial)
     expect(r.rows[0].id).toBeTruthy()
   })
 
   it('denies mandor insert (lacks procurement:material:manage)', async () => {
-    if (!mandorId) return
+    wajibAda(mandorId, "user berperan mandor")
     await expect(asUser(client, mandorId, insertMaterial)).rejects.toThrow(
       /row-level security|policy/i
     )

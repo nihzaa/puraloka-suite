@@ -337,6 +337,17 @@ Membangunnya sekarang = pekerjaan yang nilainya belum terbukti.
 
 ---
 
+## Pondasi — mandat "pondasi dulu, fitur ditahan" (2026-08-01)
+
+| # | Item | Status |
+|---|---|---|
+| **P1** | **Kontras warna WCAG** | ✅ **Selesai** — `kontras-ratchet.mjs` di CI, 38 pasangan token dijaga di kedua mode. Menemukan `--danger` mode gelap **4,47:1** pada jalan pertamanya (audit axe dulu hanya mode terang). Hutang tersisa terukur: 394 hex mentah, ber-ambang. |
+| **P2** | **Verifikasi RLS per role** | ✅ **Selesai** — dan hasilnya **berbeda dari yang dicatat**. Klaim lama "belum pernah diuji end-to-end" ternyata **salah**: 8 berkas / 60 test SUDAH mengimpersonasi user sungguhan lewat `asUser()` (set `request.jwt.claims`, role `authenticated`), sehingga `auth.uid()`/`auth_role()`/`has_permission()` dievaluasi persis seperti request browser. **Dibuktikan menjaga** lewat uji mutasi: membuat policy `USING (true)` pada `progress_logs` → merah. **Yang benar-benar cacat:** 17 titik `if (!x) return` yang membuat test **lulus diam-diam** bila prasyaratnya hilang — seluruh 60 test isolasi bisa hijau tanpa menguji satu pun kebocoran. Diganti `wajibAda()` yang gagal-nyaring dengan pesan menyebut seed mana yang kurang. Uji mutasi: menghilangkan mandor ter-assign → 3 merah dengan pesan yang menjelaskan. |
+| **P3** | Adopsi `tenantDb` lanjut | 🔄 dicicil — ratchet 468 → 458 |
+| **P4** | Web Push diuji di HP nyata | ⏳ butuh perangkat fisik |
+
+---
+
 ## Utang teknis yang terkunci ratchet
 
 Tidak masuk antrean karena bukan fitur — tapi tercatat supaya tak terlupa, dan

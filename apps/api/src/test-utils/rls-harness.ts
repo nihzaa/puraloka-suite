@@ -104,3 +104,42 @@ export async function assignedMandor(
   if (!rows[0]) return null
   return { authId: rows[0].auth_id, userId: rows[0].user_id, assignedProjectCount: rows[0].n }
 }
+
+/**
+ * Pastikan prasyarat test ADA — kalau tidak, GAGALKAN dengan penjelasan.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA ADA
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Test RLS di repo ini memakai pola `if (!m) return` sebanyak **17 kali**:
+ * kalau prasyaratnya tak ada (mandor ter-assign, client ber-auth, pm), test
+ * BERHENTI DIAM-DIAM dan dilaporkan **lulus**.
+ *
+ * Niatnya bisa dimengerti — test tak boleh merah karena basis data kebetulan
+ * kosong. Tapi akibatnya: seluruh 42 test isolasi RLS bisa hijau tanpa menguji
+ * satu pun kebocoran, dan tak ada yang tahu. Persis kelas cacat yang sudah
+ * menggigit dua kali di repo ini:
+ *   · 24 integration test yang TAK PERNAH berjalan (`to_regclass` menembus schema)
+ *   · test paritas golden yang lulus karena berkasnya tak ada
+ *
+ * Bedanya dengan `describe.skipIf`: skip TERLIHAT di keluaran ("1 skipped"),
+ * sementara `return` diam-diam terhitung sebagai lulus.
+ *
+ * Yang ditegakkan di sini: prasyarat yang HILANG adalah kegagalan, dan
+ * pesannya menyebutkan apa yang harus di-seed. Seed CI sudah menyediakan
+ * client, project, mandor + assignments — jadi kalau ini merah, seed-nya yang
+ * rusak, dan itu justru yang perlu diketahui.
+ */
+export function wajibAda<T>(nilai: T | null | undefined, apa: string): T {
+  if (nilai === null || nilai === undefined) {
+    throw new Error(
+      `Prasyarat test tak terpenuhi: ${apa} tidak ada di basis data.\n` +
+      `  Test ini TIDAK dilewati diam-diam — prasyarat yang hilang berarti\n` +
+      `  isolasi RLS tak teruji sama sekali, dan itu harus terlihat.\n` +
+      `  Seed CI (ci-project-setup.mjs) menyediakan client, project, dan\n` +
+      `  mandor+assignments; kalau ini gagal, seed-nya yang perlu diperiksa.`
+    )
+  }
+  return nilai
+}

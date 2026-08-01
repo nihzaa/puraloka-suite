@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import type { Client } from 'pg'
-import { createRlsClient, asUser, authIdForRole, assignedMandor } from '../../../test-utils/rls-harness.js'
+import { createRlsClient, asUser, authIdForRole, assignedMandor, wajibAda } from '../../../test-utils/rls-harness.js'
 
 // RLS verification — Financial group (invoices, payments, tax_records, kasbons,
 // cash_accounts, cash_transfers, expense_reports, project_expenses), migrations
@@ -39,8 +39,7 @@ describe('RLS financial: query without recursion, all roles', () => {
 
 describe('RLS financial: manage capabilities are admin+pm scope (no leak to mandor)', () => {
   it('finance:manage and cash:manage are NOT held by mandor', async () => {
-    const m = await assignedMandor(client)
-    if (!m) return
+    const m = wajibAda(await assignedMandor(client), "mandor dengan assignment aktif")
     const r = await asUser(client, m.authId, (c) =>
       c.query(
         "SELECT has_permission('finance:manage') AS fin, has_permission('cash:manage') AS cash"
@@ -53,8 +52,7 @@ describe('RLS financial: manage capabilities are admin+pm scope (no leak to mand
 
 describe('RLS financial: mandor kasbon ownership isolation', () => {
   it('mandor sees kasbons only for own work scopes, no leak', async () => {
-    const m = await assignedMandor(client)
-    if (!m) return
+    const m = wajibAda(await assignedMandor(client), "mandor dengan assignment aktif")
     const leak = await asUser(client, m.authId, (c) =>
       c.query(
         `SELECT count(*)::int AS n FROM kasbons

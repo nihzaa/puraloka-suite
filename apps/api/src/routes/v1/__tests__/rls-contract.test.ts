@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import type { Client } from 'pg'
-import { createRlsClient, asUser, authIdForRole, assignedMandor } from '../../../test-utils/rls-harness.js'
+import { createRlsClient, asUser, authIdForRole, assignedMandor, wajibAda } from '../../../test-utils/rls-harness.js'
 
 // Epic 4 CONTRACT verification (migration 071): after dropping old literal-role
 // policies, RLS for the migrated tables must (a) contain NO literal auth_role()
@@ -63,8 +63,7 @@ describe('Epic 4 contract: access still correct after dropping old policies', ()
   }, 20000)
 
   it('assigned mandor still reads own-scope data, no leak', async () => {
-    const m = await assignedMandor(client)
-    if (!m) return
+    const m = wajibAda(await assignedMandor(client), "mandor dengan assignment aktif")
     const leak = await asUser(client, m.authId, (c) =>
       c.query(
         `SELECT count(*)::int AS n FROM progress_logs

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import type { Client } from 'pg'
-import { createRlsClient, asUser, authIdForRole, assignedMandor } from '../../../test-utils/rls-harness.js'
+import { createRlsClient, asUser, authIdForRole, assignedMandor, wajibAda } from '../../../test-utils/rls-harness.js'
 
 // RLS verification — Field ops group (progress_logs, work_scopes,
 // work_scope_items, workers), migrations 067+068.
@@ -32,8 +32,7 @@ describe('RLS field ops: query without recursion, all roles', () => {
 
 describe('RLS field ops: progress:manage scope (admin+pm only, not mandor)', () => {
   it('progress:manage is NOT held by mandor (no manage leak)', async () => {
-    const m = await assignedMandor(client)
-    if (!m) return
+    const m = wajibAda(await assignedMandor(client), "mandor dengan assignment aktif")
     const r = await asUser(client, m.authId, (c) =>
       c.query("SELECT has_permission('progress:manage') AS ok")
     )
@@ -43,8 +42,7 @@ describe('RLS field ops: progress:manage scope (admin+pm only, not mandor)', () 
 
 describe('RLS field ops: mandor ownership isolation', () => {
   it('mandor sees progress_logs only for assigned projects, no leak', async () => {
-    const m = await assignedMandor(client)
-    if (!m) return
+    const m = wajibAda(await assignedMandor(client), "mandor dengan assignment aktif")
     const leak = await asUser(client, m.authId, (c) =>
       c.query(
         `SELECT count(*)::int AS n FROM progress_logs
@@ -56,8 +54,7 @@ describe('RLS field ops: mandor ownership isolation', () => {
   })
 
   it('mandor sees work_scopes only for own assignments, no leak', async () => {
-    const m = await assignedMandor(client)
-    if (!m) return
+    const m = wajibAda(await assignedMandor(client), "mandor dengan assignment aktif")
     const leak = await asUser(client, m.authId, (c) =>
       c.query(
         `SELECT count(*)::int AS n FROM work_scopes

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import type { Client } from 'pg'
-import { createRlsClient, asUser, authIdForRole, assignedMandor } from '../../../test-utils/rls-harness.js'
+import { createRlsClient, asUser, authIdForRole, assignedMandor, wajibAda } from '../../../test-utils/rls-harness.js'
 
 // RLS verification — Operational group (milestones, documents, project_photos),
 // migration 066. Manage = has_permission (admin/pm); reads = ownership helpers.
@@ -36,8 +36,7 @@ describe('RLS operational: manage via has_permission', () => {
 
 describe('RLS operational: mandor ownership read isolation', () => {
   it('assigned mandor sees milestones only for assigned projects, no leak', async () => {
-    const m = await assignedMandor(client)
-    if (!m) return
+    const m = wajibAda(await assignedMandor(client), "mandor dengan assignment aktif")
     const leak = await asUser(client, m.authId, (c) =>
       c.query(
         `SELECT count(*)::int AS n FROM milestones
@@ -49,8 +48,7 @@ describe('RLS operational: mandor ownership read isolation', () => {
   })
 
   it('mandor cannot insert a document (lacks documents:manage)', async () => {
-    const m = await assignedMandor(client)
-    if (!m) return
+    const m = wajibAda(await assignedMandor(client), "mandor dengan assignment aktif")
     await expect(
       asUser(client, m.authId, (c) =>
         c.query(

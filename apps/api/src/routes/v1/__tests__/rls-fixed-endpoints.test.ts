@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import type { Client } from 'pg'
-import { createRlsClient, asUser, authIdForRole, assignedMandor } from '../../../test-utils/rls-harness.js'
+import { createRlsClient, asUser, authIdForRole, assignedMandor, wajibAda } from '../../../test-utils/rls-harness.js'
 
 // Security regression for the 2 endpoints migrated off role-literal authorization
 // (cash.ts GET /cash/accounts/:id, progress.ts DELETE /progress-logs/:logId).
@@ -28,8 +28,7 @@ describe('cash.ts GET /cash/accounts/:id — requirePermission(cash:view)', () =
     expect(r.rows[0].ok).toBe(true)
   })
   it('mandor does NOT have cash:view (gate denies)', async () => {
-    const m = await assignedMandor(client)
-    if (!m) return
+    const m = wajibAda(await assignedMandor(client), "mandor dengan assignment aktif")
     const r = await asUser(client, m.authId, (c) => c.query("SELECT has_permission('cash:view') AS ok"))
     expect(r.rows[0].ok).toBe(false)
   })
@@ -41,13 +40,12 @@ describe('progress.ts DELETE /progress-logs/:logId — hasPermission(progress:ma
     expect(r.rows[0].ok).toBe(true)
   })
   it('pm has progress:manage (gate allows)', async () => {
-    if (!pmId) return
+    wajibAda(pmId, "user berperan pm")
     const r = await asUser(client, pmId, (c) => c.query("SELECT has_permission('progress:manage') AS ok"))
     expect(r.rows[0].ok).toBe(true)
   })
   it('mandor does NOT have progress:manage (delete only via owner-path, not blanket)', async () => {
-    const m = await assignedMandor(client)
-    if (!m) return
+    const m = wajibAda(await assignedMandor(client), "mandor dengan assignment aktif")
     const r = await asUser(client, m.authId, (c) => c.query("SELECT has_permission('progress:manage') AS ok"))
     expect(r.rows[0].ok).toBe(false)
   })

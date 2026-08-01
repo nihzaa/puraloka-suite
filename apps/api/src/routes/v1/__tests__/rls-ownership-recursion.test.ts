@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import type { Client } from 'pg'
-import { createRlsClient, asUser, authIdForRole, assignedMandor } from '../../../test-utils/rls-harness.js'
+import { createRlsClient, asUser, authIdForRole, assignedMandor, wajibAda } from '../../../test-utils/rls-harness.js'
 
 // Regression test for the RLS infinite-recursion bug (ADR-005, migration 065).
 // projects_mandor_select <-> mandor_assignments_pm_select mutually subqueried
@@ -38,8 +38,7 @@ describe('RLS recursion is resolved (ADR-005)', () => {
 
 describe('RLS ownership isolation via SECURITY DEFINER helpers', () => {
   it('assigned mandor sees exactly their assigned projects, no leak', async () => {
-    const m = await assignedMandor(client)
-    if (!m) return // dev seed may lack a mandor with auth_id + assignment
+    const m = wajibAda(await assignedMandor(client), "mandor dengan assignment aktif")
 
     const result = await asUser(client, m.authId, async (c) => {
       const visible = await c.query('SELECT count(*)::int AS n FROM projects')
@@ -56,8 +55,7 @@ describe('RLS ownership isolation via SECURITY DEFINER helpers', () => {
   })
 
   it('is_assigned_mandor() helper is true for own project, false for others', async () => {
-    const m = await assignedMandor(client)
-    if (!m) return
+    const m = wajibAda(await assignedMandor(client), "mandor dengan assignment aktif")
 
     const r = await asUser(client, m.authId, (c) =>
       c.query(
