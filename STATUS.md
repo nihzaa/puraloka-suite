@@ -118,6 +118,40 @@ kali keadaan berubah; detail selalu di dokumen rujukan.
 > seluruhnya yatim. Penghapusan tetap **menunggu izin founder** (keputusan
 > terbuka #1c).
 
+> ### 2026-08-01 — 36 modal menjebak pemakai keyboard; unggah RAB yang mati
+>
+> **Modal (36 → 0, penjaga ambang NOL).** Berawal dari satu warning pada latar
+> modal `/mandor`. Menambalnya `role="button"` adalah saran lint kalau dibaca
+> harfiah — dan **salah**: latar modal bukan tombol. Pertanyaan yang benar
+> adalah bagaimana pemakai keyboard KELUAR, dan jawabannya **tidak bisa**: nol
+> penanganan Esc di halaman itu, lalu setelah diukur **nol di seluruh
+> aplikasi — 36 modal**. Tab berputar di dalam, satu-satunya jalan keluar
+> mengambil tetikus. WCAG 2.1.2 (Level A), syarat dasar. Ditutup dengan
+> `lib/use-tutup-esc.ts` di 40 tempat + penjaga CI ambang **0**.
+>
+> Penjaganya sendiri menuduh palsu tiga komponen HALAMAN yang cuma merender
+> modal (`onClose` dilewatkan ke anak, bukan milik sendiri) — sisipan otomatis
+> di sana merujuk nama tak ada. tsc menangkapnya, **tapi hanya karena kebetulan
+> gagal keras**: kalau ada variabel bernama sama, ia menutup hal yang salah
+> tanpa peringatan. Diperbaiki jadi menuntut `onClose` di *signature*.
+>
+> **Unggah RAB mati di keadaan kosong — ketemu saat kerja keyboard.** Area
+> "Belum ada data RAB" memanggil `fileRef.current?.click()`, tapi
+> `<input ref={fileRef}>` ada di blok header yang hanya dirender kalau
+> `hasData`. Di keadaan kosong ref-nya **null**: mengklik area itu tak
+> melakukan apa pun, tanpa pesan. Proyek yang belum punya RAB **tak punya jalan
+> mengunggah RAB** — persis keadaan di mana orang paling membutuhkannya.
+> Diperbaiki dengan `<label>` yang membungkus input-nya sendiri.
+>
+> **RAB bisa dijangkau keyboard** lewat helper `lib/dapat-ditekan.ts`, supaya
+> `role`+`tabIndex`+Enter/Space selalu lengkap — separuh implementasi (umumnya
+> Enter ditangani, Space tidak) terasa rusak sesekali, dan itu lebih
+> membingungkan daripada rusak konsisten. Regresi yang saya perkenalkan sendiri
+> lalu tutup: begitu baris induk menangani Space, mengetik Space di kotak angka
+> serapan **menembus** ke induk dan melipat barisnya di tengah orang mengetik.
+>
+> click-events 117 → 104 · static-element-interactions 115 → 108.
+
 > ### 2026-08-01 — a11y gelombang 2: 253 label → 44, foto jadi tombol
 >
 > **Label (253 → 44).** Codemod `pasangkan-label.mjs` memasangkan **213** label
