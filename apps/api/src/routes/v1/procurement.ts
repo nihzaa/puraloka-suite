@@ -322,8 +322,12 @@ export default async function procurementRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'project_id dan items wajib diisi' })
     }
 
-    const { data: mr, error: mrError } = await supabase
-      .from('material_requests')
+    // `viaProject()` — scoping otomatis sesuai kategori C, bukan bergantung
+    // pada gerbang `proyekBolehDibaca` di atas tetap ada saat direfaktor.
+    // Gerbangnya TIDAK dibuang: ia yang membalas 404 sebelum baris ini,
+    // sehingga proyek tenant lain tak pernah sampai ke INSERT.
+    const { data: mr, error: mrError } = await request.db!
+      .viaProject('material_requests', body.project_id)
       .insert({
         project_id: body.project_id,
         requested_by: request.currentUser!.id,

@@ -37,8 +37,32 @@ const DIR_ROUTES = join(import.meta.dirname, '..', '..')
  * benar-benar tak tercakup.
  *
  * Kalau gagal karena angkanya TURUN: bagus — turunkan ambangnya ke angka baru.
+ *
+ * ── ⚠️ ANGKA INI TIDAK AKAN SAMPAI NOL, dan itu bukan kegagalan
+ *
+ * Diukur dengan MEMBACA kode 2026-08-01 (tiga alat pengukur yang dibangun
+ * sebelumnya semuanya menuduh palsu — lihat catatan di commit). Sisa akses
+ * mentah terbagi tiga jenis, dan dua di antaranya **tak bisa dialihkan**:
+ *
+ *   1. `.storage` (15 akses) — bucket tak punya konsep tenant sama sekali.
+ *      `tenantDb` menyediakan `.raw` justru untuk ini.
+ *
+ *   2. Operasi BY-ID lintas-proyek — `.eq('id', id).in('project_id', await
+ *      db.projectIds())`. `viaProject()` butuh satu `projectId` yang di sini
+ *      justru BELUM diketahui: yang dicari adalah "apakah id ini milik salah
+ *      satu proyek saya". Ini pola yang BENAR untuk bentuknya, bukan kelupaan.
+ *      Dipakai konsisten di `finance.ts` (38 akses) dan `procurement.ts`.
+ *
+ *   3. Gerbang tunggal di atas banyak query — `reports.ts` memeriksa
+ *      `projectIds().includes(project_id)` SEKALI lalu menjalankan 14 query.
+ *      Komentarnya menyebut alasannya: "satu kelupaan = seluruh gerbang tak
+ *      berguna". Sebagian sudah dialihkan ke `viaProject()` (2026-08-01) karena
+ *      di sana `projectId` memang diketahui.
+ *
+ * Yang MASIH hutang: akses mentah pada tabel kategori C di rute yang
+ * `projectId`-nya sudah diketahui. Itu yang harus terus turun.
  */
-const AMBANG_SUPABASE_MENTAH = 459
+const AMBANG_SUPABASE_MENTAH = 458
 
 function hitungSupabaseMentah(): { total: number; perFile: Record<string, number> } {
   const perFile: Record<string, number> = {}
