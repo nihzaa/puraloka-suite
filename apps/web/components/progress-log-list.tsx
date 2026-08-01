@@ -98,16 +98,51 @@ function Lightbox({ url, onClose }: { url: string; onClose: () => void }) {
 
 // ─── Photo grid ───────────────────────────────────────────────────────────────
 
+/**
+ * Foto yang membuka lightbox — sebagai TOMBOL, bukan `<img onClick>`.
+ *
+ * Foto-foto di `PhotoGrid` semula `<img>` polos dengan `onClick`: bisa diklik
+ * dengan tetikus, tak bisa dijangkau sama sekali dengan keyboard — tak dapat
+ * fokus, tak menanggapi Enter/Space, dan pembaca layar tak menyebutnya sebagai
+ * sesuatu yang bisa ditekan.
+ *
+ * `<button>` menyelesaikan ketiganya sekaligus tanpa menambal `role`/`tabIndex`/
+ * `onKeyDown` satu per satu — browser sudah tahu apa itu tombol. Teks caption
+ * dipakai untuk menamainya, jadi yang terdengar "Lihat foto: cor lantai 2",
+ * bukan sekadar "tombol".
+ *
+ * Didefinisikan di tingkat MODUL, bukan di dalam `PhotoGrid`: komponen yang
+ * lahir ulang tiap render membuat React melepas lalu memasang kembali seluruh
+ * pohon anaknya — fokus keyboard hilang di tengah jalan, yang justru merusak
+ * hal yang sedang diperbaiki di sini.
+ */
+function FotoLightboxTombol({
+  url, caption, onBuka,
+}: { url: string; caption?: string | null; onBuka: (url: string) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onBuka(url)}
+      aria-label={`Lihat foto${caption ? `: ${caption}` : ""} ukuran penuh`}
+      style={{
+        padding: 0, border: "none", background: "none", cursor: "pointer",
+        width: "100%", height: "100%", display: "block", borderRadius: 8,
+      }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={url}
+        alt={caption ?? "Foto progres"}
+        style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 8, display: "block" }}
+      />
+    </button>
+  );
+}
+
 function PhotoGrid({ photos }: { photos: ProgressLog["photos"] }) {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   if (!photos || photos.length === 0) return null;
-
-  const imgStyle = (extra?: React.CSSProperties): React.CSSProperties => ({
-    width: "100%", height: "100%", objectFit: "cover",
-    cursor: "pointer", borderRadius: 8, display: "block",
-    ...extra,
-  });
 
   const cellStyle = (extra?: React.CSSProperties): React.CSSProperties => ({
     overflow: "hidden", borderRadius: 8, position: "relative", background: "var(--surface-hover)",
@@ -119,8 +154,7 @@ function PhotoGrid({ photos }: { photos: ProgressLog["photos"] }) {
   if (photos.length === 1) {
     gridContent = (
       <div style={{ ...cellStyle(), aspectRatio: "16/9" }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={photos[0].url} alt={photos[0].caption ?? "foto"} style={imgStyle()} onClick={() => setLightboxUrl(photos[0].url)} />
+        <FotoLightboxTombol url={photos[0].url} caption={photos[0].caption} onBuka={setLightboxUrl} />
       </div>
     );
   } else if (photos.length === 2) {
@@ -128,8 +162,7 @@ function PhotoGrid({ photos }: { photos: ProgressLog["photos"] }) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
         {photos.map(p => (
           <div key={p.id} style={{ ...cellStyle(), aspectRatio: "4/3" }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={p.url} alt={p.caption ?? "foto"} style={imgStyle()} onClick={() => setLightboxUrl(p.url)} />
+            <FotoLightboxTombol url={p.url} caption={p.caption} onBuka={setLightboxUrl} />
           </div>
         ))}
       </div>
@@ -138,14 +171,12 @@ function PhotoGrid({ photos }: { photos: ProgressLog["photos"] }) {
     gridContent = (
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <div style={{ ...cellStyle(), aspectRatio: "16/9" }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={photos[0].url} alt={photos[0].caption ?? "foto"} style={imgStyle()} onClick={() => setLightboxUrl(photos[0].url)} />
+          <FotoLightboxTombol url={photos[0].url} caption={photos[0].caption} onBuka={setLightboxUrl} />
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
           {photos.slice(1).map(p => (
             <div key={p.id} style={{ ...cellStyle(), aspectRatio: "4/3" }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={p.url} alt={p.caption ?? "foto"} style={imgStyle()} onClick={() => setLightboxUrl(p.url)} />
+              <FotoLightboxTombol url={p.url} caption={p.caption} onBuka={setLightboxUrl} />
             </div>
           ))}
         </div>
@@ -159,8 +190,7 @@ function PhotoGrid({ photos }: { photos: ProgressLog["photos"] }) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
         {visible.map((p, i) => (
           <div key={p.id} style={{ ...cellStyle(), aspectRatio: "4/3" }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={p.url} alt={p.caption ?? "foto"} style={imgStyle()} onClick={() => setLightboxUrl(p.url)} />
+            <FotoLightboxTombol url={p.url} caption={p.caption} onBuka={setLightboxUrl} />
             {i === 3 && extra > 0 && (
               <div
                 style={{
