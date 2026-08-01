@@ -1,6 +1,19 @@
 -- Migration 073: audit_logs append-only trigger (Epic 5 F5.5)
--- ⚠️ DORMAN — TIDAK di-apply tanpa keputusan founder eksplisit (governance gate,
--- lihat Implementation-Kickoff/epic-5-decisions.md § 1 + 09-definition-of-ready.md).
+--
+-- ✅ SUDAH DI-APPLY — gerbang founder DIBUKA, di-apply via PR #13 (`d9ea114`).
+--    Diverifikasi 2026-08-01 dari koneksi baru: `trg_audit_logs_no_update` &
+--    `trg_audit_logs_no_delete` keduanya `tgenabled='O'` di pg_trigger.
+--
+--    Header ini SEBELUMNYA berbunyi "⚠️ DORMAN — jangan di-apply". Itu benar saat
+--    ditulis, lalu tak pernah diperbarui setelah founder menyetujui. Akibatnya dua
+--    dokumen (taksonomi §19 + Lima Pembeda #1) mengutipnya sebagai gap terbuka
+--    selama berbulan-bulan, dan Kriteria Kualitas #1 dinilai "kuat SEBAGIAN"
+--    padahal sudah kuat penuh.
+--
+--    Pelajarannya: komentar gerbang di berkas migrasi adalah SUMBER yang dikutip
+--    dokumen lain. Saat gerbangnya dibuka, komentarnya ikut diperbarui — kalau
+--    tidak, ia jadi klaim usang yang menyebar. Isi DDL di bawah tak diubah;
+--    yang diperbarui hanya keterangannya.
 --
 -- Menjadikan audit_logs immutable: menolak UPDATE & DELETE. Sekali aktif, tidak
 -- seorang pun (termasuk admin) bisa mengubah/menghapus baris audit lewat jalur

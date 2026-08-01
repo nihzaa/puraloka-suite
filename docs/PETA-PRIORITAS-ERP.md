@@ -1,5 +1,18 @@
 # PETA PRIORITAS ERP — Dokumen Induk Pemersatu
 
+> ## ⚠️ RANKING §3 SUDAH DIGANTI — lihat [`ROADMAP.md`](./ROADMAP.md)
+>
+> Ke-12 item ranking §3 sudah di-merge ke ROADMAP (2026-07-31) dan **statusnya
+> hanya diperbarui di sana**. Jangan pakai §3 untuk memutuskan "apa berikutnya" —
+> per 2026-08-01 sudah 8 dari 12 selesai tanpa tercermin di sini.
+>
+> **Yang masih berlaku & tak ada duanya:** §1 registry dokumen (mana AKTIF/STALE),
+> §2 delapan kontradiksi antar-dokumen beserta wasitnya, dan §Sengaja-tidak-dibangun.
+> Fungsi itulah alasan dokumen ini tetap hidup — bukan sebagai daftar pekerjaan.
+>
+> Satu koreksi yang lahir dari sini: **§3 #7 "aktifkan audit append-only (073)"
+> ternyata SUDAH aktif** sejak PR #13. Diverifikasi ke `pg_trigger` 2026-08-01.
+
 **Tanggal:** 2026-07-26 · **Sifat:** LENSA PRIORITAS di atas roadmap yang sudah ada —
 **bukan roadmap tandingan**. Dokumen ini menyatukan semua rencana yang tersebar di
 `docs/` menjadi satu peta untuk MEMILIH, sesuai permintaan owner: "peta untuk memilih,

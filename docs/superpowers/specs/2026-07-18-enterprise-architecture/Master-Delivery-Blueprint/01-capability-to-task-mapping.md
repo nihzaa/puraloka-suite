@@ -1,5 +1,16 @@
 # 01 — Capability → Domain → Program → Initiative → Epic → Feature → Task Mapping
 
+> ## ⚠️ URUTAN PENGERJAAN sudah diganti — lihat [`../../../../ROADMAP.md`](../../../../ROADMAP.md)
+>
+> 6 Capability di dokumen ini sudah di-merge ke ROADMAP (2026-07-31); **status
+> pengerjaan hanya diperbarui di sana**. Capability Tier-2 (RFI, Submittals, Punch
+> List, QC, HSE) = ROADMAP #24, dan blocker lamanya ("butuh Workflow Engine")
+> sudah lunas sejak Program B selesai.
+>
+> **Yang masih berlaku & tak ada duanya:** hierarki Program → Initiative → Epic →
+> Feature → Task itu sendiri. ROADMAP memuat "apa & kapan", dokumen ini memuat
+> "bagaimana pekerjaannya dipecah" — dua hal berbeda, jadi keduanya hidup.
+
 **Kedudukan dokumen ini:** Orkestrasi Baru — hierarki ini belum pernah didefinisikan di dokumen manapun. **Sumber data:** setiap baris di bawah berasal langsung dari [00-vision-and-business-architecture.md § Module Catalog & Tiering](../00-vision-and-business-architecture.md#module-catalog--tiering) (Domain → Module → Submodule → Tier → Build Priority → Dependency) — dokumen ini **menambahkan** 3 lapisan hierarki yang hilang (Program, Initiative, Epic/Feature/Task) di atas struktur yang sudah ada, **tidak mengubah** nama modul, tier, atau dependency yang sudah ditetapkan doc 00.
 
 ---

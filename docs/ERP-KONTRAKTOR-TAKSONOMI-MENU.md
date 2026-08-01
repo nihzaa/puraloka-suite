@@ -265,7 +265,7 @@ Rekomendasi: jika alat mayoritas sewa, cukup tracking sewa + utilisasi ringan.
 | **Laporan keuangan** | 🟡 | Arus kas ✅; Neraca & L/R 🔴 (rekomendasi: eksternal) |
 | **Pengakuan pendapatan / persentase penyelesaian (PSAK)** | 🔴 | Acuan PSAK (bukan IFRS 15). Tanpa ini L/R kontraktor tidak bermakna — lihat Lima Pembeda |
 | Tutup buku periode | 🔴 | Eksternal |
-| Audit trail | ✅ | + correlation_id + severity + diff. ⚠️ Gap: trigger append-only (073) masih DORMAN — audit_logs masih bisa diubah service_role |
+| Audit trail | ✅ | + correlation_id + severity + diff + **append-only AKTIF**. ~~Gap: trigger 073 dorman~~ **KELIRU, dikoreksi 2026-08-01**: `trg_audit_logs_no_update` & `trg_audit_logs_no_delete` `tgenabled='O'` di DB — di-apply via PR #13 (`d9ea114`) setelah founder menyetujui. Klaim "dorman" berasal dari komentar di berkas migrasi 073 yang tak pernah diperbarui setelah gerbangnya dibuka |
 
 ---
 
@@ -470,7 +470,7 @@ Ditemukan saat verifikasi (bukti = route/UI nyata):
 
 | # | Kriteria | Posisi hari ini (terverifikasi) |
 |---|---|---|
-| 1 | **Angka finansial selalu bisa dipertanggungjawabkan** | Kuat sebagian: audit trail + diff + correlation_id + QR invoice ✅; **gap: trigger append-only (073) dorman** — audit log masih bisa diubah diam-diam oleh service_role |
+| 1 | **Angka finansial selalu bisa dipertanggungjawabkan** | **Kuat** — audit trail + diff + correlation_id + QR invoice ✅, dan **append-only AKTIF** (dikoreksi 2026-08-01: klaim "073 dorman" salah, trigger `tgenabled='O'` sejak PR #13). Audit log tak bisa diubah lewat jalur aplikasi |
 | 2 | **Cost control berlapis benar-benar jalan** | 3/5 (naik 2026-07-31: RAP live + BAC dari pagu RAP) — lihat Lima Pembeda |
 | 3 | **Sistem tahan orang** (tidak bergantung satu orang jujur) | Kuat: approval berjenjang ber-invariant CI, permission-based RBAC, anti-lockout ✅; sisa: RLS table dormant (gerbang mobile), checklist service_role ☐ |
 | 4 | **Data historis tidak rusak oleh aturan baru** | Kuat: effective-dating config finansial, baseline snapshot CO, penalty immutable ✅ — pola WAJIB dipertahankan di modul baru |
