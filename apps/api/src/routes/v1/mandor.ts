@@ -1325,7 +1325,13 @@ export default async function mandorRoutes(app: FastifyInstance) {
           action_data: { report_id: report.id },
         })))
       }
-    } catch { /* ignore */ }
+    } catch (err) {
+      // best-effort: notifikasi tak boleh membatalkan tindakan yang sudah sah.
+      // Tapi TIDAK ditelan — rantai notifikasi pernah putus berbulan-bulan
+      // tanpa satu pun gejala (Web Push, 2026-08-01), dan `catch {}` adalah
+      // persis tempat gejala itu seharusnya muncul.
+      request.log.error({ err }, 'notifikasi gagal dikirim')
+    }
 
     return reply.status(201).send({ report: final })
   })
@@ -1540,7 +1546,13 @@ export default async function mandorRoutes(app: FastifyInstance) {
           action_url: '/mandor?tab=kasbon',
         })))
       }
-    } catch { /* ignore */ }
+    } catch (err) {
+      // best-effort: notifikasi tak boleh membatalkan tindakan yang sudah sah.
+      // Tapi TIDAK ditelan — rantai notifikasi pernah putus berbulan-bulan
+      // tanpa satu pun gejala (Web Push, 2026-08-01), dan `catch {}` adalah
+      // persis tempat gejala itu seharusnya muncul.
+      request.log.error({ err }, 'notifikasi gagal dikirim')
+    }
 
     return reply.status(201).send({ payment: data })
   })
@@ -1631,7 +1643,13 @@ export default async function mandorRoutes(app: FastifyInstance) {
           action_url: '/mandor-portal/penagihan',
         }])
       }
-    } catch { /* ignore */ }
+    } catch (err) {
+      // best-effort: notifikasi tak boleh membatalkan tindakan yang sudah sah.
+      // Tapi TIDAK ditelan — rantai notifikasi pernah putus berbulan-bulan
+      // tanpa satu pun gejala (Web Push, 2026-08-01), dan `catch {}` adalah
+      // persis tempat gejala itu seharusnya muncul.
+      request.log.error({ err }, 'notifikasi gagal dikirim')
+    }
 
     return reply.send({ payment: data })
   })
@@ -1774,7 +1792,13 @@ export default async function mandorRoutes(app: FastifyInstance) {
           action_url: '/mandor-portal/pembayaran',
         }])
       }
-    } catch { /* ignore */ }
+    } catch (err) {
+      // best-effort: notifikasi tak boleh membatalkan tindakan yang sudah sah.
+      // Tapi TIDAK ditelan — rantai notifikasi pernah putus berbulan-bulan
+      // tanpa satu pun gejala (Web Push, 2026-08-01), dan `catch {}` adalah
+      // persis tempat gejala itu seharusnya muncul.
+      request.log.error({ err }, 'notifikasi gagal dikirim')
+    }
 
     return reply.status(201).send({ settlement: data })
   })
@@ -1857,7 +1881,13 @@ export default async function mandorRoutes(app: FastifyInstance) {
           action_url: '/mandor-portal/kasbon-tukang',
         }])
       }
-    } catch { /* ignore */ }
+    } catch (err) {
+      // best-effort: notifikasi tak boleh membatalkan tindakan yang sudah sah.
+      // Tapi TIDAK ditelan — rantai notifikasi pernah putus berbulan-bulan
+      // tanpa satu pun gejala (Web Push, 2026-08-01), dan `catch {}` adalah
+      // persis tempat gejala itu seharusnya muncul.
+      request.log.error({ err }, 'notifikasi gagal dikirim')
+    }
 
     return reply.send({ kasbon: data, approved: status === 'approved' })
   })

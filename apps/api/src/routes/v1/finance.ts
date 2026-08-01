@@ -784,7 +784,13 @@ export default async function financeRoutes(app: FastifyInstance) {
           action_type: 'view_invoice',
           action_data: { invoice_id: invoice.id, invoice_number: invoice.invoice_number },
         })))
-      } catch { /* ignore */ }
+      } catch (err) {
+        // best-effort: notifikasi tak boleh membatalkan tindakan yang sudah sah.
+        // Tapi TIDAK ditelan — rantai notifikasi pernah putus berbulan-bulan
+        // tanpa satu pun gejala (Web Push, 2026-08-01), dan `catch {}` adalah
+        // persis tempat gejala itu seharusnya muncul.
+        request.log.error({ err }, 'notifikasi gagal dikirim')
+      }
     }
 
     return reply.status(201).send({ invoice })
@@ -1193,7 +1199,13 @@ export default async function financeRoutes(app: FastifyInstance) {
             invoice: { id: invoice.id, project_id: invoice.project_id, total_amount: invoice.total_amount, due_date: (invoice as { due_date: string }).due_date, penalty_waived: (invoice as { penalty_waived?: boolean }).penalty_waived },
             project: proj, paidDate: paidAt, createdBy: request.currentUser!.id,
           })
-        } catch { /* never block payment */ }
+        } catch (err) {
+          // best-effort: notifikasi tak boleh membatalkan tindakan yang sudah sah.
+          // Tapi TIDAK ditelan — rantai notifikasi pernah putus berbulan-bulan
+          // tanpa satu pun gejala (Web Push, 2026-08-01), dan `catch {}` adalah
+          // persis tempat gejala itu seharusnya muncul.
+          request.log.error({ err }, 'notifikasi gagal dikirim')
+        }
       })()
     }
 
@@ -1212,7 +1224,13 @@ export default async function financeRoutes(app: FastifyInstance) {
         action_type: 'view_invoice',
         action_data: { invoice_id: id, amount_paid: amountPaid },
       })))
-    } catch { /* ignore */ }
+    } catch (err) {
+      // best-effort: notifikasi tak boleh membatalkan tindakan yang sudah sah.
+      // Tapi TIDAK ditelan — rantai notifikasi pernah putus berbulan-bulan
+      // tanpa satu pun gejala (Web Push, 2026-08-01), dan `catch {}` adalah
+      // persis tempat gejala itu seharusnya muncul.
+      request.log.error({ err }, 'notifikasi gagal dikirim')
+    }
 
     return reply.status(201).send({ payment, invoiceStatus: newStatus })
   })

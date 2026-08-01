@@ -73,6 +73,14 @@ jobs:
       - name: Penulisan senyap (update/delete/insert tanpa cek hasil)
         run: node scripts/audit-tulis-tanpa-periksa.mjs
 
+      # `catch {}` kosong membuang justru pesan yang dibutuhkan untuk menemukan
+      # sebab kegagalan. 18 di antaranya membungkus pengiriman notifikasi — dan
+      # rantai Web Push di repo ini PUTUS berbulan-bulan tanpa satu pun gejala,
+      # karena orang yang tak menerima notifikasi tak tahu ada yang seharusnya
+      # datang. Ambang NOL: perbaikannya satu baris log.
+      - name: Catch senyap (error ditelan tanpa jejak)
+        run: node scripts/audit-catch-senyap.mjs
+
       # `to_regclass('nama')` tanpa skema mengikuti search_path, dan pencarian
       # itu MENEMBUS ke schema lain. Guard yang bermaksud "objek ini ada di
       # sini?" jadi menjawab "ada di mana pun?" — di production keduanya sama,

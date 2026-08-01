@@ -288,7 +288,13 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
                 invoice: { id: inv.id, project_id: inv.project_id, total_amount: inv.total_amount, due_date: inv.due_date, penalty_waived: inv.penalty_waived },
                 project: proj, paidDate: paid_at, createdBy: currentUser.id,
               })
-            } catch { /* never block */ }
+            } catch (err) {
+              // best-effort: notifikasi tak boleh membatalkan tindakan yang sudah sah.
+              // Tapi TIDAK ditelan — rantai notifikasi pernah putus berbulan-bulan
+              // tanpa satu pun gejala (Web Push, 2026-08-01), dan `catch {}` adalah
+              // persis tempat gejala itu seharusnya muncul.
+              request.log.error({ err }, 'notifikasi gagal dikirim')
+            }
           })()
         }
       }

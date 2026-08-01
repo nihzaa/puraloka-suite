@@ -687,7 +687,13 @@ export default async function procurementRoutes(app: FastifyInstance) {
         type: 'general' as const, priority: 'normal' as const,
         action_url: `/procurement/requests/${id}`,
       })))
-    } catch { /* ignore */ }
+    } catch (err) {
+      // best-effort: notifikasi tak boleh membatalkan tindakan yang sudah sah.
+      // Tapi TIDAK ditelan — rantai notifikasi pernah putus berbulan-bulan
+      // tanpa satu pun gejala (Web Push, 2026-08-01), dan `catch {}` adalah
+      // persis tempat gejala itu seharusnya muncul.
+      request.log.error({ err }, 'notifikasi gagal dikirim')
+    }
 
     return { success: true }
   })
@@ -780,7 +786,13 @@ export default async function procurementRoutes(app: FastifyInstance) {
         type: 'general' as const, priority: 'normal' as const,
         action_url: `/procurement/requests/${id}`,
       })
-    } catch { /* ignore */ }
+    } catch (err) {
+      // best-effort: notifikasi tak boleh membatalkan tindakan yang sudah sah.
+      // Tapi TIDAK ditelan — rantai notifikasi pernah putus berbulan-bulan
+      // tanpa satu pun gejala (Web Push, 2026-08-01), dan `catch {}` adalah
+      // persis tempat gejala itu seharusnya muncul.
+      request.log.error({ err }, 'notifikasi gagal dikirim')
+    }
 
     return { success: true }
   })

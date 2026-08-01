@@ -426,7 +426,13 @@ export default async function projectRoutes(app: FastifyInstance) {
           action_type: 'view_project',
           action_data: { project_id: id, new_status: status },
         })))
-      } catch { /* ignore */ }
+      } catch (err) {
+        // best-effort: notifikasi tak boleh membatalkan tindakan yang sudah sah.
+        // Tapi TIDAK ditelan — rantai notifikasi pernah putus berbulan-bulan
+        // tanpa satu pun gejala (Web Push, 2026-08-01), dan `catch {}` adalah
+        // persis tempat gejala itu seharusnya muncul.
+        request.log.error({ err }, 'notifikasi gagal dikirim')
+      }
     }
 
     return { project: data }
