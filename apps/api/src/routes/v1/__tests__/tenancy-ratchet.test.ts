@@ -62,7 +62,7 @@ const DIR_ROUTES = join(import.meta.dirname, '..', '..')
  * Yang MASIH hutang: akses mentah pada tabel kategori C di rute yang
  * `projectId`-nya sudah diketahui. Itu yang harus terus turun.
  */
-// 468 → 459 → 458 → 426 → 403 → 386 (2026-08-02).
+// 468 → 459 → 458 → 426 → 403 → 386 → 380 (2026-08-02).
 //
 // Gelombang ini: 23 query di empat berkas yang polanya paling seragam —
 // `rab-schedule` (7), `progress` (10), `documents` (5), `rab` (1). Semuanya
@@ -78,7 +78,7 @@ const DIR_ROUTES = join(import.meta.dirname, '..', '..')
 // menyentuh UANG, jadi tiap lokasi diperiksa gerbangnya satu per satu alih-alih
 // disapu — beberapa query di `cash` MENDAHULUI gerbangnya (resolusi id dulu,
 // validasi kemudian), dan itu pola sah yang `viaProject` tak cocok.
-const AMBANG_SUPABASE_MENTAH = 386
+const AMBANG_SUPABASE_MENTAH = 380
 
 function hitungSupabaseMentah(): { total: number; perFile: Record<string, number> } {
   const perFile: Record<string, number> = {}

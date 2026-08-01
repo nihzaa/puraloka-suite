@@ -1,6 +1,5 @@
 import type { FastifyInstance } from 'fastify'
 import { proyekMilikTenant } from '../../utils/tenant-guard.js'
-import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { createNotifications } from '../../utils/notifications.js'
 import { resolveRecipients } from '../../utils/notification-routing.js'
@@ -17,8 +16,8 @@ export default async function milestoneRoutes(app: FastifyInstance) {
         return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
       }
 
-      const { data, error } = await supabase
-        .from('milestones')
+      const { data, error } = await request.db!
+        .viaProject('milestones', projectId)
         .select(`
           id,
           project_id,
@@ -82,8 +81,8 @@ export default async function milestoneRoutes(app: FastifyInstance) {
       }
       if (sort_order !== undefined) insertPayload.sort_order = sort_order
 
-      const { data, error } = await supabase
-        .from('milestones')
+      const { data, error } = await request.db!
+        .viaProject('milestones', projectId)
         .insert(insertPayload)
         .select(`
           id,
@@ -142,8 +141,8 @@ export default async function milestoneRoutes(app: FastifyInstance) {
       if (status !== undefined)      updates.status       = status
       if (sort_order !== undefined)  updates.sort_order   = sort_order
 
-      const { data, error } = await supabase
-        .from('milestones')
+      const { data, error } = await request.db!
+        .viaProject('milestones', projectId)
         .update(updates)
         .eq('id', milestoneId)
         .eq('project_id', projectId)
@@ -209,8 +208,8 @@ export default async function milestoneRoutes(app: FastifyInstance) {
         return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
       }
 
-      const { error } = await supabase
-        .from('milestones')
+      const { error } = await request.db!
+        .viaProject('milestones', projectId)
         .delete()
         .eq('id', milestoneId)
         .eq('project_id', projectId)

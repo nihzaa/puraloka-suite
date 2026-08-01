@@ -99,8 +99,8 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
       }
       const { status } = request.query
 
-      let q = supabase
-        .from('change_orders')
+      let q = request.db!
+        .viaProject('change_orders', projectId)
         .select(CO_SELECT)
         .eq('project_id', projectId)
         .order('created_at', { ascending: false })
@@ -180,8 +180,8 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
 
       const coNumber = await generateCoNumber(projectId)
 
-      const { data, error } = await supabase
-        .from('change_orders')
+      const { data, error } = await request.db!
+        .viaProject('change_orders', projectId)
         .insert({
           project_id:   projectId,
           co_number:    coNumber,

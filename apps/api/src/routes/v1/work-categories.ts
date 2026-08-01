@@ -1,5 +1,4 @@
 import type { FastifyInstance } from 'fastify'
-import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { normalizeCategoryCode, validateCategoryInput } from '../../lib/work-categories.js'

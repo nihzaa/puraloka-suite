@@ -34,7 +34,10 @@ import { ESLint } from 'eslint'
 const AMBANG = {
   // 227 → 226 (ErrorMasuk di index.ts) → 225 (EmbedScope di mandor.ts), 2026-07-31.
   '@typescript-eslint/no-explicit-any': 225,
-  '@typescript-eslint/no-unused-vars': 16,
+  // 16 → 10 (2026-08-02): tujuh impor `supabase` yatim, sisa dari migrasi
+  // bertahap ke `request.db`. Enam sudah yatim sebelum hari ini; yang ketujuh
+  // (`milestones`) baru menjadi yatim saat seluruh query-nya dialihkan.
+  '@typescript-eslint/no-unused-vars': 10,
 }
 
 /** Rule apa pun DI LUAR daftar di atas harus NOL — termasuk rule baru. */
