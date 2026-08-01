@@ -734,8 +734,8 @@ export default async function rabRoutes(app: FastifyInstance) {
         errorMsg: string
       ): Promise<string | null> {
         if (batch.length === 0) return null
-        const { data: inserted, error } = await supabase
-          .from('rab_items')
+        const { data: inserted, error } = await request.db!
+          .viaProject('rab_items', projectId)
           .insert(batch.map(({ r }) => ({
             project_id:    projectId,
             level:         r.level,

@@ -1,6 +1,5 @@
 import type { FastifyInstance } from 'fastify'
 import { proyekMilikTenant } from '../../utils/tenant-guard.js'
-import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 
 /**
@@ -41,8 +40,8 @@ export default async function rabScheduleRoutes(app: FastifyInstance) {
         return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
       }
 
-      const { data, error } = await supabase
-        .from('rab_schedule')
+      const { data, error } = await request.db!
+        .viaProject('rab_schedule', projectId)
         .select(`
           id, rab_item_id, week_start, week_number,
           material_pct, upah_pct, alat_pct, other_pct, notes,
@@ -143,8 +142,8 @@ export default async function rabScheduleRoutes(app: FastifyInstance) {
         updated_at:   new Date().toISOString(),
       }
 
-      const { data, error } = await supabase
-        .from('rab_schedule')
+      const { data, error } = await request.db!
+        .viaProject('rab_schedule', projectId)
         .upsert(row, { onConflict: 'rab_item_id,week_start' })
         .select()
         .single()
@@ -191,8 +190,8 @@ export default async function rabScheduleRoutes(app: FastifyInstance) {
         return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
       }
 
-      const { data, error } = await supabase
-        .from('rab_absorption_log')
+      const { data, error } = await request.db!
+        .viaProject('rab_absorption_log', projectId)
         .select(`
           id, rab_item_id, week_start, week_number,
           material_pct, upah_pct, alat_pct, other_pct, notes,
@@ -221,8 +220,8 @@ export default async function rabScheduleRoutes(app: FastifyInstance) {
         return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
       }
 
-      const { data, error } = await supabase
-        .from('rab_absorption_log')
+      const { data, error } = await request.db!
+        .viaProject('rab_absorption_log', projectId)
         .select(`
           id, week_start, week_number,
           material_pct, upah_pct, alat_pct, other_pct, notes,
@@ -304,16 +303,16 @@ export default async function rabScheduleRoutes(app: FastifyInstance) {
         const targetTotal = Math.min(100, Math.max(0, Number(body.total_pct)))
 
         // Baca row existing minggu ini untuk dapat current total
-        const { data: existing } = await supabase
-          .from('rab_absorption_log')
+        const { data: existing } = await request.db!
+          .viaProject('rab_absorption_log', projectId)
           .select('material_pct, upah_pct, alat_pct, other_pct')
           .eq('rab_item_id', body.rab_item_id)
           .eq('week_start', weekStartISO)
           .maybeSingle()
 
         // Kumulatif semua minggu sebelum minggu ini
-        const { data: prevLogs } = await supabase
-          .from('rab_absorption_log')
+        const { data: prevLogs } = await request.db!
+          .viaProject('rab_absorption_log', projectId)
           .select('material_pct, upah_pct, alat_pct, other_pct')
           .eq('rab_item_id', body.rab_item_id)
           .lt('week_start', weekStartISO)
@@ -370,8 +369,8 @@ export default async function rabScheduleRoutes(app: FastifyInstance) {
         updated_at:   new Date().toISOString(),
       }
 
-      const { data, error } = await supabase
-        .from('rab_absorption_log')
+      const { data, error } = await request.db!
+        .viaProject('rab_absorption_log', projectId)
         .upsert(row, { onConflict: 'rab_item_id,week_start' })
         .select()
         .single()

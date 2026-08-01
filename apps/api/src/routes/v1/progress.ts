@@ -114,7 +114,7 @@ export default async function progressRoutes(app: FastifyInstance) {
       // yang SUDAH tersimpan. Ini yang membuat "log tersimpan dulu, foto menyusul"
       // mungkin — mandor bersinyal buruk tak kehilangan laporan hariannya.
       if (progress_log_id) {
-        const { data: photo, error: insErr } = await supabase.from('project_photos').insert({
+        const { data: photo, error: insErr } = await request.db!.viaProject('project_photos', projectId).insert({
           project_id: projectId,
           progress_log_id,
           url,
@@ -154,8 +154,8 @@ export default async function progressRoutes(app: FastifyInstance) {
     const total = count ?? 0
     const totalPages = Math.ceil(total / limit)
 
-    const { data, error } = await supabase
-      .from('progress_logs')
+    const { data, error } = await request.db!
+      .viaProject('progress_logs', projectId)
       .select(`
         id, mode, pct_overall, pct_completion, rab_item_id, weather, worker_count, notes, logged_at, created_at,
         reporter:users!progress_logs_reported_by_fkey ( id, name ),
@@ -222,8 +222,8 @@ export default async function progressRoutes(app: FastifyInstance) {
       }
 
       // Insert progress log mode=detail
-      const { data: log, error: logError } = await supabase
-        .from('progress_logs')
+      const { data: log, error: logError } = await request.db!
+        .viaProject('progress_logs', projectId)
         .insert({
           project_id: projectId,
           reported_by: reportedBy,
@@ -251,8 +251,8 @@ export default async function progressRoutes(app: FastifyInstance) {
       // bawah menghitung ulang dari nilai LAMA, dan seluruh rantai (kategori →
       // proyek → Kurva S → SPI) memakai angka yang salah. API tetap 200, jadi
       // orang mengetik ulang dan mengira dirinya yang keliru.
-      const { error: errItem } = await supabase
-        .from('rab_items')
+      const { error: errItem } = await request.db!
+        .viaProject('rab_items', projectId)
         .update({ progress_pct: pct, updated_at: new Date().toISOString() })
         .eq('id', body.rab_item_id)
       if (errItem) {
@@ -299,12 +299,12 @@ export default async function progressRoutes(app: FastifyInstance) {
           taken_at: p.taken_at ?? null,
           uploaded_by: reportedBy,
         }))
-        const { error: photoError } = await supabase.from('project_photos').insert(photoRows)
+        const { error: photoError } = await request.db!.viaProject('project_photos', projectId).insert(photoRows)
         if (photoError) app.log.error({ photoError }, 'Failed to insert photos')
       }
 
-      const { data: fullLog } = await supabase
-        .from('progress_logs')
+      const { data: fullLog } = await request.db!
+        .viaProject('progress_logs', projectId)
         .select(`
           id, mode, pct_overall, pct_completion, rab_item_id, weather, worker_count, notes, logged_at, created_at,
           reporter:users!progress_logs_reported_by_fkey ( id, name ),
@@ -327,8 +327,8 @@ export default async function progressRoutes(app: FastifyInstance) {
       }
     }
 
-    const { data: log, error: logError } = await supabase
-      .from('progress_logs')
+    const { data: log, error: logError } = await request.db!
+      .viaProject('progress_logs', projectId)
       .insert({
         project_id: projectId,
         reported_by: reportedBy,
@@ -358,12 +358,12 @@ export default async function progressRoutes(app: FastifyInstance) {
         taken_at: p.taken_at ?? null,
         uploaded_by: reportedBy,
       }))
-      const { error: photoError } = await supabase.from('project_photos').insert(photoRows)
+      const { error: photoError } = await request.db!.viaProject('project_photos', projectId).insert(photoRows)
       if (photoError) app.log.error({ photoError }, 'Failed to insert project_photos')
     }
 
-    const { data: fullLog, error: fetchError } = await supabase
-      .from('progress_logs')
+    const { data: fullLog, error: fetchError } = await request.db!
+      .viaProject('progress_logs', projectId)
       .select(`
         id, mode, pct_overall, pct_completion, rab_item_id, weather, worker_count, notes, logged_at, created_at,
         reporter:users!progress_logs_reported_by_fkey ( id, name ),
@@ -407,8 +407,8 @@ export default async function progressRoutes(app: FastifyInstance) {
       return reply.status(403).send({ error: 'Akses ditolak' })
     }
 
-    const { error: deleteError } = await supabase
-      .from('progress_logs')
+    const { error: deleteError } = await request.db!
+      .viaProject('progress_logs', projectId)
       .delete()
       .eq('id', logId)
 

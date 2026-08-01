@@ -62,7 +62,18 @@ const DIR_ROUTES = join(import.meta.dirname, '..', '..')
  * Yang MASIH hutang: akses mentah pada tabel kategori C di rute yang
  * `projectId`-nya sudah diketahui. Itu yang harus terus turun.
  */
-const AMBANG_SUPABASE_MENTAH = 426
+// 468 → 459 → 458 → 426 → 403 (2026-08-02).
+//
+// Gelombang ini: 23 query di empat berkas yang polanya paling seragam —
+// `rab-schedule` (7), `progress` (10), `documents` (5), `rab` (1). Semuanya
+// tabel kategori C di rute yang `projectId`-nya SUDAH diverifikasi
+// `proyekMilikTenant()` beberapa baris di atas, jadi `viaProject()` menyatakan
+// hal yang sama dengan cara yang tak bisa lupa.
+//
+// Satu perlu penyesuaian: `documents` access-log memakai `documentId`, bukan
+// `projectId` — sumbernya `docTenant.project_id` yang sudah divalidasi. tsc
+// yang menangkapnya, bukan review.
+const AMBANG_SUPABASE_MENTAH = 403
 
 function hitungSupabaseMentah(): { total: number; perFile: Record<string, number> } {
   const perFile: Record<string, number> = {}

@@ -139,8 +139,8 @@ export default async function documentRoutes(app: FastifyInstance) {
 
       const fileUrl = urlData?.signedUrl ?? storagePath
 
-      const { data, error } = await supabase
-        .from('documents')
+      const { data, error } = await request.db!
+        .viaProject('documents', projectId)
         .insert({
           project_id:           projectId,
           title:                title.trim(),
@@ -186,8 +186,8 @@ export default async function documentRoutes(app: FastifyInstance) {
       // ini dulu hanya menyaring `documentId` — artinya penyerang yang memang
       // punya satu proyek sah bisa lolos gerbang lalu menyebut documentId milik
       // tenant lain. Filter kepemilikan HARUS ada di query yang memutasi.
-      const { data, error } = await supabase
-        .from('documents')
+      const { data, error } = await request.db!
+        .viaProject('documents', projectId)
         .update(updateFields)
         .eq('id', documentId)
         .eq('project_id', projectId)
@@ -236,7 +236,7 @@ export default async function documentRoutes(app: FastifyInstance) {
       // Fire-and-forget, tidak pernah throw ke caller
       ;(async () => {
         try {
-          await supabase.from('document_access_logs').insert({
+          await request.db!.viaProject('document_access_logs', docTenant.project_id).insert({
             document_id: documentId,
             user_id:     request.currentUser!.id,
             action,
@@ -260,8 +260,8 @@ export default async function documentRoutes(app: FastifyInstance) {
         return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
       }
 
-      const { data: doc, error: fetchError } = await supabase
-        .from('documents')
+      const { data: doc, error: fetchError } = await request.db!
+        .viaProject('documents', projectId)
         .select('id, file_url')
         .eq('id', documentId)
         .eq('project_id', projectId)   // T4g: dokumen HARUS milik proyek di URL
@@ -271,8 +271,8 @@ export default async function documentRoutes(app: FastifyInstance) {
         return reply.status(404).send({ error: 'Dokumen tidak ditemukan' })
       }
 
-      const { error } = await supabase
-        .from('documents')
+      const { error } = await request.db!
+        .viaProject('documents', projectId)
         .delete()
         .eq('id', documentId)
 
