@@ -39,10 +39,27 @@ beforeAll(async () => {
     `SELECT id FROM users WHERE is_active = true LIMIT 1`)).rows[0].id
 
   // Dua proyek — nomor per-proyek hanya bisa diuji dengan lebih dari satu.
-  const p = await c.query(
-    `SELECT id FROM projects WHERE is_deleted = false ORDER BY created_at LIMIT 2`)
-  projectA = p.rows[0].id
-  projectB = p.rows[1]?.id ?? p.rows[0].id
+  //
+  // ⚠️ DIBUAT, bukan diambil dari yang kebetulan ada. Versi pertama mengambil
+  // `LIMIT 2` dari data yang ada dan lulus di dev (5 proyek) tapi MERAH di CI,
+  // yang basisnya bersih dan hanya punya satu proyek. Test yang bergantung
+  // pada data yang kebetulan ada bukan test — ia lulus atau gagal menurut
+  // isi basis data, bukan menurut benar-salahnya kode.
+  projectA = (await c.query(
+    `SELECT id FROM projects WHERE is_deleted = false ORDER BY created_at LIMIT 1`)).rows[0].id
+
+  // Kolom wajib disalin dari proyek induk, bukan didaftar dari ingatan —
+  // `location` & `end_date` juga NOT NULL (dicek ke `pg_attribute`), dan
+  // melewatkannya membuat beforeAll gagal sehingga seluruh test SKIPPED,
+  // bukan merah. Gejalanya "12 skipped", yang mudah dibaca sebagai lulus.
+  projectB = (await c.query(
+    `INSERT INTO projects (name, client_id, pm_id, company_id, location,
+                           contract_value, start_date, end_date, status, created_by)
+     SELECT '[UJI] proyek kedua punch', p.client_id, p.pm_id, p.company_id, p.location,
+            0, p.start_date, p.end_date, 'active', $2
+       FROM projects p WHERE p.id = $1
+     RETURNING id`,
+    [projectA, userId])).rows[0].id
 }, 180_000)
 
 afterAll(async () => {
@@ -58,10 +75,9 @@ const buat = (projectId: string, nomor: string, extra = '') =>
 
 describe('Punch List — penomoran per proyek', () => {
   it('dua proyek boleh sama-sama punya PL-001', async () => {
-    if (projectA === projectB) {
-      // Prasyarat tak terpenuhi → katakan, jangan lulus diam-diam.
-      expect.fail('butuh 2 proyek berbeda di dev untuk menguji keunikan per-proyek')
-    }
+    // Prasyarat dijaga, bukan diasumsikan: kalau keduanya proyek yang sama,
+    // test ini lulus tanpa menguji apa pun.
+    expect(projectB, 'proyek kedua tak terbentuk').not.toBe(projectA)
     await c.query('SAVEPOINT s1')
     await buat(projectA, 'PL-001')
     const kedua = await buat(projectB, 'PL-001')
