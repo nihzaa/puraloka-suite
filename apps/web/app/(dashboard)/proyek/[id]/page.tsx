@@ -27,6 +27,7 @@ import { MandorSection } from "@/components/mandor-section";
 import { ChangeOrderSection } from "@/components/change-order-section";
 import { GanttSection } from "@/components/gantt-section";
 import { LookAheadSection } from "@/components/look-ahead-section";
+import { RantaiKontrakSection } from "@/components/rantai-kontrak-section";
 import { PhotoGallery } from "@/components/photo-gallery";
 import { RabScheduleModal, AbsorptionLogModal } from "@/components/rab-schedule-modal";
 import { AbsorptionLogTable } from "@/components/absorption-log-table";
@@ -1391,6 +1392,11 @@ function ProjectDetailContent() {
           muncul persis setelah orang melihat jadwalnya. */}
       <div id="sec-lookahead" className="rise rise-3" style={{ ...card, padding: 24, marginBottom: 20 }}>
         <LookAheadSection projectId={p.id} />
+
+        {/* Rantai kontrak: EOT + denda keterlambatan + jaminan. Ditaruh SESUDAH
+            look-ahead karena keduanya soal WAKTU — dan pertanyaan "apakah kita
+            kena denda?" muncul persis setelah melihat mana yang telat. */}
+        <RantaiKontrakSection projectId={p.id} />
       </div>
 
       {/* ── Change Order ── */}

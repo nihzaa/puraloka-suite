@@ -1,6 +1,6 @@
 # STATUS — Puraloka Suite (penunjuk satu pintu)
 
-**Diperbarui:** 2026-08-01 (rev-9: ROADMAP #23 aset & alat PENUH — migrasi 149/150/151; 4 tabel sempat MATI TOTAL, tertangkap penjaga t5a/t7 · rev-8: SCOPE DIPERLUAS — ERP lengkap+terintegrasi+AI, lihat `docs/KEPUTUSAN-SCOPE-ERP-AI.md`) · rev-7 2026-07-31: 8 celah tenancy ditutup + gerbangnya jadi gate CI · 296 pelanggaran WCAG ditutup + penjaga a11y · PV EVM berjenjang dari tanggal Gantt · buku migrasi direkonsiliasi (20 migrasi tak tercatat)) · File ini adalah `STATUS.md` yang diwajibkan AUTOPILOT §2
+**Diperbarui:** 2026-08-01 (rev-10: ROADMAP #16 rantai kontrak — EOT + LD arah kontraktor + register jaminan, migrasi 152; peringatan "091 arahnya terbalik" terkonfirmasi & ditutup · rev-9: ROADMAP #23 aset & alat PENUH — migrasi 149/150/151; 4 tabel sempat MATI TOTAL, tertangkap penjaga t5a/t7 · rev-8: SCOPE DIPERLUAS — ERP lengkap+terintegrasi+AI, lihat `docs/KEPUTUSAN-SCOPE-ERP-AI.md`) · rev-7 2026-07-31: 8 celah tenancy ditutup + gerbangnya jadi gate CI · 296 pelanggaran WCAG ditutup + penjaga a11y · PV EVM berjenjang dari tanggal Gantt · buku migrasi direkonsiliasi (20 migrasi tak tercatat)) · File ini adalah `STATUS.md` yang diwajibkan AUTOPILOT §2
 — penunjuk TIPIS, bukan duplikasi konten. Update tanggal + baris "Fase aktif" setiap
 kali keadaan berubah; detail selalu di dokumen rujukan.
 

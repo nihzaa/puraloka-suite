@@ -89,9 +89,9 @@ lapisan mana yang sudah ada.
 | Retensi (retention) | ✅ | `retention_pct` + trigger amount + potongan invoice + `invoice_type='retention_release'` + config 087. Kurang: register/jadwal pelepasan |
 | **Change Order / Variation Order** | ✅ | Lengkap: CRUD + items + submit + approve berjenjang (engine ADR-007) + baseline snapshot + update `contract_value` + audit critical |
 | Claims management | 🔴 | |
-| Extension of Time (EOT) | 🔴 | CO tidak punya dimensi waktu |
-| Denda keterlambatan (LD) | 🟡 | ⚠️ **ARAH TERBALIK**: penalty engine 091 = denda KLIEN telat bayar invoice. LD kontraktor-telat-selesai (yang diminta tender pemerintah) = 🔴 |
-| Bank garansi & bond register | 🔴 | |
+| Extension of Time (EOT) | ✅ | **2026-08-01** (migrasi 152): `contract_eot` + ajukan/setujui/tolak + UI. `days_approved` (bukan `days_requested`) yang menggeser tanggal — kalau tidak, kontraktor menentukan tenggatnya sendiri |
+| Denda keterlambatan (LD) | ✅ | **2026-08-01** (migrasi 152) — ~~arah terbalik~~ **DITUTUP**. Kini ADA DUA arah dan sengaja terpisah: 091 = klien telat BAYAR · 152 = kontraktor telat SELESAI. Dihitung dari tanggal **efektif sesudah EOT**, bukan `end_date` mentah. DEFAULT OFF; capability waiver-nya terpisah (`contract:ld:waive` vs `finance:penalty:waive`) — memaafkan denda klien dan denda sendiri adalah dua wewenang berbeda |
+| Bank garansi & bond register | ✅ | **2026-08-01** (migrasi 152): `contract_bonds` 4 jenis (penawaran/pelaksanaan/uang muka/pemeliharaan) + peringatan kadaluarsa ≤30 hari. Jaminan kadaluarsa tanpa diperpanjang = uang hilang, jadi yang ditonjolkan bukan totalnya melainkan yang segera jatuh tempo |
 | Register asuransi | 🔴 | |
 | Surat masuk/keluar (correspondence) | 🔴 | |
 | Kontrak subkontraktor | 🟡 | `work_scopes` + rencana signing internal (Modul 11b ERP_MASTER_PLAN) |
