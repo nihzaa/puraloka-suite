@@ -49,6 +49,7 @@ import lessonsLearnedRoutes from './routes/v1/lessons-learned.js'
 import bidRoutes from './routes/v1/bids.js'
 import assetRoutes from './routes/v1/assets.js'
 import rantaiKontrakRoutes from './routes/v1/rantai-kontrak.js'
+import wipRoutes from './routes/v1/wip.js'
 import { supabase } from './utils/supabase.js'
 import { registerObservability } from './utils/observability.js'
 
@@ -277,6 +278,7 @@ await app.register(lessonsLearnedRoutes)
 await app.register(bidRoutes)
 await app.register(assetRoutes)
 await app.register(rantaiKontrakRoutes)
+await app.register(wipRoutes)
 
 const PORT = Number(process.env.PORT) || 3001
 

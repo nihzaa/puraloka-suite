@@ -283,7 +283,7 @@ sebagai kategori B/C. 045 dibiarkan di tempatnya — riwayat tak diubah.
 | Multi-currency & revaluasi FX | ⛔ | Dicoret owner |
 | Transaksi antar-perusahaan | ⛔ | Relevan lagi hanya jika multi-company terpicu |
 | **Laporan keuangan** | 🟡 | Arus kas ✅; Neraca & L/R 🔴 (rekomendasi: eksternal) |
-| **Pengakuan pendapatan / persentase penyelesaian (PSAK)** | 🔴 | Acuan PSAK (bukan IFRS 15). Tanpa ini L/R kontraktor tidak bermakna — lihat Lima Pembeda |
+| **Pengakuan pendapatan / persentase penyelesaian (PSAK)** | ✅ | **2026-08-01** (ROADMAP #15): `lib/wip-psak.ts` + `GET /reports/wip` + tab **WIP / Pengakuan** di Laporan. Dua metode berdampingan — cost-to-cost (standar audit) & fisik; selisih besar = sinyal, bukan bug. **CIE/BIE dipisah** (aset vs liabilitas, tak saling menghapus). Kerugian diakui SEKARANG sesuai PSAK. ⚠️ Ini **laporan, bukan jurnal** — belum masuk buku besar (menunggu Modul 10 GL) |
 | Tutup buku periode | 🔴 | Eksternal |
 | Audit trail | ✅ | + correlation_id + severity + diff + **append-only AKTIF**. ~~Gap: trigger 073 dorman~~ **KELIRU, dikoreksi 2026-08-01**: `trg_audit_logs_no_update` & `trg_audit_logs_no_delete` `tgenabled='O'` di DB — di-apply via PR #13 (`d9ea114`) setelah founder menyetujui. Klaim "dorman" berasal dari komentar di berkas migrasi 073 yang tak pernah diperbarui setelah gerbangnya dibuka |
 

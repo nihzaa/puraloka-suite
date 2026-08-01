@@ -40,8 +40,18 @@ import { agregasiVarians, type CostCodeRef } from '../../lib/varians-cost-code.j
 /** Status PO yang mengikat anggaran. `draft`/`cancelled` sengaja di luar. */
 const PO_MENGIKAT = ['sent', 'confirmed', 'partially_received', 'fully_received']
 
-/** Status belanja yang sudah menjadi biaya nyata. */
-const EXPENSE_TERPAKAI = ['approved', 'paid']
+/**
+ * Status belanja yang sudah menjadi biaya nyata.
+ *
+ * ⚠️ Sebelum 2026-08-01 daftar ini berisi `['approved','paid']`. Enum
+ * `expense_status` hanya punya draft/submitted/approved/rejected — **tak ada
+ * 'paid'**, jadi nilai itu tak pernah cocok apa pun. Hasilnya kebetulan benar,
+ * tapi polanya menyesatkan: ia mengajarkan bahwa 'paid' adalah status yang sah,
+ * dan penyalinan berikutnya bisa memakainya di tempat yang berakibat.
+ *
+ * Diverifikasi ke `pg_enum`, bukan disalin dari kode yang ada.
+ */
+const EXPENSE_TERPAKAI = ['approved']
 
 export default async function costControlRoutes(app: FastifyInstance) {
   // ── GET /cost-codes — registry untuk dropdown pemetaan ────────────────────

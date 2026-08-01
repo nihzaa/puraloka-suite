@@ -94,33 +94,65 @@ export default async function kurvaSRoutes(app: FastifyInstance) {
           .eq('status', 'approved')
           .order('kasbon_date'),
 
-        // Project expenses approved/paid (pembelian material, sewa alat, dll)
+        // Project expenses approved (pembelian material, sewa alat, dll)
+        //
+        // ⚠️ DIPERBAIKI 2026-08-01 — dua cacat yang membuat query ini SELALU
+        // GAGAL, dan kegagalannya tak pernah berbunyi:
+        //
+        //   1. `.select('amount')` — kolomnya `total_amount`. PostgREST membalas
+        //      "column project_expenses.amount does not exist", `data` jadi null,
+        //      dan loop di bawah (`for (const e of expenseRes.data ?? [])`)
+        //      diam-diam melewati NOL baris.
+        //   2. `.in('status', ['approved','paid'])` — enum `expense_status`
+        //      hanya punya draft/submitted/approved/rejected. Tak ada 'paid'.
+        //
+        // Akibatnya `project_expenses` TAK PERNAH masuk AC sejak baris ini
+        // ditulis: **Rp 631,7 juta di 70 baris** hilang dari perhitungan (satu
+        // proyek sendirian kehilangan Rp 477 jt). CPI karena itu terlalu
+        // optimis — biaya terlihat lebih kecil dari kenyataan, dan proyek yang
+        // sebenarnya boros terlihat sehat.
+        //
+        // Ditemukan saat membangun WIP (#15): Postgres langsung menolak filter
+        // status yang sama, sementara PostgREST hanya memulangkan error di
+        // field `error` yang tak pernah diperiksa. Pelajarannya: `?? []` pada
+        // hasil query mengubah KEGAGALAN jadi HASIL KOSONG yang terlihat sah.
         supabase
           .from('project_expenses')
-          .select('amount, expense_date')
+          .select('total_amount, expense_date')
           .eq('project_id', projectId)
-          .in('status', ['approved', 'paid'])
+          .eq('status', 'approved')
           .order('expense_date'),
 
-        // Wage reports paid (upah mandor mingguan yang sudah dibayar)
+        // Upah harian mandor.
+        // ⚠️ DIPERBAIKI 2026-08-01 — cacat yang sama dengan project_expenses:
+        // kolomnya `total_amount`/`work_date`, bukan `total_wage`/`log_date`,
+        // dan tabel ini TAK PUNYA kolom `status` sama sekali (upah tercatat =
+        // upah terjadi). Ketiga kesalahan itu membuat query selalu gagal.
         supabase
           .from('daily_wage_logs')
-          .select('total_wage, log_date, work_scopes!inner(mandor_assignments!inner(project_id))')
+          .select('total_amount, work_date, work_scopes!inner(mandor_assignments!inner(project_id))')
           .eq('work_scopes.mandor_assignments.project_id', projectId)
-          .eq('status', 'paid')
-          .order('log_date'),
+          .order('work_date'),
 
-        // Progress payments (bayar per persentase ke mandor)
+        // Progress payments (bayar per persentase ke mandor).
+        // ⚠️ `net_payment`/`paid_at`, bukan `amount`/`payment_date`.
+        // `net_payment` (bukan `gross_payment`) karena kasbon yang dipotong
+        // sudah masuk AC lewat jalurnya sendiri — memakai gross akan
+        // menghitung uang yang sama dua kali.
         supabase
           .from('progress_payments')
-          .select('amount, payment_date, work_scopes!inner(mandor_assignments!inner(project_id))')
+          .select('net_payment, paid_at, work_scopes!inner(mandor_assignments!inner(project_id))')
           .eq('work_scopes.mandor_assignments.project_id', projectId)
-          .order('payment_date'),
+          .order('paid_at'),
 
-        // Borongan settlements (settlement akhir mandor borongan)
+        // Settlement akhir borongan.
+        // ⚠️ `remaining_balance`/`settled_at`, bukan `net_settlement`/
+        // `settlement_date`. `remaining_balance` = sisa yang benar-benar
+        // dibayar setelah kasbon & progress payment dipotong — dua-duanya
+        // sudah masuk AC lewat jalur masing-masing.
         supabase
           .from('borongan_settlements')
-          .select('net_settlement, settlement_date, work_scopes!inner(mandor_assignments!inner(project_id))')
+          .select('remaining_balance, settled_at, work_scopes!inner(mandor_assignments!inner(project_id))')
           .eq('work_scopes.mandor_assignments.project_id', projectId)
           .order('settlement_date'),
       ])
@@ -271,23 +303,55 @@ export default async function kurvaSRoutes(app: FastifyInstance) {
       }
 
       // Project expenses (pembelian material, sewa alat, dll)
+      //
+      // Kegagalan query TIDAK boleh lagi lewat diam-diam sebagai "nol baris".
+      // Itulah yang menyembunyikan Rp 631,7 juta selama ini — lihat catatan di
+      // blok query. AC yang kekurangan biaya membuat CPI terlihat sehat pada
+      // proyek yang justru boros, dan tak ada gejala apa pun yang muncul.
+      if (expenseRes.error) {
+        request.log.error({ err: expenseRes.error, projectId },
+          'gagal memuat project_expenses untuk AC — angka CPI/SPI akan kekurangan biaya')
+      }
       for (const e of (expenseRes.data ?? [])) {
-        acEntries.push({ amount: Number(e.amount), date: e.expense_date })
+        acEntries.push({ amount: Number(e.total_amount), date: e.expense_date })
       }
 
-      // Wage reports / daily wage logs yang sudah dibayar
+      // Upah harian mandor — nama kolom diperbaiki 2026-08-01, lihat blok query.
+      if (wageRes.error) {
+        request.log.error({ err: wageRes.error, projectId },
+          'gagal memuat daily_wage_logs untuk AC — angka CPI/SPI akan kekurangan biaya')
+      }
       for (const w of (wageRes.data ?? [])) {
-        acEntries.push({ amount: Number(w.total_wage), date: (w as Record<string, unknown>).log_date as string })
+        acEntries.push({
+          amount: Number((w as Record<string, unknown>).total_amount),
+          date: (w as Record<string, unknown>).work_date as string,
+        })
       }
 
-      // Progress payments (bayar per % ke mandor)
+      // Progress payments (bayar per % ke mandor) — `net_payment`, bukan gross:
+      // kasbon yang dipotong sudah masuk AC lewat jalurnya sendiri.
+      if (progressPayRes.error) {
+        request.log.error({ err: progressPayRes.error, projectId },
+          'gagal memuat progress_payments untuk AC — angka CPI/SPI akan kekurangan biaya')
+      }
       for (const p of (progressPayRes.data ?? [])) {
-        acEntries.push({ amount: Number(p.amount), date: (p as Record<string, unknown>).payment_date as string })
+        acEntries.push({
+          amount: Number((p as Record<string, unknown>).net_payment),
+          date: (p as Record<string, unknown>).paid_at as string,
+        })
       }
 
-      // Borongan settlements
+      // Settlement borongan — `remaining_balance` = sisa yang benar-benar
+      // dibayar setelah kasbon & progress payment dipotong.
+      if (boronganRes.error) {
+        request.log.error({ err: boronganRes.error, projectId },
+          'gagal memuat borongan_settlements untuk AC — angka CPI/SPI akan kekurangan biaya')
+      }
       for (const b of (boronganRes.data ?? [])) {
-        acEntries.push({ amount: Number(b.net_settlement), date: (b as Record<string, unknown>).settlement_date as string })
+        acEntries.push({
+          amount: Number((b as Record<string, unknown>).remaining_balance),
+          date: (b as Record<string, unknown>).settled_at as string,
+        })
       }
 
       // Bin ke dalam slot minggu

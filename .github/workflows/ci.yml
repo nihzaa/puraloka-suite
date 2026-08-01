@@ -56,6 +56,15 @@ jobs:
       - name: Gerbang tenancy (rute tanpa saringan tenant tak boleh bertambah)
         run: node scripts/audit-gerbang-tenancy.mjs
 
+      # `?? []` pada hasil query mengubah KEGAGALAN jadi HASIL KOSONG yang
+      # terlihat sah. Bukan hipotetis: kurva-s.ts kehilangan Rp 631,7 juta dari
+      # AC selama berbulan-bulan karena `.select('amount')` (kolomnya
+      # `total_amount`) gagal, lalu `?? []` menelan errornya — nol gejala,
+      # laporan tetap terbit, hanya CPI yang terlalu optimis.
+      # Ratchet: jumlahnya boleh turun, tak boleh naik.
+      - name: Kegagalan senyap (query yang errornya tak pernah dilihat)
+        run: node scripts/audit-kegagalan-senyap.mjs
+
       # Apply-pending migrasi + seed uji ke project CI (idempoten: skip yang sudah
       # applied, apply yang baru, re-seed jika hilang). BUKAN push-semua tiap run.
       - name: Prepare CI project (apply pending migrations + seed)

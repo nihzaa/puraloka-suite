@@ -61,12 +61,18 @@ BEGIN
 
   -- Menu yang menuntut permission yang tak dipegang SIAPA PUN sama saja dengan
   -- tak ada menu — dan itu gagal dalam diam. Diperiksa, bukan diandaikan.
+  --
+  -- ⚠️ NOTICE, bukan EXCEPTION. Di project CI migrasi berjalan SEBELUM seed,
+  -- jadi `roles`/`role_permissions` bisa kosong dan angka ini nol tanpa ada
+  -- yang salah. Menggagalkan migrasi di situ = seluruh CI merah karena urutan
+  -- langkah, bukan karena cacat (pelajaran run 30686035846). Yang dijaga keras
+  -- tetap: baris menunya sendiri terpasang & aktif.
   SELECT count(DISTINCT rp.role_id) INTO n
     FROM role_permissions rp
     JOIN permissions p ON p.id = rp.permission_id
    WHERE p.key = 'assets:view';
   IF n = 0 THEN
-    RAISE EXCEPTION '151 GAGAL: nol role memegang assets:view — menunya takkan terlihat siapa pun';
+    RAISE NOTICE '151: nol role memegang assets:view — menu takkan terlihat sampai permission di-seed. Periksa bila ini BUKAN lingkungan CI.';
   END IF;
 
   RAISE NOTICE '151 OK: menu Aset & Alat aktif (sort 55), assets:view dipegang % role', n;

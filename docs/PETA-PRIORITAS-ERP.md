@@ -174,9 +174,14 @@ apa-apa untuk skala bisnis — tool eksternal lebih murah dan lebih benar):
 
 ## 6. SKOR LIMA PEMBEDA & LIMA KRITERIA KUALITAS
 
-**Lima pembeda ERP kontraktor** (verifikasi kode — detail di taksonomi):
-cost control berlapis **2/5** · EVM **3.5/5** (taksonomi lama salah tandai 🔴) ·
-WIP/PSAK **0/5** · rekonsiliasi material **1.5/5** · rantai kontrak **2.5/5**.
+**Lima pembeda ERP kontraktor** (verifikasi kode — detail di taksonomi).
+Angka 2026-07-26, **sebagian sudah naik** — diperbarui 2026-08-01:
+cost control berlapis ~~2/5~~ **3/5** · EVM **3.5/5** (taksonomi lama salah
+tandai 🔴; ⚠️ dan AC-nya ternyata kehilangan Rp 631,7 jt sampai diperbaiki
+2026-08-01 — lihat ROADMAP 15b) · WIP/PSAK ~~0/5~~ **4/5** (ROADMAP #15 selesai;
+belum 5/5 karena masih laporan, belum jurnal — menunggu GL) · rekonsiliasi
+material **1.5/5** (gerbang §D7 masih tertutup) · rantai kontrak ~~2.5/5~~
+**4/5** (ROADMAP #16 selesai: EOT + LD + bond).
 Ranking §3 = jalur menaikkan kelimanya: #1/#4/#5/#6 → pembeda 1 & 4; #8 → pembeda 3;
 #3/#9 → pembeda 5; #11 → pembeda 2.
 

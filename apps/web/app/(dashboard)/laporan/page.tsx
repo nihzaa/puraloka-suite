@@ -108,7 +108,7 @@ interface Photo { id: string; url: string; caption: string | null; taken_at: str
 interface Document { id: string; name: string; document_type: string; file_url: string; created_at: string; }
 interface KurvaSPoint { week_number: number; plan_pct: number; actual_pct: number; }
 
-type TabKey = "ringkasan" | "keuangan" | "cashflow" | "mandor" | "pengeluaran" | "progress" | "pajak" | "portofolio";
+type TabKey = "ringkasan" | "keuangan" | "cashflow" | "mandor" | "pengeluaran" | "progress" | "pajak" | "portofolio" | "wip";
 
 interface TaxRecord {
   id: string; tax_type: string; tax_scheme: string; base_amount: number;
@@ -395,6 +395,7 @@ function LaporanContent() {
     // lintas-proyek ("dari 15 proyek, mana yang menggerus margin?"), jadi
     // memaksanya memilih satu proyek dulu akan menghilangkan gunanya.
     { key: "portofolio" as TabKey, label: "Portofolio Biaya",   icon: <BarChart3 size={12} />,     requireFinance: true },
+    { key: "wip"        as TabKey, label: "WIP / Pengakuan",  icon: <Layers size={12} />,        requireFinance: true },
   ] as { key: TabKey; label: string; icon: React.ReactNode; requiresProject?: boolean; requireFinance?: boolean }[]).filter(t => !t.requireFinance || canViewFinance);
 
   return (
@@ -714,6 +715,7 @@ function LaporanContent() {
         )}
 
         {tab === "portofolio" && <PortofolioTab />}
+        {tab === "wip" && <WipTab />}
       </div>
     </div>
   );
@@ -1508,6 +1510,169 @@ function PortofolioTab() {
           </table>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * WIP / PENGAKUAN PENDAPATAN — PSAK 72 (ROADMAP #15).
+ *
+ * ── Kenapa tab ini ada
+ *
+ * Termin ditentukan negosiasi, bukan kemajuan pekerjaan. Tanpa WIP, laporan
+ * bulanan bergerigi tanpa arti: bulan ber-termin besar terlihat sangat untung,
+ * bulan berikutnya terlihat rugi — padahal pekerjaannya berjalan sama.
+ *
+ * ── Yang paling dijaga di tampilan
+ *
+ * **BIE ditonjolkan, bukan disembunyikan di kolom terakhir.** BIE adalah uang
+ * yang sudah diterima untuk pekerjaan yang BELUM ADA — utang, bukan kas. Inilah
+ * sebabnya kontraktor merasa kaya di tengah proyek lalu kehabisan uang di
+ * akhir. Menaruhnya sejajar angka lain membuatnya tak terbaca sebagai peringatan.
+ *
+ * **Keterbatasan di ATAS tabel, bukan catatan kaki.** Catatan kaki tak pernah
+ * dibaca sebelum keputusan diambil — pola sama dengan tab Portofolio.
+ */
+function WipTab() {
+  const [data, setData] = useState<{
+    projectId: string; nama: string; status: string;
+    nilaiKontrak: number; biayaTerjadi: number; totalDitagih: number;
+    persenCostToCost: number | null; persenFisik: number;
+    metode: string; persenDipakai: number | null;
+    pendapatanDiakui: number | null; labaDiakui: number | null; marginPct: number | null;
+    cie: number; bie: number; selisihMetodePoin: number | null; peringatan: string[];
+  }[]>([]);
+  const [meta, setMeta] = useState<{
+    jumlahProyek: number; totalKontrak: number; totalPendapatanDiakui: number;
+    totalBiaya: number; totalLaba: number; totalCIE: number; totalBIE: number;
+    proyekRugi: number; proyekTanpaEstimasiBiaya: number; keterbatasan: string[];
+  } | null>(null);
+  const [memuat, setMemuat] = useState(true);
+  const [galat, setGalat] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.get<{ data: typeof data; meta: NonNullable<typeof meta> }>("/api/v1/reports/wip")
+      .then(r => { setData(r.data.data ?? []); setMeta(r.data.meta); })
+      .catch(() => setGalat("Gagal memuat laporan WIP"))
+      .finally(() => setMemuat(false));
+  }, []);
+
+  if (memuat) return <div style={{ padding: 24, color: C.mid, fontSize: 13 }}>Memuat laporan WIP…</div>;
+  if (galat) return <div style={{ padding: 24, color: C.red, fontSize: 13 }}>{galat}</div>;
+
+  return (
+    <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+      {meta && (
+        <>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <KpiCard label="Pendapatan diakui" value={fmtCompact(meta.totalPendapatanDiakui)}
+              sub={`${meta.jumlahProyek} proyek · kontrak ${fmtCompact(meta.totalKontrak)}`}
+              icon={<Layers size={20} color={C.navy} />} accent={C.navy} />
+            <KpiCard label="Laba diakui" value={fmtCompact(meta.totalLaba)}
+              sub={meta.proyekRugi > 0 ? `${meta.proyekRugi} proyek RUGI` : "tak ada proyek rugi"}
+              icon={<TrendingDown size={20} color={meta.totalLaba >= 0 ? C.green : C.red} />}
+              accent={meta.totalLaba >= 0 ? C.green : C.red} />
+            <KpiCard label="CIE — aset" value={fmtCompact(meta.totalCIE)}
+              sub="pekerjaan sudah jalan, belum ditagih"
+              icon={<FileText size={20} color={C.green} />} accent={C.green} />
+            {/* BIE ditonjolkan: ini utang pekerjaan yang terlihat seperti kas. */}
+            <KpiCard label="BIE — LIABILITAS" value={fmtCompact(meta.totalBIE)}
+              sub="sudah ditagih, pekerjaannya belum ada"
+              icon={<TrendingDown size={20} color={C.red} />} accent={C.red} />
+          </div>
+
+          {/* Keterbatasan DI ATAS tabel — catatan kaki tak pernah dibaca
+              sebelum keputusan diambil. */}
+          <div style={{
+            padding: "12px 14px", borderRadius: 10,
+            background: "var(--warning-bg)", border: "1px solid var(--warning-border)",
+          }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 5 }}>
+              Yang harus diketahui sebelum memakai angka ini
+            </div>
+            {meta.keterbatasan.map((k, i) => (
+              <div key={i} style={{ fontSize: 12, color: C.mid, marginTop: 3, lineHeight: 1.5 }}>• {k}</div>
+            ))}
+          </div>
+        </>
+      )}
+
+      <div style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${C.border}` }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, minWidth: 900 }}>
+          <thead>
+            <tr style={{ background: "var(--surface-subtle)" }}>
+              {["Proyek", "Metode", "%", "Kontrak", "Diakui", "Biaya", "Laba", "CIE", "BIE"].map((h, i) => (
+                <th key={h} scope="col" style={{
+                  padding: "9px 12px", textAlign: i >= 3 ? "right" : "left",
+                  fontSize: 10.5, fontWeight: 700, color: C.mid,
+                  textTransform: "uppercase", letterSpacing: 0.4,
+                  borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap",
+                }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((w) => {
+              const rugi = (w.labaDiakui ?? 0) < 0;
+              return (
+                <tr key={w.projectId} style={{
+                  borderBottom: `1px solid ${C.border}`,
+                  background: rugi ? "var(--danger-bg)" : undefined,
+                }}>
+                  <td style={{ padding: "9px 12px", color: C.text }}>
+                    {w.nama}
+                    {w.peringatan.length > 0 && (
+                      <span style={{ display: "block", fontSize: 10.5, color: C.mid, marginTop: 2 }}>
+                        {w.peringatan[0]}
+                      </span>
+                    )}
+                  </td>
+                  <td style={{ padding: "9px 12px", whiteSpace: "nowrap" }}>
+                    {/* Metode dibedakan TEKS, bukan warna saja — WCAG 1.4.1.
+                        "fisik" lebih lemah di mata auditor, jadi harus terbaca. */}
+                    <span style={{
+                      padding: "2px 8px", borderRadius: 20, fontSize: 10.5, fontWeight: 600,
+                      color: w.metode === "cost_to_cost" ? C.green : C.mid,
+                      background: w.metode === "cost_to_cost" ? "var(--success-bg)" : "var(--surface-subtle)",
+                      border: `1px solid ${w.metode === "cost_to_cost" ? "var(--success-border)" : C.border}`,
+                    }}>
+                      {w.metode === "cost_to_cost" ? "cost-to-cost" : w.metode === "fisik" ? "fisik" : "—"}
+                    </span>
+                  </td>
+                  <td style={{ padding: "9px 12px", color: C.text, whiteSpace: "nowrap" }}>
+                    {w.persenDipakai == null ? "—" : `${w.persenDipakai}%`}
+                  </td>
+                  <td style={{ padding: "9px 12px", textAlign: "right", color: C.mid, whiteSpace: "nowrap" }}>
+                    {fmtCompact(w.nilaiKontrak)}
+                  </td>
+                  <td style={{ padding: "9px 12px", textAlign: "right", fontWeight: 600, color: C.text, whiteSpace: "nowrap" }}>
+                    {w.pendapatanDiakui == null ? "—" : fmtCompact(w.pendapatanDiakui)}
+                  </td>
+                  <td style={{ padding: "9px 12px", textAlign: "right", color: C.mid, whiteSpace: "nowrap" }}>
+                    {fmtCompact(w.biayaTerjadi)}
+                  </td>
+                  <td style={{
+                    padding: "9px 12px", textAlign: "right", fontWeight: 700, whiteSpace: "nowrap",
+                    color: rugi ? C.red : C.text,
+                  }}>
+                    {w.labaDiakui == null ? "—" : fmtCompact(w.labaDiakui)}
+                  </td>
+                  <td style={{ padding: "9px 12px", textAlign: "right", color: w.cie > 0 ? C.green : C.muted, whiteSpace: "nowrap" }}>
+                    {w.cie > 0 ? fmtCompact(w.cie) : "—"}
+                  </td>
+                  <td style={{
+                    padding: "9px 12px", textAlign: "right", whiteSpace: "nowrap",
+                    fontWeight: w.bie > 0 ? 700 : 400,
+                    color: w.bie > 0 ? C.red : C.muted,
+                  }}>
+                    {w.bie > 0 ? fmtCompact(w.bie) : "—"}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
