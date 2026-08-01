@@ -217,9 +217,21 @@
   --warning:          #F59E0B;
   --warning-bg:       rgba(245,158,11,0.10);
   --warning-border:   rgba(245,158,11,0.25);
-  --danger:           #EF4444;
-  --danger-bg:        rgba(239,68,68,0.10);
-  --danger-border:    rgba(239,68,68,0.25);
+  /* #EF4444 sampai 2026-08-01 — GAGAL WCAG AA di mode gelap: 4,47 di
+   * --surface, 4,04 di --surface-raised, 3,83 di --surface-hover. Syaratnya
+   * 4,5:1.
+   *
+   * Lolos berbulan-bulan karena audit axe 2026-07-31 hanya menjalankan MODE
+   * TERANG — mode gelap tak pernah ikut diaudit sama sekali. Ditemukan oleh
+   * `kontras-ratchet.mjs` pada jalan PERTAMANYA, yang menghitung dari token
+   * alih-alih dari halaman ter-render.
+   *
+   * #F87171 (merah 400) lulus di SELURUH latar gelap: 6,08 surface · 6,82 bg ·
+   * 5,49 raised · 6,35 subtle · 5,21 hover. Tetap jelas merah — bedanya dengan
+   * --warning (#F59E0B) dan --success (#22C55E) tak berkurang. */
+  --danger:           #F87171;
+  --danger-bg:        rgba(248,113,113,0.10);
+  --danger-border:    rgba(248,113,113,0.25);
   --info:             #60A5FA;
   --info-bg:          rgba(96,165,250,0.10);
   --info-border:      rgba(96,165,250,0.25);

@@ -197,6 +197,18 @@ jobs:
       - name: Aksesibilitas (kontrol wajib punya nama)
         run: node scripts/a11y-ratchet.mjs
 
+      # Kontras warna — 260 dari 296 pelanggaran WCAG itu kontras, dan sampai
+      # 2026-08-01 ia SATU-SATUNYA yang tak dijaga otomatis. Catatannya berbunyi
+      # "butuh browser + login, kredensial di CI ditolak sadar" — benar untuk
+      # axe, tapi TIDAK untuk token: warnanya literal di globals.css dan
+      # kontras adalah aritmetika murni.
+      #
+      # Penjaga ini menemukan pelanggaran pada jalan PERTAMANYA: --danger di
+      # mode gelap 4,47:1 (syarat 4,5). Lolos berbulan-bulan karena audit axe
+      # hanya menjalankan mode terang — mode gelap tak pernah diaudit.
+      - name: Kontras warna (WCAG AA dari token)
+        run: node scripts/kontras-ratchet.mjs
+
       - name: Typecheck
         run: ./node_modules/.bin/tsc --noEmit
 
