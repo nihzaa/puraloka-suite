@@ -65,6 +65,15 @@ jobs:
       - name: Kegagalan senyap (query yang errornya tak pernah dilihat)
         run: node scripts/audit-kegagalan-senyap.mjs
 
+      # `to_regclass('nama')` tanpa skema mengikuti search_path, dan pencarian
+      # itu MENEMBUS ke schema lain. Guard yang bermaksud "objek ini ada di
+      # sini?" jadi menjawab "ada di mana pun?" — di production keduanya sama,
+      # jadi cacatnya diam sampai ada schema kedua. Repo ini PUNYA schema
+      # kedua: schema test. Pola itu membuat 24 integration test tak pernah
+      # berjalan selama berbulan-bulan, dan gejalanya "skipped" bukan "failed".
+      - name: Guard sadar-schema (to_regclass tanpa kualifikasi)
+        run: node scripts/audit-guard-schema.mjs
+
       # Apply-pending migrasi + seed uji ke project CI (idempoten: skip yang sudah
       # applied, apply yang baru, re-seed jika hilang). BUKAN push-semua tiap run.
       - name: Prepare CI project (apply pending migrations + seed)

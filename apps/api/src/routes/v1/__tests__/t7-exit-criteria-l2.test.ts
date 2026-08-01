@@ -94,13 +94,29 @@ describe('L2 · kriteria 2 — dual-axis RLS aktif', () => {
 describe('L2 · kriteria 3 — penomoran per company', () => {
   it('counter tersedia dan UNIQUE global sudah dilepas', async () => {
     expect(
-      await hitung(`SELECT count(*)::int n FROM pg_proc WHERE proname='next_document_number'`),
+      await hitung(`SELECT count(*)::int n FROM pg_proc p JOIN pg_namespace n2 ON n2.oid=p.pronamespace WHERE n2.nspname='public' AND p.proname='next_document_number'`),
       'next_document_number() hilang — penomoran kembali ke COUNT(*)'
     ).toBeGreaterThan(0)
 
     expect(
       await hitung(
-        `SELECT count(*)::int n FROM pg_constraint WHERE conname IN
+        // ⚠️ Filter `nspname='public'` WAJIB. Tanpa itu, `pg_constraint`
+        // memuat SELURUH schema — termasuk schema test yang dibangun
+        // `procurement.test.ts` dengan constraint bernama sama.
+        //
+        // Ketahuan 2026-08-01 tepat setelah migrasi 154 membuat 6 integration
+        // test benar-benar BERJALAN (sebelumnya "skipped" karena guard
+        // `to_regclass` menembus schema). Test ini lalu ikut menghitung
+        // constraint schema test dan gagal — bukan karena skema production
+        // berubah, melainkan karena tetangganya akhirnya hidup.
+        //
+        // Pola yang sama persis dengan cacat yang baru diperbaiki: kueri
+        // katalog TANPA filter skema menjawab pertanyaan yang lebih luas dari
+        // yang dimaksud.
+        `SELECT count(*)::int n FROM pg_constraint con
+           JOIN pg_class cl ON cl.oid = con.conrelid
+           JOIN pg_namespace n ON n.oid = cl.relnamespace
+          WHERE n.nspname = 'public' AND con.conname IN
           ('material_requests_mr_number_key','purchase_orders_po_number_key',
            'goods_receipts_gr_number_key','invoices_invoice_number_key')`
       ),
@@ -116,7 +132,7 @@ describe('L2 · kriteria 4 — company switcher berbasis keanggotaan', () => {
     // itu". Cabang semacam itu membuat sistem terlihat benar sampai tenant
     // kedua muncul — waktu paling mahal untuk menemukannya.
     const def = (await c.query(
-      `SELECT pg_get_functiondef(oid) d FROM pg_proc WHERE proname='auth_company_id'`
+      `SELECT pg_get_functiondef(p.oid) d FROM pg_proc p JOIN pg_namespace n2 ON n2.oid=p.pronamespace WHERE n2.nspname='public' AND p.proname='auth_company_id'`
     )).rows[0].d as string
 
     expect(def, 'auth_company_id tidak membaca keanggotaan').toContain('company_members')

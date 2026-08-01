@@ -21,7 +21,12 @@ const MIGRATION_SUBSET = [
   '002_users_and_clients.sql',
   '050_rbac_foundation.sql',
   '078_users_role_id_expand.sql',
-  '080_users_role_contract.sql',
+  // 080 DIGANTI 154 (bukan ditambah). Guard 080 memakai to_regclass('audit_logs')
+  // TANPA skema, dan pencarian itu menembus ke public — jadi ia menemukan tabel
+  // yang TIDAK ada di schema test, lalu membuat view yang gagal:
+  // "column al.user_id does not exist". 154 memakai current_schema(), dan
+  // menulis ulang bagian 080 lainnya secara idempoten.
+  '154_guard_regclass_schema_aware.sql',
   '003_projects_and_contracts.sql',
   '007_mandor_workscopes_kasbons.sql',
   '039_material_management.sql',
