@@ -97,8 +97,8 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
       }
 
       // ── 1. Validasi termin ──────────────────────────────────────────────────
-      const { data: termin, error: terminErr } = await supabase
-        .from('termin_schedules')
+      const { data: termin, error: terminErr } = await request.db!
+        .viaProject('termin_schedules', projectId)
         .select('id, project_id, termin_number, label, pct_of_contract, amount, status')
         .eq('id', terminId)
         .eq('project_id', projectId)
@@ -164,8 +164,8 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
       // ── 3. Cek / buat invoice ───────────────────────────────────────────────
       let invoiceId: string
 
-      const { data: existingInvoice } = await supabase
-        .from('invoices')
+      const { data: existingInvoice } = await request.db!
+        .viaProject('invoices', projectId)
         .select('id, total_amount, amount_paid, amount_due, status')
         .eq('termin_schedule_id', terminId)
         .maybeSingle()
@@ -175,8 +175,8 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
       } else {
         // Generate invoice number: INV/PRL/YYYY/NNN
         const year = new Date().getFullYear()
-        const { count } = await supabase
-          .from('invoices')
+        const { count } = await request.db!
+          .viaProject('invoices', projectId)
           .select('id', { count: 'exact', head: true })
 
         const seq = String((count ?? 0) + 1).padStart(3, '0')
@@ -194,8 +194,8 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
         const dueDate = new Date(paid_at)
         dueDate.setDate(dueDate.getDate() + 14)
 
-        const { data: newInvoice, error: invoiceErr } = await supabase
-          .from('invoices')
+        const { data: newInvoice, error: invoiceErr } = await request.db!
+          .viaProject('invoices', projectId)
           .insert({
             project_id: projectId,
             termin_schedule_id: terminId,
@@ -223,8 +223,8 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
       }
 
       // ── 4. Insert payment (trigger akan update saldo kas otomatis) ──────────
-      const { data: payment, error: payErr } = await supabase
-        .from('payments')
+      const { data: payment, error: payErr } = await request.db!
+        .viaProject('payments', projectId)
         .insert({
           invoice_id: invoiceId,
           amount_paid: amountNum,
@@ -246,8 +246,8 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
       }
 
       // ── 5. Update invoice ───────────────────────────────────────────────────
-      const { data: inv } = await supabase
-        .from('invoices')
+      const { data: inv } = await request.db!
+        .viaProject('invoices', projectId)
         .select('id, project_id, total_amount, amount_paid, due_date, penalty_waived')
         .eq('id', invoiceId)
         .single()
@@ -261,8 +261,8 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
         // Kalau sinkronisasi invoice gagal diam-diam, uangnya masuk tapi
         // invoice tetap tampak belum lunas — klien ditagih dua kali, dan
         // laporan piutang menampilkan angka yang sudah dibayar.
-        const { error: errInv } = await supabase
-          .from('invoices')
+        const { error: errInv } = await request.db!
+          .viaProject('invoices', projectId)
           .update({
             amount_paid: newAmountPaid,
             amount_due: Math.max(0, newAmountDue),
@@ -300,8 +300,8 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
       }
 
       // ── 6. Update termin status → paid ──────────────────────────────────────
-      await supabase
-        .from('termin_schedules')
+      await request.db!
+        .viaProject('termin_schedules', projectId)
         .update({ status: 'paid' })
         .eq('id', terminId)
 
@@ -329,8 +329,8 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
         return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
       }
 
-      const { data: termin } = await supabase
-        .from('termin_schedules')
+      const { data: termin } = await request.db!
+        .viaProject('termin_schedules', projectId)
         .select('id, project_id, label, amount, status')
         .eq('id', terminId)
         .eq('project_id', projectId)
@@ -338,8 +338,8 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
 
       if (!termin) return reply.status(404).send({ error: 'Termin tidak ditemukan' })
 
-      const { data: invoice } = await supabase
-        .from('invoices')
+      const { data: invoice } = await request.db!
+        .viaProject('invoices', projectId)
         .select(`
           id, invoice_number, total_amount, amount_paid, amount_due,
           issued_date, due_date, paid_date, status,

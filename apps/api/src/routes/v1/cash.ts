@@ -492,8 +492,8 @@ export default async function cashRoutes(app: FastifyInstance) {
     // Jangan migrasikan ke permission; ini kandidat Workflow Engine (Program B).
     const autoApprove = currentUser.role === 'admin' || currentUser.role === 'pm'
 
-    const { data, error } = await supabase
-      .from('project_expenses')
+    const { data, error } = await request.db!
+      .viaProject('project_expenses', project_id)
       .insert({
         project_id,
         category_id,
@@ -646,8 +646,8 @@ export default async function cashRoutes(app: FastifyInstance) {
       }
     }
 
-    const { data, error } = await supabase
-      .from('project_expenses')
+    const { data, error } = await request.db!
+      .viaProject('project_expenses', expense.project_id)
       .update({
         status,
         notes: notes ?? undefined,
@@ -684,7 +684,7 @@ export default async function cashRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'Tidak bisa hapus pengeluaran yang sudah disetujui' })
     }
 
-    const { error } = await supabase.from('project_expenses').delete().eq('id', id)
+    const { error } = await request.db!.viaProject('project_expenses', expense.project_id).delete().eq('id', id)
     if (error) return reply.status(500).send({ error: error.message })
     return reply.send({ success: true })
   })
@@ -760,8 +760,8 @@ export default async function cashRoutes(app: FastifyInstance) {
     }
 
     if (project_id) {
-      const { data: projCats, error } = await supabase
-        .from('project_expense_categories')
+      const { data: projCats, error } = await request.db!
+        .viaProject('project_expense_categories', project_id)
         .select('id, name, type, parent_id, sort_order')
         .eq('project_id', project_id)
         .eq('is_active', true)
@@ -785,8 +785,8 @@ export default async function cashRoutes(app: FastifyInstance) {
         const parents = templates.filter(t => !t.parent_id)
         const children = templates.filter(t => t.parent_id)
 
-        const { data: clonedParents } = await supabase
-          .from('project_expense_categories')
+        const { data: clonedParents } = await request.db!
+          .viaProject('project_expense_categories', project_id)
           .insert(parents.map(p => ({
             project_id,
             name: p.name,
@@ -817,12 +817,12 @@ export default async function cashRoutes(app: FastifyInstance) {
           }))
 
         if (childRows.length > 0) {
-          await supabase.from('project_expense_categories').insert(childRows)
+          await request.db!.viaProject('project_expense_categories', project_id).insert(childRows)
         }
 
         // Fetch ulang yang sudah di-clone
-        const { data: freshCats } = await supabase
-          .from('project_expense_categories')
+        const { data: freshCats } = await request.db!
+          .viaProject('project_expense_categories', project_id)
           .select('id, name, type, parent_id, sort_order')
           .eq('project_id', project_id)
           .eq('is_active', true)
