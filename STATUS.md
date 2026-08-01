@@ -118,6 +118,40 @@ kali keadaan berubah; detail selalu di dokumen rujukan.
 > seluruhnya yatim. Penghapusan tetap **menunggu izin founder** (keputusan
 > terbuka #1c).
 
+> ### 2026-08-02 — residu test yang membutakan audit; a11y kontrol nyata
+>
+> **913 baris menumpuk di DB dev, dan itu membutakan alat lain.**
+> `lessons-writeback.test.ts` menghapus `projects` bertanda `[TEST]` tapi tidak
+> `lessons_learned_records` — dan `session_replication_role='replica'`, dipasang
+> di `purge()` itu juga, **mematikan FK cascade**, jadi lesson-nya tak ikut
+> terhapus melainkan jadi yatim. Tiap run menambah, tanpa gejala.
+>
+> Yang membuatnya lebih dari sekadar sampah: audit jalur hidup (§9a) **ikut
+> tertipu** — tabelnya tampak berisi sehingga lolos dari daftar tabel nol-baris.
+> Alat yang dibuat untuk menemukan yang "benar tapi mati" dibutakan oleh residu
+> test. Dibuktikan dua kali: run pertama menyapu 913 → 0, run kedua tetap 0.
+>
+> Pola yang sama ditemukan dua kali lagi: rantai `estimate_items` →
+> `estimate_versions` → `scenarios` (komentarnya bahkan menyebut "termasuk
+> CASCADE dari project", padahal `replica` justru menonaktifkannya — niat dan
+> efek bertolak belakang), dan **151 `price_book_entries` yatim** dari lima test
+> yang menghapus `resources` tanpa membersihkan entry harganya; tabel itu dibaca
+> **setiap perhitungan RAB**. Sesudah suite penuh kini hanya `audit_logs` yang
+> bertambah — jejak permanen yang memang pantas bertahan.
+>
+> **151 yatim yang sudah ada TIDAK dibersihkan**, dan itu disengaja: trigger
+> penjaga menolak `DELETE` pada entry `active` ("expire-kan, jangan hapus"),
+> transaksinya rollback dengan nol baris terhapus. Penolakan itu benar;
+> menonaktifkan trigger untuk menerobosnya menyentuh jaminan integritas.
+>
+> **a11y kontrol nyata.** `click-events` 102 → **88**, `static-interactions`
+> 115 → **96**. Yang ditutup bukan angka melainkan kontrol: **pencentang
+> permission** di `/pengaturan/roles` (mengatur AKSES, sebelumnya hanya bisa
+> dijangkau tetikus), foto bukti lapangan, baris mandor yang melipat, kartu KPI,
+> milestone, kartu statistik penyaring. Sisa 88 komposisinya penting: **43 latar
+> modal yang jebakan keyboardnya sudah hilang** lewat Esc — bentuknya bukan
+> tombol, tapi orang tak lagi terperangkap.
+
 > ### 2026-08-01 (lanjut) — kegagalan senyap di API & web; penjaga yang buta
 >
 > **11 penulisan senyap di API.** `update`/`delete`/`insert` yang hasilnya
