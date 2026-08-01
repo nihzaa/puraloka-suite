@@ -7,7 +7,7 @@
 // Paritas C1: BUK & pembulatan SELALU terlihat & dikirim eksplisit dari form —
 // tidak ada angka bisnis tersembunyi di kode UI.
 
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid,
@@ -2369,6 +2369,397 @@ function HargaTab() {
           onDone={async () => { setShowNew(false); setPrefill(null); await load(); }}
         />
       )}
+
+      <OverrideProyek />
+    </div>
+  );
+}
+
+// ── Harga khusus proyek (override) ────────────────────────────────────────────
+//
+// ROADMAP #14g. `project_price_override` sudah dipakai TIGA jalur perhitungan —
+// `price-resolver.ts`, `ahsp.ts`, `estimate-versions.ts` — dan alasannya bahkan
+// ikut muncul di explainability trail. Tapi endpointnya nol pemanggil dari web:
+// fitur yang sudah mempengaruhi angka RAB hanya bisa dipakai lewat panggilan
+// API langsung, dan tabelnya nol baris. Persis kelas cacat yang §9a dibuat
+// untuk menangkap — kodenya benar dan teruji, yang kurang jalur pemakaiannya.
+//
+// Diletakkan DI DALAM tab Harga, bukan tab sendiri: override adalah pengecualian
+// atas price book, dan memisahkannya membuat orang menyetel harga khusus tanpa
+// pernah melihat harga umumnya lebih dulu. Pemilih proyek ada di sini karena
+// override selalu milik satu proyek, sementara price book global.
+
+interface OverrideHarga {
+  id: string;
+  resource_id: string;
+  amount: number;
+  currency: string;
+  effective_date: string | null;
+  expired_date: string | null;
+  reason: string;
+  notes: string | null;
+  created_at: string;
+  resource: { code: string; name: string; unit_code: string; category: string } | null;
+}
+
+function OverrideProyek() {
+  const [proyek, setProyek] = useState<Array<{ id: string; name: string }>>([]);
+  const [proyekId, setProyekId] = useState("");
+  const [data, setData] = useState<OverrideHarga[]>([]);
+  const [memuat, setMemuat] = useState(false);
+  const [err, setErr] = useState("");
+  const [formBuka, setFormBuka] = useState(false);
+
+  useEffect(() => {
+    let batal = false;
+    api.get("/api/v1/projects")
+      .then((r) => {
+        if (batal) return;
+        const d = (r.data?.data ?? []) as Array<{ id: string; name: string }>;
+        setProyek(d);
+        setProyekId((k) => k || d[0]?.id || "");
+      })
+      .catch(() => { if (!batal) setErr("Daftar proyek tidak bisa dimuat."); });
+    return () => { batal = true; };
+  }, []);
+
+  const muat = useCallback(async (pid: string) => {
+    if (!pid) return;
+    setMemuat(true); setErr("");
+    try {
+      const r = await api.get(`/api/v1/projects/${pid}/price-overrides`);
+      setData(r.data?.data ?? []);
+    } catch {
+      setErr("Daftar harga khusus tidak bisa dimuat.");
+    } finally { setMemuat(false); }
+  }, []);
+
+  useEffect(() => {
+    if (!proyekId) return;
+    let batal = false;
+    void Promise.resolve().then(() => { if (!batal) void muat(proyekId); });
+    return () => { batal = true; };
+  }, [proyekId, muat]);
+
+  const hapus = async (o: OverrideHarga) => {
+    if (!window.confirm(
+      `Hapus harga khusus untuk ${o.resource?.code ?? "resource ini"}?\n\n` +
+      "Estimasi yang belum dikunci akan kembali memakai harga price book."
+    )) return;
+    try {
+      await api.delete(`/api/v1/price-overrides/${o.id}`);
+      await muat(proyekId);
+    } catch {
+      setErr("Harga khusus tidak bisa dihapus.");
+    }
+  };
+
+  return (
+    <section style={{ marginTop: 26, paddingTop: 20, borderTop: `1px solid ${C.border}` }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-end",
+        justifyContent: "space-between", marginBottom: 12 }}>
+        <div>
+          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>
+            Harga khusus proyek
+          </h3>
+          <p style={{ margin: "3px 0 0", fontSize: 12.5, color: C.mid, lineHeight: 1.55, maxWidth: 620 }}>
+            Menimpa price book untuk satu proyek saja — dipakai saat harga di
+            lokasi berbeda dari harga umum. Alasannya wajib, dan ikut muncul di
+            rincian perhitungan supaya angka yang menyimpang selalu punya
+            keterangannya.
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <select
+            aria-label="Pilih proyek untuk harga khusus"
+            value={proyekId}
+            onChange={(e) => setProyekId(e.target.value)}
+            style={{ minHeight: 36, padding: "0 10px", fontSize: 13, borderRadius: 8,
+              border: `1px solid ${C.border}`, background: "var(--surface)", color: C.text,
+              maxWidth: 220, fontFamily: "inherit" }}
+          >
+            {proyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+          <button style={btnGhost} onClick={() => setFormBuka(true)} disabled={!proyekId}>
+            <Plus size={13} /> Harga khusus
+          </button>
+        </div>
+      </div>
+
+      {err && (
+        <p style={{ fontSize: 12.5, color: C.red, margin: "0 0 10px" }}>{err}</p>
+      )}
+
+      {memuat ? (
+        <p style={{ fontSize: 13, color: C.mid, margin: 0 }}>Memuat…</p>
+      ) : data.length === 0 ? (
+        <p style={{ fontSize: 13, color: C.muted, margin: 0, lineHeight: 1.6 }}>
+          Belum ada harga khusus di proyek ini — seluruh perhitungan memakai
+          price book. Tambahkan hanya bila harga di lokasi benar-benar berbeda;
+          tiap override membuat angka proyek ini menyimpang dari yang lain, dan
+          alasannya harus bisa dipertanggungjawabkan.
+        </p>
+      ) : (
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+            <thead>
+              <tr>
+                {["Resource", "Harga khusus", "Berlaku", "Alasan", ""].map((h) => (
+                  <th key={h} style={{ ...td, textAlign: h === "Harga khusus" ? "right" : "left",
+                    fontWeight: 700, color: C.mid, fontSize: 11.5, textTransform: "uppercase",
+                    letterSpacing: "0.04em" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((o) => (
+                <tr key={o.id}>
+                  <td style={td}>
+                    <strong>{o.resource?.code ?? "—"}</strong>
+                    <span style={{ display: "block", color: C.mid }}>
+                      {o.resource?.name ?? ""}{o.resource?.unit_code ? ` / ${o.resource.unit_code}` : ""}
+                    </span>
+                  </td>
+                  <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums",
+                    fontWeight: 700 }}>{fmtRp(o.amount)}</td>
+                  <td style={td}>
+                    {o.effective_date ?? "—"}{o.expired_date ? ` → ${o.expired_date}` : ""}
+                  </td>
+                  <td style={{ ...td, maxWidth: 320 }}>{o.reason}</td>
+                  <td style={{ ...td, whiteSpace: "nowrap" }}>
+                    <button style={{ ...btnGhost, color: C.red }} onClick={() => void hapus(o)}>
+                      Hapus
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {formBuka && (
+        <FormOverride
+          proyekId={proyekId}
+          onTutup={() => setFormBuka(false)}
+          onSimpan={async () => { setFormBuka(false); await muat(proyekId); }}
+        />
+      )}
+    </section>
+  );
+}
+
+function FormOverride({ proyekId, onTutup, onSimpan }: {
+  proyekId: string; onTutup: () => void; onSimpan: () => Promise<void>;
+}) {
+  // API menerima `resource_id` (UUID), bukan kode. Meminta orang mengetik UUID
+  // adalah rancangan yang tak bisa dipakai — jadi pencarian mengembalikan
+  // pilihan, dan id-nya diambil dari yang dipilih.
+  const [cari, setCari] = useState("");
+  const [pilihan, setPilihan] = useState<Array<{ id: string; code: string; name: string; unit_code: string }>>([]);
+  const [terpilih, setTerpilih] = useState<{ id: string; code: string; name: string; unit_code: string } | null>(null);
+  /** Permintaan pencarian yang sedang berjalan. `useRef`, bukan state:
+   *  indikator "Mencari…" tak perlu memicu render tersendiri, dan setState
+   *  di dalam efek pencarian memicu render berantai tiap ketikan. */
+  const jalanRef = useRef(0);
+  const [versiHasil, setVersiHasil] = useState(0);
+  const [jumlah, setJumlah] = useState("");
+  const [alasan, setAlasan] = useState("");
+  const [berlaku, setBerlaku] = useState("");
+  const [catatan, setCatatan] = useState("");
+  const [menyimpan, setMenyimpan] = useState(false);
+  const [err, setErr] = useState("");
+  const kodeRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { kodeRef.current?.focus(); }, []);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onTutup(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onTutup]);
+
+  // Cari-sambil-ketik dengan jeda. Tanpa jeda, tiap huruf jadi satu permintaan
+  // ke registry 2.400+ entri.
+  useEffect(() => {
+    const q = cari.trim();
+    // Pengosongan TIDAK dilakukan di sini: `setPilihan([])` sinkron di badan
+    // efek memicu render berantai tiap ketikan. Yang ditampilkan disaring saat
+    // render (`tampilPilihan`) — daftar lama tak pernah terlihat karena
+    // syaratnya sama.
+    if (q.length < 2 || terpilih) return;
+    let batal = false;
+    const t = setTimeout(() => {
+      jalanRef.current += 1;
+      const seri = jalanRef.current;
+      api.get<{ data: Array<{ id: string; code: string; name: string; unit_code: string }> }>(
+        `/api/v1/cecep/resources?q=${encodeURIComponent(q)}&limit=20`)
+        .then((r) => { if (!batal) setPilihan(r.data?.data ?? []); })
+        .catch(() => { if (!batal) setPilihan([]); })
+        // Hasil yang datang TERLAMBAT dari pencarian sebelumnya diabaikan:
+        // tanpa ini, mengetik cepat bisa menampilkan hasil kata yang sudah
+        // ditinggalkan — dan orangnya memilih resource yang salah.
+        .finally(() => { if (!batal && seri === jalanRef.current) setVersiHasil((v) => v + 1); });
+    }, 260);
+    return () => { batal = true; clearTimeout(t); };
+  }, [cari, terpilih]);
+
+  /** Hasil yang boleh tampil — diturunkan, bukan di-set dalam efek. */
+  const tampilPilihan = (cari.trim().length < 2 || terpilih) ? [] : pilihan;
+
+  const simpan = async () => {
+    const n = Number(jumlah.replace(/[^\d.-]/g, ""));
+    if (!terpilih) { setErr("Pilih dulu resource dari hasil pencarian."); return; }
+    if (!Number.isFinite(n) || n <= 0) { setErr("Harga harus angka lebih dari nol."); return; }
+    if (!alasan.trim()) {
+      setErr("Alasan wajib — angka yang menyimpang tanpa keterangan tak bisa dipertanggungjawabkan.");
+      return;
+    }
+    setMenyimpan(true); setErr("");
+    try {
+      await api.post(`/api/v1/projects/${proyekId}/price-overrides`, {
+        resource_id: terpilih.id,
+        amount: n,
+        reason: alasan.trim(),
+        effective_date: berlaku || undefined,
+        notes: catatan.trim() || undefined,
+      });
+      await onSimpan();
+    } catch (e) {
+      // Pesan server ditampilkan apa adanya — ia sudah menyebut sebabnya
+      // (mis. sudah ada override pada tanggal berlaku yang sama), dan itu
+      // informasi yang paling berguna di sini.
+      const p = (e as { response?: { data?: { error?: string } } }).response?.data?.error;
+      setErr(p ?? "Harga khusus tidak bisa disimpan.");
+    } finally { setMenyimpan(false); }
+  };
+
+  const gaya = {
+    input: { minHeight: 42, padding: "9px 11px", width: "100%", boxSizing: "border-box" as const,
+      border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14,
+      background: "var(--surface)", color: C.text, fontFamily: "inherit" },
+    label: { fontSize: 12.5, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 },
+    bantu: { fontSize: 11.5, color: C.muted, lineHeight: 1.5, display: "block", marginTop: 4 },
+  };
+
+  return (
+    <div role="dialog" aria-modal="true" aria-labelledby="ovr-judul"
+      style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(17,24,39,0.45)",
+        display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div style={{ background: "var(--surface)", borderRadius: 12, width: "100%", maxWidth: 460,
+        maxHeight: "92vh", display: "flex", flexDirection: "column", overflow: "hidden",
+        boxShadow: "0 18px 44px rgba(0,0,0,0.18)" }}>
+        <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "15px 17px", borderBottom: `1px solid ${C.border}` }}>
+          <h3 id="ovr-judul" style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>
+            Harga khusus proyek
+          </h3>
+          <button onClick={onTutup} aria-label="Tutup"
+            style={{ border: "none", background: "none", cursor: "pointer", color: C.mid,
+              minWidth: 34, minHeight: 34 }}>✕</button>
+        </header>
+
+        <div style={{ padding: 17, overflowY: "auto", display: "grid", gap: 14 }}>
+          <div>
+            <label htmlFor="ovr-kode" style={gaya.label}>Resource</label>
+            {terpilih ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 11px",
+                border: `1px solid ${C.border}`, borderRadius: 8, background: "var(--surface-subtle)" }}>
+                <span style={{ flex: 1, fontSize: 13.5, color: C.text }}>
+                  <strong>{terpilih.code}</strong> — {terpilih.name}
+                  <span style={{ color: C.mid }}> / {terpilih.unit_code}</span>
+                </span>
+                <button
+                  onClick={() => { setTerpilih(null); setCari(""); }}
+                  style={{ ...btnGhost, minHeight: 30 }}
+                >Ganti</button>
+              </div>
+            ) : (
+              <>
+                <input id="ovr-kode" ref={kodeRef} value={cari} style={gaya.input}
+                  onChange={(e) => setCari(e.target.value)}
+                  placeholder="Ketik nama material, upah, atau alat" />
+
+                {tampilPilihan.length > 0 && (
+                  <ul style={{ listStyle: "none", margin: "6px 0 0", padding: 0,
+                    maxHeight: 168, overflowY: "auto", border: `1px solid ${C.border}`,
+                    borderRadius: 8 }}>
+                    {tampilPilihan.map((r) => (
+                      <li key={r.id}>
+                        <button
+                          onClick={() => { setTerpilih(r); setPilihan([]); }}
+                          style={{ width: "100%", textAlign: "left", padding: "8px 11px",
+                            border: "none", background: "none", cursor: "pointer",
+                            fontSize: 13, color: C.text, fontFamily: "inherit" }}
+                        >
+                          <strong>{r.code}</strong> — {r.name}
+                          <span style={{ color: C.mid }}> / {r.unit_code}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {versiHasil > 0 && cari.trim().length >= 2 && tampilPilihan.length === 0 && (
+                  <span style={gaya.bantu}>
+                    Tak ada yang cocok. Harga khusus hanya bisa dipasang pada
+                    resource yang sudah terdaftar — kalau memang baru, daftarkan
+                    dulu di price book.
+                  </span>
+                )}
+              </>
+            )}
+          </div>
+
+          <div>
+            <label htmlFor="ovr-harga" style={gaya.label}>Harga di proyek ini</label>
+            <input id="ovr-harga" value={jumlah} style={gaya.input} inputMode="numeric"
+              onChange={(e) => setJumlah(e.target.value)} placeholder="185000" />
+          </div>
+
+          <div>
+            <label htmlFor="ovr-alasan" style={gaya.label}>Alasan</label>
+            <textarea id="ovr-alasan" value={alasan} rows={2}
+              style={{ ...gaya.input, minHeight: 62, resize: "vertical", lineHeight: 1.5 }}
+              onChange={(e) => setAlasan(e.target.value)}
+              placeholder="Lokasi terpencil, ongkos angkut pasir naik 40%" />
+            <span style={gaya.bantu}>
+              Ikut ditampilkan di rincian perhitungan tiap kali harga ini
+              dipakai. Tulis sebabnya, bukan &ldquo;harga khusus&rdquo;.
+            </span>
+          </div>
+
+          <div>
+            <label htmlFor="ovr-berlaku" style={gaya.label}>
+              Berlaku sejak <span style={{ fontWeight: 400, color: C.muted }}>(boleh dikosongkan)</span>
+            </label>
+            <input id="ovr-berlaku" type="date" value={berlaku} style={gaya.input}
+              onChange={(e) => setBerlaku(e.target.value)} />
+          </div>
+
+          <div>
+            <label htmlFor="ovr-catatan" style={gaya.label}>
+              Catatan <span style={{ fontWeight: 400, color: C.muted }}>(boleh dikosongkan)</span>
+            </label>
+            <input id="ovr-catatan" value={catatan} style={gaya.input}
+              onChange={(e) => setCatatan(e.target.value)} placeholder="Penawaran supplier 12 Jul" />
+          </div>
+
+          {err && <p style={{ margin: 0, fontSize: 12.5, color: C.red, lineHeight: 1.5 }}>{err}</p>}
+        </div>
+
+        <footer style={{ display: "flex", gap: 8, justifyContent: "flex-end", padding: "13px 17px",
+          borderTop: `1px solid ${C.border}`, background: "var(--surface-subtle)" }}>
+          <button onClick={onTutup} disabled={menyimpan}
+            style={{ minHeight: 40, padding: "0 15px", borderRadius: 8, fontSize: 13.5,
+              border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid,
+              cursor: "pointer", fontFamily: "inherit" }}>Batal</button>
+          <button onClick={() => void simpan()} disabled={menyimpan}
+            style={{ minHeight: 40, padding: "0 15px", borderRadius: 8, fontSize: 13.5,
+              border: "none", background: C.navy, color: "#fff", fontWeight: 600,
+              cursor: "pointer", fontFamily: "inherit", opacity: menyimpan ? 0.6 : 1 }}>
+            {menyimpan ? "Menyimpan…" : "Simpan"}
+          </button>
+        </footer>
+      </div>
     </div>
   );
 }
