@@ -1,5 +1,15 @@
 # Database Schema — Puraloka Suite
 
+> ## ⚠️ TIDAK LENGKAP — 28 dari 119 tabel (diukur 2026-08-01)
+>
+> **Terakhir disentuh 2026-07-16.** Lebih dari tiga perempat tabel tidak ada di
+> sini — termasuk seluruh tabel CECEP, multi-company, dan Capability Tier-2.
+>
+> Sumber kebenaran skema adalah **katalog Postgres**: `pg_class`/`pg_attribute`,
+> atau berkas migrasi di `db/migrations/`. Kalau sebuah kolom disebut di sini
+> tapi tak ada di katalog, katalog yang benar — itu kelas kesalahan yang sudah
+> menghapus Rp 755,7 juta dari AC kurva-S (kolom ditebak dari dokumen usang).
+
 **Database**: PostgreSQL via Supabase  
 **Project**: `tgozokxyvwmyvajgqfxw` (Singapore)  
 **RLS**: AKTIF — migration 049 applied. Service_role bypass (API), anon/JWT enforce (client).  

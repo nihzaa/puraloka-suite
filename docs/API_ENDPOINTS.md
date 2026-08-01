@@ -1,5 +1,15 @@
 # API Endpoints — Puraloka Suite
 
+> ## ⚠️ TIDAK LENGKAP — 169 dari 366 rute (diukur 2026-08-01)
+>
+> **Terakhir disentuh 2026-07-16.** Lebih dari separuh rute yang hidup hari ini
+> tidak ada di sini — termasuk seluruh modul CECEP, multi-company, punch list,
+> RFI, dan submittal.
+>
+> Sumber kebenaran rute adalah **kodenya sendiri**: `apps/api/src/routes/v1/*.ts`.
+> Daftar ini berguna untuk orientasi awal, bukan untuk memastikan sebuah
+> endpoint ada atau tidak.
+
 **Base URL**: `http://localhost:3001`  
 **Auth header**: `Authorization: Bearer <token>` (atau via HttpOnly cookie)
 

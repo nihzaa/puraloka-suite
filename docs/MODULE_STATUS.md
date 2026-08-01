@@ -1,5 +1,15 @@
 # Module Status Tracker
 
+> ## ⚠️ DOKUMEN INI SUDAH BASI — jangan dipakai sebagai acuan status
+>
+> **Terakhir disentuh 2026-07-16.** Sejak itu ada 40+ migrasi dan lusinan modul
+> baru; angka & centang di bawah TIDAK mencerminkan keadaan sekarang.
+>
+> Status per-menu yang terverifikasi ke kode: **[`ERP-KONTRAKTOR-TAKSONOMI-MENU.md`](./ERP-KONTRAKTOR-TAKSONOMI-MENU.md)**
+> Daftar pekerjaan & prioritas: **[`ROADMAP.md`](./ROADMAP.md)**
+>
+> Dibiarkan sebagai riwayat, bukan dihapus — tapi jangan mengutipnya sebagai bukti.
+
 **Last updated**: 2026-06-17
 
 ## Status Legend

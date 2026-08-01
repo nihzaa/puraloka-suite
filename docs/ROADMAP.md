@@ -54,6 +54,80 @@ Tiga aturan supaya ROADMAP tidak jadi dokumen basi keenam:
 
 ---
 
+## 🗺 PETA SELURUH VISI — empat gelombang
+
+> **Ditambahkan 2026-08-01 karena dokumen ini pernah bohong tanpa sengaja.**
+> Ia mengaku *"satu tempat untuk menjawab apa berikutnya"*, tapi isinya HANYA
+> Gelombang 1. Gelombang 2–4 — GL in-app, QA/QC+HSE, payroll, aset penuh,
+> mobile offline, 140 automation AI — nol heading, nol item, nol angka.
+> Pembacanya menyimpulkan "tinggal 4 item lagi" padahal itu sebagian kecil.
+> Penyebut yang tak jujur lebih berbahaya daripada angka yang besar.
+
+### Dua keputusan founder yang mengikat seluruh dokumen ini
+
+| Keputusan | Isi | Konsekuensi |
+|---|---|---|
+| **Urutan** (2026-08-01) | **Pondasi dulu, fitur ditahan.** | Sesudah peta ini rapi: habiskan utang teknis & keamanan sampai bersih SEBELUM menambah menu apa pun. Nol fitur baru untuk beberapa sesi. |
+| **Definisi "matang"** (2026-08-01) | **Seluruh visi, termasuk AI.** | Sistem TIDAK dipakai operasional sampai Gelombang 4 selesai. Artinya nol umpan balik data nyata sampai saat itu — dan itu diterima sadar. |
+
+Kombinasi keduanya konsisten: karena tak ada tenggat "harus cepat berguna",
+memilih pondasi lebih dulu tidak mengorbankan apa pun.
+
+### Penyebut yang jujur
+
+Diukur dari `ERP-KONTRAKTOR-TAKSONOMI-MENU.md` (2026-08-01), **191 sub-menu**
+terverifikasi ke kode:
+
+| Status | Jumlah | Arti |
+|---|---:|---|
+| ✅ selesai | 62 | hidup end-to-end |
+| 🟡 sebagian | 47 | ada, belum lengkap |
+| 🔴 belum | 71 | belum dibangun |
+| 🔵 belum dibangun | 5 | Capability Tier-2 sisa |
+| ⛔ dicoret | 6 | keputusan owner |
+
+**32% selesai · 25% sebagian · 40% belum.** Angka "71%" yang pernah tertulis di
+dokumen ini menghitung penyebut yang salah — hanya item ROADMAP yang sudah
+terdaftar, bukan seluruh visi.
+
+### Isi tiap gelombang
+
+```
+GELOMBANG 1 — PONDASI + ITEM SISA                        ← SEKARANG
+  · item ROADMAP di bawah (#14, #24 sisa)
+  · utang pondasi: tenantDb · kontras WCAG · RLS per-role · Web Push
+  ↓ gerbang: pondasi bersih, bukan sekadar item habis
+
+GELOMBANG 2 — KANTONG YANG BARU MASUK (KEPUTUSAN-SCOPE §2)
+  · GL in-app + CoA + auto-jurnal      ← muara integrasi antar-modul
+  · QA/QC formal (7 sub-menu)
+  · HSE/K3 (7 sub-menu)
+  · payroll + BPJS + PPh 21
+  · aset & alat berat penuh
+  ↓ gerbang: GL menerima dari seluruh modul
+
+GELOMBANG 3 — MOBILE LAPANGAN PENUH + OFFLINE
+  · menutup Kriteria Kualitas #5 yang kini LEMAH
+  ↓ gerbang: modul menerima dari lapangan
+
+GELOMBANG 4 — AI
+  · pilot read-only → WhatsApp Gateway → 13 automation "Next"
+  · gerbang EKSTERNAL: akun WhatsApp Business API (berbayar + verifikasi
+    Meta) & kredensial integrasi luar — di luar kendali teknis
+```
+
+Urutan ini **bukan selera**: tiap panah adalah dependensi data. AI membaca GL,
+GL menerima dari modul, modul menerima dari lapangan. Membangun AI di atas
+pembukuan yang belum benar menghasilkan jawaban yang percaya diri dan salah.
+
+### Yang belum punya keputusan
+
+**± 30 sub-menu 🔴 belum punya alasan tertulis** — belum diputus dikerjakan,
+dieksternalkan, atau dicoret. Memutuskannya jauh lebih murah daripada
+membangunnya, dan tanpa keputusan itu penyebut di atas masih bisa bergeser.
+
+---
+
 ## Sedang dikerjakan / baru selesai
 
 | # | Item | Status | Bukti |
@@ -104,9 +178,9 @@ pengerjaan. Sumber tiap item disebut supaya bisa ditelusuri ke dokumen aslinya.
 
 | 14h | **`approval_chains`: badan usaha kedua tak bisa punya rantai sendiri** | Temuan 2026-08-01 (saat menyiapkan #24c) | ✅ **Selesai** (migrasi 158). **Pola yang sama untuk KEEMPAT kalinya.** `company_id NOT NULL` sudah ditambahkan T4h, tapi keunikannya masih **`UNIQUE (entity_type)` GLOBAL** — jadi `INSERT` rantai 'kasbon' untuk company B gagal 23505 karena company A sudah memakainya. Identik dengan `financial_config` (145), `feature_flags` (146), `modules` (155): kolom ditambahkan, constraint uniknya tidak ikut. Yang membuatnya lolos berulang adalah gejalanya **nol selama masih satu company**. **Akibatnya lebih besar daripada tiga pendahulunya**, karena `steps.length === 0` bersifat **fail-closed** (ADR-007): company kedua yang tak bisa punya rantai berarti **nol orang bisa menyetujui apa pun di sana** — kasbon, change order, pengeluaran, estimasi, semuanya beku, dan gejalanya "403 Akses ditolak" untuk semua orang, bukan pesan konfigurasi. Ditemukan karena asumsi kolom **diverifikasi ke `pg_constraint` sebelum menulis migrasi**, bukan setelah gagal. `loadSteps()` sudah membaca `.eq('company_id')` — kodenya sudah benar, hanya constraint yang menahan. Uji mutasi: mengembalikan UNIQUE global membuat **5 test merah** | Kecil |
 
-| 14g | **API dan RLS memakai PERAN yang berbeda** | Audit lanjutan 14f, 2026-08-01 | ✅ **Selesai.** Migrasi 144 (item #13) mengubah `auth_role()` — dipakai **100 RLS policy** — jadi membaca `company_members.role_id` untuk company aktif. **Sisi API tidak ikut**: `authenticate()` mengambil peran dari `users.role_id` (global) dan menyerahkannya ke `get_role_permissions()`, yang menentukan SETIAP `requirePermission`. Dua lapis otorisasi menjawab peran berbeda. Dibuktikan di dev (rollback): user `wardianto` peran global `mandor` dinaikkan jadi `admin` hanya di companynya → `auth_role()` = **admin**, `currentUser.role` = **mandor**. Salah dua arah, dan arah kedua adalah **eskalasi hak akses**: global `admin` + peran company `mandor` → API memberi seluruh **95** permission admin di badan usaha yang bukan wewenangnya (`mandor` hanya 11). Diperbaiki di akar: `resolveCompanyId()` sekaligus mengembalikan peran keanggotaan. Nol divergensi hari ini karena baru satu badan usaha — tapi 22/22 keanggotaan sudah punya `role_id` dan endpoint ubah-peran-anggota sudah ada, jadi jalurnya hidup. **Pelajaran metode:** test pertama (`t10`, DB nyata) menulis ULANG query-nya, jadi mengembalikan `auth.ts` ke perilaku lama tetap **hijau 403/403** — uji mutasi yang menangkapnya. Ditambah `auth-peran-company.test.ts` yang memanggil `authenticate()` sungguhan; 13 test, mutasi 3 arah tertangkap. Komentar `auth.ts` yang berbunyi "di masa depan peran dibaca dari company_members" akhirnya benar | Kecil |
+| 14i | **API dan RLS memakai PERAN yang berbeda** | Audit lanjutan 14j, 2026-08-01 | ✅ **Selesai.** Migrasi 144 (item #13) mengubah `auth_role()` — dipakai **100 RLS policy** — jadi membaca `company_members.role_id` untuk company aktif. **Sisi API tidak ikut**: `authenticate()` mengambil peran dari `users.role_id` (global) dan menyerahkannya ke `get_role_permissions()`, yang menentukan SETIAP `requirePermission`. Dua lapis otorisasi menjawab peran berbeda. Dibuktikan di dev (rollback): user `wardianto` peran global `mandor` dinaikkan jadi `admin` hanya di companynya → `auth_role()` = **admin**, `currentUser.role` = **mandor**. Salah dua arah, dan arah kedua adalah **eskalasi hak akses**: global `admin` + peran company `mandor` → API memberi seluruh **95** permission admin di badan usaha yang bukan wewenangnya (`mandor` hanya 11). Diperbaiki di akar: `resolveCompanyId()` sekaligus mengembalikan peran keanggotaan. Nol divergensi hari ini karena baru satu badan usaha — tapi 22/22 keanggotaan sudah punya `role_id` dan endpoint ubah-peran-anggota sudah ada, jadi jalurnya hidup. **Pelajaran metode:** test pertama (`t10`, DB nyata) menulis ULANG query-nya, jadi mengembalikan `auth.ts` ke perilaku lama tetap **hijau 403/403** — uji mutasi yang menangkapnya. Ditambah `auth-peran-company.test.ts` yang memanggil `authenticate()` sungguhan; 13 test, mutasi 3 arah tertangkap. Komentar `auth.ts` yang berbunyi "di masa depan peran dibaca dari company_members" akhirnya benar | Kecil |
 
-| 14f | **`modules`: satu perusahaan mematikan modul untuk SEMUA** | Audit 9 rute tak-bergerbang 2026-08-01 | ✅ **Selesai** (migrasi 155). `modules` berkategori **A (katalog global)** dan `is_enabled` disimpan di baris katalog itu — jadi `PATCH /api/v1/modules/:key` menulis ke baris yang dipakai bersama seluruh perusahaan: A mematikan "procurement" → mati untuk B, C, dan tiap pelanggan SaaS. Endpointnya **sudah** bergerbang `settings:manage`; yang salah bukan siapa boleh menekan, tapi **cakupan akibatnya**. Diubah ke kategori **AB** meniru `feature_flags`: baris `company_id IS NULL` = katalog "modul apa yang ada", baris ber-company = pengecualian. `UNIQUE (key)` global dilepas (kalau tidak, perusahaan kedua tak bisa punya pengecualian — cacat identik 145 & 146), diganti `UNIQUE (company_id, key) NULLS NOT DISTINCT`. Ikut ditutup: **cache `isModuleEnabled()` berkunci `key` saja**, jadi jawaban A disajikan ke B selama TTL 60 detik — kebocoran tanpa jejak di query log mana pun, karena querynya memang tak dijalankan; dan `isFeatureEnabled()` masih memaksa `company_id IS NULL` sehingga override yang sejak migrasi 146 **bisa disimpan tak pernah terbaca**. **Dampak hari ini nol** — `isModuleEnabled()` diverifikasi punya nol pemanggil (grep seluruh `src/`, bukan diasumsikan). Justru itu alasan memperbaikinya sekarang: saat pemanggil pertama lahir, cacatnya tampak sebagai "modul mati sendiri" dan dicari di tempat yang salah. 12 test, 4 arah uji mutasi | Kecil |
+| 14j | **`modules`: satu perusahaan mematikan modul untuk SEMUA** | Audit 9 rute tak-bergerbang 2026-08-01 | ✅ **Selesai** (migrasi 155). `modules` berkategori **A (katalog global)** dan `is_enabled` disimpan di baris katalog itu — jadi `PATCH /api/v1/modules/:key` menulis ke baris yang dipakai bersama seluruh perusahaan: A mematikan "procurement" → mati untuk B, C, dan tiap pelanggan SaaS. Endpointnya **sudah** bergerbang `settings:manage`; yang salah bukan siapa boleh menekan, tapi **cakupan akibatnya**. Diubah ke kategori **AB** meniru `feature_flags`: baris `company_id IS NULL` = katalog "modul apa yang ada", baris ber-company = pengecualian. `UNIQUE (key)` global dilepas (kalau tidak, perusahaan kedua tak bisa punya pengecualian — cacat identik 145 & 146), diganti `UNIQUE (company_id, key) NULLS NOT DISTINCT`. Ikut ditutup: **cache `isModuleEnabled()` berkunci `key` saja**, jadi jawaban A disajikan ke B selama TTL 60 detik — kebocoran tanpa jejak di query log mana pun, karena querynya memang tak dijalankan; dan `isFeatureEnabled()` masih memaksa `company_id IS NULL` sehingga override yang sejak migrasi 146 **bisa disimpan tak pernah terbaca**. **Dampak hari ini nol** — `isModuleEnabled()` diverifikasi punya nol pemanggil (grep seluruh `src/`, bukan diasumsikan). Justru itu alasan memperbaikinya sekarang: saat pemanggil pertama lahir, cacatnya tampak sebagai "modul mati sendiri" dan dicari di tempat yang salah. 12 test, 4 arah uji mutasi | Kecil |
 
 | 14e | **scope-item bisa disunting lintas-tenant** | Audit gerbang 2026-07-31 | ✅ **Selesai.** `resolveScopeItemOwnership()` hanya menerima `itemId`, mencari baris dengan `.eq('id')` SAJA, lalu pemanggil memeriksa `pm_id`/`mandor_id`. Yang terlewat: **admin tak difilter sama sekali** — admin company A yang tahu UUID scope-item company B bisa PATCH volume/harga, DELETE item, atau ubah realisasi progres (ketiganya menulis; `unit_price × volume` masuk nilai pekerjaan mandor). Dibuktikan di dev (rollback). Diperbaiki: helper menerima `request`, query membawa `company_id` proyek induk, dibandingkan ke company aktif. 5 test + uji mutasi. **Alat baru `audit-gerbang-tenancy.mjs`** memisahkan "akses mentah SESUDAH gerbang" (aman, hutang adopsi) dari "tanpa gerbang" (celah) — ratchet 468 selama ini mencampur keduanya. Nama gerbang DITURUNKAN dari sumber, bukan didaftar tangan: daftar manual selalu ketinggalan satu dan tiap yang ketinggalan adalah tuduhan palsu (58 → 36 → 17 saat daftarnya dilengkapi). Hasil: 202 rute ber-supabase-mentah, **185 bergerbang**, 17 perlu ditinjau | Kecil |
 
