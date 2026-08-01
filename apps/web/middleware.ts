@@ -15,8 +15,11 @@ const ROLE_ALLOWED: Record<string, string[]> = {
   client:  ["/portal", "/verify"],
   // mandor bisa akses /pm-portal juga — guard di layout PM akan verifikasi apakah dia memang PM di proyek
   mandor:  ["/mandor-portal", "/pm-portal", "/proyek", "/verify"],
-  pm:      ["/pm-portal", "/proyek", "/verify", "/estimasi", "/tender", "/piutang", "/aset"],
-  admin:   ["/dashboard", "/proyek", "/keuangan", "/mandor", "/laporan", "/notifications", "/kas", "/users", "/klien", "/procurement", "/pengaturan", "/kalender", "/audit", "/sistem", "/estimasi", "/tender", "/piutang", "/aset"],
+  // `/m` = halaman peta menu (`/m/<key>`). Satu rute untuk 100+ menu yang
+  // belum punya halamannya sendiri — mendaftarkannya satu per satu di sini
+  // akan jadi daftar 100 baris yang pasti ketinggalan saat menu bertambah.
+  pm:      ["/pm-portal", "/proyek", "/verify", "/estimasi", "/tender", "/piutang", "/aset", "/m"],
+  admin:   ["/dashboard", "/proyek", "/keuangan", "/mandor", "/laporan", "/notifications", "/kas", "/users", "/klien", "/procurement", "/pengaturan", "/kalender", "/audit", "/sistem", "/estimasi", "/tender", "/piutang", "/aset", "/m"],
 };
 
 export function middleware(request: NextRequest) {

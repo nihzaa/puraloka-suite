@@ -173,6 +173,14 @@ jobs:
       - name: Tata letak (token lebar halaman)
         run: node scripts/tata-letak-ratchet.mjs
 
+      # Sidebar kini memuat 20 grup & 202 sub-menu (migrasi 153). Pola lama
+      # menulis tinggi collapse sebagai ANGKA MATI (`maxHeight: "140px"`) —
+      # cukup untuk 4 submenu Keuangan, tapi grup 18 anak butuh ±540px dan
+      # sisanya terpotong DIAM-DIAM: tanpa scrollbar, tanpa error. Orang akan
+      # menyimpulkan menunya memang belum dibuat.
+      - name: Sidebar (tinggi diukur, state generik, a11y)
+        run: node scripts/sidebar-ratchet.mjs
+
       # Audit axe dengan login NYATA menemukan 296 pelanggaran WCAG AA yang
       # SELURUHNYA lolos eslint-plugin-jsx-a11y — plugin itu tak punya rule
       # untuk kontrol yang berdiri tanpa label sama sekali. Semuanya sudah

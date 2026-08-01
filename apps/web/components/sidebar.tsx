@@ -27,6 +27,20 @@ import {
   BellRing,
   CalendarDays,
   Menu,
+  Database,
+  Gavel,
+  FileSignature,
+  CalendarRange,
+  Calculator,
+  Package,
+  ClipboardList,
+  BadgeCheck,
+  ShieldAlert,
+  Truck,
+  FolderOpen,
+  AlertTriangle,
+  Smartphone,
+  Dot,
 } from "lucide-react";
 import { getStoredUser, logout, api, type PuralokaUser } from "@/lib/api";
 import { useSidebar } from "@/lib/sidebar-context";
@@ -46,7 +60,23 @@ const ICONS: Record<string, React.ElementType> = {
   LayoutDashboard, FolderKanban, Wallet, PiggyBank, Receipt, HardHat,
   BarChart3, Settings, Users, Contact, ShoppingCart, Building2,
   ShieldCheck, CalendarDays, Landmark, Ruler, Layers, Coins, GitBranch, BellRing,
+  // 19 ikon grup peta menu (migrasi 153) + `Dot` untuk seluruh sub-menu.
+  // Sub-menu SENGAJA seragam: 202 ikon berbeda justru menghapus fungsi ikon
+  // sebagai penanda — saat semuanya bergambar, tak ada yang menonjol.
+  Database, Gavel, FileSignature, CalendarRange, Calculator, Package,
+  ClipboardList, BadgeCheck, ShieldAlert, Truck, FolderOpen, AlertTriangle,
+  Smartphone, Dot,
 };
+/**
+ * Nama ikon (string dari DB) → komponen lucide.
+ *
+ * ⚠️ Mengembalikan REFERENSI dari tabel `ICONS`, tak pernah membuat komponen
+ * baru. Bila fungsi ini sampai mengembalikan `() => <X/>` — bahkan sebagai
+ * pembungkus kecil — React akan menganggapnya komponen berbeda tiap render,
+ * meng-unmount lalu mount ulang seluruh ikon sidebar tiap kali menu berubah.
+ * Gejalanya halus: ikon berkedip, dan pada daftar panjang terasa seperti lag.
+ * Dijaga `react-hooks/static-components`.
+ */
 function iconFor(name: string): React.ElementType {
   return ICONS[name] ?? FolderKanban;
 }
@@ -65,6 +95,170 @@ interface MenuNode {
 
 const MENU_CACHE_KEY = "puraloka_menu";
 
+/**
+ * Ikon menu, didefinisikan di TINGKAT MODUL.
+ *
+ * ⚠️ Sebelumnya ditulis `const Icon = iconFor(...)` di dalam badan komponen,
+ * lalu dipakai `<Icon />`. React membaca itu sebagai komponen yang lahir saat
+ * render: tiap render ia dianggap tipe baru, sehingga ikon di-unmount lalu
+ * mount ulang. Pada sidebar 20 grup gejalanya terlihat — ikon berkedip tiap
+ * kali menu dibuka. Dijaga `react-hooks/static-components`.
+ *
+ * Dengan bentuk ini, tipe komponennya tetap (`IkonGrup`) dan yang berubah
+ * hanya prop-nya — itulah yang membuat React bisa mempertahankan node DOM.
+ */
+function IkonGrup({ nama, aktif }: { nama: string; aktif: boolean }) {
+  const Ikon = ICONS[nama] ?? FolderKanban;
+  return <Ikon size={16} strokeWidth={aktif ? 2.5 : 1.75} style={{ flexShrink: 0 }} />;
+}
+
+function IkonAnak({ nama, aktif }: { nama: string; aktif: boolean }) {
+  const Ikon = ICONS[nama] ?? FolderKanban;
+  return <Ikon size={14} strokeWidth={aktif ? 2.5 : 1.75} style={{ flexShrink: 0 }} />;
+}
+
+/**
+ * Satu grup menu yang bisa dibuka-tutup.
+ *
+ * ── Kenapa tingginya DIUKUR, bukan ditulis
+ *
+ * Versi sebelumnya memakai `maxHeight: "140px"` — angka mati yang kebetulan
+ * cukup untuk 4 submenu Keuangan. Dengan 20 grup dan sampai 18 submenu, angka
+ * itu memotong isinya diam-diam: submenu ke-6 dan seterusnya tak terlihat,
+ * tanpa scrollbar, tanpa gejala apa pun. Orang akan menyimpulkan menunya
+ * memang belum ada.
+ *
+ * `scrollHeight` mengukur tinggi isi sebenarnya, jadi grup berapa pun panjang
+ * isinya terbuka penuh. Diukur ulang saat isinya berubah (mis. permission
+ * berubah menyembunyikan sebagian anak).
+ *
+ * ── Kenapa max-height, bukan height:auto
+ *
+ * CSS tak bisa men-transisi ke `auto`. `max-height` bisa, dengan satu syarat:
+ * nilainya harus mendekati tinggi nyata. Terlalu besar → animasi menutup
+ * terasa "menggantung" karena melewati rentang kosong lebih dulu. Karena itu
+ * diukur, bukan diberi angka besar sembarang.
+ *
+ * ── Gerak
+ *
+ * 200ms buka / 150ms tutup. Keluar lebih cepat daripada masuk (±70%) adalah
+ * pola Material Motion: menutup terasa responsif, membuka terasa halus.
+ * `ease-out` untuk masuk — cepat di awal lalu melambat, seperti benda yang
+ * berhenti karena gesekan.
+ *
+ * `prefers-reduced-motion` dihormati: sebagian orang benar-benar mual oleh
+ * gerakan, dan sidebar yang dipakai puluhan kali sehari adalah tempat
+ * terburuk untuk mengabaikannya.
+ */
+function GrupCollapsible({
+  node, anak, aktif, terbuka, onToggle, isActive, subStyle, onHover, offHover,
+}: {
+  node: MenuNode;
+  anak: MenuNode[];
+  aktif: boolean;
+  terbuka: boolean;
+  onToggle: () => void;
+  isActive: (href: string) => boolean;
+  subStyle: (active: boolean) => React.CSSProperties;
+  onHover: (e: React.MouseEvent<HTMLElement>, active: boolean) => void;
+  offHover: (e: React.MouseEvent<HTMLElement>, active: boolean) => void;
+}) {
+  const isiRef = useRef<HTMLDivElement>(null);
+  const [tinggi, setTinggi] = useState(0);
+  const [kurangiGerak, setKurangiGerak] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const ikuti = () => setKurangiGerak(mq.matches);
+    ikuti();
+    mq.addEventListener("change", ikuti);
+    return () => mq.removeEventListener("change", ikuti);
+  }, []);
+
+  useEffect(() => {
+    if (isiRef.current) setTinggi(isiRef.current.scrollHeight);
+  }, [anak.length]);
+
+  const durasi = kurangiGerak ? 0 : terbuka ? 200 : 150;
+  const idPanel = `grup-${node.key}`;
+
+  return (
+    <div>
+      <button
+        onClick={onToggle}
+        aria-expanded={terbuka}
+        aria-controls={idPanel}
+        style={{
+          display: "flex", alignItems: "center", gap: 8,
+          padding: "0 14px", margin: "1px 6px", height: 38,
+          borderRadius: 8, fontSize: 14, fontWeight: aktif ? 500 : 400,
+          background: "transparent", border: "none",
+          borderLeft: aktif ? "3px solid var(--navy)" : "3px solid transparent",
+          color: aktif ? "var(--navy)" : "var(--text-secondary)",
+          cursor: "pointer", width: "calc(100% - 12px)", textAlign: "left",
+          transition: "all 0.15s", whiteSpace: "nowrap",
+        }}
+        onMouseEnter={(e) => { if (!aktif) { e.currentTarget.style.color = "var(--text-primary)"; e.currentTarget.style.background = "var(--surface-hover)"; } }}
+        onMouseLeave={(e) => { if (!aktif) { e.currentTarget.style.color = "var(--text-secondary)"; e.currentTarget.style.background = "transparent"; } }}
+      >
+        <IkonGrup nama={node.icon} aktif={aktif} />
+        <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis" }}>{node.label}</span>
+        {/* Jumlah submenu: memberi tahu ada berapa SEBELUM dibuka. Dengan 20
+            grup, tanpa ini orang membuka satu per satu untuk mencari. */}
+        <span style={{
+          fontSize: 10.5, fontWeight: 600, color: "var(--text-muted)",
+          fontVariantNumeric: "tabular-nums", minWidth: 16, textAlign: "right",
+        }}>{anak.length}</span>
+        <ChevronDown
+          size={14}
+          aria-hidden="true"
+          style={{
+            flexShrink: 0,
+            transform: terbuka ? "rotate(180deg)" : "rotate(0deg)",
+            transition: `transform ${durasi}ms cubic-bezier(0.4, 0, 0.2, 1)`,
+            color: aktif ? "var(--navy)" : "var(--text-muted)",
+          }}
+        />
+      </button>
+      <div
+        id={idPanel}
+        style={{
+          overflow: "hidden",
+          maxHeight: terbuka ? `${tinggi}px` : "0px",
+          // Opacity ikut beranimasi supaya submenu tidak "muncul mendadak"
+          // di tengah gerakan tinggi — dua sifat yang berubah bersamaan
+          // terbaca sebagai satu gerakan, bukan dua kejadian.
+          opacity: terbuka ? 1 : 0,
+          transition: `max-height ${durasi}ms cubic-bezier(0.4, 0, 0.2, 1), opacity ${durasi}ms ease`,
+        }}
+      >
+        <div ref={isiRef} style={{ paddingTop: 2, paddingBottom: 4 }}>
+          {anak.map((child) => {
+            const active = isActive(child.href ?? "");
+            return (
+              <Link
+                key={child.key}
+                href={child.href ?? "#"}
+                style={subStyle(active)}
+                // Saat tertutup, submenu masih ada di DOM (untuk diukur) tapi
+                // tak boleh bisa di-Tab. Tanpa ini, keyboard "menghilang" ke
+                // dalam grup tertutup dan pemakai kehilangan fokus.
+                tabIndex={terbuka ? 0 : -1}
+                aria-hidden={!terbuka}
+                onMouseEnter={(e) => onHover(e, active)}
+                onMouseLeave={(e) => offHover(e, active)}
+              >
+                <IkonAnak nama={child.icon} aktif={active} />
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{child.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -72,8 +266,20 @@ export function Sidebar() {
   const [user, setUser] = useState<PuralokaUser | null>(null);
   const [perms, setPerms] = useState<Set<string>>(new Set());
   const [menu, setMenu] = useState<MenuNode[]>([]);
-  const [keuanganOpen, setKeuanganOpen] = useState(false);
-  const [pengaturanOpen, setPengaturanOpen] = useState(false);
+  /**
+   * Grup mana yang sedang terbuka.
+   *
+   * ⚠️ Sebelumnya ini DUA state hardcode (`keuanganOpen`, `pengaturanOpen`)
+   * dengan `maxHeight` angka mati — 140px dan 80px. Dua cacat yang menunggu:
+   * grup KETIGA takkan bisa dibuka sama sekali (tak punya state), dan submenu
+   * ke-6 akan terpotong diam-diam karena melewati 140px. Dengan 20 grup dan
+   * sampai 18 submenu, keduanya pasti menggigit.
+   *
+   * Set, bukan satu string: beberapa grup boleh terbuka bersamaan. Memaksa
+   * hanya satu (accordion) membuat perbandingan antar-grup mustahil — dan di
+   * ERP orang memang sering membuka Keuangan sambil melihat Pengadaan.
+   */
+  const [grupTerbuka, setGrupTerbuka] = useState<Set<string>>(new Set());
 
   // Token yang SAMA dengan margin shell di (dashboard)/layout.tsx. Kalau
   // keduanya jadi angka terpisah, salah satunya akan berubah sendiri suatu
@@ -104,17 +310,32 @@ export function Sidebar() {
       .catch(() => { /* pakai cache; sidebar tidak boleh gagal render */ });
   }, []);
 
+  /**
+   * Buka sendiri grup yang memuat halaman yang sedang dibuka.
+   *
+   * Dengan 20 grup tertutup, tanpa ini pemakai kehilangan orientasi: ia tahu
+   * sedang di halaman apa, tapi tak tahu di bagian mana sistem. Pola yang sama
+   * dipakai SAP Fiori & Odoo.
+   *
+   * Menambah, tidak mengganti — grup yang sengaja dibuka pemakai tetap terbuka.
+   */
   useEffect(() => {
-    if (pathname.startsWith("/keuangan") || pathname.startsWith("/kas") || pathname.startsWith("/piutang")) {
-      setKeuanganOpen(true);
-    }
-  }, [pathname]);
-
-  useEffect(() => {
-    if (pathname.startsWith("/pengaturan")) {
-      setPengaturanOpen(true);
-    }
-  }, [pathname]);
+    const memuatHalamanIni = menu
+      .filter((n) => n.children.some((c) => c.href && isActive(c.href)))
+      .map((n) => n.key);
+    if (memuatHalamanIni.length === 0) return;
+    setGrupTerbuka((s) => {
+      const baru = new Set(s);
+      let berubah = false;
+      for (const k of memuatHalamanIni) if (!baru.has(k)) { baru.add(k); berubah = true; }
+      // Kembalikan set LAMA bila tak ada yang berubah — set baru yang isinya
+      // sama tetap memicu render ulang, dan effect ini jalan tiap pathname.
+      return berubah ? baru : s;
+    });
+    // `isActive` sengaja tak jadi dependency: ia fungsi baru tiap render dan
+    // akan membuat effect ini berjalan tanpa henti.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, menu]);
 
   function handleLogout() {
     logout();
@@ -132,7 +353,24 @@ export function Sidebar() {
     return node.required_permissions.some(p => perms.has(p));
   }
 
-  const keuanganActive = isActive("/keuangan") || isActive("/kas") || isActive("/piutang");
+  /**
+   * Grup dianggap aktif bila salah satu anaknya adalah halaman yang dibuka.
+   *
+   * ⚠️ Sebelumnya ini konstanta `keuanganActive` yang menyebut tiga rute secara
+   * harfiah — grup lain apa pun takkan pernah menyala, dan itu tak akan
+   * berbunyi: menunya tetap muncul, hanya penanda posisinya yang hilang.
+   */
+  function grupAktif(node: MenuNode): boolean {
+    return node.children.some((c) => c.href && isActive(c.href));
+  }
+
+  function toggleGrup(key: string) {
+    setGrupTerbuka((s) => {
+      const baru = new Set(s);
+      if (baru.has(key)) baru.delete(key); else baru.add(key);
+      return baru;
+    });
+  }
 
   const mainMenu = menu.filter(m => m.section === "main");
   const bottomMenu = menu.filter(m => m.section === "bottom");
@@ -310,42 +548,21 @@ export function Sidebar() {
 
             // Expanded: dropdown collapsible. Collapsed: tampilkan children sebagai ikon langsung.
             if (!collapsed) {
+              const aktif = grupAktif(node);
+              const terbuka = grupTerbuka.has(node.key);
               return (
-                <div key={node.key}>
-                  <button
-                    onClick={() => setKeuanganOpen(o => !o)}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 8,
-                      padding: "0 14px", margin: "1px 6px", height: 38,
-                      borderRadius: 8, fontSize: 14, fontWeight: keuanganActive ? 500 : 400,
-                      background: "transparent", border: "none",
-                      borderLeft: keuanganActive ? "3px solid var(--navy)" : "3px solid transparent",
-                      color: keuanganActive ? "var(--navy)" : "var(--text-secondary)",
-                      cursor: "pointer", width: "calc(100% - 12px)", textAlign: "left",
-                      transition: "all 0.15s", whiteSpace: "nowrap",
-                    }}
-                    onMouseEnter={e => { if (!keuanganActive) { e.currentTarget.style.color = "var(--text-primary)"; e.currentTarget.style.background = "var(--surface-hover)"; } }}
-                    onMouseLeave={e => { if (!keuanganActive) { e.currentTarget.style.color = "var(--text-secondary)"; e.currentTarget.style.background = "transparent"; } }}
-                  >
-                    {(() => { const Icon = iconFor(node.icon); return <Icon size={16} strokeWidth={keuanganActive ? 2.5 : 1.75} style={{ flexShrink: 0 }} />; })()}
-                    <span style={{ flex: 1 }}>{node.label}</span>
-                    <ChevronDown size={14} style={{ flexShrink: 0, transform: keuanganOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s", color: keuanganActive ? "var(--navy)" : "var(--text-muted)" }} />
-                  </button>
-                  <div style={{ overflow: "hidden", maxHeight: keuanganOpen ? "140px" : "0px", transition: "max-height 0.2s ease" }}>
-                    <div style={{ paddingTop: 2, paddingBottom: 4 }}>
-                      {visibleChildren.map(child => {
-                        const ChildIcon = iconFor(child.icon);
-                        const active = isActive(child.href ?? "");
-                        return (
-                          <Link key={child.key} href={child.href ?? "#"} style={subStyle(active)} onMouseEnter={e => onHover(e, active)} onMouseLeave={e => offHover(e, active)}>
-                            <ChildIcon size={14} strokeWidth={active ? 2.5 : 1.75} style={{ flexShrink: 0 }} />
-                            <span>{child.label}</span>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
+                <GrupCollapsible
+                  key={node.key}
+                  node={node}
+                  anak={visibleChildren}
+                  aktif={aktif}
+                  terbuka={terbuka}
+                  onToggle={() => toggleGrup(node.key)}
+                  isActive={isActive}
+                  subStyle={subStyle}
+                  onHover={onHover}
+                  offHover={offHover}
+                />
               );
             }
 
@@ -377,44 +594,25 @@ export function Sidebar() {
           const PIcon = iconFor(pengaturanNode.icon);
 
           if (!collapsed && hasDropdown) {
+            // Memakai komponen yang SAMA dengan grup lain. Sebelumnya blok ini
+            // menyalin seluruh markup dropdown dengan state & maxHeight-nya
+            // sendiri (80px, cukup untuk 2 submenu — padahal Pengaturan sudah
+            // punya 8). Duplikasi seperti itu berarti tiap perbaikan harus
+            // dikerjakan dua kali, dan yang kedua selalu terlupa.
             return (
-              <div>
-                <button
-                  onClick={() => setPengaturanOpen(o => !o)}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 8,
-                    padding: "0 14px", margin: "1px 6px", height: 38,
-                    borderRadius: 8, fontSize: 14, fontWeight: pathname.startsWith("/pengaturan") ? 500 : 400,
-                    background: "transparent", border: "none",
-                    borderLeft: pathname.startsWith("/pengaturan") ? "3px solid var(--navy)" : "3px solid transparent",
-                    color: pathname.startsWith("/pengaturan") ? "var(--navy)" : "var(--text-secondary)",
-                    cursor: "pointer", width: "calc(100% - 12px)", textAlign: "left",
-                    transition: "all 0.15s",
-                  }}
-                  onMouseEnter={e => { if (!pathname.startsWith("/pengaturan")) { e.currentTarget.style.color = "var(--text-primary)"; e.currentTarget.style.background = "var(--surface-hover)"; } }}
-                  onMouseLeave={e => { if (!pathname.startsWith("/pengaturan")) { e.currentTarget.style.color = "var(--text-secondary)"; e.currentTarget.style.background = "transparent"; } }}
-                >
-                  <PIcon size={16} strokeWidth={pathname.startsWith("/pengaturan") ? 2.5 : 1.75} style={{ flexShrink: 0 }} />
-                  <span style={{ flex: 1 }}>{pengaturanNode.label}</span>
-                  <ChevronDown size={14} style={{ flexShrink: 0, transform: pengaturanOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s", color: pathname.startsWith("/pengaturan") ? "var(--navy)" : "var(--text-muted)" }} />
-                </button>
-                <div style={{ overflow: "hidden", maxHeight: pengaturanOpen ? "80px" : "0px", transition: "max-height 0.2s ease" }}>
-                  <div style={{ paddingTop: 2, paddingBottom: 2 }}>
-                    {visibleChildren.map(child => {
-                      const ChildIcon = iconFor(child.icon);
-                      const childHref = child.href ?? "#";
-                      // Active: exact untuk /pengaturan (profil), startsWith untuk /pengaturan/roles.
-                      const active = childHref === "/pengaturan" ? pathname === "/pengaturan" : pathname.startsWith(childHref);
-                      return (
-                        <Link key={child.key} href={childHref} style={subStyle(active)} onMouseEnter={e => onHover(e, active)} onMouseLeave={e => offHover(e, active)}>
-                          <ChildIcon size={13} strokeWidth={2} style={{ flexShrink: 0 }} />
-                          <span>{child.label}</span>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
+              <GrupCollapsible
+                node={pengaturanNode}
+                anak={visibleChildren}
+                aktif={pathname.startsWith("/pengaturan")}
+                terbuka={grupTerbuka.has(pengaturanNode.key)}
+                onToggle={() => toggleGrup(pengaturanNode.key)}
+                // `/pengaturan` sendiri adalah halaman profil, jadi ia harus
+                // cocok PERSIS — kalau tidak, seluruh submenu ikut menyala.
+                isActive={(href) => (href === "/pengaturan" ? pathname === "/pengaturan" : pathname.startsWith(href))}
+                subStyle={subStyle}
+                onHover={onHover}
+                offHover={offHover}
+              />
             );
           }
 
