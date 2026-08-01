@@ -59,6 +59,21 @@ async function purge() {
     await client.query(`DELETE FROM productivity_records WHERE source='variance' AND cost_code_id IN (SELECT id FROM cost_codes WHERE code LIKE 'CC-LLWB%')`)
     await client.query(`DELETE FROM price_book_entries WHERE resource_id IN (SELECT id FROM resources WHERE code LIKE 'RBS-LLWB%')`)
     await client.query(`DELETE FROM productivity_records WHERE cost_code_id IN (SELECT id FROM cost_codes WHERE code LIKE 'CC-LLWB%')`)
+    // ⚠️ Lesson-nya SENDIRI harus dihapus di sini, SEBELUM proyeknya.
+    //
+    // Sampai 2026-08-01 baris ini tak ada, dan akibatnya tak terlihat karena
+    // `session_replication_role='replica'` (dipasang di atas) MEMATIKAN FK
+    // cascade: menghapus `projects` tak menyeret `lessons_learned_records`
+    // ikut hilang, ia hanya jadi yatim yang menunjuk proyek yang tak ada.
+    //
+    // Tiap run menambah, tanpa satu pun gejala. Terhitung 913 baris yatim
+    // pada hari ini — dan angka itu sempat dibaca sebagai "modul Lessons
+    // Learned punya 828 data", padahal seluruhnya residu test yang menumpuk.
+    // Pembersihan yang melewatkan tabel utamanya bukan pembersihan.
+    await client.query(
+      `DELETE FROM lessons_learned_records
+       WHERE title LIKE '[TEST]%'
+          OR NOT EXISTS (SELECT 1 FROM projects p WHERE p.id = lessons_learned_records.project_id)`)
     await client.query(`DELETE FROM projects WHERE name LIKE '[TEST]%'`)
     await client.query(`DELETE FROM cost_codes WHERE code LIKE 'CC-LLWB%'`)
     await client.query(`DELETE FROM resources WHERE code LIKE 'RBS-LLWB%'`)

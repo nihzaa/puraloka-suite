@@ -114,7 +114,7 @@ kali keadaan berubah; detail selalu di dokumen rujukan.
 > ditampilkan di dry-run juga, tanpa flag `--paksa`. Diuji: `--execute` exit 1,
 > nol baris terhapus.
 >
-> **Lessons Learned**: terverifikasi **828/828** residu (angka lama 668 basi),
+> **Lessons Learned**: terverifikasi **913/913** residu (diperbarui 2026-08-01 malam) (angka lama 668 basi),
 > seluruhnya yatim. Penghapusan tetap **menunggu izin founder** (keputusan
 > terbuka #1c).
 
