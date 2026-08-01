@@ -55,6 +55,7 @@ import pg from 'pg'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const MIGRASI = resolve(__dirname, '..', '..', '..', 'db', 'migrations')
+const SEEDS = resolve(__dirname, '..', '..', '..', 'db', 'seeds')
 const TULIS = process.argv.includes('--tulis')
 
 /** Objek yang dijanjikan sebuah migrasi — dipakai membuktikan ia benar jalan. */
@@ -128,7 +129,7 @@ const adaKolom = async (t, k) =>
     [t, k])).rowCount > 0
 
 try {
-  const { rows } = await c.query(`SELECT version FROM supabase_migrations.schema_migrations`)
+  const { rows } = await c.query(`SELECT version, name FROM supabase_migrations.schema_migrations`)
   const tercatat = new Set(rows.map((r) => String(r.version)))
   const berkas = readdirSync(MIGRASI).filter((f) => /^\d+_.*\.sql$/.test(f)).sort()
 
@@ -159,12 +160,60 @@ try {
     else takTerbukti.push({ f, kurang })
   }
 
+  // ── Arah SEBALIKNYA: tercatat di buku, tapi tak ada berkasnya ─────────────
+  //
+  // Versi pertama alat ini hanya memeriksa satu arah ("berkas ada, catatan
+  // tidak"), sehingga selisih 148 berkas vs 149 catatan muncul sebagai angka
+  // tanpa penjelasan — dan tercatat di ROADMAP sebagai anomali yang "tidak
+  // disentuh karena menghapus catatan berisiko".
+  //
+  // Ditelusuri 2026-08-01: versi `059` bernama **`seed_dummy_data`**, dan
+  // berkasnya ADA — di `db/seeds/seed_dummy_data.sql` (1.027 baris), bukan
+  // `db/migrations/`. Ia memang seed, bukan migrasi. Jadi tak pernah ada yang
+  // hilang; yang kurang adalah alat ini yang cuma memindai satu direktori.
+  //
+  // Penjaga yang selalu menyisakan satu anomali melatih pembacanya
+  // mengabaikannya — persis alasan ini diperiksa alih-alih dibiarkan.
+  const versiBerkas = new Set(berkas.map((f) => f.match(/^(\d+)_/)[1]))
+  const seedTersedia = new Set(
+    readdirSync(SEEDS).filter((f) => f.endsWith('.sql')).map((f) => f.replace(/\.sql$/, '')))
+  const catatanTanpaBerkas = []
+  for (const r of rows) {
+    const v = String(r.version)
+    if (versiBerkas.has(v)) continue
+    const nama = r.name ?? ''
+    catatanTanpaBerkas.push({
+      versi: v,
+      nama,
+      // Cocok dengan berkas di `db/seeds/` → bukan anomali, memang bukan migrasi.
+      seed: seedTersedia.has(nama),
+    })
+  }
+
   const garis = (t) => console.log(`\n${'═'.repeat(70)}\n${t}\n${'═'.repeat(70)}`)
 
   garis(`RINGKASAN — ${berkas.length} berkas migrasi · ${tercatat.size} tercatat di buku`)
   console.log(`  ✅ terbukti jalan tapi TAK tercatat : ${terbukti.length}`)
   console.log(`  ⚠️  tak tercatat & objek TIDAK lengkap: ${takTerbukti.length}`)
   console.log(`  ℹ️  tak tercatat, tak bisa dibuktikan : ${tanpaBukti.length}`)
+  console.log(`  📄 tercatat tapi tak ada berkas migrasi: ${catatanTanpaBerkas.length}`)
+
+  if (catatanTanpaBerkas.length) {
+    const seed = catatanTanpaBerkas.filter((x) => x.seed)
+    const misteri = catatanTanpaBerkas.filter((x) => !x.seed)
+    if (seed.length) {
+      console.log('')
+      console.log('  Cocok dengan berkas di db/seeds/ — BUKAN anomali, memang bukan migrasi:')
+      seed.forEach((x) => console.log(`   ${x.versi} · ${x.nama} → db/seeds/${x.nama}.sql`))
+    }
+    if (misteri.length) {
+      console.log('')
+      console.log('  ⚠️  Tak ada berkasnya di db/migrations/ MAUPUN db/seeds/:')
+      misteri.forEach((x) => console.log(`   ${x.versi} · ${x.nama || '(tanpa nama)'}`))
+      console.log('  Jangan hapus catatannya tanpa tahu apa yang pernah dijalankan —')
+      console.log('  menghapus jejak lebih berisiko daripada membiarkan selisihnya.')
+    }
+  }
 
   if (terbukti.length) {
     garis('TERBUKTI JALAN — objeknya ADA di database, hanya bukunya yang belum dicatat')
