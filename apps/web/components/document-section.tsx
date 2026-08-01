@@ -525,11 +525,11 @@ function UploadModalContent({
 
           {/* File picker */}
           <div>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6 }}>
+            <label htmlFor="berkas-dokumen" style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6 }}>
               File <span style={{ color: C.red }}>*</span>
               <span style={{ color: "var(--text-muted)", fontWeight: 400 }}> (PDF, gambar, DOCX · max 20MB)</span>
             </label>
-            <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.docx" style={{ display: "none" }}
+            <input id="berkas-dokumen" ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.docx" style={{ display: "none" }}
               onChange={e => {
                 const f = e.target.files?.[0] ?? null;
                 if (f && f.size > 20 * 1024 * 1024) { alert("Ukuran file maksimal 20 MB"); e.target.value = ""; return; }

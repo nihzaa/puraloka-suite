@@ -3372,7 +3372,7 @@ function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
           </div>
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Spesifikasi Teknis (opsional)</label>
+              <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Spesifikasi Teknis (opsional)</span>
               <button type="button" onClick={() => setSpecs([...specs, { key: "", value: "" }])}
                 style={{ fontSize: 11, padding: "3px 10px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", color: C.navy }}>
                 + Tambah Spec

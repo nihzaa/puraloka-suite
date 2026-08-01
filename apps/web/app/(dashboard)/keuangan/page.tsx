@@ -2907,7 +2907,7 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
                     </div>
                   </div>
                   <div>
-                    <label style={labelStyle}>Potongan Retensi</label>
+                    <span style={labelStyle}>Potongan Retensi</span>
                     <div style={{ padding: "9px 12px", background: "var(--surface-subtle)", borderRadius: 8, fontSize: 13, fontWeight: 700, color: C.red, border: `1px solid ${C.border}` }}>
                       -{fmt(retensiAmt)}
                     </div>
@@ -3184,10 +3184,10 @@ function PayInvoiceModal({ invoice, onClose, onSuccess }: { invoice: Invoice; on
 
               {/* Bukti upload */}
               <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>
+                <label htmlFor="bukti-transfer" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>
                   Bukti Transfer <span style={{ color: C.muted, fontWeight: 400 }}>(opsional)</span>
                 </label>
-                <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" style={{ display: "none" }} onChange={e => {
+                <input id="bukti-transfer" ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" style={{ display: "none" }} onChange={e => {
                   const f = e.target.files?.[0] ?? null;
                   if (f && f.size > 5 * 1024 * 1024) { alert("Ukuran file maksimal 5 MB"); e.target.value = ""; return; }
                   setProofFile(f);
@@ -3398,8 +3398,8 @@ function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
 
           {/* Mode: langsung setujui vs pending */}
           <div style={{ padding: "12px 14px", borderRadius: 10, background: autoApprove ? C.greenBg : C.yellowBg, border: `1px solid ${autoApprove ? C.greenBorder : C.yellowBorder}` }}>
-            <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer" }}>
-              <input type="checkbox" checked={autoApprove} onChange={e => setAutoApprove(e.target.checked)}
+            <label htmlFor="auto-approve-invoice" style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer" }}>
+              <input id="auto-approve-invoice" type="checkbox" checked={autoApprove} onChange={e => setAutoApprove(e.target.checked)}
                 style={{ width: 16, height: 16, marginTop: 1, flexShrink: 0 }} />
               <div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Setujui langsung</div>
