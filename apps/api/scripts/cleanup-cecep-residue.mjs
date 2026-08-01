@@ -51,6 +51,68 @@ function assertIsDev(conn) {
   }
 }
 
+/**
+ * ⛔ PENGAMAN YANG DITAMBAHKAN 2026-08-01 — dan kenapa ia harus ada.
+ *
+ * Skrip ini memakai `DELETE FROM <tabel>` **TANPA `WHERE` apa pun**: ia
+ * MENGOSONGKAN tabel, bukan menyaring residu. Saat ditulis itu benar — seluruh
+ * isi tabel CECEP memang residu test, dan nama "cleanup residu" tepat.
+ *
+ * Keadaan itu SUDAH BERUBAH. Diukur 2026-08-01:
+ *   assemblies          3.043 baris · ber-[TEST]  0  → seluruhnya NYATA
+ *   assembly_components 17.873 baris
+ *   resources           2.830 baris · ber-[TEST]  0
+ *   price_book_entries  3.006 baris · ber-[TEST]  0
+ *   cost_codes             44 baris · ber-[TEST]  0
+ *
+ * Itu analisa AHSP SE-47-2026 (2.620 analisa, satu-satunya edisi yang berisi)
+ * plus price book yang dipakai SETIAP perhitungan RAB. Menjalankan `--execute`
+ * hari ini menghancurkannya — dan tak ada di judul, komentar, maupun keluaran
+ * skrip yang memberi tahu itu.
+ *
+ * Yang berbahaya bukan perintah DELETE-nya, melainkan **jaraknya dengan nama
+ * skrip**: "cleanup residu" terbaca seperti membuang sampah, sampai seseorang
+ * membaca 40 baris ke bawah dan menemukan tak ada `WHERE`.
+ *
+ * Pengaman ini menolak jalan bila ada tabel yang isinya BUKAN residu. Ia tidak
+ * mencoba pintar — tak menghapus sebagian, tak menebak mana yang boleh. Ia
+ * berhenti dan menyerahkan keputusannya ke manusia, karena "hapus 8.923 baris
+ * data nyata" bukan keputusan yang boleh diambil skrip.
+ */
+async function assertMemangResidu(c) {
+  // Kolom teks yang menandai baris uji. Tabel yang tak punya kolom penanda
+  // (mis. `assembly_components`, `estimate_items`) diperiksa lewat INDUKNYA.
+  // `estimate_versions` SENGAJA tak ada di sini: satu-satunya kolom teksnya
+  // `status`, jadi tak ada tempat menaruh penanda [TEST]. Diverifikasi ke
+  // `pg_attribute`, bukan ditebak. Ia tetap terlindungi secara tak langsung —
+  // versi estimasi menunjuk assembly & price book, dan keduanya diperiksa.
+  const PENANDA = {
+    assemblies: 'name',
+    resources: 'name',
+    cost_codes: 'name',
+    lessons_learned_records: 'title',
+  }
+  const nyata = []
+  for (const [tabel, kolom] of Object.entries(PENANDA)) {
+    const { rows } = await c.query(
+      `SELECT count(*)::int n FROM ${tabel}
+        WHERE ${kolom}::text NOT LIKE '[TEST]%' AND ${kolom}::text NOT LIKE '[UJI]%'`)
+    if (rows[0].n > 0) nyata.push(`${tabel}: ${rows[0].n} baris`)
+  }
+  if (nyata.length) {
+    throw new Error(
+      '\n⛔ TOLAK — tabel berisi data yang BUKAN residu test:\n' +
+      nyata.map((s) => `     ${s}`).join('\n') +
+      '\n\n   Skrip ini `DELETE FROM <tabel>` TANPA `WHERE` — ia mengosongkan\n' +
+      '   tabel, bukan menyaring residu. Saat ditulis, seluruh isinya memang\n' +
+      '   residu; sekarang tidak lagi.\n\n' +
+      '   Kalau memang hendak mengosongkan (mis. mengganti seluruh edisi AHSP),\n' +
+      '   hapus panggilan assertMemangResidu() SECARA SADAR di sini, dengan\n' +
+      '   alasannya tertulis — jangan menambah flag `--paksa` yang membuat\n' +
+      '   penghapusan 8.900+ baris jadi satu argumen jauhnya.\n')
+  }
+}
+
 async function main() {
   const conn = process.env.DIRECT_URL
   assertIsDev(conn)
@@ -68,6 +130,21 @@ async function main() {
   const { rows: ap } = await c.query(
     `SELECT count(*)::int n FROM approval_progress WHERE entity_type IN ('estimate_version','lessons_learned')`)
   console.log(`  ${'approval_progress (CECEP)'.padEnd(32)} ${ap[0].n} baris`)
+
+  // Peringatan ditampilkan di DRY-RUN juga — kalau hanya muncul saat
+  // `--execute`, ia baru terbaca ketika jarinya sudah di tombol.
+  try {
+    await assertMemangResidu(c)
+    console.log('\n  ✅ Seluruh baris di atas bertanda [TEST]/[UJI] — memang residu.')
+  } catch (e) {
+    console.log((e instanceof Error ? e.message : String(e)))
+    if (!EXECUTE) {
+      console.log('DRY-RUN selesai — tidak ada yang dihapus.')
+      await c.end(); return
+    }
+    await c.end()
+    process.exit(1)
+  }
 
   if (!EXECUTE) {
     console.log('\nDRY-RUN selesai — tidak ada yang dihapus. Jalankan ulang dengan --execute untuk menghapus.')
