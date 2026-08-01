@@ -1266,6 +1266,7 @@ function ProjectDetailContent() {
                       <td style={{ padding: "12px 14px", textAlign: "center" }}>
                         {canPay ? (
                           <button
+                            aria-label={`Catat pembayaran termin ${t.termin_number}`}
                             onClick={() => setPayingTermin({
                               id: t.id,
                               termin_number: t.termin_number,

@@ -173,7 +173,7 @@ function ChainCard({ chain, perms, canManage, onToggle, onAdd, onPatch, onDelete
             <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 10 }}>
               <div>
                 <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Siapa yang berhak (permission)</label>
-                <select value={newPerm} onChange={e => setNewPerm(e.target.value)} style={input}>
+                <select aria-label="Permission yang berhak menyetujui langkah ini" value={newPerm} onChange={e => setNewPerm(e.target.value)} style={input}>
                   <option value="">— pilih permission —</option>
                   {perms.map(p => <option key={p.key} value={p.key}>{p.label ? `${p.label} (${p.key})` : p.key}</option>)}
                 </select>
@@ -219,7 +219,7 @@ function StepRow({ step, perms, canManage, isLast, connector, onPatch, onDelete 
 
       {editing ? (
         <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr auto", gap: 8, alignItems: "end" }}>
-          <select value={perm} onChange={e => setPerm(e.target.value)} style={input}>
+          <select aria-label="Ubah permission langkah approval" value={perm} onChange={e => setPerm(e.target.value)} style={input}>
             {perms.map(p => <option key={p.key} value={p.key}>{p.label ? `${p.label} (${p.key})` : p.key}</option>)}
           </select>
           <input value={min} onChange={e => setMin(e.target.value.replace(/[^0-9]/g, ""))} placeholder="ambang (kosong = selalu)" style={input} />

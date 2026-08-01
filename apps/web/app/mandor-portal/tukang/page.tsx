@@ -200,7 +200,7 @@ export default function DaftarTukangPage() {
                   )}
                 </div>
                 <div style={{ display: "flex", gap: 6, marginLeft: 8 }}>
-                  <button onClick={() => openEdit(w)} style={{
+                  <button aria-label={`Ubah data ${w.name}`} onClick={() => openEdit(w)} style={{
                     width: 32, height: 32, borderRadius: 8, border: `1px solid ${C.border}`,
                     background: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
                   }}>

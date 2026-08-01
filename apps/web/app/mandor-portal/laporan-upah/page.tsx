@@ -313,7 +313,7 @@ export default function LaporanUpahPage() {
                       placeholder="0" style={{ padding: "7px 8px", borderRadius: 7, border: `1px solid ${C.border}`, fontSize: 13, textAlign: "right" }} />
                     <input type="number" min="0" value={row.overtime_rate || ""} onChange={(e) => updateRow(i, "overtime_rate", Number(e.target.value))}
                       placeholder="0" style={{ padding: "7px 8px", borderRadius: 7, border: `1px solid ${C.border}`, fontSize: 13, textAlign: "right" }} />
-                    <button type="button" onClick={() => removeRow(i)} disabled={rows.length === 1}
+                    <button type="button" aria-label="Hapus baris tukang ini dari laporan" onClick={() => removeRow(i)} disabled={rows.length === 1}
                       style={{ width: 28, height: 28, borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: rows.length === 1 ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: rows.length === 1 ? 0.3 : 1 }}>
                       <Trash2 size={13} color={C.red} />
                     </button>

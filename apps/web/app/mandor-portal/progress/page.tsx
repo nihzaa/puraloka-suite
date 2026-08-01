@@ -269,7 +269,7 @@ export default function MandorProgressPage() {
           <div style={{ position: "relative", background: C.surface, borderRadius: 16, width: "100%", maxWidth: 520, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", zIndex: 1 }}>
             <div style={{ padding: "20px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: 0 }}>Input Progress Harian</h2>
-              <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: C.mid }}><X size={20} /></button>
+              <button aria-label="Tutup input progress harian" onClick={() => setShowModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: C.mid }}><X size={20} /></button>
             </div>
             <form onSubmit={handleSubmit} style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
               <div>

@@ -173,7 +173,7 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
             </button>
           )}
           {!collapsed && !loading && (
-            <button onClick={load} style={{
+            <button aria-label="Muat ulang log serapan" onClick={load} style={{
               display: "flex", alignItems: "center", padding: "6px 8px", borderRadius: 8,
               border: `1px solid var(--border)`, background: "transparent", cursor: "pointer", color: C.mid,
             }}>

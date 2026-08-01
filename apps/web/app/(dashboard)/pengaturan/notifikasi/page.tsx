@@ -216,7 +216,7 @@ function RuleCard({ rule, roles, perms, canManage, onToggle, onAdd, onRemove }: 
             ))}
           </select>
           {needsValue && (
-            <select value={value} onChange={e => setValue(e.target.value)} style={{ ...input, minWidth: 240 }}>
+            <select aria-label={type === "role" ? "Peran penerima notifikasi" : "Kapabilitas penerima notifikasi"} value={value} onChange={e => setValue(e.target.value)} style={{ ...input, minWidth: 240 }}>
               <option value="">Pilih {type === "role" ? "peran" : "kapabilitas"}…</option>
               {type === "role"
                 ? roles.map(r => <option key={r.name} value={r.name}>{r.label ?? r.name}</option>)

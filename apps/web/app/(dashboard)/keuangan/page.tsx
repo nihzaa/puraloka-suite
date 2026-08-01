@@ -1264,6 +1264,7 @@ function KeuanganContent() {
                 />
               </div>
               <select
+                aria-label="Saring invoice menurut status"
                 value={invStatusFilter}
                 onChange={e => setInvStatusFilter(e.target.value)}
                 style={{ padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, color: C.text, background: "var(--surface)", outline: "none" }}
@@ -2678,7 +2679,7 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
             {isTermin && (
               <div>
                 <label style={labelStyle}>Pilih Termin yang Ditagih <span style={{ color: C.red }}>*</span></label>
-                <select value={terminId} onChange={e => setTerminId(e.target.value)} required style={inputStyle}>
+                <select aria-label="Pilih termin yang ditagih" value={terminId} onChange={e => setTerminId(e.target.value)} required style={inputStyle}>
                   <option value="">-- Pilih termin --</option>
                   {projectDetail.termin_schedules.map(t => (
                     <option key={t.id} value={t.id} disabled={t.status === "billed" || t.status === "paid"}>
@@ -2777,7 +2778,7 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
                               </div>
                             </div>
                           </div>
-                          <button type="button" onClick={() => removeLineItem(li.key)}
+                          <button type="button" aria-label="Hapus baris item invoice" onClick={() => removeLineItem(li.key)}
                             style={{ background: "transparent", border: "none", cursor: "pointer", color: C.muted, padding: 2, flexShrink: 0 }}>
                             <X size={14} />
                           </button>
@@ -3136,7 +3137,7 @@ function PayInvoiceModal({ invoice, onClose, onSuccess }: { invoice: Invoice; on
                 {cashAccounts.length === 0 ? (
                   <div style={{ padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 12, color: C.muted }}>Memuat...</div>
                 ) : (
-                  <select value={cashAccountId} onChange={e => setCashAccountId(e.target.value)}
+                  <select aria-label="Akun kas penerima pembayaran" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)}
                     style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                     <option value="">— Tidak masuk ke kas —</option>
                     {cashAccounts.map(a => (
@@ -3150,7 +3151,7 @@ function PayInvoiceModal({ invoice, onClose, onSuccess }: { invoice: Invoice; on
 
               <div>
                 <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Metode Pembayaran</label>
-                <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}
+                <select aria-label="Metode pembayaran" value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}
                   style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                   <option value="transfer_bank">Transfer Bank</option>
                   <option value="cash">Tunai</option>
@@ -3187,7 +3188,7 @@ function PayInvoiceModal({ invoice, onClose, onSuccess }: { invoice: Invoice; on
                   <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 8, background: C.greenBg, border: `1px solid ${C.greenBorder}` }}>
                     <FileText size={16} color={C.green} />
                     <span style={{ flex: 1, fontSize: 12, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{proofFile.name}</span>
-                    <button type="button" onClick={() => setProofFile(null)} style={{ background: "transparent", border: "none", cursor: "pointer", color: C.red }}><X size={14} /></button>
+                    <button type="button" aria-label="Buang bukti transfer yang dipilih" onClick={() => setProofFile(null)} style={{ background: "transparent", border: "none", cursor: "pointer", color: C.red }}><X size={14} /></button>
                   </div>
                 ) : (
                   <button type="button" onClick={() => fileRef.current?.click()}
@@ -3319,7 +3320,7 @@ function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
           {/* Work scope (mandor + proyek) */}
           <div>
             <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Work Scope Mandor <span style={{ color: C.red }}>*</span></label>
-            <select value={scopeId} onChange={e => setScopeId(e.target.value)} required
+            <select aria-label="Work scope mandor yang mengajukan kasbon" value={scopeId} onChange={e => setScopeId(e.target.value)} required
               style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, color: C.text, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
               <option value="">-- Pilih mandor & scope --</option>
               {scopes.map(s => (
@@ -3358,7 +3359,7 @@ function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
               <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Keperluan <span style={{ color: C.red }}>*</span></label>
-              <select value={purpose} onChange={e => setPurpose(e.target.value)}
+              <select aria-label="Keperluan kasbon" value={purpose} onChange={e => setPurpose(e.target.value)}
                 style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                 <option value="gaji_tukang">Gaji Tukang</option>
                 <option value="uang_makan">Uang Makan</option>
@@ -3369,7 +3370,7 @@ function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
             </div>
             <div>
               <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Sumber Dana</label>
-              <select value={fundSource} onChange={e => setFundSource(e.target.value)}
+              <select aria-label="Sumber dana kasbon" value={fundSource} onChange={e => setFundSource(e.target.value)}
                 style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                 <option value="owner_advance">Dana Owner</option>
                 <option value="client_fund">Dana Klien</option>
@@ -3405,7 +3406,7 @@ function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
             {autoApprove && (
               <div style={{ marginTop: 12 }}>
                 <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Potong dari akun kas:</label>
-                <select value={cashAccountId} onChange={e => setCashAccountId(e.target.value)}
+                <select aria-label="Akun kas yang dipotong untuk kasbon ini" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)}
                   style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 7, fontSize: 12, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                   <option value="">-- Pilih akun kas --</option>
                   {cashAccounts.map(a => (

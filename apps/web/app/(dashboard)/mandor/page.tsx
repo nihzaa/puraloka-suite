@@ -2386,7 +2386,7 @@ function WorkerFormModal({ mandorId: initialMandorId, mandorName: initialMandorN
 
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Tipe (opsional)</label>
-            <select value={tipe} onChange={e => setTipe(e.target.value)} style={inputStyle}>
+            <select aria-label="Tipe pekerja" value={tipe} onChange={e => setTipe(e.target.value)} style={inputStyle}>
               <option value="">-- Tidak ditentukan --</option>
               <option value="tukang">Tukang</option>
               <option value="laden">Laden</option>
@@ -2549,7 +2549,7 @@ function AddKasbonModal({ assignments, onClose, onSuccess }: {
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Tukang <span style={{ color: C.red }}>*</span></label>
-            <select value={workerId} onChange={e => setWorkerId(e.target.value)} style={inputStyle} disabled={!assignmentId}>
+            <select aria-label="Tukang penerima kasbon" value={workerId} onChange={e => setWorkerId(e.target.value)} style={inputStyle} disabled={!assignmentId}>
               <option value="">-- Pilih tukang --</option>
               {workers.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
             </select>
@@ -2566,7 +2566,7 @@ function AddKasbonModal({ assignments, onClose, onSuccess }: {
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Tujuan</label>
-            <select value={purpose} onChange={e => setPurpose(e.target.value)} style={inputStyle}>
+            <select aria-label="Tujuan kasbon tukang" value={purpose} onChange={e => setPurpose(e.target.value)} style={inputStyle}>
               <option value="gaji_tukang">Gaji Tukang</option>
               <option value="uang_makan">Uang Makan</option>
               <option value="lain_lain">Lain-lain</option>
@@ -2751,6 +2751,7 @@ function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () => void; 
               Kosongkan jika kasbon bersifat umum dan tidak terikat scope tertentu.
             </div>
             <select
+              aria-label="Work scope yang dibebani kasbon (opsional)"
               value={scopeId}
               onChange={e => setScopeId(e.target.value)}
               disabled={!projectId}
@@ -2782,7 +2783,7 @@ function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () => void; 
           {/* Keperluan — full width, sumber dana ditentukan admin/PM saat approve */}
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Keperluan <span style={{ color: C.red }}>*</span></label>
-            <select value={purpose} onChange={e => setPurpose(e.target.value)} style={inputStyle}>
+            <select aria-label="Keperluan kasbon mandor" value={purpose} onChange={e => setPurpose(e.target.value)} style={inputStyle}>
               {(kasbonPurposes.length > 0
                 ? kasbonPurposes.map(p => [p.code, p.label] as [string, string])
                 : [["gaji_tukang", "Gaji Tukang"], ["uang_makan", "Uang Makan"], ["pembelian_alat", "Pembelian Alat"], ["operasional", "Operasional"], ["lain_lain", "Lain-lain"]] as [string, string][]

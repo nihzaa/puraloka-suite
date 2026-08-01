@@ -868,7 +868,7 @@ export function GanttSection({ projectId, userRole, projectStart, projectEnd }: 
                   <td style={{ padding: "7px 10px", color: t.planned_end ? C.text : C.muted }}>{fmtDate(t.planned_end)}</td>
                   {canEdit && (
                     <td style={{ padding: "7px 10px" }}>
-                      <button onClick={() => setEditingTask(t)}
+                      <button aria-label={`Ubah jadwal ${t.uraian}`} onClick={() => setEditingTask(t)}
                         style={{ background: "none", border: "none", cursor: "pointer", color: C.mid, padding: 4 }}>
                         <Settings2 size={13} />
                       </button>

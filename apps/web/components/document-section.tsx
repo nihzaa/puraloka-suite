@@ -541,7 +541,7 @@ function UploadModalContent({
                   <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{uploadFile.name}</div>
                   <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{fmtSizeKb(Math.ceil(uploadFile.size / 1024))}</div>
                 </div>
-                <button type="button" onClick={() => { setUploadFile(null); if (fileRef.current) fileRef.current.value = ""; }}
+                <button type="button" aria-label="Buang berkas yang dipilih" onClick={() => { setUploadFile(null); if (fileRef.current) fileRef.current.value = ""; }}
                   style={{ background: "transparent", border: "none", cursor: "pointer", color: C.red, padding: 4 }}>
                   <X size={15} />
                 </button>

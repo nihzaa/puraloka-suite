@@ -384,7 +384,7 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
                 <input style={inputStyle} value={form.location} onChange={e => set("location", e.target.value)} placeholder="Contoh: Bandung, Jawa Barat" />
               </Field>
               <Field label="Klien *" error={errors.client_id}>
-                <select style={inputStyle} value={form.client_id} onChange={e => set("client_id", e.target.value)}>
+                <select aria-label="Klien pemberi kerja proyek" style={inputStyle} value={form.client_id} onChange={e => set("client_id", e.target.value)}>
                   <option value="">-- Pilih Klien --</option>
                   {clients.map(c => (
                     <option key={c.id} value={c.id}>
@@ -394,7 +394,7 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
                 </select>
               </Field>
               <Field label="Project Manager *" error={errors.pm_id}>
-                <select style={inputStyle} value={form.pm_id} onChange={e => set("pm_id", e.target.value)}>
+                <select aria-label="Project manager penanggung jawab" style={inputStyle} value={form.pm_id} onChange={e => set("pm_id", e.target.value)}>
                   <option value="">-- Pilih PM --</option>
                   {pms.map(u => (
                     <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
@@ -475,7 +475,7 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
                       Denda aktif untuk proyek ini
                     </label>
                     <Field label="Basis denda">
-                      <select style={inputStyle} value={form.penalty_basis} onChange={e => set("penalty_basis", e.target.value)}>
+                      <select aria-label="Basis perhitungan denda keterlambatan" style={inputStyle} value={form.penalty_basis} onChange={e => set("penalty_basis", e.target.value)}>
                         <option value="invoice_telat">Nilai invoice yang telat</option>
                         <option value="outstanding_proyek">Sisa outstanding proyek</option>
                         <option value="kontrak_total">Nilai kontrak total</option>
@@ -584,6 +584,7 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                       <Field label="Trigger Pembayaran">
                         <select
+                          aria-label="Pemicu penagihan termin"
                           style={inputStyle}
                           value={t.trigger_type}
                           onChange={e => updateTermin(i, "trigger_type", e.target.value)}
@@ -699,6 +700,20 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
 
 // ─── Field wrapper ────────────────────────────────────────────────────────────
 
+/**
+ * Label + kontrol.
+ *
+ * ⚠️ Labelnya TIDAK terhubung ke kontrolnya (`<label>` tanpa `htmlFor`) —
+ * ia hanya teks yang terlihat. Sempat diubah jadi label pembungkus, tapi
+ * dikembalikan: pembungkusan terjadi LINTAS BERKAS (label di sini, kontrol di
+ * pemanggil), sehingga penjaga statis tak bisa melihatnya dan angkanya tak
+ * turun sedikit pun. Menambah kerumitan tanpa manfaat terukur.
+ *
+ * Karena itu tiap `<select>` yang memakai `Field` diberi `aria-label`
+ * eksplisit. Namanya sengaja LEBIH SPESIFIK daripada teks labelnya — pembaca
+ * layar menyebut kontrol tanpa konteks di sekitarnya, jadi "Klien" saja tak
+ * cukup membedakannya dari dropdown klien di layar lain.
+ */
 function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <div>

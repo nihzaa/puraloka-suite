@@ -174,7 +174,7 @@ function ItemForm({
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
           <label style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Tipe</label>
-          <select value={value.item_type} onChange={set("item_type")} style={inpStyle}>
+          <select aria-label="Tipe item change order" value={value.item_type} onChange={set("item_type")} style={inpStyle}>
             <option value="kerja_tambah">Kerja Tambah</option>
             <option value="kerja_kurang">Kerja Kurang</option>
             <option value="perubahan_volume">Perubahan Volume</option>
@@ -699,7 +699,7 @@ function CreateCoModal({
 
         <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
           <label style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Mode Penagihan</label>
-          <select value={billingMode} onChange={e => setBillingMode(e.target.value)} style={inpStyle}>
+          <select aria-label="Mode penagihan change order" value={billingMode} onChange={e => setBillingMode(e.target.value)} style={inpStyle}>
             <option value="">— Belum ditentukan —</option>
             <option value="include_termin">Termasuk dalam Termin</option>
             <option value="separate_co">Tagihan CO Tersendiri</option>

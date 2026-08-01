@@ -647,6 +647,7 @@ function RoleFormModal({ role, roles, onClose, onSaved, setToast }: {
             <div style={{ marginBottom: 20 }}>
               <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Salin Permission dari Role</label>
               <select
+                aria-label="Salin permission dari role lain"
                 value={copyFrom}
                 onChange={e => setCopyFrom(e.target.value)}
                 style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box", background: "var(--surface)" }}

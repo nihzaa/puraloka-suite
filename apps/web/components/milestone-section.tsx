@@ -350,6 +350,7 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
                     <div style={{ position: "relative", flexShrink: 0 }}>
                       <button
                         type="button"
+                        aria-label="Menu aksi milestone"
                         onClick={e => {
                           e.stopPropagation();
                           setOpenMenuId(openMenuId === m.id ? null : m.id);

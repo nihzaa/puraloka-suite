@@ -313,6 +313,7 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
             ) : (
               <div style={{ position: "relative" }}>
                 <select
+                  aria-label="Item RAB yang dijadwalkan"
                   value={selectedItem?.id ?? ""}
                   onChange={e => {
                     const item = items.find(it => it.id === e.target.value);
@@ -418,6 +419,7 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
                         {/* Pilih minggu */}
                         <div style={{ position: "relative" }}>
                           <select
+                            aria-label="Minggu rencana"
                             value={row.week_start}
                             onChange={e => changeWeek(idx, e.target.value)}
                             style={{
@@ -694,6 +696,7 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
             ) : (
               <div style={{ position: "relative" }}>
                 <select
+                  aria-label="Item RAB yang dicatat serapannya"
                   value={selectedItem?.id ?? ""}
                   onChange={e => {
                     const item = items.find(it => it.id === e.target.value);
@@ -792,6 +795,7 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
                     }}>
                       <div style={{ position: "relative" }}>
                         <select
+                          aria-label="Minggu serapan aktual"
                           value={row.week_start}
                           onChange={e => changeWeek(idx, e.target.value)}
                           style={{

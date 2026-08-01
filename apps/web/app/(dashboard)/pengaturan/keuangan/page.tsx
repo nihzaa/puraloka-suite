@@ -444,7 +444,7 @@ export default function KeuanganSettingsPage() {
                 <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Aturan Denda Keterlambatan</h2>
                 <p style={{ margin: "2px 0 0", fontSize: 12, color: C.muted }}>Berlaku sejak tanggal (WIB). Nilai lama tetap untuk dokumen bertanggal sebelumnya.</p>
               </div>
-              <button onClick={() => setPModal(false)} style={{ padding: 6, background: "transparent", border: "none", cursor: "pointer", color: C.muted }}><X size={18} /></button>
+              <button aria-label="Tutup pengaturan denda keterlambatan" onClick={() => setPModal(false)} style={{ padding: 6, background: "transparent", border: "none", cursor: "pointer", color: C.muted }}><X size={18} /></button>
             </div>
             <div style={{ padding: 22, display: "flex", flexDirection: "column", gap: 16 }}>
               {/* Enabled toggle */}
@@ -453,14 +453,14 @@ export default function KeuanganSettingsPage() {
                   <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Aktifkan denda</div>
                   <div style={{ fontSize: 12, color: C.muted }}>Default nonaktif — nyalakan hanya bila menerapkan denda.</div>
                 </div>
-                <button type="button" onClick={() => setPEnabled(v => !v)} aria-pressed={pEnabled}
+                <button type="button" aria-label="Aktifkan denda keterlambatan" onClick={() => setPEnabled(v => !v)} aria-pressed={pEnabled}
                   style={{ position: "relative", width: 46, height: 26, borderRadius: 13, border: "none", flexShrink: 0, background: pEnabled ? C.green : C.border, cursor: "pointer", transition: "background 0.2s" }}>
                   <span style={{ position: "absolute", top: 3, left: pEnabled ? 23 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
                 </button>
               </div>
               <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <span style={{ fontSize: 12.5, fontWeight: 600, color: C.text }}>Basis denda</span>
-                <select value={pBasis} onChange={(e) => setPBasis(e.target.value)}
+                <select aria-label="Basis perhitungan denda" value={pBasis} onChange={(e) => setPBasis(e.target.value)}
                   style={{ padding: "10px 12px", borderRadius: 9, border: `1px solid ${C.border}`, fontSize: 14, boxSizing: "border-box", background: C.surface }}>
                   {Object.entries(BASIS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select>
@@ -520,7 +520,7 @@ export default function KeuanganSettingsPage() {
                 </h2>
                 <p style={{ margin: "2px 0 0", fontSize: 12, color: C.muted }}>Tarif baru berlaku sejak tanggal yang dipilih (WIB).</p>
               </div>
-              <button onClick={() => setEditKey(null)} style={{ padding: 6, background: "transparent", border: "none", cursor: "pointer", color: C.muted }}><X size={18} /></button>
+              <button aria-label="Tutup pengaturan tarif" onClick={() => setEditKey(null)} style={{ padding: 6, background: "transparent", border: "none", cursor: "pointer", color: C.muted }}><X size={18} /></button>
             </div>
             <div style={{ padding: 22, display: "flex", flexDirection: "column", gap: 16 }}>
               <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>

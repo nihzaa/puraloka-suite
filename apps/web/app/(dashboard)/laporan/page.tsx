@@ -620,6 +620,7 @@ function LaporanContent() {
                       Detail Pajak <span style={{ color: C.muted, fontWeight: 400 }}>({taxData.totals.record_count} record)</span>
                     </p>
                     <button
+                      aria-label="Unduh detail pajak sebagai Excel"
                       onClick={async () => {
                         try {
                           const XLSX = await import("xlsx");
@@ -684,6 +685,7 @@ function LaporanContent() {
                               <td style={{ padding: "8px 10px" }}>
                                 {r.status === "pending" && currentUser?.role === "admin" && (
                                   <button
+                                    aria-label="Tandai catatan pajak ini sudah dilaporkan"
                                     disabled={taxStatusUpdating === r.id}
                                     onClick={async () => {
                                       setTaxStatusUpdating(r.id);

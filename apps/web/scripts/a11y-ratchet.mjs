@@ -50,13 +50,30 @@ const AKAR = join(import.meta.dirname, '..')
  * ⚠️ HANYA BOLEH TURUN. Kalau gagal karena NAIK, beri `aria-label` pada
  * kontrol baru Anda — jangan naikkan angkanya.
  *
- * Angka 96/62 adalah HASIL UKUR 2026-07-31 SESUDAH detektornya diperbaiki
- * (lihat blok di bawah), bukan target yang dipilih. Sisa ini hampir semuanya
- * di dalam MODAL yang tak terbuka saat halaman dimuat, sehingga axe tak
- * menjangkaunya. Itu bukan alasan membiarkannya: modal tetap dipakai manusia.
- * Ia dicatat sebagai hutang yang terukur, bukan diklaim beres.
+ * **NOL sejak 2026-08-01.** Seluruh kontrol form di repo ini kini punya nama
+ * aksesibel. Dari sini penjaga menolak kontrol tanpa nama SAMA SEKALI — tak
+ * ada lagi "hutang terukur" yang boleh bertambah diam-diam.
+ *
+ * ── Bagian yang jujur: sebagian "hutang" itu ternyata LAPORAN PALSU
+ *
+ * Perjalanan angkanya: 96/62 → 28/24 → 8/6 → 0/0. Penurunan terakhir bukan
+ * seluruhnya hasil memberi nama. Jendela pencarian teks tombol yang 14 baris
+ * TERLALU SEMPIT untuk repo ini: tombol rutin punya `style={{…}}` inline 10
+ * baris plus dua handler mouse, sehingga TEKS-nya baru muncul di baris ke-19
+ * sampai ke-25 dan dilaporkan "tanpa nama" padahal jelas berlabel
+ * (`milestone-modal.tsx:263` — teksnya "Simpan Perubahan", 19 baris di bawah).
+ *
+ * Melebarkan ke 40 baris TIDAK melonggarkan penjaganya: batas sebenarnya
+ * adalah `</button>` yang dicari di bawah, dan tombol ikon-saja tetap
+ * tertangkap karena isinya habis setelah elemen anak dibuang. Dibuktikan uji
+ * mutasi — menyisipkan tombol ikon-saja tetap menaikkan angkanya.
+ *
+ * Pelajarannya sama dengan yang sudah tercatat di bawah, dari arah sebaliknya:
+ * penjaga yang terlalu sempit menghasilkan angka hutang yang digelembungkan,
+ * dan hutang palsu sama merusaknya dengan kebutaan — ia melatih pembacanya
+ * mengabaikan laporan.
  */
-const AMBANG = { select: 28, button: 24 }
+const AMBANG = { select: 0, button: 0 }
 
 /**
  * ⚠️ KENAPA ANGKANYA NAIK dari 83/52 — dan kenapa ini BUKAN pelanggaran
@@ -168,6 +185,7 @@ for (const f of [...berkasTsx(join(AKAR, 'app')), ...berkasTsx(join(AKAR, 'compo
           : `htmlFor={\`${punyaId[2].split('${')[0]}`
         if (readFileSync(f, 'utf8').includes(cari)) continue
       }
+
       // <button> yang isinya teks sudah punya nama dari teksnya sendiri.
       //
       // Ini SENGAJA memakai jendela yang lebih lebar daripada `blok` di atas:
@@ -177,7 +195,18 @@ for (const f of [...berkasTsx(join(AKAR, 'app')), ...berkasTsx(join(AKAR, 'compo
       // "tanpa nama" padahal teksnya ada tepat di bawahnya (423 laporan palsu
       // saat pertama kali dicoba begitu).
       if (tag === 'button') {
-        const isi = baris.slice(i, i + 14).join('\n')
+        // ⚠️ 14 baris TERLALU SEMPIT, dan itu menghasilkan laporan palsu.
+        // Tombol di repo ini rutin punya `style={{…}}` inline 10 baris plus
+        // `onMouseEnter`/`onMouseLeave`, sehingga TEKS-nya baru muncul di
+        // baris ke-19 sampai ke-25 — mis. `milestone-modal.tsx:263`, yang
+        // teksnya "Simpan Perubahan" ada 19 baris di bawah dan tetap
+        // dilaporkan "tanpa nama".
+        //
+        // Melebarkan ke 40 tidak melonggarkan penjaganya: batas sebenarnya
+        // adalah `</button>` yang dicari di bawah, dan tombol ikon-saja tetap
+        // tertangkap karena isinya HABIS setelah elemen anak dibuang. Diuji
+        // mutasi: menyisipkan tombol ikon-saja tetap menaikkan angka.
+        const isi = baris.slice(i, i + 40).join('\n')
         const mulai = isi.indexOf(`<${tag}`)
         // ⚠️ JANGAN pakai `indexOf('>')` polos. Handler `onClick={() => ...}`
         // mengandung `>` di dalam panah fungsinya, dan itu ditemukan LEBIH DULU

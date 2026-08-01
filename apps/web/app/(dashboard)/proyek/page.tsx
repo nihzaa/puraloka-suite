@@ -429,6 +429,8 @@ function ProyekContent() {
               return (
                 <button
                   key={tab.key}
+                  aria-label={`Tampilkan proyek berstatus ${tab.label}`}
+                  aria-pressed={active}
                   onClick={() => setStatusFilter(tab.key)}
                   style={{
                     display: "inline-flex", alignItems: "center", gap: 5,

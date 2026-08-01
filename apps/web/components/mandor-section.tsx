@@ -428,7 +428,7 @@ function AssignMandorModal({ projectId, existingMandorIds, onClose, onSuccess }:
             <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Assign Mandor</h2>
             <p style={{ margin: "2px 0 0", fontSize: 12, color: C.muted }}>Tambah mandor ke proyek ini</p>
           </div>
-          <button onClick={onClose} style={{ padding: 6, borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
+          <button aria-label="Tutup form assign mandor" onClick={onClose} style={{ padding: 6, borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
@@ -544,7 +544,7 @@ function AddScopeModal({ assignment, projectId: projectIdProp, onClose, onSucces
             <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Tambah Scope Pekerjaan</h2>
             <p style={{ margin: "2px 0 0", fontSize: 12, color: C.muted }}>Mandor: {assignment.mandor?.name}</p>
           </div>
-          <button onClick={onClose} style={{ padding: 6, borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
+          <button aria-label="Tutup form tambah scope pekerjaan" onClick={onClose} style={{ padding: 6, borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
         </div>
 
         <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14 }}>

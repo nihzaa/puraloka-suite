@@ -1380,7 +1380,7 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
                 <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 12px", borderRadius: 8, background: C.greenBg, border: `1px solid ${C.greenBorder}` }}>
                   <FileText size={14} color={C.green} />
                   <span style={{ fontSize: 11, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{receiptFile.name}</span>
-                  <button type="button" onClick={() => setReceiptFile(null)} style={{ background: "transparent", border: "none", cursor: "pointer", color: C.red, flexShrink: 0 }}><X size={12} /></button>
+                  <button type="button" aria-label="Buang nota yang dipilih" onClick={() => setReceiptFile(null)} style={{ background: "transparent", border: "none", cursor: "pointer", color: C.red, flexShrink: 0 }}><X size={12} /></button>
                 </div>
               ) : (
                 <button type="button" onClick={() => fileRef.current?.click()}
