@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useReducer, useRef, useState } from "react";
+import { useTutupEsc } from "@/lib/use-tutup-esc";
+import { dapatDitekan } from "@/lib/dapat-ditekan";
 import { api, makeAbortController, hasPermission } from "@/lib/api";
 import {
   FileText, BarChart3, Users, TrendingDown, Activity,
@@ -1077,7 +1079,11 @@ function TabMandor({ data }: { data: MandorReportData }) {
             return (
               <div key={mr.assignment.id} style={{ borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)", overflow: "hidden" }}>
                 {/* Header */}
-                <div onClick={() => setExpandedId(expanded ? null : mr.assignment.id)}
+                <div {...dapatDitekan(
+                  () => setExpandedId(expanded ? null : mr.assignment.id),
+                  `${expanded ? "Tutup" : "Buka"} rincian ${mr.assignment.mandor?.name ?? "mandor"}`,
+                  { terbuka: expanded },
+                )}
                   style={{ padding: "14px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, background: expanded ? "#F8FBFF" : "var(--surface)" }}>
                   <div style={{ width: 36, height: 36, borderRadius: 10, background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     <Users size={16} color={C.navy} />
@@ -1284,6 +1290,9 @@ function TabPengeluaran({ data }: { data: ExpensesData }) {
 function TabProgress({ data }: { data: ProgressData }) {
   const { project, milestones, progressLogs, latestProgress } = data;
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  // Esc adalah konvensi yang orang harapkan dari lightbox mana pun; tanpa ini
+  // satu-satunya jalan keluar adalah menemukan tombol X dengan tetikus.
+  useTutupEsc(lightboxUrl ? () => setLightboxUrl(null) : null);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -1360,10 +1369,16 @@ function TabProgress({ data }: { data: ProgressData }) {
                   {photos.length > 0 && (
                     <div style={{ padding: "0 14px 12px", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 8 }}>
                       {photos.map(p => (
-                        <div key={p.id} onClick={() => setLightboxUrl(p.url)}
-                          style={{ borderRadius: 6, overflow: "hidden", border: `1px solid ${C.border}`, aspectRatio: "4/3", cursor: "pointer", background: "var(--surface-hover)" }}>
-                          <img src={p.url} alt={p.caption ?? ""} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
-                        </div>
+                        <button
+                          key={p.id} type="button"
+                          onClick={() => setLightboxUrl(p.url)}
+                          aria-label={`Lihat foto${p.caption ? `: ${p.caption}` : ""} ukuran penuh`}
+                          style={{ borderRadius: 6, overflow: "hidden", border: `1px solid ${C.border}`, aspectRatio: "4/3", cursor: "pointer", background: "var(--surface-hover)", padding: 0, display: "block", width: "100%" }}>
+                          {/* `alt` diisi teks bermakna, bukan `""`. Alt kosong
+                              berarti "gambar dekoratif, abaikan" — untuk foto
+                              bukti lapangan itu justru menyembunyikannya. */}
+                          <img src={p.url} alt={p.caption ?? "Foto progres lapangan"} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
+                        </button>
                       ))}
                     </div>
                   )}
@@ -1376,13 +1391,22 @@ function TabProgress({ data }: { data: ProgressData }) {
 
       {/* Lightbox */}
       {lightboxUrl && (
+        // Latar lightbox: menutup saat diklik adalah kenyamanan tetikus.
+        // Jalan keluar papan tiknya lewat Esc (`useTutupEsc` di atas) dan
+        // tombol X di dalamnya — jadi latarnya TIDAK dijadikan tombol:
+        // menambah perhentian Tab untuk area kosong justru memperpanjang
+        // jalan menuju tombol yang sebenarnya.
+        //
+        // `aria-hidden` juga TIDAK dipakai di sini. Versi pertama memasangnya
+        // dan itu keliru: ia menyembunyikan seluruh ISI lightbox — tombol
+        // tutup dan fotonya sekaligus — dari pembaca layar.
         <div onClick={() => setLightboxUrl(null)}
           style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, cursor: "zoom-out" }}>
           <button aria-label="Tutup pratinjau" onClick={() => setLightboxUrl(null)}
             style={{ position: "absolute", top: 20, right: 20, background: "rgba(255,255,255,0.15)", border: "none", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
             <X size={18} color="var(--surface)" />
           </button>
-          <img src={lightboxUrl} alt="" style={{ maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain", borderRadius: 8 }} onClick={e => e.stopPropagation()} />
+          <img src={lightboxUrl} alt="Foto lapangan ukuran penuh" style={{ maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain", borderRadius: 8 }} onClick={e => e.stopPropagation()} />
         </div>
       )}
     </div>

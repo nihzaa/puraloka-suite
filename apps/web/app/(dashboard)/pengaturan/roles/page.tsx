@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useReducer, useState } from "react";
+import { dapatDitekan } from "@/lib/dapat-ditekan";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { api, hasPermission } from "@/lib/api";
 import {
@@ -278,7 +279,7 @@ function RolesContent() {
               return (
                 <div
                   key={role.id}
-                  onClick={() => selectRole(role)}
+                  {...dapatDitekan(() => selectRole(role), `Pilih role ${role.label ?? role.name}`)}
                   style={{
                     padding: "10px 18px",
                     cursor: "pointer",
@@ -434,7 +435,10 @@ function RolesContent() {
                             return (
                               <div
                                 key={perm.id}
-                                onClick={() => canManage && togglePerm(perm.id)}
+                                {...dapatDitekan(
+                                  canManage ? () => togglePerm(perm.id) : null,
+                                  `${dirtyPerms.has(perm.id) ? "Cabut" : "Berikan"} permission ${perm.key}`,
+                                )}
                                 style={{
                                   display: "flex", alignItems: "flex-start", gap: 10,
                                   padding: "7px 10px", borderRadius: 8, marginBottom: 2,
@@ -631,7 +635,7 @@ function RoleFormModal({ role, roles, onClose, onSaved, setToast }: {
               {ROLE_COLORS.map(c => (
                 <div
                   key={c}
-                  onClick={() => setColor(c)}
+                  {...dapatDitekan(() => setColor(c), `Pilih warna ${c}`)}
                   style={{
                     width: 26, height: 26, borderRadius: "50%", background: c,
                     cursor: "pointer", border: `3px solid ${color === c ? C.text : "transparent"}`,
