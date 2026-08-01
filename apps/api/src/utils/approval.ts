@@ -12,6 +12,10 @@ export type ApprovalEntityType =
   | 'kasbon' | 'change_order' | 'material_request' | 'project_expense'
   | 'estimate_version'  // CECEP Milestone 3 — approval via engine yang sama (ADR-007, 47 §3)
   | 'lessons_learned'   // CECEP Milestone 4 — titik approval ke-3 (47 §3); approve = memicu write-back
+  | 'submittal'         // ROADMAP #24c — keputusan konsultan atas material/gambar yang diajukan.
+                        // Ikut engine ini, BUKAN status sendiri: membuat mekanisme
+                        // approval keempat berarti mengulang persis masalah yang
+                        // Program B selesaikan (Blueprint melarangnya eksplisit).
 
 /**
  * Ambil langkah rantai aktif untuk sebuah entitas — MILIK COMPANY INI.

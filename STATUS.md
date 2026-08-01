@@ -75,7 +75,20 @@ kali keadaan berubah; detail selalu di dokumen rujukan.
 >   ke situlah jawaban yang telat bermuara (Claims & EOT). Yang dihitung:
 >   **lama menggantung** — angka yang dibawa ke klaim perpanjangan waktu.
 >
-> Sisa Tier-2: **Submittals, QC, HSE**.
+> **2026-08-01 — Submittal Register hidup** (migrasi 159, `/lapangan/submittal`).
+> Persetujuan lewat **Workflow Engine yang sudah ada**, bukan status sendiri —
+> tabelnya sengaja tanpa kolom `disetujui_oleh`. Revisi dirantai ke pengajuan
+> pertama: "ditolak 3× sebelum disetujui" adalah fakta yang menjelaskan
+> keterlambatan pengadaan.
+>
+> **Temuan yang lebih besar daripada modulnya** (migrasi 158): `approval_chains`
+> punya `UNIQUE (entity_type)` **GLOBAL** — badan usaha kedua tak bisa punya
+> rantai approval sendiri. Pola yang sama untuk **keempat kalinya** (145, 146,
+> 155), dan yang ini **fail-closed**: company kedua berarti nol orang bisa
+> menyetujui apa pun di sana. Ditemukan karena asumsi kolom diverifikasi ke
+> `pg_constraint` SEBELUM menulis migrasi, bukan setelah gagal.
+>
+> Sisa Tier-2: **QA/QC, HSE**.
 
 ---
 
