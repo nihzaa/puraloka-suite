@@ -515,8 +515,8 @@ function UploadModalContent({
           </div>
 
           {/* Visibility */}
-          <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "10px 12px", borderRadius: 8, border: `1px solid ${uploadVisible ? C.greenBorder : "var(--border)"}`, background: uploadVisible ? C.greenBg : "#FAFAFA" }}>
-            <input type="checkbox" checked={uploadVisible} onChange={e => setUploadVisible(e.target.checked)} style={{ accentColor: C.green, width: 15, height: 15 }} />
+          <label htmlFor="upload-visible-klien" style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "10px 12px", borderRadius: 8, border: `1px solid ${uploadVisible ? C.greenBorder : "var(--border)"}`, background: uploadVisible ? C.greenBg : "#FAFAFA" }}>
+            <input id="upload-visible-klien" type="checkbox" checked={uploadVisible} onChange={e => setUploadVisible(e.target.checked)} style={{ accentColor: C.green, width: 15, height: 15 }} />
             <div>
               <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>Tampilkan ke Klien</div>
               <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Klien dapat melihat dokumen ini di portal mereka</div>

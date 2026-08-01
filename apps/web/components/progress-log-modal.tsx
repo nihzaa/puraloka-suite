@@ -462,15 +462,30 @@ export function ProgressLogModal({
                   </div>
 
                   <div>
-                    <label style={fieldLabel}>Item Pekerjaan (dari RAB) *</label>
+                    {/* `htmlFor` HANYA saat `<select>`-nya benar-benar dirender.
+                        Dua cabang lain (memuat / RAB kosong) tak punya kontrol
+                        sama sekali, dan `htmlFor` statis di sana menunjuk elemen
+                        yang tak ada — label MATI, yang lebih buruk daripada tak
+                        berpasangan karena pembaca layar menyebutkan kaitan palsu. */}
+                    {/* `htmlFor` menunjuk sasaran yang BERBEDA per cabang, dan
+                        selalu ada satu. Versi pertama memakai `undefined` untuk
+                        dua cabang tanpa kontrol — itu membuat labelnya kembali
+                        yatim, dan lint benar mempermasalahkannya. Memberi id
+                        pada pesan statusnya membuat label tetap punya sasaran:
+                        pembaca layar membacakan "Item Pekerjaan" lalu alasan
+                        kenapa belum ada yang bisa dipilih. */}
+                    <label
+                      htmlFor={loadingRab ? "rab-item-memuat" : rabItems.length === 0 ? "rab-item-kosong" : "rab-item-pilihan"}
+                      style={fieldLabel}
+                    >Item Pekerjaan (dari RAB) *</label>
                     {loadingRab ? (
-                      <div style={{ padding: "10px 12px", fontSize: 13, color: "#94a3b8", border: "1px solid #e2e8f0", borderRadius: 10 }}>Memuat item RAB...</div>
+                      <div id="rab-item-memuat" style={{ padding: "10px 12px", fontSize: 13, color: "#94a3b8", border: "1px solid #e2e8f0", borderRadius: 10 }}>Memuat item RAB...</div>
                     ) : rabItems.length === 0 ? (
-                      <div style={{ padding: "10px 12px", fontSize: 13, color: "#b91c1c", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10 }}>
+                      <div id="rab-item-kosong" style={{ padding: "10px 12px", fontSize: 13, color: "#b91c1c", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10 }}>
                         Proyek ini belum memiliki RAB. Upload RAB Excel terlebih dahulu.
                       </div>
                     ) : (
-                      <select aria-label="Pilih item RAB" value={selectedRabId} onChange={e => setSelectedRabId(e.target.value)} style={fieldInput}
+                      <select id="rab-item-pilihan" aria-label="Pilih item RAB" value={selectedRabId} onChange={e => setSelectedRabId(e.target.value)} style={fieldInput}
                         onFocus={e => { e.target.style.borderColor = "var(--navy)"; }}
                         onBlur={e => { e.target.style.borderColor = "#e2e8f0"; }}>
                         <option value="">— Pilih item pekerjaan</option>
