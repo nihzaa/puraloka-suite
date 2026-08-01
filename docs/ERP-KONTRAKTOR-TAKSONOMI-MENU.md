@@ -441,6 +441,62 @@ cuma perlu satu dari tiga label — *dikerjakan* / *eksternal* / *coret*.
 
 ---
 
+## "SUDAH BERAPA PERSEN?" — tiga angka, tiga arti
+
+Ditambahkan 2026-08-01 menjawab pertanyaan founder. Pertanyaannya sederhana,
+jawabannya **tak bisa satu angka** — karena "persen dari apa" mengubah hasilnya
+dari 67% jadi 29%, dan keduanya benar untuk pertanyaan yang berbeda.
+
+| Diukur terhadap | Angka | Artinya |
+|---|---|---|
+| **ROADMAP** (rencana yang dipilih) | **32 dari 45 = 71%** | 20/30 item bernomor + 12/15 Tingkat 0. Inilah jawaban untuk "pekerjaan yang kita sepakati, sudah sejauh mana" |
+| **Taksonomi tanpa yang dicoret** | (53 + 48 sebagian) dari 177 → **30% penuh, 27% sebagian** | Peta ERP kontraktor kelas dunia secara umum. Dipakai untuk melihat apa yang BELUM terpikirkan, bukan untuk menilai kemajuan |
+| **Kriteria Kualitas** (5 kriteria owner) | **3 kuat · 1 sedang · 1 lemah** | Paling dekat dengan "sistem ini sudah bisa dipercaya belum" |
+
+**Angka yang paling jujur dipakai: 71%** — karena itu diukur terhadap pekerjaan
+yang benar-benar diputuskan dikerjakan. Persentase terhadap taksonomi menyesatkan
+ke dua arah sekaligus: ia menghukum keputusan sadar untuk TIDAK membangun sesuatu,
+sekaligus menyembunyikan bahwa yang tersisa bukan 70% pekerjaan melainkan 13 item.
+
+### Kalau seluruh ROADMAP selesai (100%), sistem ini jadi apa
+
+Bukan "ERP lengkap". Yang tepat: **sistem cost-control kontraktor yang setiap
+angkanya bisa dipertahankan di hadapan klien, bank, dan pemeriksa** —
+
+- RAB dari analisa AHSP resmi, tiap baris bisa dijelaskan 5 langkah sampai ke
+  sumber harga & tanggal berlakunya (#19 ✅)
+- Rencana vs realisasi terukur per proyek DAN lintas portofolio (#18 ✅, #21 ✅)
+- Kebocoran tertutup di titik paling awal — kuota RAB di MR, commitment PO,
+  3-way match (#11 ✅, #9 ✅)
+- Pengakuan pendapatan PSAK sehingga L/R per proyek bermakna (#15, sisa)
+- Rantai kontrak pemerintah: denda arah kontraktor, EOT, register jaminan (#16, sisa)
+
+Yang TETAP tidak dimiliki, dengan sadar: GL/jurnal in-app · payroll & pajak
+karyawan · QA/QC & HSE formal · manajemen aset berat · BIM · multi-currency.
+Enam-enamnya punya alasan tertulis, dan lima di antaranya jawabannya adalah
+"pakai yang sudah ada di luar", bukan "belum sempat".
+
+### Apakah semua yang di docs/ akan dikerjakan? Tidak — dan itu bukan kelalaian
+
+235 dokumen di `docs/` **98% saling tersambung** (diukur 2026-08-01: hanya 4
+berdiri sendiri, dan 2 di antaranya justru sumber ROADMAP #17/#20). Jadi
+dokumennya memang satu jaringan, bukan tumpukan lepas.
+
+Tapi tersambung ≠ akan dikerjakan. Dokumen di sini punya **tiga peran berbeda**,
+dan hanya satu yang berisi pekerjaan:
+
+1. **Rencana kerja** → sudah di-merge ke `ROADMAP.md`. Ini yang dikerjakan.
+2. **Konstitusi & keputusan** (ADR, Engineering-Constitution, arsitektur 00–06) →
+   aturan yang MENGIKAT tiap pekerjaan baru. Tak pernah "selesai", ia dipatuhi.
+3. **Discovery & teardown** (AHSP-TEARDOWN-DEFECTS, discovery RAP, audit) →
+   hasilnya sudah terpakai jadi dasar keputusan. Nilainya sudah dipetik.
+
+Dokumen kategori 2 dan 3 yang membuat `docs/` terlihat "banyak sekali pekerjaan".
+Padahal yang berupa pekerjaan tersisa cuma **13 item** — 8 di ROADMAP + 5 yang
+menunggu keputusan/berkas dari founder (E9, E10, E12, #17, #20).
+
+---
+
 ## MENU YANG ADA TAPI TIDAK TERCANTUM DI TAKSONOMI ASLI
 
 Ditemukan saat verifikasi (bukti = route/UI nyata):
