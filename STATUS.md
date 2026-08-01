@@ -118,6 +118,38 @@ kali keadaan berubah; detail selalu di dokumen rujukan.
 > seluruhnya yatim. Penghapusan tetap **menunggu izin founder** (keputusan
 > terbuka #1c).
 
+> ### 2026-08-02 — adopsi `tenantDb` 426 → 378; alat pemilahnya salah 4×
+>
+> **48 query dialihkan ke `viaProject()`** di delapan berkas: `rab-schedule`,
+> `progress`, `documents`, `rab`, `termin-payment`, `cash`, `milestones`,
+> `change-orders`, `mandor`. Yang berubah bukan keamanannya hari ini —
+> gerbangnya memang sudah ada. Yang berubah: **filter tenant melekat pada
+> query**, jadi rute berikutnya yang ditulis di berkas itu tak bisa lupa.
+>
+> Ikut dibersihkan: 7 impor `supabase` yatim, ratchet lint API 16 → **10**.
+>
+> **Yang lebih berharga daripada angkanya: alat pemilahnya salah EMPAT kali**,
+> dan tiap kesalahan menaikkan angka palsu yang meyakinkan —
+>
+> 1. Tak memeriksa gerbang **per-handler**, hanya jarak baris → melaporkan 70
+>    kandidat di `mandor.ts`; yang sebenarnya siap **2**.
+> 2. Menghitung `projectIds()` sebagai gerbang → rute **lintas-proyek** ikut
+>    terbaca "siap": 0 jadi **40 palsu** di `procurement`.
+> 3. Tak memeriksa **kategori tabel** → `viaProject` hanya menerima kategori C,
+>    sementara `projects` adalah ANCHOR dan akan gagal compile.
+> 4. Tak membedakan `request.params` (selalu ada) dari `request.query` (bisa
+>    `undefined`) → mengalihkan yang kedua akan **MEMECAHKAN** rute "semua
+>    proyek" yang sekarang bekerja.
+>
+> Tiap kesalahan ketahuan dengan memeriksa **sampel**, bukan dari alatnya.
+> Sesudah empat koreksi angkanya masih tak stabil, jadi sisanya diperiksa
+> manual alih-alih dipercaya — dan pekerjaan dihentikan di titik itu, bukan
+> dipaksakan dengan angka yang tak bisa dipertanggungjawabkan.
+>
+> Sisa 378 **bukan seluruhnya hutang**: 28 di antaranya operasi by-id
+> lintas-proyek (`.in('project_id', await db.projectIds())` — bentuk yang
+> BENAR untuk "apakah id ini milik salah satu proyek saya").
+
 > ### 2026-08-02 — `apps/web` akhirnya punya harness test (sebelumnya NOL)
 >
 > Sisi API punya 1.215 test tiap CI; sisi web hanya dijaga **bentuk kodenya**
