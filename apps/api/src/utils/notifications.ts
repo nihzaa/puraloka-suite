@@ -29,6 +29,12 @@ export type NotificationType =
   | 'punch_assigned'
   | 'punch_closed'
   | 'punch_rejected'
+  // Request for Inspection (migrasi 157). Terpisah dari punch karena
+  // penerimanya berbeda: permintaan pergi ke yang berwenang memeriksa,
+  // hasilnya kembali ke pemohon.
+  | 'inspeksi_diminta'
+  | 'inspeksi_lolos'
+  | 'inspeksi_gagal'
   | 'general'
 
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent'

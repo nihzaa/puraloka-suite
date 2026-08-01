@@ -62,7 +62,20 @@ kali keadaan berubah; detail selalu di dokumen rujukan.
 > Keputusan yang menentukan modul ini berguna atau tidak: **`punch:verify`
 > dipisah dari `punch:manage`** — yang memperbaiki tak boleh menyatakan
 > perbaikannya sah. Nol akses `supabase` mentah (seluruhnya `request.db`), jadi
-> ratchet T4f tidak naik sedikit pun. Sisa Tier-2: RFI, Submittals, QC, HSE.
+> ratchet T4f tidak naik sedikit pun.
+>
+> **2026-08-01 — Tier-2 lanjut: DUA modul RFI hidup** (migrasi 157).
+> Dokumen proyek konflik soal apa itu "RFI" — taksonomi menu menulis *Request
+> for **Inspection***, Blueprint & vision menulis *Request for **Information***.
+> Keduanya alur kerja nyata yang berbeda, jadi ini keputusan produk, bukan
+> teknis; **founder memilih membangun keduanya dengan menu terpisah**:
+> · `/lapangan/inspeksi` — izin cor/tutup. Yang memutuskan lolos terpisah dari
+>   yang mengajukan; gagal boleh langsung jadi temuan punch list.
+> · `/kontrak/rfi` — pertanyaan resmi ke konsultan, di grup **Kontrak** karena
+>   ke situlah jawaban yang telat bermuara (Claims & EOT). Yang dihitung:
+>   **lama menggantung** — angka yang dibawa ke klaim perpanjangan waktu.
+>
+> Sisa Tier-2: **Submittals, QC, HSE**.
 
 ---
 
