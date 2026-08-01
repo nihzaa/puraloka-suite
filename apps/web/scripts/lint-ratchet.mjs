@@ -69,7 +69,16 @@ const AMBANG = {
   // tak dinamai. Yang benar: `role="group"` + `aria-labelledby`, sehingga
   // pembaca layar mengumumkan "Sumber Dana, grup" dan orang tahu itu SATU
   // pertanyaan, bukan empat tombol lepas.
-  'jsx-a11y/label-has-associated-control': 30,
+  // 30 → 27: tiga di antaranya ternyata JUDUL BAGIAN, bukan label kontrol —
+  // "Rincian Tukang", "Potongan", "Detail Tukang", masing-masing dengan
+  // tombol "Tambah" di sebelahnya dan tak satu pun input yang ia namai.
+  // `<label>` di sana memang salah elemen; diganti `<span>`.
+  //
+  // 27 sisanya bentuk KELIMA yang tak bisa di-codemod: label multi-baris yang
+  // diikuti percabangan (`? :`), kontrolnya ada di dalam cabang. `htmlFor`
+  // statis akan MATI di salah satu cabang — cacat yang sudah terbukti sekali
+  // di `progress-log-modal`. Butuh penilaian per-kasus.
+  'jsx-a11y/label-has-associated-control': 27,
   // 117 → 112 → 104 → 102 → 98 → 93 → 88 (2026-08-01/02): 5 foto di `progress-log-list` yang semula
   // `<img onClick>` — bisa diklik tetikus, TAK BISA dijangkau keyboard sama
   // sekali. Diganti `<button>`, bukan ditambal `role`+`tabIndex`+`onKeyDown`:

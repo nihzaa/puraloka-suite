@@ -290,7 +290,7 @@ export default function LaporanUpahPage() {
             {/* Tabel tukang */}
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                <label style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Detail Tukang *</label>
+                <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Detail Tukang *</span>
                 <button type="button" onClick={addRow} style={{
                   display: "flex", alignItems: "center", gap: 4, padding: "5px 12px", borderRadius: 6,
                   border: `1px solid ${C.navy}`, background: C.navyLight, color: C.navy, fontSize: 12, fontWeight: 600, cursor: "pointer",

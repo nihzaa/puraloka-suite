@@ -1908,7 +1908,7 @@ function CreateWageReportModal({ onClose, onSuccess }: {
           {/* Rincian tukang */}
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: C.mid }}>Rincian Tukang <span style={{ color: C.red }}>*</span></label>
+              <span style={{ fontSize: 12, fontWeight: 600, color: C.mid }}>Rincian Tukang <span style={{ color: C.red }}>*</span></span>
               <button type="button" onClick={addItem} style={{ fontSize: 12, color: C.navy, border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontWeight: 600 }}>
                 <Plus size={12} /> Tambah Tukang
               </button>
@@ -1949,7 +1949,7 @@ function CreateWageReportModal({ onClose, onSuccess }: {
           {/* Potongan */}
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: C.mid }}>Potongan</label>
+              <span style={{ fontSize: 12, fontWeight: 600, color: C.mid }}>Potongan</span>
               <button type="button" onClick={addDeduction} style={{ fontSize: 12, color: C.red, border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontWeight: 600 }}>
                 <Plus size={12} /> Tambah Potongan
               </button>
