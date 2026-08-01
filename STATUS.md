@@ -54,6 +54,15 @@ kali keadaan berubah; detail selalu di dokumen rujukan.
 >   global `admin` membawa 95 permission ke company tempat orangnya hanya `mandor`.
 >
 > Ratchet gerbang tenancy dikencangkan **9 → 7**; 195 dari 202 rute bergerbang.
+>
+> **2026-08-01 — ROADMAP #24 dimulai: Punch List hidup** (migrasi 156, `/lapangan/punch-list`).
+> Modul pertama Capability Tier-2. Blocker lamanya ("butuh Workflow Engine")
+> diverifikasi lunas **ke kode**, bukan dibaca dari dokumen: 4 modul memakai
+> `evaluateEntityApproval`, 6 chain berisi 13 langkah, ada baris progress nyata.
+> Keputusan yang menentukan modul ini berguna atau tidak: **`punch:verify`
+> dipisah dari `punch:manage`** — yang memperbaiki tak boleh menyatakan
+> perbaikannya sah. Nol akses `supabase` mentah (seluruhnya `request.db`), jadi
+> ratchet T4f tidak naik sedikit pun. Sisa Tier-2: RFI, Submittals, QC, HSE.
 
 ---
 

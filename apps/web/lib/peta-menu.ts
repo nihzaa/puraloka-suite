@@ -225,7 +225,7 @@ export const PETA_MENU: GrupMenu[] = [
       { key: 'lp-rfi', label: 'Request for Inspection', status: 'rencana', guna: 'Permintaan pemeriksaan sebelum pekerjaan ditutup.', catatan: 'Bagian Capability Tier-2 (ROADMAP #24).' },
       { key: 'lp-submittal', label: 'Submittal Register', status: 'rencana', guna: 'Pengajuan contoh material & gambar kerja untuk disetujui.', catatan: 'Bagian Capability Tier-2 (ROADMAP #24).' },
       { key: 'lp-ncr', label: 'Non-Conformance Report', status: 'rencana', guna: 'Laporan pekerjaan yang tak sesuai spesifikasi.', catatan: 'Bagian Capability Tier-2 (ROADMAP #24).' },
-      { key: 'lp-punch', label: 'Punch List', status: 'rencana', guna: 'Daftar cacat yang harus diperbaiki sebelum serah terima.', catatan: 'Bagian Capability Tier-2 (ROADMAP #24).' },
+      { key: 'lp-punch', label: 'Punch List', status: 'hidup', href: '/lapangan/punch-list', guna: 'Daftar cacat yang harus diperbaiki sebelum serah terima.', catatan: 'Capability Tier-2 (ROADMAP #24). Verifikasi terpisah dari perbaikan — pelaksana tak menutup perkaranya sendiri.' },
       { key: 'lp-foto', label: 'Dokumentasi Foto', status: 'hidup', href: '/proyek', tabProyek: 'foto', guna: 'Foto progres, cacat, dan serah terima.' },
       { key: 'lp-serah', label: 'Serah Terima (PHO/FHO)', status: 'sebagian', href: '/proyek', guna: 'Berita acara serah terima pertama & akhir.' },
     ],

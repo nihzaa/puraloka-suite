@@ -84,7 +84,18 @@ for (const f of halaman) {
   if (DIKECUALIKAN.has(rel)) continue
   const isi = readFileSync(f, 'utf8')
 
-  const token = TOKEN_SAH.find((t) => isi.includes(`maxWidth: "var(${t})"`))
+  // Dua bentuk penulisan, keduanya SAH:
+  //   inline style JSX  → maxWidth: "var(--w-page)"
+  //   CSS (styled-jsx)  → max-width: var(--w-page)
+  //
+  // ⚠️ Versi pertama hanya mengenali bentuk JSX, dan menolak halaman yang
+  // memakai token dengan benar lewat CSS. Yang ditegakkan penjaga ini adalah
+  // MAKSUDNYA (halaman memusat pada lebar terkontrol), bukan gaya penulisan —
+  // menolak halaman yang patuh adalah tuduhan palsu, dan tuduhan palsu membuat
+  // orang berhenti memercayai penjaganya lalu mengecualikan berkasnya.
+  const token = TOKEN_SAH.find(
+    (t) => isi.includes(`maxWidth: "var(${t})"`) || new RegExp(`max-width:\\s*var\\(${t}\\)`).test(isi),
+  )
   if (!token) {
     pelanggaran.push(
       `${rel}\n      container halaman tak memakai token lebar. ` +
@@ -97,7 +108,7 @@ for (const f of halaman) {
   // Batas tanpa pemusatan = konten menempel kiri, ruang kanan menganga. Ini
   // persis bentuk cacat aslinya, jadi diperiksa terpisah — `maxWidth` saja
   // TIDAK cukup dan mudah terlewat karena "kelihatannya sudah ada batasnya".
-  if (!isi.includes('margin: "0 auto"')) {
+  if (!isi.includes('margin: "0 auto"') && !/margin:\s*0 auto/.test(isi)) {
     pelanggaran.push(`${rel}\n      punya maxWidth tapi TANPA \`margin: "0 auto"\` — konten akan menempel kiri.`)
   }
 

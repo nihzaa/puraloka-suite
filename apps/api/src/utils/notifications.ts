@@ -21,6 +21,14 @@ export type NotificationType =
   | 'change_order_submitted'
   | 'change_order_approved'
   | 'change_order_rejected'
+  // Punch List (migrasi 156). Tiga tipe, bukan satu `punch_item`: penerima dan
+  // urgensinya berbeda — yang ditugaskan perlu tahu SEGERA ada cacat atas
+  // namanya, penemunya perlu tahu perkaranya sudah selesai atau dianggap tak
+  // berlaku. Satu tipe generik membuat ketiganya tak bisa disaring terpisah,
+  // dan pengaturan notifikasi per-jenis jadi mustahil.
+  | 'punch_assigned'
+  | 'punch_closed'
+  | 'punch_rejected'
   | 'general'
 
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent'

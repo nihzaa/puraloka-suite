@@ -34,6 +34,7 @@ import notificationRoutes from './routes/v1/notifications.js'
 import procurementRoutes from './routes/v1/procurement.js'
 import rolesRoutes from './routes/v1/roles.js'
 import changeOrderRoutes from './routes/v1/change-orders.js'
+import punchListRoutes from './routes/v1/punch-list.js'
 import rabScheduleRoutes from './routes/v1/rab-schedule.js'
 import auditRoutes from './routes/v1/audit.js'
 import searchRoutes from './routes/v1/search.js'
@@ -262,6 +263,7 @@ await app.register(notificationRoutes)
 await app.register(procurementRoutes)
 await app.register(rolesRoutes)
 await app.register(changeOrderRoutes)
+await app.register(punchListRoutes)
 await app.register(rabScheduleRoutes)
 await app.register(auditRoutes)
 await app.register(searchRoutes)

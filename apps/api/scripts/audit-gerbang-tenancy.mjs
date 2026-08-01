@@ -52,7 +52,30 @@ const PETUNJUK_LANGSUNG = [
  * Dipindai di routes/ DAN utils/ karena sebagian gerbang dipakai lintas modul.
  */
 function temukanGerbang() {
-  const nama = new Set()
+  // Dijalankan BERLAPIS sampai stabil (fixpoint), bukan sekali.
+  //
+  // Sebabnya konkret: `ambilPunchMilikTenant()` adalah gerbang sungguhan — ia
+  // memanggil `proyekMilikTenant()` dan membalas null bila bukan haknya — tapi
+  // ia tak pernah menyebut `company_id` SENDIRI. Dengan satu lapis, ia tak
+  // dikenali, dan keempat rute yang memakainya dituduh bolong. Tuduhan palsu
+  // yang persis dilarang catatan di kepala berkas ini: daftar gerbang yang
+  // meleset satu membuat orang berhenti memercayai penjaganya.
+  //
+  // Gerbang yang dibangun DI ATAS gerbang lain adalah pola yang benar dan akan
+  // makin sering — mendaftarkannya manual mengulangi kesalahan yang justru
+  // diselesaikan dengan menurunkan nama dari sumber.
+  let nama = new Set()
+  for (let lapis = 0; lapis < 5; lapis++) {
+    const sebelum = nama.size
+    nama = satuLapis(nama)
+    if (nama.size === sebelum) break
+  }
+  return nama
+}
+
+/** Satu lapis penemuan; `dikenal` = gerbang dari lapis sebelumnya. */
+function satuLapis(dikenal) {
+  const nama = new Set(dikenal)
   const berkas = [
     ...readdirSync(RUTE).filter((f) => f.endsWith('.ts')).map((f) => join(RUTE, f)),
     ...readdirSync(join(SRC, 'utils')).filter((f) => f.endsWith('.ts')).map((f) => join(SRC, 'utils', f)),
@@ -63,10 +86,23 @@ function temukanGerbang() {
     for (let i = 0; i < baris.length; i++) {
       const m = baris[i].match(/(?:async\s+)?function\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/)
       if (!m) continue
-      // Badan fungsi: sampai deklarasi top-level berikutnya, maks 60 baris.
-      let akhir = Math.min(i + 60, baris.length)
+      // Badan fungsi: sampai kurung kurawal penutup pada INDENTASI YANG SAMA.
+      //
+      // Versi lama memotong "60 baris atau deklarasi berikutnya", dan itu
+      // menyerempet kode di LUAR fungsi. Akibatnya `getMondayOf` — fungsi
+      // tanggal bersarang di rab-schedule.ts — terhitung "menyentuh tenancy"
+      // hanya karena rute di bawahnya menyentuh. Gerbang PALSU lebih berbahaya
+      // daripada tuduhan palsu: ia membuat rute yang benar-benar bolong
+      // terhitung aman, dan penjaganya berhenti menjaga apa pun.
+      //
+      // Membatasi ke fungsi top-level BUKAN jawabannya — `ambilEOT` dan
+      // `resolveScopeItemOwnership` adalah gerbang sungguhan yang juga
+      // bersarang. Yang membedakan bukan posisinya, tapi apakah badan fungsi
+      // ITU SENDIRI memeriksa tenancy.
+      const indentasi = (baris[i].match(/^(\s*)/) || ['', ''])[1]
+      let akhir = Math.min(i + 80, baris.length)
       for (let j = i + 1; j < akhir; j++) {
-        if (/^(async )?function |^export /.test(baris[j])) { akhir = j; break }
+        if (baris[j].replace(/\r$/, '') === `${indentasi}}`) { akhir = j + 1; break }
       }
       const badan = baris.slice(i, akhir).join('\n')
       // Fungsi PENDAFTAR RUTE (`cashRoutes(app)`, `ahspRoutes(app)`) juga
@@ -76,7 +112,12 @@ function temukanGerbang() {
       if (/Routes$/.test(m[1])) continue
       // Gerbang menerima `request` sebagai PARAMETER, bukan `app`.
       const terimaRequest = /\(\s*request\b|request:\s*FastifyRequest/.test(badan)
-      const sentuhTenancy = PETUNJUK_LANGSUNG.some((p) => badan.includes(p))
+      // Menyentuh tenancy LANGSUNG, atau lewat gerbang yang sudah dikenal.
+      // `g !== m[1]` mencegah fungsi menyatakan dirinya sendiri gerbang lewat
+      // rekursi — yang akan membuat penjaga ini meluluskan apa pun.
+      const sentuhTenancy =
+        PETUNJUK_LANGSUNG.some((p) => badan.includes(p)) ||
+        [...dikenal].some((g) => g !== m[1] && badan.includes(g))
       if (terimaRequest && sentuhTenancy) nama.add(m[1])
     }
   }
