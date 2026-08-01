@@ -35,42 +35,37 @@ export default async function kurvaSRoutes(app: FastifyInstance) {
           .single(),
 
         // Progress logs fisik — hanya mode=daily yang punya pct_overall bermakna
-        supabase
-          .from('progress_logs')
+        request.db!
+          .viaProject('progress_logs', projectId)
           .select('pct_overall, logged_at, mode')
-          .eq('project_id', projectId)
           .eq('mode', 'daily')
           .not('pct_overall', 'is', null)
           .order('logged_at'),
 
         // Milestones
-        supabase
-          .from('milestones')
+        request.db!
+          .viaProject('milestones', projectId)
           .select('title, target_date, status, completed_at')
-          .eq('project_id', projectId)
           .not('target_date', 'is', null)
           .order('target_date'),
 
         // RAB items (semua level) untuk hitung bobot serapan
-        supabase
-          .from('rab_items')
+        request.db!
+          .viaProject('rab_items', projectId)
           .select('id, weight_pct, total_price, sort_order, level, planned_start, planned_end')
-          .eq('project_id', projectId)
           .gt('weight_pct', 0)
           .order('sort_order'),
 
         // Jadwal rencana serapan (dari input manual PM)
-        supabase
-          .from('rab_schedule')
+        request.db!
+          .viaProject('rab_schedule', projectId)
           .select('rab_item_id, week_start, material_pct, upah_pct, alat_pct, other_pct')
-          .eq('project_id', projectId)
           .order('week_start'),
 
         // Log serapan aktual manual (dari input PM per minggu)
-        supabase
-          .from('rab_absorption_log')
+        request.db!
+          .viaProject('rab_absorption_log', projectId)
           .select('rab_item_id, week_start, material_pct, upah_pct, alat_pct, other_pct')
-          .eq('project_id', projectId)
           .order('week_start'),
       ])
 
@@ -116,10 +111,9 @@ export default async function kurvaSRoutes(app: FastifyInstance) {
         // status yang sama, sementara PostgREST hanya memulangkan error di
         // field `error` yang tak pernah diperiksa. Pelajarannya: `?? []` pada
         // hasil query mengubah KEGAGALAN jadi HASIL KOSONG yang terlihat sah.
-        supabase
-          .from('project_expenses')
+        request.db!
+          .viaProject('project_expenses', projectId)
           .select('total_amount, expense_date')
-          .eq('project_id', projectId)
           .eq('status', 'approved')
           .order('expense_date'),
 

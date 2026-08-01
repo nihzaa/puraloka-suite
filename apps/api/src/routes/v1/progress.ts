@@ -47,10 +47,9 @@ export default async function progressRoutes(app: FastifyInstance) {
         // enum assignment_status = active | completed | terminated (TIDAK ada 'cancelled').
         // Nilai enum yang salah membuat PostgREST ERROR & data null → dulu diam-diam
         // dianggap "tak ditugaskan" = SEMUA mandor sah tertolak 403 (gagal-tertutup senyap).
-        const { data: asg, error: asgErr } = await supabase
-          .from('mandor_assignments')
+        const { data: asg, error: asgErr } = await request.db!
+          .viaProject('mandor_assignments', projectId)
           .select('id')
-          .eq('project_id', projectId)
           .eq('mandor_id', user.id)
           .neq('status', 'terminated')
           .limit(1)
@@ -70,11 +69,10 @@ export default async function progressRoutes(app: FastifyInstance) {
       // Pola sama DELETE progress-log: 404 utk "tak ada / bukan proyek ini" (tak
       // membocorkan mana yang benar terjadi), 403 utk "ada tapi tak berhak".
       if (progress_log_id) {
-        const { data: log } = await supabase
-          .from('progress_logs')
+        const { data: log } = await request.db!
+          .viaProject('progress_logs', projectId)
           .select('id, reported_by, project_id')
           .eq('id', progress_log_id)
-          .eq('project_id', projectId)
           .maybeSingle()
         if (!log) return reply.status(404).send({ error: 'Log tidak ditemukan' })
         // Mandor hanya boleh menautkan ke log MILIKNYA sendiri; admin/pm bebas.
@@ -147,10 +145,9 @@ export default async function progressRoutes(app: FastifyInstance) {
     const limit = Math.min(50, Math.max(1, parseInt(query.limit ?? '20', 10)))
     const offset = (page - 1) * limit
 
-    const { count, error: countError } = await supabase
-      .from('progress_logs')
+    const { count, error: countError } = await request.db!
+      .viaProject('progress_logs', projectId)
       .select('*', { count: 'exact', head: true })
-      .eq('project_id', projectId)
 
     if (countError) return reply.status(500).send({ error: countError.message })
 
@@ -214,11 +211,10 @@ export default async function progressRoutes(app: FastifyInstance) {
       }
 
       // Verifikasi rab_item_id milik proyek ini
-      const { data: rabItem, error: rabError } = await supabase
-        .from('rab_items')
+      const { data: rabItem, error: rabError } = await request.db!
+        .viaProject('rab_items', projectId)
         .select('id, weight_pct, name')
         .eq('id', body.rab_item_id)
-        .eq('project_id', projectId)
         .single()
 
       if (rabError || !rabItem) {
@@ -257,10 +253,9 @@ export default async function progressRoutes(app: FastifyInstance) {
       // Bubble-up lapis 1+2: recalculate progress_pct category dan project.
       // Logic diekstrak ke lib/rab-aggregation.ts (Task 1.2.3, testable tanpa
       // HTTP/DB; sebelumnya duplikat identik di progress.ts dan rab.ts)
-      const { data: allItems } = await supabase
-        .from('rab_items')
+      const { data: allItems } = await request.db!
+        .viaProject('rab_items', projectId)
         .select('id, parent_id, level, weight_pct, progress_pct')
-        .eq('project_id', projectId)
 
       let newOverall: number | null = null
       if (allItems && allItems.length > 0) {
@@ -382,11 +377,10 @@ export default async function progressRoutes(app: FastifyInstance) {
     }
     const user = request.currentUser!
 
-    const { data: log, error: fetchError } = await supabase
-      .from('progress_logs')
+    const { data: log, error: fetchError } = await request.db!
+      .viaProject('progress_logs', projectId)
       .select('id, reported_by, project_id')
       .eq('id', logId)
-      .eq('project_id', projectId)
       .single()
 
     if (fetchError || !log) {
@@ -426,10 +420,9 @@ export default async function progressRoutes(app: FastifyInstance) {
 
     const VALID_CATEGORIES = ['progress', 'defect', 'serah_terima', 'other']
 
-    let query = supabase
-      .from('project_photos')
+    let query = request.db!
+      .viaProject('project_photos', projectId)
       .select('id, url, caption, taken_at, category, uploaded_at, progress_log_id, uploader:users!project_photos_uploaded_by_fkey(id, name)')
-      .eq('project_id', projectId)
       .order('uploaded_at', { ascending: false })
 
     if (category && VALID_CATEGORIES.includes(category)) {
@@ -477,11 +470,10 @@ export default async function progressRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'Tidak ada field yang diupdate' })
     }
 
-    const { data, error } = await supabase
-      .from('project_photos')
+    const { data, error } = await request.db!
+      .viaProject('project_photos', projectId)
       .update(updateFields)
       .eq('id', photoId)
-      .eq('project_id', projectId)
       .select('id, url, caption, taken_at, category, uploaded_at')
       .single()
 

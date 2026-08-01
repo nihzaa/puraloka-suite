@@ -70,10 +70,9 @@ export default async function rabScheduleRoutes(app: FastifyInstance) {
         return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
       }
 
-      const { data, error } = await supabase
-        .from('rab_schedule')
+      const { data, error } = await request.db!
+        .viaProject('rab_schedule', projectId)
         .select('id, week_start, week_number, material_pct, upah_pct, alat_pct, other_pct, notes, created_at')
-        .eq('project_id', projectId)
         .eq('rab_item_id', itemId)
         .order('week_start')
 
@@ -111,11 +110,10 @@ export default async function rabScheduleRoutes(app: FastifyInstance) {
       const weekStartISO = weekStartDate.toISOString().split('T')[0]
 
       // Verifikasi item milik project ini
-      const { data: item } = await supabase
-        .from('rab_items')
+      const { data: item } = await request.db!
+        .viaProject('rab_items', projectId)
         .select('id, project_id, total_price')
         .eq('id', body.rab_item_id)
-        .eq('project_id', projectId)
         .single()
 
       if (!item) return reply.status(404).send({ error: 'Item RAB tidak ditemukan' })
@@ -167,11 +165,10 @@ export default async function rabScheduleRoutes(app: FastifyInstance) {
         return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
       }
 
-      const { error } = await supabase
-        .from('rab_schedule')
+      const { error } = await request.db!
+        .viaProject('rab_schedule', projectId)
         .delete()
         .eq('id', id)
-        .eq('project_id', projectId)
 
       if (error) return reply.status(500).send({ error: error.message })
       return { success: true }
@@ -282,11 +279,10 @@ export default async function rabScheduleRoutes(app: FastifyInstance) {
       const weekStartISO = weekStartDate.toISOString().split('T')[0]
 
       // Verifikasi item milik project ini dan ambil komponen biayanya
-      const { data: rabItem } = await supabase
-        .from('rab_items')
+      const { data: rabItem } = await request.db!
+        .viaProject('rab_items', projectId)
         .select('id, project_id, material_pct, upah_pct, alat_pct, other_pct')
         .eq('id', body.rab_item_id)
-        .eq('project_id', projectId)
         .single()
 
       if (!rabItem) return reply.status(404).send({ error: 'Item RAB tidak ditemukan' })
@@ -397,10 +393,9 @@ export default async function rabScheduleRoutes(app: FastifyInstance) {
         return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
       }
 
-      const { data: logs, error } = await supabase
-        .from('rab_absorption_log')
+      const { data: logs, error } = await request.db!
+        .viaProject('rab_absorption_log', projectId)
         .select('rab_item_id, material_pct, upah_pct, alat_pct, other_pct')
-        .eq('project_id', projectId)
 
       if (error) return reply.status(500).send({ error: error.message })
 
@@ -428,11 +423,10 @@ export default async function rabScheduleRoutes(app: FastifyInstance) {
         return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
       }
 
-      const { error } = await supabase
-        .from('rab_absorption_log')
+      const { error } = await request.db!
+        .viaProject('rab_absorption_log', projectId)
         .delete()
         .eq('id', id)
-        .eq('project_id', projectId)
 
       if (error) return reply.status(500).send({ error: error.message })
       return { success: true }

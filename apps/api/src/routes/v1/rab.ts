@@ -422,10 +422,9 @@ export default async function rabRoutes(app: FastifyInstance) {
         return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
       }
 
-      const { data, error } = await supabase
-        .from('rab_items')
+      const { data, error } = await request.db!
+        .viaProject('rab_items', projectId)
         .select('*')
-        .eq('project_id', projectId)
         .order('sort_order', { ascending: true })
 
       if (error) {
@@ -455,10 +454,9 @@ export default async function rabRoutes(app: FastifyInstance) {
         return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
       }
 
-      const { data, error } = await supabase
-        .from('rab_items')
+      const { data, error } = await request.db!
+        .viaProject('rab_items', projectId)
         .select('id, category_code, name, total_price, weight_pct, level, sort_order')
-        .eq('project_id', projectId)
         .in('level', ['category', 'subcategory'])
         .order('sort_order', { ascending: true })
 
@@ -483,10 +481,9 @@ export default async function rabRoutes(app: FastifyInstance) {
         return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
       }
 
-      const { data, error } = await supabase
-        .from('rab_items')
+      const { data, error } = await request.db!
+        .viaProject('rab_items', projectId)
         .select('id, category_code, name, unit, weight_pct, progress_pct, parent_id, sort_order')
-        .eq('project_id', projectId)
         .eq('level', 'item')
         .order('sort_order', { ascending: true })
 
@@ -525,10 +522,9 @@ export default async function rabRoutes(app: FastifyInstance) {
       const mingguRaw = Number(request.query.minggu ?? 3)
       const minggu = Number.isFinite(mingguRaw) ? Math.min(12, Math.max(1, Math.trunc(mingguRaw))) : 3
 
-      const { data, error } = await supabase
-        .from('rab_items')
+      const { data, error } = await request.db!
+        .viaProject('rab_items', projectId)
         .select('id, name, category_code, level, progress_pct, total_price, planned_start, planned_end')
-        .eq('project_id', projectId)
         .not('planned_start', 'is', null)
         .order('planned_start', { ascending: true })
 
@@ -582,10 +578,9 @@ export default async function rabRoutes(app: FastifyInstance) {
         return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
       }
 
-      const { data, error } = await supabase
-        .from('rab_items')
+      const { data, error } = await request.db!
+        .viaProject('rab_items', projectId)
         .select('id, category_code, name, level, parent_id, sort_order, progress_pct, weight_pct, planned_start, planned_end, gantt_dep_rules')
-        .eq('project_id', projectId)
         .order('sort_order', { ascending: true })
 
       if (error) {
@@ -595,10 +590,9 @@ export default async function rabRoutes(app: FastifyInstance) {
 
       // Ambil progress logs mode=detail per rab_item untuk tanggal aktual
       // Diambil ascending agar first/earned-completion bisa dipetakan dengan benar
-      const { data: logs } = await supabase
-        .from('progress_logs')
+      const { data: logs } = await request.db!
+        .viaProject('progress_logs', projectId)
         .select('rab_item_id, logged_at, pct_completion')
-        .eq('project_id', projectId)
         .eq('mode', 'detail')
         .not('rab_item_id', 'is', null)
         .order('logged_at', { ascending: true })
@@ -713,10 +707,9 @@ export default async function rabRoutes(app: FastifyInstance) {
 
       // Hapus RAB lama: item dulu → subcategory → category (urutan penting karena self-ref FK)
       for (const level of ['item', 'subcategory', 'category']) {
-        const { error: deleteError } = await supabase
-          .from('rab_items')
+        const { error: deleteError } = await request.db!
+          .viaProject('rab_items', projectId)
           .delete()
-          .eq('project_id', projectId)
           .eq('level', level)
         if (deleteError) {
           app.log.error(deleteError)
@@ -791,10 +784,9 @@ export default async function rabRoutes(app: FastifyInstance) {
       if (err3) return reply.status(500).send({ error: err3 })
 
       // Ambil semua data yang baru diinsert
-      const { data: allRab, error: fetchError } = await supabase
-        .from('rab_items')
+      const { data: allRab, error: fetchError } = await request.db!
+        .viaProject('rab_items', projectId)
         .select('*')
-        .eq('project_id', projectId)
         .order('sort_order', { ascending: true })
 
       if (fetchError) {
@@ -861,11 +853,10 @@ export default async function rabRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: 'Tidak ada field yang diupdate' })
       }
 
-      const { data, error } = await supabase
-        .from('rab_items')
+      const { data, error } = await request.db!
+        .viaProject('rab_items', projectId)
         .update(updateFields)
         .eq('id', itemId)
-        .eq('project_id', projectId)
         .select('*')
         .single()
 
@@ -893,10 +884,9 @@ export default async function rabRoutes(app: FastifyInstance) {
       // Logic diekstrak ke lib/rab-aggregation.ts (Task 1.2.3, testable tanpa HTTP/DB;
       // sebelumnya duplikat identik di rab.ts dan progress.ts)
       if (progress_pct !== undefined) {
-        const { data: allItems } = await supabase
-          .from('rab_items')
+        const { data: allItems } = await request.db!
+          .viaProject('rab_items', projectId)
           .select('id, parent_id, level, weight_pct, progress_pct')
-          .eq('project_id', projectId)
 
         if (allItems && allItems.length > 0) {
           const { categoryProgress, overallProgress } = bubbleUpProgress(allItems)
@@ -1009,11 +999,10 @@ export default async function rabRoutes(app: FastifyInstance) {
         updateFields.gantt_dependencies = rules.map(r => r.item_id)
       }
 
-      const { data, error } = await supabase
-        .from('rab_items')
+      const { data, error } = await request.db!
+        .viaProject('rab_items', projectId)
         .update(updateFields)
         .eq('id', itemId)
-        .eq('project_id', projectId)
         .select('id, planned_start, planned_end, gantt_dep_rules')
         .single()
 
@@ -1038,10 +1027,9 @@ export default async function rabRoutes(app: FastifyInstance) {
         return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
       }
 
-      const { error } = await supabase
-        .from('rab_items')
+      const { error } = await request.db!
+        .viaProject('rab_items', projectId)
         .delete()
-        .eq('project_id', projectId)
 
       if (error) {
         app.log.error(error)
