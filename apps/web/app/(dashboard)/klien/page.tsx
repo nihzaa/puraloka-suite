@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import { api, hasPermission } from "@/lib/api";
@@ -180,26 +181,26 @@ function ClientModal({
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div style={{ gridColumn: "1 / -1" }}>
-              <label htmlFor="form" style={labelStyle}>Nama Kontak <span style={{ color: C.red }}>*</span></label>
-              <input id="form" value={form.contact_person} onChange={set("contact_person")} required style={inputStyle} placeholder="Nama lengkap" />
+              <label htmlFor="contact-person" style={labelStyle}>Nama Kontak <span style={{ color: C.red }}>*</span></label>
+              <input id="contact-person" value={form.contact_person} onChange={set("contact_person")} required style={inputStyle} placeholder="Nama lengkap" />
             </div>
             {form.client_type === "perusahaan" && (
               <div style={{ gridColumn: "1 / -1" }}>
-                <label htmlFor="form-2" style={labelStyle}>Nama Perusahaan</label>
-                <input id="form-2" value={form.company_name} onChange={set("company_name")} style={inputStyle} placeholder="CV / PT / UD ..." />
+                <label htmlFor="company-name" style={labelStyle}>Nama Perusahaan</label>
+                <input id="company-name" value={form.company_name} onChange={set("company_name")} style={inputStyle} placeholder="CV / PT / UD ..." />
               </div>
             )}
             <div>
-              <label htmlFor="form-3" style={labelStyle}>No. Telepon <span style={{ color: C.red }}>*</span></label>
-              <input id="form-3" value={form.phone} onChange={set("phone")} required style={inputStyle} placeholder="08xx..." />
+              <label htmlFor="phone" style={labelStyle}>No. Telepon <span style={{ color: C.red }}>*</span></label>
+              <input id="phone" value={form.phone} onChange={set("phone")} required style={inputStyle} placeholder="08xx..." />
             </div>
             <div>
-              <label htmlFor="form-4" style={labelStyle}>Email</label>
-              <input id="form-4" type="email" value={form.email} onChange={set("email")} style={inputStyle} placeholder="email@..." />
+              <label htmlFor="email" style={labelStyle}>Email</label>
+              <input id="email" type="email" value={form.email} onChange={set("email")} style={inputStyle} placeholder="email@..." />
             </div>
             <div style={{ gridColumn: "1 / -1" }}>
-              <label htmlFor="form-5" style={labelStyle}>Alamat</label>
-              <input id="form-5" value={form.address} onChange={set("address")} style={inputStyle} placeholder="Jl. ..." />
+              <label htmlFor="address" style={labelStyle}>Alamat</label>
+              <input id="address" value={form.address} onChange={set("address")} style={inputStyle} placeholder="Jl. ..." />
             </div>
             <div>
               <label style={labelStyle}>{form.client_type === "perusahaan" ? "NPWP" : "NIK"}</label>
@@ -211,8 +212,8 @@ function ClientModal({
               />
             </div>
             <div>
-              <label htmlFor="form-6" style={labelStyle}>Catatan</label>
-              <input id="form-6" value={form.notes} onChange={set("notes")} style={inputStyle} placeholder="Opsional..." />
+              <label htmlFor="notes" style={labelStyle}>Catatan</label>
+              <input id="notes" value={form.notes} onChange={set("notes")} style={inputStyle} placeholder="Opsional..." />
             </div>
           </div>
 
@@ -255,7 +256,6 @@ function DetailPanel({ clientId, onClose, onEdit, onCreateProject }: {
   useTutupEsc(onClose);
   const [detail, setDetail] = useState<ClientDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
   const mounted = useMount();
 
   useEffect(() => {
@@ -444,9 +444,12 @@ function DetailPanel({ clientId, onClose, onEdit, onCreateProject }: {
                       const s = STATUS_COLORS[p.status] ?? STATUS_COLORS.planning;
                       const pct = (p as ClientProject & { progress_pct?: number }).progress_pct ?? 0;
                       return (
-                        <div
+                        // `<Link>`: bisa difokus, ditekan Enter, dibuka di tab
+                        // baru, dan tautannya bisa disalin — semuanya hilang
+                        // kalau navigasi ditulis sebagai `onClick` pada `<div>`.
+                        <Link
                           key={p.id}
-                          onClick={() => router.push(`/proyek/${p.id}`)}
+                          href={`/proyek/${p.id}`}
                           style={{ padding: "12px 14px", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", transition: "box-shadow 0.12s" }}
                           onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,51,102,0.08)"; }}
                           onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; }}
@@ -473,7 +476,7 @@ function DetailPanel({ clientId, onClose, onEdit, onCreateProject }: {
                               </div>
                             </div>
                           )}
-                        </div>
+                        </Link>
                       );
                     })}
                   </div>

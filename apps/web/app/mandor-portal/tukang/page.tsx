@@ -233,14 +233,14 @@ export default function DaftarTukangPage() {
             </h2>
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
-                <label htmlFor="form" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Nama *</label>
-                <input id="form" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="Nama lengkap"
+                <label htmlFor="name" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Nama *</label>
+                <input id="name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="Nama lengkap"
                   style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13 }} />
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 <div>
-                  <label htmlFor="form-2" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Tipe</label>
-                  <select id="form-2" aria-label="Tipe pekerja" value={form.tipe} onChange={(e) => setForm((f) => ({ ...f, tipe: e.target.value }))}
+                  <label htmlFor="tipe" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Tipe</label>
+                  <select id="tipe" aria-label="Tipe pekerja" value={form.tipe} onChange={(e) => setForm((f) => ({ ...f, tipe: e.target.value }))}
                     style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13 }}>
                     <option value="">Tidak ditentukan</option>
                     <option value="tukang">Tukang</option>
@@ -249,14 +249,14 @@ export default function DaftarTukangPage() {
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="form-3" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>No HP</label>
-                  <input id="form-3" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} placeholder="0812..."
+                  <label htmlFor="phone" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>No HP</label>
+                  <input id="phone" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} placeholder="0812..."
                     style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13 }} />
                 </div>
               </div>
               <div>
-                <label htmlFor="form-4" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Keahlian (pisah koma)</label>
-                <input id="form-4" value={form.skills} onChange={(e) => setForm((f) => ({ ...f, skills: e.target.value }))} placeholder="Batu, Pasang Keramik, Las"
+                <label htmlFor="skills" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Keahlian (pisah koma)</label>
+                <input id="skills" value={form.skills} onChange={(e) => setForm((f) => ({ ...f, skills: e.target.value }))} placeholder="Batu, Pasang Keramik, Las"
                   style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13 }} />
               </div>
               <div style={{ display: "flex", gap: 8, marginTop: 4 }}>

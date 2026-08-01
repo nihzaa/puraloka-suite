@@ -669,26 +669,26 @@ function CreateMrModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
               <div key={idx} style={{ background: C.bg, borderRadius: 10, padding: 12, border: `1px solid ${C.border}` }}>
                 <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr auto", gap: 8, alignItems: "end" }}>
                   <div>
-                    <label htmlFor="item" style={{ display: "block", fontSize: 11, fontWeight: 500, color: C.mid, marginBottom: 4 }}>Material *</label>
-                    <select id="item" aria-label="Material" value={item.material_id} onChange={e => handleMaterialSelect(idx, e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: C.surface }}>
+                    <label htmlFor="material-id" style={{ display: "block", fontSize: 11, fontWeight: 500, color: C.mid, marginBottom: 4 }}>Material *</label>
+                    <select id="material-id" aria-label="Material" value={item.material_id} onChange={e => handleMaterialSelect(idx, e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: C.surface }}>
                       <option value="">— Pilih —</option>
                       {materials.map(m => <option key={m.id} value={m.id}>{m.name} ({m.unit})</option>)}
                     </select>
                   </div>
                   <div>
-                    <label htmlFor="item-2" style={{ display: "block", fontSize: 11, fontWeight: 500, color: C.mid, marginBottom: 4 }}>Qty *</label>
-                    <input id="item-2" type="number" value={item.qty} onChange={e => updateItem(idx, "qty", e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }} placeholder="0" />
+                    <label htmlFor="qty" style={{ display: "block", fontSize: 11, fontWeight: 500, color: C.mid, marginBottom: 4 }}>Qty *</label>
+                    <input id="qty" type="number" value={item.qty} onChange={e => updateItem(idx, "qty", e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }} placeholder="0" />
                   </div>
                   <div>
-                    <label htmlFor="item-3" style={{ display: "block", fontSize: 11, fontWeight: 500, color: C.mid, marginBottom: 4 }}>Satuan *</label>
-                    <select id="item-3" aria-label="Satuan" value={item.unit} onChange={e => updateItem(idx, "unit", e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: C.surface }}>
+                    <label htmlFor="unit" style={{ display: "block", fontSize: 11, fontWeight: 500, color: C.mid, marginBottom: 4 }}>Satuan *</label>
+                    <select id="unit" aria-label="Satuan" value={item.unit} onChange={e => updateItem(idx, "unit", e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: C.surface }}>
                       <option value="">—</option>
                       {units.map(u => <option key={u.code} value={u.symbol}>{u.symbol}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label htmlFor="item-4" style={{ display: "block", fontSize: 11, fontWeight: 500, color: C.mid, marginBottom: 4 }}>Harga Est. (Rp)</label>
-                    <input id="item-4" type="number" value={item.unit_price_est} onChange={e => updateItem(idx, "unit_price_est", e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }} placeholder="0" />
+                    <label htmlFor="unit-price-est" style={{ display: "block", fontSize: 11, fontWeight: 500, color: C.mid, marginBottom: 4 }}>Harga Est. (Rp)</label>
+                    <input id="unit-price-est" type="number" value={item.unit_price_est} onChange={e => updateItem(idx, "unit_price_est", e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }} placeholder="0" />
                   </div>
                   <button aria-label="Tutup dialog" onClick={() => removeItem(idx)} disabled={items.length <= 1} style={{ background: "none", border: "none", cursor: items.length <= 1 ? "not-allowed" : "pointer", color: C.danger, padding: 4, opacity: items.length <= 1 ? 0.3 : 1 }}>
                     <X size={16} />
@@ -1108,8 +1108,8 @@ function CreatePoModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
 
         {approvedMrs.length > 0 && (
           <div style={{ background: C.infoBg, border: `1px solid ${C.info}`, borderRadius: 8, padding: "10px 14px" }}>
-            <label htmlFor="form" style={{ display: "block", fontSize: 12, fontWeight: 500, color: C.info, marginBottom: 6 }}>BUAT DARI MR (Opsional) — Item akan terisi otomatis</label>
-            <select id="form" aria-label="Pilih Material Request" value={form.mr_id} onChange={e => { setForm(f => ({ ...f, mr_id: e.target.value })); if (e.target.value) loadFromMr(e.target.value); }} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: C.surface }}>
+            <label htmlFor="mr-id" style={{ display: "block", fontSize: 12, fontWeight: 500, color: C.info, marginBottom: 6 }}>BUAT DARI MR (Opsional) — Item akan terisi otomatis</label>
+            <select id="mr-id" aria-label="Pilih Material Request" value={form.mr_id} onChange={e => { setForm(f => ({ ...f, mr_id: e.target.value })); if (e.target.value) loadFromMr(e.target.value); }} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: C.surface }}>
               <option value="">— Buat PO manual tanpa MR —</option>
               {approvedMrs.map(m => <option key={m.id} value={m.id}>{m.mr_number} — {m.project?.name}</option>)}
             </select>
@@ -1150,19 +1150,19 @@ function CreatePoModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
                     </select>
                   </div>
                   <div>
-                    <label htmlFor="item-5" style={{ display: "block", fontSize: 11, fontWeight: 500, color: C.mid, marginBottom: 4 }}>Qty *</label>
-                    <input id="item-5" type="number" value={item.qty} onChange={e => updateItem(idx, "qty", e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }} />
+                    <label htmlFor="qty-2" style={{ display: "block", fontSize: 11, fontWeight: 500, color: C.mid, marginBottom: 4 }}>Qty *</label>
+                    <input id="qty-2" type="number" value={item.qty} onChange={e => updateItem(idx, "qty", e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }} />
                   </div>
                   <div>
-                    <label htmlFor="item-6" style={{ display: "block", fontSize: 11, fontWeight: 500, color: C.mid, marginBottom: 4 }}>Satuan *</label>
-                    <select id="item-6" aria-label="Satuan" value={item.unit} onChange={e => updateItem(idx, "unit", e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: C.surface }}>
+                    <label htmlFor="unit-2" style={{ display: "block", fontSize: 11, fontWeight: 500, color: C.mid, marginBottom: 4 }}>Satuan *</label>
+                    <select id="unit-2" aria-label="Satuan" value={item.unit} onChange={e => updateItem(idx, "unit", e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: C.surface }}>
                       <option value="">—</option>
                       {units.map(u => <option key={u.code} value={u.symbol}>{u.symbol}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label htmlFor="item-7" style={{ display: "block", fontSize: 11, fontWeight: 500, color: C.mid, marginBottom: 4 }}>Harga/Unit (Rp) *</label>
-                    <input id="item-7" type="number" value={item.unit_price} onChange={e => updateItem(idx, "unit_price", e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }} />
+                    <label htmlFor="unit-price" style={{ display: "block", fontSize: 11, fontWeight: 500, color: C.mid, marginBottom: 4 }}>Harga/Unit (Rp) *</label>
+                    <input id="unit-price" type="number" value={item.unit_price} onChange={e => updateItem(idx, "unit_price", e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }} />
                   </div>
                   <button aria-label="Tutup dialog" onClick={() => removeItem(idx)} disabled={items.length <= 1} style={{ background: "none", border: "none", cursor: items.length <= 1 ? "not-allowed" : "pointer", color: C.danger, padding: 4, opacity: items.length <= 1 ? 0.3 : 1 }}>
                     <X size={16} />

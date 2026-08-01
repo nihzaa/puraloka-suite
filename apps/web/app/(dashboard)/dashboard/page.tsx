@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useReducer, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, getStoredUser } from "@/lib/api";
@@ -360,8 +361,15 @@ function DashboardContent() {
               const days = p.end_date ? daysUntil(p.end_date) : null;
               const urgent = days !== null && days >= 0 && days <= 7;
               const overdue = days !== null && days < 0;
+              // `<Link>`, bukan `<div onClick>`: bisa difokus & ditekan Enter,
+              // DAN bisa dibuka di tab baru / disalin tautannya — tiga hal yang
+              // hilang sekaligus kalau navigasi ditulis sebagai klik.
               return (
-                <div key={p.id} onClick={() => router.push(`/proyek/${p.id}`)} style={{ cursor: "pointer" }}>
+                <Link
+                  key={p.id}
+                  href={`/proyek/${p.id}`}
+                  style={{ cursor: "pointer", display: "block", color: "inherit", textDecoration: "none" }}
+                >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
                     <span style={{ fontSize: 12, fontWeight: 500, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, marginRight: 8 }}>{p.name}</span>
                     <span style={{ fontSize: 12, fontWeight: 700, color: C.navy, flexShrink: 0 }}>{p.progress_pct}%</span>
@@ -372,7 +380,7 @@ function DashboardContent() {
                       {overdue ? `${Math.abs(days!)}h terlambat` : `selesai ${days}h lagi`}
                     </div>
                   )}
-                </div>
+                </Link>
               );
             })}
             {(data.active_progress.length > 5) && (

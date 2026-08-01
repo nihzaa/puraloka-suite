@@ -120,9 +120,18 @@ for (const f of [...berkasTsx(join(AKAR, 'app')), ...berkasTsx(join(AKAR, 'compo
     // Atribut kontrol kerap dipecah beberapa baris, jadi `value=` dicari di
     // baris pembukanya DAN beberapa baris sesudahnya.
     const isiKontrol = baris.slice(j, Math.min(j + 5, baris.length)).join(' ')
+
+    // ⚠️ MEDANNYA, bukan objek pembungkusnya.
+    //
+    // `value={form.contact_person}` harus jadi `contact-person`, BUKAN `form`.
+    // Versi pertama mengambil identifier pertama, dan menghasilkan `form`,
+    // `form-2`, … `form-6` di satu berkas: unik dan terpasang benar, tapi tak
+    // menjelaskan apa pun. Id muncul di DevTools, pesan error, dan test —
+    // `form-4` memaksa orang menghitung baris untuk tahu itu medan apa.
+    const dariProperti = isiKontrol.match(/value=\{[A-Za-z_$][\w$]*\.([\w$]+)/)
     const dariValue = isiKontrol.match(/value=\{([A-Za-z_$][\w$]*)/)
     const dariName = isiKontrol.match(/name="([^"]+)"/)
-    const asal = dariValue?.[1] ?? dariName?.[1]
+    const asal = dariProperti?.[1] ?? dariValue?.[1] ?? dariName?.[1]
     if (!asal) {
       dilewati++
       laporan.push(`${rel}:${i + 1} dilewati — tak ada value={state} atau name= untuk menurunkan id`)

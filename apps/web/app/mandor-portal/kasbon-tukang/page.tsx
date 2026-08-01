@@ -197,8 +197,8 @@ export default function KasbonTukangPage() {
             <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: "0 0 20px" }}>Ajukan Kasbon Tukang</h2>
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
-                <label htmlFor="form" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Tukang *</label>
-                <select id="form" aria-label="Pilih tukang" value={form.worker_id} onChange={(e) => setForm((f) => ({ ...f, worker_id: e.target.value }))}
+                <label htmlFor="worker-id" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Tukang *</label>
+                <select id="worker-id" aria-label="Pilih tukang" value={form.worker_id} onChange={(e) => setForm((f) => ({ ...f, worker_id: e.target.value }))}
                   style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13 }}>
                   <option value="">Pilih tukang...</option>
                   {workers.filter((w) => w.is_active).map((w) => (
@@ -207,8 +207,8 @@ export default function KasbonTukangPage() {
                 </select>
               </div>
               <div>
-                <label htmlFor="form-2" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Proyek *</label>
-                <select id="form-2" aria-label="Proyek" value={form.project_id} onChange={(e) => setForm((f) => ({ ...f, project_id: e.target.value, scope_id: "" }))}
+                <label htmlFor="project-id" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Proyek *</label>
+                <select id="project-id" aria-label="Proyek" value={form.project_id} onChange={(e) => setForm((f) => ({ ...f, project_id: e.target.value, scope_id: "" }))}
                   style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13 }}>
                   <option value="">Pilih proyek...</option>
                   {assignments.map((a) => (
@@ -218,8 +218,8 @@ export default function KasbonTukangPage() {
               </div>
               {scopesForProject.length > 0 && (
                 <div>
-                  <label htmlFor="form-3" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Scope (opsional)</label>
-                  <select id="form-3" aria-label="Lingkup" value={form.scope_id} onChange={(e) => setForm((f) => ({ ...f, scope_id: e.target.value }))}
+                  <label htmlFor="scope-id" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Scope (opsional)</label>
+                  <select id="scope-id" aria-label="Lingkup" value={form.scope_id} onChange={(e) => setForm((f) => ({ ...f, scope_id: e.target.value }))}
                     style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13 }}>
                     <option value="">Semua scope</option>
                     {scopesForProject.map((s: any) => (
@@ -230,26 +230,26 @@ export default function KasbonTukangPage() {
               )}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 <div>
-                  <label htmlFor="form-4" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Jumlah (Rp) *</label>
-                  <input id="form-4" type="number" min="1" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
+                  <label htmlFor="amount" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Jumlah (Rp) *</label>
+                  <input id="amount" type="number" min="1" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
                     placeholder="0" style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13 }} />
                 </div>
                 <div>
-                  <label htmlFor="form-5" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Tanggal</label>
-                  <input id="form-5" aria-label="Tanggal" type="date" value={form.kasbon_date} onChange={(e) => setForm((f) => ({ ...f, kasbon_date: e.target.value }))}
+                  <label htmlFor="kasbon-date" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Tanggal</label>
+                  <input id="kasbon-date" aria-label="Tanggal" type="date" value={form.kasbon_date} onChange={(e) => setForm((f) => ({ ...f, kasbon_date: e.target.value }))}
                     style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13 }} />
                 </div>
               </div>
               <div>
-                <label htmlFor="form-6" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Tujuan</label>
-                <select id="form-6" aria-label="Tujuan kasbon" value={form.purpose} onChange={(e) => setForm((f) => ({ ...f, purpose: e.target.value }))}
+                <label htmlFor="purpose" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Tujuan</label>
+                <select id="purpose" aria-label="Tujuan kasbon" value={form.purpose} onChange={(e) => setForm((f) => ({ ...f, purpose: e.target.value }))}
                   style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13 }}>
                   {Object.entries(PURPOSE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select>
               </div>
               <div>
-                <label htmlFor="form-7" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Catatan</label>
-                <textarea id="form-7" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+                <label htmlFor="notes" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Catatan</label>
+                <textarea id="notes" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
                   rows={2} placeholder="Opsional"
                   style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, resize: "none" }} />
               </div>
