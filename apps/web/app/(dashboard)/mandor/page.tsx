@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createPortal } from "react-dom";
 import { api, getStoredUser, hasPermission } from "@/lib/api";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
+import { dapatDitekan } from "@/lib/dapat-ditekan";
 import { useUnits } from "@/lib/use-units";
 import { useWorkCategories } from "@/lib/use-work-categories";
 import { useKasbonPurposes } from "@/lib/use-kasbon-purposes";
@@ -659,7 +660,12 @@ function MandorPageInner() {
             { label: "Total Kasbon Aktif", value: fmt(summary.activeKasbonAmount), icon: <FileText size={16} color={C.mid} />, bg: "var(--surface-subtle)", color: C.mid, sub: null },
           ].map((s, i) => (
             <div key={i}
-              onClick={s.clickable ? () => { setTab("laporan"); setFilterStatus("submitted"); updateFilter("status", "submitted"); } : undefined}
+              {...dapatDitekan(
+                s.clickable
+                  ? () => { setTab("laporan"); setFilterStatus("submitted"); updateFilter("status", "submitted"); }
+                  : null,
+                `Lihat ${s.label} yang menunggu`,
+              )}
               style={{ ...card, padding: "14px 16px", cursor: s.clickable ? "pointer" : "default", transition: "all 0.15s" }}
               onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 6px 18px rgba(0,51,102,0.10)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
               onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 1px 4px rgba(0,0,0,0.06)"; e.currentTarget.style.transform = "translateY(0)"; }}
@@ -1066,7 +1072,10 @@ function MandorPageInner() {
                         </div>
                         <div style={{ flex: 1 }}>
                           <div
-                            onClick={() => asg.mandor?.id && router.push(`/mandor/${asg.mandor.id}`)}
+                            {...dapatDitekan(
+                              asg.mandor?.id ? () => router.push(`/mandor/${asg.mandor!.id}`) : null,
+                              `Lihat profil ${asg.mandor?.name ?? "mandor"}`,
+                            )}
                             style={{ fontSize: 15, fontWeight: 700, color: C.navy, cursor: asg.mandor?.id ? "pointer" : "default", display: "inline-block" }}
                             title={asg.mandor?.id ? "Lihat profil mandor" : undefined}>
                             {asg.mandor?.name ?? "—"}

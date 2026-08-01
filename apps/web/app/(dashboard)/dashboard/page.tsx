@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { dapatDitekan } from "@/lib/dapat-ditekan";
 import { useEffect, useReducer, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, getStoredUser } from "@/lib/api";
@@ -472,10 +473,10 @@ function DashboardContent() {
             const overdue = days < 0, urgent = !overdue && days <= 3;
             const c = overdue ? C.red : urgent ? C.yellow : C.green;
             return (
-              <div
+              <Link
                 key={m.id}
-                onClick={() => m.projects?.id && router.push(`/proyek/${m.projects.id}#sec-milestone`)}
-                style={{ display: "flex", gap: 10, paddingBottom: 14, cursor: "pointer" }}
+                href={m.projects?.id ? `/proyek/${m.projects.id}#sec-milestone` : "#"}
+                style={{ display: "flex", gap: 10, paddingBottom: 14, cursor: "pointer", color: "inherit", textDecoration: "none" }}
               >
                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: c, flexShrink: 0, marginTop: 4, position: "relative", zIndex: 1, border: "2px solid var(--bg)" }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -485,7 +486,7 @@ function DashboardContent() {
                     {overdue ? `${Math.abs(days)}h terlambat` : days === 0 ? "Hari ini" : `${days}h lagi`}
                   </div>
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>
@@ -670,8 +671,11 @@ function KPICard({ icon, label, value, sub, accent, prefix, onClick }: {
   sub: string; accent: string; prefix?: string; onClick?: () => void;
 }) {
   return (
+    // `onClick` OPSIONAL di sini, dan `dapatDitekan` menanganinya dengan benar:
+    // tanpa aksi, seluruh atributnya hilang — jadi kartu yang cuma menampilkan
+    // angka tak ikut jadi perhentian Tab yang tak melakukan apa pun.
     <div
-      onClick={onClick}
+      {...dapatDitekan(onClick, `Buka rincian ${label}`)}
       style={{
         background: "var(--surface)", border: "1px solid var(--border)",
         borderRadius: 14, padding: "20px 22px",
@@ -699,12 +703,13 @@ function KPICard({ icon, label, value, sub, accent, prefix, onClick }: {
   );
 }
 
-function AlertBanner({ children, color, bg, borderColor, onClick }: {
-  children: React.ReactNode; color: string; bg: string; borderColor: string; onClick?: () => void;
+function AlertBanner({ children, color, bg, borderColor, onClick, label }: {
+  children: React.ReactNode; color: string; bg: string; borderColor: string;
+  onClick?: () => void; label?: string;
 }) {
   return (
     <div
-      onClick={onClick}
+      {...dapatDitekan(onClick, label ?? "Buka rincian peringatan")}
       style={{
         display: "flex", alignItems: "center", gap: 8,
         padding: "10px 16px", borderRadius: 8,
