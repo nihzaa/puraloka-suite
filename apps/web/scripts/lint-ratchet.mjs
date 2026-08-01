@@ -61,7 +61,15 @@ const AMBANG = {
   //
   // 44 sisanya dilewati codemod dengan alasan: di dalam `.map()` (id tak akan
   // unik) atau tak punya `value={state}`/`name=` untuk menurunkan id.
-  'jsx-a11y/label-has-associated-control': 44,
+  // 44 → 30 (2026-08-02, codemod `pasangkan-grup.mjs`): 14 label ternyata
+  // menamai GRUP tombol pilihan, bukan satu kontrol — pemilih tipe akun,
+  // status transfer, sumber dana, tipe invoice. `htmlFor` tak berlaku dan
+  // memaksakannya justru salah: ia hanya bisa menunjuk SATU kontrol, jadi
+  // label "Sumber Dana" akan menempel ke tombol pertama seolah tiga lainnya
+  // tak dinamai. Yang benar: `role="group"` + `aria-labelledby`, sehingga
+  // pembaca layar mengumumkan "Sumber Dana, grup" dan orang tahu itu SATU
+  // pertanyaan, bukan empat tombol lepas.
+  'jsx-a11y/label-has-associated-control': 30,
   // 117 → 112 → 104 → 102 → 98 → 93 → 88 (2026-08-01/02): 5 foto di `progress-log-list` yang semula
   // `<img onClick>` — bisa diklik tetikus, TAK BISA dijangkau keyboard sama
   // sekali. Diganti `<button>`, bukan ditambal `role`+`tabIndex`+`onKeyDown`:

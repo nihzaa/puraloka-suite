@@ -2205,8 +2205,8 @@ function WageReportDetailModal({ data, onClose, onApprove }: {
                 <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "14px 16px", background: C.greenBg, borderRadius: 10, border: `1px solid ${C.greenBorder}` }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: C.green }}>Konfirmasi Persetujuan</div>
                   <div>
-                    <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Metode Pembayaran <span style={{ color: C.red }}>*</span></label>
-                    <div style={{ display: "flex", gap: 8 }}>
+                    <span id="metode-pembayaran" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Metode Pembayaran <span style={{ color: C.red }}>*</span></span>
+                    <div role="group" aria-labelledby="metode-pembayaran" style={{ display: "flex", gap: 8 }}>
                       {([["cash", "Cash"], ["transfer_bank", "Transfer Bank"]] as const).map(([val, lbl]) => (
                         <button key={val} type="button" onClick={() => setApprovePaymentMethod(val)}
                           style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: `2px solid ${approvePaymentMethod === val ? C.green : C.border}`, background: approvePaymentMethod === val ? C.greenBg : "var(--surface)", color: approvePaymentMethod === val ? C.green : C.mid, fontSize: 13, fontWeight: approvePaymentMethod === val ? 700 : 400, cursor: "pointer" }}>
@@ -2431,8 +2431,8 @@ function WorkerFormModal({ mandorId: initialMandorId, mandorName: initialMandorN
           </div>
 
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 8 }}>Keahlian (opsional)</label>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            <span id="keahlian-opsional" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 8 }}>Keahlian (opsional)</span>
+            <div role="group" aria-labelledby="keahlian-opsional" style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
               {SKILL_OPTIONS.map(s => {
                 const selected = skills.includes(s.value);
                 return (
@@ -2453,8 +2453,8 @@ function WorkerFormModal({ mandorId: initialMandorId, mandorName: initialMandorN
 
           {isEdit && (
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 8 }}>Status</label>
-              <div style={{ display: "flex", gap: 8 }}>
+              <span id="status" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 8 }}>Status</span>
+              <div role="group" aria-labelledby="status" style={{ display: "flex", gap: 8 }}>
                 {([true, false] as const).map(val => (
                   <button key={String(val)} type="button" onClick={() => setIsActive(val)}
                     style={{
@@ -3040,8 +3040,8 @@ function AddScopeModal({ assignmentId, onClose, onSuccess }: {
             <textarea id="description" value={description} onChange={e => setDescription(e.target.value)} rows={2} placeholder="Detail lingkup pekerjaan..." style={{ ...inputStyle, resize: "vertical" }} />
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Sistem Pembayaran</label>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+            <span id="sistem-pembayaran" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Sistem Pembayaran</span>
+            <div role="group" aria-labelledby="sistem-pembayaran" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
               {(["borongan", "harian", "progress_pct"] as const).map(ps => (
                 <button key={ps} type="button" onClick={() => setPaymentSystem(ps)}
                   style={{ padding: "10px 8px", borderRadius: 8, border: `2px solid ${paymentSystem === ps ? C.navy : C.border}`, background: paymentSystem === ps ? C.navyLight : "var(--surface)", cursor: "pointer", fontSize: 12, fontWeight: paymentSystem === ps ? 700 : 400, color: paymentSystem === ps ? C.navy : C.mid, textAlign: "center" }}>

@@ -953,8 +953,8 @@ function CreateAccountModal({ onClose, onSuccess }: { onClose: () => void; onSuc
         </div>
         <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14, overflowY: "auto" }}>
           <div>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Tipe Akun <span style={{ color: C.red }}>*</span></label>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+            <span id="tipe-akun" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Tipe Akun <span style={{ color: C.red }}>*</span></span>
+            <div role="group" aria-labelledby="tipe-akun" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
               {(["main", "collector", "petty_cash"] as const).map(t => {
                 const m = ACCOUNT_TYPE_LABEL[t];
                 return (
@@ -1106,8 +1106,8 @@ function CreateTransferModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
             </div>
           </div>
           <div>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 8 }}>Status Transfer</label>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <span id="status-transfer" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 8 }}>Status Transfer</span>
+            <div role="group" aria-labelledby="status-transfer" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               <button type="button" onClick={() => setStatus("confirmed")} style={{ padding: "10px", borderRadius: 10, border: `2px solid ${status === "confirmed" ? C.green : C.border}`, background: status === "confirmed" ? C.greenBg : "var(--surface)", color: status === "confirmed" ? C.green : C.mid, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
                 ✓ Langsung Konfirmasi<br /><span style={{ fontSize: 10, fontWeight: 400 }}>Saldo berubah sekarang</span>
               </button>
@@ -1262,8 +1262,8 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
 
           {/* Sumber Dana */}
           <div>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 8 }}>Sumber Dana <span style={{ color: C.red }}>*</span></label>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <span id="sumber-dana" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 8 }}>Sumber Dana <span style={{ color: C.red }}>*</span></span>
+            <div role="group" aria-labelledby="sumber-dana" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               {(["petty_cash", "main_cash", "personal", "client_fund"] as const).map(s => (
                 <button type="button" key={s} onClick={() => setExpenseSource(s)} style={{ padding: "8px 6px", borderRadius: 8, border: `2px solid ${expenseSource === s ? C.navy : C.border}`, background: expenseSource === s ? C.navyLight : "var(--surface)", color: expenseSource === s ? C.navy : C.mid, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
                   {SOURCE_LABEL[s]}

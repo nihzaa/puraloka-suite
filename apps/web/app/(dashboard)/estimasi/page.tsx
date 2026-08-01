@@ -1660,8 +1660,8 @@ function EditAssemblyModal({ asal, onClose, onDone }: {
 
         <div style={{ display: "grid", gap: 14, marginTop: 18 }}>
           <div>
-            <label style={lbl}>Jenis perubahan</label>
-            <div style={{ display: "flex", gap: 8 }}>
+            <span id="jenis-perubahan" style={lbl}>Jenis perubahan</span>
+            <div role="group" aria-labelledby="jenis-perubahan" style={{ display: "flex", gap: 8 }}>
               <button type="button" onClick={() => setEditType("correction")}
                 style={{ ...btnGhost, flex: 1, justifyContent: "center",
                          background: editType === "correction" ? C.bg : "none",

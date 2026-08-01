@@ -278,8 +278,8 @@ function AddUserModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
             <input id="phone" value={phone} onChange={e => setPhone(e.target.value)} placeholder="0812-xxxx-xxxx" style={inputStyle} />
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 8 }}>Role</label>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <span id="role" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 8 }}>Role</span>
+            <div role="group" aria-labelledby="role" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               {ROLES.map(r => {
                 const Icon = r.icon;
                 const active = role === r.key;
@@ -355,8 +355,8 @@ function EditUserModal({ user, onClose, onSuccess }: { user: UserRecord; onClose
             <input id="phone-2" value={phone} onChange={e => setPhone(e.target.value)} placeholder="0812-xxxx-xxxx" style={inputStyle} />
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 8 }}>Role</label>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <span id="role-2" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 8 }}>Role</span>
+            <div role="group" aria-labelledby="role-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               {ROLES.map(r => {
                 const Icon = r.icon;
                 const active = role === r.key;

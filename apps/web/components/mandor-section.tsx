@@ -558,8 +558,8 @@ function AddScopeModal({ assignment, projectId: projectIdProp, onClose, onSucces
           </div>
 
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 8 }}>Sistem Pembayaran <span style={{ color: C.red }}>*</span></label>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+            <span id="sistem-pembayaran" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 8 }}>Sistem Pembayaran <span style={{ color: C.red }}>*</span></span>
+            <div role="group" aria-labelledby="sistem-pembayaran" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
               {psOptions.map(opt => (
                 <button
                   key={opt.value} type="button"

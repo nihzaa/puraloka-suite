@@ -377,8 +377,8 @@ export function ProgressLogModal({
                     onBlur={e => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }} />
                 </div>
                 <div>
-                  <label style={fieldLabel}>Cuaca</label>
-                  <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                  <span id="cuaca" style={fieldLabel}>Cuaca</span>
+                  <div role="group" aria-labelledby="cuaca" style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
                     {WEATHER_OPTIONS.map(w => (
                       <button key={w.value} type="button" onClick={() => setWeather(weather === w.value ? "" : w.value)}
                         style={{ padding: "5px 8px", borderRadius: 7, fontSize: 11, cursor: "pointer", border: `1px solid ${weather === w.value ? "var(--navy)" : "#e2e8f0"}`, background: weather === w.value ? "var(--navy)" : "#fafafa", color: weather === w.value ? "white" : "#475569", fontWeight: weather === w.value ? 600 : 400, lineHeight: 1 }}>

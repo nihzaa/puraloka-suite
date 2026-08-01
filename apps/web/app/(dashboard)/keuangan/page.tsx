@@ -2668,8 +2668,8 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
 
             {/* ── Mode/Tipe Invoice ── */}
             <div>
-              <label style={labelStyle}>Tipe Invoice <span style={{ color: C.red }}>*</span></label>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              <span id="tipe-invoice" style={labelStyle}>Tipe Invoice <span style={{ color: C.red }}>*</span></span>
+              <div role="group" aria-labelledby="tipe-invoice" style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {MODE_OPTIONS.map(m => (
                   <button key={m.value} type="button" onClick={() => setInvoiceMode(m.value)}
                     style={{ padding: "7px 14px", borderRadius: 8, border: `2px solid ${invoiceMode === m.value ? m.color : C.border}`,

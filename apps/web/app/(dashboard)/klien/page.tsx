@@ -161,8 +161,8 @@ function ClientModal({
         <form onSubmit={handleSubmit} style={{ padding: "20px 24px", overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 14 }}>
           {/* Tipe klien */}
           <div>
-            <label style={labelStyle}>Tipe Klien</label>
-            <div style={{ display: "flex", gap: 8 }}>
+            <span id="tipe-klien" style={labelStyle}>Tipe Klien</span>
+            <div role="group" aria-labelledby="tipe-klien" style={{ display: "flex", gap: 8 }}>
               {(["perorangan", "perusahaan"] as const).map(t => (
                 <button
                   key={t} type="button"
