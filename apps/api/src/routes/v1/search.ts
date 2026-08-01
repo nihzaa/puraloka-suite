@@ -71,17 +71,26 @@ export default async function searchRoutes(app: FastifyInstance) {
     // ── Clients ───────────────────────────────────────────────────────
     // F6 (AKTA 0): capability, bukan role literal (direktur punya clients:view).
     if (await hasPermission(request, 'clients:view')) {
-      const { data } = await request.db!
+      // ⚠️ `company_name`, BUKAN `name` — kolom itu tak ada di `clients`, jadi
+      // pencarian klien SELALU mengembalikan nol hasil tanpa satu pun gejala.
+      // Diverifikasi ke information_schema 2026-08-01; kelas cacat yang sama
+      // dengan AC kurva-S (Rp 755,7 jt hilang) — `?? []` menelan errornya.
+      const { data, error } = await request.db!
         .from('clients')
-        .select('id, name, phone, email')
-        .or(`name.ilike.${ilike},phone.ilike.${ilike},email.ilike.${ilike}`)
+        .select('id, company_name, contact_person, phone, email')
+        .or(`company_name.ilike.${ilike},contact_person.ilike.${ilike},phone.ilike.${ilike},email.ilike.${ilike}`)
         .limit(cap)
+      if (error) request.log.error({ err: error }, 'pencarian klien gagal')
 
       for (const c of data ?? []) {
         results.push({
           type: 'client',
           id: c.id,
-          title: c.name,
+          // Klien Puraloka mayoritas PERORANGAN, jadi `company_name` sering
+          // null dan yang terisi adalah `contact_person`. Memakai satu saja
+          // membuat separuh hasil pencarian bertajuk kosong — terlihat seperti
+          // data rusak, padahal hanya kolom yang salah dipilih.
+          title: c.company_name ?? c.contact_person ?? '(tanpa nama)',
           sub: [c.phone, c.email].filter(Boolean).join(' · '),
           url: `/klien`,
           meta: 'Klien',

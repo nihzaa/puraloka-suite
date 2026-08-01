@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import type { Client } from 'pg'
-import { createTestClient, resetTestSchema, closeTestClient } from '../../../test-utils/test-db.js'
+import { createTestClient, assertTestIsolation, resetTestSchema, closeTestClient } from '../../../test-utils/test-db.js'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -191,6 +191,12 @@ let sebelum: Awaited<ReturnType<typeof cap>>
 beforeAll(async () => {
   await resetTestSchema()
   c = await createTestClient()
+  // Berkas ini men-DROP kolom & policy di 32 tabel. Kalau `search_path`-nya
+  // pernah bocor ke `public`, ia akan merusak DATA NYATA — dan itu bukan
+  // teoretis: 2026-08-01 sebuah skrip dengan `search_path TO uji_ci, public`
+  // menghapus `company_id` dari `projects`/`roles`/`role_permissions` di dev.
+  // Gerbang ini berhenti SEBELUM satu pun DDL dijalankan.
+  await assertTestIsolation(c)
   await c.query('SET client_min_messages TO WARNING')
   await bootstrap(c)
   await c.query(sql126())

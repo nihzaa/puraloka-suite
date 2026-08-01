@@ -371,8 +371,15 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
     const sup = po.supplier as unknown as
       { name?: string; contact_person?: string; phone?: string; email?: string } | null
-    const { data: perusahaan } = await request.db!.raw
-      .from('company_settings').select('company_name').limit(1).maybeSingle()
+    // ⚠️ `company_profile`, BUKAN `company_settings` — yang kedua adalah tabel
+    // key-value (`key`/`value`) dan tak punya kolom `company_name` sama sekali.
+    // Query lama selalu gagal, jadi nama perusahaan di pesan WhatsApp ke
+    // supplier SELALU kosong. Diverifikasi ke information_schema 2026-08-01.
+    const { data: perusahaan, error: eProfil } = await request.db!.raw
+      .from('company_profile').select('company_name').limit(1).maybeSingle()
+    if (eProfil) {
+      request.log.error({ err: eProfil }, 'gagal memuat profil perusahaan untuk pesan PO')
+    }
 
     const pesan = susunPesanPo({
       po_number: po.po_number,

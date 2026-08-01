@@ -184,7 +184,11 @@ export default async function reportsRoutes(app: FastifyInstance) {
 
       supabase.from('project_photos').select('id, url, caption, taken_at, progress_log_id').eq('project_id', project_id).order('taken_at', { ascending: false }).limit(20),
 
-      canViewFinance ? supabase.from('documents').select('id, name, document_type, file_url, created_at').eq('project_id', project_id).order('created_at', { ascending: false }) : Promise.resolve({ data: [], error: null }),
+      // ⚠️ `title`/`doc_type`, BUKAN `name`/`document_type` — kolom itu tak ada,
+      // jadi query ini selalu gagal dan daftar dokumen di laporan proyek SELALU
+      // kosong tanpa satu pun gejala. Kelas cacat yang sama dengan AC kurva-S
+      // (Rp 755,7 jt hilang); diverifikasi ke information_schema 2026-08-01.
+      canViewFinance ? supabase.from('documents').select('id, title, doc_type, file_url, created_at').eq('project_id', project_id).order('created_at', { ascending: false }) : Promise.resolve({ data: [], error: null }),
 
       // TABEL `kurva_s_points` TIDAK ADA di database — diverifikasi 2026-07-29
       // (information_schema kosong). Query ini selalu error, tertelan
@@ -671,7 +675,10 @@ export default async function reportsRoutes(app: FastifyInstance) {
 
       const [projRes, milRes, progRes, invRes] = await Promise.all([
         request.db!.from('projects').select('id, name, location, status, contract_value, start_date, end_date, clients(contact_person, phone), pm:users!projects_pm_id_fkey(name)').eq('id', projectId).eq('is_deleted', false).single(),
-        supabase.from('milestones').select('name, target_date, actual_date, status').eq('project_id', projectId).order('target_date'),
+        // ⚠️ `title`/`completed_at`, BUKAN `name`/`actual_date` — kolom itu tak
+        // ada, jadi query ini selalu gagal dan tabel milestone di PDF laporan
+        // proyek SELALU kosong. Diverifikasi ke information_schema 2026-08-01.
+        supabase.from('milestones').select('title, target_date, completed_at, status').eq('project_id', projectId).order('target_date'),
         supabase.from('progress_logs').select('pct_overall, notes, logged_at').eq('project_id', projectId).order('logged_at', { ascending: false }).limit(20),
         supabase.from('invoices').select('invoice_number, total_amount, amount_paid, amount_due, status, issued_date, due_date').eq('project_id', projectId).order('issued_date'),
       ])
@@ -712,9 +719,9 @@ export default async function reportsRoutes(app: FastifyInstance) {
         milestones.forEach((m, i) => {
           const rh = 20
           drawTableRow(doc, [
-            { text: m.name ?? '—',             x: 40,  w: 230 },
+            { text: m.title ?? '—',            x: 40,  w: 230 },
             { text: fmtDate(m.target_date),    x: 270, w: 100, align: 'center' },
-            { text: fmtDate(m.actual_date),    x: 370, w: 100, align: 'center' },
+            { text: fmtDate(m.completed_at),   x: 370, w: 100, align: 'center' },
             { text: m.status ?? '—',           x: 470, w:  85, align: 'center' },
           ], y, rh, i % 2 === 0 ? '#F8F9FA' : '#FFFFFF')
           y += rh

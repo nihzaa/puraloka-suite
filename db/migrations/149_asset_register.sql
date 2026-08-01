@@ -46,6 +46,42 @@
 
 BEGIN;
 
+-- ── 0. Buang skema 045 bila ia sempat terbentuk ─────────────────────────────
+--
+-- ⚠️ INI YANG MEMBUAT CI MERAH (run 30686035846 & 30686844876), dan sebabnya
+-- tak terlihat di dev sama sekali.
+--
+-- Di dev, 045 tak pernah dijalankan (forward-draft, tabelnya nihil di
+-- `pg_class`). Di **project CI**, `ci-project-setup.mjs` menjalankan SELURUH
+-- berkas migrasi berurutan dan 045 TIDAK ada di allowlist — jadi di sana
+-- `assets`/`asset_movements`/`asset_depreciation_logs` benar-benar terbentuk,
+-- dengan skema lama **tanpa `company_id`**.
+--
+-- Akibatnya `CREATE TABLE IF NOT EXISTS assets` di bawah dilewati diam-diam
+-- (tabelnya sudah ada), lalu baris berikutnya gagal:
+--     CREATE UNIQUE INDEX … ON assets (company_id, asset_code)
+--     → column "company_id" does not exist
+--
+-- Pelajarannya: `IF NOT EXISTS` melindungi dari "sudah dibuat oleh migrasi
+-- INI", bukan dari "sudah dibuat oleh migrasi LAIN dengan bentuk berbeda".
+-- Migrasi yang menulis ulang forward-draft WAJIB membuang bentuk lamanya lebih
+-- dulu — kalau tidak, ia bekerja di lingkungan yang draftnya tak pernah jalan
+-- dan gagal di lingkungan yang menjalankannya.
+--
+-- Aman karena ketiganya adalah forward-draft yang belum pernah dipakai kode
+-- mana pun: nol endpoint, nol UI, dan di CI ia hanya berisi hasil CREATE
+-- kosong. Data nyata tak mungkin ada di sana.
+DO $$
+BEGIN
+  IF to_regclass('public.assets') IS NOT NULL
+     AND NOT EXISTS (SELECT 1 FROM information_schema.columns
+                      WHERE table_schema = 'public' AND table_name = 'assets'
+                        AND column_name = 'company_id') THEN
+    RAISE NOTICE '149: menemukan skema 045 (assets tanpa company_id) — dibuang, ditulis ulang sebagai kategori B';
+    DROP TABLE IF EXISTS asset_depreciation_logs, asset_movements, assets CASCADE;
+  END IF;
+END $$;
+
 -- ── 1. Register aset ────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS assets (
   id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),

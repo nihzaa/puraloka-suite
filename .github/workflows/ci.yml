@@ -72,6 +72,17 @@ jobs:
         env:
           CI_DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
+      # Nama kolom di `.select()` adalah STRING — TypeScript tak bisa
+      # menjaganya. Query dengan kolom yang tak ada SELALU gagal, lalu `?? []`
+      # mengubah kegagalan itu jadi daftar kosong yang terlihat sah. ENAM bug
+      # kelas ini ditemukan dalam satu hari (2026-08-01); salah satunya
+      # menyembunyikan Rp 755,7 juta dari AC kurva-S selama berbulan-bulan.
+      # Berjalan SESUDAH migrasi karena skema adalah wasitnya.
+      - name: Kolom .select() harus ada di skema
+        run: node scripts/audit-kolom-select.mjs
+        env:
+          CI_DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
       # 4a — SCHEMA-DIFF: buktikan skema `public` CI (dari migrasi bersih) = dev.
       # Baseline dev (schema-baseline-dev.json) di-generate lokal dari dev (read-only)
       # & di-commit. Step ini introspeksi project CI lalu diff. INFORMATIONAL

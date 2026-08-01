@@ -67,13 +67,18 @@ export default async function wipRoutes(app: FastifyInstance) {
             .eq('status', 'approved'),
           request.db!.from('kasbons')
             .select('project_id, amount').in('project_id', ids).eq('status', 'approved'),
+          // ⚠️ Nama kolom DIVERIFIKASI ke `information_schema`, bukan disalin
+          // dari `kurva-s.ts`. Versi pertama berkas ini MEWARISI cacatnya —
+          // `total_wage`/`amount`/`net_settlement` semuanya tak ada, dan ketiga
+          // query itu akan gagal senyap persis seperti yang baru saja ditutup.
+          // Menyalin pola dari kode yang ada terasa aman justru karena kode itu
+          // "sudah jalan"; padahal ia jalan tanpa pernah mengembalikan apa pun.
           request.db!.from('daily_wage_logs')
-            .select('total_wage, work_scopes!inner(mandor_assignments!inner(project_id))')
-            .eq('status', 'paid'),
+            .select('total_amount, work_scopes!inner(mandor_assignments!inner(project_id))'),
           request.db!.from('progress_payments')
-            .select('amount, work_scopes!inner(mandor_assignments!inner(project_id))'),
+            .select('net_payment, work_scopes!inner(mandor_assignments!inner(project_id))'),
           request.db!.from('borongan_settlements')
-            .select('net_settlement, work_scopes!inner(mandor_assignments!inner(project_id))'),
+            .select('remaining_balance, work_scopes!inner(mandor_assignments!inner(project_id))'),
           // Pagu RAP terkunci = estimasi total biaya. Inilah yang membuat
           // cost-to-cost bisa dihitung; tanpanya jatuh ke progres fisik.
           request.db!.from('rap_budget')
@@ -106,9 +111,20 @@ export default async function wipRoutes(app: FastifyInstance) {
           tambah(biaya, ws?.mandor_assignments?.project_id, Number(r[kolom] ?? 0))
         }
       }
-      lewatScope(wageRes.data, 'total_wage')
-      lewatScope(progPayRes.data, 'amount')
-      lewatScope(boronganRes.data, 'net_settlement')
+      // Kegagalan query TIDAK boleh menyamar jadi "nol biaya" — WIP yang
+      // kekurangan biaya melaporkan laba yang tak pernah ada.
+      for (const [nama, res] of [['daily_wage_logs', wageRes], ['progress_payments', progPayRes],
+        ['borongan_settlements', boronganRes], ['project_expenses', expRes],
+        ['kasbons', kasbonRes], ['invoices', invRes], ['rap_budget', rapRes]] as const) {
+        if (res.error) {
+          request.log.error({ err: res.error, tabel: nama },
+            'gagal memuat sumber biaya WIP — pendapatan & laba yang dilaporkan akan salah')
+        }
+      }
+
+      lewatScope(wageRes.data, 'total_amount')
+      lewatScope(progPayRes.data, 'net_payment')
+      lewatScope(boronganRes.data, 'remaining_balance')
 
       const ditagih = new Map<string, number>()
       for (const r of (invRes.data ?? []) as Array<Record<string, unknown>>) {

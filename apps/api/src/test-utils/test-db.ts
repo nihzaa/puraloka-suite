@@ -68,6 +68,25 @@ export async function assertTestIsolation(client: Client): Promise<void> {
         'kemungkinan menyentuh data di schema public.'
     )
   }
+  // ⚠️ `public` DI DALAM search_path membuat sandbox berhenti jadi sandbox:
+  // objek yang tak ada di schema test diselesaikan ke `public`, sehingga DDL
+  // destruktif (DROP COLUMN, DROP POLICY) mengenai tabel NYATA.
+  //
+  // Ini bukan kekhawatiran teoretis — 2026-08-01 sebuah skrip simulasi memakai
+  // `SET search_path TO uji_ci, public`, lalu migrasi 127 di dalamnya men-DROP
+  // `company_id` dari `projects`/`roles`/`role_permissions` di schema PUBLIC.
+  // 60 test merah, dan pemulihannya butuh tiga lapis (kolom → policy → trigger).
+  //
+  // Yang membuatnya berbahaya justru karena `, public` terlihat seperti
+  // kehati-hatian ("supaya fungsi bawaan tetap terjangkau").
+  const bagian = String(searchPath).split(',').map((s: string) => s.trim().replace(/^"|"$/g, ''))
+  if (bagian.includes('public')) {
+    throw new Error(
+      `Isolasi test GAGAL — search_path memuat "public": "${searchPath}". ` +
+        'Objek yang tak ada di schema test akan diselesaikan ke public, sehingga ' +
+        'DDL destruktif mengenai tabel NYATA. Buang "public" dari search_path.'
+    )
+  }
 }
 
 /**

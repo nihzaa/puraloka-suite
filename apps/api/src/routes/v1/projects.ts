@@ -270,19 +270,40 @@ export default async function projectRoutes(app: FastifyInstance) {
       }
     }
 
-    // Clone global expense_category_templates to project_expense_categories
-    const { data: templates } = await request.db!
+    // Clone global expense_category_templates to project_expense_categories.
+    //
+    // ⚠️ `description` DIBUANG 2026-08-01: kolom itu tak ada di tabelnya, jadi
+    // query ini SELALU gagal dan kategori pengeluaran tak pernah ter-clone ke
+    // proyek baru — padahal `cash.ts` mengandalkan auto-clone itu. Ia juga tak
+    // pernah dipakai di bawah. Diverifikasi ke information_schema.
+    // Dampaknya terbukti di data nyata: `project_expense_categories` berisi
+    // **NOL baris** — auto-clone tak pernah sekali pun berhasil sejak baris ini
+    // ditulis, dan tak ada gejala apa pun karena errornya tertelan.
+    const { data: templates, error: eTpl } = await request.db!
       .from('expense_category_templates')
-      .select('id, name, description')
+      .select('id, name, type, parent_id, sort_order')
+    if (eTpl) {
+      request.log.error({ err: eTpl, projectId: project.id },
+        'gagal memuat template kategori — proyek baru lahir tanpa kategori pengeluaran')
+    }
 
     if (templates && templates.length > 0) {
+      // `description` DIBUANG dari sini juga — kolom itu tak ada di tabel
+      // TUJUAN maupun tabel SUMBER. Kalau query di atas kebetulan berhasil,
+      // INSERT ini akan gagal berikutnya, dan cacatnya cuma berpindah tempat.
       const cats = templates.map(t => ({
         project_id: project.id,
         template_id: t.id,
         name: t.name,
-        description: t.description,
+        type: t.type,
+        parent_id: t.parent_id,
+        sort_order: t.sort_order,
       }))
-      await supabase.from('project_expense_categories').insert(cats)
+      const { error: eIns } = await supabase.from('project_expense_categories').insert(cats)
+      if (eIns) {
+        request.log.error({ err: eIns, projectId: project.id },
+          'gagal meng-clone kategori pengeluaran ke proyek baru')
+      }
     }
 
     // ── Fire-and-forget: notif ke PM yang di-assign ──────────────────────────
