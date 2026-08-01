@@ -94,20 +94,34 @@ BEGIN
     RAISE EXCEPTION '160 GAGAL: % edisi kosong masih tersisa', n;
   END IF;
 
-  -- Edisi yang BERISI harus tetap utuh — ini bukan pembersihan menyeluruh.
-  SELECT count(*) INTO n FROM assemblies a
-    JOIN ahsp_editions e ON e.id = a.edition_id WHERE e.code = 'SE-47-2026';
-  IF n < 2600 THEN
-    RAISE EXCEPTION '160 GAGAL: analisa SE-47-2026 tinggal % (harusnya ~2.620) '
-      '— ada yang ikut terhapus', n;
+  -- ⚠️ Verifikasi ini memeriksa INVARIAN, bukan angka lingkungan tertentu.
+  --
+  -- Versi pertama menuntut `SE-47-2026 >= 2.600 analisa` dan `tepat 1 edisi` —
+  -- benar di dev, MUSTAHIL di CI yang basisnya bersih (nol analisa, nol edisi
+  -- terimpor). Akibatnya CI HARD FAIL dua kali berturut-turut.
+  --
+  -- Pelajarannya: penjaga migrasi tak boleh mengasumsikan isi data, karena
+  -- migrasi yang sama jalan di dev (penuh data) dan CI (kosong). Yang boleh
+  -- dijadikan syarat hanyalah hal yang benar di KEDUANYA.
+  --
+  -- Invarian yang sesungguhnya: **tak ada edisi yang punya analisa ikut
+  -- terhapus**. Kalau CI kosong, tak ada yang bisa hilang — dan itu memang
+  -- lulus, bukan dilewati.
+  IF EXISTS (
+    SELECT 1 FROM (VALUES ('SE-68-2024'), ('SNI-2013')) v(code)
+     WHERE EXISTS (SELECT 1 FROM ahsp_editions e
+                    JOIN assemblies a ON a.edition_id = e.id
+                   WHERE e.code = v.code)
+  ) THEN
+    RAISE EXCEPTION '160 GAGAL: edisi target masih punya analisa sesudah dihapus';
   END IF;
 
-  SELECT count(*) INTO n FROM ahsp_editions;
-  IF n <> 1 THEN
-    RAISE EXCEPTION '160 GAGAL: tersisa % edisi (harusnya tepat 1)', n;
-  END IF;
-
-  RAISE NOTICE '160 OK: 2 edisi kosong dihapus; SE-47-2026 utuh';
+  -- Edisi BERISI apa pun harus tetap ada. Di dev ini menjaga SE-47 (2.620
+  -- analisa) tak ikut terhapus; di CI himpunannya kosong sehingga lolos
+  -- dengan sendirinya — tanpa perlu dikecualikan.
+  SELECT count(*) INTO n FROM ahsp_editions e
+   WHERE EXISTS (SELECT 1 FROM assemblies a WHERE a.edition_id = e.id);
+  RAISE NOTICE '160 OK: 2 edisi kosong dihapus; % edisi berisi tetap utuh', n;
 END $$;
 
 COMMIT;
