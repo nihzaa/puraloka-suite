@@ -354,8 +354,8 @@ export default async function mandorRoutes(app: FastifyInstance) {
       return reply.status(403).send({ error: 'Tukang tidak ditemukan atau bukan milik mandor ini' })
     }
 
-    const { data, error } = await supabase
-      .from('worker_kasbons')
+    const { data, error } = await request.db!
+      .viaProject('worker_kasbons', body.project_id)
       .insert({
         worker_id: body.worker_id,
         mandor_id: mandorId,
@@ -494,8 +494,8 @@ export default async function mandorRoutes(app: FastifyInstance) {
       return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
     }
 
-    const { data, error } = await supabase
-      .from('mandor_assignments')
+    const { data, error } = await request.db!
+      .viaProject('mandor_assignments', body.project_id)
       .insert({
         project_id: body.project_id,
         mandor_id: body.mandor_id,
