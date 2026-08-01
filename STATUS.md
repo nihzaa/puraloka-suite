@@ -43,6 +43,17 @@ kali keadaan berubah; detail selalu di dokumen rujukan.
 >
 > **GERBANG MUTLAK:** tenant kedua TIDAK BOLEH dibuat di produksi sebelum Tahap 4
 > dan 5 selesai penuh. Selama itu sistem berisi tepat satu company.
+>
+> **2026-08-01 — dua celah pra-tenant-kedua ditutup** (ROADMAP 14f & 14g). Keduanya
+> punya dampak **nol hari ini** justru karena baru ada satu company — dan keduanya
+> akan menggigit pada hari tenant kedua lahir:
+> · `modules` menyimpan `is_enabled` di baris katalog **bersama** → satu perusahaan
+>   mematikan modul untuk semua (migrasi 155, kategori A → AB).
+> · API dan RLS memakai **peran yang berbeda** — `auth_role()` sudah per-company
+>   sejak migrasi 144, `authenticate()` masih global. Arah berbahayanya: peran
+>   global `admin` membawa 95 permission ke company tempat orangnya hanya `mandor`.
+>
+> Ratchet gerbang tenancy dikencangkan **9 → 7**; 195 dari 202 rute bergerbang.
 
 ---
 

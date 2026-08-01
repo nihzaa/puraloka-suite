@@ -111,18 +111,26 @@ for (const f of readdirSync(RUTE).filter((x) => x.endsWith('.ts'))) {
  * ⚠️ HANYA BOLEH TURUN. Kalau gagal karena NAIK, beri gerbang tenant pada rute
  * baru Anda — jangan naikkan angkanya.
  *
- * 9 tersisa per 2026-07-31, seluruhnya sudah DIPERIKSA satu per satu dan
- * dinyatakan sah lintas-tenant by design:
+ * 7 tersisa per 2026-08-01, seluruhnya DIPERIKSA satu per satu (dibaca
+ * kodenya, bukan dinilai dari namanya) dan sah lintas-tenant by design:
  *   · auth/login + google-callback       — jalan sebelum tenant bisa diketahui
- *   · modules (kategori A)               — katalog global, bukan data pelanggan
- *   · notifications/subscribe (POST+DEL) — menulis baris pemanggil sendiri
- *   · roles: POST /roles, /permissions, /auth/me/permissions — katalog global
+ *   · notifications/subscribe (POST+DEL) — `.eq('id', user.id)`, baris sendiri
+ *   · roles: /permissions + /auth/me/permissions — katalog capability; kunci
+ *     permission adalah kontrak arsitektur, sama untuk setiap perusahaan
  *   · mandor/kasbon-photo/upload         — tulis storage, tak membaca apa pun
  *
- * Angka ini hasil UKUR sesudah 8 celah nyata ditutup (182 → 192 bergerbang),
+ * ⚠️ `modules` DULU ada di daftar ini dengan alasan "kategori A, katalog global,
+ * bukan data pelanggan". Penilaian itu SALAH dan bertahan karena tak seorang pun
+ * memeriksa apa yang DITULIS: `is_enabled` tersimpan di baris katalog bersama,
+ * jadi satu perusahaan mematikan modul → mati untuk semua (ditutup migrasi 155).
+ * Pelajarannya: "kategori A" menjawab dari mana data DIBACA, bukan apakah rute
+ * itu boleh MENULIS lintas-tenant. Saat menambah pengecualian ke daftar ini,
+ * baca jalur tulisnya — bukan kategori tabelnya.
+ *
+ * Angka ini hasil UKUR sesudah celah nyata ditutup (182 → 192 → 195 bergerbang),
  * bukan target yang dipilih supaya hijau.
  */
-const AMBANG_TANPA_GERBANG = 9
+const AMBANG_TANPA_GERBANG = 7
 
 console.log(`Gerbang yang DITEMUKAN otomatis (${gerbang.size}): ${[...gerbang].sort().join(', ')}`)
 console.log(`\nRute ber-supabase-mentah: ${bergerbang + temuan.length} · bergerbang ${bergerbang} · TANPA gerbang ${temuan.length}`)

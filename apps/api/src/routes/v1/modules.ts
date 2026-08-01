@@ -14,13 +14,40 @@ export default async function moduleRoutes(app: FastifyInstance) {
   // ── GET /api/v1/modules ───────────────────────────────────────────────────
   app.get('/api/v1/modules', {
     preHandler: [authenticate],
-  }, async (_request, reply) => {
+  }, async (request, reply) => {
+    // `modules` kategori AB sejak migrasi 155: baris BERSAMA (company_id NULL)
+    // adalah katalog "modul apa saja yang ada", baris ber-company adalah
+    // PENGECUALIAN "perusahaan ini mematikan/menyalakan modul itu".
+    //
+    // Keduanya diambil, lalu pengecualian menimpa katalog. Mengambil salah
+    // satu saja salah ke dua arah: hanya katalog → pengaturan perusahaan
+    // diabaikan; hanya pengecualian → modul yang tak pernah diatur menghilang.
     const { data, error } = await supabase
       .from('modules')
-      .select('key, label, is_enabled, min_plan_tier, sort_order')
+      .select('key, label, is_enabled, min_plan_tier, sort_order, company_id')
       .order('sort_order', { ascending: true })
     if (error) return reply.status(500).send({ error: error.message })
-    return reply.send({ modules: data ?? [] })
+
+    const companyId = request.companyId ?? null
+    const baris = (data ?? []) as Array<{
+      key: string; label: string; is_enabled: boolean
+      min_plan_tier: string | null; sort_order: number; company_id: string | null
+    }>
+
+    const gabung = new Map<string, typeof baris[number]>()
+    for (const b of baris) if (b.company_id == null) gabung.set(b.key, b)
+    for (const b of baris) if (companyId && b.company_id === companyId) gabung.set(b.key, b)
+
+    return reply.send({
+      modules: [...gabung.values()]
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .map(({ company_id, ...sisa }) => ({
+          ...sisa,
+          // Membedakan "diatur perusahaan ini" dari "bawaan sistem" — tanpa
+          // itu, admin tak tahu apakah nilainya pilihannya sendiri.
+          diatur_perusahaan: company_id != null,
+        })),
+    })
   })
 
   // ── PATCH /api/v1/modules/:key ────────────────────────────────────────────
@@ -34,19 +61,50 @@ export default async function moduleRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'Field `is_enabled` (boolean) wajib' })
     }
 
-    const { data: existing } = await supabase
-      .from('modules').select('key').eq('key', key).single()
-    if (!existing) return reply.status(404).send({ error: `Modul tidak dikenal: ${key}` })
+    // ⚠️ CELAH YANG DITUTUP (migrasi 155). Versi sebelumnya meng-UPDATE baris
+    // KATALOG — baris yang dipakai bersama seluruh perusahaan. Perusahaan A
+    // mematikan "procurement" → modul itu mati untuk B, C, dan setiap pelanggan
+    // SaaS. Endpointnya sudah bergerbang `settings:manage`, jadi bukan soal
+    // siapa boleh menekannya; yang salah adalah CAKUPAN akibatnya. Admin sebuah
+    // perusahaan berwenang penuh atas perusahaannya sendiri — dan kewenangan
+    // itu tak boleh menyeberang.
+    //
+    // Kini: katalog TIDAK PERNAH disentuh. Yang ditulis adalah baris
+    // pengecualian milik perusahaan aktif.
+    const companyId = request.companyId
+    if (!companyId) {
+      return reply.status(400).send({
+        error: 'Perusahaan aktif tak dapat ditentukan — pengaturan modul selalu per-perusahaan',
+      })
+    }
 
+    const { data: katalog } = await supabase
+      .from('modules')
+      .select('key, label, min_plan_tier, sort_order')
+      .eq('key', key).is('company_id', null).maybeSingle()
+    if (!katalog) return reply.status(404).send({ error: `Modul tidak dikenal: ${key}` })
+
+    // Upsert pada `(company_id, key)` — indeks unik dari 155. Baris katalog
+    // (company_id NULL) tak mungkin tersentuh karena target konfliknya berbeda.
     const { data, error } = await supabase
       .from('modules')
-      .update({ is_enabled: body.is_enabled, updated_at: new Date().toISOString() })
-      .eq('key', key)
+      .upsert({
+        company_id: companyId,
+        key,
+        label: katalog.label,
+        min_plan_tier: katalog.min_plan_tier,
+        sort_order: katalog.sort_order,
+        is_enabled: body.is_enabled,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'company_id,key' })
       .select('key, label, is_enabled')
       .single()
-    if (error) return reply.status(500).send({ error: error.message })
+    if (error) {
+      request.log.error({ err: error, key, companyId }, 'gagal menyimpan pengaturan modul')
+      return reply.status(500).send({ error: 'Gagal menyimpan pengaturan modul' })
+    }
     clearModuleCache()
-    return reply.send({ module: data })
+    return reply.send({ module: { ...data, diatur_perusahaan: true } })
   })
 
   // ── GET /api/v1/feature-flags ─────────────────────────────────────────────
