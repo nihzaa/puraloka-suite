@@ -1,4 +1,5 @@
 import { supabase } from './supabase.js'
+import { sendWebPushToUsers } from './webpush.js'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -73,7 +74,10 @@ export async function createNotification(params: NotificationParams): Promise<vo
   if (error) {
     // Non-fatal: log but never throw — notifications should never break the main flow
     console.error('[notifications] createNotification error:', error.message)
+    return   // gagal simpan → jangan kirim push untuk notifikasi yang tak ada
   }
+
+  void kirimPush([params.user_id], params)
 }
 
 // ── Batch insert ──────────────────────────────────────────────────────────────
@@ -101,6 +105,69 @@ export async function createNotifications(list: NotificationParams[]): Promise<v
 
   if (error) {
     console.error('[notifications] createNotifications batch error:', error.message)
+    return   // gagal simpan → jangan kirim push untuk notifikasi yang tak ada
+  }
+
+  // Push dikelompokkan per ISI, bukan per penerima: satu kejadian biasanya
+  // menghasilkan pesan yang sama untuk banyak orang (mis. "kasbon menunggu
+  // persetujuan" ke seluruh admin). Mengirim per-baris berarti N query ke
+  // `users` untuk payload yang identik.
+  const perPesan = new Map<string, { p: NotificationParams; ids: string[] }>()
+  for (const p of list) {
+    const kunci = `${p.title}\u0000${p.message}\u0000${p.action_url ?? ''}`
+    const ada = perPesan.get(kunci)
+    if (ada) ada.ids.push(p.user_id)
+    else perPesan.set(kunci, { p, ids: [p.user_id] })
+  }
+  for (const { p, ids } of perPesan.values()) void kirimPush(ids, p)
+}
+
+/**
+ * Kirim Web Push untuk notifikasi yang BARU TERSIMPAN.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA BARU ADA SEKARANG
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * `utils/webpush.ts` sudah lengkap sejak lama — VAPID terkonfigurasi, endpoint
+ * subscribe hidup, service worker terpasang. Tapi `sendWebPush()` punya **nol
+ * sebutan di seluruh `src/`** (diverifikasi grep 2026-08-01). Fungsi ini
+ * menulis `channel: 'push'` ke DB tanpa pernah benar-benar mengirim push, dan
+ * nol dari 23 user punya `push_subscription` — konsisten, karena UI-nya juga
+ * tak pernah memanggil `subscribeToPush()`.
+ *
+ * Jadi seluruh notifikasi selama ini IN-APP SAJA. Menguji di HP tak akan
+ * membuktikan apa pun; yang putus adalah rantainya, bukan perangkatnya.
+ *
+ * ── Kenapa fire-and-forget, dan kenapa itu BUKAN kelalaian
+ *
+ * Push TIDAK boleh memblokir alur utama: kasbon yang berhasil disetujui tak
+ * boleh gagal karena server push Google lambat. `void` di pemanggil disengaja,
+ * dan `sendWebPushToUsers` sendiri sudah menelan seluruh errornya (termasuk
+ * 410 Gone untuk subscription kedaluwarsa).
+ *
+ * ── Kenapa TIDAK dipanggil saat `error`
+ *
+ * Notifikasi yang gagal disimpan tak boleh dikirim push-nya: penerima akan
+ * mengetuk push, membuka aplikasi, dan tak menemukan apa pun.
+ */
+async function kirimPush(userIds: string[], p: NotificationParams): Promise<void> {
+  try {
+    await sendWebPushToUsers(userIds, {
+      title: p.title,
+      message: p.message,
+      action_url: p.action_url,
+    })
+  } catch (err) {
+    // Kegagalan push tak boleh menyentuh alur utama.
+    //
+    // ⚠️ Impor STATIS, bukan `await import()`. Versi pertama memakai impor
+    // dinamis (niatnya: `web-push` tak ikut dimuat di jalur yang tak
+    // memerlukannya), dan itu membuat panggilan KEDUA dan seterusnya
+    // tertelan diam-diam — dua pesan berbeda hanya satu yang terkirim.
+    // Ditemukan test, bukan review; penghematan muatnya tak sebanding dengan
+    // notifikasi yang hilang tanpa jejak.
+    console.error('[notifications] push gagal:', (err as Error)?.message)
   }
 }
 

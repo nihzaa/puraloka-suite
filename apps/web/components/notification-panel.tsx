@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useToast } from "@/components/toast";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   Bell, X, Check, CheckCheck, Banknote, FileText,
   Flag, TrendingUp, FolderKanban, ClipboardList, ChevronRight,
+  BellRing, BellOff,
 } from "lucide-react";
 import { api } from "@/lib/api";
 
@@ -199,7 +201,17 @@ export interface NotificationPanelProps {
 
 export function NotificationPanel({ unreadCount, onCountChange }: NotificationPanelProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [open, setOpen]               = useState(false);
+  /**
+   * Status langganan Web Push di perangkat INI.
+   *
+   * `null` = belum diketahui / browser tak mendukung — tombolnya disembunyikan
+   * alih-alih ditampilkan mati, karena tombol yang tak bisa ditekan hanya
+   * menimbulkan pertanyaan.
+   */
+  const [pushAktif, setPushAktif] = useState<boolean | null>(null);
+  const [pushProses, setPushProses] = useState(false);
   const [tab, setTab]                 = useState<FilterTab>("all");
   const [notifs, setNotifs]           = useState<Notification[]>([]);
   const [loading, setLoading]         = useState(false);
@@ -240,6 +252,66 @@ export function NotificationPanel({ unreadCount, onCountChange }: NotificationPa
   useEffect(() => {
     if (open) fetchNotifs();
   }, [open, tab, fetchNotifs]);
+
+  /**
+   * Deteksi status langganan — TIDAK meminta izin.
+   *
+   * Meminta izin notifikasi tanpa diminta adalah pola yang ditolak browser
+   * modern (Chrome memblokir prompt yang tak lahir dari gestur pengguna) dan
+   * ditolak penggunanya: orang menekan "Block" pada permintaan yang muncul
+   * tiba-tiba, dan sesudah itu izinnya TAK BISA diminta lagi tanpa masuk
+   * setelan browser. Jadi status dibaca saja di sini; permintaannya lahir dari
+   * tombol yang ditekan sadar.
+   */
+  useEffect(() => {
+    if (!open) return;
+    let batal = false;
+    void Promise.resolve().then(async () => {
+      if (typeof window === "undefined"
+        || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+        if (!batal) setPushAktif(null);
+        return;
+      }
+      try {
+        const reg = await navigator.serviceWorker.getRegistration();
+        const sub = await reg?.pushManager.getSubscription();
+        if (!batal) setPushAktif(Boolean(sub));
+      } catch {
+        if (!batal) setPushAktif(null);
+      }
+    });
+    return () => { batal = true; };
+  }, [open]);
+
+  const togelPush = useCallback(async () => {
+    setPushProses(true);
+    try {
+      const { subscribeToPush, unsubscribeFromPush } = await import("@/lib/webpush");
+      if (pushAktif) {
+        await unsubscribeFromPush();
+        setPushAktif(false);
+      } else {
+        const ok = await subscribeToPush();
+        setPushAktif(ok);
+        // `false` di sini berarti izin DITOLAK atau VAPID tak terkonfigurasi —
+        // dua sebab berbeda yang sama-sama tak bisa dipulihkan dari sini.
+        // Dikatakan apa adanya, bukan didiamkan.
+        if (!ok) {
+          // Toast, bukan `alert()`: alert memblokir seluruh halaman dan
+          // tampilannya berbeda tiap browser — di aplikasi yang punya sistem
+          // toast sendiri, memakainya justru terasa seperti kerusakan.
+          showToast(
+            "error",
+            "Notifikasi perangkat tidak bisa diaktifkan — izin notifikasi " +
+            "kemungkinan ditolak. Buka setelan situs ini di browser, izinkan " +
+            "Notifications, lalu coba lagi."
+          );
+        }
+      }
+    } finally {
+      setPushProses(false);
+    }
+  }, [pushAktif, showToast]);
 
   // ── Close on outside click ─────────────────────────────────────────────────
   useEffect(() => {
@@ -394,6 +466,30 @@ export function NotificationPanel({ unreadCount, onCountChange }: NotificationPa
           )}
         </div>
         <div style={{ display: "flex", gap: 4 }}>
+          {pushAktif !== null && (
+            <button
+              aria-label={pushAktif
+                ? "Matikan notifikasi di perangkat ini"
+                : "Aktifkan notifikasi di perangkat ini"}
+              title={pushAktif
+                ? "Notifikasi perangkat aktif — klik untuk mematikan"
+                : "Terima notifikasi walau aplikasi ditutup"}
+              onClick={() => void togelPush()}
+              disabled={pushProses}
+              style={{
+                display: "flex", alignItems: "center", gap: 4,
+                padding: "4px 8px", borderRadius: 6,
+                border: `1px solid ${pushAktif ? C.navy : C.border}`,
+                background: "transparent",
+                fontSize: 11, color: pushAktif ? C.navy : C.mid,
+                cursor: pushProses ? "wait" : "pointer",
+                opacity: pushProses ? 0.6 : 1,
+              }}
+            >
+              {pushAktif ? <BellRing size={11} /> : <BellOff size={11} />}
+              {pushAktif ? "Perangkat aktif" : "Aktifkan di perangkat"}
+            </button>
+          )}
           {unreadCount > 0 && (
             <button aria-label="Tandai semua dibaca"
               onClick={markAllRead}
