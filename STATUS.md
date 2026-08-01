@@ -118,6 +118,45 @@ kali keadaan berubah; detail selalu di dokumen rujukan.
 > seluruhnya yatim. Penghapusan tetap **menunggu izin founder** (keputusan
 > terbuka #1c).
 
+> ### 2026-08-01 — a11y gelombang 2: 253 label → 44, foto jadi tombol
+>
+> **Label (253 → 44).** Codemod `pasangkan-label.mjs` memasangkan **213** label
+> ke kontrolnya lewat `htmlFor` ↔ `id` dalam dua gelombang, id **diturunkan**
+> dari `value={state}` yang sudah ada — tak dikarang, karena id yang salah
+> memasangkan label ke kontrol yang keliru dan itu lebih menyesatkan daripada
+> tak berpasangan. Manfaatnya bukan hanya untuk pembaca layar: teks label jadi
+> bisa **diketuk** untuk memfokuskan kontrolnya, jadi target sentuh membesar —
+> persis yang dibutuhkan mandor di HP, satu tangan, di bawah matahari.
+>
+> Dua kebutaan alatnya sendiri ketahuan, keduanya sebelum di-push:
+>
+> · **Label bercabang.** Di `progress-log-modal` satu label melayani DUA kontrol
+>   berbeda (`select` scope vs `input` jumlah pekerja). `htmlFor` statis
+>   menunjuk elemen yang tak dirender di salah satu cabang — label **MATI**,
+>   lebih buruk daripada tak berpasangan karena pembaca layar menyebutkan
+>   kaitan yang tak ada. Diperbaiki manual, lalu seluruh 213 hasil dipindai
+>   untuk bentuk yang sama: hanya satu.
+>
+> · **Label multi-baris tak terlihat.** Bentuk yang teksnya dipecah beberapa
+>   baris (karena memuat penanda wajib `*` atau ikon) tak dikenali sama sekali,
+>   sehingga 9 label di `termin-payment-modal.tsx` **tak pernah muncul di
+>   laporan mana pun** — bukan "dilewati dengan alasan", tapi tak terlihat.
+>
+> **Foto progres jadi tombol.** Lima `<img onClick>` di `progress-log-list`:
+> bisa diklik tetikus, dengan keyboard tak bisa apa-apa. Diganti `<button>`,
+> bukan ditambal `role`+`tabIndex`+`onKeyDown` — browser sudah tahu apa itu
+> tombol, tambalan manual mudah tak lengkap (sering `Enter` ditangani, `Space`
+> tidak). Versi pertama saya taruh komponennya DI DALAM `PhotoGrid`, dan
+> `react-hooks/static-components` menangkapnya: komponen yang lahir ulang tiap
+> render melepas-pasang seluruh pohon anaknya, dan fokus keyboard hilang di
+> tengah jalan — merusak persis hal yang sedang diperbaiki.
+>
+> **Penjaga baru: medan hantu** (dipasang ke CI). Mencari nilai yang dikirim ke
+> API tapi tak punya cara diisi. Penjaganya sendiri salah **tiga kali** sebelum
+> di-commit; yang terakhir paling penting: analisis per-berkas MELEWATKAN bug
+> yang melahirkannya (`kas/page.tsx` punya tiga modal dengan `notes`
+> masing-masing), dan hanya **uji mutasi** yang mengungkapnya.
+
 > ### 2026-08-01 — ADR-004 sisi web NOL; empat fitur mati ketahuan lewat lint
 >
 > **P6 — ADR-004 (27 → 0), tapi nol pertamanya PALSU.** Seluruh pemakaian
