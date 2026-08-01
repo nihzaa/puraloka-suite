@@ -343,6 +343,10 @@ function MandorPageInner() {
   const [mandorList, setMandorList] = useState<MandorUser[]>([]);
   const [selectedScope, setSelectedScope] = useState<ScopeDetail | null>(null);
   const [showAddAssignment, setShowAddAssignment] = useState(false);
+  // Tiga modal di bawah dirender LANGSUNG oleh komponen halaman ini, bukan
+  // komponen terpisah ber-prop `onClose` — jadi jalan keluar papan tiknya
+  // dipasang di sini. Ketiganya sebelumnya hanya bisa ditutup dengan
+  // tetikus.
   const [showAddScope, setShowAddScope] = useState<string | null>(null);
   const [showScopeItems, setShowScopeItems] = useState<string | null>(null);
   const [showAddScopeItem, setShowAddScopeItem] = useState<string | null>(null);
@@ -425,11 +429,15 @@ function MandorPageInner() {
   const [showCreateReport, setShowCreateReport] = useState(false);
   const [showWorkerForm, setShowWorkerForm] = useState<{ mandorId?: string; mandorName?: string; worker?: Worker } | null>(null);
   const [deleteWorkerConfirm, setDeleteWorkerConfirm] = useState<Worker | null>(null);
+  useTutupEsc(deleteWorkerConfirm ? () => setDeleteWorkerConfirm(null) : null);
+  useTutupEsc(inlineAction ? () => setInlineAction(null) : null);
   const [deletingWorkerId, setDeletingWorkerId] = useState<string | null>(null);
   const [showAddKasbon, setShowAddKasbon] = useState(false);
   const [showSubmitMandorKasbon, setShowSubmitMandorKasbon] = useState(false);
   const [detailReport, setDetailReport] = useState<WageReportDetail | null>(null);
   const [lightboxPhoto, setLightboxPhoto] = useState<string | null>(null);
+  // Lightbox: Esc adalah konvensi yang orang harapkan dari lightbox mana pun.
+  useTutupEsc(lightboxPhoto ? () => setLightboxPhoto(null) : null);
 
   // Fase D — Progress payments & settlements
   const [progressPayments, setProgressPayments] = useState<ProgressPayment[]>([]);

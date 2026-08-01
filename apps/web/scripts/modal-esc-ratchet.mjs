@@ -89,8 +89,20 @@ for (const f of [...berkasTsx(join(AKAR, 'app')), ...berkasTsx(join(AKAR, 'compo
     // tsc menangkapnya, tapi hanya karena kebetulan gagal keras. Kalau
     // kebetulan ada variabel bernama sama, ia akan menutup hal yang salah
     // tanpa satu pun peringatan.
+    //
+    // ⚠️ TAPI `onClose` di signature bukan satu-satunya bentuk modal.
+    //
+    // Versi kedua hanya menerima itu, dan buta terhadap modal yang dikendalikan
+    // STATE LOKAL (`const [showModal, setShowModal] = useState(false)`) —
+    // bentuk yang dipakai seluruh portal mandor. Lima modal di sana menjebak
+    // pemakai keyboard tanpa terdeteksi, sementara penjaga ini melaporkan nol.
+    //
+    // Halaman yang cuma MERENDER modal tetap dikecualikan: mereka melewatkan
+    // `onClose={...}` ke anaknya dan tak punya state `showModal` sendiri.
     const signature = lingkup.slice(0, lingkup.indexOf('{', lingkup.indexOf('(')) + 400)
-    if (!/onClose\s*[,}:)]/.test(signature)) continue
+    const punyaOnClose = /onClose\s*[,}:)]/.test(signature)
+    const punyaStateModal = /const \[\s*show[A-Z]\w*\s*,\s*setShow[A-Z]\w*\s*\]\s*=\s*useState/.test(lingkup)
+    if (!punyaOnClose && !punyaStateModal) continue
 
     // (b) Sudah ada jalan keluar papan tik?
     if (/useTutupEsc\s*\(/.test(lingkup)) continue

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useReducer, useState } from "react";
+import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import { useParams, useRouter } from "next/navigation";
 import { api, getStoredUser, hasPermission } from "@/lib/api";
@@ -335,6 +336,13 @@ function ProjectDetailContent() {
     cpi: number; spi: number; eac: number; vac: number;
   } | null>(null);
   const [showPrintModal, setShowPrintModal] = useState(false);
+
+  // Modal yang dirender LANGSUNG oleh komponen halaman ini (bukan komponen
+  // modal terpisah ber-prop `onClose`), jadi jalan keluar papan tiknya harus
+  // dipasang di sini. Tanpa ini keduanya menjebak: Tab berputar di dalam
+  // dialog dan satu-satunya jalan keluar adalah mengambil tetikus.
+  useTutupEsc(showDeleteConfirm ? () => setShowDeleteConfirm(false) : null);
+  useTutupEsc(showPrintModal ? () => setShowPrintModal(false) : null);
 
   const handleOverallSerapanChange = useCallback((pct: number) => {
     setSerapanPct(pct);

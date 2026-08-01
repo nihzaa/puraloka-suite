@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import { api, createProgressLog } from "@/lib/api";
 import { uploadProgressPhoto, attachProgressPhoto } from "@/lib/storage";
@@ -34,6 +35,11 @@ export default function MandorProgressPage() {
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  // Modal di portal ini tak punya prop `onClose` — ia dikendalikan state
+  // lokal — sehingga penjaga `modal-esc-ratchet` tak menjangkaunya, dan
+  // kelima modal portal mandor menjebak pemakai keyboard tanpa terdeteksi.
+  // Penjaganya ikut diperluas; ini perbaikan kodenya.
+  useTutupEsc(showModal ? () => setShowModal(false) : null);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
   // Form state

@@ -118,6 +118,32 @@ kali keadaan berubah; detail selalu di dokumen rujukan.
 > seluruhnya yatim. Penghapusan tetap **menunggu izin founder** (keputusan
 > terbuka #1c).
 
+> ### 2026-08-01 (lanjut) — kegagalan senyap di API & web; penjaga yang buta
+>
+> **11 penulisan senyap di API.** `update`/`delete`/`insert` yang hasilnya
+> dibuang: request membalas **200** sementara datanya separuh jalan. Yang
+> paling berdampak — pembayaran termin tercatat tapi invoice tak jadi lunas
+> (**klien ditagih dua kali**); saldo stok tak berkurang padahal mutasinya
+> tercatat (selisih baru ketahuan saat opname); ganti-permission role bisa
+> **MENAMBAH** akses alih-alih menggantinya, pada endpoint yang justru dipakai
+> untuk MENCABUT wewenang. Ditutup penjaga ratchet 41 → 26 + **test integrasi**
+> yang menguji perilaku (permission lama benar-benar hilang), bukan keberadaan
+> satu baris `if (error)` — uji mutasi: melewati DELETE → dua test merah.
+>
+> **18 `catch` menelan error di API, 8 aksi pemakai di web.** Di API akibatnya
+> kehilangan jejak; di web lebih langsung: orang menekan tombol, tak terjadi
+> apa-apa, dan layar tetap menampilkan seolah berhasil — karena semuanya
+> memperbarui tampilan lokal SEBELUM tahu servernya menerima. Termasuk
+> **menonaktifkan akun** (tindakan keamanan), **approve/reject kasbon** di dua
+> jalur, dan **menyetujui laporan upah**. Dua penjaga baru, ambang NOL.
+>
+> **Penjaga modal P9 ternyata buta.** Ia melaporkan nol — benar untuk bentuk
+> yang dikenalinya (`onClose` prop). Seluruh portal mandor memakai state lokal,
+> jadi **lima modal di sana menjebak pemakai keyboard tanpa terdeteksi**, tepat
+> di portal yang penggunanya mandor di lapangan. Plus empat modal inline di
+> `/mandor` dan `/proyek/[id]`. Pelajaran yang sama, ketiga kalinya hari ini:
+> **nol hanya berarti sesuatu kalau uji mutasi membuktikan alatnya menggigit.**
+
 > ### 2026-08-01 — 36 modal menjebak pemakai keyboard; unggah RAB yang mati
 >
 > **Modal (36 → 0, penjaga ambang NOL).** Berawal dari satu warning pada latar

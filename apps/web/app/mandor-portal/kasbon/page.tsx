@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import { api } from "@/lib/api";
 import { Plus, Clock, CheckCircle, XCircle, AlertCircle, X } from "lucide-react";
@@ -51,6 +52,11 @@ export default function MandorKasbonPage() {
   const [scopes, setScopes] = useState<ScopeOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  // Modal di portal ini tak punya prop `onClose` — ia dikendalikan state
+  // lokal — sehingga penjaga `modal-esc-ratchet` tak menjangkaunya, dan
+  // kelima modal portal mandor menjebak pemakai keyboard tanpa terdeteksi.
+  // Penjaganya ikut diperluas; ini perbaikan kodenya.
+  useTutupEsc(showModal ? () => setShowModal(false) : null);
   const [filter, setFilter] = useState("all");
 
   const initForm = {

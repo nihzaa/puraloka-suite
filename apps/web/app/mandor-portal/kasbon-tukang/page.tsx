@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { api } from "@/lib/api";
 import { CreditCard, Plus } from "lucide-react";
 
@@ -32,6 +33,11 @@ export default function KasbonTukangPage() {
   const [assignments, setAssignments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  // Modal di portal ini tak punya prop `onClose` — ia dikendalikan state
+  // lokal — sehingga penjaga `modal-esc-ratchet` tak menjangkaunya, dan
+  // kelima modal portal mandor menjebak pemakai keyboard tanpa terdeteksi.
+  // Penjaganya ikut diperluas; ini perbaikan kodenya.
+  useTutupEsc(showModal ? () => setShowModal(false) : null);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
@@ -101,13 +107,30 @@ export default function KasbonTukangPage() {
   return (
     <div style={{ maxWidth: 800, margin: "0 auto" }}>
       {toast && (
-        <div style={{
+        // Toast sebagai TOMBOL, bukan `<div onClick>`: ia memang bisa ditekan
+        // (untuk menutup), jadi harus bisa difokus dan menanggapi Enter/Space.
+        //
+        // `role="alert"` ada di WADAHNYA, bukan di tombolnya. Versi pertama
+        // menaruhnya langsung di `<button>` dan lint benar menolaknya: `alert`
+        // adalah peran non-interaktif, jadi memasangnya ke tombol justru
+        // MENGHAPUS makna "ini bisa ditekan". Memisahkan keduanya membuat
+        // pembaca layar mengumumkan pesannya begitu muncul DAN tetap tahu
+        // bahwa ia bisa ditutup — tanpa itu, pesan "berhasil"/"gagal" hanya
+        // terlihat oleh yang kebetulan menatap sudut kanan atas layar.
+        <div role="alert" aria-live="polite">
+        <button
+          type="button"
+          onClick={() => setToast(null)}
+          aria-label={`Tutup pesan: ${toast.msg}`}
+          style={{
           position: "fixed", top: 72, right: 20, zIndex: 999,
           background: toast.ok ? C.greenBg : C.redBg, border: `1px solid ${toast.ok ? C.green : C.red}`,
           color: toast.ok ? C.green : C.red, padding: "12px 20px", borderRadius: 10, fontSize: 14,
           fontWeight: 500, boxShadow: "0 4px 16px rgba(0,0,0,0.1)", cursor: "pointer",
-        }} onClick={() => setToast(null)}>
+          textAlign: "left",
+        }}>
           {toast.msg}
+        </button>
         </div>
       )}
 
