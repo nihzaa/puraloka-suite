@@ -165,15 +165,39 @@ try {
     temuan.kosong.push({ tabel: t, disebutKode })
   }
 
-  // ── 3. lib tanpa pemanggil ────────────────────────────────────────────────
-  const berkasLib = berkasBerulang(join(SRC_API, 'lib'))
-  const isiTanpaLib = isiGabungan(
-    berkasBerulang(SRC_API).filter((f) => !f.includes(`${join('src', 'lib')}`)))
-  for (const f of berkasLib) {
-    if (f.endsWith('.test.ts')) continue
-    const nama = f.split(/[\\/]/).pop().replace(/\.ts$/, '')
-    if (!isiTanpaLib.includes(`lib/${nama}.js`) && !isiTanpaLib.includes(`lib/${nama}'`)) {
-      temuan.libMati.push(nama)
+  // ── 3. lib & utils tanpa pemanggil ────────────────────────────────────────
+  //
+  // ⚠️ `utils/` DITAMBAHKAN 2026-08-01. Versi sebelumnya hanya memindai `lib/`,
+  // dan itu membuat `utils/webpush.ts` lolos: kode lengkap, VAPID
+  // terkonfigurasi, endpoint subscribe hidup — tapi `sendWebPush()` **nol
+  // sebutan di seluruh src/**. Sistem notifikasi menulis `channel: 'push'` ke
+  // DB tanpa pernah benar-benar mengirim push, dan nol dari 23 user punya
+  // subscription (konsisten, karena UI-nya juga tak pernah memanggil
+  // `subscribeToPush()`).
+  //
+  // Itu persis kelas cacat yang §9a ada untuk menangkap — dan alatnya sendiri
+  // yang buta karena cakupan direktorinya terlalu sempit.
+  for (const dir of ['lib', 'utils']) {
+    const berkas = berkasBerulang(join(SRC_API, dir))
+    for (const f of berkas) {
+      if (f.endsWith('.test.ts')) continue
+      const nama = f.split(/[\\/]/).pop().replace(/\.ts$/, '')
+      // Dicari di SELURUH src kecuali berkasnya sendiri & test-nya.
+      //
+      // ⚠️ Versi pertama mengecualikan seluruh direktorinya (`isiLain`), dan
+      // itu menuduh palsu 3 dari 5: `uuid`, `golden-runner`, dan
+      // `tenant-map.generated` diimpor lewat `'./uuid.js'` / `'../uuid.js'`
+      // — relatif ANTAR BERKAS DI DIREKTORI YANG SAMA. Impor semacam itu
+      // sah dan lazim; yang tak boleh adalah nol pemanggil di mana pun.
+      //
+      // Alat yang menuduh palsu melatih pembacanya mengabaikan laporan —
+      // pelajaran yang sudah tiga kali muncul hari ini (gerbang tenancy,
+      // a11y, pengukur hutang adopsi).
+      const pemanggil = berkasBerulang(SRC_API).filter((x) =>
+        x !== f && !x.endsWith(`${nama}.test.ts`) && !x.includes('__tests__'))
+      const isi = isiGabungan(pemanggil)
+      const dipakai = isi.includes(`/${nama}.js'`) || isi.includes(`'./${nama}.js'`)
+      if (!dipakai) temuan.libMati.push(`${dir}/${nama}`)
     }
   }
 
@@ -228,7 +252,7 @@ if (denganKode.length) {
 
 garis('3. LIB TANPA PEMANGGIL')
 if (!temuan.libMati.length) console.log('  ✅ nihil')
-else temuan.libMati.forEach((n) => console.log(`     lib/${n}.ts`))
+else temuan.libMati.forEach((n) => console.log(`     ${n}.ts`))
 
 garis('4. ENDPOINT TANPA PEMANGGIL DARI apps/web')
 if (!temuan.endpointMati.length) console.log('  ✅ nihil')
