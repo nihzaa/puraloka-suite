@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api, getStoredUser } from "@/lib/api";
-import { FolderKanban, TrendingUp, AlertTriangle, CheckCircle, Clock, ChevronRight } from "lucide-react";
+import { FolderKanban, TrendingUp, AlertTriangle, Clock, ChevronRight } from "lucide-react";
 
 const C = {
   navy: "var(--navy)", navyLight: "var(--navy-light)",

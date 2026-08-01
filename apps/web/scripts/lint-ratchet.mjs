@@ -47,9 +47,30 @@ const AMBANG = {
   'jsx-a11y/no-noninteractive-element-interactions': 11,
 
   // ── Hutang lint lain ────────────────────────────────────────────────────
-  '@typescript-eslint/no-explicit-any': 194,
-  'react-hooks/set-state-in-effect': 70, // turun dari 71 (2026-07-31, HargaTab)
-  '@typescript-eslint/no-unused-vars': 67, // turun dari 71 (2026-07-31, .ds-sync diabaikan)
+  '@typescript-eslint/no-explicit-any': 193, // turun dari 194 (2026-08-01)
+  'react-hooks/set-state-in-effect': 69, // 71 → 70 (HargaTab) → 69 (2026-08-01, klien)
+  // turun 71 → 67 (.ds-sync diabaikan) → 15 (2026-08-01).
+  //
+  // Sebagian besar adalah 50 impor ikon/helper yatim yang menumpuk saat
+  // remediasi ADR-004 mencabut `getStoredUser()` dari 8 halaman. Impor yatim
+  // tak punya ambiguitas — tak dipakai berarti dibuang, `tsc` membuktikannya.
+  //
+  // Tapi sisanya BUKAN kerja kosmetik, dan justru di situ nilainya: variabel
+  // yatim ternyata penanda fitur yang tak tersambung. Yang ditemukan lewat
+  // daftar ini dan diperbaiki hari yang sama:
+  //   · `setNotes` (kas)        → modal pengeluaran mengirim `notes` ke API
+  //                               tapi TAK PUNYA input. Selalu kosong.
+  //   · `setFundSource` (mandor)→ kasbon selalu tercatat "Dana Owner" karena
+  //                               pemilihnya tak pernah dirender; komentar di
+  //                               sana menjanjikan alur approve yang tak ada.
+  //   · `rowOk` (rab-schedule)  → validasi constraint DB dihitung lalu dibuang;
+  //                               baris salah tak ditandai dan tombol simpan
+  //                               tetap aktif sampai Postgres menolaknya.
+  //   · `hasBorongan` (portal)  → dua saudaranya membuka menu, yang ini tidak:
+  //                               halaman settlement borongan memang belum ada.
+  //
+  // 11 sisanya menunggu penilaian serupa, bukan penyapuan.
+  '@typescript-eslint/no-unused-vars': 11,
   'react-hooks/exhaustive-deps': 31,
   'react/no-unescaped-entities': 28,
   'react-hooks/static-components': 14,
@@ -57,7 +78,11 @@ const AMBANG = {
   'react-hooks/immutability': 4,
   'react-hooks/purity': 2,
   'react-hooks/rules-of-hooks': 1,
-  '@typescript-eslint/no-unused-expressions': 1,
+  // NOL sejak 2026-08-01: satu-satunya pelanggaran adalah ternary-sebagai-statement
+  // di `mandor-section.tsx` (`next.has(id) ? next.delete(id) : next.add(id)`).
+  // Berfungsi, tapi memakai ekspresi bercabang untuk efek samping menyembunyikan
+  // maksudnya; `if/else` menyatakannya langsung.
+  '@typescript-eslint/no-unused-expressions': 0,
 }
 
 /** Rule apa pun DI LUAR daftar di atas harus NOL — termasuk rule baru. */

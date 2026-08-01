@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { api, getStoredUser } from "@/lib/api";
+import { api, hasPermission } from "@/lib/api";
 import {
   Settings2, Bell, Mail, RefreshCw, CheckCircle, AlertCircle,
   Clock, Wallet, Receipt, FolderKanban, Target,
@@ -26,15 +26,17 @@ interface MilestoneResult {
 }
 
 export default function SistemPage() {
-  const user = getStoredUser();
   const [running, setRunning] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, { ok: boolean; data: unknown; ts: string }>>({});
 
-  if (user?.role !== "admin") {
+  // ADR-004: capability, bukan jabatan. Kedua tombol di halaman ini memanggil
+  // rute yang dijaga `requirePermission('notifications:milestone:check')`
+  // (notifications.ts:295,399) — gerbang UI menanyakan hal yang sama.
+  if (!hasPermission("notifications:milestone:check")) {
     return (
       <div style={{ padding: "40px 36px", textAlign: "center" }}>
         <AlertCircle size={32} style={{ color: "var(--text-muted)", marginBottom: 12 }} />
-        <div style={{ fontSize: 14, color: "var(--text-muted)" }}>Hanya admin yang dapat mengakses halaman ini.</div>
+        <div style={{ fontSize: 14, color: "var(--text-muted)" }}>Anda tidak punya akses ke pemeliharaan sistem.</div>
       </div>
     );
   }

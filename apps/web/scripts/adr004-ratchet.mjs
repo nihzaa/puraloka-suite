@@ -48,15 +48,24 @@ const AKAR = join(import.meta.dirname, '..')
  * ⚠️ HANYA BOLEH TURUN. Kalau gagal karena NAIK, pakai `hasPermission("...")`
  * di kode baru Anda — jangan naikkan angkanya.
  *
- * 27 adalah hasil ukur 2026-08-01 SESUDAH `procurement/page.tsx` diperbaiki
- * (32 → 27; angka awalnya lebih tinggi karena dua pemakaian bisa ada di satu
- * baris yang sama). Yang diperbaiki di sana dipetakan ke permission yang API
+ * **NOL sejak 2026-08-01.** Seluruh 27 pemakaian dipetakan ke capability yang
+ * API BENAR-BENAR tuntut — diverifikasi satu per satu ke `requirePermission`
+ * di rutenya, bukan ditebak dari nama tombolnya.
+ *
+ * Dua kasus butuh penilaian, bukan penggantian mekanis:
+ *   · `isMandor` di halaman mandor → `!hasPermission('mandor:assign')`.
+ *     Mandor tak punya capability itu, admin/pm/direktur punya — jadi "tak
+ *     bisa menugaskan" = "melihat data sendiri". Efek sampingnya bagus:
+ *     `direktur` kini melihat tab Penugasan yang dulu tersembunyi.
+ *   · `canEdit` di halaman kas ternyata satu boolean untuk TIGA wewenang
+ *     berbeda yang API pisahkan (transfer / konfirmasi / approve). Dipecah
+ *     sesuai `requirePermission` masing-masing. Yang diperbaiki di sana dipetakan ke permission yang API
  * benar-benar tuntut, diverifikasi satu per satu:
  *   · approve MR   → `procurement:mr:manage` (level 1 rantai approval)
  *   · PO & GR      → `procurement:po:manage`
  *   · stok & opname→ `procurement:view`
  */
-const AMBANG = 27
+const AMBANG = 0
 
 /**
  * Dikecualikan DENGAN ALASAN — bukan disembunyikan.
@@ -69,6 +78,33 @@ const DIKECUALIKAN = new Map(Object.entries({
     'halaman pengelolaan role — menampilkan & membandingkan nama role adalah isinya',
   'app/(dashboard)/users/page.tsx':
     'halaman kelola user — dropdown pilih role, bukan gerbang akses',
+  'app/page.tsx':
+    'pengalihan awal: client → /portal, sisanya → /dashboard. Ini IDENTITAS ' +
+    '(portal mana yang jadi rumahnya), bukan kewenangan — tak ada permission ' +
+    '"saya client", dan memaksakan satu justru mengaburkan bedanya.',
+
+  // ── Tiga layout portal: alasan yang SAMA dengan app/page.tsx ──────────────
+  //
+  // Ditemukan 2026-08-01 saat pola diperlebar (nama variabel `u`, sebelumnya
+  // hanya `currentUser|user|me` yang dijaga). Keempatnya menjawab pertanyaan
+  // "kamu ada di alamat yang salah, ini rumahmu" — BUKAN "kamu tak berwenang".
+  //
+  // Bedanya nyata, bukan istilah: seorang `mandor` yang membuka `/portal`
+  // tidak sedang ditolak, ia sedang salah alamat, dan yang benar adalah
+  // MEMINDAHKANNYA ke `/mandor-portal`. Permission tak bisa menyatakan itu —
+  // `hasPermission()` hanya menjawab boleh/tidak, tak menjawab "ke mana".
+  //
+  // Gerbang KEWENANGAN di dalam portal-portal ini tetap wajib pakai
+  // `hasPermission()`, dan itu tetap dijaga: pengecualian ini hanya menutupi
+  // pengalihan di layout, bukan seluruh isi halamannya.
+  'app/portal/layout.tsx':
+    'pengalihan identitas: bukan-client dipindahkan ke /dashboard',
+  'app/mandor-portal/layout.tsx':
+    'pengalihan identitas: bukan-mandor dipindahkan ke /dashboard',
+  'app/pm-portal/layout.tsx':
+    'pengalihan identitas: admin → /dashboard, client → /portal; `mandor` ' +
+    'diizinkan karena bisa merangkap PM di suatu proyek (diverifikasi lewat ' +
+    'API, bukan lewat nama role)',
 }))
 
 function berkasTsx(dir) {
@@ -82,21 +118,35 @@ function berkasTsx(dir) {
   return h
 }
 
-// `role === "x"` pada objek user YANG SEDANG LOGIN.
+// Perbandingan `.role` dengan nama jabatan literal, dalam BENTUK APA PUN.
 //
-// ⚠️ `u.role` SENGAJA TIDAK ditangkap. Versi pertama menangkapnya dan menuduh
-// palsu `kas/page.tsx:959` — `users.filter(u => u.role === "pm")` adalah
-// PENYARINGAN DAFTAR untuk dropdown, bukan gerbang akses. Menyaring daftar
-// menurut role itu sah; yang dilarang ADR-004 adalah memutuskan APA YANG BOLEH
-// DILAKUKAN pemakai berdasarkan jabatannya.
+// ── Dua kali diperlebar, dua-duanya karena angka nol yang PALSU
 //
-// `role === "x"` pada objek user YANG SEDANG LOGIN.
-// ⚠️ `u.role` SENGAJA TIDAK ditangkap: `users.filter(u => u.role === "pm")`
-// adalah PENYARINGAN DAFTAR untuk dropdown, bukan gerbang akses. Versi
-// pertama menangkapnya dan menuduh palsu `kas/page.tsx:959`. Menyaring
-// daftar menurut role itu sah; yang dilarang ADR-004 adalah memutuskan APA
-// YANG BOLEH DILAKUKAN pemakai berdasarkan jabatannya.
-const POLA = /\b(currentUser|user|me)\s*\??\.\s*role\s*===\s*["'][a-z_]+["']/g
+// (1) `!==` semula tak ditangkap. Yang lolos justru bentuk paling berbahaya:
+//     `if (user?.role !== "admin") return <TidakBolehMasuk/>` di `/audit` dan
+//     `/sistem`. Itu bukan menyembunyikan satu tombol — itu menutup SELURUH
+//     halaman. `direktur` yang punya `audit:view` ditolak di depan pintu oleh
+//     halaman yang API-nya sendiri akan melayani.
+//
+// (2) Nama variabelnya semula dibatasi `currentUser|user|me`. Apa pun di luar
+//     tiga nama itu (`akun`, `profil`, `sesi`) lewat tanpa suara — dan tak ada
+//     yang menghalangi orang menamainya begitu.
+//
+// Keduanya pelajaran yang sama, dan sudah berulang di repo ini: alat ukur yang
+// melaporkan nol lebih berbahaya daripada tak ada alat ukur, karena ia
+// menghentikan pencarian.
+//
+// ── Yang SENGAJA tidak dihitung: penyaringan daftar
+//
+// `users.filter(u => u.role === "pm")` memilih ISI dropdown, bukan menentukan
+// wewenang. Versi pertama menangkapnya dan menuduh palsu `kas/page.tsx:959`.
+// Dibedakan lewat konteks di bawah (`.filter(`/`.map(`/`.some(` pada baris yang
+// sama), bukan lewat daftar nama variabel — karena nama bisa apa saja,
+// sedangkan bentuk penyaringan cukup khas.
+const POLA = /\b[A-Za-z_$][\w$]*\s*\??\.\s*role\s*[!=]==\s*["'][a-z_]+["']/g
+
+/** Baris yang menyaring DAFTAR menurut role — sah, bukan gerbang akses. */
+const PENYARINGAN_DAFTAR = /\.\s*(filter|map|some|every|find|findIndex|reduce|sort)\s*\(/
 
 const temuan = []
 for (const f of [...berkasTsx(join(AKAR, 'app')), ...berkasTsx(join(AKAR, 'components'))]) {
@@ -108,6 +158,7 @@ for (const f of [...berkasTsx(join(AKAR, 'app')), ...berkasTsx(join(AKAR, 'compo
     // Komentar bukan kode — berkas di repo ini menjelaskan dirinya panjang
     // lebar, dan kalimat "sebelumnya mengecek role === admin" ikut terhitung.
     if (t.startsWith('//') || t.startsWith('*') || t.startsWith('/*')) continue
+    if (PENYARINGAN_DAFTAR.test(baris[i])) continue
     const n = (baris[i].match(POLA) || []).length
     for (let k = 0; k < n; k++) temuan.push(`${rel}:${i + 1}`)
   }

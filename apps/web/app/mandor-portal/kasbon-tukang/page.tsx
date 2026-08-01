@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { CreditCard, Plus, Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { CreditCard, Plus } from "lucide-react";
 
 const C = {
   navy: "var(--navy)", navyLight: "var(--navy-light)",

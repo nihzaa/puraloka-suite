@@ -6,7 +6,7 @@ import { api } from "@/lib/api";
 import {
   MapPin, Calendar, TrendingUp, CheckCircle2, Clock,
   AlertCircle, ChevronLeft, FileText, Camera, Download,
-  Image as ImageIcon, X, ChevronRight as ChevronRightIcon,
+  Image as X, ChevronRight as ChevronRightIcon,
 } from "lucide-react";
 import {
   ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid,

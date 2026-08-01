@@ -4,7 +4,7 @@ import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   FileText, Upload, Trash2, File, ExternalLink, X,
-  Eye, Download, Lock, Unlock,
+  Download, Lock, Unlock,
 } from "lucide-react";
 import { api } from "@/lib/api";
 

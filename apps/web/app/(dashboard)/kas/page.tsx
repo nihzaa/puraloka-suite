@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { api, getStoredUser } from "@/lib/api";
+import { api, hasPermission } from "@/lib/api";
 import {
   Wallet, ArrowRightLeft, ShoppingCart, Plus, X, RefreshCw,
-  CheckCircle2, Clock, AlertTriangle, ChevronRight, Search,
-  Banknote, TrendingDown, ArrowDownLeft, ArrowUpRight, FileText,
+  CheckCircle2, Clock, AlertTriangle, 
+  Banknote, TrendingDown, FileText,
   Building2, User, Package, Wrench, Circle,
 } from "lucide-react";
 
@@ -303,9 +303,14 @@ export default function KasPage() {
 }
 
 function KasContent() {
-  const currentUser = getStoredUser();
-  const isAdmin = currentUser?.role === "admin";
-  const canEdit = isAdmin || currentUser?.role === "pm";
+  // ADR-004: capability, bukan nama jabatan. Diverifikasi ke
+  // `requirePermission` di cash.ts — bukan ditebak dari nama tombolnya.
+  const isAdmin = hasPermission("cash:account:manage");
+  // `canEdit` dulu satu boolean untuk transfer, konfirmasi, DAN approve
+  // pengeluaran — tiga wewenang berbeda yang API pisahkan. Dipertahankan
+  // sebagai "boleh menyentuh kas" (transfer), sementara konfirmasi dan
+  // approve kini memakai capability-nya sendiri di tempat pemakaiannya.
+  const canEdit = hasPermission("cash:transfer:create");
 
   const [tab, setTab] = useState<TabKey>("akun");
   const [summary, setSummary] = useState<CashSummary | null>(null);
@@ -622,7 +627,7 @@ function KasContent() {
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {transfers.map(t => (
-                  <TransferRow key={t.id} t={t} canConfirm={canEdit} onConfirm={handleConfirmTransfer} onCancel={handleCancelTransfer} />
+                  <TransferRow key={t.id} t={t} canConfirm={hasPermission("cash:transfer:confirm")} onConfirm={handleConfirmTransfer} onCancel={handleCancelTransfer} />
                 ))}
               </div>
             )}
@@ -721,7 +726,7 @@ function KasContent() {
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {expenses.map(e => (
-                  <ExpenseRow key={e.id} e={e} canReview={canEdit} onApprove={handleApproveExpense} onReject={handleRejectExpense} />
+                  <ExpenseRow key={e.id} e={e} canReview={hasPermission("cash:expense:approve")} onApprove={handleApproveExpense} onReject={handleRejectExpense} />
                 ))}
               </div>
             )}
@@ -1128,7 +1133,6 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
   useEffect(() => { if (accounts.length === 0) onNeedAccounts(); }, []);
 
-  const currentUser = getStoredUser();
   const [projects, setProjects] = useState<Project[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [mainCashAccounts, setMainCashAccounts] = useState<CashAccount[]>([]);
@@ -1391,9 +1395,22 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
             </div>
           </div>
 
+          {/* Catatan — medan ini SEBELUMNYA HILANG.
+              `notes` sudah dikirim ke API (`fd.append("notes", notes)`) dan
+              ditampilkan di daftar mutasi, tapi tak ada input yang mengisinya,
+              jadi nilainya selalu "" dan kondisinya tak pernah benar. Dua modal
+              lain di berkas ini (transfer & top-up) punya textarea-nya; yang ini
+              terlewat. Ketahuan dari `setNotes` yatim di ratchet lint. */}
+          <div>
+            <label htmlFor="catatan-pengeluaran" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Catatan</label>
+            <textarea id="catatan-pengeluaran" value={notes} onChange={e => setNotes(e.target.value)} rows={2}
+              placeholder="Misal: pembelian tambahan karena volume di lapangan bertambah"
+              style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", resize: "vertical", boxSizing: "border-box", fontFamily: "inherit" }} />
+          </div>
+
           {error && <div style={{ padding: "10px 14px", borderRadius: 8, background: C.redBg, border: `1px solid ${C.redBorder}`, fontSize: 13, color: C.red }}>{error}</div>}
 
-          {(currentUser?.role === "admin" || currentUser?.role === "pm") && (
+          {hasPermission("cash:expense:approve") && (
             <div style={{ padding: "10px 14px", borderRadius: 8, background: C.greenBg, border: `1px solid ${C.greenBorder}`, fontSize: 12, color: C.green }}>
               ✓ Pengeluaran akan langsung disetujui (saldo kas kecil berkurang otomatis)
             </div>

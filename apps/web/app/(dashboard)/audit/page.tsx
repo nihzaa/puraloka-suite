@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
-import { api, getStoredUser } from "@/lib/api";
+import { useEffect, useState, useCallback } from "react";
+import { api, hasPermission } from "@/lib/api";
 import { useToast } from "@/components/toast";
 import {
-  ShieldCheck, Search, Filter, ChevronLeft, ChevronRight,
+  ShieldCheck, Search, ChevronLeft, ChevronRight,
   Clock, User, Database, RefreshCw, AlertCircle, FileText,
 } from "lucide-react";
 
@@ -98,7 +98,6 @@ function DiffView({ oldVal, newVal }: { oldVal: Record<string, unknown> | null; 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function AuditPage() {
-  const user = getStoredUser();
   const { showToast } = useToast();
 
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -114,7 +113,6 @@ export default function AuditPage() {
   const [filterTo, setFilterTo] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const searchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchMeta = useCallback(async () => {
     try {
@@ -147,12 +145,17 @@ export default function AuditPage() {
   useEffect(() => { setPage(1); fetchLogs(1); }, [filterTable, filterAction, filterFrom, filterTo]);
   useEffect(() => { fetchLogs(page); }, [page]);
 
-  const filteredLogs = search
+  // Kedua sisi di-lowercase. Sebelumnya hanya KATA KUNCI yang diturunkan
+  // sementara nilainya tidak — kebetulan lolos untuk `table_name`/`action`
+  // (memang sudah lowercase di DB) tapi tidak untuk `record_id`: mencari UUID
+  // dengan huruf besar tak menemukan apa pun, tanpa petunjuk kenapa.
+  const q = search.trim().toLowerCase();
+  const filteredLogs = q
     ? logs.filter(l =>
-        l.table_name.includes(search.toLowerCase()) ||
-        l.action.includes(search.toLowerCase()) ||
-        l.user?.name?.toLowerCase().includes(search.toLowerCase()) ||
-        l.record_id.includes(search)
+        l.table_name.toLowerCase().includes(q) ||
+        l.action.toLowerCase().includes(q) ||
+        l.user?.name?.toLowerCase().includes(q) ||
+        l.record_id.toLowerCase().includes(q)
       )
     : logs;
 
@@ -161,11 +164,16 @@ export default function AuditPage() {
     borderRadius: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
   };
 
-  if (user?.role !== "admin") {
+  // ADR-004: capability, bukan jabatan. API menjaga rute ini dengan
+  // `requirePermission('audit:view')` (audit.ts:10,77) — gerbang UI harus
+  // menanyakan hal yang SAMA, kalau tidak pemegang wewenang yang sah (mis.
+  // `direktur`) ditolak di depan pintu oleh halaman yang API-nya sendiri
+  // akan melayani.
+  if (!hasPermission("audit:view")) {
     return (
       <div style={{ padding: 40, textAlign: "center" }}>
         <AlertCircle size={32} style={{ color: "#B91C1C", marginBottom: 12 }} />
-        <p style={{ color: "#374151" }}>Halaman ini hanya untuk Admin.</p>
+        <p style={{ color: "#374151" }}>Anda tidak punya akses ke jejak audit.</p>
       </div>
     );
   }

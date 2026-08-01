@@ -2,10 +2,10 @@
 
 import { useEffect, useReducer, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { api, getStoredUser, makeAbortController } from "@/lib/api";
+import { api, makeAbortController, hasPermission } from "@/lib/api";
 import {
   MapPin, Calendar, ArrowRight, Search, Plus,
-  Building2, CheckCircle2, PauseCircle, FileText, RefreshCw,
+  Building2, RefreshCw,
   LayoutGrid, List, TrendingUp, Wallet, AlertTriangle, Clock,
   User,
 } from "lucide-react";
@@ -201,7 +201,6 @@ export default function ProyekPage() {
 function ProyekContent() {
   const router = useRouter();
   const { showToast } = useToast();
-  const currentUser = getStoredUser();
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -314,7 +313,7 @@ function ProyekContent() {
             Kelola semua proyek konstruksi Puraloka Persada
           </p>
         </div>
-        {(currentUser?.role === "admin" || currentUser?.role === "pm") && (
+        {hasPermission("projects:create") && (
           <button
             onClick={() => setShowModal(true)}
             style={{
@@ -522,14 +521,14 @@ function ProyekContent() {
             >
               Reset filter
             </button>
-          ) : (currentUser?.role === "admin" || currentUser?.role === "pm") && (
+          ) : hasPermission("projects:create") ? (
             <button
               onClick={() => setShowModal(true)}
               style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 18px", borderRadius: 8, border: "none", background: C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
             >
               <Plus size={14} /> Tambah Proyek
             </button>
-          )}
+          ) : null}
         </div>
       ) : viewMode === "grid" ? (
         <div className="rise rise-3" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>

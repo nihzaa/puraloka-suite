@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { Users, Plus, Phone, Edit2, ToggleLeft, ToggleRight, AlertCircle } from "lucide-react";
+import { Users, Plus, Phone, Edit2, ToggleLeft, ToggleRight } from "lucide-react";
 
 const C = {
   navy: "var(--navy)", navyLight: "var(--navy-light)",

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { Wallet, FileText, TrendingUp, CheckCircle, AlertCircle } from "lucide-react";
+import { Wallet, FileText, TrendingUp, CheckCircle } from "lucide-react";
 
 const C = {
   navy: "var(--navy)", navyLight: "var(--navy-light)",

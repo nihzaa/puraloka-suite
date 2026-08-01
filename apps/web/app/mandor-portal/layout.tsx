@@ -25,8 +25,17 @@ export default function MandorPortalLayout({ children }: { children: React.React
   const [isPM, setIsPM] = useState(false);
   const [showModeMenu, setShowModeMenu] = useState(false);
   const [hasHarian, setHasHarian] = useState(false);
-  const [hasBorongan, setHasBorongan] = useState(false);
   const [hasProgressPct, setHasProgressPct] = useState(false);
+  // ⚠️ TIDAK ADA `hasBorongan` — dan itu disengaja, bukan kelupaan.
+  //
+  // Dua saudaranya masing-masing membuka satu menu (`hasHarian` → Laporan Upah,
+  // `hasProgressPct` → Penagihan Progress). `hasBorongan` dulu ikut dihitung
+  // TAPI tak pernah dibaca, karena halaman settlement borongan di portal mandor
+  // MEMANG BELUM ADA — `app/mandor-portal/` tak punya direktori untuk itu,
+  // meski API-nya hidup (`borongan_settlements` dipakai di finance.ts).
+  //
+  // Menambahkan menu sekarang berarti menunjuk ke 404. Statusnya dicatat di
+  // docs/ROADMAP.md sebagai pekerjaan, bukan disembunyikan sebagai state mati.
   const modeMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -40,7 +49,6 @@ export default function MandorPortalLayout({ children }: { children: React.React
       const assignments: any[] = res.data?.assignments ?? [];
       const allScopes = assignments.flatMap((a: any) => a.work_scopes ?? []);
       setHasHarian(allScopes.some((s: any) => s.payment_system === "harian"));
-      setHasBorongan(allScopes.some((s: any) => s.payment_system === "borongan"));
       setHasProgressPct(allScopes.some((s: any) => s.payment_system === "progress_pct"));
     }).catch(() => {});
 

@@ -6,9 +6,9 @@ import { useUnits } from "@/lib/use-units";
 import { createPortal } from "react-dom";
 import {
   Package, Truck, ClipboardList, ShoppingCart, CheckSquare,
-  FileText, AlertTriangle, Plus, X, Check, ChevronDown, Search,
-  Building2, Phone, Mail, MapPin, Calendar, RefreshCw, BarChart3, Download,
-  CreditCard, TrendingDown, BoxSelect, Receipt, Send, History,
+  FileText, AlertTriangle, Plus, X, Check, Search,
+  Building2, Phone, MapPin, RefreshCw, BarChart3, Download,
+  CreditCard, TrendingDown, Receipt, Send, History,
 } from "lucide-react";
 
 const C = {

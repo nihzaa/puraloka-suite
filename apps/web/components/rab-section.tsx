@@ -203,10 +203,9 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
     }
   }
 
-  // Dipanggil dari luar (oleh AbsorptionLogModal onSaved) untuk refresh serapan
-  const refreshSerapan = useCallback(() => {
-    loadSerapan();
-  }, [loadSerapan]);
+  // (`refreshSerapan` dihapus 2026-08-01: mekanisme refresh dari luar sekarang
+  //  lewat prop `serapanRefreshKey` — lihat efek di atas. Fungsi lama tak punya
+  //  pemanggil dan tak bisa punya: ia tak pernah diekspos ke parent.)
 
   // ── Komponen biaya update ─────────────────────────────────────────────────
 

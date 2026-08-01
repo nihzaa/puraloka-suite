@@ -299,9 +299,25 @@
     box-shadow 100ms ease;
 }
 
+/* Penanda "sedang memuat". Berputar terus sampai datanya datang — durasinya
+   memang tak terbatas karena yang ditunggu juga tak diketahui lamanya. */
+.berputar {
+  animation: berputar 1.1s linear infinite;
+}
+
+@keyframes berputar {
+  to { transform: rotate(360deg); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .clay-hover, .clay-hover:hover, .clay-press:active {
     transform: none !important;
+  }
+  /* Putaran DIHENTIKAN, bukan disembunyikan: ikonnya tetap terlihat sebagai
+     penanda status, hanya gerakannya yang dihilangkan. Teks di sebelahnya
+     ("Memuat agenda…") tetap menyampaikan maksudnya tanpa gerak sama sekali. */
+  .berputar {
+    animation: none;
   }
 }
 

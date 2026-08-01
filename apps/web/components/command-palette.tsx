@@ -143,7 +143,6 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   if (!open) return null;
 
   const showQuick = query.trim().length < 2;
-  const items = showQuick ? QUICK_ACTIONS : results;
 
   return createPortal(
     <div

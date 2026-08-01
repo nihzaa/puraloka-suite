@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useReducer, useState } from "react";
 import { createPortal } from "react-dom";
 import { useParams, useRouter } from "next/navigation";
-import { api, getStoredUser } from "@/lib/api";
+import { api, getStoredUser, hasPermission } from "@/lib/api";
 import {
   MapPin, Calendar, RefreshCw,
   User, TrendingUp,
@@ -341,8 +341,12 @@ function ProjectDetailContent() {
   }, []);
 
   const currentUser = getStoredUser();
-  const isAdmin = currentUser?.role === "admin";
-  const canEditProject = isAdmin || currentUser?.role === "pm";
+  // ADR-004: capability, bukan nama jabatan. Role kustom `direktur` punya
+  // permission ini tapi UI lama menyembunyikan tombolnya karena mengecek
+  // `role === "admin"`. Tiap key diverifikasi ke `requirePermission` di
+  // rute API-nya — bukan ditebak dari nama tombolnya.
+  const isAdmin = hasPermission("projects:delete");
+  const canEditProject = hasPermission("projects:edit");
 
   useEffect(() => { if (id) fetchProject(); }, [id]);
 
@@ -554,7 +558,7 @@ function ProjectDetailContent() {
 
           {/* Action buttons */}
           <div style={{ display: "flex", gap: 8, flexShrink: 0, flexWrap: "wrap" }}>
-            {(currentUser?.role === "admin" || currentUser?.role === "pm") && (
+            {hasPermission("projects:contract") && (
               <button
                 onClick={() => setShowContractModal(true)}
                 style={{
@@ -1205,7 +1209,7 @@ function ProjectDetailContent() {
               </thead>
               <tbody>
                 {termins.map(t => {
-                  const canPay = (currentUser?.role === "admin" || currentUser?.role === "pm") && t.status !== "paid";
+                  const canPay = hasPermission("finance:termin:pay") && t.status !== "paid";
                   const isOverdueTermin = overdueTermins.some(ot => ot.id === t.id);
 
                   // Keterangan syarat tagih
@@ -1430,7 +1434,7 @@ function ProjectDetailContent() {
           projectId={p.id}
           assignments={p.mandor_assignments ?? []}
           scopelessKasbons={p.scopeless_kasbons ?? []}
-          canEdit={currentUser?.role === "admin" || currentUser?.role === "pm"}
+          canEdit={hasPermission("mandor:assign")}
           onRefresh={fetchProject}
         />
       </div>

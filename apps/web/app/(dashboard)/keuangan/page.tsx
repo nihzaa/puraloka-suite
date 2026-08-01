@@ -2,12 +2,12 @@
 
 import React, { useEffect, useReducer, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { api, getStoredUser } from "@/lib/api";
+import { api, hasPermission } from "@/lib/api";
 import {
   Wallet, Receipt, TrendingUp, TrendingDown, AlertTriangle,
   CheckCircle2, Clock, Search, RefreshCw, Plus, X, ExternalLink,
-  ChevronDown, Banknote, ArrowDownLeft, ArrowUpRight, Filter,
-  FileText, CreditCard, Building2, PieChart, Activity, ArrowRightLeft,
+  Banknote, ArrowDownLeft, ArrowUpRight, 
+  FileText, PieChart, Activity, 
 } from "lucide-react";
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
@@ -513,8 +513,8 @@ export default function KeuanganPage() {
 }
 
 function KeuanganContent() {
-  const currentUser = getStoredUser();
-  const canEdit = currentUser?.role === "admin" || currentUser?.role === "pm";
+  // ADR-004: capability, bukan nama jabatan — diverifikasi ke `requirePermission`.
+  const canEdit = hasPermission("finance:invoice:pay");
 
   const [tab, setTab] = useState<TabKey>("overview");
 
@@ -907,7 +907,11 @@ function KeuanganContent() {
     );
   }
 
-  const overdueInvoices = invoices.filter(i => i.status !== "paid" && i.status !== "cancelled" && daysUntil(i.due_date) < 0);
+  // (`overdueInvoices` dihapus 2026-08-01 — perhitungan sisi-klien yang tak
+  //  pernah dirender. Jatuh tempo sudah disajikan dua kali dari sumber yang
+  //  lebih benar: KPI `summary.overdueCount` dan alert strip, keduanya dari
+  //  server sehingga menghitung SELURUH invoice, bukan hanya halaman yang
+  //  sedang dimuat.)
 
   return (
     <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>

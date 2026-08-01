@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { api, getStoredUser } from "@/lib/api";
+import { api } from "@/lib/api";
 import {
   ChevronLeft, ChevronRight, Calendar,
   Target, Clock, TrendingUp, RefreshCw, FileText,
@@ -67,7 +67,6 @@ function todayKey() {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function KalenderPage() {
-  const user = getStoredUser();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
@@ -186,8 +185,18 @@ export default function KalenderPage() {
           </div>
         </div>
 
-        {/* Month summary chips */}
+        {/* Month summary chips.
+            Saat memuat, chip diganti penanda — grid tanggal SELALU terlukis,
+            jadi tanpa ini kalender tampak "tak punya acara bulan ini" alih-alih
+            "belum selesai memuat". Itu lebih menyesatkan daripada halaman
+            kosong: orang menyimpulkan datanya hilang, bukan menunggu. */}
         <div style={{ display: "flex", gap: 8 }}>
+        {loading ? (
+          <div role="status" aria-live="polite" style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 12px", borderRadius: 20, background: "var(--surface-hover)", border: "1px solid var(--border)" }}>
+            <RefreshCw size={12} className="berputar" color="var(--text-secondary)" />
+            <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Memuat agenda…</span>
+          </div>
+        ) : (<>
           {[
             { count: milestoneCnt, label: "Milestone", ...TYPE_STYLE.milestone },
             { count: terminCnt,    label: "Termin",    ...TYPE_STYLE.termin },
@@ -204,6 +213,8 @@ export default function KalenderPage() {
               <span style={{ fontSize: 11, color: c.color }}>{c.label}</span>
             </div>
           ))}
+          </>
+        )}
         </div>
       </div>
 

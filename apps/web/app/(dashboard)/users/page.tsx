@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { api, getStoredUser } from "@/lib/api";
+import { api, getStoredUser, hasPermission } from "@/lib/api";
 import {
   Users, Plus, Search, UserCheck, UserX, Edit2, X,
   HardHat, Briefcase, ShieldCheck, User, Phone, Mail,
-  ChevronDown,
+  
 } from "lucide-react";
 
 const C = {
@@ -87,7 +87,8 @@ export default function UsersPage() {
   });
 
   const counts = ROLES.map(r => ({ ...r, count: users.filter(u => u.role === r.key).length }));
-  const isAdmin = currentUser?.role === "admin";
+  // ADR-004: capability, bukan nama jabatan — diverifikasi ke `requirePermission`.
+  const isAdmin = hasPermission("users:manage");
 
   return (
     <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-form)", margin: "0 auto" }}>

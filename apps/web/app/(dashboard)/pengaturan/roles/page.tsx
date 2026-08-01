@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useReducer, useState } from "react";
-import { api, getStoredUser } from "@/lib/api";
+import { api, hasPermission } from "@/lib/api";
 import {
   Shield,
   Plus,
@@ -89,8 +89,8 @@ export default function RolesPage() {
 }
 
 function RolesContent() {
-  const currentUser = getStoredUser();
-  const canManage = currentUser?.role === "admin";
+  // ADR-004: capability, bukan nama jabatan — diverifikasi ke `requirePermission`.
+  const canManage = hasPermission("users:roles:manage");
 
   const [roles, setRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<PermissionGroup[]>([]);

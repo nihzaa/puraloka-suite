@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { api, getStoredUser } from "@/lib/api";
+import { api, hasPermission } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import {
   Users, Plus, Search, Building2, User, Phone, Mail,
@@ -497,11 +497,8 @@ export default function KlienPage() {
   const [showModal, setShowModal] = useState(false);
   const [editClient, setEditClient] = useState<Client | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
-  const [currentUser, setCurrentUser] = useState<{ role: string } | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
-  const [prefilledClientId, setPrefilledClientId] = useState<string | null>(null);
 
-  useEffect(() => { setCurrentUser(getStoredUser()); }, []);
 
   async function load() {
     setLoading(true);
@@ -535,7 +532,8 @@ export default function KlienPage() {
     return matchSearch && matchType;
   });
 
-  const isAdmin = currentUser?.role === "admin";
+  // ADR-004: capability, bukan nama jabatan — diverifikasi ke `requirePermission`.
+  const isAdmin = hasPermission("clients:manage");
 
   return (
     <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
@@ -754,13 +752,12 @@ export default function KlienPage() {
       {detailId && (
         <DetailPanel
           clientId={detailId}
-          onClose={() => { setDetailId(null); setPrefilledClientId(null); }}
+          onClose={() => setDetailId(null)}
           onEdit={() => {
             const c = clients.find(x => x.id === detailId);
             if (c) { setEditClient(c); setShowModal(true); }
           }}
           onCreateProject={() => {
-            setPrefilledClientId(detailId);
             setDetailId(null);
             router.push(`/proyek?new=1&client_id=${detailId}`);
           }}

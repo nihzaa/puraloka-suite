@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, type JSX } from "react";
 import { createPortal } from "react-dom";
 import {
   Calendar, ChevronDown, ChevronRight, Settings2,
-  AlertTriangle, Info, Loader2, Link2, X, Check,
+  AlertTriangle, Info, Loader2, Link2, 
 } from "lucide-react";
 import { api } from "@/lib/api";
 
@@ -555,7 +555,7 @@ function DependencyArrows({
   tasks,
   warnings,
   rowHeight,
-  dayWidth,
+  
   minDate,
   totalDays,
   width,

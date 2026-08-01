@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api, getStoredUser } from "@/lib/api";
-import { ClipboardList, Plus, ChevronDown, ChevronUp, Trash2, CheckCircle, Clock, XCircle, AlertCircle } from "lucide-react";
+import { api } from "@/lib/api";
+import { ClipboardList, Plus, Trash2, CheckCircle, Clock, XCircle } from "lucide-react";
 
 const C = {
   navy: "var(--navy)", navyLight: "var(--navy-light)",
@@ -50,7 +50,6 @@ interface WageRow {
 }
 
 export default function LaporanUpahPage() {
-  const user = getStoredUser();
   const [tab, setTab] = useState<"riwayat" | "buat">("riwayat");
   const [reports, setReports] = useState<any[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);

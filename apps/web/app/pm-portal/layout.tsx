@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { api, getStoredUser, logout, type PuralokaUser } from "@/lib/api";
-import { LayoutDashboard, FolderKanban, Wallet, HardHat, LogOut, ChevronDown, Briefcase } from "lucide-react";
+import { LayoutDashboard, FolderKanban, Wallet, HardHat, LogOut, ChevronDown } from "lucide-react";
 
 const C = {
   navy: "var(--navy)",

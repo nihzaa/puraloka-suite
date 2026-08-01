@@ -2,7 +2,7 @@
 
 import React from "react";
 import {
-  Document, Page, View, Text, Image, StyleSheet, Font,
+  Document, Page, View, Text, Image, StyleSheet, 
 } from "@react-pdf/renderer";
 
 // ─── Types ────────────────────────────────────────────────────────────────────

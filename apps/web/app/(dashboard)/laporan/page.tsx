@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useEffect, useReducer, useRef, useState } from "react";
-import { api, getStoredUser, makeAbortController } from "@/lib/api";
+import { api, makeAbortController, hasPermission } from "@/lib/api";
 import {
   FileText, BarChart3, Users, TrendingDown, Activity,
   ChevronDown, RefreshCw, Calendar, Building2, AlertTriangle,
   CheckCircle2, Clock, ArrowDownLeft, ArrowUpRight, Layers,
-  Image as ImageIcon, X, Filter, Download,
+  Image as ImageIcon, X, Download,
 } from "lucide-react";
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
@@ -261,8 +261,8 @@ export default function LaporanPage() {
 }
 
 function LaporanContent() {
-  const currentUser = getStoredUser();
-  const canViewFinance = currentUser?.role === "admin" || currentUser?.role === "pm";
+  // ADR-004: capability, bukan nama jabatan — diverifikasi ke `requirePermission`.
+  const canViewFinance = hasPermission("finance:tax:view");
 
   // Filter state
   const today = new Date().toISOString().split("T")[0];
@@ -683,7 +683,7 @@ function LaporanContent() {
                                 </span>
                               </td>
                               <td style={{ padding: "8px 10px" }}>
-                                {r.status === "pending" && currentUser?.role === "admin" && (
+                                {r.status === "pending" && hasPermission("finance:tax:submit") && (
                                   <button
                                     aria-label="Tandai catatan pajak ini sudah dilaporkan"
                                     disabled={taxStatusUpdating === r.id}

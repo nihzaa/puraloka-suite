@@ -118,6 +118,47 @@ kali keadaan berubah; detail selalu di dokumen rujukan.
 > seluruhnya yatim. Penghapusan tetap **menunggu izin founder** (keputusan
 > terbuka #1c).
 
+> ### 2026-08-01 — ADR-004 sisi web NOL; empat fitur mati ketahuan lewat lint
+>
+> **P6 — ADR-004 (27 → 0), tapi nol pertamanya PALSU.** Seluruh pemakaian
+> `role === "..."` di web dipetakan ke capability yang **API benar-benar
+> tuntut**, diverifikasi satu per satu ke `requirePermission` di rutenya. Dua
+> kasus butuh penilaian: `isMandor` → `!hasPermission("mandor:assign")` (efek
+> sampingnya bagus — `direktur` kini melihat tab Penugasan yang dulu
+> tersembunyi), dan `canEdit` di halaman kas ternyata **satu boolean untuk tiga
+> wewenang** yang API pisahkan, jadi dipecah.
+>
+> Yang lebih berharga daripada angkanya: **penjaganya sendiri salah dua kali**.
+> Ratchet hanya mencari `===` dengan nama variabel `currentUser|user|me`. Yang
+> lolos justru bentuk paling berbahaya — `if (user?.role !== "admin") return
+> <TidakBolehMasuk/>` di `/audit` dan `/sistem`: itu **gerbang halaman penuh**,
+> bukan satu tombol. `direktur` yang punya `audit:view` ditolak di depan pintu
+> oleh halaman yang API-nya sendiri akan melayani. Pola diperlebar (`!==` ikut;
+> nama variabel apa pun), penyaringan daftar dibedakan lewat **bentuknya**
+> (`.filter(`/`.map(`) bukan lewat daftar nama. Tiga layout portal dikecualikan
+> dengan alasan tertulis: pengalihan `/portal` ↔ `/mandor-portal` adalah
+> IDENTITAS ("ini rumahmu"), bukan kewenangan.
+>
+> **P7 — lint 67 → 11, dan empat fitur mati ketahuan.** Dimulai sebagai
+> kerja rapi-rapi (50 impor yatim sisa P6) tapi sisanya ternyata penanda fitur
+> yang tak tersambung — variabel yatim adalah **gejala, bukan kotoran**:
+>
+> | Yatim | Yang sebenarnya rusak |
+> |---|---|
+> | `setNotes` | Modal pengeluaran kas mengirim `notes` ke API tapi **tak punya input**. Selalu kosong. Dua modal lain di berkas yang sama punya textarea-nya. |
+> | `setFundSource` | Kasbon dari halaman mandor **selalu** "Dana Owner" — pemilihnya tak pernah dirender. Komentar di sana menjanjikan "ditentukan admin/PM saat approve" yang **tak pernah ada**: `fund_source` hanya bisa diisi saat POST. Portal mandor sudah punya pemilihnya; dashboard-lah yang tertinggal. |
+> | `rowOk` | Validasi `rab_items_pct_sum` dihitung lalu dibuang — baris salah tak ditandai, tombol simpan tetap aktif sampai Postgres menolak dengan pesan mentah. |
+> | `hasBorongan` | Dua saudaranya membuka menu portal, yang ini tidak: halaman settlement borongan **memang belum ada**. Dicatat sebagai pekerjaan, bukan disembunyikan. |
+>
+> Ikut ketemu: pencarian audit membandingkan kata kunci lowercase terhadap nilai
+> yang **belum** di-lowercase (UUID berhuruf besar tak pernah ketemu), dan
+> kalender tak punya indikator memuat sama sekali — grid tanggal selalu
+> terlukis, jadi tampak "tak ada acara bulan ini" alih-alih "belum selesai
+> memuat", yang **lebih menyesatkan daripada halaman kosong**.
+>
+> Verifikasi: 1.213 test hijau · build sukses · enam ratchet hijau · uji mutasi
+> tiap ratchet baru (nama bebas → merah, penyaringan daftar → tetap hijau).
+
 > ### 2026-08-01 — a11y NOL, hutang tenancy dicicil
 >
 > **#14d SELESAI**: nol kontrol tanpa nama (96/62 → 0/0), ambang dikencangkan

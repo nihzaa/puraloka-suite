@@ -1,18 +1,18 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useReducer, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createPortal } from "react-dom";
-import { api, getStoredUser } from "@/lib/api";
+import { api, getStoredUser, hasPermission } from "@/lib/api";
 import { useUnits } from "@/lib/use-units";
 import { useWorkCategories } from "@/lib/use-work-categories";
 import { useKasbonPurposes } from "@/lib/use-kasbon-purposes";
 import { uploadKasbonPhoto } from "@/lib/storage";
 import * as XLSX from "xlsx";
 import {
-  HardHat, Plus, ChevronRight, RefreshCw, CheckCircle2, Clock,
+  HardHat, Plus, ChevronRight, RefreshCw, Clock,
   XCircle, AlertTriangle, Banknote, User, Users, FileText,
-  Calendar, Search, X, ChevronDown, Trash2, Check, Download, Camera, Phone,
+  Calendar, Search, X, Trash2, Check, Download, Camera, Phone,
 } from "lucide-react";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -321,8 +321,13 @@ function useMounted() {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 function MandorPageInner() {
-  const currentUser = getStoredUser();
-  const isMandor = currentUser?.role === "mandor";
+  // ADR-004: capability, bukan nama jabatan.
+  //
+  // `mandor:assign` adalah pembedanya — mandor TIDAK punya (diverifikasi ke
+  // role_permissions), admin/pm/direktur punya. Jadi "tak bisa menugaskan"
+  // = "melihat data sendiri", dan role kustom `direktur` kini ikut melihat
+  // tab Penugasan yang dulu tersembunyi karena UI mengecek `role === "mandor"`.
+  const isMandor = !hasPermission("mandor:assign");
   const router = useRouter();
   const searchParams = useSearchParams();
   const { labelOf: kasbonPurposeLabel } = useKasbonPurposes(); // tujuan kasbon dari master (A4)
@@ -1678,8 +1683,7 @@ function CreateWageReportModal({ onClose, onSuccess }: {
   const mounted = useMounted();
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
 
-  const currentUser = getStoredUser();
-  const isMandor = currentUser?.role === "mandor";
+  const isMandor = !hasPermission("mandor:assign");
 
   // Load assignments fresh di dalam modal
   const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -2287,7 +2291,7 @@ function WorkerFormModal({ mandorId: initialMandorId, mandorName: initialMandorN
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
 
   const currentUser = getStoredUser();
-  const isMandor = currentUser?.role === "mandor";
+  const isMandor = !hasPermission("mandor:assign");
   const isEdit = !!worker;
 
   const [mandorOptions, setMandorOptions] = useState<{ id: string; name: string }[]>(
@@ -2780,15 +2784,31 @@ function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () => void; 
             </div>
           </div>
 
-          {/* Keperluan — full width, sumber dana ditentukan admin/PM saat approve */}
-          <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Keperluan <span style={{ color: C.red }}>*</span></label>
-            <select aria-label="Keperluan kasbon mandor" value={purpose} onChange={e => setPurpose(e.target.value)} style={inputStyle}>
-              {(kasbonPurposes.length > 0
-                ? kasbonPurposes.map(p => [p.code, p.label] as [string, string])
-                : [["gaji_tukang", "Gaji Tukang"], ["uang_makan", "Uang Makan"], ["pembelian_alat", "Pembelian Alat"], ["operasional", "Operasional"], ["lain_lain", "Lain-lain"]] as [string, string][]
-              ).map(([code, label]) => <option key={code} value={code}>{label}</option>)}
-            </select>
+          {/* Keperluan + Sumber Dana.
+              ⚠️ Komentar lama di sini berbunyi "sumber dana ditentukan admin/PM
+              saat approve" — dan itu TIDAK PERNAH BENAR: `fund_source` hanya
+              bisa diisi saat POST (kasbons.ts:161); PATCH `/status` tak pernah
+              menyentuhnya. Akibatnya setiap kasbon dari halaman ini tercatat
+              "Dana Owner" tanpa siapa pun memilihnya, dan kolomnya muncul apa
+              adanya di laporan. Portal mandor sudah punya pemilih ini sejak
+              awal — dashboard-lah yang tertinggal, bukan sebaliknya. */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Keperluan <span style={{ color: C.red }}>*</span></label>
+              <select aria-label="Keperluan kasbon mandor" value={purpose} onChange={e => setPurpose(e.target.value)} style={inputStyle}>
+                {(kasbonPurposes.length > 0
+                  ? kasbonPurposes.map(p => [p.code, p.label] as [string, string])
+                  : [["gaji_tukang", "Gaji Tukang"], ["uang_makan", "Uang Makan"], ["pembelian_alat", "Pembelian Alat"], ["operasional", "Operasional"], ["lain_lain", "Lain-lain"]] as [string, string][]
+                ).map(([code, label]) => <option key={code} value={code}>{label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="sumber-dana-kasbon" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Sumber Dana <span style={{ color: C.red }}>*</span></label>
+              <select id="sumber-dana-kasbon" value={fundSource} onChange={e => setFundSource(e.target.value)} style={inputStyle}>
+                <option value="owner_advance">Dana Owner</option>
+                <option value="client_fund">Dana Klien</option>
+              </select>
+            </div>
           </div>
 
           {/* Keterangan — wajib untuk mandor */}

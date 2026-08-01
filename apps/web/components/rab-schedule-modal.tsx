@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { X, Plus, Trash2, CalendarDays, Save, ChevronDown, Clock } from "lucide-react";
+import { X, Plus, Trash2, CalendarDays, Save, ChevronDown, Clock, AlertTriangle } from "lucide-react";
 import { api } from "@/lib/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -409,12 +409,17 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
                     const rowTotal = row.material_pct + row.upah_pct + row.alat_pct + row.other_pct;
                     const rowOk = rowTotal === 0 || (rowTotal >= 99.9 && rowTotal <= 100.1);
                     return (
-                      <div key={idx} style={{
+                      <div key={idx}>
+                      <div style={{
                         display: "grid", gridTemplateColumns: "1fr 56px 56px 56px 56px 80px 80px 36px",
                         gap: 8, padding: "8px 10px", alignItems: "center",
                         background: row.isDirty ? "#FAFBFF" : "var(--surface)",
-                        borderRadius: 8, marginBottom: 4,
-                        border: `1px solid ${row.isDirty ? "var(--info-border)" : C.border}`,
+                        borderRadius: 8, marginBottom: rowOk ? 4 : 0,
+                        // `rowOk` SEBELUMNYA dihitung lalu dibuang — baris yang
+                        // melanggar constraint DB (`rab_items_pct_sum`: total 0
+                        // atau 99,9–100,1) tak ditandai apa pun, jadi orang baru
+                        // tahu setelah simpan gagal dengan pesan Postgres mentah.
+                        border: `1px solid ${!rowOk ? C.red : row.isDirty ? "var(--info-border)" : C.border}`,
                       }}>
                         {/* Pilih minggu */}
                         <div style={{ position: "relative" }}>
@@ -453,11 +458,13 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
                         {row.isDirty ? (
                           <button
                             onClick={() => saveRow(idx)}
-                            disabled={saving === `${idx}`}
+                            disabled={saving === `${idx}` || !rowOk}
+                            title={rowOk ? undefined : "Total komponen harus 100% (atau semuanya 0 jika belum diisi)"}
                             style={{
                               padding: "4px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600,
-                              background: C.navy, color: "var(--surface)", border: "none", cursor: "pointer",
-                              opacity: saving === `${idx}` ? 0.6 : 1,
+                              background: C.navy, color: "var(--surface)", border: "none",
+                              cursor: rowOk ? "pointer" : "not-allowed",
+                              opacity: saving === `${idx}` || !rowOk ? 0.5 : 1,
                               display: "flex", alignItems: "center", gap: 3,
                             }}
                           >
@@ -476,6 +483,24 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
                         >
                           <Trash2 size={13} />
                         </button>
+                      </div>
+
+                      {/* Pesan, bukan hanya warna — border merah saja tak
+                          terbaca oleh sebagian orang, dan tak menjelaskan
+                          APA yang salah maupun berapa kurangnya. */}
+                      {!rowOk && (
+                        <div role="alert" style={{
+                          display: "flex", alignItems: "center", gap: 5,
+                          padding: "4px 10px 6px", marginBottom: 4,
+                          fontSize: 11, color: C.red,
+                        }}>
+                          <AlertTriangle size={11} style={{ flexShrink: 0 }} />
+                          <span>
+                            Total komponen {rowTotal.toFixed(1)}% — harus tepat 100%
+                            (atau semuanya 0 jika minggu ini belum direncanakan).
+                          </span>
+                        </div>
+                      )}
                       </div>
                     );
                   })}

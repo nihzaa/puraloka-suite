@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useReducer, useRef, useState } from "react";
-import { api, getStoredUser } from "@/lib/api";
+import { api, hasPermission } from "@/lib/api";
 import { Building2, CreditCard, Upload, Save, X, Check, AlertTriangle } from "lucide-react";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -72,8 +72,8 @@ export default function PengaturanPage() {
 }
 
 function PengaturanContent() {
-  const currentUser = getStoredUser();
-  const isAdmin = currentUser?.role === "admin";
+  // ADR-004: capability, bukan nama jabatan — diverifikasi ke `requirePermission`.
+  const isAdmin = hasPermission("settings:manage");
 
   const [profile, setProfile] = useState<CompanyProfile>(DEFAULTS);
   const [loading, setLoading] = useState(true);
