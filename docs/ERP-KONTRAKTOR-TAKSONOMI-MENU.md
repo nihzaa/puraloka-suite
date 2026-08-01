@@ -21,10 +21,16 @@ lapisan mana yang sudah ada.
 - 🔴 **BELUM** — belum dimulai
 - ⛔ **DICORET** — keputusan owner 2026-07-26: di luar target (lihat bagian Tolok Ukur)
 
-> **Scope resmi (koreksi owner 2026-07-26):** target = **KUALITAS sekelas ERP
-> perusahaan besar untuk bisnis sendiri di Indonesia**, BUKAN kesiapan dipakai
-> perusahaan internasional. Semua proyek Rupiah. UI Bahasa Indonesia. Acuan
-> akuntansi PSAK.
+> **Scope resmi (founder 2026-08-01):** target = **ERP kontraktor LENGKAP,
+> TERINTEGRASI, BERBASIS AI** — lihat [`KEPUTUSAN-SCOPE-ERP-AI.md`](./KEPUTUSAN-SCOPE-ERP-AI.md).
+> Empat kantong yang sebelumnya dicoret kini MASUK: QA/QC+HSE (§10/§11), GL
+> in-app (§14), payroll+BPJS+PPh 21 (§12), aset & alat berat penuh (§13).
+> **Konsekuensi baca:** baris 🔴 di keempat bagian itu adalah **utang pekerjaan**,
+> bukan lagi keputusan sadar untuk tidak membangun.
+>
+> **Yang TETAP dicoret** (2026-07-26, tak dibatalkan): multi-currency · i18n ·
+> SSO enterprise · IFRS (tetap **PSAK**) · seluruh Never Build List. Semua proyek
+> Rupiah, UI Bahasa Indonesia, satu negara.
 
 ---
 
@@ -356,7 +362,22 @@ Semua 🔴 — terkonfirmasi.
 
 ## KALAU SELURUH ROADMAP SELESAI — JADI SEBERAPA LENGKAP?
 
-Ditambahkan 2026-08-01 menjawab pertanyaan founder: *"kalau seluruh roadmap
+> ### ⚠️ SEBAGIAN BAGIAN INI SUDAH DIGANTI — [`KEPUTUSAN-SCOPE-ERP-AI.md`](./KEPUTUSAN-SCOPE-ERP-AI.md) (2026-08-01)
+>
+> Bagian ini ditulis pagi 2026-08-01, beberapa jam sebelum founder menyatakan
+> tujuan **"ERP lengkap, terintegrasi, berbasis AI"**. Keputusan itu **MEMBALIK**
+> empat kantong yang di bawah masih tertulis sebagai "sengaja tak ditargetkan":
+> QA/QC+HSE, GL in-app, payroll, dan aset penuh — keempatnya **kini MASUK**.
+>
+> **Yang masih berlaku di bawah:** metode hitungnya (kolom Status, bukan semua
+> tanda), angka 183 sub-menu, dan sebarannya. **Yang sudah TIDAK berlaku:**
+> pembagian "empat kantong" beserta kesimpulan bahwa ±40 merah tak perlu
+> dikerjakan. Sekarang perlu.
+>
+> Dibiarkan apa adanya, bukan dihapus — supaya terlihat bahwa keputusan scope
+> BERUBAH, dan kapan. Menghapusnya akan membuat riwayatnya berbohong.
+
+Ditulis 2026-08-01 menjawab pertanyaan founder: *"kalau seluruh roadmap
 selesai, ini akan jadi gimana? bukannya menu di taksonomi itu banyak ya?"*
 
 **Jawaban singkat: ROADMAP selesai ≠ taksonomi habis. Dan itu memang disengaja.**

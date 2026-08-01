@@ -1,10 +1,30 @@
 # STATUS — Puraloka Suite (penunjuk satu pintu)
 
-**Diperbarui:** 2026-07-31 (rev-7: 8 celah tenancy ditutup + gerbangnya jadi gate CI · 296 pelanggaran WCAG ditutup + penjaga a11y · PV EVM berjenjang dari tanggal Gantt · buku migrasi direkonsiliasi (20 migrasi tak tercatat)) · File ini adalah `STATUS.md` yang diwajibkan AUTOPILOT §2
+**Diperbarui:** 2026-08-01 (rev-8: SCOPE DIPERLUAS — ERP lengkap+terintegrasi+AI, lihat `docs/KEPUTUSAN-SCOPE-ERP-AI.md`) · rev-7 2026-07-31: 8 celah tenancy ditutup + gerbangnya jadi gate CI · 296 pelanggaran WCAG ditutup + penjaga a11y · PV EVM berjenjang dari tanggal Gantt · buku migrasi direkonsiliasi (20 migrasi tak tercatat)) · File ini adalah `STATUS.md` yang diwajibkan AUTOPILOT §2
 — penunjuk TIPIS, bukan duplikasi konten. Update tanggal + baris "Fase aktif" setiap
 kali keadaan berubah; detail selalu di dokumen rujukan.
 
 ## Fase aktif
+
+> ### 🎯 SCOPE DIPERLUAS — 2026-08-01 (paling baru, menang atas yang di bawah)
+> **Tujuan founder: ERP kontraktor LENGKAP, TERINTEGRASI, BERBASIS AI.**
+> Keputusan lengkap: **`docs/KEPUTUSAN-SCOPE-ERP-AI.md`**.
+>
+> Empat kantong yang sebelumnya dicoret kini **MASUK**: GL/jurnal in-app ·
+> QA/QC + HSE formal · payroll+BPJS+PPh 21 · aset & alat berat penuh. Keempat
+> bentuk integrasi dipakai sekaligus: antar-modul · WhatsApp · sistem luar ·
+> mobile lapangan.
+>
+> **Urutan mengikat: 8 item ROADMAP sisa DULU, baru AI.** Alasannya teknis —
+> #15 WIP/PSAK & #16 rantai kontrak adalah data yang akan dibaca AI; AI di atas
+> pembukuan yang belum benar menjawab dengan percaya diri dan salah.
+>
+> Gerbang AI ternyata **sudah terbuka** (140 automation terkatalog, 13 "Next"
+> setelah Phase 1-2 yang sudah selesai) — yang menahan kini hanya kualitas data.
+> Di kode: **nol baris AI, nol dependency**.
+>
+> Dua gerbang di luar kendali teknis: **WhatsApp Business API** (berbayar +
+> verifikasi Meta) dan kredensial integrasi luar.
 
 > ### 🔄 PERUBAHAN ARAH BESAR — 2026-07-28
 > **CECEP DITUNDA. Multi-tenant (Program D / L2→L3) jadi prioritas tunggal.**

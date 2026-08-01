@@ -2,6 +2,22 @@
 
 **Satu tempat untuk menjawab "apa berikutnya?"** · Diperbarui: 2026-08-01
 
+> ## 🎯 SCOPE DIPERLUAS 2026-08-01 — lihat [`KEPUTUSAN-SCOPE-ERP-AI.md`](./KEPUTUSAN-SCOPE-ERP-AI.md)
+>
+> Tujuan founder: **ERP kontraktor lengkap, terintegrasi, berbasis AI.** Empat
+> kantong yang sebelumnya sengaja dicoret kini MASUK (GL in-app · QA/QC+HSE ·
+> payroll · aset penuh), dan keempat bentuk integrasi dipakai sekaligus
+> (antar-modul · WhatsApp · sistem luar · mobile lapangan).
+>
+> **Urutan diputuskan: selesaikan 8 item sisa di bawah DULU, baru AI.** Alasannya
+> teknis, bukan selera — #15 WIP/PSAK & #16 rantai kontrak adalah data yang akan
+> DIBACA AI; membangun AI di atas pembukuan yang belum benar menghasilkan jawaban
+> yang percaya diri dan salah.
+>
+> Konsekuensi jujur: **angka 71% di bawah akan turun** begitu gelombang 2–4 masuk
+> sebagai item, karena penyebutnya membesar. Itu penyebut yang akhirnya jujur
+> terhadap tujuan, bukan kemunduran.
+
 > **"Kalau seluruh ROADMAP selesai, jadi selengkap apa?"** Dijawab dengan angka di
 > `ERP-KONTRAKTOR-TAKSONOMI-MENU.md` §"KALAU SELURUH ROADMAP SELESAI".
 > Ringkasnya: 24 item di sini **tidak** memetakan 1:1 ke 71 sub-menu 🔴 taksonomi —
