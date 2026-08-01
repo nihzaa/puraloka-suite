@@ -209,6 +209,14 @@ jobs:
       - name: Kontras warna (WCAG AA dari token)
         run: node scripts/kontras-ratchet.mjs
 
+      # ADR-004: UI memutuskan lewat PERMISSION, bukan nama jabatan. Sisi API
+      # sudah patuh; sisi web punya 27 pemakaian `role === "admin"` yang sudah
+      # MENGGIGIT — role kustom `direktur` punya 7 permission procurement tapi
+      # tombolnya disembunyikan karena UI mengecek nama role. Orang berwenang
+      # melihat halaman tanpa tombol, tanpa pesan apa pun.
+      - name: ADR-004 (permission, bukan nama role)
+        run: node scripts/adr004-ratchet.mjs
+
       - name: Typecheck
         run: ./node_modules/.bin/tsc --noEmit
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { api, getStoredUser } from "@/lib/api";
+import { api, hasPermission } from "@/lib/api";
 import { useUnits } from "@/lib/use-units";
 import { createPortal } from "react-dom";
 import {
@@ -426,7 +426,6 @@ function MaterialRequestsTab() {
   const [rejectNotes, setRejectNotes] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [detailMr, setDetailMr] = useState<any>(null);
-  const user = getStoredUser();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -501,7 +500,7 @@ function MaterialRequestsTab() {
                   {mr.status === "draft" && (
                     <Btn loading={submitting === mr.id} onClick={() => submit(mr.id)}>Submit</Btn>
                   )}
-                  {mr.status === "submitted" && (user?.role === "admin" || user?.role === "pm") && (
+                  {mr.status === "submitted" && hasPermission("procurement:mr:manage") && (
                     <>
                       <Btn loading={approvingId === mr.id} onClick={() => approve(mr.id)} style={{ background: C.successBg, color: C.success, border: `1px solid ${C.success}` }}>
                         <Check size={14} /> Setujui
@@ -867,8 +866,7 @@ function PurchaseOrdersTab() {
   const [cancelNotes, setCancelNotes] = useState("");
   const [cancelling, setCancelling] = useState(false);
   const [kirimPo, setKirimPo] = useState<PoRingkas | null>(null);
-  const user = getStoredUser();
-  const canManage = user?.role === "admin" || user?.role === "pm";
+  const canManage = hasPermission("procurement:po:manage");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1201,8 +1199,7 @@ function GoodsReceiptsTab() {
   const [confirming, setConfirming] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("");
   const [showCreate, setShowCreate] = useState(false);
-  const user = getStoredUser();
-  const canManage = user?.role === "admin" || user?.role === "pm";
+  const canManage = hasPermission("procurement:po:manage");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1584,9 +1581,12 @@ const MOVEMENT_CONFIG: Record<string, { label: string; color: string; bg: string
 // TAB: STOK
 // ═══════════════════════════════════════════════════════════════════════════════
 function StocksTab() {
-  const user = getStoredUser();
-  const canEdit = user?.role === "admin" || user?.role === "pm" || user?.role === "mandor";
-  const canOpname = user?.role === "admin" || user?.role === "pm";
+  // Stock usage & opname: API menuntut `procurement:view` (lihat
+  // procurement.ts POST /stocks/usage & /stocks/opname). Sebelumnya UI
+  // mengecek `role === admin|pm|mandor` — role kustom `direktur` yang punya
+  // 7 permission procurement TIDAK melihat tombolnya (ADR-004).
+  const canEdit = hasPermission("procurement:view");
+  const canOpname = hasPermission("procurement:view");
 
   const [stocks, setStocks] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
