@@ -334,7 +334,12 @@ export function NotificationPanel({ unreadCount, onCountChange }: NotificationPa
       await api.patch(`/api/v1/notifications/${id}/read`);
       setNotifs(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
       onCountChange(Math.max(0, unreadCount - 1));
-    } catch { /* ignore */ }
+    } catch (err) {
+      // best-effort: menandai "sudah dibaca" tak mengubah data bisnis apa pun,
+      // dan memunculkan dialog untuk itu justru mengganggu. Tapi tak ditelan —
+      // badge yang salah hitung selalu bermula dari sini.
+      console.error("gagal menandai notifikasi dibaca", err);
+    }
   }, [unreadCount, onCountChange]);
 
   const markAllRead = useCallback(async () => {
@@ -342,7 +347,10 @@ export function NotificationPanel({ unreadCount, onCountChange }: NotificationPa
       await api.patch("/api/v1/notifications/read-all");
       setNotifs(prev => prev.map(n => ({ ...n, is_read: true })));
       onCountChange(0);
-    } catch { /* ignore */ }
+    } catch (err) {
+      // best-effort — sama alasan dengan `markRead`.
+      console.error("gagal menandai semua notifikasi dibaca", err);
+    }
   }, [onCountChange]);
 
   // ── Action handler ─────────────────────────────────────────────────────────
@@ -355,7 +363,13 @@ export function NotificationPanel({ unreadCount, onCountChange }: NotificationPa
         : n
       ));
       onCountChange(Math.max(0, unreadCount - 1));
-    } catch { /* ignore */ }
+    } catch (err: unknown) {
+      // Ini approve/reject KASBON — uang. Kegagalan senyap di sini berarti
+      // baris notifikasinya tetap berubah jadi "sudah ditindak" sementara
+      // kasbonnya tak berubah sama sekali; mandor menunggu pencairan yang
+      // tak pernah disetujui, dan yang menyetujui yakin sudah melakukannya.
+      alert((err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Gagal memproses tindakan");
+    }
     setActioningId(null);
   }, [unreadCount, onCountChange]);
 

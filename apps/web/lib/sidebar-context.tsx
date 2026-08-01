@@ -57,7 +57,10 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
     if (dipaksaCiut) return;
     setCollapsed((v) => {
       const next = !v;
-      try { localStorage.setItem("sidebar_collapsed", next ? "1" : "0"); } catch {}
+      // best-effort: `localStorage` melempar di mode privat/penyimpanan penuh.
+      // Sidebar tetap terlipat untuk sesi ini, hanya tak diingat — dan itu
+      // konsekuensi yang benar; membatalkan lipatannya justru lebih buruk.
+      try { localStorage.setItem("sidebar_collapsed", next ? "1" : "0"); } catch { /* best-effort: preferensi tampilan, bukan data */ }
       return next;
     });
   }

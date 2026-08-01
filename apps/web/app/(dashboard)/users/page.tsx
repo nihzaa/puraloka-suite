@@ -75,7 +75,14 @@ export default function UsersPage() {
     try {
       await api.patch(`/api/v1/users/${user.id}/toggle-active`, {});
       setUsers(prev => prev.map(u => u.id === user.id ? { ...u, is_active: !u.is_active } : u));
-    } catch { /* ignore */ }
+    } catch (err: unknown) {
+      // Kegagalan ini SEBELUMNYA ditelan, sementara baris di atas tetap
+      // membalik tampilan lokal. Akibatnya daftar menunjukkan user
+      // "nonaktif" padahal server menolak perubahannya — dan orang itu masih
+      // bisa masuk. Menonaktifkan akun adalah tindakan keamanan; ia tak boleh
+      // gagal tanpa suara.
+      alert((err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Gagal mengubah status user");
+    }
   }
 
   const filtered = users.filter(u => {
@@ -375,3 +382,4 @@ function EditUserModal({ user, onClose, onSuccess }: { user: UserRecord; onClose
     document.body
   );
 }
+

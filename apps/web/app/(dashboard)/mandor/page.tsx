@@ -502,7 +502,13 @@ function MandorPageInner() {
       if (detailReport?.report?.id === id) {
         openDetail(id);
       }
-    } catch { /* silent */ }
+    } catch (err: unknown) {
+      // Menyetujui laporan upah adalah persetujuan PEMBAYARAN. Kegagalan
+      // senyap di sini berarti orang mengira upah sudah disetujui sementara
+      // mandor tak pernah menerima apa pun — dan tak ada yang menghubungkan
+      // keduanya sampai ada yang bertanya.
+      alert((err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Gagal menyetujui laporan upah");
+    }
   }
 
   async function handleDeleteWorker(worker: Worker) {

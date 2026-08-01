@@ -243,6 +243,14 @@ jobs:
       - name: Medan hantu (dikirim ke API tapi tak bisa diisi)
         run: node scripts/medan-hantu-ratchet.mjs
 
+      # Di web, `catch {}` pada AKSI PEMAKAI berarti: orang menekan tombol, tak
+      # terjadi apa-apa, dan layar tetap menampilkan seolah berhasil — karena
+      # tampilan lokal diperbarui sebelum tahu servernya menerima. Ditemukan
+      # 2026-08-01 pada menonaktifkan akun (tindakan keamanan), approve/reject
+      # kasbon (uang), dan menyetujui laporan upah (pembayaran).
+      - name: Catch senyap web (aksi pemakai gagal tanpa pemberitahuan)
+        run: node scripts/catch-senyap-ratchet.mjs
+
       # Modal yang hanya bisa ditutup dengan mengklik latarnya MENJEBAK pemakai
       # keyboard — Tab berputar di dalamnya, satu-satunya jalan keluar adalah
       # mengambil tetikus. WCAG 2.1.2 (Level A). Ditemukan 2026-08-01: 36 modal

@@ -432,7 +432,14 @@ function KasContent() {
     try {
       await api.patch(`/api/v1/cash/transfers/${id}/cancel`);
       setTransfers(prev => prev.map(t => t.id === id ? { ...t, status: "cancelled" } : t));
-    } catch {}
+    } catch (err: unknown) {
+      // Kegagalan ini SEBELUMNYA ditelan `catch {}` — dan tampilan lokal di
+      // atas tetap berubah jadi "dibatalkan". Jadi layar menunjukkan transfer
+      // yang batal sementara server masih menganggapnya berjalan, dan selisih
+      // itu baru terlihat saat halaman dimuat ulang. Pola `alert` mengikuti
+      // `handleApproveExpense` di berkas yang sama.
+      alert((err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Gagal membatalkan transfer");
+    }
   }
 
   async function handleApproveExpense(id: string) {
@@ -450,7 +457,13 @@ function KasContent() {
       await api.patch(`/api/v1/cash/expenses/${id}/status`, { status: "rejected" });
       setExpenses(prev => prev.map(e => e.id === id ? { ...e, status: "rejected" } : e));
       loadSummary();
-    } catch {}
+    } catch (err: unknown) {
+      // Kembarannya (`handleApproveExpense`) sudah memberi tahu sejak awal;
+      // yang menolak justru diam. Inkonsistensi itu berarti PENOLAKAN yang
+      // gagal terlihat berhasil — pengeluaran tetap menunggu persetujuan
+      // tanpa ada yang tahu.
+      alert((err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Gagal menolak pengeluaran");
+    }
   }
 
   const pendingExpenses = expenses.filter(e => e.status === "submitted").length;

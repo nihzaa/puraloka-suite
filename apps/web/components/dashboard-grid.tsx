@@ -80,7 +80,7 @@ function loadLayouts(): Layouts {
 }
 
 function saveLayouts(layouts: Layouts) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(layouts)); } catch { /* quota */ }
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(layouts)); } catch { /* best-effort: tata letak dashboard, bukan data. Gagal simpan = tak diingat lintas sesi, dan itu konsekuensi yang benar. */ }
 }
 
 function loadHidden(): Set<string> {
@@ -91,7 +91,7 @@ function loadHidden(): Set<string> {
 }
 
 function saveHidden(hidden: Set<string>) {
-  try { localStorage.setItem(HIDDEN_KEY, JSON.stringify([...hidden])); } catch { /* quota */ }
+  try { localStorage.setItem(HIDDEN_KEY, JSON.stringify([...hidden])); } catch { /* best-effort: tata letak dashboard, bukan data. Gagal simpan = tak diingat lintas sesi, dan itu konsekuensi yang benar. */ }
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────────

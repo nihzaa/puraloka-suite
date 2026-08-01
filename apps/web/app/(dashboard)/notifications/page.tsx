@@ -220,7 +220,13 @@ export default function NotificationsPage() {
       await api.delete(`/api/v1/notifications/${id}`);
       setNotifs(prev => prev.filter(n => n.id !== id));
       setSelected(prev => { const s = new Set(prev); s.delete(id); return s; });
-    } catch { /* ignore */ }
+    } catch (err: unknown) {
+      // Barisnya SUDAH dibuang dari layar di atas. Kalau server menolak dan
+      // kegagalannya ditelan, notifikasi itu muncul lagi saat halaman dimuat
+      // ulang — orang mengira ada yang rusak, bukan mengira penghapusannya
+      // gagal.
+      alert((err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Gagal menghapus notifikasi");
+    }
   }, []);
 
   const handleAction = useCallback(async (id: string, action: "approve" | "reject") => {
@@ -231,7 +237,12 @@ export default function NotificationsPage() {
         ? { ...n, is_actioned: true, is_read: true }
         : n
       ));
-    } catch { /* ignore */ }
+    } catch (err: unknown) {
+      // Approve/reject KASBON — uang. Jalur kedua dari tombol yang sama di
+      // `notification-panel`, dan sama-sama menandai barisnya "sudah ditindak"
+      // sebelum tahu servernya menerima.
+      alert((err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Gagal memproses tindakan");
+    }
     setActioningId(null);
   }, []);
 
