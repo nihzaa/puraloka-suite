@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { dapatDitekan } from "@/lib/dapat-ditekan";
 import { useRouter } from "next/navigation";
 import {
   Bell, Check, X, CheckCheck, Trash2, 
@@ -446,8 +447,24 @@ export default function NotificationsPage() {
                       }}
                     >
                       {/* Checkbox */}
+                      {/* Kotak centang buatan tangan: `role="checkbox"` +
+                          `aria-checked`, BUKAN `dapatDitekan` yang memasang
+                          `role="button"`. Tombol tak punya status tercentang,
+                          jadi pembaca layar akan menyebutnya "tombol pilih"
+                          tanpa memberi tahu apakah baris ini SUDAH dipilih —
+                          dan itu justru informasi yang dibutuhkan saat
+                          memilih beberapa notifikasi sekaligus. */}
                       <div
+                        role="checkbox"
+                        aria-checked={isSelected}
+                        aria-label={`Pilih notifikasi: ${notif.title}`}
+                        tabIndex={0}
                         onClick={() => toggleSelect(notif.id)}
+                        onKeyDown={e => {
+                          if (e.key !== 'Enter' && e.key !== ' ') return
+                          e.preventDefault()
+                          toggleSelect(notif.id)
+                        }}
                         style={{
                           width: 16, height: 16, borderRadius: 4, flexShrink: 0, marginTop: 2,
                           border: `2px solid ${isSelected ? C.navy : C.border}`,
@@ -471,7 +488,10 @@ export default function NotificationsPage() {
                       {/* Content */}
                       <div
                         style={{ flex: 1, minWidth: 0, cursor: notif.action_url ? "pointer" : "default" }}
-                        onClick={() => handleRowClick(notif)}
+                        {...dapatDitekan(
+                          () => handleRowClick(notif),
+                          notif.action_url ? `Buka: ${notif.title}` : `Tandai dibaca: ${notif.title}`,
+                        )}
                       >
                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
                           <span style={{

@@ -79,17 +79,17 @@ const AMBANG = {
   // statis akan MATI di salah satu cabang — cacat yang sudah terbukti sekali
   // di `progress-log-modal`. Butuh penilaian per-kasus.
   'jsx-a11y/label-has-associated-control': 22,
-  // 117 → 112 → 104 → 102 → 98 → 93 → 88 (2026-08-01/02): 5 foto di `progress-log-list` yang semula
+  // 117 → 112 → 104 → 102 → 98 → 93 → 88 → 86 (2026-08-01/02): 5 foto di `progress-log-list` yang semula
   // `<img onClick>` — bisa diklik tetikus, TAK BISA dijangkau keyboard sama
   // sekali. Diganti `<button>`, bukan ditambal `role`+`tabIndex`+`onKeyDown`:
   // browser sudah tahu apa itu tombol, dan tambalan manual mudah tak lengkap.
-  'jsx-a11y/click-events-have-key-events': 88,
+  'jsx-a11y/click-events-have-key-events': 86,
   // 115 → 108 → 106 (2026-08-01; `rab-section`, lalu kartu proyek jadi `<Link>`): baris kategori/sub-kategori yang
   // bisa dilipat, sel komponen biaya, dan area seret-jatuh. Dipakai helper
   // `lib/dapat-ditekan.ts` supaya `role`+`tabIndex`+Enter/Space selalu lengkap
   // — separuh implementasi (umumnya Enter ditangani, Space tidak) terasa rusak
   // sesekali, dan itu lebih membingungkan daripada rusak konsisten.
-  'jsx-a11y/no-static-element-interactions': 96,
+  'jsx-a11y/no-static-element-interactions': 94,
   'jsx-a11y/no-noninteractive-element-interactions': 6,
 
   // ── Hutang lint lain ────────────────────────────────────────────────────
