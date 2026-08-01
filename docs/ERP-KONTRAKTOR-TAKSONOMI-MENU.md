@@ -205,10 +205,10 @@ Jantung ERP kontraktor. Lihat skor Lima Pembeda di bawah.
 | Log cuaca | 🟡 | Field `weather` di progress_logs |
 | Instruksi lapangan | 🔴 | |
 | Izin kerja (work permit) | 🔴 | |
-| **Request for Inspection (RFI)** | 🔴 | |
-| **Submittal register** | 🔴 | |
+| **Request for Inspection (RFI)** | ✅ | Migrasi 157 · `/lapangan/inspeksi` · pemeriksa terpisah dari pemohon; gagal → temuan punch list |
+| **Submittal register** | ✅ | Migrasi 159 · `/lapangan/submittal` · lewat Workflow Engine; revisi dirantai ke pengajuan pertama |
 | Non-Conformance Report (NCR) | 🔴 | |
-| Punch list / daftar cacat | 🔴 | |
+| Punch list / daftar cacat | ✅ | Migrasi 156 · `/lapangan/punch-list` · `punch:verify` terpisah dari `punch:manage` |
 | Dokumentasi foto | ✅ | Live sejak 097/098 (bucket privat + all-or-nothing); **geotag 🔴** (0 kolom GPS) |
 | Serah terima (PHO/FHO) | 🟡 | BAST hanya sebagai jenis dokumen upload; proses tidak ada |
 
@@ -371,6 +371,71 @@ Semua 🔴 — terkonfirmasi.
 | Approval mobile | 🟡 | Approve/reject inline dari notifikasi |
 | Checklist inspeksi | 🔴 | |
 | *(Total: 9 screen Expo)* | | dashboard, proyek×2, progress, kasbon×2, mandor, notifikasi, login |
+
+---
+
+## KEPUTUSAN ATAS 68 SUB-MENU MERAH — 2026-08-01
+
+Founder meminta ini diputuskan lebih dulu: *"30 sub menu itu kerjakan aja dulu,
+emang isinya apa? dan menurut kamu kerjakan atau tidak untuk jangka panjang?"*
+
+Angka "±30" di catatan lama adalah yang **belum punya alasan tertulis**, bukan
+seluruh merah. Setelah taksonomi diperbarui (RFI, Submittal, Punch List hidup
+2026-08-01), sisanya **68**. Ini keputusan atas seluruhnya.
+
+### 🟢 KERJAKAN — 23 item, nilainya nyata untuk kontraktor
+
+| Kelompok | Item |
+|---|---|
+| **Cost control** (7) | WIP/PSAK · commitment tracking · cost-to-complete forecast · analisa varians · CVR · revisi & transfer anggaran · manajemen contingency |
+| **Kontrak & klaim** (6) | claims · surat masuk/keluar · register asuransi · analisa keterlambatan · retensi subkontrak · IPC |
+| **Jadwal** (4) | master schedule + baseline · CPM · look-ahead · method statement |
+| **Lapangan** (3) | NCR · instruksi lapangan · izin kerja |
+| **Procurement** (3) | RFQ ke vendor · bid tabulation · evaluasi kinerja vendor |
+
+Kelompok cost control adalah yang **membedakan ERP kontraktor dari aplikasi
+pencatat biasa** — Lima Pembeda #1. Kelompok kontrak & klaim adalah bukti saat
+sengketa; nilainya baru terasa ketika dibutuhkan, dan saat itu terlambat
+membangunnya.
+
+### 🟡 TAHAN sampai ada pemicu — 18 item
+
+prakualifikasi vendor · dokumen prakualifikasi · kalender kerja · eskalasi
+harga · resource histogram · kontrak payung · expediting · transfer stok antar
+proyek · rekonsiliasi material · tracking waste · material milik klien · tender
+subkontraktor · kepatuhan subkon · log pemakaian alat · maintenance terjadwal ·
+biaya operasional alat · register gambar · notulen rapat · transmittal ·
+matriks distribusi · distribusi laporan terjadwal · backup & restore ·
+mode offline · absensi lapangan · material request mobile · checklist inspeksi
+
+Semuanya berguna, tapi **tak ada yang menunggunya sekarang**. Membangun sebelum
+ada pemakai berarti menebak bentuknya — dan bentuk yang salah lebih mahal
+daripada belum ada.
+
+### 🔴 JANGAN DIBANGUN — 12 item
+
+| Item | Alasan |
+|---|---|
+| payroll staf · BPJS · PPh 21 | Aturan pajak berubah tiap tahun; salah hitung PPh 21 adalah urusan hukum, bukan bug. Tool eksternal. |
+| rekonsiliasi bank · tutup buku periode | Software akuntansi melakukannya lebih baik, dan integrasinya lebih murah daripada membangunnya |
+| report builder | Taksonomi sendiri sudah menandai "jangan dibangun". Ini jebakan klasik: membangun Excel di dalam ERP. |
+| multi-tenant (Program F) | Gerbangnya jelas — menunggu pelanggan berbayar |
+| rekrutmen · cuti · penilaian kinerja · sertifikasi | Ini HRIS, bukan ERP kontraktor |
+
+### ⚪ SUDAH TERCAKUP — 5 item
+
+RFI · Submittal · Punch list (hidup 2026-08-01) · bid bond (ROADMAP #16) ·
+penyusutan → GL (Gelombang 2).
+
+### Konsekuensi pada angka
+
+Kalau 23 dikerjakan dan 12 dicoret, penyebutnya berubah dari 191 jadi **179**
+menu yang benar-benar ditargetkan. Yang 18 ditahan tetap dihitung — ia bukan
+dicoret, hanya belum waktunya.
+
+**⚠️ Ini TIDAK berarti 23 item itu dikerjakan sekarang.** Keputusan founder yang
+berlaku: **pondasi dulu, fitur ditahan** (ROADMAP §Peta Seluruh Visi). Ke-23
+item ini masuk Gelombang 1–2, dikerjakan setelah utang teknis bersih.
 
 ---
 
