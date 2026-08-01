@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Upload, BarChart2, ChevronDown, ChevronRight, RefreshCw, Percent, CheckCircle } from "lucide-react";
 import { api } from "@/lib/api";
+import { dapatDitekan } from "@/lib/dapat-ditekan";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -87,6 +88,26 @@ function KomponenBar({ mat, upah, alat, other }: { mat: number; upah: number; al
     </div>
   );
 }
+
+
+/**
+ * Sel yang isinya interaktif (input serapan, tombol komponen) di dalam baris
+ * yang BISA DILIPAT. Kliknya tak boleh menembus ke baris induk.
+ *
+ * ⚠️ `onKeyDown` ikut dihentikan, dan itu BUKAN kelebihan hati-hati. Sejak
+ * baris induk dijadikan `role="button"` dengan penanganan Enter/Space, menekan
+ * Space di dalam kotak angka akan menembus ke induknya dan MELIPAT barisnya di
+ * tengah orang mengetik. Menambahkan aksesibilitas ke induk menciptakan jalur
+ * baru yang sebelumnya tak ada — jadi penghalangnya harus ikut diperlebar.
+ *
+ * Bukan `role="button"`: ini pembungkus pasif, tak melakukan apa pun sendiri.
+ * Menandainya tombol akan membuat pembaca layar mengumumkan tombol yang tak
+ * bisa ditekan.
+ */
+const tanpaTembus = {
+  onClick: (e: React.MouseEvent) => e.stopPropagation(),
+  onKeyDown: (e: React.KeyboardEvent) => e.stopPropagation(),
+} as const
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -488,7 +509,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
 
     if (item.komponen_set) {
       return (
-        <div style={{ cursor: canEdit ? "pointer" : "default" }} onClick={() => canEdit && startEditKomponen(item)}>
+        <div style={{ cursor: canEdit ? "pointer" : "default" }} {...dapatDitekan(canEdit ? () => startEditKomponen(item) : null, `Ubah komponen biaya ${item.name}`)}>
           <div style={{ display: "flex", gap: 6, fontSize: 10, marginBottom: 3, flexWrap: "wrap" }}>
             {item.material_pct > 0 && <span style={{ color: "#3B82F6" }}>Mat {item.material_pct}%</span>}
             {item.upah_pct > 0 && <span style={{ color: "#10B981" }}>Upah {item.upah_pct}%</span>}
@@ -530,7 +551,11 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
         <div key={cat.id}>
           <div
             style={{ display: "grid", gridTemplateColumns: gridCols, gap: 6, alignItems: "center", padding: "10px 14px", background: C.navyLight, borderBottom: "1px solid #D1D5DB", cursor: hasChildren ? "pointer" : "default" }}
-            onClick={() => hasChildren && toggleCollapse(cat.id)}
+            {...dapatDitekan(
+              hasChildren ? () => toggleCollapse(cat.id) : null,
+              `${isCollapsed ? "Buka" : "Lipat"} kategori ${cat.name}`,
+              { terbuka: !isCollapsed },
+            )}
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
               {hasChildren ? (isCollapsed ? <ChevronRight size={13} color={C.navy} /> : <ChevronDown size={13} color={C.navy} />) : null}
@@ -541,7 +566,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
             <div style={{ textAlign: "right", fontSize: 11, color: C.mid }}>—</div>
             <div style={{ textAlign: "right", fontSize: 12, fontWeight: 600, color: C.text }}>{cat.total_price ? fmt(cat.total_price) : "—"}</div>
             <div style={{ textAlign: "right", fontSize: 12, fontWeight: 700, color: C.navy }}>{cat.weight_pct.toFixed(2)}%</div>
-            <div onClick={e => e.stopPropagation()}>{renderSerapanCell(cat)}</div>
+            <div {...tanpaTembus}>{renderSerapanCell(cat)}</div>
             {showKomponen && <div />}
           </div>
 
@@ -553,7 +578,11 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
                 <div key={child.id}>
                   <div
                     style={{ display: "grid", gridTemplateColumns: gridCols, gap: 6, alignItems: "center", padding: "8px 14px 8px 28px", background: "#F8F9FF", borderBottom: "1px solid #E5E7EB", cursor: subChildren.length > 0 ? "pointer" : "default" }}
-                    onClick={() => subChildren.length > 0 && toggleCollapse(child.id)}
+                    {...dapatDitekan(
+                      subChildren.length > 0 ? () => toggleCollapse(child.id) : null,
+                      `${subCollapsed ? "Buka" : "Lipat"} sub-kategori ${child.name}`,
+                      { terbuka: !subCollapsed },
+                    )}
                   >
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
                       {subChildren.length > 0 ? (subCollapsed ? <ChevronRight size={12} color={C.mid} /> : <ChevronDown size={12} color={C.mid} />) : null}
@@ -564,7 +593,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
                     <div style={{ textAlign: "right", fontSize: 11, color: C.mid }}>—</div>
                     <div style={{ textAlign: "right", fontSize: 12, color: C.mid }}>{child.total_price ? fmt(child.total_price) : "—"}</div>
                     <div />
-                    <div onClick={e => e.stopPropagation()}>{renderSerapanCell(child)}</div>
+                    <div {...tanpaTembus}>{renderSerapanCell(child)}</div>
                     {showKomponen && <div />}
                   </div>
                   {!subCollapsed && subChildren.map(it => renderItemRow(it, 48))}
@@ -588,8 +617,8 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
         <div style={{ textAlign: "right", fontSize: 11, color: C.mid }}>{item.unit_price ? fmt(item.unit_price) : "—"}</div>
         <div style={{ textAlign: "right", fontSize: 12, color: C.text }}>{item.total_price ? fmt(item.total_price) : "—"}</div>
         <div style={{ textAlign: "right", fontSize: 11, color: C.mid }}>{item.weight_pct > 0 ? `${item.weight_pct.toFixed(2)}%` : "—"}</div>
-        <div onClick={e => e.stopPropagation()}>{renderSerapanCell(item)}</div>
-        {showKomponen && <div onClick={e => e.stopPropagation()}>{renderKomponenCell(item)}</div>}
+        <div {...tanpaTembus}>{renderSerapanCell(item)}</div>
+        {showKomponen && <div {...tanpaTembus}>{renderKomponenCell(item)}</div>}
       </div>
     );
   }
@@ -705,16 +734,36 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
 
       {/* Empty state */}
       {!hasData && (
-        <div
-          onDrop={handleDrop} onDragOver={e => e.preventDefault()}
-          style={{ padding: "40px 24px", textAlign: "center", border: "2px dashed #E5E7EB", borderRadius: 12, background: "#FAFAFA", cursor: canEdit ? "pointer" : "default" }}
-          onClick={() => canEdit && fileRef.current?.click()}
+        /* ⚠️ BUG yang ikut ketahuan: area ini memanggil `fileRef.current?.click()`,
+           tapi `<input ref={fileRef}>` berada di blok header yang hanya dirender
+           kalau `hasData`. Di keadaan kosong ref-nya NULL — jadi mengkliknya tak
+           melakukan apa pun, tanpa pesan. Proyek yang belum punya RAB tak punya
+           jalan mengunggah RAB.
+
+           Diperbaiki dengan `<label>` yang membungkus input-nya SENDIRI: bisa
+           difokus, menanggapi Enter, tak butuh ref, dan tak butuh
+           `role`/`tabIndex`/`onKeyDown` sama sekali — browser sudah tahu bahwa
+           label yang membungkus input berkas adalah pemicu unggah. */
+        /* Seret-jatuh dipasang di pembungkus `<div>`, bukan di `<label>`-nya:
+           menaruh penangan drop pada label membuat eslint (benar) menganggapnya
+           elemen non-interaktif yang menerima interaksi. Memisahkan keduanya
+           menjaga label tetap murni sebagai pemicu unggah. */
+        <div onDrop={handleDrop} onDragOver={e => e.preventDefault()}>
+        <label
+          style={{ padding: "40px 24px", textAlign: "center", border: "2px dashed #E5E7EB", borderRadius: 12, display: "block", background: "#FAFAFA", cursor: canEdit ? "pointer" : "default" }}
         >
+          {canEdit && (
+            <input
+              type="file" accept=".xlsx,.xls,.ods" style={{ display: "none" }}
+              onChange={e => { const f = e.target.files?.[0]; if (f) handleUpload(f); }}
+            />
+          )}
           <Upload size={28} color={C.muted} style={{ marginBottom: 10 }} />
           <p style={{ fontSize: 14, fontWeight: 600, color: C.text, marginBottom: 4 }}>Belum ada data RAB</p>
           <p style={{ fontSize: 12, color: C.muted }}>
             {canEdit ? "Upload file Excel RAB (.xlsx) atau drag & drop ke sini" : "Belum ada data RAB untuk proyek ini"}
           </p>
+        </label>
         </div>
       )}
 
