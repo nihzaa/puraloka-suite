@@ -88,7 +88,55 @@ kali keadaan berubah; detail selalu di dokumen rujukan.
 > menyetujui apa pun di sana. Ditemukan karena asumsi kolom diverifikasi ke
 > `pg_constraint` SEBELUM menulis migrasi, bukan setelah gagal.
 >
-> Sisa Tier-2: **QA/QC, HSE**.
+> Sisa Tier-2: **QA/QC, HSE** — dan keduanya **bukan pekerjaan berikutnya**.
+> `KEPUTUSAN-SCOPE-ERP-AI.md` §5 menempatkannya di **Gelombang 2**, sesudah
+> item ROADMAP sisa. Peta menu masih menandainya `gerbang` ("menunggu tender
+> mensyaratkan") — penanda itu sudah dibalik keputusan scope 2026-08-01 yang
+> memasukkannya, tapi urutannya tetap Gelombang 2.
+
+> ### ⚠️ TEMUAN 2026-08-01 — alat pembersih akan menghapus 8.923 baris NYATA
+>
+> `cleanup-cecep-residue.mjs` memakai `DELETE FROM <tabel>` **TANPA `WHERE`** —
+> ia MENGOSONGKAN tabel, bukan menyaring residu. Saat ditulis itu benar; seluruh
+> isi tabel CECEP memang residu test. Keadaan itu sudah berubah:
+>
+> | tabel | baris | ber-`[TEST]` |
+> |---|---|---|
+> | `assemblies` | 3.043 | **0** — analisa AHSP SE-47-2026 |
+> | `assembly_components` | 17.873 | — |
+> | `resources` | 2.830 | **0** |
+> | `price_book_entries` | 3.006 | **0** — dipakai SETIAP hitung RAB |
+> | `cost_codes` | 44 | **0** |
+>
+> Yang berbahaya bukan perintah DELETE-nya, melainkan **jaraknya dengan nama
+> skrip**: "cleanup residu" terbaca seperti membuang sampah sampai seseorang
+> membaca 40 baris ke bawah. ✅ Ditutup: `assertMemangResidu()` menolak jalan,
+> ditampilkan di dry-run juga, tanpa flag `--paksa`. Diuji: `--execute` exit 1,
+> nol baris terhapus.
+>
+> **Lessons Learned**: terverifikasi **828/828** residu (angka lama 668 basi),
+> seluruhnya yatim. Penghapusan tetap **menunggu izin founder** (keputusan
+> terbuka #1c).
+
+> ### 2026-08-01 — a11y NOL, hutang tenancy dicicil
+>
+> **#14d SELESAI**: nol kontrol tanpa nama (96/62 → 0/0), ambang dikencangkan
+> ke 0 — kontrol baru tanpa nama kini ditolak sama sekali. Bagian yang jujur:
+> sebagian "hutang" itu ternyata **laporan palsu** — jendela pencarian teks
+> tombol 14 baris terlalu sempit untuk repo ini. Kontras warna tetap tak dijaga
+> otomatis (butuh browser + login).
+>
+> **#14g**: `price-overrides` kini punya UI di tab Harga — ia sudah dipakai
+> tiga jalur perhitungan tapi nol pemanggil web. `settings/config` **sengaja
+> tidak** dibangun UI-nya: 5 key-nya sudah punya jalur pakai masing-masing, dan
+> layar terpadu justru menciptakan dua tempat mengubah tarif pajak yang sama.
+>
+> **#14 hutang adopsi**: 9 query `reports.ts` dialihkan ke `viaProject()`,
+> dibuktikan behavior-preserving pada data nyata. Ratchet T4f 468 → **459**.
+> Tiga alat pengukur yang saya bangun semuanya menuduh palsu; pengukuran
+> akhirnya dilakukan dengan membaca kode. **15 akses mentah adalah `.storage`**
+> yang memang tak punya konsep tenant — sebagian "hutang" tak pernah bisa
+> dilunasi dengan mengalihkan ke wrapper.
 
 ---
 
