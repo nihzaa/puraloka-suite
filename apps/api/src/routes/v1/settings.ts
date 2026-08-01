@@ -520,10 +520,17 @@ export default async function settingsRoutes(app: FastifyInstance) {
     // T4i: logo disimpan di `companies` (ter-scope), bukan company_profile
     // single-row. Tanpa ini, mengganti logo di satu perusahaan mengubah logo
     // yang tercetak di invoice perusahaan lain.
-    await request.db!
+    // Hasil diperiksa: berkasnya SUDAH terunggah ke storage di baris atas.
+    // Kalau baris ini gagal diam-diam, logo ada di storage tapi tak pernah
+    // terpasang — orang melihat "berhasil", lalu mengunggah lagi dan lagi,
+    // menumpuk berkas yatim tanpa pernah tahu kenapa logonya tak berubah.
+    const { error: errLogo } = await request.db!
       .unsafe('companies', 'tabel tenant itu sendiri; di-scope eq(id, companyId)')
       .update({ logo_url: logoUrl, updated_at: new Date().toISOString() })
       .eq('id', request.companyId!)
+    if (errLogo) {
+      return reply.status(500).send({ error: `Logo terunggah tapi gagal dipasang: ${errLogo.message}` })
+    }
 
     return reply.send({ logo_url: logoUrl })
   })

@@ -377,9 +377,20 @@ export default async function inspeksiRoutes(app: FastifyInstance) {
           request.log.error({ err: errPi, id }, 'gagal membuat temuan dari inspeksi gagal')
         } else {
           temuan = pi
-          await request.db!
+          // Temuan SUDAH terbentuk. Kalau tautannya gagal dipasang, temuan itu
+          // ada tapi yatim — inspeksi tak menunjuk ke mana pun, dan tak ada
+          // jalan menemukannya kembali dari sisi inspeksi. Dilaporkan, tidak
+          // 500: inspeksinya sendiri sudah sah tercatat "tidak lolos", dan
+          // membatalkannya justru membuang hasil pemeriksaan lapangan.
+          const { error: errTaut } = await request.db!
             .viaProject('inspection_requests', lama.project_id)
             .update({ punch_item_id: pi.id }).eq('id', id)
+          if (errTaut) {
+            request.log.error(
+              { err: errTaut, id, punchItemId: pi.id },
+              'temuan terbentuk tapi tautan ke inspeksi gagal dipasang — temuan jadi yatim',
+            )
+          }
         }
       }
 

@@ -879,11 +879,27 @@ export default async function mandorRoutes(app: FastifyInstance) {
     if (error) return reply.status(500).send({ error: error.message })
 
     if (body.specs !== undefined && item) {
-      await supabase.from('work_scope_item_specs').delete().eq('item_id', id)
+      // Replace-all: DELETE lalu INSERT. Hasil DELETE diperiksa karena kalau
+      // ia gagal sementara INSERT berhasil, spesifikasi LAMA bertahan
+      // berdampingan dengan yang baru — dan spesifikasi teknis yang saling
+      // bertentangan di satu item pekerjaan lebih buruk daripada tak ada
+      // spesifikasi: orang di lapangan mengerjakan yang mana pun terbaca dulu.
+      const { error: errHapusSpec } = await supabase
+        .from('work_scope_item_specs').delete().eq('item_id', id)
+      if (errHapusSpec) {
+        return reply.status(500).send({ error: `Gagal menghapus spesifikasi lama: ${errHapusSpec.message}` })
+      }
       if (body.specs.length > 0) {
-        await supabase.from('work_scope_item_specs').insert(
+        const { error: errSpec } = await supabase.from('work_scope_item_specs').insert(
           body.specs.map((s, i) => ({ item_id: id, spec_key: s.spec_key, spec_value: s.spec_value, sort_order: s.sort_order ?? i }))
         )
+        if (errSpec) {
+          // Spesifikasi lama SUDAH terhapus di atas, jadi kegagalan di sini
+          // meninggalkan item tanpa spesifikasi sama sekali. Harus terdengar.
+          return reply.status(500).send({
+            error: `Spesifikasi lama terhapus tapi yang baru gagal disimpan: ${errSpec.message}`,
+          })
+        }
       }
     }
     return reply.send({ item })
@@ -1732,7 +1748,17 @@ export default async function mandorRoutes(app: FastifyInstance) {
       return reply.status(500).send({ error: error.message })
     }
 
-    await supabase.from('work_scopes').update({ status: 'completed', updated_at: new Date().toISOString() }).eq('id', body.work_scope_id)
+    // Hasil diperiksa: settlement sudah TERSIMPAN di baris sebelumnya, jadi
+    // kalau penandaan ini gagal diam-diam, keadaannya jadi separuh — uang
+    // dicatat lunas tapi scope masih aktif, dan mandor terlihat masih
+    // mengerjakan pekerjaan yang sudah dibayar penuh.
+    const { error: errScope } = await supabase.from('work_scopes').update({ status: 'completed', updated_at: new Date().toISOString() }).eq('id', body.work_scope_id)
+    if (errScope) {
+      return reply.status(500).send({
+        error: `Settlement tersimpan, tapi scope gagal ditandai selesai: ${errScope.message}. ` +
+               `Tandai manual agar data tidak separuh jalan.`,
+      })
+    }
 
     try {
       const mandorId = (scope.assignment as any)?.mandor_id

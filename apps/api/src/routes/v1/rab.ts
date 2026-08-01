@@ -900,10 +900,19 @@ export default async function rabRoutes(app: FastifyInstance) {
           if (catUpdates.length > 0) await Promise.all(catUpdates)
 
           if (overallProgress !== null) {
-            await request.db!
+            // Hasil diperiksa: ini angka yang muncul di dashboard, Kurva S,
+            // dan EVM. Kalau gagal diam-diam, seluruh proyek terlihat
+            // berhenti di persentase lama sementara item-itemnya maju —
+            // dan tak ada satu pun gejala yang menunjuk ke sini.
+            const { error: errProyek } = await request.db!
               .from('projects')
               .update({ progress_pct: overallProgress, updated_at: new Date().toISOString() })
               .eq('id', projectId)
+            if (errProyek) {
+              return reply.status(500).send({
+                error: `Progres item tersimpan, tapi progres proyek gagal diperbarui: ${errProyek.message}`,
+              })
+            }
           }
         }
       }

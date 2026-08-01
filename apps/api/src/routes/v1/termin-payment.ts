@@ -257,7 +257,11 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
         const newAmountDue = parseFloat((Number(inv.total_amount) - newAmountPaid).toFixed(2))
         const newStatus = newAmountDue <= 0 ? 'paid' : newAmountPaid > 0 ? 'partial' : 'sent'
 
-        await supabase
+        // Hasil diperiksa: pembayaran SUDAH tercatat di baris sebelumnya.
+        // Kalau sinkronisasi invoice gagal diam-diam, uangnya masuk tapi
+        // invoice tetap tampak belum lunas — klien ditagih dua kali, dan
+        // laporan piutang menampilkan angka yang sudah dibayar.
+        const { error: errInv } = await supabase
           .from('invoices')
           .update({
             amount_paid: newAmountPaid,
@@ -266,6 +270,12 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
             paid_date: newStatus === 'paid' ? paid_at : null,
           })
           .eq('id', invoiceId)
+        if (errInv) {
+          return reply.status(500).send({
+            error: `Pembayaran tercatat, tapi invoice gagal diperbarui: ${errInv.message}. ` +
+                   `Periksa manual agar tagihan tidak terkirim ulang.`,
+          })
+        }
 
         // Denda otoritatif saat invoice lunas telat (default OFF → no-op). Fire-and-forget.
         if (newStatus === 'paid') {

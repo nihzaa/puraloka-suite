@@ -129,13 +129,22 @@ export default async function rolesRoutes(app: FastifyInstance) {
           .eq('role_id', sourceRole.id)
 
         if (sourcePerms && sourcePerms.length > 0) {
-          await supabase.from('role_permissions').insert(
+          // Hasil WAJIB diperiksa: kalau salinan permission gagal, role lahir
+          // KOSONG sementara API tetap membalas 201. Orang mengira rolenya
+          // siap dipakai, lalu menemukan pemegangnya tak bisa apa-apa — dan
+          // penyebabnya tak terlihat di mana pun.
+          const { error: errSalin } = await supabase.from('role_permissions').insert(
             sourcePerms.map((p: any) => ({
               role_id: role.id,
               permission_id: p.permission_id,
               granted_by: request.currentUser!.id,
             }))
           )
+          if (errSalin) {
+            return reply.status(500).send({
+              error: `Role dibuat tapi permission gagal disalin: ${errSalin.message}`,
+            })
+          }
         }
       }
     }
@@ -298,8 +307,16 @@ export default async function rolesRoutes(app: FastifyInstance) {
       .map(r => { const e = r.permissions as { key: string } | { key: string }[] | null; return (Array.isArray(e) ? e[0] : e)?.key })
       .filter(Boolean)
 
-    // Replace-all.
-    await supabase.from('role_permissions').delete().eq('role_id', id)
+    // Replace-all — DELETE lalu INSERT.
+    //
+    // ⚠️ Hasil DELETE WAJIB diperiksa, dan ini bukan kerapian. Kalau DELETE
+    // gagal diam-diam sementara INSERT berhasil, role keluar dengan permission
+    // LAMA + BARU sekaligus. Itu bukan data rusak biasa — itu pemberian akses
+    // yang tak diminta siapa pun, pada endpoint yang justru dipakai untuk
+    // MENCABUT wewenang. Orang yang baru saja dikurangi haknya akan tetap
+    // memilikinya, dan layar menampilkan daftar barunya seolah berhasil.
+    const { error: errHapus } = await supabase.from('role_permissions').delete().eq('role_id', id)
+    if (errHapus) return reply.status(500).send({ error: `Gagal menghapus permission lama: ${errHapus.message}` })
     if (permission_ids.length > 0) {
       const rows = permission_ids.map((pid) => ({ role_id: id, permission_id: pid, granted_by: request.currentUser!.id }))
       const { error } = await supabase.from('role_permissions').insert(rows)

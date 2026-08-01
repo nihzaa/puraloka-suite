@@ -274,7 +274,13 @@ export default async function notificationRoutes(app: FastifyInstance) {
     }
 
     // ── Mark notification as actioned ───────────────────────────────────────
-    await request.db!
+    // Hasil diperiksa: tindakannya (approve/reject kasbon atau laporan upah)
+    // SUDAH dijalankan di atas. Kalau penandaan ini gagal diam-diam, tombolnya
+    // tetap aktif dan bisa ditekan lagi — approve kedua kalinya pada data yang
+    // sudah berubah. Dilaporkan, tapi TIDAK 500: tindakannya sendiri berhasil,
+    // dan membalas gagal akan membuat orang mengulanginya — persis akibat yang
+    // sedang dihindari.
+    const { error: errTandai } = await request.db!
       .from('notifications')
       .update({
         is_actioned: true,
@@ -283,6 +289,12 @@ export default async function notificationRoutes(app: FastifyInstance) {
         read_at: new Date().toISOString(),
       })
       .eq('id', id)
+    if (errTandai) {
+      request.log.error(
+        { err: errTandai, notifId: id },
+        'tindakan dijalankan tapi notifikasi gagal ditandai — tombolnya masih bisa ditekan lagi',
+      )
+    }
 
     return reply.send({ success: true, message: resultMessage })
   })

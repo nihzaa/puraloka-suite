@@ -1103,15 +1103,29 @@ export default async function procurementRoutes(app: FastifyInstance) {
         if (totalAmount > 0) {
           const { data: po } = await supabase.from('goods_receipts').select('po_id, project_id, supplier_id').eq('id', id).single()
           if (po) {
-            await request.db!.from('supplier_invoices').insert({
+            // best-effort: penerimaan barang sudah sah tercatat, jadi
+            // kegagalan di sini tak boleh membatalkannya. TAPI hutang supplier
+            // yang tak terbentuk berarti tagihan yang tak pernah muncul di
+            // daftar hutang — jadi kegagalannya DILAPORKAN, bukan ditelan.
+            const { error: errInv } = await request.db!.from('supplier_invoices').insert({
               supplier_id: po.supplier_id, project_id: po.project_id,
               goods_receipt_id: id, total_amount: totalAmount,
               description: `Invoice dari GR ${data?.gr_number}`,
             })
+            if (errInv) {
+              request.log.error(
+                { err: errInv, grId: id, poId: po.po_id ?? null },
+                'GR tercatat tapi hutang supplier gagal dibuat — tagihan tak akan muncul di daftar hutang',
+              )
+            }
           }
         }
       }
-    } catch { /* non-blocking */ }
+    } catch (err) {
+      // `catch` kosong menelan pesan yang justru dibutuhkan untuk menemukan
+      // sebabnya. Non-blocking tetap non-blocking — hanya tak lagi senyap.
+      request.log.error({ err, grId: id }, 'gagal menurunkan hutang supplier dari GR')
+    }
 
     return { goods_receipt: data }
   })
@@ -1479,15 +1493,22 @@ export default async function procurementRoutes(app: FastifyInstance) {
       movement_qty = qty - qty_before  // bisa positif atau negatif
     }
 
-    // Update project_stocks
-    if (stock) {
-      await supabase.from('project_stocks')
-        .update({ qty_on_hand: qty_after, last_updated_at: new Date().toISOString() })
-        .eq('id', stock.id)
-    } else {
+    // Update project_stocks.
+    //
+    // Hasil diperiksa: ini SATU-SATUNYA tempat saldo stok berubah. Kalau gagal
+    // diam-diam, `stock_movements` di bawah tetap mencatat mutasinya — jadi
+    // riwayat bilang barang keluar sementara saldo bilang masih ada. Selisih
+    // itu baru ketahuan saat opname fisik, berminggu-minggu kemudian, dan
+    // sumbernya tak bisa dilacak lagi.
+    const { error: errStok } = stock
+      ? await supabase.from('project_stocks')
+          .update({ qty_on_hand: qty_after, last_updated_at: new Date().toISOString() })
+          .eq('id', stock.id)
       // Stok belum ada (misal return barang yang tidak lewat GR)
-      await supabase.from('project_stocks')
-        .insert({ project_id, material_id, qty_on_hand: qty_after })
+      : await supabase.from('project_stocks')
+          .insert({ project_id, material_id, qty_on_hand: qty_after })
+    if (errStok) {
+      return reply.status(500).send({ error: `Gagal memperbarui saldo stok: ${errStok.message}` })
     }
 
     // Insert stock_movements
@@ -1587,7 +1608,18 @@ export default async function procurementRoutes(app: FastifyInstance) {
       const { data: otherPos } = await supabase.from('purchase_orders').select('id, status').eq('mr_id', po.mr_id).neq('id', id)
       const hasActivePO = (otherPos ?? []).some(p => p.status !== 'cancelled')
       if (!hasActivePO) {
-        await supabase.from('material_requests').update({ status: 'approved' }).eq('id', po.mr_id)
+        // Hasil diperiksa: PO sudah dibatalkan di baris atas. Kalau MR gagal
+        // kembali ke `approved`, ia TERSANGKUT di status "sudah jadi PO"
+        // padahal PO-nya tak ada lagi — dan tak ada jalan membuat PO baru
+        // darinya. Kegagalan senyap di sini menghentikan pengadaan.
+        const { error: errMr } = await supabase
+          .from('material_requests').update({ status: 'approved' }).eq('id', po.mr_id)
+        if (errMr) {
+          return reply.status(500).send({
+            error: `PO dibatalkan, tapi status MR gagal dikembalikan: ${errMr.message}. ` +
+                   `Kembalikan manual agar MR bisa dipakai lagi.`,
+          })
+        }
       }
     }
     return { success: true }

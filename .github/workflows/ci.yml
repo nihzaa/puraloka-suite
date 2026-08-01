@@ -65,6 +65,14 @@ jobs:
       - name: Kegagalan senyap (query yang errornya tak pernah dilihat)
         run: node scripts/audit-kegagalan-senyap.mjs
 
+      # Sisi TULIS: `update`/`delete`/`insert` yang hasilnya dibuang. Kegagalan
+      # apa pun — constraint, RLS, kolom salah — lewat tanpa jejak; request tetap
+      # 200 dan datanya tak berubah. Tiga ditemukan 2026-08-01: settlement
+      # borongan meninggalkan scope tetap aktif, ganti-permission role bisa
+      # MENAMBAH akses alih-alih mengganti, dan progress_pct tak tersimpan.
+      - name: Penulisan senyap (update/delete/insert tanpa cek hasil)
+        run: node scripts/audit-tulis-tanpa-periksa.mjs
+
       # `to_regclass('nama')` tanpa skema mengikuti search_path, dan pencarian
       # itu MENEMBUS ke schema lain. Guard yang bermaksud "objek ini ada di
       # sini?" jadi menjawab "ada di mana pun?" — di production keduanya sama,

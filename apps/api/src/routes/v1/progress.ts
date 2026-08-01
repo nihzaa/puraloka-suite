@@ -244,11 +244,22 @@ export default async function progressRoutes(app: FastifyInstance) {
         return reply.status(500).send({ error: logError.message })
       }
 
-      // Update rab_item.progress_pct dengan nilai baru
-      await supabase
+      // Update rab_item.progress_pct dengan nilai baru.
+      //
+      // Hasil diperiksa: ini INTI dari mode detail. Kalau gagal diam-diam,
+      // log progres tersimpan tapi persentasenya tidak — lalu bubble-up di
+      // bawah menghitung ulang dari nilai LAMA, dan seluruh rantai (kategori →
+      // proyek → Kurva S → SPI) memakai angka yang salah. API tetap 200, jadi
+      // orang mengetik ulang dan mengira dirinya yang keliru.
+      const { error: errItem } = await supabase
         .from('rab_items')
         .update({ progress_pct: pct, updated_at: new Date().toISOString() })
         .eq('id', body.rab_item_id)
+      if (errItem) {
+        return reply.status(500).send({
+          error: `Log tersimpan, tapi progres item RAB gagal diperbarui: ${errItem.message}`,
+        })
+      }
 
       // Bubble-up lapis 1+2: recalculate progress_pct category dan project.
       // Logic diekstrak ke lib/rab-aggregation.ts (Task 1.2.3, testable tanpa
