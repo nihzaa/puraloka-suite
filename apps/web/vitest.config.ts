@@ -1,7 +1,6 @@
 import { defineConfig } from 'vitest/config'
 import { fileURLToPath } from 'node:url'
-import { readdirSync } from 'node:fs'
-import { join } from 'node:path'
+import { createRequire } from 'node:module'
 
 /**
  * HARNESS TEST `apps/web` — sebelumnya TIDAK ADA.
@@ -42,23 +41,19 @@ import { join } from 'node:path'
  * (tata letak, kontras nyata) repo ini sudah punya penjaga terpisah.
  */
 /**
- * Jalur `lucide-react` yang SEPOHON dengan React milik `apps/web`.
+ * Menyelesaikan paket lewat RESOLUSI NODE, bukan menebak jalur `.pnpm`.
  *
- * Mencari di `.pnpm` lokal alih-alih menulis versi, supaya upgrade paket tak
- * diam-diam mengembalikan bug React-ganda yang dijelaskan di bawah.
+ * ⚠️ Versi pertama menebak jalur (`node_modules/.pnpm/lucide-react@…`), dan
+ * itu PECAH begitu `pnpm install` dijalankan ulang: struktur `.pnpm` berubah,
+ * salinan lokal berpindah pohon, dan bug React-ganda kembali tanpa ada yang
+ * menyentuh kode. Alat yang rusak oleh `pnpm install` bukan alat.
+ *
+ * `createRequire` memakai algoritma resolusi yang sama dengan Node dan
+ * bundler Next.js — jadi apa pun yang di-resolve di sini adalah apa yang
+ * benar-benar dipakai aplikasi.
  */
-function lucideLokal(): string {
-  const pnpm = fileURLToPath(new URL('./node_modules/.pnpm', import.meta.url))
-  const dir = readdirSync(pnpm).find((d) => d.startsWith('lucide-react@'))
-  if (!dir) {
-    throw new Error(
-      'lucide-react tak ditemukan di apps/web/node_modules/.pnpm. ' +
-      'Jalankan `pnpm install` di apps/web — tanpa salinan lokal, test yang ' +
-      'merender ikon gagal dengan "Cannot read properties of null (reading ' +
-      'useContext)", dan pesan itu tak menunjuk ke sini sama sekali.',
-    )
-  }
-  return join(pnpm, dir, 'node_modules/lucide-react/dist/esm/lucide-react.mjs')
+function jalurPaket(spesifier: string): string {
+  return createRequire(import.meta.url).resolve(spesifier)
 }
 
 export default defineConfig({
@@ -96,46 +91,30 @@ export default defineConfig({
     alias: [
       { find: '@', replacement: fileURLToPath(new URL('.', import.meta.url)) },
 
-      // `lucide-react` diarahkan ke salinan yang SEPOHON dengan React milik
-      // `apps/web`.
+      // ⚠️ React, react-dom, dan lucide-react DIPAKU ke satu pohon.
       //
-      // ⚠️ Ini menghabiskan waktu paling lama saat harness dibangun, dan
-      // gejalanya menyesatkan: SETIAP komponen yang memakai ikon gagal dengan
-      // `Cannot read properties of null (reading 'useContext')` — errornya
-      // menuduh React, lalu menuduh komponennya. Keduanya salah alamat.
+      // Tanpa ini SETIAP komponen ber-ikon gagal `Cannot read properties of
+      // null (reading 'useContext')` — errornya menuduh React, lalu menuduh
+      // komponennya, keduanya salah alamat.
       //
-      // Sebabnya: `apps/web/node_modules/lucide-react` adalah symlink ke
-      // ROOT `.pnpm`, dan salinan root itu membawa React-nya sendiri. Versi
-      // React-nya identik (19.2.4) tapi OBJEKNYA berbeda, jadi hook dari
-      // salinan A tak menemukan dispatcher salinan B.
+      // Sebabnya struktur pnpm workspace: `lucide-react` dan `react` bisa
+      // di-resolve dari POHON node_modules yang berbeda (root vs apps/web).
+      // Versi React-nya identik, OBJEKNYA berbeda — hook dari salinan A tak
+      // menemukan dispatcher salinan B.
       //
       // Yang TIDAK menyelesaikannya, semuanya sudah dicoba: `dedupe`,
-      // `server.deps.inline`, `resolve.conditions`, dan alias `react` ke path
-      // absolut. Ketiga yang pertama bekerja pada satu pohon; ini dua pohon.
-      // Yang keempat memaku React tapi tak memaku SIAPA yang memuatnya.
+      // `server.deps.inline`, `resolve.conditions`, dan alias ke jalur `.pnpm`
+      // yang ditebak. Tiga yang pertama bekerja pada satu pohon; ini dua
+      // pohon. Yang keempat pecah begitu `pnpm install` dijalankan ulang.
       //
-      // Jalurnya dicari saat runtime, bukan ditulis versi — supaya
-      // `pnpm update lucide-react` tak diam-diam mengembalikan bug ini.
-      { find: /^lucide-react$/, replacement: lucideLokal() },
-
-      // ⚠️ React & react-dom DIPAKU ke salinan milik `apps/web`.
-      //
-      // Tanpa ini SETIAP komponen yang memakai ikon gagal dengan `Cannot read
-      // properties of null (reading 'useContext')` — yaitu hampir seluruh repo.
-      //
-      // Sebabnya struktur pnpm, dan butuh beberapa langkah untuk terlihat:
-      //   · `lucide-react` di-hoist ke ROOT `node_modules/.pnpm`
-      //   · React yang IA lihat: `<root>/.pnpm/react@19.2.4/…`
-      //   · React yang komponen web lihat: `apps/web/.pnpm/react@19.2.4/…`
-      //
-      // Versinya identik, objeknya BERBEDA. Hook dari salinan A tak menemukan
-      // dispatcher salinan B, dan React melempar seolah komponennya salah.
-      //
-      // `dedupe` saja tak cukup — ia menyatukan yang di-resolve dari satu
-      // pohon, bukan dua pohon terpisah. Path absolut yang menyelesaikannya.
-      //
-      // Next.js tak terkena karena bundler-nya menyatukan React lewat
-      // konfigurasinya sendiri; Vitest tak mewarisi itu.
+      // Sub-path SPESIFIK didaftarkan LEBIH DULU: alias Vite mencocokkan
+      // prefiks, jadi `react` telanjang akan menelan `react/jsx-runtime`.
+      { find: /^react\/jsx-dev-runtime$/, replacement: jalurPaket('react/jsx-dev-runtime') },
+      { find: /^react\/jsx-runtime$/, replacement: jalurPaket('react/jsx-runtime') },
+      { find: /^react-dom\/client$/, replacement: jalurPaket('react-dom/client') },
+      { find: /^react-dom$/, replacement: jalurPaket('react-dom') },
+      { find: /^react$/, replacement: jalurPaket('react') },
+      { find: /^lucide-react$/, replacement: jalurPaket('lucide-react') },
     ],
     dedupe: ['react', 'react-dom'],
   },
