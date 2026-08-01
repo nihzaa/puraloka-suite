@@ -51,6 +51,24 @@ async function purge() {
     await client.query(`DELETE FROM approval_progress WHERE entity_type='estimate_version'
       AND entity_id IN (SELECT ev.id FROM estimate_versions ev JOIN scenarios s ON s.id=ev.scenario_id
       JOIN projects p ON p.id=s.project_id WHERE p.name LIKE '[TEST]%')`)
+    // ⚠️ Rantai estimasi dihapus EKSPLISIT, bukan diserahkan ke CASCADE.
+    //
+    // `session_replication_role='replica'` di atas dipasang supaya trigger
+    // penjaga tak memblokir pembongkaran — tapi ia MEMATIKAN FK cascade juga.
+    // Jadi menghapus `projects` tidak menyeret `scenarios` → `estimate_versions`
+    // → `estimate_items`; semuanya tertinggal sebagai yatim yang menunjuk baris
+    // yang tak ada. Komentar di atas menyebut "termasuk CASCADE dari project",
+    // dan itu justru yang dinonaktifkan — niat dan efeknya bertolak belakang.
+    //
+    // Bug yang sama persis menumpuk 913 baris di `lessons_learned_records`
+    // sebelum ketahuan (2026-08-02). Urutan penting: anak dulu, induk terakhir.
+    await client.query(`DELETE FROM estimate_items WHERE estimate_version_id IN
+      (SELECT ev.id FROM estimate_versions ev JOIN scenarios s ON s.id=ev.scenario_id
+       JOIN projects p ON p.id=s.project_id WHERE p.name LIKE '[TEST]%')`)
+    await client.query(`DELETE FROM estimate_versions WHERE scenario_id IN
+      (SELECT s.id FROM scenarios s JOIN projects p ON p.id=s.project_id WHERE p.name LIKE '[TEST]%')`)
+    await client.query(`DELETE FROM scenarios WHERE project_id IN
+      (SELECT id FROM projects WHERE name LIKE '[TEST]%')`)
     await client.query(`DELETE FROM projects WHERE name LIKE '[TEST]%'`)
   } finally {
     await client.query(`SET session_replication_role = 'origin'`)

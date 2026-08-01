@@ -65,6 +65,13 @@ async function purge() {
     await client.query(`DELETE FROM assembly_components WHERE assembly_id IN
       (SELECT id FROM assemblies WHERE code LIKE '[TEST-RAP-EP]%')`)
     await client.query(`DELETE FROM assemblies WHERE code LIKE '[TEST-RAP-EP]%'`)
+    // Entry harganya dihapus DULU: `session_replication_role='replica'`
+    // mematikan FK cascade, jadi menghapus `resources` meninggalkan
+    // `price_book_entries` sebagai yatim yang menunjuk resource tak ada.
+    // 151 baris menumpuk sebelum ketahuan (2026-08-02) — dan tabel itu
+    // dibaca SETIAP perhitungan RAB.
+    await client.query(`DELETE FROM price_book_entries
+      WHERE resource_id IN (SELECT id FROM resources WHERE code LIKE 'TEST-RAP-EP-%')`)
     await client.query(`DELETE FROM resources WHERE code LIKE 'TEST-RAP-EP-%'`)
     await client.query(`DELETE FROM cost_codes WHERE code = '[TEST-RAP-EP]CC'`)
   } finally {

@@ -44,6 +44,13 @@ async function purge() {
     await client.query(`DELETE FROM clients WHERE contact_person='[TEST-D345] Klien'`)
     await client.query(`DELETE FROM material_pack WHERE resource_id IN
       (SELECT id FROM resources WHERE code='TEST-D345-SEMEN')`)
+    // Entry harganya dihapus DULU: `session_replication_role='replica'`
+    // mematikan FK cascade, jadi menghapus `resources` meninggalkan
+    // `price_book_entries` sebagai yatim yang menunjuk resource tak ada.
+    // 151 baris menumpuk sebelum ketahuan (2026-08-02) — dan tabel itu
+    // dibaca SETIAP perhitungan RAB.
+    await client.query(`DELETE FROM price_book_entries
+      WHERE resource_id IN (SELECT id FROM resources WHERE code='TEST-D345-SEMEN')`)
     await client.query(`DELETE FROM resources WHERE code='TEST-D345-SEMEN'`)
     await client.query(`DELETE FROM cost_codes WHERE code='[TEST-D345]CC'`)
   } finally {
