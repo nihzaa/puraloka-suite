@@ -50,7 +50,8 @@ const HARAPAN = {
   divisi: 9,
   item: 55,
   totalBiaya: 3_629_860_295.31,
-  /** Rp 37.876.001 yang tertulis tapi di luar rentang SUM — lihat catatan §temuan. */
+  /** Rp 37.876.001 di luar rentang SUM — Retaining Wall yang TIDAK jadi
+   *  dikerjakan (dikonfirmasi founder 2026-08-01). Dikunci sebagai acuan. */
   diLuarSubtotal: 37_876_001,
 } as const
 
@@ -85,15 +86,20 @@ describe.skipIf(!ada)('Paritas golden — RAB Gudang Cibuluh Sumedang (Rp 3,63 M
     expect(lap.jumlahPeriksa).toBeGreaterThan(60)
   })
 
-  it('TEMUAN: Rp 37,8 juta tertulis di dokumen tapi TAK ikut dijumlahkan', () => {
-    // Ini bukan cacat sistem — ini temuan pada RAB-nya. Rumus subtotal divisi
-    // III berbunyi `=SUM(Q34:Q65)` sementara "Retaining Wall" ada di baris
-    // 30–33. Bisa disengaja (pekerjaan batal, barisnya ditinggal) atau salah
-    // ketik rentang saat menyisipkan baris.
+  it('Rp 37,8 juta di luar subtotal — DISENGAJA, dikonfirmasi founder', () => {
+    // Rumus subtotal divisi III berbunyi `=SUM(Q34:Q65)` sementara "Retaining
+    // Wall" ada di baris 30–33, jadi Rp 37.876.001 tertulis di dokumen tapi tak
+    // ikut dijumlahkan.
     //
-    // Di-assert supaya angkanya TERKUNCI: kalau suatu saat berubah, itu
-    // berarti dokumennya disunting — dan perubahan pada dokumen acuan harus
-    // disadari, bukan lewat begitu saja.
+    // ✅ TERJAWAB 2026-08-01 — founder: **"tidak dikerjakan retaining wall itu"**.
+    // Jadi ini DISENGAJA: pekerjaannya batal, barisnya ditinggal sebagai
+    // catatan, dan rentang SUM yang melewatinya memang benar. Total
+    // Rp 3.629.860.295,31 SAHIH — RAB tidak kurang Rp 37,8 juta.
+    //
+    // Angkanya tetap di-assert, tapi alasannya kini BERBEDA: bukan lagi
+    // "sedang dipertanyakan", melainkan supaya perubahan pada dokumen acuan
+    // tak lewat begitu saja. Kalau angkanya bergeser, dokumennya disunting —
+    // dan itu harus disadari, bukan diam-diam mengubah golden file.
     const total = hasil!.diLuarSubtotal.reduce((s, x) => s + x.nilai, 0)
     expect(Math.round(total)).toBe(HARAPAN.diLuarSubtotal)
     expect(hasil!.catatan.some((c) => c.includes('DI LUAR'))).toBe(true)
