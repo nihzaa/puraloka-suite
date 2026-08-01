@@ -303,10 +303,10 @@ function PengaturanContent() {
                 <Field label="Nama Pemilik Rekening" value={profile.bank_account_name} onChange={v => setField("bank_account_name", v)} disabled={!isAdmin} span={2} placeholder="PT Puraloka Persada" />
 
                 <div style={{ gridColumn: "span 1" }}>
-                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>
+                  <label htmlFor="profile" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>
                     Prefix Nomor Invoice
                   </label>
-                  <input
+                  <input id="profile"
                     type="text" value={profile.invoice_prefix} onChange={e => setField("invoice_prefix", e.target.value)}
                     disabled={!isAdmin} maxLength={20}
                     style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", background: isAdmin ? "var(--surface)" : "var(--surface-subtle)", color: C.text, boxSizing: "border-box" }}

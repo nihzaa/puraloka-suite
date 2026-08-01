@@ -273,8 +273,8 @@ export default function MandorProgressPage() {
             </div>
             <form onSubmit={handleSubmit} style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
               <div>
-                <label style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Proyek *</label>
-                <select aria-label="Proyek"
+                <label htmlFor="project-id" style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Proyek *</label>
+                <select id="project-id" aria-label="Proyek"
                   value={projectId}
                   onChange={(e) => { setProjectId(e.target.value); setScopeId(""); }}
                   required
@@ -287,8 +287,8 @@ export default function MandorProgressPage() {
 
               {projectScopes.length > 0 && (
                 <div>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Scope (opsional)</label>
-                  <select aria-label="Pilih lingkup pekerjaan"
+                  <label htmlFor="scope-id" style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Scope (opsional)</label>
+                  <select id="scope-id" aria-label="Pilih lingkup pekerjaan"
                     value={scopeId}
                     onChange={(e) => setScopeId(e.target.value)}
                     style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, color: C.text, background: "var(--surface)" }}

@@ -182,8 +182,8 @@ function ItemForm({
           </select>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-          <label style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Delta Biaya (Rp)</label>
-          <input
+          <label htmlFor="value-6" style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Delta Biaya (Rp)</label>
+          <input id="value-6"
             type="number" value={value.amount_delta} onChange={set("amount_delta")}
             placeholder={value.item_type === "kerja_tambah" ? "mis. 5000000" : "mis. -2000000"}
             style={inpStyle}
@@ -192,8 +192,8 @@ function ItemForm({
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-        <label style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Deskripsi Pekerjaan *</label>
-        <input
+        <label htmlFor="value-7" style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Deskripsi Pekerjaan *</label>
+        <input id="value-7"
           type="text" value={value.description} onChange={set("description")}
           placeholder="mis. Tambah pondasi pile cap 3x3m..."
           style={inpStyle}

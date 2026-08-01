@@ -1630,8 +1630,8 @@ function MandorPageInner() {
               <div style={{ background: "var(--danger-bg)", border: "1px solid #FECACA", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: C.red, marginBottom: 12 }}>{cicilanError}</div>
             )}
             <div style={{ marginBottom: 14 }}>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 4 }}>Nominal Cicilan</label>
-              <input
+              <label htmlFor="cicilan-nominal" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 4 }}>Nominal Cicilan</label>
+              <input id="cicilan-nominal"
                 type="number" min={1} max={cicilanModal.remaining}
                 value={cicilanNominal} onChange={e => setCicilanNominal(e.target.value)}
                 placeholder="Rp 0"
@@ -1639,8 +1639,8 @@ function MandorPageInner() {
               />
             </div>
             <div style={{ marginBottom: 20 }}>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 4 }}>Catatan (opsional)</label>
-              <textarea
+              <label htmlFor="cicilan-catatan" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 4 }}>Catatan (opsional)</label>
+              <textarea id="cicilan-catatan"
                 value={cicilanCatatan} onChange={e => setCicilanCatatan(e.target.value)}
                 rows={2} placeholder="Mis: bayar dari upah minggu ini"
                 style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, resize: "none", outline: "none", boxSizing: "border-box" }}
@@ -2771,10 +2771,10 @@ function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () => void; 
           {/* Nominal + Tanggal */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Nominal <span style={{ color: C.red }}>*</span></label>
+              <label htmlFor="amount-2" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Nominal <span style={{ color: C.red }}>*</span></label>
               <div style={{ position: "relative" }}>
                 <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: C.muted }}>Rp</span>
-                <input type="number" min={1} value={amount} onChange={e => setAmount(e.target.value)} required
+                <input id="amount-2" type="number" min={1} value={amount} onChange={e => setAmount(e.target.value)} required
                   style={{ ...inputStyle, paddingLeft: 30 }} />
               </div>
             </div>
@@ -2813,10 +2813,10 @@ function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () => void; 
 
           {/* Keterangan — wajib untuk mandor */}
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>
+            <label htmlFor="notes-6" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>
               Keterangan / Alasan <span style={{ color: C.red }}>*</span>
             </label>
-            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} required
+            <textarea id="notes-6" value={notes} onChange={e => setNotes(e.target.value)} rows={3} required
               placeholder="Jelaskan keperluan kasbon ini secara detail, misal: untuk beli semen 50 sak dan besi 10mm..."
               style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }} />
             <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>
@@ -3024,8 +3024,8 @@ function AddScopeModal({ assignmentId, onClose, onSuccess }: {
           </div>
           {paymentSystem !== "harian" && (
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Nilai Kontrak (Rp)</label>
-              <input
+              <label htmlFor="borongan-value-2" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Nilai Kontrak (Rp)</label>
+              <input id="borongan-value-2"
                 value={boronganValue}
                 onChange={e => {
                   const raw = e.target.value.replace(/\D/g, "");

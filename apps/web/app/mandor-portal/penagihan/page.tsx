@@ -344,11 +344,11 @@ export default function PenagihanProgressPage() {
 
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>
+                <label htmlFor="form" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>
                   Progress Pekerjaan Saat Ini (%) *
                 </label>
                 <div style={{ position: "relative" }}>
-                  <input
+                  <input id="form"
                     type="number" min="0" max="100" step="1"
                     value={form.pct_done}
                     onChange={(e) => setForm((f) => ({ ...f, pct_done: e.target.value }))}
@@ -363,10 +363,10 @@ export default function PenagihanProgressPage() {
               </div>
 
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>
+                <label htmlFor="form-2" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>
                   Jumlah Tagihan (Rp) *
                 </label>
-                <input
+                <input id="form-2"
                   type="number" min="1"
                   value={form.gross_payment}
                   onChange={(e) => setForm((f) => ({ ...f, gross_payment: e.target.value }))}
@@ -381,10 +381,10 @@ export default function PenagihanProgressPage() {
               </div>
 
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>
+                <label htmlFor="form-3" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>
                   Catatan (opsional)
                 </label>
-                <textarea
+                <textarea id="form-3"
                   value={form.notes}
                   onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
                   rows={2}

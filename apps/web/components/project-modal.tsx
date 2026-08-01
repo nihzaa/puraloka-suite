@@ -470,12 +470,12 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
                 </p>
                 {form.penalty_override && (
                   <div style={{ marginLeft: 24, marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
-                    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: "var(--text-primary)" }}>
+                    <label htmlFor="form" style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: "var(--text-primary)" }}>
                       <input type="checkbox" checked={form.penalty_enabled} onChange={e => set("penalty_enabled", e.target.checked)} />
                       Denda aktif untuk proyek ini
                     </label>
                     <Field label="Basis denda">
-                      <select aria-label="Basis perhitungan denda keterlambatan" style={inputStyle} value={form.penalty_basis} onChange={e => set("penalty_basis", e.target.value)}>
+                      <select id="form" aria-label="Basis perhitungan denda keterlambatan" style={inputStyle} value={form.penalty_basis} onChange={e => set("penalty_basis", e.target.value)}>
                         <option value="invoice_telat">Nilai invoice yang telat</option>
                         <option value="outstanding_proyek">Sisa outstanding proyek</option>
                         <option value="kontrak_total">Nilai kontrak total</option>

@@ -1327,8 +1327,8 @@ function KeuanganContent() {
           <div style={{ padding: 24 }}>
             {/* Filter */}
             <div style={{ display: "flex", gap: 10, marginBottom: 16, alignItems: "center" }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, whiteSpace: "nowrap" }}>Bulan:</label>
-              <input
+              <label htmlFor="pay-month" style={{ fontSize: 12, fontWeight: 600, color: C.mid, whiteSpace: "nowrap" }}>Bulan:</label>
+              <input id="pay-month"
                 type="month"
                 value={payMonth}
                 onChange={e => setPayMonth(e.target.value)}
@@ -2823,10 +2823,10 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
                   </div>
                 )}
                 <div>
-                  <label style={labelStyle}>Nominal Fee Komisi <span style={{ color: C.red }}>*</span></label>
+                  <label htmlFor="commission-fee-amount" style={labelStyle}>Nominal Fee Komisi <span style={{ color: C.red }}>*</span></label>
                   <div style={{ position: "relative" }}>
                     <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: C.muted }}>Rp</span>
-                    <input type="number" min={1} value={commissionFeeAmount} onChange={e => setCommissionFeeAmount(e.target.value)}
+                    <input id="commission-fee-amount" type="number" min={1} value={commissionFeeAmount} onChange={e => setCommissionFeeAmount(e.target.value)}
                       style={inputRpStyle} placeholder="0" />
                   </div>
                   <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Bisa diubah dari saran di atas</div>
@@ -2840,10 +2840,10 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#92400E" }}>Komisi Langsung</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                   <div>
-                    <label style={labelStyle}>Total Pengeluaran <span style={{ color: C.red }}>*</span></label>
+                    <label htmlFor="total-pengeluaran" style={labelStyle}>Total Pengeluaran <span style={{ color: C.red }}>*</span></label>
                     <div style={{ position: "relative" }}>
                       <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: C.muted }}>Rp</span>
-                      <input type="number" min={1} value={totalPengeluaran} onChange={e => setTotalPengeluaran(e.target.value)} required style={inputRpStyle} placeholder="0" />
+                      <input id="total-pengeluaran" type="number" min={1} value={totalPengeluaran} onChange={e => setTotalPengeluaran(e.target.value)} required style={inputRpStyle} placeholder="0" />
                     </div>
                   </div>
                   <div>
@@ -2869,12 +2869,12 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
             {/* ── Nominal Dasar (hanya untuk termin / commission_billing) ── */}
             {(isTermin || isCommBill) && (
               <div>
-                <label style={labelStyle}>Nominal Dasar <span style={{ color: C.red }}>*</span>
+                <label htmlFor="base-amount" style={labelStyle}>Nominal Dasar <span style={{ color: C.red }}>*</span>
                   {isCommBill && <span style={{ fontWeight: 400, color: C.muted }}> (auto-dihitung)</span>}
                 </label>
                 <div style={{ position: "relative" }}>
                   <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: C.muted }}>Rp</span>
-                  <input type="number" min={1} value={baseAmount} onChange={e => setBaseAmount(e.target.value)}
+                  <input id="base-amount" type="number" min={1} value={baseAmount} onChange={e => setBaseAmount(e.target.value)}
                     readOnly={isCommBill} required style={{ ...inputRpStyle, background: isCommBill ? "var(--surface-subtle)" : "var(--surface)" }} placeholder="0" />
                 </div>
               </div>
@@ -2928,10 +2928,10 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
                 </label>
                 {useDpDeduction && (
                   <div style={{ marginTop: 10 }}>
-                    <label style={labelStyle}>Nominal Potongan DP</label>
+                    <label htmlFor="dp-deduction-amount" style={labelStyle}>Nominal Potongan DP</label>
                     <div style={{ position: "relative" }}>
                       <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: C.muted }}>Rp</span>
-                      <input type="number" min={0} max={dpAvailable ?? undefined} value={dpDeductionAmount}
+                      <input id="dp-deduction-amount" type="number" min={0} max={dpAvailable ?? undefined} value={dpDeductionAmount}
                         onChange={e => setDpDeductionAmount(e.target.value)} style={inputRpStyle} />
                     </div>
                     <div style={{ marginTop: 6, fontSize: 11, color: C.muted }}>
@@ -3122,10 +3122,10 @@ function PayInvoiceModal({ invoice, onClose, onSuccess }: { invoice: Invoice; on
                     style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
                 </div>
                 <div>
-                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Nominal <span style={{ color: C.red }}>*</span></label>
+                  <label htmlFor="amount-paid" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Nominal <span style={{ color: C.red }}>*</span></label>
                   <div style={{ position: "relative" }}>
                     <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: C.muted }}>Rp</span>
-                    <input type="number" min={1} value={amountPaid} onChange={e => setAmountPaid(e.target.value)} required
+                    <input id="amount-paid" type="number" min={1} value={amountPaid} onChange={e => setAmountPaid(e.target.value)} required
                       style={{ width: "100%", padding: "9px 12px 9px 30px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
                   </div>
                 </div>
@@ -3344,10 +3344,10 @@ function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
           {/* Nominal + Tanggal */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Nominal <span style={{ color: C.red }}>*</span></label>
+              <label htmlFor="amount" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Nominal <span style={{ color: C.red }}>*</span></label>
               <div style={{ position: "relative" }}>
                 <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: C.muted }}>Rp</span>
-                <input type="number" min={1} value={amount} onChange={e => setAmount(e.target.value)} required
+                <input id="amount" type="number" min={1} value={amount} onChange={e => setAmount(e.target.value)} required
                   style={{ width: "100%", padding: "9px 12px 9px 30px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }}
                   onFocus={e => { e.target.style.borderColor = C.navy; }} onBlur={e => { e.target.style.borderColor = C.border; }} />
               </div>

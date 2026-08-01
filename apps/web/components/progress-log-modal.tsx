@@ -392,10 +392,10 @@ export function ProgressLogModal({
                 <>
                   <div>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                      <label style={{ ...fieldLabel, margin: 0 }}>Deskripsi Kegiatan *</label>
+                      <label htmlFor="description-2" style={{ ...fieldLabel, margin: 0 }}>Deskripsi Kegiatan *</label>
                       <span style={{ fontSize: 11, color: description.length > 450 ? "#ef4444" : "#94a3b8" }}>{description.length}/500</span>
                     </div>
-                    <textarea value={description} onChange={e => setDescription(e.target.value.slice(0, 500))} placeholder="Tuliskan kegiatan yang dilakukan hari ini…" rows={3}
+                    <textarea id="description-2" value={description} onChange={e => setDescription(e.target.value.slice(0, 500))} placeholder="Tuliskan kegiatan yang dilakukan hari ini…" rows={3}
                       style={{ ...fieldInput, resize: "vertical", minHeight: 80, lineHeight: 1.6 }}
                       onFocus={e => { e.target.style.borderColor = "var(--navy)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,51,102,0.1)"; }}
                       onBlur={e => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }} />

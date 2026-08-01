@@ -975,10 +975,10 @@ function CreateAccountModal({ onClose, onSuccess }: { onClose: () => void; onSuc
             </div>
           )}
           <div>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Saldo Awal (Rp)</label>
+            <label htmlFor="initial-balance" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Saldo Awal (Rp)</label>
             <div style={{ position: "relative" }}>
               <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: C.muted }}>Rp</span>
-              <input type="number" min={0} value={initialBalance} onChange={e => setInitialBalance(e.target.value)} placeholder="0"
+              <input id="initial-balance" type="number" min={0} value={initialBalance} onChange={e => setInitialBalance(e.target.value)} placeholder="0"
                 style={{ width: "100%", padding: "9px 12px 9px 32px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
             </div>
           </div>
@@ -1076,10 +1076,10 @@ function CreateTransferModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Nominal <span style={{ color: C.red }}>*</span></label>
+              <label htmlFor="amount" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Nominal <span style={{ color: C.red }}>*</span></label>
               <div style={{ position: "relative" }}>
                 <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: C.muted }}>Rp</span>
-                <input type="number" min={1} value={amount} onChange={e => setAmount(e.target.value)} required
+                <input id="amount" type="number" min={1} value={amount} onChange={e => setAmount(e.target.value)} required
                   style={{ width: "100%", padding: "9px 12px 9px 32px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
               </div>
             </div>
@@ -1349,10 +1349,10 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
                 style={{ width: "100%", padding: "9px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Harga Satuan <span style={{ color: C.red }}>*</span></label>
+              <label htmlFor="unit-price" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Harga Satuan <span style={{ color: C.red }}>*</span></label>
               <div style={{ position: "relative" }}>
                 <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: C.muted }}>Rp</span>
-                <input type="number" min={0} value={unitPrice} onChange={e => setUnitPrice(e.target.value)} required
+                <input id="unit-price" type="number" min={0} value={unitPrice} onChange={e => setUnitPrice(e.target.value)} required
                   style={{ width: "100%", padding: "9px 12px 9px 30px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
               </div>
             </div>

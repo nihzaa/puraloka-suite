@@ -584,10 +584,10 @@ function RoleFormModal({ role, roles, onClose, onSaved, setToast }: {
           {/* Name (create only) */}
           {!isEdit && (
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>
+              <label htmlFor="name" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>
                 Nama Role (slug) <span style={{ color: C.red }}>*</span>
               </label>
-              <input
+              <input id="name"
                 value={name}
                 onChange={e => setName(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ""))}
                 placeholder="kasir, logistik, direktur"
@@ -600,10 +600,10 @@ function RoleFormModal({ role, roles, onClose, onSaved, setToast }: {
 
           {/* Label */}
           <div style={{ marginBottom: 16 }}>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>
+            <label htmlFor="label" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>
               Label Tampilan <span style={{ color: C.red }}>*</span>
             </label>
-            <input
+            <input id="label"
               value={label}
               onChange={e => setLabel(e.target.value)}
               placeholder="Kasir, Logistik, Direktur Utama"
@@ -613,8 +613,8 @@ function RoleFormModal({ role, roles, onClose, onSaved, setToast }: {
 
           {/* Description */}
           <div style={{ marginBottom: 16 }}>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Deskripsi</label>
-            <input
+            <label htmlFor="description" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Deskripsi</label>
+            <input id="description"
               value={description}
               onChange={e => setDescription(e.target.value)}
               placeholder="Opsional — jelaskan tanggung jawab role ini"
@@ -645,8 +645,8 @@ function RoleFormModal({ role, roles, onClose, onSaved, setToast }: {
           {/* Copy from (create only) */}
           {!isEdit && (
             <div style={{ marginBottom: 20 }}>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Salin Permission dari Role</label>
-              <select
+              <label htmlFor="copy-from" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Salin Permission dari Role</label>
+              <select id="copy-from"
                 aria-label="Salin permission dari role lain"
                 value={copyFrom}
                 onChange={e => setCopyFrom(e.target.value)}

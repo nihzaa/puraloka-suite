@@ -598,10 +598,10 @@ function AddScopeModal({ assignment, projectId: projectIdProp, onClose, onSucces
           {/* Opsional: Kaitkan ke sub-kategori RAB */}
           {rabCategories.length > 0 && (
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>
+              <label htmlFor="rab-category-id" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>
                 Kaitkan ke Sub-Kategori RAB <span style={{ fontSize: 11, color: C.muted }}>(opsional)</span>
               </label>
-              <select aria-label="Kaitkan ke sub-kategori RAB" value={rabCategoryId} onChange={e => setRabCategoryId(e.target.value)} style={inputStyle}>
+              <select id="rab-category-id" aria-label="Kaitkan ke sub-kategori RAB" value={rabCategoryId} onChange={e => setRabCategoryId(e.target.value)} style={inputStyle}>
                 <option value="">— Tidak dikaitkan (isi scope manual)</option>
                 {rabCategories.map(cat => (
                   <option key={cat.id} value={cat.id}>

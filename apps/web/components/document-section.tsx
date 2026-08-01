@@ -492,10 +492,10 @@ function UploadModalContent({
         <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16, overflowY: "auto" }}>
           {/* Judul */}
           <div>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6 }}>
+            <label htmlFor="upload-title" style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6 }}>
               Judul Dokumen <span style={{ color: C.red }}>*</span>
             </label>
-            <input value={uploadTitle} onChange={e => setUploadTitle(e.target.value)}
+            <input id="upload-title" value={uploadTitle} onChange={e => setUploadTitle(e.target.value)}
               placeholder="Contoh: Kontrak Kerja Rev.1" autoFocus style={inpStyle}
               onFocus={e => { e.target.style.borderColor = C.navy; }}
               onBlur={e => { e.target.style.borderColor = "var(--border)"; }}

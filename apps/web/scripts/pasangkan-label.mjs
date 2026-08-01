@@ -80,16 +80,28 @@ for (const f of [...berkasTsx(join(AKAR, 'app')), ...berkasTsx(join(AKAR, 'compo
     if (/htmlFor=/.test(L)) continue
     // Label yang membungkus kontrolnya sudah sah menurut WCAG.
     if (/<(input|select|textarea)\b/.test(L)) continue
-    // Harus benar-benar punya teks; label kosong bukan urusan codemod ini.
-    if (!/>[^<>{]*[A-Za-z][^<>{]*</.test(L)) continue
 
-    // Kontrol dicari di baris berikutnya (pola dominan di repo ini) atau
-    // dua baris sesudahnya untuk atribut yang dipecah.
+    // Label bisa satu baris (`<label ...>Teks</label>`) atau DIPECAH beberapa
+    // baris — bentuk kedua dipakai kalau teksnya memuat penanda wajib atau
+    // ikon. Versi pertama codemod ini hanya mengenali bentuk pertama, dan
+    // melewatkan seluruh `termin-payment-modal.tsx` (9 label) begitu saja.
+    let tutup = i
+    while (tutup < baris.length && !/<\/label>/.test(baris[tutup])) {
+      if (tutup > i + 5) break // label sepanjang itu bukan bentuk yang dikenali
+      tutup++
+    }
+    if (!/<\/label>/.test(baris[tutup] ?? '')) continue
+
+    const isiLabel = baris.slice(i, tutup + 1).join(' ')
+    // Harus benar-benar punya teks; label kosong bukan urusan codemod ini.
+    if (!/>[^<>{]*[A-Za-z][^<>{]*</.test(isiLabel)) continue
+
+    // Kontrol dicari sesudah penutup label. Atribut kerap dipecah beberapa
+    // baris, jadi jangkauannya diberi ruang — tapi berhenti kalau bertemu
+    // label lain (berarti kontrol itu milik label berikutnya).
     let j = -1
-    for (let k = i + 1; k <= Math.min(i + 2, baris.length - 1); k++) {
+    for (let k = tutup + 1; k <= Math.min(tutup + 3, baris.length - 1); k++) {
       if (/<(input|select|textarea)\b/.test(baris[k])) { j = k; break }
-      // Berhenti kalau sudah bertemu label lain — berarti kontrolnya bukan
-      // milik label ini.
       if (/<label\b/.test(baris[k])) break
     }
     if (j === -1) continue
@@ -105,8 +117,11 @@ for (const f of [...berkasTsx(join(AKAR, 'app')), ...berkasTsx(join(AKAR, 'compo
       continue
     }
 
-    const dariValue = baris[j].match(/value=\{([A-Za-z_$][\w$]*)/)
-    const dariName = baris[j].match(/name="([^"]+)"/)
+    // Atribut kontrol kerap dipecah beberapa baris, jadi `value=` dicari di
+    // baris pembukanya DAN beberapa baris sesudahnya.
+    const isiKontrol = baris.slice(j, Math.min(j + 5, baris.length)).join(' ')
+    const dariValue = isiKontrol.match(/value=\{([A-Za-z_$][\w$]*)/)
+    const dariName = isiKontrol.match(/name="([^"]+)"/)
     const asal = dariValue?.[1] ?? dariName?.[1]
     if (!asal) {
       dilewati++

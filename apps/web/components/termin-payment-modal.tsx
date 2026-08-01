@@ -248,10 +248,10 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
               {/* Tanggal bayar + Nominal */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
-                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 6 }}>
+                  <label htmlFor="paid-at" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 6 }}>
                     Tanggal Bayar <span style={{ color: C.red }}>*</span>
                   </label>
-                  <input
+                  <input id="paid-at"
                     type="date"
                     value={paidAt}
                     onChange={e => setPaidAt(e.target.value)}
@@ -262,12 +262,12 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
                   />
                 </div>
                 <div>
-                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 6 }}>
+                  <label htmlFor="amount-paid" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 6 }}>
                     Nominal Dibayar <span style={{ color: C.red }}>*</span>
                   </label>
                   <div style={{ position: "relative" }}>
                     <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: C.muted, pointerEvents: "none" }}>Rp</span>
-                    <input
+                    <input id="amount-paid"
                       type="number"
                       value={amountPaid}
                       onChange={e => setAmountPaid(e.target.value)}
@@ -349,10 +349,10 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
 
               {/* Metode pembayaran */}
               <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 6 }}>
+                <label htmlFor="payment-method" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 6 }}>
                   Metode Pembayaran
                 </label>
-                <select aria-label="Metode pembayaran"
+                <select id="payment-method" aria-label="Metode pembayaran"
                   value={paymentMethod}
                   onChange={e => setPaymentMethod(e.target.value)}
                   style={{ ...inputStyle, background: "var(--surface)" }}
@@ -368,10 +368,10 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
               {/* Ref number + bank */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
-                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 6 }}>
+                  <label htmlFor="ref-number" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 6 }}>
                     No. Referensi / TF
                   </label>
-                  <input
+                  <input id="ref-number"
                     type="text"
                     value={refNumber}
                     onChange={e => setRefNumber(e.target.value)}
@@ -382,10 +382,10 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
                   />
                 </div>
                 <div>
-                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 6 }}>
+                  <label htmlFor="bank-name" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 6 }}>
                     Nama Bank
                   </label>
-                  <input
+                  <input id="bank-name"
                     type="text"
                     value={bankName}
                     onChange={e => setBankName(e.target.value)}
@@ -469,10 +469,10 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
 
               {/* Catatan */}
               <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 6 }}>
+                <label htmlFor="notes" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 6 }}>
                   Catatan
                 </label>
-                <textarea
+                <textarea id="notes"
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
                   rows={2}

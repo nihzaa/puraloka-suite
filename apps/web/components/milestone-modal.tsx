@@ -200,8 +200,8 @@ export function MilestoneModal({
 
           {/* Title */}
           <div>
-            <label style={fieldLabel}>Judul Milestone *</label>
-            <input
+            <label htmlFor="title" style={fieldLabel}>Judul Milestone *</label>
+            <input id="title"
               type="text"
               value={title}
               onChange={e => setTitle(e.target.value)}
@@ -216,8 +216,8 @@ export function MilestoneModal({
 
           {/* Target date */}
           <div>
-            <label style={fieldLabel}>Tanggal Target *</label>
-            <input
+            <label htmlFor="target-date" style={fieldLabel}>Tanggal Target *</label>
+            <input id="target-date"
               type="date"
               value={targetDate}
               onChange={e => setTargetDate(e.target.value)}
@@ -230,8 +230,8 @@ export function MilestoneModal({
 
           {/* Description */}
           <div>
-            <label style={fieldLabel}>Deskripsi</label>
-            <textarea
+            <label htmlFor="description" style={fieldLabel}>Deskripsi</label>
+            <textarea id="description"
               value={description}
               onChange={e => setDescription(e.target.value)}
               placeholder="Keterangan atau kriteria selesai…"

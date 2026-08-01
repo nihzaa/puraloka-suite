@@ -232,10 +232,10 @@ export default function MandorKasbonPage() {
 
               {/* Proyek — required */}
               <div>
-                <label style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>
+                <label htmlFor="form" style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>
                   Proyek <span style={{ color: C.red }}>*</span>
                 </label>
-                <select aria-label="Proyek"
+                <select id="form" aria-label="Proyek"
                   value={form.project_id}
                   onChange={(e) => handleProjectChange(e.target.value)}
                   required
@@ -276,8 +276,8 @@ export default function MandorKasbonPage() {
               </div>
 
               <div>
-                <label style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Jumlah (Rp) *</label>
-                <input
+                <label htmlFor="form-2" style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Jumlah (Rp) *</label>
+                <input id="form-2"
                   type="number" min="1" placeholder="Contoh: 500000"
                   value={form.amount}
                   onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
@@ -287,8 +287,8 @@ export default function MandorKasbonPage() {
               </div>
 
               <div>
-                <label style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Keperluan</label>
-                <select aria-label="Tujuan kasbon"
+                <label htmlFor="form-3" style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Keperluan</label>
+                <select id="form-3" aria-label="Tujuan kasbon"
                   value={form.purpose}
                   onChange={(e) => setForm((f) => ({ ...f, purpose: e.target.value }))}
                   style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, color: C.text, background: "var(--surface)" }}
@@ -298,8 +298,8 @@ export default function MandorKasbonPage() {
               </div>
 
               <div>
-                <label style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Sumber Dana</label>
-                <select aria-label="Sumber dana kasbon"
+                <label htmlFor="form-4" style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Sumber Dana</label>
+                <select id="form-4" aria-label="Sumber dana kasbon"
                   value={form.fund_source}
                   onChange={(e) => setForm((f) => ({ ...f, fund_source: e.target.value }))}
                   style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, color: C.text, background: "var(--surface)" }}
@@ -309,8 +309,8 @@ export default function MandorKasbonPage() {
               </div>
 
               <div>
-                <label style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Tanggal</label>
-                <input aria-label="Tanggal"
+                <label htmlFor="form-5" style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Tanggal</label>
+                <input id="form-5" aria-label="Tanggal"
                   type="date"
                   value={form.kasbon_date}
                   onChange={(e) => setForm((f) => ({ ...f, kasbon_date: e.target.value }))}
@@ -319,8 +319,8 @@ export default function MandorKasbonPage() {
               </div>
 
               <div>
-                <label style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Catatan (opsional)</label>
-                <textarea
+                <label htmlFor="form-6" style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Catatan (opsional)</label>
+                <textarea id="form-6"
                   placeholder="Keterangan tambahan..."
                   value={form.notes}
                   onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
