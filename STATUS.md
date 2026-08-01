@@ -148,7 +148,7 @@ kali keadaan berubah; detail selalu di dokumen rujukan.
 > | `setNotes` | Modal pengeluaran kas mengirim `notes` ke API tapi **tak punya input**. Selalu kosong. Dua modal lain di berkas yang sama punya textarea-nya. |
 > | `setFundSource` | Kasbon dari halaman mandor **selalu** "Dana Owner" — pemilihnya tak pernah dirender. Komentar di sana menjanjikan "ditentukan admin/PM saat approve" yang **tak pernah ada**: `fund_source` hanya bisa diisi saat POST. Portal mandor sudah punya pemilihnya; dashboard-lah yang tertinggal. |
 > | `rowOk` | Validasi `rab_items_pct_sum` dihitung lalu dibuang — baris salah tak ditandai, tombol simpan tetap aktif sampai Postgres menolak dengan pesan mentah. |
-> | `hasBorongan` | Dua saudaranya membuka menu portal, yang ini tidak: halaman settlement borongan **memang belum ada**. Dicatat sebagai pekerjaan, bukan disembunyikan. |
+> | `hasBorongan` | **Dugaan awal saya salah.** Sempat saya catat "halaman belum ada"; ternyata settlement borongan sudah lengkap — `GET`+`POST /mandor/borongan-settlements` + `SettlementBoronganModal` di `/mandor`. Dijaga `mandor:kasbon:approve` (admin/PM), karena settlement adalah PENCAIRAN bukan pengajuan. State itu memang pantas mati; menambah menunya justru menjanjikan wewenang yang API-nya tolak. |
 >
 > Ikut ketemu: pencarian audit membandingkan kata kunci lowercase terhadap nilai
 > yang **belum** di-lowercase (UUID berhuruf besar tak pernah ketemu), dan

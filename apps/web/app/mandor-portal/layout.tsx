@@ -26,16 +26,22 @@ export default function MandorPortalLayout({ children }: { children: React.React
   const [showModeMenu, setShowModeMenu] = useState(false);
   const [hasHarian, setHasHarian] = useState(false);
   const [hasProgressPct, setHasProgressPct] = useState(false);
-  // ⚠️ TIDAK ADA `hasBorongan` — dan itu disengaja, bukan kelupaan.
+  // ⚠️ TIDAK ADA `hasBorongan` — dan itu BENAR, bukan kelupaan.
   //
   // Dua saudaranya masing-masing membuka satu menu (`hasHarian` → Laporan Upah,
-  // `hasProgressPct` → Penagihan Progress). `hasBorongan` dulu ikut dihitung
-  // TAPI tak pernah dibaca, karena halaman settlement borongan di portal mandor
-  // MEMANG BELUM ADA — `app/mandor-portal/` tak punya direktori untuk itu,
-  // meski API-nya hidup (`borongan_settlements` dipakai di finance.ts).
+  // `hasProgressPct` → Penagihan Progress), jadi ketiadaan pasangannya tampak
+  // seperti fitur yang hilang. Bukan.
   //
-  // Menambahkan menu sekarang berarti menunjuk ke 404. Statusnya dicatat di
-  // docs/ROADMAP.md sebagai pekerjaan, bukan disembunyikan sebagai state mati.
+  // Settlement borongan adalah PENCAIRAN, bukan pengajuan: endpoint
+  // `POST /mandor/borongan-settlements` dijaga `requirePermission(
+  // 'mandor:kasbon:approve')` — wewenang admin/PM, yang mandor memang tak
+  // punya. UI-nya sudah hidup di tempat yang benar: `SettlementBoronganModal`
+  // di halaman `/mandor` (dashboard admin/PM).
+  //
+  // Mandor melihat HASILNYA lewat "Riwayat Pembayaran" dan "Rekapitulasi",
+  // yang keduanya sudah ada di daftar menu di bawah. Menambahkan menu
+  // "settlement" di portal mandor akan menjanjikan wewenang yang API-nya
+  // tolak — persis pola yang ADR-004 lawan, hanya arahnya terbalik.
   const modeMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
