@@ -261,6 +261,19 @@ jobs:
       - name: Typecheck
         run: ./node_modules/.bin/tsc --noEmit
 
+      # HARNESS TEST WEB — sebelumnya NOL. Sisi API punya 1.215 test; sisi web
+      # hanya dijaga bentuk kodenya (lint, tsc, ratchet), bukan perilakunya.
+      #
+      # Konsekuensinya nyata: `useTutupEsc` dipasang di 51 tempat untuk menutup
+      # jebakan papan tik, dan `modal-esc-ratchet` menangkap KEBERADAAN
+      # panggilannya — bukan efeknya. Mengubah `'Escape'` jadi `'Esc'` (nama
+      # usang) akan lolos setiap pemeriksaan statis sementara 51 modal kembali
+      # menjebak tanpa gejala.
+      #
+      # Tak menyentuh DB sama sekali — jsdom, tanpa browser.
+      - name: Test (perilaku komponen)
+        run: ./node_modules/.bin/vitest run
+
       # Env dummy khusus build. `lib/supabase.ts` memanggil createClient() di
       # module scope, jadi klien ikut dievaluasi saat Next.js MEM-PRERENDER
       # halaman — `/auth/callback` mati dengan "supabaseUrl is required" kalau
