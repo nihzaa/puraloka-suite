@@ -217,6 +217,16 @@ jobs:
       - name: ADR-004 (permission, bukan nama role)
         run: node scripts/adr004-ratchet.mjs
 
+      # Medan hantu: nilai yang DIKIRIM ke API tapi tak punya cara diisi.
+      # Lahir dari tiga bug nyata yang ditemukan 2026-08-01 — semuanya lolos
+      # tsc, test, dan review karena secara tipe memang benar: modal
+      # pengeluaran mengirim `notes` tanpa punya textarea; kasbon selalu
+      # tercatat "Dana Owner" karena pemilihnya tak pernah dirender.
+      # Bug begini tak melempar error, ia hanya menghasilkan data yang selalu
+      # identik — dan baru ketahuan berbulan-bulan kemudian.
+      - name: Medan hantu (dikirim ke API tapi tak bisa diisi)
+        run: node scripts/medan-hantu-ratchet.mjs
+
       - name: Typecheck
         run: ./node_modules/.bin/tsc --noEmit
 
