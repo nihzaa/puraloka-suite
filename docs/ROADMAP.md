@@ -516,36 +516,32 @@ lagi sebagai terputus.
 
 ---
 
-## 📋 SELURUH SUB-MENU YANG BELUM TUNTAS — dari taksonomi, bukan ringkasan
 
-> **Ditambahkan 2026-08-02 menjawab pertanyaan founder: "apakah seluruh menu
-> di taksonomi sudah masuk roadmap?" Jawabannya waktu itu TIDAK — 73 dari 78
-> sub-menu 🔴 tak tercatat di mana pun.**
+
+## 📋 SELURUH SUB-MENU YANG BELUM TUNTAS — dari taksonomi
+
+> **Dihasilkan otomatis** oleh `apps/api/scripts/gen-antrean-roadmap.mjs`.
+> Jangan disunting tangan — jalankan ulang skripnya.
+
+> **Dua cacat diperbaiki 2026-08-02** saat founder bertanya "berapa
+> gelombang & berapa banyak pekerjaan?":
 >
-> Gelombang 2–4 sebelumnya hanya berupa nama kantong ("QA/QC formal (7
-> sub-menu)") tanpa satu pun item. Pembacanya tak bisa tahu apa isinya — dan
-> itu persis kesalahan yang header dokumen ini sendiri peringatkan.
->
-> Status di sini **disalin dari taksonomi SESUDAH taksonomi itu diverifikasi
-> ke kode** (2026-08-02). Dua belas sub-menu ternyata bertanda 🔴 padahal
-> sudah hidup — `WIP/PSAK` (`lib/wip-psak.ts` + endpoint yang dipanggil
-> halaman laporan) dan `Earned Value Management` (`meta.evm` di kurva-s
-> dengan CPI/SPI/EAC/TCPI) yang paling menyolok.
->
-> Alat ukur pertama untuk audit ini DIBUANG: ia melaporkan skor 1.00 untuk
-> "Critical path (CPM)" yang berkas kodenya NOL, karena mencocokkan kata
-> umum seperti "path" dan "analisa". Versi yang dipakai memeriksa bukti yang
-> tak bisa palsu — nama berkas, `CREATE TABLE`, dan path endpoint —
-> dengan peta yang ditulis tangan per-menu.
+> 1. **Gelombang di-default ke 2.** Versi pertama memakai `GEL.get(no, "2")`,
+>    sehingga 16 dari 17 modul jatuh ke Gelombang 2 bukan karena dianalisis
+>    melainkan karena tak ada entri. Angka "106 di Gelombang 2" adalah
+>    artefak default, bukan fakta. Kini tiap modul punya pemetaan tertulis
+>    beserta alasannya.
+> 2. **Tiga modul hilang.** QA/QC (10), HSE/K3 (11), dan Risiko (17) ditulis
+>    sebagai kalimat "Semua 🔴 — terkonfirmasi", bukan tabel — parser yang
+>    cuma membaca baris `|` melewatkannya. Tiga modul penuh tak masuk
+>    antrean tanpa ada yang sadar.
 
-**Total 116 sub-menu belum tuntas.** 🟡 = ada sebagian · 🔴 = belum dibangun.
+**Total 134 sub-menu belum tuntas.** 🟡 = ada sebagian · 🔴 = belum dibangun.
 
-Penjaganya: `apps/api/scripts/audit-taksonomi-vs-kode.mjs` — dijalankan manual
-saat meninjau roadmap, bukan gerbang CI. Menilai "menu ini sudah jadi atau
-belum" butuh penilaian manusia; penjaga otomatis yang memaksakan jawaban akan
-menghasilkan angka rapi yang tak berarti.
+## Gelombang 2 — 124 sub-menu di 19 modul
 
-### 1. MASTER DATA & KONFIGURASI INTI  ·  Gelombang 2
+### 1. MASTER DATA & KONFIGURASI INTI  ·  12 sub-menu
+*master data — prasyarat modul lain, tapi bukan pondasi teknis*
 
 - 🟡 Gudang / lokasi
 - 🟡 Master Karyawan
@@ -560,7 +556,8 @@ menghasilkan angka rapi yang tak berarti.
 - 🔴 Kalender kerja & hari libur
 - 🔴 Prakualifikasi vendor
 
-### 2. CRM & PRA-KONSTRUKSI (Bid Management)  ·  Gelombang 2
+### 2. CRM & PRA-KONSTRUKSI (Bid Management)  ·  9 sub-menu
+*CRM/tender — mandiri, tak bergantung GL*
 
 - 🟡 Analisa markup, margin, contingency
 - 🟡 Estimating / AHSP
@@ -572,7 +569,8 @@ menghasilkan angka rapi yang tak berarti.
 - 🔴 Dokumen prakualifikasi
 - 🔴 Eskalasi harga
 
-### 3. MANAJEMEN KONTRAK  ·  Gelombang 2
+### 3. MANAJEMEN KONTRAK  ·  5 sub-menu
+*kontrak — mandiri*
 
 - 🟡 Kontrak subkontraktor
 - 🟡 Register kontrak induk
@@ -580,7 +578,8 @@ menghasilkan angka rapi yang tak berarti.
 - 🔴 Register asuransi
 - 🔴 Surat masuk/keluar (correspondence)
 
-### 4. PERENCANAAN & PENJADWALAN  ·  Gelombang 2
+### 4. PERENCANAAN & PENJADWALAN  ·  6 sub-menu
+*penjadwalan — mandiri*
 
 - 🟡 Gantt chart
 - 🟡 WBS proyek
@@ -589,7 +588,8 @@ menghasilkan angka rapi yang tak berarti.
 - 🔴 Method statement
 - 🔴 Resource histogram / leveling
 
-### 5. BUDGET & COST CONTROL  ·  Gelombang 2
+### 5. BUDGET & COST CONTROL  ·  5 sub-menu
+*cost control — sebagian bermuara ke GL (varians, WIP)*
 
 - 🟡 Actual Cost Ledger (ACL)
 - 🟡 Cashflow forecast
@@ -597,7 +597,8 @@ menghasilkan angka rapi yang tak berarti.
 - 🔴 Cost Value Reconciliation (CVR)
 - 🔴 Manajemen contingency
 
-### 6. PROCUREMENT / PENGADAAN  ·  Gelombang 2
+### 6. PROCUREMENT / PENGADAAN  ·  7 sub-menu
+*procurement — bermuara ke GL (utang supplier)*
 
 - 🟡 Goods Receipt Note (GRN)
 - 🟡 Jadwal pembayaran vendor
@@ -607,7 +608,8 @@ menghasilkan angka rapi yang tak berarti.
 - 🔴 Perbandingan penawaran (bid tabulation)
 - 🔴 RFQ ke vendor
 
-### 7. INVENTORY / GUDANG & MATERIAL  ·  Gelombang 2
+### 7. INVENTORY / GUDANG & MATERIAL  ·  5 sub-menu
+*inventory — bermuara ke GL (persediaan)*
 
 - 🟡 Gudang proyek / site store
 - 🟡 Minimum stok & reorder point
@@ -615,7 +617,8 @@ menghasilkan angka rapi yang tak berarti.
 - 🔴 Tracking waste / susut
 - 🔴 Transfer stok antar proyek
 
-### 8. SUBKONTRAKTOR & MANDOR  ·  Gelombang 2
+### 8. SUBKONTRAKTOR & MANDOR  ·  10 sub-menu
+*subkontraktor — bermuara ke GL (utang subkon)*
 
 - 🟡 Back-charge / potongan
 - 🟡 Kontrak subkontrak + BOQ
@@ -628,7 +631,8 @@ menghasilkan angka rapi yang tak berarti.
 - 🔴 Retensi subkontrak
 - 🔴 Tender & award subkontraktor
 
-### 9. OPERASI LAPANGAN (Site Management)  ·  Gelombang 2
+### 9. OPERASI LAPANGAN (Site Management)  ·  9 sub-menu
+*operasi lapangan — sumber data untuk Gelombang 3*
 
 - 🟡 Laporan harian proyek (DPR)
 - 🟡 Log cuaca
@@ -640,42 +644,59 @@ menghasilkan angka rapi yang tak berarti.
 - 🔴 Log pemakaian alat
 - 🔴 Non-Conformance Report (NCR)
 
-### 12. HR & PAYROLL  ·  Gelombang 2
+### 10. QUALITY MANAGEMENT (QA/QC)  ·  7 sub-menu
+*QA/QC — MANDIRI, tak bergantung GL; bisa paralel*
+
+- 🔴 Seluruh 7 sub-menu — taksonomi mencatatnya sebagai blok
+  ("Semua 🔴 — terkonfirmasi, 0 hit di kode"), belum dirinci per menu.
+
+### 11. HSE / K3 & LINGKUNGAN  ·  7 sub-menu
+*HSE/K3 — MANDIRI, tak bergantung GL; bisa paralel*
+
+- 🔴 Seluruh 7 sub-menu — taksonomi mencatatnya sebagai blok
+  ("Semua 🔴 — terkonfirmasi, 0 hit di kode"), belum dirinci per menu.
+
+### 12. HR & PAYROLL  ·  10 sub-menu
+*payroll — bermuara ke GL (beban gaji)*
 
 - 🟡 Klaim perjalanan & reimburse
 - 🟡 Master karyawan & struktur organisasi
 - 🔴 Absensi & timesheet
 - 🔴 Cuti & izin
-- 🔴 PPh 21
 - 🔴 Payroll staf
 - 🔴 Penilaian kinerja
 - 🔴 Potongan statutori (BPJS)
+- 🔴 PPh 21
 - 🔴 Rekrutmen & onboarding
 - 🔴 Sertifikasi & kompetensi
 
-### 13. ALAT BERAT & ASET  ·  Gelombang 2
+### 13. ALAT BERAT & ASET  ·  3 sub-menu
+*aset & alat berat — bermuara ke GL (penyusutan)*
 
 - 🔴 Biaya operasional per alat (BBM, operator)
 - 🔴 Integrasi penyusutan → GL
 - 🔴 Maintenance terjadwal
 
-### 14. KEUANGAN & AKUNTANSI  ·  Gelombang 2
+### 14. KEUANGAN & AKUNTANSI  ·  6 sub-menu
+*keuangan & akuntansi — INTI GL, dikerjakan lebih dulu*
 
 - 🟡 Accounts Payable
 - 🟡 Accounts Receivable
-- 🟡 Laporan keuangan
 - 🟡 e-Faktur / e-Bupot
+- 🟡 Laporan keuangan
 - 🔴 Rekonsiliasi bank
 - 🔴 Tutup buku periode
 
-### 15. PENAGIHAN & PENDAPATAN  ·  Gelombang 2
+### 15. PENAGIHAN & PENDAPATAN  ·  4 sub-menu
+*penagihan — bermuara ke GL (piutang)*
 
 - 🟡 Follow-up penagihan
 - 🟡 Penagihan pekerjaan tambah
 - 🔴 Interim Payment Certificate (IPC)
 - 🔴 Nota kredit
 
-### 16. MANAJEMEN DOKUMEN  ·  Gelombang 2
+### 16. MANAJEMEN DOKUMEN  ·  6 sub-menu
+*dokumen — mandiri*
 
 - 🟡 Register dokumen + kontrol revisi
 - 🔴 Matriks distribusi
@@ -684,14 +705,22 @@ menghasilkan angka rapi yang tak berarti.
 - 🔴 Tanda tangan elektronik
 - 🔴 Transmittal
 
-### 18. PELAPORAN & BUSINESS INTELLIGENCE  ·  Gelombang 2
+### 17. RISIKO & KEPATUHAN  ·  4 sub-menu
+*risiko & kepatuhan — mandiri*
+
+- 🔴 Seluruh 4 sub-menu — taksonomi mencatatnya sebagai blok
+  ("Semua 🔴 — terkonfirmasi, 0 hit di kode"), belum dirinci per menu.
+
+### 18. PELAPORAN & BUSINESS INTELLIGENCE  ·  4 sub-menu
+*pelaporan/BI — membaca GL, jadi SESUDAH GL*
 
 - 🟡 Dashboard per proyek
 - 🟡 KPI: CPI, SPI, margin, DSO, backlog
 - 🔴 Distribusi laporan terjadwal
 - 🔴 Report builder
 
-### 19. ADMINISTRASI SISTEM  ·  Gelombang 2
+### 19. ADMINISTRASI SISTEM  ·  5 sub-menu
+*administrasi sistem — mandiri*
 
 - 🟡 API & integrasi
 - 🟡 Import/export data
@@ -699,18 +728,21 @@ menghasilkan angka rapi yang tak berarti.
 - 🔴 Backup & restore
 - 🔴 Multi-tenant
 
-### 20. MOBILE / FIELD APP  ·  Gelombang 3
+## Gelombang 3 — 10 sub-menu di 1 modul
 
+### 20. MOBILE / FIELD APP  ·  10 sub-menu
+*mobile lapangan + offline — gerbang Gelombang 3*
+
+- 🟡 — 🟡 sebagian (ada lapisan, belum utuh)
 - 🟡 Approval mobile
 - 🟡 Foto + geotag
 - 🟡 Input laporan harian
-- 🟡 — 🟡 sebagian (ada lapisan, belum utuh)
+- 🔴 — 🔴 belum dimulai
 - 🔴 Absensi lapangan
 - 🔴 Checklist inspeksi
 - 🔴 Ditambah 4 kelompok yang seluruhnya 🔴 tanpa tabel (§10 QA/QC, §11 HSE, §13 Alat Berat, §17 Risiko)
 - 🔴 Material request
 - 🔴 Mode offline
-- 🔴 — 🔴 belum dimulai
 
 ---
 
