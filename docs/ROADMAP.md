@@ -192,7 +192,8 @@ membangunnya, dan tanpa keputusan itu penyebut di atas masih bisa bergeser.
 | E1–E8 | **Estimasi/CECEP bisa dipakai** — 8 cacat yang membuat halaman tak terpakai | ✅ Selesai | 2026-07-31, 10 commit — lihat §Tingkat 0 |
 | CI-1 | **CI dipercepat + penjaga dibuktikan bisa merah** — profil terukur, antrean menumpuk dihapus, penjaga ADR-004 sisi API (lubang yang lolos 14 penjaga lain) | 🔄 Sebagian | `docs/execution/CI-PROFIL.md` · `docs/execution/CI-BUKTI.md` (2026-08-03) |
 | CI-2 | **Sharding test 4×** — HIDUP setelah F0-14 (16 INSERT dinyatakan company_id eksplisit); 1317s→494s, 9/9 check hijau | ✅ Selesai | run 30766328275 · `CI-PROFIL.md` §5.3 |
-| CI-4 | **Seimbangkan shard** — 494s vs 265s (selisih 87%); kurang 14 detik dari target 8 menit | 📋 Antre | `QUEUE.yaml` **F0-15** |
+| CI-4 | **Seimbangkan shard** — 6 shard dicoba, GAGAL: menyingkap notifikasi tenant-blind | ⏸ Terblokir | `QUEUE.yaml` **F0-15** ← **F0-16** |
+| CI-5 | **Notifikasi tenant-blind** — `utils/notifications.ts` insert tanpa `company_id`; cacat tenancy nyata, bukan sekadar CI | 📋 Antre | `QUEUE.yaml` **F0-16** |
 | CI-3 | **Region project CI** — DB di Tokyo, runner di US-East; ~6.000 round-trip lintas Pasifik = 91% durasi | ⏸ Menunggu founder | `RATIFIKASI.md` **B-3** |
 
 ---

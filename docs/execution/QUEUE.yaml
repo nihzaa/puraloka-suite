@@ -324,13 +324,13 @@ items:
   - id: F0-15
     fase: 0
     judul: "Seimbangkan shard CI — 494s vs 265s, kurang 14 detik dari target 8 menit"
-    blokir_oleh: [F0-14]
+    blokir_oleh: [F0-14, F0-16]
     kriteria_selesai:
       - "wall-clock CI kurang dari atau sama dengan 480s, dibuktikan 3 run berturut"
       - "selisih shard terlama vs tercepat di bawah 25%"
     cara_verifikasi: "gh api runs/<id>/jobs — durasi tiap shard"
     bobot: S
-    status: todo
+    status: blocked
     catatan: >
       Setelah F0-14, shard 4x hidup dan wall-clock 1317s -> 494s (2,7x). Target
       mandat 8 menit KURANG 14 DETIK. Penyebabnya terukur: vitest --shard membagi
@@ -339,6 +339,31 @@ items:
       selisih 87%. Opsi: naikkan ke 6 shard, atau bagi berbasis durasi. Perbaikan
       terbesar tetap B-3 (pindah region DB): ia memangkas dasar 1203s-nya, bukan
       sekadar membaginya.
+
+  - id: F0-16
+    fase: 0
+    judul: "P1 — notifikasi TENANT-BLIND: utils/notifications.ts insert tanpa company_id"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "createNotification & batch insert MENYATAKAN company_id"
+      - "company_id diturunkan dari konteks yang benar, bukan ditebak dari user"
+      - "uji: user anggota 2 company menerima notifikasi di company yang TEPAT"
+      - "6 shard hijau setelahnya (bukti cacatnya benar-benar tertutup)"
+    cara_verifikasi: "vitest + naikkan shard ke 6, 3 run berturut hijau"
+    bobot: M
+    status: todo
+    catatan: >
+      DITEMUKAN 2026-08-03 saat menaikkan shard 4 -> 6. Dua shard merah dgn
+      'null value in column company_id of relation notifications'. Berbeda dari
+      F0-14, sumbernya BUKAN test melainkan KODE APLIKASI: utils/notifications.ts
+      meng-insert tanpa company_id sama sekali (nol kemunculan di berkas itu).
+      Bekerja hari ini semata karena fallback satu-tenant fn_isi_company_id().
+      Ini cacat tenancy NYATA, bukan sekadar penghalang CI: satu user bisa jadi
+      anggota beberapa company (ADR-011 D5), jadi notifikasi tanpa company_id tak
+      punya cara menyatakan miliknya perusahaan mana. Pilihan company_id-nya bukan
+      hal sepele — notifikasi lahir dari peristiwa (kasbon, approval) yang PUNYA
+      company, jadi harus diturunkan dari peristiwanya, bukan dari user penerima.
+      Shard ditahan di 4 (terbukti hijau) sampai ini beres.
 
   # ── GERBANG: menunggu founder ─────────────────────────────────────────────
   - id: R-001

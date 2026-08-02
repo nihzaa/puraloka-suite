@@ -71,21 +71,29 @@ jobs:
     # tak akan pernah datang dan **setiap PR tertahan selamanya** — kegagalan
     # yang terlihat seperti "CI lambat", bukan seperti salah konfigurasi.
     # Daftar wajib diperbarui bersamaan; lihat docs/execution/CI-BUKTI.md §4.
-    name: API — test (shard ${{ matrix.shard }}/6)
+    name: API — test (shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
-    # ── 6 SHARD ───────────────────────────────────────────────────────────
+    # ── 4 SHARD — angka tertinggi yang TERBUKTI hijau ─────────────────────
     #
-    # Dinaikkan dari 4 ke 6 (F0-15). Dengan 4 shard wall-clock 494s = 8,2 menit
-    # — kurang 14 detik dari target ≤8 menit, dan penyebabnya bukan jumlah
-    # shard melainkan KESEIMBANGANNYA: `vitest --shard` membagi berdasar urutan
-    # ALFABET, bukan durasi, sehingga shard 1 kebetulan menampung berkas
-    # terberat (`multitenant-t3-rollback` 12,7s, `gl-api` 8,4s) → 494s vs 265s,
-    # selisih 87%.
+    # 4 shard: 9/9 check hijau, wall-clock 494s = 8,2 menit (run 30766328275).
     #
-    # Menambah shard memperkecil dampak ketimpangan itu tanpa perlu mekanisme
-    # pembagian berbasis durasi (yang akan menambah komponen baru untuk dirawat).
-    # Batasnya: tiap shard membayar biaya tetap ~60s (checkout + install +
-    # prepare CI project), jadi menaikkannya terus akan berbalik merugikan.
+    # 6 shard DICOBA (F0-15) dan GAGAL — dua shard merah, dan penyebabnya bukan
+    # ketimpangan melainkan cacat isolasi BARU yang hanya muncul pada tingkat
+    # paralelisme lebih tinggi:
+    #
+    #     null value in column "company_id" of relation "notifications"
+    #
+    # Kali ini sumbernya BUKAN test melainkan KODE APLIKASI:
+    # `utils/notifications.ts` meng-insert notifikasi tanpa `company_id` sama
+    # sekali — nol kemunculan di seluruh berkas. Ia bekerja hari ini semata
+    # karena fallback satu-tenant `fn_isi_company_id()`.
+    #
+    # Itu cacat tenancy nyata, bukan sekadar penghalang CI: satu user bisa jadi
+    # anggota beberapa company (ADR-011 D5), jadi notifikasi tanpa `company_id`
+    # tak punya cara menyatakan miliknya perusahaan yang mana. → QUEUE F0-16.
+    #
+    # Ditahan di 4 sampai F0-16 selesai. Menambal dengan melonggarkan trigger
+    # akan menukar cacat yang terlihat dengan cacat yang senyap — G-5.
     #
     # ── Riwayat: kenapa shard sempat DITAHAN di 1
     #
@@ -119,7 +127,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6]
+        shard: [1, 2, 3, 4]
     defaults:
       run:
         working-directory: apps/api
@@ -364,9 +372,9 @@ jobs:
       # PARALEL; kalau berbagi schema, `resetTestSchema()` satu shard men-DROP
       # schema yang sedang dipakai shard lain — kerusakan yang gejalanya terlihat
       # seperti test flaky, bukan seperti kesalahan konfigurasi.
-      - name: Test + coverage (shard ${{ matrix.shard }}/6)
+      - name: Test + coverage (shard ${{ matrix.shard }}/4)
         run: |
-          npx vitest run --shard=${{ matrix.shard }}/6 --coverage \
+          npx vitest run --shard=${{ matrix.shard }}/4 --coverage \
             --coverage.include='src/**/*.ts' \
             --coverage.exclude='src/**/*.test.ts' \
             --coverage.exclude='src/**/__tests__/**' \
