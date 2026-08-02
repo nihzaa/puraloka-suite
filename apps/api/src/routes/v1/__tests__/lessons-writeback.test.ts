@@ -95,8 +95,8 @@ beforeAll(async () => {
   await purge()
   const { rows: cl } = await client.query(`SELECT id FROM clients LIMIT 1`)
   const { rows: pr } = await client.query(
-    `INSERT INTO projects (client_id,pm_id,name,location,start_date,end_date,created_by)
-     VALUES ($1,$2,'[TEST] Loop Intelijen','Bandung',CURRENT_DATE,CURRENT_DATE+30,$2) RETURNING id`, [cl[0].id, adminUserId])
+    `INSERT INTO projects (company_id, client_id,pm_id,name,location,start_date,end_date,created_by)
+     VALUES ((SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1), $1,$2,'[TEST] Loop Intelijen','Bandung',CURRENT_DATE,CURRENT_DATE+30,$2) RETURNING id`, [cl[0].id, adminUserId])
   projectId = pr[0].id
   const { rows: rr } = await client.query(
     `INSERT INTO resources (code,name,category,unit_code,created_by) VALUES ('RBS-LLWB-TK','Tukang Besi','labor','OH',$1) RETURNING id`, [adminUserId])

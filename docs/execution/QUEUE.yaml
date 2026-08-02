@@ -300,7 +300,15 @@ items:
       - "penjaga fn_isi_company_id TIDAK dilemahkan"
     cara_verifikasi: "ubah matrix ke [1,2,3,4] + penyebut /4, lalu 3 run CI berturut hijau"
     bobot: L
-    status: todo
+    status: done
+    bukti: >
+      16 INSERT di 14 berkas kini MENYATAKAN company_id eksplisit. Trigger
+      fn_isi_company_id TIDAK disentuh. Terverifikasi: seluruh berkas terdampak
+      LULUS saat ada DUA company — kondisi persis yang menggagalkan shard 1.
+      Suite penuh 130/130 berkas, 1305 lulus. Shard dinaikkan kembali ke 4.
+      Satu berkas SENGAJA dikecualikan: tenant-isolation-nyata menghilangkan
+      company_id sebagai INTI ujinya (membuktikan trigger menolak menebak) —
+      sempat ikut tersapu, langsung merah, dipulihkan + diberi peringatan.
     catatan: >
       DITEMUKAN 2026-08-03 saat menerapkan shard 4x. Shard BERHASIL memangkas
       wall-clock 1317s -> 434s (3x), 3 dari 4 shard hijau. Shard 1 gagal dgn

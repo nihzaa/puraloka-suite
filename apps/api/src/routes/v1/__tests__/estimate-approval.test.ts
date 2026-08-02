@@ -91,8 +91,8 @@ beforeAll(async () => {
   await purge()
   const { rows: cl } = await client.query(`SELECT id FROM clients LIMIT 1`)
   const { rows: pr } = await client.query(
-    `INSERT INTO projects (client_id, pm_id, name, location, start_date, end_date, created_by)
-     VALUES ($1,$2,'[TEST] Estimasi Approval','Bandung',CURRENT_DATE,CURRENT_DATE+30,$2) RETURNING id`,
+    `INSERT INTO projects (company_id, client_id, pm_id, name, location, start_date, end_date, created_by)
+     VALUES ((SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1), $1,$2,'[TEST] Estimasi Approval','Bandung',CURRENT_DATE,CURRENT_DATE+30,$2) RETURNING id`,
     [cl[0].id, adminUserId])
   projectId = pr[0].id
   const { rows: sc } = await client.query(
@@ -230,8 +230,9 @@ describe('Berjenjang (2 level) — endpoint pending → final via engine', () =>
       `DELETE FROM approval_steps WHERE level >= 2 AND chain_id IN
         (SELECT id FROM approval_chains WHERE entity_type='estimate_version')`)
     const { rows } = await client.query(
-      `INSERT INTO approval_steps (chain_id, level, required_permission, label)
-       SELECT id, 2, 'settings:finance:manage', '[TEST] L2' FROM approval_chains
+      // `company_id` diwariskan dari chain induknya — lihat catatan F0-14.
+      `INSERT INTO approval_steps (company_id, chain_id, level, required_permission, label)
+       SELECT company_id, id, 2, 'settings:finance:manage', '[TEST] L2' FROM approval_chains
         WHERE entity_type='estimate_version' RETURNING id`)
     level2Id = rows[0].id
   })

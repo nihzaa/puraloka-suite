@@ -98,20 +98,20 @@ beforeAll(async () => {
   adminUserId = u[0].id
 
   const { rows: cl } = await client.query(
-    `INSERT INTO clients (contact_person, phone, created_by) VALUES ('[TEST-3WAY] Klien', '0800000000', $1) RETURNING id`,
+    `INSERT INTO clients (company_id, contact_person, phone, created_by) VALUES ((SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1), '[TEST-3WAY] Klien', '0800000000', $1) RETURNING id`,
     [adminUserId])
   const { rows: pr } = await client.query(
-    `INSERT INTO projects (client_id, pm_id, name, location, start_date, end_date, created_by)
-     VALUES ($1, $2, '[TEST-3WAY] Proyek', 'Bandung', CURRENT_DATE, CURRENT_DATE + INTERVAL '30 days', $2) RETURNING id`,
+    `INSERT INTO projects (company_id, client_id, pm_id, name, location, start_date, end_date, created_by)
+     VALUES ((SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1), $1, $2, '[TEST-3WAY] Proyek', 'Bandung', CURRENT_DATE, CURRENT_DATE + INTERVAL '30 days', $2) RETURNING id`,
     [cl[0].id, adminUserId])
   projectId = pr[0].id
 
   const { rows: sup } = await client.query(
-    `INSERT INTO suppliers (name, payment_terms, created_by) VALUES ('[TEST-3WAY] Toko A', 'net_14', $1) RETURNING id`,
+    `INSERT INTO suppliers (company_id, name, payment_terms, created_by) VALUES ((SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1), '[TEST-3WAY] Toko A', 'net_14', $1) RETURNING id`,
     [adminUserId])
   supplierId = sup[0].id
   const { rows: supB } = await client.query(
-    `INSERT INTO suppliers (name, payment_terms, created_by) VALUES ('[TEST-3WAY] Toko B', 'cod', $1) RETURNING id`,
+    `INSERT INTO suppliers (company_id, name, payment_terms, created_by) VALUES ((SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1), '[TEST-3WAY] Toko B', 'cod', $1) RETURNING id`,
     [adminUserId])
   supplierBId = supB[0].id
 

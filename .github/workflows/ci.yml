@@ -71,51 +71,41 @@ jobs:
     # tak akan pernah datang dan **setiap PR tertahan selamanya** — kegagalan
     # yang terlihat seperti "CI lambat", bukan seperti salah konfigurasi.
     # Daftar wajib diperbarui bersamaan; lihat docs/execution/CI-BUKTI.md §4.
-    name: API — test (shard ${{ matrix.shard }}/1)
+    name: API — test (shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
-    # ── SHARD DITAHAN DI 1 (bukan 4) — dan ini keputusan sadar ────────────
+    # ── 4 SHARD — dinyalakan kembali setelah F0-14 ────────────────────────
     #
-    # Shard 4× SUDAH DICOBA dan berhasil memangkas wall-clock 1317s → 434s (3×).
-    # Tiga dari empat shard hijau. Shard 1 gagal, dan kegagalannya BUKAN cacat
-    # sharding melainkan cacat isolasi yang selama ini tersembunyi:
+    # Percobaan pertama (2026-08-03) memangkas wall-clock 1317s → 434s (3×),
+    # tetapi shard 1 gagal:
     #
     #     projects.company_id NOT NULL dilanggar (23502) di lessons-writeback
     #
-    # Akarnya: `fn_isi_company_id()` mengisi `company_id` otomatis HANYA bila
-    # `companies` berisi TEPAT SATU baris — begitu ambigu, ia menolak menebak
-    # (perilaku yang BENAR, ditulis sengaja di migrasi 127).
+    # Akarnya BUKAN sharding. `fn_isi_company_id()` mengisi `company_id`
+    # otomatis HANYA bila `companies` berisi TEPAT SATU baris; begitu ambigu ia
+    # menolak menebak — perilaku yang BENAR dan sengaja (migrasi 127).
     #
-    # Dan 46 berkas test memakai `createRlsClient` → schema `public` BERSAMA.
-    # Sembilan di antaranya membuat company tambahan, tersebar di keempat shard:
-    #   shard 1: t10-peran-per-company, t6-penomoran-per-company, tenant-isolation-nyata
-    #   shard 2: t5b-kill-switch
-    #   shard 3: search-tenant-isolation, submittal-aturan, t7-menu-per-company, t9-kelola-badan-usaha
-    #   shard 4: t7-company-switcher
+    # Yang salah ada di test: belasan berkas meng-INSERT ke tabel ber-tenant
+    # (`projects`, `clients`, `approval_steps`, `notification_rules`, …) TANPA
+    # menyebut `company_id`, mengandalkan fallback satu-tenant itu. Selama
+    # berkas berjalan berurutan, asumsinya kebetulan selalu benar. Berjalan
+    # PARALEL, `search-tenant-isolation` meng-COMMIT company kedua selama ~2
+    # detik — dan setiap INSERT di shard lain dalam jendela itu ditolak.
     #
-    # Berjalan berurutan mereka tak pernah bertabrakan (tiap berkas membersihkan
-    # miliknya). Berjalan PARALEL, company milik shard lain terlihat di tengah
-    # jalan → trigger menemukan >1 company → menolak mengisi → NOT NULL menolak.
+    # F0-14 memperbaikinya di tempat yang benar: 16 INSERT di 14 berkas kini
+    # MENYATAKAN `company_id` secara eksplisit. Trigger tak disentuh sama
+    # sekali — melemahkannya demi CI cepat adalah G-5, tepat sebelum Fase 2.
     #
-    # Menaikkan shard ke 4 sekarang = CI merah acak yang penyebabnya tampak
-    # seperti "test flaky". Memperbaikinya dengan melonggarkan trigger =
-    # melemahkan penjaga tenancy tepat sebelum Fase 2 — Gerbang Keras G-5.
+    # Terverifikasi: seluruh berkas terdampak lulus SAAT ADA DUA COMPANY —
+    # kondisi persis yang dulu menggagalkan shard 1.
     #
-    # Perbaikan yang benar: 46 berkas itu dipindahkan dari `public` ke schema
-    # per-shard. Itu pekerjaan tersendiri (QUEUE F0-14), bukan efek samping
-    # optimasi CI.
-    #
-    # Struktur matrix SENGAJA DIPERTAHANKAN supaya menaikkannya kembali cukup
-    # perubahan kecil begitu F0-14 selesai.
-    #
-    # ⚠️ SAAT MENAIKKAN KEMBALI, tiga hal WAJIB diubah bersamaan — kalau tidak,
-    # sebagian test diam-diam tak pernah dijalankan (kegagalan paling senyap):
-    #   1. `shard: [1]` → `[1, 2, 3, 4]`
-    #   2. penyebut `/1` di nama job DAN di `--shard=` → `/4` (tiga tempat)
-    #   3. daftar check wajib di branch protection → nama job baru per shard
+    # ⚠️ SAAT MENGUBAH JUMLAH SHARD, tiga hal WAJIB berubah bersamaan — kalau
+    # tidak, sebagian test diam-diam tak pernah dijalankan (kegagalan paling
+    # senyap): (1) daftar `shard:` di bawah · (2) penyebut di nama job DAN di
+    # `--shard=` (tiga tempat) · (3) daftar check wajib di branch protection.
     strategy:
       fail-fast: false
       matrix:
-        shard: [1]
+        shard: [1, 2, 3, 4]
     defaults:
       run:
         working-directory: apps/api
@@ -360,9 +350,9 @@ jobs:
       # PARALEL; kalau berbagi schema, `resetTestSchema()` satu shard men-DROP
       # schema yang sedang dipakai shard lain — kerusakan yang gejalanya terlihat
       # seperti test flaky, bukan seperti kesalahan konfigurasi.
-      - name: Test + coverage (shard ${{ matrix.shard }}/1)
+      - name: Test + coverage (shard ${{ matrix.shard }}/4)
         run: |
-          npx vitest run --shard=${{ matrix.shard }}/1 --coverage \
+          npx vitest run --shard=${{ matrix.shard }}/4 --coverage \
             --coverage.include='src/**/*.ts' \
             --coverage.exclude='src/**/*.test.ts' \
             --coverage.exclude='src/**/__tests__/**' \
