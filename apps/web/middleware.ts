@@ -36,7 +36,7 @@ const ROLE_ALLOWED: Record<string, string[]> = {
   // belum punya halamannya sendiri — mendaftarkannya satu per satu di sini
   // akan jadi daftar 100 baris yang pasti ketinggalan saat menu bertambah.
   pm:      ["/pm-portal", "/proyek", "/verify", "/estimasi", "/tender", "/piutang", "/aset", "/m"],
-  admin:   ["/dashboard", "/proyek", "/keuangan", "/mandor", "/laporan", "/notifications", "/kas", "/users", "/klien", "/procurement", "/pengaturan", "/kalender", "/audit", "/sistem", "/estimasi", "/tender", "/piutang", "/aset", "/m"],
+  admin:   ["/dashboard", "/proyek", "/keuangan", "/akuntansi", "/mandor", "/laporan", "/notifications", "/kas", "/users", "/klien", "/procurement", "/pengaturan", "/kalender", "/audit", "/sistem", "/estimasi", "/tender", "/piutang", "/aset", "/m"],
 };
 
 /**

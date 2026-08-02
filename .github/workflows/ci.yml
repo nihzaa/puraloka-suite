@@ -116,6 +116,19 @@ jobs:
       # ditambahkan tanpa memperbarui indeks adalah persis cara 134 dokumen
       # sempat jadi tak terlihat — dan laporan "dikecualikan beralasan"
       # membuatnya terdengar seperti sudah tertangani.
+      # Sepuluh sub-menu ber-ledger & lintas-modul (ACL, CVR, profitabilitas
+      # per cost code, contingency, eskalasi harga, claims, retensi subkontrak,
+      # rekonsiliasi bank, kepatuhan subkontraktor, markup/margin) WAJIB
+      # dirancang sebelum dikerjakan — sekali angka masuk, mengubah modelnya
+      # mahal.
+      #
+      # Penjaga ini menangkap kalau salah satunya naik status tanpa rancangan.
+      # Pada jalan pertamanya ia menemukan TIGA yang sudah terlanjur digarap —
+      # didaftarkan di docs/RANCANGAN-DIKERJAKAN.md beserta apa yang masih
+      # terbuka, bukan disembunyikan.
+      - name: Sub-menu berisiko punya rancangan
+        run: node scripts/audit-rancangan-submenu.mjs
+
       - name: Indeks dokumen mutakhir
         run: node scripts/gen-indeks-docs.mjs --check
 

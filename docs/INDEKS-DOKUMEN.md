@@ -16,7 +16,7 @@ memuat **setiap** dokumen, tanpa kecuali.
 | **acuan** | aturan/keputusan yang dirujuk saat bekerja | dibaca saat mengerjakan hal terkait; tak "selesai" |
 | **riwayat** | catatan fase yang sudah lewat | bukti apa yang pernah terjadi; jangan dikutip sebagai rencana |
 
-**Total 236 dokumen** — antrean 11 · acuan 169 · riwayat 56.
+**Total 237 dokumen** — antrean 11 · acuan 170 · riwayat 56.
 
 Kolom **RM** = disebut langsung di `ROADMAP.md`.
 
@@ -34,6 +34,7 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | [MODULE_STATUS](MODULE_STATUS.md) | riwayat |  | Module Status Tracker |
 | [PETA-PRIORITAS-ERP](PETA-PRIORITAS-ERP.md) | acuan | ✓ | PETA PRIORITAS ERP — Dokumen Induk Pemersatu |
 | [PROTOKOL-SESI](PROTOKOL-SESI.md) | acuan |  | PROTOKOL SESI — baca ini dulu, di setiap sesi, sebelum aksi apa pun |
+| [RANCANGAN-DIKERJAKAN](RANCANGAN-DIKERJAKAN.md) | acuan |  | Sub-menu berisiko yang digarap sebelum disiplin rancangan berlaku |
 | [ROADMAP](ROADMAP.md) | riwayat | ✓ | ROADMAP — Puraloka Suite |
 
 ### `docs/superpowers/plans`

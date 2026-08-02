@@ -48,6 +48,7 @@ const LANGKAH = [
   { nama: 'Docs · tautan tak rusak', cwd: AKAR, cmd: 'node', args: ['scripts/cek-tautan-docs.mjs'] },
   { nama: 'Docs · rencana terhubung ROADMAP', cwd: API, cmd: 'node', args: ['scripts/audit-docs-vs-roadmap.mjs'] },
   { nama: 'Docs · indeks mutakhir', cwd: API, cmd: 'node', args: ['scripts/gen-indeks-docs.mjs', '--check'] },
+  { nama: 'Docs · sub-menu berisiko punya rancangan', cwd: API, cmd: 'node', args: ['scripts/audit-rancangan-submenu.mjs'] },
 
   // ── Sisi Web ───────────────────────────────────────────────────────────
   { nama: 'Web · typecheck', cwd: WEB, cmd: 'npx', args: ['tsc', '--noEmit'] },
