@@ -75,18 +75,19 @@ memilih pondasi lebih dulu tidak mengorbankan apa pun.
 
 ### Penyebut yang jujur
 
-Diukur dari `ERP-KONTRAKTOR-TAKSONOMI-MENU.md` (2026-08-01), **191 sub-menu**
-terverifikasi ke kode:
+Diukur dari `ERP-KONTRAKTOR-TAKSONOMI-MENU.md`, **256 baris menu** terverifikasi
+ke kode (angka lama "191" menghitung sebagian tabel saja; diperbarui 2026-08-02
+sesudah 12 status basi dikoreksi — lihat §"SELURUH SUB-MENU YANG BELUM TUNTAS"):
 
 | Status | Jumlah | Arti |
 |---|---:|---|
-| ✅ selesai | 62 | hidup end-to-end |
-| 🟡 sebagian | 47 | ada, belum lengkap |
-| 🔴 belum | 71 | belum dibangun |
-| 🔵 belum dibangun | 5 | Capability Tier-2 sisa |
-| ⛔ dicoret | 6 | keputusan owner |
+| ✅ selesai | 99 | hidup end-to-end |
+| 🟡 sebagian | 63 | ada, belum lengkap |
+| 🔴 belum | 77 | belum dibangun |
+| 🔵 belum dibangun | 9 | Capability Tier-2 sisa |
+| ⛔ dicoret | 8 | keputusan owner |
 
-**32% selesai · 25% sebagian · 40% belum.** Angka "71%" yang pernah tertulis di
+**39% selesai · 25% sebagian · 30% belum.** Angka "71%" yang pernah tertulis di
 dokumen ini menghitung penyebut yang salah — hanya item ROADMAP yang sudah
 terdaftar, bukan seluruh visi.
 
@@ -385,6 +386,261 @@ datanya yang bisa.
 
 ---
 
+
+
+## 🔗 Dokumen `docs/` yang memuat pekerjaan terbuka
+
+> **Ditambahkan 2026-08-02 atas permintaan founder:** *"pastikan semua dokumen
+> di docs itu juga dimasukkan ke dalam roadmap agar bisa dikerjakan dan saling
+> terhubung semuanya."*
+>
+> Masalah nyatanya bukan dokumen yang kurang rapi, melainkan **rencana yang
+> ditulis lalu tak pernah dikerjakan — bukan karena ditunda, tapi karena tak
+> ada yang tahu ia ada.** Repo ini sudah punya preseden: `ERP_MASTER_PLAN`
+> Modul 9a/9b, `AHSP-EDITION-BUILDER-DESIGN` §3.5, `GOLDEN-FILE-SPEC` paritas
+> end-to-end — semuanya baru ketahuan saat audit menyeluruh.
+
+Dari **236 dokumen** `.md` di `docs/`, **13 memuat pekerjaan terbuka** dan
+sebelumnya tak dirujuk ROADMAP sama sekali. Sisanya sengaja tidak dituntut
+masuk: arsip/riwayat, aturan tetap (Engineering-Constitution, ADR), dan
+laporan status — dokumen yang dirujuk, bukan dikerjakan.
+
+Penjaganya: `apps/api/scripts/audit-docs-vs-roadmap.mjs`.
+
+### Rancangan yang BELUM dibangun — kandidat kerja nyata
+
+| Dokumen | Isi | Gelombang |
+|---|---|---|
+| `CECEP/AHSP-EDITION-BUILDER-DESIGN.md` | Sumbu EDISI + builder + alur item-baru. Founder menandai **§3.1/3.2 prioritas "sebelum seed"** — mengubah skema saat KB masih kosong hampir gratis; sesudah terisi jadi mahal. §3.5 (laporan perbandingan antar-edisi) sudah ⛔ dicoret owner. | 2 |
+| `05-design-system-and-ui-ux-architecture.md` | Living document — arah UI/UX. Warm Clay sudah jadi visual dasar; sisanya belum diturunkan jadi pekerjaan. | 2 |
+| `06-agentic-ai-and-automation-architecture.md` | Katalog 140 automation. **0 "Now" by design** — gerbangnya Gelombang 4 + akun WhatsApp Business API (berbayar, verifikasi Meta). | 4 |
+| `plans/2026-07-15-warm-clay-design-system.md` | Rencana design system Warm Clay. Sebagian sudah hidup (token, kontras WCAG); sisanya belum ditelusuri. | 2 |
+
+### Dokumen perencanaan Phase 1 — "Planning only", fasenya sudah lewat
+
+`Phase1/01-gap-analysis` · `02-target-architecture` · `04-risk-register` ·
+`05-rollout-plan` · `08-observability-plan`
+
+Kelimanya bertanda **"Status: Planning only"** dan ditulis SEBELUM Phase 1
+dikerjakan. Phase 1 sendiri sudah selesai (lihat `PHASE-1-STATUS.md` &
+`PHASE-1-COMPLETION-AUDIT.md`), jadi isinya sebagian besar sudah terserap.
+
+**Yang belum diperiksa satu per satu:** apakah ada butir yang terlewat —
+terutama `04-risk-register` (risiko yang mungkin masih terbuka) dan
+`08-observability-plan` (Sub-Fase 1D). Ditandai di sini supaya tak hilang lagi,
+bukan diklaim selesai.
+
+### Blueprint pengiriman — acuan proses, bukan antrean kerja
+
+`Master-Delivery-Blueprint/01-capability-to-task-mapping` ·
+`08-platform-rollout-orchestration` · `13-implementation-kickoff-playbook` ·
+`Implementation-Kickoff/08-day-one-checklist`
+
+Keempatnya memetakan CARA mengirim, bukan APA yang dikirim. Item kerjanya sudah
+terserap ke antrean utama di atas (#1–#24) dan §"SELURUH SUB-MENU". Dirujuk di
+sini supaya rantainya terlihat, dan supaya audit berikutnya tak melaporkannya
+lagi sebagai terputus.
+
+---
+
+## 📋 SELURUH SUB-MENU YANG BELUM TUNTAS — dari taksonomi, bukan ringkasan
+
+> **Ditambahkan 2026-08-02 menjawab pertanyaan founder: "apakah seluruh menu
+> di taksonomi sudah masuk roadmap?" Jawabannya waktu itu TIDAK — 73 dari 78
+> sub-menu 🔴 tak tercatat di mana pun.**
+>
+> Gelombang 2–4 sebelumnya hanya berupa nama kantong ("QA/QC formal (7
+> sub-menu)") tanpa satu pun item. Pembacanya tak bisa tahu apa isinya — dan
+> itu persis kesalahan yang header dokumen ini sendiri peringatkan.
+>
+> Status di sini **disalin dari taksonomi SESUDAH taksonomi itu diverifikasi
+> ke kode** (2026-08-02). Dua belas sub-menu ternyata bertanda 🔴 padahal
+> sudah hidup — `WIP/PSAK` (`lib/wip-psak.ts` + endpoint yang dipanggil
+> halaman laporan) dan `Earned Value Management` (`meta.evm` di kurva-s
+> dengan CPI/SPI/EAC/TCPI) yang paling menyolok.
+>
+> Alat ukur pertama untuk audit ini DIBUANG: ia melaporkan skor 1.00 untuk
+> "Critical path (CPM)" yang berkas kodenya NOL, karena mencocokkan kata
+> umum seperti "path" dan "analisa". Versi yang dipakai memeriksa bukti yang
+> tak bisa palsu — nama berkas, `CREATE TABLE`, dan path endpoint —
+> dengan peta yang ditulis tangan per-menu.
+
+**Total 116 sub-menu belum tuntas.** 🟡 = ada sebagian · 🔴 = belum dibangun.
+
+Penjaganya: `apps/api/scripts/audit-taksonomi-vs-kode.mjs` — dijalankan manual
+saat meninjau roadmap, bukan gerbang CI. Menilai "menu ini sudah jadi atau
+belum" butuh penilaian manusia; penjaga otomatis yang memaksakan jawaban akan
+menghasilkan angka rapi yang tak berarti.
+
+### 1. MASTER DATA & KONFIGURASI INTI  ·  Gelombang 2
+
+- 🟡 Gudang / lokasi
+- 🟡 Master Karyawan
+- 🟡 Master Resource (tenaga/bahan/alat)
+- 🟡 Master Subkontraktor
+- 🟡 Penomoran dokumen (numbering series)
+- 🟡 Perusahaan / badan hukum (multi-entity)
+- 🟡 Price Book / rate library
+- 🟡 Struktur Cost Code / CBS
+- 🟡 Template dokumen
+- 🟡 WBS template
+- 🔴 Kalender kerja & hari libur
+- 🔴 Prakualifikasi vendor
+
+### 2. CRM & PRA-KONSTRUKSI (Bid Management)  ·  Gelombang 2
+
+- 🟡 Analisa markup, margin, contingency
+- 🟡 Estimating / AHSP
+- 🟡 Generate proposal / dokumen penawaran
+- 🟡 Jaminan penawaran (bid bond)
+- 🟡 Pipeline lead / prospek
+- 🟡 Quantity takeoff / BOQ
+- 🟡 Skenario penawaran (what-if)
+- 🔴 Dokumen prakualifikasi
+- 🔴 Eskalasi harga
+
+### 3. MANAJEMEN KONTRAK  ·  Gelombang 2
+
+- 🟡 Kontrak subkontraktor
+- 🟡 Register kontrak induk
+- 🔴 Claims management
+- 🔴 Register asuransi
+- 🔴 Surat masuk/keluar (correspondence)
+
+### 4. PERENCANAAN & PENJADWALAN  ·  Gelombang 2
+
+- 🟡 Gantt chart
+- 🟡 WBS proyek
+- 🔴 Analisa keterlambatan
+- 🔴 Critical path (CPM)
+- 🔴 Method statement
+- 🔴 Resource histogram / leveling
+
+### 5. BUDGET & COST CONTROL  ·  Gelombang 2
+
+- 🟡 Actual Cost Ledger (ACL)
+- 🟡 Cashflow forecast
+- 🟡 Profitabilitas per proyek / per cost code
+- 🔴 Cost Value Reconciliation (CVR)
+- 🔴 Manajemen contingency
+
+### 6. PROCUREMENT / PENGADAAN  ·  Gelombang 2
+
+- 🟡 Goods Receipt Note (GRN)
+- 🟡 Jadwal pembayaran vendor
+- 🔴 Evaluasi kinerja vendor
+- 🔴 Expediting & logistik
+- 🔴 Kontrak payung / blanket order
+- 🔴 Perbandingan penawaran (bid tabulation)
+- 🔴 RFQ ke vendor
+
+### 7. INVENTORY / GUDANG & MATERIAL  ·  Gelombang 2
+
+- 🟡 Gudang proyek / site store
+- 🟡 Minimum stok & reorder point
+- 🔴 Material milik klien (free issue)
+- 🔴 Tracking waste / susut
+- 🔴 Transfer stok antar proyek
+
+### 8. SUBKONTRAKTOR & MANDOR  ·  Gelombang 2
+
+- 🟡 Back-charge / potongan
+- 🟡 Kontrak subkontrak + BOQ
+- 🟡 Opname / berita acara bersama
+- 🟡 Paket subkontrak
+- 🟡 Progress claim / payment certificate
+- 🟡 Work order ke subkontraktor
+- 🔴 Evaluasi kinerja subkontraktor
+- 🔴 Kepatuhan (izin, asuransi, pajak)
+- 🔴 Retensi subkontrak
+- 🔴 Tender & award subkontraktor
+
+### 9. OPERASI LAPANGAN (Site Management)  ·  Gelombang 2
+
+- 🟡 Laporan harian proyek (DPR)
+- 🟡 Log cuaca
+- 🟡 Log tenaga kerja harian
+- 🟡 Serah terima (PHO/FHO)
+- 🔴 Dokumentasi foto
+- 🔴 Instruksi lapangan
+- 🔴 Izin kerja (work permit)
+- 🔴 Log pemakaian alat
+- 🔴 Non-Conformance Report (NCR)
+
+### 12. HR & PAYROLL  ·  Gelombang 2
+
+- 🟡 Klaim perjalanan & reimburse
+- 🟡 Master karyawan & struktur organisasi
+- 🔴 Absensi & timesheet
+- 🔴 Cuti & izin
+- 🔴 PPh 21
+- 🔴 Payroll staf
+- 🔴 Penilaian kinerja
+- 🔴 Potongan statutori (BPJS)
+- 🔴 Rekrutmen & onboarding
+- 🔴 Sertifikasi & kompetensi
+
+### 13. ALAT BERAT & ASET  ·  Gelombang 2
+
+- 🔴 Biaya operasional per alat (BBM, operator)
+- 🔴 Integrasi penyusutan → GL
+- 🔴 Maintenance terjadwal
+
+### 14. KEUANGAN & AKUNTANSI  ·  Gelombang 2
+
+- 🟡 Accounts Payable
+- 🟡 Accounts Receivable
+- 🟡 Laporan keuangan
+- 🟡 e-Faktur / e-Bupot
+- 🔴 Rekonsiliasi bank
+- 🔴 Tutup buku periode
+
+### 15. PENAGIHAN & PENDAPATAN  ·  Gelombang 2
+
+- 🟡 Follow-up penagihan
+- 🟡 Penagihan pekerjaan tambah
+- 🔴 Interim Payment Certificate (IPC)
+- 🔴 Nota kredit
+
+### 16. MANAJEMEN DOKUMEN  ·  Gelombang 2
+
+- 🟡 Register dokumen + kontrol revisi
+- 🔴 Matriks distribusi
+- 🔴 Notulen rapat
+- 🔴 Register gambar
+- 🔴 Tanda tangan elektronik
+- 🔴 Transmittal
+
+### 18. PELAPORAN & BUSINESS INTELLIGENCE  ·  Gelombang 2
+
+- 🟡 Dashboard per proyek
+- 🟡 KPI: CPI, SPI, margin, DSO, backlog
+- 🔴 Distribusi laporan terjadwal
+- 🔴 Report builder
+
+### 19. ADMINISTRASI SISTEM  ·  Gelombang 2
+
+- 🟡 API & integrasi
+- 🟡 Import/export data
+- 🟡 Konfigurasi penomoran
+- 🔴 Backup & restore
+- 🔴 Multi-tenant
+
+### 20. MOBILE / FIELD APP  ·  Gelombang 3
+
+- 🟡 Approval mobile
+- 🟡 Foto + geotag
+- 🟡 Input laporan harian
+- 🟡 — 🟡 sebagian (ada lapisan, belum utuh)
+- 🔴 Absensi lapangan
+- 🔴 Checklist inspeksi
+- 🔴 Ditambah 4 kelompok yang seluruhnya 🔴 tanpa tabel (§10 QA/QC, §11 HSE, §13 Alat Berat, §17 Risiko)
+- 🔴 Material request
+- 🔴 Mode offline
+- 🔴 — 🔴 belum dimulai
+
+---
+
 ## Sengaja TIDAK dikerjakan
 
 Bukan karena terlupa — masing-masing punya gerbang yang belum terbuka.
@@ -420,7 +676,7 @@ Membangunnya sekarang = pekerjaan yang nilainya belum terbukti.
 | **P14** | **Test menumpuk 913 baris di DB dev tanpa satu pun gejala** | ✅ **Selesai 2026-08-02.** `lessons-writeback.test.ts` membersihkan `projects` bertanda `[TEST]` tapi **tidak `lessons_learned_records` itu sendiri**. Akibatnya tak terlihat karena `session_replication_role='replica'` — dipasang di `purge()` itu juga — **mematikan FK cascade**: menghapus proyek tak menyeret lesson-nya, ia hanya jadi yatim yang menunjuk proyek yang tak ada. Tiap run menambah. Terverifikasi **913 dari 913 yatim FK**, dan angka itu sempat terbaca sebagai "modul Lessons Learned punya 828 data" — audit jalur hidup (§9a) pun **ikut tertipu**, karena tabelnya tampak berisi sehingga lolos dari daftar tabel nol-baris. Pembersihan yang melewatkan tabel utamanya bukan pembersihan. Diperbaiki lalu **dibuktikan dua kali**: run pertama menyapu 913 → 0, run kedua tetap 0. Ditambah alat `audit-residu-test.mjs` (potret jumlah baris sebelum/sesudah suite) — hasilnya sesudah suite penuh: **nol residu bertanda `[TEST]`**; sisa +11 `estimate_versions` dari 44 yang dibuat dicatat sebagai kebocoran kecil yang masih terbuka, bukan disembunyikan |
 | **P15** | **Sisa a11y: kontrol nyata, bukan latar modal** | ✅ **SELESAI 2026-08-02.** `click-events` **98 → 86 → 63**, `no-static-element` **94 → 74**. Gelombang penutup menutup **25 kontrol nyata**: kartu proyek, baris mandor/scope/notifikasi yang melipat, **zona unggah dokumen & bukti bayar** (sebelumnya tak bisa dipakai sama sekali lewat keyboard), sel kalender, galeri foto, kategori laporan, widget dashboard. Sisa 63 hampir semuanya latar modal & penahan klik `stopPropagation` yang jalan keluarnya sudah dijamin Esc — bentuknya bukan tombol, tapi jebakan keyboardnya sudah tak ada. Dua pola dipakai per-kasus: `<button>` bila isinya sederhana, `role="button"`+`tabIndex`+`onKeyDown` bila isinya blok bersarang. |
 | **P16** | **`apps/web` akhirnya punya harness test — sebelumnya NOL** | ✅ **Selesai 2026-08-02.** Sisi API punya 1.215 test yang berjalan tiap CI; sisi web hanya dijaga **bentuk kodenya** (lint, tsc, ratchet), bukan perilakunya. Celahnya konkret: `useTutupEsc` dipasang di **51 tempat** untuk menutup jebakan papan tik, dan `modal-esc-ratchet` menangkap **KEBERADAAN** panggilannya — bukan efeknya. Mengubah `'Escape'` jadi `'Esc'` (nama usang) akan lolos setiap pemeriksaan statis sementara 51 modal kembali menjebak tanpa satu pun gejala. Dipasang Vitest 3.2.7 (versi yang sama dengan API — satu runner, satu cara menjalankan) + Testing Library + jsdom. **56 test**: `useTutupEsc` 6, `dapatDitekan` 10, `PilihCari` 13, `hasPermission`+`logout` 10, `ToastProvider` 6, `useVirtualList` 11 — dua yang terakhir jalur KEAMANAN: gerbang yang menentukan siapa melihat tombol apa, dan pembersihan yang kalau melewatkan SATU kunci membuat orang berikutnya di perangkat itu terkunci 403 tanpa tahu sebabnya. **11 uji mutasi, semuanya tertangkap** — dan dua di antaranya menemukan test yang LEMAH lalu diperkuat: guard `if (!tutup) return` ternyata tak terjaga (mencegah PEMASANGAN listener, bukan cuma efeknya), dan batas sorotan `Math.min` lolos karena `if (hasil[sorot])` menelan indeks di luar batas diam-diam. **Yang paling lama: satu bug lingkungan.** Setiap komponen ber-ikon gagal `Cannot read properties of null (reading useContext)` — errornya menuduh React, lalu menuduh komponennya, keduanya salah alamat. Sebabnya `apps/web/node_modules/lucide-react` adalah symlink ke ROOT `.pnpm`, dan salinan root itu membawa React sendiri; versinya identik, objeknya berbeda. `dedupe`, `server.deps.inline`, `resolve.conditions`, dan alias `react` semuanya dicoba dan **tak satu pun menyelesaikannya** — mereka bekerja pada satu pohon, ini dua pohon |
-| **P17** | **Hutang adopsi `tenantDb` — 426 → 369** | 🔄 **Dicicil 2026-08-02.** 40 query di empat berkas yang polanya paling seragam dialihkan ke `viaProject()`: `rab-schedule` (7), `progress` (10), `documents` (5), `rab` (1). Semuanya tabel **kategori C** di rute yang `projectId`-nya SUDAH diverifikasi `proyekMilikTenant()` beberapa baris di atas — jadi `viaProject()` menyatakan hal yang sama dengan cara yang **tak bisa lupa**: filter tenant melekat pada query, bukan pada ingatan penulis rute berikutnya. Satu perlu penyesuaian: access-log di `documents` memakai `documentId`, bukan `projectId` — sumbernya `docTenant.project_id` yang sudah divalidasi, dan **tsc yang menangkapnya**, bukan review. Uji mutasi: mencabut `.eq(kolom, projectId)` dari `viaProject` → 2 test merah, jadi filternya memang mengikat bukan sekadar berganti nama. **Gelombang kedua** menutup `termin-payment` (10) dan `cash` (7) — keduanya menyentuh UANG, jadi tiap lokasi diperiksa gerbangnya satu per satu alih-alih disapu: beberapa query di `cash` MENDAHULUI gerbangnya (resolusi id dulu, validasi kemudian), dan itu pola sah yang `viaProject` tak cocok. **Gelombang ketiga**: `milestones` (4, seragam sempurna) dan `change-orders` (**2 dari 25** — dan angka kedua itu penting dibaca benar: sisanya BUKAN hutang, karena rute `/change-orders/:id` bekerja by-id dan me-resolve `project_id` dari CO-nya dulu, jadi `projectId` memang belum diketahui saat query dijalankan; memaksakan `viaProject` di sana berarti mengarang nilai). Ikut dibersihkan: **7 impor `supabase` yatim** sisa migrasi bertahap — ratchet lint API 16 → **10**. **Alat pemilahnya sendiri salah EMPAT kali**, dan tiap kesalahan menaikkan angka palsu: (1) tak memeriksa gerbang per-handler — melaporkan 70 kandidat di `mandor.ts` yang sebenarnya 2; (2) menghitung `projectIds()` sebagai gerbang — membuat rute LINTAS-proyek terbaca "siap", 0 → 40 palsu di `procurement`; (3) tak memeriksa KATEGORI tabel — `viaProject` hanya menerima kategori C, sementara `projects` adalah ANCHOR; (4) tak membedakan `request.params` (selalu ada) dari `request.query` (bisa `undefined`) — mengalihkan yang kedua akan MEMECAHKAN rute "semua proyek" yang sekarang bekerja. Sesudah empat koreksi angkanya masih tak stabil, jadi sisanya diperiksa MANUAL alih-alih dipercaya. Sisa 378 masih memuat 28 by-id lintas-proyek (bentuknya memang begitu) dan 64 non-kategori-C |
+| **P17** | **Hutang adopsi `tenantDb` — 426 → 364** | 🔄 **Dicicil 2026-08-02.** 40 query di empat berkas yang polanya paling seragam dialihkan ke `viaProject()`: `rab-schedule` (7), `progress` (10), `documents` (5), `rab` (1). Semuanya tabel **kategori C** di rute yang `projectId`-nya SUDAH diverifikasi `proyekMilikTenant()` beberapa baris di atas — jadi `viaProject()` menyatakan hal yang sama dengan cara yang **tak bisa lupa**: filter tenant melekat pada query, bukan pada ingatan penulis rute berikutnya. Satu perlu penyesuaian: access-log di `documents` memakai `documentId`, bukan `projectId` — sumbernya `docTenant.project_id` yang sudah divalidasi, dan **tsc yang menangkapnya**, bukan review. Uji mutasi: mencabut `.eq(kolom, projectId)` dari `viaProject` → 2 test merah, jadi filternya memang mengikat bukan sekadar berganti nama. **Gelombang kedua** menutup `termin-payment` (10) dan `cash` (7) — keduanya menyentuh UANG, jadi tiap lokasi diperiksa gerbangnya satu per satu alih-alih disapu: beberapa query di `cash` MENDAHULUI gerbangnya (resolusi id dulu, validasi kemudian), dan itu pola sah yang `viaProject` tak cocok. **Gelombang ketiga**: `milestones` (4, seragam sempurna) dan `change-orders` (**2 dari 25** — dan angka kedua itu penting dibaca benar: sisanya BUKAN hutang, karena rute `/change-orders/:id` bekerja by-id dan me-resolve `project_id` dari CO-nya dulu, jadi `projectId` memang belum diketahui saat query dijalankan; memaksakan `viaProject` di sana berarti mengarang nilai). Ikut dibersihkan: **7 impor `supabase` yatim** sisa migrasi bertahap — ratchet lint API 16 → **10**. **Alat pemilahnya sendiri salah EMPAT kali**, dan tiap kesalahan menaikkan angka palsu: (1) tak memeriksa gerbang per-handler — melaporkan 70 kandidat di `mandor.ts` yang sebenarnya 2; (2) menghitung `projectIds()` sebagai gerbang — membuat rute LINTAS-proyek terbaca "siap", 0 → 40 palsu di `procurement`; (3) tak memeriksa KATEGORI tabel — `viaProject` hanya menerima kategori C, sementara `projects` adalah ANCHOR; (4) tak membedakan `request.params` (selalu ada) dari `request.query` (bisa `undefined`) — mengalihkan yang kedua akan MEMECAHKAN rute "semua proyek" yang sekarang bekerja. Sesudah empat koreksi angkanya masih tak stabil, jadi sisanya diperiksa MANUAL alih-alih dipercaya. Sisa 378 masih memuat 28 by-id lintas-proyek (bentuknya memang begitu) dan 64 non-kategori-C |
 | **P4** | **Web Push** | ✅ **DISAMBUNG 2026-08-01** — rantainya tadinya putus di TIGA tempat. `sendWebPushToUsers()` punya **nol sebutan di seluruh `src/`**, `subscribeToPush()` nol pemanggil dari UI, dan 0 dari 23 user punya `push_subscription` — konsisten. Notifikasi menulis `channel: 'push'` ke DB tanpa pernah mengirim apa pun; menguji di HP tak akan membuktikan apa-apa. **Disambung di satu titik**: `createNotification`/`createNotifications` → `sendWebPushToUsers`, dikelompokkan per ISI supaya satu kejadian untuk 5 admin jadi 1 panggilan, bukan 5. Gagal simpan → **tidak** kirim push (penerima akan mengetuk lalu tak menemukan apa pun). Di UI: tombol eksplisit di panel notifikasi — **bukan** prompt otomatis, karena browser modern memblokir permintaan izin yang tak lahir dari gestur, dan yang ditolak sekali tak bisa diminta lagi. **Bug yang ditemukan test, bukan review:** `await import()` di dalam loop membuat panggilan KEDUA dan seterusnya **tertelan diam-diam** — dua pesan berbeda hanya satu terkirim. Diganti impor statis. 8 test, uji mutasi 3 arah semuanya tertangkap. Sisa yang butuh HP fisik: memastikan push benar-benar muncul di layar perangkat — tapi itu kini menguji hal yang benar-benar dikirim |
 | **P5** | **§9a buta terhadap util mati** | ✅ **Diperbaiki 2026-08-01.** `audit-jalur-hidup.mjs` hanya memindai `src/lib/`, sehingga `utils/webpush.ts` lolos — alat yang dibuat untuk menangkap "benar tapi mati" justru melewatkan contoh terbesarnya. Diperluas ke `utils/`, dan deteksinya diperbaiki agar tak menuduh palsu (versi pertama menuduh `uuid`, `golden-runner`, `tenant-map.generated` yang sebenarnya diimpor relatif `'./x.js'` di direktori yang sama). **Empat temuan nyata sekarang terlihat:** `utils/webpush.ts` · `lib/golden-boq-adapter.ts` (dipakai test golden saja) · `lib/golden-runner.ts` (idem) · `lib/retention-calculation.ts`. **⚠️ KOREKSI (jam yang sama):** penilaian awal saya — *"paling serius, finance.ts menghitung retensi sendiri, dua sumber kebenaran"* — **SALAH**, dan dicatat di sini alih-alih dihapus. Berkas itu bukan logika duplikat melainkan **helper test** yang membangun tabel probe di schema `test` untuk membuktikan trigger DB (`calc_retention_amount`) berperilaku benar; header berkasnya menjelaskan itu, dan saya tak membacanya sebelum menuduh. Diverifikasi: trigger produksi ADA dan hasilnya benar pada 3 proyek nyata (Rp 570 jt × 5% = Rp 28,5 jt, dst), helper-nya DIPAKAI `retention-calculation.test.ts`, dan nol residu probe tertinggal di DB. Pelajarannya sama dengan tiga alat yang menuduh palsu hari ini: **temuan otomatis adalah bahan tinjauan, bukan vonis** — dan itu berlaku juga untuk temuan saya sendiri |
 
