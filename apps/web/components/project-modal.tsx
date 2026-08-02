@@ -733,7 +733,15 @@ function RadioCard({ label, description, checked, onClick }: {
 }) {
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={e => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()   // Spasi jangan menggulir modal
+          onClick()
+        }
+      }}
       style={{
         flex: 1, padding: "12px 14px", borderRadius: 10, cursor: "pointer",
         border: `2px solid ${checked ? "var(--navy)" : "var(--border)"}`,

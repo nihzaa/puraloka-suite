@@ -307,7 +307,15 @@ export function DashboardGrid({ widgets }: DashboardGridProps) {
                   return (
                     <div
                       key={key}
+                      role="button"
+                      tabIndex={0}
                       onClick={() => toggleHide(key)}
+                      onKeyDown={e => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault()   // Spasi jangan menggulir dashboard
+                          toggleHide(key)
+                        }
+                      }}
                       style={{
                         display: "flex", alignItems: "center", gap: 8,
                         padding: "6px 8px", borderRadius: 8, cursor: "pointer",

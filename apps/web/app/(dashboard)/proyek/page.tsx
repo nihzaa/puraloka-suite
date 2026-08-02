@@ -565,7 +565,15 @@ function ProjectCardGrid({ project: p, onClick }: { project: Project; onClick: (
 
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={e => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()   // Spasi jangan menggulir daftar proyek
+          onClick()
+        }
+      }}
       style={{
         ...card, padding: 20, cursor: "pointer",
         transition: "all 0.15s ease",
@@ -687,7 +695,15 @@ function ProjectCardList({ project: p, onClick }: { project: Project; onClick: (
 
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={e => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()   // Spasi jangan menggulir daftar
+          onClick()
+        }
+      }}
       style={{
         ...card, padding: "16px 20px", cursor: "pointer",
         display: "grid",

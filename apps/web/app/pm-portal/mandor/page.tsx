@@ -130,15 +130,28 @@ export default function PMMandorPage() {
             return (
               <div key={r.id} style={{ background: C.surface, borderRadius: 12, border: `1px solid ${isPending ? C.yellow + "40" : C.border}`, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
                 <div style={{ padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                  <div style={{ flex: 1, cursor: "pointer" }} onClick={() => setExpanded((p) => ({ ...p, [r.id]: !p[r.id] }))}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
+                  {/* `<button>`, bukan `<div onClick>`: ini pemicu buka-tutup
+                      rincian laporan upah. Sebagai div, pemakai keyboard tak
+                      bisa membukanya sama sekali — rinciannya jadi tak
+                      terjangkau, bukan sekadar tak nyaman. `aria-expanded`
+                      memberi tahu pembaca layar keadaannya sekarang. */}
+                  <button
+                    type="button"
+                    aria-expanded={!!expanded[r.id]}
+                    onClick={() => setExpanded((p) => ({ ...p, [r.id]: !p[r.id] }))}
+                    style={{
+                      flex: 1, cursor: "pointer", background: "none", border: "none",
+                      font: "inherit", color: "inherit", textAlign: "left", padding: 0,
+                    }}
+                  >
+                    <span style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
                       <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{fmtDate(r.week_start)} – {fmtDate(r.week_end)}</span>
                       <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20, color: meta.color, background: meta.bg }}>{meta.label}</span>
-                    </div>
-                    <div style={{ fontSize: 12, color: C.mid }}>
+                    </span>
+                    <span style={{ display: "block", fontSize: 12, color: C.mid }}>
                       {r.assignment?.mandor?.name ?? "—"} · {r.assignment?.project?.name ?? "—"} · <strong style={{ color: C.navy }}>{fmt(r.total_amount ?? 0)}</strong>
-                    </div>
-                  </div>
+                    </span>
+                  </button>
                   <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
                     {isPending && (
                       <>

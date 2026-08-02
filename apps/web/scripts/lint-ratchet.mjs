@@ -83,13 +83,30 @@ const AMBANG = {
   // `<img onClick>` — bisa diklik tetikus, TAK BISA dijangkau keyboard sama
   // sekali. Diganti `<button>`, bukan ditambal `role`+`tabIndex`+`onKeyDown`:
   // browser sudah tahu apa itu tombol, dan tambalan manual mudah tak lengkap.
-  'jsx-a11y/click-events-have-key-events': 86,
+  // 98 → 86 → 63 (2026-08-02). Gelombang ini menutup 25 KONTROL NYATA — bukan
+  // latar modal: kartu proyek, baris mandor/scope/notifikasi yang melipat,
+  // zona unggah dokumen & bukti bayar, sel kalender, galeri foto, kategori
+  // laporan, dan widget dashboard.
+  //
+  // Sisanya 63 hampir semuanya latar modal & penahan klik `stopPropagation`
+  // yang jalan keluarnya sudah dijamin Esc (P9/P13b) — bentuknya bukan tombol,
+  // tapi jebakan keyboardnya sudah tak ada.
+  //
+  // Dua pola dipakai, dipilih per-kasus bukan disapu:
+  //   `<button>`        bila isinya sederhana (zona unggah, baris upah PM)
+  //   `role="button"`   bila isinya blok bersarang yang tata letaknya akan
+  //   + tabIndex          berubah kalau dibungkus tombol
+  //   + onKeyDown
+  // Keduanya memberi hal yang sama pada pemakai keyboard: bisa difokus,
+  // diaktifkan Enter/Spasi, dan dikenali pembaca layar. `e.preventDefault()`
+  // pada Spasi wajib — tanpa itu halaman ikut menggulir saat tombol ditekan.
+  'jsx-a11y/click-events-have-key-events': 63,
   // 115 → 108 → 106 (2026-08-01; `rab-section`, lalu kartu proyek jadi `<Link>`): baris kategori/sub-kategori yang
   // bisa dilipat, sel komponen biaya, dan area seret-jatuh. Dipakai helper
   // `lib/dapat-ditekan.ts` supaya `role`+`tabIndex`+Enter/Space selalu lengkap
   // — separuh implementasi (umumnya Enter ditangani, Space tidak) terasa rusak
   // sesekali, dan itu lebih membingungkan daripada rusak konsisten.
-  'jsx-a11y/no-static-element-interactions': 94,
+  'jsx-a11y/no-static-element-interactions': 74,   // 94 → 74, ikut turun bersama click-events
   'jsx-a11y/no-noninteractive-element-interactions': 6,
 
   // ── Hutang lint lain ────────────────────────────────────────────────────

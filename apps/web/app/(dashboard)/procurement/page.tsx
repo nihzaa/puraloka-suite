@@ -66,7 +66,21 @@ function Badge({ status }: { status: string }) {
 
 function Card({ children, style, onClick }: { children: React.ReactNode; style?: React.CSSProperties; onClick?: () => void }) {
   return (
-    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, ...style }} onClick={onClick}>
+    // `role`/`tabIndex`/`onKeyDown` hanya saat `onClick` diberikan: Card juga
+    // dipakai sebagai pembungkus biasa, dan menandai wadah non-interaktif
+    // sebagai tombol justru menyesatkan pembaca layar.
+    <div
+      style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, ...style }}
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()   // Spasi jangan menggulir halaman
+          onClick()
+        }
+      }) : undefined}
+    >
       {children}
     </div>
   );

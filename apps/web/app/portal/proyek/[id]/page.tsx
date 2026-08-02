@@ -306,7 +306,15 @@ function FotoTab({ projectId }: { projectId: string }) {
           {filtered.map((photo, idx) => (
             <div
               key={photo.id}
+              role="button"
+              tabIndex={0}
               onClick={() => setLightbox(idx)}
+              onKeyDown={e => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault()   // Spasi jangan menggulir galeri
+                  setLightbox(idx)
+                }
+              }}
               style={{ borderRadius: 10, overflow: "hidden", cursor: "pointer", position: "relative", aspectRatio: "4/3", background: "var(--surface-subtle)" }}
             >
               <img src={photo.file_url} alt={photo.caption ?? ""} style={{ width: "100%", height: "100%", objectFit: "cover" }} />

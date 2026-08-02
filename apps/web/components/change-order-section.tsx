@@ -375,6 +375,14 @@ function ChangeOrderCard({
     <div style={{ border: "1px solid #E5E7EB", borderRadius: 12, overflow: "hidden", background: "var(--surface)" }}>
       {/* Header */}
       <div
+        role="button"
+        tabIndex={0}
+        onKeyDown={e => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault()   // Spasi jangan menggulir daftar change order
+            setExpanded(x => !x)
+          }
+        }}
         style={{ padding: "14px 18px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, justifyContent: "space-between" }}
         onClick={() => setExpanded(e => !e)}
       >

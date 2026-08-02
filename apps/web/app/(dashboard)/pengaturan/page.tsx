@@ -223,7 +223,16 @@ function PengaturanContent() {
                 <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                   {/* Preview area */}
                   <div
+                    role="button"
+                    tabIndex={isAdmin ? 0 : -1}
+                    aria-disabled={!isAdmin}
                     onClick={() => isAdmin && fileRef.current?.click()}
+                    onKeyDown={e => {
+                      if (isAdmin && (e.key === "Enter" || e.key === " ")) {
+                        e.preventDefault()   // Spasi jangan menggulir halaman
+                        fileRef.current?.click()
+                      }
+                    }}
                     style={{
                       width: 96, height: 72, borderRadius: 10,
                       border: `2px dashed ${isAdmin ? C.navy : C.border}`,

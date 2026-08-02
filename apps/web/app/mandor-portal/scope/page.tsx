@@ -132,6 +132,15 @@ export default function MandorScopePage() {
                       }}>
                         {/* Scope header — clickable untuk expand items */}
                         <div
+                          role="button"
+                          tabIndex={0}
+                          aria-expanded={isExpanded}
+                          onKeyDown={e => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault()   // Spasi jangan menggulir daftar scope
+                              setExpanded(prev => ({ ...prev, [scope.id]: !isExpanded }))
+                            }
+                          }}
                           style={{
                             padding: "16px 20px",
                             background: scope.status === "active" ? "#FAFCFF" : "transparent",

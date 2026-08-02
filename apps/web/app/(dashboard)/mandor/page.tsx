@@ -751,8 +751,21 @@ function MandorPageInner() {
                 const canApprove = !isMandor && r.status === "submitted";
                 return (
                   <div key={r.id} style={{ ...card, padding: "14px 18px", transition: "box-shadow 0.15s" }}>
+                    {/* `role="button"` + handler keyboard, BUKAN `<button>`:
+                        isinya berisi beberapa blok bersarang yang tata letaknya
+                        akan berubah kalau dibungkus tombol. Yang dibutuhkan
+                        pemakai keyboard sama — bisa difokus (`tabIndex`),
+                        diaktifkan (Enter/Spasi), dan dikenali pembaca layar. */}
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}
+                      role="button"
+                      tabIndex={0}
                       onClick={() => openDetail(r.id)}
+                      onKeyDown={e => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault()   // Spasi jangan menggulir halaman
+                          openDetail(r.id)
+                        }
+                      }}
                       onMouseEnter={e => (e.currentTarget.style.cursor = "pointer")}
                     >
                       <div style={{ width: 40, height: 40, borderRadius: 10, background: st.bg, border: `1px solid ${st.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>

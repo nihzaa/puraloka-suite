@@ -582,7 +582,15 @@ export function NotificationPanel({ unreadCount, onCountChange }: NotificationPa
             return (
               <div
                 key={notif.id}
+                role="button"
+                tabIndex={0}
                 onClick={() => handleRowClick(notif)}
+                onKeyDown={e => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault()   // Spasi jangan menggulir panel
+                    handleRowClick(notif)
+                  }
+                }}
                 style={{
                   padding: "12px 16px",
                   borderBottom: `1px solid ${C.border}`,

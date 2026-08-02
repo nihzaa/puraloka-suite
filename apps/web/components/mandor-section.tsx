@@ -236,6 +236,14 @@ export function MandorSection({
             <div key={asgn.id} style={{ border: `1px solid ${C.border}`, borderRadius: 12, background: "var(--surface)", overflow: "hidden" }}>
               {/* Assignment header */}
               <div
+                role="button"
+                tabIndex={0}
+                onKeyDown={e => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault()   // Spasi jangan menggulir daftar mandor
+                    toggleExpand(asgn.id)
+                  }
+                }}
                 style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", cursor: "pointer", background: isExpanded ? C.navyLight : "var(--surface)", transition: "background 0.15s" }}
                 onClick={() => toggleExpand(asgn.id)}
               >
