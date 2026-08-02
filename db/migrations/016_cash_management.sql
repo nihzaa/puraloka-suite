@@ -222,11 +222,24 @@ INSERT INTO storage.buckets (id, name, public)
   VALUES ('expense-receipts', 'expense-receipts', false)
   ON CONFLICT (id) DO NOTHING;
 
+-- ⚠️ DROP dulu — `CREATE POLICY` tidak punya `IF NOT EXISTS`.
+--
+-- `storage.objects` adalah tabel GLOBAL: ia tidak ikut skema, jadi policy di
+-- sini bertahan lintas `resetTestSchema()`. Tanpa DROP, migrasi ini gagal
+-- "policy … already exists" pada run KEDUA — dan kegagalannya menuduh
+-- migrasinya, bukan sifat global tabelnya.
+--
+-- `INSERT INTO storage.buckets` di atas sudah idempoten (`ON CONFLICT`);
+-- ketiga policy ini tertinggal. Disamakan 2026-08-02 saat test alur uang
+-- pertama kali memakai migrasi ini.
+DROP POLICY IF EXISTS "expense_receipts_insert" ON storage.objects;
 CREATE POLICY "expense_receipts_insert" ON storage.objects
   FOR INSERT WITH CHECK (bucket_id = 'expense-receipts');
 
+DROP POLICY IF EXISTS "expense_receipts_select" ON storage.objects;
 CREATE POLICY "expense_receipts_select" ON storage.objects
   FOR SELECT USING (bucket_id = 'expense-receipts');
 
+DROP POLICY IF EXISTS "expense_receipts_delete" ON storage.objects;
 CREATE POLICY "expense_receipts_delete" ON storage.objects
   FOR DELETE USING (bucket_id = 'expense-receipts');

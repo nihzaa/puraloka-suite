@@ -270,6 +270,9 @@ memberi nilai apa pun, sebagus apa pun rancangannya.
 | E11 | **Sistem tata letak lintas halaman** | 26 halaman memakai SEMBILAN lebar berbeda, dan **13 tak memusatkan diri sama sekali** — di 1920px isinya melebar sampai 1700px. Angkanya tak pernah diputuskan siapa pun; ia diwarisi dari halaman yang kebetulan disalin lebih dulu | ✅ token `--w-form/page/luas` + penjaga CI |
 | E14 | **Rate limit tertelan jadi 500** | Login yang kena limit membalas "Internal server error", bukan "coba lagi dalam 1 menit" — user mengira sistemnya rusak lalu mencoba terus, yang justru memperpanjang blokirnya. Regresi 200-bukan-500 ikut tertangkap uji SEBELUM ter-commit | ✅ 8 test + uji mutasi 3 arah |
 | E15 | **Kontras GAGAL WCAG di halaman login** | `--text-muted` 2,53:1 (syarat 4,5:1) di layar PERTAMA yang dilihat semua pengguna; dipakai 1.001×. Mode gelap lebih parah (2,57–3,19) dan tak pernah diaudit. Tombol "Masuk" 2,72:1 — putih di atas biru terang | ✅ 0 pelanggaran axe, terang & gelap |
+| E16 | **Pengeluaran kas utama tak pernah memotong saldo** | `fn_update_main_cash_on_expense()` ADA di DB, TRIGGER-nya TIDAK — jadi tak pernah dieksekusi sekali pun. Kembarannya untuk kas kecil terpasang normal, jadi separuh jalur hidup dan separuh mati: orang melihat petty cash berkurang benar lalu menyimpulkan mekanismenya berfungsi. `project_expenses` masih 0 baris, jadi belum ada kerugian. | ✅ Migrasi 161 + 8 test, 5 mutasi tertangkap (2026-08-02) |
+| E17 | **Pembayaran klien Rp 627 juta tak pernah masuk saldo kas** | Cacat yang sama pada `payments` — tapi yang ini SUDAH menggigit: 5 dari 23 pembayaran ber-`cash_account_id` senilai **Rp 627.075.000** tak pernah menambah saldo. Trigger dipasang; koreksi retroaktif sengaja TIDAK dilakukan — itu keputusan akuntansi yang harus dicocokkan ke rekening bank. | ✅ Migrasi 162 + 8 test (2026-08-02) · ⏳ koreksi saldo menunggu founder |
+| E18 | **Lebih bayar membuat piutang perusahaan terlihat lebih kecil** | `amount_due = total - dibayar` tanpa batas bawah. Klien yang lebih bayar Rp 500rb menghasilkan sisa **−500rb**, dan `clients.ts:78` + `dashboard.ts:190` menjumlahkannya apa adanya — sehingga menutupi tunggakan klien LAIN. Sementara `ar-register.ts:71` memfilter `> 0` sehingga invoice itu hilang dari aging. Dua pembaca, dua perilaku, nol peringatan. | ✅ Migrasi 163 (`GREATEST(0, …)`) + 2 test (2026-08-02) |
 
 ### Yang BELUM selesai dari kelompok ini
 
@@ -294,6 +297,22 @@ defensif daripada `?? 500`. Ternyata untuk `throw new Error(...)` biasa,
 sebagai **200 SUKSES**. Monitoring yang menghitung rasio 5xx tak akan pernah
 melihatnya. Tertangkap hanya karena uji perbandingan ("error sungguhan TETAP
 500") ditulis bersama uji utamanya, bukan sesudahnya.
+
+**Fungsi tanpa trigger tidak memberi gejala apa pun.** Dua kali dalam satu hari
+(E16, E17): fungsi ada di `pg_proc`, lengkap dan benar, tapi tak ada `pg_trigger`
+yang memanggilnya. Request tetap 200, data tetap tersimpan, laporan tetap terbit
+— hanya saldonya diam. Grep pada kode aplikasi tak menemukannya karena tak ada
+kode aplikasi yang terlibat. Yang mengungkapnya: menulis test yang memeriksa
+**uangnya berpindah**, bukan **statusnya berubah**.
+
+**Menamai ulang objek DB yang sudah ada di migrasi lain menciptakan duplikat,
+bukan pengganti.** Migrasi 162 versi pertama memakai nama karangan sendiri
+(`trg_update_cash_on_payment`) padahal migrasi 019 sudah punya
+`trg_update_cash_balance_on_payment`. Di dev tak terlihat — hanya 162 yang
+pernah jalan di sana. Di database yang dibangun dari nol, KEDUANYA terpasang dan
+setiap pembayaran menambah saldo **dua kali**. Tertangkap hanya karena test
+alur uang menjalankan seluruh rantai migrasi dari kosong — persis yang dilakukan
+CI, dan persis yang akan dilakukan environment produksi pertama.
 
 **Verifikasi bisa mengukur benda yang salah tanpa memberi tanda.** Berjam-jam
 terbuang menyimpulkan "token CSS-nya dibuang compiler" — padahal yang terjadi:
