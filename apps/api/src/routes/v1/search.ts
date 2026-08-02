@@ -79,7 +79,13 @@ export default async function searchRoutes(app: FastifyInstance) {
           type: 'project',
           id: p.id,
           title: p.name,
-          sub: `${p.location} · ${(p.clients as any)?.company_name ?? (p.clients as any)?.contact_person ?? '—'}`,
+          // Satu `as` untuk dua pembacaan, bukan dua: bentuk embed-nya sama,
+          // dan mengulang `as any` menaikkan hutang lint tanpa menambah
+          // kejelasan apa pun.
+          sub: (() => {
+            const kl = p.clients as { company_name?: string; contact_person?: string } | null
+            return `${p.location} · ${kl?.company_name ?? kl?.contact_person ?? '—'}`
+          })(),
           url: `/proyek/${p.id}`,
           meta: `${Number(p.progress_pct).toFixed(0)}% · ${p.status}`,
         })
