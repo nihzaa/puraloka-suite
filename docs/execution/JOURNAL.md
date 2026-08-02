@@ -5,6 +5,69 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-03 · Sesi 4 — CI dipercepat 2,7×, dan satu aturan ternyata tak dijaga
+
+### Diukur dulu — dan hipotesis mandat gugur
+
+Mandat menduga schema dibongkar-pasang per berkas, lalu menyarankan template
+database. **Diukur, salah:** overhead hook **0,2s dari 125,6s (0%)**, `DROP
+SCHEMA` 0,03s. Template DB akan menghemat ~6,5s dari 1203s.
+
+Yang sebenarnya mahal: **~6.000 round-trip × 21ms**. Dan CI 10× lebih lambat
+dari lokal karena **DB project CI di Tokyo, runner GitHub di US-East** — tiap
+query menyeberangi Pasifik. Tak satu pun butir rencana mandat menyentuh ini.
+
+Pelajaran yang layak diulang: optimasi tanpa pengukuran akan menghabiskan waktu
+pada 0,5% masalah sambil merasa produktif.
+
+### Temuan terpenting — ADR-004 tak dijaga sama sekali di sisi API
+
+Langkah 5 mandat ("buktikan penjaga bisa merah") dimulai sebagai formalitas.
+Menyisipkan `u.role === 'admin'` ke berkas route **lolos seluruh 14 penjaga**.
+
+Penyebabnya: `apps/web/scripts/adr004-ratchet.mjs` memang ada, tapi hanya
+mencakup **web**, dan header-nya menyatakan *"Sisi API sudah patuh
+(requirePermission di mana-mana)"* — pengukuran membuktikan itu **tidak benar**:
+**52 pelanggaran** di `apps/api/src`.
+
+Aturan yang membuat SaaS multi-perusahaan mungkin, selama ini hanya konvensi.
+Penjaga baru terpasang (ratchet, lantai 52), terbukti dua arah.
+
+### F0-14 — sharding menyingkap cacat isolasi, lalu diperbaiki di tempat benar
+
+Shard 4× memangkas 1317s → 434s, tapi shard 1 gagal: `projects.company_id`
+NOT NULL dilanggar.
+
+Akarnya **bukan** sharding dan **bukan** trigger. `fn_isi_company_id()` mengisi
+otomatis hanya bila ada TEPAT SATU company, dan menolak menebak saat ambigu —
+perilaku yang benar. Yang salah: belasan berkas test meng-INSERT ke tabel
+ber-tenant tanpa menyebut `company_id`, mengandalkan fallback itu.
+
+Berurutan, asumsinya kebetulan selalu benar. Paralel,
+`search-tenant-isolation` meng-**commit** company kedua selama ~2 detik (ia
+harus commit — memakai `app.inject` lewat koneksi terpisah), dan setiap INSERT
+di shard lain dalam jendela itu ditolak.
+
+Diperbaiki di test: **16 INSERT di 14 berkas** kini menyatakan `company_id`
+eksplisit. **Trigger tidak disentuh sama sekali** — melemahkannya demi CI cepat
+adalah G-5, tepat sebelum Fase 2.
+
+**Satu berkas nyaris dirusak sapuan otomatis.** `tenant-isolation-nyata`
+menghilangkan `company_id` sebagai **inti ujinya** (membuktikan trigger menolak
+menebak). Sapuan ikut mengubahnya, test langsung merah, dipulihkan — dan diberi
+peringatan eksplisit. Kalau lolos, ia akan hijau selamanya tanpa menguji apa pun.
+
+Verifikasi: seluruh berkas terdampak **lulus saat ada dua company** — kondisi
+persis yang menggagalkan shard 1.
+
+### Hasil: 21,9 → 8,2 menit (2,7×), 9/9 check hijau
+
+Target mandat ≤8 menit **kurang 14 detik** — dinyatakan apa adanya. Penyebabnya
+sudah terukur: `vitest --shard` membagi berdasar **alfabet, bukan durasi**,
+sehingga shard 1 menampung berkas terberat (494s vs 265s, selisih 87%). → F0-15.
+
+---
+
 ## 2026-08-03 · Sesi 3 — repo dibuka, CI hidup, P0 terbukti nyata
 
 Founder memutuskan repo dijadikan **publik**. Dua blokir yang sesi lalu saya

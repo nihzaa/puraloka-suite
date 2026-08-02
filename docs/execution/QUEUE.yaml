@@ -321,6 +321,25 @@ items:
       saling melihat company yang lain. Shard ditahan di 1 sampai ini beres —
       melonggarkan trigger demi CI cepat = G-5 tepat sebelum Fase 2.
 
+  - id: F0-15
+    fase: 0
+    judul: "Seimbangkan shard CI — 494s vs 265s, kurang 14 detik dari target 8 menit"
+    blokir_oleh: [F0-14]
+    kriteria_selesai:
+      - "wall-clock CI kurang dari atau sama dengan 480s, dibuktikan 3 run berturut"
+      - "selisih shard terlama vs tercepat di bawah 25%"
+    cara_verifikasi: "gh api runs/<id>/jobs — durasi tiap shard"
+    bobot: S
+    status: todo
+    catatan: >
+      Setelah F0-14, shard 4x hidup dan wall-clock 1317s -> 494s (2,7x). Target
+      mandat 8 menit KURANG 14 DETIK. Penyebabnya terukur: vitest --shard membagi
+      berdasar urutan ALFABET, bukan durasi, jadi shard 1 kebetulan menampung
+      berkas terberat (multitenant-t3-rollback 12,7s, gl-api 8,4s) — 494s vs 265s,
+      selisih 87%. Opsi: naikkan ke 6 shard, atau bagi berbasis durasi. Perbaikan
+      terbesar tetap B-3 (pindah region DB): ia memangkas dasar 1203s-nya, bukan
+      sekadar membaginya.
+
   # ── GERBANG: menunggu founder ─────────────────────────────────────────────
   - id: R-001
     fase: 0

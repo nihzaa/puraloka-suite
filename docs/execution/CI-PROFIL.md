@@ -181,7 +181,38 @@ Struktur matrix dipertahankan; menaikkannya kembali cukup perubahan kecil setela
 | `gabung-coverage.mjs` | Terverifikasi: statements gabungan **6794/21241 identik** dengan run tak ter-shard. |
 | Penjaga literal peran API (ADR-004) | Menutup lubang yang lolos 14 penjaga lain. |
 
-### 5.3 Angka akhir — terukur, dan JUJUR terhadap target
+### 5.3 ANGKA AKHIR setelah F0-14 — shard 4× hidup, 9/9 check hijau
+
+Run `30766328275` — **seluruh 9 check hijau**, termasuk keempat shard:
+
+| Job | Durasi |
+|---|---:|
+| API — test (shard 1/4) | **494s** ← jalur kritis |
+| API — test (shard 4/4) | 381s |
+| API — test (shard 2/4) | 300s |
+| API — test (shard 3/4) | 265s |
+| Web — lint, typecheck, build | 135s |
+| Browser | 73s |
+| Keamanan | 56s |
+| Ratchet coverage (gabungan) | 34s |
+| Dokumentasi | 8s |
+
+**Wall-clock 1317s → 494s = 21,9 → 8,2 menit (2,7×).**
+
+**Target ≤8 menit: kurang 14 detik.** Dinyatakan apa adanya — bukan dibulatkan
+jadi "tercapai".
+
+Yang menahan tinggal satu, dan sudah terukur: **shard tidak seimbang**
+(494s vs 265s — selisih 87%). `vitest --shard` membagi berdasarkan urutan
+alfabet, bukan durasi, jadi shard 1 kebetulan menampung berkas-berkas terberat
+(`multitenant-t3-rollback` 12,7s, `gl-api` 8,4s). Menyeimbangkannya —
+mis. 6 shard, atau pembagian berbasis durasi — akan menembus 8 menit dengan
+mudah. Masuk antrean sebagai pekerjaan berikutnya, bukan diklaim selesai.
+
+Dan **B-3 (pindah region DB)** tetap perbaikan terbesar yang tersisa: ia
+memangkas dasar 1203s-nya, bukan sekadar membaginya.
+
+### 5.4 Angka antara (1 shard, sebelum F0-14)
 
 Run `30765204774`, konfigurasi yang benar-benar dipakai (1 shard):
 
