@@ -71,9 +71,23 @@ jobs:
     # tak akan pernah datang dan **setiap PR tertahan selamanya** — kegagalan
     # yang terlihat seperti "CI lambat", bukan seperti salah konfigurasi.
     # Daftar wajib diperbarui bersamaan; lihat docs/execution/CI-BUKTI.md §4.
-    name: API — test (shard ${{ matrix.shard }}/4)
+    name: API — test (shard ${{ matrix.shard }}/6)
     runs-on: ubuntu-latest
-    # ── 4 SHARD — dinyalakan kembali setelah F0-14 ────────────────────────
+    # ── 6 SHARD ───────────────────────────────────────────────────────────
+    #
+    # Dinaikkan dari 4 ke 6 (F0-15). Dengan 4 shard wall-clock 494s = 8,2 menit
+    # — kurang 14 detik dari target ≤8 menit, dan penyebabnya bukan jumlah
+    # shard melainkan KESEIMBANGANNYA: `vitest --shard` membagi berdasar urutan
+    # ALFABET, bukan durasi, sehingga shard 1 kebetulan menampung berkas
+    # terberat (`multitenant-t3-rollback` 12,7s, `gl-api` 8,4s) → 494s vs 265s,
+    # selisih 87%.
+    #
+    # Menambah shard memperkecil dampak ketimpangan itu tanpa perlu mekanisme
+    # pembagian berbasis durasi (yang akan menambah komponen baru untuk dirawat).
+    # Batasnya: tiap shard membayar biaya tetap ~60s (checkout + install +
+    # prepare CI project), jadi menaikkannya terus akan berbalik merugikan.
+    #
+    # ── Riwayat: kenapa shard sempat DITAHAN di 1
     #
     # Percobaan pertama (2026-08-03) memangkas wall-clock 1317s → 434s (3×),
     # tetapi shard 1 gagal:
@@ -105,7 +119,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6]
     defaults:
       run:
         working-directory: apps/api
@@ -350,9 +364,9 @@ jobs:
       # PARALEL; kalau berbagi schema, `resetTestSchema()` satu shard men-DROP
       # schema yang sedang dipakai shard lain — kerusakan yang gejalanya terlihat
       # seperti test flaky, bukan seperti kesalahan konfigurasi.
-      - name: Test + coverage (shard ${{ matrix.shard }}/4)
+      - name: Test + coverage (shard ${{ matrix.shard }}/6)
         run: |
-          npx vitest run --shard=${{ matrix.shard }}/4 --coverage \
+          npx vitest run --shard=${{ matrix.shard }}/6 --coverage \
             --coverage.include='src/**/*.ts' \
             --coverage.exclude='src/**/*.test.ts' \
             --coverage.exclude='src/**/__tests__/**' \
