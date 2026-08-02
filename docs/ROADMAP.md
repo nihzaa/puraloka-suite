@@ -61,7 +61,7 @@ belum ada. Hanya `assets` yang sudah hidup.
 
 | # | Langkah | Kenapa urutannya begini | Prasyarat |
 |---|---|---|---|
-| **1** | ~~Keputusan multi-company~~ → **T7: UI company switcher + Menu Registry per-company** | ⚠️ **KOREKSI 2026-08-02:** keputusannya SUDAH diambil founder 2026-07-28 (**ADR-011 ACCEPTED**) — kedua tripwire terpicu (SaaS dengan calon pelanggan konkret + badan usaha kedua). Eksekusinya pun sudah jauh: T1–T6 selesai, diverifikasi ke dev — **40 tabel ber-`company_id`** (27 NOT NULL), **102 policy tenant isolation**, `auth_company_id()` hidup, `document_number_series` siap. Yang tersisa **T7**, dan ADR-011 menyebutnya prasyarat: *"CECEP langkah 7+ dilanjutkan setelah T7"*. | tak ada — bisa dikerjakan sekarang |
+| ~~**1**~~ | ~~T7: UI company switcher + Menu Registry~~ | ✅ **SELESAI — diverifikasi 2026-08-02.** `company-switcher.tsx` terpasang di topbar · `/pengaturan/perusahaan` · `company_menu_settings` + `menu.ts` · **14 test T7 hijau**. Sebelumnya saya kira belum ada karena mencari nama berkas yang salah. Checklist L2 lengkap: test isolasi tenant yang tadinya di-skip kini **5 hijau**. | — |
 | **2** | **GL in-app** — CoA + jurnal + auto-jurnal | Muara semua modul: kas, invoice, kasbon, procurement sudah hidup dan semuanya bermuara ke pembukuan. Juga **prasyarat Gelombang 4** — AI membaca GL. | langkah 1 |
 | **3** | **QA/QC + HSE** (14 sub-menu) | Mandiri — tak bergantung GL. Bisa dikerjakan **paralel** dengan 1–2 kalau keputusan multi-company belum turun. Langsung dipakai orang lapangan. | — |
 | **4** | **Payroll + BPJS + PPh 21** | Bermuara ke GL, jadi sesudah 2. | langkah 2 |

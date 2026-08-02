@@ -147,13 +147,23 @@ afterAll(async () => {
   await c?.end()
 })
 
-// SENGAJA di-skip sampai penyebab harness ditemukan. Alternatifnya —
-// mem-push test merah — akan membuat CI merah permanen dan melatih orang
-// mengabaikan warna CI; itu jauh lebih mahal daripada satu test tertunda.
-// Yang TIDAK dilakukan: melonggarkan assertion agar "hijau" (mis. membuang
-// pemeriksaan positif). Itu akan menghasilkan test yang lulus tanpa menguji
-// apa pun — persis lapisan-palsu yang P2 berusaha cegah.
-describe.skip('Search global — tenant A TIDAK PERNAH melihat data tenant B', () => {
+// ── DIAKTIFKAN 2026-08-02 — penyebabnya BUKAN harness
+//
+// Test ini di-skip dengan catatan "sampai penyebab harness ditemukan".
+// Menjalankannya tanpa `.skip` menunjukkan 4 dari 5 LULUS — dan yang gagal
+// justru pemeriksaan POSITIF (tenant melihat datanya sendiri), bukan isolasi.
+//
+// Penyebabnya bug produksi: `search.ts` meminta kolom `clients.name` yang TAK
+// ADA (kolomnya `company_name`/`contact_person`), sehingga SELURUH pencarian
+// proyek gagal dengan "column clients_1.name does not exist" — dan errornya
+// dibuang, jadi hasilnya cuma kosong. Search tak pernah menemukan proyek, di
+// test MAUPUN di produksi, tanpa gejala apa pun.
+//
+// Keputusan "jangan longgarkan assertion, jangan push test merah" waktu itu
+// BENAR: assertion positif yang dipertahankan itulah yang akhirnya
+// mengungkap bugnya. Melonggarkannya akan membuat test hijau selamanya di
+// atas fitur yang mati.
+describe('Search global — tenant A TIDAK PERNAH melihat data tenant B', () => {
   it('proyek: hasil memuat proyek A, TIDAK memuat proyek B', async () => {
     actAs(authA)
     const r = await cari(TAG)

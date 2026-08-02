@@ -46,22 +46,40 @@ export default async function searchRoutes(app: FastifyInstance) {
 
     // ── Projects ─────────────────────────────────────────────────────
     if (user.role !== 'mandor') {
+      // ⚠️ `company_name`/`contact_person`, BUKAN `name` — kolom `clients.name`
+      // TAK ADA. Sampai 2026-08-02 baris `.select()` di bawah memintanya,
+      // sehingga SELURUH pencarian proyek gagal dengan "column clients_1.name
+      // does not exist" — errornya dibuang, hasilnya kosong, tanpa gejala.
+      // Search tak pernah menemukan proyek. Peringatan yang sama sudah ada di
+      // blok `clients` di bawah; blok ini terlewat.
+      //
+      // Komentar ini DI ATAS `.from()`, bukan di antara `.from()` dan
+      // `.select()`: `audit-kolom-select.mjs` memasangkan keduanya dalam
+      // jendela 220 karakter, dan komentar di tengah mendorong `.select()`
+      // keluar jangkauan — membuat penjaganya buta pada baris ini.
       let pq = request.db!
         .from('projects')
-        .select('id, name, location, status, progress_pct, clients:clients!projects_client_id_fkey(name)')
+        .select('id, name, location, status, progress_pct, clients:clients!projects_client_id_fkey(company_name, contact_person)')
         .ilike('name', ilike)
         .eq('is_deleted', false)
         .limit(cap)
 
       if (user.role === 'pm') pq = pq.eq('pm_id', user.id)
 
-      const { data } = await pq
+      // Hasil DIPERIKSA: query yang gagal di sini menghasilkan daftar kosong
+      // yang tak bisa dibedakan dari "tak ada yang cocok" — persis cara bug
+      // `clients.name` di atas bertahan tanpa ketahuan.
+      const { data, error: eProj } = await pq
+      if (eProj) {
+        request.log.error({ eProj, term }, 'Pencarian proyek gagal')
+        return reply.status(500).send({ error: 'Pencarian proyek gagal: ' + eProj.message })
+      }
       for (const p of data ?? []) {
         results.push({
           type: 'project',
           id: p.id,
           title: p.name,
-          sub: `${p.location} · ${(p.clients as any)?.name ?? '—'}`,
+          sub: `${p.location} · ${(p.clients as any)?.company_name ?? (p.clients as any)?.contact_person ?? '—'}`,
           url: `/proyek/${p.id}`,
           meta: `${Number(p.progress_pct).toFixed(0)}% · ${p.status}`,
         })
