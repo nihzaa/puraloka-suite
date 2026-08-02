@@ -95,6 +95,15 @@ jobs:
       #
       # Ambang NOL, bukan ratchet: tak ada kasus sah untuk melanjutkan saat
       # akunnya tak ditemukan. Yang benar menolak (404).
+      # Migrasi yang memaku `public.` menulis ke schema itu walau rantai migrasi
+      # sedang dibangun di tempat lain — sehingga perubahannya TAK BISA
+      # diverifikasi test apa pun. Ditemukan 2026-08-02: migrasi 100 adalah
+      # bugfix untuk `ON CONFLICT` yang membuat setiap approve kasbon gagal;
+      # perbaikannya benar tapi tak pernah sampai ke schema test, jadi selama
+      # setahun tak ada test yang bisa membuktikannya bekerja.
+      - name: Migrasi sadar-schema (skema tak boleh dipaku)
+        run: node scripts/audit-migrasi-skema-dipaku.mjs
+
       - name: Penjaga saldo (pemeriksaan tak boleh bisa dilewati)
         run: node scripts/audit-penjaga-saldo.mjs
 

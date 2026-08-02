@@ -27,6 +27,9 @@
 UPDATE storage.buckets SET public = false WHERE id = 'payment-proofs';
 
 -- ── 2. Hapus SEMUA policy permissif lama (roles=public, bucket_id-only) ───────
+-- `storage.objects` adalah tabel GLOBAL — policy-nya selamat dari
+-- `resetTestSchema()`, jadi `CREATE POLICY` gagal di run kedua. DROP dulu
+-- supaya migrasi ini bisa dijalankan berapa kali pun.
 DROP POLICY IF EXISTS "expense_receipts_select" ON storage.objects;
 DROP POLICY IF EXISTS "expense_receipts_insert" ON storage.objects;
 DROP POLICY IF EXISTS "expense_receipts_delete" ON storage.objects;
@@ -39,14 +42,17 @@ DROP POLICY IF EXISTS "project_docs_allow_delete" ON storage.objects;
 
 -- ── 3. Policy baru: bucket privat = HANYA service_role (API). ─────────────────
 -- Anon & authenticated ditolak akses langsung. Download sah lewat signed URL (bypass RLS).
+DROP POLICY IF EXISTS "expense_receipts_service_only" ON storage.objects;
 CREATE POLICY "expense_receipts_service_only" ON storage.objects
   FOR ALL USING (bucket_id = 'expense-receipts' AND auth.role() = 'service_role')
   WITH CHECK (bucket_id = 'expense-receipts' AND auth.role() = 'service_role');
 
+DROP POLICY IF EXISTS "payment_proofs_service_only" ON storage.objects;
 CREATE POLICY "payment_proofs_service_only" ON storage.objects
   FOR ALL USING (bucket_id = 'payment-proofs' AND auth.role() = 'service_role')
   WITH CHECK (bucket_id = 'payment-proofs' AND auth.role() = 'service_role');
 
+DROP POLICY IF EXISTS "project_documents_service_only" ON storage.objects;
 CREATE POLICY "project_documents_service_only" ON storage.objects
   FOR ALL USING (bucket_id = 'project-documents' AND auth.role() = 'service_role')
   WITH CHECK (bucket_id = 'project-documents' AND auth.role() = 'service_role');

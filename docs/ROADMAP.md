@@ -276,6 +276,8 @@ memberi nilai apa pun, sebagus apa pun rancangannya.
 | E19 | **Izin rute bocor lewat nama yang mirip** | `middleware.ts` mencocokkan izin dengan `startsWith`, jadi `/proyek` ikut cocok dengan `/proyeksi-kas` — mandor bisa membukanya tanpa ada yang pernah menambahkannya ke daftar izin. Bukan skenario karangan: "Proyeksi Kas" sudah antre di roadmap #10. | ✅ `cocokRute()` (batas segmen) + 9 test browser (2026-08-02) |
 | E20 | **PM terjebak loop redirect tanpa akhir** | Home PM adalah `/dashboard`, tapi `/dashboard` tak ada di daftar izin PM — jadi setiap redirect "kembali ke home" ditolak lagi, selamanya. Browser menyerah dengan ERR_TOO_MANY_REDIRECTS: layar kosong, tanpa pesan. Diperbaiki dengan menurunkan home ke `/pm-portal` (haknya), BUKAN dengan membuka `/dashboard` — `routes/v1/dashboard.ts` tak menyaring per-role, jadi membukanya berarti memberi PM angka keuangan seluruh perusahaan. | ✅ Home PM + guard struktural yang menolak konfigurasi rusak saat boot (2026-08-02) |
 | E21 | **7 pemeriksaan saldo bisa dilewati diam-diam** | `if (acc && Number(acc.balance) < jumlah)` terlihat defensif — justru itu masalahnya. Saat query gagal atau id salah, `acc` null, kondisi jadi false, pemeriksaan **dilewati**, dan transaksi lolos. Yang terburuk: approve kasbon di `kasbons.ts:325` tetap memotong saldo saat kasbonnya sendiri tak ketemu. | ✅ 7 penjaga diperbaiki (404 lebih dulu) + penjaga statis ambang NOL di CI (2026-08-02) |
+| E22 | **4 trigger uang mandor hilang — Rp 67,6 juta** | Penelusuran menyeluruh sesudah E16/E17: bukan dua kasus terpencil, ada **7 fungsi `RETURNS trigger` tanpa trigger** di dev dan **4 menyentuh uang**. 16 kasbon approved (Rp 46.600.000) + 3 pembayaran progress (Rp 21.000.000) tak pernah memotong saldo — uangnya sudah diterima mandor di lapangan. Juga: kasbon approved tak tercatat sebagai beban proyek, sehingga serapan anggaran dan CPI/SPI ikut salah. | ✅ Migrasi 164 + 9 test, 3 mutasi tertangkap (2026-08-02) |
+| E23 | **Bugfix yang tak pernah sampai ke tempat yang diuji** | `100_fix_kasbon_expense_trigger_on_conflict.sql` memperbaiki `ON CONFLICT` yang membuat SETIAP approve kasbon gagal — perbaikannya benar, tapi ditulis `CREATE FUNCTION **public.**fn_…`. Skema dipaku, jadi saat test membangun rantai migrasi di schema `test`, versi rusak dari migrasi 051 tak pernah tergantikan. **Selama setahun tak ada test yang bisa membuktikan bugfix itu bekerja** — dan test alur uang mandor yang baru langsung gagal dengan error yang katanya sudah diperbaiki. | ✅ Migrasi 165 (sadar-skema) + penjaga CI ambang NOL (2026-08-02) |
 
 ### Yang BELUM selesai dari kelompok ini
 
@@ -316,6 +318,19 @@ pernah jalan di sana. Di database yang dibangun dari nol, KEDUANYA terpasang dan
 setiap pembayaran menambah saldo **dua kali**. Tertangkap hanya karena test
 alur uang menjalankan seluruh rantai migrasi dari kosong — persis yang dilakukan
 CI, dan persis yang akan dilakukan environment produksi pertama.
+
+**Satu temuan biasanya bukan satu kasus.** E16 dan E17 terlihat seperti dua
+kecelakaan terpisah. Menelusurinya secara menyeluruh — bukan berhenti sesudah
+yang terlihat — menemukan tujuh fungsi trigger yatim, empat di antaranya
+menyentuh uang. Yang membedakan: bertanya "berapa banyak lagi yang seperti
+ini?" alih-alih "sudah beres?".
+
+**Perbaikan bisa mendarat di tempat yang salah tanpa memberi tanda.** Migrasi
+100 memaku skema `public.`, sehingga bugfix-nya tak pernah sampai ke schema
+tempat test berjalan. Ia "berhasil" di setiap environment, tapi hanya berefek
+di satu — dan konsekuensinya bukan sekadar merepotkan test: selama setahun
+tak ada cara membuktikan perbaikan itu bekerja. Kejadian kedua dengan sebab
+yang sama (yang pertama `to_regclass` di migrasi 154).
 
 **Kode yang terlihat defensif bisa justru melewati pemeriksaannya sendiri.**
 `if (acc && saldo < jumlah)` membaca seperti kehati-hatian ekstra, tapi saat
