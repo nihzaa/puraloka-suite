@@ -58,29 +58,43 @@ items:
 
   - id: F0-4
     fase: 0
-    judul: "Jaring pengaman rollback: multitenant-t3-rollback HIJAU + rollback tiap tipe migrasi tenancy"
+    judul: "Jaring pengaman rollback: hilangkan flake schema bersama + rollback tiap tipe migrasi tenancy"
     blokir_oleh: []
     kriteria_selesai:
-      - "suite hijau, bukan skip, bukan dijelaskan"
-      - "akar masalah dibuktikan (bootstrap vs urutan migrasi)"
-      - "ada test rollback untuk: tambah kolom, backfill, set NOT NULL, tambah policy"
-    cara_verifikasi: "vitest run multitenant-t3-rollback + tempel output"
+      - "SUDAH: akar dibuktikan — bukan cacat bootstrap, bukan cacat produksi, melainkan lock contention DROP SCHEMA pada schema `test` yang dipakai 27 berkas"
+      - "SUDAH: lulus sendirian 3/3 (23 test) dan lulus dalam suite penuh (129/129 berkas, 1299 test)"
+      - "SUDAH: suite penuh lulus 3 RUN BERTURUT (129/129, 1299 lulus) — 217,4s / 220,0s / 221,4s"
+      - "BELUM: isolasi schema per-berkas (TEST_SCHEMA unik) sehingga DROP tak pernah berebut lock"
+      - "BELUM: test rollback untuk tambah kolom, backfill, set NOT NULL, tambah policy"
+    cara_verifikasi: "3x `npx vitest run` penuh berturut-turut, tempel ketiga ringkasannya"
     bobot: L
-    status: todo
-    catatan: "C-4 — vonis 'cacat harness' kemarin adalah hipotesis, BUKAN kesimpulan. Jangan tutup tanpa bukti."
+    status: wip
+    catatan: >
+      C-4 terjawab: vonis 'cacat harness' SALAH (test lulus sendirian), tapi vonis
+      'bukan cacat produksi' BENAR karena alasan lain (flake lock, terdokumentasi di
+      test-db.ts). Kebetulan-benar = kegagalan metode. Jangan tutup sebelum 3 run
+      berturut hijau — Fase 2 paling bergantung pada jaring ini.
 
   - id: F0-5
     fase: 0
     judul: "Coverage sungguhan + ratchet CI"
     blokir_oleh: []
     kriteria_selesai:
-      - "coverage terukur per area (api routes, lib, web)"
-      - "ambang = angka hari ini sebagai LANTAI (ratchet), bukan target aspirasional"
-      - "daftar area ber-coverage nol dilaporkan"
-    cara_verifikasi: "vitest run --coverage + ratchet gagal bila turun"
+      - "SUDAH: coverage terukur — statements/lines 31,98%, branches 68,49%, functions 81,96%"
+      - "SUDAH: ratchet (lantai hari ini) terpasang, BUKAN target aspirasional"
+      - "SUDAH: 27 route ber-coverage NOL dilaporkan di COVERAGE-BASELINE.md"
+      - "SUDAH: digabung ke langkah Test yang ada — suite 3,5 menit tak dijalankan dua kali"
+      - "BELUM (Fase 1+): naikkan coverage route jalur-uang (penalty 4,2%, kasbon-limit 5,3%)"
+    cara_verifikasi: "node apps/api/scripts/coverage-ratchet.mjs (exit 0 = tak ada yang turun)"
     bobot: M
-    status: todo
-    catatan: "C-6 — skor Testing 80 belum dibayar sampai ini selesai."
+    status: done
+    bukti: >
+      Suite penuh 129 berkas / 1299 lulus / 221,4s. Ratchet exit 0 terhadap lantai.
+      Dua cacat penjaga ditemukan & diperbaiki saat membangunnya: (1) toleransi 0,5%
+      karena v8 bergoyang (branches 68,49->68,48); (2) penjaga apel-vs-jeruk — ratchet
+      MENOLAK membandingkan run sebagian (src/lib saja = 8,57% vs lantai 31,98%,
+      vonis TURUN palsu). Sidik cakupan = baris tereksekusi (1.821 vs 6.794), bukan
+      jumlah berkas, karena v8 tetap mendaftar semua berkas ter-include walau nol.
 
   - id: F0-6
     fase: 0
@@ -107,8 +121,15 @@ items:
       - "bila mesin AHSP salah -> naikkan P0"
     cara_verifikasi: "vitest run golden + tempel output"
     bobot: L
-    status: todo
-    catatan: "C-5. Ada DUA berkas Cibuluh: .xls 6,9MB dan .xlsx 3,5MB — kandidat penjelasan."
+    status: done
+    bukti: >
+      docs/execution/GOLDEN-FILE-INVESTIGASI.md. Hipotesis "dua berkas berbeda"
+      GUGUR — .xls dan .xlsx isinya identik (.xlsx = re-save). 278300 & 266600
+      terbukti eksak & diuji (15 lulus/938ms). 1.657.839.590,39, 109,5, 7875 TIDAK
+      ADA di kedua berkas, seluruh 22 sheet; kandidat terdekat 1.642.531.571
+      (subtotal beton, selisih 15,3jt — bukan PPN/PPh/pembulatan). Assertion TIDAK
+      ditambahkan (mengunci tebakan = kesalahan yang Fase 0 berantas). Mesin AHSP
+      TIDAK terbukti salah -> tidak dinaikkan P0. Pertanyaan sumber -> R-005.
 
   - id: F0-8
     fase: 0

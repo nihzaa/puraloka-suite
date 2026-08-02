@@ -116,6 +116,46 @@ menyentuh data.
 
 ---
 
+## R-005 · PERTANYAAN · tidak memblokir
+### Tiga angka jangkar tidak ada di berkas Cibuluh — dari mana asalnya?
+
+**Status:** diselidiki tuntas, **pekerjaan lain tetap jalan**. Ini pertanyaan,
+bukan gerbang.
+
+Mandat menyebut lima angka jangkar untuk mengunci mesin perhitungan AHSP. Dua di
+antaranya (`278300` dan `266600`) **terbukti ada** dan sudah diuji secara eksak —
+mesin perhitungannya benar. Total RAB Cibuluh (`Rp 3.629.860.295,31`) juga cocok.
+
+Tiga sisanya **tidak ada di berkas Cibuluh mana pun**:
+
+- `Rp 1.657.839.590,39`
+- `109,5`
+- `7875`
+
+Yang sudah saya pastikan supaya ini bukan sekadar "belum ketemu":
+
+- Dicari di **kedua** berkas Cibuluh (`.xls` dan `.xlsx`), **seluruh 22 sheet**.
+- Kedua berkas itu ternyata **isinya identik** — `.xlsx` hanya hasil simpan-ulang
+  dari `.xls`. Jadi tidak ada "versi lain" yang terlewat di repo.
+- Semua angka bernilai 1–9 miliar disapu. Yang paling dekat adalah
+  **Rp 1.642.531.571** (subtotal Pekerjaan Beton), selisih ~15,3 juta. Selisih itu
+  bukan PPN, bukan PPh, bukan pembulatan.
+
+**Yang saya butuhkan dari Anda (kapan pun sempat):**
+
+Apakah ketiga angka itu berasal dari **proyek atau workbook lain** yang belum ada
+di repo? Kalau ya, berkasnya perlu ditaruh di `_source/ahsp/golden/` agar bisa
+dikunci sebagai jangkar permanen. Kalau ternyata salah ingat, cukup abaikan —
+jangkar yang sudah ada tetap berlaku dan tidak ada yang rusak.
+
+**Yang sengaja TIDAK saya lakukan:** menambahkan pengujian terhadap ketiga angka
+itu. Menguncinya tanpa tahu sumbernya berarti menjadikan tebakan sebagai
+kebenaran — persis kesalahan yang Fase 0 ada untuk memberantasnya.
+
+Detail lengkap: `docs/execution/GOLDEN-FILE-INVESTIGASI.md`.
+
+---
+
 ## R-004 · SUDAH DIJALANKAN · tinggal dikonfirmasi
 ### Rekomendasi audit kemarin untuk menjalankan `rekonsiliasi --tulis` DITARIK
 

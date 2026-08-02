@@ -88,6 +88,47 @@ Fase 0 ternyata harus mencakup **rebase ke branch yang benar** — tidak terduga
 tapi wajib: tanpa itu seluruh pengukuran Fase 0 dilakukan atas pohon kode yang
 tidak memuat GL, sementara DB-nya memuat GL. Persis kelas kesalahan C-1.
 
+### F0-4 — jaring pengaman rollback: saya salah DUA KALI, dengan cara berbeda
+
+Audit saya menulis "cacat bootstrap harness, bukan produksi" sebagai kesimpulan
+padahal itu hipotesis (C-4). Hari ini saya mengukurnya, dan hipotesis itu **salah** —
+tapi kesimpulan turunannya ("bukan cacat produksi") ternyata **benar karena alasan
+yang berbeda**. Keduanya perlu dicatat supaya tidak diklaim sebagai tebakan beruntung.
+
+**Bukti yang dikumpulkan:**
+
+1. Dijalankan sendirian, `multitenant-t3-rollback.test.ts` **LULUS 23/23**, tiga kali
+   berturut-turut. Jadi bukan cacat bootstrap: tabel `assembly_components` memang
+   terbentuk dengan benar oleh `bootstrap()`.
+2. Dijalankan sebagai bagian suite penuh hari ini: **129/129 berkas lulus,
+   1299 lulus, 0 gagal, 217,4 detik.** Kegagalan kemarin **tidak reproduksi**.
+3. Akarnya ada di `test-utils/test-db.ts` dan **sudah terdokumentasi di sana**:
+   27 berkas test berbagi satu schema `test`, dan `resetTestSchema()` melakukan
+   `DROP SCHEMA … CASCADE` yang butuh ACCESS EXCLUSIVE lock. Koneksi berkas test
+   sebelumnya kadang belum lepas di sisi server (pooler session-mode menutup
+   asinkron), sehingga DROP menunggu dan hook timeout menembak duluan. Komentar di
+   kode menyebut frekuensinya "intermiten, ~30-50% run penuh".
+
+**Jadi:** ini **flake infrastruktur test yang sudah dikenal**, bukan cacat produksi
+dan bukan cacat bootstrap. Yang salah dari audit saya bukan verdict akhirnya,
+melainkan **saya menyatakannya tanpa mengukur** — dan kebetulan-benar adalah
+kegagalan metode, bukan keberhasilan.
+
+**Konsekuensi yang belum selesai:** `F0-4` TIDAK saya tutup. Suite yang lulus
+sekali tidak membuktikan flake-nya hilang; ia hanya tidak muncul hari ini. Kriteria
+selesainya diperketat menjadi: *lulus 3 run penuh berturut-turut* + *test rollback
+untuk tiap tipe migrasi tenancy*. Sisanya dikerjakan sebelum Fase 2, karena Fase 2
+justru yang paling bergantung pada jaring ini.
+
+**Temuan turunan:** jumlah "skipped" ikut berubah antar-run (24 → 1). Dua puluh tiga
+di antaranya adalah test milik berkas yang gagal, bukan test yang sengaja di-skip.
+Angka "24 skipped" di laporan audit karenanya menyesatkan; yang benar-benar
+di-skip secara sengaja hanya **1** (`golden-cibuluh` — pasangan `skipIf` yang memang
+mati saat berkas golden-nya ada).
+
 ### Menunggu di RATIFIKASI
 
 - **R-001** — perbaikan tabrakan GL 047↔167 (menyentuh migrasi tercatat → G-2).
+- **R-002** — pencatatan 12 migrasi ke buku (harus SETELAH R-001).
+- **R-003** — bekerja di atas `fix/search-proyek-gagal-senyap`, bukan `main`.
+- **R-004** — penarikan rekomendasi `rekonsiliasi --tulis`.

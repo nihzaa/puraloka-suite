@@ -148,6 +148,7 @@ jobs:
       - name: Tidak ada dokumen kembar di dua lokasi
         run: node scripts/audit-no-stale-docs-path.mjs
 
+
       - name: Penjaga saldo (pemeriksaan tak boleh bisa dilewati)
         run: node scripts/audit-penjaga-saldo.mjs
 
@@ -199,8 +200,26 @@ jobs:
         env:
           FP_URL: ${{ secrets.CI_DIRECT_URL }}
 
-      - name: Test
-        run: pnpm test
+      # Fase 0 (0.5) — test SEKALIGUS mengukur coverage.
+      #
+      # Coverage digabung ke langkah Test yang sudah ada, BUKAN langkah terpisah:
+      # suite ini butuh ~3,5 menit terhadap Postgres nyata, dan menjalankannya dua
+      # kali menggandakan waktu CI tanpa menambah satu pun informasi.
+      #
+      # Ambang di-nol-kan di sini karena gerbangnya bukan ambang statis melainkan
+      # RATCHET di langkah berikutnya (lantai hari ini tak boleh turun). Ambang
+      # 90% bawaan `vitest.config.ts` tetap berlaku untuk `src/lib/**` saat
+      # `pnpm test` dijalankan tanpa flag ini.
+      - name: Test + coverage
+        run: |
+          npx vitest run --coverage \
+            --coverage.include='src/**/*.ts' \
+            --coverage.exclude='src/**/*.test.ts' \
+            --coverage.exclude='src/**/__tests__/**' \
+            --coverage.thresholds.lines=0 --coverage.thresholds.functions=0 \
+            --coverage.thresholds.branches=0 --coverage.thresholds.statements=0 \
+            --coverage.reporter=text-summary \
+            --coverage.reporter=json-summary --coverage.reportsDirectory=./coverage
         env:
           SUPABASE_URL: ${{ secrets.CI_SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.CI_SUPABASE_SECRET_KEY }}
@@ -209,6 +228,14 @@ jobs:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
           # Schema test unik per run → tak ada race antar CI run paralel di project CI.
           TEST_SCHEMA: test_${{ github.run_id }}
+
+      # Angka hari ini adalah LANTAI. Boleh naik, tak boleh turun.
+      # Audit 2026-08-02 memberi skor Testing 80 tanpa mengukur ini sama sekali;
+      # saat diukur ternyata statements 31,98% — sebarannya, bukan kedalamannya:
+      # 27 berkas route ber-coverage NOL (users, notifications, documents,
+      # companies). Detail: docs/execution/COVERAGE-BASELINE.md
+      - name: Ratchet coverage (lantai tak boleh turun)
+        run: node scripts/coverage-ratchet.mjs
 
       - name: Drop per-run test schema
         if: always()

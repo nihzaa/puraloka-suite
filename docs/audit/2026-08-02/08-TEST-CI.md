@@ -21,8 +21,36 @@ error: relation "assembly_components" does not exist
   ❯ bootstrap …/multitenant-t3-rollback.test.ts:81:3
 ```
 
-Analisis di `05-DATABASE.md §5.3`: tabelnya **ada** di dev; ini cacat urutan bootstrap
-harness test, bukan cacat produksi. `[FIX-LATER]` P2.
+> ## ⚠️ KOREKSI 2026-08-02 (Fase 0, F0-4) — analisis di bawah ini SALAH
+>
+> Laporan ini menyimpulkan "cacat urutan bootstrap harness". **Itu hipotesis yang
+> ditulis sebagai kesimpulan, dan setelah diukur ternyata salah.**
+>
+> Bukti:
+> - Dijalankan sendirian, suite ini **LULUS 23/23, tiga kali berturut-turut** →
+>   `bootstrap()` memang membentuk `assembly_components` dengan benar.
+> - Suite penuh dijalankan ulang: **129/129 berkas, 1299 lulus, 0 gagal, 217,4 s**.
+>   Kegagalannya **tidak reproduksi**.
+> - Akar sebenarnya sudah terdokumentasi di `apps/api/src/test-utils/test-db.ts`:
+>   27 berkas test berbagi satu schema `test`, dan `resetTestSchema()` menjalankan
+>   `DROP SCHEMA … CASCADE` yang butuh ACCESS EXCLUSIVE lock. Koneksi berkas
+>   sebelumnya kadang belum lepas (pooler session-mode menutup asinkron) → DROP
+>   menunggu → hook timeout menembak duluan. Komentar di kode menyebutnya
+>   "intermiten, ~30-50% run penuh".
+>
+> Jadi ini **flake infrastruktur test yang sudah dikenal**. Verdict "bukan cacat
+> produksi" kebetulan benar, tetapi lewat alasan yang berbeda — dan kebetulan-benar
+> adalah kegagalan metode, bukan keberhasilan.
+>
+> Status: `F0-4` **tidak ditutup**. Kriteria diperketat: suite penuh harus lulus
+> **3 run berturut-turut** + isolasi schema per-berkas. Lihat `QUEUE.yaml` F0-4.
+
+### Angka "24 skipped" juga menyesatkan
+
+Run kedua menghasilkan **1 skipped**, bukan 24. Selisih 23 adalah test milik berkas
+yang gagal — dihitung "skipped" karena berkasnya tak jadi berjalan, bukan karena
+sengaja di-skip. Yang benar-benar di-skip secara sengaja hanya **1**
+(`golden-cibuluh`, pasangan `describe.skipIf` yang memang mati saat berkas golden ada).
 
 ### Test jangkar angka — dijalankan terpisah, LULUS
 
