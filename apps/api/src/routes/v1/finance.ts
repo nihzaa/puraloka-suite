@@ -1178,7 +1178,11 @@ export default async function financeRoutes(app: FastifyInstance) {
     const newStatus = newDue <= 0 ? 'paid' : newPaid > 0 ? 'partial' : invoice.status
     const paidDate = newDue <= 0 ? paidAt : null
 
-    await supabase
+    // Hasil DIPERIKSA: pembayarannya SUDAH tersimpan di `payments` (dan saldo
+    // kas sudah bertambah lewat trigger). Kalau update invoice gagal di sini
+    // dan kegagalannya dibuang, tagihan tetap terlihat belum lunas — klien
+    // ditagih untuk uang yang sudah dia bayar, dan tak ada gejala apa pun.
+    const { error: updInvErr } = await supabase
       .from('invoices')
       .update({
         amount_paid: newPaid,
@@ -1188,6 +1192,11 @@ export default async function financeRoutes(app: FastifyInstance) {
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
+    if (updInvErr) {
+      return reply.status(500).send({
+        error: 'Pembayaran tersimpan tetapi status invoice gagal diperbarui: ' + updInvErr.message,
+      })
+    }
 
     // ── Denda otoritatif: saat invoice LUNAS telat, hitung sekali & persist ──────
     // Fire-and-forget: TIDAK memblokir/ menggagalkan pencatatan pembayaran. Default OFF →

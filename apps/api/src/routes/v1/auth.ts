@@ -242,11 +242,26 @@ export default async function authRoutes(app: FastifyInstance) {
 
     // Jika auth_id belum diisi (user dibuat sebelum Google OAuth aktif), update sekarang
     if (!user.auth_id) {
-      await supabase.from('users').update({ auth_id: supaUser.id }).eq('id', user.id)
+      // Hasil DIPERIKSA: `auth_id` adalah tautan akun ke Supabase Auth. Kalau
+      // update ini gagal diam-diam, login Google berikutnya menempuh jalur yang
+      // sama dan gagal menaut lagi — selamanya, tanpa gejala. Tak diblokir
+      // (login yang sedang berjalan tetap sah), tapi dicatat sebagai error
+      // supaya kegagalan berulang terlihat.
+      const { error: tautErr } = await supabase
+        .from('users').update({ auth_id: supaUser.id }).eq('id', user.id)
+      if (tautErr) {
+        request.log.error({ tautErr, userId: user.id }, 'Gagal menautkan auth_id ke user')
+      }
     }
 
-    // Update last_login_at
-    await supabase.from('users').update({ last_login_at: new Date().toISOString() }).eq('id', user.id)
+    // `last_login_at` sengaja fire-and-forget: kegagalannya tak mengubah apa
+    // pun yang penting, dan memblokir login karena stempel waktu jauh lebih
+    // buruk daripada stempel yang meleset. Dicatat, tak diblokir.
+    const { error: loginErr } = await supabase
+      .from('users').update({ last_login_at: new Date().toISOString() }).eq('id', user.id)
+    if (loginErr) {
+      request.log.warn({ loginErr, userId: user.id }, 'Gagal mencatat last_login_at')
+    }
 
     // Ambil permissions + portal home
     const [permsResult2, roleResult2] = await Promise.all([

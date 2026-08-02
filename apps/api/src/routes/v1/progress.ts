@@ -282,10 +282,19 @@ export default async function progressRoutes(app: FastifyInstance) {
 
         if (overallProgress !== null) {
           newOverall = overallProgress
-          await request.db!
+          // Hasil DIPERIKSA: log progres SUDAH tersimpan. Kalau bubble-up ke
+          // `projects.progress_pct` gagal dan dibuang, progres proyek tertinggal
+          // di angka lama — Kurva S, EVM (EV/SPI/CPI), dan laporan ke klien
+          // semuanya memakai angka itu.
+          const { error: pctErr } = await request.db!
             .from('projects')
             .update({ progress_pct: newOverall, updated_at: new Date().toISOString() })
             .eq('id', projectId)
+          if (pctErr) {
+            return reply.status(500).send({
+              error: 'Log tersimpan tetapi progres proyek gagal diperbarui: ' + pctErr.message,
+            })
+          }
         }
       }
 

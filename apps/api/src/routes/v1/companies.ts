@@ -327,9 +327,18 @@ export default async function companiesRoutes(app: FastifyInstance) {
 
     // Turunkan dulu SEMUA, baru naikkan yang dipilih: dua default sekaligus
     // membuat auth_company_id() memulangkan salah satunya secara sembarang.
-    await request.db!
+    //
+    // Hasilnya DIPERIKSA: kalau penurunan gagal dan kegagalannya dibuang,
+    // kenaikan di bawah tetap jalan — dan berakhir dengan dua default
+    // sekaligus, persis yang komentar di atas peringatkan.
+    const { error: errTurun } = await request.db!
       .unsafe('company_members', 'kategori D; T9 memang lintas company — turunkan default lama milik user ini')
       .update({ is_default: false }).eq('user_id', uid)
+    if (errTurun) {
+      return reply.status(500).send({
+        error: 'Gagal menurunkan badan usaha default lama: ' + errTurun.message,
+      })
+    }
     const { error } = await request.db!
       .unsafe('company_members', 'kategori D; T9 memang lintas company — set badan usaha utama milik user ini')
       .update({ is_default: true })

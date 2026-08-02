@@ -59,11 +59,25 @@ const AKAR = join(import.meta.dirname, '..', 'src', 'routes')
 /**
  * AMBANG — penulisan yang hasilnya tak diperiksa.
  *
+ * 2026-08-02: 26 → 17. Sembilan yang ditutup semuanya berbentuk "operasi utama
+ * berhasil, susulannya gagal diam-diam":
+ *
+ *   finance.ts:1181    pembayaran tersimpan, invoice tetap terlihat BELUM LUNAS
+ *                      — klien ditagih untuk uang yang sudah dia bayar
+ *   progress.ts:285    log progres tersimpan, `projects.progress_pct` tertinggal
+ *                      — Kurva S, EVM, dan laporan klien memakai angka lama
+ *   estimate-versions  ×3 — item masuk, `total_amount` tak ikut naik
+ *   companies.ts:330   penurunan default gagal → DUA badan usaha default
+ *   mandor.ts:767      item tersimpan tanpa spesifikasi teknisnya
+ *   auth.ts ×2         `auth_id` gagal tertaut (dicatat, tak memblokir login)
+ *
+ * Sisanya mayoritas rollback dan audit log yang memang sah diabaikan.
+ *
  * ⚠️ HANYA BOLEH TURUN. Kalau gagal karena NAIK: tangkap `error`-nya dan
  * balas 500, ATAU tulis `// best-effort: <alasan>` tepat di atasnya kalau
  * kegagalannya memang boleh diabaikan. Jangan naikkan angkanya.
  */
-const AMBANG = 26
+const AMBANG = 17
 
 /** Penulisan yang memang boleh gagal diam-diam, ditandai di kodenya. */
 const POLA_SENGAJA = /\/\/\s*best-effort/i

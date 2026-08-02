@@ -671,8 +671,12 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
         const { data: sums } = await supabase
           .from('estimate_items').select('amount').eq('estimate_version_id', id)
         const total = (sums ?? []).reduce((s, r) => s + Number(r.amount), 0)
-        await supabase.from('estimate_versions')
+        // Hasil DIPERIKSA — lihat komentar pada pemanggilan serupa di bawah.
+        const { error: totErr } = await supabase.from('estimate_versions')
           .update({ total_amount: total, updated_by: request.currentUser!.id }).eq('id', id)
+        if (totErr) {
+          return reply.status(500).send({ error: 'Gagal memperbarui total estimasi: ' + totErr.message })
+        }
 
         void logAuditEvent(request, {
           tableName: 'estimate_items', recordId: item.id, action: 'estimate.item_added_lumpsum',
@@ -816,8 +820,14 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
       const { data: sums } = await supabase
         .from('estimate_items').select('amount').eq('estimate_version_id', id)
       const total = (sums ?? []).reduce((s, r) => s + Number(r.amount), 0)
-      await supabase.from('estimate_versions')
+      // Hasil DIPERIKSA: kalau update total gagal (constraint, RLS, kolom
+      // salah), item sudah tersimpan tapi `total_amount` tertinggal — estimasi
+      // menampilkan angka yang lebih kecil daripada isinya, tanpa gejala.
+      const { error: totErr } = await supabase.from('estimate_versions')
         .update({ total_amount: total, updated_by: request.currentUser!.id }).eq('id', id)
+      if (totErr) {
+        return reply.status(500).send({ error: 'Gagal memperbarui total estimasi: ' + totErr.message })
+      }
 
       void logAuditEvent(request, {
         tableName: 'estimate_items', recordId: item.id, action: 'estimate.item_added',
@@ -862,8 +872,14 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
       const { data: sums } = await supabase
         .from('estimate_items').select('amount').eq('estimate_version_id', id)
       const total = (sums ?? []).reduce((s, r) => s + Number(r.amount), 0)
-      await supabase.from('estimate_versions')
+      // Hasil DIPERIKSA: kalau update total gagal (constraint, RLS, kolom
+      // salah), item sudah tersimpan tapi `total_amount` tertinggal — estimasi
+      // menampilkan angka yang lebih kecil daripada isinya, tanpa gejala.
+      const { error: totErr } = await supabase.from('estimate_versions')
         .update({ total_amount: total, updated_by: request.currentUser!.id }).eq('id', id)
+      if (totErr) {
+        return reply.status(500).send({ error: 'Gagal memperbarui total estimasi: ' + totErr.message })
+      }
 
       void logAuditEvent(request, {
         tableName: 'estimate_items', recordId: itemId, action: 'estimate.item_removed',

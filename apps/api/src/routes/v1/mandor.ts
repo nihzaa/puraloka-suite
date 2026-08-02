@@ -764,9 +764,18 @@ export default async function mandorRoutes(app: FastifyInstance) {
     if (error) return reply.status(500).send({ error: error.message })
 
     if (body.specs?.length && item) {
-      await supabase.from('work_scope_item_specs').insert(
+      // Hasil DIPERIKSA: item pekerjaannya sudah tersimpan. Kalau spesifikasi
+      // teknisnya gagal masuk dan kegagalannya dibuang, item tampil tanpa spek
+      // — dan orang di lapangan mengerjakannya tanpa ukuran, mutu, atau
+      // toleransi yang sudah disepakati.
+      const { error: specErr } = await supabase.from('work_scope_item_specs').insert(
         body.specs.map((s, i) => ({ item_id: item.id, spec_key: s.spec_key, spec_value: s.spec_value, sort_order: s.sort_order ?? i }))
       )
+      if (specErr) {
+        return reply.status(500).send({
+          error: 'Item tersimpan tetapi spesifikasi teknis gagal disimpan: ' + specErr.message,
+        })
+      }
     }
 
     return reply.status(201).send({ item })
