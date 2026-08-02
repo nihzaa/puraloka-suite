@@ -211,6 +211,29 @@ items:
       jalur "periksa dulu" HANYA bisa lewat workflow. Terblokir bersama BARU-1
       (GitHub Actions tak menjalankan job sama sekali).
 
+  - id: F0-12
+    fase: 0
+    judul: "P1 — rantai migrasi TIDAK BISA di-replay dari nol: 137 gagal di DB tanpa user"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "ci-project-setup setup-clean berhasil sampai selesai (172 migrasi + seed)"
+      - "akar dibuktikan, bukan ditebak"
+      - "perbaikan tidak melemahkan penjaga 137 (akar grup WAJIB punya pemilik)"
+    cara_verifikasi: "gh workflow run ci-isolation.yml -f action=setup-clean → hijau"
+    bobot: M
+    status: todo
+    catatan: >
+      DITEMUKAN 2026-08-03 saat menjalankan setup-clean untuk R-001. BUKAN akibat
+      perubahan R-001 — 047/167/175 justru LULUS (replay sampai migrasi 125+).
+      Akar: migrasi 126 mengisi companies.created_by dari `v_admin` = admin aktif
+      tertua; di DB yang baru di-wipe BELUM ADA user sama sekali (seed dijalankan
+      SETELAH semua migrasi), jadi v_admin NULL. Lalu 137 backfill owner_user_id
+      dari COALESCE(created_by, admin-tertua) — keduanya NULL — dan penjaganya
+      melempar dengan benar: "1 akar grup tanpa owner_user_id".
+      Penjaga 137 BENAR dan jangan dilemahkan. Yang salah: urutan seed vs migrasi.
+      Kelas cacat sama dengan 047: hanya muncul di lingkungan bersih, tak pernah
+      terlihat di dev yang tumbuh bertahap.
+
   # ── GERBANG: menunggu founder ─────────────────────────────────────────────
   - id: R-001
     fase: 0

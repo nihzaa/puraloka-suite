@@ -5,6 +5,72 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-03 · Sesi 3 — repo dibuka, CI hidup, P0 terbukti nyata
+
+Founder memutuskan repo dijadikan **publik**. Dua blokir yang sesi lalu saya
+laporkan di luar jangkauan (B-1 Actions mati, B-2 branch protection tak tersedia)
+**keduanya langsung teratasi**.
+
+### Pemeriksaan keamanan sebelum membuka repo
+
+Membuka repo tak bisa dibatalkan secara praktis, dan audit sebelumnya hanya
+memindai berkas ter-track di HEAD — **belum pernah `git log -p`**. Jadi itu
+dijalankan lebih dulu atas SELURUH histori: `.env` tak pernah ter-commit, nol
+kunci `eyJ…`, nol `sb_secret_`, nol token GitHub/AWS/Slack/OpenAI, connection
+string hanya placeholder.
+
+Satu hal memang terbuka: ref project Supabase dev di 13 berkas. Itu **bukan
+kredensial** — anon key tak pernah ter-commit dan RLS aktif 122/122, jadi yang
+terekspos hanya *nama* infrastruktur, bukan aksesnya. Risiko rendah, dicatat.
+
+### B-1 & B-2 — terbukti bekerja, bukan diasumsikan
+
+- **Actions hidup.** Sebelum: 2–12 detik, `steps: []`, `runner_name: ""`, log 22 byte.
+  Sesudah: ~2,5 menit, runner ditugaskan, **32 langkah** dieksekusi.
+  **4 dari 5 job HIJAU.**
+- **Branch protection aktif**: 5 check wajib, `strict: true`, force-push & deletion
+  ditutup. Buktinya bekerja: PR #133 (CI merah) berubah `MERGEABLE` → **`BLOCKED`**.
+
+### R-001 — cacat P0 TERBUKTI NYATA di lingkungan sesungguhnya
+
+Ini bagian terpenting sesi ini. Sesi lalu saya menyimpulkan cacatnya dari membaca
+kode; hari ini **diukur langsung** di project CI:
+
+```
+accounts  ADA · 0 baris · company_id=TIDAK · ⚠️ penanda 047 (account_type)
+buku migrasi: 047=TERCATAT · 167=tidak
+VERDICT: C — GL TENANT-BLIND
+```
+
+Dan CI utama gagal dengan akar yang sama:
+`HARD FAIL 167_gl_chart_of_accounts.sql — column "company_id" does not exist`.
+
+Persis skenario yang saya perkirakan: **047 menang, 167 dilewati diam-diam.**
+Prediksi dari pembacaan kode terkonfirmasi oleh pengukuran — dan andai repo tak
+dibuka, ini tak akan pernah terlihat.
+
+Fallback founder dijalankan: `setup-clean` (aman, ketiga tabel 0 baris). Hasilnya
+**047 + 167 + 175 lulus seluruhnya** di replay bersih. Perbaikan R-001 bekerja di
+lingkungan kosong, bukan hanya di dev.
+
+### F0-12 — cacat kedua dari kelas yang sama, ditemukan karena replay bersih
+
+Replay berhenti di migrasi **137**: *"1 akar grup tanpa owner_user_id"*.
+
+Akarnya: migrasi **126** mengisi `created_by` dari admin-aktif-tertua, tetapi di
+DB yang baru di-wipe **belum ada user sama sekali** (seed berjalan SETELAH semua
+migrasi) → NULL. Lalu **137** mem-backfill `owner_user_id` dari
+`COALESCE(created_by, admin-tertua)` — keduanya NULL — dan penjaganya melempar.
+
+**Penjaga 137 benar dan tidak boleh dilemahkan.** Yang salah urutan seed-vs-migrasi.
+
+Yang perlu dicatat: **ini kedua kalinya dalam satu sesi** pola yang sama muncul —
+cacat yang hanya kelihatan saat sistem dibangun dari nol, tak pernah di dev yang
+tumbuh bertahap. Belum diperbaiki: di luar cakupan ratifikasi, dan ada ≥2
+pendekatan sah. Masuk antrean F0-12.
+
+---
+
 ## 2026-08-03 · Sesi 2 — ratifikasi dieksekusi
 
 Founder meratifikasi R-001 (opsi A + 3 syarat), R-002, R-003, R-004, memerintahkan
