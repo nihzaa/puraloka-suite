@@ -275,6 +275,7 @@ memberi nilai apa pun, sebagus apa pun rancangannya.
 | E18 | **Lebih bayar membuat piutang perusahaan terlihat lebih kecil** | `amount_due = total - dibayar` tanpa batas bawah. Klien yang lebih bayar Rp 500rb menghasilkan sisa **−500rb**, dan `clients.ts:78` + `dashboard.ts:190` menjumlahkannya apa adanya — sehingga menutupi tunggakan klien LAIN. Sementara `ar-register.ts:71` memfilter `> 0` sehingga invoice itu hilang dari aging. Dua pembaca, dua perilaku, nol peringatan. | ✅ Migrasi 163 (`GREATEST(0, …)`) + 2 test (2026-08-02) |
 | E19 | **Izin rute bocor lewat nama yang mirip** | `middleware.ts` mencocokkan izin dengan `startsWith`, jadi `/proyek` ikut cocok dengan `/proyeksi-kas` — mandor bisa membukanya tanpa ada yang pernah menambahkannya ke daftar izin. Bukan skenario karangan: "Proyeksi Kas" sudah antre di roadmap #10. | ✅ `cocokRute()` (batas segmen) + 9 test browser (2026-08-02) |
 | E20 | **PM terjebak loop redirect tanpa akhir** | Home PM adalah `/dashboard`, tapi `/dashboard` tak ada di daftar izin PM — jadi setiap redirect "kembali ke home" ditolak lagi, selamanya. Browser menyerah dengan ERR_TOO_MANY_REDIRECTS: layar kosong, tanpa pesan. Diperbaiki dengan menurunkan home ke `/pm-portal` (haknya), BUKAN dengan membuka `/dashboard` — `routes/v1/dashboard.ts` tak menyaring per-role, jadi membukanya berarti memberi PM angka keuangan seluruh perusahaan. | ✅ Home PM + guard struktural yang menolak konfigurasi rusak saat boot (2026-08-02) |
+| E21 | **7 pemeriksaan saldo bisa dilewati diam-diam** | `if (acc && Number(acc.balance) < jumlah)` terlihat defensif — justru itu masalahnya. Saat query gagal atau id salah, `acc` null, kondisi jadi false, pemeriksaan **dilewati**, dan transaksi lolos. Yang terburuk: approve kasbon di `kasbons.ts:325` tetap memotong saldo saat kasbonnya sendiri tak ketemu. | ✅ 7 penjaga diperbaiki (404 lebih dulu) + penjaga statis ambang NOL di CI (2026-08-02) |
 
 ### Yang BELUM selesai dari kelompok ini
 
@@ -315,6 +316,14 @@ pernah jalan di sana. Di database yang dibangun dari nol, KEDUANYA terpasang dan
 setiap pembayaran menambah saldo **dua kali**. Tertangkap hanya karena test
 alur uang menjalankan seluruh rantai migrasi dari kosong — persis yang dilakukan
 CI, dan persis yang akan dilakukan environment produksi pertama.
+
+**Kode yang terlihat defensif bisa justru melewati pemeriksaannya sendiri.**
+`if (acc && saldo < jumlah)` membaca seperti kehati-hatian ekstra, tapi saat
+`acc` null seluruh pemeriksaan dilewati — transaksi lolos tanpa satu pun pesan.
+Tujuh kali polanya sama di jalur uang. Yang menemukannya bukan test (semuanya
+hijau) melainkan penjaga statis yang ditulis SESUDAH pola pertamanya terlihat —
+dan penjaga itu langsung menemukan dua kasus lagi yang terlewat saat perbaikan
+manual.
 
 **Lapisan yang tak punya test sama sekali menyimpan cacat paling lama.**
 `middleware.ts` memutuskan siapa boleh melihat halaman apa, dan sampai

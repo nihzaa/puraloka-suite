@@ -87,6 +87,17 @@ jobs:
       # jadi cacatnya diam sampai ada schema kedua. Repo ini PUNYA schema
       # kedua: schema test. Pola itu membuat 24 integration test tak pernah
       # berjalan selama berbulan-bulan, dan gejalanya "skipped" bukan "failed".
+      # Pemeriksaan saldo yang bisa DILEWATI DIAM-DIAM: `if (acc && saldo < x)`
+      # terlihat defensif, tapi saat `acc` null kondisinya jadi false —
+      # pemeriksaan dilewati dan transaksi lolos. Ditemukan 2026-08-02: TUJUH
+      # penjaga seperti itu di jalur uang, termasuk approve kasbon yang tetap
+      # memotong saldo saat kasbonnya sendiri tak ketemu.
+      #
+      # Ambang NOL, bukan ratchet: tak ada kasus sah untuk melanjutkan saat
+      # akunnya tak ditemukan. Yang benar menolak (404).
+      - name: Penjaga saldo (pemeriksaan tak boleh bisa dilewati)
+        run: node scripts/audit-penjaga-saldo.mjs
+
       - name: Guard sadar-schema (to_regclass tanpa kualifikasi)
         run: node scripts/audit-guard-schema.mjs
 

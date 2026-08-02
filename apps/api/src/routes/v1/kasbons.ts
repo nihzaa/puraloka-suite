@@ -322,7 +322,13 @@ export default async function kasbonRoutes(app: FastifyInstance) {
         .eq('id', id)
         .single()
 
-      if (kasbon && Number(acct.balance) < Number(kasbon.amount)) {
+      // Kalau baris sumbernya tak ketemu, `kasbon &&` membuat pemeriksaan saldo
+      // DILEWATI dan persetujuan tetap jalan — memotong saldo sejumlah yang
+      // tak diketahui. Tolak lebih dulu.
+      if (!kasbon) {
+        return reply.status(404).send({ error: 'Kasbon tidak ditemukan' })
+      }
+      if (Number(acct.balance) < Number(kasbon.amount)) {
         return reply.status(400).send({
           error: `Saldo ${acct.name} tidak mencukupi. Saldo: Rp ${Number(acct.balance).toLocaleString('id-ID')}, dibutuhkan: Rp ${Number(kasbon.amount).toLocaleString('id-ID')}`
         })
