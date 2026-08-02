@@ -181,7 +181,35 @@ Struktur matrix dipertahankan; menaikkannya kembali cukup perubahan kecil setela
 | `gabung-coverage.mjs` | Terverifikasi: statements gabungan **6794/21241 identik** dengan run tak ter-shard. |
 | Penjaga literal peran API (ADR-004) | Menutup lubang yang lolos 14 penjaga lain. |
 
-### 5.3 Perbaikan akar yang belum dikerjakan
+### 5.3 Angka akhir — terukur, dan JUJUR terhadap target
+
+Run `30765204774`, konfigurasi yang benar-benar dipakai (1 shard):
+
+| Job | Durasi |
+|---|---:|
+| **API — test (shard 1/1)** | **820s** |
+| Web — lint, typecheck, build | 127s |
+| Browser | 74s |
+| Keamanan | 46s |
+| Ratchet coverage (gabungan) | 26s |
+| Dokumentasi | 7s |
+
+**Wall-clock 1317s → 820s = 21,9 → 13,7 menit (1,6×).**
+
+**Target mandat "gerbang penuh ≤8 menit" BELUM tercapai.** Dinyatakan apa adanya.
+
+Yang menahan bukan hal yang bisa saya perbaiki dari dalam repo:
+
+- **Sharding sudah membuktikan bisa mencapainya** (434s = 7,2 menit, run
+  `30764532516`) — tapi ditahan karena isolasi test (F0-14). Menaikkannya
+  sekarang berarti menukar CI yang benar dengan CI yang cepat-tapi-merah-acak.
+- **Latensi lintas-Pasifik** (§2) tetap penyebab dominan dan hanya bisa
+  dihapus dengan memindahkan region (B-3).
+
+Jadi jalur ke ≤8 menit sudah jelas dan terbukti, tinggal dua penghalang yang
+keduanya sudah tercatat — bukan tebakan tentang apa yang mungkin membantu.
+
+### 5.4 Perbaikan akar yang belum dikerjakan
 
 Latensi lintas-Pasifik (§2) tetap penyebab terbesar. Memindahkan project CI
 Supabase ke region dekat runner berpotensi memangkas 1203s → ~250s **tanpa
