@@ -53,6 +53,45 @@ Fallback founder dijalankan: `setup-clean` (aman, ketiga tabel 0 baris). Hasilny
 **047 + 167 + 175 lulus seluruhnya** di replay bersih. Perbaikan R-001 bekerja di
 lingkungan kosong, bukan hanya di dev.
 
+### F0-12 SELESAI + F0-13 tersingkap
+
+**F0-12 diperbaiki dan diverifikasi di CI sungguhan.** Penjaga 137 kini
+membedakan "ada user tapi akar yatim" (cacat nyata → tetap melempar) dari
+"belum ada user sama sekali" (sah → lanjut), dan migrasi **176** memasang trigger
+yang mengisi kepemilikan begitu user aktif pertama lahir. Jaminannya ditegakkan
+mesin, bukan harapan.
+
+Perbaikannya sendiri sempat cacat, dan hanya ketahuan karena diuji: fungsi
+SECURITY DEFINER-nya memakai `SET search_path = pg_catalog, public`, sehingga
+trigger **diam-diam menulis ke `public`** alih-alih ke schema tempat migrasi
+berjalan. Uji tiga langkah di schema sementara menangkapnya. Konvensi repo
+(64 fungsi SECURITY DEFINER, **nol** memakai `SET search_path`) ternyata memang
+sengaja demikian supaya migrasi portabel untuk test harness — diikuti.
+
+**Hasilnya: replay dari nol BERHASIL untuk pertama kalinya.**
+WIPE → 150+ migrasi → seluruh seed OK → `success`.
+
+Dan `periksa-gl` sesudahnya membuktikan R-001 tuntas end-to-end:
+
+| | Sebelum | Sesudah |
+|---|---|---|
+| `accounts` | `company_id=TIDAK`, penanda 047 | **`company_id=YA`, penanda 167, 38 akun** |
+| Buku migrasi | 047=TERCATAT, **167=tidak** | **047 & 167 keduanya tercatat** |
+| Verdict | **C — GL TENANT-BLIND** | **B — AMAN** |
+
+**F0-13 (P1 baru) tersingkap justru karena replay berhasil.** CI utama: 4 dari 5
+job **hijau**; job API gagal dengan **1132 lulus / 163 gagal** — padahal lokal
+**1299 lulus / 0 gagal**.
+
+Selisihnya **lingkungan, bukan kode**: DB CI baru di-wipe, jadi fixture yang
+selama ini menumpuk di dev tidak ada. Pola kegagalannya konsisten dengan itu —
+`expected 403 to be 200` berulang (permission belum ter-seed), "daftar admin
+kosong", "admin tidak menerima notifikasi".
+
+Ini utang yang **selama ini tersembunyi** karena tak seorang pun pernah berhasil
+me-replay dari nol. Tiga cacat kelas ini dalam satu sesi (047, 137, seed CI),
+dan ketiganya punya sifat sama: tak terlihat di lingkungan yang tumbuh bertahap.
+
 ### F0-12 — cacat kedua dari kelas yang sama, ditemukan karena replay bersih
 
 Replay berhenti di migrasi **137**: *"1 akar grup tanpa owner_user_id"*.
