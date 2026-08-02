@@ -1,6 +1,6 @@
 # STATUS — Puraloka Suite (penunjuk satu pintu)
 
-**Diperbarui:** 2026-08-01 (rev-15: 24 integration test ternyata TAK PERNAH berjalan — `to_regclass` tanpa skema menembus ke public, gejalanya "skipped" bukan "failed"; ditutup migrasi 154 + penjaga CI · rev-14: ROADMAP #17 paritas golden TUNTAS — RAB nyata Rp 3,63 M, 65 pemeriksaan nol selisih; temuan Rp 37,8 jt tertulis tapi di luar SUM (butuh keputusan founder) · rev-13: PETA MENU PENUH — 20 grup + 202 sub-menu di sidebar (migrasi 153), halaman `/m/<key>` kontekstual, collapse generik menggantikan angka mati yang akan memotong 13 dari 18 submenu · rev-12: 6 bug kolom-salah yang gagal SENYAP ditutup — kurva-S kehilangan Rp 755,7 jt dari AC, pencarian klien selalu nol, auto-clone kategori nol baris; 2 penjaga CI baru + CI merah 149 diperbaiki · rev-11: ROADMAP #15 WIP/PSAK — pengakuan pendapatan, CIE/BIE; sekaligus menemukan Kurva-S kehilangan Rp 631,7 jt dari AC karena kolom salah + kegagalan query menyamar jadi "nol baris" · rev-10: ROADMAP #16 rantai kontrak — EOT + LD arah kontraktor + register jaminan, migrasi 152; peringatan "091 arahnya terbalik" terkonfirmasi & ditutup · rev-9: ROADMAP #23 aset & alat PENUH — migrasi 149/150/151; 4 tabel sempat MATI TOTAL, tertangkap penjaga t5a/t7 · rev-8: SCOPE DIPERLUAS — ERP lengkap+terintegrasi+AI, lihat `docs/KEPUTUSAN-SCOPE-ERP-AI.md`) · rev-7 2026-07-31: 8 celah tenancy ditutup + gerbangnya jadi gate CI · 296 pelanggaran WCAG ditutup + penjaga a11y · PV EVM berjenjang dari tanggal Gantt · buku migrasi direkonsiliasi (20 migrasi tak tercatat)) · File ini adalah `STATUS.md` yang diwajibkan AUTOPILOT §2
+**Diperbarui:** 2026-08-02 (rev-16: alur uang diuji ujung-ke-ujung — TIGA cacat ditemukan: dua trigger hilang (satu sudah menahan **Rp 627.075.000** dari saldo kas) dan piutang bisa negatif. Migrasi 161–163 + 16 test, 9 mutasi tertangkap.)
 — penunjuk TIPIS, bukan duplikasi konten. Update tanggal + baris "Fase aktif" setiap
 kali keadaan berubah; detail selalu di dokumen rujukan.
 
@@ -1000,6 +1000,30 @@ Selesai sebagai fase kerja, hidup sebagai basis bukti.
 ---
 
 ## Keputusan terbuka menunggu Nizar
+
+**D. 🔴 Koreksi saldo kas Rp 627.075.000 — BUTUH KEPUTUSAN AKUNTANSI (2026-08-02)**
+
+Trigger `trg_update_cash_balance_on_payment` tak pernah terpasang di dev, jadi
+pembayaran klien yang menunjuk akun kas tak pernah menambah saldo akun itu.
+Trigger sudah dipasang (migrasi 162) — **pembayaran berikutnya sudah benar.**
+Yang belum: lima pembayaran lama yang terlanjur luput.
+
+| Akun kas | Saldo tercatat | Tak terhitung |
+|---|---|---|
+| Kas Kolektor Ayah | Rp 50.095.000 | Rp 598.005.000 |
+| Kas Utama Nizar | Rp 447.405.000 | Rp 29.070.000 |
+
+**Kenapa saya tidak memperbaikinya sendiri.** Menambahkan Rp 627 juta ke saldo
+adalah keputusan akuntansi, bukan perbaikan teknis. Sebagian pembayaran itu
+mungkin sudah tercatat lewat jalur lain (transfer manual, penyesuaian saldo
+awal) — kalau iya, menambahkannya lagi menghasilkan saldo yang salah dengan
+cara baru, dan kali ini terlalu besar bukan terlalu kecil.
+
+**Yang dibutuhkan dari Nizar:** cocokkan kelima pembayaran itu ke mutasi
+rekening bank sungguhan. Kalau uangnya memang belum tercermin di saldo aplikasi,
+saya buatkan migrasi koreksi ber-audit-trail. Kalau sudah tercermin, tak ada
+yang perlu diubah — cukup dicatat supaya tak dipertanyakan lagi nanti.
+
 
 ~~**A. "≥2 kontributor review"**~~ — **TERJAWAB 2026-07-28**: ack tertulis founder +
    **Dokumen Audit Pra-Eksekusi** wajib untuk T3 & T5 (diff lengkap · angka
