@@ -518,6 +518,66 @@ lagi sebagai terputus.
 
 
 
+## ⚠️ Kematangan rencana — jawaban jujur
+
+> **Founder 2026-08-02:** *"apakah setiap item/menu/submenu sudah direncanakan
+> dengan matang semuanya?"* — **Belum. Dan angkanya besar.**
+
+Dari **119 sub-menu** yang tersisa, hanya **26 punya rancangan** di `docs/`
+(spec, design, atau blueprint yang menyebutnya). **93 sisanya baru berupa NAMA
+di taksonomi** — status ✅/🟡/🔴 terverifikasi ke kode, tapi *bagaimana*
+membangunnya belum pernah dipikirkan.
+
+### Apa artinya, dan apa yang TIDAK berarti
+
+**Bukan** berarti 93 itu asal-asalan: taksonomi lahir dari kajian domain
+kontraktor (CECEP), dan tiap baris punya alasan bisnis. Yang belum ada:
+keputusan teknis — model data, alur kerja, batasan, integrasi ke modul lain.
+
+**Berarti** angka "sisa 119 sub-menu" tak boleh dibaca sebagai "tinggal
+mengerjakan". Mayoritasnya masih butuh tahap rancang lebih dulu, dan tahap itu
+kadang menghapus item (§3.5 AHSP dicoret owner) atau membelahnya jadi dua
+(RFI jadi dua modul atas keputusan founder).
+
+### Yang SUDAH matang
+
+| Kelompok | Sumber rancangan |
+|---|---|
+| GL (buku besar) | `ERP_MASTER_PLAN` §Modul 10 — CoA, peta auto-jurnal, urutan GL-1→GL-4 |
+| Estimasi/CECEP | 50 dokumen CECEP — paling matang di repo ini |
+| Multi-tenant | ADR-011 + T1–T7, seluruhnya sudah dieksekusi |
+| Procurement, RAB, kasbon | sudah hidup; sisanya penyempurnaan |
+
+### Yang belum, dan pola risikonya
+
+93 sub-menu tanpa rancangan tersebar di hampir semua modul. Yang paling
+berisiko dikerjakan tanpa rancang lebih dulu:
+
+- **Ber-ledger** — ACL, CVR, profitabilitas per cost code, WIP. Sekali angka
+  masuk, mengubah modelnya mahal (pelajaran "sebelum seed").
+- **Lintas-modul** — claims, eskalasi harga, kontrak subkontraktor. Salah
+  batas modul menular ke modul lain.
+- **Berbentuk register** — asuransi, korespondensi, bid bond. Terlihat
+  sederhana, tapi menentukan siapa pemilik data & siklus hidupnya.
+
+Yang relatif aman dibangun langsung: master data (karyawan, resource,
+subkontraktor) dan modul mandiri (QA/QC, HSE) — polanya sudah berulang di
+modul yang ada.
+
+### Cara kerja yang dipakai
+
+**Rancang saat giliran tiba, bukan semuanya di depan.** Merancang 93 sub-menu
+sekarang menghasilkan dokumen yang basi sebelum dikerjakan — persis yang
+terjadi pada `AHSP-EDITION-BUILDER` (ditulis saat KB kosong, gerbangnya lewat
+sebelum dikerjakan) dan `ERP_MASTER_PLAN` Modul 9a/9b (rancangan terlantar
+berbulan-bulan).
+
+Yang dilakukan: begitu satu sub-menu naik giliran, rancangannya dibuat lebih
+dulu — model data, batasan, integrasi — lalu dikerjakan. GL-1 mengikuti pola
+itu: rancangan sudah ada di `ERP_MASTER_PLAN`, dibaca dulu, baru ditulis.
+
+---
+
 ## 📋 SELURUH SUB-MENU YANG BELUM TUNTAS — dari taksonomi
 
 > **Dihasilkan otomatis** oleh `apps/api/scripts/gen-antrean-roadmap.mjs`.
