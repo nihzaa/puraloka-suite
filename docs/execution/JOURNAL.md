@@ -60,11 +60,29 @@ peringatan eksplisit. Kalau lolos, ia akan hijau selamanya tanpa menguji apa pun
 Verifikasi: seluruh berkas terdampak **lulus saat ada dua company** — kondisi
 persis yang menggagalkan shard 1.
 
-### Hasil: 21,9 → 8,2 menit (2,7×), 9/9 check hijau
+### Hasil akhir: 21,9 → 7,1 menit (3,1×), 9/9 hijau — TARGET TERCAPAI
 
-Target mandat ≤8 menit **kurang 14 detik** — dinyatakan apa adanya. Penyebabnya
-sudah terukur: `vitest --shard` membagi berdasar **alfabet, bukan durasi**,
-sehingga shard 1 menampung berkas terberat (494s vs 265s, selisih 87%). → F0-15.
+Jalannya tidak lurus, dan itu bagian pentingnya. Tiga kali CI merah, tiga kali
+akarnya **cacat isolasi nyata** — bukan cacat sharding:
+
+| Kali | Gejala | Akar |
+|---|---|---|
+| 1 | `projects.company_id` NOT NULL | 16 INSERT di test tak menyatakan `company_id` (F0-14) |
+| 2 | `notifications.company_id` NOT NULL | **kode aplikasi** `utils/notifications.ts` tenant-blind (F0-16) |
+| 3 | "ada akar grup tanpa pemilik" | `iso-test-b` di-commit tanpa `owner_user_id` |
+
+Polanya sama ketiga kalinya: **test menulis ke schema `public` bersama sambil
+membuat asumsi global tentang isinya.** Paralelisme tak menciptakan cacatnya —
+ia hanya membuatnya terlihat. Itu latihan yang tepat menjelang Fase 2, karena
+kebocoran antar-test adalah versi kecil dari kebocoran antar-tenant.
+
+Dan sekali pun trigger `fn_isi_company_id()` **tidak disentuh**. Melonggarkannya
+akan membuat ketiga gejala hilang dalam satu baris — sambil menukar cacat yang
+terlihat dengan cacat yang senyap, tepat sebelum migrasi tenancy 80 tabel (G-5).
+
+**6 shard dicoba dan gagal** — bukan karena keseimbangan melainkan karena
+menyingkap F0-16. Jadi 4 shard adalah angka tertinggi yang **terbukti**, bukan
+angka optimal. F0-15 menunggu F0-16.
 
 ---
 

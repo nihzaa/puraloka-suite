@@ -181,7 +181,34 @@ Struktur matrix dipertahankan; menaikkannya kembali cukup perubahan kecil setela
 | `gabung-coverage.mjs` | Terverifikasi: statements gabungan **6794/21241 identik** dengan run tak ter-shard. |
 | Penjaga literal peran API (ADR-004) | Menutup lubang yang lolos 14 penjaga lain. |
 
-### 5.3 ANGKA AKHIR setelah F0-14 — shard 4× hidup, 9/9 check hijau
+### 5.3 ✅ ANGKA AKHIR — 7,1 menit, TARGET TERCAPAI
+
+Run `30767512276` — **9/9 check hijau**:
+
+| Job | Durasi |
+|---|---:|
+| API — test (shard 2/4) | **425s** ← jalur kritis |
+| API — test (shard 1/4) | 378s |
+| API — test (shard 4/4) | 322s |
+| API — test (shard 3/4) | 299s |
+| Web — lint, typecheck, build | 137s |
+| Browser | 68s |
+| Keamanan | 44s |
+| Ratchet coverage (gabungan) | 34s |
+| Dokumentasi | 5s |
+
+**Wall-clock 1317s → 425s = 21,9 → 7,1 menit (3,1×).**
+**Target mandat "gerbang penuh ≤8 menit": TERCAPAI.**
+
+Nol penjaga dipindahkan ke nokturnal, nol `continue-on-error`, dan **dua penjaga
+baru ditambahkan** (literal peran ADR-004 sisi API, tabrakan definisi tabel).
+
+Catatan jujur: shard masih timpang (425s vs 299s) dan 6 shard sempat dicoba lalu
+gagal — bukan karena keseimbangan, melainkan karena menyingkap **F0-16**
+(notifikasi tenant-blind). Jadi 4 shard adalah angka tertinggi yang terbukti,
+bukan angka optimal. F0-15 menunggu F0-16.
+
+### 5.3a Riwayat: shard 4× tepat setelah F0-14 (sebelum perbaikan shard 3)
 
 Run `30766328275` — **seluruh 9 check hijau**, termasuk keempat shard:
 
