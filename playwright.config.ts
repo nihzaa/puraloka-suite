@@ -69,6 +69,19 @@ export default defineConfig({
     // "servernya bukan yang ini".
     command: `pnpm --filter web exec next dev -p ${PORT}`,
     url: BASE,
+    // Nilai palsu yang JELAS palsu — bukan kredensial, dan tak pernah
+    // dihubungi. `lib/supabase.ts` memanggil `createClient()` saat modul
+    // diimpor, jadi tanpa keduanya SETIAP halaman gagal dengan
+    // "supabaseUrl is required" — termasuk halaman yang tak menyentuh
+    // Supabase sama sekali, seperti dua yang diuji di sini.
+    //
+    // Ditaruh di sini, bukan hanya di CI, supaya lokal dan CI berperilaku
+    // sama. `.env.local` yang ada di mesin pengembang tetap menang (Next
+    // memuatnya lebih dulu), jadi ini hanya berlaku saat tak ada.
+    env: {
+      NEXT_PUBLIC_SUPABASE_URL: 'http://localhost:54321',
+      NEXT_PUBLIC_SUPABASE_KEY: 'kunci-uji-bukan-kredensial',
+    },
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
   },
