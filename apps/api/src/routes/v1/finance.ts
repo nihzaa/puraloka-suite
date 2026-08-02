@@ -773,6 +773,7 @@ export default async function financeRoutes(app: FastifyInstance) {
         const adminIds = await resolveRecipients('invoice_created', { companyId: request.companyId! })
         const projName = (invoice.projects as any)?.name ?? ''
         createNotifications(adminIds.map(uid => ({
+          company_id: request.companyId!,
           user_id:     uid,
           title:       'Invoice Baru Dibuat',
           message:     `Invoice ${invoice.invoice_number} dibuat untuk proyek ${projName}`,
@@ -1225,6 +1226,7 @@ export default async function financeRoutes(app: FastifyInstance) {
       const recipients = await resolveRecipients('invoice_paid', { projectId: invoice.project_id, companyId: request.companyId! })
       const amtFmt = amountPaid.toLocaleString('id-ID')
       createNotifications(recipients.map(uid => ({
+        company_id: request.companyId!,
         user_id:     uid,
         title:       'Pembayaran Invoice Diterima',
         message:     `Pembayaran Rp ${amtFmt} diterima untuk proyek — status invoice: ${newStatus}`,

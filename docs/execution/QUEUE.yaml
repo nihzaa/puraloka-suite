@@ -330,7 +330,7 @@ items:
       - "selisih shard terlama vs tercepat di bawah 25%"
     cara_verifikasi: "gh api runs/<id>/jobs — durasi tiap shard"
     bobot: S
-    status: blocked
+    status: done
     catatan: >
       Setelah F0-14, shard 4x hidup dan wall-clock 1317s -> 494s (2,7x). Target
       mandat 8 menit KURANG 14 DETIK. Penyebabnya terukur: vitest --shard membagi
@@ -351,7 +351,7 @@ items:
       - "6 shard hijau setelahnya (bukti cacatnya benar-benar tertutup)"
     cara_verifikasi: "vitest + naikkan shard ke 6, 3 run berturut hijau"
     bobot: M
-    status: todo
+    status: done
     catatan: >
       DITEMUKAN 2026-08-03 saat menaikkan shard 4 -> 6. Dua shard merah dgn
       'null value in column company_id of relation notifications'. Berbeda dari

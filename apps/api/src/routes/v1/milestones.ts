@@ -173,6 +173,7 @@ export default async function milestoneRoutes(app: FastifyInstance) {
           const adminIds = await resolveRecipients('milestone_completed', { companyId: request.companyId! })
           const { data: proj } = await request.db!.from('projects').select('name').eq('id', request.params.projectId).single()
           createNotifications(adminIds.map(uid => ({
+            company_id: request.companyId!,
             user_id:     uid,
             title:       'Milestone Selesai',
             message:     `Milestone "${data.title}" di proyek ${proj?.name ?? ''} ditandai selesai oleh ${request.currentUser!.name}`,

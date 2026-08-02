@@ -38,6 +38,9 @@ vi.mock('../webpush.js', () => ({
 const { createNotification, createNotifications } = await import('../notifications.js')
 
 const U1 = 'aaaaaaaa-0000-0000-0000-000000000001'
+// company_id kini WAJIB di NotificationParams (F0-16). Test ini me-mock
+// Supabase, jadi nilainya cuma perlu berbentuk UUID yang sah.
+const CO = 'cccccccc-0000-0000-0000-000000000001'
 const U2 = 'bbbbbbbb-0000-0000-0000-000000000002'
 const U3 = 'cccccccc-0000-0000-0000-000000000003'
 
@@ -80,7 +83,7 @@ beforeEach(async () => {
 describe('createNotifications → Web Push', () => {
   it('notifikasi yang tersimpan MEMICU push', async () => {
     await createNotifications([
-      { user_id: U1, title: 'Kasbon menunggu', message: 'Rp 500.000', type: 'kasbon_pending' },
+      { company_id: CO, user_id: U1, title: 'Kasbon menunggu', message: 'Rp 500.000', type: 'kasbon_pending' },
     ])
     await tunggu(1)
 
@@ -98,7 +101,7 @@ describe('createNotifications → Web Push', () => {
     // notifikasi, membuka aplikasi, dan tak menemukan apa pun.
     insertHasil.error = { message: 'insert gagal' }
     await createNotifications([
-      { user_id: U1, title: 'X', message: 'Y', type: 'general' },
+      { company_id: CO, user_id: U1, title: 'X', message: 'Y', type: 'general' },
     ])
     await tunggu()
 
@@ -114,9 +117,9 @@ describe('createNotifications → Web Push', () => {
     // ("kasbon menunggu persetujuan" ke seluruh admin). Mengirim per-baris
     // berarti N query ke `users` untuk payload yang sama persis.
     await createNotifications([
-      { user_id: U1, title: 'Kasbon menunggu', message: 'Rp 500.000', type: 'kasbon_pending' },
-      { user_id: U2, title: 'Kasbon menunggu', message: 'Rp 500.000', type: 'kasbon_pending' },
-      { user_id: U3, title: 'Kasbon menunggu', message: 'Rp 500.000', type: 'kasbon_pending' },
+      { company_id: CO, user_id: U1, title: 'Kasbon menunggu', message: 'Rp 500.000', type: 'kasbon_pending' },
+      { company_id: CO, user_id: U2, title: 'Kasbon menunggu', message: 'Rp 500.000', type: 'kasbon_pending' },
+      { company_id: CO, user_id: U3, title: 'Kasbon menunggu', message: 'Rp 500.000', type: 'kasbon_pending' },
     ])
     await tunggu(1)
 
@@ -128,8 +131,8 @@ describe('createNotifications → Web Push', () => {
     // Penggabungan berdasarkan isi TIDAK boleh menyatukan pesan yang berbeda:
     // orang akan menerima notifikasi milik orang lain.
     await createNotifications([
-      { user_id: U1, title: 'Kasbon disetujui', message: 'Rp 500.000', type: 'kasbon_approved' },
-      { user_id: U2, title: 'Kasbon ditolak', message: 'Rp 500.000', type: 'kasbon_rejected' },
+      { company_id: CO, user_id: U1, title: 'Kasbon disetujui', message: 'Rp 500.000', type: 'kasbon_approved' },
+      { company_id: CO, user_id: U2, title: 'Kasbon ditolak', message: 'Rp 500.000', type: 'kasbon_rejected' },
     ])
     await tunggu(2)
 
@@ -143,7 +146,7 @@ describe('createNotifications → Web Push', () => {
     // harus mencari sendiri apa yang diberitahukan.
     await createNotifications([
       {
-        user_id: U1, title: 'Temuan baru', message: 'PL-003',
+        company_id: CO, user_id: U1, title: 'Temuan baru', message: 'PL-003',
         type: 'punch_assigned', action_url: '/lapangan/punch-list?item=abc',
       },
     ])
@@ -161,7 +164,7 @@ describe('createNotifications → Web Push', () => {
 describe('createNotification (tunggal) → Web Push', () => {
   it('memicu push untuk satu penerima', async () => {
     await createNotification({
-      user_id: U1, title: 'Inspeksi lolos', message: 'RFI-004', type: 'inspeksi_lolos',
+      company_id: CO, user_id: U1, title: 'Inspeksi lolos', message: 'RFI-004', type: 'inspeksi_lolos',
     })
     await tunggu(1)
     expect(terkirim.length).toBe(1)
@@ -171,7 +174,7 @@ describe('createNotification (tunggal) → Web Push', () => {
   it('gagal simpan → TIDAK mengirim push', async () => {
     insertHasil.error = { message: 'insert gagal' }
     await createNotification({
-      user_id: U1, title: 'X', message: 'Y', type: 'general',
+      company_id: CO, user_id: U1, title: 'X', message: 'Y', type: 'general',
     })
     await tunggu()
     expect(terkirim.length).toBe(0)

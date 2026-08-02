@@ -202,6 +202,7 @@ export default async function kasbonRoutes(app: FastifyInstance) {
 
         const recipients = await resolveRecipients('kasbon_pending', { projectId: resolvedProjectId, companyId: request.companyId! })
         createNotifications(recipients.map(uid => ({
+          company_id: request.companyId!,
           user_id:     uid,
           title:       'Kasbon Baru Diajukan',
           message:     `Kasbon Rp ${amtFmt} diajukan oleh ${user.name} untuk ${context}`,
@@ -434,6 +435,7 @@ export default async function kasbonRoutes(app: FastifyInstance) {
         const amtFmt      = Number(kasbonFull.amount).toLocaleString('id-ID')
 
         createNotifications([{
+          company_id: request.companyId!,
           user_id:     kasbonFull.requested_by,
           title:       status === 'approved' ? 'Kasbon Disetujui' : 'Kasbon Ditolak',
           message:     status === 'approved'

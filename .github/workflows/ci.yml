@@ -71,31 +71,28 @@ jobs:
     # tak akan pernah datang dan **setiap PR tertahan selamanya** — kegagalan
     # yang terlihat seperti "CI lambat", bukan seperti salah konfigurasi.
     # Daftar wajib diperbarui bersamaan; lihat docs/execution/CI-BUKTI.md §4.
-    name: API — test (shard ${{ matrix.shard }}/4)
+    name: API — test (shard ${{ matrix.shard }}/6)
     runs-on: ubuntu-latest
-    # ── 4 SHARD — angka tertinggi yang TERBUKTI hijau ─────────────────────
+    # ── 6 SHARD — dinyalakan setelah F0-16 ────────────────────────────────
     #
-    # 4 shard: 9/9 check hijau, wall-clock 494s = 8,2 menit (run 30766328275).
-    #
-    # 6 shard DICOBA (F0-15) dan GAGAL — dua shard merah, dan penyebabnya bukan
-    # ketimpangan melainkan cacat isolasi BARU yang hanya muncul pada tingkat
-    # paralelisme lebih tinggi:
+    # Percobaan 6 shard sebelumnya GAGAL, dan kegagalannya berharga: ia
+    # menyingkap cacat tenancy NYATA di kode produksi, bukan sekadar penghalang
+    # CI —
     #
     #     null value in column "company_id" of relation "notifications"
     #
-    # Kali ini sumbernya BUKAN test melainkan KODE APLIKASI:
     # `utils/notifications.ts` meng-insert notifikasi tanpa `company_id` sama
-    # sekali — nol kemunculan di seluruh berkas. Ia bekerja hari ini semata
-    # karena fallback satu-tenant `fn_isi_company_id()`.
+    # sekali. Ia bekerja hari ini semata karena fallback satu-tenant
+    # `fn_isi_company_id()`, dan akan menolak SETIAP notifikasi pada hari
+    # perusahaan kedua lahir.
     #
-    # Itu cacat tenancy nyata, bukan sekadar penghalang CI: satu user bisa jadi
-    # anggota beberapa company (ADR-011 D5), jadi notifikasi tanpa `company_id`
-    # tak punya cara menyatakan miliknya perusahaan yang mana. → QUEUE F0-16.
+    # F0-16 memperbaikinya di akar: `company_id` kini kolom WAJIB di
+    # `NotificationParams` — bukan opsional dengan default. Satu user bisa jadi
+    # anggota beberapa perusahaan (ADR-011 D5), jadi nilainya harus datang dari
+    # PERISTIWA yang melahirkan notifikasi, bukan dari penerimanya. Tipe wajib
+    # membuat TypeScript menemukan 31 pemanggil yang lupa — bukan produksi.
     #
-    # Ditahan di 4 sampai F0-16 selesai. Menambal dengan melonggarkan trigger
-    # akan menukar cacat yang terlihat dengan cacat yang senyap — G-5.
-    #
-    # ── Riwayat: kenapa shard sempat DITAHAN di 1
+    # ── Riwayat: kenapa shard sempat DITAHAN di 1, lalu di 4
     #
     # Percobaan pertama (2026-08-03) memangkas wall-clock 1317s → 434s (3×),
     # tetapi shard 1 gagal:
@@ -127,7 +124,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6]
     defaults:
       run:
         working-directory: apps/api
@@ -372,9 +369,9 @@ jobs:
       # PARALEL; kalau berbagi schema, `resetTestSchema()` satu shard men-DROP
       # schema yang sedang dipakai shard lain — kerusakan yang gejalanya terlihat
       # seperti test flaky, bukan seperti kesalahan konfigurasi.
-      - name: Test + coverage (shard ${{ matrix.shard }}/4)
+      - name: Test + coverage (shard ${{ matrix.shard }}/6)
         run: |
-          npx vitest run --shard=${{ matrix.shard }}/4 --coverage \
+          npx vitest run --shard=${{ matrix.shard }}/6 --coverage \
             --coverage.include='src/**/*.ts' \
             --coverage.exclude='src/**/*.test.ts' \
             --coverage.exclude='src/**/__tests__/**' \

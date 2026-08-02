@@ -1323,6 +1323,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
         const recipients = await resolveRecipients('wage_report_submitted', { projectId: assignInfo.project_id, companyId: request.companyId! })
         const mandorName = (assignInfo.mandor as any)?.name ?? user.name
         createNotifications(recipients.map(uid => ({
+          company_id: request.companyId!,
           user_id:     uid,
           title:       'Laporan Upah Diajukan',
           message:     `Laporan upah minggu ${body.week_start} – ${weekEndStr} diajukan oleh ${mandorName}`,
@@ -1552,6 +1553,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
       if (projectId) {
         const recipients = await resolveRecipients('kasbon_submitted', { projectId, companyId: request.companyId! })
         createNotifications(recipients.map(uid => ({
+          company_id: request.companyId!,
           user_id:    uid,
           title:      'Penagihan Progress Diajukan',
           message:    `Mandor mengajukan penagihan ${body.pct_completed}% senilai Rp ${body.gross_payment.toLocaleString('id-ID')}`,
@@ -1647,6 +1649,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
       const projectId = (scopeData?.assignment as any)?.project_id
       if (mandorId) {
         createNotifications([{
+          company_id: request.companyId!,
           user_id:    mandorId,
           title:      body.status === 'approved' ? 'Penagihan Progress Disetujui' : 'Penagihan Progress Ditolak',
           message:    body.status === 'approved'
@@ -1798,6 +1801,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
       const projectId = (scope.assignment as any)?.project_id
       if (mandorId) {
         createNotifications([{
+          company_id: request.companyId!,
           user_id:    mandorId,
           title:      'Settlement Borongan Dicairkan',
           message:    `Settlement pekerjaan selesai. Dana bersih Rp ${body.net_payment.toLocaleString('id-ID')} telah diproses.`,
@@ -1885,6 +1889,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
     try {
       if (existing.mandor_id) {
         createNotifications([{
+          company_id: request.companyId!,
           user_id:    existing.mandor_id,
           title:      status === 'approved' ? 'Kasbon Tukang Disetujui' : 'Kasbon Tukang Ditolak',
           message:    status === 'approved'

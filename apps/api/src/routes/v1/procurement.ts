@@ -682,6 +682,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
     try {
       const admins = await resolveRecipients('material_request_submitted', { companyId: request.companyId! })
       createNotifications(admins.map(uid => ({
+        company_id: request.companyId!,
         user_id: uid, title: 'Material Request Baru',
         message: `${(mr.project as any)?.name ?? 'Proyek'}: MR ${mr.mr_number} menunggu persetujuan`,
         type: 'general' as const, priority: 'normal' as const,
@@ -781,6 +782,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
     // Notif ke requester
     try {
       createNotification({
+        company_id: request.companyId!,
         user_id: mr.requested_by, title: action === 'approve' ? 'MR Disetujui' : 'MR Ditolak',
         message: `Material Request ${mr.mr_number} telah ${action === 'approve' ? 'disetujui' : 'ditolak'}`,
         type: 'general' as const, priority: 'normal' as const,
