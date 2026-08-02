@@ -181,7 +181,29 @@ Struktur matrix dipertahankan; menaikkannya kembali cukup perubahan kecil setela
 | `gabung-coverage.mjs` | Terverifikasi: statements gabungan **6794/21241 identik** dengan run tak ter-shard. |
 | Penjaga literal peran API (ADR-004) | Menutup lubang yang lolos 14 penjaga lain. |
 
-### 5.3 ✅ ANGKA AKHIR — 7,1 menit, TARGET TERCAPAI
+### 5.3 ✅ ANGKA AKHIR — 6,3 menit, 6 shard, 11/11 hijau
+
+Run `30768651050` — seluruh **11 check hijau** setelah F0-16:
+
+| Job | Durasi |
+|---|---:|
+| API — test (shard 1/6) | **377s** ← jalur kritis |
+| shard 3/6 · 2/6 · 5/6 · 6/6 | 284s · 278s · 271s · 269s |
+| API — test (shard 4/6) | 217s |
+| Web · Browser · Keamanan | 133s · 97s · 51s |
+| Ratchet coverage (gabungan) | 32s |
+| Dokumentasi | 7s |
+
+**Wall-clock 1317s → 377s = 21,9 → 6,3 menit (3,5×).**
+**Target ≤8 menit: TERCAPAI dengan margin 1,7 menit.**
+
+Lima shard berkumpul di 217–284s; hanya shard 1 yang menonjol di 377s (menampung
+`multitenant-t3-rollback` 12,7s + `gl-api` 8,4s). Menaikkan shard lagi tak akan
+banyak membantu — shard 1 tetap jadi jalur kritis selama pembagian berbasis
+alfabet. Yang menembus batas berikutnya adalah **B-3/Postgres lokal**, yang
+memangkas *dasar* latensinya.
+
+### 5.3a Riwayat: 4 shard (sebelum F0-16)
 
 Run `30767512276` — **9/9 check hijau**:
 

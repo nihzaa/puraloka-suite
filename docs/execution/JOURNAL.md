@@ -60,7 +60,33 @@ peringatan eksplisit. Kalau lolos, ia akan hijau selamanya tanpa menguji apa pun
 Verifikasi: seluruh berkas terdampak **lulus saat ada dua company** — kondisi
 persis yang menggagalkan shard 1.
 
-### Hasil akhir: 21,9 → 7,1 menit (3,1×), 9/9 hijau — TARGET TERCAPAI
+### F0-16 — cacat tenancy NYATA di kode produksi
+
+Yang paling berharga dari seluruh pekerjaan CI hari ini bukan kecepatannya,
+melainkan **apa yang tersingkap saat mengejarnya**.
+
+`utils/notifications.ts` meng-insert notifikasi **tanpa `company_id` sama
+sekali** — nol kemunculan di seluruh berkas. Bekerja hari ini semata karena
+fallback satu-tenant. Artinya pada hari perusahaan kedua lahir, **setiap
+notifikasi ditolak** — dan kalau trigger dilonggarkan supaya "jalan", notifikasi
+diam-diam masuk ke perusahaan yang salah.
+
+Ditemukan lewat sharding, **bukan** lewat review dan bukan lewat test yang ada.
+
+**Diperbaiki di tipe, bukan di trigger.** `company_id` jadi kolom **wajib** di
+`NotificationParams` — sengaja bukan opsional-dengan-default. Satu user bisa
+jadi anggota beberapa perusahaan (ADR-011 D5), jadi nilainya tak bisa diturunkan
+dari penerima; ia harus datang dari **peristiwa** yang melahirkan notifikasi.
+Default apa pun akan salah untuk sebagian kasus.
+
+Hasilnya: TypeScript menemukan **38 error → 31 pemanggil** di 10 berkas route.
+Dan ternyata konteksnya **sudah ada di tangan pemanggil selama ini** —
+`request.companyId` diisi `authenticate()` tiap request, `resolveRecipients()`
+bahkan sudah menerimanya. Hanya notifikasinya yang tak pernah diberi tahu.
+
+Terverifikasi: notifikasi + kasbon + punch-list lulus **saat ada dua company**.
+
+### Hasil akhir: 21,9 → 6,3 menit (3,5×), 11/11 hijau — TARGET TERCAPAI
 
 Jalannya tidak lurus, dan itu bagian pentingnya. Tiga kali CI merah, tiga kali
 akarnya **cacat isolasi nyata** — bukan cacat sharding:
