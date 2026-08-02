@@ -268,7 +268,15 @@ export function DocumentSection({ projectId, userRole }: Props) {
           border: "2px dashed #E5E7EB", borderRadius: 12, background: "#FAFAFA",
           cursor: canEdit ? "pointer" : "default",
         }}
+          role={canEdit ? "button" : undefined}
+          tabIndex={canEdit ? 0 : undefined}
           onClick={() => canEdit && setShowUploadModal(true)}
+          onKeyDown={e => {
+            if (canEdit && (e.key === "Enter" || e.key === " ")) {
+              e.preventDefault()   // Spasi jangan menggulir halaman
+              setShowUploadModal(true)
+            }
+          }}
         >
           <FileText size={28} color={C.muted} style={{ marginBottom: 10 }} />
           <p style={{ fontSize: 14, fontWeight: 600, color: C.text, marginBottom: 4 }}>Belum ada dokumen</p>
@@ -549,15 +557,19 @@ function UploadModalContent({
                 </button>
               </div>
             ) : (
-              <div onClick={() => fileRef.current?.click()}
-                style={{ padding: "24px 16px", border: "2px dashed #E5E7EB", borderRadius: 10, textAlign: "center", cursor: "pointer", background: "#FAFAFA" }}
+              // `<button>`, bukan `<div onClick>`: ini SATU-SATUNYA jalan
+              // mengunggah dokumen. Sebagai div, orang yang memakai keyboard
+              // (atau pembaca layar) tak bisa mengunggah sama sekali — bukan
+              // sekadar tak nyaman, melainkan fitur yang tertutup total.
+              <button type="button" onClick={() => fileRef.current?.click()}
+                style={{ width: "100%", font: "inherit", padding: "24px 16px", border: "2px dashed #E5E7EB", borderRadius: 10, textAlign: "center", cursor: "pointer", background: "#FAFAFA" }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = C.navy; e.currentTarget.style.background = C.navyLight; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "#FAFAFA"; }}
               >
                 <Upload size={22} color="var(--text-muted)" style={{ marginBottom: 8 }} />
-                <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0, fontWeight: 500 }}>Klik untuk pilih file</p>
-                <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "4px 0 0" }}>PDF, JPG, PNG, DOCX · maks 20MB</p>
-              </div>
+                <span style={{ display: "block", fontSize: 13, color: "var(--text-secondary)", margin: 0, fontWeight: 500 }}>Klik untuk pilih file</span>
+                <span style={{ display: "block", fontSize: 11, color: "var(--text-muted)", margin: "4px 0 0" }}>PDF, JPG, PNG, DOCX · maks 20MB</span>
+              </button>
             )}
           </div>
 

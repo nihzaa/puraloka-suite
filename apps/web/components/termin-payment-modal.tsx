@@ -436,7 +436,15 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
                   </div>
                 ) : (
                   <div
+                    role="button"
+                    tabIndex={0}
                     onClick={() => fileInputRef.current?.click()}
+                    onKeyDown={e => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault()   // Spasi jangan menggulir modal
+                        fileInputRef.current?.click()
+                      }
+                    }}
                     style={{
                       border: `1.5px dashed ${C.border}`, borderRadius: 10,
                       padding: "20px", textAlign: "center", cursor: "pointer",

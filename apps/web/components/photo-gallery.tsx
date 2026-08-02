@@ -349,13 +349,21 @@ export function PhotoGallery({ projectId, userRole }: Props) {
           gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
           gap: 10,
         }}>
-          {filteredPhotos.map((photo, localIdx) => {
+          {filteredPhotos.map((photo) => {
             const globalIdx = photos.indexOf(photo);
             const catColor = CATEGORY_COLORS[photo.category] ?? CATEGORY_COLORS.other;
             return (
               <div
                 key={photo.id}
+                role="button"
+                tabIndex={0}
                 onClick={() => setLightboxIdx(globalIdx)}
+                onKeyDown={e => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault()   // Spasi jangan menggulir galeri
+                    setLightboxIdx(globalIdx)
+                  }
+                }}
                 style={{
                   position: "relative", borderRadius: 10, overflow: "hidden",
                   cursor: "pointer", aspectRatio: "4/3",

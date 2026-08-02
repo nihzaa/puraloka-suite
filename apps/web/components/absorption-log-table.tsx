@@ -251,7 +251,15 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
                     <div key={week.weekStart}>
                       {/* Week group header */}
                       <div
+                        role="button"
+                        tabIndex={0}
                         onClick={() => toggleWeek(week.weekStart)}
+                        onKeyDown={e => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault()   // Spasi jangan menggulir tabel
+                            toggleWeek(week.weekStart)
+                          }
+                        }}
                         style={{
                           display: "grid",
                           gridTemplateColumns: "28px 1fr 80px 72px 72px 72px 72px 80px 110px 36px",

@@ -89,7 +89,15 @@ export default function PortalNotifPage() {
         {notifs.map((n) => (
           <div
             key={n.id}
+            role="button"
+            tabIndex={0}
             onClick={() => !n.is_read && markRead(n.id)}
+            onKeyDown={e => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault()   // Spasi jangan menggulir daftar notifikasi
+                if (!n.is_read) markRead(n.id)
+              }
+            }}
             style={{
               background: C.surface, borderRadius: 12, padding: 16,
               border: `1px solid ${C.border}`,

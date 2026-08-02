@@ -266,7 +266,16 @@ export default function KalenderPage() {
               return (
                 <div
                   key={dayNum}
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={isSelected}
                   onClick={() => setSelectedDay(isSelected ? null : dateKey)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault()   // Spasi jangan menggulir kalender
+                      setSelectedDay(isSelected ? null : dateKey)
+                    }
+                  }}
                   style={{
                     minHeight: 88, padding: 6,
                     borderRight: "1px solid var(--border)",

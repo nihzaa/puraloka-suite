@@ -301,7 +301,16 @@ export default function AuditPage() {
               >
                 {/* Row summary */}
                 <div
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={isExpanded}
                   onClick={() => setExpanded(isExpanded ? null : log.id)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault()   // Spasi jangan menggulir halaman
+                      setExpanded(isExpanded ? null : log.id)
+                    }
+                  }}
                   style={{
                     display: "flex", alignItems: "center", gap: 12,
                     padding: "13px 20px", cursor: "pointer",

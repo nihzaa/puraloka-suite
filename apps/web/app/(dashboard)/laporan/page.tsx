@@ -1185,7 +1185,16 @@ function TabPengeluaran({ data }: { data: ExpensesData }) {
                 return (
                   <div key={i} style={{ borderRadius: 8, border: `1px solid ${isOpen ? C.navy : C.border}`, background: "var(--surface)", overflow: "hidden", transition: "border-color 0.15s" }}>
                     <div
+                      role={hasSubs ? "button" : undefined}
+                      tabIndex={hasSubs ? 0 : undefined}
+                      aria-expanded={hasSubs ? isOpen : undefined}
                       onClick={() => hasSubs && setExpandedCat(isOpen ? null : c.name)}
+                      onKeyDown={e => {
+                        if (hasSubs && (e.key === "Enter" || e.key === " ")) {
+                          e.preventDefault()   // Spasi jangan menggulir laporan
+                          setExpandedCat(isOpen ? null : c.name)
+                        }
+                      }}
                       style={{ padding: "10px 12px", cursor: hasSubs ? "pointer" : "default", userSelect: "none" }}
                     >
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>

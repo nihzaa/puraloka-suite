@@ -557,6 +557,14 @@ export function ProgressLogModal({
                 <label style={fieldLabel}>Foto Dokumentasi</label>
                 {photos.length < 5 && (
                   <div
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={e => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault()   // Spasi jangan menggulir modal
+                        fileInputRef.current?.click()
+                      }
+                    }}
                     onDragOver={e => { e.preventDefault(); setDragOver(true); }}
                     onDragLeave={() => setDragOver(false)}
                     onDrop={e => { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files); }}
