@@ -204,12 +204,48 @@ antrean **F0-12**; saya kerjakan setelah ini kalau tak ada arahan lain.
 
 ---
 
-# ⏸️ MENUNGGU — R-002
+# ✅ R-002 · SELESAI — 12 migrasi dicatat, semuanya terbukti fisik
 
-## R-002 · Catat 12 migrasi ke buku, HANYA yang terbukti fisik
+Dijalankan setelah R-001 tuntas, persis urutan yang Anda tetapkan.
 
-Anda setujui, **setelah R-001**. Belum saya jalankan karena R-001 baru tuntas di
-sisi kode — bagian CI-nya (`periksa-gl` → mungkin `setup-clean`) masih tertahan B-1.
+**Buku migrasi: 160 → 172 baris tercatat.**
 
-Mencatat 167 sebagai "sudah jalan" sebelum lingkungan CI dipastikan bersih justru
-mengunci cacat P0 yang baru saja diperbaiki. Urutan Anda benar; saya menunggu.
+Tiap baris dibuktikan dengan kueri katalog yang ditulis dan diperiksa **manusia**,
+satu per satu, terhadap nama objek yang benar-benar ada di berkas migrasinya —
+bukan diturunkan regex. Itu penting: seluruh migrasi 163–176 memakai DDL dinamis
+(`DO $$`/`EXECUTE`), yang justru membuat parser lama menghasilkan verdict palsu
+(cacat C-3).
+
+Proses manual itu sendiri menangkap **dua kesalahan tebakan saya**: artefak 164
+dan 174 sempat saya laporkan "tak ada" hanya karena saya menebak nama objeknya
+salah. Kalau saya percaya tebakan pertama, dua migrasi yang nyata-nyata sudah
+berjalan akan tercatat sebagai belum.
+
+| Migrasi | Bukti fisik |
+|---|---|
+| 163 | body `trigger_calc_invoice_amount_due()` memuat `GREATEST(0,…)` |
+| 164 | `trg_kasbon_approved_create_expense` + `trg_settle_borongan_deduct_cash` |
+| 165 | fungsi kasbon→expense sadar-schema |
+| 166 | trigger `protect_*_created_at` terpasang kembali |
+| 167 | `accounts.company_id` (bentuk tenant-aware) |
+| 168 | `fn_gl_wajib_seimbang()` + `trg_gl_wajib_seimbang` |
+| 169 | constraint `posted_at` pada `journal_entries` |
+| 170 | baris CoA ter-seed di `accounts` |
+| 171 | permission ber-prefix `gl:` |
+| 172 | policy pada `accounts` |
+| 173 | policy **RESTRICTIVE** pada `accounts` |
+| 174 | menu Buku Besar terdaftar |
+
+**Dua migrasi SENGAJA tidak dicatat**, dan alasannya ditulis di alat supaya tak
+dipertanyakan ulang:
+
+- **175** — penegas bentuk. Hanya *memeriksa* dan melempar; **tidak membuat objek
+  apa pun**. Tak ada artefak fisik yang bisa jadi bukti, jadi tak boleh diklaim terbukti.
+- **176** — belum pernah dijalankan ke dev (`trg_isi_pemilik_grup_yatim` tidak ada
+  di katalog). Mencatatnya berarti migrasi itu **dilewati selamanya**.
+
+Alatnya (`scripts/db/catat-migrasi-terbukti.mjs`) **menolak menulis** bila ada
+satu saja baris yang tak terbukti — bukan menulis sebagian lalu melapor.
+
+**Cara membatalkan:** `DELETE FROM supabase_migrations.schema_migrations WHERE
+version IN ('163',…,'174')`. Reversibel penuh; belum ada produksi.

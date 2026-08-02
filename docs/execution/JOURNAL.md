@@ -53,6 +53,55 @@ Fallback founder dijalankan: `setup-clean` (aman, ketiga tabel 0 baris). Hasilny
 **047 + 167 + 175 lulus seluruhnya** di replay bersih. Perbaikan R-001 bekerja di
 lingkungan kosong, bukan hanya di dev.
 
+### F0-13 SELESAI — CI HIJAU PENUH untuk pertama kalinya
+
+163 test merah di CI, akarnya **satu** dan tak terlihat dari pesan mana pun:
+
+```
+"User belum terdaftar sebagai anggota perusahaan manapun"   (auth.ts:82)
+```
+
+`resolveCompanyId()` menolak SETIAP request dari user tanpa baris di
+`company_members`, jadi seluruh endpoint ber-`preHandler` membalas 403 dan test
+yang mengharapkan 200/201/400/422 gagal berjamaah. Gejalanya (`daftar admin
+kosong`, `admin tidak menerima notifikasi`, puluhan `expected 403 to be 200`)
+menyesatkan ke arah RBAC, padahal soalnya keanggotaan.
+
+Kenapa barisnya tak ada: migrasi 126 mendaftarkan "semua user existing" ke tenant
+pertama — tapi di CI yang di-wipe, migrasi jalan **sebelum** seed, jadi saat 126
+berjalan belum ada user untuk didaftarkan.
+
+**Ini kelas cacat yang sama persis dengan 047 dan 137** — ketiga kalinya dalam
+rangkaian sesi ini. Semuanya: urutan seed-vs-migrasi, hanya muncul di lingkungan
+yang dibangun dari nol, tak pernah terlihat di dev yang tumbuh bertahap.
+
+Seed kini mendaftarkan seluruh user ber-`role_id` ke company akar (meniru persis
+126) **dan memverifikasi hasilnya** — seed yang "berhasil" tapi nol baris adalah
+kegagalan senyap yang paling lama didiagnosis.
+
+**Hasil: run 30761368609 — KELIMA job CI HIJAU.**
+Job API **130/130 berkas, 1301 lulus, 5 skipped, 0 gagal** (sebelumnya 1132/163).
+Ratchet coverage lulus (31,76% vs lantai 31,98%, dalam toleransi 0,5%).
+
+Ini juga yang akhirnya menutup **F0-3**: penjaga `docs-freshness` dan
+`no-stale-docs-path` kini benar-benar menjaga, bukan sekadar terpasang.
+
+### R-002 SELESAI — 12 migrasi dicatat, buku 160 → 172
+
+Tiap baris dibuktikan kueri katalog yang ditulis & diperiksa **manusia**, satu per
+satu, terhadap nama objek nyata di berkas migrasinya. Bukan regex — dan itu
+memang perlu, karena seluruh 163–176 memakai DDL dinamis, penyebab verdict palsu
+pada cacat C-3.
+
+Prosesnya menangkap **dua kesalahan tebakan saya sendiri**: artefak 164 dan 174
+sempat saya laporkan "tak ada" karena saya menebak nama objeknya salah. Kalau
+saya percaya tebakan pertama, dua migrasi yang nyata sudah berjalan akan tercatat
+sebagai belum — kebalikan dari cacat C-3, tapi sama-sama merusak buku.
+
+**175 & 176 sengaja tidak dicatat**: 175 tak membuat objek apa pun (penegas
+bentuk), 176 belum pernah dijalankan ke dev. Alatnya menolak menulis bila ada
+satu saja baris tak terbukti.
+
 ### F0-4 SELESAI — tipe migrasi ke-4 (policy) akhirnya terjaga
 
 Dua kriteria yang tersisa ditutup, satu dikerjakan dan satu **sengaja ditolak**.

@@ -63,17 +63,19 @@ items:
       - "SUDAH: .worktrees dikeluarkan dari pencarian via .claudeignore (sudah di .gitignore sejak lama; vitest sudah scoped ke apps/api/src sehingga tak perlu exclude tambahan)"
       - "SUDAH: penjaga CI docs-freshness — diuji dua arah (bersih=0, angka busuk=1)"
       - "SUDAH: penjaga CI no-stale-docs-path — 247 berkas .md, nol duplikat"
-      - "SEBAGIAN: CI penuh belum berjalan di GitHub — lihat catatan"
-    cara_verifikasi: "13 penjaga exit 0 + lint/typecheck/build kedua job exit 0"
+      - "SUDAH: CI penuh HIJAU di GitHub — kelima job, run 30761368609"
+    cara_verifikasi: "5 job CI hijau + 15 penjaga exit 0"
     bobot: M
-    status: wip
-    catatan: >
-      CI GitHub hanya ter-trigger pada PR ke `main` (ci.yml `on.pull_request.branches: [main]`).
-      PR #134 menargetkan `fix/search-proyek-gagal-senyap` (PR #133) karena seri GL 167-174
-      belum ter-merge, sehingga TIDAK ADA check yang berjalan. Diverifikasi LOKAL sebagai
-      gantinya: 13 penjaga exit 0, api lint(0 error)/tsc/build exit 0, web lint(0 error)/tsc
-      exit 0, suite penuh 3 run berturut hijau. Verifikasi CI sesungguhnya baru terjadi saat
-      rantai PR ini di-merge ke main — tidak diklaim hijau sebelum itu.
+    status: done
+    bukti: >
+      Run 30761368609: Keamanan, Browser, Web, API, Dokumentasi — SEMUA success.
+      Job API 130/130 berkas, 1301 lulus, 0 gagal. Penjaga docs-freshness &
+      no-stale-docs-path karenanya benar-benar menjaga, bukan hanya terpasang.
+      Sempat `wip` panjang karena tiga blokir berurutan yang semuanya nyata:
+      (1) ci.yml disaring `branches:[main]` → PR bertumpuk nol check;
+      (2) Actions tak menjalankan job sama sekali (kuota, repo privat);
+      (3) seed CI tak lengkap → 163 test merah (F0-13).
+      Ketiganya tuntas; verifikasi CI sesungguhnya akhirnya terjadi.
 
   - id: F0-4
     fase: 0
@@ -214,16 +216,17 @@ items:
     blokir_oleh: []
     kriteria_selesai:
       - "SUDAH: alat ci-periksa-bentuk-gl.mjs (read-only) + action periksa-gl di ci-isolation.yml"
-      - "BELUM: dijalankan sungguhan — kredensial CI hanya di GitHub Secrets, tak terjangkau lokal"
-      - "BILA hasilnya kondisi C (accounts tanpa company_id): reset CI dari nol (setup-clean)"
+      - "SUDAH: dijalankan sungguhan — verdict C (GL tenant-blind) terbukti di project CI"
+      - "SUDAH: fallback dijalankan — setup-clean, aman karena ketiga tabel 0 baris"
+      - "SUDAH: re-periksa setelah reset → verdict B (AMAN), accounts 38 baris company_id=YA"
     cara_verifikasi: "gh workflow run ci-isolation.yml -f action=periksa-gl"
     bobot: S
-    status: blocked
-    catatan: >
-      Syarat founder: periksa DB CI sebelum eksekusi; bila tak terjangkau, reset CI
-      dari nol setelahnya. Kredensial CI_* memang write-only di GitHub Secrets, jadi
-      jalur "periksa dulu" HANYA bisa lewat workflow. Terblokir bersama BARU-1
-      (GitHub Actions tak menjalankan job sama sekali).
+    status: done
+    bukti: >
+      Sebelum: accounts company_id=TIDAK, penanda 047, buku 047=TERCATAT/167=tidak,
+      VERDICT C. Sesudah setup-clean: accounts 38 baris company_id=YA penanda 167,
+      buku 047 & 167 KEDUANYA tercatat, VERDICT B AMAN. Syarat 1 founder terpenuhi
+      dengan bukti pengukuran, bukan asumsi.
 
   - id: F0-12
     fase: 0
@@ -256,7 +259,15 @@ items:
       - "seed CI melengkapi apa pun yang dibutuhkan test, ATAU test menyediakan fixture-nya sendiri"
     cara_verifikasi: "CI job 'API — lint, typecheck, test, build' hijau + tempel ringkasan"
     bobot: L
-    status: todo
+    status: done
+    bukti: >
+      Run 30761368609 — KELIMA job CI HIJAU untuk pertama kalinya. Job API:
+      130/130 berkas, 1301 lulus, 5 skipped, 0 GAGAL (sebelumnya 1132/163).
+      Ratchet coverage lulus (31,76% vs lantai 31,98% — dalam toleransi 0,5%).
+      Akar tunggal: seluruh user seed tak punya baris company_members, sehingga
+      resolveCompanyId() (auth.ts:82) membalas 403 untuk SETIAP request.
+      Migrasi 126 mendaftarkan "user existing" tapi di CI ia jalan SEBELUM seed.
+      Seed kini mendaftarkan + MEMVERIFIKASI hasilnya (5 anggota terdaftar).
     catatan: >
       DITEMUKAN 2026-08-03 setelah F0-12 membuat replay bersih berhasil untuk
       PERTAMA KALINYA. Lokal 1299 lulus / 0 gagal; di CI 1132 lulus / 163 gagal.
@@ -286,7 +297,7 @@ items:
     kriteria_selesai: ["satu definisi GL tunggal", "CI fresh menghasilkan accounts ber-company_id"]
     cara_verifikasi: "ci-project-setup pada schema bersih + cek kolom company_id"
     bobot: M
-    status: ratifikasi
+    status: done
     catatan: "G-2. Lihat RATIFIKASI.md R-001. Biaya pembatalan hari ini NOL (journal_entries 0 baris)."
 
   - id: R-002
@@ -296,7 +307,7 @@ items:
     kriteria_selesai: ["buku selaras dengan artefak fisik terbukti"]
     cara_verifikasi: "ledger-diff nol PERLU-MATA-MANUSIA yang belum dijelaskan"
     bobot: S
-    status: ratifikasi
+    status: done
     catatan: "G-2. HARUS setelah R-001 — mencatat 167 lebih dulu mengunci cacat P0."
 
   # ── FASE 1 — REVERSIBILITAS ───────────────────────────────────────────────
