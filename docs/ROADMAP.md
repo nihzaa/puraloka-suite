@@ -273,6 +273,8 @@ memberi nilai apa pun, sebagus apa pun rancangannya.
 | E16 | **Pengeluaran kas utama tak pernah memotong saldo** | `fn_update_main_cash_on_expense()` ADA di DB, TRIGGER-nya TIDAK — jadi tak pernah dieksekusi sekali pun. Kembarannya untuk kas kecil terpasang normal, jadi separuh jalur hidup dan separuh mati: orang melihat petty cash berkurang benar lalu menyimpulkan mekanismenya berfungsi. `project_expenses` masih 0 baris, jadi belum ada kerugian. | ✅ Migrasi 161 + 8 test, 5 mutasi tertangkap (2026-08-02) |
 | E17 | **Pembayaran klien Rp 627 juta tak pernah masuk saldo kas** | Cacat yang sama pada `payments` — tapi yang ini SUDAH menggigit: 5 dari 23 pembayaran ber-`cash_account_id` senilai **Rp 627.075.000** tak pernah menambah saldo. Trigger dipasang; koreksi retroaktif sengaja TIDAK dilakukan — itu keputusan akuntansi yang harus dicocokkan ke rekening bank. | ✅ Migrasi 162 + 8 test (2026-08-02) · ⏳ koreksi saldo menunggu founder |
 | E18 | **Lebih bayar membuat piutang perusahaan terlihat lebih kecil** | `amount_due = total - dibayar` tanpa batas bawah. Klien yang lebih bayar Rp 500rb menghasilkan sisa **−500rb**, dan `clients.ts:78` + `dashboard.ts:190` menjumlahkannya apa adanya — sehingga menutupi tunggakan klien LAIN. Sementara `ar-register.ts:71` memfilter `> 0` sehingga invoice itu hilang dari aging. Dua pembaca, dua perilaku, nol peringatan. | ✅ Migrasi 163 (`GREATEST(0, …)`) + 2 test (2026-08-02) |
+| E19 | **Izin rute bocor lewat nama yang mirip** | `middleware.ts` mencocokkan izin dengan `startsWith`, jadi `/proyek` ikut cocok dengan `/proyeksi-kas` — mandor bisa membukanya tanpa ada yang pernah menambahkannya ke daftar izin. Bukan skenario karangan: "Proyeksi Kas" sudah antre di roadmap #10. | ✅ `cocokRute()` (batas segmen) + 9 test browser (2026-08-02) |
+| E20 | **PM terjebak loop redirect tanpa akhir** | Home PM adalah `/dashboard`, tapi `/dashboard` tak ada di daftar izin PM — jadi setiap redirect "kembali ke home" ditolak lagi, selamanya. Browser menyerah dengan ERR_TOO_MANY_REDIRECTS: layar kosong, tanpa pesan. Diperbaiki dengan menurunkan home ke `/pm-portal` (haknya), BUKAN dengan membuka `/dashboard` — `routes/v1/dashboard.ts` tak menyaring per-role, jadi membukanya berarti memberi PM angka keuangan seluruh perusahaan. | ✅ Home PM + guard struktural yang menolak konfigurasi rusak saat boot (2026-08-02) |
 
 ### Yang BELUM selesai dari kelompok ini
 
@@ -314,9 +316,24 @@ setiap pembayaran menambah saldo **dua kali**. Tertangkap hanya karena test
 alur uang menjalankan seluruh rantai migrasi dari kosong — persis yang dilakukan
 CI, dan persis yang akan dilakukan environment produksi pertama.
 
+**Lapisan yang tak punya test sama sekali menyimpan cacat paling lama.**
+`middleware.ts` memutuskan siapa boleh melihat halaman apa, dan sampai
+2026-08-02 nol test menyentuhnya — API test tak menjalankan Next, jsdom mulai
+sesudah halaman diputuskan. Uji browser PERTAMA langsung menemukan dua cacat
+(E19, E20). Bukan karena kodenya buruk, tapi karena tak ada yang pernah
+menjalankannya dengan sengaja.
+
 **Verifikasi bisa mengukur benda yang salah tanpa memberi tanda.** Berjam-jam
 terbuang menyimpulkan "token CSS-nya dibuang compiler" — padahal yang terjadi:
 server yang jalan adalah `next start` (bundel produksi lama), bukan `next dev`.
+
+Terulang 2026-08-02 dengan bentuk lain: uji browser pertama dijalankan lewat
+`127.0.0.1`, dan Next 16 memperlakukannya sebagai origin BERBEDA dari
+`localhost` (`allowedDevOrigins` di `next.config.ts` tak memuatnya). HTML
+terkirim utuh, teksnya benar, nol error di konsol maupun log server — yang mati
+hanya hidrasi, jadi tak satu pun tombol atau hook bereaksi. Berjam-jam terbuang
+mengejar "React tak mengambil alih" yang sebenarnya "origin-nya bukan yang
+dipercaya". Dua kali polanya sama: yang diukur bukan yang dikira.
 Sumbernya benar sejak awal. Pelajarannya bukan "periksa server", melainkan:
 kalau hasil ukur tak masuk akal, curigai ALAT UKURNYA sebelum menyimpulkan
 tentang benda yang diukur.

@@ -44,3 +44,7 @@ coverage/
 
 # Kredensial akun test hasil rotasi 2026-07-31 (A2) — JANGAN pernah di-commit.
 .kredensial-test-BARU.txt
+
+# Playwright — jejak & laporan kegagalan uji browser (regenerasi tiap run)
+test-results/
+playwright-report/
