@@ -16,7 +16,7 @@ memuat **setiap** dokumen, tanpa kecuali.
 | **acuan** | aturan/keputusan yang dirujuk saat bekerja | dibaca saat mengerjakan hal terkait; tak "selesai" |
 | **riwayat** | catatan fase yang sudah lewat | bukti apa yang pernah terjadi; jangan dikutip sebagai rencana |
 
-**Total 237 dokumen** — antrean 11 · acuan 170 · riwayat 56.
+**Total 253 dokumen** — antrean 11 · acuan 185 · riwayat 57.
 
 Kolom **RM** = disebut langsung di `ROADMAP.md`.
 
@@ -36,6 +36,32 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | [PROTOKOL-SESI](PROTOKOL-SESI.md) | acuan |  | PROTOKOL SESI — baca ini dulu, di setiap sesi, sebelum aksi apa pun |
 | [RANCANGAN-DIKERJAKAN](RANCANGAN-DIKERJAKAN.md) | acuan |  | Sub-menu berisiko yang digarap sebelum disiplin rancangan berlaku |
 | [ROADMAP](ROADMAP.md) | riwayat | ✓ | ROADMAP — Puraloka Suite |
+
+### `docs/audit/2026-08-02`
+
+| Dokumen | Peran | RM | Isi |
+|---|---|:-:|---|
+| [00-EXECUTIVE-SUMMARY](audit/2026-08-02/00-EXECUTIVE-SUMMARY.md) | acuan |  | 00 — RINGKASAN EKSEKUTIF |
+| [01-INVENTORY](audit/2026-08-02/01-INVENTORY.md) | acuan |  | 01 — INVENTARISASI FAKTUAL |
+| [02-DOCS-INVENTORY](audit/2026-08-02/02-DOCS-INVENTORY.md) | acuan |  | 02 — AUDIT DOKUMENTASI |
+| [03-CODE-QUALITY](audit/2026-08-02/03-CODE-QUALITY.md) | acuan |  | 03 — AUDIT KUALITAS KODE |
+| [04-SECURITY](audit/2026-08-02/04-SECURITY.md) | acuan |  | 04 — AUDIT KEAMANAN |
+| [05-DATABASE](audit/2026-08-02/05-DATABASE.md) | acuan |  | 05 — AUDIT DATABASE & DATA |
+| [06-API](audit/2026-08-02/06-API.md) | acuan |  | 06 — AUDIT API / ROUTE |
+| [07-FRONTEND-UX](audit/2026-08-02/07-FRONTEND-UX.md) | acuan |  | 07 — AUDIT FRONTEND / UI / UX |
+| [08-TEST-CI](audit/2026-08-02/08-TEST-CI.md) | acuan |  | 08 — TEST, CI, DX |
+| [09-VISION-GAP](audit/2026-08-02/09-VISION-GAP.md) | acuan |  | 09 — VISI & GAP ANALYSIS |
+| [10-SCORECARD-RISKS](audit/2026-08-02/10-SCORECARD-RISKS.md) | acuan |  | 10 — PENILAIAN & PRIORITAS |
+| [KOREKSI](audit/2026-08-02/KOREKSI.md) | acuan | ✓ | KOREKSI — Angka Audit yang Diverifikasi Ulang |
+
+### `docs/execution`
+
+| Dokumen | Peran | RM | Isi |
+|---|---|:-:|---|
+| [CHARTER](execution/CHARTER.md) | acuan |  | CHARTER — Sumber Kewenangan Eksekusi Otonom |
+| [JOURNAL](execution/JOURNAL.md) | riwayat | ✓ | JOURNAL — Catatan Sesi |
+| [LEDGER-DIFF](execution/LEDGER-DIFF.md) | acuan |  | LEDGER-DIFF — Buku Migrasi vs Artefak Fisik |
+| [RATIFIKASI](execution/RATIFIKASI.md) | acuan |  | RATIFIKASI — Satu-satunya Berkas yang Perlu Dibaca Founder |
 
 ### `docs/superpowers/plans`
 

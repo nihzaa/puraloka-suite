@@ -1,0 +1,26 @@
+id,kategori,severity,judul,bukti,rekomendasi,effort
+F-001,multi-tenant,P0,80 dari 122 tabel belum punya company_id,"introspeksi live: 42/122 tabel ber-company_id",Klasifikasi tiap tabel (global/turunan/perlu-kolom) lalu tambahkan company_id selagi journal_entries masih 0 baris,XL
+F-002,keamanan,P1,53 lokasi memakai role literal sebagai gerbang otorisasi,"cash.ts:511; clients.ts:25; kasbons.ts:135; users.ts:34",Ganti seluruhnya dengan requirePermission sesuai ADR-004,L
+F-003,database,P1,Buku migrasi meleset 12 versi dari kenyataan,"schema_migrations maks 162; berkas db/migrations 174",Jalankan apps/api/scripts/rekonsiliasi-schema-migrations.mjs --tulis setelah verifikasi manual,S
+F-004,dokumentasi,P1,CLAUDE.md menyatakan angka skala yang salah berat,"CLAUDE.md:75 '001-058'; :93 '27+ Tabel'; :788 '058 total' vs nyata 174 migrasi & 122 tabel",Perbarui atau pangkas CLAUDE.md menjadi penunjuk ke STATUS.md,S
+F-005,dokumentasi,P1,Worktree menduplikasi seluruh pohon docs,".worktrees/docs-protokol dan .worktrees/warm-clay-design-system berisi salinan docs/",Hapus worktree usang atau kecualikan dari pencarian agent,S
+F-006,frontend,P1,1039 literal hex warna tersebar di 60 berkas,"grep '#rrggbb' di apps/web/app + components",Ekstrak ke token desain Tailwind v4; prasyarat white-label & dark mode,L
+F-007,api,P1,Tidak ditemukan idempotency-key pada endpoint pembayaran,"grep idempoten hanya di approval.ts/penalty.ts/audit.ts, bukan di finance/procurement",Tambahkan Idempotency-Key pada POST invoice/:id/pay dan supplier-payments,M
+F-008,api,P1,23 modul route tidak terdokumentasi di CLAUDE.md,"gl, wip, bids, assets, cost-control, rap, punch-list, rfi, inspeksi, submittal, lessons-learned, dll",Arahkan agent ke docs/API_ENDPOINTS.md sebagai sumber kebenaran,S
+F-009,multi-tenant,P1,Tidak ada tabel billing/subscription,"nol tabel plans/subscriptions di 122 tabel",Rancang model billing sebelum tenant kedua,L
+F-010,multi-tenant,P1,authenticate() masih global sementara auth_role() sudah per-company,"STATUS.md rev-19; migrasi 144",Sejajarkan lapis API dengan lapis RLS,M
+F-011,test,P2,Suite multitenant-t3-rollback gagal,"relation assembly_components does not exist di bootstrap:81 padahal tabel ADA di dev",Perbaiki urutan bootstrap harness test,S
+F-012,keamanan,P2,7 rute memakai supabase mentah tanpa gerbang tenant,"audit-gerbang-tenancy.mjs: mandor.ts:35 POST kasbon-photo/upload menulis tanpa saringan",Tinjau manual; pindahkan ke request.db,S
+F-013,kualitas-kode,P2,23 catch kosong menelan error,"grep 'catch {}' di apps/api/src + apps/web",Tambah logging; ratchet audit-catch-senyap sudah menjaga agar tak bertambah,M
+F-014,frontend,P2,Skeleton state hanya di 6 dari 59 halaman,"grep skeleton di app/**/page.tsx",Tambahkan skeleton untuk halaman berat,M
+F-015,frontend,P2,19 halaman tanpa penanganan error,"40/59 memuat 'error'",Standarkan error boundary,M
+F-016,frontend,P2,useEffect fetch di 56 dari 59 halaman tanpa cache layer,"grep useEffect di page.tsx",Adopsi React Query/SWR; prasyarat UX immersive,XL
+F-017,keamanan,P2,Endpoint publik invoice tanpa kedaluwarsa,"settings.ts:65 GET /api/v1/public/invoice/:id",Pertimbangkan signed token ber-expiry,S
+F-018,kualitas-kode,P2,358 any dan 130 ts-ignore meski strict aktif,"grep di apps/api/src + apps/web",Kurangi bertahap dengan tipe hasil Supabase,L
+F-019,produksi,P2,Tidak ada runbook backup/DR/monitoring,"nol dokumen operasional di docs/",Tulis runbook sebelum pelanggan pertama,M
+F-020,dokumentasi,P2,Tidak ada README.md di root,"ls *.md — hanya CLAUDE/STATUS/AUTOPILOT/AUDIT_REPORT/DEMO/DOMAIN/HARDCODE-CENSUS",Tulis README untuk onboarding developer kedua,S
+F-021,arsitektur,P2,packages/shared kosong total,"0 file 0 LOC padahal terdaftar di workspace",Isi atau hapus dari workspace,S
+F-022,dokumentasi,P3,ADR-003 dan ADR-010 tidak ada,"ls direktori adr/ — nomor melompat",Dokumentasikan alasan nomor dilewati,S
+F-023,multi-tenant,P3,Tidak ada konsep group_id untuk holding,"tak ada di 122 tabel",Putuskan model grup sebelum CoA diisi banyak tenant,L
+F-024,dokumentasi,P3,DEMO.md yatim sejak 2026-07-16,"git log -1",Arsipkan atau perbarui,S
+F-025,keamanan,P3,SSO/SAML dinyatakan tak dibangun,"docs/KEPUTUSAN-SCOPE-ERP-AI.md",Ubah status menjadi 'ditunda sampai diminta pelanggan' — syarat pengadaan B2B besar,M

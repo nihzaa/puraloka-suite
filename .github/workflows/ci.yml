@@ -135,6 +135,19 @@ jobs:
       - name: Dokumen rencana harus terhubung ke ROADMAP
         run: node scripts/audit-docs-vs-roadmap.mjs
 
+      # Fase 0 (0.3) — racun konteks agent.
+      #
+      # `CLAUDE.md` dibaca agent AI di awal setiap sesi. Versi lamanya menyatakan
+      # jumlah migrasi & tabel yang sudah lama tidak benar, dan bahkan tambalan
+      # koreksinya ikut basi. Memperbaiki angkanya sekali tidak menyelesaikan apa
+      # pun — ia akan basi lagi tanpa gejala. Dua penjaga di bawah membuat repo
+      # MENOLAK kelas kesalahan itu masuk kembali.
+      - name: Dokumen konteks bebas angka yang membusuk
+        run: node scripts/audit-docs-freshness.mjs
+
+      - name: Tidak ada dokumen kembar di dua lokasi
+        run: node scripts/audit-no-stale-docs-path.mjs
+
       - name: Penjaga saldo (pemeriksaan tak boleh bisa dilewati)
         run: node scripts/audit-penjaga-saldo.mjs
 

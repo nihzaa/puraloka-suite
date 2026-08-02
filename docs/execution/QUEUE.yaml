@@ -1,0 +1,370 @@
+# ============================================================================
+# QUEUE — Antrean kerja mesin-terbaca.
+# ============================================================================
+# Diturunkan dari: CHARTER.md §3 (fase), docs/audit/2026-08-02/FINDINGS.csv,
+# docs/ROADMAP.md, dan temuan Fase 0.
+#
+# status: todo | wip | blocked | done | ratifikasi
+# Aturan: jangan melompati fase. Item `blocked` menunggu `blokir_oleh` selesai.
+# Bila item tersisa < 15 → turunkan item baru (CHARTER §9).
+# ============================================================================
+
+meta:
+  diperbarui: 2026-08-02
+  fase_aktif: 0
+  sisa_todo: 34
+
+items:
+  # ── FASE 0 — PEMULIHAN KEPERCAYAAN ────────────────────────────────────────
+  - id: F0-1
+    fase: 0
+    judul: "Alat introspeksi DB kanonik tunggal"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "satu metode koneksi, alasan tertulis di header"
+      - "identitas + schema_hash dicetak tiap run"
+      - "menolak jalan bila cwd bukan root repo"
+      - "output deterministik (byte-identik antar run)"
+    cara_verifikasi: "node scripts/db/introspect.mjs identity (3x) + sha256sum tables --json (2x)"
+    bobot: M
+    status: done
+    bukti: "schema_hash=7a4be5d7d87d9892 identik 3 run; sha256 tables identik 2 run; cwd guard menolak dari apps/api & docs"
+
+  - id: F0-2
+    fase: 0
+    judul: "Verifikasi ulang tujuh angka kepala + terbitkan KOREKSI.md"
+    blokir_oleh: [F0-1]
+    kriteria_selesai:
+      - "tiap angka: klaim lama -> angka benar -> cara mengukur"
+      - "daftar LENGKAP tabel punya/tanpa company_id"
+      - "bukti nol kolom float"
+    cara_verifikasi: "docs/audit/2026-08-02/KOREKSI.md terbit"
+    bobot: M
+    status: done
+    bukti: "8/10 angka benar; trigger 192->156/175 SALAH; migrasi 174->171 berkas SALAH"
+
+  - id: F0-3
+    fase: 0
+    judul: "Racun konteks agent: tulis ulang CLAUDE.md + buang .worktrees + penjaga CI"
+    blokir_oleh: [F0-2]
+    kriteria_selesai:
+      - "CLAUDE.md ditulis ulang dari nol, nol angka yang bisa basi"
+      - ".worktrees masuk .gitignore + vitest exclude + tsconfig exclude"
+      - "penjaga CI docs-freshness"
+      - "penjaga CI no-stale-docs-path"
+    cara_verifikasi: "penjaga CI hijau; grep angka di CLAUDE.md nihil"
+    bobot: M
+    status: wip
+
+  - id: F0-4
+    fase: 0
+    judul: "Jaring pengaman rollback: multitenant-t3-rollback HIJAU + rollback tiap tipe migrasi tenancy"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "suite hijau, bukan skip, bukan dijelaskan"
+      - "akar masalah dibuktikan (bootstrap vs urutan migrasi)"
+      - "ada test rollback untuk: tambah kolom, backfill, set NOT NULL, tambah policy"
+    cara_verifikasi: "vitest run multitenant-t3-rollback + tempel output"
+    bobot: L
+    status: todo
+    catatan: "C-4 — vonis 'cacat harness' kemarin adalah hipotesis, BUKAN kesimpulan. Jangan tutup tanpa bukti."
+
+  - id: F0-5
+    fase: 0
+    judul: "Coverage sungguhan + ratchet CI"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "coverage terukur per area (api routes, lib, web)"
+      - "ambang = angka hari ini sebagai LANTAI (ratchet), bukan target aspirasional"
+      - "daftar area ber-coverage nol dilaporkan"
+    cara_verifikasi: "vitest run --coverage + ratchet gagal bila turun"
+    bobot: M
+    status: todo
+    catatan: "C-6 — skor Testing 80 belum dibayar sampai ini selesai."
+
+  - id: F0-6
+    fase: 0
+    judul: "Ledger-diff dengan bukti artefak fisik"
+    blokir_oleh: [F0-1]
+    kriteria_selesai:
+      - "parser sadar blok DO/EXECUTE"
+      - "verdict hijau HANYA bila artefak fisik terbukti"
+      - "TIDAK ada flag tulis"
+      - "LEDGER-DIFF.md terbit"
+    cara_verifikasi: "node scripts/db/ledger-diff.mjs"
+    bobot: M
+    status: done
+    bukti: "171 berkas, 160 tercatat; 144 konsisten, 15 artefak-hilang, 12 perlu-mata-manusia; P0 047vs167 ditemukan"
+
+  - id: F0-7
+    fase: 0
+    judul: "Golden file: selesaikan ketidakcocokan angka jangkar"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "tentukan workbook otoritatif di _source/ahsp/"
+      - "jelaskan kenapa 3.629.860.295,31 != 1.657.839.590,39"
+      - "assertion untuk 109,5 dan 7875 bila angkanya ada di berkas otoritatif"
+      - "bila mesin AHSP salah -> naikkan P0"
+    cara_verifikasi: "vitest run golden + tempel output"
+    bobot: L
+    status: todo
+    catatan: "C-5. Ada DUA berkas Cibuluh: .xls 6,9MB dan .xlsx 3,5MB — kandidat penjelasan."
+
+  - id: F0-8
+    fase: 0
+    judul: "Bersihkan schema sisa mutation-test (mut6) dari DB dev"
+    blokir_oleh: []
+    kriteria_selesai: ["schema mut6 hilang atau didokumentasikan sebagai sengaja"]
+    cara_verifikasi: "introspect triggers-all-schemas"
+    bobot: S
+    status: ratifikasi
+    catatan: "G-2 (DROP SCHEMA). Ditemukan saat F0-2."
+
+  - id: F0-9
+    fase: 0
+    judul: "Penjaga penomoran migrasi (nomor tak boleh melompat/bentrok)"
+    blokir_oleh: []
+    kriteria_selesai: ["CI gagal bila ada nomor ganda atau lompatan tak terdokumentasi"]
+    cara_verifikasi: "penjaga CI"
+    bobot: S
+    status: todo
+    catatan: "171 berkas tapi nomor tertinggi 174."
+
+  # ── GERBANG: menunggu founder ─────────────────────────────────────────────
+  - id: R-001
+    fase: 0
+    judul: "P0 — tabrakan definisi GL 047 vs 167 (GL tenant-blind di lingkungan baru)"
+    blokir_oleh: []
+    kriteria_selesai: ["satu definisi GL tunggal", "CI fresh menghasilkan accounts ber-company_id"]
+    cara_verifikasi: "ci-project-setup pada schema bersih + cek kolom company_id"
+    bobot: M
+    status: ratifikasi
+    catatan: "G-2. Lihat RATIFIKASI.md R-001. Biaya pembatalan hari ini NOL (journal_entries 0 baris)."
+
+  - id: R-002
+    fase: 0
+    judul: "Buku migrasi tertinggal 12 versi"
+    blokir_oleh: [R-001]
+    kriteria_selesai: ["buku selaras dengan artefak fisik terbukti"]
+    cara_verifikasi: "ledger-diff nol PERLU-MATA-MANUSIA yang belum dijelaskan"
+    bobot: S
+    status: ratifikasi
+    catatan: "G-2. HARUS setelah R-001 — mencatat 167 lebih dulu mengunci cacat P0."
+
+  # ── FASE 1 — REVERSIBILITAS ───────────────────────────────────────────────
+  - id: F1-1
+    fase: 1
+    judul: "Idempotency key pada semua operasi finansial"
+    blokir_oleh: [F0-3, F0-4, F0-5, F0-7]
+    kriteria_selesai:
+      - "bayar termin, catat pembayaran, approve kasbon, transfer kas, posting jurnal, generate invoice"
+      - "unik per (tenant, operasi, key); pengiriman ulang -> respons sama"
+      - "test double-submit membuktikan tidak ada uang ganda"
+    cara_verifikasi: "test double-submit per endpoint"
+    bobot: L
+    status: blocked
+
+  - id: F1-2
+    fase: 1
+    judul: "Tutup 7 rute tanpa gerbang tenancy"
+    blokir_oleh: [F0-3, F0-4, F0-5, F0-7]
+    kriteria_selesai:
+      - "nol rute menulis tanpa saringan tenant"
+      - "rute publik jadi pengecualian bernama: field dibatasi + token acak + rate limit"
+    cara_verifikasi: "node apps/api/scripts/audit-gerbang-tenancy.mjs -> ratchet turun"
+    bobot: M
+    status: blocked
+
+  - id: F1-3
+    fase: 1
+    judul: "23 catch kosong: telan-sengaja jadi eksplisit + log, atau dinaikkan"
+    blokir_oleh: [F0-3, F0-4, F0-5, F0-7]
+    kriteria_selesai: ["nol catch kosong tanpa keputusan tertulis"]
+    cara_verifikasi: "node apps/api/scripts/audit-catch-senyap.mjs"
+    bobot: M
+    status: blocked
+
+  - id: F1-4
+    fase: 1
+    judul: "Backup, restore, DR runbook — DIUJI SUNGGUHAN"
+    blokir_oleh: [F0-3, F0-4, F0-5, F0-7]
+    kriteria_selesai: ["restore nyata ke lingkungan sementara", "waktu pemulihan tercatat"]
+    cara_verifikasi: "tempel bukti waktu restore"
+    bobot: L
+    status: blocked
+    catatan: "Sebelum ada satu pelanggan pun. Bukan pekerjaan 'nanti'."
+
+  - id: F1-5
+    fase: 1
+    judul: "README + .env.example + bootstrap satu perintah"
+    blokir_oleh: [F0-3, F0-4, F0-5, F0-7]
+    kriteria_selesai: ["waktu clone -> pnpm dev terukur dan tercatat"]
+    cara_verifikasi: "jalankan di direktori bersih"
+    bobot: M
+    status: blocked
+
+  - id: F1-6
+    fase: 1
+    judul: "Audit log immutability DIBUKTIKAN"
+    blokir_oleh: [F0-3, F0-4, F0-5, F0-7]
+    kriteria_selesai: ["test UPDATE audit_logs gagal", "test DELETE audit_logs gagal (peran tertinggi)"]
+    cara_verifikasi: "vitest + tempel output"
+    bobot: S
+    status: blocked
+
+  - id: F1-7
+    fase: 1
+    judul: "Anti-self-lockout dibuktikan test"
+    blokir_oleh: [F0-3, F0-4, F0-5, F0-7]
+    kriteria_selesai: ["pencabutan permission kritis dari pemegang terakhir DITOLAK"]
+    cara_verifikasi: "vitest + tempel output"
+    bobot: S
+    status: blocked
+
+  # ── FASE 2 — KEPUTUSAN TANPA JALAN KEMBALI ────────────────────────────────
+  - id: F2-1
+    fase: 2
+    judul: "ADR bentuk grup/holding (SEBELUM company_id)"
+    blokir_oleh: [F1-1, F1-2, F1-3, F1-4, F1-5, F1-6, F1-7]
+    kriteria_selesai:
+      - "group_id: kolom sendiri vs companies.parent_id vs tabel groups"
+      - "bentuk CoA: induk-diwarisi-override vs per-PT-dengan-peta-konsolidasi"
+      - "aturan konsolidasi, eliminasi, transfer alat/mandor + harga transfer"
+      - "jalur kebocoran-terkendali untuk pemilik grup dirancang eksplisit"
+    cara_verifikasi: "ADR terbit + ditinjau ulang terhadap ADR-011"
+    bobot: L
+    status: blocked
+    catatan: "C-2. Paling mahal diubah belakangan. Struktural mendahului migrasi."
+
+  - id: F2-2
+    fase: 2
+    judul: "Klasifikasi 80 tabel: global / per-tenant / per-grup / sistem"
+    blokir_oleh: [F2-1]
+    kriteria_selesai: ["tabel keputusan terbaca manusia SEBELUM migrasi ditulis"]
+    cara_verifikasi: "review daftar dari introspect tenancy-coverage"
+    bobot: L
+    status: blocked
+
+  - id: F2-3
+    fase: 2
+    judul: "Sapuan tenancy tunggal (per batch, tiap langkah terpisah)"
+    blokir_oleh: [F2-2]
+    kriteria_selesai:
+      - "urutan: kolom nullable -> backfill -> verifikasi nol yatim -> NOT NULL -> FK -> index -> policy -> test isolasi -> test rollback"
+      - "tiap batch punya migrasi turun yang teruji"
+    cara_verifikasi: "test isolasi + rollback per batch"
+    bobot: XL
+    status: blocked
+
+  - id: F2-4
+    fase: 2
+    judul: "Bukti isolasi lintas tenant untuk SETIAP endpoint"
+    blokir_oleh: [F2-3]
+    kriteria_selesai:
+      - "dua tenant berdata mirip"
+      - "cek baca/tulis/ubah/agregat"
+      - "termasuk laporan, ekspor Excel, dashboard, pencarian, notifikasi, storage, PESAN ERROR"
+    cara_verifikasi: "suite isolasi hijau"
+    bobot: L
+    status: blocked
+    catatan: "Kebocoran paling sering lewat agregat & pesan error, bukan endpoint utama."
+
+  - id: F2-5
+    fase: 2
+    judul: "Storage per tenant + payment-proofs terbukti privat"
+    blokir_oleh: [F2-3]
+    kriteria_selesai:
+      - "bucket & path tenant-scoped"
+      - "test akses langsung tanpa auth GAGAL"
+      - "policy dashboard-manual dipindah jadi migrasi"
+    cara_verifikasi: "test akses anon + introspect policy storage"
+    bobot: M
+    status: blocked
+
+  - id: F2-6
+    fase: 2
+    judul: "Keputusan relforcerowsecurity (0 dari 122 tabel memaksa RLS)"
+    blokir_oleh: [F2-1]
+    kriteria_selesai: ["diputuskan + didokumentasikan: paksa atau tidak, beserta alasan"]
+    cara_verifikasi: "introspect rls"
+    bobot: S
+    status: blocked
+    catatan: "Temuan baru F0-2."
+
+  # ── FASE 3+ (ringkas; diperluas saat fasenya tiba) ────────────────────────
+  - id: F3-1
+    fase: 3
+    judul: "Hapus 53 literal peran + penjaga CI derive-capability"
+    blokir_oleh: [F2-4]
+    kriteria_selesai: ["nol literal peran di posisi pengambil keputusan otorisasi", "penjaga CI hijau"]
+    cara_verifikasi: "grep + penjaga CI"
+    bobot: L
+    status: blocked
+
+  - id: F4-1
+    fase: 4
+    judul: "1.039 hex -> token desain + penjaga CI"
+    blokir_oleh: [F3-1]
+    kriteria_selesai: ["hex literal hanya boleh di berkas token", "white-label per tenant mungkin"]
+    cara_verifikasi: "penjaga CI hex"
+    bobot: L
+    status: blocked
+
+  - id: F4-2
+    fase: 4
+    judul: "Lapis data terpusat (cache, invalidasi, mutasi optimistis, dedup)"
+    blokir_oleh: [F3-1]
+    kriteria_selesai: ["useEffect-fetch di halaman turun drastis", "cache bersama lintas navigasi"]
+    cara_verifikasi: "grep useEffect di page.tsx + ukur navigasi"
+    bobot: XL
+    status: blocked
+
+  - id: F4-3
+    fase: 4
+    judul: "Offline-first jalur lapangan (progress, foto, kasbon)"
+    blokir_oleh: [F4-2]
+    kriteria_selesai: ["antrean lokal + sync + resolusi konflik"]
+    cara_verifikasi: "test mode offline"
+    bobot: XL
+    status: blocked
+    catatan: "Sinyal buruk adalah NORMA di lokasi proyek, bukan pengecualian."
+
+  - id: F5-1
+    fase: 5
+    judul: "Triase 93 sub-menu tanpa rancangan: INTI / PEMBEDA / TUNDA"
+    blokir_oleh: [F4-1]
+    kriteria_selesai:
+      - "tiap sub-menu: masalah, pengguna, rusak-kalau-tak-ada, prasyarat data, bobot"
+      - "INTI habis dulu sebelum PEMBEDA"
+    cara_verifikasi: "dokumen triase hidup"
+    bobot: L
+    status: blocked
+    catatan: "C-7 — risiko yang paling mungkin membunuh proyek. Bukan catatan kaki."
+
+  - id: F6-1
+    fase: 6
+    judul: "Prasyarat AI: event log terpadu + jejak keputusan + struktur semantik"
+    blokir_oleh: [F5-1]
+    kriteria_selesai: ["event dapat dibaca ulang", "alasan approval/override/variance tersimpan"]
+    cara_verifikasi: "pipa data jalan"
+    bobot: XL
+    status: blocked
+    catatan: "Bangun PIPA-nya, bukan fiturnya. AI di atas data kosong = percaya diri dan salah."
+
+  - id: F7-1
+    fase: 7
+    judul: "Provisioning tenant, onboarding, langganan, batas paket"
+    blokir_oleh: [F6-1]
+    kriteria_selesai: ["tenant baru sekali klik", "penagihan jalan"]
+    cara_verifikasi: "e2e onboarding"
+    bobot: XL
+    status: blocked
+
+  - id: F7-2
+    fase: 7
+    judul: "SSO: ubah status jadi 'ditunda, arsitektur tidak menghalangi'"
+    blokir_oleh: [F7-1]
+    kriteria_selesai: ["auth tidak mengeras terhadap SAML/OIDC"]
+    cara_verifikasi: "review arsitektur auth"
+    bobot: M
+    status: blocked
