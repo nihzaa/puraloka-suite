@@ -875,6 +875,8 @@ Phase 1 (Program A) ✅ · Phase 2 (Program B) ✅.
 
 ## Ke mana membaca apa
 
+**Seluruh isi `docs/` (236 dokumen):** [`docs/INDEKS-DOKUMEN.md`](docs/INDEKS-DOKUMEN.md) — setiap dokumen dengan perannya (antrean · acuan · riwayat). Dihasilkan otomatis; jangan disunting tangan.
+
 | Butuh | Baca |
 |---|---|
 | **"Apa pekerjaan berikutnya?"** | **`docs/ROADMAP.md`** ← satu-satunya daftar pekerjaan + tracker |

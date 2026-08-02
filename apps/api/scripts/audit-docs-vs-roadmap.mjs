@@ -90,10 +90,19 @@ for (const f of files) {
   )
 }
 
-console.log(`Dokumen .md di docs/     : ${files.length}`)
-console.log(`  terhubung ke ROADMAP   : ${terhubung.length}`)
-console.log(`  dikecualikan (beralasan): ${dikecualikanList.length}`)
-console.log(`  ⚠️  RENCANA TERLANTAR   : ${terlantar.length}\n`)
+// ⚠️ Kata "dikecualikan" sempat MENYEMBUNYIKAN angka sebenarnya. Founder
+// bertanya soal SELURUH dokumen; laporan "210 dikecualikan beralasan" membuat
+// terdengar seperti semuanya sudah tertangani — padahal 134 tak disebut
+// ROADMAP sama sekali, dengan alasan yang saya buat sendiri, bukan keputusan
+// founder.
+//
+// Sekarang tiap dokumen punya tempat di `docs/INDEKS-DOKUMEN.md`, dan skrip
+// ini menjawab satu pertanyaan sempit saja: adakah RENCANA KERJA yang
+// terputus? Angka lain disebut apa adanya, bukan sebagai "sudah beres".
+console.log(`Dokumen .md di docs/       : ${files.length}`)
+console.log(`  disebut langsung ROADMAP : ${terhubung.length}`)
+console.log(`  acuan/riwayat/arsip      : ${dikecualikanList.length}  → semuanya terdaftar di docs/INDEKS-DOKUMEN.md`)
+console.log(`  ⚠️  RENCANA TERLANTAR     : ${terlantar.length}\n`)
 
 if (terlantar.length) {
   console.log('— Berisi rencana kerja tapi TIDAK dirujuk ROADMAP:')

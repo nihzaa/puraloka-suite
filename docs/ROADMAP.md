@@ -449,6 +449,20 @@ datanya yang bisa.
 > Modul 9a/9b, `AHSP-EDITION-BUILDER-DESIGN` §3.5, `GOLDEN-FILE-SPEC` paritas
 > end-to-end — semuanya baru ketahuan saat audit menyeluruh.
 
+> **Koreksi 2026-08-02 (kedua):** founder mengulang pertanyaannya —
+> *"seluruh dokumen yg ada di folder doc yaa yg saya tanya"* — dan itu benar.
+> Jawaban saya sebelumnya ("210 dikecualikan beralasan") menyembunyikan angka
+> sebenarnya: **134 dari 236 dokumen tak disebut ROADMAP sama sekali**, dan
+> alasan pengecualiannya aturan yang saya buat sendiri, bukan keputusan
+> founder.
+>
+> Diperbaiki dengan **[`INDEKS-DOKUMEN.md`](INDEKS-DOKUMEN.md)** — memuat
+> SETIAP dokumen tanpa kecuali, masing-masing dengan perannya:
+> **antrean** (11, berisi pekerjaan) · **acuan** (169, aturan/keputusan yang
+> dirujuk) · **riwayat** (56, catatan fase yang sudah lewat).
+> Dihasilkan `apps/api/scripts/gen-indeks-docs.mjs`, jalankan ulang tiap
+> `docs/` berubah.
+
 Dari **236 dokumen** `.md` di `docs/`, **13 memuat pekerjaan terbuka** dan
 sebelumnya tak dirujuk ROADMAP sama sekali. Sisanya sengaja tidak dituntut
 masuk: arsip/riwayat, aturan tetap (Engineering-Constitution, ADR), dan

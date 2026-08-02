@@ -112,6 +112,13 @@ jobs:
       # Yang dituntut terhubung HANYA dokumen yang memuat pekerjaan TERBUKA.
       # Arsip, aturan tetap (Constitution/ADR), dan laporan status dikecualikan
       # dengan alasan tertulis — mereka dirujuk, bukan dikerjakan.
+      # Indeks SELURUH docs/ (236 dokumen) tak boleh basi. Dokumen baru yang
+      # ditambahkan tanpa memperbarui indeks adalah persis cara 134 dokumen
+      # sempat jadi tak terlihat — dan laporan "dikecualikan beralasan"
+      # membuatnya terdengar seperti sudah tertangani.
+      - name: Indeks dokumen mutakhir
+        run: node scripts/gen-indeks-docs.mjs --check
+
       - name: Dokumen rencana harus terhubung ke ROADMAP
         run: node scripts/audit-docs-vs-roadmap.mjs
 
