@@ -395,7 +395,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # `version` eksplisit, sama dengan ketiga job lain. Tanpa itu action
+      # mencari field `packageManager` di package.json root — yang tak ada di
+      # repo ini — dan mati di 8 detik sebelum satu pun test jalan.
       - uses: pnpm/action-setup@v4
+        with:
+          version: 11.8.0
 
       - uses: actions/setup-node@v4
         with:
