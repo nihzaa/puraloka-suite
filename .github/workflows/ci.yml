@@ -368,3 +368,63 @@ jobs:
             "https://github.com/gitleaks/gitleaks/releases/download/v${VERSI}/gitleaks_${VERSI}_linux_x64.tar.gz"
           tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
           /tmp/gitleaks detect --source . --config .gitleaks.toml --redact --no-banner --verbose
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # Uji browser sungguhan — HANYA untuk yang lapisan lain tak bisa jangkau.
+  #
+  # Job terpisah dari `web` karena butuh mengunduh Chromium (~115 MB) dan
+  # menjalankan `next dev`; menggabungkannya akan memperlambat gerbang lint
+  # yang selama ini selesai di bawah 3 menit.
+  #
+  # Yang dijaga di sini hanya dua hal yang secara STRUKTURAL tak bisa diuji
+  # di tempat lain:
+  #   1. `middleware.ts` — berjalan di server Next, bukan di React. Sampai
+  #      2026-08-02 tak ada satu pun test yang menyentuhnya, dan uji pertama
+  #      langsung menemukan dua cacat: izin bocor lewat prefiks mirip
+  #      (`/proyek` → `/proyeksi-kas`) dan loop redirect tanpa akhir untuk PM.
+  #   2. `useVirtualList` — di jsdom `scrollTop` selalu 0, jadi mutasi
+  #      `padTop * 2` lolos. Butuh gulir sungguhan.
+  #
+  # TIDAK diuji di sini: alur bisnis yang butuh login. Kredensial Supabase di
+  # CI ditolak sadar — dan alur uangnya sendiri sudah dijaga di level trigger
+  # DB, tempat yang lebih tepat karena berlaku untuk semua penulis.
+  # ══════════════════════════════════════════════════════════════════════════
+  browser:
+    name: Browser — middleware & gulir virtual
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # `version` eksplisit, sama dengan ketiga job lain. Tanpa itu action
+      # mencari field `packageManager` di package.json root — yang tak ada di
+      # repo ini — dan mati di 8 detik sebelum satu pun test jalan.
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.8.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Hanya Chromium. Firefox & WebKit menambah ~250 MB unduhan untuk
+      # menguji ulang hal yang sama — yang dijaga di sini logika rute dan
+      # aritmetika jendela, bukan perbedaan antar-mesin render.
+      - name: Pasang Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      # Binari langsung, bukan `pnpm run` — alasan sama dengan job `web`
+      # di atas (ERR_PNPM_MISSING_TARBALL_INTEGRITY pada `xlsx`).
+      - name: Uji browser
+        run: pnpm exec playwright test
+
+      - name: Simpan jejak kegagalan
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jejak-playwright
+          path: test-results/
+          retention-days: 7

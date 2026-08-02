@@ -1,6 +1,6 @@
 # STATUS — Puraloka Suite (penunjuk satu pintu)
 
-**Diperbarui:** 2026-08-02 (rev-16: alur uang diuji ujung-ke-ujung — TIGA cacat ditemukan: dua trigger hilang (satu sudah menahan **Rp 627.075.000** dari saldo kas) dan piutang bisa negatif. Migrasi 161–163 + 16 test, 9 mutasi tertangkap.)
+**Diperbarui:** 2026-08-02 (rev-17: uji browser pertama — `middleware.ts` yang selama ini nol test menyimpan 2 cacat: izin bocor lewat prefiks mirip & loop redirect tanpa akhir untuk PM. 14 test browser + job CI baru. Sebelumnya rev-16: alur uang, migrasi 161–163, PR #122 merged.)
 — penunjuk TIPIS, bukan duplikasi konten. Update tanggal + baris "Fase aktif" setiap
 kali keadaan berubah; detail selalu di dokumen rujukan.
 

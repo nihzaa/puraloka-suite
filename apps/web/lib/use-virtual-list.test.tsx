@@ -17,20 +17,26 @@ import { useVirtualList } from './use-virtual-list'
 // tak diuji di sini — jsdom tak punya tata letak nyata, jadi mengujinya
 // berarti menguji tiruan, bukan perilaku.
 //
-// ── BATAS yang diketahui, dan kenapa dibiarkan
+// ── BATAS yang diketahui — SUDAH DITUTUP di `e2e/gulir-virtual.spec.ts`
 //
-// Uji mutasi menemukan dua yang TIDAK terjaga: mengubah `padTop` jadi
+// Uji mutasi menemukan dua yang tak terjaga di sini: mengubah `padTop` jadi
 // `mulai * tinggiBaris * 2`, dan melepas `Math.max(0, …)` dari `padBottom`.
-// Keduanya lolos karena di jsdom `scrollTop` selalu 0 — `mulai` ikut 0,
-// dan `0 × 2` tetap 0.
+// Keduanya lolos karena di jsdom `scrollTop` selalu 0 — `mulai` ikut 0, dan
+// `0 × 2` tetap 0. Menjaganya butuh scroll SUNGGUHAN.
 //
-// Menjaganya butuh scroll SUNGGUHAN, yang berarti browser sungguhan. Memaksa
-// `scrollTop` lewat mock hanya akan menguji mock itu: nilainya tak mengalir
-// lewat jalur yang sama (event `scroll` → `setState`), jadi test-nya akan
-// hijau tanpa membuktikan apa pun tentang kode nyata.
+// Ditutup 2026-08-02 dengan uji browser (Playwright). Hasilnya dua, bukan satu:
 //
-// Dicatat di sini alih-alih ditutup dengan test palsu. Kalau nanti repo ini
-// menambahkan Playwright, dua invarian itu tempatnya di sana.
+//   `padTop` dikali 2       → TERTANGKAP di browser.
+//   `Math.max(0, …)`        → tetap lolos, dan itu BENAR: ia tak terjangkau.
+//                             `akhir` sudah dibatasi `Math.min(jumlah, …)`,
+//                             jadi `jumlah - akhir` tak pernah negatif.
+//                             Dibuktikan dengan melepas KEDUA penjaga
+//                             sekaligus — barulah test merah.
+//
+// Jadi `Math.max` di sana adalah penjaga kedua untuk kondisi yang penjaga
+// pertama sudah cegah. Dibiarkan (murah, dan melindungi kalau `Math.min`
+// hilang), tapi tak dituntut punya test sendiri: menuntut test untuk cabang
+// yang tak terjangkau hanya menghasilkan test yang menguji dirinya sendiri.
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('useVirtualList — jendela render', () => {
