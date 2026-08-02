@@ -564,17 +564,58 @@ Yang relatif aman dibangun langsung: master data (karyawan, resource,
 subkontraktor) dan modul mandiri (QA/QC, HSE) — polanya sudah berulang di
 modul yang ada.
 
-### Cara kerja yang dipakai
+### Haruskah merancang semuanya dulu? — bukti dari repo ini
 
-**Rancang saat giliran tiba, bukan semuanya di depan.** Merancang 93 sub-menu
-sekarang menghasilkan dokumen yang basi sebelum dikerjakan — persis yang
-terjadi pada `AHSP-EDITION-BUILDER` (ditulis saat KB kosong, gerbangnya lewat
-sebelum dikerjakan) dan `ERP_MASTER_PLAN` Modul 9a/9b (rancangan terlantar
-berbulan-bulan).
+Founder bertanya lanjutan: *"kalo jawabannya tidak apakah lebih baik buat
+perencanaan dulu semuanya?"*
 
-Yang dilakukan: begitu satu sub-menu naik giliran, rancangannya dibuat lebih
-dulu — model data, batasan, integrasi — lalu dikerjakan. GL-1 mengikuti pola
-itu: rancangan sudah ada di `ERP_MASTER_PLAN`, dibaca dulu, baru ditulis.
+Repo ini sudah menjalankan percobaan itu, dan hasilnya tercatat:
+
+| Rancangan dibuat di depan | Nasibnya |
+|---|---|
+| `KEPUTUSAN-MULTI-COMPANY` (26 Jul) | **SUPERSEDED 28 Jul** — bertahan **2 hari** |
+| `PETA-PRIORITAS-ERP` | SUPERSEDED, jadi registry dokumen |
+| `Phase1/` 10 dokumen | **10 dari 10 masih "Planning only"** padahal Phase 1 sudah selesai & diaudit |
+| `AHSP-EDITION-BUILDER` §3.1/3.2 | ditandai "sebelum seed" — gerbangnya **lewat** sebelum sempat dikerjakan |
+| `ERP_MASTER_PLAN` Modul 9a/9b | terlantar berbulan-bulan, baru ketahuan saat audit |
+
+Yang bertahan justru rancangan yang ditulis **dekat waktu pengerjaan**: CECEP
+(estimasi, dikerjakan sambil dirancang) dan ADR-011 (multi-tenant, ditulis saat
+tripwire-nya terpicu — bukan setahun sebelumnya).
+
+### Ukuran biayanya
+
+Dokumen rancangan CECEP yang benar-benar dipakai rata-rata **410 baris**.
+Merancang 93 sub-menu pada mutu itu ≈ **puluhan ribu baris** — dan berdasarkan
+tabel di atas, sebagian besar akan basi sebelum dibaca.
+
+### Tapi TIDAK semuanya boleh ditunda
+
+Dari 119 sub-menu tersisa, **10 benar-benar berisiko** dikerjakan tanpa rancang
+lebih dulu — karena sekali angka masuk, mengubah modelnya mahal:
+
+`Actual Cost Ledger (ACL)` · `Cost Value Reconciliation (CVR)` ·
+`Profitabilitas per cost code` · `Manajemen contingency` · `Eskalasi harga` ·
+`Claims management` · `Retensi subkontrak` · `Rekonsiliasi bank` ·
+`Kepatuhan subkontraktor (izin/asuransi/pajak)` ·
+`Analisa markup, margin, contingency`
+
+**109 sisanya relatif aman** dibangun langsung: master data, register, modul
+mandiri (QA/QC, HSE), penyempurnaan modul yang sudah hidup. Polanya sudah
+berulang di kode yang ada.
+
+### Keputusan: rancang BERKELOMPOK, bukan semuanya & bukan satu-satu
+
+1. **10 sub-menu berisiko** → rancang lebih dulu, **sebelum** salah satunya
+   dikerjakan. Kesepuluhnya saling terkait (semuanya menyentuh biaya &
+   pengakuan), jadi dirancang sebagai SATU kelompok — bukan sepuluh dokumen
+   terpisah yang saling bertentangan.
+2. **109 sisanya** → rancang saat gilirannya tiba. Cukup satu bagian di PR-nya
+   sendiri: model data, batasan, integrasi. Bukan dokumen terpisah yang bisa
+   terlantar.
+
+GL-1 mengikuti pola ini: rancangannya sudah ada di `ERP_MASTER_PLAN` (dibuat
+saat modul keuangan naik giliran), dibaca dulu, baru ditulis.
 
 ---
 
