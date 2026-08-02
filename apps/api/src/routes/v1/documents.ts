@@ -51,8 +51,8 @@ export default async function documentRoutes(app: FastifyInstance) {
       }
       const role = request.currentUser!.role
 
-      let query = supabase
-        .from('documents')
+      let query = request.db!
+        .viaProject('documents', projectId)
         .select(SELECT_FIELDS)
         .eq('project_id', projectId)
         .order('uploaded_at', { ascending: false })

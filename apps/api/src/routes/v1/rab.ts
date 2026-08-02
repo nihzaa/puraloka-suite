@@ -955,8 +955,8 @@ export default async function rabRoutes(app: FastifyInstance) {
 
       const results = await Promise.allSettled(
         items.map(item =>
-          supabase
-            .from('rab_items')
+          request.db!
+            .viaProject('rab_items', projectId)
             .update({
               material_pct: item.material_pct,
               upah_pct: item.upah_pct,
