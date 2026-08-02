@@ -5,6 +5,138 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-03 · Sesi 2 — ratifikasi dieksekusi
+
+Founder meratifikasi R-001 (opsi A + 3 syarat), R-002, R-003, R-004, memerintahkan
+sapuan ulang untuk R-005, dan menaikkan dua item baru ke P0/gerbang.
+
+### BARU-1 (P0) — CI tidak menjaga apa pun. Lebih buruk dari dugaan.
+
+Founder benar: `ci.yml` disaring `branches: [main]`, sehingga **setiap PR bertumpuk
+berjalan tanpa satu pun check**. 13 penjaga arsitektural yang dibangun sesi lalu
+tidak menjaga apa pun pada rantai PR mana pun yang belum menyentuh `main`. Pemicu
+sudah diubah ke `pull_request` tanpa filter.
+
+Tetapi saat memverifikasi "status check benar-benar wajib", ditemukan dua hal yang
+**lebih besar** dari cacat pemicunya:
+
+1. **Branch protection TIDAK BISA diaktifkan.** `gh api …/branches/main/protection`
+   → **403: "Upgrade to GitHub Pro or make this repository public"**. Begitu pula
+   `…/rulesets`. Repo privat pada paket saat ini tidak mendukung keduanya. Artinya
+   **tak ada mekanisme apa pun yang mewajibkan CI hijau sebelum merge** —
+   diverifikasi: PR #133 `mergeStateStatus: UNSTABLE` tetapi `mergeable: MERGEABLE`.
+2. **GitHub Actions tidak menjalankan job sama sekali.** Seluruh run terakhir gagal,
+   termasuk push ke `main`. Bukti: job selesai dalam 3–12 detik, `steps: []` (nol
+   langkah), `runner_name: ""` (runner tak pernah ditugaskan), dan zip log berukuran
+   22 byte alias kosong. Ini bukan cacat kode — melainkan blokir tingkat akun
+   (kuota/spending limit Actions).
+
+Konsekuensi jujur: **CI belum bisa dipulihkan dari sisi saya.** Yang bisa saya
+lakukan sudah dilakukan (pemicu diperbaiki); dua sisanya butuh tindakan founder di
+setelan akun GitHub. Sampai itu beres, satu-satunya verifikasi yang nyata adalah
+run lokal — dan itu yang saya tempel, bukan klaim CI hijau.
+
+### R-001 — dieksekusi penuh, dengan ketiga syarat
+
+**Syarat 1 — periksa DB CI sebelum eksekusi.** Kredensial `CI_*` memang write-only
+di GitHub Secrets, jadi jalur "periksa dulu" hanya mungkin lewat workflow. Dibuat
+`apps/api/scripts/ci-periksa-bentuk-gl.mjs` (read-only, tiga verdict A/B/C) +
+action `periksa-gl` di `ci-isolation.yml`. **Belum dijalankan** karena Actions mati
+(BARU-1) → maka fallback founder berlaku: **reset CI dari nol setelahnya**.
+
+**047 dipensiunkan.** Isinya diganti no-op + penjelasan panjang. Berkasnya sengaja
+TIDAK dihapus: nomor 047 sudah tercatat di buku migrasi, dan menghapusnya membuat
+buku menunjuk ke sesuatu yang tak ada.
+
+**Syarat 2 — migrasi penegas bentuk (175).** Gagal keras bila `accounts` tanpa
+`company_id` atau masih punya `account_type`. **Membangunnya menemukan tiga cacat
+pada penegas itu sendiri**, dan ketiganya hanya ketahuan karena diuji:
+
+- **Terlalu ketat.** Versi pertama menuntut `company_id` di `journal_entry_lines`.
+  Diuji ke dev → langsung melempar. Ternyata **penegasnya yang salah**: 167 sengaja
+  memberi baris jurnal tenancy lewat induknya (`entry_id` → `journal_entries`),
+  dinyatakan eksplisit di komentar 167 baris 155-156. Penjaga yang salah lebih
+  berbahaya daripada tak ada penjaga — ia melatih orang mengabaikan kegagalannya.
+  Diganti: cek FK ke induk, yang memang jalur tenancy sesungguhnya.
+- **Buta schema.** Memakai `to_regclass('public.accounts')`, jadi selalu memeriksa
+  `public` apa pun `search_path`-nya. **Uji negatif membuktikannya lolos padahal
+  bentuknya 047.** Diganti `current_schema()` — idiom yang sudah dipakai 167 & 154.
+- **Pesan galat rusak.** `array || text` yang teksnya memuat tanda kurung ditafsir
+  Postgres sebagai array literal → `malformed array literal`, menutupi pesan
+  sebenarnya. Dibungkus `ARRAY[...]`.
+
+Uji akhir: **positif** (dev, bentuk 167) → LULUS; **negatif** (bentuk 047 dibangun
+di schema sementara, transaksi di-ROLLBACK) → MENOLAK dengan pesan yang benar.
+
+**Syarat 3 — sapu SELURUH 171 migrasi.** Dibuat
+`audit-tabrakan-definisi-tabel.mjs`. Hasil sapuan: **13 tabel bertabrakan**, dan
+ternyata **047↔167 bukan satu-satunya kelasnya** — tetapi satu-satunya yang tak
+terjaga:
+
+| Tabrakan | Status |
+|---|---|
+| `assets`, `asset_movements`, `asset_depreciation_logs` (045↔149) | **sudah terjaga** — 149 MEMBUANG bentuk 045 lebih dulu, dengan komentar yang menjelaskan cacat yang sama persis (baris 50-73) |
+| `project_rab_materials` (043↔142), `po_delivery_log` (043↔143) | aman — definisi identik / ada `to_regclass` guard |
+| 5 tabel workflow (081↔093) | aman — bentuk identik kolom demi kolom, dan ADR-006 sudah memensiunkannya (tabelnya nihil di dev) |
+| **`accounts`, `journal_entries`, `journal_entry_lines` (047↔167)** | **satu-satunya yang tak terjaga → diperbaiki** |
+
+Penemuan migrasi 149 penting: repo ini **sudah pernah** menyelesaikan cacat kelas
+ini dengan benar. Jadi perbaikan R-001 mengikuti preseden yang ada (CHARTER §4
+aturan 2), bukan mengarang pendekatan baru.
+
+Penjaganya sendiri juga salah dua kali sebelum benar: (a) mendeteksi "penegas"
+hanya dari ada-tidaknya `RAISE EXCEPTION` di berkas — terlalu longgar; (b) menuduh
+**semua** pendefinisi, bukan yang **terakhir** — menghasilkan 18 tuduhan yang
+hampir semuanya salah sasaran. Yang menanggung beban penjagaan adalah migrasi yang
+datang belakangan; yang pertama tak punya apa pun untuk dijaga.
+
+### R-005 — saya salah, dan founder benar menyuruh menyapu lebih luas
+
+Sesi lalu saya menyimpulkan `1.657.839.590,39`, `109,5`, `7875` "hampir pasti bukan
+dari berkas Cibuluh" lalu berhenti. Kesimpulan yang benar adalah **"belum saya cari
+di berkas lain"** — sapuan saya hanya menyentuh `_source/ahsp/golden/`.
+
+Disapu ke seluruh `_source/ahsp/`. **Ketiganya ketemu**, semuanya di
+`Format RAB Control 2026 NOMOR 47_SE_Dk_2026.xlsm` (117 sheet):
+
+- `1.657.839.590,39` = **TOTAL BIAYA** proyek (`REKAPITULASI!E15`, juga di
+  `LAPORAN RAB!J239` dan `KURVA S!F19`)
+- `109,5` = **volume m²** pasangan bata merah ½ batu (`LAPORAN RAB!H114`);
+  terverifikasi silang: `109,5 × 146.308,162 = 16.020.743,74` = J114 ✅
+- `7875` = **jumlah buah** bata merah (`DINDING BATA MERAH!L41`, satuan "Buah")
+
+Jawaban atas pertanyaan mandat "kenapa 3.629.860.295,31 ≠ 1.657.839.590,39":
+**dua proyek yang berbeda.** Cibuluh = RAB gudang nyata (9 divisi, 55 item);
+RAB Control 2026 = Engineering Estimate template SE-47 (8 divisi A–H). Bukan beda
+edisi, bukan subtotal-vs-total, bukan sudah/belum PPN.
+
+**Temuan sampingan bernilai:** baris PPN di dokumen itu berlabel **"PPN 11%"**
+tetapi pengalinya **0,12** (`F16`), dan hasilnya cocok
+(`1.657.839.590,39 × 0,12 = 198.940.750,85`). Ini membuktikan model dua-angka yang
+dijaga `ppn-dpp-guardrail.test.ts` **berasal dari praktik dokumen nyata**, bukan
+karangan — dan menjadi kandidat kuat untuk mengisi guardrail yang selama ini
+melaporkan dirinya *vacuous*.
+
+Assertion belum ditambahkan → **F0-10**, karena butuh harness pembaca `.xlsm`
+tersendiri. Itu pekerjaan, bukan keraguan.
+
+### Yang belum & kenapa
+
+- **R-002** (catat 12 migrasi ke buku) — menunggu R-001 benar-benar tuntas di
+  lingkungan CI, sesuai urutan yang founder tetapkan.
+- **F0-11** — pemeriksaan bentuk GL di project CI: terblokir BARU-1.
+- **F1-8** — `companies.ts` coverage nol dinaikkan ke **gerbang Fase 1** sesuai
+  perintah founder. Fase 2 tidak dimulai sebelum ini hijau.
+
+### Verifikasi sesi ini
+
+Suite penuh **129/129 berkas, 1299 lulus, 1 skipped, 228,9 s** — run hijau
+**keempat berturut-turut**. Coverage tak berubah (31,98% / 68,49% / 81,96%).
+**14 penjaga arsitektural exit 0.** `tsc --noEmit` exit 0.
+`gen-indeks-docs --check` exit 0.
+
+---
+
 ## 2026-08-02 · Sesi 1 — Fase 0 dimulai
 
 ### Pengakuan tujuh koreksi (tanpa pembelaan)

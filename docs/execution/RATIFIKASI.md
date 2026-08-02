@@ -1,175 +1,161 @@
 # RATIFIKASI — Satu-satunya Berkas yang Perlu Dibaca Founder
 
-**Cara membaca:** tiap entri adalah keputusan yang **sudah diambil dan/atau sudah
-dijalankan**, menunggu konfirmasi. **Diam berarti setuju.** Kalau tidak setuju,
-tulis `TOLAK` + alasan di bawah entri; saya akan membatalkannya dengan cara yang
-tercantum di baris "cara membatalkan".
-
-Entri berstatus **MENUNGGU-GERBANG** adalah satu-satunya yang benar-benar berhenti
-menunggu Anda — karena menyentuh Gerbang Keras. Pekerjaan lain tetap jalan.
+**Cara membaca:** tiap entri adalah keputusan yang sudah diambil dan/atau sudah
+dijalankan. **Diam berarti setuju.** Untuk membatalkan, tulis `TOLAK` + alasan di
+bawah entrinya.
 
 ---
 
-## R-001 · 🔴 P0 · MENUNGGU-GERBANG (G-2)
-### Tabrakan definisi General Ledger: migrasi 047 vs 167
+# 🚨 BUTUH TINDAKAN ANDA — dua hal yang tidak bisa saya kerjakan
 
-**Status:** ditemukan 2026-08-02, **belum diperbaiki**. Menunggu izin.
+Keduanya di luar jangkauan kode. Selama belum beres, **tidak ada verifikasi
+otomatis apa pun yang berjalan di repo ini** — semua yang saya laporkan hijau
+berasal dari run lokal, bukan CI.
 
-**Apa yang terjadi.**
-Ada dua migrasi yang sama-sama membuat tabel `accounts` dan `journal_entries`
-dengan bentuk yang **tidak kompatibel**:
+## ⛔ B-1 · GitHub Actions tidak menjalankan job sama sekali
 
-| | Migrasi 047 (lama) | Migrasi 167 (baru) |
+**Gejalanya:** setiap workflow run gagal, termasuk push ke `main`. Bukan kode yang
+salah — job-nya **tidak pernah mulai**:
+
+| Bukti | Nilai |
+|---|---|
+| Durasi job | 3–12 detik (terlalu cepat untuk pekerjaan nyata) |
+| Langkah yang berjalan | **0** (`steps: []`) |
+| Runner yang ditugaskan | **kosong** (`runner_name: ""`) |
+| Berkas log | **22 byte** — zip kosong |
+
+Ini pola khas **kuota / spending limit GitHub Actions habis** pada repo privat.
+
+**Yang perlu Anda lakukan:** buka
+`github.com/settings/billing` → cek sisa menit Actions & spending limit.
+Kalau habis, naikkan limit atau tunggu siklus tagihan berikutnya.
+
+**Dampak selama belum beres:** 14 penjaga arsitektural (gerbang tenancy, kegagalan
+senyap, catch senyap, tabrakan definisi tabel, ratchet coverage, …) **tidak
+menjaga apa pun**. Saya menjalankannya manual tiap sesi dan menempel hasilnya,
+tapi itu bergantung pada saya ingat — bukan mekanisme.
+
+## ⛔ B-2 · Branch protection tidak tersedia di paket ini
+
+Anda meminta saya "verifikasi status check benar-benar wajib". **Tidak bisa** —
+dan alasannya penting:
+
+```
+gh api repos/nihzaa/puraloka-suite/branches/main/protection
+→ 403: "Upgrade to GitHub Pro or make this repository public"
+```
+
+Sama untuk `rulesets`. Repo **privat** pada paket GitHub Free **tidak mendukung**
+branch protection maupun rulesets.
+
+Terbukti akibatnya: PR #133 berstatus `mergeStateStatus: UNSTABLE` (check gagal)
+tetapi tetap `mergeable: MERGEABLE`. **Tidak ada yang mencegah merge dengan CI merah.**
+
+**Pilihan Anda — ketiganya sah, ini keputusan produk bukan teknis:**
+
+| Opsi | Konsekuensi |
+|---|---|
+| **A. GitHub Pro** (~$4/bln) | Branch protection aktif; repo tetap privat. Paling langsung. |
+| **B. Jadikan repo publik** | Branch protection gratis, tapi seluruh kode & histori terbuka. Untuk produk yang akan dijual, ini keputusan besar. |
+| **C. Terima tanpa gerbang** | Disiplin bergantung pada kebiasaan, bukan mekanisme. Untuk sistem yang akan memegang uang pelanggan, saya tidak menyarankannya. |
+
+Sampai Anda memilih, saya memperlakukan "CI hijau" sebagai **belum terverifikasi**
+dan tidak akan mengklaimnya.
+
+---
+
+# ✅ SUDAH DIJALANKAN — tinggal dikonfirmasi
+
+## R-001 · P0 · SELESAI (opsi A + ketiga syarat)
+
+**Migrasi 047 dipensiunkan** menjadi no-op berkomentar. Berkasnya sengaja tidak
+dihapus — nomor 047 sudah tercatat di buku migrasi, menghapusnya membuat buku
+menunjuk ke sesuatu yang tak ada.
+
+**Syarat 1 — periksa DB CI lebih dulu.** Dibuat `ci-periksa-bentuk-gl.mjs`
+(read-only, verdict A/B/C) + action `periksa-gl` di `ci-isolation.yml`.
+**Belum bisa dijalankan** karena B-1. Maka fallback yang Anda tetapkan berlaku:
+**reset CI dari nol setelahnya** (`-f action=setup-clean`), begitu Actions hidup.
+
+**Syarat 2 — migrasi penegas bentuk.** `175_gl_penegas_bentuk.sql`: gagal keras
+bila `accounts` tanpa `company_id` atau masih punya `account_type`. Sengaja
+**tidak menambal sendiri** — bila tabel sudah berisi baris dua perusahaan, tidak
+ada cara mekanis memisahkannya (ADR-011).
+
+Membangunnya menemukan **tiga cacat pada penegas itu sendiri**, semuanya ketahuan
+karena diuji, bukan karena dibaca ulang:
+1. Terlalu ketat — menuntut `company_id` di `journal_entry_lines`, padahal 167
+   sengaja memberinya tenancy lewat induk. Penjaga yang salah melatih orang
+   mengabaikan kegagalannya.
+2. Buta schema — `to_regclass('public.…')` selalu memeriksa `public`. Uji negatif
+   membuktikan ia **lolos** padahal bentuknya 047.
+3. Pesan galat rusak (`malformed array literal`) sehingga diagnosisnya tertutup.
+
+Uji akhir: positif (dev) LULUS · negatif (bentuk 047 di schema sementara) MENOLAK.
+
+**Syarat 3 — sapu seluruh 171 migrasi.** `audit-tabrakan-definisi-tabel.mjs`
+menemukan **13 tabel bertabrakan**. Kabar baiknya: **047↔167 satu-satunya yang
+tak terjaga**. Yang lain sudah aman — dan `assets` (045↔149) menarik: repo ini
+**sudah pernah** menyelesaikan cacat yang sama persis, lengkap dengan komentarnya.
+Perbaikan R-001 mengikuti preseden itu.
+
+Penjaga baru terpasang di CI: `CREATE TABLE IF NOT EXISTS` pada tabel yang punya
+lebih dari satu pendefinisi wajib disertai penegas bentuk.
+
+**Cara membatalkan:** `git revert` — hanya menyentuh berkas migrasi & skrip.
+Belum ada data produksi, biaya pembatalan **nol**.
+
+## R-003 · Rebase diterima; TIDAK merge ke main sebelum R-001 tuntas
+
+Dipatuhi. Urutan yang Anda tetapkan (perbaiki pemicu CI → R-001 → baru merge)
+diikuti. Rantai PR belum di-merge.
+
+Catatan: langkah "baru merge" **tertahan B-1** — tanpa Actions, merge ke `main`
+berarti menggabungkan tanpa verifikasi apa pun.
+
+## R-004 · Penarikan rekomendasi `rekonsiliasi --tulis`
+
+Berlaku. Penggantinya `ledger-diff.mjs` tanpa kemampuan menulis sama sekali.
+
+## R-005 · TERJAWAB — saya salah, Anda benar menyuruh menyapu lebih luas
+
+Sesi lalu saya menyimpulkan ketiga angka "hampir pasti bukan dari Cibuluh" lalu
+berhenti. Kesimpulan yang benar: **belum saya cari di berkas lain.**
+
+Disapu ke seluruh `_source/ahsp/`. **Ketiganya ketemu**, di
+`Format RAB Control 2026 NOMOR 47_SE_Dk_2026.xlsm`:
+
+| Angka | Lokasi | Makna |
 |---|---|---|
-| Tercatat "sudah jalan" di buku | **YA** | tidak |
-| Artefaknya nyata ada di dev | **TIDAK** | **YA** |
-| Sadar perusahaan (`company_id`) | **tidak ada sama sekali** | ada, 18 tempat |
-| Nama kolom jenis akun | `account_type` | `type` |
+| `1.657.839.590,39` | `REKAPITULASI!E15` | **TOTAL BIAYA** proyek (sebelum PPN) |
+| `109,5` | `LAPORAN RAB!H114` | **volume m²** bata merah ½ batu |
+| `7875` | `DINDING BATA MERAH!L41` | **jumlah buah** bata merah |
 
-Database dev sekarang memakai bentuk **167** (yang benar, sadar perusahaan).
+Terverifikasi silang: `109,5 × 146.308,162 = 16.020.743,74` ✅
 
-**Apa yang rusak kalau dibiarkan.**
-Saat sistem dipasang di lingkungan baru — CI hari ini, **produksi nanti** —
-migrasi dijalankan berurutan dari nol. Maka:
+**Kenapa berbeda dari Cibuluh:** dua proyek yang berbeda. Cibuluh = RAB gudang
+nyata (Rp 3,63 M, 9 divisi). RAB Control = Engineering Estimate template SE-47
+(Rp 1,66 M, 8 divisi). Bukan beda edisi, bukan subtotal-vs-total, bukan PPN.
 
-1. Migrasi **047** jalan lebih dulu dan membuat tabel akun versi **lama yang tidak
-   mengenal perusahaan**. SQL-nya sah, jadi tidak ada pesan galat apa pun.
-2. Migrasi **167** menyusul, melihat tabelnya sudah ada, lalu **diam saja** dan
-   tidak mengubah apa-apa.
-3. Hasilnya: **buku besar di produksi tidak bisa memisahkan perusahaan.**
+**Temuan sampingan yang berguna:** baris PPN di dokumen itu berlabel **"PPN 11%"**
+tapi pengalinya **0,12**, dan hasilnya cocok. Jadi model dua-angka yang dipakai
+sistem memang **berasal dari praktik dokumen nyata** — bukan karangan.
 
-Tidak ada gejala. Tidak ada test merah. Baru ketahuan ketika perusahaan kedua
-membuka jurnal dan **melihat angka perusahaan pertama**. Ini persis skenario yang
-`ADR-011` sebut sebagai titik-tanpa-jalan-kembali.
+Assertion belum ditambahkan (butuh harness `.xlsm` 117 sheet) → antrean F0-10.
 
-**Kenapa saya berhenti dan tidak langsung memperbaiki.**
-Perbaikannya menyentuh berkas migrasi yang **sudah tercatat di buku migrasi** —
-itu Gerbang Keras **G-2**. Menulis atau mengubah buku migrasi berdasarkan
-penilaian saya sendiri adalah persis kesalahan yang saya buat di audit kemarin
-(cacat C-3), dan konsekuensinya permanen serta senyap.
+## R-006 · `companies.ts` masuk gerbang Fase 1
 
-**Usul saya (pilih satu, atau diam = setuju opsi A).**
-
-- **Opsi A — pensiunkan 047 (rekomendasi).** Ubah isi 047 menjadi tanpa-operasi
-  yang menjelaskan bahwa GL dipindahkan ke 167, dan biarkan catatan bukunya apa
-  adanya. Bentuk 167 menjadi satu-satunya definisi GL.
-  *Kelebihan:* satu sumber kebenaran, cocok dengan dev hari ini.
-  *Risiko:* mengubah berkas migrasi bernomor yang sudah tercatat — hanya aman
-  justru karena artefak 047 terbukti **tidak pernah terbentuk**.
-
-- **Opsi B — biarkan 047, buat 167 memaksa bentuk yang benar.** Tambahkan migrasi
-  baru yang mengoreksi tabel bikinan 047 (ubah kolom, tambah `company_id`).
-  *Kelebihan:* tidak menyentuh berkas lama sama sekali.
-  *Risiko:* menyimpan dua definisi selamanya; setiap pembaca berikutnya harus
-  memahami keduanya. Utang pemahaman permanen.
-
-**Cara membatalkan:** kedua opsi hanya menyentuh berkas migrasi, dapat di-revert
-lewat `git revert` satu commit. Belum ada data produksi, jadi biaya pembatalan
-hari ini **nol**.
-
-**Biaya menunda:** naik tajam begitu ada tenant kedua atau data jurnal nyata.
-Hari ini `journal_entries` berisi **0 baris** — ini jendela termurah.
+Perintah Anda dilaksanakan: `F1-8` di `QUEUE.yaml`. **Fase 2 tidak dimulai
+sebelum `companies.ts` punya coverage nyata**, termasuk uji 403 lintas-tenant.
 
 ---
 
-## R-002 · MENUNGGU-GERBANG (G-2)
-### Buku migrasi tertinggal 12 versi dari kenyataan
+# ⏸️ MENUNGGU — R-002
 
-**Status:** terukur, **tidak diperbaiki**. Menunggu izin.
+## R-002 · Catat 12 migrasi ke buku, HANYA yang terbukti fisik
 
-Buku migrasi (`schema_migrations`) mencatat sampai versi **162**, sementara
-berkasnya sudah sampai **174**. Dua belas migrasi (163–174) sudah benar-benar
-dijalankan ke dev — tabel `accounts` berisi 38 akun sesuai isi migrasi 170 —
-tetapi tidak tercatat di buku.
+Anda setujui, **setelah R-001**. Belum saya jalankan karena R-001 baru tuntas di
+sisi kode — bagian CI-nya (`periksa-gl` → mungkin `setup-clean`) masih tertahan B-1.
 
-**Kenapa berbahaya:** buku ini yang dipakai alat pemasangan untuk memutuskan
-"migrasi mana yang perlu dijalankan". Buku yang tertinggal membuat alat itu
-menjalankan ulang migrasi yang sudah jalan.
-
-**Kenapa saya tidak langsung mencatatnya:** karena mencatat 167 sebagai "sudah
-jalan" **sebelum R-001 selesai** justru mengunci cacat P0 itu selamanya. Urutannya
-harus R-001 dulu, baru R-002.
-
-**Cara membatalkan:** baris yang ditambahkan ke buku dapat dihapus dengan
-`DELETE ... WHERE version IN (...)`. Reversibel penuh selama belum ada produksi.
-
----
-
-## R-003 · SUDAH DIJALANKAN · tinggal dikonfirmasi
-### Branch Fase 0 di-rebase ke `fix/search-proyek-gagal-senyap`, bukan `main`
-
-**Apa yang saya lakukan:** memulai pekerjaan di atas branch
-`fix/search-proyek-gagal-senyap` alih-alih `main`.
-
-**Kenapa:** seluruh pekerjaan GL (8 commit, 3.890 baris, migrasi 167–174)
-**belum ter-merge ke `main`**, padahal tabelnya sudah dipasang di database dev
-bersama. Kalau saya bekerja di atas `main`, setiap pengukuran Fase 0 akan
-dilakukan atas kode yang tidak memuat GL sementara databasenya memuat GL —
-persis jenis ketidakcocokan yang membuat audit kemarin keliru.
-
-**Yang perlu Anda ketahui:** ada 8 commit berisi pekerjaan selesai yang belum
-masuk `main`, termasuk perbaikan bug **pencarian proyek yang selalu gagal senyap**.
-Menurut saya itu layak di-merge lebih dulu, tapi itu keputusan Anda.
-
-**Cara membatalkan:** `git rebase --onto main` — murni operasi git, tidak
-menyentuh data.
-
----
-
-## R-005 · PERTANYAAN · tidak memblokir
-### Tiga angka jangkar tidak ada di berkas Cibuluh — dari mana asalnya?
-
-**Status:** diselidiki tuntas, **pekerjaan lain tetap jalan**. Ini pertanyaan,
-bukan gerbang.
-
-Mandat menyebut lima angka jangkar untuk mengunci mesin perhitungan AHSP. Dua di
-antaranya (`278300` dan `266600`) **terbukti ada** dan sudah diuji secara eksak —
-mesin perhitungannya benar. Total RAB Cibuluh (`Rp 3.629.860.295,31`) juga cocok.
-
-Tiga sisanya **tidak ada di berkas Cibuluh mana pun**:
-
-- `Rp 1.657.839.590,39`
-- `109,5`
-- `7875`
-
-Yang sudah saya pastikan supaya ini bukan sekadar "belum ketemu":
-
-- Dicari di **kedua** berkas Cibuluh (`.xls` dan `.xlsx`), **seluruh 22 sheet**.
-- Kedua berkas itu ternyata **isinya identik** — `.xlsx` hanya hasil simpan-ulang
-  dari `.xls`. Jadi tidak ada "versi lain" yang terlewat di repo.
-- Semua angka bernilai 1–9 miliar disapu. Yang paling dekat adalah
-  **Rp 1.642.531.571** (subtotal Pekerjaan Beton), selisih ~15,3 juta. Selisih itu
-  bukan PPN, bukan PPh, bukan pembulatan.
-
-**Yang saya butuhkan dari Anda (kapan pun sempat):**
-
-Apakah ketiga angka itu berasal dari **proyek atau workbook lain** yang belum ada
-di repo? Kalau ya, berkasnya perlu ditaruh di `_source/ahsp/golden/` agar bisa
-dikunci sebagai jangkar permanen. Kalau ternyata salah ingat, cukup abaikan —
-jangkar yang sudah ada tetap berlaku dan tidak ada yang rusak.
-
-**Yang sengaja TIDAK saya lakukan:** menambahkan pengujian terhadap ketiga angka
-itu. Menguncinya tanpa tahu sumbernya berarti menjadikan tebakan sebagai
-kebenaran — persis kesalahan yang Fase 0 ada untuk memberantasnya.
-
-Detail lengkap: `docs/execution/GOLDEN-FILE-INVESTIGASI.md`.
-
----
-
-## R-004 · SUDAH DIJALANKAN · tinggal dikonfirmasi
-### Rekomendasi audit kemarin untuk menjalankan `rekonsiliasi --tulis` DITARIK
-
-Audit 2026-08-02 (butir F-003) merekomendasikan menjalankan
-`rekonsiliasi-schema-migrations.mjs --tulis`. **Saya tarik rekomendasi itu.**
-
-Alat tersebut menebak isi sebuah migrasi dengan mencocokkan pola teks, dan pola
-itu **tidak bisa melihat perintah yang dibungkus blok dinamis** — yang justru
-dipakai seluruh migrasi 163–174. Akibatnya ia bisa menyatakan sebuah migrasi
-"sudah jalan" padahal belum, dan migrasi itu **tidak akan pernah dijalankan lagi
-di lingkungan mana pun**, tanpa gejala.
-
-Penggantinya `scripts/db/ledger-diff.mjs` **tidak punya kemampuan menulis sama
-sekali**, dan hanya menyatakan sesuatu terbukti bila artefak fisiknya ditemukan
-di database.
-
-**Cara membatalkan:** alat lama masih ada dan tidak saya ubah.
+Mencatat 167 sebagai "sudah jalan" sebelum lingkungan CI dipastikan bersih justru
+mengunci cacat P0 yang baru saja diperbaiki. Urutan Anda benar; saya menunggu.

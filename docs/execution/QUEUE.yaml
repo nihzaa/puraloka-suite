@@ -175,6 +175,42 @@ items:
       30 & 64 tak pernah ada di histori git). Diuji dua arah: nomor ganda -> exit 1,
       lompatan baru -> exit 1, bersih -> exit 0. Terpasang di CI.
 
+  - id: F0-10
+    fase: 0
+    judul: "Golden file kedua: kunci 1.657.839.590,39 / 109,5 / 7875 sebagai assertion"
+    blokir_oleh: [F0-7]
+    kriteria_selesai:
+      - "harness pembaca .xlsm (117 sheet, bermakro) untuk Format RAB Control 2026"
+      - "assertion REKAPITULASI!E15 = 1.657.839.590,39 (TOTAL BIAYA sebelum PPN)"
+      - "assertion LAPORAN RAB!H114 = 109,5 volume x I114 = J114 (silang)"
+      - "assertion DINDING BATA MERAH!L41 = 7875 buah"
+      - "PERTIMBANGKAN: PPN dua-angka — label '11%' tapi pengali 0,12 (F16), hasil terverifikasi"
+    cara_verifikasi: "vitest run golden + tempel output"
+    bobot: M
+    status: todo
+    catatan: >
+      R-005 TERJAWAB — ketiganya ada di _source/ahsp/Format RAB Control 2026, BUKAN
+      di Cibuluh (proyek berbeda: 1,66 M vs 3,63 M). Sumber & makna terverifikasi
+      silang. Belum dijadikan assertion karena butuh harness .xlsm tersendiri —
+      itu pekerjaan, bukan keraguan. Detail: GOLDEN-FILE-INVESTIGASI.md.
+
+  - id: F0-11
+    fase: 0
+    judul: "R-001 syarat 1: periksa bentuk GL di project CI sebelum/sesudah eksekusi"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "SUDAH: alat ci-periksa-bentuk-gl.mjs (read-only) + action periksa-gl di ci-isolation.yml"
+      - "BELUM: dijalankan sungguhan — kredensial CI hanya di GitHub Secrets, tak terjangkau lokal"
+      - "BILA hasilnya kondisi C (accounts tanpa company_id): reset CI dari nol (setup-clean)"
+    cara_verifikasi: "gh workflow run ci-isolation.yml -f action=periksa-gl"
+    bobot: S
+    status: blocked
+    catatan: >
+      Syarat founder: periksa DB CI sebelum eksekusi; bila tak terjangkau, reset CI
+      dari nol setelahnya. Kredensial CI_* memang write-only di GitHub Secrets, jadi
+      jalur "periksa dulu" HANYA bisa lewat workflow. Terblokir bersama BARU-1
+      (GitHub Actions tak menjalankan job sama sekali).
+
   # ── GERBANG: menunggu founder ─────────────────────────────────────────────
   - id: R-001
     fase: 0
@@ -256,6 +292,23 @@ items:
     cara_verifikasi: "vitest + tempel output"
     bobot: S
     status: blocked
+
+  - id: F1-8
+    fase: 1
+    judul: "companies.ts coverage NOL — pintu masuk multi-tenant tak boleh tak teruji"
+    blokir_oleh: [F0-3, F0-4]
+    kriteria_selesai:
+      - "coverage companies.ts > 0 dan menguji jalur nyata, bukan sekadar menyentuh baris"
+      - "uji: buat company, daftar company milik user, ganti company aktif"
+      - "uji 403: user tanpa keanggotaan TIDAK bisa membaca/menulis company lain"
+      - "lantai coverage dinaikkan setelahnya (coverage-ratchet --naikkan)"
+    cara_verifikasi: "vitest run + coverage-summary companies.ts pct > 0 + tempel output"
+    bobot: M
+    status: blocked
+    catatan: >
+      Perintah founder 2026-08-03: masuk GERBANG Fase 1 — tidak boleh nol saat Fase 2
+      dimulai, karena companies.ts justru pintu masuk multi-tenant. Fase 2 (sapuan
+      tenancy) TIDAK dimulai sebelum ini hijau.
 
   - id: F1-7
     fase: 1

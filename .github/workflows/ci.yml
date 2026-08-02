@@ -1,8 +1,25 @@
 name: CI
 
+# ── PEMICU: SETIAP pull request, bukan hanya yang menargetkan `main` ─────────
+#
+# Sampai 2026-08-03, `pull_request` disaring `branches: [main]`. Akibatnya SETIAP
+# PR bertumpuk (PR yang basenya branch lain, bukan `main`) berjalan **tanpa satu
+# pun check**. Ditemukan lewat PR #134 → base `fix/search-proyek-gagal-senyap`:
+# nol check berjalan, dan GitHub menampilkannya sebagai "mergeable" tanpa gejala.
+#
+# Konsekuensinya bukan teoretis: 13 penjaga arsitektural di berkas ini —
+# gerbang tenancy, kegagalan senyap, penulisan tanpa periksa, catch senyap,
+# migrasi sadar-schema, penomoran migrasi, ratchet coverage — **tidak menjaga
+# apa pun** pada rantai PR mana pun yang belum menyentuh `main`. Penjaga yang
+# hanya berjalan di satu jenis PR adalah penjaga yang bisa dilewati dengan
+# memilih base branch, dan tak seorang pun akan menyadarinya.
+#
+# `pull_request` tanpa `branches` = berjalan untuk PR ke branch apa pun.
+# `push` tetap disaring ke `main` — push ke branch kerja sudah tercakup oleh
+# PR-nya sendiri, dan menjalankannya dua kali hanya menggandakan antrean pada
+# project Supabase CI yang di-serialkan (lihat `concurrency` di bawah).
 on:
   pull_request:
-    branches: [main]
   push:
     branches: [main]
 
@@ -114,6 +131,19 @@ jobs:
       # Lompatan LAMA (30, 59, 64) dikecualikan beralasan; yang dijaga yang baru.
       - name: Penomoran migrasi (nol ganda, nol lompatan baru)
         run: node scripts/audit-penomoran-migrasi.mjs
+
+      # R-001 syarat 3 — dua migrasi mendefinisikan tabel yang sama.
+      #
+      # `CREATE TABLE IF NOT EXISTS` melindungi dari "sudah dibuat oleh migrasi
+      # INI", BUKAN dari "sudah dibuat oleh migrasi LAIN dengan bentuk berbeda".
+      # Pendefinisi belakangan lalu no-op senyap: tanpa galat, tanpa test merah.
+      #
+      # Sapuan pertama atas 171 migrasi menemukan 13 tabel bertabrakan. Sepuluh
+      # sudah terjaga (149 membuang bentuk 045; 143 pakai to_regclass guard; 093
+      # identik dengan 081). Tiga sisanya adalah cacat P0 GL yang nyata:
+      # accounts, journal_entries, journal_entry_lines (047 vs 167).
+      - name: Tabrakan definisi tabel (IF NOT EXISTS tanpa penegas bentuk)
+        run: node scripts/audit-tabrakan-definisi-tabel.mjs
 
       # Rencana yang ditulis rapi lalu tak pernah dikerjakan — bukan karena
       # diputuskan ditunda, melainkan karena tak ada yang tahu ia ada. Repo ini

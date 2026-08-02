@@ -16,7 +16,7 @@ memuat **setiap** dokumen, tanpa kecuali.
 | **acuan** | aturan/keputusan yang dirujuk saat bekerja | dibaca saat mengerjakan hal terkait; tak "selesai" |
 | **riwayat** | catatan fase yang sudah lewat | bukti apa yang pernah terjadi; jangan dikutip sebagai rencana |
 
-**Total 255 dokumen** — antrean 11 · acuan 187 · riwayat 57.
+**Total 255 dokumen** — antrean 11 · acuan 186 · riwayat 58.
 
 Kolom **RM** = disebut langsung di `ROADMAP.md`.
 
@@ -60,10 +60,10 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 |---|---|:-:|---|
 | [CHARTER](execution/CHARTER.md) | acuan |  | CHARTER — Sumber Kewenangan Eksekusi Otonom |
 | [COVERAGE-BASELINE](execution/COVERAGE-BASELINE.md) | acuan |  | Coverage Baseline — Angka Sesungguhnya (C-6) |
-| [GOLDEN-FILE-INVESTIGASI](execution/GOLDEN-FILE-INVESTIGASI.md) | acuan |  | Investigasi Golden File — Angka Jangkar yang Tidak Cocok (C-5) |
+| [GOLDEN-FILE-INVESTIGASI](execution/GOLDEN-FILE-INVESTIGASI.md) | acuan |  | Investigasi Golden File — Angka Jangkar (C-5 / R-005) |
 | [JOURNAL](execution/JOURNAL.md) | riwayat | ✓ | JOURNAL — Catatan Sesi |
 | [LEDGER-DIFF](execution/LEDGER-DIFF.md) | acuan |  | LEDGER-DIFF — Buku Migrasi vs Artefak Fisik |
-| [RATIFIKASI](execution/RATIFIKASI.md) | acuan |  | RATIFIKASI — Satu-satunya Berkas yang Perlu Dibaca Founder |
+| [RATIFIKASI](execution/RATIFIKASI.md) | riwayat |  | RATIFIKASI — Satu-satunya Berkas yang Perlu Dibaca Founder |
 
 ### `docs/superpowers/plans`
 
