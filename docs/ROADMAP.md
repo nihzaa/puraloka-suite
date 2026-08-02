@@ -190,6 +190,9 @@ membangunnya, dan tanpa keputusan itu penyebut di atas masih bisa bergeser.
 | 6 | **Graphify diperbaiki** — 7.161 node, query berfungsi | ✅ Selesai | 2026-07-31 (di luar git, `graphify-out/` ter-gitignore) |
 | 7 | **Perapian `docs/`** — 60 tautan rusak + 3 cacat administratif + pemindai di CI | ✅ Selesai | 2026-07-31, job CI `dokumentasi` |
 | E1–E8 | **Estimasi/CECEP bisa dipakai** — 8 cacat yang membuat halaman tak terpakai | ✅ Selesai | 2026-07-31, 10 commit — lihat §Tingkat 0 |
+| CI-1 | **CI dipercepat + penjaga dibuktikan bisa merah** — profil terukur, antrean menumpuk dihapus, penjaga ADR-004 sisi API (lubang yang lolos 14 penjaga lain) | 🔄 Sebagian | `docs/execution/CI-PROFIL.md` · `docs/execution/CI-BUKTI.md` (2026-08-03) |
+| CI-2 | **Sharding test 4×** — terbukti 1317s→434s, DITAHAN karena 46 berkas test berbagi schema `public` | ⏸ Ditahan | `QUEUE.yaml` **F0-14**; akar & bukti di `CI-PROFIL.md` §5.1 |
+| CI-3 | **Region project CI** — DB di Tokyo, runner di US-East; ~6.000 round-trip lintas Pasifik = 91% durasi | ⏸ Menunggu founder | `RATIFIKASI.md` **B-3** |
 
 ---
 
