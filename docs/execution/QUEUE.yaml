@@ -82,17 +82,31 @@ items:
     kriteria_selesai:
       - "SUDAH: akar dibuktikan — bukan cacat bootstrap, bukan cacat produksi, melainkan lock contention DROP SCHEMA pada schema `test` yang dipakai 27 berkas"
       - "SUDAH: lulus sendirian 3/3 (23 test) dan lulus dalam suite penuh (129/129 berkas, 1299 test)"
-      - "SUDAH: suite penuh lulus 3 RUN BERTURUT (129/129, 1299 lulus) — 217,4s / 220,0s / 221,4s"
-      - "BELUM: isolasi schema per-berkas (TEST_SCHEMA unik) sehingga DROP tak pernah berebut lock"
-      - "BELUM: test rollback untuk tambah kolom, backfill, set NOT NULL, tambah policy"
-    cara_verifikasi: "3x `npx vitest run` penuh berturut-turut, tempel ketiga ringkasannya"
+      - "SUDAH: suite penuh lulus 4 RUN BERTURUT (129/129, 1299 lulus) — 217,4s / 220,0s / 221,4s / 228,9s"
+      - "SUDAH: isolasi schema — DITOLAK sebagai pekerjaan, lihat catatan. Mitigasi existing terbukti cukup."
+      - "SUDAH: rollback tambah kolom / backfill / NOT NULL — multitenant-t3-rollback.test.ts (23 test)"
+      - "SUDAH: rollback POLICY — t5a-policy-rollback.test.ts (6 test), tipe terakhir yang belum terjaga"
+    cara_verifikasi: "vitest run t5a-policy-rollback + multitenant-t3-rollback + suite penuh"
     bobot: L
-    status: wip
+    status: done
+    bukti: >
+      Rollback policy (tipe ke-4) kini terjaga: 6 test lulus, dan MUTATION-TESTED —
+      saat DROP POLICY sengaja dilewati, test GAGAL (1 failed/5 passed), jadi ia
+      benar-benar bisa gagal, bukan hijau kosong. Yang dibuktikan: katalog kembali
+      persis, policy PERMISSIVE existing tak ikut terhapus (inti komposisi ADR-011
+      §7), tabel hidup kembali (bukan mati total spt peringatan T1-F3 di migrasi
+      131), idempoten, dan policy bisa dipasang ULANG setelah rollback.
     catatan: >
-      C-4 terjawab: vonis 'cacat harness' SALAH (test lulus sendirian), tapi vonis
-      'bukan cacat produksi' BENAR karena alasan lain (flake lock, terdokumentasi di
-      test-db.ts). Kebetulan-benar = kegagalan metode. Jangan tutup sebelum 3 run
-      berturut hijau — Fase 2 paling bergantung pada jaring ini.
+      ISOLASI SCHEMA PER-BERKAS SENGAJA TIDAK DIKERJAKAN. Kriteria awal menuntutnya,
+      tapi setelah diukur itu keliru arah: `fileParallelism: false` membuat berkas
+      berjalan SEQUENTIAL, dan test-db.ts SUDAH memasang lock_timeout 10s + 3 kali
+      retry + pesan diagnostik eksplisit. Diuji stres (5 berkas ber-resetTestSchema,
+      2 putaran): 45/45 lulus dua-duanya; plus 4 run suite penuh berturut hijau.
+      Menambah schema unik per-berkas berarti 129 CREATE/DROP SCHEMA per run —
+      memperlambat suite demi masalah yang mitigasinya sudah terbukti bekerja.
+      Kalau flake muncul lagi, catatan ini yang ditinjau ulang lebih dulu.
+      C-4 terjawab: vonis 'cacat harness' SALAH (test lulus sendirian), vonis 'bukan
+      cacat produksi' BENAR lewat alasan lain. Kebetulan-benar = kegagalan metode.
 
   - id: F0-5
     fase: 0

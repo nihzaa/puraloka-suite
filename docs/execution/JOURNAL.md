@@ -53,6 +53,36 @@ Fallback founder dijalankan: `setup-clean` (aman, ketiga tabel 0 baris). Hasilny
 **047 + 167 + 175 lulus seluruhnya** di replay bersih. Perbaikan R-001 bekerja di
 lingkungan kosong, bukan hanya di dev.
 
+### F0-4 SELESAI — tipe migrasi ke-4 (policy) akhirnya terjaga
+
+Dua kriteria yang tersisa ditutup, satu dikerjakan dan satu **sengaja ditolak**.
+
+**Rollback policy — dikerjakan.**  (6 test). Ini
+tipe migrasi terakhir yang belum punya jaring: tiga lainnya (tambah kolom,
+backfill, NOT NULL) sudah terjaga . Migrasi
+131 menjanjikan di komentarnya *"Rollback granular & instan: DROP POLICY"* —
+janji yang tak pernah diuji siapa pun, padahal Fase 2 akan menambah policy ke
+~80 tabel.
+
+Yang dibuktikan: katalog kembali persis · policy PERMISSIVE existing **tidak**
+ikut terhapus (inti komposisi ADR-011 §7) · tabel **hidup kembali**, bukan mati
+total seperti peringatan T1-F3 di migrasi 131 · idempoten · bisa dipasang ulang.
+
+**Dan test-nya sendiri di-mutation-test**: saat  sengaja dilewati,
+test GAGAL (1 failed / 5 passed). Jadi ia benar-benar bisa gagal — bukan hijau
+kosong. Pelajaran dari repo ini sendiri ().
+
+**Isolasi schema per-berkas — DITOLAK, dan ini keputusan sadar.** Kriteria awal
+menuntutnya, tapi setelah diukur arahnya keliru:  membuat
+berkas berjalan sequential, dan  SUDAH memasang + 3 retry + pesan diagnostik. Diuji stres (5 berkas ber-, 2
+putaran): 45/45 lulus dua-duanya. Menambah schema unik per-berkas berarti 129
+CREATE/DROP SCHEMA per run — memperlambat suite demi masalah yang mitigasinya
+sudah terbukti bekerja. Dicatat supaya kalau flake muncul lagi, catatan ini yang
+ditinjau lebih dulu, bukan diputuskan dari nol.
+
+**Verifikasi:** suite penuh **130/130 berkas, 1305 lulus, 228,5s** — run hijau
+**kelima berturut-turut**. Coverage tak bergerak. 7 penjaga + tsc exit 0.
+
 ### F0-12 SELESAI + F0-13 tersingkap
 
 **F0-12 diperbaiki dan diverifikasi di CI sungguhan.** Penjaga 137 kini
