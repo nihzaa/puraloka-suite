@@ -1478,10 +1478,9 @@ export default async function procurementRoutes(app: FastifyInstance) {
     if (qty <= 0) return reply.status(400).send({ error: 'qty harus lebih dari 0' })
 
     // Ambil stok saat ini
-    const { data: stock } = await supabase
-      .from('project_stocks')
+    const { data: stock } = await request.db!
+      .viaProject('project_stocks', project_id)
       .select('id, qty_on_hand')
-      .eq('project_id', project_id)
       .eq('material_id', material_id)
       .single()
 

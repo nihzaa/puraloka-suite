@@ -104,6 +104,17 @@ jobs:
       - name: Migrasi sadar-schema (skema tak boleh dipaku)
         run: node scripts/audit-migrasi-skema-dipaku.mjs
 
+      # Rencana yang ditulis rapi lalu tak pernah dikerjakan — bukan karena
+      # diputuskan ditunda, melainkan karena tak ada yang tahu ia ada. Repo ini
+      # sudah punya preseden: ERP_MASTER_PLAN Modul 9a/9b, AHSP-EDITION-BUILDER
+      # §3.5, GOLDEN-FILE-SPEC paritas end-to-end.
+      #
+      # Yang dituntut terhubung HANYA dokumen yang memuat pekerjaan TERBUKA.
+      # Arsip, aturan tetap (Constitution/ADR), dan laporan status dikecualikan
+      # dengan alasan tertulis — mereka dirujuk, bukan dikerjakan.
+      - name: Dokumen rencana harus terhubung ke ROADMAP
+        run: node scripts/audit-docs-vs-roadmap.mjs
+
       - name: Penjaga saldo (pemeriksaan tak boleh bisa dilewati)
         run: node scripts/audit-penjaga-saldo.mjs
 

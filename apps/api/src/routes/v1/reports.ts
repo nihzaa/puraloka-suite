@@ -678,9 +678,9 @@ export default async function reportsRoutes(app: FastifyInstance) {
         // ⚠️ `title`/`completed_at`, BUKAN `name`/`actual_date` — kolom itu tak
         // ada, jadi query ini selalu gagal dan tabel milestone di PDF laporan
         // proyek SELALU kosong. Diverifikasi ke information_schema 2026-08-01.
-        supabase.from('milestones').select('title, target_date, completed_at, status').eq('project_id', projectId).order('target_date'),
-        supabase.from('progress_logs').select('pct_overall, notes, logged_at').eq('project_id', projectId).order('logged_at', { ascending: false }).limit(20),
-        supabase.from('invoices').select('invoice_number, total_amount, amount_paid, amount_due, status, issued_date, due_date').eq('project_id', projectId).order('issued_date'),
+        request.db!.viaProject('milestones', projectId).select('title, target_date, completed_at, status').order('target_date'),
+        request.db!.viaProject('progress_logs', projectId).select('pct_overall, notes, logged_at').order('logged_at', { ascending: false }).limit(20),
+        request.db!.viaProject('invoices', projectId).select('invoice_number, total_amount, amount_paid, amount_due, status, issued_date, due_date').order('issued_date'),
       ])
 
       const proj = projRes.data
@@ -994,11 +994,11 @@ export default async function reportsRoutes(app: FastifyInstance) {
     const dateFrom = q.date_from || null
     const dateTo   = q.date_to   || null
 
-    let progressQ = supabase.from('progress_logs').select(`
+    let progressQ = request.db!.viaProject('progress_logs', project_id).select(`
       id, pct_overall, notes, logged_at,
       logger:users!progress_logs_reported_by_fkey(id, name),
       project_photos(id, url, caption, taken_at)
-    `).eq('project_id', project_id).order('logged_at', { ascending: false })
+    `).order('logged_at', { ascending: false })
 
     if (dateFrom) progressQ = progressQ.gte('logged_at', dateFrom + 'T00:00:00')
     if (dateTo)   progressQ = progressQ.lte('logged_at', dateTo + 'T23:59:59')
