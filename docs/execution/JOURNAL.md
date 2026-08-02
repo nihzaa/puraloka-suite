@@ -126,9 +126,63 @@ Angka "24 skipped" di laporan audit karenanya menyesatkan; yang benar-benar
 di-skip secara sengaja hanya **1** (`golden-cibuluh` — pasangan `skipIf` yang memang
 mati saat berkas golden-nya ada).
 
+### F0-5 — coverage: skor Testing 80 akhirnya dibayar (C-6)
+
+Diukur pertama kali: **statements/lines 31,98%**, branches 68,49%, functions 81,96%.
+Yang mengkhawatirkan bukan angkanya melainkan **sebarannya**: 27 berkas route
+ber-coverage NOL, termasuk `users.ts`, `notifications.ts`, `documents.ts`,
+`audit.ts`, dan `companies.ts` (inti multi-tenant). Jalur uang tipis:
+`penalty.ts` 4,2%, `kasbon-limit.ts` 5,3%.
+
+Membangun ratchet-nya justru menemukan dua cacat pada penjaga itu sendiri:
+
+1. **Tanpa toleransi, penjaga jadi cerewet.** v8 bergoyang antar-run
+   (branches 68,49 → 68,48). Penjaga yang berteriak untuk 0,01% akan dimatikan orang.
+2. **Penjaga bisa berbohong.** Run `src/lib` saja menghasilkan statements 8,57%
+   terhadap lantai 31,98% → vonis "TURUN" **palsu**. Sidik cakupan yang benar
+   adalah **baris tereksekusi** (1.821 vs 6.794), bukan jumlah berkas — v8 tetap
+   mendaftar semua berkas yang di-`include` walau nol tercakup, sehingga jumlah
+   berkas nyaris tak berubah. Ratchet kini MENOLAK membandingkan (exit 2) alih-alih
+   memberi vonis palsu.
+
+### F0-7 — golden file: hipotesis saya sendiri gugur (C-5)
+
+Saya menduga selisih angka berasal dari "dua berkas Cibuluh berbeda". **Salah.**
+`.xls` dan `.xlsx` isinya identik — 22 sheet sama, nilai di sel sama; `.xlsx` hanya
+hasil simpan-ulang. Jadi bukan itu penjelasannya.
+
+`1.657.839.590,39` **tidak ada** di kedua berkas, seluruh 22 sheet. Semua angka
+1–9 miliar disapu; terdekat `1.642.531.571` (subtotal Pekerjaan Beton), selisih
+15,3 juta — bukan PPN, bukan PPh, bukan pembulatan. `109,5` dan `7875` juga nihil.
+
+**Yang sengaja tidak saya lakukan:** menambahkan assertion untuk ketiganya.
+Mengunci angka yang sumbernya tak diketahui = menjadikan tebakan sebagai kebenaran,
+persis kelas kesalahan yang Fase 0 ada untuk memberantasnya. → R-005.
+
+### F0-9 — penjaga penomoran migrasi
+
+171 berkas, nomor tertinggi 174, lompatan lama 30/59/64 (059 = `seed_dummy_data`;
+030 & 064 tak pernah ada di histori git). Lompatan lama dikecualikan **beserta
+alasannya**; yang dijaga lompatan baru dan nomor ganda. Diuji dua arah.
+
+Alasan nomor ganda berbahaya bukan estetika: `ci-project-setup` mencatat keduanya
+sebagai satu versi, sehingga yang kedua **dilewati senyap selamanya** — mekanisme
+yang sama persis dengan cacat P0 047↔167.
+
+### Status gerbang Fase 0 — BELUM hijau penuh (dinyatakan jujur)
+
+Selesai: F0-1, F0-2, F0-5, F0-6, F0-7, F0-9.
+Belum: **F0-3** (penjaga docs jalan, CI penuh belum diverifikasi end-to-end),
+**F0-4** (3 run berturut hijau, tapi isolasi schema per-berkas + rollback tiap
+tipe migrasi tenancy belum dibangun).
+
+Sesuai CHARTER §3, Fase 1 **tidak** dimulai sebelum keduanya tuntas.
+
 ### Menunggu di RATIFIKASI
 
-- **R-001** — perbaikan tabrakan GL 047↔167 (menyentuh migrasi tercatat → G-2).
-- **R-002** — pencatatan 12 migrasi ke buku (harus SETELAH R-001).
+- **R-001** 🔴 P0 — tabrakan GL 047↔167 (G-2). Memblokir pekerjaan GL apa pun.
+- **R-002** — pencatatan 12 migrasi ke buku (G-2; harus SETELAH R-001).
 - **R-003** — bekerja di atas `fix/search-proyek-gagal-senyap`, bukan `main`.
 - **R-004** — penarikan rekomendasi `rekonsiliasi --tulis`.
+- **R-005** — 3 angka jangkar golden file tak dikenali sumbernya (pertanyaan, tidak memblokir).
+- **F0-8** — pembersihan schema `mut6` dari DB dev (G-2).

@@ -13,6 +13,17 @@ meta:
   diperbarui: 2026-08-02
   fase_aktif: 0
   sisa_todo: 34
+  # Fase 0 — status per akhir sesi 1
+  fase_0:
+    selesai: [F0-1, F0-2, F0-5, F0-6, F0-7, F0-9]
+    wip: [F0-3, F0-4]
+    menunggu_ratifikasi: [F0-8, R-001, R-002]
+    catatan: >
+      Gerbang Fase 0 BELUM hijau penuh. Yang menahan: F0-3 (penjaga docs sudah
+      jalan, tapi CI penuh belum diverifikasi hijau end-to-end) dan F0-4 (3 run
+      berturut sudah hijau, tapi isolasi schema per-berkas + rollback tiap tipe
+      migrasi tenancy belum dibangun). R-001 adalah P0 yang memblokir pekerjaan
+      GL apa pun, dan tunduk Gerbang Keras G-2.
 
 items:
   # ── FASE 0 — PEMULIHAN KEPERCAYAAN ────────────────────────────────────────
@@ -145,11 +156,16 @@ items:
     fase: 0
     judul: "Penjaga penomoran migrasi (nomor tak boleh melompat/bentrok)"
     blokir_oleh: []
-    kriteria_selesai: ["CI gagal bila ada nomor ganda atau lompatan tak terdokumentasi"]
-    cara_verifikasi: "penjaga CI"
+    kriteria_selesai:
+      - "CI gagal bila ada nomor ganda"
+      - "CI gagal bila ada lompatan BARU; lompatan lama dikecualikan beralasan"
+    cara_verifikasi: "node apps/api/scripts/audit-penomoran-migrasi.mjs"
     bobot: S
-    status: todo
-    catatan: "171 berkas tapi nomor tertinggi 174."
+    status: done
+    bukti: >
+      171 berkas, tertinggi 174, lompatan lama 30/59/64 (59 = seed_dummy_data,
+      30 & 64 tak pernah ada di histori git). Diuji dua arah: nomor ganda -> exit 1,
+      lompatan baru -> exit 1, bersih -> exit 0. Terpasang di CI.
 
   # ── GERBANG: menunggu founder ─────────────────────────────────────────────
   - id: R-001

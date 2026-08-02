@@ -104,6 +104,17 @@ jobs:
       - name: Migrasi sadar-schema (skema tak boleh dipaku)
         run: node scripts/audit-migrasi-skema-dipaku.mjs
 
+      # Nomor migrasi ganda membuat ci-project-setup mencatat keduanya sebagai
+      # satu versi — yang kedua DILEWATI SENYAP di setiap lingkungan baru. Itu
+      # mekanisme yang sama dengan cacat P0 047 vs 167 (dua definisi `accounts`
+      # bertabrakan, satu menang tanpa pesan galat).
+      #
+      # Lompatan nomor membuat orang menyimpulkan jumlah dari nomor terakhir —
+      # audit 2026-08-02 tergelincir persis di situ (melapor 174, nyatanya 171).
+      # Lompatan LAMA (30, 59, 64) dikecualikan beralasan; yang dijaga yang baru.
+      - name: Penomoran migrasi (nol ganda, nol lompatan baru)
+        run: node scripts/audit-penomoran-migrasi.mjs
+
       # Rencana yang ditulis rapi lalu tak pernah dikerjakan — bukan karena
       # diputuskan ditunda, melainkan karena tak ada yang tahu ia ada. Repo ini
       # sudah punya preseden: ERP_MASTER_PLAN Modul 9a/9b, AHSP-EDITION-BUILDER
