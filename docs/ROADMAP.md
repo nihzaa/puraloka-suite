@@ -38,6 +38,55 @@
 > pekerjaannya selesai — bagian dari Definition of Done, pola yang sudah
 > terbukti di `DEVELOPMENT_LOG.md`.
 
+
+## ▶️ URUTAN EKSEKUSI — apa yang dikerjakan berikutnya
+
+> **Ditambahkan 2026-08-02.** Dokumen ini punya antrean, peta gelombang, dan
+> 116 sub-menu — tapi tak satu pun menjawab *"besok kerjakan apa?"* dalam satu
+> baris. Bagian ini yang menjawabnya, dan wajib diperbarui tiap kali satu
+> langkah selesai.
+
+### Keadaan sekarang
+
+**Gelombang 1 (pondasi) — gerbangnya TERBUKA.** Diverifikasi 2026-08-02:
+17 item pondasi selesai · `tenantDb` 468 → 364 (sisanya pola sah, bukan hutang)
+· a11y `click-events` 98 → 63 · 13 penjaga CI · 1.246 test API + 56 web + 14
+browser · drift dev-vs-migrasi **0**.
+
+**Gelombang 2 benar-benar kosong** — diverifikasi ke dev: `chart_of_accounts`,
+`journal_entries`, `qc_inspections`, `hse_incidents`, `payroll_runs` semuanya
+belum ada. Hanya `assets` yang sudah hidup.
+
+### Urutan yang direkomendasikan
+
+| # | Langkah | Kenapa urutannya begini | Prasyarat |
+|---|---|---|---|
+| **1** | **Keputusan multi-company** | Tripwire CLAUDE.md: *"modul ber-ledger apa pun WAJIB didahului keputusan multi-company"*. GL adalah ledger, dan struktur CoA berbeda antara satu-entitas vs banyak-entitas. Mengubahnya sesudah jurnal terisi mahal — pola "sebelum seed" yang sama dengan AHSP. | **Keputusan founder** (`KEPUTUSAN-MULTI-COMPANY.md`) |
+| **2** | **GL in-app** — CoA + jurnal + auto-jurnal | Muara semua modul: kas, invoice, kasbon, procurement sudah hidup dan semuanya bermuara ke pembukuan. Juga **prasyarat Gelombang 4** — AI membaca GL. | langkah 1 |
+| **3** | **QA/QC + HSE** (14 sub-menu) | Mandiri — tak bergantung GL. Bisa dikerjakan **paralel** dengan 1–2 kalau keputusan multi-company belum turun. Langsung dipakai orang lapangan. | — |
+| **4** | **Payroll + BPJS + PPh 21** | Bermuara ke GL, jadi sesudah 2. | langkah 2 |
+| **5** | **Gelombang 3** — mobile lapangan + offline | Gerbangnya "modul menerima dari lapangan"; butuh 2–4 lebih dulu. | langkah 2–4 |
+| **6** | **Gelombang 4** — AI | Gerbang **eksternal**: akun WhatsApp Business API (berbayar + verifikasi Meta). Di luar kendali teknis. | langkah 5 + akun WA |
+
+### Yang bisa dikerjakan kapan saja (tak memblokir apa pun)
+
+- **Rekonsiliasi saldo kas** — `STATUS.md` §D/§E/§F: Rp 627 juta kurang dicatat
+  masuk, Rp 67,6 juta kurang dicatat keluar, tiga kas kecil bersaldo negatif.
+  **Butuh founder** mencocokkan ke mutasi rekening bank; trigger-nya sudah
+  terpasang jadi transaksi ke depan sudah benar.
+- **E9/E10/E12** (Tingkat 0) — 19 harga bentrok · 81 harga draft · dua edisi
+  AHSP kosong. Ketiganya butuh keputusan founder, bukan pekerjaan teknis.
+
+### Kalau ragu memilih
+
+Urutan di atas bukan selera — tiap panah dependensi data: **AI membaca GL, GL
+menerima dari modul, modul menerima dari lapangan.** Membangun AI di atas
+pembukuan yang belum benar menghasilkan jawaban yang percaya diri dan salah.
+
+Satu-satunya yang benar-benar bebas urutan: **langkah 3 (QA/QC + HSE)**.
+
+---
+
 ## Aturan main dokumen ini
 
 Dokumen rencana di repo ini punya sejarah jadi basi lalu dipercaya buta —
@@ -414,7 +463,7 @@ Penjaganya: `apps/api/scripts/audit-docs-vs-roadmap.mjs`.
 | `CECEP/AHSP-EDITION-BUILDER-DESIGN.md` | ⚠️ **Sebagian besar SUDAH DIBANGUN** — diverifikasi ke dev 2026-08-02: tabel `ahsp_editions` ada (SE-47-2026, `source_sha256` terisi), `assemblies.edition_id` + `derived_from_edition_id` ada, **2.620 dari 3.043** analisa sudah ber-edisi. Jadi §3.1–3.4 (sumbu EDISI) selesai. Gerbang founder "sebelum seed" **sudah lewat** — KB kini berisi 2.830 resource + 3.025 harga. Yang tersisa: builder UI & alur item-baru (§3.5 laporan antar-edisi ⛔ dicoret owner). | 2 |
 | `05-design-system-and-ui-ux-architecture.md` | Living document — arah UI/UX. Warm Clay sudah jadi visual dasar; sisanya belum diturunkan jadi pekerjaan. | 2 |
 | `06-agentic-ai-and-automation-architecture.md` | Katalog 140 automation. **0 "Now" by design** — gerbangnya Gelombang 4 + akun WhatsApp Business API (berbayar, verifikasi Meta). | 4 |
-| `plans/2026-07-15-warm-clay-design-system.md` | Rencana design system Warm Clay. Sebagian sudah hidup (token, kontras WCAG); sisanya belum ditelusuri. | 2 |
+| `plans/2026-07-15-warm-clay-design-system.md` | ✅ **Sudah terlaksana** — diverifikasi 2026-08-02: 105 token CSS di `globals.css`, dark mode lewat `.dark` + `theme-toggle.tsx`, kontras WCAG dijaga `kontras-ratchet.mjs` (38 pasangan) + `kontras-hex-ratchet.mjs`. Dirujuk sebagai riwayat, bukan antrean. | — |
 
 ### Dokumen perencanaan Phase 1 — "Planning only", fasenya sudah lewat
 
@@ -425,10 +474,20 @@ Kelimanya bertanda **"Status: Planning only"** dan ditulis SEBELUM Phase 1
 dikerjakan. Phase 1 sendiri sudah selesai (lihat `PHASE-1-STATUS.md` &
 `PHASE-1-COMPLETION-AUDIT.md`), jadi isinya sebagian besar sudah terserap.
 
-**Yang belum diperiksa satu per satu:** apakah ada butir yang terlewat —
-terutama `04-risk-register` (risiko yang mungkin masih terbuka) dan
-`08-observability-plan` (Sub-Fase 1D). Ditandai di sini supaya tak hilang lagi,
-bukan diklaim selesai.
+**Diperiksa 2026-08-02 — keduanya AKURAT, tak ada yang menghalangi:**
+
+- `04-risk-register` — isinya bukan risiko terbuka melainkan **risiko yang
+  sengaja diterima**, masing-masing dengan kondisi kapan diangkat kembali.
+  Dua pemicu utamanya (permintaan device-verified approval; permintaan
+  eksplisit "role X tak boleh lihat kolom Y") **belum terjadi**.
+- `08-observability-plan` — Logs ✅ (correlation ID terverifikasi di 5 berkas
+  `apps/api/src`), Metrics 🟡 & Traces 🔴 **sengaja ditunda** dengan alasan
+  tertulis; `@fastify/otel` memang terpasang tapi tak dikonfigurasi, persis
+  seperti dokumennya menyatakan.
+
+Sisa tiga (`01-gap-analysis`, `02-target-architecture`, `05-rollout-plan`)
+bertanda "Planning only" dan ditulis sebelum Phase 1 dikerjakan; Phase 1 sudah
+selesai dengan audit tersendiri (`PHASE-1-COMPLETION-AUDIT.md`).
 
 ### Blueprint pengiriman — acuan proses, bukan antrean kerja
 
