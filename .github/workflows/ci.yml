@@ -128,10 +128,27 @@ jobs:
         env:
           CI_DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
-      # 4a — SCHEMA-DIFF: buktikan skema `public` CI (dari migrasi bersih) = dev.
-      # Baseline dev (schema-baseline-dev.json) di-generate lokal dari dev (read-only)
-      # & di-commit. Step ini introspeksi project CI lalu diff. INFORMATIONAL
-      # (continue-on-error) — outputnya laporan drift yang dibaca dari run summary.
+      # 4a — SCHEMA-DIFF: bandingkan skema `public` CI (dibangun bersih dari
+      # migrasi) dengan baseline dev. Baseline di-generate lokal dari dev
+      # (read-only) & di-commit.
+      #
+      # ⚠️ CARA MEMBACA: selisih di sini berarti **dev menyimpang dari
+      # migrasi**, bukan CI yang salah. CI dibangun dari nol setiap run, jadi
+      # ia SELALU cerminan migrasi. Dev punya riwayat operasi di luar migrasi
+      # (repo ini baru punya `schema_migrations` belakangan), jadi dialah yang
+      # bisa menyimpan keadaan yang tak berasal dari mana pun.
+      #
+      # Dibuktikan 2026-08-02: dev tak punya satu pun `trg_protect_created_at`
+      # sementara rantai migrasi bersih menghasilkan 10/10 — jadi CI aman,
+      # dev-nya yang tertinggal. Ditutup migrasi 166.
+      #
+      # BASELINE HARUS DIREGENERASI setiap kali skema berubah:
+      #   node scripts/schema-fingerprint.mjs emit > scripts/schema-baseline-dev.json
+      # Sempat basi 6 hari (91 tabel vs 119 di dev) — laporan drift jadi 1.023
+      # baris dan praktis tak terbaca siapa pun.
+      #
+      # INFORMATIONAL (continue-on-error): outputnya laporan yang dibaca dari
+      # run summary, bukan gerbang.
       - name: Schema-diff vs dev baseline (4a)
         continue-on-error: true
         run: node scripts/schema-fingerprint.mjs compare scripts/schema-baseline-dev.json

@@ -1,6 +1,6 @@
 # STATUS — Puraloka Suite (penunjuk satu pintu)
 
-**Diperbarui:** 2026-08-02 (rev-18: penelusuran menyeluruh kelas cacat "fungsi tanpa trigger" — 7 fungsi yatim, 4 menyentuh uang: **Rp 67.600.000** lagi tak pernah memotong saldo. Plus migrasi 100 yang memaku skema sehingga bugfix-nya tak pernah bisa diverifikasi test. Migrasi 164–165 + 11 test + 2 penjaga baru. Sebelumnya rev-17: uji browser, rev-16: alur uang PR #122.)
+**Diperbarui:** 2026-08-02 (rev-19: `created_at` ternyata bisa ditulis ulang di dev — 10/10 tabel kritis termasuk `audit_logs` & `invoices`; migrasi 166 memulihkan. Plus baseline schema basi 6 hari sehingga penjaga drift praktis mati. Koreksi: migrasi 037 TIDAK rusak — CI/produksi aman, dev yang menyimpang. Sebelumnya rev-18: 7 trigger yatim Rp 67,6 juta.)
 — penunjuk TIPIS, bukan duplikasi konten. Update tanggal + baris "Fase aktif" setiap
 kali keadaan berubah; detail selalu di dokumen rujukan.
 
