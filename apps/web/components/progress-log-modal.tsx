@@ -316,7 +316,7 @@ export function ProgressLogModal({
                 <p style={{ fontSize: 12, color: "#94a3b8", margin: "2px 0 0" }}>Catat kegiatan &amp; dokumentasi hari ini</p>
               </div>
             </div>
-            <button aria-label="Tutup dialog progres" onClick={handleClose} style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: "#f8fafc", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#94a3b8", flexShrink: 0 }}>
+            <button aria-label="Tutup dialog progres" onClick={handleClose} style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: "#f8fafc", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)", flexShrink: 0 }}>
               <X size={15} />
             </button>
           </div>

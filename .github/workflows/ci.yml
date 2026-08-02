@@ -245,6 +245,16 @@ jobs:
       - name: Kontras warna (WCAG AA dari token)
         run: node scripts/kontras-ratchet.mjs
 
+      # `kontras-ratchet.mjs` berhenti di token. 394 warna ditulis sebagai hex
+      # langsung di komponen — 302 di antaranya untuk `color`, yaitu TEKS,
+      # persis yang WCAG atur. Penjaga ini menutup celah itu untuk kasus yang
+      # bisa dinilai pasti: `color` dan `background` pada baris yang sama.
+      #
+      # Temuan jalan pertamanya: dua TOMBOL, bukan teks hias — "+ Update"
+      # 3,35:1 dan tombol tutup dialog 2,45:1 (syarat 4,5:1).
+      - name: Kontras warna hex-mentah (pasangan sebaris)
+        run: node scripts/kontras-hex-ratchet.mjs
+
       # ADR-004: UI memutuskan lewat PERMISSION, bukan nama jabatan. Sisi API
       # sudah patuh; sisi web punya 27 pemakaian `role === "admin"` yang sudah
       # MENGGIGIT — role kustom `direktur` punya 7 permission procurement tapi
