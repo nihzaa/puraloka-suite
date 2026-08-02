@@ -62,7 +62,7 @@ const DIR_ROUTES = join(import.meta.dirname, '..', '..')
  * Yang MASIH hutang: akses mentah pada tabel kategori C di rute yang
  * `projectId`-nya sudah diketahui. Itu yang harus terus turun.
  */
-// 468 → 459 → 458 → 426 → 403 → 386 → 380 → 378 → 373 (2026-08-02).
+// 468 → 459 → 458 → 426 → 403 → 386 → 380 → 378 → 373 → 369 (2026-08-02).
 //
 // Gelombang ini: 23 query di empat berkas yang polanya paling seragam —
 // `rab-schedule` (7), `progress` (10), `documents` (5), `rab` (1). Semuanya
@@ -104,7 +104,26 @@ const DIR_ROUTES = join(import.meta.dirname, '..', '..')
 // dengan yang berulang di repo ini: **alat ukur yang baru ditulis harus
 // diverifikasi terhadap kasus yang diketahui benar sebelum angkanya dipercaya**
 // — dan "nol temuan" maupun "banyak temuan" sama-sama bisa palsu.
-const AMBANG_SUPABASE_MENTAH = 373
+//
+// Gelombang keempat (373 → 369): `contracts` (rab_items), `finance` (invoices
+// DP), `kasbons` (mandor_assignments), `procurement` (stock_movements).
+//
+// Satu kandidat DITOLAK oleh tsc, dan itu menyelamatkan perubahan perilaku:
+// `finance.ts` cashflow-transactions punya `projectId` yang OPSIONAL (filter
+// "semua proyek"), sehingga `viaProject` — yang menuntut satu proyek pasti —
+// akan mempersempit hasilnya diam-diam. Saringan tenant-nya memang
+// `.in('project_id', idProyekTx)`, bukan `.eq`. Alasannya ditulis di kodenya.
+//
+// ── Sisa 369: 309 menyentuh tabel kategori C, tapi hanya ~18 yang layak
+//
+// Dipilah 2026-08-02: 128 menyaring lewat DAFTAR id (`.in(...)`) — pola sah
+// untuk rute lintas-proyek yang `viaProject` tak cocok; 159 tak menyaring
+// project_id langsung (join bersarang, resolusi id, agregasi). Sisanya
+// kandidat yang tiap satunya perlu diperiksa gerbangnya sendiri.
+//
+// Jadi angka ini TIDAK akan turun ke nol, dan tak seharusnya: `viaProject`
+// alat untuk "satu proyek yang sudah pasti", bukan pengganti semua akses.
+const AMBANG_SUPABASE_MENTAH = 369
 
 function hitungSupabaseMentah(): { total: number; perFile: Record<string, number> } {
   const perFile: Record<string, number> = {}

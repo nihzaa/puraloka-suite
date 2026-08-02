@@ -120,10 +120,9 @@ export default async function kasbonRoutes(app: FastifyInstance) {
 
     // Validasi mandor hanya bisa kasbon untuk proyek yang dia punya assignment
     if (user.role === 'mandor' && resolvedProjectId && !body.work_scope_id) {
-      const { data: asgn } = await supabase
-        .from('mandor_assignments')
+      const { data: asgn } = await request.db!
+        .viaProject('mandor_assignments', resolvedProjectId)
         .select('id')
-        .eq('project_id', resolvedProjectId)
         .eq('mandor_id', user.id)
         .eq('status', 'active')
         .maybeSingle()

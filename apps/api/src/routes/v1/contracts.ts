@@ -250,10 +250,9 @@ export default async function contractRoutes(app: FastifyInstance) {
           `)
           .eq('id', projectId)
           .single(),
-        supabase
-          .from('rab_items')
+        request.db!
+          .viaProject('rab_items', projectId)
           .select('id, name, sort_order')
-          .eq('project_id', projectId)
           .eq('level', 'category')
           .order('sort_order', { ascending: true }),
       ])

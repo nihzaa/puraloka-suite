@@ -1444,10 +1444,9 @@ export default async function procurementRoutes(app: FastifyInstance) {
     if (!(await request.db!.projectIds()).includes(project_id)) {
       return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
     }
-    const { data, error } = await supabase
-      .from('stock_movements')
+    const { data, error } = await request.db!
+      .viaProject('stock_movements', project_id)
       .select('id, movement_type, qty, qty_before, qty_after, reference_type, reference_id, notes, created_at, material:materials(id, name, unit), created_by:users(id, name)')
-      .eq('project_id', project_id)
       .order('created_at', { ascending: false })
       .limit(Number(limit ?? 200))
     if (error) return reply.status(500).send({ error: error.message })
