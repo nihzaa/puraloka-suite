@@ -90,8 +90,25 @@ beforeAll(async () => {
 
   // Tenant B = tenant kedua BETULAN, berisi data lengkap. Inilah inti P2:
   // isolasi dibuktikan sebelum pelanggan kedua nyata datang.
+  // `owner_user_id` WAJIB diisi, bukan opsional.
+  //
+  // Berkas ini men-COMMIT company kedua (tak bisa dibungkus transaksi: query
+  // utamanya lewat `app.inject` yang memakai koneksi terpisah). Tanpa pemilik,
+  // ia menjadi "akar grup yatim" yang terlihat oleh SELURUH test lain di
+  // schema `public` — dan `t9-kelola-badan-usaha` punya asersi global
+  // "setiap akar grup punya pemilik" yang langsung merah karenanya.
+  //
+  // Ditemukan 2026-08-03 saat sharding: keduanya kebetulan di shard 3, jadi
+  // t9 melihat company milik berkas ini di tengah jalan. Berurutan tak pernah
+  // ketahuan karena `bersihkan()` sudah menghapusnya sebelum t9 berjalan.
   const { rows: cb } = await c.query(
-    `INSERT INTO companies (code, name) VALUES ('iso-test-b', '${TAG} Tenant B') RETURNING id`)
+    `INSERT INTO companies (code, name, owner_user_id, created_by)
+     VALUES ('iso-test-b', '${TAG} Tenant B',
+             (SELECT u.id FROM users u JOIN roles r ON r.id=u.role_id
+               WHERE r.name='admin' AND u.is_active ORDER BY u.created_at LIMIT 1),
+             (SELECT u.id FROM users u JOIN roles r ON r.id=u.role_id
+               WHERE r.name='admin' AND u.is_active ORDER BY u.created_at LIMIT 1))
+     RETURNING id`)
   companyB = cb[0].id
 
   const { rows: ua } = await c.query(
