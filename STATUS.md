@@ -1003,6 +1003,27 @@ Selesai sebagai fase kerja, hidup sebagai basis bukti.
 
 ## Keputusan terbuka menunggu Nizar
 
+> **⚠️ §D, §E, §F DITUTUP 2026-08-02 — seluruh isi dev adalah DATA DUMMY.**
+>
+> Founder mengonfirmasi: *"untuk semua data yg ada di dalam itu hanya data
+> dummy, bukan data beneran dari operasional."*
+>
+> Jadi ketiga anomali saldo di bawah **bukan keputusan tertunda** dan tak perlu
+> dicocokkan ke rekening bank mana pun:
+>
+> - **§D** Rp 627.075.000 kurang dicatat masuk (5 pembayaran)
+> - **§F** Rp 67.600.000 kurang dicatat keluar (16 kasbon + 3 progress payment)
+> - **§E** tiga kas kecil bersaldo negatif tanpa sumber
+>
+> **Yang tetap berlaku:** trigger-nya sudah dipasang (migrasi 161/162/164), jadi
+> transaksi BERIKUTNYA — termasuk data operasional pertama nanti — sudah benar.
+> Ketiga anomali itu hanya residu seed lama.
+>
+> **Yang harus dilakukan sebelum operasional:** bersihkan atau seed ulang data
+> dev, jangan membawa saldo-saldo ini ke produksi. Ditulis di sini supaya tak
+> ada yang mengira angka-angka itu bermakna.
+
+
 **E. 🟡 Tiga kas kecil bersaldo NEGATIF di dev — data, bukan cacat kode (2026-08-02)**
 
 | Akun | Saldo awal (seed) | Saldo sekarang |
