@@ -932,7 +932,7 @@ function ProjectDetailContent() {
                         {canEditProject && (
                           <button onClick={() => setShowAbsorptionModal(true)} style={{
                             padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 700,
-                            background: "#FFF7ED", color: "#EA580C", border: "1px solid #FED7AA", cursor: "pointer",
+                            background: "#FFF7ED", color: "var(--warning)", border: "1px solid #FED7AA", cursor: "pointer",
                           }}>+ Update</button>
                         )}
                       </div>
