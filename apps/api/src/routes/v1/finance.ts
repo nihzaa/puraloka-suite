@@ -1149,7 +1149,10 @@ export default async function financeRoutes(app: FastifyInstance) {
       }
     }
 
-    // Insert payment (trigger akan update saldo kas otomatis)
+    // Insert payment. Saldo `cash_accounts` ditambah oleh trigger DB
+    // `trg_update_cash_balance_on_payment` (migrasi 019, dipasang ulang di 162 —
+    // fungsinya ada tapi trigger-nya hilang, sehingga Rp 627 juta pembayaran tak
+    // pernah masuk saldo). Dijaga `__tests__/alur-uang-pembayaran.test.ts`.
     const { data: payment, error: payErr } = await supabase
       .from('payments')
       .insert({
