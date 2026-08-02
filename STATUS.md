@@ -1,6 +1,6 @@
 # STATUS — Puraloka Suite (penunjuk satu pintu)
 
-**Diperbarui:** 2026-08-02 (rev-17: uji browser pertama — `middleware.ts` yang selama ini nol test menyimpan 2 cacat: izin bocor lewat prefiks mirip & loop redirect tanpa akhir untuk PM. 14 test browser + job CI baru. Sebelumnya rev-16: alur uang, migrasi 161–163, PR #122 merged.)
+**Diperbarui:** 2026-08-02 (rev-18: penelusuran menyeluruh kelas cacat "fungsi tanpa trigger" — 7 fungsi yatim, 4 menyentuh uang: **Rp 67.600.000** lagi tak pernah memotong saldo. Plus migrasi 100 yang memaku skema sehingga bugfix-nya tak pernah bisa diverifikasi test. Migrasi 164–165 + 11 test + 2 penjaga baru. Sebelumnya rev-17: uji browser, rev-16: alur uang PR #122.)
 — penunjuk TIPIS, bukan duplikasi konten. Update tanggal + baris "Fase aktif" setiap
 kali keadaan berubah; detail selalu di dokumen rujukan.
 
@@ -1033,6 +1033,31 @@ sebagai data uji yang diketahui tak konsisten.
 keputusan: sebagian bisnis memang mengizinkan kas menalangi sementara, dan
 constraint yang salah arah akan menggagalkan pencatatan transaksi yang uangnya
 sungguh terjadi.
+
+**F. 🔴 Rp 67.600.000 lagi tak pernah memotong saldo (2026-08-02)**
+
+Kelas cacat yang sama dengan §D, ditemukan lewat penelusuran menyeluruh: **7
+fungsi `RETURNS trigger` di dev tak dipakai trigger mana pun**, 4 menyentuh uang.
+
+| Jalur | Jumlah | Nilai |
+|---|---|---|
+| Kasbon disetujui | 16 baris | Rp 46.600.000 |
+| Pembayaran progress | 3 baris | Rp 21.000.000 |
+| Settlement borongan | 0 baris | — |
+
+Uang ini **sudah diterima mandor di lapangan**; saldo kas di aplikasi masih
+menampilkannya sebagai uang yang ada. Trigger sudah dipasang (migrasi 164), jadi
+transaksi berikutnya benar.
+
+⚠️ **Ini juga menjelaskan §E.** Tiga kas kecil bersaldo negatif tak bisa
+dijelaskan transaksi mana pun — dan sekarang jelas kenapa: arah kesalahannya
+berlawanan. Saldo seharusnya lebih KECIL lagi, bukan lebih besar. Dua anomali
+berlawanan arah pada data yang sama.
+
+**Yang dibutuhkan:** rekonsiliasi menyeluruh saldo kas dev ke uang sungguhan —
+§D (Rp 627 juta kurang dicatat masuk), §F (Rp 67,6 juta kurang dicatat keluar),
+dan §E (saldo negatif tanpa sumber). Ketiganya bagian dari satu pekerjaan yang
+sama, dan lebih baik dikerjakan sekali daripada tiga kali.
 
 **D. 🔴 Koreksi saldo kas Rp 627.075.000 — BUTUH KEPUTUSAN AKUNTANSI (2026-08-02)**
 
