@@ -411,7 +411,7 @@ Penjaganya: `apps/api/scripts/audit-docs-vs-roadmap.mjs`.
 
 | Dokumen | Isi | Gelombang |
 |---|---|---|
-| `CECEP/AHSP-EDITION-BUILDER-DESIGN.md` | Sumbu EDISI + builder + alur item-baru. Founder menandai **§3.1/3.2 prioritas "sebelum seed"** — mengubah skema saat KB masih kosong hampir gratis; sesudah terisi jadi mahal. §3.5 (laporan perbandingan antar-edisi) sudah ⛔ dicoret owner. | 2 |
+| `CECEP/AHSP-EDITION-BUILDER-DESIGN.md` | ⚠️ **Sebagian besar SUDAH DIBANGUN** — diverifikasi ke dev 2026-08-02: tabel `ahsp_editions` ada (SE-47-2026, `source_sha256` terisi), `assemblies.edition_id` + `derived_from_edition_id` ada, **2.620 dari 3.043** analisa sudah ber-edisi. Jadi §3.1–3.4 (sumbu EDISI) selesai. Gerbang founder "sebelum seed" **sudah lewat** — KB kini berisi 2.830 resource + 3.025 harga. Yang tersisa: builder UI & alur item-baru (§3.5 laporan antar-edisi ⛔ dicoret owner). | 2 |
 | `05-design-system-and-ui-ux-architecture.md` | Living document — arah UI/UX. Warm Clay sudah jadi visual dasar; sisanya belum diturunkan jadi pekerjaan. | 2 |
 | `06-agentic-ai-and-automation-architecture.md` | Katalog 140 automation. **0 "Now" by design** — gerbangnya Gelombang 4 + akun WhatsApp Business API (berbayar, verifikasi Meta). | 4 |
 | `plans/2026-07-15-warm-clay-design-system.md` | Rencana design system Warm Clay. Sebagian sudah hidup (token, kontras WCAG); sisanya belum ditelusuri. | 2 |
