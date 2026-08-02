@@ -59,13 +59,21 @@ items:
     judul: "Racun konteks agent: tulis ulang CLAUDE.md + buang .worktrees + penjaga CI"
     blokir_oleh: [F0-2]
     kriteria_selesai:
-      - "CLAUDE.md ditulis ulang dari nol, nol angka yang bisa basi"
-      - ".worktrees masuk .gitignore + vitest exclude + tsconfig exclude"
-      - "penjaga CI docs-freshness"
-      - "penjaga CI no-stale-docs-path"
-    cara_verifikasi: "penjaga CI hijau; grep angka di CLAUDE.md nihil"
+      - "SUDAH: CLAUDE.md ditulis ulang dari nol (897 -> 200 baris), nol angka yang bisa basi"
+      - "SUDAH: .worktrees dikeluarkan dari pencarian via .claudeignore (sudah di .gitignore sejak lama; vitest sudah scoped ke apps/api/src sehingga tak perlu exclude tambahan)"
+      - "SUDAH: penjaga CI docs-freshness — diuji dua arah (bersih=0, angka busuk=1)"
+      - "SUDAH: penjaga CI no-stale-docs-path — 247 berkas .md, nol duplikat"
+      - "SEBAGIAN: CI penuh belum berjalan di GitHub — lihat catatan"
+    cara_verifikasi: "13 penjaga exit 0 + lint/typecheck/build kedua job exit 0"
     bobot: M
     status: wip
+    catatan: >
+      CI GitHub hanya ter-trigger pada PR ke `main` (ci.yml `on.pull_request.branches: [main]`).
+      PR #134 menargetkan `fix/search-proyek-gagal-senyap` (PR #133) karena seri GL 167-174
+      belum ter-merge, sehingga TIDAK ADA check yang berjalan. Diverifikasi LOKAL sebagai
+      gantinya: 13 penjaga exit 0, api lint(0 error)/tsc/build exit 0, web lint(0 error)/tsc
+      exit 0, suite penuh 3 run berturut hijau. Verifikasi CI sesungguhnya baru terjadi saat
+      rantai PR ini di-merge ke main — tidak diklaim hijau sebelum itu.
 
   - id: F0-4
     fase: 0

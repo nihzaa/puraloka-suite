@@ -169,6 +169,23 @@ Alasan nomor ganda berbahaya bukan estetika: `ci-project-setup` mencatat keduany
 sebagai satu versi, sehingga yang kedua **dilewati senyap selamanya** — mekanisme
 yang sama persis dengan cacat P0 047↔167.
 
+### Temuan proses: CI tidak berjalan untuk PR bertumpuk
+
+PR #134 dibuat menargetkan `fix/search-proyek-gagal-senyap` (PR #133), bukan `main`,
+karena seri GL 167–174 belum ter-merge. Akibatnya **nol check berjalan**:
+`ci.yml` hanya ter-trigger pada `pull_request.branches: [main]`.
+
+Ini konsekuensi nyata dari R-003 yang tak saya antisipasi. Selama rantai PR belum
+sampai ke `main`, **CI tidak memverifikasi apa pun** — dan mengklaim "CI hijau"
+dalam kondisi itu akan jadi persis jenis klaim tak berdasar yang CHARTER §7 larang.
+
+Sebagai ganti, seluruh langkah CI dijalankan **lokal**, dan hasilnya ditempel:
+13 penjaga exit 0 · api `lint:ratchet` 0 error / `tsc` exit 0 / `build` exit 0 ·
+web `lint:ratchet` 0 error / `tsc` exit 0 · suite penuh 3 run berturut hijau.
+
+`F0-3` karenanya tetap **wip**, bukan done: kriteria "penjaga CI hijau" baru
+benar-benar terpenuhi saat rantai PR di-merge ke `main`.
+
 ### Status gerbang Fase 0 — BELUM hijau penuh (dinyatakan jujur)
 
 Selesai: F0-1, F0-2, F0-5, F0-6, F0-7, F0-9.
