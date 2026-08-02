@@ -57,25 +57,27 @@ lingkungan kosong, bukan hanya di dev.
 
 Dua kriteria yang tersisa ditutup, satu dikerjakan dan satu **sengaja ditolak**.
 
-**Rollback policy — dikerjakan.**  (6 test). Ini
+**Rollback policy — dikerjakan.** `t5a-policy-rollback.test.ts` (6 test). Ini
 tipe migrasi terakhir yang belum punya jaring: tiga lainnya (tambah kolom,
-backfill, NOT NULL) sudah terjaga . Migrasi
-131 menjanjikan di komentarnya *"Rollback granular & instan: DROP POLICY"* —
-janji yang tak pernah diuji siapa pun, padahal Fase 2 akan menambah policy ke
-~80 tabel.
+backfill, NOT NULL) sudah terjaga `multitenant-t3-rollback.test.ts`. Migrasi
+131 menjanjikan di komentarnya *"Rollback granular & instan: DROP POLICY
+tenant_isolation ON <tabel>"* — janji yang tak pernah diuji siapa pun, padahal
+Fase 2 akan menambah policy tenant ke ~80 tabel. Janji rollback yang tak diuji
+baru ketahuan salah pada saat ia paling dibutuhkan.
 
 Yang dibuktikan: katalog kembali persis · policy PERMISSIVE existing **tidak**
 ikut terhapus (inti komposisi ADR-011 §7) · tabel **hidup kembali**, bukan mati
 total seperti peringatan T1-F3 di migrasi 131 · idempoten · bisa dipasang ulang.
 
-**Dan test-nya sendiri di-mutation-test**: saat  sengaja dilewati,
+**Dan test-nya sendiri di-mutation-test**: saat `DROP POLICY` sengaja dilewati,
 test GAGAL (1 failed / 5 passed). Jadi ia benar-benar bisa gagal — bukan hijau
-kosong. Pelajaran dari repo ini sendiri ().
+kosong. Disiplin itu datang dari repo ini sendiri (`tak-ada-test-nol.test.ts`).
 
 **Isolasi schema per-berkas — DITOLAK, dan ini keputusan sadar.** Kriteria awal
-menuntutnya, tapi setelah diukur arahnya keliru:  membuat
-berkas berjalan sequential, dan  SUDAH memasang + 3 retry + pesan diagnostik. Diuji stres (5 berkas ber-, 2
-putaran): 45/45 lulus dua-duanya. Menambah schema unik per-berkas berarti 129
+menuntutnya, tapi setelah diukur arahnya keliru: `fileParallelism: false` membuat
+berkas berjalan sequential, dan `test-db.ts` SUDAH memasang `lock_timeout 10s`
++ 3 retry + pesan diagnostik eksplisit. Diuji stres (5 berkas ber-`resetTestSchema`,
+2 putaran): 45/45 lulus dua-duanya. Menambah schema unik per-berkas berarti 129
 CREATE/DROP SCHEMA per run — memperlambat suite demi masalah yang mitigasinya
 sudah terbukti bekerja. Dicatat supaya kalau flake muncul lagi, catatan ini yang
 ditinjau lebih dulu, bukan diputuskan dari nol.
