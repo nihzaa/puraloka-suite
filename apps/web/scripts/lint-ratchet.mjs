@@ -133,7 +133,7 @@ const AMBANG = {
   //                               halaman settlement borongan memang belum ada.
   //
   // 11 sisanya menunggu penilaian serupa, bukan penyapuan.
-  '@typescript-eslint/no-unused-vars': 11,
+  '@typescript-eslint/no-unused-vars': 10,   // 11 -> 10: `localIdx` di photo-gallery dihapus (2026-08-02)
   'react-hooks/exhaustive-deps': 31,
   'react/no-unescaped-entities': 28,
   'react-hooks/static-components': 14,

@@ -620,10 +620,9 @@ export default async function financeRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: 'Tidak bisa memotong uang muka pada invoice DP (termin on_sign) itu sendiri' })
       }
 
-      const { data: projInvoices, error: dpErr } = await supabase
-        .from('invoices')
+      const { data: projInvoices, error: dpErr } = await request.db!
+        .viaProject('invoices', body.project_id)
         .select('amount_paid, dp_deduction_amount, status, termin_schedules(trigger_type)')
-        .eq('project_id', body.project_id)
         .neq('status', 'cancelled')
       if (dpErr) return reply.status(500).send({ error: dpErr.message })
 
@@ -1370,6 +1369,9 @@ export default async function financeRoutes(app: FastifyInstance) {
 
     // 2. project_expenses (keluar)
     if (typeFilter.includes('expense')) {
+      // TIDAK viaProject: `projectId` OPSIONAL di sini (filter "semua proyek").
+      // Saringan tenant-nya `.in('project_id', idProyekTx)` di bawah — tsc yang
+      // menangkap ini saat viaProject dicoba, bukan review.
       let q2 = supabase
         .from('project_expenses')
         .select(`id, description, total_amount, expense_date, expense_source, vendor_name, project_id,
