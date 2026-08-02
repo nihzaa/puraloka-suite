@@ -1626,8 +1626,8 @@ export default async function financeRoutes(app: FastifyInstance) {
       }
     }
 
-    const { data, error } = await supabase
-      .from('project_expenses')
+    const { data, error } = await request.db!
+      .viaProject('project_expenses', project_id)
       .select(`
         id, description, expense_date, qty, unit, unit_price,
         total_amount, billed_amount, vendor_name, notes, receipt_url,
@@ -1674,8 +1674,8 @@ export default async function financeRoutes(app: FastifyInstance) {
     }
 
     // Total pengeluaran approved
-    const { data: expenseSum } = await supabase
-      .from('project_expenses')
+    const { data: expenseSum } = await request.db!
+      .viaProject('project_expenses', project_id)
       .select('total_amount')
       .eq('project_id', project_id)
       .eq('status', 'approved')
@@ -1685,8 +1685,8 @@ export default async function financeRoutes(app: FastifyInstance) {
     const suggestedFee = parseFloat((totalExpense * commissionPct / 100).toFixed(2))
 
     // Total fee komisi yang sudah pernah ditagih (invoice commission_fee yang tidak cancelled)
-    const { data: prevFeeInvoices } = await supabase
-      .from('invoices')
+    const { data: prevFeeInvoices } = await request.db!
+      .viaProject('invoices', project_id)
       .select('base_amount')
       .eq('project_id', project_id)
       .eq('invoice_type', 'commission_fee')

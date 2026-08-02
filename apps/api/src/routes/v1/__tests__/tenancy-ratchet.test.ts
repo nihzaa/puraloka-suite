@@ -62,7 +62,7 @@ const DIR_ROUTES = join(import.meta.dirname, '..', '..')
  * Yang MASIH hutang: akses mentah pada tabel kategori C di rute yang
  * `projectId`-nya sudah diketahui. Itu yang harus terus turun.
  */
-// 468 → 459 → 458 → 426 → 403 → 386 → 380 → 378 (2026-08-02).
+// 468 → 459 → 458 → 426 → 403 → 386 → 380 → 378 → 373 (2026-08-02).
 //
 // Gelombang ini: 23 query di empat berkas yang polanya paling seragam —
 // `rab-schedule` (7), `progress` (10), `documents` (5), `rab` (1). Semuanya
@@ -78,7 +78,33 @@ const DIR_ROUTES = join(import.meta.dirname, '..', '..')
 // menyentuh UANG, jadi tiap lokasi diperiksa gerbangnya satu per satu alih-alih
 // disapu — beberapa query di `cash` MENDAHULUI gerbangnya (resolusi id dulu,
 // validasi kemudian), dan itu pola sah yang `viaProject` tak cocok.
-const AMBANG_SUPABASE_MENTAH = 378
+//
+// Gelombang ketiga (378 → 373): 5 query yang penyaringnya sudah
+// `.eq('project_id', <var>)` — `viaProject` menyatakan hal yang sama tanpa bisa
+// lupa. `finance` (3: billable-expenses, expenseSum, prevFeeInvoices),
+// `documents` (1), `rab` (1, bulk komponen biaya).
+//
+// ── ⚠️ Kekhawatiran yang TIDAK terbukti, dicatat supaya tak diulang
+//
+// Penelusuran gelombang ini sempat menyimpulkan 22 query "menyaring project_id
+// tapi tak memverifikasi tenant". Itu SALAH — keduapuluh-duanya sudah
+// bergerbang, lewat EMPAT bentuk berbeda yang alat deteksi saya lewatkan satu
+// per satu:
+//
+//   1. `proyekMilikTenant(request, id)` eksplisit
+//   2. `request.db!.from('projects')` — ANCHOR menyaring `company_id` sendiri,
+//      lalu 404 kalau tak ketemu (projects/:id, contracts)
+//   3. `await request.db!.projectIds()` + `.in('project_id', idProyek)`
+//      (cash summary, procurement stocks)
+//   4. `idProyek === null → 404` sebelum query (reports financial/expenses,
+//      finance cashflow-transactions)
+//
+// Empat kali berturut-turut angkanya turun (22 → 16 → 10 → 7 → 0) karena
+// deteksinya yang membaik, bukan kodenya yang berubah. Pelajarannya sama
+// dengan yang berulang di repo ini: **alat ukur yang baru ditulis harus
+// diverifikasi terhadap kasus yang diketahui benar sebelum angkanya dipercaya**
+// — dan "nol temuan" maupun "banyak temuan" sama-sama bisa palsu.
+const AMBANG_SUPABASE_MENTAH = 373
 
 function hitungSupabaseMentah(): { total: number; perFile: Record<string, number> } {
   const perFile: Record<string, number> = {}
