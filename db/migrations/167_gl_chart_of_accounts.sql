@@ -196,18 +196,21 @@ ALTER TABLE journal_entry_lines ENABLE ROW LEVEL SECURITY;
 
 -- Policy permissive dasar: service_role (API) bypass RLS; yang dijaga di sini
 -- akses non-service-role. Pola & nama mengikuti tabel tenant lain.
-DROP POLICY IF EXISTS accounts_tenant_isolation ON accounts;
-CREATE POLICY accounts_tenant_isolation ON accounts
+-- Nama `tenant_isolation` POLOS — konvensi repo ini. Nama tabel sudah ada di
+-- kolom `tablename`, dan `t7-exit-criteria-l2.test.ts` mencocokkannya persis:
+-- nama yang menyimpang membuat tabel terlihat TAK PUNYA policy sama sekali.
+DROP POLICY IF EXISTS tenant_isolation ON accounts;
+CREATE POLICY tenant_isolation ON accounts
   FOR ALL USING (company_id = (SELECT auth_company_id()));
 
-DROP POLICY IF EXISTS journal_entries_tenant_isolation ON journal_entries;
-CREATE POLICY journal_entries_tenant_isolation ON journal_entries
+DROP POLICY IF EXISTS tenant_isolation ON journal_entries;
+CREATE POLICY tenant_isolation ON journal_entries
   FOR ALL USING (company_id = (SELECT auth_company_id()));
 
 -- Baris jurnal mewarisi tenancy dari kepalanya — tak punya `company_id`
 -- sendiri, jadi tak ada dua sumber kebenaran yang bisa berselisih.
-DROP POLICY IF EXISTS journal_entry_lines_tenant_isolation ON journal_entry_lines;
-CREATE POLICY journal_entry_lines_tenant_isolation ON journal_entry_lines
+DROP POLICY IF EXISTS tenant_isolation ON journal_entry_lines;
+CREATE POLICY tenant_isolation ON journal_entry_lines
   FOR ALL USING (
     EXISTS (
       SELECT 1 FROM journal_entries je
