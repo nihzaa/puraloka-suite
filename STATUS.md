@@ -1001,6 +1001,39 @@ Selesai sebagai fase kerja, hidup sebagai basis bukti.
 
 ## Keputusan terbuka menunggu Nizar
 
+**E. 🟡 Tiga kas kecil bersaldo NEGATIF di dev — data, bukan cacat kode (2026-08-02)**
+
+| Akun | Saldo awal (seed) | Saldo sekarang |
+|---|---|---|
+| Kas Kecil PM Rizky — P01 | Rp 8.500.000 | **−Rp 213.695.000** |
+| Kas Kecil Dinda — P11 | Rp 15.000.000 | **−Rp 49.700.000** |
+| Kas Kecil Ahmad — P06 | Rp 12.000.000 | **−Rp 11.630.000** |
+
+Ditemukan saat verifikasi akhir alur uang. Ketiganya **hanya menerima** transfer
+(masuk Rp 25–35 juta, keluar nol) dan `project_expenses` nol baris — jadi tak
+ada transaksi yang ada sekarang yang bisa menjelaskannya.
+
+**Sudah dipastikan BUKAN cacat kode aktif:**
+- `audit_logs` untuk ketiga akun: **nol jejak** — saldo tak pernah diubah lewat
+  jalur yang teraudit.
+- Kode aplikasi **memang** memeriksa saldo cukup di 6 tempat (`cash.ts` ×5,
+  `kasbons.ts` ×1), jadi jalur normal tak bisa membuat saldo negatif.
+- Kasbon approved di akun terbesar hanya Rp 23,3 juta — seharusnya menyisakan
+  **+Rp 11,7 juta**, bukan −Rp 213 juta. Selisihnya Rp 225 juta tak punya sumber.
+
+Kesimpulan: residu penulisan langsung (skrip/seed lama) di database dev, bukan
+perilaku yang bisa diproduksi ulang lewat aplikasi.
+
+**Kenapa tetap dicatat:** angka yang salah di dev akan menyesatkan setiap
+verifikasi berikutnya — persis seperti yang hampir terjadi hari ini. Yang
+dibutuhkan: keputusan apakah saldo dev di-reset ke nilai seed, atau dibiarkan
+sebagai data uji yang diketahui tak konsisten.
+
+**Tidak ada CHECK `balance >= 0` di DB** — sengaja tidak ditambahkan tanpa
+keputusan: sebagian bisnis memang mengizinkan kas menalangi sementara, dan
+constraint yang salah arah akan menggagalkan pencatatan transaksi yang uangnya
+sungguh terjadi.
+
 **D. 🔴 Koreksi saldo kas Rp 627.075.000 — BUTUH KEPUTUSAN AKUNTANSI (2026-08-02)**
 
 Trigger `trg_update_cash_balance_on_payment` tak pernah terpasang di dev, jadi

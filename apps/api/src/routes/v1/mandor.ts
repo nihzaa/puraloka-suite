@@ -1370,7 +1370,13 @@ export default async function mandorRoutes(app: FastifyInstance) {
         .select('net_amount')
         .eq('id', id)
         .single()
-      if (rpt && Number(acct.balance) < Number(rpt.net_amount)) {
+      // Kalau baris sumbernya tak ketemu, `rpt &&` membuat pemeriksaan saldo
+      // DILEWATI dan persetujuan tetap jalan — memotong saldo sejumlah yang
+      // tak diketahui. Tolak lebih dulu.
+      if (!rpt) {
+        return reply.status(404).send({ error: 'Laporan upah tidak ditemukan' })
+      }
+      if (Number(acct.balance) < Number(rpt.net_amount)) {
         return reply.status(400).send({
           error: `Saldo ${acct.name} tidak mencukupi. Saldo: Rp ${Number(acct.balance).toLocaleString('id-ID')}, dibutuhkan: Rp ${Number(rpt.net_amount).toLocaleString('id-ID')}`
         })

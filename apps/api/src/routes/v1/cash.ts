@@ -239,7 +239,13 @@ export default async function cashRoutes(app: FastifyInstance) {
         .eq('id', body.from_account_id)
         .single()
 
-      if (fromAcc && Number(fromAcc.balance) < body.amount) {
+      // Akun WAJIB ketemu. `if (fromAcc && …)` melewatkan pemeriksaan diam-diam
+      // saat query gagal atau id-nya salah — transaksi lolos dan saldo bisa
+      // jatuh di bawah nol tanpa satu pun pesan.
+      if (!fromAcc) {
+        return reply.status(404).send({ error: 'Akun kas asal tidak ditemukan' })
+      }
+      if (Number(fromAcc.balance) < body.amount) {
         return reply.status(400).send({
           error: `Saldo ${fromAcc.name} tidak mencukupi (saldo: Rp ${Number(fromAcc.balance).toLocaleString('id-ID')}, dibutuhkan: Rp ${body.amount.toLocaleString('id-ID')})`
         })
@@ -294,7 +300,13 @@ export default async function cashRoutes(app: FastifyInstance) {
       .eq('id', transfer.from_account_id)
       .single()
 
-    if (fromAcc && Number(fromAcc.balance) < transfer.amount) {
+    // Akun WAJIB ketemu. `if (fromAcc && …)` melewatkan pemeriksaan diam-diam
+    // saat query gagal atau id-nya salah — transaksi lolos dan saldo bisa
+    // jatuh di bawah nol tanpa satu pun pesan.
+    if (!fromAcc) {
+      return reply.status(404).send({ error: 'Akun kas asal tidak ditemukan' })
+    }
+    if (Number(fromAcc.balance) < transfer.amount) {
       return reply.status(400).send({
         error: `Saldo ${fromAcc.name} tidak mencukupi untuk konfirmasi transfer ini`
       })
@@ -465,7 +477,13 @@ export default async function cashRoutes(app: FastifyInstance) {
         .eq('id', petty_cash_id)
         .single()
 
-      if (acc && Number(acc.balance) < total) {
+      // Akun WAJIB ketemu. `if (acc && …)` melewatkan pemeriksaan diam-diam
+      // saat query gagal atau id-nya salah — transaksi lolos dan saldo bisa
+      // jatuh di bawah nol tanpa satu pun pesan.
+      if (!acc) {
+        return reply.status(404).send({ error: 'Akun kas kecil tidak ditemukan' })
+      }
+      if (Number(acc.balance) < total) {
         return reply.status(400).send({
           error: `Saldo kas kecil (${acc.name}) tidak mencukupi. Saldo: Rp ${Number(acc.balance).toLocaleString('id-ID')}, dibutuhkan: Rp ${total.toLocaleString('id-ID')}`
         })
@@ -597,7 +615,10 @@ export default async function cashRoutes(app: FastifyInstance) {
         .eq('id', expense.petty_cash_id)
         .single()
 
-      if (acc && Number(acc.balance) < Number(expense.total_amount)) {
+      if (!acc) {
+        return reply.status(404).send({ error: 'Akun kas sumber pengeluaran tidak ditemukan' })
+      }
+      if (Number(acc.balance) < Number(expense.total_amount)) {
         return reply.status(400).send({
           error: `Saldo kas kecil tidak mencukupi untuk approve pengeluaran ini`
         })
@@ -612,7 +633,10 @@ export default async function cashRoutes(app: FastifyInstance) {
         .eq('id', expense.main_cash_id)
         .single()
 
-      if (acc && Number(acc.balance) < Number(expense.total_amount)) {
+      if (!acc) {
+        return reply.status(404).send({ error: 'Akun kas sumber pengeluaran tidak ditemukan' })
+      }
+      if (Number(acc.balance) < Number(expense.total_amount)) {
         return reply.status(400).send({
           error: `Saldo kas utama (${acc.name}) tidak mencukupi untuk approve pengeluaran ini`
         })
