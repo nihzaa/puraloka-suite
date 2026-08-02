@@ -1,6 +1,5 @@
 import type { FastifyInstance } from 'fastify'
 import PDFDocument from 'pdfkit'
-import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { terbilang, terbilangHari } from '../../utils/terbilang.js'
 
