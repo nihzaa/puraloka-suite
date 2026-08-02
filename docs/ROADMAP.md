@@ -75,18 +75,19 @@ memilih pondasi lebih dulu tidak mengorbankan apa pun.
 
 ### Penyebut yang jujur
 
-Diukur dari `ERP-KONTRAKTOR-TAKSONOMI-MENU.md` (2026-08-01), **191 sub-menu**
-terverifikasi ke kode:
+Diukur dari `ERP-KONTRAKTOR-TAKSONOMI-MENU.md`, **256 baris menu** terverifikasi
+ke kode (angka lama "191" menghitung sebagian tabel saja; diperbarui 2026-08-02
+sesudah 12 status basi dikoreksi — lihat §"SELURUH SUB-MENU YANG BELUM TUNTAS"):
 
 | Status | Jumlah | Arti |
 |---|---:|---|
-| ✅ selesai | 62 | hidup end-to-end |
-| 🟡 sebagian | 47 | ada, belum lengkap |
-| 🔴 belum | 71 | belum dibangun |
-| 🔵 belum dibangun | 5 | Capability Tier-2 sisa |
-| ⛔ dicoret | 6 | keputusan owner |
+| ✅ selesai | 99 | hidup end-to-end |
+| 🟡 sebagian | 63 | ada, belum lengkap |
+| 🔴 belum | 77 | belum dibangun |
+| 🔵 belum dibangun | 9 | Capability Tier-2 sisa |
+| ⛔ dicoret | 8 | keputusan owner |
 
-**32% selesai · 25% sebagian · 40% belum.** Angka "71%" yang pernah tertulis di
+**39% selesai · 25% sebagian · 30% belum.** Angka "71%" yang pernah tertulis di
 dokumen ini menghitung penyebut yang salah — hanya item ROADMAP yang sudah
 terdaftar, bukan seluruh visi.
 
@@ -382,6 +383,205 @@ yang ada (masing-masing punya header sendiri). Menyimpannya berarti melanggar
 "Saya yakin di Excel ada isinya" — dan memang ada, tiga kali, dengan tiga sebab
 berbeda. Audit kode tak akan pernah menemukan itu; hanya orang yang tahu
 datanya yang bisa.
+
+---
+
+
+## 📋 SELURUH SUB-MENU YANG BELUM TUNTAS — dari taksonomi, bukan ringkasan
+
+> **Ditambahkan 2026-08-02 menjawab pertanyaan founder: "apakah seluruh menu
+> di taksonomi sudah masuk roadmap?" Jawabannya waktu itu TIDAK — 73 dari 78
+> sub-menu 🔴 tak tercatat di mana pun.**
+>
+> Gelombang 2–4 sebelumnya hanya berupa nama kantong ("QA/QC formal (7
+> sub-menu)") tanpa satu pun item. Pembacanya tak bisa tahu apa isinya — dan
+> itu persis kesalahan yang header dokumen ini sendiri peringatkan.
+>
+> Status di sini **disalin dari taksonomi SESUDAH taksonomi itu diverifikasi
+> ke kode** (2026-08-02). Dua belas sub-menu ternyata bertanda 🔴 padahal
+> sudah hidup — `WIP/PSAK` (`lib/wip-psak.ts` + endpoint yang dipanggil
+> halaman laporan) dan `Earned Value Management` (`meta.evm` di kurva-s
+> dengan CPI/SPI/EAC/TCPI) yang paling menyolok.
+>
+> Alat ukur pertama untuk audit ini DIBUANG: ia melaporkan skor 1.00 untuk
+> "Critical path (CPM)" yang berkas kodenya NOL, karena mencocokkan kata
+> umum seperti "path" dan "analisa". Versi yang dipakai memeriksa bukti yang
+> tak bisa palsu — nama berkas, `CREATE TABLE`, dan path endpoint —
+> dengan peta yang ditulis tangan per-menu.
+
+**Total 116 sub-menu belum tuntas.** 🟡 = ada sebagian · 🔴 = belum dibangun.
+
+Penjaganya: `apps/api/scripts/audit-taksonomi-vs-kode.mjs` — dijalankan manual
+saat meninjau roadmap, bukan gerbang CI. Menilai "menu ini sudah jadi atau
+belum" butuh penilaian manusia; penjaga otomatis yang memaksakan jawaban akan
+menghasilkan angka rapi yang tak berarti.
+
+### 1. MASTER DATA & KONFIGURASI INTI  ·  Gelombang 2
+
+- 🟡 Gudang / lokasi
+- 🟡 Master Karyawan
+- 🟡 Master Resource (tenaga/bahan/alat)
+- 🟡 Master Subkontraktor
+- 🟡 Penomoran dokumen (numbering series)
+- 🟡 Perusahaan / badan hukum (multi-entity)
+- 🟡 Price Book / rate library
+- 🟡 Struktur Cost Code / CBS
+- 🟡 Template dokumen
+- 🟡 WBS template
+- 🔴 Kalender kerja & hari libur
+- 🔴 Prakualifikasi vendor
+
+### 2. CRM & PRA-KONSTRUKSI (Bid Management)  ·  Gelombang 2
+
+- 🟡 Analisa markup, margin, contingency
+- 🟡 Estimating / AHSP
+- 🟡 Generate proposal / dokumen penawaran
+- 🟡 Jaminan penawaran (bid bond)
+- 🟡 Pipeline lead / prospek
+- 🟡 Quantity takeoff / BOQ
+- 🟡 Skenario penawaran (what-if)
+- 🔴 Dokumen prakualifikasi
+- 🔴 Eskalasi harga
+
+### 3. MANAJEMEN KONTRAK  ·  Gelombang 2
+
+- 🟡 Kontrak subkontraktor
+- 🟡 Register kontrak induk
+- 🔴 Claims management
+- 🔴 Register asuransi
+- 🔴 Surat masuk/keluar (correspondence)
+
+### 4. PERENCANAAN & PENJADWALAN  ·  Gelombang 2
+
+- 🟡 Gantt chart
+- 🟡 WBS proyek
+- 🔴 Analisa keterlambatan
+- 🔴 Critical path (CPM)
+- 🔴 Method statement
+- 🔴 Resource histogram / leveling
+
+### 5. BUDGET & COST CONTROL  ·  Gelombang 2
+
+- 🟡 Actual Cost Ledger (ACL)
+- 🟡 Cashflow forecast
+- 🟡 Profitabilitas per proyek / per cost code
+- 🔴 Cost Value Reconciliation (CVR)
+- 🔴 Manajemen contingency
+
+### 6. PROCUREMENT / PENGADAAN  ·  Gelombang 2
+
+- 🟡 Goods Receipt Note (GRN)
+- 🟡 Jadwal pembayaran vendor
+- 🔴 Evaluasi kinerja vendor
+- 🔴 Expediting & logistik
+- 🔴 Kontrak payung / blanket order
+- 🔴 Perbandingan penawaran (bid tabulation)
+- 🔴 RFQ ke vendor
+
+### 7. INVENTORY / GUDANG & MATERIAL  ·  Gelombang 2
+
+- 🟡 Gudang proyek / site store
+- 🟡 Minimum stok & reorder point
+- 🔴 Material milik klien (free issue)
+- 🔴 Tracking waste / susut
+- 🔴 Transfer stok antar proyek
+
+### 8. SUBKONTRAKTOR & MANDOR  ·  Gelombang 2
+
+- 🟡 Back-charge / potongan
+- 🟡 Kontrak subkontrak + BOQ
+- 🟡 Opname / berita acara bersama
+- 🟡 Paket subkontrak
+- 🟡 Progress claim / payment certificate
+- 🟡 Work order ke subkontraktor
+- 🔴 Evaluasi kinerja subkontraktor
+- 🔴 Kepatuhan (izin, asuransi, pajak)
+- 🔴 Retensi subkontrak
+- 🔴 Tender & award subkontraktor
+
+### 9. OPERASI LAPANGAN (Site Management)  ·  Gelombang 2
+
+- 🟡 Laporan harian proyek (DPR)
+- 🟡 Log cuaca
+- 🟡 Log tenaga kerja harian
+- 🟡 Serah terima (PHO/FHO)
+- 🔴 Dokumentasi foto
+- 🔴 Instruksi lapangan
+- 🔴 Izin kerja (work permit)
+- 🔴 Log pemakaian alat
+- 🔴 Non-Conformance Report (NCR)
+
+### 12. HR & PAYROLL  ·  Gelombang 2
+
+- 🟡 Klaim perjalanan & reimburse
+- 🟡 Master karyawan & struktur organisasi
+- 🔴 Absensi & timesheet
+- 🔴 Cuti & izin
+- 🔴 PPh 21
+- 🔴 Payroll staf
+- 🔴 Penilaian kinerja
+- 🔴 Potongan statutori (BPJS)
+- 🔴 Rekrutmen & onboarding
+- 🔴 Sertifikasi & kompetensi
+
+### 13. ALAT BERAT & ASET  ·  Gelombang 2
+
+- 🔴 Biaya operasional per alat (BBM, operator)
+- 🔴 Integrasi penyusutan → GL
+- 🔴 Maintenance terjadwal
+
+### 14. KEUANGAN & AKUNTANSI  ·  Gelombang 2
+
+- 🟡 Accounts Payable
+- 🟡 Accounts Receivable
+- 🟡 Laporan keuangan
+- 🟡 e-Faktur / e-Bupot
+- 🔴 Rekonsiliasi bank
+- 🔴 Tutup buku periode
+
+### 15. PENAGIHAN & PENDAPATAN  ·  Gelombang 2
+
+- 🟡 Follow-up penagihan
+- 🟡 Penagihan pekerjaan tambah
+- 🔴 Interim Payment Certificate (IPC)
+- 🔴 Nota kredit
+
+### 16. MANAJEMEN DOKUMEN  ·  Gelombang 2
+
+- 🟡 Register dokumen + kontrol revisi
+- 🔴 Matriks distribusi
+- 🔴 Notulen rapat
+- 🔴 Register gambar
+- 🔴 Tanda tangan elektronik
+- 🔴 Transmittal
+
+### 18. PELAPORAN & BUSINESS INTELLIGENCE  ·  Gelombang 2
+
+- 🟡 Dashboard per proyek
+- 🟡 KPI: CPI, SPI, margin, DSO, backlog
+- 🔴 Distribusi laporan terjadwal
+- 🔴 Report builder
+
+### 19. ADMINISTRASI SISTEM  ·  Gelombang 2
+
+- 🟡 API & integrasi
+- 🟡 Import/export data
+- 🟡 Konfigurasi penomoran
+- 🔴 Backup & restore
+- 🔴 Multi-tenant
+
+### 20. MOBILE / FIELD APP  ·  Gelombang 3
+
+- 🟡 Approval mobile
+- 🟡 Foto + geotag
+- 🟡 Input laporan harian
+- 🟡 — 🟡 sebagian (ada lapisan, belum utuh)
+- 🔴 Absensi lapangan
+- 🔴 Checklist inspeksi
+- 🔴 Ditambah 4 kelompok yang seluruhnya 🔴 tanpa tabel (§10 QA/QC, §11 HSE, §13 Alat Berat, §17 Risiko)
+- 🔴 Material request
+- 🔴 Mode offline
+- 🔴 — 🔴 belum dimulai
 
 ---
 

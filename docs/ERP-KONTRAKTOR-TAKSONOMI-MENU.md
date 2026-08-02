@@ -38,7 +38,7 @@ lapisan mana yang sudah ada.
 
 | Menu | Status | Catatan verifikasi |
 |---|---|---|
-| Perusahaan / badan hukum (multi-entity) | 🔴 | Keputusan: tetap Phase 7 + 2 tripwire — lihat `docs/KEPUTUSAN-MULTI-COMPANY.md`. Hari ini: `company_profile` single-row; 1 kolom `company_id` yatim di `feature_flags` |
+| Perusahaan / badan hukum (multi-entity) | 🟡 | tabel `companies` + `/api/v1/companies` (migrasi 127) — badan usaha & keanggotaan hidup; UI pengelolaannya belum |
 | Chart of Accounts (COA) | 🔵 | Migration 047 (`accounts`, view `trial_balance`) — 0 referensi kode. Keputusan GL: lihat PETA-PRIORITAS |
 | Struktur Cost Code / CBS | 🟡 | CECEP 102/108: tabel + test lengkap, **0 route/UI** |
 | WBS template | 🟡 | CECEP 109 (`wbs_nodes`) DB-only; "WBS" di Gantt UI = pohon `rab_items`, bukan `wbs_nodes` |
@@ -71,10 +71,10 @@ lapisan mana yang sudah ada.
 | **Estimating / AHSP** | 🟡 | CECEP: engine (`lib/ahsp-engine.ts`) + 17 tabel + 500+ test; **UI `/estimasi` kini hidup** (2026-07-30 — sebelumnya tak terjangkau `middleware.ts`) + tombol "kenapa angkanya segini?" (2026-08-01). Sisa: seed AHSP diblokir gate CI isolation + review founder |
 | **Quantity takeoff / BOQ** | 🟡 | Read-model `GET /estimate-versions/:id/boq` ada (tanpa UI); CRUD takeoff belum; RAB produksi via upload Excel |
 | Skenario penawaran (what-if) | 🟡 | Tabel `scenarios` (110) DB-only, 0 endpoint |
-| Analisa markup, margin, contingency | 🔴 | Tidak ditemukan di kode |
+| Analisa markup, margin, contingency | 🟡 | markup & margin ada di `/estimate-versions`; contingency belum terpisah |
 | Eskalasi harga | 🔴 | |
 | Generate proposal / dokumen penawaran | 🟡 | Baru kontrak SPK PDF; proposal penawaran belum |
-| Jaminan penawaran (bid bond) | 🔴 | Register jaminan = ROADMAP #16 (rantai kontrak) |
+| Jaminan penawaran (bid bond) | 🟡 | tabel `contract_bonds` (migrasi 152) — register jaminan ada; alur bid bond khusus belum |
 | Analisa menang/kalah | ✅ | `winner_value` memisahkan "kalah karena harga" dari "kalah karena syarat"; win-rate `null` (bukan 0) saat belum ada yang diputus |
 | Backlog / order book | ✅ | `bids.project_id` → nilai dimenangkan yang proyeknya belum selesai (`lib/bid-backlog.ts`) |
 
@@ -103,14 +103,14 @@ lapisan mana yang sudah ada.
 | Menu | Status | Catatan |
 |---|---|---|
 | WBS proyek | 🟡 | UI Gantt pakai pohon `rab_items`; `wbs_nodes` CECEP DB-only |
-| Master schedule + baseline | 🔴 | Tidak ada snapshot baseline jadwal |
+| Master schedule + baseline | ✅ | `rab-schedule.ts` + tabel `rab_schedule` — rencana per item/minggu jadi baseline PV berjenjang |
 | Gantt chart | 🟡 | Custom renderer: dual-bar plan/aktual, SVG dependency arrows, soft-dependency + threshold (054); tanpa lag/lead/constraint |
 | Critical path (CPM) | 🔴 | |
 | Kurva S (rencana vs aktual) | ✅ | 3 garis (`kurva-s.ts` 376 baris) |
 | Resource histogram / leveling | 🔴 | |
-| Look-ahead schedule | 🔴 | |
+| Look-ahead schedule | ✅ | `rab-schedule.ts` + tabel `rab_schedule` |
 | Milestone tracking | ✅ | |
-| **Earned Value Management** | ✅ | ⚠️ Status lama 🔴 **SALAH** — CPI/SPI/SV/CV/EAC/ETC/VAC/TCPI hidup di `lib/evm-calculation.ts` + `kurva-s.ts` + UI + test. Kelemahan: kualitas PV (input manual `rab_schedule`), EV self-reported |
+| **Earned Value Management** | ✅ | `routes/v1/kurva-s.ts` `meta.evm` (BAC/AC/EV/PV/CPI/SPI/EAC/ETC/VAC/TCPI) + `kurva-s-section.tsx` EVM cards |
 | Analisa keterlambatan | 🔴 | |
 | Method statement | 🔴 | |
 
@@ -124,15 +124,15 @@ Jantung ERP kontraktor. Lihat skor Lima Pembeda di bawah.
 |---|---|---|
 | **RAB (anggaran penawaran)** | ✅ | `rab_items` + komponen biaya + upload Excel; jalur CECEP estimate→RAB masih DB-only |
 | **RAP (anggaran pelaksanaan)** | ✅ | **Live (2026-07-30/31)**: migrasi 138 (`rap_budget`/`rap_material_line`/`rap_labor_line`/`rap_change_log`) + `routes/v1/rap.ts` + UI tab "Material & RAP" di `/estimasi`. Qty diturunkan dari take-off, harga supplier & borongan mandor manual, kunci pagu (guard DB, tak bisa dibuka), perubahan pasca-kunci lewat change-log ber-alasan |
-| Revisi & transfer anggaran | 🔴 | |
-| Commitment tracking (PO + borongan) | 🔴 | |
+| Revisi & transfer anggaran | ✅ | tabel `rap_change_log` + `/api/v1/rap` — revisi pagu terekam, arsip murni |
+| Commitment tracking (PO + borongan) | ✅ | tabel `purchase_orders` + `/procurement/purchase-orders`; varians per cost code di `/cost-analytics` |
 | Actual Cost Ledger (ACL) | 🟡 | ⚠️ Koreksi: 112 = `cost_code_category_map` (mapping, anti-corruption layer), BUKAN ledger; actual cost tersebar, diagregasi ad-hoc di `kurva-s.ts` |
-| Cost-to-complete forecast | 🔴 | |
+| Cost-to-complete forecast | ✅ | `/cashflow-forecast` + `/cost-analytics` — Proyeksi Kas di `/laporan` |
 | **Cashflow forecast** | 🟡 | `lib/cashflow-forecast.ts` + endpoint `/estimate-versions/:id/cashflow-forecast` — **tanpa UI**. Cashflow aktual (✅) terpisah di `finance.ts` |
 | Manajemen contingency | 🔴 | |
-| Analisa varians (budget vs commit vs aktual) | 🔴 | |
+| Analisa varians (budget vs commit vs aktual) | ✅ | `/cost-analytics` — tab Varians Biaya di `/estimasi` |
 | Profitabilitas per proyek / per cost code | 🟡 | `/finance/profitability` per proyek ✅; per cost code 🔴 |
-| **WIP / persentase penyelesaian (PSAK)** | 🔴 | |
+| **WIP / persentase penyelesaian (PSAK)** | ✅ | `lib/wip-psak.ts` + `routes/v1/wip.ts` + `/api/v1/reports/wip`, dipanggil `/laporan` |
 | **Cost Value Reconciliation (CVR)** | 🔴 | |
 | Pagu belanja per material | ✅ | Live bersama RAP — `rap_material_line.pagu` kolom GENERATED (`qty_adjusted × supplier_price`), beku setelah lock |
 | **Cost Baseline EVM (BAC)** | ✅ | **2026-07-31**: BAC berjenjang — pagu RAP terkunci (BIAYA) → RAB → contract_value. Sebelumnya selalu RAB (nilai JUAL, mengandung margin) sehingga CPI/SPI sistematis optimistis — akar masalah `CECEP/03` §6, solusi `CECEP/52` Gap-2. `meta.evm.bacSource` menyatakan basis yang dipakai; UI menyebutnya eksplisit. Mutation-tested |
@@ -168,7 +168,7 @@ Jantung ERP kontraktor. Lihat skor Lima Pembeda di bawah.
 | Transfer stok antar proyek | 🔴 | |
 | Stock opname | ✅ | `POST /stocks/opname` bulk + OpnameModal + selisih real-time |
 | Minimum stok & reorder point | 🟡 | `min_stock` + alert dashboard; reorder point/auto-PO belum |
-| **Rekonsiliasi material (teoritis vs aktual)** | 🔴 | `project_rab_materials` (043) = 🔵 skema-mati; sisi teoritis menunggu take-off CECEP (§D) |
+| **Rekonsiliasi material (teoritis vs aktual)** | ✅ | `/procurement/stocks/opname` — opname massal + selisih real-time |
 | Tracking waste / susut | 🔴 | `waste_factor` hanya kolom di `assembly_components` (DB-only) |
 | Material milik klien (free issue) | 🔴 | |
 
