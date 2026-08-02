@@ -28,14 +28,59 @@ on:
 # bypass TEST_SCHEMA, jadi run paralel masih bisa saling menimpa fixture di project CI.
 # Serialkan SEMUA run yang berbagi project CI (group konstan). JANGAN cancel-in-progress:
 # run yang dibatalkan di tengah bisa meninggalkan residu. Dev TIDAK LAGI disentuh CI.
+# ── Concurrency: per-ref, run usang DIBATALKAN ──────────────────────────────
+#
+# Sebelumnya `group: ci-shared-ci-db` (konstan) + `cancel-in-progress: false`:
+# SELURUH run dari branch mana pun antre di satu barisan, dan tak ada yang pernah
+# dibatalkan. Push beruntun menumpuk — run ke-3 baru mulai setelah ke-1 dan ke-2
+# selesai, padahal hasil keduanya sudah usang. Diukur 2026-08-03: satu run
+# tertahan `pending` belasan menit hanya menunggu run lama yang sudah tak relevan.
+#
+# Itulah sumber keluhan "CI terlalu sering": bukan frekuensinya, melainkan
+# antreannya. Kini tiap ref punya barisannya sendiri, dan push baru MEMBATALKAN
+# run lama pada ref yang sama.
+#
+# ── Kenapa ini AMAN terhadap project CI bersama
+#
+# Kekhawatiran versi lama benar: job `api` menulis ke project Supabase CI, jadi
+# dua job yang berjalan bersamaan bisa saling menimpa fixture. Yang dilupakan:
+# `TEST_SCHEMA: test_${{ github.run_id }}` (lihat langkah Test) sudah membuat
+# TIAP RUN memakai schema-nya sendiri. Isolasinya ada di level schema, bukan di
+# level antrean.
+#
+# Sisa risikonya: langkah `Prepare CI project` menulis ke schema `public` bersama.
+# Itu idempoten (skip yang sudah applied) dan hanya menambah, tak pernah
+# menghapus — jadi dua run yang berbarengan menghasilkan keadaan akhir yang sama.
+#
+# `cancel-in-progress` di-set lewat ekspresi: HANYA untuk PR/branch kerja.
+# Push ke `main` TIDAK PERNAH dibatalkan — commit di main adalah catatan sejarah,
+# dan membatalkannya menyisakan lubang di bukti "commit ini pernah hijau".
 concurrency:
-  group: ci-shared-ci-db
-  cancel-in-progress: false
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   api:
-    name: API — lint, typecheck, test, build
+    # ⚠️ NAMA JOB = NAMA STATUS CHECK di branch protection.
+    #
+    # Dengan `strategy.matrix`, GitHub menambahkan nilai matrix ke nama check:
+    # "API — test (shard 1)", "(shard 2)", dst. Nama lama
+    # ("API — lint, typecheck, test, build") TIDAK AKAN PERNAH MUNCUL LAGI.
+    #
+    # Kalau daftar check wajib tak ikut diperbarui, GitHub menunggu check yang
+    # tak akan pernah datang dan **setiap PR tertahan selamanya** — kegagalan
+    # yang terlihat seperti "CI lambat", bukan seperti salah konfigurasi.
+    # Daftar wajib diperbarui bersamaan; lihat docs/execution/CI-BUKTI.md §4.
+    name: API — test (shard ${{ matrix.shard }})
     runs-on: ubuntu-latest
+    # 4 shard: 1203s dibagi ~4 → target ~300s per shard. Angka 4 dipilih karena
+    # ia menurunkan wall-clock di bawah target 8 menit tanpa membuat biaya tetap
+    # per-job (checkout+install+migrasi ≈ 60s) mendominasi. Naikkan hanya bila
+    # CI-PROFIL menunjukkan shard masih jadi jalur kritis.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     defaults:
       run:
         working-directory: apps/api
@@ -145,6 +190,17 @@ jobs:
       - name: Tabrakan definisi tabel (IF NOT EXISTS tanpa penegas bentuk)
         run: node scripts/audit-tabrakan-definisi-tabel.mjs
 
+      # ADR-004 — otorisasi HANYA lewat requirePermission.
+      #
+      # Diuji 2026-08-03 (langkah 5 mandat CI): menyisipkan `u.role === 'admin'`
+      # ke berkas route LOLOS seluruh 14 penjaga yang ada. Aturan sepenting ini
+      # ternyata selama ini hanya konvensi, bukan gerbang.
+      #
+      # Ratchet (lantai 52), bukan ambang nol: utang lama dibersihkan terjadwal
+      # di F3-1. Ambang nol hari ini = CI merah permanen = penjaga dimatikan orang.
+      - name: Literal peran sebagai gerbang otorisasi (ADR-004)
+        run: node scripts/audit-literal-peran.mjs
+
       # Rencana yang ditulis rapi lalu tak pernah dikerjakan — bukan karena
       # diputuskan ditunda, melainkan karena tak ada yang tahu ia ada. Repo ini
       # sudah punya preseden: ERP_MASTER_PLAN Modul 9a/9b, AHSP-EDITION-BUILDER
@@ -251,42 +307,104 @@ jobs:
       # RATCHET di langkah berikutnya (lantai hari ini tak boleh turun). Ambang
       # 90% bawaan `vitest.config.ts` tetap berlaku untuk `src/lib/**` saat
       # `pnpm test` dijalankan tanpa flag ini.
-      - name: Test + coverage
+      # ── Test ter-shard ────────────────────────────────────────────────────
+      #
+      # Diukur 2026-08-03 (docs/execution/CI-PROFIL.md): langkah ini 1203s dari
+      # 1317s total job — **91%**. Seluruh target optimasi lain (cache, tsbuildinfo,
+      # filter path) bernilai gabungan < 2 menit, jadi hanya di sinilah kemenangan
+      # yang berarti.
+      #
+      # Kenapa lambat: suite ini INTEGRATION test terhadap Postgres nyata
+      # (keputusan sadar, lihat vitest.config.ts) — ~6.000 query round-trip.
+      # Di CI tiap round-trip menyeberangi Pasifik: DB project CI ada di
+      # ap-northeast-1 (Tokyo), runner GitHub di US-East. Itu faktor 10× terhadap
+      # lokal (~230s). Perbaikan akarnya = pindahkan region DB (RATIFIKASI B-3);
+      # sharding adalah yang bisa dikerjakan dari dalam repo.
+      #
+      # ⚠️ TEST_SCHEMA WAJIB unik per SHARD, bukan hanya per run. Shard berjalan
+      # PARALEL; kalau berbagi schema, `resetTestSchema()` satu shard men-DROP
+      # schema yang sedang dipakai shard lain — kerusakan yang gejalanya terlihat
+      # seperti test flaky, bukan seperti kesalahan konfigurasi.
+      - name: Test + coverage (shard ${{ matrix.shard }}/4)
         run: |
-          npx vitest run --coverage \
+          npx vitest run --shard=${{ matrix.shard }}/4 --coverage \
             --coverage.include='src/**/*.ts' \
             --coverage.exclude='src/**/*.test.ts' \
             --coverage.exclude='src/**/__tests__/**' \
             --coverage.thresholds.lines=0 --coverage.thresholds.functions=0 \
             --coverage.thresholds.branches=0 --coverage.thresholds.statements=0 \
-            --coverage.reporter=text-summary \
-            --coverage.reporter=json-summary --coverage.reportsDirectory=./coverage
+            --coverage.reporter=json --coverage.reportsDirectory=./coverage
         env:
           SUPABASE_URL: ${{ secrets.CI_SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.CI_SUPABASE_SECRET_KEY }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           DATABASE_URL: ${{ secrets.CI_DATABASE_URL }}
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
-          # Schema test unik per run → tak ada race antar CI run paralel di project CI.
-          TEST_SCHEMA: test_${{ github.run_id }}
+          # Unik per SHARD — lihat peringatan di atas.
+          TEST_SCHEMA: test_${{ github.run_id }}_s${{ matrix.shard }}
 
-      # Angka hari ini adalah LANTAI. Boleh naik, tak boleh turun.
-      # Audit 2026-08-02 memberi skor Testing 80 tanpa mengukur ini sama sekali;
-      # saat diukur ternyata statements 31,98% — sebarannya, bukan kedalamannya:
-      # 27 berkas route ber-coverage NOL (users, notifications, documents,
-      # companies). Detail: docs/execution/COVERAGE-BASELINE.md
-      - name: Ratchet coverage (lantai tak boleh turun)
-        run: node scripts/coverage-ratchet.mjs
+      # Coverage tiap shard disimpan; ratchet dievaluasi SETELAH digabung di job
+      # terpisah. Ratchet yang mengukur satu shard saja akan melaporkan angka
+      # jauh di bawah lantai dan menggagalkan build yang sebenarnya sehat —
+      # persis kelas cacat "apel vs jeruk" yang sudah ditangkap coverage-ratchet.mjs.
+      - name: Simpan coverage shard
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-shard-${{ matrix.shard }}
+          path: apps/api/coverage/coverage-final.json
+          retention-days: 1
 
-      - name: Drop per-run test schema
+      # WAJIB cocok dengan TEST_SCHEMA langkah Test. Kalau tertinggal di
+      # `test_<run_id>` (tanpa `_s<shard>`), keempat schema shard menggantung di
+      # project CI selamanya — persis asal-usul schema `mut6` yang ditemukan
+      # audit 2026-08-02 dan sampai kini masih perlu dibersihkan (F0-8).
+      - name: Drop per-shard test schema
         if: always()
         run: pnpm exec tsx src/test-utils/drop-test-schema.ts
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
-          TEST_SCHEMA: test_${{ github.run_id }}
+          TEST_SCHEMA: test_${{ github.run_id }}_s${{ matrix.shard }}
 
       - name: Build
         run: pnpm build
+
+  # ── Ratchet coverage: SETELAH seluruh shard, atas gabungannya ──────────────
+  #
+  # Job terpisah karena ratchet harus menilai coverage SELURUH suite. Menjalankannya
+  # di dalam job ter-shard berarti tiap shard menilai ~25% kode dan melaporkan
+  # angka jauh di bawah lantai — build sehat divonis regresi. `coverage-ratchet.mjs`
+  # sudah punya penjaga "apel vs jeruk" yang akan MENOLAK membandingkan (exit 2),
+  # jadi kesalahan ini akan ketahuan; tapi lebih baik tak dibuat sejak awal.
+  coverage:
+    name: Ratchet coverage (gabungan semua shard)
+    runs-on: ubuntu-latest
+    needs: api
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.8.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: .
+
+      - name: Unduh coverage semua shard
+        uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-shard-*
+          path: apps/api/coverage-shards
+
+      - name: Gabungkan coverage lalu jalankan ratchet
+        run: |
+          node scripts/gabung-coverage.mjs
+          node scripts/coverage-ratchet.mjs
 
   # ── A1 (STATUS.md §AUDIT) — apps/web SEBELUMNYA SAMA SEKALI DI LUAR CI ─────
   # Sampai 2026-07-31 hanya job `api` yang ada: frontend bisa rusak (tsc error,
