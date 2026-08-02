@@ -124,7 +124,66 @@ mekanisme template database untuk menghemat 6,5 detik, pada suite yang menghabis
 
 ---
 
-## 5. SESUDAH
+## 5. SESUDAH — hasil terukur
 
-*(Diisi setelah Lapis 0/1/2 terpasang — angka sebelum/sesudah wajib terukur,
-bukan diperkirakan.)*
+### 5.1 Sharding: BERHASIL secara durasi, DITAHAN karena isolasi
+
+Shard 4× dijalankan sungguhan (run `30764532516`):
+
+| Job | Durasi | Hasil |
+|---|---:|---|
+| API — test (shard 1) | 376s | **gagal** |
+| API — test (shard 2) | 434s | hijau |
+| API — test (shard 3) | 264s | hijau |
+| API — test (shard 4) | 396s | hijau |
+
+**Wall-clock 1317s → 434s (3× lebih cepat).** Target ≤8 menit **tercapai**.
+
+Tetapi shard 1 gagal, dan penyebabnya bukan sharding:
+
+```
+error 23502 — projects.company_id NOT NULL dilanggar
+  di lessons-writeback.test.ts
+```
+
+`fn_isi_company_id()` (migrasi 127) mengisi `company_id` otomatis **hanya bila
+`companies` berisi tepat satu baris**; saat ambigu ia menolak menebak. Itu
+perilaku yang **benar** dan sengaja.
+
+Yang salah ada di test: **46 berkas memakai `createRlsClient` → schema `public`
+BERSAMA**, dan 9 di antaranya membuat company tambahan, tersebar di keempat shard:
+
+| Shard | Berkas pembuat company |
+|---|---|
+| 1 | `t10-peran-per-company`, `t6-penomoran-per-company`, `tenant-isolation-nyata` |
+| 2 | `t5b-kill-switch` |
+| 3 | `search-tenant-isolation`, `submittal-aturan`, `t7-menu-per-company`, `t9-kelola-badan-usaha` |
+| 4 | `t7-company-switcher` |
+
+Berurutan mereka tak pernah bertabrakan — tiap berkas membersihkan miliknya.
+**Paralel**, company milik shard lain terlihat di tengah jalan → trigger melihat
+>1 company → menolak mengisi → NOT NULL menolak.
+
+**Keputusan: shard ditahan di 1.** Menaikkannya sekarang berarti CI merah acak
+yang gejalanya tampak seperti "test flaky". Dan memperbaikinya dengan
+melonggarkan `fn_isi_company_id()` berarti melemahkan penjaga tenancy **tepat
+sebelum Fase 2** — Gerbang Keras G-5.
+
+Struktur matrix dipertahankan; menaikkannya kembali cukup perubahan kecil setelah
+**F0-14** (memindahkan 46 berkas dari `public` ke schema terisolasi).
+
+### 5.2 Yang tetap terpasang dan berdampak
+
+| Perubahan | Dampak |
+|---|---|
+| `concurrency` per-ref + `cancel-in-progress` | **Antrean menumpuk hilang.** Sebelumnya seluruh branch antre di satu barisan konstan — terukur satu run tertahan `pending` belasan menit menunggu run usang. Inilah sumber keluhan "terlalu sering". |
+| Job `coverage` terpisah (`needs: api`) | Ratchet dinilai atas gabungan shard, bukan per-shard. Siap dipakai begitu shard dinaikkan. |
+| `gabung-coverage.mjs` | Terverifikasi: statements gabungan **6794/21241 identik** dengan run tak ter-shard. |
+| Penjaga literal peran API (ADR-004) | Menutup lubang yang lolos 14 penjaga lain. |
+
+### 5.3 Perbaikan akar yang belum dikerjakan
+
+Latensi lintas-Pasifik (§2) tetap penyebab terbesar. Memindahkan project CI
+Supabase ke region dekat runner berpotensi memangkas 1203s → ~250s **tanpa
+menyentuh satu baris test pun** — lebih besar dari seluruh hasil sharding, dan
+tanpa risiko isolasi. Di luar repo → `RATIFIKASI.md` **B-3**.

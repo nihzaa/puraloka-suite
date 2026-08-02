@@ -71,16 +71,51 @@ jobs:
     # tak akan pernah datang dan **setiap PR tertahan selamanya** — kegagalan
     # yang terlihat seperti "CI lambat", bukan seperti salah konfigurasi.
     # Daftar wajib diperbarui bersamaan; lihat docs/execution/CI-BUKTI.md §4.
-    name: API — test (shard ${{ matrix.shard }})
+    name: API — test (shard ${{ matrix.shard }}/1)
     runs-on: ubuntu-latest
-    # 4 shard: 1203s dibagi ~4 → target ~300s per shard. Angka 4 dipilih karena
-    # ia menurunkan wall-clock di bawah target 8 menit tanpa membuat biaya tetap
-    # per-job (checkout+install+migrasi ≈ 60s) mendominasi. Naikkan hanya bila
-    # CI-PROFIL menunjukkan shard masih jadi jalur kritis.
+    # ── SHARD DITAHAN DI 1 (bukan 4) — dan ini keputusan sadar ────────────
+    #
+    # Shard 4× SUDAH DICOBA dan berhasil memangkas wall-clock 1317s → 434s (3×).
+    # Tiga dari empat shard hijau. Shard 1 gagal, dan kegagalannya BUKAN cacat
+    # sharding melainkan cacat isolasi yang selama ini tersembunyi:
+    #
+    #     projects.company_id NOT NULL dilanggar (23502) di lessons-writeback
+    #
+    # Akarnya: `fn_isi_company_id()` mengisi `company_id` otomatis HANYA bila
+    # `companies` berisi TEPAT SATU baris — begitu ambigu, ia menolak menebak
+    # (perilaku yang BENAR, ditulis sengaja di migrasi 127).
+    #
+    # Dan 46 berkas test memakai `createRlsClient` → schema `public` BERSAMA.
+    # Sembilan di antaranya membuat company tambahan, tersebar di keempat shard:
+    #   shard 1: t10-peran-per-company, t6-penomoran-per-company, tenant-isolation-nyata
+    #   shard 2: t5b-kill-switch
+    #   shard 3: search-tenant-isolation, submittal-aturan, t7-menu-per-company, t9-kelola-badan-usaha
+    #   shard 4: t7-company-switcher
+    #
+    # Berjalan berurutan mereka tak pernah bertabrakan (tiap berkas membersihkan
+    # miliknya). Berjalan PARALEL, company milik shard lain terlihat di tengah
+    # jalan → trigger menemukan >1 company → menolak mengisi → NOT NULL menolak.
+    #
+    # Menaikkan shard ke 4 sekarang = CI merah acak yang penyebabnya tampak
+    # seperti "test flaky". Memperbaikinya dengan melonggarkan trigger =
+    # melemahkan penjaga tenancy tepat sebelum Fase 2 — Gerbang Keras G-5.
+    #
+    # Perbaikan yang benar: 46 berkas itu dipindahkan dari `public` ke schema
+    # per-shard. Itu pekerjaan tersendiri (QUEUE F0-14), bukan efek samping
+    # optimasi CI.
+    #
+    # Struktur matrix SENGAJA DIPERTAHANKAN supaya menaikkannya kembali cukup
+    # perubahan kecil begitu F0-14 selesai.
+    #
+    # ⚠️ SAAT MENAIKKAN KEMBALI, tiga hal WAJIB diubah bersamaan — kalau tidak,
+    # sebagian test diam-diam tak pernah dijalankan (kegagalan paling senyap):
+    #   1. `shard: [1]` → `[1, 2, 3, 4]`
+    #   2. penyebut `/1` di nama job DAN di `--shard=` → `/4` (tiga tempat)
+    #   3. daftar check wajib di branch protection → nama job baru per shard
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1]
     defaults:
       run:
         working-directory: apps/api
@@ -325,9 +360,9 @@ jobs:
       # PARALEL; kalau berbagi schema, `resetTestSchema()` satu shard men-DROP
       # schema yang sedang dipakai shard lain — kerusakan yang gejalanya terlihat
       # seperti test flaky, bukan seperti kesalahan konfigurasi.
-      - name: Test + coverage (shard ${{ matrix.shard }}/4)
+      - name: Test + coverage (shard ${{ matrix.shard }}/1)
         run: |
-          npx vitest run --shard=${{ matrix.shard }}/4 --coverage \
+          npx vitest run --shard=${{ matrix.shard }}/1 --coverage \
             --coverage.include='src/**/*.ts' \
             --coverage.exclude='src/**/*.test.ts' \
             --coverage.exclude='src/**/__tests__/**' \

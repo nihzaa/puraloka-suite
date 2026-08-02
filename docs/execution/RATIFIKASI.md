@@ -54,6 +54,44 @@ benar-benar perlu. Bilang saja kalau ingin dikencangkan.
 
 ---
 
+# 💡 B-3 · USUL — pindahkan region project CI Supabase
+
+**Bukan gerbang; ini usul berdasar pengukuran.** Pekerjaan lain jalan terus.
+
+CI lambat, dan setelah diukur penyebabnya bukan yang saya duga maupun yang Anda
+duga. Suite test = **91% durasi job** (1203s dari 1317s), dan isinya bukan
+perhitungan berat melainkan **menunggu jaringan**:
+
+```
+1 round-trip ke database   : 0,02 detik
+100 round-trip             : 2,12 detik   (≈21 ms per query)
+≈6.000 round-trip per suite (integration test thd Postgres nyata, by design)
+```
+
+Yang membuatnya 10× lebih lambat di CI daripada di laptop Anda:
+
+| | Lokal | CI |
+|---|---|---|
+| Durasi suite | ~230 detik | **1203 detik** |
+| Lokasi database | Singapura (`ap-southeast-1`) | **Tokyo (`ap-northeast-1`)** |
+| Lokasi mesin CI | Indonesia | **Amerika (US-East)** |
+
+Setiap dari ~6.000 query di CI menyeberangi Samudra Pasifik, dua arah.
+
+**Usul:** buat ulang project Supabase CI di region dekat runner GitHub
+(mis. `us-east-1`), lalu perbarui secret `CI_*`. Perkiraan: **1203s → ~250s**,
+**tanpa menyentuh satu baris test pun**.
+
+Itu lebih besar daripada seluruh hasil sharding, dan tanpa risiko isolasi.
+
+**Kenapa saya tidak mengerjakannya:** membuat/memindahkan project Supabase ada di
+dashboard Anda, di luar repo. Kalau Anda setuju, saya siapkan langkahnya.
+
+**Risiko:** project CI berisi **nol data berharga** — ia memang dibangun ulang
+dari nol tiap kali (`setup-clean`). Jadi biaya pembatalannya nol.
+
+---
+
 # ✅ SUDAH DIJALANKAN — tinggal dikonfirmasi
 
 ## R-001 · P0 · SELESAI (opsi A + ketiga syarat)

@@ -289,6 +289,30 @@ items:
       Kelas cacat sama dengan 047: hanya muncul di lingkungan bersih, tak pernah
       terlihat di dev yang tumbuh bertahap.
 
+  - id: F0-14
+    fase: 0
+    judul: "P1 — 46 berkas test berbagi schema `public`; memblokir sharding CI"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "berkas ber-createRlsClient tak lagi menulis ke schema public bersama"
+      - "9 berkas pembuat-company terisolasi (t5b, t6, t7 x2, t9, t10, search-tenant-isolation, submittal-aturan, tenant-isolation-nyata)"
+      - "shard dinaikkan kembali ke 4 → SELURUH shard hijau 3 run berturut"
+      - "penjaga fn_isi_company_id TIDAK dilemahkan"
+    cara_verifikasi: "ubah matrix ke [1,2,3,4] + penyebut /4, lalu 3 run CI berturut hijau"
+    bobot: L
+    status: todo
+    catatan: >
+      DITEMUKAN 2026-08-03 saat menerapkan shard 4x. Shard BERHASIL memangkas
+      wall-clock 1317s -> 434s (3x), 3 dari 4 shard hijau. Shard 1 gagal dgn
+      23502 (projects.company_id NOT NULL) di lessons-writeback. BUKAN cacat
+      sharding: `fn_isi_company_id()` sengaja hanya mengisi otomatis bila
+      companies berisi TEPAT SATU baris, dan menolak menebak saat ambigu —
+      perilaku BENAR dari migrasi 127. Yang salah: 46 berkas test memakai
+      createRlsClient -> schema `public` BERSAMA, 9 di antaranya membuat company
+      tambahan, tersebar di keempat shard. Berurutan tak bertabrakan; paralel
+      saling melihat company yang lain. Shard ditahan di 1 sampai ini beres —
+      melonggarkan trigger demi CI cepat = G-5 tepat sebelum Fase 2.
+
   # ── GERBANG: menunggu founder ─────────────────────────────────────────────
   - id: R-001
     fase: 0
