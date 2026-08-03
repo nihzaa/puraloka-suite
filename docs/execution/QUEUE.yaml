@@ -547,11 +547,16 @@ items:
       - "jalur kebocoran-terkendali untuk pemilik grup dirancang eksplisit"
     cara_verifikasi: "ADR terbit + ditinjau ulang terhadap ADR-011"
     bobot: L
-    status: menunggu_ratifikasi
-    catatan: >
-      ADR-010 TERBIT (2026-08-03). K1 mengonfirmasi ADR-011; K2/K3/K4 baru —
-      diverifikasi nol kecocokan untuk eliminasi/transfer/kebocoran-terkendali
-      di seluruh ADR sebelumnya. Seluruh angka dicocokkan ke DB (9/9).
+    status: done
+    bukti: >
+      ADR-010 DIRATIFIKASI (R-007 rev-3): K1 parent_company_id · K2 CoA tiga lapis
+      + template · K3 konsolidasi-dihitung + eliminasi eksplisit + transfer
+      berjejak · K4 lima pagar akses lintas-PT.
+      Revisi 4 menutup enam koreksi pra-eksekusi. Dua di antaranya menemukan
+      cacat NYATA: K-1 (saldo BERGANDA 100jt->200jt bila akun dipetakan ulang,
+      terbukti ke DB) dan K-6 (journal_entry_lines.company_id + l.amount TIDAK
+      ADA — fungsi revisi 3 memakai dua kolom yang tak pernah ada).
+      Berkas: docs/adr/ADR-010-bentuk-grup-holding.md
       Menunggu ratifikasi: RATIFIKASI.md R-007.
 
   - id: F2-2
@@ -561,7 +566,7 @@ items:
     kriteria_selesai: ["tabel keputusan terbaca manusia SEBELUM migrasi ditulis"]
     cara_verifikasi: "review daftar dari introspect tenancy-coverage"
     bobot: L
-    status: blocked
+    status: todo
 
   - id: F2-3
     fase: 2
@@ -606,7 +611,7 @@ items:
     kriteria_selesai: ["diputuskan + didokumentasikan: paksa atau tidak, beserta alasan"]
     cara_verifikasi: "introspect rls"
     bobot: S
-    status: blocked
+    status: todo
     catatan: "Temuan baru F0-2."
 
   # ── FASE 3+ (ringkas; diperluas saat fasenya tiba) ────────────────────────

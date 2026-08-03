@@ -1,7 +1,12 @@
 # ADR-010 — Bentuk grup/holding: bagan akun tiga lapis, konsolidasi, transfer antar-PT, dan akses lintas-PT berpagar
 
-**Status:** REVISI 3 — menunggu ratifikasi final founder
-**Tanggal:** 2026-08-03 (revisi 2 & 3: 2026-08-04)
+**Status:** ✅ **DIRATIFIKASI** (empat keputusan struktural) · REVISI 4 menutup
+enam koreksi pra-eksekusi
+**Tanggal:** 2026-08-03 (revisi 2–4: 2026-08-04)
+
+> **F2-3 boleh mulai setelah revisi 4 ini diterima.** Ratifikasi R-007 rev-3
+> memberikan persetujuan atas K1–K4, dengan enam koreksi yang harus masuk ADR
+> lebih dulu. Keenamnya ada di §"Revisi 4" di bawah.
 
 **Riwayat ratifikasi**
 
@@ -9,7 +14,8 @@
 |---|---|
 | R-007 rev.1 | **SETUJU SEBAGIAN.** CoA per-PT disetujui + diperkuat alasan hukum (tiap PT badan hukum terpisah, SPT sendiri). Tiga koreksi wajib: konsolidasi tiga lapis, bedakan template dari pewarisan, dan **TOLAK** penguncian mati akses pemilik grup. |
 | R-007 rev.2 | **Empat tambahan** sebelum ratifikasi final: (A) nyatakan siapa yang boleh memberi grant — dan jujurlah kalau pagarnya jejak, bukan pencegahan · (B) peta ditegakkan di **pembuatan akun**, bukan onboarding · (C) peta harus **berversi** · (D) konfirmasi cakupan eliminasi/transfer/harga transfer |
-| R-007 rev.3 | menunggu — dokumen ini |
+| R-007 rev.3 | ✅ **RATIFIKASI DIBERIKAN** atas K1 (parent_company_id) · K2 (CoA tiga lapis + template) · K3 (konsolidasi-dihitung + eliminasi eksplisit + transfer berjejak) · K4 (lima pagar). **F2-3 ditahan** sampai enam koreksi masuk. |
+| R-007 rev.4 | menunggu penerimaan — dokumen ini |
 
 **Yang berubah di revisi 2**
 
@@ -26,6 +32,23 @@
 | B | Penegakan peta pindah dari onboarding ke **pembuatan akun** (`NOT NULL`/trigger). Gerbang onboarding hanya menjaga hari pertama; akun ke-47 lolos tanpa gejala. | §3.3-B |
 | C | Peta jadi **berversi** (`berlaku_sejak`/`berlaku_sampai` + `EXCLUDE gist`). Laporan periode lampau memakai peta saat itu — mengubah peta tak lagi mengubah SPT yang sudah dilaporkan. | §3.3-C |
 | D | Cakupan dikonfirmasi ✅, **plus tiga celah yang tetap terbuka** dinyatakan eksplisit (eliminasi bertingkat, kewajaran harga transfer, eliminasi × versi peta). | §4 |
+
+**Yang berubah di revisi 4 — enam koreksi pra-eksekusi**
+
+| # | Koreksi | Perubahan | §  |
+|---|---|---|---|
+| K-1 | fungsi konsolidasi membatalkan §3.3-C | `p_per_tanggal` jadi parameter **wajib**; join `account_mappings` menyaring `berlaku_sejak`/`berlaku_sampai` terhadap `entry_date`. Tanpa itu akun yang dipetakan ulang **menggandakan saldo** — naik, wajar, tanpa galat. Test wajib: petakan ulang, total harus identik. | §5 |
+| K-2 | eliminasi tak pernah dipakai | `intercompany_links` disambungkan lewat `NOT EXISTS`. Tanpanya yang dihasilkan penjumlahan biasa, bukan konsolidasi. **Celah ke-4 baru dinyatakan**: eliminasi tingkat-baris untuk jurnal campuran. | §5, §4 |
+| K-3 | unique memblokir pemberian ulang | jadi **unique parsial** `WHERE revoked_at IS NULL` — "cabut lalu beri lagi" tak lagi menuntut menimpa riwayat. | §5 |
+| K-4 | cakupan mengecualikan akar | `anggota_grup()` rekursif mencakup **akar + cucu**. Terukur: akar adalah satu-satunya perusahaan operasional (38 akun, 23 anggota); validasi lama akan mengosongkan laporan pertama. | §5 |
+| K-5 | predikat hak aktif menyimpang | satu view `hak_lintas_pt_aktif`; gerbang dan subquery scope membaca yang sama. | §5 |
+| K-6 | verifikasi kolom sebelum menulis | **menemukan dua kesalahan nyata**: `journal_entry_lines.company_id` dan `l.amount` **tidak ada**. Tenancy lewat induk `journal_entries`; nilai dari `debit - credit`. | §5 |
+
+> **K-6 membuktikan kegunaannya sendiri.** Fungsi di revisi 3 memakai dua kolom
+> yang tak pernah ada. Memeriksa lebih dulu adalah satu perintah; menemukannya
+> setelah fungsi ditulis, direview, dan diratifikasi adalah dua putaran
+> terbuang — dan kalau lolos ke F2-3, ia jadi galat runtime di jalur laporan
+> keuangan.
 
 **Lokasi berkas:** dipindah ke `docs/adr/` atas permintaan founder
 (sebelumnya di `docs/superpowers/.../Engineering-Constitution/adr/`).
@@ -369,10 +392,20 @@ dari sesuatu yang sudah benar untuk industrinya.
    ketentuan transfer pricing DJP. Itu keputusan akuntansi/pajak, bukan
    keputusan arsitektur, dan menaruhnya di sini akan menyamarkan kebutuhan
    nasihat profesional sebagai fitur perangkat lunak.
-3. **Eliminasi belum terhubung ke versi peta (§3.3-C).** Ketika sebuah
-   eliminasi dihitung untuk periode lampau, ia harus memakai pemetaan yang
-   berlaku saat itu. Bentuknya sudah ada (kolom masa berlaku), tetapi
-   penggabungannya dengan `intercompany_links` **belum ditulis** — masuk F2-3.
+3. **Eliminasi belum terhubung ke versi peta (§3.3-C).** ~~Belum ditulis~~ —
+   **DITUTUP di revisi 4** (K-1/K-2): fungsi konsolidasi kini menyaring
+   `berlaku_sejak`/`berlaku_sampai` terhadap `journal_entries.entry_date`, dan
+   klausa eliminasinya berjalan pada himpunan yang sudah tersaring itu.
+4. **Eliminasi tingkat-BARIS belum ada** (celah baru, dinyatakan di K-2).
+   `intercompany_links` menunjuk `entry_id`, jadi eliminasi membuang **seluruh
+   jurnal** yang tertaut. Benar untuk transaksi yang sepenuhnya internal (sewa
+   alat antar-PT, alokasi biaya); **tidak** benar untuk jurnal campuran yang
+   memuat baris internal dan eksternal sekaligus.
+
+   Perbaikannya menuntut `intercompany_links` menunjuk `line_id`. Ditunda
+   karena belum ada contoh nyatanya — dan sampai ada, **jurnal campuran
+   antar-PT tidak boleh dibuat**. Itu batasan operasional yang harus diketahui
+   pemakainya, bukan detail teknis yang bisa disimpan sendiri.
 
 ### 4.1 Konsolidasi — **laporan, bukan tabel**
 
@@ -483,8 +516,71 @@ cross_company_grants
   expires_at         timestamptz NULL    -- boleh berbatas waktu
   revoked_at         timestamptz NULL
   alasan             text NOT NULL       -- kenapa hak ini diberikan
-  UNIQUE (group_company_id, grantee_user_id)
+
+  -- ⚠️ K-3: unique PARSIAL atas hak AKTIF saja.
+  --
+  -- Bentuk revisi 3 memakai UNIQUE (group_company_id, grantee_user_id) tanpa
+  -- syarat, dan founder benar menolaknya: hak yang sudah DICABUT akan
+  -- memblokir pemberian baru kepada orang yang sama. Satu-satunya jalan
+  -- keluarnya adalah menimpa baris lama — menghapus riwayat pencabutan,
+  -- yang justru satu-satunya alasan riwayat itu disimpan.
+  --
+  -- Parsial membuat "cabut lalu beri lagi" jadi dua baris yang keduanya utuh.
+  UNIQUE (group_company_id, grantee_user_id) WHERE revoked_at IS NULL
 ```
+
+### K-5 — SATU predikat "hak aktif", dipakai semua
+
+> Founder menemukan penyimpangan: gerbang memeriksa `revoked_at` **dan**
+> `expires_at`, sementara subquery scope hanya `revoked_at`. Akibatnya hak yang
+> **kedaluwarsa** tetap menentukan cakupan — pintu terkunci, tetapi daftar
+> ruangan di baliknya masih dari kunci lama.
+
+Predikatnya ditaruh di **satu view**, dan tak ada tempat lain yang boleh
+menuliskannya ulang:
+
+```sql
+-- SATU-SATUNYA definisi "hak aktif". Fungsi apa pun yang menulis ulang
+-- predikat ini akan menyimpang begitu salah satu syarat berubah.
+CREATE VIEW hak_lintas_pt_aktif AS
+  SELECT * FROM cross_company_grants
+   WHERE revoked_at IS NULL
+     AND (expires_at IS NULL OR expires_at > now());
+```
+
+Baik gerbang maupun subquery scope membaca view ini. Menambah syarat baru
+(mis. status akun penerima) cukup diubah di satu tempat.
+
+### K-4 — cakupan mencakup AKAR dan CUCU, bukan hanya anak langsung
+
+> Founder: *"Hari ini akar adalah satu-satunya perusahaan operasional (38 akun,
+> 23 anggota) — validasi sekarang mengecualikan entitas terbesar dari laporan
+> konsolidasi."*
+
+Terukur dan benar: `companies` berisi **1 akar, 0 anak**. Validasi revisi 3
+(`parent_company_id = p_group`) akan menolak satu-satunya perusahaan yang punya
+data — laporan konsolidasi pertama akan kosong, dan sebabnya tak akan jelas.
+
+**Keputusan: cakupan sah = akar grup ITU SENDIRI + seluruh keturunannya
+(rekursif), bukan hanya anak tingkat pertama.**
+
+```sql
+-- Anggota grup, termasuk akarnya sendiri dan cucu.
+CREATE FUNCTION anggota_grup(p_group uuid)
+RETURNS TABLE (company_id uuid) LANGUAGE sql STABLE AS $$
+  WITH RECURSIVE turunan AS (
+    SELECT id FROM companies WHERE id = p_group          -- ← AKAR ikut
+    UNION ALL
+    SELECT c.id FROM companies c JOIN turunan t ON c.parent_company_id = t.id
+  )
+  SELECT id FROM turunan;
+$$;
+```
+
+Rekursi di sini **tidak** melanggar invarian ADR-011 (§4: `parent_company_id`
+tak memberi pewarisan data): ia hanya menghitung *daftar kandidat* yang boleh
+dicantumkan dalam `scope_company_ids`. Akses tetap datang dari grant eksplisit,
+bukan dari posisi di pohon.
 
 ### Siapa yang boleh MEMBERI — dan pengakuan jujur soal batasnya
 
@@ -595,20 +691,42 @@ tanpa menambah nilai.
 
 ### Pemaksaan — di DB, bukan di UI
 
+> **K-1 & K-6 — fungsi di revisi 3 SALAH pada dua hal, dan keduanya diperbaiki
+> di bawah.**
+>
+> **K-1:** ia tidak menerima tanggal periode dan join ke `account_mappings`
+> tanpa menyaring masa berlaku. Akibatnya akun yang pernah **dipetakan ulang**
+> menghasilkan **dua baris join**, dan saldonya **berganda** — naik, terlihat
+> wajar, tanpa satu pun galat. Fungsi itu membatalkan §3.3-C di dokumen yang
+> sama.
+>
+> **K-6:** ia memakai `journal_entry_lines.company_id` dan `l.amount`.
+> **Keduanya tidak ada.** Diverifikasi lewat `information_schema` (2026-08-04):
+> tenancy baris jurnal lewat induk `journal_entries.company_id`, dan nilainya
+> `debit`/`credit` terpisah — bukan satu kolom `amount`.
+>
+> Memeriksa kolom sebelum menulis fungsi adalah satu perintah; menemukannya
+> setelah fungsi ditulis dan direview adalah dua putaran terbuang.
+
 ```sql
--- BENTUK; implementasi di F2-3
-CREATE FUNCTION lap_konsolidasi_grup(p_group uuid)
+-- BENTUK; implementasi di F2-3.
+-- Bentuk kolom diverifikasi ke DB 2026-08-04 (K-6):
+--   journal_entries       (id, company_id, entry_date, status, …)
+--   journal_entry_lines   (id, entry_id, account_id, debit, credit, …)
+--   ⚠️ journal_entry_lines TIDAK punya company_id maupun amount.
+CREATE FUNCTION lap_konsolidasi_grup(
+  p_group    uuid,
+  p_per_tanggal date          -- ⚠️ K-1: WAJIB. Tanpa ini, "peta berlaku kapan"
+                              --    tak terjawab dan §3.3-C jadi hiasan.
+)
 RETURNS TABLE (company_id uuid, akun_grup text, saldo numeric)
 LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
-  -- PAGAR 2+4: tanpa grant aktif → TOLAK. Status pemilik saja tidak cukup,
-  -- dan tidak adanya baris berarti MATI (bukan "boleh").
+  -- PAGAR 2+4 — lewat view tunggal (K-5), bukan predikat yang ditulis ulang.
   IF NOT EXISTS (
-    SELECT 1 FROM cross_company_grants g
+    SELECT 1 FROM hak_lintas_pt_aktif g
      WHERE g.group_company_id = p_group
        AND g.grantee_user_id  = auth_user_id()
-       AND g.revoked_at IS NULL
-       AND (g.expires_at IS NULL OR g.expires_at > now())
   ) THEN
     RAISE EXCEPTION 'akses lintas-perusahaan tidak diberikan';
   END IF;
@@ -617,21 +735,94 @@ BEGIN
   -- pemanggilan yang gagal di tengah tak meninggalkan jejak sama sekali.
   INSERT INTO audit_logs (company_id, table_name, action, user_id, severity, reason)
   VALUES (p_group, 'cross_company_grants', 'konsolidasi.baca',
-          auth_user_id(), 'warning', 'laporan konsolidasi grup');
+          auth_user_id(), 'warning',
+          'laporan konsolidasi grup per ' || p_per_tanggal);
 
   RETURN QUERY
-    SELECT l.company_id, gra.code, sum(l.amount)
+    SELECT je.company_id, gra.code,
+           sum(l.debit - l.credit)          -- K-6: bukan l.amount
       FROM journal_entry_lines l
-      JOIN account_mappings m       ON m.source_account_id = l.account_id
+      JOIN journal_entries je ON je.id = l.entry_id   -- K-6: tenancy lewat induk
+      JOIN account_mappings m
+        ON  m.source_account_id = l.account_id
+        -- ⚠️ K-1: TIGA baris ini yang mencegah saldo berganda. Tanpa keduanya,
+        --    akun yang pernah dipetakan ulang punya >1 baris account_mappings
+        --    dan join menggandakan setiap baris jurnalnya.
+        AND m.berlaku_sejak <= je.entry_date
+        AND (m.berlaku_sampai IS NULL OR m.berlaku_sampai > je.entry_date)
       JOIN group_reporting_accounts gra ON gra.id = m.target_account_id
-     WHERE l.company_id = ANY (
-             SELECT unnest(scope_company_ids) FROM cross_company_grants
-              WHERE group_company_id = p_group AND grantee_user_id = auth_user_id()
-                AND revoked_at IS NULL)
+     WHERE je.entry_date <= p_per_tanggal
+       AND je.status = 'posted'            -- draft tak masuk laporan
+       AND je.company_id = ANY (
+             SELECT unnest(g.scope_company_ids)
+               FROM hak_lintas_pt_aktif g   -- K-5: view yang SAMA dgn gerbang
+              WHERE g.group_company_id = p_group
+                AND g.grantee_user_id  = auth_user_id())
+       -- ⚠️ K-2: eliminasi antar-PT. Tanpa baris ini yang dihasilkan BUKAN
+       --    laporan konsolidasi, melainkan penjumlahan biasa — penjualan
+       --    antar-PT terhitung DUA KALI.
+       AND NOT EXISTS (
+             SELECT 1 FROM intercompany_links il
+              WHERE il.group_company_id = p_group
+                AND l.entry_id IN (il.journal_entry_id_a, il.journal_entry_id_b))
      GROUP BY 1, 2;   -- ⚠️ PAGAR 1: GROUP BY inilah batasnya. Menghapusnya
                       --    mengubah fungsi ini jadi pintu bocor baris-per-baris.
 END $$;
 ```
+
+### K-1 — test yang WAJIB ada sebelum fungsi ini dianggap benar
+
+Founder menetapkan bentuk testnya, dan bentuk itu tepat karena ia **hanya bisa
+hijau bila penyaringan masa berlaku benar-benar bekerja**:
+
+> *"Petakan ulang satu akun, pastikan total tidak berubah."*
+
+```
+1. buat akun + peta v1 (berlaku_sejak 2026-01-01, berlaku_sampai NULL)
+2. posting jurnal bertanggal 2026-03-15
+3. catat total lap_konsolidasi_grup(grup, '2026-12-31')
+4. petakan ULANG akun itu: tutup v1 per 2026-07-01, buka v2 sejak 2026-07-01
+5. panggil lagi dengan tanggal yang SAMA
+   → total WAJIB identik. Kalau berganda, penyaringan masa berlaku hilang.
+```
+
+Angka nominalnya sengaja dibuat berjauhan (mis. 100.000.000), supaya
+penggandaan mustahil lolos sebagai selisih pembulatan.
+
+**Skenario ini sudah dijalankan terhadap Postgres sungguhan** (2026-08-04, di
+dalam transaksi ber-`ROLLBACK`, nol perubahan permanen) — dan klaimnya terbukti
+bukan teori:
+
+|  | tanpa saringan | dengan saringan |
+|---|---|---|
+| sebelum dipetakan ulang | 100.000.000 | 100.000.000 |
+| **sesudah dipetakan ulang** | **200.000.000** ❌ | **100.000.000** ✅ |
+
+Saldo **berlipat dua** hanya karena akunnya dipetakan ulang. Tak ada galat, tak
+ada baris ganda yang terlihat di UI — hanya angka yang naik dan tetap tampak
+masuk akal. Inilah yang founder tangkap di K-1, dan inilah yang tiga baris
+penyaring itu cegah.
+
+Dan sesuai disiplin repo ini: test itu **wajib dibuktikan bisa merah** —
+hapus dua baris `berlaku_*` dari join, pastikan ia gagal. Penjaga yang tak
+pernah terbukti bisa gagal harus dianggap tidak ada.
+
+### K-2 — eliminasi tersambung, dan apa yang MASIH belum
+
+`intercompany_links` kini benar-benar dipakai (klausa `NOT EXISTS` di atas),
+bukan sekadar dirancang. Tanpanya, yang dihasilkan adalah **penjumlahan biasa**
+yang menyebut dirinya konsolidasi — dan penjualan antar-PT terhitung dua kali,
+membesarkan pendapatan grup.
+
+**Yang masih belum, dan dinyatakan sebagai celah ke-4** (§4): pendekatan
+`NOT EXISTS` membuang **seluruh jurnal** yang tertaut. Itu benar untuk
+transaksi yang nilainya sepenuhnya internal (sewa alat antar-PT, alokasi
+biaya). Ia **tidak** benar untuk jurnal campuran — satu jurnal yang memuat
+baris internal *dan* eksternal sekaligus.
+
+Eliminasi tingkat-baris menuntut `intercompany_links` menunjuk `line_id`, bukan
+`entry_id`. Belum diputuskan karena belum ada contoh nyatanya, dan menebak
+bentuknya sekarang sama dengan menebak.
 
 **PAGAR 5 (baca-saja) dipaksa oleh bentuk:** fungsi ini `RETURNS TABLE` dan tak
 punya satu pun `UPDATE`/`INSERT` ke tabel pembukuan. Satu-satunya `INSERT`-nya
@@ -657,8 +848,10 @@ sedang dipakai sebagai jalan pintas — dan itu sinyal untuk meninjau ulang,
 bukan untuk memperlebar.
 
 ```sql
-SELECT count(*) FROM cross_company_grants
- WHERE revoked_at IS NULL AND (expires_at IS NULL OR expires_at > now());
+-- Lewat view (K-5), bukan predikat yang ditulis ulang. Menyalin syaratnya ke
+-- sini akan membuat tripwire menghitung hal yang berbeda dari yang dijaga
+-- gerbang begitu salah satu syarat berubah.
+SELECT count(*) FROM hak_lintas_pt_aktif;
 ```
 
 ---
@@ -763,16 +956,28 @@ SELECT count(*) FROM account_mappings WHERE berlaku_sampai IS NOT NULL;
 **Pagar akses lintas-PT** — keempatnya harus benar:
 
 ```sql
--- PAGAR 4 (mati bawaan): nol grant di lingkungan baru
-SELECT count(*) FROM cross_company_grants
- WHERE revoked_at IS NULL AND (expires_at IS NULL OR expires_at > now());
+-- PAGAR 4 (mati bawaan): nol grant di lingkungan baru.
+-- Lewat VIEW (K-5) — jangan salin predikatnya ke sini.
+SELECT count(*) FROM hak_lintas_pt_aktif;
 
--- PAGAR 2 (per-orang): tak boleh ada grant tanpa penerima/alasan
+-- PAGAR 2 (per-orang): tak boleh ada grant tanpa penerima/alasan.
+-- Ini memeriksa TABEL, bukan view — riwayat yang sudah dicabut pun wajib
+-- punya alasan, karena justru itu yang dibaca saat audit.
 SELECT count(*) FROM cross_company_grants
- WHERE grantee_user_id IS NULL OR alasan IS NULL OR alasan = '';
+ WHERE grantee_user_id IS NULL OR alasan IS NULL OR btrim(alasan) = '';
 
 -- PAGAR 3 (tercatat): tiap pembacaan konsolidasi meninggalkan jejak
 SELECT count(*) FROM audit_logs WHERE action = 'konsolidasi.baca';
+
+-- K-3: "cabut lalu beri lagi" harus MUNGKIN — nol baris berarti belum pernah
+-- diuji, bukan berarti benar. Ujilah sekali di F2-3.
+SELECT grantee_user_id, count(*) AS jumlah_riwayat
+  FROM cross_company_grants GROUP BY 1 HAVING count(*) > 1;
+
+-- K-4: cakupan grant tak boleh memuat perusahaan di luar grupnya
+SELECT g.id FROM cross_company_grants g
+ WHERE EXISTS (SELECT 1 FROM unnest(g.scope_company_ids) s
+                WHERE s NOT IN (SELECT company_id FROM anggota_grup(g.group_company_id)));
 ```
 
 **PAGAR 1 & 5** dijaga oleh bentuk fungsinya (`GROUP BY`, `RETURNS TABLE`) —

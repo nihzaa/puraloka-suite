@@ -482,3 +482,37 @@ LAMA. Laporan Maret memakai peta Maret.
 harga transfer (nasihat pajak, bukan arsitektur) · eliminasi × versi peta.
 
 **Menunggu:** ratifikasi final. Nol migrasi dijalankan; F2-2/F2-3 terkunci.
+
+### R-007 · ✅ DIRATIFIKASI (2026-08-04) + revisi 4 menutup enam koreksi
+
+**Ratifikasi diberikan** atas empat keputusan struktural: K1 `parent_company_id`
+· K2 CoA tiga lapis + template · K3 konsolidasi-dihitung + eliminasi eksplisit
++ transfer berjejak · K4 lima pagar. **F2-3 ditahan** sampai enam koreksi masuk.
+
+| # | Koreksi | Tindakan |
+|---|---|---|
+| K-1 | fungsi membatalkan §3.3-C | `p_per_tanggal` wajib + join menyaring masa berlaku |
+| K-2 | eliminasi tak pernah dipakai | `intercompany_links` disambungkan; celah ke-4 dinyatakan |
+| K-3 | unique memblokir pemberian ulang | unique **parsial** `WHERE revoked_at IS NULL` |
+| K-4 | cakupan mengecualikan akar | `anggota_grup()` rekursif: akar + cucu |
+| K-5 | predikat menyimpang | satu view `hak_lintas_pt_aktif` |
+| K-6 | verifikasi kolom dulu | **menemukan 2 kolom yang tak ada** |
+
+**Dua koreksi menemukan cacat NYATA, bukan sekadar memperjelas:**
+
+**K-1 terbukti ke DB** (transaksi ber-ROLLBACK): akun yang dipetakan ulang
+membuat saldo **100.000.000 → 200.000.000** tanpa saringan masa berlaku;
+dengan saringan tetap 100.000.000. Tanpa galat, tanpa baris ganda yang
+terlihat — hanya angka yang naik dan tampak wajar.
+
+**K-6 menyelamatkan fungsi yang tak bisa jalan:** `journal_entry_lines.company_id`
+dan `l.amount` **tidak ada**. Tenancy lewat induk `journal_entries.company_id`;
+nilai dari `debit - credit`. Kalau lolos ke F2-3, ini jadi galat runtime di
+jalur laporan keuangan.
+
+**Celah terbuka** (diterima founder): eliminasi bertingkat · kewajaran harga
+transfer (nasihat pajak, bukan fitur) · **eliminasi tingkat-baris** (celah ke-4
+dari K-2 — sampai ada, jurnal campuran antar-PT tak boleh dibuat).
+
+**F2-1 → done. F2-2 & F2-6 terbuka.** F2-3 menunggu penerimaan revisi 4.
+Nol migrasi dijalankan.
