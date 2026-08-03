@@ -542,6 +542,7 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
             : `-Rp ${Math.abs(co.total_amount_delta).toLocaleString('id-ID')}`
 
           createNotifications(recipients.map(uid => ({
+            company_id: request.companyId!,
             user_id:     uid,
             title:       'Change Order Disubmit',
             message:     `${co.co_number} "${co.title}" (${deltaText}) di proyek ${proj?.name ?? ''} menunggu persetujuan`,
@@ -725,6 +726,7 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
             : `-Rp ${Math.abs(coFull.total_amount_delta).toLocaleString('id-ID')}`
 
           createNotifications(Array.from(recipients).map(uid => ({
+            company_id: request.companyId!,
             user_id:     uid,
             title:       'Change Order Disetujui',
             message:     `${coFull.co_number} "${coFull.title}" (${deltaText}) telah disetujui. Nilai kontrak baru: Rp ${newContractValue.toLocaleString('id-ID')}`,
@@ -810,6 +812,7 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
           const { data: proj } = await request.db!.from('projects').select('name').eq('id', coInfo.project_id).single()
 
           createNotifications([{
+            company_id: request.companyId!,
             user_id:     coInfo.submitted_by,
             title:       'Change Order Ditolak',
             message:     `${coInfo.co_number} "${coInfo.title}" di proyek ${proj?.name ?? ''} ditolak${request.body.reason ? `: ${request.body.reason}` : ''}`,

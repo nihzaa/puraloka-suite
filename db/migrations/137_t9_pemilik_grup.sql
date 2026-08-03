@@ -168,6 +168,7 @@ ON CONFLICT (key) DO NOTHING;
 DO $$
 DECLARE
   v_yatim INT;
+  v_user  INT;
   v_pemilik UUID;
 BEGIN
   -- Setiap akar grup HARUS punya pemilik. Akar tanpa pemilik = grup yang tak
@@ -175,10 +176,42 @@ BEGIN
   -- memperbaikinya lewat UI.
   SELECT count(*) INTO v_yatim FROM companies
    WHERE parent_company_id IS NULL AND owner_user_id IS NULL;
-  IF v_yatim > 0 THEN
+
+  -- ── F0-12 (2026-08-03): bedakan "cacat" dari "database masih kosong" ──────
+  --
+  -- Penjaga ini benar dan tetap dipertahankan, TAPI versi pertamanya membuat
+  -- seluruh rantai migrasi TIDAK BISA di-replay dari nol. Ditemukan saat
+  -- `ci-project-setup.mjs setup-clean` (wipe + replay 172 migrasi):
+  --
+  --     137: 1 akar grup tanpa owner_user_id.
+  --
+  -- Sebabnya bukan cacat data, melainkan urutan. Migrasi 032 men-seed
+  -- `company_profile`, lalu 126 membuat tenant pertama dari profil itu — tetapi
+  -- di database yang baru di-wipe **belum ada satu pun user**, karena seed user
+  -- dijalankan SETELAH seluruh migrasi selesai. Maka `created_by` NULL, backfill
+  -- di atas tak menemukan siapa pun, dan penjaga ini melempar.
+  --
+  -- Yang membedakan dua keadaan itu adalah ADA-TIDAKNYA USER:
+  --
+  --   · ada user + akar yatim  → CACAT NYATA. Backfill gagal padahal kandidat
+  --     pemiliknya ada. Tetap melempar, persis seperti semula.
+  --   · nol user + akar yatim  → SAH. Pemiliknya memang belum lahir. Migrasi 176
+  --     memasang trigger yang mengisi kepemilikan begitu user aktif pertama
+  --     dibuat, jadi jaminannya tetap ditegakkan mesin — bukan harapan.
+  --
+  -- Melonggarkan tanpa syarat `v_user = 0` akan membiarkan produksi lahir dengan
+  -- grup tanpa pemilik. Syarat itulah yang menjaga maknanya tetap utuh.
+  SELECT count(*) INTO v_user FROM users;
+
+  IF v_yatim > 0 AND v_user > 0 THEN
     RAISE EXCEPTION
-      '137: % akar grup tanpa owner_user_id. Grup itu tak akan bisa menambah '
-      'badan usaha baru dari UI.', v_yatim;
+      '137: % akar grup tanpa owner_user_id (padahal ada % user). Grup itu tak '
+      'akan bisa menambah badan usaha baru dari UI.', v_yatim, v_user;
+  ELSIF v_yatim > 0 THEN
+    RAISE NOTICE
+      '137: % akar grup belum punya pemilik — SAH, database ini belum punya user '
+      'sama sekali. Migrasi 176 memasang trigger yang mengisinya saat user aktif '
+      'pertama lahir.', v_yatim;
   END IF;
 
   -- Fungsi harus benar-benar bekerja untuk pemilik yang baru di-backfill —

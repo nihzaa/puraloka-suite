@@ -48,3 +48,6 @@ coverage/
 # Playwright — jejak & laporan kegagalan uji browser (regenerasi tiap run)
 test-results/
 playwright-report/
+
+# Keluaran coverage — lantainya di apps/api/scripts/coverage-lantai.json (ter-track)
+coverage/

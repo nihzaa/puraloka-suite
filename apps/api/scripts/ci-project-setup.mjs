@@ -112,6 +112,51 @@ for (const [role, email, name] of USERS) {
   })
 }
 
+// ── Keanggotaan perusahaan (F0-13) ─────────────────────────────────────────
+//
+// TANPA blok ini, 163 test gagal di project CI dengan pola yang membingungkan:
+// puluhan `expected 403 to be 200`, `daftar admin kosong`, `admin tidak menerima
+// notifikasi`. Akarnya satu, dan tak terlihat dari pesan mana pun:
+//
+//     "User belum terdaftar sebagai anggota perusahaan manapun"  (auth.ts:82)
+//
+// `resolveCompanyId()` menolak SETIAP request dari user yang tak punya baris di
+// `company_members`. Jadi seluruh endpoint ber-`preHandler` membalas 403, dan
+// test yang mengharapkan 200/201/400/422 gagal berjamaah.
+//
+// Kenapa barisnya tak ada: migrasi 126 mendaftarkan "semua user existing" ke
+// tenant pertama — tetapi di project CI yang di-wipe, migrasi berjalan SEBELUM
+// seed, jadi saat 126 jalan belum ada satu pun user untuk didaftarkan. Ini
+// kelas cacat yang sama persis dengan F0-12 (137 gagal karena `v_admin` NULL):
+// urutan seed-vs-migrasi, dan hanya muncul di lingkungan yang dibangun dari nol.
+//
+// Peran diambil dari `users.role_id` supaya identik dengan yang dilakukan 126 —
+// peran per-company (ADR-011 D6) tetap konsisten dengan peran global user.
+await seed('company_members (semua user seed)', async () => {
+  const { rows: comp } = await c.query(
+    `SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1`)
+  if (!comp.length) throw new Error('tak ada company akar — migrasi 126 belum jalan?')
+
+  const { rows: adminRow } = await c.query(
+    `SELECT id FROM public.users WHERE email='ci-admin@puraloka.test' LIMIT 1`)
+
+  await c.query(
+    `INSERT INTO company_members (company_id, user_id, role_id, is_default, is_active, created_by)
+     SELECT $1, u.id, u.role_id, true, true, $2
+       FROM public.users u
+      WHERE u.role_id IS NOT NULL
+     ON CONFLICT (company_id, user_id) DO NOTHING`,
+    [comp[0].id, adminRow[0]?.id ?? null])
+
+  // Verifikasi, bukan asumsi: seed yang "berhasil" tapi nol baris adalah persis
+  // kegagalan senyap yang menghabiskan waktu paling lama untuk didiagnosis.
+  const { rows: n } = await c.query(
+    `SELECT count(*)::int AS n FROM company_members WHERE company_id=$1 AND is_active`,
+    [comp[0].id])
+  if (n[0].n === 0) throw new Error('company_members tetap kosong setelah insert')
+  console.log(`    → ${n[0].n} anggota terdaftar di company akar`)
+})
+
 // 1 client — kolom NOT NULL: contact_person, phone, created_by (company_name nullable).
 await seed('client', async () => {
   const { rows: has } = await c.query(`SELECT 1 FROM clients WHERE contact_person='CI Seed Client' LIMIT 1`)

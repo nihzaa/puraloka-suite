@@ -187,6 +187,61 @@ const MIGRATIONS_DIR = join(import.meta.dirname, '../../../../db/migrations')
 export async function runMigrations(client: Client, migrationFiles: string[]): Promise<void> {
   for (const file of migrationFiles) {
     const sql = readFileSync(join(MIGRATIONS_DIR, file), 'utf-8')
-    await client.query(sql)
+    await jalankanDenganRetryKatalog(client, sql, file)
+  }
+}
+
+/**
+ * Menjalankan satu berkas migrasi, dengan retry KHUSUS untuk benturan katalog
+ * global antar-shard CI.
+ *
+ * ── Kenapa ini perlu
+ *
+ * Tiap shard membangun schema test-nya sendiri lewat `runMigrations`. Itu aman
+ * untuk objek per-schema (tabel, enum, policy) — mereka dinamespace ke
+ * `TEST_SCHEMA` masing-masing.
+ *
+ * Tetapi migrasi 001 memanggil `CREATE EXTENSION IF NOT EXISTS` (pgcrypto,
+ * uuid-ossp, btree_gist), dan **extension adalah objek GLOBAL**: ia menulis ke
+ * `pg_extension`, satu katalog untuk seluruh database. Enam shard yang start
+ * bersamaan mengeksekusi baris itu pada saat yang sama, dan Postgres membalas:
+ *
+ *     error: tuple concurrently updated
+ *
+ * `IF NOT EXISTS` TIDAK menolong di sini — ia mencegah galat "sudah ada",
+ * bukan benturan penulisan baris katalog yang bersamaan.
+ *
+ * Terukur (2026-08-03): 4 shard lolos 2/2 run; 6 shard 1 lolos, 1 kena. Jadi
+ * ini balapan probabilistik yang peluangnya naik seiring jumlah shard — bukan
+ * cacat logika, dan bukan alasan untuk menurunkan paralelisme.
+ *
+ * ── Kenapa retry, bukan mengunci
+ *
+ * Operasinya sudah idempoten: begitu shard lain selesai membuat extension-nya,
+ * percobaan berikutnya melihat "sudah ada" dan lanjut. Mengunci (advisory lock)
+ * akan menserialkan SELURUH migrasi hanya demi tiga baris di berkas pertama.
+ *
+ * Galat lain TIDAK di-retry — hanya `40001`/`XX000 tuple concurrently updated`.
+ * Menelan galat lain akan menyembunyikan migrasi yang benar-benar rusak.
+ */
+async function jalankanDenganRetryKatalog(client: Client, sql: string, file: string): Promise<void> {
+  const MAKS = 4
+  for (let percobaan = 1; percobaan <= MAKS; percobaan++) {
+    try {
+      await client.query(sql)
+      return
+    } catch (err) {
+      const e = err as { message?: string; code?: string }
+      const benturanKatalog =
+        /tuple concurrently updated|tuple concurrently deleted/i.test(e.message ?? '') ||
+        e.code === '40001'
+      if (!benturanKatalog || percobaan === MAKS) throw err
+      // Jeda bertingkat + acak: tanpa komponen acak, shard yang bentrok akan
+      // mencoba ulang pada milidetik yang sama dan bentrok lagi.
+      await new Promise((r) => setTimeout(r, percobaan * 300 + Math.random() * 200))
+      console.warn(
+        `[test-db] benturan katalog global saat ${file} (percobaan ${percobaan}/${MAKS}) — coba lagi`,
+      )
+    }
   }
 }

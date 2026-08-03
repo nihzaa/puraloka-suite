@@ -210,6 +210,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
 
         const { createNotification } = await import('../../utils/notifications.js')
         createNotification({
+          company_id: request.companyId!,
           user_id:    kasbonFull.requested_by,
           title:      body.action === 'approve' ? 'Kasbon Disetujui' : 'Kasbon Ditolak',
           message:    body.action === 'approve'
@@ -350,6 +351,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
 
       for (const uid of recipients) {
         createNotification({
+          company_id: request.companyId!,
           user_id:    uid,
           title:      'Milestone Mendekati Jatuh Tempo',
           message:    `Milestone "${ms.title}" di proyek ${proj?.name ?? ''} jatuh tempo dalam ${daysLeft} hari`,
@@ -381,6 +383,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
 
       for (const uid of recipients) {
         createNotification({
+          company_id: request.companyId!,
           user_id:    uid,
           title:      'Milestone Terlambat',
           message:    `Milestone "${ms.title}" di proyek ${proj?.name ?? ''} telah melewati tanggal target`,
@@ -488,6 +491,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
 
       for (const uid of recipients) {
         await createNotification({
+          company_id: request.companyId!,
           user_id:     uid,
           title:       'Termin Siap Ditagih',
           message:     `Termin ${t.termin_number} (${fmt(Number(t.amount))}) di proyek "${proj.name}" sudah memenuhi syarat tagih${t.due_date ? ` — jatuh tempo ${t.due_date}` : ''}`,
@@ -523,6 +527,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
       const recipients = await resolveRecipients('project_deadline', { projectId: p.id, companyId: request.companyId! })
       for (const uid of recipients) {
         await createNotification({
+          company_id: request.companyId!,
           user_id:     uid,
           title:       isOverdue ? 'Proyek Melewati Deadline' : `Proyek Selesai dalam ${daysLeft} Hari`,
           message:     isOverdue
@@ -563,6 +568,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
 
       for (const uid of recipients) {
         await createNotification({
+          company_id: request.companyId!,
           user_id:     uid,
           title:       'Kasbon Menunggu Persetujuan',
           message:     `Kasbon ${fmt(Number(k.amount))} dari ${mandorName} di proyek "${proj.name}" sudah menunggu ${daysWaiting} hari`,
@@ -605,6 +611,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
 
       for (const uid of recipients) {
         await createNotification({
+          company_id: request.companyId!,
           user_id:     uid,
           title:       'Invoice Jatuh Tempo Terlewat',
           message:     `Invoice ${inv.invoice_number} (${fmt(Number(inv.amount_due))}) di proyek "${proj.name}" sudah ${daysLate} hari melewati jatuh tempo`,

@@ -46,9 +46,9 @@ beforeAll(async () => {
   // Rantai khusus test (1 langkah) — semua mutasi terjadi di sini.
   await client.query(`DELETE FROM approval_chains WHERE entity_type = $1`, [TEST_ENTITY])
   const { rows } = await client.query(
-    `INSERT INTO approval_chains (entity_type, label) VALUES ($1, 'Rantai Uji') RETURNING id`, [TEST_ENTITY])
+    `INSERT INTO approval_chains (company_id, entity_type, label) VALUES ((SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1), $1, 'Rantai Uji') RETURNING id`, [TEST_ENTITY])
   await client.query(
-    `INSERT INTO approval_steps (chain_id, level, required_permission) VALUES ($1, 1, 'mandor:kasbon:approve')`,
+    `INSERT INTO approval_steps (company_id, chain_id, level, required_permission) VALUES ((SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1), $1, 1, 'mandor:kasbon:approve')`,
     [rows[0].id])
 }, 60_000)
 

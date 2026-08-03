@@ -1,0 +1,318 @@
+# CI-PROFIL — Durasi Nyata, Diukur Bukan Diperkirakan
+
+**Diukur:** 2026-08-03 · **Run rujukan:** `30762875751` (kelima job hijau)
+**Metode:** `gh api …/actions/runs/<id>/jobs` (timestamp per step), `vitest --reporter=json`
+(durasi per berkas), dan pengukuran latensi round-trip langsung ke Postgres.
+
+---
+
+## 1. SEBELUM — profil per job
+
+| Job | Durasi | Bagian terbesar |
+|---|---:|---|
+| **API — lint, typecheck, test, build** | **1317s (21,9 mnt)** | `Test + coverage` **1203s** |
+| Web — lint, typecheck, build | 135s | Build 38s · Lint 36s |
+| Browser — middleware & gulir virtual | 69s | Uji browser 23s · Pasang Chromium 20s |
+| Keamanan — dependency audit + secret scan | 52s | Dependency audit 18s |
+| Dokumentasi — tautan tidak boleh rusak | 5s | — |
+
+**Wall-clock = 21,9 menit**, ditentukan sepenuhnya oleh job API.
+
+Rincian step job API:
+
+| Step | Durasi | % dari job |
+|---|---:|---:|
+| **Test + coverage** | **1203s** | **91,3%** |
+| Prepare CI project (migrasi + seed) | 36s | 2,7% |
+| Typecheck | 18s | 1,4% |
+| Build | 18s | 1,4% |
+| Install dependencies | 14s | 1,1% |
+| Setup node | 9s | 0,7% |
+| Lint ratchet | 5s | 0,4% |
+
+**Kesimpulan langkah 1:** semua target optimasi selain test suite bernilai
+gabungan **< 2 menit**. Cache dependensi, `tsbuildinfo` inkremental, dan filter
+path — semuanya benar secara prinsip — tak akan menggeser angka 21,9 menit secara
+berarti. **91% masalahnya ada di satu step.**
+
+---
+
+## 2. Hipotesis mandat: DIUJI, lalu GUGUR
+
+Mandat menduga: *"flake lock `DROP SCHEMA` menandakan schema dibongkar-pasang per
+berkas"*, dan menyarankan template database / transaksi-rollback.
+
+### Bukti yang menggugurkannya
+
+**a. Overhead setup/teardown ≈ NOL.** Dari `vitest --reporter=json` atas 130 berkas:
+
+```
+TOTAL waktu berkas   : 125,6s
+  eksekusi assertion : 125,5s  (100%)
+  overhead hook      :   0,2s  (0%)
+```
+
+**b. DDL schema memang murah** — diukur langsung ke Postgres yang sama:
+
+```
+DROP SCHEMA … CASCADE     0,03s
+CREATE SCHEMA             0,02s
+```
+
+Kalau tiap berkas membayar DDL, 130 berkas × 0,05s = **6,5 detik**. Itu 0,5% dari
+1203s. Menggantinya dengan template database akan menghemat **detik**, bukan menit.
+
+### Yang SEBENARNYA mahal: latensi round-trip
+
+```
+1 round-trip   SELECT 1  →  0,02s
+100 round-trip SELECT 1  →  2,12s   (≈21 ms/query)
+```
+
+125,6s ÷ 21ms ≈ **~6.000 query round-trip** dalam satu suite. Test di repo ini
+adalah **integration test terhadap Postgres nyata** (keputusan sadar, tercatat di
+`vitest.config.ts`) — jadi jumlah query itu wajar. Yang tak wajar adalah **jarak**.
+
+### Kenapa CI 10× lebih lambat dari lokal
+
+| | Lokal | CI |
+|---|---|---|
+| Durasi suite | ~230s | **1203s** |
+| Region DB | `ap-southeast-1` (Singapura) | **`ap-northeast-1` (Tokyo)** |
+| Lokasi klien | Indonesia | **runner GitHub (US-East)** |
+
+**Setiap dari ~6.000 round-trip di CI menyeberangi Pasifik.** Itulah faktor 10×.
+
+**Ini temuan terpenting profil ini**, dan tak satu pun butir di rencana mandat
+(cache, tsbuildinfo, filter path, template DB) menyentuhnya.
+
+---
+
+## 3. Konsekuensi terhadap rencana
+
+Empat butir mandat tetap dikerjakan karena benar, meski dampaknya kecil:
+
+| Butir | Dampak terukur | Tetap dikerjakan? |
+|---|---|---|
+| 2.1 `cancel-in-progress` | tak mengurangi durasi satu run, **tapi menghapus antrean menumpuk** — dan itu persis keluhan "terlalu sering" | **YA — prioritas 1** |
+| 2.4 Cache pnpm + tsbuildinfo | hemat ≤ 20s dari 1317s | ya, murah |
+| 2.5 Filter path | job Web/Browser (204s) dilewati saat hanya API berubah | ya, dengan pengecualian keras |
+| 2.3 Shard matrix | **membagi 1203s jadi ~4×300s** — satu-satunya butir yang menyentuh 91% | **YA — prioritas 2** |
+| 2.2 Template database | hemat ~6,5s (0,5%) | **TIDAK** — biaya kompleksitas > manfaat |
+
+Dan satu butir yang **tidak ada di mandat** tetapi berdampak terbesar:
+
+| Butir baru | Dampak |
+|---|---|
+| **Pindahkan project CI Supabase ke region dekat runner** (mis. `us-east-1`) | berpotensi memangkas 1203s → ~250s **tanpa mengubah satu baris test pun** |
+
+Itu perubahan infrastruktur di luar repo (butuh tindakan founder di dashboard
+Supabase), jadi dicatat di `RATIFIKASI.md`, bukan dikerjakan diam-diam.
+
+---
+
+## 4. Catatan tentang F0-4 (flake `DROP SCHEMA`)
+
+Mandat menyebut butir 2.2 "sekaligus menutup F0-4". F0-4 **sudah ditutup lebih
+dulu**, dengan kesimpulan yang konsisten dengan profil ini: DDL bukan sumber
+kelambatan, dan flake lock-nya sudah dimitigasi `lock_timeout 10s` + 3 retry di
+`test-db.ts` (diuji stres 45/45 dua putaran, plus 5 run suite penuh berturut hijau).
+
+Profil ini memperkuatnya dari sisi angka: DDL schema = 0,05s/berkas. Membangun
+mekanisme template database untuk menghemat 6,5 detik, pada suite yang menghabiskan
+1203 detik menunggu jaringan, adalah optimasi yang salah sasaran.
+
+---
+
+## 5. SESUDAH — hasil terukur
+
+### 5.1 Sharding: BERHASIL secara durasi, DITAHAN karena isolasi
+
+Shard 4× dijalankan sungguhan (run `30764532516`):
+
+| Job | Durasi | Hasil |
+|---|---:|---|
+| API — test (shard 1) | 376s | **gagal** |
+| API — test (shard 2) | 434s | hijau |
+| API — test (shard 3) | 264s | hijau |
+| API — test (shard 4) | 396s | hijau |
+
+**Wall-clock 1317s → 434s (3× lebih cepat).** Target ≤8 menit **tercapai**.
+
+Tetapi shard 1 gagal, dan penyebabnya bukan sharding:
+
+```
+error 23502 — projects.company_id NOT NULL dilanggar
+  di lessons-writeback.test.ts
+```
+
+`fn_isi_company_id()` (migrasi 127) mengisi `company_id` otomatis **hanya bila
+`companies` berisi tepat satu baris**; saat ambigu ia menolak menebak. Itu
+perilaku yang **benar** dan sengaja.
+
+Yang salah ada di test: **46 berkas memakai `createRlsClient` → schema `public`
+BERSAMA**, dan 9 di antaranya membuat company tambahan, tersebar di keempat shard:
+
+| Shard | Berkas pembuat company |
+|---|---|
+| 1 | `t10-peran-per-company`, `t6-penomoran-per-company`, `tenant-isolation-nyata` |
+| 2 | `t5b-kill-switch` |
+| 3 | `search-tenant-isolation`, `submittal-aturan`, `t7-menu-per-company`, `t9-kelola-badan-usaha` |
+| 4 | `t7-company-switcher` |
+
+Berurutan mereka tak pernah bertabrakan — tiap berkas membersihkan miliknya.
+**Paralel**, company milik shard lain terlihat di tengah jalan → trigger melihat
+>1 company → menolak mengisi → NOT NULL menolak.
+
+**Keputusan: shard ditahan di 1.** Menaikkannya sekarang berarti CI merah acak
+yang gejalanya tampak seperti "test flaky". Dan memperbaikinya dengan
+melonggarkan `fn_isi_company_id()` berarti melemahkan penjaga tenancy **tepat
+sebelum Fase 2** — Gerbang Keras G-5.
+
+Struktur matrix dipertahankan; menaikkannya kembali cukup perubahan kecil setelah
+**F0-14** (memindahkan 46 berkas dari `public` ke schema terisolasi).
+
+### 5.2 Yang tetap terpasang dan berdampak
+
+| Perubahan | Dampak |
+|---|---|
+| `concurrency` per-ref + `cancel-in-progress` | **Antrean menumpuk hilang.** Sebelumnya seluruh branch antre di satu barisan konstan — terukur satu run tertahan `pending` belasan menit menunggu run usang. Inilah sumber keluhan "terlalu sering". |
+| Job `coverage` terpisah (`needs: api`) | Ratchet dinilai atas gabungan shard, bukan per-shard. Siap dipakai begitu shard dinaikkan. |
+| `gabung-coverage.mjs` | Terverifikasi: statements gabungan **6794/21241 identik** dengan run tak ter-shard. |
+| Penjaga literal peran API (ADR-004) | Menutup lubang yang lolos 14 penjaga lain. |
+
+### 5.3 ✅ ANGKA AKHIR — 5,4 menit, 6 shard, 11/11 hijau
+
+Run `30806370508` — **11/11 check hijau**, dan shard kini seimbang:
+
+| Job | Durasi |
+|---|---:|
+| API — test (shard 2/6) | **324s** ← jalur kritis |
+| shard 5 · 6 · 1 · 3 | 310s · 308s · 289s · 273s |
+| API — test (shard 4/6) | 188s |
+| Web · Browser · Keamanan | 122s · 81s · 50s |
+| Ratchet coverage (gabungan) | 33s |
+| Dokumentasi | 6s |
+
+**Wall-clock 1317s → 324s = 21,9 → 5,4 menit (4,1×).**
+Target ≤8 menit **terlampaui dengan margin 2,6 menit.**
+
+Lima shard berkumpul rapat di 273–324s (selisih 19%, dari 87% sebelumnya).
+Ketimpangan hilang bukan karena penyeimbangan beban, melainkan karena
+**empat cacat isolasi diperbaiki** — shard yang dulu melambat sedang menunggu,
+bukan sedang bekerja.
+
+### 5.3a Riwayat: 6,3 menit (sebelum purge disempitkan)
+
+Run `30768651050` — seluruh **11 check hijau** setelah F0-16:
+
+| Job | Durasi |
+|---|---:|
+| API — test (shard 1/6) | **377s** ← jalur kritis |
+| shard 3/6 · 2/6 · 5/6 · 6/6 | 284s · 278s · 271s · 269s |
+| API — test (shard 4/6) | 217s |
+| Web · Browser · Keamanan | 133s · 97s · 51s |
+| Ratchet coverage (gabungan) | 32s |
+| Dokumentasi | 7s |
+
+**Wall-clock 1317s → 377s = 21,9 → 6,3 menit (3,5×).**
+**Target ≤8 menit: TERCAPAI dengan margin 1,7 menit.**
+
+Lima shard berkumpul di 217–284s; hanya shard 1 yang menonjol di 377s (menampung
+`multitenant-t3-rollback` 12,7s + `gl-api` 8,4s). Menaikkan shard lagi tak akan
+banyak membantu — shard 1 tetap jadi jalur kritis selama pembagian berbasis
+alfabet. Yang menembus batas berikutnya adalah **B-3/Postgres lokal**, yang
+memangkas *dasar* latensinya.
+
+### 5.3a Riwayat: 4 shard (sebelum F0-16)
+
+Run `30767512276` — **9/9 check hijau**:
+
+| Job | Durasi |
+|---|---:|
+| API — test (shard 2/4) | **425s** ← jalur kritis |
+| API — test (shard 1/4) | 378s |
+| API — test (shard 4/4) | 322s |
+| API — test (shard 3/4) | 299s |
+| Web — lint, typecheck, build | 137s |
+| Browser | 68s |
+| Keamanan | 44s |
+| Ratchet coverage (gabungan) | 34s |
+| Dokumentasi | 5s |
+
+**Wall-clock 1317s → 425s = 21,9 → 7,1 menit (3,1×).**
+**Target mandat "gerbang penuh ≤8 menit": TERCAPAI.**
+
+Nol penjaga dipindahkan ke nokturnal, nol `continue-on-error`, dan **dua penjaga
+baru ditambahkan** (literal peran ADR-004 sisi API, tabrakan definisi tabel).
+
+Catatan jujur: shard masih timpang (425s vs 299s) dan 6 shard sempat dicoba lalu
+gagal — bukan karena keseimbangan, melainkan karena menyingkap **F0-16**
+(notifikasi tenant-blind). Jadi 4 shard adalah angka tertinggi yang terbukti,
+bukan angka optimal. F0-15 menunggu F0-16.
+
+### 5.3a Riwayat: shard 4× tepat setelah F0-14 (sebelum perbaikan shard 3)
+
+Run `30766328275` — **seluruh 9 check hijau**, termasuk keempat shard:
+
+| Job | Durasi |
+|---|---:|
+| API — test (shard 1/4) | **494s** ← jalur kritis |
+| API — test (shard 4/4) | 381s |
+| API — test (shard 2/4) | 300s |
+| API — test (shard 3/4) | 265s |
+| Web — lint, typecheck, build | 135s |
+| Browser | 73s |
+| Keamanan | 56s |
+| Ratchet coverage (gabungan) | 34s |
+| Dokumentasi | 8s |
+
+**Wall-clock 1317s → 494s = 21,9 → 8,2 menit (2,7×).**
+
+**Target ≤8 menit: kurang 14 detik.** Dinyatakan apa adanya — bukan dibulatkan
+jadi "tercapai".
+
+Yang menahan tinggal satu, dan sudah terukur: **shard tidak seimbang**
+(494s vs 265s — selisih 87%). `vitest --shard` membagi berdasarkan urutan
+alfabet, bukan durasi, jadi shard 1 kebetulan menampung berkas-berkas terberat
+(`multitenant-t3-rollback` 12,7s, `gl-api` 8,4s). Menyeimbangkannya —
+mis. 6 shard, atau pembagian berbasis durasi — akan menembus 8 menit dengan
+mudah. Masuk antrean sebagai pekerjaan berikutnya, bukan diklaim selesai.
+
+Dan **B-3 (pindah region DB)** tetap perbaikan terbesar yang tersisa: ia
+memangkas dasar 1203s-nya, bukan sekadar membaginya.
+
+### 5.4 Angka antara (1 shard, sebelum F0-14)
+
+Run `30765204774`, konfigurasi yang benar-benar dipakai (1 shard):
+
+| Job | Durasi |
+|---|---:|
+| **API — test (shard 1/1)** | **820s** |
+| Web — lint, typecheck, build | 127s |
+| Browser | 74s |
+| Keamanan | 46s |
+| Ratchet coverage (gabungan) | 26s |
+| Dokumentasi | 7s |
+
+**Wall-clock 1317s → 820s = 21,9 → 13,7 menit (1,6×).**
+
+**Target mandat "gerbang penuh ≤8 menit" BELUM tercapai.** Dinyatakan apa adanya.
+
+Yang menahan bukan hal yang bisa saya perbaiki dari dalam repo:
+
+- **Sharding sudah membuktikan bisa mencapainya** (434s = 7,2 menit, run
+  `30764532516`) — tapi ditahan karena isolasi test (F0-14). Menaikkannya
+  sekarang berarti menukar CI yang benar dengan CI yang cepat-tapi-merah-acak.
+- **Latensi lintas-Pasifik** (§2) tetap penyebab dominan dan hanya bisa
+  dihapus dengan memindahkan region (B-3).
+
+Jadi jalur ke ≤8 menit sudah jelas dan terbukti, tinggal dua penghalang yang
+keduanya sudah tercatat — bukan tebakan tentang apa yang mungkin membantu.
+
+### 5.4 Perbaikan akar yang belum dikerjakan
+
+Latensi lintas-Pasifik (§2) tetap penyebab terbesar. Memindahkan project CI
+Supabase ke region dekat runner berpotensi memangkas 1203s → ~250s **tanpa
+menyentuh satu baris test pun** — lebih besar dari seluruh hasil sharding, dan
+tanpa risiko isolasi. Di luar repo → `RATIFIKASI.md` **B-3**.

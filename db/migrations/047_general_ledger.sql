@@ -1,121 +1,82 @@
--- Migration 047: General Ledger — Phase GL-1 (Modul 10)
--- Creates the Chart of Accounts (CoA) structure and double-entry journal tables.
--- PERINGATAN: Jalankan migration ini HANYA setelah semua modul 1-12 stabil
--- dan CoA sudah divalidasi bersama akuntan / konsultan pajak Puraloka Persada.
--- Implementasi auto-jurnal (GL-2) dilakukan di application layer (AccountingEngine class),
--- BUKAN di sini — agar lebih mudah di-debug dan di-maintain.
+-- ============================================================================
+-- Migration 047 — DIPENSIUNKAN. Berkas ini sengaja TIDAK melakukan apa pun.
+-- ============================================================================
+--
+-- Ratifikasi founder 2026-08-03 (R-001, opsi A). Isi lama berkas ini dapat
+-- dibaca di git history: `git show 263387c:db/migrations/047_general_ledger.sql`.
+--
+-- ── Apa yang dulu ada di sini
+--
+-- 047 membuat General Ledger versi pertama: `accounts`, `journal_entries`,
+-- `journal_entry_lines` — semuanya **single-tenant**. Kolom jenis akun bernama
+-- `account_type`, dan **tidak ada `company_id` sama sekali** (nol kemunculan).
+--
+-- ── Kenapa dipensiunkan, dan kenapa ini P0
+--
+-- Migrasi **167** membangun ulang GL dalam bentuk **tenant-aware**: `company_id`
+-- NOT NULL di ketiga tabel, kolom jenis akun bernama `type`, penomoran jurnal
+-- per-company. Keduanya memakai `CREATE TABLE IF NOT EXISTS`.
+--
+-- `IF NOT EXISTS` melindungi dari "tabel sudah dibuat oleh migrasi INI" —
+-- **bukan** dari "tabel sudah dibuat oleh migrasi LAIN dengan bentuk berbeda".
+-- Maka di lingkungan mana pun yang menjalankan migrasi berurutan dari nol
+-- (CI hari ini, produksi nanti):
+--
+--   1. 047 jalan lebih dulu → `accounts` terbentuk TANPA `company_id`.
+--      SQL-nya sah, jadi tidak error, jadi tidak masuk `SKIP_ALLOWLIST`
+--      di `ci-project-setup.mjs`, jadi tidak memicu HARD FAIL.
+--   2. 167 menyusul → melihat tabelnya sudah ada → **no-op senyap**.
+--   3. Hasil akhir: **buku besar tidak bisa memisahkan perusahaan.**
+--
+-- Tak ada pesan galat. Tak ada test merah. Baru ketahuan ketika perusahaan
+-- kedua membuka jurnal dan melihat angka perusahaan pertama — yaitu setelah
+-- kerusakannya permanen.
+--
+-- ── Kenapa AMAN memensiunkannya (bukan sekadar nyaman)
+--
+-- Diverifikasi 2026-08-02/03 lewat `scripts/db/ledger-diff.mjs`:
+--
+--   · Di **dev**: 047 tercatat di buku migrasi, tetapi SELURUH artefaknya
+--     TIDAK ADA (9 objek: fungsi `set_accounts_updated_at`,
+--     `protect_journal_entries_created_at`, dan 7 index). `accounts` yang hidup
+--     di dev adalah bentuk **167** — terbukti punya `company_id` dan kolom `type`.
+--     Artinya 047 memang tak pernah benar-benar dijalankan di dev.
+--   · Di **project CI**: diperiksa terpisah oleh
+--     `apps/api/scripts/ci-periksa-bentuk-gl.mjs` (R-001 syarat 1). Bila di sana
+--     `accounts` terbentuk dari 047 (tanpa `company_id`), project CI WAJIB
+--     di-reset dari nol — tabel itu tak bisa diperbaiki dengan menjalankan 167,
+--     persis karena `IF NOT EXISTS`.
+--   · **Nol data produksi.** `journal_entries` berisi 0 baris. Ini jendela
+--     termurah yang akan pernah ada untuk memperbaikinya.
+--
+-- ── Kenapa berkas ini tidak dihapus saja
+--
+-- Nomor 047 SUDAH TERCATAT di `supabase_migrations.schema_migrations`. Menghapus
+-- berkasnya membuat buku menunjuk ke sesuatu yang tak ada, dan
+-- `audit-penomoran-migrasi.mjs` akan melaporkannya sebagai lompatan baru.
+-- Menomori ulangnya jauh lebih berbahaya lagi. Yang benar: berkasnya tetap ada,
+-- isinya dikosongkan, alasannya ditulis di tempat orang berikutnya akan mencari.
+--
+-- ── Preseden
+--
+-- Pola ini bukan hal baru di repo ini. Migrasi **149** menghadapi persoalan yang
+-- sama persis terhadap forward-draft **045** (`assets` tanpa `company_id`), dan
+-- menyelesaikannya dengan membuang bentuk lama lebih dulu — lihat komentar
+-- panjang di `149_asset_register.sql` baris 50-73. Selisihnya: 149 masih perlu
+-- mendefinisikan tabelnya, sedangkan di sini 167 sudah melakukannya, sehingga
+-- 047 cukup menjadi no-op.
+--
+-- ── Penegas bentuk
+--
+-- Perlindungan agar cacat ini tak bisa kembali TIDAK diletakkan di berkas ini,
+-- melainkan di **175_gl_penegas_bentuk.sql** — yang berjalan SETELAH 167 dan
+-- GAGAL KERAS bila `accounts` ternyata tanpa `company_id`. Penjaga statiknya:
+-- `apps/api/scripts/audit-tabrakan-definisi-tabel.mjs` (dijalankan CI).
+-- ============================================================================
 
--- ─── Chart of Accounts ────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS accounts (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  code            TEXT NOT NULL UNIQUE,       -- '1111', '5110', dll
-  name            TEXT NOT NULL,              -- 'Kas Kantor Pusat'
-  account_type    TEXT NOT NULL
-    CHECK (account_type IN ('asset', 'liability', 'equity', 'revenue', 'expense')),
-  normal_balance  TEXT NOT NULL
-    CHECK (normal_balance IN ('debit', 'credit')),
-  parent_id       UUID REFERENCES accounts(id),   -- hierarki: 1100 parent of 1110
-  project_id      UUID REFERENCES projects(id),   -- NULL = global, NOT NULL = per proyek
-  description     TEXT,
-  is_active       BOOLEAN NOT NULL DEFAULT true,
-  sort_order      INTEGER,
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- Seed CoA Dasar — dapat diisi via SQL seed atau melalui UI admin
--- (Seed terpisah di db/seeds/ agar bisa di-adjust sebelum dieksekusi)
-
--- ─── Journal Entries (Header) ─────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS journal_entries (
-  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  entry_number      TEXT NOT NULL UNIQUE,     -- 'JE-2026-001234' — auto-generated oleh app
-  entry_date        DATE NOT NULL,
-  description       TEXT NOT NULL,
-  reference_type    TEXT,                     -- 'kasbon','invoice','payment','po','mr','manual'
-  reference_id      UUID,                     -- ID dari tabel asal
-  is_auto_generated BOOLEAN NOT NULL DEFAULT false,
-  is_reversed       BOOLEAN NOT NULL DEFAULT false,
-  reversed_by_id    UUID REFERENCES journal_entries(id),
-  created_by        UUID REFERENCES users(id),
-  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- ─── Journal Entry Lines (Detail Debit/Kredit) ────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS journal_entry_lines (
-  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  journal_entry_id  UUID NOT NULL REFERENCES journal_entries(id) ON DELETE CASCADE,
-  account_id        UUID NOT NULL REFERENCES accounts(id),
-  debit_amount      DECIMAL(18,2) NOT NULL DEFAULT 0 CHECK (debit_amount  >= 0),
-  credit_amount     DECIMAL(18,2) NOT NULL DEFAULT 0 CHECK (credit_amount >= 0),
-  description       TEXT,
-  project_id        UUID REFERENCES projects(id),  -- untuk project costing / segmentasi
-  -- Setiap baris HARUS salah satu saja (debit XOR credit)
-  CONSTRAINT chk_debit_xor_credit CHECK (
-    (debit_amount > 0 AND credit_amount = 0) OR
-    (credit_amount > 0 AND debit_amount = 0)
-  )
-);
-
--- ─── Indexes ──────────────────────────────────────────────────────────────────
-
-CREATE INDEX IF NOT EXISTS idx_accounts_code         ON accounts(code);
-CREATE INDEX IF NOT EXISTS idx_accounts_type         ON accounts(account_type);
-CREATE INDEX IF NOT EXISTS idx_accounts_parent       ON accounts(parent_id);
-CREATE INDEX IF NOT EXISTS idx_journal_entries_date  ON journal_entries(entry_date DESC);
-CREATE INDEX IF NOT EXISTS idx_journal_entries_ref   ON journal_entries(reference_type, reference_id);
-CREATE INDEX IF NOT EXISTS idx_journal_lines_account ON journal_entry_lines(account_id);
-CREATE INDEX IF NOT EXISTS idx_journal_lines_entry   ON journal_entry_lines(journal_entry_id);
-CREATE INDEX IF NOT EXISTS idx_journal_lines_project ON journal_entry_lines(project_id)
-  WHERE project_id IS NOT NULL;
-
--- ─── Constraints & Validation ────────────────────────────────────────────────
-
--- DB-level check: total debit harus = total kredit per journal entry
--- Diimplementasikan di application layer (AccountingEngine.createJournalEntry)
--- karena DB trigger untuk aggregate validation kompleks dan sulit di-debug.
--- Application layer throw error jika sum(debit) != sum(credit) sebelum INSERT.
-
--- ─── Views untuk Laporan ──────────────────────────────────────────────────────
-
--- Trial Balance view
-CREATE OR REPLACE VIEW trial_balance AS
-  SELECT
-    a.code,
-    a.name,
-    a.account_type,
-    a.normal_balance,
-    COALESCE(SUM(jl.debit_amount),  0) AS total_debit,
-    COALESCE(SUM(jl.credit_amount), 0) AS total_credit,
-    CASE a.normal_balance
-      WHEN 'debit'  THEN COALESCE(SUM(jl.debit_amount),  0) - COALESCE(SUM(jl.credit_amount), 0)
-      WHEN 'credit' THEN COALESCE(SUM(jl.credit_amount), 0) - COALESCE(SUM(jl.debit_amount),  0)
-    END AS balance
-  FROM accounts a
-  LEFT JOIN journal_entry_lines jl ON jl.account_id = a.id
-  WHERE a.is_active = true
-  GROUP BY a.id, a.code, a.name, a.account_type, a.normal_balance
-  ORDER BY a.code;
-
--- Updated_at trigger untuk accounts
-CREATE OR REPLACE FUNCTION set_accounts_updated_at()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
-BEGIN NEW.updated_at = NOW(); RETURN NEW; END;
-$$;
-
-CREATE TRIGGER trg_set_accounts_updated_at
-  BEFORE UPDATE ON accounts
-  FOR EACH ROW EXECUTE FUNCTION set_accounts_updated_at();
-
--- protect_created_at untuk journal_entries (tidak boleh di-backdated setelah dibuat)
-CREATE OR REPLACE FUNCTION protect_journal_entries_created_at()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
-BEGIN NEW.created_at = OLD.created_at; RETURN NEW; END;
-$$;
-
-CREATE TRIGGER trg_protect_journal_entries_created_at
-  BEFORE UPDATE ON journal_entries
-  FOR EACH ROW EXECUTE FUNCTION protect_journal_entries_created_at();
+-- Sengaja tanpa operasi. Jangan menambahkan DDL di sini — GL didefinisikan
+-- sepenuhnya oleh migrasi 167 dan seterusnya.
+DO $$
+BEGIN
+  RAISE NOTICE '047: dipensiunkan (R-001, 2026-08-03) — GL didefinisikan oleh migrasi 167. Tidak ada operasi.';
+END $$;

@@ -66,7 +66,7 @@ BEGIN
     'project_expenses', 'mandor_assignments', 'work_scopes',
     'audit_logs', 'users', 'clients'
   ] LOOP
-    -- Kualifikasi schema WAJIB eksplisit. `to_regclass('projects')` polos
+    -- Kualifikasi schema WAJIB eksplisit. Memanggil to_regclass dengan nama
     -- mengikuti `search_path` dan bisa menemukan `public.projects` walau
     -- schema aktif adalah `test` — itu cacat yang migrasi 154 dokumentasikan,
     -- dan blok verifikasi di bawah sempat mengulanginya: uji mutasi lolos

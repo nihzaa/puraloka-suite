@@ -152,13 +152,27 @@ for (const f of readdirSync(RUTE).filter((x) => x.endsWith('.ts'))) {
  * ⚠️ HANYA BOLEH TURUN. Kalau gagal karena NAIK, beri gerbang tenant pada rute
  * baru Anda — jangan naikkan angkanya.
  *
- * 7 tersisa per 2026-08-01, seluruhnya DIPERIKSA satu per satu (dibaca
+ * 6 tersisa per 2026-08-03, seluruhnya DIPERIKSA satu per satu (dibaca
  * kodenya, bukan dinilai dari namanya) dan sah lintas-tenant by design:
  *   · auth/login + google-callback       — jalan sebelum tenant bisa diketahui
  *   · notifications/subscribe (POST+DEL) — `.eq('id', user.id)`, baris sendiri
  *   · roles: /permissions + /auth/me/permissions — katalog capability; kunci
  *     permission adalah kontrak arsitektur, sama untuk setiap perusahaan
- *   · mandor/kasbon-photo/upload         — tulis storage, tak membaca apa pun
+ *
+ * ── Turun 7 → 6 (F1-2, 2026-08-03): `mandor/kasbon-photo/upload`
+ *
+ * Dulu dikecualikan dengan alasan "tulis storage, tak membaca apa pun". Alasan
+ * itu benar tentang TABEL, tapi melewatkan bahwa ia menaruh berkas di bucket
+ * BERSAMA dengan path `worker-kasbons/<timestamp>_<nama>` — nol penanda
+ * perusahaan.
+ *
+ * Pada perusahaan kedua, seluruh nota kasbon semua perusahaan bertumpuk di satu
+ * folder: kebijakan storage per-tenant mustahil ditulis (tak ada predikat), dan
+ * "berkas ini milik siapa" hanya bisa ditebak dari nama.
+ *
+ * Path kini diawali `request.companyId`. Ini pengulangan pelajaran `modules` di
+ * bawah, dengan bentuk berbeda: pengecualian yang menilai jalur BACA sambil
+ * melewatkan jalur TULIS.
  *
  * ⚠️ `modules` DULU ada di daftar ini dengan alasan "kategori A, katalog global,
  * bukan data pelanggan". Penilaian itu SALAH dan bertahan karena tak seorang pun
@@ -171,7 +185,7 @@ for (const f of readdirSync(RUTE).filter((x) => x.endsWith('.ts'))) {
  * Angka ini hasil UKUR sesudah celah nyata ditutup (182 → 192 → 195 bergerbang),
  * bukan target yang dipilih supaya hijau.
  */
-const AMBANG_TANPA_GERBANG = 7
+const AMBANG_TANPA_GERBANG = 6
 
 console.log(`Gerbang yang DITEMUKAN otomatis (${gerbang.size}): ${[...gerbang].sort().join(', ')}`)
 console.log(`\nRute ber-supabase-mentah: ${bergerbang + temuan.length} · bergerbang ${bergerbang} · TANPA gerbang ${temuan.length}`)

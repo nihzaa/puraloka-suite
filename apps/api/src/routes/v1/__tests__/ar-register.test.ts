@@ -58,12 +58,12 @@ beforeAll(async () => {
   adminUserId = u[0].id
 
   const { rows: cl } = await client.query(
-    `INSERT INTO clients (contact_person, phone, created_by) VALUES ('[TEST-AR] Klien', '0800000001', $1) RETURNING id`,
+    `INSERT INTO clients (company_id, contact_person, phone, created_by) VALUES ((SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1), '[TEST-AR] Klien', '0800000001', $1) RETURNING id`,
     [adminUserId])
   // end_date lampau → estimasi jatuh tempo retensi (end_date + due_days) sudah lewat
   const { rows: pr } = await client.query(
-    `INSERT INTO projects (client_id, pm_id, name, location, contract_value, start_date, end_date, created_by)
-     VALUES ($1, $2, '[TEST-AR] Proyek', 'Bandung', 100000000, '2025-06-01', '2026-01-01', $2) RETURNING id`,
+    `INSERT INTO projects (company_id, client_id, pm_id, name, location, contract_value, start_date, end_date, created_by)
+     VALUES ((SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1), $1, $2, '[TEST-AR] Proyek', 'Bandung', 100000000, '2025-06-01', '2026-01-01', $2) RETURNING id`,
     [cl[0].id, adminUserId])
   projectId = pr[0].id
 

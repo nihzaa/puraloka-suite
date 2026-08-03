@@ -190,6 +190,12 @@ membangunnya, dan tanpa keputusan itu penyebut di atas masih bisa bergeser.
 | 6 | **Graphify diperbaiki** — 7.161 node, query berfungsi | ✅ Selesai | 2026-07-31 (di luar git, `graphify-out/` ter-gitignore) |
 | 7 | **Perapian `docs/`** — 60 tautan rusak + 3 cacat administratif + pemindai di CI | ✅ Selesai | 2026-07-31, job CI `dokumentasi` |
 | E1–E8 | **Estimasi/CECEP bisa dipakai** — 8 cacat yang membuat halaman tak terpakai | ✅ Selesai | 2026-07-31, 10 commit — lihat §Tingkat 0 |
+| CI-1 | **CI dipercepat 4,1× + penjaga dibuktikan bisa merah** — 21,9→5,4 menit, 11/11 hijau; penjaga ADR-004 sisi API (lubang yang lolos 14 penjaga lain) | ✅ Selesai | run 30768651050 · `CI-PROFIL.md` §5.3 · `CI-BUKTI.md` |
+| CI-2 | **Sharding test 4×** — HIDUP setelah F0-14 (16 INSERT dinyatakan company_id eksplisit); 1317s→494s, 9/9 check hijau | ✅ Selesai | run 30766328275 · `CI-PROFIL.md` §5.3 |
+| CI-4 | **Shard dinaikkan ke 6** setelah F0-16 tuntas | ✅ Selesai | `QUEUE.yaml` **F0-15** |
+| CI-5 | **Notifikasi tenant-blind DIPERBAIKI** — `company_id` jadi kolom WAJIB di NotificationParams; TypeScript menemukan 31 pemanggil | ✅ Selesai | `QUEUE.yaml` **F0-16** |
+| CI-6 | **Golden file kedua** — Engineering Estimate SE-47 (Rp 1,66 M): 3 angka jangkar mandat dikunci + rantai aritmetika + PPN dua-angka | ✅ Selesai | `QUEUE.yaml` **F0-10** · `docs/execution/GOLDEN-FILE-INVESTIGASI.md` |
+| CI-3 | **Region project CI** — DB di Tokyo, runner di US-East; ~6.000 round-trip lintas Pasifik = 91% durasi | ⏸ Menunggu founder | `RATIFIKASI.md` **B-3** |
 
 ---
 
@@ -516,36 +522,133 @@ lagi sebagai terputus.
 
 ---
 
-## 📋 SELURUH SUB-MENU YANG BELUM TUNTAS — dari taksonomi, bukan ringkasan
 
-> **Ditambahkan 2026-08-02 menjawab pertanyaan founder: "apakah seluruh menu
-> di taksonomi sudah masuk roadmap?" Jawabannya waktu itu TIDAK — 73 dari 78
-> sub-menu 🔴 tak tercatat di mana pun.**
+
+## ⚠️ Kematangan rencana — jawaban jujur
+
+> **Founder 2026-08-02:** *"apakah setiap item/menu/submenu sudah direncanakan
+> dengan matang semuanya?"* — **Belum. Dan angkanya besar.**
+
+Dari **119 sub-menu** yang tersisa, hanya **26 punya rancangan** di `docs/`
+(spec, design, atau blueprint yang menyebutnya). **93 sisanya baru berupa NAMA
+di taksonomi** — status ✅/🟡/🔴 terverifikasi ke kode, tapi *bagaimana*
+membangunnya belum pernah dipikirkan.
+
+### Apa artinya, dan apa yang TIDAK berarti
+
+**Bukan** berarti 93 itu asal-asalan: taksonomi lahir dari kajian domain
+kontraktor (CECEP), dan tiap baris punya alasan bisnis. Yang belum ada:
+keputusan teknis — model data, alur kerja, batasan, integrasi ke modul lain.
+
+**Berarti** angka "sisa 119 sub-menu" tak boleh dibaca sebagai "tinggal
+mengerjakan". Mayoritasnya masih butuh tahap rancang lebih dulu, dan tahap itu
+kadang menghapus item (§3.5 AHSP dicoret owner) atau membelahnya jadi dua
+(RFI jadi dua modul atas keputusan founder).
+
+### Yang SUDAH matang
+
+| Kelompok | Sumber rancangan |
+|---|---|
+| GL (buku besar) | `ERP_MASTER_PLAN` §Modul 10 — CoA, peta auto-jurnal, urutan GL-1→GL-4 |
+| Estimasi/CECEP | 50 dokumen CECEP — paling matang di repo ini |
+| Multi-tenant | ADR-011 + T1–T7, seluruhnya sudah dieksekusi |
+| Procurement, RAB, kasbon | sudah hidup; sisanya penyempurnaan |
+
+### Yang belum, dan pola risikonya
+
+93 sub-menu tanpa rancangan tersebar di hampir semua modul. Yang paling
+berisiko dikerjakan tanpa rancang lebih dulu:
+
+- **Ber-ledger** — ACL, CVR, profitabilitas per cost code, WIP. Sekali angka
+  masuk, mengubah modelnya mahal (pelajaran "sebelum seed").
+- **Lintas-modul** — claims, eskalasi harga, kontrak subkontraktor. Salah
+  batas modul menular ke modul lain.
+- **Berbentuk register** — asuransi, korespondensi, bid bond. Terlihat
+  sederhana, tapi menentukan siapa pemilik data & siklus hidupnya.
+
+Yang relatif aman dibangun langsung: master data (karyawan, resource,
+subkontraktor) dan modul mandiri (QA/QC, HSE) — polanya sudah berulang di
+modul yang ada.
+
+### Haruskah merancang semuanya dulu? — bukti dari repo ini
+
+Founder bertanya lanjutan: *"kalo jawabannya tidak apakah lebih baik buat
+perencanaan dulu semuanya?"*
+
+Repo ini sudah menjalankan percobaan itu, dan hasilnya tercatat:
+
+| Rancangan dibuat di depan | Nasibnya |
+|---|---|
+| `KEPUTUSAN-MULTI-COMPANY` (26 Jul) | **SUPERSEDED 28 Jul** — bertahan **2 hari** |
+| `PETA-PRIORITAS-ERP` | SUPERSEDED, jadi registry dokumen |
+| `Phase1/` 10 dokumen | **10 dari 10 masih "Planning only"** padahal Phase 1 sudah selesai & diaudit |
+| `AHSP-EDITION-BUILDER` §3.1/3.2 | ditandai "sebelum seed" — gerbangnya **lewat** sebelum sempat dikerjakan |
+| `ERP_MASTER_PLAN` Modul 9a/9b | terlantar berbulan-bulan, baru ketahuan saat audit |
+
+Yang bertahan justru rancangan yang ditulis **dekat waktu pengerjaan**: CECEP
+(estimasi, dikerjakan sambil dirancang) dan ADR-011 (multi-tenant, ditulis saat
+tripwire-nya terpicu — bukan setahun sebelumnya).
+
+### Ukuran biayanya
+
+Dokumen rancangan CECEP yang benar-benar dipakai rata-rata **410 baris**.
+Merancang 93 sub-menu pada mutu itu ≈ **puluhan ribu baris** — dan berdasarkan
+tabel di atas, sebagian besar akan basi sebelum dibaca.
+
+### Tapi TIDAK semuanya boleh ditunda
+
+Dari 119 sub-menu tersisa, **10 benar-benar berisiko** dikerjakan tanpa rancang
+lebih dulu — karena sekali angka masuk, mengubah modelnya mahal:
+
+`Actual Cost Ledger (ACL)` · `Cost Value Reconciliation (CVR)` ·
+`Profitabilitas per cost code` · `Manajemen contingency` · `Eskalasi harga` ·
+`Claims management` · `Retensi subkontrak` · `Rekonsiliasi bank` ·
+`Kepatuhan subkontraktor (izin/asuransi/pajak)` ·
+`Analisa markup, margin, contingency`
+
+**109 sisanya relatif aman** dibangun langsung: master data, register, modul
+mandiri (QA/QC, HSE), penyempurnaan modul yang sudah hidup. Polanya sudah
+berulang di kode yang ada.
+
+### Keputusan: rancang BERKELOMPOK, bukan semuanya & bukan satu-satu
+
+1. **10 sub-menu berisiko** → rancang lebih dulu, **sebelum** salah satunya
+   dikerjakan. Kesepuluhnya saling terkait (semuanya menyentuh biaya &
+   pengakuan), jadi dirancang sebagai SATU kelompok — bukan sepuluh dokumen
+   terpisah yang saling bertentangan.
+2. **109 sisanya** → rancang saat gilirannya tiba. Cukup satu bagian di PR-nya
+   sendiri: model data, batasan, integrasi. Bukan dokumen terpisah yang bisa
+   terlantar.
+
+GL-1 mengikuti pola ini: rancangannya sudah ada di `ERP_MASTER_PLAN` (dibuat
+saat modul keuangan naik giliran), dibaca dulu, baru ditulis.
+
+---
+
+## 📋 SELURUH SUB-MENU YANG BELUM TUNTAS — dari taksonomi
+
+> **Dihasilkan otomatis** oleh `apps/api/scripts/gen-antrean-roadmap.mjs`.
+> Jangan disunting tangan — jalankan ulang skripnya.
+
+> **Dua cacat diperbaiki 2026-08-02** saat founder bertanya "berapa
+> gelombang & berapa banyak pekerjaan?":
 >
-> Gelombang 2–4 sebelumnya hanya berupa nama kantong ("QA/QC formal (7
-> sub-menu)") tanpa satu pun item. Pembacanya tak bisa tahu apa isinya — dan
-> itu persis kesalahan yang header dokumen ini sendiri peringatkan.
->
-> Status di sini **disalin dari taksonomi SESUDAH taksonomi itu diverifikasi
-> ke kode** (2026-08-02). Dua belas sub-menu ternyata bertanda 🔴 padahal
-> sudah hidup — `WIP/PSAK` (`lib/wip-psak.ts` + endpoint yang dipanggil
-> halaman laporan) dan `Earned Value Management` (`meta.evm` di kurva-s
-> dengan CPI/SPI/EAC/TCPI) yang paling menyolok.
->
-> Alat ukur pertama untuk audit ini DIBUANG: ia melaporkan skor 1.00 untuk
-> "Critical path (CPM)" yang berkas kodenya NOL, karena mencocokkan kata
-> umum seperti "path" dan "analisa". Versi yang dipakai memeriksa bukti yang
-> tak bisa palsu — nama berkas, `CREATE TABLE`, dan path endpoint —
-> dengan peta yang ditulis tangan per-menu.
+> 1. **Gelombang di-default ke 2.** Versi pertama memakai `GEL.get(no, "2")`,
+>    sehingga 16 dari 17 modul jatuh ke Gelombang 2 bukan karena dianalisis
+>    melainkan karena tak ada entri. Angka "106 di Gelombang 2" adalah
+>    artefak default, bukan fakta. Kini tiap modul punya pemetaan tertulis
+>    beserta alasannya.
+> 2. **Tiga modul hilang.** QA/QC (10), HSE/K3 (11), dan Risiko (17) ditulis
+>    sebagai kalimat "Semua 🔴 — terkonfirmasi", bukan tabel — parser yang
+>    cuma membaca baris `|` melewatkannya. Tiga modul penuh tak masuk
+>    antrean tanpa ada yang sadar.
 
-**Total 116 sub-menu belum tuntas.** 🟡 = ada sebagian · 🔴 = belum dibangun.
+**Total 134 sub-menu belum tuntas.** 🟡 = ada sebagian · 🔴 = belum dibangun.
 
-Penjaganya: `apps/api/scripts/audit-taksonomi-vs-kode.mjs` — dijalankan manual
-saat meninjau roadmap, bukan gerbang CI. Menilai "menu ini sudah jadi atau
-belum" butuh penilaian manusia; penjaga otomatis yang memaksakan jawaban akan
-menghasilkan angka rapi yang tak berarti.
+## Gelombang 2 — 124 sub-menu di 19 modul
 
-### 1. MASTER DATA & KONFIGURASI INTI  ·  Gelombang 2
+### 1. MASTER DATA & KONFIGURASI INTI  ·  12 sub-menu
+*master data — prasyarat modul lain, tapi bukan pondasi teknis*
 
 - 🟡 Gudang / lokasi
 - 🟡 Master Karyawan
@@ -560,7 +663,8 @@ menghasilkan angka rapi yang tak berarti.
 - 🔴 Kalender kerja & hari libur
 - 🔴 Prakualifikasi vendor
 
-### 2. CRM & PRA-KONSTRUKSI (Bid Management)  ·  Gelombang 2
+### 2. CRM & PRA-KONSTRUKSI (Bid Management)  ·  9 sub-menu
+*CRM/tender — mandiri, tak bergantung GL*
 
 - 🟡 Analisa markup, margin, contingency
 - 🟡 Estimating / AHSP
@@ -572,7 +676,8 @@ menghasilkan angka rapi yang tak berarti.
 - 🔴 Dokumen prakualifikasi
 - 🔴 Eskalasi harga
 
-### 3. MANAJEMEN KONTRAK  ·  Gelombang 2
+### 3. MANAJEMEN KONTRAK  ·  5 sub-menu
+*kontrak — mandiri*
 
 - 🟡 Kontrak subkontraktor
 - 🟡 Register kontrak induk
@@ -580,7 +685,8 @@ menghasilkan angka rapi yang tak berarti.
 - 🔴 Register asuransi
 - 🔴 Surat masuk/keluar (correspondence)
 
-### 4. PERENCANAAN & PENJADWALAN  ·  Gelombang 2
+### 4. PERENCANAAN & PENJADWALAN  ·  6 sub-menu
+*penjadwalan — mandiri*
 
 - 🟡 Gantt chart
 - 🟡 WBS proyek
@@ -589,7 +695,8 @@ menghasilkan angka rapi yang tak berarti.
 - 🔴 Method statement
 - 🔴 Resource histogram / leveling
 
-### 5. BUDGET & COST CONTROL  ·  Gelombang 2
+### 5. BUDGET & COST CONTROL  ·  5 sub-menu
+*cost control — sebagian bermuara ke GL (varians, WIP)*
 
 - 🟡 Actual Cost Ledger (ACL)
 - 🟡 Cashflow forecast
@@ -597,7 +704,8 @@ menghasilkan angka rapi yang tak berarti.
 - 🔴 Cost Value Reconciliation (CVR)
 - 🔴 Manajemen contingency
 
-### 6. PROCUREMENT / PENGADAAN  ·  Gelombang 2
+### 6. PROCUREMENT / PENGADAAN  ·  7 sub-menu
+*procurement — bermuara ke GL (utang supplier)*
 
 - 🟡 Goods Receipt Note (GRN)
 - 🟡 Jadwal pembayaran vendor
@@ -607,7 +715,8 @@ menghasilkan angka rapi yang tak berarti.
 - 🔴 Perbandingan penawaran (bid tabulation)
 - 🔴 RFQ ke vendor
 
-### 7. INVENTORY / GUDANG & MATERIAL  ·  Gelombang 2
+### 7. INVENTORY / GUDANG & MATERIAL  ·  5 sub-menu
+*inventory — bermuara ke GL (persediaan)*
 
 - 🟡 Gudang proyek / site store
 - 🟡 Minimum stok & reorder point
@@ -615,7 +724,8 @@ menghasilkan angka rapi yang tak berarti.
 - 🔴 Tracking waste / susut
 - 🔴 Transfer stok antar proyek
 
-### 8. SUBKONTRAKTOR & MANDOR  ·  Gelombang 2
+### 8. SUBKONTRAKTOR & MANDOR  ·  10 sub-menu
+*subkontraktor — bermuara ke GL (utang subkon)*
 
 - 🟡 Back-charge / potongan
 - 🟡 Kontrak subkontrak + BOQ
@@ -628,7 +738,8 @@ menghasilkan angka rapi yang tak berarti.
 - 🔴 Retensi subkontrak
 - 🔴 Tender & award subkontraktor
 
-### 9. OPERASI LAPANGAN (Site Management)  ·  Gelombang 2
+### 9. OPERASI LAPANGAN (Site Management)  ·  9 sub-menu
+*operasi lapangan — sumber data untuk Gelombang 3*
 
 - 🟡 Laporan harian proyek (DPR)
 - 🟡 Log cuaca
@@ -640,42 +751,59 @@ menghasilkan angka rapi yang tak berarti.
 - 🔴 Log pemakaian alat
 - 🔴 Non-Conformance Report (NCR)
 
-### 12. HR & PAYROLL  ·  Gelombang 2
+### 10. QUALITY MANAGEMENT (QA/QC)  ·  7 sub-menu
+*QA/QC — MANDIRI, tak bergantung GL; bisa paralel*
+
+- 🔴 Seluruh 7 sub-menu — taksonomi mencatatnya sebagai blok
+  ("Semua 🔴 — terkonfirmasi, 0 hit di kode"), belum dirinci per menu.
+
+### 11. HSE / K3 & LINGKUNGAN  ·  7 sub-menu
+*HSE/K3 — MANDIRI, tak bergantung GL; bisa paralel*
+
+- 🔴 Seluruh 7 sub-menu — taksonomi mencatatnya sebagai blok
+  ("Semua 🔴 — terkonfirmasi, 0 hit di kode"), belum dirinci per menu.
+
+### 12. HR & PAYROLL  ·  10 sub-menu
+*payroll — bermuara ke GL (beban gaji)*
 
 - 🟡 Klaim perjalanan & reimburse
 - 🟡 Master karyawan & struktur organisasi
 - 🔴 Absensi & timesheet
 - 🔴 Cuti & izin
-- 🔴 PPh 21
 - 🔴 Payroll staf
 - 🔴 Penilaian kinerja
 - 🔴 Potongan statutori (BPJS)
+- 🔴 PPh 21
 - 🔴 Rekrutmen & onboarding
 - 🔴 Sertifikasi & kompetensi
 
-### 13. ALAT BERAT & ASET  ·  Gelombang 2
+### 13. ALAT BERAT & ASET  ·  3 sub-menu
+*aset & alat berat — bermuara ke GL (penyusutan)*
 
 - 🔴 Biaya operasional per alat (BBM, operator)
 - 🔴 Integrasi penyusutan → GL
 - 🔴 Maintenance terjadwal
 
-### 14. KEUANGAN & AKUNTANSI  ·  Gelombang 2
+### 14. KEUANGAN & AKUNTANSI  ·  6 sub-menu
+*keuangan & akuntansi — INTI GL, dikerjakan lebih dulu*
 
 - 🟡 Accounts Payable
 - 🟡 Accounts Receivable
-- 🟡 Laporan keuangan
 - 🟡 e-Faktur / e-Bupot
+- 🟡 Laporan keuangan
 - 🔴 Rekonsiliasi bank
 - 🔴 Tutup buku periode
 
-### 15. PENAGIHAN & PENDAPATAN  ·  Gelombang 2
+### 15. PENAGIHAN & PENDAPATAN  ·  4 sub-menu
+*penagihan — bermuara ke GL (piutang)*
 
 - 🟡 Follow-up penagihan
 - 🟡 Penagihan pekerjaan tambah
 - 🔴 Interim Payment Certificate (IPC)
 - 🔴 Nota kredit
 
-### 16. MANAJEMEN DOKUMEN  ·  Gelombang 2
+### 16. MANAJEMEN DOKUMEN  ·  6 sub-menu
+*dokumen — mandiri*
 
 - 🟡 Register dokumen + kontrol revisi
 - 🔴 Matriks distribusi
@@ -684,14 +812,22 @@ menghasilkan angka rapi yang tak berarti.
 - 🔴 Tanda tangan elektronik
 - 🔴 Transmittal
 
-### 18. PELAPORAN & BUSINESS INTELLIGENCE  ·  Gelombang 2
+### 17. RISIKO & KEPATUHAN  ·  4 sub-menu
+*risiko & kepatuhan — mandiri*
+
+- 🔴 Seluruh 4 sub-menu — taksonomi mencatatnya sebagai blok
+  ("Semua 🔴 — terkonfirmasi, 0 hit di kode"), belum dirinci per menu.
+
+### 18. PELAPORAN & BUSINESS INTELLIGENCE  ·  4 sub-menu
+*pelaporan/BI — membaca GL, jadi SESUDAH GL*
 
 - 🟡 Dashboard per proyek
 - 🟡 KPI: CPI, SPI, margin, DSO, backlog
 - 🔴 Distribusi laporan terjadwal
 - 🔴 Report builder
 
-### 19. ADMINISTRASI SISTEM  ·  Gelombang 2
+### 19. ADMINISTRASI SISTEM  ·  5 sub-menu
+*administrasi sistem — mandiri*
 
 - 🟡 API & integrasi
 - 🟡 Import/export data
@@ -699,18 +835,21 @@ menghasilkan angka rapi yang tak berarti.
 - 🔴 Backup & restore
 - 🔴 Multi-tenant
 
-### 20. MOBILE / FIELD APP  ·  Gelombang 3
+## Gelombang 3 — 10 sub-menu di 1 modul
 
+### 20. MOBILE / FIELD APP  ·  10 sub-menu
+*mobile lapangan + offline — gerbang Gelombang 3*
+
+- 🟡 — 🟡 sebagian (ada lapisan, belum utuh)
 - 🟡 Approval mobile
 - 🟡 Foto + geotag
 - 🟡 Input laporan harian
-- 🟡 — 🟡 sebagian (ada lapisan, belum utuh)
+- 🔴 — 🔴 belum dimulai
 - 🔴 Absensi lapangan
 - 🔴 Checklist inspeksi
 - 🔴 Ditambah 4 kelompok yang seluruhnya 🔴 tanpa tabel (§10 QA/QC, §11 HSE, §13 Alat Berat, §17 Risiko)
 - 🔴 Material request
 - 🔴 Mode offline
-- 🔴 — 🔴 belum dimulai
 
 ---
 

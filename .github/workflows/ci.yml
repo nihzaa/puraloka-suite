@@ -1,8 +1,25 @@
 name: CI
 
+# ── PEMICU: SETIAP pull request, bukan hanya yang menargetkan `main` ─────────
+#
+# Sampai 2026-08-03, `pull_request` disaring `branches: [main]`. Akibatnya SETIAP
+# PR bertumpuk (PR yang basenya branch lain, bukan `main`) berjalan **tanpa satu
+# pun check**. Ditemukan lewat PR #134 → base `fix/search-proyek-gagal-senyap`:
+# nol check berjalan, dan GitHub menampilkannya sebagai "mergeable" tanpa gejala.
+#
+# Konsekuensinya bukan teoretis: 13 penjaga arsitektural di berkas ini —
+# gerbang tenancy, kegagalan senyap, penulisan tanpa periksa, catch senyap,
+# migrasi sadar-schema, penomoran migrasi, ratchet coverage — **tidak menjaga
+# apa pun** pada rantai PR mana pun yang belum menyentuh `main`. Penjaga yang
+# hanya berjalan di satu jenis PR adalah penjaga yang bisa dilewati dengan
+# memilih base branch, dan tak seorang pun akan menyadarinya.
+#
+# `pull_request` tanpa `branches` = berjalan untuk PR ke branch apa pun.
+# `push` tetap disaring ke `main` — push ke branch kerja sudah tercakup oleh
+# PR-nya sendiri, dan menjalankannya dua kali hanya menggandakan antrean pada
+# project Supabase CI yang di-serialkan (lihat `concurrency` di bawah).
 on:
   pull_request:
-    branches: [main]
   push:
     branches: [main]
 
@@ -11,14 +28,103 @@ on:
 # bypass TEST_SCHEMA, jadi run paralel masih bisa saling menimpa fixture di project CI.
 # Serialkan SEMUA run yang berbagi project CI (group konstan). JANGAN cancel-in-progress:
 # run yang dibatalkan di tengah bisa meninggalkan residu. Dev TIDAK LAGI disentuh CI.
+# ── Concurrency: per-ref, run usang DIBATALKAN ──────────────────────────────
+#
+# Sebelumnya `group: ci-shared-ci-db` (konstan) + `cancel-in-progress: false`:
+# SELURUH run dari branch mana pun antre di satu barisan, dan tak ada yang pernah
+# dibatalkan. Push beruntun menumpuk — run ke-3 baru mulai setelah ke-1 dan ke-2
+# selesai, padahal hasil keduanya sudah usang. Diukur 2026-08-03: satu run
+# tertahan `pending` belasan menit hanya menunggu run lama yang sudah tak relevan.
+#
+# Itulah sumber keluhan "CI terlalu sering": bukan frekuensinya, melainkan
+# antreannya. Kini tiap ref punya barisannya sendiri, dan push baru MEMBATALKAN
+# run lama pada ref yang sama.
+#
+# ── Kenapa ini AMAN terhadap project CI bersama
+#
+# Kekhawatiran versi lama benar: job `api` menulis ke project Supabase CI, jadi
+# dua job yang berjalan bersamaan bisa saling menimpa fixture. Yang dilupakan:
+# `TEST_SCHEMA: test_${{ github.run_id }}` (lihat langkah Test) sudah membuat
+# TIAP RUN memakai schema-nya sendiri. Isolasinya ada di level schema, bukan di
+# level antrean.
+#
+# Sisa risikonya: langkah `Prepare CI project` menulis ke schema `public` bersama.
+# Itu idempoten (skip yang sudah applied) dan hanya menambah, tak pernah
+# menghapus — jadi dua run yang berbarengan menghasilkan keadaan akhir yang sama.
+#
+# `cancel-in-progress` di-set lewat ekspresi: HANYA untuk PR/branch kerja.
+# Push ke `main` TIDAK PERNAH dibatalkan — commit di main adalah catatan sejarah,
+# dan membatalkannya menyisakan lubang di bukti "commit ini pernah hijau".
 concurrency:
-  group: ci-shared-ci-db
-  cancel-in-progress: false
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   api:
-    name: API — lint, typecheck, test, build
+    # ⚠️ NAMA JOB = NAMA STATUS CHECK di branch protection.
+    #
+    # Dengan `strategy.matrix`, GitHub menambahkan nilai matrix ke nama check:
+    # "API — test (shard 1)", "(shard 2)", dst. Nama lama
+    # ("API — lint, typecheck, test, build") TIDAK AKAN PERNAH MUNCUL LAGI.
+    #
+    # Kalau daftar check wajib tak ikut diperbarui, GitHub menunggu check yang
+    # tak akan pernah datang dan **setiap PR tertahan selamanya** — kegagalan
+    # yang terlihat seperti "CI lambat", bukan seperti salah konfigurasi.
+    # Daftar wajib diperbarui bersamaan; lihat docs/execution/CI-BUKTI.md §4.
+    name: API — test (shard ${{ matrix.shard }}/6)
     runs-on: ubuntu-latest
+    # ── 6 SHARD — dinyalakan setelah F0-16 ────────────────────────────────
+    #
+    # Percobaan 6 shard sebelumnya GAGAL, dan kegagalannya berharga: ia
+    # menyingkap cacat tenancy NYATA di kode produksi, bukan sekadar penghalang
+    # CI —
+    #
+    #     null value in column "company_id" of relation "notifications"
+    #
+    # `utils/notifications.ts` meng-insert notifikasi tanpa `company_id` sama
+    # sekali. Ia bekerja hari ini semata karena fallback satu-tenant
+    # `fn_isi_company_id()`, dan akan menolak SETIAP notifikasi pada hari
+    # perusahaan kedua lahir.
+    #
+    # F0-16 memperbaikinya di akar: `company_id` kini kolom WAJIB di
+    # `NotificationParams` — bukan opsional dengan default. Satu user bisa jadi
+    # anggota beberapa perusahaan (ADR-011 D5), jadi nilainya harus datang dari
+    # PERISTIWA yang melahirkan notifikasi, bukan dari penerimanya. Tipe wajib
+    # membuat TypeScript menemukan 31 pemanggil yang lupa — bukan produksi.
+    #
+    # ── Riwayat: kenapa shard sempat DITAHAN di 1, lalu di 4
+    #
+    # Percobaan pertama (2026-08-03) memangkas wall-clock 1317s → 434s (3×),
+    # tetapi shard 1 gagal:
+    #
+    #     projects.company_id NOT NULL dilanggar (23502) di lessons-writeback
+    #
+    # Akarnya BUKAN sharding. `fn_isi_company_id()` mengisi `company_id`
+    # otomatis HANYA bila `companies` berisi TEPAT SATU baris; begitu ambigu ia
+    # menolak menebak — perilaku yang BENAR dan sengaja (migrasi 127).
+    #
+    # Yang salah ada di test: belasan berkas meng-INSERT ke tabel ber-tenant
+    # (`projects`, `clients`, `approval_steps`, `notification_rules`, …) TANPA
+    # menyebut `company_id`, mengandalkan fallback satu-tenant itu. Selama
+    # berkas berjalan berurutan, asumsinya kebetulan selalu benar. Berjalan
+    # PARALEL, `search-tenant-isolation` meng-COMMIT company kedua selama ~2
+    # detik — dan setiap INSERT di shard lain dalam jendela itu ditolak.
+    #
+    # F0-14 memperbaikinya di tempat yang benar: 16 INSERT di 14 berkas kini
+    # MENYATAKAN `company_id` secara eksplisit. Trigger tak disentuh sama
+    # sekali — melemahkannya demi CI cepat adalah G-5, tepat sebelum Fase 2.
+    #
+    # Terverifikasi: seluruh berkas terdampak lulus SAAT ADA DUA COMPANY —
+    # kondisi persis yang dulu menggagalkan shard 1.
+    #
+    # ⚠️ SAAT MENGUBAH JUMLAH SHARD, tiga hal WAJIB berubah bersamaan — kalau
+    # tidak, sebagian test diam-diam tak pernah dijalankan (kegagalan paling
+    # senyap): (1) daftar `shard:` di bawah · (2) penyebut di nama job DAN di
+    # `--shard=` (tiga tempat) · (3) daftar check wajib di branch protection.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6]
     defaults:
       run:
         working-directory: apps/api
@@ -104,6 +210,41 @@ jobs:
       - name: Migrasi sadar-schema (skema tak boleh dipaku)
         run: node scripts/audit-migrasi-skema-dipaku.mjs
 
+      # Nomor migrasi ganda membuat ci-project-setup mencatat keduanya sebagai
+      # satu versi — yang kedua DILEWATI SENYAP di setiap lingkungan baru. Itu
+      # mekanisme yang sama dengan cacat P0 047 vs 167 (dua definisi `accounts`
+      # bertabrakan, satu menang tanpa pesan galat).
+      #
+      # Lompatan nomor membuat orang menyimpulkan jumlah dari nomor terakhir —
+      # audit 2026-08-02 tergelincir persis di situ (melapor 174, nyatanya 171).
+      # Lompatan LAMA (30, 59, 64) dikecualikan beralasan; yang dijaga yang baru.
+      - name: Penomoran migrasi (nol ganda, nol lompatan baru)
+        run: node scripts/audit-penomoran-migrasi.mjs
+
+      # R-001 syarat 3 — dua migrasi mendefinisikan tabel yang sama.
+      #
+      # `CREATE TABLE IF NOT EXISTS` melindungi dari "sudah dibuat oleh migrasi
+      # INI", BUKAN dari "sudah dibuat oleh migrasi LAIN dengan bentuk berbeda".
+      # Pendefinisi belakangan lalu no-op senyap: tanpa galat, tanpa test merah.
+      #
+      # Sapuan pertama atas 171 migrasi menemukan 13 tabel bertabrakan. Sepuluh
+      # sudah terjaga (149 membuang bentuk 045; 143 pakai to_regclass guard; 093
+      # identik dengan 081). Tiga sisanya adalah cacat P0 GL yang nyata:
+      # accounts, journal_entries, journal_entry_lines (047 vs 167).
+      - name: Tabrakan definisi tabel (IF NOT EXISTS tanpa penegas bentuk)
+        run: node scripts/audit-tabrakan-definisi-tabel.mjs
+
+      # ADR-004 — otorisasi HANYA lewat requirePermission.
+      #
+      # Diuji 2026-08-03 (langkah 5 mandat CI): menyisipkan `u.role === 'admin'`
+      # ke berkas route LOLOS seluruh 14 penjaga yang ada. Aturan sepenting ini
+      # ternyata selama ini hanya konvensi, bukan gerbang.
+      #
+      # Ratchet (lantai 52), bukan ambang nol: utang lama dibersihkan terjadwal
+      # di F3-1. Ambang nol hari ini = CI merah permanen = penjaga dimatikan orang.
+      - name: Literal peran sebagai gerbang otorisasi (ADR-004)
+        run: node scripts/audit-literal-peran.mjs
+
       # Rencana yang ditulis rapi lalu tak pernah dikerjakan — bukan karena
       # diputuskan ditunda, melainkan karena tak ada yang tahu ia ada. Repo ini
       # sudah punya preseden: ERP_MASTER_PLAN Modul 9a/9b, AHSP-EDITION-BUILDER
@@ -116,11 +257,55 @@ jobs:
       # ditambahkan tanpa memperbarui indeks adalah persis cara 134 dokumen
       # sempat jadi tak terlihat — dan laporan "dikecualikan beralasan"
       # membuatnya terdengar seperti sudah tertangani.
+      # Sepuluh sub-menu ber-ledger & lintas-modul (ACL, CVR, profitabilitas
+      # per cost code, contingency, eskalasi harga, claims, retensi subkontrak,
+      # rekonsiliasi bank, kepatuhan subkontraktor, markup/margin) WAJIB
+      # dirancang sebelum dikerjakan — sekali angka masuk, mengubah modelnya
+      # mahal.
+      #
+      # Penjaga ini menangkap kalau salah satunya naik status tanpa rancangan.
+      # Pada jalan pertamanya ia menemukan TIGA yang sudah terlanjur digarap —
+      # didaftarkan di docs/RANCANGAN-DIKERJAKAN.md beserta apa yang masih
+      # terbuka, bukan disembunyikan.
+      - name: Sub-menu berisiko punya rancangan
+        run: node scripts/audit-rancangan-submenu.mjs
+
       - name: Indeks dokumen mutakhir
         run: node scripts/gen-indeks-docs.mjs --check
 
+      # Test tak boleh membandingkan dua hitungan GLOBAL atas schema bersama.
+      #
+      # TUJUH kali dalam rantai ini CI merah oleh cacat yang sama: asumsi global
+      # atas `public` yang dipakai bersama 6 shard paralel. Setelah keenam saya
+      # menambal satu per satu; setelah ketujuh jelas menambal bukan jawabannya.
+      - name: Test tanpa asumsi global
+        run: node scripts/audit-asumsi-global-test.mjs
+
+      # F1-5 — berkas contoh env harus benar-benar sampai ke orang yang mengklon.
+      #
+      # `apps/web/.gitignore` punya `.env*` yang ikut menelan `.env.example`.
+      # Cacatnya TAK BERGEJALA di mesin mana pun yang berkasnya sudah tertinggal
+      # secara lokal — hanya klon bersih yang merasakannya. Terungkap saat waktu
+      # klon→siap diukur pada klon sungguhan, bukan diperkirakan.
+      - name: Contoh env ter-track git
+        run: node scripts/audit-contoh-env-terlacak.mjs
+
       - name: Dokumen rencana harus terhubung ke ROADMAP
         run: node scripts/audit-docs-vs-roadmap.mjs
+
+      # Fase 0 (0.3) — racun konteks agent.
+      #
+      # `CLAUDE.md` dibaca agent AI di awal setiap sesi. Versi lamanya menyatakan
+      # jumlah migrasi & tabel yang sudah lama tidak benar, dan bahkan tambalan
+      # koreksinya ikut basi. Memperbaiki angkanya sekali tidak menyelesaikan apa
+      # pun — ia akan basi lagi tanpa gejala. Dua penjaga di bawah membuat repo
+      # MENOLAK kelas kesalahan itu masuk kembali.
+      - name: Dokumen konteks bebas angka yang membusuk
+        run: node scripts/audit-docs-freshness.mjs
+
+      - name: Tidak ada dokumen kembar di dua lokasi
+        run: node scripts/audit-no-stale-docs-path.mjs
+
 
       - name: Penjaga saldo (pemeriksaan tak boleh bisa dilewati)
         run: node scripts/audit-penjaga-saldo.mjs
@@ -173,26 +358,114 @@ jobs:
         env:
           FP_URL: ${{ secrets.CI_DIRECT_URL }}
 
-      - name: Test
-        run: pnpm test
+      # Fase 0 (0.5) — test SEKALIGUS mengukur coverage.
+      #
+      # Coverage digabung ke langkah Test yang sudah ada, BUKAN langkah terpisah:
+      # suite ini butuh ~3,5 menit terhadap Postgres nyata, dan menjalankannya dua
+      # kali menggandakan waktu CI tanpa menambah satu pun informasi.
+      #
+      # Ambang di-nol-kan di sini karena gerbangnya bukan ambang statis melainkan
+      # RATCHET di langkah berikutnya (lantai hari ini tak boleh turun). Ambang
+      # 90% bawaan `vitest.config.ts` tetap berlaku untuk `src/lib/**` saat
+      # `pnpm test` dijalankan tanpa flag ini.
+      # ── Test ter-shard ────────────────────────────────────────────────────
+      #
+      # Diukur 2026-08-03 (docs/execution/CI-PROFIL.md): langkah ini 1203s dari
+      # 1317s total job — **91%**. Seluruh target optimasi lain (cache, tsbuildinfo,
+      # filter path) bernilai gabungan < 2 menit, jadi hanya di sinilah kemenangan
+      # yang berarti.
+      #
+      # Kenapa lambat: suite ini INTEGRATION test terhadap Postgres nyata
+      # (keputusan sadar, lihat vitest.config.ts) — ~6.000 query round-trip.
+      # Di CI tiap round-trip menyeberangi Pasifik: DB project CI ada di
+      # ap-northeast-1 (Tokyo), runner GitHub di US-East. Itu faktor 10× terhadap
+      # lokal (~230s). Perbaikan akarnya = pindahkan region DB (RATIFIKASI B-3);
+      # sharding adalah yang bisa dikerjakan dari dalam repo.
+      #
+      # ⚠️ TEST_SCHEMA WAJIB unik per SHARD, bukan hanya per run. Shard berjalan
+      # PARALEL; kalau berbagi schema, `resetTestSchema()` satu shard men-DROP
+      # schema yang sedang dipakai shard lain — kerusakan yang gejalanya terlihat
+      # seperti test flaky, bukan seperti kesalahan konfigurasi.
+      - name: Test + coverage (shard ${{ matrix.shard }}/6)
+        run: |
+          npx vitest run --shard=${{ matrix.shard }}/6 --coverage \
+            --coverage.include='src/**/*.ts' \
+            --coverage.exclude='src/**/*.test.ts' \
+            --coverage.exclude='src/**/__tests__/**' \
+            --coverage.thresholds.lines=0 --coverage.thresholds.functions=0 \
+            --coverage.thresholds.branches=0 --coverage.thresholds.statements=0 \
+            --coverage.reporter=json --coverage.reportsDirectory=./coverage
         env:
           SUPABASE_URL: ${{ secrets.CI_SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.CI_SUPABASE_SECRET_KEY }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           DATABASE_URL: ${{ secrets.CI_DATABASE_URL }}
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
-          # Schema test unik per run → tak ada race antar CI run paralel di project CI.
-          TEST_SCHEMA: test_${{ github.run_id }}
+          # Unik per SHARD — lihat peringatan di atas.
+          TEST_SCHEMA: test_${{ github.run_id }}_s${{ matrix.shard }}
 
-      - name: Drop per-run test schema
+      # Coverage tiap shard disimpan; ratchet dievaluasi SETELAH digabung di job
+      # terpisah. Ratchet yang mengukur satu shard saja akan melaporkan angka
+      # jauh di bawah lantai dan menggagalkan build yang sebenarnya sehat —
+      # persis kelas cacat "apel vs jeruk" yang sudah ditangkap coverage-ratchet.mjs.
+      - name: Simpan coverage shard
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-shard-${{ matrix.shard }}
+          path: apps/api/coverage/coverage-final.json
+          retention-days: 1
+
+      # WAJIB cocok dengan TEST_SCHEMA langkah Test. Kalau tertinggal di
+      # `test_<run_id>` (tanpa `_s<shard>`), keempat schema shard menggantung di
+      # project CI selamanya — persis asal-usul schema `mut6` yang ditemukan
+      # audit 2026-08-02 dan sampai kini masih perlu dibersihkan (F0-8).
+      - name: Drop per-shard test schema
         if: always()
         run: pnpm exec tsx src/test-utils/drop-test-schema.ts
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
-          TEST_SCHEMA: test_${{ github.run_id }}
+          TEST_SCHEMA: test_${{ github.run_id }}_s${{ matrix.shard }}
 
       - name: Build
         run: pnpm build
+
+  # ── Ratchet coverage: SETELAH seluruh shard, atas gabungannya ──────────────
+  #
+  # Job terpisah karena ratchet harus menilai coverage SELURUH suite. Menjalankannya
+  # di dalam job ter-shard berarti tiap shard menilai ~25% kode dan melaporkan
+  # angka jauh di bawah lantai — build sehat divonis regresi. `coverage-ratchet.mjs`
+  # sudah punya penjaga "apel vs jeruk" yang akan MENOLAK membandingkan (exit 2),
+  # jadi kesalahan ini akan ketahuan; tapi lebih baik tak dibuat sejak awal.
+  coverage:
+    name: Ratchet coverage (gabungan semua shard)
+    runs-on: ubuntu-latest
+    needs: api
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.8.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: .
+
+      - name: Unduh coverage semua shard
+        uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-shard-*
+          path: apps/api/coverage-shards
+
+      - name: Gabungkan coverage lalu jalankan ratchet
+        run: |
+          node scripts/gabung-coverage.mjs
+          node scripts/coverage-ratchet.mjs
 
   # ── A1 (STATUS.md §AUDIT) — apps/web SEBELUMNYA SAMA SEKALI DI LUAR CI ─────
   # Sampai 2026-07-31 hanya job `api` yang ada: frontend bisa rusak (tsc error,

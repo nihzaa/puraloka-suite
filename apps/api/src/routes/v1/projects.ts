@@ -309,6 +309,7 @@ export default async function projectRoutes(app: FastifyInstance) {
     // ── Fire-and-forget: notif ke PM yang di-assign ──────────────────────────
     if (pm_id && project) {
       createNotification({
+        company_id: request.companyId!,
         user_id:     pm_id,
         title:       'Anda Di-assign Sebagai PM',
         message:     `Anda ditugaskan sebagai Project Manager di proyek "${project.name}"`,
@@ -416,6 +417,7 @@ export default async function projectRoutes(app: FastifyInstance) {
       try {
         const recipients = await resolveRecipients('project_status_changed', { projectId: id, companyId: request.companyId! })
         createNotifications(recipients.map(uid => ({
+          company_id: request.companyId!,
           user_id:     uid,
           title:       'Status Proyek Berubah',
           message:     `Status proyek "${data.name}" berubah ke ${status}`,
