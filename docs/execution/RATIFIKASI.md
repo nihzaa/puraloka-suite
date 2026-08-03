@@ -516,3 +516,41 @@ dari K-2 — sampai ada, jurnal campuran antar-PT tak boleh dibuat).
 
 **F2-1 → done. F2-2 & F2-6 terbuka.** F2-3 menunggu penerimaan revisi 4.
 Nol migrasi dijalankan.
+
+---
+
+## R-008 · P1 · Seed CI tak lengkap — 3 test takeoff merah di CI, hijau di dev
+
+**Status:** terbuka · dibuka 2026-08-04 · **BUKAN akibat Fase 2**
+
+`material-takeoff-d345.test.ts` — 3 test gagal di CI dengan `expected 403 to
+be 201`, sementara **9/9 hijau di dev**.
+
+### Bukan dari perubahan Fase 2
+
+Diperiksa: `has_permission()` **tidak** menyentuh `permission_scopes` (tabel
+yang F2-3 batch 3 isolasi). Ia membaca `role_permissions → roles →
+permissions`.
+
+Di dev, `cecep:takeoff:manage` dan `cecep:takeoff:view` ada dan terpasang ke
+2 peran. 403 di CI berarti keduanya **tidak ter-seed di sana**.
+
+### Kenapa ini penting untuk diperbaiki
+
+Ini kelas yang sama dengan dua celah yang F2-5 temukan: **dev dan CI adalah
+dua kenyataan berbeda.** Selama seed CI tak lengkap, setiap test yang
+bergantung permission akan merah di CI dan hijau di dev — dan lama-lama orang
+berhenti memercayai CI, yang jauh lebih mahal daripada 3 test merah.
+
+### Dampak ikutan
+
+`Ratchet coverage (gabungan semua shard)` ikut merah — bukan karena coverage
+turun, melainkan karena shard 5 gagal sehingga laporannya tak lengkap. **Satu
+akar, dua job merah.**
+
+### Yang dibutuhkan
+
+Lengkapi seed permission di database CI (`apps/api/scripts/ci-project-setup.mjs`
+atau seed yang setara), lalu jalankan ulang. Perlu akses `CI_DIRECT_URL` —
+sama seperti R-006, ini menyentuh lingkungan yang kredensialnya hidup di
+GitHub Secrets.
