@@ -106,3 +106,32 @@ auditConfig:
     #
     # Cabut entri ini begitu ekosistem eslint pindah ke minimatch modern.
     - GHSA-mh99-v99m-4gvg # brace-expansion DoS (unbounded expansion → OOM)
+
+    # brace-expansion GHSA-rgw5-rvv9-x895 — advisory BARU (muncul 2026-08-03),
+    # butuh >=1.1.18 / >=2.1.4 / >=5.0.9.
+    #
+    # ⚠️ SAYA MENCOBA MEMPERBAIKINYA LEBIH DULU, dan mendokumentasikan
+    # kegagalannya di sini supaya tak ada yang mengulang percobaan yang sama:
+    #
+    #   'brace-expansion@1'    → selektor tak dikenali pnpm; versi lama tetap
+    #   'brace-expansion@1.x'  → tak menggantikan; audit 4 high → 2, bukan 0
+    #   'brace-expansion': '>=5.0.9'
+    #                          → audit BERSIH (4 high → 0) dan lint API hijau,
+    #                            TETAPI ESLint WEB MATI TOTAL:
+    #                              TypeError: expand is not a function
+    #                              at Minimatch.braceExpand
+    #                              (minimatch@3.1.5/minimatch.js:271)
+    #
+    # Percobaan ketiga nyaris saya terima sebagai keberhasilan — audit bersih,
+    # `lint:ratchet` API hijau. Yang menyelamatkan hanya karena web ikut diuji.
+    # MENGUJI SATU APP LALU MENYIMPULKAN UNTUK DUA APP adalah cara catatan yang
+    # benar (entri GHSA-mh99 di atas) dibuang sebagai "sudah usang".
+    #
+    # Penilaian paparan SAMA dengan GHSA-mh99 dan tetap berlaku: brace-expansion
+    # hanya dipakai perkakas build/lint atas pola glob yang KITA tulis di config.
+    # Nol jalur di mana polanya berasal dari input pengguna; nol permukaan
+    # serang di runtime produksi.
+    #
+    # Cabut bersamaan dengan GHSA-mh99 begitu ekosistem eslint meninggalkan
+    # minimatch@3.
+    - GHSA-rgw5-rvv9-x895 # brace-expansion DoS (patch memutus ESLint web)

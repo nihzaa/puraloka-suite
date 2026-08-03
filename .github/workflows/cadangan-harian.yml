@@ -191,8 +191,18 @@ jobs:
           # akan gagal, dan langkah "Cadangan darurat" di bawahlah yang
           # menyelamatkan datanya.
           #
-          # Kegagalannya SENGAJA tidak dimatikan: kalau ia dibungkam, tak ada
-          # yang akan tahu saat R-006 akhirnya selesai dan pg_dump pulih.
+          # Kegagalannya TETAP dilaporkan — tetapi TIDAK lagi menggagalkan job.
+          #
+          # Kenapa berubah: job yang merah tiap hari mengirim email tiap hari,
+          # dan puluhan email "Run failed" membuat pemilik berhenti membaca
+          # notifikasi CI sama sekali. Alarm yang selalu berbunyi adalah alarm
+          # yang dimatikan — lalu kegagalan yang SUNGGUHAN ikut tak terlihat.
+          #
+          # Yang menggantikan: langkah "Periksa R-006" di bawah, yang berbunyi
+          # HANYA saat keadaan BERUBAH — pg_dump akhirnya pulih (kabar baik,
+          # R-006 selesai) atau cadangan darurat ikut gagal (kabar buruk,
+          # tak ada cadangan sama sekali). Dua-duanya layak email; "masih
+          # rusak seperti kemarin" tidak.
           BERHASIL=0
           for PERCOBAAN in 1 2 3; do
             # --exclude-schema=test: database ini punya baris pg_depend YATIM
@@ -235,12 +245,18 @@ jobs:
             # sebelumnya — kelas sempit gagal menyensor sandi bersimbol.
             sed -E 's#postgres(ql)?://[^ "]*#[URL-DISENSOR]#g; s#[^ "]*@[A-Za-z0-9.-]+#[KREDENSIAL-DISENSOR]#g' \
               /tmp/galat.txt | head -1 || true
-            exit 1
+            # TIDAK `exit 1` — lihat catatan R-006 di atas. Kegagalan dicatat
+            # ke $GITHUB_ENV supaya jalur darurat tahu ia harus jalan, dan
+            # langkah "Periksa R-006" tahu keadaannya belum berubah.
+            echo "PGDUMP_GAGAL=1" >> $GITHUB_ENV
+            echo "::warning::pg_dump masih gagal (R-006 belum selesai) — beralih ke cadangan darurat"
+          else
+            echo "PGDUMP_GAGAL=0" >> $GITHUB_ENV
+            t1=$(date +%s)
+            echo "CAP=$CAP" >> $GITHUB_ENV
+            echo "DETIK=$((t1-t0))" >> $GITHUB_ENV
+            echo "::notice::dump $((t1-t0))s, $(du -h keluar/puraloka-$CAP.dump | cut -f1)"
           fi
-          t1=$(date +%s)
-          echo "CAP=$CAP" >> $GITHUB_ENV
-          echo "DETIK=$((t1-t0))" >> $GITHUB_ENV
-          echo "::notice::dump $((t1-t0))s, $(du -h keluar/puraloka-$CAP.dump | cut -f1)"
 
       # Dump yang "berhasil" tapi kosong adalah jebakan paling halus: ia lolos
       # setiap pemeriksaan yang hanya melihat kode keluar. Diperiksa SEBELUM
@@ -262,7 +278,7 @@ jobs:
       # Jaring ini TIDAK menggantikan pg_dump dan tak boleh jadi alasan
       # menunda R-006.
       - name: Cadangan darurat (COPY) — hanya bila pg_dump gagal
-        if: failure()
+        if: env.PGDUMP_GAGAL == '1'
         env:
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
           # WAJIB ada di sini: openssl membacanya lewat `-pass env:SANDI`.
@@ -335,7 +351,7 @@ jobs:
         # tak pernah jadi argumen (argumen terlihat di daftar proses).
 
       - name: Simpan cadangan darurat
-        if: failure()
+        if: env.PGDUMP_GAGAL == '1'
         uses: actions/upload-artifact@v4
         with:
           name: cadangan-darurat-${{ env.CAP }}
@@ -393,7 +409,7 @@ jobs:
         # R-006 belum selesai, jalur itu mati dan langkah ini akan mencari
         # berkas yang tak pernah dibuat — merah yang tak berarti apa-apa,
         # menutupi merah yang berarti.
-        if: success()
+        if: env.PGDUMP_GAGAL == '0'
         uses: actions/upload-artifact@v4
         with:
           name: cadangan-${{ env.CAP }}
@@ -406,25 +422,81 @@ jobs:
           # terlihat, cukup pendek supaya kuota tak habis.
           retention-days: 30
 
+      # ── Berbunyi HANYA saat keadaan BERUBAH ──────────────────────────────
+      #
+      # Job ini tak lagi merah tiap hari hanya karena R-006 belum selesai.
+      # Alasannya bukan kenyamanan: puluhan email "Run failed" berturut-turut
+      # membuat pemilik berhenti membaca notifikasi CI sama sekali — dan saat
+      # itu terjadi, kegagalan yang SUNGGUHAN ikut tak terlihat.
+      #
+      # Dua keadaan yang layak mengganggu orang:
+      #   • pg_dump AKHIRNYA PULIH  → R-006 selesai, jalur normal bisa dipakai
+      #                                lagi, dan tripwire PITR perlu ditinjau
+      #   • cadangan darurat GAGAL  → tak ada cadangan sama sekali hari ini
+      #
+      # "Masih rusak seperti kemarin" bukan salah satunya.
+      - name: Periksa R-006 — hanya laporkan PERUBAHAN
+        if: always()
+        run: |
+          if [ "${PGDUMP_GAGAL:-1}" = "0" ]; then
+            echo "::notice::🎉 pg_dump PULIH — R-006 tampaknya selesai."
+            echo "Tindak lanjut: tutup R-006 di RATIFIKASI.md, jalankan"
+            echo "'Uji Pemulihan (DR drill)' untuk membuktikan restore penuh,"
+            echo "lalu tinjau ulang tripwire PITR sebelum pelanggan pertama."
+          else
+            echo "R-006 masih terbuka — pg_dump belum bisa dipakai."
+            echo "Cadangan hari ini diselamatkan lewat jalur darurat (COPY)."
+            echo "Ini BUKAN kegagalan job: jalur darurat memang jaring untuk"
+            echo "keadaan ini, dan ia terbukti bekerja."
+          fi
+
+      # `always()` + percabangan jalur: ringkasan harus terbit APA PUN jalur
+      # yang dipakai. Versi sebelumnya mengacu $MB/$TABEL yang HANYA ada di
+      # jalur pg_dump — di jalur darurat ia mencetak baris kosong yang
+      # menyesatkan ("ukuran  MB").
       - name: Ringkasan
+        if: always()
         run: |
           {
-            echo "## Cadangan $CAP"
-            echo ""
-            echo "| | |"
-            echo "|---|---|"
-            echo "| ukuran (terenkripsi) | ${MB} MB |"
-            echo "| tabel berisi data | ${TABEL} |"
-            echo "| durasi dump | ${DETIK} dtk |"
-            echo "| tersimpan | 30 hari |"
-            echo ""
-            echo "🔐 AES-256 · terbukti bisa didekripsi ulang di run ini."
-            echo ""
-            echo "**Membuka:** unduh artifact, lalu:"
-            echo '```'
-            echo "openssl enc -d -aes-256-cbc -pbkdf2 -iter 100000 \\"
-            echo "  -in puraloka-$CAP.dump.enc -out puraloka.dump"
-            echo '```'
+            if [ "${PGDUMP_GAGAL:-1}" = "0" ]; then
+              echo "## Cadangan $CAP — jalur normal (pg_dump)"
+              echo ""
+              echo "| | |"
+              echo "|---|---|"
+              echo "| ukuran (terenkripsi) | ${MB} MB |"
+              echo "| tabel berisi data | ${TABEL} |"
+              echo "| durasi dump | ${DETIK} dtk |"
+              echo "| tersimpan | 30 hari |"
+              echo ""
+              echo "🔐 AES-256 · terbukti bisa didekripsi ulang di run ini."
+              echo ""
+              echo "**Membuka:** unduh artifact, lalu:"
+              echo '```'
+              echo "openssl enc -d -aes-256-cbc -pbkdf2 -iter 100000 \\"
+              echo "  -in puraloka-$CAP.dump.enc -out puraloka.dump"
+              echo '```'
+            else
+              echo "## Cadangan $CAP — jalur DARURAT (COPY)"
+              echo ""
+              echo "\`pg_dump\` belum bisa dipakai (**R-006** masih terbuka), jadi"
+              echo "data diselamatkan lewat \`COPY\` per tabel."
+              echo ""
+              echo "| | |"
+              echo "|---|---|"
+              echo "| isi | seluruh baris tiap tabel (CSV) |"
+              echo "| **tidak** termasuk | struktur · RLS · policy · trigger |"
+              echo "| struktur dipulihkan dari | \`db/migrations/*.sql\` (di git) |"
+              echo "| tersimpan | 30 hari |"
+              echo ""
+              echo "🔐 AES-256 · terbukti bisa dibuka kembali di run ini."
+              echo ""
+              echo "**Membuka:**"
+              echo '```'
+              echo "openssl enc -d -aes-256-cbc -pbkdf2 -iter 100000 \\"
+              echo "  -in darurat-$CAP.tar.gz.enc -out darurat.tar.gz"
+              echo "tar -xzf darurat.tar.gz"
+              echo '```'
+            fi
             echo ""
             echo "Langkah pemulihan lengkap: \`docs/ops/RUNBOOK-PEMULIHAN.md\`"
           } >> $GITHUB_STEP_SUMMARY
