@@ -122,6 +122,16 @@ try {
   // dan pg_restore MELEWATI policy-nya diam-diam — drill lalu melaporkan
   // "policy tidak ikut pulih" padahal cadangannya baik-baik saja.
   // Terbukti di CI: 377 vs 349, selisihnya persis 28 policy ber-`authenticated`.
+  // Schema `extensions` WAJIB ada lebih dulu: banyak tabel memakai
+  // `extensions.uuid_generate_v4()` sebagai DEFAULT. Tanpa ini setiap tabel
+  // yang memakainya gagal, lalu policy/comment/FK yang mengacu ikut runtuh —
+  // 753 galat berantai, terbukti di CI run 30830650218.
+  sh(`docker exec ${NAMA} psql -U postgres -v ON_ERROR_STOP=1 -c "` +
+     `CREATE SCHEMA IF NOT EXISTS extensions;` +
+     `CREATE EXTENSION IF NOT EXISTS \\"uuid-ossp\\" WITH SCHEMA extensions;` +
+     `CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;"`,
+     { stdio: ['ignore', 'ignore', 'inherit'] })
+
   sh(`docker exec ${NAMA} psql -U postgres -v ON_ERROR_STOP=1 -c "DO $$ BEGIN` +
      ` IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN CREATE ROLE anon NOLOGIN NOINHERIT; END IF;` +
      ` IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN CREATE ROLE authenticated NOLOGIN NOINHERIT; END IF;` +

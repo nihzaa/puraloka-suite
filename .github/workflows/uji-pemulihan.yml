@@ -256,6 +256,22 @@ jobs:
       - name: Siapkan peran Supabase di target
         run: |
           psql "postgresql://postgres:drill@localhost:5433/postgres" -v ON_ERROR_STOP=1 <<'SQL'
+          -- ── Schema `extensions` — TANPA INI RESTORE RUNTUH BERANTAI ──────
+          --
+          -- Banyak tabel memakai `extensions.uuid_generate_v4()` sebagai DEFAULT.
+          -- Schema `extensions` disediakan platform Supabase; di postgres:17
+          -- polos ia tak ada, jadi SETIAP tabel yang memakainya gagal dibuat —
+          -- lalu setiap policy, comment, dan FK yang mengacu ke tabel itu ikut
+          -- gagal. Run 30830650218: 753 galat, 124 tabel jadi 98.
+          --
+          -- Tiga galat terakhir menunjuk "relation … does not exist" (gejala).
+          -- Galat PERTAMA-lah yang menunjuk sebab: schema "extensions" does not
+          -- exist. Itulah kenapa memotong keluaran diagnostik di ujung yang
+          -- salah menyesatkan diagnosis selama dua putaran.
+          CREATE SCHEMA IF NOT EXISTS extensions;
+          CREATE EXTENSION IF NOT EXISTS "uuid-ossp"  WITH SCHEMA extensions;
+          CREATE EXTENSION IF NOT EXISTS pgcrypto     WITH SCHEMA extensions;
+
           DO $$
           BEGIN
             -- NOLOGIN: peran ini hanya perlu ADA agar policy bisa menyebutnya.
@@ -301,7 +317,10 @@ jobs:
           echo "galat pg_restore: ${N:-0}"
           if [ "${N:-0}" -gt 0 ]; then
             echo "── 5 galat PERTAMA (biasanya penyebabnya) ──"
-            grep -A1 "^pg_restore: error" /tmp/restore.log | head -15
+            # `head` lebih dulu, baru `grep`: memipa grep KE head membuat grep
+            # mati dengan "Broken pipe" begitu head cukup, dan pesan itu
+            # menyusup ke keluaran diagnostik.
+            head -400 /tmp/restore.log | grep -A1 "^pg_restore: error" | head -15
             echo "── ringkasan per kelas ──"
             grep -oiE "ERROR:  [a-z ]+" /tmp/restore.log | sort | uniq -c | sort -rn | head -8
           fi
