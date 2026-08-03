@@ -16,7 +16,7 @@ memuat **setiap** dokumen, tanpa kecuali.
 | **acuan** | aturan/keputusan yang dirujuk saat bekerja | dibaca saat mengerjakan hal terkait; tak "selesai" |
 | **riwayat** | catatan fase yang sudah lewat | bukti apa yang pernah terjadi; jangan dikutip sebagai rencana |
 
-**Total 259 dokumen** — antrean 11 · acuan 190 · riwayat 58.
+**Total 260 dokumen** — antrean 11 · acuan 191 · riwayat 58.
 
 Kolom **RM** = disebut langsung di `ROADMAP.md`.
 
@@ -42,6 +42,7 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | Dokumen | Peran | RM | Isi |
 |---|---|:-:|---|
 | [ADR-010-bentuk-grup-holding](adr/ADR-010-bentuk-grup-holding.md) | acuan |  | ADR-010 — Bentuk grup/holding: bagan akun tiga lapis, konsolidasi, transfer an |
+| [F2-2-KLASIFIKASI-TENANCY](adr/F2-2-KLASIFIKASI-TENANCY.md) | acuan |  | F2-2 — Klasifikasi tenancy 123 tabel |
 
 ### `docs/audit/2026-08-02`
 

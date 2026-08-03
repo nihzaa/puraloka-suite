@@ -566,7 +566,20 @@ items:
     kriteria_selesai: ["tabel keputusan terbaca manusia SEBELUM migrasi ditulis"]
     cara_verifikasi: "review daftar dari introspect tenancy-coverage"
     bobot: L
-    status: todo
+    status: done
+    bukti: >
+      docs/adr/F2-2-KLASIFIKASI-TENANCY.md — 123 tabel terklasifikasi lewat
+      scripts/db/klasifikasi-tenancy.mjs, yang menerapkan aturan ADR-011 §5
+      (nol keputusan sendiri, nol tulis ke DB).
+      Hasil: 1 AKAR · 11 A · 4 A/B · 33 B-sudah · 66 C · 4 D · 4 perlu keputusan.
+      TEMUAN TERPENTING: dari 80 tabel tanpa company_id, 66 TIDAK butuh kolom
+      baru — tenancy sudah dijamin rantai FK NOT NULL. Bentuk F2-3 berubah:
+      bukan menambah company_id ke 80 tabel, melainkan memutuskan 4 lalu
+      memasang penyaring di 66.
+      Cacat alat sendiri ditemukan saat verifikasi: 4 tabel kategori A ternyata
+      MEMBAWA company_id, membuat rantai yang berhenti di sana terlihat sah
+      padahal tenancy-nya semu (estimate_items sempat berhenti di cost_codes).
+      Penjaga CI audit-klasifikasi-tenancy.mjs — MUTATION-TESTED dua kali.
 
   - id: F2-3
     fase: 2
@@ -577,7 +590,7 @@ items:
       - "tiap batch punya migrasi turun yang teruji"
     cara_verifikasi: "test isolasi + rollback per batch"
     bobot: XL
-    status: blocked
+    status: todo
 
   - id: F2-4
     fase: 2

@@ -273,6 +273,19 @@ jobs:
       - name: Indeks dokumen mutakhir
         run: node scripts/gen-indeks-docs.mjs --check
 
+      # F2-2 — tabel BARU wajib punya jalur tenancy yang jelas.
+      #
+      # Klasifikasi 123 tabel menemukan tepat 4 yang perlu keputusan manusia.
+      # Angka itu benar hari ini dan akan salah begitu ada migrasi menambah
+      # tabel tanpa company_id maupun rantai FK NOT NULL — tanpa satu pun
+      # galat, hanya isinya terlihat oleh semua tenant.
+      #
+      # RATCHET: lantai 4. Menaikkannya = menyatakan "ada satu lagi tabel yang
+      # tenancy-nya tak jelas, dan itu tak apa-apa" — keputusan yang harus
+      # terlihat di diff, bukan efek samping.
+      - name: Klasifikasi tenancy (F2-2)
+        run: node scripts/audit-klasifikasi-tenancy.mjs
+
       # Test tak boleh membandingkan dua hitungan GLOBAL atas schema bersama.
       #
       # TUJUH kali dalam rantai ini CI merah oleh cacat yang sama: asumsi global
