@@ -123,15 +123,68 @@ jobs:
           echo "URL_AMAN=$AMAN" >> $GITHUB_ENV
           echo "✅ URL disusun ulang dengan sandi ter-encode"
 
+          # ── Diagnostik yang AMAN ────────────────────────────────────────
+          #
+          # Membungkam stderr menutup kebocoran, tetapi juga menutup mata:
+          # run pertama setelah perbaikan gagal tanpa satu pun petunjuk.
+          # Yang dicetak di sini hanya BENTUK sambungan — host, port, nama
+          # basis data — tanpa user maupun sandi. Ketiganya bukan rahasia
+          # (host Supabase bisa ditebak dari region), tetapi hampir selalu
+          # cukup untuk menjelaskan kenapa sambungan gagal.
+          AMAN="$AMAN" node -e '
+            const p = new URL(process.env.AMAN);
+            console.log("   host :", p.hostname);
+            console.log("   port :", p.port || "(bawaan 5432)");
+            console.log("   db   :", p.pathname.slice(1) || "(kosong)");
+            if (p.port === "6543") {
+              console.log("   ::warning::port 6543 = pooler. pg_dump butuh 5432 (direct).");
+            }
+          '
+          # Bisakah host-nya di-resolve sama sekali?
+          HOST=$(AMAN="$AMAN" node -e 'process.stdout.write(new URL(process.env.AMAN).hostname)')
+          if getent hosts "$HOST" >/dev/null 2>&1; then
+            echo "   DNS  : ✅ terpecahkan"
+          else
+            echo "   DNS  : ❌ TIDAK terpecahkan — host salah atau project Supabase sudah tak ada"
+          fi
+
       - name: Cadangkan (READ-ONLY terhadap sumber)
         run: |
           mkdir -p cadangan
           t0=$(date +%s)
+          # stderr ditangkap ke berkas, TIDAK dicetak. Yang dilaporkan hanya
+          # KELAS galatnya lewat pencocokan pola — cukup untuk mendiagnosis,
+          # tanpa pernah menerbitkan teks yang bisa memuat kredensial.
           if ! pg_dump --format=custom --no-owner --no-privileges \
-                       --file=cadangan/drill.dump "$URL_AMAN" 2>/dev/null; then
-            echo "::error::pg_dump gagal. Pesan galatnya SENGAJA tidak dicetak —"
-            echo "ia bisa memuat potongan kredensial, dan repo ini publik."
-            echo "Periksa: secret CI_DIRECT_URL benar, port 5432 (bukan 6543)."
+                       --file=cadangan/drill.dump "$URL_AMAN" 2>/tmp/galat.txt; then
+            echo "::error::pg_dump gagal."
+            if   grep -qi "password authentication failed" /tmp/galat.txt; then
+              echo "SEBAB: sandi SALAH. Perbarui secret CI_DIRECT_URL."
+            elif grep -qi "could not translate host name\|Name or service not known" /tmp/galat.txt; then
+              echo "SEBAB: host tak dikenali. Project Supabase CI mungkin sudah dihapus/di-pause,"
+              echo "       atau URL-nya salah bentuk."
+            elif grep -qi "Tenant or user not found" /tmp/galat.txt; then
+              echo "SEBAB: user/tenant tak ada di pooler — username Supabase biasanya"
+              echo "       berbentuk 'postgres.<ref-project>'."
+            elif grep -qi "server version\|version mismatch" /tmp/galat.txt; then
+              echo "SEBAB: versi pg_dump lebih tua dari server."
+            elif grep -qi "timeout\|timed out\|connection refused" /tmp/galat.txt; then
+              echo "SEBAB: sambungan ditolak/kehabisan waktu — project mungkin di-PAUSE."
+            else
+              echo "SEBAB: tak dikenali. Teks galatnya SENGAJA tidak dicetak —"
+              echo "       ia bisa memuat potongan kredensial, dan repo ini publik."
+            fi
+            # Jaring terakhir: cetak baris pertama dengan SEGALA yang menyerupai
+            # URL/host/kredensial disensor lebih dulu. `sed` menyunting isinya,
+            # bukan menyaring barisnya — menyaring baris justru berbahaya,
+            # karena baris yang TIDAK cocok pola akan lolos utuh.
+            #
+            # Pola `@` HARUS menerima karakter apa pun sebelum `@` — bukan
+            # hanya [A-Za-z0-9._%+-]. Versi pertama saya memakai kelas sempit
+            # itu dan GAGAL menyensor justru string yang benar-benar bocor
+            # (sandinya mengandung `*`). Diuji ulang terhadap string aslinya.
+            sed -E 's#postgres(ql)?://[^ "]*#[URL-DISENSOR]#g; s#[^ "]*@[A-Za-z0-9.-]+#[KREDENSIAL-DISENSOR]#g' \
+              /tmp/galat.txt | head -1 || true
             exit 1
           fi
           t1=$(date +%s)
