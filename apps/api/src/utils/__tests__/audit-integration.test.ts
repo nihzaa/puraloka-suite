@@ -39,9 +39,10 @@ describe('audit_logs write-path (integration, rollback-safe)', () => {
       // Insert dengan bentuk yang sama persis dgn logAuditEvent — verifikasi kolom
       // (severity/diff/ip/user_agent/reason) tersimpan benar. ROLLBACK setelahnya.
       await c.query(
-        `INSERT INTO audit_logs (table_name, record_id, action, user_id, old_values,
+        `INSERT INTO audit_logs (company_id, table_name, record_id, action, user_id, old_values,
            new_values, diff, severity, reason, ip_address, user_agent)
-         VALUES ('kasbons',$1,'kasbon.status',$2,'{"status":"pending"}','{"status":"approved"}',
+         VALUES ((SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1),
+           'kasbons',$1,'kasbon.status',$2,'{"status":"pending"}','{"status":"approved"}',
            $3,'critical','probe','203.0.113.7','vitest-audit-probe')`,
         [recordId, actorId, JSON.stringify(diff)]
       )
@@ -69,7 +70,7 @@ describe('audit_logs write-path (integration, rollback-safe)', () => {
       const recordId = randomUUID()
       await c.query('BEGIN')
       await c.query(
-        "INSERT INTO audit_logs (table_name, record_id, action, user_id, severity) VALUES ('_t',$1,'t',$2,'info')",
+        "INSERT INTO audit_logs (company_id, table_name, record_id, action, user_id, severity) VALUES ((SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1),'_t',$1,'t',$2,'info')",
         [recordId, actorId]
       )
       await expect(
@@ -81,7 +82,7 @@ describe('audit_logs write-path (integration, rollback-safe)', () => {
       // DELETE juga ditolak (transaksi baru)
       await c.query('BEGIN')
       await c.query(
-        "INSERT INTO audit_logs (table_name, record_id, action, user_id, severity) VALUES ('_t',$1,'t',$2,'info')",
+        "INSERT INTO audit_logs (company_id, table_name, record_id, action, user_id, severity) VALUES ((SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1),'_t',$1,'t',$2,'info')",
         [recordId, actorId]
       )
       await expect(
