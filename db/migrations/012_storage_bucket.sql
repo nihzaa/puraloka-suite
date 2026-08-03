@@ -13,20 +13,25 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('project-photos', 'project-photos', true)
 ON CONFLICT (id) DO NOTHING;
 
--- Public read: anyone can view photos (bucket is public)
+-- ⚠️ DIPERBAIKI 2026-08-04 (F2-5) — ketiga policy ini dulu berlaku untuk role
+-- `public`: siapa pun bisa MEMBACA dan MENGHAPUS foto progres proyek tenant
+-- mana pun, tanpa login.
+--
+-- Komentar aslinya berbunyi "bucket is public", dan itu memang benar SAAT ITU:
+-- browser mengunggah langsung memakai anon key. Migrasi 098 kemudian
+-- memprivatkan bucket-nya dan aplikasi pindah ke service_role
+-- (`apps/web/lib/storage.ts` mencatat perpindahan itu; `progress.ts:20`
+-- menegaskannya) — tetapi policy-nya tak ikut dibersihkan.
+--
+-- Kenapa diperbaiki DI SINI, bukan hanya dihapus di 181: `storage.objects`
+-- tabel GLOBAL, jadi migrasi ini ikut ter-replay tiap suite test membangun
+-- schema `test` dan MENGHIDUPKAN KEMBALI policy yang sudah dihapus.
 DROP POLICY IF EXISTS "project_photos_public_read" ON storage.objects;
-CREATE POLICY "project_photos_public_read"
-ON storage.objects FOR SELECT
-USING (bucket_id = 'project-photos');
-
--- Allow authenticated uploads
 DROP POLICY IF EXISTS "project_photos_allow_insert" ON storage.objects;
-CREATE POLICY "project_photos_allow_insert"
-ON storage.objects FOR INSERT
-WITH CHECK (bucket_id = 'project-photos');
-
--- Allow authenticated deletes
 DROP POLICY IF EXISTS "project_photos_allow_delete" ON storage.objects;
-CREATE POLICY "project_photos_allow_delete"
-ON storage.objects FOR DELETE
-USING (bucket_id = 'project-photos');
+
+DROP POLICY IF EXISTS "project_photos_service_only" ON storage.objects;
+CREATE POLICY "project_photos_service_only"
+ON storage.objects FOR ALL
+USING (bucket_id = 'project-photos' AND auth.role() = 'service_role')
+WITH CHECK (bucket_id = 'project-photos' AND auth.role() = 'service_role');

@@ -140,7 +140,15 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
           : proofFile.mimetype === 'image/png' ? 'png'
           : proofFile.mimetype === 'image/webp' ? 'webp'
           : 'jpg'
-        const path = `${projectId}/termin-${terminId}-${Date.now()}.${ext}`
+        // ⚠️ Segmen tenant WAJIB di depan (F2-5). Sebelumnya path dimulai dari
+        // `projectId`, dan bucket `payment-proofs` justru yang paling sensitif
+        // — ia memuat bukti transfer beserta nominal dan nama rekening.
+        //
+        // Terlewat saat F2-5 pertama dikerjakan; ditemukan oleh test yang
+        // memindai SUMBER, bukan oleh daftar rute yang saya tulis tangan.
+        // Itu sebabnya pemindaian dipilih: daftar manual tertinggal, kode tidak.
+        const path =
+          `${request.companyId}/${projectId}/termin-${terminId}-${Date.now()}.${ext}`
 
         const { data: uploadData, error: uploadErr } = await supabase.storage
           .from('payment-proofs')

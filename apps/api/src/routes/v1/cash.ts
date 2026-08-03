@@ -434,7 +434,12 @@ export default async function cashRoutes(app: FastifyInstance) {
             return reply.status(400).send({ error: (e as Error).message })
           }
           const ext = detectedMime.split('/')[1].replace('jpeg', 'jpg')
-          const filename = `receipts/${fields.project_id ?? 'unknown'}/${Date.now()}.${ext}`
+          // Segmen tenant di depan (F2-5). `project_id` bisa kosong —
+          // fallback lamanya `'unknown'` membuat SEMUA tenant berbagi satu
+          // folder `receipts/unknown/`, dan bukti pengeluaran mereka bercampur
+          // di sana.
+          const filename =
+            `${request.companyId}/receipts/${fields.project_id ?? 'tanpa-proyek'}/${Date.now()}.${ext}`
           const { error: uploadErr } = await supabase.storage
             .from('expense-receipts')
             .upload(filename, buf, { contentType: detectedMime })

@@ -492,7 +492,14 @@ export default async function settingsRoutes(app: FastifyInstance) {
         }
 
         const ext = detectedMime.split('/')[1].replace('jpeg', 'jpg')
-        const filename = `logo/company-logo.${ext}`
+        // ⚠️ SEGMEN TENANT WAJIB DI DEPAN (F2-5).
+        //
+        // Sebelumnya `logo/company-logo.${ext}` — SAMA untuk semua tenant, dan
+        // dengan `upsert: true` PT kedua yang mengunggah MENIMPA logo PT
+        // pertama. Kerusakannya senyap: unggahan berhasil, tak ada galat, dan
+        // yang tertimpa baru sadar saat melihat logo perusahaan lain di
+        // dokumennya sendiri.
+        const filename = `${request.companyId}/logo/company-logo.${ext}`
 
         const { error: uploadErr } = await supabase.storage
           .from('company-assets')

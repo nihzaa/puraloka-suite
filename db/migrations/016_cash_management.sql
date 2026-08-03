@@ -232,14 +232,32 @@ INSERT INTO storage.buckets (id, name, public)
 -- `INSERT INTO storage.buckets` di atas sudah idempoten (`ON CONFLICT`);
 -- ketiga policy ini tertinggal. Disamakan 2026-08-02 saat test alur uang
 -- pertama kali memakai migrasi ini.
+-- ⚠️ DIPERBAIKI 2026-08-04 (F2-5) — ketiga policy ini dulu berlaku untuk role
+-- `public` dan hanya menyaring `bucket_id`. Artinya siapa pun, termasuk anon
+-- TANPA LOGIN, bisa membaca dan MENGHAPUS daftar bukti pengeluaran seluruh
+-- tenant. Diukur sebelum diperbaiki: anon 1 baris, authenticated 1 baris.
+--
+-- Kenapa diperbaiki DI SINI, bukan hanya dihapus di 181:
+--
+--   `storage.objects` adalah tabel GLOBAL — tak punya salinan per-schema.
+--   Migrasi ini ikut ter-replay setiap kali suite test membangun schema
+--   `test`, dan replay-nya MENGHIDUPKAN KEMBALI policy yang 181 hapus. Test
+--   F2-5 karenanya hijau sendirian tetapi merah di suite penuh.
+--
+--   Menambal hanya di 181 akan meninggalkan lubang yang terbuka kembali di
+--   setiap lingkungan baru — dan replay membuatnya tak terlihat sebagai
+--   regresi, hanya sebagai test yang "kadang merah".
+--
+-- Bentuk penggantinya seragam dengan payment-proofs, kasbon-photos, dan
+-- project-documents: satu policy service_role, nol policy publik. Seluruh
+-- akses aplikasi ke bucket ini menempuh service_role (`cash.ts` memakai klien
+-- server, lalu menyerahkan `createSignedUrl` ke pemakai).
 DROP POLICY IF EXISTS "expense_receipts_insert" ON storage.objects;
-CREATE POLICY "expense_receipts_insert" ON storage.objects
-  FOR INSERT WITH CHECK (bucket_id = 'expense-receipts');
-
 DROP POLICY IF EXISTS "expense_receipts_select" ON storage.objects;
-CREATE POLICY "expense_receipts_select" ON storage.objects
-  FOR SELECT USING (bucket_id = 'expense-receipts');
-
 DROP POLICY IF EXISTS "expense_receipts_delete" ON storage.objects;
-CREATE POLICY "expense_receipts_delete" ON storage.objects
-  FOR DELETE USING (bucket_id = 'expense-receipts');
+
+DROP POLICY IF EXISTS "expense_receipts_service_only" ON storage.objects;
+CREATE POLICY "expense_receipts_service_only" ON storage.objects
+  FOR ALL
+  USING (bucket_id = 'expense-receipts' AND auth.role() = 'service_role')
+  WITH CHECK (bucket_id = 'expense-receipts' AND auth.role() = 'service_role');

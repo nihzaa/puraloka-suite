@@ -1126,7 +1126,13 @@ export default async function financeRoutes(app: FastifyInstance) {
             return reply.status(400).send({ error: (e as Error).message })
           }
           const ext = detectedMime.split('/')[1].replace('jpeg', 'jpg')
-          const filename = `invoices/${id}/bukti-${Date.now()}.${ext}`
+          // Segmen tenant di depan (F2-5) — pola yang sama dengan
+          // mandor.ts. Tanpa itu, dua tenant yang kebetulan punya invoice
+          // ber-UUID sama akan berbagi folder; UUID membuat tabrakan itu
+          // sangat kecil kemungkinannya, tetapi "sangat kecil" bukan "nol",
+          // dan path ber-tenant juga membuat penghapusan massal per-tenant
+          // mungkin dilakukan tanpa memindai seluruh bucket.
+          const filename = `${request.companyId}/invoices/${id}/bukti-${Date.now()}.${ext}`
           const { error: uploadErr } = await supabase.storage
             .from('payment-proofs')
             .upload(filename, buf, { contentType: detectedMime, upsert: false })

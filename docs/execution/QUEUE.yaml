@@ -615,7 +615,7 @@ items:
       - "policy dashboard-manual dipindah jadi migrasi"
     cara_verifikasi: "test akses anon + introspect policy storage"
     bobot: M
-    status: todo
+    status: done
 
   - id: F2-6
     fase: 2
