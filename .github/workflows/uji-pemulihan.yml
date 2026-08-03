@@ -285,6 +285,23 @@ jobs:
               ' | sort > /tmp/hitung-sumber.txt
           echo "tabel terekam dari dump: $(wc -l < /tmp/hitung-sumber.txt)"
 
+          # ── Daftar kosong TIDAK BOLEH lolos sebagai hijau ─────────────────
+          #
+          # Run 30832061986 berakhir "success" dengan daftar KOSONG: tak ada
+          # satu pun tabel yang dibandingkan, jadi tak ada yang bisa gagal.
+          # Itu bentuk kegagalan paling berbahaya di seluruh drill ini — ia
+          # terlihat persis seperti keberhasilan.
+          #
+          # Penjaga ini membuat "tak ada yang diperiksa" menjadi MERAH.
+          if [ ! -s /tmp/hitung-sumber.txt ]; then
+            echo "::error::gagal membaca jumlah baris dari dump — perbandingan isi"
+            echo "akan KOSONG dan drill akan hijau tanpa memeriksa apa pun."
+            echo "── 25 baris pertama keluaran --data-only (untuk diagnosis) ──"
+            pg_restore --data-only --format=custom cadangan/drill.dump 2>/dev/null \
+              | head -25 | cut -c1-120
+            exit 1
+          fi
+
       # Dump yang "berhasil" tapi kosong adalah jebakan paling halus: ia lolos
       # setiap pemeriksaan yang hanya melihat kode keluar.
       - name: Buktikan dump berisi
@@ -493,6 +510,16 @@ jobs:
           # Yang benar: bandingkan JUMLAHNYA. Angka sumber diambil dari rekaman
           # saat dump (/tmp/hitung-sumber.txt) supaya tak terpengaruh test suite
           # yang menulis bersamaan.
+          # Lapis kedua: kalau berkas hitungan hilang/kosong sampai di sini,
+          # perbandingan isi tak memeriksa apa pun. Hijau tanpa pemeriksaan
+          # lebih buruk daripada merah.
+          N_TABEL=$(wc -l < /tmp/hitung-sumber.txt 2>/dev/null || echo 0)
+          echo "membandingkan isi $N_TABEL tabel"
+          if [ "$N_TABEL" -lt 1 ]; then
+            echo "::error::nol tabel dibandingkan — drill tak membuktikan apa pun"
+            GAGAL=1
+          fi
+
           BEDA=$(while IFS='|' read -r t s; do
             [ -z "$t" ] && continue
             g=$(psql "$TARGET" -tAc "SELECT count(*) FROM \"$t\"" 2>/dev/null | tr -d '[:space:]')
