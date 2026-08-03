@@ -277,15 +277,34 @@ jobs:
       - name: PULIHKAN ke target sekali-pakai
         run: |
           t0=$(date +%s)
-          # pg_restore keluar non-nol untuk galat yang bisa diabaikan (peran
-          # yang tak ada di target). Yang menentukan bukan kode keluarnya,
-          # melainkan apakah DATANYA sampai — itu diperiksa di langkah berikut.
+          # ── Kenapa --exit-on-error TIDAK dipakai, tapi galatnya DIRINGKAS ──
+          #
+          # pg_restore wajar keluar non-nol untuk galat yang benar-benar bisa
+          # diabaikan. Yang menentukan tetap apakah DATANYA sampai (langkah
+          # berikutnya) — bukan kode keluarnya.
+          #
+          # Tetapi versi pertama saya memipa ke `tail -20`, dan itu MEMBUTAKAN:
+          # run 30830152113 menghasilkan 753 galat, dan saya hanya melihat tiga
+          # yang terakhir. Tiga baris itu menunjuk gejala (policy gagal karena
+          # tabelnya tak ada), bukan sebab (kenapa tabelnya tak ada).
+          #
+          # Sekarang galat DIRINGKAS PER KELAS dan yang PERTAMA ditampilkan —
+          # yang pertama hampir selalu penyebab, sisanya akibat berantai.
           pg_restore --no-owner --no-privileges \
             --dbname "postgresql://postgres:drill@localhost:5433/postgres" \
-            cadangan/drill.dump 2>&1 | tail -20 || true
+            cadangan/drill.dump >/tmp/restore.log 2>&1 || true
           t1=$(date +%s)
           echo "DETIK_RESTORE=$((t1-t0))" >> $GITHUB_ENV
           echo "::notice::restore $((t1-t0))s"
+
+          N=$(grep -c "^pg_restore: error" /tmp/restore.log || true)
+          echo "galat pg_restore: ${N:-0}"
+          if [ "${N:-0}" -gt 0 ]; then
+            echo "── 5 galat PERTAMA (biasanya penyebabnya) ──"
+            grep -A1 "^pg_restore: error" /tmp/restore.log | head -15
+            echo "── ringkasan per kelas ──"
+            grep -oiE "ERROR:  [a-z ]+" /tmp/restore.log | sort | uniq -c | sort -rn | head -8
+          fi
 
       - name: Bandingkan target dengan sumber
         env:
