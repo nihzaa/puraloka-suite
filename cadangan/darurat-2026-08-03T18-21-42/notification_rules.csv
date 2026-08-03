@@ -1,0 +1,15 @@
+id,event_type,label,description,is_active,created_at,updated_at,updated_by,company_id
+5e1b62bf-228e-4003-84c1-10045c360d57,invoice_created,Invoice Dibuat,Invoice baru diterbitkan,true,2026-07-24T13:25:24.448Z,2026-07-24T13:25:24.448Z,,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+c45a378d-52b0-4044-9c2c-9ed202d49742,invoice_paid,Invoice Dibayar,Pembayaran invoice tercatat,true,2026-07-24T13:25:24.448Z,2026-07-24T13:25:24.448Z,,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+4f265413-bcbf-4ba3-9c7a-eaad77a097e6,invoice_due,Invoice Jatuh Tempo,Invoice mendekati jatuh tempo,true,2026-07-24T13:25:24.448Z,2026-07-24T13:25:24.448Z,,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+1b8b67d6-3ec7-47bd-8b1a-1ebdb1f1d61c,invoice_overdue,Invoice Terlambat,Invoice melewati jatuh tempo,true,2026-07-24T13:25:24.448Z,2026-07-24T13:25:24.448Z,,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+4ec837d3-a861-47aa-aed0-0a993c85ba3b,milestone_completed,Milestone Selesai,Milestone ditandai selesai,true,2026-07-24T13:25:24.448Z,2026-07-24T13:25:24.448Z,,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+c4c8bca4-092e-46d2-ac2d-e70a211ea1e5,milestone_approaching,Milestone Mendekat,Milestone mendekati tenggat,true,2026-07-24T13:25:24.448Z,2026-07-24T13:25:24.448Z,,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+5814bb04-5e1c-4c34-bc91-9dbc57237d66,milestone_overdue,Milestone Terlambat,Milestone melewati tenggat,true,2026-07-24T13:25:24.448Z,2026-07-24T13:25:24.448Z,,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+5a368f52-f05b-44da-b49a-15e9ac6ef204,material_request_submitted,Material Request Diajukan,MR baru menunggu persetujuan,true,2026-07-24T13:25:24.448Z,2026-07-24T13:25:24.448Z,,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+103006e7-68e7-4a9e-a659-f4bbb872accc,change_order_submitted,Change Order Diajukan,CO baru menunggu persetujuan,true,2026-07-24T13:25:24.448Z,2026-07-24T13:25:24.448Z,,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+afab55aa-c3d8-4942-bfd6-dbdb51fefc7c,kasbon_pending,Kasbon Menunggu Persetujuan,Kasbon menunggu tindakan,true,2026-07-24T13:25:24.448Z,2026-07-24T13:25:24.448Z,,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+78a3bdf5-644a-4527-a931-3fd628371eb9,kasbon_submitted,Kasbon Diajukan,Kasbon baru diajukan mandor,true,2026-07-24T13:25:24.448Z,2026-07-24T13:25:24.448Z,,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+9abe6ce0-050e-4018-b20d-ff0fd5d7e973,wage_report_submitted,Laporan Upah Diajukan,Laporan upah mingguan diajukan,true,2026-07-24T13:25:24.448Z,2026-07-24T13:25:24.448Z,,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+11050769-63c5-4577-bfee-6dfd7e223afb,project_status_changed,Status Proyek Berubah,Status proyek diperbarui,true,2026-07-24T13:25:24.448Z,2026-07-24T13:25:24.448Z,,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+72460a55-360a-40cf-8ccc-5d394984707e,project_deadline,Deadline Proyek,Proyek mendekati/melewati deadline,true,2026-07-24T13:25:24.448Z,2026-07-24T13:25:24.448Z,,48befb54-113d-4e1b-b4dd-91cf79d6d8a0

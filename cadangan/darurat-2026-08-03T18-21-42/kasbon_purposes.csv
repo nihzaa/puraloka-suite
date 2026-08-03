@@ -1,0 +1,6 @@
+code,label,sort_order,is_active,created_at,updated_at,updated_by
+gaji_tukang,Gaji Tukang,10,true,2026-07-24T04:42:28.149Z,2026-07-24T04:42:28.149Z,
+uang_makan,Uang Makan,20,true,2026-07-24T04:42:28.149Z,2026-07-24T04:42:28.149Z,
+pembelian_alat,Pembelian Alat,30,true,2026-07-24T04:42:28.149Z,2026-07-24T04:42:28.149Z,
+operasional,Operasional,40,true,2026-07-24T04:42:28.149Z,2026-07-24T04:42:28.149Z,
+lain_lain,Lain-lain,50,true,2026-07-24T04:42:28.149Z,2026-07-24T04:42:28.149Z,

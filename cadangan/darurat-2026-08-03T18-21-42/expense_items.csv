@@ -1,0 +1,1 @@
+id,expense_report_id,category_id,description,qty,unit,unit_price,subtotal,receipt_url,receipt_date,vendor_name,notes,created_at,updated_at

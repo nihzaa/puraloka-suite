@@ -1,0 +1,250 @@
+id,key,label,href,icon,parent_id,required_permissions,sort_order,section,is_active,created_at,updated_at
+4a78fb0c-ffa2-486e-b386-ee8db4c79183,keuangan-invoice,Invoice & Bayar,/keuangan,Receipt,5c72ddd7-59eb-4109-8c34-cecef7e55783,"[""finance:view""]",10,main,true,2026-07-23T04:41:19.139Z,2026-07-23T04:41:19.139Z
+cf8d38f1-4034-4e0c-af5c-288b3cc16759,keuangan-kas,Kas & Pengeluaran,/kas,PiggyBank,5c72ddd7-59eb-4109-8c34-cecef7e55783,"[""cash:view""]",20,main,true,2026-07-23T04:41:19.139Z,2026-07-23T04:41:19.139Z
+35884ca6-9706-43b1-af5f-9cbb3e0410e4,pengaturan-profil,Profil Perusahaan,/pengaturan,Building2,fb8bccbe-b15e-467d-85fe-26aa21573c60,"[""users:roles:manage""]",10,bottom,true,2026-07-23T04:41:19.139Z,2026-07-23T04:41:19.139Z
+dd803f5f-2890-4a0e-b972-5ab6c9839b2c,pengaturan-roles,Role & Akses,/pengaturan/roles,ShieldCheck,fb8bccbe-b15e-467d-85fe-26aa21573c60,"[""users:roles:manage""]",20,bottom,true,2026-07-23T04:41:19.139Z,2026-07-23T04:41:19.139Z
+5cd7deee-f886-4d1e-b0be-14dfdc4c1731,pengaturan-keuangan,Konfigurasi Keuangan,/pengaturan/keuangan,Landmark,fb8bccbe-b15e-467d-85fe-26aa21573c60,"[""settings:finance:manage""]",15,bottom,true,2026-07-23T20:40:45.821Z,2026-07-23T20:40:45.821Z
+ea76379a-5ddf-44e3-b068-02036f382c2f,pengaturan-satuan,Kelola Satuan,/pengaturan/satuan,Ruler,fb8bccbe-b15e-467d-85fe-26aa21573c60,"[""units:manage""]",17,bottom,true,2026-07-23T21:45:27.593Z,2026-07-23T21:45:27.593Z
+53e687b1-3481-4ca4-8a64-0c0ef5da2e5c,pengaturan-kategori,Kategori Pekerjaan,/pengaturan/kategori-pekerjaan,Layers,fb8bccbe-b15e-467d-85fe-26aa21573c60,"[""work_categories:manage""]",18,bottom,true,2026-07-24T03:35:07.606Z,2026-07-24T03:35:07.606Z
+f1f794e6-a0a8-475b-8872-ed10749c1ecf,pengaturan-kasbon-purposes,Tujuan Kasbon,/pengaturan/kasbon-purposes,Coins,fb8bccbe-b15e-467d-85fe-26aa21573c60,"[""kasbon_purposes:manage""]",19,bottom,true,2026-07-24T04:42:28.149Z,2026-07-24T04:42:28.149Z
+0e5f2b1a-9656-49ce-99af-97f2a9be125b,pengaturan-approval,Rantai Approval,/pengaturan/approval,GitBranch,fb8bccbe-b15e-467d-85fe-26aa21573c60,"[""approval:chains:manage""]",20,bottom,true,2026-07-24T11:55:44.939Z,2026-07-24T11:55:44.939Z
+e373a6ff-c20a-4e29-bfc8-f874fa1d744c,pengaturan-notifikasi,Aturan Notifikasi,/pengaturan/notifikasi,BellRing,fb8bccbe-b15e-467d-85fe-26aa21573c60,"[""notifications:rules:manage""]",21,bottom,true,2026-07-24T13:25:24.448Z,2026-07-24T13:25:24.448Z
+72cfae5a-8cd6-430a-a63b-d7ab826d429d,keuangan-piutang,Piutang,/piutang,Coins,5c72ddd7-59eb-4109-8c34-cecef7e55783,"[""finance:view:all""]",15,main,true,2026-07-28T16:26:57.113Z,2026-07-28T16:26:57.113Z
+8a2326bb-6b46-460e-8874-d057d2e3f26a,pengaturan-perusahaan,Badan Usaha,/pengaturan/perusahaan,Building2,fb8bccbe-b15e-467d-85fe-26aa21573c60,"[""settings:manage""]",11,bottom,true,2026-07-29T10:43:46.550Z,2026-07-29T10:43:46.550Z
+d1a4cb5a-d150-4cae-b2bc-78c20af92bb9,dashboard,Dashboard,/dashboard,LayoutDashboard,,"[]",10,main,false,2026-07-23T04:41:19.139Z,2026-08-01T06:56:21.587Z
+b1489c97-42fe-4056-b10a-d2d4104d703e,proyek,Proyek,/proyek,FolderKanban,,"[""projects:view""]",20,main,false,2026-07-23T04:41:19.139Z,2026-08-01T06:56:21.587Z
+1021fe2e-850c-4e04-b415-20fddf900c59,klien,Klien,/klien,Contact,,"[""clients:view""]",30,main,false,2026-07-23T04:41:19.139Z,2026-08-01T06:56:21.587Z
+5c72ddd7-59eb-4109-8c34-cecef7e55783,keuangan,Keuangan,,Wallet,,"[""finance:view"",""cash:view""]",40,main,false,2026-07-23T04:41:19.139Z,2026-08-01T06:56:21.587Z
+7846f308-7a75-45cb-b562-4f98ece9164e,procurement,Pengadaan,/procurement,ShoppingCart,,"[""procurement:view""]",50,main,false,2026-07-23T04:41:19.139Z,2026-08-01T06:56:21.587Z
+18452808-c56b-44ad-8493-7fa1ea52bfbd,mandor,Mandor,/mandor,HardHat,,"[""mandor:view""]",60,main,false,2026-07-23T04:41:19.139Z,2026-08-01T06:56:21.587Z
+e8100ced-7e29-4f1e-808c-eba711aab07c,laporan,Laporan,/laporan,BarChart3,,"[""reports:view""]",70,main,false,2026-07-23T04:41:19.139Z,2026-08-01T06:56:21.587Z
+489eb4cf-73ae-4d03-a4bf-7339a1d36227,kalender,Kalender,/kalender,CalendarDays,,"[""projects:view"",""mandor:view""]",80,main,false,2026-07-23T04:41:19.139Z,2026-08-01T06:56:21.587Z
+fe56daba-2784-49e4-a668-f7fea7dc486a,users,User,/users,Users,,"[""users:manage""]",90,main,false,2026-07-23T04:41:19.139Z,2026-08-01T06:56:21.587Z
+8a4717f4-d5c9-45df-93c6-944afaee0112,audit,Audit Trail,/audit,ShieldCheck,,"[""users:manage""]",100,main,false,2026-07-23T04:41:19.139Z,2026-08-01T06:56:21.587Z
+fb8bccbe-b15e-467d-85fe-26aa21573c60,pengaturan,Pengaturan,/pengaturan,Settings,,"[]",10,bottom,false,2026-07-23T04:41:19.139Z,2026-08-01T06:56:21.587Z
+c3a8a325-2814-4e7d-abd2-314aa714f260,estimasi,Estimasi,/estimasi,Calculator,,"[""cecep:estimate:view""]",25,main,false,2026-07-26T19:16:03.939Z,2026-08-01T06:56:21.587Z
+33a3460c-ecd3-406b-8780-18b4b88d18ad,tender,Register Tender,/tender,Gavel,,"[""projects:view""]",26,main,false,2026-07-31T17:19:30.656Z,2026-08-01T06:56:21.587Z
+06e1f2e5-79a8-43fb-98d4-89816c00f914,aset,Aset & Alat,/aset,Truck,,"[""assets:view""]",55,main,false,2026-08-01T04:31:43.581Z,2026-08-01T06:56:21.587Z
+9f14e19d-98eb-4414-9b13-846ca70b95d4,g-master,Master Data,,Database,,"[]",100,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+34e4a4c7-3b02-4b6d-b0d8-835eea86cc14,g-crm,Pra-Konstruksi,,Gavel,,"[]",200,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+6cf26008-1508-499a-ae38-8b02a7517483,g-kontrak,Kontrak,,FileSignature,,"[]",300,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+178c7f63-2d81-4a90-b03f-80de97e7f2d0,g-jadwal,Perencanaan,,CalendarRange,,"[]",400,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+9a762cb6-376e-442f-9c76-a0adcbd36574,g-cost,Budget & Cost Control,,Calculator,,"[]",500,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+fddac7cf-676a-4b37-9f6b-11c51efb0a22,g-procurement,Pengadaan,,ShoppingCart,,"[]",600,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+535ad283-9800-427a-af97-2e31637d119e,g-inventory,Gudang & Material,,Package,,"[]",700,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+c64b33e6-1012-4ab3-8afe-077b91da49f2,g-subkon,Mandor & Subkon,,HardHat,,"[]",800,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+8bda0bcc-71fa-454a-82b0-919ce950a500,g-lapangan,Operasi Lapangan,,ClipboardList,,"[]",900,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+8de9a212-de80-4b42-a1d1-4678f8325390,g-qaqc,Mutu (QA/QC),,BadgeCheck,,"[]",1000,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+fba558e9-34b2-4688-9436-ff7a862b9e0d,g-hse,K3 & Lingkungan,,ShieldAlert,,"[]",1100,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+b6d6c701-8ad7-4628-a264-8fe6bcc7e208,g-hr,SDM & Payroll,,Users,,"[]",1200,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+e0b52da9-6b11-4fa1-a01d-fa8fdb855545,g-aset,Alat & Aset,,Truck,,"[]",1300,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+735149e6-5610-4a2a-91cd-9e07d7cca135,g-keuangan,Keuangan,,Landmark,,"[]",1400,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+3812e911-c371-4b5b-babb-6acb01f87ed0,g-tagih,Penagihan,,Receipt,,"[]",1500,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+4a33f704-411b-432f-9add-ed1931857a18,g-dokumen,Dokumen,,FolderOpen,,"[]",1600,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+c0f03d12-a5ae-4ad7-8397-d422cc6b7329,g-risiko,Risiko & Kepatuhan,,AlertTriangle,,"[]",1700,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+d152e81c-b39a-42ac-a16c-45af6949f737,g-laporan,Laporan & BI,,BarChart3,,"[]",1800,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+bf142412-7bdb-4a35-b4f7-bb32c660e603,g-sistem,Administrasi,,Settings,,"[]",1900,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+5018722a-bc6e-4da3-9542-07cab9d608a3,g-mobile,Aplikasi Lapangan,,Smartphone,,"[]",2000,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+3f81f52b-a0a5-4f02-874d-21a22e1ce4f1,md-perusahaan,Badan Usaha,/pengaturan/perusahaan,Dot,9f14e19d-98eb-4414-9b13-846ca70b95d4,"[]",101,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+21e8b42f-d2ad-4e02-a4cf-70b3feafcb4e,md-coa,Chart of Accounts,/m/md-coa,Dot,9f14e19d-98eb-4414-9b13-846ca70b95d4,"[]",102,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+e0ae8357-52f9-49ef-88d0-baa3b2776793,md-cost-code,Cost Code / CBS,/estimasi,Dot,9f14e19d-98eb-4414-9b13-846ca70b95d4,"[]",103,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+d3a1cc14-3d29-4b5c-bb27-a05b75903de6,md-wbs-template,Template WBS,/m/md-wbs-template,Dot,9f14e19d-98eb-4414-9b13-846ca70b95d4,"[]",104,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+34e84823-d1f6-41a3-ba15-925c330616a6,md-resource,Master Resource,/estimasi,Dot,9f14e19d-98eb-4414-9b13-846ca70b95d4,"[]",105,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+a9f027eb-cbcd-42ef-92e8-29d5558a56eb,md-price-book,Price Book,/estimasi,Dot,9f14e19d-98eb-4414-9b13-846ca70b95d4,"[]",106,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+8bd0e638-73aa-4a0b-aa4e-5ec055d0f0f6,md-satuan,Satuan,/pengaturan/satuan,Dot,9f14e19d-98eb-4414-9b13-846ca70b95d4,"[]",107,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+cd6be100-ecf5-43ab-ac73-24505873678a,md-supplier,Supplier,/procurement,Dot,9f14e19d-98eb-4414-9b13-846ca70b95d4,"[]",108,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+508085c2-4a9e-4f3c-a9cd-71b43da08e59,md-prakualifikasi,Prakualifikasi Vendor,/m/md-prakualifikasi,Dot,9f14e19d-98eb-4414-9b13-846ca70b95d4,"[]",109,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+498180e8-616f-4d67-a04f-bcf65aab9d95,md-subkon,Subkontraktor,/mandor,Dot,9f14e19d-98eb-4414-9b13-846ca70b95d4,"[]",110,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+6c8e7db0-1c5c-459a-93ae-b07766a4d14f,md-klien,Klien,/klien,Dot,9f14e19d-98eb-4414-9b13-846ca70b95d4,"[]",111,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+3663caf8-25c8-405e-baa4-f8c32ded7c5d,md-karyawan,Karyawan,/users,Dot,9f14e19d-98eb-4414-9b13-846ca70b95d4,"[]",112,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+6658e028-7e31-4c69-99e0-e5b6b54b724c,md-aset,Aset & Alat,/aset,Dot,9f14e19d-98eb-4414-9b13-846ca70b95d4,"[]",113,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+830da24c-dbd0-4143-99e1-958afbe5560f,md-gudang,Gudang & Lokasi,/procurement,Dot,9f14e19d-98eb-4414-9b13-846ca70b95d4,"[]",114,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+c650f982-5a93-4568-8fe1-3cfa7c883e6a,md-pajak,Konfigurasi Pajak,/pengaturan/keuangan,Dot,9f14e19d-98eb-4414-9b13-846ca70b95d4,"[]",115,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+84b87822-3c53-497c-864b-72696f18c26a,md-kalender,Kalender Kerja,/m/md-kalender,Dot,9f14e19d-98eb-4414-9b13-846ca70b95d4,"[]",116,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+ff97d53e-85e0-4408-a122-a3ddc4668704,md-penomoran,Penomoran Dokumen,/m/md-penomoran,Dot,9f14e19d-98eb-4414-9b13-846ca70b95d4,"[]",117,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+2104a727-6930-41d9-b65c-230d27d2fdd4,md-template-dok,Template Dokumen,/m/md-template-dok,Dot,9f14e19d-98eb-4414-9b13-846ca70b95d4,"[]",118,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+084f079f-438d-4489-b351-7aaf09042dd4,crm-lead,Pipeline Lead,/tender,Dot,34e4a4c7-3b02-4b6d-b0d8-835eea86cc14,"[]",201,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+b1c269b6-e267-462f-8929-5c3e9577a9b9,crm-tender,Register Tender,/tender,Dot,34e4a4c7-3b02-4b6d-b0d8-835eea86cc14,"[]",202,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+884623c7-3310-45cf-8874-12f673b14a7b,crm-gonogo,Keputusan Go / No-Go,/tender,Dot,34e4a4c7-3b02-4b6d-b0d8-835eea86cc14,"[]",203,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+69fad52d-afda-4ad9-a6f9-b67952c79939,crm-prakualifikasi,Dokumen Prakualifikasi,/m/crm-prakualifikasi,Dot,34e4a4c7-3b02-4b6d-b0d8-835eea86cc14,"[]",204,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+395d058c-639e-4b58-8a8c-4403c9f9ec21,crm-estimating,Estimating / AHSP,/estimasi,Dot,34e4a4c7-3b02-4b6d-b0d8-835eea86cc14,"[]",205,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+6785a01c-73c6-466e-8b46-b856c054b6e8,crm-boq,Quantity Takeoff / BOQ,/estimasi,Dot,34e4a4c7-3b02-4b6d-b0d8-835eea86cc14,"[]",206,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+138ae10c-1dc0-43cf-be60-d72899452e0a,crm-skenario,Skenario Penawaran,/m/crm-skenario,Dot,34e4a4c7-3b02-4b6d-b0d8-835eea86cc14,"[]",207,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+b8868d83-43d6-45a9-b738-60ace69713cd,crm-markup,Markup & Margin,/m/crm-markup,Dot,34e4a4c7-3b02-4b6d-b0d8-835eea86cc14,"[]",208,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+51bd3cbb-c51a-44bb-8b7d-a244030fcb00,crm-eskalasi,Eskalasi Harga,/m/crm-eskalasi,Dot,34e4a4c7-3b02-4b6d-b0d8-835eea86cc14,"[]",209,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+76b0d8fb-e158-42de-b421-cdcb7f6f976f,crm-proposal,Dokumen Penawaran,/m/crm-proposal,Dot,34e4a4c7-3b02-4b6d-b0d8-835eea86cc14,"[]",210,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+86250bd7-54d9-4750-8288-7156a063c328,crm-bidbond,Jaminan Penawaran,/proyek,Dot,34e4a4c7-3b02-4b6d-b0d8-835eea86cc14,"[]",211,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+dfd1b89c-fcca-49d7-8953-d54bb3ba8d47,crm-winloss,Analisa Menang/Kalah,/tender,Dot,34e4a4c7-3b02-4b6d-b0d8-835eea86cc14,"[]",212,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+0b80ec60-5c07-401f-a830-f261073d70e4,crm-backlog,Backlog / Order Book,/tender,Dot,34e4a4c7-3b02-4b6d-b0d8-835eea86cc14,"[]",213,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+dc48abea-728e-4198-b028-52c7a1843391,kt-register,Register Kontrak,/proyek,Dot,6cf26008-1508-499a-ae38-8b02a7517483,"[]",301,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+2dcef93f-823f-46e7-942a-387c8c15b0fb,kt-termin,Termin Pembayaran,/keuangan,Dot,6cf26008-1508-499a-ae38-8b02a7517483,"[]",302,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+e6539e8d-a9ad-4598-b309-12e36333c164,kt-retensi,Retensi,/piutang,Dot,6cf26008-1508-499a-ae38-8b02a7517483,"[]",303,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+07816033-5fa4-49aa-9f71-8eab13b32235,kt-co,Change Order,/proyek,Dot,6cf26008-1508-499a-ae38-8b02a7517483,"[]",304,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+c395657c-8d54-47f9-9297-8b6f6e9c7476,kt-claims,Claims,/m/kt-claims,Dot,6cf26008-1508-499a-ae38-8b02a7517483,"[]",305,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+ba0a8b2b-4c0f-496d-bd34-550975c63398,kt-eot,Perpanjangan Waktu (EOT),/proyek,Dot,6cf26008-1508-499a-ae38-8b02a7517483,"[]",306,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+f90715b6-7332-44ea-a9fe-0d799ba60719,kt-ld,Denda Keterlambatan,/proyek,Dot,6cf26008-1508-499a-ae38-8b02a7517483,"[]",307,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+b743f6bf-a539-4aa4-a06e-96e59c4d7f44,kt-bond,Register Jaminan,/proyek,Dot,6cf26008-1508-499a-ae38-8b02a7517483,"[]",308,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+941a2ba5-979f-4aba-9bbe-0bd678fdd946,kt-asuransi,Register Asuransi,/m/kt-asuransi,Dot,6cf26008-1508-499a-ae38-8b02a7517483,"[]",309,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+58a89802-ab51-4cf1-b15b-b87e219fb107,kt-surat,Surat Masuk & Keluar,/m/kt-surat,Dot,6cf26008-1508-499a-ae38-8b02a7517483,"[]",310,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+2612d9c2-a98c-4923-a82a-ea6a3f1475c0,kt-subkon,Kontrak Subkontraktor,/mandor,Dot,6cf26008-1508-499a-ae38-8b02a7517483,"[]",311,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+d81cf3aa-430b-463a-b1cd-ca7e2a4492cc,jd-wbs,WBS Proyek,/proyek,Dot,178c7f63-2d81-4a90-b03f-80de97e7f2d0,"[]",401,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+ed6679d9-7b11-4719-a419-1701e4ee6930,jd-baseline,Baseline Schedule,/m/jd-baseline,Dot,178c7f63-2d81-4a90-b03f-80de97e7f2d0,"[]",402,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+264db5b9-4abe-4a34-b6e6-55639fb1b731,jd-gantt,Gantt Chart,/proyek,Dot,178c7f63-2d81-4a90-b03f-80de97e7f2d0,"[]",403,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+7c43c63d-945f-4f43-8e66-abbb16bec93f,jd-cpm,Jalur Kritis (CPM),/m/jd-cpm,Dot,178c7f63-2d81-4a90-b03f-80de97e7f2d0,"[]",404,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+db555942-bffc-47fe-940f-f18f47dd2646,jd-kurva-s,Kurva S,/proyek,Dot,178c7f63-2d81-4a90-b03f-80de97e7f2d0,"[]",405,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+6cb0ff7e-e9a5-499a-a5ef-9d3bba837df2,jd-histogram,Histogram Sumber Daya,/m/jd-histogram,Dot,178c7f63-2d81-4a90-b03f-80de97e7f2d0,"[]",406,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+052373b8-fcd6-4b64-9b77-c4c07fa3a575,jd-lookahead,Look-Ahead 3 Minggu,/proyek,Dot,178c7f63-2d81-4a90-b03f-80de97e7f2d0,"[]",407,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+d367b87c-aa43-4db9-aee8-7c03fc7bbb36,jd-milestone,Milestone,/proyek,Dot,178c7f63-2d81-4a90-b03f-80de97e7f2d0,"[]",408,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+bdff7a4b-5137-4d34-9b33-80faff0e67e8,jd-evm,Earned Value (EVM),/proyek,Dot,178c7f63-2d81-4a90-b03f-80de97e7f2d0,"[]",409,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+7485899b-3065-442b-88ee-e2352e9dde34,jd-delay,Analisa Keterlambatan,/m/jd-delay,Dot,178c7f63-2d81-4a90-b03f-80de97e7f2d0,"[]",410,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+6ca7c9ff-6143-42c1-b0c1-e0ddf08dd5f3,jd-method,Method Statement,/m/jd-method,Dot,178c7f63-2d81-4a90-b03f-80de97e7f2d0,"[]",411,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+73d31104-4ac5-49d6-ae02-fbda2a1055ce,cc-rab,RAB,/proyek,Dot,9a762cb6-376e-442f-9c76-a0adcbd36574,"[]",501,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+2c401267-f7d2-4d60-a87f-a7589646bafe,cc-rap,RAP,/estimasi,Dot,9a762cb6-376e-442f-9c76-a0adcbd36574,"[]",502,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+278034fb-f961-41d7-8c9a-bcfd81ff9a94,cc-revisi,Revisi Anggaran,/m/cc-revisi,Dot,9a762cb6-376e-442f-9c76-a0adcbd36574,"[]",503,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+cdd22cc3-ff89-488c-a1e7-b03750e48d1f,cc-commitment,Commitment Tracking,/estimasi,Dot,9a762cb6-376e-442f-9c76-a0adcbd36574,"[]",504,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+b05d0a18-3754-4d71-a499-6d1026020cf8,cc-acl,Actual Cost Ledger,/estimasi,Dot,9a762cb6-376e-442f-9c76-a0adcbd36574,"[]",505,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+7a8ab0a4-fd46-4afc-b600-b9f329940201,cc-etc,Cost-to-Complete,/proyek,Dot,9a762cb6-376e-442f-9c76-a0adcbd36574,"[]",506,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+a3b6bbca-aba9-46a6-8e79-b6f6ef3cc245,cc-cashflow,Proyeksi Kas,/estimasi,Dot,9a762cb6-376e-442f-9c76-a0adcbd36574,"[]",507,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+320f6795-5244-4ded-87bd-a0daba3a04ce,cc-contingency,Manajemen Contingency,/m/cc-contingency,Dot,9a762cb6-376e-442f-9c76-a0adcbd36574,"[]",508,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+21578683-0c7d-42aa-beb6-a02a8447afae,cc-varians,Analisa Varians,/estimasi,Dot,9a762cb6-376e-442f-9c76-a0adcbd36574,"[]",509,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+3f5547f2-2f2a-4d56-b187-2db0cfb5e22a,cc-profit,Profitabilitas Proyek,/laporan,Dot,9a762cb6-376e-442f-9c76-a0adcbd36574,"[]",510,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+33f6f335-ca97-44fc-804d-ddce9d320a66,cc-wip,WIP / PSAK,/laporan,Dot,9a762cb6-376e-442f-9c76-a0adcbd36574,"[]",511,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+6f1ba6d2-33ed-431a-841e-3d91f4a930a3,cc-cvr,Cost Value Reconciliation,/m/cc-cvr,Dot,9a762cb6-376e-442f-9c76-a0adcbd36574,"[]",512,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+75437415-169e-4ab1-9eec-35a7a4b53812,cc-pagu-material,Pagu Belanja Material,/estimasi,Dot,9a762cb6-376e-442f-9c76-a0adcbd36574,"[]",513,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+62bf9161-afe3-419a-8969-2fa383a7fec0,cc-bac,Cost Baseline (BAC),/proyek,Dot,9a762cb6-376e-442f-9c76-a0adcbd36574,"[]",514,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+157af2ad-3fa0-4831-9de8-4d6a0a67527a,pr-mr,Material Request,/procurement,Dot,fddac7cf-676a-4b37-9f6b-11c51efb0a22,"[]",601,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+7f6ff22c-224c-4d33-b51b-f1aaf8ca22bd,pr-rfq,RFQ ke Vendor,/m/pr-rfq,Dot,fddac7cf-676a-4b37-9f6b-11c51efb0a22,"[]",602,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+71232079-524a-4fab-aa93-b591d6375620,pr-tabulasi,Perbandingan Penawaran,/m/pr-tabulasi,Dot,fddac7cf-676a-4b37-9f6b-11c51efb0a22,"[]",603,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+09487cea-8af3-49dc-a138-08b01447a976,pr-po,Purchase Order,/procurement,Dot,fddac7cf-676a-4b37-9f6b-11c51efb0a22,"[]",604,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+b5ae31d0-982f-40ae-847c-ac9a6d49f489,pr-blanket,Kontrak Payung,/m/pr-blanket,Dot,fddac7cf-676a-4b37-9f6b-11c51efb0a22,"[]",605,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+c0598d53-1432-4c38-9933-1be4df528139,pr-grn,Goods Receipt,/procurement,Dot,fddac7cf-676a-4b37-9f6b-11c51efb0a22,"[]",606,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+ad3fbedb-7078-4292-baf1-d4516eeb9122,pr-3way,3-Way Match,/procurement,Dot,fddac7cf-676a-4b37-9f6b-11c51efb0a22,"[]",607,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+37cbdb3d-0b20-46f5-89cd-851ff6a32411,pr-evaluasi,Evaluasi Kinerja Vendor,/m/pr-evaluasi,Dot,fddac7cf-676a-4b37-9f6b-11c51efb0a22,"[]",608,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+a11010ec-dcaa-4174-b4af-3c061b8713c1,pr-jadwal-bayar,Jadwal Bayar Vendor,/procurement,Dot,fddac7cf-676a-4b37-9f6b-11c51efb0a22,"[]",609,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+15c5201b-29f5-4928-96b1-58b35d1b1c0b,pr-expediting,Expediting & Logistik,/m/pr-expediting,Dot,fddac7cf-676a-4b37-9f6b-11c51efb0a22,"[]",610,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+29a725eb-f9fb-4317-9633-c247ac8fcbc7,iv-gudang,Gudang Proyek,/procurement,Dot,535ad283-9800-427a-af97-2e31637d119e,"[]",701,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+14e6bed0-270b-4fb3-87fa-7cc19a0f16bf,iv-mutasi,Stok Masuk & Keluar,/procurement,Dot,535ad283-9800-427a-af97-2e31637d119e,"[]",702,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+f139a89e-3259-41e4-b08d-c2ea973db9f0,tg-retensi,Pelepasan Retensi,/piutang,Dot,3812e911-c371-4b5b-babb-6acb01f87ed0,"[]",1504,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+871c9beb-8820-4f28-92f5-6b3e9524a8a8,iv-transfer,Transfer Antar Proyek,/m/iv-transfer,Dot,535ad283-9800-427a-af97-2e31637d119e,"[]",703,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+af396e76-85b5-4f5e-9f45-a29ad974cf8f,iv-opname,Stock Opname,/procurement,Dot,535ad283-9800-427a-af97-2e31637d119e,"[]",704,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+3076d666-5bb6-438c-945b-d63fe31040f7,iv-minstok,Minimum Stok,/procurement,Dot,535ad283-9800-427a-af97-2e31637d119e,"[]",705,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+0bdbc47a-eba0-4507-96c4-bbf9bb612af7,iv-rekonsiliasi,Rekonsiliasi Material,/m/iv-rekonsiliasi,Dot,535ad283-9800-427a-af97-2e31637d119e,"[]",706,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+8c5f669a-b67c-4485-b75d-5c4e0bc2186c,iv-waste,Tracking Waste,/m/iv-waste,Dot,535ad283-9800-427a-af97-2e31637d119e,"[]",707,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+adf7eabf-1962-4220-8c83-635891777512,sk-paket,Paket Subkontrak,/mandor,Dot,c64b33e6-1012-4ab3-8afe-077b91da49f2,"[]",801,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+9dcf17f4-7713-4295-b6a3-d6f6865fb6d5,sk-tender,Tender Subkontraktor,/m/sk-tender,Dot,c64b33e6-1012-4ab3-8afe-077b91da49f2,"[]",802,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+164a9075-d306-423c-80e7-f30cd96a1e0e,sk-kontrak,Kontrak & BOQ Subkon,/mandor,Dot,c64b33e6-1012-4ab3-8afe-077b91da49f2,"[]",803,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+429e646f-1638-40d8-a725-f3684c25154f,sk-wo,Work Order,/mandor,Dot,c64b33e6-1012-4ab3-8afe-077b91da49f2,"[]",804,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+786535d6-6c65-4e90-9137-2f152676eb7d,sk-opname,Opname Bersama,/proyek,Dot,c64b33e6-1012-4ab3-8afe-077b91da49f2,"[]",805,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+0951690e-a84e-45e2-a44a-77d9b4551f36,sk-claim,Progress Claim,/mandor,Dot,c64b33e6-1012-4ab3-8afe-077b91da49f2,"[]",806,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+22c1f4b7-e8c4-4729-acd9-4c30e1576196,sk-retensi,Retensi Subkon,/m/sk-retensi,Dot,c64b33e6-1012-4ab3-8afe-077b91da49f2,"[]",807,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+45109519-b940-4ed0-bd8c-261dd587ec88,sk-backcharge,Back-Charge,/mandor,Dot,c64b33e6-1012-4ab3-8afe-077b91da49f2,"[]",808,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+84edc571-80ea-41e6-a25f-be86d07a64d8,sk-evaluasi,Evaluasi Subkon,/m/sk-evaluasi,Dot,c64b33e6-1012-4ab3-8afe-077b91da49f2,"[]",809,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+e6d8762d-9414-4ca3-b0b3-3b9af12b60c6,sk-kepatuhan,Kepatuhan Subkon,/m/sk-kepatuhan,Dot,c64b33e6-1012-4ab3-8afe-077b91da49f2,"[]",810,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+691d1b5e-1502-485b-87e4-34659ad635d7,sk-mandor,Manajemen Mandor,/mandor,Dot,c64b33e6-1012-4ab3-8afe-077b91da49f2,"[]",811,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+a71593d1-4234-46da-833e-b9e8feb9c8e1,sk-kasbon,Kasbon,/mandor,Dot,c64b33e6-1012-4ab3-8afe-077b91da49f2,"[]",812,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+92c2d3de-85b2-4cfc-8b0d-90b03ec46374,sk-upah,Upah Harian & Borongan,/mandor,Dot,c64b33e6-1012-4ab3-8afe-077b91da49f2,"[]",813,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+b8999f44-74eb-4a2a-9e97-9ed773268344,sk-settlement,Settlement Borongan,/mandor,Dot,c64b33e6-1012-4ab3-8afe-077b91da49f2,"[]",814,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+380b62c6-9a47-4601-b7bc-844b29d093e2,lp-dpr,Laporan Harian,/proyek,Dot,8bda0bcc-71fa-454a-82b0-919ce950a500,"[]",901,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+bac054d6-785a-4888-b88a-a5d600fac28d,lp-tenaga,Log Tenaga Kerja,/mandor,Dot,8bda0bcc-71fa-454a-82b0-919ce950a500,"[]",902,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+d698a723-423e-4553-b830-dacb3a4e3c5a,lp-alat,Log Pemakaian Alat,/m/lp-alat,Dot,8bda0bcc-71fa-454a-82b0-919ce950a500,"[]",903,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+e59ecbb3-10db-42ab-8cad-59a6896a19b0,lp-cuaca,Log Cuaca,/proyek,Dot,8bda0bcc-71fa-454a-82b0-919ce950a500,"[]",904,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+3910a5dc-074f-4c71-836a-af1c1f19d25a,lp-instruksi,Instruksi Lapangan,/m/lp-instruksi,Dot,8bda0bcc-71fa-454a-82b0-919ce950a500,"[]",905,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+29758839-4785-43c9-9083-cc0af11e33d5,lp-permit,Izin Kerja,/m/lp-permit,Dot,8bda0bcc-71fa-454a-82b0-919ce950a500,"[]",906,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+670db46a-e81b-4b1e-ba66-82f78b6eaff8,lp-ncr,Non-Conformance Report,/m/lp-ncr,Dot,8bda0bcc-71fa-454a-82b0-919ce950a500,"[]",909,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+d2a8cc90-19de-4fe8-a593-cc106f852b04,lp-foto,Dokumentasi Foto,/proyek,Dot,8bda0bcc-71fa-454a-82b0-919ce950a500,"[]",911,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+7ce66962-06cc-46bb-b6c8-1b2ff8996a50,lp-serah,Serah Terima (PHO/FHO),/proyek,Dot,8bda0bcc-71fa-454a-82b0-919ce950a500,"[]",912,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+8496b3fd-bba5-4a35-ae35-82b19ff3f904,qc-rencana,Rencana Mutu Proyek,/m/qc-rencana,Dot,8de9a212-de80-4b42-a1d1-4678f8325390,"[]",1001,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+08a58e40-8d3f-4c5e-95b0-2dde56ed8cd7,qc-itp,Inspection & Test Plan,/m/qc-itp,Dot,8de9a212-de80-4b42-a1d1-4678f8325390,"[]",1002,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+217a002f-42b7-4e99-b9fa-65ef53429253,qc-checklist,Checklist Inspeksi,/m/qc-checklist,Dot,8de9a212-de80-4b42-a1d1-4678f8325390,"[]",1003,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+3e55b132-1a05-42b0-82ed-68ef61f5397b,qc-uji,Hasil Uji Material,/m/qc-uji,Dot,8de9a212-de80-4b42-a1d1-4678f8325390,"[]",1004,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+7724bc7f-4639-4a24-bbe3-735e176ec72c,qc-ncr,Register NCR,/m/qc-ncr,Dot,8de9a212-de80-4b42-a1d1-4678f8325390,"[]",1005,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+2cb69ed4-ef5c-4a4e-9f51-c58490ecb5d2,qc-capa,Tindakan Korektif,/m/qc-capa,Dot,8de9a212-de80-4b42-a1d1-4678f8325390,"[]",1006,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+12e85d17-8444-4828-8780-f9f7d0427af7,qc-audit,Audit Mutu,/m/qc-audit,Dot,8de9a212-de80-4b42-a1d1-4678f8325390,"[]",1007,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+ad5583e2-cba3-4860-a767-b3601cd946dc,hse-rk3k,RK3K,/m/hse-rk3k,Dot,fba558e9-34b2-4688-9436-ff7a862b9e0d,"[]",1101,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+a1ae0bc5-adf2-487b-a426-0275af574efa,hse-jsa,Job Safety Analysis,/m/hse-jsa,Dot,fba558e9-34b2-4688-9436-ff7a862b9e0d,"[]",1102,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+b4f77a29-6ce7-4f11-a96b-31fc6b1d054b,hse-induksi,Induksi & Pelatihan K3,/m/hse-induksi,Dot,fba558e9-34b2-4688-9436-ff7a862b9e0d,"[]",1103,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+37c9149c-4320-41eb-9cbe-1f617ef7e449,hse-apd,Alat Pelindung Diri,/m/hse-apd,Dot,fba558e9-34b2-4688-9436-ff7a862b9e0d,"[]",1104,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+a747ef4c-ea89-42e3-99e8-a85ec4c49a2d,hse-inspeksi,Inspeksi K3,/m/hse-inspeksi,Dot,fba558e9-34b2-4688-9436-ff7a862b9e0d,"[]",1105,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+b952c57b-01cd-43ee-9416-6ae616ef8254,hse-insiden,Laporan Insiden,/m/hse-insiden,Dot,fba558e9-34b2-4688-9436-ff7a862b9e0d,"[]",1106,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+f1dd2d0d-4e20-4e5c-a4e2-76f313c08f36,hse-lingkungan,Pengelolaan Lingkungan,/m/hse-lingkungan,Dot,fba558e9-34b2-4688-9436-ff7a862b9e0d,"[]",1107,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+4d7ae96d-2c74-4f49-abfe-269fa8c554cd,hr-karyawan,Data Karyawan,/users,Dot,b6d6c701-8ad7-4628-a264-8fe6bcc7e208,"[]",1201,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+2d13f2d7-2dfa-41d5-a4ff-eaabb1351348,hr-rekrutmen,Rekrutmen,/m/hr-rekrutmen,Dot,b6d6c701-8ad7-4628-a264-8fe6bcc7e208,"[]",1202,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+2b416494-0a02-414f-b2da-27471970fec0,hr-absensi,Absensi & Timesheet,/m/hr-absensi,Dot,b6d6c701-8ad7-4628-a264-8fe6bcc7e208,"[]",1203,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+89d83060-f59a-4737-a8db-2d8df9a23e61,hr-cuti,Cuti & Izin,/m/hr-cuti,Dot,b6d6c701-8ad7-4628-a264-8fe6bcc7e208,"[]",1204,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+1d225ff6-8370-4e75-95c6-878875da579a,hr-payroll,Payroll Staf,/m/hr-payroll,Dot,b6d6c701-8ad7-4628-a264-8fe6bcc7e208,"[]",1205,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+b46acced-2093-4740-9015-a472ef6eeebd,hr-upah,Upah Harian Lapangan,/mandor,Dot,b6d6c701-8ad7-4628-a264-8fe6bcc7e208,"[]",1206,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+65533eed-7913-4735-b1d2-2cc8b29eaa97,hr-bpjs,BPJS & Potongan,/m/hr-bpjs,Dot,b6d6c701-8ad7-4628-a264-8fe6bcc7e208,"[]",1207,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+c71f5df3-ba35-4386-9b7f-f544cb850998,hr-pph21,PPh 21,/m/hr-pph21,Dot,b6d6c701-8ad7-4628-a264-8fe6bcc7e208,"[]",1208,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+a4447b15-3cad-4597-95fb-9c53d37642cb,hr-sertifikasi,Sertifikasi & Kompetensi,/m/hr-sertifikasi,Dot,b6d6c701-8ad7-4628-a264-8fe6bcc7e208,"[]",1209,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+4b74f729-8e69-42be-add8-4b809c79159a,hr-kinerja,Penilaian Kinerja,/m/hr-kinerja,Dot,b6d6c701-8ad7-4628-a264-8fe6bcc7e208,"[]",1210,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+b47d8e09-189b-4077-a66b-1a4745ec01cb,hr-reimburse,Klaim Perjalanan,/kas,Dot,b6d6c701-8ad7-4628-a264-8fe6bcc7e208,"[]",1211,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+2ecd4f2f-eb1a-402e-ab22-be95425d565f,as-register,Register Aset,/aset,Dot,e0b52da9-6b11-4fa1-a01d-fa8fdb855545,"[]",1301,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+a89c889d-2a10-4f5c-8a10-09fa7fa80719,as-mutasi,Mutasi Antar Proyek,/aset,Dot,e0b52da9-6b11-4fa1-a01d-fa8fdb855545,"[]",1302,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+a039ceb7-6ce2-45f2-8d05-976d8d002ca9,as-penyusutan,Penyusutan,/aset,Dot,e0b52da9-6b11-4fa1-a01d-fa8fdb855545,"[]",1303,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+ecb76105-5f9c-4283-b4ac-51aecc952f16,as-sewa,Sewa Alat,/aset,Dot,e0b52da9-6b11-4fa1-a01d-fa8fdb855545,"[]",1304,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+c42da5ff-12bd-4c97-95b6-713d9dc46dba,as-utilisasi,Utilisasi,/aset,Dot,e0b52da9-6b11-4fa1-a01d-fa8fdb855545,"[]",1305,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+b99f7427-70de-4ac5-b001-6f5385e9f218,as-maintenance,Maintenance Terjadwal,/m/as-maintenance,Dot,e0b52da9-6b11-4fa1-a01d-fa8fdb855545,"[]",1306,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+66fbc3b2-f56c-436f-9650-c09fcaec8d21,as-opex,Biaya Operasional Alat,/m/as-opex,Dot,e0b52da9-6b11-4fa1-a01d-fa8fdb855545,"[]",1307,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+a9403dd7-697f-43f7-bfcc-b520ecb9eef5,as-gl,Penyusutan → Jurnal,/m/as-gl,Dot,e0b52da9-6b11-4fa1-a01d-fa8fdb855545,"[]",1308,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+2befe0e9-ec1c-4438-814f-979c0d7cba54,fn-ap,Utang Supplier,/procurement,Dot,735149e6-5610-4a2a-91cd-9e07d7cca135,"[]",1403,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+a532de7b-d992-4af3-b4eb-124ad2d47be2,fn-ar,Piutang Klien,/piutang,Dot,735149e6-5610-4a2a-91cd-9e07d7cca135,"[]",1404,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+822033e0-a8a7-42b2-af1b-c3ec778f3190,fn-kas,Kas & Bank,/kas,Dot,735149e6-5610-4a2a-91cd-9e07d7cca135,"[]",1405,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+c98489b7-6b7e-4d06-8ba1-4b05b1e831a4,fn-rekonsiliasi,Rekonsiliasi Bank,/m/fn-rekonsiliasi,Dot,735149e6-5610-4a2a-91cd-9e07d7cca135,"[]",1406,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+8a6f3a7c-8551-4359-a8d8-2346460c40f5,fn-petty,Kas Kecil,/kas,Dot,735149e6-5610-4a2a-91cd-9e07d7cca135,"[]",1407,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+41b60ac1-36fd-4f47-a634-ad10fd0c723c,fn-aset-tetap,Aset Tetap,/aset,Dot,735149e6-5610-4a2a-91cd-9e07d7cca135,"[]",1408,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+7e36f2b2-141f-41f5-8703-38219aa89029,fn-pajak,PPN & PPh,/laporan,Dot,735149e6-5610-4a2a-91cd-9e07d7cca135,"[]",1409,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+efcbea1d-e3aa-47f9-bbaa-4dd59ddd5ed8,fn-efaktur,e-Faktur & e-Bupot,/laporan,Dot,735149e6-5610-4a2a-91cd-9e07d7cca135,"[]",1410,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+1da297a3-ffc1-48ed-ae6c-e3338f1e62a3,fn-laporan,Laporan Keuangan,/laporan,Dot,735149e6-5610-4a2a-91cd-9e07d7cca135,"[]",1411,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+79176d23-d479-415d-a539-5f9f5c97f221,fn-wip,Pengakuan Pendapatan,/laporan,Dot,735149e6-5610-4a2a-91cd-9e07d7cca135,"[]",1412,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+bb749dfa-a1b9-48ec-b146-36d2ff4fc164,lp-submittal,Submittal Register,/lapangan/submittal,Dot,8bda0bcc-71fa-454a-82b0-919ce950a500,"[""submittal:view""]",908,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+c4632560-7c5b-4eef-875b-38a5aeb491ab,fn-gl,Buku Besar,/akuntansi,Dot,735149e6-5610-4a2a-91cd-9e07d7cca135,"[""gl:view""]",1401,main,true,2026-08-01T06:56:21.587Z,2026-08-02T14:45:41.291Z
+c36edd0e-d3b4-465a-a929-83380f6bb767,fn-tutup-buku,Tutup Buku,/m/fn-tutup-buku,Dot,735149e6-5610-4a2a-91cd-9e07d7cca135,"[]",1413,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+0d30d320-a713-4b33-8bed-52d72370d4f2,fn-audit,Audit Trail,/audit,Dot,735149e6-5610-4a2a-91cd-9e07d7cca135,"[]",1414,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+fd070ccb-7d6b-4899-a9c7-63523e228bb2,tg-progress,Progress Billing,/keuangan,Dot,3812e911-c371-4b5b-babb-6acb01f87ed0,"[]",1501,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+45b3076b-cb7b-48f0-bfe1-a98072958dbe,tg-termin,Termin,/keuangan,Dot,3812e911-c371-4b5b-babb-6acb01f87ed0,"[]",1502,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+fbe23fb9-9839-4626-8760-ce4164aa2bae,tg-ipc,Interim Payment Certificate,/m/tg-ipc,Dot,3812e911-c371-4b5b-babb-6acb01f87ed0,"[]",1503,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+eebfbfc9-8aad-4670-86e6-071ea6bcae14,tg-uangmuka,Pemotongan Uang Muka,/piutang,Dot,3812e911-c371-4b5b-babb-6acb01f87ed0,"[]",1505,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+caf3d793-a31d-4902-b831-4f6f688b3d87,tg-tambah,Tagihan Pekerjaan Tambah,/keuangan,Dot,3812e911-c371-4b5b-babb-6acb01f87ed0,"[]",1506,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+3902fb0a-6360-4d5a-bc8e-930f4e5838d1,tg-invoice,Invoice & Faktur Pajak,/keuangan,Dot,3812e911-c371-4b5b-babb-6acb01f87ed0,"[]",1507,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+3ac80e2a-799d-41d5-a084-54697edf6752,tg-followup,Follow-Up Penagihan,/piutang,Dot,3812e911-c371-4b5b-babb-6acb01f87ed0,"[]",1508,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+90814ba8-37f0-406f-a2c0-a697807b0b77,tg-nota-kredit,Nota Kredit,/m/tg-nota-kredit,Dot,3812e911-c371-4b5b-babb-6acb01f87ed0,"[]",1509,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+8a8804a5-d1ff-4254-bb2d-7a9e0da9a34c,dk-register,Register Dokumen,/proyek,Dot,4a33f704-411b-432f-9add-ed1931857a18,"[]",1601,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+9bf5a0c7-56ff-4402-96da-4693d40b0e6c,dk-transmittal,Transmittal,/m/dk-transmittal,Dot,4a33f704-411b-432f-9add-ed1931857a18,"[]",1602,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+bbc06581-0382-4a39-9603-bc518edc439f,dk-gambar,Register Gambar,/m/dk-gambar,Dot,4a33f704-411b-432f-9add-ed1931857a18,"[]",1603,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+e77d9ef8-c43e-4098-b4d7-a9026769f6e7,dk-notulen,Notulen Rapat,/m/dk-notulen,Dot,4a33f704-411b-432f-9add-ed1931857a18,"[]",1604,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+45efc854-b29e-41d6-ae31-7023b1c25bc2,dk-approval,Approval Dokumen,/pengaturan/approval,Dot,4a33f704-411b-432f-9add-ed1931857a18,"[]",1605,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+f71cce61-c187-4f02-acbb-4670591328b2,dk-distribusi,Matriks Distribusi,/m/dk-distribusi,Dot,4a33f704-411b-432f-9add-ed1931857a18,"[]",1606,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+6e6e8abb-bf3c-44b5-bd9d-c1b5daf7e172,dk-esign,Tanda Tangan Elektronik,/m/dk-esign,Dot,4a33f704-411b-432f-9add-ed1931857a18,"[]",1607,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+49dc58fa-46d8-4748-aed2-744766646925,rk-register,Register Risiko,/m/rk-register,Dot,c0f03d12-a5ae-4ad7-8397-d422cc6b7329,"[]",1701,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+79c484df-af44-4403-9674-49e9b13edfbb,rk-mitigasi,Rencana Mitigasi,/m/rk-mitigasi,Dot,c0f03d12-a5ae-4ad7-8397-d422cc6b7329,"[]",1702,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+89de3037-66ca-4173-a5e3-3b32ed940355,rk-perizinan,Perizinan,/m/rk-perizinan,Dot,c0f03d12-a5ae-4ad7-8397-d422cc6b7329,"[]",1703,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+6d54934f-63e9-417d-ac34-0a48637ad92b,rk-kepatuhan,Kepatuhan Regulasi,/m/rk-kepatuhan,Dot,c0f03d12-a5ae-4ad7-8397-d422cc6b7329,"[]",1704,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+f8c5abd9-88d7-4220-a7c8-710d1efb1182,rk-sengketa,Sengketa & Klaim,/m/rk-sengketa,Dot,c0f03d12-a5ae-4ad7-8397-d422cc6b7329,"[]",1705,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+fa81217a-a1e4-400b-bd2e-4e6a7145dd3e,bi-eksekutif,Dashboard Eksekutif,/dashboard,Dot,d152e81c-b39a-42ac-a16c-45af6949f737,"[]",1801,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+bc042a10-fd2e-4746-a9d5-582e85bcd73e,bi-proyek,Dashboard per Proyek,/proyek,Dot,d152e81c-b39a-42ac-a16c-45af6949f737,"[]",1802,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+6e8301e6-baad-4af4-a3cc-8d797c3e96b8,bi-biaya,Laporan Biaya,/laporan,Dot,d152e81c-b39a-42ac-a16c-45af6949f737,"[]",1803,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+94d99982-3e89-41c4-939c-5adea9f3ad9f,bi-arus-kas,Laporan Arus Kas,/laporan,Dot,d152e81c-b39a-42ac-a16c-45af6949f737,"[]",1804,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+23faf660-6fc3-4da5-a5f4-22690f4ca5d1,bi-portofolio,Portofolio Biaya,/laporan,Dot,d152e81c-b39a-42ac-a16c-45af6949f737,"[]",1805,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+f38283db-4e9b-4eee-be8e-8aee4de99a1c,bi-kpi,KPI Perusahaan,/laporan,Dot,d152e81c-b39a-42ac-a16c-45af6949f737,"[]",1806,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+a793a39a-74b1-440f-b4c7-eafde502b3f1,bi-builder,Report Builder,/m/bi-builder,Dot,d152e81c-b39a-42ac-a16c-45af6949f737,"[]",1807,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+6b49a75f-e41e-42e2-b29b-bb11a03c469f,bi-export,Ekspor Excel & PDF,/laporan,Dot,d152e81c-b39a-42ac-a16c-45af6949f737,"[]",1808,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+57f69ff5-2fe6-4b60-a9e2-4c8adf3217f6,bi-terjadwal,Laporan Terjadwal,/m/bi-terjadwal,Dot,d152e81c-b39a-42ac-a16c-45af6949f737,"[]",1809,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+6da8f745-bc65-45fd-8491-2f237069ec80,sy-user,Pengguna & Role,/users,Dot,bf142412-7bdb-4a35-b4f7-bb32c660e603,"[]",1901,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+1c45a42b-868d-4abe-9e94-17e3db3ca8af,sy-permission,Matriks Izin,/pengaturan/roles,Dot,bf142412-7bdb-4a35-b4f7-bb32c660e603,"[]",1902,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+71d7cbec-01b7-40a4-b459-df6d0d370d29,sy-approval,Konfigurasi Approval,/pengaturan/approval,Dot,bf142412-7bdb-4a35-b4f7-bb32c660e603,"[]",1903,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+a4c3fd10-ac02-43bb-a136-20b5d93572af,sy-notifikasi,Aturan Notifikasi,/pengaturan/notifikasi,Dot,bf142412-7bdb-4a35-b4f7-bb32c660e603,"[]",1904,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+b9127e79-82cb-46fa-b31e-10102e1edeaf,sy-penomoran,Konfigurasi Penomoran,/m/sy-penomoran,Dot,bf142412-7bdb-4a35-b4f7-bb32c660e603,"[]",1905,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+1c5e9c70-7de0-40f3-8173-ddd26fd62268,sy-audit,Audit Log,/audit,Dot,bf142412-7bdb-4a35-b4f7-bb32c660e603,"[]",1906,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+a1e09e8e-2e76-4c78-bb0d-cc490682db09,sy-api,API & Integrasi,/m/sy-api,Dot,bf142412-7bdb-4a35-b4f7-bb32c660e603,"[]",1907,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+6d8150c1-c629-4ba7-af98-4e6ef1c6003a,sy-import,Impor & Ekspor Data,/estimasi,Dot,bf142412-7bdb-4a35-b4f7-bb32c660e603,"[]",1908,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+3fdcd3e1-dd43-4b07-ac44-2cf78cf21eea,sy-modul,Modul & Feature Flag,/pengaturan,Dot,bf142412-7bdb-4a35-b4f7-bb32c660e603,"[]",1909,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+330f8004-fd17-46b0-8bf9-65b7db361f1a,sy-sistem,Pemeliharaan Sistem,/sistem,Dot,bf142412-7bdb-4a35-b4f7-bb32c660e603,"[]",1910,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+0febcbdc-d182-4bbb-8cdc-d9a7cd1c0841,mb-absensi,Absensi Lapangan,/m/mb-absensi,Dot,5018722a-bc6e-4da3-9542-07cab9d608a3,"[]",2001,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+a1a664be-cc93-4170-b1e0-01203595746e,mb-progres,Input Progres Mobile,/m/mb-progres,Dot,5018722a-bc6e-4da3-9542-07cab9d608a3,"[]",2002,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+5b463b57-c28a-4d02-b743-7a616b9c697c,mb-geotag,Foto Geotag,/m/mb-geotag,Dot,5018722a-bc6e-4da3-9542-07cab9d608a3,"[]",2003,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+9046a5f0-6b1b-4942-a169-efa621b30e1a,mb-offline,Mode Offline,/m/mb-offline,Dot,5018722a-bc6e-4da3-9542-07cab9d608a3,"[]",2004,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+f48a8bf6-4a8e-49db-8c28-56b89fda2ff8,mb-notif,Notifikasi Perangkat,/notifications,Dot,5018722a-bc6e-4da3-9542-07cab9d608a3,"[]",2005,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+17ab8c3b-2886-4315-bd41-784e0f4e9288,lp-punch,Punch List,/lapangan/punch-list,Dot,8bda0bcc-71fa-454a-82b0-919ce950a500,"[""punch:view""]",910,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+96209d0f-8cf4-4bf9-8a32-e2547fd71bfa,lp-rfi,Request for Inspection,/lapangan/inspeksi,Dot,8bda0bcc-71fa-454a-82b0-919ce950a500,"[""inspeksi:view""]",907,main,true,2026-08-01T06:56:21.587Z,2026-08-01T06:56:21.587Z
+80a76df0-98d5-4098-9ab0-61ce258f6080,kt-rfi,Request for Information,/kontrak/rfi,MessageSquareQuote,6cf26008-1508-499a-ae38-8b02a7517483,"[""rfi:view""]",306,main,true,2026-08-01T09:24:19.717Z,2026-08-01T09:24:19.717Z
+e5575188-5f85-4627-b220-9c029f5e150f,fn-jurnal,Jurnal Umum,/akuntansi,Dot,735149e6-5610-4a2a-91cd-9e07d7cca135,"[""gl:view""]",1402,main,true,2026-08-01T06:56:21.587Z,2026-08-02T14:45:41.291Z

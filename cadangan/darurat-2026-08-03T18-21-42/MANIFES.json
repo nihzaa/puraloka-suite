@@ -1,0 +1,753 @@
+{
+  "dibuat": "2026-08-03T18:21:49.769Z",
+  "alasan": "pg_dump terblokir fungsi yatim — lihat RATIFIKASI.md R-006",
+  "tabel": 123,
+  "total_baris": 48330,
+  "detik": 7.6,
+  "cara_memulihkan": [
+    "1. buat database kosong",
+    "2. jalankan db/migrations/*.sql berurutan (struktur + RLS + policy)",
+    "3. muat CSV mengikuti urutan `urutan` menaik di daftar tabel di bawah",
+    "CATATAN: cadangan ini TIDAK memuat struktur. Ia mengandalkan migrasi di git."
+  ],
+  "daftar": [
+    {
+      "tabel": "company_profile",
+      "baris": 1,
+      "urutan": 0,
+      "berkas": "company_profile.csv"
+    },
+    {
+      "tabel": "material_categories",
+      "baris": 10,
+      "urutan": 0,
+      "berkas": "material_categories.csv"
+    },
+    {
+      "tabel": "permissions",
+      "baris": 110,
+      "urutan": 0,
+      "berkas": "permissions.csv"
+    },
+    {
+      "tabel": "approval_steps",
+      "baris": 7,
+      "urutan": 1,
+      "berkas": "approval_steps.csv"
+    },
+    {
+      "tabel": "materials",
+      "baris": 23,
+      "urutan": 1,
+      "berkas": "materials.csv"
+    },
+    {
+      "tabel": "notification_rule_targets",
+      "baris": 25,
+      "urutan": 1,
+      "berkas": "notification_rule_targets.csv"
+    },
+    {
+      "tabel": "permission_scopes",
+      "baris": 0,
+      "urutan": 1,
+      "berkas": "permission_scopes.csv"
+    },
+    {
+      "tabel": "role_permissions",
+      "baris": 271,
+      "urutan": 1,
+      "berkas": "role_permissions.csv"
+    },
+    {
+      "tabel": "material_request_items",
+      "baris": 14,
+      "urutan": 2,
+      "berkas": "material_request_items.csv"
+    },
+    {
+      "tabel": "project_rab_materials",
+      "baris": 0,
+      "urutan": 2,
+      "berkas": "project_rab_materials.csv"
+    },
+    {
+      "tabel": "project_stocks",
+      "baris": 5,
+      "urutan": 2,
+      "berkas": "project_stocks.csv"
+    },
+    {
+      "tabel": "stock_movements",
+      "baris": 16,
+      "urutan": 2,
+      "berkas": "stock_movements.csv"
+    },
+    {
+      "tabel": "purchase_order_items",
+      "baris": 8,
+      "urutan": 3,
+      "berkas": "purchase_order_items.csv"
+    },
+    {
+      "tabel": "goods_receipt_items",
+      "baris": 4,
+      "urutan": 4,
+      "berkas": "goods_receipt_items.csv"
+    },
+    {
+      "tabel": "company_menu_settings",
+      "baris": 0,
+      "urutan": 12,
+      "berkas": "company_menu_settings.csv"
+    },
+    {
+      "tabel": "menu_items",
+      "baris": 249,
+      "urutan": 12,
+      "berkas": "menu_items.csv"
+    },
+    {
+      "tabel": "submittal_documents",
+      "baris": 0,
+      "urutan": 12,
+      "berkas": "submittal_documents.csv"
+    },
+    {
+      "tabel": "submittals",
+      "baris": 0,
+      "urutan": 12,
+      "berkas": "submittals.csv"
+    },
+    {
+      "tabel": "accounts",
+      "baris": 38,
+      "urutan": 99,
+      "berkas": "accounts.csv"
+    },
+    {
+      "tabel": "ahsp_editions",
+      "baris": 1,
+      "urutan": 99,
+      "berkas": "ahsp_editions.csv"
+    },
+    {
+      "tabel": "approval_chains",
+      "baris": 7,
+      "urutan": 99,
+      "berkas": "approval_chains.csv"
+    },
+    {
+      "tabel": "approval_progress",
+      "baris": 13,
+      "urutan": 99,
+      "berkas": "approval_progress.csv"
+    },
+    {
+      "tabel": "assemblies",
+      "baris": 3043,
+      "urutan": 99,
+      "berkas": "assemblies.csv"
+    },
+    {
+      "tabel": "assembly_components",
+      "baris": 17873,
+      "urutan": 99,
+      "berkas": "assembly_components.csv"
+    },
+    {
+      "tabel": "asset_depreciation_logs",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "asset_depreciation_logs.csv"
+    },
+    {
+      "tabel": "asset_movements",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "asset_movements.csv"
+    },
+    {
+      "tabel": "asset_rentals",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "asset_rentals.csv"
+    },
+    {
+      "tabel": "assets",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "assets.csv"
+    },
+    {
+      "tabel": "audit_logs",
+      "baris": 13237,
+      "urutan": 99,
+      "berkas": "audit_logs.csv"
+    },
+    {
+      "tabel": "bids",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "bids.csv"
+    },
+    {
+      "tabel": "borongan_settlements",
+      "baris": 3,
+      "urutan": 99,
+      "berkas": "borongan_settlements.csv"
+    },
+    {
+      "tabel": "cash_accounts",
+      "baris": 5,
+      "urutan": 99,
+      "berkas": "cash_accounts.csv"
+    },
+    {
+      "tabel": "cash_transfers",
+      "baris": 8,
+      "urutan": 99,
+      "berkas": "cash_transfers.csv"
+    },
+    {
+      "tabel": "cbs_nodes",
+      "baris": 2,
+      "urutan": 99,
+      "berkas": "cbs_nodes.csv"
+    },
+    {
+      "tabel": "cbs_templates",
+      "baris": 1,
+      "urutan": 99,
+      "berkas": "cbs_templates.csv"
+    },
+    {
+      "tabel": "change_order_items",
+      "baris": 2,
+      "urutan": 99,
+      "berkas": "change_order_items.csv"
+    },
+    {
+      "tabel": "change_orders",
+      "baris": 2,
+      "urutan": 99,
+      "berkas": "change_orders.csv"
+    },
+    {
+      "tabel": "clients",
+      "baris": 10,
+      "urutan": 99,
+      "berkas": "clients.csv"
+    },
+    {
+      "tabel": "companies",
+      "baris": 1,
+      "urutan": 99,
+      "berkas": "companies.csv"
+    },
+    {
+      "tabel": "company_members",
+      "baris": 23,
+      "urutan": 99,
+      "berkas": "company_members.csv"
+    },
+    {
+      "tabel": "company_settings",
+      "baris": 5,
+      "urutan": 99,
+      "berkas": "company_settings.csv"
+    },
+    {
+      "tabel": "contract_bonds",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "contract_bonds.csv"
+    },
+    {
+      "tabel": "contract_eot",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "contract_eot.csv"
+    },
+    {
+      "tabel": "cost_code_category_map",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "cost_code_category_map.csv"
+    },
+    {
+      "tabel": "cost_codes",
+      "baris": 44,
+      "urutan": 99,
+      "berkas": "cost_codes.csv"
+    },
+    {
+      "tabel": "daily_wage_logs",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "daily_wage_logs.csv"
+    },
+    {
+      "tabel": "document_access_logs",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "document_access_logs.csv"
+    },
+    {
+      "tabel": "document_number_series",
+      "baris": 27,
+      "urutan": 99,
+      "berkas": "document_number_series.csv"
+    },
+    {
+      "tabel": "documents",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "documents.csv"
+    },
+    {
+      "tabel": "estimate_items",
+      "baris": 2417,
+      "urutan": 99,
+      "berkas": "estimate_items.csv"
+    },
+    {
+      "tabel": "estimate_versions",
+      "baris": 2221,
+      "urutan": 99,
+      "berkas": "estimate_versions.csv"
+    },
+    {
+      "tabel": "expense_category_templates",
+      "baris": 91,
+      "urutan": 99,
+      "berkas": "expense_category_templates.csv"
+    },
+    {
+      "tabel": "expense_items",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "expense_items.csv"
+    },
+    {
+      "tabel": "expense_reports",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "expense_reports.csv"
+    },
+    {
+      "tabel": "feature_flags",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "feature_flags.csv"
+    },
+    {
+      "tabel": "financial_config",
+      "baris": 14,
+      "urutan": 99,
+      "berkas": "financial_config.csv"
+    },
+    {
+      "tabel": "formula_definitions",
+      "baris": 1,
+      "urutan": 99,
+      "berkas": "formula_definitions.csv"
+    },
+    {
+      "tabel": "goods_receipts",
+      "baris": 2,
+      "urutan": 99,
+      "berkas": "goods_receipts.csv"
+    },
+    {
+      "tabel": "idempotency_keys",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "idempotency_keys.csv"
+    },
+    {
+      "tabel": "information_requests",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "information_requests.csv"
+    },
+    {
+      "tabel": "inspection_requests",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "inspection_requests.csv"
+    },
+    {
+      "tabel": "invoice_line_items",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "invoice_line_items.csv"
+    },
+    {
+      "tabel": "invoice_penalties",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "invoice_penalties.csv"
+    },
+    {
+      "tabel": "invoices",
+      "baris": 26,
+      "urutan": 99,
+      "berkas": "invoices.csv"
+    },
+    {
+      "tabel": "journal_entries",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "journal_entries.csv"
+    },
+    {
+      "tabel": "journal_entry_lines",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "journal_entry_lines.csv"
+    },
+    {
+      "tabel": "kasbon_purposes",
+      "baris": 5,
+      "urutan": 99,
+      "berkas": "kasbon_purposes.csv"
+    },
+    {
+      "tabel": "kasbons",
+      "baris": 56,
+      "urutan": 99,
+      "berkas": "kasbons.csv"
+    },
+    {
+      "tabel": "lesson_propagation_proposals",
+      "baris": 1193,
+      "urutan": 99,
+      "berkas": "lesson_propagation_proposals.csv"
+    },
+    {
+      "tabel": "lessons_learned_records",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "lessons_learned_records.csv"
+    },
+    {
+      "tabel": "mandor_assignments",
+      "baris": 16,
+      "urutan": 99,
+      "berkas": "mandor_assignments.csv"
+    },
+    {
+      "tabel": "material_pack",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "material_pack.csv"
+    },
+    {
+      "tabel": "material_requests",
+      "baris": 5,
+      "urutan": 99,
+      "berkas": "material_requests.csv"
+    },
+    {
+      "tabel": "milestones",
+      "baris": 39,
+      "urutan": 99,
+      "berkas": "milestones.csv"
+    },
+    {
+      "tabel": "modules",
+      "baris": 14,
+      "urutan": 99,
+      "berkas": "modules.csv"
+    },
+    {
+      "tabel": "mr_quota_override",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "mr_quota_override.csv"
+    },
+    {
+      "tabel": "notification_rules",
+      "baris": 14,
+      "urutan": 99,
+      "berkas": "notification_rules.csv"
+    },
+    {
+      "tabel": "notifications",
+      "baris": 28,
+      "urutan": 99,
+      "berkas": "notifications.csv"
+    },
+    {
+      "tabel": "payments",
+      "baris": 23,
+      "urutan": 99,
+      "berkas": "payments.csv"
+    },
+    {
+      "tabel": "po_delivery_log",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "po_delivery_log.csv"
+    },
+    {
+      "tabel": "price_book_entries",
+      "baris": 3025,
+      "urutan": 99,
+      "berkas": "price_book_entries.csv"
+    },
+    {
+      "tabel": "productivity_records",
+      "baris": 1,
+      "urutan": 99,
+      "berkas": "productivity_records.csv"
+    },
+    {
+      "tabel": "progress_logs",
+      "baris": 271,
+      "urutan": 99,
+      "berkas": "progress_logs.csv"
+    },
+    {
+      "tabel": "progress_payments",
+      "baris": 5,
+      "urutan": 99,
+      "berkas": "progress_payments.csv"
+    },
+    {
+      "tabel": "project_expense_categories",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "project_expense_categories.csv"
+    },
+    {
+      "tabel": "project_expenses",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "project_expenses.csv"
+    },
+    {
+      "tabel": "project_photos",
+      "baris": 36,
+      "urutan": 99,
+      "berkas": "project_photos.csv"
+    },
+    {
+      "tabel": "project_price_override",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "project_price_override.csv"
+    },
+    {
+      "tabel": "projects",
+      "baris": 15,
+      "urutan": 99,
+      "berkas": "projects.csv"
+    },
+    {
+      "tabel": "punch_item_photos",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "punch_item_photos.csv"
+    },
+    {
+      "tabel": "punch_items",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "punch_items.csv"
+    },
+    {
+      "tabel": "purchase_orders",
+      "baris": 4,
+      "urutan": 99,
+      "berkas": "purchase_orders.csv"
+    },
+    {
+      "tabel": "rab_absorption_log",
+      "baris": 4,
+      "urutan": 99,
+      "berkas": "rab_absorption_log.csv"
+    },
+    {
+      "tabel": "rab_items",
+      "baris": 373,
+      "urutan": 99,
+      "berkas": "rab_items.csv"
+    },
+    {
+      "tabel": "rab_schedule",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "rab_schedule.csv"
+    },
+    {
+      "tabel": "rap_budget",
+      "baris": 1,
+      "urutan": 99,
+      "berkas": "rap_budget.csv"
+    },
+    {
+      "tabel": "rap_change_log",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "rap_change_log.csv"
+    },
+    {
+      "tabel": "rap_labor_line",
+      "baris": 1,
+      "urutan": 99,
+      "berkas": "rap_labor_line.csv"
+    },
+    {
+      "tabel": "rap_material_line",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "rap_material_line.csv"
+    },
+    {
+      "tabel": "rebar_takeoff",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "rebar_takeoff.csv"
+    },
+    {
+      "tabel": "resources",
+      "baris": 2830,
+      "urutan": 99,
+      "berkas": "resources.csv"
+    },
+    {
+      "tabel": "roles",
+      "baris": 5,
+      "urutan": 99,
+      "berkas": "roles.csv"
+    },
+    {
+      "tabel": "root_cause_analyses",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "root_cause_analyses.csv"
+    },
+    {
+      "tabel": "scenarios",
+      "baris": 208,
+      "urutan": 99,
+      "berkas": "scenarios.csv"
+    },
+    {
+      "tabel": "steel_profiles",
+      "baris": 58,
+      "urutan": 99,
+      "berkas": "steel_profiles.csv"
+    },
+    {
+      "tabel": "supplier_invoices",
+      "baris": 2,
+      "urutan": 99,
+      "berkas": "supplier_invoices.csv"
+    },
+    {
+      "tabel": "supplier_payment_allocations",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "supplier_payment_allocations.csv"
+    },
+    {
+      "tabel": "supplier_payments",
+      "baris": 2,
+      "urutan": 99,
+      "berkas": "supplier_payments.csv"
+    },
+    {
+      "tabel": "suppliers",
+      "baris": 5,
+      "urutan": 99,
+      "berkas": "suppliers.csv"
+    },
+    {
+      "tabel": "tax_records",
+      "baris": 18,
+      "urutan": 99,
+      "berkas": "tax_records.csv"
+    },
+    {
+      "tabel": "termin_schedules",
+      "baris": 40,
+      "urutan": 99,
+      "berkas": "termin_schedules.csv"
+    },
+    {
+      "tabel": "units",
+      "baris": 34,
+      "urutan": 99,
+      "berkas": "units.csv"
+    },
+    {
+      "tabel": "users",
+      "baris": 23,
+      "urutan": 99,
+      "berkas": "users.csv"
+    },
+    {
+      "tabel": "wage_deductions",
+      "baris": 1,
+      "urutan": 99,
+      "berkas": "wage_deductions.csv"
+    },
+    {
+      "tabel": "wage_items",
+      "baris": 2,
+      "urutan": 99,
+      "berkas": "wage_items.csv"
+    },
+    {
+      "tabel": "wbs_nodes",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "wbs_nodes.csv"
+    },
+    {
+      "tabel": "weekly_wage_reports",
+      "baris": 50,
+      "urutan": 99,
+      "berkas": "weekly_wage_reports.csv"
+    },
+    {
+      "tabel": "work_categories",
+      "baris": 12,
+      "urutan": 99,
+      "berkas": "work_categories.csv"
+    },
+    {
+      "tabel": "work_scope_item_specs",
+      "baris": 0,
+      "urutan": 99,
+      "berkas": "work_scope_item_specs.csv"
+    },
+    {
+      "tabel": "work_scope_items",
+      "baris": 27,
+      "urutan": 99,
+      "berkas": "work_scope_items.csv"
+    },
+    {
+      "tabel": "work_scopes",
+      "baris": 20,
+      "urutan": 99,
+      "berkas": "work_scopes.csv"
+    },
+    {
+      "tabel": "worker_kasbons",
+      "baris": 1,
+      "urutan": 99,
+      "berkas": "worker_kasbons.csv"
+    },
+    {
+      "tabel": "workers",
+      "baris": 3,
+      "urutan": 99,
+      "berkas": "workers.csv"
+    }
+  ]
+}

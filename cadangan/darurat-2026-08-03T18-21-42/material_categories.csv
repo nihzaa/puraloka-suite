@@ -1,0 +1,11 @@
+id,name,description,sort_order,created_at,updated_at
+b4412b20-e9d1-4ea5-aa92-7327d8b5c62c,Beton & Semen,"Semen, beton siap pakai, mortar",1,2026-06-23T21:54:28.717Z,2026-06-23T21:54:28.717Z
+42a68034-3d43-400a-ad6f-5b572f497de7,Besi & Baja,"Besi beton, besi hollow, plat baja, wire mesh",2,2026-06-23T21:54:28.717Z,2026-06-23T21:54:28.717Z
+07c0254f-4105-4b9c-aa66-efb26f3d4e08,Pasir & Batu,"Pasir pasang, pasir cor, batu split, sirtu",3,2026-06-23T21:54:28.717Z,2026-06-23T21:54:28.717Z
+a6b23c02-ad6c-44c6-82b1-da18322a142d,Bata & Blok,"Bata merah, batako, hebel/AAC",4,2026-06-23T21:54:28.717Z,2026-06-23T21:54:28.717Z
+2425ae27-4b4b-45f7-a981-c0bffceb2a85,Kayu & Plywood,"Kayu bekisting, multiplek, dolken",5,2026-06-23T21:54:28.717Z,2026-06-23T21:54:28.717Z
+358569ef-805a-4ac9-955f-ce96924a1f8f,Keramik & Granit,"Keramik lantai, keramik dinding, granit",6,2026-06-23T21:54:28.717Z,2026-06-23T21:54:28.717Z
+9a597633-15c4-40c7-ac0e-15783ba0b0c8,Cat & Pelapis,"Cat tembok, cat kayu, waterproofing",7,2026-06-23T21:54:28.717Z,2026-06-23T21:54:28.717Z
+69174816-ad43-4743-86e0-93563f28f23d,Sanitary,"Kloset, wastafel, shower, aksesoris KM",8,2026-06-23T21:54:28.717Z,2026-06-23T21:54:28.717Z
+413fe843-c78b-498e-b090-d18fb81d957e,Pipa & Plumbing,"Pipa PVC, fitting, stop kran, gate valve",9,2026-06-23T21:54:28.717Z,2026-06-23T21:54:28.717Z
+02b35c94-0696-46e2-9d1a-736cae2cf922,Listrik & MEP,"Kabel, saklar, stop kontak, panel listrik",10,2026-06-23T21:54:28.717Z,2026-06-23T21:54:28.717Z

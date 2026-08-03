@@ -1,0 +1,35 @@
+code,symbol,label,category,sort_order,is_active,created_at,updated_at,updated_by,dimension
+m2,m²,Meter persegi,area,10,true,2026-07-23T21:45:27.593Z,2026-07-23T21:45:27.593Z,,area
+m3,m³,Meter kubik,volume,20,true,2026-07-23T21:45:27.593Z,2026-07-23T21:45:27.593Z,,volume
+m,m,Meter,length,30,true,2026-07-23T21:45:27.593Z,2026-07-23T21:45:27.593Z,,length
+m_linear,m',Meter lari,length,40,true,2026-07-23T21:45:27.593Z,2026-07-23T21:45:27.593Z,,length
+kg,kg,Kilogram,weight,50,true,2026-07-23T21:45:27.593Z,2026-07-23T21:45:27.593Z,,mass
+ton,ton,Ton,weight,60,true,2026-07-23T21:45:27.593Z,2026-07-23T21:45:27.593Z,,mass
+unit,unit,Unit,count,70,true,2026-07-23T21:45:27.593Z,2026-07-23T21:45:27.593Z,,count
+buah,buah,Buah,count,80,true,2026-07-23T21:45:27.593Z,2026-07-23T21:45:27.593Z,,count
+titik,titik,Titik,count,90,true,2026-07-23T21:45:27.593Z,2026-07-23T21:45:27.593Z,,count
+batang,batang,Batang,count,100,true,2026-07-23T21:45:27.593Z,2026-07-23T21:45:27.593Z,,count
+lembar,lembar,Lembar,count,110,true,2026-07-23T21:45:27.593Z,2026-07-23T21:45:27.593Z,,count
+sak,sak,Sak,count,120,true,2026-07-23T21:45:27.593Z,2026-07-23T21:45:27.593Z,,count
+rol,rol,Rol,count,130,true,2026-07-23T21:45:27.593Z,2026-07-23T21:45:27.593Z,,count
+liter,liter,Liter,volume,140,true,2026-07-23T21:45:27.593Z,2026-07-23T21:45:27.593Z,,volume
+set,set,Set,set,150,true,2026-07-23T21:45:27.593Z,2026-07-23T21:45:27.593Z,,count
+ls,ls,Lump sum,set,160,true,2026-07-23T21:45:27.593Z,2026-07-23T21:45:27.593Z,,lumpsum
+hari,hari,Hari,time,170,true,2026-07-23T21:45:27.593Z,2026-07-23T21:45:27.593Z,,time
+minggu,minggu,Minggu,time,180,true,2026-07-23T21:45:27.593Z,2026-07-23T21:45:27.593Z,,time
+jam,jam,Jam,time,175,true,2026-07-25T13:21:40.595Z,2026-07-25T13:21:40.595Z,,time
+OH,OH,Orang-hari,time,165,true,2026-07-25T13:21:40.595Z,2026-07-25T13:21:40.595Z,,labor_time
+OJ,OJ,Orang-jam,time,170,true,2026-07-25T14:04:06.967Z,2026-07-25T14:04:06.967Z,,labor_time
+m1,m',Meter lari,length,121,true,2026-07-26T19:43:29.232Z,2026-07-26T19:43:29.232Z,,length
+cm,cm,Sentimeter,length,122,true,2026-07-26T19:43:29.232Z,2026-07-26T19:43:29.232Z,,length
+lot,lot,Lot,count,310,true,2026-07-26T19:43:29.232Z,2026-07-26T19:43:29.232Z,,count
+tube,tube,Tube,count,311,true,2026-07-26T19:43:29.232Z,2026-07-26T19:43:29.232Z,,count
+gulung,glg,Gulung,count,312,true,2026-07-26T19:43:29.232Z,2026-07-26T19:43:29.232Z,,count
+pohon,phn,Pohon,count,313,true,2026-07-26T19:43:29.232Z,2026-07-26T19:43:29.232Z,,count
+polybag,pbg,Polybag,count,314,true,2026-07-26T19:43:29.232Z,2026-07-26T19:43:29.232Z,,count
+ikat,ikt,Ikat,count,315,true,2026-07-26T19:43:29.232Z,2026-07-26T19:43:29.232Z,,count
+dus,dus,Dus,count,316,true,2026-07-26T19:43:29.232Z,2026-07-26T19:43:29.232Z,,count
+unit_hari,unit·hari,Unit-hari (sewa alat per hari),time,320,true,2026-07-26T19:43:29.232Z,2026-07-26T19:43:29.232Z,,time
+buah_hari,buah·hari,Buah-hari (sewa alat per hari),time,321,true,2026-07-26T19:43:29.232Z,2026-07-26T19:43:29.232Z,,time
+loat,loat,"Loat (typo workbook SE47; kemungkinan ""lot"")",count,390,true,2026-07-26T19:43:29.232Z,2026-07-26T19:43:29.232Z,,count
+lkg,lkg,"Lkg (typo/singkatan workbook SE47, tak terdefinisi)",count,391,true,2026-07-26T19:43:29.232Z,2026-07-26T19:43:29.232Z,,count

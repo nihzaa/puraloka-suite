@@ -1,0 +1,13 @@
+code,label,sort_order,is_active,created_at,updated_at,updated_by
+struktur,Struktur,10,true,2026-07-24T03:35:07.606Z,2026-07-24T03:35:07.606Z,
+baja,Baja,20,true,2026-07-24T03:35:07.606Z,2026-07-24T03:35:07.606Z,
+dinding,Dinding,30,true,2026-07-24T03:35:07.606Z,2026-07-24T03:35:07.606Z,
+finishing,Finishing,40,true,2026-07-24T03:35:07.606Z,2026-07-24T03:35:07.606Z,
+atap,Atap,50,true,2026-07-24T03:35:07.606Z,2026-07-24T03:35:07.606Z,
+plumbing,Plumbing,60,true,2026-07-24T03:35:07.606Z,2026-07-24T03:35:07.606Z,
+elektrikal,Elektrikal,70,true,2026-07-24T03:35:07.606Z,2026-07-24T03:35:07.606Z,
+mekanikal,Mekanikal,80,true,2026-07-24T03:35:07.606Z,2026-07-24T03:35:07.606Z,
+kusen_pintu,Kusen & Pintu,90,true,2026-07-24T03:35:07.606Z,2026-07-24T03:35:07.606Z,
+pagar_carport,Pagar/Carport,100,true,2026-07-24T03:35:07.606Z,2026-07-24T03:35:07.606Z,
+landscape,Landscape,110,true,2026-07-24T03:35:07.606Z,2026-07-24T03:35:07.606Z,
+lain_lain,Lain-lain,120,true,2026-07-24T03:35:07.606Z,2026-07-24T03:35:07.606Z,

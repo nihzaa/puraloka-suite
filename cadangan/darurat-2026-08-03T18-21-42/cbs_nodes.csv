@@ -1,0 +1,3 @@
+id,template_id,parent_id,cost_code_id,name,sort_order,created_at,company_id
+6094cf0e-6aef-4881-af53-6c936a8bc7cc,47f1c283-1743-4b65-b542-c7663792e21c,,,Struktur,0,2026-07-24T22:04:01.519Z,
+00ac9f58-cca6-4c13-b5f0-10b580d956b8,47f1c283-1743-4b65-b542-c7663792e21c,6094cf0e-6aef-4881-af53-6c936a8bc7cc,c383dd94-afcf-4959-9418-743efb8f95e8,Pondasi,0,2026-07-24T22:04:01.552Z,

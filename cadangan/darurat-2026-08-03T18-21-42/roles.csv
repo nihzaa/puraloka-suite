@@ -1,0 +1,6 @@
+id,name,label,description,is_builtin,portal,color,sort_order,created_at,updated_at,company_id
+da12e94a-cd89-4be4-ad67-bbc7fdf89208,admin,Administrator,Akses penuh ke semua fitur sistem,true,dashboard,#6D28D9,10,2026-06-15T09:17:23.831Z,2026-06-15T09:17:23.831Z,
+acd484ff-a447-4602-b407-96bdd37a0847,pm,Project Manager,"Kelola proyek yang di-assign, approve kasbon",true,pm-portal,#1D4ED8,20,2026-06-15T09:17:23.831Z,2026-06-15T09:17:23.831Z,
+99c063b8-3d39-4768-ba73-42ba08a5a7e5,mandor,Mandor,"Input progress lapangan, kasbon, laporan upah",true,mandor-portal,#D97706,30,2026-06-15T09:17:23.831Z,2026-06-15T09:17:23.831Z,
+22f079e7-8ac2-4a05-82f8-8ccfb272d417,client,Klien,Lihat proyek dan invoice milik sendiri,true,portal,#6B7280,40,2026-06-15T09:17:23.831Z,2026-06-15T09:17:23.831Z,
+801bcd3d-04fc-43a6-9572-a51320eb680b,direktur,Direktur Utama,,false,dashboard,#374151,100,2026-06-15T09:57:45.496Z,2026-06-15T09:57:45.496Z,

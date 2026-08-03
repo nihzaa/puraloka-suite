@@ -1,0 +1,1 @@
+id,invoice_id,project_id,basis,base_amount,days_late,grace_days,rate_per_day,cap_pct,raw_amount,penalty_amount,anchor_date,due_date,computed_at,created_by

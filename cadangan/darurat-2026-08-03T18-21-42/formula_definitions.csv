@@ -1,0 +1,2 @@
+id,code,name,description,version_number,expression,variables,parameters,status,tested_at,activated_at,created_at,created_by,updated_at,updated_by
+57e04a5c-789e-4329-aeb6-a1388b655cb2,F-SMOKE,Smoke,,1,a+b,"[]","[]",superseded,2026-07-24T21:09:47.107Z,2026-07-24T21:09:47.158Z,2026-07-24T21:09:47.083Z,a0000000-0000-0000-0000-000000000001,2026-07-24T21:09:47.204Z,

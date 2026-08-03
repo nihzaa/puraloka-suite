@@ -1,0 +1,111 @@
+id,key,module,label,description,sort_order,created_at
+2c989d9e-5590-426d-80b6-6de481c1dda6,projects:view,projects,Lihat Proyek,Melihat daftar dan detail proyek,10,2026-06-15T09:17:23.831Z
+db1e0fed-b916-476b-bfa9-5b15737187f2,projects:create,projects,Buat Proyek Baru,Membuat proyek baru,20,2026-06-15T09:17:23.831Z
+f111e20e-3833-4116-9711-ccaaee02b377,projects:edit,projects,Edit Proyek,Mengubah data proyek,30,2026-06-15T09:17:23.831Z
+dd1d59f2-036c-4751-9138-6865a05362ec,projects:status,projects,Ubah Status Proyek,Mengubah status proyek (aktif/selesai/dll),40,2026-06-15T09:17:23.831Z
+281a6959-08b6-4746-a61f-c750171c87ff,projects:delete,projects,Hapus Proyek,Soft-delete proyek,50,2026-06-15T09:17:23.831Z
+f776964b-4d4f-4fa2-8793-763ac9512bcd,projects:contract,projects,Generate Kontrak PDF,Membuat dokumen kontrak PDF,60,2026-06-15T09:17:23.831Z
+7bce7904-e915-47bb-9e3f-bb5c695e28a3,finance:view,finance,Lihat Keuangan,"Melihat dashboard keuangan, invoice, kasbon",10,2026-06-15T09:17:23.831Z
+d4fad1f0-4983-46f7-bd54-42941f60942c,finance:invoice:create,finance,Buat Invoice,Membuat invoice ke klien,20,2026-06-15T09:17:23.831Z
+3da7175f-481b-44a4-a418-2d9b2ed1d326,finance:invoice:pay,finance,Catat Pembayaran Invoice,Mencatat pembayaran masuk dari klien,30,2026-06-15T09:17:23.831Z
+99f5e8d9-a933-424e-a4d4-6137b3e34e47,finance:termin:pay,finance,Bayar Termin,Menandai termin sebagai terbayar,40,2026-06-15T09:17:23.831Z
+2debb9d6-7425-4453-8a1d-2d693d78dcbf,finance:expense:view,finance,Lihat Laporan Pengeluaran,Melihat laporan pengeluaran komisi,50,2026-06-15T09:17:23.831Z
+8e8fda96-14b1-4ab8-a050-a138c64731f2,finance:expense:create,finance,Buat Laporan Pengeluaran,Membuat laporan pengeluaran komisi,60,2026-06-15T09:17:23.831Z
+86af5e07-928a-49fd-a306-a027b8b67407,finance:tax:view,finance,Lihat Rekap Pajak,Melihat rekap PPh/PPN per proyek,70,2026-06-15T09:17:23.831Z
+a86c6241-0f2d-4024-9398-bd8c99d70964,cash:view,cash,Lihat Kas,Melihat saldo dan riwayat akun kas,10,2026-06-15T09:17:23.831Z
+aac8c285-1b8c-4981-9d70-6cba5741a168,cash:account:manage,cash,Kelola Akun Kas,Membuat dan mengedit akun kas,20,2026-06-15T09:17:23.831Z
+0f12bb4d-22f4-48a2-8f38-0c58a2214e22,cash:transfer:create,cash,Transfer Dana,Mencatat transfer antar akun kas,30,2026-06-15T09:17:23.831Z
+1692bca5-8ef9-4170-8f35-4baf92cc8508,cash:transfer:confirm,cash,Konfirmasi Transfer,Mengkonfirmasi transfer dana,40,2026-06-15T09:17:23.831Z
+61fda2c1-1462-43fa-a38e-b9e0b93ad826,cash:expense:create,cash,Catat Pengeluaran,Mencatat pengeluaran proyek dengan nota,50,2026-06-15T09:17:23.831Z
+c9087fdf-8d38-480b-9b40-a4d43afedb79,cash:expense:approve,cash,Approve Pengeluaran,Menyetujui atau menolak pengeluaran proyek,60,2026-06-15T09:17:23.831Z
+dc3242f9-2f5f-4869-aee0-c6590c118dbb,mandor:view,mandor,Lihat Data Mandor,Melihat ringkasan dan data mandor,10,2026-06-15T09:17:23.831Z
+e1d26d21-264f-4e25-b85c-9fa86f42702c,mandor:assign,mandor,Assign Mandor,Menugaskan mandor ke proyek,20,2026-06-15T09:17:23.831Z
+9c635136-2cb3-48ee-8dc0-b46af01e6bc9,mandor:scope:manage,mandor,Kelola Work Scope,Membuat dan mengedit scope pekerjaan,30,2026-06-15T09:17:23.831Z
+42ec4f60-6a53-42ff-a6f9-6df73980bcb1,mandor:scope:item,mandor,Kelola Item Scope,Menambah dan mengedit rincian item pekerjaan,40,2026-06-15T09:17:23.831Z
+aa94dd75-7580-4fcc-913c-e6dcad42d639,mandor:worker:manage,mandor,Kelola Daftar Tukang,Menambah dan mengedit data tukang,50,2026-06-15T09:17:23.831Z
+4c2bb8cd-3707-4d5d-9ec6-d5bdc736968a,mandor:wage:create,mandor,Buat Laporan Upah,Membuat laporan upah mingguan,60,2026-06-15T09:17:23.831Z
+70a84563-74a1-4c73-b248-786949a373bc,mandor:wage:approve,mandor,Approve Laporan Upah,Menyetujui atau menolak laporan upah,70,2026-06-15T09:17:23.831Z
+831ad079-beb6-4db7-a2a9-7d4423bbbacb,mandor:kasbon:create,mandor,Ajukan Kasbon,Mengajukan kasbon baru,80,2026-06-15T09:17:23.831Z
+8c0a3d5d-ee73-4aa7-99a5-1b0a04bf773e,mandor:kasbon:approve,mandor,Approve Kasbon,Menyetujui atau menolak kasbon,90,2026-06-15T09:17:23.831Z
+edffcd20-705c-412a-9441-4ac88a93ca55,procurement:view,procurement,Lihat Pengadaan,"Melihat material, supplier, MR, PO, stok",10,2026-06-15T09:17:23.831Z
+d5db1c1f-a811-4ad6-bdbb-60865cc0c4a6,procurement:material:manage,procurement,Kelola Katalog Material,Menambah dan mengedit katalog material,20,2026-06-15T09:17:23.831Z
+85f9a9e3-0d2d-407b-b63e-f8b19a1c06ac,procurement:supplier:manage,procurement,Kelola Supplier,Menambah dan mengedit data supplier,30,2026-06-15T09:17:23.831Z
+734146c3-2d08-479a-8e2b-711892c53179,procurement:mr:manage,procurement,Kelola Material Request,Membuat dan memproses material request,40,2026-06-15T09:17:23.831Z
+5c7c343c-31ab-4dd9-8d75-5d02f71c5b75,procurement:po:manage,procurement,Kelola Purchase Order,Membuat dan memproses purchase order,50,2026-06-15T09:17:23.831Z
+bfd175f1-1562-4e44-ab37-3f531bda075d,procurement:payment:manage,procurement,Bayar Hutang Supplier,Mencatat pembayaran ke supplier,60,2026-06-15T09:17:23.831Z
+d4942121-4b1d-45ce-9878-53932a775ad8,reports:view,reports,Lihat Laporan,Melihat laporan ringkasan proyek dan mandor,10,2026-06-15T09:17:23.831Z
+66a7bf5e-1561-4338-a576-dcab51744584,reports:export,reports,Export Laporan,Export laporan ke Excel/PDF,20,2026-06-15T09:17:23.831Z
+838de03e-217c-4edd-82eb-20678103cfbe,reports:progress,reports,Lihat Progress Report,Melihat laporan progress fisik proyek,30,2026-06-15T09:17:23.831Z
+42b17c60-41c8-4b15-aca5-3b422679d578,users:manage,users,Kelola User,"Menambah, mengedit, dan menonaktifkan user",10,2026-06-15T09:17:23.831Z
+db540805-4f84-4caa-9300-16c59be78428,users:roles:manage,users,Kelola Role & Akses,Membuat role baru dan mengatur permission,20,2026-06-15T09:17:23.831Z
+66937d71-9556-4ca4-8f2f-3d141ae8a6ba,clients:view,clients,Lihat Data Klien,Melihat daftar dan profil klien,10,2026-06-15T09:17:23.831Z
+c5983edf-5903-4571-997e-e60ada7cda2d,clients:manage,clients,Kelola Data Klien,Menambah dan mengedit data klien,20,2026-06-15T09:17:23.831Z
+65d5878d-9e24-41d6-a634-7be0d6bfdd90,settings:manage,settings,Pengaturan Perusahaan,Mengedit profil dan pengaturan perusahaan,10,2026-06-15T09:17:23.831Z
+511433d7-35f0-4483-83d9-e5a1ec6b1d6d,notifications:milestone:check,notifications,Cek Milestone Otomatis,Menjalankan pengecekan milestone approaching/overdue,10,2026-06-15T09:17:23.831Z
+df9645c9-126a-48b4-be55-1f563677b1ff,milestones:manage,milestones,Kelola Milestone,"Membuat, mengedit, dan menyelesaikan milestone",10,2026-06-15T09:17:23.831Z
+0e7aa22d-2420-4849-9506-a10d2db20a8e,documents:manage,documents,Kelola Dokumen,Upload dan hapus dokumen proyek,10,2026-06-15T09:17:23.831Z
+6470acba-a578-482e-bc1a-425bcea39677,audit:view,audit,Lihat Audit Trail,Melihat rekam jejak perubahan data seluruh sistem,10,2026-07-22T18:24:33.493Z
+be595cec-c69a-4e0f-bd21-ec3cfa62928e,finance:tax:submit,finance,Setor Laporan Pajak,Menandai laporan pajak sudah dilaporkan ke DJP (pending → reported),75,2026-07-22T18:24:33.493Z
+c3df6df4-f9bd-47b7-a005-8d0f36401bb5,progress:manage,reports,Kelola Progress Log,Membuat/mengedit progress log proyek (di luar input mandor sendiri),40,2026-07-22T19:24:07.891Z
+25c590fe-b6ac-496f-a55e-d4415f713e09,workers:manage,mandor,Kelola Registry Tukang,Mengelola registry tukang global (admin/pm),55,2026-07-22T19:24:07.891Z
+be9fd10c-eb54-4345-908c-8ff1e0dfc941,finance:manage,finance,Kelola Keuangan,"Mengelola invoice, pembayaran, pajak, laporan pengeluaran (admin/pm)",5,2026-07-22T19:30:22.599Z
+ea6597b6-e45c-4b78-94d0-23b26ef7eea5,cash:manage,cash,Kelola Kas,"Mengelola akun kas, transfer, pengeluaran proyek (admin/pm)",5,2026-07-22T19:30:22.599Z
+5e6ee045-0cc9-452c-9133-da0be85dd7f2,change_order:approve,change_orders,Setujui/Tolak Change Order,Menyetujui atau menolak change order (mengubah nilai kontrak),40,2026-07-23T19:57:41.704Z
+9ab088d1-7cbf-46c7-be2f-22e8eace7789,settings:finance:manage,settings,Kelola Konfigurasi Finansial,"Mengubah tarif pajak, retensi, denda, dan nilai finansial lain (effective-dated)",20,2026-07-23T19:57:41.704Z
+7f524a26-493b-47cf-9d22-8ad26cad58b1,finance:view:all,finance,Lihat Semua Data Finansial,Melihat laporan finansial lintas proyek & invoice organisasi (bukan hanya data ter-scope),15,2026-07-23T20:09:38.381Z
+6008cda5-6b9f-4b22-ae3e-3f91826e798d,units:manage,settings,Kelola Satuan,Menambah/mengubah/menonaktifkan satuan (unit of measure) di master satuan terpusat,30,2026-07-23T21:45:27.593Z
+8923c509-d5b6-4188-975b-6220e72cc1e4,assets:manage,assets,Kelola aset,"Menambah/mengubah aset, mencatat mutasi & sewa, menjalankan penyusutan",100,2026-08-01T05:56:00.298Z
+48156164-dabd-4902-8699-3b10626967e6,finance:penalty:waive,finance,Putihkan Denda Invoice,"Membebaskan (waive) denda keterlambatan sebuah invoice — wajib alasan, tercatat audit",60,2026-07-24T02:47:27.444Z
+bbf1ba4b-cea4-4683-b5fd-f662996a4f7b,work_categories:manage,settings,Kelola Kategori Pekerjaan,Menambah/mengubah/menonaktifkan kategori pekerjaan (work scope) di master terpusat,40,2026-07-24T03:35:07.606Z
+9dcc72a6-42e0-4b77-a3e6-9f52381a4f9f,kasbon_purposes:manage,settings,Kelola Tujuan Kasbon,Menambah/mengubah/menonaktifkan tujuan kasbon di master terpusat,50,2026-07-24T04:42:28.149Z
+d9f40f12-e322-41ec-a6e4-b41b3056ed9e,approval:chains:manage,settings,Kelola Rantai Approval,"Mengatur jumlah level approval, permission tiap level, dan syarat nominal",60,2026-07-24T11:55:44.939Z
+5f13f562-1452-46a6-a353-857840bd6e53,notifications:rules:manage,settings,Kelola Aturan Notifikasi,Mengatur siapa yang menerima notifikasi untuk tiap jenis kejadian,61,2026-07-24T13:25:24.448Z
+72de4cb5-84cd-4d51-ba09-ea8d62edcbb3,cecep:cost_code:view,cecep,Lihat Cost Code,Melihat registry Cost Code untuk dirujuk domain lain,10,2026-07-24T18:39:46.618Z
+d8f0de35-9fdb-4a36-a7f2-479e0cae23f3,cecep:cost_code:manage,cecep,Kelola Cost Code,"Membuat, mengubah, mengaktifkan, dan mem-deprecate Cost Code",11,2026-07-24T18:39:46.618Z
+4503e31a-620e-498f-8dcf-1581752dbc00,cecep:resource:view,cecep,Lihat Resource,Melihat registry resource (RBS) untuk dirujuk domain lain,12,2026-07-24T19:43:25.305Z
+4ee3b6ee-ec71-477c-ba45-19ff5ad195af,cecep:resource:manage,cecep,Kelola Resource,"Membuat, mengubah, mengaktifkan, dan menonaktifkan resource",13,2026-07-24T19:43:25.305Z
+36d718a5-3aaa-4f16-b4d5-a992fe0b56ba,cecep:price:view,cecep,Lihat Harga,Melihat Price Book (harga resource ter-versi),14,2026-07-24T20:34:28.435Z
+3a79e2d7-a019-4f93-8e06-0b6840c40783,cecep:price:manage,cecep,Kelola Harga,"Membuat, memverifikasi, mengaktifkan, dan meng-expire entry Price Book",15,2026-07-24T20:34:28.435Z
+ea15dd9f-6ba7-4e0b-9c40-415a7d86d7ad,cecep:productivity:view,cecep,Lihat Produktivitas,Melihat Productivity Library (produktivitas per resource×pekerjaan),16,2026-07-24T20:56:54.623Z
+567fa84f-d4c8-409a-bf2a-f2e741315f81,cecep:productivity:manage,cecep,Kelola Produktivitas,Menambah versi produktivitas (bootstrap/baseline/variance),17,2026-07-24T20:56:54.623Z
+5f6b3a1a-a8f1-44c8-b561-1a4da4a067f2,cecep:formula:view,cecep,Lihat Formula,Melihat Formula Definition (cara kalkulasi ter-versi),18,2026-07-24T21:09:46.736Z
+b9109f5e-925e-4231-9210-6545280288e2,cecep:formula:manage,cecep,Kelola Formula,"Membuat, menguji, mengaktifkan, dan men-supersede Formula Definition",19,2026-07-24T21:09:46.736Z
+83553450-40b7-4526-b7ec-a065a047f068,cecep:assembly:view,cecep,Lihat Assembly,Melihat Assembly/AHSP (metode kerja + resource requirement),20,2026-07-24T21:26:51.065Z
+7b8da190-e0a7-4f89-ad6b-233fab947117,cecep:assembly:manage,cecep,Kelola Assembly,"Membuat, mengedit, mengaktifkan, dan men-supersede Assembly/AHSP",21,2026-07-24T21:26:51.065Z
+2aa1d6da-e014-48d3-9044-f789c243a5a4,cecep:cbs:view,cecep,Lihat CBS,Melihat Cost Breakdown Structure (kategori biaya),22,2026-07-24T22:04:01.037Z
+758c9ebb-482b-47b1-b26e-2815c203ddbf,cecep:cbs:manage,cecep,Kelola CBS,"Membuat, mengedit, mengaktifkan, dan men-supersede CBS Template",23,2026-07-24T22:04:01.037Z
+c7c7aeec-d986-437c-8b44-70fd6078a944,cecep:wbs:view,cecep,Lihat WBS,Melihat Work Breakdown Structure (struktur pelaksanaan),24,2026-07-25T07:04:23.725Z
+f9dadf7a-dba1-42fc-97f4-835db3d2a505,cecep:wbs:manage,cecep,Kelola WBS,"Membuat, mengedit, mem-baseline, dan merevisi WBS Node",25,2026-07-25T07:04:23.725Z
+07e7c777-ccef-4ee6-af2b-2f87868956b8,cecep:estimate:view,cecep,Lihat Estimasi,"Melihat Scenario, Estimate Version, dan Estimate Item",26,2026-07-25T07:19:44.043Z
+e8e81f4a-e950-41c5-bf57-c5717eee9261,cecep:estimate:manage,cecep,Kelola Estimasi,"Membuat/mengedit Scenario, Estimate Version (draft), dan Estimate Item",27,2026-07-25T07:19:44.043Z
+bd7615fd-0b2b-479d-9b11-c046ac896b45,cecep:estimate:approve,cecep,Setujui Estimasi,Menyetujui/menolak Estimate Version yang diajukan (via engine approval),28,2026-07-25T07:55:12.773Z
+9808cacd-54e3-4b67-990e-204547a38ff6,cecep:cost_map:view,cecep,Lihat Pemetaan Biaya,Melihat pemetaan kategori pengeluaran ↔ Cost Code (ACL Actual Cost),29,2026-07-25T09:22:08.198Z
+f5fc60f8-2df7-4ddf-a829-3df4d437f896,cecep:cost_map:manage,cecep,Kelola Pemetaan Biaya,Mengatur pemetaan kategori pengeluaran existing ke Cost Code CECEP,30,2026-07-25T09:22:08.198Z
+a86a2ed7-6375-440f-823b-63e4a23096eb,cecep:lessons:view,cecep,Lihat Lessons Learned,Melihat lessons learned & variance analysis proyek,31,2026-07-25T09:36:44.683Z
+9f94337f-593b-45ec-870a-5ec6302b66d0,cecep:lessons:manage,cecep,Kelola Lessons Learned,Menyusun lessons learned (draft) & root cause analysis,32,2026-07-25T09:36:44.683Z
+b1e67820-177c-4584-8268-91849293d198,cecep:lessons:approve,cecep,Setujui & Propagasi Lessons Learned,Menyetujui lessons learned — memicu propagasi usulan ke knowledge base,33,2026-07-25T10:06:19.541Z
+c477e40e-1e70-4467-b631-57f2d27af814,cecep:edition:view,cecep,Lihat Edisi AHSP,Melihat registry edisi AHSP (SNI/SE) + provenance,18,2026-07-26T13:25:49.600Z
+ca3edfb5-b97b-40c5-8b8a-ded3ed9f6ec2,cecep:edition:manage,cecep,Kelola Edisi AHSP,Mengimpor edisi AHSP baru + mengaktifkan/menonaktifkan,19,2026-07-26T13:25:49.600Z
+bc8ffdf5-070d-41eb-9e38-f46c700a1d9a,cecep:takeoff:view,cecep,Lihat Take-off Material,"Melihat kebutuhan material (agregasi, BBS besi, take-off baja)",30,2026-07-28T13:25:51.323Z
+b1103343-ac11-4617-8588-e961fdc6cf9a,cecep:takeoff:manage,cecep,Kelola Take-off Material,Input/ubah BBS besi per diameter & take-off baja per profil,31,2026-07-28T13:25:51.323Z
+5fabc8b2-3bc9-4e52-bdf2-76b836cab686,cecep:refdata:manage,cecep,Kelola Data Referensi CECEP,Kelola katalog profil baja & faktor kemasan material (Lapis 2),32,2026-07-28T13:25:51.323Z
+7d17f90c-b7bd-433a-90eb-1a596f7d9626,cecep:rap:view,cecep,Lihat RAP,Melihat rencana anggaran pelaksanaan (pagu belanja internal),100,2026-07-29T11:23:41.056Z
+75ea2976-1015-4aef-9157-61b2723b8b04,cecep:rap:manage,cecep,Kelola RAP,"Membuat, menyunting, dan mengunci RAP/pagu",100,2026-07-29T11:23:41.056Z
+6abcd6c3-bd2f-4fab-a0c7-43e1d403f5ae,procurement:mr:override_quota,procurement,Override kuota RAB,"Menyetujui Material Request yang melampaui volume RAB, dengan alasan tertulis yang tercatat",100,2026-07-31T03:52:21.158Z
+d84db177-51dd-4094-a315-ac613437e853,contract:ld:waive,contract,Putihkan denda LD,Memutihkan denda keterlambatan penyelesaian (LD) — wajib disertai alasan & tercatat di audit,100,2026-08-01T05:22:54.449Z
+f2cc2c6f-5ada-4955-94d2-07727b50dc4a,assets:view,assets,Lihat aset,"Melihat register aset, mutasi, penyusutan, dan sewa alat",100,2026-08-01T05:56:00.298Z
+adddfdc3-cc47-4953-a07c-0cd26126936f,punch:view,lapangan,Lihat Punch List,Melihat daftar temuan cacat dan statusnya,610,2026-08-01T08:13:57.770Z
+9e50ca7b-bd83-4173-8882-c4ccfc986cd0,punch:manage,lapangan,Kelola Punch List,"Mencatat temuan, menugaskan, dan memperbarui status perbaikan",611,2026-08-01T08:13:57.770Z
+3c28be79-1f7d-4f41-8dbd-3423920a5074,punch:verify,lapangan,Verifikasi Perbaikan,"Menyatakan perbaikan sah dan menutup temuan — sengaja terpisah dari kelola, supaya pelaksana tidak menutup perkaranya sendiri",612,2026-08-01T08:13:57.770Z
+5f574706-19f9-4bb7-b75c-224269d79b4b,inspeksi:view,lapangan,Lihat Permintaan Inspeksi,Melihat daftar permintaan pemeriksaan dan hasilnya,620,2026-08-01T09:24:19.717Z
+3803a091-8af5-4f66-8092-8a11d3c529c3,inspeksi:manage,lapangan,Ajukan Permintaan Inspeksi,Mengajukan permintaan pemeriksaan sebelum pekerjaan ditutup,621,2026-08-01T09:24:19.717Z
+b46a2781-ab88-4b10-94bf-a73c18d85f98,inspeksi:periksa,lapangan,Putuskan Hasil Inspeksi,"Menyatakan pekerjaan lolos atau tidak lolos — sengaja terpisah dari pengajuan, supaya pemohon tidak memberi izin pada pekerjaannya sendiri",622,2026-08-01T09:24:19.717Z
+badafc09-d8d0-4538-99d7-c12f062923c8,rfi:view,kontrak,Lihat RFI,Melihat pertanyaan resmi ke konsultan/pemberi kerja beserta jawabannya,630,2026-08-01T09:24:19.717Z
+2b95048f-122d-4f7b-a0b3-29f7bc397364,rfi:manage,kontrak,Kelola RFI,"Mengajukan pertanyaan resmi, mencatat jawaban, dan menautkannya ke klaim waktu",631,2026-08-01T09:24:19.717Z
+a086235d-51bc-4cae-b518-cc67a1aa22cc,submittal:view,lapangan,Lihat Submittal,Melihat pengajuan material & gambar kerja beserta keputusannya,640,2026-08-01T09:49:26.333Z
+0fdc387d-3bc5-409b-b7e2-c9dff18f30b7,submittal:manage,lapangan,Ajukan Submittal,"Mengajukan contoh material, shop drawing, dan data teknis untuk disetujui",641,2026-08-01T09:49:26.333Z
+56e5bf04-8749-4915-b376-7fcb538bc0f4,submittal:decide,lapangan,Catat Keputusan Submittal,"Mencatat persetujuan atau penolakan dari konsultan/pemberi kerja — sengaja terpisah dari pengajuan, karena mencatat ""disetujui"" adalah pernyataan bahwa persetujuan pihak luar benar-benar diterima",642,2026-08-01T09:49:26.333Z
+03ac9021-17fb-4f8d-931a-8b7330ed0b2f,gl:view,keuangan,Lihat Buku Besar,"Melihat bagan akun, jurnal, dan buku besar",700,2026-08-02T14:07:06.394Z
+b5d69506-cdce-41bb-b127-5c2c4b14f881,gl:manage,keuangan,Kelola Jurnal & Bagan Akun,Membuat/menyunting jurnal draft dan mengelola Chart of Accounts,701,2026-08-02T14:07:06.394Z
+e16d19d8-4c80-4379-8874-19206bb7b6fb,gl:post,keuangan,Posting Jurnal,Mengesahkan jurnal menjadi catatan permanen yang tak bisa diubah,702,2026-08-02T14:07:06.394Z
+35dee33a-f8fa-4859-b32b-c7a6c82fdcd9,gl:void,keuangan,Batalkan Jurnal,Membatalkan jurnal yang sudah di-posting (jejaknya tetap tercatat),703,2026-08-02T14:07:06.394Z

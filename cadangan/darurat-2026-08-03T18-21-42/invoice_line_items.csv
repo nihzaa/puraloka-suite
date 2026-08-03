@@ -1,0 +1,1 @@
+id,invoice_id,expense_id,description,qty,unit,unit_price,amount,sort_order,notes,created_at

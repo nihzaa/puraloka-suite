@@ -1,0 +1,8 @@
+id,entity_type,label,is_active,created_at,updated_at,updated_by,company_id
+8094e5ae-b5a2-46cf-843d-0c862e32cf93,kasbon,Persetujuan Kasbon,true,2026-07-24T11:55:44.939Z,2026-07-24T11:55:44.939Z,,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+046d532d-12b9-4446-a377-56c55e381890,change_order,Persetujuan Change Order,true,2026-07-24T11:55:44.939Z,2026-07-24T11:55:44.939Z,,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+f1071f67-f9f9-4728-a9ed-9f7fadc1d342,material_request,Persetujuan Material Request,true,2026-07-24T11:55:44.939Z,2026-07-24T11:55:44.939Z,,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+56d9e28f-1010-4f01-b0b0-fb3e0a4a0548,project_expense,Persetujuan Pengeluaran Proyek,true,2026-07-24T11:55:44.939Z,2026-07-24T11:55:44.939Z,,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+8292896f-8c57-46b2-b6f7-e5ddc4efac6b,estimate_version,Persetujuan Estimasi,true,2026-07-25T07:55:12.773Z,2026-07-25T07:55:12.773Z,,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+be008dff-bb66-4ab3-a683-5b89c9ecac84,lessons_learned,Persetujuan Lessons Learned,true,2026-07-25T10:06:19.541Z,2026-07-25T10:06:19.541Z,,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+04924d7c-8bf3-451a-b4f1-aff4ae5855d0,submittal,Persetujuan Submittal,true,2026-08-01T09:49:26.333Z,2026-08-01T09:49:26.333Z,,48befb54-113d-4e1b-b4dd-91cf79d6d8a0

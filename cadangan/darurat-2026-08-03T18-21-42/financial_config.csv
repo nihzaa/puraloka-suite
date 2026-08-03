@@ -1,0 +1,15 @@
+id,key,value,value_type,effective_from,effective_to,note,updated_by,created_at,company_id
+9ea16731-51f8-44d7-912d-03d86dddafeb,tax.pph_final_rate,0.02,number,1999-12-31T17:00:00.000Z,,Tarif awal PPh final 4(2) (migrasi 1B.1),,2026-07-23T20:27:55.697Z,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+c6761560-15c4-491d-a639-ef9e6be3f74a,retention.default_pct,0.05,number,1999-12-31T17:00:00.000Z,,Default retensi 5% (migrasi dari hardcode projects.ts). Override per proyek tetap bisa.,,2026-07-23T20:49:18.042Z,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+fcec2fc3-04d3-46fe-a089-717492f64aae,penalty.enabled,false,boolean,1999-12-31T17:00:00.000Z,,Denda keterlambatan aktif? DEFAULT OFF (Puraloka belum pakai denda),,2026-07-24T02:47:27.444Z,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+94c39d4a-cb02-4a9b-8f36-b96bd64bf0cd,penalty.basis,invoice_telat,string,1999-12-31T17:00:00.000Z,,Basis nilai denda: invoice_telat | outstanding_proyek | kontrak_total,,2026-07-24T02:47:27.444Z,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+9e7f990e-4319-4804-a4d5-670e316d6bfb,penalty.cap_pct,0.05,number,1999-12-31T17:00:00.000Z,,Batas maksimum denda (fraksi dari basis). 0.05 = 5%,,2026-07-24T02:47:27.444Z,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+ccba8555-bd0b-4183-8c9a-e707fc64b462,penalty.grace_days,0,number,1999-12-31T17:00:00.000Z,,Masa toleransi (hari) sebelum denda mulai. Default 0 = H+1,,2026-07-24T02:47:27.444Z,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+b1aefb17-7227-4a30-883c-dc6628ac4cdc,penalty.rate_per_day,0.001,number,1999-12-31T17:00:00.000Z,,Tarif denda per hari (fraksi). 0.001 = 1‰/hari,,2026-07-24T02:47:27.444Z,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+7d7fa93a-b71f-423f-9e4c-e50e55ae487b,tax.ppn_rate,0.11,number,1999-12-31T17:00:00.000Z,2029-12-31T17:00:00.000Z,Tarif awal (migrasi dari company_settings 1B.1),,2026-07-23T20:27:55.697Z,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+65b86686-999c-4df2-a3d1-33e403e95aa4,tax.ppn_rate,0.11,number,2029-12-31T17:00:00.000Z,,,a0000000-0000-0000-0000-000000000001,2026-07-24T10:14:51.486Z,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+31bd0147-7c39-4455-9d94-3f5b0ebae258,ld.enabled,false,boolean,1969-12-31T17:00:00.000Z,,"Seed LD kontraktor (migrasi 152) — DEFAULT OFF, dinyalakan lewat UI",,2026-08-01T05:22:54.449Z,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+bcc66ea8-e17d-4aba-8bfc-9e1095707d0a,ld.basis,nilai_kontrak,string,1969-12-31T17:00:00.000Z,,"Seed LD kontraktor (migrasi 152) — DEFAULT OFF, dinyalakan lewat UI",,2026-08-01T05:22:54.449Z,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+84baaf49-ceb5-4f15-9731-dd12f7b0e513,ld.rate_per_day,0.001,number,1969-12-31T17:00:00.000Z,,"Seed LD kontraktor (migrasi 152) — DEFAULT OFF, dinyalakan lewat UI",,2026-08-01T05:22:54.449Z,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+4b2693b3-36c8-4df3-9b9a-d27670f92240,ld.cap_pct,0.05,number,1969-12-31T17:00:00.000Z,,"Seed LD kontraktor (migrasi 152) — DEFAULT OFF, dinyalakan lewat UI",,2026-08-01T05:22:54.449Z,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+fee98d29-856b-48d0-aa8e-b2b854e1b409,ld.grace_days,0,number,1969-12-31T17:00:00.000Z,,"Seed LD kontraktor (migrasi 152) — DEFAULT OFF, dinyalakan lewat UI",,2026-08-01T05:22:54.449Z,48befb54-113d-4e1b-b4dd-91cf79d6d8a0

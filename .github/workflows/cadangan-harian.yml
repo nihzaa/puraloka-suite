@@ -175,6 +175,14 @@ jobs:
           #
           # Balapan bukan kerusakan — ia hanya perlu diulang. Tiga percobaan
           # dengan jeda; kalau ketiganya kena, barulah itu masalah sungguhan.
+          # ⚠️ R-006: pg_dump SEDANG TIDAK BISA dipakai di database ini —
+          # satu fungsi yatim menunjuk schema terhapus, dan lima varian
+          # pg_dump gagal identik. Selama R-006 belum selesai, langkah ini
+          # akan gagal, dan langkah "Cadangan darurat" di bawahlah yang
+          # menyelamatkan datanya.
+          #
+          # Kegagalannya SENGAJA tidak dimatikan: kalau ia dibungkam, tak ada
+          # yang akan tahu saat R-006 akhirnya selesai dan pg_dump pulih.
           BERHASIL=0
           for PERCOBAAN in 1 2 3; do
             # --exclude-schema=test: database ini punya baris pg_depend YATIM
@@ -227,6 +235,68 @@ jobs:
       # Dump yang "berhasil" tapi kosong adalah jebakan paling halus: ia lolos
       # setiap pemeriksaan yang hanya melihat kode keluar. Diperiksa SEBELUM
       # enkripsi — setelah dikunci, isinya tak bisa diperiksa lagi.
+      # ── JARING PENGAMAN saat pg_dump gagal (R-006) ───────────────────────
+      #
+      # `if: failure()` — berjalan HANYA ketika langkah di atas gagal.
+      #
+      # COPY tak menelusuri pg_depend, jadi ia lolos dari fungsi yatim yang
+      # mematikan pg_dump. Diukur, bukan diasumsikan: 123 tabel / 48.330 baris
+      # tersalin dalam 7,6 detik, dan jumlah baris tiap tabel diverifikasi
+      # ulang terhadap database.
+      #
+      # Yang TIDAK tertutup: struktur, RLS, policy, trigger. Itu bukan
+      # kehilangan permanen — semuanya bisa dibangun ulang dari
+      # `db/migrations/*.sql` yang hidup di git. Justru itu gunanya migrasi
+      # disimpan sebagai berkas bernomor, bukan sekadar dijalankan sekali.
+      #
+      # Jaring ini TIDAK menggantikan pg_dump dan tak boleh jadi alasan
+      # menunda R-006.
+      - name: Cadangan darurat (COPY) — hanya bila pg_dump gagal
+        if: failure()
+        env:
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          # WAJIB ada di sini: openssl membacanya lewat `-pass env:SANDI`.
+          # Tanpa deklarasi ini, enkripsi gagal dan CSV mentah bisa lolos ke
+          # artifact di repo PUBLIK. Nyaris terjadi — ketahuan saat memeriksa
+          # ulang berkas ini sebelum push.
+          SANDI: ${{ secrets.SANDI_CADANGAN }}
+        run: |
+          echo "::warning::pg_dump gagal (R-006). Menyelamatkan DATA lewat COPY."
+          if [ -z "$SANDI" ]; then
+            echo "::error::SANDI_CADANGAN kosong — cadangan darurat DIBATALKAN."
+            echo "CSV mentah tak boleh diunggah tanpa enkripsi di repo publik."
+            exit 1
+          fi
+          mkdir -p apps/api
+          # Skrip membaca apps/api/.env lewat parser bersama, jadi secret
+          # dituliskan ke sana — bukan dirakit ulang di tempat lain.
+          printf 'DIRECT_URL=%s\n' "$DIRECT_URL" > apps/api/.env
+          node scripts/db/cadangan-darurat.mjs --keluaran keluar-darurat
+          rm -f apps/api/.env
+
+          CAP=$(date -u +%Y-%m-%d)
+          # Diarsipkan lalu DIKUNCI sebelum menyentuh artifact — repo ini
+          # publik, dan CSV mentah adalah seluruh isi basis data.
+          tar -czf "keluar-darurat-$CAP.tar.gz" keluar-darurat
+          openssl enc -aes-256-cbc -pbkdf2 -iter 100000 -salt \
+            -in "keluar-darurat-$CAP.tar.gz" \
+            -out "darurat-$CAP.tar.gz.enc" \
+            -pass env:SANDI
+          rm -rf keluar-darurat "keluar-darurat-$CAP.tar.gz"
+          echo "CAP=$CAP" >> $GITHUB_ENV
+          echo "✅ cadangan darurat terenkripsi: darurat-$CAP.tar.gz.enc"
+        # SANDI dipisah ke env agar openssl membacanya lewat env:SANDI,
+        # tak pernah jadi argumen (argumen terlihat di daftar proses).
+
+      - name: Simpan cadangan darurat
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cadangan-darurat-${{ env.CAP }}
+          path: darurat-*.tar.gz.enc
+          retention-days: 30
+          if-no-files-found: error
+
       - name: Buktikan dump berisi
         run: |
           N=$(pg_restore --list "keluar/puraloka-$CAP.dump" | grep -c "TABLE DATA" || true)

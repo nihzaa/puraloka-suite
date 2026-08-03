@@ -1,0 +1,6 @@
+id,key,value,value_type,category,description,updated_by,updated_at,company_id
+8eb5bc57-b85f-4eca-b7b5-08521b445fe3,tax.pph_final_rate,0.02,number,tax,Tarif PPh final Pasal 4(2) (default 2%),,2026-07-22T23:32:42.365Z,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+d0939bfb-fd9a-4352-bdc1-e13d897f603f,tax.ppn_rate,0.11,number,tax,Tarif PPN (default 11%),,2026-07-22T23:32:42.365Z,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+c2f690ad-a6c7-4dfc-a73a-23f5b6c455ec,kasbon.limit.enabled,false,boolean,kasbon,Aktifkan batas kasbon (max % earned value untuk scope progress_pct). Default MATI.,,2026-07-23T21:09:47.772Z,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+56ce25e3-c8e7-4ed5-8776-8bb0fd29cb3b,project.maintenance_days,90,number,project,Default masa pemeliharaan (hari) untuk termin retensi (on_retention) saat buat proyek baru.,,2026-07-23T21:20:19.942Z,48befb54-113d-4e1b-b4dd-91cf79d6d8a0
+bd33bbfe-f0dd-4e46-993c-3a3fd529e43b,project.dp_default_pct,30,number,project,Default % uang muka (DP) termin on_sign saat buat proyek baru. Boleh diubah/dikosongkan per proyek.,,2026-07-23T21:20:19.942Z,48befb54-113d-4e1b-b4dd-91cf79d6d8a0

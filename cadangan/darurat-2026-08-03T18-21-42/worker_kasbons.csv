@@ -1,0 +1,2 @@
+id,worker_id,mandor_id,project_id,scope_id,amount,purpose,kasbon_date,notes,amount_settled,is_settled,created_at,updated_at,cash_account_id,photo_url
+d232cc34-b8a9-4f07-bcaf-c835d4f6683c,99343dcc-9af6-42f6-9ad2-0675a5ab7a55,a0000000-0000-0000-0000-000000000006,c0000000-0000-0000-0000-000000000005,,2000000.00,lain_lain,2026-06-13T17:00:00.000Z,Beli Motor,0.00,false,2026-06-14T05:19:44.912Z,2026-06-14T05:19:44.912Z,,
