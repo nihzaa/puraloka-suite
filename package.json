@@ -1,10 +1,18 @@
 {
   "name": "puraloka-suite",
   "version": "1.0.0",
-  "description": "",
+  "description": "ERP konstruksi multi-tenant — Puraloka Persada",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "bootstrap": "node scripts/bootstrap.mjs",
+    "dev:api": "pnpm --filter @puraloka/api dev",
+    "dev:web": "pnpm --filter web dev",
+    "test": "pnpm --filter @puraloka/api test",
+    "test:web": "pnpm --filter web test",
+    "typecheck": "pnpm --filter @puraloka/api exec tsc --noEmit && pnpm --filter web typecheck",
+    "lint:ratchet": "pnpm --filter @puraloka/api lint:ratchet && pnpm --filter web lint:ratchet",
+    "build": "pnpm --filter @puraloka/api build && pnpm --filter web build",
+    "db": "node scripts/db/introspect.mjs"
   },
   "keywords": [],
   "author": "",
@@ -19,5 +27,8 @@
   "type": "module",
   "devDependencies": {
     "@playwright/test": "^1.62.1"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

@@ -32,6 +32,13 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ...KECUALI berkas contohnya. `.env*` di atas ikut menelan `.env.example`,
+# jadi selama ini repo hasil klon TIDAK punya contoh konfigurasi web sama
+# sekali — ketahuan saat mengukur waktu klon→siap untuk F1-5 (`pnpm bootstrap`
+# mati dengan ENOENT di mesin bersih, padahal hijau di mesin yang berkasnya
+# tertinggal secara lokal). Berkas contoh tak berisi rahasia; justru ia yang
+# memberi tahu orang baru rahasia APA yang harus mereka isi.
+!.env.example
 
 # vercel
 .vercel

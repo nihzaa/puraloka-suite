@@ -273,6 +273,15 @@ jobs:
       - name: Indeks dokumen mutakhir
         run: node scripts/gen-indeks-docs.mjs --check
 
+      # F1-5 — berkas contoh env harus benar-benar sampai ke orang yang mengklon.
+      #
+      # `apps/web/.gitignore` punya `.env*` yang ikut menelan `.env.example`.
+      # Cacatnya TAK BERGEJALA di mesin mana pun yang berkasnya sudah tertinggal
+      # secara lokal — hanya klon bersih yang merasakannya. Terungkap saat waktu
+      # klon→siap diukur pada klon sungguhan, bukan diperkirakan.
+      - name: Contoh env ter-track git
+        run: node scripts/audit-contoh-env-terlacak.mjs
+
       - name: Dokumen rencana harus terhubung ke ROADMAP
         run: node scripts/audit-docs-vs-roadmap.mjs
 

@@ -468,7 +468,7 @@ items:
     kriteria_selesai: ["waktu clone -> pnpm dev terukur dan tercatat"]
     cara_verifikasi: "jalankan di direktori bersih"
     bobot: M
-    status: todo
+    status: done
 
   - id: F1-6
     fase: 1
