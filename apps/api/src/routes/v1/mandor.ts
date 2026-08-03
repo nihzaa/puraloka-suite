@@ -52,7 +52,24 @@ export default async function mandorRoutes(app: FastifyInstance) {
 
       const ext = detectedType.split('/')[1].replace('jpeg', 'jpg')
       const safe = (file_name ?? 'nota').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 60)
-      const storagePath = `worker-kasbons/${Date.now()}_${safe}.${ext}`
+
+      // ── Path DIAWALI company_id (F1-2) ────────────────────────────────────
+      //
+      // Sebelumnya: `worker-kasbons/<timestamp>_<nama>.<ext>` — nol penanda
+      // perusahaan. Endpoint ini satu-satunya rute yang MENULIS tanpa saringan
+      // tenant (audit-gerbang-tenancy), dan meski ia tak menyentuh tabel mana
+      // pun, ia menaruh berkas di bucket BERSAMA.
+      //
+      // Akibatnya pada hari perusahaan kedua lahir: seluruh nota kasbon semua
+      // perusahaan bertumpuk di satu folder. Kebijakan storage per-tenant jadi
+      // mustahil ditulis (tak ada yang bisa dijadikan predikat), dan penelusuran
+      // "berkas ini milik siapa" hanya bisa lewat tebakan nama.
+      //
+      // Memperbaikinya SEKARANG murah: berkas lama tetap terbaca lewat signed
+      // URL yang sudah beredar (path lama tak diubah), yang baru langsung rapi.
+      // Menunda berarti memindahkan berkas nyata milik pelanggan nanti.
+      const storagePath =
+        `${request.companyId}/worker-kasbons/${Date.now()}_${safe}.${ext}`
 
       const { error: upErr } = await supabase.storage
         .from(KASBON_PHOTO_BUCKET).upload(storagePath, buffer, { contentType: detectedType, upsert: false })
