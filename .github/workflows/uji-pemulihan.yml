@@ -80,7 +80,26 @@ jobs:
           curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/pgdg.gpg
           sudo apt-get update -qq
           sudo apt-get install -y -qq postgresql-client-17
-          pg_dump --version
+
+          # ── PATH TIDAK CUKUP ────────────────────────────────────────────
+          #
+          # Runner ubuntu-latest SUDAH membawa postgresql-client-16, dan
+          # /usr/bin/pg_dump menang atas /usr/lib/postgresql/17/bin/pg_dump.
+          # Jadi `postgresql-client-17` terpasang dengan sukses, tetapi
+          # `pg_dump` yang benar-benar berjalan tetap 16 — dan gagal dengan
+          # "aborting because of server version mismatch" terhadap server 17.
+          #
+          # Terjadi sungguhan (run 30829393757): log menunjukkan
+          # "Setting up postgresql-client-17" DAN "pg_dump (PostgreSQL) 16.14"
+          # berjarak tiga detik. Memasang bukan berarti memakai.
+          echo "PATH=/usr/lib/postgresql/17/bin:$PATH" >> $GITHUB_ENV
+
+          # Buktikan sekarang, bukan tiga langkah lagi. Kegagalan versi yang
+          # muncul saat dump membuat orang mencurigai kredensial lebih dulu —
+          # itulah yang terjadi pada saya.
+          V=$(/usr/lib/postgresql/17/bin/pg_dump --version | grep -oE '[0-9]+' | head -1)
+          echo "versi yang AKAN dipakai: $V"
+          [ "$V" -ge 17 ] || { echo "::error::pg_dump $V < 17 — dump bisa kehilangan objek"; exit 1; }
 
       # ── Sandi bersimbol WAJIB di-encode ──────────────────────────────────
       #

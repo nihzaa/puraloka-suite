@@ -95,6 +95,14 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq postgresql-client-17
 
+          # PATH tidak cukup: runner sudah membawa client-16, dan
+          # /usr/bin/pg_dump menang atas /usr/lib/postgresql/17/bin/pg_dump.
+          # Memasang bukan berarti memakai — terbukti di run 30829393757.
+          echo "PATH=/usr/lib/postgresql/17/bin:$PATH" >> $GITHUB_ENV
+          V=$(/usr/lib/postgresql/17/bin/pg_dump --version | grep -oE '[0-9]+' | head -1)
+          echo "versi yang AKAN dipakai: $V"
+          [ "$V" -ge 17 ] || { echo "::error::pg_dump $V < 17 — dump bisa kehilangan objek"; exit 1; }
+
       # ── Sandi bersimbol WAJIB di-encode ──────────────────────────────────
       #
       # Insiden 2026-08-03: `@` di dalam sandi memisahkan URL di tempat yang
