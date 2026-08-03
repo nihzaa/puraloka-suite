@@ -135,7 +135,17 @@ jobs:
           t0=$(date +%s)
           # pg_dump tak pernah menulis ke basis data yang dibacanya.
           # stderr dibungkam: galat koneksi bisa memuat potongan kredensial.
+          # --serializable-deferrable: satu snapshot yang konsisten secara
+          # transaksional. Tanpanya cadangan bisa memuat baris anak yang
+          # induknya tak ikut terbawa — dan cadangan yang tak konsisten
+          # referensial adalah cadangan yang TIDAK BISA dipulihkan utuh.
+          # Terbukti di drill: pelanggaran FK saat restore.
+          #
+          # --schema=public: schema test sementara milik CI bisa lenyap di
+          # tengah dump ("schema … does not exist"). Yang perlu dipulihkan saat
+          # bencana memang hanya public.
           if ! pg_dump --format=custom --no-owner --no-privileges \
+                       --schema=public --serializable-deferrable \
                        --file="keluar/puraloka-$CAP.dump" "$URL_AMAN" 2>/tmp/galat.txt; then
             echo "::error::pg_dump gagal."
             if   grep -qi "password authentication failed" /tmp/galat.txt; then

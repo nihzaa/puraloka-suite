@@ -187,8 +187,18 @@ jobs:
           # stderr ditangkap ke berkas, TIDAK dicetak. Yang dilaporkan hanya
           # KELAS galatnya lewat pencocokan pola — cukup untuk mendiagnosis,
           # tanpa pernah menerbitkan teks yang bisa memuat kredensial.
+          # --serializable-deferrable: dump diambil dari SATU snapshot yang
+          # konsisten secara transaksional.
+          #
+          # Tanpanya, dump bisa memuat baris anak yang induknya belum/sudah
+          # tak ada — dan restore gagal dengan pelanggaran FK
+          # ("lesson_propagation_proposals violates foreign key constraint").
+          # Itu bukan cacat cadangan, melainkan potret yang diambil sambil
+          # bergerak. Cadangan yang tak konsisten secara referensial adalah
+          # cadangan yang tak bisa dipulihkan utuh — persis hal yang drill ini
+          # ada untuk menemukannya.
           if ! pg_dump --format=custom --no-owner --no-privileges \
-                       --schema=public \
+                       --schema=public --serializable-deferrable \
                        --file=cadangan/drill.dump "$URL_AMAN" 2>/tmp/galat.txt; then
             echo "::error::pg_dump gagal."
             if   grep -qi "password authentication failed" /tmp/galat.txt; then
@@ -248,6 +258,18 @@ jobs:
           echo "sumber saat dump — tabel:$(cat /tmp/sumber-tabel.txt)" \
                "RLS:$(cat /tmp/sumber-rls.txt) policy:$(cat /tmp/sumber-policy.txt)"
 
+          # Jumlah baris per tabel, direkam sezaman dengan dump. Satu kueri
+          # untuk semuanya: memanggil count(*) 124 kali lewat psql terpisah
+          # membuat jaraknya melebar, dan jarak itulah yang jadi sumber galat.
+          psql "$URL_AMAN" -tAF'|' -q -c "
+            SELECT string_agg(format('SELECT %L AS t, count(*)::text AS n FROM %I',
+                                     relname, relname), ' UNION ALL ')
+              FROM pg_class c JOIN pg_namespace ns ON ns.oid=c.relnamespace
+             WHERE ns.nspname='public' AND c.relkind='r'" 2>/dev/null > /tmp/kueri.sql
+          psql "$URL_AMAN" -tAF'|' -q -f /tmp/kueri.sql 2>/dev/null \
+            | grep -E '^[a-z_]+\|[0-9]+$' | sort > /tmp/hitung-sumber.txt
+          echo "tabel terekam: $(wc -l < /tmp/hitung-sumber.txt)"
+
       # Dump yang "berhasil" tapi kosong adalah jebakan paling halus: ia lolos
       # setiap pemeriksaan yang hanya melihat kode keluar.
       - name: Buktikan dump berisi
@@ -291,6 +313,13 @@ jobs:
           CREATE SCHEMA IF NOT EXISTS extensions;
           CREATE EXTENSION IF NOT EXISTS "uuid-ossp"  WITH SCHEMA extensions;
           CREATE EXTENSION IF NOT EXISTS pgcrypto     WITH SCHEMA extensions;
+          -- btree_gist: dibutuhkan constraint EXCLUDE `no_overlap_financial_config`.
+          -- Tanpanya: "data type uuid has no default operator class for access
+          -- method gist" — constraint anti-tumpang-tindih tak terbentuk, dan itu
+          -- justru penjaga yang mencegah dua konfigurasi finansial berlaku
+          -- bersamaan. Dipasang di `public` supaya operator class-nya terjangkau
+          -- definisi constraint apa adanya dari dump.
+          CREATE EXTENSION IF NOT EXISTS btree_gist;
 
           -- ── Schema `auth` — 21 policy tak bisa dibuat tanpanya ───────────
           --
@@ -440,22 +469,24 @@ jobs:
           #
           # Ini BUKAN pelonggaran: kalau restore kehilangan baris, angka dump
           # dan angka target tetap berbeda dan drill tetap merah.
-          pg_restore --list cadangan/drill.dump \
-            | awk -F'TABLE DATA ' '/TABLE DATA/{split($2,a," "); print a[2]}' \
-            | sort -u > /tmp/tabel-dump.txt
-          echo "tabel berisi data di dump: $(wc -l < /tmp/tabel-dump.txt)"
-
-          BEDA=$(while read -r t; do
+          # ⚠️ `pg_restore --list` mencatat entri TABLE DATA bahkan untuk tabel
+          # yang isinya NOL BARIS. Versi sebelumnya menganggap setiap entri itu
+          # "punya data", lalu berteriak "target KOSONG" untuk tabel yang di
+          # sumbernya memang kosong (assets, bids, asset_movements semuanya 0
+          # baris di dev). Alarm palsu buatan sendiri.
+          #
+          # Yang benar: bandingkan JUMLAHNYA. Angka sumber diambil dari rekaman
+          # saat dump (/tmp/hitung-sumber.txt) supaya tak terpengaruh test suite
+          # yang menulis bersamaan.
+          BEDA=$(while IFS='|' read -r t s; do
             [ -z "$t" ] && continue
             g=$(psql "$TARGET" -tAc "SELECT count(*) FROM \"$t\"" 2>/dev/null | tr -d '[:space:]')
-            # Tabel yang punya TABLE DATA di dump WAJIB punya baris di target.
-            # Nol berarti datanya tak sampai — itulah kegagalan yang dicari.
             if [ -z "$g" ]; then
               echo "$t: TABEL TIDAK ADA di target"
-            elif [ "$g" = "0" ]; then
-              echo "$t: dump punya data, target KOSONG"
+            elif [ "$s" != "$g" ]; then
+              echo "$t: dump=$s target=$g"
             fi
-          done < /tmp/tabel-dump.txt)
+          done < /tmp/hitung-sumber.txt)
           if [ -n "$BEDA" ]; then echo "::error::isi tak sampai:"; echo "$BEDA"; GAGAL=1; fi
 
           {
