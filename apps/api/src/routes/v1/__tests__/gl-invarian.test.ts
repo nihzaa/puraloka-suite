@@ -113,6 +113,17 @@ async function bersihkan() {
   await client.query(
     `DELETE FROM journal_entry_lines WHERE entry_id IN
        (SELECT id FROM journal_entries WHERE entry_number LIKE '[TEST]%')`)
+  // ⚠️ Saringan '[TEST]%' di sini masih LUAS, dan itu diketahui.
+  //
+  // `gl-api.test.ts` juga membuat journal_entries di schema `public` bersama.
+  // Yang membuatnya aman hari ini: keduanya jatuh di SHARD YANG SAMA (2/6),
+  // jadi berjalan berurutan — diverifikasi lewat `vitest list --shard`.
+  //
+  // Itu kebetulan pembagian alfabet, BUKAN jaminan. Kalau jumlah shard berubah
+  // atau berkas ditambah, keduanya bisa terpisah dan purge ini akan menghapus
+  // jurnal milik gl-api di tengah jalan — kelas cacat yang lima kali merahkan
+  // CI sesi ini. Kalau itu terjadi, sempitkan ke prefiks milik berkas ini
+  // sendiri (pola `approval-chain-berjenjang`, `lessons-writeback`).
   await client.query(`DELETE FROM journal_entries WHERE entry_number LIKE '[TEST]%'`)
   await client.query(
     `DELETE FROM accounts WHERE company_id IN (SELECT id FROM companies WHERE code LIKE 'gl-test%')`)

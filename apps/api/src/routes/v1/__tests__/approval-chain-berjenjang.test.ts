@@ -52,7 +52,19 @@ const approve = () =>
  */
 async function purgeTestProjects(): Promise<void> {
   for (let attempt = 1; attempt <= 3; attempt++) {
-    const { rows } = await client.query(`SELECT id FROM projects WHERE name LIKE '[TEST]%'`)
+    // ⚠️ Saringan SEMPIT, bukan '[TEST]%'.
+    //
+    // Versi sebelumnya menyapu SETIAP proyek berawalan '[TEST]' — dan belasan
+    // berkas test lain memakai awalan yang sama di schema `public` BERSAMA.
+    // Berjalan berurutan tak pernah terlihat; berjalan PARALEL (6 shard), purge
+    // ini mencoba menghapus proyek milik shard lain, lalu ditolak trigger
+    // penjaga milik data itu:
+    //
+    //     Lessons Learned berstatus under_review tidak boleh dihapus
+    //
+    // Gejalanya menuduh Lessons Learned, padahal sebabnya purge yang terlalu luas.
+    const { rows } = await client.query(
+      `SELECT id FROM projects WHERE name = '[TEST] Rantai Berjenjang'`)
     if (rows.length === 0) return
     const ids = rows.map(r => r.id)
     await client.query(
