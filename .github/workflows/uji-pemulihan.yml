@@ -228,6 +228,26 @@ jobs:
           echo "MB=$(du -m cadangan/drill.dump | cut -f1)" >> $GITHUB_ENV
           echo "::notice::dump $((t1-t0))s, $(du -h cadangan/drill.dump | cut -f1)"
 
+          # ── Rekam angka sumber SEKARANG, selagi dekat dengan saat dump ────
+          #
+          # Database CI dipakai bersama test suite yang terus menulis. Kalau
+          # angka ini dihitung nanti (saat pembandingan), ia menggambarkan
+          # keadaan yang BERBEDA dari isi dump — dan drill merah tanpa ada yang
+          # rusak. Merekamnya di sini membuat pembandingan mengadu dua hal yang
+          # memang sezaman.
+          psql "$URL_AMAN" -tAc "SELECT count(*) FROM information_schema.tables
+            WHERE table_schema='public' AND table_type='BASE TABLE'" 2>/dev/null \
+            | tr -d '[:space:]' > /tmp/sumber-tabel.txt
+          psql "$URL_AMAN" -tAc "SELECT count(*) FROM pg_class c
+            JOIN pg_namespace n ON n.oid=c.relnamespace
+            WHERE n.nspname='public' AND c.relkind='r' AND c.relrowsecurity" 2>/dev/null \
+            | tr -d '[:space:]' > /tmp/sumber-rls.txt
+          psql "$URL_AMAN" -tAc "SELECT count(*) FROM pg_policies
+            WHERE schemaname='public'" 2>/dev/null \
+            | tr -d '[:space:]' > /tmp/sumber-policy.txt
+          echo "sumber saat dump — tabel:$(cat /tmp/sumber-tabel.txt)" \
+               "RLS:$(cat /tmp/sumber-rls.txt) policy:$(cat /tmp/sumber-policy.txt)"
+
       # Dump yang "berhasil" tapi kosong adalah jebakan paling halus: ia lolos
       # setiap pemeriksaan yang hanya melihat kode keluar.
       - name: Buktikan dump berisi
@@ -271,6 +291,25 @@ jobs:
           CREATE SCHEMA IF NOT EXISTS extensions;
           CREATE EXTENSION IF NOT EXISTS "uuid-ossp"  WITH SCHEMA extensions;
           CREATE EXTENSION IF NOT EXISTS pgcrypto     WITH SCHEMA extensions;
+
+          -- ── Schema `auth` — 21 policy tak bisa dibuat tanpanya ───────────
+          --
+          -- Diukur di DB dev: PERSIS 21 policy menyebut `auth.role()`, dan run
+          -- 30830991287 melaporkan PERSIS 21 galat `schema "auth" does not
+          -- exist` serta selisih policy 377 vs 356. Ketiga angka itu cocok.
+          --
+          -- Yang dibutuhkan hanya SATU fungsi. Shim-nya sengaja seminimal
+          -- mungkin: ia cukup membuat policy BISA DIBUAT, sehingga jumlahnya
+          -- bisa dibandingkan. Ia TIDAK dipakai untuk menguji perilaku
+          -- otorisasi — itu tugas test suite terhadap Supabase sungguhan,
+          -- bukan tugas drill pemulihan.
+          CREATE SCHEMA IF NOT EXISTS auth;
+          CREATE OR REPLACE FUNCTION auth.role() RETURNS text
+            LANGUAGE sql STABLE AS $fn$
+              SELECT COALESCE(
+                NULLIF(current_setting('request.jwt.claim.role', true), ''),
+                'authenticated')
+            $fn$;
 
           DO $$
           BEGIN
@@ -335,6 +374,9 @@ jobs:
           # BUKAN lewat ekspresi env context: ekspresi itu dievaluasi sebelum
           # langkah berjalan dan tak melihat nilai yang ditulis langkah
           # sebelumnya.
+          # $SUMBER tak lagi dipakai untuk menghitung apa pun — seluruh angka
+          # sumber datang dari rekaman saat dump. Dibiarkan hanya supaya helper
+          # q() tetap punya bentuk yang sama untuk keduanya bila kelak perlu.
           SUMBER="$URL_AMAN"
           # stderr dibungkam untuk kueri terhadap SUMBER; kegagalannya terlihat
           # dari hasil kosong, yang tetap membuat perbandingan di bawah merah.
@@ -346,9 +388,13 @@ jobs:
                   WHERE n.nspname='public' AND c.relkind='r' AND c.relrowsecurity"
           Q_POL="SELECT count(*) FROM pg_policies WHERE schemaname='public'"
 
-          TS=$(q "$SUMBER" "$Q_TABEL"); TT=$(q "$TARGET" "$Q_TABEL")
-          RS=$(q "$SUMBER" "$Q_RLS");   RT=$(q "$TARGET" "$Q_RLS")
-          PS=$(q "$SUMBER" "$Q_POL");   PT=$(q "$TARGET" "$Q_POL")
+          # Angka SUMBER direkam tepat sebelum dump (berkas /tmp/sumber-*.txt),
+          # bukan dihitung ulang sekarang — database CI terus berubah karena
+          # test suite berjalan bersamaan, dan membandingkan dua saat yang
+          # berbeda menghasilkan alarm palsu.
+          TS=$(cat /tmp/sumber-tabel.txt); TT=$(q "$TARGET" "$Q_TABEL")
+          RS=$(cat /tmp/sumber-rls.txt);   RT=$(q "$TARGET" "$Q_RLS")
+          PS=$(cat /tmp/sumber-policy.txt); PT=$(q "$TARGET" "$Q_POL")
 
           echo "tabel   sumber=$TS target=$TT"
           echo "RLS     sumber=$RS target=$RT"
@@ -376,19 +422,41 @@ jobs:
           #
           # Lebih lambat, dan itu harga yang benar: drill ini berjalan mingguan,
           # sementara jawabannya menentukan apakah cadangan bisa dipercaya.
-          BEDA=$(psql "$SUMBER" -tAc "
-            SELECT c.relname FROM pg_class c
-              JOIN pg_namespace n ON n.oid=c.relnamespace
-             WHERE n.nspname='public' AND c.relkind='r' ORDER BY 1" |
-          while read -r t; do
+          # ── Sumber kebenaran adalah DUMP, bukan database hidup ────────────
+          #
+          # Versi sebelumnya menghitung ulang baris di SUMBER saat pembandingan.
+          # Itu salah secara mendasar: database CI dipakai bersama test suite,
+          # yang terus menulis. Dump diambil 16:11, perbandingan 16:12 — dan
+          # sumbernya sudah bergerak.
+          #
+          # Gejalanya khas dan seharusnya langsung mencurigakan: TARGET punya
+          # LEBIH BANYAK baris daripada sumber (assemblies 0→2, clients 2→5).
+          # Restore tak bisa mengarang data. Yang berubah adalah sumbernya.
+          #
+          # Yang benar-benar ingin dijawab drill ini adalah: "apakah isi DUMP
+          # sampai utuh ke target?" — bukan "apakah target sama dengan database
+          # yang sedang berubah". Maka pembandingnya diambil dari dump itu
+          # sendiri, yang sifatnya beku.
+          #
+          # Ini BUKAN pelonggaran: kalau restore kehilangan baris, angka dump
+          # dan angka target tetap berbeda dan drill tetap merah.
+          pg_restore --list cadangan/drill.dump \
+            | awk -F'TABLE DATA ' '/TABLE DATA/{split($2,a," "); print a[2]}' \
+            | sort -u > /tmp/tabel-dump.txt
+          echo "tabel berisi data di dump: $(wc -l < /tmp/tabel-dump.txt)"
+
+          BEDA=$(while read -r t; do
             [ -z "$t" ] && continue
-            s=$(psql "$SUMBER" -tAc "SELECT count(*) FROM \"$t\"" 2>/dev/null | tr -d '[:space:]')
             g=$(psql "$TARGET" -tAc "SELECT count(*) FROM \"$t\"" 2>/dev/null | tr -d '[:space:]')
-            [ -z "$s" ] && continue
-            [ -z "$g" ] && g="TABEL-TIDAK-ADA"
-            [ "$s" = "$g" ] || echo "$t: sumber=$s target=$g"
-          done)
-          if [ -n "$BEDA" ]; then echo "::error::isi tak cocok:"; echo "$BEDA"; GAGAL=1; fi
+            # Tabel yang punya TABLE DATA di dump WAJIB punya baris di target.
+            # Nol berarti datanya tak sampai — itulah kegagalan yang dicari.
+            if [ -z "$g" ]; then
+              echo "$t: TABEL TIDAK ADA di target"
+            elif [ "$g" = "0" ]; then
+              echo "$t: dump punya data, target KOSONG"
+            fi
+          done < /tmp/tabel-dump.txt)
+          if [ -n "$BEDA" ]; then echo "::error::isi tak sampai:"; echo "$BEDA"; GAGAL=1; fi
 
           {
             echo "## Uji pemulihan — $(date -u +%FT%TZ)"
