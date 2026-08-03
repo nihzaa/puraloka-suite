@@ -415,7 +415,7 @@ items:
       - "test double-submit membuktikan tidak ada uang ganda"
     cara_verifikasi: "test double-submit per endpoint"
     bobot: L
-    status: todo
+    status: wip
 
   - id: F1-2
     fase: 1

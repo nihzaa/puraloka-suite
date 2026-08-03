@@ -8,6 +8,7 @@ import { logAuditEvent } from '../../utils/audit.js'
 import { computeAndPersistPenalty, estimatePenalty } from '../../utils/penalty.js'
 import { computeAging, retentionOutstanding, validateDpDeduction } from '../../lib/ar-register.js'
 import { proyekBolehDibaca, proyekMilikTenant } from '../../utils/tenant-guard.js'
+import { gerbangIdempotensi, catatIdempotensi } from '../../utils/idempotency.js'
 
 const ALLOWED_IMAGE_PDF = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
 
@@ -1080,6 +1081,21 @@ export default async function financeRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const { id } = request.params
 
+    // ── Gerbang idempotensi (F1-1) ────────────────────────────────────────
+    //
+    // Endpoint ini meng-INSERT ke `payments`, dan trigger
+    // `trg_update_cash_balance_on_payment` menambah saldo kas dari baris itu.
+    // Tak ada constraint unik yang mencegah dua INSERT identik (diverifikasi
+    // 2026-08-03: `payments` hanya punya pkey) — jadi satu tombol yang ditekan
+    // dua kali menghasilkan DUA pembayaran dan DUA pergerakan kas.
+    //
+    // Diperiksa PALING AWAL, sebelum multipart di-parse dan sebelum bukti
+    // bayar di-upload: pengiriman ulang tak boleh menyisakan berkas yatim di
+    // storage, dan tak boleh membayar biaya parsing untuk pekerjaan yang sudah
+    // pernah selesai.
+    const kunciIdem = await gerbangIdempotensi(request, reply, 'finance:invoice:pay')
+    if (kunciIdem === null) return   // sudah pernah — respons pertama dibalas ulang
+
     // Ambil data invoice
     // T4g: tanpa saringan ini, tenant A mencatat pembayaran atas invoice
     // tenant B DAN mengunggah bukti transfer ke folder storage mereka.
@@ -1245,7 +1261,16 @@ export default async function financeRoutes(app: FastifyInstance) {
       request.log.error({ err }, 'notifikasi gagal dikirim')
     }
 
-    return reply.status(201).send({ payment, invoiceStatus: newStatus })
+    // Dicatat SESUDAH pembayaran benar-benar tersimpan, supaya pengiriman ulang
+    // membalas hasil yang SAMA alih-alih membuat pembayaran kedua.
+    //
+    // Sengaja setelah blok notifikasi: notifikasi boleh gagal tanpa membatalkan
+    // pembayaran, dan kunci ini harus tercatat untuk pembayaran yang SUDAH
+    // terjadi — bukan untuk yang notifikasinya kebetulan berhasil.
+    const hasilBayar = { payment, invoiceStatus: newStatus }
+    await catatIdempotensi(request, 'finance:invoice:pay', kunciIdem ?? null, 201, hasilBayar)
+
+    return reply.status(201).send(hasilBayar)
   })
 
   // ── PATCH /api/v1/finance/invoice/:id/waive-penalty ─────────────────────────
