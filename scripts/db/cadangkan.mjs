@@ -128,6 +128,11 @@ try {
       '--format=custom',
       '--no-owner', // pemilik peran berbeda antar lingkungan; jangan dipaku.
       '--no-privileges', // GRANT dipulihkan oleh migrasi, bukan oleh dump.
+      // Hanya `public`. Database bersama dipakai test suite yang membuat lalu
+      // MENGHAPUS schema sementara; pg_dump mati bila salah satunya lenyap di
+      // tengah jalan ("schema … does not exist"). Ini juga lebih jujur: yang
+      // perlu dipulihkan saat bencana memang hanya `public`.
+      '--schema=public',
       '--verbose',
       `--file=${berkas}`,
       URL_SUMBER,

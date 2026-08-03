@@ -171,10 +171,24 @@ jobs:
         run: |
           mkdir -p cadangan
           t0=$(date +%s)
+          # ── HANYA schema `public` ────────────────────────────────────────
+          #
+          # Database CI dipakai bersama test suite, yang membuat lalu MENGHAPUS
+          # schema sementara (`test_<run>_s<shard>`) sepanjang waktu. pg_dump
+          # membaca daftar schema di awal lalu mengambilnya satu per satu —
+          # kalau salah satu lenyap di antara kedua saat itu, ia mati dengan
+          #     ERROR: schema "test_30829613331_s6" does not exist
+          # Terjadi sungguhan di run 30830005729, padahal run sebelumnya hijau.
+          #
+          # `--schema=public` menutupnya sekaligus membuat drill lebih jujur:
+          # yang perlu dipulihkan saat bencana memang hanya `public`. Schema
+          # test adalah sampah sementara milik CI, bukan data yang berharga.
+          #
           # stderr ditangkap ke berkas, TIDAK dicetak. Yang dilaporkan hanya
           # KELAS galatnya lewat pencocokan pola — cukup untuk mendiagnosis,
           # tanpa pernah menerbitkan teks yang bisa memuat kredensial.
           if ! pg_dump --format=custom --no-owner --no-privileges \
+                       --schema=public \
                        --file=cadangan/drill.dump "$URL_AMAN" 2>/tmp/galat.txt; then
             echo "::error::pg_dump gagal."
             if   grep -qi "password authentication failed" /tmp/galat.txt; then
@@ -189,6 +203,9 @@ jobs:
               echo "SEBAB: versi pg_dump lebih tua dari server."
             elif grep -qi "timeout\|timed out\|connection refused" /tmp/galat.txt; then
               echo "SEBAB: sambungan ditolak/kehabisan waktu — project mungkin di-PAUSE."
+            elif grep -qi "does not exist" /tmp/galat.txt; then
+              echo "SEBAB: objek lenyap SAAT dump berjalan — test suite CI membuat/menghapus"
+              echo "       schema sementara di database yang sama. Ini balapan, bukan kerusakan."
             else
               echo "SEBAB: tak dikenali. Teks galatnya SENGAJA tidak dicetak —"
               echo "       ia bisa memuat potongan kredensial, dan repo ini publik."
