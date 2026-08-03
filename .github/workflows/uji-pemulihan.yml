@@ -219,6 +219,44 @@ jobs:
           echo "TABLE DATA dalam dump: $N"
           [ "$N" -gt 0 ] || { echo "::error::dump TIDAK berisi satu pun tabel data"; exit 1; }
 
+      # ── Peran Supabase harus ADA sebelum restore ─────────────────────────
+      #
+      # 28 dari 377 policy terikat ke peran `authenticated` (dan kerabatnya
+      # anon/service_role). Peran itu bikinan Supabase — di postgres:17 polos
+      # ia TIDAK ADA, jadi `pg_restore` MELEWATI policy-nya diam-diam.
+      #
+      # Akibatnya drill melaporkan "POLICY TIDAK ikut pulih — isolasi tenant
+      # hilang" (377 vs 349) padahal cadangannya baik-baik saja. Yang kurang
+      # adalah PERANNYA di target, bukan policy-nya di dump.
+      #
+      # Ini bukan kelonggaran: kalau peran ini tak dibuat, drill akan selamanya
+      # merah karena alasan yang salah — dan alarm yang selalu berbunyi adalah
+      # alarm yang berhenti didengar. Yang benar-benar dijaga (jumlah policy
+      # sumber vs target) TIDAK diubah sedikit pun.
+      #
+      # Di Supabase sungguhan peran ini disediakan platform, jadi memulihkan ke
+      # project Supabase baru tak memerlukan langkah ini.
+      - name: Siapkan peran Supabase di target
+        run: |
+          psql "postgresql://postgres:drill@localhost:5433/postgres" -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$
+          BEGIN
+            -- NOLOGIN: peran ini hanya perlu ADA agar policy bisa menyebutnya.
+            -- Memberinya kemampuan login di lingkungan uji tak ada gunanya dan
+            -- hanya menambah permukaan.
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN
+              CREATE ROLE anon NOLOGIN NOINHERIT;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN
+              CREATE ROLE authenticated NOLOGIN NOINHERIT;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='service_role') THEN
+              CREATE ROLE service_role NOLOGIN NOINHERIT BYPASSRLS;
+            END IF;
+          END $$;
+          SQL
+          echo "✅ anon / authenticated / service_role tersedia"
+
       - name: PULIHKAN ke target sekali-pakai
         run: |
           t0=$(date +%s)
@@ -268,20 +306,32 @@ jobs:
           [ "$RS" = "$RT" ] || { echo "::error::RLS TIDAK ikut pulih — isolasi tenant hilang"; GAGAL=1; }
           [ "$PS" = "$PT" ] || { echo "::error::POLICY TIDAK ikut pulih — isolasi tenant hilang"; GAGAL=1; }
 
-          # Isi per tabel — pembeda "restore sungguhan" dari "skema kosong".
-          psql "$TARGET" -q -c "ANALYZE" >/dev/null
-          BEDA=$(psql "$SUMBER" -tAF'|' -c "
-            SELECT c.relname, c.reltuples::bigint FROM pg_class c
+          # ── Isi per tabel — HITUNGAN NYATA, bukan perkiraan ───────────────
+          #
+          # Versi pertama memakai `reltuples`, dan itu SALAH: reltuples hanya
+          # perkiraan statistik yang mutakhir sejauh ANALYZE terakhir. Sumber
+          # melaporkan goods_receipts≈4 dan financial_config≈8, padahal isi
+          # sebenarnya 2 dan 14 — jadi drill membandingkan tebakan BASI di
+          # sumber dengan angka SEGAR di target, lalu berteriak "isi tak cocok"
+          # atas selisih yang tak pernah ada.
+          #
+          # Toleransi 5% pun tak menolong; ia hanya menyamarkan sebagian dan
+          # membuat sisanya makin sulit dipercaya. Untuk pertanyaan "apakah
+          # datanya sampai", satu-satunya jawaban yang sah adalah COUNT(*).
+          #
+          # Lebih lambat, dan itu harga yang benar: drill ini berjalan mingguan,
+          # sementara jawabannya menentukan apakah cadangan bisa dipercaya.
+          BEDA=$(psql "$SUMBER" -tAc "
+            SELECT c.relname FROM pg_class c
               JOIN pg_namespace n ON n.oid=c.relnamespace
-             WHERE n.nspname='public' AND c.relkind='r' AND c.reltuples > 0" |
-          while IFS='|' read -r t n; do
-            g=$(psql "$TARGET" -tAc "SELECT COALESCE((SELECT reltuples::bigint FROM pg_class c
-                  JOIN pg_namespace ns ON ns.oid=c.relnamespace
-                 WHERE ns.nspname='public' AND c.relname='$t'), -1)" | tr -d '[:space:]')
-            # reltuples adalah PERKIRAAN; toleransi 5% mencegah alarm palsu
-            # tanpa menyembunyikan tabel yang benar-benar kosong di target.
-            awk -v s="$n" -v g="$g" -v t="$t" \
-              'BEGIN{ d=(g>s?g-s:s-g); tol=(s*0.05<1?1:s*0.05); if(g<0||d>tol) print t": sumber≈"s" target≈"g }'
+             WHERE n.nspname='public' AND c.relkind='r' ORDER BY 1" |
+          while read -r t; do
+            [ -z "$t" ] && continue
+            s=$(psql "$SUMBER" -tAc "SELECT count(*) FROM \"$t\"" 2>/dev/null | tr -d '[:space:]')
+            g=$(psql "$TARGET" -tAc "SELECT count(*) FROM \"$t\"" 2>/dev/null | tr -d '[:space:]')
+            [ -z "$s" ] && continue
+            [ -z "$g" ] && g="TABEL-TIDAK-ADA"
+            [ "$s" = "$g" ] || echo "$t: sumber=$s target=$g"
           done)
           if [ -n "$BEDA" ]; then echo "::error::isi tak cocok:"; echo "$BEDA"; GAGAL=1; fi
 

@@ -117,6 +117,17 @@ try {
   // Dijalankan DI DALAM kontainer supaya versi pg_restore selalu cocok dengan
   // servernya — ketidakcocokan versi adalah penyebab kegagalan restore yang
   // paling sering, dan paling tak perlu.
+  // Peran Supabase harus ADA sebelum restore: sebagian policy terikat ke
+  // `authenticated`/`anon`/`service_role`. Di Postgres polos peran itu tak ada,
+  // dan pg_restore MELEWATI policy-nya diam-diam — drill lalu melaporkan
+  // "policy tidak ikut pulih" padahal cadangannya baik-baik saja.
+  // Terbukti di CI: 377 vs 349, selisihnya persis 28 policy ber-`authenticated`.
+  sh(`docker exec ${NAMA} psql -U postgres -v ON_ERROR_STOP=1 -c "DO $$ BEGIN` +
+     ` IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN CREATE ROLE anon NOLOGIN NOINHERIT; END IF;` +
+     ` IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN CREATE ROLE authenticated NOLOGIN NOINHERIT; END IF;` +
+     ` IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='service_role') THEN CREATE ROLE service_role NOLOGIN NOINHERIT BYPASSRLS; END IF;` +
+     ` END $$;"`, { stdio: ['ignore', 'ignore', 'inherit'] })
+
   console.log('\n2. Memulihkan…')
   t = Date.now()
   sh(`docker cp "${JALUR_DUMP}" ${NAMA}:/tmp/c.dump`)
@@ -144,26 +155,30 @@ try {
   console.log(`   tabel   sumber=${nSumber}  target=${nTarget}  ${nSumber === nTarget ? '✅' : '❌'}`)
   if (nSumber !== nTarget) keluar = 1
 
-  // Jumlah baris per tabel — inilah pembeda "restore sungguhan" dari
-  // "skema kosong berhasil dibuat".
-  const Q_BARIS = `
-    SELECT c.relname AS t, c.reltuples::bigint AS perkiraan
-      FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
-     WHERE n.nspname='public' AND c.relkind='r' ORDER BY 1`
-  const bs = (await sumber.query(Q_BARIS)).rows
-  await target.query('ANALYZE') // reltuples target nol sebelum di-ANALYZE
-  const bt = new Map((await target.query(Q_BARIS)).rows.map((r) => [r.t, Number(r.perkiraan)]))
+  // ── Jumlah baris per tabel — HITUNGAN NYATA, bukan perkiraan ────────────
+  //
+  // Versi pertama memakai `reltuples`. Itu SALAH, dan drill CI membuktikannya:
+  // reltuples hanya perkiraan yang mutakhir sejauh ANALYZE terakhir. Sumber
+  // melaporkan goods_receipts≈4 dan financial_config≈8 padahal isi sebenarnya
+  // 2 dan 14 — perbandingannya mengadu tebakan BASI dengan angka SEGAR.
+  //
+  // Toleransi 5% pun tak menolong; ia menyamarkan sebagian dan membuat sisanya
+  // makin sulit dipercaya. Untuk "apakah datanya sampai", satu-satunya jawaban
+  // yang sah adalah COUNT(*).
+  const daftar = (await sumber.query(
+    `SELECT c.relname AS t FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+      WHERE n.nspname='public' AND c.relkind='r' ORDER BY 1`,
+  )).rows
 
   let berisi = 0, cocok = 0, beda = []
-  for (const r of bs) {
-    const s = Number(r.perkiraan)
-    if (s <= 0) continue
+  for (const { t } of daftar) {
+    const s = Number((await sumber.query(`SELECT count(*)::int n FROM "${t}"`)).rows[0].n)
+    if (s === 0) continue
     berisi++
-    const g = bt.get(r.t) ?? -1
-    // reltuples adalah PERKIRAAN; toleransi 5% mencegah alarm palsu tanpa
-    // menyembunyikan tabel yang benar-benar kosong di target.
-    if (g >= 0 && Math.abs(g - s) <= Math.max(1, s * 0.05)) cocok++
-    else beda.push(`${r.t}: sumber≈${s} target≈${g}`)
+    let g = -1
+    try { g = Number((await target.query(`SELECT count(*)::int n FROM "${t}"`)).rows[0].n) } catch { g = -1 }
+    if (g === s) cocok++
+    else beda.push(`${t}: sumber=${s} target=${g < 0 ? 'TABEL-TIDAK-ADA' : g}`)
   }
   console.log(`   isi     ${cocok}/${berisi} tabel berisi data cocok  ${cocok === berisi ? '✅' : '❌'}`)
   if (beda.length) { console.log(beda.slice(0, 10).map((b) => `           ${b}`).join('\n')); keluar = 1 }
