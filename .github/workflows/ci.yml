@@ -273,6 +273,14 @@ jobs:
       - name: Indeks dokumen mutakhir
         run: node scripts/gen-indeks-docs.mjs --check
 
+      # Test tak boleh membandingkan dua hitungan GLOBAL atas schema bersama.
+      #
+      # TUJUH kali dalam rantai ini CI merah oleh cacat yang sama: asumsi global
+      # atas `public` yang dipakai bersama 6 shard paralel. Setelah keenam saya
+      # menambal satu per satu; setelah ketujuh jelas menambal bukan jawabannya.
+      - name: Test tanpa asumsi global
+        run: node scripts/audit-asumsi-global-test.mjs
+
       # F1-5 — berkas contoh env harus benar-benar sampai ke orang yang mengklon.
       #
       # `apps/web/.gitignore` punya `.env*` yang ikut menelan `.env.example`.
