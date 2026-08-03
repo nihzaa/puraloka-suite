@@ -177,8 +177,19 @@ jobs:
           # dengan jeda; kalau ketiganya kena, barulah itu masalah sungguhan.
           BERHASIL=0
           for PERCOBAAN in 1 2 3; do
+            # --exclude-schema=test: database ini punya baris pg_depend YATIM
+            # yang menunjuk schema sudah-terhapus (OID 2840025, sisa fungsi
+            # yang ikut terhapus bersamanya). pg_dump menelusuri pg_depend dan
+            # tersandung di sana:  "schema with OID 2840025 does not exist".
+            # Bukan balapan — OID-nya SAMA di tiga percobaan berturut-turut.
+            #
+            # Membersihkan baris katalog itu berarti menulis ke katalog sistem
+            # = Gerbang Keras G-2, butuh ratifikasi. Mengecualikan schema `test`
+            # menghindarinya tanpa mengurangi apa pun yang berharga: schema itu
+            # milik test suite, bukan data pelanggan.
             if pg_dump --format=custom --no-owner --no-privileges \
-                       --schema=public --serializable-deferrable \
+                       --schema=public --exclude-schema=test \
+                       --serializable-deferrable \
                        --file="keluar/puraloka-$CAP.dump" "$URL_AMAN" 2>/tmp/galat.txt; then
               BERHASIL=1; break
             fi
