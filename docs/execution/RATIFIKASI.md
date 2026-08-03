@@ -287,3 +287,85 @@ satu saja baris yang tak terbukti — bukan menulis sebagian lalu melapor.
 
 **Cara membatalkan:** `DELETE FROM supabase_migrations.schema_migrations WHERE
 version IN ('163',…,'174')`. Reversibel penuh; belum ada produksi.
+
+---
+
+## R-006 · P0 · Database TIDAK BISA dicadangkan — butuh tindakan Supabase
+
+**Status:** menunggu founder · dibuka 2026-08-03
+
+### Yang terjadi
+
+Database produksi **tidak bisa di-`pg_dump` sama sekali**:
+
+```
+pg_dump: error: schema with OID 2840025 does not exist
+```
+
+Lima varian diuji di CI (run 30839271860), **kelimanya gagal identik**: tanpa
+filter, `--schema=public`, `--no-comments`, `--data-only`, `--schema-only`.
+
+**Konsekuensinya melampaui cadangan harian.** Perkakas pemulihan Supabase juga
+memakai `pg_dump`. Selama ini belum diperbaiki, pemulihan bencana **mustahil**.
+
+Ini ketahuan **hanya karena F1-4 mengharuskan restore dijalankan sungguhan**,
+bukan didokumentasikan. Kalau drill-nya cuma ditulis di runbook, kegagalan ini
+baru terlihat pada hari yang paling buruk.
+
+### Akarnya
+
+Satu fungsi tertinggal di schema yang sudah dihapus:
+
+| | |
+|---|---|
+| nama | `trigger_calc_retention_amount_probe()` |
+| OID | 2840878 |
+| `pronamespace` | 2840025 — **schema tak ada lagi** |
+| isi | duplikat rumus retensi yang sudah hidup di `public` |
+| dipakai | **nol** trigger · **nol** dependensi · **nol** referensi |
+
+### Kenapa saya tidak bisa menyelesaikannya sendiri
+
+Objeknya **tidak terjangkau DDL biasa** — semua jalan sudah diuji:
+
+| Cara | Hasil |
+|---|---|
+| `DROP FUNCTION nama()` | ❌ `does not exist` |
+| `DROP FUNCTION nama` (tanpa arg) | ❌ `could not find a function named` |
+| `ALTER FUNCTION … SET SCHEMA` | ❌ `does not exist` |
+| `DELETE FROM pg_proc` | ❌ `permission denied` — dan larangan ini **benar** |
+| `DROP OWNED BY postgres CASCADE` | ⚠️ berhasil, **tetapi menghapus hampir seluruh database** — ditolak |
+
+Peran `postgres` di Supabase **bukan superuser**, jadi katalog sistem tertutup.
+
+> **Saya sempat salah dan mengoreksinya.** Uji awal saya memakai
+> `DROP FUNCTION IF EXISTS`; ia tak menemukan fungsinya, tak melempar galat,
+> dan saya membaca "tidak error" sebagai "berhasil". Migrasi 178 sempat ditulis
+> atas kesimpulan keliru itu, lalu **dibatalkan sebelum dijalankan**.
+> **Database tidak berubah sedikit pun.**
+
+### Yang dibutuhkan dari founder
+
+Hubungi **Supabase Support** — hanya mereka punya akses superuser:
+
+> Orphaned function blocks `pg_dump` on our project.
+> `pg_proc` OID **2840878** (`trigger_calc_retention_amount_probe`) has
+> `pronamespace = 2840025`, a schema that no longer exists. Every `pg_dump`
+> variant fails with `schema with OID 2840025 does not exist`, so backup and
+> PITR are both impossible. The function has zero triggers, zero dependencies,
+> and is a leftover test artifact. Please remove it (superuser required).
+
+Tautan: https://supabase.com/dashboard/support/new
+
+### Sampai itu beres
+
+- ❌ Cadangan harian **tidak bisa jalan** — bukan karena workflow-nya rusak
+- ❌ Pemulihan bencana **mustahil**
+- ⚠️ **Jangan terima pelanggan** sebelum ini selesai. Data tanpa jalan pulih
+  bukan risiko yang boleh ditanggung orang lain.
+
+### Catatan pencegahan
+
+Fungsi berakhiran `_probe` adalah artefak percobaan yang lolos ke produksi.
+Ke depan, percobaan skema harus di schema terpisah yang dihapus **beserta
+isinya** (`DROP SCHEMA … CASCADE`), bukan schema-nya saja.
