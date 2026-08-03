@@ -1,0 +1,220 @@
+name: Cadangan Harian (terenkripsi)
+
+# ============================================================================
+# CADANGAN HARIAN — pengganti Point-in-Time Recovery untuk paket Supabase free.
+#
+# ══════════════════════════════════════════════════════════════════════════
+# MASALAH YANG DIPECAHKAN
+# ══════════════════════════════════════════════════════════════════════════
+#
+# Paket free Supabase hanya menyimpan cadangan HARIAN. Kalau data rusak jam 3
+# sore, titik pemulihan terdekat adalah tengah malam — pekerjaan sehari hilang.
+# Point-in-Time Recovery (yang bisa kembali ke jam 2:59 sore) adalah fitur
+# berbayar.
+#
+# Cadangan ini TIDAK menggantikan PITR — ia tak bisa. Yang ia lakukan:
+# memberi salinan KEDUA yang hidup di LUAR akun Supabase. Itu menutup satu
+# risiko yang tak ditutup cadangan penyedia mana pun: kalau yang hilang justru
+# AKSES ke akunnya, cadangan yang hanya ada di dalam akun ikut hilang bersamanya.
+#
+# ── Keputusan pemilik (2026-08-03)
+#
+#   • Tempat simpan : GitHub Actions artifact, TERENKRIPSI
+#   • Toleransi     : harian sudah cukup — belum ada pelanggan
+#   • Tripwire      : sebelum pelanggan PERTAMA masuk, naikkan ke PITR berbayar
+#
+# ⚠️ TRIPWIRE ITU MENGIKAT. Begitu ada data pelanggan sungguhan, cadangan
+#    harian TIDAK lagi memadai — kehilangan sehari kerja milik orang lain
+#    bukan hal yang bisa diminta maaf. Naikkan ke paket Pro dan aktifkan PITR
+#    SEBELUM pelanggan pertama, bukan sesudah.
+#
+# ══════════════════════════════════════════════════════════════════════════
+# KENAPA DIENKRIPSI — INI TIDAK BOLEH DILEPAS
+# ══════════════════════════════════════════════════════════════════════════
+#
+# Repo ini PUBLIC. Artifact GitHub bisa diunduh siapa pun yang bisa melihat
+# repo-nya. Mengunggah dump mentah ke sini sama dengan MENERBITKAN seluruh isi
+# basis data ke internet.
+#
+# Karena itu dump dikunci dengan AES-256 sebelum diunggah, dan sandinya hidup
+# di GitHub Secrets (`SANDI_CADANGAN`) — tak pernah tertulis di berkas mana pun.
+#
+# Job ini GAGAL bila sandinya tak ada. Itu disengaja: cadangan tak terenkripsi
+# di repo publik lebih berbahaya daripada tidak ada cadangan sama sekali,
+# karena ia terasa seperti keamanan padahal justru kebocoran.
+# ============================================================================
+
+on:
+  schedule:
+    # 02:00 UTC = 09:00 WIB, tiap hari.
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: cadangan-harian
+  cancel-in-progress: false
+
+jobs:
+  cadangkan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      # ── Gerbang: tanpa sandi, JANGAN jalan ────────────────────────────────
+      #
+      # Diperiksa PALING AWAL, sebelum satu byte pun data disentuh. Menemukan
+      # sandi hilang setelah dump jadi berarti ada dump tak terenkripsi
+      # menganggur di disk runner.
+      - name: Pastikan sandi enkripsi ada
+        env:
+          SANDI: ${{ secrets.SANDI_CADANGAN }}
+        run: |
+          if [ -z "$SANDI" ]; then
+            echo "::error::Secret SANDI_CADANGAN belum diisi."
+            echo "Repo ini PUBLIC — artifact bisa diunduh siapa pun."
+            echo "Cadangan TIDAK akan dibuat tanpa enkripsi."
+            echo ""
+            echo "Cara mengisi:"
+            echo "  1. Buat sandi acak:"
+            echo "     node -e \"console.log(require('crypto').randomBytes(32).toString('base64'))\""
+            echo "  2. GitHub → Settings → Secrets and variables → Actions → New secret"
+            echo "  3. Nama: SANDI_CADANGAN"
+            echo "  4. SIMPAN SANDINYA DI TEMPAT LAIN JUGA (password manager)."
+            echo "     Tanpa sandi itu, cadangan ini TIDAK BISA DIBUKA selamanya."
+            exit 1
+          fi
+          echo "✅ sandi tersedia"
+
+      # pg_dump HARUS >= versi server (PostgreSQL 17). Klien lebih tua bisa
+      # kehilangan objek yang belum dikenalinya — kerusakan yang baru ketahuan
+      # saat restore, yaitu saat paling gawat.
+      - name: Pasang klien Postgres 17
+        run: |
+          sudo sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/pgdg.gpg
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+
+      # ── Sandi bersimbol WAJIB di-encode ──────────────────────────────────
+      #
+      # Insiden 2026-08-03: `@` di dalam sandi memisahkan URL di tempat yang
+      # salah, dan pesan galat pg_dump MENCETAK potongan sandi ke log. GitHub
+      # me-mask nilai secret yang persis sama, tetapi potongan hasil parsing
+      # yang keliru bukan nilai yang sama — jadi lolos dari mask. Di repo
+      # publik, itu kredensial yang terbit.
+      - name: Susun URL aman (sandi ter-encode)
+        env:
+          SUMBER: ${{ secrets.DIRECT_URL }}
+        run: |
+          if [ -z "$SUMBER" ]; then
+            echo "::error::Secret DIRECT_URL belum diisi."; exit 1
+          fi
+          AMAN=$(SUMBER="$SUMBER" node -e '
+            const u = process.env.SUMBER;
+            const m = u.match(/^(postgres(?:ql)?:\/\/)([^:]+):(.*)@([^@]+)$/);
+            if (!m) { console.error("format URL tak dikenali"); process.exit(1); }
+            const [, skema, user, sandi, sisa] = m;
+            process.stdout.write(skema + encodeURIComponent(user) + ":" +
+                                 encodeURIComponent(sandi) + "@" + sisa);
+          ')
+          echo "::add-mask::$AMAN"
+          echo "URL_AMAN=$AMAN" >> $GITHUB_ENV
+
+      - name: Cadangkan (READ-ONLY terhadap sumber)
+        run: |
+          mkdir -p keluar
+          CAP=$(date -u +%Y-%m-%d)
+          t0=$(date +%s)
+          # pg_dump tak pernah menulis ke basis data yang dibacanya.
+          # stderr dibungkam: galat koneksi bisa memuat potongan kredensial.
+          if ! pg_dump --format=custom --no-owner --no-privileges \
+                       --file="keluar/puraloka-$CAP.dump" "$URL_AMAN" 2>/dev/null; then
+            echo "::error::pg_dump gagal. Pesan galatnya SENGAJA tidak dicetak —"
+            echo "ia bisa memuat potongan kredensial, dan repo ini publik."
+            echo "Periksa: secret DIRECT_URL benar, port 5432 (bukan 6543)."
+            exit 1
+          fi
+          t1=$(date +%s)
+          echo "CAP=$CAP" >> $GITHUB_ENV
+          echo "DETIK=$((t1-t0))" >> $GITHUB_ENV
+          echo "::notice::dump $((t1-t0))s, $(du -h keluar/puraloka-$CAP.dump | cut -f1)"
+
+      # Dump yang "berhasil" tapi kosong adalah jebakan paling halus: ia lolos
+      # setiap pemeriksaan yang hanya melihat kode keluar. Diperiksa SEBELUM
+      # enkripsi — setelah dikunci, isinya tak bisa diperiksa lagi.
+      - name: Buktikan dump berisi
+        run: |
+          N=$(pg_restore --list "keluar/puraloka-$CAP.dump" | grep -c "TABLE DATA" || true)
+          echo "TABLE DATA dalam dump: $N"
+          if [ "$N" -lt 1 ]; then
+            echo "::error::dump TIDAK berisi satu pun tabel data — cadangan tak sah"
+            exit 1
+          fi
+          echo "TABEL=$N" >> $GITHUB_ENV
+
+      - name: Kunci dengan AES-256
+        env:
+          SANDI: ${{ secrets.SANDI_CADANGAN }}
+        run: |
+          # -pbkdf2 wajib: tanpanya OpenSSL memakai derivasi kunci lama yang
+          # jauh lebih mudah ditebak dengan brute force.
+          openssl enc -aes-256-cbc -pbkdf2 -iter 100000 -salt \
+            -in "keluar/puraloka-$CAP.dump" \
+            -out "keluar/puraloka-$CAP.dump.enc" \
+            -pass env:SANDI
+
+          # Dump mentah DIHAPUS sebelum langkah apa pun berikutnya. Runner
+          # memang sekali-pakai, tetapi mengandalkan itu berarti satu langkah
+          # ceroboh di kemudian hari bisa mengunggahnya.
+          rm -f "keluar/puraloka-$CAP.dump"
+
+          ls -la keluar/
+          echo "MB=$(du -m keluar/puraloka-$CAP.dump.enc | cut -f1)" >> $GITHUB_ENV
+
+      # Membuktikan berkas terenkripsinya benar-benar bisa dibuka kembali.
+      # Cadangan yang tak bisa didekripsi adalah berkas sampah yang menyamar
+      # sebagai jaring pengaman — dan itu baru ketahuan saat dibutuhkan.
+      - name: Buktikan masih bisa dibuka
+        env:
+          SANDI: ${{ secrets.SANDI_CADANGAN }}
+        run: |
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 100000 \
+            -in "keluar/puraloka-$CAP.dump.enc" \
+            -out /tmp/uji.dump -pass env:SANDI
+          N=$(pg_restore --list /tmp/uji.dump | grep -c "TABLE DATA" || true)
+          rm -f /tmp/uji.dump
+          [ "$N" = "$TABEL" ] || {
+            echo "::error::hasil dekripsi TIDAK sama dengan aslinya ($N vs $TABEL)"; exit 1; }
+          echo "✅ terbukti bisa dibuka kembali — $N tabel"
+
+      - name: Simpan
+        uses: actions/upload-artifact@v4
+        with:
+          name: cadangan-${{ env.CAP }}
+          path: keluar/*.enc
+          # 30 hari: cukup panjang untuk menyadari kerusakan yang tak langsung
+          # terlihat, cukup pendek supaya kuota tak habis.
+          retention-days: 30
+
+      - name: Ringkasan
+        run: |
+          {
+            echo "## Cadangan $CAP"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| ukuran (terenkripsi) | ${MB} MB |"
+            echo "| tabel berisi data | ${TABEL} |"
+            echo "| durasi dump | ${DETIK} dtk |"
+            echo "| tersimpan | 30 hari |"
+            echo ""
+            echo "🔐 AES-256 · terbukti bisa didekripsi ulang di run ini."
+            echo ""
+            echo "**Membuka:** unduh artifact, lalu:"
+            echo '```'
+            echo "openssl enc -d -aes-256-cbc -pbkdf2 -iter 100000 \\"
+            echo "  -in puraloka-$CAP.dump.enc -out puraloka.dump"
+            echo '```'
+            echo ""
+            echo "Langkah pemulihan lengkap: \`docs/ops/RUNBOOK-PEMULIHAN.md\`"
+          } >> $GITHUB_STEP_SUMMARY

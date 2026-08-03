@@ -82,14 +82,58 @@ jobs:
           sudo apt-get install -y -qq postgresql-client-17
           pg_dump --version
 
-      - name: Cadangkan (READ-ONLY terhadap sumber)
+      # ── Sandi bersimbol WAJIB di-encode ──────────────────────────────────
+      #
+      # Insiden 2026-08-03: `@` di dalam sandi memisahkan URL di tempat yang
+      # salah — `pg_dump` mengira nama servernya adalah "…sandi…@aws-0-…" dan
+      # gagal dengan "could not translate host name".
+      #
+      # Yang membuatnya BERBAHAYA, bukan sekadar merepotkan: pesan galat itu
+      # MENCETAK potongan sandi ke log. GitHub me-mask nilai secret yang PERSIS
+      # sama, tetapi potongan hasil parsing yang keliru bukan nilai yang sama —
+      # jadi lolos dari mask. Di repo publik, itu kredensial yang terbit.
+      #
+      # Karena itu langkah ini:
+      #   • menyusun ulang URL dengan bagian sandi ter-encode
+      #   • MEMBUNGKAM stderr pg_dump (2>/dev/null) — galat koneksi apa pun
+      #     berpotensi memuat potongan URL. Yang dilaporkan hanya kode keluar.
+      #
+      # Membungkam stderr biasanya praktik buruk. Di sini kebalikannya: yang
+      # hilang cuma teks galat yang bisa didiagnosis ulang dari kode keluar,
+      # sedangkan yang dicegah adalah kebocoran permanen di repo publik.
+      - name: Susun URL aman (sandi ter-encode)
         env:
           SUMBER: ${{ secrets.CI_DIRECT_URL }}
         run: |
+          if [ -z "$SUMBER" ]; then
+            echo "::error::Secret CI_DIRECT_URL kosong."; exit 1
+          fi
+          AMAN=$(SUMBER="$SUMBER" node -e '
+            const u = process.env.SUMBER;
+            const m = u.match(/^(postgres(?:ql)?:\/\/)([^:]+):(.*)@([^@]+)$/);
+            if (!m) { console.error("format URL tak dikenali"); process.exit(1); }
+            const [, skema, user, sandi, sisa] = m;
+            // encodeURIComponent menutup @ : / ? # dan kawan-kawan.
+            process.stdout.write(skema + encodeURIComponent(user) + ":" +
+                                 encodeURIComponent(sandi) + "@" + sisa);
+          ')
+          # ::add-mask:: mendaftarkan nilai ini agar ikut disensor kalau
+          # sampai tercetak — lapis kedua di belakang pembungkaman stderr.
+          echo "::add-mask::$AMAN"
+          echo "URL_AMAN=$AMAN" >> $GITHUB_ENV
+          echo "✅ URL disusun ulang dengan sandi ter-encode"
+
+      - name: Cadangkan (READ-ONLY terhadap sumber)
+        run: |
           mkdir -p cadangan
           t0=$(date +%s)
-          pg_dump --format=custom --no-owner --no-privileges \
-                  --file=cadangan/drill.dump "$SUMBER"
+          if ! pg_dump --format=custom --no-owner --no-privileges \
+                       --file=cadangan/drill.dump "$URL_AMAN" 2>/dev/null; then
+            echo "::error::pg_dump gagal. Pesan galatnya SENGAJA tidak dicetak —"
+            echo "ia bisa memuat potongan kredensial, dan repo ini publik."
+            echo "Periksa: secret CI_DIRECT_URL benar, port 5432 (bukan 6543)."
+            exit 1
+          fi
           t1=$(date +%s)
           echo "DETIK_DUMP=$((t1-t0))" >> $GITHUB_ENV
           echo "MB=$(du -m cadangan/drill.dump | cut -f1)" >> $GITHUB_ENV
@@ -118,11 +162,18 @@ jobs:
 
       - name: Bandingkan target dengan sumber
         env:
-          SUMBER: ${{ secrets.CI_DIRECT_URL }}
           TARGET: postgresql://postgres:drill@localhost:5433/postgres
         run: |
           set -e
-          q() { psql "$1" -tAc "$2" | tr -d '[:space:]'; }
+          # $URL_AMAN datang dari $GITHUB_ENV (langkah "Susun URL aman"), jadi
+          # ia sudah jadi variabel lingkungan di shell ini. Dipakai lewat shell,
+          # BUKAN lewat ekspresi env context: ekspresi itu dievaluasi sebelum
+          # langkah berjalan dan tak melihat nilai yang ditulis langkah
+          # sebelumnya.
+          SUMBER="$URL_AMAN"
+          # stderr dibungkam untuk kueri terhadap SUMBER; kegagalannya terlihat
+          # dari hasil kosong, yang tetap membuat perbandingan di bawah merah.
+          q() { psql "$1" -tAc "$2" 2>/dev/null | tr -d '[:space:]'; }
 
           Q_TABEL="SELECT count(*) FROM information_schema.tables
                     WHERE table_schema='public' AND table_type='BASE TABLE'"

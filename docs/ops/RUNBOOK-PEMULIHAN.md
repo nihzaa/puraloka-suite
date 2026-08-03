@@ -151,6 +151,83 @@ Kemampuan memulihkan tidak boleh bergantung pada satu laptop tertentu.
 
 ---
 
+## 6a. Insiden 2026-08-03 — kredensial sempat tampil di log publik
+
+**Apa yang terjadi.** Drill pertama gagal karena sandi database mengandung `@`.
+Di URL koneksi, `@` memisahkan sandi dari nama server — `pg_dump` salah membaca
+dan gagal dengan `could not translate host name "…sandi…@aws-0-…"`.
+
+**Kenapa itu berbahaya, bukan sekadar merepotkan.** Pesan galat itu **mencetak
+potongan sandi ke log**, dan repo ini publik. GitHub me-mask nilai secret yang
+*persis sama*, tetapi potongan hasil parsing yang keliru bukan nilai yang sama —
+jadi lolos dari mask.
+
+**Tindakan.** Run beserta log-nya dihapus (terverifikasi HTTP 404). Pemilik
+memutuskan **tidak** mengganti sandi setelah menimbang risikonya.
+
+**Perbaikan permanen.** Kedua workflow kini:
+
+1. menyusun ulang URL dengan `encodeURIComponent` pada bagian user & sandi —
+   diuji terhadap sandi ber-`@`, `:`, `/`, `?`, `#`;
+2. mendaftarkan URL hasil susunan lewat `::add-mask::`;
+3. **membungkam stderr** `pg_dump`/`psql`. Biasanya praktik buruk — di sini
+   kebalikannya: yang hilang cuma teks galat yang bisa didiagnosis ulang dari
+   kode keluar, sedangkan yang dicegah adalah kebocoran permanen di repo publik.
+
+**Pelajaran yang berlaku ke depan:** di repo publik, **pesan galat adalah
+permukaan kebocoran.** Perkakas yang menerima kredensial lewat URL harus
+dianggap bocor sampai terbukti dibungkam.
+
+---
+
+## 6b. Cadangan harian terenkripsi (pengganti PITR paket free)
+
+Paket Supabase **free tidak punya Point-in-Time Recovery**. Cadangan bawaannya
+harian: kalau data rusak jam 3 sore, titik pemulihan terdekat adalah tengah
+malam — **pekerjaan sehari hilang**.
+
+Workflow **`Cadangan Harian (terenkripsi)`** menutup sebagian risiko itu: dump
+harian, dikunci AES-256, disimpan sebagai artifact 30 hari. Ia memberi salinan
+kedua yang hidup **di luar akun Supabase** — menutup risiko yang tak ditutup
+cadangan penyedia mana pun: kalau yang hilang justru *akses ke akunnya*.
+
+> ⚠️ **Ia TIDAK menggantikan PITR.** Kehilangan maksimalnya tetap ~1 hari.
+
+### Prasyarat: secret `SANDI_CADANGAN`
+
+Workflow **menolak berjalan** tanpa ini — cadangan tak terenkripsi di repo
+publik lebih berbahaya daripada tidak ada cadangan, karena ia terasa seperti
+keamanan padahal justru kebocoran.
+
+```bash
+# 1. Buat sandi acak
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+# 2. GitHub → Settings → Secrets and variables → Actions → New secret
+#    Nama: SANDI_CADANGAN
+# 3. SIMPAN JUGA DI PASSWORD MANAGER.
+```
+
+> ⚠️ Tanpa sandi itu, cadangan **tidak bisa dibuka selamanya**. Tak ada
+> pemulihan sandi — itulah gunanya enkripsi.
+
+### Membuka cadangan
+
+```bash
+openssl enc -d -aes-256-cbc -pbkdf2 -iter 100000 \
+  -in puraloka-YYYY-MM-DD.dump.enc -out puraloka.dump
+```
+
+### 🔴 Tripwire — naikkan ke PITR sebelum pelanggan pertama
+
+Keputusan pemilik 2026-08-03: cadangan harian **cukup untuk sekarang** karena
+belum ada pelanggan dan isinya data percobaan.
+
+**Begitu ada data pelanggan sungguhan, ini tidak lagi memadai.** Kehilangan
+sehari kerja milik orang lain bukan hal yang bisa diminta maaf. Naikkan ke
+paket Pro dan aktifkan PITR **sebelum** pelanggan pertama masuk, bukan sesudah.
+
+---
+
 ## 7. Yang BELUM terbukti — jujur
 
 | Hal | Status |
