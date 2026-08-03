@@ -10,20 +10,24 @@
 # ============================================================================
 
 meta:
-  diperbarui: 2026-08-02
-  fase_aktif: 0
-  sisa_todo: 34
-  # Fase 0 — status per akhir sesi 1
+  diperbarui: 2026-08-03
+  fase_aktif: 1
+  # ── GERBANG FASE 0: HIJAU PENUH (2026-08-03) ──────────────────────────────
   fase_0:
-    selesai: [F0-1, F0-2, F0-5, F0-6, F0-7, F0-9]
-    wip: [F0-3, F0-4]
-    menunggu_ratifikasi: [F0-8, R-001, R-002]
+    status: SELESAI
+    selesai: [F0-1, F0-2, F0-3, F0-4, F0-5, F0-6, F0-7, F0-8, F0-9, F0-10,
+              F0-11, F0-12, F0-13, F0-14, F0-15, F0-16, R-001, R-002]
+    bukti: >
+      CI 11/11 check hijau (run 30806370508), wall-clock 21,9 -> 5,4 menit (4,1x).
+      Suite 131 berkas / 1313 lulus. 16 penjaga arsitektural, 8 di antaranya
+      TERBUKTI bisa merah (CI-BUKTI.md). Branch protection aktif & terbukti
+      memblokir. Buku migrasi selaras artefak fisik. Cacat P0 GL tenant-blind
+      diperbaiki & diverifikasi di CI sungguhan.
     catatan: >
-      Gerbang Fase 0 BELUM hijau penuh. Yang menahan: F0-3 (penjaga docs sudah
-      jalan, tapi CI penuh belum diverifikasi hijau end-to-end) dan F0-4 (3 run
-      berturut sudah hijau, tapi isolasi schema per-berkas + rollback tiap tipe
-      migrasi tenancy belum dibangun). R-001 adalah P0 yang memblokir pekerjaan
-      GL apa pun, dan tunduk Gerbang Keras G-2.
+      Empat cacat isolasi tenancy ditemukan saat sharding — semuanya kelas yang
+      sama (test menulis ke schema public bersama sambil berasumsi global), dan
+      semuanya nyata untuk multi-tenant, bukan sekadar penghalang CI. Trigger
+      fn_isi_company_id TIDAK PERNAH dilonggarkan.
 
 items:
   # ── FASE 0 — PEMULIHAN KEPERCAYAAN ────────────────────────────────────────
@@ -173,7 +177,7 @@ items:
     kriteria_selesai: ["schema mut6 hilang atau didokumentasikan sebagai sengaja"]
     cara_verifikasi: "introspect triggers-all-schemas"
     bobot: S
-    status: ratifikasi
+    status: done
     catatan: "G-2 (DROP SCHEMA). Ditemukan saat F0-2."
 
   - id: F0-9
@@ -212,6 +216,12 @@ items:
       nomor sel. Yang dikunci bukan cuma nilai sel melainkan RANTAI aritmetikanya
       (Sigma divisi = total; total x tarif = PPN; total + PPN = akhir; volume x harga
       = jumlah). Plus satu asersi yang menjaga kedua golden file tak tertukar.
+    bukti: >
+      Diratifikasi founder 2026-08-03 ("hapus ajaa"). SEBELUM: 29 tabel, 149 baris,
+      aktivitas terakhir -Infinity (tak pernah disentuh). Ketergantungan objek public
+      ke mut6 diperiksa lebih dulu = 0, baru DROP SCHEMA CASCADE dijalankan.
+      SESUDAH: mut6 HILANG, public tetap 122 tabel, schema_hash TIDAK BERUBAH
+      (7a4be5d7d87d9892) — bukti public tak tersentuh sama sekali.
     catatan: >
       R-005 TERJAWAB — ketiganya ada di _source/ahsp/Format RAB Control 2026, BUKAN
       di Cibuluh (proyek berbeda: 1,66 M vs 3,63 M). Sumber & makna terverifikasi
@@ -405,7 +415,7 @@ items:
       - "test double-submit membuktikan tidak ada uang ganda"
     cara_verifikasi: "test double-submit per endpoint"
     bobot: L
-    status: blocked
+    status: todo
 
   - id: F1-2
     fase: 1
@@ -416,7 +426,7 @@ items:
       - "rute publik jadi pengecualian bernama: field dibatasi + token acak + rate limit"
     cara_verifikasi: "node apps/api/scripts/audit-gerbang-tenancy.mjs -> ratchet turun"
     bobot: M
-    status: blocked
+    status: todo
 
   - id: F1-3
     fase: 1
@@ -425,7 +435,7 @@ items:
     kriteria_selesai: ["nol catch kosong tanpa keputusan tertulis"]
     cara_verifikasi: "node apps/api/scripts/audit-catch-senyap.mjs"
     bobot: M
-    status: blocked
+    status: todo
 
   - id: F1-4
     fase: 1
@@ -434,7 +444,7 @@ items:
     kriteria_selesai: ["restore nyata ke lingkungan sementara", "waktu pemulihan tercatat"]
     cara_verifikasi: "tempel bukti waktu restore"
     bobot: L
-    status: blocked
+    status: todo
     catatan: "Sebelum ada satu pelanggan pun. Bukan pekerjaan 'nanti'."
 
   - id: F1-5
@@ -444,7 +454,7 @@ items:
     kriteria_selesai: ["waktu clone -> pnpm dev terukur dan tercatat"]
     cara_verifikasi: "jalankan di direktori bersih"
     bobot: M
-    status: blocked
+    status: todo
 
   - id: F1-6
     fase: 1
@@ -453,7 +463,7 @@ items:
     kriteria_selesai: ["test UPDATE audit_logs gagal", "test DELETE audit_logs gagal (peran tertinggi)"]
     cara_verifikasi: "vitest + tempel output"
     bobot: S
-    status: blocked
+    status: todo
 
   - id: F1-8
     fase: 1
@@ -466,7 +476,7 @@ items:
       - "lantai coverage dinaikkan setelahnya (coverage-ratchet --naikkan)"
     cara_verifikasi: "vitest run + coverage-summary companies.ts pct > 0 + tempel output"
     bobot: M
-    status: blocked
+    status: todo
     catatan: >
       Perintah founder 2026-08-03: masuk GERBANG Fase 1 — tidak boleh nol saat Fase 2
       dimulai, karena companies.ts justru pintu masuk multi-tenant. Fase 2 (sapuan
@@ -479,7 +489,7 @@ items:
     kriteria_selesai: ["pencabutan permission kritis dari pemegang terakhir DITOLAK"]
     cara_verifikasi: "vitest + tempel output"
     bobot: S
-    status: blocked
+    status: todo
 
   # ── FASE 2 — KEPUTUSAN TANPA JALAN KEMBALI ────────────────────────────────
   - id: F2-1

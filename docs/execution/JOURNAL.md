@@ -5,6 +5,45 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-03 · Sesi 5 — FASE 0 SELESAI PENUH
+
+### F0-8 — schema `mut6` dihapus (diratifikasi founder)
+
+29 tabel salinan berisi 149 baris data uji, sisa sesi mutation testing.
+`aktivitas terakhir: -Infinity` — tak pernah disentuh sejak dibuat.
+
+Ketergantungan objek `public` ke `mut6` diperiksa **lebih dulu** (hasilnya 0),
+baru `DROP SCHEMA CASCADE` dijalankan. Sesudahnya: `mut6` hilang, `public` tetap
+122 tabel, dan **`schema_hash` TIDAK BERUBAH** (`7a4be5d7d87d9892`) — bukti
+`public` tak tersentuh sama sekali, bukan sekadar klaim.
+
+### 🎉 GERBANG FASE 0 HIJAU PENUH
+
+Seluruh 18 item selesai: F0-1…F0-16, R-001, R-002. Nol yang menunggu.
+
+| Ukuran | Hasil |
+|---|---|
+| CI | **11/11 check hijau**, 21,9 → **5,4 menit (4,1×)** |
+| Suite | 131 berkas, 1313 lulus |
+| Penjaga arsitektural | 16, dan **8 TERBUKTI bisa merah** |
+| Branch protection | aktif & terbukti memblokir |
+| Buku migrasi | selaras artefak fisik |
+| Cacat P0 GL | diperbaiki & diverifikasi di CI sungguhan |
+
+Yang paling berharga bukan angkanya, melainkan **empat cacat isolasi tenancy**
+yang tersingkap saat sharding — semuanya kelas yang sama (test menulis ke schema
+`public` bersama sambil berasumsi global), dan semuanya **nyata untuk
+multi-tenant**, bukan sekadar penghalang CI. Satu di antaranya ada di **kode
+produksi** (`utils/notifications.ts` tenant-blind).
+
+Dan `fn_isi_company_id()` **tidak pernah dilonggarkan** — padahal itu jalan
+pintas yang akan menghapus keempat gejala dalam satu baris.
+
+**Fase 1 dibuka.** Delapan item, dan F1-8 (`companies.ts` coverage nol) adalah
+gerbang yang founder tetapkan sebelum Fase 2 boleh dimulai.
+
+---
+
 ## 2026-08-03 · Sesi 4 — CI dipercepat 2,7×, dan satu aturan ternyata tak dijaga
 
 ### Diukur dulu — dan hipotesis mandat gugur
