@@ -375,7 +375,7 @@ isinya** (`DROP SCHEMA … CASCADE`), bukan schema-nya saja.
 ## R-007 · F2-1 · ADR-010 bentuk grup/holding — minta ratifikasi
 
 **Status:** menunggu founder · dibuka 2026-08-03
-**Berkas:** `docs/superpowers/.../adr/ADR-010-bentuk-grup-holding.md`
+**Berkas:** `docs/adr/ADR-010-bentuk-grup-holding.md`
 
 ADR-011 sudah memutuskan bentuk `companies`. Tiga pertanyaan F2-1 sisanya
 **belum pernah diputuskan di dokumen mana pun** — diverifikasi: nol kecocokan
@@ -448,3 +448,37 @@ penggolongan tenancy & catatan risiko, bukan keputusan bentuk.
 
 **Menunggu:** ratifikasi ulang. F2-2/F2-3 tetap terkunci sampai itu.
 Nol migrasi dijalankan — seluruh tabel di ADR masih rancangan.
+
+### R-007 revisi 3 — empat tambahan founder (2026-08-04)
+
+**Berkas dipindah** ke `docs/adr/ADR-010-bentuk-grup-holding.md` atas permintaan
+founder. Acuan jalur di RATIFIKASI & INDEKS-DOKUMEN ikut diperbarui; penjaga
+`audit-no-stale-docs-path` bersih (270 berkas, nol duplikat).
+
+| # | Tambahan | Jawaban | §  |
+|---|---|---|---|
+| A | siapa boleh memberi grant | **pemilik akar grup**, boleh ke diri sendiri — dan konsekuensinya dinyatakan terus terang | §5 |
+| B | tegakkan di pembuatan akun | pindah dari gerbang onboarding ke `NOT NULL`/trigger pada `accounts` | §3.3-B |
+| C | peta berversi | `berlaku_sejak`/`berlaku_sampai` + `EXCLUDE gist` — **diuji ke DB nyata** | §3.3-C |
+| D | konfirmasi cakupan | ✅ ketiganya ada; **3 celah terbuka** dinyatakan | §4 |
+
+**A — pengakuan yang diminta founder.** Karena pemberi boleh sama dengan
+penerima, pagar "grant eksplisit" TIDAK MENCEGAH pemilik grup. Yang ia berikan
+adalah **jejak + kedaluwarsa**. Ini pilihan sadar: pencegahan terhadap pemilik
+adalah fiksi — ia punya akses dasbor Supabase, kredensial DB, dan seluruh kode.
+Yang benar-benar dicegah: admin PT anak, dan **penerima grant** (hak tak bisa
+memperpanjang dirinya) — tanpa itu satu grant bocor bisa berkembang biak.
+
+**B — koreksi founder benar.** Gerbang onboarding hanya menjaga hari pertama;
+akun ke-47 di bulan keenam lolos tanpa gejala, dan laporan gabungan
+mengabaikannya diam-diam (tidak error, hanya kurang).
+
+**C — TERUJI, bukan sekadar dirancang** (transaksi ber-ROLLBACK, nol perubahan):
+tumpang-tindih DITOLAK constraint · periode bersambung diterima · riwayat 2
+baris (lama tak ditimpa) · kueri "peta berlaku 2026-03-15" mengembalikan baris
+LAMA. Laporan Maret memakai peta Maret.
+
+**D — celah yang tetap terbuka:** eliminasi bertingkat (A→B→C) · kewajaran
+harga transfer (nasihat pajak, bukan arsitektur) · eliminasi × versi peta.
+
+**Menunggu:** ratifikasi final. Nol migrasi dijalankan; F2-2/F2-3 terkunci.

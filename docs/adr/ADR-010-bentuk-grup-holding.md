@@ -1,14 +1,15 @@
 # ADR-010 — Bentuk grup/holding: bagan akun tiga lapis, konsolidasi, transfer antar-PT, dan akses lintas-PT berpagar
 
-**Status:** REVISI 2 — menunggu ratifikasi ulang founder
-**Tanggal:** 2026-08-03 (revisi 2026-08-04)
+**Status:** REVISI 3 — menunggu ratifikasi final founder
+**Tanggal:** 2026-08-03 (revisi 2 & 3: 2026-08-04)
 
 **Riwayat ratifikasi**
 
 | Putaran | Hasil |
 |---|---|
 | R-007 rev.1 | **SETUJU SEBAGIAN.** CoA per-PT disetujui + diperkuat alasan hukum (tiap PT badan hukum terpisah, SPT sendiri). Tiga koreksi wajib: konsolidasi tiga lapis, bedakan template dari pewarisan, dan **TOLAK** penguncian mati akses pemilik grup. |
-| R-007 rev.2 | menunggu — dokumen ini |
+| R-007 rev.2 | **Empat tambahan** sebelum ratifikasi final: (A) nyatakan siapa yang boleh memberi grant — dan jujurlah kalau pagarnya jejak, bukan pencegahan · (B) peta ditegakkan di **pembuatan akun**, bukan onboarding · (C) peta harus **berversi** · (D) konfirmasi cakupan eliminasi/transfer/harga transfer |
+| R-007 rev.3 | menunggu — dokumen ini |
 
 **Yang berubah di revisi 2**
 
@@ -16,6 +17,18 @@
 - §3a baru: **template** bagan akun — dibedakan tegas dari pewarisan
 - §5 ditulis ulang: **jalur berpagar**, bukan pintu terkunci (mengganti usulan Ember [C] yang ditolak)
 - §10 baru: pemeriksaan tabrakan terhadap ADR-011, terverifikasi
+
+**Yang berubah di revisi 3**
+
+| Butir | Perubahan | Bagian |
+|---|---|---|
+| A | Pemberi grant dinyatakan: **pemilik akar grup**, boleh memberi ke diri sendiri. Konsekuensinya ditulis terus terang — pagar ini **jejak + kedaluwarsa, bukan pencegahan** terhadap pemilik. Yang benar-benar dicegah: admin anak, penerima grant, pihak lain. | §5 |
+| B | Penegakan peta pindah dari onboarding ke **pembuatan akun** (`NOT NULL`/trigger). Gerbang onboarding hanya menjaga hari pertama; akun ke-47 lolos tanpa gejala. | §3.3-B |
+| C | Peta jadi **berversi** (`berlaku_sejak`/`berlaku_sampai` + `EXCLUDE gist`). Laporan periode lampau memakai peta saat itu — mengubah peta tak lagi mengubah SPT yang sudah dilaporkan. | §3.3-C |
+| D | Cakupan dikonfirmasi ✅, **plus tiga celah yang tetap terbuka** dinyatakan eksplisit (eliminasi bertingkat, kewajaran harga transfer, eliminasi × versi peta). | §4 |
+
+**Lokasi berkas:** dipindah ke `docs/adr/` atas permintaan founder
+(sebelumnya di `docs/superpowers/.../Engineering-Constitution/adr/`).
 **Melengkapi:** `ADR-011-multi-tenant-strategy.md` (yang memutuskan bentuk
 `companies`; dokumen ini mengisi yang belum diputuskan di sana)
 **Antrean:** `QUEUE.yaml` F2-1
@@ -142,7 +155,71 @@ kanonik, setiap PT akan memetakan ke ejaan berbeda (`"Beban Gaji"` vs
 akun jadi tiga baris. Kesalahan itu tak menimbulkan galat — ia hanya membuat
 laporan salah.
 
-### 3.3 Lapis (c) — peta pemetaan, WAJIB saat onboarding
+### 3.3 Lapis (c) — peta pemetaan: ditegakkan di PEMBUATAN AKUN, BERVERSI
+
+> **Koreksi R-007 rev-2 butir B & C.** Revisi 2 menegakkan peta "saat
+> onboarding" dan membiarkannya bisa ditimpa. Keduanya salah, dan founder
+> menunjuk kasus nyatanya dengan tepat.
+
+#### B — penegakan di pembuatan akun, bukan di onboarding
+
+> *"Akun ke-47 yang dibuat bulan keenam adalah kasus nyatanya; onboarding
+> hanya kebetulan kali pertama aturan berlaku. Satu akun tak terpeta =
+> laporan gabungan salah tanpa gejala."*
+
+Ini benar, dan kekeliruan saya jenis yang berbahaya: **gerbang onboarding
+hanya menjaga hari pertama.** Akun yang lahir kemudian — dan akun selalu lahir
+kemudian — lolos tanpa satu pun pemeriksaan. Laporan gabungan lalu mengabaikan
+akun itu diam-diam: tidak error, tidak kosong, hanya **kurang**. Persis kelas
+cacat yang paling mahal di sistem ini.
+
+**Keputusan: kolom pemetaan `NOT NULL` pada bagan akun PT.** Aturannya melekat
+pada akun, bukan pada peristiwa onboarding.
+
+```
+accounts                                   -- lapis (a), sudah ada
+  ...
+  group_account_id  → group_reporting_accounts(id)
+                      NOT NULL bila PT ini anggota grup
+```
+
+Diterapkan lewat constraint, bukan lewat pemeriksaan aplikasi yang bisa
+dilupakan jalur baru:
+
+```sql
+-- BENTUK; implementasi di F2-3
+ALTER TABLE accounts ADD CONSTRAINT akun_grup_wajib_bila_bergrup CHECK (
+  group_account_id IS NOT NULL
+  OR NOT EXISTS (SELECT 1 FROM companies c
+                  WHERE c.id = accounts.company_id
+                    AND c.parent_company_id IS NOT NULL)
+);
+```
+
+> ⚠️ `CHECK` dengan subquery tak didukung Postgres — bentuk sebenarnya adalah
+> **trigger `BEFORE INSERT OR UPDATE`**. Ditulis sebagai CHECK di sini karena
+> *maksudnya* lebih terbaca begitu; F2-3 mengimplementasikannya sebagai
+> trigger, dan itu ditandai supaya tak ada yang mencoba CHECK lalu bingung.
+
+**Konsekuensi yang diterima:** menambah akun jadi butuh satu keputusan
+tambahan — "akun grup mana pasangannya". Itu memang tujuannya. Keputusan yang
+ditunda ke waktu laporan adalah keputusan yang diambil oleh orang yang tidak
+tahu jawabannya.
+
+Onboarding tetap jadi *kali pertama* aturan ini berlaku (seluruh akun awal
+harus punya pasangan), tetapi ia **bukan lagi tempat penegakannya**.
+
+#### C — peta BERVERSI, laporan historis tak berubah retroaktif
+
+> *"Bagan grup akan berubah; kalau peta ditimpa, laporan konsolidasi periode
+> lalu berubah retroaktif — melanggar prinsip immutability proyek ini."*
+
+Benar, dan ini bertabrakan langsung dengan Ember [C] (`CLAUDE.md` §5.3:
+immutability audit log) serta dengan alasan hukum di §3.1: **SPT yang sudah
+dilaporkan tak boleh berubah karena seseorang memperbaiki pemetaan hari ini.**
+
+**Keputusan: pemetaan punya masa berlaku. Laporan historis memakai peta yang
+berlaku pada periode itu.**
 
 ```
 account_mappings
@@ -150,28 +227,52 @@ account_mappings
   source_company_id        → companies(id)          -- PT anak
   source_account_id        → accounts(id)           -- akun statutori PT
   target_account_id        → group_reporting_accounts(id)
+  berlaku_sejak            date NOT NULL            -- inklusif
+  berlaku_sampai           date NULL                -- eksklusif; NULL = masih berlaku
   created_at, created_by
-  UNIQUE (group_company_id, source_account_id)
+  alasan_perubahan         text                     -- wajib bila menggantikan baris lain
+
+  -- Satu akun tak boleh punya dua pemetaan aktif pada tanggal yang sama.
+  EXCLUDE USING gist (
+    source_account_id WITH =,
+    daterange(berlaku_sejak, berlaku_sampai) WITH &&
+  )
 ```
 
-**Wajib diisi saat PT bergabung ke grup, bukan saat laporan pertama diminta.**
-Ini poin yang founder tekankan, dan alasannya soal biaya:
-
-> Pemetaan retroaktif atas ribuan jurnal jauh lebih mahal daripada pemetaan
-> saat onboarding, ketika akunnya masih puluhan dan orang yang memahami bagan
-> itu masih ada di ruangan.
-
-Karena itu onboarding PT ke grup **tidak dianggap selesai** sampai setiap akun
-statutorinya punya baris di sini. Gerbangnya di aplikasi (F2-3), dan
-kelengkapannya bisa diukur kapan saja:
+**Mengubah pemetaan = MENUTUP baris lama + membuka baris baru**, bukan
+`UPDATE`. Baris lama tetap ada selamanya dengan `berlaku_sampai` terisi.
 
 ```sql
--- akun PT yang BELUM dipetakan — harus nol sebelum PT dinyatakan onboard
-SELECT a.company_id, count(*) AS belum_dipetakan
-  FROM accounts a
- WHERE NOT EXISTS (SELECT 1 FROM account_mappings m WHERE m.source_account_id = a.id)
- GROUP BY 1;
+-- Peta yang berlaku pada tanggal laporan — bukan peta hari ini.
+SELECT m.target_account_id
+  FROM account_mappings m
+ WHERE m.source_account_id = $1
+   AND m.berlaku_sejak <= $2                                  -- tanggal periode
+   AND (m.berlaku_sampai IS NULL OR m.berlaku_sampai > $2);
 ```
+
+Fungsi `lap_konsolidasi_grup` (§5) **wajib** menerima tanggal periode dan
+menyaring dengan pola di atas. Fungsi yang memakai "peta terbaru" akan
+menghasilkan laporan yang berubah setiap kali pemetaan diperbaiki — dan
+perubahannya tak terlihat karena angkanya tetap wajar.
+
+`EXCLUDE USING gist` membuat tumpang-tindih **mustahil di tingkat database**,
+bukan sekadar dicegah aplikasi.
+
+**Rancangan ini sudah diuji terhadap database sungguhan** (2026-08-04, di dalam
+transaksi ber-`ROLLBACK` — nol perubahan permanen):
+
+```
+btree_gist terpasang                       ✅ ya
+baris pertama                              ✅ diterima
+periode TUMPANG-TINDIH                     ✅ DITOLAK constraint
+periode bersambung (tutup lalu buka)       ✅ diterima
+baris riwayat setelah perubahan            2 — yang lama TIDAK ditimpa
+kueri "peta berlaku 2026-03-15"            mengembalikan baris LAMA (benar)
+```
+
+Baris terakhir yang paling penting: laporan untuk Maret memakai pemetaan yang
+berlaku di Maret, bukan pemetaan hari ini. Itulah inti butir C.
 
 `target_account_id` adalah **FK ke lapis (b)**, bukan `text` bebas — supaya
 salah ketik tertangkap saat dimasukkan, bukan saat laporan dibaca.
@@ -246,6 +347,32 @@ dari sesuatu yang sudah benar untuk industrinya.
 ---
 
 ## 4. K3 — Konsolidasi, eliminasi, transfer antar-PT
+
+> **Konfirmasi R-007 rev-2 butir D.** Founder meminta kepastian apakah ketiga
+> hal ini tercakup. Jawabannya:
+
+| Hal | Tercakup? | Di mana |
+|---|---|---|
+| eliminasi transaksi antar-PT | ✅ ya | §4.2 — `intercompany_links`, penandaan eksplisit |
+| transfer alat & mandor antar-PT | ✅ ya | §4.3 — pindah kepemilikan + baris riwayat |
+| harga transfer | ✅ ya | §4.4 — `NOT NULL` tanpa default, alasan pajak |
+
+**Celah yang TETAP terbuka — dinyatakan, bukan dibiarkan tak terkatakan:**
+
+1. **Eliminasi bertingkat** (A→B→C dalam satu grup) belum dirancang.
+   `intercompany_links` memasangkan **dua** jurnal; rantai tiga PT akan
+   menghasilkan dua pasangan yang dieliminasi terpisah, dan itu **mungkin**
+   benar — belum diverifikasi terhadap contoh nyata. Ditunda sampai ada
+   kasusnya, karena menebak bentuknya sekarang sama dengan menebak.
+2. **Harga transfer belum punya aturan kewajaran.** ADR ini mewajibkan
+   nilainya ada; ia **tidak** memutuskan apakah nilai itu wajar menurut
+   ketentuan transfer pricing DJP. Itu keputusan akuntansi/pajak, bukan
+   keputusan arsitektur, dan menaruhnya di sini akan menyamarkan kebutuhan
+   nasihat profesional sebagai fitur perangkat lunak.
+3. **Eliminasi belum terhubung ke versi peta (§3.3-C).** Ketika sebuah
+   eliminasi dihitung untuk periode lampau, ia harus memakai pemetaan yang
+   berlaku saat itu. Bentuknya sudah ada (kolom masa berlaku), tetapi
+   penggabungannya dengan `intercompany_links` **belum ditulis** — masuk F2-3.
 
 ### 4.1 Konsolidasi — **laporan, bukan tabel**
 
@@ -357,6 +484,87 @@ cross_company_grants
   revoked_at         timestamptz NULL
   alasan             text NOT NULL       -- kenapa hak ini diberikan
   UNIQUE (group_company_id, grantee_user_id)
+```
+
+### Siapa yang boleh MEMBERI — dan pengakuan jujur soal batasnya
+
+> Koreksi R-007 rev-2 butir A. Revisi 2 mencantumkan kolom `granted_by` tanpa
+> pernah menyatakan siapa yang boleh mengisinya. Celah itu nyata, dan
+> membiarkannya tak terjawab berarti orang pertama yang mengimplementasikan
+> akan memutuskannya sendiri — diam-diam, dengan pilihan termudah.
+
+**Keputusan: pemberi adalah pemilik akar grup (`companies.owner_user_id` pada
+akar), dan ia BOLEH memberi kepada dirinya sendiri.**
+
+**Konsekuensinya dinyatakan terus terang, sesuai permintaan founder:**
+
+> Karena pemberi boleh sama dengan penerima, pagar "grant eksplisit"
+> **TIDAK MENCEGAH** pemilik grup mengakses anaknya. Pemilik yang menginginkan
+> akses bisa memberikannya kepada diri sendiri kapan saja.
+>
+> **Yang pagar ini benar-benar berikan adalah JEJAK dan KEDALUWARSA, bukan
+> pencegahan.**
+
+Ini pilihan sadar, bukan kelalaian. Tiga alasannya:
+
+1. **Pencegahan terhadap pemilik itu fiksi.** Pemilik grup punya akses ke
+   dasbor Supabase, kredensial database, dan seluruh kode. Mekanisme aplikasi
+   apa pun yang "mencegah" dia hanya menambah satu langkah, bukan satu
+   penghalang. Merancang seolah ia penghalang adalah membohongi diri sendiri.
+2. **Yang nyata dilindungi adalah ORANG LAIN.** Staf keuangan grup, konsultan,
+   auditor eksternal — mereka *tidak* bisa memberi hak kepada diri sendiri, dan
+   untuk merekalah pagar ini benar-benar mencegah.
+3. **Jejak mengubah sifat tindakan.** Akses yang meninggalkan baris ber-alasan,
+   ber-tenggat, dan ber-audit-log adalah tindakan yang bisa dipertanggung-
+   jawabkan — kepada auditor, kepada rekan pemilik PT lain, kepada diri
+   sendiri enam bulan kemudian. Akses yang tak berjejak tidak.
+
+**Yang TIDAK boleh memberi** — dan ini yang dijaga sungguhan:
+
+| Peran | Boleh memberi? |
+|---|---|
+| pemilik akar grup | ✅ ya, termasuk kepada diri sendiri |
+| admin PT anak | ❌ tidak — ia tak punya kewenangan atas saudaranya |
+| penerima grant | ❌ tidak — hak tidak bisa memperpanjang dirinya |
+| siapa pun lewat API tanpa peran di atas | ❌ tidak |
+
+Baris kedua dan ketiga yang menentukan: tanpa keduanya, satu grant yang bocor
+bisa **berkembang biak** — penerima memberi ke orang lain, atau memperpanjang
+tenggatnya sendiri tanpa batas. Itu berubah dari kebocoran satu-orang jadi
+kebocoran yang tumbuh.
+
+```sql
+-- BENTUK; implementasi di F2-3
+-- Pemberian hak WAJIB lewat fungsi ini, bukan INSERT langsung.
+CREATE FUNCTION beri_akses_lintas_pt(
+  p_group uuid, p_penerima uuid, p_scope uuid[], p_alasan text, p_expires timestamptz
+) RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  IF p_alasan IS NULL OR btrim(p_alasan) = '' THEN
+    RAISE EXCEPTION 'alasan wajib diisi';
+  END IF;
+
+  -- Hanya pemilik AKAR grup. Bukan admin anak, bukan penerima grant.
+  IF NOT EXISTS (
+    SELECT 1 FROM companies
+     WHERE id = p_group AND parent_company_id IS NULL
+       AND owner_user_id = auth_user_id()
+  ) THEN
+    RAISE EXCEPTION 'hanya pemilik grup yang boleh memberi akses lintas-perusahaan';
+  END IF;
+
+  -- Scope wajib disebut & harus benar-benar anak grup ini.
+  IF p_scope IS NULL OR array_length(p_scope, 1) IS NULL THEN
+    RAISE EXCEPTION 'scope_company_ids wajib disebut satu per satu';
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM unnest(p_scope) s
+     WHERE s NOT IN (SELECT id FROM companies WHERE parent_company_id = p_group)
+  ) THEN
+    RAISE EXCEPTION 'scope memuat perusahaan di luar grup ini';
+  END IF;
+  ...
+END $$;
 ```
 
 Empat hal yang disengaja di bentuk ini:
@@ -484,11 +692,15 @@ Jujur tentang batas dokumen ini:
 
 ### Negatif — dan diterima sadar
 
-- **Peta akun harus diisi manual saat onboarding.** Tidak ada tebakan
-  otomatis. Ini kerja tambahan, dan itu disengaja: tebakan yang salah pada
-  laporan keuangan lebih mahal daripada pengisian yang membosankan. Onboarding
-  PT jadi lebih panjang beberapa menit; pemetaan retroaktif akan makan berhari-
-  hari.
+- **Setiap akun baru butuh keputusan pemetaan — selamanya, bukan hanya saat
+  onboarding.** Menambah akun ke-47 di bulan keenam sama wajibnya dengan akun
+  pertama. Ini kerja tambahan yang berulang, dan itu disengaja: keputusan yang
+  ditunda ke waktu laporan diambil oleh orang yang tidak tahu jawabannya, dan
+  satu akun tak terpeta membuat laporan gabungan salah **tanpa gejala**.
+- **Mengubah pemetaan tak bisa lagi "sekadar diperbaiki".** Ia menutup baris
+  lama dan membuka yang baru, dengan alasan tertulis. Lebih berbelit daripada
+  `UPDATE` — ditukar dengan laporan periode lampau yang tak berubah retroaktif,
+  termasuk periode yang SPT-nya sudah dilaporkan.
 - **Tiga lapis lebih rumit daripada satu.** Ada tiga tabel yang harus dijaga
   konsisten, bukan satu. Ditukar dengan laporan gabungan yang benar — dan
   tanpa lapis (b), laporan itu diam-diam memecah satu akun jadi beberapa baris.
@@ -521,13 +733,31 @@ node scripts/db/introspect.mjs tables | grep -iE 'consolidated_'
 node scripts/db/introspect.mjs tenancy-coverage
 ```
 
-**Kelengkapan peta** — nol berarti tiap akun statutori sudah punya pasangan:
+**Kelengkapan peta (butir B)** — nol berarti tiap akun PT anggota grup punya
+pasangan. Ini pemeriksaan *keadaan*; penegakan sesungguhnya ada di trigger,
+karena kueri yang dijalankan sesekali hanya menemukan pelanggaran **setelah**
+laporan salah terbit:
 
 ```sql
 SELECT a.company_id, count(*) AS akun_belum_dipetakan
   FROM accounts a
- WHERE NOT EXISTS (SELECT 1 FROM account_mappings m WHERE m.source_account_id = a.id)
- GROUP BY 1;
+  JOIN companies c ON c.id = a.company_id AND c.parent_company_id IS NOT NULL
+ WHERE a.group_account_id IS NULL
+ GROUP BY 1;   -- harus NOL
+```
+
+**Peta berversi (butir C)** — nol tumpang-tindih, dan riwayat tak pernah
+di-`UPDATE`:
+
+```sql
+-- nol baris: dua pemetaan aktif untuk akun yang sama pada rentang yang sama
+SELECT source_account_id, count(*)
+  FROM account_mappings
+ WHERE berlaku_sampai IS NULL
+ GROUP BY 1 HAVING count(*) > 1;
+
+-- perubahan pemetaan HARUS menyisakan baris lama (tertutup), bukan menimpanya
+SELECT count(*) FROM account_mappings WHERE berlaku_sampai IS NOT NULL;
 ```
 
 **Pagar akses lintas-PT** — keempatnya harus benar:
