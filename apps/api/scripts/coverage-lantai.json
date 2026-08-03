@@ -1,9 +1,10 @@
 {
   "_catatan": "Lantai coverage — boleh naik, TIDAK boleh turun. Lihat scripts/coverage-ratchet.mjs.",
-  "_diukur": "2026-08-02, suite penuh (129 berkas, 1299 test lulus), include src/**/*.ts",
-  "_kenapa_rendah": "Gate lama hanya mencakup src/lib/** (pure function finansial, ambang 90%). src/routes/** dan src/utils/** belum pernah terukur — di sanalah selisihnya. Angka ini LANTAI, bukan target.",
-  "statements": 31.98,
+  "_diukur": "2026-08-03, suite penuh (132 berkas, 1323 test lulus), include src/**/*.ts",
+  "_riwayat": "31,98% (2026-08-02, baseline awal) -> 32,47% setelah F1-8 menutup coverage NOL di companies.ts (0% -> 42,85% lines, 100% functions).",
+  "_kenapa_rendah": "Gate lama hanya mencakup src/lib/** (pure function finansial, ambang 90%). Sebagian besar src/routes/** masih tipis. Angka ini LANTAI, bukan target.",
+  "statements": 32.47,
   "branches": 68.49,
-  "functions": 81.96,
-  "lines": 31.98
+  "functions": 82.13,
+  "lines": 32.47
 }

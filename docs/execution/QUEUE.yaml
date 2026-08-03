@@ -476,7 +476,13 @@ items:
       - "lantai coverage dinaikkan setelahnya (coverage-ratchet --naikkan)"
     cara_verifikasi: "vitest run + coverage-summary companies.ts pct > 0 + tempel output"
     bobot: M
-    status: todo
+    status: done
+    bukti: >
+      companies-otorisasi.test.ts — 10 test lulus, MUTATION-TESTED dua arah:
+      (a) gerbang requireGroupOwner dihapus -> MERAH; (b) cek lintas-grup
+      dilonggarkan -> MERAH. Coverage companies.ts 0% -> 42,85% lines, 100%
+      functions. Lantai ratchet dinaikkan 31,98% -> 32,47%. Suite 132/132,
+      1323 lulus.
     catatan: >
       Perintah founder 2026-08-03: masuk GERBANG Fase 1 — tidak boleh nol saat Fase 2
       dimulai, karena companies.ts justru pintu masuk multi-tenant. Fase 2 (sapuan
