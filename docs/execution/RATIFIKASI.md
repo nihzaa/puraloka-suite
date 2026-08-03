@@ -519,9 +519,16 @@ Nol migrasi dijalankan.
 
 ---
 
-## R-008 · P1 · Seed CI tak lengkap — 3 test takeoff merah di CI, hijau di dev
+## R-008 · ✅ SELESAI — seed CI tak lengkap (dibuka & ditutup 2026-08-04)
 
-**Status:** terbuka · dibuka 2026-08-04 · **BUKAN akibat Fase 2**
+**Status:** SELESAI. Dijalankan `gh workflow run ci-isolation.yml -f action=setup`
+(run 30863311325) — seed permission dilengkapi, lalu CI **11/11 HIJAU**.
+
+**Tidak butuh tindakan founder.** Saya sempat mencatatnya sebagai butir
+ratifikasi karena mengira perlu kredensial CI; ternyata sudah ada workflow
+yang boleh saya jalankan sendiri. Diperiksa dulu sebelum meminta.
+
+**BUKAN akibat Fase 2**
 
 `material-takeoff-d345.test.ts` — 3 test gagal di CI dengan `expected 403 to
 be 201`, sementara **9/9 hijau di dev**.
