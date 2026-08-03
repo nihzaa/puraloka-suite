@@ -667,3 +667,59 @@ Sesuai CHARTER §3, Fase 1 **tidak** dimulai sebelum keduanya tuntas.
 - **R-004** — penarikan rekomendasi `rekonsiliasi --tulis`.
 - **R-005** — 3 angka jangkar golden file tak dikenali sumbernya (pertanyaan, tidak memblokir).
 - **F0-8** — pembersihan schema `mut6` dari DB dev (G-2).
+
+## 2026-08-03 — F1-1, F1-5, F1-4 (sebagian), + akar tujuh kegagalan shard
+
+**F1-1 SELESAI.** Idempotency terpasang di tiga endpoint yang benar-benar
+memindahkan kas. Endpointnya dipilih dari `pg_trigger` — tabel mana yang punya
+trigger pengubah saldo — bukan dari nama. PATCH status sengaja tidak dipasangi:
+sudah idempoten by state. Memasang di mana-mana akan membuat mekanismenya
+terlihat seperti formalitas, dan yang benar-benar butuh jadi tak menonjol.
+
+**F1-5 SELESAI, dan pengukurannya lebih berharga daripada hasilnya.** F1-5
+mengharuskan waktu klon→siap DIUKUR. Pengukuran itu menyingkap tiga cacat yang
+NOL-nya bergejala di mesin yang repo-nya sudah berjalan:
+
+1. `apps/web/.env.example` **tak pernah ada di repo** — `.gitignore` punya
+   `.env*` yang ikut menelannya. Setiap orang yang pernah mengklon tak menerima
+   satu pun petunjuk konfigurasi web. Tak ada yang sadar karena di mesin lama
+   berkasnya tertinggal secara lokal.
+2. Klon di Windows **gagal checkout** — path absolut > 260 char. Klon dilaporkan
+   BERHASIL, checkout-nya yang gagal: repo terlihat ada tapi tak lengkap.
+3. Bootstrap saya sendiri **menuduh tersangka yang salah** — `pg` tak ada di
+   root, tapi galatnya dilaporkan sebagai "koneksi DB gagal, periksa
+   DIRECT_URL". DIRECT_URL tak bersalah.
+
+Pelajarannya: cacat yang hanya muncul di lingkungan bersih tak akan pernah
+ditemukan dengan membaca. Ia harus dijalankan di lingkungan bersih.
+
+**Saya salah tentang cara membuktikan.** Dua kali hari ini saya menjalankan
+mutation test yang mutasinya TIDAK PERNAH TERPASANG (escaping shell merusak
+regex, 0 kecocokan) — dan dua kali saya nyaris menerima hijaunya sebagai bukti.
+Hijau dari mutasi yang gagal terpasang adalah hijau palsu. Sejak itu saya
+selalu menghitung kecocokan mutasi sebelum mempercayai hasilnya.
+
+**Akar tujuh kegagalan shard, akhirnya ditutup.** CI merah lagi (t5b:
+"expected 5 to be 6"). Bacaan pertama menuduh RLS bocor — bukan. Test
+menghitung proyek company AKAR lewat dua jalur pada dua DETIK BERBEDA; satu
+baris lahir di antaranya.
+
+Ini kelas KETUJUH yang sama (F0-14, F0-16, iso-test-b, purge `[TEST]%` ×2,
+cecep-rap `LIMIT 1`, t5b). Setelah keenam saya menambal satu per satu. Setelah
+ketujuh jelas menambal bukan jawabannya, dan saya menulis penjaga yang
+menolaknya otomatis — plus memperbaiki t5a yang memuat cacat laten yang sama
+atas tiga tabel yang TERUKUR disisipi test lain.
+
+RLS tidak disentuh sekali pun, walau melonggarkan satu predikat akan
+menghijaukan semuanya dalam sepuluh detik. Itu G-5.
+
+**F1-4 SEBAGIAN — dan blokirnya bukan pekerjaan yang kurang.** Perkakas,
+runbook, dan drill terjadwal selesai. Kriteria "restore nyata" belum terpenuhi
+karena GitHub menolak `workflow_dispatch` untuk workflow yang belum ada di
+branch default (HTTP 404, diverifikasi lewat API). Drill baru bisa dijalankan
+setelah rantai ini di-merge — dan R-003 melarang merge sebelum R-001 selesai.
+
+Mesin lokal tak bisa menggantikan, dan itu diukur bukan ditebak: nol perkakas
+klien Postgres, tanpa hak admin, WSL tanpa distro sehingga Docker tak bisa
+hidup. Saya TIDAK menandai F1-4 selesai. Runbook §7 mencantumkan apa yang belum
+terbukti dengan jujur, tanpa RTO untuk keduanya.
