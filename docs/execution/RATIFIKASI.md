@@ -417,3 +417,34 @@ Ulangi: `node scripts/db/introspect.mjs tenancy-coverage`
 
 F2-2 (klasifikasi 80 tabel sisa) dan F2-3 (sapuan `company_id`) terbuka.
 Selama belum, keduanya tetap terkunci — struktural mendahului migrasi (C-2).
+
+### R-007 revisi 2 — menjawab lima koreksi founder (2026-08-04)
+
+Ratifikasi pertama: **SETUJU SEBAGIAN**. ADR-010 direvisi, dan revisinya
+mengubah dua keputusan struktural — bukan sekadar menambah paragraf.
+
+**Baca selengkapnya:** https://claude.ai/code/artifact/8f6555fd-bae4-4745-96b2-fe3ac69436fc
+
+| # | Koreksi | Tindakan | Bagian |
+|---|---|---|---|
+| 1 | CoA per-PT setuju + alasan hukum | alasan hukum (badan hukum terpisah, SPT sendiri) jadi alasan UTAMA | §3.1 |
+| 2 | konsolidasi tiga lapis | §3 ditulis ulang: statutori · bagan grup · peta wajib onboarding | §3.1–3.4 |
+| 3 | template ≠ pewarisan | bagian baru: salinan sekali saat adopsi, nol tautan hidup | §3a |
+| 4 | TOLAK penguncian mati | §5 ditulis ulang jadi lima pagar | §5 |
+| 5 | jangan menimpa ADR-011 | diverifikasi, nol tabrakan | §10 |
+
+**Butir 4 — saya salah, dan koreksi founder yang benar.** Revisi 1 mengunci
+akses lintas-PT lewat Ember [C]. Alasan penolakannya tak terbantah: larangan
+tanpa jalan keluar tidak menghapus kebutuhan, ia hanya memindahkan
+pemenuhannya ke luar pengawasan. Diganti lima pagar — jalur konsolidasi saja,
+grant eksplisit per-orang, audit log, mati bawaan, baca-saja.
+
+**Butir 5 — bukti.** Audit 2026-08-02 sendiri mencatat "ADR-003 dan ADR-010
+tidak ada". Riwayat git: satu-satunya berkas ADR-010 adalah commit 41b1179.
+Pencarian topik di ADR-011: nol kecocokan untuk chart-of-account, konsolidasi,
+pemilik grup, eliminasi, transfer alat, harga transfer, intercompany. Dua
+penyebutan `accounts`/`cross-tenant` diperiksa satu per satu — keduanya
+penggolongan tenancy & catatan risiko, bukan keputusan bentuk.
+
+**Menunggu:** ratifikasi ulang. F2-2/F2-3 tetap terkunci sampai itu.
+Nol migrasi dijalankan — seluruh tabel di ADR masih rancangan.
