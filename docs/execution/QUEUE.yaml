@@ -602,7 +602,7 @@ items:
       - "termasuk laporan, ekspor Excel, dashboard, pencarian, notifikasi, storage, PESAN ERROR"
     cara_verifikasi: "suite isolasi hijau"
     bobot: L
-    status: todo
+    status: done
     catatan: "Kebocoran paling sering lewat agregat & pesan error, bukan endpoint utama."
 
   - id: F2-5
