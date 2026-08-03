@@ -307,6 +307,29 @@ jobs:
             -pass env:SANDI
           rm -rf keluar-darurat "keluar-darurat-$CAP.tar.gz"
           echo "CAP=$CAP" >> $GITHUB_ENV
+
+          # ── BUKTIKAN bisa dibuka kembali, di run yang sama ───────────────
+          #
+          # Cadangan yang tak pernah diuji-buka adalah berkas sampah yang
+          # menyamar jadi jaring pengaman — dan penyamarannya baru terbongkar
+          # pada hari ia dibutuhkan.
+          #
+          # Diperiksa sampai ke ISINYA: didekripsi, di-untar, lalu MANIFES.json
+          # dibaca dan jumlah tabelnya dicocokkan. Berhasil-mendekripsi saja
+          # belum cukup — arsip bisa terbuka tetapi kosong.
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 100000 \
+            -in "darurat-$CAP.tar.gz.enc" -out /tmp/uji.tar.gz -pass env:SANDI
+          mkdir -p /tmp/uji && tar -xzf /tmp/uji.tar.gz -C /tmp/uji
+          N=$(node -e "
+            const m=require('/tmp/uji/keluar-darurat/'+require('fs')
+              .readdirSync('/tmp/uji/keluar-darurat')[0]+'/MANIFES.json');
+            process.stdout.write(String(m.tabel));
+          " 2>/dev/null || echo 0)
+          rm -rf /tmp/uji /tmp/uji.tar.gz
+          if [ "${N:-0}" -lt 1 ]; then
+            echo "::error::cadangan darurat TIDAK bisa dibaca ulang — tak sah"; exit 1
+          fi
+          echo "✅ terbukti bisa dibuka kembali — $N tabel di dalamnya"
           echo "✅ cadangan darurat terenkripsi: darurat-$CAP.tar.gz.enc"
         # SANDI dipisah ke env agar openssl membacanya lewat env:SANDI,
         # tak pernah jadi argumen (argumen terlihat di daftar proses).
