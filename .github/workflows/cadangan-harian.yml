@@ -161,9 +161,35 @@ jobs:
           # --schema=public: schema test sementara milik CI bisa lenyap di
           # tengah dump ("schema … does not exist"). Yang perlu dipulihkan saat
           # bencana memang hanya public.
-          if ! pg_dump --format=custom --no-owner --no-privileges \
+          # ── Coba ulang saat terkena BALAPAN, bukan menyerah ───────────────
+          #
+          # `--schema=public` menutup sebagian, tetapi pg_dump tetap membaca
+          # KATALOG schema di awal. Kalau sebuah schema lenyap di antara
+          # pembacaan katalog dan pengambilan isinya, ia mati dengan
+          #     schema with OID 2840025 does not exist
+          #
+          # Ini nyata di sini: DIRECT_URL produksi menunjuk database yang SAMA
+          # dengan yang dipakai test suite (schema `test` ada di sana), dan CI
+          # bisa berjalan kapan saja. Run 30838449838 gagal karena CI mulai dua
+          # detik sebelumnya.
+          #
+          # Balapan bukan kerusakan — ia hanya perlu diulang. Tiga percobaan
+          # dengan jeda; kalau ketiganya kena, barulah itu masalah sungguhan.
+          BERHASIL=0
+          for PERCOBAAN in 1 2 3; do
+            if pg_dump --format=custom --no-owner --no-privileges \
                        --schema=public --serializable-deferrable \
                        --file="keluar/puraloka-$CAP.dump" "$URL_AMAN" 2>/tmp/galat.txt; then
+              BERHASIL=1; break
+            fi
+            if grep -qiE "does not exist|concurrently (updated|deleted)" /tmp/galat.txt; then
+              echo "::notice::percobaan $PERCOBAAN kena balapan dengan test suite — mengulang"
+              sleep 20; continue
+            fi
+            break   # galat lain: jangan diulang, laporkan apa adanya
+          done
+
+          if [ "$BERHASIL" = "0" ]; then
             echo "::error::pg_dump gagal."
             if   grep -qi "password authentication failed" /tmp/galat.txt; then
               echo "SEBAB: sandi SALAH. Perbarui secret DIRECT_URL."
