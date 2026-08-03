@@ -68,22 +68,31 @@ beforeAll(async () => {
      VALUES ($1, 1, 'draft') RETURNING id`, [scenarioId]
   )).rows[0].id
 
-  // Resource: pakai yang ada bila tersedia, buat sendiri bila tidak — supaya
-  // test berjalan sama di lingkungan ber-seed maupun kosong.
-  const adaResource = (await c.query(
-    `SELECT id, unit_code FROM resources WHERE unit_code IS NOT NULL LIMIT 1`)).rows[0]
-  if (adaResource) {
-    resourceId = adaResource.id
-    unitCode = adaResource.unit_code
-  } else {
-    const unit = (await c.query(`SELECT code FROM units LIMIT 1`)).rows[0]?.code ?? 'kg'
-    resourceId = (await c.query(
-      `INSERT INTO resources (code, name, category, unit_code, created_by)
-       VALUES ('[UJI-RAP]RES', 'Material uji RAP', 'material', $1, $2) RETURNING id`,
-      [unit, userId]
-    )).rows[0].id
-    unitCode = unit
-  }
+  // ── Resource SELALU dibuat sendiri, tak pernah meminjam ───────────────────
+  //
+  // Versi sebelumnya memakai `SELECT ... FROM resources LIMIT 1` bila ada, dan
+  // hanya membuat sendiri kalau tabelnya kosong. Alasannya masuk akal ("berjalan
+  // sama di lingkungan ber-seed maupun kosong") — tetapi `LIMIT 1` tanpa
+  // penyaring berarti test ini MEMINJAM baris milik siapa pun.
+  //
+  // Berjalan berurutan itu tak pernah kelihatan. Berjalan PARALEL (6 shard),
+  // berkas lain menghapus resource-nya sendiri di tengah jalan — dan kalau
+  // yang terpilih kebetulan baris itu, shard ini gagal:
+  //
+  //     insert or update on "rap_material_line" violates foreign key
+  //     constraint "rap_material_line_resource_id_fkey"
+  //
+  // Gejalanya menuduh RAP, padahal sebabnya pemilihan fixture.
+  //
+  // Kode `[UJI-RAP-PAGU]` unik untuk berkas ini, jadi tak ada purge berkas lain
+  // yang menjangkaunya. Seluruhnya di dalam transaksi yang di-ROLLBACK.
+  const unit = (await c.query(`SELECT code FROM units LIMIT 1`)).rows[0]?.code ?? 'kg'
+  resourceId = (await c.query(
+    `INSERT INTO resources (code, name, category, unit_code, created_by)
+     VALUES ('[UJI-RAP-PAGU]RES', 'Material uji RAP Pagu', 'material', $1, $2) RETURNING id`,
+    [unit, userId]
+  )).rows[0].id
+  unitCode = unit
 }, 180_000)
 
 afterAll(async () => {
