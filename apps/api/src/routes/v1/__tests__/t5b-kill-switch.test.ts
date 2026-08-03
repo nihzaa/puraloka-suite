@@ -251,13 +251,45 @@ describe('T5b — kedua lapis benar-benar berbeda, bukan satu lapis yang sama', 
     // tenant A harus SAMA baik lewat jalur RLS maupun lewat predikat wrapper.
     // Kalau salah satunya nol, berarti lapis itu tidak pernah benar-benar
     // bekerja dan selama ini hanya lapis satunya yang menahan.
+    // ⚠️ DISARING KE PENANDA MILIK TEST INI — jangan diubah jadi hitung-semua.
+    //
+    // Versi sebelumnya menghitung SELURUH `projects` milik company A. Company A
+    // adalah company AKAR, dan puluhan berkas test lain menyisipkan proyek ke
+    // sana. Di CI 6 shard paralel, sebuah proyek bisa lahir di antara dua
+    // hitungan di bawah — dan test ini merah dengan "expected 5 to be 6",
+    // menuduh RLS bocor padahal yang terjadi hanyalah dua foto pada dua detik
+    // berbeda. Persis itu yang terjadi di run 30816685247.
+    //
+    // Menyaring ke penanda milik test ini membuat kedua hitungan melihat
+    // HIMPUNAN YANG SAMA dan STABIL, tanpa mengurangi apa yang dibuktikan:
+    // yang diuji adalah "kedua lapis menyaring dengan aturan yang sama",
+    // bukan "berapa banyak proyek yang ada di dunia".
+    const PENANDA = '[UJI-T5b] Proyek A%'
+    // Klien + proyek dibuat DI DALAM transaksi test ini (di-ROLLBACK di
+    // afterAll), jadi shard lain tak pernah melihatnya dan tak bisa
+    // menambahinya.
+    const idKlienA = (await c.query(
+      `INSERT INTO clients (contact_person, phone, created_by, company_id)
+       VALUES ('[UJI-T5b] Klien A', '0800', $1, $2) RETURNING id`, [userId, companyA]
+    )).rows[0].id
+    await c.query(
+      `INSERT INTO projects (client_id, pm_id, name, location, start_date, end_date,
+                             created_by, company_id)
+       SELECT $1, $2, '[UJI-T5b] Proyek A ' || g, 'Bandung', '2026-01-01', '2026-12-31', $2, $3
+         FROM generate_series(1, 3) g`,
+      [idKlienA, userId, companyA]
+    )
+
     const lewatRls = await sebagaiTenantA(async () =>
-      (await c.query(`SELECT count(*)::int n FROM projects`)).rows[0].n
+      (await c.query(
+        `SELECT count(*)::int n FROM projects WHERE name LIKE $1`, [PENANDA]
+      )).rows[0].n
     )
 
     const lewatWrapper = await tanpaRls(async () =>
       (await c.query(
-        `SELECT count(*)::int n FROM projects WHERE company_id = $1`, [companyA]
+        `SELECT count(*)::int n FROM projects WHERE company_id = $1 AND name LIKE $2`,
+        [companyA, PENANDA]
       )).rows[0].n
     )
 
