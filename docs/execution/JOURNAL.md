@@ -723,3 +723,65 @@ Mesin lokal tak bisa menggantikan, dan itu diukur bukan ditebak: nol perkakas
 klien Postgres, tanpa hak admin, WSL tanpa distro sehingga Docker tak bisa
 hidup. Saya TIDAK menandai F1-4 selesai. Runbook §7 mencantumkan apa yang belum
 terbukti dengan jujur, tanpa RTO untuk keduanya.
+
+## 2026-08-03 (lanjutan) — F1-4 TERBUKTI. Delapan cacat sebelum sampai ke sana.
+
+Merge ke `main` selesai, dan itu membuka drill pemulihan. Run 30832665736
+hijau dengan bukti yang bisa dibaca:
+
+    dump 60 dtk / 1,2 MB · restore 1 dtk · RTO siklus penuh 61 detik
+    tabel 124/124 · RLS 123/123 · policy 377/377 · isi 124 tabel cocok
+
+**Saya salah soal PR #134.** Saya merge tanpa memeriksa targetnya lebih dulu;
+ternyata ia menunjuk branch perantara, bukan `main`. Tidak ada yang rusak, dan
+saya lanjutkan lewat PR #133 — tapi memeriksa tujuan sebelum menekan merge itu
+hal yang seharusnya otomatis.
+
+**Kredensial pemilik sempat terbit di log publik.** Sandi mengandung `@`, yang
+memecah URL di tempat salah; pesan galat `pg_dump` lalu MENCETAK potongannya.
+GitHub me-mask nilai secret yang persis sama — potongan hasil parsing keliru
+bukan nilai yang sama, jadi lolos. Run + log dihapus (terverifikasi 404).
+Pemilik menimbang risikonya dan memilih tidak ganti sandi; itu keputusannya,
+dan saya sudah menyampaikan konsekuensinya sebelum ia diambil.
+
+Pelajaran yang berlaku seterusnya: **di repo publik, pesan galat adalah
+permukaan kebocoran.**
+
+### Delapan cacat, dan yang paling menakutkan bukan yang paling rumit
+
+1. sandi ber-`@` merusak URL → kredensial bocor
+2. `pg_dump` 17 terpasang tapi 16 yang jalan — **memasang bukan berarti memakai**
+3. schema `extensions` tak ada → 753 galat berantai
+4. schema `auth` tak ada → tepat 21 policy hilang
+5. `btree_gist` tak ada → constraint anti-tumpang-tindih gagal
+6. dump diambil sambil database bergerak → pelanggaran FK
+7. membandingkan target dengan sumber yang berubah → alarm palsu
+8. **`pg_restore` butuh `-f -`** → daftar kosong → **drill HIJAU tanpa memeriksa apa pun**
+
+Nomor 8 yang paling berbahaya, dan ia yang paling sederhana. Run 30832061986
+melaporkan `success` atas perbandingan yang tak pernah terjadi. Kalau saya
+menerimanya, F1-4 akan ditandai selesai dengan bukti kosong — persis yang
+CHARTER §7 larang. Sekarang dua penjaga terpisah membuat "tak ada yang
+diperiksa" menjadi merah.
+
+**Saya juga hampir salah dua kali karena memotong keluaran di ujung yang
+salah.** `tail -20` atas 753 galat membuat saya melihat gejala (policy gagal
+karena tabelnya tak ada) selama dua putaran, bukan sebab (schema `extensions`
+hilang). Galat PERTAMA hampir selalu penyebab; sisanya akibat berantai.
+
+Dan saat drill akhirnya hijau tetapi masih mencatat 5 pelanggaran FK pada
+tabel inti, saya tidak menyimpulkan "berarti aman" — saya cetak angkanya.
+`projects` 5=5, `scenarios` 4=4, `lesson_propagation_proposals` 192=192.
+Hijau + galat FK adalah kombinasi yang harus dicurigai, bukan diterima.
+
+### Cadangan harian terenkripsi
+
+Paket Supabase free tak punya PITR, jadi kehilangan maksimal ~1 hari. Cadangan
+harian AES-256 (artifact 30 hari) menutup risiko lain: cadangan yang hanya
+hidup di dalam akun ikut hilang bila yang hilang justru AKSES ke akunnya.
+
+Job MENOLAK jalan tanpa `SANDI_CADANGAN` — cadangan tak terenkripsi di repo
+publik lebih berbahaya daripada tidak ada cadangan, karena ia terasa seperti
+keamanan padahal justru kebocoran.
+
+🔴 **Tripwire:** naikkan ke PITR SEBELUM pelanggan pertama.

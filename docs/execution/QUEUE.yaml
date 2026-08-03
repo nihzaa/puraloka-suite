@@ -458,19 +458,32 @@ items:
     kriteria_selesai: ["restore nyata ke lingkungan sementara", "waktu pemulihan tercatat"]
     cara_verifikasi: "tempel bukti waktu restore"
     bobot: L
-    status: wip
-    catatan: >
-      Perkakas + runbook + drill terjadwal SELESAI (commit 21b2894).
-      Kriteria "restore nyata" BELUM terpenuhi: GitHub menolak
-      workflow_dispatch untuk workflow yang belum ada di branch default
-      (HTTP 404, diverifikasi lewat API). Drill baru bisa dijalankan setelah
-      rantai ini di-merge — dan R-003 melarang merge sebelum R-001 selesai.
-      Jadi F1-4 TERBLOKIR oleh urutan yang founder tetapkan sendiri, bukan
-      oleh pekerjaan yang kurang.
-      Mesin lokal tak bisa menggantikan: nol perkakas klien Postgres, tanpa
-      hak admin, WSL tanpa distro sehingga Docker mati.
-      Kueri pembanding sudah diuji terhadap DB dev: 123 tabel / 123 RLS /
-      377 policy.
+    status: done
+    bukti: >
+      RESTORE SUNGGUHAN — run 30832665736 (2026-08-03), conclusion=success.
+
+        dump     60 dtk · 1,2 MB
+        restore   1 dtk
+        RTO siklus penuh: 61 detik
+
+        tabel   124/124 ✅    RLS 123/123 ✅    policy 377/377 ✅
+        isi     124 tabel dibandingkan, semua cocok
+
+      Tabel yang FK-nya sempat ditolak saat restore diperiksa terang-terangan,
+      bukan diasumsikan: projects 5=5, scenarios 4=4,
+      lesson_propagation_proposals 192=192. Nol baris hilang — galatnya berasal
+      dari percobaan ulang pg_restore yang akhirnya berhasil setelah induknya
+      masuk.
+
+      Perjalanan ke sana menyingkap DELAPAN cacat, semuanya tercatat di
+      JOURNAL 2026-08-03. Yang paling berbahaya: run 30832061986 berakhir
+      "success" sambil membandingkan NOL tabel (pg_restore butuh `-f -` untuk
+      menulis ke stdout). Hijau palsu itu kini mustahil — dua penjaga terpisah
+      membuat "tak ada yang diperiksa" menjadi merah.
+
+      Drill terjadwal tiap Senin 02:00 UTC terhadap database CI (bukan
+      produksi). Yang BELUM terbukti tercatat jujur di runbook §7: restore ke
+      project Supabase baru dan PITR — keduanya butuh tindakan pemilik akun.
 
   - id: F1-5
     fase: 1
