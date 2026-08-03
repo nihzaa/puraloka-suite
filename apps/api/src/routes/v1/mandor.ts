@@ -52,7 +52,24 @@ export default async function mandorRoutes(app: FastifyInstance) {
 
       const ext = detectedType.split('/')[1].replace('jpeg', 'jpg')
       const safe = (file_name ?? 'nota').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 60)
-      const storagePath = `worker-kasbons/${Date.now()}_${safe}.${ext}`
+
+      // ── Path DIAWALI company_id (F1-2) ────────────────────────────────────
+      //
+      // Sebelumnya: `worker-kasbons/<timestamp>_<nama>.<ext>` — nol penanda
+      // perusahaan. Endpoint ini satu-satunya rute yang MENULIS tanpa saringan
+      // tenant (audit-gerbang-tenancy), dan meski ia tak menyentuh tabel mana
+      // pun, ia menaruh berkas di bucket BERSAMA.
+      //
+      // Akibatnya pada hari perusahaan kedua lahir: seluruh nota kasbon semua
+      // perusahaan bertumpuk di satu folder. Kebijakan storage per-tenant jadi
+      // mustahil ditulis (tak ada yang bisa dijadikan predikat), dan penelusuran
+      // "berkas ini milik siapa" hanya bisa lewat tebakan nama.
+      //
+      // Memperbaikinya SEKARANG murah: berkas lama tetap terbaca lewat signed
+      // URL yang sudah beredar (path lama tak diubah), yang baru langsung rapi.
+      // Menunda berarti memindahkan berkas nyata milik pelanggan nanti.
+      const storagePath =
+        `${request.companyId}/worker-kasbons/${Date.now()}_${safe}.${ext}`
 
       const { error: upErr } = await supabase.storage
         .from(KASBON_PHOTO_BUCKET).upload(storagePath, buffer, { contentType: detectedType, upsert: false })
@@ -1323,6 +1340,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
         const recipients = await resolveRecipients('wage_report_submitted', { projectId: assignInfo.project_id, companyId: request.companyId! })
         const mandorName = (assignInfo.mandor as any)?.name ?? user.name
         createNotifications(recipients.map(uid => ({
+          company_id: request.companyId!,
           user_id:     uid,
           title:       'Laporan Upah Diajukan',
           message:     `Laporan upah minggu ${body.week_start} – ${weekEndStr} diajukan oleh ${mandorName}`,
@@ -1552,6 +1570,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
       if (projectId) {
         const recipients = await resolveRecipients('kasbon_submitted', { projectId, companyId: request.companyId! })
         createNotifications(recipients.map(uid => ({
+          company_id: request.companyId!,
           user_id:    uid,
           title:      'Penagihan Progress Diajukan',
           message:    `Mandor mengajukan penagihan ${body.pct_completed}% senilai Rp ${body.gross_payment.toLocaleString('id-ID')}`,
@@ -1647,6 +1666,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
       const projectId = (scopeData?.assignment as any)?.project_id
       if (mandorId) {
         createNotifications([{
+          company_id: request.companyId!,
           user_id:    mandorId,
           title:      body.status === 'approved' ? 'Penagihan Progress Disetujui' : 'Penagihan Progress Ditolak',
           message:    body.status === 'approved'
@@ -1798,6 +1818,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
       const projectId = (scope.assignment as any)?.project_id
       if (mandorId) {
         createNotifications([{
+          company_id: request.companyId!,
           user_id:    mandorId,
           title:      'Settlement Borongan Dicairkan',
           message:    `Settlement pekerjaan selesai. Dana bersih Rp ${body.net_payment.toLocaleString('id-ID')} telah diproses.`,
@@ -1885,6 +1906,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
     try {
       if (existing.mandor_id) {
         createNotifications([{
+          company_id: request.companyId!,
           user_id:    existing.mandor_id,
           title:      status === 'approved' ? 'Kasbon Tukang Disetujui' : 'Kasbon Tukang Ditolak',
           message:    status === 'approved'

@@ -52,7 +52,19 @@ const approve = () =>
  */
 async function purgeTestProjects(): Promise<void> {
   for (let attempt = 1; attempt <= 3; attempt++) {
-    const { rows } = await client.query(`SELECT id FROM projects WHERE name LIKE '[TEST]%'`)
+    // ⚠️ Saringan SEMPIT, bukan '[TEST]%'.
+    //
+    // Versi sebelumnya menyapu SETIAP proyek berawalan '[TEST]' — dan belasan
+    // berkas test lain memakai awalan yang sama di schema `public` BERSAMA.
+    // Berjalan berurutan tak pernah terlihat; berjalan PARALEL (6 shard), purge
+    // ini mencoba menghapus proyek milik shard lain, lalu ditolak trigger
+    // penjaga milik data itu:
+    //
+    //     Lessons Learned berstatus under_review tidak boleh dihapus
+    //
+    // Gejalanya menuduh Lessons Learned, padahal sebabnya purge yang terlalu luas.
+    const { rows } = await client.query(
+      `SELECT id FROM projects WHERE name = '[TEST] Rantai Berjenjang'`)
     if (rows.length === 0) return
     const ids = rows.map(r => r.id)
     await client.query(
@@ -97,8 +109,8 @@ beforeAll(async () => {
 
   const { rows: cl } = await client.query(`SELECT id FROM clients LIMIT 1`)
   const { rows: pr } = await client.query(
-    `INSERT INTO projects (client_id, pm_id, name, location, start_date, end_date, created_by, contract_value)
-     VALUES ($1, $2, '[TEST] Rantai Berjenjang', 'Bandung', CURRENT_DATE, CURRENT_DATE + 30, $2, $3)
+    `INSERT INTO projects (company_id, client_id, pm_id, name, location, start_date, end_date, created_by, contract_value)
+     VALUES ((SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1), $1, $2, '[TEST] Rantai Berjenjang', 'Bandung', CURRENT_DATE, CURRENT_DATE + 30, $2, $3)
      RETURNING id`, [cl[0].id, adminUserId, BASE_CONTRACT])
   projectId = pr[0].id
 
@@ -118,8 +130,12 @@ beforeAll(async () => {
     `DELETE FROM approval_steps WHERE level >= 2 AND chain_id IN
       (SELECT id FROM approval_chains WHERE entity_type = 'change_order')`)
   const { rows: st } = await client.query(
-    `INSERT INTO approval_steps (chain_id, level, required_permission, label)
-     SELECT id, 2, 'settings:finance:manage', '[TEST] Level 2'
+    // `company_id` diwariskan dari chain induknya, bukan diserahkan ke fallback
+    // `fn_isi_company_id()` — fallback itu hanya mengisi bila `companies` berisi
+    // TEPAT SATU baris, dan berhenti bekerja begitu ada test lain yang membuat
+    // company kedua (F0-14).
+    `INSERT INTO approval_steps (company_id, chain_id, level, required_permission, label)
+     SELECT company_id, id, 2, 'settings:finance:manage', '[TEST] Level 2'
        FROM approval_chains WHERE entity_type = 'change_order'
      RETURNING id`)
   level2Id = st[0].id

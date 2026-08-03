@@ -1,8 +1,36 @@
 # STATUS — Puraloka Suite (penunjuk satu pintu)
 
-**Diperbarui:** 2026-08-02 (rev-19: `created_at` ternyata bisa ditulis ulang di dev — 10/10 tabel kritis termasuk `audit_logs` & `invoices`; migrasi 166 memulihkan. Plus baseline schema basi 6 hari sehingga penjaga drift praktis mati. Koreksi: migrasi 037 TIDAK rusak — CI/produksi aman, dev yang menyimpang. Sebelumnya rev-18: 7 trigger yatim Rp 67,6 juta.)
+**Diperbarui:** 2026-08-02 (rev-20: **mandat otonomi penuh** — Fase 0 "Pemulihan Kepercayaan" berjalan. Alat introspeksi DB kanonik lahir; tujuh angka audit diverifikasi ulang (dua salah); **cacat P0 baru: tabrakan definisi GL 047↔167** → GL tenant-blind di lingkungan baru, menunggu ratifikasi. Coverage akhirnya diukur: 31,98%. Sebelumnya rev-19: `created_at` bisa ditulis ulang di dev; migrasi 166 memulihkan.)
 — penunjuk TIPIS, bukan duplikasi konten. Update tanggal + baris "Fase aktif" setiap
 kali keadaan berubah; detail selalu di dokumen rujukan.
+
+> ## 🤖 MODE OTONOM — 2026-08-02 (menang atas seluruh arahan proses di bawah)
+>
+> Founder memberi **mandat otonomi penuh lintas sesi**. Sumber perintah kini
+> dokumen di `docs/execution/`, bukan prompt baru.
+>
+> | Kebutuhan | Berkas |
+> |---|---|
+> | **Kewenangan, urutan fase, Gerbang Keras** | `docs/execution/CHARTER.md` |
+> | **Antrean kerja mesin-terbaca** | `docs/execution/QUEUE.yaml` |
+> | **⭐ Satu-satunya yang perlu founder baca** | `docs/execution/RATIFIKASI.md` |
+> | Catatan sesi (append-only) | `docs/execution/JOURNAL.md` |
+> | Koreksi angka audit | `docs/audit/2026-08-02/KOREKSI.md` |
+>
+> **Diam berarti setuju.** Berhenti hanya di lima Gerbang Keras (G-1…G-5);
+> selebihnya diputuskan sendiri lewat Protokol Keputusan (CHARTER §4).
+>
+> **🔴 MENUNGGU FOUNDER — R-001 (P0):** migrasi **047 dan 167** sama-sama
+> mendefinisikan `accounts`/`journal_entries` dengan bentuk tak kompatibel
+> (047 single-tenant, 167 ber-`company_id`). Di lingkungan baru 047 jalan lebih
+> dulu lalu 167 **no-op senyap** → **buku besar tidak bisa memisahkan
+> perusahaan**, tanpa satu pun pesan galat. Biaya pembatalan hari ini **nol**
+> (`journal_entries` 0 baris). **Jangan bangun apa pun di atas GL dulu.**
+>
+> Menunggu juga: R-002 (buku migrasi tertinggal 12 versi), R-003 (bekerja di atas
+> branch `fix/search-…`, bukan `main` — 8 commit GL belum ter-merge), R-004
+> (penarikan rekomendasi `rekonsiliasi --tulis`), R-005 (3 angka jangkar golden
+> file tak dikenali sumbernya).
 
 ## Fase aktif
 
@@ -1002,6 +1030,27 @@ Selesai sebagai fase kerja, hidup sebagai basis bukti.
 ---
 
 ## Keputusan terbuka menunggu Nizar
+
+> **⚠️ §D, §E, §F DITUTUP 2026-08-02 — seluruh isi dev adalah DATA DUMMY.**
+>
+> Founder mengonfirmasi: *"untuk semua data yg ada di dalam itu hanya data
+> dummy, bukan data beneran dari operasional."*
+>
+> Jadi ketiga anomali saldo di bawah **bukan keputusan tertunda** dan tak perlu
+> dicocokkan ke rekening bank mana pun:
+>
+> - **§D** Rp 627.075.000 kurang dicatat masuk (5 pembayaran)
+> - **§F** Rp 67.600.000 kurang dicatat keluar (16 kasbon + 3 progress payment)
+> - **§E** tiga kas kecil bersaldo negatif tanpa sumber
+>
+> **Yang tetap berlaku:** trigger-nya sudah dipasang (migrasi 161/162/164), jadi
+> transaksi BERIKUTNYA — termasuk data operasional pertama nanti — sudah benar.
+> Ketiga anomali itu hanya residu seed lama.
+>
+> **Yang harus dilakukan sebelum operasional:** bersihkan atau seed ulang data
+> dev, jangan membawa saldo-saldo ini ke produksi. Ditulis di sini supaya tak
+> ada yang mengira angka-angka itu bermakna.
+
 
 **E. 🟡 Tiga kas kecil bersaldo NEGATIF di dev — data, bukan cacat kode (2026-08-02)**
 

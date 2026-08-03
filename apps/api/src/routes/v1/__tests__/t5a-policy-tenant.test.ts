@@ -152,14 +152,27 @@ describe('T5a — tabel berisi data nyata tetap terbaca', () => {
     // tapi rusak. Ini menangkap over-filtering: helper salah kolom, rantai FK
     // salah arah, atau company_id yang tak ter-backfill.
     for (const t of ['rab_items', 'invoices', 'milestones']) {
-      const total = (await c.query(`SELECT count(*)::int n FROM ${t}`)).rows[0].n
+      // ⚠️ SATU query untuk KEDUA angka — jangan dipecah jadi dua.
+      //
+      // Versi sebelumnya menjalankan dua SELECT terpisah lalu membandingkannya
+      // dengan `.toBe()`. Di CI 6 shard paralel, baris bisa lahir di antara
+      // keduanya dan test merah tanpa ada yang rusak — persis yang menimpa
+      // t5b-kill-switch (run 30816685247). `rab_items`, `invoices`, dan
+      // `milestones` semuanya disisipi berkas test lain, jadi paparannya nyata.
+      //
+      // Satu query = satu snapshot MVCC. Kedua angka dijamin melihat keadaan
+      // yang sama persis, dan yang dibuktikan tetap sama: adakah baris yang
+      // kehilangan jalur ke company.
+      const { rows } = await c.query(
+        `SELECT count(*)::int AS total,
+                count(*) FILTER (
+                  WHERE EXISTS (SELECT 1 FROM projects p
+                                 WHERE p.id = x.project_id AND p.company_id IS NOT NULL)
+                )::int AS terlihat
+           FROM ${t} x`
+      )
+      const { total, terlihat } = rows[0]
       if (total === 0) continue // lingkungan tanpa seed — bukan kegagalan
-
-      const terlihat = (await c.query(
-        `SELECT count(*)::int n FROM ${t} x
-          WHERE EXISTS (SELECT 1 FROM projects p
-                         WHERE p.id = x.project_id AND p.company_id IS NOT NULL)`
-      )).rows[0].n
       expect(terlihat, `${t}: seluruh baris kehilangan jalur ke company`).toBe(total)
     }
   }, 60_000)

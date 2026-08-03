@@ -51,6 +51,7 @@ import ahspRoutes from './routes/v1/ahsp.js'
 import priceBookRoutes, { projectPriceOverrideRoutes } from './routes/v1/price-book.js'
 import lessonsLearnedRoutes from './routes/v1/lessons-learned.js'
 import bidRoutes from './routes/v1/bids.js'
+import glRoutes from './routes/v1/gl.js'
 import assetRoutes from './routes/v1/assets.js'
 import rantaiKontrakRoutes from './routes/v1/rantai-kontrak.js'
 import wipRoutes from './routes/v1/wip.js'
@@ -284,6 +285,7 @@ await app.register(priceBookRoutes)
 await app.register(projectPriceOverrideRoutes)
 await app.register(lessonsLearnedRoutes)
 await app.register(bidRoutes)
+await app.register(glRoutes)
 await app.register(assetRoutes)
 await app.register(rantaiKontrakRoutes)
 await app.register(wipRoutes)

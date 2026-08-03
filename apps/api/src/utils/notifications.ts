@@ -41,6 +41,30 @@ export type NotificationType =
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent'
 
 export interface NotificationParams {
+  // ── `company_id` WAJIB, dan sengaja tidak opsional ────────────────────────
+  //
+  // Sampai 2026-08-03 kolom ini tidak ada di sini sama sekali: notifikasi
+  // di-insert TANPA `company_id`, dan hanya berfungsi karena fallback
+  // satu-tenant di `fn_isi_company_id()` — trigger yang mengisi otomatis
+  // SELAMA `companies` berisi tepat satu baris, lalu berhenti mengisi begitu
+  // ambigu (perilaku yang benar, migrasi 127).
+  //
+  // Artinya: pada hari perusahaan kedua lahir, SETIAP notifikasi akan ditolak
+  // `NOT NULL` — dan kalau trigger itu dilonggarkan supaya "jalan", notifikasi
+  // akan diam-diam masuk ke perusahaan yang salah. Ditemukan saat menaikkan
+  // shard CI ke 6 (F0-16), bukan lewat review.
+  //
+  // Kenapa WAJIB (bukan `?:` dengan default): satu user bisa jadi anggota
+  // beberapa perusahaan (ADR-011 D5), jadi `company_id` TIDAK bisa diturunkan
+  // dari penerimanya. Ia harus datang dari PERISTIWA yang melahirkan
+  // notifikasi itu — kasbon milik perusahaan mana, approval di perusahaan mana.
+  // Membuatnya opsional berarti menyerahkan keputusan itu ke nilai default,
+  // dan default apa pun akan salah untuk sebagian kasus.
+  //
+  // Dengan tipe wajib, TypeScript yang menemukan setiap pemanggil yang lupa —
+  // bukan produksi.
+  company_id: string
+
   user_id: string
   title: string
   message: string
@@ -56,6 +80,7 @@ export interface NotificationParams {
 
 export async function createNotification(params: NotificationParams): Promise<void> {
   const { error } = await supabase.from('notifications').insert({
+    company_id:  params.company_id,
     user_id:     params.user_id,
     title:       params.title,
     message:     params.message,
@@ -86,6 +111,7 @@ export async function createNotifications(list: NotificationParams[]): Promise<v
   if (list.length === 0) return
 
   const rows = list.map(params => ({
+    company_id:  params.company_id,
     user_id:     params.user_id,
     title:       params.title,
     message:     params.message,

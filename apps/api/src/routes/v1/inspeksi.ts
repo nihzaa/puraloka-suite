@@ -230,6 +230,7 @@ export default async function inspeksiRoutes(app: FastifyInstance) {
               } else {
                 const daftar = orang as Array<{ user_id: string }>
                 await createNotifications(daftar.map((o) => ({
+                  company_id: request.companyId!,
                   user_id: o.user_id,
                   title: `Minta diperiksa: ${nomor}`,
                   message: `${judul}${body.lokasi ? ` — ${body.lokasi}` : ''}`,
@@ -406,6 +407,7 @@ export default async function inspeksiRoutes(app: FastifyInstance) {
 
       if (memutuskan && lama.diminta_oleh !== request.currentUser!.id) {
         await createNotifications([{
+          company_id: request.companyId!,
           user_id: lama.diminta_oleh,
           title: `${lama.nomor} ${baru === 'lolos' ? 'LOLOS' : 'tidak lolos'}`,
           message: baru === 'lolos'

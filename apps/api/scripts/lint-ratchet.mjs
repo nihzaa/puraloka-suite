@@ -33,7 +33,7 @@ import { ESLint } from 'eslint'
  */
 const AMBANG = {
   // 227 → 226 (ErrorMasuk di index.ts) → 225 (EmbedScope di mandor.ts), 2026-07-31.
-  '@typescript-eslint/no-explicit-any': 225,
+  '@typescript-eslint/no-explicit-any': 224,   // 225 -> 224: embed clients di search.ts diberi tipe (2026-08-02)
   // 16 → 10 (2026-08-02): tujuh impor `supabase` yatim, sisa dari migrasi
   // bertahap ke `request.db`. Enam sudah yatim sebelum hari ini; yang ketujuh
   // (`milestones`) baru menjadi yatim saat seluruh query-nya dialihkan.

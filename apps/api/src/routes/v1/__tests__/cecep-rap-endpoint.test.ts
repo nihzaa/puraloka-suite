@@ -119,11 +119,11 @@ beforeAll(async () => {
   await client.query(`UPDATE assemblies SET status='active' WHERE id=$1`, [asm[0].id])
 
   const { rows: clnt } = await client.query(
-    `INSERT INTO clients (contact_person, phone, created_by) VALUES ('[TEST-RAP-EP] Klien', '08', $1) RETURNING id`,
+    `INSERT INTO clients (company_id, contact_person, phone, created_by) VALUES ((SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1), '[TEST-RAP-EP] Klien', '08', $1) RETURNING id`,
     [adminUserId])
   const { rows: pr } = await client.query(
-    `INSERT INTO projects (client_id, pm_id, name, location, start_date, end_date, created_by)
-     VALUES ($1, $2, '[TEST-RAP-EP] Proyek', 'Bandung', CURRENT_DATE, CURRENT_DATE + 30, $2) RETURNING id`,
+    `INSERT INTO projects (company_id, client_id, pm_id, name, location, start_date, end_date, created_by)
+     VALUES ((SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1), $1, $2, '[TEST-RAP-EP] Proyek', 'Bandung', CURRENT_DATE, CURRENT_DATE + 30, $2) RETURNING id`,
     [clnt[0].id, adminUserId])
   projectId = pr[0].id
   const { rows: sc } = await client.query(
@@ -184,8 +184,12 @@ describe('POST /projects/:projectId/rap — derivasi take-off (GOLDEN, celah yan
   it('versi estimasi bukan milik proyek ini → 400', async () => {
     actAs(adminAuth)
     const { rows: pr2 } = await client.query(
-      `INSERT INTO projects (client_id, pm_id, name, location, start_date, end_date, created_by)
-       SELECT client_id, pm_id, '[TEST-RAP-EP] Proyek Lain', location, start_date, end_date, created_by
+      // `company_id` diwariskan eksplisit dari proyek sumber, bukan diserahkan
+      // ke fallback `fn_isi_company_id()` — fallback itu hanya mengisi bila
+      // `companies` berisi TEPAT SATU baris, dan berhenti bekerja begitu ada
+      // test lain (atau tenant kedua) yang membuat company. Lihat F0-14.
+      `INSERT INTO projects (company_id, client_id, pm_id, name, location, start_date, end_date, created_by)
+       SELECT company_id, client_id, pm_id, '[TEST-RAP-EP] Proyek Lain', location, start_date, end_date, created_by
        FROM projects WHERE id = $1 RETURNING id`, [projectId])
     const res = await post(`/api/v1/projects/${pr2[0].id}/rap`, { estimate_version_id: versionId })
     expect(res.statusCode).toBe(400)

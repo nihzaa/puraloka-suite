@@ -54,8 +54,19 @@ const lessonStatus = async (id: string) =>
 async function purge() {
   await client.query(`SET session_replication_role='replica'`)
   try {
+    // ⚠️ Saringan SEMPIT ('[TEST] Loop Intelijen'), bukan '[TEST]%'.
+    //
+    // Versi sebelumnya menyapu SETIAP proyek berawalan '[TEST]' — dan 17 berkas
+    // test lain memakai awalan yang sama di schema `public` BERSAMA. Berjalan
+    // berurutan itu tak pernah terlihat; berjalan PARALEL (6 shard), berkas ini
+    // menghapus proyek yang sedang dipakai shard lain, lalu shard itu gagal:
+    //
+    //     insert or update on table "lessons_learned_records" violates
+    //     foreign key constraint "lessons_learned_records_project_id_fkey"
+    //
+    // Pembersihan yang menyapu milik orang lain bukan pembersihan.
     await client.query(`DELETE FROM approval_progress WHERE entity_type='lessons_learned'
-      AND entity_id IN (SELECT l.id FROM lessons_learned_records l JOIN projects p ON p.id=l.project_id WHERE p.name LIKE '[TEST]%')`)
+      AND entity_id IN (SELECT l.id FROM lessons_learned_records l JOIN projects p ON p.id=l.project_id WHERE p.name = '[TEST] Loop Intelijen')`)
     await client.query(`DELETE FROM productivity_records WHERE source='variance' AND cost_code_id IN (SELECT id FROM cost_codes WHERE code LIKE 'CC-LLWB%')`)
     await client.query(`DELETE FROM price_book_entries WHERE resource_id IN (SELECT id FROM resources WHERE code LIKE 'RBS-LLWB%')`)
     await client.query(`DELETE FROM productivity_records WHERE cost_code_id IN (SELECT id FROM cost_codes WHERE code LIKE 'CC-LLWB%')`)
@@ -72,9 +83,13 @@ async function purge() {
     // Pembersihan yang melewatkan tabel utamanya bukan pembersihan.
     await client.query(
       `DELETE FROM lessons_learned_records
-       WHERE title LIKE '[TEST]%'
-          OR NOT EXISTS (SELECT 1 FROM projects p WHERE p.id = lessons_learned_records.project_id)`)
-    await client.query(`DELETE FROM projects WHERE name LIKE '[TEST]%'`)
+       -- Judul '[TEST] Lesson' adalah milik berkas INI, dan sudah mencakup
+       -- yatim dari run sebelumnya (baris yang proyeknya keburu hilang).
+       -- Menyapu SEMUA yatim — seperti versi sebelumnya — akan menghapus residu
+       -- berkas lain yang sedang berjalan paralel.
+       WHERE title = '[TEST] Lesson'
+          OR project_id IN (SELECT id FROM projects WHERE name = '[TEST] Loop Intelijen')`)
+    await client.query(`DELETE FROM projects WHERE name = '[TEST] Loop Intelijen'`)
     await client.query(`DELETE FROM cost_codes WHERE code LIKE 'CC-LLWB%'`)
     await client.query(`DELETE FROM resources WHERE code LIKE 'RBS-LLWB%'`)
   } finally { await client.query(`SET session_replication_role='origin'`) }
@@ -95,8 +110,8 @@ beforeAll(async () => {
   await purge()
   const { rows: cl } = await client.query(`SELECT id FROM clients LIMIT 1`)
   const { rows: pr } = await client.query(
-    `INSERT INTO projects (client_id,pm_id,name,location,start_date,end_date,created_by)
-     VALUES ($1,$2,'[TEST] Loop Intelijen','Bandung',CURRENT_DATE,CURRENT_DATE+30,$2) RETURNING id`, [cl[0].id, adminUserId])
+    `INSERT INTO projects (company_id, client_id,pm_id,name,location,start_date,end_date,created_by)
+     VALUES ((SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1), $1,$2,'[TEST] Loop Intelijen','Bandung',CURRENT_DATE,CURRENT_DATE+30,$2) RETURNING id`, [cl[0].id, adminUserId])
   projectId = pr[0].id
   const { rows: rr } = await client.query(
     `INSERT INTO resources (code,name,category,unit_code,created_by) VALUES ('RBS-LLWB-TK','Tukang Besi','labor','OH',$1) RETURNING id`, [adminUserId])

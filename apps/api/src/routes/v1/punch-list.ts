@@ -210,6 +210,7 @@ export default async function punchListRoutes(app: FastifyInstance) {
           // temuan yang baru diketahui saat serah terima.
           if (body.ditugaskan_ke) {
             await createNotifications([{
+              company_id: request.companyId!,
               user_id: body.ditugaskan_ke,
               title: `Temuan baru: ${nomor}`,
               message: `${judul}${body.lokasi ? ` — ${body.lokasi}` : ''}`,
@@ -384,6 +385,7 @@ export default async function punchListRoutes(app: FastifyInstance) {
       // berkepentingan tahu, dan ia bukan orang yang menekan tombolnya.
       if ((baru === 'ditutup' || baru === 'ditolak') && lama.ditemukan_oleh !== request.currentUser!.id) {
         await createNotifications([{
+          company_id: request.companyId!,
           user_id: lama.ditemukan_oleh,
           title: `Temuan ${lama.nomor} ${baru === 'ditutup' ? 'ditutup' : 'ditolak'}`,
           message: baru === 'ditolak'

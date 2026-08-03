@@ -87,7 +87,48 @@ for (const f of berkasRute(AKAR)) {
     const [, tabel, daftar] = m
     const set = kol.get(tabel)
     if (!set) continue   // tabel tak dikenal (view/rpc) — bukan urusan penjaga ini
-    // Buang embed `rel(...)` dan alias `x:y` — keduanya bukan nama kolom polos.
+    // ── Embed `alias:tabel!fkey(kolom, …)` — DIPERIKSA, tidak dibuang
+    //
+    // Versi pertama penjaga ini membuang seluruh embed karena "bukan nama
+    // kolom polos". Akibatnya `clients:clients!projects_client_id_fkey(name)`
+    // di `search.ts` LOLOS — padahal `clients.name` tak ada, dan header skrip
+    // ini sendiri menyebutnya sebagai salah satu dari enam bug yang
+    // melahirkannya. Bug itu diperbaiki di blok `clients`, tapi blok `projects`
+    // terlewat, dan penjaganya buta terhadapnya sampai 2026-08-02.
+    //
+    // Akibat nyatanya: SELURUH pencarian proyek gagal dengan
+    // "column clients_1.name does not exist" — errornya dibuang, hasilnya
+    // kosong, tak ada gejala. Search tak pernah menemukan proyek.
+    for (const em of daftar.matchAll(/(?:(\w+)\s*:\s*)?(\w+)(?:!\w+)?\s*\(([^)]*)\)/g)) {
+      const [, , tabelEmbed, isiEmbed] = em
+      const setEmbed = kol.get(tabelEmbed)
+      if (!setEmbed) continue   // relasi ber-alias yang tabelnya tak dikenal
+
+      // Embed BERSARANG (`a(b(kolom))`) di luar jangkauan regex ini: `[^)]*`
+      // berhenti di kurung tutup pertama, sehingga `kolom` milik `b` salah
+      // ditautkan ke `a`. Dua false-positive nyata ditemukan begitu
+      // (`mandor_assignments.name`, `purchase_order_items.name` — keduanya
+      // sebenarnya `projects.name`/`suppliers.name`).
+      //
+      // Dilewati, bukan ditebak: penjaga yang menuduh salah akan dilatih
+      // untuk diabaikan, dan itu lebih buruk daripada satu pola tak terjangkau.
+      if (/\w+\s*\(/.test(isiEmbed)) continue
+
+      for (const raw of isiEmbed.split(',')) {
+        const nama = raw.trim().split(':').pop().trim()
+        if (!nama || !/^\w+$/.test(nama)) continue
+        if (!setEmbed.has(nama)) {
+          temuan.push({
+            berkas: f.split(/[\\/]/).pop(),
+            baris: isi.slice(0, m.index).split('\n').length,
+            ref: `${tabelEmbed}.${nama}  (embed di ${tabel})`,
+          })
+        }
+      }
+    }
+
+    // Sisanya: kolom polos. Embed & alias `x:y` dibuang di sini karena sudah
+    // diperiksa di atas.
     const bersih = daftar.replace(/\w+\s*\([^)]*\)/g, '').replace(/\*/g, '')
     for (const raw of bersih.split(',')) {
       const nama = raw.trim().split(':').pop().trim()

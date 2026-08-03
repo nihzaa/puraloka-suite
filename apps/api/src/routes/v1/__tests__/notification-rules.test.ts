@@ -45,9 +45,9 @@ beforeAll(async () => {
 
   await client.query(`DELETE FROM notification_rules WHERE event_type = $1`, [TEST_EVENT])
   const { rows } = await client.query(
-    `INSERT INTO notification_rules (event_type, label) VALUES ($1, 'Aturan Uji') RETURNING id`, [TEST_EVENT])
+    `INSERT INTO notification_rules (company_id, event_type, label) VALUES ((SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1), $1, 'Aturan Uji') RETURNING id`, [TEST_EVENT])
   await client.query(
-    `INSERT INTO notification_rule_targets (rule_id, target_type, role_name) VALUES ($1, 'role', 'admin')`,
+    `INSERT INTO notification_rule_targets (company_id, rule_id, target_type, role_name) VALUES ((SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1), $1, 'role', 'admin')`,
     [rows[0].id])
 }, 60_000)
 

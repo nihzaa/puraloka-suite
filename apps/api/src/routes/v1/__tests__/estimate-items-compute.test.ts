@@ -105,11 +105,11 @@ beforeAll(async () => {
   }
 
   const { rows: cl } = await client.query(
-    `INSERT INTO clients (contact_person, phone, created_by) VALUES ('[TEST-EI] Klien', '08', $1) RETURNING id`,
+    `INSERT INTO clients (company_id, contact_person, phone, created_by) VALUES ((SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1), '[TEST-EI] Klien', '08', $1) RETURNING id`,
     [adminUserId])
   const { rows: pr } = await client.query(
-    `INSERT INTO projects (client_id, pm_id, name, location, start_date, end_date, created_by)
-     VALUES ($1, $2, '[TEST-EI] Proyek', 'Bandung', CURRENT_DATE, CURRENT_DATE + 30, $2) RETURNING id`,
+    `INSERT INTO projects (company_id, client_id, pm_id, name, location, start_date, end_date, created_by)
+     VALUES ((SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1), $1, $2, '[TEST-EI] Proyek', 'Bandung', CURRENT_DATE, CURRENT_DATE + 30, $2) RETURNING id`,
     [cl[0].id, adminUserId])
   const { rows: sc } = await client.query(
     `INSERT INTO scenarios (project_id, name, created_by) VALUES ($1, '[TEST-EI] Skenario', $2) RETURNING id`,

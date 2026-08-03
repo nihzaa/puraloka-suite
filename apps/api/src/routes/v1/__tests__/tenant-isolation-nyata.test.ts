@@ -151,6 +151,11 @@ describe('P2 — jaring pengaman DB (migration 128) saat tenant > 1', () => {
     // selama satu tenant ia mengisi otomatis; begitu ambigu ia membiarkan NULL
     // dan constraint NOT NULL yang menolak. Diuji di sini karena hanya di
     // konteks 2-tenant perilaku itu bisa dibuktikan.
+    //
+    // ⚠️ JANGAN tambahkan `company_id` ke INSERT di bawah. Hilangnya kolom itu
+    // ADALAH inti ujinya. Sempat ditambahkan tanpa sengaja saat sapuan F0-14
+    // (2026-08-03) dan test langsung merah — untungnya, karena kalau lolos ia
+    // akan hijau selamanya tanpa menguji apa pun.
     await expect(
       c.query(`INSERT INTO clients (contact_person, phone, created_by)
                VALUES ('[UJI-P2] tanpa company', '08', $1)`, [userId])

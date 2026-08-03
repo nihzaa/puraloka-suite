@@ -9,11 +9,11 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: 'inventory (A1) | setup (A2) | setup-clean (WIPE + replay bersih)'
+        description: 'inventory (A1) | periksa-gl (R-001 syarat 1) | setup (A2) | setup-clean (WIPE + replay bersih)'
         required: true
         default: inventory
         type: choice
-        options: [inventory, setup, setup-clean]
+        options: [inventory, periksa-gl, setup, setup-clean]
 
 concurrency:
   group: ci-isolation-ops-${{ github.run_id }}
@@ -42,6 +42,20 @@ jobs:
       - name: A1 Inventory CI project (read-only)
         if: ${{ inputs.action == 'inventory' }}
         run: node scripts/ci-project-inventory.mjs
+        env:
+          CI_DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      # R-001 syarat (1) — periksa BENTUK tabel GL di project CI sebelum
+      # memensiunkan migrasi 047. READ-ONLY.
+      #
+      # Exit 0 = aman (accounts belum ada, ATAU sudah memakai bentuk 167).
+      # Exit 2 = accounts memakai bentuk 047 tanpa company_id → GL tenant-blind,
+      #          dan tabelnya TAK BISA diperbaiki dengan menjalankan 167 karena
+      #          167 memakai CREATE TABLE IF NOT EXISTS. Reset CI dari nol wajib:
+      #          gh workflow run ci-isolation.yml -f action=setup-clean
+      - name: Periksa bentuk GL di project CI (R-001 syarat 1, read-only)
+        if: ${{ inputs.action == 'periksa-gl' }}
+        run: node scripts/ci-periksa-bentuk-gl.mjs
         env:
           CI_DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 

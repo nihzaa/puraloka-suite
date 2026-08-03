@@ -50,7 +50,7 @@ async function purge() {
   try {
     await client.query(`DELETE FROM approval_progress WHERE entity_type='estimate_version'
       AND entity_id IN (SELECT ev.id FROM estimate_versions ev JOIN scenarios s ON s.id=ev.scenario_id
-      JOIN projects p ON p.id=s.project_id WHERE p.name LIKE '[TEST]%')`)
+      JOIN projects p ON p.id=s.project_id WHERE p.name = '[TEST] Estimasi Approval')`)
     // ⚠️ Rantai estimasi dihapus EKSPLISIT, bukan diserahkan ke CASCADE.
     //
     // `session_replication_role='replica'` di atas dipasang supaya trigger
@@ -64,12 +64,12 @@ async function purge() {
     // sebelum ketahuan (2026-08-02). Urutan penting: anak dulu, induk terakhir.
     await client.query(`DELETE FROM estimate_items WHERE estimate_version_id IN
       (SELECT ev.id FROM estimate_versions ev JOIN scenarios s ON s.id=ev.scenario_id
-       JOIN projects p ON p.id=s.project_id WHERE p.name LIKE '[TEST]%')`)
+       JOIN projects p ON p.id=s.project_id WHERE p.name = '[TEST] Estimasi Approval')`)
     await client.query(`DELETE FROM estimate_versions WHERE scenario_id IN
-      (SELECT s.id FROM scenarios s JOIN projects p ON p.id=s.project_id WHERE p.name LIKE '[TEST]%')`)
+      (SELECT s.id FROM scenarios s JOIN projects p ON p.id=s.project_id WHERE p.name = '[TEST] Estimasi Approval')`)
     await client.query(`DELETE FROM scenarios WHERE project_id IN
-      (SELECT id FROM projects WHERE name LIKE '[TEST]%')`)
-    await client.query(`DELETE FROM projects WHERE name LIKE '[TEST]%'`)
+      (SELECT id FROM projects WHERE name = '[TEST] Estimasi Approval')`)
+    await client.query(`DELETE FROM projects WHERE name = '[TEST] Estimasi Approval'`)
   } finally {
     await client.query(`SET session_replication_role = 'origin'`)
   }
@@ -91,8 +91,8 @@ beforeAll(async () => {
   await purge()
   const { rows: cl } = await client.query(`SELECT id FROM clients LIMIT 1`)
   const { rows: pr } = await client.query(
-    `INSERT INTO projects (client_id, pm_id, name, location, start_date, end_date, created_by)
-     VALUES ($1,$2,'[TEST] Estimasi Approval','Bandung',CURRENT_DATE,CURRENT_DATE+30,$2) RETURNING id`,
+    `INSERT INTO projects (company_id, client_id, pm_id, name, location, start_date, end_date, created_by)
+     VALUES ((SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1), $1,$2,'[TEST] Estimasi Approval','Bandung',CURRENT_DATE,CURRENT_DATE+30,$2) RETURNING id`,
     [cl[0].id, adminUserId])
   projectId = pr[0].id
   const { rows: sc } = await client.query(
@@ -230,8 +230,9 @@ describe('Berjenjang (2 level) — endpoint pending → final via engine', () =>
       `DELETE FROM approval_steps WHERE level >= 2 AND chain_id IN
         (SELECT id FROM approval_chains WHERE entity_type='estimate_version')`)
     const { rows } = await client.query(
-      `INSERT INTO approval_steps (chain_id, level, required_permission, label)
-       SELECT id, 2, 'settings:finance:manage', '[TEST] L2' FROM approval_chains
+      // `company_id` diwariskan dari chain induknya — lihat catatan F0-14.
+      `INSERT INTO approval_steps (company_id, chain_id, level, required_permission, label)
+       SELECT company_id, id, 2, 'settings:finance:manage', '[TEST] L2' FROM approval_chains
         WHERE entity_type='estimate_version' RETURNING id`)
     level2Id = rows[0].id
   })

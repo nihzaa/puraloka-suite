@@ -1,0 +1,5 @@
+{
+  "_catatan": "Lantai literal peran (ADR-004). Boleh TURUN, tak boleh NAIK. Lihat scripts/audit-literal-peran.mjs.",
+  "_utang": "Pembersihan terjadwal di QUEUE.yaml F3-1 (Fase 3).",
+  "maks": 52
+}

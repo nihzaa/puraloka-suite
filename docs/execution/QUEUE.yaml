@@ -1,0 +1,671 @@
+# ============================================================================
+# QUEUE — Antrean kerja mesin-terbaca.
+# ============================================================================
+# Diturunkan dari: CHARTER.md §3 (fase), docs/audit/2026-08-02/FINDINGS.csv,
+# docs/ROADMAP.md, dan temuan Fase 0.
+#
+# status: todo | wip | blocked | done | ratifikasi
+# Aturan: jangan melompati fase. Item `blocked` menunggu `blokir_oleh` selesai.
+# Bila item tersisa < 15 → turunkan item baru (CHARTER §9).
+# ============================================================================
+
+meta:
+  diperbarui: 2026-08-03
+  fase_aktif: 1
+  # ── GERBANG FASE 0: HIJAU PENUH (2026-08-03) ──────────────────────────────
+  fase_0:
+    status: SELESAI
+    selesai: [F0-1, F0-2, F0-3, F0-4, F0-5, F0-6, F0-7, F0-8, F0-9, F0-10,
+              F0-11, F0-12, F0-13, F0-14, F0-15, F0-16, R-001, R-002]
+    bukti: >
+      CI 11/11 check hijau (run 30806370508), wall-clock 21,9 -> 5,4 menit (4,1x).
+      Suite 131 berkas / 1313 lulus. 16 penjaga arsitektural, 8 di antaranya
+      TERBUKTI bisa merah (CI-BUKTI.md). Branch protection aktif & terbukti
+      memblokir. Buku migrasi selaras artefak fisik. Cacat P0 GL tenant-blind
+      diperbaiki & diverifikasi di CI sungguhan.
+    catatan: >
+      Empat cacat isolasi tenancy ditemukan saat sharding — semuanya kelas yang
+      sama (test menulis ke schema public bersama sambil berasumsi global), dan
+      semuanya nyata untuk multi-tenant, bukan sekadar penghalang CI. Trigger
+      fn_isi_company_id TIDAK PERNAH dilonggarkan.
+
+items:
+  # ── FASE 0 — PEMULIHAN KEPERCAYAAN ────────────────────────────────────────
+  - id: F0-1
+    fase: 0
+    judul: "Alat introspeksi DB kanonik tunggal"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "satu metode koneksi, alasan tertulis di header"
+      - "identitas + schema_hash dicetak tiap run"
+      - "menolak jalan bila cwd bukan root repo"
+      - "output deterministik (byte-identik antar run)"
+    cara_verifikasi: "node scripts/db/introspect.mjs identity (3x) + sha256sum tables --json (2x)"
+    bobot: M
+    status: done
+    bukti: "schema_hash=7a4be5d7d87d9892 identik 3 run; sha256 tables identik 2 run; cwd guard menolak dari apps/api & docs"
+
+  - id: F0-2
+    fase: 0
+    judul: "Verifikasi ulang tujuh angka kepala + terbitkan KOREKSI.md"
+    blokir_oleh: [F0-1]
+    kriteria_selesai:
+      - "tiap angka: klaim lama -> angka benar -> cara mengukur"
+      - "daftar LENGKAP tabel punya/tanpa company_id"
+      - "bukti nol kolom float"
+    cara_verifikasi: "docs/audit/2026-08-02/KOREKSI.md terbit"
+    bobot: M
+    status: done
+    bukti: "8/10 angka benar; trigger 192->156/175 SALAH; migrasi 174->171 berkas SALAH"
+
+  - id: F0-3
+    fase: 0
+    judul: "Racun konteks agent: tulis ulang CLAUDE.md + buang .worktrees + penjaga CI"
+    blokir_oleh: [F0-2]
+    kriteria_selesai:
+      - "SUDAH: CLAUDE.md ditulis ulang dari nol (897 -> 200 baris), nol angka yang bisa basi"
+      - "SUDAH: .worktrees dikeluarkan dari pencarian via .claudeignore (sudah di .gitignore sejak lama; vitest sudah scoped ke apps/api/src sehingga tak perlu exclude tambahan)"
+      - "SUDAH: penjaga CI docs-freshness — diuji dua arah (bersih=0, angka busuk=1)"
+      - "SUDAH: penjaga CI no-stale-docs-path — 247 berkas .md, nol duplikat"
+      - "SUDAH: CI penuh HIJAU di GitHub — kelima job, run 30761368609"
+    cara_verifikasi: "5 job CI hijau + 15 penjaga exit 0"
+    bobot: M
+    status: done
+    bukti: >
+      Run 30761368609: Keamanan, Browser, Web, API, Dokumentasi — SEMUA success.
+      Job API 130/130 berkas, 1301 lulus, 0 gagal. Penjaga docs-freshness &
+      no-stale-docs-path karenanya benar-benar menjaga, bukan hanya terpasang.
+      Sempat `wip` panjang karena tiga blokir berurutan yang semuanya nyata:
+      (1) ci.yml disaring `branches:[main]` → PR bertumpuk nol check;
+      (2) Actions tak menjalankan job sama sekali (kuota, repo privat);
+      (3) seed CI tak lengkap → 163 test merah (F0-13).
+      Ketiganya tuntas; verifikasi CI sesungguhnya akhirnya terjadi.
+
+  - id: F0-4
+    fase: 0
+    judul: "Jaring pengaman rollback: hilangkan flake schema bersama + rollback tiap tipe migrasi tenancy"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "SUDAH: akar dibuktikan — bukan cacat bootstrap, bukan cacat produksi, melainkan lock contention DROP SCHEMA pada schema `test` yang dipakai 27 berkas"
+      - "SUDAH: lulus sendirian 3/3 (23 test) dan lulus dalam suite penuh (129/129 berkas, 1299 test)"
+      - "SUDAH: suite penuh lulus 4 RUN BERTURUT (129/129, 1299 lulus) — 217,4s / 220,0s / 221,4s / 228,9s"
+      - "SUDAH: isolasi schema — DITOLAK sebagai pekerjaan, lihat catatan. Mitigasi existing terbukti cukup."
+      - "SUDAH: rollback tambah kolom / backfill / NOT NULL — multitenant-t3-rollback.test.ts (23 test)"
+      - "SUDAH: rollback POLICY — t5a-policy-rollback.test.ts (6 test), tipe terakhir yang belum terjaga"
+    cara_verifikasi: "vitest run t5a-policy-rollback + multitenant-t3-rollback + suite penuh"
+    bobot: L
+    status: done
+    bukti: >
+      Rollback policy (tipe ke-4) kini terjaga: 6 test lulus, dan MUTATION-TESTED —
+      saat DROP POLICY sengaja dilewati, test GAGAL (1 failed/5 passed), jadi ia
+      benar-benar bisa gagal, bukan hijau kosong. Yang dibuktikan: katalog kembali
+      persis, policy PERMISSIVE existing tak ikut terhapus (inti komposisi ADR-011
+      §7), tabel hidup kembali (bukan mati total spt peringatan T1-F3 di migrasi
+      131), idempoten, dan policy bisa dipasang ULANG setelah rollback.
+    catatan: >
+      ISOLASI SCHEMA PER-BERKAS SENGAJA TIDAK DIKERJAKAN. Kriteria awal menuntutnya,
+      tapi setelah diukur itu keliru arah: `fileParallelism: false` membuat berkas
+      berjalan SEQUENTIAL, dan test-db.ts SUDAH memasang lock_timeout 10s + 3 kali
+      retry + pesan diagnostik eksplisit. Diuji stres (5 berkas ber-resetTestSchema,
+      2 putaran): 45/45 lulus dua-duanya; plus 4 run suite penuh berturut hijau.
+      Menambah schema unik per-berkas berarti 129 CREATE/DROP SCHEMA per run —
+      memperlambat suite demi masalah yang mitigasinya sudah terbukti bekerja.
+      Kalau flake muncul lagi, catatan ini yang ditinjau ulang lebih dulu.
+      C-4 terjawab: vonis 'cacat harness' SALAH (test lulus sendirian), vonis 'bukan
+      cacat produksi' BENAR lewat alasan lain. Kebetulan-benar = kegagalan metode.
+
+  - id: F0-5
+    fase: 0
+    judul: "Coverage sungguhan + ratchet CI"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "SUDAH: coverage terukur — statements/lines 31,98%, branches 68,49%, functions 81,96%"
+      - "SUDAH: ratchet (lantai hari ini) terpasang, BUKAN target aspirasional"
+      - "SUDAH: 27 route ber-coverage NOL dilaporkan di COVERAGE-BASELINE.md"
+      - "SUDAH: digabung ke langkah Test yang ada — suite 3,5 menit tak dijalankan dua kali"
+      - "BELUM (Fase 1+): naikkan coverage route jalur-uang (penalty 4,2%, kasbon-limit 5,3%)"
+    cara_verifikasi: "node apps/api/scripts/coverage-ratchet.mjs (exit 0 = tak ada yang turun)"
+    bobot: M
+    status: done
+    bukti: >
+      Suite penuh 129 berkas / 1299 lulus / 221,4s. Ratchet exit 0 terhadap lantai.
+      Dua cacat penjaga ditemukan & diperbaiki saat membangunnya: (1) toleransi 0,5%
+      karena v8 bergoyang (branches 68,49->68,48); (2) penjaga apel-vs-jeruk — ratchet
+      MENOLAK membandingkan run sebagian (src/lib saja = 8,57% vs lantai 31,98%,
+      vonis TURUN palsu). Sidik cakupan = baris tereksekusi (1.821 vs 6.794), bukan
+      jumlah berkas, karena v8 tetap mendaftar semua berkas ter-include walau nol.
+
+  - id: F0-6
+    fase: 0
+    judul: "Ledger-diff dengan bukti artefak fisik"
+    blokir_oleh: [F0-1]
+    kriteria_selesai:
+      - "parser sadar blok DO/EXECUTE"
+      - "verdict hijau HANYA bila artefak fisik terbukti"
+      - "TIDAK ada flag tulis"
+      - "LEDGER-DIFF.md terbit"
+    cara_verifikasi: "node scripts/db/ledger-diff.mjs"
+    bobot: M
+    status: done
+    bukti: "171 berkas, 160 tercatat; 144 konsisten, 15 artefak-hilang, 12 perlu-mata-manusia; P0 047vs167 ditemukan"
+
+  - id: F0-7
+    fase: 0
+    judul: "Golden file: selesaikan ketidakcocokan angka jangkar"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "tentukan workbook otoritatif di _source/ahsp/"
+      - "jelaskan kenapa 3.629.860.295,31 != 1.657.839.590,39"
+      - "assertion untuk 109,5 dan 7875 bila angkanya ada di berkas otoritatif"
+      - "bila mesin AHSP salah -> naikkan P0"
+    cara_verifikasi: "vitest run golden + tempel output"
+    bobot: L
+    status: done
+    bukti: >
+      docs/execution/GOLDEN-FILE-INVESTIGASI.md. Hipotesis "dua berkas berbeda"
+      GUGUR — .xls dan .xlsx isinya identik (.xlsx = re-save). 278300 & 266600
+      terbukti eksak & diuji (15 lulus/938ms). 1.657.839.590,39, 109,5, 7875 TIDAK
+      ADA di kedua berkas, seluruh 22 sheet; kandidat terdekat 1.642.531.571
+      (subtotal beton, selisih 15,3jt — bukan PPN/PPh/pembulatan). Assertion TIDAK
+      ditambahkan (mengunci tebakan = kesalahan yang Fase 0 berantas). Mesin AHSP
+      TIDAK terbukti salah -> tidak dinaikkan P0. Pertanyaan sumber -> R-005.
+
+  - id: F0-8
+    fase: 0
+    judul: "Bersihkan schema sisa mutation-test (mut6) dari DB dev"
+    blokir_oleh: []
+    kriteria_selesai: ["schema mut6 hilang atau didokumentasikan sebagai sengaja"]
+    cara_verifikasi: "introspect triggers-all-schemas"
+    bobot: S
+    status: done
+    catatan: "G-2 (DROP SCHEMA). Ditemukan saat F0-2."
+
+  - id: F0-9
+    fase: 0
+    judul: "Penjaga penomoran migrasi (nomor tak boleh melompat/bentrok)"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "CI gagal bila ada nomor ganda"
+      - "CI gagal bila ada lompatan BARU; lompatan lama dikecualikan beralasan"
+    cara_verifikasi: "node apps/api/scripts/audit-penomoran-migrasi.mjs"
+    bobot: S
+    status: done
+    bukti: >
+      171 berkas, tertinggi 174, lompatan lama 30/59/64 (59 = seed_dummy_data,
+      30 & 64 tak pernah ada di histori git). Diuji dua arah: nomor ganda -> exit 1,
+      lompatan baru -> exit 1, bersih -> exit 0. Terpasang di CI.
+
+  - id: F0-10
+    fase: 0
+    judul: "Golden file kedua: kunci 1.657.839.590,39 / 109,5 / 7875 sebagai assertion"
+    blokir_oleh: [F0-7]
+    kriteria_selesai:
+      - "harness pembaca .xlsm (117 sheet, bermakro) untuk Format RAB Control 2026"
+      - "assertion REKAPITULASI!E15 = 1.657.839.590,39 (TOTAL BIAYA sebelum PPN)"
+      - "assertion LAPORAN RAB!H114 = 109,5 volume x I114 = J114 (silang)"
+      - "assertion DINDING BATA MERAH!L41 = 7875 buah"
+      - "PERTIMBANGKAN: PPN dua-angka — label '11%' tapi pengali 0,12 (F16), hasil terverifikasi"
+    cara_verifikasi: "vitest run golden + tempel output"
+    bobot: M
+    status: done
+    bukti: >
+      golden-rab-control-2026.test.ts — 8 test lulus, MUTATION-TESTED tiga arah
+      (total digeser 1 rupiah, tarif PPN 0,12->0,11, volume 109,5->109,6): ketiganya
+      MERAH. Alamat sel dikoreksi saat menulis: E15 ternyata subtotal divisi F, yang
+      benar E18 — sheet_to_json melewati baris kosong sehingga nomor tampilan bukan
+      nomor sel. Yang dikunci bukan cuma nilai sel melainkan RANTAI aritmetikanya
+      (Sigma divisi = total; total x tarif = PPN; total + PPN = akhir; volume x harga
+      = jumlah). Plus satu asersi yang menjaga kedua golden file tak tertukar.
+    bukti: >
+      Diratifikasi founder 2026-08-03 ("hapus ajaa"). SEBELUM: 29 tabel, 149 baris,
+      aktivitas terakhir -Infinity (tak pernah disentuh). Ketergantungan objek public
+      ke mut6 diperiksa lebih dulu = 0, baru DROP SCHEMA CASCADE dijalankan.
+      SESUDAH: mut6 HILANG, public tetap 122 tabel, schema_hash TIDAK BERUBAH
+      (7a4be5d7d87d9892) — bukti public tak tersentuh sama sekali.
+    catatan: >
+      R-005 TERJAWAB — ketiganya ada di _source/ahsp/Format RAB Control 2026, BUKAN
+      di Cibuluh (proyek berbeda: 1,66 M vs 3,63 M). Sumber & makna terverifikasi
+      silang. Belum dijadikan assertion karena butuh harness .xlsm tersendiri —
+      itu pekerjaan, bukan keraguan. Detail: GOLDEN-FILE-INVESTIGASI.md.
+
+  - id: F0-11
+    fase: 0
+    judul: "R-001 syarat 1: periksa bentuk GL di project CI sebelum/sesudah eksekusi"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "SUDAH: alat ci-periksa-bentuk-gl.mjs (read-only) + action periksa-gl di ci-isolation.yml"
+      - "SUDAH: dijalankan sungguhan — verdict C (GL tenant-blind) terbukti di project CI"
+      - "SUDAH: fallback dijalankan — setup-clean, aman karena ketiga tabel 0 baris"
+      - "SUDAH: re-periksa setelah reset → verdict B (AMAN), accounts 38 baris company_id=YA"
+    cara_verifikasi: "gh workflow run ci-isolation.yml -f action=periksa-gl"
+    bobot: S
+    status: done
+    bukti: >
+      Sebelum: accounts company_id=TIDAK, penanda 047, buku 047=TERCATAT/167=tidak,
+      VERDICT C. Sesudah setup-clean: accounts 38 baris company_id=YA penanda 167,
+      buku 047 & 167 KEDUANYA tercatat, VERDICT B AMAN. Syarat 1 founder terpenuhi
+      dengan bukti pengukuran, bukan asumsi.
+
+  - id: F0-12
+    fase: 0
+    judul: "P1 — rantai migrasi TIDAK BISA di-replay dari nol: 137 gagal di DB tanpa user"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "SUDAH: setup-clean berhasil SAMPAI SELESAI (173 migrasi + seed) — run 30760026795 success"
+      - "SUDAH: akar dibuktikan (126 v_admin NULL di DB bersih karena seed berjalan SETELAH migrasi)"
+      - "SUDAH: penjaga 137 TIDAK dilemahkan — masih melempar bila ada user tapi akar yatim (uji negatif lulus)"
+      - "SUDAH: GL terverifikasi bentuk 167 setelah replay (accounts 38 baris, company_id=YA, verdict B AMAN)"
+    cara_verifikasi: "gh workflow run ci-isolation.yml -f action=setup-clean → success"
+    bobot: M
+    status: done
+    bukti: >
+      Sebelum: replay berhenti di 137. Sesudah: WIPE → 150+ migrasi applied →
+      seluruh seed OK → success. periksa-gl setelahnya: accounts ADA 38 baris
+      company_id=YA penanda 167, buku 047 & 167 KEDUANYA tercatat, VERDICT B AMAN
+      (sebelumnya VERDICT C GL TENANT-BLIND). Cacat pada perbaikan sendiri
+      ditemukan lewat uji: SET search_path pada SECURITY DEFINER membuat trigger
+      menulis ke public alih-alih schema berjalan — dibuang, ikut konvensi repo
+      (64 fungsi SECURITY DEFINER, nol memakai SET search_path).
+
+  - id: F0-13
+    fase: 0
+    judul: "P1 — seed CI tidak lengkap: 163 test gagal di DB yang baru di-wipe"
+    blokir_oleh: [F0-12]
+    kriteria_selesai:
+      - "suite di project CI hijau setara lokal (1299 lulus)"
+      - "akar dibuktikan per-kelompok kegagalan, bukan ditebak"
+      - "seed CI melengkapi apa pun yang dibutuhkan test, ATAU test menyediakan fixture-nya sendiri"
+    cara_verifikasi: "CI job 'API — lint, typecheck, test, build' hijau + tempel ringkasan"
+    bobot: L
+    status: done
+    bukti: >
+      Run 30761368609 — KELIMA job CI HIJAU untuk pertama kalinya. Job API:
+      130/130 berkas, 1301 lulus, 5 skipped, 0 GAGAL (sebelumnya 1132/163).
+      Ratchet coverage lulus (31,76% vs lantai 31,98% — dalam toleransi 0,5%).
+      Akar tunggal: seluruh user seed tak punya baris company_members, sehingga
+      resolveCompanyId() (auth.ts:82) membalas 403 untuk SETIAP request.
+      Migrasi 126 mendaftarkan "user existing" tapi di CI ia jalan SEBELUM seed.
+      Seed kini mendaftarkan + MEMVERIFIKASI hasilnya (5 anggota terdaftar).
+    catatan: >
+      DITEMUKAN 2026-08-03 setelah F0-12 membuat replay bersih berhasil untuk
+      PERTAMA KALINYA. Lokal 1299 lulus / 0 gagal; di CI 1132 lulus / 163 gagal.
+      Selisihnya LINGKUNGAN, bukan kode: DB CI baru di-wipe sehingga fixture yang
+      selama ini menumpuk di dev tidak ada. Pola kegagalan konsisten dengan itu —
+      'expected 403 to be 200' berulang (permission/role_permissions belum ter-seed),
+      'daftar admin kosong', 'admin tidak menerima notifikasi'. Empat job CI lain
+      HIJAU. Ini utang yang selama ini tersembunyi karena tak ada yang pernah
+      berhasil me-replay dari nol.
+    catatan: >
+      DITEMUKAN 2026-08-03 saat menjalankan setup-clean untuk R-001. BUKAN akibat
+      perubahan R-001 — 047/167/175 justru LULUS (replay sampai migrasi 125+).
+      Akar: migrasi 126 mengisi companies.created_by dari `v_admin` = admin aktif
+      tertua; di DB yang baru di-wipe BELUM ADA user sama sekali (seed dijalankan
+      SETELAH semua migrasi), jadi v_admin NULL. Lalu 137 backfill owner_user_id
+      dari COALESCE(created_by, admin-tertua) — keduanya NULL — dan penjaganya
+      melempar dengan benar: "1 akar grup tanpa owner_user_id".
+      Penjaga 137 BENAR dan jangan dilemahkan. Yang salah: urutan seed vs migrasi.
+      Kelas cacat sama dengan 047: hanya muncul di lingkungan bersih, tak pernah
+      terlihat di dev yang tumbuh bertahap.
+
+  - id: F0-14
+    fase: 0
+    judul: "P1 — 46 berkas test berbagi schema `public`; memblokir sharding CI"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "berkas ber-createRlsClient tak lagi menulis ke schema public bersama"
+      - "9 berkas pembuat-company terisolasi (t5b, t6, t7 x2, t9, t10, search-tenant-isolation, submittal-aturan, tenant-isolation-nyata)"
+      - "shard dinaikkan kembali ke 4 → SELURUH shard hijau 3 run berturut"
+      - "penjaga fn_isi_company_id TIDAK dilemahkan"
+    cara_verifikasi: "ubah matrix ke [1,2,3,4] + penyebut /4, lalu 3 run CI berturut hijau"
+    bobot: L
+    status: done
+    bukti: >
+      16 INSERT di 14 berkas kini MENYATAKAN company_id eksplisit. Trigger
+      fn_isi_company_id TIDAK disentuh. Terverifikasi: seluruh berkas terdampak
+      LULUS saat ada DUA company — kondisi persis yang menggagalkan shard 1.
+      Suite penuh 130/130 berkas, 1305 lulus. Shard dinaikkan kembali ke 4.
+      Satu berkas SENGAJA dikecualikan: tenant-isolation-nyata menghilangkan
+      company_id sebagai INTI ujinya (membuktikan trigger menolak menebak) —
+      sempat ikut tersapu, langsung merah, dipulihkan + diberi peringatan.
+    catatan: >
+      DITEMUKAN 2026-08-03 saat menerapkan shard 4x. Shard BERHASIL memangkas
+      wall-clock 1317s -> 434s (3x), 3 dari 4 shard hijau. Shard 1 gagal dgn
+      23502 (projects.company_id NOT NULL) di lessons-writeback. BUKAN cacat
+      sharding: `fn_isi_company_id()` sengaja hanya mengisi otomatis bila
+      companies berisi TEPAT SATU baris, dan menolak menebak saat ambigu —
+      perilaku BENAR dari migrasi 127. Yang salah: 46 berkas test memakai
+      createRlsClient -> schema `public` BERSAMA, 9 di antaranya membuat company
+      tambahan, tersebar di keempat shard. Berurutan tak bertabrakan; paralel
+      saling melihat company yang lain. Shard ditahan di 1 sampai ini beres —
+      melonggarkan trigger demi CI cepat = G-5 tepat sebelum Fase 2.
+
+  - id: F0-15
+    fase: 0
+    judul: "Seimbangkan shard CI — 494s vs 265s, kurang 14 detik dari target 8 menit"
+    blokir_oleh: [F0-14, F0-16]
+    kriteria_selesai:
+      - "wall-clock CI kurang dari atau sama dengan 480s, dibuktikan 3 run berturut"
+      - "selisih shard terlama vs tercepat di bawah 25%"
+    cara_verifikasi: "gh api runs/<id>/jobs — durasi tiap shard"
+    bobot: S
+    status: done
+    catatan: >
+      Setelah F0-14, shard 4x hidup dan wall-clock 1317s -> 494s (2,7x). Target
+      mandat 8 menit KURANG 14 DETIK. Penyebabnya terukur: vitest --shard membagi
+      berdasar urutan ALFABET, bukan durasi, jadi shard 1 kebetulan menampung
+      berkas terberat (multitenant-t3-rollback 12,7s, gl-api 8,4s) — 494s vs 265s,
+      selisih 87%. Opsi: naikkan ke 6 shard, atau bagi berbasis durasi. Perbaikan
+      terbesar tetap B-3 (pindah region DB): ia memangkas dasar 1203s-nya, bukan
+      sekadar membaginya.
+
+  - id: F0-16
+    fase: 0
+    judul: "P1 — notifikasi TENANT-BLIND: utils/notifications.ts insert tanpa company_id"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "createNotification & batch insert MENYATAKAN company_id"
+      - "company_id diturunkan dari konteks yang benar, bukan ditebak dari user"
+      - "uji: user anggota 2 company menerima notifikasi di company yang TEPAT"
+      - "6 shard hijau setelahnya (bukti cacatnya benar-benar tertutup)"
+    cara_verifikasi: "vitest + naikkan shard ke 6, 3 run berturut hijau"
+    bobot: M
+    status: done
+    catatan: >
+      DITEMUKAN 2026-08-03 saat menaikkan shard 4 -> 6. Dua shard merah dgn
+      'null value in column company_id of relation notifications'. Berbeda dari
+      F0-14, sumbernya BUKAN test melainkan KODE APLIKASI: utils/notifications.ts
+      meng-insert tanpa company_id sama sekali (nol kemunculan di berkas itu).
+      Bekerja hari ini semata karena fallback satu-tenant fn_isi_company_id().
+      Ini cacat tenancy NYATA, bukan sekadar penghalang CI: satu user bisa jadi
+      anggota beberapa company (ADR-011 D5), jadi notifikasi tanpa company_id tak
+      punya cara menyatakan miliknya perusahaan mana. Pilihan company_id-nya bukan
+      hal sepele — notifikasi lahir dari peristiwa (kasbon, approval) yang PUNYA
+      company, jadi harus diturunkan dari peristiwanya, bukan dari user penerima.
+      Shard ditahan di 4 (terbukti hijau) sampai ini beres.
+
+  # ── GERBANG: menunggu founder ─────────────────────────────────────────────
+  - id: R-001
+    fase: 0
+    judul: "P0 — tabrakan definisi GL 047 vs 167 (GL tenant-blind di lingkungan baru)"
+    blokir_oleh: []
+    kriteria_selesai: ["satu definisi GL tunggal", "CI fresh menghasilkan accounts ber-company_id"]
+    cara_verifikasi: "ci-project-setup pada schema bersih + cek kolom company_id"
+    bobot: M
+    status: done
+    catatan: "G-2. Lihat RATIFIKASI.md R-001. Biaya pembatalan hari ini NOL (journal_entries 0 baris)."
+
+  - id: R-002
+    fase: 0
+    judul: "Buku migrasi tertinggal 12 versi"
+    blokir_oleh: [R-001]
+    kriteria_selesai: ["buku selaras dengan artefak fisik terbukti"]
+    cara_verifikasi: "ledger-diff nol PERLU-MATA-MANUSIA yang belum dijelaskan"
+    bobot: S
+    status: done
+    catatan: "G-2. HARUS setelah R-001 — mencatat 167 lebih dulu mengunci cacat P0."
+
+  # ── FASE 1 — REVERSIBILITAS ───────────────────────────────────────────────
+  - id: F1-1
+    fase: 1
+    judul: "Idempotency key pada semua operasi finansial"
+    blokir_oleh: [F0-3, F0-4, F0-5, F0-7]
+    kriteria_selesai:
+      - "bayar termin, catat pembayaran, approve kasbon, transfer kas, posting jurnal, generate invoice"
+      - "unik per (tenant, operasi, key); pengiriman ulang -> respons sama"
+      - "test double-submit membuktikan tidak ada uang ganda"
+    bukti: >
+      Migrasi 177 (idempotency_keys, unik company+operasi+kunci) + helper
+      utils/idempotency.ts, terpasang di TIGA endpoint yang benar-benar
+      memindahkan kas: finance:invoice:pay, cash:transfer:create,
+      procurement:payment:create. Ketiganya punya trigger saldo, diverifikasi
+      lewat pg_trigger. Endpoint PATCH status (confirm/cancel/waive) TIDAK
+      dipasangi: sudah idempoten by state, menolak bila status sudah berubah.
+      MUTATION-TESTED: constraint di-DROP -> MERAH. Coverage helper 31% -> 94,8%.
+    cara_verifikasi: "test double-submit per endpoint"
+    bobot: L
+    status: done
+
+  - id: F1-2
+    fase: 1
+    judul: "Tutup 7 rute tanpa gerbang tenancy"
+    blokir_oleh: [F0-3, F0-4, F0-5, F0-7]
+    kriteria_selesai:
+      - "nol rute menulis tanpa saringan tenant"
+      - "rute publik jadi pengecualian bernama: field dibatasi + token acak + rate limit"
+    cara_verifikasi: "node apps/api/scripts/audit-gerbang-tenancy.mjs -> ratchet turun"
+    bobot: M
+    status: done
+
+  - id: F1-3
+    fase: 1
+    judul: "23 catch kosong: telan-sengaja jadi eksplisit + log, atau dinaikkan"
+    blokir_oleh: [F0-3, F0-4, F0-5, F0-7]
+    kriteria_selesai: ["nol catch kosong tanpa keputusan tertulis"]
+    bukti: >
+      Diukur 2026-08-03: audit-catch-senyap.mjs melaporkan NOL, dan grep literal
+      catch-kosong di apps/api/src (di luar test) juga NOL — 18 hit yang muncul
+      seluruhnya KOMENTAR yang menyebut pola itu, bukan kodenya. Utang ini sudah
+      lunas sebelum sesi ini; yang dilakukan sekarang memverifikasinya, bukan
+      mengklaimnya. Penjaga diuji dua arah: catch kosong baru -> MERAH.
+    cara_verifikasi: "node apps/api/scripts/audit-catch-senyap.mjs"
+    bobot: M
+    status: done
+
+  - id: F1-4
+    fase: 1
+    judul: "Backup, restore, DR runbook — DIUJI SUNGGUHAN"
+    blokir_oleh: [F0-3, F0-4, F0-5, F0-7]
+    kriteria_selesai: ["restore nyata ke lingkungan sementara", "waktu pemulihan tercatat"]
+    cara_verifikasi: "tempel bukti waktu restore"
+    bobot: L
+    status: wip
+    catatan: >
+      Perkakas + runbook + drill terjadwal SELESAI (commit 21b2894).
+      Kriteria "restore nyata" BELUM terpenuhi: GitHub menolak
+      workflow_dispatch untuk workflow yang belum ada di branch default
+      (HTTP 404, diverifikasi lewat API). Drill baru bisa dijalankan setelah
+      rantai ini di-merge — dan R-003 melarang merge sebelum R-001 selesai.
+      Jadi F1-4 TERBLOKIR oleh urutan yang founder tetapkan sendiri, bukan
+      oleh pekerjaan yang kurang.
+      Mesin lokal tak bisa menggantikan: nol perkakas klien Postgres, tanpa
+      hak admin, WSL tanpa distro sehingga Docker mati.
+      Kueri pembanding sudah diuji terhadap DB dev: 123 tabel / 123 RLS /
+      377 policy.
+
+  - id: F1-5
+    fase: 1
+    judul: "README + .env.example + bootstrap satu perintah"
+    blokir_oleh: [F0-3, F0-4, F0-5, F0-7]
+    kriteria_selesai: ["waktu clone -> pnpm dev terukur dan tercatat"]
+    cara_verifikasi: "jalankan di direktori bersih"
+    bobot: M
+    status: done
+
+  - id: F1-6
+    fase: 1
+    judul: "Audit log immutability DIBUKTIKAN"
+    blokir_oleh: [F0-3, F0-4, F0-5, F0-7]
+    kriteria_selesai: ["test UPDATE audit_logs gagal", "test DELETE audit_logs gagal (peran tertinggi)"]
+    cara_verifikasi: "vitest + tempel output"
+    bobot: S
+    status: done
+
+  - id: F1-8
+    fase: 1
+    judul: "companies.ts coverage NOL — pintu masuk multi-tenant tak boleh tak teruji"
+    blokir_oleh: [F0-3, F0-4]
+    kriteria_selesai:
+      - "coverage companies.ts > 0 dan menguji jalur nyata, bukan sekadar menyentuh baris"
+      - "uji: buat company, daftar company milik user, ganti company aktif"
+      - "uji 403: user tanpa keanggotaan TIDAK bisa membaca/menulis company lain"
+      - "lantai coverage dinaikkan setelahnya (coverage-ratchet --naikkan)"
+    cara_verifikasi: "vitest run + coverage-summary companies.ts pct > 0 + tempel output"
+    bobot: M
+    status: done
+    bukti: >
+      companies-otorisasi.test.ts — 10 test lulus, MUTATION-TESTED dua arah:
+      (a) gerbang requireGroupOwner dihapus -> MERAH; (b) cek lintas-grup
+      dilonggarkan -> MERAH. Coverage companies.ts 0% -> 42,85% lines, 100%
+      functions. Lantai ratchet dinaikkan 31,98% -> 32,47%. Suite 132/132,
+      1323 lulus.
+    catatan: >
+      Perintah founder 2026-08-03: masuk GERBANG Fase 1 — tidak boleh nol saat Fase 2
+      dimulai, karena companies.ts justru pintu masuk multi-tenant. Fase 2 (sapuan
+      tenancy) TIDAK dimulai sebelum ini hijau.
+
+  - id: F1-7
+    fase: 1
+    judul: "Anti-self-lockout dibuktikan test"
+    blokir_oleh: [F0-3, F0-4, F0-5, F0-7]
+    kriteria_selesai: ["pencabutan permission kritis dari pemegang terakhir DITOLAK"]
+    cara_verifikasi: "vitest + tempel output"
+    bobot: S
+    status: done
+
+  # ── FASE 2 — KEPUTUSAN TANPA JALAN KEMBALI ────────────────────────────────
+  - id: F2-1
+    fase: 2
+    judul: "ADR bentuk grup/holding (SEBELUM company_id)"
+    blokir_oleh: [F1-1, F1-2, F1-3, F1-4, F1-5, F1-6, F1-7]
+    kriteria_selesai:
+      - "group_id: kolom sendiri vs companies.parent_id vs tabel groups"
+      - "bentuk CoA: induk-diwarisi-override vs per-PT-dengan-peta-konsolidasi"
+      - "aturan konsolidasi, eliminasi, transfer alat/mandor + harga transfer"
+      - "jalur kebocoran-terkendali untuk pemilik grup dirancang eksplisit"
+    cara_verifikasi: "ADR terbit + ditinjau ulang terhadap ADR-011"
+    bobot: L
+    status: blocked
+    catatan: "C-2. Paling mahal diubah belakangan. Struktural mendahului migrasi."
+
+  - id: F2-2
+    fase: 2
+    judul: "Klasifikasi 80 tabel: global / per-tenant / per-grup / sistem"
+    blokir_oleh: [F2-1]
+    kriteria_selesai: ["tabel keputusan terbaca manusia SEBELUM migrasi ditulis"]
+    cara_verifikasi: "review daftar dari introspect tenancy-coverage"
+    bobot: L
+    status: blocked
+
+  - id: F2-3
+    fase: 2
+    judul: "Sapuan tenancy tunggal (per batch, tiap langkah terpisah)"
+    blokir_oleh: [F2-2]
+    kriteria_selesai:
+      - "urutan: kolom nullable -> backfill -> verifikasi nol yatim -> NOT NULL -> FK -> index -> policy -> test isolasi -> test rollback"
+      - "tiap batch punya migrasi turun yang teruji"
+    cara_verifikasi: "test isolasi + rollback per batch"
+    bobot: XL
+    status: blocked
+
+  - id: F2-4
+    fase: 2
+    judul: "Bukti isolasi lintas tenant untuk SETIAP endpoint"
+    blokir_oleh: [F2-3]
+    kriteria_selesai:
+      - "dua tenant berdata mirip"
+      - "cek baca/tulis/ubah/agregat"
+      - "termasuk laporan, ekspor Excel, dashboard, pencarian, notifikasi, storage, PESAN ERROR"
+    cara_verifikasi: "suite isolasi hijau"
+    bobot: L
+    status: blocked
+    catatan: "Kebocoran paling sering lewat agregat & pesan error, bukan endpoint utama."
+
+  - id: F2-5
+    fase: 2
+    judul: "Storage per tenant + payment-proofs terbukti privat"
+    blokir_oleh: [F2-3]
+    kriteria_selesai:
+      - "bucket & path tenant-scoped"
+      - "test akses langsung tanpa auth GAGAL"
+      - "policy dashboard-manual dipindah jadi migrasi"
+    cara_verifikasi: "test akses anon + introspect policy storage"
+    bobot: M
+    status: blocked
+
+  - id: F2-6
+    fase: 2
+    judul: "Keputusan relforcerowsecurity (0 dari 122 tabel memaksa RLS)"
+    blokir_oleh: [F2-1]
+    kriteria_selesai: ["diputuskan + didokumentasikan: paksa atau tidak, beserta alasan"]
+    cara_verifikasi: "introspect rls"
+    bobot: S
+    status: blocked
+    catatan: "Temuan baru F0-2."
+
+  # ── FASE 3+ (ringkas; diperluas saat fasenya tiba) ────────────────────────
+  - id: F3-1
+    fase: 3
+    judul: "Hapus 53 literal peran + penjaga CI derive-capability"
+    blokir_oleh: [F2-4]
+    kriteria_selesai: ["nol literal peran di posisi pengambil keputusan otorisasi", "penjaga CI hijau"]
+    cara_verifikasi: "grep + penjaga CI"
+    bobot: L
+    status: blocked
+
+  - id: F4-1
+    fase: 4
+    judul: "1.039 hex -> token desain + penjaga CI"
+    blokir_oleh: [F3-1]
+    kriteria_selesai: ["hex literal hanya boleh di berkas token", "white-label per tenant mungkin"]
+    cara_verifikasi: "penjaga CI hex"
+    bobot: L
+    status: blocked
+
+  - id: F4-2
+    fase: 4
+    judul: "Lapis data terpusat (cache, invalidasi, mutasi optimistis, dedup)"
+    blokir_oleh: [F3-1]
+    kriteria_selesai: ["useEffect-fetch di halaman turun drastis", "cache bersama lintas navigasi"]
+    cara_verifikasi: "grep useEffect di page.tsx + ukur navigasi"
+    bobot: XL
+    status: blocked
+
+  - id: F4-3
+    fase: 4
+    judul: "Offline-first jalur lapangan (progress, foto, kasbon)"
+    blokir_oleh: [F4-2]
+    kriteria_selesai: ["antrean lokal + sync + resolusi konflik"]
+    cara_verifikasi: "test mode offline"
+    bobot: XL
+    status: blocked
+    catatan: "Sinyal buruk adalah NORMA di lokasi proyek, bukan pengecualian."
+
+  - id: F5-1
+    fase: 5
+    judul: "Triase 93 sub-menu tanpa rancangan: INTI / PEMBEDA / TUNDA"
+    blokir_oleh: [F4-1]
+    kriteria_selesai:
+      - "tiap sub-menu: masalah, pengguna, rusak-kalau-tak-ada, prasyarat data, bobot"
+      - "INTI habis dulu sebelum PEMBEDA"
+    cara_verifikasi: "dokumen triase hidup"
+    bobot: L
+    status: blocked
+    catatan: "C-7 — risiko yang paling mungkin membunuh proyek. Bukan catatan kaki."
+
+  - id: F6-1
+    fase: 6
+    judul: "Prasyarat AI: event log terpadu + jejak keputusan + struktur semantik"
+    blokir_oleh: [F5-1]
+    kriteria_selesai: ["event dapat dibaca ulang", "alasan approval/override/variance tersimpan"]
+    cara_verifikasi: "pipa data jalan"
+    bobot: XL
+    status: blocked
+    catatan: "Bangun PIPA-nya, bukan fiturnya. AI di atas data kosong = percaya diri dan salah."
+
+  - id: F7-1
+    fase: 7
+    judul: "Provisioning tenant, onboarding, langganan, batas paket"
+    blokir_oleh: [F6-1]
+    kriteria_selesai: ["tenant baru sekali klik", "penagihan jalan"]
+    cara_verifikasi: "e2e onboarding"
+    bobot: XL
+    status: blocked
+
+  - id: F7-2
+    fase: 7
+    judul: "SSO: ubah status jadi 'ditunda, arsitektur tidak menghalangi'"
+    blokir_oleh: [F7-1]
+    kriteria_selesai: ["auth tidak mengeras terhadap SAML/OIDC"]
+    cara_verifikasi: "review arsitektur auth"
+    bobot: M
+    status: blocked
