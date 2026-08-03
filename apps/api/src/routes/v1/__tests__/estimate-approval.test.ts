@@ -50,7 +50,7 @@ async function purge() {
   try {
     await client.query(`DELETE FROM approval_progress WHERE entity_type='estimate_version'
       AND entity_id IN (SELECT ev.id FROM estimate_versions ev JOIN scenarios s ON s.id=ev.scenario_id
-      JOIN projects p ON p.id=s.project_id WHERE p.name LIKE '[TEST]%')`)
+      JOIN projects p ON p.id=s.project_id WHERE p.name = '[TEST] Estimasi Approval')`)
     // ⚠️ Rantai estimasi dihapus EKSPLISIT, bukan diserahkan ke CASCADE.
     //
     // `session_replication_role='replica'` di atas dipasang supaya trigger
@@ -64,12 +64,12 @@ async function purge() {
     // sebelum ketahuan (2026-08-02). Urutan penting: anak dulu, induk terakhir.
     await client.query(`DELETE FROM estimate_items WHERE estimate_version_id IN
       (SELECT ev.id FROM estimate_versions ev JOIN scenarios s ON s.id=ev.scenario_id
-       JOIN projects p ON p.id=s.project_id WHERE p.name LIKE '[TEST]%')`)
+       JOIN projects p ON p.id=s.project_id WHERE p.name = '[TEST] Estimasi Approval')`)
     await client.query(`DELETE FROM estimate_versions WHERE scenario_id IN
-      (SELECT s.id FROM scenarios s JOIN projects p ON p.id=s.project_id WHERE p.name LIKE '[TEST]%')`)
+      (SELECT s.id FROM scenarios s JOIN projects p ON p.id=s.project_id WHERE p.name = '[TEST] Estimasi Approval')`)
     await client.query(`DELETE FROM scenarios WHERE project_id IN
-      (SELECT id FROM projects WHERE name LIKE '[TEST]%')`)
-    await client.query(`DELETE FROM projects WHERE name LIKE '[TEST]%'`)
+      (SELECT id FROM projects WHERE name = '[TEST] Estimasi Approval')`)
+    await client.query(`DELETE FROM projects WHERE name = '[TEST] Estimasi Approval'`)
   } finally {
     await client.query(`SET session_replication_role = 'origin'`)
   }
