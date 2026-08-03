@@ -57,7 +57,10 @@ overrides:
   js-yaml: '>=4.3.0'
   shell-quote: '>=1.8.5'
   axios: '>=1.18.0'
-  fast-uri: '>=3.1.4'
+  # Advisory kedua (host confusion via backslash, butuh >=4.1.2) muncul
+  # 2026-08-04 — beda dari yang pertama. Batas dinaikkan, bukan diabaikan:
+  # ini patch dalam mayor yang sama, jadi tak ada perubahan bentuk ekspor.
+  fast-uri: '>=4.1.2'
   sharp: '>=0.35.0'
   postcss: '>=8.5.18'
   find-my-way: '>=9.6.1'
