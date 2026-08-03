@@ -119,6 +119,23 @@ jobs:
           fi
           AMAN=$(SUMBER="$SUMBER" node -e '
             const u = process.env.SUMBER;
+            // ⚠️ JANGAN encode URL yang SUDAH sah.
+            //
+            // Sandi di .env repo ini sudah ter-encode (memuat %). Meng-encode
+            // ULANG mengubah % jadi %25; Postgres men-decode-nya jadi nilai
+            // BERBEDA, lalu menolak dengan "password authentication failed for
+            // user postgres" — pesan yang menuduh username, padahal sandinya
+            // yang rusak. Dua run cadangan pertama gagal karena ini.
+            //
+            // Lebih dari satu "@" di bagian kredensial = sandi memuat @ mentah
+            // = URL salah baca. Hanya kasus itu yang perlu diperbaiki.
+            const tanpaSkema = u.replace(/^postgres(ql)?:\/\//, "");
+            if ((tanpaSkema.match(/@/g) || []).length === 1) {
+              try {
+                const p = new URL(u);
+                if (p.hostname && p.username) { process.stdout.write(u); process.exit(0); }
+              } catch { /* rusak — perbaiki di bawah */ }
+            }
             const m = u.match(/^(postgres(?:ql)?:\/\/)([^:]+):(.*)@([^@]+)$/);
             if (!m) { console.error("format URL tak dikenali"); process.exit(1); }
             const [, skema, user, sandi, sisa] = m;

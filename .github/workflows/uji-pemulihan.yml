@@ -129,6 +129,17 @@ jobs:
           fi
           AMAN=$(SUMBER="$SUMBER" node -e '
             const u = process.env.SUMBER;
+            // ⚠️ JANGAN encode URL yang SUDAH sah — meng-encode ULANG sandi
+            // yang sudah ter-encode mengubah % jadi %25 dan MERUSAKNYA.
+            // Galatnya menuduh username ("failed for user postgres") padahal
+            // sandinya yang salah. Dua run cadangan gagal karena ini.
+            const tanpaSkema = u.replace(/^postgres(ql)?:\/\//, "");
+            if ((tanpaSkema.match(/@/g) || []).length === 1) {
+              try {
+                const p = new URL(u);
+                if (p.hostname && p.username) { process.stdout.write(u); process.exit(0); }
+              } catch { /* rusak — perbaiki di bawah */ }
+            }
             const m = u.match(/^(postgres(?:ql)?:\/\/)([^:]+):(.*)@([^@]+)$/);
             if (!m) { console.error("format URL tak dikenali"); process.exit(1); }
             const [, skema, user, sandi, sisa] = m;
