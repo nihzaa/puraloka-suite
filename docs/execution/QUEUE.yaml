@@ -547,8 +547,12 @@ items:
       - "jalur kebocoran-terkendali untuk pemilik grup dirancang eksplisit"
     cara_verifikasi: "ADR terbit + ditinjau ulang terhadap ADR-011"
     bobot: L
-    status: blocked
-    catatan: "C-2. Paling mahal diubah belakangan. Struktural mendahului migrasi."
+    status: menunggu_ratifikasi
+    catatan: >
+      ADR-010 TERBIT (2026-08-03). K1 mengonfirmasi ADR-011; K2/K3/K4 baru —
+      diverifikasi nol kecocokan untuk eliminasi/transfer/kebocoran-terkendali
+      di seluruh ADR sebelumnya. Seluruh angka dicocokkan ke DB (9/9).
+      Menunggu ratifikasi: RATIFIKASI.md R-007.
 
   - id: F2-2
     fase: 2

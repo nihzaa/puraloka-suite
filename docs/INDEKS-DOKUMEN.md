@@ -16,7 +16,7 @@ memuat **setiap** dokumen, tanpa kecuali.
 | **acuan** | aturan/keputusan yang dirujuk saat bekerja | dibaca saat mengerjakan hal terkait; tak "selesai" |
 | **riwayat** | catatan fase yang sudah lewat | bukti apa yang pernah terjadi; jangan dikutip sebagai rencana |
 
-**Total 258 dokumen** — antrean 11 · acuan 189 · riwayat 58.
+**Total 259 dokumen** — antrean 11 · acuan 190 · riwayat 58.
 
 Kolom **RM** = disebut langsung di `ROADMAP.md`.
 
@@ -263,6 +263,7 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | [ADR-007-configurable-approval-engine](superpowers/specs/2026-07-18-enterprise-architecture/Engineering-Constitution/adr/ADR-007-configurable-approval-engine.md) | acuan |  | ADR-007 — Approval Engine yang SELURUHNYA Config (revival ber-bukti dari ADR-0 |
 | [ADR-008-notification-routing-engine](superpowers/specs/2026-07-18-enterprise-architecture/Engineering-Constitution/adr/ADR-008-notification-routing-engine.md) | acuan |  | ADR-008 — Notification Routing Engine (penerima notifikasi jadi konfigurasi) |
 | [ADR-009-cecep-persistence-derivation](superpowers/specs/2026-07-18-enterprise-architecture/Engineering-Constitution/adr/ADR-009-cecep-persistence-derivation.md) | acuan |  | ADR-009 — Persistensi CECEP diturunkan, bukan dikarang (mulai Cost Code Regist |
+| [ADR-010-bentuk-grup-holding](superpowers/specs/2026-07-18-enterprise-architecture/Engineering-Constitution/adr/ADR-010-bentuk-grup-holding.md) | acuan |  | ADR-010 — Bentuk grup/holding: konsolidasi, transfer antar-PT, dan kebocoran t |
 | [ADR-011-multi-tenant-strategy](superpowers/specs/2026-07-18-enterprise-architecture/Engineering-Constitution/adr/ADR-011-multi-tenant-strategy.md) | acuan |  | ADR-011 — Strategi Multi-Tenant Puraloka Suite |
 | [ADR-011-T1-AUDIT-KLASIFIKASI-TABEL](superpowers/specs/2026-07-18-enterprise-architecture/Engineering-Constitution/adr/ADR-011-T1-AUDIT-KLASIFIKASI-TABEL.md) | acuan |  | T1 — Audit Klasifikasi 94 Tabel (lampiran ADR-011) |
 | [ADR-011-T3-AUDIT-PRA-EKSEKUSI](superpowers/specs/2026-07-18-enterprise-architecture/Engineering-Constitution/adr/ADR-011-T3-AUDIT-PRA-EKSEKUSI.md) | acuan |  | T3 — Dokumen Audit Pra-Eksekusi (menunggu ack tertulis founder) |

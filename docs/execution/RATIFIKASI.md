@@ -369,3 +369,51 @@ Tautan: https://supabase.com/dashboard/support/new
 Fungsi berakhiran `_probe` adalah artefak percobaan yang lolos ke produksi.
 Ke depan, percobaan skema harus di schema terpisah yang dihapus **beserta
 isinya** (`DROP SCHEMA … CASCADE`), bukan schema-nya saja.
+
+---
+
+## R-007 · F2-1 · ADR-010 bentuk grup/holding — minta ratifikasi
+
+**Status:** menunggu founder · dibuka 2026-08-03
+**Berkas:** `docs/superpowers/.../adr/ADR-010-bentuk-grup-holding.md`
+
+ADR-011 sudah memutuskan bentuk `companies`. Tiga pertanyaan F2-1 sisanya
+**belum pernah diputuskan di dokumen mana pun** — diverifikasi: nol kecocokan
+untuk `eliminasi`, `transfer alat`, `harga transfer`, `intercompany`,
+`kebocoran terkendali` di seluruh berkas ADR.
+
+### Empat keputusan yang diminta
+
+| # | Keputusan | Ringkas |
+|---|---|---|
+| K1 | Bentuk grup | `companies.parent_company_id` — **konfirmasi** ADR-011, bukan hal baru |
+| K2 | Chart of Accounts | **per-PT + peta konsolidasi**, bukan diwarisi dari induk |
+| K3 | Konsolidasi & transfer | konsolidasi **dihitung** (tak disimpan) · eliminasi **eksplisit** · transfer **pindah kepemilikan** · harga transfer **wajib** |
+| K4 | Pemilik grup | **tanpa** akses otomatis; agregat lewat `SECURITY DEFINER`, detail lewat keanggotaan |
+
+### Yang paling perlu Anda cermati
+
+**K2 — CoA per-PT.** Alasannya komersial, bukan teknis: PT yang sudah berjalan
+punya bagan akun sendiri. Memaksakan CoA induk = memaksa mereka membuang
+riwayat pembukuan, dan itu menghalangi penjualan.
+
+**K4 — pemilik grup tak bisa "lihat semua".** Ini **akan terasa merepotkan**,
+dan akan ada permintaan melonggarkannya nanti. Saya usulkan memasukkannya ke
+**Ember [C]** (tak boleh dikonfigurasi dari UI) justru karena itu — satu
+pemilik bisa menjual salah satu PT-nya besok, dan akses yang diberi lewat
+tombol akan tertinggal tanpa ada yang ingat mencabutnya.
+
+### Bukti (semua terverifikasi terhadap DB, 2026-08-03)
+
+```
+tabel public 123 · punya company_id 43 · companies 1 akar/0 anak
+accounts 38 · company_members 23 · mandor_assignments 16 · workers 3
+tabel groups/company_groups/holdings: TIDAK ADA
+```
+
+Ulangi: `node scripts/db/introspect.mjs tenancy-coverage`
+
+### Kalau disetujui
+
+F2-2 (klasifikasi 80 tabel sisa) dan F2-3 (sapuan `company_id`) terbuka.
+Selama belum, keduanya tetap terkunci — struktural mendahului migrasi (C-2).
