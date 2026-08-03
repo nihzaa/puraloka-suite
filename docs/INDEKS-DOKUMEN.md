@@ -16,7 +16,7 @@ memuat **setiap** dokumen, tanpa kecuali.
 | **acuan** | aturan/keputusan yang dirujuk saat bekerja | dibaca saat mengerjakan hal terkait; tak "selesai" |
 | **riwayat** | catatan fase yang sudah lewat | bukti apa yang pernah terjadi; jangan dikutip sebagai rencana |
 
-**Total 257 dokumen** — antrean 11 · acuan 188 · riwayat 58.
+**Total 258 dokumen** — antrean 11 · acuan 189 · riwayat 58.
 
 Kolom **RM** = disebut langsung di `ROADMAP.md`.
 
@@ -66,6 +66,12 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | [JOURNAL](execution/JOURNAL.md) | riwayat | ✓ | JOURNAL — Catatan Sesi |
 | [LEDGER-DIFF](execution/LEDGER-DIFF.md) | acuan |  | LEDGER-DIFF — Buku Migrasi vs Artefak Fisik |
 | [RATIFIKASI](execution/RATIFIKASI.md) | riwayat | ✓ | RATIFIKASI — Satu-satunya Berkas yang Perlu Dibaca Founder |
+
+### `docs/ops`
+
+| Dokumen | Peran | RM | Isi |
+|---|---|:-:|---|
+| [RUNBOOK-PEMULIHAN](ops/RUNBOOK-PEMULIHAN.md) | acuan |  | Runbook Pemulihan Bencana |
 
 ### `docs/superpowers/plans`
 
