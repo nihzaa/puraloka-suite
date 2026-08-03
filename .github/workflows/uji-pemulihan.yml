@@ -258,17 +258,32 @@ jobs:
           echo "sumber saat dump — tabel:$(cat /tmp/sumber-tabel.txt)" \
                "RLS:$(cat /tmp/sumber-rls.txt) policy:$(cat /tmp/sumber-policy.txt)"
 
-          # Jumlah baris per tabel, direkam sezaman dengan dump. Satu kueri
-          # untuk semuanya: memanggil count(*) 124 kali lewat psql terpisah
-          # membuat jaraknya melebar, dan jarak itulah yang jadi sumber galat.
-          psql "$URL_AMAN" -tAF'|' -q -c "
-            SELECT string_agg(format('SELECT %L AS t, count(*)::text AS n FROM %I',
-                                     relname, relname), ' UNION ALL ')
-              FROM pg_class c JOIN pg_namespace ns ON ns.oid=c.relnamespace
-             WHERE ns.nspname='public' AND c.relkind='r'" 2>/dev/null > /tmp/kueri.sql
-          psql "$URL_AMAN" -tAF'|' -q -f /tmp/kueri.sql 2>/dev/null \
-            | grep -E '^[a-z_]+\|[0-9]+$' | sort > /tmp/hitung-sumber.txt
-          echo "tabel terekam: $(wc -l < /tmp/hitung-sumber.txt)"
+          # ── Jumlah baris dihitung DARI DUMP, bukan dari database ──────────
+          #
+          # Percobaan sebelumnya merekam angka lewat kueri SETELAH pg_dump
+          # selesai. Masih salah: dump berjalan 65 detik, dan test suite terus
+          # menulis sepanjang itu. Hasilnya selisih 1–3 baris dengan gejala
+          # khas — target justru LEBIH BANYAK (approval_chains dump=7 target=8).
+          #
+          # Selama pembandingnya diambil dari database hidup, jaraknya cuma bisa
+          # diperkecil, tak pernah dihapus. Satu-satunya angka yang benar-benar
+          # sezaman dengan isi dump adalah angka DI DALAM dump.
+          #
+          # `pg_restore --data-only` ke stdout lalu dihitung per tabel: inilah
+          # kebenaran yang beku. Kalau restore kehilangan baris, angka ini dan
+          # angka target berbeda — dan itu memang kegagalan yang dicari.
+          pg_restore --data-only --format=custom cadangan/drill.dump 2>/dev/null \
+            | awk '
+                # Perbandingan STRING PERSIS untuk penutup COPY, bukan regex:
+                # pola /^\\\.$/ harus melewati YAML lalu shell lalu awk, dan di
+                # setiap lapis backslash-nya bisa termakan. awk pun
+                # memperingatkan "escape sequence \. treated as plain .".
+                # `$0 == "\\."` tak punya ambiguitas itu.
+                /^COPY /            { t=$2; sub(/^public\./,"",t); c=0; inblk=1; next }
+                inblk && $0 == "\\." { print t "|" c; inblk=0; next }
+                inblk               { c++ }
+              ' | sort > /tmp/hitung-sumber.txt
+          echo "tabel terekam dari dump: $(wc -l < /tmp/hitung-sumber.txt)"
 
       # Dump yang "berhasil" tapi kosong adalah jebakan paling halus: ia lolos
       # setiap pemeriksaan yang hanya melihat kode keluar.
