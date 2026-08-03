@@ -62,7 +62,7 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | [CI-BUKTI](execution/CI-BUKTI.md) | acuan | ✓ | CI-BUKTI — Setiap Penjaga Terbukti Bisa MERAH |
 | [CI-PROFIL](execution/CI-PROFIL.md) | acuan | ✓ | CI-PROFIL — Durasi Nyata, Diukur Bukan Diperkirakan |
 | [COVERAGE-BASELINE](execution/COVERAGE-BASELINE.md) | acuan |  | Coverage Baseline — Angka Sesungguhnya (C-6) |
-| [GOLDEN-FILE-INVESTIGASI](execution/GOLDEN-FILE-INVESTIGASI.md) | acuan |  | Investigasi Golden File — Angka Jangkar (C-5 / R-005) |
+| [GOLDEN-FILE-INVESTIGASI](execution/GOLDEN-FILE-INVESTIGASI.md) | acuan | ✓ | Investigasi Golden File — Angka Jangkar (C-5 / R-005) |
 | [JOURNAL](execution/JOURNAL.md) | riwayat | ✓ | JOURNAL — Catatan Sesi |
 | [LEDGER-DIFF](execution/LEDGER-DIFF.md) | acuan |  | LEDGER-DIFF — Buku Migrasi vs Artefak Fisik |
 | [RATIFIKASI](execution/RATIFIKASI.md) | riwayat | ✓ | RATIFIKASI — Satu-satunya Berkas yang Perlu Dibaca Founder |

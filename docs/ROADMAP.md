@@ -194,6 +194,7 @@ membangunnya, dan tanpa keputusan itu penyebut di atas masih bisa bergeser.
 | CI-2 | **Sharding test 4×** — HIDUP setelah F0-14 (16 INSERT dinyatakan company_id eksplisit); 1317s→494s, 9/9 check hijau | ✅ Selesai | run 30766328275 · `CI-PROFIL.md` §5.3 |
 | CI-4 | **Shard dinaikkan ke 6** setelah F0-16 tuntas | ✅ Selesai | `QUEUE.yaml` **F0-15** |
 | CI-5 | **Notifikasi tenant-blind DIPERBAIKI** — `company_id` jadi kolom WAJIB di NotificationParams; TypeScript menemukan 31 pemanggil | ✅ Selesai | `QUEUE.yaml` **F0-16** |
+| CI-6 | **Golden file kedua** — Engineering Estimate SE-47 (Rp 1,66 M): 3 angka jangkar mandat dikunci + rantai aritmetika + PPN dua-angka | ✅ Selesai | `QUEUE.yaml` **F0-10** · `docs/execution/GOLDEN-FILE-INVESTIGASI.md` |
 | CI-3 | **Region project CI** — DB di Tokyo, runner di US-East; ~6.000 round-trip lintas Pasifik = 91% durasi | ⏸ Menunggu founder | `RATIFIKASI.md` **B-3** |
 
 ---

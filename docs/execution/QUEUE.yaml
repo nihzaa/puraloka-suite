@@ -203,7 +203,15 @@ items:
       - "PERTIMBANGKAN: PPN dua-angka — label '11%' tapi pengali 0,12 (F16), hasil terverifikasi"
     cara_verifikasi: "vitest run golden + tempel output"
     bobot: M
-    status: todo
+    status: done
+    bukti: >
+      golden-rab-control-2026.test.ts — 8 test lulus, MUTATION-TESTED tiga arah
+      (total digeser 1 rupiah, tarif PPN 0,12->0,11, volume 109,5->109,6): ketiganya
+      MERAH. Alamat sel dikoreksi saat menulis: E15 ternyata subtotal divisi F, yang
+      benar E18 — sheet_to_json melewati baris kosong sehingga nomor tampilan bukan
+      nomor sel. Yang dikunci bukan cuma nilai sel melainkan RANTAI aritmetikanya
+      (Sigma divisi = total; total x tarif = PPN; total + PPN = akhir; volume x harga
+      = jumlah). Plus satu asersi yang menjaga kedua golden file tak tertukar.
     catatan: >
       R-005 TERJAWAB — ketiganya ada di _source/ahsp/Format RAB Control 2026, BUKAN
       di Cibuluh (proyek berbeda: 1,66 M vs 3,63 M). Sumber & makna terverifikasi
