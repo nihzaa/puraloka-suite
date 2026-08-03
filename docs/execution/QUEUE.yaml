@@ -624,7 +624,7 @@ items:
     kriteria_selesai: ["diputuskan + didokumentasikan: paksa atau tidak, beserta alasan"]
     cara_verifikasi: "introspect rls"
     bobot: S
-    status: todo
+    status: done
     catatan: "Temuan baru F0-2."
 
   # ── FASE 3+ (ringkas; diperluas saat fasenya tiba) ────────────────────────

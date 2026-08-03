@@ -273,6 +273,18 @@ jobs:
       - name: Indeks dokumen mutakhir
         run: node scripts/gen-indeks-docs.mjs --check
 
+      # F2-6 — tripwire keputusan "tidak memaksa RLS".
+      #
+      # Keputusan itu bertumpu pada satu fakta yang bisa berubah: koneksi API
+      # memakai peran ber-rolbypassrls, sehingga FORCE menghasilkan NOL
+      # perubahan perilaku (diuji: 15 proyek sebelum & sesudah FORCE).
+      #
+      # Begitu faktanya berubah — API pindah peran (ADR-011 §7 sudah
+      # merencanakannya) atau ada tabel bermilik lain — FORCE berubah dari
+      # tak-berguna jadi WAJIB, dan keputusannya kedaluwarsa tanpa memberi tahu.
+      - name: Tripwire FORCE RLS (F2-6)
+        run: node scripts/audit-force-rls.mjs
+
       # F2-2 — tabel BARU wajib punya jalur tenancy yang jelas.
       #
       # Klasifikasi 123 tabel menemukan tepat 4 yang perlu keputusan manusia.

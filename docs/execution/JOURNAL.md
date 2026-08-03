@@ -785,3 +785,47 @@ publik lebih berbahaya daripada tidak ada cadangan, karena ia terasa seperti
 keamanan padahal justru kebocoran.
 
 🔴 **Tripwire:** naikkan ke PITR SEBELUM pelanggan pertama.
+
+## 2026-08-04 — FASE 2 SELESAI 6/6. Empat kebocoran ditemukan, semuanya ditutup.
+
+Fase 2 dirancang sebagai "sapuan tenancy". Yang sebenarnya terjadi: ia jadi
+audit yang menemukan **empat kebocoran lintas-tenant nyata** — dan tak satu
+pun terlihat dari membaca kode.
+
+| Ditemukan | Kebocoran | Bukti |
+|---|---|---|
+| F2-3 b2 | `audit_logs` — admin PT A membaca jejak PT B | 13.691 baris, mutation-tested |
+| F2-3 b3 | `permission_scopes` — pembatasan izin terbaca semua tenant | policy `auth.role() IN (authenticated,…)` |
+| F2-5 | `expense-receipts` — anon TANPA LOGIN membaca bukti pengeluaran | anon 1 baris terbaca |
+| F2-5 | `project-photos` — anon membaca DAN MENGHAPUS foto proyek | sisa era anon-key |
+
+**Alat saya sendiri meloloskan dua di antaranya.** Klasifikasi F2-2 punya dua
+cacat berturut: (1) rantai berhenti di tabel SHARED yang kebetulan punya
+`company_id`, (2) rantai MENEMBUS `users` yang global. Perbaikan pertama hanya
+melarang users jadi UJUNG; `permission_scopes → users → roles` tetap lolos.
+
+**Temuan struktural terbesar F2-2:** dari 80 tabel tanpa `company_id`, hanya
+**4** yang perlu keputusan. 66 sudah punya tenancy lewat rantai FK — memberi
+mereka kolom kedua akan menciptakan dua sumber kebenaran yang bisa
+bertentangan.
+
+**Pelajaran yang berulang, dan akhirnya jadi kebiasaan:** setiap test isolasi
+harus punya assertion "penjaga berdaya" — memeriksa bahwa ia bisa MELIHAT
+sesuatu sebelum menyimpulkan tak ada kebocoran. Tiga uji `audit_logs` saya
+melaporkan "tertahan" padahal sesinya tak bisa melihat apa pun. Pola yang sama
+menyelamatkan F2-4 (tiga percobaan penyamaran salah berturut-turut).
+
+**F2-5 menyingkap arah cacat yang terbalik.** Tujuh kali di Fase 0, test
+mengotori produksi. Kali ini MIGRASI LAMA mengotori hasil test:
+`storage.objects` tabel GLOBAL, jadi migrasi 012/016 ikut ter-replay tiap
+suite membangun schema `test` dan menghidupkan kembali policy yang baru
+dihapus. Gejalanya "test kadang merah" — diperbaiki di sumbernya, bukan
+ditambal di migrasi baru.
+
+**F2-6 diputuskan dengan bukti, bukan selera.** `FORCE ROW LEVEL SECURITY`
+menghasilkan NOL perubahan perilaku (diuji: 15 proyek sebelum & sesudah)
+karena `postgres` ber-`rolbypassrls`. Memaksanya akan menambah properti yang
+TERLIHAT seperti perlindungan tetapi tidak bekerja — dan itu lebih berbahaya
+daripada tak ada perlindungan. Dua tripwire dijaga otomatis.
+
+Fase 2: 6/6. 142 berkas / 1400 test hijau. 11 penjaga arsitektural.
