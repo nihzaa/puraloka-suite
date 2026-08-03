@@ -272,7 +272,10 @@ jobs:
           # `pg_restore --data-only` ke stdout lalu dihitung per tabel: inilah
           # kebenaran yang beku. Kalau restore kehilangan baris, angka ini dan
           # angka target berbeda — dan itu memang kegagalan yang dicari.
-          pg_restore --data-only --format=custom cadangan/drill.dump 2>/dev/null \
+          # `-f -` WAJIB: tanpanya pg_restore memperlakukan argumen sebagai
+          # target restore dan TIDAK menulis apa pun ke stdout — itulah kenapa
+          # run 30832061986 menghasilkan daftar KOSONG lalu hijau palsu.
+          pg_restore --data-only --format=custom -f - cadangan/drill.dump 2>/dev/null \
             | awk '
                 # Perbandingan STRING PERSIS untuk penutup COPY, bukan regex:
                 # pola /^\\\.$/ harus melewati YAML lalu shell lalu awk, dan di
@@ -297,7 +300,7 @@ jobs:
             echo "::error::gagal membaca jumlah baris dari dump — perbandingan isi"
             echo "akan KOSONG dan drill akan hijau tanpa memeriksa apa pun."
             echo "── 25 baris pertama keluaran --data-only (untuk diagnosis) ──"
-            pg_restore --data-only --format=custom cadangan/drill.dump 2>/dev/null \
+            pg_restore --data-only --format=custom -f - cadangan/drill.dump 2>&1 \
               | head -25 | cut -c1-120
             exit 1
           fi
