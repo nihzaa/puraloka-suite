@@ -36,11 +36,23 @@ import { fileURLToPath } from 'node:url'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
 
-// Lantai per 2026-08-04 (F2-2). Keempatnya terdaftar beserta usul
-// penanganannya di docs/adr/F2-2-KLASIFIKASI-TENANCY.md §4.
-const LANTAI = 4
+// Lantai per 2026-08-04, SETELAH F2-3 batch 1 (migrasi 178).
+//
+// Turun dari 4 → 2: `company_profile` (kategori B) dan `kasbon_purposes`
+// (kategori A/B) kini punya `company_id`, jadi tak lagi "perlu keputusan".
+//
+// ⚠️ Lantai WAJIB ikut turun setiap kali sebuah tabel diselesaikan. Lantai
+// yang dibiarkan tinggi berhenti menjaga: ia menyisakan ruang bagi tabel baru
+// yang tak punya tenancy untuk lahir tanpa memerahkan CI. Ratchet hanya
+// bekerja bila lantainya benar-benar mengikuti kenyataan.
+const LANTAI = 2
+
+// Dua sisanya SUDAH diputuskan tetap kategori A (F2-2 §4.2 & §4.4) — mereka
+// muncul di sini bukan karena belum diperiksa, melainkan karena alat tak bisa
+// membedakan "shared yang disengaja" dari "belum punya tenancy". Keputusannya
+// dijaga test f2-3-batch1-tenancy.
 const DIKENAL = new Set([
-  'company_profile', 'kasbon_purposes', 'material_categories', 'menu_items',
+  'material_categories', 'menu_items',
 ])
 
 let hasil

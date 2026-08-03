@@ -590,7 +590,7 @@ items:
       - "tiap batch punya migrasi turun yang teruji"
     cara_verifikasi: "test isolasi + rollback per batch"
     bobot: XL
-    status: todo
+    status: wip
 
   - id: F2-4
     fase: 2
