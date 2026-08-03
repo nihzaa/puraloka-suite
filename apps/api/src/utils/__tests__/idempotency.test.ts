@@ -122,6 +122,28 @@ describe('F1-1 — idempotency_keys mencegah operasi uang terjadi dua kali', () 
     expect(rows[0].hasil).toEqual({ ok: true })
   }, 30_000)
 
+  it('operasi uang memakai nama operasi yang BERBEDA satu sama lain', async () => {
+    // Kunci unik adalah (company_id, operasi, kunci). Kalau dua endpoint
+    // memakai nama operasi yang SAMA — mudah terjadi lewat salin-tempel — maka
+    // klien yang mengirim kunci sama untuk dua aksi berbeda akan mendapat
+    // balasan aksi yang salah, dan aksi keduanya TAK PERNAH dijalankan.
+    //
+    // Kegagalan itu senyap dan sangat membingungkan: "pembayaran supplier saya
+    // membalas sukses tapi tak pernah terjadi".
+    //
+    // Daftar ini sengaja ditulis ulang di sini, bukan diimpor: kalau seseorang
+    // mengubah nama operasi di route, test ini HARUS ikut diperbarui secara
+    // sadar — bukan lolos otomatis.
+    const OPERASI = ['finance:invoice:pay', 'cash:transfer:create', 'procurement:payment:create']
+    expect(new Set(OPERASI).size, 'ada nama operasi yang KEMBAR').toBe(OPERASI.length)
+
+    // Ketiganya boleh memakai kunci yang sama tanpa saling menabrak.
+    for (const op of OPERASI) {
+      expect(await coba(companyA, op, 'KUNCI-BERSAMA'), `operasi '${op}' ditolak padahal berbeda`)
+        .toBe('OK')
+    }
+  }, 30_000)
+
   it('constraint-nya benar-benar ada di katalog (bukan hanya perilaku kebetulan)', async () => {
     // Menguji perilakunya saja tak cukup: kalau constraint hilang tapi kebetulan
     // tak ada yang menabraknya saat test berjalan, semua kasus di atas tetap

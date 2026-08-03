@@ -5,6 +5,7 @@ import { validateMime } from '../../utils/mime.js'
 import { evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain } from '../../utils/approval.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { proyekBolehDibaca, proyekMilikTenant } from '../../utils/tenant-guard.js'
+import { gerbangIdempotensi, catatIdempotensi } from '../../utils/idempotency.js'
 
 const ALLOWED_IMAGE_PDF = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
 
@@ -213,6 +214,12 @@ export default async function cashRoutes(app: FastifyInstance) {
   app.post('/api/v1/cash/transfers', {
     preHandler: [authenticate, requirePermission('cash:transfer:create')]
   }, async (request, reply) => {
+    // Gerbang idempotensi (F1-1). `cash_transfers` punya
+    // `trg_cash_transfer_balance` — satu baris ganda = saldo dua rekening
+    // bergeser dua kali. Diperiksa sebelum apa pun divalidasi atau ditulis.
+    const kunciIdem = await gerbangIdempotensi(request, reply, 'cash:transfer:create')
+    if (kunciIdem === null) return
+
     const body = request.body as {
       from_account_id: string
       to_account_id: string
@@ -274,7 +281,10 @@ export default async function cashRoutes(app: FastifyInstance) {
       .single()
 
     if (error) return reply.status(500).send({ error: error.message })
-    return reply.status(201).send({ transfer: data })
+
+    const hasilTransfer = { transfer: data }
+    await catatIdempotensi(request, 'cash:transfer:create', kunciIdem ?? null, 201, hasilTransfer)
+    return reply.status(201).send(hasilTransfer)
   })
 
   // PATCH /api/v1/cash/transfers/:id/confirm — konfirmasi penerimaan

@@ -10,6 +10,7 @@ import { grValueAtPoPrices, validateInvoiceCeiling } from '../../lib/three-way-m
 import { periksaKuota, type KuotaRab } from '../../lib/kuota-rab-material.js'
 import { susunPesanPo, tautanWa } from '../../lib/pesan-po.js'
 import type { TenantDb } from '../../utils/tenant-db.js'
+import { gerbangIdempotensi, catatIdempotensi } from '../../utils/idempotency.js'
 
 /**
  * Modul 9a — kumpulkan bahan pemeriksaan kuota RAB untuk sebuah MR.
@@ -1295,6 +1296,13 @@ export default async function procurementRoutes(app: FastifyInstance) {
   app.post('/api/v1/procurement/supplier-payments', {
     preHandler: [authenticate, requirePermission('procurement:payment:manage')]
   }, async (request, reply) => {
+    // Gerbang idempotensi (F1-1). `supplier_payments` punya
+    // `trg_update_cash_on_supplier_payment` — baris ganda berarti kas terpotong
+    // DUA KALI, dan alokasinya ke invoice supplier ikut ganda. Diperiksa
+    // sebelum apa pun divalidasi atau ditulis.
+    const kunciIdem = await gerbangIdempotensi(request, reply, 'procurement:payment:create')
+    if (kunciIdem === null) return
+
     const body = request.body as {
       supplier_id: string; amount: number; payment_date?: string
       payment_method?: string; reference_number?: string; notes?: string
@@ -1359,7 +1367,9 @@ export default async function procurementRoutes(app: FastifyInstance) {
       if (allocError) app.log.error({ allocError }, 'Failed to insert payment allocations')
     }
 
-    return reply.status(201).send({ supplier_payment: payment, allocations_count: allocations.length })
+    const hasilBayar = { supplier_payment: payment, allocations_count: allocations.length }
+    await catatIdempotensi(request, 'procurement:payment:create', kunciIdem ?? null, 201, hasilBayar)
+    return reply.status(201).send(hasilBayar)
   })
 
   // GET /api/v1/procurement/supplier-payments — riwayat pembayaran (untuk kas page)

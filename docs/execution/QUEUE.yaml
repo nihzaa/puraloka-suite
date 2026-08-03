@@ -413,9 +413,17 @@ items:
       - "bayar termin, catat pembayaran, approve kasbon, transfer kas, posting jurnal, generate invoice"
       - "unik per (tenant, operasi, key); pengiriman ulang -> respons sama"
       - "test double-submit membuktikan tidak ada uang ganda"
+    bukti: >
+      Migrasi 177 (idempotency_keys, unik company+operasi+kunci) + helper
+      utils/idempotency.ts, terpasang di TIGA endpoint yang benar-benar
+      memindahkan kas: finance:invoice:pay, cash:transfer:create,
+      procurement:payment:create. Ketiganya punya trigger saldo, diverifikasi
+      lewat pg_trigger. Endpoint PATCH status (confirm/cancel/waive) TIDAK
+      dipasangi: sudah idempoten by state, menolak bila status sudah berubah.
+      MUTATION-TESTED: constraint di-DROP -> MERAH. Coverage helper 31% -> 94,8%.
     cara_verifikasi: "test double-submit per endpoint"
     bobot: L
-    status: wip
+    status: done
 
   - id: F1-2
     fase: 1
