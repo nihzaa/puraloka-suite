@@ -60,6 +60,16 @@ jobs:
     timeout-minutes: 30
 
     steps:
+      # Dibutuhkan sejak jaring pengaman R-006 ditambahkan: langkah cadangan
+      # darurat menjalankan `scripts/db/cadangan-darurat.mjs`, dan tanpa
+      # checkout runner tak punya satu pun berkas repo.
+      #
+      # Sebelumnya workflow ini memang tak memerlukannya — ia hanya memanggil
+      # pg_dump. Menambah langkah yang butuh berkas repo tanpa menambah
+      # checkout adalah cara jaring pengaman gagal justru saat dipakai:
+      # ia terpicu benar, lalu mati dengan "Cannot find module".
+      - uses: actions/checkout@v4
+
       # ── Gerbang: tanpa sandi, JANGAN jalan ────────────────────────────────
       #
       # Diperiksa PALING AWAL, sebelum satu byte pun data disentuh. Menemukan
@@ -262,6 +272,19 @@ jobs:
           SANDI: ${{ secrets.SANDI_CADANGAN }}
         run: |
           echo "::warning::pg_dump gagal (R-006). Menyelamatkan DATA lewat COPY."
+
+          # `scripts/db/_koneksi.mjs` mengambil paket `pg` dari
+          # apps/api/node_modules (createRequire). Runner belum pernah
+          # `pnpm install`, jadi tanpa ini skripnya mati "Cannot find module
+          # 'pg'" — cacat sekelas dengan checkout yang tadi hilang: langkah
+          # baru dipasang tanpa prasyaratnya ikut dipasang.
+          #
+          # Hanya `pg` yang dipasang, bukan seluruh workspace: jaring pengaman
+          # harus berjalan secepat dan sesedikit mungkin bergantung.
+          mkdir -p apps/api/node_modules
+          npm install --no-save --prefix apps/api pg pg-copy-streams >/dev/null 2>&1 || {
+            echo "::error::gagal memasang paket pg — cadangan darurat DIBATALKAN"; exit 1; }
+
           if [ -z "$SANDI" ]; then
             echo "::error::SANDI_CADANGAN kosong — cadangan darurat DIBATALKAN."
             echo "CSV mentah tak boleh diunggah tanpa enkripsi di repo publik."
