@@ -181,7 +181,28 @@ Struktur matrix dipertahankan; menaikkannya kembali cukup perubahan kecil setela
 | `gabung-coverage.mjs` | Terverifikasi: statements gabungan **6794/21241 identik** dengan run tak ter-shard. |
 | Penjaga literal peran API (ADR-004) | Menutup lubang yang lolos 14 penjaga lain. |
 
-### 5.3 ✅ ANGKA AKHIR — 6,3 menit, 6 shard, 11/11 hijau
+### 5.3 ✅ ANGKA AKHIR — 5,4 menit, 6 shard, 11/11 hijau
+
+Run `30806370508` — **11/11 check hijau**, dan shard kini seimbang:
+
+| Job | Durasi |
+|---|---:|
+| API — test (shard 2/6) | **324s** ← jalur kritis |
+| shard 5 · 6 · 1 · 3 | 310s · 308s · 289s · 273s |
+| API — test (shard 4/6) | 188s |
+| Web · Browser · Keamanan | 122s · 81s · 50s |
+| Ratchet coverage (gabungan) | 33s |
+| Dokumentasi | 6s |
+
+**Wall-clock 1317s → 324s = 21,9 → 5,4 menit (4,1×).**
+Target ≤8 menit **terlampaui dengan margin 2,6 menit.**
+
+Lima shard berkumpul rapat di 273–324s (selisih 19%, dari 87% sebelumnya).
+Ketimpangan hilang bukan karena penyeimbangan beban, melainkan karena
+**empat cacat isolasi diperbaiki** — shard yang dulu melambat sedang menunggu,
+bukan sedang bekerja.
+
+### 5.3a Riwayat: 6,3 menit (sebelum purge disempitkan)
 
 Run `30768651050` — seluruh **11 check hijau** setelah F0-16:
 

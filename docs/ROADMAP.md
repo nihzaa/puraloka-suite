@@ -190,7 +190,7 @@ membangunnya, dan tanpa keputusan itu penyebut di atas masih bisa bergeser.
 | 6 | **Graphify diperbaiki** — 7.161 node, query berfungsi | ✅ Selesai | 2026-07-31 (di luar git, `graphify-out/` ter-gitignore) |
 | 7 | **Perapian `docs/`** — 60 tautan rusak + 3 cacat administratif + pemindai di CI | ✅ Selesai | 2026-07-31, job CI `dokumentasi` |
 | E1–E8 | **Estimasi/CECEP bisa dipakai** — 8 cacat yang membuat halaman tak terpakai | ✅ Selesai | 2026-07-31, 10 commit — lihat §Tingkat 0 |
-| CI-1 | **CI dipercepat 3,5× + penjaga dibuktikan bisa merah** — 21,9→6,3 menit, 11/11 hijau; penjaga ADR-004 sisi API (lubang yang lolos 14 penjaga lain) | ✅ Selesai | run 30768651050 · `CI-PROFIL.md` §5.3 · `CI-BUKTI.md` |
+| CI-1 | **CI dipercepat 4,1× + penjaga dibuktikan bisa merah** — 21,9→5,4 menit, 11/11 hijau; penjaga ADR-004 sisi API (lubang yang lolos 14 penjaga lain) | ✅ Selesai | run 30768651050 · `CI-PROFIL.md` §5.3 · `CI-BUKTI.md` |
 | CI-2 | **Sharding test 4×** — HIDUP setelah F0-14 (16 INSERT dinyatakan company_id eksplisit); 1317s→494s, 9/9 check hijau | ✅ Selesai | run 30766328275 · `CI-PROFIL.md` §5.3 |
 | CI-4 | **Shard dinaikkan ke 6** setelah F0-16 tuntas | ✅ Selesai | `QUEUE.yaml` **F0-15** |
 | CI-5 | **Notifikasi tenant-blind DIPERBAIKI** — `company_id` jadi kolom WAJIB di NotificationParams; TypeScript menemukan 31 pemanggil | ✅ Selesai | `QUEUE.yaml` **F0-16** |
