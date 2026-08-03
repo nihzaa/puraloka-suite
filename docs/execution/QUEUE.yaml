@@ -590,7 +590,7 @@ items:
       - "tiap batch punya migrasi turun yang teruji"
     cara_verifikasi: "test isolasi + rollback per batch"
     bobot: XL
-    status: wip
+    status: done
 
   - id: F2-4
     fase: 2
@@ -602,7 +602,7 @@ items:
       - "termasuk laporan, ekspor Excel, dashboard, pencarian, notifikasi, storage, PESAN ERROR"
     cara_verifikasi: "suite isolasi hijau"
     bobot: L
-    status: blocked
+    status: todo
     catatan: "Kebocoran paling sering lewat agregat & pesan error, bukan endpoint utama."
 
   - id: F2-5
@@ -615,7 +615,7 @@ items:
       - "policy dashboard-manual dipindah jadi migrasi"
     cara_verifikasi: "test akses anon + introspect policy storage"
     bobot: M
-    status: blocked
+    status: todo
 
   - id: F2-6
     fase: 2

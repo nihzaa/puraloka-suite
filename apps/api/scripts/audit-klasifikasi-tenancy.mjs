@@ -36,23 +36,40 @@ import { fileURLToPath } from 'node:url'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
 
-// Lantai per 2026-08-04, SETELAH F2-3 batch 1 (migrasi 178).
+// Lantai per 2026-08-04, setelah F2-3 batch 1–3.
 //
-// Turun dari 4 → 2: `company_profile` (kategori B) dan `kasbon_purposes`
-// (kategori A/B) kini punya `company_id`, jadi tak lagi "perlu keputusan".
+//   4 → 2  batch 1 (migrasi 178): `company_profile` dan `kasbon_purposes`
+//          mendapat `company_id`, jadi tak lagi "perlu keputusan".
+//   2 → 3  batch 3 (migrasi 180): perbaikan alat menyingkap `permission_scopes`
+//          yang selama ini lolos lewat rantai menembus `users` (global, D5).
+//
+// Naik dari 2 ke 3 di sini BUKAN pelonggaran: tabelnya sudah ditangani
+// (migrasi 180) — yang tak bisa dilihat alat adalah BENTUK penanganannya,
+// karena tenancy-nya lewat `company_members`, bukan lewat FK.
 //
 // ⚠️ Lantai WAJIB ikut turun setiap kali sebuah tabel diselesaikan. Lantai
 // yang dibiarkan tinggi berhenti menjaga: ia menyisakan ruang bagi tabel baru
 // yang tak punya tenancy untuk lahir tanpa memerahkan CI. Ratchet hanya
 // bekerja bila lantainya benar-benar mengikuti kenyataan.
-const LANTAI = 2
+const LANTAI = 3
 
-// Dua sisanya SUDAH diputuskan tetap kategori A (F2-2 §4.2 & §4.4) — mereka
-// muncul di sini bukan karena belum diperiksa, melainkan karena alat tak bisa
-// membedakan "shared yang disengaja" dari "belum punya tenancy". Keputusannya
-// dijaga test f2-3-batch1-tenancy.
+// Ketiganya SUDAH diputuskan — mereka muncul di sini bukan karena belum
+// diperiksa, melainkan karena alat tak bisa membedakan "sudah ditangani dengan
+// cara lain" dari "belum punya tenancy".
+//
+//   material_categories, menu_items — TETAP kategori A (F2-2 §4.2 & §4.4),
+//     dijaga test f2-3-batch1-tenancy.
+//
+//   permission_scopes — tenancy lewat `company_members`, BUKAN lewat rantai FK
+//     (migrasi 180). Alat hanya menelusuri FK, jadi ia tak bisa melihat bentuk
+//     ini. Dijaga test f2-3-batch3-tenancy-turunan, yang memeriksa policy-nya
+//     langsung dan MUTATION-TESTED.
+//
+//     ⚠️ Bentuk ini dipilih karena pembatasan izin melekat pada KEANGGOTAAN,
+//     bukan pada orang: satu pembatasan bisa relevan di beberapa company bila
+//     orangnya anggota keduanya (ADR-011 D5).
 const DIKENAL = new Set([
-  'material_categories', 'menu_items',
+  'material_categories', 'menu_items', 'permission_scopes',
 ])
 
 let hasil

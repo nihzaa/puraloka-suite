@@ -151,8 +151,26 @@ function jalurTenancy(mulai) {
       const jangkarSah = (punyaCid.get(f.induk) || AKAR.has(f.induk))
                          && !BUKAN_JANGKAR.has(f.induk)
       if (jangkarSah) return baru
-      // Tetap ditelusuri LEWAT tabel shared — rantai bisa berlanjut ke tabel
-      // tenant-owned di baliknya. Yang ditolak adalah BERHENTI di sana.
+
+      // ⚠️ `users` GLOBAL — rantai tak boleh LEWAT sana, bukan cuma tak boleh
+      // berhenti di sana.
+      //
+      // Perbaikan pertama saya hanya melarang `users` jadi UJUNG. Rantai
+      // `permission_scopes → users → roles` tetap lolos: ia menembus users
+      // lalu berhenti di `roles` yang ber-company_id. Hasilnya enam tabel
+      // diklasifikasi C tanpa punya tenancy sama sekali — termasuk
+      // `borongan_settlements` dan `progress_payments` yang menyangkut uang.
+      //
+      // Satu orang bisa jadi anggota beberapa company (ADR-011 D5). Tenant
+      // sebuah baris karenanya TIDAK BISA disimpulkan dari siapa pembuatnya:
+      // `created_by → users` tak memberi tahu company mana yang memilikinya.
+      //
+      // Tabel A/B masih boleh dilewati — baris NULL-nya milik semua, dan
+      // baris ber-company_id-nya tetap membawa tenant.
+      if (f.induk === 'users') continue
+
+      // Tetap ditelusuri LEWAT tabel shared lain — rantai bisa berlanjut ke
+      // tabel tenant-owned di baliknya. Yang ditolak adalah BERHENTI di sana.
       if (!dilihat.has(f.induk)) { dilihat.add(f.induk); antre.push([f.induk, baru]) }
     }
   }
