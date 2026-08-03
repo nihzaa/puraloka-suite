@@ -433,9 +433,15 @@ items:
     judul: "23 catch kosong: telan-sengaja jadi eksplisit + log, atau dinaikkan"
     blokir_oleh: [F0-3, F0-4, F0-5, F0-7]
     kriteria_selesai: ["nol catch kosong tanpa keputusan tertulis"]
+    bukti: >
+      Diukur 2026-08-03: audit-catch-senyap.mjs melaporkan NOL, dan grep literal
+      catch-kosong di apps/api/src (di luar test) juga NOL — 18 hit yang muncul
+      seluruhnya KOMENTAR yang menyebut pola itu, bukan kodenya. Utang ini sudah
+      lunas sebelum sesi ini; yang dilakukan sekarang memverifikasinya, bukan
+      mengklaimnya. Penjaga diuji dua arah: catch kosong baru -> MERAH.
     cara_verifikasi: "node apps/api/scripts/audit-catch-senyap.mjs"
     bobot: M
-    status: todo
+    status: done
 
   - id: F1-4
     fase: 1
