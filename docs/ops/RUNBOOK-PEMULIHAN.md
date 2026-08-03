@@ -228,6 +228,60 @@ paket Pro dan aktifkan PITR **sebelum** pelanggan pertama masuk, bukan sesudah.
 
 ---
 
+## 6c. 🔴 SEKARANG: `pg_dump` mati, cadangan lewat jalur darurat
+
+**R-006 aktif.** `pg_dump` tidak bisa dipakai di database produksi — satu
+fungsi yatim menunjuk schema terhapus, dan lima varian `pg_dump` gagal identik.
+Hanya Supabase Support yang bisa membersihkannya.
+
+Selama itu belum beres, cadangan berjalan lewat **jalur darurat berbasis
+`COPY`**, yang tak menyentuh katalog rusak itu:
+
+```bash
+node scripts/db/cadangan-darurat.mjs      # lokal, READ-ONLY
+```
+
+Di CI ia berjalan otomatis (`if: failure()`) begitu `pg_dump` gagal.
+**Terbukti bekerja** — run 30841608809:
+
+```
+123 tabel · 48.426 baris · 43,6 dtk
+terbukti bisa dibuka kembali — 123 tabel di dalamnya
+```
+
+### Apa yang tercakup, dan apa yang tidak
+
+| | |
+|---|---|
+| ✅ seluruh **isi** tiap tabel (CSV) | dari `COPY` |
+| ✅ urutan muat sesuai ketergantungan FK | di `MANIFES.json` |
+| ❌ struktur, index, RLS, policy, trigger | **dipulihkan dari `db/migrations/`** |
+
+Yang tak tercakup **bukan kehilangan permanen**: seluruh struktur hidup di
+178 berkas migrasi bernomor di git. Justru itu gunanya migrasi disimpan
+sebagai berkas, bukan sekadar dijalankan sekali.
+
+### Memulihkan dari cadangan darurat
+
+```bash
+# 1. buka arsipnya
+openssl enc -d -aes-256-cbc -pbkdf2 -iter 100000 \
+  -in darurat-YYYY-MM-DD.tar.gz.enc -out darurat.tar.gz
+tar -xzf darurat.tar.gz
+
+# 2. bangun STRUKTUR dari migrasi (bukan dari cadangan)
+#    jalankan db/migrations/*.sql berurutan ke database kosong
+
+# 3. muat DATA mengikuti urutan `urutan` menaik di MANIFES.json
+#    \copy <tabel> FROM '<tabel>.csv' WITH CSV HEADER
+```
+
+> ⚠️ Jalur ini **lebih lambat dan lebih manual** daripada `pg_restore`. Ia
+> jaring pengaman, bukan pengganti. **Jangan biarkan keberadaannya jadi alasan
+> menunda R-006.**
+
+---
+
 ## 7. Yang BELUM terbukti — jujur
 
 | Hal | Status |

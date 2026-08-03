@@ -389,10 +389,19 @@ jobs:
           echo "✅ terbukti bisa dibuka kembali — $N tabel"
 
       - name: Simpan
+        # Hanya bila jalur pg_dump benar-benar menghasilkan berkas. Selama
+        # R-006 belum selesai, jalur itu mati dan langkah ini akan mencari
+        # berkas yang tak pernah dibuat — merah yang tak berarti apa-apa,
+        # menutupi merah yang berarti.
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: cadangan-${{ env.CAP }}
           path: keluar/*.enc
+          # Selama R-006 aktif, jalur ini tak pernah tercapai. `ignore` agar
+          # ia tak menambah kebisingan; jalur daruratnya memakai `error`
+          # karena di sana berkas yang hilang MEMANG kegagalan.
+          if-no-files-found: ignore
           # 30 hari: cukup panjang untuk menyadari kerusakan yang tak langsung
           # terlihat, cukup pendek supaya kuota tak habis.
           retention-days: 30
