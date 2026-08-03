@@ -534,6 +534,23 @@ jobs:
           done < /tmp/hitung-sumber.txt)
           if [ -n "$BEDA" ]; then echo "::error::isi tak sampai:"; echo "$BEDA"; GAGAL=1; fi
 
+          # ── Tabel yang FK-nya ditolak WAJIB diperiksa terang-terangan ─────
+          #
+          # Run 30832428831 hijau, tetapi restore mencatat 5 pelanggaran FK
+          # pada tabel INTI (projects, scenarios, lesson_propagation_proposals).
+          # Hijau + pelanggaran FK adalah kombinasi yang harus dicurigai:
+          # entah barisnya memang tak hilang, entah perbandingan isi punya
+          # lubang. Menebak di antara keduanya tidak sah.
+          #
+          # Angkanya dicetak apa adanya supaya bisa dibaca manusia, bukan
+          # disimpulkan diam-diam.
+          echo "── tabel dengan pelanggaran FK saat restore ──"
+          for t in projects scenarios lesson_propagation_proposals; do
+            s=$(grep "^$t|" /tmp/hitung-sumber.txt | cut -d'|' -f2)
+            g=$(psql "$TARGET" -tAc "SELECT count(*) FROM \"$t\"" 2>/dev/null | tr -d '[:space:]')
+            echo "   $t: dump=${s:-?} target=${g:-?}"
+          done
+
           {
             echo "## Uji pemulihan — $(date -u +%FT%TZ)"
             echo ""
