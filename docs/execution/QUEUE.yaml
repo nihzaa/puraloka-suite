@@ -662,8 +662,41 @@ items:
     kriteria_selesai: ["antrean lokal + sync + resolusi konflik"]
     cara_verifikasi: "test mode offline"
     bobot: XL
-    status: todo
-    catatan: "Sinyal buruk adalah NORMA di lokasi proyek, bukan pengecualian."
+    status: selesai
+    catatan: |
+      Sinyal buruk adalah NORMA di lokasi proyek, bukan pengecualian.
+
+      SELESAI — `lib/antrean-offline.ts` (antrean) + `lib/kirim-lapangan.ts`
+      (penerjemah pesan) + `components/StatusAntrean.tsx` (pemicu sinkron).
+      Terpasang di ENAM jalur tulis lapangan: progress, kasbon, kasbon-tukang,
+      laporan-upah, penagihan, tukang.
+
+      Empat jaminan, semuanya diuji + MUTATION TEST (6 mutasi, 6 tertangkap):
+        TERSIMPAN · TAK GANDA (Idempotency-Key lahir sekali) · BERURUTAN ·
+        BERKUNCI COMPANY.
+
+      Bukti: 22 test F4-3 hijau, 88/88 test web hijau, tsc 0, lint-ratchet
+      528 warning (di bawah ambang), build sukses.
+
+      ── YANG SENGAJA TIDAK DIKERJAKAN (bukan kelupaan)
+
+      1. FOTO tidak ikut diantre. Foto diunggah ke storage sebelum log dibuat,
+         dan halaman progress SUDAH punya jalur coba-ulang sendiri untuk foto
+         yang gagal. Yang sebelumnya bocor adalah teks laporannya — itu yang
+         ditutup. Mengantrekan berkas butuh IndexedDB (localStorage ~5 MB);
+         batasnya ditulis di `BATAS_BYTE`.
+
+      2. "Resolusi konflik" tidak diimplementasikan sebagai penggabungan versi.
+         Jalur lapangan seluruhnya INSERT (kasbon, laporan upah, penagihan,
+         progress log) — tak ada dua pihak yang menyunting baris yang sama,
+         jadi tak ada konflik untuk diselesaikan. Yang benar-benar dibutuhkan
+         adalah pencegahan DUPLIKAT, dan itu ditutup Idempotency-Key. Kalau
+         kelak ada jalur lapangan yang benar-benar menyunting bersama, barulah
+         resolusi konflik jadi kebutuhan nyata.
+
+      3. `toggleActive` di halaman tukang tetap langsung (tidak diantre) —
+         ia memperbarui daftar secara optimistis, dan mengantrekannya membuat
+         layar menunjukkan status yang belum tentu tersimpan.
 
   - id: F5-1
     fase: 5

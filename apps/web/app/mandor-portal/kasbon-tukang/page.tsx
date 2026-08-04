@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { api } from "@/lib/api";
+import { kirimLapangan } from "@/lib/kirim-lapangan";
 import { CreditCard, Plus } from "lucide-react";
 
 const C = {
@@ -79,7 +80,8 @@ export default function KasbonTukangPage() {
     }
     setSubmitting(true);
     try {
-      await api.post("/api/v1/mandor/worker-kasbons", {
+      // F4-3 — lewat antrean offline; sinyal buruk adalah norma di lapangan.
+      const hasil = await kirimLapangan("POST", "/api/v1/mandor/worker-kasbons", {
         worker_id: form.worker_id,
         project_id: form.project_id,
         scope_id: form.scope_id || undefined,
@@ -87,11 +89,15 @@ export default function KasbonTukangPage() {
         purpose: form.purpose,
         kasbon_date: form.kasbon_date || undefined,
         notes: form.notes || undefined,
-      });
-      setToast({ msg: "Kasbon tukang berhasil diajukan", ok: true });
+      }, "Kasbon tukang berhasil diajukan", "Gagal mengajukan kasbon");
+
+      setToast({ msg: hasil.pesan, ok: hasil.aman });
+      // Form dikosongkan hanya bila kirimannya AMAN — kalau tidak, isian
+      // mandor hilang dan ia harus mengetik ulang.
+      if (!hasil.aman) return;
       setShowModal(false);
       setForm({ worker_id: "", project_id: "", scope_id: "", amount: "", purpose: "gaji_tukang", kasbon_date: "", notes: "" });
-      await loadData();
+      if (hasil.terkirim) await loadData();
     } catch (err: any) {
       setToast({ msg: err.response?.data?.error ?? "Gagal mengajukan kasbon", ok: false });
     } finally {

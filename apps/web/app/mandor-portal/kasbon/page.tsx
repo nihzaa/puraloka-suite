@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import { api } from "@/lib/api";
+import { kirimLapangan } from "@/lib/kirim-lapangan";
 import { Plus, Clock, CheckCircle, XCircle, AlertCircle, X } from "lucide-react";
 
 const C = {
@@ -120,7 +121,10 @@ export default function MandorKasbonPage() {
     if (!form.amount || Number(form.amount) <= 0) return;
     setSaving(true);
     try {
-      await api.post("/api/v1/kasbons", {
+      // F4-3 — lewat antrean offline. Sinyal buruk adalah NORMA di lokasi
+      // proyek: tanpa ini, kasbon yang gagal terkirim HILANG dan mandor
+      // mengetik ulang, atau mencoba berkali-kali sampai terkirim ganda.
+      const hasil = await kirimLapangan("POST", "/api/v1/kasbons", {
         project_id: form.project_id || undefined,
         work_scope_id: form.work_scope_id || undefined,
         amount: Number(form.amount),
@@ -128,11 +132,15 @@ export default function MandorKasbonPage() {
         fund_source: form.fund_source,
         notes: form.notes || undefined,
         kasbon_date: form.kasbon_date,
-      });
-      showToast("Kasbon berhasil diajukan");
+      }, "Kasbon berhasil diajukan", "Gagal mengajukan kasbon");
+
+      showToast(hasil.pesan, hasil.aman);
+      // Form hanya dikosongkan bila kirimannya AMAN — kalau tidak, isinya
+      // hilang dan mandor harus mengetik ulang dari nol.
+      if (!hasil.aman) return;
       setShowModal(false);
       setForm(initForm);
-      loadData();
+      if (hasil.terkirim) loadData();
     } catch (err: any) {
       showToast(err?.response?.data?.error ?? "Gagal mengajukan kasbon", false);
     } finally {

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { api } from "@/lib/api";
+import { kirimLapangan } from "@/lib/kirim-lapangan";
 import { Users, Plus, Phone, Edit2, ToggleLeft, ToggleRight } from "lucide-react";
 
 const C = {
@@ -76,15 +77,17 @@ export default function DaftarTukangPage() {
         notes: form.notes.trim() || undefined,
         skills: form.skills ? form.skills.split(",").map((s) => s.trim()).filter(Boolean) : [],
       };
-      if (editWorker) {
-        await api.patch(`/api/v1/mandor/workers/${editWorker.id}`, payload);
-        setToast({ msg: "Data tukang diperbarui", ok: true });
-      } else {
-        await api.post("/api/v1/mandor/workers", payload);
-        setToast({ msg: "Tukang berhasil ditambahkan", ok: true });
-      }
+      // F4-3 — lewat antrean offline; sinyal buruk adalah norma di lapangan.
+      const hasil = editWorker
+        ? await kirimLapangan("PATCH", `/api/v1/mandor/workers/${editWorker.id}`,
+            payload, "Data tukang diperbarui", "Gagal menyimpan")
+        : await kirimLapangan("POST", "/api/v1/mandor/workers",
+            payload, "Tukang berhasil ditambahkan", "Gagal menyimpan");
+
+      setToast({ msg: hasil.pesan, ok: hasil.aman });
+      if (!hasil.aman) return;
       setShowModal(false);
-      await loadWorkers();
+      if (hasil.terkirim) await loadWorkers();
     } catch (err: any) {
       setToast({ msg: err.response?.data?.error ?? "Gagal menyimpan", ok: false });
     } finally {

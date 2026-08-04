@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { api, getStoredUser, logout, type PuralokaUser } from "@/lib/api";
+import StatusAntrean from "@/components/StatusAntrean";
 import {
   LayoutDashboard, Briefcase, Wallet, ClipboardList, LogOut,
   ChevronDown, HardHat, FolderKanban, Users, CreditCard, Receipt, BarChart2,
@@ -172,6 +173,11 @@ export default function MandorPortalLayout({ children }: { children: React.React
               )}
             </div>
           )}
+          {/* F4-3 — pemicu sinkron antrean offline. Ia diam (tak merender apa
+              pun) selama antrean kosong, dan hanya muncul saat ada kiriman
+              yang tertahan. Letaknya di layout, bukan per-halaman, supaya
+              antrean tetap terkirim dari halaman mana pun mandor berada. */}
+          <StatusAntrean />
           <div style={{ textAlign: "right" }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{user.name}</div>
             <div style={{ fontSize: 11, color: C.mid }}>{isPM ? "Mandor / PM" : "Mandor"}</div>
