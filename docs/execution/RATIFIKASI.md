@@ -6,6 +6,60 @@ bawah entrinya.
 
 ---
 
+# ✅ R-010 · DIRATIFIKASI 2026-08-04 — definisi INTI / PEMBEDA / TUNDA
+
+Founder: **"okee setujuuu"**, menanggapi usulan definisi di F5-1 §1.
+
+CHARTER §3 menyebut ketiga golongan ini sebagai gerbang Fase 5 tanpa pernah
+mendefinisikannya. Sejak sekarang **definisi di bawah yang berlaku**, dan
+`docs/execution/F5-1-TRIASE-SUBMENU.md` adalah penerapannya.
+
+## Definisi yang mengikat
+
+**INTI — tanpa ini produk tidak bisa dijual.**
+Ujinya satu kalimat: *kalau demo berhenti di sini, apakah calon pelanggan
+pergi?* Bukan "yang paling sering dipakai" — fitur harian yang punya jalan
+memutar (ekspor Excel, WhatsApp) menyakitkan tapi tak mematikan transaksi.
+
+**PEMBEDA — alasan memilih kita, bukan pesaing.**
+Menaikkan salah satu Lima Pembeda ERP kontraktor (`PETA-PRIORITAS-ERP.md` §6):
+cost control berlapis · EVM · WIP/PSAK · rekonsiliasi material · rantai kontrak.
+Tanpanya produk tetap bisa dijual, tapi bersaing pada harga melawan software
+akuntansi umum — pertarungan yang tak bisa dimenangkan aplikasi baru.
+
+**TUNDA — berguna, tapi tak ada yang menunggunya.**
+Membangunnya berarti menebak bentuknya, dan bentuk yang salah lebih mahal
+daripada belum ada: ia harus dirawat selamanya sambil menghalangi bentuk yang
+benar. Tiap item TUNDA **wajib punya pemicu tertulis**.
+
+**Aturan urutan:** INTI habis dulu, baru PEMBEDA. TUNDA tak dikerjakan sampai
+pemicunya nyata.
+
+## Yang mengikat sebagai akibatnya
+
+| Golongan | Jml | |
+|---|---|---|
+| INTI | 7 (+2 penyempurnaan 🟡) | dikerjakan lebih dulu |
+| PEMBEDA | 11 (+1 penyempurnaan 🟡) | sesudah INTI habis |
+| TUNDA | 25 | menunggu pemicu masing-masing |
+| JANGAN DIBANGUN | 11 | keputusan 2026-08-01 |
+| **54** | | nol hilang, nol ganda — dijaga `audit-triase-submenu.mjs` tiap CI |
+
+**Cara membatalkan:** tulis `TOLAK R-010` + definisi Anda. Isi ketiga daftar
+akan disusun ulang; penjaganya tak perlu diubah.
+
+## Koreksi yang menyertainya
+
+Saat menyiapkan ratifikasi ini, dua klaim saya sebelumnya terbukti salah dan
+sudah diperbaiki di dokumen — dicatat di sini supaya tak dicari lagi:
+
+| Klaim saya | Kenyataan |
+|---|---|
+| *"INTI #1 terblokir R-001"* | **SALAH.** R-001 sudah SELESAI; ketiga tabel GL punya `company_id`; 7 endpoint + halaman akuntansi hidup. Yang belum hanya neraca & L/R — bobot turun L → M |
+| *"93 sub-menu"* (judul QUEUE), lalu *"64"* (versi pertama triase) | Keduanya salah. Yang benar **54**, dihitung dari **kolom Status** |
+
+---
+
 # ✅ B-1 & B-2 SELESAI — repo dijadikan publik (keputusan founder 2026-08-03)
 
 Anda memilih opsi B. **Keduanya langsung teratasi**, dan keduanya sudah terbukti

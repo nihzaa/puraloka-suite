@@ -967,7 +967,9 @@ export default async function procurementRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const body = request.body as {
       po_id: string; receipt_date?: string; delivery_note_number?: string; notes?: string
-      items: Array<{ po_item_id: string; material_id: string; qty_received: number; unit: string; unit_price?: number; notes?: string }>
+      // material_id/unit/unit_price SENGAJA tidak ada di kontrak: ketiganya
+      // diturunkan dari PO item di server (lihat komentar di dekat INSERT).
+      items: Array<{ po_item_id: string; qty_received: number; notes?: string }>
     }
     if (!body.po_id || !body.items?.length) return reply.status(400).send({ error: 'po_id dan items wajib diisi' })
 
@@ -989,7 +991,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
     const poItemIds = body.items.map(i => i.po_item_id)
     const { data: poItems, error: poItemsErr } = await supabase
       .from('purchase_order_items')
-      .select('id, qty_ordered, qty_received, material:materials(name)')
+      .select('id, qty_ordered, qty_received, material_id, unit, unit_price, material:materials(name)')
       .in('id', poItemIds)
     if (poItemsErr) return reply.status(500).send({ error: poItemsErr.message })
 
@@ -1004,7 +1006,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
       const sisa = qtyOrdered - qtyReceivedConfirmed
 
       if (qtyBaru > sisa) {
-        const materialName = (poItem.material as any)?.name ?? item.material_id
+        const materialName = (poItem.material as any)?.name ?? poItem.material_id
         return reply.status(400).send({
           error: `Over-receipt: ${materialName} — qty diterima (${qtyBaru}) melebihi sisa PO (${sisa} dari total ${qtyOrdered}, sudah diterima ${qtyReceivedConfirmed})`
         })
@@ -1025,12 +1027,27 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
     if (grError) return reply.status(500).send({ error: grError.message })
 
-    const items = body.items.map(i => ({
-      gr_id: gr.id, po_item_id: i.po_item_id, material_id: i.material_id,
-      qty_received: Number(i.qty_received), unit: i.unit,
-      unit_price: i.unit_price ? Number(i.unit_price) : 0,
-      notes: i.notes ?? null,
-    }))
+    // material_id/unit/unit_price DIAMBIL DARI PO ITEM, bukan dari body.
+    // Dua alasan, keduanya sudah terbukti menggigit:
+    //  (1) Form web hanya mengirim po_item_id + qty_received, sehingga ketiga
+    //      kolom itu `undefined` → `material_id` NULL dan INSERT ditolak
+    //      not-null constraint. GR mustahil dicatat lewat UI.
+    //  (2) Harga penerimaan adalah angka uang. Membiarkan klien menentukannya
+    //      berarti harga bisa dipalsukan dari browser, dan `unit_price ? ... : 0`
+    //      yang lama diam-diam menulis 0 saat harga tak dikirim — merusak nilai
+    //      3-way match TANPA satu pun pesan galat.
+    // poItemMap sudah dimuat & divalidasi di atas (setiap po_item_id dijamin ada).
+    const items = body.items.map(i => {
+      const poItem = poItemMap.get(i.po_item_id)!
+      return {
+        gr_id: gr.id, po_item_id: i.po_item_id,
+        material_id: poItem.material_id,
+        qty_received: Number(i.qty_received),
+        unit: poItem.unit,
+        unit_price: Number(poItem.unit_price),
+        notes: i.notes ?? null,
+      }
+    })
     const { error: itemError } = await supabase.from('goods_receipt_items').insert(items)
     if (itemError) return reply.status(500).send({ error: itemError.message })
 
