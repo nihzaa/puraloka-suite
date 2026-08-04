@@ -45,7 +45,21 @@ import searchRoutes from '../search.js'
 
 let app: FastifyInstance
 let c: Client
-const TAG = 'ZZISOTEST'
+// ⚠️ TAG harus UNIK PER-RUN, bukan tetap.
+//
+// Pencarian membatasi hasil 8 per jenis (`search.ts:29`, cap dari `limit=8`).
+// Dengan TAG tetap, baris bertanda sama dari shard LAIN yang berjalan
+// bersamaan ikut cocok — dan bila jumlahnya melewati 8, klien milik tenant A
+// terdorong keluar dari hasil. Testnya lalu merah dengan "tak memuat klien A",
+// yang terbaca seperti isolasi rusak padahal yang terjadi cuma antrean penuh.
+//
+// Terjadi di CI (shard 5/6) sementara dev hijau — dev hanya menjalankan satu
+// berkas pada satu waktu, jadi tak pernah ada pesaing.
+//
+// Enam digit acak cukup: peluang dua shard memilih angka sama sangat kecil,
+// dan kalaupun terjadi, DELETE di beforeAll di bawah membersihkannya lebih
+// dulu karena ia menyaring dengan TAG yang sama.
+const TAG = `ZZISO${Math.floor(Math.random() * 900000 + 100000)}`
 
 let companyA: string
 let companyB: string
@@ -70,6 +84,16 @@ const cari = (q: string) =>
   })
 
 async function bersihkan() {
+  // ⚠️ HANYA menyapu TAG milik run ini.
+  //
+  // Sempat saya ubah jadi menyapu awalan umum `ZZISO%` supaya sisa run lama
+  // ikut terbuang — lalu saya batalkan sendiri: itu akan MENGHAPUS DATA SHARD
+  // LAIN yang sedang berjalan, persis kelas cacat yang sudah tujuh kali
+  // memerahkan CI di Fase 0 (purge `[TEST]%` dua kali di antaranya).
+  //
+  // Sisa run lama ditangani dengan cara yang tak menyentuh siapa pun:
+  // pencarian di test ini menyaring dengan TAG unik, jadi baris run lain
+  // TIDAK IKUT COCOK sama sekali — antrean hasil tak bisa penuh olehnya.
   await c.query(`DELETE FROM milestones WHERE title LIKE '${TAG}%'`)
   await c.query(`DELETE FROM projects WHERE name LIKE '${TAG}%'`)
   await c.query(`DELETE FROM clients WHERE contact_person LIKE '${TAG}%'`)
