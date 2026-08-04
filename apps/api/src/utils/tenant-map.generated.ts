@@ -4,7 +4,7 @@
 // Penegak: `node scripts/gen-tenant-map.mjs check` (CI) — build MERAH kalau
 // ada tabel yang belum terklasifikasi (ADR-011 §9.5 P3).
 //
-// 124 tabel · A=10 · AB=14 · ANCHOR=1 · B=27 · C=66 · D=6
+// 125 tabel · A=10 · AB=14 · ANCHOR=1 · B=27 · C=67 · D=6
 //
 // Arti kategori (ADR-011 §5 + audit T1):
 //   ANCHOR akar tenancy (projects) — company_id NOT NULL
@@ -51,6 +51,7 @@ export const PETA_TENANCY = {
   'company_profile': { kategori: 'D' },  // Deprecated — digantikan companies (dibuang setelah T4).
   'company_settings': { kategori: 'B' },
   'contract_bonds': { kategori: 'B' },
+  'contract_claims': { kategori: 'C', lewat: 'project_id' },  // contract_claims.project_id
   'contract_eot': { kategori: 'C', lewat: 'project_id' },  // contract_eot.project_id
   'cost_code_category_map': { kategori: 'C', lewat: 'category_id' },  // cost_code_category_map.category_id → project_expense_categories.project_id
   'cost_codes': { kategori: 'AB' },
