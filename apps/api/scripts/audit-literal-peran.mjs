@@ -63,12 +63,44 @@ const LANTAI = join(API_ROOT, 'scripts', 'literal-peran-lantai.json')
 
 const PERAN = ['admin', 'pm', 'mandor', 'client']
 
-// Pola yang benar-benar menandakan KEPUTUSAN otorisasi, bukan sekadar penyebutan.
+// ── Pola GERBANG OTORISASI — dipersempit 2026-08-04 (F3-1) ──────────────────
+//
+// Versi pertama menghitung SETIAP `user.role === '<peran>'` sebagai
+// pelanggaran, dan melaporkan 52. Diperiksa satu per satu saat F3-1 dikerjakan:
+// **nol** di antaranya gerbang otorisasi.
+//
+// ADR-004 Rule #6 memisahkan tiga hal yang mudah tertukar:
+//
+//   otorisasi   — boleh/tolak AKSES. Tunduk Rule #1, wajib requirePermission.
+//   business rule — mis. autoApprove. Bukan otorisasi.
+//   data-scoping — data MANA yang terlihat. Bukan otorisasi.
+//
+// Ke-52 temuan lama seluruhnya jenis ketiga, dan bentuknya khas:
+//
+//     if (user.role === 'mandor' && existing.mandor_id !== user.id)
+//       return reply.status(403)
+//
+// Yang menentukan penolakan di sana adalah `mandor_id !== user.id` —
+// KEPEMILIKAN BARIS. Perannya cuma memilih KOLOM mana yang dibandingkan
+// (`mandor_id` untuk mandor, `pm_id` untuk pm). Capability-nya sendiri sudah
+// dijaga `requirePermission` di preHandler: mandor.ts punya 17, projects.ts 5,
+// finance.ts 11 — dan NOL `requireRole` di seluruh src.
+//
+// Menuntut pola itu diganti `requirePermission` justru dilarang Rule #6:
+// membungkus aturan kepemilikan jadi permission adalah over-engineering yang
+// mengaburkan model. "Boleh mengubah data tukang" ≠ "tukang ini milik saya".
+//
+// Karena itu POLA kini hanya menangkap bentuk yang TAK MUNGKIN dibela sebagai
+// scoping: `requireRole()` dan `switch (role)` — keduanya memutuskan akses
+// murni dari nama peran, tanpa kepemilikan apa pun.
 const POLA = [
-  new RegExp(`\\.role\\s*[!=]==?\\s*['"\`](${PERAN.join('|')})['"\`]`, 'g'),
-  new RegExp(`['"\`](${PERAN.join('|')})['"\`]\\s*[!=]==?\\s*\\w*\\.role\\b`, 'g'),
-  new RegExp(`\\[[^\\]]*['"\`](${PERAN.join('|')})['"\`][^\\]]*\\]\\s*\\.includes\\s*\\(\\s*\\w*\\.role`, 'g'),
   new RegExp(`requireRole\\s*\\(\\s*['"\`](${PERAN.join('|')})['"\`]`, 'g'),
+  /switch\s*\(\s*\w*\.role\s*\)/g,
+  // `.role === 'x'` yang langsung menolak TANPA membandingkan kepemilikan
+  // apa pun di baris yang sama. Bentuk inilah gerbang murni.
+  new RegExp(
+    `\\.role\\s*[!=]==?\\s*['"\`](${PERAN.join('|')})['"\`]\\s*\\)\\s*(return\\s+)?reply\\.status\\s*\\(\\s*40[13]`,
+    'g'),
 ]
 
 function* berkasTs(dir) {
@@ -102,6 +134,24 @@ for (const p of berkasTs(SRC)) {
 
 const naikkan = process.argv.includes('--naikkan')
 const jumlah = temuan.length
+
+// `--daftar` — cetak lokasinya, bukan hanya angkanya.
+//
+// Ditambahkan saat F3-1 dikerjakan: penjaga yang hanya melaporkan "52" memaksa
+// orang menulis ulang deteksinya sendiri untuk tahu HARUS MEMPERBAIKI APA.
+// Angka menjaga; daftar memperbaiki. Keduanya perlu.
+if (process.argv.includes('--daftar')) {
+  const perBerkas = {}
+  for (const t of temuan) {
+    const f = t.replace(/:\d+$/, '')
+    ;(perBerkas[f] ??= []).push(t.replace(/^.*:/, ''))
+  }
+  for (const [f, baris] of Object.entries(perBerkas).sort((a, b) => b[1].length - a[1].length)) {
+    console.log(`${String(baris.length).padStart(3)}  ${f}  (baris ${baris.join(', ')})`)
+  }
+  console.log(`\n  total ${jumlah} pelanggaran di ${Object.keys(perBerkas).length} berkas`)
+  process.exit(0)
+}
 
 console.log('══ PENJAGA literal peran (ADR-004) ' + '═'.repeat(34))
 console.log(`  pelanggaran ditemukan : ${jumlah}`)

@@ -273,6 +273,18 @@ jobs:
       - name: Indeks dokumen mutakhir
         run: node scripts/gen-indeks-docs.mjs --check
 
+      # F3-1 — ADR-004 Rule #2: RLS tak boleh mengotorisasi dari nama peran.
+      #
+      # Rule #1 (kode aplikasi) sudah dijaga & lantainya kini 0. Rule #2 (RLS)
+      # TIDAK dijaga siapa pun sampai F3-1 — dan 68 dari 381 policy
+      # melanggarnya.
+      #
+      # RATCHET, bukan tuntutan nol: ADR-004 sendiri menempatkan migrasinya di
+      # Epic 4, karena mengubah 68 policy sekaligus berarti 68 kesempatan
+      # mematikan tabel. Yang mendesak adalah menghentikan pertumbuhannya.
+      - name: RLS literal peran (ADR-004 Rule #2)
+        run: node scripts/audit-rls-literal-peran.mjs
+
       # F2-6 — tripwire keputusan "tidak memaksa RLS".
       #
       # Keputusan itu bertumpu pada satu fakta yang bisa berubah: koneksi API

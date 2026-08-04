@@ -637,23 +637,24 @@ function CreateMrModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
     if (validItems.length === 0) { setError("Tambahkan minimal 1 item material yang valid"); return; }
     setSaving(true); setError("");
     try {
-      const res = await api.post("/api/v1/procurement/material-requests", {
+      // Header + item dikirim dalam SATU request: endpoint menyisipkan keduanya
+      // (material_requests lalu material_request_items) di alur yang sama.
+      // Pola lama — POST header dulu, item menyusul satu per satu — selalu
+      // ditolak 400 `project_id dan items wajib diisi` karena `items` tak pernah
+      // ikut di body, dan kalaupun lolos, kegagalan POST item tertelan senyap
+      // sehingga menyisakan MR draft tanpa item.
+      await api.post("/api/v1/procurement/material-requests", {
         project_id: form.project_id,
         needed_date: form.needed_date || null,
         notes: form.notes || null,
+        items: validItems.map(item => ({
+          material_id: item.material_id,
+          qty_requested: Number(item.qty),
+          unit: item.unit,
+          unit_price_est: item.unit_price_est ? Number(item.unit_price_est) : null,
+          notes: item.notes || null,
+        })),
       });
-      const mrId = res.data?.material_request?.id;
-      if (mrId) {
-        await Promise.all(validItems.map(item =>
-          api.post(`/api/v1/procurement/material-requests/${mrId}/items`, {
-            material_id: item.material_id,
-            qty_requested: Number(item.qty),
-            unit: item.unit,
-            unit_price_est: item.unit_price_est ? Number(item.unit_price_est) : null,
-            notes: item.notes || null,
-          }).catch(() => null)
-        ));
-      }
       onSuccess();
     } catch (e: any) {
       setError(e?.response?.data?.error ?? "Gagal membuat MR");

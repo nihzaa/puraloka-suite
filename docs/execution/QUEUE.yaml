@@ -635,7 +635,7 @@ items:
     kriteria_selesai: ["nol literal peran di posisi pengambil keputusan otorisasi", "penjaga CI hijau"]
     cara_verifikasi: "grep + penjaga CI"
     bobot: L
-    status: blocked
+    status: done
 
   - id: F4-1
     fase: 4
@@ -644,7 +644,7 @@ items:
     kriteria_selesai: ["hex literal hanya boleh di berkas token", "white-label per tenant mungkin"]
     cara_verifikasi: "penjaga CI hex"
     bobot: L
-    status: blocked
+    status: todo
 
   - id: F4-2
     fase: 4
@@ -653,7 +653,7 @@ items:
     kriteria_selesai: ["useEffect-fetch di halaman turun drastis", "cache bersama lintas navigasi"]
     cara_verifikasi: "grep useEffect di page.tsx + ukur navigasi"
     bobot: XL
-    status: blocked
+    status: todo
 
   - id: F4-3
     fase: 4
@@ -662,7 +662,7 @@ items:
     kriteria_selesai: ["antrean lokal + sync + resolusi konflik"]
     cara_verifikasi: "test mode offline"
     bobot: XL
-    status: blocked
+    status: todo
     catatan: "Sinyal buruk adalah NORMA di lokasi proyek, bukan pengecualian."
 
   - id: F5-1

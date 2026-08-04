@@ -1,0 +1,5 @@
+{
+  "_catatan": "Lantai RLS literal peran (ADR-004 Rule #2). Boleh TURUN, tak boleh NAIK.",
+  "_utang": "Migrasi ke has_permission() dijadwalkan Epic 4 (ADR-004). F3-1 memasang penjaganya supaya utang berhenti tumbuh.",
+  "maks": 68
+}

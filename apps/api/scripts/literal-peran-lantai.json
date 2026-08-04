@@ -1,5 +1,5 @@
 {
-  "_catatan": "Lantai literal peran (ADR-004). Boleh TURUN, tak boleh NAIK. Lihat scripts/audit-literal-peran.mjs.",
-  "_utang": "Pembersihan terjadwal di QUEUE.yaml F3-1 (Fase 3).",
-  "maks": 52
+  "_catatan": "Lantai literal peran (ADR-004 Rule #1). Boleh TURUN, tak boleh NAIK. Yang dihitung HANYA gerbang otorisasi murni (requireRole, switch(role), .role!==X yang langsung menolak) — ownership check dan data-scoping DIKECUALIKAN oleh Rule #6.",
+  "_utang": "LUNAS 2026-08-04 (F3-1). Lantai 0 — gerbang otorisasi berbasis nama peran DILARANG, bukan sekadar dibatasi.",
+  "maks": 0
 }
