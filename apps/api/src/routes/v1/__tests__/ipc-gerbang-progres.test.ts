@@ -34,6 +34,7 @@ let client: Client
 let adminAuth: string
 let adminUserId: string
 let clientId: string
+let companyId: string
 
 const PREFIX = '[TEST-IPC]'
 
@@ -75,12 +76,13 @@ async function buatSkenario(opts: {
   pemicu: 'on_sign' | 'on_progress' | 'on_retention'
   ambangPct: number | null
 }) {
+  // `company_id` eksplisit — alasannya di komentar `beforeAll`.
   const { rows: p } = await client.query(
-    `INSERT INTO projects (client_id, pm_id, name, location, start_date, end_date,
+    `INSERT INTO projects (company_id, client_id, pm_id, name, location, start_date, end_date,
                            progress_pct, contract_value, created_by)
-     VALUES ($1, $2, $3, 'Bandung', CURRENT_DATE, CURRENT_DATE + INTERVAL '90 days',
+     VALUES ($5, $1, $2, $3, 'Bandung', CURRENT_DATE, CURRENT_DATE + INTERVAL '90 days',
              $4, 1000000000, $2) RETURNING id`,
-    [clientId, adminUserId, `${PREFIX} ${opts.nama}`, opts.progresPct])
+    [clientId, adminUserId, `${PREFIX} ${opts.nama}`, opts.progresPct, companyId])
   const projectId = p[0].id as string
 
   const { rows: t } = await client.query(
@@ -109,9 +111,26 @@ beforeAll(async () => {
     `SELECT u.id FROM users u JOIN roles r ON r.id=u.role_id WHERE r.name='admin' LIMIT 1`)
   adminUserId = u[0].id
 
+  // ⚠️ `company_id` DIISI EKSPLISIT — jangan mengandalkan trigger.
+  //
+  // Versi pertama fixture ini mengabaikannya dan HIJAU DI DEV, MERAH DI CI:
+  //
+  //     null value in column "company_id" of relation "clients"
+  //     violates not-null constraint
+  //
+  // Sebabnya bukan test yang rapuh. `fn_isi_company_id()` mengisi otomatis
+  // hanya bila ada TEPAT SATU company, dan MENOLAK MENEBAK saat ambigu.
+  // Database dev punya satu; CI punya beberapa. Jadi dev-lah yang menyesatkan,
+  // bukan CI yang rewel — dan trigger itu memang tak boleh dilonggarkan
+  // (pelajaran F0-14, dan alasannya tetap berlaku untuk multi-tenant).
+  const { rows: co } = await client.query(
+    `SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1`)
+  companyId = co[0].id
+
   const { rows: c } = await client.query(
-    `INSERT INTO clients (contact_person, phone, created_by) VALUES ($1, '081200000000', $2) RETURNING id`,
-    [`${PREFIX} Klien`, adminUserId])
+    `INSERT INTO clients (company_id, contact_person, phone, created_by)
+     VALUES ($1, $2, '081200000000', $3) RETURNING id`,
+    [companyId, `${PREFIX} Klien`, adminUserId])
   clientId = c[0].id
 
   app = Fastify()
