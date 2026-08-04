@@ -6,6 +6,106 @@ bawah entrinya.
 
 ---
 
+# ✅ R-011 · DIRATIFIKASI 2026-08-04 — ratchet akses mentah 364 → 366, **sekali saja**
+
+Founder: **"okee saya setuju dengan mu, lanjutkan"**, menanggapi rekomendasi
+"terima sekarang, bayar dengan tripwire".
+
+## Yang mengikat sebagai akibatnya
+
+**Ini kenaikan PERTAMA dan TERAKHIR.** Yang memastikan bukan ingatan siapa pun,
+melainkan penjaga yang menjaga penjaga:
+
+```
+apps/api/src/routes/v1/__tests__/tenancy-ratchet.test.ts
+  const PLAFON_R011 = 366
+  it('TRIPWIRE R-011 — ambangnya sendiri tidak boleh dinaikkan lagi')
+```
+
+**Terbukti bisa merah** (mutasi 366 → 370):
+
+```
+× TRIPWIRE R-011 — ambangnya sendiri tidak boleh dinaikkan lagi
+  → AMBANG_SUPABASE_MENTAH dinaikkan jadi 370, melewati plafon 366
+    yang ditetapkan R-011.
+```
+
+Pesan galatnya menunjuk ke **jalan keluar**, bukan ke tombol "naikkan sedikit
+lagi": bangun VIEW database yang mengagregasi + menjamin tenancy di lapisan SQL,
+lalu baca lewat `request.db`. Query mentahnya hilang, dan angkanya justru
+**turun**. Kandidat pertama sudah diketahui: `v_retensi_subkontrak` untuk
+`GET /mandor/retensi-register`.
+
+## Kenapa tripwire, bukan langsung dibangun view-nya
+
+Dua sudut pandang memberi jawaban berbeda, dan keduanya sah:
+
+| Sudut | Jawaban |
+|---|---|
+| **Engineer** | Tolak. Bukan karena dua angka itu besar, tapi karena presedennya — begitu satu kenaikan diterima dengan alasan bagus, berikutnya cuma perlu alasan yang sama bagusnya, dan alasan selalu ada |
+| **Pengusaha** | Terima. Enam dari sembilan INTI masih terbuka, belum ada pelanggan membayar, dan 2 jam untuk kerapian yang tak dilihat pelanggan adalah salah prioritas |
+
+Tripwire menggabungkan keduanya: bisnisnya jalan sekarang, dan disiplinnya
+dijaga **mekanisme**, bukan niat.
+
+---
+
+**Isi usul aslinya, disimpan apa adanya:**
+
+## Apa yang berubah
+
+`AMBANG_SUPABASE_MENTAH` di `tenancy-ratchet.test.ts`: **364 → 366**.
+
+Ratchet ini menghitung query `supabase` mentah (yang melewati wrapper sadar
+tenant). Sejarahnya **hanya pernah turun**: 468 → 459 → … → 364. Ini kenaikan
+pertama.
+
+## Kenapa naik
+
+Dua endpoint baru di `mandor.ts`, keduanya menyentuh tabel `work_scopes`:
+
+| Endpoint | Guna |
+|---|---|
+| `GET /mandor/retensi-register` | melihat retensi mandor yang tertahan vs dicairkan |
+| `POST /mandor/retensi-releases` | mencairkan retensi ke mandor |
+
+`work_scopes` **kategori C** — tenancy-nya lewat rantai FK, bukan kolom
+`company_id`. Versi pertama saya memakai `request.db!.from('work_scopes')` dan
+**penjaga tenancy menolaknya dengan benar**:
+
+> *"'work_scopes' mewarisi tenancy lewat project — pakai `db.viaProject(...)`.
+> Tanpa project_id, query ini akan mengembalikan baris milik tenant lain."*
+
+`viaProject()` juga tak bisa dipakai: kedua rute bekerja **per scope**, dan
+`project_id`-nya justru yang sedang dicari lewat scope itu. Jalur yang tersisa
+adalah akses mentah + gerbang eksplisit `scopeIdsTenant(request)` — pola yang
+dokumentasi ratchet-nya sendiri sebut sah (`.in(...)` untuk rute lintas-proyek).
+
+## Dua hal yang dicoba lebih dulu
+
+Saya tidak langsung menaikkan angkanya:
+
+1. **Query `progress_payments` tersendiri DIGABUNG** jadi embed di
+   `work_scopes` — menghapus satu akses mentah (367 → 366). Bonusnya: rantai
+   tenancy jadi satu, bukan dua yang masing-masing bisa lupa dipasang.
+2. **Seluruh repo disapu** mencari query mentah pada tabel **kategori B** yang
+   bisa dialihkan ke `request.db` sebagai penebus. Hasilnya **nol** — hutang
+   kategori B sudah bersih; yang tersisa memang kategori C yang sah.
+
+## Yang TIDAK dilakukan
+
+- Gerbang tenant **tidak** dilonggarkan — `scopeIdsTenant` tetap dipanggil di
+  kedua endpoint, dan test membuktikannya.
+- Penjaga lain **tidak** disentuh. `lint:ratchet` dan `audit-kegagalan-senyap`
+  sempat merah karena kode ini, dan **keduanya saya perbaiki di sumbernya**:
+  `no-explicit-any` 234 → di bawah ambang, kegagalan senyap **187 → 184**
+  (turun, karena satu cacat lama ikut ketemu dan diperbaiki).
+
+**Cara membatalkan:** tulis `TOLAK R-011`. Saya rancang ulang kedua endpoint —
+kemungkinan besar dengan memindahkan agregasinya ke view database, yang
+menghilangkan query mentahnya sama sekali.
+---
+
 # ✅ R-010 · DIRATIFIKASI 2026-08-04 — definisi INTI / PEMBEDA / TUNDA
 
 Founder: **"okee setujuuu"**, menanggapi usulan definisi di F5-1 §1.
