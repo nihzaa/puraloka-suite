@@ -7,6 +7,11 @@ import { resolveRecipients } from '../../utils/notification-routing.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { computeAndPersistPenalty, estimatePenalty } from '../../utils/penalty.js'
 import { computeAging, retentionOutstanding, validateDpDeduction } from '../../lib/ar-register.js'
+import {
+  evaluasiGerbangProgres,
+  type HasilGerbangProgres,
+  type PemicuTermin,
+} from '../../lib/ipc-progres.js'
 import { proyekBolehDibaca, proyekMilikTenant } from '../../utils/tenant-guard.js'
 import { gerbangIdempotensi, catatIdempotensi } from '../../utils/idempotency.js'
 
@@ -505,7 +510,8 @@ export default async function financeRoutes(app: FastifyInstance) {
     // menempel ke proyek tenant B (cek pm_id di bawah hanya berlaku utk role PM).
     const { data: project } = await request.db!
       .from('projects')
-      .select('id, pm_id, commission_pct, is_deleted')
+      // `progress_pct` dipakai gerbang IPC di bawah (termin `on_progress`).
+      .select('id, pm_id, commission_pct, is_deleted, progress_pct')
       .eq('id', body.project_id)
       .maybeSingle()
     if (!project || project.is_deleted) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
@@ -518,10 +524,13 @@ export default async function financeRoutes(app: FastifyInstance) {
 
     // ── Validasi termin jika termin_billing ──────────────────────────────────
     let terminTriggerType: string | null = null
+    let gerbangIpc: HasilGerbangProgres | null = null
     if (body.termin_schedule_id) {
       const { data: termin } = await supabase
         .from('termin_schedules')
-        .select('id, status, project_id, trigger_type')
+        // `trigger_pct` = ambang progres yang disepakati kontrak. Sebelum ini
+        // ia diambil pun tidak — lihat blok gerbang IPC di bawah.
+        .select('id, status, project_id, trigger_type, trigger_pct')
         .eq('id', body.termin_schedule_id)
         .single()
       if (!termin) return reply.status(404).send({ error: 'Termin tidak ditemukan' })
@@ -532,6 +541,35 @@ export default async function financeRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: 'Termin ini sudah pernah ditagih' })
       }
       terminTriggerType = termin.trigger_type ?? null
+
+      // ── GERBANG IPC — termin `on_progress` (INTI #2, F5-1) ────────────────
+      //
+      // `trigger_type='on_progress'` + `trigger_pct` sudah tersimpan sejak
+      // lama, tetapi TAK PERNAH DIPERIKSA. Satu-satunya pemakaian
+      // `trigger_type` di berkas ini adalah menolak potongan DP pada invoice
+      // `on_sign`; cabang `on_progress` tidak ada sama sekali.
+      //
+      // Akibatnya termin yang menurut kontrak baru boleh ditagih pada progres
+      // 40% BISA DITAGIH PADA PROGRES 0% — tanpa pemeriksaan, tanpa galat.
+      // Dua arah kerugiannya nyata: menagih lebih awal dari kontrak adalah
+      // dasar sengketa dengan owner, dan sebaliknya ia jadi celah mencairkan
+      // termin yang belum berhak cair.
+      //
+      // Fail-closed: progres/ambang yang TIDAK DIKETAHUI menolak, bukan
+      // meloloskan (Ember [C]). Alasannya di header `lib/ipc-progres.ts`.
+      gerbangIpc = evaluasiGerbangProgres({
+        pemicu: terminTriggerType as PemicuTermin | null,
+        ambangPct: termin.trigger_pct as number | null,
+        progresPct: project.progress_pct as number | null,
+      })
+      if (!gerbangIpc.lolos) {
+        return reply.status(422).send({
+          error: gerbangIpc.pesan,
+          alasan: gerbangIpc.alasan,
+          progres_pct: gerbangIpc.progresPct,
+          ambang_pct: gerbangIpc.ambangPct,
+        })
+      }
     }
 
     // ── Validasi expense line items (expense_billing) ────────────────────────
@@ -725,12 +763,31 @@ export default async function financeRoutes(app: FastifyInstance) {
     if (invErr) return reply.status(500).send({ error: invErr.message })
 
     // Audit: pembuatan invoice — nilai tagihan (invoice.amount)
+    //
+    // Untuk termin `on_progress`, progres yang diakui SAAT PENAGIHAN ikut
+    // dicatat. Inilah bagian "certificate" dari Interim Payment Certificate:
+    // tanpa angka ini, enam bulan kemudian tak seorang pun bisa menjawab
+    // "waktu itu progresnya berapa?" — dan justru pertanyaan itulah yang
+    // muncul ketika owner menyengketakan tagihan.
+    //
+    // Ditaruh di audit log, bukan kolom baru di `invoices`: audit log
+    // immutable (Ember [C]), sedangkan kolom biasa bisa disunting belakangan.
+    // Sertifikat yang bisa disunting bukan sertifikat.
     void logAuditEvent(request, {
       tableName: 'invoices',
       recordId: invoice.id,
       action: 'invoice.amount',
       actorId: currentUser.id,
-      newValues: { invoice_number: invoice.invoice_number, total_amount: totalAmount },
+      newValues: {
+        invoice_number: invoice.invoice_number,
+        total_amount: totalAmount,
+        ...(gerbangIpc && gerbangIpc.alasan !== 'bukan_on_progress'
+          ? {
+              ipc_progres_pct: gerbangIpc.progresPct,
+              ipc_ambang_pct: gerbangIpc.ambangPct,
+            }
+          : {}),
+      },
       severity: 'critical',
     })
 
