@@ -5,6 +5,96 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-04 — F5-1: triase sub-menu, dan saya mengulangi kesalahan yang saya kutip
+
+### Saya salah
+
+Versi pertama dokumen triase menghitung **64 sub-menu merah**. Angka yang benar
+**54**.
+
+Skrip hitung saya memakai `baris.includes('🔴')` — mencari tanda merah **di mana
+pun di baris**, termasuk kolom *Catatan*. Taksonomi sendiri memperingatkan ini
+di badan dokumennya:
+
+> *"Dihitung dari kolom Status, bukan dari semua tanda yang muncul di baris —
+> banyak baris memuat tanda tambahan di kolom Catatan sebagai keterangan
+> ('Foto ✅, geotag 🔴'), dan ikut menghitungnya menggelembungkan angka ±12%."*
+
+**Saya menyalin peringatan itu ke dokumen saya, lalu melanggarnya di skrip yang
+saya tulis tepat di bawahnya.** Selisihnya 19%, bukan 12%.
+
+Yang tertangkap hanya karena saya menjumlahkan ulang: 9 + 12 + 26 = 47, tapi
+64 − 12 − 3 − 2 = 47 sementara detektor melaporkan 63. Dua angka tak cocok, dan
+memeriksa selisihnya membuka sembilan baris 🟡 yang salah dihitung.
+
+Kenapa ini penting, bukan sekadar salah ketik: sembilan baris itu berstatus
+**🟡 sebagian sudah hidup**. `Laporan keuangan` — item **paling penting** di
+seluruh daftar — punya arus kas yang sudah jalan; hanya neraca & L/R yang
+merah. Menghitungnya "belum dimulai" membuat bobotnya XL padahal L, dan itu
+persis jenis kesalahan yang membuat urutan kerja salah.
+
+### Yang dibangun
+
+`docs/execution/F5-1-TRIASE-SUBMENU.md` — 54 sub-menu, tiap satu punya
+golongan, alasan, prasyarat data, dan bobot.
+
+| Golongan | Jml | Definisinya |
+|---|---|---|
+| **INTI** | 7 (+2 penyempurnaan 🟡) | Calon pelanggan **pergi** kalau demo berhenti di sini |
+| **PEMBEDA** | 11 (+1 penyempurnaan 🟡) | Menaikkan salah satu Lima Pembeda ERP kontraktor |
+| **TUNDA** | 25 | Berguna, tapi **tak ada yang menunggunya**; tiap satu punya pemicu tertulis |
+| **JANGAN DIBANGUN** | 11 | Keputusan 2026-08-01, tak dibuka ulang |
+
+**54 — nol hilang, nol ganda.**
+
+### Kenapa dokumen ini tetap perlu padahal triase 2026-08-01 sudah ada
+
+Keduanya menjawab pertanyaan **berbeda**:
+
+| Dokumen | Menjawab |
+|---|---|
+| Taksonomi §KEPUTUSAN (2026-08-01) | *Apakah ini layak dibangun sama sekali?* |
+| F5-1 | *Dari yang layak, mana yang harus habis **lebih dulu**?* |
+
+Risiko C-7 bukan salah memilih fitur. Ia adalah **mengerjakan fitur yang benar
+dalam urutan yang salah sampai kehabisan tenaga sebelum produknya bisa dijual**.
+
+### Penjaganya, dan bukti ia bisa merah
+
+`apps/api/scripts/audit-triase-submenu.mjs` — tiap sub-menu 🔴 di taksonomi
+wajib muncul **tepat satu kali** di salah satu golongan.
+
+| Mutasi | Hasil |
+|---|---|
+| Satu item dihapus dari TUNDA | ❌ exit 1 — "Nota kredit BELUM ditriase" |
+| Satu item ditaruh di dua golongan | ❌ exit 1 — "PEMBEDA + TUNDA, urutannya ambigu" |
+| Dipulihkan | ✅ exit 0 |
+
+Penjaganya memeriksa **sel Status**, dan header skripnya memuat peringatan
+tentang kesalahan `includes()` di atas — supaya orang berikutnya (termasuk saya)
+tak mengulanginya.
+
+### Tiga status taksonomi ternyata basi — dikoreksi, bukan didiamkan
+
+Kenyataan menang atas dokumen (CLAUDE.md §0):
+
+| Item | Sebelum | Sesudah | Bukti |
+|---|---|---|---|
+| Backup & restore | 🔴 | ✅ | RTO terukur **61 detik**, 124/124 tabel, 377/377 policy |
+| Mode offline | 🔴 | 🟡 | F4-3 — antrean 6 jalur, mutation-test 6/6 |
+| Multi-tenant | 🔴 | 🟡 | 45/123 tabel ber-`company_id`, RLS 123/123, 5 kebocoran ditutup |
+
+### Yang menunggu founder
+
+1. **Definisi INTI/PEMBEDA/TUNDA belum diratifikasi.** CHARTER menyebut
+   ketiganya tanpa mendefinisikan; §1 dokumen adalah usulan saya.
+2. **INTI #1 terblokir R-001.** Laporan keuangan berdiri di atas GL yang punya
+   cacat P0 (migrasi 047 vs 167). Item paling penting **tidak bisa dimulai**.
+3. **Judul QUEUE F5-1 menyebut "93"**, kenyataannya 54. Sengaja tak diubah —
+   biar terlihat angkanya pernah salah dan kapan dikoreksi.
+
+---
+
 ## 2026-08-04 — F4-3: jalur lapangan berhenti kehilangan pekerjaan mandor
 
 ### Masalah yang sebenarnya

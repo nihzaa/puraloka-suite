@@ -352,10 +352,10 @@ Semua 🔴 — terkonfirmasi.
 | Audit log | ✅ | Append-only trigger masih dorman |
 | API & integrasi | 🟡 | |
 | Import/export data | 🟡 | Import hanya RAB Excel; export XLSX/PDF ada |
-| Backup & restore | 🔴 | |
+| Backup & restore | ✅ | F0-13/F0-14 · `.github/workflows/cadangan-harian.yml` (terenkripsi) + `uji-pemulihan.yml` (latihan mingguan). **RTO terukur 61 detik**, tabel 124/124 · RLS 123/123 · policy 377/377. `scripts/db/cadangan-darurat.mjs` sebagai jalur COPY saat `pg_dump` gagal (R-006) |
 | Multi-bahasa (i18n) | ⛔ | Dicoret owner — UI Bahasa Indonesia |
 | SSO / SAML | ⛔ | Dicoret owner |
-| Multi-tenant | 🔴 | Program F — gate: pelanggan eksternal committed |
+| Multi-tenant | 🟡 | **Naik dari 🔴 2026-08-04 — diukur, bukan ditaksir.** Isolasi datanya HIDUP: 45/123 tabel ber-`company_id`, sisanya lewat rantai FK (klasifikasi F2-2), RLS aktif 123/123. Fase 2 menutup **lima kebocoran lintas-tenant nyata** (`audit_logs` 13.691 baris · `permission_scopes` · 3 bucket storage). ADR-010 memutuskan bentuk grup/holding. Yang BELUM: penyediaan tenant, onboarding, langganan, batas paket — itu F7-1, dan gerbangnya tetap pelanggan eksternal committed |
 
 ---
 
@@ -363,7 +363,7 @@ Semua 🔴 — terkonfirmasi.
 
 | Menu | Status | Catatan |
 |---|---|---|
-| Mode offline | 🔴 | |
+| Mode offline | 🟡 | **Naik dari 🔴 2026-08-04 (F4-3).** `lib/antrean-offline.ts` + `lib/kirim-lapangan.ts` + `components/StatusAntrean.tsx`; terpasang di 6 jalur tulis portal mandor. Empat jaminan diuji + mutation-test (6/6 tertangkap): tersimpan · tak-ganda (Idempotency-Key) · berurutan · berkunci company. **Belum 5/5**: foto belum ikut diantre (butuh IndexedDB), dan pembacaan belum offline — mandor masih perlu sinyal untuk MELIHAT data |
 | Input laporan harian | 🟡 | Screen input progress + foto ada |
 | Foto + geotag | 🟡 | Foto ✅, geotag 🔴 |
 | Absensi lapangan | 🔴 | |
