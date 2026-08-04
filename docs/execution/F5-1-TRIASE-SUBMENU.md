@@ -160,7 +160,7 @@ menyempurnakan yang sudah hidup — dua item INTI ternyata yang kedua (§2c).
 
 | # | Sub-menu | Kelompok | Rusak kalau tak ada | Mulai dari | Prasyarat data | Bobot |
 |---|---|---|---|---|---|---|
-| 1 | **Laporan keuangan** — neraca & L/R | 14 Keuangan | Owner tak bisa melihat posisi perusahaan; ini pertanyaan pertama tiap calon pelanggan | 🟡 arus kas sudah hidup | **GL sehat — terblokir R-001** | L |
+| 1 | **Laporan keuangan** — neraca & L/R | 14 Keuangan | Owner tak bisa melihat posisi perusahaan; ini pertanyaan pertama tiap calon pelanggan | 🟡 arus kas ✅ · **GL sudah sehat** (§3a) | akun diklasifikasi neraca/L-R | **M** |
 | 2 | **Interim Payment Certificate (IPC)** | 15 Penagihan | Termin tak bisa ditagih secara formal ke owner proyek; ini pintu masuk UANG | 🔴 nol | progress terverifikasi + retensi | L |
 | 3 | **Retensi subkontrak** | 8 Subkontraktor | Retensi mandor/subkon tak terlacak → dibayar penuh padahal harus ditahan; kebocoran uang langsung | 🔴 nol | kontrak subkon + termin | M |
 | 4 | **Claims management** | 3 Kontrak | Klaim tambah-kurang tak punya jejak; saat sengketa, tak ada bukti | 🔴 nol | kontrak + variation order | L |
@@ -170,16 +170,33 @@ menyempurnakan yang sudah hidup — dua item INTI ternyata yang kedua (§2c).
 | 8 | **Geotag foto** | 20 Mobile | Foto tanpa koordinat tak membuktikan pekerjaan dilakukan **di lokasi itu** — dasar sengketa progres | 🟡 foto sudah hidup (097/098) | kolom GPS (0 kolom hari ini) | S |
 | 9 | **Absensi lapangan** | 20 Mobile | Upah harian dihitung dari ingatan mandor; ini sumber selisih paling sering | 🔴 nol | worker + assignment (✅ ada) | M |
 
+### 3a. INTI #1 TIDAK terblokir — koreksi, saya salah menyatakannya
+
+Versi pertama dokumen ini menulis bahwa laporan keuangan **terblokir R-001**
+(cacat P0 migrasi 047 vs 167). **Itu salah, dan salahnya cukup besar untuk
+mengubah rencana kerja** — ia membuat item paling penting tampak tak bisa
+disentuh sama sekali.
+
+Diukur 2026-08-04, bukan dibaca dari dokumen:
+
+| Yang diperiksa | Hasil |
+|---|---|
+| `RATIFIKASI.md` R-001 | **SELESAI** — 047 dipensiunkan jadi no-op berkomentar, penegas bentuk `175` terpasang, terbukti bekerja di lingkungan bersih |
+| `accounts` · `journal_entries` · `journal_entry_lines` | ketiganya **punya `company_id`** (`introspect.mjs`) — bentuk 167 yang menang, bukan 047 |
+| `apps/api/src/routes/v1/gl.ts` | **7 endpoint hidup**: bagan akun · jurnal · posting · void · buku besar · **neraca saldo** |
+| `apps/web/app/(dashboard)/akuntansi/page.tsx` | halaman hidup: Bagan Akun · Jurnal · Neraca Saldo (dengan pemeriksaan seimbang) |
+
+**Fondasinya sehat dan sudah dipakai.** Yang benar-benar belum ada hanya dua
+laporan turunan di atasnya — **neraca (balance sheet)** dan **laba/rugi** —
+plus klasifikasi akun mana masuk neraca dan mana masuk L/R.
+
+Karena itu bobotnya turun **L → M**, dan tak ada satu pun INTI yang terblokir.
+
 **Kenapa hanya 9.** Uji "calon pelanggan pergi" sengaja ketat. Item seperti
 CPM, resource histogram, atau tanda tangan elektronik memang membuat produk
 lebih baik — tapi tak ada kontraktor yang membatalkan pembelian karena
 ketiadaannya. Menaruhnya di INTI membuat kata "INTI" kehilangan arti, dan
 daftar yang semuanya prioritas sama dengan tidak punya prioritas.
-
-> **⚠️ INTI #1 TERBLOKIR.** Laporan keuangan berdiri di atas GL, dan GL punya
-> cacat P0 aktif (migrasi 047 vs 167 — `RATIFIKASI.md` **R-001**). Ini membuat
-> item paling penting di seluruh daftar **tidak bisa dimulai**. Delapan INTI
-> lainnya tak bergantung padanya dan bisa jalan paralel.
 
 ---
 
@@ -239,7 +256,7 @@ INTI atau PEMBEDA — bukan langsung dikerjakan** dari daftar ini.
 | Critical path (CPM) · Resource histogram / leveling · Method statement | 3 | Proyek dengan jadwal yang benar-benar dinegosiasikan owner |
 | Kontrak payung / blanket order · Expediting & logistik · Evaluasi kinerja vendor | 3 | Volume pengadaan berulang dari vendor yang sama |
 | Log pemakaian alat · Maintenance terjadwal · Biaya operasional per alat (BBM, operator) | 3 | Alat **milik sendiri** > 5 unit (hari ini mayoritas sewa) |
-| Integrasi penyusutan → GL | 1 | GL sehat (R-001) **dan** register aset terisi — dua-duanya belum |
+| Integrasi penyusutan → GL | 1 | Register aset terisi — GL-nya sendiri **sudah sehat** (§3a), yang belum ada asetnya |
 | Izin kerja (work permit) | 1 | Proyek dengan syarat K3 formal dari owner |
 | Transmittal · Register gambar · Notulen rapat · Matriks distribusi | 4 | Proyek dengan pertukaran dokumen formal berlapis |
 | Tanda tangan elektronik | 1 | Dokumen mulai ditolak karena butuh tanda tangan sah |
@@ -294,9 +311,16 @@ menukarnya.
 
 ## 7. Yang menunggu founder
 
+**Hanya satu.** Dua butir lain di versi pertama sudah terjawab sendiri setelah
+diukur — dicatat di bawah supaya tak dicari lagi.
+
 1. **Definisi tiga golongan (§1) belum diratifikasi.** Dipakai dokumen ini
-   sebagai usulan. Kalau ditolak, isi ketiga daftar berubah.
-2. **INTI #1 terblokir R-001.** Laporan keuangan — item paling penting —
-   tak bisa dimulai sampai cacat GL 047/167 selesai.
-3. **Angka di judul QUEUE F5-1 ("93") tidak cocok dengan kenyataan (64).**
-   Diusulkan diperbaiki agar tak menular ke dokumen lain.
+   sebagai usulan. Kalau ditolak, isi ketiga daftar berubah. **Ini satu-satunya
+   yang benar-benar menunggu keputusan founder.**
+
+### Yang SUDAH terjawab — tak perlu ditunggu
+
+| Butir versi pertama | Kenyataan |
+|---|---|
+| *"INTI #1 terblokir R-001"* | **SALAH.** R-001 sudah SELESAI; GL sehat dan tenant-aware; 7 endpoint + halaman akuntansi hidup. Yang belum hanya neraca & L/R. Bukti: §3a |
+| *"Angka judul QUEUE (93) tak cocok kenyataan (64)"* | Angka **64 itu pun salah** (§0). Yang benar 54. Judul QUEUE sengaja **tidak** diubah — biar terlihat angkanya pernah salah dan kapan dikoreksi |

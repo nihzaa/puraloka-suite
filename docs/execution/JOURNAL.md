@@ -84,14 +84,45 @@ Kenyataan menang atas dokumen (CLAUDE.md §0):
 | Mode offline | 🔴 | 🟡 | F4-3 — antrean 6 jalur, mutation-test 6/6 |
 | Multi-tenant | 🔴 | 🟡 | 45/123 tabel ber-`company_id`, RLS 123/123, 5 kebocoran ditutup |
 
-### Yang menunggu founder
+### Saya salah untuk kedua kalinya di sesi yang sama
 
-1. **Definisi INTI/PEMBEDA/TUNDA belum diratifikasi.** CHARTER menyebut
-   ketiganya tanpa mendefinisikan; §1 dokumen adalah usulan saya.
-2. **INTI #1 terblokir R-001.** Laporan keuangan berdiri di atas GL yang punya
-   cacat P0 (migrasi 047 vs 167). Item paling penting **tidak bisa dimulai**.
-3. **Judul QUEUE F5-1 menyebut "93"**, kenyataannya 54. Sengaja tak diubah —
-   biar terlihat angkanya pernah salah dan kapan dikoreksi.
+Setelah triase selesai saya melaporkan tiga hal "menunggu founder". Founder
+bertanya *"apa yang harus saya lakukan sebelum lanjut?"* — dan memeriksanya
+membuktikan **dua dari tiga itu tidak menunggu apa-apa**.
+
+**INTI #1 saya nyatakan terblokir R-001. Salah.** `RATIFIKASI.md` mencatat
+R-001 **SELESAI** — 047 dipensiunkan jadi no-op, penegas bentuk `175`
+terpasang dan terbukti bekerja di lingkungan bersih. Saya menulis "terblokir"
+dari ingatan tentang cacat itu, tanpa membuka status penyelesaiannya.
+
+Diukur, bukan dibaca:
+
+| Yang diperiksa | Hasil |
+|---|---|
+| `accounts` · `journal_entries` · `journal_entry_lines` | **ketiganya punya `company_id`** — bentuk 167 yang menang, bukan 047 |
+| `apps/api/src/routes/v1/gl.ts` | **7 endpoint hidup** — bagan akun · jurnal · posting · void · buku besar · neraca saldo |
+| `app/(dashboard)/akuntansi/page.tsx` | halaman hidup: Bagan Akun · Jurnal · **Neraca Saldo** dengan pemeriksaan seimbang |
+
+Yang benar-benar belum ada hanya **neraca** dan **laba/rugi** — dua laporan
+turunan di atas fondasi yang sudah sehat dan sudah dipakai. Bobot INTI #1 turun
+**L → M**, dan **tak ada satu pun INTI yang terblokir**.
+
+Kesalahan ini lebih mahal daripada salah hitung 64-vs-54 di atas: yang itu
+menggeser bobot satu item, yang ini membuat item **paling penting** tampak tak
+bisa disentuh sama sekali — dan founder hampir mengejar tiket yang tak perlu.
+
+**Butir ketiga juga meleset**: saya menulis "judul QUEUE menyebut 93,
+kenyataannya 64" — padahal 64 itu sendiri angka yang salah. Yang benar 54.
+
+### Yang menunggu founder — hanya satu
+
+**Definisi INTI/PEMBEDA/TUNDA belum diratifikasi.** CHARTER menyebut ketiganya
+tanpa mendefinisikan; §1 dokumen triase adalah usulan saya. Kalau ditolak, isi
+ketiga daftar berubah.
+
+R-006 (`pg_dump` rusak oleh fungsi yatim) tetap butuh tiket Supabase, tapi ia
+**tidak memblokir apa pun** — cadangan darurat berbasis `COPY` sudah jalan
+harian dan latihan pemulihannya hijau dengan RTO 61 detik.
 
 ---
 
