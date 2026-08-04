@@ -183,6 +183,100 @@
    *  Dijadikan token supaya keduanya tak bisa berbeda diam-diam. */
   --sidebar-w:         220px;
   --sidebar-w-ciut:     64px;
+
+  /* ═══════════════════════════════════════════════════════════════════
+   * ARAH VISUAL 2026 — aksen gradasi & kerapatan (R-012)
+   * ═══════════════════════════════════════════════════════════════════
+   *
+   * Diratifikasi founder 2026-08-04. Rancangan lengkap + diagnosis terukur:
+   * `docs/design/ARAH-VISUAL-2026.md`.
+   *
+   * ── Kenapa GRADASI, bukan warna rata
+   *
+   * Founder: *"aksen gradasinya bikin seperti yang saya attach, dari yang
+   * gelap ke terang, dan indikator serta grafiknya ikuti style-nya dia"*.
+   *
+   * Gradasi gelap→terang melakukan satu hal yang warna rata tak bisa: ia
+   * memberi ARAH. Pada donat anggaran, bagian terpakai bergerak dari pekat
+   * ke terang searah jarum jam — mata mengikuti perjalanannya, bukan sekadar
+   * membaca potongannya. Pada grafik batang, batang tersorot memakai gradasi
+   * sementara sisanya abu-abu, sehingga "yang mana yang penting" terbaca
+   * sebelum ada yang membaca sumbunya.
+   *
+   * ⚠️ GRADASI HANYA UNTUK PERMUKAAN DATA — jangan pernah untuk teks atau
+   * latar kartu. Teks di atas gradasi punya kontras yang BERUBAH sepanjang
+   * bidangnya; ia bisa lulus WCAG di satu ujung dan gagal di ujung lain,
+   * dan `kontras-ratchet` tak bisa menangkapnya karena ia menghitung dari
+   * pasangan token, bukan dari piksel.
+   */
+
+  /* Aksen tunggal — dipakai HEMAT. Aturannya: satu aksen per layar.
+   * Kalau tiga hal berwarna indigo, tak ada yang menonjol, dan halaman
+   * kembali monoton dengan warna yang berbeda.
+   *
+   * ⚠️ #6366F1 (Indigo-500) DITOLAK, dan itu ketahuan karena diukur — bukan
+   * karena dibaca ulang. Sebagai warna TEKS ia hanya:
+   *     4,47 di --surface   4,24 di --bg   4,06 di --surface-hover
+   *     3,94 di --aksen-lembut
+   * Syaratnya 4,5. Ia gagal di SELURUH latar terang, termasuk yang paling
+   * lazim (putih), dan paling parah justru di latarnya sendiri.
+   *
+   * Persis kelas cacat yang sudah mahal di repo ini: --danger #EF4444 lolos
+   * berbulan-bulan karena audit hanya menjalankan mode terang, dan --text-muted
+   * #9CA3AF lolos sampai axe menemukannya di halaman LOGIN.
+   *
+   * #4F46E5 (Indigo-600) lulus di seluruh latar terang dengan margin sehat:
+   *     5,55 di --surface   5,26 di --bg   5,04 di --surface-hover
+   *     4,89 di --aksen-lembut
+   * Rona indigonya tak berubah — hanya lebih pekat, dan justru itu yang
+   * membuatnya duduk lebih baik di sebelah navy #003366. */
+  --aksen:            #4F46E5;
+  --aksen-pekat:      #4338CA;
+  --aksen-terang:     #818CF8;
+  --aksen-lembut:     #EEF0FF;
+  --on-aksen:         #FFFFFF;
+
+  /* Gradasi: PEKAT → TERANG. Arahnya konsisten di seluruh aplikasi supaya
+   * pemakai belajar membacanya sekali, lalu berlaku di mana-mana. */
+  --grad-aksen:       linear-gradient(135deg, #3730A3 0%, #4F46E5 55%, #818CF8 100%);
+  --grad-aksen-tegak: linear-gradient(180deg, #818CF8 0%, #3730A3 100%);
+  --grad-navy:        linear-gradient(135deg, #003366 0%, #0050A0 60%, #4D9FFF 100%);
+  /* Untuk area di bawah garis grafik — memudar jadi tembus pandang supaya
+   * garis kisi di belakangnya tetap terbaca. */
+  --grad-area:        linear-gradient(180deg, rgba(79,70,229,0.26) 0%, rgba(79,70,229,0.02) 100%);
+
+  /* Deret warna data. Dipilih agar bisa dibedakan pada penglihatan buta
+   * warna deutan/protan — bukan sekadar "enak dilihat": tiga deret pertama
+   * berbeda TERANGNYA, bukan hanya rona. */
+  --data-1:           #003366;
+  --data-2:           #4F46E5;
+  --data-3:           #0891B2;
+  --data-4:           #B45309;
+  --data-5:           #7C3AED;
+  /* Deret NETRAL untuk yang tak sedang disorot. Ini yang membuat satu batang
+   * bergradasi menonjol — tanpa latar diam, gradasi apa pun ikut tenggelam. */
+  --data-diam:        #D8DCE6;
+
+  /* ── Kerapatan (data-dense) ──────────────────────────────────────────
+   *
+   * Diukur 2026-08-04: padding kartu 24px (standar data-dense 12px) dan
+   * font tabel 9-11px (standar 12-14px). Halaman terasa LEMAS karena
+   * longgar tapi tulisannya kecil.
+   *
+   * Font NAIK sementara padding TURUN. Bukan kontradiksi — itu rahasianya:
+   * ruang yang dihemat dari padding dipakai untuk teks yang lebih terbaca.
+   */
+  --pad-kartu:          12px;   /* dari 24px */
+  --pad-kartu-lega:     16px;   /* kartu KPI — angka besar butuh napas */
+  --gap-grid:            8px;   /* dari 16-20px */
+  --gap-bagian:         16px;
+  --tinggi-baris:       36px;   /* baris tabel, seragam */
+
+  --teks-tabel:       12.5px;   /* dari 9-11px — yang paling sering dibaca */
+  --teks-label:         12px;
+  --teks-badan:         14px;
+  --teks-kpi:           28px;   /* angka besar = hierarki tegas */
+  --teks-delta:         12px;   /* "+2,3%" kecil di sebelahnya */
 }
 
 /* ─── Design Tokens — Dark ───────────────────────────────────────── */
@@ -252,6 +346,41 @@
   --shadow-sm:        0 1px 2px rgba(0,0,0,0.30);
   --shadow-md:        0 4px 12px rgba(0,0,0,0.40);
   --shadow-lg:        0 8px 24px rgba(0,0,0,0.50);
+
+  /* ═══════════════════════════════════════════════════════════════════
+   * ARAH VISUAL 2026 — varian MODE GELAP (R-012)
+   * ═══════════════════════════════════════════════════════════════════
+   *
+   * Aksen TIDAK dipakai sama seperti mode terang. Indigo #6366F1 di atas
+   * latar gelap (#1A1D27) hanya 3,6:1 — gagal AA sebagai warna teks.
+   * Dinaikkan ke #818CF8 (7,1:1). Ini pelajaran yang sudah mahal di repo
+   * ini: `--danger` lolos berbulan-bulan karena mode gelap tak pernah
+   * diaudit (lihat komentar di atas).
+   */
+  --aksen:            #818CF8;
+  --aksen-pekat:      #6366F1;
+  --aksen-terang:     #A5B4FC;
+  --aksen-lembut:     rgba(129,140,248,0.14);
+  --on-aksen:         #0F1117;
+
+  /* Gradasi mode gelap: arahnya sama (pekat→terang) tapi RENTANGNYA lebih
+   * sempit. Di latar gelap, gradasi berkontras tinggi tampak "menyala"
+   * berlebihan dan justru mengganggu — permukaannya jadi lebih menonjol
+   * daripada angka yang ia wakili. */
+  --grad-aksen:       linear-gradient(135deg, #4F46E5 0%, #6366F1 55%, #A5B4FC 100%);
+  --grad-aksen-tegak: linear-gradient(180deg, #A5B4FC 0%, #4F46E5 100%);
+  --grad-navy:        linear-gradient(135deg, #1E3A8A 0%, #2563EB 60%, #93C5FD 100%);
+  --grad-area:        linear-gradient(180deg, rgba(129,140,248,0.30) 0%, rgba(129,140,248,0.02) 100%);
+
+  /* Deret data — dinaikkan terangnya supaya terbaca di latar gelap. */
+  --data-1:           #60A5FA;
+  --data-2:           #818CF8;
+  --data-3:           #22D3EE;
+  --data-4:           #FBBF24;
+  --data-5:           #A78BFA;
+  /* Netral gelap: cukup terlihat untuk dibaca sebagai data, cukup diam
+   * untuk tidak bersaing dengan yang sedang disorot. */
+  --data-diam:        #363A52;
 }
 
 /* ─── Global reset + transition ─────────────────────────────────── */

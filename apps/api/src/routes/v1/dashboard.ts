@@ -256,6 +256,94 @@ export default async function dashboardRoutes(app: FastifyInstance) {
       },
     }
   })
+
+  // ── GET /api/v1/dashboard/fokus ──────────────────────────────────────────
+  //
+  // "Berapa hal yang menunggu keputusan saya, dan berapa yang sudah lewat
+  // tenggat?" — pertanyaan yang orang bawa saat membuka aplikasi, dan yang
+  // hari ini jawabannya tersebar di enam halaman berbeda.
+  //
+  // Dipakai widget sidebar, jadi ia hadir di SETIAP halaman. Itu sengaja:
+  // yang paling mendesak justru ditemukan saat sedang mengerjakan hal lain,
+  // bukan saat kebetulan membuka dashboard.
+  //
+  // ── Kenapa `lewat` DIPISAH dari `menunggu`
+  //
+  // Dua-duanya "belum selesai", tapi yang satu masih dalam kendali dan yang
+  // lain sudah merugikan. Menyatukannya membuat yang mendesak tenggelam di
+  // antara yang biasa — dan angka gabungan yang besar melatih orang
+  // mengabaikannya.
+  app.get('/api/v1/dashboard/fokus', {
+    preHandler: [authenticate],
+  }, async (request) => {
+    const hariIni = new Date().toISOString().split('T')[0]
+
+    // Seluruhnya lewat `request.db` (sadar tenant). Ringkasan lintas-modul
+    // adalah tempat paling mudah membocorkan data perusahaan lain: satu
+    // query mentah di sini membuat angkanya salah tanpa gejala apa pun.
+    const db = request.db!
+
+    const [kasbon, penagihan, invoice, klaim, instruksi] = await Promise.all([
+      // Kasbon menunggu persetujuan — uang keluar.
+      db.from('kasbons').select('id').eq('status', 'pending'),
+      // Penagihan progres mandor menunggu konfirmasi.
+      db.from('progress_payments').select('id').eq('status', 'pending'),
+      // Invoice jatuh tempo yang belum lunas — INI yang lewat tenggat.
+      db.from('invoices').select('id, due_date, amount_due, status')
+        .neq('status', 'cancelled').gt('amount_due', 0),
+      // Klaim yang batas pemberitahuannya sudah lewat dan belum diputus.
+      db.from('contract_claims').select('id, event_date, notice_days_limit, notified_at, status')
+        .in('status', ['draft', 'diberitahukan', 'diajukan']),
+      // Instruksi lisan yang belum dikonfirmasi — utang bukti.
+      db.from('field_instructions').select('id, bentuk_perintah, diterima_pada, dikonfirmasi_pada, status')
+        .in('status', ['dicatat']),
+    ])
+
+    const invoiceLewat = ((invoice.data ?? []) as Array<{ due_date: string }>)
+      .filter((i) => i.due_date && i.due_date < hariIni).length
+
+    const klaimLewat = ((klaim.data ?? []) as Array<{
+      event_date: string; notice_days_limit: number | null; notified_at: string | null
+    }>).filter((k) => {
+      // Sudah diberitahukan = tenggatnya sudah terpenuhi, apa pun statusnya
+      // sekarang. Yang dihitung hanya yang BELUM diberitahukan.
+      if (k.notified_at || k.notice_days_limit == null) return false
+      const batas = new Date(k.event_date)
+      batas.setDate(batas.getDate() + k.notice_days_limit)
+      return batas.toISOString().split('T')[0] < hariIni
+    }).length
+
+    // Instruksi LISAN/TELEPON punya batas 24 jam (lihat lib/instruksi-lapangan).
+    // Bentuk lain tak dihitung di sini — tertulis sudah berjejak, dan
+    // whatsapp/rapat punya batas lebih longgar yang belum mendesak hari ini.
+    const batasMs = 24 * 3_600_000
+    const instruksiLewat = ((instruksi.data ?? []) as Array<{
+      bentuk_perintah: string; diterima_pada: string; dikonfirmasi_pada: string | null
+    }>).filter((i) =>
+      !i.dikonfirmasi_pada &&
+      (i.bentuk_perintah === 'lisan' || i.bentuk_perintah === 'telepon') &&
+      Date.now() - Date.parse(i.diterima_pada) > batasMs
+    ).length
+
+    const lewat = invoiceLewat + klaimLewat + instruksiLewat
+    const menunggu = (kasbon.data?.length ?? 0) + (penagihan.data?.length ?? 0)
+
+    return {
+      lewat,
+      menunggu,
+      // Ke mana orang harus pergi. Yang lewat tenggat lebih mendesak, jadi
+      // tautannya menang — mengirim orang ke daftar umum saat ada yang
+      // terlambat berarti ia harus mencari lagi.
+      tautan: lewat > 0 ? '/keuangan' : '/mandor',
+      rincian: {
+        invoice_jatuh_tempo: invoiceLewat,
+        klaim_lewat_batas: klaimLewat,
+        instruksi_belum_dikonfirmasi: instruksiLewat,
+        kasbon_menunggu: kasbon.data?.length ?? 0,
+        penagihan_menunggu: penagihan.data?.length ?? 0,
+      },
+    }
+  })
 }
 
 function buildCashflowWeeks(

@@ -43,6 +43,7 @@ import {
   Dot,
 } from "lucide-react";
 import { getStoredUser, logout, api, type PuralokaUser } from "@/lib/api";
+import { SidebarFokus } from "@/components/sidebar-fokus";
 import { useSidebar } from "@/lib/sidebar-context";
 
 const roleLabel: Record<string, string> = {
@@ -629,6 +630,13 @@ export function Sidebar() {
             <NavItem href={pengaturanHref} label={pengaturanNode.label} icon={PIcon} active={pathname.startsWith("/pengaturan")} collapsed={collapsed} onHover={onHover} offHover={offHover} navStyle={navStyle} />
           );
         })()}
+
+        {/* Fokus hari ini — tepat DI ATAS kartu sesi.
+            Posisinya sengaja: mata berhenti di sudut kiri-bawah saat mencari
+            "siapa saya", dan angka yang menunggu keputusan ikut terbaca di
+            perjalanan itu. Widget ini hadir di setiap halaman, jadi yang
+            mendesak ditemukan saat sedang mengerjakan hal lain. */}
+        {user && <SidebarFokus collapsed={collapsed} />}
 
         {/* User info */}
         {user && !collapsed && (

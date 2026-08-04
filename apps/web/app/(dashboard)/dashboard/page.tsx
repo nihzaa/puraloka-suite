@@ -5,6 +5,7 @@ import { dapatDitekan } from "@/lib/dapat-ditekan";
 import { useEffect, useReducer, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, getStoredUser } from "@/lib/api";
+import { KartuKPI } from "@/components/ui-dasar";
 import {
   AreaChart, Area, PieChart, Pie, Cell,
   XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -231,39 +232,62 @@ function DashboardContent() {
 
   // ── Widget nodes ─────────────────────────────────────────────────────────────
 
+  // ── KPI — arah visual 2026 (R-012) ────────────────────────────────────────
+  //
+  // Empat kartu, dan HANYA SATU bergradasi. Yang disorot dipilih dinamis:
+  // kalau ada invoice lewat jatuh tempo, itulah yang paling menentukan hari
+  // ini; kalau tidak, kas bersih yang menonjol.
+  //
+  // Kalau keempatnya bergradasi, tak ada yang menonjol — dan halaman kembali
+  // monoton dengan warna yang berbeda. Itu justru yang sedang diperbaiki.
+  const adaOverdue = (alerts?.invoice_overdue ?? 0) > 0;
+  const kasBersih = data?.kpis.net_cash_estimate ?? 0;
+
+  // Tren 8 minggu dari data yang SUDAH ADA — tak ada endpoint baru.
+  const sparkMasuk = (data?.cashflow_8w ?? []).map((w) => w.income);
+  const sparkBersih = (data?.cashflow_8w ?? []).map((w) => w.income - w.expense);
+
   const kpiWidget = (
-    <div style={{ padding: "16px 20px", display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, height: "100%", alignContent: "start" }}>
-      <KPICard
-        icon={<Building2 size={17} />}
-        label="Proyek Aktif"
-        value={loading ? null : String(data?.kpis.active_projects ?? 0)}
-        sub="sedang berjalan"
-        accent={C.navy}
+    <div style={{
+      padding: "var(--pad-kartu-lega)",
+      display: "grid", gap: "var(--gap-grid)",
+      gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+      height: "100%", alignContent: "start",
+    }}>
+      <KartuKPI
+        label="Proyek aktif"
+        nilai={loading ? "—" : String(data?.kpis.active_projects ?? 0)}
+        nilaiAngka={loading ? undefined : data?.kpis.active_projects ?? 0}
+        keterangan="sedang berjalan"
+        ikon={<Building2 size={15} />}
         onClick={() => router.push("/proyek")}
       />
-      <KPICard
-        icon={<TrendingUp size={17} />}
-        label="Nilai Kontrak"
-        value={loading ? null : `Rp ${fmtShort(data?.kpis.total_contract_value ?? 0)}`}
-        sub={PERIOD_LABEL[period]}
-        accent={C.text}
+      <KartuKPI
+        label="Nilai kontrak"
+        nilai={loading ? "—" : `Rp ${fmtShort(data?.kpis.total_contract_value ?? 0)}`}
+        keterangan={PERIOD_LABEL[period]}
+        ikon={<TrendingUp size={15} />}
         onClick={() => router.push("/proyek")}
       />
-      <KPICard
-        icon={<FileText size={17} />}
-        label="Invoice Belum Lunas"
-        value={loading ? null : `Rp ${fmtShort(data?.kpis.invoice_outstanding ?? 0)}`}
-        sub={alerts?.invoice_overdue ? `${alerts.invoice_overdue} overdue` : "semua on time"}
-        accent={alerts?.invoice_overdue ? C.yellow : C.green}
+      <KartuKPI
+        label="Invoice belum lunas"
+        nilai={loading ? "—" : `Rp ${fmtShort(data?.kpis.invoice_outstanding ?? 0)}`}
+        keterangan={adaOverdue
+          ? `${alerts!.invoice_overdue} lewat jatuh tempo`
+          : "semua masih dalam tenggat"}
+        ikon={<FileText size={15} />}
+        spark={sparkMasuk.length > 1 ? sparkMasuk : undefined}
+        sorot={adaOverdue}
         onClick={() => router.push("/keuangan")}
       />
-      <KPICard
-        icon={<BarChart2 size={17} />}
-        label="Estimasi Kas Bersih"
-        value={loading ? null : `Rp ${fmtShort(Math.abs(data?.kpis.net_cash_estimate ?? 0))}`}
-        sub={(data?.kpis.net_cash_estimate ?? 0) >= 0 ? "surplus" : "defisit"}
-        accent={(data?.kpis.net_cash_estimate ?? 0) >= 0 ? C.green : C.red}
-        prefix={(data?.kpis.net_cash_estimate ?? 0) < 0 ? "−" : undefined}
+      <KartuKPI
+        label="Estimasi kas bersih"
+        nilai={loading ? "—" : `Rp ${fmtShort(Math.abs(kasBersih))}`}
+        keterangan={kasBersih >= 0 ? "surplus" : "defisit"}
+        ikon={<BarChart2 size={15} />}
+        spark={sparkBersih.length > 1 ? sparkBersih : undefined}
+        // Disorot hanya bila TAK ada yang lebih mendesak — satu sorot per layar.
+        sorot={!adaOverdue}
         onClick={() => router.push("/kas")}
       />
     </div>
@@ -666,42 +690,10 @@ function DashboardContent() {
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
-function KPICard({ icon, label, value, sub, accent, prefix, onClick }: {
-  icon: React.ReactNode; label: string; value: string | null;
-  sub: string; accent: string; prefix?: string; onClick?: () => void;
-}) {
-  return (
-    // `onClick` OPSIONAL di sini, dan `dapatDitekan` menanganinya dengan benar:
-    // tanpa aksi, seluruh atributnya hilang — jadi kartu yang cuma menampilkan
-    // angka tak ikut jadi perhentian Tab yang tak melakukan apa pun.
-    <div
-      {...dapatDitekan(onClick, `Buka rincian ${label}`)}
-      style={{
-        background: "var(--surface)", border: "1px solid var(--border)",
-        borderRadius: 14, padding: "20px 22px",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-        cursor: onClick ? "pointer" : "default",
-        transition: "all 0.15s",
-        display: "flex", flexDirection: "column", gap: 6,
-      }}
-      onMouseEnter={e => { if (onClick) { e.currentTarget.style.boxShadow = "0 6px 18px rgba(0,51,102,0.10)"; e.currentTarget.style.transform = "translateY(-2px)"; }}}
-      onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.05)"; e.currentTarget.style.transform = "translateY(0)"; }}
-    >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.07em", color: "var(--text-muted)", textTransform: "uppercase" }}>{label}</span>
-        <span style={{ color: "rgba(0,51,102,0.2)" }}>{icon}</span>
-      </div>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 2 }}>
-        {prefix && <span style={{ fontSize: 16, fontWeight: 700, color: accent }}>{prefix}</span>}
-        {value === null
-          ? <Skeleton h={28} w={80} />
-          : <span style={{ fontSize: 28, fontWeight: 800, color: accent, lineHeight: 1, fontFamily: "var(--font-display)" }}>{value}</span>
-        }
-      </div>
-      <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{sub}</span>
-    </div>
-  );
-}
+// KPICard DIHAPUS 2026-08-04 (R-012) — digantikan <KartuKPI> di
+// components/ui-dasar.tsx. Yang berbeda bukan cuma tampilannya: KartuKPI
+// mendukung delta, sparkline, gradasi sorot, dan hitung-naik — dan dipakai
+// bersama SELURUH halaman, bukan hanya dashboard.
 
 function AlertBanner({ children, color, bg, borderColor, onClick, label }: {
   children: React.ReactNode; color: string; bg: string; borderColor: string;

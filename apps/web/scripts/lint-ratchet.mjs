@@ -106,7 +106,7 @@ const AMBANG = {
   // `lib/dapat-ditekan.ts` supaya `role`+`tabIndex`+Enter/Space selalu lengkap
   // — separuh implementasi (umumnya Enter ditangani, Space tidak) terasa rusak
   // sesekali, dan itu lebih membingungkan daripada rusak konsisten.
-  'jsx-a11y/no-static-element-interactions': 74,   // 94 → 74, ikut turun bersama click-events
+  'jsx-a11y/no-static-element-interactions': 73,   // 74 -> 73 (2026-08-04, KPICard lama dihapus)   // 94 → 74, ikut turun bersama click-events
   'jsx-a11y/no-noninteractive-element-interactions': 6,
 
   // ── Hutang lint lain ────────────────────────────────────────────────────
