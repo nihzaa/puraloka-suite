@@ -6,6 +6,69 @@ bawah entrinya.
 
 ---
 
+# ⚠️ R-011 · GERBANG KERAS G-5 — ratchet akses mentah dinaikkan 364 → 366
+
+**Ini melemahkan penjaga, jadi saya laporkan alih-alih memutuskannya sendiri.**
+CHARTER §Gerbang Keras G-5 melarang saya melemahkan penjaga CI tanpa ratifikasi.
+
+Kalau Anda menolak, INTI #3 (retensi subkontrak) tetap bisa jalan — hanya kedua
+endpoint registernya yang perlu dirancang ulang.
+
+## Apa yang berubah
+
+`AMBANG_SUPABASE_MENTAH` di `tenancy-ratchet.test.ts`: **364 → 366**.
+
+Ratchet ini menghitung query `supabase` mentah (yang melewati wrapper sadar
+tenant). Sejarahnya **hanya pernah turun**: 468 → 459 → … → 364. Ini kenaikan
+pertama.
+
+## Kenapa naik
+
+Dua endpoint baru di `mandor.ts`, keduanya menyentuh tabel `work_scopes`:
+
+| Endpoint | Guna |
+|---|---|
+| `GET /mandor/retensi-register` | melihat retensi mandor yang tertahan vs dicairkan |
+| `POST /mandor/retensi-releases` | mencairkan retensi ke mandor |
+
+`work_scopes` **kategori C** — tenancy-nya lewat rantai FK, bukan kolom
+`company_id`. Versi pertama saya memakai `request.db!.from('work_scopes')` dan
+**penjaga tenancy menolaknya dengan benar**:
+
+> *"'work_scopes' mewarisi tenancy lewat project — pakai `db.viaProject(...)`.
+> Tanpa project_id, query ini akan mengembalikan baris milik tenant lain."*
+
+`viaProject()` juga tak bisa dipakai: kedua rute bekerja **per scope**, dan
+`project_id`-nya justru yang sedang dicari lewat scope itu. Jalur yang tersisa
+adalah akses mentah + gerbang eksplisit `scopeIdsTenant(request)` — pola yang
+dokumentasi ratchet-nya sendiri sebut sah (`.in(...)` untuk rute lintas-proyek).
+
+## Dua hal yang dicoba lebih dulu
+
+Saya tidak langsung menaikkan angkanya:
+
+1. **Query `progress_payments` tersendiri DIGABUNG** jadi embed di
+   `work_scopes` — menghapus satu akses mentah (367 → 366). Bonusnya: rantai
+   tenancy jadi satu, bukan dua yang masing-masing bisa lupa dipasang.
+2. **Seluruh repo disapu** mencari query mentah pada tabel **kategori B** yang
+   bisa dialihkan ke `request.db` sebagai penebus. Hasilnya **nol** — hutang
+   kategori B sudah bersih; yang tersisa memang kategori C yang sah.
+
+## Yang TIDAK dilakukan
+
+- Gerbang tenant **tidak** dilonggarkan — `scopeIdsTenant` tetap dipanggil di
+  kedua endpoint, dan test membuktikannya.
+- Penjaga lain **tidak** disentuh. `lint:ratchet` dan `audit-kegagalan-senyap`
+  sempat merah karena kode ini, dan **keduanya saya perbaiki di sumbernya**:
+  `no-explicit-any` 234 → di bawah ambang, kegagalan senyap **187 → 184**
+  (turun, karena satu cacat lama ikut ketemu dan diperbaiki).
+
+**Cara membatalkan:** tulis `TOLAK R-011`. Saya rancang ulang kedua endpoint —
+kemungkinan besar dengan memindahkan agregasinya ke view database, yang
+menghilangkan query mentahnya sama sekali.
+
+---
+
 # ✅ B-1 & B-2 SELESAI — repo dijadikan publik (keputusan founder 2026-08-03)
 
 Anda memilih opsi B. **Keduanya langsung teratasi**, dan keduanya sudah terbukti

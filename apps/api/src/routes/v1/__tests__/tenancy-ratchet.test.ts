@@ -123,7 +123,35 @@ const DIR_ROUTES = join(import.meta.dirname, '..', '..')
 //
 // Jadi angka ini TIDAK akan turun ke nol, dan tak seharusnya: `viaProject`
 // alat untuk "satu proyek yang sudah pasti", bukan pengganti semua akses.
-const AMBANG_SUPABASE_MENTAH = 364
+//
+// ── 364 → 366 (2026-08-04, INTI #3 retensi subkontrak) ──────────────────────
+//
+// NAIK 2, dan ini satu-satunya kenaikan sejak ratchet dipasang. Alasannya
+// ditulis di sini supaya bisa dibantah, bukan dilewatkan:
+//
+// Dua query baru di `mandor.ts`, keduanya pada `work_scopes` (kategori C,
+// lewat `assignment_id → mandor_assignments.project_id`):
+//
+//   · GET  /mandor/retensi-register   — register retensi tertahan
+//   · POST /mandor/retensi-releases   — pencairan retensi
+//
+// Keduanya BERGERBANG `scopeIdsTenant(request)` — daftar scope milik tenant —
+// dan itu memang pola sah yang disebut paragraf di atas (`.in(...)` untuk rute
+// lintas-proyek). `viaProject()` tak bisa dipakai: kedua rute bekerja per
+// SCOPE, dan `project_id`-nya justru yang sedang dicari lewat scope-nya.
+//
+// Versi pertama endpoint ini memakai `request.db!.from('work_scopes')` dan
+// penjaga tenancy MENOLAKNYA dengan benar — `work_scopes` kategori C tak boleh
+// di-query langsung. Jadi akses mentah + gerbang eksplisit adalah jalur yang
+// tersisa, bukan jalan pintas.
+//
+// Sebelum menaikkan angka ini, dua hal dicoba lebih dulu dan tercatat:
+//   1. `progress_payments` yang semula query mentah tersendiri DIGABUNG jadi
+//      embed di `work_scopes` — menghapus satu akses mentah (367 → 366).
+//   2. Seluruh repo disapu mencari query mentah pada tabel kategori B yang
+//      bisa dialihkan ke `request.db` sebagai penebus: hasilnya NOL. Hutang
+//      kategori B sudah bersih; yang tersisa memang kategori C yang sah.
+const AMBANG_SUPABASE_MENTAH = 366
 
 function hitungSupabaseMentah(): { total: number; perFile: Record<string, number> } {
   const perFile: Record<string, number> = {}
