@@ -779,6 +779,99 @@ items:
     bobot: XL
     status: blocked
 
+  # ── INTI (F5-1 · diratifikasi R-010) — INTI habis dulu, baru PEMBEDA ──────
+  #
+  # Diturunkan dari docs/execution/F5-1-TRIASE-SUBMENU.md §3. Nomor mengikuti
+  # nomor INTI di dokumen itu, BUKAN urutan pengerjaan.
+  #
+  # Selesai sejauh ini: #2 IPC · #3 retensi · #4 klaim.
+  # Belum: #1 laporan keuangan (neraca & L/R) · #5 surat masuk/keluar ·
+  #        #6 instruksi lapangan · #7 NCR · #8 geotag · #9 absensi lapangan.
+
+  - id: F5-INTI-2
+    fase: 5
+    judul: "IPC — gerbang progres termin + sertifikat progres yang diakui"
+    blokir_oleh: [F5-1]
+    kriteria_selesai:
+      - "termin on_progress di bawah ambang DITOLAK, invoice tidak dibuat"
+      - "fail-closed: ambang/progres tak diketahui MENOLAK"
+      - "on_sign & on_retention tak tersentuh gerbang ini"
+      - "progres yang diakui tercatat di audit log (immutable)"
+    cara_verifikasi: "vitest ipc-progres + ipc-gerbang-progres (endpoint nyata)"
+    bobot: M
+    status: wip
+    catatan: |
+      CELAH: `trigger_type='on_progress'` + `trigger_pct` tersimpan sejak lama
+      tapi TAK PERNAH DIPERIKSA. Termin yang menurut kontrak baru boleh ditagih
+      pada progres 40% BISA DITAGIH PADA PROGRES 0% — tanpa galat apa pun.
+
+      Bukti: 15 test unit + 7 endpoint, 5 mutasi disuntikkan 5 tertangkap
+      (termasuk MENCOPOT gerbang dari endpoint → 3 test langsung merah).
+
+      TEMUAN SAMPINGAN: `projects.progress_pct` NOT NULL DEFAULT 0, jadi cabang
+      `progres_tak_diketahui` tak bisa dicapai lewat kolom itu hari ini.
+      Cabangnya SENGAJA dipertahankan (fail-closed bila sumber progres kelak
+      pindah ke opname yang boleh kosong).
+
+      Menunggu CI (PR #138).
+
+  - id: F5-INTI-3
+    fase: 5
+    judul: "Retensi subkontrak — potongan jaminan + register pencairan"
+    blokir_oleh: [F5-1]
+    kriteria_selesai:
+      - "retensi dipotong dari BRUTO, kasbon sesudahnya"
+      - "register: ditahan vs dicairkan per scope"
+      - "pencairan melebihi yang tertahan DITOLAK"
+      - "pembayaran pending TIDAK menahan retensi"
+    cara_verifikasi: "vitest retensi-subkontrak + endpoint (Postgres nyata)"
+    bobot: L
+    status: done
+    catatan: |
+      KEBOCORAN: retensi rapi di sisi KLIEN, NOL di sisi MANDOR.
+      `net_payment = gross_payment` — kontraktor menahan retensi dari owner tapi
+      MEMBAYAR PENUH ke mandor. Saat ada cacat yang harus diperbaiki mandor, tak
+      ada uang tertahan untuk memaksanya kembali.
+
+      Migrasi 183 · per SCOPE bukan per proyek (tukang batu 5%, instalatir 0%).
+      Tabel pencairan TANPA policy UPDATE/DELETE — sisa dihitung dari selisih,
+      jadi menyunting satu baris diam-diam mengubah berapa yang boleh cair.
+
+      Bukti: 18 test unit + 9 endpoint, 3 mutasi 3 tertangkap, suite 1436 lulus.
+
+      ALAT MUTASI SEMPAT BOHONG: mutasi pertama "lolos" — ternyata TAK PERNAH
+      TERSUNTIK (berkas CRLF, pencarian LF). Mutation test yang tak
+      memverifikasi suntikannya sendiri adalah teater.
+
+      MENYERTAKAN R-011 (ambang ratchet 364→366 + tripwire) — diratifikasi.
+
+  - id: F5-INTI-4
+    fase: 5
+    judul: "Klaim kontraktual — biaya tambahan tanpa perubahan lingkup"
+    blokir_oleh: [F5-1]
+    kriteria_selesai:
+      - "batas waktu pemberitahuan dihitung, mendesak terlihat sebelum lewat"
+      - "gugur DIPISAH dari ditolak"
+      - "klaim yang telanjur terlambat tetap TERCATAT"
+      - "keputusan wajib berjejak siapa & kapan"
+    cara_verifikasi: "vitest klaim-kontraktual + endpoint (Postgres nyata)"
+    bobot: L
+    status: done
+    catatan: |
+      PILAR KETIGA rantai kontrak. Dua yang sudah ada: change_orders (lingkup
+      bertambah) dan contract_eot (waktu bergeser). Yang hilang: biaya membengkak
+      padahal LINGKUPNYA SAMA — lahan terlambat, gambar berubah, kondisi tanah.
+
+      Memaksakannya jadi change_order membuat baseline_contract_value BERBOHONG,
+      dan CVR/profitabilitas/WIP yang berdiri di atasnya ikut salah.
+
+      YANG PALING DIJAGA: batas waktu pemberitahuan. Klaim jarang gugur karena
+      angkanya salah — ia gugur karena TERLAMBAT DIBERITAHUKAN (kontrak lazimnya
+      14-28 hari). Karena itu `gugur` dipisah dari `ditolak`: yang pertama bisa
+      diperbaiki dengan disiplin, yang kedua tidak.
+
+      Migrasi 184 · 20 test unit + 13 endpoint · 5 mutasi 5 tertangkap.
+
   - id: F7-2
     fase: 7
     judul: "SSO: ubah status jadi 'ditunda, arsitektur tidak menghalangi'"

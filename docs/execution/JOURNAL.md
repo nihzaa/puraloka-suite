@@ -5,6 +5,103 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-04 — INTI #2–#4, dan CI yang membuat saya hampir salah diagnosis
+
+### Tiga INTI selesai
+
+| # | Isi | Celah yang ditutup |
+|---|---|---|
+| **#2** IPC | gerbang progres termin | `trigger_pct` tersimpan bertahun **tanpa pernah dibaca** — termin syarat 40% bisa ditagih di progres 0% |
+| **#3** Retensi | potongan jaminan mandor | retensi rapi di sisi klien, **nol** di sisi mandor: `net_payment = gross_payment` |
+| **#4** Klaim | biaya tambahan tanpa ubah lingkup | pilar ketiga rantai kontrak; memaksakannya ke `change_orders` membuat `baseline_contract_value` berbohong |
+
+Semuanya: fungsi murni + endpoint + mutation test. **13 mutasi disuntikkan
+seluruhnya, 13 tertangkap.**
+
+### Yang paling berharga bukan fiturnya
+
+**Alat mutasi saya berbohong, dan saya hampir mempercayainya.**
+
+Mutasi pertama di INTI #3 "lolos". Kesimpulan cepatnya: test-nya lemah. Yang
+benar: **mutasinya tak pernah tersuntik** — berkasnya CRLF, string pencarian
+saya LF. Diulang dengan regex sadar-CRLF: langsung merah.
+
+> Mutation test yang tak memverifikasi suntikannya sendiri adalah teater.
+
+Sejak itu tiap suntikan saya cetak `tersuntik: true/false` lebih dulu.
+
+### CI: empat PR terbuka, semuanya merah, dan penyebabnya bukan kodenya
+
+Hampir saja saya mendiagnosis empat PR satu per satu. Yang menyelamatkan: F5-1
+ikut merah — padahal ia **hijau dua jam sebelumnya dengan commit yang sama
+persis**.
+
+| Waktu | Branch | Hasil |
+|---|---|---|
+| 11:00 | `f5-1` | **HIJAU** (sendirian) |
+| 12:03 | `f5-1` lagi | **MERAH** ← commit identik |
+
+Test yang merah pun bukan milik saya: `role-guard`, `ppn-dpp-guardrail`,
+`modules` — semuanya jauh lebih tua dari PR-PR ini.
+
+**Akarnya: sebuah klaim yang tak akurat di komentar kode.**
+
+Header `rls-harness.ts` berbunyi *"read-safe, tidak pernah mengubah data
+public"*. Benar untuk `asUser()` (selalu ROLLBACK). **Salah sebagai
+kesimpulan**: `createRlsClient()` mengembalikan client mentah, dan **42 berkas
+test menulis lewatnya di luar transaksi**.
+
+Klaim itu bukan sekadar salah tulis — **ia dipakai sebagai dasar** mengubah
+`concurrency.group` CI jadi per-ref. Empat PR sekaligus = 24 job menulis ke
+`public` yang sama.
+
+Diperbaiki dua-duanya: serialisasi dikembalikan (PR #141), dan header yang
+menyesatkan itu ditulis ulang beserta riwayat biayanya.
+
+### Utang R-009: yang diasumsikan mahal ternyata murah
+
+Catatan Fase 0 menolak "Postgres lokal per shard" karena *"butuh shim
+`auth.*`"* — diterima bertahun **tanpa pernah diukur**. Saya ukur:
+
+```
+auth.role()   60x — HANYA dibanding 'authenticated' & 'service_role'
+auth.uid()    13x
+auth.users    NOL query — hanya disebut di komentar
+```
+
+**Dua fungsi.** Shim ditulis, diuji terhadap Postgres nyata, dan **dua cacat
+ketahuan justru karena diuji**:
+
+1. `''::json` melempar galat — `NULLIF(...,'')` harus dulu.
+2. `current_setting('role')` mengembalikan **`'none'`**, bukan NULL. Tanpa
+   ditangani, `auth.role() = 'authenticated'` putus dan **seluruh policy
+   menolak** — tabel terlihat kosong **tanpa satu pun galat**.
+
+Yang kedua persis kelas cacat paling berbahaya di repo ini: gagal senyap.
+
+**Tapi saya berhenti membangunnya.** Shim murah; **datanya** yang mahal — 32
+berkas test bergantung pada user seed nyata. Menurut disiplin TUNDA yang
+diratifikasi sendiri (R-010), ini belum punya pemicu. Pemicunya ditulis supaya
+tak perlu ditebak lagi: **antrean CI melewati 30 menit, atau dua orang
+mengerjakan repo bersamaan.**
+
+Shim disimpan sebagai `auth-shim.sql` — saat pemicunya tiba, mulai dari yang
+teruji, bukan dari nol.
+
+### Penjaga yang menangkap saya sesi ini
+
+| Penjaga | Yang ditangkap |
+|---|---|
+| gerbang tenancy | 3× — `work_scopes` & `contract_claims` kategori C di-query langsung, di endpoint yang **memutuskan uang** |
+| `audit-kegagalan-senyap` | 2× — dan sekali ikut membongkar **cacat lama**: mandor melihat ringkasan pendapatan kosong karena query gagal menyamar jadi "nol scope" |
+| `lint:ratchet` | 2× — `no-explicit-any`, diperbaiki dengan tipe eksplisit |
+| `audit-docs-vs-roadmap` | 1× — dokumen triase baru tak tersambung ROADMAP |
+
+Nol ambang dinaikkan untuk melewatinya. Satu-satunya kenaikan (R-011) diajukan
+ke founder lebih dulu, disetujui, dan langsung **dikunci tripwire**.
+
+---
+
 ## 2026-08-04 — F5-1: triase sub-menu, dan saya mengulangi kesalahan yang saya kutip
 
 ### Saya salah
