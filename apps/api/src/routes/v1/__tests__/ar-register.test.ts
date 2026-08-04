@@ -61,22 +61,41 @@ beforeAll(async () => {
     `INSERT INTO clients (company_id, contact_person, phone, created_by) VALUES ((SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1), '[TEST-AR] Klien', '0800000001', $1) RETURNING id`,
     [adminUserId])
   // end_date lampau → estimasi jatuh tempo retensi (end_date + due_days) sudah lewat
+  //
+  // `progress_pct = 100` DITAMBAHKAN 2026-08-04 (gerbang IPC). Berkas ini
+  // menguji DP recoupment, bukan gerbang progres — dan proyek yang menagih
+  // termin progres memang proyek yang SUDAH BERJALAN. Fixture lama memakai
+  // default 0, yang berarti "belum dikerjakan sama sekali": kondisi di mana
+  // termin progres memang tak boleh ditagih.
   const { rows: pr } = await client.query(
-    `INSERT INTO projects (company_id, client_id, pm_id, name, location, contract_value, start_date, end_date, created_by)
-     VALUES ((SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1), $1, $2, '[TEST-AR] Proyek', 'Bandung', 100000000, '2025-06-01', '2026-01-01', $2) RETURNING id`,
+    `INSERT INTO projects (company_id, client_id, pm_id, name, location, contract_value, start_date, end_date, progress_pct, created_by)
+     VALUES ((SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1), $1, $2, '[TEST-AR] Proyek', 'Bandung', 100000000, '2025-06-01', '2026-01-01', 100, $2) RETURNING id`,
     [cl[0].id, adminUserId])
   projectId = pr[0].id
 
-  const mkTermin = async (n: number, label: string, amount: number, pct: number, trigger: string, dueDays: number | null = null) => {
+  // `triggerPct` DITAMBAHKAN 2026-08-04 (INTI #2 · gerbang IPC).
+  //
+  // Fixture lama membuat termin berlabel "Progres 50%" dengan
+  // `trigger_type='on_progress'` tetapi `trigger_pct` KOSONG — dan itu lolos,
+  // karena `trigger_pct` memang tak pernah dibaca siapa pun. Begitu gerbang
+  // IPC dipasang, fixture ini jadi tak sah: termin bersyarat progres tanpa
+  // ambang ditolak `ambang_tak_diketahui` (fail-closed).
+  //
+  // Yang diperbaiki fixture-nya, BUKAN gerbangnya. Data uji yang mustahil ada
+  // di produksi hanya melatih kita mempercayai jalur yang tak pernah diuji.
+  const mkTermin = async (
+    n: number, label: string, amount: number, pct: number, trigger: string,
+    dueDays: number | null = null, triggerPct: number | null = null,
+  ) => {
     const { rows } = await client.query(
-      `INSERT INTO termin_schedules (project_id, termin_number, label, amount, pct_of_contract, trigger_type, due_days)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-      [projectId, n, `[TEST-AR] ${label}`, amount, pct, trigger, dueDays])
+      `INSERT INTO termin_schedules (project_id, termin_number, label, amount, pct_of_contract, trigger_type, due_days, trigger_pct)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+      [projectId, n, `[TEST-AR] ${label}`, amount, pct, trigger, dueDays, triggerPct])
     return rows[0].id as string
   }
   terminDp = await mkTermin(1, 'DP', DP_AMOUNT, 30, 'on_sign')
-  terminP2 = await mkTermin(2, 'Progres 50%', 40_000_000, 40, 'on_progress')
-  terminP3 = await mkTermin(3, 'Progres 100%', 25_000_000, 25, 'on_progress')
+  terminP2 = await mkTermin(2, 'Progres 50%', 40_000_000, 40, 'on_progress', null, 50)
+  terminP3 = await mkTermin(3, 'Progres 100%', 25_000_000, 25, 'on_progress', null, 100)
   terminSign2 = await mkTermin(4, 'DP tahap 2', 5_000_000, 5, 'on_sign')
   await mkTermin(5, 'Retensi', 5_000_000, 5, 'on_retention', 60)
 
