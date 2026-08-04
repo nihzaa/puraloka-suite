@@ -55,8 +55,45 @@ on:
 # `cancel-in-progress` di-set lewat ekspresi: HANYA untuk PR/branch kerja.
 # Push ke `main` TIDAK PERNAH dibatalkan — commit di main adalah catatan sejarah,
 # dan membatalkannya menyisakan lubang di bukti "commit ini pernah hijau".
+# ── KOREKSI 2026-08-04 — per-ref TIDAK aman, dan buktinya mahal ────────────
+#
+# Alasan di atas menyatakan `TEST_SCHEMA` per-run sudah cukup mengisolasi.
+# Itu BENAR untuk test yang memakai `test-db.ts`, dan SALAH untuk yang memakai
+# `rls-harness.ts` — harness itu sengaja bekerja di schema `public`, karena di
+# situlah RLS policy dan `auth.uid()` hidup. Headernya sendiri menyebut dirinya
+# "read-safe, tidak pernah mengubah data public", tetapi **41 test rute sudah
+# menulis lewatnya** (diukur 2026-08-04), dan tulisan itu mendarat di `public`
+# bersama.
+#
+# Selama hanya SATU branch punya PR terbuka, itu tak terlihat: schema `public`
+# hanya disentuh satu run. Begitu ada empat PR sekaligus, empat run × 6 shard =
+# 24 job menulis ke `public` yang sama.
+#
+# Yang terjadi 2026-08-04, terekam di riwayat run:
+#   11:00  f5-1                 HIJAU  (sendirian)
+#   11:40  inti-3 dibuka        merah
+#   12:00  inti-2               merah
+#   12:03  f5-1 dijalankan lagi MERAH  ← kode IDENTIK dengan yang hijau 11:00
+#   12:29  inti-4               merah
+#
+# Branch yang sama, commit yang sama, hasil berbeda — satu-satunya yang berubah
+# adalah berapa banyak run lain yang berbarengan. Itu bukti yang cukup.
+#
+# Karena itu group dikembalikan KONSTAN: seluruh run yang berbagi project CI
+# antre di satu barisan. Keluhan lama (antrean panjang) dijawab dengan
+# `cancel-in-progress` untuk branch kerja — bukan dengan membuang serialisasi.
+# Push baru pada branch kerja membatalkan run lamanya, jadi antrean tak
+# menumpuk oleh hasil yang sudah usang.
+#
+# Push ke `main` TIDAK PERNAH dibatalkan: commit di main adalah catatan sejarah,
+# dan membatalkannya menyisakan lubang di bukti "commit ini pernah hijau".
+#
+# Ini OBAT SEMENTARA. Obat sesungguhnya tetap R-009: isolasi nyata per shard
+# (project CI terpisah, atau harness yang tak menyentuh `public`). Serialisasi
+# membuat CI lebih lambat saat banyak PR — itu harga yang dibayar sadar, dan
+# alasannya ada di sini supaya tak dibongkar lagi tanpa membaca riwayat ini.
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: ci-shared-ci-db
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
