@@ -509,6 +509,36 @@ Sisa tiga (`01-gap-analysis`, `02-target-architecture`, `05-rollout-plan`)
 bertanda "Planning only" dan ditulis sebelum Phase 1 dikerjakan; Phase 1 sudah
 selesai dengan audit tersendiri (`PHASE-1-COMPLETION-AUDIT.md`).
 
+### Urutan kerja sub-menu — `execution/F5-1-TRIASE-SUBMENU.md`
+
+**Ditambahkan 2026-08-04 (F5-1 · diratifikasi R-010).** Dokumen ini menjawab
+risiko **C-7** — yang paling mungkin membunuh proyek. Bukan salah memilih
+fitur, melainkan **mengerjakan fitur yang benar dalam urutan yang salah sampai
+kehabisan tenaga sebelum produknya bisa dijual**.
+
+Ia berbeda dari §"SELURUH SUB-MENU" di bawah, dan keduanya saling melengkapi:
+
+| Dokumen | Menjawab |
+|---|---|
+| §"SELURUH SUB-MENU" (ROADMAP) + taksonomi §KEPUTUSAN | *Apakah ini layak dibangun sama sekali?* |
+| **`F5-1-TRIASE-SUBMENU.md`** | *Dari yang layak, mana yang harus habis **lebih dulu**?* |
+
+54 sub-menu 🔴 (dihitung dari **kolom Status** taksonomi), masing-masing dengan
+golongan, alasan, prasyarat data, dan bobot:
+
+| Golongan | Jml | Arti |
+|---|---|---|
+| **INTI** | 7 (+2 penyempurnaan 🟡) | Calon pelanggan **pergi** kalau demo berhenti di sini |
+| **PEMBEDA** | 11 (+1 penyempurnaan 🟡) | Menaikkan salah satu Lima Pembeda ERP kontraktor |
+| **TUNDA** | 25 | Berguna, tapi tak ada yang menunggu — tiap satu punya **pemicu tertulis** |
+| **JANGAN DIBANGUN** | 11 | Keputusan 2026-08-01, tak dibuka ulang |
+
+Aturan urutan: **INTI habis dulu, baru PEMBEDA.** TUNDA tak dikerjakan sampai
+pemicunya nyata.
+
+Penjaganya `apps/api/scripts/audit-triase-submenu.mjs` — tiap sub-menu 🔴 wajib
+muncul **tepat satu kali** di salah satu golongan, diperiksa tiap CI.
+
 ### Blueprint pengiriman — acuan proses, bukan antrean kerja
 
 `Master-Delivery-Blueprint/01-capability-to-task-mapping` ·

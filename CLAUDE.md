@@ -158,6 +158,7 @@ selamanya. Verdict "sudah jalan" hanya sah bila **artefak fisiknya terbukti ada*
 | `audit-catch-senyap.mjs` | error ditelan tanpa jejak |
 | `audit-migrasi-skema-dipaku.mjs` | skema tak boleh dipaku |
 | `audit-rancangan-submenu.mjs` | sub-menu berisiko wajib punya rancangan |
+| `audit-triase-submenu.mjs` | sub-menu **belum** digarap wajib punya urutan (INTI/PEMBEDA/TUNDA) |
 | `gen-indeks-docs.mjs --check` | indeks docs wajib mutakhir |
 
 Semuanya ratchet: angka hari ini adalah lantai. Melemahkannya butuh ratifikasi.
@@ -194,6 +195,7 @@ kutip. Parser env buatan sendiri harus melucuti keduanya — atau cukup pakai
 | Koreksi angka audit | `docs/audit/2026-08-02/KOREKSI.md` |
 | Prioritas ERP + registry AKTIF/STALE | `docs/PETA-PRIORITAS-ERP.md` |
 | Status per-menu terverifikasi kode | `docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md` |
+| Urutan kerja sub-menu (INTI/PEMBEDA/TUNDA) | `docs/execution/F5-1-TRIASE-SUBMENU.md` |
 | Endpoint | `docs/API_ENDPOINTS.md` (bukan dokumen ini) |
 | Skema DB | ukur sendiri: `node scripts/db/introspect.mjs columns` |
 | Strategi multi-tenant | `docs/superpowers/specs/2026-07-18-enterprise-architecture/Engineering-Constitution/adr/ADR-011-multi-tenant-strategy.md` |
