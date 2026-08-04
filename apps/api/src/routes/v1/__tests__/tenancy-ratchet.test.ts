@@ -153,6 +153,34 @@ const DIR_ROUTES = join(import.meta.dirname, '..', '..')
 //      kategori B sudah bersih; yang tersisa memang kategori C yang sah.
 const AMBANG_SUPABASE_MENTAH = 366
 
+/**
+ * TRIPWIRE R-011 — kenaikan BERIKUTNYA ditolak, dan penjaganya sendiri yang
+ * menegakkan.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA INI ADA
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Kekuatan sebuah ratchet cuma satu: **ia tidak bisa dinegosiasikan.** Begitu
+ * satu kenaikan diterima dengan alasan yang bagus, kenaikan berikutnya hanya
+ * perlu alasan yang sama bagusnya — dan alasan selalu ada.
+ *
+ * R-011 (364 → 366) diterima founder dengan syarat eksplisit: ia jadi
+ * SATU-SATUNYA kenaikan, dan yang memastikan bukan ingatan siapa pun.
+ *
+ * Konstanta di bawah adalah lantai yang tak boleh dilewati LAGI. Kalau ada
+ * yang menaikkan `AMBANG_SUPABASE_MENTAH`, test ini merah dengan pesan yang
+ * menunjuk ke jalan keluarnya — bukan ke tombol "naikkan sedikit lagi".
+ *
+ * ── Jalan keluar saat Anda membutuhkannya
+ *
+ * Bangun VIEW database yang mengagregasi + menjamin tenancy di lapisan SQL,
+ * lalu baca view itu lewat `request.db`. Query mentahnya hilang sama sekali,
+ * dan angka ini justru TURUN. Kandidat pertama sudah diketahui:
+ * `v_retensi_subkontrak` untuk `GET /mandor/retensi-register`.
+ */
+const PLAFON_R011 = 366
+
 function hitungSupabaseMentah(): { total: number; perFile: Record<string, number> } {
   const perFile: Record<string, number> = {}
   let total = 0
@@ -203,6 +231,35 @@ describe('T4f — ratchet: akses supabase mentah di routes tidak boleh naik', ()
       )
     }
     expect(total).toBeLessThanOrEqual(AMBANG_SUPABASE_MENTAH)
+  })
+
+  it('TRIPWIRE R-011 — ambangnya sendiri tidak boleh dinaikkan lagi', () => {
+    // Test ini tidak memeriksa kode. Ia memeriksa KEPUTUSAN.
+    //
+    // R-011 menaikkan ambang 364 → 366, dan founder menyetujuinya dengan
+    // syarat: itu satu-satunya kenaikan, dan yang memastikan bukan ingatan
+    // siapa pun. Inilah mekanismenya.
+    //
+    // Ratchet biasa menjaga KODE dari memburuk. Yang ini menjaga RATCHET-nya
+    // sendiri — karena celah yang sesungguhnya bukan satu query mentah
+    // tambahan, melainkan kebiasaan menaikkan angka saat alasannya kebetulan
+    // bagus. Alasan selalu ada.
+    expect(
+      AMBANG_SUPABASE_MENTAH,
+      `AMBANG_SUPABASE_MENTAH dinaikkan jadi ${AMBANG_SUPABASE_MENTAH}, melewati ` +
+        `plafon ${PLAFON_R011} yang ditetapkan R-011.\n\n` +
+        `Kenaikan 364 → 366 diterima founder sebagai SATU-SATUNYA kenaikan. ` +
+        `Menaikkannya lagi membatalkan syarat itu.\n\n` +
+        `JALAN KELUARNYA — bukan menaikkan angka:\n` +
+        `  Bangun VIEW database yang mengagregasi + menjamin tenancy di lapisan ` +
+        `SQL, lalu baca lewat request.db. Query mentahnya hilang, dan angka ini ` +
+        `justru TURUN.\n` +
+        `  Kandidat pertama sudah diketahui: v_retensi_subkontrak untuk ` +
+        `GET /mandor/retensi-register.\n\n` +
+        `Kalau Anda yakin ada kasus yang benar-benar tak tercakup, itu keputusan ` +
+        `founder (Gerbang Keras G-5) — tulis usulnya di RATIFIKASI.md, jangan ` +
+        `ubah angka ini sendiri.`
+    ).toBeLessThanOrEqual(PLAFON_R011)
   })
 
   it('ambang tidak jauh tertinggal dari kenyataan (agar ratchet tetap ketat)', () => {

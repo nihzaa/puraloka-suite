@@ -6,13 +6,51 @@ bawah entrinya.
 
 ---
 
-# ⚠️ R-011 · GERBANG KERAS G-5 — ratchet akses mentah dinaikkan 364 → 366
+# ✅ R-011 · DIRATIFIKASI 2026-08-04 — ratchet akses mentah 364 → 366, **sekali saja**
 
-**Ini melemahkan penjaga, jadi saya laporkan alih-alih memutuskannya sendiri.**
-CHARTER §Gerbang Keras G-5 melarang saya melemahkan penjaga CI tanpa ratifikasi.
+Founder: **"okee saya setuju dengan mu, lanjutkan"**, menanggapi rekomendasi
+"terima sekarang, bayar dengan tripwire".
 
-Kalau Anda menolak, INTI #3 (retensi subkontrak) tetap bisa jalan — hanya kedua
-endpoint registernya yang perlu dirancang ulang.
+## Yang mengikat sebagai akibatnya
+
+**Ini kenaikan PERTAMA dan TERAKHIR.** Yang memastikan bukan ingatan siapa pun,
+melainkan penjaga yang menjaga penjaga:
+
+```
+apps/api/src/routes/v1/__tests__/tenancy-ratchet.test.ts
+  const PLAFON_R011 = 366
+  it('TRIPWIRE R-011 — ambangnya sendiri tidak boleh dinaikkan lagi')
+```
+
+**Terbukti bisa merah** (mutasi 366 → 370):
+
+```
+× TRIPWIRE R-011 — ambangnya sendiri tidak boleh dinaikkan lagi
+  → AMBANG_SUPABASE_MENTAH dinaikkan jadi 370, melewati plafon 366
+    yang ditetapkan R-011.
+```
+
+Pesan galatnya menunjuk ke **jalan keluar**, bukan ke tombol "naikkan sedikit
+lagi": bangun VIEW database yang mengagregasi + menjamin tenancy di lapisan SQL,
+lalu baca lewat `request.db`. Query mentahnya hilang, dan angkanya justru
+**turun**. Kandidat pertama sudah diketahui: `v_retensi_subkontrak` untuk
+`GET /mandor/retensi-register`.
+
+## Kenapa tripwire, bukan langsung dibangun view-nya
+
+Dua sudut pandang memberi jawaban berbeda, dan keduanya sah:
+
+| Sudut | Jawaban |
+|---|---|
+| **Engineer** | Tolak. Bukan karena dua angka itu besar, tapi karena presedennya — begitu satu kenaikan diterima dengan alasan bagus, berikutnya cuma perlu alasan yang sama bagusnya, dan alasan selalu ada |
+| **Pengusaha** | Terima. Enam dari sembilan INTI masih terbuka, belum ada pelanggan membayar, dan 2 jam untuk kerapian yang tak dilihat pelanggan adalah salah prioritas |
+
+Tripwire menggabungkan keduanya: bisnisnya jalan sekarang, dan disiplinnya
+dijaga **mekanisme**, bukan niat.
+
+---
+
+**Isi usul aslinya, disimpan apa adanya:**
 
 ## Apa yang berubah
 
