@@ -12,15 +12,7 @@ import {
   CreditCard, TrendingDown, Receipt, Send, History,
 } from "lucide-react";
 
-const C = {
-  navy: "var(--navy)", navyLight: "var(--navy-light)", bg: "var(--bg)",
-  surface: "var(--surface)", border: "var(--border)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  success: "var(--success)", successBg: "var(--success-bg)",
-  warning: "var(--warning)", warningBg: "var(--warning-bg)",
-  danger: "var(--danger)", dangerBg: "var(--danger-bg)",
-  info: "var(--info)", infoBg: "var(--navy-light)",
-};
+import { C } from "@/lib/warna-ui";
 
 const fmt = (n: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
 const fmtDate = (s: string) => s ? new Date(s).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "—";

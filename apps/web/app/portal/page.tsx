@@ -5,15 +5,7 @@ import Link from "next/link";
 import { api, getStoredUser } from "@/lib/api";
 import { MapPin, Calendar, ChevronRight, TrendingUp, AlertCircle } from "lucide-react";
 
-const C = {
-  navy: "var(--navy)", navyLight: "var(--navy-light)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)", bg: "var(--bg)", surface: "var(--surface)",
-  green: "var(--success)", greenBg: "var(--success-bg)",
-  yellow: "var(--warning)", yellowBg: "var(--warning-bg)",
-  red: "var(--danger)", redBg: "var(--danger-bg)",
-  blue: "var(--info)", blueBg: "var(--info-bg)",
-};
+import { C } from "@/lib/warna-ui";
 
 interface Project {
   id: string;

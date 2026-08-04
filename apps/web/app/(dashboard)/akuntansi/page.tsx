@@ -30,14 +30,7 @@ import {
 // Menyembunyikan yang tak bisa diubah membuat orang mengira datanya hilang.
 // ═════════════════════════════════════════════════════════════════════════════
 
-const C = {
-  navy: "var(--navy)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)", bg: "var(--bg)", surface: "var(--surface)",
-  green: "var(--success)", greenBg: "var(--success-bg)", greenBorder: "var(--success-border)",
-  red: "var(--danger)", redBg: "var(--danger-bg)", redBorder: "var(--danger-border)",
-  yellow: "var(--warning)", yellowBg: "var(--warning-bg)", yellowBorder: "var(--warning-border)",
-};
+import { C } from "@/lib/warna-ui";
 
 const card: React.CSSProperties = {
   background: "var(--surface)", border: `1px solid ${C.border}`,

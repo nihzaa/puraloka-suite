@@ -4,13 +4,8 @@ import { useCallback, useEffect, useReducer, useState } from "react";
 import { api } from "@/lib/api";
 import { BellRing, Plus, Trash2, Info, ShieldCheck, UserCog, Users, HardHat } from "lucide-react";
 
-const C = {
-  navy: "var(--navy)", navyLight: "var(--navy-light)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)", green: "var(--success)", greenBg: "var(--success-bg)",
-  red: "var(--danger)", redBg: "var(--danger-bg)",
-  amber: "var(--warning)", amberBg: "var(--warning-bg)",
-};
+import { C } from "@/lib/warna-ui";
+
 const card: React.CSSProperties = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" };
 const input: React.CSSProperties = { padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", background: "var(--surface)", color: C.text, boxSizing: "border-box", fontFamily: "inherit" };
 

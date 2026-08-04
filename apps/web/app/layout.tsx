@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -27,18 +27,26 @@ export const metadata: Metadata = {
     template: "%s · Puraloka Suite",
   },
   description: "Manajemen konstruksi, dari lapangan sampai laporan.",
-  // Tema bilah alamat peramban seluler mengikuti warna merek, bukan putih
-  // bawaan. Dipisah per skema supaya tak ada bilah putih menyala di mode gelap.
-  //
-  // Nilainya dari `lib/warna-merek`, bukan hex di sini: <meta> dibaca peramban
-  // sebelum CSS mana pun dimuat, jadi `var(--aksen)` di posisi ini hanyalah
-  // teks mati. Berkas itu adalah SATU-SATUNYA tempat hex merek boleh hidup.
+  // `icon.svg` di app/ dipungut otomatis; ini melengkapi untuk layar utama iOS.
+  appleWebApp: { title: "Puraloka", capable: true, statusBarStyle: "default" },
+};
+
+// Tema bilah alamat peramban seluler mengikuti warna merek, bukan putih
+// bawaan. Dipisah per skema supaya tak ada bilah putih menyala di mode gelap.
+//
+// ⚠️ Di `viewport`, BUKAN `metadata` — Next.js memindahkannya di App Router
+// dan memperingatkan (tapi tetap merender) kalau salah tempat. Peringatan
+// yang dibiarkan akan tenggelam di antara log lain, lalu perilakunya berubah
+// diam-diam saat Next.js menghapus jalur lamanya.
+//
+// Nilainya dari `lib/warna-merek`, bukan hex di sini: <meta> dibaca peramban
+// sebelum CSS mana pun dimuat, jadi `var(--aksen)` di posisi ini hanyalah
+// teks mati. Berkas itu adalah SATU-SATUNYA tempat hex merek boleh hidup.
+export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: NAVY },
     { media: "(prefers-color-scheme: dark)", color: GELAP },
   ],
-  // `icon.svg` di app/ dipungut otomatis; ini melengkapi untuk layar utama iOS.
-  appleWebApp: { title: "Puraloka", capable: true, statusBarStyle: "default" },
 };
 
 export default function RootLayout({

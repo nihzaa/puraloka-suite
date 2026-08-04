@@ -10,16 +10,7 @@ import { TrendingUp, RefreshCw, AlertTriangle, Info } from "lucide-react";
 
 // ─── Design tokens ──────────────────────────────────────────────────────────────
 
-const C = {
-  navy: "var(--navy)", navyLight: "var(--navy-light)",
-  blue: "var(--navy-mid)", blueLight: "var(--navy-light)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)", bg: "var(--bg)",
-  green: "var(--success)", greenLight: "var(--success-bg)",
-  red: "var(--danger)", redLight: "var(--danger-bg)",
-  yellow: "var(--warning)", yellowLight: "var(--warning-bg)",
-  orange: "var(--data-5)", orangeLight: "var(--accent-soft)",
-};
+import { C } from "@/lib/warna-ui";
 
 // ─── Types ───────────────────────────────────────────────────────────────────────
 

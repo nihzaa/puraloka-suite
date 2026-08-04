@@ -6,13 +6,8 @@ import { Ruler, Plus, Check, X, AlertTriangle, Save, EyeOff, Eye } from "lucide-
 import type { UnitRow } from "@/lib/use-units";
 
 // ─── Design tokens (konsisten dgn /pengaturan) ─────────────────────────────────
-const C = {
-  navy: "var(--navy)", navyLight: "var(--navy-light)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)", bg: "var(--bg)", surface: "var(--surface)",
-  green: "var(--success)", greenBg: "var(--success-bg)", greenBorder: "var(--success-border)",
-  red: "var(--danger)", redBg: "var(--danger-bg)", redBorder: "var(--danger-border)",
-};
+import { C } from "@/lib/warna-ui";
+
 const card: React.CSSProperties = {
   background: "var(--surface)", border: "1px solid var(--border)",
   borderRadius: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.06)",

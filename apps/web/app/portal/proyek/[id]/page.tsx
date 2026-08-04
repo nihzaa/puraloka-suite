@@ -13,15 +13,7 @@ import {
   Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
 
-const C = {
-  navy: "var(--navy)", navyLight: "var(--navy-light)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)", bg: "var(--bg)", surface: "var(--surface)",
-  green: "var(--success)", greenBg: "var(--success-bg)", greenBorder: "var(--success-border)",
-  red: "var(--danger)", redBg: "var(--danger-bg)", redBorder: "var(--danger-border)",
-  yellow: "var(--warning)", yellowBg: "var(--warning-bg)", yellowBorder: "var(--warning-border)",
-  blue: "var(--navy-mid)", blueBg: "var(--info-bg)",
-};
+import { C } from "@/lib/warna-ui";
 
 const card: React.CSSProperties = {
   background: C.surface, border: `1px solid ${C.border}`,

@@ -6,14 +6,7 @@ import Link from "next/link";
 import { getStoredUser, logout, type PuralokaUser } from "@/lib/api";
 import { FolderKanban, Bell, LogOut, User } from "lucide-react";
 
-const C = {
-  navy: "var(--navy)",
-  navyLight: "var(--navy-light)",
-  text: "var(--text-primary)",
-  mid: "var(--text-secondary)",
-  border: "var(--border)",
-  bg: "var(--bg)",
-};
+import { C } from "@/lib/warna-ui";
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();

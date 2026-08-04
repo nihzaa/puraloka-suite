@@ -33,12 +33,7 @@
 import { useEffect, useRef, useState } from "react";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 
-const C = {
-  text: "var(--text-primary)", mid: "var(--text-secondary)",
-  muted: "var(--text-muted)", border: "var(--border)",
-  surface: "var(--surface)", subtle: "var(--surface-subtle)",
-  aksen: "var(--aksen)", green: "var(--success)", red: "var(--danger)",
-};
+import { C } from "@/lib/warna-ui";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ANGKA BERGERAK — hitung naik saat nilainya berubah

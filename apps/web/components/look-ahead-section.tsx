@@ -28,13 +28,7 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, CalendarClock, PlayCircle } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 
-const C = {
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  green: "var(--success)", greenBg: "var(--success-bg)", greenBorder: "var(--success-border)",
-  red: "var(--danger)", redBg: "var(--danger-bg)", redBorder: "var(--danger-border)",
-  yellow: "var(--warning)", yellowBg: "var(--warning-bg)", yellowBorder: "var(--warning-border)",
-  blue: "var(--info)", blueBg: "var(--info-bg)", blueBorder: "var(--info-border)",
-};
+import { C } from "@/lib/warna-ui";
 
 type Status = "telat" | "berjalan" | "akan_mulai";
 

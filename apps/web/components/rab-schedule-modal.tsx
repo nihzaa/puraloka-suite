@@ -46,15 +46,7 @@ interface AbsorptionRow {
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
-const C = {
-  navy: "var(--navy)", navyLight: "var(--navy-light)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)", surface: "var(--surface)", bg: "var(--bg)",
-  green: "var(--success)", greenBg: "var(--success-bg)",
-  red: "var(--danger)", redBg: "var(--danger-bg)",
-  yellow: "var(--warning)", yellowBg: "var(--warning-bg)",
-  orange: "var(--data-5)", orangeBg: "var(--warning-bg)",
-};
+import { C } from "@/lib/warna-ui";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);

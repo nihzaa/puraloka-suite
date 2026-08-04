@@ -11,16 +11,7 @@ import {
 import { api } from "@/lib/api";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
-const C = {
-  navy: "var(--navy)", navyLight: "var(--navy-light)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)", bg: "var(--bg)",
-  green: "var(--success)", greenBg: "var(--success-bg)",
-  red: "var(--danger)", redBg: "var(--danger-bg)",
-  yellow: "var(--warning)", yellowBg: "var(--warning-bg)",
-  blue: "var(--info)", blueBg: "var(--info-bg)",
-  white: "var(--surface)",
-};
+import { C } from "@/lib/warna-ui";
 
 const card: React.CSSProperties = {
   background: C.white,

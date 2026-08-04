@@ -4,11 +4,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { Bell, CheckCheck } from "lucide-react";
 
-const C = {
-  navy: "var(--navy)", navyLight: "var(--navy-light)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)", surface: "var(--surface)",
-};
+import { C } from "@/lib/warna-ui";
 
 interface Notif {
   id: string;

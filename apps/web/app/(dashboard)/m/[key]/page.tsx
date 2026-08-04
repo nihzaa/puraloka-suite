@@ -45,13 +45,7 @@ import {
 import { PETA_MENU, cariItem, type StatusMenu } from "@/lib/peta-menu";
 import { api, makeAbortController } from "@/lib/api";
 
-const C = {
-  navy: "var(--navy)", text: "var(--text-primary)", mid: "var(--text-secondary)",
-  muted: "var(--text-muted)", border: "var(--border)", surface: "var(--surface)",
-  green: "var(--success)", greenBg: "var(--success-bg)", greenBorder: "var(--success-border)",
-  yellow: "var(--warning)", yellowBg: "var(--warning-bg)", yellowBorder: "var(--warning-border)",
-  blue: "var(--info)", blueBg: "var(--info-bg)", blueBorder: "var(--info-border)",
-};
+import { C } from "@/lib/warna-ui";
 
 /**
  * Tiap status punya bahasa sendiri.

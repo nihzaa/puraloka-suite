@@ -4,11 +4,7 @@ import { useRouter } from "next/navigation";
 import { getStoredUser, logout } from "@/lib/api";
 import { User, Mail, Phone, LogOut } from "lucide-react";
 
-const C = {
-  navy: "var(--navy)", navyLight: "var(--navy-light)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)",
-  border: "var(--border)", surface: "var(--surface)", red: "var(--danger)",
-};
+import { C } from "@/lib/warna-ui";
 
 export default function PortalProfilPage() {
   const router = useRouter();

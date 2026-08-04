@@ -5,14 +5,7 @@ import { api, getStoredUser } from "@/lib/api";
 import { Briefcase, Wallet, Clock, CheckCircle, ChevronRight, CreditCard, ClipboardList, AlertCircle } from "lucide-react";
 import Link from "next/link";
 
-const C = {
-  navy: "var(--navy)", navyLight: "var(--navy-light)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)", bg: "var(--bg)", surface: "var(--surface)",
-  green: "var(--success)", greenBg: "var(--success-bg)",
-  yellow: "var(--warning)", yellowBg: "var(--warning-bg)",
-  red: "var(--danger)", redBg: "var(--danger-bg)",
-};
+import { C } from "@/lib/warna-ui";
 
 function fmt(n: number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);

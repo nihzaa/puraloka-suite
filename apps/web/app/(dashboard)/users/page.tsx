@@ -10,16 +10,7 @@ import {
   
 } from "lucide-react";
 
-const C = {
-  navy: "var(--navy)", navyLight: "var(--navy-light)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)", bg: "var(--bg)",
-  green: "var(--success)", greenBg: "var(--success-bg)", greenBorder: "#86EFAC",
-  red: "var(--danger)", redBg: "var(--danger-bg)", redBorder: "var(--danger-border)",
-  yellow: "var(--warning)", yellowBg: "var(--warning-bg)", yellowBorder: "var(--warning-border)",
-  blue: "var(--info)", blueBg: "var(--info-bg)", blueBorder: "var(--info-border)",
-  purple: "var(--aksen)", purpleBg: "var(--navy-light)", purpleBorder: "var(--info-border)",
-};
+import { C } from "@/lib/warna-ui";
 
 const ROLES = [
   { key: "admin",  label: "Administrator", icon: ShieldCheck, color: C.purple, bg: C.purpleBg, border: C.purpleBorder },

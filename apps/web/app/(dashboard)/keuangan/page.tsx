@@ -17,15 +17,7 @@ import {
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
-const C = {
-  navy: "var(--navy)", navyLight: "var(--navy-light)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)", bg: "var(--bg)",
-  green: "var(--success)", greenBg: "var(--success-bg)", greenBorder: "var(--success-border)",
-  red: "var(--danger)", redBg: "var(--danger-bg)", redBorder: "var(--danger-border)",
-  yellow: "var(--warning)", yellowBg: "var(--warning-bg)", yellowBorder: "var(--warning-border)",
-  blue: "var(--info)", blueBg: "var(--info-bg)", blueBorder: "var(--info-border)",
-};
+import { C } from "@/lib/warna-ui";
 
 const card: React.CSSProperties = {
   background: "var(--surface)", border: "1px solid var(--border)",
@@ -1074,11 +1066,19 @@ function KeuanganContent() {
                 </h3>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   {summary.cashAccounts.map(acc => {
-                    const typeColor = acc.type === "main" ? C.navy : acc.type === "collector" ? "var(--aksen)" : C.green;
-                    const typeBg = acc.type === "main" ? C.navyLight : acc.type === "collector" ? "var(--navy-light)" : C.greenBg;
+                    // Bercabang pada `acc.type` langsung, bukan menebak lewat
+                    // warna. Versi sebelumnya menulis
+                    //   typeBg === C.navyLight ? A : typeBg === "var(--navy-light)" ? A : B
+                    // — dua cabang menguji hal yang SAMA, jadi cabang ketiga
+                    // tak pernah tercapai untuk kolektor. Ketahuan karena
+                    // TypeScript menolak perbandingan yang mustahil begitu
+                    // warnanya jadi konstanta bertipe.
+                    const typeColor = acc.type === "main" ? C.navy : acc.type === "collector" ? C.aksen : C.green;
+                    const typeBg = acc.type === "main" ? C.navyLight : acc.type === "collector" ? C.navyLight : C.greenBg;
+                    const typeBorder = acc.type === "petty_cash" ? C.greenBorder : C.blueBorder;
                     const typeLabel = acc.type === "main" ? "Kas Utama" : acc.type === "collector" ? "Kolektor" : "Kas Kecil";
                     return (
-                      <div key={acc.id} style={{ flex: 1, minWidth: 160, padding: "14px 16px", borderRadius: 12, border: `1px solid ${typeBg === C.navyLight ? "var(--info-border)" : typeBg === "var(--navy-light)" ? "var(--info-border)" : C.greenBorder}`, background: "var(--surface)" }}>
+                      <div key={acc.id} style={{ flex: 1, minWidth: 160, padding: "14px 16px", borderRadius: 12, border: `1px solid ${typeBorder}`, background: "var(--surface)" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
                           <div style={{ width: 28, height: 28, borderRadius: 8, background: typeBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
                             <Wallet size={13} color={typeColor} />

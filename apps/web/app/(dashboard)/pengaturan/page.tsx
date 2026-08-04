@@ -6,13 +6,7 @@ import { Building2, CreditCard, Upload, Save, X, Check, AlertTriangle } from "lu
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
-const C = {
-  navy: "var(--navy)", navyLight: "var(--navy-light)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)", bg: "var(--bg)",
-  green: "var(--success)", greenBg: "var(--success-bg)", greenBorder: "var(--success-border)",
-  red: "var(--danger)", redBg: "var(--danger-bg)", redBorder: "var(--danger-border)",
-};
+import { C } from "@/lib/warna-ui";
 
 const card: React.CSSProperties = {
   background: "var(--surface)",

@@ -18,13 +18,7 @@ export interface ProgressSectionProps {
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
-const C = {
-  navy: "var(--navy)",
-  text: "var(--text-primary)",
-  mid: "var(--text-secondary)",
-  muted: "var(--text-muted)",
-  border: "var(--border)",
-};
+import { C } from "@/lib/warna-ui";
 
 const card: React.CSSProperties = {
   background: "var(--surface)",

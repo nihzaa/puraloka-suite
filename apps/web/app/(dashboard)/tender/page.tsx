@@ -25,14 +25,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Plus, Trophy, XCircle, Clock, Wallet, AlertTriangle } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 
-const C = {
-  navy: "var(--navy)", text: "var(--text-primary)", mid: "var(--text-secondary)",
-  muted: "var(--text-muted)", border: "var(--border)", surface: "var(--surface)",
-  green: "var(--success)", greenBg: "var(--success-bg)", greenBorder: "var(--success-border)",
-  red: "var(--danger)", redBg: "var(--danger-bg)", redBorder: "var(--danger-border)",
-  yellow: "var(--warning)", yellowBg: "var(--warning-bg)", yellowBorder: "var(--warning-border)",
-  blue: "var(--info)", blueBg: "var(--info-bg)", blueBorder: "var(--info-border)",
-};
+import { C } from "@/lib/warna-ui";
 
 type Status = "prospek" | "go" | "no_go" | "diajukan" | "menang" | "kalah" | "batal";
 

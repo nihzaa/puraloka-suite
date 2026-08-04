@@ -6,13 +6,7 @@ import { api } from "@/lib/api";
 import { kirimLapangan } from "@/lib/kirim-lapangan";
 import { Users, Plus, Phone, Edit2, ToggleLeft, ToggleRight } from "lucide-react";
 
-const C = {
-  navy: "var(--navy)", navyLight: "var(--navy-light)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)", bg: "var(--bg)", surface: "var(--surface)",
-  green: "var(--success)", greenBg: "var(--success-bg)",
-  red: "var(--danger)", redBg: "var(--danger-bg)",
-};
+import { C } from "@/lib/warna-ui";
 
 const TIPE_META: Record<string, { label: string; color: string }> = {
   tukang: { label: "Tukang",  color: "var(--info)" },

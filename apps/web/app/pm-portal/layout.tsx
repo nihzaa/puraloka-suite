@@ -6,14 +6,7 @@ import Link from "next/link";
 import { api, getStoredUser, logout, type PuralokaUser } from "@/lib/api";
 import { LayoutDashboard, FolderKanban, Wallet, HardHat, LogOut, ChevronDown } from "lucide-react";
 
-const C = {
-  navy: "var(--navy)",
-  navyLight: "var(--navy-light)",
-  text: "var(--text-primary)",
-  mid: "var(--text-secondary)",
-  border: "var(--border)",
-  bg: "var(--bg)",
-};
+import { C } from "@/lib/warna-ui";
 
 const NAV_ITEMS = [
   { href: "/pm-portal", label: "Dashboard", icon: LayoutDashboard, exact: true },

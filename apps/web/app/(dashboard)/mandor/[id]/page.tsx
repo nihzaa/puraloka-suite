@@ -8,15 +8,8 @@ import {
   Calendar, CheckCircle2, Clock, XCircle,
 } from "lucide-react";
 
-const C = {
-  navy: "var(--navy)", navyLight: "var(--navy-light)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)", bg: "var(--bg)",
-  green: "var(--success)", greenBg: "var(--success-bg)", greenBorder: "var(--success-border)",
-  red: "var(--danger)", redBg: "var(--danger-bg)", redBorder: "var(--danger-border)",
-  yellow: "var(--warning)", yellowBg: "var(--warning-bg)", yellowBorder: "var(--warning-border)",
-  blue: "var(--info)", blueBg: "var(--info-bg)", blueBorder: "var(--info-border)",
-};
+import { C } from "@/lib/warna-ui";
+
 const card: React.CSSProperties = {
   background: "var(--surface)", border: `1px solid ${C.border}`,
   borderRadius: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.06)",

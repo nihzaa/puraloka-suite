@@ -10,14 +10,7 @@ import {
   ChevronDown, HardHat, FolderKanban, Users, CreditCard, Receipt, BarChart2,
 } from "lucide-react";
 
-const C = {
-  navy: "var(--navy)",
-  navyLight: "var(--navy-light)",
-  text: "var(--text-primary)",
-  mid: "var(--text-secondary)",
-  border: "var(--border)",
-  bg: "var(--bg)",
-};
+import { C } from "@/lib/warna-ui";
 
 export default function MandorPortalLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();

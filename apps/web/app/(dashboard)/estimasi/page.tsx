@@ -25,14 +25,7 @@ import {
   Scale, AlertTriangle,
 } from "lucide-react";
 
-const C = {
-  navy: "var(--navy)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)", bg: "var(--bg)", surface: "var(--surface)",
-  green: "var(--success)", greenBg: "var(--success-bg)",
-  red: "var(--danger)", redBg: "var(--danger-bg)",
-  yellow: "var(--warning)", yellowBg: "var(--warning-bg)",
-};
+import { C } from "@/lib/warna-ui";
 
 const fmtRp = (n: number) => `Rp ${Number(n).toLocaleString("id-ID")}`;
 

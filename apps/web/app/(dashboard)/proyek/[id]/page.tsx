@@ -131,26 +131,7 @@ const initials = (name: string) =>
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
-const C = {
-  navy: "var(--navy)",
-  navyLight: "var(--navy-light)",
-  text: "var(--text-primary)",
-  mid: "var(--text-secondary)",
-  muted: "var(--text-muted)",
-  border: "var(--border)",
-  bg: "var(--bg)",
-  green: "var(--success)",
-  greenBg: "var(--success-bg)",
-  greenBorder: "var(--success-border)",
-  red: "var(--danger)",
-  redBg: "var(--danger-bg)",
-  redBorder: "var(--danger-border)",
-  yellow: "var(--warning)",
-  yellowBg: "var(--warning-bg)",
-  yellowBorder: "var(--warning-border)",
-  info: "var(--info, var(--aksen-terang))",
-  infoBg: "var(--info-bg, var(--info-bg))",
-};
+import { C } from "@/lib/warna-ui";
 
 const card: React.CSSProperties = {
   background: "var(--surface)",

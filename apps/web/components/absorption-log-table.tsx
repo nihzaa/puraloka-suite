@@ -36,12 +36,7 @@ interface Props {
   onDeleted?: () => void;
 }
 
-const C = {
-  navy: "var(--navy)", navyLight: "var(--navy-light)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)", bg: "var(--bg)",
-  green: "var(--success)", red: "var(--danger)", yellow: "var(--warning)",
-};
+import { C } from "@/lib/warna-ui";
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });

@@ -15,14 +15,7 @@ import { Building2, Plus, Users, AlertTriangle, Check, X, ArrowRightLeft } from 
 // membingungkan.
 // ============================================================
 
-const C = {
-  navy: "var(--navy)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)", bg: "var(--bg)",
-  green: "var(--success)", greenBg: "var(--success-bg)",
-  red: "var(--danger)", redBg: "var(--danger-bg)", redBorder: "var(--danger-border)",
-  amber: "var(--warning)", amberBg: "var(--warning-bg)", amberBorder: "var(--warning-border)",
-};
+import { C } from "@/lib/warna-ui";
 
 const card: React.CSSProperties = {
   background: "var(--surface)",
