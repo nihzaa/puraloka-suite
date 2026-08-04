@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 
 // useKasbonPurposes — SATU sumber tujuan kasbon (census A4, pola useUnits/useWorkCategories).
 // GET /api/v1/kasbon-purposes (master kasbon_purposes, migration 096), dikelola di
@@ -20,20 +19,18 @@ const LEGACY_LABEL: Record<string, string> = {
   operasional: "Operasional", lain_lain: "Lain-lain",
 };
 
-let CACHE: KasbonPurposeRow[] | null = null;
-
 export function useKasbonPurposes() {
-  const [purposes, setPurposes] = useState<KasbonPurposeRow[]>(CACHE ?? []);
-  const [loading, setLoading] = useState(CACHE === null);
-
-  useEffect(() => {
-    let alive = true;
-    api.get<{ purposes: KasbonPurposeRow[] }>("/api/v1/kasbon-purposes")
-      .then(({ data }) => { if (!alive) return; CACHE = data.purposes ?? []; setPurposes(CACHE); })
-      .catch(() => { /* fallback legacy */ })
-      .finally(() => { if (alive) setLoading(false); });
-    return () => { alive = false; };
-  }, []);
+  // F4-2 — lewat lapis data terpusat: dedup, invalidasi, dan kunci company.
+  // Cache modul-level yang lama tak punya ketiganya; alasan lengkapnya di
+  // `use-work-categories.ts`.
+  //
+  // Galat sengaja tak dilempar ke pemakai: LEGACY_LABEL di atas adalah jaring
+  // pengamannya, dan kode mentah yang tampil jauh lebih baik daripada halaman
+  // yang gagal dimuat. Perilaku ini dipertahankan dari versi lama.
+  const { data, memuat } = useData<{ purposes: KasbonPurposeRow[] }>(
+    "/api/v1/kasbon-purposes");
+  const purposes = data?.purposes ?? [];
+  const loading = memuat;
 
   const labelOf = (code: string): string => {
     if (!code) return code;

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Building2, Check, ChevronDown } from "lucide-react";
 import { api } from "@/lib/api";
+import { buangCacheCompanyLain } from "@/lib/data-cache";
 
 // ============================================================
 // T7 — COMPANY SWITCHER.
@@ -88,6 +89,19 @@ export function CompanySwitcher() {
     // Disimpan sebelum reload; interceptor api.ts membacanya untuk header
     // x-company-id di setiap request berikutnya.
     localStorage.setItem("puraloka_company_id", id);
+
+    // ⚠️ Buang cache milik perusahaan LAIN sebelum berpindah.
+    //
+    // Hari ini `reload()` di bawah sudah membuang seluruh modul, jadi baris
+    // ini tampak berlebihan. Ia ada untuk hari ketika reload itu DIHAPUS —
+    // dan menghapusnya adalah hal yang wajar diinginkan (transisi mulus,
+    // tanpa layar putih).
+    //
+    // Tanpa baris ini, perubahan itu menghidupkan kebocoran lintas-tenant
+    // yang TIDAK menimbulkan galat: pengguna berpindah ke PT B dan masih
+    // melihat data PT A. Dijaga test `data-cache.test.ts` §ISOLASI COMPANY.
+    buangCacheCompanyLain();
+
     window.location.reload();
   }
 

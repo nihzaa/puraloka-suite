@@ -653,7 +653,7 @@ items:
     kriteria_selesai: ["useEffect-fetch di halaman turun drastis", "cache bersama lintas navigasi"]
     cara_verifikasi: "grep useEffect di page.tsx + ukur navigasi"
     bobot: XL
-    status: todo
+    status: wip
 
   - id: F4-3
     fase: 4
