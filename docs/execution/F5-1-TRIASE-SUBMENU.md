@@ -54,8 +54,8 @@ sebelum produknya bisa dijual**.
 ## 1. Definisi tiga golongan
 
 CHARTER menyebut INTI / PEMBEDA / TUNDA tanpa mendefinisikannya. Definisi di
-bawah adalah usulan yang dipakai dokumen ini — **founder boleh menolaknya**,
-dan kalau ditolak, pengurutannya berubah, bukan dokumennya dibuang.
+bawah **sudah diratifikasi founder 2026-08-04** — `RATIFIKASI.md` **R-010** —
+dan karenanya mengikat, bukan lagi usulan.
 
 ### INTI — tanpa ini produk tidak bisa dijual
 
@@ -311,12 +311,14 @@ menukarnya.
 
 ## 7. Yang menunggu founder
 
-**Hanya satu.** Dua butir lain di versi pertama sudah terjawab sendiri setelah
-diukur — dicatat di bawah supaya tak dicari lagi.
+**Nihil — semuanya sudah terjawab.**
 
-1. **Definisi tiga golongan (§1) belum diratifikasi.** Dipakai dokumen ini
-   sebagai usulan. Kalau ditolak, isi ketiga daftar berubah. **Ini satu-satunya
-   yang benar-benar menunggu keputusan founder.**
+1. ~~Definisi tiga golongan (§1) belum diratifikasi.~~
+   ✅ **DIRATIFIKASI 2026-08-04** — founder: *"okee setujuuu"*.
+   Tercatat sebagai **R-010** di `RATIFIKASI.md`. Definisi §1 sekarang
+   **mengikat**, dan dokumen ini adalah penerapannya. Membatalkannya: tulis
+   `TOLAK R-010` + definisi pengganti; isi ketiga daftar disusun ulang,
+   penjaganya tak perlu diubah.
 
 ### Yang SUDAH terjawab — tak perlu ditunggu
 
