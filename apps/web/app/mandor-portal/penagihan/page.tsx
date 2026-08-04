@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { api } from "@/lib/api";
+import { kirimLapangan } from "@/lib/kirim-lapangan";
 import { TrendingUp, Plus, Clock, CheckCircle, XCircle, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 
 const C = {
@@ -113,15 +114,18 @@ export default function PenagihanProgressPage() {
     }
     setSubmitting(true);
     try {
-      await api.post("/api/v1/mandor/progress-payments", {
+      // F4-3 — lewat antrean offline; sinyal buruk adalah norma di lapangan.
+      const hasil = await kirimLapangan("POST", "/api/v1/mandor/progress-payments", {
         work_scope_id: selectedScope.id,
         pct_done: Number(form.pct_done),
         gross_payment: grossAmt,
         notes: form.notes || undefined,
-      });
-      setToast({ msg: "Penagihan berhasil diajukan, menunggu konfirmasi admin", ok: true });
+      }, "Penagihan berhasil diajukan, menunggu konfirmasi admin", "Gagal mengajukan penagihan");
+
+      setToast({ msg: hasil.pesan, ok: hasil.aman });
+      if (!hasil.aman) return;
       setShowModal(false);
-      await loadData();
+      if (hasil.terkirim) await loadData();
     } catch (err: any) {
       setToast({ msg: err.response?.data?.error ?? "Gagal mengajukan penagihan", ok: false });
     } finally {

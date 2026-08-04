@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { kirimLapangan } from "@/lib/kirim-lapangan";
 import { ClipboardList, Plus, Trash2, CheckCircle, Clock, XCircle } from "lucide-react";
 
 const C = {
@@ -111,18 +112,25 @@ export default function LaporanUpahPage() {
     }
     setSubmitting(true);
     try {
-      await api.post("/api/v1/mandor/wage-reports", {
+      // F4-3 — lewat antrean offline. Halaman ini yang paling merugikan bila
+      // hilang: satu laporan bisa memuat puluhan baris tukang yang diketik
+      // manual di lokasi proyek.
+      const hasil = await kirimLapangan("POST", "/api/v1/mandor/wage-reports", {
         assignment_id: selectedAssignment,
         scope_id: selectedScope,
         week_start: weekStart,
         notes: notes || undefined,
         items: validRows,
-      });
-      setToast({ msg: "Laporan upah berhasil dikirim", ok: true });
+      }, "Laporan upah berhasil dikirim", "Gagal mengirim laporan");
+
+      setToast({ msg: hasil.pesan, ok: hasil.aman });
+      // Baris tukang TIDAK dikosongkan bila kirimannya tak aman.
+      if (!hasil.aman) return;
       setTab("riwayat");
-      // Refresh
-      const res = await api.get("/api/v1/mandor/wage-reports");
-      setReports((res.data?.reports ?? []).filter((r: any) => r.scope?.payment_system === "harian"));
+      if (hasil.terkirim) {
+        const res = await api.get("/api/v1/mandor/wage-reports");
+        setReports((res.data?.reports ?? []).filter((r: any) => r.scope?.payment_system === "harian"));
+      }
       // Reset form
       setSelectedAssignment(""); setSelectedScope(""); setWeekStart(""); setNotes("");
       setRows([{ worker_name: "", days_worked: 0, daily_rate: 0, overtime_hours: 0, overtime_rate: 0 }]);

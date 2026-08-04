@@ -5,6 +5,96 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-04 — F4-3: jalur lapangan berhenti kehilangan pekerjaan mandor
+
+### Masalah yang sebenarnya
+
+Enam jalur tulis di portal mandor memanggil `api.post` langsung. Bila sinyal
+putus — **norma di lokasi proyek, bukan pengecualian** — mandor melihat pesan
+galat dan pekerjaannya HILANG. Laporan upah 30 tukang diketik ulang dari nol.
+
+Yang lebih merugikan lagi: ia mencoba berkali-kali, dan saat sinyal akhirnya
+kembali, **kasbon terbayar dua kali**.
+
+### Yang dibangun
+
+| Berkas | Peran |
+|---|---|
+| `lib/antrean-offline.ts` | antrean localStorage + sinkron berurutan |
+| `lib/kirim-lapangan.ts` | menerjemahkan 4 hasil → 2 keputusan halaman |
+| `components/StatusAntrean.tsx` | pemicu sinkron + status yang terlihat mandor |
+
+Terpasang di **enam** jalur: progress · kasbon · kasbon-tukang · laporan-upah ·
+penagihan · tukang.
+
+### Empat jaminan — semuanya dibuktikan bisa gagal
+
+Mutation test: **6 mutasi disuntikkan, 6 tertangkap.**
+
+| Mutasi | Tertangkap oleh |
+|---|---|
+| Idempotency-Key lahir baru tiap kirim | "kasbon terbayar dua kali" |
+| `sinkronkan` abaikan kunci company | "data masuk perusahaan yang salah" |
+| `penuh` dilaporkan aman | "isian mandor HILANG tanpa tersimpan" |
+| `diantre` dilaporkan terkirim | "mandor mengirim ulang, jadinya DOBEL" |
+| respons server dibuang | "foto tak bisa dilampirkan, id hilang" |
+| `diantre` ikut membawa id | "foto dilampirkan ke id yang tak pernah dibuat" |
+
+### Tiga kesalahan saya sendiri, dan yang menangkapnya
+
+**1. Mock bocor ke tiga test berikutnya.** Saya mengganti `mockImplementation`
+di tengah berkas untuk satu skenario. Tiga test sesudahnya gagal dengan
+`Cannot read properties of undefined` — galat yang sama sekali tak
+berhubungan dengan sebabnya. Diganti antrean status per-panggilan.
+
+**2. `set-state-in-effect` 70 > ambang 69 — `lint:ratchet` menolak saya.**
+`StatusAntrean` versi pertama memakai `useState` + `useEffect` untuk membaca
+antrean. Penjaganya benar: pola itu merender dua kali tiap perubahan. Diganti
+`useSyncExternalStore` — hook yang memang dirancang untuk sumber data di luar
+React. **Ambangnya tidak saya naikkan.** Percobaan sinkron awal juga ditunda
+satu tick, dan itu ternyata lebih benar perilakunya: render pertama tak perlu
+tertahan menunggu jaringan yang mungkin memang mati.
+
+**3. Saya hampir melewatkan halaman progress** — padahal ia disebut PERTAMA di
+judul F4-3. Saya sudah menyambungkan lima halaman dan nyaris menutup item ini
+saat memeriksa ulang kriteria dan menemukan kata "foto". `progress/page.tsx`
+punya bentuk berbeda (upload storage lalu buat log), jadi ia tak muncul di
+pencarian `api.post` yang saya pakai untuk menemukan jalur lain.
+
+### Yang sengaja TIDAK dikerjakan — dinyatakan, bukan disembunyikan
+
+**Foto tidak ikut diantre.** Halaman progress sudah punya jalur coba-ulang
+sendiri untuk foto yang gagal, dan kegagalan foto memang tak membatalkan
+laporan. Yang bocor selama ini adalah teks laporannya — itu yang ditutup.
+Mengantrekan berkas butuh IndexedDB; batasnya ditulis di `BATAS_BYTE`.
+
+**"Resolusi konflik" tidak diimplementasikan sebagai penggabungan versi.**
+Kriteria F4-3 menyebutnya, tapi keenam jalur lapangan seluruhnya INSERT —
+tak ada dua pihak yang menyunting baris yang sama. Yang benar-benar dibutuhkan
+adalah pencegahan DUPLIKAT, dan itu tugas Idempotency-Key. Menulis mesin
+resolusi konflik untuk konflik yang tak ada berarti menambah kerumitan yang
+harus dirawat selamanya tanpa melindungi apa pun.
+
+**`navigator.onLine` hanya untuk hiasan, tak pernah untuk memutuskan.**
+Nilainya berbohong justru dalam keadaan yang paling lazim di lokasi
+konstruksi: perangkat tersambung ke Wi-Fi proyek yang sendirinya tak punya
+internet. Satu-satunya bukti sah bahwa jaringan hidup adalah percobaan kirim
+yang berhasil.
+
+### Bukti
+
+```
+Test Files  9 passed (9)
+     Tests  88 passed (88)      ← 22 di antaranya F4-3
+tsc --noEmit                    exit 0
+lint:ratchet   ✅ 0 error, 528 warning (semua di bawah/sama dengan ambang)
+hex-ratchet · catch-senyap · adr004 · modal-esc · medan-hantu · a11y ·
+tata-letak · kontras-hex · sidebar   — semua hijau
+build          ✓ Compiled successfully in 3.4s
+```
+
+---
+
 ## 2026-08-03 · Sesi 5 — FASE 0 SELESAI PENUH
 
 ### F0-8 — schema `mut6` dihapus (diratifikasi founder)

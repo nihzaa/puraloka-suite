@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
-import { api, createProgressLog } from "@/lib/api";
+import { api } from "@/lib/api";
+import { kirimLapangan } from "@/lib/kirim-lapangan";
 import { uploadProgressPhoto, attachProgressPhoto } from "@/lib/storage";
 import { Plus, Image, X, Check, Loader2, AlertCircle, Calendar } from "lucide-react";
 
@@ -153,15 +154,49 @@ export default function MandorProgressPage() {
         }
       }
 
-      const created = await createProgressLog(projectId, {
-        pct_overall: 0,
-        weather: weather || undefined,
-        worker_count: workersCount ? Number(workersCount) : undefined,
-        notes: notes || undefined,
-        logged_at: logDate ? new Date(logDate + "T08:00:00").toISOString() : undefined,
-        photos: uploadedPhotos.map((p) => ({ url: p.url, caption: p.caption || undefined })),
-      });
+      // F4-3 — teks laporan lewat antrean offline.
+      //
+      // ⚠️ FOTO TIDAK IKUT DIANTRE, dan itu keputusan sadar. Foto sudah
+      // terlanjur diunggah ke storage di atas — kalau storage gagal, `photos`
+      // yang gagal sudah masuk `failedPhotos` dan punya jalur coba-ulang
+      // sendiri. Yang belum tertangani sampai sekarang adalah kegagalan
+      // JARINGAN saat menyimpan teksnya, dan itulah yang ditutup di sini:
+      // sebelumnya mandor kehilangan seluruh catatan hariannya.
+      //
+      // Antrean menyimpan URL foto yang SUDAH berhasil terunggah, jadi saat
+      // sinyal kembali, laporan tetap membawa fotonya.
+      const hasil = await kirimLapangan(
+        "POST", `/api/v1/projects/${projectId}/progress-logs`,
+        {
+          pct_overall: 0,
+          weather: weather || undefined,
+          worker_count: workersCount ? Number(workersCount) : undefined,
+          notes: notes || undefined,
+          logged_at: logDate ? new Date(logDate + "T08:00:00").toISOString() : undefined,
+          photos: uploadedPhotos.map((p) => ({ url: p.url, caption: p.caption || undefined })),
+        },
+        "Progress berhasil dicatat", "Gagal menyimpan progress",
+      );
 
+      if (!hasil.aman) {
+        // Form dibiarkan terisi — catatan harian tak boleh hilang.
+        showToast(hasil.pesan, false);
+        return;
+      }
+
+      if (!hasil.terkirim) {
+        // Diantre: `logId` belum ada, jadi jalur coba-ulang foto (yang butuh
+        // logId) belum bisa dipakai. Foto yang gagal DIPERTAHANKAN di form
+        // supaya mandor tak kehilangannya.
+        showToast(hasil.pesan, true);
+        setShowModal(false);
+        setNotes(""); setWorkersCount(""); setScopeId("");
+        setPhotos(failedPhotos);
+        setRetry(null);
+        return;
+      }
+
+      const created = hasil.data as { data?: { id?: string } } | undefined;
       const logId = created?.data?.id;
       setShowModal(false);
       setNotes(""); setWorkersCount(""); setScopeId("");
