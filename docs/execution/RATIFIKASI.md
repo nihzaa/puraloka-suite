@@ -561,3 +561,63 @@ Lengkapi seed permission di database CI (`apps/api/scripts/ci-project-setup.mjs`
 atau seed yang setara), lalu jalankan ulang. Perlu akses `CI_DIRECT_URL` —
 sama seperti R-006, ini menyentuh lingkungan yang kredensialnya hidup di
 GitHub Secrets.
+
+---
+
+## R-009 · P1 · FLAKE antar-shard: CI merah berpindah-pindah, hijau saat diulang
+
+**Status:** terbuka · dibuka 2026-08-04 · **bukan cacat kode**
+
+### Bukti bahwa ini flake, bukan cacat
+
+Empat run berturut, shard yang merah **berpindah-pindah**, dan satu run hijau
+penuh tanpa perubahan apa pun:
+
+| Commit | Shard merah |
+|---|---|
+| `babe250` | shard 1/6 |
+| `1904142` | shard 5/6 |
+| `8200897` | shard 2/6 |
+| `0d06d63` | **nol — hijau penuh** |
+
+**Rerun tanpa mengubah satu baris pun → 11/11 hijau.** Itu bukti definitif:
+kodenya benar, lingkungannya yang berebut.
+
+Ketiga test yang merah (T6 penomoran, search-isolation, approval-berjenjang)
+**hijau di dev** setiap kali dijalankan.
+
+### Akar bersamanya
+
+Enam shard berbagi SATU database CI, dan schema `test` bukan pemisah yang
+sempurna:
+
+- `storage.objects` GLOBAL — sudah ditemukan & diperbaiki di F2-5
+- data seed bersama — baris shard lain ikut cocok dengan penyaring test
+- urutan eksekusi tak dijamin — test yang bersandar pada "berapa banyak yang
+  ada" jadi bergantung siapa yang jalan duluan
+
+Tiga perbaikan sudah dilakukan di sumbernya (TAG unik per-run, T6 membuat
+sendiri kondisinya, klasifikasi tenancy), dan ketiganya benar. Tetapi
+menambal per-test **tak akan pernah selesai** — akan selalu ada test
+berikutnya.
+
+### Yang dibutuhkan — dan kenapa belum dikerjakan
+
+Isolasi sungguhan antar-shard: satu database (atau schema yang benar-benar
+terpisah) per shard.
+
+Belum dikerjakan karena ia menyentuh lingkungan CI, bukan kode — sama kelasnya
+dengan R-006 dan R-008. Perlu keputusan: menambah project Supabase CI, atau
+memakai Postgres lokal di runner (yang dulu ditolak karena butuh shim
+`auth.*` — lihat catatan Fase 0).
+
+### Sementara itu
+
+**Rerun job yang merah sebelum mendiagnosis.** Kalau hijau saat diulang, itu
+flake ini — bukan regresi. Menambal test yang sebenarnya benar justru
+melemahkan assertion-nya.
+
+Yang **tidak boleh** dilakukan: melonggarkan assertion agar hijau. Test
+`search-tenant-isolation` punya sejarahnya sendiri — assertion positif yang
+dipertahankan meski merah justru yang mengungkap `clients.name` yang tak
+pernah ada.
