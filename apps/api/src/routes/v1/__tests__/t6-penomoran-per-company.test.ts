@@ -92,20 +92,51 @@ describe('T6 — nomor terpisah per company', () => {
     // Cacat #4: `UNIQUE (mr_number)` global membuat ini mustahil, dan karenanya
     // membuat penomoran per-company mustahil juga. Diuji langsung, bukan lewat
     // membaca definisi constraint — yang diuji adalah apakah INSERT-nya lolos.
-    const semuaB = (await c.query(
-      `SELECT mr_number FROM material_requests WHERE project_id = $1`, [proyekB]
-    )).rows.map((r) => r.mr_number)
-    const semuaA = (await c.query(
-      `SELECT mr_number FROM material_requests WHERE project_id = $1`, [proyekA]
-    )).rows.map((r) => r.mr_number)
+    //
+    // ⚠️ Versi sebelumnya hanya MEMBANDINGKAN nomor yang KEBETULAN sudah ada,
+    // lalu menuntut ada yang beririsan. Itu membuat hasilnya bergantung isi
+    // database: hijau di dev (banyak data, irisan tak terhindarkan), MERAH di
+    // CI yang datanya bersih — dan merahnya menuduh constraint, padahal
+    // testnya yang tak berdaya.
+    //
+    // Sekarang test MEMBUAT SENDIRI kondisi yang diuji: kedua tenant didorong
+    // sampai punya nomor yang sama persis. Kalau constraint global masih ada,
+    // INSERT-nya yang gagal — dan itulah kegagalan yang benar.
+    const kejarSampaiSama = async (): Promise<string> => {
+      // Naikkan yang tertinggal sampai keduanya bertemu di nomor yang sama.
+      for (let i = 0; i < 40; i++) {
+        const a = await buatMR(proyekA)
+        const b = await buatMR(proyekB)
+        if (a.mr_number === b.mr_number) return a.mr_number
+        // Kejar yang lebih kecil supaya keduanya bertemu, bukan makin jauh.
+        while (nomorUrut(a.mr_number) < nomorUrut(b.mr_number)) {
+          const lagi = await buatMR(proyekA)
+          if (lagi.mr_number === b.mr_number) return lagi.mr_number
+          a.mr_number = lagi.mr_number
+        }
+        while (nomorUrut(b.mr_number) < nomorUrut(a.mr_number)) {
+          const lagi = await buatMR(proyekB)
+          if (lagi.mr_number === a.mr_number) return lagi.mr_number
+          b.mr_number = lagi.mr_number
+        }
+      }
+      return ''
+    }
 
-    const beririsan = semuaB.filter((n: string) => semuaA.includes(n))
-    expect(
-      beririsan.length,
-      'kedua tenant tak pernah punya nomor yang sama — kemungkinan constraint ' +
-        'global masih memaksa nomor global unik'
-    ).toBeGreaterThan(0)
-  }, 60_000)
+    const sama = await kejarSampaiSama()
+    expect(sama,
+      'kedua tenant tak pernah mencapai nomor yang sama dalam 40 percobaan — ' +
+      'kemungkinan constraint global masih memaksa nomor unik lintas tenant, ' +
+      'atau format nomornya memuat pembeda yang membuat tabrakan mustahil'
+    ).not.toBe('')
+
+    // Buktikan keduanya benar-benar ADA dengan nomor itu — di tenant berbeda.
+    const { rows } = await c.query(
+      `SELECT count(DISTINCT project_id)::int n FROM material_requests
+        WHERE mr_number = $1 AND project_id IN ($2, $3)`, [sama, proyekA, proyekB])
+    expect(rows[0].n,
+      `nomor ${sama} tak dimiliki kedua tenant sekaligus`).toBe(2)
+  }, 120_000)
 })
 
 describe('T6 — nomor tak pernah dipakai ulang', () => {
