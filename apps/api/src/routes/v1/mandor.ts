@@ -6,6 +6,7 @@ import { resolveRecipients } from '../../utils/notification-routing.js'
 import { flattenUserRole } from '../../utils/user-role.js'
 import { validateMime } from '../../utils/mime.js'
 import { proyekMilikTenant, scopeIdsTenant } from '../../utils/tenant-guard.js'
+import { hitungPotonganRetensi, validasiPencairanRetensi } from '../../lib/retensi-subkontrak.js'
 
 const KASBON_PHOTO_BUCKET = 'kasbon-photos'
 const KASBON_PHOTO_ALLOWED = ['image/jpeg', 'image/png', 'image/webp']
@@ -1532,7 +1533,8 @@ export default async function mandorRoutes(app: FastifyInstance) {
 
     const { data: scope } = await supabase
       .from('work_scopes')
-      .select('id, payment_system, borongan_value, borongan_value_override, assignment:mandor_assignments!inner(mandor_id, project_id)')
+      // `retensi_pct` — kesepakatan retensi per scope (migrasi 183, INTI #3).
+      .select('id, payment_system, borongan_value, borongan_value_override, retensi_pct, assignment:mandor_assignments!inner(mandor_id, project_id)')
       .eq('id', body.work_scope_id)
       .single()
 
@@ -1545,6 +1547,28 @@ export default async function mandorRoutes(app: FastifyInstance) {
     const contractValue = (scope as any).borongan_value_override ?? scope.borongan_value ?? 0
     const earnedValue = contractValue > 0 ? (body.pct_completed * contractValue / 100) : body.gross_payment
 
+    // ── RETENSI SUBKONTRAK (INTI #3 · migrasi 183) ───────────────────────────
+    //
+    // Sebelum ini `net_payment = gross_payment` — nol potongan retensi. Artinya
+    // kontraktor MENAHAN retensi dari owner tapi MEMBAYAR PENUH ke mandor, dan
+    // ketika ada cacat yang harus diperbaiki mandor, tak ada uang tertahan
+    // untuk memaksanya kembali.
+    //
+    // Kasbon 0 di sini karena potongan kasbon baru ditentukan saat KONFIRMASI
+    // (lihat handler `/confirm`); di tahap pengajuan yang diketahui hanya
+    // retensinya.
+    const retensi = hitungPotonganRetensi({
+      bruto: body.gross_payment,
+      retensiPct: (scope as { retensi_pct?: number | null }).retensi_pct,
+      potonganKasbon: 0,
+    })
+    if (!retensi.ok) {
+      // Fail-closed: persen retensi yang rusak MENOLAK, bukan diam-diam jadi
+      // nol. Retensi nol karena salah baca terlihat persis sama dengan retensi
+      // yang memang tak disepakati — dan yang pertama adalah kebocoran uang.
+      return reply.status(422).send({ error: retensi.galat })
+    }
+
     const { data, error } = await supabase
       .from('progress_payments')
       .insert({
@@ -1553,7 +1577,8 @@ export default async function mandorRoutes(app: FastifyInstance) {
         earned_value: earnedValue,
         gross_payment: body.gross_payment,
         deducted_kasbon: 0,
-        net_payment: body.gross_payment,
+        retensi_amount: retensi.retensi,
+        net_payment: retensi.neto,
         paid_at: new Date().toISOString().split('T')[0],
         payment_method: 'transfer_bank',
         notes: body.notes ?? null,
@@ -1618,24 +1643,57 @@ export default async function mandorRoutes(app: FastifyInstance) {
 
     const { data: existing } = await supabase
       .from('progress_payments')
-      .select('id, status, gross_payment, work_scope_id')
+      // `work_scopes.retensi_pct` diambil lewat rantai: nilai retensi dihitung
+      // ULANG di sini karena `actual_payment` boleh mengubah nilai brutonya.
+      .select('id, status, gross_payment, work_scope_id, work_scopes(retensi_pct)')
       .eq('id', id)
       .single()
     if (!existing) return reply.status(404).send({ error: 'Penagihan tidak ditemukan' })
     if ((existing as any).status !== 'pending') return reply.status(400).send({ error: 'Penagihan ini sudah diproses' })
 
+    // ── RETENSI + KASBON (INTI #3 · migrasi 183) ────────────────────────────
+    //
+    // Dihitung SEBELUM pemeriksaan saldo kas: yang benar-benar keluar dari kas
+    // adalah nilai NETO, bukan bruto. Versi lama memeriksa saldo terhadap
+    // bruto, sehingga approve bisa ditolak "saldo tidak cukup" padahal uang
+    // yang keluar jauh lebih kecil setelah potongan.
+    // Bentuk baris + embed `work_scopes`. Diketik eksplisit, bukan `any` —
+    // ini jalur UANG, dan `any` mematikan satu-satunya pemeriksaan otomatis
+    // bahwa nama kolomnya tak salah ketik.
+    type ScopeRetensi = { retensi_pct?: number | null }
+    const pembayaranExisting = existing as {
+      gross_payment: number | string
+      work_scopes?: ScopeRetensi | ScopeRetensi[] | null
+    }
+
+    const bruto = body.actual_payment ?? Number(pembayaranExisting.gross_payment)
+    const deducted = body.deducted_kasbon ?? 0
+
+    const embedScope = pembayaranExisting.work_scopes
+    const retensiPct = (Array.isArray(embedScope) ? embedScope[0] : embedScope)?.retensi_pct
+
+    const hitung = hitungPotonganRetensi({
+      bruto,
+      retensiPct,
+      potonganKasbon: deducted,
+    })
+    if (!hitung.ok) {
+      // Termasuk kasus "potongan melebihi tagihan" — ditolak, bukan dipaksa
+      // jadi nol. Sisa kasbon yang lenyap diam-diam adalah uang yang hilang
+      // dari pembukuan tanpa seorang pun memutuskannya.
+      return reply.status(422).send({ error: hitung.galat })
+    }
+    const netPayment = hitung.neto
+
     if (body.status === 'approved') {
       if (!body.cash_account_id) return reply.status(400).send({ error: 'cash_account_id wajib saat approve' })
       const { data: acct } = await request.db!.from('cash_accounts').select('id, balance, is_active, name').eq('id', body.cash_account_id).single()
       if (!acct || !acct.is_active) return reply.status(400).send({ error: 'Akun kas tidak valid' })
-      const toPay = body.actual_payment ?? Number((existing as any).gross_payment)
-      if (Number(acct.balance) < toPay) {
+      if (Number(acct.balance) < netPayment) {
         return reply.status(400).send({ error: `Saldo ${acct.name} tidak cukup. Saldo: Rp ${Number(acct.balance).toLocaleString('id-ID')}` })
       }
     }
 
-    const deducted = body.deducted_kasbon ?? 0
-    const netPayment = (body.actual_payment ?? Number((existing as any).gross_payment)) - deducted
     const update: Record<string, unknown> = {
       status: body.status,
       approved_by: user.id,
@@ -1645,6 +1703,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
       update.cash_account_id = body.cash_account_id
       update.net_payment = netPayment
       update.deducted_kasbon = deducted
+      update.retensi_amount = hitung.retensi
       if (body.actual_payment) update.gross_payment = body.actual_payment
     }
 
@@ -2122,7 +2181,13 @@ export default async function mandorRoutes(app: FastifyInstance) {
     }
 
     // Get all work scopes with payment info
-    const { data: scopes } = await supabase
+    //
+    // `error` diperiksa (ditambahkan 2026-08-04): tanpa itu, query yang gagal
+    // mengembalikan `null`, lalu `?? []` mengubahnya jadi "nol scope" yang
+    // terlihat sah — mandor melihat ringkasan pendapatan KOSONG dan mengira
+    // ia memang belum punya pekerjaan. Kelas galat yang sama pernah membuat
+    // CPI terlalu optimis berbulan-bulan (lihat header penjaga).
+    const { data: scopes, error: scopesErr } = await supabase
       .from('work_scopes')
       .select(`
         id, scope_name, payment_system, payment_system_value,
@@ -2132,6 +2197,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
         weekly_wage_reports(id, net_amount, status)
       `)
       .in('assignment_id', asgIds)
+    if (scopesErr) return reply.status(500).send({ error: scopesErr.message })
 
     const scopeIds = (scopes ?? []).map((s: any) => s.id)
 
@@ -2217,6 +2283,188 @@ export default async function mandorRoutes(app: FastifyInstance) {
       sisa_bersih: sisaBersih,
       projects: Object.values(projectMap),
     })
+  })
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RETENSI SUBKONTRAK (INTI #3 · migrasi 183)
+  // ═══════════════════════════════════════════════════════════════════════════
+  //
+  // Cermin `GET /finance/retention-register` yang sudah ada di sisi KLIEN.
+  // Bentuknya sengaja sama: retensi = Σ ditahan − Σ dicairkan. Memakai bentuk
+  // berbeda untuk masalah yang sama hanya menambah tempat untuk salah.
+
+  // GET /api/v1/mandor/retensi-register — retensi tertahan per scope
+  app.get('/api/v1/mandor/retensi-register', {
+    preHandler: [authenticate]
+  }, async (request, reply) => {
+    // ⚠️ `work_scopes` kategori C — TIDAK bisa di-query langsung lewat
+    // `request.db`. Penjaga tenancy menolaknya, dan benar: tanpa `project_id`
+    // query itu mengembalikan scope milik tenant lain.
+    //
+    // Versi pertama endpoint ini melakukannya dan ditolak penjaga saat test.
+    // Jalur yang benar: mulai dari daftar scope milik tenant (`scopeIdsTenant`),
+    // lalu saring. Itu satu-satunya sumber kebenaran scope-milik-siapa di
+    // berkas ini, dan sudah dipakai seluruh handler lain.
+    const scopeMilikTenant = await scopeIdsTenant(request)
+    if (scopeMilikTenant.length === 0) {
+      return reply.send({ scopes: [], total_ditahan: 0, total_dicairkan: 0, total_outstanding: 0 })
+    }
+
+    const { data: scopeRetensi, error: scopeErr } = await supabase
+      .from('work_scopes')
+      .select(`
+        id, scope_name, retensi_pct, payment_system, status,
+        assignment:mandor_assignments!inner(
+          mandor_id, project_id,
+          mandor:users!mandor_assignments_mandor_id_fkey(id, name),
+          project:projects(id, name)
+        ),
+        progress_payments(retensi_amount, status)
+      `)
+      .in('id', scopeMilikTenant)
+    if (scopeErr) return reply.status(500).send({ error: scopeErr.message })
+
+    const { data: releases, error: relErr } = await request.db!
+      .from('subcontract_retention_releases')
+      .select('work_scope_id, amount, released_at')
+    if (relErr) return reply.status(500).send({ error: relErr.message })
+
+    const dicairkanPerScope = new Map<string, number>()
+    for (const r of releases ?? []) {
+      dicairkanPerScope.set(
+        r.work_scope_id,
+        (dicairkanPerScope.get(r.work_scope_id) ?? 0) + Number(r.amount ?? 0))
+    }
+
+    // Bentuk baris hasil embed Supabase. Diketik eksplisit, bukan `any` —
+    // `ratchet lint` menolak penambahan `no-explicit-any`, dan penolakannya
+    // benar: register ini menghitung UANG, dan `any` mematikan satu-satunya
+    // pemeriksaan otomatis bahwa nama kolomnya tak salah ketik.
+    interface PembayaranEmbed { status?: string; retensi_amount?: number | string | null }
+    interface PenugasanEmbed {
+      mandor?: { id: string; name: string } | null
+      project?: { id: string; name: string } | null
+    }
+    interface ScopeEmbed {
+      id: string
+      scope_name: string | null
+      status: string | null
+      retensi_pct: number | string | null
+      assignment: PenugasanEmbed | PenugasanEmbed[] | null
+      progress_payments?: PembayaranEmbed[] | null
+    }
+
+    const baris = ((scopeRetensi ?? []) as unknown as ScopeEmbed[]).map((s) => {
+      // Hanya pembayaran yang DISETUJUI menahan retensi. Yang masih `pending`
+      // belum mengeluarkan uang sama sekali, jadi belum menahan apa pun —
+      // memasukkannya membuat register menunjukkan uang yang tak pernah ada.
+      const ditahan = (s.progress_payments ?? [])
+        .filter((p) => p.status === 'approved')
+        .reduce((t, p) => t + Number(p.retensi_amount ?? 0), 0)
+      const dicairkan = dicairkanPerScope.get(s.id) ?? 0
+      const asg = Array.isArray(s.assignment) ? s.assignment[0] : s.assignment
+      return {
+        work_scope_id: s.id,
+        scope_name: s.scope_name,
+        status: s.status,
+        retensi_pct: s.retensi_pct,
+        mandor: asg?.mandor ?? null,
+        project: asg?.project ?? null,
+        ditahan,
+        dicairkan,
+        outstanding: Math.round((ditahan - dicairkan) * 100) / 100,
+      }
+    }).filter((b) => b.ditahan > 0 || b.dicairkan > 0)
+
+    return reply.send({
+      scopes: baris,
+      total_ditahan: baris.reduce((t, b) => t + b.ditahan, 0),
+      total_dicairkan: baris.reduce((t, b) => t + b.dicairkan, 0),
+      total_outstanding: baris.reduce((t, b) => t + b.outstanding, 0),
+    })
+  })
+
+  // POST /api/v1/mandor/retensi-releases — cairkan retensi ke mandor
+  app.post('/api/v1/mandor/retensi-releases', {
+    // Pencairan retensi mengeluarkan UANG. Izinnya sama dengan menyetujui
+    // pembayaran progres — bukan izin membuat, yang dimiliki mandor sendiri.
+    preHandler: [authenticate, requirePermission('mandor:kasbon:approve')]
+  }, async (request, reply) => {
+    const user = request.currentUser!
+    const body = request.body as {
+      work_scope_id: string
+      amount: number
+      cash_account_id?: string
+      released_at?: string
+      notes?: string
+    }
+
+    if (!body.work_scope_id || body.amount == null) {
+      return reply.status(400).send({ error: 'work_scope_id dan amount wajib diisi' })
+    }
+    // Gerbang tenant SEBELUM apa pun dibaca — pola T4j di berkas ini.
+    if (!(await scopeIdsTenant(request)).includes(body.work_scope_id)) {
+      return reply.status(404).send({ error: 'Scope tidak ditemukan' })
+    }
+
+    // `progress_payments` dibaca lewat EMBED `work_scopes`, bukan query mentah
+    // tersendiri. Dua alasan, keduanya nyata:
+    //
+    //   1. Ratchet `tenancy-ratchet` menargetkan akses mentah TURUN, bukan
+    //      naik. Menambah query mentah baru — walau bergerbang — melawan arah
+    //      yang seluruh repo ini sedang tempuh.
+    //   2. Rantai tenancy-nya jadi satu, bukan dua. `progress_payments`
+    //      kategori C lewat `work_scope_id`; membacanya lewat induk yang sudah
+    //      divalidasi berarti tak ada gerbang kedua yang bisa lupa dipasang.
+    const { data: scopeRow, error: payErr } = await supabase
+      .from('work_scopes')
+      .select('id, progress_payments(retensi_amount, status)')
+      .eq('id', body.work_scope_id)
+      .single()
+    if (payErr) return reply.status(500).send({ error: payErr.message })
+    const pembayaran = (scopeRow?.progress_payments ?? []) as Array<{
+      retensi_amount?: number | string | null
+      status?: string
+    }>
+
+    // Lewat `request.db` (sadar tenant) — `subcontract_retention_releases`
+    // kategori B, jadi saringan `company_id` dipasang otomatis. Memakai
+    // `supabase` mentah di sini berarti sisa retensi dihitung dari pencairan
+    // perusahaan LAIN, dan angka yang keluar salah tanpa gejala apa pun.
+    const { data: releases, error: relErr } = await request.db!
+      .from('subcontract_retention_releases')
+      .select('amount')
+      .eq('work_scope_id', body.work_scope_id)
+    if (relErr) return reply.status(500).send({ error: relErr.message })
+
+    const ditahan = (pembayaran ?? [])
+      .filter(p => p.status === 'approved')
+      .reduce((t, p) => t + Number(p.retensi_amount ?? 0), 0)
+    const sudahDicairkan = (releases ?? []).reduce((t, r) => t + Number(r.amount ?? 0), 0)
+
+    const verdict = validasiPencairanRetensi({
+      ditahan, sudahDicairkan, diminta: Number(body.amount),
+    })
+    if (!verdict.ok) {
+      return reply.status(422).send({ error: verdict.galat, tersedia: verdict.tersedia })
+    }
+
+    const { data, error } = await request.db!
+      .from('subcontract_retention_releases')
+      .insert({
+        company_id: request.companyId!,
+        work_scope_id: body.work_scope_id,
+        amount: Number(body.amount),
+        released_at: body.released_at ?? new Date().toISOString().split('T')[0],
+        cash_account_id: body.cash_account_id ?? null,
+        notes: body.notes ?? null,
+        released_by: user.id,
+      })
+      .select()
+      .single()
+    if (error) return reply.status(500).send({ error: error.message })
+
+    return reply.status(201).send({ release: data, tersisa: verdict.tersedia - Number(body.amount) })
   })
 }
 
