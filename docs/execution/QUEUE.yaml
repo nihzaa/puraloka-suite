@@ -662,7 +662,7 @@ items:
     kriteria_selesai: ["antrean lokal + sync + resolusi konflik"]
     cara_verifikasi: "test mode offline"
     bobot: XL
-    status: selesai
+    status: done
     catatan: |
       Sinyal buruk adalah NORMA di lokasi proyek, bukan pengecualian.
 
@@ -707,8 +707,58 @@ items:
       - "INTI habis dulu sebelum PEMBEDA"
     cara_verifikasi: "dokumen triase hidup"
     bobot: L
-    status: blocked
-    catatan: "C-7 — risiko yang paling mungkin membunuh proyek. Bukan catatan kaki."
+    status: done
+    catatan: |
+      C-7 — risiko yang paling mungkin membunuh proyek. Bukan catatan kaki.
+
+      SELESAI — `docs/execution/F5-1-TRIASE-SUBMENU.md`, dijaga
+      `apps/api/scripts/audit-triase-submenu.mjs` (terbukti bisa merah: exit 1
+      saat item dihapus dari triase, dan saat satu item ada di dua golongan).
+
+      ⚠️ ANGKA DI JUDUL ITEM INI SALAH. "93 sub-menu" tidak cocok kenyataan;
+      hitungan dari KOLOM STATUS taksonomi menghasilkan 57, lalu 54 sesudah
+      tiga koreksi status (backup&restore ✅ · mode offline 🟡 · multi-tenant 🟡).
+      Judulnya sengaja TIDAK diubah — biar terlihat bahwa angkanya pernah
+      salah dan kapan dikoreksi.
+
+      Sebaran: INTI 7 · PEMBEDA 11 · TUNDA 25 · JANGAN DIBANGUN 11 = 54.
+      Nol hilang, nol ganda — diperiksa penjaga tiap CI.
+
+      ── Saya salah sekali di tengah jalan, dicatat di dokumennya
+
+      Versi pertama triase menghitung 64, karena skripnya memakai
+      `baris.includes('🔴')` — mencari tanda merah DI MANA PUN di baris,
+      termasuk kolom Catatan. Itu persis kesalahan yang taksonomi peringatkan
+      sendiri, dan saya mengulanginya sambil mengutip peringatannya. Sembilan
+      baris 🟡 memuat 🔴 sebagai keterangan "sebagian sudah hidup" (mis.
+      Laporan keuangan: arus kas ✅, neraca & L/R 🔴). Selisih 19% — cukup
+      untuk salah memprioritaskan.
+
+      ── Menunggu founder: NIHIL
+
+      Definisi INTI/PEMBEDA/TUNDA DIRATIFIKASI 2026-08-04 (founder: "okee
+      setujuuu") — tercatat R-010 di RATIFIKASI.md. CHARTER menyebut ketiganya
+      tanpa mendefinisikan; sejak sekarang definisi §1 dokumen triase yang
+      mengikat, dan urutan kerja INTI -> PEMBEDA -> TUNDA berlaku.
+
+      ── Koreksi: INTI #1 TIDAK terblokir (saya salah, 2026-08-04)
+
+      Versi pertama dokumen ini menyatakan laporan keuangan terblokir R-001.
+      SALAH — dan salahnya cukup besar untuk mengubah rencana kerja: ia
+      membuat item paling penting tampak tak bisa disentuh sama sekali.
+
+      Diukur, bukan dibaca dari dokumen:
+        · RATIFIKASI.md R-001                 → SELESAI (047 dipensiunkan,
+                                                penegas 175 terpasang)
+        · accounts/journal_entries/_lines     → KETIGANYA punya company_id
+                                                (bentuk 167 menang, bukan 047)
+        · apps/api/src/routes/v1/gl.ts        → 7 endpoint hidup
+        · app/(dashboard)/akuntansi/page.tsx  → Bagan Akun · Jurnal ·
+                                                Neraca Saldo, semua hidup
+
+      Yang benar-benar belum ada hanya dua laporan turunan: NERACA dan
+      LABA/RUGI, plus klasifikasi akun neraca-vs-L/R. Bobot turun L → M, dan
+      tak ada satu pun INTI yang terblokir.
 
   - id: F6-1
     fase: 6

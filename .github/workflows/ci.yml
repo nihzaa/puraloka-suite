@@ -307,6 +307,19 @@ jobs:
       - name: Sub-menu berisiko punya rancangan
         run: node scripts/audit-rancangan-submenu.mjs
 
+      # F5-1 — dua penjaga sub-menu, dua pertanyaan BERBEDA. Jangan tertukar:
+      #
+      #   audit-rancangan-submenu : yang SUDAH digarap, apakah dirancang dulu?
+      #   audit-triase-submenu    : yang BELUM digarap, sudah diputuskan
+      #                             urutannya (INTI/PEMBEDA/TUNDA)?
+      #
+      # Yang kedua menjawab risiko C-7 — bukan salah memilih fitur, melainkan
+      # mengerjakannya dalam urutan yang salah sampai kehabisan tenaga sebelum
+      # produknya bisa dijual. Terbukti bisa merah: exit 1 saat satu sub-menu
+      # dihapus dari triase, dan saat satu item ada di dua golongan.
+      - name: Sub-menu belum digarap sudah ditriase
+        run: node scripts/audit-triase-submenu.mjs
+
       - name: Indeks dokumen mutakhir
         run: node scripts/gen-indeks-docs.mjs --check
 
