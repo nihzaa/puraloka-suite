@@ -718,6 +718,106 @@ GitHub Secrets.
 
 ---
 
+## R-009 · LANJUTAN 2026-08-04 — akarnya ditemukan, dan shim `auth.*` TERBUKTI murah
+
+**Status:** obat sementara terpasang (PR #141) · **butuh keputusan Anda untuk
+obat sesungguhnya**
+
+### Yang berubah dari catatan lama
+
+Catatan di bawah menyebut akarnya "enam shard berbagi satu database". Itu benar
+tapi **belum lengkap**. Yang sebenarnya terjadi terungkap saat empat PR terbuka
+bersamaan:
+
+| Waktu | Branch | Hasil |
+|---|---|---|
+| 11:00 | `f5-1` | **HIJAU** (sendirian) |
+| 11:40 | `inti-3` dibuka | merah |
+| 12:03 | `f5-1` dijalankan lagi | **MERAH** ← commit IDENTIK |
+| 12:29 | `inti-4` | merah |
+
+Bukan hanya antar-shard. **Antar-BRANCH.**
+
+`concurrency.group` sempat diubah jadi per-ref dengan alasan tertulis
+*"`TEST_SCHEMA` per-run sudah mengisolasi"*. Itu benar untuk test yang memakai
+`test-db.ts`, dan **salah** untuk `rls-harness.ts` — harness itu bekerja di
+schema `public`, karena di situlah RLS policy dan `auth.uid()` hidup.
+
+Header harness menyatakan dirinya *"read-safe, tidak pernah mengubah data
+public"*. **Klaim itu tidak akurat**: benar untuk `asUser()` (selalu ROLLBACK),
+tetapi `createRlsClient()` mengembalikan client mentah — dan **42 berkas test
+menulis lewatnya di luar transaksi** (diukur 2026-08-04).
+
+### Yang SUDAH dikerjakan — obat sementara
+
+PR #141 mengembalikan `concurrency.group` jadi konstan. Terbukti bekerja: `main`
+dan `f5-1` sama-sama hijau saat dijalankan ulang sendirian, nol perubahan kode.
+
+Harganya: CI lebih lambat saat banyak PR terbuka. Itu dibayar sadar.
+
+### Yang saya UKUR untuk obat sesungguhnya
+
+Catatan lama menolak Postgres lokal karena *"butuh shim `auth.*`"*. Saya ukur
+seberapa besar shim itu sebenarnya:
+
+```
+auth.role()   dipakai 60x di migrasi — hanya dibandingkan dengan
+              'authenticated' dan 'service_role'
+auth.uid()    dipakai 13x
+auth.users    NOL query — hanya disebut di komentar
+```
+
+**Permukaannya dua fungsi.** Dan seluruh pembungkus repo ini
+(`auth_role()`, `auth_user_id()`, `auth_company_id()`) bermuara ke `auth.uid()`
+saja.
+
+Shim-nya saya tulis dan **UJI terhadap Postgres nyata**:
+
+```
+impersonasi : uid OK · role OK
+anon        : uid NULL OK · role = anon
+```
+
+Dua cacat ketahuan justru karena diuji, bukan dibaca:
+1. `''::json` melempar galat — `NULLIF(...,'')` harus DULU, baru `::json`.
+2. `current_setting('role')` mengembalikan **`'none'`**, bukan NULL. Tanpa
+   ditangani, `auth.role() = 'authenticated'` putus dan seluruh policy menolak.
+
+### Kenapa saya BERHENTI di sini, bukan langsung membangunnya
+
+Shim murah. Yang mahal adalah **datanya**:
+
+```
+32 berkas test bergantung pada user seed NYATA (authIdForRole/assignedMandor)
+25 berkas membuat fixture-nya sendiri
+```
+
+Postgres lokal berarti membangun ulang seluruh seed itu — pekerjaan besar,
+risiko besar, dan **tak ada satu pun pelanggan menunggunya**. Menurut disiplin
+TUNDA yang Anda ratifikasi sendiri (R-010), ini belum punya pemicu.
+
+### Tiga pilihan — angkanya, bukan perasaannya
+
+| | Biaya | Hasil |
+|---|---|---|
+| **A. Biarkan serialisasi** (obat sementara) | nol | CI benar, tapi makin lambat tiap PR bertambah |
+| **B. Project Supabase CI kedua** | biaya Supabase + ubah secret | dua PR bisa jalan paralel; tak menyelesaikan shard |
+| **C. Postgres lokal + shim** | shim SUDAH TERBUKTI · sisanya seed 32 berkas | isolasi sejati per shard, CI jauh lebih cepat |
+
+**Rekomendasi saya: A sekarang, C saat pemicunya tiba.**
+
+Pemicunya jelas dan bisa ditulis: *"begitu antrean CI melewati 30 menit, atau
+begitu ada dua orang mengerjakan repo ini bersamaan."* Hari ini keduanya belum
+terjadi — Anda bekerja sendiri, dan antreannya masih belasan menit.
+
+Shim yang sudah terbukti itu disimpan di catatan ini supaya saat pemicunya tiba,
+pekerjaannya mulai dari yang sudah diuji, bukan dari nol.
+
+**Kalau Anda mau C sekarang**, bilang saja — saya kerjakan seed-nya bertahap
+supaya bisa dihentikan kapan pun tanpa meninggalkan setengah jadi.
+
+---
+
 ## R-009 · P1 · FLAKE antar-shard: CI merah berpindah-pindah, hijau saat diulang
 
 **Status:** terbuka · dibuka 2026-08-04 · **bukan cacat kode**

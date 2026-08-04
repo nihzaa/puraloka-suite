@@ -11,8 +11,27 @@ import { connectWithRetry } from './connect-with-retry.js'
 // Harness ini menutup gap itu: ia menguji RLS policy NYATA di schema `public`
 // dengan mengimpersonasi user (role `authenticated` + request.jwt.claims → sub),
 // sehingga auth.uid()/auth_role()/has_permission() dievaluasi persis seperti
-// request browser sungguhan. Semua dalam transaksi yang SELALU di-ROLLBACK —
-// harness ini read-safe, tidak pernah mengubah data public.
+// request browser sungguhan.
+//
+// ⚠️ KOREKSI 2026-08-04 — "read-safe" HANYA berlaku untuk `asUser()`
+//
+// Versi lama komentar ini berbunyi: *"Semua dalam transaksi yang SELALU
+// di-ROLLBACK — harness ini read-safe, tidak pernah mengubah data public."*
+//
+// Bagian pertama benar; kesimpulannya tidak. `asUser()` memang selalu ROLLBACK,
+// tetapi `createRlsClient()` di bawah mengembalikan client MENTAH — dan
+// **42 berkas test menulis lewatnya di luar transaksi mana pun** (diukur
+// 2026-08-04). Tulisan itu mendarat di schema `public` bersama dan BERTAHAN.
+//
+// Klaim yang tak akurat itu bukan sekadar salah tulis: ia dipakai sebagai dasar
+// mengubah `concurrency.group` CI jadi per-ref, dengan anggapan run paralel
+// aman. Akibatnya empat PR yang terbuka bersamaan saling merusak fixture, dan
+// satu branch berubah dari hijau jadi merah TANPA satu baris pun berubah.
+// Riwayat lengkap + jalan keluarnya: `RATIFIKASI.md` R-009.
+//
+// Jadi: pakai `asUser()` bila hanya MEMBACA. Bila test Anda MENULIS, sadari
+// tulisannya bertahan di `public`, dan bersihkan sendiri (pola `purge()` +
+// prefiks `[TEST-…]` yang dipakai berkas-berkas test rute).
 //
 // Dipakai lintas Epic 4 (semua kelompok tabel RLS) dan seterusnya.
 // ─────────────────────────────────────────────────────────────────────────────
