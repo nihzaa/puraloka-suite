@@ -136,7 +136,11 @@ const AMBANG = {
   '@typescript-eslint/no-unused-vars': 10,   // 11 -> 10: `localIdx` di photo-gallery dihapus (2026-08-02)
   'react-hooks/exhaustive-deps': 31,
   'react/no-unescaped-entities': 28,
-  'react-hooks/static-components': 14,
+  // 14 → 8 (2026-08-04): `Tab` di halaman mandor diangkat ke level modul.
+  // Ia dulu dibuat DI DALAM render, jadi tiap pemakaiannya dihitung — 6
+  // warning, dan naik jadi 7 begitu satu tab ditambahkan. Mengangkatnya
+  // menghapus ketujuhnya sekaligus, bukan hanya yang baru.
+  'react-hooks/static-components': 8,
   '@next/next/no-img-element': 11,
   'react-hooks/immutability': 4,
   'react-hooks/purity': 2,

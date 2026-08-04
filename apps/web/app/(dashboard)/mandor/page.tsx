@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { api, getStoredUser, hasPermission } from "@/lib/api";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { dapatDitekan } from "@/lib/dapat-ditekan";
+import { RetensiSection } from "@/components/retensi-section";
 import { useUnits } from "@/lib/use-units";
 import { useWorkCategories } from "@/lib/use-work-categories";
 import { useKasbonPurposes } from "@/lib/use-kasbon-purposes";
@@ -171,7 +172,7 @@ interface ScopeDetail {
 
 interface MandorUser { id: string; name: string; phone: string | null; email: string }
 
-type TabKey = "penugasan" | "laporan" | "kasbon" | "mandor-kasbon" | "tukang" | "penagihan";
+type TabKey = "penugasan" | "laporan" | "kasbon" | "mandor-kasbon" | "tukang" | "penagihan" | "retensi";
 
 interface ProgressPayment {
   id: string;
@@ -577,31 +578,6 @@ function MandorPageInner() {
     XLSX.writeFile(wb, `laporan-upah-${new Date().toISOString().split("T")[0]}.xlsx`);
   }
 
-  const Tab = ({ id, label, count }: { id: TabKey; label: string; count?: number }) => (
-    <button
-      onClick={() => setTab(id)}
-      onMouseEnter={e => { if (tab !== id) e.currentTarget.style.color = C.text; }}
-      onMouseLeave={e => { if (tab !== id) e.currentTarget.style.color = C.mid; }}
-      style={{
-        display: "inline-flex", alignItems: "center", gap: 6,
-        padding: "10px 18px", background: "transparent", border: "none",
-        borderBottom: `2px solid ${tab === id ? C.navy : "transparent"}`,
-        fontSize: 13, fontWeight: tab === id ? 600 : 400,
-        color: tab === id ? C.navy : C.mid,
-        cursor: "pointer", transition: "all 0.15s", whiteSpace: "nowrap",
-      }}
-    >
-      {label}
-      {count !== undefined && count > 0 && (
-        <span style={{
-          fontSize: 10, fontWeight: 700, borderRadius: 99, padding: "1px 6px",
-          background: tab === id ? C.navyLight : "var(--surface-hover)",
-          color: tab === id ? C.navy : C.muted,
-        }}>{count}</span>
-      )}
-    </button>
-  );
-
   return (
     <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", background: C.bg, minHeight: "100vh", width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
       {/* Header */}
@@ -687,12 +663,16 @@ function MandorPageInner() {
       {/* Tabs + search */}
       <div style={{ ...card, marginBottom: 16 }}>
         <div style={{ display: "flex", alignItems: "center", borderBottom: `1px solid ${C.border}`, overflowX: "auto" }}>
-          {!isMandor && <Tab id="penugasan" label="Penugasan" />}
-          <Tab id="laporan" label="Laporan Upah" count={summary?.pendingReports} />
-          <Tab id="kasbon" label="Kasbon Tukang" count={kasbons.filter(k => !k.is_settled).length} />
-          {!isMandor && <Tab id="penagihan" label="Penagihan Progress" count={progressPayments.filter(p => p.status === "pending").length} />}
-          {isMandor && <Tab id="mandor-kasbon" label="Kasbon Saya" count={mandorKasbons.filter(k => k.status === "pending").length} />}
-          <Tab id="tukang" label="Daftar Tukang" />
+          {!isMandor && <TabTombol id="penugasan" label="Penugasan" aktif={tab} pilih={setTab} />}
+          <TabTombol id="laporan" label="Laporan Upah" count={summary?.pendingReports} aktif={tab} pilih={setTab} />
+          <TabTombol id="kasbon" label="Kasbon Tukang" count={kasbons.filter(k => !k.is_settled).length} aktif={tab} pilih={setTab} />
+          {!isMandor && <TabTombol id="penagihan" label="Penagihan Progress" count={progressPayments.filter(p => p.status === "pending").length} aktif={tab} pilih={setTab} />}
+          {/* Retensi milik yang MENCAIRKAN (admin/PM), bukan mandor — mandor
+              tak bisa mencairkan jaminannya sendiri. Ditaruh bersebelahan
+              dengan Penagihan karena retensi lahir dari pembayaran progres. */}
+          {!isMandor && <TabTombol id="retensi" label="Retensi Mandor" aktif={tab} pilih={setTab} />}
+          {isMandor && <TabTombol id="mandor-kasbon" label="Kasbon Saya" count={mandorKasbons.filter(k => k.status === "pending").length} aktif={tab} pilih={setTab} />}
+          <TabTombol id="tukang" label="Daftar Tukang" aktif={tab} pilih={setTab} />
           <div style={{ flex: 1 }} />
           <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "0 12px", padding: "5px 10px", border: `1px solid ${C.border}`, borderRadius: 8, background: "var(--surface)" }}>
             <Search size={13} color={C.muted} />
@@ -1221,6 +1201,15 @@ function MandorPageInner() {
                     </div>
                   );
                 })}
+            </div>
+          )}
+
+          {/* TAB: Retensi Mandor — register ditahan vs dicairkan.
+              Section-nya berdiri sendiri (memuat datanya sendiri) supaya tab
+              lain tak menanggung query yang tak dipakainya. */}
+          {tab === "retensi" && !isMandor && (
+            <div style={{ padding: 20 }}>
+              <RetensiSection />
             </div>
           )}
 
@@ -3621,6 +3610,51 @@ function PPConfirmModal({ payment, cashAccounts, loading, onClose, onAction }: {
       </div>
     </div>,
     document.body
+  );
+}
+
+
+/**
+ * Tombol tab — DIDEFINISIKAN DI LEVEL MODUL, bukan di dalam render.
+ *
+ * Versi lama membuatnya di dalam , dan
+ *  menandai SETIAP pemakaiannya (6 warning,
+ * naik jadi 7 saat tab Retensi ditambahkan).
+ *
+ * Peringatannya benar, dan bukan soal gaya: komponen yang lahir ulang tiap
+ * render membuat React membongkar-pasang seluruh sub-pohonnya — state di
+ * dalamnya hilang, dan transisi CSS mulai dari nol tiap induknya render.
+ *
+ *  dan  dulu ditutup lewat closure; sekarang jadi prop.
+ */
+function TabTombol({ id, label, count, aktif, pilih }: {
+  id: TabKey; label: string; count?: number;
+  aktif: TabKey; pilih: (t: TabKey) => void;
+}) {
+  const dipilih = aktif === id;
+  return (
+    <button
+      onClick={() => pilih(id)}
+      onMouseEnter={e => { if (!dipilih) e.currentTarget.style.color = C.text; }}
+      onMouseLeave={e => { if (!dipilih) e.currentTarget.style.color = C.mid; }}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 6,
+        padding: "10px 18px", background: "transparent", border: "none",
+        borderBottom: `2px solid ${dipilih ? C.navy : "transparent"}`,
+        fontSize: 13, fontWeight: dipilih ? 600 : 400,
+        color: dipilih ? C.navy : C.mid,
+        cursor: "pointer", transition: "all 0.15s", whiteSpace: "nowrap",
+      }}
+    >
+      {label}
+      {count !== undefined && count > 0 && (
+        <span style={{
+          fontSize: 10, fontWeight: 700, borderRadius: 99, padding: "1px 6px",
+          background: dipilih ? C.navyLight : "var(--surface-hover)",
+          color: dipilih ? C.navy : C.muted,
+        }}>{count}</span>
+      )}
+    </button>
   );
 }
 

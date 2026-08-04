@@ -29,6 +29,9 @@ import { ChangeOrderSection } from "@/components/change-order-section";
 import { GanttSection } from "@/components/gantt-section";
 import { LookAheadSection } from "@/components/look-ahead-section";
 import { RantaiKontrakSection } from "@/components/rantai-kontrak-section";
+import { KlaimSection } from "@/components/klaim-section";
+import { SuratSection } from "@/components/surat-section";
+import { InstruksiLapanganSection } from "@/components/instruksi-lapangan-section";
 import { PhotoGallery } from "@/components/photo-gallery";
 import { RabScheduleModal, AbsorptionLogModal } from "@/components/rab-schedule-modal";
 import { AbsorptionLogTable } from "@/components/absorption-log-table";
@@ -1410,6 +1413,20 @@ function ProjectDetailContent() {
             look-ahead karena keduanya soal WAKTU — dan pertanyaan "apakah kita
             kena denda?" muncul persis setelah melihat mana yang telat. */}
         <RantaiKontrakSection projectId={p.id} />
+
+        {/* Klaim: pilar KETIGA rantai yang sama. Ditaruh langsung di bawah EOT
+            karena satu peristiwa sering memicu keduanya — lahan terlambat
+            diserahkan menuntut perpanjangan waktu DAN biaya tambahan.
+            Memisahkannya ke halaman lain membuat yang kedua sering terlupa. */}
+        <KlaimSection projectId={p.id} />
+
+        {/* Surat & instruksi lapangan: sumber BUKTI untuk klaim di atas.
+            Ditaruh sesudahnya, bukan sebelum — orang datang ke sini setelah
+            bertanya "apa dasarnya?", dan urutan itu yang menentukan
+            penempatannya. Instruksi lisan bahkan sering jadi satu-satunya
+            dasar klaim yang ada. */}
+        <SuratSection projectId={p.id} />
+        <InstruksiLapanganSection projectId={p.id} />
       </div>
 
       {/* ── Change Order ── */}
