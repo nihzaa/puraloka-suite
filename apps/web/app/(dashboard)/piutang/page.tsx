@@ -28,10 +28,10 @@ const card: React.CSSProperties = {
 
 // Ramp urgensi bucket — makin tua umur piutang, makin gelap merahnya.
 const BUCKETS = [
-  { key: "current", label: "Belum jatuh tempo", color: "#003366" },
-  { key: "d1_30",   label: "1–30 hari",         color: "#B45309" },
+  { key: "current", label: "Belum jatuh tempo", color: "var(--navy)" },
+  { key: "d1_30",   label: "1–30 hari",         color: "var(--warning)" },
   { key: "d31_60",  label: "31–60 hari",        color: "#C2410C" },
-  { key: "d61_90",  label: "61–90 hari",        color: "#B91C1C" },
+  { key: "d61_90",  label: "61–90 hari",        color: "var(--danger)" },
   { key: "d90_plus", label: ">90 hari",         color: "#7F1D1D" },
 ] as const;
 type BucketKey = (typeof BUCKETS)[number]["key"];

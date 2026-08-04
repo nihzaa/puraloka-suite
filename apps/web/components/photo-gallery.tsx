@@ -40,7 +40,7 @@ const C = {
 const CATEGORIES: { key: string; label: string; icon: React.ReactNode; color: string; bg: string }[] = [
   { key: "semua",       label: "Semua",        icon: <Images size={13} />,        color: C.navy,    bg: C.navyLight },
   { key: "progress",    label: "Progress",     icon: <Camera size={13} />,        color: "#0369A1", bg: "#E0F2FE" },
-  { key: "defect",      label: "Defect",       icon: <AlertTriangle size={13} />, color: "#B45309", bg: "#FEF3C7" },
+  { key: "defect",      label: "Defect",       icon: <AlertTriangle size={13} />, color: "var(--warning)", bg: "#FEF3C7" },
   { key: "serah_terima",label: "Serah Terima", icon: <CheckCircle2 size={13} />,  color: C.green,   bg: C.greenBg },
   { key: "other",       label: "Lainnya",      icon: <Tag size={13} />,           color: C.mid,     bg: "var(--surface-hover)" },
 ];
@@ -51,7 +51,7 @@ const CATEGORY_LABEL: Record<string, string> = {
 
 const CATEGORY_COLORS: Record<string, { color: string; bg: string }> = {
   progress:     { color: "#0369A1", bg: "#E0F2FE" },
-  defect:       { color: "#B45309", bg: "#FEF3C7" },
+  defect:       { color: "var(--warning)", bg: "#FEF3C7" },
   serah_terima: { color: C.green,   bg: C.greenBg },
   other:        { color: C.mid,     bg: "var(--surface-hover)" },
 };
@@ -288,7 +288,7 @@ export function PhotoGallery({ projectId, userRole }: Props) {
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
         <div style={{
           width: 36, height: 36, borderRadius: 10,
-          background: "linear-gradient(135deg, #003366, #0066CC)",
+          background: "linear-gradient(135deg, var(--navy), #0066CC)",
           display: "flex", alignItems: "center", justifyContent: "center",
         }}>
           <Images size={18} color="var(--surface)" />
@@ -333,7 +333,7 @@ export function PhotoGallery({ projectId, userRole }: Props) {
       ) : photos.length === 0 ? (
         <div style={{
           padding: "40px 24px", textAlign: "center",
-          border: "2px dashed #E5E7EB", borderRadius: 12, background: "#FAFAFA",
+          border: "2px dashed var(--border)", borderRadius: 12, background: "#FAFAFA",
         }}>
           <Images size={32} color={C.muted} style={{ marginBottom: 12 }} />
           <p style={{ fontSize: 14, fontWeight: 600, color: C.text, marginBottom: 4 }}>Belum ada foto</p>
@@ -367,7 +367,7 @@ export function PhotoGallery({ projectId, userRole }: Props) {
                 style={{
                   position: "relative", borderRadius: 10, overflow: "hidden",
                   cursor: "pointer", aspectRatio: "4/3",
-                  border: "1px solid #E5E7EB",
+                  border: "1px solid var(--border)",
                   boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
                   transition: "transform 0.15s, box-shadow 0.15s",
                 }}

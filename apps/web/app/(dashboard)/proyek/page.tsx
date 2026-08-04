@@ -76,7 +76,7 @@ const C = {
 
 const card: React.CSSProperties = {
   background: "var(--surface)",
-  border: "1px solid #E5E7EB",
+  border: "1px solid var(--border)",
   borderRadius: 14,
   boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
 };
@@ -96,7 +96,7 @@ function Skeleton({ h = 20, w = "100%" }: { h?: number; w?: string | number }) {
   return (
     <div style={{
       height: h, width: w, borderRadius: 8,
-      background: "linear-gradient(90deg, #F3F4F6 0%, #E9EAEB 50%, #F3F4F6 100%)",
+      background: "linear-gradient(90deg, var(--surface-hover) 0%, #E9EAEB 50%, var(--surface-hover) 100%)",
       backgroundSize: "200% 100%",
       animation: "shimmer 1.5s ease-in-out infinite",
     }} />
@@ -122,7 +122,7 @@ function ModelBadge({ model }: { model: "termin" | "komisi" }) {
     <span style={{
       display: "inline-block", padding: "2px 8px", borderRadius: 4,
       fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase",
-      background: "var(--surface-hover)", color: C.mid, border: "1px solid #E5E7EB",
+      background: "var(--surface-hover)", color: C.mid, border: "1px solid var(--border)",
     }}>
       {model === "termin" ? "TERMIN" : "KOMISI"}
     </span>
@@ -136,7 +136,7 @@ function Avatar({ name, size = 28 }: { name: string; size?: number }) {
       background: C.navyLight, color: C.navy,
       display: "flex", alignItems: "center", justifyContent: "center",
       fontSize: size * 0.36, fontWeight: 700, flexShrink: 0,
-      border: "1.5px solid #BFDBFE",
+      border: "1.5px solid var(--info-border)",
     }}>
       {initials(name)}
     </div>
@@ -163,7 +163,7 @@ function SummaryCard({ label, value, sub, icon, accent }: {
     <div
       style={{
         flex: 1, background: "var(--surface)", borderRadius: 12, padding: "16px 18px",
-        border: "1px solid #E5E7EB", display: "flex", alignItems: "center", gap: 14,
+        border: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 14,
         boxShadow: "0 1px 3px rgba(0,0,0,0.05)", transition: "all 0.15s",
       }}
       onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 6px 18px rgba(0,51,102,0.10)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
@@ -376,7 +376,7 @@ function ProyekContent() {
               placeholder="Cari nama proyek, klien, PM, atau lokasi..."
               style={{
                 width: "100%", padding: "8px 12px 8px 32px",
-                border: "1px solid #E5E7EB", borderRadius: 8,
+                border: "1px solid var(--border)", borderRadius: 8,
                 fontSize: 13, color: C.text, background: "var(--surface)",
                 outline: "none", transition: "border-color 0.15s, box-shadow 0.15s",
                 boxSizing: "border-box",
@@ -390,7 +390,7 @@ function ProyekContent() {
             value={sort}
             onChange={e => setSort(e.target.value as SortKey)}
             style={{
-              padding: "8px 12px", border: "1px solid #E5E7EB", borderRadius: 8,
+              padding: "8px 12px", border: "1px solid var(--border)", borderRadius: 8,
               fontSize: 13, color: C.text, background: "var(--surface)",
               cursor: "pointer", outline: "none",
             }}
@@ -401,7 +401,7 @@ function ProyekContent() {
             <option value="deadline_asc">Tenggat Terdekat</option>
           </select>
           {/* View toggle */}
-          <div style={{ display: "flex", border: "1px solid #E5E7EB", borderRadius: 8, overflow: "hidden" }}>
+          <div style={{ display: "flex", border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
             {(["grid", "list"] as ViewMode[]).map(v => (
               <button aria-label={v === "grid" ? "Grid" : "List"}
                 key={v}
@@ -626,7 +626,7 @@ function ProjectCardGrid({ project: p, onClick }: { project: Project; onClick: (
       {/* Client + PM */}
       <div style={{
         display: "flex", alignItems: "center", gap: 12,
-        paddingBottom: 14, borderBottom: "1px solid #F3F4F6", marginBottom: 14,
+        paddingBottom: 14, borderBottom: "1px solid var(--surface-hover)", marginBottom: 14,
       }}>
         {p.clients && (
           <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>

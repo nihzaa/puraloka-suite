@@ -327,7 +327,7 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
                             <div style={{ textAlign: "right", color: "#10B981" }}>
                               {entry.upah_pct > 0 ? `${entry.upah_pct}%` : <span style={{ color: C.muted }}>—</span>}
                             </div>
-                            <div style={{ textAlign: "right", color: "#F59E0B" }}>
+                            <div style={{ textAlign: "right", color: "var(--warning)" }}>
                               {entry.alat_pct > 0 ? `${entry.alat_pct}%` : <span style={{ color: C.muted }}>—</span>}
                             </div>
                             <div style={{ textAlign: "right", color: "#8B5CF6" }}>

@@ -636,7 +636,7 @@ function MandorPageInner() {
           )}
           {tab === "mandor-kasbon" && (
             <button onClick={() => setShowSubmitMandorKasbon(true)} style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: C.yellow, color: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600 }}
-              onMouseEnter={e => { e.currentTarget.style.background = "#B45309"; }}
+              onMouseEnter={e => { e.currentTarget.style.background = "var(--warning)"; }}
               onMouseLeave={e => { e.currentTarget.style.background = C.yellow; }}>
               <Plus size={14} /> Ajukan Kasbon
             </button>
@@ -1664,7 +1664,7 @@ function MandorPageInner() {
               Sisa outstanding: <strong style={{ color: C.red }}>{fmt(cicilanModal.remaining)}</strong>
             </div>
             {cicilanError && (
-              <div style={{ background: "var(--danger-bg)", border: "1px solid #FECACA", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: C.red, marginBottom: 12 }}>{cicilanError}</div>
+              <div style={{ background: "var(--danger-bg)", border: "1px solid var(--danger-border)", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: C.red, marginBottom: 12 }}>{cicilanError}</div>
             )}
             <div style={{ marginBottom: 14 }}>
               <label htmlFor="cicilan-nominal" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 4 }}>Nominal Cicilan</label>
@@ -2751,7 +2751,7 @@ function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () => void; 
       <div style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", maxHeight: "90vh" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: `1px solid ${C.border}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #B45309, #FBBF24)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--warning), #FBBF24)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Banknote size={17} color="var(--surface)" />
             </div>
             <div>
@@ -3477,7 +3477,7 @@ function SettlementBoronganModal({ data, cashAccounts, onClose, onSuccess }: {
           <p style={{ margin: "4px 0 0", fontSize: 12, color: C.mid }}>{data.scopeName} · {data.mandorName} · {data.projectName}</p>
         </div>
         <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
-          {error && <div style={{ padding: "10px 14px", borderRadius: 8, background: "var(--danger-bg)", color: "var(--danger)", fontSize: 13, border: "1px solid #FECACA" }}>{error}</div>}
+          {error && <div style={{ padding: "10px 14px", borderRadius: 8, background: "var(--danger-bg)", color: "var(--danger)", fontSize: 13, border: "1px solid var(--danger-border)" }}>{error}</div>}
           <div>
             <label htmlFor="borongan-value" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Nilai Kontrak Borongan (Rp) *</label>
             <input id="borongan-value" type="number" min={1} value={boronganValue} onChange={e => setBoronganValue(e.target.value)} placeholder="0" style={inputStyle} />
@@ -3500,7 +3500,7 @@ function SettlementBoronganModal({ data, cashAccounts, onClose, onSuccess }: {
               <div style={{ fontSize: 10, color: "var(--text-secondary)", marginBottom: 2 }}>Potongan</div>
               <div style={{ fontSize: 14, fontWeight: 700, color: "var(--danger)" }}>- {fmtLocal(tk + toe)}</div>
             </div>
-            <div style={{ gridColumn: "span 2", borderTop: "1px solid #E5E7EB", paddingTop: 10 }}>
+            <div style={{ gridColumn: "span 2", borderTop: "1px solid var(--border)", paddingTop: 10 }}>
               <div style={{ fontSize: 10, color: "var(--text-secondary)", marginBottom: 2 }}>Net Pembayaran</div>
               <div style={{ fontSize: 20, fontWeight: 800, color: netPayment > 0 ? "var(--success)" : "var(--text-secondary)" }}>{fmtLocal(netPayment)}</div>
             </div>
@@ -3519,7 +3519,7 @@ function SettlementBoronganModal({ data, cashAccounts, onClose, onSuccess }: {
             <textarea id="notes-5" value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Opsional" style={{ ...inputStyle, resize: "none" }} />
           </div>
           <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: "1px solid #E5E7EB", background: "var(--surface)", fontSize: 13, color: "var(--text-secondary)", cursor: "pointer" }}>Batal</button>
+            <button type="button" onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 13, color: "var(--text-secondary)", cursor: "pointer" }}>Batal</button>
             <button type="submit" disabled={loading} style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: loading ? "var(--text-secondary)" : "var(--success)", color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: loading ? "wait" : "pointer" }}>
               {loading ? "Memproses..." : `Cairkan ${fmtLocal(netPayment)}`}
             </button>
@@ -3554,11 +3554,11 @@ function PPConfirmModal({ payment, cashAccounts, loading, onClose, onAction }: {
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1500, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 440, boxShadow: "0 16px 48px rgba(0,0,0,0.2)" }}>
-        <div style={{ padding: "20px 24px", borderBottom: "1px solid #E5E7EB" }}>
+        <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border)" }}>
           <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Tinjau Penagihan Progress</h2>
           <p style={{ margin: "4px 0 0", fontSize: 12, color: C.mid }}>{payment.work_scope?.scope_name ?? "---"} - {payment.project?.name ?? "---"}</p>
         </div>
-        <div style={{ padding: "16px 24px", background: "var(--bg)", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, borderBottom: "1px solid #E5E7EB" }}>
+        <div style={{ padding: "16px 24px", background: "var(--bg)", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, borderBottom: "1px solid var(--border)" }}>
           <div>
             <div style={{ fontSize: 10, color: "var(--text-secondary)", marginBottom: 2 }}>Diajukan oleh</div>
             <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{payment.requester?.name ?? "---"}</div>
@@ -3605,7 +3605,7 @@ function PPConfirmModal({ payment, cashAccounts, loading, onClose, onAction }: {
               style={{ ...inputStyle, resize: "none" }} />
           </div>
           <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: "1px solid #E5E7EB", background: "var(--surface)", fontSize: 13, color: "var(--text-secondary)", cursor: "pointer" }}>Batal</button>
+            <button onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 13, color: "var(--text-secondary)", cursor: "pointer" }}>Batal</button>
             <button
               onClick={() => {
                 if (mode === "approve" && !cashAccountId) { alert("Pilih akun kas"); return; }

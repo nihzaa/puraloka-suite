@@ -31,7 +31,7 @@ const C = {
 
 const card: React.CSSProperties = {
   background: "var(--surface)",
-  border: "1px solid #E5E7EB",
+  border: "1px solid var(--border)",
   borderRadius: 14,
   boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
 };
@@ -526,7 +526,7 @@ function RolesContent() {
 const ROLE_COLORS = [
   "#6D28D9", "var(--info)", "var(--warning)", "var(--text-secondary)",
   "#059669", "#DC2626", "#0891B2", "#7C3AED",
-  "#B45309", "#0F766E", "#BE185D", "#374151",
+  "var(--warning)", "#0F766E", "#BE185D", "#374151",
 ];
 
 function RoleFormModal({ role, roles, onClose, onSaved, setToast }: {

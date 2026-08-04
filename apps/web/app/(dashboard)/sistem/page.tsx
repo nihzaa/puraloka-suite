@@ -68,7 +68,7 @@ export default function SistemPage() {
     <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-form)", margin: "0 auto" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
-        <div style={{ width: 42, height: 42, borderRadius: 12, background: "linear-gradient(135deg, #003366, #0066CC)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ width: 42, height: 42, borderRadius: 12, background: "linear-gradient(135deg, var(--navy), #0066CC)", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <Settings2 size={20} color="#fff" />
         </div>
         <div>
@@ -85,8 +85,8 @@ export default function SistemPage() {
           {/* Deadline check */}
           <div style={card}>
             <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: "#EBF2FF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <Bell size={16} style={{ color: "#003366" }} />
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--navy-light)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <Bell size={16} style={{ color: "var(--navy)" }} />
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>Cek Semua Deadline</div>
@@ -108,14 +108,14 @@ export default function SistemPage() {
                           {c.icon} <span>{c.val} {c.label}</span>
                         </div>
                       ))}
-                      <div style={{ marginLeft: "auto", fontSize: 11, color: "#15803D", fontWeight: 600 }}>
+                      <div style={{ marginLeft: "auto", fontSize: 11, color: "var(--success)", fontWeight: 600 }}>
                         +{d.notifications_created} notif dibuat
                       </div>
                     </div>
                   );
                 }} />}
               </div>
-              <RunButton isRunning={running === "deadlines"} color="#003366" bg="#EBF2FF" onClick={() => runCheck("deadlines", "/api/v1/notifications/check-deadlines")} />
+              <RunButton isRunning={running === "deadlines"} color="var(--navy)" bg="var(--navy-light)" onClick={() => runCheck("deadlines", "/api/v1/notifications/check-deadlines")} />
             </div>
           </div>
 
@@ -136,7 +136,7 @@ export default function SistemPage() {
                   return (
                     <div style={{ display: "flex", gap: 14, marginTop: 6 }}>
                       <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{d.approaching} approaching · {d.overdue} overdue</span>
-                      <span style={{ marginLeft: "auto", fontSize: 11, color: "#15803D", fontWeight: 600 }}>+{d.notifications_created} notif dibuat</span>
+                      <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--success)", fontWeight: 600 }}>+{d.notifications_created} notif dibuat</span>
                     </div>
                   );
                 }} />}
@@ -178,8 +178,8 @@ export default function SistemPage() {
         {section("Otomasi via Cron Job")}
         <div style={card}>
           <div style={{ display: "flex", gap: 12 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "#F0FDF4", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <Clock size={16} style={{ color: "#15803D" }} />
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--success-bg)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Clock size={16} style={{ color: "var(--success)" }} />
             </div>
             <div>
               <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", marginBottom: 6 }}>Jadwalkan Setiap Hari Otomatis</div>
@@ -237,14 +237,14 @@ function ResultBadge({ result, renderDetail }: {
   return (
     <div style={{
       marginTop: 8, padding: "8px 10px", borderRadius: 8,
-      background: result.ok ? "#F0FDF4" : "#FEF2F2",
-      border: `1px solid ${result.ok ? "#BBF7D0" : "#FECACA"}`,
+      background: result.ok ? "var(--success-bg)" : "var(--danger-bg)",
+      border: `1px solid ${result.ok ? "var(--success-border)" : "var(--danger-border)"}`,
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         {result.ok
-          ? <CheckCircle size={12} style={{ color: "#15803D" }} />
-          : <AlertCircle size={12} style={{ color: "#B91C1C" }} />}
-        <span style={{ fontSize: 11, fontWeight: 600, color: result.ok ? "#15803D" : "#B91C1C" }}>
+          ? <CheckCircle size={12} style={{ color: "var(--success)" }} />
+          : <AlertCircle size={12} style={{ color: "var(--danger)" }} />}
+        <span style={{ fontSize: 11, fontWeight: 600, color: result.ok ? "var(--success)" : "var(--danger)" }}>
           {result.ok ? "Berhasil" : "Gagal"}
         </span>
         <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: "auto" }}>{result.ts}</span>

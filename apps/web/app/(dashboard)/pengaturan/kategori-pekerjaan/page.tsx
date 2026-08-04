@@ -12,7 +12,7 @@ const C = {
   red: "var(--danger)", redBg: "var(--danger-bg)", redBorder: "var(--danger-border)",
 };
 const card: React.CSSProperties = {
-  background: "var(--surface)", border: "1px solid #E5E7EB", borderRadius: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+  background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
 };
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8,
@@ -64,7 +64,7 @@ function KategoriContent() {
       </div>
 
       {!canManage && (
-        <div style={{ marginBottom: 20, padding: "10px 14px", borderRadius: 8, background: "var(--warning-bg)", border: "1px solid #FDE68A", fontSize: 12, color: C.mid }}>
+        <div style={{ marginBottom: 20, padding: "10px 14px", borderRadius: 8, background: "var(--warning-bg)", border: "1px solid var(--warning-border)", fontSize: 12, color: C.mid }}>
           Anda dapat melihat daftar, tetapi hanya pengguna dengan izin <strong>Kelola Kategori Pekerjaan</strong> yang bisa mengubahnya.
         </div>
       )}

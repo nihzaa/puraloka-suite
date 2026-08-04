@@ -195,13 +195,13 @@ function EditDateModal({
 
   const inpStyle: React.CSSProperties = {
     width: "100%", padding: "8px 11px", fontSize: 13, borderRadius: 8,
-    border: "1px solid #E5E7EB", outline: "none", boxSizing: "border-box",
+    border: "1px solid var(--border)", outline: "none", boxSizing: "border-box",
     background: "var(--surface)", color: C.text, fontFamily: "inherit",
   };
 
   const smallInp: React.CSSProperties = {
     padding: "4px 8px", fontSize: 12, borderRadius: 6,
-    border: "1px solid #E5E7EB", outline: "none", boxSizing: "border-box",
+    border: "1px solid var(--border)", outline: "none", boxSizing: "border-box",
     background: "var(--surface)", color: C.text, fontFamily: "inherit",
   };
 
@@ -323,7 +323,7 @@ function EditDateModal({
         )}
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-          <button onClick={onClose} style={{ padding: "8px 18px", fontSize: 13, borderRadius: 8, border: "1px solid #E5E7EB", background: "var(--surface)", cursor: "pointer", color: C.mid }}>
+          <button onClick={onClose} style={{ padding: "8px 18px", fontSize: 13, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", color: C.mid }}>
             Batal
           </button>
           <button onClick={handleSave} disabled={loading}
@@ -696,7 +696,7 @@ function TimelineHeader({ minDate, totalDays, viewMode }: { minDate: Date; total
   }
 
   return (
-    <div style={{ display: "flex", borderBottom: "1px solid #E5E7EB", background: "var(--surface-subtle)" }}>
+    <div style={{ display: "flex", borderBottom: "1px solid var(--border)", background: "var(--surface-subtle)" }}>
       {cols.map((col, i) => (
         <div key={i} style={{
           flex: `0 0 ${col.widthPct}%`,
@@ -705,7 +705,7 @@ function TimelineHeader({ minDate, totalDays, viewMode }: { minDate: Date; total
           fontWeight: 600,
           color: C.mid,
           textAlign: "center",
-          borderRight: "1px solid #F3F4F6",
+          borderRight: "1px solid var(--surface-hover)",
           overflow: "hidden",
           textOverflow: "ellipsis",
           whiteSpace: "nowrap",
@@ -846,7 +846,7 @@ export function GanttSection({ projectId, userRole, projectStart, projectEnd }: 
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
             <thead>
-              <tr style={{ background: "var(--surface-subtle)", borderBottom: "1px solid #E5E7EB" }}>
+              <tr style={{ background: "var(--surface-subtle)", borderBottom: "1px solid var(--border)" }}>
                 {["No", "Uraian Pekerjaan", "Bobot %", "Progress %", "Mulai Rencana", "Selesai Rencana", canEdit ? "Edit" : ""].map(h => (
                   <th key={h} style={{ padding: "8px 10px", textAlign: "left", fontSize: 10, fontWeight: 600, textTransform: "uppercase", color: C.muted }}>{h}</th>
                 ))}
@@ -854,7 +854,7 @@ export function GanttSection({ projectId, userRole, projectStart, projectEnd }: 
             </thead>
             <tbody>
               {tasks.slice(0, 30).map(t => (
-                <tr key={t.id} className="gantt-row" style={{ borderBottom: "1px solid #F3F4F6" }}>
+                <tr key={t.id} className="gantt-row" style={{ borderBottom: "1px solid var(--surface-hover)" }}>
                   <td style={{ padding: "7px 10px", color: C.muted, fontWeight: 600, fontSize: 11 }}>{t.no_urut ?? ""}</td>
                   <td style={{ padding: "7px 10px", color: C.text, paddingLeft: t.level === 2 ? 24 : t.level === 3 ? 40 : 10 }}>{t.uraian}</td>
                   <td style={{ padding: "7px 10px", color: C.mid }}>{t.weight_pct > 0 ? `${t.weight_pct.toFixed(2)}%` : "—"}</td>
@@ -919,7 +919,7 @@ export function GanttSection({ projectId, userRole, projectStart, projectEnd }: 
               <AlertTriangle size={11} /> {showWarnings ? "Sembunyikan" : "Tampilkan"} Warning
             </button>
           )}
-          <div style={{ display: "flex", border: "1px solid #E5E7EB", borderRadius: 6, overflow: "hidden" }}>
+          <div style={{ display: "flex", border: "1px solid var(--border)", borderRadius: 6, overflow: "hidden" }}>
             {(["month", "week"] as const).map(mode => (
               <button key={mode} onClick={() => setViewMode(mode)}
                 style={{ padding: "5px 12px", fontSize: 11, fontWeight: 600, border: "none", cursor: "pointer", background: viewMode === mode ? C.navy : "var(--surface)", color: viewMode === mode ? "var(--surface)" : C.mid }}>
@@ -955,13 +955,13 @@ export function GanttSection({ projectId, userRole, projectStart, projectEnd }: 
       )}
 
       {/* Gantt body */}
-      <div style={{ border: "1px solid #E5E7EB", borderRadius: 10, overflow: "hidden" }}>
+      <div style={{ border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
         <div style={{ display: "flex" }}>
 
           {/* Left panel: WBS tree */}
-          <div style={{ width: 280, flexShrink: 0, borderRight: "1px solid #E5E7EB", background: "#FAFAFA" }}>
+          <div style={{ width: 280, flexShrink: 0, borderRight: "1px solid var(--border)", background: "#FAFAFA" }}>
             {/* Header */}
-            <div style={{ padding: "8px 12px", borderBottom: "1px solid #E5E7EB", background: "var(--surface-subtle)", height: 33, display: "flex", alignItems: "center" }}>
+            <div style={{ padding: "8px 12px", borderBottom: "1px solid var(--border)", background: "var(--surface-subtle)", height: 33, display: "flex", alignItems: "center" }}>
               <span style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase" }}>Uraian Pekerjaan</span>
             </div>
             {/* Rows */}
@@ -977,7 +977,7 @@ export function GanttSection({ projectId, userRole, projectStart, projectEnd }: 
                     display: "flex",
                     alignItems: "center",
                     padding: "0 8px 0 " + (task.level === 1 ? "8px" : task.level === 2 ? "20px" : "32px"),
-                    borderBottom: "1px solid #F3F4F6",
+                    borderBottom: "1px solid var(--surface-hover)",
                     gap: 4,
                     background: task.level === 1 ? "var(--surface-hover)" : "#FAFAFA",
                   }}
@@ -1050,7 +1050,7 @@ export function GanttSection({ projectId, userRole, projectStart, projectEnd }: 
                     className="gantt-row"
                     style={{
                       height: ROW_HEIGHT,
-                      borderBottom: "1px solid #F3F4F6",
+                      borderBottom: "1px solid var(--surface-hover)",
                       position: "relative",
                       background: task.level === 1 ? "var(--surface-subtle)" : "var(--surface)",
                     }}
@@ -1074,7 +1074,7 @@ export function GanttSection({ projectId, userRole, projectStart, projectEnd }: 
         </div>
 
         {/* Legend */}
-        <div style={{ padding: "8px 16px", borderTop: "1px solid #E5E7EB", background: "var(--surface-subtle)", display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ padding: "8px 16px", borderTop: "1px solid var(--border)", background: "var(--surface-subtle)", display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
           <span style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase" }}>Legenda:</span>
           <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: C.mid }}>
             <div style={{ width: 24, height: 8, border: `2px dashed ${C.navy}`, borderRadius: 2, background: "var(--navy-light)" }} />

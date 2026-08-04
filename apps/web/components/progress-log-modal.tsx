@@ -60,7 +60,7 @@ const fieldInput: React.CSSProperties = {
   padding: "9px 12px",
   borderRadius: 10,
   border: "1px solid #e2e8f0",
-  background: "#ffffff",
+  background: "var(--surface)",
   fontSize: 13,
   color: "#0f172a",
   outline: "none",
@@ -289,7 +289,7 @@ export function ProgressLogModal({
 
   const selectedRabItem = rabItems.find(it => it.id === selectedRabId);
   const pctNum = pctOverall !== "" ? Math.min(Math.max(parseFloat(pctOverall) || 0, 0), 100) : null;
-  const pctColor = pctNum === null ? "var(--navy)" : pctNum <= 30 ? "#ef4444" : pctNum <= 70 ? "#f59e0b" : "#10b981";
+  const pctColor = pctNum === null ? "var(--navy)" : pctNum <= 30 ? "#ef4444" : pctNum <= 70 ? "var(--warning)" : "#10b981";
   const canSubmit = mode === "daily"
     ? description.trim().length > 0 && !submitting
     : selectedRabId !== "" && pctCompletion !== "" && !submitting;
@@ -302,13 +302,13 @@ export function ProgressLogModal({
       >
         <div style={{ position: "absolute", inset: 0, background: "rgba(15,23,42,0.55)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }} onClick={handleClose} />
 
-        <div style={{ position: "relative", width: "100%", maxWidth: "580px", maxHeight: "92vh", backgroundColor: "#ffffff", borderRadius: "20px", boxShadow: "0 24px 64px -12px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.06)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-          <div style={{ height: 4, background: "linear-gradient(90deg, #003366, #0066CC)", flexShrink: 0 }} />
+        <div style={{ position: "relative", width: "100%", maxWidth: "580px", maxHeight: "92vh", backgroundColor: "var(--surface)", borderRadius: "20px", boxShadow: "0 24px 64px -12px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.06)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div style={{ height: 4, background: "linear-gradient(90deg, var(--navy), #0066CC)", flexShrink: 0 }} />
 
           {/* Header */}
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", padding: "20px 24px 16px", borderBottom: "1px solid #f1f5f9", flexShrink: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, background: "linear-gradient(135deg, #003366, #0055aa)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, background: "linear-gradient(135deg, var(--navy), #0055aa)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <ClipboardEdit size={18} color="white" />
               </div>
               <div>
@@ -355,7 +355,7 @@ export function ProgressLogModal({
 
               {/* Success result for detail mode */}
               {submitResult && (
-                <div style={{ padding: "12px 16px", borderRadius: 10, background: "#f0fdf4", border: "1px solid #bbf7d0", color: "var(--success)", fontSize: 13, fontWeight: 500, display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ padding: "12px 16px", borderRadius: 10, background: "var(--success-bg)", border: "1px solid var(--success-border)", color: "var(--success)", fontSize: 13, fontWeight: 500, display: "flex", alignItems: "center", gap: 8 }}>
                   <Check size={16} />
                   Log tersimpan!{submitResult.newOverall !== null ? ` Progress proyek diperbarui ke ${submitResult.newOverall.toFixed(1)}%` : ""}
                 </div>
@@ -363,7 +363,7 @@ export function ProgressLogModal({
 
               {/* Error */}
               {formError && (
-                <div style={{ padding: "10px 14px", borderRadius: 10, background: "#fef2f2", border: "1px solid #fecaca", color: "#b91c1c", fontSize: 13 }}>
+                <div style={{ padding: "10px 14px", borderRadius: 10, background: "var(--danger-bg)", border: "1px solid var(--danger-border)", color: "var(--danger)", fontSize: 13 }}>
                   {formError}
                 </div>
               )}
@@ -457,7 +457,7 @@ export function ProgressLogModal({
               {/* Mode detail: item RAB picker + % completion */}
               {mode === "detail" && (
                 <>
-                  <div style={{ padding: "12px 14px", borderRadius: 10, background: "#eff6ff", border: "1px solid #bfdbfe", fontSize: 12, color: "#1d4ed8" }}>
+                  <div style={{ padding: "12px 14px", borderRadius: 10, background: "var(--info-bg)", border: "1px solid var(--info-border)", fontSize: 12, color: "var(--info)" }}>
                     Mode ini mengubah progress item pekerjaan RAB secara langsung dan memperbarui progress keseluruhan proyek secara otomatis.
                   </div>
 
@@ -481,7 +481,7 @@ export function ProgressLogModal({
                     {loadingRab ? (
                       <div id="rab-item-memuat" style={{ padding: "10px 12px", fontSize: 13, color: "#94a3b8", border: "1px solid #e2e8f0", borderRadius: 10 }}>Memuat item RAB...</div>
                     ) : rabItems.length === 0 ? (
-                      <div id="rab-item-kosong" style={{ padding: "10px 12px", fontSize: 13, color: "#b91c1c", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10 }}>
+                      <div id="rab-item-kosong" style={{ padding: "10px 12px", fontSize: 13, color: "var(--danger)", background: "var(--danger-bg)", border: "1px solid var(--danger-border)", borderRadius: 10 }}>
                         Proyek ini belum memiliki RAB. Upload RAB Excel terlebih dahulu.
                       </div>
                     ) : (
@@ -510,8 +510,8 @@ export function ProgressLogModal({
                         <span style={{ fontWeight: 600, color: "var(--navy)" }}>{selectedRabItem.weight_pct.toFixed(3)}% dari total proyek</span>
                       </div>
                       {pctCompletion && !isNaN(parseFloat(pctCompletion)) && (
-                        <div style={{ marginTop: 6, padding: "8px 10px", borderRadius: 8, background: "#eff6ff", border: "1px solid #bfdbfe" }}>
-                          <span style={{ fontSize: 11, color: "#1d4ed8", fontWeight: 600 }}>
+                        <div style={{ marginTop: 6, padding: "8px 10px", borderRadius: 8, background: "var(--info-bg)", border: "1px solid var(--info-border)" }}>
+                          <span style={{ fontSize: 11, color: "var(--info)", fontWeight: 600 }}>
                             Mengatur item ini ke {parseFloat(pctCompletion).toFixed(0)}% akan mempengaruhi progress proyek sekitar ±{(Math.abs(parseFloat(pctCompletion) - selectedRabItem.progress_pct) * selectedRabItem.weight_pct / 100).toFixed(2)}%
                           </span>
                         </div>
@@ -530,7 +530,7 @@ export function ProgressLogModal({
                     </div>
                     {pctCompletion && !isNaN(parseFloat(pctCompletion)) && (
                       <div style={{ marginTop: 6, height: 6, background: "#f1f5f9", borderRadius: 99, overflow: "hidden" }}>
-                        <div style={{ height: "100%", borderRadius: 99, width: `${Math.min(100, Math.max(0, parseFloat(pctCompletion)))}%`, background: parseFloat(pctCompletion) >= 100 ? "#10b981" : parseFloat(pctCompletion) >= 60 ? "var(--navy)" : parseFloat(pctCompletion) >= 30 ? "#f59e0b" : "#ef4444", transition: "width 0.3s ease" }} />
+                        <div style={{ height: "100%", borderRadius: 99, width: `${Math.min(100, Math.max(0, parseFloat(pctCompletion)))}%`, background: parseFloat(pctCompletion) >= 100 ? "#10b981" : parseFloat(pctCompletion) >= 60 ? "var(--navy)" : parseFloat(pctCompletion) >= 30 ? "var(--warning)" : "#ef4444", transition: "width 0.3s ease" }} />
                       </div>
                     )}
                   </div>
@@ -569,7 +569,7 @@ export function ProgressLogModal({
                     onDragLeave={() => setDragOver(false)}
                     onDrop={e => { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files); }}
                     onClick={() => fileInputRef.current?.click()}
-                    style={{ border: `2px dashed ${dragOver ? "var(--navy)" : "#cbd5e1"}`, borderRadius: 14, padding: "20px 16px", textAlign: "center", cursor: "pointer", transition: "all 0.15s", background: dragOver ? "#eff6ff" : "#fafafa", marginBottom: photos.length > 0 ? 10 : 0 }}
+                    style={{ border: `2px dashed ${dragOver ? "var(--navy)" : "#cbd5e1"}`, borderRadius: 14, padding: "20px 16px", textAlign: "center", cursor: "pointer", transition: "all 0.15s", background: dragOver ? "var(--info-bg)" : "#fafafa", marginBottom: photos.length > 0 ? 10 : 0 }}
                   >
                     <ImagePlus size={24} style={{ color: dragOver ? "var(--navy)" : "#94a3b8", margin: "0 auto 6px" }} />
                     <p style={{ fontSize: 13, fontWeight: 600, color: dragOver ? "var(--navy)" : "#475569", margin: "0 0 3px" }}>Tambah Foto</p>
@@ -580,7 +580,7 @@ export function ProgressLogModal({
                 {photos.length > 0 && (
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
                     {photos.map(entry => (
-                      <div key={entry.id} style={{ borderRadius: 10, overflow: "hidden", border: "1px solid #e2e8f0", background: "#ffffff" }}>
+                      <div key={entry.id} style={{ borderRadius: 10, overflow: "hidden", border: "1px solid #e2e8f0", background: "var(--surface)" }}>
                         <div style={{ position: "relative", aspectRatio: "1", background: "#f1f5f9" }}>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={entry.previewUrl} alt="preview" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />

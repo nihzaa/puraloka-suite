@@ -28,23 +28,23 @@ const TYPE_CONFIG: Record<string, {
   color: string;
   bg: string;
 }> = {
-  project:   { icon: <FolderKanban size={13} />, label: "Proyek",   color: "#003366", bg: "#EBF2FF" },
+  project:   { icon: <FolderKanban size={13} />, label: "Proyek",   color: "var(--navy)", bg: "var(--navy-light)" },
   client:    { icon: <Contact size={13} />,      label: "Klien",    color: "#0F766E", bg: "#F0FDFA" },
-  invoice:   { icon: <Receipt size={13} />,      label: "Invoice",  color: "#15803D", bg: "#F0FDF4" },
+  invoice:   { icon: <Receipt size={13} />,      label: "Invoice",  color: "var(--success)", bg: "var(--success-bg)" },
   kasbon:    { icon: <Wallet size={13} />,        label: "Kasbon",   color: "#C2410C", bg: "#FFF7ED" },
   milestone: { icon: <Target size={13} />,        label: "Milestone",color: "#7C3AED", bg: "#F5F3FF" },
-  user:      { icon: <Users size={13} />,         label: "User",     color: "#374151", bg: "#F3F4F6" },
+  user:      { icon: <Users size={13} />,         label: "User",     color: "#374151", bg: "var(--surface-hover)" },
 };
 
 const STATUS_COLOR: Record<string, string> = {
-  active: "#15803D", aktif: "#15803D",
-  completed: "#15803D", selesai: "#15803D",
+  active: "var(--success)", aktif: "var(--success)",
+  completed: "var(--success)", selesai: "var(--success)",
   pending: "#D97706",
-  approved: "#1D4ED8",
-  rejected: "#B91C1C", ditolak: "#B91C1C",
+  approved: "var(--info)",
+  rejected: "var(--danger)", ditolak: "var(--danger)",
   on_hold: "#D97706",
   cancelled: "#9CA3AF",
-  paid: "#15803D",
+  paid: "var(--success)",
   submitted: "#D97706",
 };
 
@@ -247,7 +247,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
             }
             let globalIdx = 0;
             return Object.entries(grouped).map(([type, items]) => {
-              const cfg = TYPE_CONFIG[type] ?? { icon: <Search size={13} />, label: type, color: "#374151", bg: "#F3F4F6" };
+              const cfg = TYPE_CONFIG[type] ?? { icon: <Search size={13} />, label: type, color: "#374151", bg: "var(--surface-hover)" };
               return (
                 <div key={type}>
                   <div style={{ padding: "6px 16px 2px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", display: "flex", alignItems: "center", gap: 6 }}>

@@ -326,7 +326,7 @@ function DetailPanel({ clientId, onClose, onEdit, onCreateProject }: {
                   <a
                     href={waLink(detail.phone)}
                     target="_blank" rel="noopener noreferrer"
-                    style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 6, background: "#DCFCE7", color: "#15803D", fontSize: 11, fontWeight: 600, textDecoration: "none", flexShrink: 0 }}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 6, background: "#DCFCE7", color: "var(--success)", fontSize: 11, fontWeight: 600, textDecoration: "none", flexShrink: 0 }}
                   >
                     <MessageCircle size={11} /> WhatsApp
                   </a>
@@ -660,7 +660,7 @@ export default function KlienPage() {
                         target="_blank" rel="noopener noreferrer"
                         onClick={e => e.stopPropagation()}
                         title="Hubungi via WhatsApp"
-                        style={{ color: "#15803D", lineHeight: 0 }}
+                        style={{ color: "var(--success)", lineHeight: 0 }}
                       >
                         <MessageCircle size={13} />
                       </a>

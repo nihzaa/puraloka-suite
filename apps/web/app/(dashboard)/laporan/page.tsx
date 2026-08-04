@@ -157,7 +157,7 @@ const PURPOSE_LABEL: Record<string, string> = {
   gaji_tukang: "Gaji Tukang", uang_makan: "Uang Makan",
   pembelian_alat: "Pembelian Alat", operasional: "Operasional", lain_lain: "Lain-lain",
 };
-const PIE_COLORS = ["var(--navy)", "#0066CC", "#22C55E", "#F87171", "#FBBF24", "#60A5FA", "#A78BFA", "#F472B6"];
+const PIE_COLORS = ["var(--navy)", "#0066CC", "var(--success)", "var(--danger)", "#FBBF24", "var(--info)", "#A78BFA", "#F472B6"];
 
 function Skeleton({ h = 20, w = "100%" }: { h?: number; w?: string | number }) {
   return <div style={{ height: h, width: w, borderRadius: 8, background: "var(--surface-hover)" }} />;
@@ -873,7 +873,7 @@ function TabRingkasan({ data, canViewFinance }: { data: ProjectSummaryData; canV
             {data.invoices.map(inv => {
               const isPaid = inv.status === "paid";
               return (
-                <tr key={inv.id} style={{ borderBottom: "1px solid #F3F4F6" }}>
+                <tr key={inv.id} style={{ borderBottom: "1px solid var(--surface-hover)" }}>
                   <td style={{ padding: "9px 12px", fontWeight: 600, color: C.navy, fontSize: 12 }}>{inv.invoice_number}</td>
                   <td style={{ padding: "9px 12px", fontSize: 11, color: C.mid }}>{inv.invoice_type === "termin_billing" ? "Termin" : inv.invoice_type}</td>
                   <td style={{ padding: "9px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12 }}>{fmtCompact(Number(inv.total_amount))}</td>
@@ -947,7 +947,7 @@ function TabKeuangan({ data }: { data: FinancialData }) {
             {byProject.map(p => {
               const pct = p.invoiced > 0 ? (p.paid / p.invoiced) * 100 : 0;
               return (
-                <tr key={p.id} style={{ borderBottom: "1px solid #F3F4F6" }}>
+                <tr key={p.id} style={{ borderBottom: "1px solid var(--surface-hover)" }}>
                   <td style={{ padding: "9px 12px", fontWeight: 600, color: C.text, fontSize: 12 }}>{p.name}</td>
                   <td style={{ padding: "9px 12px", fontSize: 11, color: C.mid, textAlign: "center" }}>{p.count}</td>
                   <td style={{ padding: "9px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12 }}>{fmtCompact(p.invoiced)}</td>
@@ -973,7 +973,7 @@ function TabKeuangan({ data }: { data: FinancialData }) {
           {invoices.map(inv => {
             const overdue = inv.status !== "paid" && inv.status !== "cancelled" && new Date(inv.due_date) < new Date();
             return (
-              <tr key={inv.id} style={{ borderBottom: "1px solid #F3F4F6", background: overdue ? "#FEF9F9" : "transparent" }}>
+              <tr key={inv.id} style={{ borderBottom: "1px solid var(--surface-hover)", background: overdue ? "#FEF9F9" : "transparent" }}>
                 <td style={{ padding: "9px 12px", fontWeight: 600, color: C.navy, fontSize: 12 }}>{inv.invoice_number}</td>
                 <td style={{ padding: "9px 12px", fontSize: 11, color: C.mid }}>{(inv as unknown as { projects?: { name: string } }).projects?.name ?? "—"}</td>
                 <td style={{ padding: "9px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12 }}>{fmtCompact(Number(inv.total_amount))}</td>
@@ -1025,8 +1025,8 @@ function TabCashflow({ data }: { data: CashflowData }) {
                 <YAxis tickFormatter={v => fmtCompact(v)} tick={{ fontSize: 10, fill: C.muted }} tickLine={false} axisLine={false} width={72} />
                 <Tooltip content={<ChartTooltip />} />
                 <Legend iconSize={8} wrapperStyle={{ fontSize: 11 }} />
-                <Bar dataKey="masuk" name="Masuk" fill="#22C55E" fillOpacity={0.85} radius={[4,4,0,0]} />
-                <Bar dataKey="keluar" name="Keluar" fill="#F87171" fillOpacity={0.85} radius={[4,4,0,0]} />
+                <Bar dataKey="masuk" name="Masuk" fill="var(--success)" fillOpacity={0.85} radius={[4,4,0,0]} />
+                <Bar dataKey="keluar" name="Keluar" fill="var(--danger)" fillOpacity={0.85} radius={[4,4,0,0]} />
                 <Line dataKey="net" name="Net" stroke={C.navy} strokeWidth={2} dot={{ r: 3, fill: C.navy }} />
               </ComposedChart>
             </ResponsiveContainer>
@@ -1036,7 +1036,7 @@ function TabCashflow({ data }: { data: CashflowData }) {
           <div style={{ marginTop: 12 }}>
             <DataTable headers={[{ label: "Periode" }, { label: "Masuk", align: "right" }, { label: "Keluar", align: "right" }, { label: "Net", align: "right" }]}>
               {byMonth.map((row, i) => (
-                <tr key={i} style={{ borderBottom: "1px solid #F3F4F6" }}>
+                <tr key={i} style={{ borderBottom: "1px solid var(--surface-hover)" }}>
                   <td style={{ padding: "9px 12px", fontWeight: 600, color: C.text, fontSize: 12 }}>{row.label}</td>
                   <td style={{ padding: "9px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, color: C.green }}>{fmtCompact(row.masuk)}</td>
                   <td style={{ padding: "9px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, color: C.red }}>{fmtCompact(row.keluar)}</td>
@@ -1123,7 +1123,7 @@ function TabMandor({ data }: { data: MandorReportData }) {
                         <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, marginBottom: 8, textTransform: "uppercase" }}>Laporan Upah ({mr.wages.length})</div>
                         <DataTable headers={[{ label: "Minggu" }, { label: "Jumlah", align: "right" }, { label: "Dibayar" }]}>
                           {mr.wages.map(w => (
-                            <tr key={w.id} style={{ borderBottom: "1px solid #F3F4F6" }}>
+                            <tr key={w.id} style={{ borderBottom: "1px solid var(--surface-hover)" }}>
                               <td style={{ padding: "7px 12px", fontSize: 11 }}>{fmtDate(w.week_start)} – {fmtDate(w.week_end)}</td>
                               <td style={{ padding: "7px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: C.blue }}>{fmtCompact(Number(w.net_amount))}</td>
                               <td style={{ padding: "7px 12px", fontSize: 11, color: C.muted }}>{fmtDate(w.paid_at)}</td>
@@ -1139,7 +1139,7 @@ function TabMandor({ data }: { data: MandorReportData }) {
                         <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, marginBottom: 8, textTransform: "uppercase" }}>Kasbon ({mr.kasbons.length})</div>
                         <DataTable headers={[{ label: "Keperluan" }, { label: "Jumlah", align: "right" }, { label: "Disetujui" }]}>
                           {mr.kasbons.map(k => (
-                            <tr key={k.id} style={{ borderBottom: "1px solid #F3F4F6" }}>
+                            <tr key={k.id} style={{ borderBottom: "1px solid var(--surface-hover)" }}>
                               <td style={{ padding: "7px 12px", fontSize: 11 }}>{PURPOSE_LABEL[k.purpose] ?? k.purpose}</td>
                               <td style={{ padding: "7px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: C.yellow }}>{fmtCompact(Number(k.amount))}</td>
                               <td style={{ padding: "7px 12px", fontSize: 11, color: C.muted }}>{fmtDate(k.approved_at)}</td>
@@ -1257,7 +1257,7 @@ function TabPengeluaran({ data }: { data: ExpensesData }) {
             {byProject.map(p => {
               const pct = summary.total > 0 ? (p.total / summary.total) * 100 : 0;
               return (
-                <tr key={p.id} style={{ borderBottom: "1px solid #F3F4F6" }}>
+                <tr key={p.id} style={{ borderBottom: "1px solid var(--surface-hover)" }}>
                   <td style={{ padding: "9px 12px", fontWeight: 600, fontSize: 12 }}>{p.name}</td>
                   <td style={{ padding: "9px 12px", textAlign: "center", color: C.muted, fontSize: 11 }}>{p.count}</td>
                   <td style={{ padding: "9px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, color: C.red }}>{fmtCompact(p.total)}</td>
@@ -1279,7 +1279,7 @@ function TabPengeluaran({ data }: { data: ExpensesData }) {
         <SectionTitle icon={<FileText size={15} color={C.navy} />} title={`Detail Pengeluaran (${expenses.length})`} />
         <DataTable empty={expenses.length === 0} headers={[{ label: "Tanggal" }, { label: "Deskripsi" }, { label: "Kategori" }, { label: "Vendor" }, { label: "Jumlah", align: "right" }]}>
           {expenses.map(e => (
-            <tr key={e.id} style={{ borderBottom: "1px solid #F3F4F6" }}>
+            <tr key={e.id} style={{ borderBottom: "1px solid var(--surface-hover)" }}>
               <td style={{ padding: "9px 12px", fontSize: 11, color: C.muted, whiteSpace: "nowrap" }}>{fmtDate(e.expense_date)}</td>
               <td style={{ padding: "9px 12px", fontSize: 12, fontWeight: 500, color: C.text, maxWidth: 200 }}>{e.description}</td>
               <td style={{ padding: "9px 12px", fontSize: 11, color: C.mid }}>

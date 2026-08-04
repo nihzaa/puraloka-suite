@@ -37,10 +37,10 @@ interface Project {
 
 const TYPE_STYLE: Record<string, { color: string; bg: string; icon: React.ReactNode }> = {
   milestone:     { color: "#7C3AED", bg: "#F5F3FF", icon: <Target size={10} /> },
-  termin:        { color: "#15803D", bg: "#F0FDF4", icon: <FileText size={10} /> },
-  progress:      { color: "#0066CC", bg: "#EFF6FF", icon: <TrendingUp size={10} /> },
-  project_end:   { color: "#B91C1C", bg: "#FEF2F2", icon: <Clock size={10} /> },
-  project_start: { color: "#B45309", bg: "#FFFBEB", icon: <Calendar size={10} /> },
+  termin:        { color: "var(--success)", bg: "var(--success-bg)", icon: <FileText size={10} /> },
+  progress:      { color: "#0066CC", bg: "var(--info-bg)", icon: <TrendingUp size={10} /> },
+  project_end:   { color: "var(--danger)", bg: "var(--danger-bg)", icon: <Clock size={10} /> },
+  project_start: { color: "var(--warning)", bg: "var(--warning-bg)", icon: <Calendar size={10} /> },
 };
 
 const STATUS_FADED: Record<string, boolean> = {
@@ -176,7 +176,7 @@ export default function KalenderPage() {
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 42, height: 42, borderRadius: 12, background: "linear-gradient(135deg, #003366, #0066CC)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ width: 42, height: 42, borderRadius: 12, background: "linear-gradient(135deg, var(--navy), #0066CC)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Calendar size={20} color="#fff" />
           </div>
           <div>
@@ -281,7 +281,7 @@ export default function KalenderPage() {
                     borderRight: "1px solid var(--border)",
                     borderBottom: "1px solid var(--border)",
                     cursor: "pointer",
-                    background: isSelected ? "var(--navy-light)" : isToday ? "#FFFBEB" : isWeekend ? "var(--surface-subtle)" : "var(--surface)",
+                    background: isSelected ? "var(--navy-light)" : isToday ? "var(--warning-bg)" : isWeekend ? "var(--surface-subtle)" : "var(--surface)",
                     transition: "background 0.1s",
                     position: "relative",
                   }}
@@ -292,7 +292,7 @@ export default function KalenderPage() {
                   <div style={{
                     width: 24, height: 24, borderRadius: "50%", marginBottom: 4,
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    background: isToday ? "#003366" : isSelected ? "#003366" : "transparent",
+                    background: isToday ? "var(--navy)" : isSelected ? "var(--navy)" : "transparent",
                     color: isToday || isSelected ? "#fff" : isWeekend ? "var(--text-muted)" : "var(--text-primary)",
                     fontSize: 12, fontWeight: isToday || isSelected ? 700 : 400,
                   }}>
@@ -429,7 +429,7 @@ export default function KalenderPage() {
                         <div style={{ fontSize: 11, fontWeight: 500, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.title}</div>
                         <div style={{ fontSize: 10, color: "var(--text-muted)" }}>{ev.sub}</div>
                       </div>
-                      <span style={{ fontSize: 10, color: daysLeft <= 3 ? "#B91C1C" : daysLeft <= 7 ? "#B45309" : "var(--text-muted)", fontWeight: daysLeft <= 7 ? 700 : 400, flexShrink: 0 }}>
+                      <span style={{ fontSize: 10, color: daysLeft <= 3 ? "var(--danger)" : daysLeft <= 7 ? "var(--warning)" : "var(--text-muted)", fontWeight: daysLeft <= 7 ? 700 : 400, flexShrink: 0 }}>
                         {daysLeft === 0 ? "Hari ini" : daysLeft === 1 ? "Besok" : `${daysLeft}h`}
                       </span>
                     </div>

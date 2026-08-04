@@ -54,7 +54,7 @@ const DOC_TYPE_LABELS: Record<string, string> = {
 
 // doc_type → badge color
 const DOC_TYPE_COLORS: Record<string, { bg: string; color: string }> = {
-  kontrak:      { bg: "#FEF3C7", color: "#B45309" },
+  kontrak:      { bg: "#FEF3C7", color: "var(--warning)" },
   gambar_kerja: { bg: "#DBEAFE", color: "#1E40AF" },
   foto_progress:{ bg: "#D1FAE5", color: "#065F46" },
   invoice:      { bg: "#EDE9FE", color: "#5B21B6" },
@@ -196,7 +196,7 @@ export function DocumentSection({ projectId, userRole }: Props) {
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{
             width: 36, height: 36, borderRadius: 10,
-            background: "linear-gradient(135deg, #003366, #0066CC)",
+            background: "linear-gradient(135deg, var(--navy), #0066CC)",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
             <FileText size={18} color="var(--surface)" />
@@ -265,7 +265,7 @@ export function DocumentSection({ projectId, userRole }: Props) {
       ) : docs.length === 0 ? (
         <div style={{
           padding: "32px 24px", textAlign: "center",
-          border: "2px dashed #E5E7EB", borderRadius: 12, background: "#FAFAFA",
+          border: "2px dashed var(--border)", borderRadius: 12, background: "#FAFAFA",
           cursor: canEdit ? "pointer" : "default",
         }}
           role={canEdit ? "button" : undefined}
@@ -296,12 +296,12 @@ export function DocumentSection({ projectId, userRole }: Props) {
               <div key={doc.id} style={{
                 display: "flex", alignItems: "center", gap: 12,
                 padding: "12px 16px", borderRadius: 10,
-                border: "1px solid #E5E7EB", background: "#FAFAFA",
+                border: "1px solid var(--border)", background: "#FAFAFA",
               }}>
                 {/* Icon */}
                 <div style={{
                   width: 36, height: 36, borderRadius: 8, flexShrink: 0,
-                  background: typeColor.bg, border: "1px solid #E5E7EB",
+                  background: typeColor.bg, border: "1px solid var(--border)",
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
                   <File size={16} color={typeColor.color} />
@@ -387,7 +387,7 @@ export function DocumentSection({ projectId, userRole }: Props) {
                       display: "flex", alignItems: "center",
                       padding: "6px 8px", borderRadius: 6,
                       background: "transparent", color: C.mid,
-                      border: "1px solid #E5E7EB", textDecoration: "none",
+                      border: "1px solid var(--border)", textDecoration: "none",
                     }}
                     title="Download"
                   >
@@ -403,7 +403,7 @@ export function DocumentSection({ projectId, userRole }: Props) {
                         display: "flex", alignItems: "center",
                         padding: "6px 8px", borderRadius: 6, fontSize: 11,
                         background: "transparent", color: C.muted,
-                        border: "1px solid #E5E7EB", cursor: "pointer",
+                        border: "1px solid var(--border)", cursor: "pointer",
                       }}
                       onMouseEnter={e => { e.currentTarget.style.background = C.redBg; e.currentTarget.style.color = C.red; e.currentTarget.style.borderColor = C.redBorder; }}
                       onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.muted; e.currentTarget.style.borderColor = "var(--border)"; }}
@@ -466,7 +466,7 @@ function UploadModalContent({
   const canSubmit = !!uploadFile && uploadTitle.trim().length > 0 && !uploading;
 
   const inpStyle: React.CSSProperties = {
-    width: "100%", padding: "9px 12px", border: "1px solid #E5E7EB",
+    width: "100%", padding: "9px 12px", border: "1px solid var(--border)",
     borderRadius: 8, fontSize: 13, color: "var(--text-primary)", outline: "none",
     boxSizing: "border-box",
   };
@@ -486,9 +486,9 @@ function UploadModalContent({
         display: "flex", flexDirection: "column", maxHeight: "90vh",
       }}>
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: "1px solid #E5E7EB" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: "1px solid var(--border)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: "linear-gradient(135deg, #003366, #0066CC)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: "linear-gradient(135deg, var(--navy), #0066CC)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Upload size={17} color="var(--surface)" />
             </div>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Upload Dokumen</h3>
@@ -562,7 +562,7 @@ function UploadModalContent({
               // (atau pembaca layar) tak bisa mengunggah sama sekali — bukan
               // sekadar tak nyaman, melainkan fitur yang tertutup total.
               <button type="button" onClick={() => fileRef.current?.click()}
-                style={{ width: "100%", font: "inherit", padding: "24px 16px", border: "2px dashed #E5E7EB", borderRadius: 10, textAlign: "center", cursor: "pointer", background: "#FAFAFA" }}
+                style={{ width: "100%", font: "inherit", padding: "24px 16px", border: "2px dashed var(--border)", borderRadius: 10, textAlign: "center", cursor: "pointer", background: "#FAFAFA" }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = C.navy; e.currentTarget.style.background = C.navyLight; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "#FAFAFA"; }}
               >
@@ -581,9 +581,9 @@ function UploadModalContent({
         </div>
 
         {/* Footer */}
-        <div style={{ display: "flex", gap: 10, padding: "16px 24px", borderTop: "1px solid #F3F4F6" }}>
+        <div style={{ display: "flex", gap: 10, padding: "16px 24px", borderTop: "1px solid var(--surface-hover)" }}>
           <button onClick={onClose} disabled={uploading}
-            style={{ flex: 1, padding: "10px", borderRadius: 8, border: "1px solid #E5E7EB", background: "var(--surface)", fontSize: 13, color: "var(--text-secondary)", cursor: "pointer", fontWeight: 500 }}>
+            style={{ flex: 1, padding: "10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 13, color: "var(--text-secondary)", cursor: "pointer", fontWeight: 500 }}>
             Batal
           </button>
           <button onClick={onSubmit} disabled={!canSubmit}

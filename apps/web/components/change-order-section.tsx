@@ -166,12 +166,12 @@ function ItemForm({
 
   const inpStyle: React.CSSProperties = {
     width: "100%", padding: "7px 10px", fontSize: 13, borderRadius: 7,
-    border: "1px solid #E5E7EB", outline: "none", boxSizing: "border-box",
+    border: "1px solid var(--border)", outline: "none", boxSizing: "border-box",
     background: "var(--surface)", color: C.text, fontFamily: "inherit",
   };
 
   return (
-    <div style={{ border: "1px solid #E5E7EB", borderRadius: 10, padding: "16px", background: "#FAFAFA", display: "flex", flexDirection: "column", gap: 12 }}>
+    <div style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "16px", background: "#FAFAFA", display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
           <label htmlFor="value" style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Tipe</label>
@@ -224,7 +224,7 @@ function ItemForm({
 
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
         <button onClick={onCancel} disabled={loading}
-          style={{ padding: "7px 16px", fontSize: 13, fontWeight: 500, borderRadius: 7, border: "1px solid #E5E7EB", background: "var(--surface)", cursor: "pointer", color: C.mid }}>
+          style={{ padding: "7px 16px", fontSize: 13, fontWeight: 500, borderRadius: 7, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", color: C.mid }}>
           Batal
         </button>
         <button onClick={onSubmit} disabled={loading}
@@ -372,7 +372,7 @@ function ChangeOrderCard({
   }
 
   return (
-    <div style={{ border: "1px solid #E5E7EB", borderRadius: 12, overflow: "hidden", background: "var(--surface)" }}>
+    <div style={{ border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", background: "var(--surface)" }}>
       {/* Header */}
       <div
         role="button"
@@ -415,7 +415,7 @@ function ChangeOrderCard({
 
       {/* Expanded body */}
       {expanded && (
-        <div style={{ borderTop: "1px solid #F3F4F6", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{ borderTop: "1px solid var(--surface-hover)", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 14 }}>
 
           {/* Meta row */}
           <div style={{ display: "flex", gap: 20, flexWrap: "wrap", fontSize: 12, color: C.mid }}>
@@ -462,7 +462,7 @@ function ChangeOrderCard({
               <thead>
                 <tr style={{ background: "var(--surface-subtle)" }}>
                   {["Tipe", "Deskripsi", "Satuan", "Vol Δ", "Harga Sat.", "Delta Biaya", ...(isDraft ? [""] : [])].map(h => (
-                    <th key={h} style={{ padding: "8px 10px", textAlign: h === "Delta Biaya" ? "right" : "left", fontSize: 10, fontWeight: 600, textTransform: "uppercase", color: C.muted, borderBottom: "1px solid #E5E7EB" }}>
+                    <th key={h} style={{ padding: "8px 10px", textAlign: h === "Delta Biaya" ? "right" : "left", fontSize: 10, fontWeight: 600, textTransform: "uppercase", color: C.muted, borderBottom: "1px solid var(--border)" }}>
                       {h}
                     </th>
                   ))}
@@ -484,7 +484,7 @@ function ChangeOrderCard({
                       </td>
                     </tr>
                   ) : (
-                    <tr key={item.id} style={{ borderBottom: "1px solid #F3F4F6" }}>
+                    <tr key={item.id} style={{ borderBottom: "1px solid var(--surface-hover)" }}>
                       <td style={{ padding: "10px 10px" }}>
                         <ItemTypeBadge type={item.item_type} />
                       </td>
@@ -567,7 +567,7 @@ function ChangeOrderCard({
                 value={rejectReason}
                 onChange={e => setRejectReason(e.target.value)}
                 placeholder="Alasan penolakan (opsional)..."
-                style={{ flex: 1, padding: "8px 12px", fontSize: 13, borderRadius: 8, border: "1px solid #E5E7EB", fontFamily: "inherit" }}
+                style={{ flex: 1, padding: "8px 12px", fontSize: 13, borderRadius: 8, border: "1px solid var(--border)", fontFamily: "inherit" }}
               />
               <button
                 onClick={handleReject}
@@ -576,7 +576,7 @@ function ChangeOrderCard({
               >
                 {loadingAction === "reject" ? "Menolak..." : "Tolak"}
               </button>
-              <button onClick={() => setShowRejectInput(false)} style={{ padding: "8px 14px", fontSize: 13, borderRadius: 8, border: "1px solid #E5E7EB", background: "var(--surface)", cursor: "pointer", color: C.mid }}>
+              <button onClick={() => setShowRejectInput(false)} style={{ padding: "8px 14px", fontSize: 13, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", color: C.mid }}>
                 Batal
               </button>
             </div>
@@ -672,7 +672,7 @@ function CreateCoModal({
 
   const inpStyle: React.CSSProperties = {
     width: "100%", padding: "9px 12px", fontSize: 14, borderRadius: 8,
-    border: "1px solid #E5E7EB", outline: "none", boxSizing: "border-box",
+    border: "1px solid var(--border)", outline: "none", boxSizing: "border-box",
     background: "var(--surface)", color: C.text, fontFamily: "inherit",
   };
 
@@ -724,7 +724,7 @@ function CreateCoModal({
         )}
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-          <button onClick={onClose} style={{ padding: "9px 20px", fontSize: 14, fontWeight: 500, borderRadius: 8, border: "1px solid #E5E7EB", background: "var(--surface)", cursor: "pointer", color: C.mid }}>
+          <button onClick={onClose} style={{ padding: "9px 20px", fontSize: 14, fontWeight: 500, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", color: C.mid }}>
             Batal
           </button>
           <button onClick={handleCreate} disabled={loading}

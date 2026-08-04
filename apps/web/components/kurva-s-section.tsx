@@ -263,7 +263,7 @@ export function KurvaSSection({ projectId, userRole }: Props) {
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{
             width: 36, height: 36, borderRadius: 10,
-            background: "linear-gradient(135deg, #003366, #0066CC)",
+            background: "linear-gradient(135deg, var(--navy), #0066CC)",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
             <TrendingUp size={18} color="var(--surface)" />
@@ -288,7 +288,7 @@ export function KurvaSSection({ projectId, userRole }: Props) {
         <div style={{
           display: "flex", alignItems: "center", gap: 8,
           padding: "10px 14px", borderRadius: 10, marginBottom: 16,
-          background: C.yellowLight, border: `1px solid #FDE68A`,
+          background: C.yellowLight, border: `1px solid var(--warning-border)`,
           fontSize: 12, color: "#92400E",
         }}>
           <AlertTriangle size={14} color={C.yellow} />
@@ -305,10 +305,10 @@ export function KurvaSSection({ projectId, userRole }: Props) {
         <div style={{
           display: "flex", alignItems: "center", gap: 8,
           padding: "10px 14px", borderRadius: 10, marginBottom: 16,
-          background: "#F0FDF4", border: `1px solid #BBF7D0`,
-          fontSize: 12, color: "#15803d",
+          background: "var(--success-bg)", border: `1px solid var(--success-border)`,
+          fontSize: 12, color: "var(--success)",
         }}>
-          <AlertTriangle size={14} color="#15803d" />
+          <AlertTriangle size={14} color="var(--success)" />
           <span>
             Kurva rencana diturunkan dari <strong>tanggal Gantt</strong>
             {typeof meta.cakupanJadwalPct === 'number' && (
@@ -324,8 +324,8 @@ export function KurvaSSection({ projectId, userRole }: Props) {
         <div style={{
           display: "flex", alignItems: "center", gap: 8,
           padding: "10px 14px", borderRadius: 10, marginBottom: 16,
-          background: "#FFFBEB", border: `1px solid #FDE68A`,
-          fontSize: 12, color: "#B45309",
+          background: "var(--warning-bg)", border: `1px solid var(--warning-border)`,
+          fontSize: 12, color: "var(--warning)",
         }}>
           <AlertTriangle size={14} color="#D97706" />
           <span>

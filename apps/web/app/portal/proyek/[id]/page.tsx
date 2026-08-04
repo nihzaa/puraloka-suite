@@ -194,7 +194,7 @@ function GanttTab({ projectId }: { projectId: string }) {
   const todayPct = Math.max(0, Math.min(100, ((today.getTime() - minDate.getTime()) / 86400000 / totalDays) * 100));
 
   const levelIndent = [0, 0, 16, 32];
-  const barColor = ["#003366", "#003366", "#0066CC", "#60A5FA"];
+  const barColor = ["var(--navy)", "var(--navy)", "#0066CC", "var(--info)"];
 
   return (
     <div style={{ ...card, padding: 20, overflowX: "auto" }}>

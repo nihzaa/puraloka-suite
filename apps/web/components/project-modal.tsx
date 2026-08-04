@@ -66,7 +66,7 @@ const C = {
 
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "9px 12px",
-  border: "1px solid #E5E7EB", borderRadius: 8,
+  border: "1px solid var(--border)", borderRadius: 8,
   fontSize: 13, color: C.text, background: "var(--surface)",
   outline: "none", transition: "border-color 0.15s, box-shadow 0.15s",
   boxSizing: "border-box",
@@ -539,14 +539,14 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
                   on_retention: "Retensi (hari setelah serah terima)",
                 };
                 return (
-                  <div key={i} style={{ border: "1px solid #E5E7EB", borderRadius: 10, padding: "14px 16px", background: "#FAFAFA" }}>
+                  <div key={i} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "14px 16px", background: "#FAFAFA" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ fontSize: 12, fontWeight: 600, color: C.navy }}>Termin {i + 1}</span>
                         <span style={{
                           fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 20,
                           background: t.trigger_type === "on_sign" ? "#DBEAFE" : t.trigger_type === "on_retention" ? "#FEF3C7" : C.navyLight,
-                          color: t.trigger_type === "on_sign" ? "var(--info)" : t.trigger_type === "on_retention" ? "#B45309" : C.navy,
+                          color: t.trigger_type === "on_sign" ? "var(--info)" : t.trigger_type === "on_retention" ? "var(--warning)" : C.navy,
                         }}>
                           {t.trigger_type === "on_sign" ? "ON SIGN" : t.trigger_type === "on_retention" ? "RETENSI" : `ON PROGRESS ≥ ${t.trigger_pct || "?"}%`}
                         </span>
@@ -634,7 +634,7 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
                 style={{
                   display: "flex", alignItems: "center", gap: 6,
                   padding: "9px 14px", borderRadius: 8,
-                  border: "1px dashed #E5E7EB", background: "transparent",
+                  border: "1px dashed var(--border)", background: "transparent",
                   fontSize: 13, color: C.mid, cursor: "pointer",
                   transition: "all 0.12s",
                 }}
@@ -647,7 +647,7 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
           )}
 
           {submitError && (
-            <div style={{ marginTop: 16, padding: "10px 14px", borderRadius: 8, background: "var(--danger-bg)", border: "1px solid #FECACA", fontSize: 13, color: C.red }}>
+            <div style={{ marginTop: 16, padding: "10px 14px", borderRadius: 8, background: "var(--danger-bg)", border: "1px solid var(--danger-border)", fontSize: 13, color: C.red }}>
               {submitError}
             </div>
           )}
@@ -655,7 +655,7 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
 
         {/* ── Modal footer ── */}
         <div style={{
-          padding: "20px 28px", borderTop: "1px solid #F3F4F6",
+          padding: "20px 28px", borderTop: "1px solid var(--surface-hover)",
           display: "flex", justifyContent: "space-between", alignItems: "center",
           flexShrink: 0,
         }}>
@@ -664,7 +664,7 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
             style={{
               display: "flex", alignItems: "center", gap: 5,
               padding: "9px 16px", borderRadius: 8,
-              border: "1px solid #E5E7EB", background: "var(--surface)",
+              border: "1px solid var(--border)", background: "var(--surface)",
               fontSize: 13, fontWeight: 500, color: C.mid, cursor: "pointer",
               transition: "all 0.12s",
             }}

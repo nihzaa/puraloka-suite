@@ -526,14 +526,14 @@ function DashboardContent() {
                       <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
                         <ActionBtn
                           disabled={kasbonBusy === k.id}
-                          bg="var(--success-bg)" color="var(--success)" border="#BBF7D0"
+                          bg="var(--success-bg)" color="var(--success)" border="var(--success-border)"
                           onClick={() => handleKasbon(k.id, "approved")}
                         >
                           <CheckCheck size={11} /> Setuju
                         </ActionBtn>
                         <ActionBtn
                           disabled={kasbonBusy === k.id}
-                          bg="var(--danger-bg)" color="var(--danger)" border="#FECACA"
+                          bg="var(--danger-bg)" color="var(--danger)" border="var(--danger-border)"
                           onClick={() => handleKasbon(k.id, "rejected")}
                         >
                           <X size={11} /> Tolak
@@ -630,7 +630,7 @@ function DashboardContent() {
             </AlertBanner>
           )}
           {alerts.milestone_late > 0 && (
-            <AlertBanner color={C.blue} bg={C.blueBg} borderColor="var(--info-border,#BFDBFE)" onClick={() => router.push("/kalender")}>
+            <AlertBanner color={C.blue} bg={C.blueBg} borderColor="var(--info-border,var(--info-border))" onClick={() => router.push("/kalender")}>
               <Target size={14} />
               <strong>{alerts.milestone_late} milestone</strong> terlambat
               <ArrowRight size={12} style={{ marginLeft: "auto" }} />
@@ -785,7 +785,7 @@ function TaxDeadlineBanner() {
   if (days > 14) return null;
   return (
     <div style={{
-      background: "var(--warning-bg)", border: "1px solid #FDE68A",
+      background: "var(--warning-bg)", border: "1px solid var(--warning-border)",
       borderRadius: 8, padding: "8px 14px", display: "flex", alignItems: "center", gap: 8, marginBottom: 10,
     }}>
       <Landmark size={12} style={{ color: "var(--warning)", flexShrink: 0 }} />

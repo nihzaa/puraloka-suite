@@ -770,7 +770,7 @@ function NavItem({
         }} />
         <div style={{
           background: "#1F2937",
-          color: "#F9FAFB",
+          color: "var(--surface-subtle)",
           fontSize: 12,
           fontWeight: 500,
           padding: "5px 10px",

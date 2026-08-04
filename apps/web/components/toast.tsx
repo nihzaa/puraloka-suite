@@ -109,12 +109,12 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
         onClick={() => onDismiss(toast.id)}
         style={{
           background: "none", border: "none", cursor: "pointer", padding: 2,
-          color: isSuccess ? "#4ADE80" : "#F87171", flexShrink: 0,
+          color: isSuccess ? "#4ADE80" : "var(--danger)", flexShrink: 0,
           borderRadius: 4, display: "flex", alignItems: "center",
           transition: "color 0.1s",
         }}
         onMouseEnter={e => { e.currentTarget.style.color = isSuccess ? "var(--success)" : "var(--danger)"; }}
-        onMouseLeave={e => { e.currentTarget.style.color = isSuccess ? "#4ADE80" : "#F87171"; }}
+        onMouseLeave={e => { e.currentTarget.style.color = isSuccess ? "#4ADE80" : "var(--danger)"; }}
       >
         <X size={14} />
       </button>

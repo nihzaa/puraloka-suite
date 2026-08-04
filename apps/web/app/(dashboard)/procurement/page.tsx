@@ -16,7 +16,7 @@ const C = {
   navy: "var(--navy)", navyLight: "var(--navy-light)", bg: "var(--bg)",
   surface: "var(--surface)", border: "var(--border)",
   text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  success: "#15803D", successBg: "#DCFCE7",
+  success: "var(--success)", successBg: "#DCFCE7",
   warning: "var(--warning)", warningBg: "#FEF3C7",
   danger: "var(--danger)", dangerBg: "var(--danger-bg)",
   info: "var(--info)", infoBg: "#DBEAFE",
@@ -811,7 +811,7 @@ function KirimPoModal({ po, onClose, onSuccess }: { po: PoRingkas; onClose: () =
     <Modal title={`Kirim ${po.po_number} ke Vendor`} onClose={onClose} width={620}>
       {memuat && <div style={{ padding: 20, fontSize: 13, color: "#6B7280" }}>Memuat pesan…</div>}
       {err && (
-        <div role="alert" style={{ padding: "10px 12px", background: "#FEE2E2", color: "#B91C1C",
+        <div role="alert" style={{ padding: "10px 12px", background: "#FEE2E2", color: "var(--danger)",
           borderRadius: 8, fontSize: 13, marginBottom: 12 }}>{err}</div>
       )}
 
@@ -820,14 +820,14 @@ function KirimPoModal({ po, onClose, onSuccess }: { po: PoRingkas; onClose: () =
           <div style={{ fontSize: 12, fontWeight: 600, color: "#6B7280", marginBottom: 6 }}>
             Pratinjau pesan
           </div>
-          <pre style={{ margin: 0, padding: 12, background: "#F8F9FA", border: "1px solid #E5E7EB",
+          <pre style={{ margin: 0, padding: 12, background: "var(--bg)", border: "1px solid var(--border)",
             borderRadius: 8, fontSize: 12.5, lineHeight: 1.55, whiteSpace: "pre-wrap",
             fontFamily: "inherit", maxHeight: 260, overflowY: "auto" }}>
             {data.pesan}
           </pre>
 
           {data.sudah_dikirim?.whatsapp_at && (
-            <div style={{ marginTop: 10, fontSize: 12, color: "#B45309" }}>
+            <div style={{ marginTop: 10, fontSize: 12, color: "var(--warning)" }}>
               Sudah pernah dikirim via WhatsApp pada{" "}
               {new Date(data.sudah_dikirim.whatsapp_at).toLocaleString("id-ID")}. Mengirim
               ulang akan menambah catatan baru, bukan menimpa yang lama.
@@ -842,7 +842,7 @@ function KirimPoModal({ po, onClose, onSuccess }: { po: PoRingkas; onClose: () =
                 <Send size={14} /> Buka WhatsApp &amp; catat
               </Btn>
             ) : (
-              <span style={{ fontSize: 12, color: "#B91C1C" }}>
+              <span style={{ fontSize: 12, color: "var(--danger)" }}>
                 Nomor telepon supplier tidak valid — perbaiki di menu Supplier.
               </span>
             )}
@@ -852,14 +852,14 @@ function KirimPoModal({ po, onClose, onSuccess }: { po: PoRingkas; onClose: () =
           </div>
 
           {riwayat.length > 0 && (
-            <div style={{ marginTop: 18, borderTop: "1px solid #E5E7EB", paddingTop: 12 }}>
+            <div style={{ marginTop: 18, borderTop: "1px solid var(--border)", paddingTop: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12,
                 fontWeight: 600, color: "#6B7280", marginBottom: 8 }}>
                 <History size={13} /> Riwayat pengiriman ({riwayat.length})
               </div>
               {riwayat.map((r) => (
-                <div key={r.id} style={{ fontSize: 12, color: "#111827", padding: "5px 0",
-                  borderBottom: "1px solid #F3F4F6" }}>
+                <div key={r.id} style={{ fontSize: 12, color: "var(--text-primary)", padding: "5px 0",
+                  borderBottom: "1px solid var(--surface-hover)" }}>
                   <strong>{r.channel}</strong> · {new Date(r.sent_at).toLocaleString("id-ID")}
                   {r.sender?.name && ` · oleh ${r.sender.name}`}
                   {r.recipient && <span style={{ color: "#6B7280" }}> · {r.recipient}</span>}
@@ -1587,11 +1587,11 @@ function SupplierInvoicesTab() {
 // ═══════════════════════════════════════════════════════════════════════════════
 // ── Movement type config ─────────────────────────────────────────────────────
 const MOVEMENT_CONFIG: Record<string, { label: string; color: string; bg: string; sign: string }> = {
-  goods_receipt: { label: "Masuk (GR)",    color: "#15803D", bg: "#DCFCE7", sign: "+" },
+  goods_receipt: { label: "Masuk (GR)",    color: "var(--success)", bg: "#DCFCE7", sign: "+" },
   usage:         { label: "Pemakaian",     color: "var(--danger)", bg: "var(--danger-bg)", sign: "−" },
   return:        { label: "Return",        color: "var(--info)", bg: "#DBEAFE", sign: "+" },
   adjustment:    { label: "Adjustment",    color: "var(--warning)", bg: "#FEF3C7", sign: "±" },
-  transfer_in:   { label: "Transfer Masuk",color: "#15803D", bg: "#DCFCE7", sign: "+" },
+  transfer_in:   { label: "Transfer Masuk",color: "var(--success)", bg: "#DCFCE7", sign: "+" },
   transfer_out:  { label: "Transfer Keluar",color: "#7C3AED", bg: "#F5F3FF", sign: "−" },
 };
 
@@ -1779,7 +1779,7 @@ function StocksTab() {
                           </span>
                         </td>
                         <td style={{ padding: "9px 12px", fontWeight: 500, color: C.text }}>{m.material?.name}</td>
-                        <td style={{ padding: "9px 12px", fontWeight: 700, color: isOut ? C.danger : "#15803D", whiteSpace: "nowrap" }}>
+                        <td style={{ padding: "9px 12px", fontWeight: 700, color: isOut ? C.danger : "var(--success)", whiteSpace: "nowrap" }}>
                           {cfg.sign}{Math.abs(Number(m.qty))} {m.material?.unit}
                         </td>
                         <td style={{ padding: "9px 12px", color: C.mid }}>{m.qty_before} {m.material?.unit}</td>
@@ -1855,7 +1855,7 @@ function UsageModal({ projects, stocks, onClose, onSuccess }: {
   return (
     <Modal title="Catat Pemakaian Material" onClose={onClose}>
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        {error && <div style={{ background: "var(--danger-bg)", border: "1px solid #FECACA", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.danger }}>{error}</div>}
+        {error && <div style={{ background: "var(--danger-bg)", border: "1px solid var(--danger-border)", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.danger }}>{error}</div>}
 
         <Select label="Proyek *" value={projectId} onChange={e => { setProjectId(e.target.value); setMaterialId(""); }}>
           <option value="">— Pilih Proyek —</option>
@@ -1975,7 +1975,7 @@ function OpnameModal({ projects, onClose, onSuccess }: {
   return (
     <Modal title="Opname Stok" onClose={onClose} width={640}>
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        {error && <div style={{ background: "var(--danger-bg)", border: "1px solid #FECACA", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.danger }}>{error}</div>}
+        {error && <div style={{ background: "var(--danger-bg)", border: "1px solid var(--danger-border)", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.danger }}>{error}</div>}
 
         <Select label="Proyek *" value={projectId} onChange={e => setProjectId(e.target.value)}>
           <option value="">— Pilih Proyek —</option>
@@ -2233,7 +2233,7 @@ function LaporanPengadaanTab() {
               {[
                 { label: "Belum Jatuh Tempo", key: "current", color: C.success, bg: C.successBg },
                 { label: "1–30 Hari", key: "days_1_30", color: C.warning, bg: C.warningBg },
-                { label: "31–60 Hari", key: "days_31_60", color: "#B45309", bg: "#FEF3C7" },
+                { label: "31–60 Hari", key: "days_31_60", color: "var(--warning)", bg: "#FEF3C7" },
                 { label: "61–90 Hari", key: "days_61_90", color: "#EA580C", bg: "#FFF7ED" },
                 { label: "> 90 Hari", key: "over_90", color: C.danger, bg: C.dangerBg },
               ].map(b => (

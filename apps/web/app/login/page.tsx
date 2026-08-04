@@ -133,7 +133,7 @@ function LoginPageInner() {
           flex-direction: column;
           justify-content: space-between;
           padding: 56px;
-          background: #003366;
+          background: var(--navy);
           position: relative;
           overflow: hidden;
         }

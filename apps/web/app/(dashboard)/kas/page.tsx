@@ -133,7 +133,7 @@ function StatusBadge({ label, color, bg, border }: { label: string; color: strin
 }
 
 function Skeleton({ h = 16, w = "100%" }: { h?: number; w?: string | number }) {
-  return <div style={{ height: h, width: w, borderRadius: 6, background: "linear-gradient(90deg,#F3F4F6 0%,#E9EAEB 50%,#F3F4F6 100%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s ease-in-out infinite" }} />;
+  return <div style={{ height: h, width: w, borderRadius: 6, background: "linear-gradient(90deg,var(--surface-hover) 0%,#E9EAEB 50%,var(--surface-hover) 100%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s ease-in-out infinite" }} />;
 }
 
 function Tab({ label, active, onClick, count }: { label: string; active: boolean; onClick: () => void; count?: number }) {
@@ -946,7 +946,7 @@ function CreateAccountModal({ onClose, onSuccess }: { onClose: () => void; onSuc
       <div style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.18)", display: "flex", flexDirection: "column", maxHeight: "90vh" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: `1px solid ${C.border}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#003366,#0066CC)", display: "flex", alignItems: "center", justifyContent: "center" }}><Wallet size={17} color="var(--surface)" /></div>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,var(--navy),#0066CC)", display: "flex", alignItems: "center", justifyContent: "center" }}><Wallet size={17} color="var(--surface)" /></div>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: 0 }}>Buat Akun Kas Baru</h3>
           </div>
           <button aria-label="Tutup" onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", color: C.muted }}><X size={18} /></button>
@@ -1239,7 +1239,7 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
       <div style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 520, boxShadow: "0 20px 60px rgba(0,0,0,0.18)", display: "flex", flexDirection: "column", maxHeight: "92vh" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: `1px solid ${C.border}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#B91C1C,#EF4444)", display: "flex", alignItems: "center", justifyContent: "center" }}><ShoppingCart size={17} color="var(--surface)" /></div>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,var(--danger),#EF4444)", display: "flex", alignItems: "center", justifyContent: "center" }}><ShoppingCart size={17} color="var(--surface)" /></div>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: 0 }}>Catat Pengeluaran Proyek</h3>
           </div>
           <button aria-label="Tutup" onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", color: C.muted }}><X size={18} /></button>
@@ -1271,12 +1271,12 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
               ))}
             </div>
             {expenseSource === "client_fund" && (
-              <div style={{ marginTop: 6, padding: "6px 10px", borderRadius: 6, background: "var(--info-bg)", border: "1px solid #BFDBFE", fontSize: 11, color: "var(--info)" }}>
+              <div style={{ marginTop: 6, padding: "6px 10px", borderRadius: 6, background: "var(--info-bg)", border: "1px solid var(--info-border)", fontSize: 11, color: "var(--info)" }}>
                 Pengeluaran ini dibayar dari dana klien — tidak mengurangi saldo kas internal.
               </div>
             )}
             {expenseSource === "personal" && (
-              <div style={{ marginTop: 6, padding: "6px 10px", borderRadius: 6, background: "var(--warning-bg)", border: "1px solid #FDE68A", fontSize: 11, color: "#92400E" }}>
+              <div style={{ marginTop: 6, padding: "6px 10px", borderRadius: 6, background: "var(--warning-bg)", border: "1px solid var(--warning-border)", fontSize: 11, color: "#92400E" }}>
                 Talangan pribadi — perlu di-reimburse dari kas proyek.
               </div>
             )}

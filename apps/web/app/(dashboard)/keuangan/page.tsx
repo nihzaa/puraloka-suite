@@ -28,7 +28,7 @@ const C = {
 };
 
 const card: React.CSSProperties = {
-  background: "var(--surface)", border: "1px solid #E5E7EB",
+  background: "var(--surface)", border: "1px solid var(--border)",
   borderRadius: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
 };
 
@@ -257,7 +257,7 @@ function KpiCard({ label, value, sub, icon, accent, border }: {
 }
 
 function Skeleton({ h = 20, w = "100%" }: { h?: number; w?: string | number }) {
-  return <div style={{ height: h, width: w, borderRadius: 8, background: "linear-gradient(90deg, #F3F4F6 0%, #E9EAEB 50%, #F3F4F6 100%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s ease-in-out infinite" }} />;
+  return <div style={{ height: h, width: w, borderRadius: 8, background: "linear-gradient(90deg, var(--surface-hover) 0%, #E9EAEB 50%, var(--surface-hover) 100%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s ease-in-out infinite" }} />;
 }
 
 // ─── Custom tooltip untuk cashflow chart ──────────────────────────────────────
@@ -317,7 +317,7 @@ function InvoiceRow({ inv, onPayClick, onPdfClick, loadingPdf, canEdit }: { inv:
   return (
     <>
     <tr
-      style={{ borderBottom: "1px solid #F3F4F6", background: overdue ? "#FEF9F9" : "transparent" }}
+      style={{ borderBottom: "1px solid var(--surface-hover)", background: overdue ? "#FEF9F9" : "transparent" }}
       onMouseEnter={e => { if (!overdue) e.currentTarget.style.background = "#FAFBFF"; }}
       onMouseLeave={e => { e.currentTarget.style.background = overdue ? "#FEF9F9" : "transparent"; }}
     >
@@ -462,7 +462,7 @@ function PenaltyModal({ invoiceId, invoiceNumber, onClose }: { invoiceId: string
           {loading ? <div style={{ textAlign: "center", padding: 20, color: "var(--text-muted)", fontSize: 13 }}>Memuat…</div> : (
             <>
               {info?.waived && (
-                <div style={{ padding: "10px 12px", borderRadius: 9, background: "var(--warning-bg)", border: "1px solid #FDE68A", fontSize: 12.5, color: "var(--text-primary)" }}>
+                <div style={{ padding: "10px 12px", borderRadius: 9, background: "var(--warning-bg)", border: "1px solid var(--warning-border)", fontSize: 12.5, color: "var(--text-primary)" }}>
                   <b>Denda diputihkan.</b> {info.waived_reason && <span style={{ color: "var(--text-secondary)" }}>Alasan: {info.waived_reason}</span>}
                 </div>
               )}
@@ -1243,8 +1243,8 @@ function KeuanganContent() {
                     <YAxis tickFormatter={v => fmtCompact(v)} tick={{ fontSize: 10, fill: C.muted }} tickLine={false} axisLine={false} width={72} />
                     <Tooltip content={<CashflowTooltip />} />
                     <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
-                    <Bar dataKey="masuk" name="Masuk" fill="#22C55E" fillOpacity={0.85} radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="keluar" name="Keluar" fill="#F87171" fillOpacity={0.85} radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="masuk" name="Masuk" fill="var(--success)" fillOpacity={0.85} radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="keluar" name="Keluar" fill="var(--danger)" fillOpacity={0.85} radius={[4, 4, 0, 0]} />
                     <Line dataKey="net" name="Net" stroke={C.navy} strokeWidth={2.5} dot={{ r: 4, fill: C.navy, strokeWidth: 0 }} />
                   </ComposedChart>
                 </ResponsiveContainer>
@@ -1702,7 +1702,7 @@ function KeuanganContent() {
 
                             {/* Breakdown per proyek (kalau > 1) */}
                             {m.byProject.length > 1 && (
-                              <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid #F3F4F6` }}>
+                              <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid var(--surface-hover)` }}>
                                 <div style={{ fontSize: 11, color: C.muted, marginBottom: 6 }}>Per Proyek:</div>
                                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                                   {m.byProject.sort((a,b) => b.total-a.total).map(p => (
@@ -1969,8 +1969,8 @@ function KeuanganContent() {
                       <YAxis tickFormatter={v => fmtCompact(v)} tick={{ fontSize: 10, fill: C.muted }} tickLine={false} axisLine={false} width={72} />
                       <Tooltip content={<CashflowTooltip />} />
                       <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
-                      <Bar dataKey="masuk" name="Masuk" fill="#22C55E" fillOpacity={0.85} radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="keluar" name="Keluar" fill="#F87171" fillOpacity={0.85} radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="masuk" name="Masuk" fill="var(--success)" fillOpacity={0.85} radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="keluar" name="Keluar" fill="var(--danger)" fillOpacity={0.85} radius={[4, 4, 0, 0]} />
                       <Line dataKey="net" name="Net" stroke={C.navy} strokeWidth={2} dot={{ r: 3, fill: C.navy, strokeWidth: 0 }} />
                     </ComposedChart>
                   </ResponsiveContainer>
@@ -1987,7 +1987,7 @@ function KeuanganContent() {
                     </thead>
                     <tbody>
                       {arusChart.map((row, i) => (
-                        <tr key={i} style={{ borderBottom: `1px solid #F3F4F6` }}>
+                        <tr key={i} style={{ borderBottom: `1px solid var(--surface-hover)` }}>
                           <td style={{ padding: "10px 14px", fontWeight: 600, color: C.text }}>{row.label}</td>
                           <td style={{ padding: "10px 14px", textAlign: "right", color: C.green, fontWeight: 600, fontFamily: "monospace" }}>{fmtCompact(row.masuk)}</td>
                           <td style={{ padding: "10px 14px", textAlign: "right", color: C.red, fontFamily: "monospace" }}>{fmtCompact(row.keluar)}</td>
@@ -2042,7 +2042,7 @@ function KeuanganContent() {
                         <React.Fragment key={tx.id}>
                           <tr
                             onClick={() => setArusExpandedId(expanded ? null : tx.id)}
-                            style={{ borderBottom: `1px solid #F3F4F6`, cursor: "pointer", background: expanded ? "#FAFBFF" : "transparent" }}
+                            style={{ borderBottom: `1px solid var(--surface-hover)`, cursor: "pointer", background: expanded ? "#FAFBFF" : "transparent" }}
                             onMouseEnter={e => { if (!expanded) e.currentTarget.style.background = "#FAFBFF"; }}
                             onMouseLeave={e => { if (!expanded) e.currentTarget.style.background = "transparent"; }}
                           >
@@ -2173,7 +2173,7 @@ function KeuanganContent() {
                       {profitData.projects.map(p => {
                         const marginColor = p.gross_margin_pct >= 20 ? C.green : p.gross_margin_pct >= 0 ? C.yellow : C.red;
                         return (
-                          <tr key={p.id} style={{ borderBottom: `1px solid #F3F4F6` }}
+                          <tr key={p.id} style={{ borderBottom: `1px solid var(--surface-hover)` }}
                             onMouseEnter={e => { e.currentTarget.style.background = "#FAFBFF"; }}
                             onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}>
                             <td style={{ padding: "12px 12px" }}>
@@ -2642,7 +2642,7 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 24px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #003366, #0066CC)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--navy), #0066CC)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Receipt size={17} color="var(--surface)" />
             </div>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: 0 }}>Buat Invoice Baru</h3>
@@ -2705,7 +2705,7 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
 
                 {/* Pilih dari pengeluaran */}
-                <div style={{ padding: "12px 14px", borderRadius: 8, background: "var(--success-bg)", border: "1px solid #BBF7D0" }}>
+                <div style={{ padding: "12px 14px", borderRadius: 8, background: "var(--success-bg)", border: "1px solid var(--success-border)" }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#065F46", marginBottom: 8 }}>
                     Pengeluaran Tersedia ({billableExpenses.length})
                   </div>
@@ -2839,7 +2839,7 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
 
             {/* ── KOMISI LANGSUNG (legacy): input total pengeluaran + % ── */}
             {isCommBill && (
-              <div style={{ padding: "12px 14px", borderRadius: 8, background: "var(--warning-bg)", border: "1px solid #FDE68A", display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ padding: "12px 14px", borderRadius: 8, background: "var(--warning-bg)", border: "1px solid var(--warning-border)", display: "flex", flexDirection: "column", gap: 10 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#92400E" }}>Komisi Langsung</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                   <div>
@@ -3088,7 +3088,7 @@ function PayInvoiceModal({ invoice, onClose, onSuccess }: { invoice: Invoice; on
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: `1px solid ${C.border}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #15803d, #22C55E)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--success), var(--success))", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Banknote size={17} color="var(--surface)" />
             </div>
             <div>
@@ -3312,7 +3312,7 @@ function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: `1px solid ${C.border}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #B45309, #FBBF24)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--warning), #FBBF24)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Banknote size={17} color="var(--surface)" />
             </div>
             <div>

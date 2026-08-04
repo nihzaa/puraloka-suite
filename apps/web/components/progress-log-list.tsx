@@ -306,7 +306,7 @@ function LogCard({
       }}>
         {/* Card header */}
         <div style={{
-          padding: "12px 16px", borderBottom: `1px solid #F3F4F6`,
+          padding: "12px 16px", borderBottom: `1px solid var(--surface-hover)`,
           display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8,
         }}>
           <div style={{ flex: 1 }}>

@@ -201,7 +201,7 @@ export default function MandorProgressPage() {
       {/* Banner: laporan sudah tersimpan, tapi sebagian foto gagal terupload.
           Mandor bisa coba ulang tanpa mengetik ulang laporan. */}
       {retry && retry.items.length > 0 && (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", padding: "12px 14px", marginBottom: 16, borderRadius: 10, background: "var(--warning-bg)", border: "1px solid #FDE68A" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", padding: "12px 14px", marginBottom: 16, borderRadius: 10, background: "var(--warning-bg)", border: "1px solid var(--warning-border)" }}>
           <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>
             <strong>Progress sudah tersimpan.</strong> {retry.items.length} foto gagal terupload
             (kemungkinan sinyal lemah). Laporanmu aman — foto bisa dicoba lagi.

@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
     fontFamily: "Helvetica",
     fontSize: 9,
     color: "var(--text-primary)",
-    backgroundColor: "#ffffff",
+    backgroundColor: "var(--surface)",
     padding: 40,
   },
   // ── Header ──
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
   // ── Line items ──
   table: { marginBottom: 16 },
   tableHeader: { flexDirection: "row", backgroundColor: NAVY, padding: "6 10", borderRadius: 2, marginBottom: 0 },
-  tableHeaderText: { fontFamily: "Helvetica-Bold", fontSize: 8, color: "#ffffff" },
+  tableHeaderText: { fontFamily: "Helvetica-Bold", fontSize: 8, color: "var(--surface)" },
   tableRow: { flexDirection: "row", padding: "7 10", borderBottomWidth: 1, borderBottomColor: BORDER },
   tableRowAlt: { flexDirection: "row", padding: "7 10", borderBottomWidth: 1, borderBottomColor: BORDER, backgroundColor: "var(--surface-subtle)" },
   colDesc: { flex: 1 },
@@ -164,8 +164,8 @@ const styles = StyleSheet.create({
 
   // ── Total row ──
   totalRow: { flexDirection: "row", padding: "10 10", backgroundColor: NAVY, borderRadius: 2, marginBottom: 2 },
-  totalLabel: { flex: 1, fontFamily: "Helvetica-Bold", fontSize: 10, color: "#ffffff" },
-  totalAmount: { width: 100, textAlign: "right", fontFamily: "Helvetica-Bold", fontSize: 10, color: "#ffffff" },
+  totalLabel: { flex: 1, fontFamily: "Helvetica-Bold", fontSize: 10, color: "var(--surface)" },
+  totalAmount: { width: 100, textAlign: "right", fontFamily: "Helvetica-Bold", fontSize: 10, color: "var(--surface)" },
 
   // ── Footer area ──
   footerRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 20, borderTopWidth: 1, borderTopColor: BORDER, paddingTop: 14 },

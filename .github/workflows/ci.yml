@@ -563,6 +563,18 @@ jobs:
       - name: Tata letak (token lebar halaman)
         run: node scripts/tata-letak-ratchet.mjs
 
+      # F4-1 — warna wajib lewat token, bukan hex di komponen.
+      #
+      # Alasannya bukan kerapian: WHITE-LABEL PER TENANT. Selama warna ditulis
+      # langsung di komponen, mengganti palet untuk satu pelanggan berarti
+      # menyunting puluhan berkas — dan yang terlewat akan memakai warna
+      # perusahaan lain.
+      #
+      # RATCHET (lantai 578): 391 hex yang punya padanan token PERSIS sudah
+      # diganti. Sisanya butuh keputusan desain, bukan penggantian mekanis.
+      - name: Hex literal (token desain)
+        run: node scripts/hex-ratchet.mjs
+
       # Sidebar kini memuat 20 grup & 202 sub-menu (migrasi 153). Pola lama
       # menulis tinggi collapse sebagai ANGKA MATI (`maxHeight: "140px"`) —
       # cukup untuk 4 submenu Keuangan, tapi grup 18 anak butuh ±540px dan

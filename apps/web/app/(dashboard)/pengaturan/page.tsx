@@ -16,7 +16,7 @@ const C = {
 
 const card: React.CSSProperties = {
   background: "var(--surface)",
-  border: "1px solid #E5E7EB",
+  border: "1px solid var(--border)",
   borderRadius: 14,
   boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
 };
@@ -194,7 +194,7 @@ function PengaturanContent() {
           Konfigurasi profil perusahaan, info pembayaran, dan format invoice
         </p>
         {!isAdmin && (
-          <div style={{ marginTop: 10, padding: "8px 14px", borderRadius: 8, background: "var(--warning-bg)", border: "1px solid #FDE68A", fontSize: 12, color: C.mid }}>
+          <div style={{ marginTop: 10, padding: "8px 14px", borderRadius: 8, background: "var(--warning-bg)", border: "1px solid var(--warning-border)", fontSize: 12, color: C.mid }}>
             Hanya admin yang dapat mengubah pengaturan perusahaan.
           </div>
         )}
@@ -362,7 +362,7 @@ function Field({ label, value, onChange, disabled, required, span, textarea, row
 }) {
   const style: React.CSSProperties = {
     width: "100%", padding: "9px 12px",
-    border: "1px solid #E5E7EB", borderRadius: 8,
+    border: "1px solid var(--border)", borderRadius: 8,
     fontSize: 13, outline: "none",
     background: disabled ? "var(--surface-subtle)" : "var(--surface)",
     color: "var(--text-primary)", resize: textarea ? "vertical" : undefined,

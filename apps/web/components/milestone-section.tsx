@@ -26,8 +26,8 @@ interface StatusConfig {
 
 const STATUS_CONFIG: Record<MilestoneStatusKey, StatusConfig> = {
   selesai:     { label: "Selesai",     bg: "#dcfce7", color: "var(--success)", dot: "#16a34a" },
-  terlambat:   { label: "Terlambat",   bg: "#fee2e2", color: "#b91c1c", dot: "#ef4444" },
-  berlangsung: { label: "Berlangsung", bg: "#eff6ff", color: "#1d4ed8", dot: "#3b82f6" },
+  terlambat:   { label: "Terlambat",   bg: "#fee2e2", color: "var(--danger)", dot: "#ef4444" },
+  berlangsung: { label: "Berlangsung", bg: "var(--info-bg)", color: "var(--info)", dot: "#3b82f6" },
   menunggu:    { label: "Menunggu",    bg: "#f8fafc", color: "#64748b", dot: "#94a3b8" },
 };
 
@@ -165,8 +165,8 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
   return (
     <>
       <div style={{
-        background: "#ffffff",
-        border: "1px solid #e5e7eb",
+        background: "var(--surface)",
+        border: "1px solid var(--border)",
         borderRadius: 14,
         boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
         padding: 24,
@@ -200,7 +200,7 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
                 padding: "8px 14px", borderRadius: 10, border: "none",
-                background: "var(--navy)", color: "#ffffff",
+                background: "var(--navy)", color: "var(--surface)",
                 fontSize: 13, fontWeight: 600, cursor: "pointer",
                 transition: "background 0.15s", flexShrink: 0,
               }}
@@ -278,8 +278,8 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
                     display: "flex", alignItems: "flex-start", gap: 12,
                     padding: "12px 14px", borderRadius: 12,
                     border: "1px solid",
-                    borderColor: isSelesai ? "#bbf7d0" : "#f1f5f9",
-                    background: isSelesai ? "#f0fdf4" : "#fafafa",
+                    borderColor: isSelesai ? "var(--success-border)" : "#f1f5f9",
+                    background: isSelesai ? "var(--success-bg)" : "#fafafa",
                     transition: "background 0.2s, border-color 0.2s",
                   }}
                 >
@@ -400,11 +400,11 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
                             style={{
                               width: "100%", padding: "9px 14px", border: "none",
                               background: "none", textAlign: "left", cursor: "pointer",
-                              fontSize: 13, color: "#b91c1c",
+                              fontSize: 13, color: "var(--danger)",
                               display: "flex", alignItems: "center", gap: 8,
-                              borderTop: "1px solid #f3f4f6",
+                              borderTop: "1px solid var(--surface-hover)",
                             }}
-                            onMouseEnter={e => { e.currentTarget.style.background = "#fef2f2"; }}
+                            onMouseEnter={e => { e.currentTarget.style.background = "var(--danger-bg)"; }}
                             onMouseLeave={e => { e.currentTarget.style.background = "none"; }}
                           >
                             <Trash2 size={13} />
@@ -453,7 +453,7 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
               <div style={{ height: 4, background: "linear-gradient(90deg, #dc2626, #ef4444)" }} />
               <div style={{ padding: "24px 24px 20px" }}>
                 <div style={{
-                  width: 44, height: 44, borderRadius: 12, background: "#fef2f2",
+                  width: 44, height: 44, borderRadius: 12, background: "var(--danger-bg)",
                   display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14,
                 }}>
                   <Trash2 size={20} style={{ color: "#dc2626" }} />

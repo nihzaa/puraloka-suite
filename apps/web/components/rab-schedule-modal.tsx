@@ -288,7 +288,7 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
         <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #003366, #0066CC)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--navy), #0066CC)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <CalendarDays size={18} color="var(--surface)" />
               </div>
               <div>
@@ -376,7 +376,7 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
                     {[
                       { label: "Material", color: "#3B82F6" },
                       { label: "Upah", color: "#10B981" },
-                      { label: "Alat", color: "#F59E0B" },
+                      { label: "Alat", color: "var(--warning)" },
                       { label: "Lain-lain", color: "#8B5CF6" },
                     ].map(c => (
                       <div key={c.label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -450,7 +450,7 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
                         {/* Input komponen */}
                         <PctInput value={row.material_pct} onChange={v => updateRow(idx, "material_pct", v)} color="#3B82F6" />
                         <PctInput value={row.upah_pct} onChange={v => updateRow(idx, "upah_pct", v)} color="#10B981" />
-                        <PctInput value={row.alat_pct} onChange={v => updateRow(idx, "alat_pct", v)} color="#F59E0B" />
+                        <PctInput value={row.alat_pct} onChange={v => updateRow(idx, "alat_pct", v)} color="var(--warning)" />
                         <PctInput value={row.other_pct} onChange={v => updateRow(idx, "other_pct", v)} color="#8B5CF6" />
 
                         {/* Total bar */}
@@ -783,7 +783,7 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
                     {[
                       { label: "Material", color: "#3B82F6" },
                       { label: "Upah", color: "#10B981" },
-                      { label: "Alat", color: "#F59E0B" },
+                      { label: "Alat", color: "var(--warning)" },
                       { label: "Lain-lain", color: "#8B5CF6" },
                     ].map(c => (
                       <div key={c.label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -846,7 +846,7 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
 
                       <PctInput value={row.material_pct} onChange={v => updateRow(idx, "material_pct", v)} color="#3B82F6" />
                       <PctInput value={row.upah_pct} onChange={v => updateRow(idx, "upah_pct", v)} color="#10B981" />
-                      <PctInput value={row.alat_pct} onChange={v => updateRow(idx, "alat_pct", v)} color="#F59E0B" />
+                      <PctInput value={row.alat_pct} onChange={v => updateRow(idx, "alat_pct", v)} color="var(--warning)" />
                       <PctInput value={row.other_pct} onChange={v => updateRow(idx, "other_pct", v)} color="#8B5CF6" />
 
                       <TotalBar mat={row.material_pct} upah={row.upah_pct} alat={row.alat_pct} other={row.other_pct} />

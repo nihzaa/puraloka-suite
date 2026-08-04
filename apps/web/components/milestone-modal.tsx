@@ -34,7 +34,7 @@ const fieldInput: React.CSSProperties = {
   padding: "9px 12px",
   borderRadius: 10,
   border: "1px solid #e2e8f0",
-  background: "#ffffff",
+  background: "var(--surface)",
   fontSize: 13,
   color: "#0f172a",
   outline: "none",
@@ -142,13 +142,13 @@ export function MilestoneModal({
         position: "relative",
         width: "100%",
         maxWidth: "460px",
-        background: "#ffffff",
+        background: "var(--surface)",
         borderRadius: 20,
         boxShadow: "0 24px 64px -12px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.06)",
         overflow: "hidden",
       }}>
         {/* Accent bar */}
-        <div style={{ height: 4, background: "linear-gradient(90deg, #003366, #0066CC)" }} />
+        <div style={{ height: 4, background: "linear-gradient(90deg, var(--navy), #0066CC)" }} />
 
         {/* Header */}
         <div style={{
@@ -159,7 +159,7 @@ export function MilestoneModal({
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{
               width: 40, height: 40, borderRadius: 12,
-              background: "linear-gradient(135deg, #003366, #0055aa)",
+              background: "linear-gradient(135deg, var(--navy), #0055aa)",
               display: "flex", alignItems: "center", justifyContent: "center",
               flexShrink: 0,
             }}>
@@ -194,7 +194,7 @@ export function MilestoneModal({
           {error && (
             <div style={{
               padding: "10px 14px", borderRadius: 10,
-              background: "#fef2f2", border: "1px solid #fecaca", color: "#b91c1c", fontSize: 13,
+              background: "var(--danger-bg)", border: "1px solid var(--danger-border)", color: "var(--danger)", fontSize: 13,
             }}>
               {error}
             </div>

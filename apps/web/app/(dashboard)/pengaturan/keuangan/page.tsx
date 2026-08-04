@@ -14,7 +14,7 @@ const C = {
   amber: "var(--warning)", amberBg: "var(--warning-bg)",
 };
 const card: React.CSSProperties = {
-  background: "var(--surface)", border: "1px solid #E5E7EB",
+  background: "var(--surface)", border: "1px solid var(--border)",
   borderRadius: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
 };
 

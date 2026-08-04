@@ -1,0 +1,6 @@
+{
+  "_catatan": "Lantai hex literal UI (F4-1). Boleh TURUN, tak boleh NAIK.",
+  "_kenapa": "White-label per tenant: warna yang ditulis langsung di komponen membuat penggantian palet menyentuh puluhan berkas, dan yang terlewat memakai warna perusahaan lain.",
+  "_cara": "Pakai var(--token) dari app/globals.css. Kalau warnanya belum punya token, TAMBAHKAN tokennya — jangan tulis hex.",
+  "maks": 578
+}

@@ -644,7 +644,7 @@ items:
     kriteria_selesai: ["hex literal hanya boleh di berkas token", "white-label per tenant mungkin"]
     cara_verifikasi: "penjaga CI hex"
     bobot: L
-    status: todo
+    status: done
 
   - id: F4-2
     fase: 4

@@ -429,7 +429,7 @@ export function NotificationPanel({ unreadCount, onCountChange }: NotificationPa
           height: unreadCount > 9 ? 16 : 14,
           borderRadius: 9999,
           background: C.navy,
-          border: "1.5px solid #FFFFFF",
+          border: "1.5px solid var(--surface)",
           color: "var(--surface)",
           fontSize: 9, fontWeight: 700,
           display: "flex", alignItems: "center", justifyContent: "center",

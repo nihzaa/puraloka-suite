@@ -149,12 +149,12 @@ const C = {
   yellowBg: "var(--warning-bg)",
   yellowBorder: "var(--warning-border)",
   info: "var(--info, #0066CC)",
-  infoBg: "var(--info-bg, #EFF6FF)",
+  infoBg: "var(--info-bg, var(--info-bg))",
 };
 
 const card: React.CSSProperties = {
   background: "var(--surface)",
-  border: "1px solid #E5E7EB",
+  border: "1px solid var(--border)",
   borderRadius: 14,
   boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
 };
@@ -250,7 +250,7 @@ function ProgressBar({ pct, height = 8 }: { pct: number; height?: number }) {
     <div style={{ height, background: "var(--surface-hover)", borderRadius: 4, overflow: "hidden" }}>
       <div style={{
         height: "100%", width: `${Math.min(pct, 100)}%`,
-        background: "linear-gradient(90deg, #003366, #0066CC)",
+        background: "linear-gradient(90deg, var(--navy), #0066CC)",
         borderRadius: 4, transition: "width 0.4s ease",
       }} />
     </div>
@@ -261,7 +261,7 @@ function InfoRow({ icon, label, value, valueColor }: {
   icon: React.ReactNode; label: string; value: React.ReactNode; valueColor?: string;
 }) {
   return (
-    <div style={{ display: "flex", alignItems: "flex-start", gap: 10, paddingBottom: 12, marginBottom: 12, borderBottom: "1px solid #F9FAFB" }}>
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 10, paddingBottom: 12, marginBottom: 12, borderBottom: "1px solid var(--surface-subtle)" }}>
       <span style={{ color: C.muted, marginTop: 2, flexShrink: 0 }}>{icon}</span>
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: 11, color: C.muted, marginBottom: 2 }}>{label}</div>
@@ -760,8 +760,8 @@ function ProjectDetailContent() {
         return (
           <div className="rise rise-2b" style={{
             marginBottom: 20, padding: "14px 18px", borderRadius: 12,
-            background: "linear-gradient(135deg, #FFFBEB, #FEF3C7)",
-            border: "1px solid #FDE68A",
+            background: "linear-gradient(135deg, var(--warning-bg), #FEF3C7)",
+            border: "1px solid var(--warning-border)",
             display: "flex", alignItems: "flex-start", gap: 12,
           }}>
             <div style={{
@@ -775,7 +775,7 @@ function ProjectDetailContent() {
               <p style={{ fontSize: 13, fontWeight: 700, color: "#92400E", margin: "0 0 4px" }}>
                 {readyTermins.length} Termin Siap Ditagih
               </p>
-              <p style={{ fontSize: 12, color: "#B45309", margin: 0 }}>
+              <p style={{ fontSize: 12, color: "var(--warning)", margin: 0 }}>
                 {readyTermins.map(t =>
                   `${t.label} (${t.pct_of_contract}% — ${fmt(t.amount)})`
                 ).join(" · ")}
@@ -874,7 +874,7 @@ function ProjectDetailContent() {
                     <circle cx={cx} cy={cy} r={r - stroke - 3} fill="none" stroke="#FFF7ED" strokeWidth={stroke - 2} />
                     {/* Arc fisik */}
                     <circle cx={cx} cy={cy} r={r} fill="none"
-                      stroke={fisikPct >= 80 ? "#22C55E" : C.navy}
+                      stroke={fisikPct >= 80 ? "var(--success)" : C.navy}
                       strokeWidth={stroke}
                       strokeDasharray={arcDash(fisikPct)}
                       strokeLinecap="round"
@@ -906,7 +906,7 @@ function ProjectDetailContent() {
                   <div>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                        <div style={{ width: 8, height: 8, borderRadius: 2, background: fisikPct >= 80 ? "#22C55E" : C.navy }} />
+                        <div style={{ width: 8, height: 8, borderRadius: 2, background: fisikPct >= 80 ? "var(--success)" : C.navy }} />
                         <span style={{ fontSize: 10, fontWeight: 700, color: C.text, textTransform: "uppercase", letterSpacing: "0.04em" }}>Progress Fisik</span>
                       </div>
                       <span style={{ fontSize: 16, fontWeight: 800, color: fisikPct >= 80 ? C.green : C.navy, lineHeight: 1 }}>{fisikPct.toFixed(1)}%</span>
@@ -914,7 +914,7 @@ function ProjectDetailContent() {
                     <div style={{ height: 8, borderRadius: 99, background: "var(--info-bg)", overflow: "hidden" }}>
                       <div style={{
                         height: "100%", borderRadius: 99, width: `${fisikPct}%`,
-                        background: fisikPct >= 80 ? "linear-gradient(90deg,#15803D,#22C55E)" : "linear-gradient(90deg,#003366,#0066CC)",
+                        background: fisikPct >= 80 ? "linear-gradient(90deg,var(--success),var(--success))" : "linear-gradient(90deg,var(--navy),#0066CC)",
                         transition: "width 0.8s ease",
                       }} />
                     </div>
@@ -979,8 +979,8 @@ function ProjectDetailContent() {
                 <div style={{
                   display: "flex", alignItems: "center", justifyContent: "space-between",
                   padding: "8px 14px", borderRadius: 8,
-                  background: Math.abs(diff) <= 5 ? "var(--success-bg)" : diff > 5 ? "#FFFBEB" : "var(--danger-bg)",
-                  border: `1px solid ${Math.abs(diff) <= 5 ? "var(--success-border)" : diff > 5 ? "#FDE68A" : "var(--danger-border)"}`,
+                  background: Math.abs(diff) <= 5 ? "var(--success-bg)" : diff > 5 ? "var(--warning-bg)" : "var(--danger-bg)",
+                  border: `1px solid ${Math.abs(diff) <= 5 ? "var(--success-border)" : diff > 5 ? "var(--warning-border)" : "var(--danger-border)"}`,
                 }}>
                   <div>
                     <span style={{ fontSize: 11, fontWeight: 600, color: diffColor }}>{diffLabel}</span>
@@ -997,12 +997,12 @@ function ProjectDetailContent() {
                 <div style={{
                   display: "flex", alignItems: "center", gap: 8,
                   padding: "8px 12px", borderRadius: 8,
-                  background: "var(--warning-bg)", border: "1px solid #FDE68A",
+                  background: "var(--warning-bg)", border: "1px solid var(--warning-border)",
                 }}>
                   <div style={{ width: 6, height: 6, borderRadius: "50%", background: C.yellow, flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ fontSize: 11, fontWeight: 600, color: "#92400E" }}>{upcomingMilestone.title}</span>
-                    <span style={{ fontSize: 10, color: "#B45309", marginLeft: 6 }}>· {fmtDateShort(upcomingMilestone.target_date)}</span>
+                    <span style={{ fontSize: 10, color: "var(--warning)", marginLeft: 6 }}>· {fmtDateShort(upcomingMilestone.target_date)}</span>
                   </div>
                   <span style={{ fontSize: 9, color: C.muted, flexShrink: 0 }}>Milestone Berikutnya</span>
                 </div>
@@ -1181,7 +1181,7 @@ function ProjectDetailContent() {
             )}
 
             {/* Progress bar lunas */}
-            <div style={{ marginBottom: 16, padding: "12px 16px", background: "var(--surface-subtle)", borderRadius: 10, border: "1px solid #F3F4F6" }}>
+            <div style={{ marginBottom: 16, padding: "12px 16px", background: "var(--surface-subtle)", borderRadius: 10, border: "1px solid var(--surface-hover)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
                 <span style={{ fontSize: 12, color: C.mid }}>Total terbayar</span>
                 <span style={{ fontSize: 12, fontWeight: 700, color: paid === termins.length ? C.green : C.navy }}>
@@ -1193,8 +1193,8 @@ function ProjectDetailContent() {
                   height: "100%", borderRadius: 999,
                   width: `${totalValue > 0 ? (paidValue / totalValue) * 100 : 0}%`,
                   background: paid === termins.length
-                    ? "linear-gradient(90deg, #15803d, #22C55E)"
-                    : "linear-gradient(90deg, #003366, #0066CC)",
+                    ? "linear-gradient(90deg, var(--success), var(--success))"
+                    : "linear-gradient(90deg, var(--navy), #0066CC)",
                   transition: "width 0.5s ease",
                 }} />
               </div>
@@ -1202,7 +1202,7 @@ function ProjectDetailContent() {
 
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
-                <tr style={{ background: "var(--surface-subtle)", borderBottom: "1px solid #E5E7EB" }}>
+                <tr style={{ background: "var(--surface-subtle)", borderBottom: "1px solid var(--border)" }}>
                   {["No", "Label", "Nilai", "% Kontrak", "Syarat Tagih", "Status", ""].map((h, i) => (
                     <th key={i} style={{
                       padding: "10px 14px",
@@ -1234,7 +1234,7 @@ function ProjectDetailContent() {
                     <tr
                       key={t.id}
                       style={{
-                        borderBottom: "1px solid #F3F4F6",
+                        borderBottom: "1px solid var(--surface-hover)",
                         background: t.status === "paid"
                           ? "var(--success-bg)"
                           : isOverdueTermin ? "#FFF5F5"
@@ -1326,7 +1326,7 @@ function ProjectDetailContent() {
       <div id="sec-rab" className="rise rise-3" style={{ ...card, padding: 24, marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: rabCollapsed ? 0 : 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #003366, #0066CC)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--navy), #0066CC)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               <FileText size={18} color="var(--surface)" />
             </div>
             <div>
@@ -1369,7 +1369,7 @@ function ProjectDetailContent() {
       <div id="sec-gantt" className="rise rise-3" style={{ ...card, padding: 24, marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: ganttCollapsed ? 0 : 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #003366, #0066CC)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--navy), #0066CC)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               <Clock size={18} color="var(--surface)" />
             </div>
             <div>
@@ -1462,7 +1462,7 @@ function ProjectDetailContent() {
           {/* Kasbon list */}
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
-              <tr style={{ background: "var(--surface-subtle)", borderBottom: "1px solid #E5E7EB" }}>
+              <tr style={{ background: "var(--surface-subtle)", borderBottom: "1px solid var(--border)" }}>
                 {["Mandor", "Scope", "Tujuan", "Jumlah", "Tanggal", "Status"].map((h, i) => (
                   <th key={h} style={{ padding: "10px 14px", textAlign: i >= 3 ? "right" : "left", fontSize: 11, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", color: C.mid }}>
                     {h}
@@ -1472,7 +1472,7 @@ function ProjectDetailContent() {
             </thead>
             <tbody>
               {allKasbons.slice(0, 10).map(k => (
-                <tr key={k.id} style={{ borderBottom: "1px solid #F3F4F6" }}
+                <tr key={k.id} style={{ borderBottom: "1px solid var(--surface-hover)" }}
                   onMouseEnter={e => { e.currentTarget.style.background = "#FAFBFF"; }}
                   onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
                 >
@@ -1520,7 +1520,7 @@ function ProjectDetailContent() {
           <SectionTitle>Invoice</SectionTitle>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
-              <tr style={{ background: "var(--surface-subtle)", borderBottom: "1px solid #E5E7EB" }}>
+              <tr style={{ background: "var(--surface-subtle)", borderBottom: "1px solid var(--border)" }}>
                 {["No Invoice", "Tipe", "Total", "Dibayar", "Sisa", "Jatuh Tempo", "Status"].map((h, i) => (
                   <th key={h} style={{ padding: "10px 14px", textAlign: i >= 2 ? "right" : "left", fontSize: 11, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", color: C.mid }}>
                     {h}
@@ -1533,7 +1533,7 @@ function ProjectDetailContent() {
                 const invDays = daysUntil(inv.due_date);
                 const invOverdue = inv.status !== "paid" && invDays < 0;
                 return (
-                  <tr key={inv.id} style={{ borderBottom: "1px solid #F3F4F6", background: invOverdue ? "var(--danger-bg)" : "transparent" }}
+                  <tr key={inv.id} style={{ borderBottom: "1px solid var(--surface-hover)", background: invOverdue ? "var(--danger-bg)" : "transparent" }}
                     onMouseEnter={e => { if (!invOverdue) e.currentTarget.style.background = "#FAFBFF"; }}
                     onMouseLeave={e => { e.currentTarget.style.background = invOverdue ? "var(--danger-bg)" : "transparent"; }}
                   >
@@ -1655,7 +1655,7 @@ function ProjectDetailContent() {
               <button
                 onClick={() => setShowDeleteConfirm(false)}
                 disabled={deleting}
-                style={{ padding: "9px 18px", borderRadius: 8, border: "1px solid #E5E7EB", background: "var(--surface)", fontSize: 13, fontWeight: 500, color: C.mid, cursor: "pointer" }}
+                style={{ padding: "9px 18px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 13, fontWeight: 500, color: C.mid, cursor: "pointer" }}
               >
                 Batal
               </button>
@@ -1704,7 +1704,7 @@ function ProjectDetailContent() {
                 </button>
                 <button
                   onClick={() => setShowPrintModal(false)}
-                  style={{ padding: "7px 10px", borderRadius: 8, border: "1px solid #E5E7EB", background: "var(--surface)", fontSize: 13, color: C.mid, cursor: "pointer" }}
+                  style={{ padding: "7px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 13, color: C.mid, cursor: "pointer" }}
                 >
                   ✕
                 </button>
@@ -1814,9 +1814,9 @@ function ActionBtn({ children, navy, danger, onClick }: {
 }) {
   const bg = navy ? "var(--navy)" : danger ? "var(--danger-bg)" : "var(--surface)";
   const col = navy ? "var(--surface)" : danger ? "var(--danger)" : "#374151";
-  const border = navy ? "none" : danger ? "1px solid #FECACA" : "1px solid #E5E7EB";
+  const border = navy ? "none" : danger ? "1px solid var(--danger-border)" : "1px solid var(--border)";
   const hoverBg = navy ? "#002244" : danger ? "#FEE2E2" : "var(--surface-subtle)";
-  const hoverBorder = navy ? "#002244" : danger ? "#F87171" : "var(--border-strong)";
+  const hoverBorder = navy ? "#002244" : danger ? "var(--danger)" : "var(--border-strong)";
   return (
     <button
       onClick={onClick}
@@ -1853,7 +1853,7 @@ function QuickStat({ label, value, valueColor, divider }: {
   return (
     <div style={{
       paddingLeft: divider ? 24 : 0,
-      borderLeft: divider ? "1px solid #E5E7EB" : "none",
+      borderLeft: divider ? "1px solid var(--border)" : "none",
     }}>
       <div style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 500, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</div>
       <div style={{ fontSize: 18, fontWeight: 700, color: valueColor ?? "var(--text-primary)", fontFamily: "var(--font-display)", lineHeight: 1.2 }}>{value}</div>
@@ -1964,7 +1964,7 @@ function ActivityFeed({ project: p }: { project: Project }) {
               display: "flex", alignItems: "flex-start", gap: 12,
               paddingTop: idx === 0 ? 0 : 12,
               paddingBottom: idx === items.slice(0, 20).length - 1 ? 0 : 12,
-              borderBottom: idx === items.slice(0, 20).length - 1 ? "none" : "1px solid #F3F4F6",
+              borderBottom: idx === items.slice(0, 20).length - 1 ? "none" : "1px solid var(--surface-hover)",
             }}>
               <div style={{
                 width: 32, height: 32, borderRadius: "50%", flexShrink: 0,

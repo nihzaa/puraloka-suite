@@ -101,8 +101,8 @@ export default function AuthCallbackPage() {
       <div style={{ fontSize: 14, color: "var(--text-secondary)" }}>Memverifikasi akun...</div>
       <div style={{
         width: 24, height: 24,
-        border: "2px solid #E5E7EB",
-        borderTop: "2px solid #003366",
+        border: "2px solid var(--border)",
+        borderTop: "2px solid var(--navy)",
         borderRadius: "50%",
         animation: "spin 0.8s linear infinite",
       }} />

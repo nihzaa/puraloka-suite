@@ -106,7 +106,7 @@ export default function VerifyInvoicePage() {
             <div style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5 }}>
               ID invoice tidak valid atau invoice telah dihapus. Pastikan Anda memindai QR code yang benar.
             </div>
-            <div style={{ marginTop: 16, padding: "8px 14px", borderRadius: 8, background: "var(--danger-bg)", border: "1px solid #FECACA", display: "inline-block" }}>
+            <div style={{ marginTop: 16, padding: "8px 14px", borderRadius: 8, background: "var(--danger-bg)", border: "1px solid var(--danger-border)", display: "inline-block" }}>
               <span style={{ fontSize: 11, fontFamily: "monospace", color: "var(--danger)" }}>{id}</span>
             </div>
           </div>
@@ -115,7 +115,7 @@ export default function VerifyInvoicePage() {
         {state === "found" && invoice && statusMeta && (
           <>
             {/* Status banner */}
-            <div style={{ padding: "32px 32px 24px", background: statusMeta.bg, textAlign: "center", borderBottom: "1px solid #E5E7EB" }}>
+            <div style={{ padding: "32px 32px 24px", background: statusMeta.bg, textAlign: "center", borderBottom: "1px solid var(--border)" }}>
               <div style={{ marginBottom: 12 }}>{statusMeta.icon}</div>
               <div style={{ fontSize: 24, fontWeight: 800, color: statusMeta.color, letterSpacing: "0.05em", marginBottom: 4 }}>
                 {statusMeta.label}
@@ -141,7 +141,7 @@ export default function VerifyInvoicePage() {
               ].map((row, i) => (
                 <div key={i} style={{
                   display: "flex", justifyContent: "space-between", alignItems: "flex-start",
-                  padding: "10px 0", borderBottom: "1px solid #F3F4F6",
+                  padding: "10px 0", borderBottom: "1px solid var(--surface-hover)",
                 }}>
                   <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>{row.label}</span>
                   <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", textAlign: "right", maxWidth: "60%" }}>{row.value}</span>
@@ -150,7 +150,7 @@ export default function VerifyInvoicePage() {
             </div>
 
             {/* Footer */}
-            <div style={{ padding: "16px 32px", background: "var(--bg)", borderTop: "1px solid #E5E7EB", textAlign: "center" }}>
+            <div style={{ padding: "16px 32px", background: "var(--bg)", borderTop: "1px solid var(--border)", textAlign: "center" }}>
               <div style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.5 }}>
                 Dokumen ini diterbitkan oleh <strong style={{ color: "var(--text-primary)" }}>{company.company_name}</strong>
                 <br />

@@ -185,7 +185,7 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{
               width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-              background: "linear-gradient(135deg, #003366, #0066CC)",
+              background: "linear-gradient(135deg, var(--navy), #0066CC)",
               display: "flex", alignItems: "center", justifyContent: "center",
             }}>
               <Banknote size={18} color="var(--surface)" />
@@ -213,7 +213,7 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
           {/* Termin info card */}
           <div style={{
             background: C.navyLight, borderRadius: 10, padding: "12px 16px",
-            marginBottom: 20, border: "1px solid #BFDBFE",
+            marginBottom: 20, border: "1px solid var(--info-border)",
             display: "flex", justifyContent: "space-between", alignItems: "center",
           }}>
             <div>

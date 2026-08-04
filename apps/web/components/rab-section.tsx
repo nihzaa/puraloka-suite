@@ -83,7 +83,7 @@ function KomponenBar({ mat, upah, alat, other }: { mat: number; upah: number; al
     <div style={{ display: "flex", height: 5, borderRadius: 3, overflow: "hidden", gap: 1 }}>
       {mat > 0 && <div style={{ flex: mat, background: "#3B82F6" }} title={`Material ${mat}%`} />}
       {upah > 0 && <div style={{ flex: upah, background: "#10B981" }} title={`Upah ${upah}%`} />}
-      {alat > 0 && <div style={{ flex: alat, background: "#F59E0B" }} title={`Alat ${alat}%`} />}
+      {alat > 0 && <div style={{ flex: alat, background: "var(--warning)" }} title={`Alat ${alat}%`} />}
       {other > 0 && <div style={{ flex: other, background: "#8B5CF6" }} title={`Lain ${other}%`} />}
     </div>
   );
@@ -469,7 +469,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
             {[
               { key: "mat", label: "Mat.", color: "#3B82F6" },
               { key: "upah", label: "Upah", color: "#10B981" },
-              { key: "alat", label: "Alat", color: "#F59E0B" },
+              { key: "alat", label: "Alat", color: "var(--warning)" },
               { key: "other", label: "Lain", color: "#8B5CF6" },
             ].map(({ key, label, color }) => (
               <div key={key} style={{ textAlign: "center" }}>
@@ -494,7 +494,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
             </span>
             <div style={{ display: "flex", gap: 3 }}>
               <button onClick={() => { setEditingKomponen(prev => { const n = { ...prev }; delete n[item.id]; return n; }); }}
-                style={{ padding: "2px 6px", fontSize: 10, border: "1px solid #E5E7EB", borderRadius: 4, background: "var(--surface)", cursor: "pointer", color: C.mid }}>
+                style={{ padding: "2px 6px", fontSize: 10, border: "1px solid var(--border)", borderRadius: 4, background: "var(--surface)", cursor: "pointer", color: C.mid }}>
                 Batal
               </button>
               <button onClick={() => saveKomponen(item)} disabled={!totalOk || isSaving}
@@ -513,7 +513,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
           <div style={{ display: "flex", gap: 6, fontSize: 10, marginBottom: 3, flexWrap: "wrap" }}>
             {item.material_pct > 0 && <span style={{ color: "#3B82F6" }}>Mat {item.material_pct}%</span>}
             {item.upah_pct > 0 && <span style={{ color: "#10B981" }}>Upah {item.upah_pct}%</span>}
-            {item.alat_pct > 0 && <span style={{ color: "#F59E0B" }}>Alat {item.alat_pct}%</span>}
+            {item.alat_pct > 0 && <span style={{ color: "var(--warning)" }}>Alat {item.alat_pct}%</span>}
             {item.other_pct > 0 && <span style={{ color: "#8B5CF6" }}>Lain {item.other_pct}%</span>}
           </div>
           <KomponenBar mat={item.material_pct} upah={item.upah_pct} alat={item.alat_pct} other={item.other_pct} />
@@ -525,7 +525,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
 
     return (
       <button onClick={() => startEditKomponen(item)}
-        style={{ fontSize: 10, color: C.mid, background: "none", border: "1px dashed #D1D5DB", borderRadius: 4, padding: "2px 6px", cursor: "pointer", whiteSpace: "nowrap" }}>
+        style={{ fontSize: 10, color: C.mid, background: "none", border: "1px dashed var(--border-strong)", borderRadius: 4, padding: "2px 6px", cursor: "pointer", whiteSpace: "nowrap" }}>
         + Isi %
       </button>
     );
@@ -550,7 +550,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
       return (
         <div key={cat.id}>
           <div
-            style={{ display: "grid", gridTemplateColumns: gridCols, gap: 6, alignItems: "center", padding: "10px 14px", background: C.navyLight, borderBottom: "1px solid #D1D5DB", cursor: hasChildren ? "pointer" : "default" }}
+            style={{ display: "grid", gridTemplateColumns: gridCols, gap: 6, alignItems: "center", padding: "10px 14px", background: C.navyLight, borderBottom: "1px solid var(--border-strong)", cursor: hasChildren ? "pointer" : "default" }}
             {...dapatDitekan(
               hasChildren ? () => toggleCollapse(cat.id) : null,
               `${isCollapsed ? "Buka" : "Lipat"} kategori ${cat.name}`,
@@ -577,7 +577,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
               return (
                 <div key={child.id}>
                   <div
-                    style={{ display: "grid", gridTemplateColumns: gridCols, gap: 6, alignItems: "center", padding: "8px 14px 8px 28px", background: "#F8F9FF", borderBottom: "1px solid #E5E7EB", cursor: subChildren.length > 0 ? "pointer" : "default" }}
+                    style={{ display: "grid", gridTemplateColumns: gridCols, gap: 6, alignItems: "center", padding: "8px 14px 8px 28px", background: "#F8F9FF", borderBottom: "1px solid var(--border)", cursor: subChildren.length > 0 ? "pointer" : "default" }}
                     {...dapatDitekan(
                       subChildren.length > 0 ? () => toggleCollapse(child.id) : null,
                       `${subCollapsed ? "Buka" : "Lipat"} sub-kategori ${child.name}`,
@@ -609,7 +609,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
 
   function renderItemRow(item: RabItem, paddingLeft: number) {
     return (
-      <div key={item.id} style={{ display: "grid", gridTemplateColumns: gridCols, gap: 6, alignItems: "center", padding: `7px 14px 7px ${paddingLeft}px`, background: "var(--surface)", borderBottom: "1px solid #F3F4F6" }}>
+      <div key={item.id} style={{ display: "grid", gridTemplateColumns: gridCols, gap: 6, alignItems: "center", padding: `7px 14px 7px ${paddingLeft}px`, background: "var(--surface)", borderBottom: "1px solid var(--surface-hover)" }}>
         <div />
         <span style={{ fontSize: 12, color: C.text }}>{item.category_code ? `${item.category_code}. ` : ""}{item.name}</span>
         <div style={{ textAlign: "right", fontSize: 11, color: C.mid }}>{item.qty !== null ? item.qty.toLocaleString("id-ID") : "—"}</div>
@@ -639,7 +639,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
         {!hideHeader && (
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #003366, #0066CC)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--navy), #0066CC)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <BarChart2 size={18} color="var(--surface)" />
             </div>
             <div>
@@ -709,7 +709,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
               </button>
               {hasData && (
                 <button aria-label="Refresh" onClick={load}
-                  style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 10px", borderRadius: 8, fontSize: 12, background: "transparent", color: C.mid, border: "1px solid #E5E7EB", cursor: "pointer" }}
+                  style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 10px", borderRadius: 8, fontSize: 12, background: "transparent", color: C.mid, border: "1px solid var(--border)", cursor: "pointer" }}
                   title="Refresh">
                   <RefreshCw size={13} />
                 </button>
@@ -750,7 +750,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
            menjaga label tetap murni sebagai pemicu unggah. */
         <div onDrop={handleDrop} onDragOver={e => e.preventDefault()}>
         <label
-          style={{ padding: "40px 24px", textAlign: "center", border: "2px dashed #E5E7EB", borderRadius: 12, display: "block", background: "#FAFAFA", cursor: canEdit ? "pointer" : "default" }}
+          style={{ padding: "40px 24px", textAlign: "center", border: "2px dashed var(--border)", borderRadius: 12, display: "block", background: "#FAFAFA", cursor: canEdit ? "pointer" : "default" }}
         >
           {canEdit && (
             <input
@@ -769,14 +769,14 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
 
       {/* Overall progress summary */}
       {hasData && categories.length > 0 && (
-        <div style={{ marginBottom: 16, padding: "14px 18px", borderRadius: 10, background: "linear-gradient(135deg, #003366, #0055AA)", display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
+        <div style={{ marginBottom: 16, padding: "14px 18px", borderRadius: 10, background: "linear-gradient(135deg, var(--navy), #0055AA)", display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
           <div>
             <p style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", margin: "0 0 2px" }}>Serapan Dana (Weighted)</p>
             <p style={{ fontSize: 28, fontWeight: 700, color: "#fff", margin: 0, lineHeight: 1 }}>{overallSerapan.toFixed(1)}%</p>
           </div>
           <div style={{ flex: 1, minWidth: 120 }}>
             <div style={{ height: 8, borderRadius: 4, background: "rgba(255,255,255,0.2)", overflow: "hidden" }}>
-              <div style={{ height: "100%", borderRadius: 4, width: `${Math.min(100, overallSerapan)}%`, background: overallSerapan >= 100 ? "#22C55E" : "#60A5FA", transition: "width 0.5s ease" }} />
+              <div style={{ height: "100%", borderRadius: 4, width: `${Math.min(100, overallSerapan)}%`, background: overallSerapan >= 100 ? "var(--success)" : "var(--info)", transition: "width 0.5s ease" }} />
             </div>
             <p style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", margin: "6px 0 0" }}>Dari {categories.length} kategori RAB</p>
           </div>
@@ -797,8 +797,8 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
 
       {/* Table */}
       {hasData && (
-        <div style={{ borderRadius: 10, border: "1px solid #E5E7EB", overflow: "hidden" }}>
-          <div style={{ display: "grid", gridTemplateColumns: gridCols, gap: 6, padding: "8px 14px", background: "var(--surface-hover)", borderBottom: "1px solid #E5E7EB" }}>
+        <div style={{ borderRadius: 10, border: "1px solid var(--border)", overflow: "hidden" }}>
+          <div style={{ display: "grid", gridTemplateColumns: gridCols, gap: 6, padding: "8px 14px", background: "var(--surface-hover)", borderBottom: "1px solid var(--border)" }}>
             {headerCols.map((h, i) => (
               <div key={i} style={{ fontSize: 11, fontWeight: 700, color: C.mid, textAlign: i >= 2 && i < 8 ? "right" : "left" }}>{h}</div>
             ))}
@@ -808,7 +808,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
             {renderItems()}
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: gridCols, gap: 6, padding: "10px 14px", background: "var(--bg)", borderTop: "2px solid #E5E7EB" }}>
+          <div style={{ display: "grid", gridTemplateColumns: gridCols, gap: 6, padding: "10px 14px", background: "var(--bg)", borderTop: "2px solid var(--border)" }}>
             <div />
             <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>TOTAL RAB</span>
             <div /><div /><div />

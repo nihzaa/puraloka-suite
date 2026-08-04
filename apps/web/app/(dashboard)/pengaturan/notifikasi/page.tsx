@@ -11,7 +11,7 @@ const C = {
   red: "var(--danger)", redBg: "var(--danger-bg)",
   amber: "var(--warning)", amberBg: "var(--warning-bg)",
 };
-const card: React.CSSProperties = { background: "var(--surface)", border: "1px solid #E5E7EB", borderRadius: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" };
+const card: React.CSSProperties = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" };
 const input: React.CSSProperties = { padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", background: "var(--surface)", color: C.text, boxSizing: "border-box", fontFamily: "inherit" };
 
 type TargetType = "role" | "permission" | "project_pm" | "project_mandors";

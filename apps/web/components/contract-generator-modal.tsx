@@ -155,7 +155,7 @@ export function ContractGeneratorModal({ projectId, projectName, onClose }: Prop
         }}>
           <div style={{
             width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-            background: "linear-gradient(135deg, #003366, #0066CC)",
+            background: "linear-gradient(135deg, var(--navy), #0066CC)",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
             <FileText size={18} color="var(--surface)" />
@@ -180,7 +180,7 @@ export function ContractGeneratorModal({ projectId, projectName, onClose }: Prop
           style={{ padding: "20px 24px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 14 }}
         >
           {error && (
-            <div style={{ padding: "10px 14px", borderRadius: 8, background: C.redBg, border: "1px solid #FECACA", fontSize: 13, color: C.red }}>
+            <div style={{ padding: "10px 14px", borderRadius: 8, background: C.redBg, border: "1px solid var(--danger-border)", fontSize: 13, color: C.red }}>
               {error}
             </div>
           )}
