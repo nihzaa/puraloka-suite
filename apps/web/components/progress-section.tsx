@@ -124,7 +124,7 @@ export function ProgressSection({
                 fontSize: 13, fontWeight: 600, cursor: "pointer",
                 transition: "background 0.15s", flexShrink: 0,
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = "#002244"; }}
+              onMouseEnter={e => { e.currentTarget.style.background = "var(--aksen-pekat)"; }}
               onMouseLeave={e => { e.currentTarget.style.background = C.navy; }}
             >
               <Plus size={14} />

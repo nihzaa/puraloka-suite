@@ -23,7 +23,7 @@ const fieldLabel: React.CSSProperties = {
   display: "block",
   fontSize: 11,
   fontWeight: 600,
-  color: "#64748b",
+  color: "var(--text-muted)",
   textTransform: "uppercase",
   letterSpacing: "0.06em",
   marginBottom: 6,
@@ -36,7 +36,7 @@ const fieldInput: React.CSSProperties = {
   border: "1px solid #e2e8f0",
   background: "var(--surface)",
   fontSize: 13,
-  color: "#0f172a",
+  color: "var(--text-primary)",
   outline: "none",
   fontFamily: "inherit",
   boxSizing: "border-box",
@@ -148,7 +148,7 @@ export function MilestoneModal({
         overflow: "hidden",
       }}>
         {/* Accent bar */}
-        <div style={{ height: 4, background: "linear-gradient(90deg, var(--navy), #0066CC)" }} />
+        <div style={{ height: 4, background: "linear-gradient(90deg, var(--navy), var(--aksen-terang))" }} />
 
         {/* Header */}
         <div style={{
@@ -159,17 +159,17 @@ export function MilestoneModal({
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{
               width: 40, height: 40, borderRadius: 12,
-              background: "linear-gradient(135deg, var(--navy), #0055aa)",
+              background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))",
               display: "flex", alignItems: "center", justifyContent: "center",
               flexShrink: 0,
             }}>
               <Flag size={18} color="white" />
             </div>
             <div>
-              <h2 style={{ fontSize: 16, fontWeight: 600, color: "#0f172a", fontFamily: "var(--font-display)", margin: 0 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 600, color: "var(--text-primary)", fontFamily: "var(--font-display)", margin: 0 }}>
                 {isEdit ? "Edit Milestone" : "Tambah Milestone"}
               </h2>
-              <p style={{ fontSize: 12, color: "#94a3b8", margin: "2px 0 0" }}>
+              <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "2px 0 0" }}>
                 {isEdit ? "Perbarui detail milestone" : "Tetapkan target pencapaian proyek"}
               </p>
             </div>
@@ -179,9 +179,9 @@ export function MilestoneModal({
             disabled={submitting}
             style={{
               width: 32, height: 32, borderRadius: 8, border: "none",
-              background: "#f8fafc", cursor: "pointer",
+              background: "var(--surface-subtle)", cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center",
-              color: "#94a3b8", flexShrink: 0,
+              color: "var(--text-muted)", flexShrink: 0,
             }}
           >
             <X size={15} />
@@ -210,7 +210,7 @@ export function MilestoneModal({
               placeholder="cth: Pondasi selesai, Atap terpasang…"
               style={fieldInput}
               onFocus={e => { e.target.style.borderColor = "var(--navy)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,51,102,0.1)"; }}
-              onBlur={e => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }}
+              onBlur={e => { e.target.style.borderColor = "var(--border)"; e.target.style.boxShadow = "none"; }}
               disabled={submitting}
               autoFocus
             />
@@ -225,7 +225,7 @@ export function MilestoneModal({
               onChange={e => setTargetDate(e.target.value)}
               style={fieldInput}
               onFocus={e => { e.target.style.borderColor = "var(--navy)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,51,102,0.1)"; }}
-              onBlur={e => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }}
+              onBlur={e => { e.target.style.borderColor = "var(--border)"; e.target.style.boxShadow = "none"; }}
               disabled={submitting}
             />
           </div>
@@ -240,7 +240,7 @@ export function MilestoneModal({
               rows={3}
               style={{ ...fieldInput, resize: "vertical", lineHeight: 1.6, minHeight: 80 }}
               onFocus={e => { e.target.style.borderColor = "var(--navy)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,51,102,0.1)"; }}
-              onBlur={e => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }}
+              onBlur={e => { e.target.style.borderColor = "var(--border)"; e.target.style.boxShadow = "none"; }}
               disabled={submitting}
             />
           </div>
@@ -248,7 +248,7 @@ export function MilestoneModal({
 
         {/* Footer */}
         <div style={{
-          padding: "14px 24px", borderTop: "1px solid #f1f5f9", background: "#fafafa",
+          padding: "14px 24px", borderTop: "1px solid #f1f5f9", background: "var(--surface-subtle)",
           display: "flex", justifyContent: "flex-end", gap: 8,
         }}>
           <button
@@ -257,7 +257,7 @@ export function MilestoneModal({
             disabled={submitting}
             style={{
               padding: "8px 16px", borderRadius: 10, border: "1px solid #e2e8f0",
-              background: "white", fontSize: 13, fontWeight: 500, color: "#475569", cursor: "pointer",
+              background: "white", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", cursor: "pointer",
             }}
           >
             Batal
@@ -268,14 +268,14 @@ export function MilestoneModal({
             disabled={submitting || !title.trim() || !targetDate}
             style={{
               padding: "8px 20px", borderRadius: 10, border: "none", fontSize: 13, fontWeight: 600,
-              background: submitting || !title.trim() || !targetDate ? "#94a3b8" : "var(--navy)",
+              background: submitting || !title.trim() || !targetDate ? "var(--text-muted)" : "var(--navy)",
               color: "white",
               cursor: submitting || !title.trim() || !targetDate ? "not-allowed" : "pointer",
               display: "flex", alignItems: "center", gap: 6,
               minWidth: 120, justifyContent: "center",
               transition: "background 0.15s",
             }}
-            onMouseEnter={e => { if (!submitting && title.trim() && targetDate) e.currentTarget.style.background = "#002244"; }}
+            onMouseEnter={e => { if (!submitting && title.trim() && targetDate) e.currentTarget.style.background = "var(--aksen-pekat)"; }}
             onMouseLeave={e => { if (!submitting && title.trim() && targetDate) e.currentTarget.style.background = "var(--navy)"; }}
           >
             {submitting

@@ -53,7 +53,7 @@ const C = {
   green: "var(--success)", greenBg: "var(--success-bg)",
   red: "var(--danger)", redBg: "var(--danger-bg)",
   yellow: "var(--warning)", yellowBg: "var(--warning-bg)",
-  orange: "#EA580C", orangeBg: "#FFF7ED",
+  orange: "var(--data-5)", orangeBg: "var(--warning-bg)",
 };
 
 const fmt = (n: number) =>
@@ -288,7 +288,7 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
         <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--navy), #0066CC)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <CalendarDays size={18} color="var(--surface)" />
               </div>
               <div>
@@ -374,10 +374,10 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
                   {/* Legend komponen */}
                   <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
                     {[
-                      { label: "Material", color: "#3B82F6" },
-                      { label: "Upah", color: "#10B981" },
+                      { label: "Material", color: "var(--info)" },
+                      { label: "Upah", color: "var(--success)" },
                       { label: "Alat", color: "var(--warning)" },
-                      { label: "Lain-lain", color: "#8B5CF6" },
+                      { label: "Lain-lain", color: "var(--aksen)" },
                     ].map(c => (
                       <div key={c.label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                         <div style={{ width: 8, height: 8, borderRadius: 2, background: c.color }} />
@@ -415,7 +415,7 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
                       <div style={{
                         display: "grid", gridTemplateColumns: "1fr 56px 56px 56px 56px 80px 80px 36px",
                         gap: 8, padding: "8px 10px", alignItems: "center",
-                        background: row.isDirty ? "#FAFBFF" : "var(--surface)",
+                        background: row.isDirty ? "var(--surface-subtle)" : "var(--surface)",
                         borderRadius: 8, marginBottom: rowOk ? 4 : 0,
                         // `rowOk` SEBELUMNYA dihitung lalu dibuang — baris yang
                         // melanggar constraint DB (`rab_items_pct_sum`: total 0
@@ -448,10 +448,10 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
                         </div>
 
                         {/* Input komponen */}
-                        <PctInput value={row.material_pct} onChange={v => updateRow(idx, "material_pct", v)} color="#3B82F6" />
-                        <PctInput value={row.upah_pct} onChange={v => updateRow(idx, "upah_pct", v)} color="#10B981" />
+                        <PctInput value={row.material_pct} onChange={v => updateRow(idx, "material_pct", v)} color="var(--info)" />
+                        <PctInput value={row.upah_pct} onChange={v => updateRow(idx, "upah_pct", v)} color="var(--success)" />
                         <PctInput value={row.alat_pct} onChange={v => updateRow(idx, "alat_pct", v)} color="var(--warning)" />
-                        <PctInput value={row.other_pct} onChange={v => updateRow(idx, "other_pct", v)} color="#8B5CF6" />
+                        <PctInput value={row.other_pct} onChange={v => updateRow(idx, "other_pct", v)} color="var(--aksen)" />
 
                         {/* Total bar */}
                         <TotalBar mat={row.material_pct} upah={row.upah_pct} alat={row.alat_pct} other={row.other_pct} />
@@ -697,7 +697,7 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
         <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #EA580C, #F97316)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--data-5), var(--data-5))", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <Clock size={18} color="var(--surface)" />
               </div>
               <div>
@@ -781,10 +781,10 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
                 <>
                   <div style={{ display: "flex", gap: 12, marginBottom: 12, alignItems: "center" }}>
                     {[
-                      { label: "Material", color: "#3B82F6" },
-                      { label: "Upah", color: "#10B981" },
+                      { label: "Material", color: "var(--info)" },
+                      { label: "Upah", color: "var(--success)" },
                       { label: "Alat", color: "var(--warning)" },
-                      { label: "Lain-lain", color: "#8B5CF6" },
+                      { label: "Lain-lain", color: "var(--aksen)" },
                     ].map(c => (
                       <div key={c.label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                         <div style={{ width: 8, height: 8, borderRadius: 2, background: c.color }} />
@@ -844,10 +844,10 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
                         <ChevronDown size={10} style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: C.mid }} />
                       </div>
 
-                      <PctInput value={row.material_pct} onChange={v => updateRow(idx, "material_pct", v)} color="#3B82F6" />
-                      <PctInput value={row.upah_pct} onChange={v => updateRow(idx, "upah_pct", v)} color="#10B981" />
+                      <PctInput value={row.material_pct} onChange={v => updateRow(idx, "material_pct", v)} color="var(--info)" />
+                      <PctInput value={row.upah_pct} onChange={v => updateRow(idx, "upah_pct", v)} color="var(--success)" />
                       <PctInput value={row.alat_pct} onChange={v => updateRow(idx, "alat_pct", v)} color="var(--warning)" />
-                      <PctInput value={row.other_pct} onChange={v => updateRow(idx, "other_pct", v)} color="#8B5CF6" />
+                      <PctInput value={row.other_pct} onChange={v => updateRow(idx, "other_pct", v)} color="var(--aksen)" />
 
                       <TotalBar mat={row.material_pct} upah={row.upah_pct} alat={row.alat_pct} other={row.other_pct} />
 

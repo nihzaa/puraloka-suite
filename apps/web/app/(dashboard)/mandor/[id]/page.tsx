@@ -37,9 +37,9 @@ function formatWA(phone: string) {
 // D3 — Consistent badge helpers
 function getPaymentSystemBadge(type: string) {
   const map: Record<string, { label: string; bg: string; color: string; border: string }> = {
-    borongan:     { label: "Borongan",  bg: "#DBEAFE", color: "#1E40AF", border: "var(--info-border)" },
-    harian:       { label: "Harian",    bg: "#D1FAE5", color: "#065F46", border: "#A7F3D0" },
-    progress_pct: { label: "Progress%", bg: "#EDE9FE", color: "#5B21B6", border: "#C4B5FD" },
+    borongan:     { label: "Borongan",  bg: "var(--navy-light)", color: "var(--on-info-bg)", border: "var(--info-border)" },
+    harian:       { label: "Harian",    bg: "var(--success-bg)", color: "var(--on-success-bg)", border: "var(--success-border)" },
+    progress_pct: { label: "Progress%", bg: "var(--navy-light)", color: "var(--aksen-pekat)", border: "var(--aksen-terang)" },
   };
   return map[type] ?? { label: type, bg: "var(--surface-hover)", color: "var(--text-secondary)", border: "var(--border)" };
 }
@@ -204,7 +204,7 @@ export default function MandorProfilePage() {
                   const sisa = sc.borongan_value ? sc.borongan_value - sc.total_paid : null;
 
                   return (
-                    <div key={sc.id} style={{ borderRadius: 10, border: `1px solid ${C.border}`, background: "#FAFAFA", padding: "14px 16px" }}>
+                    <div key={sc.id} style={{ borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface-subtle)", padding: "14px 16px" }}>
                       {/* Scope header */}
                       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 10 }}>
                         <div>

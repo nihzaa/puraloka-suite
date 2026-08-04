@@ -97,7 +97,7 @@ function Content() {
         </div>
       </div>
 
-      <div style={{ ...card, display: "flex", gap: 10, padding: "12px 16px", marginBottom: 18, background: C.navyLight, borderColor: "#DBEAFE" }}>
+      <div style={{ ...card, display: "flex", gap: 10, padding: "12px 16px", marginBottom: 18, background: C.navyLight, borderColor: "var(--navy-light)" }}>
         <Info size={16} color={C.navy} style={{ flexShrink: 0, marginTop: 2 }} />
         <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6 }}>
           <b>Satu level = perilaku standar</b> (satu orang berwenang menyetujui, langsung selesai). Tambah level untuk membuat persetujuan berjenjang.
@@ -185,7 +185,7 @@ function ChainCard({ chain, perms, canManage, onToggle, onAdd, onPatch, onDelete
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
               <button disabled={!newPerm} onClick={() => { onAdd(chain.entity_type, newPerm, newMin); setAdding(false); setNewPerm(""); setNewMin(""); }}
-                style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: newPerm ? C.navy : "#94A3B8", color: "#fff", fontSize: 13, fontWeight: 600, cursor: newPerm ? "pointer" : "not-allowed" }}>
+                style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: newPerm ? C.navy : "var(--text-muted)", color: "#fff", fontSize: 13, fontWeight: 600, cursor: newPerm ? "pointer" : "not-allowed" }}>
                 Tambah level
               </button>
               <button onClick={() => { setAdding(false); setNewPerm(""); setNewMin(""); }}

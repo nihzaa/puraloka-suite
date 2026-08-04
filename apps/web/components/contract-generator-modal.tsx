@@ -155,7 +155,7 @@ export function ContractGeneratorModal({ projectId, projectName, onClose }: Prop
         }}>
           <div style={{
             width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-            background: "linear-gradient(135deg, var(--navy), #0066CC)",
+            background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
             <FileText size={18} color="var(--surface)" />

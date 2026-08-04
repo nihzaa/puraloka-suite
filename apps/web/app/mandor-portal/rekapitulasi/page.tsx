@@ -11,7 +11,7 @@ const C = {
   green: "var(--success)", greenBg: "var(--success-bg)",
   yellow: "var(--warning)", yellowBg: "var(--warning-bg)",
   red: "var(--danger)", redBg: "var(--danger-bg)",
-  orange: "#C2410C", orangeBg: "#FFF7ED",
+  orange: "var(--data-5)", orangeBg: "var(--warning-bg)",
 };
 
 const card: React.CSSProperties = {
@@ -129,7 +129,7 @@ export default function RekapitulasiPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           {/* Hero gradient card */}
           <div style={{
-            background: `linear-gradient(135deg, ${C.navy} 0%, #0055AA 100%)`,
+            background: `linear-gradient(135deg, ${C.navy} 0%, var(--aksen-terang) 100%)`,
             borderRadius: 16, padding: "22px 24px", color: "var(--surface)",
           }}>
             <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>

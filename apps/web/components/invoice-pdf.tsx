@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
 
   // ── Notes ──
   notesRow: { marginTop: 10, padding: "7 10", backgroundColor: "var(--warning-bg)", borderRadius: 4, borderWidth: 1, borderColor: "var(--warning-border)" },
-  notesText: { fontSize: 7.5, color: "#92400E" },
+  notesText: { fontSize: 7.5, color: "var(--on-warning-bg)" },
 
   // ── Verify ──
   verifyText: { fontSize: 6.5, color: MUTED, marginTop: 10, textAlign: "center" },
@@ -427,7 +427,7 @@ export function InvoicePDF({ invoice, company, qrDataUrl }: InvoicePDFProps) {
         )}
         {inv.notes && (
           <View style={[styles.notesRow, { backgroundColor: "var(--info-bg)", borderColor: "var(--info-border)", marginTop: 4 }]}>
-            <Text style={[styles.notesText, { color: "#1E40AF" }]}>{inv.notes}</Text>
+            <Text style={[styles.notesText, { color: "var(--on-info-bg)" }]}>{inv.notes}</Text>
           </View>
         )}
 

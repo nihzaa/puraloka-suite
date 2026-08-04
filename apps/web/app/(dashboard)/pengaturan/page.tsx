@@ -339,7 +339,7 @@ function PengaturanContent() {
                 style={{
                   display: "inline-flex", alignItems: "center", gap: 7,
                   padding: "11px 24px", borderRadius: 9, border: "none",
-                  background: saving ? "#94A3B8" : C.navy, color: "var(--surface)",
+                  background: saving ? "var(--text-muted)" : C.navy, color: "var(--surface)",
                   fontSize: 14, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer",
                 }}>
                 <Save size={15} />

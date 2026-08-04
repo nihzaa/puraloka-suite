@@ -143,7 +143,7 @@ export default function MandorScopePage() {
                           }}
                           style={{
                             padding: "16px 20px",
-                            background: scope.status === "active" ? "#FAFCFF" : "transparent",
+                            background: scope.status === "active" ? "var(--surface-subtle)" : "transparent",
                             cursor: "pointer",
                           }}
                           onClick={() => setExpanded((prev) => ({ ...prev, [scope.id]: !isExpanded }))}

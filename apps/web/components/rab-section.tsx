@@ -81,10 +81,10 @@ function KomponenBar({ mat, upah, alat, other }: { mat: number; upah: number; al
   if (total === 0) return null;
   return (
     <div style={{ display: "flex", height: 5, borderRadius: 3, overflow: "hidden", gap: 1 }}>
-      {mat > 0 && <div style={{ flex: mat, background: "#3B82F6" }} title={`Material ${mat}%`} />}
-      {upah > 0 && <div style={{ flex: upah, background: "#10B981" }} title={`Upah ${upah}%`} />}
+      {mat > 0 && <div style={{ flex: mat, background: "var(--info)" }} title={`Material ${mat}%`} />}
+      {upah > 0 && <div style={{ flex: upah, background: "var(--success)" }} title={`Upah ${upah}%`} />}
       {alat > 0 && <div style={{ flex: alat, background: "var(--warning)" }} title={`Alat ${alat}%`} />}
-      {other > 0 && <div style={{ flex: other, background: "#8B5CF6" }} title={`Lain ${other}%`} />}
+      {other > 0 && <div style={{ flex: other, background: "var(--aksen)" }} title={`Lain ${other}%`} />}
     </div>
   );
 }
@@ -467,10 +467,10 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
         <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 200 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 3 }}>
             {[
-              { key: "mat", label: "Mat.", color: "#3B82F6" },
-              { key: "upah", label: "Upah", color: "#10B981" },
+              { key: "mat", label: "Mat.", color: "var(--info)" },
+              { key: "upah", label: "Upah", color: "var(--success)" },
               { key: "alat", label: "Alat", color: "var(--warning)" },
-              { key: "other", label: "Lain", color: "#8B5CF6" },
+              { key: "other", label: "Lain", color: "var(--aksen)" },
             ].map(({ key, label, color }) => (
               <div key={key} style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 9, color, fontWeight: 700, marginBottom: 2 }}>{label}</div>
@@ -511,10 +511,10 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
       return (
         <div style={{ cursor: canEdit ? "pointer" : "default" }} {...dapatDitekan(canEdit ? () => startEditKomponen(item) : null, `Ubah komponen biaya ${item.name}`)}>
           <div style={{ display: "flex", gap: 6, fontSize: 10, marginBottom: 3, flexWrap: "wrap" }}>
-            {item.material_pct > 0 && <span style={{ color: "#3B82F6" }}>Mat {item.material_pct}%</span>}
-            {item.upah_pct > 0 && <span style={{ color: "#10B981" }}>Upah {item.upah_pct}%</span>}
+            {item.material_pct > 0 && <span style={{ color: "var(--info)" }}>Mat {item.material_pct}%</span>}
+            {item.upah_pct > 0 && <span style={{ color: "var(--success)" }}>Upah {item.upah_pct}%</span>}
             {item.alat_pct > 0 && <span style={{ color: "var(--warning)" }}>Alat {item.alat_pct}%</span>}
-            {item.other_pct > 0 && <span style={{ color: "#8B5CF6" }}>Lain {item.other_pct}%</span>}
+            {item.other_pct > 0 && <span style={{ color: "var(--aksen)" }}>Lain {item.other_pct}%</span>}
           </div>
           <KomponenBar mat={item.material_pct} upah={item.upah_pct} alat={item.alat_pct} other={item.other_pct} />
         </div>
@@ -577,7 +577,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
               return (
                 <div key={child.id}>
                   <div
-                    style={{ display: "grid", gridTemplateColumns: gridCols, gap: 6, alignItems: "center", padding: "8px 14px 8px 28px", background: "#F8F9FF", borderBottom: "1px solid var(--border)", cursor: subChildren.length > 0 ? "pointer" : "default" }}
+                    style={{ display: "grid", gridTemplateColumns: gridCols, gap: 6, alignItems: "center", padding: "8px 14px 8px 28px", background: "var(--bg)", borderBottom: "1px solid var(--border)", cursor: subChildren.length > 0 ? "pointer" : "default" }}
                     {...dapatDitekan(
                       subChildren.length > 0 ? () => toggleCollapse(child.id) : null,
                       `${subCollapsed ? "Buka" : "Lipat"} sub-kategori ${child.name}`,
@@ -639,7 +639,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
         {!hideHeader && (
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--navy), #0066CC)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <BarChart2 size={18} color="var(--surface)" />
             </div>
             <div>
@@ -701,7 +701,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
                 onClick={() => fileRef.current?.click()}
                 disabled={uploading}
                 style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, background: uploading ? "var(--text-muted)" : C.navy, color: "var(--surface)", border: "none", cursor: uploading ? "not-allowed" : "pointer" }}
-                onMouseEnter={e => { if (!uploading) e.currentTarget.style.background = "#002244"; }}
+                onMouseEnter={e => { if (!uploading) e.currentTarget.style.background = "var(--aksen-pekat)"; }}
                 onMouseLeave={e => { if (!uploading) e.currentTarget.style.background = C.navy; }}
               >
                 <Upload size={14} />
@@ -750,7 +750,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
            menjaga label tetap murni sebagai pemicu unggah. */
         <div onDrop={handleDrop} onDragOver={e => e.preventDefault()}>
         <label
-          style={{ padding: "40px 24px", textAlign: "center", border: "2px dashed var(--border)", borderRadius: 12, display: "block", background: "#FAFAFA", cursor: canEdit ? "pointer" : "default" }}
+          style={{ padding: "40px 24px", textAlign: "center", border: "2px dashed var(--border)", borderRadius: 12, display: "block", background: "var(--surface-subtle)", cursor: canEdit ? "pointer" : "default" }}
         >
           {canEdit && (
             <input
@@ -769,7 +769,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
 
       {/* Overall progress summary */}
       {hasData && categories.length > 0 && (
-        <div style={{ marginBottom: 16, padding: "14px 18px", borderRadius: 10, background: "linear-gradient(135deg, var(--navy), #0055AA)", display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
+        <div style={{ marginBottom: 16, padding: "14px 18px", borderRadius: 10, background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))", display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
           <div>
             <p style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", margin: "0 0 2px" }}>Serapan Dana (Weighted)</p>
             <p style={{ fontSize: 28, fontWeight: 700, color: "#fff", margin: 0, lineHeight: 1 }}>{overallSerapan.toFixed(1)}%</p>
@@ -785,10 +785,10 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
             <div style={{ borderLeft: "1px solid rgba(255,255,255,0.2)", paddingLeft: 20 }}>
               <p style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", margin: "0 0 6px" }}>Serapan Rencana (dari komponen biaya)</p>
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                {komponenSummary.mat > 0 && <div><p style={{ fontSize: 10, color: "#93C5FD", margin: 0 }}>Material</p><p style={{ fontSize: 13, fontWeight: 600, color: "var(--surface)", margin: 0 }}>{fmtCompact(komponenSummary.mat)}</p></div>}
+                {komponenSummary.mat > 0 && <div><p style={{ fontSize: 10, color: "var(--info-border)", margin: 0 }}>Material</p><p style={{ fontSize: 13, fontWeight: 600, color: "var(--surface)", margin: 0 }}>{fmtCompact(komponenSummary.mat)}</p></div>}
                 {komponenSummary.upah > 0 && <div><p style={{ fontSize: 10, color: "#6EE7B7", margin: 0 }}>Upah</p><p style={{ fontSize: 13, fontWeight: 600, color: "var(--surface)", margin: 0 }}>{fmtCompact(komponenSummary.upah)}</p></div>}
                 {komponenSummary.alat > 0 && <div><p style={{ fontSize: 10, color: "#FCD34D", margin: 0 }}>Alat</p><p style={{ fontSize: 13, fontWeight: 600, color: "var(--surface)", margin: 0 }}>{fmtCompact(komponenSummary.alat)}</p></div>}
-                {komponenSummary.other > 0 && <div><p style={{ fontSize: 10, color: "#C4B5FD", margin: 0 }}>Lain</p><p style={{ fontSize: 13, fontWeight: 600, color: "var(--surface)", margin: 0 }}>{fmtCompact(komponenSummary.other)}</p></div>}
+                {komponenSummary.other > 0 && <div><p style={{ fontSize: 10, color: "var(--aksen-terang)", margin: 0 }}>Lain</p><p style={{ fontSize: 13, fontWeight: 600, color: "var(--surface)", margin: 0 }}>{fmtCompact(komponenSummary.other)}</p></div>}
               </div>
             </div>
           )}

@@ -152,7 +152,7 @@ export function SidebarFokus({ collapsed }: { collapsed: boolean }) {
                 fontSize: 22, fontWeight: 700, lineHeight: 1,
                 fontVariantNumeric: "tabular-nums",
                 fontFamily: "var(--font-display, inherit)",
-                // `--on-aksen` bukan "#FFFFFF": di mode gelap ia berbalik jadi
+                // `--on-aksen` bukan "var(--surface)": di mode gelap ia berbalik jadi
                 // gelap, karena aksen di sana adalah indigo TERANG. Putih mati
                 // di sini memberi kontras 2,x:1 — cacat yang persis sama sudah
                 // pernah terjadi pada tombol Masuk (lihat --on-navy).

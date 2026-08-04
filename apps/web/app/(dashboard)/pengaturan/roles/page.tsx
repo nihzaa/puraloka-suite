@@ -370,7 +370,7 @@ function RolesContent() {
                   <button
                     onClick={savePermissions}
                     disabled={saving}
-                    style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 7, border: "none", background: saving ? "#94A3B8" : C.navy, color: "var(--surface)", fontSize: 12, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer" }}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 7, border: "none", background: saving ? "var(--text-muted)" : C.navy, color: "var(--surface)", fontSize: 12, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer" }}
                   >
                     <Check size={13} /> {saving ? "Menyimpan..." : "Simpan"}
                   </button>
@@ -396,7 +396,7 @@ function RolesContent() {
                         style={{
                           display: "flex", alignItems: "center", gap: 10,
                           padding: "10px 22px", cursor: "pointer",
-                          background: "#FAFAFA",
+                          background: "var(--surface-subtle)",
                         }}
                       >
                         <button
@@ -443,7 +443,7 @@ function RolesContent() {
                                   display: "flex", alignItems: "flex-start", gap: 10,
                                   padding: "7px 10px", borderRadius: 8, marginBottom: 2,
                                   cursor: canManage ? "pointer" : "default",
-                                  background: checked ? "#F0F9FF" : "transparent",
+                                  background: checked ? "var(--info-bg)" : "transparent",
                                   transition: "background 0.1s",
                                 }}
                                 onMouseEnter={e => { if (canManage && !checked) (e.currentTarget as HTMLDivElement).style.background = "var(--surface-subtle)"; }}
@@ -524,9 +524,9 @@ function RolesContent() {
 // ─── Role Form Modal (Add / Edit) ──────────────────────────────────────────────
 
 const ROLE_COLORS = [
-  "#6D28D9", "var(--info)", "var(--warning)", "var(--text-secondary)",
-  "#059669", "#DC2626", "#0891B2", "#7C3AED",
-  "var(--warning)", "#0F766E", "#BE185D", "#374151",
+  "var(--aksen)", "var(--info)", "var(--warning)", "var(--text-secondary)",
+  "#059669", "var(--danger)", "var(--data-2)", "var(--aksen)",
+  "var(--warning)", "#0F766E", "#BE185D", "var(--text-secondary)",
 ];
 
 function RoleFormModal({ role, roles, onClose, onSaved, setToast }: {
@@ -674,7 +674,7 @@ function RoleFormModal({ role, roles, onClose, onSaved, setToast }: {
               Batal
             </button>
             <button type="submit" disabled={saving}
-              style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: saving ? "#94A3B8" : C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer" }}>
+              style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: saving ? "var(--text-muted)" : C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer" }}>
               {saving ? "Menyimpan..." : isEdit ? "Simpan Perubahan" : "Buat Role"}
             </button>
           </div>
@@ -730,7 +730,7 @@ function DeleteRoleModal({ role, onClose, onDeleted, setToast }: {
             Batal
           </button>
           <button onClick={handleDelete} disabled={deleting}
-            style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: deleting ? "#94A3B8" : C.red, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: deleting ? "not-allowed" : "pointer" }}>
+            style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: deleting ? "var(--text-muted)" : C.red, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: deleting ? "not-allowed" : "pointer" }}>
             {deleting ? "Menghapus..." : "Hapus Role"}
           </button>
         </div>

@@ -16,7 +16,7 @@ const C = {
   green: "var(--success)", greenBg: "var(--success-bg)", greenBorder: "var(--success-border)",
   red: "var(--danger)", redBg: "var(--danger-bg)", redBorder: "var(--danger-border)",
   yellow: "var(--warning)", yellowBg: "var(--warning-bg)", yellowBorder: "var(--warning-border)",
-  orange: "#C2410C", orangeBg: "#FFF7ED",
+  orange: "var(--data-5)", orangeBg: "var(--warning-bg)",
 };
 
 const fmt = (n: number) =>
@@ -25,7 +25,7 @@ const fmt = (n: number) =>
 const PAYMENT_SYSTEM_LABEL: Record<string, { label: string; color: string; bg: string }> = {
   harian:       { label: "Harian",     color: C.navy,   bg: C.navyLight },
   borongan:     { label: "Borongan",   color: C.green,  bg: C.greenBg },
-  progress_pct: { label: "Progress %", color: "#7C3AED", bg: "#F5F3FF" },
+  progress_pct: { label: "Progress %", color: "var(--aksen)", bg: "var(--navy-light)" },
 };
 
 export interface KasbonItem {
@@ -63,7 +63,7 @@ function useMounted() {
 }
 
 // Compact dual progress bar: progress fisik (navy) + kasbon (orange)
-function ScopeBars({ scope, scopeTotal }: { scope: WorkScope; scopeTotal: number }) {
+function ScopeBars({ scope }: { scope: WorkScope }) {
   const kasbons = scope.kasbons ?? [];
   const kasbonActive = kasbons
     .filter(k => k.status === "approved" || k.status === "pending")
@@ -326,7 +326,7 @@ export function MandorSection({
                                   <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{scope.description}</div>
                                 )}
                                 {/* Double progress bars */}
-                                <ScopeBars scope={scope} scopeTotal={Number(scope.borongan_value ?? 0)} />
+                                <ScopeBars scope={scope} />
                               </div>
                               {canEdit && (
                                 <button aria-label="Hapus scope"

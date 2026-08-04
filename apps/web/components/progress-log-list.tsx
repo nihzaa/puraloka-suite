@@ -328,7 +328,7 @@ function LogCard({
               {/* Progress badge */}
               <span style={{
                 fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 99,
-                color: "#065F46", background: "#ECFDF5", border: "1px solid #A7F3D0",
+                color: "var(--on-success-bg)", background: "var(--success-bg)", border: "1px solid #A7F3D0",
               }}>
                 {log.pct_overall}% selesai
               </span>
@@ -449,7 +449,7 @@ export function ProgressLogList({
         }}>
           <Camera size={24} style={{ color: "var(--border-strong)" }} />
         </div>
-        <p style={{ fontSize: 14, fontWeight: 600, color: "#374151", margin: 0 }}>
+        <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-secondary)", margin: 0 }}>
           Belum ada log progress
         </p>
         <p style={{ fontSize: 13, color: C.muted, margin: 0, textAlign: "center", maxWidth: 280 }}>

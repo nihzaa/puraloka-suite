@@ -80,6 +80,24 @@
   --info-bg:          #EFF6FF;
   --info-border:      #BFDBFE;
 
+  /* ── Teks DI ATAS latar semantik (lencana, pil status) ───────────────
+   *
+   * Kelas token yang selama ini HILANG, dan itu sebabnya 165 hex mati masih
+   * tersisa setelah penyapuan otomatis: `--warning` (#B45309) dipakai untuk
+   * teks di atas putih, tapi lencana butuh nada yang lebih pekat lagi karena
+   * latarnya sudah berwarna. Tanpa token untuk itu, tiap halaman menuliskan
+   * hex-nya sendiri — dan tak satu pun ikut berbalik di mode gelap.
+   *
+   * Diukur terhadap latar sebenarnya, bukan terhadap putih:
+   *   #92400E di --warning-bg  6,84:1  AA
+   *   #065F46 di --success-bg  7,34:1  AAA
+   *   #991B1B di --danger-bg   7,60:1  AAA
+   *   #1E40AF di --info-bg     8,01:1  AAA */
+  --on-warning-bg:    #92400E;
+  --on-success-bg:    #065F46;
+  --on-danger-bg:     #991B1B;
+  --on-info-bg:       #1E40AF;
+
   /* ─── Warm Clay tokens — Light ───────────────────────────────── */
   --primary:          #003B5C;
   --primary-soft:      #E4EEF2;
@@ -211,48 +229,105 @@
    */
 
   /* Aksen tunggal — dipakai HEMAT. Aturannya: satu aksen per layar.
-   * Kalau tiga hal berwarna indigo, tak ada yang menonjol, dan halaman
+   * Kalau tiga hal berwarna sama menyala, tak ada yang menonjol, dan halaman
    * kembali monoton dengan warna yang berbeda.
    *
-   * ⚠️ #6366F1 (Indigo-500) DITOLAK, dan itu ketahuan karena diukur — bukan
-   * karena dibaca ulang. Sebagai warna TEKS ia hanya:
-   *     4,47 di --surface   4,24 di --bg   4,06 di --surface-hover
-   *     3,94 di --aksen-lembut
-   * Syaratnya 4,5. Ia gagal di SELURUH latar terang, termasuk yang paling
-   * lazim (putih), dan paling parah justru di latarnya sendiri.
+   * ── Kenapa NAVY, bukan indigo (koreksi 2026-08-05)
    *
-   * Persis kelas cacat yang sudah mahal di repo ini: --danger #EF4444 lolos
-   * berbulan-bulan karena audit hanya menjalankan mode terang, dan --text-muted
-   * #9CA3AF lolos sampai axe menemukannya di halaman LOGIN.
+   * Versi sebelumnya memakai indigo #4F46E5. Itu keliru, dan founder yang
+   * menangkapnya: *"kok jadi ungu bukan biru"*. Indigo dipilih dari palet
+   * umum — bukan dari logo. Logo Puraloka Persada memakai navy #003366.
    *
-   * #4F46E5 (Indigo-600) lulus di seluruh latar terang dengan margin sehat:
-   *     5,55 di --surface   5,26 di --bg   5,04 di --surface-hover
-   *     4,89 di --aksen-lembut
-   * Rona indigonya tak berubah — hanya lebih pekat, dan justru itu yang
-   * membuatnya duduk lebih baik di sebelah navy #003366. */
-  --aksen:            #4F46E5;
-  --aksen-pekat:      #4338CA;
-  --aksen-terang:     #818CF8;
-  --aksen-lembut:     #EEF0FF;
+   * Aplikasi yang warnanya bukan warna perusahaannya sendiri terasa seperti
+   * template yang dibeli, dan itu persis kesan yang harus dihindari.
+   *
+   * Emas pada logo SENGAJA tidak dijadikan aksen kedua (arahan founder
+   * 2026-08-05). Dua warna merek yang sama-sama menyala saling berebut, dan
+   * emas di sebelah kuning peringatan membuat "hati-hati" berhenti terbaca
+   * sebagai peringatan. Emas boleh hidup di logo; UI-nya navy.
+   *
+   * ── Diukur, bukan dikira (apps/web/scripts/ukur-kontras.mjs)
+   *
+   * Kelas cacat yang sudah mahal di repo ini: --danger #EF4444 lolos
+   * berbulan-bulan karena audit hanya menjalankan mode terang, --text-muted
+   * #9CA3AF lolos sampai axe menemukannya di halaman LOGIN, dan #6366F1
+   * nyaris terpakai padahal 4,47 di putih (butuh 4,5).
+   *
+   * #003366 sebagai teks/ikon:
+   *     12,61 di putih   ·   11,87 di kanvas   ·   12,61 di kartu   → AAA
+   * Teks putih di atasnya: 12,61 → AAA. */
+  --aksen:            #003366;
+  --aksen-pekat:      #001F3D;
+  --aksen-terang:     #0059B3;
+  --aksen-lembut:     #E8F0F8;
   --on-aksen:         #FFFFFF;
 
-  /* Gradasi: PEKAT → TERANG. Arahnya konsisten di seluruh aplikasi supaya
-   * pemakai belajar membacanya sekali, lalu berlaku di mana-mana. */
-  --grad-aksen:       linear-gradient(135deg, #3730A3 0%, #4F46E5 55%, #818CF8 100%);
-  --grad-aksen-tegak: linear-gradient(180deg, #818CF8 0%, #3730A3 100%);
-  --grad-navy:        linear-gradient(135deg, #003366 0%, #0050A0 60%, #4D9FFF 100%);
+  /* Gradasi: PEKAT → TERANG, tapi TETAP NAVY di seluruh rentangnya.
+   *
+   * ── Koreksi 2026-08-05 (founder: *"ke yang paling terang itu warna
+   *    brand-nya, jangan bikin ke arah terang itu ke warna lain"*)
+   *
+   * Versi sebelumnya berakhir di #2C7BD9. Diukur, itu rona 213° dengan
+   * saturasi 69% — sudah bergeser jadi biru langit, bukan navy lagi.
+   * Gradasi yang berpindah warna membuat merek terlihat dua warna.
+   *
+   * Aturan barunya: **rona dikunci 210°, saturasi 100%, hanya LIGHTNESS
+   * yang berubah.** Seluruh perhentian di bawah lahir dari satu tangga
+   * hsl(210,100%,L) — navy yang sama, dinaikkan terangnya.
+   *
+   *   L12% #001F3D  ·  L20% #003366 (merek)  ·  L35% #0059B3
+   *
+   * Ujung terang #0059B3 sengaja dipilih di L35%, bukan lebih terang: teks
+   * putih di atasnya 6,82:1 → lulus AA penuh. Perhentian sebelumnya hanya
+   * 4,25 — gagal untuk teks. */
+  --grad-aksen:       linear-gradient(135deg, #001F3D 0%, #003366 55%, #0059B3 100%);
+  --grad-aksen-tegak: linear-gradient(180deg, #0059B3 0%, #001F3D 100%);
+  --grad-navy:        linear-gradient(135deg, #001F3D 0%, #003366 60%, #0059B3 100%);
+
+  /* Permukaan MEREK — satu-satunya gradasi yang TIDAK berbalik di mode gelap.
+   *
+   * Dipakai untuk bidang besar yang mewakili perusahaan, bukan data: panel
+   * kiri halaman masuk, kop laporan cetak, kartu berbagi.
+   *
+   * Kenapa dikecualikan: `--grad-aksen` mode gelap sengaja dinaikkan
+   * terangnya supaya kartu KPI kecil terbaca di latar gelap. Terang itu benar
+   * untuk elemen kecil, dan salah untuk bidang setengah layar — dipotret,
+   * panel masuk berubah jadi biru menyala dan mereknya terlihat berganti
+   * warna antar-mode. Kop surat perusahaan tidak berubah warna karena lampu
+   * ruangan; permukaan merek juga tidak. */
+  --grad-merek:       linear-gradient(135deg, #001F3D 0%, #003366 55%, #0059B3 100%);
+  --on-merek:         #FFFFFF;
   /* Untuk area di bawah garis grafik — memudar jadi tembus pandang supaya
    * garis kisi di belakangnya tetap terbaca. */
-  --grad-area:        linear-gradient(180deg, rgba(79,70,229,0.26) 0%, rgba(79,70,229,0.02) 100%);
+  --grad-area:        linear-gradient(180deg, rgba(0,51,102,0.24) 0%, rgba(0,51,102,0.02) 100%);
 
-  /* Deret warna data. Dipilih agar bisa dibedakan pada penglihatan buta
-   * warna deutan/protan — bukan sekadar "enak dilihat": tiga deret pertama
-   * berbeda TERANGNYA, bukan hanya rona. */
+  /* Deret warna data — DICARI, bukan dipilih dengan selera.
+   *
+   * ── Kenapa diganti (2026-08-05)
+   *
+   * Deret sebelumnya membawa komentar "dipilih agar bisa dibedakan pada
+   * penglihatan deutan/protan". Komentar itu TIDAK BENAR, dan ketahuan saat
+   * `uji-deret-data.mjs` dijalankan pertama kali: pada protanopia,
+   * `--data-2` (biru) dan `--data-5` (ungu) jatuh ke ΔE 1,9 — praktis warna
+   * yang sama. Grafik lima seri jadi grafik empat seri bagi ~8% pria, tanpa
+   * ada yang tahu.
+   *
+   * Klaim aksesibilitas yang tak pernah diukur adalah klaim kosong. Deret
+   * ini sekarang hasil pencarian menyeluruh atas 24 kandidat, dinilai pada
+   * penglihatan normal + deutan + protan sekaligus: ΔE minimum 27,3.
+   *
+   * Ronanya sengaja DIBATASI ke navy/teal/hijau/amber/oranye. Pencarian
+   * tanpa batas memilih ungu-magenta — secara matematis paling menjauh, tapi
+   * ERP konstruksi berwarna ungu terlihat seperti aplikasi hiburan. Palet
+   * harus lolos aksesibilitas DAN pantas dilihat delapan jam sehari.
+   *
+   * Dijaga: `node apps/web/scripts/uji-deret-data.mjs` (membaca berkas ini
+   * langsung, jadi tak bisa basi diam-diam). */
   --data-1:           #003366;
-  --data-2:           #4F46E5;
-  --data-3:           #0891B2;
-  --data-4:           #B45309;
-  --data-5:           #7C3AED;
+  --data-2:           #0891B2;
+  --data-3:           #15803D;
+  --data-4:           #A16207;
+  --data-5:           #EA580C;
   /* Deret NETRAL untuk yang tak sedang disorot. Ini yang membuat satu batang
    * bergradasi menonjol — tanpa latar diam, gradasi apa pun ikut tenggelam. */
   --data-diam:        #D8DCE6;
@@ -330,6 +405,19 @@
   --info-bg:          rgba(96,165,250,0.10);
   --info-border:      rgba(96,165,250,0.25);
 
+  /* Teks di atas latar semantik — mode gelap.
+   *
+   * Di sini latarnya rgba 10% di atas permukaan gelap, jadi warnanya nyaris
+   * sama gelapnya dengan kartu. Teks harus TERANG, bukan pekat seperti mode
+   * terang — membalik pasangan ini adalah cara paling umum mode gelap jadi
+   * tak terbaca. Diukur terhadap latar hasil komposit yang sebenarnya:
+   *   #FCD34D di warning-bg  11,37:1   ·  #6EE7B7 di success-bg  10,71:1
+   *   #FCA5A5 di danger-bg    8,94:1   ·  #93C5FD di info-bg      9,02:1 */
+  --on-warning-bg:    #FCD34D;
+  --on-success-bg:    #6EE7B7;
+  --on-danger-bg:     #FCA5A5;
+  --on-info-bg:       #93C5FD;
+
   /* ─── Warm Clay tokens — Dark ─────────────────────────────────── */
   --primary:           #4D9FFF;
   --primary-soft:      rgba(77,159,255,0.12);
@@ -351,33 +439,45 @@
    * ARAH VISUAL 2026 — varian MODE GELAP (R-012)
    * ═══════════════════════════════════════════════════════════════════
    *
-   * Aksen TIDAK dipakai sama seperti mode terang. Indigo #6366F1 di atas
-   * latar gelap (#1A1D27) hanya 3,6:1 — gagal AA sebagai warna teks.
-   * Dinaikkan ke #818CF8 (7,1:1). Ini pelajaran yang sudah mahal di repo
-   * ini: `--danger` lolos berbulan-bulan karena mode gelap tak pernah
-   * diaudit (lihat komentar di atas).
+   * Aksen TIDAK dipakai sama seperti mode terang. Navy merek #003366 di atas
+   * latar gelap (#0F1117) hanya 1,4:1 — praktis tak terlihat. Warna merek
+   * yang dipakai apa adanya di mode gelap adalah cara paling umum membuat
+   * mode gelap terasa "tempelan".
+   *
+   * Yang dilakukan: naikkan terangnya, KUNCI ronanya di 210° dan saturasi
+   * 100% — tangga yang sama persis dengan mode terang, hanya diambil dari
+   * ujung atasnya. #7ABDFF adalah hsl(210,100%,74%): navy merek yang
+   * dinaikkan, bukan biru yang lain. Diukur: 9,48 kanvas · 8,73 kartu → AAA.
+   *
+   * Ini pelajaran yang sudah mahal di repo ini: `--danger` lolos berbulan-
+   * bulan karena mode gelap tak pernah diaudit.
    */
-  --aksen:            #818CF8;
-  --aksen-pekat:      #6366F1;
-  --aksen-terang:     #A5B4FC;
-  --aksen-lembut:     rgba(129,140,248,0.14);
+  --aksen:            #7ABDFF;
+  --aksen-pekat:      #4DA6FF;
+  --aksen-terang:     #A8D3FF;
+  --aksen-lembut:     rgba(122,189,255,0.14);
   --on-aksen:         #0F1117;
 
-  /* Gradasi mode gelap: arahnya sama (pekat→terang) tapi RENTANGNYA lebih
-   * sempit. Di latar gelap, gradasi berkontras tinggi tampak "menyala"
-   * berlebihan dan justru mengganggu — permukaannya jadi lebih menonjol
-   * daripada angka yang ia wakili. */
-  --grad-aksen:       linear-gradient(135deg, #4F46E5 0%, #6366F1 55%, #A5B4FC 100%);
-  --grad-aksen-tegak: linear-gradient(180deg, #A5B4FC 0%, #4F46E5 100%);
-  --grad-navy:        linear-gradient(135deg, #1E3A8A 0%, #2563EB 60%, #93C5FD 100%);
-  --grad-area:        linear-gradient(180deg, rgba(129,140,248,0.30) 0%, rgba(129,140,248,0.02) 100%);
+  /* Gradasi mode gelap: arahnya sama (pekat→terang), ronanya sama (210°),
+   * tapi RENTANGNYA lebih sempit. Di latar gelap, gradasi berkontras tinggi
+   * tampak "menyala" berlebihan dan justru mengganggu — permukaannya jadi
+   * lebih menonjol daripada angka yang ia wakili. */
+  --grad-aksen:       linear-gradient(135deg, #0059B3 0%, #0073E6 55%, #7ABDFF 100%);
+  --grad-aksen-tegak: linear-gradient(180deg, #7ABDFF 0%, #0059B3 100%);
+  --grad-navy:        linear-gradient(135deg, #001F3D 0%, #0059B3 60%, #7ABDFF 100%);
+  --grad-area:        linear-gradient(180deg, rgba(122,189,255,0.28) 0%, rgba(122,189,255,0.02) 100%);
 
-  /* Deret data — dinaikkan terangnya supaya terbaca di latar gelap. */
-  --data-1:           #60A5FA;
-  --data-2:           #818CF8;
-  --data-3:           #22D3EE;
-  --data-4:           #FBBF24;
-  --data-5:           #A78BFA;
+  /* Deret data — dinaikkan terangnya supaya terbaca di latar gelap, dengan
+   * rona yang SEPADAN dengan mode terang: biru → teal → hijau → amber →
+   * lime. Pemakai yang berpindah mode harus mengenali grafik yang sama,
+   * bukan belajar palet kedua.
+   *
+   * Diuji pada normal + deutan + protan: ΔE minimum 21,1. */
+  --data-1:           #7ABDFF;
+  --data-2:           #34D399;
+  --data-3:           #FBBF24;
+  --data-4:           #A3E635;
+  --data-5:           #CBD5E1;
   /* Netral gelap: cukup terlihat untuk dibaca sebagai data, cukup diam
    * untuk tidak bersaing dengan yang sedang disorot. */
   --data-diam:        #363A52;

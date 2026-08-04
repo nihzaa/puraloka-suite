@@ -96,7 +96,7 @@ function Skeleton({ h = 20, w = "100%" }: { h?: number; w?: string | number }) {
   return (
     <div style={{
       height: h, width: w, borderRadius: 8,
-      background: "linear-gradient(90deg, var(--surface-hover) 0%, #E9EAEB 50%, var(--surface-hover) 100%)",
+      background: "linear-gradient(90deg, var(--surface-hover) 0%, var(--border) 50%, var(--surface-hover) 100%)",
       backgroundSize: "200% 100%",
       animation: "shimmer 1.5s ease-in-out infinite",
     }} />
@@ -322,7 +322,7 @@ function ProyekContent() {
               background: C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600,
               cursor: "pointer", transition: "background 0.15s",
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = "#002244"; }}
+            onMouseEnter={e => { e.currentTarget.style.background = "var(--aksen-pekat)"; }}
             onMouseLeave={e => { e.currentTarget.style.background = C.navy; }}
           >
             <Plus size={15} />
@@ -639,7 +639,7 @@ function ProjectCardGrid({ project: p, onClick }: { project: Project; onClick: (
             </div>
           </div>
         )}
-        {p.clients && p.pm && <div style={{ width: 1, height: 28, background: "#F0F0F0", flexShrink: 0 }} />}
+        {p.clients && p.pm && <div style={{ width: 1, height: 28, background: "var(--surface-hover)", flexShrink: 0 }} />}
         {p.pm && (
           <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>
             <Avatar name={p.pm.name} size={26} />

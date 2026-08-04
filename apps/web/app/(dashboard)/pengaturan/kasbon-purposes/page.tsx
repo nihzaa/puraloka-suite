@@ -126,7 +126,7 @@ function AddCard({ existing, onDone, onError }: { existing: KasbonPurposeRow[]; 
         </div>
       </div>
       <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-        <button onClick={submit} disabled={saving || dup} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, border: "none", background: saving || dup ? "#94A3B8" : C.navy, color: "#fff", fontSize: 13, fontWeight: 600, cursor: saving || dup ? "not-allowed" : "pointer" }}>
+        <button onClick={submit} disabled={saving || dup} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, border: "none", background: saving || dup ? "var(--text-muted)" : C.navy, color: "#fff", fontSize: 13, fontWeight: 600, cursor: saving || dup ? "not-allowed" : "pointer" }}>
           <Save size={14} /> {saving ? "Menyimpan..." : "Simpan"}
         </button>
         <button onClick={() => setOpen(false)} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 13, cursor: "pointer" }}>Batal</button>

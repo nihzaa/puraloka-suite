@@ -162,7 +162,14 @@ function SectionHeader({
   );
 }
 
-function ProgressBar({ pct, color = "linear-gradient(90deg,var(--navy),var(--navy-mid))" }: { pct: number; color?: string }) {
+/**
+ * Batang progres.
+ *
+ * Isian bergradasi PEKAT→TERANG searah pertumbuhan (R-012): mata mengikuti
+ * perjalanannya, bukan sekadar membaca panjangnya. Arahnya sama dengan donat
+ * dan grafik lain, jadi pemakai belajar membacanya sekali.
+ */
+function ProgressBar({ pct, color = "var(--grad-aksen)" }: { pct: number; color?: string }) {
   return (
     <div style={{ height: 6, background: "var(--surface-hover)", borderRadius: 99, overflow: "hidden" }}>
       <div style={{ height: "100%", width: `${Math.min(pct, 100)}%`, background: color, borderRadius: 99, transition: "width 0.5s cubic-bezier(0.16,1,0.3,1)" }} />
@@ -307,19 +314,37 @@ function DashboardContent() {
         <ResponsiveContainer width="100%" height={200}>
           <AreaChart data={data?.cashflow_8w ?? []} margin={{ top: 2, right: 4, bottom: 0, left: 0 }}>
             <defs>
+              {/* ── Gradasi area (R-012) ────────────────────────────────
+                  Sebelumnya opacity 0,12 → 0: nyaris tak terlihat, jadi
+                  garisnya melayang tanpa bobot. Referensi memakai isian
+                  yang jelas pekat di puncak lalu memudar — itu yang membuat
+                  "berapa banyak" terbaca dari LUASNYA, bukan hanya dari
+                  ketinggian garisnya.
+
+                  Tetap memudar ke 0 di dasar supaya garis kisi di belakang
+                  tak tertutup. */}
               <linearGradient id="ig" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor={C.navy} stopOpacity={0.12} />
-                <stop offset="95%" stopColor={C.navy} stopOpacity={0} />
+                <stop offset="0%"  stopColor="var(--aksen)" stopOpacity={0.42} />
+                <stop offset="55%" stopColor="var(--aksen)" stopOpacity={0.14} />
+                <stop offset="100%" stopColor="var(--aksen)" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="eg" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor={C.red} stopOpacity={0.08} />
-                <stop offset="95%" stopColor={C.red} stopOpacity={0} />
+                <stop offset="0%"  stopColor={C.red} stopOpacity={0.26} />
+                <stop offset="60%" stopColor={C.red} stopOpacity={0.07} />
+                <stop offset="100%" stopColor={C.red} stopOpacity={0} />
+              </linearGradient>
+              {/* Garis pemasukan ikut bergradasi mendatar — pekat di kiri
+                  (masa lalu) ke terang di kanan (terkini), searah dengan
+                  cara orang membaca waktu. */}
+              <linearGradient id="garis-masuk" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%"   stopColor="var(--aksen-pekat)" />
+                <stop offset="100%" stopColor="var(--aksen-terang)" />
               </linearGradient>
             </defs>
             <XAxis dataKey="week_label" stroke="transparent" tick={{ fill: "var(--text-muted)", fontSize: 10 }} axisLine={false} tickLine={false} />
             <YAxis stroke="transparent" tick={{ fill: "var(--text-muted)", fontSize: 10 }} tickFormatter={v => fmtShort(v)} width={44} axisLine={false} tickLine={false} />
             <Tooltip contentStyle={ttStyle} formatter={((v: number, name: string) => [fmt(v), name === "income" ? "Pemasukan" : "Pengeluaran"]) as never} />
-            <Area type="monotone" dataKey="income"  stroke={C.navy} strokeWidth={2} fill="url(#ig)" dot={false} />
+            <Area type="monotone" dataKey="income"  stroke="url(#garis-masuk)" strokeWidth={2.5} fill="url(#ig)" dot={false} />
             <Area type="monotone" dataKey="expense" stroke={C.red}  strokeWidth={2} fill="url(#eg)" dot={false} />
           </AreaChart>
         </ResponsiveContainer>
@@ -346,9 +371,31 @@ function DashboardContent() {
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <div style={{ position: "relative", flexShrink: 0 }}>
               <PieChart width={110} height={110}>
+                {/* ── Gradasi HANYA pada irisan "aktif" (R-012) ───────────
+                    Pie ini menampilkan STATUS, dan status memang harus
+                    berbeda warna — menggradasikan semuanya justru menghapus
+                    maknanya: hijau-selesai jadi tak terbedakan dari
+                    kuning-ditunda.
+
+                    Yang bergradasi hanya irisan yang paling menentukan
+                    (proyek AKTIF), persis seperti satu batang tersorot di
+                    grafik batang. Itu yang membuatnya menonjol tanpa
+                    merusak kode warna status. */}
+                <defs>
+                  <linearGradient id="pie-aktif" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%"   stopColor="var(--aksen-pekat)" />
+                    <stop offset="60%"  stopColor="var(--aksen)" />
+                    <stop offset="100%" stopColor="var(--aksen-terang)" />
+                  </linearGradient>
+                </defs>
                 <Pie data={data?.status_distribution ?? []} dataKey="count" cx={55} cy={55} innerRadius={34} outerRadius={52} paddingAngle={3} strokeWidth={0}>
                   {(data?.status_distribution ?? []).map((e, i) => (
-                    <Cell key={i} fill={STATUS_COLOR[e.status] ?? C.muted} />
+                    <Cell
+                      key={i}
+                      fill={e.status === "active"
+                        ? "url(#pie-aktif)"
+                        : STATUS_COLOR[e.status] ?? C.muted}
+                    />
                   ))}
                 </Pie>
                 <Tooltip contentStyle={ttStyle} formatter={((v: number) => [v, ""]) as never} />
@@ -781,7 +828,7 @@ function TaxDeadlineBanner() {
       borderRadius: 8, padding: "8px 14px", display: "flex", alignItems: "center", gap: 8, marginBottom: 10,
     }}>
       <Landmark size={12} style={{ color: "var(--warning)", flexShrink: 0 }} />
-      <span style={{ fontSize: 11, color: "#92400E" }}>
+      <span style={{ fontSize: 11, color: "var(--on-warning-bg)" }}>
         Batas setor PPh Final: <strong style={{ color: "var(--warning)" }}>10 {deadline.toLocaleDateString("id-ID", { month: "long" })}</strong> ({days} hari lagi)
       </span>
     </div>

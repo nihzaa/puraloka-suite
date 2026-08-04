@@ -29,29 +29,29 @@ const TYPE_CONFIG: Record<string, {
   bg: string;
 }> = {
   project:   { icon: <FolderKanban size={13} />, label: "Proyek",   color: "var(--navy)", bg: "var(--navy-light)" },
-  client:    { icon: <Contact size={13} />,      label: "Klien",    color: "#0F766E", bg: "#F0FDFA" },
+  client:    { icon: <Contact size={13} />,      label: "Klien",    color: "#0F766E", bg: "var(--success-bg)" },
   invoice:   { icon: <Receipt size={13} />,      label: "Invoice",  color: "var(--success)", bg: "var(--success-bg)" },
-  kasbon:    { icon: <Wallet size={13} />,        label: "Kasbon",   color: "#C2410C", bg: "#FFF7ED" },
-  milestone: { icon: <Target size={13} />,        label: "Milestone",color: "#7C3AED", bg: "#F5F3FF" },
-  user:      { icon: <Users size={13} />,         label: "User",     color: "#374151", bg: "var(--surface-hover)" },
+  kasbon:    { icon: <Wallet size={13} />,        label: "Kasbon",   color: "var(--data-5)", bg: "var(--warning-bg)" },
+  milestone: { icon: <Target size={13} />,        label: "Milestone",color: "var(--aksen)", bg: "var(--navy-light)" },
+  user:      { icon: <Users size={13} />,         label: "User",     color: "var(--text-secondary)", bg: "var(--surface-hover)" },
 };
 
 const STATUS_COLOR: Record<string, string> = {
   active: "var(--success)", aktif: "var(--success)",
   completed: "var(--success)", selesai: "var(--success)",
-  pending: "#D97706",
+  pending: "var(--warning)",
   approved: "var(--info)",
   rejected: "var(--danger)", ditolak: "var(--danger)",
-  on_hold: "#D97706",
-  cancelled: "#9CA3AF",
+  on_hold: "var(--warning)",
+  cancelled: "var(--text-muted)",
   paid: "var(--success)",
-  submitted: "#D97706",
+  submitted: "var(--warning)",
 };
 
 function metaColor(meta?: string) {
-  if (!meta) return "#9CA3AF";
+  if (!meta) return "var(--text-muted)";
   const key = meta.toLowerCase().replace(/\s/g, "_");
-  return STATUS_COLOR[key] ?? "#9CA3AF";
+  return STATUS_COLOR[key] ?? "var(--text-muted)";
 }
 
 // ─── Quick actions (always visible, no query needed) ─────────────────────────
@@ -247,7 +247,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
             }
             let globalIdx = 0;
             return Object.entries(grouped).map(([type, items]) => {
-              const cfg = TYPE_CONFIG[type] ?? { icon: <Search size={13} />, label: type, color: "#374151", bg: "var(--surface-hover)" };
+              const cfg = TYPE_CONFIG[type] ?? { icon: <Search size={13} />, label: type, color: "var(--text-secondary)", bg: "var(--surface-hover)" };
               return (
                 <div key={type}>
                   <div style={{ padding: "6px 16px 2px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", display: "flex", alignItems: "center", gap: 6 }}>

@@ -171,7 +171,7 @@ function ItemForm({
   };
 
   return (
-    <div style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "16px", background: "#FAFAFA", display: "flex", flexDirection: "column", gap: 12 }}>
+    <div style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "16px", background: "var(--surface-subtle)", display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
           <label htmlFor="value" style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Tipe</label>

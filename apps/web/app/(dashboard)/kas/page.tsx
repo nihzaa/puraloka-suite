@@ -20,7 +20,7 @@ const C = {
   red: "var(--danger)", redBg: "var(--danger-bg)", redBorder: "var(--danger-border)",
   yellow: "var(--warning)", yellowBg: "var(--warning-bg)", yellowBorder: "var(--warning-border)",
   blue: "var(--info)", blueBg: "var(--info-bg)", blueBorder: "var(--info-border)",
-  purple: "#7C3AED", purpleBg: "#F5F3FF", purpleBorder: "#DDD6FE",
+  purple: "var(--aksen)", purpleBg: "var(--navy-light)", purpleBorder: "var(--info-border)",
 };
 
 const card: React.CSSProperties = {
@@ -133,7 +133,7 @@ function StatusBadge({ label, color, bg, border }: { label: string; color: strin
 }
 
 function Skeleton({ h = 16, w = "100%" }: { h?: number; w?: string | number }) {
-  return <div style={{ height: h, width: w, borderRadius: 6, background: "linear-gradient(90deg,var(--surface-hover) 0%,#E9EAEB 50%,var(--surface-hover) 100%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s ease-in-out infinite" }} />;
+  return <div style={{ height: h, width: w, borderRadius: 6, background: "linear-gradient(90deg,var(--surface-hover) 0%,var(--border) 50%,var(--surface-hover) 100%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s ease-in-out infinite" }} />;
 }
 
 function Tab({ label, active, onClick, count }: { label: string; active: boolean; onClick: () => void; count?: number }) {
@@ -203,7 +203,7 @@ function TransferRow({ t, canConfirm, onConfirm, onCancel }: {
 }) {
   const st = TRANSFER_STATUS[t.status] ?? TRANSFER_STATUS.pending;
   return (
-    <div style={{ padding: "14px 16px", borderRadius: 12, border: `1px solid ${t.status === "pending" ? C.yellowBorder : C.border}`, background: t.status === "pending" ? C.yellowBg : "#FAFAFA", display: "flex", alignItems: "center", gap: 14 }}>
+    <div style={{ padding: "14px 16px", borderRadius: 12, border: `1px solid ${t.status === "pending" ? C.yellowBorder : C.border}`, background: t.status === "pending" ? C.yellowBg : "var(--surface-subtle)", display: "flex", alignItems: "center", gap: 14 }}>
       {/* Arrow icon */}
       <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--surface-hover)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
         <ArrowRightLeft size={16} color={C.mid} />
@@ -247,7 +247,7 @@ function ExpenseRow({ e, canReview, onApprove, onReject }: {
 }) {
   const st = EXPENSE_STATUS[e.status] ?? EXPENSE_STATUS.submitted;
   return (
-    <div style={{ padding: "14px 16px", borderRadius: 12, border: `1px solid ${e.status === "submitted" ? C.yellowBorder : C.border}`, background: e.status === "submitted" ? C.yellowBg : "#FAFAFA" }}>
+    <div style={{ padding: "14px 16px", borderRadius: 12, border: `1px solid ${e.status === "submitted" ? C.yellowBorder : C.border}`, background: e.status === "submitted" ? C.yellowBg : "var(--surface-subtle)" }}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
         <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--surface-hover)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
           {CATEGORY_TYPE_ICON[e.category?.type ?? "other"]}
@@ -485,7 +485,7 @@ function KasContent() {
             </button>
           )}
           <button onClick={() => setShowCreateExpense(true)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 16px", borderRadius: 8, border: "none", background: C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
-            onMouseEnter={e => { e.currentTarget.style.background = "#002244"; }}
+            onMouseEnter={e => { e.currentTarget.style.background = "var(--aksen-pekat)"; }}
             onMouseLeave={e => { e.currentTarget.style.background = C.navy; }}
           >
             <Plus size={14} /> Catat Pengeluaran
@@ -672,7 +672,7 @@ function KasContent() {
 
             {/* Ringkasan per Kategori */}
             {categoryBreakdown.length > 0 && (
-              <div style={{ marginBottom: 20, borderRadius: 12, border: `1px solid ${C.border}`, background: "#FAFAFA", overflow: "hidden" }}>
+              <div style={{ marginBottom: 20, borderRadius: 12, border: `1px solid ${C.border}`, background: "var(--surface-subtle)", overflow: "hidden" }}>
                 <button
                   onClick={() => setShowCategoryBreakdown(p => !p)}
                   style={{
@@ -693,7 +693,7 @@ function KasContent() {
                       const grandTotal = categoryBreakdown.reduce((s, c) => s + c.total, 0);
                       const TYPE_COLOR: Record<string, string> = {
                         material: C.red, labor: C.blue, equipment: C.yellow,
-                        operational: "#7C3AED", other: C.muted,
+                        operational: "var(--aksen)", other: C.muted,
                       };
                       const TYPE_LABEL: Record<string, string> = {
                         material: "Material", labor: "Labor/Upah", equipment: "Equipment",
@@ -756,7 +756,7 @@ function KasContent() {
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                     {supplierPayments.map((sp: any) => (
-                      <div key={sp.id} style={{ padding: "14px 16px", borderRadius: 12, border: `1px solid ${C.border}`, background: "#FAFAFA" }}>
+                      <div key={sp.id} style={{ padding: "14px 16px", borderRadius: 12, border: `1px solid ${C.border}`, background: "var(--surface-subtle)" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                           <div style={{ width: 36, height: 36, borderRadius: 10, background: C.blueBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                             <Building2 size={16} color={C.blue} />
@@ -799,7 +799,7 @@ function KasContent() {
                     {progressPaymentsKas.map((pp: any) => (
                       <div key={pp.id} style={{ padding: "14px 16px", borderRadius: 12, border: `1px solid ${C.greenBorder}`, background: C.greenBg }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                          <div style={{ width: 36, height: 36, borderRadius: 10, background: "#D1FAE5", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--success-bg)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                             <TrendingDown size={16} color={C.green} />
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
@@ -836,7 +836,7 @@ function KasContent() {
                     {boronganSettlementsKas.map((bs: any) => (
                       <div key={bs.id} style={{ padding: "14px 16px", borderRadius: 12, border: `1px solid ${C.purpleBorder}`, background: C.purpleBg }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                          <div style={{ width: 36, height: 36, borderRadius: 10, background: "#EDE9FE", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--navy-light)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                             <CheckCircle2 size={16} color={C.purple} />
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
@@ -846,7 +846,7 @@ function KasContent() {
                             <div style={{ display: "flex", gap: 8, fontSize: 11, color: C.muted, flexWrap: "wrap" }}>
                               {bs.scope?.assignment?.mandor && <span>mandor: {bs.scope.assignment.mandor.name}</span>}
                               <span>· {fmtDate(bs.settled_at ?? bs.created_at)}</span>
-                              <span style={{ background: "#EDE9FE", color: C.purple, padding: "1px 7px", borderRadius: 4, border: `1px solid ${C.purpleBorder}` }}>
+                              <span style={{ background: "var(--navy-light)", color: C.purple, padding: "1px 7px", borderRadius: 4, border: `1px solid ${C.purpleBorder}` }}>
                                 Borongan {fmtCompact(bs.borongan_value ?? 0)} · Kasbon {fmtCompact(bs.total_kasbon ?? 0)}
                               </span>
                             </div>
@@ -946,7 +946,7 @@ function CreateAccountModal({ onClose, onSuccess }: { onClose: () => void; onSuc
       <div style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.18)", display: "flex", flexDirection: "column", maxHeight: "90vh" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: `1px solid ${C.border}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,var(--navy),#0066CC)", display: "flex", alignItems: "center", justifyContent: "center" }}><Wallet size={17} color="var(--surface)" /></div>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,var(--navy),var(--aksen-terang))", display: "flex", alignItems: "center", justifyContent: "center" }}><Wallet size={17} color="var(--surface)" /></div>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: 0 }}>Buat Akun Kas Baru</h3>
           </div>
           <button aria-label="Tutup" onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", color: C.muted }}><X size={18} /></button>
@@ -1004,7 +1004,7 @@ function CreateAccountModal({ onClose, onSuccess }: { onClose: () => void; onSuc
           {error && <div style={{ padding: "10px 14px", borderRadius: 8, background: C.redBg, border: `1px solid ${C.redBorder}`, fontSize: 13, color: C.red }}>{error}</div>}
           <div style={{ display: "flex", gap: 10 }}>
             <button type="button" onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: 13, cursor: "pointer" }}>Batal</button>
-            <button type="submit" disabled={loading} style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: loading ? "#94A3B8" : C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer" }}>
+            <button type="submit" disabled={loading} style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: loading ? "var(--text-muted)" : C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer" }}>
               {loading ? "Menyimpan..." : "Buat Akun"}
             </button>
           </div>
@@ -1064,7 +1064,7 @@ function CreateTransferModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
       <div style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.18)", display: "flex", flexDirection: "column", maxHeight: "90vh" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: `1px solid ${C.border}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#7C3AED,#A78BFA)", display: "flex", alignItems: "center", justifyContent: "center" }}><ArrowRightLeft size={17} color="var(--surface)" /></div>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,var(--aksen),var(--aksen-terang))", display: "flex", alignItems: "center", justifyContent: "center" }}><ArrowRightLeft size={17} color="var(--surface)" /></div>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: 0 }}>Catat Transfer Dana</h3>
           </div>
           <button aria-label="Tutup" onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", color: C.muted }}><X size={18} /></button>
@@ -1129,7 +1129,7 @@ function CreateTransferModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
           {error && <div style={{ padding: "10px 14px", borderRadius: 8, background: C.redBg, border: `1px solid ${C.redBorder}`, fontSize: 13, color: C.red }}>{error}</div>}
           <div style={{ display: "flex", gap: 10 }}>
             <button type="button" onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: 13, cursor: "pointer" }}>Batal</button>
-            <button type="submit" disabled={loading} style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: loading ? "#94A3B8" : C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer" }}>
+            <button type="submit" disabled={loading} style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: loading ? "var(--text-muted)" : C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer" }}>
               {loading ? "Menyimpan..." : "Catat Transfer"}
             </button>
           </div>
@@ -1239,7 +1239,7 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
       <div style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 520, boxShadow: "0 20px 60px rgba(0,0,0,0.18)", display: "flex", flexDirection: "column", maxHeight: "92vh" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: `1px solid ${C.border}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,var(--danger),#EF4444)", display: "flex", alignItems: "center", justifyContent: "center" }}><ShoppingCart size={17} color="var(--surface)" /></div>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,var(--danger),var(--danger))", display: "flex", alignItems: "center", justifyContent: "center" }}><ShoppingCart size={17} color="var(--surface)" /></div>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: 0 }}>Catat Pengeluaran Proyek</h3>
           </div>
           <button aria-label="Tutup" onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", color: C.muted }}><X size={18} /></button>
@@ -1276,7 +1276,7 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
               </div>
             )}
             {expenseSource === "personal" && (
-              <div style={{ marginTop: 6, padding: "6px 10px", borderRadius: 6, background: "var(--warning-bg)", border: "1px solid var(--warning-border)", fontSize: 11, color: "#92400E" }}>
+              <div style={{ marginTop: 6, padding: "6px 10px", borderRadius: 6, background: "var(--warning-bg)", border: "1px solid var(--warning-border)", fontSize: 11, color: "var(--on-warning-bg)" }}>
                 Talangan pribadi — perlu di-reimburse dari kas proyek.
               </div>
             )}
@@ -1405,7 +1405,7 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
                 </div>
               ) : (
                 <button type="button" onClick={() => fileRef.current?.click()}
-                  style={{ width: "100%", padding: "9px 12px", border: `2px dashed ${C.border}`, borderRadius: 8, background: "#FAFAFA", color: C.mid, fontSize: 11, cursor: "pointer", textAlign: "center", boxSizing: "border-box" }}>
+                  style={{ width: "100%", padding: "9px 12px", border: `2px dashed ${C.border}`, borderRadius: 8, background: "var(--surface-subtle)", color: C.mid, fontSize: 11, cursor: "pointer", textAlign: "center", boxSizing: "border-box" }}>
                   Upload nota
                 </button>
               )}
@@ -1435,7 +1435,7 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
 
           <div style={{ display: "flex", gap: 10 }}>
             <button type="button" onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: 13, cursor: "pointer" }}>Batal</button>
-            <button type="submit" disabled={loading} style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: loading ? "#94A3B8" : C.red, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer" }}>
+            <button type="submit" disabled={loading} style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: loading ? "var(--text-muted)" : C.red, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer" }}>
               {loading ? "Menyimpan..." : "Catat Pengeluaran"}
             </button>
           </div>

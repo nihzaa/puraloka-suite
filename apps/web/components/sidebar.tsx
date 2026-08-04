@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 import { getStoredUser, logout, api, type PuralokaUser } from "@/lib/api";
 import { SidebarFokus } from "@/components/sidebar-fokus";
+import { LogoPuraloka } from "@/components/logo-puraloka";
 import { useSidebar } from "@/lib/sidebar-context";
 
 const roleLabel: Record<string, string> = {
@@ -463,15 +464,19 @@ export function Sidebar() {
         gap: 8,
         flexShrink: 0,
       }}>
+        {/* Lambang perusahaan — menggantikan huruf "P" yang selama ini jadi
+            penampung sementara. Aplikasi yang memakai inisial alih-alih
+            logonya sendiri terbaca sebagai belum jadi. */}
         {!collapsed && (
           <div style={{ display: "flex", alignItems: "center", gap: 10, overflow: "hidden" }}>
             <div style={{
               width: 34, height: 34, borderRadius: 9,
-              background: "var(--navy)", display: "flex",
+              background: "var(--grad-aksen)", display: "flex",
               alignItems: "center", justifyContent: "center",
               flexShrink: 0, boxShadow: "0 2px 8px var(--navy-glow)",
+              color: "var(--on-aksen)",
             }}>
-              <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 15, color: "#fff" }}>P</span>
+              <LogoPuraloka size={17} title="" />
             </div>
             <div style={{ overflow: "hidden" }}>
               <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14, color: "var(--text-primary)", lineHeight: 1, letterSpacing: "-0.3px", whiteSpace: "nowrap" }}>
@@ -485,11 +490,14 @@ export function Sidebar() {
         {collapsed && (
           <div style={{
             width: 34, height: 34, borderRadius: 9,
-            background: "var(--navy)", display: "flex",
+            background: "var(--grad-aksen)", display: "flex",
             alignItems: "center", justifyContent: "center",
             boxShadow: "0 2px 8px var(--navy-glow)",
+            color: "var(--on-aksen)",
           }}>
-            <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 15, color: "#fff" }}>P</span>
+            {/* Saat ciut, lambang ini SATU-SATUNYA penanda aplikasi —
+                jadi di sini ia bukan hiasan dan wajib punya nama. */}
+            <LogoPuraloka size={17} />
           </div>
         )}
 
@@ -777,7 +785,7 @@ function NavItem({
           flexShrink: 0,
         }} />
         <div style={{
-          background: "#1F2937",
+          background: "var(--text-primary)",
           color: "var(--surface-subtle)",
           fontSize: 12,
           fontWeight: 500,

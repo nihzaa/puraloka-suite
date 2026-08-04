@@ -441,7 +441,7 @@ export default function NotificationsPage() {
                       style={{
                         display: "flex", gap: 12, padding: "14px 16px",
                         borderBottom: isLast ? "none" : `1px solid ${C.border}`,
-                        background: isSelected ? "var(--navy-light)" : notif.is_read ? C.white : "#F0F5FF",
+                        background: isSelected ? "var(--navy-light)" : notif.is_read ? C.white : "var(--info-bg)",
                         transition: "background 0.15s",
                         opacity: isActioning ? 0.6 : 1,
                       }}

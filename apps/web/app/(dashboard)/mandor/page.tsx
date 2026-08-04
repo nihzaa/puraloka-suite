@@ -240,9 +240,9 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const TIPE_LABELS: Record<string, string> = { tukang: "Tukang", laden: "Laden", kenek: "Kenek" };
 const TIPE_COLORS: Record<string, { bg: string; color: string }> = {
-  tukang: { bg: "#DBEAFE", color: "#1E40AF" },
-  laden:  { bg: "#D1FAE5", color: "#065F46" },
-  kenek:  { bg: "#FEF3C7", color: "#92400E" },
+  tukang: { bg: "var(--navy-light)", color: "var(--on-info-bg)" },
+  laden:  { bg: "var(--success-bg)", color: "var(--on-success-bg)" },
+  kenek:  { bg: "var(--warning-bg)", color: "var(--on-warning-bg)" },
 };
 
 const SKILL_OPTIONS = [
@@ -258,26 +258,26 @@ const SKILL_OPTIONS = [
 const SKILL_LABELS: Record<string, string> = Object.fromEntries(SKILL_OPTIONS.map(s => [s.value, s.label]));
 
 const CATEGORY_COLORS: Record<string, { bg: string; color: string }> = {
-  struktur:      { bg: "#FEF3C7", color: "#92400E" },
-  baja:          { bg: "#DBEAFE", color: "#1E40AF" },
+  struktur:      { bg: "var(--warning-bg)", color: "var(--on-warning-bg)" },
+  baja:          { bg: "var(--navy-light)", color: "var(--on-info-bg)" },
   dinding:       { bg: "#FCE7F3", color: "#9D174D" },
-  finishing:     { bg: "#D1FAE5", color: "#065F46" },
-  atap:          { bg: "#E0E7FF", color: "#3730A3" },
+  finishing:     { bg: "var(--success-bg)", color: "var(--on-success-bg)" },
+  atap:          { bg: "var(--navy-light)", color: "var(--aksen-pekat)" },
   plumbing:      { bg: "#CFFAFE", color: "#164E63" },
   elektrikal:    { bg: "#FEF9C3", color: "#713F12" },
   mekanikal:     { bg: "#F3E8FF", color: "#6B21A8" },
-  kusen_pintu:   { bg: "#FFF7ED", color: "#9A3412" },
-  pagar_carport: { bg: "#F1F5F9", color: "#475569" },
-  landscape:     { bg: "#DCFCE7", color: "#166534" },
+  kusen_pintu:   { bg: "var(--warning-bg)", color: "#9A3412" },
+  pagar_carport: { bg: "var(--surface-hover)", color: "var(--text-secondary)" },
+  landscape:     { bg: "var(--success-bg)", color: "var(--on-success-bg)" },
   lain_lain:     { bg: "var(--surface-hover)", color: "var(--text-secondary)" },
 };
 
 // ─── Badge helpers (D3) ──────────────────────────────────────────────────────
 function getPaymentSystemBadge(type: string) {
   const map: Record<string, { label: string; bg: string; color: string; border: string }> = {
-    borongan:     { label: "Borongan",  bg: "#DBEAFE", color: "#1E40AF", border: "var(--info-border)" },
-    harian:       { label: "Harian",    bg: "#D1FAE5", color: "#065F46", border: "#A7F3D0" },
-    progress_pct: { label: "Progress%", bg: "#EDE9FE", color: "#5B21B6", border: "#C4B5FD" },
+    borongan:     { label: "Borongan",  bg: "var(--navy-light)", color: "var(--on-info-bg)", border: "var(--info-border)" },
+    harian:       { label: "Harian",    bg: "var(--success-bg)", color: "var(--on-success-bg)", border: "var(--success-border)" },
+    progress_pct: { label: "Progress%", bg: "var(--navy-light)", color: "var(--aksen-pekat)", border: "var(--aksen-terang)" },
   };
   return map[type] ?? { label: type, bg: "var(--surface-hover)", color: "var(--text-secondary)", border: "var(--border)" };
 }
@@ -299,12 +299,6 @@ function getProgressColor(pct: number): string {
   if (pct >= 70) return "var(--success)";  // hijau
   if (pct >= 30) return "var(--info)";  // biru
   return "var(--text-muted)";                  // abu — belum banyak
-}
-
-function getBudgetColor(pct: number): string {
-  if (pct >= 90) return "var(--danger)";  // merah — kritis
-  if (pct >= 70) return "var(--warning)";  // kuning — waspada
-  return "var(--success)";                  // hijau — aman
 }
 
 // ─── WA link helper (D5) ─────────────────────────────────────────────────────
@@ -1132,7 +1126,7 @@ function MandorPageInner() {
                             const isProgressPct = sc.payment_system === "progress_pct";
                             const contractValue = sc.contract_value ?? sc.borongan_value ?? 0;
                             return (
-                              <div key={sc.id} style={{ borderRadius: 10, border: `1px solid ${C.border}`, background: "#FAFAFA", padding: "12px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+                              <div key={sc.id} style={{ borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface-subtle)", padding: "12px 14px", display: "flex", alignItems: "center", gap: 10 }}>
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5, flexWrap: "wrap" }}>
                                     <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{sc.scope_name}</span>
@@ -1375,7 +1369,7 @@ function MandorPageInner() {
                           display: "grid", gridTemplateColumns: "36px 1fr 90px 140px 130px 80px 64px", gap: 12,
                           padding: "10px 16px", alignItems: "center",
                           borderBottom: isLast ? "none" : `1px solid ${C.border}`,
-                          background: !w.is_active ? "#FAFAFA" : "var(--surface)",
+                          background: !w.is_active ? "var(--surface-subtle)" : "var(--surface)",
                           opacity: isDeleting ? 0.5 : 1,
                           transition: "opacity 0.15s",
                         }}>
@@ -1422,7 +1416,7 @@ function MandorPageInner() {
                           </div>
                           {/* Status */}
                           <div>
-                            <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 8, background: w.is_active ? "#D1FAE5" : "var(--surface-hover)", color: w.is_active ? "#065F46" : C.muted }}>
+                            <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 8, background: w.is_active ? "var(--success-bg)" : "var(--surface-hover)", color: w.is_active ? "var(--on-success-bg)" : C.muted }}>
                               {w.is_active ? "Aktif" : "Nonaktif"}
                             </span>
                           </div>
@@ -1939,7 +1933,7 @@ function CreateWageReportModal({ onClose, onSuccess }: {
                 const subtotalItem = (parseFloat(item.days_worked || "0") * parseFloat(item.daily_rate || "0")) +
                   (parseFloat(item.overtime_hours || "0") * parseFloat(item.overtime_rate || "0"));
                 return (
-                  <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr 28px", gap: 6, alignItems: "center", padding: "8px", background: "#FAFAFA", borderRadius: 8, border: `1px solid ${C.border}` }}>
+                  <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr 28px", gap: 6, alignItems: "center", padding: "8px", background: "var(--surface-subtle)", borderRadius: 8, border: `1px solid ${C.border}` }}>
                     <input placeholder="Nama tukang" value={item.worker_name} onChange={e => updateItem(i, "worker_name", e.target.value)} style={{ ...inputStyle, background: "var(--surface)" }} />
                     <input type="number" placeholder="7" value={item.days_worked} onChange={e => updateItem(i, "days_worked", e.target.value)} style={{ ...inputStyle, background: "var(--surface)" }} step="0.5" min="0" />
                     <input type="number" placeholder="125000" value={item.daily_rate} onChange={e => updateItem(i, "daily_rate", e.target.value)} style={{ ...inputStyle, background: "var(--surface)" }} />
@@ -1969,7 +1963,7 @@ function CreateWageReportModal({ onClose, onSuccess }: {
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {deductions.map((d, i) => (
-                <div key={i} style={{ padding: "10px 12px", background: "#FFF5F5", borderRadius: 8, border: `1px solid ${C.redBorder}` }}>
+                <div key={i} style={{ padding: "10px 12px", background: "var(--danger-bg)", borderRadius: 8, border: `1px solid ${C.redBorder}` }}>
                   {/* Toggle tipe */}
                   <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
                     {(["kasbon_kolektif", "kasbon_individu"] as const).map(t => (
@@ -2141,7 +2135,7 @@ function WageReportDetailModal({ data, onClose, onApprove }: {
                 </thead>
                 <tbody>
                   {data.items.map((item, i) => (
-                    <tr key={item.id} style={{ background: i % 2 === 0 ? "var(--surface)" : "#FAFAFA" }}>
+                    <tr key={item.id} style={{ background: i % 2 === 0 ? "var(--surface)" : "var(--surface-subtle)" }}>
                       <td style={{ padding: "8px 12px", fontSize: 13, color: C.text, fontWeight: 600 }}>{item.worker_name}</td>
                       <td style={{ padding: "8px 12px", fontSize: 13, color: C.mid }}>{item.days_worked}</td>
                       <td style={{ padding: "8px 12px", fontSize: 13, color: C.mid }}>{fmt(item.daily_rate)}</td>
@@ -2635,7 +2629,7 @@ function AddKasbonModal({ assignments, onClose, onSuccess }: {
                 </button>
               </div>
             ) : (
-              <label style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", border: `2px dashed ${C.border}`, borderRadius: 8, cursor: "pointer", fontSize: 12, color: C.muted, background: "#FAFAFA" }}>
+              <label style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", border: `2px dashed ${C.border}`, borderRadius: 8, cursor: "pointer", fontSize: 12, color: C.muted, background: "var(--surface-subtle)" }}>
                 <Camera size={16} color={C.muted} /> Klik untuk pilih foto (maks 5MB)
                 <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoChange} style={{ display: "none" }} />
               </label>
@@ -2751,7 +2745,7 @@ function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () => void; 
       <div style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", maxHeight: "90vh" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: `1px solid ${C.border}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--warning), #FBBF24)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--warning), var(--warning))", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Banknote size={17} color="var(--surface)" />
             </div>
             <div>
@@ -2880,7 +2874,7 @@ function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () => void; 
                 </button>
               </div>
             ) : (
-              <label style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", border: `2px dashed ${C.border}`, borderRadius: 8, cursor: "pointer", fontSize: 12, color: C.muted, background: "#FAFAFA" }}>
+              <label style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", border: `2px dashed ${C.border}`, borderRadius: 8, cursor: "pointer", fontSize: 12, color: C.muted, background: "var(--surface-subtle)" }}>
                 <Camera size={16} color={C.muted} /> Klik untuk pilih foto (maks 5MB)
                 <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoChange} style={{ display: "none" }} />
               </label>
@@ -2891,7 +2885,7 @@ function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () => void; 
 
           <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
             <button type="button" onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13 }}>Batal</button>
-            <button type="submit" disabled={loading || !projectId} style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: (loading || !projectId) ? "#94A3B8" : C.yellow, color: "var(--surface)", cursor: (loading || !projectId) ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600 }}>
+            <button type="submit" disabled={loading || !projectId} style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: (loading || !projectId) ? "var(--text-muted)" : C.yellow, color: "var(--surface)", cursor: (loading || !projectId) ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600 }}>
               {loading ? "Mengajukan..." : "Ajukan Kasbon"}
             </button>
           </div>
@@ -3208,7 +3202,7 @@ function ScopeDetailModal({ data, loading: isLoading, onClose, onRefresh, onAddI
                       const pct = Number(item.pct_done);
                       const pctColor = getProgressColor(pct);
                       return (
-                        <div key={item.id} style={{ padding: "12px 14px", borderRadius: 10, border: `1px solid ${C.border}`, background: "#FAFAFA", marginBottom: 6 }}>
+                        <div key={item.id} style={{ padding: "12px 14px", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface-subtle)", marginBottom: 6 }}>
                           <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4 }}>{item.item_name}</div>
@@ -3216,7 +3210,7 @@ function ScopeDetailModal({ data, loading: isLoading, onClose, onRefresh, onAddI
                               {item.specs && item.specs.length > 0 && (
                                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 6 }}>
                                   {item.specs.map(sp => (
-                                    <span key={sp.id} style={{ fontSize: 10, padding: "2px 8px", borderRadius: 4, background: "#F0F4FF", color: C.navy, border: "1px solid #C7D7F5" }}>
+                                    <span key={sp.id} style={{ fontSize: 10, padding: "2px 8px", borderRadius: 4, background: "var(--info-bg)", color: C.navy, border: "1px solid #C7D7F5" }}>
                                       {sp.spec_key}: <strong>{sp.spec_value}</strong>
                                     </span>
                                   ))}

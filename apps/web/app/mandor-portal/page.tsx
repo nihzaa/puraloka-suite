@@ -110,10 +110,10 @@ export default function MandorDashboardPage() {
           </div>
           <div style={{ background: C.surface, borderRadius: 12, padding: 16, border: `1px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <CreditCard size={16} color="#7C3AED" />
+              <CreditCard size={16} color="var(--aksen)" />
               <span style={{ fontSize: 11, color: C.mid, fontWeight: 500 }}>Kasbon Tukang Aktif</span>
             </div>
-            <div style={{ fontSize: 28, fontWeight: 700, color: "#7C3AED" }}>{pendingWorkerKasbons.length}</div>
+            <div style={{ fontSize: 28, fontWeight: 700, color: "var(--aksen)" }}>{pendingWorkerKasbons.length}</div>
           </div>
           <div style={{ background: C.surface, borderRadius: 12, padding: 16, border: `1px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>

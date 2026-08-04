@@ -46,3 +46,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Tangkapan layar untuk tinjauan — gambar tak masuk repo.
+.layar/

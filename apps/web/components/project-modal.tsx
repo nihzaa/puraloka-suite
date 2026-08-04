@@ -533,19 +533,14 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
               )}
 
               {form.termin_schedules.map((t, i) => {
-                const TRIGGER_LABELS: Record<string, string> = {
-                  on_sign: "Saat TTD Kontrak",
-                  on_progress: "Saat Progress Capai ...",
-                  on_retention: "Retensi (hari setelah serah terima)",
-                };
                 return (
-                  <div key={i} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "14px 16px", background: "#FAFAFA" }}>
+                  <div key={i} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "14px 16px", background: "var(--surface-subtle)" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ fontSize: 12, fontWeight: 600, color: C.navy }}>Termin {i + 1}</span>
                         <span style={{
                           fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 20,
-                          background: t.trigger_type === "on_sign" ? "#DBEAFE" : t.trigger_type === "on_retention" ? "#FEF3C7" : C.navyLight,
+                          background: t.trigger_type === "on_sign" ? "var(--navy-light)" : t.trigger_type === "on_retention" ? "var(--warning-bg)" : C.navyLight,
                           color: t.trigger_type === "on_sign" ? "var(--info)" : t.trigger_type === "on_retention" ? "var(--warning)" : C.navy,
                         }}>
                           {t.trigger_type === "on_sign" ? "ON SIGN" : t.trigger_type === "on_retention" ? "RETENSI" : `ON PROGRESS ≥ ${t.trigger_pct || "?"}%`}
@@ -686,7 +681,7 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
               cursor: submitting ? "not-allowed" : "pointer",
               transition: "background 0.15s",
             }}
-            onMouseEnter={e => { if (!submitting) e.currentTarget.style.background = "#002244"; }}
+            onMouseEnter={e => { if (!submitting) e.currentTarget.style.background = "var(--aksen-pekat)"; }}
             onMouseLeave={e => { if (!submitting) e.currentTarget.style.background = C.navy; }}
           >
             {submitting ? "Menyimpan..." : isLastStep ? mode === "create" ? "Buat Proyek" : "Simpan Perubahan" : (
@@ -757,7 +752,7 @@ function RadioCard({ label, description, checked, onClick }: {
         }}>
           {checked && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--navy)" }} />}
         </div>
-        <span style={{ fontSize: 13, fontWeight: 600, color: checked ? "var(--navy)" : "#374151" }}>{label}</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: checked ? "var(--navy)" : "var(--text-secondary)" }}>{label}</span>
       </div>
       <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0, paddingLeft: 22, lineHeight: 1.4 }}>{description}</p>
     </div>

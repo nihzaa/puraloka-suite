@@ -185,7 +185,7 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{
               width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-              background: "linear-gradient(135deg, var(--navy), #0066CC)",
+              background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))",
               display: "flex", alignItems: "center", justifyContent: "center",
             }}>
               <Banknote size={18} color="var(--surface)" />
@@ -217,7 +217,7 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
             display: "flex", justifyContent: "space-between", alignItems: "center",
           }}>
             <div>
-              <div style={{ fontSize: 11, color: "#3B82F6", fontWeight: 600, marginBottom: 2 }}>
+              <div style={{ fontSize: 11, color: "var(--info)", fontWeight: 600, marginBottom: 2 }}>
                 Nilai Termin
               </div>
               <div style={{ fontSize: 18, fontWeight: 800, color: C.navy, fontFamily: "var(--font-display)" }}>
@@ -225,7 +225,7 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
               </div>
             </div>
             <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: 11, color: "#3B82F6", fontWeight: 600, marginBottom: 2 }}>
+              <div style={{ fontSize: 11, color: "var(--info)", fontWeight: 600, marginBottom: 2 }}>
                 % Kontrak
               </div>
               <div style={{ fontSize: 18, fontWeight: 800, color: C.navy, fontFamily: "var(--font-display)" }}>
@@ -414,8 +414,8 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
                     {proofPreview ? (
                       <img src={proofPreview} alt="preview" style={{ width: 48, height: 48, borderRadius: 6, objectFit: "cover", border: `1px solid ${C.border}` }} />
                     ) : (
-                      <div style={{ width: 48, height: 48, borderRadius: 6, background: "#E0F2FE", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <FileImage size={22} color="#0369A1" />
+                      <div style={{ width: 48, height: 48, borderRadius: 6, background: "var(--navy-light)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <FileImage size={22} color="var(--info)" />
                       </div>
                     )}
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -521,7 +521,7 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
                   disabled={submitting}
                   style={{
                     flex: 2, padding: "10px", borderRadius: 8, border: "none",
-                    background: submitting ? "#94A3B8" : C.navy,
+                    background: submitting ? "var(--text-muted)" : C.navy,
                     color: "var(--surface)", fontSize: 13, fontWeight: 600,
                     cursor: submitting ? "not-allowed" : "pointer",
                     transition: "background 0.15s",

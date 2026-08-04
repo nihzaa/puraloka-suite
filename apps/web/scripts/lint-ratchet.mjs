@@ -133,7 +133,16 @@ const AMBANG = {
   //                               halaman settlement borongan memang belum ada.
   //
   // 11 sisanya menunggu penilaian serupa, bukan penyapuan.
-  '@typescript-eslint/no-unused-vars': 10,   // 11 -> 10: `localIdx` di photo-gallery dihapus (2026-08-02)
+  // 11 -> 10: `localIdx` di photo-gallery dihapus (2026-08-02)
+  // 10 -> 3: kode mati dibersihkan saat rombak visual (2026-08-05) —
+  //   ProgressRing/ProgressBar/Avatar & PAYMENT_SYSTEM_LABEL di halaman
+  //   proyek, getBudgetColor di mandor, TRIGGER_LABELS di project-modal,
+  //   toLeft & prop `height` di gantt, scopeTotal di mandor-section.
+  //   Semuanya benar-benar tak terpakai — diperiksa satu per satu, bukan
+  //   dihapus borongan. `height` di TodayLine bahkan menyembunyikan cacat:
+  //   garis "hari ini" memakai top/bottom, jadi tinggi yang dihitung
+  //   pemanggil akan menyimpang diam-diam begitu jumlah baris berubah.
+  '@typescript-eslint/no-unused-vars': 3,
   'react-hooks/exhaustive-deps': 31,
   'react/no-unescaped-entities': 28,
   'react-hooks/static-components': 14,

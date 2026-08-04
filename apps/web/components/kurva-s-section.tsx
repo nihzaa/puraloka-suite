@@ -12,13 +12,13 @@ import { TrendingUp, RefreshCw, AlertTriangle, Info } from "lucide-react";
 
 const C = {
   navy: "var(--navy)", navyLight: "var(--navy-light)",
-  blue: "var(--navy-mid)", blueLight: "#DBEAFE",
+  blue: "var(--navy-mid)", blueLight: "var(--navy-light)",
   text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
   border: "var(--border)", bg: "var(--bg)",
-  green: "var(--success)", greenLight: "#DCFCE7",
-  red: "var(--danger)", redLight: "#FEE2E2",
-  yellow: "var(--warning)", yellowLight: "#FEF3C7",
-  orange: "#C2410C", orangeLight: "#FFEDD5",
+  green: "var(--success)", greenLight: "var(--success-bg)",
+  red: "var(--danger)", redLight: "var(--danger-bg)",
+  yellow: "var(--warning)", yellowLight: "var(--warning-bg)",
+  orange: "var(--data-5)", orangeLight: "var(--accent-soft)",
 };
 
 // ─── Types ───────────────────────────────────────────────────────────────────────
@@ -263,7 +263,7 @@ export function KurvaSSection({ projectId, userRole }: Props) {
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{
             width: 36, height: 36, borderRadius: 10,
-            background: "linear-gradient(135deg, var(--navy), #0066CC)",
+            background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
             <TrendingUp size={18} color="var(--surface)" />
@@ -289,7 +289,7 @@ export function KurvaSSection({ projectId, userRole }: Props) {
           display: "flex", alignItems: "center", gap: 8,
           padding: "10px 14px", borderRadius: 10, marginBottom: 16,
           background: C.yellowLight, border: `1px solid var(--warning-border)`,
-          fontSize: 12, color: "#92400E",
+          fontSize: 12, color: "var(--on-warning-bg)",
         }}>
           <AlertTriangle size={14} color={C.yellow} />
           <span>RAB belum diupload. Kurva rencana menggunakan distribusi normal. Upload RAB untuk akurasi lebih baik.</span>
@@ -327,7 +327,7 @@ export function KurvaSSection({ projectId, userRole }: Props) {
           background: "var(--warning-bg)", border: `1px solid var(--warning-border)`,
           fontSize: 12, color: "var(--warning)",
         }}>
-          <AlertTriangle size={14} color="#D97706" />
+          <AlertTriangle size={14} color="var(--warning)" />
           <span>
             <strong>SPI belum bisa dipercaya.</strong> Belum ada jadwal rencana
             maupun tanggal Gantt, jadi kurva rencana memakai distribusi normal —
@@ -404,7 +404,7 @@ export function KurvaSSection({ projectId, userRole }: Props) {
           {/* EVM detail info */}
           {showEvmDetail && (
             <div style={{
-              background: "#F8FAFF", border: `1px solid ${C.blueLight}`, borderRadius: 8,
+              background: "var(--surface-subtle)", border: `1px solid ${C.blueLight}`, borderRadius: 8,
               padding: "10px 14px", fontSize: 11, color: C.mid, marginBottom: 10,
               lineHeight: 1.6,
             }}>
@@ -528,7 +528,7 @@ export function KurvaSSection({ projectId, userRole }: Props) {
               type="monotone"
               dataKey="rencana"
               name="Rencana"
-              stroke="#0066CC"
+              stroke="var(--aksen-terang)"
               strokeWidth={2}
               strokeDasharray="6 3"
               fill={C.blueLight}
@@ -543,7 +543,7 @@ export function KurvaSSection({ projectId, userRole }: Props) {
                 type="monotone"
                 dataKey="serapan"
                 name="Serapan Dana"
-                stroke="#EA580C"
+                stroke="var(--data-5)"
                 strokeWidth={2.5}
                 dot={false}
                 connectNulls={false}

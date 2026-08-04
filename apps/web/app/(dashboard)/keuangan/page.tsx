@@ -257,7 +257,7 @@ function KpiCard({ label, value, sub, icon, accent, border }: {
 }
 
 function Skeleton({ h = 20, w = "100%" }: { h?: number; w?: string | number }) {
-  return <div style={{ height: h, width: w, borderRadius: 8, background: "linear-gradient(90deg, var(--surface-hover) 0%, #E9EAEB 50%, var(--surface-hover) 100%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s ease-in-out infinite" }} />;
+  return <div style={{ height: h, width: w, borderRadius: 8, background: "linear-gradient(90deg, var(--surface-hover) 0%, var(--border) 50%, var(--surface-hover) 100%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s ease-in-out infinite" }} />;
 }
 
 // ─── Custom tooltip untuk cashflow chart ──────────────────────────────────────
@@ -317,9 +317,9 @@ function InvoiceRow({ inv, onPayClick, onPdfClick, loadingPdf, canEdit }: { inv:
   return (
     <>
     <tr
-      style={{ borderBottom: "1px solid var(--surface-hover)", background: overdue ? "#FEF9F9" : "transparent" }}
-      onMouseEnter={e => { if (!overdue) e.currentTarget.style.background = "#FAFBFF"; }}
-      onMouseLeave={e => { e.currentTarget.style.background = overdue ? "#FEF9F9" : "transparent"; }}
+      style={{ borderBottom: "1px solid var(--surface-hover)", background: overdue ? "var(--surface-subtle)" : "transparent" }}
+      onMouseEnter={e => { if (!overdue) e.currentTarget.style.background = "var(--surface-subtle)"; }}
+      onMouseLeave={e => { e.currentTarget.style.background = overdue ? "var(--surface-subtle)" : "transparent"; }}
     >
       <td style={{ padding: "12px 14px" }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: C.navy, fontFamily: "var(--font-display)", marginBottom: 2 }}>
@@ -492,7 +492,7 @@ function PenaltyModal({ invoiceId, invoiceNumber, onClose }: { invoiceId: string
                   <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Alasan (wajib — tercatat di audit)"
                     style={{ width: "100%", padding: "9px 11px", borderRadius: 8, border: "1px solid var(--border)", fontSize: 13, boxSizing: "border-box", marginBottom: 8 }} />
                   <button onClick={() => submitWaive(!info?.waived)} disabled={busy || !reason.trim()}
-                    style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: busy || !reason.trim() ? "#94A3B8" : (info?.waived ? "var(--navy)" : "var(--danger)"), color: "#fff", fontSize: 13, fontWeight: 600, cursor: busy || !reason.trim() ? "not-allowed" : "pointer" }}>
+                    style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: busy || !reason.trim() ? "var(--text-muted)" : (info?.waived ? "var(--navy)" : "var(--danger)"), color: "#fff", fontSize: 13, fontWeight: 600, cursor: busy || !reason.trim() ? "not-allowed" : "pointer" }}>
                     {busy ? "Menyimpan…" : info?.waived ? "Batalkan pemutihan" : "Putihkan denda"}
                   </button>
                 </div>
@@ -937,7 +937,7 @@ function KeuanganContent() {
               background: C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600,
               cursor: "pointer",
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = "#002244"; }}
+            onMouseEnter={e => { e.currentTarget.style.background = "var(--aksen-pekat)"; }}
             onMouseLeave={e => { e.currentTarget.style.background = C.navy; }}
           >
             <Plus size={15} /> Buat Invoice
@@ -961,7 +961,7 @@ function KeuanganContent() {
             <KpiCard label="Biaya Keluar" value={fmtCompact(summary.totalKeluar ?? summary.keluarThisMonth)} sub={`Labor ${fmtCompact(summary.laborCost ?? 0)} · Material ${fmtCompact(summary.materialCost ?? 0)}`} icon={<TrendingDown size={20} color={C.red} />} accent={C.red} border={C.redBorder} />
             <KpiCard label="Advance Beredar" value={fmtCompact(summary.advanceBeredar ?? 0)} sub="kasbon belum dilunasi" icon={<ArrowUpRight size={20} color={C.yellow} />} accent={C.yellow} border={C.yellowBorder} />
             <KpiCard label="Outstanding Invoice" value={fmtCompact(summary.totalOutstanding)} sub={`${summary.overdueCount > 0 ? `${summary.overdueCount} overdue` : "semua on-track"}`} icon={<Clock size={20} color={C.blue} />} accent={C.blue} border={C.blueBorder} />
-            <KpiCard label="Upah Pending Bayar" value={fmtCompact(summary.wagePendingTotal)} sub={`${summary.wagePendingCount} laporan disetujui`} icon={<Banknote size={20} color="#7C3AED" />} accent="#7C3AED" border="#DDD6FE" />
+            <KpiCard label="Upah Pending Bayar" value={fmtCompact(summary.wagePendingTotal)} sub={`${summary.wagePendingCount} laporan disetujui`} icon={<Banknote size={20} color="var(--aksen)" />} accent="var(--aksen)" border="var(--info-border)" />
           </>
         ) : null}
       </div>
@@ -1074,11 +1074,11 @@ function KeuanganContent() {
                 </h3>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   {summary.cashAccounts.map(acc => {
-                    const typeColor = acc.type === "main" ? C.navy : acc.type === "collector" ? "#7C3AED" : C.green;
-                    const typeBg = acc.type === "main" ? C.navyLight : acc.type === "collector" ? "#F5F3FF" : C.greenBg;
+                    const typeColor = acc.type === "main" ? C.navy : acc.type === "collector" ? "var(--aksen)" : C.green;
+                    const typeBg = acc.type === "main" ? C.navyLight : acc.type === "collector" ? "var(--navy-light)" : C.greenBg;
                     const typeLabel = acc.type === "main" ? "Kas Utama" : acc.type === "collector" ? "Kolektor" : "Kas Kecil";
                     return (
-                      <div key={acc.id} style={{ flex: 1, minWidth: 160, padding: "14px 16px", borderRadius: 12, border: `1px solid ${typeBg === C.navyLight ? "var(--info-border)" : typeBg === "#F5F3FF" ? "#DDD6FE" : C.greenBorder}`, background: "var(--surface)" }}>
+                      <div key={acc.id} style={{ flex: 1, minWidth: 160, padding: "14px 16px", borderRadius: 12, border: `1px solid ${typeBg === C.navyLight ? "var(--info-border)" : typeBg === "var(--navy-light)" ? "var(--info-border)" : C.greenBorder}`, background: "var(--surface)" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
                           <div style={{ width: 28, height: 28, borderRadius: 8, background: typeBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
                             <Wallet size={13} color={typeColor} />
@@ -1216,7 +1216,7 @@ function KeuanganContent() {
                       { label: "Belum Lunas", value: summary.totalOutstanding, color: C.yellow },
                       { label: "Jatuh Tempo", value: summary.totalOverdue, color: C.red },
                     ].map(row => (
-                      <div key={row.label} style={{ padding: "10px 12px", borderRadius: 8, border: `1px solid ${C.border}`, background: "#FAFAFA" }}>
+                      <div key={row.label} style={{ padding: "10px 12px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface-subtle)" }}>
                         <div style={{ fontSize: 10, color: C.muted, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>{row.label}</div>
                         <div style={{ fontSize: 15, fontWeight: 800, color: row.color, fontFamily: "var(--font-display)" }}>{fmtCompact(row.value)}</div>
                       </div>
@@ -1231,11 +1231,11 @@ function KeuanganContent() {
               <Activity size={14} color={C.navy} /> Cashflow — {summary?.periodLabel ?? "Periode ini"}
             </h3>
             {cashflow.length === 0 ? (
-              <div style={{ height: 260, display: "flex", alignItems: "center", justifyContent: "center", color: C.muted, fontSize: 13, background: "#FAFAFA", borderRadius: 12, border: `1px solid ${C.border}` }}>
+              <div style={{ height: 260, display: "flex", alignItems: "center", justifyContent: "center", color: C.muted, fontSize: 13, background: "var(--surface-subtle)", borderRadius: 12, border: `1px solid ${C.border}` }}>
                 {loadingSummary ? "Memuat data cashflow..." : "Tidak ada data cashflow untuk periode ini."}
               </div>
             ) : (
-              <div style={{ background: "#FAFAFA", borderRadius: 12, border: `1px solid ${C.border}`, padding: "16px 8px 8px" }}>
+              <div style={{ background: "var(--surface-subtle)", borderRadius: 12, border: `1px solid ${C.border}`, padding: "16px 8px 8px" }}>
                 <ResponsiveContainer width="100%" height={260}>
                   <ComposedChart data={cashflow} margin={{ top: 4, right: 16, bottom: 4, left: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--surface-hover)" />
@@ -1368,7 +1368,7 @@ function KeuanganContent() {
                     display: "grid", gridTemplateColumns: "1fr 1fr 140px 100px",
                     alignItems: "center", gap: 16,
                     padding: "14px 16px", borderRadius: 10,
-                    border: `1px solid ${C.border}`, background: "#FAFAFA",
+                    border: `1px solid ${C.border}`, background: "var(--surface-subtle)",
                   }}>
                     {/* Invoice info */}
                     <div>
@@ -1450,7 +1450,7 @@ function KeuanganContent() {
               {canEdit && kasbonType === "mandor" && (
                 <button onClick={() => setShowAddKasbon(true)}
                   style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, border: "none", background: C.navy, color: "var(--surface)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
-                  onMouseEnter={e => { e.currentTarget.style.background = "#002244"; }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "var(--aksen-pekat)"; }}
                   onMouseLeave={e => { e.currentTarget.style.background = C.navy; }}>
                   <Plus size={13} /> Tambah Kasbon
                 </button>
@@ -1531,7 +1531,7 @@ function KeuanganContent() {
                         <div key={k.id} style={{
                           padding: "14px 16px", borderRadius: 12,
                           border: `1px solid ${k.status === "pending" ? C.yellowBorder : C.border}`,
-                          background: k.status === "pending" ? C.yellowBg : "#FAFAFA",
+                          background: k.status === "pending" ? C.yellowBg : "var(--surface-subtle)",
                         }}>
                           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
                             <div style={{ flex: 1, minWidth: 0 }}>
@@ -1630,11 +1630,11 @@ function KeuanganContent() {
                         {Object.entries(kasbonSummary.grandByPurpose).sort((a,b) => b[1]-a[1]).map(([purpose, total]) => {
                           const purposeColors: Record<string, string> = {
                             gaji_tukang: C.navy, uang_makan: C.green,
-                            pembelian_alat: C.yellow, operasional: "#7C3AED", lain_lain: C.mid,
+                            pembelian_alat: C.yellow, operasional: "var(--aksen)", lain_lain: C.mid,
                           };
                           const col = purposeColors[purpose] ?? C.mid;
                           return (
-                            <div key={purpose} style={{ flex: "1 1 140px", padding: "10px 14px", borderRadius: 10, border: `1px solid ${C.border}`, background: "#FAFAFA" }}>
+                            <div key={purpose} style={{ flex: "1 1 140px", padding: "10px 14px", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface-subtle)" }}>
                               <div style={{ fontSize: 10, fontWeight: 700, color: col, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>
                                 {PURPOSE_LABEL[purpose] ?? purpose}
                               </div>
@@ -1681,7 +1681,7 @@ function KeuanganContent() {
                               {Object.entries(m.byPurpose).sort((a,b) => b[1]-a[1]).map(([purpose, total]) => {
                                 const purposeColors: Record<string, string> = {
                                   gaji_tukang: C.navy, uang_makan: C.green,
-                                  pembelian_alat: C.yellow, operasional: "#7C3AED", lain_lain: C.mid,
+                                  pembelian_alat: C.yellow, operasional: "var(--aksen)", lain_lain: C.mid,
                                 };
                                 const col = purposeColors[purpose] ?? C.mid;
                                 const pctOfTotal = total / (m.total || 1) * 100;
@@ -1769,7 +1769,7 @@ function KeuanganContent() {
                         <div key={wk.id} style={{
                           padding: "14px 16px", borderRadius: 12,
                           border: `1px solid ${wk.is_settled ? C.border : C.yellowBorder}`,
-                          background: wk.is_settled ? "#FAFAFA" : C.yellowBg,
+                          background: wk.is_settled ? "var(--surface-subtle)" : C.yellowBg,
                         }}>
                           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
                             <div style={{ flex: 1, minWidth: 0 }}>
@@ -1861,8 +1861,8 @@ function KeuanganContent() {
                     { key: "expense",            label: "Pengeluaran",   color: C.red },
                     { key: "wage",               label: "Upah",          color: C.blue },
                     { key: "kasbon",             label: "Kasbon",        color: C.yellow },
-                    { key: "progress_payment",   label: "Prog %",        color: "#7C3AED" },
-                    { key: "settlement_borongan", label: "Settlement",   color: "#0891B2" },
+                    { key: "progress_payment",   label: "Prog %",        color: "var(--aksen)" },
+                    { key: "settlement_borongan", label: "Settlement",   color: "var(--data-2)" },
                   ].map(t => (
                     <label key={t.key} style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", fontSize: 11, fontWeight: 600, color: arusTypes.includes(t.key) ? t.color : C.muted, userSelect: "none" }}>
                       <input type="checkbox" checked={arusTypes.includes(t.key)} onChange={() => toggleArusType(t.key)} style={{ accentColor: t.color, width: 12, height: 12 }} />
@@ -1960,7 +1960,7 @@ function KeuanganContent() {
             {/* Mode Chart: chart bar + tabel agregasi per periode */}
             {arusViewMode === "chart" && arusChart.length > 0 && (
               <>
-                <div style={{ background: "#FAFAFA", borderRadius: 12, border: `1px solid ${C.border}`, padding: "16px 8px 8px", marginBottom: 20 }}>
+                <div style={{ background: "var(--surface-subtle)", borderRadius: 12, border: `1px solid ${C.border}`, padding: "16px 8px 8px", marginBottom: 20 }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: C.mid, paddingLeft: 12, marginBottom: 8 }}>Trend Arus Kas</div>
                   <ResponsiveContainer width="100%" height={260}>
                     <ComposedChart data={arusChart} margin={{ top: 4, right: 16, bottom: 4, left: 0 }}>
@@ -2000,7 +2000,7 @@ function KeuanganContent() {
               </>
             )}
             {arusViewMode === "chart" && !arusChartLoading && arusChart.length === 0 && (
-              <div style={{ padding: "48px 24px", textAlign: "center", color: C.muted, fontSize: 13, background: "#FAFAFA", borderRadius: 12, border: `1px solid ${C.border}` }}>
+              <div style={{ padding: "48px 24px", textAlign: "center", color: C.muted, fontSize: 13, background: "var(--surface-subtle)", borderRadius: 12, border: `1px solid ${C.border}` }}>
                 Tidak ada data di periode ini
               </div>
             )}
@@ -2011,7 +2011,7 @@ function KeuanganContent() {
                 {[1,2,3,4,5].map(i => <div key={i} style={{ height: 52, borderRadius: 8, background: "var(--surface-hover)" }} />)}
               </div>
             ) : !arusData || arusData.transactions.length === 0 ? (
-              <div style={{ padding: "48px 24px", textAlign: "center", color: C.muted, fontSize: 13, background: "#FAFAFA", borderRadius: 12, border: `1px solid ${C.border}` }}>
+              <div style={{ padding: "48px 24px", textAlign: "center", color: C.muted, fontSize: 13, background: "var(--surface-subtle)", borderRadius: 12, border: `1px solid ${C.border}` }}>
                 Tidak ada transaksi di periode ini
               </div>
             ) : (
@@ -2032,8 +2032,8 @@ function KeuanganContent() {
                         expense:             { label: "Pengeluaran",   color: C.red,     bg: C.redBg,     border: C.redBorder },
                         wage:                { label: "Upah",          color: C.blue,    bg: C.blueBg,    border: C.blueBorder },
                         kasbon:              { label: "Kasbon",        color: C.yellow,  bg: C.yellowBg,  border: C.yellowBorder },
-                        progress_payment:    { label: "Progress %",    color: "#7C3AED", bg: "#F5F3FF",   border: "#DDD6FE" },
-                        settlement_borongan: { label: "Settlement",    color: "#0891B2", bg: "#ECFEFF",   border: "#A5F3FC" },
+                        progress_payment:    { label: "Progress %",    color: "var(--aksen)", bg: "var(--navy-light)",   border: "var(--info-border)" },
+                        settlement_borongan: { label: "Settlement",    color: "var(--data-2)", bg: "var(--success-bg)",   border: "#A5F3FC" },
                       };
                       const tm = typeMeta[tx.type] ?? { label: tx.type, color: C.muted, bg: "var(--surface-hover)", border: C.border };
                       const dateStr = fmtDate(tx.date);
@@ -2042,8 +2042,8 @@ function KeuanganContent() {
                         <React.Fragment key={tx.id}>
                           <tr
                             onClick={() => setArusExpandedId(expanded ? null : tx.id)}
-                            style={{ borderBottom: `1px solid var(--surface-hover)`, cursor: "pointer", background: expanded ? "#FAFBFF" : "transparent" }}
-                            onMouseEnter={e => { if (!expanded) e.currentTarget.style.background = "#FAFBFF"; }}
+                            style={{ borderBottom: `1px solid var(--surface-hover)`, cursor: "pointer", background: expanded ? "var(--surface-subtle)" : "transparent" }}
+                            onMouseEnter={e => { if (!expanded) e.currentTarget.style.background = "var(--surface-subtle)"; }}
                             onMouseLeave={e => { if (!expanded) e.currentTarget.style.background = "transparent"; }}
                           >
                             <td style={{ padding: "10px 12px", color: C.mid, whiteSpace: "nowrap", fontSize: 11 }}>{dateStr}</td>
@@ -2073,7 +2073,7 @@ function KeuanganContent() {
                             </td>
                           </tr>
                           {expanded && (
-                            <tr style={{ background: "#F8FBFF", borderBottom: `1px solid ${C.border}` }}>
+                            <tr style={{ background: "var(--surface-subtle)", borderBottom: `1px solid ${C.border}` }}>
                               <td colSpan={7} style={{ padding: "12px 16px" }}>
                                 <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
                                   {Object.entries(tx.meta).filter(([, v]) => v != null && v !== "").map(([k, v]) => (
@@ -2174,7 +2174,7 @@ function KeuanganContent() {
                         const marginColor = p.gross_margin_pct >= 20 ? C.green : p.gross_margin_pct >= 0 ? C.yellow : C.red;
                         return (
                           <tr key={p.id} style={{ borderBottom: `1px solid var(--surface-hover)` }}
-                            onMouseEnter={e => { e.currentTarget.style.background = "#FAFBFF"; }}
+                            onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-subtle)"; }}
                             onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}>
                             <td style={{ padding: "12px 12px" }}>
                               <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{p.name}</div>
@@ -2628,9 +2628,9 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
   const MODE_OPTIONS: { value: InvoiceMode; label: string; desc: string; color: string; bg: string }[] = projectDetail?.contract_model === "termin"
     ? [{ value: "termin_billing", label: "Tagihan Termin", desc: "Tagih sesuai jadwal termin", color: C.navy, bg: C.navyLight }]
     : [
-        { value: "expense_billing", label: "Tagihan Pengeluaran", desc: "Pilih item pengeluaran spesifik", color: "#065F46", bg: "#ECFDF5" },
-        { value: "commission_fee",  label: "Fee Komisi",         desc: "Invoice fee komisi saja", color: "#5B21B6", bg: "#EDE9FE" },
-        { value: "commission_billing", label: "Komisi Langsung", desc: "Tagih total pengeluaran + komisi sekaligus", color: "#92400E", bg: "var(--warning-bg)" },
+        { value: "expense_billing", label: "Tagihan Pengeluaran", desc: "Pilih item pengeluaran spesifik", color: "var(--on-success-bg)", bg: "var(--success-bg)" },
+        { value: "commission_fee",  label: "Fee Komisi",         desc: "Invoice fee komisi saja", color: "var(--aksen-pekat)", bg: "var(--navy-light)" },
+        { value: "commission_billing", label: "Komisi Langsung", desc: "Tagih total pengeluaran + komisi sekaligus", color: "var(--on-warning-bg)", bg: "var(--warning-bg)" },
       ];
 
   if (!mounted) return null;
@@ -2642,7 +2642,7 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 24px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--navy), #0066CC)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Receipt size={17} color="var(--surface)" />
             </div>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: 0 }}>Buat Invoice Baru</h3>
@@ -2706,7 +2706,7 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
 
                 {/* Pilih dari pengeluaran */}
                 <div style={{ padding: "12px 14px", borderRadius: 8, background: "var(--success-bg)", border: "1px solid var(--success-border)" }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#065F46", marginBottom: 8 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--on-success-bg)", marginBottom: 8 }}>
                     Pengeluaran Tersedia ({billableExpenses.length})
                   </div>
                   {loadingExpenses && <div style={{ fontSize: 12, color: C.muted }}>Memuat...</div>}
@@ -2805,8 +2805,8 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
 
             {/* ── COMMISSION FEE: nominal fee saja ── */}
             {isCommFee && (
-              <div style={{ padding: "12px 14px", borderRadius: 8, background: "#EDE9FE", border: "1px solid #C4B5FD", display: "flex", flexDirection: "column", gap: 10 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#5B21B6" }}>Fee Komisi</div>
+              <div style={{ padding: "12px 14px", borderRadius: 8, background: "var(--navy-light)", border: "1px solid #C4B5FD", display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--aksen-pekat)" }}>Fee Komisi</div>
                 {commissionFeeSuggest && (
                   <div style={{ background: "var(--surface)", borderRadius: 8, padding: "8px 12px", fontSize: 12, display: "flex", flexDirection: "column", gap: 4 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", color: C.mid }}>
@@ -2820,7 +2820,7 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
                         <span>Sudah ditagih sebelumnya</span><span>- {fmt(commissionFeeSuggest.already_billed_fee)}</span>
                       </div>
                     )}
-                    <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, color: "#5B21B6", borderTop: `1px solid ${C.border}`, paddingTop: 4, marginTop: 2 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, color: "var(--aksen-pekat)", borderTop: `1px solid ${C.border}`, paddingTop: 4, marginTop: 2 }}>
                       <span>Sisa fee yang disarankan</span><span>{fmt(commissionFeeSuggest.remaining_fee)}</span>
                     </div>
                   </div>
@@ -2840,7 +2840,7 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
             {/* ── KOMISI LANGSUNG (legacy): input total pengeluaran + % ── */}
             {isCommBill && (
               <div style={{ padding: "12px 14px", borderRadius: 8, background: "var(--warning-bg)", border: "1px solid var(--warning-border)", display: "flex", flexDirection: "column", gap: 10 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#92400E" }}>Komisi Langsung</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--on-warning-bg)" }}>Komisi Langsung</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                   <div>
                     <label htmlFor="total-pengeluaran" style={labelStyle}>Total Pengeluaran <span style={{ color: C.red }}>*</span></label>
@@ -2993,7 +2993,7 @@ function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuc
           <div style={{ display: "flex", gap: 10, paddingTop: 4 }}>
             <button type="button" onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.text, fontSize: 13, cursor: "pointer" }}>Batal</button>
             <button type="submit" disabled={loading || !projectDetail}
-              style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: (loading || !projectDetail) ? "#94A3B8" : C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: (loading || !projectDetail) ? "not-allowed" : "pointer" }}>
+              style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: (loading || !projectDetail) ? "var(--text-muted)" : C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: (loading || !projectDetail) ? "not-allowed" : "pointer" }}>
               {loading ? "Menyimpan..." : "Buat Invoice"}
             </button>
           </div>
@@ -3200,7 +3200,7 @@ function PayInvoiceModal({ invoice, onClose, onSuccess }: { invoice: Invoice; on
                   </div>
                 ) : (
                   <button type="button" onClick={() => fileRef.current?.click()}
-                    style={{ width: "100%", padding: "10px", border: `2px dashed ${C.border}`, borderRadius: 8, background: "#FAFAFA", color: C.mid, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                    style={{ width: "100%", padding: "10px", border: `2px dashed ${C.border}`, borderRadius: 8, background: "var(--surface-subtle)", color: C.mid, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
                     <ArrowDownLeft size={14} /> Upload bukti transfer
                   </button>
                 )}
@@ -3216,7 +3216,7 @@ function PayInvoiceModal({ invoice, onClose, onSuccess }: { invoice: Invoice; on
 
               <div style={{ display: "flex", gap: 10, paddingTop: 4 }}>
                 <button type="button" onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: 13, cursor: "pointer" }}>Batal</button>
-                <button type="submit" disabled={loading} style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: loading ? "#94A3B8" : C.green, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer" }}>
+                <button type="submit" disabled={loading} style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: loading ? "var(--text-muted)" : C.green, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer" }}>
                   {loading ? "Menyimpan..." : "Catat Pembayaran"}
                 </button>
               </div>
@@ -3312,7 +3312,7 @@ function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: `1px solid ${C.border}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--warning), #FBBF24)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--warning), var(--warning))", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Banknote size={17} color="var(--surface)" />
             </div>
             <div>
@@ -3437,7 +3437,7 @@ function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
 
           <div style={{ display: "flex", gap: 10, paddingTop: 4 }}>
             <button type="button" onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.text, fontSize: 13, cursor: "pointer" }}>Batal</button>
-            <button type="submit" disabled={loading} style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: loading ? "#94A3B8" : autoApprove ? C.green : C.yellow, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer" }}>
+            <button type="submit" disabled={loading} style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: loading ? "var(--text-muted)" : autoApprove ? C.green : C.yellow, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer" }}>
               {loading ? "Menyimpan..." : autoApprove ? "Buat & Setujui Kasbon" : "Buat Kasbon (Pending)"}
             </button>
           </div>

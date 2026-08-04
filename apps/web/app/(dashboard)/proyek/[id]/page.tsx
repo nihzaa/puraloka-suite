@@ -148,7 +148,7 @@ const C = {
   yellow: "var(--warning)",
   yellowBg: "var(--warning-bg)",
   yellowBorder: "var(--warning-border)",
-  info: "var(--info, #0066CC)",
+  info: "var(--info, var(--aksen-terang))",
   infoBg: "var(--info-bg, var(--info-bg))",
 };
 
@@ -232,31 +232,6 @@ function SectionTitle({ children, style }: { children: React.ReactNode; style?: 
   );
 }
 
-function Avatar({ name, size = 32 }: { name: string; size?: number }) {
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: "50%",
-      background: C.navyLight, color: C.navy,
-      display: "flex", alignItems: "center", justifyContent: "center",
-      fontSize: size * 0.35, fontWeight: 700, flexShrink: 0,
-    }}>
-      {initials(name)}
-    </div>
-  );
-}
-
-function ProgressBar({ pct, height = 8 }: { pct: number; height?: number }) {
-  return (
-    <div style={{ height, background: "var(--surface-hover)", borderRadius: 4, overflow: "hidden" }}>
-      <div style={{
-        height: "100%", width: `${Math.min(pct, 100)}%`,
-        background: "linear-gradient(90deg, var(--navy), #0066CC)",
-        borderRadius: 4, transition: "width 0.4s ease",
-      }} />
-    </div>
-  );
-}
-
 function InfoRow({ icon, label, value, valueColor }: {
   icon: React.ReactNode; label: string; value: React.ReactNode; valueColor?: string;
 }) {
@@ -266,37 +241,6 @@ function InfoRow({ icon, label, value, valueColor }: {
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: 11, color: C.muted, marginBottom: 2 }}>{label}</div>
         <div style={{ fontSize: 13, fontWeight: 500, color: valueColor ?? C.text }}>{value}</div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Progress ring ────────────────────────────────────────────────────────────
-
-function ProgressRing({ pct }: { pct: number }) {
-  const r = 52;
-  const circ = 2 * Math.PI * r;
-  const offset = circ - (Math.min(pct, 100) / 100) * circ;
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-      <svg width={128} height={128} style={{ transform: "rotate(-90deg)" }}>
-        <circle cx={64} cy={64} r={r} fill="none" stroke="var(--surface-hover)" strokeWidth={10} />
-        <circle
-          cx={64} cy={64} r={r} fill="none"
-          stroke="url(#pgRing)" strokeWidth={10}
-          strokeDasharray={circ} strokeDashoffset={offset}
-          strokeLinecap="round"
-        />
-        <defs>
-          <linearGradient id="pgRing" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="var(--navy)" />
-            <stop offset="100%" stopColor="#0066CC" />
-          </linearGradient>
-        </defs>
-      </svg>
-      <div style={{ textAlign: "center", marginTop: -100, marginBottom: 68 }}>
-        <div style={{ fontFamily: "var(--font-display)", fontSize: 30, fontWeight: 800, color: C.navy }}>{pct}%</div>
-        <div style={{ fontSize: 11, color: C.muted }}>Progress</div>
       </div>
     </div>
   );
@@ -575,7 +519,7 @@ function ProjectDetailContent() {
                   background: "var(--navy)", color: "var(--surface)",
                   border: "none", cursor: "pointer",
                 }}
-                onMouseEnter={e => { e.currentTarget.style.background = "#002244"; }}
+                onMouseEnter={e => { e.currentTarget.style.background = "var(--aksen-pekat)"; }}
                 onMouseLeave={e => { e.currentTarget.style.background = "var(--navy)"; }}
               >
                 <FileText size={13} /> Generate Kontrak
@@ -695,8 +639,8 @@ function ProjectDetailContent() {
                 label="Kasbon Beredar"
                 value={fmtCompact(kasbonBeredar)}
                 sub="Status: approved"
-                color={kasbonBeredar > 0 ? "#EA580C" : C.muted}
-                bg={kasbonBeredar > 0 ? "#FFF7ED" : "var(--surface-subtle)"}
+                color={kasbonBeredar > 0 ? "var(--data-5)" : C.muted}
+                bg={kasbonBeredar > 0 ? "var(--warning-bg)" : "var(--surface-subtle)"}
               />
               <FinCard
                 icon={<BarChart3 size={14} />}
@@ -760,19 +704,19 @@ function ProjectDetailContent() {
         return (
           <div className="rise rise-2b" style={{
             marginBottom: 20, padding: "14px 18px", borderRadius: 12,
-            background: "linear-gradient(135deg, var(--warning-bg), #FEF3C7)",
+            background: "linear-gradient(135deg, var(--warning-bg), var(--warning-bg))",
             border: "1px solid var(--warning-border)",
             display: "flex", alignItems: "flex-start", gap: 12,
           }}>
             <div style={{
               width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-              background: "#FEF3C7", border: "1.5px solid #FCD34D",
+              background: "var(--warning-bg)", border: "1.5px solid #FCD34D",
               display: "flex", alignItems: "center", justifyContent: "center",
             }}>
               <Receipt size={18} color="var(--warning)" />
             </div>
             <div>
-              <p style={{ fontSize: 13, fontWeight: 700, color: "#92400E", margin: "0 0 4px" }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: "var(--on-warning-bg)", margin: "0 0 4px" }}>
                 {readyTermins.length} Termin Siap Ditagih
               </p>
               <p style={{ fontSize: 12, color: "var(--warning)", margin: 0 }}>
@@ -871,7 +815,7 @@ function ProjectDetailContent() {
                     {/* Track fisik */}
                     <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--info-bg)" strokeWidth={stroke} />
                     {/* Track serapan (inner, slightly smaller) */}
-                    <circle cx={cx} cy={cy} r={r - stroke - 3} fill="none" stroke="#FFF7ED" strokeWidth={stroke - 2} />
+                    <circle cx={cx} cy={cy} r={r - stroke - 3} fill="none" stroke="var(--warning-bg)" strokeWidth={stroke - 2} />
                     {/* Arc fisik */}
                     <circle cx={cx} cy={cy} r={r} fill="none"
                       stroke={fisikPct >= 80 ? "var(--success)" : C.navy}
@@ -882,7 +826,7 @@ function ProjectDetailContent() {
                     />
                     {/* Arc serapan (inner ring) */}
                     <circle cx={cx} cy={cy} r={r - stroke - 3} fill="none"
-                      stroke="#F97316"
+                      stroke="var(--data-5)"
                       strokeWidth={stroke - 2}
                       strokeDasharray={arcDash(serap)}
                       strokeLinecap="round"
@@ -914,7 +858,7 @@ function ProjectDetailContent() {
                     <div style={{ height: 8, borderRadius: 99, background: "var(--info-bg)", overflow: "hidden" }}>
                       <div style={{
                         height: "100%", borderRadius: 99, width: `${fisikPct}%`,
-                        background: fisikPct >= 80 ? "linear-gradient(90deg,var(--success),var(--success))" : "linear-gradient(90deg,var(--navy),#0066CC)",
+                        background: fisikPct >= 80 ? "linear-gradient(90deg,var(--success),var(--success))" : "linear-gradient(90deg,var(--navy),var(--aksen-terang))",
                         transition: "width 0.8s ease",
                       }} />
                     </div>
@@ -927,25 +871,25 @@ function ProjectDetailContent() {
                   <div>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                        <div style={{ width: 8, height: 8, borderRadius: 2, background: "#F97316" }} />
+                        <div style={{ width: 8, height: 8, borderRadius: 2, background: "var(--data-5)" }} />
                         <span style={{ fontSize: 10, fontWeight: 700, color: C.text, textTransform: "uppercase", letterSpacing: "0.04em" }}>Serapan Dana</span>
                         {canEditProject && (
                           <button onClick={() => setShowAbsorptionModal(true)} style={{
                             padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 700,
-                            background: "#FFF7ED", color: "var(--warning)", border: "1px solid #FED7AA", cursor: "pointer",
+                            background: "var(--warning-bg)", color: "var(--warning)", border: "1px solid #FED7AA", cursor: "pointer",
                           }}>+ Update</button>
                         )}
                       </div>
                       {serapanPct === null
-                        ? <span style={{ display: "inline-block", width: 40, height: 16, borderRadius: 4, background: "linear-gradient(90deg,#FED7AA,#FEF3C7,#FED7AA)", backgroundSize: "200% 100%", animation: "shimmer 1.5s ease-in-out infinite" }} />
-                        : <span style={{ fontSize: 16, fontWeight: 800, color: "#EA580C", lineHeight: 1 }}>{serap.toFixed(1)}%</span>
+                        ? <span style={{ display: "inline-block", width: 40, height: 16, borderRadius: 4, background: "linear-gradient(90deg,var(--warning-border),var(--warning-bg),var(--warning-border))", backgroundSize: "200% 100%", animation: "shimmer 1.5s ease-in-out infinite" }} />
+                        : <span style={{ fontSize: 16, fontWeight: 800, color: "var(--data-5)", lineHeight: 1 }}>{serap.toFixed(1)}%</span>
                       }
                     </div>
                     {/* Segmented bar */}
-                    <div style={{ height: 8, borderRadius: 99, background: "#FFF7ED", overflow: "hidden", position: "relative" }}>
+                    <div style={{ height: 8, borderRadius: 99, background: "var(--warning-bg)", overflow: "hidden", position: "relative" }}>
                       <div style={{
                         height: "100%", borderRadius: 99, width: `${serap}%`,
-                        background: "linear-gradient(90deg,#EA580C,#FB923C)",
+                        background: "linear-gradient(90deg,var(--data-5),var(--data-5))",
                         transition: "width 0.8s ease",
                       }} />
                       {/* Tick marks every 25% */}
@@ -1001,7 +945,7 @@ function ProjectDetailContent() {
                 }}>
                   <div style={{ width: 6, height: 6, borderRadius: "50%", background: C.yellow, flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: "#92400E" }}>{upcomingMilestone.title}</span>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: "var(--on-warning-bg)" }}>{upcomingMilestone.title}</span>
                     <span style={{ fontSize: 10, color: "var(--warning)", marginLeft: 6 }}>· {fmtDateShort(upcomingMilestone.target_date)}</span>
                   </div>
                   <span style={{ fontSize: 9, color: C.muted, flexShrink: 0 }}>Milestone Berikutnya</span>
@@ -1194,7 +1138,7 @@ function ProjectDetailContent() {
                   width: `${totalValue > 0 ? (paidValue / totalValue) * 100 : 0}%`,
                   background: paid === termins.length
                     ? "linear-gradient(90deg, var(--success), var(--success))"
-                    : "linear-gradient(90deg, var(--navy), #0066CC)",
+                    : "linear-gradient(90deg, var(--navy), var(--aksen-terang))",
                   transition: "width 0.5s ease",
                 }} />
               </div>
@@ -1237,16 +1181,16 @@ function ProjectDetailContent() {
                         borderBottom: "1px solid var(--surface-hover)",
                         background: t.status === "paid"
                           ? "var(--success-bg)"
-                          : isOverdueTermin ? "#FFF5F5"
+                          : isOverdueTermin ? "var(--danger-bg)"
                           : "transparent",
                       }}
                       onMouseEnter={e => {
-                        if (t.status !== "paid" && !isOverdueTermin) e.currentTarget.style.background = "#FAFBFF";
+                        if (t.status !== "paid" && !isOverdueTermin) e.currentTarget.style.background = "var(--surface-subtle)";
                       }}
                       onMouseLeave={e => {
                         e.currentTarget.style.background = t.status === "paid"
                           ? "var(--success-bg)"
-                          : isOverdueTermin ? "#FFF5F5"
+                          : isOverdueTermin ? "var(--danger-bg)"
                           : "transparent";
                       }}
                     >
@@ -1296,7 +1240,7 @@ function ProjectDetailContent() {
                               transition: "all 0.15s", whiteSpace: "nowrap",
                             }}
                             onMouseEnter={e => {
-                              e.currentTarget.style.background = isOverdueTermin ? "#991B1B" : C.navy;
+                              e.currentTarget.style.background = isOverdueTermin ? "var(--on-danger-bg)" : C.navy;
                               e.currentTarget.style.color = "var(--surface)";
                             }}
                             onMouseLeave={e => {
@@ -1326,7 +1270,7 @@ function ProjectDetailContent() {
       <div id="sec-rab" className="rise rise-3" style={{ ...card, padding: 24, marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: rabCollapsed ? 0 : 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--navy), #0066CC)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               <FileText size={18} color="var(--surface)" />
             </div>
             <div>
@@ -1369,7 +1313,7 @@ function ProjectDetailContent() {
       <div id="sec-gantt" className="rise rise-3" style={{ ...card, padding: 24, marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: ganttCollapsed ? 0 : 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--navy), #0066CC)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               <Clock size={18} color="var(--surface)" />
             </div>
             <div>
@@ -1473,7 +1417,7 @@ function ProjectDetailContent() {
             <tbody>
               {allKasbons.slice(0, 10).map(k => (
                 <tr key={k.id} style={{ borderBottom: "1px solid var(--surface-hover)" }}
-                  onMouseEnter={e => { e.currentTarget.style.background = "#FAFBFF"; }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-subtle)"; }}
                   onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
                 >
                   <td style={{ padding: "11px 14px", color: C.text, fontWeight: 500 }}>{(k as any).mandorName}</td>
@@ -1534,7 +1478,7 @@ function ProjectDetailContent() {
                 const invOverdue = inv.status !== "paid" && invDays < 0;
                 return (
                   <tr key={inv.id} style={{ borderBottom: "1px solid var(--surface-hover)", background: invOverdue ? "var(--danger-bg)" : "transparent" }}
-                    onMouseEnter={e => { if (!invOverdue) e.currentTarget.style.background = "#FAFBFF"; }}
+                    onMouseEnter={e => { if (!invOverdue) e.currentTarget.style.background = "var(--surface-subtle)"; }}
                     onMouseLeave={e => { e.currentTarget.style.background = invOverdue ? "var(--danger-bg)" : "transparent"; }}
                   >
                     <td style={{ padding: "12px 14px", color: C.navy, fontFamily: "var(--font-display)", fontSize: 11, fontWeight: 600 }}>{inv.invoice_number}</td>
@@ -1663,7 +1607,7 @@ function ProjectDetailContent() {
                 onClick={handleDelete}
                 disabled={deleting}
                 style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: deleting ? "var(--text-muted)" : C.red, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: deleting ? "not-allowed" : "pointer", transition: "background 0.15s" }}
-                onMouseEnter={e => { if (!deleting) e.currentTarget.style.background = "#991B1B"; }}
+                onMouseEnter={e => { if (!deleting) e.currentTarget.style.background = "var(--on-danger-bg)"; }}
                 onMouseLeave={e => { if (!deleting) e.currentTarget.style.background = C.red; }}
               >
                 {deleting ? "Mengarsipkan..." : "Ya, Hapus"}
@@ -1813,10 +1757,10 @@ function ActionBtn({ children, navy, danger, onClick }: {
   children: React.ReactNode; navy?: boolean; danger?: boolean; onClick?: () => void;
 }) {
   const bg = navy ? "var(--navy)" : danger ? "var(--danger-bg)" : "var(--surface)";
-  const col = navy ? "var(--surface)" : danger ? "var(--danger)" : "#374151";
+  const col = navy ? "var(--surface)" : danger ? "var(--danger)" : "var(--text-secondary)";
   const border = navy ? "none" : danger ? "1px solid var(--danger-border)" : "1px solid var(--border)";
-  const hoverBg = navy ? "#002244" : danger ? "#FEE2E2" : "var(--surface-subtle)";
-  const hoverBorder = navy ? "#002244" : danger ? "var(--danger)" : "var(--border-strong)";
+  const hoverBg = navy ? "var(--aksen-pekat)" : danger ? "var(--danger-bg)" : "var(--surface-subtle)";
+  const hoverBorder = navy ? "var(--aksen-pekat)" : danger ? "var(--danger)" : "var(--border-strong)";
   return (
     <button
       onClick={onClick}

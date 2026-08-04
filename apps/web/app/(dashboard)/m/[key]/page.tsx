@@ -22,8 +22,8 @@
  *
  * ── Arah visual: melanjutkan, bukan menciptakan
  *
- * Sistem ini sudah punya bahasa visual (navy #003366, Bricolage Grotesque
- * untuk judul, kartu putih di atas #F8F9FA). Halaman baru yang membawa gaya
+ * Sistem ini sudah punya bahasa visual (navy var(--navy), Bricolage Grotesque
+ * untuk judul, kartu putih di atas var(--bg)). Halaman baru yang membawa gaya
  * sendiri akan terasa seperti tempelan — dan 100+ halaman bergaya-sendiri
  * adalah definisi paling tepat dari sistem yang tak punya arah.
  *

@@ -16,10 +16,10 @@ const C = {
   navy: "var(--navy)", navyLight: "var(--navy-light)", bg: "var(--bg)",
   surface: "var(--surface)", border: "var(--border)",
   text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  success: "var(--success)", successBg: "#DCFCE7",
-  warning: "var(--warning)", warningBg: "#FEF3C7",
+  success: "var(--success)", successBg: "var(--success-bg)",
+  warning: "var(--warning)", warningBg: "var(--warning-bg)",
   danger: "var(--danger)", dangerBg: "var(--danger-bg)",
-  info: "var(--info)", infoBg: "#DBEAFE",
+  info: "var(--info)", infoBg: "var(--navy-light)",
 };
 
 const fmt = (n: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
@@ -809,15 +809,15 @@ function KirimPoModal({ po, onClose, onSuccess }: { po: PoRingkas; onClose: () =
 
   return (
     <Modal title={`Kirim ${po.po_number} ke Vendor`} onClose={onClose} width={620}>
-      {memuat && <div style={{ padding: 20, fontSize: 13, color: "#6B7280" }}>Memuat pesan…</div>}
+      {memuat && <div style={{ padding: 20, fontSize: 13, color: "var(--text-muted)" }}>Memuat pesan…</div>}
       {err && (
-        <div role="alert" style={{ padding: "10px 12px", background: "#FEE2E2", color: "var(--danger)",
+        <div role="alert" style={{ padding: "10px 12px", background: "var(--danger-bg)", color: "var(--danger)",
           borderRadius: 8, fontSize: 13, marginBottom: 12 }}>{err}</div>
       )}
 
       {data && !memuat && (
         <>
-          <div style={{ fontSize: 12, fontWeight: 600, color: "#6B7280", marginBottom: 6 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", marginBottom: 6 }}>
             Pratinjau pesan
           </div>
           <pre style={{ margin: 0, padding: 12, background: "var(--bg)", border: "1px solid var(--border)",
@@ -854,7 +854,7 @@ function KirimPoModal({ po, onClose, onSuccess }: { po: PoRingkas; onClose: () =
           {riwayat.length > 0 && (
             <div style={{ marginTop: 18, borderTop: "1px solid var(--border)", paddingTop: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12,
-                fontWeight: 600, color: "#6B7280", marginBottom: 8 }}>
+                fontWeight: 600, color: "var(--text-muted)", marginBottom: 8 }}>
                 <History size={13} /> Riwayat pengiriman ({riwayat.length})
               </div>
               {riwayat.map((r) => (
@@ -862,7 +862,7 @@ function KirimPoModal({ po, onClose, onSuccess }: { po: PoRingkas; onClose: () =
                   borderBottom: "1px solid var(--surface-hover)" }}>
                   <strong>{r.channel}</strong> · {new Date(r.sent_at).toLocaleString("id-ID")}
                   {r.sender?.name && ` · oleh ${r.sender.name}`}
-                  {r.recipient && <span style={{ color: "#6B7280" }}> · {r.recipient}</span>}
+                  {r.recipient && <span style={{ color: "var(--text-muted)" }}> · {r.recipient}</span>}
                 </div>
               ))}
             </div>
@@ -1587,12 +1587,12 @@ function SupplierInvoicesTab() {
 // ═══════════════════════════════════════════════════════════════════════════════
 // ── Movement type config ─────────────────────────────────────────────────────
 const MOVEMENT_CONFIG: Record<string, { label: string; color: string; bg: string; sign: string }> = {
-  goods_receipt: { label: "Masuk (GR)",    color: "var(--success)", bg: "#DCFCE7", sign: "+" },
+  goods_receipt: { label: "Masuk (GR)",    color: "var(--success)", bg: "var(--success-bg)", sign: "+" },
   usage:         { label: "Pemakaian",     color: "var(--danger)", bg: "var(--danger-bg)", sign: "−" },
-  return:        { label: "Return",        color: "var(--info)", bg: "#DBEAFE", sign: "+" },
-  adjustment:    { label: "Adjustment",    color: "var(--warning)", bg: "#FEF3C7", sign: "±" },
-  transfer_in:   { label: "Transfer Masuk",color: "var(--success)", bg: "#DCFCE7", sign: "+" },
-  transfer_out:  { label: "Transfer Keluar",color: "#7C3AED", bg: "#F5F3FF", sign: "−" },
+  return:        { label: "Return",        color: "var(--info)", bg: "var(--navy-light)", sign: "+" },
+  adjustment:    { label: "Adjustment",    color: "var(--warning)", bg: "var(--warning-bg)", sign: "±" },
+  transfer_in:   { label: "Transfer Masuk",color: "var(--success)", bg: "var(--success-bg)", sign: "+" },
+  transfer_out:  { label: "Transfer Keluar",color: "var(--aksen)", bg: "var(--navy-light)", sign: "−" },
 };
 
 // TAB: STOK
@@ -1711,7 +1711,7 @@ function StocksTab() {
                 const minStock = Number(s.material?.min_stock ?? 0);
                 const isLow = minStock > 0 && Number(s.qty_on_hand) < minStock;
                 return (
-                <tr key={s.id} style={{ borderTop: `1px solid ${C.border}`, background: isLow ? "#FFF5F5" : undefined }}>
+                <tr key={s.id} style={{ borderTop: `1px solid ${C.border}`, background: isLow ? "var(--danger-bg)" : undefined }}>
                   <td style={{ padding: "10px 14px", fontWeight: 500, color: C.text }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       {s.material?.name}
@@ -1957,11 +1957,11 @@ function OpnameModal({ projects, onClose, onSuccess }: {
               <div style={{ fontSize: 24, fontWeight: 800, color: C.text }}>{result.total_items_checked}</div>
               <div style={{ color: C.mid }}>Item diperiksa</div>
             </div>
-            <div style={{ background: "#FEF3C7", borderRadius: 10, padding: "12px 20px", textAlign: "center" }}>
+            <div style={{ background: "var(--warning-bg)", borderRadius: 10, padding: "12px 20px", textAlign: "center" }}>
               <div style={{ fontSize: 24, fontWeight: 800, color: C.warning }}>{result.items_with_adjustment}</div>
               <div style={{ color: C.mid }}>Ada selisih</div>
             </div>
-            <div style={{ background: "#DCFCE7", borderRadius: 10, padding: "12px 20px", textAlign: "center" }}>
+            <div style={{ background: "var(--success-bg)", borderRadius: 10, padding: "12px 20px", textAlign: "center" }}>
               <div style={{ fontSize: 24, fontWeight: 800, color: C.success }}>{result.items_unchanged}</div>
               <div style={{ color: C.mid }}>Sesuai</div>
             </div>
@@ -2233,8 +2233,8 @@ function LaporanPengadaanTab() {
               {[
                 { label: "Belum Jatuh Tempo", key: "current", color: C.success, bg: C.successBg },
                 { label: "1–30 Hari", key: "days_1_30", color: C.warning, bg: C.warningBg },
-                { label: "31–60 Hari", key: "days_31_60", color: "var(--warning)", bg: "#FEF3C7" },
-                { label: "61–90 Hari", key: "days_61_90", color: "#EA580C", bg: "#FFF7ED" },
+                { label: "31–60 Hari", key: "days_31_60", color: "var(--warning)", bg: "var(--warning-bg)" },
+                { label: "61–90 Hari", key: "days_61_90", color: "var(--data-5)", bg: "var(--warning-bg)" },
                 { label: "> 90 Hari", key: "over_90", color: C.danger, bg: C.dangerBg },
               ].map(b => (
                 <div key={b.key} style={{ background: b.bg, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 14px", textAlign: "center" }}>
@@ -2259,7 +2259,7 @@ function LaporanPengadaanTab() {
                   {(aging.invoices ?? []).length === 0 ? (
                     <tr><td colSpan={8} style={{ textAlign: "center", padding: 48, color: C.muted }}>Tidak ada hutang outstanding</td></tr>
                   ) : (aging.invoices ?? []).map((inv: any) => (
-                    <tr key={inv.id} style={{ borderTop: `1px solid ${C.border}`, background: inv.bucket === "over_90" ? "#FFF5F5" : inv.bucket === "days_61_90" ? "#FFF7ED" : undefined }}>
+                    <tr key={inv.id} style={{ borderTop: `1px solid ${C.border}`, background: inv.bucket === "over_90" ? "var(--danger-bg)" : inv.bucket === "days_61_90" ? "var(--warning-bg)" : undefined }}>
                       <td style={{ padding: "10px 14px", fontWeight: 500 }}>{inv.supplier?.name}</td>
                       <td style={{ padding: "10px 14px", color: C.mid }}>{inv.project?.name ?? "—"}</td>
                       <td style={{ padding: "10px 14px", color: C.mid }}>{fmtDate(inv.invoice_date)}</td>

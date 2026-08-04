@@ -595,16 +595,16 @@ export function NotificationPanel({ unreadCount, onCountChange }: NotificationPa
                   padding: "12px 16px",
                   borderBottom: `1px solid ${C.border}`,
                   cursor: notif.action_url ? "pointer" : "default",
-                  background: notif.is_read ? C.white : "#F0F5FF",
+                  background: notif.is_read ? C.white : "var(--info-bg)",
                   opacity: isActioning ? 0.6 : 1,
                   transition: "background 0.15s",
                   display: "flex", gap: 10, alignItems: "flex-start",
                 }}
                 onMouseEnter={e => {
-                  if (!isActioning) e.currentTarget.style.background = notif.is_read ? C.bg : "#E8F0FE";
+                  if (!isActioning) e.currentTarget.style.background = notif.is_read ? C.bg : "var(--navy-light)";
                 }}
                 onMouseLeave={e => {
-                  e.currentTarget.style.background = notif.is_read ? C.white : "#F0F5FF";
+                  e.currentTarget.style.background = notif.is_read ? C.white : "var(--info-bg)";
                 }}
               >
                 {/* Icon */}

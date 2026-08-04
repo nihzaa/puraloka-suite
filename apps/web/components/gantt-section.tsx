@@ -236,11 +236,11 @@ function EditDateModal({
             <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
               <div>Mulai aktual: <strong>{fmtDate(task.actual_start)}</strong></div>
               {task.actual_end
-                ? <div>✅ Selesai earned: <strong>{fmtDate(task.actual_end)}</strong> <span style={{ color: "#93C5FD", fontSize: 11 }}>(pertama kali 100%)</span></div>
-                : <div style={{ color: "#93C5FD" }}>⏳ Masih berlangsung</div>
+                ? <div>✅ Selesai earned: <strong>{fmtDate(task.actual_end)}</strong> <span style={{ color: "var(--info-border)", fontSize: 11 }}>(pertama kali 100%)</span></div>
+                : <div style={{ color: "var(--info-border)" }}>⏳ Masih berlangsung</div>
               }
               {task.execution_end && task.actual_end && task.execution_end !== task.actual_end && (
-                <div style={{ fontSize: 11, color: "#93C5FD" }}>
+                <div style={{ fontSize: 11, color: "var(--info-border)" }}>
                   Aktivitas terakhir: {fmtDate(task.execution_end)} (untuk audit, tidak mempengaruhi schedule)
                 </div>
               )}
@@ -363,10 +363,6 @@ function GanttBar({ task, minDate, totalDays, dayWidth, warnings, taskMap, onEdi
     return daysBetween(minDate.toISOString().slice(0, 10), d);
   }
 
-  function toLeft(d: string | null): number | null {
-    const off = dateToOffset(d);
-    return off !== null ? off * dayWidth : null;
-  }
 
   function toPct(d: string | null): number | null {
     const off = dateToOffset(d);
@@ -410,8 +406,8 @@ function GanttBar({ task, minDate, totalDays, dayWidth, warnings, taskMap, onEdi
           top: barMarginTop,
           height: barHeight,
           borderRadius: 4,
-          border: `2px dashed ${task.level === 1 ? C.navy : task.level === 2 ? "#4B5563" : "var(--text-muted)"}`,
-          background: task.level === 1 ? "var(--navy-light)" : task.level === 2 ? "var(--surface-hover)" : "#FAFAFA",
+          border: `2px dashed ${task.level === 1 ? C.navy : task.level === 2 ? "var(--text-secondary)" : "var(--text-muted)"}`,
+          background: task.level === 1 ? "var(--navy-light)" : task.level === 2 ? "var(--surface-hover)" : "var(--surface-subtle)",
           opacity: 0.8,
           pointerEvents: "none",
         }} />
@@ -428,7 +424,7 @@ function GanttBar({ task, minDate, totalDays, dayWidth, warnings, taskMap, onEdi
           borderRadius: 4,
           background: hasDanger ? C.red : hasWarning
             ? C.yellow
-            : task.level === 1 ? C.navy : task.level === 2 ? "#4B5563" : C.blue,
+            : task.level === 1 ? C.navy : task.level === 2 ? "var(--text-secondary)" : C.blue,
           overflow: "hidden",
           minWidth: 4,
         }}>
@@ -506,7 +502,7 @@ function GanttBar({ task, minDate, totalDays, dayWidth, warnings, taskMap, onEdi
             top: 34,
             left: "10%",
             zIndex: 100,
-            background: "#1F2937",
+            background: "var(--text-primary)",
             color: "var(--surface-subtle)",
             borderRadius: 8,
             padding: "10px 13px",
@@ -647,7 +643,11 @@ function DependencyArrows({
 
 // ─── Today line ───────────────────────────────────────────────────────────────
 
-function TodayLine({ minDate, totalDays, height }: { minDate: Date; totalDays: number; height: number }) {
+// `height` sengaja tidak diterima: garisnya memakai `top:0; bottom:0`, jadi
+// ia mengisi tinggi induknya sendiri. Prop tinggi yang dihitung pemanggil
+// akan menyimpang begitu jumlah baris berubah — dan gejalanya halus: garis
+// "hari ini" berhenti di tengah, bukan galat.
+function TodayLine({ minDate, totalDays }: { minDate: Date; totalDays: number }) {
   const today = new Date().toISOString().slice(0, 10);
   const off = daysBetween(minDate.toISOString().slice(0, 10), today);
   if (off < 0 || off > totalDays) return null;
@@ -959,7 +959,7 @@ export function GanttSection({ projectId, userRole, projectStart, projectEnd }: 
         <div style={{ display: "flex" }}>
 
           {/* Left panel: WBS tree */}
-          <div style={{ width: 280, flexShrink: 0, borderRight: "1px solid var(--border)", background: "#FAFAFA" }}>
+          <div style={{ width: 280, flexShrink: 0, borderRight: "1px solid var(--border)", background: "var(--surface-subtle)" }}>
             {/* Header */}
             <div style={{ padding: "8px 12px", borderBottom: "1px solid var(--border)", background: "var(--surface-subtle)", height: 33, display: "flex", alignItems: "center" }}>
               <span style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase" }}>Uraian Pekerjaan</span>
@@ -979,7 +979,7 @@ export function GanttSection({ projectId, userRole, projectStart, projectEnd }: 
                     padding: "0 8px 0 " + (task.level === 1 ? "8px" : task.level === 2 ? "20px" : "32px"),
                     borderBottom: "1px solid var(--surface-hover)",
                     gap: 4,
-                    background: task.level === 1 ? "var(--surface-hover)" : "#FAFAFA",
+                    background: task.level === 1 ? "var(--surface-hover)" : "var(--surface-subtle)",
                   }}
                 >
                   {hasChildren ? (
@@ -1042,7 +1042,7 @@ export function GanttSection({ projectId, userRole, projectStart, projectEnd }: 
                   totalDays={totalDays}
                   width={chartWidth}
                 />
-                <TodayLine minDate={minDate} totalDays={totalDays} height={visibleTasks.length * ROW_HEIGHT} />
+                <TodayLine minDate={minDate} totalDays={totalDays} />
 
                 {visibleTasks.map(task => (
                   <div

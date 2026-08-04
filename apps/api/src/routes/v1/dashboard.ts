@@ -283,21 +283,54 @@ export default async function dashboardRoutes(app: FastifyInstance) {
     // query mentah di sini membuat angkanya salah tanpa gejala apa pun.
     const db = request.db!
 
+    // ⚠️ Empat dari lima tabel di bawah berkategori C — mewarisi tenancy dari
+    // project, TIDAK punya `company_id` sendiri. Penjaga menolak query
+    // langsung ke tabel C, dan itu benar: ini layar LINTAS-PROYEK, jadi tak
+    // ada satu project sebagai konteks dan `viaProject()` tak berlaku.
+    //
+    // Pola yang sah (tenant-db.ts baris 108-133, dipakai juga di baris 63
+    // berkas ini): ambil daftar id milik company, lalu saring `supabase`
+    // mentah dengan `.in()`. `db.from()` menolak kategori C di titik `from()`
+    // — sebelum `.in()` sempat terpasang — jadi ia memang bukan jalannya.
+    //
+    // `projectIds()`/`workScopeIds()` di-memo per request, jadi empat query
+    // di sini tetap sekali hit DB per daftar.
+    //
+    // Kalau saringan ini hilang, ringkasan menghitung pekerjaan perusahaan
+    // LAIN — dan angkanya tetap terlihat masuk akal. Kebocoran tanpa gejala
+    // adalah yang paling lama tak ketahuan.
+    const [idProyek, idScope] = await Promise.all([db.projectIds(), db.workScopeIds()])
+
     const [kasbon, penagihan, invoice, klaim, instruksi] = await Promise.all([
-      // Kasbon menunggu persetujuan — uang keluar.
+      // Kasbon menunggu persetujuan — uang keluar. Kategori B, punya
+      // company_id sendiri, jadi `db.from()` sudah cukup.
       db.from('kasbons').select('id').eq('status', 'pending'),
       // Penagihan progres mandor menunggu konfirmasi.
-      db.from('progress_payments').select('id').eq('status', 'pending'),
+      supabase.from('progress_payments').select('id').eq('status', 'pending')
+        .in('work_scope_id', idScope),
       // Invoice jatuh tempo yang belum lunas — INI yang lewat tenggat.
-      db.from('invoices').select('id, due_date, amount_due, status')
-        .neq('status', 'cancelled').gt('amount_due', 0),
+      supabase.from('invoices').select('id, due_date, amount_due, status')
+        .neq('status', 'cancelled').gt('amount_due', 0)
+        .in('project_id', idProyek),
       // Klaim yang batas pemberitahuannya sudah lewat dan belum diputus.
-      db.from('contract_claims').select('id, event_date, notice_days_limit, notified_at, status')
-        .in('status', ['draft', 'diberitahukan', 'diajukan']),
+      supabase.from('contract_claims').select('id, event_date, notice_days_limit, notified_at, status')
+        .in('status', ['draft', 'diberitahukan', 'diajukan'])
+        .in('project_id', idProyek),
       // Instruksi lisan yang belum dikonfirmasi — utang bukti.
-      db.from('field_instructions').select('id, bentuk_perintah, diterima_pada, dikonfirmasi_pada, status')
-        .in('status', ['dicatat']),
+      supabase.from('field_instructions').select('id, bentuk_perintah, diterima_pada, dikonfirmasi_pada, status')
+        .in('status', ['dicatat'])
+        .in('project_id', idProyek),
     ])
+
+    // Galat dari mana pun membuat SELURUH ringkasan salah — "3 menunggu" saat
+    // sebenarnya 11 lebih berbahaya daripada widget yang menghilang. Jadi
+    // gagal keras, biar sidebar menyembunyikan dirinya sendiri.
+    for (const [nama, hasil] of Object.entries({ kasbon, penagihan, invoice, klaim, instruksi })) {
+      if (hasil.error) {
+        request.log.error({ err: hasil.error, sumber: nama }, 'fokus: query gagal')
+        throw new Error(`Gagal membaca ${nama}: ${hasil.error.message}`)
+      }
+    }
 
     const invoiceLewat = ((invoice.data ?? []) as Array<{ due_date: string }>)
       .filter((i) => i.due_date && i.due_date < hariIni).length

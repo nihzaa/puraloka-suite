@@ -68,7 +68,7 @@ export default function SistemPage() {
     <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-form)", margin: "0 auto" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
-        <div style={{ width: 42, height: 42, borderRadius: 12, background: "linear-gradient(135deg, var(--navy), #0066CC)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ width: 42, height: 42, borderRadius: 12, background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <Settings2 size={20} color="#fff" />
         </div>
         <div>
@@ -122,8 +122,8 @@ export default function SistemPage() {
           {/* Milestone check */}
           <div style={card}>
             <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: "#F5F3FF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <Target size={16} style={{ color: "#7C3AED" }} />
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--navy-light)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <Target size={16} style={{ color: "var(--aksen)" }} />
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>Cek Milestone Approaching / Overdue</div>
@@ -141,7 +141,7 @@ export default function SistemPage() {
                   );
                 }} />}
               </div>
-              <RunButton isRunning={running === "milestones"} color="#7C3AED" bg="#F5F3FF" onClick={() => runCheck("milestones", "/api/v1/notifications/check-milestones")} />
+              <RunButton isRunning={running === "milestones"} color="var(--aksen)" bg="var(--navy-light)" onClick={() => runCheck("milestones", "/api/v1/notifications/check-milestones")} />
             </div>
           </div>
         </div>
@@ -152,8 +152,8 @@ export default function SistemPage() {
         {section("Konfigurasi Email (Resend)")}
         <div style={card}>
           <div style={{ display: "flex", gap: 12 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "#FFF7ED", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <Mail size={16} style={{ color: "#C2410C" }} />
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--warning-bg)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Mail size={16} style={{ color: "var(--data-5)" }} />
             </div>
             <div>
               <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", marginBottom: 6 }}>Email Notifikasi via Resend</div>

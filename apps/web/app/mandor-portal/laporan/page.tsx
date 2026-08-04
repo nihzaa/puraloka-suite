@@ -116,7 +116,7 @@ export default function MandorLaporanPage() {
                               <td style={{ padding: "8px 10px", textAlign: "right", color: C.text, fontWeight: 600 }}>{fmt(item.daily_rate * (item.days_worked ?? 1))}</td>
                             </tr>
                           ))}
-                          <tr style={{ borderTop: `2px solid ${C.border}`, background: "#FAFAFA" }}>
+                          <tr style={{ borderTop: `2px solid ${C.border}`, background: "var(--surface-subtle)" }}>
                             <td colSpan={3} style={{ padding: "10px", textAlign: "right", fontWeight: 700, color: C.text }}>Total</td>
                             <td style={{ padding: "10px", textAlign: "right", fontWeight: 700, color: C.navy, fontSize: 13 }}>{fmt(r.total_amount ?? totalWage)}</td>
                           </tr>

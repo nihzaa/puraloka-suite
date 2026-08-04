@@ -36,9 +36,9 @@ interface Project {
 // ─── Colors ───────────────────────────────────────────────────────────────────
 
 const TYPE_STYLE: Record<string, { color: string; bg: string; icon: React.ReactNode }> = {
-  milestone:     { color: "#7C3AED", bg: "#F5F3FF", icon: <Target size={10} /> },
+  milestone:     { color: "var(--aksen)", bg: "var(--navy-light)", icon: <Target size={10} /> },
   termin:        { color: "var(--success)", bg: "var(--success-bg)", icon: <FileText size={10} /> },
-  progress:      { color: "#0066CC", bg: "var(--info-bg)", icon: <TrendingUp size={10} /> },
+  progress:      { color: "var(--aksen-terang)", bg: "var(--info-bg)", icon: <TrendingUp size={10} /> },
   project_end:   { color: "var(--danger)", bg: "var(--danger-bg)", icon: <Clock size={10} /> },
   project_start: { color: "var(--warning)", bg: "var(--warning-bg)", icon: <Calendar size={10} /> },
 };
@@ -176,7 +176,7 @@ export default function KalenderPage() {
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 42, height: 42, borderRadius: 12, background: "linear-gradient(135deg, var(--navy), #0066CC)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ width: 42, height: 42, borderRadius: 12, background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Calendar size={20} color="#fff" />
           </div>
           <div>

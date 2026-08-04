@@ -143,7 +143,7 @@ function ClientModal({
     border: `1px solid ${C.border}`, fontSize: 14, color: C.text,
     background: "var(--surface)", outline: "none",
   };
-  const labelStyle: React.CSSProperties = { display: "block", fontSize: 12, fontWeight: 500, color: "#374151", marginBottom: 5 };
+  const labelStyle: React.CSSProperties = { display: "block", fontSize: 12, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 5 };
 
   if (!mounted) return null;
 
@@ -326,7 +326,7 @@ function DetailPanel({ clientId, onClose, onEdit, onCreateProject }: {
                   <a
                     href={waLink(detail.phone)}
                     target="_blank" rel="noopener noreferrer"
-                    style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 6, background: "#DCFCE7", color: "var(--success)", fontSize: 11, fontWeight: 600, textDecoration: "none", flexShrink: 0 }}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 6, background: "var(--success-bg)", color: "var(--success)", fontSize: 11, fontWeight: 600, textDecoration: "none", flexShrink: 0 }}
                   >
                     <MessageCircle size={11} /> WhatsApp
                   </a>

@@ -219,7 +219,7 @@ export default function PenagihanProgressPage() {
               overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
             }}>
               {/* Header */}
-              <div style={{ padding: "16px 20px", background: isActive ? "#FAFCFF" : "transparent" }}>
+              <div style={{ padding: "16px 20px", background: isActive ? "var(--surface-subtle)" : "transparent" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 14 }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 2 }}>{scope.scope_name}</div>

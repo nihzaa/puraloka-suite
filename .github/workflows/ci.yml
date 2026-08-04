@@ -620,10 +620,27 @@ jobs:
       # menyunting puluhan berkas — dan yang terlewat akan memakai warna
       # perusahaan lain.
       #
-      # RATCHET (lantai 578): 391 hex yang punya padanan token PERSIS sudah
-      # diganti. Sisanya butuh keputusan desain, bukan penggantian mekanis.
+      # RATCHET (lantai 62 sejak 2026-08-05, sebelumnya 578): 519 hex disapu
+      # ke token saat rombak visual. Sisa 62 adalah warna yang memang bukan
+      # milik palet — merek Google di tombol OAuth, pink kategori, cyan grafik.
       - name: Hex literal (token desain)
         run: node scripts/hex-ratchet.mjs
+
+      # Deret warna grafik harus bisa dibedakan mata buta warna — dan itu
+      # BUKAN klaim yang boleh ditulis tanpa diukur. Komentar lama di
+      # globals.css menyatakan deretnya aman deutan/protan; saat akhirnya
+      # diuji, --data-2 dan --data-5 jatuh ke ΔE 1,9 pada protanopia. Grafik
+      # lima seri jadi empat seri bagi ~8% pria, tanpa satu pun galat.
+      - name: Deret data (deutan/protan)
+        run: node scripts/uji-deret-data.mjs
+
+      # Identitas merek: gradasi wajib tetap navy 210° sepanjang rentangnya
+      # (founder menolak ujung yang bergeser ke biru langit), dan permukaan
+      # merek TIDAK boleh dibalik di mode gelap. Sekalian menjaga
+      # lib/warna-merek.ts tetap sinkron dengan globals.css — dua sumber yang
+      # menggambarkan warna yang sama pasti menyimpang, pertanyaannya kapan.
+      - name: Identitas merek (rona, saturasi, sinkron)
+        run: node scripts/uji-token-merek.mjs
 
       # Sidebar kini memuat 20 grup & 202 sub-menu (migrasi 153). Pola lama
       # menulis tinggi collapse sebagai ANGKA MATI (`maxHeight: "140px"`) —

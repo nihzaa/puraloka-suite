@@ -11,7 +11,7 @@ const C = {
   green: "var(--success)", greenBg: "var(--success-bg)",
   yellow: "var(--warning)", yellowBg: "var(--warning-bg)",
   red: "var(--danger)", redBg: "var(--danger-bg)",
-  purple: "#7C3AED", purpleBg: "#F5F3FF",
+  purple: "var(--aksen)", purpleBg: "var(--navy-light)",
 };
 
 function fmtRp(n: number) {
@@ -149,7 +149,7 @@ export default function RiwayatPembayaranPage() {
       {/* Summary card */}
       {!loading && items.length > 0 && (
         <div style={{
-          background: `linear-gradient(135deg, ${C.navy} 0%, #0055AA 100%)`,
+          background: `linear-gradient(135deg, ${C.navy} 0%, var(--aksen-terang) 100%)`,
           borderRadius: 14, padding: "18px 22px", marginBottom: 20, color: "var(--surface)",
         }}>
           <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 6 }}>

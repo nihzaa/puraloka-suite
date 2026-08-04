@@ -24,7 +24,7 @@ const C = {
   red: "var(--danger)", redBg: "var(--danger-bg)", redBorder: "var(--danger-border)",
   yellow: "var(--warning)", yellowBg: "var(--warning-bg)", yellowBorder: "var(--warning-border)",
   blue: "var(--info)", blueBg: "var(--info-bg)", blueBorder: "var(--info-border)",
-  purple: "#7C3AED", purpleBg: "#F5F3FF", purpleBorder: "#DDD6FE",
+  purple: "var(--aksen)", purpleBg: "var(--navy-light)", purpleBorder: "var(--info-border)",
 };
 
 const card: React.CSSProperties = {
@@ -157,7 +157,7 @@ const PURPOSE_LABEL: Record<string, string> = {
   gaji_tukang: "Gaji Tukang", uang_makan: "Uang Makan",
   pembelian_alat: "Pembelian Alat", operasional: "Operasional", lain_lain: "Lain-lain",
 };
-const PIE_COLORS = ["var(--navy)", "#0066CC", "var(--success)", "var(--danger)", "#FBBF24", "var(--info)", "#A78BFA", "#F472B6"];
+const PIE_COLORS = ["var(--navy)", "var(--aksen-terang)", "var(--success)", "var(--danger)", "var(--warning)", "var(--info)", "var(--aksen-terang)", "#F472B6"];
 
 function Skeleton({ h = 20, w = "100%" }: { h?: number; w?: string | number }) {
   return <div style={{ height: h, width: w, borderRadius: 8, background: "var(--surface-hover)" }} />;
@@ -746,7 +746,7 @@ function TabRingkasan({ data, canViewFinance }: { data: ProjectSummaryData; canV
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
       {/* Project header card */}
-      <div style={{ padding: "20px 24px", borderRadius: 12, border: `1px solid ${C.border}`, background: "linear-gradient(135deg, #F8FBFF 0%, #fff 100%)", display: "flex", gap: 24, flexWrap: "wrap", alignItems: "flex-start" }}>
+      <div style={{ padding: "20px 24px", borderRadius: 12, border: `1px solid ${C.border}`, background: "linear-gradient(135deg, var(--surface-subtle) 0%, #fff 100%)", display: "flex", gap: 24, flexWrap: "wrap", alignItems: "flex-start" }}>
         <div style={{ flex: 1, minWidth: 240 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
             <StatusBadge label={statusMeta.label} color={statusMeta.color} bg={statusMeta.bg} />
@@ -802,7 +802,7 @@ function TabRingkasan({ data, canViewFinance }: { data: ProjectSummaryData; canV
       {data.kurvaSPoints && data.kurvaSPoints.length > 0 && (
         <div>
           <SectionTitle icon={<BarChart3 size={15} color={C.navy} />} title="Kurva S" />
-          <div style={{ background: "#FAFAFA", borderRadius: 10, border: `1px solid ${C.border}`, padding: "12px 8px 8px" }}>
+          <div style={{ background: "var(--surface-subtle)", borderRadius: 10, border: `1px solid ${C.border}`, padding: "12px 8px 8px" }}>
             <ResponsiveContainer width="100%" height={200}>
               <ComposedChart data={data.kurvaSPoints} margin={{ top: 4, right: 16, bottom: 4, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--surface-hover)" />
@@ -973,7 +973,7 @@ function TabKeuangan({ data }: { data: FinancialData }) {
           {invoices.map(inv => {
             const overdue = inv.status !== "paid" && inv.status !== "cancelled" && new Date(inv.due_date) < new Date();
             return (
-              <tr key={inv.id} style={{ borderBottom: "1px solid var(--surface-hover)", background: overdue ? "#FEF9F9" : "transparent" }}>
+              <tr key={inv.id} style={{ borderBottom: "1px solid var(--surface-hover)", background: overdue ? "var(--surface-subtle)" : "transparent" }}>
                 <td style={{ padding: "9px 12px", fontWeight: 600, color: C.navy, fontSize: 12 }}>{inv.invoice_number}</td>
                 <td style={{ padding: "9px 12px", fontSize: 11, color: C.mid }}>{(inv as unknown as { projects?: { name: string } }).projects?.name ?? "—"}</td>
                 <td style={{ padding: "9px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12 }}>{fmtCompact(Number(inv.total_amount))}</td>
@@ -1017,7 +1017,7 @@ function TabCashflow({ data }: { data: CashflowData }) {
       {byMonth.length > 0 && (
         <div>
           <SectionTitle icon={<BarChart3 size={15} color={C.navy} />} title="Trend Bulanan" />
-          <div style={{ background: "#FAFAFA", borderRadius: 10, border: `1px solid ${C.border}`, padding: "12px 8px 8px" }}>
+          <div style={{ background: "var(--surface-subtle)", borderRadius: 10, border: `1px solid ${C.border}`, padding: "12px 8px 8px" }}>
             <ResponsiveContainer width="100%" height={240}>
               <ComposedChart data={byMonth} margin={{ top: 4, right: 16, bottom: 4, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--surface-hover)" />
@@ -1084,7 +1084,7 @@ function TabMandor({ data }: { data: MandorReportData }) {
                   `${expanded ? "Tutup" : "Buka"} rincian ${mr.assignment.mandor?.name ?? "mandor"}`,
                   { terbuka: expanded },
                 )}
-                  style={{ padding: "14px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, background: expanded ? "#F8FBFF" : "var(--surface)" }}>
+                  style={{ padding: "14px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, background: expanded ? "var(--surface-subtle)" : "var(--surface)" }}>
                   <div style={{ width: 36, height: 36, borderRadius: 10, background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     <Users size={16} color={C.navy} />
                   </div>

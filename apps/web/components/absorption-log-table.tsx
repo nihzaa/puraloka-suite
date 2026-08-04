@@ -146,7 +146,7 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{
             width: 36, height: 36, borderRadius: 10,
-            background: "linear-gradient(135deg,#EA580C,#F97316)",
+            background: "linear-gradient(135deg,var(--data-5),var(--data-5))",
             display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
           }}>
             <span style={{ color: "#fff", fontSize: 16 }}>₿</span>
@@ -165,7 +165,7 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
             <button onClick={onAddClick} style={{
               display: "flex", alignItems: "center", gap: 5,
               padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600,
-              background: "linear-gradient(135deg,#EA580C,#F97316)", color: "#fff",
+              background: "linear-gradient(135deg,var(--data-5),var(--data-5))", color: "#fff",
               border: "none", cursor: "pointer",
             }}>
               <Plus size={13} />
@@ -214,7 +214,7 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
               {canEdit && (
                 <button onClick={onAddClick} style={{
                   padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600,
-                  background: "linear-gradient(135deg,#EA580C,#F97316)", color: "#fff",
+                  background: "linear-gradient(135deg,var(--data-5),var(--data-5))", color: "#fff",
                   border: "none", cursor: "pointer",
                 }}>
                   + Tambah Entri Pertama
@@ -287,7 +287,7 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
                         <div style={{ textAlign: "right" }}>
                           <span style={{
                             fontSize: 12, fontWeight: 700,
-                            color: week.totalPct > 0 ? "#EA580C" : C.muted,
+                            color: week.totalPct > 0 ? "var(--data-5)" : C.muted,
                           }}>
                             {week.totalPct.toFixed(1)}%
                           </span>
@@ -321,22 +321,22 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
                             <div style={{ textAlign: "right", color: C.mid, fontSize: 11 }}>
                               M{entry.week_number}
                             </div>
-                            <div style={{ textAlign: "right", color: "#3B82F6" }}>
+                            <div style={{ textAlign: "right", color: "var(--info)" }}>
                               {entry.material_pct > 0 ? `${entry.material_pct}%` : <span style={{ color: C.muted }}>—</span>}
                             </div>
-                            <div style={{ textAlign: "right", color: "#10B981" }}>
+                            <div style={{ textAlign: "right", color: "var(--success)" }}>
                               {entry.upah_pct > 0 ? `${entry.upah_pct}%` : <span style={{ color: C.muted }}>—</span>}
                             </div>
                             <div style={{ textAlign: "right", color: "var(--warning)" }}>
                               {entry.alat_pct > 0 ? `${entry.alat_pct}%` : <span style={{ color: C.muted }}>—</span>}
                             </div>
-                            <div style={{ textAlign: "right", color: "#8B5CF6" }}>
+                            <div style={{ textAlign: "right", color: "var(--aksen)" }}>
                               {entry.other_pct > 0 ? `${entry.other_pct}%` : <span style={{ color: C.muted }}>—</span>}
                             </div>
                             <div style={{ textAlign: "right" }}>
                               <span style={{
-                                fontWeight: 700, color: "#EA580C",
-                                background: "#FFF7ED", borderRadius: 4,
+                                fontWeight: 700, color: "var(--data-5)",
+                                background: "var(--warning-bg)", borderRadius: 4,
                                 padding: "2px 6px", fontSize: 11,
                               }}>
                                 {total.toFixed(1)}%
@@ -406,7 +406,7 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
               }}>
                 <div /><div>Total</div>
                 <div /><div /><div /><div /><div />
-                <div style={{ textAlign: "right", color: "#EA580C" }}>
+                <div style={{ textAlign: "right", color: "var(--data-5)" }}>
                   {entries.reduce((s, e) => s + e.material_pct + e.upah_pct + e.alat_pct + e.other_pct, 0).toFixed(1)}%
                 </div>
                 <div /><div />

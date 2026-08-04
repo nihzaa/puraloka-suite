@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AxiosError } from "axios";
 import { login } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
+import { LogoPuraloka } from "@/components/logo-puraloka";
 
 /** Batas minimal password yang divalidasi server (auth.ts). Disamakan di sini
  *  supaya user dapat umpan balik sebelum request terkirim. */
@@ -133,7 +134,26 @@ function LoginPageInner() {
           flex-direction: column;
           justify-content: space-between;
           padding: 56px;
-          background: var(--navy);
+          /* Gradasi navy, bukan navy rata — arah gelap→terang yang sama
+             dengan seluruh aplikasi. Halaman masuk adalah layar PERTAMA yang
+             dilihat orang; kalau ia tak memakai bahasa visual produknya
+             sendiri, sisanya terasa seperti aplikasi yang berbeda.
+
+             ⚠️ Perhentiannya DITULIS di sini, tidak memakai --grad-aksen.
+             Alasannya terlihat begitu mode gelap dipotret: di sana
+             --grad-aksen berbalik jadi biru menyala (dirancang untuk kartu
+             KPI kecil di latar gelap), dan bidang setengah layar dengan
+             gradasi itu membuat merek seolah BERGANTI WARNA antar-mode.
+
+             Panel ini adalah permukaan merek, bukan permukaan data — ia
+             harus navy pekat yang sama di kedua mode, persis seperti kop
+             surat perusahaan tak berubah warna karena lampu ruangan.
+
+             Token --grad-merek sengaja TIDAK didefinisikan ulang di blok
+             .dark globals.css; itu bukan kelalaian, itu perilakunya.
+             (Tanpa backtick: blok CSS ini hidup di dalam template literal,
+             jadi backtick di komentar akan menutup string lebih awal.) */
+          background: var(--grad-merek);
           position: relative;
           overflow: hidden;
         }
@@ -278,13 +298,27 @@ function LoginPageInner() {
             background: "rgba(0,80,160,0.4)", filter: "blur(100px)", pointerEvents: "none",
           }} />
 
+          {/* Lambang raksasa sebagai TEKSTUR, bukan hiasan tempelan.
+              Dipotong tepi kanan supaya terbaca sebagai bagian dari bidang,
+              bukan stiker yang ditaruh di atasnya. Opasitasnya sangat rendah:
+              ia harus terasa, bukan terbaca — begitu ia menarik perhatian, ia
+              bersaing dengan judul yang justru harus dibaca. */}
+          <div aria-hidden="true" style={{
+            position: "absolute", top: "50%", right: "-14%",
+            transform: "translateY(-50%)", opacity: 0.055,
+            color: "#fff", pointerEvents: "none", lineHeight: 0,
+          }}>
+            <LogoPuraloka size={520} title="" />
+          </div>
+
           <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{
               width: 40, height: 40, borderRadius: 10,
               background: "rgba(255,255,255,0.15)",
               display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#fff",
             }}>
-              <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 18, color: "#fff" }}>P</span>
+              <LogoPuraloka size={20} title="" />
             </div>
             <span style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 17, color: "#fff" }}>
               Puraloka Suite
@@ -304,15 +338,33 @@ function LoginPageInner() {
             </p>
           </div>
 
-          <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 8 }}>
-            {["Estimasi RAB", "Monitoring Realtime", "Laporan Keuangan"].map((label, i) => (
-              <span key={label}>
-                <span style={{
-                  padding: "4px 12px", borderRadius: 99, fontSize: 12,
-                  background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.75)",
-                }}>{label}</span>
-                {i < 2 && <span style={{ color: "rgba(255,255,255,0.2)", marginLeft: 8 }}>·</span>}
-              </span>
+          {/* Tiga kemampuan, bukan tiga pil.
+              Versi sebelumnya memakai pil "Estimasi RAB · Monitoring Realtime ·
+              Laporan Keuangan" — kata benda tanpa isi, pola yang muncul di
+              setiap halaman masuk SaaS. Diganti dengan yang benar-benar
+              membedakan produk ini: satuan pekerjaan yang dipakai orang
+              lapangan, dan hal-hal yang biasanya tercecer di WhatsApp. */}
+          <div style={{
+            position: "relative", zIndex: 1, display: "grid",
+            gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 28,
+            paddingTop: 22, borderTop: "1px solid rgba(255,255,255,0.14)",
+            maxWidth: 460,
+          }}>
+            {[
+              { angka: "AHSP", ket: "Harga satuan mengikuti SNI, bukan tebakan" },
+              { angka: "Kasbon", ket: "Diajukan mandor dari lapangan, disetujui di sini" },
+              { angka: "Kurva S", ket: "Rencana vs kenyataan, per minggu" },
+            ].map((k) => (
+              <div key={k.angka}>
+                <div style={{
+                  fontFamily: "var(--font-display)", fontSize: 17, fontWeight: 700,
+                  color: "#fff", letterSpacing: "-0.01em",
+                }}>{k.angka}</div>
+                <div style={{
+                  marginTop: 5, fontSize: 12, lineHeight: 1.5,
+                  color: "rgba(255,255,255,0.55)",
+                }}>{k.ket}</div>
+              </div>
             ))}
           </div>
         </div>
@@ -325,10 +377,11 @@ function LoginPageInner() {
             <div style={{ display: "none" }} className="mobile-logo">
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 32 }}>
                 <div style={{
-                  width: 36, height: 36, borderRadius: 9, background: "var(--navy)",
+                  width: 36, height: 36, borderRadius: 9, background: "var(--grad-aksen)",
                   display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "var(--on-aksen)",
                 }}>
-                  <span style={{ fontWeight: 800, fontSize: 16, color: "var(--surface)" }}>P</span>
+                  <LogoPuraloka size={18} title="" />
                 </div>
                 <span style={{ fontWeight: 700, fontSize: 16, color: "var(--text-primary)" }}>Puraloka Suite</span>
               </div>
@@ -463,6 +516,36 @@ function LoginPageInner() {
                 </svg>
                 {oauthLoading ? "Mengarahkan..." : "Masuk dengan Google"}
               </button>
+            </div>
+
+            {/* Catatan kaki — mengisi ruang kosong di bawah kartu DAN menjawab
+                dua pertanyaan yang benar-benar muncul di layar masuk:
+                "kenapa saya tak punya akun?" dan "apa ini aman?".
+
+                Tak ada tautan "Daftar": aplikasi ini tidak menerima pendaftaran
+                mandiri — akun dibuat administrator perusahaan. Tombol daftar
+                yang berujung penolakan lebih buruk daripada tak ada tombol. */}
+            <div style={{
+              marginTop: 24, paddingTop: 20,
+              borderTop: "1px solid var(--border)",
+              display: "flex", flexDirection: "column", gap: 10,
+            }}>
+              <p style={{ fontSize: 12.5, color: "var(--text-secondary)", lineHeight: 1.6, margin: 0 }}>
+                Belum punya akses? Akun dibuat oleh administrator perusahaan Anda,
+                bukan lewat pendaftaran mandiri.
+              </p>
+              <div style={{
+                display: "flex", alignItems: "center", gap: 7,
+                fontSize: 11.5, color: "var(--text-muted)",
+              }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+                  style={{ flexShrink: 0 }}>
+                  <rect x="3" y="11" width="18" height="11" rx="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+                Sesi terenkripsi · setiap tindakan tercatat di jejak audit
+              </div>
             </div>
           </div>
         </div>

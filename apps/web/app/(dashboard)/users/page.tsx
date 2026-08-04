@@ -18,7 +18,7 @@ const C = {
   red: "var(--danger)", redBg: "var(--danger-bg)", redBorder: "var(--danger-border)",
   yellow: "var(--warning)", yellowBg: "var(--warning-bg)", yellowBorder: "var(--warning-border)",
   blue: "var(--info)", blueBg: "var(--info-bg)", blueBorder: "var(--info-border)",
-  purple: "#6D28D9", purpleBg: "#F5F3FF", purpleBorder: "#DDD6FE",
+  purple: "var(--aksen)", purpleBg: "var(--navy-light)", purpleBorder: "var(--info-border)",
 };
 
 const ROLES = [

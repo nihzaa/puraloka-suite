@@ -16,8 +16,8 @@ const C = {
 
 const TIPE_META: Record<string, { label: string; color: string }> = {
   tukang: { label: "Tukang",  color: "var(--info)" },
-  laden:  { label: "Laden",   color: "#7C3AED" },
-  kenek:  { label: "Kenek",   color: "#0891B2" },
+  laden:  { label: "Laden",   color: "var(--aksen)" },
+  kenek:  { label: "Kenek",   color: "var(--data-2)" },
 };
 
 interface Worker {

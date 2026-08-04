@@ -25,10 +25,10 @@ interface StatusConfig {
 }
 
 const STATUS_CONFIG: Record<MilestoneStatusKey, StatusConfig> = {
-  selesai:     { label: "Selesai",     bg: "#dcfce7", color: "var(--success)", dot: "#16a34a" },
-  terlambat:   { label: "Terlambat",   bg: "#fee2e2", color: "var(--danger)", dot: "#ef4444" },
-  berlangsung: { label: "Berlangsung", bg: "var(--info-bg)", color: "var(--info)", dot: "#3b82f6" },
-  menunggu:    { label: "Menunggu",    bg: "#f8fafc", color: "#64748b", dot: "#94a3b8" },
+  selesai:     { label: "Selesai",     bg: "var(--success-bg)", color: "var(--success)", dot: "var(--success)" },
+  terlambat:   { label: "Terlambat",   bg: "var(--danger-bg)", color: "var(--danger)", dot: "var(--danger)" },
+  berlangsung: { label: "Berlangsung", bg: "var(--info-bg)", color: "var(--info)", dot: "var(--info)" },
+  menunggu:    { label: "Menunggu",    bg: "var(--surface-subtle)", color: "var(--text-muted)", dot: "var(--text-muted)" },
 };
 
 function getMilestoneStatus(m: Milestone): MilestoneStatusKey {
@@ -204,7 +204,7 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
                 fontSize: 13, fontWeight: 600, cursor: "pointer",
                 transition: "background 0.15s", flexShrink: 0,
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = "#002244"; }}
+              onMouseEnter={e => { e.currentTarget.style.background = "var(--aksen-pekat)"; }}
               onMouseLeave={e => { e.currentTarget.style.background = "var(--navy)"; }}
             >
               <Plus size={14} />
@@ -220,11 +220,11 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
               <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Progres milestone</span>
               <span style={{ fontSize: 12, fontWeight: 600, color: "var(--navy)" }}>{pct}%</span>
             </div>
-            <div style={{ height: 6, background: "#f1f5f9", borderRadius: 99, overflow: "hidden" }}>
+            <div style={{ height: 6, background: "var(--surface-hover)", borderRadius: 99, overflow: "hidden" }}>
               <div style={{
                 height: "100%", borderRadius: 99,
                 width: `${pct}%`,
-                background: pct === 100 ? "#10b981" : "var(--navy)",
+                background: pct === 100 ? "var(--success)" : "var(--navy)",
                 transition: "width 0.4s ease",
               }} />
             </div>
@@ -237,7 +237,7 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
             {[1, 2, 3].map(i => (
               <div key={i} style={{
                 height: 56, borderRadius: 12,
-                background: "linear-gradient(90deg, #f1f5f9 0%, #e2e8f0 50%, #f1f5f9 100%)",
+                background: "linear-gradient(90deg, var(--surface-hover) 0%, var(--border) 50%, var(--surface-hover) 100%)",
                 backgroundSize: "200% 100%",
                 animation: "shimmer 1.4s infinite",
               }} />
@@ -250,13 +250,13 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
           <div style={{
             padding: "40px 16px", textAlign: "center",
             border: "1.5px dashed #e2e8f0", borderRadius: 12,
-            background: "#fafafa",
+            background: "var(--surface-subtle)",
           }}>
-            <CalendarDays size={32} style={{ color: "#cbd5e1", margin: "0 auto 12px" }} />
-            <p style={{ fontSize: 14, fontWeight: 600, color: "#64748b", margin: "0 0 4px" }}>
+            <CalendarDays size={32} style={{ color: "var(--data-diam)", margin: "0 auto 12px" }} />
+            <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-muted)", margin: "0 0 4px" }}>
               Belum ada milestone
             </p>
-            <p style={{ fontSize: 12, color: "#94a3b8", margin: 0 }}>
+            <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>
               {canEdit ? 'Klik "Tambah" untuk menetapkan target pencapaian' : "Milestone akan ditampilkan di sini"}
             </p>
           </div>
@@ -278,8 +278,8 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
                     display: "flex", alignItems: "flex-start", gap: 12,
                     padding: "12px 14px", borderRadius: 12,
                     border: "1px solid",
-                    borderColor: isSelesai ? "var(--success-border)" : "#f1f5f9",
-                    background: isSelesai ? "var(--success-bg)" : "#fafafa",
+                    borderColor: isSelesai ? "var(--success-border)" : "var(--surface-hover)",
+                    background: isSelesai ? "var(--success-bg)" : "var(--surface-subtle)",
                     transition: "background 0.2s, border-color 0.2s",
                   }}
                 >
@@ -291,15 +291,15 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
                     title={isSelesai ? "Tandai belum selesai" : "Tandai selesai"}
                     style={{
                       width: 22, height: 22, borderRadius: "50%", flexShrink: 0, marginTop: 1,
-                      border: `2px solid ${isSelesai ? "#16a34a" : "#cbd5e1"}`,
-                      background: isSelesai ? "#16a34a" : "white",
+                      border: `2px solid ${isSelesai ? "var(--success)" : "var(--data-diam)"}`,
+                      background: isSelesai ? "var(--success)" : "white",
                       display: "flex", alignItems: "center", justifyContent: "center",
                       cursor: canEdit ? "pointer" : "default",
                       transition: "background 0.2s, border-color 0.2s",
                     }}
                   >
                     {isToggling
-                      ? <Loader2 size={11} style={{ color: isSelesai ? "white" : "#94a3b8", animation: "spin 0.8s linear infinite" }} />
+                      ? <Loader2 size={11} style={{ color: isSelesai ? "white" : "var(--text-muted)", animation: "spin 0.8s linear infinite" }} />
                       : isSelesai
                         ? <Check size={12} color="white" strokeWidth={3} />
                         : null
@@ -309,7 +309,7 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
                   {/* Content */}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{
-                      fontSize: 13, fontWeight: 600, color: isSelesai ? "var(--success)" : "#0f172a",
+                      fontSize: 13, fontWeight: 600, color: isSelesai ? "var(--success)" : "var(--text-primary)",
                       margin: "0 0 4px",
                       textDecoration: isSelesai ? "line-through" : "none",
                       opacity: isSelesai ? 0.75 : 1,
@@ -317,7 +317,7 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
                       {m.title}
                     </p>
                     {m.description && (
-                      <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 6px", lineHeight: 1.5 }}>
+                      <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 6px", lineHeight: 1.5 }}>
                         {m.description}
                       </p>
                     )}
@@ -359,9 +359,9 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
                           width: 28, height: 28, borderRadius: 7, border: "none",
                           background: "transparent", cursor: "pointer",
                           display: "flex", alignItems: "center", justifyContent: "center",
-                          color: "#94a3b8", transition: "background 0.15s",
+                          color: "var(--text-muted)", transition: "background 0.15s",
                         }}
-                        onMouseEnter={e => { e.currentTarget.style.background = "#f1f5f9"; }}
+                        onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-hover)"; }}
                         onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
                       >
                         <MoreHorizontal size={16} />
@@ -385,10 +385,10 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
                             style={{
                               width: "100%", padding: "9px 14px", border: "none",
                               background: "none", textAlign: "left", cursor: "pointer",
-                              fontSize: 13, color: "#374151",
+                              fontSize: 13, color: "var(--text-secondary)",
                               display: "flex", alignItems: "center", gap: 8,
                             }}
-                            onMouseEnter={e => { e.currentTarget.style.background = "#f8fafc"; }}
+                            onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-subtle)"; }}
                             onMouseLeave={e => { e.currentTarget.style.background = "none"; }}
                           >
                             <Pencil size={13} style={{ color: "var(--text-secondary)" }} />
@@ -450,19 +450,19 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
               background: "white", borderRadius: 18, overflow: "hidden",
               boxShadow: "0 24px 64px -12px rgba(0,0,0,0.22)",
             }}>
-              <div style={{ height: 4, background: "linear-gradient(90deg, #dc2626, #ef4444)" }} />
+              <div style={{ height: 4, background: "linear-gradient(90deg, var(--danger), var(--danger))" }} />
               <div style={{ padding: "24px 24px 20px" }}>
                 <div style={{
                   width: 44, height: 44, borderRadius: 12, background: "var(--danger-bg)",
                   display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14,
                 }}>
-                  <Trash2 size={20} style={{ color: "#dc2626" }} />
+                  <Trash2 size={20} style={{ color: "var(--danger)" }} />
                 </div>
-                <h3 style={{ fontSize: 16, fontWeight: 600, color: "#0f172a", margin: "0 0 8px" }}>
+                <h3 style={{ fontSize: 16, fontWeight: 600, color: "var(--text-primary)", margin: "0 0 8px" }}>
                   Hapus Milestone?
                 </h3>
-                <p style={{ fontSize: 13, color: "#64748b", margin: 0, lineHeight: 1.6 }}>
-                  Milestone <strong style={{ color: "#0f172a" }}>{m?.title}</strong> akan dihapus secara permanen.
+                <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0, lineHeight: 1.6 }}>
+                  Milestone <strong style={{ color: "var(--text-primary)" }}>{m?.title}</strong> akan dihapus secara permanen.
                 </p>
               </div>
               <div style={{
@@ -473,7 +473,7 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
                   disabled={deleting}
                   style={{
                     padding: "8px 16px", borderRadius: 10, border: "1px solid #e2e8f0",
-                    background: "white", fontSize: 13, fontWeight: 500, color: "#475569", cursor: "pointer",
+                    background: "white", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", cursor: "pointer",
                   }}
                 >
                   Batal
@@ -483,7 +483,7 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
                   disabled={deleting}
                   style={{
                     padding: "8px 20px", borderRadius: 10, border: "none", fontSize: 13, fontWeight: 600,
-                    background: deleting ? "#fca5a5" : "#dc2626", color: "white",
+                    background: deleting ? "#fca5a5" : "var(--danger)", color: "white",
                     cursor: deleting ? "not-allowed" : "pointer",
                     display: "flex", alignItems: "center", gap: 6,
                     minWidth: 100, justifyContent: "center",
