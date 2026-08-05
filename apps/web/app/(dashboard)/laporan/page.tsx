@@ -737,7 +737,11 @@ function TabRingkasan({ data, canViewFinance }: { data: ProjectSummaryData; canV
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
       {/* Project header card */}
-      <div style={{ padding: "20px 24px", borderRadius: 10, border: `1px solid ${C.border}`, background: "linear-gradient(135deg, var(--surface-subtle) 0%, #fff 100%)", display: "flex", gap: 24, flexWrap: "wrap", alignItems: "flex-start" }}>
+      <div style={{ padding: "20px 24px", borderRadius: 10, border: `1px solid ${C.border}`, // `#fff` yang dipaku membuat kartu ini tetap PUTIH TERANG di mode
+        // gelap, sementara teks di atasnya ikut menjadi terang — nama proyek
+        // di sisi kanan nyaris tak terbaca. `--surface` punya varian gelapnya
+        // sendiri, jadi gradasinya ikut berbalik.
+        background: "linear-gradient(135deg, var(--surface-subtle) 0%, var(--surface) 100%)", display: "flex", gap: 24, flexWrap: "wrap", alignItems: "flex-start" }}>
         <div style={{ flex: 1, minWidth: 240 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
             <StatusBadge label={statusMeta.label} color={statusMeta.color} bg={statusMeta.bg} />

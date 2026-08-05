@@ -372,8 +372,8 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
                           style={{
                             position: "absolute", top: "100%", right: 0, zIndex: 100,
                             marginTop: 4, minWidth: 140,
-                            background: "white", borderRadius: 10,
-                            border: "1px solid #e2e8f0",
+                            background: "var(--surface)", borderRadius: 10,
+                            border: "1px solid var(--border)",
                             boxShadow: "var(--naik-2)",
                             overflow: "hidden",
                           }}
@@ -447,7 +447,7 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
             }} onClick={() => !deleting && setDeleteId(null)} />
             <div style={{
               position: "relative", width: "100%", maxWidth: 420,
-              background: "white", borderRadius: 18, overflow: "hidden",
+              background: "var(--surface)", borderRadius: 18, overflow: "hidden",
               boxShadow: "var(--naik-3)",
             }}>
               <div style={{ height: 4, background: "linear-gradient(90deg, var(--danger), var(--danger))" }} />
@@ -472,8 +472,8 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
                   onClick={() => setDeleteId(null)}
                   disabled={deleting}
                   style={{
-                    padding: "8px 16px", borderRadius: 10, border: "1px solid #e2e8f0",
-                    background: "white", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", cursor: "pointer",
+                    padding: "8px 16px", borderRadius: 10, border: "1px solid var(--border)",
+                    background: "var(--surface)", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", cursor: "pointer",
                   }}
                 >
                   Batal

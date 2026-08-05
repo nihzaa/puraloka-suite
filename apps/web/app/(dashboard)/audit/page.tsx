@@ -160,7 +160,7 @@ export default function AuditPage() {
     : logs;
 
   const card: React.CSSProperties = {
-    background: "#fff", border: "1px solid var(--border)",
+    background: "var(--surface)", border: "1px solid var(--border)",
     borderRadius: 14, boxShadow: "var(--naik-1)",
   };
 
@@ -199,7 +199,7 @@ export default function AuditPage() {
         </div>
         <button
           onClick={() => fetchLogs(page)}
-          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border)", background: "#fff", fontSize: 12, fontWeight: 500, cursor: "pointer" }}
+          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 12, fontWeight: 500, cursor: "pointer" }}
         >
           <RefreshCw size={13} style={{ color: "var(--text-muted)" }} /> Refresh
         </button>
@@ -374,7 +374,7 @@ export default function AuditPage() {
                   <div style={{ padding: "0 20px 16px 20px", background: "var(--surface-subtle)", borderTop: "1px solid var(--surface-hover)" }}>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 14 }}>
                       {/* Metadata */}
-                      <div style={{ background: "#fff", borderRadius: 10, padding: "12px 12px", border: "1px solid var(--border)" }}>
+                      <div style={{ background: "var(--surface)", borderRadius: 10, padding: "12px 12px", border: "1px solid var(--border)" }}>
                         <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>Detail</div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                           {[
@@ -394,7 +394,7 @@ export default function AuditPage() {
                       </div>
 
                       {/* Diff */}
-                      <div style={{ background: "#fff", borderRadius: 10, padding: "12px 12px", border: "1px solid var(--border)" }}>
+                      <div style={{ background: "var(--surface)", borderRadius: 10, padding: "12px 12px", border: "1px solid var(--border)" }}>
                         <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>
                           Perubahan
                           {log.old_values && <span style={{ marginLeft: 8, padding: "0px 4px", borderRadius: 6, background: "var(--danger-bg)", color: "var(--on-danger-bg)", fontSize: 10 }}>SEBELUM</span>}

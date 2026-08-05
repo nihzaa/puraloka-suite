@@ -45,11 +45,39 @@ import { execSync } from "node:child_process";
 /** Warna merek yang ditulis mentah sebagai rgba, dengan spasi opsional. */
 const RGBA_MEREK = /rgba\(\s*0\s*,\s*51\s*,\s*102\s*,/;
 
+/**
+ * PUTIH dipaku sebagai LATAR.
+ *
+ * Kelas kedua dari cacat yang sama, ditemukan setelah penjaga ini
+ * dibuat. `/laporan` memakai
+ *
+ *     linear-gradient(135deg, var(--surface-subtle) 0%, #fff 100%)
+ *
+ * untuk kartu kepala proyek. Di mode gelap ujung gradasinya tetap PUTIH
+ * TERANG sementara teks di atasnya ikut menjadi terang — nama proyek di
+ * sisi kanan nyaris tak terbaca. Delapan tempat lain memakai
+ * `background: "#fff"` polos.
+ *
+ * `--surface` punya varian gelapnya sendiri, jadi ia ikut berbalik.
+ *
+ * Hanya LITERAL yang ditolak — `#fff`, `#ffffff`, atau kata `white` di
+ * dalam tanda kutip. Versi pertama regex ini mencocokkan `white` di mana
+ * pun setelah `background:`, dan langsung memberi SEPULUH positif palsu
+ * dari `background: C.white` — yang nilainya `var(--surface)` dan justru
+ * sudah beradaptasi mode.
+ *
+ * (Nama `C.white` memang menyesatkan untuk token yang berubah warna,
+ * tapi mengganti namanya adalah perubahan lain; penjaga ini tak boleh
+ * memaksakannya lewat alarm palsu.)
+ */
+const PUTIH_LATAR =
+  /background(?:Color)?\s*:\s*(?:"[^"]*|`[^`]*|'[^']*)(#fff\b|#ffffff\b|\bwhite\b)/i;
+
 /** Properti tempat hilangnya warna berarti hilangnya ISI. */
 const PROP_ISI = /(?:^|[^a-zA-Z])(color|background|backgroundColor|border|borderColor|fill|stroke)\s*:/;
 
 const berkas = execSync(
-  `grep -rl "rgba(0,\\s*51,\\s*102" app components --include=*.tsx || true`,
+  `grep -rlE "rgba\\(0, *51, *102|#fff|#ffffff|white" app components --include=*.tsx || true`,
   { encoding: "utf8" },
 ).trim().split("\n").filter(Boolean);
 
@@ -58,25 +86,51 @@ const temuan = [];
 for (const f of berkas) {
   const baris = readFileSync(f, "utf8").split(/\r?\n/);
   for (let i = 0; i < baris.length; i++) {
-    if (!RGBA_MEREK.test(baris[i])) continue;
-    if (/^\s*(\/\/|\*|\/\*)/.test(baris[i])) continue;      // komentar
+    const b = baris[i];
+    if (/^\s*(\/\/|\*|\/\*)/.test(b)) continue;             // komentar
     // Bayangan dikecualikan — lihat alasan di header.
-    if (/boxShadow|box-shadow|textShadow|filter\s*:/.test(baris[i])) continue;
-    if (!PROP_ISI.test(baris[i])) continue;
+    if (/boxShadow|box-shadow|textShadow|filter\s*:/.test(b)) continue;
 
-    temuan.push({ di: `${f}:${i + 1}`, isi: baris[i].trim().slice(0, 100) });
+    // ── rgba merek pada properti isi
+    if (RGBA_MEREK.test(b) && PROP_ISI.test(b)) {
+      temuan.push({ di: `${f}:${i + 1}`, jenis: "rgba-merek", isi: b.trim().slice(0, 100) });
+      continue;
+    }
+
+    // ── putih dipaku sebagai LATAR
+    //
+    // `color-mix(... , white)` DIKECUALIKAN: di situ putih dipakai untuk
+    // MENCERAHKAN warna lain, dan warna dasarnya sudah beradaptasi mode.
+    // Menolaknya akan mematikan pola pencerahan yang benar di grafik
+    // profitabilitas dan umur piutang.
+    if (PUTIH_LATAR.test(b) && !/color-mix/.test(b)) {
+      temuan.push({ di: `${f}:${i + 1}`, jenis: "putih-latar", isi: b.trim().slice(0, 100) });
+    }
   }
 }
 
 if (temuan.length) {
-  console.error(`\n❌ ${temuan.length} warna merek dipaku sebagai rgba pada properti ISI.\n`);
-  console.error("   rgba tak punya varian mode gelap. `rgba(0,51,102,0.2)` yang");
-  console.error("   samar-tapi-terlihat di latar putih menjadi TAK TERLIHAT di");
-  console.error("   latar `#12141F` — isinya hilang, bukan sekadar meredup.\n");
-  console.error("   Perbaikan:");
-  console.error("     color-mix(in srgb, var(--aksen) 30%, transparent)\n");
-  for (const t of temuan) console.error(`   ${t.di}\n      ${t.isi}\n`);
+  const rgba = temuan.filter((t) => t.jenis === "rgba-merek");
+  const putih = temuan.filter((t) => t.jenis === "putih-latar");
+
+  console.error(`\n❌ ${temuan.length} warna yang tak punya varian mode gelap.\n`);
+
+  if (rgba.length) {
+    console.error(`   ── ${rgba.length} rgba merek pada properti isi`);
+    console.error("      Yang samar-tapi-terlihat di latar putih menjadi TAK");
+    console.error("      TERLIHAT di latar gelap — isinya hilang, bukan meredup.");
+    console.error("      Perbaikan: color-mix(in srgb, var(--aksen) 30%, transparent)\n");
+    for (const t of rgba) console.error(`      ${t.di}\n         ${t.isi}\n`);
+  }
+
+  if (putih.length) {
+    console.error(`   ── ${putih.length} putih dipaku sebagai latar`);
+    console.error("      Latar tetap PUTIH TERANG di mode gelap sementara teks di");
+    console.error("      atasnya ikut menjadi terang — isinya jadi tak terbaca.");
+    console.error("      Perbaikan: var(--surface) / var(--surface-subtle)\n");
+    for (const t of putih) console.error(`      ${t.di}\n         ${t.isi}\n`);
+  }
   process.exit(1);
 }
 
-console.log("✅ Warna buta-mode: nol rgba merek pada properti isi");
+console.log("✅ Warna buta-mode: nol rgba merek pada isi · nol putih dipaku sebagai latar");

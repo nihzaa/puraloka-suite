@@ -152,7 +152,7 @@ function ChainCard({ chain, perms, canManage, onToggle, onAdd, onPatch, onDelete
             aria-pressed={chain.is_active}
             title={chain.is_active ? "Nonaktifkan rantai" : "Aktifkan rantai"}
             style={{ position: "relative", width: 46, height: 26, borderRadius: 14, border: "none", flexShrink: 0, background: chain.is_active ? C.green : C.border, cursor: "pointer", transition: "background .2s" }}>
-            <span style={{ position: "absolute", top: 3, left: chain.is_active ? 23 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left .2s", boxShadow: "var(--naik-1)" }} />
+            <span style={{ position: "absolute", top: 3, left: chain.is_active ? 23 : 3, width: 20, height: 20, borderRadius: "50%", background: "var(--surface)", transition: "left .2s", boxShadow: "var(--naik-1)" }} />
           </button>
         )}
       </div>

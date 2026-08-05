@@ -377,7 +377,7 @@ export default function KeuanganSettingsPage() {
               }}>
               <span style={{
                 position: "absolute", top: 3, left: kasbonLimitOn ? 23 : 3, width: 20, height: 20, borderRadius: "50%",
-                background: "#fff", transition: "left 0.2s", boxShadow: "var(--naik-1)",
+                background: "var(--surface)", transition: "left 0.2s", boxShadow: "var(--naik-1)",
               }} />
             </button>
           </div>
@@ -449,7 +449,7 @@ export default function KeuanganSettingsPage() {
                 </div>
                 <button type="button" aria-label="Aktifkan denda keterlambatan" onClick={() => setPEnabled(v => !v)} aria-pressed={pEnabled}
                   style={{ position: "relative", width: 46, height: 26, borderRadius: 14, border: "none", flexShrink: 0, background: pEnabled ? C.green : C.border, cursor: "pointer", transition: "background 0.2s" }}>
-                  <span style={{ position: "absolute", top: 3, left: pEnabled ? 23 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left 0.2s", boxShadow: "var(--naik-1)" }} />
+                  <span style={{ position: "absolute", top: 3, left: pEnabled ? 23 : 3, width: 20, height: 20, borderRadius: "50%", background: "var(--surface)", transition: "left 0.2s", boxShadow: "var(--naik-1)" }} />
                 </button>
               </div>
               <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>

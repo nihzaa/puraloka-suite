@@ -257,7 +257,7 @@ export function MilestoneModal({
             disabled={submitting}
             style={{
               padding: "8px 16px", borderRadius: 10, border: "1px solid #e2e8f0",
-              background: "white", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", cursor: "pointer",
+              background: "var(--surface)", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", cursor: "pointer",
             }}
           >
             Batal
