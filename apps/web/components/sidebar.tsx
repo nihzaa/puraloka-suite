@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   LayoutDashboard,
   FolderKanban,
@@ -46,6 +46,7 @@ import { getStoredUser, logout, api, type PuralokaUser } from "@/lib/api";
 import { SidebarFokus } from "@/components/sidebar-fokus";
 import { LogoPuraloka } from "@/components/logo-puraloka";
 import { useSidebar } from "@/lib/sidebar-context";
+import { hitungHref, pilihWakil, belumPunyaHalaman } from "@/lib/menu-berbagi-href";
 
 const roleLabel: Record<string, string> = {
   admin: "Administrator",
@@ -153,7 +154,8 @@ function IkonAnak({ nama, aktif }: { nama: string; aktif: boolean }) {
  * terburuk untuk mengabaikannya.
  */
 function GrupCollapsible({
-  node, anak, aktif, terbuka, onToggle, isActive, subStyle, onHover, offHover,
+  node, anak, aktif, terbuka, onToggle, isActive, belumAdaHalamanSendiri,
+  subStyle, onHover, offHover,
 }: {
   node: MenuNode;
   anak: MenuNode[];
@@ -161,6 +163,15 @@ function GrupCollapsible({
   terbuka: boolean;
   onToggle: () => void;
   isActive: (href: string) => boolean;
+  /**
+   * Item ini belum punya halamannya sendiri — jangan disorot, redupkan.
+   *
+   * Diterima sebagai prop karena penilaiannya harus LINTAS GRUP:
+   * menghitung per-grup memperbaiki /estimasi tapi menyisakan empat item
+   * menyala di /proyek, masing-masing satu-satunya pemakai `/proyek` di
+   * grupnya sendiri. Aturan lengkap + test: `lib/menu-berbagi-href.ts`.
+   */
+  belumAdaHalamanSendiri: (href: string | null | undefined, key?: string) => boolean;
   subStyle: (active: boolean) => React.CSSProperties;
   onHover: (e: React.MouseEvent<HTMLElement>, active: boolean) => void;
   offHover: (e: React.MouseEvent<HTMLElement>, active: boolean) => void;
@@ -236,12 +247,47 @@ function GrupCollapsible({
       >
         <div ref={isiRef} style={{ paddingTop: 2, paddingBottom: 4 }}>
           {anak.map((child) => {
-            const active = isActive(child.href ?? "");
+            /**
+             * Sub-menu yang BELUM punya halamannya sendiri.
+             *
+             * Diukur di database: 23 item menunjuk `/proyek`, 14 ke
+             * `/mandor`, 13 ke `/procurement`, 13 ke `/estimasi`. Itu
+             * bukan kesalahan data — sub-menu yang belum digarap memang
+             * sengaja dialihkan ke halaman induknya (triase F5-1).
+             *
+             * Tapi akibatnya di layar nyata: membuka /estimasi membuat
+             * DUA BELAS item menyala serentak, karena semuanya cocok
+             * dengan pathname yang sama. Penanda posisi jadi tak
+             * menunjukkan posisi apa pun — dan orang yang mengklik
+             * "Cost Baseline (BAC)" mendarat di halaman Proyek biasa
+             * tanpa satu pun penjelasan kenapa.
+             *
+             * Diturunkan dari data (href sama dengan induk), bukan dari
+             * daftar tulis-tangan. Daftar tulis-tangan akan membusuk
+             * begitu satu sub-menu digarap dan tak ada yang ingat
+             * mencoretnya dari sini.
+             */
+            const belumAdaHalaman = belumAdaHalamanSendiri(child.href, child.key);
+
+            // Item yang belum punya halaman JANGAN ikut menyala — kalau
+            // tidak, seluruh grup tersorot sekaligus dan penandanya
+            // berhenti berarti.
+            const active = !belumAdaHalaman && isActive(child.href ?? "");
             return (
               <Link
                 key={child.key}
                 href={child.href ?? "#"}
-                style={subStyle(active)}
+                title={belumAdaHalaman
+                  ? `${child.label} belum punya halaman sendiri — tautannya membuka halaman bersama grup ini.`
+                  : undefined}
+                style={{
+                  ...subStyle(active),
+                  // Diredupkan, bukan disembunyikan: item ini menyatakan
+                  // apa yang SUDAH direncanakan, dan itu informasi yang
+                  // berguna. Yang dihindari cuma janji palsu bahwa
+                  // mengkliknya membuka halaman tersendiri.
+                  opacity: belumAdaHalaman ? 0.55 : undefined,
+                }}
                 // Saat tertutup, submenu masih ada di DOM (untuk diukur) tapi
                 // tak boleh bisa di-Tab. Tanpa ini, keyboard "menghilang" ke
                 // dalam grup tertutup dan pemakai kehilangan fokus.
@@ -252,6 +298,14 @@ function GrupCollapsible({
               >
                 <IkonAnak nama={child.icon} aktif={active} />
                 <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{child.label}</span>
+                {/* `title` tidak terbaca andal oleh pembaca layar dan sama
+                    sekali tak terjangkau lewat keyboard. Keterangan ini
+                    dibaca, tapi tak menambah kebisingan visual. */}
+                {belumAdaHalaman && (
+                  <span className="sr-only">
+                    {" "}— belum punya halaman sendiri, membuka halaman bersama grup ini
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -343,6 +397,36 @@ export function Sidebar() {
     logout();
     router.push("/login");
   }
+
+  /**
+   * Href yang dipakai oleh LEBIH DARI SATU item menu.
+   *
+   * Diukur di database: 23 item menunjuk `/proyek`, 14 ke `/mandor`,
+   * 13 ke `/procurement`, 13 ke `/estimasi`. Itu bukan data rusak —
+   * sub-menu yang belum digarap sengaja dialihkan ke halaman induknya
+   * (triase F5-1).
+   *
+   * Akibatnya di layar: membuka /proyek menyalakan 23 item sekaligus,
+   * jadi penanda posisi berhenti menunjukkan posisi. Dan orang yang
+   * mengklik "Cost Baseline (BAC)" mendarat di halaman Proyek biasa
+   * tanpa satu pun penjelasan kenapa.
+   *
+   * Diturunkan dari data, bukan dari daftar tulis-tangan — daftar
+   * tulis-tangan akan membusuk begitu satu sub-menu digarap dan tak
+   * ada yang ingat mencoretnya.
+   */
+  // Aturannya di `lib/menu-berbagi-href.ts` — bukan di sini. Logika ini
+  // butuh tiga percobaan untuk benar (semua perwakilan, tak ada
+  // perwakilan, perwakilan yang bernama salah), jadi ia diangkat ke
+  // fungsi murni supaya bisa dikunci test.
+  const hrefBerbagi = useMemo(() => hitungHref(menu), [menu]);
+  const wakilHref = useMemo(() => pilihWakil(menu), [menu]);
+
+  const belumAdaHalamanSendiri = useCallback(
+    (href: string | null | undefined, key?: string) =>
+      belumPunyaHalaman(href, key, hrefBerbagi, wakilHref),
+    [hrefBerbagi, wakilHref],
+  );
 
   function isActive(href: string) {
     if (href === "/dashboard") return pathname === "/dashboard";
@@ -568,6 +652,7 @@ export function Sidebar() {
                   terbuka={terbuka}
                   onToggle={() => toggleGrup(node.key)}
                   isActive={isActive}
+                  belumAdaHalamanSendiri={belumAdaHalamanSendiri}
                   subStyle={subStyle}
                   onHover={onHover}
                   offHover={offHover}
@@ -618,6 +703,7 @@ export function Sidebar() {
                 // `/pengaturan` sendiri adalah halaman profil, jadi ia harus
                 // cocok PERSIS — kalau tidak, seluruh submenu ikut menyala.
                 isActive={(href) => (href === "/pengaturan" ? pathname === "/pengaturan" : pathname.startsWith(href))}
+                belumAdaHalamanSendiri={belumAdaHalamanSendiri}
                 subStyle={subStyle}
                 onHover={onHover}
                 offHover={offHover}
