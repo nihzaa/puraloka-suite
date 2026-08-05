@@ -31,12 +31,23 @@ const ROLE_HOME: Record<string, string> = {
 const ROLE_ALLOWED: Record<string, string[]> = {
   client:  ["/portal", "/verify"],
   // mandor bisa akses /pm-portal juga — guard di layout PM akan verifikasi apakah dia memang PM di proyek
-  mandor:  ["/mandor-portal", "/pm-portal", "/proyek", "/verify"],
+  // `/lapangan` (punch list, inspeksi, submittal) dan `/mutu` (NCR): temuan
+  // lapangan DITEMUKAN mandor, jadi ia harus bisa mencatatnya. Apa yang boleh
+  // DILAKUKAN tetap dijaga permission — middleware hanya soal membuka halaman.
+  mandor:  ["/mandor-portal", "/pm-portal", "/proyek", "/verify", "/mutu", "/lapangan"],
   // `/m` = halaman peta menu (`/m/<key>`). Satu rute untuk 100+ menu yang
   // belum punya halamannya sendiri — mendaftarkannya satu per satu di sini
   // akan jadi daftar 100 baris yang pasti ketinggalan saat menu bertambah.
-  pm:      ["/pm-portal", "/proyek", "/verify", "/estimasi", "/tender", "/piutang", "/aset", "/m"],
-  admin:   ["/dashboard", "/proyek", "/keuangan", "/akuntansi", "/mandor", "/laporan", "/notifications", "/kas", "/users", "/klien", "/procurement", "/pengaturan", "/kalender", "/audit", "/sistem", "/estimasi", "/tender", "/piutang", "/aset", "/m"],
+  // `/mutu` (register NCR, migrasi 189) dibuka untuk PM dan mandor juga —
+  // ketidaksesuaian DITEMUKAN di lapangan, dan orang yang menemukannya harus
+  // bisa mencatatnya. Menahannya di admin berarti temuan lapangan berhenti
+  // di lisan, yang persis keadaan sebelum modul ini ada.
+  //
+  // Apa yang boleh DILAKUKAN di sana tetap dijaga permission (`ncr:manage`,
+  // `ncr:disposisi`, `ncr:verify`) — middleware hanya mengatur siapa yang
+  // boleh membuka halamannya.
+  pm:      ["/pm-portal", "/proyek", "/verify", "/estimasi", "/tender", "/piutang", "/aset", "/mutu", "/lapangan", "/kontrak", "/m"],
+  admin:   ["/dashboard", "/proyek", "/keuangan", "/akuntansi", "/mandor", "/laporan", "/notifications", "/kas", "/users", "/klien", "/procurement", "/pengaturan", "/kalender", "/audit", "/sistem", "/estimasi", "/tender", "/piutang", "/aset", "/mutu", "/lapangan", "/kontrak", "/m"],
 };
 
 /**

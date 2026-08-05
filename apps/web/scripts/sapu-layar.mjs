@@ -107,10 +107,32 @@ for (const r of daftar) {
   }
   await hal.waitForTimeout(700)
 
-  // Halaman yang mengalihkan ke /login berarti butuh izin yang tak dimiliki
-  // akun ini — itu BUKAN kerusakan, dan harus dibedakan.
+  // ⚠️ Pengalihan HARUS terdeteksi, apa pun tujuannya.
+  //
+  // Versi pertama hanya memeriksa pengalihan ke `/login`. Akibatnya
+  // `/lapangan/punch-list` dilaporkan SEHAT padahal yang tampil adalah
+  // dashboard — middleware mengalihkannya diam-diam karena rutenya tak
+  // terdaftar. Potretnya bagus, konsolnya bersih, dan halamannya salah.
+  //
+  // Sekarang: URL akhir dibandingkan dengan yang diminta. Beda = dialihkan.
   const urlAkhir = new URL(hal.url()).pathname
-  if (urlAkhir.includes('/login') && r !== '/login') status = 'butuh izin lain'
+  if (urlAkhir !== r && !(r === '/' && urlAkhir === '/')) {
+    // Pengalihan yang WAJAR untuk akun ini: portal peran lain, halaman masuk,
+    // dan akar situs. Akun admin memang tidak boleh membuka portal mandor —
+    // melaporkannya sebagai kerusakan membuat 22 baris merah yang semuanya
+    // benar, dan daftar yang begitu akan berhenti dibaca.
+    //
+    // Yang TIDAK wajar: halaman modul yang seharusnya bisa dibuka akun ini.
+    // Itu yang menyingkap `/lapangan/*` — tiga halaman jadi yang tak pernah
+    // terjangkau karena rutenya tak terdaftar di middleware.
+    const WAJAR_DIALIHKAN = ['/', '/login', '/auth', '/portal', '/mandor-portal', '/pm-portal']
+    const wajar = WAJAR_DIALIHKAN.some((w) => r === w || r.startsWith(w + '/'))
+    status = wajar
+      ? 'bukan hak akun ini'
+      : urlAkhir.includes('/login')
+        ? 'butuh izin lain'
+        : `DIALIHKAN ke ${urlAkhir}`
+  }
 
   try {
     await hal.screenshot({ path: join(KELUAR, nama), fullPage: true })
@@ -124,12 +146,18 @@ for (const r of daftar) {
 
 await peramban.close()
 
-const rusak = hasil.filter((h) => h.status !== 'ok')
+const bukanHak = hasil.filter((h) => h.status === 'bukan hak akun ini')
+const rusak = hasil.filter((h) => h.status !== 'ok' && h.status !== 'bukan hak akun ini')
 const bergalat = hasil.filter((h) => h.status === 'ok' && h.galat > 0)
 console.log(`\n── Ringkasan (${GELAP ? 'GELAP' : 'TERANG'}) ──`)
-console.log(`  sehat        : ${hasil.length - rusak.length - bergalat.length}`)
-console.log(`  ada galat    : ${bergalat.length}`)
-console.log(`  tak terbuka  : ${rusak.length}`)
+console.log(`  sehat          : ${hasil.length - rusak.length - bergalat.length - bukanHak.length}`)
+console.log(`  ada galat      : ${bergalat.length}`)
+console.log(`  bukan hak akun : ${bukanHak.length}  (portal peran lain — wajar)`)
+console.log(`  BERMASALAH     : ${rusak.length}`)
+if (rusak.length) {
+  console.log('\nHalaman yang seharusnya bisa dibuka tapi tidak:')
+  for (const h of rusak) console.log(`  ${h.rute.padEnd(34)} ${h.status}`)
+}
 if (bergalat.length) {
   console.log('\nHalaman dengan galat konsol:')
   for (const h of bergalat) console.log(`  ${h.rute}\n     ${h.contoh}`)

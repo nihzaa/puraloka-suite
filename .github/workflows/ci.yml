@@ -653,6 +653,17 @@ jobs:
         run: node apps/web/scripts/uji-endpoint-ada.mjs
         working-directory: .
 
+      # Halaman yang tak terdaftar di `middleware.ts` DIALIHKAN diam-diam ke
+      # home — tanpa galat, tanpa 404. Tiga halaman jadi (`/lapangan/punch-list`,
+      # `/lapangan/inspeksi`, `/lapangan/submittal`) ternyata tak pernah bisa
+      # dibuka siapa pun; ketahuan hanya karena penjaga ini dibuat.
+      #
+      # Gejalanya terlihat seperti "halamannya belum dibikin", jadi tak ada
+      # yang melapor.
+      - name: Rute halaman terdaftar di middleware
+        run: node apps/web/scripts/uji-rute-terdaftar.mjs
+        working-directory: .
+
       # Sidebar kini memuat 20 grup & 202 sub-menu (migrasi 153). Pola lama
       # menulis tinggi collapse sebagai ANGKA MATI (`maxHeight: "140px"`) —
       # cukup untuk 4 submenu Keuangan, tapi grup 18 anak butuh ±540px dan
