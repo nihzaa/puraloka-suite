@@ -48,7 +48,7 @@
 -- ── Enum sumber ─────────────────────────────────────────────────────────
 DO $$ BEGIN
   CREATE TYPE sumber_lokasi AS ENUM ('perangkat', 'exif', 'manual');
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+EXCEPTION WHEN duplicate_object OR unique_violation THEN NULL; END $$;
 
 -- ── Kolom geotag pada tiga tabel foto ───────────────────────────────────
 --

@@ -36,9 +36,25 @@
 -- bukan diserahkan ke disiplin.
 
 -- ── Enum ────────────────────────────────────────────────────────────────
+--
+-- ⚠️ `unique_violation` ikut ditangkap, bukan hanya `duplicate_object`.
+--
+-- Keduanya BUKAN hal yang sama. `duplicate_object` muncul saat tipe sudah
+-- ada sebelum transaksi dimulai — kasus jalankan-ulang biasa. Tapi CI
+-- menjalankan ENAM SHARD PARALEL terhadap satu database, dan saat migrasi
+-- ini masih baru keenamnya membuat tipe yang sama BERSAMAAN. Yang kalah
+-- balapan menabrak indeks katalog `pg_type_typname_nsp_index` dan Postgres
+-- melempar `unique_violation`, bukan `duplicate_object`.
+--
+-- Gejalanya: seluruh shard hijau kecuali satu, dan yang gagal berpindah-
+-- pindah tiap jalan. Migrasi lama tak pernah kena karena tipenya sudah ada
+-- jauh sebelum shard mulai — jadi ini hanya menimpa migrasi yang BARU.
+--
+-- Menghapus `unique_violation` akan membuatnya lolos berhari-hari lalu
+-- gagal acak di CI orang lain. Jangan.
 DO $$ BEGIN
   CREATE TYPE ncr_severity AS ENUM ('minor', 'major', 'kritis');
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+EXCEPTION WHEN duplicate_object OR unique_violation THEN NULL; END $$;
 
 DO $$ BEGIN
   -- 'terbuka'    → baru dicatat, belum diputuskan apa-apa
@@ -50,7 +66,7 @@ DO $$ BEGIN
   CREATE TYPE ncr_status AS ENUM (
     'terbuka', 'disposisi', 'perbaikan', 'verifikasi', 'ditutup', 'dibatalkan'
   );
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+EXCEPTION WHEN duplicate_object OR unique_violation THEN NULL; END $$;
 
 DO $$ BEGIN
   -- Empat disposisi standar ISO 9001 §8.7. Bukan daftar bebas: masing-masing
@@ -62,7 +78,7 @@ DO $$ BEGIN
   --   bongkar   → dibongkar dan dikerjakan ulang dari awal
   --   ubah_spek → spesifikasinya yang diubah (design change)
   CREATE TYPE ncr_disposisi AS ENUM ('perbaiki', 'terima', 'bongkar', 'ubah_spek');
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+EXCEPTION WHEN duplicate_object OR unique_violation THEN NULL; END $$;
 
 -- ── Tabel ───────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS ncr_items (
