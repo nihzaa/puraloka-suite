@@ -15,7 +15,23 @@ import notificationRuleRoutes from '../notification-rules.js'
 // ISOLASI: semua mutasi memakai aturan khusus test, BUKAN aturan event nyata,
 // supaya tak pernah mengubah siapa yang dinotifikasi di dev.
 
-const TEST_EVENT = '__test_event__'
+/**
+ * Nama event UNIK per proses uji.
+ *
+ * Sebelumnya `'__test_event__'` — string tetap. CI menjalankan ENAM SHARD
+ * PARALEL terhadap satu database, dan `beforeAll` di berkas ini MENGHAPUS
+ * lalu membuat ulang event bernama itu. Shard yang satu menghapus aturan
+ * yang sedang dipakai shard lain, dan yang kalah balapan mendapat 403 atau
+ * 404 dari endpoint yang seharusnya melayaninya.
+ *
+ * Gejalanya menyesatkan: hijau lokal (satu proses), merah di CI, dan test
+ * yang merah BERPINDAH tiap jalan — sangat mudah disimpulkan sebagai bug
+ * permission padahal ini soal state bersama.
+ *
+ * `process.pid` cukup: tiap shard proses terpisah, dan `afterAll` hanya
+ * menghapus miliknya sendiri.
+ */
+const TEST_EVENT = `__test_event_${process.pid}__`
 
 let app: FastifyInstance
 let client: Client

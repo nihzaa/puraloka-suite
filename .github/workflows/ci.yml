@@ -208,6 +208,21 @@ jobs:
       - name: Kegagalan senyap (query yang errornya tak pernah dilihat)
         run: node scripts/audit-kegagalan-senyap.mjs
 
+      # `notification-rules.test.ts` memakai `TEST_EVENT = '__test_event__'` —
+      # nama TETAP — lalu `beforeAll` MENGHAPUS baris bernama itu. Enam shard
+      # berbagi satu database, jadi shard yang satu menghapus state yang sedang
+      # dipakai shard lain.
+      #
+      # Yang kalah balapan gagal dengan "expected 403 to be 200" — galat yang
+      # terbaca sebagai bug permission, bukan sebagai state yang dihapus orang
+      # lain. Test yang merah berpindah tiap jalan, jadi paling mudah salah
+      # disimpulkan sebagai "CI rewel" lalu di-retry sampai kebetulan hijau.
+      #
+      # `approval-chains.test.ts` punya pola persis sama — bom waktu yang belum
+      # meledak saat ini ditemukan.
+      - name: State bersama uji (nama tetap yang dihapus di setup)
+        run: node scripts/audit-state-bersama-test.mjs
+
       # Sisi TULIS: `update`/`delete`/`insert` yang hasilnya dibuang. Kegagalan
       # apa pun — constraint, RLS, kolom salah — lewat tanpa jejak; request tetap
       # 200 dan datanya tak berubah. Tiga ditemukan 2026-08-01: settlement
