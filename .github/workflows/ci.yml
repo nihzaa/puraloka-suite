@@ -664,6 +664,17 @@ jobs:
         run: node apps/web/scripts/uji-rute-terdaftar.mjs
         working-directory: .
 
+      # Rumus jarak geotag ada di DUA tempat (api/lib/geotag.ts dan
+      # web/components/penanda-lokasi.tsx) — digandakan supaya galeri foto tak
+      # perlu satu permintaan jaringan per foto.
+      #
+      # Kalau keduanya menyimpang, server bisa bilang "di lokasi" sementara
+      # layar bilang "800 m dari lokasi" untuk foto yang SAMA, dan tak ada
+      # yang tahu mana yang benar.
+      - name: Rumus jarak geotag sinkron (web ↔ api)
+        run: node apps/web/scripts/uji-geotag-sinkron.mjs
+        working-directory: .
+
       # Sidebar kini memuat 20 grup & 202 sub-menu (migrasi 153). Pola lama
       # menulis tinggi collapse sebagai ANGKA MATI (`maxHeight: "140px"`) —
       # cukup untuk 4 submenu Keuangan, tapi grup 18 anak butuh ±540px dan
