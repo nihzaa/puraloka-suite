@@ -47,6 +47,7 @@ interface AbsorptionRow {
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
 import { C } from "@/lib/warna-ui";
+import { namaSapaan } from "@/lib/nama-sapaan";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
@@ -860,7 +861,7 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
                       ) : (
                         <div style={{ fontSize: 10, color: C.green, textAlign: "center" }}>
                           {row.logged_by_user?.name ? (
-                            <span title={row.logged_at}>{row.logged_by_user.name.split(" ")[0]}</span>
+                            <span title={row.logged_at}>{namaSapaan(row.logged_by_user.name)}</span>
                           ) : "✓"}
                         </div>
                       )}

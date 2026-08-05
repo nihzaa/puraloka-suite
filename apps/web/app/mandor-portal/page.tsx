@@ -6,6 +6,8 @@ import { Briefcase, Wallet, Clock, CheckCircle, ChevronRight, CreditCard, Clipbo
 import Link from "next/link";
 
 import { C } from "@/lib/warna-ui";
+import { namaSapaan } from "@/lib/nama-sapaan";
+import { Kosong } from "@/components/ui-dasar";
 
 function fmt(n: number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
@@ -74,7 +76,7 @@ export default function MandorDashboardPage() {
       {/* Greeting */}
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: C.text, margin: 0 }}>
-          Halo, {user?.name?.split(" ")[0]} 👷
+          Halo, {namaSapaan(user?.name)} 👷
         </h1>
         <p style={{ fontSize: 13, color: C.mid, margin: "4px 0 0" }}>
           Ringkasan pekerjaan, upah, dan kasbon Anda
@@ -131,10 +133,22 @@ export default function MandorDashboardPage() {
         {loading && <div style={{ textAlign: "center", padding: 40, color: C.mid }}>Memuat...</div>}
 
         {!loading && activeScopes.length === 0 && (
-          <div style={{ background: C.surface, borderRadius: 10, padding: 32, border: `1px solid ${C.border}`, textAlign: "center" }}>
-            <AlertCircle size={28} color={C.muted} style={{ marginBottom: 8 }} />
-            <div style={{ fontSize: 13, color: C.mid }}>Belum ada scope aktif</div>
-          </div>
+          // Jalan keluarnya BUKAN tombol: mandor tak bisa menugaskan lingkup
+          // kerja untuk dirinya sendiri — itu wewenang admin/PM. Layar kosong
+          // yang menawarkan tombol yang tak akan pernah berhasil lebih buruk
+          // daripada yang menjelaskan siapa yang harus dihubungi.
+          <Kosong
+            ikon={<AlertCircle size={28} />}
+            judul="Belum ada lingkup kerja aktif"
+            sebab={
+              <>
+                Lingkup kerja ditugaskan oleh admin atau PM proyek. Selama belum
+                ada, Anda belum bisa mengajukan laporan upah maupun kasbon —
+                keduanya selalu menunjuk ke satu lingkup. Hubungi PM proyek Anda
+                bila seharusnya sudah ada penugasan.
+              </>
+            }
+          />
         )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -223,10 +237,38 @@ export default function MandorDashboardPage() {
         {loading && <div style={{ textAlign: "center", padding: 40, color: C.mid }}>Memuat...</div>}
 
         {!loading && recentKasbons.length === 0 && (
-          <div style={{ background: C.surface, borderRadius: 10, padding: 32, border: `1px solid ${C.border}`, textAlign: "center" }}>
-            <Wallet size={28} color={C.muted} style={{ marginBottom: 8 }} />
-            <div style={{ fontSize: 13, color: C.mid }}>Belum ada kasbon</div>
-          </div>
+          // Berbeda dari lingkup kerja di atas: kasbon MEMANG bisa diajukan
+          // mandor sendiri, jadi di sini tombolnya benar — mengarah ke tempat
+          // pengajuannya, bukan sekadar memberi tahu.
+          <Kosong
+            ikon={<Wallet size={28} />}
+            judul="Belum ada kasbon"
+            sebab={
+              activeScopes.length === 0 ? (
+                <>
+                  Kasbon selalu menunjuk ke satu lingkup kerja, dan Anda belum
+                  punya penugasan aktif. Setelah lingkup kerja masuk, pengajuan
+                  bisa dibuat dari halaman Kasbon Saya.
+                </>
+              ) : (
+                <>
+                  Kasbon adalah uang muka untuk kebutuhan lapangan, dan
+                  potongannya otomatis masuk ke laporan upah berikutnya.
+                  Ajukan dari halaman Kasbon Saya.
+                </>
+              )
+            }
+            aksi={
+              activeScopes.length > 0 ? (
+                <Link
+                  href="/mandor-portal/kasbon"
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6, background: C.navy, color: "var(--on-navy)", fontSize: 13, fontWeight: 600, textDecoration: "none" }}
+                >
+                  Ajukan kasbon
+                </Link>
+              ) : undefined
+            }
+          />
         )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

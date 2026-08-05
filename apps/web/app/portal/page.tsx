@@ -6,6 +6,7 @@ import { api, getStoredUser } from "@/lib/api";
 import { MapPin, Calendar, ChevronRight, TrendingUp, AlertCircle } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
+import { namaSapaan } from "@/lib/nama-sapaan";
 
 interface Project {
   id: string;
@@ -56,7 +57,7 @@ export default function PortalHomePage() {
       {/* Greeting */}
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: C.text, margin: 0 }}>
-          Halo, {user?.name?.split(" ")[0]} 👋
+          Halo, {namaSapaan(user?.name)} 👋
         </h1>
         <p style={{ fontSize: 13, color: C.mid, margin: "4px 0 0" }}>
           Berikut status proyek Anda bersama Puraloka Persada

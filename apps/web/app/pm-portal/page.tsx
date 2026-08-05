@@ -6,6 +6,7 @@ import { api, getStoredUser } from "@/lib/api";
 import { FolderKanban, TrendingUp, AlertTriangle, Clock, ChevronRight } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
+import { namaSapaan } from "@/lib/nama-sapaan";
 
 function fmt(n: number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
@@ -43,7 +44,7 @@ export default function PMDashboardPage() {
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: C.text, margin: 0 }}>
-          Halo, {user?.name?.split(" ")[0]} 👋
+          Halo, {namaSapaan(user?.name)} 👋
         </h1>
         <p style={{ fontSize: 13, color: C.mid, margin: "4px 0 0" }}>Ringkasan proyek yang Anda kelola</p>
       </div>

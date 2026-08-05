@@ -96,6 +96,7 @@ const daysUntil = (d: string) =>
 // ─── Design tokens ─────────────────────────────────────────────────────────────
 
 import { C } from "@/lib/warna-ui";
+import { namaSapaan } from "@/lib/nama-sapaan";
 
 const STATUS_COLOR: Record<string, string> = {
   active: C.navy, completed: C.green, on_hold: C.yellow,
@@ -693,7 +694,7 @@ function DashboardContent() {
             {new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
           </p>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: C.text, lineHeight: 1.1, margin: "0 0 4px" }}>
-            Selamat datang{user && <span style={{ color: C.navy }}>, {user.name.split(" ")[0]}</span>}
+            Selamat datang{user && <span style={{ color: C.navy }}>, {namaSapaan(user.name)}</span>}
           </h1>
           {loading
             ? <Skeleton h={13} w={260} />
