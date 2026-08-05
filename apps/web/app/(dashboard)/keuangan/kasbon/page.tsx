@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { api, hasPermission, makeAbortController } from "@/lib/api";
 import { Kosong } from "@/components/ui-dasar";
+import { Paginasi } from "@/components/paginasi";
 import { C } from "@/lib/warna-ui";
 import { Skeleton, StatusBadge, AddKasbonModal } from "../_bersama/komponen";
 import {
@@ -30,10 +31,18 @@ import {
   type Kasbon, type WorkerKasbon, type KasbonSummaryData, type CashAccount,
 } from "../_bersama/tipe";
 
+/** 25 baris per halaman — cukup untuk memindai sekilas tanpa menggulir. */
+const PER_HALAMAN = 25;
+
 export default function KasbonPage() {
   const [kasbons, setKasbons] = useState<Kasbon[]>([]);
   const [loadingKasbon, setLoadingKasbon] = useState(true);
   const [kasbonStatusFilter, setKasbonStatusFilter] = useState("all");
+  // Paginasi: 25 per halaman. Sebelumnya `limit: 200` dirender sekaligus
+  // dan halaman ini jadi 9.083px — sembilan layar gulir untuk mencari satu
+  // kasbon, dua kali lipat halaman terpanjang berikutnya di seluruh aplikasi.
+  const [halaman, setHalaman] = useState(1);
+  const [totalKasbon, setTotalKasbon] = useState(0);
   const [kasbonSubTab, setKasbonSubTab] = useState<"daftar" | "summary">("daftar");
   const [kasbonSummary, setKasbonSummary] = useState<KasbonSummaryData | null>(null);
   const [kasbonType, setKasbonType] = useState<"mandor" | "tukang">("mandor");
@@ -58,13 +67,17 @@ export default function KasbonPage() {
   const loadKasbons = useCallback(async (signal?: AbortSignal) => {
     setLoadingKasbon(true);
     try {
-      const params: Record<string, string> = { limit: "200" };
+      const params: Record<string, string> = {
+        limit: String(PER_HALAMAN),
+        offset: String((halaman - 1) * PER_HALAMAN),
+      };
       if (kasbonStatusFilter !== "all") params.status = kasbonStatusFilter;
       const [listRes, summaryRes] = await Promise.all([
-        api.get<{ kasbons: Kasbon[] }>("/api/v1/finance/kasbons", { params, signal }),
+        api.get<{ kasbons: Kasbon[]; total?: number }>("/api/v1/finance/kasbons", { params, signal }),
         api.get<KasbonSummaryData>("/api/v1/finance/kasbon-summary", { signal }),
       ]);
       setKasbons(listRes.data.kasbons);
+      setTotalKasbon(listRes.data.total ?? listRes.data.kasbons.length);
       setKasbonSummary(summaryRes.data);
       setGalat(null);
     } catch (e: unknown) {
@@ -77,7 +90,7 @@ export default function KasbonPage() {
     } finally {
       setLoadingKasbon(false);
     }
-  }, [kasbonStatusFilter]);
+  }, [kasbonStatusFilter, halaman]);
 
   const loadWorkerKasbons = useCallback(async (signal?: AbortSignal) => {
     setLoadingWorkerKasbon(true);
@@ -263,6 +276,7 @@ export default function KasbonPage() {
                 sebab="Kasbon diajukan mandor dari portal lapangan, lalu disetujui di sini. Yang sudah disetujui memotong saldo kas sumbernya."
               />
             ) : (
+              <>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {kasbons.map(k => {
                   const ma = k.work_scopes?.mandor_assignments?.[0];
@@ -344,6 +358,14 @@ export default function KasbonPage() {
                   );
                 })}
               </div>
+              <Paginasi
+                halaman={halaman}
+                totalHalaman={Math.max(1, Math.ceil(totalKasbon / PER_HALAMAN))}
+                totalEntri={totalKasbon}
+                satuan="kasbon"
+                onPindah={setHalaman}
+              />
+              </>
             )}
           </>
         )}

@@ -4,8 +4,9 @@ import { useEffect, useState, useCallback } from "react";
 import { api } from "@/lib/api";
 import { useIzin } from "@/lib/use-izin";
 import { useToast } from "@/components/toast";
+import { Paginasi } from "@/components/paginasi";
 import {
-  ShieldCheck, Search, ChevronLeft, ChevronRight,
+  ShieldCheck, Search,
   Clock, User, Database, RefreshCw, AlertCircle, FileText,
 } from "lucide-react";
 
@@ -441,48 +442,16 @@ export default function AuditPage() {
         )}
       </div>
 
-      {/* Pagination */}
-      {meta.pages > 1 && (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 16 }}>
-          <button
-            aria-label="Halaman sebelumnya"
-            disabled={page <= 1}
-            onClick={() => setPage(p => p - 1)}
-            style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid var(--border)", background: page <= 1 ? "var(--surface-subtle)" : "#fff", cursor: page <= 1 ? "not-allowed" : "pointer" }}
-          >
-            <ChevronLeft size={14} />
-          </button>
-          {Array.from({ length: Math.min(meta.pages, 7) }, (_, i) => {
-            const p = meta.pages <= 7 ? i + 1 : page <= 4 ? i + 1 : page >= meta.pages - 3 ? meta.pages - 6 + i : page - 3 + i;
-            return (
-              <button
-                key={p}
-                onClick={() => setPage(p)}
-                style={{
-                  width: 34, height: 34, borderRadius: 6,
-                  border: p === page ? "none" : "1px solid var(--border)",
-                  background: p === page ? "var(--navy)" : "#fff",
-                  color: p === page ? "var(--on-navy)" : "var(--text-secondary)",
-                  fontSize: 13, fontWeight: p === page ? 700 : 400, cursor: "pointer",
-                }}
-              >
-                {p}
-              </button>
-            );
-          })}
-          <button
-            aria-label="Halaman berikutnya"
-            disabled={page >= meta.pages}
-            onClick={() => setPage(p => p + 1)}
-            style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid var(--border)", background: page >= meta.pages ? "var(--surface-subtle)" : "#fff", cursor: page >= meta.pages ? "not-allowed" : "pointer" }}
-          >
-            <ChevronRight size={14} />
-          </button>
-          <span style={{ fontSize: 12, color: "var(--text-muted)", marginLeft: 4 }}>
-            Hal. {page} dari {meta.pages} · {meta.total.toLocaleString("id-ID")} entri
-          </span>
-        </div>
-      )}
+      {/* Paginasi: komponen bersama. Versi sebelumnya di sini memakai
+          `background: "#fff"` dipaku — tombol halaman aktif tetap PUTIH
+          di mode gelap. Diangkat ke `components/paginasi.tsx` supaya
+          perbaikannya berlaku untuk semua pemakainya. */}
+      <Paginasi
+        halaman={page}
+        totalHalaman={meta.pages}
+        totalEntri={meta.total}
+        onPindah={setPage}
+      />
     </div>
   );
 }
