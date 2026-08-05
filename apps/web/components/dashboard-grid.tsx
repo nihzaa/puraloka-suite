@@ -17,7 +17,7 @@ type Layouts = Record<string, Layout[]>;
 // ─── Widget registry ──────────────────────────────────────────────────────────
 
 export const WIDGET_DEFS: Record<string, { label: string; defaultH: number }> = {
-  kpi:       { label: "KPI Cards",             defaultH: 2 },
+  kpi:       { label: "KPI Cards",             defaultH: 3 },
   cashflow:  { label: "Grafik Arus Kas",        defaultH: 5 },
   status:    { label: "Status & Progress",      defaultH: 5 },
   invoice:   { label: "Invoice Belum Lunas",    defaultH: 5 },
@@ -32,27 +32,31 @@ export type WidgetKey = keyof typeof WIDGET_DEFS;
 
 const DEFAULT_LAYOUTS: Layouts = {
   lg: [
-    { i: "kpi",       x: 0, y: 0,  w: 12, h: 2, isResizable: false },
+    // `h: 3`, bukan 2. Dengan 2, kartu KPI hanya setinggi 69px sementara
+    // isinya 107px — keterangan di bawah angka ("sedang berjalan",
+    // "3 lewat jatuh tempo", dst.) TERGUNTING di SEMUA kartu, di semua
+    // halaman yang memakai grid ini. Diukur di peramban: 46 kejadian.
+    { i: "kpi",       x: 0, y: 0,  w: 12, h: 3, isResizable: false },
     // `h: 6`, bukan 5. Dengan 5, isi widget arus kas (grafik 200px +
     // legenda + tiga metrik ringkasan) melebihi wadahnya 46px dan baris
     // "Pemasukan · Pengeluaran est. · Selisih" TERGUNTING — diukur di
     // peramban, bukan ditaksir. Widget status disamakan supaya kedua
     // kolom tetap sejajar; koordinat y di bawahnya ikut digeser.
-    { i: "cashflow",  x: 0, y: 2,  w: 7,  h: 6 },
-    { i: "status",    x: 7, y: 2,  w: 5,  h: 6 },
-    { i: "invoice",   x: 0, y: 8,  w: 7,  h: 5 },
-    { i: "milestone", x: 7, y: 8,  w: 5,  h: 5 },
-    { i: "kasbon",    x: 0, y: 13, w: 12, h: 4 },
-    { i: "tax",       x: 0, y: 17, w: 12, h: 3 },
+    { i: "cashflow",  x: 0, y: 3,  w: 7,  h: 6 },
+    { i: "status",    x: 7, y: 3,  w: 5,  h: 6 },
+    { i: "invoice",   x: 0, y: 9,  w: 7,  h: 5 },
+    { i: "milestone", x: 7, y: 9,  w: 5,  h: 5 },
+    { i: "kasbon",    x: 0, y: 14, w: 12, h: 4 },
+    { i: "tax",       x: 0, y: 18, w: 12, h: 3 },
   ],
   md: [
-    { i: "kpi",       x: 0, y: 0,  w: 10, h: 2, isResizable: false },
-    { i: "cashflow",  x: 0, y: 2,  w: 6,  h: 6 },
-    { i: "status",    x: 6, y: 2,  w: 4,  h: 6 },
-    { i: "invoice",   x: 0, y: 8,  w: 6,  h: 5 },
-    { i: "milestone", x: 6, y: 8,  w: 4,  h: 5 },
-    { i: "kasbon",    x: 0, y: 13, w: 10, h: 4 },
-    { i: "tax",       x: 0, y: 17, w: 10, h: 3 },
+    { i: "kpi",       x: 0, y: 0,  w: 10, h: 3, isResizable: false },
+    { i: "cashflow",  x: 0, y: 3,  w: 6,  h: 6 },
+    { i: "status",    x: 6, y: 3,  w: 4,  h: 6 },
+    { i: "invoice",   x: 0, y: 9,  w: 6,  h: 5 },
+    { i: "milestone", x: 6, y: 9,  w: 4,  h: 5 },
+    { i: "kasbon",    x: 0, y: 14, w: 10, h: 4 },
+    { i: "tax",       x: 0, y: 18, w: 10, h: 3 },
   ],
   sm: [
     { i: "kpi",       x: 0, y: 0,  w: 6, h: 4, isResizable: false },
@@ -81,8 +85,8 @@ const COLS = { lg: 12, md: 10, sm: 6 };
  * Itu sepadan — cacat yang diperbaiki adalah isi yang tergunting, dan
  * mempertahankan tata letak yang menggunting isi bukan pilihan.
  */
-const STORAGE_KEY = "puraloka_dashboard_layout_v3";
-const HIDDEN_KEY  = "puraloka_dashboard_hidden_v3";
+const STORAGE_KEY = "puraloka_dashboard_layout_v4";
+const HIDDEN_KEY  = "puraloka_dashboard_hidden_v4";
 
 // ─── Persistence ──────────────────────────────────────────────────────────────
 
