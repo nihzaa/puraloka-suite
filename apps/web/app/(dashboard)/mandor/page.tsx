@@ -1434,9 +1434,24 @@ function MandorPageInner() {
                   </div>
 
                   {filteredWorkers.length === 0 ? (
-                    <div style={{ padding: "40px 16px", textAlign: "center", color: C.muted, fontSize: 13 }}>
-                      <Users size={28} color={C.border} style={{ marginBottom: 10, display: "block", margin: "0 auto 10px" }} />
-                      Belum ada pekerja terdaftar
+                    <div style={{ padding: 16 }}>
+                      <Kosong
+                        ikon={<Users size={28} />}
+                        judul="Belum ada pekerja terdaftar"
+                        sebab={
+                          <>
+                            Laporan upah mingguan disusun per pekerja: tarif harian
+                            dan jumlah hari kerja diambil dari daftar ini. Selama
+                            kosong, mandor tak bisa mengajukan upah lewat sistem.
+                          </>
+                        }
+                        aksi={
+                          <button onClick={() => setShowWorkerForm({})}
+                            style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: C.navy, color: "var(--on-navy)", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                            <Plus size={14} /> Tambah Pekerja
+                          </button>
+                        }
+                      />
                     </div>
                   ) : (
                     filteredWorkers.map((w, idx) => {

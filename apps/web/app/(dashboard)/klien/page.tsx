@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
+import { Kosong } from "@/components/ui-dasar";
 
 interface Client {
   id: string;
@@ -605,9 +606,52 @@ export default function KlienPage() {
         {loading ? (
           <div style={{ padding: 40, textAlign: "center", color: C.muted, fontSize: 13 }}>Memuat data klien...</div>
         ) : filtered.length === 0 ? (
-          <div style={{ padding: 40, textAlign: "center", color: C.muted }}>
-            <Users size={32} style={{ marginBottom: 10, opacity: 0.3 }} />
-            <div style={{ fontSize: 13, fontWeight: 500 }}>Tidak ada klien ditemukan</div>
+          // Dua keadaan yang TERLIHAT sama tapi menuntut jawaban berbeda:
+          // daftar yang memang masih kosong, dan daftar berisi yang tersaring
+          // habis. Satu pesan untuk keduanya membuat orang mencari tombol
+          // "tambah" padahal datanya ada, cuma tersembunyi filter.
+          <div style={{ padding: 16 }}>
+            {clients.length === 0 ? (
+              <Kosong
+                ikon={<Users size={28} />}
+                judul="Belum ada klien terdaftar"
+                sebab={
+                  <>
+                    Invoice, kontrak, dan piutang semuanya menunjuk ke klien.
+                    Selama daftar ini kosong, proyek baru tak bisa dikaitkan ke
+                    pemberi kerjanya.
+                  </>
+                }
+                aksi={
+                  <button
+                    onClick={() => { setEditClient(null); setShowModal(true); }}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6, border: "none", background: C.navy, color: "var(--on-navy)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+                  >
+                    <Plus size={14} /> Tambah Klien
+                  </button>
+                }
+              />
+            ) : (
+              <Kosong
+                ikon={<Users size={28} />}
+                judul="Tidak ada klien yang cocok"
+                sebab={
+                  <>
+                    Ada {clients.length.toLocaleString("id-ID")}{" "}klien terdaftar,
+                    tapi tak satu pun lolos saringan yang sedang aktif. Kosongkan
+                    kata kunci atau kembalikan tipe ke &ldquo;semua&rdquo;.
+                  </>
+                }
+                aksi={
+                  <button
+                    onClick={() => { setSearch(""); setFilterType("all"); }}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.text, fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+                  >
+                    Kosongkan saringan
+                  </button>
+                }
+              />
+            )}
           </div>
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>

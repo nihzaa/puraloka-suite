@@ -1081,7 +1081,8 @@ function TabMandor({ data }: { data: MandorReportData }) {
 
       {/* Mandor list */}
       {mandorReport.length === 0 ? (
-        <EmptyState icon={<Users size={32} color={C.muted} />} title="Tidak ada data mandor" desc="Belum ada assignment mandor di proyek/periode ini" />
+        <EmptyState icon={<Users size={32} color={C.muted} />} title="Tidak ada data mandor"
+          desc="Laporan ini disusun dari penugasan mandor pada proyek. Tak ada penugasan yang jatuh di rentang tanggal yang dipilih — coba longgarkan periodenya, atau tambahkan penugasan lewat menu Mandor." />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {mandorReport.map(mr => {
@@ -1516,7 +1517,7 @@ function PortofolioTab() {
 
       {data.length === 0 ? (
         <EmptyState icon={<Layers size={32} color={C.muted} />} title="Belum ada proyek"
-          desc="Portofolio biaya menampilkan agregasi lintas proyek." />
+          desc="Serapan anggaran dihitung dari pagu tiap proyek dibandingkan biaya yang sudah keluar. Tabel ini terisi sendiri begitu ada proyek dengan RAB — tak ada yang perlu disiapkan di sini." />
       ) : (
         <div style={{ overflowX: "auto", border: `1px solid ${C.border}`, borderRadius: 10 }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>

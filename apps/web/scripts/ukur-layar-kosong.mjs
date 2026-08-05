@@ -50,9 +50,25 @@ const berkas = execSync(
 const PAKAI_PRIMITIF = /<Kosong[\s>]/;
 /** Petunjuk bahwa ada jalan keluar di dekat kalimatnya. */
 const ADA_AKSI = /<(button|Link|Tombol)\b|onClick=|href=|aksi=/i;
-/** Kalimat yang menjelaskan, bukan cuma menyatakan kekosongan. */
+/**
+ * Kalimat yang menjelaskan, bukan cuma menyatakan kekosongan.
+ *
+ * Daftar kata kunci saja tidak cukup: ia mengukur KOSAKATA, bukan apakah
+ * penjelasannya ada. `progress-log-list` menulis "Tambahkan log progress
+ * lapangan untuk mendokumentasikan perkembangan proyek" — penjelasan yang
+ * jelas, tanpa satu pun kata di daftar, jadi dilaporkan buntu. Menyunting
+ * kalimat yang sudah baik agar cocok dengan pola alat adalah menulis untuk
+ * alat, bukan untuk pembacanya.
+ *
+ * Ditambah ukuran kedua yang tak bergantung kosakata: ADA PARAGRAF KEDUA
+ * sesudah judulnya. Layar kosong yang buntu bentuknya satu kalimat lalu
+ * berhenti; yang menjelaskan selalu punya kalimat lanjutan.
+ */
 const ADA_SEBAB =
-  /sebab=|keterangan=|supaya|karena|coba |mulai|buat |daftarkan|longgar|hanya |belum dicatat|kata kunci/i;
+  /sebab=|keterangan=|supaya|karena|coba |mulai|buat |daftarkan|longgar|hanya |belum dicatat|kata kunci|untuk |agar /i;
+/** Paragraf kedua sesudah judul — penjelasan yang tak memakai kata kunci. */
+const ADA_PARAGRAF_KEDUA =
+  /(Tidak|Belum) ada[^<]{0,60}<\/(p|div|span)>\s*<(p|div)\b[^>]*>[^<]{25,}/;
 
 /**
  * Label SEL, bukan layar. Versi pertama skrip ini menandai
@@ -82,7 +98,8 @@ for (const f of berkas) {
 
     // Primitif bersama sudah menjamin sebab ada — tak perlu ditebak.
     const viaPrimitif = PAKAI_PRIMITIF.test(sekitar);
-    const sebab = viaPrimitif || ADA_SEBAB.test(sekitar);
+    const sebab = viaPrimitif || ADA_SEBAB.test(sekitar) ||
+      ADA_PARAGRAF_KEDUA.test(sekitar.replace(/\s+/g, " "));
     const aksi = ADA_AKSI.test(sekitar);
 
     const catatan = {

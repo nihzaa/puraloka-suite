@@ -36,6 +36,7 @@ import {
 import { api, makeAbortController } from "@/lib/api";
 
 import { C } from "@/lib/warna-ui";
+import { Kosong } from "@/components/ui-dasar";
 
 type StatusEOT = "diajukan" | "disetujui" | "ditolak";
 
@@ -335,9 +336,19 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
         Perpanjangan waktu (EOT)
       </h3>
       {eot.length === 0 ? (
-        <p style={{ fontSize: 12, color: C.muted, margin: "0 0 14px" }}>
-          Belum ada pengajuan perpanjangan waktu.
-        </p>
+        <div style={{ marginBottom: 14 }}>
+          <Kosong
+            judul="Belum ada pengajuan perpanjangan waktu"
+            sebab={
+              <>
+                Perpanjangan waktu (EOT) mengubah tanggal selesai kontrak, dan
+                itulah yang dipakai menghitung denda keterlambatan. Selama
+                belum ada yang tercatat, tenggat yang berlaku adalah tanggal
+                kontrak asli.
+              </>
+            }
+          />
+        </div>
       ) : (
         <div style={{ overflowX: "auto", marginBottom: 14 }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 560, fontVariantNumeric: "tabular-nums" }}>
@@ -440,9 +451,17 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
       )}
 
       {bonds.length === 0 ? (
-        <p style={{ fontSize: 12, color: C.muted, margin: 0 }}>
-          Belum ada jaminan tercatat untuk proyek ini.
-        </p>
+        <Kosong
+          judul="Belum ada jaminan tercatat"
+          sebab={
+            <>
+              Jaminan pelaksanaan dan pemeliharaan punya tanggal kedaluwarsa.
+              Yang tak tercatat di sini tak ikut diingatkan saat mendekati
+              masa berakhirnya — dan jaminan yang lewat tanpa diperpanjang
+              bisa dicairkan pemberi kerja.
+            </>
+          }
+        />
       ) : (
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 560, fontVariantNumeric: "tabular-nums" }}>
