@@ -1,0 +1,209 @@
+# ============================================================================
+# QUEUE-UI — antrean kerja UI/UX, TERPISAH dari QUEUE.yaml
+# ============================================================================
+#
+# ── Kenapa terpisah
+#
+# Founder 2026-08-04: "bikin roadmap terpisah dari roadmap utama".
+# Alasannya benar, dan ada bukti yang mendukungnya:
+#
+# QUEUE.yaml punya 43 item dan NOL di antaranya menyentuh UI. Itu sebabnya
+# lima modul INTI bisa dibangun lengkap dengan API, migrasi, test, dan
+# mutation-test — TANPA SATU PUN HALAMAN — dan tak ada penjaga yang protes.
+# CLAUDE.md §8 melarangnya ("kolom DB sudah ada BUKAN selesai"), tapi larangan
+# itu tak punya mekanisme.
+#
+# Berkas ini adalah mekanismenya.
+#
+# ── Hubungannya dengan QUEUE.yaml
+#
+# Bukan menggantikan. Dikerjakan BERSELANG: satu item UI, satu item fitur.
+# Kalau UI dikerjakan sampai tuntas dulu, fitur berhenti berbulan-bulan; kalau
+# fitur terus jalan, UI tak pernah kebagian.
+#
+# ── Gerbang
+#
+# Seluruh isi berkas ini MENUNGGU ratifikasi arah visual
+# (docs/design/ARAH-VISUAL-2026.md §10). Sebelum itu, status semuanya
+# `menunggu-ratifikasi` — bukan `todo`.
+# ============================================================================
+
+meta:
+  diperbarui: 2026-08-04
+  gerbang: >
+    Menunggu jawaban founder atas empat pertanyaan di ARAH-VISUAL-2026.md §10:
+    palet aksen · sidebar gelap · pemecahan tab · halaman contoh mana dulu.
+  prinsip:
+    - "Token dulu, halaman kemudian. Ubah token = 59 halaman ikut rapat serentak."
+    - "Satu halaman contoh sebelum menyebar. Biaya salah = satu halaman, bukan 59."
+    - "Sembilan penjaga visual yang ada WAJIB tetap hijau. Tak ada ambang dinaikkan."
+    - "Halaman baru mengikuti arah baru — tak ada pekerjaan dua kali."
+
+items:
+  # ── LAPIS 0 — FONDASI VISUAL ─────────────────────────────────────────────
+  # Tak menyentuh satu pun halaman. Kalau berhenti di sini, aplikasi tetap
+  # utuh dan sudah lebih rapat.
+
+  - id: UI-0-1
+    lapis: 0
+    judul: "Token kerapatan: padding 24→12, gap 16→8, font tabel 9-11→12.5"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "token spasi & tipografi baru di globals.css"
+      - "sembilan penjaga visual tetap hijau"
+      - "nol perubahan struktur halaman"
+    cara_verifikasi: "penjaga visual + tinjau 3 halaman terpadat secara visual"
+    bobot: M
+    status: menunggu-ratifikasi
+    catatan: |
+      PALING BERDAMPAK, PALING MURAH. Diukur: padding 24px (standar
+      data-dense 12px), font tabel 9-11px (standar 12-14px). Halaman terasa
+      lemas karena longgar TAPI tulisannya kecil.
+
+      Font NAIK sementara padding TURUN — bukan kontradiksi, itu rahasianya.
+      Ruang yang dihemat dipakai untuk teks yang lebih terbaca.
+
+  - id: UI-0-2
+    lapis: 0
+    judul: "Palet aksen indigo + deret warna data 5 tingkat"
+    blokir_oleh: [UI-0-1]
+    kriteria_selesai:
+      - "token --aksen-* dan --data-1..5"
+      - "aturan 'satu aksen per layar' tertulis di globals.css"
+      - "kontras-hex-ratchet tetap hijau"
+    cara_verifikasi: "node scripts/kontras-hex-ratchet.mjs + periksa mode gelap"
+    bobot: S
+    status: menunggu-ratifikasi
+    catatan: |
+      Navy #003366 TETAP — itu merek. Yang ditambah aksen indigo #6366F1
+      untuk yang paling penting di layar.
+
+      Riset palet mengembalikan 4 kandidat, SEMUANYA biru-di-atas-biru — dan
+      itu persis penyebab monoton hari ini. Indigo dipilih karena bertetangga
+      dengan navy (satu keluarga) tapi cukup berbeda untuk menonjol.
+
+  - id: UI-0-3
+    lapis: 0
+    judul: "Sidebar gelap #0B1220 + garis aksen item aktif"
+    blokir_oleh: [UI-0-2]
+    kriteria_selesai:
+      - "sidebar gelap di mode terang DAN gelap"
+      - "kontras teks sidebar >= 4.5:1 di kedua mode"
+      - "item aktif ditandai garis 3px + latar, bukan warna teks saja"
+    cara_verifikasi: "kontras-ratchet + uji keyboard nav"
+    bobot: S
+    status: menunggu-ratifikasi
+    catatan: |
+      Dari referensi Buildify: sidebar gelap + konten terang = dua zona.
+      Navigasi "mundur", konten "maju" — konten terasa naik ke depan tanpa
+      bayangan tebal.
+
+      #0B1220 bukan hitam murni: ia menahan rona navy, jadi terasa satu
+      keluarga dengan merek, bukan tema gelap generik.
+
+  - id: UI-0-4
+    lapis: 0
+    judul: "Komponen bersama: KartuKPI, PanelChart, TabelPadat, KepalaHalaman"
+    blokir_oleh: [UI-0-1, UI-0-2]
+    kriteria_selesai:
+      - "empat komponen + test masing-masing"
+      - "angka memakai tabular-nums + font display"
+      - "keadaan kosong & memuat sudah ditangani di komponennya"
+    cara_verifikasi: "vitest komponen + dipakai di halaman contoh"
+    bobot: M
+    status: menunggu-ratifikasi
+    catatan: |
+      Ini yang menghapus kesan "buatan sendiri": 59 halaman dibangun bertahap,
+      jadi kartu dan tabel punya bentuk sedikit berbeda di tiap halaman.
+
+      Keadaan kosong DITANGANI DI KOMPONEN, bukan diserahkan ke pemanggil —
+      kalau diserahkan, separuh halaman akan lupa, dan layar kosong tanpa
+      penjelasan terbaca sebagai fitur rusak.
+
+  # ── LAPIS 1 — HALAMAN CONTOH ─────────────────────────────────────────────
+
+  - id: UI-1-1
+    lapis: 1
+    judul: "Dashboard — halaman contoh arah visual baru"
+    blokir_oleh: [UI-0-4]
+    kriteria_selesai:
+      - "pola tiga lapis: KPI → grafik → detail"
+      - "4 KPI card dengan delta + spark"
+      - "founder melihat dan memutuskan: sebarkan / ubah arah"
+    cara_verifikasi: "founder melihat langsung"
+    bobot: M
+    status: menunggu-ratifikasi
+    catatan: |
+      GERBANG KEPUTUSAN. Kalau arahnya ditolak, biayanya SATU halaman.
+      Tak ada halaman lain disentuh sebelum ini disetujui.
+
+  # ── LAPIS 2 — SEBAR ──────────────────────────────────────────────────────
+  # Baru dikerjakan setelah UI-1-1 disetujui.
+
+  - id: UI-2-1
+    lapis: 2
+    judul: "Pecah halaman keuangan (3.449 baris, ~8 tab) jadi dashboard + 4 halaman"
+    blokir_oleh: [UI-1-1]
+    kriteria_selesai:
+      - "dashboard keuangan: 4 KPI + grafik arus kas"
+      - "/keuangan/invoice · /piutang · /retensi · /klaim jadi halaman sendiri"
+      - "tiap halaman < 800 baris"
+    cara_verifikasi: "wc -l + tautan langsung berfungsi"
+    bobot: L
+    status: menunggu-ratifikasi
+
+  - id: UI-2-2
+    lapis: 2
+    judul: "Pecah halaman mandor (3.667 baris, 7 tab) jadi dashboard + 5 halaman"
+    blokir_oleh: [UI-1-1]
+    kriteria_selesai:
+      - "dashboard mandor: 4 KPI + grafik"
+      - "penugasan · upah · kasbon · penagihan · retensi jadi halaman sendiri"
+    cara_verifikasi: "wc -l + tautan langsung berfungsi"
+    bobot: L
+    status: menunggu-ratifikasi
+    catatan: |
+      Halaman TERBESAR di repo. Uji tab-vs-halaman: "kalau saya kirim tautan
+      ini ke rekan, apa yang ia lihat?" — hari ini jawabannya bergantung tab
+      mana yang terakhir dibuka. Itu tanda ia seharusnya halaman.
+
+  - id: UI-2-3
+    lapis: 2
+    judul: "Dashboard per menu induk — 8 menu sisanya"
+    blokir_oleh: [UI-1-1]
+    kriteria_selesai:
+      - "proyek · kas · procurement · lapangan · kontrak · aset · tender · klien"
+      - "tiap satu: 4 KPI + minimal 1 grafik + daftar"
+      - "semua KPI memakai API yang SUDAH ADA — nol endpoint baru"
+    cara_verifikasi: "tiap halaman dibuka, KPI terisi angka nyata"
+    bobot: XL
+    status: menunggu-ratifikasi
+    catatan: |
+      Diukur: 20 dari 22 menu induk hanya punya SATU halaman — langsung tabel.
+      Itu penyebab monoton, bukan warnanya.
+
+      Daftar KPI per menu sudah dirancang di ARAH-VISUAL-2026.md §5c, dan
+      SELURUHNYA memakai endpoint yang sudah ada.
+
+  # ── LAPIS 3 — PENJAGA ────────────────────────────────────────────────────
+
+  - id: UI-3-1
+    lapis: 3
+    judul: "Penjaga CI: modul ber-API wajib punya UI"
+    blokir_oleh: [UI-1-1]
+    kriteria_selesai:
+      - "penjaga memindai endpoint vs pemakaian di apps/web"
+      - "TERBUKTI bisa merah"
+      - "lantai = keadaan hari ini, ratchet"
+    cara_verifikasi: "suntik endpoint tanpa UI -> penjaga merah"
+    bobot: M
+    status: menunggu-ratifikasi
+    catatan: |
+      INI YANG SEHARUSNYA ADA SEJAK AWAL.
+
+      CLAUDE.md §8 melarang "kolom DB sudah ada = selesai", tapi larangan itu
+      tak punya mekanisme — dan saya melanggarnya LIMA KALI berturut-turut
+      tanpa satu pun penjaga protes.
+
+      Pola yang sama dengan audit-triase-submenu: aturan yang tak dijaga
+      mesin akan dilanggar, sebaik apa pun niatnya.

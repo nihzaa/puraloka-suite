@@ -117,9 +117,26 @@ export default async function dashboardRoutes(app: FastifyInstance) {
 
       allKasbonsQuery,
 
+      // `requested_by` dan `project_id` ikut diambil sebagai JALUR CADANGAN.
+      //
+      // Nama mandor & proyek biasanya datang lewat rantai
+      // `work_scopes → mandor_assignments`. Tapi `work_scope_id` boleh NULL
+      // (kasbon yang tak terikat lingkup kerja), dan untuk kasbon seperti itu
+      // seluruh rantai putus — dashboard menampilkan "—" di kolom Mandor DAN
+      // Proyek, lalu tetap menyodorkan tombol "Setuju".
+      //
+      // Menyetujui pengeluaran uang tanpa tahu siapa yang meminta dan untuk
+      // proyek apa adalah kegagalan kontrol, bukan sekadar tampilan kosong.
+      //
+      // Dan informasinya SELALU ADA: `requested_by` NOT NULL di skema, dan
+      // `project_id` terisi. Diperiksa di data nyata — kasbon Rp 1 juta yang
+      // tampil "—/—" ternyata diajukan Pak Budi Santoso untuk proyek Renovasi
+      // Rumah Pak Andi. Datanya lengkap, cuma tak pernah diambil.
       db.from('kasbons')
         .select(`
           id, amount, fund_source, purpose, kasbon_date, notes, status, created_at,
+          pemohon:users!kasbons_requested_by_fkey ( id, name ),
+          proyek_langsung:projects!kasbons_project_id_fkey ( id, name ),
           work_scopes!kasbons_work_scope_id_fkey (
             scope_name, payment_system,
             mandor_assignments!work_scopes_assignment_id_fkey (
@@ -253,6 +270,146 @@ export default async function dashboardRoutes(app: FastifyInstance) {
         total_pph: (taxRecords as any[]).reduce((s: number, t: any) => s + Number(t.tax_amount ?? 0), 0),
         this_month_reported: thisMonthTax.filter((t: any) => t.status === 'reported').length,
         this_month_pending: thisMonthTax.filter((t: any) => t.status === 'pending').length,
+      },
+    }
+  })
+
+  // ── GET /api/v1/dashboard/fokus ──────────────────────────────────────────
+  //
+  // "Berapa hal yang menunggu keputusan saya, dan berapa yang sudah lewat
+  // tenggat?" — pertanyaan yang orang bawa saat membuka aplikasi, dan yang
+  // hari ini jawabannya tersebar di enam halaman berbeda.
+  //
+  // Dipakai widget sidebar, jadi ia hadir di SETIAP halaman. Itu sengaja:
+  // yang paling mendesak justru ditemukan saat sedang mengerjakan hal lain,
+  // bukan saat kebetulan membuka dashboard.
+  //
+  // ── Kenapa `lewat` DIPISAH dari `menunggu`
+  //
+  // Dua-duanya "belum selesai", tapi yang satu masih dalam kendali dan yang
+  // lain sudah merugikan. Menyatukannya membuat yang mendesak tenggelam di
+  // antara yang biasa — dan angka gabungan yang besar melatih orang
+  // mengabaikannya.
+  app.get('/api/v1/dashboard/fokus', {
+    preHandler: [authenticate],
+  }, async (request) => {
+    const hariIni = new Date().toISOString().split('T')[0]
+
+    // Seluruhnya lewat `request.db` (sadar tenant). Ringkasan lintas-modul
+    // adalah tempat paling mudah membocorkan data perusahaan lain: satu
+    // query mentah di sini membuat angkanya salah tanpa gejala apa pun.
+    const db = request.db!
+
+    // ⚠️ Empat dari lima tabel di bawah berkategori C — mewarisi tenancy dari
+    // project, TIDAK punya `company_id` sendiri. Penjaga menolak query
+    // langsung ke tabel C, dan itu benar: ini layar LINTAS-PROYEK, jadi tak
+    // ada satu project sebagai konteks dan `viaProject()` tak berlaku.
+    //
+    // Pola yang sah (tenant-db.ts baris 108-133, dipakai juga di baris 63
+    // berkas ini): ambil daftar id milik company, lalu saring `supabase`
+    // mentah dengan `.in()`. `db.from()` menolak kategori C di titik `from()`
+    // — sebelum `.in()` sempat terpasang — jadi ia memang bukan jalannya.
+    //
+    // `projectIds()`/`workScopeIds()` di-memo per request, jadi empat query
+    // di sini tetap sekali hit DB per daftar.
+    //
+    // Kalau saringan ini hilang, ringkasan menghitung pekerjaan perusahaan
+    // LAIN — dan angkanya tetap terlihat masuk akal. Kebocoran tanpa gejala
+    // adalah yang paling lama tak ketahuan.
+    const [idProyek, idScope] = await Promise.all([db.projectIds(), db.workScopeIds()])
+
+    // Alasan tercatat untuk `db.unsafe()` di bawah — wajib, dan itu
+    // memang gunanya: pemakaian yang melewati pintu aman harus
+    // meninggalkan jejak yang bisa ditinjau.
+    const ALASAN = 'ringkasan lintas-proyek milik company; sudah disaring lewat idProyek/idScope dari db.projectIds()/workScopeIds()'
+
+    const [kasbon, penagihan, invoice, klaim, instruksi] = await Promise.all([
+      // Kasbon menunggu persetujuan — uang keluar. Kategori B, punya
+      // company_id sendiri, jadi `db.from()` sudah cukup.
+      db.from('kasbons').select('id').eq('status', 'pending'),
+      // ── Empat query berikut memakai `db.unsafe()`, BUKAN `supabase` mentah.
+      //
+      // Keempat tabelnya kategori C (tenancy diwarisi lewat project/scope),
+      // dan `viaProject()` menuntut SATU `projectId` — sementara widget ini
+      // meringkas SELURUH proyek milik company. Jadi pintu yang benar adalah
+      // `unsafe()` dengan alasan tercatat, bukan `supabase` yang menghindari
+      // pencatatan itu sama sekali.
+      //
+      // Saya sendiri yang menulisnya salah di commit 8dec5c7 ("widget fokus"),
+      // dan ratchet tenancy menangkapnya: 366 → 370. Filternya memang sudah
+      // benar sejak awal (`.in('project_id', idProyek)` cocok persis dengan
+      // kolom yang ditetapkan `tenant-map.generated.ts`) — yang salah hanya
+      // jalur yang dipakai, dan itu justru yang membuat pelanggaran seperti
+      // ini tak terlihat saat ditinjau.
+      // Penagihan progres mandor menunggu konfirmasi.
+      db.unsafe('progress_payments', ALASAN).select('id').eq('status', 'pending')
+        .in('work_scope_id', idScope),
+      // Invoice jatuh tempo yang belum lunas — INI yang lewat tenggat.
+      db.unsafe('invoices', ALASAN).select('id, due_date, amount_due, status')
+        .neq('status', 'cancelled').gt('amount_due', 0)
+        .in('project_id', idProyek),
+      // Klaim yang batas pemberitahuannya sudah lewat dan belum diputus.
+      db.unsafe('contract_claims', ALASAN).select('id, event_date, notice_days_limit, notified_at, status')
+        .in('status', ['draft', 'diberitahukan', 'diajukan'])
+        .in('project_id', idProyek),
+      // Instruksi lisan yang belum dikonfirmasi — utang bukti.
+      db.unsafe('field_instructions', ALASAN).select('id, bentuk_perintah, diterima_pada, dikonfirmasi_pada, status')
+        .in('status', ['dicatat'])
+        .in('project_id', idProyek),
+    ])
+
+    // Galat dari mana pun membuat SELURUH ringkasan salah — "3 menunggu" saat
+    // sebenarnya 11 lebih berbahaya daripada widget yang menghilang. Jadi
+    // gagal keras, biar sidebar menyembunyikan dirinya sendiri.
+    for (const [nama, hasil] of Object.entries({ kasbon, penagihan, invoice, klaim, instruksi })) {
+      if (hasil.error) {
+        request.log.error({ err: hasil.error, sumber: nama }, 'fokus: query gagal')
+        throw new Error(`Gagal membaca ${nama}: ${hasil.error.message}`)
+      }
+    }
+
+    const invoiceLewat = ((invoice.data ?? []) as Array<{ due_date: string }>)
+      .filter((i) => i.due_date && i.due_date < hariIni).length
+
+    const klaimLewat = ((klaim.data ?? []) as Array<{
+      event_date: string; notice_days_limit: number | null; notified_at: string | null
+    }>).filter((k) => {
+      // Sudah diberitahukan = tenggatnya sudah terpenuhi, apa pun statusnya
+      // sekarang. Yang dihitung hanya yang BELUM diberitahukan.
+      if (k.notified_at || k.notice_days_limit == null) return false
+      const batas = new Date(k.event_date)
+      batas.setDate(batas.getDate() + k.notice_days_limit)
+      return batas.toISOString().split('T')[0] < hariIni
+    }).length
+
+    // Instruksi LISAN/TELEPON punya batas 24 jam (lihat lib/instruksi-lapangan).
+    // Bentuk lain tak dihitung di sini — tertulis sudah berjejak, dan
+    // whatsapp/rapat punya batas lebih longgar yang belum mendesak hari ini.
+    const batasMs = 24 * 3_600_000
+    const instruksiLewat = ((instruksi.data ?? []) as Array<{
+      bentuk_perintah: string; diterima_pada: string; dikonfirmasi_pada: string | null
+    }>).filter((i) =>
+      !i.dikonfirmasi_pada &&
+      (i.bentuk_perintah === 'lisan' || i.bentuk_perintah === 'telepon') &&
+      Date.now() - Date.parse(i.diterima_pada) > batasMs
+    ).length
+
+    const lewat = invoiceLewat + klaimLewat + instruksiLewat
+    const menunggu = (kasbon.data?.length ?? 0) + (penagihan.data?.length ?? 0)
+
+    return {
+      lewat,
+      menunggu,
+      // Ke mana orang harus pergi. Yang lewat tenggat lebih mendesak, jadi
+      // tautannya menang — mengirim orang ke daftar umum saat ada yang
+      // terlambat berarti ia harus mencari lagi.
+      tautan: lewat > 0 ? '/keuangan' : '/mandor',
+      rincian: {
+        invoice_jatuh_tempo: invoiceLewat,
+        klaim_lewat_batas: klaimLewat,
+        instruksi_belum_dikonfirmasi: instruksiLewat,
+        kasbon_menunggu: kasbon.data?.length ?? 0,
+        penagihan_menunggu: penagihan.data?.length ?? 0,
       },
     }
   })

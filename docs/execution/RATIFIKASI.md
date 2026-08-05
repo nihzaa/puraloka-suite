@@ -6,6 +6,76 @@ bawah entrinya.
 
 ---
 
+# ❓ R-012 · MENUNGGU KEPUTUSAN — arah visual 2026 + roadmap UI terpisah
+
+**Belum ada satu baris kode pun yang mengikuti ini.** Kalau ditolak, biayanya nol.
+
+Dokumen lengkap: [`docs/design/ARAH-VISUAL-2026.md`](../design/ARAH-VISUAL-2026.md)
+Antrean kerjanya: [`docs/execution/QUEUE-UI.yaml`](QUEUE-UI.yaml) (seluruhnya
+berstatus `menunggu-ratifikasi`)
+
+## Empat pertanyaan yang saya butuhkan jawabannya
+
+| # | Pertanyaan | Usul saya |
+|---|---|---|
+| 1 | Warna aksen | **Indigo `#6366F1`** — bertetangga dengan navy jadi terasa satu keluarga, tapi cukup berbeda untuk menonjol |
+| 2 | Sidebar gelap `#0B1220` | **Ya** — menciptakan dua zona; konten terasa maju tanpa bayangan tebal |
+| 3 | Pecah tab jadi halaman | **Ya untuk keuangan/mandor/kas**; laporan & estimasi tetap tab (tab di sana memang benar) |
+| 4 | Halaman contoh mana dulu | **Dashboard** — paling sering dilihat, pola tiga lapisnya paling jelas |
+
+## Diagnosis — angka, bukan perasaan
+
+Founder: *"kurang dapet wah-nya, kurang punya taste"*. Diukur 2026-08-04:
+
+**Masalahnya bukan warna atau font.** Yang ada sudah baik: navy `#003366`
+adalah merek Anda, dan fontnya **bukan Inter** (Bricolage Grotesque + Plus
+Jakarta Sans — lebih berkarakter daripada rekomendasi mesin desain).
+
+Tiga hal yang terukur:
+
+```
+1. TERLALU LONGGAR, BUKAN KURANG TASTE
+   padding kartu     24px  (standar data-dense: 12px)  ← 2x
+   font tabel       9-11px (standar: 12-14px)          ← terlalu kecil
+   → banyak ruang putih dengan tulisan kecil = terasa lemas
+
+2. MONOTON KARENA TAK ADA LAPISAN
+   20 dari 22 menu induk = SATU halaman saja
+   → klik menu apa pun, langsung tabel. Semuanya terasa sama.
+
+3. TAB MENYEMBUNYIKAN APLIKASI DI DALAM HALAMAN
+   keuangan  3.449 baris · ~8 tab
+   mandor    3.667 baris ·  7 tab
+   → halaman 3.400 baris bukan halaman; itu aplikasi di balik tab
+```
+
+## Jawaban atas tiga pertanyaan roadmap Anda
+
+**"Sudah sampai mana?"** — 38 dari 43 item selesai (88%). Sisa lima: F4-2
+(`wip`), F6-1/F7-1/F7-2 (`blocked`, gerbangnya jelas), plus INTI #1/#7/#8/#9.
+
+**"Sudah perfect?"** — **Tidak.** Tiga hal yang saya tahu belum beres:
+1. **Coverage API 31,98%** — standar senior 70–80%. Ini yang paling jauh.
+2. **F4-2 setengah jalan** — 56 halaman masih pakai pola data lama.
+3. **R-006** — `pg_dump` rusak, menunggu tiket Supabase dari Anda.
+
+**"Semua docs sudah masuk antrean?"** — **Ya, dan terjaga otomatis:**
+```
+263 dokumen · 33 disebut ROADMAP · 230 terdaftar di INDEKS-DOKUMEN
+  0 RENCANA TERLANTAR   (penjaga audit-docs-vs-roadmap, merah kalau ada)
+```
+
+**"Kematangan perencanaannya perfect?"** — **Belum**, dan lubangnya:
+- Fase 5 baru 4 item padahal triase mengidentifikasi **43 pekerjaan**
+- **Nol item UI/UX di seluruh roadmap** ← ini yang membuat saya bisa
+  membangun 5 modul tanpa UI tanpa satu pun penjaga protes
+- Coverage tak punya item untuk dinaikkan dari 32%
+
+Roadmap-nya matang untuk **fondasi**; ia **buta terhadap produk yang dilihat
+orang**. `QUEUE-UI.yaml` + penjaga `UI-3-1` menutup lubang itu.
+
+---
+
 # ✅ R-011 · DIRATIFIKASI 2026-08-04 — ratchet akses mentah 364 → 366, **sekali saja**
 
 Founder: **"okee saya setuju dengan mu, lanjutkan"**, menanggapi rekomendasi

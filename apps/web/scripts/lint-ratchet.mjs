@@ -106,12 +106,12 @@ const AMBANG = {
   // `lib/dapat-ditekan.ts` supaya `role`+`tabIndex`+Enter/Space selalu lengkap
   // — separuh implementasi (umumnya Enter ditangani, Space tidak) terasa rusak
   // sesekali, dan itu lebih membingungkan daripada rusak konsisten.
-  'jsx-a11y/no-static-element-interactions': 74,   // 94 → 74, ikut turun bersama click-events
+  'jsx-a11y/no-static-element-interactions': 72,   // 74 -> 73 (2026-08-04, KPICard lama dihapus)   // 94 → 74, ikut turun bersama click-events
   'jsx-a11y/no-noninteractive-element-interactions': 6,
 
   // ── Hutang lint lain ────────────────────────────────────────────────────
-  '@typescript-eslint/no-explicit-any': 193, // turun dari 194 (2026-08-01)
-  'react-hooks/set-state-in-effect': 69, // 71 → 70 (HargaTab) → 69 (2026-08-01, klien)
+  '@typescript-eslint/no-explicit-any': 191, // turun dari 194 (2026-08-01)
+  'react-hooks/set-state-in-effect': 68, // 71 → 70 (HargaTab) → 69 (2026-08-01, klien)
   // turun 71 → 67 (.ds-sync diabaikan) → 15 (2026-08-01).
   //
   // Sebagian besar adalah 50 impor ikon/helper yatim yang menumpuk saat
@@ -133,8 +133,17 @@ const AMBANG = {
   //                               halaman settlement borongan memang belum ada.
   //
   // 11 sisanya menunggu penilaian serupa, bukan penyapuan.
-  '@typescript-eslint/no-unused-vars': 10,   // 11 -> 10: `localIdx` di photo-gallery dihapus (2026-08-02)
-  'react-hooks/exhaustive-deps': 31,
+  // 11 -> 10: `localIdx` di photo-gallery dihapus (2026-08-02)
+  // 10 -> 3: kode mati dibersihkan saat rombak visual (2026-08-05) —
+  //   ProgressRing/ProgressBar/Avatar & PAYMENT_SYSTEM_LABEL di halaman
+  //   proyek, getBudgetColor di mandor, TRIGGER_LABELS di project-modal,
+  //   toLeft & prop `height` di gantt, scopeTotal di mandor-section.
+  //   Semuanya benar-benar tak terpakai — diperiksa satu per satu, bukan
+  //   dihapus borongan. `height` di TodayLine bahkan menyembunyikan cacat:
+  //   garis "hari ini" memakai top/bottom, jadi tinggi yang dihitung
+  //   pemanggil akan menyimpang diam-diam begitu jumlah baris berubah.
+  '@typescript-eslint/no-unused-vars': 1,
+  'react-hooks/exhaustive-deps': 24,
   'react/no-unescaped-entities': 28,
   // 14 → 8 (2026-08-04): `Tab` di halaman mandor diangkat ke level modul.
   // Ia dulu dibuat DI DALAM render, jadi tiap pemakaiannya dihitung — 6

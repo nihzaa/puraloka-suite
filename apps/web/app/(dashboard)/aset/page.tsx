@@ -34,14 +34,8 @@ import {
 } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 
-const C = {
-  navy: "var(--navy)", text: "var(--text-primary)", mid: "var(--text-secondary)",
-  muted: "var(--text-muted)", border: "var(--border)", surface: "var(--surface)",
-  green: "var(--success)", greenBg: "var(--success-bg)", greenBorder: "var(--success-border)",
-  red: "var(--danger)", redBg: "var(--danger-bg)", redBorder: "var(--danger-border)",
-  yellow: "var(--warning)", yellowBg: "var(--warning-bg)", yellowBorder: "var(--warning-border)",
-  blue: "var(--info)", blueBg: "var(--info-bg)", blueBorder: "var(--info-border)",
-};
+import { C } from "@/lib/warna-ui";
+import { Kosong } from "@/components/ui-dasar";
 
 type StatusAset = "tersedia" | "dipakai" | "perawatan" | "rusak" | "dilepas";
 
@@ -153,8 +147,8 @@ export default function AsetPage() {
         <button
           onClick={() => setFormBuka((v) => !v)}
           style={{
-            display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 16px",
-            borderRadius: 9, border: "none", background: C.navy, color: "#fff",
+            display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px",
+            borderRadius: 10, border: "none", background: C.navy, color: "#fff",
             fontSize: 13, fontWeight: 600, cursor: "pointer", flexShrink: 0,
           }}
         >
@@ -206,7 +200,7 @@ export default function AsetPage() {
             key={k} role="tab" aria-selected={tab === k}
             onClick={() => setTab(k)}
             style={{
-              padding: "9px 16px", border: "none", background: "none", cursor: "pointer",
+              padding: "8px 16px", border: "none", background: "none", cursor: "pointer",
               fontSize: 13, fontWeight: tab === k ? 700 : 500,
               color: tab === k ? C.navy : C.mid,
               borderBottom: `2px solid ${tab === k ? C.navy : "transparent"}`,
@@ -220,8 +214,8 @@ export default function AsetPage() {
 
       {galat && (
         <div role="alert" style={{
-          display: "flex", gap: 9, alignItems: "flex-start", padding: "11px 14px",
-          borderRadius: 9, background: C.redBg, border: `1px solid ${C.redBorder}`,
+          display: "flex", gap: 8, alignItems: "flex-start", padding: "12px 12px",
+          borderRadius: 10, background: C.redBg, border: `1px solid ${C.redBorder}`,
           color: C.red, fontSize: 13, marginBottom: 14,
         }}>
           <AlertTriangle size={15} aria-hidden="true" style={{ flexShrink: 0, marginTop: 1 }} />
@@ -245,14 +239,14 @@ function Kartu({ Icon, label, nilai, sub, warna, bg, border }: {
   warna: string; bg: string; border: string;
 }) {
   return (
-    <div style={{ padding: "13px 15px", borderRadius: 11, background: bg, border: `1px solid ${border}` }}>
+    <div style={{ padding: "12px 16px", borderRadius: 10, background: bg, border: `1px solid ${border}` }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 7 }}>
         <Icon size={14} color={warna} aria-hidden="true" />
         <span style={{ fontSize: 11, fontWeight: 700, color: warna, textTransform: "uppercase", letterSpacing: 0.4 }}>
           {label}
         </span>
       </div>
-      <div style={{ fontSize: 19, fontWeight: 800, color: C.text, fontFamily: "var(--font-display, inherit)" }}>
+      <div style={{ fontSize: 20, fontWeight: 800, color: C.text, fontFamily: "var(--font-display, inherit)" }}>
         {nilai}
       </div>
       <div style={{ fontSize: 11, color: C.mid, marginTop: 3 }}>{sub}</div>
@@ -265,18 +259,18 @@ function TabelAset({ baris }: { baris: Aset[] }) {
     return (
       <Kosong
         judul="Belum ada aset terdaftar"
-        pesan="Daftarkan alat milik perusahaan supaya lokasinya terlacak dan nilai bukunya terhitung."
+        sebab="Daftarkan alat milik perusahaan supaya lokasinya terlacak dan nilai bukunya terhitung."
       />
     );
   }
   return (
-    <div style={{ overflowX: "auto", borderRadius: 11, border: `1px solid ${C.border}`, background: C.surface }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 780 }}>
+    <div style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 780, fontVariantNumeric: "tabular-nums" }}>
         <thead>
           <tr style={{ background: "var(--surface-subtle)" }}>
             {["Kode", "Nama", "Kategori", "Status", "Perolehan", "Nilai buku", "Penyusutan"].map((h, i) => (
               <th key={h} scope="col" style={{
-                padding: "10px 13px", textAlign: i >= 4 ? "right" : "left",
+                padding: "8px 12px", textAlign: i >= 4 ? "right" : "left",
                 fontSize: 11, fontWeight: 700, color: C.mid,
                 textTransform: "uppercase", letterSpacing: 0.4,
                 borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap",
@@ -289,10 +283,10 @@ function TabelAset({ baris }: { baris: Aset[] }) {
             const s = STATUS[a.status] ?? STATUS.tersedia;
             return (
               <tr key={a.id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                <td style={{ padding: "10px 13px", fontWeight: 600, color: C.text, whiteSpace: "nowrap" }}>
+                <td style={{ padding: "8px 12px", fontWeight: 600, color: C.text, whiteSpace: "nowrap" }}>
                   {a.asset_code}
                 </td>
-                <td style={{ padding: "10px 13px", color: C.text }}>
+                <td style={{ padding: "8px 12px", color: C.text }}>
                   {a.name}
                   {(a.brand || a.model) && (
                     <span style={{ color: C.muted, fontSize: 11, display: "block" }}>
@@ -300,30 +294,30 @@ function TabelAset({ baris }: { baris: Aset[] }) {
                     </span>
                   )}
                 </td>
-                <td style={{ padding: "10px 13px", color: C.mid, whiteSpace: "nowrap" }}>
+                <td style={{ padding: "8px 12px", color: C.mid, whiteSpace: "nowrap" }}>
                   {KATEGORI[a.category] ?? a.category}
                 </td>
-                <td style={{ padding: "10px 13px", whiteSpace: "nowrap" }}>
+                <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>
                   {/* Warna DAN teks — WCAG 1.4.1 */}
                   <span style={{
                     display: "inline-flex", alignItems: "center", gap: 4,
-                    padding: "3px 9px", borderRadius: 20, fontSize: 11, fontWeight: 600,
+                    padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600,
                     color: s.warna, background: s.bg, border: `1px solid ${s.border}`,
                   }}>
                     {a.status === "dipakai" && <MapPin size={10} aria-hidden="true" />}
                     {s.teks}
                   </span>
                 </td>
-                <td style={{ padding: "10px 13px", textAlign: "right", color: C.mid, whiteSpace: "nowrap" }}>
+                <td style={{ padding: "8px 12px", textAlign: "right", color: C.mid, whiteSpace: "nowrap" }}>
                   {fmtRp(a.purchase_price)}
                   <span style={{ display: "block", fontSize: 11, color: C.muted }}>
                     {fmtTgl(a.purchase_date)}
                   </span>
                 </td>
-                <td style={{ padding: "10px 13px", textAlign: "right", fontWeight: 700, color: C.text, whiteSpace: "nowrap" }}>
+                <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 700, color: C.text, whiteSpace: "nowrap" }}>
                   {fmtRp(a.nilai_buku)}
                 </td>
-                <td style={{ padding: "10px 13px", textAlign: "right", whiteSpace: "nowrap" }}>
+                <td style={{ padding: "8px 12px", textAlign: "right", whiteSpace: "nowrap" }}>
                   {a.sudah_disusutkan ? (
                     <span style={{ color: C.mid }}>{fmtRp(a.akumulasi_penyusutan)}</span>
                   ) : (
@@ -345,18 +339,18 @@ function TabelSewa({ baris }: { baris: Sewa[] }) {
     return (
       <Kosong
         judul="Belum ada sewa alat tercatat"
-        pesan="Catat sewa alat supaya biayanya terlihat per proyek — termasuk sewa yang masih berjalan."
+        sebab="Catat sewa alat supaya biayanya terlihat per proyek — termasuk sewa yang masih berjalan."
       />
     );
   }
   return (
-    <div style={{ overflowX: "auto", borderRadius: 11, border: `1px solid ${C.border}`, background: C.surface }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 680 }}>
+    <div style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 680, fontVariantNumeric: "tabular-nums" }}>
         <thead>
           <tr style={{ background: "var(--surface-subtle)" }}>
             {["Alat", "Tarif", "Mulai", "Selesai", "Status", "Biaya s.d. kini"].map((h, i) => (
               <th key={h} scope="col" style={{
-                padding: "10px 13px", textAlign: i >= 5 ? "right" : "left",
+                padding: "8px 12px", textAlign: i >= 5 ? "right" : "left",
                 fontSize: 11, fontWeight: 700, color: C.mid,
                 textTransform: "uppercase", letterSpacing: 0.4,
                 borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap",
@@ -369,17 +363,17 @@ function TabelSewa({ baris }: { baris: Sewa[] }) {
             const berjalan = r.status === "berjalan";
             return (
               <tr key={r.id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                <td style={{ padding: "10px 13px", color: C.text, fontWeight: 600 }}>{r.item_name}</td>
-                <td style={{ padding: "10px 13px", color: C.mid, whiteSpace: "nowrap" }}>
+                <td style={{ padding: "8px 12px", color: C.text, fontWeight: 600 }}>{r.item_name}</td>
+                <td style={{ padding: "8px 12px", color: C.mid, whiteSpace: "nowrap" }}>
                   {fmtRp(r.rate)} <span style={{ color: C.muted }}>/ {r.rate_unit}</span>
                 </td>
-                <td style={{ padding: "10px 13px", color: C.mid, whiteSpace: "nowrap" }}>{fmtTgl(r.start_date)}</td>
-                <td style={{ padding: "10px 13px", color: C.mid, whiteSpace: "nowrap" }}>
+                <td style={{ padding: "8px 12px", color: C.mid, whiteSpace: "nowrap" }}>{fmtTgl(r.start_date)}</td>
+                <td style={{ padding: "8px 12px", color: C.mid, whiteSpace: "nowrap" }}>
                   {r.end_date ? fmtTgl(r.end_date) : <span style={{ color: C.muted, fontStyle: "italic" }}>berjalan</span>}
                 </td>
-                <td style={{ padding: "10px 13px", whiteSpace: "nowrap" }}>
+                <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>
                   <span style={{
-                    padding: "3px 9px", borderRadius: 20, fontSize: 11, fontWeight: 600,
+                    padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600,
                     color: berjalan ? C.yellow : C.mid,
                     background: berjalan ? C.yellowBg : "var(--surface-subtle)",
                     border: `1px solid ${berjalan ? C.yellowBorder : C.border}`,
@@ -387,7 +381,7 @@ function TabelSewa({ baris }: { baris: Sewa[] }) {
                     {berjalan ? "Berjalan" : r.status === "selesai" ? "Selesai" : "Batal"}
                   </span>
                 </td>
-                <td style={{ padding: "10px 13px", textAlign: "right", fontWeight: 700, color: C.text, whiteSpace: "nowrap" }}>
+                <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 700, color: C.text, whiteSpace: "nowrap" }}>
                   {fmtRp(r.biaya_sampai_kini)}
                   {berjalan && (
                     <span style={{ display: "block", fontSize: 10, color: C.muted, fontWeight: 400 }}>
@@ -400,19 +394,6 @@ function TabelSewa({ baris }: { baris: Sewa[] }) {
           })}
         </tbody>
       </table>
-    </div>
-  );
-}
-
-function Kosong({ judul, pesan }: { judul: string; pesan: string }) {
-  return (
-    <div style={{
-      padding: "36px 20px", textAlign: "center", borderRadius: 11,
-      border: `1px dashed ${C.border}`, background: C.surface,
-    }}>
-      <Package size={26} color={C.muted} aria-hidden="true" />
-      <p style={{ margin: "10px 0 3px", fontSize: 14, fontWeight: 600, color: C.text }}>{judul}</p>
-      <p style={{ margin: 0, fontSize: 12.5, color: C.mid, maxWidth: 420, marginInline: "auto" }}>{pesan}</p>
     </div>
   );
 }
@@ -459,17 +440,17 @@ function FormBaru({ jenis, onSelesai, onBatal }: {
   }
 
   const inputStyle: React.CSSProperties = {
-    width: "100%", padding: "8px 11px", borderRadius: 8,
+    width: "100%", padding: "8px 12px", borderRadius: 6,
     border: `1px solid ${C.border}`, fontSize: 13, background: C.surface,
     color: C.text, boxSizing: "border-box",
   };
   const labelStyle: React.CSSProperties = {
-    display: "block", fontSize: 11.5, fontWeight: 600, color: C.mid, marginBottom: 4,
+    display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 4,
   };
 
   return (
     <form onSubmit={kirim} style={{
-      padding: 16, borderRadius: 11, border: `1px solid ${C.border}`,
+      padding: 16, borderRadius: 10, border: `1px solid ${C.border}`,
       background: C.surface, marginBottom: 20,
     }}>
       <h2 style={{ margin: "0 0 13px", fontSize: 15, fontWeight: 700, color: C.text }}>
@@ -478,8 +459,8 @@ function FormBaru({ jenis, onSelesai, onBatal }: {
 
       {galat && (
         <div role="alert" style={{
-          padding: "9px 12px", borderRadius: 8, background: C.redBg,
-          border: `1px solid ${C.redBorder}`, color: C.red, fontSize: 12.5, marginBottom: 12,
+          padding: "8px 12px", borderRadius: 6, background: C.redBg,
+          border: `1px solid ${C.redBorder}`, color: C.red, fontSize: 12, marginBottom: 12,
         }}>{galat}</div>
       )}
 
@@ -515,7 +496,7 @@ function FormBaru({ jenis, onSelesai, onBatal }: {
             <div>
               <label htmlFor="residual_value" style={labelStyle}>Nilai sisa (Rp)</label>
               <input id="residual_value" name="residual_value" type="number" min="0" defaultValue={0} style={inputStyle} />
-              <span style={{ fontSize: 10.5, color: C.muted, display: "block", marginTop: 3 }}>
+              <span style={{ fontSize: 10, color: C.muted, display: "block", marginTop: 3 }}>
                 Perkiraan harga jual saat umur habis — bukan nol.
               </span>
             </div>
@@ -548,7 +529,7 @@ function FormBaru({ jenis, onSelesai, onBatal }: {
                 <option value="minggu">Per minggu</option>
                 <option value="bulan">Per bulan</option>
               </select>
-              <span style={{ fontSize: 10.5, color: C.muted, display: "block", marginTop: 3 }}>
+              <span style={{ fontSize: 10, color: C.muted, display: "block", marginTop: 3 }}>
                 Mingguan &amp; bulanan dibulatkan ke atas, seperti tagihan sewa.
               </span>
             </div>
@@ -559,7 +540,7 @@ function FormBaru({ jenis, onSelesai, onBatal }: {
             <div>
               <label htmlFor="end_date" style={labelStyle}>Selesai sewa</label>
               <input id="end_date" name="end_date" type="date" style={inputStyle} />
-              <span style={{ fontSize: 10.5, color: C.muted, display: "block", marginTop: 3 }}>
+              <span style={{ fontSize: 10, color: C.muted, display: "block", marginTop: 3 }}>
                 Kosongkan bila masih berjalan.
               </span>
             </div>
@@ -569,14 +550,14 @@ function FormBaru({ jenis, onSelesai, onBatal }: {
 
       <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
         <button type="submit" disabled={simpan} style={{
-          padding: "8px 17px", borderRadius: 8, border: "none", background: C.navy,
+          padding: "8px 16px", borderRadius: 6, border: "none", background: C.navy,
           color: "#fff", fontSize: 13, fontWeight: 600,
           cursor: simpan ? "wait" : "pointer", opacity: simpan ? 0.7 : 1,
         }}>
           {simpan ? "Menyimpan…" : "Simpan"}
         </button>
         <button type="button" onClick={onBatal} style={{
-          padding: "8px 17px", borderRadius: 8, border: `1px solid ${C.border}`,
+          padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`,
           background: C.surface, color: C.mid, fontSize: 13, fontWeight: 600, cursor: "pointer",
         }}>
           Batal

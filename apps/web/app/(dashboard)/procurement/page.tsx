@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { api, hasPermission } from "@/lib/api";
+import { Kosong } from "@/components/ui-dasar";
+import { useIzin } from "@/lib/use-izin";
 import { useUnits } from "@/lib/use-units";
 import { createPortal } from "react-dom";
 import {
@@ -12,15 +14,7 @@ import {
   CreditCard, TrendingDown, Receipt, Send, History,
 } from "lucide-react";
 
-const C = {
-  navy: "var(--navy)", navyLight: "var(--navy-light)", bg: "var(--bg)",
-  surface: "var(--surface)", border: "var(--border)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  success: "var(--success)", successBg: "#DCFCE7",
-  warning: "var(--warning)", warningBg: "#FEF3C7",
-  danger: "var(--danger)", dangerBg: "var(--danger-bg)",
-  info: "var(--info)", infoBg: "#DBEAFE",
-};
+import { C } from "@/lib/warna-ui";
 
 const fmt = (n: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
 const fmtDate = (s: string) => s ? new Date(s).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "—";
@@ -58,7 +52,7 @@ const STATUS_BADGE: Record<string, { label: string; color: string; bg: string }>
 function Badge({ status }: { status: string }) {
   const s = STATUS_BADGE[status] ?? { label: status, color: C.mid, bg: "var(--surface-hover)" };
   return (
-    <span style={{ padding: "2px 10px", borderRadius: 99, fontSize: 11, fontWeight: 600, color: s.color, background: s.bg }}>
+    <span style={{ padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 600, color: s.color, background: s.bg }}>
       {s.label}
     </span>
   );
@@ -70,7 +64,7 @@ function Card({ children, style, onClick }: { children: React.ReactNode; style?:
     // dipakai sebagai pembungkus biasa, dan menandai wadah non-interaktif
     // sebagai tombol justru menyesatkan pembaca layar.
     <div
-      style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, ...style }}
+      style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: 16, ...style }}
       onClick={onClick}
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
@@ -93,9 +87,9 @@ function Modal({ title, onClose, children, width = 520 }: { title: string; onClo
   return createPortal(
     <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div onClick={onClose} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.45)" }} />
-      <div style={{ position: "relative", background: C.surface, borderRadius: 16, width: "100%", maxWidth: width, maxHeight: "90vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+      <div style={{ position: "relative", background: C.surface, borderRadius: 14, width: "100%", maxWidth: width, maxHeight: "90vh", overflow: "auto", boxShadow: "var(--naik-3)" }}>
         <div style={{ padding: "20px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, background: C.surface, zIndex: 1 }}>
-          <span style={{ fontWeight: 700, fontSize: 16, color: C.text }}>{title}</span>
+          <span style={{ fontWeight: 700, fontSize: 15, color: C.text }}>{title}</span>
           <button aria-label="Tutup" onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: C.mid, padding: 4, borderRadius: 6 }}><X size={18} /></button>
         </div>
         <div style={{ padding: 24 }}>{children}</div>
@@ -109,7 +103,7 @@ function Input({ label, ...props }: { label: string } & React.InputHTMLAttribute
   return (
     <div>
       <label style={{ display: "block", fontSize: 12, fontWeight: 500, color: C.mid, marginBottom: 4 }}>{label}</label>
-      <input {...props} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 14, color: C.text, boxSizing: "border-box", outline: "none", background: props.disabled ? C.bg : C.surface, ...props.style }} />
+      <input {...props} style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, color: C.text, boxSizing: "border-box", outline: "none", background: props.disabled ? C.bg : C.surface, ...props.style }} />
     </div>
   );
 }
@@ -118,7 +112,7 @@ function Select({ label, children, ...props }: { label: string } & React.SelectH
   return (
     <div>
       <label style={{ display: "block", fontSize: 12, fontWeight: 500, color: C.mid, marginBottom: 4 }}>{label}</label>
-      <select {...props} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 14, color: C.text, boxSizing: "border-box", background: C.surface }}>
+      <select {...props} style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, color: C.text, boxSizing: "border-box", background: C.surface }}>
         {children}
       </select>
     </div>
@@ -132,7 +126,7 @@ function Btn({ children, variant = "primary", loading, ...props }: { children: R
     danger:    { background: C.dangerBg,color: C.danger, border: `1px solid ${C.danger}` },
   };
   return (
-    <button disabled={loading || props.disabled} {...props} style={{ ...styles[variant], padding: "9px 16px", borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: loading || props.disabled ? "not-allowed" : "pointer", opacity: loading || props.disabled ? 0.6 : 1, display: "flex", alignItems: "center", gap: 6, ...props.style }}>
+    <button disabled={loading || props.disabled} {...props} style={{ ...styles[variant], padding: "8px 16px", borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: loading || props.disabled ? "not-allowed" : "pointer", opacity: loading || props.disabled ? 0.6 : 1, display: "flex", alignItems: "center", gap: 6, ...props.style }}>
       {loading ? <RefreshCw size={14} style={{ animation: "spin 1s linear infinite" }} /> : null}{children}
     </button>
   );
@@ -204,7 +198,7 @@ function SuppliersTab() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 12, flexWrap: "wrap" }}>
         <div style={{ position: "relative", flex: 1, minWidth: 200 }}>
           <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: C.muted }} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari supplier..." style={{ paddingLeft: 32, padding: "9px 12px 9px 32px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14, width: "100%", boxSizing: "border-box" }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari supplier..." style={{ paddingLeft: 32, padding: "8px 12px 8px 32px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, width: "100%", boxSizing: "border-box" }} />
         </div>
         <Btn onClick={() => setModal("add")}><Plus size={14} /> Tambah Supplier</Btn>
       </div>
@@ -235,7 +229,7 @@ function SuppliersTab() {
       {(modal === "add" || modal === "edit") && (
         <Modal title={modal === "edit" ? "Edit Supplier" : "Tambah Supplier"} onClose={() => { setModal(null); setSaveError(""); }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {saveError && <div style={{ background: C.dangerBg, border: `1px solid ${C.danger}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.danger }}>{saveError}</div>}
+            {saveError && <div style={{ background: C.dangerBg, border: `1px solid ${C.danger}`, borderRadius: 6, padding: "8px 12px", fontSize: 13, color: C.danger }}>{saveError}</div>}
             <Input label="Nama Toko / Perusahaan *" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Toko Bangunan Maju" />
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <Input label="Nama PIC" value={form.contact_person} onChange={e => setForm(f => ({ ...f, contact_person: e.target.value }))} />
@@ -360,9 +354,9 @@ function MaterialsTab() {
       <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
         <div style={{ position: "relative", flex: 1, minWidth: 180 }}>
           <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: C.muted }} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari material..." style={{ paddingLeft: 32, padding: "9px 12px 9px 32px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14, width: "100%", boxSizing: "border-box" }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari material..." style={{ paddingLeft: 32, padding: "8px 12px 8px 32px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, width: "100%", boxSizing: "border-box" }} />
         </div>
-        <select aria-label="Saring kategori material" value={catFilter} onChange={e => setCatFilter(e.target.value)} style={{ padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14, minWidth: 160 }}>
+        <select aria-label="Saring kategori material" value={catFilter} onChange={e => setCatFilter(e.target.value)} style={{ padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, minWidth: 160 }}>
           <option value="">Semua Kategori</option>
           {categories.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
@@ -370,12 +364,13 @@ function MaterialsTab() {
       </div>
 
       {loading ? <div style={{ textAlign: "center", padding: 48, color: C.muted }}>Memuat...</div> : (
-        <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+        <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
+            <caption className="sr-only">Katalog material: nama, kategori, satuan, harga referensi, dan stok minimum. Harga referensi dipakai sebagai estimasi awal Material Request, bukan harga final PO.</caption>
             <thead>
               <tr style={{ background: C.bg }}>
                 {["Nama Material", "Kategori", "Satuan", "Harga Ref.", "Stok Min."].map(h => (
-                  <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontWeight: 600, color: C.mid, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
+                  <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontWeight: 600, color: C.mid, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -384,11 +379,11 @@ function MaterialsTab() {
                 <tr><td colSpan={4} style={{ textAlign: "center", padding: 48, color: C.muted }}>Belum ada material</td></tr>
               ) : filtered.map(m => (
                 <tr key={m.id} style={{ borderTop: `1px solid ${C.border}` }}>
-                  <td style={{ padding: "10px 14px", fontWeight: 500, color: C.text }}>{m.name}</td>
-                  <td style={{ padding: "10px 14px", color: C.mid }}>{m.category?.name ?? "—"}</td>
-                  <td style={{ padding: "10px 14px", color: C.mid }}>{m.unit}</td>
-                  <td style={{ padding: "10px 14px", color: C.text }}>{m.unit_price ? fmt(m.unit_price) : "—"}</td>
-                  <td style={{ padding: "10px 14px" }}>
+                  <td style={{ padding: "8px 12px", fontWeight: 500, color: C.text }}>{m.name}</td>
+                  <td style={{ padding: "8px 12px", color: C.mid }}>{m.category?.name ?? "—"}</td>
+                  <td style={{ padding: "8px 12px", color: C.mid }}>{m.unit}</td>
+                  <td style={{ padding: "8px 12px", color: C.text }}>{m.unit_price ? fmt(m.unit_price) : "—"}</td>
+                  <td style={{ padding: "8px 12px" }}>
                     {m.min_stock > 0
                       ? <span style={{ fontSize: 12, fontWeight: 600, color: C.warning }}>{m.min_stock} {m.unit}</span>
                       : <span style={{ color: C.muted, fontSize: 12 }}>—</span>}
@@ -479,7 +474,7 @@ function MaterialRequestsTab() {
   return (
     <div>
       <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap", justifyContent: "space-between" }}>
-        <select aria-label="Saring status Supplier" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14 }}>
+        <select aria-label="Saring status Supplier" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13 }}>
           <option value="">Semua Status</option>
           {["draft","submitted","approved","rejected","partially_ordered","fully_ordered"].map(s => (
             <option key={s} value={s}>{STATUS_BADGE[s]?.label ?? s}</option>
@@ -490,7 +485,7 @@ function MaterialRequestsTab() {
 
       {loading ? <div style={{ textAlign: "center", padding: 48, color: C.muted }}>Memuat...</div> : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {mrs.length === 0 && <div style={{ textAlign: "center", padding: 48, color: C.muted }}>Belum ada Material Request</div>}
+          {mrs.length === 0 && <Kosong judul="Belum ada permintaan material" sebab="Material Request adalah langkah PERTAMA pengadaan: lapangan meminta, lalu disetujui, baru boleh jadi Purchase Order. Tanpa MR, pembelian tak punya dasar permintaan." />}
           {mrs.map(mr => (
             <Card key={mr.id} style={{ cursor: "pointer" }} onClick={() => openDetail(mr)}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
@@ -547,7 +542,7 @@ function MaterialRequestsTab() {
               {detailMr.approved_at && <div><span style={{ color: C.muted }}>Tgl Setuju: </span>{fmtDate(detailMr.approved_at)}</div>}
             </div>
             {detailMr.rejection_notes && (
-              <div style={{ background: C.dangerBg, border: `1px solid ${C.danger}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.danger }}>
+              <div style={{ background: C.dangerBg, border: `1px solid ${C.danger}`, borderRadius: 6, padding: "8px 12px", fontSize: 13, color: C.danger }}>
                 <strong>Alasan ditolak:</strong> {detailMr.rejection_notes}
               </div>
             )}
@@ -555,7 +550,8 @@ function MaterialRequestsTab() {
             <div>
               <div style={{ fontWeight: 600, marginBottom: 10 }}>Daftar Material</div>
               <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
+                  <caption className="sr-only">Item dalam Material Request ini: material, jumlah yang diminta, satuan, harga estimasi, dan catatan.</caption>
                   <thead>
                     <tr style={{ background: C.bg }}>
                       {["Material", "Qty Diminta", "Satuan", "Harga Est.", "Catatan"].map(h => (
@@ -566,11 +562,11 @@ function MaterialRequestsTab() {
                   <tbody>
                     {(detailMr.items ?? []).map((item: any) => (
                       <tr key={item.id} style={{ borderTop: `1px solid ${C.border}` }}>
-                        <td style={{ padding: "9px 12px", fontWeight: 500 }}>{item.material?.name}</td>
-                        <td style={{ padding: "9px 12px" }}>{item.qty_requested}</td>
-                        <td style={{ padding: "9px 12px", color: C.mid }}>{item.unit}</td>
-                        <td style={{ padding: "9px 12px" }}>{item.unit_price_est ? fmt(item.unit_price_est) : "—"}</td>
-                        <td style={{ padding: "9px 12px", color: C.mid, fontSize: 12 }}>{item.notes ?? "—"}</td>
+                        <td style={{ padding: "8px 12px", fontWeight: 500 }}>{item.material?.name}</td>
+                        <td style={{ padding: "8px 12px" }}>{item.qty_requested}</td>
+                        <td style={{ padding: "8px 12px", color: C.mid }}>{item.unit}</td>
+                        <td style={{ padding: "8px 12px" }}>{item.unit_price_est ? fmt(item.unit_price_est) : "—"}</td>
+                        <td style={{ padding: "8px 12px", color: C.mid, fontSize: 12 }}>{item.notes ?? "—"}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -587,7 +583,7 @@ function MaterialRequestsTab() {
             <div style={{ fontSize: 13, color: C.mid }}>Berikan alasan penolakan agar requester dapat merevisi MR.</div>
             <div>
               <label htmlFor="reject-notes" style={{ display: "block", fontSize: 12, fontWeight: 500, color: C.mid, marginBottom: 4 }}>Alasan Penolakan (opsional)</label>
-              <textarea id="reject-notes" value={rejectNotes} onChange={e => setRejectNotes(e.target.value)} rows={3} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 14, resize: "vertical", boxSizing: "border-box" }} placeholder="cth: Kuantitas berlebihan, perlu revisi..." />
+              <textarea id="reject-notes" value={rejectNotes} onChange={e => setRejectNotes(e.target.value)} rows={3} style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, resize: "vertical", boxSizing: "border-box" }} placeholder="cth: Kuantitas berlebihan, perlu revisi..." />
             </div>
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
               <Btn variant="secondary" onClick={() => setRejectId(null)}>Batal</Btn>
@@ -663,8 +659,8 @@ function CreateMrModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
 
   return (
     <Modal title="Buat Material Request" onClose={onClose} width={700}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        {error && <div style={{ background: C.dangerBg, border: `1px solid ${C.danger}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.danger }}>{error}</div>}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {error && <div style={{ background: C.dangerBg, border: `1px solid ${C.danger}`, borderRadius: 6, padding: "8px 12px", fontSize: 13, color: C.danger }}>{error}</div>}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <Select label="Proyek *" value={form.project_id} onChange={e => setForm(f => ({ ...f, project_id: e.target.value }))}>
             <option value="">— Pilih Proyek —</option>
@@ -685,32 +681,32 @@ function CreateMrModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
                 <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr auto", gap: 8, alignItems: "end" }}>
                   <div>
                     <label htmlFor="material-id" style={{ display: "block", fontSize: 11, fontWeight: 500, color: C.mid, marginBottom: 4 }}>Material *</label>
-                    <select id="material-id" aria-label="Material" value={item.material_id} onChange={e => handleMaterialSelect(idx, e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: C.surface }}>
+                    <select id="material-id" aria-label="Material" value={item.material_id} onChange={e => handleMaterialSelect(idx, e.target.value)} style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, background: C.surface }}>
                       <option value="">— Pilih —</option>
                       {materials.map(m => <option key={m.id} value={m.id}>{m.name} ({m.unit})</option>)}
                     </select>
                   </div>
                   <div>
                     <label htmlFor="qty" style={{ display: "block", fontSize: 11, fontWeight: 500, color: C.mid, marginBottom: 4 }}>Qty *</label>
-                    <input id="qty" type="number" value={item.qty} onChange={e => updateItem(idx, "qty", e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }} placeholder="0" />
+                    <input id="qty" type="number" value={item.qty} onChange={e => updateItem(idx, "qty", e.target.value)} style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }} placeholder="0" />
                   </div>
                   <div>
                     <label htmlFor="unit" style={{ display: "block", fontSize: 11, fontWeight: 500, color: C.mid, marginBottom: 4 }}>Satuan *</label>
-                    <select id="unit" aria-label="Satuan" value={item.unit} onChange={e => updateItem(idx, "unit", e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: C.surface }}>
+                    <select id="unit" aria-label="Satuan" value={item.unit} onChange={e => updateItem(idx, "unit", e.target.value)} style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, background: C.surface }}>
                       <option value="">—</option>
                       {units.map(u => <option key={u.code} value={u.symbol}>{u.symbol}</option>)}
                     </select>
                   </div>
                   <div>
                     <label htmlFor="unit-price-est" style={{ display: "block", fontSize: 11, fontWeight: 500, color: C.mid, marginBottom: 4 }}>Harga Est. (Rp)</label>
-                    <input id="unit-price-est" type="number" value={item.unit_price_est} onChange={e => updateItem(idx, "unit_price_est", e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }} placeholder="0" />
+                    <input id="unit-price-est" type="number" value={item.unit_price_est} onChange={e => updateItem(idx, "unit_price_est", e.target.value)} style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }} placeholder="0" />
                   </div>
                   <button aria-label="Tutup dialog" onClick={() => removeItem(idx)} disabled={items.length <= 1} style={{ background: "none", border: "none", cursor: items.length <= 1 ? "not-allowed" : "pointer", color: C.danger, padding: 4, opacity: items.length <= 1 ? 0.3 : 1 }}>
                     <X size={16} />
                   </button>
                 </div>
                 <div style={{ marginTop: 8 }}>
-                  <input value={item.notes} onChange={e => updateItem(idx, "notes", e.target.value)} placeholder="Catatan item (opsional)..." style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12, boxSizing: "border-box" }} />
+                  <input value={item.notes} onChange={e => updateItem(idx, "notes", e.target.value)} placeholder="Catatan item (opsional)..." style={{ width: "100%", padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, boxSizing: "border-box" }} />
                 </div>
               </div>
             ))}
@@ -809,19 +805,19 @@ function KirimPoModal({ po, onClose, onSuccess }: { po: PoRingkas; onClose: () =
 
   return (
     <Modal title={`Kirim ${po.po_number} ke Vendor`} onClose={onClose} width={620}>
-      {memuat && <div style={{ padding: 20, fontSize: 13, color: "#6B7280" }}>Memuat pesan…</div>}
+      {memuat && <div style={{ padding: 20, fontSize: 13, color: "var(--text-muted)" }}>Memuat pesan…</div>}
       {err && (
-        <div role="alert" style={{ padding: "10px 12px", background: "#FEE2E2", color: "var(--danger)",
-          borderRadius: 8, fontSize: 13, marginBottom: 12 }}>{err}</div>
+        <div role="alert" style={{ padding: "8px 12px", background: "var(--danger-bg)", color: "var(--danger)",
+          borderRadius: 6, fontSize: 13, marginBottom: 12 }}>{err}</div>
       )}
 
       {data && !memuat && (
         <>
-          <div style={{ fontSize: 12, fontWeight: 600, color: "#6B7280", marginBottom: 6 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", marginBottom: 6 }}>
             Pratinjau pesan
           </div>
           <pre style={{ margin: 0, padding: 12, background: "var(--bg)", border: "1px solid var(--border)",
-            borderRadius: 8, fontSize: 12.5, lineHeight: 1.55, whiteSpace: "pre-wrap",
+            borderRadius: 6, fontSize: 12, lineHeight: 1.55, whiteSpace: "pre-wrap",
             fontFamily: "inherit", maxHeight: 260, overflowY: "auto" }}>
             {data.pesan}
           </pre>
@@ -854,7 +850,7 @@ function KirimPoModal({ po, onClose, onSuccess }: { po: PoRingkas; onClose: () =
           {riwayat.length > 0 && (
             <div style={{ marginTop: 18, borderTop: "1px solid var(--border)", paddingTop: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12,
-                fontWeight: 600, color: "#6B7280", marginBottom: 8 }}>
+                fontWeight: 600, color: "var(--text-muted)", marginBottom: 8 }}>
                 <History size={13} /> Riwayat pengiriman ({riwayat.length})
               </div>
               {riwayat.map((r) => (
@@ -862,7 +858,7 @@ function KirimPoModal({ po, onClose, onSuccess }: { po: PoRingkas; onClose: () =
                   borderBottom: "1px solid var(--surface-hover)" }}>
                   <strong>{r.channel}</strong> · {new Date(r.sent_at).toLocaleString("id-ID")}
                   {r.sender?.name && ` · oleh ${r.sender.name}`}
-                  {r.recipient && <span style={{ color: "#6B7280" }}> · {r.recipient}</span>}
+                  {r.recipient && <span style={{ color: "var(--text-muted)" }}> · {r.recipient}</span>}
                 </div>
               ))}
             </div>
@@ -883,7 +879,7 @@ function PurchaseOrdersTab() {
   const [cancelNotes, setCancelNotes] = useState("");
   const [cancelling, setCancelling] = useState(false);
   const [kirimPo, setKirimPo] = useState<PoRingkas | null>(null);
-  const canManage = hasPermission("procurement:po:manage");
+  const canManage = useIzin("procurement:po:manage");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -914,7 +910,7 @@ function PurchaseOrdersTab() {
   return (
     <div>
       <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap", justifyContent: "space-between" }}>
-        <select aria-label="Saring status Material Request" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14 }}>
+        <select aria-label="Saring status Material Request" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13 }}>
           <option value="">Semua Status</option>
           {["draft","sent","confirmed","partially_received","fully_received","cancelled"].map(s => (
             <option key={s} value={s}>{STATUS_BADGE[s]?.label ?? s}</option>
@@ -925,7 +921,7 @@ function PurchaseOrdersTab() {
 
       {loading ? <div style={{ textAlign: "center", padding: 48, color: C.muted }}>Memuat...</div> : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {pos.length === 0 && <div style={{ textAlign: "center", padding: 48, color: C.muted }}>Belum ada Purchase Order</div>}
+          {pos.length === 0 && <Kosong judul="Belum ada Purchase Order" sebab="PO terbit dari Material Request yang sudah disetujui. Ia yang mengikat harga dan jumlah ke supplier — penerimaan barang nanti dicocokkan ke sini." />}
           {pos.map(po => (
             <Card key={po.id} style={{ cursor: "pointer" }} onClick={() => openDetail(po)}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
@@ -1001,7 +997,8 @@ function PurchaseOrdersTab() {
             <div>
               <div style={{ fontWeight: 600, marginBottom: 10 }}>Daftar Item</div>
               <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
+                  <caption className="sr-only">Item dalam Purchase Order ini beserta jumlah yang sudah diterima. Selisih Qty Order dan Diterima menunjukkan yang masih ditunggu.</caption>
                   <thead>
                     <tr style={{ background: C.bg }}>
                       {["Material", "Qty Order", "Diterima", "Satuan", "Harga/Unit", "Total"].map(h => (
@@ -1012,17 +1009,17 @@ function PurchaseOrdersTab() {
                   <tbody>
                     {(detailPo.items ?? []).map((item: any) => (
                       <tr key={item.id} style={{ borderTop: `1px solid ${C.border}` }}>
-                        <td style={{ padding: "9px 12px", fontWeight: 500 }}>{item.material?.name}</td>
-                        <td style={{ padding: "9px 12px" }}>{item.qty_ordered}</td>
-                        <td style={{ padding: "9px 12px", color: item.qty_received >= item.qty_ordered ? C.success : C.warning }}>{item.qty_received}</td>
-                        <td style={{ padding: "9px 12px", color: C.mid }}>{item.unit}</td>
-                        <td style={{ padding: "9px 12px", textAlign: "right" }}>{fmt(item.unit_price)}</td>
-                        <td style={{ padding: "9px 12px", textAlign: "right", fontWeight: 600 }}>{fmt(item.total_price)}</td>
+                        <td style={{ padding: "8px 12px", fontWeight: 500 }}>{item.material?.name}</td>
+                        <td style={{ padding: "8px 12px" }}>{item.qty_ordered}</td>
+                        <td style={{ padding: "8px 12px", color: item.qty_received >= item.qty_ordered ? C.success : C.warning }}>{item.qty_received}</td>
+                        <td style={{ padding: "8px 12px", color: C.mid }}>{item.unit}</td>
+                        <td style={{ padding: "8px 12px", textAlign: "right" }}>{fmt(item.unit_price)}</td>
+                        <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 600 }}>{fmt(item.total_price)}</td>
                       </tr>
                     ))}
                     <tr style={{ borderTop: `2px solid ${C.border}`, background: C.bg }}>
-                      <td colSpan={5} style={{ padding: "10px 12px", fontWeight: 600, textAlign: "right" }}>Total PO</td>
-                      <td style={{ padding: "10px 12px", fontWeight: 700, textAlign: "right", color: C.navy }}>{fmt(detailPo.total_amount)}</td>
+                      <td colSpan={5} style={{ padding: "8px 12px", fontWeight: 600, textAlign: "right" }}>Total PO</td>
+                      <td style={{ padding: "8px 12px", fontWeight: 700, textAlign: "right", color: C.navy }}>{fmt(detailPo.total_amount)}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -1035,7 +1032,7 @@ function PurchaseOrdersTab() {
       {cancelId && (
         <Modal title="Batalkan Purchase Order" onClose={() => setCancelId(null)} width={440}>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <div style={{ background: C.dangerBg, border: `1px solid ${C.danger}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.danger }}>
+            <div style={{ background: C.dangerBg, border: `1px solid ${C.danger}`, borderRadius: 6, padding: "8px 12px", fontSize: 13, color: C.danger }}>
               PO yang dibatalkan tidak bisa diaktifkan kembali. MR terkait akan dikembalikan ke status Approved.
             </div>
             <Input label="Alasan Pembatalan (opsional)" value={cancelNotes} onChange={e => setCancelNotes(e.target.value)} placeholder="cth: Supplier tidak tersedia..." />
@@ -1118,13 +1115,13 @@ function CreatePoModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
 
   return (
     <Modal title="Buat Purchase Order" onClose={onClose} width={720}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        {error && <div style={{ background: C.dangerBg, border: `1px solid ${C.danger}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.danger }}>{error}</div>}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {error && <div style={{ background: C.dangerBg, border: `1px solid ${C.danger}`, borderRadius: 6, padding: "8px 12px", fontSize: 13, color: C.danger }}>{error}</div>}
 
         {approvedMrs.length > 0 && (
-          <div style={{ background: C.infoBg, border: `1px solid ${C.info}`, borderRadius: 8, padding: "10px 14px" }}>
+          <div style={{ background: C.infoBg, border: `1px solid ${C.info}`, borderRadius: 6, padding: "8px 12px" }}>
             <label htmlFor="mr-id" style={{ display: "block", fontSize: 12, fontWeight: 500, color: C.info, marginBottom: 6 }}>BUAT DARI MR (Opsional) — Item akan terisi otomatis</label>
-            <select id="mr-id" aria-label="Pilih Material Request" value={form.mr_id} onChange={e => { setForm(f => ({ ...f, mr_id: e.target.value })); if (e.target.value) loadFromMr(e.target.value); }} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: C.surface }}>
+            <select id="mr-id" aria-label="Pilih Material Request" value={form.mr_id} onChange={e => { setForm(f => ({ ...f, mr_id: e.target.value })); if (e.target.value) loadFromMr(e.target.value); }} style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, background: C.surface }}>
               <option value="">— Buat PO manual tanpa MR —</option>
               {approvedMrs.map(m => <option key={m.id} value={m.id}>{m.mr_number} — {m.project?.name}</option>)}
             </select>
@@ -1155,29 +1152,29 @@ function CreatePoModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {items.map((item, idx) => (
-              <div key={idx} style={{ background: C.bg, borderRadius: 10, padding: "10px 12px", border: `1px solid ${C.border}` }}>
+              <div key={idx} style={{ background: C.bg, borderRadius: 10, padding: "8px 12px", border: `1px solid ${C.border}` }}>
                 <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr auto", gap: 8, alignItems: "end" }}>
                   <div>
                     <label style={{ display: "block", fontSize: 11, fontWeight: 500, color: C.mid, marginBottom: 4 }}>Material *</label>
-                    <select aria-label="Material" value={item.material_id} onChange={e => { updateItem(idx, "material_id", e.target.value); const mat = materials.find(m => m.id === e.target.value); if (mat) setItems(prev => prev.map((it, j) => j === idx ? { ...it, material_id: e.target.value, unit: mat.unit, unit_price: mat.unit_price ? String(mat.unit_price) : "" } : it)); }} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: C.surface }}>
+                    <select aria-label="Material" value={item.material_id} onChange={e => { updateItem(idx, "material_id", e.target.value); const mat = materials.find(m => m.id === e.target.value); if (mat) setItems(prev => prev.map((it, j) => j === idx ? { ...it, material_id: e.target.value, unit: mat.unit, unit_price: mat.unit_price ? String(mat.unit_price) : "" } : it)); }} style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, background: C.surface }}>
                       <option value="">— Pilih —</option>
                       {materials.map(m => <option key={m.id} value={m.id}>{m.name} ({m.unit})</option>)}
                     </select>
                   </div>
                   <div>
                     <label htmlFor="qty-2" style={{ display: "block", fontSize: 11, fontWeight: 500, color: C.mid, marginBottom: 4 }}>Qty *</label>
-                    <input id="qty-2" type="number" value={item.qty} onChange={e => updateItem(idx, "qty", e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }} />
+                    <input id="qty-2" type="number" value={item.qty} onChange={e => updateItem(idx, "qty", e.target.value)} style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }} />
                   </div>
                   <div>
                     <label htmlFor="unit-2" style={{ display: "block", fontSize: 11, fontWeight: 500, color: C.mid, marginBottom: 4 }}>Satuan *</label>
-                    <select id="unit-2" aria-label="Satuan" value={item.unit} onChange={e => updateItem(idx, "unit", e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: C.surface }}>
+                    <select id="unit-2" aria-label="Satuan" value={item.unit} onChange={e => updateItem(idx, "unit", e.target.value)} style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, background: C.surface }}>
                       <option value="">—</option>
                       {units.map(u => <option key={u.code} value={u.symbol}>{u.symbol}</option>)}
                     </select>
                   </div>
                   <div>
                     <label htmlFor="unit-price" style={{ display: "block", fontSize: 11, fontWeight: 500, color: C.mid, marginBottom: 4 }}>Harga/Unit (Rp) *</label>
-                    <input id="unit-price" type="number" value={item.unit_price} onChange={e => updateItem(idx, "unit_price", e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }} />
+                    <input id="unit-price" type="number" value={item.unit_price} onChange={e => updateItem(idx, "unit_price", e.target.value)} style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }} />
                   </div>
                   <button aria-label="Tutup dialog" onClick={() => removeItem(idx)} disabled={items.length <= 1} style={{ background: "none", border: "none", cursor: items.length <= 1 ? "not-allowed" : "pointer", color: C.danger, padding: 4, opacity: items.length <= 1 ? 0.3 : 1 }}>
                     <X size={16} />
@@ -1216,7 +1213,7 @@ function GoodsReceiptsTab() {
   const [confirming, setConfirming] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("");
   const [showCreate, setShowCreate] = useState(false);
-  const canManage = hasPermission("procurement:po:manage");
+  const canManage = useIzin("procurement:po:manage");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1236,7 +1233,7 @@ function GoodsReceiptsTab() {
   return (
     <div>
       <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap", justifyContent: "space-between" }}>
-        <select aria-label="Saring status Purchase Order" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14 }}>
+        <select aria-label="Saring status Purchase Order" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13 }}>
           <option value="">Semua Status</option>
           <option value="draft">Draft</option>
           <option value="confirmed">Dikonfirmasi</option>
@@ -1246,7 +1243,7 @@ function GoodsReceiptsTab() {
 
       {loading ? <div style={{ textAlign: "center", padding: 48, color: C.muted }}>Memuat...</div> : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {grs.length === 0 && <div style={{ textAlign: "center", padding: 48, color: C.muted }}>Belum ada penerimaan barang</div>}
+          {grs.length === 0 && <Kosong judul="Belum ada penerimaan barang" sebab="Goods Receipt dicatat saat barang tiba di lokasi. Ia dicocokkan dengan PO dan tagihan supplier — tiga sisi yang harus sama sebelum pembayaran boleh jalan." />}
           {grs.map(gr => (
             <Card key={gr.id}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
@@ -1338,8 +1335,8 @@ function CreateGrModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
 
   return (
     <Modal title="Catat Penerimaan Barang (GR)" onClose={onClose} width={640}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        {error && <div style={{ background: C.dangerBg, border: `1px solid ${C.danger}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.danger }}>{error}</div>}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {error && <div style={{ background: C.dangerBg, border: `1px solid ${C.danger}`, borderRadius: 6, padding: "8px 12px", fontSize: 13, color: C.danger }}>{error}</div>}
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <Select label="Purchase Order (Confirmed) *" value={form.po_id} onChange={e => handlePoChange(e.target.value)}>
@@ -1350,7 +1347,7 @@ function CreateGrModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
         </div>
 
         {selectedPo && (
-          <div style={{ fontSize: 12, color: C.mid, background: C.bg, borderRadius: 8, padding: "8px 12px" }}>
+          <div style={{ fontSize: 12, color: C.mid, background: C.bg, borderRadius: 6, padding: "8px 12px" }}>
             Proyek: <strong>{selectedPo.project?.name}</strong> · Supplier: <strong>{selectedPo.supplier?.name}</strong>
           </div>
         )}
@@ -1359,7 +1356,8 @@ function CreateGrModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
           <div>
             <div style={{ fontWeight: 600, marginBottom: 10, fontSize: 13 }}>Qty Barang Diterima</div>
             <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
+                <caption className="sr-only">Jumlah barang yang diterima per item dalam penerimaan ini, dicocokkan dengan Purchase Order-nya.</caption>
                 <thead>
                   <tr style={{ background: C.bg }}>
                     <th style={{ padding: "8px 12px", textAlign: "left", fontWeight: 600, color: C.mid, fontSize: 11 }}>Material</th>
@@ -1371,16 +1369,16 @@ function CreateGrModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
                 <tbody>
                   {items.map((item, idx) => (
                     <tr key={item.po_item_id} style={{ borderTop: `1px solid ${C.border}` }}>
-                      <td style={{ padding: "9px 12px", fontWeight: 500 }}>{item.material_name}</td>
-                      <td style={{ padding: "9px 12px", textAlign: "center", color: C.mid }}>{item.qty_ordered}</td>
-                      <td style={{ padding: "9px 12px", textAlign: "center" }}>
+                      <td style={{ padding: "8px 12px", fontWeight: 500 }}>{item.material_name}</td>
+                      <td style={{ padding: "8px 12px", textAlign: "center", color: C.mid }}>{item.qty_ordered}</td>
+                      <td style={{ padding: "8px 12px", textAlign: "center" }}>
                         <input
                           type="number" min="0" max={item.qty_ordered} value={item.qty_received}
                           onChange={e => setItems(prev => prev.map((it, j) => j === idx ? { ...it, qty_received: e.target.value } : it))}
-                          style={{ width: 80, textAlign: "center", padding: "5px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13 }}
+                          style={{ width: 80, textAlign: "center", padding: "4px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13 }}
                         />
                       </td>
-                      <td style={{ padding: "9px 12px", color: C.mid }}>{item.unit}</td>
+                      <td style={{ padding: "8px 12px", color: C.mid }}>{item.unit}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1491,7 +1489,7 @@ function SupplierInvoicesTab() {
       </div>
 
       <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
-        <select aria-label="Saring status Penerimaan barang" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14 }}>
+        <select aria-label="Saring status Penerimaan barang" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13 }}>
           <option value="">Semua Status</option>
           {["unpaid","partial","paid"].map(s => <option key={s} value={s}>{STATUS_BADGE[s]?.label}</option>)}
         </select>
@@ -1499,7 +1497,7 @@ function SupplierInvoicesTab() {
 
       {loading ? <div style={{ textAlign: "center", padding: 48, color: C.muted }}>Memuat...</div> : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {invoices.length === 0 && <div style={{ textAlign: "center", padding: 48, color: C.muted }}>Tidak ada tagihan</div>}
+          {invoices.length === 0 && <Kosong judul="Belum ada tagihan supplier" sebab="Tagihan masuk setelah barang diterima. Yang jumlahnya tak cocok dengan PO dan penerimaan akan tertahan di sini, bukan lolos diam-diam." />}
           {invoices.map(inv => (
             <Card key={inv.id}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
@@ -1520,7 +1518,7 @@ function SupplierInvoicesTab() {
                 <div style={{ textAlign: "right" }}>
                   <div style={{ fontSize: 13, color: C.mid }}>Total: {fmt(inv.total_amount)}</div>
                   <div style={{ fontSize: 13, color: C.mid }}>Dibayar: {fmt(inv.amount_paid)}</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: inv.status === "paid" ? C.success : C.danger }}>{fmt(inv.amount_due)}</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: inv.status === "paid" ? C.success : C.danger }}>{fmt(inv.amount_due)}</div>
                   {inv.status !== "paid" && (
                     <Btn style={{ marginTop: 6, fontSize: 12 }} onClick={() => { setPayModal(inv); setPayForm(f => ({ ...f, amount: String(inv.amount_due) })); }}>
                       Bayar
@@ -1540,7 +1538,7 @@ function SupplierInvoicesTab() {
             <br />Pembayaran akan dialokasikan otomatis (FIFO) ke bon terlama.
           </div>
           {payError && (
-            <div style={{ background: C.dangerBg, border: `1px solid ${C.danger}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.danger, marginBottom: 12 }}>
+            <div style={{ background: C.dangerBg, border: `1px solid ${C.danger}`, borderRadius: 6, padding: "8px 12px", fontSize: 13, color: C.danger, marginBottom: 12 }}>
               {payError}
             </div>
           )}
@@ -1587,12 +1585,12 @@ function SupplierInvoicesTab() {
 // ═══════════════════════════════════════════════════════════════════════════════
 // ── Movement type config ─────────────────────────────────────────────────────
 const MOVEMENT_CONFIG: Record<string, { label: string; color: string; bg: string; sign: string }> = {
-  goods_receipt: { label: "Masuk (GR)",    color: "var(--success)", bg: "#DCFCE7", sign: "+" },
+  goods_receipt: { label: "Masuk (GR)",    color: "var(--success)", bg: "var(--success-bg)", sign: "+" },
   usage:         { label: "Pemakaian",     color: "var(--danger)", bg: "var(--danger-bg)", sign: "−" },
-  return:        { label: "Return",        color: "var(--info)", bg: "#DBEAFE", sign: "+" },
-  adjustment:    { label: "Adjustment",    color: "var(--warning)", bg: "#FEF3C7", sign: "±" },
-  transfer_in:   { label: "Transfer Masuk",color: "var(--success)", bg: "#DCFCE7", sign: "+" },
-  transfer_out:  { label: "Transfer Keluar",color: "#7C3AED", bg: "#F5F3FF", sign: "−" },
+  return:        { label: "Return",        color: "var(--info)", bg: "var(--navy-light)", sign: "+" },
+  adjustment:    { label: "Adjustment",    color: "var(--warning)", bg: "var(--warning-bg)", sign: "±" },
+  transfer_in:   { label: "Transfer Masuk",color: "var(--success)", bg: "var(--success-bg)", sign: "+" },
+  transfer_out:  { label: "Transfer Keluar",color: "var(--aksen)", bg: "var(--navy-light)", sign: "−" },
 };
 
 // TAB: STOK
@@ -1602,8 +1600,8 @@ function StocksTab() {
   // procurement.ts POST /stocks/usage & /stocks/opname). Sebelumnya UI
   // mengecek `role === admin|pm|mandor` — role kustom `direktur` yang punya
   // 7 permission procurement TIDAK melihat tombolnya (ADR-004).
-  const canEdit = hasPermission("procurement:view");
-  const canOpname = hasPermission("procurement:view");
+  const canEdit = useIzin("procurement:view");
+  const canOpname = useIzin("procurement:view");
 
   const [stocks, setStocks] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
@@ -1653,7 +1651,7 @@ function StocksTab() {
   return (
     <div>
       {lowStockItems.length > 0 && (
-        <div style={{ background: C.dangerBg, border: `1px solid ${C.danger}`, borderRadius: 10, padding: "12px 16px", marginBottom: 16, display: "flex", gap: 10, alignItems: "flex-start" }}>
+        <div style={{ background: C.dangerBg, border: `1px solid ${C.danger}`, borderRadius: 10, padding: "12px 16px", marginBottom: 16, display: "flex", gap: 8, alignItems: "flex-start" }}>
           <AlertTriangle size={16} color={C.danger} style={{ flexShrink: 0, marginTop: 1 }} />
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: C.danger }}>⚠ {lowStockItems.length} material di bawah stok minimum</div>
@@ -1669,10 +1667,10 @@ function StocksTab() {
         <div style={{ position: "relative", flex: 1, minWidth: 180 }}>
           <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: C.muted }} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari material..."
-            style={{ paddingLeft: 32, padding: "9px 12px 9px 32px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14, width: "100%", boxSizing: "border-box" }} />
+            style={{ paddingLeft: 32, padding: "8px 12px 8px 32px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, width: "100%", boxSizing: "border-box" }} />
         </div>
         <select aria-label="Saring proyek" value={projectFilter} onChange={e => setProjectFilter(e.target.value)}
-          style={{ padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14, minWidth: 200 }}>
+          style={{ padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, minWidth: 200 }}>
           <option value="">Semua Proyek</option>
           {projects.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
@@ -1695,12 +1693,13 @@ function StocksTab() {
 
       {/* Tabel stok */}
       {loading ? <div style={{ textAlign: "center", padding: 48, color: C.muted }}>Memuat...</div> : (
-        <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+        <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
+            <caption className="sr-only">Stok per material dan proyek: yang ada di tangan, batas minimum, dan yang sudah direservasi. Stok tersedia adalah di tangan dikurangi reserved.</caption>
             <thead>
               <tr style={{ background: C.bg }}>
                 {["Material", "Kategori", "Proyek", "Stok di Tangan", "Stok Min", "Reserved", "Terakhir Update"].map(h => (
-                  <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontWeight: 600, color: C.mid, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
+                  <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontWeight: 600, color: C.mid, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -1711,23 +1710,23 @@ function StocksTab() {
                 const minStock = Number(s.material?.min_stock ?? 0);
                 const isLow = minStock > 0 && Number(s.qty_on_hand) < minStock;
                 return (
-                <tr key={s.id} style={{ borderTop: `1px solid ${C.border}`, background: isLow ? "#FFF5F5" : undefined }}>
-                  <td style={{ padding: "10px 14px", fontWeight: 500, color: C.text }}>
+                <tr key={s.id} style={{ borderTop: `1px solid ${C.border}`, background: isLow ? "var(--danger-bg)" : undefined }}>
+                  <td style={{ padding: "8px 12px", fontWeight: 500, color: C.text }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       {s.material?.name}
-                      {isLow && <span style={{ fontSize: 10, padding: "1px 6px", background: C.dangerBg, color: C.danger, borderRadius: 99, fontWeight: 700, border: `1px solid ${C.danger}` }}>REORDER</span>}
+                      {isLow && <span style={{ fontSize: 10, padding: "0px 6px", background: C.dangerBg, color: C.danger, borderRadius: 99, fontWeight: 700, border: `1px solid ${C.danger}` }}>REORDER</span>}
                     </div>
                   </td>
-                  <td style={{ padding: "10px 14px", color: C.mid }}>{s.material?.category?.name ?? "—"}</td>
-                  <td style={{ padding: "10px 14px", color: C.mid }}>{s.project?.name}</td>
-                  <td style={{ padding: "10px 14px", fontWeight: 600, color: isLow ? C.danger : Number(s.qty_on_hand) <= 0 ? C.danger : C.text }}>
+                  <td style={{ padding: "8px 12px", color: C.mid }}>{s.material?.category?.name ?? "—"}</td>
+                  <td style={{ padding: "8px 12px", color: C.mid }}>{s.project?.name}</td>
+                  <td style={{ padding: "8px 12px", fontWeight: 600, color: isLow ? C.danger : Number(s.qty_on_hand) <= 0 ? C.danger : C.text }}>
                     {s.qty_on_hand} {s.material?.unit}
                   </td>
-                  <td style={{ padding: "10px 14px", color: minStock > 0 ? C.mid : C.muted, fontSize: 12 }}>
+                  <td style={{ padding: "8px 12px", color: minStock > 0 ? C.mid : C.muted, fontSize: 12 }}>
                     {minStock > 0 ? `${minStock} ${s.material?.unit}` : "—"}
                   </td>
-                  <td style={{ padding: "10px 14px", color: C.mid }}>{s.qty_reserved} {s.material?.unit}</td>
-                  <td style={{ padding: "10px 14px", color: C.muted, fontSize: 12 }}>{fmtDate(s.last_updated_at)}</td>
+                  <td style={{ padding: "8px 12px", color: C.mid }}>{s.qty_reserved} {s.material?.unit}</td>
+                  <td style={{ padding: "8px 12px", color: C.muted, fontSize: 12 }}>{fmtDate(s.last_updated_at)}</td>
                 </tr>
               );})}
             </tbody>
@@ -1739,9 +1738,9 @@ function StocksTab() {
       {showLog && (
         <div style={{ marginTop: 28 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-            <span style={{ fontWeight: 700, fontSize: 14, color: C.text }}>Log Arus Material</span>
+            <span style={{ fontWeight: 700, fontSize: 13, color: C.text }}>Log Arus Material</span>
             <select aria-label="Saring proyek pada log mutasi" value={logProject} onChange={e => setLogProject(e.target.value)}
-              style={{ padding: "7px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13 }}>
+              style={{ padding: "6px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13 }}>
               <option value="">— Pilih Proyek —</option>
               {projects.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
@@ -1755,12 +1754,13 @@ function StocksTab() {
           ) : movements.length === 0 ? (
             <div style={{ textAlign: "center", padding: "32px 0", color: C.muted, fontSize: 13 }}>Belum ada riwayat mutasi</div>
           ) : (
-            <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
+                <caption className="sr-only">Riwayat pergerakan stok: waktu, jenis mutasi, jumlah, saldo sebelum dan sesudah, sumbernya, serta siapa yang mencatat.</caption>
                 <thead>
                   <tr style={{ background: C.bg }}>
                     {["Waktu", "Tipe", "Material", "Qty", "Sebelum", "Sesudah", "Sumber", "Dicatat oleh"].map(h => (
-                      <th key={h} style={{ padding: "9px 12px", textAlign: "left", fontWeight: 600, color: C.mid, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>{h}</th>
+                      <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontWeight: 600, color: C.mid, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -1770,24 +1770,24 @@ function StocksTab() {
                     const isOut = ["usage", "transfer_out"].includes(m.movement_type);
                     return (
                       <tr key={m.id} style={{ borderTop: `1px solid ${C.border}` }}>
-                        <td style={{ padding: "9px 12px", color: C.muted, fontSize: 12, whiteSpace: "nowrap" }}>
+                        <td style={{ padding: "8px 12px", color: C.muted, fontSize: 12, whiteSpace: "nowrap" }}>
                           {new Date(m.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                         </td>
-                        <td style={{ padding: "9px 12px" }}>
+                        <td style={{ padding: "8px 12px" }}>
                           <span style={{ padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 600, color: cfg.color, background: cfg.bg, whiteSpace: "nowrap" }}>
                             {cfg.label}
                           </span>
                         </td>
-                        <td style={{ padding: "9px 12px", fontWeight: 500, color: C.text }}>{m.material?.name}</td>
-                        <td style={{ padding: "9px 12px", fontWeight: 700, color: isOut ? C.danger : "var(--success)", whiteSpace: "nowrap" }}>
+                        <td style={{ padding: "8px 12px", fontWeight: 500, color: C.text }}>{m.material?.name}</td>
+                        <td style={{ padding: "8px 12px", fontWeight: 700, color: isOut ? C.danger : "var(--success)", whiteSpace: "nowrap" }}>
                           {cfg.sign}{Math.abs(Number(m.qty))} {m.material?.unit}
                         </td>
-                        <td style={{ padding: "9px 12px", color: C.mid }}>{m.qty_before} {m.material?.unit}</td>
-                        <td style={{ padding: "9px 12px", color: C.mid }}>{m.qty_after} {m.material?.unit}</td>
-                        <td style={{ padding: "9px 12px", color: C.muted, fontSize: 12 }}>
+                        <td style={{ padding: "8px 12px", color: C.mid }}>{m.qty_before} {m.material?.unit}</td>
+                        <td style={{ padding: "8px 12px", color: C.mid }}>{m.qty_after} {m.material?.unit}</td>
+                        <td style={{ padding: "8px 12px", color: C.muted, fontSize: 12 }}>
                           {m.reference_type === "opname" ? "Opname" : m.reference_type === "manual" ? "Manual" : "GR"}
                         </td>
-                        <td style={{ padding: "9px 12px", color: C.mid, fontSize: 12 }}>{m.created_by?.name ?? "—"}</td>
+                        <td style={{ padding: "8px 12px", color: C.mid, fontSize: 12 }}>{m.created_by?.name ?? "—"}</td>
                       </tr>
                     );
                   })}
@@ -1854,8 +1854,8 @@ function UsageModal({ projects, stocks, onClose, onSuccess }: {
 
   return (
     <Modal title="Catat Pemakaian Material" onClose={onClose}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        {error && <div style={{ background: "var(--danger-bg)", border: "1px solid var(--danger-border)", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.danger }}>{error}</div>}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {error && <div style={{ background: "var(--danger-bg)", border: "1px solid var(--danger-border)", borderRadius: 6, padding: "8px 12px", fontSize: 13, color: C.danger }}>{error}</div>}
 
         <Select label="Proyek *" value={projectId} onChange={e => { setProjectId(e.target.value); setMaterialId(""); }}>
           <option value="">— Pilih Proyek —</option>
@@ -1872,7 +1872,7 @@ function UsageModal({ projects, stocks, onClose, onSuccess }: {
         </Select>
 
         {selectedStock && (
-          <div style={{ fontSize: 12, color: C.mid, background: C.bg, borderRadius: 8, padding: "8px 12px" }}>
+          <div style={{ fontSize: 12, color: C.mid, background: C.bg, borderRadius: 6, padding: "8px 12px" }}>
             Stok saat ini: <strong style={{ color: C.text }}>{selectedStock.qty_on_hand} {selectedStock.material?.unit}</strong>
           </div>
         )}
@@ -1950,18 +1950,18 @@ function OpnameModal({ projects, onClose, onSuccess }: {
       <Modal title="Opname Selesai" onClose={onSuccess} width={440}>
         <div style={{ textAlign: "center", padding: "8px 0 16px" }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
-          <div style={{ fontWeight: 700, fontSize: 16, color: C.text, marginBottom: 8 }}>Opname berhasil disimpan</div>
+          <div style={{ fontWeight: 700, fontSize: 15, color: C.text, marginBottom: 8 }}>Opname berhasil disimpan</div>
           <div style={{ fontSize: 13, color: C.mid, marginBottom: 16 }}>Dilakukan oleh: <strong>{result.opname_by}</strong></div>
           <div style={{ display: "flex", gap: 12, justifyContent: "center", fontSize: 13 }}>
             <div style={{ background: C.bg, borderRadius: 10, padding: "12px 20px", textAlign: "center" }}>
               <div style={{ fontSize: 24, fontWeight: 800, color: C.text }}>{result.total_items_checked}</div>
               <div style={{ color: C.mid }}>Item diperiksa</div>
             </div>
-            <div style={{ background: "#FEF3C7", borderRadius: 10, padding: "12px 20px", textAlign: "center" }}>
+            <div style={{ background: "var(--warning-bg)", borderRadius: 10, padding: "12px 20px", textAlign: "center" }}>
               <div style={{ fontSize: 24, fontWeight: 800, color: C.warning }}>{result.items_with_adjustment}</div>
               <div style={{ color: C.mid }}>Ada selisih</div>
             </div>
-            <div style={{ background: "#DCFCE7", borderRadius: 10, padding: "12px 20px", textAlign: "center" }}>
+            <div style={{ background: "var(--success-bg)", borderRadius: 10, padding: "12px 20px", textAlign: "center" }}>
               <div style={{ fontSize: 24, fontWeight: 800, color: C.success }}>{result.items_unchanged}</div>
               <div style={{ color: C.mid }}>Sesuai</div>
             </div>
@@ -1974,8 +1974,8 @@ function OpnameModal({ projects, onClose, onSuccess }: {
 
   return (
     <Modal title="Opname Stok" onClose={onClose} width={640}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        {error && <div style={{ background: "var(--danger-bg)", border: "1px solid var(--danger-border)", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.danger }}>{error}</div>}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {error && <div style={{ background: "var(--danger-bg)", border: "1px solid var(--danger-border)", borderRadius: 6, padding: "8px 12px", fontSize: 13, color: C.danger }}>{error}</div>}
 
         <Select label="Proyek *" value={projectId} onChange={e => setProjectId(e.target.value)}>
           <option value="">— Pilih Proyek —</option>
@@ -1993,7 +1993,8 @@ function OpnameModal({ projects, onClose, onSuccess }: {
               <div style={{ textAlign: "center", padding: 24, color: C.muted, fontSize: 13 }}>Belum ada stok di proyek ini</div>
             ) : (
               <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
+                  <caption className="sr-only">Stok material di proyek ini.</caption>
                   <thead>
                     <tr style={{ background: C.bg }}>
                       <th style={{ padding: "8px 12px", textAlign: "left", fontWeight: 600, color: C.mid, fontSize: 11, textTransform: "uppercase" }}>Material</th>
@@ -2007,17 +2008,17 @@ function OpnameModal({ projects, onClose, onSuccess }: {
                       const selisih = Number(item.qty_actual) - item.qty_system;
                       return (
                         <tr key={item.material_id} style={{ borderTop: `1px solid ${C.border}` }}>
-                          <td style={{ padding: "9px 12px", fontWeight: 500, color: C.text }}>{item.material_name}</td>
-                          <td style={{ padding: "9px 12px", textAlign: "right", color: C.mid }}>{item.qty_system} {item.unit}</td>
-                          <td style={{ padding: "9px 12px", textAlign: "center" }}>
+                          <td style={{ padding: "8px 12px", fontWeight: 500, color: C.text }}>{item.material_name}</td>
+                          <td style={{ padding: "8px 12px", textAlign: "right", color: C.mid }}>{item.qty_system} {item.unit}</td>
+                          <td style={{ padding: "8px 12px", textAlign: "center" }}>
                             <input
                               type="number" value={item.qty_actual}
                               onChange={e => setItems(prev => prev.map((it, i) => i === idx ? { ...it, qty_actual: e.target.value } : it))}
-                              style={{ width: 90, textAlign: "center", padding: "5px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13 }}
+                              style={{ width: 90, textAlign: "center", padding: "4px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13 }}
                             />
                             <span style={{ marginLeft: 4, color: C.muted, fontSize: 12 }}>{item.unit}</span>
                           </td>
-                          <td style={{ padding: "9px 12px", textAlign: "right", fontWeight: 600, color: selisih < 0 ? C.danger : selisih > 0 ? C.success : C.muted }}>
+                          <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 600, color: selisih < 0 ? C.danger : selisih > 0 ? C.success : C.muted }}>
                             {selisih === 0 ? "—" : `${selisih > 0 ? "+" : ""}${selisih} ${item.unit}`}
                           </td>
                         </tr>
@@ -2128,7 +2129,7 @@ function LaporanPengadaanTab() {
       <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
         {([["rekap", "Rekap Pembelian"], ["aging", "Aging Hutang"]] as const).map(([key, label]) => (
           <button key={key} onClick={() => setSubTab(key)} style={{
-            padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: subTab === key ? 600 : 400,
+            padding: "8px 16px", borderRadius: 6, fontSize: 13, fontWeight: subTab === key ? 600 : 400,
             background: subTab === key ? C.navy : C.surface, color: subTab === key ? "#fff" : C.mid,
             border: `1px solid ${subTab === key ? C.navy : C.border}`, cursor: "pointer",
           }}>{label}</button>
@@ -2138,15 +2139,15 @@ function LaporanPengadaanTab() {
       {subTab === "rekap" && (
         <>
           {/* Filters */}
-          <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
             <Input label="" type="date" value={filters.from} onChange={e => setFilters(f => ({ ...f, from: e.target.value }))} style={{ width: 150 }} />
             <span style={{ fontSize: 13, color: C.mid, paddingTop: 4 }}>s/d</span>
             <Input label="" type="date" value={filters.to} onChange={e => setFilters(f => ({ ...f, to: e.target.value }))} style={{ width: 150 }} />
-            <select aria-label="Supplier" value={filters.supplier_id} onChange={e => setFilters(f => ({ ...f, supplier_id: e.target.value }))} style={{ padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, minWidth: 160 }}>
+            <select aria-label="Supplier" value={filters.supplier_id} onChange={e => setFilters(f => ({ ...f, supplier_id: e.target.value }))} style={{ padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, minWidth: 160 }}>
               <option value="">Semua Supplier</option>
               {suppliers.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
-            <select aria-label="Proyek" value={filters.project_id} onChange={e => setFilters(f => ({ ...f, project_id: e.target.value }))} style={{ padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, minWidth: 160 }}>
+            <select aria-label="Proyek" value={filters.project_id} onChange={e => setFilters(f => ({ ...f, project_id: e.target.value }))} style={{ padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, minWidth: 160 }}>
               <option value="">Semua Proyek</option>
               {projects.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
@@ -2158,12 +2159,12 @@ function LaporanPengadaanTab() {
 
           {/* KPI summary */}
           {purchases.summary && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, marginBottom: 20 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8, marginBottom: 20 }}>
               {[
                 { label: "Total PO", value: purchases.summary.total_pos, color: C.navy },
                 { label: "Total Nilai", value: fmt(purchases.summary.total_value), color: C.text },
               ].map(k => (
-                <div key={k.label} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px" }}>
+                <div key={k.label} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 16px" }}>
                   <div style={{ fontSize: 11, color: C.mid, marginBottom: 4 }}>{k.label.toUpperCase()}</div>
                   <div style={{ fontSize: 20, fontWeight: 700, color: k.color }}>{k.value}</div>
                 </div>
@@ -2177,7 +2178,7 @@ function LaporanPengadaanTab() {
               <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Top Supplier</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {purchases.summary.by_supplier.slice(0, 8).map((s: any) => (
-                  <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 14px", background: C.surface, borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 13 }}>
+                  <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: C.surface, borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 13 }}>
                     <span style={{ fontWeight: 500 }}>{s.name}</span>
                     <div style={{ display: "flex", gap: 16, color: C.mid }}>
                       <span>{s.count} PO</span>
@@ -2191,12 +2192,13 @@ function LaporanPengadaanTab() {
 
           {/* PO list */}
           {loading ? <div style={{ textAlign: "center", padding: 48, color: C.muted }}>Memuat...</div> : (
-            <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
+                <caption className="sr-only">Daftar Purchase Order: nomor, tanggal, supplier, proyek, status, dan nilai total.</caption>
                 <thead>
                   <tr style={{ background: C.bg }}>
                     {["No. PO", "Tanggal", "Supplier", "Proyek", "Status", "Total"].map(h => (
-                      <th key={h} style={{ padding: "10px 14px", textAlign: h === "Total" ? "right" : "left", fontWeight: 600, color: C.mid, fontSize: 11, textTransform: "uppercase" }}>{h}</th>
+                      <th key={h} style={{ padding: "8px 12px", textAlign: h === "Total" ? "right" : "left", fontWeight: 600, color: C.mid, fontSize: 11, textTransform: "uppercase" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -2205,12 +2207,12 @@ function LaporanPengadaanTab() {
                     <tr><td colSpan={6} style={{ textAlign: "center", padding: 48, color: C.muted }}>Tidak ada data</td></tr>
                   ) : (purchases.purchase_orders ?? []).map((po: any) => (
                     <tr key={po.id} style={{ borderTop: `1px solid ${C.border}` }}>
-                      <td style={{ padding: "10px 14px", fontWeight: 600, color: C.navy }}>{po.po_number}</td>
-                      <td style={{ padding: "10px 14px", color: C.mid }}>{fmtDate(po.order_date)}</td>
-                      <td style={{ padding: "10px 14px" }}>{po.supplier?.name}</td>
-                      <td style={{ padding: "10px 14px", color: C.mid }}>{po.project?.name}</td>
-                      <td style={{ padding: "10px 14px" }}><Badge status={po.status} /></td>
-                      <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: 600 }}>{fmt(po.total_amount)}</td>
+                      <td style={{ padding: "8px 12px", fontWeight: 600, color: C.navy }}>{po.po_number}</td>
+                      <td style={{ padding: "8px 12px", color: C.mid }}>{fmtDate(po.order_date)}</td>
+                      <td style={{ padding: "8px 12px" }}>{po.supplier?.name}</td>
+                      <td style={{ padding: "8px 12px", color: C.mid }}>{po.project?.name}</td>
+                      <td style={{ padding: "8px 12px" }}><Badge status={po.status} /></td>
+                      <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 600 }}>{fmt(po.total_amount)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -2229,15 +2231,20 @@ function LaporanPengadaanTab() {
 
           {/* Buckets summary */}
           {aging.buckets && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10, marginBottom: 20 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8, marginBottom: 20 }}>
               {[
+                // Ramp urgensi, bukan deret kategori — sama seperti /piutang,
+                // alasan lengkapnya ada di sana. Dua cacat sekaligus di sini:
+                // "1–30" dan "31–60" berwarna IDENTIK (keduanya --warning),
+                // dan "61–90" memakai `--data-5` yang di mode gelap abu-abu
+                // terang, jadi bucket kedua-tertua tampil paling ringan.
                 { label: "Belum Jatuh Tempo", key: "current", color: C.success, bg: C.successBg },
-                { label: "1–30 Hari", key: "days_1_30", color: C.warning, bg: C.warningBg },
-                { label: "31–60 Hari", key: "days_31_60", color: "var(--warning)", bg: "#FEF3C7" },
-                { label: "61–90 Hari", key: "days_61_90", color: "#EA580C", bg: "#FFF7ED" },
+                { label: "1–30 Hari", key: "days_1_30", color: "var(--warning)", bg: C.warningBg },
+                { label: "31–60 Hari", key: "days_31_60", color: "color-mix(in srgb, var(--warning) 60%, var(--danger))", bg: "var(--warning-bg)" },
+                { label: "61–90 Hari", key: "days_61_90", color: "color-mix(in srgb, var(--warning) 25%, var(--danger))", bg: "var(--warning-bg)" },
                 { label: "> 90 Hari", key: "over_90", color: C.danger, bg: C.dangerBg },
               ].map(b => (
-                <div key={b.key} style={{ background: b.bg, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 14px", textAlign: "center" }}>
+                <div key={b.key} style={{ background: b.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 12px", textAlign: "center" }}>
                   <div style={{ fontSize: 10, color: C.mid, marginBottom: 6 }}>{b.label.toUpperCase()}</div>
                   <div style={{ fontSize: 15, fontWeight: 700, color: b.color }}>{fmt(aging.buckets[b.key])}</div>
                 </div>
@@ -2246,12 +2253,13 @@ function LaporanPengadaanTab() {
           )}
 
           {loading ? <div style={{ textAlign: "center", padding: 48, color: C.muted }}>Memuat...</div> : (
-            <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
+                <caption className="sr-only">Ringkasan tagihan supplier: total, yang sudah terbayar, dan sisanya.</caption>
                 <thead>
                   <tr style={{ background: C.bg }}>
                     {["Supplier", "Proyek", "Tgl Invoice", "Jatuh Tempo", "Hari Terlambat", "Total", "Terbayar", "Sisa"].map(h => (
-                      <th key={h} style={{ padding: "10px 14px", textAlign: ["Total","Terbayar","Sisa"].includes(h) ? "right" : "left", fontWeight: 600, color: C.mid, fontSize: 11, textTransform: "uppercase" }}>{h}</th>
+                      <th key={h} style={{ padding: "8px 12px", textAlign: ["Total","Terbayar","Sisa"].includes(h) ? "right" : "left", fontWeight: 600, color: C.mid, fontSize: 11, textTransform: "uppercase" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -2259,26 +2267,26 @@ function LaporanPengadaanTab() {
                   {(aging.invoices ?? []).length === 0 ? (
                     <tr><td colSpan={8} style={{ textAlign: "center", padding: 48, color: C.muted }}>Tidak ada hutang outstanding</td></tr>
                   ) : (aging.invoices ?? []).map((inv: any) => (
-                    <tr key={inv.id} style={{ borderTop: `1px solid ${C.border}`, background: inv.bucket === "over_90" ? "#FFF5F5" : inv.bucket === "days_61_90" ? "#FFF7ED" : undefined }}>
-                      <td style={{ padding: "10px 14px", fontWeight: 500 }}>{inv.supplier?.name}</td>
-                      <td style={{ padding: "10px 14px", color: C.mid }}>{inv.project?.name ?? "—"}</td>
-                      <td style={{ padding: "10px 14px", color: C.mid }}>{fmtDate(inv.invoice_date)}</td>
-                      <td style={{ padding: "10px 14px", color: inv.days_overdue > 0 ? C.danger : C.mid }}>{inv.due_date ? fmtDate(inv.due_date) : "—"}</td>
-                      <td style={{ padding: "10px 14px", textAlign: "center" }}>
+                    <tr key={inv.id} style={{ borderTop: `1px solid ${C.border}`, background: inv.bucket === "over_90" ? "var(--danger-bg)" : inv.bucket === "days_61_90" ? "var(--warning-bg)" : undefined }}>
+                      <td style={{ padding: "8px 12px", fontWeight: 500 }}>{inv.supplier?.name}</td>
+                      <td style={{ padding: "8px 12px", color: C.mid }}>{inv.project?.name ?? "—"}</td>
+                      <td style={{ padding: "8px 12px", color: C.mid }}>{fmtDate(inv.invoice_date)}</td>
+                      <td style={{ padding: "8px 12px", color: inv.days_overdue > 0 ? C.danger : C.mid }}>{inv.due_date ? fmtDate(inv.due_date) : "—"}</td>
+                      <td style={{ padding: "8px 12px", textAlign: "center" }}>
                         {inv.days_overdue > 0
                           ? <span style={{ fontSize: 12, fontWeight: 700, color: C.danger }}>+{inv.days_overdue} hari</span>
                           : <span style={{ color: C.muted, fontSize: 12 }}>—</span>
                         }
                       </td>
-                      <td style={{ padding: "10px 14px", textAlign: "right" }}>{fmt(inv.total_amount)}</td>
-                      <td style={{ padding: "10px 14px", textAlign: "right", color: C.success }}>{fmt(inv.amount_paid)}</td>
-                      <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: 700, color: C.danger }}>{fmt(inv.amount_due)}</td>
+                      <td style={{ padding: "8px 12px", textAlign: "right" }}>{fmt(inv.total_amount)}</td>
+                      <td style={{ padding: "8px 12px", textAlign: "right", color: C.success }}>{fmt(inv.amount_paid)}</td>
+                      <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 700, color: C.danger }}>{fmt(inv.amount_due)}</td>
                     </tr>
                   ))}
                   {(aging.invoices ?? []).length > 0 && (
                     <tr style={{ borderTop: `2px solid ${C.border}`, background: C.bg }}>
-                      <td colSpan={7} style={{ padding: "10px 14px", fontWeight: 600, textAlign: "right" }}>Total Hutang</td>
-                      <td style={{ padding: "10px 14px", fontWeight: 700, textAlign: "right", color: C.danger }}>{fmt(aging.total)}</td>
+                      <td colSpan={7} style={{ padding: "8px 12px", fontWeight: 600, textAlign: "right" }}>Total Hutang</td>
+                      <td style={{ padding: "8px 12px", fontWeight: 700, textAlign: "right", color: C.danger }}>{fmt(aging.total)}</td>
                     </tr>
                   )}
                 </tbody>
@@ -2345,20 +2353,20 @@ function ProcurementKpiBar() {
   if (!loading && !kpi) return null;
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 14, marginBottom: 28 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 28 }}>
       {loading
         ? Array.from({ length: 5 }).map((_, i) => (
             <div key={i} style={{
               background: "var(--surface)", border: `1px solid ${C.border}`,
-              borderRadius: 14, padding: "20px 22px",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+              borderRadius: 14, padding: "20px 20px",
+              boxShadow: "var(--naik-1)",
             }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-                <div style={{ height: 10, width: 90, borderRadius: 4, background: "var(--surface-hover)", animation: "shimmer 1.5s ease-in-out infinite" }} />
-                <div style={{ height: 17, width: 17, borderRadius: 4, background: "var(--surface-hover)", animation: "shimmer 1.5s ease-in-out infinite" }} />
+                <div style={{ height: 10, width: 90, borderRadius: 6, background: "var(--surface-hover)", animation: "shimmer 1.5s ease-in-out infinite" }} />
+                <div style={{ height: 17, width: 17, borderRadius: 6, background: "var(--surface-hover)", animation: "shimmer 1.5s ease-in-out infinite" }} />
               </div>
               <div style={{ height: 28, width: 60, borderRadius: 6, background: "var(--surface-hover)", animation: "shimmer 1.5s ease-in-out infinite", marginBottom: 8 }} />
-              <div style={{ height: 10, width: 110, borderRadius: 4, background: "var(--surface-hover)", animation: "shimmer 1.5s ease-in-out infinite" }} />
+              <div style={{ height: 10, width: 110, borderRadius: 6, background: "var(--surface-hover)", animation: "shimmer 1.5s ease-in-out infinite" }} />
             </div>
           ))
         : cards.map(c => (
@@ -2366,8 +2374,8 @@ function ProcurementKpiBar() {
               key={c.label}
               style={{
                 background: "var(--surface)", border: `1px solid ${C.border}`,
-                borderRadius: 14, padding: "20px 22px",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                borderRadius: 14, padding: "20px 20px",
+                boxShadow: "var(--naik-1)",
                 display: "flex", flexDirection: "column", gap: 6,
                 transition: "all 0.15s",
               }}
@@ -2376,10 +2384,15 @@ function ProcurementKpiBar() {
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.07em", color: "var(--text-muted)", textTransform: "uppercase" }}>{c.label}</span>
-                <span style={{ color: "rgba(0,51,102,0.2)" }}>{c.icon}</span>
+                {/* Diturunkan dari `--aksen`, bukan navy yang dipaku.
+                    `rgba(0,51,102,0.2)` adalah abu-abu samar yang disengaja
+                    di latar terang, tapi di latar mode gelap navy gelap
+                    20% praktis TAK TERLIHAT — ikonnya hilang sama sekali
+                    dan kartu KPI tampil dengan kotak kosong di pojoknya. */}
+                <span style={{ color: "color-mix(in srgb, var(--aksen) 30%, transparent)" }}>{c.icon}</span>
               </div>
               <div style={{ display: "flex", alignItems: "baseline", gap: 2 }}>
-                {c.prefix && <span style={{ fontSize: 14, fontWeight: 700, color: c.accent, lineHeight: 1 }}>{c.prefix}</span>}
+                {c.prefix && <span style={{ fontSize: 13, fontWeight: 700, color: c.accent, lineHeight: 1 }}>{c.prefix}</span>}
                 <span style={{ fontSize: 28, fontWeight: 800, color: c.accent, lineHeight: 1, fontFamily: "var(--font-display)" }}>{c.value}</span>
               </div>
               <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{c.sub}</span>
@@ -2421,7 +2434,7 @@ export default function ProcurementPage() {
             const active = activeTab === tab.key;
             return (
               <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
-                padding: "10px 14px", background: "none", border: "none", cursor: "pointer",
+                padding: "8px 12px", background: "none", border: "none", cursor: "pointer",
                 fontWeight: active ? 600 : 400, fontSize: 13,
                 color: active ? C.navy : C.mid,
                 borderBottom: active ? `2px solid ${C.navy}` : "2px solid transparent",

@@ -28,13 +28,7 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, CalendarClock, PlayCircle } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 
-const C = {
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  green: "var(--success)", greenBg: "var(--success-bg)", greenBorder: "var(--success-border)",
-  red: "var(--danger)", redBg: "var(--danger-bg)", redBorder: "var(--danger-border)",
-  yellow: "var(--warning)", yellowBg: "var(--warning-bg)", yellowBorder: "var(--warning-border)",
-  blue: "var(--info)", blueBg: "var(--info-bg)", blueBorder: "var(--info-border)",
-};
+import { C } from "@/lib/warna-ui";
 
 type Status = "telat" | "berjalan" | "akan_mulai";
 
@@ -122,7 +116,7 @@ export function LookAheadSection({ projectId }: { projectId: string }) {
       {/* Ringkasan. Angka NILAI ikut ditampilkan pada telat: "11 item telat"
           tak berarti apa-apa sampai orang tahu itu Rp 5 jt atau Rp 879 jt. */}
       {meta && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 8, marginBottom: 16 }}>
           <Kartu label="Telat" nilai={String(meta.telat)}
             sub={meta.telat > 0 ? `${fmtRp(meta.nilaiTelat)} · terlama ${meta.telatTerlama} hari` : "tak ada"}
             warna={meta.telat > 0 ? C.red : C.green} bg={meta.telat > 0 ? C.redBg : C.greenBg}
@@ -138,7 +132,7 @@ export function LookAheadSection({ projectId }: { projectId: string }) {
           "tak ada pekerjaan" padahal artinya "jadwalnya belum diisi". */}
       {meta && meta.totalBerjadwal === 0 && (
         <div style={{
-          display: "flex", alignItems: "flex-start", gap: 8, padding: "10px 14px",
+          display: "flex", alignItems: "flex-start", gap: 8, padding: "8px 12px",
           borderRadius: 10, background: C.yellowBg, border: `1px solid ${C.yellowBorder}`,
           fontSize: 12, color: C.yellow, marginBottom: 14,
         }}>
@@ -153,9 +147,9 @@ export function LookAheadSection({ projectId }: { projectId: string }) {
 
       {baris.length === 0 && meta && meta.totalBerjadwal > 0 && (
         <div style={{
-          display: "flex", alignItems: "center", gap: 8, padding: "12px 14px",
+          display: "flex", alignItems: "center", gap: 8, padding: "12px 12px",
           borderRadius: 10, background: C.greenBg, border: `1px solid ${C.greenBorder}`,
-          fontSize: 12.5, color: C.green,
+          fontSize: 12, color: C.green,
         }}>
           <PlayCircle size={15} aria-hidden="true" />
           <span>Tak ada pekerjaan telat maupun terjadwal dalam {meta.minggu} minggu ke depan.</span>
@@ -169,7 +163,7 @@ export function LookAheadSection({ projectId }: { projectId: string }) {
             return (
               <div key={b.itemId} style={{
                 display: "flex", alignItems: "flex-start", gap: 12,
-                padding: "11px 14px", borderRadius: 10,
+                padding: "12px 12px", borderRadius: 10,
                 border: `1px solid ${g.border}`, background: g.bg,
               }}>
                 <g.Icon size={16} aria-hidden="true" style={{ color: g.warna, flexShrink: 0, marginTop: 2 }} />
@@ -178,18 +172,18 @@ export function LookAheadSection({ projectId }: { projectId: string }) {
                     {/* Label status ditulis, bukan diwakili warna saja — WCAG
                         1.4.1. Pemakai sistem ini banyak membaca di layar HP
                         di bawah sinar matahari. */}
-                    <span style={{ fontSize: 10.5, fontWeight: 700, color: g.warna, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: g.warna, textTransform: "uppercase", letterSpacing: "0.04em" }}>
                       {g.label}
                       {b.status === "telat" && ` ${b.hariTelat} hari`}
                     </span>
                     {b.categoryCode && (
-                      <span style={{ fontSize: 10.5, color: C.muted, fontFamily: "ui-monospace, monospace" }}>{b.categoryCode}</span>
+                      <span style={{ fontSize: 10, color: C.muted, fontFamily: "ui-monospace, monospace" }}>{b.categoryCode}</span>
                     )}
                   </div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginTop: 2, wordBreak: "break-word" }}>
                     {b.name}
                   </div>
-                  <div style={{ fontSize: 11.5, color: C.mid, marginTop: 3 }}>
+                  <div style={{ fontSize: 11, color: C.mid, marginTop: 3 }}>
                     {fmtTgl(b.plannedStart)} – {fmtTgl(b.plannedEnd)}
                     {" · "}progres {b.progressPct}%
                     {b.totalPrice > 0 && <> · {fmtRp(b.totalPrice)}</>}
@@ -208,8 +202,8 @@ function Kartu({ label, nilai, sub, warna, bg, border }: {
   label: string; nilai: string; sub: string; warna: string; bg: string; border: string;
 }) {
   return (
-    <div style={{ padding: "11px 14px", borderRadius: 10, background: bg, border: `1px solid ${border}` }}>
-      <div style={{ fontSize: 10.5, fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</div>
+    <div style={{ padding: "12px 12px", borderRadius: 10, background: bg, border: `1px solid ${border}` }}>
+      <div style={{ fontSize: 10, fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</div>
       <div style={{ fontSize: 22, fontWeight: 800, color: warna, fontFamily: "var(--font-display, inherit)", lineHeight: 1.15 }}>{nilai}</div>
       <div style={{ fontSize: 11, color: C.mid, marginTop: 1 }}>{sub}</div>
     </div>

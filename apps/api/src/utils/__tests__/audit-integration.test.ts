@@ -106,4 +106,34 @@ describe('audit_logs write-path (integration, rollback-safe)', () => {
       })
     ).resolves.toBeUndefined()
   })
+
+  /**
+   * REGRESI: `logAuditEvent` tak pernah mengisi `company_id`.
+   *
+   * `audit_logs.company_id` NOT NULL, dan kebijakan RLS `tenant_isolation`
+   * RESTRICTIVE menuntutnya cocok dengan tenant pemanggil. Trigger
+   * `fn_isi_company_id` mengisinya bila kosong — TAPI hanya bila tak
+   * ambigu: ia membaca `app.company_id`, dan bila itu kosong ia menebak
+   * dari `companies` HANYA saat tenant-nya tepat satu.
+   *
+   * Akibatnya bug ini TAK TERLIHAT di dev (1 company — tebakan berhasil)
+   * dan menghancurkan seluruh audit di CI (>1 company — insert ditolak,
+   * `catch` menelan galatnya). Yang hilang bukan test, melainkan riwayat
+   * "siapa mengubah apa" — tanpa satu pun gejala.
+   *
+   * Test ini memeriksa yang DIKIRIM helper, bukan yang tersimpan setelah
+   * trigger menambal: kalau helper diam-diam berhenti mengisinya lagi,
+   * di dev tetap hijau dan bug-nya kembali menyelinap ke CI.
+   */
+  it('logAuditEvent MENYATAKAN company_id, tidak menyerahkannya ke trigger', async () => {
+    const src = await import('node:fs').then(fs =>
+      fs.readFileSync(new URL('../audit.ts', import.meta.url), 'utf8'))
+
+    expect(
+      /company_id:\s*request\.companyId/.test(src),
+      'insert audit tidak menyatakan company_id. Di dev (1 company) trigger ' +
+      'akan menebaknya dan semuanya tampak baik; di CI dan produksi ' +
+      'multi-tenant, insert DITOLAK dan jejak audit hilang tanpa suara.',
+    ).toBe(true)
+  })
 })

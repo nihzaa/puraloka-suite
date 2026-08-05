@@ -91,7 +91,7 @@ export default function RfiPage() {
     api.get("/api/v1/projects")
       .then((r) => {
         if (batal) return;
-        const daftar = (r.data?.data ?? []) as Array<{ id: string; name: string }>;
+        const daftar = (r.data?.projects ?? []) as Array<{ id: string; name: string }>;
         setProyek(daftar);
         setProyekId((kini) => kini || daftar[0]?.id || "");
         if (daftar.length === 0) setMemuat(false);

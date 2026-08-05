@@ -22,8 +22,8 @@
  *
  * ── Arah visual: melanjutkan, bukan menciptakan
  *
- * Sistem ini sudah punya bahasa visual (navy #003366, Bricolage Grotesque
- * untuk judul, kartu putih di atas #F8F9FA). Halaman baru yang membawa gaya
+ * Sistem ini sudah punya bahasa visual (navy var(--navy), Bricolage Grotesque
+ * untuk judul, kartu putih di atas var(--bg)). Halaman baru yang membawa gaya
  * sendiri akan terasa seperti tempelan — dan 100+ halaman bergaya-sendiri
  * adalah definisi paling tepat dari sistem yang tak punya arah.
  *
@@ -45,13 +45,7 @@ import {
 import { PETA_MENU, cariItem, type StatusMenu } from "@/lib/peta-menu";
 import { api, makeAbortController } from "@/lib/api";
 
-const C = {
-  navy: "var(--navy)", text: "var(--text-primary)", mid: "var(--text-secondary)",
-  muted: "var(--text-muted)", border: "var(--border)", surface: "var(--surface)",
-  green: "var(--success)", greenBg: "var(--success-bg)", greenBorder: "var(--success-border)",
-  yellow: "var(--warning)", yellowBg: "var(--warning-bg)", yellowBorder: "var(--warning-border)",
-  blue: "var(--info)", blueBg: "var(--info-bg)", blueBorder: "var(--info-border)",
-};
+import { C } from "@/lib/warna-ui";
 
 /**
  * Tiap status punya bahasa sendiri.
@@ -129,10 +123,10 @@ export default function HalamanMenu() {
         <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: C.text }}>
           Menu tidak dikenal
         </h1>
-        <p style={{ margin: "8px 0 0", fontSize: 13.5, color: C.mid, lineHeight: 1.6 }}>
+        <p style={{ margin: "8px 0 0", fontSize: 13, color: C.mid, lineHeight: 1.6 }}>
           Tak ada menu dengan kode <code style={{
-            padding: "1px 6px", borderRadius: 4, background: "var(--surface-subtle)",
-            border: `1px solid ${C.border}`, fontSize: 12.5,
+            padding: "0px 6px", borderRadius: 6, background: "var(--surface-subtle)",
+            border: `1px solid ${C.border}`, fontSize: 12,
           }}>{params.key}</code>. Mungkin tautannya sudah berubah.
         </p>
         <Link href="/dashboard" style={{
@@ -179,7 +173,7 @@ export default function HalamanMenu() {
           {item.label}
         </h1>
         <p style={{
-          margin: "7px 0 0", fontSize: 14.5, color: C.mid, lineHeight: 1.6,
+          margin: "7px 0 0", fontSize: 15, color: C.mid, lineHeight: 1.6,
           maxWidth: "62ch",
         }}>
           {item.guna}
@@ -189,12 +183,12 @@ export default function HalamanMenu() {
       {/* Kartu status — garis vertikal kiri adalah penanda jenis penantian.
           Warna DAN teks (WCAG 1.4.1): warna saja tak boleh membawa makna. */}
       <section style={{
-        display: "flex", gap: 0, borderRadius: 12, overflow: "hidden",
+        display: "flex", gap: 0, borderRadius: 10, overflow: "hidden",
         border: `1px solid ${rupa.border}`, background: rupa.bg, marginBottom: 22,
       }}>
         <div style={{ width: 4, background: rupa.warna, flexShrink: 0 }} aria-hidden="true" />
-        <div style={{ padding: "16px 18px", flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
+        <div style={{ padding: "16px 16px", flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
             <IkonStatus size={15} color={rupa.warna} aria-hidden="true" />
             <span style={{
               fontSize: 12, fontWeight: 700, color: rupa.warna,
@@ -203,7 +197,7 @@ export default function HalamanMenu() {
               {rupa.label}
             </span>
           </div>
-          <p style={{ margin: 0, fontSize: 13.5, color: C.text, lineHeight: 1.65, maxWidth: "70ch" }}>
+          <p style={{ margin: 0, fontSize: 13, color: C.text, lineHeight: 1.65, maxWidth: "70ch" }}>
             {rupa.kalimat}
           </p>
           {item.catatan && (
@@ -241,8 +235,8 @@ export default function HalamanMenu() {
                   key={p.id}
                   href={`/proyek/${p.id}${item.tabProyek ? `#${item.tabProyek}` : ""}`}
                   style={{
-                    display: "flex", alignItems: "center", gap: 9,
-                    padding: "11px 13px", borderRadius: 9, textDecoration: "none",
+                    display: "flex", alignItems: "center", gap: 8,
+                    padding: "12px 12px", borderRadius: 10, textDecoration: "none",
                     border: `1px solid ${C.border}`, background: C.surface,
                     transition: "border-color 0.15s, transform 0.15s",
                   }}
@@ -259,7 +253,7 @@ export default function HalamanMenu() {
                 >
                   <FolderKanban size={15} color={C.navy} aria-hidden="true" style={{ flexShrink: 0 }} />
                   <span style={{
-                    fontSize: 13.5, color: C.text, fontWeight: 500,
+                    fontSize: 13, color: C.text, fontWeight: 500,
                     overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                   }}>
                     {p.name}
@@ -288,8 +282,8 @@ export default function HalamanMenu() {
                 key={t.key}
                 href={t.href!}
                 style={{
-                  display: "flex", alignItems: "center", gap: 10,
-                  padding: "12px 14px", borderRadius: 9, textDecoration: "none",
+                  display: "flex", alignItems: "center", gap: 8,
+                  padding: "12px 12px", borderRadius: 10, textDecoration: "none",
                   border: `1px solid ${C.border}`, background: C.surface,
                   transition: "border-color 0.15s",
                 }}
@@ -297,7 +291,7 @@ export default function HalamanMenu() {
                 onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.border; }}
               >
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 600, color: C.text }}>{t.label}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{t.label}</div>
                   <div style={{ fontSize: 12, color: C.mid, marginTop: 2 }}>{t.guna}</div>
                 </div>
                 <ArrowRight size={15} color={C.muted} aria-hidden="true" style={{ flexShrink: 0 }} />

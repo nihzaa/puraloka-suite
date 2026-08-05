@@ -54,7 +54,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {mounted && createPortal(
         <div style={{
           position: "fixed", bottom: 24, right: 24,
-          display: "flex", flexDirection: "column", gap: 10,
+          display: "flex", flexDirection: "column", gap: 8,
           zIndex: 9999, pointerEvents: "none",
         }}>
           {toasts.map(t => (
@@ -84,10 +84,10 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
     <div
       style={{
         display: "flex", alignItems: "flex-start", gap: 12,
-        padding: "14px 16px", borderRadius: 12,
+        padding: "12px 16px", borderRadius: 10,
         background: isSuccess ? "var(--success-bg)" : "var(--danger-bg)",
         border: `1px solid ${isSuccess ? "var(--success-border)" : "var(--danger-border)"}`,
-        boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
+        boxShadow: "var(--naik-2)",
         pointerEvents: "all",
         minWidth: 280, maxWidth: 380,
         opacity: visible ? 1 : 0,
@@ -110,7 +110,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
         style={{
           background: "none", border: "none", cursor: "pointer", padding: 2,
           color: isSuccess ? "#4ADE80" : "var(--danger)", flexShrink: 0,
-          borderRadius: 4, display: "flex", alignItems: "center",
+          borderRadius: 6, display: "flex", alignItems: "center",
           transition: "color 0.1s",
         }}
         onMouseEnter={e => { e.currentTarget.style.color = isSuccess ? "var(--success)" : "var(--danger)"; }}

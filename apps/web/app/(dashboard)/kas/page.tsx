@@ -3,7 +3,8 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
-import { api, hasPermission } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useIzin } from "@/lib/use-izin";
 import {
   Wallet, ArrowRightLeft, ShoppingCart, Plus, X, RefreshCw,
   CheckCircle2, Clock, AlertTriangle, 
@@ -12,20 +13,13 @@ import {
 } from "lucide-react";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
-const C = {
-  navy: "var(--navy)", navyLight: "var(--navy-light)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)", bg: "var(--bg)",
-  green: "var(--success)", greenBg: "var(--success-bg)", greenBorder: "var(--success-border)",
-  red: "var(--danger)", redBg: "var(--danger-bg)", redBorder: "var(--danger-border)",
-  yellow: "var(--warning)", yellowBg: "var(--warning-bg)", yellowBorder: "var(--warning-border)",
-  blue: "var(--info)", blueBg: "var(--info-bg)", blueBorder: "var(--info-border)",
-  purple: "#7C3AED", purpleBg: "#F5F3FF", purpleBorder: "#DDD6FE",
-};
+import { C } from "@/lib/warna-ui";
+import { Kosong } from "@/components/ui-dasar";
+import { keadaanSaldo, labelSaldo } from "@/lib/keadaan-saldo";
 
 const card: React.CSSProperties = {
   background: "var(--surface)", border: `1px solid ${C.border}`,
-  borderRadius: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+  borderRadius: 14, boxShadow: "var(--naik-1)",
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -123,7 +117,7 @@ function StatusBadge({ label, color, bg, border }: { label: string; color: strin
   return (
     <span style={{
       display: "inline-flex", alignItems: "center", gap: 4,
-      padding: "3px 9px", borderRadius: 99, fontSize: 11, fontWeight: 600,
+      padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 600,
       color, background: bg, border: `1px solid ${border ?? bg}`, whiteSpace: "nowrap",
     }}>
       <span style={{ width: 5, height: 5, borderRadius: "50%", background: color, flexShrink: 0 }} />
@@ -133,14 +127,14 @@ function StatusBadge({ label, color, bg, border }: { label: string; color: strin
 }
 
 function Skeleton({ h = 16, w = "100%" }: { h?: number; w?: string | number }) {
-  return <div style={{ height: h, width: w, borderRadius: 6, background: "linear-gradient(90deg,var(--surface-hover) 0%,#E9EAEB 50%,var(--surface-hover) 100%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s ease-in-out infinite" }} />;
+  return <div style={{ height: h, width: w, borderRadius: 6, background: "linear-gradient(90deg,var(--surface-hover) 0%,var(--border) 50%,var(--surface-hover) 100%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s ease-in-out infinite" }} />;
 }
 
 function Tab({ label, active, onClick, count }: { label: string; active: boolean; onClick: () => void; count?: number }) {
   return (
     <button onClick={onClick} style={{
       display: "inline-flex", alignItems: "center", gap: 6,
-      padding: "10px 18px", border: "none",
+      padding: "8px 16px", border: "none",
       borderBottom: `2px solid ${active ? C.navy : "transparent"}`,
       background: "transparent", fontSize: 13,
       fontWeight: active ? 600 : 400,
@@ -152,7 +146,7 @@ function Tab({ label, active, onClick, count }: { label: string; active: boolean
     >
       {label}
       {count !== undefined && (
-        <span style={{ fontSize: 10, fontWeight: 700, background: active ? C.navyLight : "var(--surface-hover)", color: active ? C.navy : C.muted, padding: "1px 6px", borderRadius: 99 }}>
+        <span style={{ fontSize: 10, fontWeight: 700, background: active ? C.navyLight : "var(--surface-hover)", color: active ? C.navy : C.muted, padding: "0px 6px", borderRadius: 99 }}>
           {count}
         </span>
       )}
@@ -163,34 +157,47 @@ function Tab({ label, active, onClick, count }: { label: string; active: boolean
 // ─── Account Card ─────────────────────────────────────────────────────────────
 function AccountCard({ acc, onClick }: { acc: CashAccount; onClick: () => void }) {
   const meta = ACCOUNT_TYPE_LABEL[acc.type];
-  const low = acc.type === "petty_cash" && acc.balance < 500_000;
+  // Aturannya di `lib/keadaan-saldo.ts` — bukan di sini. Versi sebaris
+  // sebelumnya punya cabang mati yang membuat saldo −Rp 213.695.000
+  // tampil kuning "Saldo rendah"; detail lengkapnya di berkas itu,
+  // beserta test yang mengunci perilakunya.
+  const keadaan = keadaanSaldo(acc.balance, acc.type);
+  const minus = keadaan === "minus";
+  const low = keadaan === "tipis";
   return (
     <button onClick={onClick} style={{
       width: "100%", textAlign: "left", background: "var(--surface)",
-      border: `1px solid ${low ? C.yellowBorder : C.border}`,
-      borderRadius: 12, padding: "16px 18px", cursor: "pointer",
-      transition: "all 0.15s", display: "flex", alignItems: "center", gap: 14,
-      boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+      border: `1px solid ${minus ? C.redBorder : low ? C.yellowBorder : C.border}`,
+      borderRadius: 10, padding: "16px 16px", cursor: "pointer",
+      transition: "all 0.15s", display: "flex", alignItems: "center", gap: 12,
+      boxShadow: "var(--naik-1)",
     }}
       onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 6px 18px rgba(0,51,102,0.10)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
       onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.05)"; e.currentTarget.style.transform = "translateY(0)"; }}
     >
-      <div style={{ width: 44, height: 44, borderRadius: 12, background: meta.bg, border: `1px solid ${meta.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: meta.color }}>
+      <div style={{ width: 44, height: 44, borderRadius: 10, background: meta.bg, border: `1px solid ${meta.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: meta.color }}>
         {meta.icon}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{acc.name}</div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontSize: 10, fontWeight: 600, color: meta.color, background: meta.bg, padding: "1px 6px", borderRadius: 4 }}>{meta.label}</span>
+          <span style={{ fontSize: 10, fontWeight: 600, color: meta.color, background: meta.bg, padding: "0px 6px", borderRadius: 6 }}>{meta.label}</span>
           {acc.owner && <span style={{ fontSize: 11, color: C.muted }}>{acc.owner.name}</span>}
           {acc.projects && <span style={{ fontSize: 11, color: C.muted }}>· {acc.projects.name}</span>}
         </div>
       </div>
       <div style={{ textAlign: "right", flexShrink: 0 }}>
-        <div style={{ fontSize: 18, fontWeight: 800, color: low ? C.yellow : acc.balance < 0 ? C.red : C.text, fontFamily: "var(--font-display)" }}>
+        <div style={{ fontSize: 17, fontWeight: 800, color: minus ? C.red : low ? C.yellow : C.text, fontFamily: "var(--font-display)" }}>
           {fmtCompact(acc.balance)}
         </div>
-        {low && <div style={{ fontSize: 10, color: C.yellow, fontWeight: 600 }}>Saldo rendah</div>}
+        {/* Teks DAN warna — WCAG 1.4.1. Kas kecil sering dibaca di HP di
+            bawah matahari, tempat beda kuning/merah praktis hilang. */}
+        {labelSaldo(keadaan) && (
+          <div style={{
+            fontSize: 10, color: minus ? C.red : C.yellow,
+            fontWeight: minus ? 700 : 600,
+          }}>{labelSaldo(keadaan)}</div>
+        )}
       </div>
     </button>
   );
@@ -203,7 +210,7 @@ function TransferRow({ t, canConfirm, onConfirm, onCancel }: {
 }) {
   const st = TRANSFER_STATUS[t.status] ?? TRANSFER_STATUS.pending;
   return (
-    <div style={{ padding: "14px 16px", borderRadius: 12, border: `1px solid ${t.status === "pending" ? C.yellowBorder : C.border}`, background: t.status === "pending" ? C.yellowBg : "#FAFAFA", display: "flex", alignItems: "center", gap: 14 }}>
+    <div style={{ padding: "12px 16px", borderRadius: 10, border: `1px solid ${t.status === "pending" ? C.yellowBorder : C.border}`, background: t.status === "pending" ? C.yellowBg : "var(--surface-subtle)", display: "flex", alignItems: "center", gap: 12 }}>
       {/* Arrow icon */}
       <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--surface-hover)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
         <ArrowRightLeft size={16} color={C.mid} />
@@ -225,14 +232,14 @@ function TransferRow({ t, canConfirm, onConfirm, onCancel }: {
       </div>
       {/* Amount + status + actions */}
       <div style={{ textAlign: "right", flexShrink: 0 }}>
-        <div style={{ fontSize: 16, fontWeight: 800, color: C.text, fontFamily: "var(--font-display)", marginBottom: 6 }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: C.text, fontFamily: "var(--font-display)", marginBottom: 6 }}>
           {fmt(t.amount)}
         </div>
         <StatusBadge label={st.label} color={st.color} bg={st.bg} />
         {canConfirm && t.status === "pending" && (
-          <div style={{ display: "flex", gap: 5, justifyContent: "flex-end", marginTop: 8 }}>
-            <button onClick={() => onCancel(t.id)} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 11, cursor: "pointer" }}>Batal</button>
-            <button onClick={() => onConfirm(t.id)} style={{ padding: "4px 10px", borderRadius: 6, border: "none", background: C.green, color: "var(--surface)", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Konfirmasi</button>
+          <div style={{ display: "flex", gap: 4, justifyContent: "flex-end", marginTop: 8 }}>
+            <button onClick={() => onCancel(t.id)} style={{ padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 11, cursor: "pointer" }}>Batal</button>
+            <button onClick={() => onConfirm(t.id)} style={{ padding: "4px 8px", borderRadius: 6, border: "none", background: C.green, color: "var(--surface)", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Konfirmasi</button>
           </div>
         )}
       </div>
@@ -247,7 +254,7 @@ function ExpenseRow({ e, canReview, onApprove, onReject }: {
 }) {
   const st = EXPENSE_STATUS[e.status] ?? EXPENSE_STATUS.submitted;
   return (
-    <div style={{ padding: "14px 16px", borderRadius: 12, border: `1px solid ${e.status === "submitted" ? C.yellowBorder : C.border}`, background: e.status === "submitted" ? C.yellowBg : "#FAFAFA" }}>
+    <div style={{ padding: "12px 16px", borderRadius: 10, border: `1px solid ${e.status === "submitted" ? C.yellowBorder : C.border}`, background: e.status === "submitted" ? C.yellowBg : "var(--surface-subtle)" }}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
         <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--surface-hover)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
           {CATEGORY_TYPE_ICON[e.category?.type ?? "other"]}
@@ -257,7 +264,7 @@ function ExpenseRow({ e, canReview, onApprove, onReject }: {
             <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{e.description}</span>
             <StatusBadge label={st.label} color={st.color} bg={st.bg} border={EXPENSE_STATUS[e.status]?.border} />
           </div>
-          <div style={{ display: "flex", gap: 10, fontSize: 11, color: C.muted, flexWrap: "wrap", marginBottom: 2 }}>
+          <div style={{ display: "flex", gap: 8, fontSize: 11, color: C.muted, flexWrap: "wrap", marginBottom: 2 }}>
             <span>{e.projects?.name ?? "—"}</span>
             <span>·</span>
             <span>{e.category?.name ?? "—"}</span>
@@ -266,27 +273,27 @@ function ExpenseRow({ e, canReview, onApprove, onReject }: {
             <span>{fmtDate(e.expense_date)}</span>
           </div>
           <div style={{ display: "flex", gap: 8, fontSize: 11, color: C.muted, flexWrap: "wrap" }}>
-            <span style={{ background: "var(--surface-hover)", padding: "1px 7px", borderRadius: 4 }}>{SOURCE_LABEL[e.expense_source]}</span>
-            {e.petty_cash && <span style={{ background: C.navyLight, color: C.navy, padding: "1px 7px", borderRadius: 4 }}>dari: {e.petty_cash.name}</span>}
-            {e.main_cash && <span style={{ background: C.navyLight, color: C.navy, padding: "1px 7px", borderRadius: 4 }}>dari: {e.main_cash.name}</span>}
+            <span style={{ background: "var(--surface-hover)", padding: "0px 6px", borderRadius: 6 }}>{SOURCE_LABEL[e.expense_source]}</span>
+            {e.petty_cash && <span style={{ background: C.navyLight, color: C.navy, padding: "0px 6px", borderRadius: 6 }}>dari: {e.petty_cash.name}</span>}
+            {e.main_cash && <span style={{ background: C.navyLight, color: C.navy, padding: "0px 6px", borderRadius: 6 }}>dari: {e.main_cash.name}</span>}
             {e.qty !== 1 && <span>{e.qty} {e.unit} × {fmt(e.unit_price)}</span>}
             {e.submitter && <span>· {e.submitter.name}</span>}
           </div>
         </div>
         <div style={{ textAlign: "right", flexShrink: 0 }}>
-          <div style={{ fontSize: 16, fontWeight: 800, color: C.text, fontFamily: "var(--font-display)", marginBottom: 4 }}>
+          <div style={{ fontSize: 15, fontWeight: 800, color: C.text, fontFamily: "var(--font-display)", marginBottom: 4 }}>
             {fmt(e.total_amount)}
           </div>
           {e.receipt_url && (
             <a href={e.receipt_url} target="_blank" rel="noopener noreferrer"
-              style={{ fontSize: 10, color: C.navy, display: "flex", alignItems: "center", gap: 3, justifyContent: "flex-end", marginBottom: 4 }}>
+              style={{ fontSize: 10, color: C.navy, display: "flex", alignItems: "center", gap: 2, justifyContent: "flex-end", marginBottom: 4 }}>
               <FileText size={10} /> Lihat nota
             </a>
           )}
           {canReview && e.status === "submitted" && (
-            <div style={{ display: "flex", gap: 5, justifyContent: "flex-end" }}>
-              <button onClick={() => onReject(e.id)} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${C.redBorder}`, background: C.redBg, color: C.red, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Tolak</button>
-              <button onClick={() => onApprove(e.id)} style={{ padding: "4px 10px", borderRadius: 6, border: "none", background: C.green, color: "var(--surface)", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Setujui</button>
+            <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
+              <button onClick={() => onReject(e.id)} style={{ padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.redBorder}`, background: C.redBg, color: C.red, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Tolak</button>
+              <button onClick={() => onApprove(e.id)} style={{ padding: "4px 8px", borderRadius: 6, border: "none", background: C.green, color: "var(--surface)", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Setujui</button>
             </div>
           )}
         </div>
@@ -306,12 +313,17 @@ export default function KasPage() {
 function KasContent() {
   // ADR-004: capability, bukan nama jabatan. Diverifikasi ke
   // `requirePermission` di cash.ts — bukan ditebak dari nama tombolnya.
-  const isAdmin = hasPermission("cash:account:manage");
+  const isAdmin = useIzin("cash:account:manage");
+  // Diangkat ke sini, bukan dipanggil sebaris di JSX: `hasPermission`
+  // membaca localStorage, jadi memanggilnya di jalur render membuat pohon
+  // server dan klien berbeda. Detail: `lib/use-izin.ts`.
+  const bolehKonfirmasiTransfer = useIzin("cash:transfer:confirm");
+  const bolehApprovePengeluaran = useIzin("cash:expense:approve");
   // `canEdit` dulu satu boolean untuk transfer, konfirmasi, DAN approve
   // pengeluaran — tiga wewenang berbeda yang API pisahkan. Dipertahankan
   // sebagai "boleh menyentuh kas" (transfer), sementara konfirmasi dan
   // approve kini memakai capability-nya sendiri di tempat pemakaiannya.
-  const canEdit = hasPermission("cash:transfer:create");
+  const canEdit = useIzin("cash:transfer:create");
 
   const [tab, setTab] = useState<TabKey>("akun");
   const [summary, setSummary] = useState<CashSummary | null>(null);
@@ -480,12 +492,12 @@ function KasContent() {
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           {canEdit && (
-            <button onClick={() => setShowCreateTransfer(true)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 16px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.text, fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
+            <button onClick={() => setShowCreateTransfer(true)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.text, fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
               <ArrowRightLeft size={14} /> Transfer
             </button>
           )}
-          <button onClick={() => setShowCreateExpense(true)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 16px", borderRadius: 8, border: "none", background: C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
-            onMouseEnter={e => { e.currentTarget.style.background = "#002244"; }}
+          <button onClick={() => setShowCreateExpense(true)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+            onMouseEnter={e => { e.currentTarget.style.background = "var(--aksen-pekat)"; }}
             onMouseLeave={e => { e.currentTarget.style.background = C.navy; }}
           >
             <Plus size={14} /> Catat Pengeluaran
@@ -497,7 +509,7 @@ function KasContent() {
       <div className="rise rise-1" style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
         {loadingSummary ? (
           [1, 2, 3, 4].map(i => (
-            <div key={i} style={{ flex: 1, minWidth: 160, ...card, padding: "16px 18px", display: "flex", gap: 14, alignItems: "center" }}>
+            <div key={i} style={{ flex: 1, minWidth: 160, ...card, padding: "16px 16px", display: "flex", gap: 12, alignItems: "center" }}>
               <Skeleton h={44} w={44} /><div style={{ flex: 1 }}><Skeleton h={12} w="60%" /><div style={{ marginTop: 8 }} /><Skeleton h={20} /></div>
             </div>
           ))
@@ -506,17 +518,46 @@ function KasContent() {
             {[
               { label: "Total Semua Kas", value: fmtCompact(summary.totalBalance), color: C.text, border: undefined, sub: "Utama + Kolektor + Kas Kecil" },
               { label: "Kas Utama", value: fmtCompact(summary.mainBalance), color: C.navy, border: C.blueBorder, sub: `Kolektor: ${fmtCompact(summary.collectorBalance)}` },
-              { label: "Total Kas Kecil", value: fmtCompact(summary.pettyBalance), color: C.green, border: C.greenBorder, sub: "Di seluruh PM & proyek" },
+              // Warna DITURUNKAN dari angkanya, tidak dipaku ke label.
+              //
+              // Sebelumnya kartu ini selalu hijau. Di data nyata saat ini
+              // nilainya −Rp 275.025.000 — dan tetap tampil hijau, yaitu
+              // warna yang justru menandakan "sehat". Saldo kas gabungan
+              // yang minus berarti pengeluaran tercatat melebihi uang yang
+              // pernah masuk; itu perlu ditelusuri, bukan ditenangkan.
+              {
+                label: "Total Kas Kecil",
+                value: fmtCompact(summary.pettyBalance),
+                color: summary.pettyBalance < 0 ? C.red : C.green,
+                border: summary.pettyBalance < 0 ? C.redBorder : C.greenBorder,
+                sub: summary.pettyBalance < 0
+                  ? "Minus — pengeluaran melebihi setoran yang tercatat"
+                  : "Di seluruh PM & proyek",
+              },
               { label: "Pengeluaran Bulan Ini", value: fmtCompact(summary.expensesThisMonth), color: C.red, border: C.redBorder, sub: summary.pendingExpenseCount > 0 ? `${summary.pendingExpenseCount} menunggu review` : null },
             ].map(s => (
               <div key={s.label}
-                style={{ flex: 1, minWidth: 160, ...card, padding: "16px 18px", borderColor: s.border ?? C.border, transition: "all 0.15s" }}
+                style={{ flex: 1, minWidth: 160, ...card, padding: "16px 16px", borderColor: s.border ?? C.border, transition: "all 0.15s" }}
                 onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 6px 18px rgba(0,51,102,0.10)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
                 onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 1px 4px rgba(0,0,0,0.06)"; e.currentTarget.style.transform = "translateY(0)"; }}
               >
                 <p style={{ fontSize: 11, color: C.muted, margin: "0 0 4px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{s.label}</p>
                 <p style={{ fontSize: 22, fontWeight: 800, color: s.color, margin: 0, fontFamily: "var(--font-display)" }}>{s.value}</p>
-                {s.sub && <p style={{ fontSize: 11, color: s.label === "Pengeluaran Bulan Ini" && summary.pendingExpenseCount > 0 ? C.yellow : C.muted, margin: "4px 0 0", fontWeight: s.label === "Pengeluaran Bulan Ini" && summary.pendingExpenseCount > 0 ? 600 : 400 }}>{s.sub}</p>}
+                {/* Sub-teks yang membawa PERINGATAN diberi warna & tebal;
+                    yang cuma keterangan tetap redup. Sebelumnya hanya
+                    "Pengeluaran Bulan Ini" yang dikenali, jadi peringatan
+                    saldo minus akan tampil seredup teks biasa. */}
+                {s.sub && (() => {
+                  const pentingPengeluaran = s.label === "Pengeluaran Bulan Ini" && summary.pendingExpenseCount > 0;
+                  const pentingMinus = s.label === "Total Kas Kecil" && summary.pettyBalance < 0;
+                  const warna = pentingMinus ? C.red : pentingPengeluaran ? C.yellow : C.muted;
+                  return (
+                    <p style={{
+                      fontSize: 11, color: warna, margin: "4px 0 0",
+                      fontWeight: pentingMinus || pentingPengeluaran ? 600 : 400,
+                    }}>{s.sub}</p>
+                  );
+                })()}
               </div>
             ))}
           </>
@@ -525,9 +566,9 @@ function KasContent() {
 
       {/* Alert pending */}
       {summary && (summary.pendingTransferAmount > 0 || summary.pendingExpenseAmount > 0) && (
-        <div className="rise rise-2" style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+        <div className="rise rise-2" style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
           {summary.pendingTransferAmount > 0 && (
-            <div style={{ flex: 1, minWidth: 240, padding: "12px 16px", borderRadius: 10, background: C.yellowBg, border: `1px solid ${C.yellowBorder}`, display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ flex: 1, minWidth: 240, padding: "12px 16px", borderRadius: 10, background: C.yellowBg, border: `1px solid ${C.yellowBorder}`, display: "flex", alignItems: "center", gap: 8 }}>
               <Clock size={16} color={C.yellow} style={{ flexShrink: 0 }} />
               <span style={{ fontSize: 12, color: C.yellow, fontWeight: 600 }}>
                 {summary.pendingTransferCount} transfer menunggu konfirmasi · {fmtCompact(summary.pendingTransferAmount)}
@@ -536,7 +577,7 @@ function KasContent() {
             </div>
           )}
           {summary.pendingExpenseAmount > 0 && (
-            <div style={{ flex: 1, minWidth: 240, padding: "12px 16px", borderRadius: 10, background: C.yellowBg, border: `1px solid ${C.yellowBorder}`, display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ flex: 1, minWidth: 240, padding: "12px 16px", borderRadius: 10, background: C.yellowBg, border: `1px solid ${C.yellowBorder}`, display: "flex", alignItems: "center", gap: 8 }}>
               <AlertTriangle size={16} color={C.yellow} style={{ flexShrink: 0 }} />
               <span style={{ fontSize: 12, color: C.yellow, fontWeight: 600 }}>
                 {summary.pendingExpenseCount} pengeluaran menunggu persetujuan · {fmtCompact(summary.pendingExpenseAmount)}
@@ -561,11 +602,11 @@ function KasContent() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <p style={{ fontSize: 13, color: C.mid, margin: 0 }}>Semua akun kas yang aktif dalam sistem</p>
               <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={loadAccounts} style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", border: `1px solid ${C.border}`, borderRadius: 8, background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer" }}>
+                <button onClick={loadAccounts} style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", border: `1px solid ${C.border}`, borderRadius: 6, background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer" }}>
                   <RefreshCw size={13} /> Refresh
                 </button>
                 {isAdmin && (
-                  <button onClick={() => setShowCreateAccount(true)} style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", border: `1px solid ${C.border}`, borderRadius: 8, background: "var(--surface)", color: C.navy, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                  <button onClick={() => setShowCreateAccount(true)} style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", border: `1px solid ${C.border}`, borderRadius: 6, background: "var(--surface)", color: C.navy, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
                     <Plus size={13} /> Akun Baru
                   </button>
                 )}
@@ -573,13 +614,13 @@ function KasContent() {
             </div>
 
             {loadingAccounts ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{[1, 2, 3].map(i => <div key={i} style={{ padding: 16, borderRadius: 12, border: `1px solid ${C.border}` }}><Skeleton h={18} /></div>)}</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{[1, 2, 3].map(i => <div key={i} style={{ padding: 16, borderRadius: 10, border: `1px solid ${C.border}` }}><Skeleton h={18} /></div>)}</div>
             ) : accounts.length === 0 ? (
               <div style={{ textAlign: "center", padding: "48px 0", color: C.muted }}>
                 <Wallet size={40} style={{ color: "var(--border)", marginBottom: 12 }} />
                 <p style={{ fontWeight: 600, color: C.text, marginBottom: 4 }}>Belum ada akun kas</p>
                 <p style={{ fontSize: 13 }}>Buat akun kas pertama untuk memulai tracking.</p>
-                {isAdmin && <button onClick={() => setShowCreateAccount(true)} style={{ marginTop: 12, padding: "8px 16px", borderRadius: 8, border: "none", background: C.navy, color: "var(--surface)", fontSize: 13, cursor: "pointer" }}>Buat Akun Kas</button>}
+                {isAdmin && <button onClick={() => setShowCreateAccount(true)} style={{ marginTop: 12, padding: "8px 16px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", fontSize: 13, cursor: "pointer" }}>Buat Akun Kas</button>}
               </div>
             ) : (
               <>
@@ -596,7 +637,14 @@ function KasContent() {
                           {meta.icon}
                           <span style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>{meta.label}</span>
                         </div>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{fmtCompact(groupTotal)}</span>
+                        {/* Total grup minus diberi warna juga. Tanpa ini,
+                            "−Rp 275.025.000" tampil hitam netral seolah
+                            angka wajar — padahal saldo kas gabungan yang
+                            negatif tak mungkin secara fisik. */}
+                        <span style={{
+                          fontSize: 13, fontWeight: 700,
+                          color: groupTotal < 0 ? C.red : C.text,
+                        }}>{fmtCompact(groupTotal)}</span>
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                         {group.map(acc => <AccountCard key={acc.id} acc={acc} onClick={() => {}} />)}
@@ -612,15 +660,15 @@ function KasContent() {
         {/* TAB: Transfer Dana */}
         {tab === "transfer" && (
           <div style={{ padding: 24 }}>
-            <div style={{ display: "flex", gap: 10, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
               <select aria-label="Saring status transfer" value={transferStatusFilter} onChange={e => setTransferStatusFilter(e.target.value)}
-                style={{ padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none" }}>
+                style={{ padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: "var(--surface)", outline: "none" }}>
                 <option value="all">Semua Status</option>
                 <option value="pending">Menunggu Konfirmasi</option>
                 <option value="confirmed">Dikonfirmasi</option>
                 <option value="cancelled">Dibatalkan</option>
               </select>
-              <button onClick={loadTransfers} style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 8, background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer" }}>
+              <button onClick={loadTransfers} style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer" }}>
                 <RefreshCw size={13} /> Refresh
               </button>
               {transfers.length > 0 && (
@@ -631,17 +679,17 @@ function KasContent() {
             </div>
 
             {loadingTransfers ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{[1, 2, 3].map(i => <div key={i} style={{ padding: 16, borderRadius: 12, border: `1px solid ${C.border}` }}><Skeleton h={18} /></div>)}</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{[1, 2, 3].map(i => <div key={i} style={{ padding: 16, borderRadius: 10, border: `1px solid ${C.border}` }}><Skeleton h={18} /></div>)}</div>
             ) : transfers.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "48px 0", color: C.muted }}>
-                <ArrowRightLeft size={40} style={{ color: "var(--border)", marginBottom: 12 }} />
-                <p style={{ fontWeight: 600, color: C.text, marginBottom: 4 }}>Tidak ada transfer</p>
-                <p style={{ fontSize: 13 }}>Belum ada catatan transfer dana.</p>
-              </div>
+              <Kosong
+                ikon={<ArrowRightLeft size={40} aria-hidden="true" />}
+                judul="Belum ada transfer dana"
+                sebab="Transfer mencatat perpindahan uang antar akun kas — misalnya dari rekening bank ke kas proyek. Saldo tiap akun ikut berubah begitu transfernya dicatat."
+              />
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {transfers.map(t => (
-                  <TransferRow key={t.id} t={t} canConfirm={hasPermission("cash:transfer:confirm")} onConfirm={handleConfirmTransfer} onCancel={handleCancelTransfer} />
+                  <TransferRow key={t.id} t={t} canConfirm={bolehKonfirmasiTransfer} onConfirm={handleConfirmTransfer} onCancel={handleCancelTransfer} />
                 ))}
               </div>
             )}
@@ -651,16 +699,16 @@ function KasContent() {
         {/* TAB: Pengeluaran */}
         {tab === "pengeluaran" && (
           <div style={{ padding: 24 }}>
-            <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
               <select aria-label="Saring status pengeluaran" value={expenseStatusFilter} onChange={e => setExpenseStatusFilter(e.target.value)}
-                style={{ padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none" }}>
+                style={{ padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: "var(--surface)", outline: "none" }}>
                 <option value="all">Semua Status</option>
                 <option value="submitted">Menunggu Review</option>
                 <option value="approved">Disetujui</option>
                 <option value="rejected">Ditolak</option>
                 <option value="draft">Draft</option>
               </select>
-              <button onClick={loadExpenses} style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 8, background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer" }}>
+              <button onClick={loadExpenses} style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer" }}>
                 <RefreshCw size={13} /> Refresh
               </button>
               {expenses.length > 0 && (
@@ -672,7 +720,7 @@ function KasContent() {
 
             {/* Ringkasan per Kategori */}
             {categoryBreakdown.length > 0 && (
-              <div style={{ marginBottom: 20, borderRadius: 12, border: `1px solid ${C.border}`, background: "#FAFAFA", overflow: "hidden" }}>
+              <div style={{ marginBottom: 20, borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface-subtle)", overflow: "hidden" }}>
                 <button
                   onClick={() => setShowCategoryBreakdown(p => !p)}
                   style={{
@@ -693,7 +741,7 @@ function KasContent() {
                       const grandTotal = categoryBreakdown.reduce((s, c) => s + c.total, 0);
                       const TYPE_COLOR: Record<string, string> = {
                         material: C.red, labor: C.blue, equipment: C.yellow,
-                        operational: "#7C3AED", other: C.muted,
+                        operational: "var(--aksen)", other: C.muted,
                       };
                       const TYPE_LABEL: Record<string, string> = {
                         material: "Material", labor: "Labor/Upah", equipment: "Equipment",
@@ -706,7 +754,7 @@ function KasContent() {
                           <div key={cat.id} style={{ marginBottom: 10 }}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
                               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                <span style={{ fontSize: 11, color, fontWeight: 600, padding: "1px 6px", borderRadius: 4, background: `${color}18` }}>
+                                <span style={{ fontSize: 11, color, fontWeight: 600, padding: "0px 6px", borderRadius: 6, background: `${color}18` }}>
                                   {TYPE_LABEL[cat.type] ?? cat.type}
                                 </span>
                                 <span style={{ fontSize: 12, color: C.text }}>{cat.name}</span>
@@ -730,17 +778,17 @@ function KasContent() {
             )}
 
             {loadingExpenses ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{[1, 2, 3].map(i => <div key={i} style={{ padding: 16, borderRadius: 12, border: `1px solid ${C.border}` }}><Skeleton h={18} /></div>)}</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{[1, 2, 3].map(i => <div key={i} style={{ padding: 16, borderRadius: 10, border: `1px solid ${C.border}` }}><Skeleton h={18} /></div>)}</div>
             ) : expenses.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "48px 0", color: C.muted }}>
-                <ShoppingCart size={40} style={{ color: "var(--border)", marginBottom: 12 }} />
-                <p style={{ fontWeight: 600, color: C.text, marginBottom: 4 }}>Tidak ada pengeluaran</p>
-                <p style={{ fontSize: 13 }}>Belum ada pengeluaran yang dicatat.</p>
-              </div>
+              <Kosong
+                ikon={<ShoppingCart size={40} aria-hidden="true" />}
+                judul="Belum ada pengeluaran dicatat"
+                sebab="Pengeluaran yang dicatat di sini mengurangi saldo akun kas sumbernya. Belanja lewat kasbon mandor tercatat terpisah, di menu Kasbon."
+              />
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {expenses.map(e => (
-                  <ExpenseRow key={e.id} e={e} canReview={hasPermission("cash:expense:approve")} onApprove={handleApproveExpense} onReject={handleRejectExpense} />
+                  <ExpenseRow key={e.id} e={e} canReview={bolehApprovePengeluaran} onApprove={handleApproveExpense} onReject={handleRejectExpense} />
                 ))}
               </div>
             )}
@@ -752,11 +800,11 @@ function KasContent() {
                   Bayar Supplier (dari kas)
                 </div>
                 {loadingSupplierPayments ? (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{[1, 2].map(i => <div key={i} style={{ padding: 16, borderRadius: 12, border: `1px solid ${C.border}` }}><Skeleton h={16} /></div>)}</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{[1, 2].map(i => <div key={i} style={{ padding: 16, borderRadius: 10, border: `1px solid ${C.border}` }}><Skeleton h={16} /></div>)}</div>
                 ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {supplierPayments.map((sp: any) => (
-                      <div key={sp.id} style={{ padding: "14px 16px", borderRadius: 12, border: `1px solid ${C.border}`, background: "#FAFAFA" }}>
+                      <div key={sp.id} style={{ padding: "12px 16px", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface-subtle)" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                           <div style={{ width: 36, height: 36, borderRadius: 10, background: C.blueBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                             <Building2 size={16} color={C.blue} />
@@ -766,7 +814,7 @@ function KasContent() {
                               Bayar Supplier · {sp.supplier?.name ?? "—"}
                             </div>
                             <div style={{ display: "flex", gap: 8, fontSize: 11, color: C.muted, flexWrap: "wrap" }}>
-                              <span style={{ background: C.navyLight, color: C.navy, padding: "1px 7px", borderRadius: 4 }}>
+                              <span style={{ background: C.navyLight, color: C.navy, padding: "0px 6px", borderRadius: 6 }}>
                                 dari: {sp.cash_account?.name}
                               </span>
                               <span>{fmtDate(sp.payment_date)}</span>
@@ -775,7 +823,7 @@ function KasContent() {
                               {sp.creator && <span>· {sp.creator.name}</span>}
                             </div>
                           </div>
-                          <div style={{ fontSize: 16, fontWeight: 800, color: C.red, fontFamily: "var(--font-display)", flexShrink: 0 }}>
+                          <div style={{ fontSize: 15, fontWeight: 800, color: C.red, fontFamily: "var(--font-display)", flexShrink: 0 }}>
                             -{fmt(sp.amount)}
                           </div>
                         </div>
@@ -793,13 +841,13 @@ function KasContent() {
                   Pembayaran Progress Mandor (dari kas)
                 </div>
                 {loadingMandorOutflows ? (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{[1, 2].map(i => <div key={i} style={{ padding: 16, borderRadius: 12, border: `1px solid ${C.border}` }}><Skeleton h={16} /></div>)}</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{[1, 2].map(i => <div key={i} style={{ padding: 16, borderRadius: 10, border: `1px solid ${C.border}` }}><Skeleton h={16} /></div>)}</div>
                 ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {progressPaymentsKas.map((pp: any) => (
-                      <div key={pp.id} style={{ padding: "14px 16px", borderRadius: 12, border: `1px solid ${C.greenBorder}`, background: C.greenBg }}>
+                      <div key={pp.id} style={{ padding: "12px 16px", borderRadius: 10, border: `1px solid ${C.greenBorder}`, background: C.greenBg }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                          <div style={{ width: 36, height: 36, borderRadius: 10, background: "#D1FAE5", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--success-bg)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                             <TrendingDown size={16} color={C.green} />
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
@@ -812,7 +860,7 @@ function KasContent() {
                               <span>· {fmtDate(pp.paid_at ?? pp.created_at)}</span>
                             </div>
                           </div>
-                          <div style={{ fontSize: 16, fontWeight: 800, color: C.red, fontFamily: "var(--font-display)", flexShrink: 0 }}>
+                          <div style={{ fontSize: 15, fontWeight: 800, color: C.red, fontFamily: "var(--font-display)", flexShrink: 0 }}>
                             -{fmt(pp.gross_payment ?? 0)}
                           </div>
                         </div>
@@ -830,13 +878,13 @@ function KasContent() {
                   Settlement Borongan (dari kas)
                 </div>
                 {loadingMandorOutflows ? (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{[1, 2].map(i => <div key={i} style={{ padding: 16, borderRadius: 12, border: `1px solid ${C.border}` }}><Skeleton h={16} /></div>)}</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{[1, 2].map(i => <div key={i} style={{ padding: 16, borderRadius: 10, border: `1px solid ${C.border}` }}><Skeleton h={16} /></div>)}</div>
                 ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {boronganSettlementsKas.map((bs: any) => (
-                      <div key={bs.id} style={{ padding: "14px 16px", borderRadius: 12, border: `1px solid ${C.purpleBorder}`, background: C.purpleBg }}>
+                      <div key={bs.id} style={{ padding: "12px 16px", borderRadius: 10, border: `1px solid ${C.purpleBorder}`, background: C.purpleBg }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                          <div style={{ width: 36, height: 36, borderRadius: 10, background: "#EDE9FE", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--navy-light)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                             <CheckCircle2 size={16} color={C.purple} />
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
@@ -846,12 +894,12 @@ function KasContent() {
                             <div style={{ display: "flex", gap: 8, fontSize: 11, color: C.muted, flexWrap: "wrap" }}>
                               {bs.scope?.assignment?.mandor && <span>mandor: {bs.scope.assignment.mandor.name}</span>}
                               <span>· {fmtDate(bs.settled_at ?? bs.created_at)}</span>
-                              <span style={{ background: "#EDE9FE", color: C.purple, padding: "1px 7px", borderRadius: 4, border: `1px solid ${C.purpleBorder}` }}>
+                              <span style={{ background: "var(--navy-light)", color: C.purple, padding: "0px 6px", borderRadius: 6, border: `1px solid ${C.purpleBorder}` }}>
                                 Borongan {fmtCompact(bs.borongan_value ?? 0)} · Kasbon {fmtCompact(bs.total_kasbon ?? 0)}
                               </span>
                             </div>
                           </div>
-                          <div style={{ fontSize: 16, fontWeight: 800, color: C.red, fontFamily: "var(--font-display)", flexShrink: 0 }}>
+                          <div style={{ fontSize: 15, fontWeight: 800, color: C.red, fontFamily: "var(--font-display)", flexShrink: 0 }}>
                             -{fmt(bs.net_payment ?? 0)}
                           </div>
                         </div>
@@ -886,6 +934,7 @@ function KasContent() {
           onClose={() => setShowCreateExpense(false)}
           onSuccess={() => { setShowCreateExpense(false); loadExpenses(); loadSummary(); loadAccounts(); }}
           onNeedAccounts={loadAccounts}
+          onBukaAkun={() => { setShowCreateExpense(false); setTab("akun"); }}
         />
       )}
     </div>
@@ -943,22 +992,22 @@ function CreateAccountModal({ onClose, onSuccess }: { onClose: () => void; onSuc
   return createPortal(
     <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.45)", backdropFilter: "blur(3px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.18)", display: "flex", flexDirection: "column", maxHeight: "90vh" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 480, boxShadow: "var(--naik-3)", display: "flex", flexDirection: "column", maxHeight: "90vh" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: `1px solid ${C.border}` }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,var(--navy),#0066CC)", display: "flex", alignItems: "center", justifyContent: "center" }}><Wallet size={17} color="var(--surface)" /></div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,var(--navy),var(--aksen-terang))", display: "flex", alignItems: "center", justifyContent: "center" }}><Wallet size={17} color="var(--surface)" /></div>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: 0 }}>Buat Akun Kas Baru</h3>
           </div>
           <button aria-label="Tutup" onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", color: C.muted }}><X size={18} /></button>
         </div>
-        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14, overflowY: "auto" }}>
+        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 12, overflowY: "auto" }}>
           <div>
             <span id="tipe-akun" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Tipe Akun <span style={{ color: C.red }}>*</span></span>
             <div role="group" aria-labelledby="tipe-akun" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
               {(["main", "collector", "petty_cash"] as const).map(t => {
                 const m = ACCOUNT_TYPE_LABEL[t];
                 return (
-                  <button type="button" key={t} onClick={() => setType(t)} style={{ padding: "10px 8px", borderRadius: 10, border: `2px solid ${type === t ? m.color : C.border}`, background: type === t ? m.bg : "var(--surface)", color: type === t ? m.color : C.mid, fontSize: 11, fontWeight: 600, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, transition: "all 0.15s" }}>
+                  <button type="button" key={t} onClick={() => setType(t)} style={{ padding: "8px 8px", borderRadius: 10, border: `2px solid ${type === t ? m.color : C.border}`, background: type === t ? m.bg : "var(--surface)", color: type === t ? m.color : C.mid, fontSize: 11, fontWeight: 600, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, transition: "all 0.15s" }}>
                     {m.icon}{m.label}
                   </button>
                 );
@@ -968,13 +1017,13 @@ function CreateAccountModal({ onClose, onSuccess }: { onClose: () => void; onSuc
           <div>
             <label htmlFor="name" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Nama Akun <span style={{ color: C.red }}>*</span></label>
             <input id="name" value={name} onChange={e => setName(e.target.value)} required placeholder={type === "main" ? "Kas Utama Nizar" : type === "collector" ? "Kas Ayah" : "Kas Kecil PM Agus – Griya Asri"}
-              style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }}
+              style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box" }}
               onFocus={e => { e.target.style.borderColor = C.navy; }} onBlur={e => { e.target.style.borderColor = C.border; }} />
           </div>
           {(type === "petty_cash" || type === "collector") && (
             <div>
               <label htmlFor="owner-id" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Pemegang Kas {type === "petty_cash" ? <span style={{ color: C.red }}>*</span> : null}</label>
-              <select id="owner-id" aria-label="Pemilik akun kas" value={ownerId} onChange={e => setOwnerId(e.target.value)} style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
+              <select id="owner-id" aria-label="Pemilik akun kas" value={ownerId} onChange={e => setOwnerId(e.target.value)} style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                 <option value="">-- Pilih user --</option>
                 {users.filter(u => type === "petty_cash" ? (u.role === "pm" || u.role === "admin") : true).map(u => <option key={u.id} value={u.id}>{u.name} ({u.role})</option>)}
               </select>
@@ -983,7 +1032,7 @@ function CreateAccountModal({ onClose, onSuccess }: { onClose: () => void; onSuc
           {type === "petty_cash" && (
             <div>
               <label htmlFor="project-id" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Proyek <span style={{ color: C.red }}>*</span></label>
-              <select id="project-id" aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
+              <select id="project-id" aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                 <option value="">-- Pilih proyek --</option>
                 {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
@@ -994,17 +1043,17 @@ function CreateAccountModal({ onClose, onSuccess }: { onClose: () => void; onSuc
             <div style={{ position: "relative" }}>
               <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: C.muted }}>Rp</span>
               <input id="initial-balance" type="number" min={0} value={initialBalance} onChange={e => setInitialBalance(e.target.value)} placeholder="0"
-                style={{ width: "100%", padding: "9px 12px 9px 32px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                style={{ width: "100%", padding: "8px 12px 8px 32px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
             </div>
           </div>
           <div>
             <label htmlFor="notes" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Catatan</label>
-            <textarea id="notes" value={notes} onChange={e => setNotes(e.target.value)} rows={2} style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", resize: "vertical", boxSizing: "border-box", fontFamily: "inherit" }} />
+            <textarea id="notes" value={notes} onChange={e => setNotes(e.target.value)} rows={2} style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", resize: "vertical", boxSizing: "border-box", fontFamily: "inherit" }} />
           </div>
-          {error && <div style={{ padding: "10px 14px", borderRadius: 8, background: C.redBg, border: `1px solid ${C.redBorder}`, fontSize: 13, color: C.red }}>{error}</div>}
-          <div style={{ display: "flex", gap: 10 }}>
-            <button type="button" onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: 13, cursor: "pointer" }}>Batal</button>
-            <button type="submit" disabled={loading} style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: loading ? "#94A3B8" : C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer" }}>
+          {error && <div style={{ padding: "8px 12px", borderRadius: 6, background: C.redBg, border: `1px solid ${C.redBorder}`, fontSize: 13, color: C.red }}>{error}</div>}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" onClick={onClose} style={{ flex: 1, padding: "8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: 13, cursor: "pointer" }}>Batal</button>
+            <button type="submit" disabled={loading} style={{ flex: 2, padding: "8px", borderRadius: 6, border: "none", background: loading ? "var(--text-muted)" : C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer" }}>
               {loading ? "Menyimpan..." : "Buat Akun"}
             </button>
           </div>
@@ -1061,20 +1110,20 @@ function CreateTransferModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
   return createPortal(
     <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.45)", backdropFilter: "blur(3px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.18)", display: "flex", flexDirection: "column", maxHeight: "90vh" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 480, boxShadow: "var(--naik-3)", display: "flex", flexDirection: "column", maxHeight: "90vh" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: `1px solid ${C.border}` }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#7C3AED,#A78BFA)", display: "flex", alignItems: "center", justifyContent: "center" }}><ArrowRightLeft size={17} color="var(--surface)" /></div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,var(--aksen),var(--aksen-terang))", display: "flex", alignItems: "center", justifyContent: "center" }}><ArrowRightLeft size={17} color="var(--surface)" /></div>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: 0 }}>Catat Transfer Dana</h3>
           </div>
           <button aria-label="Tutup" onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", color: C.muted }}><X size={18} /></button>
         </div>
-        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14, overflowY: "auto" }}>
+        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 12, overflowY: "auto" }}>
           {/* From → To visual */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 32px 1fr", gap: 8, alignItems: "end" }}>
             <div>
               <label htmlFor="from-id" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Dari Akun <span style={{ color: C.red }}>*</span></label>
-              <select id="from-id" aria-label="Kas asal transfer" value={fromId} onChange={e => setFromId(e.target.value)} required style={{ width: "100%", padding: "9px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
+              <select id="from-id" aria-label="Kas asal transfer" value={fromId} onChange={e => setFromId(e.target.value)} required style={{ width: "100%", padding: "8px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                 <option value="">-- Pilih --</option>
                 {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
@@ -1083,7 +1132,7 @@ function CreateTransferModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
             <div style={{ display: "flex", justifyContent: "center", paddingBottom: 10 }}><ArrowRightLeft size={16} color={C.mid} /></div>
             <div>
               <label htmlFor="to-id" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Ke Akun <span style={{ color: C.red }}>*</span></label>
-              <select id="to-id" aria-label="Kas tujuan transfer" value={toId} onChange={e => setToId(e.target.value)} required style={{ width: "100%", padding: "9px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
+              <select id="to-id" aria-label="Kas tujuan transfer" value={toId} onChange={e => setToId(e.target.value)} required style={{ width: "100%", padding: "8px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                 <option value="">-- Pilih --</option>
                 {accounts.filter(a => a.id !== fromId).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
@@ -1096,22 +1145,22 @@ function CreateTransferModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
               <div style={{ position: "relative" }}>
                 <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: C.muted }}>Rp</span>
                 <input id="amount" type="number" min={1} value={amount} onChange={e => setAmount(e.target.value)} required
-                  style={{ width: "100%", padding: "9px 12px 9px 32px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                  style={{ width: "100%", padding: "8px 12px 8px 32px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
               </div>
             </div>
             <div>
               <label htmlFor="transfer-date" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Tanggal Transfer</label>
               <input id="transfer-date" aria-label="Tanggal" type="date" value={transferDate} onChange={e => setTransferDate(e.target.value)}
-                style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
             </div>
           </div>
           <div>
             <span id="status-transfer" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 8 }}>Status Transfer</span>
             <div role="group" aria-labelledby="status-transfer" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              <button type="button" onClick={() => setStatus("confirmed")} style={{ padding: "10px", borderRadius: 10, border: `2px solid ${status === "confirmed" ? C.green : C.border}`, background: status === "confirmed" ? C.greenBg : "var(--surface)", color: status === "confirmed" ? C.green : C.mid, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+              <button type="button" onClick={() => setStatus("confirmed")} style={{ padding: "8px", borderRadius: 10, border: `2px solid ${status === "confirmed" ? C.green : C.border}`, background: status === "confirmed" ? C.greenBg : "var(--surface)", color: status === "confirmed" ? C.green : C.mid, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
                 ✓ Langsung Konfirmasi<br /><span style={{ fontSize: 10, fontWeight: 400 }}>Saldo berubah sekarang</span>
               </button>
-              <button type="button" onClick={() => setStatus("pending")} style={{ padding: "10px", borderRadius: 10, border: `2px solid ${status === "pending" ? C.yellow : C.border}`, background: status === "pending" ? C.yellowBg : "var(--surface)", color: status === "pending" ? C.yellow : C.mid, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+              <button type="button" onClick={() => setStatus("pending")} style={{ padding: "8px", borderRadius: 10, border: `2px solid ${status === "pending" ? C.yellow : C.border}`, background: status === "pending" ? C.yellowBg : "var(--surface)", color: status === "pending" ? C.yellow : C.mid, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
                 ⏳ Simpan Pending<br /><span style={{ fontSize: 10, fontWeight: 400 }}>Konfirmasi setelah diterima</span>
               </button>
             </div>
@@ -1119,17 +1168,17 @@ function CreateTransferModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
           <div>
             <label htmlFor="ref-number" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>No. Referensi</label>
             <input id="ref-number" type="text" value={refNumber} onChange={e => setRefNumber(e.target.value)} placeholder="No. TF / kode transfer"
-              style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+              style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
           </div>
           <div>
             <label htmlFor="notes-2" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Catatan</label>
             <textarea id="notes-2" value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Misal: Top-up kas kecil PM Agus untuk Proyek Griya Asri"
-              style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", resize: "vertical", boxSizing: "border-box", fontFamily: "inherit" }} />
+              style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", resize: "vertical", boxSizing: "border-box", fontFamily: "inherit" }} />
           </div>
-          {error && <div style={{ padding: "10px 14px", borderRadius: 8, background: C.redBg, border: `1px solid ${C.redBorder}`, fontSize: 13, color: C.red }}>{error}</div>}
-          <div style={{ display: "flex", gap: 10 }}>
-            <button type="button" onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: 13, cursor: "pointer" }}>Batal</button>
-            <button type="submit" disabled={loading} style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: loading ? "#94A3B8" : C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer" }}>
+          {error && <div style={{ padding: "8px 12px", borderRadius: 6, background: C.redBg, border: `1px solid ${C.redBorder}`, fontSize: 13, color: C.red }}>{error}</div>}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" onClick={onClose} style={{ flex: 1, padding: "8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: 13, cursor: "pointer" }}>Batal</button>
+            <button type="submit" disabled={loading} style={{ flex: 2, padding: "8px", borderRadius: 6, border: "none", background: loading ? "var(--text-muted)" : C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer" }}>
               {loading ? "Menyimpan..." : "Catat Transfer"}
             </button>
           </div>
@@ -1141,10 +1190,23 @@ function CreateTransferModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
 }
 
 // ─── Modal: Catat Pengeluaran ─────────────────────────────────────────────────
-function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
+function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts, onBukaAkun }: {
   accounts: CashAccount[]; onClose: () => void; onSuccess: () => void; onNeedAccounts: () => void;
+  /**
+   * Tutup modal dan buka tab Akun Kas.
+   *
+   * `onNeedAccounts` tidak cukup: ia hanya memuat ulang daftar akun,
+   * yang tak menolong kalau memang belum ada satu pun akun dibuat.
+   * Tanpa jalan keluar ini, orang yang sudah mengetik separuh form
+   * pengeluaran harus menebak sendiri di mana akun kas dibuat — dan
+   * yang sudah diketik hilang saat menebaknya.
+   */
+  onBukaAkun: () => void;
 }) {
   useTutupEsc(onClose);
+  // Diangkat dari JSX — `hasPermission` di jalur render membuat pohon
+  // server dan klien berbeda. Detail: `lib/use-izin.ts`.
+  const bolehApprove = useIzin("cash:expense:approve");
   const [mounted, mount] = useReducer(() => true, false);
   useEffect(mount, []);
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
@@ -1236,27 +1298,27 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
   return createPortal(
     <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.45)", backdropFilter: "blur(3px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 520, boxShadow: "0 20px 60px rgba(0,0,0,0.18)", display: "flex", flexDirection: "column", maxHeight: "92vh" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 520, boxShadow: "var(--naik-3)", display: "flex", flexDirection: "column", maxHeight: "92vh" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: `1px solid ${C.border}` }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,var(--danger),#EF4444)", display: "flex", alignItems: "center", justifyContent: "center" }}><ShoppingCart size={17} color="var(--surface)" /></div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,var(--danger),var(--danger))", display: "flex", alignItems: "center", justifyContent: "center" }}><ShoppingCart size={17} color="var(--surface)" /></div>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: 0 }}>Catat Pengeluaran Proyek</h3>
           </div>
           <button aria-label="Tutup" onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", color: C.muted }}><X size={18} /></button>
         </div>
-        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14, overflowY: "auto", flex: 1 }}>
+        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 12, overflowY: "auto", flex: 1 }}>
           {/* Proyek + Tanggal */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
               <label htmlFor="project-id-2" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Proyek <span style={{ color: C.red }}>*</span></label>
-              <select id="project-id-2" aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} required style={{ width: "100%", padding: "9px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
+              <select id="project-id-2" aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} required style={{ width: "100%", padding: "8px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                 <option value="">-- Pilih proyek --</option>
                 {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </div>
             <div>
               <label htmlFor="expense-date" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Tanggal</label>
-              <input id="expense-date" aria-label="Tanggal" type="date" value={expenseDate} onChange={e => setExpenseDate(e.target.value)} style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+              <input id="expense-date" aria-label="Tanggal" type="date" value={expenseDate} onChange={e => setExpenseDate(e.target.value)} style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
             </div>
           </div>
 
@@ -1265,18 +1327,18 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
             <span id="sumber-dana" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 8 }}>Sumber Dana <span style={{ color: C.red }}>*</span></span>
             <div role="group" aria-labelledby="sumber-dana" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               {(["petty_cash", "main_cash", "personal", "client_fund"] as const).map(s => (
-                <button type="button" key={s} onClick={() => setExpenseSource(s)} style={{ padding: "8px 6px", borderRadius: 8, border: `2px solid ${expenseSource === s ? C.navy : C.border}`, background: expenseSource === s ? C.navyLight : "var(--surface)", color: expenseSource === s ? C.navy : C.mid, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+                <button type="button" key={s} onClick={() => setExpenseSource(s)} style={{ padding: "8px 6px", borderRadius: 6, border: `2px solid ${expenseSource === s ? C.navy : C.border}`, background: expenseSource === s ? C.navyLight : "var(--surface)", color: expenseSource === s ? C.navy : C.mid, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
                   {SOURCE_LABEL[s]}
                 </button>
               ))}
             </div>
             {expenseSource === "client_fund" && (
-              <div style={{ marginTop: 6, padding: "6px 10px", borderRadius: 6, background: "var(--info-bg)", border: "1px solid var(--info-border)", fontSize: 11, color: "var(--info)" }}>
+              <div style={{ marginTop: 6, padding: "6px 8px", borderRadius: 6, background: "var(--info-bg)", border: "1px solid var(--info-border)", fontSize: 11, color: "var(--info)" }}>
                 Pengeluaran ini dibayar dari dana klien — tidak mengurangi saldo kas internal.
               </div>
             )}
             {expenseSource === "personal" && (
-              <div style={{ marginTop: 6, padding: "6px 10px", borderRadius: 6, background: "var(--warning-bg)", border: "1px solid var(--warning-border)", fontSize: 11, color: "#92400E" }}>
+              <div style={{ marginTop: 6, padding: "6px 8px", borderRadius: 6, background: "var(--warning-bg)", border: "1px solid var(--warning-border)", fontSize: 11, color: "var(--on-warning-bg)" }}>
                 Talangan pribadi — perlu di-reimburse dari kas proyek.
               </div>
             )}
@@ -1287,7 +1349,7 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
             <div>
               <label htmlFor="petty-cash-id" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Kas Kecil <span style={{ color: C.red }}>*</span></label>
               <select id="petty-cash-id" aria-label="Kas kecil" value={pettyCashId} onChange={e => setPettyCashId(e.target.value)} required={expenseSource === "petty_cash"}
-                style={{ width: "100%", padding: "9px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
+                style={{ width: "100%", padding: "8px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                 <option value="">-- Pilih kas kecil --</option>
                 {(projectId ? projectPettyCash : accounts).map(a => (
                   <option key={a.id} value={a.id}>{a.name} — saldo: {fmt(a.balance)}</option>
@@ -1306,12 +1368,40 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
             <div>
               <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Akun Kas Utama <span style={{ color: C.red }}>*</span></label>
               {mainCashAccounts.length === 0 ? (
-                <div style={{ padding: "9px 12px", borderRadius: 8, background: "var(--surface-subtle)", border: `1px solid ${C.border}`, fontSize: 12, color: C.muted }}>
-                  Tidak ada akun Kas Utama aktif
+                // Ini jalan buntu yang paling merugikan di modul kas:
+                // orang sedang DI TENGAH mengisi form pengeluaran, lalu
+                // menemui kotak abu-abu yang cuma menyatakan kekosongan.
+                // Tanpa tautan, satu-satunya jalan adalah menebak menu
+                // mana yang membuat akun kas — dan pekerjaan yang sudah
+                // diketik hilang saat menebaknya.
+                <div style={{
+                  padding: "8px 12px", borderRadius: 6,
+                  background: "var(--warning-bg)",
+                  border: `1px solid var(--warning-border)`,
+                  fontSize: 12, color: "var(--on-warning-bg)",
+                }}>
+                  Belum ada akun Kas Utama yang aktif, jadi pengeluaran ini
+                  tak punya sumber dana.{" "}
+                  {/* Akun kas dikelola di TAB halaman ini, bukan rute
+                      tersendiri — jadi jalan keluarnya memindahkan tab,
+                      bukan `<Link>`. Draf pertama menaruh href="/kas/akun";
+                      rute itu tak ada, dan mengganti jalan buntu dengan
+                      tautan rusak sama sekali bukan perbaikan. */}
+                  <button
+                    type="button"
+                    onClick={onBukaAkun}
+                    style={{
+                      background: "none", border: "none", padding: 0,
+                      font: "inherit", color: "inherit", fontWeight: 600,
+                      textDecoration: "underline", cursor: "pointer",
+                    }}
+                  >
+                    Buka tab Akun Kas untuk membuatnya →
+                  </button>
                 </div>
               ) : (
                 <select aria-label="Kas utama" value={mainCashId} onChange={e => setMainCashId(e.target.value)} required={expenseSource === "main_cash"}
-                  style={{ width: "100%", padding: "9px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
+                  style={{ width: "100%", padding: "8px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                   {mainCashAccounts.length > 1 && <option value="">-- Pilih akun kas utama --</option>}
                   {mainCashAccounts.map(a => (
                     <option key={a.id} value={a.id}>{a.name} — saldo: {fmt(a.balance)}</option>
@@ -1334,7 +1424,7 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
           <div>
             <label htmlFor="category-id" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Kategori <span style={{ color: C.red }}>*</span></label>
             <select id="category-id" aria-label="Kategori pengeluaran" value={categoryId} onChange={e => setCategoryId(e.target.value)} required
-              style={{ width: "100%", padding: "9px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
+              style={{ width: "100%", padding: "8px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
               <option value="">-- Pilih kategori --</option>
               {parentCats.map(p => (
                 <optgroup key={p.id} label={p.name}>
@@ -1349,35 +1439,35 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
           <div>
             <label htmlFor="description" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Deskripsi <span style={{ color: C.red }}>*</span></label>
             <input id="description" value={description} onChange={e => setDescription(e.target.value)} required placeholder="misal: Beli semen 40 sak di Toko Bangunan Maju"
-              style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }}
+              style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box" }}
               onFocus={e => { e.target.style.borderColor = C.navy; }} onBlur={e => { e.target.style.borderColor = C.border; }} />
           </div>
 
           {/* Qty + Unit + Harga */}
-          <div style={{ display: "grid", gridTemplateColumns: "80px 80px 1fr", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "80px 80px 1fr", gap: 8 }}>
             <div>
               <label htmlFor="qty" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Qty</label>
               <input id="qty" type="number" min={0.001} step="0.001" value={qty} onChange={e => setQty(e.target.value)}
-                style={{ width: "100%", padding: "9px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                style={{ width: "100%", padding: "8px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
             </div>
             <div>
               <label htmlFor="unit" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Satuan</label>
               <input id="unit" type="text" value={unit} onChange={e => setUnit(e.target.value)} placeholder="sak, kg, m"
-                style={{ width: "100%", padding: "9px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                style={{ width: "100%", padding: "8px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
             </div>
             <div>
               <label htmlFor="unit-price" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Harga Satuan <span style={{ color: C.red }}>*</span></label>
               <div style={{ position: "relative" }}>
                 <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: C.muted }}>Rp</span>
                 <input id="unit-price" type="number" min={0} value={unitPrice} onChange={e => setUnitPrice(e.target.value)} required
-                  style={{ width: "100%", padding: "9px 12px 9px 30px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                  style={{ width: "100%", padding: "8px 12px 8px 32px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
               </div>
             </div>
           </div>
 
           {/* Total preview */}
           {total > 0 && (
-            <div style={{ padding: "10px 14px", borderRadius: 8, background: "var(--surface-subtle)", border: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between" }}>
+            <div style={{ padding: "8px 12px", borderRadius: 6, background: "var(--surface-subtle)", border: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between" }}>
               <span style={{ fontSize: 12, color: C.mid }}>Total</span>
               <span style={{ fontSize: 15, fontWeight: 800, color: C.text, fontFamily: "var(--font-display)" }}>{fmt(total)}</span>
             </div>
@@ -1388,7 +1478,7 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
             <div>
               <label htmlFor="vendor-name" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Nama Toko/Supplier</label>
               <input id="vendor-name" type="text" value={vendorName} onChange={e => setVendorName(e.target.value)} placeholder="Toko Bangunan Maju"
-                style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
             </div>
             <div>
               <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Foto Nota</label>
@@ -1398,14 +1488,14 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
                 setReceiptFile(f);
               }} />
               {receiptFile ? (
-                <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 12px", borderRadius: 8, background: C.greenBg, border: `1px solid ${C.greenBorder}` }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 6, background: C.greenBg, border: `1px solid ${C.greenBorder}` }}>
                   <FileText size={14} color={C.green} />
                   <span style={{ fontSize: 11, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{receiptFile.name}</span>
                   <button type="button" aria-label="Buang nota yang dipilih" onClick={() => setReceiptFile(null)} style={{ background: "transparent", border: "none", cursor: "pointer", color: C.red, flexShrink: 0 }}><X size={12} /></button>
                 </div>
               ) : (
                 <button type="button" onClick={() => fileRef.current?.click()}
-                  style={{ width: "100%", padding: "9px 12px", border: `2px dashed ${C.border}`, borderRadius: 8, background: "#FAFAFA", color: C.mid, fontSize: 11, cursor: "pointer", textAlign: "center", boxSizing: "border-box" }}>
+                  style={{ width: "100%", padding: "8px 12px", border: `2px dashed ${C.border}`, borderRadius: 6, background: "var(--surface-subtle)", color: C.mid, fontSize: 11, cursor: "pointer", textAlign: "center", boxSizing: "border-box" }}>
                   Upload nota
                 </button>
               )}
@@ -1422,20 +1512,20 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
             <label htmlFor="catatan-pengeluaran" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Catatan</label>
             <textarea id="catatan-pengeluaran" value={notes} onChange={e => setNotes(e.target.value)} rows={2}
               placeholder="Misal: pembelian tambahan karena volume di lapangan bertambah"
-              style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", resize: "vertical", boxSizing: "border-box", fontFamily: "inherit" }} />
+              style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", resize: "vertical", boxSizing: "border-box", fontFamily: "inherit" }} />
           </div>
 
-          {error && <div style={{ padding: "10px 14px", borderRadius: 8, background: C.redBg, border: `1px solid ${C.redBorder}`, fontSize: 13, color: C.red }}>{error}</div>}
+          {error && <div style={{ padding: "8px 12px", borderRadius: 6, background: C.redBg, border: `1px solid ${C.redBorder}`, fontSize: 13, color: C.red }}>{error}</div>}
 
-          {hasPermission("cash:expense:approve") && (
-            <div style={{ padding: "10px 14px", borderRadius: 8, background: C.greenBg, border: `1px solid ${C.greenBorder}`, fontSize: 12, color: C.green }}>
+          {bolehApprove && (
+            <div style={{ padding: "8px 12px", borderRadius: 6, background: C.greenBg, border: `1px solid ${C.greenBorder}`, fontSize: 12, color: C.green }}>
               ✓ Pengeluaran akan langsung disetujui (saldo kas kecil berkurang otomatis)
             </div>
           )}
 
-          <div style={{ display: "flex", gap: 10 }}>
-            <button type="button" onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: 13, cursor: "pointer" }}>Batal</button>
-            <button type="submit" disabled={loading} style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: loading ? "#94A3B8" : C.red, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer" }}>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" onClick={onClose} style={{ flex: 1, padding: "8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: 13, cursor: "pointer" }}>Batal</button>
+            <button type="submit" disabled={loading} style={{ flex: 2, padding: "8px", borderRadius: 6, border: "none", background: loading ? "var(--text-muted)" : C.red, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer" }}>
               {loading ? "Menyimpan..." : "Catat Pengeluaran"}
             </button>
           </div>

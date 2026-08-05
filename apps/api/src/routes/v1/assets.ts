@@ -102,12 +102,45 @@ export default async function assetRoutes(app: FastifyInstance) {
       const baris = (data ?? []) as unknown as BarisAset[]
 
       // Akumulasi penyusutan diambil dari LOG, bukan dihitung ulang.
-      const { data: logs } = await request.db!
-        .from('asset_depreciation_logs')
-        .select('asset_id, depreciation_amount, book_value_after, period_year, period_month')
+      //
+      // ⚠️ `asset_depreciation_logs` kategori C — mewarisi tenancy lewat
+      // `asset_id`, jadi `db.from()` MENOLAKNYA. Penjaga itu benar: tanpa
+      // saringan, akumulasi penyusutan ikut menghitung aset perusahaan lain,
+      // dan angkanya tetap terlihat masuk akal.
+      //
+      // Saringannya diambil dari `baris` yang SUDAH tersaring tenant di atas
+      // — tak perlu query tambahan, dan tak mungkin menyimpang dari daftar
+      // aset yang sedang ditampilkan.
+      //
+      // Daftar kosong berarti tenant ini belum punya aset sama sekali;
+      // `.in()` dengan array kosong menghasilkan nol baris, yang memang benar.
+      // `db.unsafe()`, bukan `supabase` mentah: keduanya melewati scoping
+      // otomatis, tapi yang ini MENUNTUT alasan tertulis dan mencatatnya —
+      // jadi saat audit tenancy berikutnya, penyaringan manual di bawah bisa
+      // ditemukan dan diperiksa, bukan tersamar sebagai query biasa.
+      const idAset = baris.map((b) => b.id)
+      const { data: logs, error: logsErr } = idAset.length
+        ? await request.db!
+            .unsafe(
+              'asset_depreciation_logs',
+              'kategori C lewat asset_id; disaring .in() dengan id aset yang SUDAH tersaring tenant di query sebelumnya',
+            )
+            .select('asset_id, depreciation_amount, book_value_after, period_year, period_month')
+            .in('asset_id', idAset)
+        : { data: [] as Array<Record<string, unknown>>, error: null }
+
+      // Galat DIPERIKSA, bukan dijadikan nol baris. Akumulasi penyusutan
+      // yang gagal dimuat membuat setiap aset tampil dengan nilai buku PENUH
+      // — seolah belum pernah disusutkan sama sekali. Angka itu terlihat
+      // masuk akal dan salah, kelas cacat yang sama dengan kurva-s.ts yang
+      // kehilangan Rp 631,7 juta selama berbulan-bulan.
+      if (logsErr) {
+        request.log.error({ err: logsErr }, 'gagal memuat log penyusutan aset')
+        return reply.status(500).send({ error: 'Gagal memuat akumulasi penyusutan.' })
+      }
 
       const akum = new Map<string, { total: number; buku: number; periode: number }>()
-      for (const l of (logs ?? []) as Array<Record<string, unknown>>) {
+      for (const l of logs as Array<Record<string, unknown>>) {
         const id = String(l.asset_id)
         const p = Number(l.period_year) * 12 + Number(l.period_month)
         const k = akum.get(id)

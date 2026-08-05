@@ -5,15 +5,7 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { MapPin, Calendar, ChevronRight, TrendingUp, AlertCircle } from "lucide-react";
 
-const C = {
-  navy: "var(--navy)", navyLight: "var(--navy-light)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)", bg: "var(--bg)", surface: "var(--surface)",
-  green: "var(--success)", greenBg: "var(--success-bg)",
-  yellow: "var(--warning)", yellowBg: "var(--warning-bg)",
-  red: "var(--danger)", redBg: "var(--danger-bg)",
-  blue: "var(--info)", blueBg: "var(--info-bg)",
-};
+import { C } from "@/lib/warna-ui";
 
 function fmt(n: number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
@@ -54,7 +46,7 @@ export default function PMProyekPage() {
           <button
             key={s}
             onClick={() => setFilter(s)}
-            style={{ padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: "pointer", border: `1px solid ${filter === s ? C.navy : C.border}`, background: filter === s ? C.navyLight : "var(--surface)", color: filter === s ? C.navy : C.mid }}
+            style={{ padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: "pointer", border: `1px solid ${filter === s ? C.navy : C.border}`, background: filter === s ? C.navyLight : "var(--surface)", color: filter === s ? C.navy : C.mid }}
           >
             {s === "all" ? "Semua" : STATUS_META[s]?.label ?? s}
           </button>
@@ -64,19 +56,19 @@ export default function PMProyekPage() {
       {loading && <div style={{ textAlign: "center", padding: 60, color: C.mid }}>Memuat proyek...</div>}
 
       {!loading && filtered.length === 0 && (
-        <div style={{ background: C.surface, borderRadius: 12, padding: 48, border: `1px solid ${C.border}`, textAlign: "center" }}>
+        <div style={{ background: C.surface, borderRadius: 10, padding: 48, border: `1px solid ${C.border}`, textAlign: "center" }}>
           <AlertCircle size={32} color={C.muted} style={{ marginBottom: 8 }} />
-          <div style={{ fontSize: 14, color: C.mid }}>Belum ada proyek</div>
+          <div style={{ fontSize: 13, color: C.mid }}>Belum ada proyek</div>
         </div>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {filtered.map((p) => {
           const meta = STATUS_META[p.status] ?? STATUS_META.planning;
           const isLate = p.status === "active" && p.end_date && new Date(p.end_date) < new Date();
           return (
             <Link key={p.id} href={`/pm-portal/proyek/${p.id}`} style={{ textDecoration: "none" }}>
-              <div style={{ background: C.surface, borderRadius: 12, padding: "16px 20px", border: `1px solid ${isLate ? C.red + "40" : C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)", cursor: "pointer" }}>
+              <div style={{ background: C.surface, borderRadius: 10, padding: "16px 20px", border: `1px solid ${isLate ? C.red + "40" : C.border}`, boxShadow: "var(--naik-1)", cursor: "pointer" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
@@ -105,8 +97,8 @@ export default function PMProyekPage() {
                           </div>
                           <span style={{ fontSize: 12, fontWeight: 700, color: C.navy }}>{p.progress_pct ?? 0}%</span>
                         </div>
-                        <div style={{ height: 5, background: "var(--border)", borderRadius: 3, overflow: "hidden" }}>
-                          <div style={{ height: "100%", borderRadius: 3, width: `${p.progress_pct ?? 0}%`, background: isLate ? C.red : C.navy, transition: "width 0.5s" }} />
+                        <div style={{ height: 5, background: "var(--border)", borderRadius: 0, overflow: "hidden" }}>
+                          <div style={{ height: "100%", borderRadius: 0, width: `${p.progress_pct ?? 0}%`, background: isLate ? C.red : C.navy, transition: "width 0.5s" }} />
                         </div>
                       </>
                     )}

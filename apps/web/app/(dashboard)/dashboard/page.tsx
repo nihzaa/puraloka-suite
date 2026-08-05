@@ -5,6 +5,7 @@ import { dapatDitekan } from "@/lib/dapat-ditekan";
 import { useEffect, useReducer, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, getStoredUser } from "@/lib/api";
+import { KartuKPI, Kosong } from "@/components/ui-dasar";
 import {
   AreaChart, Area, PieChart, Pie, Cell,
   XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -40,7 +41,17 @@ interface Invoice {
 }
 interface Kasbon {
   id: string; amount: number; kasbon_date: string; purpose: string; status: string;
-  project?: { id: string; name: string } | null;
+  /** Peminta kasbon — `requested_by` NOT NULL, jadi selalu ada. */
+  pemohon?: { id: string; name: string } | null;
+  /**
+   * Proyek dari kolom `project_id` langsung, bukan lewat work scope.
+   *
+   * Sebelumnya bernama `project?` — field yang API TIDAK PERNAH kirim,
+   * jadi cadangan `?? k.project?.name` selalu `undefined` dan tak pernah
+   * menolong. Cadangan yang tak pernah jalan lebih buruk daripada tak
+   * ada: ia membuat kode terlihat sudah menangani kasus itu.
+   */
+  proyek_langsung?: { id: string; name: string } | null;
   work_scopes: {
     mandor_assignments: {
       mandor: { name: string } | null;
@@ -84,25 +95,7 @@ const daysUntil = (d: string) =>
 
 // ─── Design tokens ─────────────────────────────────────────────────────────────
 
-const C = {
-  navy:        "var(--navy)",
-  navyLight:   "var(--navy-light)",
-  text:        "var(--text-primary)",
-  mid:         "var(--text-secondary)",
-  muted:       "var(--text-muted)",
-  border:      "var(--border)",
-  surface:     "var(--surface)",
-  green:       "var(--success)",
-  greenBg:     "var(--success-bg)",
-  red:         "var(--danger)",
-  redBg:       "var(--danger-bg)",
-  redBorder:   "var(--danger-border)",
-  yellow:      "var(--warning)",
-  yellowBg:    "var(--warning-bg)",
-  yellowBorder:"var(--warning-border)",
-  blue:        "var(--info)",
-  blueBg:      "var(--info-bg)",
-};
+import { C } from "@/lib/warna-ui";
 
 const STATUS_COLOR: Record<string, string> = {
   active: C.navy, completed: C.green, on_hold: C.yellow,
@@ -119,8 +112,8 @@ const PURPOSE_LABEL: Record<string, string> = {
 
 const ttStyle: React.CSSProperties = {
   background: "var(--surface)", border: "1px solid var(--border)",
-  borderRadius: 8, color: "var(--text-primary)", fontSize: 12,
-  boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+  borderRadius: 6, color: "var(--text-primary)", fontSize: 12,
+  boxShadow: "var(--naik-2)",
 };
 
 // ─── Primitives ────────────────────────────────────────────────────────────────
@@ -128,7 +121,7 @@ const ttStyle: React.CSSProperties = {
 function Skeleton({ h = 20, w = "100%" }: { h?: number; w?: string | number }) {
   return (
     <div style={{
-      height: h, width: w, borderRadius: 8,
+      height: h, width: w, borderRadius: 6,
       background: "linear-gradient(90deg, var(--surface-hover) 0%, var(--border) 50%, var(--surface-hover) 100%)",
       backgroundSize: "200% 100%",
       animation: "shimmer 1.5s ease-in-out infinite",
@@ -143,10 +136,10 @@ function SectionHeader({
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ width: 3, height: 16, background: C.navy, borderRadius: 2, flexShrink: 0 }} />
-        <h2 style={{ fontSize: 14, fontWeight: 600, color: C.text, margin: 0 }}>{title}</h2>
+        <span style={{ width: 3, height: 16, background: C.navy, borderRadius: 0, flexShrink: 0 }} />
+        <h2 style={{ fontSize: 13, fontWeight: 600, color: C.text, margin: 0 }}>{title}</h2>
         {count !== undefined && count > 0 && (
-          <span style={{ fontSize: 11, fontWeight: 700, background: C.navy, color: "#fff", borderRadius: 99, padding: "1px 7px" }}>{count}</span>
+          <span style={{ fontSize: 11, fontWeight: 700, background: C.navy, color: "#fff", borderRadius: 99, padding: "0px 6px" }}>{count}</span>
         )}
       </div>
       {linkHref && linkLabel && (
@@ -161,7 +154,14 @@ function SectionHeader({
   );
 }
 
-function ProgressBar({ pct, color = "linear-gradient(90deg,var(--navy),var(--navy-mid))" }: { pct: number; color?: string }) {
+/**
+ * Batang progres.
+ *
+ * Isian bergradasi PEKAT→TERANG searah pertumbuhan (R-012): mata mengikuti
+ * perjalanannya, bukan sekadar membaca panjangnya. Arahnya sama dengan donat
+ * dan grafik lain, jadi pemakai belajar membacanya sekali.
+ */
+function ProgressBar({ pct, color = "var(--grad-aksen)" }: { pct: number; color?: string }) {
   return (
     <div style={{ height: 6, background: "var(--surface-hover)", borderRadius: 99, overflow: "hidden" }}>
       <div style={{ height: "100%", width: `${Math.min(pct, 100)}%`, background: color, borderRadius: 99, transition: "width 0.5s cubic-bezier(0.16,1,0.3,1)" }} />
@@ -231,39 +231,62 @@ function DashboardContent() {
 
   // ── Widget nodes ─────────────────────────────────────────────────────────────
 
+  // ── KPI — arah visual 2026 (R-012) ────────────────────────────────────────
+  //
+  // Empat kartu, dan HANYA SATU bergradasi. Yang disorot dipilih dinamis:
+  // kalau ada invoice lewat jatuh tempo, itulah yang paling menentukan hari
+  // ini; kalau tidak, kas bersih yang menonjol.
+  //
+  // Kalau keempatnya bergradasi, tak ada yang menonjol — dan halaman kembali
+  // monoton dengan warna yang berbeda. Itu justru yang sedang diperbaiki.
+  const adaOverdue = (alerts?.invoice_overdue ?? 0) > 0;
+  const kasBersih = data?.kpis.net_cash_estimate ?? 0;
+
+  // Tren 8 minggu dari data yang SUDAH ADA — tak ada endpoint baru.
+  const sparkMasuk = (data?.cashflow_8w ?? []).map((w) => w.income);
+  const sparkBersih = (data?.cashflow_8w ?? []).map((w) => w.income - w.expense);
+
   const kpiWidget = (
-    <div style={{ padding: "16px 20px", display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, height: "100%", alignContent: "start" }}>
-      <KPICard
-        icon={<Building2 size={17} />}
-        label="Proyek Aktif"
-        value={loading ? null : String(data?.kpis.active_projects ?? 0)}
-        sub="sedang berjalan"
-        accent={C.navy}
+    <div style={{
+      padding: "var(--pad-kartu-lega)",
+      display: "grid", gap: "var(--gap-grid)",
+      gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+      height: "100%", alignContent: "start",
+    }}>
+      <KartuKPI
+        label="Proyek aktif"
+        nilai={loading ? "—" : String(data?.kpis.active_projects ?? 0)}
+        nilaiAngka={loading ? undefined : data?.kpis.active_projects ?? 0}
+        keterangan="sedang berjalan"
+        ikon={<Building2 size={15} />}
         onClick={() => router.push("/proyek")}
       />
-      <KPICard
-        icon={<TrendingUp size={17} />}
-        label="Nilai Kontrak"
-        value={loading ? null : `Rp ${fmtShort(data?.kpis.total_contract_value ?? 0)}`}
-        sub={PERIOD_LABEL[period]}
-        accent={C.text}
+      <KartuKPI
+        label="Nilai kontrak"
+        nilai={loading ? "—" : `Rp ${fmtShort(data?.kpis.total_contract_value ?? 0)}`}
+        keterangan={PERIOD_LABEL[period]}
+        ikon={<TrendingUp size={15} />}
         onClick={() => router.push("/proyek")}
       />
-      <KPICard
-        icon={<FileText size={17} />}
-        label="Invoice Belum Lunas"
-        value={loading ? null : `Rp ${fmtShort(data?.kpis.invoice_outstanding ?? 0)}`}
-        sub={alerts?.invoice_overdue ? `${alerts.invoice_overdue} overdue` : "semua on time"}
-        accent={alerts?.invoice_overdue ? C.yellow : C.green}
+      <KartuKPI
+        label="Invoice belum lunas"
+        nilai={loading ? "—" : `Rp ${fmtShort(data?.kpis.invoice_outstanding ?? 0)}`}
+        keterangan={adaOverdue
+          ? `${alerts!.invoice_overdue} lewat jatuh tempo`
+          : "semua masih dalam tenggat"}
+        ikon={<FileText size={15} />}
+        spark={sparkMasuk.length > 1 ? sparkMasuk : undefined}
+        sorot={adaOverdue}
         onClick={() => router.push("/keuangan")}
       />
-      <KPICard
-        icon={<BarChart2 size={17} />}
-        label="Estimasi Kas Bersih"
-        value={loading ? null : `Rp ${fmtShort(Math.abs(data?.kpis.net_cash_estimate ?? 0))}`}
-        sub={(data?.kpis.net_cash_estimate ?? 0) >= 0 ? "surplus" : "defisit"}
-        accent={(data?.kpis.net_cash_estimate ?? 0) >= 0 ? C.green : C.red}
-        prefix={(data?.kpis.net_cash_estimate ?? 0) < 0 ? "−" : undefined}
+      <KartuKPI
+        label="Estimasi kas bersih"
+        nilai={loading ? "—" : `Rp ${fmtShort(Math.abs(kasBersih))}`}
+        keterangan={kasBersih >= 0 ? "surplus" : "defisit"}
+        ikon={<BarChart2 size={15} />}
+        spark={sparkBersih.length > 1 ? sparkBersih : undefined}
+        // Disorot hanya bila TAK ada yang lebih mendesak — satu sorot per layar.
+        sorot={!adaOverdue}
         onClick={() => router.push("/kas")}
       />
     </div>
@@ -271,9 +294,15 @@ function DashboardContent() {
 
   const cashflowWidget = (
     <div style={{ padding: "20px 20px 16px", height: "100%", display: "flex", flexDirection: "column" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-        <SectionHeader title="Arus Kas" linkLabel="Lihat detail" linkHref="/kas" />
-        <span style={{ fontSize: 11, color: C.muted }}>{PERIOD_LABEL[period]}</span>
+      {/* `SectionHeader` mengatur jaraknya sendiri lewat `space-between`,
+          tapi di sini ia jadi anak flex yang menyusut ke lebar isinya —
+          sehingga "Arus Kas" dan "Lihat detail" menempel tanpa spasi.
+          `flex: 1` mengembalikan ruang yang dibutuhkannya. */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 14 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <SectionHeader title="Arus Kas" linkLabel="Lihat detail" linkHref="/kas" />
+        </div>
+        <span style={{ fontSize: 11, color: C.muted, flexShrink: 0 }}>{PERIOD_LABEL[period]}</span>
       </div>
       <div style={{ display: "flex", gap: 16, marginBottom: 12 }}>
         <LegendDot color={C.navy} label="Pemasukan" />
@@ -283,25 +312,43 @@ function DashboardContent() {
         <ResponsiveContainer width="100%" height={200}>
           <AreaChart data={data?.cashflow_8w ?? []} margin={{ top: 2, right: 4, bottom: 0, left: 0 }}>
             <defs>
+              {/* ── Gradasi area (R-012) ────────────────────────────────
+                  Sebelumnya opacity 0,12 → 0: nyaris tak terlihat, jadi
+                  garisnya melayang tanpa bobot. Referensi memakai isian
+                  yang jelas pekat di puncak lalu memudar — itu yang membuat
+                  "berapa banyak" terbaca dari LUASNYA, bukan hanya dari
+                  ketinggian garisnya.
+
+                  Tetap memudar ke 0 di dasar supaya garis kisi di belakang
+                  tak tertutup. */}
               <linearGradient id="ig" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor={C.navy} stopOpacity={0.12} />
-                <stop offset="95%" stopColor={C.navy} stopOpacity={0} />
+                <stop offset="0%"  stopColor="var(--aksen)" stopOpacity={0.42} />
+                <stop offset="55%" stopColor="var(--aksen)" stopOpacity={0.14} />
+                <stop offset="100%" stopColor="var(--aksen)" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="eg" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor={C.red} stopOpacity={0.08} />
-                <stop offset="95%" stopColor={C.red} stopOpacity={0} />
+                <stop offset="0%"  stopColor={C.red} stopOpacity={0.26} />
+                <stop offset="60%" stopColor={C.red} stopOpacity={0.07} />
+                <stop offset="100%" stopColor={C.red} stopOpacity={0} />
+              </linearGradient>
+              {/* Garis pemasukan ikut bergradasi mendatar — pekat di kiri
+                  (masa lalu) ke terang di kanan (terkini), searah dengan
+                  cara orang membaca waktu. */}
+              <linearGradient id="garis-masuk" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%"   stopColor="var(--aksen-pekat)" />
+                <stop offset="100%" stopColor="var(--aksen-terang)" />
               </linearGradient>
             </defs>
             <XAxis dataKey="week_label" stroke="transparent" tick={{ fill: "var(--text-muted)", fontSize: 10 }} axisLine={false} tickLine={false} />
             <YAxis stroke="transparent" tick={{ fill: "var(--text-muted)", fontSize: 10 }} tickFormatter={v => fmtShort(v)} width={44} axisLine={false} tickLine={false} />
             <Tooltip contentStyle={ttStyle} formatter={((v: number, name: string) => [fmt(v), name === "income" ? "Pemasukan" : "Pengeluaran"]) as never} />
-            <Area type="monotone" dataKey="income"  stroke={C.navy} strokeWidth={2} fill="url(#ig)" dot={false} />
+            <Area type="monotone" dataKey="income"  stroke="url(#garis-masuk)" strokeWidth={2.5} fill="url(#ig)" dot={false} />
             <Area type="monotone" dataKey="expense" stroke={C.red}  strokeWidth={2} fill="url(#eg)" dot={false} />
           </AreaChart>
         </ResponsiveContainer>
       )}
       {data && (
-        <div style={{ display: "flex", gap: 10, marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+        <div style={{ display: "flex", gap: 8, marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
           <MiniMetric label="Pemasukan" value={`Rp ${fmtShort(data.kpis.income_this_month)}`} color={C.navy} />
           <MiniMetric label="Pengeluaran est." value={`Rp ${fmtShort(data.kpis.kasbon_active_total)}`} color={C.red} />
           <MiniMetric
@@ -315,16 +362,38 @@ function DashboardContent() {
   );
 
   const statusWidget = (
-    <div style={{ padding: 20, height: "100%", display: "flex", flexDirection: "column", gap: 14 }}>
+    <div style={{ padding: 20, height: "100%", display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
         <SectionHeader title="Status Proyek" />
         {loading ? <Skeleton h={120} /> : (
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <div style={{ position: "relative", flexShrink: 0 }}>
               <PieChart width={110} height={110}>
+                {/* ── Gradasi HANYA pada irisan "aktif" (R-012) ───────────
+                    Pie ini menampilkan STATUS, dan status memang harus
+                    berbeda warna — menggradasikan semuanya justru menghapus
+                    maknanya: hijau-selesai jadi tak terbedakan dari
+                    kuning-ditunda.
+
+                    Yang bergradasi hanya irisan yang paling menentukan
+                    (proyek AKTIF), persis seperti satu batang tersorot di
+                    grafik batang. Itu yang membuatnya menonjol tanpa
+                    merusak kode warna status. */}
+                <defs>
+                  <linearGradient id="pie-aktif" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%"   stopColor="var(--aksen-pekat)" />
+                    <stop offset="60%"  stopColor="var(--aksen)" />
+                    <stop offset="100%" stopColor="var(--aksen-terang)" />
+                  </linearGradient>
+                </defs>
                 <Pie data={data?.status_distribution ?? []} dataKey="count" cx={55} cy={55} innerRadius={34} outerRadius={52} paddingAngle={3} strokeWidth={0}>
                   {(data?.status_distribution ?? []).map((e, i) => (
-                    <Cell key={i} fill={STATUS_COLOR[e.status] ?? C.muted} />
+                    <Cell
+                      key={i}
+                      fill={e.status === "active"
+                        ? "url(#pie-aktif)"
+                        : STATUS_COLOR[e.status] ?? C.muted}
+                    />
                   ))}
                 </Pie>
                 <Tooltip contentStyle={ttStyle} formatter={((v: number) => [v, ""]) as never} />
@@ -333,7 +402,7 @@ function DashboardContent() {
                 <div style={{ fontSize: 20, fontWeight: 800, color: C.text, lineHeight: 1 }}>
                   {(data?.status_distribution ?? []).reduce((s, e) => s + e.count, 0)}
                 </div>
-                <div style={{ fontSize: 9, color: C.muted }}>Proyek</div>
+                <div style={{ fontSize: 10, color: C.muted }}>Proyek</div>
               </div>
             </div>
             <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
@@ -355,9 +424,20 @@ function DashboardContent() {
             {[1,2,3].map(i => <Skeleton key={i} h={36} />)}
           </div>
         ) : !data?.active_progress.length ? (
-          <p style={{ fontSize: 12, color: C.muted }}>Tidak ada proyek aktif.</p>
+          // "Tidak ada proyek aktif." saja ambigu — bisa berarti belum
+          // pernah ada proyek, atau semuanya sudah selesai. Dua keadaan
+          // itu menuntut tindakan yang berlawanan, jadi sebabnya disebut.
+          <Kosong
+            judul="Tidak ada proyek aktif"
+            sebab="Yang dihitung hanya proyek berstatus aktif. Proyek selesai dan ditunda tidak muncul di sini."
+            aksi={
+              <Link href="/proyek" style={{
+                fontSize: 12, fontWeight: 600, color: C.navy, textDecoration: "none",
+              }}>Lihat semua proyek →</Link>
+            }
+          />
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {data.active_progress.slice(0, 5).map(p => {
               const days = p.end_date ? daysUntil(p.end_date) : null;
               const urgent = days !== null && days >= 0 && days <= 7;
@@ -408,7 +488,7 @@ function DashboardContent() {
         </div>
       ) : (
         <div style={{ overflowX: "auto", flex: 1 }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
             <thead>
               <tr style={{ background: "var(--surface-subtle)", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
                 {["Invoice", "Proyek · Klien", "Sisa", "Jatuh Tempo"].map((h, i) => (
@@ -428,13 +508,13 @@ function DashboardContent() {
                     borderLeft: overdue ? `3px solid ${C.red}` : urgent ? `3px solid ${C.yellow}` : "3px solid transparent",
                     borderBottom: "1px solid var(--border)",
                   }}>
-                    <td style={{ padding: "11px 16px", color: C.navy, fontSize: 11, fontWeight: 600 }}>{inv.invoice_number}</td>
-                    <td style={{ padding: "11px 16px" }}>
+                    <td style={{ padding: "12px 16px", color: C.navy, fontSize: 11, fontWeight: 600 }}>{inv.invoice_number}</td>
+                    <td style={{ padding: "12px 16px" }}>
                       <div style={{ color: C.text, fontWeight: 500 }}>{inv.projects?.name ?? "—"}</div>
                       <div style={{ fontSize: 10, color: C.muted }}>{inv.projects?.clients?.contact_person ?? "—"}</div>
                     </td>
-                    <td style={{ padding: "11px 16px", textAlign: "right", color: C.text, fontWeight: 600 }}>{`Rp ${fmtShort(inv.amount_due)}`}</td>
-                    <td style={{ padding: "11px 16px", textAlign: "right" }}>
+                    <td style={{ padding: "12px 16px", textAlign: "right", color: C.text, fontWeight: 600 }}>{`Rp ${fmtShort(inv.amount_due)}`}</td>
+                    <td style={{ padding: "12px 16px", textAlign: "right" }}>
                       <span style={{ fontSize: 11, color: overdue ? C.red : urgent ? C.yellow : C.muted, fontWeight: overdue || urgent ? 600 : 400 }}>
                         {overdue ? `${Math.abs(days)}h lalu` : days === 0 ? "Hari ini" : fmtDate(inv.due_date)}
                       </span>
@@ -445,7 +525,7 @@ function DashboardContent() {
             </tbody>
           </table>
           {data.outstanding_invoices.length > 5 && (
-            <div style={{ padding: "10px 16px", borderTop: "1px solid var(--border)" }}>
+            <div style={{ padding: "8px 16px", borderTop: "1px solid var(--border)" }}>
               <button onClick={() => router.push("/keuangan")} style={{ fontSize: 11, color: C.muted, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
                 +{data.outstanding_invoices.length - 5} invoice lainnya →
               </button>
@@ -461,10 +541,26 @@ function DashboardContent() {
       <SectionHeader title="Milestone Mendatang" linkLabel="Kalender" linkHref="/kalender" />
       {loading ? <Skeleton h={160} /> :
        !data?.upcoming_milestones.length ? (
-        <div style={{ textAlign: "center", padding: "20px 0" }}>
-          <CheckCircle2 size={20} style={{ color: "var(--border)", marginBottom: 6 }} />
-          <p style={{ fontSize: 12, color: C.muted, margin: 0 }}>Tidak ada milestone mendatang.</p>
-        </div>
+        // Jendelanya disebut, dan angkanya DIVERIFIKASI ke query-nya
+        // (`dashboard.ts` — `.lte('target_date', in14DaysStr)`), bukan
+        // ditebak. Draf pertama kalimat ini menulis "30 hari"; itu salah,
+        // dan layar kosong yang menjelaskan dengan angka SALAH lebih
+        // buruk daripada yang tak menjelaskan sama sekali — orang akan
+        // menyimpulkan tak ada tenggat selama sebulan.
+        //
+        // Query-nya juga tak punya `.gte()`, jadi milestone yang sudah
+        // lewat ikut terhitung. Karena itu kalimatnya tidak menjanjikan
+        // "yang terlambat ada di tempat lain".
+        <Kosong
+          ikon={<CheckCircle2 size={20} aria-hidden="true" />}
+          judul="Tidak ada milestone mendatang"
+          sebab="Tak ada milestone belum selesai yang tenggatnya jatuh dalam 14 hari ke depan."
+          aksi={
+            <Link href="/kalender" style={{
+              fontSize: 12, fontWeight: 600, color: C.navy, textDecoration: "none",
+            }}>Buka kalender →</Link>
+          }
+        />
       ) : (
         <div style={{ position: "relative", paddingLeft: 14 }}>
           <div style={{ position: "absolute", left: 3, top: 6, bottom: 0, width: 2, background: "var(--border)" }} />
@@ -476,7 +572,7 @@ function DashboardContent() {
               <Link
                 key={m.id}
                 href={m.projects?.id ? `/proyek/${m.projects.id}#sec-milestone` : "#"}
-                style={{ display: "flex", gap: 10, paddingBottom: 14, cursor: "pointer", color: "inherit", textDecoration: "none" }}
+                style={{ display: "flex", gap: 8, paddingBottom: 14, cursor: "pointer", color: "inherit", textDecoration: "none" }}
               >
                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: c, flexShrink: 0, marginTop: 4, position: "relative", zIndex: 1, border: "2px solid var(--bg)" }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -501,7 +597,7 @@ function DashboardContent() {
       </div>
       {loading ? <div style={{ padding: "0 20px 20px" }}><Skeleton h={100} /></div> : (
         <div style={{ overflowX: "auto", flex: 1 }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
             <thead>
               <tr style={{ background: "var(--surface-subtle)", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
                 {["Mandor", "Proyek", "Tujuan", "Jumlah", "Tgl Ajuan", "Aksi"].map((h, i) => (
@@ -513,16 +609,29 @@ function DashboardContent() {
             </thead>
             <tbody>
               {data!.pending_kasbons.slice(0, 5).map(k => {
-                const mandor  = k.work_scopes?.mandor_assignments?.mandor?.name ?? "—";
-                const project = k.work_scopes?.mandor_assignments?.projects?.name ?? k.project?.name ?? "—";
+                // Kasbon tanpa work scope memutus seluruh rantai
+                // `work_scopes → mandor_assignments`, jadi mandor DAN proyek
+                // sama-sama kosong — dan tombol "Setuju" tetap muncul untuk
+                // pengeluaran yang tak diketahui siapa peminta dan untuk apa.
+                //
+                // Cadangannya dari kolom langsung di `kasbons`: `requested_by`
+                // NOT NULL di skema, `project_id` biasanya terisi. Pemohon
+                // ditandai supaya tak tertukar dengan mandor penerima —
+                // keduanya bisa berbeda orang.
+                const mandor =
+                  k.work_scopes?.mandor_assignments?.mandor?.name ??
+                  (k.pemohon?.name ? `${k.pemohon.name} (pemohon)` : "—");
+                const project =
+                  k.work_scopes?.mandor_assignments?.projects?.name ??
+                  k.proyek_langsung?.name ?? "—";
                 return (
                   <tr key={k.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                    <td style={{ padding: "11px 16px", fontWeight: 500, color: C.text }}>{mandor}</td>
-                    <td style={{ padding: "11px 16px", color: C.mid }}>{project}</td>
-                    <td style={{ padding: "11px 16px", color: C.mid }}>{PURPOSE_LABEL[k.purpose] ?? k.purpose}</td>
-                    <td style={{ padding: "11px 16px", textAlign: "right", color: C.yellow, fontWeight: 700 }}>{`Rp ${fmtShort(k.amount)}`}</td>
-                    <td style={{ padding: "11px 16px", textAlign: "right", color: C.muted }}>{fmtDate(k.kasbon_date)}</td>
-                    <td style={{ padding: "11px 16px", textAlign: "right" }}>
+                    <td style={{ padding: "12px 16px", fontWeight: 500, color: C.text }}>{mandor}</td>
+                    <td style={{ padding: "12px 16px", color: C.mid }}>{project}</td>
+                    <td style={{ padding: "12px 16px", color: C.mid }}>{PURPOSE_LABEL[k.purpose] ?? k.purpose}</td>
+                    <td style={{ padding: "12px 16px", textAlign: "right", color: C.yellow, fontWeight: 700 }}>{`Rp ${fmtShort(k.amount)}`}</td>
+                    <td style={{ padding: "12px 16px", textAlign: "right", color: C.muted }}>{fmtDate(k.kasbon_date)}</td>
+                    <td style={{ padding: "12px 16px", textAlign: "right" }}>
                       <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
                         <ActionBtn
                           disabled={kasbonBusy === k.id}
@@ -546,7 +655,7 @@ function DashboardContent() {
             </tbody>
           </table>
           {data!.pending_kasbons.length > 5 && (
-            <div style={{ padding: "10px 16px", borderTop: "1px solid var(--border)" }}>
+            <div style={{ padding: "8px 16px", borderTop: "1px solid var(--border)" }}>
               <button onClick={() => router.push("/mandor")} style={{ fontSize: 11, color: C.muted, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
                 +{data!.pending_kasbons.length - 5} kasbon lainnya →
               </button>
@@ -598,9 +707,9 @@ function DashboardContent() {
             const active = period === opt.value;
             return (
               <button key={opt.value} onClick={() => setPeriod(opt.value)} style={{
-                padding: "5px 12px", borderRadius: 999, fontSize: 11,
+                padding: "4px 12px", borderRadius: 999, fontSize: 11,
                 fontWeight: active ? 600 : 400,
-                border: active ? "1px solid rgba(0,51,102,0.25)" : "1px solid var(--border)",
+                border: active ? "1px solid color-mix(in srgb, var(--aksen) 35%, transparent)" : "1px solid var(--border)",
                 background: active ? C.navyLight : "var(--surface)",
                 color: active ? C.navy : C.mid,
                 cursor: "pointer", transition: "all 0.12s",
@@ -640,7 +749,7 @@ function DashboardContent() {
       )}
 
       {error && (
-        <div style={{ background: C.redBg, border: `1px solid var(--danger-border)`, borderRadius: 10, padding: "10px 16px", color: C.red, fontSize: 12, marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ background: C.redBg, border: `1px solid var(--danger-border)`, borderRadius: 10, padding: "8px 16px", color: C.red, fontSize: 12, marginBottom: 20, display: "flex", alignItems: "center", gap: 8 }}>
           {error}
           <button onClick={() => fetchData(period)} style={{ color: C.navy, background: "none", border: "none", cursor: "pointer", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 500 }}>
             <RefreshCw size={11} /> Coba lagi
@@ -666,42 +775,10 @@ function DashboardContent() {
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
-function KPICard({ icon, label, value, sub, accent, prefix, onClick }: {
-  icon: React.ReactNode; label: string; value: string | null;
-  sub: string; accent: string; prefix?: string; onClick?: () => void;
-}) {
-  return (
-    // `onClick` OPSIONAL di sini, dan `dapatDitekan` menanganinya dengan benar:
-    // tanpa aksi, seluruh atributnya hilang — jadi kartu yang cuma menampilkan
-    // angka tak ikut jadi perhentian Tab yang tak melakukan apa pun.
-    <div
-      {...dapatDitekan(onClick, `Buka rincian ${label}`)}
-      style={{
-        background: "var(--surface)", border: "1px solid var(--border)",
-        borderRadius: 14, padding: "20px 22px",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-        cursor: onClick ? "pointer" : "default",
-        transition: "all 0.15s",
-        display: "flex", flexDirection: "column", gap: 6,
-      }}
-      onMouseEnter={e => { if (onClick) { e.currentTarget.style.boxShadow = "0 6px 18px rgba(0,51,102,0.10)"; e.currentTarget.style.transform = "translateY(-2px)"; }}}
-      onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.05)"; e.currentTarget.style.transform = "translateY(0)"; }}
-    >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.07em", color: "var(--text-muted)", textTransform: "uppercase" }}>{label}</span>
-        <span style={{ color: "rgba(0,51,102,0.2)" }}>{icon}</span>
-      </div>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 2 }}>
-        {prefix && <span style={{ fontSize: 16, fontWeight: 700, color: accent }}>{prefix}</span>}
-        {value === null
-          ? <Skeleton h={28} w={80} />
-          : <span style={{ fontSize: 28, fontWeight: 800, color: accent, lineHeight: 1, fontFamily: "var(--font-display)" }}>{value}</span>
-        }
-      </div>
-      <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{sub}</span>
-    </div>
-  );
-}
+// KPICard DIHAPUS 2026-08-04 (R-012) — digantikan <KartuKPI> di
+// components/ui-dasar.tsx. Yang berbeda bukan cuma tampilannya: KartuKPI
+// mendukung delta, sparkline, gradasi sorot, dan hitung-naik — dan dipakai
+// bersama SELURUH halaman, bukan hanya dashboard.
 
 function AlertBanner({ children, color, bg, borderColor, onClick, label }: {
   children: React.ReactNode; color: string; bg: string; borderColor: string;
@@ -712,7 +789,7 @@ function AlertBanner({ children, color, bg, borderColor, onClick, label }: {
       {...dapatDitekan(onClick, label ?? "Buka rincian peringatan")}
       style={{
         display: "flex", alignItems: "center", gap: 8,
-        padding: "10px 16px", borderRadius: 8,
+        padding: "8px 16px", borderRadius: 6,
         background: bg, border: `1px solid ${borderColor}`,
         borderLeft: `3px solid ${color}`,
         color, fontSize: 13, fontWeight: 400,
@@ -726,7 +803,7 @@ function AlertBanner({ children, color, bg, borderColor, onClick, label }: {
 
 function LegendDot({ color, label }: { color: string; label: string }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
       <span style={{ width: 6, height: 6, borderRadius: "50%", background: color }} />
       <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{label}</span>
     </div>
@@ -735,7 +812,7 @@ function LegendDot({ color, label }: { color: string; label: string }) {
 
 function MiniMetric({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <div style={{ background: "var(--surface-subtle)", border: "1px solid var(--border)", borderRadius: 8, padding: "7px 12px", flex: 1 }}>
+    <div style={{ background: "var(--surface-subtle)", border: "1px solid var(--border)", borderRadius: 6, padding: "6px 12px", flex: 1 }}>
       <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 3 }}>{label}</div>
       <div style={{ fontSize: 13, fontWeight: 700, color }}>{value}</div>
     </div>
@@ -750,7 +827,7 @@ function ActionBtn({ disabled, bg, color, border, onClick, children }: {
       onClick={onClick} disabled={disabled}
       style={{
         display: "inline-flex", alignItems: "center", gap: 4,
-        padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 500,
+        padding: "4px 8px", borderRadius: 6, fontSize: 11, fontWeight: 500,
         background: bg, color, border: `1px solid ${border}`,
         cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.5 : 1,
       }}
@@ -764,7 +841,7 @@ function TaxCard({ label, value, sub, color, icon }: {
   label: string; value: string | null; sub: string; color: string; icon: React.ReactNode;
 }) {
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "16px 18px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: "16px 16px", boxShadow: "var(--naik-1)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
         <span style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>{label}</span>
         <span style={{ color, opacity: 0.5 }}>{icon}</span>
@@ -786,10 +863,10 @@ function TaxDeadlineBanner() {
   return (
     <div style={{
       background: "var(--warning-bg)", border: "1px solid var(--warning-border)",
-      borderRadius: 8, padding: "8px 14px", display: "flex", alignItems: "center", gap: 8, marginBottom: 10,
+      borderRadius: 6, padding: "8px 12px", display: "flex", alignItems: "center", gap: 8, marginBottom: 10,
     }}>
       <Landmark size={12} style={{ color: "var(--warning)", flexShrink: 0 }} />
-      <span style={{ fontSize: 11, color: "#92400E" }}>
+      <span style={{ fontSize: 11, color: "var(--on-warning-bg)" }}>
         Batas setor PPh Final: <strong style={{ color: "var(--warning)" }}>10 {deadline.toLocaleDateString("id-ID", { month: "long" })}</strong> ({days} hari lagi)
       </span>
     </div>

@@ -11,28 +11,43 @@ import {
   RefreshCw, Landmark, HandCoins, AlertTriangle, Receipt, ShieldAlert,
 } from "lucide-react";
 
-const C = {
-  navy: "var(--navy)", navyLight: "var(--navy-light)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)",
-  red: "var(--danger)", redBg: "var(--danger-bg)", redBorder: "var(--danger-border)",
-  yellow: "var(--warning)", yellowBg: "var(--warning-bg)",
-  blue: "var(--info)", blueBg: "var(--info-bg)", blueBorder: "var(--info-border)",
-  green: "var(--success)", greenBg: "var(--success-bg)",
-};
+import { C } from "@/lib/warna-ui";
 
 const card: React.CSSProperties = {
   background: "var(--surface)", border: "1px solid var(--border)",
-  borderRadius: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+  borderRadius: 14, boxShadow: "var(--naik-1)",
 };
 
-// Ramp urgensi bucket — makin tua umur piutang, makin gelap merahnya.
+/**
+ * Ramp urgensi bucket — makin tua umur piutang, makin gelap merahnya.
+ *
+ * ── Kenapa BUKAN `--data-*`
+ *
+ * Bucket 31–60 hari sempat memakai `var(--data-5)`. Di mode terang itu
+ * oranye dan ramp-nya utuh; di mode gelap `--data-5` adalah `#CBD5E1`,
+ * abu-abu terang — sehingga bucket TENGAH tampil paling pucat di antara
+ * kuning dan merah. Ramp-nya putus tepat di tengah, dan seluruh
+ * Rp 119,6 juta yang jatuh di bucket itu terbaca sebagai keadaan paling
+ * ringan, bukan paling perlu ditagih.
+ *
+ * Sebabnya: `--data-*` adalah deret KATEGORI — lima warna yang dipilih
+ * supaya saling terbedakan, tanpa urutan gawat di antaranya. Mode gelap
+ * sengaja mengorbankan kesetiaan rona demi keterbedaan itu (alasan
+ * lengkap di `globals.css`). Memakainya untuk ramp berarti meminjam
+ * palet yang dirancang untuk tujuan yang berlawanan.
+ *
+ * Token semantik (`--warning`, `--danger`) punya varian gelapnya sendiri
+ * dan mempertahankan MAKNA di kedua mode — itu yang dibutuhkan di sini.
+ */
 const BUCKETS = [
   { key: "current", label: "Belum jatuh tempo", color: "var(--navy)" },
   { key: "d1_30",   label: "1–30 hari",         color: "var(--warning)" },
-  { key: "d31_60",  label: "31–60 hari",        color: "#C2410C" },
+  // Antara kuning dan merah: oranye. `color-mix` menurunkannya dari kedua
+  // token semantik itu, jadi ia ikut berubah sendiri saat mode berganti —
+  // tak ada hex mode-gelap kedua yang bisa lupa diperbarui.
+  { key: "d31_60",  label: "31–60 hari",        color: "color-mix(in srgb, var(--warning) 45%, var(--danger))" },
   { key: "d61_90",  label: "61–90 hari",        color: "var(--danger)" },
-  { key: "d90_plus", label: ">90 hari",         color: "#7F1D1D" },
+  { key: "d90_plus", label: ">90 hari",         color: "color-mix(in srgb, var(--danger) 60%, black)" },
 ] as const;
 type BucketKey = (typeof BUCKETS)[number]["key"];
 
@@ -106,22 +121,22 @@ export default function PiutangPage() {
   const retentionOutstandingTotal = (retention ?? []).reduce((s, r) => s + r.outstanding, 0);
   const dpRemainingTotal = (dp ?? []).reduce((s, r) => s + r.remaining_to_recoup, 0);
 
-  const th: React.CSSProperties = { padding: "9px 14px", fontSize: 11, fontWeight: 700, color: C.mid, textAlign: "left", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" };
-  const td: React.CSSProperties = { padding: "10px 14px", fontSize: 13, color: C.text, borderTop: `1px solid ${C.border}`, whiteSpace: "nowrap" };
+  const th: React.CSSProperties = { padding: "8px 12px", fontSize: 11, fontWeight: 700, color: C.mid, textAlign: "left", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" };
+  const td: React.CSSProperties = { padding: "8px 12px", fontSize: 13, color: C.text, borderTop: `1px solid ${C.border}`, whiteSpace: "nowrap" };
   const sectionTitle: React.CSSProperties = { fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 700, color: C.text, display: "flex", alignItems: "center", gap: 8 };
 
   if (forbidden) {
     return (
       <div style={{ ...card, padding: 40, textAlign: "center", margin: 24 }}>
         <ShieldAlert size={28} style={{ color: C.muted, marginBottom: 10 }} />
-        <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>Butuh akses data finansial</div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Butuh akses data finansial</div>
         <div style={{ fontSize: 13, color: C.mid, marginTop: 4 }}>Halaman ini memerlukan permission finance:view:all. Hubungi admin untuk mendapat akses.</div>
       </div>
     );
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 18, padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
       {/* ── Header ── */}
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div>
@@ -133,20 +148,20 @@ export default function PiutangPage() {
             {aging && <> · per {fmtDate(aging.as_of)}</>}
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ textAlign: "right" }}>
             <div style={{ fontSize: 11, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Total Piutang Berjalan</div>
             <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 800, color: C.navy }}>{aging ? fmt(aging.total_outstanding) : "—"}</div>
           </div>
           <button aria-label="Muat ulang" onClick={load} disabled={loading} title="Muat ulang"
-            style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 13, cursor: "pointer" }}>
+            style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 13, cursor: "pointer" }}>
             <RefreshCw size={14} style={loading ? { animation: "spin 1s linear infinite" } : undefined} /> Muat ulang
           </button>
         </div>
       </div>
 
       {/* ── Spektrum Umur Piutang (signature) ── */}
-      <div style={{ ...card, padding: "18px 20px" }}>
+      <div style={{ ...card, padding: "16px 20px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <div style={sectionTitle}><Receipt size={16} style={{ color: C.navy }} /> Spektrum Umur Piutang</div>
           {overdueTotal > 0 && (
@@ -158,7 +173,7 @@ export default function PiutangPage() {
 
         {aging && aging.total_outstanding > 0 ? (
           <>
-            <div style={{ display: "flex", width: "100%", height: 34, borderRadius: 8, overflow: "hidden", border: `1px solid ${C.border}` }}>
+            <div style={{ display: "flex", width: "100%", height: 34, borderRadius: 6, overflow: "hidden", border: `1px solid ${C.border}` }}>
               {BUCKETS.map(b => {
                 const amount = aging.buckets[b.key];
                 if (amount <= 0) return null;
@@ -178,19 +193,19 @@ export default function PiutangPage() {
                 );
               })}
             </div>
-            <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
               {BUCKETS.map(b => {
                 const amount = aging.buckets[b.key];
                 const selected = bucketFilter === b.key;
                 return (
                   <button key={b.key} onClick={() => setBucketFilter(selected ? null : b.key)}
                     style={{
-                      display: "flex", alignItems: "center", gap: 8, padding: "7px 12px",
-                      borderRadius: 8, cursor: "pointer", fontSize: 12,
+                      display: "flex", alignItems: "center", gap: 8, padding: "6px 12px",
+                      borderRadius: 6, cursor: "pointer", fontSize: 12,
                       border: selected ? `1.5px solid ${b.color}` : `1px solid ${C.border}`,
                       background: selected ? "var(--surface-hover)" : "var(--surface)",
                     }}>
-                    <span style={{ width: 10, height: 10, borderRadius: 3, background: b.color, flexShrink: 0 }} />
+                    <span style={{ width: 10, height: 10, borderRadius: 0, background: b.color, flexShrink: 0 }} />
                     <span style={{ color: C.mid }}>{b.label}</span>
                     <b style={{ color: amount > 0 ? C.text : C.muted, fontFamily: "var(--font-display)" }}>{fmt(amount)}</b>
                   </button>
@@ -207,7 +222,7 @@ export default function PiutangPage() {
 
       {/* ── Tabel invoice terbuka ── */}
       <div style={{ ...card, overflow: "hidden" }}>
-        <div style={{ padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ padding: "12px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={sectionTitle}>
             Invoice Belum Lunas
             {bucketFilter && (
@@ -220,7 +235,8 @@ export default function PiutangPage() {
           <span style={{ fontSize: 12, color: C.muted }}>{filteredRows.length} invoice</span>
         </div>
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
+            <caption className="sr-only">Invoice belum lunas, diurutkan dari yang paling tua. Kolom Umur dihitung dari jatuh tempo, bukan dari tanggal terbit.</caption>
             <thead><tr style={{ background: "var(--bg)" }}>
               <th style={th}>Invoice</th><th style={th}>Proyek</th><th style={th}>Klien</th>
               <th style={th}>Jatuh Tempo</th><th style={{ ...th, textAlign: "right" }}>Umur</th>
@@ -243,7 +259,7 @@ export default function PiutangPage() {
                     </td>
                     <td style={td}>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12 }}>
-                        <span style={{ width: 9, height: 9, borderRadius: 3, background: b.color }} />{b.label}
+                        <span style={{ width: 9, height: 9, borderRadius: 0, background: b.color }} />{b.label}
                       </span>
                     </td>
                     <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{fmt(r.amount_due)}</td>
@@ -251,7 +267,7 @@ export default function PiutangPage() {
                 );
               })}
               {!loading && filteredRows.length === 0 && (
-                <tr><td colSpan={7} style={{ ...td, textAlign: "center", color: C.mid, padding: "26px 14px" }}>
+                <tr><td colSpan={7} style={{ ...td, textAlign: "center", color: C.mid, padding: "24px 12px" }}>
                   {bucketFilter ? "Tidak ada invoice di bucket ini." : "Tidak ada invoice terbuka."}
                 </td></tr>
               )}
@@ -261,15 +277,16 @@ export default function PiutangPage() {
       </div>
 
       {/* ── Register Retensi + Register Uang Muka ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))", gap: 18 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))", gap: 16 }}>
         {/* Retensi */}
         <div style={{ ...card, overflow: "hidden" }}>
-          <div style={{ padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ padding: "12px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={sectionTitle}><Landmark size={16} style={{ color: C.navy }} /> Register Retensi</div>
             <div style={{ fontSize: 12, color: C.mid }}>Tertahan: <b style={{ color: C.text }}>{fmt(retentionOutstandingTotal)}</b></div>
           </div>
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
+              <caption className="sr-only">Retensi per proyek: yang ditahan, yang sudah dicairkan, dan sisanya. Estimasi cair dihitung dari tanggal selesai proyek ditambah hari retensi termin.</caption>
               <thead><tr style={{ background: "var(--bg)" }}>
                 <th style={th}>Proyek</th><th style={{ ...th, textAlign: "right" }}>Ditahan</th>
                 <th style={{ ...th, textAlign: "right" }}>Dicairkan</th><th style={{ ...th, textAlign: "right" }}>Sisa</th>
@@ -295,8 +312,15 @@ export default function PiutangPage() {
                     </td>
                   </tr>
                 ))}
+                {/* `whiteSpace: normal` + `maxWidth: 0` — sama seperti sel
+                    kembarnya di Register Uang Muka: `td` bersama memakai
+                    `nowrap` supaya kolom angka tak patah, tapi kalimat
+                    penjelas lalu melebarkan tabel dan ujungnya terpotong. */}
                 {!loading && (retention ?? []).length === 0 && (
-                  <tr><td colSpan={5} style={{ ...td, textAlign: "center", color: C.mid, padding: "26px 14px" }}>
+                  <tr><td colSpan={5} style={{
+                    ...td, textAlign: "center", color: C.mid,
+                    padding: "24px 12px", whiteSpace: "normal", maxWidth: 0,
+                  }}>
                     Belum ada retensi tercatat. Retensi muncul saat invoice memakai potongan retensi.
                   </td></tr>
                 )}
@@ -310,12 +334,13 @@ export default function PiutangPage() {
 
         {/* Uang Muka */}
         <div style={{ ...card, overflow: "hidden" }}>
-          <div style={{ padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ padding: "12px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={sectionTitle}><HandCoins size={16} style={{ color: C.navy }} /> Register Uang Muka (DP)</div>
             <div style={{ fontSize: 12, color: C.mid }}>Belum dipotong: <b style={{ color: C.text }}>{fmt(dpRemainingTotal)}</b></div>
           </div>
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
+              <caption className="sr-only">Uang muka per proyek: yang sudah dibayar klien dan berapa yang sudah dipotong dari invoice termin berikutnya.</caption>
               <thead><tr style={{ background: "var(--bg)" }}>
                 <th style={th}>Proyek</th><th style={{ ...th, textAlign: "right" }}>DP Terbayar</th>
                 <th style={{ ...th, textAlign: "right" }}>Sudah Dipotong</th><th style={th}>Progres Pemotongan</th>
@@ -333,8 +358,8 @@ export default function PiutangPage() {
                       <td style={{ ...td, textAlign: "right" }}>{fmt(r.recouped)}</td>
                       <td style={{ ...td, minWidth: 160 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <div style={{ flex: 1, height: 7, borderRadius: 4, background: "var(--surface-hover)", overflow: "hidden" }}>
-                            <div style={{ width: `${pct}%`, height: "100%", background: pct >= 100 ? C.green : C.navy, borderRadius: 4 }} />
+                          <div style={{ flex: 1, height: 7, borderRadius: 6, background: "var(--surface-hover)", overflow: "hidden" }}>
+                            <div style={{ width: `${pct}%`, height: "100%", background: pct >= 100 ? C.green : C.navy, borderRadius: 6 }} />
                           </div>
                           <span style={{ fontSize: 11, fontWeight: 700, color: r.remaining_to_recoup > 0 ? C.text : C.green, whiteSpace: "nowrap" }}>
                             {r.remaining_to_recoup > 0 ? `sisa ${fmt(r.remaining_to_recoup)}` : "selesai"}
@@ -344,8 +369,16 @@ export default function PiutangPage() {
                     </tr>
                   );
                 })}
+                {/* `whiteSpace: normal` — `td` bersama memakai `nowrap`
+                    supaya kolom angka tak patah, tapi kalimat penjelas
+                    sepanjang ini lalu memaksa lebar tabel melebihi wadahnya
+                    dan ujungnya terpotong tanpa scrollbar. */}
                 {!loading && (dp ?? []).length === 0 && (
-                  <tr><td colSpan={4} style={{ ...td, textAlign: "center", color: C.mid, padding: "26px 14px" }}>
+                  <tr><td colSpan={4} style={{
+                    ...td, textAlign: "center", color: C.mid,
+                    padding: "24px 12px", whiteSpace: "normal",
+                    maxWidth: 0,   // paksa sel menghormati lebar tabel
+                  }}>
                     Belum ada uang muka tercatat. DP muncul saat termin on_sign ditagih, dan dipotong lewat form invoice termin.
                   </td></tr>
                 )}

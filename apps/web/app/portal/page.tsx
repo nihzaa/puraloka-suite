@@ -5,15 +5,7 @@ import Link from "next/link";
 import { api, getStoredUser } from "@/lib/api";
 import { MapPin, Calendar, ChevronRight, TrendingUp, AlertCircle } from "lucide-react";
 
-const C = {
-  navy: "var(--navy)", navyLight: "var(--navy-light)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)", bg: "var(--bg)", surface: "var(--surface)",
-  green: "var(--success)", greenBg: "var(--success-bg)",
-  yellow: "var(--warning)", yellowBg: "var(--warning-bg)",
-  red: "var(--danger)", redBg: "var(--danger-bg)",
-  blue: "var(--info)", blueBg: "var(--info-bg)",
-};
+import { C } from "@/lib/warna-ui";
 
 interface Project {
   id: string;
@@ -66,7 +58,7 @@ export default function PortalHomePage() {
         <h1 style={{ fontSize: 22, fontWeight: 700, color: C.text, margin: 0 }}>
           Halo, {user?.name?.split(" ")[0]} 👋
         </h1>
-        <p style={{ fontSize: 14, color: C.mid, margin: "4px 0 0" }}>
+        <p style={{ fontSize: 13, color: C.mid, margin: "4px 0 0" }}>
           Berikut status proyek Anda bersama Puraloka Persada
         </p>
       </div>
@@ -80,9 +72,9 @@ export default function PortalHomePage() {
             { label: "Total Nilai", value: fmt(totalValue), color: C.navy, small: true },
           ].map((kpi) => (
             <div key={kpi.label} style={{
-              background: C.surface, borderRadius: 12, padding: "16px",
+              background: C.surface, borderRadius: 10, padding: "16px",
               border: `1px solid ${C.border}`,
-              boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+              boxShadow: "var(--naik-1)",
             }}>
               <div style={{ fontSize: 11, color: C.mid, fontWeight: 500, marginBottom: 6 }}>{kpi.label}</div>
               <div style={{ fontSize: kpi.small ? 15 : 26, fontWeight: 700, color: kpi.color }}>{kpi.value}</div>
@@ -99,7 +91,7 @@ export default function PortalHomePage() {
 
         {!loading && projects.length === 0 && (
           <div style={{
-            background: C.surface, borderRadius: 12, padding: 48,
+            background: C.surface, borderRadius: 10, padding: 48,
             border: `1px solid ${C.border}`, textAlign: "center",
           }}>
             <AlertCircle size={36} color={C.muted} style={{ marginBottom: 12 }} />
@@ -115,9 +107,9 @@ export default function PortalHomePage() {
           return (
             <Link key={p.id} href={`/portal/proyek/${p.id}`} style={{ textDecoration: "none" }}>
               <div style={{
-                background: C.surface, borderRadius: 12, padding: 20,
+                background: C.surface, borderRadius: 10, padding: 20,
                 border: `1px solid ${C.border}`,
-                boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                boxShadow: "var(--naik-1)",
                 transition: "box-shadow 0.15s, transform 0.15s",
                 cursor: "pointer",
               }}
@@ -165,9 +157,9 @@ export default function PortalHomePage() {
                           </div>
                           <span style={{ fontSize: 12, fontWeight: 700, color: C.navy }}>{p.progress_pct ?? 0}%</span>
                         </div>
-                        <div style={{ height: 6, background: "var(--border)", borderRadius: 3, overflow: "hidden" }}>
+                        <div style={{ height: 6, background: "var(--border)", borderRadius: 0, overflow: "hidden" }}>
                           <div style={{
-                            height: "100%", borderRadius: 3,
+                            height: "100%", borderRadius: 0,
                             width: `${p.progress_pct ?? 0}%`,
                             background: C.navy, transition: "width 0.5s ease",
                           }} />

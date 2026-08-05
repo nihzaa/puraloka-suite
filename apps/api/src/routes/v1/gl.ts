@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
+import { hitungNeraca, hitungLabaRugi, type SaldoAkun } from '../../lib/laporan-keuangan.js'
 
 // ═════════════════════════════════════════════════════════════════════════════
 // GL-1c — Chart of Accounts, jurnal manual, buku besar.
@@ -425,6 +426,84 @@ export default async function glRoutes(app: FastifyInstance) {
       const td = rows.reduce((s, r) => s + r.debit, 0)
       const tc = rows.reduce((s, r) => s + r.credit, 0)
       return { data: rows, meta: { total_debit: td, total_credit: tc, selisih: td - tc } }
+    },
+  )
+
+  // ── GET /api/v1/gl/laporan ───────────────────────────────────────────────
+  //
+  // Neraca DAN laba-rugi dalam satu respons, dari SATU perhitungan saldo.
+  //
+  // Dua endpoint terpisah akan menggoda orang memanggil salah satunya saja,
+  // lalu membandingkan angkanya dengan yang lain — dan kalau rentang
+  // tanggalnya beda sedikit, laba di neraca tak sama dengan laba di laporan
+  // laba-rugi. Selisih itu tak punya sebab yang bisa dijelaskan, dan orang
+  // akan berhenti memercayai keduanya.
+  //
+  // Satu panggilan, satu sumber saldo, dua sudut pandang.
+  app.get<{ Querystring: { from?: string; to?: string } }>(
+    '/api/v1/gl/laporan',
+    { preHandler: [authenticate, requirePermission('gl:view')] },
+    async (request, reply) => {
+      const q = request.query
+
+      let query = request.db!
+        .from('journal_entries')
+        .select('id, entry_date, journal_entry_lines(account_id, debit, credit, accounts(code, name, type))')
+        // Hanya jurnal POSTED. Draft belum sah; void sudah dibatalkan.
+        // Memasukkan keduanya membuat neraca tak cocok dengan buku besar.
+        .eq('status', 'posted')
+        .limit(1000)
+
+      if (q.from) query = query.gte('entry_date', q.from)
+      if (q.to) query = query.lte('entry_date', q.to)
+
+      const { data, error } = await query
+      if (error) return reply.status(500).send({ error: error.message })
+
+      // `data` DIPASTIKAN tidak null di sini — `error` sudah diperiksa di
+      // atas. Menulis `data ?? []` justru berbahaya di laporan keuangan:
+      // query yang gagal berubah jadi nol baris yang terlihat sah, dan
+      // neraca menampilkan semua-nol tanpa satu pun gejala.
+      //
+      // Kelas cacat ini punya korban nyata di repo ini: kurva-s.ts kehilangan
+      // Rp 631,7 juta dari AC selama berbulan-bulan karena pola yang sama.
+      const jurnal = data as Array<Record<string, unknown>>
+
+      const per = new Map<string, { code: string; name: string; type: string; debit: number; credit: number }>()
+      for (const je of jurnal) {
+        for (const l of ((je.journal_entry_lines ?? []) as Array<Record<string, unknown>>)) {
+          const ak = (l.accounts ?? {}) as { code?: string; name?: string; type?: string }
+          const id = l.account_id as string
+          const e = per.get(id) ?? {
+            code: ak.code ?? '—', name: ak.name ?? '—', type: ak.type ?? '—', debit: 0, credit: 0,
+          }
+          e.debit += Number(l.debit ?? 0)
+          e.credit += Number(l.credit ?? 0)
+          per.set(id, e)
+        }
+      }
+
+      const saldo: SaldoAkun[] = [...per.entries()].map(([account_id, v]) => ({
+        account_id,
+        ...v,
+        // Arah normal tipe akun — aset & beban naik di debit, sisanya di
+        // kredit. Sama persis dengan `/gl/trial-balance`; kalau suatu hari
+        // berbeda, neraca dan neraca saldo akan bercerita hal yang berlainan.
+        saldo: ['asset', 'expense'].includes(v.type) ? v.debit - v.credit : v.credit - v.debit,
+      }))
+
+      return {
+        periode: { dari: q.from ?? null, sampai: q.to ?? null },
+        neraca: hitungNeraca(saldo),
+        labaRugi: hitungLabaRugi(saldo),
+        meta: {
+          jumlah_akun: saldo.length,
+          // Batas 1000 jurnal DISEBUTKAN saat tercapai. Pemotongan diam-diam
+          // pada laporan keuangan membuat orang menarik kesimpulan dari data
+          // yang tak lengkap tanpa tahu.
+          terpotong: jurnal.length >= 1000,
+        },
+      }
     },
   )
 }

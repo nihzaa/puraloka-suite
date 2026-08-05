@@ -1,24 +1,19 @@
 "use client";
 
 import { useEffect, useId, useReducer, useRef, useState } from "react";
-import { api, hasPermission } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useIzin } from "@/lib/use-izin";
 import { Building2, CreditCard, Upload, Save, X, Check, AlertTriangle } from "lucide-react";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
-const C = {
-  navy: "var(--navy)", navyLight: "var(--navy-light)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)", bg: "var(--bg)",
-  green: "var(--success)", greenBg: "var(--success-bg)", greenBorder: "var(--success-border)",
-  red: "var(--danger)", redBg: "var(--danger-bg)", redBorder: "var(--danger-border)",
-};
+import { C } from "@/lib/warna-ui";
 
 const card: React.CSSProperties = {
   background: "var(--surface)",
   border: "1px solid var(--border)",
   borderRadius: 14,
-  boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+  boxShadow: "var(--naik-1)",
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -73,7 +68,7 @@ export default function PengaturanPage() {
 
 function PengaturanContent() {
   // ADR-004: capability, bukan nama jabatan — diverifikasi ke `requirePermission`.
-  const isAdmin = hasPermission("settings:manage");
+  const isAdmin = useIzin("settings:manage");
 
   const [profile, setProfile] = useState<CompanyProfile>(DEFAULTS);
   const [loading, setLoading] = useState(true);
@@ -175,9 +170,9 @@ function PengaturanContent() {
           position: "fixed", top: 20, right: 24, zIndex: 9999,
           background: toast.type === "success" ? C.greenBg : C.redBg,
           border: `1px solid ${toast.type === "success" ? C.greenBorder : C.redBorder}`,
-          borderRadius: 10, padding: "10px 16px",
+          borderRadius: 10, padding: "8px 16px",
           display: "flex", alignItems: "center", gap: 8,
-          boxShadow: "0 4px 16px rgba(0,0,0,0.1)", fontSize: 13,
+          boxShadow: "var(--naik-2)", fontSize: 13,
           color: toast.type === "success" ? C.green : C.red,
         }}>
           {toast.type === "success" ? <Check size={14} /> : <AlertTriangle size={14} />}
@@ -194,20 +189,20 @@ function PengaturanContent() {
           Konfigurasi profil perusahaan, info pembayaran, dan format invoice
         </p>
         {!isAdmin && (
-          <div style={{ marginTop: 10, padding: "8px 14px", borderRadius: 8, background: "var(--warning-bg)", border: "1px solid var(--warning-border)", fontSize: 12, color: C.mid }}>
+          <div style={{ marginTop: 10, padding: "8px 12px", borderRadius: 6, background: "var(--warning-bg)", border: "1px solid var(--warning-border)", fontSize: 12, color: C.mid }}>
             Hanya admin yang dapat mengubah pengaturan perusahaan.
           </div>
         )}
       </div>
 
       {loading ? (
-        <div style={{ textAlign: "center", padding: 80, color: C.muted, fontSize: 14 }}>Memuat...</div>
+        <div style={{ textAlign: "center", padding: 80, color: C.muted, fontSize: 13 }}>Memuat...</div>
       ) : (
         <form onSubmit={handleSave}>
           {/* ── Card 1: Identitas Perusahaan ── */}
           <div style={{ ...card, marginBottom: 20 }}>
-            <div style={{ padding: "18px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ width: 34, height: 34, borderRadius: 9, background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ padding: "16px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 10, background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <Building2 size={16} color={C.navy} />
               </div>
               <div>
@@ -263,13 +258,13 @@ function PengaturanContent() {
                     </div>
                     {isAdmin && (
                       <button type="button" onClick={() => fileRef.current?.click()} disabled={logoUploading}
-                        style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 7, border: `1px solid ${C.navy}`, background: logoUploading ? "var(--surface-hover)" : C.navyLight, color: C.navy, fontSize: 12, fontWeight: 600, cursor: logoUploading ? "not-allowed" : "pointer" }}>
+                        style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, border: `1px solid ${C.navy}`, background: logoUploading ? "var(--surface-hover)" : C.navyLight, color: C.navy, fontSize: 12, fontWeight: 600, cursor: logoUploading ? "not-allowed" : "pointer" }}>
                         <Upload size={13} /> {logoUploading ? "Uploading..." : "Pilih File"}
                       </button>
                     )}
                     {logoPreview && isAdmin && (
                       <button type="button" onClick={() => { setLogoPreview(null); setField("logo_url", ""); }}
-                        style={{ marginLeft: 8, display: "inline-flex", alignItems: "center", gap: 4, padding: "6px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer" }}>
+                        style={{ marginLeft: 8, display: "inline-flex", alignItems: "center", gap: 4, padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer" }}>
                         <X size={12} /> Hapus
                       </button>
                     )}
@@ -295,8 +290,8 @@ function PengaturanContent() {
 
           {/* ── Card 2: Pembayaran & Invoice ── */}
           <div style={{ ...card, marginBottom: 24 }}>
-            <div style={{ padding: "18px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ width: 34, height: 34, borderRadius: 9, background: "var(--success-bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ padding: "16px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 10, background: "var(--success-bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <CreditCard size={16} color={C.green} />
               </div>
               <div>
@@ -318,7 +313,7 @@ function PengaturanContent() {
                   <input id="profile"
                     type="text" value={profile.invoice_prefix} onChange={e => setField("invoice_prefix", e.target.value)}
                     disabled={!isAdmin} maxLength={20}
-                    style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", background: isAdmin ? "var(--surface)" : "var(--surface-subtle)", color: C.text, boxSizing: "border-box" }}
+                    style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", background: isAdmin ? "var(--surface)" : "var(--surface-subtle)", color: C.text, boxSizing: "border-box" }}
                     placeholder="INV"
                   />
                   <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>
@@ -337,10 +332,10 @@ function PengaturanContent() {
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
               <button type="submit" disabled={saving}
                 style={{
-                  display: "inline-flex", alignItems: "center", gap: 7,
-                  padding: "11px 24px", borderRadius: 9, border: "none",
-                  background: saving ? "#94A3B8" : C.navy, color: "var(--surface)",
-                  fontSize: 14, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer",
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  padding: "12px 24px", borderRadius: 10, border: "none",
+                  background: saving ? "var(--text-muted)" : C.navy, color: "var(--surface)",
+                  fontSize: 13, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer",
                 }}>
                 <Save size={15} />
                 {saving ? "Menyimpan..." : "Simpan Perubahan"}
@@ -361,8 +356,8 @@ function Field({ label, value, onChange, disabled, required, span, textarea, row
   textarea?: boolean; rows?: number; placeholder?: string;
 }) {
   const style: React.CSSProperties = {
-    width: "100%", padding: "9px 12px",
-    border: "1px solid var(--border)", borderRadius: 8,
+    width: "100%", padding: "8px 12px",
+    border: "1px solid var(--border)", borderRadius: 6,
     fontSize: 13, outline: "none",
     background: disabled ? "var(--surface-subtle)" : "var(--surface)",
     color: "var(--text-primary)", resize: textarea ? "vertical" : undefined,

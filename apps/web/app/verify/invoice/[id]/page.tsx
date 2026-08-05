@@ -92,21 +92,21 @@ export default function VerifyInvoicePage() {
       </div>
 
       {/* Card */}
-      <div style={{ background: "var(--surface)", borderRadius: 16, boxShadow: "0 4px 24px rgba(0,0,0,0.08)", maxWidth: 480, width: "100%", overflow: "hidden" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, boxShadow: "var(--naik-2)", maxWidth: 480, width: "100%", overflow: "hidden" }}>
         {state === "loading" && (
           <div style={{ padding: 64, textAlign: "center", color: "var(--text-muted)" }}>
-            <div style={{ fontSize: 14 }}>Memverifikasi invoice...</div>
+            <div style={{ fontSize: 13 }}>Memverifikasi invoice...</div>
           </div>
         )}
 
         {state === "not_found" && (
           <div style={{ padding: 48, textAlign: "center" }}>
             <XCircle size={56} color="var(--danger-border)" style={{ marginBottom: 16 }} />
-            <div style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>Invoice Tidak Ditemukan</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>Invoice Tidak Ditemukan</div>
             <div style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5 }}>
               ID invoice tidak valid atau invoice telah dihapus. Pastikan Anda memindai QR code yang benar.
             </div>
-            <div style={{ marginTop: 16, padding: "8px 14px", borderRadius: 8, background: "var(--danger-bg)", border: "1px solid var(--danger-border)", display: "inline-block" }}>
+            <div style={{ marginTop: 16, padding: "8px 12px", borderRadius: 6, background: "var(--danger-bg)", border: "1px solid var(--danger-border)", display: "inline-block" }}>
               <span style={{ fontSize: 11, fontFamily: "monospace", color: "var(--danger)" }}>{id}</span>
             </div>
           </div>

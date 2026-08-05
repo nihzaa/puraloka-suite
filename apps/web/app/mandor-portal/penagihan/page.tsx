@@ -6,14 +6,7 @@ import { api } from "@/lib/api";
 import { kirimLapangan } from "@/lib/kirim-lapangan";
 import { TrendingUp, Plus, Clock, CheckCircle, XCircle, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 
-const C = {
-  navy: "var(--navy)", navyLight: "var(--navy-light)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)", bg: "var(--bg)", surface: "var(--surface)",
-  green: "var(--success)", greenBg: "var(--success-bg)",
-  yellow: "var(--warning)", yellowBg: "var(--warning-bg)",
-  red: "var(--danger)", redBg: "var(--danger-bg)",
-};
+import { C } from "@/lib/warna-ui";
 
 function fmtRp(n: number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
@@ -173,8 +166,8 @@ export default function PenagihanProgressPage() {
           background: toast.ok ? C.greenBg : C.redBg,
           border: `1px solid ${toast.ok ? C.green : C.red}`,
           color: toast.ok ? C.green : C.red,
-          padding: "12px 20px", borderRadius: 10, fontSize: 14, fontWeight: 500,
-          boxShadow: "0 4px 16px rgba(0,0,0,0.1)", cursor: "pointer",
+          padding: "12px 20px", borderRadius: 10, fontSize: 13, fontWeight: 500,
+          boxShadow: "var(--naik-2)", cursor: "pointer",
           textAlign: "left",
         }}>
           {toast.msg}
@@ -190,11 +183,11 @@ export default function PenagihanProgressPage() {
       {/* KPI */}
       {pendingCount > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
-          <div style={{ background: C.yellowBg, borderRadius: 12, padding: 16, border: `1px solid ${C.yellow}30` }}>
+          <div style={{ background: C.yellowBg, borderRadius: 10, padding: 16, border: `1px solid ${C.yellow}30` }}>
             <div style={{ fontSize: 11, color: C.yellow, fontWeight: 600, marginBottom: 6 }}>Tagihan Menunggu</div>
             <div style={{ fontSize: 26, fontWeight: 700, color: C.yellow }}>{pendingCount}</div>
           </div>
-          <div style={{ background: C.surface, borderRadius: 12, padding: 16, border: `1px solid ${C.border}` }}>
+          <div style={{ background: C.surface, borderRadius: 10, padding: 16, border: `1px solid ${C.border}` }}>
             <div style={{ fontSize: 11, color: C.mid, fontWeight: 500, marginBottom: 6 }}>Total Pending</div>
             <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{fmtRp(totalPending)}</div>
           </div>
@@ -215,14 +208,14 @@ export default function PenagihanProgressPage() {
 
           return (
             <div key={scope.id} style={{
-              background: C.surface, borderRadius: 12, border: `1px solid ${C.border}`,
-              overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+              background: C.surface, borderRadius: 10, border: `1px solid ${C.border}`,
+              overflow: "hidden", boxShadow: "var(--naik-1)",
             }}>
               {/* Header */}
-              <div style={{ padding: "16px 20px", background: isActive ? "#FAFCFF" : "transparent" }}>
+              <div style={{ padding: "16px 20px", background: isActive ? "var(--surface-subtle)" : "transparent" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 14 }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 2 }}>{scope.scope_name}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 2 }}>{scope.scope_name}</div>
                     <div style={{ fontSize: 12, color: C.mid }}>{scope.project?.name}</div>
                     {contractValue > 0 && (
                       <div style={{ fontSize: 12, color: C.mid, marginTop: 2 }}>Nilai Kontrak: {fmtRp(contractValue)}</div>
@@ -261,8 +254,8 @@ export default function PenagihanProgressPage() {
                   <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                     {isActive && !hasPending && (
                       <button onClick={() => openModal(scope)} style={{
-                        display: "flex", alignItems: "center", gap: 5,
-                        padding: "7px 14px", borderRadius: 8,
+                        display: "flex", alignItems: "center", gap: 4,
+                        padding: "6px 12px", borderRadius: 6,
                         border: "none", background: C.navy, color: "var(--surface)",
                         fontSize: 12, fontWeight: 600, cursor: "pointer",
                       }}>
@@ -271,9 +264,9 @@ export default function PenagihanProgressPage() {
                     )}
                     {hasPending && (
                       <span style={{
-                        display: "flex", alignItems: "center", gap: 5,
+                        display: "flex", alignItems: "center", gap: 4,
                         fontSize: 12, color: C.yellow, fontWeight: 500,
-                        padding: "7px 12px", borderRadius: 8, background: C.yellowBg, border: `1px solid ${C.yellow}40`,
+                        padding: "6px 12px", borderRadius: 6, background: C.yellowBg, border: `1px solid ${C.yellow}40`,
                       }}>
                         <Clock size={12} /> Ada tagihan menunggu konfirmasi
                       </span>
@@ -284,7 +277,7 @@ export default function PenagihanProgressPage() {
                       onClick={() => setExpanded((prev) => ({ ...prev, [scope.id]: !isExpanded }))}
                       style={{
                         display: "flex", alignItems: "center", gap: 4,
-                        padding: "6px 10px", borderRadius: 8,
+                        padding: "6px 8px", borderRadius: 6,
                         border: `1px solid ${C.border}`, background: "var(--surface)",
                         color: C.mid, fontSize: 12, cursor: "pointer",
                       }}
@@ -299,14 +292,14 @@ export default function PenagihanProgressPage() {
               {/* Riwayat tagihan */}
               {isExpanded && scopePayments.length > 0 && (
                 <div style={{ borderTop: `1px solid ${C.border}` }}>
-                  <div style={{ padding: "10px 20px 4px", fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  <div style={{ padding: "8px 20px 4px", fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                     Riwayat Penagihan
                   </div>
                   {scopePayments.map((p) => {
                     const meta = PAYMENT_STATUS[p.status] ?? PAYMENT_STATUS.pending;
                     return (
                       <div key={p.id} style={{
-                        padding: "10px 20px", borderTop: `1px solid ${C.border}`,
+                        padding: "8px 20px", borderTop: `1px solid ${C.border}`,
                         display: "flex", justifyContent: "space-between", alignItems: "center",
                       }}>
                         <div>
@@ -318,7 +311,7 @@ export default function PenagihanProgressPage() {
                         </div>
                         <span style={{
                           display: "flex", alignItems: "center", gap: 4,
-                          fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20,
+                          fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20,
                           color: meta.color, background: meta.bg,
                         }}>
                           {meta.icon} {meta.label}
@@ -340,11 +333,11 @@ export default function PenagihanProgressPage() {
           display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
         }} onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}>
           <div style={{
-            background: "var(--surface)", borderRadius: 16, padding: 24, width: "100%", maxWidth: 460,
-            boxShadow: "0 16px 48px rgba(0,0,0,0.2)",
+            background: "var(--surface)", borderRadius: 14, padding: 24, width: "100%", maxWidth: 460,
+            boxShadow: "var(--naik-3)",
           }}>
             <div style={{ marginBottom: 20 }}>
-              <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: "0 0 4px" }}>Ajukan Penagihan</h2>
+              <h2 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: "0 0 4px" }}>Ajukan Penagihan</h2>
               <div style={{ fontSize: 13, color: C.mid }}>{selectedScope.scope_name}</div>
             </div>
 
@@ -355,7 +348,7 @@ export default function PenagihanProgressPage() {
             }}>
               <div>
                 <div style={{ fontSize: 10, color: C.mid, marginBottom: 2 }}>Progress Fisik</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>{selectedScope.progress_pct_done ?? 0}%</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>{selectedScope.progress_pct_done ?? 0}%</div>
               </div>
               <div>
                 <div style={{ fontSize: 10, color: C.mid, marginBottom: 2 }}>Sudah Dibayar</div>
@@ -369,7 +362,7 @@ export default function PenagihanProgressPage() {
               </div>
             </div>
 
-            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
                 <label htmlFor="pct-done" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>
                   Progress Pekerjaan Saat Ini (%) *
@@ -380,7 +373,7 @@ export default function PenagihanProgressPage() {
                     value={form.pct_done}
                     onChange={(e) => setForm((f) => ({ ...f, pct_done: e.target.value }))}
                     placeholder="Contoh: 75"
-                    style={{ width: "100%", padding: "9px 40px 9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }}
+                    style={{ width: "100%", padding: "8px 40px 8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }}
                   />
                   <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: C.mid }}>%</span>
                 </div>
@@ -398,7 +391,7 @@ export default function PenagihanProgressPage() {
                   value={form.gross_payment}
                   onChange={(e) => setForm((f) => ({ ...f, gross_payment: e.target.value }))}
                   placeholder="0"
-                  style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }}
+                  style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }}
                 />
                 {selectedScope.contract_value > 0 && (
                   <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>
@@ -416,21 +409,21 @@ export default function PenagihanProgressPage() {
                   onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
                   rows={2}
                   placeholder="Misal: sudah selesai lantai 1 dan 2"
-                  style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, resize: "none", boxSizing: "border-box" }}
+                  style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, resize: "none", boxSizing: "border-box" }}
                 />
               </div>
 
-              <div style={{ background: C.yellowBg, borderRadius: 8, padding: "10px 14px", fontSize: 12, color: C.yellow }}>
+              <div style={{ background: C.yellowBg, borderRadius: 6, padding: "8px 12px", fontSize: 12, color: C.yellow }}>
                 ⓘ Tagihan akan dikirim ke admin/PM untuk dikonfirmasi sebelum dibayarkan
               </div>
 
               <div style={{ display: "flex", gap: 8 }}>
                 <button type="button" onClick={() => setShowModal(false)} style={{
-                  flex: 1, padding: "10px", borderRadius: 10, border: `1px solid ${C.border}`,
+                  flex: 1, padding: "8px", borderRadius: 10, border: `1px solid ${C.border}`,
                   background: "var(--surface)", color: C.mid, fontSize: 13, fontWeight: 600, cursor: "pointer",
                 }}>Batal</button>
                 <button type="submit" disabled={submitting} style={{
-                  flex: 2, padding: "10px", borderRadius: 10, border: "none",
+                  flex: 2, padding: "8px", borderRadius: 10, border: "none",
                   background: submitting ? C.mid : C.navy, color: "var(--surface)",
                   fontSize: 13, fontWeight: 600, cursor: submitting ? "wait" : "pointer",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 6,

@@ -35,10 +35,12 @@ import procurementRoutes from './routes/v1/procurement.js'
 import rolesRoutes from './routes/v1/roles.js'
 import changeOrderRoutes from './routes/v1/change-orders.js'
 import punchListRoutes from './routes/v1/punch-list.js'
+import ncrRoutes from './routes/v1/ncr.js'
 import inspeksiRoutes from './routes/v1/inspeksi.js'
 import rfiRoutes from './routes/v1/rfi.js'
 import submittalRoutes from './routes/v1/submittal.js'
 import suratRoutes from './routes/v1/surat.js'
+import instruksiLapanganRoutes from './routes/v1/instruksi-lapangan.js'
 import rabScheduleRoutes from './routes/v1/rab-schedule.js'
 import auditRoutes from './routes/v1/audit.js'
 import searchRoutes from './routes/v1/search.js'
@@ -269,10 +271,12 @@ await app.register(procurementRoutes)
 await app.register(rolesRoutes)
 await app.register(changeOrderRoutes)
 await app.register(punchListRoutes)
+await app.register(ncrRoutes)
 await app.register(inspeksiRoutes)
 await app.register(rfiRoutes)
 await app.register(submittalRoutes)
 await app.register(suratRoutes)
+await app.register(instruksiLapanganRoutes)
 await app.register(rabScheduleRoutes)
 await app.register(auditRoutes)
 await app.register(searchRoutes)

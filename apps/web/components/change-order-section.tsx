@@ -57,14 +57,7 @@ interface ChangeOrder {
 
 // ─── Design tokens ─────────────────────────────────────────────────────────────
 
-const C = {
-  navy: "var(--navy)", navyLight: "var(--navy-light)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)", border: "var(--border)",
-  bg: "var(--bg)",
-  green: "var(--success)", greenBg: "var(--success-bg)", greenBorder: "var(--success-border)",
-  red: "var(--danger)", redBg: "var(--danger-bg)", redBorder: "var(--danger-border)",
-  yellow: "var(--warning)", yellowBg: "var(--warning-bg)", yellowBorder: "var(--warning-border)",
-};
+import { C } from "@/lib/warna-ui";
 
 // ─── Formatters ────────────────────────────────────────────────────────────────
 
@@ -93,7 +86,7 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <span style={{
       display: "inline-flex", alignItems: "center", gap: 4,
-      padding: "2px 9px", borderRadius: 20, fontSize: 11, fontWeight: 600,
+      padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600,
       color: meta.color, background: meta.bg, border: `1px solid ${meta.border}`,
     }}>
       {meta.label}
@@ -114,7 +107,7 @@ function ItemTypeBadge({ type }: { type: string }) {
   const meta = ITEM_TYPE_META[type] ?? { label: type, color: C.mid, bg: "var(--surface-subtle)" };
   return (
     <span style={{
-      display: "inline-block", padding: "1px 8px", borderRadius: 4,
+      display: "inline-block", padding: "0px 8px", borderRadius: 6,
       fontSize: 11, fontWeight: 600, color: meta.color, background: meta.bg,
     }}>
       {meta.label}
@@ -165,15 +158,15 @@ function ItemForm({
     onChange({ ...value, [k]: e.target.value });
 
   const inpStyle: React.CSSProperties = {
-    width: "100%", padding: "7px 10px", fontSize: 13, borderRadius: 7,
+    width: "100%", padding: "6px 8px", fontSize: 13, borderRadius: 6,
     border: "1px solid var(--border)", outline: "none", boxSizing: "border-box",
     background: "var(--surface)", color: C.text, fontFamily: "inherit",
   };
 
   return (
-    <div style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "16px", background: "#FAFAFA", display: "flex", flexDirection: "column", gap: 12 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+    <div style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "16px", background: "var(--surface-subtle)", display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <label htmlFor="value" style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Tipe</label>
           <select id="value" aria-label="Tipe item change order" value={value.item_type} onChange={set("item_type")} style={inpStyle}>
             <option value="kerja_tambah">Kerja Tambah</option>
@@ -182,7 +175,7 @@ function ItemForm({
             <option value="perubahan_spec">Perubahan Spec</option>
           </select>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <label htmlFor="value-6" style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Delta Biaya (Rp)</label>
           <input id="value-6"
             type="number" value={value.amount_delta} onChange={set("amount_delta")}
@@ -192,7 +185,7 @@ function ItemForm({
         </div>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         <label htmlFor="value-7" style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Deskripsi Pekerjaan *</label>
         <input id="value-7"
           type="text" value={value.description} onChange={set("description")}
@@ -201,22 +194,22 @@ function ItemForm({
         />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <label htmlFor="value-2" style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Satuan</label>
           <input id="value-2" type="text" value={value.unit} onChange={set("unit")} placeholder="m², m³, ls..." style={inpStyle} />
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <label htmlFor="value-3" style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Delta Volume</label>
           <input id="value-3" type="number" value={value.volume_delta} onChange={set("volume_delta")} placeholder="mis. 12.5" style={inpStyle} />
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <label htmlFor="value-4" style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Harga Satuan</label>
           <input id="value-4" type="number" value={value.unit_price} onChange={set("unit_price")} placeholder="Rp/satuan" style={inpStyle} />
         </div>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         <label htmlFor="value-5" style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Catatan</label>
         <textarea id="value-5" value={value.notes} onChange={set("notes")} placeholder="Catatan tambahan..." rows={2}
           style={{ ...inpStyle, resize: "vertical" }} />
@@ -224,11 +217,11 @@ function ItemForm({
 
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
         <button onClick={onCancel} disabled={loading}
-          style={{ padding: "7px 16px", fontSize: 13, fontWeight: 500, borderRadius: 7, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", color: C.mid }}>
+          style={{ padding: "6px 16px", fontSize: 13, fontWeight: 500, borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", color: C.mid }}>
           Batal
         </button>
         <button onClick={onSubmit} disabled={loading}
-          style={{ padding: "7px 18px", fontSize: 13, fontWeight: 600, borderRadius: 7, border: "none", background: C.navy, color: "var(--surface)", cursor: loading ? "default" : "pointer", opacity: loading ? 0.7 : 1 }}>
+          style={{ padding: "6px 16px", fontSize: 13, fontWeight: 600, borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: loading ? "default" : "pointer", opacity: loading ? 0.7 : 1 }}>
           {loading ? "Menyimpan..." : submitLabel}
         </button>
       </div>
@@ -372,7 +365,7 @@ function ChangeOrderCard({
   }
 
   return (
-    <div style={{ border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", background: "var(--surface)" }}>
+    <div style={{ border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden", background: "var(--surface)" }}>
       {/* Header */}
       <div
         role="button"
@@ -383,10 +376,10 @@ function ChangeOrderCard({
             setExpanded(x => !x)
           }
         }}
-        style={{ padding: "14px 18px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, justifyContent: "space-between" }}
+        style={{ padding: "12px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between" }}
         onClick={() => setExpanded(e => !e)}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
           <FileText size={15} style={{ color: C.mid, flexShrink: 0 }} />
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -400,7 +393,7 @@ function ChangeOrderCard({
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ textAlign: "right" }}>
             <div style={{
-              fontSize: 14, fontWeight: 700,
+              fontSize: 13, fontWeight: 700,
               color: deltaPositive ? C.green : C.red,
               display: "flex", alignItems: "center", gap: 4,
             }}>
@@ -415,14 +408,14 @@ function ChangeOrderCard({
 
       {/* Expanded body */}
       {expanded && (
-        <div style={{ borderTop: "1px solid var(--surface-hover)", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{ borderTop: "1px solid var(--surface-hover)", padding: "16px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
 
           {/* Meta row */}
           <div style={{ display: "flex", gap: 20, flexWrap: "wrap", fontSize: 12, color: C.mid }}>
             {co.creator && <span>Dibuat oleh <strong style={{ color: C.text }}>{co.creator.name}</strong></span>}
             <span>{fmtDate(co.created_at)}</span>
             {co.billing_mode && (
-              <span style={{ padding: "1px 8px", borderRadius: 4, background: "var(--surface-hover)", color: C.mid, fontSize: 11 }}>
+              <span style={{ padding: "0px 8px", borderRadius: 6, background: "var(--surface-hover)", color: C.mid, fontSize: 11 }}>
                 {{ include_termin: "Termasuk Termin", separate_co: "CO Tersendiri", final_account: "Final Account" }[co.billing_mode]}
               </span>
             )}
@@ -434,7 +427,7 @@ function ChangeOrderCard({
 
           {/* Approved notice */}
           {co.status === "approved" && co.baseline_contract_value !== null && (
-            <div style={{ background: C.greenBg, border: `1px solid ${C.greenBorder}`, borderRadius: 8, padding: "10px 14px", fontSize: 12 }}>
+            <div style={{ background: C.greenBg, border: `1px solid ${C.greenBorder}`, borderRadius: 6, padding: "8px 12px", fontSize: 12 }}>
               <div style={{ color: C.green, fontWeight: 600, marginBottom: 4 }}>
                 <CheckCircle2 size={12} style={{ display: "inline", marginRight: 4 }} />
                 Disetujui oleh {co.approver?.name ?? "Admin"} — {co.approved_at ? fmtDate(co.approved_at) : ""}
@@ -447,7 +440,7 @@ function ChangeOrderCard({
 
           {/* Rejected notice */}
           {co.status === "rejected" && (
-            <div style={{ background: C.redBg, border: `1px solid ${C.redBorder}`, borderRadius: 8, padding: "10px 14px", fontSize: 12 }}>
+            <div style={{ background: C.redBg, border: `1px solid ${C.redBorder}`, borderRadius: 6, padding: "8px 12px", fontSize: 12 }}>
               <div style={{ color: C.red, fontWeight: 600, marginBottom: 4 }}>
                 <XCircle size={12} style={{ display: "inline", marginRight: 4 }} />
                 Ditolak — {co.rejected_at ? fmtDate(co.rejected_at) : ""}
@@ -458,11 +451,11 @@ function ChangeOrderCard({
 
           {/* Items table */}
           {(co.items?.length ?? 0) > 0 && (
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
               <thead>
                 <tr style={{ background: "var(--surface-subtle)" }}>
                   {["Tipe", "Deskripsi", "Satuan", "Vol Δ", "Harga Sat.", "Delta Biaya", ...(isDraft ? [""] : [])].map(h => (
-                    <th key={h} style={{ padding: "8px 10px", textAlign: h === "Delta Biaya" ? "right" : "left", fontSize: 10, fontWeight: 600, textTransform: "uppercase", color: C.muted, borderBottom: "1px solid var(--border)" }}>
+                    <th key={h} style={{ padding: "8px 8px", textAlign: h === "Delta Biaya" ? "right" : "left", fontSize: 10, fontWeight: 600, textTransform: "uppercase", color: C.muted, borderBottom: "1px solid var(--border)" }}>
                       {h}
                     </th>
                   ))}
@@ -485,26 +478,26 @@ function ChangeOrderCard({
                     </tr>
                   ) : (
                     <tr key={item.id} style={{ borderBottom: "1px solid var(--surface-hover)" }}>
-                      <td style={{ padding: "10px 10px" }}>
+                      <td style={{ padding: "8px 8px" }}>
                         <ItemTypeBadge type={item.item_type} />
                       </td>
-                      <td style={{ padding: "10px 10px", color: C.text }}>
+                      <td style={{ padding: "8px 8px", color: C.text }}>
                         <div>{item.description}</div>
                         {item.rab_item && (
                           <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>RAB: {item.rab_item.name}</div>
                         )}
                         {item.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: "italic" }}>{item.notes}</div>}
                       </td>
-                      <td style={{ padding: "10px 10px", color: C.mid }}>{item.unit ?? "—"}</td>
-                      <td style={{ padding: "10px 10px", color: C.mid }}>{item.volume_delta ?? "—"}</td>
-                      <td style={{ padding: "10px 10px", color: C.mid }}>
+                      <td style={{ padding: "8px 8px", color: C.mid }}>{item.unit ?? "—"}</td>
+                      <td style={{ padding: "8px 8px", color: C.mid }}>{item.volume_delta ?? "—"}</td>
+                      <td style={{ padding: "8px 8px", color: C.mid }}>
                         {item.unit_price ? new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(item.unit_price) : "—"}
                       </td>
-                      <td style={{ padding: "10px 10px", textAlign: "right", fontWeight: 600, color: item.amount_delta >= 0 ? C.green : C.red }}>
+                      <td style={{ padding: "8px 8px", textAlign: "right", fontWeight: 600, color: item.amount_delta >= 0 ? C.green : C.red }}>
                         {fmtDelta(item.amount_delta)}
                       </td>
                       {isDraft && canManage && (
-                        <td style={{ padding: "10px 10px", textAlign: "right" }}>
+                        <td style={{ padding: "8px 8px", textAlign: "right" }}>
                           <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
                             <button aria-label="Sunting item change order"
                               onClick={() => { setEditingItemId(item.id); setItemForm({ item_type: item.item_type, description: item.description, amount_delta: String(item.amount_delta), unit: item.unit ?? "", volume_delta: item.volume_delta != null ? String(item.volume_delta) : "", unit_price: item.unit_price != null ? String(item.unit_price) : "", notes: item.notes ?? "", rab_item_id: item.rab_item_id ?? "" }); }}
@@ -529,10 +522,10 @@ function ChangeOrderCard({
               <tfoot>
                 <tr style={{ background: "var(--surface-subtle)" }}>
                   <td colSpan={isDraft ? 5 : 4} />
-                  <td style={{ padding: "10px 10px", textAlign: "right" }}>
+                  <td style={{ padding: "8px 8px", textAlign: "right" }}>
                     <div style={{ fontSize: 11, color: C.mid, fontWeight: 600, textTransform: "uppercase" }}>Total Delta</div>
                   </td>
-                  <td style={{ padding: "10px 10px", textAlign: "right", fontWeight: 700, fontSize: 14, color: deltaPositive ? C.green : C.red }}>
+                  <td style={{ padding: "8px 8px", textAlign: "right", fontWeight: 700, fontSize: 13, color: deltaPositive ? C.green : C.red }}>
                     {fmtDelta(co.total_amount_delta)}
                   </td>
                   {isDraft && <td />}
@@ -543,7 +536,7 @@ function ChangeOrderCard({
 
           {/* Error */}
           {err && (
-            <div style={{ background: C.redBg, border: `1px solid ${C.redBorder}`, borderRadius: 8, padding: "8px 12px", fontSize: 12, color: C.red, display: "flex", gap: 6, alignItems: "center" }}>
+            <div style={{ background: C.redBg, border: `1px solid ${C.redBorder}`, borderRadius: 6, padding: "8px 12px", fontSize: 12, color: C.red, display: "flex", gap: 6, alignItems: "center" }}>
               <AlertCircle size={12} /> {err}
             </div>
           )}
@@ -567,16 +560,16 @@ function ChangeOrderCard({
                 value={rejectReason}
                 onChange={e => setRejectReason(e.target.value)}
                 placeholder="Alasan penolakan (opsional)..."
-                style={{ flex: 1, padding: "8px 12px", fontSize: 13, borderRadius: 8, border: "1px solid var(--border)", fontFamily: "inherit" }}
+                style={{ flex: 1, padding: "8px 12px", fontSize: 13, borderRadius: 6, border: "1px solid var(--border)", fontFamily: "inherit" }}
               />
               <button
                 onClick={handleReject}
                 disabled={loadingAction === "reject"}
-                style={{ padding: "8px 14px", fontSize: 13, fontWeight: 600, borderRadius: 8, border: "none", background: C.red, color: "var(--surface)", cursor: loadingAction ? "default" : "pointer" }}
+                style={{ padding: "8px 12px", fontSize: 13, fontWeight: 600, borderRadius: 6, border: "none", background: C.red, color: "var(--surface)", cursor: loadingAction ? "default" : "pointer" }}
               >
                 {loadingAction === "reject" ? "Menolak..." : "Tolak"}
               </button>
-              <button onClick={() => setShowRejectInput(false)} style={{ padding: "8px 14px", fontSize: 13, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", color: C.mid }}>
+              <button onClick={() => setShowRejectInput(false)} style={{ padding: "8px 12px", fontSize: 13, borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", color: C.mid }}>
                 Batal
               </button>
             </div>
@@ -590,7 +583,7 @@ function ChangeOrderCard({
                   {!addingItem && (
                     <button
                       onClick={() => { setAddingItem(true); setErr(null); }}
-                      style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", fontSize: 12, fontWeight: 600, borderRadius: 8, border: `1px solid ${C.navy}`, background: C.navyLight, color: C.navy, cursor: "pointer" }}
+                      style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", fontSize: 12, fontWeight: 600, borderRadius: 6, border: `1px solid ${C.navy}`, background: C.navyLight, color: C.navy, cursor: "pointer" }}
                     >
                       <Plus size={13} /> Tambah Item
                     </button>
@@ -598,7 +591,7 @@ function ChangeOrderCard({
                   <button
                     onClick={handleSubmit}
                     disabled={loadingAction === "submit" || (co.items?.length ?? 0) === 0}
-                    style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", fontSize: 12, fontWeight: 600, borderRadius: 8, border: "none", background: C.navy, color: "var(--surface)", cursor: loadingAction ? "default" : "pointer", opacity: (co.items?.length ?? 0) === 0 ? 0.5 : 1 }}
+                    style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", fontSize: 12, fontWeight: 600, borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: loadingAction ? "default" : "pointer", opacity: (co.items?.length ?? 0) === 0 ? 0.5 : 1 }}
                   >
                     <Send size={13} /> {loadingAction === "submit" ? "Submitting..." : "Submit untuk Approval"}
                   </button>
@@ -610,7 +603,7 @@ function ChangeOrderCard({
                   <button
                     onClick={handleApprove}
                     disabled={!!loadingAction}
-                    style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", fontSize: 12, fontWeight: 600, borderRadius: 8, border: "none", background: C.green, color: "var(--surface)", cursor: loadingAction ? "default" : "pointer" }}
+                    style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", fontSize: 12, fontWeight: 600, borderRadius: 6, border: "none", background: C.green, color: "var(--surface)", cursor: loadingAction ? "default" : "pointer" }}
                   >
                     <CheckCircle2 size={13} /> {loadingAction === "approve" ? "Menyetujui..." : "Setujui"}
                   </button>
@@ -618,7 +611,7 @@ function ChangeOrderCard({
                     <button
                       onClick={() => setShowRejectInput(true)}
                       disabled={!!loadingAction}
-                      style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", fontSize: 12, fontWeight: 600, borderRadius: 8, border: `1px solid ${C.redBorder}`, background: C.redBg, color: C.red, cursor: "pointer" }}
+                      style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", fontSize: 12, fontWeight: 600, borderRadius: 6, border: `1px solid ${C.redBorder}`, background: C.redBg, color: C.red, cursor: "pointer" }}
                     >
                       <XCircle size={13} /> Tolak
                     </button>
@@ -671,7 +664,7 @@ function CreateCoModal({
   }
 
   const inpStyle: React.CSSProperties = {
-    width: "100%", padding: "9px 12px", fontSize: 14, borderRadius: 8,
+    width: "100%", padding: "8px 12px", fontSize: 13, borderRadius: 6,
     border: "1px solid var(--border)", outline: "none", boxSizing: "border-box",
     background: "var(--surface)", color: C.text, fontFamily: "inherit",
   };
@@ -682,9 +675,9 @@ function CreateCoModal({
   };
 
   const modal: React.CSSProperties = {
-    background: "var(--surface)", borderRadius: 16, padding: "28px 28px 24px",
+    background: "var(--surface)", borderRadius: 14, padding: "28px 28px 24px",
     width: "min(480px, 92vw)", maxHeight: "90vh", overflowY: "auto",
-    boxShadow: "0 20px 60px rgba(0,0,0,0.18)",
+    boxShadow: "var(--naik-3)",
     display: "flex", flexDirection: "column", gap: 16,
   };
 
@@ -692,22 +685,22 @@ function CreateCoModal({
     <div style={overlay} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={modal}>
         <div>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C.text }}>Buat Change Order</h2>
+          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: C.text }}>Buat Change Order</h2>
           <p style={{ margin: "4px 0 0", fontSize: 13, color: C.mid }}>Dokumen perubahan lingkup atau nilai kontrak proyek</p>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <label htmlFor="title" style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Judul CO *</label>
           <input id="title" type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="mis. Penambahan struktur lantai 3" style={inpStyle} autoFocus />
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <label htmlFor="description" style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Deskripsi</label>
           <textarea id="description" value={description} onChange={e => setDescription(e.target.value)} placeholder="Latar belakang dan alasan perubahan..." rows={3}
             style={{ ...inpStyle, resize: "vertical" }} />
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <label htmlFor="billing-mode" style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Mode Penagihan</label>
           <select id="billing-mode" aria-label="Mode penagihan change order" value={billingMode} onChange={e => setBillingMode(e.target.value)} style={inpStyle}>
             <option value="">— Belum ditentukan —</option>
@@ -718,17 +711,17 @@ function CreateCoModal({
         </div>
 
         {err && (
-          <div style={{ background: C.redBg, border: `1px solid ${C.redBorder}`, borderRadius: 8, padding: "8px 12px", fontSize: 13, color: C.red }}>
+          <div style={{ background: C.redBg, border: `1px solid ${C.redBorder}`, borderRadius: 6, padding: "8px 12px", fontSize: 13, color: C.red }}>
             {err}
           </div>
         )}
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-          <button onClick={onClose} style={{ padding: "9px 20px", fontSize: 14, fontWeight: 500, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", color: C.mid }}>
+          <button onClick={onClose} style={{ padding: "8px 20px", fontSize: 13, fontWeight: 500, borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", color: C.mid }}>
             Batal
           </button>
           <button onClick={handleCreate} disabled={loading}
-            style={{ padding: "9px 20px", fontSize: 14, fontWeight: 600, borderRadius: 8, border: "none", background: C.navy, color: "var(--surface)", cursor: loading ? "default" : "pointer", opacity: loading ? 0.7 : 1 }}>
+            style={{ padding: "8px 20px", fontSize: 13, fontWeight: 600, borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: loading ? "default" : "pointer", opacity: loading ? 0.7 : 1 }}>
             {loading ? "Membuat..." : "Buat Change Order"}
           </button>
         </div>
@@ -782,7 +775,7 @@ export function ChangeOrderSection({ projectId, userRole, contractValue }: Chang
           {cos.length > 0 && (
             <div style={{ display: "flex", gap: 12, marginTop: 6, flexWrap: "wrap" }}>
               {pendingCount > 0 && (
-                <span style={{ fontSize: 12, color: "var(--info)", background: "var(--info-bg)", padding: "2px 8px", borderRadius: 4, fontWeight: 600 }}>
+                <span style={{ fontSize: 12, color: "var(--info)", background: "var(--info-bg)", padding: "2px 8px", borderRadius: 6, fontWeight: 600 }}>
                   {pendingCount} menunggu persetujuan
                 </span>
               )}
@@ -798,7 +791,7 @@ export function ChangeOrderSection({ projectId, userRole, contractValue }: Chang
         {canManage && (
           <button
             onClick={() => setShowCreate(true)}
-            style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", fontSize: 13, fontWeight: 600, borderRadius: 8, border: `1px solid ${C.navy}`, background: C.navyLight, color: C.navy, cursor: "pointer" }}
+            style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", fontSize: 13, fontWeight: 600, borderRadius: 6, border: `1px solid ${C.navy}`, background: C.navyLight, color: C.navy, cursor: "pointer" }}
           >
             <Plus size={14} /> Buat Change Order
           </button>

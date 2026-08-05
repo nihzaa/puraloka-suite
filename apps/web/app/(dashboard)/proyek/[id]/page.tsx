@@ -4,7 +4,8 @@ import { useCallback, useEffect, useReducer, useState } from "react";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import { useParams, useRouter } from "next/navigation";
-import { api, getStoredUser, hasPermission } from "@/lib/api";
+import { api, getStoredUser } from "@/lib/api";
+import { useIzin } from "@/lib/use-izin";
 import {
   MapPin, Calendar, RefreshCw,
   User, TrendingUp,
@@ -129,37 +130,16 @@ const daysUntil = (d: string) =>
 const daysSince = (d: string) =>
   Math.floor((Date.now() - new Date(d).getTime()) / 86400000);
 
-const initials = (name: string) =>
-  name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
-const C = {
-  navy: "var(--navy)",
-  navyLight: "var(--navy-light)",
-  text: "var(--text-primary)",
-  mid: "var(--text-secondary)",
-  muted: "var(--text-muted)",
-  border: "var(--border)",
-  bg: "var(--bg)",
-  green: "var(--success)",
-  greenBg: "var(--success-bg)",
-  greenBorder: "var(--success-border)",
-  red: "var(--danger)",
-  redBg: "var(--danger-bg)",
-  redBorder: "var(--danger-border)",
-  yellow: "var(--warning)",
-  yellowBg: "var(--warning-bg)",
-  yellowBorder: "var(--warning-border)",
-  info: "var(--info, #0066CC)",
-  infoBg: "var(--info-bg, var(--info-bg))",
-};
+import { C } from "@/lib/warna-ui";
 
 const card: React.CSSProperties = {
   background: "var(--surface)",
   border: "1px solid var(--border)",
   borderRadius: 14,
-  boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+  boxShadow: "var(--naik-1)",
 };
 
 const STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
@@ -188,9 +168,6 @@ const STATUS_META: Record<string, { label: string; color: string; bg: string }> 
   inactive:    { label: "Nonaktif",    color: C.muted,   bg: "var(--surface-hover)" },
 };
 
-const PAYMENT_SYSTEM_LABEL: Record<string, string> = {
-  harian: "Harian", borongan: "Borongan", progress_pct: "Progress %",
-};
 const PURPOSE_LABEL: Record<string, string> = {
   gaji_tukang: "Upah tukang", uang_makan: "Uang makan",
   pembelian_alat: "Beli alat", operasional: "Operasional", lain_lain: "Lain-lain",
@@ -204,7 +181,7 @@ const INVOICE_TYPE_LABEL: Record<string, string> = {
 function Skeleton({ h = 20, w = "100%" }: { h?: number; w?: string | number }) {
   return (
     <div style={{
-      height: h, width: w, borderRadius: 8,
+      height: h, width: w, borderRadius: 6,
       background: "linear-gradient(90deg, var(--surface-hover) 0%, var(--border) 50%, var(--surface-hover) 100%)",
       backgroundSize: "200% 100%",
       animation: "shimmer 1.5s ease-in-out infinite",
@@ -217,7 +194,7 @@ function Badge({ status }: { status: string }) {
   return (
     <span style={{
       display: "inline-flex", alignItems: "center", gap: 4,
-      padding: "3px 10px", borderRadius: 99, fontSize: 11, fontWeight: 600,
+      padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 600,
       color: m.color, background: m.bg,
     }}>
       <span style={{ width: 5, height: 5, borderRadius: "50%", background: m.color }} />
@@ -228,35 +205,10 @@ function Badge({ status }: { status: string }) {
 
 function SectionTitle({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return (
-    <h2 style={{ display: "flex", alignItems: "center", gap: 10, fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 600, color: C.text, marginBottom: 16, ...style }}>
-      <span style={{ width: 3, height: 16, background: C.navy, borderRadius: 2, flexShrink: 0 }} />
+    <h2 style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 600, color: C.text, marginBottom: 16, ...style }}>
+      <span style={{ width: 3, height: 16, background: C.navy, borderRadius: 0, flexShrink: 0 }} />
       {children}
     </h2>
-  );
-}
-
-function Avatar({ name, size = 32 }: { name: string; size?: number }) {
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: "50%",
-      background: C.navyLight, color: C.navy,
-      display: "flex", alignItems: "center", justifyContent: "center",
-      fontSize: size * 0.35, fontWeight: 700, flexShrink: 0,
-    }}>
-      {initials(name)}
-    </div>
-  );
-}
-
-function ProgressBar({ pct, height = 8 }: { pct: number; height?: number }) {
-  return (
-    <div style={{ height, background: "var(--surface-hover)", borderRadius: 4, overflow: "hidden" }}>
-      <div style={{
-        height: "100%", width: `${Math.min(pct, 100)}%`,
-        background: "linear-gradient(90deg, var(--navy), #0066CC)",
-        borderRadius: 4, transition: "width 0.4s ease",
-      }} />
-    </div>
   );
 }
 
@@ -264,42 +216,11 @@ function InfoRow({ icon, label, value, valueColor }: {
   icon: React.ReactNode; label: string; value: React.ReactNode; valueColor?: string;
 }) {
   return (
-    <div style={{ display: "flex", alignItems: "flex-start", gap: 10, paddingBottom: 12, marginBottom: 12, borderBottom: "1px solid var(--surface-subtle)" }}>
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 8, paddingBottom: 12, marginBottom: 12, borderBottom: "1px solid var(--surface-subtle)" }}>
       <span style={{ color: C.muted, marginTop: 2, flexShrink: 0 }}>{icon}</span>
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: 11, color: C.muted, marginBottom: 2 }}>{label}</div>
         <div style={{ fontSize: 13, fontWeight: 500, color: valueColor ?? C.text }}>{value}</div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Progress ring ────────────────────────────────────────────────────────────
-
-function ProgressRing({ pct }: { pct: number }) {
-  const r = 52;
-  const circ = 2 * Math.PI * r;
-  const offset = circ - (Math.min(pct, 100) / 100) * circ;
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-      <svg width={128} height={128} style={{ transform: "rotate(-90deg)" }}>
-        <circle cx={64} cy={64} r={r} fill="none" stroke="var(--surface-hover)" strokeWidth={10} />
-        <circle
-          cx={64} cy={64} r={r} fill="none"
-          stroke="url(#pgRing)" strokeWidth={10}
-          strokeDasharray={circ} strokeDashoffset={offset}
-          strokeLinecap="round"
-        />
-        <defs>
-          <linearGradient id="pgRing" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="var(--navy)" />
-            <stop offset="100%" stopColor="#0066CC" />
-          </linearGradient>
-        </defs>
-      </svg>
-      <div style={{ textAlign: "center", marginTop: -100, marginBottom: 68 }}>
-        <div style={{ fontFamily: "var(--font-display)", fontSize: 30, fontWeight: 800, color: C.navy }}>{pct}%</div>
-        <div style={{ fontSize: 11, color: C.muted }}>Progress</div>
       </div>
     </div>
   );
@@ -319,6 +240,11 @@ function ProjectDetailContent() {
   const router = useRouter();
   const id = params.id as string;
   const { showToast } = useToast();
+  // Diangkat dari JSX: `hasPermission` di jalur render membuat pohon server
+  // dan klien berbeda. Detail: `lib/use-izin.ts`.
+  const bolehKontrak = useIzin("projects:contract");
+  const bolehBayarTermin = useIzin("finance:termin:pay");
+  const bolehAturMandor = useIzin("mandor:assign");
 
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
@@ -356,8 +282,8 @@ function ProjectDetailContent() {
   // permission ini tapi UI lama menyembunyikan tombolnya karena mengecek
   // `role === "admin"`. Tiap key diverifikasi ke `requirePermission` di
   // rute API-nya — bukan ditebak dari nama tombolnya.
-  const isAdmin = hasPermission("projects:delete");
-  const canEditProject = hasPermission("projects:edit");
+  const isAdmin = useIzin("projects:delete");
+  const canEditProject = useIzin("projects:edit");
 
   useEffect(() => { if (id) fetchProject(); }, [id]);
 
@@ -493,7 +419,7 @@ function ProjectDetailContent() {
             key={item.href}
             href={item.href}
             style={{
-              padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+              padding: "4px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600,
               color: item.label.includes("⚠") ? C.red : C.mid,
               background: item.label.includes("⚠") ? C.redBg : "transparent",
               border: item.label.includes("⚠") ? `1px solid ${C.redBorder}` : "none",
@@ -524,7 +450,7 @@ function ProjectDetailContent() {
         <span style={{ color: "var(--border-strong)", fontSize: 13 }}>/</span>
         <button
           onClick={() => router.push("/proyek")}
-          style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "none", border: "none", cursor: "pointer", color: C.mid, fontSize: 13, padding: 0 }}
+          style={{ display: "inline-flex", alignItems: "center", gap: 2, background: "none", border: "none", cursor: "pointer", color: C.mid, fontSize: 13, padding: 0 }}
           onMouseEnter={e => { e.currentTarget.style.color = C.navy; e.currentTarget.style.textDecoration = "underline"; }}
           onMouseLeave={e => { e.currentTarget.style.color = C.mid; e.currentTarget.style.textDecoration = "none"; }}
         >
@@ -541,14 +467,14 @@ function ProjectDetailContent() {
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
               <Badge status={p.status} />
               <span style={{
-                display: "inline-block", padding: "2px 8px", borderRadius: 4,
+                display: "inline-block", padding: "2px 8px", borderRadius: 6,
                 fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em",
                 background: "var(--surface-hover)", color: C.mid,
               }}>
                 {p.contract_model === "termin" ? "TERMIN" : "KOMISI"}
               </span>
               <span style={{
-                display: "inline-block", padding: "2px 8px", borderRadius: 4,
+                display: "inline-block", padding: "2px 8px", borderRadius: 6,
                 fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em",
                 background: C.navyLight, color: C.navy,
               }}>
@@ -569,16 +495,16 @@ function ProjectDetailContent() {
 
           {/* Action buttons */}
           <div style={{ display: "flex", gap: 8, flexShrink: 0, flexWrap: "wrap" }}>
-            {hasPermission("projects:contract") && (
+            {bolehKontrak && (
               <button
                 onClick={() => setShowContractModal(true)}
                 style={{
                   display: "inline-flex", alignItems: "center", gap: 6,
-                  padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+                  padding: "6px 12px", borderRadius: 6, fontSize: 12, fontWeight: 600,
                   background: "var(--navy)", color: "var(--surface)",
                   border: "none", cursor: "pointer",
                 }}
-                onMouseEnter={e => { e.currentTarget.style.background = "#002244"; }}
+                onMouseEnter={e => { e.currentTarget.style.background = "var(--aksen-pekat)"; }}
                 onMouseLeave={e => { e.currentTarget.style.background = "var(--navy)"; }}
               >
                 <FileText size={13} /> Generate Kontrak
@@ -638,7 +564,7 @@ function ProjectDetailContent() {
           sub?: string; color: string; bg: string;
         }) => (
           <div style={{
-            padding: "14px 16px", borderRadius: 12, background: bg,
+            padding: "12px 16px", borderRadius: 10, background: bg,
             border: `1px solid ${color}22`, display: "flex", flexDirection: "column", gap: 6,
           }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -657,10 +583,10 @@ function ProjectDetailContent() {
           const color = ok ? C.green : warn ? C.yellow : C.red;
           const bg = ok ? C.greenBg : warn ? C.yellowBg : C.redBg;
           return (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "10px 14px", borderRadius: 10, background: bg, border: `1px solid ${color}33`, minWidth: 80 }}>
-              <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", color, letterSpacing: "0.05em", marginBottom: 4 }}>{label}</span>
-              <span style={{ fontSize: 18, fontWeight: 800, color, lineHeight: 1 }}>{val.toFixed(2)}</span>
-              <span style={{ fontSize: 9, color, marginTop: 3, opacity: 0.7 }}>{ok ? "Baik" : warn ? "Perhatian" : "Kritis"}</span>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 12px", borderRadius: 10, background: bg, border: `1px solid ${color}33`, minWidth: 80 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", color, letterSpacing: "0.05em", marginBottom: 4 }}>{label}</span>
+              <span style={{ fontSize: 17, fontWeight: 800, color, lineHeight: 1 }}>{val.toFixed(2)}</span>
+              <span style={{ fontSize: 10, color, marginTop: 3, opacity: 0.7 }}>{ok ? "Baik" : warn ? "Perhatian" : "Kritis"}</span>
             </div>
           );
         };
@@ -668,7 +594,7 @@ function ProjectDetailContent() {
         return (
           <div className="rise rise-2b" style={{ marginBottom: 20 }}>
             {/* Financial cards 2×3 */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 10 }}>
               <FinCard
                 icon={<DollarSign size={14} />}
                 label="Nilai Kontrak"
@@ -698,8 +624,8 @@ function ProjectDetailContent() {
                 label="Kasbon Beredar"
                 value={fmtCompact(kasbonBeredar)}
                 sub="Status: approved"
-                color={kasbonBeredar > 0 ? "#EA580C" : C.muted}
-                bg={kasbonBeredar > 0 ? "#FFF7ED" : "var(--surface-subtle)"}
+                color={kasbonBeredar > 0 ? "var(--data-5)" : C.muted}
+                bg={kasbonBeredar > 0 ? "var(--warning-bg)" : "var(--surface-subtle)"}
               />
               <FinCard
                 icon={<BarChart3 size={14} />}
@@ -762,20 +688,20 @@ function ProjectDetailContent() {
         if (readyTermins.length === 0) return null;
         return (
           <div className="rise rise-2b" style={{
-            marginBottom: 20, padding: "14px 18px", borderRadius: 12,
-            background: "linear-gradient(135deg, var(--warning-bg), #FEF3C7)",
+            marginBottom: 20, padding: "12px 16px", borderRadius: 10,
+            background: "linear-gradient(135deg, var(--warning-bg), var(--warning-bg))",
             border: "1px solid var(--warning-border)",
             display: "flex", alignItems: "flex-start", gap: 12,
           }}>
             <div style={{
               width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-              background: "#FEF3C7", border: "1.5px solid #FCD34D",
+              background: "var(--warning-bg)", border: "1.5px solid #FCD34D",
               display: "flex", alignItems: "center", justifyContent: "center",
             }}>
               <Receipt size={18} color="var(--warning)" />
             </div>
             <div>
-              <p style={{ fontSize: 13, fontWeight: 700, color: "#92400E", margin: "0 0 4px" }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: "var(--on-warning-bg)", margin: "0 0 4px" }}>
                 {readyTermins.length} Termin Siap Ditagih
               </p>
               <p style={{ fontSize: 12, color: "var(--warning)", margin: 0 }}>
@@ -817,7 +743,7 @@ function ProjectDetailContent() {
             <InfoRow icon={<CheckCircle2 size={14} />} label="Tanggal Selesai Aktual" value={fmtDate(p.actual_end_date)} valueColor={C.green} />
           )}
           <InfoRow icon={<Receipt size={14} />} label="Nilai Kontrak" value={
-            <span style={{ fontSize: 16, fontWeight: 700, color: C.navy }}>{fmt(Number(p.contract_value))}</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: C.navy }}>{fmt(Number(p.contract_value))}</span>
           } />
           {p.retention_pct > 0 && (
             <InfoRow icon={<Wallet size={14} />} label={`Retensi (${p.retention_pct}%)`} value={fmt(Number(p.retention_amount))} valueColor={C.yellow} />
@@ -848,12 +774,12 @@ function ProjectDetailContent() {
           }
 
           return (
-            <div style={{ ...card, padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ ...card, padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
               {/* Header row */}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <SectionTitle style={{ margin: 0 }}>Status Progress</SectionTitle>
                 <span style={{
-                  fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20,
+                  fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
                   background: isOverdue ? "var(--danger-bg)" : p.status === "completed" ? "var(--success-bg)" : "var(--navy-light)",
                   color: isOverdue ? C.red : p.status === "completed" ? C.green : C.navy,
                   border: `1px solid ${isOverdue ? "var(--danger-border)" : p.status === "completed" ? "var(--success-border)" : C.navy}`,
@@ -874,7 +800,7 @@ function ProjectDetailContent() {
                     {/* Track fisik */}
                     <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--info-bg)" strokeWidth={stroke} />
                     {/* Track serapan (inner, slightly smaller) */}
-                    <circle cx={cx} cy={cy} r={r - stroke - 3} fill="none" stroke="#FFF7ED" strokeWidth={stroke - 2} />
+                    <circle cx={cx} cy={cy} r={r - stroke - 3} fill="none" stroke="var(--warning-bg)" strokeWidth={stroke - 2} />
                     {/* Arc fisik */}
                     <circle cx={cx} cy={cy} r={r} fill="none"
                       stroke={fisikPct >= 80 ? "var(--success)" : C.navy}
@@ -885,7 +811,7 @@ function ProjectDetailContent() {
                     />
                     {/* Arc serapan (inner ring) */}
                     <circle cx={cx} cy={cy} r={r - stroke - 3} fill="none"
-                      stroke="#F97316"
+                      stroke="var(--data-5)"
                       strokeWidth={stroke - 2}
                       strokeDasharray={arcDash(serap)}
                       strokeLinecap="round"
@@ -899,29 +825,29 @@ function ProjectDetailContent() {
                     textAlign: "center", lineHeight: 1.1,
                   }}>
                     <div style={{ fontSize: 15, fontWeight: 800, color: C.navy }}>{fisikPct.toFixed(0)}%</div>
-                    <div style={{ fontSize: 9, color: C.muted }}>fisik</div>
+                    <div style={{ fontSize: 10, color: C.muted }}>fisik</div>
                   </div>
                 </div>
 
                 {/* Metric cards */}
-                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
                   {/* Progress Fisik */}
                   <div>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                        <div style={{ width: 8, height: 8, borderRadius: 2, background: fisikPct >= 80 ? "var(--success)" : C.navy }} />
+                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: 0, background: fisikPct >= 80 ? "var(--success)" : C.navy }} />
                         <span style={{ fontSize: 10, fontWeight: 700, color: C.text, textTransform: "uppercase", letterSpacing: "0.04em" }}>Progress Fisik</span>
                       </div>
-                      <span style={{ fontSize: 16, fontWeight: 800, color: fisikPct >= 80 ? C.green : C.navy, lineHeight: 1 }}>{fisikPct.toFixed(1)}%</span>
+                      <span style={{ fontSize: 15, fontWeight: 800, color: fisikPct >= 80 ? C.green : C.navy, lineHeight: 1 }}>{fisikPct.toFixed(1)}%</span>
                     </div>
                     <div style={{ height: 8, borderRadius: 99, background: "var(--info-bg)", overflow: "hidden" }}>
                       <div style={{
                         height: "100%", borderRadius: 99, width: `${fisikPct}%`,
-                        background: fisikPct >= 80 ? "linear-gradient(90deg,var(--success),var(--success))" : "linear-gradient(90deg,var(--navy),#0066CC)",
+                        background: fisikPct >= 80 ? "linear-gradient(90deg,var(--success),var(--success))" : "linear-gradient(90deg,var(--navy),var(--aksen-terang))",
                         transition: "width 0.8s ease",
                       }} />
                     </div>
-                    <div style={{ fontSize: 9, color: C.muted, marginTop: 3 }}>
+                    <div style={{ fontSize: 10, color: C.muted, marginTop: 3 }}>
                       Update: {p.progress_logs?.[0]?.logged_at ? fmtDateShort(p.progress_logs[0].logged_at) : "—"}
                     </div>
                   </div>
@@ -929,26 +855,26 @@ function ProjectDetailContent() {
                   {/* Serapan Dana */}
                   <div>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                        <div style={{ width: 8, height: 8, borderRadius: 2, background: "#F97316" }} />
+                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: 0, background: "var(--data-5)" }} />
                         <span style={{ fontSize: 10, fontWeight: 700, color: C.text, textTransform: "uppercase", letterSpacing: "0.04em" }}>Serapan Dana</span>
                         {canEditProject && (
                           <button onClick={() => setShowAbsorptionModal(true)} style={{
-                            padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 700,
-                            background: "#FFF7ED", color: "var(--warning)", border: "1px solid #FED7AA", cursor: "pointer",
+                            padding: "0px 6px", borderRadius: 6, fontSize: 10, fontWeight: 700,
+                            background: "var(--warning-bg)", color: "var(--warning)", border: "1px solid #FED7AA", cursor: "pointer",
                           }}>+ Update</button>
                         )}
                       </div>
                       {serapanPct === null
-                        ? <span style={{ display: "inline-block", width: 40, height: 16, borderRadius: 4, background: "linear-gradient(90deg,#FED7AA,#FEF3C7,#FED7AA)", backgroundSize: "200% 100%", animation: "shimmer 1.5s ease-in-out infinite" }} />
-                        : <span style={{ fontSize: 16, fontWeight: 800, color: "#EA580C", lineHeight: 1 }}>{serap.toFixed(1)}%</span>
+                        ? <span style={{ display: "inline-block", width: 40, height: 16, borderRadius: 6, background: "linear-gradient(90deg,var(--warning-border),var(--warning-bg),var(--warning-border))", backgroundSize: "200% 100%", animation: "shimmer 1.5s ease-in-out infinite" }} />
+                        : <span style={{ fontSize: 15, fontWeight: 800, color: "var(--data-5)", lineHeight: 1 }}>{serap.toFixed(1)}%</span>
                       }
                     </div>
                     {/* Segmented bar */}
-                    <div style={{ height: 8, borderRadius: 99, background: "#FFF7ED", overflow: "hidden", position: "relative" }}>
+                    <div style={{ height: 8, borderRadius: 99, background: "var(--warning-bg)", overflow: "hidden", position: "relative" }}>
                       <div style={{
                         height: "100%", borderRadius: 99, width: `${serap}%`,
-                        background: "linear-gradient(90deg,#EA580C,#FB923C)",
+                        background: "linear-gradient(90deg,var(--data-5),var(--data-5))",
                         transition: "width 0.8s ease",
                       }} />
                       {/* Tick marks every 25% */}
@@ -960,7 +886,7 @@ function ProjectDetailContent() {
                       ))}
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", marginTop: 3 }}>
-                      <span style={{ fontSize: 9, color: C.muted }}>
+                      <span style={{ fontSize: 10, color: C.muted }}>
                         {serapanPct === null
                           ? "Menghitung dari RAB..."
                           : serap === 0
@@ -969,7 +895,7 @@ function ProjectDetailContent() {
                       </span>
                       {canEditProject && (
                         <button onClick={() => setShowScheduleModal(true)} style={{
-                          fontSize: 9, color: C.mid, background: "none", border: "none", cursor: "pointer", textDecoration: "underline", padding: 0,
+                          fontSize: 10, color: C.mid, background: "none", border: "none", cursor: "pointer", textDecoration: "underline", padding: 0,
                         }}>Atur rencana</button>
                       )}
                     </div>
@@ -981,7 +907,7 @@ function ProjectDetailContent() {
               {(fisikPct > 0 || serap > 0) && (
                 <div style={{
                   display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "8px 14px", borderRadius: 8,
+                  padding: "8px 12px", borderRadius: 6,
                   background: Math.abs(diff) <= 5 ? "var(--success-bg)" : diff > 5 ? "var(--warning-bg)" : "var(--danger-bg)",
                   border: `1px solid ${Math.abs(diff) <= 5 ? "var(--success-border)" : diff > 5 ? "var(--warning-border)" : "var(--danger-border)"}`,
                 }}>
@@ -989,7 +915,7 @@ function ProjectDetailContent() {
                     <span style={{ fontSize: 11, fontWeight: 600, color: diffColor }}>{diffLabel}</span>
                     <span style={{ fontSize: 10, color: C.muted, marginLeft: 6 }}>Fisik vs Serapan</span>
                   </div>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: diffColor }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: diffColor }}>
                     {diff > 0 ? "+" : ""}{diff.toFixed(1)}%
                   </span>
                 </div>
@@ -999,15 +925,15 @@ function ProjectDetailContent() {
               {upcomingMilestone && (
                 <div style={{
                   display: "flex", alignItems: "center", gap: 8,
-                  padding: "8px 12px", borderRadius: 8,
+                  padding: "8px 12px", borderRadius: 6,
                   background: "var(--warning-bg)", border: "1px solid var(--warning-border)",
                 }}>
                   <div style={{ width: 6, height: 6, borderRadius: "50%", background: C.yellow, flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: "#92400E" }}>{upcomingMilestone.title}</span>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: "var(--on-warning-bg)" }}>{upcomingMilestone.title}</span>
                     <span style={{ fontSize: 10, color: "var(--warning)", marginLeft: 6 }}>· {fmtDateShort(upcomingMilestone.target_date)}</span>
                   </div>
-                  <span style={{ fontSize: 9, color: C.muted, flexShrink: 0 }}>Milestone Berikutnya</span>
+                  <span style={{ fontSize: 10, color: C.muted, flexShrink: 0 }}>Milestone Berikutnya</span>
                 </div>
               )}
             </div>
@@ -1096,7 +1022,7 @@ function ProjectDetailContent() {
                   alignItems: "flex-start",
                 }}>
                   <div style={{
-                    width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                    width: 28, height: 28, borderRadius: 6, flexShrink: 0,
                     background: ev.bg, color: ev.color,
                     display: "flex", alignItems: "center", justifyContent: "center",
                     marginTop: 1,
@@ -1139,12 +1065,12 @@ function ProjectDetailContent() {
           <div className="rise rise-3" style={{ ...card, padding: 24, marginBottom: 20 }}>
             {/* Header */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <SectionTitle style={{ margin: 0 }}>Jadwal Termin</SectionTitle>
                 {overdueTermins.length > 0 && (
                   <span style={{
                     display: "inline-flex", alignItems: "center", gap: 4,
-                    padding: "3px 8px", borderRadius: 20, fontSize: 11, fontWeight: 700,
+                    padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 700,
                     background: C.redBg, color: C.red, border: `1px solid ${C.redBorder}`,
                   }}>
                     <AlertCircle size={11} />
@@ -1158,9 +1084,9 @@ function ProjectDetailContent() {
             {/* Overdue alert */}
             {overdueTermins.length > 0 && (
               <div style={{
-                marginBottom: 16, padding: "12px 14px", borderRadius: 10,
+                marginBottom: 16, padding: "12px 12px", borderRadius: 10,
                 background: C.redBg, border: `1px solid ${C.redBorder}`,
-                display: "flex", alignItems: "flex-start", gap: 10,
+                display: "flex", alignItems: "flex-start", gap: 8,
               }}>
                 <AlertCircle size={16} style={{ color: C.red, flexShrink: 0, marginTop: 1 }} />
                 <div>
@@ -1197,18 +1123,18 @@ function ProjectDetailContent() {
                   width: `${totalValue > 0 ? (paidValue / totalValue) * 100 : 0}%`,
                   background: paid === termins.length
                     ? "linear-gradient(90deg, var(--success), var(--success))"
-                    : "linear-gradient(90deg, var(--navy), #0066CC)",
+                    : "linear-gradient(90deg, var(--navy), var(--aksen-terang))",
                   transition: "width 0.5s ease",
                 }} />
               </div>
             </div>
 
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
               <thead>
                 <tr style={{ background: "var(--surface-subtle)", borderBottom: "1px solid var(--border)" }}>
                   {["No", "Label", "Nilai", "% Kontrak", "Syarat Tagih", "Status", ""].map((h, i) => (
                     <th key={i} style={{
-                      padding: "10px 14px",
+                      padding: "8px 12px",
                       textAlign: i >= 2 && i !== 6 ? "right" : i === 6 ? "center" : "left",
                       fontSize: 11, fontWeight: 600, letterSpacing: "0.05em",
                       textTransform: "uppercase", color: C.mid,
@@ -1220,7 +1146,7 @@ function ProjectDetailContent() {
               </thead>
               <tbody>
                 {termins.map(t => {
-                  const canPay = hasPermission("finance:termin:pay") && t.status !== "paid";
+                  const canPay = bolehBayarTermin && t.status !== "paid";
                   const isOverdueTermin = overdueTermins.some(ot => ot.id === t.id);
 
                   // Keterangan syarat tagih
@@ -1240,21 +1166,21 @@ function ProjectDetailContent() {
                         borderBottom: "1px solid var(--surface-hover)",
                         background: t.status === "paid"
                           ? "var(--success-bg)"
-                          : isOverdueTermin ? "#FFF5F5"
+                          : isOverdueTermin ? "var(--danger-bg)"
                           : "transparent",
                       }}
                       onMouseEnter={e => {
-                        if (t.status !== "paid" && !isOverdueTermin) e.currentTarget.style.background = "#FAFBFF";
+                        if (t.status !== "paid" && !isOverdueTermin) e.currentTarget.style.background = "var(--surface-subtle)";
                       }}
                       onMouseLeave={e => {
                         e.currentTarget.style.background = t.status === "paid"
                           ? "var(--success-bg)"
-                          : isOverdueTermin ? "#FFF5F5"
+                          : isOverdueTermin ? "var(--danger-bg)"
                           : "transparent";
                       }}
                     >
-                      <td style={{ padding: "12px 14px", color: C.muted, fontWeight: 600 }}>{t.termin_number}</td>
-                      <td style={{ padding: "12px 14px", color: C.text, fontWeight: 500 }}>
+                      <td style={{ padding: "12px 12px", color: C.muted, fontWeight: 600 }}>{t.termin_number}</td>
+                      <td style={{ padding: "12px 12px", color: C.text, fontWeight: 500 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                           {t.label}
                           {isOverdueTermin && (
@@ -1264,9 +1190,9 @@ function ProjectDetailContent() {
                           )}
                         </div>
                       </td>
-                      <td style={{ padding: "12px 14px", textAlign: "right", color: C.text, fontWeight: 600, fontFamily: "monospace" }}>{fmt(Number(t.amount))}</td>
-                      <td style={{ padding: "12px 14px", textAlign: "right", color: C.mid }}>{t.pct_of_contract}%</td>
-                      <td style={{ padding: "12px 14px", textAlign: "right" }}>
+                      <td style={{ padding: "12px 12px", textAlign: "right", color: C.text, fontWeight: 600, fontFamily: "monospace" }}>{fmt(Number(t.amount))}</td>
+                      <td style={{ padding: "12px 12px", textAlign: "right", color: C.mid }}>{t.pct_of_contract}%</td>
+                      <td style={{ padding: "12px 12px", textAlign: "right" }}>
                         <span style={{
                           fontSize: 11,
                           color: isOverdueTermin ? C.red : C.mid,
@@ -1275,10 +1201,10 @@ function ProjectDetailContent() {
                           {triggerLabel}
                         </span>
                       </td>
-                      <td style={{ padding: "12px 14px", textAlign: "right" }}>
+                      <td style={{ padding: "12px 12px", textAlign: "right" }}>
                         <Badge status={t.status} />
                       </td>
-                      <td style={{ padding: "12px 14px", textAlign: "center" }}>
+                      <td style={{ padding: "12px 12px", textAlign: "center" }}>
                         {canPay ? (
                           <button
                             aria-label={`Catat pembayaran termin ${t.termin_number}`}
@@ -1291,15 +1217,15 @@ function ProjectDetailContent() {
                               status: t.status,
                             })}
                             style={{
-                              display: "inline-flex", alignItems: "center", gap: 5,
-                              padding: "5px 12px", borderRadius: 6, border: "none",
+                              display: "inline-flex", alignItems: "center", gap: 4,
+                              padding: "4px 12px", borderRadius: 6, border: "none",
                               background: isOverdueTermin ? C.red : C.navyLight,
                               color: isOverdueTermin ? "#fff" : C.navy,
                               fontSize: 11, fontWeight: 600, cursor: "pointer",
                               transition: "all 0.15s", whiteSpace: "nowrap",
                             }}
                             onMouseEnter={e => {
-                              e.currentTarget.style.background = isOverdueTermin ? "#991B1B" : C.navy;
+                              e.currentTarget.style.background = isOverdueTermin ? "var(--on-danger-bg)" : C.navy;
                               e.currentTarget.style.color = "var(--surface)";
                             }}
                             onMouseLeave={e => {
@@ -1328,8 +1254,8 @@ function ProjectDetailContent() {
       {/* ── RAB ── */}
       <div id="sec-rab" className="rise rise-3" style={{ ...card, padding: 24, marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: rabCollapsed ? 0 : 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--navy), #0066CC)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               <FileText size={18} color="var(--surface)" />
             </div>
             <div>
@@ -1341,7 +1267,7 @@ function ProjectDetailContent() {
             onClick={() => setRabCollapsed(c => !c)}
             style={{
               display: "flex", alignItems: "center", gap: 6,
-              padding: "6px 12px", borderRadius: 8, border: `1px solid ${C.border}`,
+              padding: "6px 12px", borderRadius: 6, border: `1px solid ${C.border}`,
               background: "var(--surface-subtle)", cursor: "pointer", fontSize: 12, color: C.mid,
             }}
           >
@@ -1371,8 +1297,8 @@ function ProjectDetailContent() {
       {/* ── Gantt Chart ── */}
       <div id="sec-gantt" className="rise rise-3" style={{ ...card, padding: 24, marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: ganttCollapsed ? 0 : 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--navy), #0066CC)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               <Clock size={18} color="var(--surface)" />
             </div>
             <div>
@@ -1384,7 +1310,7 @@ function ProjectDetailContent() {
             onClick={() => setGanttCollapsed(c => !c)}
             style={{
               display: "flex", alignItems: "center", gap: 6,
-              padding: "6px 12px", borderRadius: 8, border: `1px solid ${C.border}`,
+              padding: "6px 12px", borderRadius: 6, border: `1px solid ${C.border}`,
               background: "var(--surface-subtle)", cursor: "pointer", fontSize: 12, color: C.mid,
             }}
           >
@@ -1459,7 +1385,7 @@ function ProjectDetailContent() {
           projectId={p.id}
           assignments={p.mandor_assignments ?? []}
           scopelessKasbons={p.scopeless_kasbons ?? []}
-          canEdit={hasPermission("mandor:assign")}
+          canEdit={bolehAturMandor}
           onRefresh={fetchProject}
         />
       </div>
@@ -1477,11 +1403,11 @@ function ProjectDetailContent() {
           </div>
 
           {/* Kasbon list */}
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
             <thead>
               <tr style={{ background: "var(--surface-subtle)", borderBottom: "1px solid var(--border)" }}>
                 {["Mandor", "Scope", "Tujuan", "Jumlah", "Tanggal", "Status"].map((h, i) => (
-                  <th key={h} style={{ padding: "10px 14px", textAlign: i >= 3 ? "right" : "left", fontSize: 11, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", color: C.mid }}>
+                  <th key={h} style={{ padding: "8px 12px", textAlign: i >= 3 ? "right" : "left", fontSize: 11, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", color: C.mid }}>
                     {h}
                   </th>
                 ))}
@@ -1490,15 +1416,15 @@ function ProjectDetailContent() {
             <tbody>
               {allKasbons.slice(0, 10).map(k => (
                 <tr key={k.id} style={{ borderBottom: "1px solid var(--surface-hover)" }}
-                  onMouseEnter={e => { e.currentTarget.style.background = "#FAFBFF"; }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-subtle)"; }}
                   onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
                 >
-                  <td style={{ padding: "11px 14px", color: C.text, fontWeight: 500 }}>{(k as any).mandorName}</td>
-                  <td style={{ padding: "11px 14px", color: C.mid, fontSize: 12 }}>{(k as any).scopeName}</td>
-                  <td style={{ padding: "11px 14px", color: C.mid }}>{PURPOSE_LABEL[k.purpose] ?? k.purpose}</td>
-                  <td style={{ padding: "11px 14px", textAlign: "right", color: k.status === "approved" ? C.text : k.status === "settled" ? C.green : C.yellow, fontWeight: 600, fontFamily: "monospace" }}>{fmt(Number(k.amount))}</td>
-                  <td style={{ padding: "11px 14px", textAlign: "right", color: C.muted, fontSize: 12 }}>{fmtDateShort(k.kasbon_date)}</td>
-                  <td style={{ padding: "11px 14px", textAlign: "right" }}><Badge status={k.status} /></td>
+                  <td style={{ padding: "12px 12px", color: C.text, fontWeight: 500 }}>{(k as any).mandorName}</td>
+                  <td style={{ padding: "12px 12px", color: C.mid, fontSize: 12 }}>{(k as any).scopeName}</td>
+                  <td style={{ padding: "12px 12px", color: C.mid }}>{PURPOSE_LABEL[k.purpose] ?? k.purpose}</td>
+                  <td style={{ padding: "12px 12px", textAlign: "right", color: k.status === "approved" ? C.text : k.status === "settled" ? C.green : C.yellow, fontWeight: 600, fontFamily: "monospace" }}>{fmt(Number(k.amount))}</td>
+                  <td style={{ padding: "12px 12px", textAlign: "right", color: C.muted, fontSize: 12 }}>{fmtDateShort(k.kasbon_date)}</td>
+                  <td style={{ padding: "12px 12px", textAlign: "right" }}><Badge status={k.status} /></td>
                 </tr>
               ))}
             </tbody>
@@ -1535,11 +1461,11 @@ function ProjectDetailContent() {
       {(p.invoices?.length ?? 0) > 0 && (
         <div id="sec-invoice" className="rise rise-5" style={{ ...card, padding: 24, marginBottom: 20 }}>
           <SectionTitle>Invoice</SectionTitle>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
             <thead>
               <tr style={{ background: "var(--surface-subtle)", borderBottom: "1px solid var(--border)" }}>
                 {["No Invoice", "Tipe", "Total", "Dibayar", "Sisa", "Jatuh Tempo", "Status"].map((h, i) => (
-                  <th key={h} style={{ padding: "10px 14px", textAlign: i >= 2 ? "right" : "left", fontSize: 11, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", color: C.mid }}>
+                  <th key={h} style={{ padding: "8px 12px", textAlign: i >= 2 ? "right" : "left", fontSize: 11, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", color: C.mid }}>
                     {h}
                   </th>
                 ))}
@@ -1551,20 +1477,20 @@ function ProjectDetailContent() {
                 const invOverdue = inv.status !== "paid" && invDays < 0;
                 return (
                   <tr key={inv.id} style={{ borderBottom: "1px solid var(--surface-hover)", background: invOverdue ? "var(--danger-bg)" : "transparent" }}
-                    onMouseEnter={e => { if (!invOverdue) e.currentTarget.style.background = "#FAFBFF"; }}
+                    onMouseEnter={e => { if (!invOverdue) e.currentTarget.style.background = "var(--surface-subtle)"; }}
                     onMouseLeave={e => { e.currentTarget.style.background = invOverdue ? "var(--danger-bg)" : "transparent"; }}
                   >
-                    <td style={{ padding: "12px 14px", color: C.navy, fontFamily: "var(--font-display)", fontSize: 11, fontWeight: 600 }}>{inv.invoice_number}</td>
-                    <td style={{ padding: "12px 14px", color: C.mid }}>{INVOICE_TYPE_LABEL[inv.invoice_type] ?? inv.invoice_type}</td>
-                    <td style={{ padding: "12px 14px", textAlign: "right", color: C.text, fontWeight: 600, fontFamily: "monospace" }}>{fmt(Number(inv.total_amount))}</td>
-                    <td style={{ padding: "12px 14px", textAlign: "right", color: C.green, fontFamily: "monospace" }}>{fmt(Number(inv.amount_paid))}</td>
-                    <td style={{ padding: "12px 14px", textAlign: "right", color: Number(inv.amount_due) > 0 ? C.yellow : C.green, fontWeight: 600, fontFamily: "monospace" }}>{fmt(Number(inv.amount_due))}</td>
-                    <td style={{ padding: "12px 14px", textAlign: "right", color: invOverdue ? C.red : C.mid, fontSize: 12 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 3, justifyContent: "flex-end" }}>
+                    <td style={{ padding: "12px 12px", color: C.navy, fontFamily: "var(--font-display)", fontSize: 11, fontWeight: 600 }}>{inv.invoice_number}</td>
+                    <td style={{ padding: "12px 12px", color: C.mid }}>{INVOICE_TYPE_LABEL[inv.invoice_type] ?? inv.invoice_type}</td>
+                    <td style={{ padding: "12px 12px", textAlign: "right", color: C.text, fontWeight: 600, fontFamily: "monospace" }}>{fmt(Number(inv.total_amount))}</td>
+                    <td style={{ padding: "12px 12px", textAlign: "right", color: C.green, fontFamily: "monospace" }}>{fmt(Number(inv.amount_paid))}</td>
+                    <td style={{ padding: "12px 12px", textAlign: "right", color: Number(inv.amount_due) > 0 ? C.yellow : C.green, fontWeight: 600, fontFamily: "monospace" }}>{fmt(Number(inv.amount_due))}</td>
+                    <td style={{ padding: "12px 12px", textAlign: "right", color: invOverdue ? C.red : C.mid, fontSize: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 2, justifyContent: "flex-end" }}>
                         <Clock size={10} />{fmtDateShort(inv.due_date)}
                       </div>
                     </td>
-                    <td style={{ padding: "12px 14px", textAlign: "right" }}><Badge status={inv.status} /></td>
+                    <td style={{ padding: "12px 12px", textAlign: "right" }}><Badge status={inv.status} /></td>
                   </tr>
                 );
               })}
@@ -1660,27 +1586,27 @@ function ProjectDetailContent() {
           style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 24 }}
           onClick={e => { if (e.target === e.currentTarget) setShowDeleteConfirm(false); }}
         >
-          <div style={{ background: "var(--surface)", borderRadius: 16, padding: 28, maxWidth: 420, width: "100%", boxShadow: "0 24px 48px rgba(0,0,0,0.18)" }}>
+          <div style={{ background: "var(--surface)", borderRadius: 14, padding: 28, maxWidth: 420, width: "100%", boxShadow: "var(--naik-3)" }}>
             <div style={{ width: 44, height: 44, borderRadius: "50%", background: C.redBg, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
               <Trash2 size={20} style={{ color: C.red }} />
             </div>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 8 }}>Hapus proyek ini?</h3>
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 8 }}>Hapus proyek ini?</h3>
             <p style={{ fontSize: 13, color: C.mid, lineHeight: 1.6, marginBottom: 24 }}>
               Semua data terkait akan diarsipkan. Proyek akan ditandai sebagai <strong>Batal</strong> dan tidak akan muncul di daftar aktif.
             </p>
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
               <button
                 onClick={() => setShowDeleteConfirm(false)}
                 disabled={deleting}
-                style={{ padding: "9px 18px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 13, fontWeight: 500, color: C.mid, cursor: "pointer" }}
+                style={{ padding: "8px 16px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 13, fontWeight: 500, color: C.mid, cursor: "pointer" }}
               >
                 Batal
               </button>
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: deleting ? "var(--text-muted)" : C.red, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: deleting ? "not-allowed" : "pointer", transition: "background 0.15s" }}
-                onMouseEnter={e => { if (!deleting) e.currentTarget.style.background = "#991B1B"; }}
+                style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: deleting ? "var(--text-muted)" : C.red, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: deleting ? "not-allowed" : "pointer", transition: "background 0.15s" }}
+                onMouseEnter={e => { if (!deleting) e.currentTarget.style.background = "var(--on-danger-bg)"; }}
                 onMouseLeave={e => { if (!deleting) e.currentTarget.style.background = C.red; }}
               >
                 {deleting ? "Mengarsipkan..." : "Ya, Hapus"}
@@ -1698,13 +1624,13 @@ function ProjectDetailContent() {
           onClick={e => { if (e.target === e.currentTarget) setShowPrintModal(false); }}
         >
           <div style={{
-            background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 680,
+            background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 680,
             maxHeight: "90vh", display: "flex", flexDirection: "column",
-            boxShadow: "0 24px 64px rgba(0,0,0,0.22)",
+            boxShadow: "var(--naik-3)",
           }}>
             {/* Modal header */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 24px", borderBottom: "1px solid var(--border)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 24px", borderBottom: "1px solid var(--border)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Printer size={18} style={{ color: C.navy }} />
                 <span style={{ fontSize: 15, fontWeight: 700, color: C.text, fontFamily: "var(--font-display)" }}>Ringkasan Proyek</span>
               </div>
@@ -1713,7 +1639,7 @@ function ProjectDetailContent() {
                   onClick={() => window.print()}
                   style={{
                     display: "inline-flex", alignItems: "center", gap: 6,
-                    padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+                    padding: "6px 12px", borderRadius: 6, fontSize: 12, fontWeight: 600,
                     background: C.navy, color: "var(--surface)", border: "none", cursor: "pointer",
                   }}
                 >
@@ -1721,7 +1647,7 @@ function ProjectDetailContent() {
                 </button>
                 <button
                   onClick={() => setShowPrintModal(false)}
-                  style={{ padding: "7px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 13, color: C.mid, cursor: "pointer" }}
+                  style={{ padding: "6px 8px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 13, color: C.mid, cursor: "pointer" }}
                 >
                   ✕
                 </button>
@@ -1744,7 +1670,7 @@ function ProjectDetailContent() {
               </div>
 
               {/* KPI grid 2×3 */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 20 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 20 }}>
                 {[
                   { label: "Nilai Kontrak", value: fmt(Number(p.contract_value)) },
                   { label: "Progress Fisik", value: `${Number(p.progress_pct).toFixed(1)}%` },
@@ -1753,7 +1679,7 @@ function ProjectDetailContent() {
                   { label: "Total Kasbon", value: fmt(allKasbons.reduce((s, k) => s + Number(k.amount), 0)) },
                   { label: "Hari Tersisa", value: daysLeft > 0 ? `${daysLeft} hari` : `${Math.abs(daysLeft)} hari terlambat` },
                 ].map(item => (
-                  <div key={item.label} style={{ padding: "12px 14px", borderRadius: 10, background: "var(--surface-subtle)", border: "1px solid var(--border)" }}>
+                  <div key={item.label} style={{ padding: "12px 12px", borderRadius: 10, background: "var(--surface-subtle)", border: "1px solid var(--border)" }}>
                     <div style={{ fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>{item.label}</div>
                     <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{item.value}</div>
                   </div>
@@ -1773,7 +1699,7 @@ function ProjectDetailContent() {
                     ].map(e => (
                       <div key={e.label} style={{ textAlign: "center" }}>
                         <div style={{ fontSize: 10, color: C.mid, marginBottom: 2 }}>{e.label}</div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: e.ok ? C.green : C.red }}>{e.val}</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: e.ok ? C.green : C.red }}>{e.val}</div>
                       </div>
                     ))}
                   </div>
@@ -1786,8 +1712,8 @@ function ProjectDetailContent() {
                   <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>Milestone</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {(p.milestones ?? []).map(m => (
-                      <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 8, background: m.status === "completed" ? C.greenBg : "var(--surface-subtle)", border: "1px solid var(--border)" }}>
-                        <span style={{ color: m.status === "completed" ? C.green : C.muted, fontSize: 14 }}>{m.status === "completed" ? "✓" : "○"}</span>
+                      <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 6, background: m.status === "completed" ? C.greenBg : "var(--surface-subtle)", border: "1px solid var(--border)" }}>
+                        <span style={{ color: m.status === "completed" ? C.green : C.muted, fontSize: 13 }}>{m.status === "completed" ? "✓" : "○"}</span>
                         <span style={{ flex: 1, fontSize: 12, color: C.text }}>{m.title}</span>
                         <span style={{ fontSize: 11, color: C.muted }}>{fmtDateShort(m.target_date)}</span>
                       </div>
@@ -1802,7 +1728,7 @@ function ProjectDetailContent() {
                   <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>Tim Pelaksana</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {(p.mandor_assignments ?? []).map(ma => (
-                      <div key={ma.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 8, background: "var(--surface-subtle)", border: "1px solid var(--border)" }}>
+                      <div key={ma.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 6, background: "var(--surface-subtle)", border: "1px solid var(--border)" }}>
                         <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{ma.mandor?.name ?? "—"}</span>
                         <span style={{ fontSize: 11, color: C.muted }}>· {(ma.work_scopes ?? []).length} scope pekerjaan</span>
                       </div>
@@ -1830,16 +1756,16 @@ function ActionBtn({ children, navy, danger, onClick }: {
   children: React.ReactNode; navy?: boolean; danger?: boolean; onClick?: () => void;
 }) {
   const bg = navy ? "var(--navy)" : danger ? "var(--danger-bg)" : "var(--surface)";
-  const col = navy ? "var(--surface)" : danger ? "var(--danger)" : "#374151";
+  const col = navy ? "var(--surface)" : danger ? "var(--danger)" : "var(--text-secondary)";
   const border = navy ? "none" : danger ? "1px solid var(--danger-border)" : "1px solid var(--border)";
-  const hoverBg = navy ? "#002244" : danger ? "#FEE2E2" : "var(--surface-subtle)";
-  const hoverBorder = navy ? "#002244" : danger ? "var(--danger)" : "var(--border-strong)";
+  const hoverBg = navy ? "var(--aksen-pekat)" : danger ? "var(--danger-bg)" : "var(--surface-subtle)";
+  const hoverBorder = navy ? "var(--aksen-pekat)" : danger ? "var(--danger)" : "var(--border-strong)";
   return (
     <button
       onClick={onClick}
       style={{
-        display: "inline-flex", alignItems: "center", gap: 5,
-        padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: 500,
+        display: "inline-flex", alignItems: "center", gap: 4,
+        padding: "8px 12px", borderRadius: 6, fontSize: 13, fontWeight: 500,
         cursor: "pointer", transition: "all 0.12s",
         border, background: bg, color: col,
       }}
@@ -1857,7 +1783,7 @@ function KasbonPill({ label, value, color, bg, border }: {
   return (
     <div style={{ background: bg, border: `1px solid ${border}`, borderRadius: 10, padding: "12px 16px" }}>
       <div style={{ fontSize: 11, color, fontWeight: 600, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.04em" }}>{label}</div>
-      <div style={{ fontSize: 16, fontWeight: 700, color, fontFamily: "var(--font-display)" }}>{
+      <div style={{ fontSize: 15, fontWeight: 700, color, fontFamily: "var(--font-display)" }}>{
         new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(value)
       }</div>
     </div>
@@ -1873,7 +1799,7 @@ function QuickStat({ label, value, valueColor, divider }: {
       borderLeft: divider ? "1px solid var(--border)" : "none",
     }}>
       <div style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 500, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</div>
-      <div style={{ fontSize: 18, fontWeight: 700, color: valueColor ?? "var(--text-primary)", fontFamily: "var(--font-display)", lineHeight: 1.2 }}>{value}</div>
+      <div style={{ fontSize: 17, fontWeight: 700, color: valueColor ?? "var(--text-primary)", fontFamily: "var(--font-display)", lineHeight: 1.2 }}>{value}</div>
     </div>
   );
 }

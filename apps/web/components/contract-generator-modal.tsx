@@ -8,17 +8,7 @@ import { generateContract } from "@/lib/api";
 
 // ─── Design tokens ─────────────────────────────────────────────────────────────
 
-const C = {
-  navy: "var(--navy)",
-  navyLight: "var(--navy-light)",
-  text: "var(--text-primary)",
-  mid: "var(--text-secondary)",
-  muted: "var(--text-muted)",
-  border: "var(--border)",
-  bg: "var(--bg)",
-  red: "var(--danger)",
-  redBg: "var(--danger-bg)",
-};
+import { C } from "@/lib/warna-ui";
 
 // ─── Form field components ─────────────────────────────────────────────────────
 
@@ -36,10 +26,10 @@ function Field({
 }
 
 const inputStyle: React.CSSProperties = {
-  padding: "8px 11px",
+  padding: "8px 12px",
   fontSize: 13,
   border: `1px solid ${C.border}`,
-  borderRadius: 8,
+  borderRadius: 6,
   color: C.text,
   background: "var(--surface)",
   outline: "none",
@@ -137,25 +127,25 @@ export function ContractGeneratorModal({ projectId, projectName, onClose }: Prop
     >
       <div style={{
         background: "var(--surface)",
-        borderRadius: 16,
+        borderRadius: 14,
         width: "100%",
         maxWidth: 560,
         maxHeight: "90vh",
         display: "flex",
         flexDirection: "column",
-        boxShadow: "0 20px 60px rgba(0,0,0,0.18)",
+        boxShadow: "var(--naik-3)",
         overflow: "hidden",
       }}>
         {/* Header */}
         <div style={{
-          padding: "18px 24px 16px",
+          padding: "16px 24px 16px",
           borderBottom: `1px solid ${C.border}`,
           display: "flex", alignItems: "center", gap: 12,
           flexShrink: 0,
         }}>
           <div style={{
             width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-            background: "linear-gradient(135deg, var(--navy), #0066CC)",
+            background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
             <FileText size={18} color="var(--surface)" />
@@ -177,10 +167,10 @@ export function ContractGeneratorModal({ projectId, projectName, onClose }: Prop
         {/* Body */}
         <form
           onSubmit={handleSubmit}
-          style={{ padding: "20px 24px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 14 }}
+          style={{ padding: "20px 24px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 12 }}
         >
           {error && (
-            <div style={{ padding: "10px 14px", borderRadius: 8, background: C.redBg, border: "1px solid var(--danger-border)", fontSize: 13, color: C.red }}>
+            <div style={{ padding: "8px 12px", borderRadius: 6, background: C.redBg, border: "1px solid var(--danger-border)", fontSize: 13, color: C.red }}>
               {error}
             </div>
           )}
@@ -262,16 +252,16 @@ export function ContractGeneratorModal({ projectId, projectName, onClose }: Prop
 
         {/* Footer */}
         <div style={{
-          padding: "14px 24px",
+          padding: "12px 24px",
           borderTop: `1px solid ${C.border}`,
-          display: "flex", justifyContent: "flex-end", gap: 10,
+          display: "flex", justifyContent: "flex-end", gap: 8,
           flexShrink: 0, background: C.bg,
         }}>
           <button
             onClick={onClose}
             disabled={loading}
             style={{
-              padding: "8px 18px", borderRadius: 8, fontSize: 13, fontWeight: 600,
+              padding: "8px 16px", borderRadius: 6, fontSize: 13, fontWeight: 600,
               background: "transparent", color: C.mid,
               border: `1px solid ${C.border}`, cursor: "pointer",
               opacity: loading ? 0.6 : 1,
@@ -283,7 +273,7 @@ export function ContractGeneratorModal({ projectId, projectName, onClose }: Prop
             onClick={handleSubmit as unknown as React.MouseEventHandler}
             disabled={loading}
             style={{
-              padding: "8px 18px", borderRadius: 8, fontSize: 13, fontWeight: 600,
+              padding: "8px 16px", borderRadius: 6, fontSize: 13, fontWeight: 600,
               background: loading ? C.muted : C.navy, color: "var(--surface)",
               border: "none", cursor: loading ? "not-allowed" : "pointer",
               display: "flex", alignItems: "center", gap: 6,

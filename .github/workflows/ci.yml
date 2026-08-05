@@ -208,6 +208,21 @@ jobs:
       - name: Kegagalan senyap (query yang errornya tak pernah dilihat)
         run: node scripts/audit-kegagalan-senyap.mjs
 
+      # `notification-rules.test.ts` memakai `TEST_EVENT = '__test_event__'` —
+      # nama TETAP — lalu `beforeAll` MENGHAPUS baris bernama itu. Enam shard
+      # berbagi satu database, jadi shard yang satu menghapus state yang sedang
+      # dipakai shard lain.
+      #
+      # Yang kalah balapan gagal dengan "expected 403 to be 200" — galat yang
+      # terbaca sebagai bug permission, bukan sebagai state yang dihapus orang
+      # lain. Test yang merah berpindah tiap jalan, jadi paling mudah salah
+      # disimpulkan sebagai "CI rewel" lalu di-retry sampai kebetulan hijau.
+      #
+      # `approval-chains.test.ts` punya pola persis sama — bom waktu yang belum
+      # meledak saat ini ditemukan.
+      - name: State bersama uji (nama tetap yang dihapus di setup)
+        run: node scripts/audit-state-bersama-test.mjs
+
       # Sisi TULIS: `update`/`delete`/`insert` yang hasilnya dibuang. Kegagalan
       # apa pun — constraint, RLS, kolom salah — lewat tanpa jejak; request tetap
       # 200 dan datanya tak berubah. Tiga ditemukan 2026-08-01: settlement
@@ -620,10 +635,60 @@ jobs:
       # menyunting puluhan berkas — dan yang terlewat akan memakai warna
       # perusahaan lain.
       #
-      # RATCHET (lantai 578): 391 hex yang punya padanan token PERSIS sudah
-      # diganti. Sisanya butuh keputusan desain, bukan penggantian mekanis.
+      # RATCHET (lantai 62 sejak 2026-08-05, sebelumnya 578): 519 hex disapu
+      # ke token saat rombak visual. Sisa 62 adalah warna yang memang bukan
+      # milik palet — merek Google di tombol OAuth, pink kategori, cyan grafik.
       - name: Hex literal (token desain)
         run: node scripts/hex-ratchet.mjs
+
+      # Deret warna grafik harus bisa dibedakan mata buta warna — dan itu
+      # BUKAN klaim yang boleh ditulis tanpa diukur. Komentar lama di
+      # globals.css menyatakan deretnya aman deutan/protan; saat akhirnya
+      # diuji, --data-2 dan --data-5 jatuh ke ΔE 1,9 pada protanopia. Grafik
+      # lima seri jadi empat seri bagi ~8% pria, tanpa satu pun galat.
+      - name: Deret data (deutan/protan)
+        run: node scripts/uji-deret-data.mjs
+
+      # Identitas merek: gradasi wajib tetap navy 210° sepanjang rentangnya
+      # (founder menolak ujung yang bergeser ke biru langit), dan permukaan
+      # merek TIDAK boleh dibalik di mode gelap. Sekalian menjaga
+      # lib/warna-merek.ts tetap sinkron dengan globals.css — dua sumber yang
+      # menggambarkan warna yang sama pasti menyimpang, pertanyaannya kapan.
+      - name: Identitas merek (rona, saturasi, sinkron)
+        run: node scripts/uji-token-merek.mjs
+
+      # Path API yang salah GAGAL DALAM DIAM: 404 hanya muncul di konsol
+      # peramban, sementara halamannya tampil rapi bertuliskan "Tidak ada
+      # invoice". Dua endpoint ditulis dari ingatan saat memecah modul
+      # Keuangan dan keduanya salah — ketahuan hanya karena sapuan layar
+      # otomatis, bukan karena ada yang melapor.
+      #
+      # Dijalankan dari root repo: ia membaca apps/api DAN apps/web.
+      - name: Path API di web menunjuk rute yang ada
+        run: node apps/web/scripts/uji-endpoint-ada.mjs
+        working-directory: .
+
+      # Halaman yang tak terdaftar di `middleware.ts` DIALIHKAN diam-diam ke
+      # home — tanpa galat, tanpa 404. Tiga halaman jadi (`/lapangan/punch-list`,
+      # `/lapangan/inspeksi`, `/lapangan/submittal`) ternyata tak pernah bisa
+      # dibuka siapa pun; ketahuan hanya karena penjaga ini dibuat.
+      #
+      # Gejalanya terlihat seperti "halamannya belum dibikin", jadi tak ada
+      # yang melapor.
+      - name: Rute halaman terdaftar di middleware
+        run: node apps/web/scripts/uji-rute-terdaftar.mjs
+        working-directory: .
+
+      # Rumus jarak geotag ada di DUA tempat (api/lib/geotag.ts dan
+      # web/components/penanda-lokasi.tsx) — digandakan supaya galeri foto tak
+      # perlu satu permintaan jaringan per foto.
+      #
+      # Kalau keduanya menyimpang, server bisa bilang "di lokasi" sementara
+      # layar bilang "800 m dari lokasi" untuk foto yang SAMA, dan tak ada
+      # yang tahu mana yang benar.
+      - name: Rumus jarak geotag sinkron (web ↔ api)
+        run: node apps/web/scripts/uji-geotag-sinkron.mjs
+        working-directory: .
 
       # Sidebar kini memuat 20 grup & 202 sub-menu (migrasi 153). Pola lama
       # menulis tinggi collapse sebagai ANGKA MATI (`maxHeight: "140px"`) —
@@ -639,6 +704,82 @@ jobs:
       # ditutup; ini menjaga agar tak tumbuh lagi.
       - name: Aksesibilitas (kontrol wajib punya nama)
         run: node scripts/a11y-ratchet.mjs
+
+      # Tabel: 59 tabel di web, dan sampai 2026-08-05 TAK SATU PUN punya
+      # `tabular-nums`. Akibatnya kolom rupiah bergoyang — "Rp 111.111"
+      # lebih sempit daripada "Rp 888.888" meski digitnya sama — jadi
+      # besaran tak bisa dibandingkan dari panjang kolom. Untuk halaman
+      # piutang yang tugasnya "mana yang paling besar", itu menghapus
+      # gunanya tabel. Sudah ditutup semua; ambangnya NOL.
+      #
+      # `<caption>` dan `scope="row"` ratchet, bukan nol: keduanya butuh
+      # kalimat/keputusan manusia per tabel, dan penjaga yang menuntut
+      # nol pada 93 keputusan tidak menghasilkan 93 perbaikan — ia
+      # menghasilkan penjaga yang dimatikan.
+      - name: Tabel terbaca (tabular-nums nol · caption/scope ratchet)
+        run: node scripts/uji-tabel-terbaca.mjs
+
+      # Lima halaman membaca `r.data.data` dari `GET /api/v1/projects`,
+      # yang mengirim `{ total, projects }`. `?? []` mengubah kunci yang
+      # tak ada jadi daftar kosong, jadi pemilih proyek di lima modul
+      # lapangan (inspeksi, punch-list, submittal, RFI, estimasi) KOSONG
+      # BAGI SIAPA PUN — tanpa satu pun galat. Modulnya tak bisa dipakai.
+      #
+      # Kelas yang sama dengan `(logs ?? [])` di /aset: kegagalan yang
+      # menyamar sebagai keadaan sah. "Belum ada proyek" masuk akal, jadi
+      # tak ada yang curiga.
+      #
+      # Cakupannya sengaja sempit — hanya panggilan tunggal dengan path
+      # literal. Versi luasnya memberi 25 alarm palsu, dan penjaga yang
+      # berisik tidak dipatuhi, ia dimatikan.
+      - name: Bentuk balasan API (kunci yang dibaca web harus dikirim)
+        run: node scripts/uji-bentuk-balasan.mjs
+
+      # `--data-*` adalah deret KATEGORI: mode gelapnya sengaja mengorbankan
+      # kesetiaan rona demi keterbedaan buta warna (ΔE 3,6 adalah batas yang
+      # bisa dicapai kalau rona dipertahankan — batas fisik, bukan kurang
+      # usaha). Akibatnya `--data-5` yang oranye di mode terang menjadi
+      # abu-abu terang di mode gelap.
+      #
+      # /piutang memakainya untuk bucket umur 31–60 hari di tengah ramp
+      # warning→danger, jadi di mode gelap bucket TENGAH tampil paling pucat
+      # dan Rp 119,6 juta yang menua terbaca sebagai paling ringan.
+      # /procurement sama, plus dua bucket berwarna identik.
+      #
+      # Keduanya LOLOS `uji-deret-data` — penjaga itu memeriksa apakah kelima
+      # warna saling terbedakan, bukan apakah dipakai di tempat yang benar.
+      - name: Ramp urgensi (--data-* bukan untuk tingkatan gawat)
+        run: node scripts/uji-ramp-urgensi.mjs
+
+      # `rgba(0,51,102,0.2)` — navy merek yang dipaku — tak punya varian
+      # mode gelap. Yang samar-tapi-terlihat di latar putih menjadi TAK
+      # TERLIHAT di latar #12141F: ikon lima kartu KPI /procurement hilang
+      # sepenuhnya, menyisakan kotak kosong.
+      #
+      # Tak satu pun penjaga warna yang ada menangkapnya: hex-ratchet
+      # menghitung hex mentah, uji-token-merek memeriksa pembalikan mode,
+      # kontras-hex memeriksa pasangan sebaris. Tiap penjaga mengukur satu
+      # sumbu, dan pelanggaran di sumbu lain lewat sambil semuanya hijau.
+      #
+      # `boxShadow` dikecualikan: bayangan yang hilang adalah hiasan
+      # kedalaman, bukan isi.
+      - name: Warna buta-mode (rgba merek pada properti isi)
+        run: node scripts/uji-warna-buta-mode.mjs
+
+      # `hasPermission()` membaca localStorage: false di server, true di klien.
+      # Dipanggil saat render, ia membuat pohon server dan klien berbeda —
+      # React MEMBUANG hasil SSR lalu merender ulang seluruh halaman. Terlihat
+      # sebagai "2 Issues" di overlay Next.js pada 17 halaman; ongkosnya render
+      # ganda di muat pertama, paling terasa di HP lapangan.
+      #
+      # Yang terparah gerbang akses (`if (!hasPermission(...)) return <Tolak/>`)
+      # di /audit dan /sistem: di situ SELURUH halaman berbeda.
+      #
+      # Perbaikan: `useIzin()` — `useSyncExternalStore` memang dirancang untuk
+      # nilai yang berbeda antara server dan klien. Panggilan di dalam handler
+      # tetap boleh; di sana tak ada hydration sama sekali.
+      - name: Izin-hydration (hasPermission bukan di jalur render)
+        run: node scripts/uji-izin-hydration.mjs
 
       # Kontras warna — 260 dari 296 pelanggaran WCAG itu kontras, dan sampai
       # 2026-08-01 ia SATU-SATUNYA yang tak dijaga otomatis. Catatannya berbunyi

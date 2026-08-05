@@ -4,7 +4,7 @@
 // Penegak: `node scripts/gen-tenant-map.mjs check` (CI) — build MERAH kalau
 // ada tabel yang belum terklasifikasi (ADR-011 §9.5 P3).
 //
-// 126 tabel · A=10 · AB=14 · ANCHOR=1 · B=27 · C=68 · D=6
+// 127 tabel · A=10 · AB=14 · ANCHOR=1 · B=27 · C=69 · D=6
 //
 // Arti kategori (ADR-011 §5 + audit T1):
 //   ANCHOR akar tenancy (projects) — company_id NOT NULL
@@ -65,6 +65,7 @@ export const PETA_TENANCY = {
   'expense_items': { kategori: 'C', lewat: 'expense_report_id' },  // expense_items.expense_report_id → expense_reports.project_id
   'expense_reports': { kategori: 'C', lewat: 'project_id' },  // expense_reports.project_id
   'feature_flags': { kategori: 'AB' },
+  'field_instructions': { kategori: 'C', lewat: 'project_id' },  // field_instructions.project_id
   'financial_config': { kategori: 'B' },
   'formula_definitions': { kategori: 'A' },
   'goods_receipt_items': { kategori: 'C', lewat: 'gr_id' },  // goods_receipt_items.gr_id → goods_receipts.project_id
@@ -110,6 +111,8 @@ export const PETA_TENANCY = {
   'project_rab_materials': { kategori: 'C', lewat: 'project_id' },  // project_rab_materials.project_id
   'project_stocks': { kategori: 'C', lewat: 'project_id' },  // project_stocks.project_id
   'projects': { kategori: 'ANCHOR' },
+  'ncr_items': { kategori: 'C', lewat: 'project_id' },  // ncr_items.project_id
+  'ncr_photos': { kategori: 'C', lewat: 'ncr_id' },  // ncr_photos.ncr_id → ncr_items.project_id
   'punch_item_photos': { kategori: 'C', lewat: 'punch_item_id' },  // punch_item_photos.punch_item_id → punch_items.project_id
   'punch_items': { kategori: 'C', lewat: 'project_id' },  // punch_items.project_id
   'purchase_order_items': { kategori: 'C', lewat: 'po_id' },  // purchase_order_items.po_id → purchase_orders.project_id

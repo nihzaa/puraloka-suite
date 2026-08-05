@@ -5,14 +5,7 @@ import { api } from "@/lib/api";
 import { ChevronDown, ChevronUp, AlertCircle, TrendingUp } from "lucide-react";
 import Link from "next/link";
 
-const C = {
-  navy: "var(--navy)", navyLight: "var(--navy-light)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)", bg: "var(--bg)", surface: "var(--surface)",
-  green: "var(--success)", greenBg: "var(--success-bg)",
-  yellow: "var(--warning)", yellowBg: "var(--warning-bg)",
-  red: "var(--danger)", redBg: "var(--danger-bg)",
-};
+import { C } from "@/lib/warna-ui";
 
 function fmt(n: number) {
   return new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(n);
@@ -96,7 +89,7 @@ export default function MandorScopePage() {
           const isGroupOpen = expanded[groupKey] !== false;
 
           return (
-            <div key={pid} style={{ background: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+            <div key={pid} style={{ background: C.surface, borderRadius: 10, border: `1px solid ${C.border}`, overflow: "hidden", boxShadow: "var(--naik-1)" }}>
               {/* Project header */}
               <button
                 onClick={() => setExpanded((prev) => ({ ...prev, [groupKey]: !isGroupOpen }))}
@@ -143,7 +136,7 @@ export default function MandorScopePage() {
                           }}
                           style={{
                             padding: "16px 20px",
-                            background: scope.status === "active" ? "#FAFCFF" : "transparent",
+                            background: scope.status === "active" ? "var(--surface-subtle)" : "transparent",
                             cursor: "pointer",
                           }}
                           onClick={() => setExpanded((prev) => ({ ...prev, [scope.id]: !isExpanded }))}
@@ -151,7 +144,7 @@ export default function MandorScopePage() {
                           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
                             <div>
                               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 2 }}>
-                                <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{scope.scope_name}</span>
+                                <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{scope.scope_name}</span>
                                 <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20, color: meta.color, background: meta.bg }}>
                                   {meta.label}
                                 </span>
@@ -209,7 +202,7 @@ export default function MandorScopePage() {
 
                           {/* Settlement badge jika sudah ada */}
                           {scope.settlement && (
-                            <div style={{ marginTop: 10, padding: "8px 12px", borderRadius: 8, background: C.greenBg, border: `1px solid ${C.green}20`, display: "flex", alignItems: "center", gap: 8 }}>
+                            <div style={{ marginTop: 10, padding: "8px 12px", borderRadius: 6, background: C.greenBg, border: `1px solid ${C.green}20`, display: "flex", alignItems: "center", gap: 8 }}>
                               <TrendingUp size={14} color={C.green} />
                               <span style={{ fontSize: 12, color: C.green, fontWeight: 500 }}>
                                 Settlement selesai · {fmtRp(scope.settlement.net_payment ?? 0)} dibayarkan
@@ -230,7 +223,7 @@ export default function MandorScopePage() {
                           {isProgressPct && scope.status === "active" && (
                             <Link href="/mandor-portal/penagihan" onClick={(e) => e.stopPropagation()} style={{
                               display: "inline-flex", alignItems: "center", gap: 4,
-                              marginTop: 10, padding: "6px 12px", borderRadius: 7,
+                              marginTop: 10, padding: "6px 12px", borderRadius: 6,
                               border: `1px solid ${C.navy}`, background: C.navyLight,
                               color: C.navy, fontSize: 12, fontWeight: 600, textDecoration: "none",
                             }}>
@@ -271,11 +264,11 @@ function ScopeItemsDetail({ scopeId }: { scopeId: string }) {
 
   return (
     <div style={{ padding: "0 20px 16px", overflowX: "auto" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
         <thead>
           <tr style={{ background: "var(--surface-subtle)" }}>
             {["Item Pekerjaan", "Sat", "Target", "Realisasi", "%"].map((h) => (
-              <th key={h} style={{ padding: "6px 10px", textAlign: h === "Item Pekerjaan" ? "left" : "right", color: C.mid, fontWeight: 600 }}>{h}</th>
+              <th key={h} style={{ padding: "6px 8px", textAlign: h === "Item Pekerjaan" ? "left" : "right", color: C.mid, fontWeight: 600 }}>{h}</th>
             ))}
           </tr>
         </thead>
@@ -284,11 +277,11 @@ function ScopeItemsDetail({ scopeId }: { scopeId: string }) {
             const pct = item.volume > 0 ? Math.round((item.volume_done / item.volume) * 100) : 0;
             return (
               <tr key={item.id} style={{ borderTop: `1px solid ${C.border}` }}>
-                <td style={{ padding: "8px 10px", color: C.text }}>{item.item_name}</td>
-                <td style={{ padding: "8px 10px", textAlign: "right", color: C.mid }}>{item.unit}</td>
-                <td style={{ padding: "8px 10px", textAlign: "right", color: C.mid }}>{fmt(item.volume ?? 0)}</td>
-                <td style={{ padding: "8px 10px", textAlign: "right", fontWeight: 600, color: pct >= 100 ? C.green : C.text }}>{fmt(item.volume_done ?? 0)}</td>
-                <td style={{ padding: "8px 10px", textAlign: "right" }}>
+                <td style={{ padding: "8px 8px", color: C.text }}>{item.item_name}</td>
+                <td style={{ padding: "8px 8px", textAlign: "right", color: C.mid }}>{item.unit}</td>
+                <td style={{ padding: "8px 8px", textAlign: "right", color: C.mid }}>{fmt(item.volume ?? 0)}</td>
+                <td style={{ padding: "8px 8px", textAlign: "right", fontWeight: 600, color: pct >= 100 ? C.green : C.text }}>{fmt(item.volume_done ?? 0)}</td>
+                <td style={{ padding: "8px 8px", textAlign: "right" }}>
                   <span style={{ fontSize: 11, fontWeight: 600, color: pct >= 100 ? C.green : C.navy }}>{pct}%</span>
                 </td>
               </tr>

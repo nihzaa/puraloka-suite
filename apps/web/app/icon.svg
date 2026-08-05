@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+  <!--
+    FAVICON — ikon tab peramban. Next.js App Router memungutnya otomatis
+    dari `app/icon.svg`; tak perlu <link rel="icon"> manual.
+
+    ── Kenapa berlatar penuh, bukan lambang telanjang
+
+    Lambang navy di atas latar tembus pandang menghilang di tab peramban
+    bertema gelap — persis kasus yang membuat favicon "hilang" dan orang
+    kehilangan tab-nya. Kotak navy dengan lambang PUTIH terbaca di tema tab
+    terang maupun gelap.
+
+    ── Kenapa lambangnya diperbesar sampai memenuhi kotak
+
+    Di 16px, detail apa pun hilang. Yang tersisa hanyalah siluet, jadi
+    siluetnya harus sebesar mungkin. Bantalan 22px dipilih setelah dilihat
+    pada ukuran 24px — lebih dari itu lambangnya jadi noda.
+  -->
+  <rect width="180" height="180" rx="38" fill="#003366"/>
+  <g fill="#FFFFFF" transform="translate(30 22) scale(1.0)">
+    <path d="M6 58 a13 13 0 0 1 13-13 h2 v58 a32 32 0 0 1-15-5 z"/>
+    <path d="M32 44 a13 13 0 0 1 13-13 h2 v72 a42 42 0 0 1-15-2 z"/>
+    <path d="M58 28 a13 13 0 0 1 13-13 h2 v83 a50 50 0 0 1-15 5 z"/>
+    <path d="M84 15 a13 13 0 0 1 13-13 h2 v73 a54 54 0 0 1-15 16 z"/>
+    <path d="M6 112 a38 38 0 0 0 15 6 v34 H6 z"/>
+    <path d="M32 118 a46 46 0 0 0 15 2 v32 H32 z"/>
+    <path d="M58 120 a50 50 0 0 0 15-5 v37 H58 z"/>
+    <path d="M84 115 a54 54 0 0 0 15-16 v53 H84 z"/>
+  </g>
+</svg>

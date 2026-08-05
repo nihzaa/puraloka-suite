@@ -80,6 +80,24 @@
   --info-bg:          #EFF6FF;
   --info-border:      #BFDBFE;
 
+  /* ── Teks DI ATAS latar semantik (lencana, pil status) ───────────────
+   *
+   * Kelas token yang selama ini HILANG, dan itu sebabnya 165 hex mati masih
+   * tersisa setelah penyapuan otomatis: `--warning` (#B45309) dipakai untuk
+   * teks di atas putih, tapi lencana butuh nada yang lebih pekat lagi karena
+   * latarnya sudah berwarna. Tanpa token untuk itu, tiap halaman menuliskan
+   * hex-nya sendiri — dan tak satu pun ikut berbalik di mode gelap.
+   *
+   * Diukur terhadap latar sebenarnya, bukan terhadap putih:
+   *   #92400E di --warning-bg  6,84:1  AA
+   *   #065F46 di --success-bg  7,34:1  AAA
+   *   #991B1B di --danger-bg   7,60:1  AAA
+   *   #1E40AF di --info-bg     8,01:1  AAA */
+  --on-warning-bg:    #92400E;
+  --on-success-bg:    #065F46;
+  --on-danger-bg:     #991B1B;
+  --on-info-bg:       #1E40AF;
+
   /* ─── Warm Clay tokens — Light ───────────────────────────────── */
   --primary:          #003B5C;
   --primary-soft:      #E4EEF2;
@@ -183,6 +201,243 @@
    *  Dijadikan token supaya keduanya tak bisa berbeda diam-diam. */
   --sidebar-w:         220px;
   --sidebar-w-ciut:     64px;
+
+  /* ═══════════════════════════════════════════════════════════════════
+   * ARAH VISUAL 2026 — aksen gradasi & kerapatan (R-012)
+   * ═══════════════════════════════════════════════════════════════════
+   *
+   * Diratifikasi founder 2026-08-04. Rancangan lengkap + diagnosis terukur:
+   * `docs/design/ARAH-VISUAL-2026.md`.
+   *
+   * ── Kenapa GRADASI, bukan warna rata
+   *
+   * Founder: *"aksen gradasinya bikin seperti yang saya attach, dari yang
+   * gelap ke terang, dan indikator serta grafiknya ikuti style-nya dia"*.
+   *
+   * Gradasi gelap→terang melakukan satu hal yang warna rata tak bisa: ia
+   * memberi ARAH. Pada donat anggaran, bagian terpakai bergerak dari pekat
+   * ke terang searah jarum jam — mata mengikuti perjalanannya, bukan sekadar
+   * membaca potongannya. Pada grafik batang, batang tersorot memakai gradasi
+   * sementara sisanya abu-abu, sehingga "yang mana yang penting" terbaca
+   * sebelum ada yang membaca sumbunya.
+   *
+   * ⚠️ GRADASI HANYA UNTUK PERMUKAAN DATA — jangan pernah untuk teks atau
+   * latar kartu. Teks di atas gradasi punya kontras yang BERUBAH sepanjang
+   * bidangnya; ia bisa lulus WCAG di satu ujung dan gagal di ujung lain,
+   * dan `kontras-ratchet` tak bisa menangkapnya karena ia menghitung dari
+   * pasangan token, bukan dari piksel.
+   */
+
+  /* Aksen tunggal — dipakai HEMAT. Aturannya: satu aksen per layar.
+   * Kalau tiga hal berwarna sama menyala, tak ada yang menonjol, dan halaman
+   * kembali monoton dengan warna yang berbeda.
+   *
+   * ── Kenapa NAVY, bukan indigo (koreksi 2026-08-05)
+   *
+   * Versi sebelumnya memakai indigo #4F46E5. Itu keliru, dan founder yang
+   * menangkapnya: *"kok jadi ungu bukan biru"*. Indigo dipilih dari palet
+   * umum — bukan dari logo. Logo Puraloka Persada memakai navy #003366.
+   *
+   * Aplikasi yang warnanya bukan warna perusahaannya sendiri terasa seperti
+   * template yang dibeli, dan itu persis kesan yang harus dihindari.
+   *
+   * Emas pada logo SENGAJA tidak dijadikan aksen kedua (arahan founder
+   * 2026-08-05). Dua warna merek yang sama-sama menyala saling berebut, dan
+   * emas di sebelah kuning peringatan membuat "hati-hati" berhenti terbaca
+   * sebagai peringatan. Emas boleh hidup di logo; UI-nya navy.
+   *
+   * ── Diukur, bukan dikira (apps/web/scripts/ukur-kontras.mjs)
+   *
+   * Kelas cacat yang sudah mahal di repo ini: --danger #EF4444 lolos
+   * berbulan-bulan karena audit hanya menjalankan mode terang, --text-muted
+   * #9CA3AF lolos sampai axe menemukannya di halaman LOGIN, dan #6366F1
+   * nyaris terpakai padahal 4,47 di putih (butuh 4,5).
+   *
+   * #003366 sebagai teks/ikon:
+   *     12,61 di putih   ·   11,87 di kanvas   ·   12,61 di kartu   → AAA
+   * Teks putih di atasnya: 12,61 → AAA. */
+  --aksen:            #003366;
+  --aksen-pekat:      #001F3D;
+  --aksen-terang:     #0059B3;
+  --aksen-lembut:     #E8F0F8;
+  --on-aksen:         #FFFFFF;
+
+  /* Gradasi: PEKAT → TERANG, tapi TETAP NAVY di seluruh rentangnya.
+   *
+   * ── Koreksi 2026-08-05 (founder: *"ke yang paling terang itu warna
+   *    brand-nya, jangan bikin ke arah terang itu ke warna lain"*)
+   *
+   * Versi sebelumnya berakhir di #2C7BD9. Diukur, itu rona 213° dengan
+   * saturasi 69% — sudah bergeser jadi biru langit, bukan navy lagi.
+   * Gradasi yang berpindah warna membuat merek terlihat dua warna.
+   *
+   * Aturan barunya: **rona dikunci 210°, saturasi 100%, hanya LIGHTNESS
+   * yang berubah.** Seluruh perhentian di bawah lahir dari satu tangga
+   * hsl(210,100%,L) — navy yang sama, dinaikkan terangnya.
+   *
+   *   L12% #001F3D  ·  L20% #003366 (merek)  ·  L35% #0059B3
+   *
+   * Ujung terang #0059B3 sengaja dipilih di L35%, bukan lebih terang: teks
+   * putih di atasnya 6,82:1 → lulus AA penuh. Perhentian sebelumnya hanya
+   * 4,25 — gagal untuk teks. */
+  --grad-aksen:       linear-gradient(135deg, #001F3D 0%, #003366 55%, #0059B3 100%);
+  --grad-aksen-tegak: linear-gradient(180deg, #0059B3 0%, #001F3D 100%);
+  --grad-navy:        linear-gradient(135deg, #001F3D 0%, #003366 60%, #0059B3 100%);
+
+  /* Permukaan MEREK — satu-satunya gradasi yang TIDAK berbalik di mode gelap.
+   *
+   * Dipakai untuk bidang besar yang mewakili perusahaan, bukan data: panel
+   * kiri halaman masuk, kop laporan cetak, kartu berbagi.
+   *
+   * Kenapa dikecualikan: `--grad-aksen` mode gelap sengaja dinaikkan
+   * terangnya supaya kartu KPI kecil terbaca di latar gelap. Terang itu benar
+   * untuk elemen kecil, dan salah untuk bidang setengah layar — dipotret,
+   * panel masuk berubah jadi biru menyala dan mereknya terlihat berganti
+   * warna antar-mode. Kop surat perusahaan tidak berubah warna karena lampu
+   * ruangan; permukaan merek juga tidak. */
+  --grad-merek:       linear-gradient(135deg, #001F3D 0%, #003366 55%, #0059B3 100%);
+  --on-merek:         #FFFFFF;
+  /* Untuk area di bawah garis grafik — memudar jadi tembus pandang supaya
+   * garis kisi di belakangnya tetap terbaca. */
+  --grad-area:        linear-gradient(180deg, rgba(0,51,102,0.24) 0%, rgba(0,51,102,0.02) 100%);
+
+  /* Deret warna data — DICARI, bukan dipilih dengan selera.
+   *
+   * ── Kenapa diganti (2026-08-05)
+   *
+   * Deret sebelumnya membawa komentar "dipilih agar bisa dibedakan pada
+   * penglihatan deutan/protan". Komentar itu TIDAK BENAR, dan ketahuan saat
+   * `uji-deret-data.mjs` dijalankan pertama kali: pada protanopia,
+   * `--data-2` (biru) dan `--data-5` (ungu) jatuh ke ΔE 1,9 — praktis warna
+   * yang sama. Grafik lima seri jadi grafik empat seri bagi ~8% pria, tanpa
+   * ada yang tahu.
+   *
+   * Klaim aksesibilitas yang tak pernah diukur adalah klaim kosong. Deret
+   * ini sekarang hasil pencarian menyeluruh atas 24 kandidat, dinilai pada
+   * penglihatan normal + deutan + protan sekaligus: ΔE minimum 27,3.
+   *
+   * Ronanya sengaja DIBATASI ke navy/teal/hijau/amber/oranye. Pencarian
+   * tanpa batas memilih ungu-magenta — secara matematis paling menjauh, tapi
+   * ERP konstruksi berwarna ungu terlihat seperti aplikasi hiburan. Palet
+   * harus lolos aksesibilitas DAN pantas dilihat delapan jam sehari.
+   *
+   * Dijaga: `node apps/web/scripts/uji-deret-data.mjs` (membaca berkas ini
+   * langsung, jadi tak bisa basi diam-diam). */
+  --data-1:           #003366;
+  --data-2:           #0891B2;
+  --data-3:           #15803D;
+  --data-4:           #A16207;
+  --data-5:           #EA580C;
+  /* Deret NETRAL untuk yang tak sedang disorot. Ini yang membuat satu batang
+   * bergradasi menonjol — tanpa latar diam, gradasi apa pun ikut tenggelam. */
+  --data-diam:        #D8DCE6;
+
+  /* ── Kerapatan (data-dense) ──────────────────────────────────────────
+   *
+   * Diukur 2026-08-04: padding kartu 24px (standar data-dense 12px) dan
+   * font tabel 9-11px (standar 12-14px). Halaman terasa LEMAS karena
+   * longgar tapi tulisannya kecil.
+   *
+   * Font NAIK sementara padding TURUN. Bukan kontradiksi — itu rahasianya:
+   * ruang yang dihemat dari padding dipakai untuk teks yang lebih terbaca.
+   */
+  --pad-kartu:          12px;   /* dari 24px */
+  --pad-kartu-lega:     16px;   /* kartu KPI — angka besar butuh napas */
+  --gap-grid:            8px;   /* dari 16-20px */
+  --gap-bagian:         16px;
+  --tinggi-baris:       36px;   /* baris tabel, seragam */
+
+  --teks-tabel:       12.5px;   /* dari 9-11px — yang paling sering dibaca */
+  --teks-label:         12px;
+  --teks-badan:         14px;
+  --teks-kpi:           28px;   /* angka besar = hierarki tegas */
+  --teks-delta:         12px;   /* "+2,3%" kecil di sebelahnya */
+
+  /* ═══════════════════════════════════════════════════════════════════
+   * SKALA KERAPATAN — satu tangga untuk seluruh aplikasi
+   * ═══════════════════════════════════════════════════════════════════
+   *
+   * ── Kenapa ini ada
+   *
+   * Diukur 2026-08-05 dengan `scripts/ukur-kerapatan.mjs` atas 117 berkas:
+   *
+   *     padding : 272 nilai berbeda
+   *     font    :  30
+   *     shadow  :  40
+   *     radius  :  21
+   *     gap     :  21
+   *     ─────────────
+   *     total   : 384 nilai unik untuk lima properti
+   *
+   * ITU sebab sebenarnya halaman terasa "tidak menyatu" — bukan warna.
+   * Warna sudah diseragamkan (581 hex → 60, 67 paleta → 1) dan halamannya
+   * TETAP terasa berbeda satu sama lain, karena `padding: "9px 12px"` di
+   * satu tempat dan `padding: "10px 14px"` di tempat lain membuat ritme
+   * vertikalnya tak pernah sejajar.
+   *
+   * Mata tak membaca selisih 1px sebagai "1px" — ia membacanya sebagai
+   * "halaman ini dibuat orang lain".
+   *
+   * ── Tangganya
+   *
+   * Kelipatan 4 (Material 4dp / Apple 4pt). Delapan langkah cukup untuk
+   * seluruh aplikasi; lebih dari itu berarti tak ada skala.
+   */
+  --r0:   0;
+  --r1:   4px;
+  --r2:   8px;
+  --r3:  12px;
+  --r4:  16px;
+  --r5:  20px;
+  --r6:  24px;
+  --r8:  32px;
+  --r10: 40px;
+
+  /* Padding baku per jenis permukaan. Dipakai lewat nama, bukan angka —
+   * "padding kartu" punya makna, "12px" tidak. */
+  --pad-baris:      "9px 12px";   /* baris tabel & daftar */
+  --pad-lencana:    "3px 8px";    /* pil status */
+  --pad-tombol:     "8px 14px";
+  --pad-tombol-kcl: "5px 11px";
+  --pad-modal:      20px;
+  --pad-halaman:    20px;
+
+  /* ── Skala tipografi ────────────────────────────────────────────────
+   *
+   * Tujuh langkah. Diukur: aplikasi ini memakai 30 ukuran font berbeda,
+   * termasuk 12.5px dan 11.5px yang lahir dari penyetelan satu-satu.
+   *
+   * Rasio ~1,2 (minor third) — cukup rapat untuk antarmuka padat, cukup
+   * lebar untuk hierarki terbaca. Yang lebih besar dari itu memaksa
+   * lompatan yang membuang ruang vertikal.
+   */
+  --t-mikro:   10px;   /* label kolom tabel, keterangan satuan */
+  --t-kecil:   11px;   /* keterangan sekunder */
+  --t-data:    12px;   /* isi tabel — yang paling sering dibaca */
+  --t-badan:   13px;   /* teks antarmuka umum */
+  --t-sedang:  15px;   /* judul kartu */
+  --t-judul:   20px;   /* judul bagian */
+  --t-halaman: 26px;   /* judul halaman */
+  --t-angka:   28px;   /* angka KPI */
+
+  /* ── Radius ─────────────────────────────────────────────────────────
+   * Empat nilai. Sebelumnya 21 — termasuk 5px, 7px, dan 9px yang tak
+   * bisa dibedakan mata tapi merusak keselarasan sudut saat bersebelahan. */
+  --rad-kecil:  6px;    /* lencana, tombol kecil */
+  --rad-sedang: 10px;   /* tombol, input */
+  --rad-besar:  14px;   /* kartu, panel */
+  --rad-pil:    99px;
+
+  /* ── Elevasi ────────────────────────────────────────────────────────
+   * Tiga tingkat. Sebelumnya 40 nilai bayangan berbeda — kedalaman yang
+   * tak bisa dibaca karena tak ada tangganya.
+   *
+   * Ditulis SEBAGAI rgba, bukan token warna: bayangan hitam transparan
+   * bekerja di kedua mode, dan `var()` di dalam `box-shadow` tak bisa
+   * dianimasikan di sebagian peramban. */
+  --naik-1: 0 1px 3px rgba(0,0,0,0.06);
+  --naik-2: 0 4px 14px rgba(0,0,0,0.10);
+  --naik-3: 0 18px 48px rgba(0,0,0,0.18);
 }
 
 /* ─── Design Tokens — Dark ───────────────────────────────────────── */
@@ -236,6 +491,19 @@
   --info-bg:          rgba(96,165,250,0.10);
   --info-border:      rgba(96,165,250,0.25);
 
+  /* Teks di atas latar semantik — mode gelap.
+   *
+   * Di sini latarnya rgba 10% di atas permukaan gelap, jadi warnanya nyaris
+   * sama gelapnya dengan kartu. Teks harus TERANG, bukan pekat seperti mode
+   * terang — membalik pasangan ini adalah cara paling umum mode gelap jadi
+   * tak terbaca. Diukur terhadap latar hasil komposit yang sebenarnya:
+   *   #FCD34D di warning-bg  11,37:1   ·  #6EE7B7 di success-bg  10,71:1
+   *   #FCA5A5 di danger-bg    8,94:1   ·  #93C5FD di info-bg      9,02:1 */
+  --on-warning-bg:    #FCD34D;
+  --on-success-bg:    #6EE7B7;
+  --on-danger-bg:     #FCA5A5;
+  --on-info-bg:       #93C5FD;
+
   /* ─── Warm Clay tokens — Dark ─────────────────────────────────── */
   --primary:           #4D9FFF;
   --primary-soft:      rgba(77,159,255,0.12);
@@ -252,6 +520,94 @@
   --shadow-sm:        0 1px 2px rgba(0,0,0,0.30);
   --shadow-md:        0 4px 12px rgba(0,0,0,0.40);
   --shadow-lg:        0 8px 24px rgba(0,0,0,0.50);
+
+  /* Elevasi mode gelap — LEBIH PEKAT, dan itu bukan penyetelan selera.
+   *
+   * Bayangan bekerja dengan menggelapkan latar di belakang objek. Di latar
+   * yang sudah gelap, bayangan 6% praktis tak terlihat — kartu jadi
+   * mengambang tanpa kedalaman, dan hierarki yang di mode terang terbaca
+   * jelas hilang sama sekali.
+   *
+   * Ditambah garis tepi terang tipis (inset): di mode gelap, PEMISAH lebih
+   * banyak dikerjakan tepi daripada bayangan. Ini yang dipakai macOS dan
+   * material dark theme, dan alasannya sama. */
+  --naik-1: 0 1px 3px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
+  --naik-2: 0 6px 18px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.05);
+  --naik-3: 0 22px 56px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.06);
+
+  /* ═══════════════════════════════════════════════════════════════════
+   * ARAH VISUAL 2026 — varian MODE GELAP (R-012)
+   * ═══════════════════════════════════════════════════════════════════
+   *
+   * Aksen TIDAK dipakai sama seperti mode terang. Navy merek #003366 di atas
+   * latar gelap (#0F1117) hanya 1,4:1 — praktis tak terlihat. Warna merek
+   * yang dipakai apa adanya di mode gelap adalah cara paling umum membuat
+   * mode gelap terasa "tempelan".
+   *
+   * Yang dilakukan: naikkan terangnya, KUNCI ronanya di 210° dan saturasi
+   * 100% — tangga yang sama persis dengan mode terang, hanya diambil dari
+   * ujung atasnya. #7ABDFF adalah hsl(210,100%,74%): navy merek yang
+   * dinaikkan, bukan biru yang lain. Diukur: 9,48 kanvas · 8,73 kartu → AAA.
+   *
+   * Ini pelajaran yang sudah mahal di repo ini: `--danger` lolos berbulan-
+   * bulan karena mode gelap tak pernah diaudit.
+   */
+  --aksen:            #7ABDFF;
+  --aksen-pekat:      #4DA6FF;
+  --aksen-terang:     #A8D3FF;
+  --aksen-lembut:     rgba(122,189,255,0.14);
+  --on-aksen:         #0F1117;
+
+  /* Gradasi mode gelap: arahnya sama (pekat→terang), ronanya sama (210°),
+   * tapi RENTANGNYA lebih sempit. Di latar gelap, gradasi berkontras tinggi
+   * tampak "menyala" berlebihan dan justru mengganggu — permukaannya jadi
+   * lebih menonjol daripada angka yang ia wakili. */
+  --grad-aksen:       linear-gradient(135deg, #0059B3 0%, #0073E6 55%, #7ABDFF 100%);
+  --grad-aksen-tegak: linear-gradient(180deg, #7ABDFF 0%, #0059B3 100%);
+  --grad-navy:        linear-gradient(135deg, #001F3D 0%, #0059B3 60%, #7ABDFF 100%);
+  --grad-area:        linear-gradient(180deg, rgba(122,189,255,0.28) 0%, rgba(122,189,255,0.02) 100%);
+
+  /* Deret data mode gelap.
+   *
+   * ── Ronanya TIDAK sepadan dengan mode terang, dan itu disengaja
+   *
+   * Komentar di sini sempat berbunyi "rona yang SEPADAN dengan mode
+   * terang". Itu tidak benar, dan diukur:
+   *
+   *     data-1  210° → 210°     0°
+   *     data-2  192° → 158°    34°
+   *     data-3  142° →  43°    99°
+   *     data-4   35° →  83°    48°
+   *     data-5   21° → 213°   168°   ← oranye jadi abu-abu kebiruan
+   *
+   * Penyebabnya bukan kelalaian, melainkan syarat yang benar-benar
+   * bertabrakan. Mode terang memakai 35° (amber) dan 21° (oranye) yang
+   * bersebelahan. Di latar gelap keduanya harus dinaikkan terangnya, dan
+   * dua rona bertetangga yang sama-sama terang menjadi tak terbedakan
+   * bagi pemakai deuteranopia.
+   *
+   * Dicari secara menyeluruh: seluruh kombinasi terang × jenuh untuk
+   * kedua rona itu, dengan syarat kontras ≥4,5:1. ΔE terbaik yang bisa
+   * dicapai sambil mempertahankan rona hanya **3,6** — jauh di bawah
+   * ambang 10 yang dipakai penjaga `uji-deret-data`. Ini batas fisik
+   * penglihatan, bukan kurang usaha.
+   *
+   * Jadi kesetiaan rona DIKORBANKAN demi keterbedaan. Itu urutan
+   * prioritas yang benar: pemakai yang tak bisa membedakan dua deret
+   * membaca grafik yang salah, sementara pemakai yang ronanya bergeser
+   * cuma perlu melihat legenda. Yang tak boleh adalah menukar keduanya
+   * diam-diam sambil mengklaim tak ada yang dikorbankan.
+   *
+   * Diuji pada normal + deutan + protan: ΔE minimum 21,1
+   * (`uji-deret-data.mjs`, membaca berkas ini langsung). */
+  --data-1:           #7ABDFF;
+  --data-2:           #34D399;
+  --data-3:           #FBBF24;
+  --data-4:           #A3E635;
+  --data-5:           #CBD5E1;
+  /* Netral gelap: cukup terlihat untuk dibaca sebagai data, cukup diam
+   * untuk tidak bersaing dengan yang sedang disorot. */
+  --data-diam:        #363A52;
 }
 
 /* ─── Global reset + transition ─────────────────────────────────── */
@@ -463,4 +819,30 @@ select.input-base { cursor: pointer; }
     min-height: 44px;
     justify-content: center;
   }
+}
+
+/* ─── Teks khusus pembaca layar ────────────────────────────────────────────
+ *
+ * Terlihat oleh pembaca layar, tak terlihat di layar. Dipakai untuk hal yang
+ * WAJIB ada demi aksesibilitas tapi akan jadi kebisingan visual:
+ * `<caption>` tabel, keterangan tombol berikon, penjelas satuan.
+ *
+ * ⚠️ `display: none` dan `visibility: hidden` TIDAK bisa dipakai — keduanya
+ * menyembunyikan elemen dari pembaca layar juga, jadi justru membatalkan
+ * tujuannya. Pola clip-rect di bawah adalah satu-satunya yang menyembunyikan
+ * secara visual sambil tetap dibacakan.
+ *
+ * `white-space: nowrap` mencegah teks panjang membuat halaman bisa digulir
+ * ke samping — cacat yang muncul kalau elemennya masih punya lebar 1px.
+ */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }

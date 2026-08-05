@@ -509,6 +509,29 @@ Sisa tiga (`01-gap-analysis`, `02-target-architecture`, `05-rollout-plan`)
 bertanda "Planning only" dan ditulis sebelum Phase 1 dikerjakan; Phase 1 sudah
 selesai dengan audit tersendiri (`PHASE-1-COMPLETION-AUDIT.md`).
 
+### Arah visual & antrean UI — `design/ARAH-VISUAL-2026.md` + `execution/QUEUE-UI.yaml`
+
+**Ditambahkan 2026-08-04. Menunggu ratifikasi (R-012).**
+
+Roadmap utama punya 43 item dan **nol** di antaranya menyentuh UI. Itu bukan
+kelalaian kecil: akibatnya lima modul INTI dibangun lengkap dengan API,
+migrasi, test, dan mutation-test — **tanpa satu pun halaman** — dan tak ada
+penjaga yang protes. `CLAUDE.md` §8 melarangnya, tapi larangan itu tak punya
+mekanisme.
+
+| Dokumen | Isi |
+|---|---|
+| `design/ARAH-VISUAL-2026.md` | diagnosis terukur, palet, kerapatan, pola layout, aturan tab-vs-halaman |
+| `execution/QUEUE-UI.yaml` | 9 item dalam 4 lapis — dikerjakan **berselang** dengan roadmap utama, bukan menggantikannya |
+
+Diagnosisnya singkat: **bukan warna atau font yang salah**. Padding 2× lebih
+longgar dari standar data-dense sementara font justru lebih kecil, 20 dari 22
+menu induk hanya punya satu halaman, dan dua halaman terbesar (3.449 & 3.667
+baris) menyembunyikan aplikasi di balik tab.
+
+Item terakhirnya (`UI-3-1`) adalah penjaga CI yang membuat "API tanpa UI"
+memerahkan build — mekanisme yang seharusnya ada sejak awal.
+
 ### Urutan kerja sub-menu — `execution/F5-1-TRIASE-SUBMENU.md`
 
 **Ditambahkan 2026-08-04 (F5-1 · diratifikasi R-010).** Dokumen ini menjawab

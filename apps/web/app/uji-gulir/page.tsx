@@ -67,7 +67,7 @@ function IsiUji() {
 
   return (
     <main style={{ padding: 24, fontFamily: "monospace" }}>
-      <h1 style={{ fontSize: 16, marginBottom: 12 }}>Uji gulir virtual</h1>
+      <h1 style={{ fontSize: 15, marginBottom: 12 }}>Uji gulir virtual</h1>
 
       {/* Nilai hook dibaca test lewat atribut data — bukan lewat teks, supaya
           test tak pecah saat tata letaknya diubah. */}

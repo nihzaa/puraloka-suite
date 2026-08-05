@@ -25,14 +25,7 @@ import {
   Scale, AlertTriangle,
 } from "lucide-react";
 
-const C = {
-  navy: "var(--navy)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)", bg: "var(--bg)", surface: "var(--surface)",
-  green: "var(--success)", greenBg: "var(--success-bg)",
-  red: "var(--danger)", redBg: "var(--danger-bg)",
-  yellow: "var(--warning)", yellowBg: "var(--warning-bg)",
-};
+import { C } from "@/lib/warna-ui";
 
 const fmtRp = (n: number) => `Rp ${Number(n).toLocaleString("id-ID")}`;
 
@@ -125,20 +118,20 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
   useTutupEsc(onClose);
   return createPortal(
     <div style={{ position: "fixed", inset: 0, background: "rgba(17,24,39,.45)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
-      <div style={{ background: C.surface, borderRadius: 14, width: "100%", maxWidth: 520, maxHeight: "88vh", overflow: "auto", boxShadow: "0 20px 50px rgba(0,0,0,.25)" }} onClick={(e) => e.stopPropagation()}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: `1px solid ${C.border}` }}>
+      <div style={{ background: C.surface, borderRadius: 14, width: "100%", maxWidth: 520, maxHeight: "88vh", overflow: "auto", boxShadow: "var(--naik-3)" }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderBottom: `1px solid ${C.border}` }}>
           <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>{title}</h3>
           <button aria-label="Tutup" onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted }}><X size={18} /></button>
         </div>
-        <div style={{ padding: 18 }}>{children}</div>
+        <div style={{ padding: 16 }}>{children}</div>
       </div>
     </div>, document.body);
 }
 const inputStyle: React.CSSProperties = {
-  width: "100%", boxSizing: "border-box", padding: "8px 10px", borderRadius: 8,
+  width: "100%", boxSizing: "border-box", padding: "8px 8px", borderRadius: 6,
   border: `1px solid ${C.border}`, fontSize: 13, color: C.text, background: C.surface,
 };
-const label = (t: string) => <label style={{ display: "block", fontSize: 11.5, fontWeight: 600, color: C.mid, margin: "10px 0 4px" }}>{t}</label>;
+const label = (t: string) => <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, margin: "10px 0 4px" }}>{t}</label>;
 function StatusBadge({ s }: { s: string }) {
   const map: Record<string, [string, string]> = {
     draft: [C.mid, C.bg], under_review: [C.yellow, C.yellowBg], approved: [C.green, C.greenBg],
@@ -147,18 +140,18 @@ function StatusBadge({ s }: { s: string }) {
     locked: [C.navy, C.bg],
   };
   const [fg, bg] = map[s] ?? [C.mid, C.bg];
-  return <span style={{ fontSize: 11, fontWeight: 700, color: fg, background: bg, border: `1px solid ${C.border}`, borderRadius: 999, padding: "2px 9px" }}>{s}</span>;
+  return <span style={{ fontSize: 11, fontWeight: 700, color: fg, background: bg, border: `1px solid ${C.border}`, borderRadius: 999, padding: "2px 8px" }}>{s}</span>;
 }
-const th: React.CSSProperties = { textAlign: "left", padding: "8px 10px", fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: .4, borderBottom: `1px solid ${C.border}` };
-const td: React.CSSProperties = { padding: "9px 10px", fontSize: 13, color: C.text, borderBottom: `1px solid ${C.border}`, verticalAlign: "top" };
-const btnPrimary: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 6, background: C.navy, color: "#fff", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer" };
-const btnGhost: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 6, background: C.surface, color: C.text, border: `1px solid ${C.border}`, borderRadius: 8, padding: "7px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" };
-const card: React.CSSProperties = { background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" };
-const lbl: React.CSSProperties = { display: "block", fontSize: 12.5, fontWeight: 600, color: C.text, marginBottom: 5 };
+const th: React.CSSProperties = { textAlign: "left", padding: "8px 8px", fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: .4, borderBottom: `1px solid ${C.border}` };
+const td: React.CSSProperties = { padding: "8px 8px", fontSize: 13, color: C.text, borderBottom: `1px solid ${C.border}`, verticalAlign: "top" };
+const btnPrimary: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 6, background: C.navy, color: "#fff", border: "none", borderRadius: 6, padding: "8px 12px", fontSize: 13, fontWeight: 600, cursor: "pointer" };
+const btnGhost: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 6, background: C.surface, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" };
+const card: React.CSSProperties = { background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, boxShadow: "var(--naik-1)" };
+const lbl: React.CSSProperties = { display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 5 };
 // Baris penutup lembar analisa: label rata kanan menempel ke angkanya, supaya
 // mata membaca "Jumlah ..... Rp X" sebagai satu baris, bukan dua kolom terpisah.
-const tfLabel: React.CSSProperties = { padding: "6px 10px", fontSize: 12.5, color: C.mid, textAlign: "right" };
-const tfAngka: React.CSSProperties = { padding: "6px 10px", fontSize: 12.5, color: C.text, textAlign: "right", fontFamily: "monospace" };
+const tfLabel: React.CSSProperties = { padding: "6px 8px", fontSize: 12, color: C.mid, textAlign: "right" };
+const tfAngka: React.CSSProperties = { padding: "6px 8px", fontSize: 12, color: C.text, textAlign: "right", fontFamily: "monospace" };
 
 // ══ TAB 1 — KOMPOSER ══════════════════════════════════════════════════════════
 function KomposerTab() {
@@ -199,7 +192,7 @@ function KomposerTab() {
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}>
         <select aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} style={{ ...inputStyle, width: 280 }}>
           <option value="">— Pilih proyek —</option>
           {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -208,7 +201,7 @@ function KomposerTab() {
           <button style={btnPrimary} onClick={() => setShowNewScenario(true)}><Plus size={15} /> Skenario Baru</button>
         )}
       </div>
-      {err && <div style={{ background: C.redBg, color: C.red, border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px 12px", fontSize: 12.5, marginBottom: 10 }}>{err}</div>}
+      {err && <div style={{ background: C.redBg, color: C.red, border: `1px solid ${C.border}`, borderRadius: 6, padding: "8px 12px", fontSize: 12, marginBottom: 10 }}>{err}</div>}
 
       {/* Panduan sebelum proyek dipilih. Tanpa ini layar benar-benar kosong dan
           tak ada petunjuk harus mulai dari mana — halaman ini punya 4 langkah
@@ -221,10 +214,10 @@ function KomposerTab() {
 
       <div style={{ display: "grid", gap: 12 }}>
         {scenarios.map(sc => (
-          <div key={sc.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14 }}>
+          <div key={sc.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
               <div>
-                <strong style={{ fontSize: 14, color: C.text }}>{sc.name}</strong>
+                <strong style={{ fontSize: 13, color: C.text }}>{sc.name}</strong>
                 {sc.purpose && <span style={{ marginLeft: 8, fontSize: 12, color: C.muted }}>({sc.purpose})</span>}
               </div>
               <button style={btnGhost} disabled={busy} onClick={async () => {
@@ -245,18 +238,18 @@ function KomposerTab() {
                   <ChevronRight size={13} />
                 </button>
               ))}
-              {sc.versions.length === 0 && <span style={{ fontSize: 12.5, color: C.muted }}>belum ada versi</span>}
+              {sc.versions.length === 0 && <span style={{ fontSize: 12, color: C.muted }}>belum ada versi</span>}
             </div>
           </div>
         ))}
       </div>
 
       {openVersion && (
-        <div style={{ marginTop: 18, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 }}>
+        <div style={{ marginTop: 18, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: 16 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <Layers size={16} color={C.navy} />
-              <strong style={{ fontSize: 14.5 }}>Versi {openVersion.version_number}</strong>
+              <strong style={{ fontSize: 15 }}>Versi {openVersion.version_number}</strong>
               <StatusBadge s={openVersion.status} />
               {openVersion.edition && <span style={{ fontSize: 12, color: C.mid }}>Edisi: <b>{openVersion.edition.code}</b></span>}
             </div>
@@ -283,7 +276,7 @@ function KomposerTab() {
           </div>
 
           <div style={{ overflowX: "auto", marginTop: 12 }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
               <thead><tr>
                 <th style={th}>Kode</th><th style={th}>Pekerjaan (assembly)</th><th style={th}>Vol</th>
                 <th style={th}>Sat</th><th style={{ ...th, textAlign: "right" }}>Jumlah</th><th style={th} />
@@ -333,22 +326,22 @@ function KomposerTab() {
               <h4 style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 700, color: C.mid, textTransform: "uppercase", letterSpacing: .4 }}>
                 Rekapitulasi per Kategori
               </h4>
-              <table style={{ width: "100%", borderCollapse: "collapse", maxWidth: 520 }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", maxWidth: 520, fontVariantNumeric: "tabular-nums" }}>
                 <tbody>
                   {rollup.groups.map(g => (
                     <tr key={g.name}>
-                      <td style={{ ...td, borderBottom: "none", padding: "4px 10px" }}>{g.name}</td>
-                      <td style={{ ...td, borderBottom: "none", padding: "4px 10px", textAlign: "right" }}>{fmtRp(g.subtotal)}</td>
+                      <td style={{ ...td, borderBottom: "none", padding: "4px 8px" }}>{g.name}</td>
+                      <td style={{ ...td, borderBottom: "none", padding: "4px 8px", textAlign: "right" }}>{fmtRp(g.subtotal)}</td>
                     </tr>
                   ))}
-                  <tr><td style={{ ...td, padding: "6px 10px", fontWeight: 600 }}>TOTAL BIAYA</td>
-                      <td style={{ ...td, padding: "6px 10px", textAlign: "right", fontWeight: 600 }}>{fmtRp(rollup.totalBiaya)}</td></tr>
-                  <tr><td style={{ ...td, borderBottom: "none", padding: "4px 10px" }}>
+                  <tr><td style={{ ...td, padding: "6px 8px", fontWeight: 600 }}>TOTAL BIAYA</td>
+                      <td style={{ ...td, padding: "6px 8px", textAlign: "right", fontWeight: 600 }}>{fmtRp(rollup.totalBiaya)}</td></tr>
+                  <tr><td style={{ ...td, borderBottom: "none", padding: "4px 8px" }}>
                         PPN ({(rollup.ppn_rate * 100).toFixed(0)}%, berlaku {rollup.at_date})
                       </td>
-                      <td style={{ ...td, borderBottom: "none", padding: "4px 10px", textAlign: "right" }}>{fmtRp(rollup.ppn)}</td></tr>
-                  <tr><td style={{ ...td, borderBottom: "none", padding: "6px 10px", fontWeight: 800, color: C.navy }}>GRAND TOTAL</td>
-                      <td style={{ ...td, borderBottom: "none", padding: "6px 10px", textAlign: "right", fontWeight: 800, color: C.navy }}>{fmtRp(rollup.grandTotal)}</td></tr>
+                      <td style={{ ...td, borderBottom: "none", padding: "4px 8px", textAlign: "right" }}>{fmtRp(rollup.ppn)}</td></tr>
+                  <tr><td style={{ ...td, borderBottom: "none", padding: "6px 8px", fontWeight: 800, color: C.navy }}>GRAND TOTAL</td>
+                      <td style={{ ...td, borderBottom: "none", padding: "6px 8px", textAlign: "right", fontWeight: 800, color: C.navy }}>{fmtRp(rollup.grandTotal)}</td></tr>
                 </tbody>
               </table>
             </div>
@@ -432,22 +425,22 @@ function JelaskanModal({ itemId, onClose }: { itemId: string; onClose: () => voi
       <div style={{ position: "relative", width: "100%", maxWidth: 720 }}>
       <div style={{
         background: "var(--surface)", borderRadius: 14, width: "100%",
-        boxShadow: "0 20px 60px rgba(0,0,0,.25)", overflow: "hidden",
+        boxShadow: "var(--naik-3)", overflow: "hidden",
       }}>
-        <div style={{ padding: "18px 22px", borderBottom: `1px solid ${C.border}` }}>
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Kenapa angkanya segini?</h3>
-          {data && <p style={{ margin: "4px 0 0", fontSize: 12.5, color: C.mid }}>{data.nama}</p>}
+        <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.border}` }}>
+          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>Kenapa angkanya segini?</h3>
+          {data && <p style={{ margin: "4px 0 0", fontSize: 12, color: C.mid }}>{data.nama}</p>}
         </div>
 
-        <div style={{ padding: 22 }}>
+        <div style={{ padding: 20 }}>
           {memuat && <div style={{ color: C.mid, fontSize: 13 }}>Memuat penjelasan…</div>}
           {galat && <div style={{ color: C.red, fontSize: 13 }}>{galat}</div>}
 
           {data && data.peringatan.length > 0 && (
             <div style={{
-              padding: "11px 14px", borderRadius: 10, marginBottom: 16,
+              padding: "12px 12px", borderRadius: 10, marginBottom: 16,
               background: "var(--warning-bg)", border: `1px solid var(--warning-border)`,
-              fontSize: 12.5, color: "var(--warning)",
+              fontSize: 12, color: "var(--warning)",
             }}>
               <strong>Penjelasan ini belum utuh:</strong>
               <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
@@ -467,7 +460,7 @@ function JelaskanModal({ itemId, onClose }: { itemId: string; onClose: () => voi
                   }}>{l.no}</span>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{l.judul}</div>
-                    <div style={{ fontSize: 12.5, color: C.mid, marginTop: 2 }}>{l.uraian}</div>
+                    <div style={{ fontSize: 12, color: C.mid, marginTop: 2 }}>{l.uraian}</div>
                   </div>
                 </li>
               ))}
@@ -480,20 +473,20 @@ function JelaskanModal({ itemId, onClose }: { itemId: string; onClose: () => voi
                 Rincian komponen
               </div>
               <div style={{ overflowX: "auto", border: `1px solid ${C.border}`, borderRadius: 10 }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
                   <thead><tr style={{ background: "var(--surface-subtle)" }}>
                     {["Kode", "Koef.", "Harga satuan", "Subtotal", "Sumber"].map(h => (
-                      <th key={h} style={{ padding: "7px 10px", textAlign: h === "Kode" || h === "Sumber" ? "left" : "right", fontSize: 10.5, color: C.mid, fontWeight: 700, textTransform: "uppercase" }}>{h}</th>
+                      <th key={h} style={{ padding: "6px 8px", textAlign: h === "Kode" || h === "Sumber" ? "left" : "right", fontSize: 10, color: C.mid, fontWeight: 700, textTransform: "uppercase" }}>{h}</th>
                     ))}
                   </tr></thead>
                   <tbody>
                     {data.komponen.map((k, i) => (
                       <tr key={i} style={{ borderTop: `1px solid ${C.border}` }}>
-                        <td style={{ padding: "7px 10px", fontFamily: "ui-monospace, monospace" }}>{k.kode}</td>
-                        <td style={{ padding: "7px 10px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{k.koefisien}</td>
-                        <td style={{ padding: "7px 10px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtRp(k.hargaSatuan)}</td>
-                        <td style={{ padding: "7px 10px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>{fmtRp(k.subtotal)}</td>
-                        <td style={{ padding: "7px 10px", color: C.mid }}>
+                        <td style={{ padding: "6px 8px", fontFamily: "ui-monospace, monospace" }}>{k.kode}</td>
+                        <td style={{ padding: "6px 8px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{k.koefisien}</td>
+                        <td style={{ padding: "6px 8px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtRp(k.hargaSatuan)}</td>
+                        <td style={{ padding: "6px 8px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>{fmtRp(k.subtotal)}</td>
+                        <td style={{ padding: "6px 8px", color: C.mid }}>
                           {k.sumber}{k.tanggalHarga ? ` · ${k.tanggalHarga}` : ""}
                         </td>
                       </tr>
@@ -505,9 +498,9 @@ function JelaskanModal({ itemId, onClose }: { itemId: string; onClose: () => voi
           )}
         </div>
 
-        <div style={{ padding: "14px 22px", borderTop: `1px solid ${C.border}`, textAlign: "right" }}>
+        <div style={{ padding: "12px 20px", borderTop: `1px solid ${C.border}`, textAlign: "right" }}>
           <button onClick={onClose} style={{
-            padding: "8px 18px", borderRadius: 8, border: `1px solid ${C.border}`,
+            padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`,
             background: "var(--surface)", color: C.text, fontSize: 13, cursor: "pointer",
           }}>Tutup</button>
         </div>
@@ -546,7 +539,7 @@ function TerapkanKeRabModal({ version, onClose }: { version: VersionDetail; onCl
 
   return (
     <Modal title={`Terapkan Versi ${version.version_number} ke RAB Proyek`} onClose={onClose}>
-      {err && <p style={{ color: C.red, fontSize: 12.5, margin: "0 0 10px" }}>{err}</p>}
+      {err && <p style={{ color: C.red, fontSize: 12, margin: "0 0 10px" }}>{err}</p>}
 
       {tahap === "siap" && (
         <>
@@ -571,7 +564,7 @@ function TerapkanKeRabModal({ version, onClose }: { version: VersionDetail; onCl
 
       {tahap === "konfirmasi" && dampak && (
         <>
-          <div style={{ padding: "11px 13px", background: C.yellowBg, borderRadius: 8, marginBottom: 14 }}>
+          <div style={{ padding: "12px 12px", background: C.yellowBg, borderRadius: 6, marginBottom: 14 }}>
             <p style={{ margin: 0, fontSize: 13, color: C.text, lineHeight: 1.6 }}>
               RAB proyek ini sudah berisi <b>{dampak.akan_dihapus} baris</b>.
               Menerapkan versi ini akan <b>menghapus semuanya</b> dan menggantinya dengan{" "}
@@ -646,7 +639,7 @@ function NewScenarioModal({ projectId, editions, onClose, onDone }:
           mana pun (edition_id NULL), karena edisi adalah terbitan resmi
           pemerintah sementara analisa perusahaan susunan sendiri. Dinyatakan di
           sini supaya tak perlu ditebak dari perilaku. */}
-      <p style={{ fontSize: 11.5, color: C.muted, margin: "6px 0 0", lineHeight: 1.55 }}>
+      <p style={{ fontSize: 11, color: C.muted, margin: "6px 0 0", lineHeight: 1.55 }}>
         Pilihan ini hanya menentukan <b>analisa nasional</b> mana yang dipakai.
         {" "}<b>Analisa perusahaan Anda selalu ikut tersedia</b> — ia tidak terikat
         edisi mana pun, termasuk bila Anda memilih “tanpa edisi”.
@@ -657,7 +650,7 @@ function NewScenarioModal({ projectId, editions, onClose, onDone }:
           </>
         )}
       </p>
-      {err && <p style={{ color: C.red, fontSize: 12.5 }}>{err}</p>}
+      {err && <p style={{ color: C.red, fontSize: 12 }}>{err}</p>}
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
         <button style={btnGhost} onClick={onClose}>Batal</button>
         <button style={btnPrimary} disabled={busy || !name.trim()} onClick={async () => {
@@ -820,7 +813,7 @@ function AddItemModal({ version, onClose, onDone }:
               })),
             ]}
           />
-          <p style={{ fontSize: 11.5, color: C.muted, margin: "6px 0 0" }}>
+          <p style={{ fontSize: 11, color: C.muted, margin: "6px 0 0" }}>
             Tidak ketemu? Coba tab &quot;Buat Analisa Baru&quot; atau &quot;Harga Langsung&quot; (untuk pekerjaan bukan-beranalisa: lift, pompa, septictank, dll).
           </p>
         </>
@@ -828,14 +821,14 @@ function AddItemModal({ version, onClose, onDone }:
 
       {mode === "custom" && (
         <>
-          <p style={{ fontSize: 11.5, color: C.muted, margin: "0 0 8px" }}>
+          <p style={{ fontSize: 11, color: C.muted, margin: "0 0 8px" }}>
             Analisa baru khusus proyek ini — tidak masuk katalog nasional/company lama.
           </p>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 8 }}>
             <div>{label("Kode")}<input style={inputStyle} value={customCode} onChange={e => setCustomCode(e.target.value)} placeholder="mis. CUSTOM-01" /></div>
             <div>{label("Nama pekerjaan")}<input style={inputStyle} value={customName} onChange={e => setCustomName(e.target.value)} /></div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 8 }}>
             <div>{label("Kategori (cost code)")}
               <select aria-label="Kode biaya item custom" style={inputStyle} value={customCostCodeId} onChange={e => setCustomCostCodeId(e.target.value)}>
                 <option value="">— pilih —</option>
@@ -870,13 +863,13 @@ function AddItemModal({ version, onClose, onDone }:
             <>{label("Volume")}
               <input style={inputStyle} type="number" min="0" step="any" value={qty} onChange={e => setQty(e.target.value)} placeholder="mis. 518.4" /></>
           )}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <div>{label("Tanggal harga (price book)")}
               <input aria-label="Tanggal" style={inputStyle} type="date" value={priceDate} onChange={e => setPriceDate(e.target.value)} /></div>
             <div>{label("Lokasi harga (opsional)")}
               <input style={inputStyle} value={location} onChange={e => setLocation(e.target.value)} placeholder="mis. Bandung" /></div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
             <div>{label("BUK %")}
               <input style={inputStyle} type="number" min="0" max="100" step="any" value={bukPct} onChange={e => setBukPct(e.target.value)} /></div>
             <div>{label("Pembulatan")}
@@ -892,7 +885,7 @@ function AddItemModal({ version, onClose, onDone }:
 
       {mode === "lumpsum" && (
         <>
-          <p style={{ fontSize: 11.5, color: C.muted, margin: "0 0 8px" }}>
+          <p style={{ fontSize: 11, color: C.muted, margin: "0 0 8px" }}>
             Untuk pekerjaan yang bukan analisa AHSP (lift, pompa, septictank, air kerja, dll) — harga langsung, tanpa koefisien.
           </p>
           {label("Kategori (cost code)")}
@@ -908,8 +901,8 @@ function AddItemModal({ version, onClose, onDone }:
       )}
 
       {err && (
-        <div style={{ background: C.redBg, borderRadius: 8, padding: "8px 12px", marginTop: 10 }}>
-          <p style={{ color: C.red, fontSize: 12.5, margin: 0 }}>{err}</p>
+        <div style={{ background: C.redBg, borderRadius: 6, padding: "8px 12px", marginTop: 10 }}>
+          <p style={{ color: C.red, fontSize: 12, margin: 0 }}>{err}</p>
           {missing.length > 0 && (
             <p style={{ color: C.red, fontSize: 12, margin: "4px 0 0" }}>
               Harga belum ada di Price Book untuk: <b>{missing.join(", ")}</b> — isi lewat tab Harga.
@@ -1110,14 +1103,14 @@ function KatalogTab() {
           terlihat — pengguna yang tak melihat layar tetap tahu tindakannya
           berhasil. */}
       {pesan && (
-        <div role="status" style={{ ...card, padding: "10px 14px", marginBottom: 12, display: "flex",
+        <div role="status" style={{ ...card, padding: "8px 12px", marginBottom: 12, display: "flex",
                       alignItems: "center", gap: 8, background: C.greenBg, borderColor: C.green }}>
           <CheckCircle2 size={15} color={C.green} />
           <span style={{ fontSize: 13, color: C.text }}>{pesan}</span>
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 9, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
         <input
           value={cari} onChange={e => setCari(e.target.value)}
           placeholder="Cari nama atau kode analisa…"
@@ -1155,7 +1148,7 @@ function KatalogTab() {
             seluruhnya, padahal respons dibatasi 200 dari 3.043. Pemakai yang
             tak menemukan analisanya perlu tahu bahwa daftarnya memang dipotong,
             bukan menyimpulkan analisanya tidak ada. */}
-        <span style={{ fontSize: 12.5, color: terpotong ? C.yellow : C.muted, whiteSpace: "nowrap" }}>
+        <span style={{ fontSize: 12, color: terpotong ? C.yellow : C.muted, whiteSpace: "nowrap" }}>
           {terpotong
             ? `${assemblies.length} dari ${total!.toLocaleString("id-ID")} — katalog melebihi batas muat`
             : cari.trim() || hanyaKurang
@@ -1165,8 +1158,8 @@ function KatalogTab() {
         {jumlahKurang > 0 && (
           <button type="button" onClick={() => setHanyaKurang(v => !v)}
             aria-pressed={hanyaKurang}
-            style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 10px",
-              fontSize: 12, fontWeight: 600, borderRadius: 8, cursor: "pointer",
+            style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "6px 8px",
+              fontSize: 12, fontWeight: 600, borderRadius: 6, cursor: "pointer",
               border: `1px solid ${hanyaKurang ? C.yellow : C.border}`,
               background: hanyaKurang ? C.yellowBg : C.surface,
               color: hanyaKurang ? C.yellow : C.mid, whiteSpace: "nowrap" }}>
@@ -1194,8 +1187,8 @@ function KatalogTab() {
               <button onClick={() => bukaAnalisa(a)}
                 aria-expanded={open === a.id}
                 aria-label={`${a.code} — ${a.name}. ${open === a.id ? "Tutup" : "Buka"} rincian harga.`}
-                style={{ display: "flex", width: "100%", alignItems: "flex-start", gap: 10,
-                         padding: "11px 14px", background: "none", border: "none",
+                style={{ display: "flex", width: "100%", alignItems: "flex-start", gap: 8,
+                         padding: "12px 12px", background: "none", border: "none",
                          cursor: "pointer", textAlign: "left" }}>
                 <span style={{ paddingTop: 2 }}>
                   {open === a.id ? <ChevronDown size={15} color={C.mid} /> : <ChevronRight size={15} color={C.mid} />}
@@ -1208,25 +1201,25 @@ function KatalogTab() {
                       sebelum dipilih masuk RAB, bukan sesudahnya. */}
                   {(kurangHarga[a.id] ?? 0) > 0 && (
                     <span title={`${kurangHarga[a.id]} bahan/upah/alat belum punya harga aktif`}
-                      style={{ display: "inline-flex", alignItems: "center", gap: 3, marginLeft: 8,
-                        padding: "1px 7px", borderRadius: 999, background: C.yellowBg,
+                      style={{ display: "inline-flex", alignItems: "center", gap: 2, marginLeft: 8,
+                        padding: "0px 6px", borderRadius: 999, background: C.yellowBg,
                         color: C.yellow, fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>
                       <AlertTriangle size={10} aria-hidden="true" />
                       {kurangHarga[a.id]} tanpa harga
                     </span>
                   )}
                   {a.source === "company" && (
-                    <span style={{ marginLeft: 6, padding: "1px 7px", borderRadius: 999,
+                    <span style={{ marginLeft: 6, padding: "0px 6px", borderRadius: 999,
                       background: C.greenBg, color: C.green, fontSize: 11, fontWeight: 700 }}>
                       perusahaan
                     </span>
                   )}
                 </span>
-                <span style={{ fontSize: 11.5, color: C.muted, whiteSpace: "nowrap", paddingTop: 1 }}>
+                <span style={{ fontSize: 11, color: C.muted, whiteSpace: "nowrap", paddingTop: 1 }}>
                   per {a.output_unit_code}
                 </span>
                 <span style={{
-                  fontSize: 10.5, fontWeight: 700, borderRadius: 999, padding: "2px 8px",
+                  fontSize: 10, fontWeight: 700, borderRadius: 999, padding: "2px 8px",
                   whiteSpace: "nowrap",
                   color: a.source === "national" ? C.mid : C.navy,
                   border: `1px solid ${C.border}`,
@@ -1235,7 +1228,7 @@ function KatalogTab() {
                 </span>
                 {a.status === "draft" && (
                   <span style={{
-                    fontSize: 10.5, fontWeight: 700, borderRadius: 999, padding: "2px 8px",
+                    fontSize: 10, fontWeight: 700, borderRadius: 999, padding: "2px 8px",
                     whiteSpace: "nowrap", color: C.yellow, border: `1px solid ${C.yellow}`,
                   }}>
                     DRAFT
@@ -1244,23 +1237,23 @@ function KatalogTab() {
               </button>
 
               {open === a.id && (
-                <div style={{ borderTop: `1px solid ${C.border}`, padding: "12px 14px 14px" }}>
-                  {h === "memuat" && <p style={{ fontSize: 12.5, color: C.muted, margin: 0 }}>Menghitung…</p>}
+                <div style={{ borderTop: `1px solid ${C.border}`, padding: "12px 12px 12px" }}>
+                  {h === "memuat" && <p style={{ fontSize: 12, color: C.muted, margin: 0 }}>Menghitung…</p>}
                   {h === "gagal" && (
-                    <p style={{ fontSize: 12.5, color: C.red, margin: 0 }}>
+                    <p style={{ fontSize: 12, color: C.red, margin: 0 }}>
                       Gagal memuat rincian harga. Coba tutup dan buka lagi.
                     </p>
                   )}
                   {detail && <RincianAnalisa d={detail} />}
 
                   <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}`,
-                                display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                                display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                     {a.source === "national" && (
                       <>
                         <button onClick={() => setAdopsi(a)} style={btnGhost}>
                           <Plus size={13} /> Jadikan analisa perusahaan
                         </button>
-                        <span style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.5 }}>
+                        <span style={{ fontSize: 11, color: C.muted, lineHeight: 1.5 }}>
                           Menyalin analisa ini supaya koefisiennya bisa Anda sesuaikan.
                           Analisa nasional tidak berubah.
                         </span>
@@ -1334,8 +1327,8 @@ function RincianAnalisa({ d }: { d: HspLive }) {
   return (
     <div>
       {d.hsp_partial && (
-        <div style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "9px 11px",
-                      background: C.yellowBg, border: `1px solid ${C.yellow}`, borderRadius: 8,
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "8px 12px",
+                      background: C.yellowBg, border: `1px solid ${C.yellow}`, borderRadius: 6,
                       marginBottom: 12 }}>
           <CircleOff size={14} color={C.yellow} style={{ flexShrink: 0, marginTop: 1 }} />
           <span style={{ fontSize: 12, color: C.text, lineHeight: 1.5 }}>
@@ -1348,7 +1341,7 @@ function RincianAnalisa({ d }: { d: HspLive }) {
       )}
 
       <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
           <thead>
             <tr>
               <th style={{ ...th, width: "42%" }}>Uraian</th>
@@ -1376,7 +1369,7 @@ function RincianAnalisa({ d }: { d: HspLive }) {
                       {c.sumber === "override_proyek" && (
                         <span title={c.override_reason ?? ""} style={{
                           marginLeft: 6, fontSize: 10, fontWeight: 700, color: C.navy,
-                          border: `1px solid ${C.border}`, borderRadius: 999, padding: "1px 6px",
+                          border: `1px solid ${C.border}`, borderRadius: 999, padding: "0px 6px",
                         }}>KHUSUS PROYEK</span>
                       )}
                     </td>
@@ -1421,7 +1414,7 @@ function RincianAnalisa({ d }: { d: HspLive }) {
                   Harga satuan pekerjaan, per {d.assembly.output_unit}
                 </td>
                 <td style={{
-                  ...tfAngka, fontWeight: 700, color: C.navy, fontSize: 14,
+                  ...tfAngka, fontWeight: 700, color: C.navy, fontSize: 13,
                   borderTop: `3px double ${C.border}`, paddingTop: 9,
                 }}>
                   {fmtRp(Math.round(d.result.hspRounded))}
@@ -1432,7 +1425,7 @@ function RincianAnalisa({ d }: { d: HspLive }) {
         </table>
       </div>
 
-      <p style={{ fontSize: 11.5, color: C.muted, margin: "10px 0 0", lineHeight: 1.5 }}>
+      <p style={{ fontSize: 11, color: C.muted, margin: "10px 0 0", lineHeight: 1.5 }}>
         Harga per {new Date(d.input.price_date).toLocaleDateString("id-ID",
           { day: "numeric", month: "long", year: "numeric" })}.
         Mengubah harga di tab Harga langsung mengubah angka di sini.
@@ -1482,14 +1475,14 @@ function AdopsiModal({ asal, onClose, onDone }: {
         display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
       }} onClick={onClose}>
       <form onClick={e => e.stopPropagation()} onSubmit={kirim} style={{
-        ...card, width: "100%", maxWidth: 660, maxHeight: "88vh", overflowY: "auto", padding: 22,
+        ...card, width: "100%", maxWidth: 660, maxHeight: "88vh", overflowY: "auto", padding: 20,
       }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
           <div>
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: "0 0 4px" }}>
+            <h2 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: "0 0 4px" }}>
               Jadikan analisa perusahaan
             </h2>
-            <p style={{ fontSize: 12.5, color: C.mid, margin: 0, lineHeight: 1.55 }}>
+            <p style={{ fontSize: 12, color: C.mid, margin: 0, lineHeight: 1.55 }}>
               Menyalin <code style={{ color: C.navy }}>{asal.code}</code> ke katalog perusahaan.
               Analisa nasionalnya tidak berubah, dan tetap bisa dipakai seperti biasa.
             </p>
@@ -1501,13 +1494,13 @@ function AdopsiModal({ asal, onClose, onDone }: {
         </div>
 
         {err && (
-          <div style={{ marginTop: 14, padding: "9px 12px", background: C.redBg,
-                        border: `1px solid ${C.red}`, borderRadius: 8, fontSize: 12.5, color: C.text }}>
+          <div style={{ marginTop: 14, padding: "8px 12px", background: C.redBg,
+                        border: `1px solid ${C.red}`, borderRadius: 6, fontSize: 12, color: C.text }}>
             {err}
           </div>
         )}
 
-        <div style={{ display: "grid", gap: 14, marginTop: 18 }}>
+        <div style={{ display: "grid", gap: 12, marginTop: 18 }}>
           <div>
             <label htmlFor="kode" style={lbl}>Kode analisa baru</label>
             <input id="kode" value={kode} onChange={e => setKode(e.target.value)} required style={inputStyle} />
@@ -1521,13 +1514,13 @@ function AdopsiModal({ asal, onClose, onDone }: {
         </div>
 
         <div style={{ marginTop: 20 }}>
-          <p style={{ fontSize: 12.5, fontWeight: 600, color: C.text, margin: "0 0 4px" }}>
+          <p style={{ fontSize: 12, fontWeight: 600, color: C.text, margin: "0 0 4px" }}>
             Sesuaikan koefisien
           </p>
-          <p style={{ fontSize: 11.5, color: C.muted, margin: "0 0 10px", lineHeight: 1.5 }}>
+          <p style={{ fontSize: 11, color: C.muted, margin: "0 0 10px", lineHeight: 1.5 }}>
             Kosongkan yang tidak berubah — yang dikosongkan memakai angka aslinya.
           </p>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
             <thead>
               <tr>
                 <th style={th}>Uraian</th>
@@ -1560,9 +1553,9 @@ function AdopsiModal({ asal, onClose, onDone }: {
           </table>
         </div>
 
-        <div style={{ display: "flex", gap: 9, marginTop: 20 }}>
+        <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
           <button type="submit" disabled={simpan} style={{
-            padding: "9px 16px", borderRadius: 9, border: "none", background: C.navy,
+            padding: "8px 16px", borderRadius: 10, border: "none", background: C.navy,
             color: "#fff", fontSize: 13, fontWeight: 600,
             cursor: simpan ? "wait" : "pointer", opacity: simpan ? 0.7 : 1,
           }}>
@@ -1633,14 +1626,14 @@ function EditAssemblyModal({ asal, onClose, onDone }: {
         display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
       }} onClick={onClose}>
       <form onClick={e => e.stopPropagation()} onSubmit={kirim} style={{
-        ...card, width: "100%", maxWidth: 660, maxHeight: "88vh", overflowY: "auto", padding: 22,
+        ...card, width: "100%", maxWidth: 660, maxHeight: "88vh", overflowY: "auto", padding: 20,
       }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
           <div>
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: "0 0 4px" }}>
+            <h2 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: "0 0 4px" }}>
               Edit <code style={{ color: C.navy }}>{asal.code}</code> (versi baru)
             </h2>
-            <p style={{ fontSize: 12.5, color: C.mid, margin: 0, lineHeight: 1.55 }}>
+            <p style={{ fontSize: 12, color: C.mid, margin: 0, lineHeight: 1.55 }}>
               Membuat versi {asal.version_number + 1} berstatus draft. Analisa yang sudah
               dipakai di estimasi tetap memakai versi {asal.version_number} — tidak berubah.
             </p>
@@ -1652,13 +1645,13 @@ function EditAssemblyModal({ asal, onClose, onDone }: {
         </div>
 
         {err && (
-          <div style={{ marginTop: 14, padding: "9px 12px", background: C.redBg,
-                        border: `1px solid ${C.red}`, borderRadius: 8, fontSize: 12.5, color: C.text }}>
+          <div style={{ marginTop: 14, padding: "8px 12px", background: C.redBg,
+                        border: `1px solid ${C.red}`, borderRadius: 6, fontSize: 12, color: C.text }}>
             {err}
           </div>
         )}
 
-        <div style={{ display: "grid", gap: 14, marginTop: 18 }}>
+        <div style={{ display: "grid", gap: 12, marginTop: 18 }}>
           <div>
             <span id="jenis-perubahan" style={lbl}>Jenis perubahan</span>
             <div role="group" aria-labelledby="jenis-perubahan" style={{ display: "flex", gap: 8 }}>
@@ -1677,7 +1670,7 @@ function EditAssemblyModal({ asal, onClose, onDone }: {
                 Penyimpangan (deviation)
               </button>
             </div>
-            <p style={{ fontSize: 11.5, color: C.muted, margin: "6px 0 0", lineHeight: 1.5 }}>
+            <p style={{ fontSize: 11, color: C.muted, margin: "6px 0 0", lineHeight: 1.5 }}>
               {editType === "correction"
                 ? `Angka semula salah (mis. salah baca sumber). Hasil tetap "${asal.source === "national" ? "nasional" : "perusahaan"}" — labelnya dipertahankan.`
                 : jadiCompany
@@ -1696,13 +1689,13 @@ function EditAssemblyModal({ asal, onClose, onDone }: {
         </div>
 
         <div style={{ marginTop: 20 }}>
-          <p style={{ fontSize: 12.5, fontWeight: 600, color: C.text, margin: "0 0 4px" }}>
+          <p style={{ fontSize: 12, fontWeight: 600, color: C.text, margin: "0 0 4px" }}>
             Ubah koefisien
           </p>
-          <p style={{ fontSize: 11.5, color: C.muted, margin: "0 0 10px", lineHeight: 1.5 }}>
+          <p style={{ fontSize: 11, color: C.muted, margin: "0 0 10px", lineHeight: 1.5 }}>
             Kosongkan yang tidak berubah. Minimal satu koefisien wajib diubah.
           </p>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
             <thead>
               <tr>
                 <th style={th}>Uraian</th>
@@ -1735,9 +1728,9 @@ function EditAssemblyModal({ asal, onClose, onDone }: {
           </table>
         </div>
 
-        <div style={{ display: "flex", gap: 9, marginTop: 20 }}>
+        <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
           <button type="submit" disabled={simpan} style={{
-            padding: "9px 16px", borderRadius: 9, border: "none", background: C.navy,
+            padding: "8px 16px", borderRadius: 10, border: "none", background: C.navy,
             color: "#fff", fontSize: 13, fontWeight: 600,
             cursor: simpan ? "wait" : "pointer", opacity: simpan ? 0.7 : 1,
           }}>
@@ -1835,15 +1828,15 @@ function RapTab() {
   return (
     <div>
       {pesan && (
-        <div role="status" style={{ ...card, padding: "10px 14px", marginBottom: 12, display: "flex",
+        <div role="status" style={{ ...card, padding: "8px 12px", marginBottom: 12, display: "flex",
                       alignItems: "center", gap: 8, background: C.greenBg, borderColor: C.green }}>
           <CheckCircle2 size={15} color={C.green} />
           <span style={{ fontSize: 13, color: C.text }}>{pesan}</span>
         </div>
       )}
-      {err && <div style={{ background: C.redBg, color: C.red, border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px 12px", fontSize: 12.5, marginBottom: 10 }}>{err}</div>}
+      {err && <div style={{ background: C.redBg, color: C.red, border: `1px solid ${C.border}`, borderRadius: 6, padding: "8px 12px", fontSize: 12, marginBottom: 10 }}>{err}</div>}
 
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}>
         <select aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} style={{ ...inputStyle, width: 280 }}>
           <option value="">— Pilih proyek —</option>
           {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -1868,10 +1861,10 @@ function RapTab() {
       {detail && (
         <div style={{ display: "grid", gap: 16 }}>
           <div style={{ ...card, padding: 16 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <ClipboardList size={16} color={C.navy} />
-                <strong style={{ fontSize: 14.5 }}>{detail.data.name}</strong>
+                <strong style={{ fontSize: 15 }}>{detail.data.name}</strong>
                 <StatusBadge s={detail.data.status} />
               </div>
               {!locked && (
@@ -1880,19 +1873,19 @@ function RapTab() {
                 </button>
               )}
             </div>
-            {detail.data.notes && <p style={{ fontSize: 12.5, color: C.mid, margin: "8px 0 0" }}>{detail.data.notes}</p>}
+            {detail.data.notes && <p style={{ fontSize: 12, color: C.mid, margin: "8px 0 0" }}>{detail.data.notes}</p>}
             <div style={{ display: "flex", gap: 24, marginTop: 14, flexWrap: "wrap" }}>
               <div>
                 <div style={{ fontSize: 11, color: C.muted, textTransform: "uppercase", letterSpacing: .4 }}>Pagu Material</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: C.text, fontFamily: "monospace" }}>{fmtRp(detail.total.material)}</div>
+                <div style={{ fontSize: 17, fontWeight: 700, color: C.text, fontFamily: "monospace" }}>{fmtRp(detail.total.material)}</div>
               </div>
               <div>
                 <div style={{ fontSize: 11, color: C.muted, textTransform: "uppercase", letterSpacing: .4 }}>Borongan Tenaga Kerja</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: C.text, fontFamily: "monospace" }}>{fmtRp(detail.total.labor)}</div>
+                <div style={{ fontSize: 17, fontWeight: 700, color: C.text, fontFamily: "monospace" }}>{fmtRp(detail.total.labor)}</div>
               </div>
               <div>
                 <div style={{ fontSize: 11, color: C.muted, textTransform: "uppercase", letterSpacing: .4 }}>Total Pagu</div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: C.navy, fontFamily: "monospace" }}>{fmtRp(detail.total.pagu)}</div>
+                <div style={{ fontSize: 17, fontWeight: 800, color: C.navy, fontFamily: "monospace" }}>{fmtRp(detail.total.pagu)}</div>
               </div>
             </div>
           </div>
@@ -1900,11 +1893,11 @@ function RapTab() {
           <div style={card}>
             <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 8 }}>
               <Package size={15} color={C.navy} />
-              <strong style={{ fontSize: 13.5 }}>Material</strong>
-              <span style={{ fontSize: 11.5, color: C.muted }}>({detail.material.length} item)</span>
+              <strong style={{ fontSize: 13 }}>Material</strong>
+              <span style={{ fontSize: 11, color: C.muted }}>({detail.material.length} item)</span>
             </div>
             <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
                 <thead><tr>
                   <th style={th}>Material</th><th style={{ ...th, textAlign: "right" }}>Qty RAB</th>
                   <th style={{ ...th, textAlign: "right", width: 110 }}>Qty Disesuaikan</th>
@@ -1921,7 +1914,7 @@ function RapTab() {
                         {locked ? Number(m.qty_adjusted).toLocaleString("id-ID") : (
                           <input defaultValue={Number(m.qty_adjusted)} inputMode="decimal"
                             onBlur={e => e.target.value !== String(Number(m.qty_adjusted)) && void simpanQty(m, "qty_adjusted", e.target.value)}
-                            style={{ ...inputStyle, textAlign: "right", fontFamily: "monospace", padding: "5px 8px" }} />
+                            style={{ ...inputStyle, textAlign: "right", fontFamily: "monospace", padding: "4px 8px" }} />
                         )}
                       </td>
                       <td style={td}>{m.unit_code}</td>
@@ -1929,7 +1922,7 @@ function RapTab() {
                         {locked ? fmtRp(Number(m.supplier_price)) : (
                           <input defaultValue={Number(m.supplier_price)} inputMode="decimal"
                             onBlur={e => e.target.value !== String(Number(m.supplier_price)) && void simpanQty(m, "supplier_price", e.target.value)}
-                            style={{ ...inputStyle, textAlign: "right", fontFamily: "monospace", padding: "5px 8px" }} />
+                            style={{ ...inputStyle, textAlign: "right", fontFamily: "monospace", padding: "4px 8px" }} />
                         )}
                       </td>
                       <td style={{ ...td, textAlign: "right", fontWeight: 600, fontFamily: "monospace" }}>{fmtRp(Number(m.pagu))}</td>
@@ -1955,12 +1948,12 @@ function RapTab() {
             <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <HardHat size={15} color={C.navy} />
-                <strong style={{ fontSize: 13.5 }}>Tenaga Kerja (Borongan)</strong>
+                <strong style={{ fontSize: 13 }}>Tenaga Kerja (Borongan)</strong>
               </div>
               {!locked && <button style={btnGhost} onClick={() => setShowAddLabor(true)}><Plus size={13} /> Tambah</button>}
             </div>
             <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
                 <thead><tr>
                   <th style={th}>Uraian Pekerjaan</th><th style={{ ...th, textAlign: "right" }}>Nilai Borongan</th><th style={th} />
                 </tr></thead>
@@ -1992,13 +1985,13 @@ function RapTab() {
               style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "12px 16px",
                        background: "none", border: "none", cursor: "pointer", textAlign: "left" }}>
               <History size={15} color={C.mid} />
-              <strong style={{ fontSize: 13.5, color: C.text }}>Log Perubahan</strong>
-              <span style={{ fontSize: 11.5, color: C.muted }}>— catatan penyesuaian di luar sistem, tak mengubah pagu tersimpan</span>
+              <strong style={{ fontSize: 13, color: C.text }}>Log Perubahan</strong>
+              <span style={{ fontSize: 11, color: C.muted }}>— catatan penyesuaian di luar sistem, tak mengubah pagu tersimpan</span>
               {showLogTable ? <ChevronDown size={14} color={C.mid} style={{ marginLeft: "auto" }} /> : <ChevronRight size={14} color={C.mid} style={{ marginLeft: "auto" }} />}
             </button>
             {showLogTable && (
               <div style={{ overflowX: "auto", borderTop: `1px solid ${C.border}` }}>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
                   <thead><tr>
                     <th style={th}>Waktu</th><th style={th}>Field</th><th style={th}>Lama</th><th style={th}>Baru</th><th style={th}>Alasan</th>
                   </tr></thead>
@@ -2071,7 +2064,7 @@ function NewRapModal({ projectId, onClose, onDone }: { projectId: string; onClos
   return (
     <Modal title="RAP Baru" onClose={onClose}>
       <form onSubmit={kirim}>
-        {err && <div style={{ marginBottom: 12, padding: "9px 12px", background: C.redBg, border: `1px solid ${C.red}`, borderRadius: 8, fontSize: 12.5, color: C.text }}>{err}</div>}
+        {err && <div style={{ marginBottom: 12, padding: "8px 12px", background: C.redBg, border: `1px solid ${C.red}`, borderRadius: 6, fontSize: 12, color: C.text }}>{err}</div>}
         <label htmlFor="version-id" style={lbl}>Versi estimasi (sumber take-off material)</label>
         <select id="version-id" aria-label="Pilih versi estimasi" value={versionId} onChange={e => setVersionId(e.target.value)} required style={{ ...inputStyle, marginBottom: 12 }}>
           <option value="">— Pilih versi —</option>
@@ -2084,7 +2077,7 @@ function NewRapModal({ projectId, onClose, onDone }: { projectId: string; onClos
         <input id="name" value={name} onChange={e => setName(e.target.value)} style={{ ...inputStyle, marginBottom: 12 }} />
         <label htmlFor="notes" style={lbl}>Catatan (opsional)</label>
         <input id="notes" value={notes} onChange={e => setNotes(e.target.value)} style={{ ...inputStyle, marginBottom: 16 }} />
-        <div style={{ display: "flex", gap: 9 }}>
+        <div style={{ display: "flex", gap: 8 }}>
           <button type="submit" disabled={busy} style={{ ...btnPrimary, opacity: busy ? .7 : 1, cursor: busy ? "wait" : "pointer" }}>
             {busy ? "Membuat…" : "Buat RAP"}
           </button>
@@ -2118,7 +2111,7 @@ function AddLaborModal({ rapId, onClose, onDone }: { rapId: string; onClose: () 
   return (
     <Modal title="Tambah Borongan Tenaga Kerja" onClose={onClose}>
       <form onSubmit={kirim}>
-        {err && <div style={{ marginBottom: 12, padding: "9px 12px", background: C.redBg, border: `1px solid ${C.red}`, borderRadius: 8, fontSize: 12.5, color: C.text }}>{err}</div>}
+        {err && <div style={{ marginBottom: 12, padding: "8px 12px", background: C.redBg, border: `1px solid ${C.red}`, borderRadius: 6, fontSize: 12, color: C.text }}>{err}</div>}
         <label htmlFor="description" style={lbl}>Uraian pekerjaan</label>
         <input id="description" value={description} onChange={e => setDescription(e.target.value)} required
           placeholder="Mis. Borongan pasangan bata + plester lantai 1" style={{ ...inputStyle, marginBottom: 12 }} />
@@ -2126,7 +2119,7 @@ function AddLaborModal({ rapId, onClose, onDone }: { rapId: string; onClose: () 
         <input id="value" value={value} onChange={e => setValue(e.target.value)} inputMode="decimal" style={{ ...inputStyle, marginBottom: 16 }} />
         <label htmlFor="notes-2" style={lbl}>Catatan (opsional)</label>
         <input id="notes-2" value={notes} onChange={e => setNotes(e.target.value)} style={{ ...inputStyle, marginBottom: 16 }} />
-        <div style={{ display: "flex", gap: 9 }}>
+        <div style={{ display: "flex", gap: 8 }}>
           <button type="submit" disabled={busy} style={{ ...btnPrimary, opacity: busy ? .7 : 1, cursor: busy ? "wait" : "pointer" }}>
             {busy ? "Menyimpan…" : "Tambah"}
           </button>
@@ -2169,10 +2162,10 @@ function ChangeLogModal({ rapId, table, lineId, label, onClose, onDone }: {
           Pagu sudah dikunci dan tak bisa diubah lagi. Catatan ini hanya arsip administratif
           (mis. harga supplier berubah setelah negosiasi ulang) — angka pagu tersimpan TIDAK berubah.
         </p>
-        {err && <div style={{ marginBottom: 12, padding: "9px 12px", background: C.redBg, border: `1px solid ${C.red}`, borderRadius: 8, fontSize: 12.5, color: C.text }}>{err}</div>}
+        {err && <div style={{ marginBottom: 12, padding: "8px 12px", background: C.redBg, border: `1px solid ${C.red}`, borderRadius: 6, fontSize: 12, color: C.text }}>{err}</div>}
         <label htmlFor="field-name" style={lbl}>Field yang berubah (opsional)</label>
         <input id="field-name" value={fieldName} onChange={e => setFieldName(e.target.value)} placeholder="Mis. supplier_price" style={{ ...inputStyle, marginBottom: 12 }} />
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ display: "flex", gap: 8 }}>
           <div style={{ flex: 1 }}>
             <label htmlFor="old-value" style={lbl}>Nilai lama (opsional)</label>
             <input id="old-value" value={oldValue} onChange={e => setOldValue(e.target.value)} style={{ ...inputStyle, marginBottom: 12 }} />
@@ -2185,7 +2178,7 @@ function ChangeLogModal({ rapId, table, lineId, label, onClose, onDone }: {
         <label htmlFor="reason" style={lbl}>Alasan (wajib)</label>
         <input id="reason" value={reason} onChange={e => setReason(e.target.value)} required
           placeholder="Mis. supplier menaikkan harga semen setelah pagu dikunci" style={{ ...inputStyle, marginBottom: 16 }} />
-        <div style={{ display: "flex", gap: 9 }}>
+        <div style={{ display: "flex", gap: 8 }}>
           <button type="submit" disabled={busy} style={{ ...btnPrimary, opacity: busy ? .7 : 1, cursor: busy ? "wait" : "pointer" }}>
             {busy ? "Menyimpan…" : "Simpan Catatan"}
           </button>
@@ -2208,7 +2201,7 @@ function JenisHarga({ c }: { c: string }) {
   const p = peta[c];
   if (!p) return null;
   return (
-    <span style={{ marginLeft: 6, padding: "1px 6px", borderRadius: 999, fontSize: 10.5,
+    <span style={{ marginLeft: 6, padding: "0px 6px", borderRadius: 999, fontSize: 10,
       fontWeight: 700, color: p.warna, background: p.bg, whiteSpace: "nowrap" }}>
       {p.label}
     </span>
@@ -2268,7 +2261,7 @@ function HargaTab() {
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
         {/* Upah / bahan / alat sudah terpisah di `resources.category` — tinggal
             disaring. Berguna karena keduanya diperlakukan berbeda: upah berubah
             per kesepakatan mandor, harga bahan per supplier. */}
@@ -2297,7 +2290,7 @@ function HargaTab() {
             tak menemukan harganya perlu tahu daftarnya memang dipotong — bukan
             menyimpulkan harganya belum ada lalu menginput duplikat. */}
         {total != null && (
-          <span style={{ fontSize: 12.5, whiteSpace: "nowrap",
+          <span style={{ fontSize: 12, whiteSpace: "nowrap",
             color: terpotong ? C.yellow : C.muted }}>
             {terpotong
               ? `${entries.length} dari ${total.toLocaleString("id-ID")} — melebihi batas muat`
@@ -2311,7 +2304,7 @@ function HargaTab() {
         Alur: draft → verified → active (maju saja, dijaga database). Hanya <b>active</b> yang
         dipakai menghitung HSP.
       </p>
-      {err && <div style={{ background: C.redBg, color: C.red, borderRadius: 8, padding: "8px 12px", fontSize: 12.5, marginBottom: 10 }}>{err}</div>}
+      {err && <div style={{ background: C.redBg, color: C.red, borderRadius: 6, padding: "8px 12px", fontSize: 12, marginBottom: 10 }}>{err}</div>}
 
       <PrioritasHarga onIsi={isiHarga} />
 
@@ -2319,9 +2312,9 @@ function HargaTab() {
           yang tak muat di layar sempit. Tinggi dibatasi supaya tabel 2.637
           baris tak mendorong seluruh halaman menjadi sangat panjang. */}
       <div ref={pasangHarga} style={{ overflowX: "auto", background: C.surface,
-        border: `1px solid ${C.border}`, borderRadius: 12,
+        border: `1px solid ${C.border}`, borderRadius: 10,
         ...(vhOff ? {} : { maxHeight: 560, overflowY: "auto" as const }) }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
           <thead><tr>
             <th style={th}>Resource</th><th style={{ ...th, textAlign: "right" }}>Harga</th><th style={th}>Sat</th>
             <th style={th}>Berlaku</th><th style={th}>Lokasi</th><th style={th}>Keyakinan</th><th style={th}>Status</th><th style={th}>Aksi</th>
@@ -2418,7 +2411,7 @@ function OverrideProyek() {
     api.get("/api/v1/projects")
       .then((r) => {
         if (batal) return;
-        const d = (r.data?.data ?? []) as Array<{ id: string; name: string }>;
+        const d = (r.data?.projects ?? []) as Array<{ id: string; name: string }>;
         setProyek(d);
         setProyekId((k) => k || d[0]?.id || "");
       })
@@ -2465,7 +2458,7 @@ function OverrideProyek() {
           <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>
             Harga khusus proyek
           </h3>
-          <p style={{ margin: "3px 0 0", fontSize: 12.5, color: C.mid, lineHeight: 1.55, maxWidth: 620 }}>
+          <p style={{ margin: "3px 0 0", fontSize: 12, color: C.mid, lineHeight: 1.55, maxWidth: 620 }}>
             Menimpa price book untuk satu proyek saja — dipakai saat harga di
             lokasi berbeda dari harga umum. Alasannya wajib, dan ikut muncul di
             rincian perhitungan supaya angka yang menyimpang selalu punya
@@ -2477,7 +2470,7 @@ function OverrideProyek() {
             aria-label="Pilih proyek untuk harga khusus"
             value={proyekId}
             onChange={(e) => setProyekId(e.target.value)}
-            style={{ minHeight: 36, padding: "0 10px", fontSize: 13, borderRadius: 8,
+            style={{ minHeight: 36, padding: "0 10px", fontSize: 13, borderRadius: 6,
               border: `1px solid ${C.border}`, background: "var(--surface)", color: C.text,
               maxWidth: 220, fontFamily: "inherit" }}
           >
@@ -2490,7 +2483,7 @@ function OverrideProyek() {
       </div>
 
       {err && (
-        <p style={{ fontSize: 12.5, color: C.red, margin: "0 0 10px" }}>{err}</p>
+        <p style={{ fontSize: 12, color: C.red, margin: "0 0 10px" }}>{err}</p>
       )}
 
       {memuat ? (
@@ -2504,12 +2497,12 @@ function OverrideProyek() {
         </p>
       ) : (
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
             <thead>
               <tr>
                 {["Resource", "Harga khusus", "Berlaku", "Alasan", ""].map((h) => (
                   <th key={h} style={{ ...td, textAlign: h === "Harga khusus" ? "right" : "left",
-                    fontWeight: 700, color: C.mid, fontSize: 11.5, textTransform: "uppercase",
+                    fontWeight: 700, color: C.mid, fontSize: 11, textTransform: "uppercase",
                     letterSpacing: "0.04em" }}>{h}</th>
                 ))}
               </tr>
@@ -2637,23 +2630,23 @@ function FormOverride({ proyekId, onTutup, onSimpan }: {
   };
 
   const gaya = {
-    input: { minHeight: 42, padding: "9px 11px", width: "100%", boxSizing: "border-box" as const,
-      border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14,
+    input: { minHeight: 42, padding: "8px 12px", width: "100%", boxSizing: "border-box" as const,
+      border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13,
       background: "var(--surface)", color: C.text, fontFamily: "inherit" },
-    label: { fontSize: 12.5, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 },
-    bantu: { fontSize: 11.5, color: C.muted, lineHeight: 1.5, display: "block", marginTop: 4 },
+    label: { fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 },
+    bantu: { fontSize: 11, color: C.muted, lineHeight: 1.5, display: "block", marginTop: 4 },
   };
 
   return (
     <div role="dialog" aria-modal="true" aria-labelledby="ovr-judul"
       style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(17,24,39,0.45)",
         display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-      <div style={{ background: "var(--surface)", borderRadius: 12, width: "100%", maxWidth: 460,
+      <div style={{ background: "var(--surface)", borderRadius: 10, width: "100%", maxWidth: 460,
         maxHeight: "92vh", display: "flex", flexDirection: "column", overflow: "hidden",
-        boxShadow: "0 18px 44px rgba(0,0,0,0.18)" }}>
+        boxShadow: "var(--naik-3)" }}>
         <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "15px 17px", borderBottom: `1px solid ${C.border}` }}>
-          <h3 id="ovr-judul" style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>
+          padding: "16px 16px", borderBottom: `1px solid ${C.border}` }}>
+          <h3 id="ovr-judul" style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>
             Harga khusus proyek
           </h3>
           <button onClick={onTutup} aria-label="Tutup"
@@ -2661,13 +2654,13 @@ function FormOverride({ proyekId, onTutup, onSimpan }: {
               minWidth: 34, minHeight: 34 }}>✕</button>
         </header>
 
-        <div style={{ padding: 17, overflowY: "auto", display: "grid", gap: 14 }}>
+        <div style={{ padding: 16, overflowY: "auto", display: "grid", gap: 12 }}>
           <div>
             <label htmlFor="ovr-kode" style={gaya.label}>Resource</label>
             {terpilih ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 11px",
-                border: `1px solid ${C.border}`, borderRadius: 8, background: "var(--surface-subtle)" }}>
-                <span style={{ flex: 1, fontSize: 13.5, color: C.text }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px",
+                border: `1px solid ${C.border}`, borderRadius: 6, background: "var(--surface-subtle)" }}>
+                <span style={{ flex: 1, fontSize: 13, color: C.text }}>
                   <strong>{terpilih.code}</strong> — {terpilih.name}
                   <span style={{ color: C.mid }}> / {terpilih.unit_code}</span>
                 </span>
@@ -2685,12 +2678,12 @@ function FormOverride({ proyekId, onTutup, onSimpan }: {
                 {tampilPilihan.length > 0 && (
                   <ul style={{ listStyle: "none", margin: "6px 0 0", padding: 0,
                     maxHeight: 168, overflowY: "auto", border: `1px solid ${C.border}`,
-                    borderRadius: 8 }}>
+                    borderRadius: 6 }}>
                     {tampilPilihan.map((r) => (
                       <li key={r.id}>
                         <button
                           onClick={() => { setTerpilih(r); setPilihan([]); }}
-                          style={{ width: "100%", textAlign: "left", padding: "8px 11px",
+                          style={{ width: "100%", textAlign: "left", padding: "8px 12px",
                             border: "none", background: "none", cursor: "pointer",
                             fontSize: 13, color: C.text, fontFamily: "inherit" }}
                         >
@@ -2746,17 +2739,17 @@ function FormOverride({ proyekId, onTutup, onSimpan }: {
               onChange={(e) => setCatatan(e.target.value)} placeholder="Penawaran supplier 12 Jul" />
           </div>
 
-          {err && <p style={{ margin: 0, fontSize: 12.5, color: C.red, lineHeight: 1.5 }}>{err}</p>}
+          {err && <p style={{ margin: 0, fontSize: 12, color: C.red, lineHeight: 1.5 }}>{err}</p>}
         </div>
 
-        <footer style={{ display: "flex", gap: 8, justifyContent: "flex-end", padding: "13px 17px",
+        <footer style={{ display: "flex", gap: 8, justifyContent: "flex-end", padding: "12px 16px",
           borderTop: `1px solid ${C.border}`, background: "var(--surface-subtle)" }}>
           <button onClick={onTutup} disabled={menyimpan}
-            style={{ minHeight: 40, padding: "0 15px", borderRadius: 8, fontSize: 13.5,
+            style={{ minHeight: 40, padding: "0 15px", borderRadius: 6, fontSize: 13,
               border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid,
               cursor: "pointer", fontFamily: "inherit" }}>Batal</button>
           <button onClick={() => void simpan()} disabled={menyimpan}
-            style={{ minHeight: 40, padding: "0 15px", borderRadius: 8, fontSize: 13.5,
+            style={{ minHeight: 40, padding: "0 15px", borderRadius: 6, fontSize: 13,
               border: "none", background: C.navy, color: "#fff", fontWeight: 600,
               cursor: "pointer", fontFamily: "inherit", opacity: menyimpan ? 0.6 : 1 }}>
             {menyimpan ? "Menyimpan…" : "Simpan"}
@@ -2797,8 +2790,8 @@ function PrioritasHarga({ onIsi }: { onIsi: (r: { code: string; name: string; un
   return (
     <div style={{ ...card, marginBottom: 14, background: C.yellowBg, borderColor: C.yellow }}>
       <button onClick={() => setBuka(b => !b)} aria-expanded={buka}
-        style={{ display: "flex", width: "100%", alignItems: "center", gap: 9,
-                 padding: "11px 14px", background: "none", border: "none", cursor: "pointer",
+        style={{ display: "flex", width: "100%", alignItems: "center", gap: 8,
+                 padding: "12px 12px", background: "none", border: "none", cursor: "pointer",
                  textAlign: "left" }}>
         {buka ? <ChevronDown size={15} color={C.text} /> : <ChevronRight size={15} color={C.text} />}
         <CircleOff size={15} color={C.yellow} style={{ flexShrink: 0 }} />
@@ -2811,8 +2804,8 @@ function PrioritasHarga({ onIsi }: { onIsi: (r: { code: string; name: string; un
       </button>
 
       {buka && (
-        <div style={{ borderTop: `1px solid ${C.yellow}`, padding: "4px 14px 12px" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+        <div style={{ borderTop: `1px solid ${C.yellow}`, padding: "4px 12px 12px" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
             <thead>
               <tr>
                 <th style={th}>Bahan / upah</th>
@@ -2826,7 +2819,7 @@ function PrioritasHarga({ onIsi }: { onIsi: (r: { code: string; name: string; un
                 <tr key={r.resource_id}>
                   <td style={td}>
                     {r.name}
-                    <span style={{ color: C.muted, marginLeft: 6, fontSize: 11.5 }}>{r.unit_code}</span>
+                    <span style={{ color: C.muted, marginLeft: 6, fontSize: 11 }}>{r.unit_code}</span>
                   </td>
                   <td style={{ ...td, color: C.mid }}>{r.category}</td>
                   <td style={{ ...td, textAlign: "right", fontFamily: "monospace" }}>
@@ -2845,7 +2838,7 @@ function PrioritasHarga({ onIsi }: { onIsi: (r: { code: string; name: string; un
             </tbody>
           </table>
           {total > data.length && (
-            <p style={{ fontSize: 11.5, color: C.mid, margin: "8px 2px 0" }}>
+            <p style={{ fontSize: 11, color: C.mid, margin: "8px 2px 0" }}>
               Menampilkan {data.length} dari {total} — sisanya dampaknya lebih kecil.
             </p>
           )}
@@ -2903,13 +2896,13 @@ function NewPriceModal({ initial, onClose, onDone }: {
       </select>
       {label("Harga (Rp)")}
       <input style={inputStyle} type="number" min="0" step="any" value={amount} onChange={e => setAmount(e.target.value)} />
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         <div>{label("Berlaku sejak")}
           <input aria-label="Tanggal" style={inputStyle} type="date" value={effective} onChange={e => setEffective(e.target.value)} /></div>
         <div>{label("Berlaku sampai (opsional)")}
           <input aria-label="Tanggal" style={inputStyle} type="date" value={expired} onChange={e => setExpired(e.target.value)} /></div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         <div>{label("Lokasi (kosong = umum)")}
           <input style={inputStyle} value={location} onChange={e => setLocation(e.target.value)} placeholder="mis. Bandung" /></div>
         <div>{label("Tingkat keyakinan")}
@@ -2922,7 +2915,7 @@ function NewPriceModal({ initial, onClose, onDone }: {
       </div>
       {label("Supplier (opsional)")}
       <input style={inputStyle} value={supplier} onChange={e => setSupplier(e.target.value)} />
-      {err && <p style={{ color: C.red, fontSize: 12.5 }}>{err}</p>}
+      {err && <p style={{ color: C.red, fontSize: 12 }}>{err}</p>}
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
         <button style={btnGhost} onClick={onClose}>Batal</button>
         <button style={btnPrimary} disabled={busy || !resourceCode || !amount} onClick={async () => {
@@ -2974,13 +2967,13 @@ function PanduanKomposer({ jumlahProyek }: { jumlahProyek: number }) {
   ];
 
   return (
-    <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, padding: "18px 20px",
+    <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: "16px 20px",
       background: C.surface, maxWidth: 720 }}>
       <h3 style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 800, color: C.text,
         fontFamily: "var(--font-display, inherit)" }}>
         Menyusun RAB dari analisa AHSP
       </h3>
-      <p style={{ margin: "0 0 16px", fontSize: 12.5, color: C.mid, lineHeight: 1.55 }}>
+      <p style={{ margin: "0 0 16px", fontSize: 12, color: C.mid, lineHeight: 1.55 }}>
         Setiap rupiah di RAB yang disusun di sini bisa ditelusuri ke koefisien analisa
         dan harga sumbernya — berbeda dari RAB yang diunggah sebagai file Excel.
       </p>
@@ -2995,7 +2988,7 @@ function PanduanKomposer({ jumlahProyek }: { jumlahProyek: number }) {
             </span>
             <span>
               <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{l.judul}</span>
-              <span style={{ display: "block", fontSize: 12.5, color: C.mid, lineHeight: 1.55, marginTop: 2 }}>
+              <span style={{ display: "block", fontSize: 12, color: C.mid, lineHeight: 1.55, marginTop: 2 }}>
                 {l.isi}
               </span>
             </span>
@@ -3087,7 +3080,7 @@ function CashflowTab() {
   return (
     <div>
       {/* ── Pemilih ─────────────────────────────────────────────────────── */}
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end", marginBottom: 16 }}>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end", marginBottom: 16 }}>
         <div>
           <label htmlFor="cf-proyek" style={LBL}>Proyek</label>
           <select aria-label="Proyek" id="cf-proyek" value={projectId}
@@ -3122,8 +3115,8 @@ function CashflowTab() {
       </div>
 
       {err && (
-        <div role="alert" style={{ padding: "10px 12px", background: C.redBg, color: C.red,
-          borderRadius: 8, fontSize: 13, marginBottom: 14 }}>{err}</div>
+        <div role="alert" style={{ padding: "8px 12px", background: C.redBg, color: C.red,
+          borderRadius: 6, fontSize: 13, marginBottom: 14 }}>{err}</div>
       )}
 
       {!versionId && !memuat && (
@@ -3140,8 +3133,8 @@ function CashflowTab() {
           {/* ── Penegasan sifat angka. Bukan hiasan: ini yang membedakan
                  "rencana" dari "kas nyata", dan salah baca di sini berujung
                  keputusan belanja yang keliru. ─────────────────────────── */}
-          <div style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "10px 12px",
-            background: C.yellowBg, borderRadius: 8, fontSize: 12.5, color: C.text, marginBottom: 14 }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "8px 12px",
+            background: C.yellowBg, borderRadius: 6, fontSize: 12, color: C.text, marginBottom: 14 }}>
             <Info size={15} style={{ color: C.yellow, flexShrink: 0, marginTop: 1 }} aria-hidden="true" />
             <span>
               <strong>Ini proyeksi rencana, bukan kas nyata.</strong> Angka diturunkan dari
@@ -3152,7 +3145,7 @@ function CashflowTab() {
 
           {/* ── KPI ───────────────────────────────────────────────────────── */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-            gap: 10, marginBottom: 16 }}>
+            gap: 8, marginBottom: 16 }}>
             <KpiKas label="Baseline total" nilai={fmtRp(data.baseline_total)}
               ket={`status versi: ${data.status}`} />
             <KpiKas label="Periode puncak"
@@ -3167,7 +3160,7 @@ function CashflowTab() {
           </div>
 
           {/* ── Chart ─────────────────────────────────────────────────────── */}
-          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12,
+          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10,
             padding: "16px 12px 8px", marginBottom: 16 }}>
             <ResponsiveContainer width="100%" height={280}>
               <ComposedChart data={data.forecast} margin={{ top: 6, right: 12, left: 4, bottom: 4 }}>
@@ -3183,7 +3176,7 @@ function CashflowTab() {
                   formatter={(v, nama) => [fmtRp(Math.round(Number(v) || 0)), String(nama)]}
                   labelFormatter={(l) => `Periode ${String(l)}`}
                   contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)",
-                    borderRadius: 8, fontSize: 12 }} />
+                    borderRadius: 6, fontSize: 12 }} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Area type="monotone" dataKey="cumulative" name="Kumulatif"
                   stroke="var(--navy)" fill="var(--navy)" fillOpacity={0.10} strokeWidth={2} />
@@ -3194,11 +3187,11 @@ function CashflowTab() {
           </div>
 
           {/* ── Tabel ─────────────────────────────────────────────────────── */}
-          <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
+          <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
             <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                <caption style={{ captionSide: "top", textAlign: "left", padding: "10px 14px",
-                  fontSize: 12.5, color: C.mid, background: C.surface }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
+                <caption style={{ captionSide: "top", textAlign: "left", padding: "8px 12px",
+                  fontSize: 12, color: C.mid, background: C.surface }}>
                   Rincian pencairan per periode — kolom kumulatif berakhir persis di baseline.
                 </caption>
                 <thead>
@@ -3242,18 +3235,18 @@ const LBL: React.CSSProperties = {
   display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 5,
 };
 const SEL: React.CSSProperties = {
-  padding: "8px 10px", fontSize: 13, borderRadius: 8, border: `1px solid ${C.border}`,
+  padding: "8px 8px", fontSize: 13, borderRadius: 6, border: `1px solid ${C.border}`,
   background: C.surface, color: C.text, minWidth: 200, minHeight: 38,
 };
 const TH: React.CSSProperties = {
-  padding: "9px 14px", textAlign: "left", fontSize: 12, fontWeight: 700, color: C.mid,
+  padding: "8px 12px", textAlign: "left", fontSize: 12, fontWeight: 700, color: C.mid,
 };
-const TD: React.CSSProperties = { padding: "8px 14px", color: C.text };
+const TD: React.CSSProperties = { padding: "8px 12px", color: C.text };
 
 function KpiKas({ label, nilai, ket }: { label: string; nilai: string; ket?: string }) {
   return (
-    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 14px" }}>
-      <div style={{ fontSize: 11.5, fontWeight: 600, color: C.mid, marginBottom: 4 }}>{label}</div>
+    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 12px" }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 4 }}>{label}</div>
       <div style={{ fontSize: 17, fontWeight: 800, color: C.text, fontVariantNumeric: "tabular-nums" }}>{nilai}</div>
       {ket && <div style={{ fontSize: 11, color: C.muted, marginTop: 3 }}>{ket}</div>}
     </div>
@@ -3336,8 +3329,8 @@ function VariansTab() {
       </div>
 
       {err && (
-        <div role="alert" style={{ padding: "10px 12px", background: C.redBg, color: C.red,
-          borderRadius: 8, fontSize: 13, marginBottom: 14 }}>{err}</div>
+        <div role="alert" style={{ padding: "8px 12px", background: C.redBg, color: C.red,
+          borderRadius: 6, fontSize: 13, marginBottom: 14 }}>{err}</div>
       )}
 
       {!projectId && !memuat && (
@@ -3356,8 +3349,8 @@ function VariansTab() {
                  dan laporannya belum berguna. Ini bukan error — ini pekerjaan
                  yang menunggu, dan pengguna berhak tahu persis berapa. ─── */}
           {peta.belum_dipetakan > 0 && (
-            <div style={{ display: "flex", gap: 9, alignItems: "flex-start", padding: "11px 13px",
-              background: C.yellowBg, borderRadius: 8, fontSize: 12.5, color: C.text, marginBottom: 14 }}>
+            <div style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "12px 12px",
+              background: C.yellowBg, borderRadius: 6, fontSize: 12, color: C.text, marginBottom: 14 }}>
               <AlertTriangle size={15} style={{ color: C.yellow, flexShrink: 0, marginTop: 1 }} aria-hidden="true" />
               <span>
                 <strong>{peta.belum_dipetakan} dari {peta.data.length} kategori belanja
@@ -3372,7 +3365,7 @@ function VariansTab() {
 
           {/* ── KPI ───────────────────────────────────────────────────────── */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-            gap: 10, marginBottom: 16 }}>
+            gap: 8, marginBottom: 16 }}>
             <KpiKas label="Belanja aktual" nilai={fmtRp(m?.total_actual ?? 0)}
               ket="expense approved/paid" />
             <KpiKas label="Commitment (PO)" nilai={fmtRp(m?.commitment_total ?? 0)}
@@ -3385,8 +3378,8 @@ function VariansTab() {
           </div>
 
           {/* ── Kenapa kolom pagu & commitment per baris kosong ──────────── */}
-          <div style={{ display: "flex", gap: 9, alignItems: "flex-start", padding: "10px 12px",
-            background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8,
+          <div style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "8px 12px",
+            background: C.bg, border: `1px solid ${C.border}`, borderRadius: 6,
             fontSize: 12, color: C.mid, marginBottom: 14 }}>
             <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} aria-hidden="true" />
             <span>
@@ -3399,11 +3392,11 @@ function VariansTab() {
           </div>
 
           {/* ── Tabel varians ─────────────────────────────────────────────── */}
-          <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden", marginBottom: 20 }}>
+          <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 20 }}>
             <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                <caption style={{ captionSide: "top", textAlign: "left", padding: "10px 14px",
-                  fontSize: 12.5, color: C.mid, background: C.surface }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
+                <caption style={{ captionSide: "top", textAlign: "left", padding: "8px 12px",
+                  fontSize: 12, color: C.mid, background: C.surface }}>
                   Belanja nyata dikelompokkan per Cost Code — urut exposure terbesar.
                 </caption>
                 <thead>
@@ -3417,8 +3410,14 @@ function VariansTab() {
                 </thead>
                 <tbody>
                   {varians.data.length === 0 && (
-                    <tr><td colSpan={5} style={{ ...TD, textAlign: "center", color: C.muted, padding: 24 }}>
-                      Belum ada belanja approved/paid di proyek ini.
+                    <tr><td colSpan={5} style={{
+                      ...TD, textAlign: "center", color: C.muted, padding: 24,
+                      whiteSpace: "normal", maxWidth: 0,
+                    }}>
+                      Belum ada belanja berstatus approved atau paid di proyek ini.
+                      Varians membandingkan anggaran dengan belanja yang SUDAH
+                      disetujui — belanja yang masih menunggu persetujuan sengaja
+                      tak dihitung, supaya angkanya tak berubah saat ditolak.
                     </td></tr>
                   )}
                   {varians.data.map(b => {
@@ -3450,22 +3449,22 @@ function VariansTab() {
           </div>
 
           {/* ── Alat pemetaan ─────────────────────────────────────────────── */}
-          <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
+          <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
             <button type="button" onClick={() => setBukaPeta(v => !v)}
               aria-expanded={bukaPeta}
-              style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "12px 14px",
-                background: C.surface, border: "none", cursor: "pointer", fontSize: 13.5,
+              style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "12px 12px",
+                background: C.surface, border: "none", cursor: "pointer", fontSize: 13,
                 fontWeight: 700, color: C.text, textAlign: "left" }}>
               {bukaPeta ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
               Pemetaan kategori belanja → Cost Code
-              <span style={{ fontWeight: 500, color: C.mid, fontSize: 12.5 }}>
+              <span style={{ fontWeight: 500, color: C.mid, fontSize: 12 }}>
                 ({peta.data.length - peta.belum_dipetakan}/{peta.data.length} terpetakan)
               </span>
             </button>
 
             {bukaPeta && (
               <div style={{ overflowX: "auto", borderTop: `1px solid ${C.border}` }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
                   <thead>
                     <tr style={{ background: C.bg }}>
                       <th scope="col" style={TH}>Kategori belanja</th>
@@ -3479,7 +3478,7 @@ function VariansTab() {
                           {k.category_name}
                           {k.type && <span style={{ fontSize: 11, color: C.muted }}> · {k.type}</span>}
                         </td>
-                        <td style={{ ...TD, padding: "6px 14px" }}>
+                        <td style={{ ...TD, padding: "6px 12px" }}>
                           <label htmlFor={`cc-${k.category_id}`} style={{
                             position: "absolute", width: 1, height: 1, overflow: "hidden",
                             clip: "rect(0 0 0 0)", whiteSpace: "nowrap" }}>
@@ -3539,7 +3538,7 @@ export default function EstimasiPage() {
           const Icon = t.icon; const active = tab === t.key;
           return (
             <button key={t.key} onClick={() => setTab(t.key)}
-              style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 14px", fontSize: 13,
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 12px", fontSize: 13,
                 fontWeight: active ? 700 : 500, color: active ? C.navy : C.mid, background: "none", border: "none",
                 borderBottom: active ? `2px solid ${C.navy}` : "2px solid transparent", cursor: "pointer", marginBottom: -1 }}>
               <Icon size={15} /> {t.label}
