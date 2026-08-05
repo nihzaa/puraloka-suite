@@ -2411,7 +2411,7 @@ function OverrideProyek() {
     api.get("/api/v1/projects")
       .then((r) => {
         if (batal) return;
-        const d = (r.data?.data ?? []) as Array<{ id: string; name: string }>;
+        const d = (r.data?.projects ?? []) as Array<{ id: string; name: string }>;
         setProyek(d);
         setProyekId((k) => k || d[0]?.id || "");
       })

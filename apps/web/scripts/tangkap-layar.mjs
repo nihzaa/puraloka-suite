@@ -27,7 +27,7 @@
 // workspace. pnpm tak menaikkan dependensi ke apps/*, jadi skrip ini
 // DIJALANKAN DARI ROOT — lihat perintah di header.
 import { chromium } from '@playwright/test'
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 
 const ARG = process.argv.slice(2)
@@ -39,14 +39,44 @@ const BASIS = process.env.LAYAR_BASIS ?? 'http://localhost:3001'
 const EMAIL = process.env.LAYAR_EMAIL
 const SANDI = process.env.LAYAR_SANDI
 
+/**
+ * Daftar halaman DITURUNKAN dari filesystem, bukan ditulis tangan.
+ *
+ * Versi sebelumnya memuat empat nama yang diketik manual. Itu berarti
+ * setiap halaman yang dibuat setelahnya tak pernah ikut dipotret —
+ * termasuk halaman yang rusak. Daftar tulis-tangan di alat pemeriksa
+ * punya kegagalan yang sama dengan angka di dokumen: ia membusuk diam-
+ * diam, dan "sudah saya periksa semua" jadi klaim yang tidak benar.
+ *
+ * Rute dinamis (`[id]`, `[key]`) dilewati: tanpa id yang sah ia hanya
+ * menghasilkan halaman galat, yang bukan bukti apa pun.
+ */
+function halamanDariBerkas() {
+  const akar = join(process.cwd(), 'apps', 'web', 'app')
+  const hasil = []
+
+  const telusuri = (dir, rute) => {
+    for (const isi of readdirSync(dir, { withFileTypes: true })) {
+      if (isi.isDirectory()) {
+        if (isi.name.startsWith('[')) continue          // rute dinamis
+        if (isi.name.startsWith('_')) continue          // berkas pendukung
+        // Grup rute `(dashboard)` tak muncul di URL.
+        const segmen = isi.name.startsWith('(') ? '' : `/${isi.name}`
+        telusuri(join(dir, isi.name), rute + segmen)
+      } else if (isi.name === 'page.tsx') {
+        const url = rute || '/'
+        hasil.push({ nama: url.replace(/\W+/g, '-').replace(/^-|-$/g, '') || 'akar', url })
+      }
+    }
+  }
+  telusuri(akar, '')
+  // Urut supaya perbandingan antar-jalan bisa dibaca.
+  return hasil.sort((a, b) => a.url.localeCompare(b.url))
+}
+
 const HALAMAN = URL_TUNGGAL
   ? [{ nama: URL_TUNGGAL.replace(/\W+/g, '-').replace(/^-|-$/g, '') || 'akar', url: URL_TUNGGAL }]
-  : [
-      { nama: 'dashboard', url: '/dashboard' },
-      { nama: 'proyek', url: '/proyek' },
-      { nama: 'keuangan', url: '/keuangan' },
-      { nama: 'mandor', url: '/mandor' },
-    ]
+  : halamanDariBerkas()
 
 const KELUAR = join(process.cwd(), 'apps', 'web', '.layar')
 mkdirSync(KELUAR, { recursive: true })

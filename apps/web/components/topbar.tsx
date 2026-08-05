@@ -8,28 +8,79 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { CommandPalette } from "@/components/command-palette";
 import { CompanySwitcher } from "@/components/company-switcher";
 
-const breadcrumbMap: Record<string, string> = {
-  "/dashboard":    "Dashboard",
-  "/proyek":       "Proyek",
-  "/keuangan":     "Keuangan",
-  "/kas":          "Kas",
-  "/mandor":       "Mandor",
-  "/laporan":      "Laporan",
-  "/klien":        "Klien",
-  "/procurement":  "Pengadaan",
-  "/users":        "User",
-  "/audit":        "Audit Trail",
-  "/kalender":     "Kalender",
-  "/sistem":       "Sistem",
-  "/notifications":"Notifikasi",
-  "/pengaturan":   "Pengaturan",
-};
+/**
+ * Rute → nama yang ditampilkan di breadcrumb.
+ *
+ * Pencocokannya `pathname === prefix || pathname.startsWith(prefix + "/")`
+ * — dengan garis miring. Itu membuat "/mandor" TIDAK cocok dengan
+ * "/mandor-portal", jadi urutan entri di sini tidak menentukan.
+ *
+ * (Saya sempat menulis komentar bahwa "/mandor-portal" harus di atas
+ * "/mandor". Itu keliru — uji mutasi yang menukar urutannya tetap
+ * hijau, dan setelah dibaca ulang memang tak ada bedanya. Yang menjaga
+ * batas segmen adalah garis miring di pencocokan, bukan urutan.
+ * Kalau pencocokannya nanti diubah jadi `startsWith(prefix)` polos,
+ * urutan langsung jadi penting — dan test `topbar.test.ts` akan merah.)
+ */
+const breadcrumbMap: Array<[string, string]> = [
+  ["/mandor-portal", "Portal Mandor"],
+  ["/pm-portal",     "Portal PM"],
+  ["/portal",        "Portal Klien"],
+  ["/dashboard",     "Dashboard"],
+  ["/proyek",        "Proyek"],
+  ["/keuangan",      "Keuangan"],
+  ["/kas",           "Kas"],
+  ["/piutang",       "Piutang"],
+  ["/mandor",        "Mandor"],
+  ["/laporan",       "Laporan"],
+  ["/klien",         "Klien"],
+  ["/procurement",   "Pengadaan"],
+  ["/estimasi",      "Estimasi & RAB"],
+  ["/akuntansi",     "Akuntansi"],
+  ["/aset",          "Alat & Aset"],
+  ["/lapangan",      "Operasi Lapangan"],
+  ["/kontrak",       "Kontrak"],
+  ["/mutu",          "Mutu (QA/QC)"],
+  ["/tender",        "Tender"],
+  ["/users",         "User"],
+  ["/audit",         "Audit Trail"],
+  ["/kalender",      "Kalender"],
+  ["/sistem",        "Sistem"],
+  ["/notifications", "Notifikasi"],
+  ["/pengaturan",    "Pengaturan"],
+];
 
-function getPageTitle(pathname: string): string {
-  for (const [prefix, label] of Object.entries(breadcrumbMap)) {
+/**
+ * Nama halaman untuk breadcrumb.
+ *
+ * ── Kenapa cadangannya BUKAN "Dashboard"
+ *
+ * Sampai 2026-08-05 fungsi ini diakhiri `return "Dashboard"`. Petanya
+ * memuat 14 entri untuk 60 halaman, jadi **32 halaman — lebih dari
+ * separuh — menampilkan "Dashboard"** di breadcrumb. Termasuk seluruh
+ * portal mandor dan portal klien: mandor yang membuka penagihannya
+ * sendiri melihat tulisan "Puraloka Suite / Dashboard".
+ *
+ * Itu lebih buruk daripada breadcrumb yang tak ada. Breadcrumb kosong
+ * cuma tak menolong; breadcrumb yang salah secara aktif membohongi orang
+ * tentang di mana ia berada — dan karena selalu menyebut nama halaman
+ * yang sah, tak ada yang menyadarinya sebagai kerusakan.
+ *
+ * Cadangannya sekarang menurunkan nama dari rutenya sendiri. Halaman
+ * baru yang belum terdaftar akan tampil apa adanya ("Uji Gulir") —
+ * terlihat mentah, dan itu memang tujuannya: yang mentah menuntut
+ * diperbaiki, yang berbohong tidak.
+ */
+export function getPageTitle(pathname: string): string {
+  for (const [prefix, label] of breadcrumbMap) {
     if (pathname === prefix || pathname.startsWith(prefix + "/")) return label;
   }
-  return "Dashboard";
+  const potongan = pathname.split("/").filter(Boolean)[0];
+  if (!potongan) return "Beranda";
+  return potongan
+    .split("-")
+    .map((k) => k.charAt(0).toUpperCase() + k.slice(1))
+    .join(" ");
 }
 
 export function Topbar() {

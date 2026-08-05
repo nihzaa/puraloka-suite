@@ -170,7 +170,14 @@ function NcrInner() {
               border: `1px solid ${C.border}`, background: "var(--surface)",
               color: C.text, outline: "none", minWidth: 190,
             }}>
-            {proyek.length === 0 && <option value="">— memuat proyek —</option>}
+            {/* Dulu selalu berbunyi "— memuat proyek —", termasuk setelah
+                pemuatan selesai dan hasilnya memang kosong. Orang akan
+                menunggu daftar yang tak akan pernah datang. */}
+            {proyek.length === 0 && (
+              <option value="">
+                {memuat ? "Memuat proyek…" : "Tak ada proyek"}
+              </option>
+            )}
             {proyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
           <button onClick={() => muat()} style={{

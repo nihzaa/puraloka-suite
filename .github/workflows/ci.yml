@@ -704,6 +704,22 @@ jobs:
       - name: Tabel terbaca (tabular-nums nol · caption/scope ratchet)
         run: node scripts/uji-tabel-terbaca.mjs
 
+      # Lima halaman membaca `r.data.data` dari `GET /api/v1/projects`,
+      # yang mengirim `{ total, projects }`. `?? []` mengubah kunci yang
+      # tak ada jadi daftar kosong, jadi pemilih proyek di lima modul
+      # lapangan (inspeksi, punch-list, submittal, RFI, estimasi) KOSONG
+      # BAGI SIAPA PUN — tanpa satu pun galat. Modulnya tak bisa dipakai.
+      #
+      # Kelas yang sama dengan `(logs ?? [])` di /aset: kegagalan yang
+      # menyamar sebagai keadaan sah. "Belum ada proyek" masuk akal, jadi
+      # tak ada yang curiga.
+      #
+      # Cakupannya sengaja sempit — hanya panggilan tunggal dengan path
+      # literal. Versi luasnya memberi 25 alarm palsu, dan penjaga yang
+      # berisik tidak dipatuhi, ia dimatikan.
+      - name: Bentuk balasan API (kunci yang dibaca web harus dikirim)
+        run: node scripts/uji-bentuk-balasan.mjs
+
       # Kontras warna — 260 dari 296 pelanggaran WCAG itu kontras, dan sampai
       # 2026-08-01 ia SATU-SATUNYA yang tak dijaga otomatis. Catatannya berbunyi
       # "butuh browser + login, kredensial di CI ditolak sadar" — benar untuk
