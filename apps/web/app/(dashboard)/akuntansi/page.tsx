@@ -5,7 +5,7 @@ import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { api, makeAbortController, hasPermission } from "@/lib/api";
 import {
   BookOpen, Plus, X, Check, Ban, Loader2, AlertTriangle,
-  Scale, FileText, ChevronRight, Trash2, Landmark,
+  Scale, FileText, ChevronRight, Trash2, Landmark, TrendingUp,
 } from "lucide-react";
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -32,6 +32,7 @@ import {
 
 import { C } from "@/lib/warna-ui";
 import { BukuBesar } from "@/components/buku-besar";
+import { NeracaLabaRugi } from "@/components/neraca-laba-rugi";
 
 const card: React.CSSProperties = {
   background: "var(--surface)", border: `1px solid ${C.border}`,
@@ -66,7 +67,7 @@ const STATUS_META: Record<string, { label: string; warna: string; bg: string; bo
 };
 
 export default function AkuntansiPage() {
-  const [tab, setTab] = useState<"jurnal" | "akun" | "neraca" | "besar">("jurnal");
+  const [tab, setTab] = useState<"jurnal" | "akun" | "neraca" | "besar" | "laporan">("jurnal");
   const [akun, setAkun] = useState<Akun[]>([]);
   const [jurnal, setJurnal] = useState<Jurnal[]>([]);
   const [neraca, setNeraca] = useState<BarisNeraca[]>([]);
@@ -164,6 +165,7 @@ export default function AkuntansiPage() {
           ["akun", "Bagan Akun", BookOpen],
           ["neraca", "Neraca Saldo", Scale],
           ["besar", "Buku Besar", Landmark],
+          ["laporan", "Neraca & Laba-Rugi", TrendingUp],
         ] as const).map(([k, label, Ikon]) => (
           <button
             key={k}
@@ -218,6 +220,7 @@ export default function AkuntansiPage() {
           {tab === "akun" && <TabAkun akun={akun} />}
           {tab === "neraca" && <TabNeraca baris={neraca} meta={neracaMeta} />}
           {tab === "besar" && <BukuBesar akun={akun} />}
+          {tab === "laporan" && <NeracaLabaRugi />}
         </>
       )}
 
