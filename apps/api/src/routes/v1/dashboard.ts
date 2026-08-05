@@ -318,23 +318,42 @@ export default async function dashboardRoutes(app: FastifyInstance) {
     // adalah yang paling lama tak ketahuan.
     const [idProyek, idScope] = await Promise.all([db.projectIds(), db.workScopeIds()])
 
+    // Alasan tercatat untuk `db.unsafe()` di bawah — wajib, dan itu
+    // memang gunanya: pemakaian yang melewati pintu aman harus
+    // meninggalkan jejak yang bisa ditinjau.
+    const ALASAN = 'ringkasan lintas-proyek milik company; sudah disaring lewat idProyek/idScope dari db.projectIds()/workScopeIds()'
+
     const [kasbon, penagihan, invoice, klaim, instruksi] = await Promise.all([
       // Kasbon menunggu persetujuan — uang keluar. Kategori B, punya
       // company_id sendiri, jadi `db.from()` sudah cukup.
       db.from('kasbons').select('id').eq('status', 'pending'),
+      // ── Empat query berikut memakai `db.unsafe()`, BUKAN `supabase` mentah.
+      //
+      // Keempat tabelnya kategori C (tenancy diwarisi lewat project/scope),
+      // dan `viaProject()` menuntut SATU `projectId` — sementara widget ini
+      // meringkas SELURUH proyek milik company. Jadi pintu yang benar adalah
+      // `unsafe()` dengan alasan tercatat, bukan `supabase` yang menghindari
+      // pencatatan itu sama sekali.
+      //
+      // Saya sendiri yang menulisnya salah di commit 8dec5c7 ("widget fokus"),
+      // dan ratchet tenancy menangkapnya: 366 → 370. Filternya memang sudah
+      // benar sejak awal (`.in('project_id', idProyek)` cocok persis dengan
+      // kolom yang ditetapkan `tenant-map.generated.ts`) — yang salah hanya
+      // jalur yang dipakai, dan itu justru yang membuat pelanggaran seperti
+      // ini tak terlihat saat ditinjau.
       // Penagihan progres mandor menunggu konfirmasi.
-      supabase.from('progress_payments').select('id').eq('status', 'pending')
+      db.unsafe('progress_payments', ALASAN).select('id').eq('status', 'pending')
         .in('work_scope_id', idScope),
       // Invoice jatuh tempo yang belum lunas — INI yang lewat tenggat.
-      supabase.from('invoices').select('id, due_date, amount_due, status')
+      db.unsafe('invoices', ALASAN).select('id, due_date, amount_due, status')
         .neq('status', 'cancelled').gt('amount_due', 0)
         .in('project_id', idProyek),
       // Klaim yang batas pemberitahuannya sudah lewat dan belum diputus.
-      supabase.from('contract_claims').select('id, event_date, notice_days_limit, notified_at, status')
+      db.unsafe('contract_claims', ALASAN).select('id, event_date, notice_days_limit, notified_at, status')
         .in('status', ['draft', 'diberitahukan', 'diajukan'])
         .in('project_id', idProyek),
       // Instruksi lisan yang belum dikonfirmasi — utang bukti.
-      supabase.from('field_instructions').select('id, bentuk_perintah, diterima_pada, dikonfirmasi_pada, status')
+      db.unsafe('field_instructions', ALASAN).select('id, bentuk_perintah, diterima_pada, dikonfirmasi_pada, status')
         .in('status', ['dicatat'])
         .in('project_id', idProyek),
     ])
