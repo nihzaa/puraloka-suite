@@ -30,6 +30,15 @@ export type NotificationType =
   | 'punch_assigned'
   | 'punch_closed'
   | 'punch_rejected'
+  // NCR (migrasi 189). Tiga tipe, bukan satu, dengan alasan yang sama seperti
+  // punch: penerimanya berbeda dan urgensinya berbeda.
+  //
+  // `ncr_disposisi` dipisah karena ia keputusan berkonsekuensi biaya —
+  // "terima apa adanya" berarti perusahaan menanggung ketidaksesuaian, dan
+  // orang yang melaporkannya berhak tahu keputusan itu diambil.
+  | 'ncr_assigned'
+  | 'ncr_disposisi'
+  | 'ncr_status'
   // Request for Inspection (migrasi 157). Terpisah dari punch karena
   // penerimanya berbeda: permintaan pergi ke yang berwenang memeriksa,
   // hasilnya kembali ke pemohon.

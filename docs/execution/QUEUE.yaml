@@ -799,7 +799,7 @@ items:
       - "progres yang diakui tercatat di audit log (immutable)"
     cara_verifikasi: "vitest ipc-progres + ipc-gerbang-progres (endpoint nyata)"
     bobot: M
-    status: wip
+    status: done
     catatan: |
       CELAH: `trigger_type='on_progress'` + `trigger_pct` tersimpan sejak lama
       tapi TAK PERNAH DIPERIKSA. Termin yang menurut kontrak baru boleh ditagih
@@ -813,7 +813,10 @@ items:
       Cabangnya SENGAJA dipertahankan (fail-closed bila sumber progres kelak
       pindah ke opname yang boleh kosong).
 
-      Menunggu CI (PR #138).
+      SELESAI 2026-08-05: PR #138 ter-merge 2026-08-04. Diverifikasi ulang
+      hari ini di HEAD — 22 test hijau (15 unit + 7 endpoint), dan uji
+      mutasi mencopot gerbang dari endpoint membuat 3 test langsung merah.
+      Gerbangnya nyata, bukan kode yang kebetulan ada.
 
   - id: F5-INTI-3
     fase: 5

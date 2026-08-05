@@ -17,7 +17,7 @@ type Layouts = Record<string, Layout[]>;
 // ─── Widget registry ──────────────────────────────────────────────────────────
 
 export const WIDGET_DEFS: Record<string, { label: string; defaultH: number }> = {
-  kpi:       { label: "KPI Cards",             defaultH: 2 },
+  kpi:       { label: "KPI Cards",             defaultH: 3 },
   cashflow:  { label: "Grafik Arus Kas",        defaultH: 5 },
   status:    { label: "Status & Progress",      defaultH: 5 },
   invoice:   { label: "Invoice Belum Lunas",    defaultH: 5 },
@@ -32,38 +32,61 @@ export type WidgetKey = keyof typeof WIDGET_DEFS;
 
 const DEFAULT_LAYOUTS: Layouts = {
   lg: [
-    { i: "kpi",       x: 0, y: 0,  w: 12, h: 2, isResizable: false },
-    { i: "cashflow",  x: 0, y: 2,  w: 7,  h: 5 },
-    { i: "status",    x: 7, y: 2,  w: 5,  h: 5 },
-    { i: "invoice",   x: 0, y: 7,  w: 7,  h: 5 },
-    { i: "milestone", x: 7, y: 7,  w: 5,  h: 5 },
-    { i: "kasbon",    x: 0, y: 12, w: 12, h: 4 },
-    { i: "tax",       x: 0, y: 16, w: 12, h: 3 },
+    // `h: 3`, bukan 2. Dengan 2, kartu KPI hanya setinggi 69px sementara
+    // isinya 107px — keterangan di bawah angka ("sedang berjalan",
+    // "3 lewat jatuh tempo", dst.) TERGUNTING di SEMUA kartu, di semua
+    // halaman yang memakai grid ini. Diukur di peramban: 46 kejadian.
+    { i: "kpi",       x: 0, y: 0,  w: 12, h: 3, isResizable: false },
+    // `h: 6`, bukan 5. Dengan 5, isi widget arus kas (grafik 200px +
+    // legenda + tiga metrik ringkasan) melebihi wadahnya 46px dan baris
+    // "Pemasukan · Pengeluaran est. · Selisih" TERGUNTING — diukur di
+    // peramban, bukan ditaksir. Widget status disamakan supaya kedua
+    // kolom tetap sejajar; koordinat y di bawahnya ikut digeser.
+    { i: "cashflow",  x: 0, y: 3,  w: 7,  h: 6 },
+    { i: "status",    x: 7, y: 3,  w: 5,  h: 6 },
+    { i: "invoice",   x: 0, y: 9,  w: 7,  h: 5 },
+    { i: "milestone", x: 7, y: 9,  w: 5,  h: 5 },
+    { i: "kasbon",    x: 0, y: 14, w: 12, h: 4 },
+    { i: "tax",       x: 0, y: 18, w: 12, h: 3 },
   ],
   md: [
-    { i: "kpi",       x: 0, y: 0,  w: 10, h: 2, isResizable: false },
-    { i: "cashflow",  x: 0, y: 2,  w: 6,  h: 5 },
-    { i: "status",    x: 6, y: 2,  w: 4,  h: 5 },
-    { i: "invoice",   x: 0, y: 7,  w: 6,  h: 5 },
-    { i: "milestone", x: 6, y: 7,  w: 4,  h: 5 },
-    { i: "kasbon",    x: 0, y: 12, w: 10, h: 4 },
-    { i: "tax",       x: 0, y: 16, w: 10, h: 3 },
+    { i: "kpi",       x: 0, y: 0,  w: 10, h: 3, isResizable: false },
+    { i: "cashflow",  x: 0, y: 3,  w: 6,  h: 6 },
+    { i: "status",    x: 6, y: 3,  w: 4,  h: 6 },
+    { i: "invoice",   x: 0, y: 9,  w: 6,  h: 5 },
+    { i: "milestone", x: 6, y: 9,  w: 4,  h: 5 },
+    { i: "kasbon",    x: 0, y: 14, w: 10, h: 4 },
+    { i: "tax",       x: 0, y: 18, w: 10, h: 3 },
   ],
   sm: [
     { i: "kpi",       x: 0, y: 0,  w: 6, h: 4, isResizable: false },
-    { i: "cashflow",  x: 0, y: 4,  w: 6, h: 5 },
-    { i: "status",    x: 0, y: 9,  w: 6, h: 5 },
-    { i: "invoice",   x: 0, y: 14, w: 6, h: 5 },
-    { i: "milestone", x: 0, y: 19, w: 6, h: 5 },
-    { i: "kasbon",    x: 0, y: 24, w: 6, h: 4 },
-    { i: "tax",       x: 0, y: 28, w: 6, h: 3 },
+    { i: "cashflow",  x: 0, y: 4,  w: 6, h: 6 },
+    { i: "status",    x: 0, y: 10, w: 6, h: 5 },
+    { i: "invoice",   x: 0, y: 15, w: 6, h: 5 },
+    { i: "milestone", x: 0, y: 20, w: 6, h: 5 },
+    { i: "kasbon",    x: 0, y: 25, w: 6, h: 4 },
+    { i: "tax",       x: 0, y: 29, w: 6, h: 3 },
   ],
 };
 
 const BREAKPOINTS = { lg: 1100, md: 768, sm: 480 };
 const COLS = { lg: 12, md: 10, sm: 6 };
-const STORAGE_KEY = "puraloka_dashboard_layout_v2";
-const HIDDEN_KEY  = "puraloka_dashboard_hidden_v2";
+/**
+ * Kunci BERVERSI, dan versinya dinaikkan saat tata letak bawaan berubah.
+ *
+ * Tata letak tersimpan di localStorage per-pemakai. Tanpa menaikkan
+ * versi, orang yang pernah membuka dashboard akan terus memakai tata
+ * letak lamanya — jadi perbaikan tinggi widget arus kas (v2 → v3, di
+ * mana `h: 5` menggunting tiga metrik ringkasan) tak akan pernah sampai
+ * ke mereka. Yang paling parah justru pemakai LAMA: mereka yang paling
+ * sering melihat dashboard.
+ *
+ * Ongkosnya: penyesuaian tata letak yang dibuat sendiri ikut hilang.
+ * Itu sepadan — cacat yang diperbaiki adalah isi yang tergunting, dan
+ * mempertahankan tata letak yang menggunting isi bukan pilihan.
+ */
+const STORAGE_KEY = "puraloka_dashboard_layout_v4";
+const HIDDEN_KEY  = "puraloka_dashboard_hidden_v4";
 
 // ─── Persistence ──────────────────────────────────────────────────────────────
 
@@ -122,7 +145,7 @@ function WidgetShell({
         background: "var(--surface)",
         border: "1px solid var(--border)",
         borderRadius: 14,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+        boxShadow: "var(--naik-1)",
         overflow: "hidden",
         opacity: hidden ? 0 : 1,
         pointerEvents: hidden ? "none" : "auto",
@@ -135,7 +158,7 @@ function WidgetShell({
           display: "flex",
           alignItems: "center",
           gap: 6,
-          padding: "6px 14px",
+          padding: "6px 12px",
           borderBottom: "1px solid var(--border)",
           background: "var(--surface-subtle)",
           cursor: "grab",
@@ -152,7 +175,7 @@ function WidgetShell({
           title="Sembunyikan widget"
           style={{
             display: "flex", alignItems: "center",
-            padding: "2px 4px", borderRadius: 4,
+            padding: "2px 4px", borderRadius: 6,
             border: "none", background: "none",
             cursor: "pointer", color: "var(--text-muted)",
           }}
@@ -273,8 +296,8 @@ export function DashboardGrid({ widgets }: DashboardGridProps) {
           <button
             onClick={() => setShowCustomizer(p => !p)}
             style={{
-              display: "inline-flex", alignItems: "center", gap: 5,
-              padding: "5px 12px", borderRadius: 8,
+              display: "inline-flex", alignItems: "center", gap: 4,
+              padding: "4px 12px", borderRadius: 6,
               border: "1px solid var(--border)", background: "var(--surface)",
               fontSize: 11, color: "var(--text-secondary)", cursor: "pointer",
               fontWeight: 500,
@@ -283,8 +306,8 @@ export function DashboardGrid({ widgets }: DashboardGridProps) {
             <LayoutGrid size={13} /> Sesuaikan
             {hidden.size > 0 && (
               <span style={{
-                marginLeft: 2, padding: "1px 5px", borderRadius: 99,
-                background: "var(--navy)", color: "#fff", fontSize: 9, fontWeight: 700,
+                marginLeft: 2, padding: "0px 4px", borderRadius: 99,
+                background: "var(--navy)", color: "#fff", fontSize: 10, fontWeight: 700,
               }}>
                 {hidden.size}
               </span>
@@ -295,8 +318,8 @@ export function DashboardGrid({ widgets }: DashboardGridProps) {
             <div style={{
               position: "absolute", top: "calc(100% + 6px)", right: 0,
               background: "var(--surface)", border: "1px solid var(--border)",
-              borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-              padding: 14, zIndex: 100, minWidth: 220,
+              borderRadius: 10, boxShadow: "var(--naik-2)",
+              padding: 12, zIndex: 100, minWidth: 220,
             }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
                 Widget
@@ -318,7 +341,7 @@ export function DashboardGrid({ widgets }: DashboardGridProps) {
                       }}
                       style={{
                         display: "flex", alignItems: "center", gap: 8,
-                        padding: "6px 8px", borderRadius: 8, cursor: "pointer",
+                        padding: "6px 8px", borderRadius: 6, cursor: "pointer",
                         background: isHidden ? "var(--surface-subtle)" : "transparent",
                         border: "1px solid var(--border)",
                         opacity: isHidden ? 0.6 : 1,
@@ -339,7 +362,7 @@ export function DashboardGrid({ widgets }: DashboardGridProps) {
                 <button
                   onClick={resetLayout}
                   style={{
-                    width: "100%", padding: "6px 0", borderRadius: 7,
+                    width: "100%", padding: "6px 0", borderRadius: 6,
                     border: "1px solid var(--border)", background: "var(--surface-subtle)",
                     fontSize: 11, color: "var(--text-muted)", cursor: "pointer",
                   }}

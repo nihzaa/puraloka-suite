@@ -111,7 +111,7 @@ export default function InspeksiPage() {
     api.get("/api/v1/projects")
       .then((r) => {
         if (batal) return;
-        const daftar = (r.data?.data ?? []) as Array<{ id: string; name: string }>;
+        const daftar = (r.data?.projects ?? []) as Array<{ id: string; name: string }>;
         setProyek(daftar);
         setProyekId((kini) => kini || daftar[0]?.id || "");
         if (daftar.length === 0) setMemuat(false);
@@ -223,6 +223,15 @@ export default function InspeksiPage() {
               value={proyekId}
               onChange={(e) => setProyekId(e.target.value)}
             >
+              {/* Opsi cadangan saat daftar masih kosong.
+                  Tanpa ini, dropdown tampil sebagai kotak putih tanpa
+                  teks apa pun — dan tombol "Minta diperiksa" di
+                  sebelahnya mati tanpa satu pun petunjuk kenapa. */}
+              {proyek.length === 0 && (
+                <option value="">
+                  {memuat ? "Memuat proyek…" : "Tak ada proyek"}
+                </option>
+              )}
               {proyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
             <ChevronDown size={16} className="in-pilih-ikon" aria-hidden />

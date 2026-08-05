@@ -56,6 +56,20 @@ for (const dir of ['app', 'components', 'lib']) {
     // globals.css adalah SUMBER token — hex di sana justru yang benar.
     if (p.endsWith('globals.css')) continue
 
+    // lib/warna-merek.ts punya peran yang SAMA untuk tempat yang secara
+    // teknis tak bisa memakai custom property: `metadata.themeColor` (dibaca
+    // peramban dari <meta>, sebelum CSS mana pun dimuat) dan `app/icon.svg`
+    // (berkas statis, tak punya akses ke :root).
+    //
+    // Ini bukan pelonggaran penjaga — ini memindahkan tiga hex yang tak bisa
+    // ditokenkan ke SATU berkas bernama, alih-alih membiarkannya tersebar.
+    // Kesinkronannya dengan globals.css dijaga `uji-token-merek.mjs`, yang
+    // gagal kalau keduanya menyimpang.
+    // Dinormalkan ke garis maju: `join()` menghasilkan `lib\warna-merek.ts`
+    // di Windows tapi `lib/warna-merek.ts` di CI Linux, dan perbandingan
+    // mentah akan cocok di satu tempat lalu gagal senyap di tempat lain.
+    if (p.replace(/\\/g, '/').endsWith('lib/warna-merek.ts')) continue
+
     const isi = readFileSync(p, 'utf8')
     isi.split('\n').forEach((teks, i) => {
       const bersih = teks.trim()

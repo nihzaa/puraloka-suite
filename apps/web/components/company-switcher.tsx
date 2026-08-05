@@ -114,9 +114,9 @@ export function CompanySwitcher() {
         aria-expanded={terbuka}
         aria-label={`Perusahaan aktif: ${aktif.name}. Klik untuk berpindah.`}
         style={{
-          display: "flex", alignItems: "center", gap: 7,
+          display: "flex", alignItems: "center", gap: 6,
           height: 34, padding: "0 9px 0 10px",
-          borderRadius: 8,
+          borderRadius: 6,
           background: terbuka ? "var(--surface-subtle)" : "transparent",
           border: "1px solid var(--border)",
           cursor: "pointer", fontSize: 13, fontWeight: 600,
@@ -148,15 +148,15 @@ export function CompanySwitcher() {
           aria-label="Pilih perusahaan"
           style={{
             position: "fixed", top: posisi.top, left: posisi.left, zIndex: 60,
-            minWidth: 240, padding: 5,
+            minWidth: 240, padding: 4,
             background: "var(--surface)",
             border: "1px solid var(--border)",
             borderRadius: 10,
-            boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+            boxShadow: "var(--naik-2)",
           }}
         >
           <div style={{
-            padding: "6px 9px 7px", fontSize: 11, fontWeight: 600,
+            padding: "6px 8px 6px", fontSize: 11, fontWeight: 600,
             color: "var(--text-muted)", textTransform: "uppercase",
             letterSpacing: "0.04em",
           }}>
@@ -172,9 +172,9 @@ export function CompanySwitcher() {
                 aria-selected={ini}
                 onClick={() => pindah(k.id)}
                 style={{
-                  display: "flex", alignItems: "center", gap: 9,
-                  width: "100%", padding: "8px 9px",
-                  borderRadius: 7, border: "none",
+                  display: "flex", alignItems: "center", gap: 8,
+                  width: "100%", padding: "8px 8px",
+                  borderRadius: 6, border: "none",
                   background: ini ? "var(--surface-subtle)" : "transparent",
                   cursor: "pointer", textAlign: "left",
                   fontSize: 13, color: "var(--text-primary)",

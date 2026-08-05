@@ -13,7 +13,12 @@ import approvalChainRoutes from '../approval-chains.js'
 // ISOLASI: semua test yang MEMUTASI konfigurasi memakai rantai khusus test, BUKAN
 // rantai modul nyata ('kasbon'). Tanpa ini, menambah level 2 sementara bisa balapan
 // dengan test approval kasbon yang jalan paralel di DB dev yang sama.
-const TEST_ENTITY = '__test_chain__'
+// Unik per proses — sama alasannya dengan `notification-rules.test.ts`:
+// `beforeAll` MENGHAPUS lalu membuat ulang entity bernama ini, dan enam shard
+// CI berbagi satu database. Nama tetap membuat shard saling menghapus state
+// masing-masing, dan yang kalah balapan gagal dengan galat yang menyamar
+// sebagai bug permission.
+const TEST_ENTITY = `__test_chain_${process.pid}__`
 
 let app: FastifyInstance
 let client: Client

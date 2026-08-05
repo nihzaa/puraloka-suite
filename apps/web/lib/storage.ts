@@ -37,11 +37,21 @@ export async function attachProgressPhoto(
   projectId: string,
   progressLogId: string,
   file: File,
-  caption?: string
+  caption?: string,
+  /**
+   * Koordinat saat foto diambil (INTI #8). OPSIONAL, dan harus tetap begitu:
+   * sinyal GPS hilang di basement dan daerah terpencil — persis tempat yang
+   * paling perlu didokumentasikan. Foto tanpa koordinat tetap berguna; foto
+   * yang tak pernah terunggah tidak.
+   *
+   * Ambil lewat `useLokasiPerangkat()` di `lib/lokasi-perangkat.ts`.
+   */
+  lokasi?: { lintang: number; bujur: number; akurasi_m: number | null; sumber_lokasi: string } | null
 ): Promise<string> {
   return postPhoto(`/api/v1/projects/${projectId}/photos/upload`, file, {
     progress_log_id: progressLogId,
     caption,
+    ...(lokasi ?? {}),
   });
 }
 

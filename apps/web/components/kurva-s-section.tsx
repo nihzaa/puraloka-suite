@@ -10,16 +10,7 @@ import { TrendingUp, RefreshCw, AlertTriangle, Info } from "lucide-react";
 
 // ─── Design tokens ──────────────────────────────────────────────────────────────
 
-const C = {
-  navy: "var(--navy)", navyLight: "var(--navy-light)",
-  blue: "var(--navy-mid)", blueLight: "#DBEAFE",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)", bg: "var(--bg)",
-  green: "var(--success)", greenLight: "#DCFCE7",
-  red: "var(--danger)", redLight: "#FEE2E2",
-  yellow: "var(--warning)", yellowLight: "#FEF3C7",
-  orange: "#C2410C", orangeLight: "#FFEDD5",
-};
+import { C } from "@/lib/warna-ui";
 
 // ─── Types ───────────────────────────────────────────────────────────────────────
 
@@ -137,7 +128,7 @@ function CustomTooltip({ active, payload, label }: {
   return (
     <div style={{
       background: "var(--surface)", border: `1px solid ${C.border}`, borderRadius: 10,
-      padding: "10px 14px", fontSize: 12, boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
+      padding: "8px 12px", fontSize: 12, boxShadow: "var(--naik-2)",
       minWidth: 180,
     }}>
       <p style={{ fontWeight: 700, color: C.text, marginBottom: 6 }}>{label}</p>
@@ -179,10 +170,10 @@ function EvmCard({
   return (
     <div style={{
       background: bg, border: `1px solid ${C.border}`, borderRadius: 10,
-      padding: "12px 14px", flex: 1, minWidth: 100,
+      padding: "12px 12px", flex: 1, minWidth: 100,
     }}>
       <p style={{ fontSize: 10, color: C.muted, margin: "0 0 4px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</p>
-      <p style={{ fontSize: 19, fontWeight: 800, color: col, margin: "0 0 2px", fontFamily: "var(--font-display)" }}>{displayValue}</p>
+      <p style={{ fontSize: 20, fontWeight: 800, color: col, margin: "0 0 2px", fontFamily: "var(--font-display)" }}>{displayValue}</p>
       {status && (
         <p style={{ fontSize: 10, color: col, margin: 0, fontWeight: 600 }}>{status}</p>
       )}
@@ -198,8 +189,8 @@ function EvmCard({
 function KpiCard({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: string }) {
   return (
     <div style={{
-      background: "var(--surface)", border: `1px solid ${C.border}`, borderRadius: 12,
-      padding: "14px 18px", flex: 1,
+      background: "var(--surface)", border: `1px solid ${C.border}`, borderRadius: 10,
+      padding: "12px 16px", flex: 1,
     }}>
       <p style={{ fontSize: 11, color: C.muted, margin: "0 0 4px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</p>
       <p style={{ fontSize: 22, fontWeight: 800, color: accent ?? C.text, margin: "0 0 2px", fontFamily: "var(--font-display)" }}>{value}</p>
@@ -260,10 +251,10 @@ export function KurvaSSection({ projectId, userRole }: Props) {
     <div>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{
             width: 36, height: 36, borderRadius: 10,
-            background: "linear-gradient(135deg, var(--navy), #0066CC)",
+            background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
             <TrendingUp size={18} color="var(--surface)" />
@@ -277,7 +268,7 @@ export function KurvaSSection({ projectId, userRole }: Props) {
         </div>
         <button
           onClick={load}
-          style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 10px", cursor: "pointer", color: C.mid, display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}
+          style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 8px", cursor: "pointer", color: C.mid, display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}
         >
           <RefreshCw size={13} /> Refresh
         </button>
@@ -287,9 +278,9 @@ export function KurvaSSection({ projectId, userRole }: Props) {
       {!meta.hasRAB && (
         <div style={{
           display: "flex", alignItems: "center", gap: 8,
-          padding: "10px 14px", borderRadius: 10, marginBottom: 16,
+          padding: "8px 12px", borderRadius: 10, marginBottom: 16,
           background: C.yellowLight, border: `1px solid var(--warning-border)`,
-          fontSize: 12, color: "#92400E",
+          fontSize: 12, color: "var(--on-warning-bg)",
         }}>
           <AlertTriangle size={14} color={C.yellow} />
           <span>RAB belum diupload. Kurva rencana menggunakan distribusi normal. Upload RAB untuk akurasi lebih baik.</span>
@@ -304,7 +295,7 @@ export function KurvaSSection({ projectId, userRole }: Props) {
       {meta.hasRAB && !meta.hasSchedule && !isClient && meta.rencanaSource === 'gantt' && (
         <div style={{
           display: "flex", alignItems: "center", gap: 8,
-          padding: "10px 14px", borderRadius: 10, marginBottom: 16,
+          padding: "8px 12px", borderRadius: 10, marginBottom: 16,
           background: "var(--success-bg)", border: `1px solid var(--success-border)`,
           fontSize: 12, color: "var(--success)",
         }}>
@@ -323,11 +314,11 @@ export function KurvaSSection({ projectId, userRole }: Props) {
       {meta.hasRAB && !meta.hasSchedule && !isClient && meta.rencanaSource !== 'gantt' && (
         <div style={{
           display: "flex", alignItems: "center", gap: 8,
-          padding: "10px 14px", borderRadius: 10, marginBottom: 16,
+          padding: "8px 12px", borderRadius: 10, marginBottom: 16,
           background: "var(--warning-bg)", border: `1px solid var(--warning-border)`,
           fontSize: 12, color: "var(--warning)",
         }}>
-          <AlertTriangle size={14} color="#D97706" />
+          <AlertTriangle size={14} color="var(--warning)" />
           <span>
             <strong>SPI belum bisa dipercaya.</strong> Belum ada jadwal rencana
             maupun tanggal Gantt, jadi kurva rencana memakai distribusi normal —
@@ -404,8 +395,8 @@ export function KurvaSSection({ projectId, userRole }: Props) {
           {/* EVM detail info */}
           {showEvmDetail && (
             <div style={{
-              background: "#F8FAFF", border: `1px solid ${C.blueLight}`, borderRadius: 8,
-              padding: "10px 14px", fontSize: 11, color: C.mid, marginBottom: 10,
+              background: "var(--surface-subtle)", border: `1px solid ${C.blueLight}`, borderRadius: 6,
+              padding: "8px 12px", fontSize: 11, color: C.mid, marginBottom: 10,
               lineHeight: 1.6,
             }}>
               <strong style={{ color: C.text }}>EVM (Earned Value Management)</strong> — sistem pengukuran kinerja proyek berdasarkan perbandingan biaya rencana, biaya aktual, dan nilai pekerjaan yang telah diselesaikan.<br />
@@ -421,7 +412,7 @@ export function KurvaSSection({ projectId, userRole }: Props) {
           )}
 
           {/* Row 1: CPI, SPI, EAC */}
-          <div style={{ display: "flex", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
             <EvmCard
               label="CPI — Efisiensi Biaya"
               value={evm.cpi}
@@ -447,7 +438,7 @@ export function KurvaSSection({ projectId, userRole }: Props) {
           </div>
 
           {/* Row 2: ETC, VAC, TCPI */}
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <EvmCard
               label="ETC — Sisa Biaya"
               value={evm.etc}
@@ -474,7 +465,7 @@ export function KurvaSSection({ projectId, userRole }: Props) {
       )}
 
       {/* Chart — 3 garis */}
-      <div style={{ background: "var(--surface)", border: `1px solid ${C.border}`, borderRadius: 12, padding: "20px 16px 12px" }}>
+      <div style={{ background: "var(--surface)", border: `1px solid ${C.border}`, borderRadius: 10, padding: "20px 16px 12px" }}>
         <ResponsiveContainer width="100%" height={340}>
           <ComposedChart data={chartData} margin={{ top: 4, right: 8, bottom: 4, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--surface-hover)" />
@@ -515,7 +506,7 @@ export function KurvaSSection({ projectId, userRole }: Props) {
                 label={{
                   value: m.title.length > 12 ? m.title.substring(0, 12) + "…" : m.title,
                   position: "insideTopLeft",
-                  fontSize: 9,
+                  fontSize: 10,
                   fill: m.status === "completed" ? C.green : C.yellow,
                   angle: -90,
                   offset: -2,
@@ -528,7 +519,7 @@ export function KurvaSSection({ projectId, userRole }: Props) {
               type="monotone"
               dataKey="rencana"
               name="Rencana"
-              stroke="#0066CC"
+              stroke="var(--aksen-terang)"
               strokeWidth={2}
               strokeDasharray="6 3"
               fill={C.blueLight}
@@ -543,7 +534,7 @@ export function KurvaSSection({ projectId, userRole }: Props) {
                 type="monotone"
                 dataKey="serapan"
                 name="Serapan Dana"
-                stroke="#EA580C"
+                stroke="var(--data-5)"
                 strokeWidth={2.5}
                 dot={false}
                 connectNulls={false}
@@ -596,8 +587,8 @@ export function KurvaSSection({ projectId, userRole }: Props) {
       {hasEVM && (
         <div style={{
           marginTop: 12,
-          background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8,
-          padding: "10px 16px", display: "flex", gap: 24, flexWrap: "wrap",
+          background: C.bg, border: `1px solid ${C.border}`, borderRadius: 6,
+          padding: "8px 16px", display: "flex", gap: 24, flexWrap: "wrap",
         }}>
           <span style={{ fontSize: 11, color: C.mid }}>
             <strong style={{ color: C.text }}>BAC</strong> {fmt(evm.bac)}
@@ -630,7 +621,7 @@ export function KurvaSSection({ projectId, userRole }: Props) {
             {milestones.map((m, i) => {
               const statusColor = m.status === "completed" ? C.green : m.status === "overdue" ? C.red : m.status === "at_risk" ? C.yellow : C.muted;
               return (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <div style={{ width: 8, height: 8, borderRadius: "50%", background: statusColor, flexShrink: 0 }} />
                   <span style={{ fontSize: 12, color: C.text, flex: 1 }}>{m.title}</span>
                   <span style={{ fontSize: 11, color: C.muted }}>

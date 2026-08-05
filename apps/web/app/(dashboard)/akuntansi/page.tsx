@@ -2,10 +2,11 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
-import { api, makeAbortController, hasPermission } from "@/lib/api";
+import { api, makeAbortController } from "@/lib/api";
+import { useIzin } from "@/lib/use-izin";
 import {
   BookOpen, Plus, X, Check, Ban, Loader2, AlertTriangle,
-  Scale, FileText, ChevronRight, Trash2,
+  Scale, FileText, ChevronRight, Trash2, Landmark, TrendingUp,
 } from "lucide-react";
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -30,18 +31,13 @@ import {
 // Menyembunyikan yang tak bisa diubah membuat orang mengira datanya hilang.
 // ═════════════════════════════════════════════════════════════════════════════
 
-const C = {
-  navy: "var(--navy)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)", bg: "var(--bg)", surface: "var(--surface)",
-  green: "var(--success)", greenBg: "var(--success-bg)", greenBorder: "var(--success-border)",
-  red: "var(--danger)", redBg: "var(--danger-bg)", redBorder: "var(--danger-border)",
-  yellow: "var(--warning)", yellowBg: "var(--warning-bg)", yellowBorder: "var(--warning-border)",
-};
+import { C } from "@/lib/warna-ui";
+import { BukuBesar } from "@/components/buku-besar";
+import { NeracaLabaRugi } from "@/components/neraca-laba-rugi";
 
 const card: React.CSSProperties = {
   background: "var(--surface)", border: `1px solid ${C.border}`,
-  borderRadius: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+  borderRadius: 14, boxShadow: "var(--naik-1)",
 };
 
 type Akun = {
@@ -72,7 +68,7 @@ const STATUS_META: Record<string, { label: string; warna: string; bg: string; bo
 };
 
 export default function AkuntansiPage() {
-  const [tab, setTab] = useState<"jurnal" | "akun" | "neraca">("jurnal");
+  const [tab, setTab] = useState<"jurnal" | "akun" | "neraca" | "besar" | "laporan">("jurnal");
   const [akun, setAkun] = useState<Akun[]>([]);
   const [jurnal, setJurnal] = useState<Jurnal[]>([]);
   const [neraca, setNeraca] = useState<BarisNeraca[]>([]);
@@ -81,9 +77,9 @@ export default function AkuntansiPage() {
   const [galat, setGalat] = useState<string | null>(null);
   const [bukaModal, setBukaModal] = useState(false);
 
-  const bolehKelola = hasPermission("gl:manage");
-  const bolehPosting = hasPermission("gl:post");
-  const bolehBatal = hasPermission("gl:void");
+  const bolehKelola = useIzin("gl:manage");
+  const bolehPosting = useIzin("gl:post");
+  const bolehBatal = useIzin("gl:void");
 
   const ambil = useCallback(async () => {
     const ac = makeAbortController();
@@ -156,7 +152,7 @@ export default function AkuntansiPage() {
         <div role="alert" style={{
           ...card, borderColor: C.redBorder, background: C.redBg,
           padding: "12px 16px", marginBottom: 16,
-          display: "flex", alignItems: "center", gap: 10,
+          display: "flex", alignItems: "center", gap: 8,
         }}>
           <AlertTriangle size={16} color={C.red} style={{ flexShrink: 0 }} />
           <span style={{ fontSize: 13, color: C.red }}>{galat}</span>
@@ -169,6 +165,8 @@ export default function AkuntansiPage() {
           ["jurnal", "Jurnal", FileText],
           ["akun", "Bagan Akun", BookOpen],
           ["neraca", "Neraca Saldo", Scale],
+          ["besar", "Buku Besar", Landmark],
+          ["laporan", "Neraca & Laba-Rugi", TrendingUp],
         ] as const).map(([k, label, Ikon]) => (
           <button
             key={k}
@@ -176,8 +174,8 @@ export default function AkuntansiPage() {
             onClick={() => setTab(k)}
             aria-pressed={tab === k}
             style={{
-              display: "flex", alignItems: "center", gap: 7,
-              padding: "9px 16px", borderRadius: 10, cursor: "pointer",
+              display: "flex", alignItems: "center", gap: 6,
+              padding: "8px 16px", borderRadius: 10, cursor: "pointer",
               fontSize: 13, fontWeight: 600, fontFamily: "inherit",
               border: `1px solid ${tab === k ? C.navy : C.border}`,
               background: tab === k ? C.navy : "var(--surface)",
@@ -193,8 +191,8 @@ export default function AkuntansiPage() {
             type="button"
             onClick={() => setBukaModal(true)}
             style={{
-              marginLeft: "auto", display: "flex", alignItems: "center", gap: 7,
-              padding: "9px 16px", borderRadius: 10, cursor: "pointer",
+              marginLeft: "auto", display: "flex", alignItems: "center", gap: 6,
+              padding: "8px 16px", borderRadius: 10, cursor: "pointer",
               fontSize: 13, fontWeight: 600, fontFamily: "inherit",
               border: "none", background: C.navy, color: "#fff",
             }}
@@ -222,6 +220,8 @@ export default function AkuntansiPage() {
           )}
           {tab === "akun" && <TabAkun akun={akun} />}
           {tab === "neraca" && <TabNeraca baris={neraca} meta={neracaMeta} />}
+          {tab === "besar" && <BukuBesar akun={akun} />}
+          {tab === "laporan" && <NeracaLabaRugi />}
         </>
       )}
 
@@ -250,10 +250,10 @@ function TabJurnal({
     return (
       <div style={{ ...card, padding: 40, textAlign: "center" }}>
         <FileText size={26} color={C.muted} style={{ marginBottom: 10 }} />
-        <p style={{ fontSize: 14, fontWeight: 600, color: C.text, margin: "0 0 4px" }}>
+        <p style={{ fontSize: 13, fontWeight: 600, color: C.text, margin: "0 0 4px" }}>
           Belum ada jurnal
         </p>
-        <p style={{ fontSize: 12.5, color: C.mid, margin: 0 }}>
+        <p style={{ fontSize: 12, color: C.mid, margin: 0 }}>
           Jurnal manual dicatat di sini. Pencatatan otomatis dari kasbon,
           pembayaran, dan pembelian menyusul di tahap berikutnya.
         </p>
@@ -264,13 +264,14 @@ function TabJurnal({
   return (
     <div style={{ ...card, overflow: "hidden" }}>
       <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 680 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 680, fontVariantNumeric: "tabular-nums" }}>
+          <caption className="sr-only">Daftar jurnal: nomor, tanggal, keterangan, dan status. Hanya jurnal berstatus posted yang masuk ke neraca saldo.</caption>
           <thead>
             <tr style={{ background: "var(--bg)" }}>
               {["Nomor", "Tanggal", "Keterangan", "Status", ""].map((h, i) => (
                 <th key={h || i} style={{
-                  padding: "10px 14px", textAlign: i === 4 ? "right" : "left",
-                  fontSize: 11.5, fontWeight: 700, color: C.mid,
+                  padding: "8px 12px", textAlign: i === 4 ? "right" : "left",
+                  fontSize: 11, fontWeight: 700, color: C.mid,
                   textTransform: "uppercase", letterSpacing: 0.3,
                   borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap",
                 }}>{h}</th>
@@ -282,29 +283,29 @@ function TabJurnal({
               const st = STATUS_META[j.status] ?? STATUS_META.draft;
               return (
                 <tr key={j.id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                  <td style={{ padding: "11px 14px", fontSize: 12.5, fontWeight: 600, color: C.text, whiteSpace: "nowrap" }}>
+                  <td style={{ padding: "12px 12px", fontSize: 12, fontWeight: 600, color: C.text, whiteSpace: "nowrap" }}>
                     {j.entry_number}
                   </td>
-                  <td style={{ padding: "11px 14px", fontSize: 12.5, color: C.mid, whiteSpace: "nowrap" }}>
+                  <td style={{ padding: "12px 12px", fontSize: 12, color: C.mid, whiteSpace: "nowrap" }}>
                     {new Date(j.entry_date).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}
                   </td>
-                  <td style={{ padding: "11px 14px", fontSize: 12.5, color: C.text }}>
+                  <td style={{ padding: "12px 12px", fontSize: 12, color: C.text }}>
                     {j.description}
                     {j.notes && (
-                      <span style={{ display: "block", fontSize: 11.5, color: C.mid, marginTop: 2 }}>
+                      <span style={{ display: "block", fontSize: 11, color: C.mid, marginTop: 2 }}>
                         {j.notes}
                       </span>
                     )}
                   </td>
-                  <td style={{ padding: "11px 14px" }}>
+                  <td style={{ padding: "12px 12px" }}>
                     <span style={{
-                      display: "inline-block", padding: "3px 10px", borderRadius: 20,
+                      display: "inline-block", padding: "2px 8px", borderRadius: 20,
                       fontSize: 11, fontWeight: 700,
                       color: st.warna, background: st.bg, border: `1px solid ${st.border}`,
                       whiteSpace: "nowrap",
                     }}>{st.label}</span>
                   </td>
-                  <td style={{ padding: "11px 14px", textAlign: "right", whiteSpace: "nowrap" }}>
+                  <td style={{ padding: "12px 12px", textAlign: "right", whiteSpace: "nowrap" }}>
                     {j.status === "draft" && bolehPosting && (
                       <button
                         type="button"
@@ -335,9 +336,9 @@ function TabJurnal({
 }
 
 const tombolKecil = (warna: string, bg: string, border: string): React.CSSProperties => ({
-  display: "inline-flex", alignItems: "center", gap: 5,
-  padding: "5px 11px", borderRadius: 8, cursor: "pointer",
-  fontSize: 11.5, fontWeight: 700, fontFamily: "inherit",
+  display: "inline-flex", alignItems: "center", gap: 4,
+  padding: "4px 12px", borderRadius: 6, cursor: "pointer",
+  fontSize: 11, fontWeight: 700, fontFamily: "inherit",
   color: warna, background: bg, border: `1px solid ${border}`,
 });
 
@@ -357,26 +358,26 @@ function TabAkun({ akun }: { akun: Akun[] }) {
   const urutan = ["asset", "liability", "equity", "revenue", "expense"];
 
   return (
-    <div style={{ display: "grid", gap: 14 }}>
+    <div style={{ display: "grid", gap: 12 }}>
       {urutan.filter(t => perTipe.has(t)).map(tipe => (
         <div key={tipe} style={{ ...card, overflow: "hidden" }}>
           <div style={{
-            padding: "11px 16px", background: "var(--bg)",
+            padding: "12px 16px", background: "var(--bg)",
             borderBottom: `1px solid ${C.border}`,
             display: "flex", alignItems: "center", justifyContent: "space-between",
           }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
               {TIPE_LABEL[tipe] ?? tipe}
             </span>
-            <span style={{ fontSize: 11.5, color: C.mid }}>
+            <span style={{ fontSize: 11, color: C.mid }}>
               {perTipe.get(tipe)!.length} akun
             </span>
           </div>
           <div>
             {perTipe.get(tipe)!.map(a => (
               <div key={a.id} style={{
-                display: "flex", alignItems: "center", gap: 10,
-                padding: "9px 16px", borderBottom: `1px solid ${C.border}`,
+                display: "flex", alignItems: "center", gap: 8,
+                padding: "8px 16px", borderBottom: `1px solid ${C.border}`,
                 // Akun anak dimundurkan supaya hirarkinya terbaca sekilas.
                 paddingLeft: a.parent_id ? 34 : 16,
               }}>
@@ -385,7 +386,7 @@ function TabAkun({ akun }: { akun: Akun[] }) {
                   fontSize: 12, fontWeight: 700, color: C.navy,
                   fontVariantNumeric: "tabular-nums", minWidth: 46,
                 }}>{a.code}</span>
-                <span style={{ fontSize: 12.5, color: C.text }}>{a.name}</span>
+                <span style={{ fontSize: 12, color: C.text }}>{a.name}</span>
               </div>
             ))}
           </div>
@@ -406,10 +407,10 @@ function TabNeraca({
     return (
       <div style={{ ...card, padding: 40, textAlign: "center" }}>
         <Scale size={26} color={C.muted} style={{ marginBottom: 10 }} />
-        <p style={{ fontSize: 14, fontWeight: 600, color: C.text, margin: "0 0 4px" }}>
+        <p style={{ fontSize: 13, fontWeight: 600, color: C.text, margin: "0 0 4px" }}>
           Neraca saldo masih kosong
         </p>
-        <p style={{ fontSize: 12.5, color: C.mid, margin: 0 }}>
+        <p style={{ fontSize: 12, color: C.mid, margin: 0 }}>
           Hanya jurnal yang sudah <strong>diposting</strong> masuk ke sini.
           Jurnal draft belum dihitung.
         </p>
@@ -420,7 +421,7 @@ function TabNeraca({
   const seimbang = (meta?.selisih ?? 0) === 0;
 
   return (
-    <div style={{ display: "grid", gap: 14 }}>
+    <div style={{ display: "grid", gap: 12 }}>
       {/* Selisih ditampilkan MENYOLOK kalau tak nol: neraca yang tak seimbang
           berarti invarian database bocor, dan itu harus terlihat — bukan
           disamarkan jadi angka kecil di pojok. */}
@@ -428,7 +429,7 @@ function TabNeraca({
         ...card,
         borderColor: seimbang ? C.greenBorder : C.redBorder,
         background: seimbang ? C.greenBg : C.redBg,
-        padding: "13px 18px",
+        padding: "12px 16px",
         display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
       }}>
         {seimbang
@@ -444,13 +445,14 @@ function TabNeraca({
 
       <div style={{ ...card, overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 620 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 620, fontVariantNumeric: "tabular-nums" }}>
+            <caption className="sr-only">Neraca saldo per akun: debit, kredit, dan saldo akhir. Disusun dari jurnal yang sudah posted; jurnal draft tidak dihitung.</caption>
             <thead>
               <tr style={{ background: "var(--bg)" }}>
                 {["Kode", "Nama Akun", "Debit", "Kredit", "Saldo"].map((h, i) => (
                   <th key={h} style={{
-                    padding: "10px 14px", textAlign: i >= 2 ? "right" : "left",
-                    fontSize: 11.5, fontWeight: 700, color: C.mid,
+                    padding: "8px 12px", textAlign: i >= 2 ? "right" : "left",
+                    fontSize: 11, fontWeight: 700, color: C.mid,
                     textTransform: "uppercase", letterSpacing: 0.3,
                     borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap",
                   }}>{h}</th>
@@ -460,10 +462,10 @@ function TabNeraca({
             <tbody>
               {baris.map(b => (
                 <tr key={b.account_id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                  <td style={{ padding: "10px 14px", fontSize: 12, fontWeight: 700, color: C.navy, fontVariantNumeric: "tabular-nums" }}>
+                  <td style={{ padding: "8px 12px", fontSize: 12, fontWeight: 700, color: C.navy, fontVariantNumeric: "tabular-nums" }}>
                     {b.code}
                   </td>
-                  <td style={{ padding: "10px 14px", fontSize: 12.5, color: C.text }}>
+                  <td style={{ padding: "8px 12px", fontSize: 12, color: C.text }}>
                     {b.name}
                     <span style={{ fontSize: 11, color: C.muted, marginLeft: 7 }}>
                       {TIPE_LABEL[b.type] ?? b.type}
@@ -471,13 +473,13 @@ function TabNeraca({
                   </td>
                   {/* Angka rata KANAN + tabular-nums: kolom uang harus sejajar
                       digitnya, kalau tidak mata sulit membandingkan besarannya. */}
-                  <td style={{ padding: "10px 14px", textAlign: "right", fontSize: 12.5, color: C.mid, fontVariantNumeric: "tabular-nums" }}>
+                  <td style={{ padding: "8px 12px", textAlign: "right", fontSize: 12, color: C.mid, fontVariantNumeric: "tabular-nums" }}>
                     {b.debit ? rupiah(b.debit) : "—"}
                   </td>
-                  <td style={{ padding: "10px 14px", textAlign: "right", fontSize: 12.5, color: C.mid, fontVariantNumeric: "tabular-nums" }}>
+                  <td style={{ padding: "8px 12px", textAlign: "right", fontSize: 12, color: C.mid, fontVariantNumeric: "tabular-nums" }}>
                     {b.credit ? rupiah(b.credit) : "—"}
                   </td>
-                  <td style={{ padding: "10px 14px", textAlign: "right", fontSize: 12.5, fontWeight: 700, color: C.text, fontVariantNumeric: "tabular-nums" }}>
+                  <td style={{ padding: "8px 12px", textAlign: "right", fontSize: 12, fontWeight: 700, color: C.text, fontVariantNumeric: "tabular-nums" }}>
                     {rupiah(b.saldo)}
                   </td>
                 </tr>
@@ -570,16 +572,16 @@ function ModalJurnal({
         }}
       >
         <div style={{
-          padding: "16px 22px", borderBottom: `1px solid ${C.border}`,
+          padding: "16px 20px", borderBottom: `1px solid ${C.border}`,
           display: "flex", alignItems: "center", justifyContent: "space-between",
         }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: 0 }}>Jurnal Baru</h2>
+          <h2 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: 0 }}>Jurnal Baru</h2>
           <button
             type="button"
             aria-label="Tutup dialog jurnal"
             onClick={onTutup}
             style={{
-              width: 30, height: 30, borderRadius: 8, cursor: "pointer",
+              width: 30, height: 30, borderRadius: 6, cursor: "pointer",
               border: `1px solid ${C.border}`, background: "var(--surface)",
               color: "var(--text-secondary)",
               display: "flex", alignItems: "center", justifyContent: "center",
@@ -589,7 +591,7 @@ function ModalJurnal({
           </button>
         </div>
 
-        <div style={{ padding: 22, overflowY: "auto", flex: 1 }}>
+        <div style={{ padding: 20, overflowY: "auto", flex: 1 }}>
           <div style={{ display: "grid", gridTemplateColumns: "160px 1fr", gap: 12, marginBottom: 18 }}>
             <div>
               <label htmlFor="jv-tanggal" style={labelStyle}>Tanggal</label>
@@ -661,7 +663,7 @@ function ModalJurnal({
                   onClick={() => setBaris(x => x.filter((_, k) => k !== i))}
                   disabled={baris.length <= 2}
                   style={{
-                    height: 38, width: 34, borderRadius: 8,
+                    height: 38, width: 34, borderRadius: 6,
                     cursor: baris.length <= 2 ? "not-allowed" : "pointer",
                     border: `1px solid ${C.border}`, background: "var(--surface)",
                     color: baris.length <= 2 ? C.muted : C.red,
@@ -680,7 +682,7 @@ function ModalJurnal({
             onClick={() => setBaris(b => [...b, { account_id: "", sisi: "debit", jumlah: "", keterangan: "" }])}
             style={{
               marginTop: 10, display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "7px 13px", borderRadius: 8, cursor: "pointer",
+              padding: "6px 12px", borderRadius: 6, cursor: "pointer",
               fontSize: 12, fontWeight: 600, fontFamily: "inherit",
               border: `1px dashed ${C.border}`, background: "transparent", color: C.mid,
             }}
@@ -692,12 +694,12 @@ function ModalJurnal({
               Tombol mati tanpa alasan memaksa orang menebak; angka ini memberi
               tahu persis berapa yang kurang dan di sisi mana. */}
           <div style={{
-            marginTop: 16, padding: "11px 15px", borderRadius: 10,
+            marginTop: 16, padding: "12px 16px", borderRadius: 10,
             border: `1px solid ${selisih === 0 ? C.greenBorder : C.yellowBorder}`,
             background: selisih === 0 ? C.greenBg : C.yellowBg,
             display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
           }}>
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: selisih === 0 ? C.green : C.yellow }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: selisih === 0 ? C.green : C.yellow }}>
               {selisih === 0
                 ? "Seimbang"
                 : selisih > 0
@@ -711,21 +713,21 @@ function ModalJurnal({
 
           {galat && (
             <div role="alert" style={{
-              marginTop: 12, padding: "10px 14px", borderRadius: 9,
+              marginTop: 12, padding: "8px 12px", borderRadius: 10,
               border: `1px solid ${C.redBorder}`, background: C.redBg,
-              fontSize: 12.5, color: C.red,
+              fontSize: 12, color: C.red,
             }}>{galat}</div>
           )}
         </div>
 
         <div style={{
-          padding: "14px 22px", borderTop: `1px solid ${C.border}`,
-          display: "flex", gap: 10, justifyContent: "flex-end",
+          padding: "12px 20px", borderTop: `1px solid ${C.border}`,
+          display: "flex", gap: 8, justifyContent: "flex-end",
         }}>
           <button
             type="button" onClick={onTutup}
             style={{
-              padding: "9px 17px", borderRadius: 9, cursor: "pointer",
+              padding: "8px 16px", borderRadius: 10, cursor: "pointer",
               fontSize: 13, fontWeight: 600, fontFamily: "inherit",
               border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid,
             }}
@@ -737,8 +739,8 @@ function ModalJurnal({
             onClick={simpan}
             disabled={!bisaSimpan || kirim}
             style={{
-              display: "flex", alignItems: "center", gap: 7,
-              padding: "9px 19px", borderRadius: 9,
+              display: "flex", alignItems: "center", gap: 6,
+              padding: "8px 20px", borderRadius: 10,
               cursor: !bisaSimpan || kirim ? "not-allowed" : "pointer",
               fontSize: 13, fontWeight: 700, fontFamily: "inherit",
               border: "none", background: C.navy, color: "#fff",
@@ -755,12 +757,12 @@ function ModalJurnal({
 }
 
 const labelStyle: React.CSSProperties = {
-  display: "block", fontSize: 11.5, fontWeight: 700, color: C.mid,
+  display: "block", fontSize: 11, fontWeight: 700, color: C.mid,
   marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.3,
 };
 
 const inputStyle: React.CSSProperties = {
-  width: "100%", height: 38, padding: "0 11px", borderRadius: 8,
+  width: "100%", height: 38, padding: "0 11px", borderRadius: 6,
   border: `1px solid ${C.border}`, background: "var(--surface)",
   fontSize: 13, color: C.text, fontFamily: "inherit", boxSizing: "border-box",
 };

@@ -6,14 +6,7 @@ import Link from "next/link";
 import { getStoredUser, logout, type PuralokaUser } from "@/lib/api";
 import { FolderKanban, Bell, LogOut, User } from "lucide-react";
 
-const C = {
-  navy: "var(--navy)",
-  navyLight: "var(--navy-light)",
-  text: "var(--text-primary)",
-  mid: "var(--text-secondary)",
-  border: "var(--border)",
-  bg: "var(--bg)",
-};
+import { C } from "@/lib/warna-ui";
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -49,15 +42,15 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         padding: "0 20px", height: 56,
         display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{
-            width: 32, height: 32, borderRadius: 8, background: C.navy,
+            width: 32, height: 32, borderRadius: 6, background: C.navy,
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
             <span style={{ color: "#fff", fontWeight: 800, fontSize: 15 }}>P</span>
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 14, color: C.text, lineHeight: 1 }}>Puraloka Suite</div>
+            <div style={{ fontWeight: 700, fontSize: 13, color: C.text, lineHeight: 1 }}>Puraloka Suite</div>
             <div style={{ fontSize: 11, color: C.mid, marginTop: 1 }}>Portal Klien</div>
           </div>
         </div>
@@ -70,7 +63,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
             onClick={handleLogout}
             style={{
               display: "flex", alignItems: "center", gap: 6,
-              padding: "6px 12px", borderRadius: 8,
+              padding: "6px 12px", borderRadius: 6,
               border: `1px solid ${C.border}`, background: "var(--surface)",
               cursor: "pointer", fontSize: 13, color: C.mid,
             }}
@@ -94,8 +87,8 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
             key={item.href}
             href={item.href}
             style={{
-              display: "flex", alignItems: "center", gap: 7,
-              padding: "12px 14px", fontSize: 14, fontWeight: isActive(item.href) ? 600 : 400,
+              display: "flex", alignItems: "center", gap: 6,
+              padding: "12px 12px", fontSize: 13, fontWeight: isActive(item.href) ? 600 : 400,
               color: isActive(item.href) ? C.navy : C.mid,
               borderBottom: isActive(item.href) ? `2px solid ${C.navy}` : "2px solid transparent",
               textDecoration: "none", transition: "all 0.15s",
@@ -129,7 +122,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
             style={{
               flex: 1, display: "flex", flexDirection: "column",
               alignItems: "center", justifyContent: "center",
-              gap: 3, padding: "10px 0",
+              gap: 2, padding: "10px 0",
               color: isActive(item.href) ? C.navy : C.mid,
               textDecoration: "none", fontSize: 11, fontWeight: isActive(item.href) ? 600 : 400,
             }}

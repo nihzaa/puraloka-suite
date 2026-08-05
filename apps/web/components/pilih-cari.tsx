@@ -103,7 +103,7 @@ export function PilihCari({
   }
 
   const kotak: React.CSSProperties = {
-    width: "100%", padding: "9px 11px", fontSize: 13, borderRadius: 8,
+    width: "100%", padding: "8px 12px", fontSize: 13, borderRadius: 6,
     border: "1px solid var(--border)", background: "var(--surface)",
     color: "var(--text-primary)", minHeight: 38, textAlign: "left", cursor: "pointer",
     display: "flex", alignItems: "center", gap: 8,
@@ -140,14 +140,14 @@ export function PilihCari({
       {buka && (
         <div style={{ position: "absolute", zIndex: 50, top: "calc(100% + 4px)", left: 0, right: 0,
           background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10,
-          boxShadow: "0 8px 24px rgba(0,0,0,0.12)", overflow: "hidden" }}>
+          boxShadow: "var(--naik-2)", overflow: "hidden" }}>
           <div style={{ padding: 8, borderBottom: "1px solid var(--border)" }}>
             {/* autoFocus disengaja: dropdown baru saja dibuka atas permintaan
                 pemakai, dan mengetik langsung adalah alasan utama ia dibuka. */}
             <input autoFocus type="search" value={cari} onChange={e => { setCari(e.target.value); setSorot(0); }}
               onKeyDown={onKey} placeholder="Ketik untuk mencari…"
               aria-label="Cari pilihan"
-              style={{ width: "100%", padding: "7px 9px", fontSize: 13, borderRadius: 7,
+              style={{ width: "100%", padding: "6px 8px", fontSize: 13, borderRadius: 6,
                 border: "1px solid var(--border)", background: "var(--bg)",
                 color: "var(--text-primary)", boxSizing: "border-box" }} />
           </div>
@@ -155,7 +155,7 @@ export function PilihCari({
           <div id={daftarId} role="listbox" aria-labelledby={labelId}
             style={{ maxHeight: 300, overflowY: "auto" }}>
             {hasil.length === 0 && (
-              <p style={{ margin: 0, padding: "14px 12px", fontSize: 12.5, color: "var(--text-muted)" }}>
+              <p style={{ margin: 0, padding: "12px 12px", fontSize: 12, color: "var(--text-muted)" }}>
                 {kosong}
               </p>
             )}
@@ -164,7 +164,7 @@ export function PilihCari({
               return (
                 <div key={o.value}>
                   {grupBaru && o.grup && (
-                    <div style={{ padding: "7px 12px 4px", fontSize: 11, fontWeight: 700,
+                    <div style={{ padding: "6px 12px 4px", fontSize: 11, fontWeight: 700,
                       color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.4,
                       background: "var(--bg)" }}>
                       {o.grup}
@@ -181,7 +181,7 @@ export function PilihCari({
                     onClick={() => pilih(o)}
                     style={{ width: "100%", border: "none", font: "inherit", textAlign: "left",
                       display: "flex", alignItems: "flex-start", gap: 8,
-                      padding: "8px 12px", fontSize: 12.5, lineHeight: 1.45,
+                      padding: "8px 12px", fontSize: 12, lineHeight: 1.45,
                       cursor: o.nonaktif ? "not-allowed" : "pointer",
                       opacity: o.nonaktif ? 0.45 : 1,
                       background: i === sorot ? "var(--bg)" : "transparent",
@@ -195,8 +195,8 @@ export function PilihCari({
                       )}
                     </span>
                     {o.badge && (
-                      <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--warning)",
-                        background: "var(--warning-bg)", padding: "1px 6px", borderRadius: 999,
+                      <span style={{ fontSize: 10, fontWeight: 700, color: "var(--warning)",
+                        background: "var(--warning-bg)", padding: "0px 6px", borderRadius: 999,
                         whiteSpace: "nowrap" }}>
                         {o.badge}
                       </span>
@@ -207,7 +207,7 @@ export function PilihCari({
               );
             })}
             {terpotong && (
-              <p style={{ margin: 0, padding: "8px 12px", fontSize: 11.5, color: "var(--text-muted)",
+              <p style={{ margin: 0, padding: "8px 12px", fontSize: 11, color: "var(--text-muted)",
                 borderTop: "1px solid var(--border)" }}>
                 Menampilkan {hasil.length} dari {opsi.length.toLocaleString("id-ID")} — ketik untuk mempersempit.
               </p>

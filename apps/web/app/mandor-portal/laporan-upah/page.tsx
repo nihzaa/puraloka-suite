@@ -5,14 +5,7 @@ import { api } from "@/lib/api";
 import { kirimLapangan } from "@/lib/kirim-lapangan";
 import { ClipboardList, Plus, Trash2, CheckCircle, Clock, XCircle } from "lucide-react";
 
-const C = {
-  navy: "var(--navy)", navyLight: "var(--navy-light)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)", bg: "var(--bg)", surface: "var(--surface)",
-  green: "var(--success)", greenBg: "var(--success-bg)",
-  yellow: "var(--warning)", yellowBg: "var(--warning-bg)",
-  red: "var(--danger)", redBg: "var(--danger-bg)",
-};
+import { C } from "@/lib/warna-ui";
 
 function fmt(n: number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
@@ -164,8 +157,8 @@ export default function LaporanUpahPage() {
           background: toast.ok ? C.greenBg : C.redBg,
           border: `1px solid ${toast.ok ? C.green : C.red}`,
           color: toast.ok ? C.green : C.red,
-          padding: "12px 20px", borderRadius: 10, fontSize: 14, fontWeight: 500,
-          boxShadow: "0 4px 16px rgba(0,0,0,0.1)",
+          padding: "12px 20px", borderRadius: 10, fontSize: 13, fontWeight: 500,
+          boxShadow: "var(--naik-2)",
           textAlign: "left",
         }}>
           {toast.msg}
@@ -182,7 +175,7 @@ export default function LaporanUpahPage() {
       <div style={{ display: "flex", gap: 4, marginBottom: 20, background: "var(--surface-hover)", borderRadius: 10, padding: 4 }}>
         {(["riwayat", "buat"] as const).map((t) => (
           <button key={t} onClick={() => setTab(t)} style={{
-            flex: 1, padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer",
+            flex: 1, padding: "8px 16px", borderRadius: 6, border: "none", cursor: "pointer",
             background: tab === t ? "var(--surface)" : "transparent",
             color: tab === t ? C.navy : C.mid,
             fontWeight: tab === t ? 600 : 400, fontSize: 13,
@@ -199,34 +192,34 @@ export default function LaporanUpahPage() {
         <div>
           {loading && <div style={{ textAlign: "center", padding: 40, color: C.mid }}>Memuat...</div>}
           {!loading && reports.length === 0 && (
-            <div style={{ background: C.surface, borderRadius: 12, padding: 40, border: `1px solid ${C.border}`, textAlign: "center" }}>
+            <div style={{ background: C.surface, borderRadius: 10, padding: 40, border: `1px solid ${C.border}`, textAlign: "center" }}>
               <ClipboardList size={28} color={C.muted} style={{ marginBottom: 8 }} />
-              <div style={{ fontSize: 14, color: C.mid }}>Belum ada laporan upah</div>
+              <div style={{ fontSize: 13, color: C.mid }}>Belum ada laporan upah</div>
               <button onClick={() => setTab("buat")} style={{
-                marginTop: 12, padding: "8px 20px", borderRadius: 8, border: "none",
+                marginTop: 12, padding: "8px 20px", borderRadius: 6, border: "none",
                 background: C.navy, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600,
               }}>Buat Laporan Pertama</button>
             </div>
           )}
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {reports.map((r) => {
               const meta = STATUS_META[r.status] ?? STATUS_META.submitted;
               const Icon = meta.icon;
               return (
                 <div key={r.id} style={{
-                  background: C.surface, borderRadius: 12, padding: "14px 16px",
-                  border: `1px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                  background: C.surface, borderRadius: 10, padding: "12px 16px",
+                  border: `1px solid ${C.border}`, boxShadow: "var(--naik-1)",
                 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                     <div>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
                         {r.scope?.scope_name ?? "—"}
                       </div>
                       <div style={{ fontSize: 12, color: C.mid, marginTop: 2 }}>
                         {r.assignment?.project?.name ?? "—"} · {fmtDate(r.week_start)} – {fmtDate(r.week_end)}
                       </div>
                     </div>
-                    <span style={{ fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20, color: meta.color, background: meta.bg, display: "flex", alignItems: "center", gap: 4 }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20, color: meta.color, background: meta.bg, display: "flex", alignItems: "center", gap: 4 }}>
                       <Icon size={11} /> {meta.label}
                     </span>
                   </div>
@@ -242,7 +235,7 @@ export default function LaporanUpahPage() {
                     </div>
                   </div>
                   {r.review_notes && (
-                    <div style={{ marginTop: 8, fontSize: 12, color: C.mid, background: C.redBg, borderRadius: 6, padding: "6px 10px" }}>
+                    <div style={{ marginTop: 8, fontSize: 12, color: C.mid, background: C.redBg, borderRadius: 6, padding: "6px 8px" }}>
                       Catatan: {r.review_notes}
                     </div>
                   )}
@@ -256,13 +249,13 @@ export default function LaporanUpahPage() {
       {/* BUAT LAPORAN TAB */}
       {tab === "buat" && (
         <form onSubmit={handleSubmit}>
-          <div style={{ background: C.surface, borderRadius: 12, padding: 20, border: `1px solid ${C.border}`, display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ background: C.surface, borderRadius: 10, padding: 20, border: `1px solid ${C.border}`, display: "flex", flexDirection: "column", gap: 16 }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               {/* Proyek */}
               <div>
                 <label htmlFor="selected-assignment" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Proyek *</label>
                 <select id="selected-assignment" aria-label="Pilih proyek" value={selectedAssignment} onChange={(e) => { setSelectedAssignment(e.target.value); setSelectedScope(""); }}
-                  style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: "var(--surface)" }}>
+                  style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, background: "var(--surface)" }}>
                   <option value="">Pilih proyek...</option>
                   {assignments.map((a) => (
                     <option key={a.id} value={a.id}>{a.project.name}</option>
@@ -274,7 +267,7 @@ export default function LaporanUpahPage() {
                 <label htmlFor="selected-scope" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Scope Pekerjaan *</label>
                 <select id="selected-scope" aria-label="Pilih lingkup pekerjaan" value={selectedScope} onChange={(e) => setSelectedScope(e.target.value)}
                   disabled={!selectedAssignment}
-                  style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: "var(--surface)", opacity: selectedAssignment ? 1 : 0.5 }}>
+                  style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, background: "var(--surface)", opacity: selectedAssignment ? 1 : 0.5 }}>
                   <option value="">Pilih scope...</option>
                   {scopesForAssignment.map((s) => (
                     <option key={s.id} value={s.id}>{s.scope_name}</option>
@@ -285,13 +278,13 @@ export default function LaporanUpahPage() {
               <div>
                 <label htmlFor="week-start" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Tanggal Mulai Minggu (Senin) *</label>
                 <input id="week-start" aria-label="Tanggal mulai" type="date" value={weekStart} onChange={(e) => setWeekStart(e.target.value)}
-                  style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13 }} />
+                  style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13 }} />
               </div>
               {/* Catatan */}
               <div>
                 <label htmlFor="notes" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Catatan</label>
                 <input id="notes" type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Opsional"
-                  style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13 }} />
+                  style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13 }} />
               </div>
             </div>
 
@@ -300,7 +293,7 @@ export default function LaporanUpahPage() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Detail Tukang *</span>
                 <button type="button" onClick={addRow} style={{
-                  display: "flex", alignItems: "center", gap: 4, padding: "5px 12px", borderRadius: 6,
+                  display: "flex", alignItems: "center", gap: 4, padding: "4px 12px", borderRadius: 6,
                   border: `1px solid ${C.navy}`, background: C.navyLight, color: C.navy, fontSize: 12, fontWeight: 600, cursor: "pointer",
                 }}>
                   <Plus size={13} /> Tambah Baris
@@ -323,20 +316,20 @@ export default function LaporanUpahPage() {
                         onChange={(e) => updateRow(i, "worker_name", e.target.value)}
                         placeholder="Nama tukang"
                         list={`workers-list-${i}`}
-                        style={{ width: "100%", padding: "7px 10px", borderRadius: 7, border: `1px solid ${C.border}`, fontSize: 13 }}
+                        style={{ width: "100%", padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13 }}
                       />
                       <datalist id={`workers-list-${i}`}>
                         {workers.map((w) => <option key={w.id} value={w.name} />)}
                       </datalist>
                     </div>
                     <input type="number" min="0" max="7" step="0.5" value={row.days_worked || ""} onChange={(e) => updateRow(i, "days_worked", Number(e.target.value))}
-                      placeholder="0" style={{ padding: "7px 8px", borderRadius: 7, border: `1px solid ${C.border}`, fontSize: 13, textAlign: "right" }} />
+                      placeholder="0" style={{ padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, textAlign: "right" }} />
                     <input type="number" min="0" value={row.daily_rate || ""} onChange={(e) => updateRow(i, "daily_rate", Number(e.target.value))}
-                      placeholder="0" style={{ padding: "7px 8px", borderRadius: 7, border: `1px solid ${C.border}`, fontSize: 13, textAlign: "right" }} />
+                      placeholder="0" style={{ padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, textAlign: "right" }} />
                     <input type="number" min="0" value={row.overtime_hours || ""} onChange={(e) => updateRow(i, "overtime_hours", Number(e.target.value))}
-                      placeholder="0" style={{ padding: "7px 8px", borderRadius: 7, border: `1px solid ${C.border}`, fontSize: 13, textAlign: "right" }} />
+                      placeholder="0" style={{ padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, textAlign: "right" }} />
                     <input type="number" min="0" value={row.overtime_rate || ""} onChange={(e) => updateRow(i, "overtime_rate", Number(e.target.value))}
-                      placeholder="0" style={{ padding: "7px 8px", borderRadius: 7, border: `1px solid ${C.border}`, fontSize: 13, textAlign: "right" }} />
+                      placeholder="0" style={{ padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, textAlign: "right" }} />
                     <button type="button" aria-label="Hapus baris tukang ini dari laporan" onClick={() => removeRow(i)} disabled={rows.length === 1}
                       style={{ width: 28, height: 28, borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: rows.length === 1 ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: rows.length === 1 ? 0.3 : 1 }}>
                       <Trash2 size={13} color={C.red} />
@@ -349,13 +342,13 @@ export default function LaporanUpahPage() {
             {/* Total */}
             <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ fontSize: 13, color: C.mid }}>Total Upah</span>
-              <span style={{ fontSize: 18, fontWeight: 700, color: C.navy }}>{fmt(total)}</span>
+              <span style={{ fontSize: 17, fontWeight: 700, color: C.navy }}>{fmt(total)}</span>
             </div>
 
             <button type="submit" disabled={submitting} style={{
-              padding: "11px 24px", borderRadius: 10, border: "none",
+              padding: "12px 24px", borderRadius: 10, border: "none",
               background: submitting ? C.mid : C.navy, color: "var(--surface)",
-              fontSize: 14, fontWeight: 600, cursor: submitting ? "wait" : "pointer",
+              fontSize: 13, fontWeight: 600, cursor: submitting ? "wait" : "pointer",
             }}>
               {submitting ? "Mengirim..." : "Kirim Laporan"}
             </button>

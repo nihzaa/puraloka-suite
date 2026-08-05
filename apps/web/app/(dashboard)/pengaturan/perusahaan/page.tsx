@@ -15,20 +15,13 @@ import { Building2, Plus, Users, AlertTriangle, Check, X, ArrowRightLeft } from 
 // membingungkan.
 // ============================================================
 
-const C = {
-  navy: "var(--navy)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)", bg: "var(--bg)",
-  green: "var(--success)", greenBg: "var(--success-bg)",
-  red: "var(--danger)", redBg: "var(--danger-bg)", redBorder: "var(--danger-border)",
-  amber: "var(--warning)", amberBg: "var(--warning-bg)", amberBorder: "var(--warning-border)",
-};
+import { C } from "@/lib/warna-ui";
 
 const card: React.CSSProperties = {
   background: "var(--surface)",
   border: "1px solid var(--border)",
   borderRadius: 14,
-  boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+  boxShadow: "var(--naik-1)",
 };
 
 interface BadanUsaha {
@@ -153,8 +146,8 @@ export default function PerusahaanPage() {
           <button
             onClick={() => setFormTerbuka(true)}
             style={{
-              display: "flex", alignItems: "center", gap: 7,
-              padding: "9px 14px", borderRadius: 9, border: "none",
+              display: "flex", alignItems: "center", gap: 6,
+              padding: "8px 12px", borderRadius: 10, border: "none",
               background: C.navy, color: "#fff", fontSize: 13, fontWeight: 600,
               cursor: "pointer", flexShrink: 0,
             }}
@@ -167,8 +160,8 @@ export default function PerusahaanPage() {
       {pesan && (
         <div style={{
           ...card,
-          padding: "11px 14px", marginBottom: 14,
-          display: "flex", alignItems: "center", gap: 9,
+          padding: "12px 12px", marginBottom: 14,
+          display: "flex", alignItems: "center", gap: 8,
           background: pesan.tipe === "ok" ? C.greenBg : C.redBg,
           borderColor: pesan.tipe === "ok" ? C.green : C.redBorder,
         }}>
@@ -184,12 +177,12 @@ export default function PerusahaanPage() {
           <h2 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: "0 0 4px" }}>
             Badan usaha baru
           </h2>
-          <p style={{ fontSize: 12.5, color: C.muted, margin: "0 0 16px", lineHeight: 1.6 }}>
+          <p style={{ fontSize: 12, color: C.muted, margin: "0 0 16px", lineHeight: 1.6 }}>
             Badan usaha baru dimulai kosong — tanpa proyek, klien, atau transaksi.
             Katalog AHSP nasional tetap tersedia, jadi estimasi bisa langsung dipakai.
           </p>
 
-          <div style={{ display: "grid", gap: 14 }}>
+          <div style={{ display: "grid", gap: 12 }}>
             <Kolom label="Nama badan usaha" wajib>
               <input
                 value={nama} onChange={(e) => namaBerubah(e.target.value)}
@@ -213,7 +206,7 @@ export default function PerusahaanPage() {
               />
             </Kolom>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <Kolom label="Awalan nomor invoice" petunjuk="Contoh: INVK/2026/01/001">
                 <input value={prefix} onChange={(e) => setPrefix(e.target.value)} style={inputStyle} />
               </Kolom>
@@ -223,16 +216,16 @@ export default function PerusahaanPage() {
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: 9, marginTop: 18 }}>
+          <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
             <button type="submit" disabled={menyimpan} style={{
-              padding: "9px 16px", borderRadius: 9, border: "none",
+              padding: "8px 16px", borderRadius: 10, border: "none",
               background: C.navy, color: "#fff", fontSize: 13, fontWeight: 600,
               cursor: menyimpan ? "wait" : "pointer", opacity: menyimpan ? 0.7 : 1,
             }}>
               {menyimpan ? "Membuat…" : "Buat badan usaha"}
             </button>
             <button type="button" onClick={() => { setFormTerbuka(false); setPesan(null); }} style={{
-              padding: "9px 16px", borderRadius: 9,
+              padding: "8px 16px", borderRadius: 10,
               border: `1px solid ${C.border}`, background: "transparent",
               color: C.mid, fontSize: 13, fontWeight: 600, cursor: "pointer",
             }}>
@@ -242,9 +235,9 @@ export default function PerusahaanPage() {
         </form>
       )}
 
-      <div style={{ display: "grid", gap: 10 }}>
+      <div style={{ display: "grid", gap: 8 }}>
         {daftar.map((b) => (
-          <div key={b.id} style={{ ...card, padding: "15px 18px", display: "flex", alignItems: "center", gap: 14 }}>
+          <div key={b.id} style={{ ...card, padding: "16px 16px", display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{
               width: 38, height: 38, borderRadius: 10, flexShrink: 0,
               background: "var(--surface-subtle)", display: "flex",
@@ -255,17 +248,17 @@ export default function PerusahaanPage() {
 
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{b.name}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{b.name}</span>
                 {b.is_akar && (
                   <span style={{
-                    fontSize: 10.5, fontWeight: 600, padding: "2px 7px", borderRadius: 5,
+                    fontSize: 10, fontWeight: 600, padding: "2px 6px", borderRadius: 6,
                     background: "var(--surface-subtle)", color: C.mid,
                   }}>
                     induk
                   </span>
                 )}
               </div>
-              <div style={{ fontSize: 12.5, color: C.muted, marginTop: 3 }}>
+              <div style={{ fontSize: 12, color: C.muted, marginTop: 3 }}>
                 {b.legal_name && b.legal_name !== b.name ? `${b.legal_name} · ` : ""}
                 {b.code}
               </div>
@@ -273,7 +266,7 @@ export default function PerusahaanPage() {
 
             <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, color: C.mid }}>
               <Users size={14} />
-              <span style={{ fontSize: 12.5 }}>{b.jumlah_anggota}</span>
+              <span style={{ fontSize: 12 }}>{b.jumlah_anggota}</span>
             </div>
           </div>
         ))}
@@ -281,8 +274,8 @@ export default function PerusahaanPage() {
 
       {daftar.length > 1 && (
         <p style={{
-          fontSize: 12.5, color: C.muted, marginTop: 16,
-          display: "flex", alignItems: "center", gap: 7, lineHeight: 1.6,
+          fontSize: 12, color: C.muted, marginTop: 16,
+          display: "flex", alignItems: "center", gap: 6, lineHeight: 1.6,
         }}>
           <ArrowRightLeft size={14} style={{ flexShrink: 0 }} />
           Berpindah antar badan usaha lewat pemilih di bagian atas layar.
@@ -293,7 +286,7 @@ export default function PerusahaanPage() {
 }
 
 const inputStyle: React.CSSProperties = {
-  width: "100%", padding: "9px 11px", borderRadius: 8,
+  width: "100%", padding: "8px 12px", borderRadius: 6,
   border: `1px solid ${C.border}`, background: "var(--surface)",
   fontSize: 13, color: C.text, boxSizing: "border-box",
 };
@@ -306,7 +299,7 @@ function Kolom({
   return (
     <div>
       <label style={{
-        display: "block", fontSize: 12.5, fontWeight: 600,
+        display: "block", fontSize: 12, fontWeight: 600,
         color: C.text, marginBottom: 5,
       }}>
         {label}
@@ -314,7 +307,7 @@ function Kolom({
       </label>
       {children}
       {petunjuk && (
-        <p style={{ fontSize: 11.5, color: C.muted, margin: "5px 0 0", lineHeight: 1.5 }}>
+        <p style={{ fontSize: 11, color: C.muted, margin: "5px 0 0", lineHeight: 1.5 }}>
           {petunjuk}
         </p>
       )}

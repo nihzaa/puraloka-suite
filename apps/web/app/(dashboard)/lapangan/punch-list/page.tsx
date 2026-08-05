@@ -116,7 +116,7 @@ export default function PunchListPage() {
     api.get("/api/v1/projects")
       .then((r) => {
         if (batal) return;
-        const daftar = (r.data?.data ?? []) as Array<{ id: string; name: string }>;
+        const daftar = (r.data?.projects ?? []) as Array<{ id: string; name: string }>;
         setProyek(daftar);
         setProyekId((kini) => kini || daftar[0]?.id || "");
         if (daftar.length === 0) setMemuat(false);
@@ -206,7 +206,25 @@ export default function PunchListPage() {
   }, [items]);
 
   const menghalangi = meta?.belum_selesai ?? 0;
+
+  /**
+   * Tiga keadaan, bukan dua — dan versi sebelumnya menggabungkan dua di
+   * antaranya jadi satu warna yang salah.
+   *
+   * Dulu: `bersih = menghalangi === 0 && meta.total > 0`. Syarat
+   * `total > 0` dimaksudkan membedakan "sudah diperiksa dan bersih" dari
+   * "belum ada temuan tercatat sama sekali" — niat yang benar. Tapi
+   * akibatnya proyek TANPA temuan (total = 0) tak pernah dianggap bersih,
+   * jadi angka "0" tampil MERAH dengan garis merah tebal. Proyek yang
+   * paling tak bermasalah justru diberi alarm paling keras.
+   *
+   * Sekarang ketiganya dipisah, karena masing-masing menuntut tindakan
+   * berbeda: yang merah minta dikerjakan, yang hijau boleh diserahkan,
+   * yang netral minta DIPERIKSA dulu — nol di situ belum berarti apa-apa.
+   */
+  const adaYangMenghalangi = meta !== null && menghalangi > 0;
   const bersih = meta !== null && menghalangi === 0 && meta.total > 0;
+  const belumDiperiksa = meta !== null && meta.total === 0;
 
   return (
     <div className="pl-halaman">
@@ -229,6 +247,14 @@ export default function PunchListPage() {
               value={proyekId}
               onChange={(e) => setProyekId(e.target.value)}
             >
+              {/* Cadangan saat daftar kosong — tanpa ini dropdown tampil
+                  sebagai kotak putih tanpa teks, dan tombol di sebelahnya
+                  mati tanpa penjelasan. */}
+              {proyek.length === 0 && (
+                <option value="">
+                  {memuat ? "Memuat proyek…" : "Tak ada proyek"}
+                </option>
+              )}
               {proyek.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
@@ -250,14 +276,18 @@ export default function PunchListPage() {
       {meta && (
         <section className="pl-ambang" aria-live="polite">
           <div className="pl-ambang-angka">
-            <span className="pl-ambang-n" style={{ color: bersih ? "var(--success)" : "var(--danger)" }}>
+            <span className="pl-ambang-n" style={{
+              color: bersih ? "var(--success)"
+                : adaYangMenghalangi ? "var(--danger)"
+                : "var(--text-muted)",
+            }}>
               {menghalangi}
             </span>
             <span className="pl-ambang-teks">
               {bersih
                 ? "Tidak ada yang menghalangi serah terima."
-                : menghalangi === 1
-                  ? "temuan masih menghalangi serah terima"
+                : belumDiperiksa
+                  ? "temuan tercatat — proyek ini belum diperiksa"
                   : "temuan masih menghalangi serah terima"}
             </span>
           </div>
@@ -268,13 +298,19 @@ export default function PunchListPage() {
             aria-label={
               bersih
                 ? "Semua temuan selesai"
-                : `${menghalangi} dari ${meta.total} temuan belum selesai`
+                : belumDiperiksa
+                  ? "Belum ada temuan tercatat di proyek ini"
+                  : `${menghalangi} dari ${meta.total} temuan belum selesai`
             }
           >
             <span
               className="pl-ambang-isi"
               style={{
-                width: meta.total ? `${100 - (menghalangi / meta.total) * 100}%` : "100%",
+                // Saat belum ada temuan tercatat, batangnya KOSONG — bukan
+                // penuh. Versi sebelumnya memakai lebar 100% berwarna merah
+                // untuk keadaan itu, yang terbaca sebagai "seluruh proyek
+                // terhalang" padahal belum ada yang diperiksa.
+                width: meta.total ? `${100 - (menghalangi / meta.total) * 100}%` : "0%",
                 background: bersih ? "var(--success)" : "var(--danger)",
               }}
             />

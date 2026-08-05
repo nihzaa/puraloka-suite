@@ -21,7 +21,16 @@ export default async function progressRoutes(app: FastifyInstance) {
   // tak boleh menulis langsung. Baca via signed URL (pola documents.ts).
   app.post<{
     Params: { projectId: string }
-    Body: { file_base64?: string; file_name?: string; progress_log_id?: string; caption?: string }
+    Body: {
+      file_base64?: string; file_name?: string; progress_log_id?: string; caption?: string
+      // Geotag (INTI #8, migrasi 190). Semuanya OPSIONAL: sinyal GPS tak
+      // selalu ada — basement, gudang berdinding beton, daerah terpencil —
+      // dan menolak foto tanpa koordinat berarti tempat yang paling perlu
+      // didokumentasikan justru tak bisa didokumentasikan.
+      lintang?: number; bujur?: number
+      akurasi_m?: number
+      sumber_lokasi?: 'perangkat' | 'exif' | 'manual'
+    }
   }>(
     '/api/v1/projects/:projectId/photos/upload',
     { preHandler: [authenticate], bodyLimit: PHOTO_BODY_LIMIT },
@@ -31,7 +40,10 @@ export default async function progressRoutes(app: FastifyInstance) {
       if (!(await proyekMilikTenant(request, projectId))) {
         return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
       }
-      const { file_base64, file_name, progress_log_id, caption } = request.body ?? {}
+      const {
+        file_base64, file_name, progress_log_id, caption,
+        lintang, bujur, akurasi_m, sumber_lokasi,
+      } = request.body ?? {}
       const user = request.currentUser!
       if (!file_base64) return reply.status(400).send({ error: 'File tidak ditemukan' })
 
@@ -114,6 +126,27 @@ export default async function progressRoutes(app: FastifyInstance) {
       // yang SUDAH tersimpan. Ini yang membuat "log tersimpan dulu, foto menyusul"
       // mungkin — mandor bersinyal buruk tak kehilangan laporan hariannya.
       if (progress_log_id) {
+        // ── Geotag ──
+        //
+        // Koordinat disimpan HANYA kalau lengkap dan masuk akal. Constraint
+        // database sudah menolak yang tidak (migrasi 190), tapi menolak di
+        // sini lebih baik: unggahan foto tak boleh gagal total gara-gara
+        // koordinat yang salah — fotonya sendiri tetap berguna.
+        //
+        // Yang dilakukan saat koordinatnya cacat: SIMPAN FOTONYA, buang
+        // koordinatnya. Bukan sebaliknya.
+        const punyaKoordinat =
+          typeof lintang === 'number' && typeof bujur === 'number' &&
+          lintang >= -90 && lintang <= 90 &&
+          bujur >= -180 && bujur <= 180
+
+        if ((lintang != null || bujur != null) && !punyaKoordinat) {
+          request.log.warn(
+            { projectId, lintang, bujur },
+            'koordinat foto diabaikan — tidak lengkap atau di luar jangkauan',
+          )
+        }
+
         const { data: photo, error: insErr } = await request.db!.viaProject('project_photos', projectId).insert({
           project_id: projectId,
           progress_log_id,
@@ -121,7 +154,16 @@ export default async function progressRoutes(app: FastifyInstance) {
           caption: caption ?? null,
           file_size_kb: size_kb,
           uploaded_by: request.currentUser!.id,
-        }).select('id, url, caption').single()
+          ...(punyaKoordinat ? {
+            lintang,
+            bujur,
+            akurasi_m: typeof akurasi_m === 'number' && akurasi_m >= 0 ? akurasi_m : null,
+            // Bawaan 'perangkat': jalur normal adalah GPS saat memotret.
+            // Menebak 'manual' akan melemahkan bukti tanpa alasan.
+            sumber_lokasi: sumber_lokasi ?? 'perangkat',
+            lokasi_dicatat_pada: new Date().toISOString(),
+          } : {}),
+        }).select('id, url, caption, lintang, bujur, akurasi_m, sumber_lokasi').single()
         if (insErr) return reply.status(500).send({ error: 'Foto terupload tapi gagal ditautkan: ' + insErr.message })
         return reply.status(201).send({ url, size_kb, photo })
       }

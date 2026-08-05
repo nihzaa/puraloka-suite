@@ -4,15 +4,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { Wallet, FileText, TrendingUp, CheckCircle } from "lucide-react";
 
-const C = {
-  navy: "var(--navy)", navyLight: "var(--navy-light)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)", bg: "var(--bg)", surface: "var(--surface)",
-  green: "var(--success)", greenBg: "var(--success-bg)",
-  yellow: "var(--warning)", yellowBg: "var(--warning-bg)",
-  red: "var(--danger)", redBg: "var(--danger-bg)",
-  purple: "#7C3AED", purpleBg: "#F5F3FF",
-};
+import { C } from "@/lib/warna-ui";
 
 function fmtRp(n: number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
@@ -149,8 +141,8 @@ export default function RiwayatPembayaranPage() {
       {/* Summary card */}
       {!loading && items.length > 0 && (
         <div style={{
-          background: `linear-gradient(135deg, ${C.navy} 0%, #0055AA 100%)`,
-          borderRadius: 14, padding: "18px 22px", marginBottom: 20, color: "var(--surface)",
+          background: `linear-gradient(135deg, ${C.navy} 0%, var(--aksen-terang) 100%)`,
+          borderRadius: 14, padding: "16px 20px", marginBottom: 20, color: "var(--surface)",
         }}>
           <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 6 }}>
             Total Diterima {filter === "all" ? "Semua" : TYPE_META[filter]?.label}
@@ -164,7 +156,7 @@ export default function RiwayatPembayaranPage() {
       <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
         {FILTER_OPTIONS.map((opt) => (
           <button key={opt.value} onClick={() => setFilter(opt.value)} style={{
-            padding: "6px 14px", borderRadius: 20,
+            padding: "6px 12px", borderRadius: 20,
             border: `1px solid ${filter === opt.value ? C.navy : C.border}`,
             background: filter === opt.value ? C.navyLight : "var(--surface)",
             color: filter === opt.value ? C.navy : C.mid,
@@ -179,7 +171,7 @@ export default function RiwayatPembayaranPage() {
 
       {!loading && filtered.length === 0 && (
         <div style={{
-          background: C.surface, borderRadius: 12, padding: 60, border: `1px solid ${C.border}`,
+          background: C.surface, borderRadius: 10, padding: 60, border: `1px solid ${C.border}`,
           textAlign: "center",
         }}>
           <Wallet size={36} color={C.muted} style={{ marginBottom: 12 }} />
@@ -213,9 +205,9 @@ export default function RiwayatPembayaranPage() {
                     const meta = TYPE_META[item.type];
                     return (
                       <div key={item.id} style={{
-                        background: C.surface, borderRadius: 12, padding: "14px 16px",
-                        border: `1px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-                        display: "flex", alignItems: "center", gap: 14,
+                        background: C.surface, borderRadius: 10, padding: "12px 16px",
+                        border: `1px solid ${C.border}`, boxShadow: "var(--naik-1)",
+                        display: "flex", alignItems: "center", gap: 12,
                       }}>
                         {/* Type icon */}
                         <div style={{
@@ -232,7 +224,7 @@ export default function RiwayatPembayaranPage() {
                           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, flexWrap: "wrap" }}>
                             <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{item.scopeName}</span>
                             <span style={{
-                              fontSize: 10, fontWeight: 600, padding: "1px 7px", borderRadius: 20,
+                              fontSize: 10, fontWeight: 600, padding: "0px 6px", borderRadius: 20,
                               color: meta.color, background: meta.bg,
                             }}>
                               {meta.label}

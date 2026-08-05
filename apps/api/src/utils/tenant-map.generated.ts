@@ -111,6 +111,8 @@ export const PETA_TENANCY = {
   'project_rab_materials': { kategori: 'C', lewat: 'project_id' },  // project_rab_materials.project_id
   'project_stocks': { kategori: 'C', lewat: 'project_id' },  // project_stocks.project_id
   'projects': { kategori: 'ANCHOR' },
+  'ncr_items': { kategori: 'C', lewat: 'project_id' },  // ncr_items.project_id
+  'ncr_photos': { kategori: 'C', lewat: 'ncr_id' },  // ncr_photos.ncr_id → ncr_items.project_id
   'punch_item_photos': { kategori: 'C', lewat: 'punch_item_id' },  // punch_item_photos.punch_item_id → punch_items.project_id
   'punch_items': { kategori: 'C', lewat: 'project_id' },  // punch_items.project_id
   'purchase_order_items': { kategori: 'C', lewat: 'po_id' },  // purchase_order_items.po_id → purchase_orders.project_id

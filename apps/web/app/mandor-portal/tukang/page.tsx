@@ -6,18 +6,12 @@ import { api } from "@/lib/api";
 import { kirimLapangan } from "@/lib/kirim-lapangan";
 import { Users, Plus, Phone, Edit2, ToggleLeft, ToggleRight } from "lucide-react";
 
-const C = {
-  navy: "var(--navy)", navyLight: "var(--navy-light)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)", bg: "var(--bg)", surface: "var(--surface)",
-  green: "var(--success)", greenBg: "var(--success-bg)",
-  red: "var(--danger)", redBg: "var(--danger-bg)",
-};
+import { C } from "@/lib/warna-ui";
 
 const TIPE_META: Record<string, { label: string; color: string }> = {
   tukang: { label: "Tukang",  color: "var(--info)" },
-  laden:  { label: "Laden",   color: "#7C3AED" },
-  kenek:  { label: "Kenek",   color: "#0891B2" },
+  laden:  { label: "Laden",   color: "var(--aksen)" },
+  kenek:  { label: "Kenek",   color: "var(--data-2)" },
 };
 
 interface Worker {
@@ -134,8 +128,8 @@ export default function DaftarTukangPage() {
           style={{
           position: "fixed", top: 72, right: 20, zIndex: 999,
           background: toast.ok ? C.greenBg : C.redBg, border: `1px solid ${toast.ok ? C.green : C.red}`,
-          color: toast.ok ? C.green : C.red, padding: "12px 20px", borderRadius: 10, fontSize: 14, fontWeight: 500,
-          boxShadow: "0 4px 16px rgba(0,0,0,0.1)", cursor: "pointer",
+          color: toast.ok ? C.green : C.red, padding: "12px 20px", borderRadius: 10, fontSize: 13, fontWeight: 500,
+          boxShadow: "var(--naik-2)", cursor: "pointer",
           textAlign: "left",
         }}>
           {toast.msg}
@@ -149,7 +143,7 @@ export default function DaftarTukangPage() {
           <p style={{ fontSize: 13, color: C.mid, margin: "4px 0 0" }}>{activeCount} tukang aktif terdaftar</p>
         </div>
         <button onClick={openAdd} style={{
-          display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 10,
+          display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10,
           border: "none", background: C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: "pointer",
         }}>
           <Plus size={15} /> Tambah Tukang
@@ -160,7 +154,7 @@ export default function DaftarTukangPage() {
       <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
         {(["aktif", "nonaktif", "all"] as const).map((f) => (
           <button key={f} onClick={() => setFilterStatus(f)} style={{
-            padding: "6px 14px", borderRadius: 20, border: `1px solid ${filterStatus === f ? C.navy : C.border}`,
+            padding: "6px 12px", borderRadius: 20, border: `1px solid ${filterStatus === f ? C.navy : C.border}`,
             background: filterStatus === f ? C.navyLight : "var(--surface)",
             color: filterStatus === f ? C.navy : C.mid,
             fontSize: 12, fontWeight: filterStatus === f ? 600 : 400, cursor: "pointer",
@@ -172,9 +166,9 @@ export default function DaftarTukangPage() {
 
       {loading && <div style={{ textAlign: "center", padding: 40, color: C.mid }}>Memuat...</div>}
       {!loading && filtered.length === 0 && (
-        <div style={{ background: C.surface, borderRadius: 12, padding: 40, border: `1px solid ${C.border}`, textAlign: "center" }}>
+        <div style={{ background: C.surface, borderRadius: 10, padding: 40, border: `1px solid ${C.border}`, textAlign: "center" }}>
           <Users size={28} color={C.muted} style={{ marginBottom: 8 }} />
-          <div style={{ fontSize: 14, color: C.mid }}>Tidak ada tukang</div>
+          <div style={{ fontSize: 13, color: C.mid }}>Tidak ada tukang</div>
         </div>
       )}
 
@@ -184,14 +178,14 @@ export default function DaftarTukangPage() {
           const waHref = w.phone ? `https://wa.me/62${w.phone.replace(/^0/, "")}` : null;
           return (
             <div key={w.id} style={{
-              background: C.surface, borderRadius: 12, padding: "14px 16px",
-              border: `1px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+              background: C.surface, borderRadius: 10, padding: "12px 16px",
+              border: `1px solid ${C.border}`, boxShadow: "var(--naik-1)",
               opacity: w.is_active ? 1 : 0.6,
             }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{w.name}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{w.name}</span>
                     {tipeMeta && (
                       <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 20, color: tipeMeta.color, background: `${tipeMeta.color}15` }}>
                         {tipeMeta.label}
@@ -227,13 +221,13 @@ export default function DaftarTukangPage() {
                 </div>
                 <div style={{ display: "flex", gap: 6, marginLeft: 8 }}>
                   <button aria-label={`Ubah data ${w.name}`} onClick={() => openEdit(w)} style={{
-                    width: 32, height: 32, borderRadius: 8, border: `1px solid ${C.border}`,
+                    width: 32, height: 32, borderRadius: 6, border: `1px solid ${C.border}`,
                     background: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
                   }}>
                     <Edit2 size={14} color={C.mid} />
                   </button>
                   <button onClick={() => toggleActive(w)} title={w.is_active ? "Nonaktifkan" : "Aktifkan"} style={{
-                    width: 32, height: 32, borderRadius: 8, border: `1px solid ${C.border}`,
+                    width: 32, height: 32, borderRadius: 6, border: `1px solid ${C.border}`,
                     background: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
                   }}>
                     {w.is_active
@@ -253,21 +247,21 @@ export default function DaftarTukangPage() {
           position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000,
           display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
         }} onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}>
-          <div style={{ background: "var(--surface)", borderRadius: 16, padding: 24, width: "100%", maxWidth: 440, boxShadow: "0 16px 48px rgba(0,0,0,0.2)" }}>
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: "0 0 20px" }}>
+          <div style={{ background: "var(--surface)", borderRadius: 14, padding: 24, width: "100%", maxWidth: 440, boxShadow: "var(--naik-3)" }}>
+            <h2 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: "0 0 20px" }}>
               {editWorker ? "Edit Tukang" : "Tambah Tukang"}
             </h2>
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
                 <label htmlFor="name" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Nama *</label>
                 <input id="name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="Nama lengkap"
-                  style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13 }} />
+                  style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13 }} />
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 <div>
                   <label htmlFor="tipe" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Tipe</label>
                   <select id="tipe" aria-label="Tipe pekerja" value={form.tipe} onChange={(e) => setForm((f) => ({ ...f, tipe: e.target.value }))}
-                    style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13 }}>
+                    style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13 }}>
                     <option value="">Tidak ditentukan</option>
                     <option value="tukang">Tukang</option>
                     <option value="laden">Laden</option>
@@ -277,21 +271,21 @@ export default function DaftarTukangPage() {
                 <div>
                   <label htmlFor="phone" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>No HP</label>
                   <input id="phone" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} placeholder="0812..."
-                    style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13 }} />
+                    style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13 }} />
                 </div>
               </div>
               <div>
                 <label htmlFor="skills" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Keahlian (pisah koma)</label>
                 <input id="skills" value={form.skills} onChange={(e) => setForm((f) => ({ ...f, skills: e.target.value }))} placeholder="Batu, Pasang Keramik, Las"
-                  style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13 }} />
+                  style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13 }} />
               </div>
               <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
                 <button type="button" onClick={() => setShowModal(false)} style={{
-                  flex: 1, padding: "10px", borderRadius: 10, border: `1px solid ${C.border}`,
+                  flex: 1, padding: "8px", borderRadius: 10, border: `1px solid ${C.border}`,
                   background: "var(--surface)", color: C.mid, fontSize: 13, fontWeight: 600, cursor: "pointer",
                 }}>Batal</button>
                 <button type="submit" disabled={submitting} style={{
-                  flex: 2, padding: "10px", borderRadius: 10, border: "none",
+                  flex: 2, padding: "8px", borderRadius: 10, border: "none",
                   background: submitting ? C.mid : C.navy, color: "var(--surface)",
                   fontSize: 13, fontWeight: 600, cursor: submitting ? "wait" : "pointer",
                 }}>{submitting ? "Menyimpan..." : editWorker ? "Simpan Perubahan" : "Tambah Tukang"}</button>

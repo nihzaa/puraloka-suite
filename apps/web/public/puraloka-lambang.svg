@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 152" role="img" aria-label="Puraloka Persada">
+  <!--
+    LAMBANG PURALOKA PERSADA — digambar ulang dari LOGO PURALOKA PERSADA.pdf.
+
+    Bentuknya: empat pilar dengan tinggi menaik (kiri terpendek, kanan
+    tertinggi), ujung atas membulat, dan pilar terkanan dipotong miring —
+    siluet gedung bertingkat yang sedang naik.
+
+    Di bawahnya empat alas terpisah dengan tepi atas melengkung, memantulkan
+    lengkung pilar di atasnya. Celah antara badan dan alas adalah bagian dari
+    bentuknya, bukan kebetulan — itu yang membuatnya terbaca sebagai bangunan
+    berdiri, bukan sekadar batang grafik.
+
+    Proporsi disetel setelah render dibandingkan dengan PDF asli: alas
+    dipendekkan (percobaan pertama membuatnya setinggi sepertiga lambang,
+    terlalu berat) dan celahnya dirapatkan.
+
+    `currentColor` sengaja dipakai, bukan #003366 mati: lambang ini muncul di
+    sidebar terang, sidebar gelap, halaman login, dan favicon — masing-masing
+    butuh warna berbeda. Pemanggilnya yang menentukan lewat `color`.
+  -->
+  <g fill="currentColor">
+    <!-- Badan: pilar 1 (terpendek) → pilar 4 (tertinggi, dipotong miring) -->
+    <path d="M6 58 a13 13 0 0 1 13-13 h2 v58 a32 32 0 0 1-15-5 z"/>
+    <path d="M32 44 a13 13 0 0 1 13-13 h2 v72 a42 42 0 0 1-15-2 z"/>
+    <path d="M58 28 a13 13 0 0 1 13-13 h2 v83 a50 50 0 0 1-15 5 z"/>
+    <path d="M84 15 a13 13 0 0 1 13-13 h2 v73 a54 54 0 0 1-15 16 z"/>
+  </g>
+  <g fill="currentColor">
+    <!-- Alas — tepi atasnya memantulkan lengkung dasar pilar -->
+    <path d="M6 112 a38 38 0 0 0 15 6 v34 H6 z"/>
+    <path d="M32 118 a46 46 0 0 0 15 2 v32 H32 z"/>
+    <path d="M58 120 a50 50 0 0 0 15-5 v37 H58 z"/>
+    <path d="M84 115 a54 54 0 0 0 15-16 v53 H84 z"/>
+  </g>
+</svg>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   LayoutDashboard,
   FolderKanban,
@@ -43,7 +43,10 @@ import {
   Dot,
 } from "lucide-react";
 import { getStoredUser, logout, api, type PuralokaUser } from "@/lib/api";
+import { SidebarFokus } from "@/components/sidebar-fokus";
+import { LogoPuraloka } from "@/components/logo-puraloka";
 import { useSidebar } from "@/lib/sidebar-context";
+import { hitungHref, pilihWakil, belumPunyaHalaman } from "@/lib/menu-berbagi-href";
 
 const roleLabel: Record<string, string> = {
   admin: "Administrator",
@@ -151,7 +154,8 @@ function IkonAnak({ nama, aktif }: { nama: string; aktif: boolean }) {
  * terburuk untuk mengabaikannya.
  */
 function GrupCollapsible({
-  node, anak, aktif, terbuka, onToggle, isActive, subStyle, onHover, offHover,
+  node, anak, aktif, terbuka, onToggle, isActive, belumAdaHalamanSendiri,
+  subStyle, onHover, offHover,
 }: {
   node: MenuNode;
   anak: MenuNode[];
@@ -159,6 +163,15 @@ function GrupCollapsible({
   terbuka: boolean;
   onToggle: () => void;
   isActive: (href: string) => boolean;
+  /**
+   * Item ini belum punya halamannya sendiri — jangan disorot, redupkan.
+   *
+   * Diterima sebagai prop karena penilaiannya harus LINTAS GRUP:
+   * menghitung per-grup memperbaiki /estimasi tapi menyisakan empat item
+   * menyala di /proyek, masing-masing satu-satunya pemakai `/proyek` di
+   * grupnya sendiri. Aturan lengkap + test: `lib/menu-berbagi-href.ts`.
+   */
+  belumAdaHalamanSendiri: (href: string | null | undefined, key?: string) => boolean;
   subStyle: (active: boolean) => React.CSSProperties;
   onHover: (e: React.MouseEvent<HTMLElement>, active: boolean) => void;
   offHover: (e: React.MouseEvent<HTMLElement>, active: boolean) => void;
@@ -191,7 +204,7 @@ function GrupCollapsible({
         style={{
           display: "flex", alignItems: "center", gap: 8,
           padding: "0 14px", margin: "1px 6px", height: 38,
-          borderRadius: 8, fontSize: 14, fontWeight: aktif ? 500 : 400,
+          borderRadius: 6, fontSize: 13, fontWeight: aktif ? 500 : 400,
           background: "transparent", border: "none",
           borderLeft: aktif ? "3px solid var(--navy)" : "3px solid transparent",
           color: aktif ? "var(--navy)" : "var(--text-secondary)",
@@ -206,7 +219,7 @@ function GrupCollapsible({
         {/* Jumlah submenu: memberi tahu ada berapa SEBELUM dibuka. Dengan 20
             grup, tanpa ini orang membuka satu per satu untuk mencari. */}
         <span style={{
-          fontSize: 10.5, fontWeight: 600, color: "var(--text-muted)",
+          fontSize: 10, fontWeight: 600, color: "var(--text-muted)",
           fontVariantNumeric: "tabular-nums", minWidth: 16, textAlign: "right",
         }}>{anak.length}</span>
         <ChevronDown
@@ -234,12 +247,47 @@ function GrupCollapsible({
       >
         <div ref={isiRef} style={{ paddingTop: 2, paddingBottom: 4 }}>
           {anak.map((child) => {
-            const active = isActive(child.href ?? "");
+            /**
+             * Sub-menu yang BELUM punya halamannya sendiri.
+             *
+             * Diukur di database: 23 item menunjuk `/proyek`, 14 ke
+             * `/mandor`, 13 ke `/procurement`, 13 ke `/estimasi`. Itu
+             * bukan kesalahan data — sub-menu yang belum digarap memang
+             * sengaja dialihkan ke halaman induknya (triase F5-1).
+             *
+             * Tapi akibatnya di layar nyata: membuka /estimasi membuat
+             * DUA BELAS item menyala serentak, karena semuanya cocok
+             * dengan pathname yang sama. Penanda posisi jadi tak
+             * menunjukkan posisi apa pun — dan orang yang mengklik
+             * "Cost Baseline (BAC)" mendarat di halaman Proyek biasa
+             * tanpa satu pun penjelasan kenapa.
+             *
+             * Diturunkan dari data (href sama dengan induk), bukan dari
+             * daftar tulis-tangan. Daftar tulis-tangan akan membusuk
+             * begitu satu sub-menu digarap dan tak ada yang ingat
+             * mencoretnya dari sini.
+             */
+            const belumAdaHalaman = belumAdaHalamanSendiri(child.href, child.key);
+
+            // Item yang belum punya halaman JANGAN ikut menyala — kalau
+            // tidak, seluruh grup tersorot sekaligus dan penandanya
+            // berhenti berarti.
+            const active = !belumAdaHalaman && isActive(child.href ?? "");
             return (
               <Link
                 key={child.key}
                 href={child.href ?? "#"}
-                style={subStyle(active)}
+                title={belumAdaHalaman
+                  ? `${child.label} belum punya halaman sendiri — tautannya membuka halaman bersama grup ini.`
+                  : undefined}
+                style={{
+                  ...subStyle(active),
+                  // Diredupkan, bukan disembunyikan: item ini menyatakan
+                  // apa yang SUDAH direncanakan, dan itu informasi yang
+                  // berguna. Yang dihindari cuma janji palsu bahwa
+                  // mengkliknya membuka halaman tersendiri.
+                  opacity: belumAdaHalaman ? 0.55 : undefined,
+                }}
                 // Saat tertutup, submenu masih ada di DOM (untuk diukur) tapi
                 // tak boleh bisa di-Tab. Tanpa ini, keyboard "menghilang" ke
                 // dalam grup tertutup dan pemakai kehilangan fokus.
@@ -250,6 +298,14 @@ function GrupCollapsible({
               >
                 <IkonAnak nama={child.icon} aktif={active} />
                 <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{child.label}</span>
+                {/* `title` tidak terbaca andal oleh pembaca layar dan sama
+                    sekali tak terjangkau lewat keyboard. Keterangan ini
+                    dibaca, tapi tak menambah kebisingan visual. */}
+                {belumAdaHalaman && (
+                  <span className="sr-only">
+                    {" "}— belum punya halaman sendiri, membuka halaman bersama grup ini
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -342,6 +398,36 @@ export function Sidebar() {
     router.push("/login");
   }
 
+  /**
+   * Href yang dipakai oleh LEBIH DARI SATU item menu.
+   *
+   * Diukur di database: 23 item menunjuk `/proyek`, 14 ke `/mandor`,
+   * 13 ke `/procurement`, 13 ke `/estimasi`. Itu bukan data rusak —
+   * sub-menu yang belum digarap sengaja dialihkan ke halaman induknya
+   * (triase F5-1).
+   *
+   * Akibatnya di layar: membuka /proyek menyalakan 23 item sekaligus,
+   * jadi penanda posisi berhenti menunjukkan posisi. Dan orang yang
+   * mengklik "Cost Baseline (BAC)" mendarat di halaman Proyek biasa
+   * tanpa satu pun penjelasan kenapa.
+   *
+   * Diturunkan dari data, bukan dari daftar tulis-tangan — daftar
+   * tulis-tangan akan membusuk begitu satu sub-menu digarap dan tak
+   * ada yang ingat mencoretnya.
+   */
+  // Aturannya di `lib/menu-berbagi-href.ts` — bukan di sini. Logika ini
+  // butuh tiga percobaan untuk benar (semua perwakilan, tak ada
+  // perwakilan, perwakilan yang bernama salah), jadi ia diangkat ke
+  // fungsi murni supaya bisa dikunci test.
+  const hrefBerbagi = useMemo(() => hitungHref(menu), [menu]);
+  const wakilHref = useMemo(() => pilihWakil(menu), [menu]);
+
+  const belumAdaHalamanSendiri = useCallback(
+    (href: string | null | undefined, key?: string) =>
+      belumPunyaHalaman(href, key, hrefBerbagi, wakilHref),
+    [hrefBerbagi, wakilHref],
+  );
+
   function isActive(href: string) {
     if (href === "/dashboard") return pathname === "/dashboard";
     return pathname.startsWith(href);
@@ -385,8 +471,8 @@ export function Sidebar() {
       justifyContent: collapsed ? "center" : "flex-start",
       margin: "1px 6px",
       height: 38,
-      borderRadius: 8,
-      fontSize: 14,
+      borderRadius: 6,
+      fontSize: 13,
       fontWeight: active ? 500 : 400,
       textDecoration: "none",
       transition: "all 0.15s",
@@ -404,11 +490,11 @@ export function Sidebar() {
     return {
       display: "flex",
       alignItems: "center",
-      gap: 7,
+      gap: 6,
       padding: "0 14px 0 34px",
       margin: "1px 6px",
       height: 34,
-      borderRadius: 8,
+      borderRadius: 6,
       fontSize: 13,
       fontWeight: active ? 500 : 400,
       textDecoration: "none",
@@ -462,18 +548,22 @@ export function Sidebar() {
         gap: 8,
         flexShrink: 0,
       }}>
+        {/* Lambang perusahaan — menggantikan huruf "P" yang selama ini jadi
+            penampung sementara. Aplikasi yang memakai inisial alih-alih
+            logonya sendiri terbaca sebagai belum jadi. */}
         {!collapsed && (
-          <div style={{ display: "flex", alignItems: "center", gap: 10, overflow: "hidden" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, overflow: "hidden" }}>
             <div style={{
-              width: 34, height: 34, borderRadius: 9,
-              background: "var(--navy)", display: "flex",
+              width: 34, height: 34, borderRadius: 10,
+              background: "var(--grad-aksen)", display: "flex",
               alignItems: "center", justifyContent: "center",
               flexShrink: 0, boxShadow: "0 2px 8px var(--navy-glow)",
+              color: "var(--on-aksen)",
             }}>
-              <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 15, color: "#fff" }}>P</span>
+              <LogoPuraloka size={17} title="" />
             </div>
             <div style={{ overflow: "hidden" }}>
-              <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14, color: "var(--text-primary)", lineHeight: 1, letterSpacing: "-0.3px", whiteSpace: "nowrap" }}>
+              <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "var(--text-primary)", lineHeight: 1, letterSpacing: "-0.3px", whiteSpace: "nowrap" }}>
                 Puraloka
               </div>
               <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2, letterSpacing: "0.05em" }}>Suite</div>
@@ -483,12 +573,15 @@ export function Sidebar() {
 
         {collapsed && (
           <div style={{
-            width: 34, height: 34, borderRadius: 9,
-            background: "var(--navy)", display: "flex",
+            width: 34, height: 34, borderRadius: 10,
+            background: "var(--grad-aksen)", display: "flex",
             alignItems: "center", justifyContent: "center",
             boxShadow: "0 2px 8px var(--navy-glow)",
+            color: "var(--on-aksen)",
           }}>
-            <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 15, color: "#fff" }}>P</span>
+            {/* Saat ciut, lambang ini SATU-SATUNYA penanda aplikasi —
+                jadi di sini ia bukan hiasan dan wajib punya nama. */}
+            <LogoPuraloka size={17} />
           </div>
         )}
 
@@ -519,7 +612,7 @@ export function Sidebar() {
             onClick={toggle}
             title="Buka sidebar"
             style={{
-              padding: 7, borderRadius: 8, background: "transparent", border: "none",
+              padding: 6, borderRadius: 6, background: "transparent", border: "none",
               cursor: "pointer", color: "var(--text-muted)", display: "flex", alignItems: "center",
             }}
             onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-hover)"; e.currentTarget.style.color = "var(--text-primary)"; }}
@@ -533,7 +626,7 @@ export function Sidebar() {
       {/* Navigation — struktur dari menu_items (section='main') */}
       <nav style={{ flex: 1, paddingTop: collapsed ? 4 : 8, paddingBottom: 8, overflowY: "auto", overflowX: "hidden", minHeight: 0 }}>
         {!collapsed && (
-          <div style={{ padding: "12px 14px 6px", fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+          <div style={{ padding: "12px 12px 6px", fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
             Menu
           </div>
         )}
@@ -559,6 +652,7 @@ export function Sidebar() {
                   terbuka={terbuka}
                   onToggle={() => toggleGrup(node.key)}
                   isActive={isActive}
+                  belumAdaHalamanSendiri={belumAdaHalamanSendiri}
                   subStyle={subStyle}
                   onHover={onHover}
                   offHover={offHover}
@@ -609,6 +703,7 @@ export function Sidebar() {
                 // `/pengaturan` sendiri adalah halaman profil, jadi ia harus
                 // cocok PERSIS — kalau tidak, seluruh submenu ikut menyala.
                 isActive={(href) => (href === "/pengaturan" ? pathname === "/pengaturan" : pathname.startsWith(href))}
+                belumAdaHalamanSendiri={belumAdaHalamanSendiri}
                 subStyle={subStyle}
                 onHover={onHover}
                 offHover={offHover}
@@ -630,11 +725,18 @@ export function Sidebar() {
           );
         })()}
 
+        {/* Fokus hari ini — tepat DI ATAS kartu sesi.
+            Posisinya sengaja: mata berhenti di sudut kiri-bawah saat mencari
+            "siapa saya", dan angka yang menunggu keputusan ikut terbaca di
+            perjalanan itu. Widget ini hadir di setiap halaman, jadi yang
+            mendesak ditemukan saat sedang mengerjakan hal lain. */}
+        {user && <SidebarFokus collapsed={collapsed} />}
+
         {/* User info */}
         {user && !collapsed && (
           <div style={{
             display: "flex", alignItems: "center", gap: 8,
-            padding: "8px 10px", marginTop: 6,
+            padding: "8px 8px", marginTop: 6,
             borderRadius: 10, background: "var(--surface-subtle)", border: "1px solid var(--border)",
           }}>
             <div style={{
@@ -653,7 +755,7 @@ export function Sidebar() {
                 display: "inline-block", marginTop: 2,
                 fontSize: 10, textTransform: "uppercase", letterSpacing: "0.03em",
                 background: "var(--navy-light)", color: "var(--navy)",
-                borderRadius: 4, padding: "1px 5px", fontWeight: 600,
+                borderRadius: 6, padding: "0px 4px", fontWeight: 600,
               }}>
                 {roleLabel[user.role] ?? user.role}
               </div>
@@ -661,7 +763,7 @@ export function Sidebar() {
             <button aria-label="Keluar"
               onClick={handleLogout}
               title="Keluar"
-              style={{ padding: 5, borderRadius: 6, background: "transparent", border: "none", cursor: "pointer", color: "var(--text-muted)", flexShrink: 0, display: "flex", alignItems: "center" }}
+              style={{ padding: 4, borderRadius: 6, background: "transparent", border: "none", cursor: "pointer", color: "var(--text-muted)", flexShrink: 0, display: "flex", alignItems: "center" }}
               onMouseEnter={e => { e.currentTarget.style.color = "var(--danger)"; e.currentTarget.style.background = "var(--danger-bg)"; }}
               onMouseLeave={e => { e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.background = "transparent"; }}
             >
@@ -769,14 +871,14 @@ function NavItem({
           flexShrink: 0,
         }} />
         <div style={{
-          background: "#1F2937",
+          background: "var(--text-primary)",
           color: "var(--surface-subtle)",
           fontSize: 12,
           fontWeight: 500,
-          padding: "5px 10px",
+          padding: "4px 8px",
           borderRadius: 6,
           whiteSpace: "nowrap",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+          boxShadow: "var(--naik-2)",
           letterSpacing: "0.01em",
         }}>
           {label}

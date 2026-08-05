@@ -9,15 +9,7 @@ import {
   Wrench, Calendar, Banknote, CreditCard,
 } from "lucide-react";
 
-const C = {
-  navy: "var(--navy)", navyLight: "var(--navy-light)",
-  text: "var(--text-primary)", mid: "var(--text-secondary)", muted: "var(--text-muted)",
-  border: "var(--border)", bg: "var(--bg)",
-  green: "var(--success)", greenBg: "var(--success-bg)", greenBorder: "var(--success-border)",
-  red: "var(--danger)", redBg: "var(--danger-bg)", redBorder: "var(--danger-border)",
-  yellow: "var(--warning)", yellowBg: "var(--warning-bg)", yellowBorder: "var(--warning-border)",
-  orange: "#C2410C", orangeBg: "#FFF7ED",
-};
+import { C } from "@/lib/warna-ui";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
@@ -25,7 +17,7 @@ const fmt = (n: number) =>
 const PAYMENT_SYSTEM_LABEL: Record<string, { label: string; color: string; bg: string }> = {
   harian:       { label: "Harian",     color: C.navy,   bg: C.navyLight },
   borongan:     { label: "Borongan",   color: C.green,  bg: C.greenBg },
-  progress_pct: { label: "Progress %", color: "#7C3AED", bg: "#F5F3FF" },
+  progress_pct: { label: "Progress %", color: "var(--aksen)", bg: "var(--navy-light)" },
 };
 
 export interface KasbonItem {
@@ -63,7 +55,7 @@ function useMounted() {
 }
 
 // Compact dual progress bar: progress fisik (navy) + kasbon (orange)
-function ScopeBars({ scope, scopeTotal }: { scope: WorkScope; scopeTotal: number }) {
+function ScopeBars({ scope }: { scope: WorkScope }) {
   const kasbons = scope.kasbons ?? [];
   const kasbonActive = kasbons
     .filter(k => k.status === "approved" || k.status === "pending")
@@ -84,9 +76,9 @@ function ScopeBars({ scope, scopeTotal }: { scope: WorkScope; scopeTotal: number
             <span>Progress Fisik</span>
             <span style={{ fontWeight: 600 }}>{progressPct.toFixed(0)}%</span>
           </div>
-          <div style={{ height: 6, background: C.border, borderRadius: 3, overflow: "hidden" }}>
+          <div style={{ height: 6, background: C.border, borderRadius: 0, overflow: "hidden" }}>
             <div style={{
-              height: "100%", borderRadius: 3,
+              height: "100%", borderRadius: 0,
               width: `${progressPct}%`,
               background: C.navy,
               transition: "width 0.4s ease",
@@ -103,9 +95,9 @@ function ScopeBars({ scope, scopeTotal }: { scope: WorkScope; scopeTotal: number
               {kasbonPct !== null && ` (${kasbonPct.toFixed(0)}% nilai)`}
             </span>
           </div>
-          <div style={{ height: 6, background: C.border, borderRadius: 3, overflow: "hidden" }}>
+          <div style={{ height: 6, background: C.border, borderRadius: 0, overflow: "hidden" }}>
             <div style={{
-              height: "100%", borderRadius: 3,
+              height: "100%", borderRadius: 0,
               width: kasbonPct !== null ? `${kasbonPct}%` : "100%",
               background: C.orange,
               transition: "width 0.4s ease",
@@ -181,14 +173,14 @@ export function MandorSection({
     <div>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <h2 style={{ display: "flex", alignItems: "center", gap: 10, fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 600, color: C.text, margin: 0 }}>
-          <span style={{ width: 3, height: 16, background: C.navy, borderRadius: 2, flexShrink: 0 }} />
+        <h2 style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 600, color: C.text, margin: 0 }}>
+          <span style={{ width: 3, height: 16, background: C.navy, borderRadius: 0, flexShrink: 0 }} />
           Mandor & Scope Pekerjaan
         </h2>
         {canEdit && (
           <button
             onClick={() => setShowAssignModal(true)}
-            style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, border: "none", background: C.navy, color: "var(--surface)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+            style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
           >
             <Plus size={13} /> Assign Mandor
           </button>
@@ -217,9 +209,9 @@ export function MandorSection({
 
       {/* Empty state */}
       {assignments.length === 0 && (
-        <div style={{ padding: "40px 24px", textAlign: "center", border: `2px dashed ${C.border}`, borderRadius: 12, color: C.muted }}>
+        <div style={{ padding: "40px 24px", textAlign: "center", border: `2px dashed ${C.border}`, borderRadius: 10, color: C.muted }}>
           <HardHat size={32} color={C.border} style={{ marginBottom: 10 }} />
-          <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Belum ada mandor di-assign</div>
+          <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 4 }}>Belum ada mandor di-assign</div>
           {canEdit && <div style={{ fontSize: 12 }}>Klik "Assign Mandor" untuk menambahkan</div>}
         </div>
       )}
@@ -233,7 +225,7 @@ export function MandorSection({
             .filter(k => k.status === "approved" || k.status === "pending")
             .reduce((s, k) => s + Number(k.amount), 0);
           return (
-            <div key={asgn.id} style={{ border: `1px solid ${C.border}`, borderRadius: 12, background: "var(--surface)", overflow: "hidden" }}>
+            <div key={asgn.id} style={{ border: `1px solid ${C.border}`, borderRadius: 10, background: "var(--surface)", overflow: "hidden" }}>
               {/* Assignment header */}
               <div
                 role="button"
@@ -244,14 +236,14 @@ export function MandorSection({
                     toggleExpand(asgn.id)
                   }
                 }}
-                style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", cursor: "pointer", background: isExpanded ? C.navyLight : "var(--surface)", transition: "background 0.15s" }}
+                style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", cursor: "pointer", background: isExpanded ? C.navyLight : "var(--surface)", transition: "background 0.15s" }}
                 onClick={() => toggleExpand(asgn.id)}
               >
                 <div style={{ width: 38, height: 38, borderRadius: 10, background: isExpanded ? C.navy : C.navyLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "background 0.15s" }}>
                   <HardHat size={18} color={isExpanded ? "var(--surface)" : C.navy} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{asgn.mandor?.name ?? "—"}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{asgn.mandor?.name ?? "—"}</div>
                   <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
                     {asgn.mandor?.phone && <span>{asgn.mandor.phone} · </span>}
                     <span>Assign: {new Date(asgn.assigned_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</span>
@@ -266,7 +258,7 @@ export function MandorSection({
                     <button
                       onClick={e => { e.stopPropagation(); handleDeactivate(asgn.id); }}
                       disabled={deactivatingId === asgn.id}
-                      style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${C.redBorder}`, background: C.redBg, color: C.red, fontSize: 11, fontWeight: 600, cursor: "pointer" }}
+                      style={{ padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.redBorder}`, background: C.redBg, color: C.red, fontSize: 11, fontWeight: 600, cursor: "pointer" }}
                     >
                       Nonaktifkan
                     </button>
@@ -291,9 +283,9 @@ export function MandorSection({
                           .filter(k => k.status === "approved" || k.status === "pending")
                           .reduce((s, k) => s + Number(k.amount), 0);
                         return (
-                          <div key={scope.id} style={{ padding: "12px 14px", background: C.bg, borderRadius: 10, border: `1px solid ${C.border}` }}>
+                          <div key={scope.id} style={{ padding: "12px 12px", background: C.bg, borderRadius: 10, border: `1px solid ${C.border}` }}>
                             <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                              <div style={{ width: 32, height: 32, borderRadius: 8, background: ps.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                              <div style={{ width: 32, height: 32, borderRadius: 6, background: ps.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                                 <Wrench size={15} color={ps.color} />
                               </div>
                               <div style={{ flex: 1, minWidth: 0 }}>
@@ -326,13 +318,13 @@ export function MandorSection({
                                   <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{scope.description}</div>
                                 )}
                                 {/* Double progress bars */}
-                                <ScopeBars scope={scope} scopeTotal={Number(scope.borongan_value ?? 0)} />
+                                <ScopeBars scope={scope} />
                               </div>
                               {canEdit && (
                                 <button aria-label="Hapus scope"
                                   onClick={() => handleDeleteScope(scope.id)}
                                   disabled={deletingScopeId === scope.id}
-                                  style={{ padding: 5, borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", color: C.muted, flexShrink: 0 }}
+                                  style={{ padding: 4, borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", color: C.muted, flexShrink: 0 }}
                                   title="Hapus scope"
                                   onMouseEnter={e => { e.currentTarget.style.color = C.red; e.currentTarget.style.background = C.redBg; }}
                                   onMouseLeave={e => { e.currentTarget.style.color = C.muted; e.currentTarget.style.background = "transparent"; }}
@@ -351,7 +343,7 @@ export function MandorSection({
                   {canEdit && (
                     <button
                       onClick={() => setAddScopeFor(asgn)}
-                      style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, border: `1px dashed ${C.navy}`, background: "transparent", color: C.navy, fontSize: 12, fontWeight: 600, cursor: "pointer", width: "100%", justifyContent: "center" }}
+                      style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, border: `1px dashed ${C.navy}`, background: "transparent", color: C.navy, fontSize: 12, fontWeight: 600, cursor: "pointer", width: "100%", justifyContent: "center" }}
                     >
                       <Plus size={13} /> Tambah Scope Pekerjaan
                     </button>
@@ -426,22 +418,22 @@ function AssignMandorModal({ projectId, existingMandorIds, onClose, onSuccess }:
   }
 
   const inputStyle: React.CSSProperties = {
-    width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`,
-    borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box",
+    width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`,
+    borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box",
   };
 
   if (!mounted) return null;
   return createPortal(
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ background: "var(--surface)", borderRadius: 16, width: 440, padding: 24, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, width: 440, padding: 24, boxShadow: "var(--naik-3)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Assign Mandor</h2>
+            <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>Assign Mandor</h2>
             <p style={{ margin: "2px 0 0", fontSize: 12, color: C.muted }}>Tambah mandor ke proyek ini</p>
           </div>
-          <button aria-label="Tutup form assign mandor" onClick={onClose} style={{ padding: 6, borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
+          <button aria-label="Tutup form assign mandor" onClick={onClose} style={{ padding: 6, borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
         </div>
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div>
             <label htmlFor="mandor-id" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Mandor <span style={{ color: C.red }}>*</span></label>
             <select id="mandor-id" aria-label="Pilih mandor" value={mandorId} onChange={e => setMandorId(e.target.value)} style={inputStyle}>
@@ -458,10 +450,10 @@ function AssignMandorModal({ projectId, existingMandorIds, onClose, onSuccess }:
             <label htmlFor="notes" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Catatan (opsional)</label>
             <textarea id="notes" value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Catatan untuk mandor ini..." style={{ ...inputStyle, resize: "none" }} />
           </div>
-          {error && <div style={{ padding: "8px 12px", background: C.redBg, borderRadius: 8, fontSize: 13, color: C.red }}>{error}</div>}
+          {error && <div style={{ padding: "8px 12px", background: C.redBg, borderRadius: 6, fontSize: 13, color: C.red }}>{error}</div>}
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-            <button type="button" onClick={onClose} style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13 }}>Batal</button>
-            <button type="submit" disabled={loading || mandors.length === 0} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, opacity: (loading || mandors.length === 0) ? 0.7 : 1 }}>
+            <button type="button" onClick={onClose} style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13 }}>Batal</button>
+            <button type="submit" disabled={loading || mandors.length === 0} style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, opacity: (loading || mandors.length === 0) ? 0.7 : 1 }}>
               {loading ? "Menyimpan..." : "Assign"}
             </button>
           </div>
@@ -537,8 +529,8 @@ function AddScopeModal({ assignment, projectId: projectIdProp, onClose, onSucces
   }
 
   const inputStyle: React.CSSProperties = {
-    width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`,
-    borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box",
+    width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`,
+    borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box",
   };
 
   const psOptions: Array<{ value: "harian" | "borongan" | "progress_pct"; label: string; desc: string }> = [
@@ -550,16 +542,16 @@ function AddScopeModal({ assignment, projectId: projectIdProp, onClose, onSucces
   if (!mounted) return null;
   return createPortal(
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "24px 16px", overflowY: "auto" }}>
-      <div style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 500, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 500, boxShadow: "var(--naik-3)" }}>
         <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Tambah Scope Pekerjaan</h2>
+            <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>Tambah Scope Pekerjaan</h2>
             <p style={{ margin: "2px 0 0", fontSize: 12, color: C.muted }}>Mandor: {assignment.mandor?.name}</p>
           </div>
-          <button aria-label="Tutup form tambah scope pekerjaan" onClick={onClose} style={{ padding: 6, borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
+          <button aria-label="Tutup form tambah scope pekerjaan" onClick={onClose} style={{ padding: 6, borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
+        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 12 }}>
           <div>
             <label htmlFor="scope-name" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Nama Scope <span style={{ color: C.red }}>*</span></label>
             <input id="scope-name" value={scopeName} onChange={e => setScopeName(e.target.value)} placeholder="Contoh: Pekerjaan Struktur, Pemasangan Dinding..." style={inputStyle} />
@@ -573,7 +565,7 @@ function AddScopeModal({ assignment, projectId: projectIdProp, onClose, onSucces
                   key={opt.value} type="button"
                   onClick={() => setPaymentSystem(opt.value)}
                   style={{
-                    padding: "10px 8px", borderRadius: 10, border: `2px solid`,
+                    padding: "8px 8px", borderRadius: 10, border: `2px solid`,
                     borderColor: paymentSystem === opt.value ? C.navy : C.border,
                     background: paymentSystem === opt.value ? C.navyLight : "var(--surface)",
                     cursor: "pointer", textAlign: "center",
@@ -633,11 +625,11 @@ function AddScopeModal({ assignment, projectId: projectIdProp, onClose, onSucces
             <textarea id="description" value={description} onChange={e => setDescription(e.target.value)} rows={2} placeholder="Detail pekerjaan..." style={{ ...inputStyle, resize: "none" }} />
           </div>
 
-          {error && <div style={{ padding: "8px 12px", background: C.redBg, borderRadius: 8, fontSize: 13, color: C.red }}>{error}</div>}
+          {error && <div style={{ padding: "8px 12px", background: C.redBg, borderRadius: 6, fontSize: 13, color: C.red }}>{error}</div>}
 
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-            <button type="button" onClick={onClose} style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13 }}>Batal</button>
-            <button type="submit" disabled={loading} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, opacity: loading ? 0.7 : 1 }}>
+            <button type="button" onClick={onClose} style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13 }}>Batal</button>
+            <button type="submit" disabled={loading} style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, opacity: loading ? 0.7 : 1 }}>
               {loading ? "Menyimpan..." : "Simpan Scope"}
             </button>
           </div>

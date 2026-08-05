@@ -16,7 +16,7 @@ memuat **setiap** dokumen, tanpa kecuali.
 | **acuan** | aturan/keputusan yang dirujuk saat bekerja | dibaca saat mengerjakan hal terkait; tak "selesai" |
 | **riwayat** | catatan fase yang sudah lewat | bukti apa yang pernah terjadi; jangan dikutip sebagai rencana |
 
-**Total 262 dokumen** — antrean 11 · acuan 193 · riwayat 58.
+**Total 263 dokumen** — antrean 11 · acuan 194 · riwayat 58.
 
 Kolom **RM** = disebut langsung di `ROADMAP.md`.
 
@@ -61,6 +61,12 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | [09-VISION-GAP](audit/2026-08-02/09-VISION-GAP.md) | acuan |  | 09 — VISI & GAP ANALYSIS |
 | [10-SCORECARD-RISKS](audit/2026-08-02/10-SCORECARD-RISKS.md) | acuan |  | 10 — PENILAIAN & PRIORITAS |
 | [KOREKSI](audit/2026-08-02/KOREKSI.md) | acuan | ✓ | KOREKSI — Angka Audit yang Diverifikasi Ulang |
+
+### `docs/design`
+
+| Dokumen | Peran | RM | Isi |
+|---|---|:-:|---|
+| [ARAH-VISUAL-2026](design/ARAH-VISUAL-2026.md) | acuan | ✓ | ARAH VISUAL 2026 — Puraloka Suite |
 
 ### `docs/execution`
 
