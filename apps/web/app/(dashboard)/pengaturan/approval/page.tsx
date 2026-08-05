@@ -6,8 +6,8 @@ import { GitBranch, Plus, Trash2, Check, X, AlertTriangle, Info } from "lucide-r
 
 import { C } from "@/lib/warna-ui";
 
-const card: React.CSSProperties = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" };
-const input: React.CSSProperties = { width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", background: "var(--surface)", color: C.text, boxSizing: "border-box", fontFamily: "inherit" };
+const card: React.CSSProperties = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, boxShadow: "var(--naik-1)" };
+const input: React.CSSProperties = { width: "100%", padding: "8px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", background: "var(--surface)", color: C.text, boxSizing: "border-box", fontFamily: "inherit" };
 
 interface Step { id: string; level: number; required_permission: string; min_amount: number | string | null; label: string | null }
 interface Chain { id: string; entity_type: string; label: string; is_active: boolean; approval_steps: Step[] }
@@ -76,14 +76,14 @@ function Content() {
   return (
     <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-form)", margin: "0 auto" }}>
       {toast && (
-        <div style={{ position: "fixed", top: 20, right: 24, zIndex: 9999, maxWidth: 420, background: toast.type === "ok" ? C.greenBg : C.redBg, border: `1px solid ${toast.type === "ok" ? C.greenBorder : C.redBorder}`, borderRadius: 10, padding: "10px 16px", display: "flex", alignItems: "flex-start", gap: 8, boxShadow: "0 4px 16px rgba(0,0,0,0.1)", fontSize: 13, color: toast.type === "ok" ? C.green : C.red }}>
+        <div style={{ position: "fixed", top: 20, right: 24, zIndex: 9999, maxWidth: 420, background: toast.type === "ok" ? C.greenBg : C.redBg, border: `1px solid ${toast.type === "ok" ? C.greenBorder : C.redBorder}`, borderRadius: 10, padding: "8px 16px", display: "flex", alignItems: "flex-start", gap: 8, boxShadow: "var(--naik-2)", fontSize: 13, color: toast.type === "ok" ? C.green : C.red }}>
           {toast.type === "ok" ? <Check size={14} style={{ flexShrink: 0, marginTop: 2 }} /> : <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 2 }} />}
           <span>{toast.msg}</span>
         </div>
       )}
 
       <div style={{ marginBottom: 20, display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ width: 40, height: 40, borderRadius: 11, background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ width: 40, height: 40, borderRadius: 10, background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <GitBranch size={19} color={C.navy} />
         </div>
         <div>
@@ -92,9 +92,9 @@ function Content() {
         </div>
       </div>
 
-      <div style={{ ...card, display: "flex", gap: 10, padding: "12px 16px", marginBottom: 18, background: C.navyLight, borderColor: "var(--navy-light)" }}>
+      <div style={{ ...card, display: "flex", gap: 8, padding: "12px 16px", marginBottom: 18, background: C.navyLight, borderColor: "var(--navy-light)" }}>
         <Info size={16} color={C.navy} style={{ flexShrink: 0, marginTop: 2 }} />
-        <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6 }}>
+        <div style={{ fontSize: 12, color: C.text, lineHeight: 1.6 }}>
           <b>Satu level = perilaku standar</b> (satu orang berwenang menyetujui, langsung selesai). Tambah level untuk membuat persetujuan berjenjang.
           <br />Siapa yang berhak ditentukan lewat <b>permission</b>, bukan nama role — atur role mana yang memegangnya di <b>Pengaturan → Role</b>. Jadi role baru (mis. Direktur) bisa dijadikan approver tanpa ubah kode.
           <br /><b>Ambang nominal</b> membuat level hanya berlaku bila nilai transaksi ≥ angka itu (mis. level 2 hanya untuk di atas Rp 50.000.000).
@@ -102,13 +102,13 @@ function Content() {
       </div>
 
       {!canManage && (
-        <div style={{ marginBottom: 18, padding: "10px 14px", borderRadius: 8, background: C.amberBg, border: "1px solid var(--warning-border)", fontSize: 12.5, color: C.mid }}>
+        <div style={{ marginBottom: 18, padding: "8px 12px", borderRadius: 6, background: C.amberBg, border: "1px solid var(--warning-border)", fontSize: 12, color: C.mid }}>
           Anda bisa melihat konfigurasi, tetapi mengubahnya butuh izin <b>Kelola Rantai Approval</b>.
         </div>
       )}
 
       {loading ? (
-        <div style={{ textAlign: "center", padding: 60, color: C.muted, fontSize: 14 }}>Memuat…</div>
+        <div style={{ textAlign: "center", padding: 60, color: C.muted, fontSize: 13 }}>Memuat…</div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {chains.map(ch => (
@@ -137,11 +137,11 @@ function ChainCard({ chain, perms, canManage, onToggle, onAdd, onPatch, onDelete
 
   return (
     <div style={{ ...card, overflow: "hidden", opacity: chain.is_active ? 1 : 0.6 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "14px 20px", borderBottom: `1px solid ${C.border}` }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "12px 20px", borderBottom: `1px solid ${C.border}` }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{chain.label}</span>
-            <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: tiered ? C.navy : C.muted, background: tiered ? C.navyLight : "var(--surface-subtle)", padding: "2px 8px", borderRadius: 5 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: tiered ? C.navy : C.muted, background: tiered ? C.navyLight : "var(--surface-subtle)", padding: "2px 8px", borderRadius: 6 }}>
               {tiered ? `${steps.length} level` : "1 level"}
             </span>
           </div>
@@ -151,13 +151,13 @@ function ChainCard({ chain, perms, canManage, onToggle, onAdd, onPatch, onDelete
           <button aria-label={chain.is_active ? "Nonaktifkan rantai" : "Aktifkan rantai"} onClick={() => onToggle(chain.entity_type, !chain.is_active)}
             aria-pressed={chain.is_active}
             title={chain.is_active ? "Nonaktifkan rantai" : "Aktifkan rantai"}
-            style={{ position: "relative", width: 46, height: 26, borderRadius: 13, border: "none", flexShrink: 0, background: chain.is_active ? C.green : C.border, cursor: "pointer", transition: "background .2s" }}>
-            <span style={{ position: "absolute", top: 3, left: chain.is_active ? 23 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left .2s", boxShadow: "0 1px 3px rgba(0,0,0,.2)" }} />
+            style={{ position: "relative", width: 46, height: 26, borderRadius: 14, border: "none", flexShrink: 0, background: chain.is_active ? C.green : C.border, cursor: "pointer", transition: "background .2s" }}>
+            <span style={{ position: "absolute", top: 3, left: chain.is_active ? 23 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left .2s", boxShadow: "var(--naik-1)" }} />
           </button>
         )}
       </div>
 
-      <div style={{ padding: "14px 20px" }}>
+      <div style={{ padding: "12px 20px" }}>
         {steps.map((s, i) => (
           <StepRow key={s.id} step={s} perms={perms} canManage={canManage} isLast={steps.length === 1}
             connector={i < steps.length - 1} onPatch={onPatch} onDelete={onDelete} />
@@ -165,7 +165,7 @@ function ChainCard({ chain, perms, canManage, onToggle, onAdd, onPatch, onDelete
 
         {canManage && (adding ? (
           <div style={{ marginTop: 12, padding: 12, borderRadius: 10, background: "var(--surface-subtle)", border: `1px dashed ${C.border}` }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 8 }}>
               <div>
                 <label htmlFor="new-perm" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Siapa yang berhak (permission)</label>
                 <select id="new-perm" aria-label="Permission yang berhak menyetujui langkah ini" value={newPerm} onChange={e => setNewPerm(e.target.value)} style={input}>
@@ -180,16 +180,16 @@ function ChainCard({ chain, perms, canManage, onToggle, onAdd, onPatch, onDelete
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
               <button disabled={!newPerm} onClick={() => { onAdd(chain.entity_type, newPerm, newMin); setAdding(false); setNewPerm(""); setNewMin(""); }}
-                style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: newPerm ? C.navy : "var(--text-muted)", color: "#fff", fontSize: 13, fontWeight: 600, cursor: newPerm ? "pointer" : "not-allowed" }}>
+                style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: newPerm ? C.navy : "var(--text-muted)", color: "#fff", fontSize: 13, fontWeight: 600, cursor: newPerm ? "pointer" : "not-allowed" }}>
                 Tambah level
               </button>
               <button onClick={() => { setAdding(false); setNewPerm(""); setNewMin(""); }}
-                style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 13, cursor: "pointer" }}>Batal</button>
+                style={{ padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 13, cursor: "pointer" }}>Batal</button>
             </div>
           </div>
         ) : (
           <button onClick={() => setAdding(true)}
-            style={{ marginTop: 10, display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, border: `1px solid ${C.navy}`, background: C.navyLight, color: C.navy, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+            style={{ marginTop: 10, display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, border: `1px solid ${C.navy}`, background: C.navyLight, color: C.navy, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
             <Plus size={14} /> Tambah level
           </button>
         ))}
@@ -220,13 +220,13 @@ function StepRow({ step, perms, canManage, isLast, connector, onPatch, onDelete 
           <input value={min} onChange={e => setMin(e.target.value.replace(/[^0-9]/g, ""))} placeholder="ambang (kosong = selalu)" style={input} />
           <div style={{ display: "flex", gap: 6 }}>
             <button aria-label="Simpan" onClick={() => { onPatch(step.id, { required_permission: perm, min_amount: min.trim() === "" ? null : Number(min) }); setEditing(false); }}
-              title="Simpan" style={{ padding: 7, borderRadius: 7, border: "none", background: C.green, color: "#fff", cursor: "pointer" }}><Check size={14} /></button>
+              title="Simpan" style={{ padding: 6, borderRadius: 6, border: "none", background: C.green, color: "#fff", cursor: "pointer" }}><Check size={14} /></button>
             <button aria-label="Batal" onClick={() => { setEditing(false); setPerm(step.required_permission); setMin(step.min_amount === null ? "" : String(step.min_amount)); }}
-              title="Batal" style={{ padding: 7, borderRadius: 7, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, cursor: "pointer" }}><X size={14} /></button>
+              title="Batal" style={{ padding: 6, borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, cursor: "pointer" }}><X size={14} /></button>
           </div>
         </div>
       ) : (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 13, color: C.text, fontWeight: 500 }}>
               {perms.find(p => p.key === step.required_permission)?.label ?? step.required_permission}
@@ -239,10 +239,10 @@ function StepRow({ step, perms, canManage, isLast, connector, onPatch, onDelete 
           </div>
           {canManage && (
             <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-              <button aria-label={isLast ? "Tidak bisa dihapus — rantai harus punya minimal 1 level" : "Hapus level"} onClick={() => setEditing(true)} style={{ padding: "5px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer" }}>Ubah</button>
+              <button aria-label={isLast ? "Tidak bisa dihapus — rantai harus punya minimal 1 level" : "Hapus level"} onClick={() => setEditing(true)} style={{ padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer" }}>Ubah</button>
               <button aria-label={isLast ? "Tidak bisa dihapus — rantai harus punya minimal 1 level" : "Hapus level"} onClick={() => onDelete(step.id)} disabled={isLast}
                 title={isLast ? "Tidak bisa dihapus — rantai harus punya minimal 1 level" : "Hapus level"}
-                style={{ padding: 6, borderRadius: 7, border: `1px solid ${C.border}`, background: "var(--surface)", color: isLast ? C.muted : C.red, cursor: isLast ? "not-allowed" : "pointer", opacity: isLast ? 0.5 : 1 }}>
+                style={{ padding: 6, borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: isLast ? C.muted : C.red, cursor: isLast ? "not-allowed" : "pointer", opacity: isLast ? 0.5 : 1 }}>
                 <Trash2 size={13} />
               </button>
             </div>

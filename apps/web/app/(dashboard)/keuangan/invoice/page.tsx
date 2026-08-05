@@ -145,7 +145,7 @@ function InvoicePageInner() {
   return (
     <div style={{ padding: 20 }}>
       {/* ── Saringan ── */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
         <div style={{ flex: 1, minWidth: 220, position: "relative" }}>
           <Search size={13} aria-hidden="true" style={{
             position: "absolute", left: 10, top: "50%",
@@ -157,8 +157,8 @@ function InvoicePageInner() {
             aria-label="Cari nomor invoice atau nama proyek"
             placeholder="Cari no. invoice atau nama proyek..."
             style={{
-              width: "100%", padding: "8px 12px 8px 30px",
-              border: `1px solid ${C.border}`, borderRadius: 8,
+              width: "100%", padding: "8px 12px 8px 32px",
+              border: `1px solid ${C.border}`, borderRadius: 6,
               fontSize: 13, color: C.text, outline: "none",
               boxSizing: "border-box", background: "var(--surface)",
             }}
@@ -172,23 +172,23 @@ function InvoicePageInner() {
           onChange={(e) => setSaring({ status: e.target.value })}
           style={{
             padding: "8px 12px", border: `1px solid ${C.border}`,
-            borderRadius: 8, fontSize: 13, color: C.text,
+            borderRadius: 6, fontSize: 13, color: C.text,
             background: "var(--surface)", outline: "none",
           }}
         >
           {STATUS.map((s) => <option key={s.v} value={s.v}>{s.l}</option>)}
         </select>
         <button onClick={() => muat()} style={{
-          display: "flex", alignItems: "center", gap: 5, padding: "8px 12px",
-          border: `1px solid ${C.border}`, borderRadius: 8,
+          display: "flex", alignItems: "center", gap: 4, padding: "8px 12px",
+          border: `1px solid ${C.border}`, borderRadius: 6,
           background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer",
         }}>
           <RefreshCw size={13} aria-hidden="true" /> Muat ulang
         </button>
         {bolehUbah && (
           <button onClick={() => setBuatBaru(true)} style={{
-            display: "flex", alignItems: "center", gap: 5, padding: "8px 14px",
-            border: "none", borderRadius: 8, background: "var(--grad-aksen)",
+            display: "flex", alignItems: "center", gap: 4, padding: "8px 12px",
+            border: "none", borderRadius: 6, background: "var(--grad-aksen)",
             color: "var(--on-aksen)", fontSize: 12, fontWeight: 600, cursor: "pointer",
           }}>
             <Plus size={13} aria-hidden="true" /> Buat Invoice
@@ -198,13 +198,13 @@ function InvoicePageInner() {
 
       {gagal && (
         <div role="alert" style={{
-          padding: "12px 14px", borderRadius: 10, marginBottom: 14,
+          padding: "12px 12px", borderRadius: 10, marginBottom: 14,
           background: C.redBg, border: `1px solid ${C.redBorder}`,
           color: C.onDangerBg, fontSize: 13,
         }}>
           {gagal}{" "}
           <button onClick={() => muat()} style={{
-            marginLeft: 6, padding: "2px 9px", borderRadius: 6,
+            marginLeft: 6, padding: "2px 8px", borderRadius: 6,
             border: `1px solid ${C.redBorder}`, background: "transparent",
             color: C.onDangerBg, fontSize: 12, fontWeight: 600, cursor: "pointer",
           }}>Coba lagi</button>
@@ -212,7 +212,7 @@ function InvoicePageInner() {
       )}
 
       {memuat ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {[1, 2, 3].map((i) => (
             <div key={i} style={{ padding: 16, borderRadius: 10, border: `1px solid ${C.border}` }}>
               <Skeleton h={14} />
@@ -235,7 +235,7 @@ function InvoicePageInner() {
               <tr style={{ background: "var(--surface-subtle)", borderBottom: `1px solid ${C.border}` }}>
                 {["No Invoice", "Proyek", "Total", "Terbayar", "Sisa", "Jatuh Tempo", "Status", "Aksi"].map((h, i) => (
                   <th key={h} scope="col" style={{
-                    padding: "10px 14px",
+                    padding: "8px 12px",
                     textAlign: i >= 2 && i <= 4 ? "right" : i === 7 ? "center" : "left",
                     fontSize: 11, fontWeight: 600, letterSpacing: "0.05em",
                     textTransform: "uppercase", color: C.mid, whiteSpace: "nowrap",

@@ -132,8 +132,8 @@ function ClientModal({
     setForm(f => ({ ...f, [k]: e.target.value }));
 
   const inputStyle: React.CSSProperties = {
-    width: "100%", padding: "9px 12px", borderRadius: 8,
-    border: `1px solid ${C.border}`, fontSize: 14, color: C.text,
+    width: "100%", padding: "8px 12px", borderRadius: 6,
+    border: `1px solid ${C.border}`, fontSize: 13, color: C.text,
     background: "var(--surface)", outline: "none",
   };
   const labelStyle: React.CSSProperties = { display: "block", fontSize: 12, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 5 };
@@ -142,16 +142,16 @@ function ClientModal({
 
   return createPortal(
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-      <div style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 540, maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
-        <div style={{ padding: "22px 24px 18px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
-          <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: C.text }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 540, maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: "var(--naik-3)" }}>
+        <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+          <h2 style={{ fontFamily: "var(--font-display)", fontSize: 17, fontWeight: 700, color: C.text }}>
             {client ? "Edit Klien" : "Tambah Klien"}
           </h2>
           <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, border: "none", background: "none", cursor: "pointer", color: C.mid, borderRadius: 6 }}>
             <X size={18} />
           </button>
         </div>
-        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 14 }}>
+        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
           {/* Tipe klien */}
           <div>
             <span id="tipe-klien" style={labelStyle}>Tipe Klien</span>
@@ -161,7 +161,7 @@ function ClientModal({
                   key={t} type="button"
                   onClick={() => setForm(f => ({ ...f, client_type: t }))}
                   style={{
-                    flex: 1, padding: "8px", borderRadius: 8, border: `1.5px solid ${form.client_type === t ? C.navy : C.border}`,
+                    flex: 1, padding: "8px", borderRadius: 6, border: `1.5px solid ${form.client_type === t ? C.navy : C.border}`,
                     background: form.client_type === t ? C.navyLight : "var(--surface)",
                     color: form.client_type === t ? C.navy : C.mid, fontSize: 13, fontWeight: 500, cursor: "pointer",
                   }}
@@ -211,19 +211,19 @@ function ClientModal({
           </div>
 
           {error && (
-            <div style={{ fontSize: 12, color: C.red, background: C.redBg, border: `1px solid ${C.redBorder}`, borderRadius: 8, padding: "10px 12px" }}>
+            <div style={{ fontSize: 12, color: C.red, background: C.redBg, border: `1px solid ${C.redBorder}`, borderRadius: 6, padding: "8px 12px" }}>
               {error}
             </div>
           )}
         </form>
         <div style={{ padding: "16px 24px", borderTop: `1px solid ${C.border}`, display: "flex", justifyContent: "flex-end", gap: 8, flexShrink: 0 }}>
-          <button onClick={onClose} style={{ padding: "9px 18px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: 14, cursor: "pointer", color: C.mid }}>
+          <button onClick={onClose} style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: 13, cursor: "pointer", color: C.mid }}>
             Batal
           </button>
           <button
             onClick={handleSubmit as unknown as React.MouseEventHandler}
             disabled={saving}
-            style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: saving ? "#4D7AB5" : C.navy, color: "var(--surface)", fontSize: 14, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer" }}
+            style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: saving ? "#4D7AB5" : C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer" }}
           >
             {saving ? "Menyimpan..." : client ? "Simpan Perubahan" : "Tambah Klien"}
           </button>
@@ -268,12 +268,12 @@ function DetailPanel({ clientId, onClose, onEdit, onCreateProject }: {
 
         {/* Header */}
         <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
-          <h2 style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700, color: C.text }}>Detail Klien</h2>
+          <h2 style={{ fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 700, color: C.text }}>Detail Klien</h2>
           <div style={{ display: "flex", gap: 4 }}>
             <button aria-label="Edit klien"
               onClick={onEdit}
               title="Edit klien"
-              style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", border: `1px solid ${C.border}`, background: "var(--surface)", borderRadius: 7, cursor: "pointer", fontSize: 12, fontWeight: 500, color: C.mid }}
+              style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", border: `1px solid ${C.border}`, background: "var(--surface)", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 500, color: C.mid }}
               onMouseEnter={e => { e.currentTarget.style.color = C.navy; e.currentTarget.style.borderColor = C.navy; }}
               onMouseLeave={e => { e.currentTarget.style.color = C.mid; e.currentTarget.style.borderColor = C.border; }}
             >
@@ -287,7 +287,7 @@ function DetailPanel({ clientId, onClose, onEdit, onCreateProject }: {
           {loading ? (
             <div style={{ padding: 24, color: C.muted, fontSize: 13 }}>Memuat...</div>
           ) : detail ? (
-            <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 18 }}>
+            <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
 
               {/* Avatar + info dasar */}
               <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
@@ -295,7 +295,7 @@ function DetailPanel({ clientId, onClose, onEdit, onCreateProject }: {
                   {detail.client_type === "perusahaan" ? <Building2 size={22} color={C.navy} /> : <User size={22} color={C.navy} />}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 16, color: C.text, marginBottom: 2 }}>{detail.contact_person}</div>
+                  <div style={{ fontWeight: 700, fontSize: 15, color: C.text, marginBottom: 2 }}>{detail.contact_person}</div>
                   {detail.company_name && <div style={{ fontSize: 12, color: C.mid, marginBottom: 4 }}>{detail.company_name}</div>}
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: detail.client_type === "perusahaan" ? "var(--info-bg)" : C.greenBg, color: detail.client_type === "perusahaan" ? "var(--info)" : C.green, fontWeight: 500 }}>
@@ -319,7 +319,7 @@ function DetailPanel({ clientId, onClose, onEdit, onCreateProject }: {
                   <a
                     href={waLink(detail.phone)}
                     target="_blank" rel="noopener noreferrer"
-                    style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 6, background: "var(--success-bg)", color: "var(--success)", fontSize: 11, fontWeight: 600, textDecoration: "none", flexShrink: 0 }}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, background: "var(--success-bg)", color: "var(--success)", fontSize: 11, fontWeight: 600, textDecoration: "none", flexShrink: 0 }}
                   >
                     <MessageCircle size={11} /> WhatsApp
                   </a>
@@ -333,7 +333,7 @@ function DetailPanel({ clientId, onClose, onEdit, onCreateProject }: {
                     </div>
                     <a
                       href={`mailto:${detail.email}`}
-                      style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 6, background: "var(--info-bg)", color: "var(--info)", fontSize: 11, fontWeight: 600, textDecoration: "none", flexShrink: 0 }}
+                      style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, background: "var(--info-bg)", color: "var(--info)", fontSize: 11, fontWeight: 600, textDecoration: "none", flexShrink: 0 }}
                     >
                       <ExternalLink size={11} /> Email
                     </a>
@@ -355,7 +355,7 @@ function DetailPanel({ clientId, onClose, onEdit, onCreateProject }: {
                 )}
                 {/* Notes */}
                 {detail.notes && (
-                  <div style={{ marginTop: 4, padding: "8px 12px", background: "var(--surface-subtle)", borderRadius: 8, fontSize: 12, color: C.mid, lineHeight: 1.5, borderLeft: `3px solid ${C.border}` }}>
+                  <div style={{ marginTop: 4, padding: "8px 12px", background: "var(--surface-subtle)", borderRadius: 6, fontSize: 12, color: C.mid, lineHeight: 1.5, borderLeft: `3px solid ${C.border}` }}>
                     {detail.notes}
                   </div>
                 )}
@@ -367,16 +367,16 @@ function DetailPanel({ clientId, onClose, onEdit, onCreateProject }: {
                   { label: "Total Proyek", value: String(detail.summary.total_projects), color: C.navy },
                   { label: "Nilai Kontrak", value: fmtCurrency(detail.summary.total_contract_value), color: C.text },
                 ].map(s => (
-                  <div key={s.label} style={{ background: C.bg, borderRadius: 10, padding: "12px 14px", border: `1px solid ${C.border}` }}>
+                  <div key={s.label} style={{ background: C.bg, borderRadius: 10, padding: "12px 12px", border: `1px solid ${C.border}` }}>
                     <div style={{ fontSize: 10, color: C.muted, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>{s.label}</div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: s.color }}>{s.value}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: s.color }}>{s.value}</div>
                   </div>
                 ))}
               </div>
 
               {/* Invoice summary */}
               {(detail.summary.invoice_total > 0) && (
-                <div style={{ background: C.bg, borderRadius: 10, padding: "14px", border: `1px solid ${C.border}` }}>
+                <div style={{ background: C.bg, borderRadius: 10, padding: "12px", border: `1px solid ${C.border}` }}>
                   <div style={{ fontSize: 10, color: C.muted, marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700 }}>Ringkasan Invoice</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -422,7 +422,7 @@ function DetailPanel({ clientId, onClose, onEdit, onCreateProject }: {
                   </div>
                   <button
                     onClick={onCreateProject}
-                    style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 6, border: "none", background: C.navy, color: "#fff", fontSize: 11, fontWeight: 600, cursor: "pointer" }}
+                    style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, border: "none", background: C.navy, color: "#fff", fontSize: 11, fontWeight: 600, cursor: "pointer" }}
                   >
                     <Plus size={11} /> Buat Proyek
                   </button>
@@ -443,7 +443,7 @@ function DetailPanel({ clientId, onClose, onEdit, onCreateProject }: {
                         <Link
                           key={p.id}
                           href={`/proyek/${p.id}`}
-                          style={{ padding: "12px 14px", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", transition: "box-shadow 0.12s" }}
+                          style={{ padding: "12px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", transition: "box-shadow 0.12s" }}
                           onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,51,102,0.08)"; }}
                           onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; }}
                         >
@@ -549,7 +549,7 @@ export default function KlienPage() {
         </div>
         <button
           onClick={() => { setEditClient(null); setShowModal(true); }}
-          style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 8, border: "none", background: C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
         >
           <Plus size={15} /> Tambah Klien
         </button>
@@ -561,14 +561,14 @@ export default function KlienPage() {
         const perorangan = clients.filter(c => c.client_type === "perorangan").length;
         const perusahaan = clients.filter(c => c.client_type === "perusahaan").length;
         return (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 20 }}>
             {[
               { label: "Klien Aktif", value: String(active), sub: `dari ${clients.length} total`, color: C.navy },
               { label: "Perorangan", value: String(perorangan), sub: "tipe perorangan", color: C.text },
               { label: "Perusahaan", value: String(perusahaan), sub: "tipe badan usaha", color: C.text },
               { label: "Nonaktif", value: String(clients.length - active), sub: "diarsipkan", color: clients.length - active > 0 ? C.muted : C.green },
             ].map(k => (
-              <div key={k.label} style={{ background: "var(--surface)", border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+              <div key={k.label} style={{ background: "var(--surface)", border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 16px", boxShadow: "var(--naik-1)" }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>{k.label}</div>
                 <div style={{ fontSize: 24, fontWeight: 800, color: k.color, lineHeight: 1, fontFamily: "var(--font-display)" }}>{k.value}</div>
                 <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{k.sub}</div>
@@ -579,20 +579,20 @@ export default function KlienPage() {
       })()}
 
       {/* Filter bar */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
         <div style={{ position: "relative", flex: "1 1 260px" }}>
           <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.muted }} />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Cari nama, email, telepon..."
-            style={{ width: "100%", padding: "9px 12px 9px 34px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, color: C.text, background: "var(--surface)", outline: "none" }}
+            style={{ width: "100%", padding: "8px 12px 8px 32px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, color: C.text, background: "var(--surface)", outline: "none" }}
           />
         </div>
         <div style={{ display: "flex", gap: 4 }}>
           {(["all", "perorangan", "perusahaan"] as const).map(t => (
             <button key={t} onClick={() => setFilterType(t)}
-              style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${filterType === t ? C.navy : C.border}`, background: filterType === t ? C.navyLight : "var(--surface)", color: filterType === t ? C.navy : C.mid, fontSize: 12, fontWeight: filterType === t ? 600 : 400, cursor: "pointer" }}>
+              style={{ padding: "8px 12px", borderRadius: 6, border: `1px solid ${filterType === t ? C.navy : C.border}`, background: filterType === t ? C.navyLight : "var(--surface)", color: filterType === t ? C.navy : C.mid, fontSize: 12, fontWeight: filterType === t ? 600 : 400, cursor: "pointer" }}>
               {t === "all" ? "Semua" : t === "perorangan" ? "Perorangan" : "Perusahaan"}
             </button>
           ))}
@@ -600,20 +600,20 @@ export default function KlienPage() {
       </div>
 
       {/* Table */}
-      <div style={{ background: "var(--surface)", borderRadius: 12, border: `1px solid ${C.border}`, overflow: "hidden" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 10, border: `1px solid ${C.border}`, overflow: "hidden" }}>
         {loading ? (
           <div style={{ padding: 40, textAlign: "center", color: C.muted, fontSize: 13 }}>Memuat data klien...</div>
         ) : filtered.length === 0 ? (
           <div style={{ padding: 40, textAlign: "center", color: C.muted }}>
             <Users size={32} style={{ marginBottom: 10, opacity: 0.3 }} />
-            <div style={{ fontSize: 14, fontWeight: 500 }}>Tidak ada klien ditemukan</div>
+            <div style={{ fontSize: 13, fontWeight: 500 }}>Tidak ada klien ditemukan</div>
           </div>
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: C.bg, borderBottom: `1px solid ${C.border}` }}>
                 {["Klien", "Kontak", "Tipe", "Status", ""].map((h, i) => (
-                  <th key={i} style={{ padding: "10px 16px", fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.07em", textAlign: "left" }}>
+                  <th key={i} style={{ padding: "8px 16px", fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.07em", textAlign: "left" }}>
                     {h}
                   </th>
                 ))}
@@ -629,7 +629,7 @@ export default function KlienPage() {
                 >
                   {/* Nama */}
                   <td style={{ padding: "12px 16px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <div style={{ width: 34, height: 34, borderRadius: 10, background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         {c.client_type === "perusahaan" ? <Building2 size={15} color={C.navy} /> : <User size={15} color={C.navy} />}
                       </div>
@@ -674,13 +674,13 @@ export default function KlienPage() {
                   </td>
                   {/* Tipe */}
                   <td style={{ padding: "12px 16px" }}>
-                    <span style={{ fontSize: 11, padding: "3px 9px", borderRadius: 99, background: c.client_type === "perusahaan" ? "var(--info-bg)" : "var(--success-bg)", color: c.client_type === "perusahaan" ? "var(--info)" : C.green, fontWeight: 500 }}>
+                    <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: c.client_type === "perusahaan" ? "var(--info-bg)" : "var(--success-bg)", color: c.client_type === "perusahaan" ? "var(--info)" : C.green, fontWeight: 500 }}>
                       {c.client_type === "perusahaan" ? "Perusahaan" : "Perorangan"}
                     </span>
                   </td>
                   {/* Status */}
                   <td style={{ padding: "12px 16px" }}>
-                    <span style={{ fontSize: 11, padding: "3px 9px", borderRadius: 99, background: c.is_active ? C.greenBg : "var(--surface-hover)", color: c.is_active ? C.green : C.mid, fontWeight: 500 }}>
+                    <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: c.is_active ? C.greenBg : "var(--surface-hover)", color: c.is_active ? C.green : C.mid, fontWeight: 500 }}>
                       {c.is_active ? "Aktif" : "Nonaktif"}
                     </span>
                   </td>

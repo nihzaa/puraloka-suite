@@ -131,10 +131,10 @@ export function PenandaLokasi({ foto, proyek, ringkas = false }: {
 
   return (
     <div style={{
-      display: "flex", flexDirection: "column", gap: 3,
-      fontSize: 11.5, color: C.mid,
+      display: "flex", flexDirection: "column", gap: 2,
+      fontSize: 11, color: C.mid,
     }}>
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: warna }}>
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: warna }}>
         {diLokasi === false
           ? <TriangleAlert size={12} aria-hidden="true" />
           : <MapPin size={12} aria-hidden="true" />}

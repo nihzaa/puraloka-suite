@@ -59,7 +59,7 @@ export default function PortalNotifPage() {
             onClick={markAllRead}
             style={{
               display: "flex", alignItems: "center", gap: 6,
-              padding: "7px 14px", borderRadius: 8,
+              padding: "6px 12px", borderRadius: 6,
               border: `1px solid ${C.border}`, background: C.surface,
               fontSize: 13, color: C.mid, cursor: "pointer",
             }}
@@ -73,7 +73,7 @@ export default function PortalNotifPage() {
 
       {!loading && notifs.length === 0 && (
         <div style={{
-          background: C.surface, borderRadius: 12, padding: 60,
+          background: C.surface, borderRadius: 10, padding: 60,
           border: `1px solid ${C.border}`, textAlign: "center",
         }}>
           <Bell size={36} color={C.muted} style={{ marginBottom: 12 }} />
@@ -95,7 +95,7 @@ export default function PortalNotifPage() {
               }
             }}
             style={{
-              background: C.surface, borderRadius: 12, padding: 16,
+              background: C.surface, borderRadius: 10, padding: 16,
               border: `1px solid ${C.border}`,
               borderLeft: !n.is_read ? `3px solid ${C.navy}` : `1px solid ${C.border}`,
               cursor: !n.is_read ? "pointer" : "default",
@@ -104,7 +104,7 @@ export default function PortalNotifPage() {
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: n.is_read ? 400 : 600, color: C.text }}>{n.title}</div>
+                <div style={{ fontSize: 13, fontWeight: n.is_read ? 400 : 600, color: C.text }}>{n.title}</div>
                 <div style={{ fontSize: 13, color: C.mid, marginTop: 4, lineHeight: 1.5 }}>{n.body}</div>
               </div>
               {!n.is_read && (

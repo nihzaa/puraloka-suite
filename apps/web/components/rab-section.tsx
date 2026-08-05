@@ -55,9 +55,9 @@ const fmtCompact = (n: number) => {
 
 function ProgressBar({ pct, color = C.navy }: { pct: number; color?: string }) {
   return (
-    <div style={{ height: 6, borderRadius: 3, background: "var(--border)", overflow: "hidden" }}>
+    <div style={{ height: 6, borderRadius: 0, background: "var(--border)", overflow: "hidden" }}>
       <div style={{
-        height: "100%", borderRadius: 3,
+        height: "100%", borderRadius: 0,
         width: `${Math.min(100, Math.max(0, pct))}%`,
         background: pct >= 100 ? C.green : pct >= 60 ? color : pct >= 30 ? C.yellow : C.red,
         transition: "width 0.4s ease",
@@ -72,7 +72,7 @@ function KomponenBar({ mat, upah, alat, other }: { mat: number; upah: number; al
   const total = mat + upah + alat + other;
   if (total === 0) return null;
   return (
-    <div style={{ display: "flex", height: 5, borderRadius: 3, overflow: "hidden", gap: 1 }}>
+    <div style={{ display: "flex", height: 5, borderRadius: 0, overflow: "hidden", gap: 0 }}>
       {mat > 0 && <div style={{ flex: mat, background: "var(--info)" }} title={`Material ${mat}%`} />}
       {upah > 0 && <div style={{ flex: upah, background: "var(--success)" }} title={`Upah ${upah}%`} />}
       {alat > 0 && <div style={{ flex: alat, background: "var(--warning)" }} title={`Alat ${alat}%`} />}
@@ -411,7 +411,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
       : null;
 
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 3, alignItems: "flex-end" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 2, alignItems: "flex-end" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
           <input
             type="number" min="0" max="100" step="1"
@@ -420,15 +420,15 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
             onChange={e => onChange(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter") onSave(); if (e.key === "Escape") onEscape(); }}
             style={{
-              width: 56, padding: "3px 5px", fontSize: 12, textAlign: "right",
+              width: 56, padding: "2px 4px", fontSize: 12, textAlign: "right",
               border: isDirty ? `1.5px solid ${C.navy}` : `1px solid var(--border)`,
-              borderRadius: 5, color: C.text, background: "var(--surface)", outline: "none",
+              borderRadius: 6, color: C.text, background: "var(--surface)", outline: "none",
             }}
           />
           <span style={{ fontSize: 11, color: C.mid }}>%</span>
           {isDirty && (
             <button onClick={onSave} disabled={isSaving}
-              style={{ padding: "2px 7px", fontSize: 11, fontWeight: 600, background: C.navy, color: "#fff", border: "none", borderRadius: 5, cursor: "pointer", opacity: isSaving ? 0.6 : 1 }}>
+              style={{ padding: "2px 6px", fontSize: 11, fontWeight: 600, background: C.navy, color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", opacity: isSaving ? 0.6 : 1 }}>
               {isSaving ? "..." : "Simpan"}
             </button>
           )}
@@ -457,7 +457,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
 
       return (
         <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 200 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 3 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 2 }}>
             {[
               { key: "mat", label: "Mat.", color: "var(--info)" },
               { key: "upah", label: "Upah", color: "var(--success)" },
@@ -465,15 +465,15 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
               { key: "other", label: "Lain", color: "var(--aksen)" },
             ].map(({ key, label, color }) => (
               <div key={key} style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 9, color, fontWeight: 700, marginBottom: 2 }}>{label}</div>
-                <div style={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <div style={{ fontSize: 10, color, fontWeight: 700, marginBottom: 2 }}>{label}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
                   <input
                     type="number" min="0" max="100" step="0.5"
                     value={editing[key as keyof typeof editing]}
                     onChange={e => setEditingKomponen(prev => ({ ...prev, [item.id]: { ...prev[item.id], [key]: e.target.value } }))}
                     style={{
-                      width: "100%", padding: "2px 3px", fontSize: 11, textAlign: "center",
-                      border: `1px solid ${color}`, borderRadius: 4, outline: "none",
+                      width: "100%", padding: "2px 2px", fontSize: 11, textAlign: "center",
+                      border: `1px solid ${color}`, borderRadius: 6, outline: "none",
                     }}
                   />
                 </div>
@@ -484,13 +484,13 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
             <span style={{ fontSize: 10, color: totalOk ? C.green : C.red, fontWeight: 600 }}>
               Total: {total.toFixed(1)}%
             </span>
-            <div style={{ display: "flex", gap: 3 }}>
+            <div style={{ display: "flex", gap: 2 }}>
               <button onClick={() => { setEditingKomponen(prev => { const n = { ...prev }; delete n[item.id]; return n; }); }}
-                style={{ padding: "2px 6px", fontSize: 10, border: "1px solid var(--border)", borderRadius: 4, background: "var(--surface)", cursor: "pointer", color: C.mid }}>
+                style={{ padding: "2px 6px", fontSize: 10, border: "1px solid var(--border)", borderRadius: 6, background: "var(--surface)", cursor: "pointer", color: C.mid }}>
                 Batal
               </button>
               <button onClick={() => saveKomponen(item)} disabled={!totalOk || isSaving}
-                style={{ padding: "2px 6px", fontSize: 10, fontWeight: 600, background: totalOk ? C.navy : "var(--text-muted)", color: "var(--surface)", border: "none", borderRadius: 4, cursor: totalOk ? "pointer" : "not-allowed" }}>
+                style={{ padding: "2px 6px", fontSize: 10, fontWeight: 600, background: totalOk ? C.navy : "var(--text-muted)", color: "var(--surface)", border: "none", borderRadius: 6, cursor: totalOk ? "pointer" : "not-allowed" }}>
                 {isSaving ? "..." : "Simpan"}
               </button>
             </div>
@@ -517,7 +517,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
 
     return (
       <button onClick={() => startEditKomponen(item)}
-        style={{ fontSize: 10, color: C.mid, background: "none", border: "1px dashed var(--border-strong)", borderRadius: 4, padding: "2px 6px", cursor: "pointer", whiteSpace: "nowrap" }}>
+        style={{ fontSize: 10, color: C.mid, background: "none", border: "1px dashed var(--border-strong)", borderRadius: 6, padding: "2px 6px", cursor: "pointer", whiteSpace: "nowrap" }}>
         + Isi %
       </button>
     );
@@ -542,7 +542,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
       return (
         <div key={cat.id}>
           <div
-            style={{ display: "grid", gridTemplateColumns: gridCols, gap: 6, alignItems: "center", padding: "10px 14px", background: C.navyLight, borderBottom: "1px solid var(--border-strong)", cursor: hasChildren ? "pointer" : "default" }}
+            style={{ display: "grid", gridTemplateColumns: gridCols, gap: 6, alignItems: "center", padding: "8px 12px", background: C.navyLight, borderBottom: "1px solid var(--border-strong)", cursor: hasChildren ? "pointer" : "default" }}
             {...dapatDitekan(
               hasChildren ? () => toggleCollapse(cat.id) : null,
               `${isCollapsed ? "Buka" : "Lipat"} kategori ${cat.name}`,
@@ -569,7 +569,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
               return (
                 <div key={child.id}>
                   <div
-                    style={{ display: "grid", gridTemplateColumns: gridCols, gap: 6, alignItems: "center", padding: "8px 14px 8px 28px", background: "var(--bg)", borderBottom: "1px solid var(--border)", cursor: subChildren.length > 0 ? "pointer" : "default" }}
+                    style={{ display: "grid", gridTemplateColumns: gridCols, gap: 6, alignItems: "center", padding: "8px 12px 8px 28px", background: "var(--bg)", borderBottom: "1px solid var(--border)", cursor: subChildren.length > 0 ? "pointer" : "default" }}
                     {...dapatDitekan(
                       subChildren.length > 0 ? () => toggleCollapse(child.id) : null,
                       `${subCollapsed ? "Buka" : "Lipat"} sub-kategori ${child.name}`,
@@ -630,7 +630,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
         {!hideHeader && (
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <BarChart2 size={18} color="var(--surface)" />
             </div>
@@ -666,7 +666,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
               onClick={() => setShowKomponen(s => !s)}
               style={{
                 display: "flex", alignItems: "center", gap: 6,
-                padding: "7px 12px", borderRadius: 8, fontSize: 12, fontWeight: 500,
+                padding: "6px 12px", borderRadius: 6, fontSize: 12, fontWeight: 500,
                 background: showKomponen ? C.navyLight : "var(--surface)",
                 color: showKomponen ? C.navy : C.mid,
                 border: `1px solid ${showKomponen ? C.navy : "var(--border)"}`,
@@ -676,7 +676,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
               <Percent size={13} />
               {showKomponen ? "Sembunyikan Komponen" : "Isi Komponen Biaya"}
               {komponenSetCount > 0 && komponenSetCount < itemCount && (
-                <span style={{ background: C.yellow, color: "var(--surface)", borderRadius: 10, padding: "1px 5px", fontSize: 10 }}>
+                <span style={{ background: C.yellow, color: "var(--surface)", borderRadius: 10, padding: "0px 4px", fontSize: 10 }}>
                   {itemCount - komponenSetCount} belum
                 </span>
               )}
@@ -692,7 +692,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
               <button aria-label="Refresh"
                 onClick={() => fileRef.current?.click()}
                 disabled={uploading}
-                style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, background: uploading ? "var(--text-muted)" : C.navy, color: "var(--surface)", border: "none", cursor: uploading ? "not-allowed" : "pointer" }}
+                style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 6, fontSize: 12, fontWeight: 600, background: uploading ? "var(--text-muted)" : C.navy, color: "var(--surface)", border: "none", cursor: uploading ? "not-allowed" : "pointer" }}
                 onMouseEnter={e => { if (!uploading) e.currentTarget.style.background = "var(--aksen-pekat)"; }}
                 onMouseLeave={e => { if (!uploading) e.currentTarget.style.background = C.navy; }}
               >
@@ -701,7 +701,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
               </button>
               {hasData && (
                 <button aria-label="Refresh" onClick={load}
-                  style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 10px", borderRadius: 8, fontSize: 12, background: "transparent", color: C.mid, border: "1px solid var(--border)", cursor: "pointer" }}
+                  style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 8px", borderRadius: 6, fontSize: 12, background: "transparent", color: C.mid, border: "1px solid var(--border)", cursor: "pointer" }}
                   title="Refresh">
                   <RefreshCw size={13} />
                 </button>
@@ -713,14 +713,14 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
 
       {/* Messages */}
       {uploadMsg && (
-        <div style={{ marginBottom: 12, padding: "10px 14px", borderRadius: 8, background: C.greenBg, border: `1px solid ${C.greenBorder}`, fontSize: 13, color: C.green, fontWeight: 500 }}>
+        <div style={{ marginBottom: 12, padding: "8px 12px", borderRadius: 6, background: C.greenBg, border: `1px solid ${C.greenBorder}`, fontSize: 13, color: C.green, fontWeight: 500 }}>
           {uploadMsg}
         </div>
       )}
       {error && (
-        <div style={{ marginBottom: 12, padding: "10px 14px", borderRadius: 8, background: C.redBg, border: `1px solid ${C.redBorder}`, fontSize: 13, color: C.red }}>
+        <div style={{ marginBottom: 12, padding: "8px 12px", borderRadius: 6, background: C.redBg, border: `1px solid ${C.redBorder}`, fontSize: 13, color: C.red }}>
           {error}
-          <button onClick={() => setError(null)} style={{ float: "right", background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 16, lineHeight: 1 }}>×</button>
+          <button onClick={() => setError(null)} style={{ float: "right", background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 15, lineHeight: 1 }}>×</button>
         </div>
       )}
 
@@ -742,7 +742,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
            menjaga label tetap murni sebagai pemicu unggah. */
         <div onDrop={handleDrop} onDragOver={e => e.preventDefault()}>
         <label
-          style={{ padding: "40px 24px", textAlign: "center", border: "2px dashed var(--border)", borderRadius: 12, display: "block", background: "var(--surface-subtle)", cursor: canEdit ? "pointer" : "default" }}
+          style={{ padding: "40px 24px", textAlign: "center", border: "2px dashed var(--border)", borderRadius: 10, display: "block", background: "var(--surface-subtle)", cursor: canEdit ? "pointer" : "default" }}
         >
           {canEdit && (
             <input
@@ -751,7 +751,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
             />
           )}
           <Upload size={28} color={C.muted} style={{ marginBottom: 10 }} />
-          <p style={{ fontSize: 14, fontWeight: 600, color: C.text, marginBottom: 4 }}>Belum ada data RAB</p>
+          <p style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4 }}>Belum ada data RAB</p>
           <p style={{ fontSize: 12, color: C.muted }}>
             {canEdit ? "Upload file Excel RAB (.xlsx) atau drag & drop ke sini" : "Belum ada data RAB untuk proyek ini"}
           </p>
@@ -761,14 +761,14 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
 
       {/* Overall progress summary */}
       {hasData && categories.length > 0 && (
-        <div style={{ marginBottom: 16, padding: "14px 18px", borderRadius: 10, background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))", display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
+        <div style={{ marginBottom: 16, padding: "12px 16px", borderRadius: 10, background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))", display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
           <div>
             <p style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", margin: "0 0 2px" }}>Serapan Dana (Weighted)</p>
             <p style={{ fontSize: 28, fontWeight: 700, color: "#fff", margin: 0, lineHeight: 1 }}>{overallSerapan.toFixed(1)}%</p>
           </div>
           <div style={{ flex: 1, minWidth: 120 }}>
-            <div style={{ height: 8, borderRadius: 4, background: "rgba(255,255,255,0.2)", overflow: "hidden" }}>
-              <div style={{ height: "100%", borderRadius: 4, width: `${Math.min(100, overallSerapan)}%`, background: overallSerapan >= 100 ? "var(--success)" : "var(--info)", transition: "width 0.5s ease" }} />
+            <div style={{ height: 8, borderRadius: 6, background: "rgba(255,255,255,0.2)", overflow: "hidden" }}>
+              <div style={{ height: "100%", borderRadius: 6, width: `${Math.min(100, overallSerapan)}%`, background: overallSerapan >= 100 ? "var(--success)" : "var(--info)", transition: "width 0.5s ease" }} />
             </div>
             <p style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", margin: "6px 0 0" }}>Dari {categories.length} kategori RAB</p>
           </div>
@@ -790,7 +790,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
       {/* Table */}
       {hasData && (
         <div style={{ borderRadius: 10, border: "1px solid var(--border)", overflow: "hidden" }}>
-          <div style={{ display: "grid", gridTemplateColumns: gridCols, gap: 6, padding: "8px 14px", background: "var(--surface-hover)", borderBottom: "1px solid var(--border)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: gridCols, gap: 6, padding: "8px 12px", background: "var(--surface-hover)", borderBottom: "1px solid var(--border)" }}>
             {headerCols.map((h, i) => (
               <div key={i} style={{ fontSize: 11, fontWeight: 700, color: C.mid, textAlign: i >= 2 && i < 8 ? "right" : "left" }}>{h}</div>
             ))}
@@ -800,7 +800,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
             {renderItems()}
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: gridCols, gap: 6, padding: "10px 14px", background: "var(--bg)", borderTop: "2px solid var(--border)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: gridCols, gap: 6, padding: "8px 12px", background: "var(--bg)", borderTop: "2px solid var(--border)" }}>
             <div />
             <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>TOTAL RAB</span>
             <div /><div /><div />

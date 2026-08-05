@@ -70,7 +70,7 @@ export function NavBagian({ bagian }: { bagian: Bagian[] }) {
             aria-current={aktif ? "page" : undefined}
             style={{
               display: "flex", alignItems: "center", gap: 6,
-              padding: "10px 14px", fontSize: 13,
+              padding: "8px 12px", fontSize: 13,
               fontWeight: aktif ? 600 : 500,
               color: aktif ? "var(--aksen)" : "var(--text-secondary)",
               borderBottom: `2px solid ${aktif ? "var(--aksen)" : "transparent"}`,
@@ -85,7 +85,7 @@ export function NavBagian({ bagian }: { bagian: Bagian[] }) {
               <span
                 style={{
                   fontSize: 11, fontWeight: 700, lineHeight: 1,
-                  padding: "3px 6px", borderRadius: 99,
+                  padding: "2px 6px", borderRadius: 99,
                   fontVariantNumeric: "tabular-nums",
                   background: b.mendesak ? "var(--danger-bg)" : "var(--surface-hover)",
                   color: b.mendesak ? "var(--on-danger-bg)" : "var(--text-secondary)",

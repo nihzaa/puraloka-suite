@@ -98,7 +98,7 @@ export default function UsersPage() {
           <p style={{ margin: "4px 0 0", fontSize: 13, color: C.muted }}>Kelola akun pengguna aplikasi Puraloka Suite</p>
         </div>
         {isAdmin && (
-          <button onClick={() => setShowAdd(true)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 8, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
+          <button onClick={() => setShowAdd(true)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
             <Plus size={14} /> Tambah User
           </button>
         )}
@@ -110,7 +110,7 @@ export default function UsersPage() {
           const Icon = r.icon;
           return (
             <button key={r.key} onClick={() => setFilterRole(filterRole === r.key ? "all" : r.key)}
-              style={{ padding: "14px 16px", borderRadius: 10, border: `2px solid ${filterRole === r.key ? r.color : C.border}`, background: filterRole === r.key ? r.bg : "var(--surface)", cursor: "pointer", textAlign: "left", transition: "all 0.15s" }}>
+              style={{ padding: "12px 16px", borderRadius: 10, border: `2px solid ${filterRole === r.key ? r.color : C.border}`, background: filterRole === r.key ? r.bg : "var(--surface)", cursor: "pointer", textAlign: "left", transition: "all 0.15s" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                 <Icon size={14} color={r.color} />
                 <span style={{ fontSize: 11, fontWeight: 600, color: r.color }}>{r.label}</span>
@@ -122,14 +122,14 @@ export default function UsersPage() {
       </div>
 
       {/* Search + filter */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
         <div style={{ flex: 1, position: "relative" }}>
           <Search size={14} color={C.muted} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari nama, email, atau telepon..."
-            style={{ width: "100%", padding: "9px 12px 9px 34px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box", background: "var(--surface)" }} />
+            style={{ width: "100%", padding: "8px 12px 8px 32px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box", background: "var(--surface)" }} />
         </div>
         {filterRole !== "all" && (
-          <button onClick={() => setFilterRole("all")} style={{ padding: "9px 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 12, color: C.mid, display: "flex", alignItems: "center", gap: 6 }}>
+          <button onClick={() => setFilterRole("all")} style={{ padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 12, color: C.mid, display: "flex", alignItems: "center", gap: 6 }}>
             <X size={12} /> Reset filter
           </button>
         )}
@@ -144,13 +144,13 @@ export default function UsersPage() {
           <div style={{ fontWeight: 600 }}>Tidak ada user ditemukan</div>
         </div>
       ) : (
-        <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden", background: "var(--surface)" }}>
+        <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden", background: "var(--surface)" }}>
           {filtered.map((u, i) => {
             const ri = roleInfo(u.role);
             const Icon = ri.icon;
             const isSelf = u.id === currentUser?.id;
             return (
-              <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", borderBottom: i < filtered.length - 1 ? `1px solid ${C.border}` : "none", opacity: u.is_active ? 1 : 0.55 }}>
+              <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: i < filtered.length - 1 ? `1px solid ${C.border}` : "none", opacity: u.is_active ? 1 : 0.55 }}>
                 {/* Avatar */}
                 <div style={{ width: 40, height: 40, borderRadius: "50%", background: ri.bg, border: `1.5px solid ${ri.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <span style={{ fontSize: 15, fontWeight: 700, color: ri.color }}>{u.name[0].toUpperCase()}</span>
@@ -159,9 +159,9 @@ export default function UsersPage() {
                 {/* Info */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{u.name}</span>
-                    {isSelf && <span style={{ fontSize: 10, padding: "1px 7px", borderRadius: 8, background: C.navyLight, color: C.navy, fontWeight: 600 }}>Anda</span>}
-                    {!u.is_active && <span style={{ fontSize: 10, padding: "1px 7px", borderRadius: 8, background: C.redBg, color: C.red, fontWeight: 600 }}>Nonaktif</span>}
+                    <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{u.name}</span>
+                    {isSelf && <span style={{ fontSize: 10, padding: "0px 6px", borderRadius: 6, background: C.navyLight, color: C.navy, fontWeight: 600 }}>Anda</span>}
+                    {!u.is_active && <span style={{ fontSize: 10, padding: "0px 6px", borderRadius: 6, background: C.redBg, color: C.red, fontWeight: 600 }}>Nonaktif</span>}
                   </div>
                   <div style={{ display: "flex", gap: 12, marginTop: 3, flexWrap: "wrap" }}>
                     <span style={{ fontSize: 12, color: C.muted, display: "flex", alignItems: "center", gap: 4 }}>
@@ -176,7 +176,7 @@ export default function UsersPage() {
                 </div>
 
                 {/* Role badge */}
-                <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 20, background: ri.bg, border: `1px solid ${ri.border}` }}>
+                <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 20, background: ri.bg, border: `1px solid ${ri.border}` }}>
                   <Icon size={11} color={ri.color} />
                   <span style={{ fontSize: 11, fontWeight: 600, color: ri.color }}>{ri.label}</span>
                 </div>
@@ -185,12 +185,12 @@ export default function UsersPage() {
                 {isAdmin && (
                   <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                     <button onClick={() => setEditUser(u)}
-                      style={{ padding: "6px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 12, color: C.mid, display: "flex", alignItems: "center", gap: 4 }}>
+                      style={{ padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 12, color: C.mid, display: "flex", alignItems: "center", gap: 4 }}>
                       <Edit2 size={12} /> Edit
                     </button>
                     {!isSelf && (
                       <button onClick={() => toggleActive(u)}
-                        style={{ padding: "6px 10px", borderRadius: 7, border: `1px solid ${u.is_active ? C.redBorder : C.greenBorder}`, background: u.is_active ? C.redBg : C.greenBg, cursor: "pointer", fontSize: 12, color: u.is_active ? C.red : C.green, display: "flex", alignItems: "center", gap: 4 }}>
+                        style={{ padding: "6px 8px", borderRadius: 6, border: `1px solid ${u.is_active ? C.redBorder : C.greenBorder}`, background: u.is_active ? C.redBg : C.greenBg, cursor: "pointer", fontSize: 12, color: u.is_active ? C.red : C.green, display: "flex", alignItems: "center", gap: 4 }}>
                         {u.is_active ? <><UserX size={12} /> Nonaktifkan</> : <><UserCheck size={12} /> Aktifkan</>}
                       </button>
                     )}
@@ -223,7 +223,7 @@ function AddUserModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const inputStyle: React.CSSProperties = { width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box", background: "var(--surface)" };
+  const inputStyle: React.CSSProperties = { width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box", background: "var(--surface)" };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -242,16 +242,16 @@ function AddUserModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
   return createPortal(
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 460, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 460, boxShadow: "var(--naik-3)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: `1px solid ${C.border}` }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Tambah User Baru</h2>
+            <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>Tambah User Baru</h2>
             <p style={{ margin: 0, fontSize: 12, color: C.muted, marginTop: 2 }}>User akan langsung bisa login setelah dibuat</p>
           </div>
           <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
         </div>
-        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
-          {error && <div style={{ padding: "10px 14px", borderRadius: 8, background: C.redBg, color: C.red, fontSize: 13, border: `1px solid ${C.redBorder}` }}>{error}</div>}
+        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 12 }}>
+          {error && <div style={{ padding: "8px 12px", borderRadius: 6, background: C.redBg, color: C.red, fontSize: 13, border: `1px solid ${C.redBorder}` }}>{error}</div>}
           <div>
             <label htmlFor="name" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Nama Lengkap</label>
             <input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="cth: Budi Santoso" style={inputStyle} required />
@@ -276,7 +276,7 @@ function AddUserModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
                 const active = role === r.key;
                 return (
                   <button key={r.key} type="button" onClick={() => setRole(r.key)}
-                    style={{ padding: "10px 12px", borderRadius: 8, border: `2px solid ${active ? r.color : C.border}`, background: active ? r.bg : "var(--surface)", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 8 }}>
+                    style={{ padding: "8px 12px", borderRadius: 6, border: `2px solid ${active ? r.color : C.border}`, background: active ? r.bg : "var(--surface)", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 8 }}>
                     <Icon size={14} color={active ? r.color : C.muted} />
                     <span style={{ fontSize: 12, fontWeight: active ? 700 : 400, color: active ? r.color : C.mid }}>{r.label}</span>
                   </button>
@@ -284,9 +284,9 @@ function AddUserModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
               })}
             </div>
           </div>
-          <div style={{ display: "flex", gap: 10, paddingTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13, color: C.mid }}>Batal</button>
-            <button type="submit" disabled={loading} style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: C.navy, color: "var(--surface)", cursor: loading ? "wait" : "pointer", fontSize: 13, fontWeight: 600 }}>
+          <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
+            <button type="button" onClick={onClose} style={{ flex: 1, padding: "8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13, color: C.mid }}>Batal</button>
+            <button type="submit" disabled={loading} style={{ flex: 2, padding: "8px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: loading ? "wait" : "pointer", fontSize: 13, fontWeight: 600 }}>
               {loading ? "Mendaftarkan..." : "Buat Akun"}
             </button>
           </div>
@@ -309,7 +309,7 @@ function EditUserModal({ user, onClose, onSuccess }: { user: UserRecord; onClose
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const inputStyle: React.CSSProperties = { width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box", background: "var(--surface)" };
+  const inputStyle: React.CSSProperties = { width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box", background: "var(--surface)" };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -327,16 +327,16 @@ function EditUserModal({ user, onClose, onSuccess }: { user: UserRecord; onClose
   return createPortal(
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 440, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 440, boxShadow: "var(--naik-3)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: `1px solid ${C.border}` }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Edit Data User</h2>
+            <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>Edit Data User</h2>
             <p style={{ margin: 0, fontSize: 12, color: C.muted, marginTop: 2 }}>{user.email}</p>
           </div>
           <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
         </div>
-        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
-          {error && <div style={{ padding: "10px 14px", borderRadius: 8, background: C.redBg, color: C.red, fontSize: 13, border: `1px solid ${C.redBorder}` }}>{error}</div>}
+        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 12 }}>
+          {error && <div style={{ padding: "8px 12px", borderRadius: 6, background: C.redBg, color: C.red, fontSize: 13, border: `1px solid ${C.redBorder}` }}>{error}</div>}
           <div>
             <label htmlFor="name-2" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Nama Lengkap</label>
             <input id="name-2" value={name} onChange={e => setName(e.target.value)} style={inputStyle} required />
@@ -353,7 +353,7 @@ function EditUserModal({ user, onClose, onSuccess }: { user: UserRecord; onClose
                 const active = role === r.key;
                 return (
                   <button key={r.key} type="button" onClick={() => setRole(r.key)}
-                    style={{ padding: "10px 12px", borderRadius: 8, border: `2px solid ${active ? r.color : C.border}`, background: active ? r.bg : "var(--surface)", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 8 }}>
+                    style={{ padding: "8px 12px", borderRadius: 6, border: `2px solid ${active ? r.color : C.border}`, background: active ? r.bg : "var(--surface)", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 8 }}>
                     <Icon size={14} color={active ? r.color : C.muted} />
                     <span style={{ fontSize: 12, fontWeight: active ? 700 : 400, color: active ? r.color : C.mid }}>{r.label}</span>
                   </button>
@@ -361,9 +361,9 @@ function EditUserModal({ user, onClose, onSuccess }: { user: UserRecord; onClose
               })}
             </div>
           </div>
-          <div style={{ display: "flex", gap: 10, paddingTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13, color: C.mid }}>Batal</button>
-            <button type="submit" disabled={loading} style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: C.navy, color: "var(--surface)", cursor: loading ? "wait" : "pointer", fontSize: 13, fontWeight: 600 }}>
+          <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
+            <button type="button" onClick={onClose} style={{ flex: 1, padding: "8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13, color: C.mid }}>Batal</button>
+            <button type="submit" disabled={loading} style={{ flex: 2, padding: "8px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: loading ? "wait" : "pointer", fontSize: 13, fontWeight: 600 }}>
               {loading ? "Menyimpan..." : "Simpan Perubahan"}
             </button>
           </div>

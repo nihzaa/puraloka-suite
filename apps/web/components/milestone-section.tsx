@@ -168,7 +168,7 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
         background: "var(--surface)",
         border: "1px solid var(--border)",
         borderRadius: 14,
-        boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+        boxShadow: "var(--naik-1)",
         padding: 24,
       }}>
         {/* Header */}
@@ -177,11 +177,11 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
           gap: 12, marginBottom: 20,
         }}>
           <h2 style={{
-            display: "flex", alignItems: "center", gap: 10,
+            display: "flex", alignItems: "center", gap: 8,
             fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 600,
             color: "var(--text-primary)", margin: 0,
           }}>
-            <span style={{ width: 3, height: 16, background: "var(--navy)", borderRadius: 2, flexShrink: 0 }} />
+            <span style={{ width: 3, height: 16, background: "var(--navy)", borderRadius: 0, flexShrink: 0 }} />
             <Flag size={16} style={{ color: "var(--navy)" }} />
             Milestone
             {total > 0 && !loading && (
@@ -199,7 +199,7 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
               onClick={() => { setEditTarget(null); setModalOpen(true); }}
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "8px 14px", borderRadius: 10, border: "none",
+                padding: "8px 12px", borderRadius: 10, border: "none",
                 background: "var(--navy)", color: "var(--surface)",
                 fontSize: 13, fontWeight: 600, cursor: "pointer",
                 transition: "background 0.15s", flexShrink: 0,
@@ -233,10 +233,10 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
 
         {/* Loading skeleton */}
         {loading && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {[1, 2, 3].map(i => (
               <div key={i} style={{
-                height: 56, borderRadius: 12,
+                height: 56, borderRadius: 10,
                 background: "linear-gradient(90deg, var(--surface-hover) 0%, var(--border) 50%, var(--surface-hover) 100%)",
                 backgroundSize: "200% 100%",
                 animation: "shimmer 1.4s infinite",
@@ -249,11 +249,11 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
         {!loading && milestones.length === 0 && (
           <div style={{
             padding: "40px 16px", textAlign: "center",
-            border: "1.5px dashed #e2e8f0", borderRadius: 12,
+            border: "1.5px dashed #e2e8f0", borderRadius: 10,
             background: "var(--surface-subtle)",
           }}>
             <CalendarDays size={32} style={{ color: "var(--data-diam)", margin: "0 auto 12px" }} />
-            <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-muted)", margin: "0 0 4px" }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)", margin: "0 0 4px" }}>
               Belum ada milestone
             </p>
             <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>
@@ -276,7 +276,7 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
                   key={m.id}
                   style={{
                     display: "flex", alignItems: "flex-start", gap: 12,
-                    padding: "12px 14px", borderRadius: 12,
+                    padding: "12px 12px", borderRadius: 10,
                     border: "1px solid",
                     borderColor: isSelesai ? "var(--success-border)" : "var(--surface-hover)",
                     background: isSelesai ? "var(--success-bg)" : "var(--surface-subtle)",
@@ -356,7 +356,7 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
                           setOpenMenuId(openMenuId === m.id ? null : m.id);
                         }}
                         style={{
-                          width: 28, height: 28, borderRadius: 7, border: "none",
+                          width: 28, height: 28, borderRadius: 6, border: "none",
                           background: "transparent", cursor: "pointer",
                           display: "flex", alignItems: "center", justifyContent: "center",
                           color: "var(--text-muted)", transition: "background 0.15s",
@@ -374,7 +374,7 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
                             marginTop: 4, minWidth: 140,
                             background: "white", borderRadius: 10,
                             border: "1px solid #e2e8f0",
-                            boxShadow: "0 8px 24px -4px rgba(0,0,0,0.12)",
+                            boxShadow: "var(--naik-2)",
                             overflow: "hidden",
                           }}
                           onClick={e => e.stopPropagation()}
@@ -383,7 +383,7 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
                             type="button"
                             onClick={() => { setEditTarget(m); setModalOpen(true); setOpenMenuId(null); }}
                             style={{
-                              width: "100%", padding: "9px 14px", border: "none",
+                              width: "100%", padding: "8px 12px", border: "none",
                               background: "none", textAlign: "left", cursor: "pointer",
                               fontSize: 13, color: "var(--text-secondary)",
                               display: "flex", alignItems: "center", gap: 8,
@@ -398,7 +398,7 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
                             type="button"
                             onClick={() => { setDeleteId(m.id); setOpenMenuId(null); }}
                             style={{
-                              width: "100%", padding: "9px 14px", border: "none",
+                              width: "100%", padding: "8px 12px", border: "none",
                               background: "none", textAlign: "left", cursor: "pointer",
                               fontSize: 13, color: "var(--danger)",
                               display: "flex", alignItems: "center", gap: 8,
@@ -448,17 +448,17 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
             <div style={{
               position: "relative", width: "100%", maxWidth: 420,
               background: "white", borderRadius: 18, overflow: "hidden",
-              boxShadow: "0 24px 64px -12px rgba(0,0,0,0.22)",
+              boxShadow: "var(--naik-3)",
             }}>
               <div style={{ height: 4, background: "linear-gradient(90deg, var(--danger), var(--danger))" }} />
               <div style={{ padding: "24px 24px 20px" }}>
                 <div style={{
-                  width: 44, height: 44, borderRadius: 12, background: "var(--danger-bg)",
+                  width: 44, height: 44, borderRadius: 10, background: "var(--danger-bg)",
                   display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14,
                 }}>
                   <Trash2 size={20} style={{ color: "var(--danger)" }} />
                 </div>
-                <h3 style={{ fontSize: 16, fontWeight: 600, color: "var(--text-primary)", margin: "0 0 8px" }}>
+                <h3 style={{ fontSize: 15, fontWeight: 600, color: "var(--text-primary)", margin: "0 0 8px" }}>
                   Hapus Milestone?
                 </h3>
                 <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0, lineHeight: 1.6 }}>

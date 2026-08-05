@@ -58,7 +58,7 @@ function KartuAngka({ label, nilai, sub, ikon, warna, tepi }: {
     <div style={{
       flex: "1 1 180px", minWidth: 180,
       background: "var(--surface)", border: `1px solid ${tepi ?? C.border}`,
-      borderRadius: 12, padding: "14px 16px",
+      borderRadius: 10, padding: "12px 16px",
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
         <span style={{ color: warna, display: "flex" }}>{ikon}</span>
@@ -124,7 +124,7 @@ export default function KeuanganLayout({ children }: { children: React.ReactNode
           menenangkan, dan di layar keuangan itu berbahaya. */}
       {!gagal && (
         <div className="rise rise-2" style={{
-          display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 18,
+          display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 18,
         }}>
           {ringkas ? (
             <>
@@ -153,7 +153,7 @@ export default function KeuanganLayout({ children }: { children: React.ReactNode
             Array.from({ length: 6 }, (_, i) => (
               <div key={i} aria-hidden="true" style={{
                 flex: "1 1 180px", minWidth: 180, height: 96,
-                background: "var(--surface-subtle)", borderRadius: 12,
+                background: "var(--surface-subtle)", borderRadius: 10,
                 border: `1px solid ${C.border}`,
               }} />
             ))
@@ -163,7 +163,7 @@ export default function KeuanganLayout({ children }: { children: React.ReactNode
 
       <div className="rise rise-2" style={{
         background: "var(--surface)", border: `1px solid ${C.border}`,
-        borderRadius: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+        borderRadius: 14, boxShadow: "var(--naik-1)",
         overflow: "hidden",
       }}>
         <div style={{ padding: "0 8px" }}>

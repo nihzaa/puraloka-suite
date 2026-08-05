@@ -23,7 +23,7 @@ export function ThemeToggle() {
       style={{
         width: 36,
         height: 36,
-        borderRadius: 8,
+        borderRadius: 6,
         background: "transparent",
         border: "none",
         cursor: "pointer",

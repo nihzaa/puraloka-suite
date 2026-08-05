@@ -71,20 +71,20 @@ function PembayaranInner() {
 
   return (
     <div style={{ padding: 20 }}>
-      <div style={{ display: "flex", gap: 10, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
         <label htmlFor="pay-bulan" style={{
           fontSize: 12, fontWeight: 600, color: C.mid, whiteSpace: "nowrap",
         }}>Bulan:</label>
         <input id="pay-bulan" type="month" value={bulan}
           onChange={(e) => setBulan(e.target.value)}
           style={{
-            padding: "7px 10px", border: `1px solid ${C.border}`,
-            borderRadius: 8, fontSize: 13, color: C.text,
+            padding: "6px 8px", border: `1px solid ${C.border}`,
+            borderRadius: 6, fontSize: 13, color: C.text,
             outline: "none", background: "var(--surface)",
           }} />
         {bulan && (
           <button onClick={() => setBulan("")} style={{
-            padding: "7px 10px", border: `1px solid ${C.border}`, borderRadius: 8,
+            padding: "6px 8px", border: `1px solid ${C.border}`, borderRadius: 6,
             background: "var(--surface)", color: C.mid, fontSize: 12,
             cursor: "pointer", display: "flex", alignItems: "center", gap: 4,
           }}>
@@ -92,8 +92,8 @@ function PembayaranInner() {
           </button>
         )}
         <button onClick={() => muat()} style={{
-          display: "flex", alignItems: "center", gap: 5, padding: "7px 12px",
-          border: `1px solid ${C.border}`, borderRadius: 8,
+          display: "flex", alignItems: "center", gap: 4, padding: "6px 12px",
+          border: `1px solid ${C.border}`, borderRadius: 6,
           background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer",
         }}>
           <RefreshCw size={13} aria-hidden="true" /> Muat ulang
@@ -110,13 +110,13 @@ function PembayaranInner() {
 
       {gagal && (
         <div role="alert" style={{
-          padding: "12px 14px", borderRadius: 10, marginBottom: 14,
+          padding: "12px 12px", borderRadius: 10, marginBottom: 14,
           background: C.redBg, border: `1px solid ${C.redBorder}`,
           color: C.onDangerBg, fontSize: 13,
         }}>
           {gagal}{" "}
           <button onClick={() => muat()} style={{
-            marginLeft: 6, padding: "2px 9px", borderRadius: 6,
+            marginLeft: 6, padding: "2px 8px", borderRadius: 6,
             border: `1px solid ${C.redBorder}`, background: "transparent",
             color: C.onDangerBg, fontSize: 12, fontWeight: 600, cursor: "pointer",
           }}>Coba lagi</button>
@@ -124,7 +124,7 @@ function PembayaranInner() {
       )}
 
       {memuat ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {[1, 2, 3].map((i) => (
             <div key={i} style={{ padding: 16, borderRadius: 10, border: `1px solid ${C.border}` }}>
               <Skeleton h={14} />
@@ -140,14 +140,14 @@ function PembayaranInner() {
           <p>{bulan ? "Tidak ada penerimaan di bulan ini." : "Penerimaan muncul di sini setelah invoice dibayar."}</p>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {data.map((p) => {
             const inv = p.invoices as { invoice_number?: string; projects?: { name?: string } } | null;
             return (
               <div key={p.id} style={{
                 display: "grid",
                 gridTemplateColumns: "minmax(0,1.2fr) minmax(0,1.3fr) 150px 110px",
-                alignItems: "center", gap: 16, padding: "14px 16px",
+                alignItems: "center", gap: 16, padding: "12px 16px",
                 borderRadius: 10, border: `1px solid ${C.border}`,
                 background: "var(--surface-subtle)",
               }}>
@@ -172,8 +172,8 @@ function PembayaranInner() {
                   )}
                   {p.cash_account ? (
                     <div style={{
-                      display: "inline-flex", alignItems: "center", gap: 3,
-                      fontSize: 11, marginTop: 2, padding: "2px 7px", borderRadius: 4,
+                      display: "inline-flex", alignItems: "center", gap: 2,
+                      fontSize: 11, marginTop: 2, padding: "2px 6px", borderRadius: 6,
                       background: C.navyLight, color: C.navy, fontWeight: 600,
                     }}>
                       <Wallet size={10} aria-hidden="true" /> {p.cash_account.name}
@@ -184,8 +184,8 @@ function PembayaranInner() {
                     // yang sudah diterima. Itu selisih yang harus dicari, jadi
                     // ia ditandai, bukan dibiarkan sebagai baris kosong.
                     <div style={{
-                      display: "inline-flex", alignItems: "center", gap: 3,
-                      fontSize: 11, marginTop: 2, padding: "2px 7px", borderRadius: 4,
+                      display: "inline-flex", alignItems: "center", gap: 2,
+                      fontSize: 11, marginTop: 2, padding: "2px 6px", borderRadius: 6,
                       background: C.yellowBg, color: C.onWarningBg, fontWeight: 600,
                     }}>Tidak tercatat ke kas</div>
                   )}
@@ -193,7 +193,7 @@ function PembayaranInner() {
 
                 <div style={{ textAlign: "right" }}>
                   <div style={{
-                    fontSize: 14, fontWeight: 700, color: C.green,
+                    fontSize: 13, fontWeight: 700, color: C.green,
                     fontVariantNumeric: "tabular-nums",
                   }}>{fmt(Number(p.amount_paid))}</div>
                 </div>

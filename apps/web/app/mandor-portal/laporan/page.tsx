@@ -44,13 +44,13 @@ export default function MandorLaporanPage() {
       <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text, margin: "0 0 20px" }}>Laporan Upah Mingguan</h1>
 
       {reports.length === 0 && (
-        <div style={{ background: C.surface, borderRadius: 12, padding: 48, border: `1px solid ${C.border}`, textAlign: "center" }}>
+        <div style={{ background: C.surface, borderRadius: 10, padding: 48, border: `1px solid ${C.border}`, textAlign: "center" }}>
           <AlertCircle size={32} color={C.muted} style={{ marginBottom: 8 }} />
-          <div style={{ fontSize: 14, color: C.mid }}>Belum ada laporan upah</div>
+          <div style={{ fontSize: 13, color: C.mid }}>Belum ada laporan upah</div>
         </div>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {reports.map((r) => {
           const meta = STATUS_META[r.status] ?? STATUS_META.draft;
           const isOpen = expanded[r.id] ?? false;
@@ -58,15 +58,15 @@ export default function MandorLaporanPage() {
           const totalWage = items.reduce((s, i) => s + (i.daily_rate * (i.days_worked ?? 1)), 0) || r.total_amount;
 
           return (
-            <div key={r.id} style={{ background: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+            <div key={r.id} style={{ background: C.surface, borderRadius: 10, border: `1px solid ${C.border}`, overflow: "hidden", boxShadow: "var(--naik-1)" }}>
               {/* Header row */}
               <button
                 onClick={() => toggle(r.id)}
                 style={{ width: "100%", padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
               >
                 <div style={{ flex: 1 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4, flexWrap: "wrap" }}>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
                       {fmtDate(r.week_start)} – {fmtDate(r.week_end)}
                     </span>
                     <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20, color: meta.color, background: meta.bg }}>
@@ -94,24 +94,24 @@ export default function MandorLaporanPage() {
                       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                         <thead>
                           <tr style={{ background: "var(--surface-hover)" }}>
-                            <th style={{ padding: "6px 10px", textAlign: "left", color: C.mid, fontWeight: 600 }}>Pekerja</th>
-                            <th style={{ padding: "6px 10px", textAlign: "right", color: C.mid, fontWeight: 600 }}>Hari Kerja</th>
-                            <th style={{ padding: "6px 10px", textAlign: "right", color: C.mid, fontWeight: 600 }}>Rate/Hari</th>
-                            <th style={{ padding: "6px 10px", textAlign: "right", color: C.mid, fontWeight: 600 }}>Subtotal</th>
+                            <th style={{ padding: "6px 8px", textAlign: "left", color: C.mid, fontWeight: 600 }}>Pekerja</th>
+                            <th style={{ padding: "6px 8px", textAlign: "right", color: C.mid, fontWeight: 600 }}>Hari Kerja</th>
+                            <th style={{ padding: "6px 8px", textAlign: "right", color: C.mid, fontWeight: 600 }}>Rate/Hari</th>
+                            <th style={{ padding: "6px 8px", textAlign: "right", color: C.mid, fontWeight: 600 }}>Subtotal</th>
                           </tr>
                         </thead>
                         <tbody>
                           {items.map((item) => (
                             <tr key={item.id} style={{ borderTop: `1px solid ${C.border}` }}>
-                              <td style={{ padding: "8px 10px", color: C.text }}>{item.worker?.name ?? "—"}</td>
-                              <td style={{ padding: "8px 10px", textAlign: "right", color: C.mid }}>{item.days_worked ?? 1}</td>
-                              <td style={{ padding: "8px 10px", textAlign: "right", color: C.mid }}>{fmt(item.daily_rate)}</td>
-                              <td style={{ padding: "8px 10px", textAlign: "right", color: C.text, fontWeight: 600 }}>{fmt(item.daily_rate * (item.days_worked ?? 1))}</td>
+                              <td style={{ padding: "8px 8px", color: C.text }}>{item.worker?.name ?? "—"}</td>
+                              <td style={{ padding: "8px 8px", textAlign: "right", color: C.mid }}>{item.days_worked ?? 1}</td>
+                              <td style={{ padding: "8px 8px", textAlign: "right", color: C.mid }}>{fmt(item.daily_rate)}</td>
+                              <td style={{ padding: "8px 8px", textAlign: "right", color: C.text, fontWeight: 600 }}>{fmt(item.daily_rate * (item.days_worked ?? 1))}</td>
                             </tr>
                           ))}
                           <tr style={{ borderTop: `2px solid ${C.border}`, background: "var(--surface-subtle)" }}>
-                            <td colSpan={3} style={{ padding: "10px", textAlign: "right", fontWeight: 700, color: C.text }}>Total</td>
-                            <td style={{ padding: "10px", textAlign: "right", fontWeight: 700, color: C.navy, fontSize: 13 }}>{fmt(r.total_amount ?? totalWage)}</td>
+                            <td colSpan={3} style={{ padding: "8px", textAlign: "right", fontWeight: 700, color: C.text }}>Total</td>
+                            <td style={{ padding: "8px", textAlign: "right", fontWeight: 700, color: C.navy, fontSize: 13 }}>{fmt(r.total_amount ?? totalWage)}</td>
                           </tr>
                         </tbody>
                       </table>
@@ -123,7 +123,7 @@ export default function MandorLaporanPage() {
                   )}
 
                   {r.status === "rejected" && r.notes && (
-                    <div style={{ marginTop: 12, padding: "10px 14px", borderRadius: 8, background: C.redBg, border: `1px solid ${C.red}20` }}>
+                    <div style={{ marginTop: 12, padding: "8px 12px", borderRadius: 6, background: C.redBg, border: `1px solid ${C.red}20` }}>
                       <div style={{ fontSize: 12, color: C.red, fontWeight: 600 }}>Alasan ditolak:</div>
                       <div style={{ fontSize: 13, color: C.red, marginTop: 2 }}>{r.notes}</div>
                     </div>

@@ -71,10 +71,10 @@ export default function PMMandorPage() {
       {!loading && summary.length > 0 && (
         <section style={{ marginBottom: 28 }}>
           <h2 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: "0 0 12px" }}>Ringkasan Mandor</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 8 }}>
             {summary.map((m) => (
-              <div key={m.mandor_id} style={{ background: C.surface, borderRadius: 12, padding: "14px 16px", border: `1px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 6 }}>{m.mandor_name}</div>
+              <div key={m.mandor_id} style={{ background: C.surface, borderRadius: 10, padding: "12px 16px", border: `1px solid ${C.border}`, boxShadow: "var(--naik-1)" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 6 }}>{m.mandor_name}</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
                     <span style={{ color: C.mid }}>Scope aktif</span>
@@ -99,7 +99,7 @@ export default function PMMandorPage() {
 
       {/* Pending wage reports alert */}
       {!loading && pendingReports.length > 0 && (
-        <div style={{ background: C.yellowBg, border: `1px solid ${C.yellow}40`, borderRadius: 12, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ background: C.yellowBg, border: `1px solid ${C.yellow}40`, borderRadius: 10, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
           <Clock size={16} color={C.yellow} />
           <span style={{ fontSize: 13, fontWeight: 600, color: C.yellow }}>{pendingReports.length} laporan upah menunggu persetujuan</span>
         </div>
@@ -110,9 +110,9 @@ export default function PMMandorPage() {
         <h2 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: "0 0 12px" }}>Laporan Upah Mingguan</h2>
         {loading && <div style={{ textAlign: "center", padding: 40, color: C.mid }}>Memuat laporan...</div>}
         {!loading && reports.length === 0 && (
-          <div style={{ background: C.surface, borderRadius: 12, padding: 40, border: `1px solid ${C.border}`, textAlign: "center" }}>
+          <div style={{ background: C.surface, borderRadius: 10, padding: 40, border: `1px solid ${C.border}`, textAlign: "center" }}>
             <AlertCircle size={28} color={C.muted} style={{ marginBottom: 8 }} />
-            <div style={{ fontSize: 14, color: C.mid }}>Belum ada laporan upah</div>
+            <div style={{ fontSize: 13, color: C.mid }}>Belum ada laporan upah</div>
           </div>
         )}
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -121,8 +121,8 @@ export default function PMMandorPage() {
             const isOpen = expanded[r.id] ?? false;
             const isPending = r.status === "submitted";
             return (
-              <div key={r.id} style={{ background: C.surface, borderRadius: 12, border: `1px solid ${isPending ? C.yellow + "40" : C.border}`, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-                <div style={{ padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <div key={r.id} style={{ background: C.surface, borderRadius: 10, border: `1px solid ${isPending ? C.yellow + "40" : C.border}`, overflow: "hidden", boxShadow: "var(--naik-1)" }}>
+                <div style={{ padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                   {/* `<button>`, bukan `<div onClick>`: ini pemicu buka-tutup
                       rincian laporan upah. Sebagai div, pemakai keyboard tak
                       bisa membukanya sama sekali — rinciannya jadi tak
@@ -148,10 +148,10 @@ export default function PMMandorPage() {
                   <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
                     {isPending && (
                       <>
-                        <button onClick={() => handleWageAction(r.id, "rejected")} disabled={actioningId === r.id} style={{ display: "flex", alignItems: "center", gap: 4, padding: "5px 10px", borderRadius: 8, border: `1px solid ${C.red}`, background: "var(--surface)", color: C.red, cursor: "pointer", fontSize: 11, fontWeight: 600, opacity: actioningId === r.id ? 0.6 : 1 }}>
+                        <button onClick={() => handleWageAction(r.id, "rejected")} disabled={actioningId === r.id} style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.red}`, background: "var(--surface)", color: C.red, cursor: "pointer", fontSize: 11, fontWeight: 600, opacity: actioningId === r.id ? 0.6 : 1 }}>
                           <XCircle size={13} /> Tolak
                         </button>
-                        <button onClick={() => handleWageAction(r.id, "approved")} disabled={actioningId === r.id} style={{ display: "flex", alignItems: "center", gap: 4, padding: "5px 10px", borderRadius: 8, border: "none", background: C.green, color: "var(--surface)", cursor: "pointer", fontSize: 11, fontWeight: 600, opacity: actioningId === r.id ? 0.6 : 1 }}>
+                        <button onClick={() => handleWageAction(r.id, "approved")} disabled={actioningId === r.id} style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, border: "none", background: C.green, color: "var(--surface)", cursor: "pointer", fontSize: 11, fontWeight: 600, opacity: actioningId === r.id ? 0.6 : 1 }}>
                           <CheckCircle size={13} /> Setuju
                         </button>
                       </>
@@ -166,19 +166,19 @@ export default function PMMandorPage() {
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                       <thead>
                         <tr style={{ background: "var(--surface-hover)" }}>
-                          <th style={{ padding: "6px 10px", textAlign: "left", color: C.mid, fontWeight: 600 }}>Pekerja</th>
-                          <th style={{ padding: "6px 10px", textAlign: "right", color: C.mid, fontWeight: 600 }}>Hari</th>
-                          <th style={{ padding: "6px 10px", textAlign: "right", color: C.mid, fontWeight: 600 }}>Rate</th>
-                          <th style={{ padding: "6px 10px", textAlign: "right", color: C.mid, fontWeight: 600 }}>Total</th>
+                          <th style={{ padding: "6px 8px", textAlign: "left", color: C.mid, fontWeight: 600 }}>Pekerja</th>
+                          <th style={{ padding: "6px 8px", textAlign: "right", color: C.mid, fontWeight: 600 }}>Hari</th>
+                          <th style={{ padding: "6px 8px", textAlign: "right", color: C.mid, fontWeight: 600 }}>Rate</th>
+                          <th style={{ padding: "6px 8px", textAlign: "right", color: C.mid, fontWeight: 600 }}>Total</th>
                         </tr>
                       </thead>
                       <tbody>
                         {r.wage_items.map((wi: any) => (
                           <tr key={wi.id} style={{ borderTop: `1px solid ${C.border}` }}>
-                            <td style={{ padding: "7px 10px", color: C.text }}>{wi.worker?.name ?? "—"}</td>
-                            <td style={{ padding: "7px 10px", textAlign: "right", color: C.mid }}>{wi.days_worked ?? 1}</td>
-                            <td style={{ padding: "7px 10px", textAlign: "right", color: C.mid }}>{fmt(wi.daily_rate)}</td>
-                            <td style={{ padding: "7px 10px", textAlign: "right", fontWeight: 600, color: C.navy }}>{fmt(wi.daily_rate * (wi.days_worked ?? 1))}</td>
+                            <td style={{ padding: "6px 8px", color: C.text }}>{wi.worker?.name ?? "—"}</td>
+                            <td style={{ padding: "6px 8px", textAlign: "right", color: C.mid }}>{wi.days_worked ?? 1}</td>
+                            <td style={{ padding: "6px 8px", textAlign: "right", color: C.mid }}>{fmt(wi.daily_rate)}</td>
+                            <td style={{ padding: "6px 8px", textAlign: "right", fontWeight: 600, color: C.navy }}>{fmt(wi.daily_rate * (wi.days_worked ?? 1))}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -192,7 +192,7 @@ export default function PMMandorPage() {
       </section>
 
       {toast && typeof window !== "undefined" && createPortal(
-        <div style={{ position: "fixed", bottom: 80, left: "50%", transform: "translateX(-50%)", zIndex: 10000, padding: "12px 20px", borderRadius: 10, background: toast.ok ? "var(--success)" : C.red, color: "var(--surface)", fontSize: 13, fontWeight: 500, boxShadow: "0 4px 16px rgba(0,0,0,0.2)", whiteSpace: "nowrap" }}>
+        <div style={{ position: "fixed", bottom: 80, left: "50%", transform: "translateX(-50%)", zIndex: 10000, padding: "12px 20px", borderRadius: 10, background: toast.ok ? "var(--success)" : C.red, color: "var(--surface)", fontSize: 13, fontWeight: 500, boxShadow: "var(--naik-2)", whiteSpace: "nowrap" }}>
           {toast.msg}
         </div>,
         document.body

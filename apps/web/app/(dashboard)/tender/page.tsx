@@ -104,8 +104,8 @@ export default function TenderPage() {
         <button
           onClick={() => setFormBuka((v) => !v)}
           style={{
-            display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 16px",
-            borderRadius: 9, border: "none", background: C.navy, color: "#fff",
+            display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px",
+            borderRadius: 10, border: "none", background: C.navy, color: "#fff",
             fontSize: 13, fontWeight: 600, cursor: "pointer", flexShrink: 0,
           }}
         >
@@ -147,7 +147,7 @@ export default function TenderPage() {
       <div style={{ marginBottom: 14 }}>
         <label htmlFor="saring-status" style={{ fontSize: 12, color: C.mid, marginRight: 8 }}>Status</label>
         <select id="saring-status" value={saring} onChange={(e) => { setMemuat(true); setSaring(e.target.value); }}
-          style={{ padding: "7px 10px", borderRadius: 8, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 13 }}>
+          style={{ padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 13 }}>
           <option value="">Semua</option>
           {(Object.keys(STATUS_LABEL) as Status[]).map((s) => (
             <option key={s} value={s}>{STATUS_LABEL[s].teks}</option>
@@ -163,19 +163,19 @@ export default function TenderPage() {
       )}
 
       {!memuat && !galat && bids.length === 0 && (
-        <div style={{ padding: "28px 20px", textAlign: "center", borderRadius: 12, border: `1px dashed ${C.border}`, color: C.mid, fontSize: 13 }}>
+        <div style={{ padding: "28px 20px", textAlign: "center", borderRadius: 10, border: `1px dashed ${C.border}`, color: C.mid, fontSize: 13 }}>
           Belum ada tender tercatat. Mulai dengan mencatat tender yang sedang diikuti —
           termasuk yang akhirnya kalah, karena justru itu yang paling berguna dipelajari.
         </div>
       )}
 
       {!memuat && bids.length > 0 && (
-        <div style={{ overflowX: "auto", borderRadius: 12, border: `1px solid ${C.border}` }}>
+        <div style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${C.border}` }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
               <tr style={{ background: "var(--surface-subtle)" }}>
                 {["Tender", "Pemberi kerja", "Nilai kami", "Nilai pemenang", "Selisih", "Diajukan", "Status"].map((h) => (
-                  <th key={h} style={{ textAlign: h.startsWith("Nilai") || h === "Selisih" ? "right" : "left", padding: "10px 12px", fontSize: 11, fontWeight: 700, color: C.mid, textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }}>
+                  <th key={h} style={{ textAlign: h.startsWith("Nilai") || h === "Selisih" ? "right" : "left", padding: "8px 12px", fontSize: 11, fontWeight: 700, color: C.mid, textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }}>
                     {h}
                   </th>
                 ))}
@@ -188,20 +188,20 @@ export default function TenderPage() {
                   ? ((b.bid_value - b.winner_value) / b.winner_value) * 100 : null;
                 return (
                   <tr key={b.id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                    <td style={{ padding: "10px 12px" }}>
+                    <td style={{ padding: "8px 12px" }}>
                       <div style={{ fontWeight: 600, color: C.text }}>{b.title}</div>
                       {b.bid_number && <div style={{ fontSize: 11, color: C.muted, fontFamily: "ui-monospace, monospace" }}>{b.bid_number}</div>}
                     </td>
-                    <td style={{ padding: "10px 12px", color: C.mid }}>{b.owner_name ?? "—"}</td>
-                    <td style={{ padding: "10px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtRp(b.bid_value)}</td>
-                    <td style={{ padding: "10px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: C.mid }}>{fmtRp(b.winner_value)}</td>
-                    <td style={{ padding: "10px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: selisih == null ? C.muted : selisih > 0 ? C.red : C.green, fontWeight: selisih == null ? 400 : 600 }}>
+                    <td style={{ padding: "8px 12px", color: C.mid }}>{b.owner_name ?? "—"}</td>
+                    <td style={{ padding: "8px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtRp(b.bid_value)}</td>
+                    <td style={{ padding: "8px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: C.mid }}>{fmtRp(b.winner_value)}</td>
+                    <td style={{ padding: "8px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: selisih == null ? C.muted : selisih > 0 ? C.red : C.green, fontWeight: selisih == null ? 400 : 600 }}>
                       {selisih == null ? "—" : `${selisih > 0 ? "+" : ""}${selisih.toFixed(1)}%`}
                     </td>
-                    <td style={{ padding: "10px 12px", color: C.mid, whiteSpace: "nowrap" }}>{fmtTgl(b.submitted_at)}</td>
-                    <td style={{ padding: "10px 12px" }}>
+                    <td style={{ padding: "8px 12px", color: C.mid, whiteSpace: "nowrap" }}>{fmtTgl(b.submitted_at)}</td>
+                    <td style={{ padding: "8px 12px" }}>
                       {/* Status ditulis, bukan diwakili warna saja — WCAG 1.4.1. */}
-                      <span style={{ display: "inline-block", padding: "3px 9px", borderRadius: 99, fontSize: 11, fontWeight: 700, color: s.warna, background: s.bg, border: `1px solid ${s.border}`, whiteSpace: "nowrap" }}>
+                      <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 700, color: s.warna, background: s.bg, border: `1px solid ${s.border}`, whiteSpace: "nowrap" }}>
                         {s.teks}
                       </span>
                     </td>
@@ -221,7 +221,7 @@ function Kartu({ Icon, label, nilai, sub, warna, bg, border }: {
   warna: string; bg: string; border: string;
 }) {
   return (
-    <div style={{ padding: "13px 16px", borderRadius: 12, background: bg, border: `1px solid ${border}` }}>
+    <div style={{ padding: "12px 16px", borderRadius: 10, background: bg, border: `1px solid ${border}` }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.05em" }}>
         <Icon size={13} aria-hidden="true" /> {label}
       </div>
@@ -258,14 +258,14 @@ function FormTender({ onSelesai }: { onSelesai: () => void }) {
   }
 
   const inp: React.CSSProperties = {
-    width: "100%", padding: "8px 10px", borderRadius: 8,
+    width: "100%", padding: "8px 8px", borderRadius: 6,
     border: `1px solid ${C.border}`, background: C.surface, color: C.text,
     fontSize: 13, fontFamily: "inherit", boxSizing: "border-box",
   };
   const lbl: React.CSSProperties = { display: "block", fontSize: 12, color: C.mid, marginBottom: 4 };
 
   return (
-    <form onSubmit={simpan} style={{ padding: 18, borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface, marginBottom: 20 }}>
+    <form onSubmit={simpan} style={{ padding: 16, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, marginBottom: 20 }}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 12 }}>
         <div>
           <label htmlFor="t-judul" style={lbl}>Judul tender *</label>
@@ -285,10 +285,10 @@ function FormTender({ onSelesai }: { onSelesai: () => void }) {
           <input id="t-nilai" type="number" min="0" value={nilai} onChange={(e) => setNilai(e.target.value)} style={inp} />
         </div>
       </div>
-      {galat && <div style={{ marginTop: 10, fontSize: 12.5, color: C.red }}>{galat}</div>}
+      {galat && <div style={{ marginTop: 10, fontSize: 12, color: C.red }}>{galat}</div>}
       <div style={{ marginTop: 14 }}>
         <button type="submit" disabled={kirim || !judul.trim()} style={{
-          padding: "9px 18px", borderRadius: 9, border: "none",
+          padding: "8px 16px", borderRadius: 10, border: "none",
           background: kirim || !judul.trim() ? C.muted : C.navy, color: "#fff",
           fontSize: 13, fontWeight: 600, cursor: kirim || !judul.trim() ? "not-allowed" : "pointer",
         }}>

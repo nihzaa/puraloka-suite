@@ -102,8 +102,8 @@ const PURPOSE_LABEL: Record<string, string> = {
 
 const ttStyle: React.CSSProperties = {
   background: "var(--surface)", border: "1px solid var(--border)",
-  borderRadius: 8, color: "var(--text-primary)", fontSize: 12,
-  boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+  borderRadius: 6, color: "var(--text-primary)", fontSize: 12,
+  boxShadow: "var(--naik-2)",
 };
 
 // ─── Primitives ────────────────────────────────────────────────────────────────
@@ -111,7 +111,7 @@ const ttStyle: React.CSSProperties = {
 function Skeleton({ h = 20, w = "100%" }: { h?: number; w?: string | number }) {
   return (
     <div style={{
-      height: h, width: w, borderRadius: 8,
+      height: h, width: w, borderRadius: 6,
       background: "linear-gradient(90deg, var(--surface-hover) 0%, var(--border) 50%, var(--surface-hover) 100%)",
       backgroundSize: "200% 100%",
       animation: "shimmer 1.5s ease-in-out infinite",
@@ -126,10 +126,10 @@ function SectionHeader({
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ width: 3, height: 16, background: C.navy, borderRadius: 2, flexShrink: 0 }} />
-        <h2 style={{ fontSize: 14, fontWeight: 600, color: C.text, margin: 0 }}>{title}</h2>
+        <span style={{ width: 3, height: 16, background: C.navy, borderRadius: 0, flexShrink: 0 }} />
+        <h2 style={{ fontSize: 13, fontWeight: 600, color: C.text, margin: 0 }}>{title}</h2>
         {count !== undefined && count > 0 && (
-          <span style={{ fontSize: 11, fontWeight: 700, background: C.navy, color: "#fff", borderRadius: 99, padding: "1px 7px" }}>{count}</span>
+          <span style={{ fontSize: 11, fontWeight: 700, background: C.navy, color: "#fff", borderRadius: 99, padding: "0px 6px" }}>{count}</span>
         )}
       </div>
       {linkHref && linkLabel && (
@@ -332,7 +332,7 @@ function DashboardContent() {
         </ResponsiveContainer>
       )}
       {data && (
-        <div style={{ display: "flex", gap: 10, marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+        <div style={{ display: "flex", gap: 8, marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
           <MiniMetric label="Pemasukan" value={`Rp ${fmtShort(data.kpis.income_this_month)}`} color={C.navy} />
           <MiniMetric label="Pengeluaran est." value={`Rp ${fmtShort(data.kpis.kasbon_active_total)}`} color={C.red} />
           <MiniMetric
@@ -346,7 +346,7 @@ function DashboardContent() {
   );
 
   const statusWidget = (
-    <div style={{ padding: 20, height: "100%", display: "flex", flexDirection: "column", gap: 14 }}>
+    <div style={{ padding: 20, height: "100%", display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
         <SectionHeader title="Status Proyek" />
         {loading ? <Skeleton h={120} /> : (
@@ -386,7 +386,7 @@ function DashboardContent() {
                 <div style={{ fontSize: 20, fontWeight: 800, color: C.text, lineHeight: 1 }}>
                   {(data?.status_distribution ?? []).reduce((s, e) => s + e.count, 0)}
                 </div>
-                <div style={{ fontSize: 9, color: C.muted }}>Proyek</div>
+                <div style={{ fontSize: 10, color: C.muted }}>Proyek</div>
               </div>
             </div>
             <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
@@ -410,7 +410,7 @@ function DashboardContent() {
         ) : !data?.active_progress.length ? (
           <p style={{ fontSize: 12, color: C.muted }}>Tidak ada proyek aktif.</p>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {data.active_progress.slice(0, 5).map(p => {
               const days = p.end_date ? daysUntil(p.end_date) : null;
               const urgent = days !== null && days >= 0 && days <= 7;
@@ -481,13 +481,13 @@ function DashboardContent() {
                     borderLeft: overdue ? `3px solid ${C.red}` : urgent ? `3px solid ${C.yellow}` : "3px solid transparent",
                     borderBottom: "1px solid var(--border)",
                   }}>
-                    <td style={{ padding: "11px 16px", color: C.navy, fontSize: 11, fontWeight: 600 }}>{inv.invoice_number}</td>
-                    <td style={{ padding: "11px 16px" }}>
+                    <td style={{ padding: "12px 16px", color: C.navy, fontSize: 11, fontWeight: 600 }}>{inv.invoice_number}</td>
+                    <td style={{ padding: "12px 16px" }}>
                       <div style={{ color: C.text, fontWeight: 500 }}>{inv.projects?.name ?? "—"}</div>
                       <div style={{ fontSize: 10, color: C.muted }}>{inv.projects?.clients?.contact_person ?? "—"}</div>
                     </td>
-                    <td style={{ padding: "11px 16px", textAlign: "right", color: C.text, fontWeight: 600 }}>{`Rp ${fmtShort(inv.amount_due)}`}</td>
-                    <td style={{ padding: "11px 16px", textAlign: "right" }}>
+                    <td style={{ padding: "12px 16px", textAlign: "right", color: C.text, fontWeight: 600 }}>{`Rp ${fmtShort(inv.amount_due)}`}</td>
+                    <td style={{ padding: "12px 16px", textAlign: "right" }}>
                       <span style={{ fontSize: 11, color: overdue ? C.red : urgent ? C.yellow : C.muted, fontWeight: overdue || urgent ? 600 : 400 }}>
                         {overdue ? `${Math.abs(days)}h lalu` : days === 0 ? "Hari ini" : fmtDate(inv.due_date)}
                       </span>
@@ -498,7 +498,7 @@ function DashboardContent() {
             </tbody>
           </table>
           {data.outstanding_invoices.length > 5 && (
-            <div style={{ padding: "10px 16px", borderTop: "1px solid var(--border)" }}>
+            <div style={{ padding: "8px 16px", borderTop: "1px solid var(--border)" }}>
               <button onClick={() => router.push("/keuangan")} style={{ fontSize: 11, color: C.muted, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
                 +{data.outstanding_invoices.length - 5} invoice lainnya →
               </button>
@@ -529,7 +529,7 @@ function DashboardContent() {
               <Link
                 key={m.id}
                 href={m.projects?.id ? `/proyek/${m.projects.id}#sec-milestone` : "#"}
-                style={{ display: "flex", gap: 10, paddingBottom: 14, cursor: "pointer", color: "inherit", textDecoration: "none" }}
+                style={{ display: "flex", gap: 8, paddingBottom: 14, cursor: "pointer", color: "inherit", textDecoration: "none" }}
               >
                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: c, flexShrink: 0, marginTop: 4, position: "relative", zIndex: 1, border: "2px solid var(--bg)" }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -570,12 +570,12 @@ function DashboardContent() {
                 const project = k.work_scopes?.mandor_assignments?.projects?.name ?? k.project?.name ?? "—";
                 return (
                   <tr key={k.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                    <td style={{ padding: "11px 16px", fontWeight: 500, color: C.text }}>{mandor}</td>
-                    <td style={{ padding: "11px 16px", color: C.mid }}>{project}</td>
-                    <td style={{ padding: "11px 16px", color: C.mid }}>{PURPOSE_LABEL[k.purpose] ?? k.purpose}</td>
-                    <td style={{ padding: "11px 16px", textAlign: "right", color: C.yellow, fontWeight: 700 }}>{`Rp ${fmtShort(k.amount)}`}</td>
-                    <td style={{ padding: "11px 16px", textAlign: "right", color: C.muted }}>{fmtDate(k.kasbon_date)}</td>
-                    <td style={{ padding: "11px 16px", textAlign: "right" }}>
+                    <td style={{ padding: "12px 16px", fontWeight: 500, color: C.text }}>{mandor}</td>
+                    <td style={{ padding: "12px 16px", color: C.mid }}>{project}</td>
+                    <td style={{ padding: "12px 16px", color: C.mid }}>{PURPOSE_LABEL[k.purpose] ?? k.purpose}</td>
+                    <td style={{ padding: "12px 16px", textAlign: "right", color: C.yellow, fontWeight: 700 }}>{`Rp ${fmtShort(k.amount)}`}</td>
+                    <td style={{ padding: "12px 16px", textAlign: "right", color: C.muted }}>{fmtDate(k.kasbon_date)}</td>
+                    <td style={{ padding: "12px 16px", textAlign: "right" }}>
                       <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
                         <ActionBtn
                           disabled={kasbonBusy === k.id}
@@ -599,7 +599,7 @@ function DashboardContent() {
             </tbody>
           </table>
           {data!.pending_kasbons.length > 5 && (
-            <div style={{ padding: "10px 16px", borderTop: "1px solid var(--border)" }}>
+            <div style={{ padding: "8px 16px", borderTop: "1px solid var(--border)" }}>
               <button onClick={() => router.push("/mandor")} style={{ fontSize: 11, color: C.muted, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
                 +{data!.pending_kasbons.length - 5} kasbon lainnya →
               </button>
@@ -651,7 +651,7 @@ function DashboardContent() {
             const active = period === opt.value;
             return (
               <button key={opt.value} onClick={() => setPeriod(opt.value)} style={{
-                padding: "5px 12px", borderRadius: 999, fontSize: 11,
+                padding: "4px 12px", borderRadius: 999, fontSize: 11,
                 fontWeight: active ? 600 : 400,
                 border: active ? "1px solid rgba(0,51,102,0.25)" : "1px solid var(--border)",
                 background: active ? C.navyLight : "var(--surface)",
@@ -693,7 +693,7 @@ function DashboardContent() {
       )}
 
       {error && (
-        <div style={{ background: C.redBg, border: `1px solid var(--danger-border)`, borderRadius: 10, padding: "10px 16px", color: C.red, fontSize: 12, marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ background: C.redBg, border: `1px solid var(--danger-border)`, borderRadius: 10, padding: "8px 16px", color: C.red, fontSize: 12, marginBottom: 20, display: "flex", alignItems: "center", gap: 8 }}>
           {error}
           <button onClick={() => fetchData(period)} style={{ color: C.navy, background: "none", border: "none", cursor: "pointer", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 500 }}>
             <RefreshCw size={11} /> Coba lagi
@@ -733,7 +733,7 @@ function AlertBanner({ children, color, bg, borderColor, onClick, label }: {
       {...dapatDitekan(onClick, label ?? "Buka rincian peringatan")}
       style={{
         display: "flex", alignItems: "center", gap: 8,
-        padding: "10px 16px", borderRadius: 8,
+        padding: "8px 16px", borderRadius: 6,
         background: bg, border: `1px solid ${borderColor}`,
         borderLeft: `3px solid ${color}`,
         color, fontSize: 13, fontWeight: 400,
@@ -747,7 +747,7 @@ function AlertBanner({ children, color, bg, borderColor, onClick, label }: {
 
 function LegendDot({ color, label }: { color: string; label: string }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
       <span style={{ width: 6, height: 6, borderRadius: "50%", background: color }} />
       <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{label}</span>
     </div>
@@ -756,7 +756,7 @@ function LegendDot({ color, label }: { color: string; label: string }) {
 
 function MiniMetric({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <div style={{ background: "var(--surface-subtle)", border: "1px solid var(--border)", borderRadius: 8, padding: "7px 12px", flex: 1 }}>
+    <div style={{ background: "var(--surface-subtle)", border: "1px solid var(--border)", borderRadius: 6, padding: "6px 12px", flex: 1 }}>
       <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 3 }}>{label}</div>
       <div style={{ fontSize: 13, fontWeight: 700, color }}>{value}</div>
     </div>
@@ -771,7 +771,7 @@ function ActionBtn({ disabled, bg, color, border, onClick, children }: {
       onClick={onClick} disabled={disabled}
       style={{
         display: "inline-flex", alignItems: "center", gap: 4,
-        padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 500,
+        padding: "4px 8px", borderRadius: 6, fontSize: 11, fontWeight: 500,
         background: bg, color, border: `1px solid ${border}`,
         cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.5 : 1,
       }}
@@ -785,7 +785,7 @@ function TaxCard({ label, value, sub, color, icon }: {
   label: string; value: string | null; sub: string; color: string; icon: React.ReactNode;
 }) {
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "16px 18px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: "16px 16px", boxShadow: "var(--naik-1)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
         <span style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>{label}</span>
         <span style={{ color, opacity: 0.5 }}>{icon}</span>
@@ -807,7 +807,7 @@ function TaxDeadlineBanner() {
   return (
     <div style={{
       background: "var(--warning-bg)", border: "1px solid var(--warning-border)",
-      borderRadius: 8, padding: "8px 14px", display: "flex", alignItems: "center", gap: 8, marginBottom: 10,
+      borderRadius: 6, padding: "8px 12px", display: "flex", alignItems: "center", gap: 8, marginBottom: 10,
     }}>
       <Landmark size={12} style={{ color: "var(--warning)", flexShrink: 0 }} />
       <span style={{ fontSize: 11, color: "var(--on-warning-bg)" }}>

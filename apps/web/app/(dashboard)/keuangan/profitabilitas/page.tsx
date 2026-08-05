@@ -45,7 +45,7 @@ function warnaMargin(pct: number) {
 
 const gaya = {
   th: {
-    padding: "10px 12px", fontSize: 10, fontWeight: 700,
+    padding: "8px 12px", fontSize: 10, fontWeight: 700,
     letterSpacing: "0.05em", textTransform: "uppercase" as const,
     color: C.mid, whiteSpace: "nowrap" as const,
   },
@@ -54,7 +54,7 @@ const gaya = {
     fontVariantNumeric: "tabular-nums" as const,
   },
   input: {
-    padding: "7px 10px", borderRadius: 8, border: `1px solid ${C.border}`,
+    padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`,
     fontSize: 12, color: C.text, background: "var(--surface)",
   },
   label: {
@@ -116,7 +116,7 @@ export default function ProfitabilitasPage() {
   return (
     <div style={{ padding: 20 }}>
       {/* ── Saringan ── */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap", alignItems: "flex-end" }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap", alignItems: "flex-end" }}>
         <div>
           <label htmlFor="profit-dari" style={gaya.label}>Dari</label>
           <input id="profit-dari" type="date" value={dari}
@@ -139,7 +139,7 @@ export default function ProfitabilitasPage() {
         {adaFilter && (
           <button onClick={() => { setDari(""); setSampai(""); setFilterProyek(""); }}
             style={{
-              padding: "7px 12px", borderRadius: 8, border: `1px solid ${C.border}`,
+              padding: "6px 12px", borderRadius: 6, border: `1px solid ${C.border}`,
               background: "var(--surface)", color: C.mid, fontSize: 12,
               cursor: "pointer", display: "flex", alignItems: "center", gap: 4,
             }}>
@@ -150,22 +150,22 @@ export default function ProfitabilitasPage() {
 
       {gagal ? (
         <div role="alert" style={{
-          padding: "16px 18px", borderRadius: 12,
+          padding: "16px 16px", borderRadius: 10,
           background: C.redBg, border: `1px solid ${C.redBorder}`,
           color: C.onDangerBg, fontSize: 13,
         }}>
           {gagal}{" "}
           <button onClick={() => muat()} style={{
-            marginLeft: 8, padding: "3px 10px", borderRadius: 6,
+            marginLeft: 8, padding: "2px 8px", borderRadius: 6,
             border: `1px solid ${C.redBorder}`, background: "transparent",
             color: C.onDangerBg, fontSize: 12, fontWeight: 600, cursor: "pointer",
           }}>Coba lagi</button>
         </div>
       ) : memuat ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {[1, 2, 3].map((i) => (
             <div key={i} aria-hidden="true" style={{
-              height: 62, borderRadius: 12, border: `1px solid ${C.border}`,
+              height: 62, borderRadius: 10, border: `1px solid ${C.border}`,
               background: "var(--surface-subtle)",
             }} />
           ))}
@@ -181,7 +181,7 @@ export default function ProfitabilitasPage() {
           {/* ── Empat angka ringkas ── */}
           <div style={{
             display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-            gap: 10, marginBottom: 20,
+            gap: 8, marginBottom: 20,
           }}>
             {[
               { label: "Total Revenue", nilai: data.totals.revenue, warna: C.green },
@@ -190,7 +190,7 @@ export default function ProfitabilitasPage() {
               { label: "Advance Beredar", nilai: data.totals.advance_outstanding, warna: C.yellow },
             ].map((s) => (
               <div key={s.label} style={{
-                padding: "14px 16px", borderRadius: 12,
+                padding: "12px 16px", borderRadius: 10,
                 border: `1px solid ${C.border}`, background: "var(--surface)",
               }}>
                 <div style={{
@@ -198,7 +198,7 @@ export default function ProfitabilitasPage() {
                   textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4,
                 }}>{s.label}</div>
                 <div style={{
-                  fontSize: 18, fontWeight: 800, color: s.warna,
+                  fontSize: 17, fontWeight: 800, color: s.warna,
                   fontFamily: "var(--font-display)", fontVariantNumeric: "tabular-nums",
                 }}>{rp(s.nilai)}</div>
               </div>
@@ -241,7 +241,7 @@ export default function ProfitabilitasPage() {
                       </td>
                       <td style={gaya.td}>
                         <span style={{
-                          padding: "3px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700,
+                          padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700,
                           color: wMargin,
                           background: p.gross_margin_pct >= 20 ? C.greenBg : p.gross_margin_pct >= 0 ? C.yellowBg : C.redBg,
                         }}>{p.gross_margin_pct}%</span>
@@ -253,7 +253,7 @@ export default function ProfitabilitasPage() {
               </tbody>
               <tfoot>
                 <tr style={{ borderTop: `2px solid ${C.border}`, background: "var(--surface-subtle)" }}>
-                  <th scope="row" style={{ padding: "10px 12px", textAlign: "left", fontSize: 12, fontWeight: 700, color: C.text }}>
+                  <th scope="row" style={{ padding: "8px 12px", textAlign: "left", fontSize: 12, fontWeight: 700, color: C.text }}>
                     TOTAL
                   </th>
                   <td style={{ ...gaya.td, fontWeight: 800, color: C.green }}>{rp(data.totals.revenue)}</td>
@@ -269,7 +269,7 @@ export default function ProfitabilitasPage() {
                       const pct = data.totals.gross_profit / data.totals.revenue * 100;
                       return (
                         <span style={{
-                          padding: "3px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700,
+                          padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700,
                           color: warnaMargin(pct),
                           background: pct >= 20 ? C.greenBg : pct >= 0 ? C.yellowBg : C.redBg,
                         }}>{Math.round(pct * 10) / 10}%</span>
@@ -292,7 +292,7 @@ export default function ProfitabilitasPage() {
               fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 4,
               display: "flex", alignItems: "center", gap: 8,
             }}>
-              <span style={{ width: 3, height: 13, background: "var(--grad-aksen)", borderRadius: 2 }} />
+              <span style={{ width: 3, height: 13, background: "var(--grad-aksen)", borderRadius: 0 }} />
               Gross Margin per Proyek
             </h2>
             <p style={{ fontSize: 11, color: C.muted, marginBottom: 14 }}>

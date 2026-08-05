@@ -375,15 +375,15 @@ function LoginPageInner() {
 
             {/* Mobile-only logo */}
             <div style={{ display: "none" }} className="mobile-logo">
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 32 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 32 }}>
                 <div style={{
-                  width: 36, height: 36, borderRadius: 9, background: "var(--grad-aksen)",
+                  width: 36, height: 36, borderRadius: 10, background: "var(--grad-aksen)",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   color: "var(--on-aksen)",
                 }}>
                   <LogoPuraloka size={18} title="" />
                 </div>
-                <span style={{ fontWeight: 700, fontSize: 16, color: "var(--text-primary)" }}>Puraloka Suite</span>
+                <span style={{ fontWeight: 700, fontSize: 15, color: "var(--text-primary)" }}>Puraloka Suite</span>
               </div>
             </div>
 
@@ -466,7 +466,7 @@ function LoginPageInner() {
                     tabIndex={-1}
                     style={{
                       fontSize: 12, color: "var(--danger)", background: "var(--danger-bg)",
-                      border: "1px solid var(--danger-border)", borderRadius: 8, padding: "10px 14px",
+                      border: "1px solid var(--danger-border)", borderRadius: 6, padding: "8px 12px",
                       display: "flex", alignItems: "flex-start", gap: 8, lineHeight: 1.5, outline: "none",
                     }}
                   >
@@ -528,15 +528,15 @@ function LoginPageInner() {
             <div style={{
               marginTop: 24, paddingTop: 20,
               borderTop: "1px solid var(--border)",
-              display: "flex", flexDirection: "column", gap: 10,
+              display: "flex", flexDirection: "column", gap: 8,
             }}>
-              <p style={{ fontSize: 12.5, color: "var(--text-secondary)", lineHeight: 1.6, margin: 0 }}>
+              <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.6, margin: 0 }}>
                 Belum punya akses? Akun dibuat oleh administrator perusahaan Anda,
                 bukan lewat pendaftaran mandiri.
               </p>
               <div style={{
-                display: "flex", alignItems: "center", gap: 7,
-                fontSize: 11.5, color: "var(--text-muted)",
+                display: "flex", alignItems: "center", gap: 6,
+                fontSize: 11, color: "var(--text-muted)",
               }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                   strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"

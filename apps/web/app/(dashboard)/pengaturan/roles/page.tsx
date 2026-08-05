@@ -26,7 +26,7 @@ const card: React.CSSProperties = {
   background: "var(--surface)",
   border: "1px solid var(--border)",
   borderRadius: 14,
-  boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+  boxShadow: "var(--naik-1)",
 };
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -223,9 +223,9 @@ function RolesContent() {
           position: "fixed", top: 20, right: 24, zIndex: 9999,
           background: toast.type === "success" ? C.greenBg : C.redBg,
           border: `1px solid ${toast.type === "success" ? C.greenBorder : C.redBorder}`,
-          borderRadius: 10, padding: "10px 16px",
+          borderRadius: 10, padding: "8px 16px",
           display: "flex", alignItems: "center", gap: 8,
-          boxShadow: "0 4px 16px rgba(0,0,0,0.1)", fontSize: 13,
+          boxShadow: "var(--naik-2)", fontSize: 13,
           color: toast.type === "success" ? C.green : C.red,
         }}>
           {toast.type === "success" ? <Check size={14} /> : <AlertTriangle size={14} />}
@@ -248,7 +248,7 @@ function RolesContent() {
             onClick={() => setShowAddModal(true)}
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "9px 18px", borderRadius: 9, border: "none",
+              padding: "8px 16px", borderRadius: 10, border: "none",
               background: C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: "pointer",
             }}
           >
@@ -262,7 +262,7 @@ function RolesContent() {
 
         {/* Left: Role list */}
         <div style={card}>
-          <div style={{ padding: "14px 18px", borderBottom: `1px solid ${C.border}` }}>
+          <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}` }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Semua Role</div>
             <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{roles.length} role terdaftar</div>
           </div>
@@ -274,12 +274,12 @@ function RolesContent() {
                   key={role.id}
                   {...dapatDitekan(() => selectRole(role), `Pilih role ${role.label ?? role.name}`)}
                   style={{
-                    padding: "10px 18px",
+                    padding: "8px 16px",
                     cursor: "pointer",
                     background: isSelected ? C.navyLight : "transparent",
                     borderLeft: isSelected ? `3px solid ${C.navy}` : "3px solid transparent",
                     transition: "all 0.12s",
-                    display: "flex", alignItems: "center", gap: 10,
+                    display: "flex", alignItems: "center", gap: 8,
                   }}
                   onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = "var(--surface-subtle)"; }}
                   onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
@@ -290,17 +290,17 @@ function RolesContent() {
                     <div style={{ fontSize: 13, fontWeight: 600, color: isSelected ? C.navy : C.text, display: "flex", alignItems: "center", gap: 6 }}>
                       {role.label}
                       {role.is_builtin && (
-                        <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 4, background: "var(--surface-hover)", color: C.muted, fontWeight: 500 }}>
+                        <span style={{ fontSize: 10, padding: "0px 6px", borderRadius: 6, background: "var(--surface-hover)", color: C.muted, fontWeight: 500 }}>
                           bawaan
                         </span>
                       )}
                     </div>
                     <div style={{ fontSize: 11, color: C.muted, marginTop: 1, display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                      <span style={{ display: "flex", alignItems: "center", gap: 2 }}>
                         <Shield size={10} /> {role.permission_count ?? 0} permission
                       </span>
                       {role.user_count !== undefined && (
-                        <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: 2 }}>
                           <Users size={10} /> {role.user_count} user
                         </span>
                       )}
@@ -312,7 +312,7 @@ function RolesContent() {
                       <button aria-label="Edit role"
                         title="Edit role"
                         onClick={() => setEditRole(role)}
-                        style={{ padding: 5, borderRadius: 5, border: "none", background: "transparent", cursor: "pointer", color: C.muted, display: "flex" }}
+                        style={{ padding: 4, borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", color: C.muted, display: "flex" }}
                         onMouseEnter={e => { e.currentTarget.style.color = C.navy; e.currentTarget.style.background = C.navyLight; }}
                         onMouseLeave={e => { e.currentTarget.style.color = C.muted; e.currentTarget.style.background = "transparent"; }}
                       >
@@ -322,7 +322,7 @@ function RolesContent() {
                         <button aria-label="Hapus role"
                           title="Hapus role"
                           onClick={() => setDeleteRole(role)}
-                          style={{ padding: 5, borderRadius: 5, border: "none", background: "transparent", cursor: "pointer", color: C.muted, display: "flex" }}
+                          style={{ padding: 4, borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", color: C.muted, display: "flex" }}
                           onMouseEnter={e => { e.currentTarget.style.color = C.red; e.currentTarget.style.background = C.redBg; }}
                           onMouseLeave={e => { e.currentTarget.style.color = C.muted; e.currentTarget.style.background = "transparent"; }}
                         >
@@ -341,8 +341,8 @@ function RolesContent() {
         {selectedRole ? (
           <div style={card}>
             {/* Header */}
-            <div style={{ padding: "16px 22px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ width: 12, height: 12, borderRadius: "50%", background: selectedRole.color }} />
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{selectedRole.label}</div>
@@ -356,14 +356,14 @@ function RolesContent() {
                 <div style={{ display: "flex", gap: 8 }}>
                   <button
                     onClick={discardChanges}
-                    style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 7, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "6px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 12, fontWeight: 600, cursor: "pointer" }}
                   >
                     <X size={13} /> Batal
                   </button>
                   <button
                     onClick={savePermissions}
                     disabled={saving}
-                    style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 7, border: "none", background: saving ? "var(--text-muted)" : C.navy, color: "var(--surface)", fontSize: 12, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer" }}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "6px 12px", borderRadius: 6, border: "none", background: saving ? "var(--text-muted)" : C.navy, color: "var(--surface)", fontSize: 12, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer" }}
                   >
                     <Check size={13} /> {saving ? "Menyimpan..." : "Simpan"}
                   </button>
@@ -373,7 +373,7 @@ function RolesContent() {
 
             {/* Permission matrix */}
             {loadingPerms ? (
-              <div style={{ textAlign: "center", padding: 60, color: C.muted, fontSize: 14 }}>Memuat permission...</div>
+              <div style={{ textAlign: "center", padding: 60, color: C.muted, fontSize: 13 }}>Memuat permission...</div>
             ) : (
               <div style={{ padding: "8px 0 16px" }}>
                 {permissions.map(group => {
@@ -387,8 +387,8 @@ function RolesContent() {
                       {/* Module header */}
                       <div
                         style={{
-                          display: "flex", alignItems: "center", gap: 10,
-                          padding: "10px 22px", cursor: "pointer",
+                          display: "flex", alignItems: "center", gap: 8,
+                          padding: "8px 20px", cursor: "pointer",
                           background: "var(--surface-subtle)",
                         }}
                       >
@@ -408,7 +408,7 @@ function RolesContent() {
                           <button
                             onClick={() => toggleAllInModule(group.module, allIds)}
                             style={{
-                              fontSize: 11, padding: "3px 10px", borderRadius: 5,
+                              fontSize: 11, padding: "2px 8px", borderRadius: 6,
                               border: `1px solid ${allSelected ? C.navy : C.border}`,
                               background: allSelected ? C.navyLight : "var(--surface)",
                               color: allSelected ? C.navy : C.mid,
@@ -422,7 +422,7 @@ function RolesContent() {
 
                       {/* Permission items */}
                       {!isCollapsed && (
-                        <div style={{ padding: "4px 22px 10px" }}>
+                        <div style={{ padding: "4px 20px 8px" }}>
                           {group.permissions.map(perm => {
                             const checked = dirtyPerms.has(perm.id);
                             return (
@@ -433,8 +433,8 @@ function RolesContent() {
                                   `${dirtyPerms.has(perm.id) ? "Cabut" : "Berikan"} permission ${perm.key}`,
                                 )}
                                 style={{
-                                  display: "flex", alignItems: "flex-start", gap: 10,
-                                  padding: "7px 10px", borderRadius: 8, marginBottom: 2,
+                                  display: "flex", alignItems: "flex-start", gap: 8,
+                                  padding: "6px 8px", borderRadius: 6, marginBottom: 2,
                                   cursor: canManage ? "pointer" : "default",
                                   background: checked ? "var(--info-bg)" : "transparent",
                                   transition: "background 0.1s",
@@ -444,7 +444,7 @@ function RolesContent() {
                               >
                                 {/* Checkbox */}
                                 <div style={{
-                                  width: 17, height: 17, borderRadius: 4, flexShrink: 0, marginTop: 1,
+                                  width: 17, height: 17, borderRadius: 6, flexShrink: 0, marginTop: 1,
                                   border: `2px solid ${checked ? C.navy : C.border}`,
                                   background: checked ? C.navy : "var(--surface)",
                                   display: "flex", alignItems: "center", justifyContent: "center",
@@ -479,7 +479,7 @@ function RolesContent() {
         ) : (
           <div style={{ ...card, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 60, color: C.muted }}>
             <Lock size={32} color={C.border} style={{ marginBottom: 12 }} />
-            <div style={{ fontSize: 14, fontWeight: 600, color: C.mid }}>Pilih role untuk melihat permission</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: C.mid }}>Pilih role untuk melihat permission</div>
             <div style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>Klik salah satu role di sebelah kiri</div>
           </div>
         )}
@@ -570,10 +570,10 @@ function RoleFormModal({ role, roles, onClose, onSaved, setToast }: {
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ background: "var(--surface)", borderRadius: 16, width: 440, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", overflow: "hidden" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, width: 440, boxShadow: "var(--naik-3)", overflow: "hidden" }}>
         {/* Header */}
-        <div style={{ padding: "18px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{isEdit ? "Edit Role" : "Tambah Role Baru"}</div>
+        <div style={{ padding: "16px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{isEdit ? "Edit Role" : "Tambah Role Baru"}</div>
           <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", color: C.muted, display: "flex" }}>
             <X size={16} />
           </button>
@@ -591,7 +591,7 @@ function RoleFormModal({ role, roles, onClose, onSaved, setToast }: {
                 onChange={e => setName(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ""))}
                 placeholder="kasir, logistik, direktur"
                 disabled={isEdit}
-                style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box", fontFamily: "monospace" }}
+                style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box", fontFamily: "monospace" }}
               />
               <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Hanya huruf kecil, angka, dan tanda hubung. Tidak bisa diubah setelah dibuat.</div>
             </div>
@@ -606,7 +606,7 @@ function RoleFormModal({ role, roles, onClose, onSaved, setToast }: {
               value={label}
               onChange={e => setLabel(e.target.value)}
               placeholder="Kasir, Logistik, Direktur Utama"
-              style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }}
+              style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box" }}
             />
           </div>
 
@@ -617,7 +617,7 @@ function RoleFormModal({ role, roles, onClose, onSaved, setToast }: {
               value={description}
               onChange={e => setDescription(e.target.value)}
               placeholder="Opsional — jelaskan tanggung jawab role ini"
-              style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }}
+              style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box" }}
             />
           </div>
 
@@ -649,7 +649,7 @@ function RoleFormModal({ role, roles, onClose, onSaved, setToast }: {
                 aria-label="Salin permission dari role lain"
                 value={copyFrom}
                 onChange={e => setCopyFrom(e.target.value)}
-                style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box", background: "var(--surface)" }}
+                style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box", background: "var(--surface)" }}
               >
                 <option value="">— Mulai kosong —</option>
                 {roles.map(r => (
@@ -661,13 +661,13 @@ function RoleFormModal({ role, roles, onClose, onSaved, setToast }: {
           )}
 
           {/* Actions */}
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
             <button type="button" onClick={onClose}
-              style={{ padding: "9px 18px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+              style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
               Batal
             </button>
             <button type="submit" disabled={saving}
-              style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: saving ? "var(--text-muted)" : C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer" }}>
+              style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: saving ? "var(--text-muted)" : C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer" }}>
               {saving ? "Menyimpan..." : isEdit ? "Simpan Perubahan" : "Buat Role"}
             </button>
           </div>
@@ -704,26 +704,26 @@ function DeleteRoleModal({ role, onClose, onDeleted, setToast }: {
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ background: "var(--surface)", borderRadius: 14, width: 400, padding: 28, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, width: 400, padding: 28, boxShadow: "var(--naik-3)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
           <div style={{ width: 40, height: 40, borderRadius: 10, background: C.redBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Trash2 size={18} color={C.red} />
           </div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: C.text }}>Hapus Role</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>Hapus Role</div>
         </div>
         <p style={{ fontSize: 13, color: C.mid, marginBottom: 8 }}>
           Yakin ingin menghapus role <strong style={{ color: C.text }}>{role.label}</strong>?
         </p>
-        <p style={{ fontSize: 12, color: C.muted, marginBottom: 24, padding: "8px 12px", background: C.amberBg, border: `1px solid ${C.amberBorder}`, borderRadius: 8 }}>
+        <p style={{ fontSize: 12, color: C.muted, marginBottom: 24, padding: "8px 12px", background: C.amberBg, border: `1px solid ${C.amberBorder}`, borderRadius: 6 }}>
           Semua permission role ini akan ikut terhapus. User yang masih memiliki role ini tidak otomatis dipindahkan.
         </p>
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
           <button onClick={onClose}
-            style={{ padding: "8px 18px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+            style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
             Batal
           </button>
           <button onClick={handleDelete} disabled={deleting}
-            style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: deleting ? "var(--text-muted)" : C.red, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: deleting ? "not-allowed" : "pointer" }}>
+            style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: deleting ? "var(--text-muted)" : C.red, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: deleting ? "not-allowed" : "pointer" }}>
             {deleting ? "Menghapus..." : "Hapus Role"}
           </button>
         </div>

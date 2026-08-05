@@ -175,24 +175,24 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
 
   return (
     <section style={{
-      borderRadius: 12, border: `1px solid ${C.border}`,
-      background: C.surface, padding: 18, marginTop: 20,
+      borderRadius: 10, border: `1px solid ${C.border}`,
+      background: C.surface, padding: 16, marginTop: 20,
     }}>
       <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text, fontFamily: "var(--font-display, inherit)" }}>
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text, fontFamily: "var(--font-display, inherit)" }}>
             Rantai Kontrak
           </h2>
-          <p style={{ margin: "3px 0 0", fontSize: 12.5, color: C.mid }}>
+          <p style={{ margin: "3px 0 0", fontSize: 12, color: C.mid }}>
             Perpanjangan waktu, denda keterlambatan, dan jaminan — ketiganya saling terkait.
           </p>
         </div>
         <button
           onClick={() => setFormEot((v) => !v)}
           style={{
-            display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px",
-            borderRadius: 8, border: `1px solid ${C.border}`, background: C.surface,
-            color: C.navy, fontSize: 12.5, fontWeight: 600, cursor: "pointer",
+            display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px",
+            borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface,
+            color: C.navy, fontSize: 12, fontWeight: 600, cursor: "pointer",
           }}
         >
           <Plus size={14} aria-hidden="true" /> Ajukan EOT
@@ -201,9 +201,9 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
 
       {galat && (
         <div role="alert" style={{
-          display: "flex", gap: 8, padding: "10px 13px", borderRadius: 8,
+          display: "flex", gap: 8, padding: "8px 12px", borderRadius: 6,
           background: C.redBg, border: `1px solid ${C.redBorder}`,
-          color: C.red, fontSize: 12.5, marginBottom: 12,
+          color: C.red, fontSize: 12, marginBottom: 12,
         }}>
           <AlertTriangle size={14} aria-hidden="true" style={{ flexShrink: 0, marginTop: 1 }} />
           {galat}
@@ -218,10 +218,10 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
       {/* ── Tanggal & denda ─────────────────────────────────────────────── */}
       {ld && metaEot && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12, marginBottom: 16 }}>
-          <div style={{ padding: "12px 14px", borderRadius: 10, background: "var(--surface-subtle)", border: `1px solid ${C.border}` }}>
+          <div style={{ padding: "12px 12px", borderRadius: 10, background: "var(--surface-subtle)", border: `1px solid ${C.border}` }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
               <CalendarClock size={13} color={C.mid} aria-hidden="true" />
-              <span style={{ fontSize: 10.5, fontWeight: 700, color: C.mid, textTransform: "uppercase", letterSpacing: 0.4 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: C.mid, textTransform: "uppercase", letterSpacing: 0.4 }}>
                 Tanggal selesai
               </span>
             </div>
@@ -238,13 +238,13 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
           </div>
 
           <div style={{
-            padding: "12px 14px", borderRadius: 10,
+            padding: "12px 12px", borderRadius: 10,
             background: ld.adaDenda ? C.redBg : "var(--surface-subtle)",
             border: `1px solid ${ld.adaDenda ? C.redBorder : C.border}`,
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
               <AlertTriangle size={13} color={ld.adaDenda ? C.red : C.mid} aria-hidden="true" />
-              <span style={{ fontSize: 10.5, fontWeight: 700, color: ld.adaDenda ? C.red : C.mid, textTransform: "uppercase", letterSpacing: 0.4 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: ld.adaDenda ? C.red : C.mid, textTransform: "uppercase", letterSpacing: 0.4 }}>
                 Denda keterlambatan
               </span>
             </div>
@@ -262,7 +262,7 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
                 {!ld.otoritatif && (
                   <div style={{
                     display: "inline-flex", alignItems: "center", gap: 4, marginTop: 6,
-                    padding: "2px 7px", borderRadius: 20, fontSize: 10,
+                    padding: "2px 6px", borderRadius: 20, fontSize: 10,
                     fontWeight: 700, color: C.yellow, background: C.yellowBg,
                     border: `1px solid ${C.yellowBorder}`,
                   }}>
@@ -277,10 +277,10 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
           </div>
 
           {metaBond && (
-            <div style={{ padding: "12px 14px", borderRadius: 10, background: "var(--surface-subtle)", border: `1px solid ${C.border}` }}>
+            <div style={{ padding: "12px 12px", borderRadius: 10, background: "var(--surface-subtle)", border: `1px solid ${C.border}` }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
                 <ShieldCheck size={13} color={C.mid} aria-hidden="true" />
-                <span style={{ fontSize: 10.5, fontWeight: 700, color: C.mid, textTransform: "uppercase", letterSpacing: 0.4 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: C.mid, textTransform: "uppercase", letterSpacing: 0.4 }}>
                   Jaminan aktif
                 </span>
               </div>
@@ -297,7 +297,7 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
           persetujuan bisa mengubah angkanya. */}
       {peringatanLd && (
         <div style={{
-          display: "flex", gap: 8, padding: "9px 13px", borderRadius: 8,
+          display: "flex", gap: 8, padding: "8px 12px", borderRadius: 6,
           background: C.yellowBg, border: `1px solid ${C.yellowBorder}`,
           color: C.text, fontSize: 12, marginBottom: 14,
         }}>
@@ -309,7 +309,7 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
       {/* Jaminan yang segera kadaluarsa — uang yang bisa hangus. */}
       {metaBond && (metaBond.segeraKadaluarsa.length > 0 || metaBond.telatDiperbarui.length > 0) && (
         <div style={{
-          padding: "11px 13px", borderRadius: 8, background: C.redBg,
+          padding: "12px 12px", borderRadius: 6, background: C.redBg,
           border: `1px solid ${C.redBorder}`, marginBottom: 14,
         }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: C.red, marginBottom: 5 }}>
@@ -335,17 +335,17 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
         Perpanjangan waktu (EOT)
       </h3>
       {eot.length === 0 ? (
-        <p style={{ fontSize: 12.5, color: C.muted, margin: "0 0 14px" }}>
+        <p style={{ fontSize: 12, color: C.muted, margin: "0 0 14px" }}>
           Belum ada pengajuan perpanjangan waktu.
         </p>
       ) : (
         <div style={{ overflowX: "auto", marginBottom: 14 }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, minWidth: 560 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 560 }}>
             <thead>
               <tr style={{ background: "var(--surface-subtle)" }}>
                 {["Nomor", "Diajukan", "Hari", "Alasan", "Status", ""].map((h, i) => (
                   <th key={i} scope="col" style={{
-                    padding: "8px 11px", textAlign: "left", fontSize: 10.5, fontWeight: 700,
+                    padding: "8px 12px", textAlign: "left", fontSize: 10, fontWeight: 700,
                     color: C.mid, textTransform: "uppercase", letterSpacing: 0.4,
                     borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap",
                   }}>{h}</th>
@@ -357,13 +357,13 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
                 const s = STATUS_EOT[e.status];
                 return (
                   <tr key={e.id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                    <td style={{ padding: "8px 11px", color: C.text, whiteSpace: "nowrap" }}>
+                    <td style={{ padding: "8px 12px", color: C.text, whiteSpace: "nowrap" }}>
                       {e.eot_number ?? <span style={{ color: C.muted }}>—</span>}
                     </td>
-                    <td style={{ padding: "8px 11px", color: C.mid, whiteSpace: "nowrap" }}>
+                    <td style={{ padding: "8px 12px", color: C.mid, whiteSpace: "nowrap" }}>
                       {fmtTgl(e.submitted_at)}
                     </td>
-                    <td style={{ padding: "8px 11px", color: C.text, whiteSpace: "nowrap" }}>
+                    <td style={{ padding: "8px 12px", color: C.text, whiteSpace: "nowrap" }}>
                       {e.status === "disetujui" && e.days_approved != null
                         ? <>
                             <strong>{e.days_approved} hari</strong>
@@ -375,21 +375,21 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
                           </>
                         : <span style={{ color: C.mid }}>{e.days_requested} hari diajukan</span>}
                     </td>
-                    <td style={{ padding: "8px 11px", color: C.mid, maxWidth: 220 }}>{e.reason}</td>
-                    <td style={{ padding: "8px 11px", whiteSpace: "nowrap" }}>
+                    <td style={{ padding: "8px 12px", color: C.mid, maxWidth: 220 }}>{e.reason}</td>
+                    <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>
                       <span style={{
-                        padding: "2px 8px", borderRadius: 20, fontSize: 10.5, fontWeight: 600,
+                        padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 600,
                         color: s.warna, background: s.bg, border: `1px solid ${s.border}`,
                       }}>{s.teks}</span>
                     </td>
-                    <td style={{ padding: "8px 11px", whiteSpace: "nowrap" }}>
+                    <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>
                       {e.status === "diajukan" && (
-                        <span style={{ display: "inline-flex", gap: 5 }}>
+                        <span style={{ display: "inline-flex", gap: 4 }}>
                           <button onClick={() => putuskan(e.id, "disetujui")}
                             aria-label={`Setujui EOT ${e.eot_number ?? e.reason.slice(0, 24)}`}
                             style={{
-                              display: "inline-flex", alignItems: "center", gap: 3,
-                              padding: "3px 9px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+                              display: "inline-flex", alignItems: "center", gap: 2,
+                              padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600,
                               border: `1px solid ${C.greenBorder}`, background: C.greenBg,
                               color: C.green, cursor: "pointer",
                             }}>
@@ -398,8 +398,8 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
                           <button onClick={() => putuskan(e.id, "ditolak")}
                             aria-label={`Tolak EOT ${e.eot_number ?? e.reason.slice(0, 24)}`}
                             style={{
-                              display: "inline-flex", alignItems: "center", gap: 3,
-                              padding: "3px 9px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+                              display: "inline-flex", alignItems: "center", gap: 2,
+                              padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600,
                               border: `1px solid ${C.border}`, background: C.surface,
                               color: C.mid, cursor: "pointer",
                             }}>
@@ -417,15 +417,15 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
       )}
 
       {/* ── Register jaminan ────────────────────────────────────────────── */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 8 }}>
         <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: C.text }}>
           Register jaminan
         </h3>
         <button
           onClick={() => setFormBond((v) => !v)}
           style={{
-            display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 11px",
-            borderRadius: 7, border: `1px solid ${C.border}`, background: C.surface,
+            display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 12px",
+            borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface,
             color: C.navy, fontSize: 12, fontWeight: 600, cursor: "pointer",
           }}
         >
@@ -439,18 +439,18 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
       )}
 
       {bonds.length === 0 ? (
-        <p style={{ fontSize: 12.5, color: C.muted, margin: 0 }}>
+        <p style={{ fontSize: 12, color: C.muted, margin: 0 }}>
           Belum ada jaminan tercatat untuk proyek ini.
         </p>
       ) : (
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, minWidth: 560 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 560 }}>
             <thead>
               <tr style={{ background: "var(--surface-subtle)" }}>
                 {["Jenis", "Nomor", "Penerbit", "Nilai", "Berlaku s.d.", "Status", ""].map((h, i) => (
                   <th key={i} scope="col" style={{
-                    padding: "8px 11px", textAlign: i === 3 ? "right" : "left",
-                    fontSize: 10.5, fontWeight: 700, color: C.mid,
+                    padding: "8px 12px", textAlign: i === 3 ? "right" : "left",
+                    fontSize: 10, fontWeight: 700, color: C.mid,
                     textTransform: "uppercase", letterSpacing: 0.4,
                     borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap",
                   }}>{h}</th>
@@ -460,16 +460,16 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
             <tbody>
               {bonds.map((b) => (
                 <tr key={b.id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                  <td style={{ padding: "8px 11px", color: C.text }}>{JENIS_BOND[b.bond_type] ?? b.bond_type}</td>
-                  <td style={{ padding: "8px 11px", color: C.mid }}>{b.bond_number ?? "—"}</td>
-                  <td style={{ padding: "8px 11px", color: C.mid }}>{b.issuer ?? "—"}</td>
-                  <td style={{ padding: "8px 11px", textAlign: "right", fontWeight: 600, color: C.text, whiteSpace: "nowrap" }}>
+                  <td style={{ padding: "8px 12px", color: C.text }}>{JENIS_BOND[b.bond_type] ?? b.bond_type}</td>
+                  <td style={{ padding: "8px 12px", color: C.mid }}>{b.bond_number ?? "—"}</td>
+                  <td style={{ padding: "8px 12px", color: C.mid }}>{b.issuer ?? "—"}</td>
+                  <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 600, color: C.text, whiteSpace: "nowrap" }}>
                     {fmtRp(b.amount)}
                   </td>
-                  <td style={{ padding: "8px 11px", color: C.mid, whiteSpace: "nowrap" }}>{fmtTgl(b.expiry_date)}</td>
-                  <td style={{ padding: "8px 11px", whiteSpace: "nowrap" }}>
+                  <td style={{ padding: "8px 12px", color: C.mid, whiteSpace: "nowrap" }}>{fmtTgl(b.expiry_date)}</td>
+                  <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>
                     <span style={{
-                      padding: "2px 8px", borderRadius: 20, fontSize: 10.5, fontWeight: 600,
+                      padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 600,
                       color: b.status === "aktif" ? C.green : C.mid,
                       background: b.status === "aktif" ? C.greenBg : "var(--surface-subtle)",
                       border: `1px solid ${b.status === "aktif" ? C.greenBorder : C.border}`,
@@ -479,14 +479,14 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
                         : b.status === "dicairkan" ? "Dicairkan" : "Kadaluarsa"}
                     </span>
                   </td>
-                  <td style={{ padding: "8px 11px", whiteSpace: "nowrap" }}>
+                  <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>
                     {b.status === "aktif" && (
-                      <span style={{ display: "inline-flex", gap: 5 }}>
+                      <span style={{ display: "inline-flex", gap: 4 }}>
                         <button
                           onClick={() => ubahStatusBond(b, "dikembalikan")}
                           aria-label={`Tandai ${JENIS_BOND[b.bond_type] ?? b.bond_type} ${b.bond_number ?? ""} sebagai dikembalikan`}
                           style={{
-                            padding: "3px 9px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+                            padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600,
                             border: `1px solid ${C.border}`, background: C.surface,
                             color: C.mid, cursor: "pointer",
                           }}>
@@ -496,7 +496,7 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
                           onClick={() => ubahStatusBond(b, "dicairkan")}
                           aria-label={`Tandai ${JENIS_BOND[b.bond_type] ?? b.bond_type} ${b.bond_number ?? ""} sebagai dicairkan`}
                           style={{
-                            padding: "3px 9px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+                            padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600,
                             border: `1px solid ${C.redBorder}`, background: C.redBg,
                             color: C.red, cursor: "pointer",
                           }}>
@@ -549,8 +549,8 @@ function FormBond({ projectId, onSelesai, onBatal }: {
   }
 
   const input: React.CSSProperties = {
-    width: "100%", padding: "7px 10px", borderRadius: 7,
-    border: `1px solid ${C.border}`, fontSize: 12.5, background: C.surface,
+    width: "100%", padding: "6px 8px", borderRadius: 6,
+    border: `1px solid ${C.border}`, fontSize: 12, background: C.surface,
     color: C.text, boxSizing: "border-box",
   };
   const label: React.CSSProperties = {
@@ -559,16 +559,16 @@ function FormBond({ projectId, onSelesai, onBatal }: {
 
   return (
     <form onSubmit={kirim} style={{
-      padding: 14, borderRadius: 10, border: `1px solid ${C.border}`,
+      padding: 12, borderRadius: 10, border: `1px solid ${C.border}`,
       background: "var(--surface-subtle)", marginBottom: 12,
     }}>
       {galat && (
         <div role="alert" style={{
-          padding: "8px 11px", borderRadius: 7, background: C.redBg,
+          padding: "8px 12px", borderRadius: 6, background: C.redBg,
           border: `1px solid ${C.redBorder}`, color: C.red, fontSize: 12, marginBottom: 10,
         }}>{galat}</div>
       )}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 8 }}>
         <div>
           <label htmlFor="bond_type" style={label}>Jenis jaminan *</label>
           <select id="bond_type" name="bond_type" defaultValue="pelaksanaan" style={input}>
@@ -594,20 +594,20 @@ function FormBond({ projectId, onSelesai, onBatal }: {
         <div>
           <label htmlFor="expiry_date" style={label}>Berlaku sampai *</label>
           <input id="expiry_date" name="expiry_date" type="date" required style={input} />
-          <span style={{ fontSize: 10.5, color: C.muted, display: "block", marginTop: 3 }}>
+          <span style={{ fontSize: 10, color: C.muted, display: "block", marginTop: 3 }}>
             Akan diperingatkan 30 hari sebelum kadaluarsa.
           </span>
         </div>
       </div>
-      <div style={{ display: "flex", gap: 7, marginTop: 12 }}>
+      <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
         <button type="submit" disabled={simpan} style={{
-          padding: "7px 15px", borderRadius: 7, border: "none", background: C.navy,
-          color: "#fff", fontSize: 12.5, fontWeight: 600,
+          padding: "6px 16px", borderRadius: 6, border: "none", background: C.navy,
+          color: "#fff", fontSize: 12, fontWeight: 600,
           cursor: simpan ? "wait" : "pointer", opacity: simpan ? 0.7 : 1,
         }}>{simpan ? "Menyimpan…" : "Simpan"}</button>
         <button type="button" onClick={onBatal} style={{
-          padding: "7px 15px", borderRadius: 7, border: `1px solid ${C.border}`,
-          background: C.surface, color: C.mid, fontSize: 12.5, fontWeight: 600, cursor: "pointer",
+          padding: "6px 16px", borderRadius: 6, border: `1px solid ${C.border}`,
+          background: C.surface, color: C.mid, fontSize: 12, fontWeight: 600, cursor: "pointer",
         }}>Batal</button>
       </div>
     </form>
@@ -640,8 +640,8 @@ function FormEOT({ projectId, onSelesai, onBatal }: {
   }
 
   const input: React.CSSProperties = {
-    width: "100%", padding: "7px 10px", borderRadius: 7,
-    border: `1px solid ${C.border}`, fontSize: 12.5, background: C.surface,
+    width: "100%", padding: "6px 8px", borderRadius: 6,
+    border: `1px solid ${C.border}`, fontSize: 12, background: C.surface,
     color: C.text, boxSizing: "border-box",
   };
   const label: React.CSSProperties = {
@@ -650,16 +650,16 @@ function FormEOT({ projectId, onSelesai, onBatal }: {
 
   return (
     <form onSubmit={kirim} style={{
-      padding: 14, borderRadius: 10, border: `1px solid ${C.border}`,
+      padding: 12, borderRadius: 10, border: `1px solid ${C.border}`,
       background: "var(--surface-subtle)", marginBottom: 14,
     }}>
       {galat && (
         <div role="alert" style={{
-          padding: "8px 11px", borderRadius: 7, background: C.redBg,
+          padding: "8px 12px", borderRadius: 6, background: C.redBg,
           border: `1px solid ${C.redBorder}`, color: C.red, fontSize: 12, marginBottom: 10,
         }}>{galat}</div>
       )}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 8 }}>
         <div>
           <label htmlFor="eot_number" style={label}>Nomor EOT (dari pemberi kerja)</label>
           <input id="eot_number" name="eot_number" style={input} />
@@ -673,21 +673,21 @@ function FormEOT({ projectId, onSelesai, onBatal }: {
         <label htmlFor="reason" style={label}>Alasan perpanjangan * (min. 10 karakter)</label>
         <input id="reason" name="reason" required minLength={10}
           placeholder="mis. curah hujan ekstrem 12 hari berturut-turut" style={input} />
-        <span style={{ fontSize: 10.5, color: C.muted, display: "block", marginTop: 3 }}>
+        <span style={{ fontSize: 10, color: C.muted, display: "block", marginTop: 3 }}>
           Ini yang menjadi dasar saat denda keterlambatan dibatalkan — akan diperiksa pemberi kerja.
         </span>
       </div>
-      <div style={{ display: "flex", gap: 7, marginTop: 12 }}>
+      <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
         <button type="submit" disabled={simpan} style={{
-          padding: "7px 15px", borderRadius: 7, border: "none", background: C.navy,
-          color: "#fff", fontSize: 12.5, fontWeight: 600,
+          padding: "6px 16px", borderRadius: 6, border: "none", background: C.navy,
+          color: "#fff", fontSize: 12, fontWeight: 600,
           cursor: simpan ? "wait" : "pointer", opacity: simpan ? 0.7 : 1,
         }}>
           {simpan ? "Menyimpan…" : "Ajukan"}
         </button>
         <button type="button" onClick={onBatal} style={{
-          padding: "7px 15px", borderRadius: 7, border: `1px solid ${C.border}`,
-          background: C.surface, color: C.mid, fontSize: 12.5, fontWeight: 600, cursor: "pointer",
+          padding: "6px 16px", borderRadius: 6, border: `1px solid ${C.border}`,
+          background: C.surface, color: C.mid, fontSize: 12, fontWeight: 600, cursor: "pointer",
         }}>Batal</button>
       </div>
     </form>

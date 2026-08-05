@@ -31,7 +31,7 @@ const fieldLabel: React.CSSProperties = {
 
 const fieldInput: React.CSSProperties = {
   width: "100%",
-  padding: "9px 12px",
+  padding: "8px 12px",
   borderRadius: 10,
   border: "1px solid #e2e8f0",
   background: "var(--surface)",
@@ -144,7 +144,7 @@ export function MilestoneModal({
         maxWidth: "460px",
         background: "var(--surface)",
         borderRadius: 20,
-        boxShadow: "0 24px 64px -12px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.06)",
+        boxShadow: "var(--naik-3)",
         overflow: "hidden",
       }}>
         {/* Accent bar */}
@@ -158,7 +158,7 @@ export function MilestoneModal({
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{
-              width: 40, height: 40, borderRadius: 12,
+              width: 40, height: 40, borderRadius: 10,
               background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))",
               display: "flex", alignItems: "center", justifyContent: "center",
               flexShrink: 0,
@@ -166,7 +166,7 @@ export function MilestoneModal({
               <Flag size={18} color="white" />
             </div>
             <div>
-              <h2 style={{ fontSize: 16, fontWeight: 600, color: "var(--text-primary)", fontFamily: "var(--font-display)", margin: 0 }}>
+              <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--text-primary)", fontFamily: "var(--font-display)", margin: 0 }}>
                 {isEdit ? "Edit Milestone" : "Tambah Milestone"}
               </h2>
               <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "2px 0 0" }}>
@@ -178,7 +178,7 @@ export function MilestoneModal({
             onClick={handleClose}
             disabled={submitting}
             style={{
-              width: 32, height: 32, borderRadius: 8, border: "none",
+              width: 32, height: 32, borderRadius: 6, border: "none",
               background: "var(--surface-subtle)", cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center",
               color: "var(--text-muted)", flexShrink: 0,
@@ -193,7 +193,7 @@ export function MilestoneModal({
           {/* Error */}
           {error && (
             <div style={{
-              padding: "10px 14px", borderRadius: 10,
+              padding: "8px 12px", borderRadius: 10,
               background: "var(--danger-bg)", border: "1px solid var(--danger-border)", color: "var(--danger)", fontSize: 13,
             }}>
               {error}
@@ -248,7 +248,7 @@ export function MilestoneModal({
 
         {/* Footer */}
         <div style={{
-          padding: "14px 24px", borderTop: "1px solid #f1f5f9", background: "var(--surface-subtle)",
+          padding: "12px 24px", borderTop: "1px solid #f1f5f9", background: "var(--surface-subtle)",
           display: "flex", justifyContent: "flex-end", gap: 8,
         }}>
           <button

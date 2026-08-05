@@ -96,9 +96,9 @@ export default function AuthCallbackPage() {
         background: "var(--navy)",
         display: "flex", alignItems: "center", justifyContent: "center",
       }}>
-        <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 18, color: "var(--surface)" }}>P</span>
+        <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 17, color: "var(--surface)" }}>P</span>
       </div>
-      <div style={{ fontSize: 14, color: "var(--text-secondary)" }}>Memverifikasi akun...</div>
+      <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>Memverifikasi akun...</div>
       <div style={{
         width: 24, height: 24,
         border: "2px solid var(--border)",

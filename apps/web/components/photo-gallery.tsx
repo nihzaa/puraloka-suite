@@ -118,20 +118,20 @@ function LightboxContent({
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
       {/* Top bar */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px", flexShrink: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 20px", flexShrink: 0 }}>
         <div style={{ color: "var(--text-muted)", fontSize: 13 }}>
           {idx + 1} / {photos.length}
         </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <a
             href={photo.url}
             download
-            style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, background: "rgba(255,255,255,0.1)", color: "var(--surface)", textDecoration: "none" }}
+            style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", borderRadius: 6, fontSize: 12, fontWeight: 600, background: "rgba(255,255,255,0.1)", color: "var(--surface)", textDecoration: "none" }}
             onClick={e => e.stopPropagation()}
           >
             <Download size={13} /> Download
           </a>
-          <button aria-label="Tutup galeri foto" onClick={onClose} style={{ background: "rgba(255,255,255,0.1)", border: "none", cursor: "pointer", color: "var(--surface)", padding: "8px", borderRadius: 8 }}>
+          <button aria-label="Tutup galeri foto" onClick={onClose} style={{ background: "rgba(255,255,255,0.1)", border: "none", cursor: "pointer", color: "var(--surface)", padding: "8px", borderRadius: 6 }}>
             <X size={18} />
           </button>
         </div>
@@ -143,7 +143,7 @@ function LightboxContent({
         <button aria-label="Foto sebelumnya"
           onClick={prev}
           disabled={idx === 0}
-          style={{ background: "rgba(255,255,255,0.1)", border: "none", cursor: idx === 0 ? "default" : "pointer", color: "var(--surface)", borderRadius: 10, padding: "10px 8px", opacity: idx === 0 ? 0.3 : 1, flexShrink: 0 }}
+          style={{ background: "rgba(255,255,255,0.1)", border: "none", cursor: idx === 0 ? "default" : "pointer", color: "var(--surface)", borderRadius: 10, padding: "8px 8px", opacity: idx === 0 ? 0.3 : 1, flexShrink: 0 }}
         >
           <ChevronLeft size={22} />
         </button>
@@ -154,7 +154,7 @@ function LightboxContent({
           <img
             src={photo.url}
             alt={photo.caption ?? "Foto proyek"}
-            style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", borderRadius: 8 }}
+            style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", borderRadius: 6 }}
           />
         </div>
 
@@ -162,7 +162,7 @@ function LightboxContent({
         <button aria-label="Foto berikutnya"
           onClick={next}
           disabled={idx === photos.length - 1}
-          style={{ background: "rgba(255,255,255,0.1)", border: "none", cursor: idx === photos.length - 1 ? "default" : "pointer", color: "var(--surface)", borderRadius: 10, padding: "10px 8px", opacity: idx === photos.length - 1 ? 0.3 : 1, flexShrink: 0 }}
+          style={{ background: "rgba(255,255,255,0.1)", border: "none", cursor: idx === photos.length - 1 ? "default" : "pointer", color: "var(--surface)", borderRadius: 10, padding: "8px 8px", opacity: idx === photos.length - 1 ? 0.3 : 1, flexShrink: 0 }}
         >
           <ChevronRight size={22} />
         </button>
@@ -170,7 +170,7 @@ function LightboxContent({
 
       {/* Bottom info bar */}
       <div style={{
-        background: "rgba(0,0,0,0.7)", padding: "14px 20px", flexShrink: 0,
+        background: "rgba(0,0,0,0.7)", padding: "12px 20px", flexShrink: 0,
         display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16,
       }}>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -195,7 +195,7 @@ function LightboxContent({
                   onClick={() => handleCategoryChange(cat)}
                   disabled={updating}
                   style={{
-                    padding: "5px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600,
+                    padding: "4px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600,
                     border: `2px solid ${photo.category === cat ? "var(--surface)" : "transparent"}`,
                     background: CATEGORY_COLORS[cat].bg, color: CATEGORY_COLORS[cat].color,
                     cursor: "pointer", opacity: updating ? 0.6 : 1,
@@ -204,13 +204,13 @@ function LightboxContent({
                   {CATEGORY_LABEL[cat]}
                 </button>
               ))}
-              <button aria-label="Hapus foto" onClick={() => setEditingCategory(false)} style={{ padding: "5px 8px", borderRadius: 20, fontSize: 11, background: "rgba(255,255,255,0.1)", color: "var(--surface)", border: "none", cursor: "pointer" }}>
+              <button aria-label="Hapus foto" onClick={() => setEditingCategory(false)} style={{ padding: "4px 8px", borderRadius: 20, fontSize: 11, background: "rgba(255,255,255,0.1)", color: "var(--surface)", border: "none", cursor: "pointer" }}>
                 <X size={11} />
               </button>
             </div>
           ) : (
             <>
-              <span style={{ padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: catStyle.bg, color: catStyle.color }}>
+              <span style={{ padding: "4px 8px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: catStyle.bg, color: catStyle.color }}>
                 {CATEGORY_LABEL[photo.category] ?? photo.category}
               </span>
               {canEdit && (
@@ -278,7 +278,7 @@ export function PhotoGallery({ projectId, userRole }: Props) {
   return (
     <div>
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
         <div style={{
           width: 36, height: 36, borderRadius: 10,
           background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))",
@@ -304,7 +304,7 @@ export function PhotoGallery({ projectId, userRole }: Props) {
                 key={cat.key}
                 onClick={() => setActiveCategory(cat.key)}
                 style={{
-                  display: "flex", alignItems: "center", gap: 5,
+                  display: "flex", alignItems: "center", gap: 4,
                   padding: "6px 12px", borderRadius: 20, fontSize: 12, fontWeight: isActive ? 700 : 500,
                   border: `1px solid ${isActive ? cat.color : "var(--border)"}`,
                   background: isActive ? cat.bg : "var(--surface)",
@@ -326,10 +326,10 @@ export function PhotoGallery({ projectId, userRole }: Props) {
       ) : photos.length === 0 ? (
         <div style={{
           padding: "40px 24px", textAlign: "center",
-          border: "2px dashed var(--border)", borderRadius: 12, background: "var(--surface-subtle)",
+          border: "2px dashed var(--border)", borderRadius: 10, background: "var(--surface-subtle)",
         }}>
           <Images size={32} color={C.muted} style={{ marginBottom: 12 }} />
-          <p style={{ fontSize: 14, fontWeight: 600, color: C.text, marginBottom: 4 }}>Belum ada foto</p>
+          <p style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4 }}>Belum ada foto</p>
           <p style={{ fontSize: 12, color: C.muted }}>Foto akan muncul di sini setelah diupload melalui log progress</p>
         </div>
       ) : filteredPhotos.length === 0 ? (
@@ -340,7 +340,7 @@ export function PhotoGallery({ projectId, userRole }: Props) {
         <div style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
-          gap: 10,
+          gap: 8,
         }}>
           {filteredPhotos.map((photo) => {
             const globalIdx = photos.indexOf(photo);
@@ -361,7 +361,7 @@ export function PhotoGallery({ projectId, userRole }: Props) {
                   position: "relative", borderRadius: 10, overflow: "hidden",
                   cursor: "pointer", aspectRatio: "4/3",
                   border: "1px solid var(--border)",
-                  boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+                  boxShadow: "var(--naik-1)",
                   transition: "transform 0.15s, box-shadow 0.15s",
                 }}
                 onMouseEnter={e => {
@@ -388,13 +388,13 @@ export function PhotoGallery({ projectId, userRole }: Props) {
                 {/* Category badge */}
                 <span style={{
                   position: "absolute", top: 7, right: 7,
-                  padding: "2px 7px", borderRadius: 10, fontSize: 9, fontWeight: 700,
+                  padding: "2px 6px", borderRadius: 10, fontSize: 10, fontWeight: 700,
                   background: catColor.bg, color: catColor.color,
                 }}>
                   {CATEGORY_LABEL[photo.category] ?? photo.category}
                 </span>
                 {/* Caption + date */}
-                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "8px 10px" }}>
+                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "8px 8px" }}>
                   {photo.caption && (
                     <p style={{ color: "var(--surface)", fontSize: 11, fontWeight: 600, margin: "0 0 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {photo.caption}

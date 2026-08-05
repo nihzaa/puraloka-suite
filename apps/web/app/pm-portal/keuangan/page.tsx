@@ -68,7 +68,7 @@ export default function PMKeuanganPage() {
       <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text, margin: "0 0 16px" }}>Keuangan — Kasbon</h1>
 
       {!loading && pendingCount > 0 && (
-        <div style={{ background: C.yellowBg, border: `1px solid ${C.yellow}40`, borderRadius: 12, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ background: C.yellowBg, border: `1px solid ${C.yellow}40`, borderRadius: 10, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
           <Clock size={16} color={C.yellow} />
           <span style={{ fontSize: 13, fontWeight: 600, color: C.yellow }}>{pendingCount} kasbon menunggu persetujuan Anda</span>
         </div>
@@ -80,7 +80,7 @@ export default function PMKeuanganPage() {
           <button
             key={s}
             onClick={() => setFilter(s)}
-            style={{ padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: "pointer", border: `1px solid ${filter === s ? C.navy : C.border}`, background: filter === s ? C.navyLight : "var(--surface)", color: filter === s ? C.navy : C.mid }}
+            style={{ padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: "pointer", border: `1px solid ${filter === s ? C.navy : C.border}`, background: filter === s ? C.navyLight : "var(--surface)", color: filter === s ? C.navy : C.mid }}
           >
             {s === "all" ? "Semua" : STATUS_META[s]?.label ?? s}
           </button>
@@ -89,9 +89,9 @@ export default function PMKeuanganPage() {
 
       {loading && <div style={{ textAlign: "center", padding: 60, color: C.mid }}>Memuat kasbon...</div>}
       {!loading && filtered.length === 0 && (
-        <div style={{ background: C.surface, borderRadius: 12, padding: 40, border: `1px solid ${C.border}`, textAlign: "center" }}>
+        <div style={{ background: C.surface, borderRadius: 10, padding: 40, border: `1px solid ${C.border}`, textAlign: "center" }}>
           <AlertCircle size={28} color={C.muted} style={{ marginBottom: 8 }} />
-          <div style={{ fontSize: 14, color: C.mid }}>Tidak ada kasbon</div>
+          <div style={{ fontSize: 13, color: C.mid }}>Tidak ada kasbon</div>
         </div>
       )}
 
@@ -100,11 +100,11 @@ export default function PMKeuanganPage() {
           const meta = STATUS_META[k.status] ?? STATUS_META.pending;
           const isPending = k.status === "pending";
           return (
-            <div key={k.id} style={{ background: C.surface, borderRadius: 12, padding: "16px 20px", border: `1px solid ${isPending ? C.yellow + "40" : C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+            <div key={k.id} style={{ background: C.surface, borderRadius: 10, padding: "16px 20px", border: `1px solid ${isPending ? C.yellow + "40" : C.border}`, boxShadow: "var(--naik-1)" }}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
-                    <span style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{fmt(k.amount)}</span>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{fmt(k.amount)}</span>
                     <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20, color: meta.color, background: meta.bg }}>{meta.label}</span>
                   </div>
                   <div style={{ fontSize: 12, color: C.mid }}>
@@ -121,7 +121,7 @@ export default function PMKeuanganPage() {
                     <button
                       onClick={() => handleAction(k.id, "rejected")}
                       disabled={actioningId === k.id}
-                      style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", borderRadius: 8, border: `1px solid ${C.red}`, background: "var(--surface)", color: C.red, cursor: "pointer", fontSize: 12, fontWeight: 600, opacity: actioningId === k.id ? 0.6 : 1 }}
+                      style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", borderRadius: 6, border: `1px solid ${C.red}`, background: "var(--surface)", color: C.red, cursor: "pointer", fontSize: 12, fontWeight: 600, opacity: actioningId === k.id ? 0.6 : 1 }}
                     >
                       <XCircle size={14} />
                       Tolak
@@ -129,7 +129,7 @@ export default function PMKeuanganPage() {
                     <button
                       onClick={() => handleAction(k.id, "approved")}
                       disabled={actioningId === k.id}
-                      style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", borderRadius: 8, border: "none", background: C.green, color: "var(--surface)", cursor: "pointer", fontSize: 12, fontWeight: 600, opacity: actioningId === k.id ? 0.6 : 1 }}
+                      style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", borderRadius: 6, border: "none", background: C.green, color: "var(--surface)", cursor: "pointer", fontSize: 12, fontWeight: 600, opacity: actioningId === k.id ? 0.6 : 1 }}
                     >
                       <CheckCircle size={14} />
                       Setuju
@@ -143,7 +143,7 @@ export default function PMKeuanganPage() {
       </div>
 
       {toast && typeof window !== "undefined" && createPortal(
-        <div style={{ position: "fixed", bottom: 80, left: "50%", transform: "translateX(-50%)", zIndex: 10000, padding: "12px 20px", borderRadius: 10, background: toast.ok ? "var(--success)" : C.red, color: "var(--surface)", fontSize: 13, fontWeight: 500, boxShadow: "0 4px 16px rgba(0,0,0,0.2)", whiteSpace: "nowrap" }}>
+        <div style={{ position: "fixed", bottom: 80, left: "50%", transform: "translateX(-50%)", zIndex: 10000, padding: "12px 20px", borderRadius: 10, background: toast.ok ? "var(--success)" : C.red, color: "var(--surface)", fontSize: 13, fontWeight: 500, boxShadow: "var(--naik-2)", whiteSpace: "nowrap" }}>
           {toast.msg}
         </div>,
         document.body

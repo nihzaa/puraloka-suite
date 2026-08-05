@@ -59,8 +59,8 @@ interface ProjectModalProps {
 import { C } from "@/lib/warna-ui";
 
 const inputStyle: React.CSSProperties = {
-  width: "100%", padding: "9px 12px",
-  border: "1px solid var(--border)", borderRadius: 8,
+  width: "100%", padding: "8px 12px",
+  border: "1px solid var(--border)", borderRadius: 6,
   fontSize: 13, color: C.text, background: "var(--surface)",
   outline: "none", transition: "border-color 0.15s, box-shadow 0.15s",
   boxSizing: "border-box",
@@ -315,14 +315,14 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div style={{
-        background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 600,
-        boxShadow: "0 24px 48px rgba(0,0,0,0.18)",
+        background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 600,
+        boxShadow: "var(--naik-3)",
         maxHeight: "90vh", display: "flex", flexDirection: "column",
       }}>
         {/* ── Modal header ── */}
         <div style={{ padding: "24px 28px 0", flexShrink: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-            <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: C.text }}>
+            <h2 style={{ fontFamily: "var(--font-display)", fontSize: 17, fontWeight: 700, color: C.text }}>
               {mode === "create" ? "Tambah Proyek Baru" : "Edit Proyek"}
             </h2>
             <button aria-label="Tutup dialog proyek"
@@ -456,17 +456,17 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
               </Field>
 
               {/* Denda — override per proyek (syarat kontrak; default ikuti aturan global) */}
-              <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 14px", background: "var(--surface-subtle)" }}>
+              <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 12px", background: "var(--surface-subtle)" }}>
                 <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
                   <input type="checkbox" checked={form.penalty_override} onChange={e => set("penalty_override", e.target.checked)} />
                   <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>Atur denda khusus proyek ini</span>
                 </label>
-                <p style={{ margin: "4px 0 0 24px", fontSize: 11.5, color: "var(--text-muted)" }}>
+                <p style={{ margin: "4px 0 0 24px", fontSize: 11, color: "var(--text-muted)" }}>
                   {form.penalty_override ? "Nilai di bawah menimpa aturan denda global untuk proyek ini." : "Mengikuti aturan denda global (Konfigurasi Keuangan)."}
                 </p>
                 {form.penalty_override && (
-                  <div style={{ marginLeft: 24, marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
-                    <label htmlFor="penalty-basis" style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: "var(--text-primary)" }}>
+                  <div style={{ marginLeft: 24, marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+                    <label htmlFor="penalty-basis" style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text-primary)" }}>
                       <input type="checkbox" checked={form.penalty_enabled} onChange={e => set("penalty_enabled", e.target.checked)} />
                       Denda aktif untuk proyek ini
                     </label>
@@ -477,7 +477,7 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
                         <option value="kontrak_total">Nilai kontrak total</option>
                       </select>
                     </Field>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
                       <Field label="Tarif (‰/hari)">
                         <input style={inputStyle} type="number" min="0" step="0.1" value={form.penalty_rate_permil} onChange={e => set("penalty_rate_permil", e.target.value)} placeholder="1" />
                       </Field>
@@ -508,7 +508,7 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {/* Total indicator */}
               <div style={{
-                padding: "10px 14px", borderRadius: 8,
+                padding: "8px 12px", borderRadius: 6,
                 background: Math.abs(terminTotal - 100) < 0.01 ? "var(--success-bg)" : "var(--danger-bg)",
                 border: `1px solid ${Math.abs(terminTotal - 100) < 0.01 ? "var(--success-border)" : "var(--danger-border)"}`,
                 display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -528,7 +528,7 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
 
               {form.termin_schedules.map((t, i) => {
                 return (
-                  <div key={i} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "14px 16px", background: "var(--surface-subtle)" }}>
+                  <div key={i} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "12px 16px", background: "var(--surface-subtle)" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ fontSize: 12, fontWeight: 600, color: C.navy }}>Termin {i + 1}</span>
@@ -543,7 +543,7 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
                       {form.termin_schedules.length > 1 && (
                         <button aria-label="Hapus termin ini"
                           onClick={() => removeTermin(i)}
-                          style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, display: "flex", padding: 4, borderRadius: 4 }}
+                          style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, display: "flex", padding: 4, borderRadius: 6 }}
                           onMouseEnter={e => { e.currentTarget.style.color = C.red; e.currentTarget.style.background = "var(--danger-bg)"; }}
                           onMouseLeave={e => { e.currentTarget.style.color = C.muted; e.currentTarget.style.background = "none"; }}
                         >
@@ -552,7 +552,7 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
                       )}
                     </div>
 
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 90px 1fr", gap: 10, marginBottom: 10 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 90px 1fr", gap: 8, marginBottom: 10 }}>
                       <Field label="Label" error={errors[`termin_label_${i}`]}>
                         <input style={inputStyle} value={t.label} onChange={e => updateTermin(i, "label", e.target.value)} placeholder={`Termin ${i + 1}`} />
                       </Field>
@@ -572,7 +572,7 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
                       </Field>
                     </div>
 
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                       <Field label="Trigger Pembayaran">
                         <select
                           aria-label="Pemicu penagihan termin"
@@ -622,7 +622,7 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
                 onClick={addTermin}
                 style={{
                   display: "flex", alignItems: "center", gap: 6,
-                  padding: "9px 14px", borderRadius: 8,
+                  padding: "8px 12px", borderRadius: 6,
                   border: "1px dashed var(--border)", background: "transparent",
                   fontSize: 13, color: C.mid, cursor: "pointer",
                   transition: "all 0.12s",
@@ -636,7 +636,7 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
           )}
 
           {submitError && (
-            <div style={{ marginTop: 16, padding: "10px 14px", borderRadius: 8, background: "var(--danger-bg)", border: "1px solid var(--danger-border)", fontSize: 13, color: C.red }}>
+            <div style={{ marginTop: 16, padding: "8px 12px", borderRadius: 6, background: "var(--danger-bg)", border: "1px solid var(--danger-border)", fontSize: 13, color: C.red }}>
               {submitError}
             </div>
           )}
@@ -651,8 +651,8 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
           <button
             onClick={step === 1 ? onClose : handleBack}
             style={{
-              display: "flex", alignItems: "center", gap: 5,
-              padding: "9px 16px", borderRadius: 8,
+              display: "flex", alignItems: "center", gap: 4,
+              padding: "8px 16px", borderRadius: 6,
               border: "1px solid var(--border)", background: "var(--surface)",
               fontSize: 13, fontWeight: 500, color: C.mid, cursor: "pointer",
               transition: "all 0.12s",
@@ -668,8 +668,8 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
             onClick={isLastStep ? handleSubmit : handleNext}
             disabled={submitting}
             style={{
-              display: "flex", alignItems: "center", gap: 5,
-              padding: "9px 20px", borderRadius: 8, border: "none",
+              display: "flex", alignItems: "center", gap: 4,
+              padding: "8px 20px", borderRadius: 6, border: "none",
               background: submitting ? "var(--text-muted)" : C.navy,
               color: "var(--surface)", fontSize: 13, fontWeight: 600,
               cursor: submitting ? "not-allowed" : "pointer",
@@ -732,7 +732,7 @@ function RadioCard({ label, description, checked, onClick }: {
         }
       }}
       style={{
-        flex: 1, padding: "12px 14px", borderRadius: 10, cursor: "pointer",
+        flex: 1, padding: "12px 12px", borderRadius: 10, cursor: "pointer",
         border: `2px solid ${checked ? "var(--navy)" : "var(--border)"}`,
         background: checked ? "var(--navy-light)" : "var(--surface)",
         transition: "all 0.15s",

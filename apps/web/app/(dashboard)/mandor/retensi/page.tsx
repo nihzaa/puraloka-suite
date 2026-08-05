@@ -121,9 +121,9 @@ export default function RetensiPage() {
           </p>
         </div>
         <button onClick={() => muat()} style={{
-          display: "flex", alignItems: "center", gap: 6, padding: "8px 13px",
-          border: `1px solid ${C.border}`, borderRadius: 8,
-          background: "var(--surface)", color: C.mid, fontSize: 12.5, cursor: "pointer",
+          display: "flex", alignItems: "center", gap: 6, padding: "8px 12px",
+          border: `1px solid ${C.border}`, borderRadius: 6,
+          background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer",
         }}>
           <RefreshCw size={13} aria-hidden="true" /> Muat ulang
         </button>
@@ -132,7 +132,7 @@ export default function RetensiPage() {
       {/* ── Tiga angka ── */}
       <div className="rise rise-2" style={{
         display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-        gap: 10, marginBottom: 18,
+        gap: 8, marginBottom: 18,
       }}>
         {[
           {
@@ -153,9 +153,9 @@ export default function RetensiPage() {
         ].map((k) => (
           <div key={k.label} style={{
             background: "var(--surface)", border: `1px solid ${k.tepi ?? C.border}`,
-            borderRadius: 12, padding: "14px 16px",
+            borderRadius: 10, padding: "12px 16px",
           }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 7 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 7 }}>
               <span style={{ color: k.warna, display: "flex" }}>{k.ikon}</span>
               <span style={{
                 fontSize: 10, fontWeight: 700, letterSpacing: ".05em",
@@ -177,9 +177,9 @@ export default function RetensiPage() {
           keputusan hari ini. Sisanya memang belum waktunya. */}
       {!memuat && siapCair.length > 0 && (
         <div className="rise rise-2" style={{
-          padding: "13px 16px", borderRadius: 12, marginBottom: 16,
+          padding: "12px 16px", borderRadius: 10, marginBottom: 16,
           background: C.yellowBg, border: `1px solid ${C.yellowBorder}`,
-          display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+          display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
         }}>
           <AlertTriangle size={16} color={C.yellow} aria-hidden="true" style={{ flexShrink: 0 }} />
           <span style={{ fontSize: 13, color: C.onWarningBg, flex: 1, minWidth: 200 }}>
@@ -191,13 +191,13 @@ export default function RetensiPage() {
 
       {galat && (
         <div role="alert" style={{
-          padding: "12px 14px", borderRadius: 10, marginBottom: 14,
+          padding: "12px 12px", borderRadius: 10, marginBottom: 14,
           background: C.redBg, border: `1px solid ${C.redBorder}`,
           color: C.onDangerBg, fontSize: 13,
         }}>
           {galat}{" "}
           <button onClick={() => muat()} style={{
-            marginLeft: 6, padding: "2px 9px", borderRadius: 6,
+            marginLeft: 6, padding: "2px 8px", borderRadius: 6,
             border: `1px solid ${C.redBorder}`, background: "transparent",
             color: C.onDangerBg, fontSize: 12, fontWeight: 600, cursor: "pointer",
           }}>Coba lagi</button>
@@ -206,10 +206,10 @@ export default function RetensiPage() {
 
       <div className="rise rise-2" style={{
         background: "var(--surface)", border: `1px solid ${C.border}`,
-        borderRadius: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.06)", overflow: "hidden",
+        borderRadius: 14, boxShadow: "var(--naik-1)", overflow: "hidden",
       }}>
         {memuat ? (
-          <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 8 }}>
             {[1, 2, 3].map((i) => (
               <div key={i} aria-hidden="true" style={{
                 height: 52, borderRadius: 10,
@@ -227,7 +227,7 @@ export default function RetensiPage() {
           </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
               <caption className="sr-only">
                 Retensi per scope pekerjaan: yang ditahan, yang sudah dicairkan, dan sisanya
               </caption>
@@ -235,7 +235,7 @@ export default function RetensiPage() {
                 <tr style={{ background: "var(--surface-subtle)", borderBottom: `1px solid ${C.border}` }}>
                   {["Scope · Mandor", "Proyek", "Status", "%", "Ditahan", "Dicairkan", "Sisa", ""].map((h, i) => (
                     <th key={h || i} scope="col" style={{
-                      padding: "10px 12px",
+                      padding: "8px 12px",
                       textAlign: i >= 3 && i <= 6 ? "right" : "left",
                       fontSize: 10, fontWeight: 700, letterSpacing: "0.05em",
                       textTransform: "uppercase", color: C.mid, whiteSpace: "nowrap",
@@ -254,40 +254,40 @@ export default function RetensiPage() {
                       // teks berwarna: di tabel padat, warna teks tenggelam.
                       background: perluCair ? C.yellowBg : "transparent",
                     }}>
-                      <th scope="row" style={{ padding: "11px 12px", textAlign: "left", fontWeight: 400 }}>
+                      <th scope="row" style={{ padding: "12px 12px", textAlign: "left", fontWeight: 400 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{s.scope_name}</div>
                         <div style={{ fontSize: 11, color: C.muted }}>{s.mandor?.name ?? "—"}</div>
                       </th>
-                      <td style={{ padding: "11px 12px", color: C.mid }}>{s.project?.name ?? "—"}</td>
-                      <td style={{ padding: "11px 12px" }}>
+                      <td style={{ padding: "12px 12px", color: C.mid }}>{s.project?.name ?? "—"}</td>
+                      <td style={{ padding: "12px 12px" }}>
                         <span style={{
-                          fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 5,
+                          fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 6,
                           background: selesai ? C.greenBg : "var(--surface-hover)",
                           color: selesai ? C.onSuccessBg : C.mid,
                         }}>{selesai ? "Selesai" : s.status}</span>
                       </td>
-                      <td style={{ padding: "11px 12px", textAlign: "right", color: C.mid, fontVariantNumeric: "tabular-nums" }}>
+                      <td style={{ padding: "12px 12px", textAlign: "right", color: C.mid, fontVariantNumeric: "tabular-nums" }}>
                         {s.retensi_pct != null ? `${s.retensi_pct}%` : "—"}
                       </td>
-                      <td style={{ padding: "11px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: C.text }}>
+                      <td style={{ padding: "12px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: C.text }}>
                         {rp(s.ditahan)}
                       </td>
-                      <td style={{ padding: "11px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: C.green }}>
+                      <td style={{ padding: "12px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: C.green }}>
                         {s.dicairkan ? rp(s.dicairkan) : "—"}
                       </td>
                       <td style={{
-                        padding: "11px 12px", textAlign: "right", fontWeight: 700,
+                        padding: "12px 12px", textAlign: "right", fontWeight: 700,
                         fontVariantNumeric: "tabular-nums",
                         color: s.outstanding > 0 ? C.yellow : C.muted,
                       }}>{s.outstanding > 0 ? rp(s.outstanding) : "lunas"}</td>
-                      <td style={{ padding: "11px 12px", textAlign: "right" }}>
+                      <td style={{ padding: "12px 12px", textAlign: "right" }}>
                         {bolehCairkan && s.outstanding > 0 && (
                           <button onClick={() => setCairkan(s)} style={{
-                            padding: "5px 11px", borderRadius: 7,
+                            padding: "4px 12px", borderRadius: 6,
                             border: perluCair ? "none" : `1px solid ${C.border}`,
                             background: perluCair ? "var(--grad-aksen)" : "var(--surface)",
                             color: perluCair ? "var(--on-aksen)" : C.mid,
-                            fontSize: 11.5, fontWeight: 600, cursor: "pointer",
+                            fontSize: 11, fontWeight: 600, cursor: "pointer",
                             whiteSpace: "nowrap",
                           }}>Cairkan</button>
                         )}
@@ -356,7 +356,7 @@ function ModalCairkan({ baris, onClose, onSukses }: {
   }
 
   const gayaInput: React.CSSProperties = {
-    width: "100%", padding: "8px 11px", fontSize: 13, borderRadius: 8,
+    width: "100%", padding: "8px 12px", fontSize: 13, borderRadius: 6,
     border: `1px solid ${C.border}`, outline: "none", boxSizing: "border-box",
     background: "var(--surface)", color: C.text, fontFamily: "inherit",
   };
@@ -374,13 +374,13 @@ function ModalCairkan({ baris, onClose, onSukses }: {
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div role="dialog" aria-modal="true" aria-labelledby="judul-cairkan" style={{
-        background: "var(--surface)", borderRadius: 16, padding: 22,
-        width: "min(430px, 94vw)", display: "flex", flexDirection: "column", gap: 14,
-        boxShadow: "0 20px 60px rgba(0,0,0,0.18)",
+        background: "var(--surface)", borderRadius: 14, padding: 20,
+        width: "min(430px, 94vw)", display: "flex", flexDirection: "column", gap: 12,
+        boxShadow: "var(--naik-3)",
       }}>
         <div>
           <h2 id="judul-cairkan" style={{
-            margin: 0, fontSize: 16, fontWeight: 700, color: C.text,
+            margin: 0, fontSize: 15, fontWeight: 700, color: C.text,
             fontFamily: "var(--font-display)",
           }}>Cairkan Retensi</h2>
           <p style={{ margin: "4px 0 0", fontSize: 12, color: C.mid }}>
@@ -389,7 +389,7 @@ function ModalCairkan({ baris, onClose, onSukses }: {
         </div>
 
         <div style={{
-          padding: "10px 12px", borderRadius: 9,
+          padding: "8px 12px", borderRadius: 10,
           background: "var(--surface-subtle)", border: `1px solid ${C.border}`,
           fontSize: 12, color: C.mid, display: "flex", justifyContent: "space-between",
         }}>
@@ -411,7 +411,7 @@ function ModalCairkan({ baris, onClose, onSukses }: {
               borderColor: lebih ? C.redBorder : C.border,
             }} />
           {lebih && (
-            <p style={{ margin: "5px 0 0", fontSize: 11.5, color: C.onDangerBg }}>
+            <p style={{ margin: "5px 0 0", fontSize: 11, color: C.onDangerBg }}>
               Melebihi sisa yang ditahan ({rp(baris.outstanding)}).
             </p>
           )}
@@ -439,18 +439,18 @@ function ModalCairkan({ baris, onClose, onSukses }: {
 
         {galat && (
           <div role="alert" style={{
-            padding: "9px 12px", borderRadius: 8, fontSize: 12.5,
+            padding: "8px 12px", borderRadius: 6, fontSize: 12,
             background: C.redBg, border: `1px solid ${C.redBorder}`, color: C.onDangerBg,
           }}>{galat}</div>
         )}
 
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 2 }}>
           <button onClick={onClose} style={{
-            padding: "9px 15px", borderRadius: 8, border: `1px solid ${C.border}`,
+            padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`,
             background: "var(--surface)", color: C.mid, fontSize: 13, cursor: "pointer",
           }}>Batal</button>
           <button onClick={simpan} disabled={!sah || kirim} style={{
-            padding: "9px 17px", borderRadius: 8, border: "none",
+            padding: "8px 16px", borderRadius: 6, border: "none",
             background: sah && !kirim ? "var(--grad-aksen)" : "var(--surface-hover)",
             color: sah && !kirim ? "var(--on-aksen)" : C.muted,
             fontSize: 13, fontWeight: 600,

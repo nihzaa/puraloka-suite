@@ -76,12 +76,12 @@ function DiffView({ oldVal, newVal }: { oldVal: Record<string, unknown> | null; 
           <span style={{ fontWeight: 700, color: "var(--text-secondary)", minWidth: 120, flexShrink: 0 }}>{key}</span>
           <div style={{ display: "flex", gap: 4, flexWrap: "wrap", flex: 1 }}>
             {oldVal && oldVal[key] !== undefined && (
-              <span style={{ padding: "1px 6px", borderRadius: 4, background: "var(--danger-bg)", color: "var(--on-danger-bg)", fontFamily: "monospace" }}>
+              <span style={{ padding: "0px 6px", borderRadius: 6, background: "var(--danger-bg)", color: "var(--on-danger-bg)", fontFamily: "monospace" }}>
                 {String(oldVal[key]).slice(0, 80)}
               </span>
             )}
             {newVal && newVal[key] !== undefined && (
-              <span style={{ padding: "1px 6px", borderRadius: 4, background: "var(--success-bg)", color: "var(--on-success-bg)", fontFamily: "monospace" }}>
+              <span style={{ padding: "0px 6px", borderRadius: 6, background: "var(--success-bg)", color: "var(--on-success-bg)", fontFamily: "monospace" }}>
                 {String(newVal[key]).slice(0, 80)}
               </span>
             )}
@@ -161,7 +161,7 @@ export default function AuditPage() {
 
   const card: React.CSSProperties = {
     background: "#fff", border: "1px solid var(--border)",
-    borderRadius: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+    borderRadius: 14, boxShadow: "var(--naik-1)",
   };
 
   // ADR-004: capability, bukan jabatan. API menjaga rute ini dengan
@@ -184,7 +184,7 @@ export default function AuditPage() {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{
-            width: 42, height: 42, borderRadius: 12,
+            width: 42, height: 42, borderRadius: 10,
             background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
@@ -199,14 +199,14 @@ export default function AuditPage() {
         </div>
         <button
           onClick={() => fetchLogs(page)}
-          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 8, border: "1px solid var(--border)", background: "#fff", fontSize: 12, fontWeight: 500, cursor: "pointer" }}
+          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border)", background: "#fff", fontSize: 12, fontWeight: 500, cursor: "pointer" }}
         >
           <RefreshCw size={13} style={{ color: "var(--text-muted)" }} /> Refresh
         </button>
       </div>
 
       {/* Filters */}
-      <div style={{ ...card, padding: "16px 20px", marginBottom: 16, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
+      <div style={{ ...card, padding: "16px 20px", marginBottom: 16, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
         {/* Search */}
         <div style={{ position: "relative", flex: "1 1 200px", minWidth: 180 }}>
           <Search size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
@@ -214,7 +214,7 @@ export default function AuditPage() {
             type="text" placeholder="Cari nama, action, ID..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            style={{ width: "100%", paddingLeft: 30, paddingRight: 10, height: 36, borderRadius: 8, border: "1px solid var(--border)", fontSize: 12, outline: "none", boxSizing: "border-box" }}
+            style={{ width: "100%", paddingLeft: 30, paddingRight: 10, height: 36, borderRadius: 6, border: "1px solid var(--border)", fontSize: 12, outline: "none", boxSizing: "border-box" }}
           />
         </div>
 
@@ -222,7 +222,7 @@ export default function AuditPage() {
         <select aria-label="Tabel"
           value={filterTable}
           onChange={e => setFilterTable(e.target.value)}
-          style={{ height: 36, borderRadius: 8, border: "1px solid var(--border)", fontSize: 12, padding: "0 10px", flex: "0 0 auto", minWidth: 150 }}
+          style={{ height: 36, borderRadius: 6, border: "1px solid var(--border)", fontSize: 12, padding: "0 10px", flex: "0 0 auto", minWidth: 150 }}
         >
           <option value="">Semua Tabel</option>
           {auditMeta.tables.map(t => (
@@ -234,7 +234,7 @@ export default function AuditPage() {
         <select aria-label="Aksi"
           value={filterAction}
           onChange={e => setFilterAction(e.target.value)}
-          style={{ height: 36, borderRadius: 8, border: "1px solid var(--border)", fontSize: 12, padding: "0 10px", flex: "0 0 auto", minWidth: 160 }}
+          style={{ height: 36, borderRadius: 6, border: "1px solid var(--border)", fontSize: 12, padding: "0 10px", flex: "0 0 auto", minWidth: 160 }}
         >
           <option value="">Semua Action</option>
           {auditMeta.actions.map(a => (
@@ -246,12 +246,12 @@ export default function AuditPage() {
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
           <input aria-label="Tanggal mulai"
             type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)}
-            style={{ height: 36, borderRadius: 8, border: "1px solid var(--border)", fontSize: 12, padding: "0 8px" }}
+            style={{ height: 36, borderRadius: 6, border: "1px solid var(--border)", fontSize: 12, padding: "0 8px" }}
           />
           <span style={{ fontSize: 11, color: "var(--text-muted)" }}>—</span>
           <input aria-label="Tanggal akhir"
             type="date" value={filterTo} onChange={e => setFilterTo(e.target.value)}
-            style={{ height: 36, borderRadius: 8, border: "1px solid var(--border)", fontSize: 12, padding: "0 8px" }}
+            style={{ height: 36, borderRadius: 6, border: "1px solid var(--border)", fontSize: 12, padding: "0 8px" }}
           />
         </div>
 
@@ -259,7 +259,7 @@ export default function AuditPage() {
         {(filterTable || filterAction || filterFrom || filterTo || search) && (
           <button
             onClick={() => { setFilterTable(""); setFilterAction(""); setFilterFrom(""); setFilterTo(""); setSearch(""); }}
-            style={{ height: 36, padding: "0 12px", borderRadius: 8, border: "1px solid var(--danger-border)", background: "var(--danger-bg)", color: "var(--danger)", fontSize: 12, cursor: "pointer" }}
+            style={{ height: 36, padding: "0 12px", borderRadius: 6, border: "1px solid var(--danger-border)", background: "var(--danger-bg)", color: "var(--danger)", fontSize: 12, cursor: "pointer" }}
           >
             Reset Filter
           </button>
@@ -274,7 +274,7 @@ export default function AuditPage() {
           { label: "DELETE", count: logs.filter(l => l.action === "delete" || l.action === "soft_delete").length, color: "var(--danger)", bg: "var(--danger-bg)" },
           { label: "LAINNYA", count: logs.filter(l => !["insert","update","delete","soft_delete"].includes(l.action)).length, color: "var(--warning)", bg: "var(--warning-bg)" },
         ].map(chip => chip.count > 0 && (
-          <span key={chip.label} style={{ padding: "3px 10px", borderRadius: 99, fontSize: 11, fontWeight: 700, background: chip.bg, color: chip.color }}>
+          <span key={chip.label} style={{ padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 700, background: chip.bg, color: chip.color }}>
             {chip.label} · {chip.count}
           </span>
         ))}
@@ -313,7 +313,7 @@ export default function AuditPage() {
                   }}
                   style={{
                     display: "flex", alignItems: "center", gap: 12,
-                    padding: "13px 20px", cursor: "pointer",
+                    padding: "12px 20px", cursor: "pointer",
                     background: isExpanded ? "var(--surface-subtle)" : "transparent",
                     transition: "background 0.1s",
                   }}
@@ -321,7 +321,7 @@ export default function AuditPage() {
                   onMouseLeave={e => { if (!isExpanded) e.currentTarget.style.background = "transparent"; }}
                 >
                   {/* Table icon */}
-                  <span style={{ fontSize: 18, flexShrink: 0 }}>{tableIcon(log.table_name)}</span>
+                  <span style={{ fontSize: 17, flexShrink: 0 }}>{tableIcon(log.table_name)}</span>
 
                   {/* Main info */}
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -360,13 +360,13 @@ export default function AuditPage() {
                   </div>
 
                   {/* Timestamp */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0, minWidth: 140 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0, minWidth: 140 }}>
                     <Clock size={11} style={{ color: "var(--border-strong)" }} />
                     <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{fmtDate(log.created_at)}</span>
                   </div>
 
                   {/* Expand indicator */}
-                  <span style={{ fontSize: 14, color: "var(--border-strong)", flexShrink: 0, transition: "transform 0.15s", transform: isExpanded ? "rotate(180deg)" : "none" }}>▾</span>
+                  <span style={{ fontSize: 13, color: "var(--border-strong)", flexShrink: 0, transition: "transform 0.15s", transform: isExpanded ? "rotate(180deg)" : "none" }}>▾</span>
                 </div>
 
                 {/* Expanded detail */}
@@ -374,7 +374,7 @@ export default function AuditPage() {
                   <div style={{ padding: "0 20px 16px 20px", background: "var(--surface-subtle)", borderTop: "1px solid var(--surface-hover)" }}>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 14 }}>
                       {/* Metadata */}
-                      <div style={{ background: "#fff", borderRadius: 10, padding: "12px 14px", border: "1px solid var(--border)" }}>
+                      <div style={{ background: "#fff", borderRadius: 10, padding: "12px 12px", border: "1px solid var(--border)" }}>
                         <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>Detail</div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                           {[
@@ -394,11 +394,11 @@ export default function AuditPage() {
                       </div>
 
                       {/* Diff */}
-                      <div style={{ background: "#fff", borderRadius: 10, padding: "12px 14px", border: "1px solid var(--border)" }}>
+                      <div style={{ background: "#fff", borderRadius: 10, padding: "12px 12px", border: "1px solid var(--border)" }}>
                         <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>
                           Perubahan
-                          {log.old_values && <span style={{ marginLeft: 8, padding: "1px 5px", borderRadius: 4, background: "var(--danger-bg)", color: "var(--on-danger-bg)", fontSize: 9 }}>SEBELUM</span>}
-                          {log.new_values && <span style={{ marginLeft: 4, padding: "1px 5px", borderRadius: 4, background: "var(--success-bg)", color: "var(--on-success-bg)", fontSize: 9 }}>SESUDAH</span>}
+                          {log.old_values && <span style={{ marginLeft: 8, padding: "0px 4px", borderRadius: 6, background: "var(--danger-bg)", color: "var(--on-danger-bg)", fontSize: 10 }}>SEBELUM</span>}
+                          {log.new_values && <span style={{ marginLeft: 4, padding: "0px 4px", borderRadius: 6, background: "var(--success-bg)", color: "var(--on-success-bg)", fontSize: 10 }}>SESUDAH</span>}
                         </div>
                         <DiffView oldVal={log.old_values} newVal={log.new_values} />
                       </div>
@@ -413,13 +413,13 @@ export default function AuditPage() {
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
                         <div>
                           <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 4 }}>old_values</div>
-                          <pre style={{ fontSize: 10, background: "var(--surface-subtle)", border: "1px solid var(--border)", borderRadius: 6, padding: 10, overflow: "auto", maxHeight: 200, margin: 0, color: "var(--text-secondary)" }}>
+                          <pre style={{ fontSize: 10, background: "var(--surface-subtle)", border: "1px solid var(--border)", borderRadius: 6, padding: 8, overflow: "auto", maxHeight: 200, margin: 0, color: "var(--text-secondary)" }}>
                             {JSON.stringify(log.old_values, null, 2)}
                           </pre>
                         </div>
                         <div>
                           <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 4 }}>new_values</div>
-                          <pre style={{ fontSize: 10, background: "var(--surface-subtle)", border: "1px solid var(--border)", borderRadius: 6, padding: 10, overflow: "auto", maxHeight: 200, margin: 0, color: "var(--text-secondary)" }}>
+                          <pre style={{ fontSize: 10, background: "var(--surface-subtle)", border: "1px solid var(--border)", borderRadius: 6, padding: 8, overflow: "auto", maxHeight: 200, margin: 0, color: "var(--text-secondary)" }}>
                             {JSON.stringify(log.new_values, null, 2)}
                           </pre>
                         </div>
@@ -440,7 +440,7 @@ export default function AuditPage() {
             aria-label="Halaman sebelumnya"
             disabled={page <= 1}
             onClick={() => setPage(p => p - 1)}
-            style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid var(--border)", background: page <= 1 ? "var(--surface-subtle)" : "#fff", cursor: page <= 1 ? "not-allowed" : "pointer" }}
+            style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid var(--border)", background: page <= 1 ? "var(--surface-subtle)" : "#fff", cursor: page <= 1 ? "not-allowed" : "pointer" }}
           >
             <ChevronLeft size={14} />
           </button>
@@ -451,7 +451,7 @@ export default function AuditPage() {
                 key={p}
                 onClick={() => setPage(p)}
                 style={{
-                  width: 34, height: 34, borderRadius: 8,
+                  width: 34, height: 34, borderRadius: 6,
                   border: p === page ? "none" : "1px solid var(--border)",
                   background: p === page ? "var(--navy)" : "#fff",
                   color: p === page ? "#fff" : "var(--text-secondary)",
@@ -466,7 +466,7 @@ export default function AuditPage() {
             aria-label="Halaman berikutnya"
             disabled={page >= meta.pages}
             onClick={() => setPage(p => p + 1)}
-            style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid var(--border)", background: page >= meta.pages ? "var(--surface-subtle)" : "#fff", cursor: page >= meta.pages ? "not-allowed" : "pointer" }}
+            style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid var(--border)", background: page >= meta.pages ? "var(--surface-subtle)" : "#fff", cursor: page >= meta.pages ? "not-allowed" : "pointer" }}
           >
             <ChevronRight size={14} />
           </button>

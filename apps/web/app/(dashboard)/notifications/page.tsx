@@ -17,7 +17,7 @@ const card: React.CSSProperties = {
   background: C.white,
   border: `1px solid ${C.border}`,
   borderRadius: 14,
-  boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+  boxShadow: "var(--naik-1)",
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -281,7 +281,7 @@ export default function NotificationsPage() {
               onClick={markAllRead}
               style={{
                 display: "flex", alignItems: "center", gap: 6,
-                padding: "8px 14px", borderRadius: 8,
+                padding: "8px 12px", borderRadius: 6,
                 border: `1px solid ${C.border}`, background: C.white,
                 fontSize: 13, fontWeight: 500, color: C.mid, cursor: "pointer",
               }}
@@ -293,7 +293,7 @@ export default function NotificationsPage() {
       </div>
 
       {/* Filters row */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
         {/* Search */}
         <div style={{ position: "relative", flex: 1, minWidth: 200, maxWidth: 320 }}>
           <Search size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: C.muted }} />
@@ -303,7 +303,7 @@ export default function NotificationsPage() {
             placeholder="Cari notifikasi..."
             style={{
               width: "100%", padding: "8px 12px 8px 32px",
-              border: `1px solid ${C.border}`, borderRadius: 8,
+              border: `1px solid ${C.border}`, borderRadius: 6,
               background: C.white, fontSize: 13, color: C.text,
               outline: "none", boxSizing: "border-box",
             }}
@@ -316,7 +316,7 @@ export default function NotificationsPage() {
           value={readFilter}
           onChange={e => setReadFilter(e.target.value as "all" | "unread")}
           style={{
-            padding: "8px 12px", borderRadius: 8,
+            padding: "8px 12px", borderRadius: 6,
             border: `1px solid ${C.border}`, background: C.white,
             fontSize: 13, color: C.text, cursor: "pointer",
           }}
@@ -331,7 +331,7 @@ export default function NotificationsPage() {
           value={typeFilter}
           onChange={e => setTypeFilter(e.target.value as TypeFilter)}
           style={{
-            padding: "8px 12px", borderRadius: 8,
+            padding: "8px 12px", borderRadius: 6,
             border: `1px solid ${C.border}`, background: C.white,
             fontSize: 13, color: C.text, cursor: "pointer",
           }}
@@ -350,7 +350,7 @@ export default function NotificationsPage() {
       {selected.size > 0 && (
         <div style={{
           ...card,
-          padding: "10px 16px", marginBottom: 12,
+          padding: "8px 16px", marginBottom: 12,
           display: "flex", alignItems: "center", gap: 12,
           borderColor: C.navy,
         }}>
@@ -361,7 +361,7 @@ export default function NotificationsPage() {
             onClick={bulkMarkRead}
             style={{
               display: "flex", alignItems: "center", gap: 4,
-              padding: "5px 12px", borderRadius: 6,
+              padding: "4px 12px", borderRadius: 6,
               border: `1px solid ${C.border}`, background: C.white,
               fontSize: 12, fontWeight: 500, color: C.mid, cursor: "pointer",
             }}
@@ -372,7 +372,7 @@ export default function NotificationsPage() {
             onClick={bulkDelete}
             style={{
               display: "flex", alignItems: "center", gap: 4,
-              padding: "5px 12px", borderRadius: 6,
+              padding: "4px 12px", borderRadius: 6,
               border: `1px solid ${C.red}`, background: C.redBg,
               fontSize: 12, fontWeight: 500, color: C.red, cursor: "pointer",
             }}
@@ -382,7 +382,7 @@ export default function NotificationsPage() {
           <button
             onClick={() => setSelected(new Set())}
             style={{
-              marginLeft: "auto", padding: "5px 8px", borderRadius: 6,
+              marginLeft: "auto", padding: "4px 8px", borderRadius: 6,
               border: "none", background: "transparent",
               fontSize: 12, color: C.muted, cursor: "pointer",
             }}
@@ -403,7 +403,7 @@ export default function NotificationsPage() {
           display: "flex", flexDirection: "column", alignItems: "center", gap: 12,
         }}>
           <Bell size={40} strokeWidth={1.5} color={C.muted} />
-          <span style={{ fontSize: 14, color: C.muted }}>Tidak ada notifikasi ditemukan</span>
+          <span style={{ fontSize: 13, color: C.muted }}>Tidak ada notifikasi ditemukan</span>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -430,7 +430,7 @@ export default function NotificationsPage() {
                     <div
                       key={notif.id}
                       style={{
-                        display: "flex", gap: 12, padding: "14px 16px",
+                        display: "flex", gap: 12, padding: "12px 16px",
                         borderBottom: isLast ? "none" : `1px solid ${C.border}`,
                         background: isSelected ? "var(--navy-light)" : notif.is_read ? C.white : "var(--info-bg)",
                         transition: "background 0.15s",
@@ -457,7 +457,7 @@ export default function NotificationsPage() {
                           toggleSelect(notif.id)
                         }}
                         style={{
-                          width: 16, height: 16, borderRadius: 4, flexShrink: 0, marginTop: 2,
+                          width: 16, height: 16, borderRadius: 6, flexShrink: 0, marginTop: 2,
                           border: `2px solid ${isSelected ? C.navy : C.border}`,
                           background: isSelected ? C.navy : C.white,
                           cursor: "pointer",
@@ -493,22 +493,22 @@ export default function NotificationsPage() {
                           </span>
                           {notif.priority === "urgent" && (
                             <span style={{
-                              fontSize: 10, fontWeight: 700, padding: "1px 5px",
-                              borderRadius: 4, background: C.redBg, color: C.red,
+                              fontSize: 10, fontWeight: 700, padding: "0px 4px",
+                              borderRadius: 6, background: C.redBg, color: C.red,
                               textTransform: "uppercase",
                             }}>URGEN</span>
                           )}
                           {notif.priority === "high" && (
                             <span style={{
-                              fontSize: 10, fontWeight: 700, padding: "1px 5px",
-                              borderRadius: 4, background: C.yellowBg, color: C.yellow,
+                              fontSize: 10, fontWeight: 700, padding: "0px 4px",
+                              borderRadius: 6, background: C.yellowBg, color: C.yellow,
                               textTransform: "uppercase",
                             }}>PENTING</span>
                           )}
                           {notif.is_actioned && (
                             <span style={{
-                              fontSize: 10, fontWeight: 600, padding: "1px 5px",
-                              borderRadius: 4, background: C.greenBg, color: C.green,
+                              fontSize: 10, fontWeight: 600, padding: "0px 4px",
+                              borderRadius: 6, background: C.greenBg, color: C.green,
                             }}>Sudah Diproses</span>
                           )}
                           {!notif.is_read && (
@@ -536,8 +536,8 @@ export default function NotificationsPage() {
                               onClick={() => handleAction(notif.id, "approve")}
                               disabled={isActioning}
                               style={{
-                                display: "flex", alignItems: "center", gap: 5,
-                                padding: "6px 14px", borderRadius: 7,
+                                display: "flex", alignItems: "center", gap: 4,
+                                padding: "6px 12px", borderRadius: 6,
                                 border: `1px solid ${C.green}`, background: C.greenBg,
                                 color: C.green, fontSize: 12, fontWeight: 600, cursor: "pointer",
                               }}
@@ -548,8 +548,8 @@ export default function NotificationsPage() {
                               onClick={() => handleAction(notif.id, "reject")}
                               disabled={isActioning}
                               style={{
-                                display: "flex", alignItems: "center", gap: 5,
-                                padding: "6px 14px", borderRadius: 7,
+                                display: "flex", alignItems: "center", gap: 4,
+                                padding: "6px 12px", borderRadius: 6,
                                 border: `1px solid ${C.red}`, background: C.redBg,
                                 color: C.red, fontSize: 12, fontWeight: 600, cursor: "pointer",
                               }}

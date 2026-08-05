@@ -6,8 +6,8 @@ import { BellRing, Plus, Trash2, Info, ShieldCheck, UserCog, Users, HardHat } fr
 
 import { C } from "@/lib/warna-ui";
 
-const card: React.CSSProperties = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" };
-const input: React.CSSProperties = { padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", background: "var(--surface)", color: C.text, boxSizing: "border-box", fontFamily: "inherit" };
+const card: React.CSSProperties = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, boxShadow: "var(--naik-1)" };
+const input: React.CSSProperties = { padding: "8px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", background: "var(--surface)", color: C.text, boxSizing: "border-box", fontFamily: "inherit" };
 
 type TargetType = "role" | "permission" | "project_pm" | "project_mandors";
 interface Target { id: string; target_type: TargetType; role_name: string | null; permission_key: string | null }
@@ -88,17 +88,17 @@ function Content() {
 
   return (
     <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-form)", margin: "0 auto" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
         <BellRing size={22} color={C.navy} />
         <h1 style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 700, color: C.text, margin: 0 }}>
           Aturan Notifikasi
         </h1>
       </div>
-      <p style={{ color: C.mid, fontSize: 14, margin: "0 0 20px" }}>
+      <p style={{ color: C.mid, fontSize: 13, margin: "0 0 20px" }}>
         Tentukan siapa yang dikabari untuk setiap jenis kejadian. Perubahan langsung berlaku — tidak perlu rilis ulang.
       </p>
 
-      <div style={{ ...card, padding: "12px 14px", marginBottom: 20, display: "flex", gap: 10, alignItems: "flex-start", background: C.navyLight }}>
+      <div style={{ ...card, padding: "12px 12px", marginBottom: 20, display: "flex", gap: 8, alignItems: "flex-start", background: C.navyLight }}>
         <Info size={16} color={C.navy} style={{ marginTop: 2, flexShrink: 0 }} />
         <div style={{ fontSize: 13, color: C.mid, lineHeight: 1.6 }}>
           Menargetkan <strong>kapabilitas</strong> biasanya lebih tahan lama daripada <strong>peran</strong>: saat
@@ -107,7 +107,7 @@ function Content() {
       </div>
 
       {!canManage && (
-        <div style={{ ...card, padding: "10px 14px", marginBottom: 16, background: C.amberBg, fontSize: 13, color: C.text }}>
+        <div style={{ ...card, padding: "8px 12px", marginBottom: 16, background: C.amberBg, fontSize: 13, color: C.text }}>
           Anda dapat melihat aturan ini, tetapi tidak dapat mengubahnya.
         </div>
       )}
@@ -157,7 +157,7 @@ function RuleCard({ rule, roles, perms, canManage, onToggle, onAdd, onRemove }: 
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
         <div>
           <div style={{ fontWeight: 600, fontSize: 15, color: C.text }}>{rule.label}</div>
-          {rule.description && <div style={{ fontSize: 12.5, color: C.muted, marginTop: 2 }}>{rule.description}</div>}
+          {rule.description && <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{rule.description}</div>}
         </div>
         <button
           onClick={onToggle} disabled={!canManage}
@@ -172,7 +172,7 @@ function RuleCard({ rule, roles, perms, canManage, onToggle, onAdd, onRemove }: 
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 }}>
         {targets.length === 0 && (
-          <div style={{ fontSize: 12.5, color: rule.is_active ? C.red : C.muted }}>
+          <div style={{ fontSize: 12, color: rule.is_active ? C.red : C.muted }}>
             {rule.is_active
               ? "Belum ada penerima — notifikasi ini tidak akan sampai ke siapa pun."
               : "Tidak ada penerima (aturan nonaktif)."}
@@ -186,8 +186,8 @@ function RuleCard({ rule, roles, perms, canManage, onToggle, onAdd, onRemove }: 
             : meta.text;
           return (
             <span key={t.id} title={meta.hint} style={{
-              display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 9px",
-              border: `1px solid ${C.border}`, borderRadius: 999, fontSize: 12.5, color: C.text,
+              display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 8px",
+              border: `1px solid ${C.border}`, borderRadius: 999, fontSize: 12, color: C.text,
               background: "var(--surface)",
             }}>
               <Icon size={13} color={C.navy} />

@@ -122,7 +122,7 @@ function WidgetShell({
         background: "var(--surface)",
         border: "1px solid var(--border)",
         borderRadius: 14,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+        boxShadow: "var(--naik-1)",
         overflow: "hidden",
         opacity: hidden ? 0 : 1,
         pointerEvents: hidden ? "none" : "auto",
@@ -135,7 +135,7 @@ function WidgetShell({
           display: "flex",
           alignItems: "center",
           gap: 6,
-          padding: "6px 14px",
+          padding: "6px 12px",
           borderBottom: "1px solid var(--border)",
           background: "var(--surface-subtle)",
           cursor: "grab",
@@ -152,7 +152,7 @@ function WidgetShell({
           title="Sembunyikan widget"
           style={{
             display: "flex", alignItems: "center",
-            padding: "2px 4px", borderRadius: 4,
+            padding: "2px 4px", borderRadius: 6,
             border: "none", background: "none",
             cursor: "pointer", color: "var(--text-muted)",
           }}
@@ -273,8 +273,8 @@ export function DashboardGrid({ widgets }: DashboardGridProps) {
           <button
             onClick={() => setShowCustomizer(p => !p)}
             style={{
-              display: "inline-flex", alignItems: "center", gap: 5,
-              padding: "5px 12px", borderRadius: 8,
+              display: "inline-flex", alignItems: "center", gap: 4,
+              padding: "4px 12px", borderRadius: 6,
               border: "1px solid var(--border)", background: "var(--surface)",
               fontSize: 11, color: "var(--text-secondary)", cursor: "pointer",
               fontWeight: 500,
@@ -283,8 +283,8 @@ export function DashboardGrid({ widgets }: DashboardGridProps) {
             <LayoutGrid size={13} /> Sesuaikan
             {hidden.size > 0 && (
               <span style={{
-                marginLeft: 2, padding: "1px 5px", borderRadius: 99,
-                background: "var(--navy)", color: "#fff", fontSize: 9, fontWeight: 700,
+                marginLeft: 2, padding: "0px 4px", borderRadius: 99,
+                background: "var(--navy)", color: "#fff", fontSize: 10, fontWeight: 700,
               }}>
                 {hidden.size}
               </span>
@@ -295,8 +295,8 @@ export function DashboardGrid({ widgets }: DashboardGridProps) {
             <div style={{
               position: "absolute", top: "calc(100% + 6px)", right: 0,
               background: "var(--surface)", border: "1px solid var(--border)",
-              borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-              padding: 14, zIndex: 100, minWidth: 220,
+              borderRadius: 10, boxShadow: "var(--naik-2)",
+              padding: 12, zIndex: 100, minWidth: 220,
             }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
                 Widget
@@ -318,7 +318,7 @@ export function DashboardGrid({ widgets }: DashboardGridProps) {
                       }}
                       style={{
                         display: "flex", alignItems: "center", gap: 8,
-                        padding: "6px 8px", borderRadius: 8, cursor: "pointer",
+                        padding: "6px 8px", borderRadius: 6, cursor: "pointer",
                         background: isHidden ? "var(--surface-subtle)" : "transparent",
                         border: "1px solid var(--border)",
                         opacity: isHidden ? 0.6 : 1,
@@ -339,7 +339,7 @@ export function DashboardGrid({ widgets }: DashboardGridProps) {
                 <button
                   onClick={resetLayout}
                   style={{
-                    width: "100%", padding: "6px 0", borderRadius: 7,
+                    width: "100%", padding: "6px 0", borderRadius: 6,
                     border: "1px solid var(--border)", background: "var(--surface-subtle)",
                     fontSize: 11, color: "var(--text-muted)", cursor: "pointer",
                   }}

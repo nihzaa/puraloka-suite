@@ -106,8 +106,8 @@ function PctInput({
         placeholder="0"
         onChange={e => onChange(Math.max(0, Math.min(100, Number(e.target.value) || 0)))}
         style={{
-          width: 48, padding: "4px 5px", fontSize: 12, textAlign: "right",
-          border: `1.5px solid ${color}33`, borderRadius: 5,
+          width: 48, padding: "4px 4px", fontSize: 12, textAlign: "right",
+          border: `1.5px solid ${color}33`, borderRadius: 6,
           color: C.text, background: "var(--surface)", outline: "none",
           fontWeight: 500,
         }}
@@ -127,8 +127,8 @@ function TotalBar({ mat, upah, alat, other }: { mat: number; upah: number; alat:
   const color = total === 0 ? C.muted : ok ? C.green : C.red;
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-      <div style={{ flex: 1, height: 4, background: "var(--surface-hover)", borderRadius: 2, overflow: "hidden" }}>
-        <div style={{ height: "100%", width: `${Math.min(100, total)}%`, background: color, borderRadius: 2, transition: "width 0.2s" }} />
+      <div style={{ flex: 1, height: 4, background: "var(--surface-hover)", borderRadius: 0, overflow: "hidden" }}>
+        <div style={{ height: "100%", width: `${Math.min(100, total)}%`, background: color, borderRadius: 0, transition: "width 0.2s" }} />
       </div>
       <span style={{ fontSize: 10, fontWeight: 700, color, minWidth: 30, textAlign: "right" }}>
         {total > 0 ? `${total.toFixed(0)}%` : "—"}
@@ -279,7 +279,7 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
         {/* Header */}
         <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <CalendarDays size={18} color="var(--surface)" />
               </div>
@@ -314,9 +314,9 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
                     if (item) selectItem(item);
                   }}
                   style={{
-                    width: "100%", padding: "9px 32px 9px 12px", fontSize: 13,
+                    width: "100%", padding: "8px 32px 8px 12px", fontSize: 13,
                     border: `1.5px solid ${selectedItem ? C.navy : C.border}`,
-                    borderRadius: 8, color: C.text, background: "var(--surface)",
+                    borderRadius: 6, color: C.text, background: "var(--surface)",
                     appearance: "none", cursor: "pointer", outline: "none",
                   }}
                 >
@@ -334,19 +334,19 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
             {/* Info item terpilih */}
             {selectedItem && (
               <div style={{ marginTop: 10, display: "flex", gap: 12 }}>
-                <div style={{ flex: 1, background: C.navyLight, borderRadius: 8, padding: "8px 12px" }}>
+                <div style={{ flex: 1, background: C.navyLight, borderRadius: 6, padding: "8px 12px" }}>
                   <div style={{ fontSize: 10, color: C.mid }}>Nilai Item</div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>
                     {selectedItem.total_price ? fmt(selectedItem.total_price) : "—"}
                   </div>
                 </div>
-                <div style={{ flex: 1, background: "var(--success-bg)", borderRadius: 8, padding: "8px 12px" }}>
+                <div style={{ flex: 1, background: "var(--success-bg)", borderRadius: 6, padding: "8px 12px" }}>
                   <div style={{ fontSize: 10, color: C.mid }}>Total Dijadwalkan</div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: grandTotal > 100.1 ? C.red : grandTotal >= 99.9 ? C.green : C.yellow }}>
                     {grandTotal.toFixed(1)}% {grandTotal >= 99.9 && grandTotal <= 100.1 ? "✓ Lengkap" : grandTotal > 100.1 ? "⚠ Melebihi 100%" : "dari 100%"}
                   </div>
                 </div>
-                <div style={{ flex: 1, background: "var(--bg)", borderRadius: 8, padding: "8px 12px" }}>
+                <div style={{ flex: 1, background: "var(--bg)", borderRadius: 6, padding: "8px 12px" }}>
                   <div style={{ fontSize: 10, color: C.mid }}>Sisa Dijadwalkan</div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
                     {Math.max(0, 100 - grandTotal).toFixed(1)}%
@@ -372,7 +372,7 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
                       { label: "Lain-lain", color: "var(--aksen)" },
                     ].map(c => (
                       <div key={c.label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                        <div style={{ width: 8, height: 8, borderRadius: 2, background: c.color }} />
+                        <div style={{ width: 8, height: 8, borderRadius: 0, background: c.color }} />
                         <span style={{ fontSize: 10, color: C.mid }}>{c.label}</span>
                       </div>
                     ))}
@@ -384,8 +384,8 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
                   {/* Header tabel */}
                   <div style={{
                     display: "grid", gridTemplateColumns: "1fr 56px 56px 56px 56px 80px 80px 36px",
-                    gap: 8, padding: "6px 10px", background: "var(--bg)",
-                    borderRadius: 8, marginBottom: 4, border: `1px solid ${C.border}`,
+                    gap: 8, padding: "6px 8px", background: "var(--bg)",
+                    borderRadius: 6, marginBottom: 4, border: `1px solid ${C.border}`,
                   }}>
                     {["Minggu", "Material", "Upah", "Alat", "Lain", "Total", "", ""].map((h, i) => (
                       <div key={i} style={{ fontSize: 10, fontWeight: 600, color: C.mid, textAlign: i > 0 ? "center" : "left" }}>{h}</div>
@@ -406,9 +406,9 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
                       <div key={idx}>
                       <div style={{
                         display: "grid", gridTemplateColumns: "1fr 56px 56px 56px 56px 80px 80px 36px",
-                        gap: 8, padding: "8px 10px", alignItems: "center",
+                        gap: 8, padding: "8px 8px", alignItems: "center",
                         background: row.isDirty ? "var(--surface-subtle)" : "var(--surface)",
-                        borderRadius: 8, marginBottom: rowOk ? 4 : 0,
+                        borderRadius: 6, marginBottom: rowOk ? 4 : 0,
                         // `rowOk` SEBELUMNYA dihitung lalu dibuang — baris yang
                         // melanggar constraint DB (`rab_items_pct_sum`: total 0
                         // atau 99,9–100,1) tak ditandai apa pun, jadi orang baru
@@ -422,7 +422,7 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
                             value={row.week_start}
                             onChange={e => changeWeek(idx, e.target.value)}
                             style={{
-                              width: "100%", padding: "4px 22px 4px 8px", fontSize: 11,
+                              width: "100%", padding: "4px 20px 4px 8px", fontSize: 11,
                               border: `1px solid ${C.border}`, borderRadius: 6,
                               color: C.text, background: "var(--surface)", appearance: "none", cursor: "pointer",
                             }}
@@ -459,7 +459,7 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
                               background: C.navy, color: "var(--surface)", border: "none",
                               cursor: rowOk ? "pointer" : "not-allowed",
                               opacity: saving === `${idx}` || !rowOk ? 0.5 : 1,
-                              display: "flex", alignItems: "center", gap: 3,
+                              display: "flex", alignItems: "center", gap: 2,
                             }}
                           >
                             <Save size={11} />
@@ -484,8 +484,8 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
                           APA yang salah maupun berapa kurangnya. */}
                       {!rowOk && (
                         <div role="alert" style={{
-                          display: "flex", alignItems: "center", gap: 5,
-                          padding: "4px 10px 6px", marginBottom: 4,
+                          display: "flex", alignItems: "center", gap: 4,
+                          padding: "4px 8px 6px", marginBottom: 4,
                           fontSize: 11, color: C.red,
                         }}>
                           <AlertTriangle size={11} style={{ flexShrink: 0 }} />
@@ -505,7 +505,7 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
                       onClick={addRow}
                       style={{
                         marginTop: 8, width: "100%", padding: "9px 0",
-                        border: `1.5px dashed ${C.border}`, borderRadius: 8,
+                        border: `1.5px dashed ${C.border}`, borderRadius: 6,
                         background: "none", cursor: "pointer",
                         display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                         color: C.mid, fontSize: 12, fontWeight: 500,
@@ -533,9 +533,9 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
         {toast && (
           <div style={{
             position: "absolute", bottom: 24, left: "50%", transform: "translateX(-50%)",
-            padding: "10px 20px", borderRadius: 10, fontSize: 13, fontWeight: 600,
+            padding: "8px 20px", borderRadius: 10, fontSize: 13, fontWeight: 600,
             background: toast.type === "success" ? C.green : C.red, color: "var(--surface)",
-            boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
+            boxShadow: "var(--naik-2)",
           }}>
             {toast.msg}
           </div>
@@ -688,7 +688,7 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
         {/* Header */}
         <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--data-5), var(--data-5))", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <Clock size={18} color="var(--surface)" />
               </div>
@@ -723,9 +723,9 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
                     if (item) selectItem(item);
                   }}
                   style={{
-                    width: "100%", padding: "9px 32px 9px 12px", fontSize: 13,
+                    width: "100%", padding: "8px 32px 8px 12px", fontSize: 13,
                     border: `1.5px solid ${selectedItem ? C.orange : C.border}`,
-                    borderRadius: 8, color: C.text, background: "var(--surface)",
+                    borderRadius: 6, color: C.text, background: "var(--surface)",
                     appearance: "none", cursor: "pointer", outline: "none",
                   }}
                 >
@@ -742,19 +742,19 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
 
             {selectedItem && (
               <div style={{ marginTop: 10, display: "flex", gap: 12 }}>
-                <div style={{ flex: 1, background: C.orangeBg, borderRadius: 8, padding: "8px 12px" }}>
+                <div style={{ flex: 1, background: C.orangeBg, borderRadius: 6, padding: "8px 12px" }}>
                   <div style={{ fontSize: 10, color: C.mid }}>Nilai Item</div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: C.orange }}>
                     {selectedItem.total_price ? fmt(selectedItem.total_price) : "—"}
                   </div>
                 </div>
-                <div style={{ flex: 1, background: "var(--success-bg)", borderRadius: 8, padding: "8px 12px" }}>
+                <div style={{ flex: 1, background: "var(--success-bg)", borderRadius: 6, padding: "8px 12px" }}>
                   <div style={{ fontSize: 10, color: C.mid }}>Total Terserap</div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: grandTotal >= 100 ? C.green : C.orange }}>
                     {grandTotal.toFixed(1)}%
                   </div>
                 </div>
-                <div style={{ flex: 1, background: "var(--bg)", borderRadius: 8, padding: "8px 12px" }}>
+                <div style={{ flex: 1, background: "var(--bg)", borderRadius: 6, padding: "8px 12px" }}>
                   <div style={{ fontSize: 10, color: C.mid }}>Sisa Belum Terserap</div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
                     {Math.max(0, 100 - grandTotal).toFixed(1)}%
@@ -779,7 +779,7 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
                       { label: "Lain-lain", color: "var(--aksen)" },
                     ].map(c => (
                       <div key={c.label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                        <div style={{ width: 8, height: 8, borderRadius: 2, background: c.color }} />
+                        <div style={{ width: 8, height: 8, borderRadius: 0, background: c.color }} />
                         <span style={{ fontSize: 10, color: C.mid }}>{c.label}</span>
                       </div>
                     ))}
@@ -791,8 +791,8 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
                   {/* Header */}
                   <div style={{
                     display: "grid", gridTemplateColumns: "1fr 56px 56px 56px 56px 80px 80px 36px",
-                    gap: 8, padding: "6px 10px", background: "var(--bg)",
-                    borderRadius: 8, marginBottom: 4, border: `1px solid ${C.border}`,
+                    gap: 8, padding: "6px 8px", background: "var(--bg)",
+                    borderRadius: 6, marginBottom: 4, border: `1px solid ${C.border}`,
                   }}>
                     {["Minggu", "Material", "Upah", "Alat", "Lain", "Total", "", ""].map((h, i) => (
                       <div key={i} style={{ fontSize: 10, fontWeight: 600, color: C.mid, textAlign: i > 0 ? "center" : "left" }}>{h}</div>
@@ -808,9 +808,9 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
                   {rows.map((row, idx) => (
                     <div key={idx} style={{
                       display: "grid", gridTemplateColumns: "1fr 56px 56px 56px 56px 80px 80px 36px",
-                      gap: 8, padding: "8px 10px", alignItems: "center",
+                      gap: 8, padding: "8px 8px", alignItems: "center",
                       background: row.isDirty ? "var(--warning-bg)" : "var(--surface)",
-                      borderRadius: 8, marginBottom: 4,
+                      borderRadius: 6, marginBottom: 4,
                       border: `1px solid ${row.isDirty ? "var(--warning-border)" : C.border}`,
                     }}>
                       <div style={{ position: "relative" }}>
@@ -819,7 +819,7 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
                           value={row.week_start}
                           onChange={e => changeWeek(idx, e.target.value)}
                           style={{
-                            width: "100%", padding: "4px 22px 4px 8px", fontSize: 11,
+                            width: "100%", padding: "4px 20px 4px 8px", fontSize: 11,
                             border: `1px solid ${C.border}`, borderRadius: 6,
                             color: C.text, background: "var(--surface)", appearance: "none", cursor: "pointer",
                           }}
@@ -851,7 +851,7 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
                             padding: "4px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600,
                             background: C.orange, color: "var(--surface)", border: "none", cursor: "pointer",
                             opacity: saving === `${idx}` ? 0.6 : 1,
-                            display: "flex", alignItems: "center", gap: 3,
+                            display: "flex", alignItems: "center", gap: 2,
                           }}
                         >
                           <Save size={11} />
@@ -880,7 +880,7 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
                       onClick={addRow}
                       style={{
                         marginTop: 8, width: "100%", padding: "9px 0",
-                        border: `1.5px dashed ${C.border}`, borderRadius: 8,
+                        border: `1.5px dashed ${C.border}`, borderRadius: 6,
                         background: "none", cursor: "pointer",
                         display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                         color: C.mid, fontSize: 12, fontWeight: 500,
@@ -907,9 +907,9 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
         {toast && (
           <div style={{
             position: "absolute", bottom: 24, left: "50%", transform: "translateX(-50%)",
-            padding: "10px 20px", borderRadius: 10, fontSize: 13, fontWeight: 600,
+            padding: "8px 20px", borderRadius: 10, fontSize: 13, fontWeight: 600,
             background: toast.type === "success" ? C.green : C.red, color: "var(--surface)",
-            boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
+            boxShadow: "var(--naik-2)",
           }}>
             {toast.msg}
           </div>

@@ -105,8 +105,8 @@ function priorityBadge(priority: string) {
   if (priority === "urgent") {
     return (
       <span style={{
-        fontSize: 10, fontWeight: 700, padding: "1px 5px",
-        borderRadius: 4, background: C.redBg, color: C.red,
+        fontSize: 10, fontWeight: 700, padding: "0px 4px",
+        borderRadius: 6, background: C.redBg, color: C.red,
         letterSpacing: "0.03em", textTransform: "uppercase",
       }}>URGEN</span>
     );
@@ -114,8 +114,8 @@ function priorityBadge(priority: string) {
   if (priority === "high") {
     return (
       <span style={{
-        fontSize: 10, fontWeight: 700, padding: "1px 5px",
-        borderRadius: 4, background: C.yellowBg, color: C.yellow,
+        fontSize: 10, fontWeight: 700, padding: "0px 4px",
+        borderRadius: 6, background: C.yellowBg, color: C.yellow,
         letterSpacing: "0.03em", textTransform: "uppercase",
       }}>PENTING</span>
     );
@@ -145,7 +145,7 @@ function ActionButtons({
         onClick={() => onAction(notif.id, "approve")}
         style={{
           display: "flex", alignItems: "center", gap: 4,
-          padding: "4px 10px", borderRadius: 6, border: `1px solid ${C.green}`,
+          padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.green}`,
           background: C.greenBg, color: C.green,
           fontSize: 12, fontWeight: 600, cursor: "pointer",
         }}
@@ -156,7 +156,7 @@ function ActionButtons({
         onClick={() => onAction(notif.id, "reject")}
         style={{
           display: "flex", alignItems: "center", gap: 4,
-          padding: "4px 10px", borderRadius: 6, border: `1px solid ${C.red}`,
+          padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.red}`,
           background: C.redBg, color: C.red,
           fontSize: 12, fontWeight: 600, cursor: "pointer",
         }}
@@ -171,12 +171,12 @@ function ActionButtons({
 
 function Skeleton() {
   return (
-    <div style={{ padding: "12px 16px", display: "flex", gap: 10 }}>
-      <div style={{ width: 32, height: 32, borderRadius: 8, background: C.border, flexShrink: 0 }} />
+    <div style={{ padding: "12px 16px", display: "flex", gap: 8 }}>
+      <div style={{ width: 32, height: 32, borderRadius: 6, background: C.border, flexShrink: 0 }} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
-        <div style={{ height: 12, borderRadius: 4, background: C.border, width: "60%" }} />
-        <div style={{ height: 10, borderRadius: 4, background: C.bg, width: "90%" }} />
-        <div style={{ height: 10, borderRadius: 4, background: C.bg, width: "70%" }} />
+        <div style={{ height: 12, borderRadius: 6, background: C.border, width: "60%" }} />
+        <div style={{ height: 10, borderRadius: 6, background: C.bg, width: "90%" }} />
+        <div style={{ height: 10, borderRadius: 6, background: C.bg, width: "70%" }} />
       </div>
     </div>
   );
@@ -392,7 +392,7 @@ export function NotificationPanel({ unreadCount, onCountChange }: NotificationPa
       title="Notifikasi"
       style={{
         position: "relative",
-        width: 36, height: 36, borderRadius: 8,
+        width: 36, height: 36, borderRadius: 6,
         background: open ? C.navyLight : "transparent",
         border: "none", cursor: "pointer",
         color: open ? C.navy : C.mid,
@@ -422,7 +422,7 @@ export function NotificationPanel({ unreadCount, onCountChange }: NotificationPa
           background: C.navy,
           border: "1.5px solid var(--surface)",
           color: "var(--surface)",
-          fontSize: 9, fontWeight: 700,
+          fontSize: 10, fontWeight: 700,
           display: "flex", alignItems: "center", justifyContent: "center",
           lineHeight: 1,
           padding: unreadCount > 9 ? "0 3px" : 0,
@@ -446,7 +446,7 @@ export function NotificationPanel({ unreadCount, onCountChange }: NotificationPa
         background: C.white,
         borderRadius: 14,
         border: `1px solid ${C.border}`,
-        boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)",
+        boxShadow: "var(--naik-3)",
         display: "flex", flexDirection: "column",
         zIndex: 9999,
         overflow: "hidden",
@@ -455,17 +455,17 @@ export function NotificationPanel({ unreadCount, onCountChange }: NotificationPa
     >
       {/* Header */}
       <div style={{
-        padding: "14px 16px 10px",
+        padding: "12px 16px 8px",
         borderBottom: `1px solid ${C.border}`,
         display: "flex", alignItems: "center", justifyContent: "space-between",
         flexShrink: 0,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>Notifikasi</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Notifikasi</span>
           {unreadCount > 0 && (
             <span style={{
               fontSize: 11, fontWeight: 700,
-              padding: "1px 7px", borderRadius: 9999,
+              padding: "0px 6px", borderRadius: 9999,
               background: C.navy, color: "var(--surface)",
             }}>{unreadCount}</span>
           )}
@@ -589,7 +589,7 @@ export function NotificationPanel({ unreadCount, onCountChange }: NotificationPa
                   background: notif.is_read ? C.white : "var(--info-bg)",
                   opacity: isActioning ? 0.6 : 1,
                   transition: "background 0.15s",
-                  display: "flex", gap: 10, alignItems: "flex-start",
+                  display: "flex", gap: 8, alignItems: "flex-start",
                 }}
                 onMouseEnter={e => {
                   if (!isActioning) e.currentTarget.style.background = notif.is_read ? C.bg : "var(--navy-light)";
@@ -600,7 +600,7 @@ export function NotificationPanel({ unreadCount, onCountChange }: NotificationPa
               >
                 {/* Icon */}
                 <div style={{
-                  width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                  width: 32, height: 32, borderRadius: 6, flexShrink: 0,
                   background: bg, color: color,
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
@@ -647,7 +647,7 @@ export function NotificationPanel({ unreadCount, onCountChange }: NotificationPa
 
       {/* Footer */}
       <div style={{
-        padding: "10px 16px",
+        padding: "8px 16px",
         borderTop: `1px solid ${C.border}`,
         flexShrink: 0,
       }}>
@@ -656,7 +656,7 @@ export function NotificationPanel({ unreadCount, onCountChange }: NotificationPa
           style={{
             width: "100%", padding: "8px 0",
             background: C.bg, border: `1px solid ${C.border}`,
-            borderRadius: 8, cursor: "pointer",
+            borderRadius: 6, cursor: "pointer",
             fontSize: 12, fontWeight: 600, color: C.navy,
             display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
           }}

@@ -124,8 +124,8 @@ export default function KasbonTukangPage() {
           style={{
           position: "fixed", top: 72, right: 20, zIndex: 999,
           background: toast.ok ? C.greenBg : C.redBg, border: `1px solid ${toast.ok ? C.green : C.red}`,
-          color: toast.ok ? C.green : C.red, padding: "12px 20px", borderRadius: 10, fontSize: 14,
-          fontWeight: 500, boxShadow: "0 4px 16px rgba(0,0,0,0.1)", cursor: "pointer",
+          color: toast.ok ? C.green : C.red, padding: "12px 20px", borderRadius: 10, fontSize: 13,
+          fontWeight: 500, boxShadow: "var(--naik-2)", cursor: "pointer",
           textAlign: "left",
         }}>
           {toast.msg}
@@ -139,7 +139,7 @@ export default function KasbonTukangPage() {
           <p style={{ fontSize: 13, color: C.mid, margin: "4px 0 0" }}>Ajukan kasbon untuk tukang di bawah Anda</p>
         </div>
         <button onClick={() => setShowModal(true)} style={{
-          display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 10,
+          display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10,
           border: "none", background: C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: "pointer",
         }}>
           <Plus size={15} /> Ajukan Kasbon
@@ -149,11 +149,11 @@ export default function KasbonTukangPage() {
       {/* KPI */}
       {!loading && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
-          <div style={{ background: C.surface, borderRadius: 12, padding: 16, border: `1px solid ${C.border}` }}>
+          <div style={{ background: C.surface, borderRadius: 10, padding: 16, border: `1px solid ${C.border}` }}>
             <div style={{ fontSize: 11, color: C.mid, fontWeight: 500, marginBottom: 6 }}>Kasbon Aktif</div>
             <div style={{ fontSize: 26, fontWeight: 700, color: C.yellow }}>{pending}</div>
           </div>
-          <div style={{ background: C.surface, borderRadius: 12, padding: 16, border: `1px solid ${C.border}` }}>
+          <div style={{ background: C.surface, borderRadius: 10, padding: 16, border: `1px solid ${C.border}` }}>
             <div style={{ fontSize: 11, color: C.mid, fontWeight: 500, marginBottom: 6 }}>Total Outstanding</div>
             <div style={{ fontSize: 15, fontWeight: 700, color: C.red }}>{fmt(totalOutstanding)}</div>
           </div>
@@ -163,21 +163,21 @@ export default function KasbonTukangPage() {
       {loading && <div style={{ textAlign: "center", padding: 40, color: C.mid }}>Memuat...</div>}
 
       {!loading && kasbons.length === 0 && (
-        <div style={{ background: C.surface, borderRadius: 12, padding: 40, border: `1px solid ${C.border}`, textAlign: "center" }}>
+        <div style={{ background: C.surface, borderRadius: 10, padding: 40, border: `1px solid ${C.border}`, textAlign: "center" }}>
           <CreditCard size={28} color={C.muted} style={{ marginBottom: 8 }} />
-          <div style={{ fontSize: 14, color: C.mid }}>Belum ada kasbon tukang</div>
+          <div style={{ fontSize: 13, color: C.mid }}>Belum ada kasbon tukang</div>
         </div>
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {kasbons.map((k) => (
           <div key={k.id} style={{
-            background: C.surface, borderRadius: 12, padding: "14px 16px",
-            border: `1px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+            background: C.surface, borderRadius: 10, padding: "12px 16px",
+            border: `1px solid ${C.border}`, boxShadow: "var(--naik-1)",
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{k.worker?.name ?? "—"}</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{k.worker?.name ?? "—"}</div>
                 <div style={{ fontSize: 12, color: C.mid, marginTop: 2 }}>
                   {PURPOSE_LABELS[k.purpose] ?? k.purpose} · {k.project?.name ?? "—"} · {fmtDate(k.kasbon_date)}
                 </div>
@@ -191,9 +191,9 @@ export default function KasbonTukangPage() {
             </div>
             {k.amount_settled > 0 && !k.is_settled && (
               <div style={{ marginTop: 8 }}>
-                <div style={{ height: 4, background: C.border, borderRadius: 4, overflow: "hidden" }}>
+                <div style={{ height: 4, background: C.border, borderRadius: 6, overflow: "hidden" }}>
                   <div style={{
-                    height: "100%", borderRadius: 4, background: C.green,
+                    height: "100%", borderRadius: 6, background: C.green,
                     width: `${Math.min(100, (Number(k.amount_settled) / Number(k.amount)) * 100)}%`,
                   }} />
                 </div>
@@ -213,15 +213,15 @@ export default function KasbonTukangPage() {
           display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
         }} onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}>
           <div style={{
-            background: "var(--surface)", borderRadius: 16, padding: 24, width: "100%", maxWidth: 480,
-            boxShadow: "0 16px 48px rgba(0,0,0,0.2)",
+            background: "var(--surface)", borderRadius: 14, padding: 24, width: "100%", maxWidth: 480,
+            boxShadow: "var(--naik-3)",
           }}>
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: "0 0 20px" }}>Ajukan Kasbon Tukang</h2>
+            <h2 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: "0 0 20px" }}>Ajukan Kasbon Tukang</h2>
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
                 <label htmlFor="worker-id" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Tukang *</label>
                 <select id="worker-id" aria-label="Pilih tukang" value={form.worker_id} onChange={(e) => setForm((f) => ({ ...f, worker_id: e.target.value }))}
-                  style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13 }}>
+                  style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13 }}>
                   <option value="">Pilih tukang...</option>
                   {workers.filter((w) => w.is_active).map((w) => (
                     <option key={w.id} value={w.id}>{w.name}</option>
@@ -231,7 +231,7 @@ export default function KasbonTukangPage() {
               <div>
                 <label htmlFor="project-id" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Proyek *</label>
                 <select id="project-id" aria-label="Proyek" value={form.project_id} onChange={(e) => setForm((f) => ({ ...f, project_id: e.target.value, scope_id: "" }))}
-                  style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13 }}>
+                  style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13 }}>
                   <option value="">Pilih proyek...</option>
                   {assignments.map((a) => (
                     <option key={a.project?.id} value={a.project?.id}>{a.project?.name}</option>
@@ -242,7 +242,7 @@ export default function KasbonTukangPage() {
                 <div>
                   <label htmlFor="scope-id" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Scope (opsional)</label>
                   <select id="scope-id" aria-label="Lingkup" value={form.scope_id} onChange={(e) => setForm((f) => ({ ...f, scope_id: e.target.value }))}
-                    style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13 }}>
+                    style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13 }}>
                     <option value="">Semua scope</option>
                     {scopesForProject.map((s: any) => (
                       <option key={s.id} value={s.id}>{s.scope_name}</option>
@@ -250,22 +250,22 @@ export default function KasbonTukangPage() {
                   </select>
                 </div>
               )}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 <div>
                   <label htmlFor="amount" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Jumlah (Rp) *</label>
                   <input id="amount" type="number" min="1" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
-                    placeholder="0" style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13 }} />
+                    placeholder="0" style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13 }} />
                 </div>
                 <div>
                   <label htmlFor="kasbon-date" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Tanggal</label>
                   <input id="kasbon-date" aria-label="Tanggal" type="date" value={form.kasbon_date} onChange={(e) => setForm((f) => ({ ...f, kasbon_date: e.target.value }))}
-                    style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13 }} />
+                    style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13 }} />
                 </div>
               </div>
               <div>
                 <label htmlFor="purpose" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Tujuan</label>
                 <select id="purpose" aria-label="Tujuan kasbon" value={form.purpose} onChange={(e) => setForm((f) => ({ ...f, purpose: e.target.value }))}
-                  style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13 }}>
+                  style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13 }}>
                   {Object.entries(PURPOSE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select>
               </div>
@@ -273,15 +273,15 @@ export default function KasbonTukangPage() {
                 <label htmlFor="notes" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Catatan</label>
                 <textarea id="notes" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
                   rows={2} placeholder="Opsional"
-                  style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, resize: "none" }} />
+                  style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, resize: "none" }} />
               </div>
               <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
                 <button type="button" onClick={() => setShowModal(false)} style={{
-                  flex: 1, padding: "10px", borderRadius: 10, border: `1px solid ${C.border}`,
+                  flex: 1, padding: "8px", borderRadius: 10, border: `1px solid ${C.border}`,
                   background: "var(--surface)", color: C.mid, fontSize: 13, fontWeight: 600, cursor: "pointer",
                 }}>Batal</button>
                 <button type="submit" disabled={submitting} style={{
-                  flex: 2, padding: "10px", borderRadius: 10, border: "none",
+                  flex: 2, padding: "8px", borderRadius: 10, border: "none",
                   background: submitting ? C.mid : C.navy, color: "var(--surface)",
                   fontSize: 13, fontWeight: 600, cursor: submitting ? "wait" : "pointer",
                 }}>{submitting ? "Mengajukan..." : "Ajukan Kasbon"}</button>

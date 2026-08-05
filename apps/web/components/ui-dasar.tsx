@@ -196,9 +196,9 @@ export function KartuKPI({
           // Halaman ini juga dibaca di HP di lapangan, tempat perbedaan
           // warna tipis praktis hilang di bawah sinar matahari.
           <span style={{
-            display: "inline-flex", alignItems: "center", gap: 3,
+            display: "inline-flex", alignItems: "center", gap: 2,
             fontSize: "var(--teks-delta)", fontWeight: 600,
-            padding: "2px 7px", borderRadius: 999,
+            padding: "2px 6px", borderRadius: 999,
             fontVariantNumeric: "tabular-nums",
             background: sorot ? "rgba(255,255,255,.16)"
               : baik ? "var(--success-bg)" : "var(--danger-bg)",
@@ -214,7 +214,7 @@ export function KartuKPI({
 
       {keterangan && (
         <div style={{
-          fontSize: 11.5, marginTop: 5,
+          fontSize: 11, marginTop: 5,
           color: sorot ? "rgba(255,255,255,.7)" : C.muted,
         }}>{keterangan}</div>
       )}
@@ -281,11 +281,11 @@ export function Panel({
       }}>
         <div style={{ minWidth: 0 }}>
           <h2 style={{
-            margin: 0, fontSize: 14, fontWeight: 700, color: C.text,
+            margin: 0, fontSize: 13, fontWeight: 700, color: C.text,
             fontFamily: "var(--font-display, inherit)",
           }}>{judul}</h2>
           {keterangan && (
-            <p style={{ margin: "2px 0 0", fontSize: 11.5, color: C.muted }}>
+            <p style={{ margin: "2px 0 0", fontSize: 11, color: C.muted }}>
               {keterangan}
             </p>
           )}
@@ -316,7 +316,7 @@ export function Kosong({
   return (
     <div style={{
       padding: "28px 16px", textAlign: "center",
-      border: `1px dashed ${C.border}`, borderRadius: 12, background: C.subtle,
+      border: `1px dashed ${C.border}`, borderRadius: 10, background: C.subtle,
     }}>
       <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: C.text }}>
         {judul}
@@ -394,7 +394,7 @@ export function GrafikBatang({
                 />
               </div>
               <span style={{
-                fontSize: 10.5, color: d.sorot ? C.text : C.muted,
+                fontSize: 10, color: d.sorot ? C.text : C.muted,
                 fontWeight: d.sorot ? 600 : 400, whiteSpace: "nowrap",
               }}>{d.label}</span>
             </div>
@@ -452,9 +452,9 @@ export function Donat({
         flexDirection: "column", alignItems: "center", justifyContent: "center",
         pointerEvents: "none",
       }}>
-        <span style={{ fontSize: 10.5, color: C.muted }}>{label}</span>
+        <span style={{ fontSize: 10, color: C.muted }}>{label}</span>
         <span style={{
-          fontSize: 19, fontWeight: 700, color: C.text, marginTop: 1,
+          fontSize: 20, fontWeight: 700, color: C.text, marginTop: 1,
           fontVariantNumeric: "tabular-nums",
           fontFamily: "var(--font-display, inherit)",
         }}>{nilai}</span>

@@ -78,7 +78,7 @@ function Lightbox({ url, onClose }: { url: string; onClose: () => void }) {
         alt="Foto lapangan"
         style={{
           maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain",
-          borderRadius: 8, boxShadow: "0 0 60px rgba(0,0,0,0.5)",
+          borderRadius: 6, boxShadow: "var(--naik-1)",
         }}
         onClick={e => e.stopPropagation()}
       />
@@ -116,14 +116,14 @@ function FotoLightboxTombol({
       aria-label={`Lihat foto${caption ? `: ${caption}` : ""} ukuran penuh`}
       style={{
         padding: 0, border: "none", background: "none", cursor: "pointer",
-        width: "100%", height: "100%", display: "block", borderRadius: 8,
+        width: "100%", height: "100%", display: "block", borderRadius: 6,
       }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={url}
         alt={caption ?? "Foto progres"}
-        style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 8, display: "block" }}
+        style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 6, display: "block" }}
       />
     </button>
   );
@@ -135,7 +135,7 @@ function PhotoGrid({ photos }: { photos: ProgressLog["photos"] }) {
   if (!photos || photos.length === 0) return null;
 
   const cellStyle = (extra?: React.CSSProperties): React.CSSProperties => ({
-    overflow: "hidden", borderRadius: 8, position: "relative", background: "var(--surface-hover)",
+    overflow: "hidden", borderRadius: 6, position: "relative", background: "var(--surface-hover)",
     ...extra,
   });
 
@@ -186,7 +186,7 @@ function PhotoGrid({ photos }: { photos: ProgressLog["photos"] }) {
                 style={{
                   position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  cursor: "pointer", borderRadius: 8,
+                  cursor: "pointer", borderRadius: 6,
                 }}
                 onClick={() => setLightboxUrl(photos[3].url)}
               >
@@ -221,7 +221,7 @@ function LogSkeleton() {
       </div>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
         <div style={{ height: 16, width: "40%", borderRadius: 6, background: "linear-gradient(90deg, var(--surface-hover) 0%, var(--border) 50%, var(--surface-hover) 100%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s ease-in-out infinite" }} />
-        <div style={{ height: 80, borderRadius: 12, background: "linear-gradient(90deg, var(--surface-hover) 0%, var(--border) 50%, var(--surface-hover) 100%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s ease-in-out infinite" }} />
+        <div style={{ height: 80, borderRadius: 10, background: "linear-gradient(90deg, var(--surface-hover) 0%, var(--border) 50%, var(--surface-hover) 100%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s ease-in-out infinite" }} />
       </div>
     </div>
   );
@@ -276,7 +276,7 @@ function LogCard({
         <div style={{
           width: 44, background: C.navy, borderRadius: 10, padding: "6px 0",
           display: "flex", flexDirection: "column", alignItems: "center",
-          boxShadow: "0 2px 8px rgba(0,51,102,0.2)",
+          boxShadow: "var(--naik-2)",
         }}>
           <span style={{ fontSize: 22, fontWeight: 800, color: "var(--surface)", lineHeight: 1.1, fontFamily: "var(--font-display)" }}>
             {day}
@@ -290,7 +290,7 @@ function LogCard({
       {/* Card */}
       <div style={{
         flex: 1, background: "var(--surface)", border: `1px solid ${C.border}`,
-        borderRadius: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.05)", overflow: "hidden",
+        borderRadius: 10, boxShadow: "var(--naik-1)", overflow: "hidden",
       }}>
         {/* Card header */}
         <div style={{
@@ -305,7 +305,7 @@ function LogCard({
               {log.reporter && (
                 <span style={{
                   fontSize: 11, color: C.navy, fontWeight: 600,
-                  padding: "1px 7px", borderRadius: 99, background: C.navyLight,
+                  padding: "0px 6px", borderRadius: 99, background: C.navyLight,
                 }}>
                   {log.reporter.name}
                 </span>
@@ -315,7 +315,7 @@ function LogCard({
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
               {/* Progress badge */}
               <span style={{
-                fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 99,
+                fontSize: 12, fontWeight: 700, padding: "2px 8px", borderRadius: 99,
                 color: "var(--on-success-bg)", background: "var(--success-bg)", border: "1px solid #A7F3D0",
               }}>
                 {log.pct_overall}% selesai
@@ -346,7 +346,7 @@ function LogCard({
             <button aria-label="Hapus catatan progres"
               onClick={() => setConfirmDelete(true)}
               style={{
-                width: 28, height: 28, borderRadius: 8, border: "none",
+                width: 28, height: 28, borderRadius: 6, border: "none",
                 background: "var(--danger-bg)", cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 color: C.red, flexShrink: 0,
@@ -364,7 +364,7 @@ function LogCard({
                 onClick={handleDelete}
                 disabled={deleting}
                 style={{
-                  padding: "4px 10px", borderRadius: 6, border: "none",
+                  padding: "4px 8px", borderRadius: 6, border: "none",
                   background: C.red, color: "var(--surface)", fontSize: 11, fontWeight: 600,
                   cursor: deleting ? "not-allowed" : "pointer",
                 }}
@@ -375,7 +375,7 @@ function LogCard({
                 onClick={() => setConfirmDelete(false)}
                 disabled={deleting}
                 style={{
-                  padding: "4px 10px", borderRadius: 6, border: `1px solid ${C.border}`,
+                  padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.border}`,
                   background: "var(--surface)", color: C.mid, fontSize: 11, cursor: "pointer",
                 }}
               >
@@ -437,7 +437,7 @@ export function ProgressLogList({
         }}>
           <Camera size={24} style={{ color: "var(--border-strong)" }} />
         </div>
-        <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-secondary)", margin: 0 }}>
+        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", margin: 0 }}>
           Belum ada log progress
         </p>
         <p style={{ fontSize: 13, color: C.muted, margin: 0, textAlign: "center", maxWidth: 280 }}>
@@ -469,7 +469,7 @@ export function ProgressLogList({
             onClick={onLoadMore}
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "9px 18px", borderRadius: 10, border: `1px solid ${C.border}`,
+              padding: "8px 16px", borderRadius: 10, border: `1px solid ${C.border}`,
               background: "var(--surface)", fontSize: 13, fontWeight: 500, color: C.mid,
               cursor: "pointer",
             }}

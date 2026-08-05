@@ -166,7 +166,7 @@ function NcrInner() {
             value={proyekId}
             onChange={(e) => router.replace(`/mutu/ncr?proyek=${e.target.value}`, { scroll: false })}
             style={{
-              padding: "8px 11px", fontSize: 13, borderRadius: 8,
+              padding: "8px 12px", fontSize: 13, borderRadius: 6,
               border: `1px solid ${C.border}`, background: "var(--surface)",
               color: C.text, outline: "none", minWidth: 190,
             }}>
@@ -174,17 +174,17 @@ function NcrInner() {
             {proyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
           <button onClick={() => muat()} style={{
-            display: "flex", alignItems: "center", gap: 6, padding: "8px 13px",
-            border: `1px solid ${C.border}`, borderRadius: 8,
-            background: "var(--surface)", color: C.mid, fontSize: 12.5, cursor: "pointer",
+            display: "flex", alignItems: "center", gap: 6, padding: "8px 12px",
+            border: `1px solid ${C.border}`, borderRadius: 6,
+            background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer",
           }}>
             <RefreshCw size={13} aria-hidden="true" /> Muat ulang
           </button>
           {bolehKelola && proyekId && (
             <button onClick={() => setBuatBaru(true)} style={{
-              display: "flex", alignItems: "center", gap: 6, padding: "8px 15px",
-              border: "none", borderRadius: 8, background: "var(--grad-aksen)",
-              color: "var(--on-aksen)", fontSize: 12.5, fontWeight: 600, cursor: "pointer",
+              display: "flex", alignItems: "center", gap: 6, padding: "8px 16px",
+              border: "none", borderRadius: 6, background: "var(--grad-aksen)",
+              color: "var(--on-aksen)", fontSize: 12, fontWeight: 600, cursor: "pointer",
             }}>
               <Plus size={14} aria-hidden="true" /> Catat NCR
             </button>
@@ -196,7 +196,7 @@ function NcrInner() {
       {meta && (
         <div className="rise rise-2" style={{
           display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
-          gap: 10, marginBottom: 16,
+          gap: 8, marginBottom: 16,
         }}>
           {[
             { l: "Belum Selesai", v: `${meta.belum_selesai}`, s: "dari " + meta.total + " total",
@@ -211,14 +211,14 @@ function NcrInner() {
           ].map((k) => (
             <div key={k.l} style={{
               background: "var(--surface)", border: `1px solid ${k.t ?? C.border}`,
-              borderRadius: 12, padding: "13px 15px",
+              borderRadius: 10, padding: "12px 16px",
             }}>
               <div style={{
                 fontSize: 10, fontWeight: 700, letterSpacing: ".05em",
                 textTransform: "uppercase", color: C.muted, marginBottom: 6,
               }}>{k.l}</div>
               <div style={{
-                fontFamily: "var(--font-display)", fontSize: 21, fontWeight: 700,
+                fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700,
                 color: k.w, lineHeight: 1.1, fontVariantNumeric: "tabular-nums",
               }}>{k.v}</div>
               <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{k.s}</div>
@@ -231,7 +231,7 @@ function NcrInner() {
           bisa membuat proyek diserahterimakan padahal belum layak. */}
       {meta && !meta.rekap_lengkap && (
         <div role="alert" style={{
-          padding: "10px 14px", borderRadius: 10, marginBottom: 14, fontSize: 12.5,
+          padding: "8px 12px", borderRadius: 10, marginBottom: 14, fontSize: 12,
           background: C.yellowBg, border: `1px solid ${C.yellowBorder}`, color: C.onWarningBg,
         }}>
           Rekap gagal dihitung — angka di atas mungkin tidak lengkap. Muat ulang halaman.
@@ -240,13 +240,13 @@ function NcrInner() {
 
       {galat && (
         <div role="alert" style={{
-          padding: "12px 14px", borderRadius: 10, marginBottom: 14,
+          padding: "12px 12px", borderRadius: 10, marginBottom: 14,
           background: C.redBg, border: `1px solid ${C.redBorder}`,
           color: C.onDangerBg, fontSize: 13,
         }}>
           {galat}{" "}
           <button onClick={() => muat()} style={{
-            marginLeft: 6, padding: "2px 9px", borderRadius: 6,
+            marginLeft: 6, padding: "2px 8px", borderRadius: 6,
             border: `1px solid ${C.redBorder}`, background: "transparent",
             color: C.onDangerBg, fontSize: 12, fontWeight: 600, cursor: "pointer",
           }}>Coba lagi</button>
@@ -255,10 +255,10 @@ function NcrInner() {
 
       <div className="rise rise-2" style={{
         background: "var(--surface)", border: `1px solid ${C.border}`,
-        borderRadius: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.06)", overflow: "hidden",
+        borderRadius: 14, boxShadow: "var(--naik-1)", overflow: "hidden",
       }}>
         {memuat ? (
-          <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 8 }}>
             {[1, 2, 3].map((i) => (
               <div key={i} aria-hidden="true" style={{
                 height: 56, borderRadius: 10,
@@ -278,7 +278,7 @@ function NcrInner() {
           </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
               <caption className="sr-only">
                 Register ketidaksesuaian: nomor, tingkat, status, disposisi, dan penanggung jawab
               </caption>
@@ -286,7 +286,7 @@ function NcrInner() {
                 <tr style={{ background: "var(--surface-subtle)", borderBottom: `1px solid ${C.border}` }}>
                   {["NCR", "Tingkat", "Status", "Disposisi", "Ditugaskan", "Target", ""].map((h, i) => (
                     <th key={h || i} scope="col" style={{
-                      padding: "10px 12px", textAlign: "left",
+                      padding: "8px 12px", textAlign: "left",
                       fontSize: 10, fontWeight: 700, letterSpacing: ".05em",
                       textTransform: "uppercase", color: C.mid, whiteSpace: "nowrap",
                     }}>{h}</th>
@@ -305,8 +305,8 @@ function NcrInner() {
                       // teks berwarna — di tabel padat, warna teks tenggelam.
                       background: perluPutus ? "var(--surface-subtle)" : "transparent",
                     }}>
-                      <th scope="row" style={{ padding: "11px 12px", textAlign: "left", fontWeight: 400 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 2 }}>
+                      <th scope="row" style={{ padding: "12px 12px", textAlign: "left", fontWeight: 400 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
                           <span style={{
                             fontWeight: 700, color: C.navy, fontVariantNumeric: "tabular-nums",
                           }}>{n.nomor}</span>
@@ -320,20 +320,20 @@ function NcrInner() {
                           </div>
                         )}
                       </th>
-                      <td style={{ padding: "11px 12px" }}>
+                      <td style={{ padding: "12px 12px" }}>
                         <span style={{
-                          fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 6,
+                          fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6,
                           background: sev.latar, color: sev.warna,
                           border: `1px solid ${sev.tepi}`, whiteSpace: "nowrap",
                         }}>{sev.label}</span>
                       </td>
-                      <td style={{ padding: "11px 12px" }}>
+                      <td style={{ padding: "12px 12px" }}>
                         <span style={{
-                          fontSize: 11, fontWeight: 600, padding: "3px 9px", borderRadius: 6,
+                          fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 6,
                           background: st.latar, color: st.warna, whiteSpace: "nowrap",
                         }}>{st.label}</span>
                       </td>
-                      <td style={{ padding: "11px 12px", color: C.mid }}>
+                      <td style={{ padding: "12px 12px", color: C.mid }}>
                         {n.disposisi ? (
                           <span title={n.disposisi_catatan ?? undefined}>
                             {DISPOSISI[n.disposisi]?.label ?? n.disposisi}
@@ -345,11 +345,11 @@ function NcrInner() {
                           <span style={{ color: C.muted, fontStyle: "italic" }}>belum diputuskan</span>
                         )}
                       </td>
-                      <td style={{ padding: "11px 12px", color: C.mid }}>
+                      <td style={{ padding: "12px 12px", color: C.mid }}>
                         {n.petugas?.name ?? "—"}
                       </td>
                       <td style={{
-                        padding: "11px 12px", color: C.mid, whiteSpace: "nowrap",
+                        padding: "12px 12px", color: C.mid, whiteSpace: "nowrap",
                         fontVariantNumeric: "tabular-nums",
                       }}>
                         {n.target_selesai
@@ -357,13 +357,13 @@ function NcrInner() {
                               { day: "2-digit", month: "short" })
                           : "—"}
                       </td>
-                      <td style={{ padding: "11px 12px", textAlign: "right" }}>
+                      <td style={{ padding: "12px 12px", textAlign: "right" }}>
                         {bolehDisposisi && perluPutus && (
                           <button onClick={() => setPutuskan(n)} style={{
-                            display: "inline-flex", alignItems: "center", gap: 5,
-                            padding: "5px 11px", borderRadius: 7, border: "none",
+                            display: "inline-flex", alignItems: "center", gap: 4,
+                            padding: "4px 12px", borderRadius: 6, border: "none",
                             background: "var(--grad-aksen)", color: "var(--on-aksen)",
-                            fontSize: 11.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
+                            fontSize: 11, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
                           }}>
                             <Gavel size={12} aria-hidden="true" /> Putuskan
                           </button>
@@ -397,7 +397,7 @@ function NcrInner() {
 }
 
 const gayaInput: React.CSSProperties = {
-  width: "100%", padding: "8px 11px", fontSize: 13, borderRadius: 8,
+  width: "100%", padding: "8px 12px", fontSize: 13, borderRadius: 6,
   border: `1px solid ${C.border}`, outline: "none", boxSizing: "border-box",
   background: "var(--surface)", color: C.text, fontFamily: "inherit",
 };
@@ -445,13 +445,13 @@ function ModalCatat({ proyekId, onClose, onSukses }: {
       display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999,
     }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div role="dialog" aria-modal="true" aria-labelledby="judul-catat" style={{
-        background: "var(--surface)", borderRadius: 16, padding: 22,
+        background: "var(--surface)", borderRadius: 14, padding: 20,
         width: "min(500px, 94vw)", maxHeight: "90vh", overflowY: "auto",
-        display: "flex", flexDirection: "column", gap: 13,
-        boxShadow: "0 20px 60px rgba(0,0,0,0.18)",
+        display: "flex", flexDirection: "column", gap: 12,
+        boxShadow: "var(--naik-3)",
       }}>
         <h2 id="judul-catat" style={{
-          margin: 0, fontSize: 16, fontWeight: 700, color: C.text,
+          margin: 0, fontSize: 15, fontWeight: 700, color: C.text,
           fontFamily: "var(--font-display)",
         }}>Catat Ketidaksesuaian</h2>
 
@@ -477,7 +477,7 @@ function ModalCatat({ proyekId, onClose, onSukses }: {
           </p>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           <div>
             <label htmlFor="ncr-lokasi" style={gayaLabel}>Lokasi</label>
             <input id="ncr-lokasi" value={lokasi} onChange={(e) => setLokasi(e.target.value)}
@@ -510,18 +510,18 @@ function ModalCatat({ proyekId, onClose, onSukses }: {
 
         {galat && (
           <div role="alert" style={{
-            padding: "9px 12px", borderRadius: 8, fontSize: 12.5,
+            padding: "8px 12px", borderRadius: 6, fontSize: 12,
             background: C.redBg, border: `1px solid ${C.redBorder}`, color: C.onDangerBg,
           }}>{galat}</div>
         )}
 
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 2 }}>
           <button onClick={onClose} style={{
-            padding: "9px 15px", borderRadius: 8, border: `1px solid ${C.border}`,
+            padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`,
             background: "var(--surface)", color: C.mid, fontSize: 13, cursor: "pointer",
           }}>Batal</button>
           <button onClick={simpan} disabled={!judul.trim() || kirim} style={{
-            padding: "9px 17px", borderRadius: 8, border: "none",
+            padding: "8px 16px", borderRadius: 6, border: "none",
             background: judul.trim() && !kirim ? "var(--grad-aksen)" : "var(--surface-hover)",
             color: judul.trim() && !kirim ? "var(--on-aksen)" : C.muted,
             fontSize: 13, fontWeight: 600,
@@ -570,21 +570,21 @@ function ModalDisposisi({ ncr, onClose, onSukses }: {
       display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999,
     }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div role="dialog" aria-modal="true" aria-labelledby="judul-disposisi" style={{
-        background: "var(--surface)", borderRadius: 16, padding: 22,
+        background: "var(--surface)", borderRadius: 14, padding: 20,
         width: "min(520px, 94vw)", maxHeight: "90vh", overflowY: "auto",
-        display: "flex", flexDirection: "column", gap: 14,
-        boxShadow: "0 20px 60px rgba(0,0,0,0.18)",
+        display: "flex", flexDirection: "column", gap: 12,
+        boxShadow: "var(--naik-3)",
       }}>
         <div>
           <h2 id="judul-disposisi" style={{
-            margin: 0, fontSize: 16, fontWeight: 700, color: C.text,
+            margin: 0, fontSize: 15, fontWeight: 700, color: C.text,
             fontFamily: "var(--font-display)",
           }}>Disposisi {ncr.nomor}</h2>
-          <p style={{ margin: "4px 0 0", fontSize: 12.5, color: C.mid }}>{ncr.judul}</p>
+          <p style={{ margin: "4px 0 0", fontSize: 12, color: C.mid }}>{ncr.judul}</p>
         </div>
 
         <div style={{
-          padding: "10px 13px", borderRadius: 9, fontSize: 12, lineHeight: 1.55,
+          padding: "8px 12px", borderRadius: 10, fontSize: 12, lineHeight: 1.55,
           background: C.yellowBg, border: `1px solid ${C.yellowBorder}`, color: C.onWarningBg,
         }}>
           Disposisi adalah keputusan formal yang tercatat di jejak audit dan
@@ -599,7 +599,7 @@ function ModalDisposisi({ ncr, onClose, onSukses }: {
         <div>
           <span id="ncr-keputusan-label" style={gayaLabel}>Keputusan</span>
           <div role="group" aria-labelledby="ncr-keputusan-label"
-            style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+            style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {Object.entries(DISPOSISI).map(([k, d]) => (
               // `htmlFor`/`id` eksplisit, bukan membungkus input di dalam
               // `<label>`. Pembungkusan gagal dikenali begitu isinya `<span>`
@@ -610,9 +610,9 @@ function ModalDisposisi({ ncr, onClose, onSukses }: {
               // bisa diketuk, bukan hanya lingkaran radio 13px. Itu yang
               // dibutuhkan di HP, satu tangan, di lapangan.
               <label key={k} htmlFor={`disposisi-${k}`} style={{
-                display: "flex", alignItems: "flex-start", gap: 9,
+                display: "flex", alignItems: "flex-start", gap: 8,
                 fontSize: 13, fontWeight: 600, color: C.text,
-                padding: "10px 12px", borderRadius: 9, cursor: "pointer",
+                padding: "8px 12px", borderRadius: 10, cursor: "pointer",
                 border: `1px solid ${pilihan === k ? C.navy : C.border}`,
                 background: pilihan === k ? C.navyLight : "var(--surface)",
               }}>
@@ -627,7 +627,7 @@ function ModalDisposisi({ ncr, onClose, onSukses }: {
                 <span style={{ minWidth: 0 }}>
                   {d.label}
                   <span id={`disposisi-${k}-ket`} style={{
-                    display: "block", fontSize: 11.5, color: C.muted,
+                    display: "block", fontSize: 11, color: C.muted,
                     marginTop: 1, fontWeight: 400,
                   }}>{d.ket}</span>
                 </span>
@@ -655,18 +655,18 @@ function ModalDisposisi({ ncr, onClose, onSukses }: {
 
         {galat && (
           <div role="alert" style={{
-            padding: "9px 12px", borderRadius: 8, fontSize: 12.5,
+            padding: "8px 12px", borderRadius: 6, fontSize: 12,
             background: C.redBg, border: `1px solid ${C.redBorder}`, color: C.onDangerBg,
           }}>{galat}</div>
         )}
 
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
           <button onClick={onClose} style={{
-            padding: "9px 15px", borderRadius: 8, border: `1px solid ${C.border}`,
+            padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`,
             background: "var(--surface)", color: C.mid, fontSize: 13, cursor: "pointer",
           }}>Batal</button>
           <button onClick={simpan} disabled={!sah || kirim} style={{
-            padding: "9px 17px", borderRadius: 8, border: "none",
+            padding: "8px 16px", borderRadius: 6, border: "none",
             background: sah && !kirim ? "var(--grad-aksen)" : "var(--surface-hover)",
             color: sah && !kirim ? "var(--on-aksen)" : C.muted,
             fontSize: 13, fontWeight: 600,
@@ -683,7 +683,7 @@ export default function NcrPage() {
     <Suspense fallback={
       <div style={{ padding: "var(--pad-atas) var(--pad-x)" }}>
         <div aria-hidden="true" style={{
-          height: 44, width: 200, borderRadius: 8,
+          height: 44, width: 200, borderRadius: 6,
           background: "var(--surface-subtle)",
         }} />
       </div>

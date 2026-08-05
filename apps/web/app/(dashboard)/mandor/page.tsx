@@ -22,7 +22,7 @@ import { C } from "@/lib/warna-ui";
 
 const card: React.CSSProperties = {
   background: "var(--surface)", border: `1px solid ${C.border}`,
-  borderRadius: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+  borderRadius: 14, boxShadow: "var(--naik-1)",
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -592,7 +592,7 @@ function MandorPageInner() {
       onMouseLeave={e => { if (tab !== id) e.currentTarget.style.color = C.mid; }}
       style={{
         display: "inline-flex", alignItems: "center", gap: 6,
-        padding: "10px 18px", background: "transparent", border: "none",
+        padding: "8px 16px", background: "transparent", border: "none",
         borderBottom: `2px solid ${tab === id ? C.navy : "transparent"}`,
         fontSize: 13, fontWeight: tab === id ? 600 : 400,
         color: tab === id ? C.navy : C.mid,
@@ -602,7 +602,7 @@ function MandorPageInner() {
       {label}
       {count !== undefined && count > 0 && (
         <span style={{
-          fontSize: 10, fontWeight: 700, borderRadius: 99, padding: "1px 6px",
+          fontSize: 10, fontWeight: 700, borderRadius: 99, padding: "0px 6px",
           background: tab === id ? C.navyLight : "var(--surface-hover)",
           color: tab === id ? C.navy : C.muted,
         }}>{count}</span>
@@ -615,7 +615,7 @@ function MandorPageInner() {
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 12, background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <HardHat size={20} color={C.navy} />
           </div>
           <div>
@@ -624,33 +624,33 @@ function MandorPageInner() {
           </div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={load} style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: C.mid }}>
+          <button onClick={load} style={{ padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: C.mid }}>
             <RefreshCw size={14} /> Refresh
           </button>
           {tab === "penugasan" && !isMandor && (
-            <button onClick={() => setShowAddAssignment(true)} style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600 }}>
+            <button onClick={() => setShowAddAssignment(true)} style={{ padding: "8px 12px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600 }}>
               <Plus size={14} /> Assign Mandor
             </button>
           )}
           {tab === "laporan" && (
-            <button onClick={() => setShowCreateReport(true)} style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600 }}>
+            <button onClick={() => setShowCreateReport(true)} style={{ padding: "8px 12px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600 }}>
               <Plus size={14} /> Ajukan Upah
             </button>
           )}
           {tab === "kasbon" && (
-            <button onClick={() => setShowAddKasbon(true)} style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600 }}>
+            <button onClick={() => setShowAddKasbon(true)} style={{ padding: "8px 12px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600 }}>
               <Plus size={14} /> Tambah Kasbon
             </button>
           )}
           {tab === "mandor-kasbon" && (
-            <button onClick={() => setShowSubmitMandorKasbon(true)} style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: C.yellow, color: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600 }}
+            <button onClick={() => setShowSubmitMandorKasbon(true)} style={{ padding: "8px 12px", borderRadius: 6, border: "none", background: C.yellow, color: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600 }}
               onMouseEnter={e => { e.currentTarget.style.background = "var(--warning)"; }}
               onMouseLeave={e => { e.currentTarget.style.background = C.yellow; }}>
               <Plus size={14} /> Ajukan Kasbon
             </button>
           )}
           {tab === "tukang" && !isMandor && (
-            <button onClick={() => setShowWorkerForm({ mandorId: "", mandorName: "" })} style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600 }}>
+            <button onClick={() => setShowWorkerForm({ mandorId: "", mandorName: "" })} style={{ padding: "8px 12px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600 }}>
               <Plus size={14} /> Tambah Pekerja
             </button>
           )}
@@ -674,13 +674,13 @@ function MandorPageInner() {
                   : null,
                 `Lihat ${s.label} yang menunggu`,
               )}
-              style={{ ...card, padding: "14px 16px", cursor: s.clickable ? "pointer" : "default", transition: "all 0.15s" }}
+              style={{ ...card, padding: "12px 16px", cursor: s.clickable ? "pointer" : "default", transition: "all 0.15s" }}
               onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 6px 18px rgba(0,51,102,0.10)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
               onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 1px 4px rgba(0,0,0,0.06)"; e.currentTarget.style.transform = "translateY(0)"; }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                 <span style={{ fontSize: 11, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{s.label}</span>
-                <div style={{ width: 30, height: 30, borderRadius: 8, background: s.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>{s.icon}</div>
+                <div style={{ width: 30, height: 30, borderRadius: 6, background: s.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>{s.icon}</div>
               </div>
               <div style={{ fontSize: 20, fontWeight: 700, color: s.color }}>
                 {typeof s.value === "number" ? s.value : s.value}
@@ -702,7 +702,7 @@ function MandorPageInner() {
           {isMandor && <Tab id="mandor-kasbon" label="Kasbon Saya" count={mandorKasbons.filter(k => k.status === "pending").length} />}
           <Tab id="tukang" label="Daftar Tukang" />
           <div style={{ flex: 1 }} />
-          <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "0 12px", padding: "5px 10px", border: `1px solid ${C.border}`, borderRadius: 8, background: "var(--surface)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "0 12px", padding: "4px 8px", border: `1px solid ${C.border}`, borderRadius: 6, background: "var(--surface)" }}>
             <Search size={13} color={C.muted} />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari..." style={{ border: "none", outline: "none", fontSize: 13, width: 140, color: C.text, background: "transparent" }} />
           </div>
@@ -716,34 +716,34 @@ function MandorPageInner() {
         <>
           {/* TAB: Laporan Upah */}
           {tab === "laporan" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {/* Filter bar */}
               {!isMandor && (
-                <div style={{ ...card, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <div style={{ ...card, padding: "12px 16px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <select aria-label="Mandor" value={filterMandorId} onChange={e => { setFilterMandorId(e.target.value); updateFilter("mandor_id", e.target.value); }}
-                    style={{ padding: "6px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", color: C.text, minWidth: 160 }}>
+                    style={{ padding: "6px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: "var(--surface)", outline: "none", color: C.text, minWidth: 160 }}>
                     <option value="">Semua Mandor</option>
                     {mandorList.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                   </select>
                   <select aria-label="Status" value={filterStatus} onChange={e => { setFilterStatus(e.target.value); updateFilter("status", e.target.value); }}
-                    style={{ padding: "6px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", color: C.text }}>
+                    style={{ padding: "6px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: "var(--surface)", outline: "none", color: C.text }}>
                     <option value="">Semua Status</option>
                     {Object.entries(REPORT_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                   </select>
                   <input aria-label="Tanggal mulai" type="date" value={filterDateFrom} onChange={e => { setFilterDateFrom(e.target.value); updateFilter("date_from", e.target.value); }}
-                    style={{ padding: "6px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", color: C.text }} />
+                    style={{ padding: "6px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", color: C.text }} />
                   <span style={{ fontSize: 12, color: C.muted }}>s/d</span>
                   <input aria-label="Tanggal akhir" type="date" value={filterDateTo} onChange={e => { setFilterDateTo(e.target.value); updateFilter("date_to", e.target.value); }}
-                    style={{ padding: "6px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", color: C.text }} />
+                    style={{ padding: "6px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", color: C.text }} />
                   {(filterMandorId || filterStatus || filterDateFrom || filterDateTo) && (
-                    <button onClick={resetFilters} style={{ padding: "6px 12px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: 12, color: C.mid, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                    <button onClick={resetFilters} style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: 12, color: C.mid, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
                       <X size={12} /> Reset
                     </button>
                   )}
                   <span style={{ fontSize: 12, color: C.muted }}>{filteredReports.length} laporan</span>
                   <button
                     onClick={exportExcel}
-                    style={{ marginLeft: "auto", padding: "6px 12px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: 12, color: C.text, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, fontWeight: 500 }}>
+                    style={{ marginLeft: "auto", padding: "6px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: 12, color: C.text, cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontWeight: 500 }}>
                     <Download size={13} /> Export Excel
                   </button>
                 </div>
@@ -758,7 +758,7 @@ function MandorPageInner() {
                 const st = getWageStatusBadge(r.status);
                 const canApprove = !isMandor && r.status === "submitted";
                 return (
-                  <div key={r.id} style={{ ...card, padding: "14px 18px", transition: "box-shadow 0.15s" }}>
+                  <div key={r.id} style={{ ...card, padding: "12px 16px", transition: "box-shadow 0.15s" }}>
                     {/* `role="button"` + handler keyboard, BUKAN `<button>`:
                         isinya berisi beberapa blok bersarang yang tata letaknya
                         akan berubah kalau dibungkus tombol. Yang dibutuhkan
@@ -781,12 +781,12 @@ function MandorPageInner() {
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3, flexWrap: "wrap" }}>
-                          <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
                             {r.assignment?.mandor?.name ?? "—"} · {r.scope?.scope_name ?? "—"}
                           </span>
                           <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 10, background: st.bg, color: st.color, border: `1px solid ${st.border}` }}>{st.label}</span>
                           {(() => { const b = getPaymentSystemBadge(r.scope?.payment_system ?? ""); return (
-                            <span style={{ fontSize: 11, padding: "2px 7px", borderRadius: 10, background: b.bg, color: b.color, border: `1px solid ${b.border}`, fontWeight: 600 }}>{b.label}</span>
+                            <span style={{ fontSize: 11, padding: "2px 6px", borderRadius: 10, background: b.bg, color: b.color, border: `1px solid ${b.border}`, fontWeight: 600 }}>{b.label}</span>
                           ); })()}
                         </div>
                         <div style={{ fontSize: 12, color: C.muted }}>
@@ -794,7 +794,7 @@ function MandorPageInner() {
                         </div>
                       </div>
                       <div style={{ textAlign: "right", flexShrink: 0 }}>
-                        <div style={{ fontSize: 16, fontWeight: 700, color: C.navy }}>{fmt(r.net_amount)}</div>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: C.navy }}>{fmt(r.net_amount)}</div>
                         <div style={{ fontSize: 11, color: C.muted }}>
                           {r.total_deduction > 0 && <span style={{ color: C.red }}>−{fmt(r.total_deduction)} potongan</span>}
                           {r.total_deduction === 0 && <span>Subtotal {fmt(r.subtotal)}</span>}
@@ -807,12 +807,12 @@ function MandorPageInner() {
                       <div style={{ display: "flex", gap: 8, marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.border}` }}>
                         <button
                           onClick={e => { e.stopPropagation(); setInlineAction({ report: r, mode: "approve" }); setInlinePaymentMethod("cash"); setInlineNotes(""); }}
-                          style={{ padding: "5px 14px", borderRadius: 7, border: `1px solid ${C.greenBorder}`, background: C.greenBg, color: C.green, cursor: "pointer", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+                          style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${C.greenBorder}`, background: C.greenBg, color: C.green, cursor: "pointer", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
                           <Check size={12} /> Setujui
                         </button>
                         <button
                           onClick={e => { e.stopPropagation(); setInlineAction({ report: r, mode: "reject" }); setInlineNotes(""); }}
-                          style={{ padding: "5px 14px", borderRadius: 7, border: `1px solid ${C.redBorder}`, background: C.redBg, color: C.red, cursor: "pointer", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+                          style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${C.redBorder}`, background: C.redBg, color: C.red, cursor: "pointer", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
                           <XCircle size={12} /> Tolak
                         </button>
                       </div>
@@ -850,23 +850,23 @@ function MandorPageInner() {
             const uniqueMandors = Array.from(new Map(kasbons.filter(k => k.mandor).map(k => [k.mandor!.id, k.mandor!])).values());
 
             return (
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {/* 4A — Filter bar */}
-                <div style={{ ...card, padding: "10px 16px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <div style={{ ...card, padding: "8px 16px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <select aria-label="Mandor" value={kasbonFilterMandorId} onChange={e => setKasbonFilterMandorId(e.target.value)}
-                    style={{ padding: "6px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", color: C.text, minWidth: 150 }}>
+                    style={{ padding: "6px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: "var(--surface)", outline: "none", color: C.text, minWidth: 150 }}>
                     <option value="">Semua Mandor</option>
                     {uniqueMandors.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                   </select>
                   <select aria-label="Saring status kasbon" value={kasbonFilterStatus} onChange={e => setKasbonFilterStatus(e.target.value)}
-                    style={{ padding: "6px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", color: C.text }}>
+                    style={{ padding: "6px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: "var(--surface)", outline: "none", color: C.text }}>
                     <option value="">Semua Status</option>
                     <option value="aktif">Aktif</option>
                     <option value="lunas">Lunas</option>
                   </select>
                   {(kasbonFilterMandorId || kasbonFilterStatus !== "aktif") && (
                     <button onClick={() => { setKasbonFilterMandorId(""); setKasbonFilterStatus("aktif"); }}
-                      style={{ padding: "6px 12px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: 12, color: C.mid, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                      style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: 12, color: C.mid, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
                       <X size={12} /> Reset
                     </button>
                   )}
@@ -889,12 +889,12 @@ function MandorPageInner() {
                   return (
                     <div key={group.id} style={{ ...card, overflow: "hidden" }}>
                       {/* Group header */}
-                      <div style={{ padding: "12px 18px", background: "var(--bg)", borderBottom: `1px solid ${C.border}` }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                      <div style={{ padding: "12px 16px", background: "var(--bg)", borderBottom: `1px solid ${C.border}` }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                           <div style={{ width: 32, height: 32, borderRadius: "50%", background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: C.navy }}>
                             {group.name.charAt(0).toUpperCase()}
                           </div>
-                          <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{group.name}</span>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{group.name}</span>
                           <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 10, background: C.navyLight, color: C.navy }}>{group.kasbons.length} kasbon</span>
                         </div>
                         {/* Summary strip */}
@@ -906,7 +906,7 @@ function MandorPageInner() {
                           ].map((s, i) => (
                             <div key={i}>
                               <div style={{ fontSize: 10, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 1 }}>{s.label}</div>
-                              <div style={{ fontSize: 14, fontWeight: 700, color: s.color }}>{s.value}</div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: s.color }}>{s.value}</div>
                             </div>
                           ))}
                         </div>
@@ -917,8 +917,8 @@ function MandorPageInner() {
                               <span style={{ fontSize: 10, color: C.muted }}>Outstanding</span>
                               <span style={{ fontSize: 10, fontWeight: 600, color: groupBarColor }}>{outstandingPct.toFixed(0)}%</span>
                             </div>
-                            <div style={{ height: 4, borderRadius: 2, background: C.border, overflow: "hidden" }}>
-                              <div style={{ height: "100%", borderRadius: 2, background: groupBarColor, width: `${outstandingPct}%`, transition: "width 0.3s" }} />
+                            <div style={{ height: 4, borderRadius: 0, background: C.border, overflow: "hidden" }}>
+                              <div style={{ height: "100%", borderRadius: 0, background: groupBarColor, width: `${outstandingPct}%`, transition: "width 0.3s" }} />
                             </div>
                           </div>
                         )}
@@ -930,40 +930,40 @@ function MandorPageInner() {
                         const pct = k.amount > 0 ? (k.amount_settled / k.amount) * 100 : 0;
                         const isLast = idx === group.kasbons.length - 1;
                         return (
-                          <div key={k.id} style={{ padding: "12px 18px", borderBottom: isLast ? "none" : `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 12 }}>
-                            <div style={{ width: 32, height: 32, borderRadius: 8, background: k.is_settled ? C.greenBg : C.yellowBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <div key={k.id} style={{ padding: "12px 16px", borderBottom: isLast ? "none" : `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 12 }}>
+                            <div style={{ width: 32, height: 32, borderRadius: 6, background: k.is_settled ? C.greenBg : C.yellowBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                               <User size={14} color={k.is_settled ? C.green : C.yellow} />
                             </div>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, flexWrap: "wrap" }}>
                                 <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{k.worker?.name ?? "—"}</span>
-                                <span style={{ fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 8, background: k.is_settled ? C.greenBg : C.yellowBg, color: k.is_settled ? C.green : C.yellow }}>{k.is_settled ? "Lunas" : "Aktif"}</span>
-                                <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 6, background: "var(--surface-hover)", color: C.mid }}>{purposeLabel[k.purpose] ?? k.purpose}</span>
+                                <span style={{ fontSize: 10, fontWeight: 600, padding: "0px 6px", borderRadius: 6, background: k.is_settled ? C.greenBg : C.yellowBg, color: k.is_settled ? C.green : C.yellow }}>{k.is_settled ? "Lunas" : "Aktif"}</span>
+                                <span style={{ fontSize: 10, padding: "0px 6px", borderRadius: 6, background: "var(--surface-hover)", color: C.mid }}>{purposeLabel[k.purpose] ?? k.purpose}</span>
                               </div>
                               <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>
                                 {k.project?.name ?? "—"} · {fmtDate(k.kasbon_date)}
                               </div>
                               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                <div style={{ flex: 1, height: 3, borderRadius: 3, background: C.border, overflow: "hidden" }}>
-                                  <div style={{ height: "100%", borderRadius: 3, background: k.is_settled ? C.green : C.yellow, width: `${pct}%` }} />
+                                <div style={{ flex: 1, height: 3, borderRadius: 0, background: C.border, overflow: "hidden" }}>
+                                  <div style={{ height: "100%", borderRadius: 0, background: k.is_settled ? C.green : C.yellow, width: `${pct}%` }} />
                                 </div>
                                 <span style={{ fontSize: 10, color: C.muted, flexShrink: 0 }}>{Math.round(pct)}%</span>
                               </div>
                             </div>
                             <div style={{ textAlign: "right", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-                              <div style={{ fontSize: 14, fontWeight: 700, color: k.is_settled ? C.green : C.red }}>{fmt(remaining)}</div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: k.is_settled ? C.green : C.red }}>{fmt(remaining)}</div>
                               <div style={{ fontSize: 11, color: C.muted }}>dari {fmt(k.amount)}</div>
                               {/* 4B — Tombol cicilan */}
                               {!k.is_settled && (
                                 <button type="button"
                                   onClick={() => { setCicilanModal({ kasbonId: k.id, remaining }); setCicilanNominal(""); setCicilanCatatan(""); setCicilanError(""); }}
-                                  style={{ padding: "3px 10px", borderRadius: 6, border: `1px solid ${C.navy}`, background: C.navyLight, color: C.navy, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
+                                  style={{ padding: "2px 8px", borderRadius: 6, border: `1px solid ${C.navy}`, background: C.navyLight, color: C.navy, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
                                   Catat Cicilan
                                 </button>
                               )}
                               {k.photo_url && (
                                 <button aria-label="Lihat foto nota" type="button" onClick={() => setLightboxPhoto(k.photo_url!)}
-                                  style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: C.blue, display: "flex", alignItems: "center", gap: 3, fontSize: 11 }} title="Lihat foto nota">
+                                  style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: C.blue, display: "flex", alignItems: "center", gap: 2, fontSize: 11 }} title="Lihat foto nota">
                                   <Camera size={12} /> Foto
                                 </button>
                               )}
@@ -984,7 +984,7 @@ function MandorPageInner() {
             const totalSettled = mandorKasbons.filter(k => k.status === "settled").reduce((s, k) => s + Number(k.amount), 0);
             const outstanding = mandorKasbons.filter(k => k.status === "approved").reduce((s, k) => s + Number(k.amount), 0);
             return (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {/* Running total strip */}
               {mandorKasbons.length > 0 && (
                 <div style={{ ...card, padding: "12px 16px", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, background: C.navyLight, border: `1px solid #C7D9F0` }}>
@@ -995,7 +995,7 @@ function MandorPageInner() {
                   ].map((s, i) => (
                     <div key={i} style={{ textAlign: i === 1 ? "center" : i === 2 ? "right" : "left" }}>
                       <div style={{ fontSize: 10, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>{s.label}</div>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: s.color }}>{s.value}</div>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: s.color }}>{s.value}</div>
                     </div>
                   ))}
                 </div>
@@ -1016,13 +1016,13 @@ function MandorPageInner() {
                 };
                 const st = statusMap[k.status] ?? statusMap.pending;
                 return (
-                  <div key={k.id} style={{ ...card, padding: "14px 18px", border: `1px solid ${st.border}`, background: k.status === "pending" ? C.yellowBg : "var(--surface)" }}>
+                  <div key={k.id} style={{ ...card, padding: "12px 16px", border: `1px solid ${st.border}`, background: k.status === "pending" ? C.yellowBg : "var(--surface)" }}>
                     <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
                           <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 10, background: st.bg, color: st.color, border: `1px solid ${st.border}` }}>{st.label}</span>
-                          <span style={{ fontSize: 11, background: "var(--surface-hover)", color: C.mid, padding: "2px 8px", borderRadius: 4 }}>{kasbonPurposeLabel(k.purpose)}</span>
-                          <span style={{ fontSize: 11, background: "var(--surface-hover)", color: C.mid, padding: "2px 8px", borderRadius: 4 }}>{k.fund_source === "owner_advance" ? "Dana Owner" : "Dana Klien"}</span>
+                          <span style={{ fontSize: 11, background: "var(--surface-hover)", color: C.mid, padding: "2px 8px", borderRadius: 6 }}>{kasbonPurposeLabel(k.purpose)}</span>
+                          <span style={{ fontSize: 11, background: "var(--surface-hover)", color: C.mid, padding: "2px 8px", borderRadius: 6 }}>{k.fund_source === "owner_advance" ? "Dana Owner" : "Dana Klien"}</span>
                         </div>
                         <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 2 }}>
                           {k.work_scopes?.scope_name
@@ -1037,14 +1037,14 @@ function MandorPageInner() {
                           )}
                         </div>
                         {k.cash_account && k.status === "approved" && (
-                          <div style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 4, fontSize: 11, padding: "2px 8px", borderRadius: 4, background: C.navyLight, color: C.navy, fontWeight: 600 }}>
+                          <div style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 4, fontSize: 11, padding: "2px 8px", borderRadius: 6, background: C.navyLight, color: C.navy, fontWeight: 600 }}>
                             <Banknote size={10} /> {k.cash_account.name}
                           </div>
                         )}
                         {k.notes && <div style={{ fontSize: 12, color: C.mid, marginTop: 4, fontStyle: "italic" }}>"{k.notes}"</div>}
                       </div>
                       <div style={{ textAlign: "right", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-                        <div style={{ fontSize: 18, fontWeight: 800, color: k.status === "pending" ? C.yellow : k.status === "approved" ? C.green : C.mid, fontFamily: "monospace" }}>
+                        <div style={{ fontSize: 17, fontWeight: 800, color: k.status === "pending" ? C.yellow : k.status === "approved" ? C.green : C.mid, fontFamily: "monospace" }}>
                           {fmt(Number(k.amount))}
                         </div>
                         {k.status === "pending" && (
@@ -1052,7 +1052,7 @@ function MandorPageInner() {
                         )}
                         {k.photo_url && (
                           <button aria-label="Lihat foto nota" type="button" onClick={() => setLightboxPhoto(k.photo_url!)}
-                            style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: C.blue, display: "flex", alignItems: "center", gap: 3, fontSize: 11 }} title="Lihat foto nota">
+                            style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: C.blue, display: "flex", alignItems: "center", gap: 2, fontSize: 11 }} title="Lihat foto nota">
                             <Camera size={12} /> Foto Nota
                           </button>
                         )}
@@ -1087,8 +1087,8 @@ function MandorPageInner() {
                   return (
                     <div key={asg.id} style={card}>
                       {/* Assignment header */}
-                      <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 14 }}>
-                        <div style={{ width: 44, height: 44, borderRadius: 12, background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 12 }}>
+                        <div style={{ width: 44, height: 44, borderRadius: 10, background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                           <HardHat size={20} color={C.navy} />
                         </div>
                         <div style={{ flex: 1 }}>
@@ -1105,14 +1105,14 @@ function MandorPageInner() {
                             {asg.project?.name ?? "—"}
                             {asg.mandor?.phone && toWaLink(asg.mandor.phone) && (
                               <a href={toWaLink(asg.mandor.phone)!} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-                                style={{ marginLeft: 8, color: C.green, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 3 }}>
+                                style={{ marginLeft: 8, color: C.green, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 2 }}>
                                 <Phone size={10} /> {asg.mandor.phone}
                               </a>
                             )}
                             <span style={{ marginLeft: 8 }}>· Ditugaskan {fmtDate(asg.assigned_at)}</span>
                           </div>
                         </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           {totalNilai > 0 && (
                             <div style={{ textAlign: "right" }}>
                               <div style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>{fmt(totalNilai)}</div>
@@ -1121,7 +1121,7 @@ function MandorPageInner() {
                           )}
                           <button
                             onClick={() => setShowAddScope(asg.id)}
-                            style={{ padding: "6px 12px", borderRadius: 7, border: `1px solid ${C.navy}`, background: "var(--surface)", color: C.navy, cursor: "pointer", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+                            style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${C.navy}`, background: "var(--surface)", color: C.navy, cursor: "pointer", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
                             <Plus size={12} /> Tambah Scope
                           </button>
                         </div>
@@ -1140,21 +1140,21 @@ function MandorPageInner() {
                             const isProgressPct = sc.payment_system === "progress_pct";
                             const contractValue = sc.contract_value ?? sc.borongan_value ?? 0;
                             return (
-                              <div key={sc.id} style={{ borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface-subtle)", padding: "12px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+                              <div key={sc.id} style={{ borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface-subtle)", padding: "12px 12px", display: "flex", alignItems: "center", gap: 8 }}>
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5, flexWrap: "wrap" }}>
                                     <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{sc.scope_name}</span>
-                                    <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 10, background: sc.status === "active" ? C.greenBg : "var(--surface-hover)", color: sc.status === "active" ? C.green : C.mid, border: `1px solid ${sc.status === "active" ? C.greenBorder : C.border}` }}>
+                                    <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 6px", borderRadius: 10, background: sc.status === "active" ? C.greenBg : "var(--surface-hover)", color: sc.status === "active" ? C.green : C.mid, border: `1px solid ${sc.status === "active" ? C.greenBorder : C.border}` }}>
                                       {sc.status === "active" ? "Aktif" : sc.status === "completed" ? "Selesai" : sc.status}
                                     </span>
                                     {(() => { const b = getPaymentSystemBadge(sc.payment_system); return (
-                                      <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 10, background: b.bg, color: b.color, border: `1px solid ${b.border}`, fontWeight: 600 }}>{b.label}</span>
+                                      <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 10, background: b.bg, color: b.color, border: `1px solid ${b.border}`, fontWeight: 600 }}>{b.label}</span>
                                     ); })()}
                                     {contractValue > 0 && (
                                       <span style={{ fontSize: 10, color: C.mid }}>{fmt(contractValue)}</span>
                                     )}
                                     {sc.settlement && (
-                                      <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 10, background: C.greenBg, color: C.green, border: `1px solid ${C.greenBorder}` }}>
+                                      <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 6px", borderRadius: 10, background: C.greenBg, color: C.green, border: `1px solid ${C.greenBorder}` }}>
                                         ✓ Settled
                                       </span>
                                     )}
@@ -1165,8 +1165,8 @@ function MandorPageInner() {
                                       <span style={{ fontSize: 10, color: C.muted }}>Progress Fisik</span>
                                       <span style={{ fontSize: 10, fontWeight: 600, color: pctColor }}>{sc.progress_pct_done.toFixed(0)}%</span>
                                     </div>
-                                    <div style={{ height: 5, borderRadius: 3, background: C.border, overflow: "hidden" }}>
-                                      <div style={{ height: "100%", borderRadius: 3, background: pctColor, width: `${sc.progress_pct_done}%` }} />
+                                    <div style={{ height: 5, borderRadius: 0, background: C.border, overflow: "hidden" }}>
+                                      <div style={{ height: "100%", borderRadius: 0, background: pctColor, width: `${sc.progress_pct_done}%` }} />
                                     </div>
                                   </div>
                                   {/* Borongan: bar kasbon / kontrak */}
@@ -1178,8 +1178,8 @@ function MandorPageInner() {
                                           {fmt(sc.total_kasbon ?? 0)} / {fmt(contractValue)} ({sc.financial_pct ?? 0}%)
                                         </span>
                                       </div>
-                                      <div style={{ height: 4, borderRadius: 3, background: C.border, overflow: "hidden" }}>
-                                        <div style={{ height: "100%", borderRadius: 3, background: C.yellow, width: `${sc.financial_pct ?? 0}%` }} />
+                                      <div style={{ height: 4, borderRadius: 0, background: C.border, overflow: "hidden" }}>
+                                        <div style={{ height: "100%", borderRadius: 0, background: C.yellow, width: `${sc.financial_pct ?? 0}%` }} />
                                       </div>
                                     </div>
                                   )}
@@ -1192,8 +1192,8 @@ function MandorPageInner() {
                                           {fmt(sc.total_progress_paid ?? 0)} ({sc.paid_pct ?? 0}%)
                                         </span>
                                       </div>
-                                      <div style={{ height: 4, borderRadius: 3, background: C.border, overflow: "hidden" }}>
-                                        <div style={{ height: "100%", borderRadius: 3, background: C.green, width: `${sc.paid_pct ?? 0}%` }} />
+                                      <div style={{ height: 4, borderRadius: 0, background: C.border, overflow: "hidden" }}>
+                                        <div style={{ height: "100%", borderRadius: 0, background: C.green, width: `${sc.paid_pct ?? 0}%` }} />
                                       </div>
                                     </div>
                                   )}
@@ -1211,13 +1211,13 @@ function MandorPageInner() {
                                           totalKasbon: 0,
                                         });
                                       }}
-                                      style={{ padding: "6px 10px", borderRadius: 7, border: `1px solid ${C.green}`, background: C.greenBg, color: C.green, cursor: "pointer", fontSize: 11, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+                                      style={{ padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.green}`, background: C.greenBg, color: C.green, cursor: "pointer", fontSize: 11, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
                                       Cairkan
                                     </button>
                                   )}
                                   <button
                                     onClick={() => { setShowScopeItems(sc.id); loadScopeDetail(sc.id); }}
-                                    style={{ padding: "6px 12px", borderRadius: 7, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.text, cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", gap: 5 }}>
+                                    style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.text, cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}>
                                     Rincian <ChevronRight size={12} />
                                   </button>
                                 </div>
@@ -1246,11 +1246,11 @@ function MandorPageInner() {
             function PPCard({ p, isAction }: { p: ProgressPayment; isAction: boolean }) {
               const meta = PP_STATUS[p.status] ?? PP_STATUS.pending;
               return (
-                <div style={{ ...card, padding: "14px 18px" }}>
+                <div style={{ ...card, padding: "12px 16px" }}>
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{p.work_scope?.scope_name ?? "—"}</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{p.work_scope?.scope_name ?? "—"}</span>
                         <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 20, color: meta.color, background: meta.bg }}>
                           {meta.label}
                         </span>
@@ -1261,11 +1261,11 @@ function MandorPageInner() {
                       {p.notes && <div style={{ fontSize: 12, color: C.muted, marginTop: 2, fontStyle: "italic" }}>{p.notes}</div>}
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{fmt(p.gross_payment)}</div>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{fmt(p.gross_payment)}</div>
                       {isAction && (
                         <button
                           onClick={() => setPpConfirmModal({ payment: p })}
-                          style={{ marginTop: 8, padding: "5px 12px", borderRadius: 7, border: "none", background: C.navy, color: "var(--surface)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                          style={{ marginTop: 8, padding: "4px 12px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
                           Tinjau
                         </button>
                       )}
@@ -1329,27 +1329,27 @@ function MandorPageInner() {
             return (
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {/* Filter bar */}
-                <div style={{ ...card, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 180, border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 10px", background: "var(--surface)" }}>
+                <div style={{ ...card, padding: "12px 16px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 180, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 8px", background: "var(--surface)" }}>
                     <Search size={13} color={C.muted} />
                     <input value={workerSearch} onChange={e => setWorkerSearch(e.target.value)} placeholder="Cari nama pekerja..." style={{ border: "none", outline: "none", fontSize: 13, width: "100%", color: C.text, background: "transparent" }} />
                   </div>
                   <select aria-label="Saring tipe tukang" value={workerFilterTipe} onChange={e => setWorkerFilterTipe(e.target.value)}
-                    style={{ padding: "7px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, color: C.text, background: "var(--surface)", cursor: "pointer" }}>
+                    style={{ padding: "6px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, color: C.text, background: "var(--surface)", cursor: "pointer" }}>
                     <option value="">Semua Tipe</option>
                     <option value="tukang">Tukang</option>
                     <option value="laden">Laden</option>
                     <option value="kenek">Kenek</option>
                   </select>
                   <select aria-label="Saring status tukang" value={workerFilterStatus} onChange={e => setWorkerFilterStatus(e.target.value)}
-                    style={{ padding: "7px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, color: C.text, background: "var(--surface)", cursor: "pointer" }}>
+                    style={{ padding: "6px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, color: C.text, background: "var(--surface)", cursor: "pointer" }}>
                     <option value="">Semua Status</option>
                     <option value="aktif">Aktif</option>
                     <option value="nonaktif">Nonaktif</option>
                   </select>
                   <span style={{ fontSize: 12, color: C.muted, marginLeft: "auto" }}>{filteredWorkers.length} pekerja</span>
                   <button onClick={() => setShowWorkerForm({})}
-                    style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+                    style={{ padding: "6px 12px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
                     <Plus size={13} /> Tambah Pekerja
                   </button>
                 </div>
@@ -1357,7 +1357,7 @@ function MandorPageInner() {
                 {/* Table */}
                 <div style={{ ...card, overflow: "hidden" }}>
                   {/* Header */}
-                  <div style={{ display: "grid", gridTemplateColumns: "36px 1fr 90px 140px 130px 80px 64px", gap: 12, padding: "9px 16px", background: "var(--bg)", borderBottom: `1px solid ${C.border}`, fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "36px 1fr 90px 140px 130px 80px 64px", gap: 12, padding: "8px 16px", background: "var(--bg)", borderBottom: `1px solid ${C.border}`, fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                     <div />
                     <div>Nama</div>
                     <div>Tipe</div>
@@ -1381,7 +1381,7 @@ function MandorPageInner() {
                       return (
                         <div key={w.id} style={{
                           display: "grid", gridTemplateColumns: "36px 1fr 90px 140px 130px 80px 64px", gap: 12,
-                          padding: "10px 16px", alignItems: "center",
+                          padding: "8px 16px", alignItems: "center",
                           borderBottom: isLast ? "none" : `1px solid ${C.border}`,
                           background: !w.is_active ? "var(--surface-subtle)" : "var(--surface)",
                           opacity: isDeleting ? 0.5 : 1,
@@ -1397,7 +1397,7 @@ function MandorPageInner() {
                             {(w.skills ?? []).length > 0 && (
                               <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 3 }}>
                                 {(w.skills ?? []).map(s => (
-                                  <span key={s} style={{ fontSize: 10, padding: "1px 5px", borderRadius: 5, background: C.blueBg, color: C.blue, border: `1px solid ${C.blueBorder}` }}>
+                                  <span key={s} style={{ fontSize: 10, padding: "0px 4px", borderRadius: 6, background: C.blueBg, color: C.blue, border: `1px solid ${C.blueBorder}` }}>
                                     {SKILL_LABELS[s] ?? s}
                                   </span>
                                 ))}
@@ -1407,7 +1407,7 @@ function MandorPageInner() {
                           {/* Tipe */}
                           <div>
                             {tipeColor ? (
-                              <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 8, background: tipeColor.bg, color: tipeColor.color }}>
+                              <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 6, background: tipeColor.bg, color: tipeColor.color }}>
                                 {TIPE_LABELS[w.tipe!]}
                               </span>
                             ) : (
@@ -1430,19 +1430,19 @@ function MandorPageInner() {
                           </div>
                           {/* Status */}
                           <div>
-                            <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 8, background: w.is_active ? "var(--success-bg)" : "var(--surface-hover)", color: w.is_active ? "var(--on-success-bg)" : C.muted }}>
+                            <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 6, background: w.is_active ? "var(--success-bg)" : "var(--surface-hover)", color: w.is_active ? "var(--on-success-bg)" : C.muted }}>
                               {w.is_active ? "Aktif" : "Nonaktif"}
                             </span>
                           </div>
                           {/* Actions */}
                           <div style={{ display: "flex", gap: 4 }}>
                             <button aria-label="Edit" onClick={() => setShowWorkerForm({ worker: w })}
-                              style={{ padding: "5px 7px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", color: C.mid, display: "flex", alignItems: "center" }}
+                              style={{ padding: "4px 6px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", color: C.mid, display: "flex", alignItems: "center" }}
                               title="Edit">
                               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                             </button>
                             <button aria-label="Hapus" onClick={() => setDeleteWorkerConfirm(w)}
-                              style={{ padding: "5px 7px", borderRadius: 6, border: `1px solid ${C.redBorder}`, background: C.redBg, cursor: "pointer", color: C.red, display: "flex", alignItems: "center" }}
+                              style={{ padding: "4px 6px", borderRadius: 6, border: `1px solid ${C.redBorder}`, background: C.redBg, cursor: "pointer", color: C.red, display: "flex", alignItems: "center" }}
                               title="Hapus">
                               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                             </button>
@@ -1459,18 +1459,18 @@ function MandorPageInner() {
           {/* Delete worker confirmation */}
           {deleteWorkerConfirm && createPortal(
             <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <div style={{ background: "var(--surface)", borderRadius: 14, width: 380, padding: 24, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
-                <h3 style={{ margin: "0 0 10px", fontSize: 16, fontWeight: 700, color: C.text }}>Hapus Tukang?</h3>
+              <div style={{ background: "var(--surface)", borderRadius: 14, width: 380, padding: 24, boxShadow: "var(--naik-3)" }}>
+                <h3 style={{ margin: "0 0 10px", fontSize: 15, fontWeight: 700, color: C.text }}>Hapus Tukang?</h3>
                 <p style={{ margin: "0 0 20px", fontSize: 13, color: C.mid, lineHeight: 1.5 }}>
                   Hapus <strong>{deleteWorkerConfirm.name}</strong>? Data ini tidak bisa dikembalikan.
                 </p>
                 <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                   <button onClick={() => setDeleteWorkerConfirm(null)}
-                    style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13 }}>
+                    style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13 }}>
                     Batal
                   </button>
                   <button onClick={() => handleDeleteWorker(deleteWorkerConfirm)} disabled={deletingWorkerId === deleteWorkerConfirm.id}
-                    style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: C.red, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
+                    style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: C.red, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
                     {deletingWorkerId === deleteWorkerConfirm.id ? "Menghapus..." : "Hapus"}
                   </button>
                 </div>
@@ -1484,10 +1484,10 @@ function MandorPageInner() {
       {/* Inline approve/reject modal */}
       {inlineAction && createPortal(
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px" }}>
-          <div style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 400, padding: 24, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+          <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 400, padding: 24, boxShadow: "var(--naik-3)" }}>
             {inlineAction.mode === "approve" ? (
               <>
-                <h3 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 700, color: C.text }}>Setujui Laporan</h3>
+                <h3 style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 700, color: C.text }}>Setujui Laporan</h3>
                 <p style={{ margin: "0 0 16px", fontSize: 12, color: C.muted }}>
                   {inlineAction.report.assignment?.mandor?.name} · {inlineAction.report.scope?.scope_name} · {fmt(inlineAction.report.net_amount)}
                 </p>
@@ -1496,7 +1496,7 @@ function MandorPageInner() {
                   <div style={{ display: "flex", gap: 8 }}>
                     {(["cash", "transfer_bank"] as const).map(m => (
                       <button key={m} type="button" onClick={() => setInlinePaymentMethod(m)}
-                        style={{ flex: 1, padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: inlinePaymentMethod === m ? 700 : 400, border: `2px solid ${inlinePaymentMethod === m ? C.green : C.border}`, background: inlinePaymentMethod === m ? C.greenBg : "var(--surface)", color: inlinePaymentMethod === m ? C.green : C.mid }}>
+                        style={{ flex: 1, padding: "8px 12px", borderRadius: 6, cursor: "pointer", fontSize: 13, fontWeight: inlinePaymentMethod === m ? 700 : 400, border: `2px solid ${inlinePaymentMethod === m ? C.green : C.border}`, background: inlinePaymentMethod === m ? C.greenBg : "var(--surface)", color: inlinePaymentMethod === m ? C.green : C.mid }}>
                         {m === "cash" ? "Cash" : "Transfer Bank"}
                       </button>
                     ))}
@@ -1505,32 +1505,32 @@ function MandorPageInner() {
                 <div style={{ marginBottom: 16 }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Catatan (opsional)</div>
                   <textarea value={inlineNotes} onChange={e => setInlineNotes(e.target.value)} rows={2} placeholder="Catatan pembayaran..."
-                    style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", resize: "none", boxSizing: "border-box" }} />
+                    style={{ width: "100%", padding: "8px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", resize: "none", boxSizing: "border-box" }} />
                 </div>
                 <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                  <button onClick={() => setInlineAction(null)} style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13 }}>Batal</button>
+                  <button onClick={() => setInlineAction(null)} style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13 }}>Batal</button>
                   <button onClick={doInlineApprove} disabled={inlineLoading}
-                    style={{ padding: "8px 20px", borderRadius: 8, border: "none", background: C.green, color: "var(--surface)", cursor: inlineLoading ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600, opacity: inlineLoading ? 0.7 : 1 }}>
+                    style={{ padding: "8px 20px", borderRadius: 6, border: "none", background: C.green, color: "var(--surface)", cursor: inlineLoading ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600, opacity: inlineLoading ? 0.7 : 1 }}>
                     {inlineLoading ? "Memproses..." : "Bayar Sekarang"}
                   </button>
                 </div>
               </>
             ) : (
               <>
-                <h3 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 700, color: C.red }}>Tolak Laporan</h3>
+                <h3 style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 700, color: C.red }}>Tolak Laporan</h3>
                 <p style={{ margin: "0 0 16px", fontSize: 12, color: C.muted }}>
                   {inlineAction.report.assignment?.mandor?.name} · {inlineAction.report.scope?.scope_name} · {fmt(inlineAction.report.net_amount)}
                 </p>
                 <div style={{ marginBottom: 16 }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Alasan Penolakan <span style={{ color: C.red }}>*</span></div>
                   <textarea value={inlineNotes} onChange={e => setInlineNotes(e.target.value)} rows={3} placeholder="Jelaskan alasan penolakan..."
-                    style={{ width: "100%", padding: "8px 10px", border: `1px solid ${inlineNotes.trim() ? C.border : C.redBorder}`, borderRadius: 8, fontSize: 13, outline: "none", resize: "none", boxSizing: "border-box" }} />
+                    style={{ width: "100%", padding: "8px 8px", border: `1px solid ${inlineNotes.trim() ? C.border : C.redBorder}`, borderRadius: 6, fontSize: 13, outline: "none", resize: "none", boxSizing: "border-box" }} />
                   {!inlineNotes.trim() && <div style={{ fontSize: 11, color: C.red, marginTop: 4 }}>Alasan wajib diisi</div>}
                 </div>
                 <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                  <button onClick={() => setInlineAction(null)} style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13 }}>Batal</button>
+                  <button onClick={() => setInlineAction(null)} style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13 }}>Batal</button>
                   <button onClick={doInlineReject} disabled={inlineLoading || !inlineNotes.trim()}
-                    style={{ padding: "8px 20px", borderRadius: 8, border: "none", background: C.red, color: "var(--surface)", cursor: (inlineLoading || !inlineNotes.trim()) ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600, opacity: (inlineLoading || !inlineNotes.trim()) ? 0.6 : 1 }}>
+                    style={{ padding: "8px 20px", borderRadius: 6, border: "none", background: C.red, color: "var(--surface)", cursor: (inlineLoading || !inlineNotes.trim()) ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600, opacity: (inlineLoading || !inlineNotes.trim()) ? 0.6 : 1 }}>
                     {inlineLoading ? "Memproses..." : "Tolak Laporan"}
                   </button>
                 </div>
@@ -1616,7 +1616,7 @@ function MandorPageInner() {
         <div
           onClick={() => setLightboxPhoto(null)}
           style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, cursor: "zoom-out" }}>
-          <img src={lightboxPhoto} alt="Foto nota" style={{ maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain", borderRadius: 8, boxShadow: "0 8px 40px rgba(0,0,0,0.5)" }} />
+          <img src={lightboxPhoto} alt="Foto nota" style={{ maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain", borderRadius: 6, boxShadow: "var(--naik-3)" }} />
           <button onClick={() => setLightboxPhoto(null)}
             style={{ position: "absolute", top: 16, right: 16, background: "rgba(255,255,255,0.15)", border: "none", color: "var(--surface)", borderRadius: "50%", width: 36, height: 36, fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
             ×
@@ -1666,13 +1666,13 @@ function MandorPageInner() {
       {cicilanModal && typeof document !== "undefined" && createPortal(
         <div style={{ position: "fixed", inset: 0, zIndex: 1500, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, background: "rgba(0,0,0,0.4)" }}
           onClick={e => { if (e.target === e.currentTarget) setCicilanModal(null); }}>
-          <div style={{ background: "var(--surface)", borderRadius: 14, boxShadow: "0 8px 40px rgba(0,0,0,0.18)", width: "100%", maxWidth: 400, padding: 24 }}>
-            <div style={{ fontWeight: 700, fontSize: 16, color: C.navy, marginBottom: 4 }}>Catat Cicilan Kasbon</div>
+          <div style={{ background: "var(--surface)", borderRadius: 14, boxShadow: "var(--naik-3)", width: "100%", maxWidth: 400, padding: 24 }}>
+            <div style={{ fontWeight: 700, fontSize: 15, color: C.navy, marginBottom: 4 }}>Catat Cicilan Kasbon</div>
             <div style={{ fontSize: 12, color: C.muted, marginBottom: 20 }}>
               Sisa outstanding: <strong style={{ color: C.red }}>{fmt(cicilanModal.remaining)}</strong>
             </div>
             {cicilanError && (
-              <div style={{ background: "var(--danger-bg)", border: "1px solid var(--danger-border)", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: C.red, marginBottom: 12 }}>{cicilanError}</div>
+              <div style={{ background: "var(--danger-bg)", border: "1px solid var(--danger-border)", borderRadius: 6, padding: "8px 12px", fontSize: 12, color: C.red, marginBottom: 12 }}>{cicilanError}</div>
             )}
             <div style={{ marginBottom: 14 }}>
               <label htmlFor="cicilan-nominal" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 4 }}>Nominal Cicilan</label>
@@ -1680,7 +1680,7 @@ function MandorPageInner() {
                 type="number" min={1} max={cicilanModal.remaining}
                 value={cicilanNominal} onChange={e => setCicilanNominal(e.target.value)}
                 placeholder="Rp 0"
-                style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14, outline: "none", boxSizing: "border-box" }}
+                style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box" }}
               />
             </div>
             <div style={{ marginBottom: 20 }}>
@@ -1688,12 +1688,12 @@ function MandorPageInner() {
               <textarea id="cicilan-catatan"
                 value={cicilanCatatan} onChange={e => setCicilanCatatan(e.target.value)}
                 rows={2} placeholder="Mis: bayar dari upah minggu ini"
-                style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, resize: "none", outline: "none", boxSizing: "border-box" }}
+                style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, resize: "none", outline: "none", boxSizing: "border-box" }}
               />
             </div>
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
               <button onClick={() => setCicilanModal(null)} disabled={cicilanLoading}
-                style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: 13, cursor: "pointer", color: C.text }}>
+                style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: 13, cursor: "pointer", color: C.text }}>
                 Batal
               </button>
               <button
@@ -1708,7 +1708,7 @@ function MandorPageInner() {
                     setCicilanError(err?.response?.data?.error ?? "Gagal catat cicilan");
                   } finally { setCicilanLoading(false); }
                 }}
-                style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: cicilanLoading ? C.border : C.navy, color: cicilanLoading ? C.muted : "var(--surface)", fontSize: 13, fontWeight: 600, cursor: cicilanLoading ? "not-allowed" : "pointer" }}>
+                style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: cicilanLoading ? C.border : C.navy, color: cicilanLoading ? C.muted : "var(--surface)", fontSize: 13, fontWeight: 600, cursor: cicilanLoading ? "not-allowed" : "pointer" }}>
                 {cicilanLoading ? "Menyimpan..." : "Simpan Cicilan"}
               </button>
             </div>
@@ -1851,21 +1851,21 @@ function CreateWageReportModal({ onClose, onSuccess }: {
   }
 
   const inputStyle: React.CSSProperties = {
-    width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`,
-    borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box",
+    width: "100%", padding: "8px 8px", border: `1px solid ${C.border}`,
+    borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box",
   };
 
   if (!mounted) return null;
   return createPortal(
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "24px 16px", overflowY: "auto" }}>
-      <div style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 700, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 700, boxShadow: "var(--naik-3)" }}>
         {/* Header */}
         <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
             <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: C.text }}>Ajukan Laporan Upah</h2>
             <p style={{ margin: "2px 0 0", fontSize: 13, color: C.muted }}>Rincian upah tukang mingguan</p>
           </div>
-          <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}>
+          <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}>
             <X size={18} />
           </button>
         </div>
@@ -1879,9 +1879,9 @@ function CreateWageReportModal({ onClose, onSuccess }: {
                 Mandor / Proyek <span style={{ color: C.red }}>*</span>
               </label>
               {loadingAssignments ? (
-                <div style={{ padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, color: C.muted }}>Memuat...</div>
+                <div style={{ padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, color: C.muted }}>Memuat...</div>
               ) : assignments.length === 0 ? (
-                <div style={{ padding: "10px 14px", background: C.yellowBg, border: `1px solid ${C.yellowBorder}`, borderRadius: 8, fontSize: 13, color: C.yellow }}>
+                <div style={{ padding: "8px 12px", background: C.yellowBg, border: `1px solid ${C.yellowBorder}`, borderRadius: 6, fontSize: 13, color: C.yellow }}>
                   Belum ada assignment mandor aktif. Assign mandor ke proyek terlebih dahulu di halaman detail proyek.
                 </div>
               ) : (
@@ -1897,7 +1897,7 @@ function CreateWageReportModal({ onClose, onSuccess }: {
 
           {/* Info auto-selected jika mandor hanya 1 assignment */}
           {isMandor && assignments.length === 1 && assignmentId && (
-            <div style={{ padding: "10px 14px", background: C.navyLight, borderRadius: 8, fontSize: 13, color: C.navy, fontWeight: 500 }}>
+            <div style={{ padding: "8px 12px", background: C.navyLight, borderRadius: 6, fontSize: 13, color: C.navy, fontWeight: 500 }}>
               Proyek: <strong>{assignments[0].project?.name}</strong>
             </div>
           )}
@@ -1906,9 +1906,9 @@ function CreateWageReportModal({ onClose, onSuccess }: {
             <div>
               <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Scope Pekerjaan <span style={{ color: C.red }}>*</span></label>
               {!assignmentId ? (
-                <div style={{ padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, color: C.muted, background: "var(--surface-subtle)" }}>Pilih mandor/proyek dulu</div>
+                <div style={{ padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, color: C.muted, background: "var(--surface-subtle)" }}>Pilih mandor/proyek dulu</div>
               ) : availableScopes.length === 0 ? (
-                <div style={{ padding: "10px 14px", background: C.yellowBg, border: `1px solid ${C.yellowBorder}`, borderRadius: 8, fontSize: 13, color: C.yellow }}>
+                <div style={{ padding: "8px 12px", background: C.yellowBg, border: `1px solid ${C.yellowBorder}`, borderRadius: 6, fontSize: 13, color: C.yellow }}>
                   Belum ada scope — tambahkan di detail proyek.
                 </div>
               ) : (
@@ -1947,7 +1947,7 @@ function CreateWageReportModal({ onClose, onSuccess }: {
                 const subtotalItem = (parseFloat(item.days_worked || "0") * parseFloat(item.daily_rate || "0")) +
                   (parseFloat(item.overtime_hours || "0") * parseFloat(item.overtime_rate || "0"));
                 return (
-                  <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr 28px", gap: 6, alignItems: "center", padding: "8px", background: "var(--surface-subtle)", borderRadius: 8, border: `1px solid ${C.border}` }}>
+                  <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr 28px", gap: 6, alignItems: "center", padding: "8px", background: "var(--surface-subtle)", borderRadius: 6, border: `1px solid ${C.border}` }}>
                     <input placeholder="Nama tukang" value={item.worker_name} onChange={e => updateItem(i, "worker_name", e.target.value)} style={{ ...inputStyle, background: "var(--surface)" }} />
                     <input type="number" placeholder="7" value={item.days_worked} onChange={e => updateItem(i, "days_worked", e.target.value)} style={{ ...inputStyle, background: "var(--surface)" }} step="0.5" min="0" />
                     <input type="number" placeholder="125000" value={item.daily_rate} onChange={e => updateItem(i, "daily_rate", e.target.value)} style={{ ...inputStyle, background: "var(--surface)" }} />
@@ -1977,7 +1977,7 @@ function CreateWageReportModal({ onClose, onSuccess }: {
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {deductions.map((d, i) => (
-                <div key={i} style={{ padding: "10px 12px", background: "var(--danger-bg)", borderRadius: 8, border: `1px solid ${C.redBorder}` }}>
+                <div key={i} style={{ padding: "8px 12px", background: "var(--danger-bg)", borderRadius: 6, border: `1px solid ${C.redBorder}` }}>
                   {/* Toggle tipe */}
                   <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
                     {(["kasbon_kolektif", "kasbon_individu"] as const).map(t => (
@@ -2044,17 +2044,17 @@ function CreateWageReportModal({ onClose, onSuccess }: {
               ].map(s => (
                 <div key={s.label}>
                   <div style={{ fontSize: 11, color: C.mid, marginBottom: 2 }}>{s.label}</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: s.color }}>{fmt(s.value)}</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: s.color }}>{fmt(s.value)}</div>
                 </div>
               ))}
             </div>
           </div>
 
-          {error && <div style={{ padding: "10px 14px", background: C.redBg, borderRadius: 8, fontSize: 13, color: C.red, border: `1px solid ${C.redBorder}` }}>{error}</div>}
+          {error && <div style={{ padding: "8px 12px", background: C.redBg, borderRadius: 6, fontSize: 13, color: C.red, border: `1px solid ${C.redBorder}` }}>{error}</div>}
 
-          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-            <button type="button" onClick={onClose} style={{ padding: "9px 18px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13 }}>Batal</button>
-            <button type="submit" disabled={loading} style={{ padding: "9px 22px", borderRadius: 8, border: "none", background: C.navy, color: "var(--surface)", cursor: loading ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600, opacity: loading ? 0.7 : 1 }}>
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <button type="button" onClick={onClose} style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13 }}>Batal</button>
+            <button type="submit" disabled={loading} style={{ padding: "8px 20px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: loading ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600, opacity: loading ? 0.7 : 1 }}>
               {loading ? "Mengajukan..." : "Ajukan Laporan"}
             </button>
           </div>
@@ -2120,7 +2120,7 @@ function WageReportDetailModal({ data, onClose, onApprove }: {
   if (!mounted) return null;
   return createPortal(
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "24px 16px", overflowY: "auto" }}>
-      <div style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 640, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 640, boxShadow: "var(--naik-3)" }}>
         <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
             <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: C.text }}>Detail Laporan Upah</h2>
@@ -2129,8 +2129,8 @@ function WageReportDetailModal({ data, onClose, onApprove }: {
             </p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, padding: "3px 10px", borderRadius: 10, background: st.bg, color: st.color, border: `1px solid ${st.border}` }}>{st.label}</span>
-            <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
+            <span style={{ fontSize: 12, fontWeight: 600, padding: "2px 8px", borderRadius: 10, background: st.bg, color: st.color, border: `1px solid ${st.border}` }}>{st.label}</span>
+            <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
           </div>
         </div>
 
@@ -2170,12 +2170,12 @@ function WageReportDetailModal({ data, onClose, onApprove }: {
               <div style={{ fontSize: 12, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Potongan</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {data.deductions.map(d => (
-                  <div key={d.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", background: C.redBg, borderRadius: 8, border: `1px solid ${C.redBorder}` }}>
+                  <div key={d.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", background: C.redBg, borderRadius: 6, border: `1px solid ${C.redBorder}` }}>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{d.label}</div>
                       {d.worker_kasbon && <div style={{ fontSize: 11, color: C.muted }}>Kasbon {d.worker_kasbon.worker?.name} · {fmtDate(d.worker_kasbon.kasbon_date)}</div>}
                     </div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: C.red }}>−{fmt(d.amount)}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.red }}>−{fmt(d.amount)}</div>
                   </div>
                 ))}
               </div>
@@ -2183,7 +2183,7 @@ function WageReportDetailModal({ data, onClose, onApprove }: {
           )}
 
           {/* Ringkasan total */}
-          <div style={{ padding: "14px 16px", background: C.navyLight, borderRadius: 10, border: `1px solid #C7D9F0` }}>
+          <div style={{ padding: "12px 16px", background: C.navyLight, borderRadius: 10, border: `1px solid #C7D9F0` }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: C.mid }}>
                 <span>Subtotal upah</span><span>{fmt(r?.subtotal ?? 0)}</span>
@@ -2193,7 +2193,7 @@ function WageReportDetailModal({ data, onClose, onApprove }: {
                   <span>Total potongan</span><span>−{fmt(r?.total_deduction ?? 0)}</span>
                 </div>
               )}
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 16, fontWeight: 700, color: C.navy, paddingTop: 6, borderTop: `1px solid #C7D9F0`, marginTop: 4 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 15, fontWeight: 700, color: C.navy, paddingTop: 6, borderTop: `1px solid #C7D9F0`, marginTop: 4 }}>
                 <span>Yang Dibayar</span><span>{fmt(r?.net_amount ?? 0)}</span>
               </div>
             </div>
@@ -2201,7 +2201,7 @@ function WageReportDetailModal({ data, onClose, onApprove }: {
 
           {/* Review notes jika ada */}
           {r?.review_notes && (
-            <div style={{ padding: "10px 14px", background: "var(--surface-subtle)", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, color: C.text }}>
+            <div style={{ padding: "8px 12px", background: "var(--surface-subtle)", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, color: C.text }}>
               <div style={{ fontWeight: 600, color: C.muted, fontSize: 11, marginBottom: 4 }}>Catatan Review:</div>
               {r.review_notes}
             </div>
@@ -2212,10 +2212,10 @@ function WageReportDetailModal({ data, onClose, onApprove }: {
             <div style={{ paddingTop: 8, borderTop: `1px solid ${C.border}` }}>
               {!showApproveForm && !showRejectForm && (
                 <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                  <button onClick={() => setShowRejectForm(true)} disabled={loading} style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${C.redBorder}`, background: C.redBg, color: C.red, cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+                  <button onClick={() => setShowRejectForm(true)} disabled={loading} style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.redBorder}`, background: C.redBg, color: C.red, cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
                     <XCircle size={14} /> Tolak
                   </button>
-                  <button onClick={() => setShowApproveForm(true)} disabled={loading} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: C.green, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+                  <button onClick={() => setShowApproveForm(true)} disabled={loading} style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: C.green, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
                     <Check size={14} /> Setujui
                   </button>
                 </div>
@@ -2223,14 +2223,14 @@ function WageReportDetailModal({ data, onClose, onApprove }: {
 
               {/* Form approve */}
               {showApproveForm && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "14px 16px", background: C.greenBg, borderRadius: 10, border: `1px solid ${C.greenBorder}` }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "12px 16px", background: C.greenBg, borderRadius: 10, border: `1px solid ${C.greenBorder}` }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: C.green }}>Konfirmasi Persetujuan</div>
                   <div>
                     <span id="metode-pembayaran" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Metode Pembayaran <span style={{ color: C.red }}>*</span></span>
                     <div role="group" aria-labelledby="metode-pembayaran" style={{ display: "flex", gap: 8 }}>
                       {([["cash", "Cash"], ["transfer_bank", "Transfer Bank"]] as const).map(([val, lbl]) => (
                         <button key={val} type="button" onClick={() => setApprovePaymentMethod(val)}
-                          style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: `2px solid ${approvePaymentMethod === val ? C.green : C.border}`, background: approvePaymentMethod === val ? C.greenBg : "var(--surface)", color: approvePaymentMethod === val ? C.green : C.mid, fontSize: 13, fontWeight: approvePaymentMethod === val ? 700 : 400, cursor: "pointer" }}>
+                          style={{ flex: 1, padding: "8px 12px", borderRadius: 6, border: `2px solid ${approvePaymentMethod === val ? C.green : C.border}`, background: approvePaymentMethod === val ? C.greenBg : "var(--surface)", color: approvePaymentMethod === val ? C.green : C.mid, fontSize: 13, fontWeight: approvePaymentMethod === val ? 700 : 400, cursor: "pointer" }}>
                           {lbl}
                         </button>
                       ))}
@@ -2238,11 +2238,11 @@ function WageReportDetailModal({ data, onClose, onApprove }: {
                   </div>
                   <div>
                     <label htmlFor="review-notes" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Catatan (opsional)</label>
-                    <textarea id="review-notes" value={reviewNotes} onChange={e => setReviewNotes(e.target.value)} rows={2} placeholder="Catatan tambahan..." style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", resize: "none", boxSizing: "border-box" }} />
+                    <textarea id="review-notes" value={reviewNotes} onChange={e => setReviewNotes(e.target.value)} rows={2} placeholder="Catatan tambahan..." style={{ width: "100%", padding: "8px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", resize: "none", boxSizing: "border-box" }} />
                   </div>
                   <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                    <button onClick={() => setShowApproveForm(false)} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 13, cursor: "pointer" }}>Batal</button>
-                    <button onClick={() => doApprove("approved")} disabled={loading} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: C.green, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+                    <button onClick={() => setShowApproveForm(false)} style={{ padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 13, cursor: "pointer" }}>Batal</button>
+                    <button onClick={() => doApprove("approved")} disabled={loading} style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: C.green, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
                       <Check size={14} /> {loading ? "Menyimpan..." : "Setujui"}
                     </button>
                   </div>
@@ -2251,16 +2251,16 @@ function WageReportDetailModal({ data, onClose, onApprove }: {
 
               {/* Form reject */}
               {showRejectForm && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "14px 16px", background: C.redBg, borderRadius: 10, border: `1px solid ${C.redBorder}` }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "12px 16px", background: C.redBg, borderRadius: 10, border: `1px solid ${C.redBorder}` }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: C.red }}>Tolak Laporan</div>
                   <div>
                     <label htmlFor="reject-notes" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Alasan Penolakan <span style={{ color: C.red }}>*</span></label>
-                    <textarea id="reject-notes" value={rejectNotes} onChange={e => setRejectNotes(e.target.value)} rows={3} placeholder="Wajib diisi — jelaskan alasan penolakan..." style={{ width: "100%", padding: "8px 10px", border: `1px solid ${rejectNotes.trim() ? C.border : C.red}`, borderRadius: 8, fontSize: 13, outline: "none", resize: "none", boxSizing: "border-box" }} />
+                    <textarea id="reject-notes" value={rejectNotes} onChange={e => setRejectNotes(e.target.value)} rows={3} placeholder="Wajib diisi — jelaskan alasan penolakan..." style={{ width: "100%", padding: "8px 8px", border: `1px solid ${rejectNotes.trim() ? C.border : C.red}`, borderRadius: 6, fontSize: 13, outline: "none", resize: "none", boxSizing: "border-box" }} />
                     {!rejectNotes.trim() && <div style={{ fontSize: 11, color: C.red, marginTop: 4 }}>Alasan penolakan wajib diisi</div>}
                   </div>
                   <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                    <button onClick={() => setShowRejectForm(false)} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 13, cursor: "pointer" }}>Batal</button>
-                    <button onClick={() => doApprove("rejected")} disabled={loading || !rejectNotes.trim()} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: C.red, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, opacity: !rejectNotes.trim() ? 0.5 : 1 }}>
+                    <button onClick={() => setShowRejectForm(false)} style={{ padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 13, cursor: "pointer" }}>Batal</button>
+                    <button onClick={() => doApprove("rejected")} disabled={loading || !rejectNotes.trim()} style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: C.red, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, opacity: !rejectNotes.trim() ? 0.5 : 1 }}>
                       <XCircle size={14} /> {loading ? "Menyimpan..." : "Tolak Laporan"}
                     </button>
                   </div>
@@ -2274,23 +2274,23 @@ function WageReportDetailModal({ data, onClose, onApprove }: {
             <div style={{ paddingTop: 8, borderTop: `1px solid ${C.border}` }}>
               {!showPayForm ? (
                 <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                  <button onClick={() => setShowPayForm(true)} style={{ padding: "9px 20px", borderRadius: 8, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+                  <button onClick={() => setShowPayForm(true)} style={{ padding: "8px 20px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
                     <Banknote size={14} /> Tandai Sudah Dibayar
                   </button>
                 </div>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "14px 16px", background: C.navyLight, borderRadius: 10, border: `1px solid #C7D9F0` }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "12px 16px", background: C.navyLight, borderRadius: 10, border: `1px solid #C7D9F0` }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: C.navy }}>Konfirmasi Pembayaran Upah</div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                     <div>
                       <label htmlFor="paid-at" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Tanggal Bayar</label>
                       <input id="paid-at" aria-label="Tanggal" type="date" value={paidAt} onChange={e => setPaidAt(e.target.value)}
-                        style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                        style={{ width: "100%", padding: "8px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
                     </div>
                     <div>
                       <label htmlFor="cash-account-id" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Sumber Kas <span style={{ color: C.red }}>*</span></label>
                       <select id="cash-account-id" aria-label="Sumber kas pembayaran" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)}
-                        style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
+                        style={{ width: "100%", padding: "8px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                         <option value="">— Tidak dari kas —</option>
                         {cashAccounts.map(a => (
                           <option key={a.id} value={a.id}>{a.name} (Rp {Number(a.balance).toLocaleString("id-ID")})</option>
@@ -2310,8 +2310,8 @@ function WageReportDetailModal({ data, onClose, onApprove }: {
                     );
                   })()}
                   <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                    <button onClick={() => setShowPayForm(false)} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 13, cursor: "pointer" }}>Batal</button>
-                    <button onClick={() => doApprove("paid")} disabled={loading} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+                    <button onClick={() => setShowPayForm(false)} style={{ padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 13, cursor: "pointer" }}>Batal</button>
+                    <button onClick={() => doApprove("paid")} disabled={loading} style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
                       <Banknote size={14} /> {loading ? "Menyimpan..." : "Konfirmasi Bayar"}
                     </button>
                   </div>
@@ -2397,17 +2397,17 @@ function WorkerFormModal({ mandorId: initialMandorId, mandorName: initialMandorN
   }
 
   const inputStyle: React.CSSProperties = {
-    width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`,
-    borderRadius: 8, fontSize: 14, outline: "none", boxSizing: "border-box",
+    width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`,
+    borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box",
   };
 
   if (!mounted) return null;
   return createPortal(
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
-      <div style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 460, padding: 24, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 460, padding: 24, boxShadow: "var(--naik-3)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>
+            <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>
               {isEdit ? "Edit Pekerja" : "Tambah Pekerja"}
             </h2>
             {(initialMandorName || worker?.mandor?.name) && (
@@ -2416,10 +2416,10 @@ function WorkerFormModal({ mandorId: initialMandorId, mandorName: initialMandorN
               </div>
             )}
           </div>
-          <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
+          <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {/* Mandor selector — hanya jika dibuka dari header (bukan dari grup) dan bukan mandor */}
           {!isMandor && !initialMandorId && !isEdit && (
             <div>
@@ -2459,7 +2459,7 @@ function WorkerFormModal({ mandorId: initialMandorId, mandorName: initialMandorN
                 return (
                   <button key={s.value} type="button" onClick={() => toggleSkill(s.value)}
                     style={{
-                      padding: "5px 12px", borderRadius: 20, fontSize: 12, cursor: "pointer",
+                      padding: "4px 12px", borderRadius: 20, fontSize: 12, cursor: "pointer",
                       border: `1px solid ${selected ? C.navy : C.border}`,
                       background: selected ? C.navyLight : "var(--surface)",
                       color: selected ? C.navy : C.mid,
@@ -2479,7 +2479,7 @@ function WorkerFormModal({ mandorId: initialMandorId, mandorName: initialMandorN
                 {([true, false] as const).map(val => (
                   <button key={String(val)} type="button" onClick={() => setIsActive(val)}
                     style={{
-                      flex: 1, padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontSize: 13,
+                      flex: 1, padding: "8px 12px", borderRadius: 6, cursor: "pointer", fontSize: 13,
                       border: `2px solid ${isActive === val ? (val ? C.green : C.red) : C.border}`,
                       background: isActive === val ? (val ? C.greenBg : C.redBg) : "var(--surface)",
                       color: isActive === val ? (val ? C.green : C.red) : C.mid,
@@ -2492,11 +2492,11 @@ function WorkerFormModal({ mandorId: initialMandorId, mandorName: initialMandorN
             </div>
           )}
 
-          {error && <div style={{ padding: "8px 12px", background: C.redBg, borderRadius: 8, fontSize: 13, color: C.red }}>{error}</div>}
+          {error && <div style={{ padding: "8px 12px", background: C.redBg, borderRadius: 6, fontSize: 13, color: C.red }}>{error}</div>}
 
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13 }}>Batal</button>
-            <button type="submit" disabled={loading} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, opacity: loading ? 0.7 : 1 }}>
+            <button type="button" onClick={onClose} style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13 }}>Batal</button>
+            <button type="submit" disabled={loading} style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, opacity: loading ? 0.7 : 1 }}>
               {loading ? "Menyimpan..." : "Simpan"}
             </button>
           </div>
@@ -2580,19 +2580,19 @@ function AddKasbonModal({ assignments, onClose, onSuccess }: {
   }
 
   const inputStyle: React.CSSProperties = {
-    width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`,
-    borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box",
+    width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`,
+    borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box",
   };
 
   if (!mounted) return null;
   return createPortal(
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ background: "var(--surface)", borderRadius: 16, width: 480, padding: 24, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", maxHeight: "90vh", overflowY: "auto" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, width: 480, padding: 24, boxShadow: "var(--naik-3)", maxHeight: "90vh", overflowY: "auto" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Catat Kasbon Tukang</h2>
-          <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>Catat Kasbon Tukang</h2>
+          <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
         </div>
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div>
             <label htmlFor="assignment-id" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Mandor / Proyek <span style={{ color: C.red }}>*</span></label>
             <select id="assignment-id" aria-label="Pilih penugasan proyek" value={assignmentId} onChange={e => setAssignmentId(e.target.value)} style={inputStyle}>
@@ -2636,23 +2636,23 @@ function AddKasbonModal({ assignments, onClose, onSuccess }: {
             </label>
             {photoPreview ? (
               <div style={{ position: "relative", display: "inline-block" }}>
-                <img src={photoPreview} alt="preview" style={{ width: "100%", maxHeight: 160, objectFit: "cover", borderRadius: 8, border: `1px solid ${C.border}` }} />
+                <img src={photoPreview} alt="preview" style={{ width: "100%", maxHeight: 160, objectFit: "cover", borderRadius: 6, border: `1px solid ${C.border}` }} />
                 <button type="button" onClick={() => { setPhotoFile(null); setPhotoPreview(null); }}
-                  style={{ position: "absolute", top: 6, right: 6, background: "rgba(0,0,0,0.6)", border: "none", borderRadius: "50%", color: "var(--surface)", width: 24, height: 24, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  style={{ position: "absolute", top: 6, right: 6, background: "rgba(0,0,0,0.6)", border: "none", borderRadius: "50%", color: "var(--surface)", width: 24, height: 24, cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>
                   ×
                 </button>
               </div>
             ) : (
-              <label style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", border: `2px dashed ${C.border}`, borderRadius: 8, cursor: "pointer", fontSize: 12, color: C.muted, background: "var(--surface-subtle)" }}>
+              <label style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", border: `2px dashed ${C.border}`, borderRadius: 6, cursor: "pointer", fontSize: 12, color: C.muted, background: "var(--surface-subtle)" }}>
                 <Camera size={16} color={C.muted} /> Klik untuk pilih foto (maks 5MB)
                 <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoChange} style={{ display: "none" }} />
               </label>
             )}
           </div>
-          {error && <div style={{ padding: "8px 12px", background: C.redBg, borderRadius: 8, fontSize: 13, color: C.red }}>{error}</div>}
+          {error && <div style={{ padding: "8px 12px", background: C.redBg, borderRadius: 6, fontSize: 13, color: C.red }}>{error}</div>}
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-            <button type="button" onClick={onClose} style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13 }}>Batal</button>
-            <button type="submit" disabled={loading} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, opacity: loading ? 0.7 : 1 }}>
+            <button type="button" onClick={onClose} style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13 }}>Batal</button>
+            <button type="submit" disabled={loading} style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, opacity: loading ? 0.7 : 1 }}>
               {loading ? "Menyimpan..." : "Catat Kasbon"}
             </button>
           </div>
@@ -2748,17 +2748,17 @@ function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () => void; 
   }
 
   const inputStyle: React.CSSProperties = {
-    width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`,
-    borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box", background: "var(--surface)",
+    width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`,
+    borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box", background: "var(--surface)",
   };
 
   if (!mounted) return null;
   return createPortal(
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", maxHeight: "90vh" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 480, boxShadow: "var(--naik-3)", display: "flex", flexDirection: "column", maxHeight: "90vh" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: `1px solid ${C.border}` }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--warning), var(--warning))", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Banknote size={17} color="var(--surface)" />
             </div>
@@ -2767,13 +2767,13 @@ function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () => void; 
               <p style={{ margin: 0, fontSize: 11, color: C.muted }}>Pengajuan akan dikirim ke admin/PM untuk disetujui</p>
             </div>
           </div>
-          <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
+          <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14, overflowY: "auto", flex: 1 }}>
+        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 12, overflowY: "auto", flex: 1 }}>
 
           {/* Info banner */}
-          <div style={{ padding: "10px 14px", borderRadius: 8, background: C.yellowBg, border: `1px solid ${C.yellowBorder}`, fontSize: 12, color: C.yellow, display: "flex", alignItems: "flex-start", gap: 8 }}>
+          <div style={{ padding: "8px 12px", borderRadius: 6, background: C.yellowBg, border: `1px solid ${C.yellowBorder}`, fontSize: 12, color: C.yellow, display: "flex", alignItems: "flex-start", gap: 8 }}>
             <Clock size={14} style={{ flexShrink: 0, marginTop: 1 }} />
             <span>Kasbon akan berstatus <strong>Menunggu Persetujuan</strong> sampai admin atau PM menyetujuinya.</span>
           </div>
@@ -2881,25 +2881,25 @@ function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () => void; 
             </label>
             {photoPreview ? (
               <div style={{ position: "relative" }}>
-                <img src={photoPreview} alt="preview" style={{ width: "100%", maxHeight: 160, objectFit: "cover", borderRadius: 8, border: `1px solid ${C.border}` }} />
+                <img src={photoPreview} alt="preview" style={{ width: "100%", maxHeight: 160, objectFit: "cover", borderRadius: 6, border: `1px solid ${C.border}` }} />
                 <button type="button" onClick={() => { setPhotoFile(null); setPhotoPreview(null); }}
-                  style={{ position: "absolute", top: 6, right: 6, background: "rgba(0,0,0,0.6)", border: "none", borderRadius: "50%", color: "var(--surface)", width: 24, height: 24, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  style={{ position: "absolute", top: 6, right: 6, background: "rgba(0,0,0,0.6)", border: "none", borderRadius: "50%", color: "var(--surface)", width: 24, height: 24, cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>
                   ×
                 </button>
               </div>
             ) : (
-              <label style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", border: `2px dashed ${C.border}`, borderRadius: 8, cursor: "pointer", fontSize: 12, color: C.muted, background: "var(--surface-subtle)" }}>
+              <label style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", border: `2px dashed ${C.border}`, borderRadius: 6, cursor: "pointer", fontSize: 12, color: C.muted, background: "var(--surface-subtle)" }}>
                 <Camera size={16} color={C.muted} /> Klik untuk pilih foto (maks 5MB)
                 <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoChange} style={{ display: "none" }} />
               </label>
             )}
           </div>
 
-          {error && <div style={{ padding: "8px 12px", background: C.redBg, borderRadius: 8, fontSize: 13, color: C.red }}>{error}</div>}
+          {error && <div style={{ padding: "8px 12px", background: C.redBg, borderRadius: 6, fontSize: 13, color: C.red }}>{error}</div>}
 
           <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13 }}>Batal</button>
-            <button type="submit" disabled={loading || !projectId} style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: (loading || !projectId) ? "var(--text-muted)" : C.yellow, color: "var(--surface)", cursor: (loading || !projectId) ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600 }}>
+            <button type="button" onClick={onClose} style={{ flex: 1, padding: "8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13 }}>Batal</button>
+            <button type="submit" disabled={loading || !projectId} style={{ flex: 2, padding: "8px", borderRadius: 6, border: "none", background: (loading || !projectId) ? "var(--text-muted)" : C.yellow, color: "var(--surface)", cursor: (loading || !projectId) ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600 }}>
               {loading ? "Mengajukan..." : "Ajukan Kasbon"}
             </button>
           </div>
@@ -2933,7 +2933,7 @@ function AddAssignmentModal({ mandors, onClose, onSuccess }: {
       .then(r => setProjects(r.data.projects)).catch(() => {});
   }, []);
 
-  const inputStyle: React.CSSProperties = { width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box", background: "var(--surface)" };
+  const inputStyle: React.CSSProperties = { width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box", background: "var(--surface)" };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -2951,16 +2951,16 @@ function AddAssignmentModal({ mandors, onClose, onSuccess }: {
   return createPortal(
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 460, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 460, boxShadow: "var(--naik-3)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: `1px solid ${C.border}` }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Assign Mandor ke Proyek</h2>
+            <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>Assign Mandor ke Proyek</h2>
             <p style={{ margin: 0, fontSize: 12, color: C.muted, marginTop: 2 }}>Satu mandor bisa memiliki beberapa scope pekerjaan</p>
           </div>
           <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
         </div>
-        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
-          {error && <div style={{ padding: "10px 14px", borderRadius: 8, background: C.redBg, color: C.red, fontSize: 13, border: `1px solid ${C.redBorder}` }}>{error}</div>}
+        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 12 }}>
+          {error && <div style={{ padding: "8px 12px", borderRadius: 6, background: C.redBg, color: C.red, fontSize: 13, border: `1px solid ${C.redBorder}` }}>{error}</div>}
           <div>
             <label htmlFor="project-id" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Proyek</label>
             <select id="project-id" aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} style={inputStyle} required>
@@ -2983,9 +2983,9 @@ function AddAssignmentModal({ mandors, onClose, onSuccess }: {
             <label htmlFor="notes-3" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Catatan (opsional)</label>
             <textarea id="notes-3" value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Deskripsi tugas, area kerja, dll" style={{ ...inputStyle, resize: "vertical" }} />
           </div>
-          <div style={{ display: "flex", gap: 10, paddingTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13, color: C.mid }}>Batal</button>
-            <button type="submit" disabled={loading} style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: C.navy, color: "var(--surface)", cursor: loading ? "wait" : "pointer", fontSize: 13, fontWeight: 600 }}>
+          <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
+            <button type="button" onClick={onClose} style={{ flex: 1, padding: "8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13, color: C.mid }}>Batal</button>
+            <button type="submit" disabled={loading} style={{ flex: 2, padding: "8px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: loading ? "wait" : "pointer", fontSize: 13, fontWeight: 600 }}>
               {loading ? "Menyimpan..." : "Assign Mandor"}
             </button>
           </div>
@@ -3015,7 +3015,7 @@ function AddScopeModal({ assignmentId, onClose, onSuccess }: {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const inputStyle: React.CSSProperties = { width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box", background: "var(--surface)" };
+  const inputStyle: React.CSSProperties = { width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box", background: "var(--surface)" };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -3042,16 +3042,16 @@ function AddScopeModal({ assignmentId, onClose, onSuccess }: {
   return createPortal(
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 480, boxShadow: "var(--naik-3)", maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: `1px solid ${C.border}` }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Tambah Scope Pekerjaan</h2>
+            <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>Tambah Scope Pekerjaan</h2>
             <p style={{ margin: 0, fontSize: 12, color: C.muted, marginTop: 2 }}>Rincian item pekerjaan bisa ditambahkan setelah scope dibuat</p>
           </div>
           <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
         </div>
-        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14, overflowY: "auto" }}>
-          {error && <div style={{ padding: "10px 14px", borderRadius: 8, background: C.redBg, color: C.red, fontSize: 13, border: `1px solid ${C.redBorder}` }}>{error}</div>}
+        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 12, overflowY: "auto" }}>
+          {error && <div style={{ padding: "8px 12px", borderRadius: 6, background: C.redBg, color: C.red, fontSize: 13, border: `1px solid ${C.redBorder}` }}>{error}</div>}
           <div>
             <label htmlFor="scope-name" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Nama Scope Pekerjaan</label>
             <input id="scope-name" value={scopeName} onChange={e => setScopeName(e.target.value)} placeholder="cth: Pekerjaan Struktur Lantai 1, Rangka Baja Atap" style={inputStyle} required />
@@ -3065,7 +3065,7 @@ function AddScopeModal({ assignmentId, onClose, onSuccess }: {
             <div role="group" aria-labelledby="sistem-pembayaran" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
               {(["borongan", "harian", "progress_pct"] as const).map(ps => (
                 <button key={ps} type="button" onClick={() => setPaymentSystem(ps)}
-                  style={{ padding: "10px 8px", borderRadius: 8, border: `2px solid ${paymentSystem === ps ? C.navy : C.border}`, background: paymentSystem === ps ? C.navyLight : "var(--surface)", cursor: "pointer", fontSize: 12, fontWeight: paymentSystem === ps ? 700 : 400, color: paymentSystem === ps ? C.navy : C.mid, textAlign: "center" }}>
+                  style={{ padding: "8px 8px", borderRadius: 6, border: `2px solid ${paymentSystem === ps ? C.navy : C.border}`, background: paymentSystem === ps ? C.navyLight : "var(--surface)", cursor: "pointer", fontSize: 12, fontWeight: paymentSystem === ps ? 700 : 400, color: paymentSystem === ps ? C.navy : C.mid, textAlign: "center" }}>
                   {PAYMENT_SYSTEM[ps]}
                   <div style={{ fontSize: 10, fontWeight: 400, marginTop: 2, color: C.muted }}>
                     {ps === "borongan" ? "Bayar selesai" : ps === "harian" ? "Bayar per minggu" : "Bayar per %"}
@@ -3086,7 +3086,7 @@ function AddScopeModal({ assignmentId, onClose, onSuccess }: {
                 placeholder="0" style={inputStyle} required />
             </div>
           )}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <div>
               <label htmlFor="start-date" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Tanggal Mulai</label>
               <input id="start-date" aria-label="Tanggal mulai" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={inputStyle} />
@@ -3096,9 +3096,9 @@ function AddScopeModal({ assignmentId, onClose, onSuccess }: {
               <input id="end-date" aria-label="Tanggal akhir" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={inputStyle} />
             </div>
           </div>
-          <div style={{ display: "flex", gap: 10, paddingTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13, color: C.mid }}>Batal</button>
-            <button type="submit" disabled={loading} style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: C.navy, color: "var(--surface)", cursor: loading ? "wait" : "pointer", fontSize: 13, fontWeight: 600 }}>
+          <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
+            <button type="button" onClick={onClose} style={{ flex: 1, padding: "8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13, color: C.mid }}>Batal</button>
+            <button type="submit" disabled={loading} style={{ flex: 2, padding: "8px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: loading ? "wait" : "pointer", fontSize: 13, fontWeight: 600 }}>
               {loading ? "Menyimpan..." : "Simpan Scope"}
             </button>
           </div>
@@ -3144,7 +3144,7 @@ function ScopeDetailModal({ data, loading: isLoading, onClose, onRefresh, onAddI
               <div style={{ color: C.muted, fontSize: 13 }}>Memuat...</div>
             ) : scope ? (
               <>
-                <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>{scope.scope_name}</h2>
+                <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>{scope.scope_name}</h2>
                 <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
                   {(() => { const b = getPaymentSystemBadge(scope.payment_system); return (
                     <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 10, background: b.bg, color: b.color, border: `1px solid ${b.border}`, fontWeight: 600 }}>{b.label}</span>
@@ -3156,10 +3156,10 @@ function ScopeDetailModal({ data, loading: isLoading, onClose, onRefresh, onAddI
             ) : null}
           </div>
           <div style={{ display: "flex", gap: 8, flexShrink: 0, marginLeft: 12 }}>
-            <button onClick={onRefresh} style={{ padding: "6px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 12, color: C.mid, display: "flex", alignItems: "center", gap: 4 }}>
+            <button onClick={onRefresh} style={{ padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 12, color: C.mid, display: "flex", alignItems: "center", gap: 4 }}>
               <RefreshCw size={12} /> Refresh
             </button>
-            <button onClick={onAddItem} style={{ padding: "6px 12px", borderRadius: 7, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+            <button onClick={onAddItem} style={{ padding: "6px 12px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
               <Plus size={12} /> Tambah Item
             </button>
             <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
@@ -3173,8 +3173,8 @@ function ScopeDetailModal({ data, loading: isLoading, onClose, onRefresh, onAddI
                 <span style={{ fontSize: 12, color: C.muted }}>Progress Keseluruhan</span>
                 <span style={{ fontSize: 12, fontWeight: 700, color: getProgressColor(overallPct) }}>{overallPct.toFixed(1)}%</span>
               </div>
-              <div style={{ height: 6, borderRadius: 3, background: C.border, overflow: "hidden" }}>
-                <div style={{ height: "100%", borderRadius: 3, background: getProgressColor(overallPct), width: `${overallPct}%` }} />
+              <div style={{ height: 6, borderRadius: 0, background: C.border, overflow: "hidden" }}>
+                <div style={{ height: "100%", borderRadius: 0, background: getProgressColor(overallPct), width: `${overallPct}%` }} />
               </div>
             </div>
             <div style={{ textAlign: "right", flexShrink: 0 }}>
@@ -3194,7 +3194,7 @@ function ScopeDetailModal({ data, loading: isLoading, onClose, onRefresh, onAddI
               <div style={{ fontSize: 12 }}>Klik "Tambah Item" untuk menambah rincian pekerjaan</div>
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {Object.entries(
                 items.reduce((acc, item) => {
                   if (!acc[item.category]) acc[item.category] = [];
@@ -3207,7 +3207,7 @@ function ScopeDetailModal({ data, loading: isLoading, onClose, onRefresh, onAddI
                 return (
                   <div key={cat}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 10, background: catColor.bg, color: catColor.color }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 10, background: catColor.bg, color: catColor.color }}>
                         {labelOf(cat)}
                       </span>
                       <span style={{ fontSize: 11, color: C.muted }}>{catItems.length} item · {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(catTotal)}</span>
@@ -3216,15 +3216,15 @@ function ScopeDetailModal({ data, loading: isLoading, onClose, onRefresh, onAddI
                       const pct = Number(item.pct_done);
                       const pctColor = getProgressColor(pct);
                       return (
-                        <div key={item.id} style={{ padding: "12px 14px", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface-subtle)", marginBottom: 6 }}>
-                          <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                        <div key={item.id} style={{ padding: "12px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface-subtle)", marginBottom: 6 }}>
+                          <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4 }}>{item.item_name}</div>
                               {item.description && <div style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>{item.description}</div>}
                               {item.specs && item.specs.length > 0 && (
                                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 6 }}>
                                   {item.specs.map(sp => (
-                                    <span key={sp.id} style={{ fontSize: 10, padding: "2px 8px", borderRadius: 4, background: "var(--info-bg)", color: C.navy, border: "1px solid #C7D7F5" }}>
+                                    <span key={sp.id} style={{ fontSize: 10, padding: "2px 8px", borderRadius: 6, background: "var(--info-bg)", color: C.navy, border: "1px solid #C7D7F5" }}>
                                       {sp.spec_key}: <strong>{sp.spec_value}</strong>
                                     </span>
                                   ))}
@@ -3234,8 +3234,8 @@ function ScopeDetailModal({ data, loading: isLoading, onClose, onRefresh, onAddI
                                 {item.volume.toLocaleString("id-ID")} {symbolOf(item.unit)} × {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(item.unit_price)}/{symbolOf(item.unit)}
                               </div>
                               <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
-                                <div style={{ flex: 1, height: 4, borderRadius: 3, background: C.border, overflow: "hidden" }}>
-                                  <div style={{ height: "100%", borderRadius: 3, background: pctColor, width: `${pct}%` }} />
+                                <div style={{ flex: 1, height: 4, borderRadius: 0, background: C.border, overflow: "hidden" }}>
+                                  <div style={{ height: "100%", borderRadius: 0, background: pctColor, width: `${pct}%` }} />
                                 </div>
                                 <span style={{ fontSize: 11, color: pctColor, fontWeight: 600, flexShrink: 0 }}>
                                   {Number(item.volume_done).toLocaleString("id-ID")}/{Number(item.volume).toLocaleString("id-ID")} {symbolOf(item.unit)} ({pct.toFixed(0)}%)
@@ -3243,7 +3243,7 @@ function ScopeDetailModal({ data, loading: isLoading, onClose, onRefresh, onAddI
                               </div>
                             </div>
                             <div style={{ textAlign: "right", flexShrink: 0 }}>
-                              <div style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(item.subtotal)}</div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(item.subtotal)}</div>
                               {item.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: "italic", marginTop: 2 }}>{item.notes}</div>}
                             </div>
                           </div>
@@ -3286,7 +3286,7 @@ function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const inputStyle: React.CSSProperties = { width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box", background: "var(--surface)" };
+  const inputStyle: React.CSSProperties = { width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box", background: "var(--surface)" };
   const estSubtotal = (Number(volume) || 0) * (Number(String(unitPrice).replace(/\D/g, "")) || 0);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -3332,21 +3332,21 @@ function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
   return createPortal(
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 560, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", maxHeight: "92vh" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 560, boxShadow: "var(--naik-3)", display: "flex", flexDirection: "column", maxHeight: "92vh" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: `1px solid ${C.border}` }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Tambah Item Pekerjaan</h2>
+            <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>Tambah Item Pekerjaan</h2>
             <p style={{ margin: 0, fontSize: 12, color: C.muted, marginTop: 2 }}>Rincian pekerjaan: sipil, baja WF, MEP, finishing</p>
           </div>
           <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
         </div>
-        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14, overflowY: "auto" }}>
-          {error && <div style={{ padding: "10px 14px", borderRadius: 8, background: C.redBg, color: C.red, fontSize: 13, border: `1px solid ${C.redBorder}` }}>{error}</div>}
+        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 12, overflowY: "auto" }}>
+          {error && <div style={{ padding: "8px 12px", borderRadius: 6, background: C.redBg, color: C.red, fontSize: 13, border: `1px solid ${C.redBorder}` }}>{error}</div>}
           <div>
             <label htmlFor="item-name" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Nama Item Pekerjaan</label>
             <input id="item-name" value={itemName} onChange={e => setItemName(e.target.value)} placeholder="cth: Kolom Baja WF 200x100, Pasang Keramik 60x60, Cor Pondasi" style={inputStyle} required />
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <div>
               <label htmlFor="category" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Kategori</label>
               <select id="category" aria-label="Kategori" value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
@@ -3367,7 +3367,7 @@ function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
               </select>
             </div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <div>
               <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Volume ({symbolOf(unit)})</label>
               <input value={volume} onChange={e => setVolume(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="0" style={inputStyle} required />
@@ -3378,9 +3378,9 @@ function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
             </div>
           </div>
           {estSubtotal > 0 && (
-            <div style={{ padding: "10px 14px", borderRadius: 8, background: C.navyLight, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ padding: "8px 12px", borderRadius: 6, background: C.navyLight, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ fontSize: 12, color: C.navy }}>Estimasi subtotal</span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(estSubtotal)}</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(estSubtotal)}</span>
             </div>
           )}
           <div>
@@ -3395,7 +3395,7 @@ function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Spesifikasi Teknis (opsional)</span>
               <button type="button" onClick={() => setSpecs([...specs, { key: "", value: "" }])}
-                style={{ fontSize: 11, padding: "3px 10px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", color: C.navy }}>
+                style={{ fontSize: 11, padding: "2px 8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", color: C.navy }}>
                 + Tambah Spec
               </button>
             </div>
@@ -3414,9 +3414,9 @@ function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
             <label htmlFor="notes-4" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Catatan (opsional)</label>
             <input id="notes-4" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Catatan tambahan..." style={inputStyle} />
           </div>
-          <div style={{ display: "flex", gap: 10, paddingTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13, color: C.mid }}>Batal</button>
-            <button type="submit" disabled={loading} style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: C.navy, color: "var(--surface)", cursor: loading ? "wait" : "pointer", fontSize: 13, fontWeight: 600 }}>
+          <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
+            <button type="button" onClick={onClose} style={{ flex: 1, padding: "8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13, color: C.mid }}>Batal</button>
+            <button type="submit" disabled={loading} style={{ flex: 2, padding: "8px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: loading ? "wait" : "pointer", fontSize: 13, fontWeight: 600 }}>
               {loading ? "Menyimpan..." : "Simpan Item"}
             </button>
           </div>
@@ -3473,19 +3473,19 @@ function SettlementBoronganModal({ data, cashAccounts, onClose, onSuccess }: {
     } finally { setLoading(false); }
   }
 
-  const inputStyle: React.CSSProperties = { width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box", background: "var(--surface)" };
+  const inputStyle: React.CSSProperties = { width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box", background: "var(--surface)" };
 
   if (!mounted) return null;
   return createPortal(
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1500, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 480, boxShadow: "0 16px 48px rgba(0,0,0,0.2)", maxHeight: "90vh", overflow: "auto" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 480, boxShadow: "var(--naik-3)", maxHeight: "90vh", overflow: "auto" }}>
         <div style={{ padding: "20px 24px", borderBottom: `1px solid ${C.border}` }}>
-          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Cairkan Settlement Borongan</h2>
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>Cairkan Settlement Borongan</h2>
           <p style={{ margin: "4px 0 0", fontSize: 12, color: C.mid }}>{data.scopeName} · {data.mandorName} · {data.projectName}</p>
         </div>
-        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
-          {error && <div style={{ padding: "10px 14px", borderRadius: 8, background: "var(--danger-bg)", color: "var(--danger)", fontSize: 13, border: "1px solid var(--danger-border)" }}>{error}</div>}
+        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 12 }}>
+          {error && <div style={{ padding: "8px 12px", borderRadius: 6, background: "var(--danger-bg)", color: "var(--danger)", fontSize: 13, border: "1px solid var(--danger-border)" }}>{error}</div>}
           <div>
             <label htmlFor="borongan-value" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Nilai Kontrak Borongan (Rp) *</label>
             <input id="borongan-value" type="number" min={1} value={boronganValue} onChange={e => setBoronganValue(e.target.value)} placeholder="0" style={inputStyle} />
@@ -3499,14 +3499,14 @@ function SettlementBoronganModal({ data, cashAccounts, onClose, onSuccess }: {
             <label htmlFor="total-other-expense" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Pengeluaran Lain (Rp)</label>
             <input id="total-other-expense" type="number" min={0} value={totalOtherExpense} onChange={e => setTotalOtherExpense(e.target.value)} placeholder="0" style={inputStyle} />
           </div>
-          <div style={{ background: "var(--navy-light)", borderRadius: 10, padding: "14px 16px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div style={{ background: "var(--navy-light)", borderRadius: 10, padding: "12px 16px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <div>
               <div style={{ fontSize: 10, color: "var(--text-secondary)", marginBottom: 2 }}>Nilai Kontrak</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--navy)" }}>{fmtLocal(bv)}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--navy)" }}>{fmtLocal(bv)}</div>
             </div>
             <div>
               <div style={{ fontSize: 10, color: "var(--text-secondary)", marginBottom: 2 }}>Potongan</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--danger)" }}>- {fmtLocal(tk + toe)}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--danger)" }}>- {fmtLocal(tk + toe)}</div>
             </div>
             <div style={{ gridColumn: "span 2", borderTop: "1px solid var(--border)", paddingTop: 10 }}>
               <div style={{ fontSize: 10, color: "var(--text-secondary)", marginBottom: 2 }}>Net Pembayaran</div>
@@ -3526,9 +3526,9 @@ function SettlementBoronganModal({ data, cashAccounts, onClose, onSuccess }: {
             <label htmlFor="notes-5" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Catatan</label>
             <textarea id="notes-5" value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Opsional" style={{ ...inputStyle, resize: "none" }} />
           </div>
-          <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 13, color: "var(--text-secondary)", cursor: "pointer" }}>Batal</button>
-            <button type="submit" disabled={loading} style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: loading ? "var(--text-secondary)" : "var(--success)", color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: loading ? "wait" : "pointer" }}>
+          <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+            <button type="button" onClick={onClose} style={{ flex: 1, padding: "8px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 13, color: "var(--text-secondary)", cursor: "pointer" }}>Batal</button>
+            <button type="submit" disabled={loading} style={{ flex: 2, padding: "8px", borderRadius: 6, border: "none", background: loading ? "var(--text-secondary)" : "var(--success)", color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: loading ? "wait" : "pointer" }}>
               {loading ? "Memproses..." : `Cairkan ${fmtLocal(netPayment)}`}
             </button>
           </div>
@@ -3555,15 +3555,15 @@ function PPConfirmModal({ payment, cashAccounts, loading, onClose, onAction }: {
   const [notes, setNotes] = useState("");
   const [mode, setMode] = useState<"approve" | "reject">("approve");
   const fmtLocal = (n: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
-  const inputStyle: React.CSSProperties = { width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box", background: "var(--surface)" };
+  const inputStyle: React.CSSProperties = { width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box", background: "var(--surface)" };
 
   if (!mounted) return null;
   return createPortal(
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1500, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 440, boxShadow: "0 16px 48px rgba(0,0,0,0.2)" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 440, boxShadow: "var(--naik-3)" }}>
         <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border)" }}>
-          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Tinjau Penagihan Progress</h2>
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>Tinjau Penagihan Progress</h2>
           <p style={{ margin: "4px 0 0", fontSize: 12, color: C.mid }}>{payment.work_scope?.scope_name ?? "---"} - {payment.project?.name ?? "---"}</p>
         </div>
         <div style={{ padding: "16px 24px", background: "var(--bg)", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, borderBottom: "1px solid var(--border)" }}>
@@ -3577,7 +3577,7 @@ function PPConfirmModal({ payment, cashAccounts, loading, onClose, onAction }: {
           </div>
           <div style={{ gridColumn: "span 2" }}>
             <div style={{ fontSize: 10, color: "var(--text-secondary)", marginBottom: 2 }}>Jumlah Tagihan</div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: C.text }}>{fmtLocal(payment.gross_payment)}</div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: C.text }}>{fmtLocal(payment.gross_payment)}</div>
           </div>
           {payment.notes && (
             <div style={{ gridColumn: "span 2" }}>
@@ -3586,12 +3586,12 @@ function PPConfirmModal({ payment, cashAccounts, loading, onClose, onAction }: {
             </div>
           )}
         </div>
-        <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={() => setMode("approve")} style={{ flex: 1, padding: "8px", borderRadius: 8, border: `1px solid ${mode === "approve" ? "var(--success)" : "var(--border)"}`, background: mode === "approve" ? "var(--success-bg)" : "var(--surface)", color: mode === "approve" ? "var(--success)" : "var(--text-secondary)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+            <button onClick={() => setMode("approve")} style={{ flex: 1, padding: "8px", borderRadius: 6, border: `1px solid ${mode === "approve" ? "var(--success)" : "var(--border)"}`, background: mode === "approve" ? "var(--success-bg)" : "var(--surface)", color: mode === "approve" ? "var(--success)" : "var(--text-secondary)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
               Setujui
             </button>
-            <button onClick={() => setMode("reject")} style={{ flex: 1, padding: "8px", borderRadius: 8, border: `1px solid ${mode === "reject" ? "var(--danger)" : "var(--border)"}`, background: mode === "reject" ? "var(--danger-bg)" : "var(--surface)", color: mode === "reject" ? "var(--danger)" : "var(--text-secondary)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+            <button onClick={() => setMode("reject")} style={{ flex: 1, padding: "8px", borderRadius: 6, border: `1px solid ${mode === "reject" ? "var(--danger)" : "var(--border)"}`, background: mode === "reject" ? "var(--danger-bg)" : "var(--surface)", color: mode === "reject" ? "var(--danger)" : "var(--text-secondary)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
               Tolak
             </button>
           </div>
@@ -3612,8 +3612,8 @@ function PPConfirmModal({ payment, cashAccounts, loading, onClose, onAction }: {
               placeholder={mode === "reject" ? "Jelaskan alasan penolakan..." : "Opsional"}
               style={{ ...inputStyle, resize: "none" }} />
           </div>
-          <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 13, color: "var(--text-secondary)", cursor: "pointer" }}>Batal</button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={onClose} style={{ flex: 1, padding: "8px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 13, color: "var(--text-secondary)", cursor: "pointer" }}>Batal</button>
             <button
               onClick={() => {
                 if (mode === "approve" && !cashAccountId) { alert("Pilih akun kas"); return; }
@@ -3621,7 +3621,7 @@ function PPConfirmModal({ payment, cashAccounts, loading, onClose, onAction }: {
                 onAction(mode === "approve" ? "approved" : "rejected", cashAccountId || undefined, notes || undefined);
               }}
               disabled={loading}
-              style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: loading ? "var(--text-secondary)" : mode === "approve" ? "var(--success)" : "var(--danger)", color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: loading ? "wait" : "pointer" }}>
+              style={{ flex: 2, padding: "8px", borderRadius: 6, border: "none", background: loading ? "var(--text-secondary)" : mode === "approve" ? "var(--success)" : "var(--danger)", color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: loading ? "wait" : "pointer" }}>
               {loading ? "Memproses..." : mode === "approve" ? "Setujui & Bayar" : "Tolak Tagihan"}
             </button>
           </div>

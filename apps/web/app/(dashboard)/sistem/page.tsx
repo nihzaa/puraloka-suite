@@ -36,7 +36,7 @@ export default function SistemPage() {
     return (
       <div style={{ padding: "40px 36px", textAlign: "center" }}>
         <AlertCircle size={32} style={{ color: "var(--text-muted)", marginBottom: 12 }} />
-        <div style={{ fontSize: 14, color: "var(--text-muted)" }}>Anda tidak punya akses ke pemeliharaan sistem.</div>
+        <div style={{ fontSize: 13, color: "var(--text-muted)" }}>Anda tidak punya akses ke pemeliharaan sistem.</div>
       </div>
     );
   }
@@ -60,15 +60,15 @@ export default function SistemPage() {
 
   const card: React.CSSProperties = {
     background: "var(--surface)", border: "1px solid var(--border)",
-    borderRadius: 12, padding: "18px 20px",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+    borderRadius: 10, padding: "16px 20px",
+    boxShadow: "var(--naik-1)",
   };
 
   return (
     <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-form)", margin: "0 auto" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
-        <div style={{ width: 42, height: 42, borderRadius: 12, background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ width: 42, height: 42, borderRadius: 10, background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <Settings2 size={20} color="#fff" />
         </div>
         <div>
@@ -80,7 +80,7 @@ export default function SistemPage() {
       {/* Reminder checks */}
       <div style={{ marginBottom: 24 }}>
         {section("Jalankan Pengecekan Manual")}
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
 
           {/* Deadline check */}
           <div style={card}>
@@ -89,7 +89,7 @@ export default function SistemPage() {
                 <Bell size={16} style={{ color: "var(--navy)" }} />
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>Cek Semua Deadline</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>Cek Semua Deadline</div>
                 <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
                   Termin siap tagih · proyek mendekati selesai · kasbon pending lama · invoice overdue
                 </div>
@@ -97,14 +97,14 @@ export default function SistemPage() {
                   const d = data as DeadlineResult;
                   if (!d?.success) return null;
                   return (
-                    <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 6 }}>
+                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 6 }}>
                       {[
                         { icon: <Receipt size={10} />, label: "Termin", val: d.checked.termins },
                         { icon: <FolderKanban size={10} />, label: "Proyek", val: d.checked.ending_projects },
                         { icon: <Wallet size={10} />, label: "Kasbon", val: d.checked.stale_kasbons },
                         { icon: <Receipt size={10} />, label: "Invoice", val: d.checked.overdue_invoices },
                       ].map(c => (
-                        <div key={c.label} style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: "var(--text-secondary)" }}>
+                        <div key={c.label} style={{ display: "flex", alignItems: "center", gap: 2, fontSize: 11, color: "var(--text-secondary)" }}>
                           {c.icon} <span>{c.val} {c.label}</span>
                         </div>
                       ))}
@@ -126,7 +126,7 @@ export default function SistemPage() {
                 <Target size={16} style={{ color: "var(--aksen)" }} />
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>Cek Milestone Approaching / Overdue</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>Cek Milestone Approaching / Overdue</div>
                 <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
                   Kirim notif untuk milestone jatuh tempo dalam 3 hari atau sudah terlewat
                 </div>
@@ -134,7 +134,7 @@ export default function SistemPage() {
                   const d = data as MilestoneResult;
                   if (!d?.success) return null;
                   return (
-                    <div style={{ display: "flex", gap: 14, marginTop: 6 }}>
+                    <div style={{ display: "flex", gap: 12, marginTop: 6 }}>
                       <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{d.approaching} approaching · {d.overdue} overdue</span>
                       <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--success)", fontWeight: 600 }}>+{d.notifications_created} notif dibuat</span>
                     </div>
@@ -156,11 +156,11 @@ export default function SistemPage() {
               <Mail size={16} style={{ color: "var(--data-5)" }} />
             </div>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", marginBottom: 6 }}>Email Notifikasi via Resend</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 6 }}>Email Notifikasi via Resend</div>
               <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 10px", lineHeight: 1.6 }}>
-                Email dikirim otomatis saat menjalankan cek deadline. Tambahkan ke <code style={{ background: "var(--surface-subtle)", padding: "1px 5px", borderRadius: 4 }}>apps/api/.env</code>:
+                Email dikirim otomatis saat menjalankan cek deadline. Tambahkan ke <code style={{ background: "var(--surface-subtle)", padding: "0px 4px", borderRadius: 6 }}>apps/api/.env</code>:
               </p>
-              <div style={{ background: "var(--surface-subtle)", borderRadius: 8, padding: "10px 14px", fontFamily: "monospace", fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.8 }}>
+              <div style={{ background: "var(--surface-subtle)", borderRadius: 6, padding: "8px 12px", fontFamily: "monospace", fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.8 }}>
                 RESEND_API_KEY=re_xxxxxxxxxxxx<br />
                 EMAIL_FROM=Puraloka Suite &lt;noreply@puraloka.id&gt;<br />
                 APP_URL=https://app.puraloka.id
@@ -182,11 +182,11 @@ export default function SistemPage() {
               <Clock size={16} style={{ color: "var(--success)" }} />
             </div>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", marginBottom: 6 }}>Jadwalkan Setiap Hari Otomatis</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 6 }}>Jadwalkan Setiap Hari Otomatis</div>
               <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 10px", lineHeight: 1.6 }}>
                 Jalankan endpoint berikut setiap pagi (misal 07:00) via cron atau GitHub Actions:
               </p>
-              <div style={{ background: "var(--surface-subtle)", borderRadius: 8, padding: "10px 14px", fontFamily: "monospace", fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.9 }}>
+              <div style={{ background: "var(--surface-subtle)", borderRadius: 6, padding: "8px 12px", fontFamily: "monospace", fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.9 }}>
                 # Crontab — setiap hari jam 07:00<br />
                 0 7 * * * curl -s \<br />
                 &nbsp;&nbsp;-H "Authorization: Bearer $ADMIN_TOKEN" \<br />
@@ -217,8 +217,8 @@ function RunButton({ isRunning, color, bg, onClick }: { isRunning: boolean; colo
       onClick={onClick}
       disabled={isRunning}
       style={{
-        display: "flex", alignItems: "center", gap: 5,
-        padding: "7px 13px", borderRadius: 8,
+        display: "flex", alignItems: "center", gap: 4,
+        padding: "6px 12px", borderRadius: 6,
         border: `1px solid ${color}33`, background: bg, color,
         cursor: isRunning ? "not-allowed" : "pointer",
         fontSize: 12, fontWeight: 600, flexShrink: 0, opacity: isRunning ? 0.7 : 1,
@@ -236,7 +236,7 @@ function ResultBadge({ result, renderDetail }: {
 }) {
   return (
     <div style={{
-      marginTop: 8, padding: "8px 10px", borderRadius: 8,
+      marginTop: 8, padding: "8px 8px", borderRadius: 6,
       background: result.ok ? "var(--success-bg)" : "var(--danger-bg)",
       border: `1px solid ${result.ok ? "var(--success-border)" : "var(--danger-border)"}`,
     }}>

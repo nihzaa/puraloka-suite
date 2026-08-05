@@ -140,7 +140,7 @@ export function BukuBesar({ akun }: { akun: AkunRingkas[] }) {
   }
 
   const gayaInput: React.CSSProperties = {
-    padding: "8px 11px", fontSize: 13, borderRadius: 8,
+    padding: "8px 12px", fontSize: 13, borderRadius: 6,
     border: `1px solid ${C.border}`, outline: "none",
     background: "var(--surface)", color: C.text, fontFamily: "inherit",
   };
@@ -149,7 +149,7 @@ export function BukuBesar({ akun }: { akun: AkunRingkas[] }) {
     <div>
       {/* ── Saringan ── */}
       <div style={{
-        display: "flex", gap: 10, marginBottom: 16,
+        display: "flex", gap: 8, marginBottom: 16,
         flexWrap: "wrap", alignItems: "flex-end",
       }}>
         <div style={{ flex: "1 1 260px", minWidth: 220 }}>
@@ -184,8 +184,8 @@ export function BukuBesar({ akun }: { akun: AkunRingkas[] }) {
         {denganSaldo.length > 0 && (
           <button type="button" onClick={unduhCsv} style={{
             display: "flex", alignItems: "center", gap: 6,
-            padding: "8px 13px", borderRadius: 8, border: `1px solid ${C.border}`,
-            background: "var(--surface)", color: C.mid, fontSize: 12.5,
+            padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`,
+            background: "var(--surface)", color: C.mid, fontSize: 12,
             cursor: "pointer", fontFamily: "inherit",
           }}>
             <Download size={13} aria-hidden="true" /> CSV
@@ -195,7 +195,7 @@ export function BukuBesar({ akun }: { akun: AkunRingkas[] }) {
 
       {galat && (
         <div role="alert" style={{
-          padding: "12px 14px", borderRadius: 10, marginBottom: 14,
+          padding: "12px 12px", borderRadius: 10, marginBottom: 14,
           background: C.redBg, border: `1px solid ${C.redBorder}`,
           color: C.onDangerBg, fontSize: 13,
         }}>{galat}</div>
@@ -238,7 +238,7 @@ export function BukuBesar({ akun }: { akun: AkunRingkas[] }) {
               dan kredit ada untuk mencocokkannya. */}
           <div style={{
             display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-            gap: 10, marginBottom: 14,
+            gap: 8, marginBottom: 14,
           }}>
             {[
               { l: "Total Debit", v: totalDebit, w: C.text },
@@ -250,7 +250,7 @@ export function BukuBesar({ akun }: { akun: AkunRingkas[] }) {
               },
             ].map((k) => (
               <div key={k.l} style={{
-                padding: "12px 14px", borderRadius: 10,
+                padding: "12px 12px", borderRadius: 10,
                 background: "var(--surface-subtle)", border: `1px solid ${C.border}`,
               }}>
                 <div style={{
@@ -270,7 +270,7 @@ export function BukuBesar({ akun }: { akun: AkunRingkas[] }) {
             borderRadius: 14, overflow: "hidden",
           }}>
             <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                 <caption className="sr-only">
                   Buku besar akun {akunTerpilih?.code} {akunTerpilih?.name}: mutasi dan saldo berjalan
                 </caption>
@@ -278,7 +278,7 @@ export function BukuBesar({ akun }: { akun: AkunRingkas[] }) {
                   <tr style={{ background: "var(--surface-subtle)", borderBottom: `1px solid ${C.border}` }}>
                     {["Tanggal", "No. Jurnal", "Keterangan", "Debit", "Kredit", "Saldo"].map((h, i) => (
                       <th key={h} scope="col" style={{
-                        padding: "10px 12px", textAlign: i >= 3 ? "right" : "left",
+                        padding: "8px 12px", textAlign: i >= 3 ? "right" : "left",
                         fontSize: 10, fontWeight: 700, letterSpacing: ".05em",
                         textTransform: "uppercase", color: C.mid, whiteSpace: "nowrap",
                       }}>{h}</th>
@@ -288,25 +288,25 @@ export function BukuBesar({ akun }: { akun: AkunRingkas[] }) {
                 <tbody>
                   {denganSaldo.map((b, i) => (
                     <tr key={`${b.entry_id}-${i}`} style={{ borderBottom: "1px solid var(--surface-hover)" }}>
-                      <td style={{ padding: "10px 12px", color: C.mid, whiteSpace: "nowrap" }}>
+                      <td style={{ padding: "8px 12px", color: C.mid, whiteSpace: "nowrap" }}>
                         {tanggal(b.entry_date)}
                       </td>
-                      <td style={{ padding: "10px 12px", fontWeight: 600, color: C.navy, whiteSpace: "nowrap" }}>
+                      <td style={{ padding: "8px 12px", fontWeight: 600, color: C.navy, whiteSpace: "nowrap" }}>
                         {b.entry_number}
                       </td>
-                      <td style={{ padding: "10px 12px", color: C.text }}>{b.description || "—"}</td>
+                      <td style={{ padding: "8px 12px", color: C.text }}>{b.description || "—"}</td>
                       <td style={{
-                        padding: "10px 12px", textAlign: "right",
+                        padding: "8px 12px", textAlign: "right",
                         fontVariantNumeric: "tabular-nums",
                         color: b.debit ? C.text : C.muted,
                       }}>{b.debit ? rp(b.debit) : "—"}</td>
                       <td style={{
-                        padding: "10px 12px", textAlign: "right",
+                        padding: "8px 12px", textAlign: "right",
                         fontVariantNumeric: "tabular-nums",
                         color: b.credit ? C.text : C.muted,
                       }}>{b.credit ? rp(b.credit) : "—"}</td>
                       <td style={{
-                        padding: "10px 12px", textAlign: "right", fontWeight: 600,
+                        padding: "8px 12px", textAlign: "right", fontWeight: 600,
                         fontVariantNumeric: "tabular-nums",
                         color: b.saldo >= 0 ? C.text : C.red,
                       }}>{rp(b.saldo)}</td>

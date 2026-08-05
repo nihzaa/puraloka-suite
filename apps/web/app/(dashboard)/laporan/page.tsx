@@ -20,7 +20,7 @@ import { C } from "@/lib/warna-ui";
 
 const card: React.CSSProperties = {
   background: "var(--surface)", border: `1px solid ${C.border}`,
-  borderRadius: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+  borderRadius: 14, boxShadow: "var(--naik-1)",
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -151,17 +151,17 @@ const PURPOSE_LABEL: Record<string, string> = {
 const PIE_COLORS = ["var(--navy)", "var(--aksen-terang)", "var(--success)", "var(--danger)", "var(--warning)", "var(--info)", "var(--aksen-terang)", "#F472B6"];
 
 function Skeleton({ h = 20, w = "100%" }: { h?: number; w?: string | number }) {
-  return <div style={{ height: h, width: w, borderRadius: 8, background: "var(--surface-hover)" }} />;
+  return <div style={{ height: h, width: w, borderRadius: 6, background: "var(--surface-hover)" }} />;
 }
 
 function KpiCard({ label, value, sub, icon, accent, border }: { label: string; value: string; sub?: string; icon: React.ReactNode; accent?: string; border?: string }) {
   return (
     <div
-      style={{ flex: 1, minWidth: 160, background: "var(--surface)", borderRadius: 12, padding: "16px 18px", border: `1px solid ${border ?? C.border}`, display: "flex", alignItems: "center", gap: 14, boxShadow: "0 1px 3px rgba(0,0,0,0.05)", transition: "all 0.15s" }}
+      style={{ flex: 1, minWidth: 160, background: "var(--surface)", borderRadius: 10, padding: "16px 16px", border: `1px solid ${border ?? C.border}`, display: "flex", alignItems: "center", gap: 12, boxShadow: "var(--naik-1)", transition: "all 0.15s" }}
       onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 6px 18px rgba(0,51,102,0.10)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
       onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.05)"; e.currentTarget.style.transform = "translateY(0)"; }}
     >
-      <div style={{ width: 44, height: 44, borderRadius: 12, flexShrink: 0, background: accent ? `${accent}18` : C.navyLight, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ width: 44, height: 44, borderRadius: 10, flexShrink: 0, background: accent ? `${accent}18` : C.navyLight, display: "flex", alignItems: "center", justifyContent: "center" }}>
         {icon}
       </div>
       <div style={{ minWidth: 0 }}>
@@ -176,8 +176,8 @@ function KpiCard({ label, value, sub, icon, accent, border }: { label: string; v
 function SectionTitle({ icon, title }: { icon: React.ReactNode; title: string }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-      <div style={{ width: 32, height: 32, borderRadius: 8, background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center" }}>{icon}</div>
-      <h3 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: 0, fontFamily: "var(--font-display)" }}>{title}</h3>
+      <div style={{ width: 32, height: 32, borderRadius: 6, background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center" }}>{icon}</div>
+      <h3 style={{ fontSize: 13, fontWeight: 700, color: C.text, margin: 0, fontFamily: "var(--font-display)" }}>{title}</h3>
     </div>
   );
 }
@@ -202,7 +202,7 @@ function StatusBadge({ label, color, bg, border }: { label: string; color: strin
 function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ name: string; value: number; color: string }>; label?: string }) {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: "var(--surface)", border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", fontSize: 12, boxShadow: "0 4px 16px rgba(0,0,0,0.10)" }}>
+    <div style={{ background: "var(--surface)", border: `1px solid ${C.border}`, borderRadius: 10, padding: "8px 12px", fontSize: 12, boxShadow: "var(--naik-2)" }}>
       <p style={{ fontWeight: 700, color: C.text, marginBottom: 6 }}>{label}</p>
       {payload.map((p, i) => (
         <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 16, marginBottom: 3 }}>
@@ -217,7 +217,7 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
 // ─── Tab Button ───────────────────────────────────────────────────────────────
 function TabBtn({ label, active, onClick, icon }: { label: string; active: boolean; onClick: () => void; icon?: React.ReactNode }) {
   return (
-    <button onClick={onClick} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 16px", background: "transparent", border: "none", borderBottom: `2px solid ${active ? C.navy : "transparent"}`, fontSize: 12, fontWeight: active ? 600 : 400, color: active ? C.navy : C.mid, cursor: "pointer", transition: "all 0.15s", whiteSpace: "nowrap" }}>
+    <button onClick={onClick} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "transparent", border: "none", borderBottom: `2px solid ${active ? C.navy : "transparent"}`, fontSize: 12, fontWeight: active ? 600 : 400, color: active ? C.navy : C.mid, cursor: "pointer", transition: "all 0.15s", whiteSpace: "nowrap" }}>
       {icon}{label}
     </button>
   );
@@ -231,7 +231,7 @@ function DataTable({ headers, children, empty }: { headers: { label: string; ali
         <thead>
           <tr style={{ background: "var(--surface-subtle)", borderBottom: `1px solid ${C.border}` }}>
             {headers.map((h, i) => (
-              <th key={i} style={{ padding: "9px 12px", textAlign: h.align ?? "left", fontSize: 10, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>{h.label}</th>
+              <th key={i} style={{ padding: "8px 12px", textAlign: h.align ?? "left", fontSize: 10, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>{h.label}</th>
             ))}
           </tr>
         </thead>
@@ -401,12 +401,12 @@ function LaporanContent() {
       </div>
 
       {/* Filter Bar */}
-      <div className="rise rise-1" style={{ ...card, padding: "16px 20px", marginBottom: 20, display: "flex", gap: 14, flexWrap: "wrap", alignItems: "flex-end" }}>
+      <div className="rise rise-1" style={{ ...card, padding: "16px 20px", marginBottom: 20, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
         <div>
           <label htmlFor="project-id" style={{ fontSize: 10, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>Proyek</label>
           <div style={{ position: "relative" }}>
             <select id="project-id" aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)}
-              style={{ padding: "8px 32px 8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: "var(--surface)", minWidth: 220, appearance: "none" }}>
+              style={{ padding: "8px 32px 8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: "var(--surface)", minWidth: 220, appearance: "none" }}>
               {(tab === "keuangan" || tab === "cashflow" || tab === "mandor" || tab === "pengeluaran") && (
                 <option value="">Semua Proyek</option>
               )}
@@ -418,12 +418,12 @@ function LaporanContent() {
         <div>
           <label htmlFor="date-from" style={{ fontSize: 10, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>Dari Tanggal</label>
           <input id="date-from" aria-label="Tanggal mulai" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-            style={{ padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: "var(--surface)" }} />
+            style={{ padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: "var(--surface)" }} />
         </div>
         <div>
           <label htmlFor="date-to" style={{ fontSize: 10, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>Sampai Tanggal</label>
           <input id="date-to" aria-label="Tanggal akhir" type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-            style={{ padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: "var(--surface)" }} />
+            style={{ padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: "var(--surface)" }} />
         </div>
         {selectedProject?.start_date && (() => {
           const isFromStart = dateFrom === selectedProject.start_date;
@@ -432,8 +432,8 @@ function LaporanContent() {
               onClick={() => setDateFrom(selectedProject.start_date)}
               title={`Set tanggal mulai ke ${selectedProject.start_date}`}
               style={{
-                display: "flex", alignItems: "center", gap: 5,
-                padding: "8px 12px", borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 4,
+                padding: "8px 12px", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer",
                 border: `1px solid ${isFromStart ? C.navy : C.border}`,
                 background: isFromStart ? C.navyLight : "var(--surface)",
                 color: isFromStart ? C.navy : C.mid,
@@ -446,7 +446,7 @@ function LaporanContent() {
           );
         })()}
         <button onClick={() => loadTabData(tab, projectId, dateFrom, dateTo)}
-          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: 12, fontWeight: 600, color: C.mid, cursor: "pointer" }}>
+          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: 12, fontWeight: 600, color: C.mid, cursor: "pointer" }}>
           <RefreshCw size={13} /> Refresh
         </button>
         {canViewFinance && (
@@ -455,7 +455,7 @@ function LaporanContent() {
             disabled={pdfLoading}
             style={{
               display: "flex", alignItems: "center", gap: 6,
-              padding: "8px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+              padding: "8px 12px", borderRadius: 6, fontSize: 12, fontWeight: 600,
               border: `1px solid ${C.navy}`, background: pdfLoading ? C.navyLight : C.navy,
               color: pdfLoading ? C.navy : "var(--surface)", cursor: pdfLoading ? "default" : "pointer",
               opacity: pdfLoading ? 0.7 : 1,
@@ -465,7 +465,7 @@ function LaporanContent() {
           </button>
         )}
         {selectedProject && (
-          <div style={{ marginLeft: "auto", padding: "6px 12px", borderRadius: 8, background: C.navyLight, fontSize: 11, color: C.navy, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{ marginLeft: "auto", padding: "6px 12px", borderRadius: 6, background: C.navyLight, fontSize: 11, color: C.navy, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
             <Building2 size={12} /> {selectedProject.name}
             <span style={{ color: C.muted, fontWeight: 400 }}>· {selectedProject.location}</span>
           </div>
@@ -486,7 +486,7 @@ function LaporanContent() {
             <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
               {[1,2,3,4].map(i => <div key={i} style={{ flex: 1, height: 80, borderRadius: 10, background: "var(--surface-hover)" }} />)}
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {[1,2,3,4,5].map(i => <Skeleton key={i} h={44} />)}
             </div>
           </div>
@@ -585,20 +585,20 @@ function LaporanContent() {
                         <thead>
                           <tr style={{ borderBottom: `2px solid ${C.border}` }}>
                             {["Periode", "PPh Final", "PPN", "Total Pajak", "Jumlah Invoice", "Sudah Lapor", "Belum Lapor"].map(h => (
-                              <th key={h} style={{ padding: "8px 10px", textAlign: h === "Periode" ? "left" : "right", color: C.muted, fontWeight: 600, whiteSpace: "nowrap" }}>{h}</th>
+                              <th key={h} style={{ padding: "8px 8px", textAlign: h === "Periode" ? "left" : "right", color: C.muted, fontWeight: 600, whiteSpace: "nowrap" }}>{h}</th>
                             ))}
                           </tr>
                         </thead>
                         <tbody>
                           {taxData.summary_by_month.map((m: TaxData["summary_by_month"][0], i: number) => (
                             <tr key={m.period} style={{ borderBottom: `1px solid ${C.border}`, background: i % 2 === 0 ? "transparent" : "var(--surface-hover)" }}>
-                              <td style={{ padding: "8px 10px", fontWeight: 600, color: C.text }}>{m.period}</td>
-                              <td style={{ padding: "8px 10px", textAlign: "right", color: C.navy }}>{fmtCompact(m.pph)}</td>
-                              <td style={{ padding: "8px 10px", textAlign: "right", color: C.blue }}>{fmtCompact(m.ppn)}</td>
-                              <td style={{ padding: "8px 10px", textAlign: "right", color: C.text, fontWeight: 700 }}>{fmtCompact(m.total)}</td>
-                              <td style={{ padding: "8px 10px", textAlign: "right", color: C.muted }}>{m.count}</td>
-                              <td style={{ padding: "8px 10px", textAlign: "right", color: C.green }}>{m.reported}</td>
-                              <td style={{ padding: "8px 10px", textAlign: "right", color: m.pending > 0 ? C.yellow : C.muted }}>{m.pending}</td>
+                              <td style={{ padding: "8px 8px", fontWeight: 600, color: C.text }}>{m.period}</td>
+                              <td style={{ padding: "8px 8px", textAlign: "right", color: C.navy }}>{fmtCompact(m.pph)}</td>
+                              <td style={{ padding: "8px 8px", textAlign: "right", color: C.blue }}>{fmtCompact(m.ppn)}</td>
+                              <td style={{ padding: "8px 8px", textAlign: "right", color: C.text, fontWeight: 700 }}>{fmtCompact(m.total)}</td>
+                              <td style={{ padding: "8px 8px", textAlign: "right", color: C.muted }}>{m.count}</td>
+                              <td style={{ padding: "8px 8px", textAlign: "right", color: C.green }}>{m.reported}</td>
+                              <td style={{ padding: "8px 8px", textAlign: "right", color: m.pending > 0 ? C.yellow : C.muted }}>{m.pending}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -638,7 +638,7 @@ function LaporanContent() {
                           XLSX.writeFile(wb, `rekap-pajak-${dateFrom}-${dateTo}.xlsx`);
                         } catch { /* */ }
                       }}
-                      style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, background: C.navy, border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                      style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, background: C.navy, border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
                     >
                       <Download size={12} /> Export Excel
                     </button>
@@ -651,31 +651,31 @@ function LaporanContent() {
                         <thead>
                           <tr style={{ borderBottom: `1px solid ${C.border}`, background: "var(--surface-hover)" }}>
                             {["Periode", "Proyek", "No Invoice", "Jenis", "DPP", "Tarif", "Pajak", "No e-Faktur", "Status", "Aksi"].map(h => (
-                              <th key={h} style={{ padding: "9px 10px", textAlign: h === "DPP" || h === "Pajak" ? "right" : "left", color: C.muted, fontWeight: 600, whiteSpace: "nowrap" }}>{h}</th>
+                              <th key={h} style={{ padding: "8px 8px", textAlign: h === "DPP" || h === "Pajak" ? "right" : "left", color: C.muted, fontWeight: 600, whiteSpace: "nowrap" }}>{h}</th>
                             ))}
                           </tr>
                         </thead>
                         <tbody>
                           {taxData.records.map((r: TaxRecord, i: number) => (
                             <tr key={r.id} style={{ borderBottom: `1px solid ${C.border}`, background: i % 2 === 0 ? "transparent" : "var(--surface-hover)" }}>
-                              <td style={{ padding: "8px 10px", color: C.muted, whiteSpace: "nowrap" }}>{r.period_month?.slice(0, 7)}</td>
-                              <td style={{ padding: "8px 10px", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.invoice?.project?.name ?? "—"}</td>
-                              <td style={{ padding: "8px 10px", color: C.navy, fontWeight: 500 }}>{r.invoice?.invoice_number ?? "—"}</td>
-                              <td style={{ padding: "8px 10px" }}>
+                              <td style={{ padding: "8px 8px", color: C.muted, whiteSpace: "nowrap" }}>{r.period_month?.slice(0, 7)}</td>
+                              <td style={{ padding: "8px 8px", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.invoice?.project?.name ?? "—"}</td>
+                              <td style={{ padding: "8px 8px", color: C.navy, fontWeight: 500 }}>{r.invoice?.invoice_number ?? "—"}</td>
+                              <td style={{ padding: "8px 8px" }}>
                                 <span style={{ padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 700, background: r.tax_type === "pph_final" ? C.navyLight : C.blueBg, color: r.tax_type === "pph_final" ? C.navy : C.blue }}>
                                   {r.tax_type === "pph_final" ? "PPh Final" : "PPN"}
                                 </span>
                               </td>
-                              <td style={{ padding: "8px 10px", textAlign: "right" }}>{fmtCompact(r.base_amount)}</td>
-                              <td style={{ padding: "8px 10px", textAlign: "center", color: C.muted }}>{r.rate_pct}%</td>
-                              <td style={{ padding: "8px 10px", textAlign: "right", fontWeight: 700, color: C.text }}>{fmtCompact(r.tax_amount)}</td>
-                              <td style={{ padding: "8px 10px", color: C.muted, fontFamily: "monospace", fontSize: 11 }}>{r.efaktur_number ?? "—"}</td>
-                              <td style={{ padding: "8px 10px" }}>
+                              <td style={{ padding: "8px 8px", textAlign: "right" }}>{fmtCompact(r.base_amount)}</td>
+                              <td style={{ padding: "8px 8px", textAlign: "center", color: C.muted }}>{r.rate_pct}%</td>
+                              <td style={{ padding: "8px 8px", textAlign: "right", fontWeight: 700, color: C.text }}>{fmtCompact(r.tax_amount)}</td>
+                              <td style={{ padding: "8px 8px", color: C.muted, fontFamily: "monospace", fontSize: 11 }}>{r.efaktur_number ?? "—"}</td>
+                              <td style={{ padding: "8px 8px" }}>
                                 <span style={{ padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 700, background: r.status === "reported" ? C.greenBg : C.yellowBg, color: r.status === "reported" ? C.green : C.yellow }}>
                                   {r.status === "reported" ? "Lapor" : "Pending"}
                                 </span>
                               </td>
-                              <td style={{ padding: "8px 10px" }}>
+                              <td style={{ padding: "8px 8px" }}>
                                 {r.status === "pending" && hasPermission("finance:tax:submit") && (
                                   <button
                                     aria-label="Tandai catatan pajak ini sudah dilaporkan"
@@ -691,7 +691,7 @@ function LaporanContent() {
                                         } : prev);
                                       } catch { /* */ } finally { setTaxStatusUpdating(null); }
                                     }}
-                                    style={{ padding: "3px 10px", borderRadius: 6, border: `1px solid ${C.green}`, background: "transparent", color: C.green, fontSize: 11, fontWeight: 600, cursor: "pointer" }}
+                                    style={{ padding: "2px 8px", borderRadius: 6, border: `1px solid ${C.green}`, background: "transparent", color: C.green, fontSize: 11, fontWeight: 600, cursor: "pointer" }}
                                   >
                                     {taxStatusUpdating === r.id ? "..." : "Tandai Lapor"}
                                   </button>
@@ -721,7 +721,7 @@ function EmptyState({ icon, title, desc }: { icon: React.ReactNode; title: strin
   return (
     <div style={{ padding: "48px 24px", textAlign: "center", color: C.muted }}>
       <div style={{ marginBottom: 12, opacity: 0.5 }}>{icon}</div>
-      <div style={{ fontSize: 14, fontWeight: 600, color: C.mid, marginBottom: 4 }}>{title}</div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: C.mid, marginBottom: 4 }}>{title}</div>
       {desc && <div style={{ fontSize: 12 }}>{desc}</div>}
     </div>
   );
@@ -737,9 +737,9 @@ function TabRingkasan({ data, canViewFinance }: { data: ProjectSummaryData; canV
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
       {/* Project header card */}
-      <div style={{ padding: "20px 24px", borderRadius: 12, border: `1px solid ${C.border}`, background: "linear-gradient(135deg, var(--surface-subtle) 0%, #fff 100%)", display: "flex", gap: 24, flexWrap: "wrap", alignItems: "flex-start" }}>
+      <div style={{ padding: "20px 24px", borderRadius: 10, border: `1px solid ${C.border}`, background: "linear-gradient(135deg, var(--surface-subtle) 0%, #fff 100%)", display: "flex", gap: 24, flexWrap: "wrap", alignItems: "flex-start" }}>
         <div style={{ flex: 1, minWidth: 240 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
             <StatusBadge label={statusMeta.label} color={statusMeta.color} bg={statusMeta.bg} />
             <span style={{ fontSize: 11, color: C.muted }}>{CONTRACT_MODEL[project.contract_model] ?? project.contract_model}</span>
           </div>
@@ -773,17 +773,17 @@ function TabRingkasan({ data, canViewFinance }: { data: ProjectSummaryData; canV
 
       {/* Progress bars */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        <div style={{ padding: "16px 18px", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
+        <div style={{ padding: "16px 16px", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Progress Fisik</span>
-            <span style={{ fontSize: 14, fontWeight: 800, color: C.green }}>{summary.latestProgress.toFixed(1)}%</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: C.green }}>{summary.latestProgress.toFixed(1)}%</span>
           </div>
           <ProgressBar pct={summary.latestProgress} color={C.green} height={10} />
         </div>
-        <div style={{ padding: "16px 18px", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
+        <div style={{ padding: "16px 16px", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Serapan Anggaran</span>
-            <span style={{ fontSize: 14, fontWeight: 800, color: C.blue }}>{summary.serapan.toFixed(1)}%</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: C.blue }}>{summary.serapan.toFixed(1)}%</span>
           </div>
           <ProgressBar pct={summary.serapan} color={C.blue} height={10} />
         </div>
@@ -818,7 +818,7 @@ function TabRingkasan({ data, canViewFinance }: { data: ProjectSummaryData; canV
               const sm = MILESTONE_STATUS[m.status] ?? { label: m.status, color: C.muted };
               const isOverdue = m.status !== "completed" && new Date(m.target_date) < new Date();
               return (
-                <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 8, border: `1px solid ${isOverdue ? C.redBorder : C.border}`, background: isOverdue ? C.redBg : "var(--surface)" }}>
+                <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", borderRadius: 6, border: `1px solid ${isOverdue ? C.redBorder : C.border}`, background: isOverdue ? C.redBg : "var(--surface)" }}>
                   <div style={{ width: 8, height: 8, borderRadius: "50%", background: isOverdue ? C.red : sm.color, flexShrink: 0 }} />
                   <div style={{ flex: 1, fontSize: 12, fontWeight: 600, color: C.text }}>{m.title}</div>
                   <div style={{ fontSize: 11, color: isOverdue ? C.red : C.muted }}>{fmtDate(m.target_date)}</div>
@@ -836,7 +836,7 @@ function TabRingkasan({ data, canViewFinance }: { data: ProjectSummaryData; canV
           <SectionTitle icon={<Users size={15} color={C.navy} />} title="Mandor & Scope Pekerjaan" />
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {data.mandorAssignments.map(a => (
-              <div key={a.id} style={{ padding: "12px 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
+              <div key={a.id} style={{ padding: "12px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                   <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{a.mandor?.name ?? "—"}</span>
                   <span style={{ fontSize: 11, color: C.muted }}>{a.mandor?.phone}</span>
@@ -844,7 +844,7 @@ function TabRingkasan({ data, canViewFinance }: { data: ProjectSummaryData; canV
                 {a.work_scopes?.length > 0 && (
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     {a.work_scopes.map((s: { id: string; scope_name: string; payment_system: string; progress_pct_done: number }) => (
-                      <div key={s.id} style={{ padding: "4px 10px", borderRadius: 6, background: C.navyLight, fontSize: 11, color: C.navy, fontWeight: 600 }}>
+                      <div key={s.id} style={{ padding: "4px 8px", borderRadius: 6, background: C.navyLight, fontSize: 11, color: C.navy, fontWeight: 600 }}>
                         {s.scope_name} <span style={{ color: C.muted, fontWeight: 400 }}>· {s.progress_pct_done ?? 0}%</span>
                       </div>
                     ))}
@@ -865,12 +865,12 @@ function TabRingkasan({ data, canViewFinance }: { data: ProjectSummaryData; canV
               const isPaid = inv.status === "paid";
               return (
                 <tr key={inv.id} style={{ borderBottom: "1px solid var(--surface-hover)" }}>
-                  <td style={{ padding: "9px 12px", fontWeight: 600, color: C.navy, fontSize: 12 }}>{inv.invoice_number}</td>
-                  <td style={{ padding: "9px 12px", fontSize: 11, color: C.mid }}>{inv.invoice_type === "termin_billing" ? "Termin" : inv.invoice_type}</td>
-                  <td style={{ padding: "9px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12 }}>{fmtCompact(Number(inv.total_amount))}</td>
-                  <td style={{ padding: "9px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, color: C.green }}>{fmtCompact(Number(inv.amount_paid))}</td>
-                  <td style={{ padding: "9px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, color: Number(inv.amount_due) > 0 ? C.yellow : C.green }}>{fmtCompact(Number(inv.amount_due))}</td>
-                  <td style={{ padding: "9px 12px" }}><StatusBadge label={isPaid ? "Lunas" : "Belum Lunas"} color={isPaid ? C.green : C.yellow} bg={isPaid ? C.greenBg : C.yellowBg} /></td>
+                  <td style={{ padding: "8px 12px", fontWeight: 600, color: C.navy, fontSize: 12 }}>{inv.invoice_number}</td>
+                  <td style={{ padding: "8px 12px", fontSize: 11, color: C.mid }}>{inv.invoice_type === "termin_billing" ? "Termin" : inv.invoice_type}</td>
+                  <td style={{ padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12 }}>{fmtCompact(Number(inv.total_amount))}</td>
+                  <td style={{ padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, color: C.green }}>{fmtCompact(Number(inv.amount_paid))}</td>
+                  <td style={{ padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, color: Number(inv.amount_due) > 0 ? C.yellow : C.green }}>{fmtCompact(Number(inv.amount_due))}</td>
+                  <td style={{ padding: "8px 12px" }}><StatusBadge label={isPaid ? "Lunas" : "Belum Lunas"} color={isPaid ? C.green : C.yellow} bg={isPaid ? C.greenBg : C.yellowBg} /></td>
                 </tr>
               );
             })}
@@ -882,13 +882,13 @@ function TabRingkasan({ data, canViewFinance }: { data: ProjectSummaryData; canV
       {data.photos && data.photos.length > 0 && (
         <div>
           <SectionTitle icon={<ImageIcon size={15} color={C.navy} />} title={`Dokumentasi Foto (${data.photos.length})`} />
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 8 }}>
             {data.photos.slice(0, 12).map(p => (
               <a key={p.id} href={p.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
-                <div style={{ borderRadius: 8, overflow: "hidden", border: `1px solid ${C.border}`, aspectRatio: "4/3", background: "var(--surface-hover)", position: "relative" }}>
+                <div style={{ borderRadius: 6, overflow: "hidden", border: `1px solid ${C.border}`, aspectRatio: "4/3", background: "var(--surface-hover)", position: "relative" }}>
                   <img src={p.url} alt={p.caption ?? ""} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
                   {p.caption && (
-                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(transparent, rgba(0,0,0,0.6))", padding: "16px 8px 6px", fontSize: 9, color: "var(--surface)", fontWeight: 500 }}>
+                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(transparent, rgba(0,0,0,0.6))", padding: "16px 8px 6px", fontSize: 10, color: "var(--surface)", fontWeight: 500 }}>
                       {p.caption}
                     </div>
                   )}
@@ -918,10 +918,10 @@ function TabKeuangan({ data }: { data: FinancialData }) {
       </div>
 
       {/* Collection rate bar */}
-      <div style={{ padding: "16px 18px", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
+      <div style={{ padding: "16px 16px", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Collection Rate</span>
-          <span style={{ fontSize: 14, fontWeight: 800, color: collectionRate >= 80 ? C.green : C.yellow }}>{collectionRate.toFixed(1)}%</span>
+          <span style={{ fontSize: 13, fontWeight: 800, color: collectionRate >= 80 ? C.green : C.yellow }}>{collectionRate.toFixed(1)}%</span>
         </div>
         <ProgressBar pct={collectionRate} color={collectionRate >= 80 ? C.green : C.yellow} height={10} />
         <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 11, color: C.muted }}>
@@ -939,12 +939,12 @@ function TabKeuangan({ data }: { data: FinancialData }) {
               const pct = p.invoiced > 0 ? (p.paid / p.invoiced) * 100 : 0;
               return (
                 <tr key={p.id} style={{ borderBottom: "1px solid var(--surface-hover)" }}>
-                  <td style={{ padding: "9px 12px", fontWeight: 600, color: C.text, fontSize: 12 }}>{p.name}</td>
-                  <td style={{ padding: "9px 12px", fontSize: 11, color: C.mid, textAlign: "center" }}>{p.count}</td>
-                  <td style={{ padding: "9px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12 }}>{fmtCompact(p.invoiced)}</td>
-                  <td style={{ padding: "9px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, color: C.green }}>{fmtCompact(p.paid)}</td>
-                  <td style={{ padding: "9px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, color: p.due > 0 ? C.yellow : C.green }}>{fmtCompact(p.due)}</td>
-                  <td style={{ padding: "9px 12px", width: 100 }}>
+                  <td style={{ padding: "8px 12px", fontWeight: 600, color: C.text, fontSize: 12 }}>{p.name}</td>
+                  <td style={{ padding: "8px 12px", fontSize: 11, color: C.mid, textAlign: "center" }}>{p.count}</td>
+                  <td style={{ padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12 }}>{fmtCompact(p.invoiced)}</td>
+                  <td style={{ padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, color: C.green }}>{fmtCompact(p.paid)}</td>
+                  <td style={{ padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, color: p.due > 0 ? C.yellow : C.green }}>{fmtCompact(p.due)}</td>
+                  <td style={{ padding: "8px 12px", width: 100 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <div style={{ flex: 1 }}><ProgressBar pct={pct} color={pct >= 80 ? C.green : C.yellow} height={6} /></div>
                       <span style={{ fontSize: 10, fontWeight: 600, color: C.mid, width: 30, textAlign: "right" }}>{pct.toFixed(0)}%</span>
@@ -965,13 +965,13 @@ function TabKeuangan({ data }: { data: FinancialData }) {
             const overdue = inv.status !== "paid" && inv.status !== "cancelled" && new Date(inv.due_date) < new Date();
             return (
               <tr key={inv.id} style={{ borderBottom: "1px solid var(--surface-hover)", background: overdue ? "var(--surface-subtle)" : "transparent" }}>
-                <td style={{ padding: "9px 12px", fontWeight: 600, color: C.navy, fontSize: 12 }}>{inv.invoice_number}</td>
-                <td style={{ padding: "9px 12px", fontSize: 11, color: C.mid }}>{(inv as unknown as { projects?: { name: string } }).projects?.name ?? "—"}</td>
-                <td style={{ padding: "9px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12 }}>{fmtCompact(Number(inv.total_amount))}</td>
-                <td style={{ padding: "9px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, color: C.green }}>{fmtCompact(Number(inv.amount_paid))}</td>
-                <td style={{ padding: "9px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, color: Number(inv.amount_due) > 0 ? C.yellow : C.green }}>{fmtCompact(Number(inv.amount_due))}</td>
-                <td style={{ padding: "9px 12px", fontSize: 11, color: overdue ? C.red : C.mid }}>{fmtDate(inv.due_date)}</td>
-                <td style={{ padding: "9px 12px" }}>
+                <td style={{ padding: "8px 12px", fontWeight: 600, color: C.navy, fontSize: 12 }}>{inv.invoice_number}</td>
+                <td style={{ padding: "8px 12px", fontSize: 11, color: C.mid }}>{(inv as unknown as { projects?: { name: string } }).projects?.name ?? "—"}</td>
+                <td style={{ padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12 }}>{fmtCompact(Number(inv.total_amount))}</td>
+                <td style={{ padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, color: C.green }}>{fmtCompact(Number(inv.amount_paid))}</td>
+                <td style={{ padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, color: Number(inv.amount_due) > 0 ? C.yellow : C.green }}>{fmtCompact(Number(inv.amount_due))}</td>
+                <td style={{ padding: "8px 12px", fontSize: 11, color: overdue ? C.red : C.mid }}>{fmtDate(inv.due_date)}</td>
+                <td style={{ padding: "8px 12px" }}>
                   {overdue
                     ? <StatusBadge label="Overdue" color={C.red} bg={C.redBg} />
                     : inv.status === "paid"
@@ -998,7 +998,7 @@ function TabCashflow({ data }: { data: CashflowData }) {
         <KpiCard label="Pengeluaran" value={fmtCompact(summary.totalExpense)} sub="pengeluaran proyek" icon={<TrendingDown size={20} color={C.red} />} accent={C.red} border={C.redBorder} />
         <KpiCard label="Upah Mandor" value={fmtCompact(summary.totalWage)} sub="dibayarkan" icon={<Users size={20} color={C.blue} />} accent={C.blue} border={C.blueBorder} />
         <KpiCard label="Kasbon" value={fmtCompact(summary.totalKasbon)} sub="disetujui" icon={<Calendar size={20} color={C.yellow} />} accent={C.yellow} border={C.yellowBorder} />
-        <div style={{ flex: 1, minWidth: 160, padding: "16px 18px", borderRadius: 12, border: `1px solid ${summary.netFlow >= 0 ? C.greenBorder : C.redBorder}`, background: summary.netFlow >= 0 ? C.greenBg : C.redBg, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+        <div style={{ flex: 1, minWidth: 160, padding: "16px 16px", borderRadius: 10, border: `1px solid ${summary.netFlow >= 0 ? C.greenBorder : C.redBorder}`, background: summary.netFlow >= 0 ? C.greenBg : C.redBg, display: "flex", flexDirection: "column", justifyContent: "center" }}>
           <p style={{ fontSize: 11, fontWeight: 600, color: C.muted, margin: "0 0 4px", textTransform: "uppercase" }}>Net Flow</p>
           <p style={{ fontSize: 22, fontWeight: 800, color: summary.netFlow >= 0 ? C.green : C.red, margin: 0, fontFamily: "var(--font-display)" }}>{summary.netFlow >= 0 ? "+" : ""}{fmtCompact(summary.netFlow)}</p>
         </div>
@@ -1028,10 +1028,10 @@ function TabCashflow({ data }: { data: CashflowData }) {
             <DataTable headers={[{ label: "Periode" }, { label: "Masuk", align: "right" }, { label: "Keluar", align: "right" }, { label: "Net", align: "right" }]}>
               {byMonth.map((row, i) => (
                 <tr key={i} style={{ borderBottom: "1px solid var(--surface-hover)" }}>
-                  <td style={{ padding: "9px 12px", fontWeight: 600, color: C.text, fontSize: 12 }}>{row.label}</td>
-                  <td style={{ padding: "9px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, color: C.green }}>{fmtCompact(row.masuk)}</td>
-                  <td style={{ padding: "9px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, color: C.red }}>{fmtCompact(row.keluar)}</td>
-                  <td style={{ padding: "9px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: row.net >= 0 ? C.green : C.red }}>{row.net >= 0 ? "+" : ""}{fmtCompact(row.net)}</td>
+                  <td style={{ padding: "8px 12px", fontWeight: 600, color: C.text, fontSize: 12 }}>{row.label}</td>
+                  <td style={{ padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, color: C.green }}>{fmtCompact(row.masuk)}</td>
+                  <td style={{ padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, color: C.red }}>{fmtCompact(row.keluar)}</td>
+                  <td style={{ padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: row.net >= 0 ? C.green : C.red }}>{row.net >= 0 ? "+" : ""}{fmtCompact(row.net)}</td>
                 </tr>
               ))}
             </DataTable>
@@ -1060,7 +1060,7 @@ function TabMandor({ data }: { data: MandorReportData }) {
       {mandorReport.length === 0 ? (
         <EmptyState icon={<Users size={32} color={C.muted} />} title="Tidak ada data mandor" desc="Belum ada assignment mandor di proyek/periode ini" />
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {mandorReport.map(mr => {
             const expanded = expandedId === mr.assignment.id;
             const mandorName = mr.assignment.mandor?.name ?? "—";
@@ -1075,7 +1075,7 @@ function TabMandor({ data }: { data: MandorReportData }) {
                   `${expanded ? "Tutup" : "Buka"} rincian ${mr.assignment.mandor?.name ?? "mandor"}`,
                   { terbuka: expanded },
                 )}
-                  style={{ padding: "14px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, background: expanded ? "var(--surface-subtle)" : "var(--surface)" }}>
+                  style={{ padding: "12px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, background: expanded ? "var(--surface-subtle)" : "var(--surface)" }}>
                   <div style={{ width: 36, height: 36, borderRadius: 10, background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     <Users size={16} color={C.navy} />
                   </div>
@@ -1092,14 +1092,14 @@ function TabMandor({ data }: { data: MandorReportData }) {
 
                 {/* Expanded */}
                 {expanded && (
-                  <div style={{ borderTop: `1px solid ${C.border}`, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 14 }}>
+                  <div style={{ borderTop: `1px solid ${C.border}`, padding: "12px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
                     {/* Scopes */}
                     {scopes.length > 0 && (
                       <div>
                         <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, marginBottom: 8, textTransform: "uppercase" }}>Scope Pekerjaan</div>
                         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                           {scopes.map((s: { id: string; scope_name: string; payment_system: string; progress_pct_done: number; status: string }) => (
-                            <div key={s.id} style={{ padding: "4px 10px", borderRadius: 6, background: "var(--surface-hover)", fontSize: 11 }}>
+                            <div key={s.id} style={{ padding: "4px 8px", borderRadius: 6, background: "var(--surface-hover)", fontSize: 11 }}>
                               <span style={{ fontWeight: 600, color: C.text }}>{s.scope_name}</span>
                               <span style={{ color: C.muted }}> · {s.payment_system} · {s.progress_pct_done ?? 0}%</span>
                             </div>
@@ -1115,9 +1115,9 @@ function TabMandor({ data }: { data: MandorReportData }) {
                         <DataTable headers={[{ label: "Minggu" }, { label: "Jumlah", align: "right" }, { label: "Dibayar" }]}>
                           {mr.wages.map(w => (
                             <tr key={w.id} style={{ borderBottom: "1px solid var(--surface-hover)" }}>
-                              <td style={{ padding: "7px 12px", fontSize: 11 }}>{fmtDate(w.week_start)} – {fmtDate(w.week_end)}</td>
-                              <td style={{ padding: "7px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: C.blue }}>{fmtCompact(Number(w.net_amount))}</td>
-                              <td style={{ padding: "7px 12px", fontSize: 11, color: C.muted }}>{fmtDate(w.paid_at)}</td>
+                              <td style={{ padding: "6px 12px", fontSize: 11 }}>{fmtDate(w.week_start)} – {fmtDate(w.week_end)}</td>
+                              <td style={{ padding: "6px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: C.blue }}>{fmtCompact(Number(w.net_amount))}</td>
+                              <td style={{ padding: "6px 12px", fontSize: 11, color: C.muted }}>{fmtDate(w.paid_at)}</td>
                             </tr>
                           ))}
                         </DataTable>
@@ -1131,9 +1131,9 @@ function TabMandor({ data }: { data: MandorReportData }) {
                         <DataTable headers={[{ label: "Keperluan" }, { label: "Jumlah", align: "right" }, { label: "Disetujui" }]}>
                           {mr.kasbons.map(k => (
                             <tr key={k.id} style={{ borderBottom: "1px solid var(--surface-hover)" }}>
-                              <td style={{ padding: "7px 12px", fontSize: 11 }}>{PURPOSE_LABEL[k.purpose] ?? k.purpose}</td>
-                              <td style={{ padding: "7px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: C.yellow }}>{fmtCompact(Number(k.amount))}</td>
-                              <td style={{ padding: "7px 12px", fontSize: 11, color: C.muted }}>{fmtDate(k.approved_at)}</td>
+                              <td style={{ padding: "6px 12px", fontSize: 11 }}>{PURPOSE_LABEL[k.purpose] ?? k.purpose}</td>
+                              <td style={{ padding: "6px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: C.yellow }}>{fmtCompact(Number(k.amount))}</td>
+                              <td style={{ padding: "6px 12px", fontSize: 11, color: C.muted }}>{fmtDate(k.approved_at)}</td>
                             </tr>
                           ))}
                         </DataTable>
@@ -1174,7 +1174,7 @@ function TabPengeluaran({ data }: { data: ExpensesData }) {
                 const isOpen = expandedCat === c.name;
                 const hasSubs = c.subs && c.subs.length > 0;
                 return (
-                  <div key={i} style={{ borderRadius: 8, border: `1px solid ${isOpen ? C.navy : C.border}`, background: "var(--surface)", overflow: "hidden", transition: "border-color 0.15s" }}>
+                  <div key={i} style={{ borderRadius: 6, border: `1px solid ${isOpen ? C.navy : C.border}`, background: "var(--surface)", overflow: "hidden", transition: "border-color 0.15s" }}>
                     <div
                       role={hasSubs ? "button" : undefined}
                       tabIndex={hasSubs ? 0 : undefined}
@@ -1186,7 +1186,7 @@ function TabPengeluaran({ data }: { data: ExpensesData }) {
                           setExpandedCat(isOpen ? null : c.name)
                         }
                       }}
-                      style={{ padding: "10px 12px", cursor: hasSubs ? "pointer" : "default", userSelect: "none" }}
+                      style={{ padding: "8px 12px", cursor: hasSubs ? "pointer" : "default", userSelect: "none" }}
                     >
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -1211,8 +1211,8 @@ function TabPengeluaran({ data }: { data: ExpensesData }) {
                                 <span style={{ fontSize: 11, fontWeight: 700, color: C.red, fontFamily: "monospace" }}>{fmtCompact(s.total)}</span>
                               </div>
                               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                <div style={{ flex: 1, height: 4, borderRadius: 2, background: C.border, overflow: "hidden" }}>
-                                  <div style={{ width: `${subPct}%`, height: "100%", background: PIE_COLORS[i % PIE_COLORS.length], borderRadius: 2 }} />
+                                <div style={{ flex: 1, height: 4, borderRadius: 0, background: C.border, overflow: "hidden" }}>
+                                  <div style={{ width: `${subPct}%`, height: "100%", background: PIE_COLORS[i % PIE_COLORS.length], borderRadius: 0 }} />
                                 </div>
                                 <span style={{ fontSize: 10, color: C.muted, whiteSpace: "nowrap" }}>{subPct.toFixed(0)}% · {s.count} transaksi</span>
                               </div>
@@ -1249,10 +1249,10 @@ function TabPengeluaran({ data }: { data: ExpensesData }) {
               const pct = summary.total > 0 ? (p.total / summary.total) * 100 : 0;
               return (
                 <tr key={p.id} style={{ borderBottom: "1px solid var(--surface-hover)" }}>
-                  <td style={{ padding: "9px 12px", fontWeight: 600, fontSize: 12 }}>{p.name}</td>
-                  <td style={{ padding: "9px 12px", textAlign: "center", color: C.muted, fontSize: 11 }}>{p.count}</td>
-                  <td style={{ padding: "9px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, color: C.red }}>{fmtCompact(p.total)}</td>
-                  <td style={{ padding: "9px 12px", width: 100 }}>
+                  <td style={{ padding: "8px 12px", fontWeight: 600, fontSize: 12 }}>{p.name}</td>
+                  <td style={{ padding: "8px 12px", textAlign: "center", color: C.muted, fontSize: 11 }}>{p.count}</td>
+                  <td style={{ padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, color: C.red }}>{fmtCompact(p.total)}</td>
+                  <td style={{ padding: "8px 12px", width: 100 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <div style={{ flex: 1 }}><ProgressBar pct={pct} color={C.red} height={6} /></div>
                       <span style={{ fontSize: 10, width: 28, textAlign: "right", color: C.muted }}>{pct.toFixed(0)}%</span>
@@ -1271,13 +1271,13 @@ function TabPengeluaran({ data }: { data: ExpensesData }) {
         <DataTable empty={expenses.length === 0} headers={[{ label: "Tanggal" }, { label: "Deskripsi" }, { label: "Kategori" }, { label: "Vendor" }, { label: "Jumlah", align: "right" }]}>
           {expenses.map(e => (
             <tr key={e.id} style={{ borderBottom: "1px solid var(--surface-hover)" }}>
-              <td style={{ padding: "9px 12px", fontSize: 11, color: C.muted, whiteSpace: "nowrap" }}>{fmtDate(e.expense_date)}</td>
-              <td style={{ padding: "9px 12px", fontSize: 12, fontWeight: 500, color: C.text, maxWidth: 200 }}>{e.description}</td>
-              <td style={{ padding: "9px 12px", fontSize: 11, color: C.mid }}>
+              <td style={{ padding: "8px 12px", fontSize: 11, color: C.muted, whiteSpace: "nowrap" }}>{fmtDate(e.expense_date)}</td>
+              <td style={{ padding: "8px 12px", fontSize: 12, fontWeight: 500, color: C.text, maxWidth: 200 }}>{e.description}</td>
+              <td style={{ padding: "8px 12px", fontSize: 11, color: C.mid }}>
                 {e.category_label ?? e.category?.name ?? "—"}
               </td>
-              <td style={{ padding: "9px 12px", fontSize: 11, color: C.muted }}>{e.vendor_name ?? "—"}</td>
-              <td style={{ padding: "9px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: C.red }}>{fmtCompact(Number(e.total_amount))}</td>
+              <td style={{ padding: "8px 12px", fontSize: 11, color: C.muted }}>{e.vendor_name ?? "—"}</td>
+              <td style={{ padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: C.red }}>{fmtCompact(Number(e.total_amount))}</td>
             </tr>
           ))}
         </DataTable>
@@ -1304,10 +1304,10 @@ function TabProgress({ data }: { data: ProgressData }) {
       </div>
 
       {/* Progress bar */}
-      <div style={{ padding: "16px 18px", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
+      <div style={{ padding: "16px 16px", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Progress Fisik — {project.name}</span>
-          <span style={{ fontSize: 16, fontWeight: 800, color: C.green }}>{latestProgress.toFixed(1)}%</span>
+          <span style={{ fontSize: 15, fontWeight: 800, color: C.green }}>{latestProgress.toFixed(1)}%</span>
         </div>
         <ProgressBar pct={latestProgress} color={C.green} height={12} />
         <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 11, color: C.muted }}>
@@ -1325,7 +1325,7 @@ function TabProgress({ data }: { data: ProgressData }) {
               const isOverdue = m.status !== "completed" && new Date(m.target_date) < new Date();
               const sm = MILESTONE_STATUS[m.status] ?? { label: m.status, color: C.muted };
               return (
-                <div key={m.id} style={{ display: "flex", gap: 12, padding: "10px 14px", borderRadius: 8, border: `1px solid ${isOverdue ? C.redBorder : C.border}`, background: isOverdue ? C.redBg : "var(--surface)" }}>
+                <div key={m.id} style={{ display: "flex", gap: 12, padding: "8px 12px", borderRadius: 6, border: `1px solid ${isOverdue ? C.redBorder : C.border}`, background: isOverdue ? C.redBg : "var(--surface)" }}>
                   <div style={{ width: 20, height: 20, borderRadius: "50%", background: isOverdue ? C.red : m.status === "completed" ? C.green : "var(--border)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
                     {m.status === "completed" && <CheckCircle2 size={12} color="var(--surface)" />}
                   </div>
@@ -1353,10 +1353,10 @@ function TabProgress({ data }: { data: ProgressData }) {
               const photos = log.project_photos ?? [];
               return (
                 <div key={log.id} style={{ borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)", overflow: "hidden" }}>
-                  <div style={{ padding: "12px 14px", display: "flex", gap: 12, alignItems: "flex-start" }}>
+                  <div style={{ padding: "12px 12px", display: "flex", gap: 12, alignItems: "flex-start" }}>
                     <div style={{ width: 44, height: 44, borderRadius: 10, background: C.navyLight, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <span style={{ fontSize: 14, fontWeight: 800, color: C.navy, fontFamily: "var(--font-display)" }}>{Number(log.pct_overall).toFixed(0)}</span>
-                      <span style={{ fontSize: 9, color: C.mid }}>%</span>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: C.navy, fontFamily: "var(--font-display)" }}>{Number(log.pct_overall).toFixed(0)}</span>
+                      <span style={{ fontSize: 10, color: C.mid }}>%</span>
                     </div>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
@@ -1406,7 +1406,7 @@ function TabProgress({ data }: { data: ProgressData }) {
             style={{ position: "absolute", top: 20, right: 20, background: "rgba(255,255,255,0.15)", border: "none", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
             <X size={18} color="var(--surface)" />
           </button>
-          <img src={lightboxUrl} alt="Foto lapangan ukuran penuh" style={{ maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain", borderRadius: 8 }} onClick={e => e.stopPropagation()} />
+          <img src={lightboxUrl} alt="Foto lapangan ukuran penuh" style={{ maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain", borderRadius: 6 }} onClick={e => e.stopPropagation()} />
         </div>
       )}
     </div>
@@ -1480,9 +1480,9 @@ function PortofolioTab() {
       {/* Keterbatasan DI ATAS tabel — syarat eksplisit ROADMAP #18. */}
       {meta && meta.keterbatasan.length > 0 && (
         <div style={{
-          padding: "12px 15px", borderRadius: 10,
+          padding: "12px 16px", borderRadius: 10,
           background: C.yellowBg, border: `1px solid ${C.yellowBorder}`,
-          fontSize: 12.5, color: C.yellow,
+          fontSize: 12, color: C.yellow,
         }}>
           <strong>Baca angkanya dengan batas ini:</strong>
           <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
@@ -1496,11 +1496,11 @@ function PortofolioTab() {
           desc="Portofolio biaya menampilkan agregasi lintas proyek." />
       ) : (
         <div style={{ overflowX: "auto", border: `1px solid ${C.border}`, borderRadius: 10 }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
             <thead><tr style={{ background: "var(--surface-subtle)" }}>
               {["Proyek", "Dasar pagu", "Pagu", "Serapan", "Serapan %", "Progres %", "Deviasi", "Sisa pagu"].map(h => (
                 <th key={h} style={{
-                  padding: "9px 11px", fontSize: 10.5, fontWeight: 700, color: C.mid,
+                  padding: "8px 12px", fontSize: 10, fontWeight: 700, color: C.mid,
                   textTransform: "uppercase", letterSpacing: ".04em", whiteSpace: "nowrap",
                   textAlign: h === "Proyek" || h === "Dasar pagu" ? "left" : "right",
                 }}>{h}</th>
@@ -1509,24 +1509,24 @@ function PortofolioTab() {
             <tbody>
               {data.map(d => (
                 <tr key={d.projectId} style={{ borderTop: `1px solid ${C.border}` }}>
-                  <td style={{ padding: "9px 11px", fontWeight: 600, color: C.text }}>{d.nama}</td>
+                  <td style={{ padding: "8px 12px", fontWeight: 600, color: C.text }}>{d.nama}</td>
                   {/* Dasar pagu ditulis, bukan disembunyikan: "serapan 40%" ber-
                       arti berbeda kalau pembandingnya harga jual vs rencana belanja. */}
-                  <td style={{ padding: "9px 11px", fontSize: 11.5, color: d.dasarPembanding === "rap_locked" ? C.green : C.mid }}>
+                  <td style={{ padding: "8px 12px", fontSize: 11, color: d.dasarPembanding === "rap_locked" ? C.green : C.mid }}>
                     {DASAR_LABEL[d.dasarPembanding] ?? d.dasarPembanding}
                   </td>
-                  <td style={{ padding: "9px 11px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{d.pagu > 0 ? fmtCompact(d.pagu) : "—"}</td>
-                  <td style={{ padding: "9px 11px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtCompact(d.serapan)}</td>
-                  <td style={{ padding: "9px 11px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600,
+                  <td style={{ padding: "8px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{d.pagu > 0 ? fmtCompact(d.pagu) : "—"}</td>
+                  <td style={{ padding: "8px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtCompact(d.serapan)}</td>
+                  <td style={{ padding: "8px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600,
                     color: d.serapanPct == null ? C.muted : d.serapanPct > 100 ? C.red : C.text }}>
                     {d.serapanPct == null ? "—" : `${d.serapanPct}%`}
                   </td>
-                  <td style={{ padding: "9px 11px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: C.mid }}>{d.progressPct}%</td>
-                  <td style={{ padding: "9px 11px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600,
+                  <td style={{ padding: "8px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: C.mid }}>{d.progressPct}%</td>
+                  <td style={{ padding: "8px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600,
                     color: d.deviasiPoin == null ? C.muted : d.deviasiPoin > 10 ? C.red : d.deviasiPoin < 0 ? C.green : C.text }}>
                     {d.deviasiPoin == null ? "—" : `${d.deviasiPoin > 0 ? "+" : ""}${d.deviasiPoin}`}
                   </td>
-                  <td style={{ padding: "9px 11px", textAlign: "right", fontVariantNumeric: "tabular-nums",
+                  <td style={{ padding: "8px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums",
                     color: d.sisaPagu == null ? C.muted : d.sisaPagu < 0 ? C.red : C.text }}>
                     {d.sisaPagu == null ? "—" : fmtCompact(d.sisaPagu)}
                   </td>
@@ -1610,7 +1610,7 @@ function WipTab() {
           {/* Keterbatasan DI ATAS tabel — catatan kaki tak pernah dibaca
               sebelum keputusan diambil. */}
           <div style={{
-            padding: "12px 14px", borderRadius: 10,
+            padding: "12px 12px", borderRadius: 10,
             background: "var(--warning-bg)", border: "1px solid var(--warning-border)",
           }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 5 }}>
@@ -1624,13 +1624,13 @@ function WipTab() {
       )}
 
       <div style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${C.border}` }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, minWidth: 900 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 900 }}>
           <thead>
             <tr style={{ background: "var(--surface-subtle)" }}>
               {["Proyek", "Metode", "%", "Kontrak", "Diakui", "Biaya", "Laba", "CIE", "BIE"].map((h, i) => (
                 <th key={h} scope="col" style={{
-                  padding: "9px 12px", textAlign: i >= 3 ? "right" : "left",
-                  fontSize: 10.5, fontWeight: 700, color: C.mid,
+                  padding: "8px 12px", textAlign: i >= 3 ? "right" : "left",
+                  fontSize: 10, fontWeight: 700, color: C.mid,
                   textTransform: "uppercase", letterSpacing: 0.4,
                   borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap",
                 }}>{h}</th>
@@ -1645,19 +1645,19 @@ function WipTab() {
                   borderBottom: `1px solid ${C.border}`,
                   background: rugi ? "var(--danger-bg)" : undefined,
                 }}>
-                  <td style={{ padding: "9px 12px", color: C.text }}>
+                  <td style={{ padding: "8px 12px", color: C.text }}>
                     {w.nama}
                     {w.peringatan.length > 0 && (
-                      <span style={{ display: "block", fontSize: 10.5, color: C.mid, marginTop: 2 }}>
+                      <span style={{ display: "block", fontSize: 10, color: C.mid, marginTop: 2 }}>
                         {w.peringatan[0]}
                       </span>
                     )}
                   </td>
-                  <td style={{ padding: "9px 12px", whiteSpace: "nowrap" }}>
+                  <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>
                     {/* Metode dibedakan TEKS, bukan warna saja — WCAG 1.4.1.
                         "fisik" lebih lemah di mata auditor, jadi harus terbaca. */}
                     <span style={{
-                      padding: "2px 8px", borderRadius: 20, fontSize: 10.5, fontWeight: 600,
+                      padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 600,
                       color: w.metode === "cost_to_cost" ? C.green : C.mid,
                       background: w.metode === "cost_to_cost" ? "var(--success-bg)" : "var(--surface-subtle)",
                       border: `1px solid ${w.metode === "cost_to_cost" ? "var(--success-border)" : C.border}`,
@@ -1665,29 +1665,29 @@ function WipTab() {
                       {w.metode === "cost_to_cost" ? "cost-to-cost" : w.metode === "fisik" ? "fisik" : "—"}
                     </span>
                   </td>
-                  <td style={{ padding: "9px 12px", color: C.text, whiteSpace: "nowrap" }}>
+                  <td style={{ padding: "8px 12px", color: C.text, whiteSpace: "nowrap" }}>
                     {w.persenDipakai == null ? "—" : `${w.persenDipakai}%`}
                   </td>
-                  <td style={{ padding: "9px 12px", textAlign: "right", color: C.mid, whiteSpace: "nowrap" }}>
+                  <td style={{ padding: "8px 12px", textAlign: "right", color: C.mid, whiteSpace: "nowrap" }}>
                     {fmtCompact(w.nilaiKontrak)}
                   </td>
-                  <td style={{ padding: "9px 12px", textAlign: "right", fontWeight: 600, color: C.text, whiteSpace: "nowrap" }}>
+                  <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 600, color: C.text, whiteSpace: "nowrap" }}>
                     {w.pendapatanDiakui == null ? "—" : fmtCompact(w.pendapatanDiakui)}
                   </td>
-                  <td style={{ padding: "9px 12px", textAlign: "right", color: C.mid, whiteSpace: "nowrap" }}>
+                  <td style={{ padding: "8px 12px", textAlign: "right", color: C.mid, whiteSpace: "nowrap" }}>
                     {fmtCompact(w.biayaTerjadi)}
                   </td>
                   <td style={{
-                    padding: "9px 12px", textAlign: "right", fontWeight: 700, whiteSpace: "nowrap",
+                    padding: "8px 12px", textAlign: "right", fontWeight: 700, whiteSpace: "nowrap",
                     color: rugi ? C.red : C.text,
                   }}>
                     {w.labaDiakui == null ? "—" : fmtCompact(w.labaDiakui)}
                   </td>
-                  <td style={{ padding: "9px 12px", textAlign: "right", color: w.cie > 0 ? C.green : C.muted, whiteSpace: "nowrap" }}>
+                  <td style={{ padding: "8px 12px", textAlign: "right", color: w.cie > 0 ? C.green : C.muted, whiteSpace: "nowrap" }}>
                     {w.cie > 0 ? fmtCompact(w.cie) : "—"}
                   </td>
                   <td style={{
-                    padding: "9px 12px", textAlign: "right", whiteSpace: "nowrap",
+                    padding: "8px 12px", textAlign: "right", whiteSpace: "nowrap",
                     fontWeight: w.bie > 0 ? 700 : 400,
                     color: w.bie > 0 ? C.red : C.muted,
                   }}>

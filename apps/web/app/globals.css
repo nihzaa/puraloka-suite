@@ -352,6 +352,92 @@
   --teks-badan:         14px;
   --teks-kpi:           28px;   /* angka besar = hierarki tegas */
   --teks-delta:         12px;   /* "+2,3%" kecil di sebelahnya */
+
+  /* ═══════════════════════════════════════════════════════════════════
+   * SKALA KERAPATAN — satu tangga untuk seluruh aplikasi
+   * ═══════════════════════════════════════════════════════════════════
+   *
+   * ── Kenapa ini ada
+   *
+   * Diukur 2026-08-05 dengan `scripts/ukur-kerapatan.mjs` atas 117 berkas:
+   *
+   *     padding : 272 nilai berbeda
+   *     font    :  30
+   *     shadow  :  40
+   *     radius  :  21
+   *     gap     :  21
+   *     ─────────────
+   *     total   : 384 nilai unik untuk lima properti
+   *
+   * ITU sebab sebenarnya halaman terasa "tidak menyatu" — bukan warna.
+   * Warna sudah diseragamkan (581 hex → 60, 67 paleta → 1) dan halamannya
+   * TETAP terasa berbeda satu sama lain, karena `padding: "9px 12px"` di
+   * satu tempat dan `padding: "10px 14px"` di tempat lain membuat ritme
+   * vertikalnya tak pernah sejajar.
+   *
+   * Mata tak membaca selisih 1px sebagai "1px" — ia membacanya sebagai
+   * "halaman ini dibuat orang lain".
+   *
+   * ── Tangganya
+   *
+   * Kelipatan 4 (Material 4dp / Apple 4pt). Delapan langkah cukup untuk
+   * seluruh aplikasi; lebih dari itu berarti tak ada skala.
+   */
+  --r0:   0;
+  --r1:   4px;
+  --r2:   8px;
+  --r3:  12px;
+  --r4:  16px;
+  --r5:  20px;
+  --r6:  24px;
+  --r8:  32px;
+  --r10: 40px;
+
+  /* Padding baku per jenis permukaan. Dipakai lewat nama, bukan angka —
+   * "padding kartu" punya makna, "12px" tidak. */
+  --pad-baris:      "9px 12px";   /* baris tabel & daftar */
+  --pad-lencana:    "3px 8px";    /* pil status */
+  --pad-tombol:     "8px 14px";
+  --pad-tombol-kcl: "5px 11px";
+  --pad-modal:      20px;
+  --pad-halaman:    20px;
+
+  /* ── Skala tipografi ────────────────────────────────────────────────
+   *
+   * Tujuh langkah. Diukur: aplikasi ini memakai 30 ukuran font berbeda,
+   * termasuk 12.5px dan 11.5px yang lahir dari penyetelan satu-satu.
+   *
+   * Rasio ~1,2 (minor third) — cukup rapat untuk antarmuka padat, cukup
+   * lebar untuk hierarki terbaca. Yang lebih besar dari itu memaksa
+   * lompatan yang membuang ruang vertikal.
+   */
+  --t-mikro:   10px;   /* label kolom tabel, keterangan satuan */
+  --t-kecil:   11px;   /* keterangan sekunder */
+  --t-data:    12px;   /* isi tabel — yang paling sering dibaca */
+  --t-badan:   13px;   /* teks antarmuka umum */
+  --t-sedang:  15px;   /* judul kartu */
+  --t-judul:   20px;   /* judul bagian */
+  --t-halaman: 26px;   /* judul halaman */
+  --t-angka:   28px;   /* angka KPI */
+
+  /* ── Radius ─────────────────────────────────────────────────────────
+   * Empat nilai. Sebelumnya 21 — termasuk 5px, 7px, dan 9px yang tak
+   * bisa dibedakan mata tapi merusak keselarasan sudut saat bersebelahan. */
+  --rad-kecil:  6px;    /* lencana, tombol kecil */
+  --rad-sedang: 10px;   /* tombol, input */
+  --rad-besar:  14px;   /* kartu, panel */
+  --rad-pil:    99px;
+
+  /* ── Elevasi ────────────────────────────────────────────────────────
+   * Tiga tingkat. Sebelumnya 40 nilai bayangan berbeda — kedalaman yang
+   * tak bisa dibaca karena tak ada tangganya.
+   *
+   * Ditulis SEBAGAI rgba, bukan token warna: bayangan hitam transparan
+   * bekerja di kedua mode, dan `var()` di dalam `box-shadow` tak bisa
+   * dianimasikan di sebagian peramban. */
+  --naik-1: 0 1px 3px rgba(0,0,0,0.06);
+  --naik-2: 0 4px 14px rgba(0,0,0,0.10);
+  --naik-3: 0 18px 48px rgba(0,0,0,0.18);
 }
 
 /* ─── Design Tokens — Dark ───────────────────────────────────────── */
@@ -434,6 +520,20 @@
   --shadow-sm:        0 1px 2px rgba(0,0,0,0.30);
   --shadow-md:        0 4px 12px rgba(0,0,0,0.40);
   --shadow-lg:        0 8px 24px rgba(0,0,0,0.50);
+
+  /* Elevasi mode gelap — LEBIH PEKAT, dan itu bukan penyetelan selera.
+   *
+   * Bayangan bekerja dengan menggelapkan latar di belakang objek. Di latar
+   * yang sudah gelap, bayangan 6% praktis tak terlihat — kartu jadi
+   * mengambang tanpa kedalaman, dan hierarki yang di mode terang terbaca
+   * jelas hilang sama sekali.
+   *
+   * Ditambah garis tepi terang tipis (inset): di mode gelap, PEMISAH lebih
+   * banyak dikerjakan tepi daripada bayangan. Ini yang dipakai macOS dan
+   * material dark theme, dan alasannya sama. */
+  --naik-1: 0 1px 3px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
+  --naik-2: 0 6px 18px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.05);
+  --naik-3: 0 22px 56px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.06);
 
   /* ═══════════════════════════════════════════════════════════════════
    * ARAH VISUAL 2026 — varian MODE GELAP (R-012)

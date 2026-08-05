@@ -57,7 +57,7 @@ const todayISO = () => new Date().toISOString().split("T")[0];
 
 const fieldInput: React.CSSProperties = {
   width: "100%",
-  padding: "9px 12px",
+  padding: "8px 12px",
   borderRadius: 10,
   border: "1px solid #e2e8f0",
   background: "var(--surface)",
@@ -302,21 +302,21 @@ export function ProgressLogModal({
       >
         <div style={{ position: "absolute", inset: 0, background: "rgba(15,23,42,0.55)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }} onClick={handleClose} />
 
-        <div style={{ position: "relative", width: "100%", maxWidth: "580px", maxHeight: "92vh", backgroundColor: "var(--surface)", borderRadius: "20px", boxShadow: "0 24px 64px -12px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.06)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ position: "relative", width: "100%", maxWidth: "580px", maxHeight: "92vh", backgroundColor: "var(--surface)", borderRadius: "20px", boxShadow: "var(--naik-3)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
           <div style={{ height: 4, background: "linear-gradient(90deg, var(--navy), var(--aksen-terang))", flexShrink: 0 }} />
 
           {/* Header */}
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", padding: "20px 24px 16px", borderBottom: "1px solid #f1f5f9", flexShrink: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <ClipboardEdit size={18} color="white" />
               </div>
               <div>
-                <h2 style={{ fontSize: 16, fontWeight: 600, color: "var(--text-primary)", fontFamily: "var(--font-display)", margin: 0 }}>Log Progress Lapangan</h2>
+                <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--text-primary)", fontFamily: "var(--font-display)", margin: 0 }}>Log Progress Lapangan</h2>
                 <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "2px 0 0" }}>Catat kegiatan &amp; dokumentasi hari ini</p>
               </div>
             </div>
-            <button aria-label="Tutup dialog progres" onClick={handleClose} style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: "var(--surface-subtle)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)", flexShrink: 0 }}>
+            <button aria-label="Tutup dialog progres" onClick={handleClose} style={{ width: 32, height: 32, borderRadius: 6, border: "none", background: "var(--surface-subtle)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)", flexShrink: 0 }}>
               <X size={15} />
             </button>
           </div>
@@ -332,7 +332,7 @@ export function ProgressLogModal({
                   key={opt.value}
                   onClick={() => { setMode(opt.value); setFormError(null); }}
                   style={{
-                    flex: 1, padding: "10px 14px", border: "none", cursor: "pointer",
+                    flex: 1, padding: "8px 12px", border: "none", cursor: "pointer",
                     background: mode === opt.value ? "var(--navy)" : "transparent",
                     color: mode === opt.value ? "var(--surface)" : "var(--text-muted)",
                     transition: "all 0.15s",
@@ -350,7 +350,7 @@ export function ProgressLogModal({
           </div>
 
           {/* Body */}
-          <div style={{ overflowY: "auto", flex: 1, padding: "18px 24px" }}>
+          <div style={{ overflowY: "auto", flex: 1, padding: "16px 24px" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
               {/* Success result for detail mode */}
@@ -363,13 +363,13 @@ export function ProgressLogModal({
 
               {/* Error */}
               {formError && (
-                <div style={{ padding: "10px 14px", borderRadius: 10, background: "var(--danger-bg)", border: "1px solid var(--danger-border)", color: "var(--danger)", fontSize: 13 }}>
+                <div style={{ padding: "8px 12px", borderRadius: 10, background: "var(--danger-bg)", border: "1px solid var(--danger-border)", color: "var(--danger)", fontSize: 13 }}>
                   {formError}
                 </div>
               )}
 
               {/* Tanggal & Cuaca */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
                   <label htmlFor="logged-at" style={fieldLabel}>Tanggal *</label>
                   <input id="logged-at" type="date" value={loggedAt} max={todayISO()} onChange={e => setLoggedAt(e.target.value)} style={fieldInput}
@@ -378,10 +378,10 @@ export function ProgressLogModal({
                 </div>
                 <div>
                   <span id="cuaca" style={fieldLabel}>Cuaca</span>
-                  <div role="group" aria-labelledby="cuaca" style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                  <div role="group" aria-labelledby="cuaca" style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                     {WEATHER_OPTIONS.map(w => (
                       <button key={w.value} type="button" onClick={() => setWeather(weather === w.value ? "" : w.value)}
-                        style={{ padding: "5px 8px", borderRadius: 7, fontSize: 11, cursor: "pointer", border: `1px solid ${weather === w.value ? "var(--navy)" : "var(--border)"}`, background: weather === w.value ? "var(--navy)" : "var(--surface-subtle)", color: weather === w.value ? "white" : "var(--text-secondary)", fontWeight: weather === w.value ? 600 : 400, lineHeight: 1 }}>
+                        style={{ padding: "4px 8px", borderRadius: 6, fontSize: 11, cursor: "pointer", border: `1px solid ${weather === w.value ? "var(--navy)" : "var(--border)"}`, background: weather === w.value ? "var(--navy)" : "var(--surface-subtle)", color: weather === w.value ? "white" : "var(--text-secondary)", fontWeight: weather === w.value ? 600 : 400, lineHeight: 1 }}>
                         {w.emoji} {w.label}
                       </button>
                     ))}
@@ -403,7 +403,7 @@ export function ProgressLogModal({
                       onBlur={e => { e.target.style.borderColor = "var(--border)"; e.target.style.boxShadow = "none"; }} />
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                     <div>
                       <label htmlFor="pct-overall" style={fieldLabel}>Progress Keseluruhan</label>
                       <div style={{ position: "relative" }}>
@@ -457,7 +457,7 @@ export function ProgressLogModal({
               {/* Mode detail: item RAB picker + % completion */}
               {mode === "detail" && (
                 <>
-                  <div style={{ padding: "12px 14px", borderRadius: 10, background: "var(--info-bg)", border: "1px solid var(--info-border)", fontSize: 12, color: "var(--info)" }}>
+                  <div style={{ padding: "12px 12px", borderRadius: 10, background: "var(--info-bg)", border: "1px solid var(--info-border)", fontSize: 12, color: "var(--info)" }}>
                     Mode ini mengubah progress item pekerjaan RAB secara langsung dan memperbarui progress keseluruhan proyek secara otomatis.
                   </div>
 
@@ -479,9 +479,9 @@ export function ProgressLogModal({
                       style={fieldLabel}
                     >Item Pekerjaan (dari RAB) *</label>
                     {loadingRab ? (
-                      <div id="rab-item-memuat" style={{ padding: "10px 12px", fontSize: 13, color: "var(--text-muted)", border: "1px solid #e2e8f0", borderRadius: 10 }}>Memuat item RAB...</div>
+                      <div id="rab-item-memuat" style={{ padding: "8px 12px", fontSize: 13, color: "var(--text-muted)", border: "1px solid #e2e8f0", borderRadius: 10 }}>Memuat item RAB...</div>
                     ) : rabItems.length === 0 ? (
-                      <div id="rab-item-kosong" style={{ padding: "10px 12px", fontSize: 13, color: "var(--danger)", background: "var(--danger-bg)", border: "1px solid var(--danger-border)", borderRadius: 10 }}>
+                      <div id="rab-item-kosong" style={{ padding: "8px 12px", fontSize: 13, color: "var(--danger)", background: "var(--danger-bg)", border: "1px solid var(--danger-border)", borderRadius: 10 }}>
                         Proyek ini belum memiliki RAB. Upload RAB Excel terlebih dahulu.
                       </div>
                     ) : (
@@ -500,7 +500,7 @@ export function ProgressLogModal({
 
                   {/* Preview info for selected item */}
                   {selectedRabItem && (
-                    <div style={{ padding: "12px 14px", borderRadius: 10, background: "var(--surface-subtle)", border: "1px solid #e2e8f0", fontSize: 12 }}>
+                    <div style={{ padding: "12px 12px", borderRadius: 10, background: "var(--surface-subtle)", border: "1px solid #e2e8f0", fontSize: 12 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                         <span style={{ color: "var(--text-muted)" }}>Progress saat ini</span>
                         <span style={{ fontWeight: 700, color: "var(--text-primary)" }}>{selectedRabItem.progress_pct.toFixed(0)}%</span>
@@ -510,7 +510,7 @@ export function ProgressLogModal({
                         <span style={{ fontWeight: 600, color: "var(--navy)" }}>{selectedRabItem.weight_pct.toFixed(3)}% dari total proyek</span>
                       </div>
                       {pctCompletion && !isNaN(parseFloat(pctCompletion)) && (
-                        <div style={{ marginTop: 6, padding: "8px 10px", borderRadius: 8, background: "var(--info-bg)", border: "1px solid var(--info-border)" }}>
+                        <div style={{ marginTop: 6, padding: "8px 8px", borderRadius: 6, background: "var(--info-bg)", border: "1px solid var(--info-border)" }}>
                           <span style={{ fontSize: 11, color: "var(--info)", fontWeight: 600 }}>
                             Mengatur item ini ke {parseFloat(pctCompletion).toFixed(0)}% akan mempengaruhi progress proyek sekitar ±{(Math.abs(parseFloat(pctCompletion) - selectedRabItem.progress_pct) * selectedRabItem.weight_pct / 100).toFixed(2)}%
                           </span>
@@ -526,7 +526,7 @@ export function ProgressLogModal({
                         style={{ ...fieldInput, paddingRight: 36, fontSize: 20, fontWeight: 700, textAlign: "center" }}
                         onFocus={e => { e.target.style.borderColor = "var(--navy)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,51,102,0.1)"; }}
                         onBlur={e => { e.target.style.borderColor = "var(--border)"; e.target.style.boxShadow = "none"; }} />
-                      <span style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", fontSize: 16, fontWeight: 700, color: "var(--text-muted)", pointerEvents: "none" }}>%</span>
+                      <span style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", fontSize: 15, fontWeight: 700, color: "var(--text-muted)", pointerEvents: "none" }}>%</span>
                     </div>
                     {pctCompletion && !isNaN(parseFloat(pctCompletion)) && (
                       <div style={{ marginTop: 6, height: 6, background: "var(--surface-hover)", borderRadius: 99, overflow: "hidden" }}>
@@ -590,7 +590,7 @@ export function ProgressLogModal({
                             </div>
                           )}
                           {entry.uploadedUrl && !entry.uploading && (
-                            <div style={{ position: "absolute", inset: 0, background: "rgba(16,185,129,0.25)", display: "flex", alignItems: "flex-start", justifyContent: "flex-end", padding: 5 }}>
+                            <div style={{ position: "absolute", inset: 0, background: "rgba(16,185,129,0.25)", display: "flex", alignItems: "flex-start", justifyContent: "flex-end", padding: 4 }}>
                               <div style={{ width: 18, height: 18, borderRadius: "50%", background: "var(--success)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                                 <Check size={11} color="white" strokeWidth={3} />
                               </div>
@@ -603,9 +603,9 @@ export function ProgressLogModal({
                             </button>
                           )}
                         </div>
-                        <div style={{ padding: "5px 7px" }}>
+                        <div style={{ padding: "4px 6px" }}>
                           <input type="text" placeholder="Keterangan foto…" value={entry.caption} onChange={e => patchPhoto(entry.id, { caption: e.target.value })}
-                            style={{ width: "100%", fontSize: 11, padding: "3px 5px", border: "1px solid #e2e8f0", borderRadius: 5, outline: "none", color: "var(--text-secondary)", fontFamily: "inherit", boxSizing: "border-box", background: "var(--surface-subtle)" }} />
+                            style={{ width: "100%", fontSize: 11, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 6, outline: "none", color: "var(--text-secondary)", fontFamily: "inherit", boxSizing: "border-box", background: "var(--surface-subtle)" }} />
                           {entry.error && <p style={{ fontSize: 10, color: "var(--danger)", margin: "2px 0 0" }}>{entry.error}</p>}
                         </div>
                       </div>
@@ -629,7 +629,7 @@ export function ProgressLogModal({
           </div>
 
           {/* Footer */}
-          <div style={{ padding: "14px 24px", borderTop: "1px solid #f1f5f9", background: "var(--surface-subtle)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+          <div style={{ padding: "12px 24px", borderTop: "1px solid #f1f5f9", background: "var(--surface-subtle)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
             <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
               {photos.length > 0 ? `${photos.length} foto terpilih` : mode === "detail" ? "Pilih item RAB dan isi % selesai" : "Foto bersifat opsional"}
             </span>

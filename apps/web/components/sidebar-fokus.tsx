@@ -111,8 +111,8 @@ export function SidebarFokus({ collapsed }: { collapsed: boolean }) {
     <Link
       href={fokus.tautan}
       style={{
-        display: "block", marginBottom: 6, padding: "10px 11px",
-        borderRadius: 12, textDecoration: "none",
+        display: "block", marginBottom: 6, padding: "8px 12px",
+        borderRadius: 10, textDecoration: "none",
         // Gradasi HANYA saat ada yang lewat tenggat — ini satu-satunya
         // tempat di sidebar yang boleh memakainya, dan justru itu yang
         // membuatnya menarik perhatian. Kalau semua bergradasi, tak ada
@@ -138,14 +138,14 @@ export function SidebarFokus({ collapsed }: { collapsed: boolean }) {
       </div>
 
       {bersih ? (
-        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <CheckCircle2 size={14} color="var(--success)" aria-hidden="true" />
           <span style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.35 }}>
             Tidak ada yang menunggu
           </span>
         </div>
       ) : (
-        <div style={{ display: "flex", gap: 14, alignItems: "flex-end" }}>
+        <div style={{ display: "flex", gap: 12, alignItems: "flex-end" }}>
           {adaYangLewat && (
             <div>
               <div style={{
@@ -160,7 +160,7 @@ export function SidebarFokus({ collapsed }: { collapsed: boolean }) {
               }}>{fokus.lewat}</div>
               <div style={{
                 fontSize: 10, marginTop: 3, display: "flex",
-                alignItems: "center", gap: 3,
+                alignItems: "center", gap: 2,
                 color: "rgba(255,255,255,.85)",
               }}>
                 <AlertTriangle size={9} aria-hidden="true" />lewat tenggat

@@ -22,7 +22,7 @@ export default function PortalProfilPage() {
       <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text, marginBottom: 20 }}>Profil</h1>
 
       <div style={{
-        background: C.surface, borderRadius: 12, border: `1px solid ${C.border}`,
+        background: C.surface, borderRadius: 10, border: `1px solid ${C.border}`,
         overflow: "hidden", marginBottom: 16,
       }}>
         {/* Avatar */}
@@ -35,7 +35,7 @@ export default function PortalProfilPage() {
             <User size={28} color="var(--surface)" />
           </div>
           <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: "var(--surface)" }}>{user.name}</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: "var(--surface)" }}>{user.name}</div>
             <div style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", marginTop: 2 }}>Klien</div>
           </div>
         </div>
@@ -53,7 +53,7 @@ export default function PortalProfilPage() {
               <span style={{ color: C.mid }}>{item.icon}</span>
               <div>
                 <div style={{ fontSize: 11, color: C.mid, fontWeight: 500 }}>{item.label}</div>
-                <div style={{ fontSize: 14, color: C.text, marginTop: 1 }}>{item.value}</div>
+                <div style={{ fontSize: 13, color: C.text, marginTop: 1 }}>{item.value}</div>
               </div>
             </div>
           ))}
@@ -64,9 +64,9 @@ export default function PortalProfilPage() {
         onClick={handleLogout}
         style={{
           width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-          padding: "13px 20px", borderRadius: 10,
+          padding: "12px 20px", borderRadius: 10,
           border: `1px solid ${C.border}`, background: C.surface,
-          fontSize: 14, fontWeight: 500, color: C.red, cursor: "pointer",
+          fontSize: 13, fontWeight: 500, color: C.red, cursor: "pointer",
         }}
       >
         <LogOut size={16} /> Keluar

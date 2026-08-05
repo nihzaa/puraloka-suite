@@ -108,7 +108,7 @@ export function Topbar() {
             style={{
               display: "flex", alignItems: "center", gap: 8,
               height: 34, padding: "0 10px 0 12px",
-              borderRadius: 8,
+              borderRadius: 6,
               background: "var(--surface-subtle)",
               border: "1px solid var(--border)",
               cursor: "pointer", color: "var(--text-muted)",
@@ -137,7 +137,7 @@ export function Topbar() {
             <span className="e11-sembunyi-sempit" style={{ flex: 1, whiteSpace: "nowrap" }}>Cari...</span>
             <kbd className="e11-sembunyi-sempit" style={{
               display: "flex", alignItems: "center", gap: 2,
-              padding: "1px 5px", borderRadius: 4,
+              padding: "0px 4px", borderRadius: 6,
               background: "var(--surface)", border: "1px solid var(--border)",
               fontSize: 10, color: "var(--text-muted)", flexShrink: 0,
             }}>

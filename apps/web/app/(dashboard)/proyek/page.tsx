@@ -71,7 +71,7 @@ const card: React.CSSProperties = {
   background: "var(--surface)",
   border: "1px solid var(--border)",
   borderRadius: 14,
-  boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+  boxShadow: "var(--naik-1)",
 };
 
 const STATUS_META: Record<string, { label: string; color: string; bg: string; border: string }> = {
@@ -88,7 +88,7 @@ const STATUS_META: Record<string, { label: string; color: string; bg: string; bo
 function Skeleton({ h = 20, w = "100%" }: { h?: number; w?: string | number }) {
   return (
     <div style={{
-      height: h, width: w, borderRadius: 8,
+      height: h, width: w, borderRadius: 6,
       background: "linear-gradient(90deg, var(--surface-hover) 0%, var(--border) 50%, var(--surface-hover) 100%)",
       backgroundSize: "200% 100%",
       animation: "shimmer 1.5s ease-in-out infinite",
@@ -101,7 +101,7 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <span style={{
       display: "inline-flex", alignItems: "center", gap: 4,
-      padding: "3px 9px", borderRadius: 99, fontSize: 11, fontWeight: 600,
+      padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 600,
       color: m.color, background: m.bg, border: `1px solid ${m.border}`,
     }}>
       <span style={{ width: 5, height: 5, borderRadius: "50%", background: m.color, flexShrink: 0 }} />
@@ -113,7 +113,7 @@ function StatusBadge({ status }: { status: string }) {
 function ModelBadge({ model }: { model: "termin" | "komisi" }) {
   return (
     <span style={{
-      display: "inline-block", padding: "2px 8px", borderRadius: 4,
+      display: "inline-block", padding: "2px 8px", borderRadius: 6,
       fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase",
       background: "var(--surface-hover)", color: C.mid, border: "1px solid var(--border)",
     }}>
@@ -138,11 +138,11 @@ function Avatar({ name, size = 28 }: { name: string; size?: number }) {
 
 function ProgressBar({ pct, color = C.navy }: { pct: number; color?: string }) {
   return (
-    <div style={{ height: 6, background: "var(--surface-hover)", borderRadius: 3, overflow: "hidden" }}>
+    <div style={{ height: 6, background: "var(--surface-hover)", borderRadius: 0, overflow: "hidden" }}>
       <div style={{
         height: "100%", width: `${Math.min(pct, 100)}%`,
         background: `linear-gradient(90deg, ${color}, ${color}CC)`,
-        borderRadius: 3, transition: "width 0.5s ease",
+        borderRadius: 0, transition: "width 0.5s ease",
       }} />
     </div>
   );
@@ -155,9 +155,9 @@ function SummaryCard({ label, value, sub, icon, accent }: {
   return (
     <div
       style={{
-        flex: 1, background: "var(--surface)", borderRadius: 12, padding: "16px 18px",
-        border: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 14,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.05)", transition: "all 0.15s",
+        flex: 1, background: "var(--surface)", borderRadius: 10, padding: "16px 16px",
+        border: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 12,
+        boxShadow: "var(--naik-1)", transition: "all 0.15s",
       }}
       onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 6px 18px rgba(0,51,102,0.10)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
       onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.05)"; e.currentTarget.style.transform = "translateY(0)"; }}
@@ -311,7 +311,7 @@ function ProyekContent() {
             onClick={() => setShowModal(true)}
             style={{
               display: "flex", alignItems: "center", gap: 6,
-              padding: "10px 18px", borderRadius: 8, border: "none",
+              padding: "8px 16px", borderRadius: 6, border: "none",
               background: C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600,
               cursor: "pointer", transition: "background 0.15s",
             }}
@@ -358,8 +358,8 @@ function ProyekContent() {
       )}
 
       {/* ── Filter bar ── */}
-      <div className="rise rise-2" style={{ ...card, padding: "14px 18px", marginBottom: 20 }}>
-        <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+      <div className="rise rise-2" style={{ ...card, padding: "12px 16px", marginBottom: 20 }}>
+        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
           {/* Search */}
           <div style={{ flex: 1, position: "relative" }}>
             <Search size={14} style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: C.muted, pointerEvents: "none" }} />
@@ -369,7 +369,7 @@ function ProyekContent() {
               placeholder="Cari nama proyek, klien, PM, atau lokasi..."
               style={{
                 width: "100%", padding: "8px 12px 8px 32px",
-                border: "1px solid var(--border)", borderRadius: 8,
+                border: "1px solid var(--border)", borderRadius: 6,
                 fontSize: 13, color: C.text, background: "var(--surface)",
                 outline: "none", transition: "border-color 0.15s, box-shadow 0.15s",
                 boxSizing: "border-box",
@@ -383,7 +383,7 @@ function ProyekContent() {
             value={sort}
             onChange={e => setSort(e.target.value as SortKey)}
             style={{
-              padding: "8px 12px", border: "1px solid var(--border)", borderRadius: 8,
+              padding: "8px 12px", border: "1px solid var(--border)", borderRadius: 6,
               fontSize: 13, color: C.text, background: "var(--surface)",
               cursor: "pointer", outline: "none",
             }}
@@ -394,7 +394,7 @@ function ProyekContent() {
             <option value="deadline_asc">Tenggat Terdekat</option>
           </select>
           {/* View toggle */}
-          <div style={{ display: "flex", border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
+          <div style={{ display: "flex", border: "1px solid var(--border)", borderRadius: 6, overflow: "hidden" }}>
             {(["grid", "list"] as ViewMode[]).map(v => (
               <button aria-label={v === "grid" ? "Grid" : "List"}
                 key={v}
@@ -425,8 +425,8 @@ function ProyekContent() {
                   aria-pressed={active}
                   onClick={() => setStatusFilter(tab.key)}
                   style={{
-                    display: "inline-flex", alignItems: "center", gap: 5,
-                    padding: "5px 11px", borderRadius: 6, border: "none",
+                    display: "inline-flex", alignItems: "center", gap: 4,
+                    padding: "4px 12px", borderRadius: 6, border: "none",
                     fontSize: 12, fontWeight: active ? 600 : 400,
                     cursor: "pointer", transition: "all 0.12s",
                     background: active ? C.navyLight : "transparent",
@@ -440,7 +440,7 @@ function ProyekContent() {
                     fontSize: 10, fontWeight: 700,
                     background: active ? "rgba(0,51,102,0.12)" : "var(--surface-hover)",
                     color: active ? C.navy : C.muted,
-                    padding: "1px 6px", borderRadius: 99,
+                    padding: "0px 6px", borderRadius: 99,
                   }}>
                     {counts[tab.key] ?? 0}
                   </span>
@@ -473,7 +473,7 @@ function ProyekContent() {
         <div style={{
           background: C.redBg, border: `1px solid ${C.redBorder}`, borderRadius: 10,
           padding: "12px 16px", color: C.red, fontSize: 13, marginBottom: 20,
-          display: "flex", alignItems: "center", gap: 10,
+          display: "flex", alignItems: "center", gap: 8,
         }}>
           <AlertTriangle size={15} />
           {error}
@@ -485,7 +485,7 @@ function ProyekContent() {
 
       {/* ── Content ── */}
       {loading ? (
-        <div style={{ display: "grid", gridTemplateColumns: viewMode === "grid" ? "repeat(2, 1fr)" : "1fr", gap: 14 }}>
+        <div style={{ display: "grid", gridTemplateColumns: viewMode === "grid" ? "repeat(2, 1fr)" : "1fr", gap: 12 }}>
           {[1, 2, 3, 4].map(i => (
             <div key={i} style={{ ...card, padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
               <div style={{ display: "flex", gap: 8 }}><Skeleton h={22} w={70} /><Skeleton h={22} w={55} /></div>
@@ -510,14 +510,14 @@ function ProyekContent() {
           {isFiltered ? (
             <button
               onClick={() => { setSearch(""); setSearchInput(""); setStatusFilter("all"); }}
-              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.text, fontSize: 13, cursor: "pointer" }}
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.text, fontSize: 13, cursor: "pointer" }}
             >
               Reset filter
             </button>
           ) : hasPermission("projects:create") ? (
             <button
               onClick={() => setShowModal(true)}
-              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 18px", borderRadius: 8, border: "none", background: C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
             >
               <Plus size={14} /> Tambah Proyek
             </button>
@@ -530,7 +530,7 @@ function ProyekContent() {
           ))}
         </div>
       ) : (
-        <div className="rise rise-3" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div className="rise rise-3" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {filtered.map(p => (
             <ProjectCardList key={p.id} project={p} onClick={() => router.push(`/proyek/${p.id}`)} />
           ))}
@@ -587,7 +587,7 @@ function ProjectCardGrid({ project: p, onClick }: { project: Project; onClick: (
         <ModelBadge model={p.contract_model} />
         {overdue && (
           <span style={{
-            marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 3,
+            marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 2,
             padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 700,
             background: C.redBg, color: C.red, border: `1px solid ${C.redBorder}`,
           }}>
@@ -596,7 +596,7 @@ function ProjectCardGrid({ project: p, onClick }: { project: Project; onClick: (
         )}
         {dueSoon && (
           <span style={{
-            marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 3,
+            marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 2,
             padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 700,
             background: C.yellowBg, color: C.yellow, border: `1px solid ${C.yellowBorder}`,
           }}>
@@ -659,7 +659,7 @@ function ProjectCardGrid({ project: p, onClick }: { project: Project; onClick: (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
         <div>
           <div style={{ fontSize: 10, color: C.muted, marginBottom: 2 }}>Nilai Kontrak</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{fmtCompact(Number(p.contract_value))}</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{fmtCompact(Number(p.contract_value))}</div>
         </div>
         <div style={{ textAlign: "right" }}>
           <div style={{ fontSize: 10, color: C.muted, marginBottom: 2 }}>Tenggat</div>
@@ -669,7 +669,7 @@ function ProjectCardGrid({ project: p, onClick }: { project: Project; onClick: (
           </div>
         </div>
         <div style={{
-          width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+          width: 30, height: 30, borderRadius: 6, flexShrink: 0,
           background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center",
         }}>
           <ArrowRight size={13} style={{ color: C.navy }} />
@@ -720,15 +720,15 @@ function ProjectCardList({ project: p, onClick }: { project: Project; onClick: (
           <StatusBadge status={p.status} />
           <ModelBadge model={p.contract_model} />
         </div>
-        <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {p.name}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: C.muted }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 2, fontSize: 11, color: C.muted }}>
             <MapPin size={10} /> {p.location}
           </span>
           {p.clients && (
-            <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: C.muted }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 2, fontSize: 11, color: C.muted }}>
               <User size={10} /> {p.clients.contact_person}
             </span>
           )}
@@ -741,7 +741,7 @@ function ProjectCardList({ project: p, onClick }: { project: Project; onClick: (
           {fmtCompact(Number(p.contract_value))}
         </div>
         {p.pm && (
-          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
             <Avatar name={p.pm.name} size={18} />
             <span style={{ fontSize: 11, color: C.mid, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {p.pm.name}
@@ -771,7 +771,7 @@ function ProjectCardList({ project: p, onClick }: { project: Project; onClick: (
 
       {/* Col 5: arrow */}
       <div style={{
-        width: 30, height: 30, borderRadius: 8,
+        width: 30, height: 30, borderRadius: 6,
         background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center",
       }}>
         <ArrowRight size={13} style={{ color: C.navy }} />

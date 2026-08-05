@@ -73,34 +73,34 @@ export default function PMPortalLayout({ children }: { children: React.ReactNode
         padding: "0 20px", height: 56,
         display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: C.navy, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 6, background: C.navy, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <span style={{ color: "#fff", fontWeight: 800, fontSize: 15 }}>P</span>
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 14, color: C.text, lineHeight: 1 }}>Puraloka Suite</div>
+            <div style={{ fontWeight: 700, fontSize: 13, color: C.text, lineHeight: 1 }}>Puraloka Suite</div>
             <div style={{ fontSize: 11, color: C.mid, marginTop: 1 }}>Portal PM</div>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {/* Mode switcher — hanya tampil kalau user adalah mandor yang masuk mode PM */}
           {isMandor && (
             <div ref={modeMenuRef} style={{ position: "relative" }}>
               <button
                 onClick={() => setShowModeMenu((v) => !v)}
-                style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: `1px solid ${C.navy}`, background: C.navyLight, cursor: "pointer", fontSize: 12, color: C.navy, fontWeight: 600 }}
+                style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, border: `1px solid ${C.navy}`, background: C.navyLight, cursor: "pointer", fontSize: 12, color: C.navy, fontWeight: 600 }}
               >
                 <FolderKanban size={13} />
                 Mode PM
                 <ChevronDown size={13} />
               </button>
               {showModeMenu && (
-                <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, background: "var(--surface)", borderRadius: 12, border: `1px solid ${C.border}`, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", minWidth: 200, zIndex: 100, overflow: "hidden" }}>
+                <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, background: "var(--surface)", borderRadius: 10, border: `1px solid ${C.border}`, boxShadow: "var(--naik-2)", minWidth: 200, zIndex: 100, overflow: "hidden" }}>
                   <div style={{ padding: "8px 0" }}>
                     <div style={{ padding: "8px 16px 4px", fontSize: 11, color: C.mid, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Ganti Mode</div>
                     <button
                       onClick={() => { setShowModeMenu(false); router.push("/mandor-portal"); }}
-                      style={{ width: "100%", padding: "10px 16px", display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
+                      style={{ width: "100%", padding: "8px 16px", display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
                       onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface-hover)")}
                       onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
                     >
@@ -111,7 +111,7 @@ export default function PMPortalLayout({ children }: { children: React.ReactNode
                       </div>
                     </button>
                     <button
-                      style={{ width: "100%", padding: "10px 16px", display: "flex", alignItems: "center", gap: 10, background: C.navyLight, border: "none", cursor: "default", textAlign: "left" }}
+                      style={{ width: "100%", padding: "8px 16px", display: "flex", alignItems: "center", gap: 8, background: C.navyLight, border: "none", cursor: "default", textAlign: "left" }}
                     >
                       <FolderKanban size={16} color={C.navy} />
                       <div>
@@ -130,7 +130,7 @@ export default function PMPortalLayout({ children }: { children: React.ReactNode
           </div>
           <button
             onClick={handleLogout}
-            style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13, color: C.mid }}
+            style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13, color: C.mid }}
           >
             <LogOut size={14} />
             <span className="sm-show" style={{ display: "none" }}>Keluar</span>
@@ -143,7 +143,7 @@ export default function PMPortalLayout({ children }: { children: React.ReactNode
         {NAV_ITEMS.map((item) => {
           const active = isActive(item);
           return (
-            <Link key={item.href} href={item.href} style={{ display: "flex", alignItems: "center", gap: 7, padding: "12px 14px", fontSize: 14, fontWeight: active ? 600 : 400, color: active ? C.navy : C.mid, borderBottom: active ? `2px solid ${C.navy}` : "2px solid transparent", textDecoration: "none", transition: "all 0.15s" }}>
+            <Link key={item.href} href={item.href} style={{ display: "flex", alignItems: "center", gap: 6, padding: "12px 12px", fontSize: 13, fontWeight: active ? 600 : 400, color: active ? C.navy : C.mid, borderBottom: active ? `2px solid ${C.navy}` : "2px solid transparent", textDecoration: "none", transition: "all 0.15s" }}>
               <item.icon size={15} />
               {item.label}
             </Link>
@@ -161,7 +161,7 @@ export default function PMPortalLayout({ children }: { children: React.ReactNode
         {NAV_ITEMS.map((item) => {
           const active = isActive(item);
           return (
-            <Link key={item.href} href={item.href} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, padding: "10px 4px", color: active ? C.navy : C.mid, textDecoration: "none", fontSize: 10, fontWeight: active ? 600 : 400 }}>
+            <Link key={item.href} href={item.href} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2, padding: "8px 4px", color: active ? C.navy : C.mid, textDecoration: "none", fontSize: 10, fontWeight: active ? 600 : 400 }}>
               <item.icon size={20} />
               {item.label}
             </Link>

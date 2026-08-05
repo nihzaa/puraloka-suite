@@ -150,7 +150,7 @@ export default function MandorKasbonPage() {
         <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text, margin: 0 }}>Kasbon</h1>
         <button
           onClick={() => setShowModal(true)}
-          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, background: C.navy, color: "var(--surface)", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600 }}
+          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6, background: C.navy, color: "var(--surface)", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600 }}
         >
           <Plus size={15} />
           Ajukan Kasbon
@@ -164,7 +164,7 @@ export default function MandorKasbonPage() {
             key={s}
             onClick={() => setFilter(s)}
             style={{
-              padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: "pointer",
+              padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: "pointer",
               border: `1px solid ${filter === s ? C.navy : C.border}`,
               background: filter === s ? C.navyLight : "var(--surface)",
               color: filter === s ? C.navy : C.mid,
@@ -179,9 +179,9 @@ export default function MandorKasbonPage() {
       {loading && <div style={{ textAlign: "center", padding: 60, color: C.mid }}>Memuat kasbon...</div>}
 
       {!loading && filtered.length === 0 && (
-        <div style={{ background: C.surface, borderRadius: 12, padding: 48, border: `1px solid ${C.border}`, textAlign: "center" }}>
+        <div style={{ background: C.surface, borderRadius: 10, padding: 48, border: `1px solid ${C.border}`, textAlign: "center" }}>
           <AlertCircle size={32} color={C.muted} style={{ marginBottom: 8 }} />
-          <div style={{ fontSize: 14, color: C.mid }}>Belum ada kasbon</div>
+          <div style={{ fontSize: 13, color: C.mid }}>Belum ada kasbon</div>
         </div>
       )}
 
@@ -193,13 +193,13 @@ export default function MandorKasbonPage() {
           const context = scopeName ? `${scopeName}${projectName ? ` · ${projectName}` : ""}` : (projectName ?? "Umum");
           return (
             <div key={k.id} style={{
-              background: C.surface, borderRadius: 12, padding: "16px 20px",
-              border: `1px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+              background: C.surface, borderRadius: 10, padding: "16px 20px",
+              border: `1px solid ${C.border}`, boxShadow: "var(--naik-1)",
             }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
-                    <span style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{fmt(k.amount)}</span>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{fmt(k.amount)}</span>
                     <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20, color: meta.color, background: meta.bg }}>
                       {meta.icon}
                       {meta.label}
@@ -228,9 +228,9 @@ export default function MandorKasbonPage() {
       {showModal && typeof window !== "undefined" && createPortal(
         <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)" }} onClick={() => setShowModal(false)} />
-          <div style={{ position: "relative", background: C.surface, borderRadius: 16, width: "100%", maxWidth: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", zIndex: 1, marginTop: 24 }}>
+          <div style={{ position: "relative", background: C.surface, borderRadius: 14, width: "100%", maxWidth: 480, boxShadow: "var(--naik-3)", zIndex: 1, marginTop: 24 }}>
             <div style={{ padding: "20px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: 0 }}>Ajukan Kasbon</h2>
+              <h2 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: 0 }}>Ajukan Kasbon</h2>
               <button aria-label="Tutup dialog kasbon" onClick={() => setShowModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: C.mid }}>
                 <X size={20} />
               </button>
@@ -246,7 +246,7 @@ export default function MandorKasbonPage() {
                   value={form.project_id}
                   onChange={(e) => handleProjectChange(e.target.value)}
                   required
-                  style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, color: C.text, background: "var(--surface)", boxSizing: "border-box" }}
+                  style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, color: C.text, background: "var(--surface)", boxSizing: "border-box" }}
                 >
                   <option value="">Pilih proyek...</option>
                   {projects.map((p) => (
@@ -269,7 +269,7 @@ export default function MandorKasbonPage() {
                   onChange={(e) => setForm((f) => ({ ...f, work_scope_id: e.target.value }))}
                   disabled={!form.project_id}
                   style={{
-                    width: "100%", padding: "9px 12px", borderRadius: 8,
+                    width: "100%", padding: "8px 12px", borderRadius: 6,
                     border: `1px solid ${C.border}`, fontSize: 13, color: C.text,
                     background: form.project_id ? "var(--surface)" : C.bg, boxSizing: "border-box",
                     opacity: form.project_id ? 1 : 0.6,
@@ -289,7 +289,7 @@ export default function MandorKasbonPage() {
                   value={form.amount}
                   onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
                   required
-                  style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }}
+                  style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }}
                 />
               </div>
 
@@ -298,7 +298,7 @@ export default function MandorKasbonPage() {
                 <select id="purpose" aria-label="Tujuan kasbon"
                   value={form.purpose}
                   onChange={(e) => setForm((f) => ({ ...f, purpose: e.target.value }))}
-                  style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, color: C.text, background: "var(--surface)" }}
+                  style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, color: C.text, background: "var(--surface)" }}
                 >
                   {PURPOSE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
@@ -309,7 +309,7 @@ export default function MandorKasbonPage() {
                 <select id="fund-source" aria-label="Sumber dana kasbon"
                   value={form.fund_source}
                   onChange={(e) => setForm((f) => ({ ...f, fund_source: e.target.value }))}
-                  style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, color: C.text, background: "var(--surface)" }}
+                  style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, color: C.text, background: "var(--surface)" }}
                 >
                   {FUND_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
@@ -321,7 +321,7 @@ export default function MandorKasbonPage() {
                   type="date"
                   value={form.kasbon_date}
                   onChange={(e) => setForm((f) => ({ ...f, kasbon_date: e.target.value }))}
-                  style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }}
+                  style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }}
                 />
               </div>
 
@@ -332,15 +332,15 @@ export default function MandorKasbonPage() {
                   value={form.notes}
                   onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
                   rows={3}
-                  style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, resize: "vertical", boxSizing: "border-box" }}
+                  style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, resize: "vertical", boxSizing: "border-box" }}
                 />
               </div>
 
-              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                <button type="button" onClick={() => setShowModal(false)} style={{ padding: "9px 18px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13, color: C.mid }}>
+              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                <button type="button" onClick={() => setShowModal(false)} style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13, color: C.mid }}>
                   Batal
                 </button>
-                <button type="submit" disabled={saving || !form.project_id} style={{ padding: "9px 20px", borderRadius: 8, background: C.navy, color: "var(--surface)", border: "none", cursor: (saving || !form.project_id) ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600, opacity: (saving || !form.project_id) ? 0.7 : 1 }}>
+                <button type="submit" disabled={saving || !form.project_id} style={{ padding: "8px 20px", borderRadius: 6, background: C.navy, color: "var(--surface)", border: "none", cursor: (saving || !form.project_id) ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600, opacity: (saving || !form.project_id) ? 0.7 : 1 }}>
                   {saving ? "Mengajukan..." : "Ajukan Kasbon"}
                 </button>
               </div>
@@ -352,7 +352,7 @@ export default function MandorKasbonPage() {
 
       {/* Toast */}
       {toast && typeof window !== "undefined" && createPortal(
-        <div style={{ position: "fixed", bottom: 80, left: "50%", transform: "translateX(-50%)", zIndex: 10000, padding: "12px 20px", borderRadius: 10, background: toast.ok ? "var(--success)" : C.red, color: "var(--surface)", fontSize: 13, fontWeight: 500, boxShadow: "0 4px 16px rgba(0,0,0,0.2)", whiteSpace: "nowrap" }}>
+        <div style={{ position: "fixed", bottom: 80, left: "50%", transform: "translateX(-50%)", zIndex: 10000, padding: "12px 20px", borderRadius: 10, background: toast.ok ? "var(--success)" : C.red, color: "var(--surface)", fontSize: 13, fontWeight: 500, boxShadow: "var(--naik-2)", whiteSpace: "nowrap" }}>
           {toast.msg}
         </div>,
         document.body

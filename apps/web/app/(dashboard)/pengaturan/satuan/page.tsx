@@ -10,7 +10,7 @@ import { C } from "@/lib/warna-ui";
 
 const card: React.CSSProperties = {
   background: "var(--surface)", border: "1px solid var(--border)",
-  borderRadius: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+  borderRadius: 14, boxShadow: "var(--naik-1)",
 };
 
 const CATEGORIES = [
@@ -27,7 +27,7 @@ function hasPerm(key: string): boolean {
 }
 
 const inputStyle: React.CSSProperties = {
-  width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8,
+  width: "100%", padding: "8px 8px", border: `1px solid ${C.border}`, borderRadius: 6,
   fontSize: 13, outline: "none", background: "var(--surface)", color: C.text,
   boxSizing: "border-box", fontFamily: "inherit",
 };
@@ -75,8 +75,8 @@ function SatuanContent() {
           position: "fixed", top: 20, right: 24, zIndex: 9999,
           background: toast.type === "success" ? C.greenBg : C.redBg,
           border: `1px solid ${toast.type === "success" ? C.greenBorder : C.redBorder}`,
-          borderRadius: 10, padding: "10px 16px", display: "flex", alignItems: "center", gap: 8,
-          boxShadow: "0 4px 16px rgba(0,0,0,0.1)", fontSize: 13,
+          borderRadius: 10, padding: "8px 16px", display: "flex", alignItems: "center", gap: 8,
+          boxShadow: "var(--naik-2)", fontSize: 13,
           color: toast.type === "success" ? C.green : C.red,
         }}>
           {toast.type === "success" ? <Check size={14} /> : <AlertTriangle size={14} />}{toast.msg}
@@ -85,7 +85,7 @@ function SatuanContent() {
 
       {/* Header */}
       <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ width: 40, height: 40, borderRadius: 11, background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ width: 40, height: 40, borderRadius: 10, background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <Ruler size={19} color={C.navy} />
         </div>
         <div>
@@ -99,7 +99,7 @@ function SatuanContent() {
       </div>
 
       {!canManage && (
-        <div style={{ marginBottom: 20, padding: "10px 14px", borderRadius: 8, background: "var(--warning-bg)", border: "1px solid var(--warning-border)", fontSize: 12, color: C.mid }}>
+        <div style={{ marginBottom: 20, padding: "8px 12px", borderRadius: 6, background: "var(--warning-bg)", border: "1px solid var(--warning-border)", fontSize: 12, color: C.mid }}>
           Anda dapat melihat daftar satuan, tetapi hanya pengguna dengan izin <strong>Kelola Satuan</strong> yang bisa mengubahnya.
         </div>
       )}
@@ -107,7 +107,7 @@ function SatuanContent() {
       {canManage && <AddUnitCard existing={units} onDone={(ok) => { if (ok) { load(); setToast({ type: "success", msg: "Satuan ditambahkan" }); } }} onError={(m) => setToast({ type: "error", msg: m })} />}
 
       {loading ? (
-        <div style={{ textAlign: "center", padding: 60, color: C.muted, fontSize: 14 }}>Memuat...</div>
+        <div style={{ textAlign: "center", padding: 60, color: C.muted, fontSize: 13 }}>Memuat...</div>
       ) : (
         <div style={{ ...card, overflow: "hidden" }}>
           {/* Table header */}
@@ -164,13 +164,13 @@ function AddUnitCard({ existing, onDone, onError }: { existing: UnitRow[]; onDon
   if (!open) {
     return (
       <button onClick={() => setOpen(true)}
-        style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 16px", marginBottom: 18, borderRadius: 9, border: `1px solid ${C.navy}`, background: C.navyLight, color: C.navy, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+        style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", marginBottom: 18, borderRadius: 10, border: `1px solid ${C.navy}`, background: C.navyLight, color: C.navy, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
         <Plus size={15} /> Tambah Satuan
       </button>
     );
   }
   return (
-    <div style={{ ...card, marginBottom: 18, padding: 18 }}>
+    <div style={{ ...card, marginBottom: 18, padding: 16 }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1.4fr 1fr", gap: 12, alignItems: "end" }}>
         <Labeled label="Kode (unik)">
           <input value={code} onChange={e => setCode(e.target.value)} placeholder="cth: dus" style={inputStyle} />
@@ -186,11 +186,11 @@ function AddUnitCard({ existing, onDone, onError }: { existing: UnitRow[]; onDon
       </div>
       <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
         <button onClick={submit} disabled={saving || dup}
-          style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, border: "none", background: saving || dup ? "var(--text-muted)" : C.navy, color: "#fff", fontSize: 13, fontWeight: 600, cursor: saving || dup ? "not-allowed" : "pointer" }}>
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6, border: "none", background: saving || dup ? "var(--text-muted)" : C.navy, color: "#fff", fontSize: 13, fontWeight: 600, cursor: saving || dup ? "not-allowed" : "pointer" }}>
           <Save size={14} /> {saving ? "Menyimpan..." : "Simpan"}
         </button>
         <button onClick={() => setOpen(false)}
-          style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 13, cursor: "pointer" }}>
+          style={{ padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 13, cursor: "pointer" }}>
           Batal
         </button>
       </div>
@@ -222,7 +222,7 @@ function UnitRowItem({ unit, canManage, onSaved, onError }: {
 
   const rowStyle: React.CSSProperties = {
     display: "grid", gridTemplateColumns: "120px 90px 1fr 70px 90px", gap: 12,
-    padding: "10px 20px", borderBottom: `1px solid ${C.border}`, alignItems: "center", fontSize: 13,
+    padding: "8px 20px", borderBottom: `1px solid ${C.border}`, alignItems: "center", fontSize: 13,
     opacity: unit.is_active ? 1 : 0.55,
   };
 
@@ -238,9 +238,9 @@ function UnitRowItem({ unit, canManage, onSaved, onError }: {
             {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
           </select>
           <button aria-label="Simpan" onClick={() => patch({ symbol, label, category, sort_order: Number(sortOrder) || 0 })} disabled={busy}
-            title="Simpan" style={{ padding: 7, borderRadius: 7, border: "none", background: C.green, color: "#fff", cursor: "pointer" }}><Check size={14} /></button>
+            title="Simpan" style={{ padding: 6, borderRadius: 6, border: "none", background: C.green, color: "#fff", cursor: "pointer" }}><Check size={14} /></button>
           <button aria-label="Batal" onClick={() => { setEditing(false); setSymbol(unit.symbol); setLabel(unit.label); setCategory(unit.category); setSortOrder(String(unit.sort_order)); }}
-            title="Batal" style={{ padding: 7, borderRadius: 7, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, cursor: "pointer" }}><X size={14} /></button>
+            title="Batal" style={{ padding: 6, borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, cursor: "pointer" }}><X size={14} /></button>
         </div>
       </div>
     );
@@ -248,7 +248,7 @@ function UnitRowItem({ unit, canManage, onSaved, onError }: {
 
   return (
     <div style={rowStyle}>
-      <code style={{ fontSize: 12, color: C.mid, background: "var(--surface-subtle)", padding: "2px 7px", borderRadius: 6, justifySelf: "start" }}>{unit.code}</code>
+      <code style={{ fontSize: 12, color: C.mid, background: "var(--surface-subtle)", padding: "2px 6px", borderRadius: 6, justifySelf: "start" }}>{unit.code}</code>
       <span style={{ fontWeight: 600, color: C.text }}>{unit.symbol}</span>
       <span style={{ color: C.mid }}>
         {unit.label}
@@ -259,10 +259,10 @@ function UnitRowItem({ unit, canManage, onSaved, onError }: {
         {canManage ? (
           <>
             <button aria-label="Edit" onClick={() => setEditing(true)} title="Edit"
-              style={{ padding: "5px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer" }}>Edit</button>
+              style={{ padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer" }}>Edit</button>
             <button aria-label={unit.is_active ? "Nonaktifkan" : "Aktifkan"} onClick={() => patch({ is_active: !unit.is_active })} disabled={busy}
               title={unit.is_active ? "Nonaktifkan" : "Aktifkan"}
-              style={{ padding: 6, borderRadius: 7, border: `1px solid ${C.border}`, background: "var(--surface)", color: unit.is_active ? C.mid : C.green, cursor: "pointer" }}>
+              style={{ padding: 6, borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: unit.is_active ? C.mid : C.green, cursor: "pointer" }}>
               {unit.is_active ? <EyeOff size={13} /> : <Eye size={13} />}
             </button>
           </>

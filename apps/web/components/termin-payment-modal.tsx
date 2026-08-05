@@ -149,7 +149,7 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
   const selectedAccount = cashAccounts.find(a => a.id === cashAccountId);
 
   const inputStyle: React.CSSProperties = {
-    width: "100%", padding: "9px 12px", borderRadius: 8,
+    width: "100%", padding: "8px 12px", borderRadius: 6,
     border: `1px solid ${C.border}`, fontSize: 13, color: C.text,
     outline: "none", boxSizing: "border-box",
   };
@@ -165,8 +165,8 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div style={{
-        background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 520,
-        boxShadow: "0 20px 60px rgba(0,0,0,0.18)",
+        background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 520,
+        boxShadow: "var(--naik-3)",
         display: "flex", flexDirection: "column", maxHeight: "92vh",
       }}>
         {/* Header */}
@@ -175,7 +175,7 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
           padding: "20px 24px 16px",
           borderBottom: `1px solid ${C.border}`,
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{
               width: 36, height: 36, borderRadius: 10, flexShrink: 0,
               background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))",
@@ -213,7 +213,7 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
               <div style={{ fontSize: 11, color: "var(--info)", fontWeight: 600, marginBottom: 2 }}>
                 Nilai Termin
               </div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: C.navy, fontFamily: "var(--font-display)" }}>
+              <div style={{ fontSize: 17, fontWeight: 800, color: C.navy, fontFamily: "var(--font-display)" }}>
                 {fmt(Number(termin.amount))}
               </div>
             </div>
@@ -221,7 +221,7 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
               <div style={{ fontSize: 11, color: "var(--info)", fontWeight: 600, marginBottom: 2 }}>
                 % Kontrak
               </div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: C.navy, fontFamily: "var(--font-display)" }}>
+              <div style={{ fontSize: 17, fontWeight: 800, color: C.navy, fontFamily: "var(--font-display)" }}>
                 {termin.pct_of_contract}%
               </div>
             </div>
@@ -282,12 +282,12 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
               {/* Kas Tujuan */}
               <div>
                 <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 6 }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                     <Wallet size={13} color={C.navy} /> Masuk ke Kas
                   </span>
                 </label>
                 {cashAccounts.length === 0 ? (
-                  <div style={{ padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 12, color: C.muted, background: "var(--surface-subtle)" }}>
+                  <div style={{ padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 12, color: C.muted, background: "var(--surface-subtle)" }}>
                     Memuat akun kas...
                   </div>
                 ) : (
@@ -295,12 +295,12 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
                     {cashAccounts.map(a => (
                       <label key={a.id} style={{
                         display: "flex", alignItems: "center", justifyContent: "space-between",
-                        padding: "10px 14px", borderRadius: 8, cursor: "pointer",
+                        padding: "8px 12px", borderRadius: 6, cursor: "pointer",
                         border: `1.5px solid ${cashAccountId === a.id ? C.navy : C.border}`,
                         background: cashAccountId === a.id ? C.navyLight : "var(--surface)",
                         transition: "all 0.15s",
                       }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           <input
                             type="radio"
                             name="cash_account"
@@ -323,8 +323,8 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
                       </label>
                     ))}
                     <label style={{
-                      display: "flex", alignItems: "center", gap: 10,
-                      padding: "10px 14px", borderRadius: 8, cursor: "pointer",
+                      display: "flex", alignItems: "center", gap: 8,
+                      padding: "8px 12px", borderRadius: 6, cursor: "pointer",
                       border: `1.5px solid ${cashAccountId === "" ? C.border : C.border}`,
                       background: cashAccountId === "" ? "var(--surface-subtle)" : "var(--surface)",
                     }}>
@@ -401,8 +401,8 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
                 {proofFile ? (
                   <div style={{
                     border: `1.5px solid ${C.greenBorder}`, borderRadius: 10,
-                    background: C.greenBg, padding: "12px 14px",
-                    display: "flex", alignItems: "center", gap: 10,
+                    background: C.greenBg, padding: "12px 12px",
+                    display: "flex", alignItems: "center", gap: 8,
                   }}>
                     {proofPreview ? (
                       <img src={proofPreview} alt="preview" style={{ width: 48, height: 48, borderRadius: 6, objectFit: "cover", border: `1px solid ${C.border}` }} />
@@ -490,20 +490,20 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
               {error && (
                 <div style={{
                   background: C.redBg, border: `1px solid ${C.redBorder}`,
-                  borderRadius: 8, padding: "10px 14px", fontSize: 12, color: C.red,
+                  borderRadius: 6, padding: "8px 12px", fontSize: 12, color: C.red,
                 }}>
                   {error}
                 </div>
               )}
 
               {/* Footer */}
-              <div style={{ display: "flex", gap: 10, paddingTop: 4 }}>
+              <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
                 <button
                   type="button"
                   onClick={onClose}
                   disabled={submitting}
                   style={{
-                    flex: 1, padding: "10px", borderRadius: 8, border: `1px solid ${C.border}`,
+                    flex: 1, padding: "8px", borderRadius: 6, border: `1px solid ${C.border}`,
                     background: "var(--surface)", color: C.text, fontSize: 13, fontWeight: 500, cursor: "pointer",
                   }}
                 >
@@ -513,7 +513,7 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
                   type="submit"
                   disabled={submitting}
                   style={{
-                    flex: 2, padding: "10px", borderRadius: 8, border: "none",
+                    flex: 2, padding: "8px", borderRadius: 6, border: "none",
                     background: submitting ? "var(--text-muted)" : C.navy,
                     color: "var(--surface)", fontSize: 13, fontWeight: 600,
                     cursor: submitting ? "not-allowed" : "pointer",

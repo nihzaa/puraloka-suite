@@ -17,7 +17,7 @@ import { C } from "@/lib/warna-ui";
 
 const card: React.CSSProperties = {
   background: C.surface, border: `1px solid ${C.border}`,
-  borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+  borderRadius: 10, boxShadow: "var(--naik-1)",
 };
 
 function fmt(n: number) {
@@ -127,7 +127,7 @@ function KurvaSTab({ projectId }: { projectId: string }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         {[
           { label: "Progress Fisik", value: `${meta.latestActualPct.toFixed(1)}%`, color: C.navy },
           { label: "Target Rencana", value: `${meta.latestRencanaPct.toFixed(1)}%`, color: C.blue },
@@ -147,7 +147,7 @@ function KurvaSTab({ projectId }: { projectId: string }) {
             <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
             <XAxis dataKey="week" tick={{ fontSize: 10, fill: C.muted }} tickLine={false} />
             <YAxis tick={{ fontSize: 10, fill: C.muted }} tickLine={false} tickFormatter={(v) => `${v}%`} domain={[0, 100]} />
-            <Tooltip formatter={(v, name) => [typeof v === "number" ? `${v.toFixed(1)}%` : v, name]} contentStyle={{ fontSize: 12, borderRadius: 8, border: `1px solid ${C.border}` }} />
+            <Tooltip formatter={(v, name) => [typeof v === "number" ? `${v.toFixed(1)}%` : v, name]} contentStyle={{ fontSize: 12, borderRadius: 6, border: `1px solid ${C.border}` }} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
             <Area type="monotone" dataKey="rencana" name="Rencana" stroke={C.navy} strokeDasharray="5 4" strokeWidth={2} fill={C.navyLight} fillOpacity={0.25} dot={false} connectNulls />
             <Line type="monotone" dataKey="progress" name="Progress Fisik" stroke={C.green} strokeWidth={2.5} dot={{ r: 3, fill: C.green }} connectNulls />
@@ -219,13 +219,13 @@ function GanttTab({ projectId }: { projectId: string }) {
                 </span>
               </div>
               {/* Bar area */}
-              <div style={{ flex: 1, position: "relative", height: 20, background: "var(--surface-subtle)", borderRadius: 4, overflow: "hidden" }}>
+              <div style={{ flex: 1, position: "relative", height: 20, background: "var(--surface-subtle)", borderRadius: 6, overflow: "hidden" }}>
                 {/* Today line */}
                 <div style={{ position: "absolute", left: `${todayPct}%`, top: 0, bottom: 0, width: 1, background: C.red, zIndex: 2 }} />
                 {/* Bar */}
                 <div style={{
                   position: "absolute", left: `${left}%`, width: `${width}%`,
-                  top: 3, bottom: 3, background: color, borderRadius: 3, opacity: 0.85,
+                  top: 3, bottom: 3, background: color, borderRadius: 0, opacity: 0.85,
                 }} title={`${fmtDateShort(t.planned_start)} – ${fmtDateShort(t.planned_end)}`} />
                 {/* Progress fill */}
                 {t.progress_pct > 0 && (
@@ -245,7 +245,7 @@ function GanttTab({ projectId }: { projectId: string }) {
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 12, paddingLeft: 200 }}>
           <div style={{ width: 12, height: 2, background: C.red }} />
           <span style={{ fontSize: 10, color: C.muted }}>Hari ini</span>
-          <div style={{ width: 12, height: 8, background: C.green, borderRadius: 2, opacity: 0.6, marginLeft: 10 }} />
+          <div style={{ width: 12, height: 8, background: C.green, borderRadius: 0, opacity: 0.6, marginLeft: 10 }} />
           <span style={{ fontSize: 10, color: C.muted }}>Sudah selesai</span>
         </div>
       </div>
@@ -277,7 +277,7 @@ function FotoTab({ projectId }: { projectId: string }) {
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
         {cats.map(cat => (
           <button key={cat} onClick={() => setFilterCat(cat)} style={{
-            padding: "5px 12px", borderRadius: 99, fontSize: 12,
+            padding: "4px 12px", borderRadius: 99, fontSize: 12,
             background: filterCat === cat ? C.navy : "var(--surface)",
             color: filterCat === cat ? "#fff" : C.mid,
             border: filterCat === cat ? "none" : `1px solid ${C.border}`,
@@ -294,7 +294,7 @@ function FotoTab({ projectId }: { projectId: string }) {
           <div style={{ fontSize: 13, color: C.muted }}>Belum ada foto dokumentasi</div>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
           {filtered.map((photo, idx) => (
             <div
               key={photo.id}
@@ -340,7 +340,7 @@ function FotoTab({ projectId }: { projectId: string }) {
             </button>
           )}
           <div onClick={e => e.stopPropagation()} style={{ maxWidth: "90vw", maxHeight: "85vh" }}>
-            <img src={filtered[lightbox].file_url} alt="" style={{ maxWidth: "90vw", maxHeight: "80vh", borderRadius: 8, objectFit: "contain" }} />
+            <img src={filtered[lightbox].file_url} alt="" style={{ maxWidth: "90vw", maxHeight: "80vh", borderRadius: 6, objectFit: "contain" }} />
             {filtered[lightbox].caption && (
               <div style={{ color: "#ccc", textAlign: "center", marginTop: 10, fontSize: 13 }}>{filtered[lightbox].caption}</div>
             )}
@@ -382,7 +382,7 @@ function DokumenTab({ projectId }: { projectId: string }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       {docs.map(doc => (
-        <div key={doc.id} style={{ ...card, padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+        <div key={doc.id} style={{ ...card, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ width: 38, height: 38, borderRadius: 10, background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <FileText size={17} color={C.navy} />
           </div>
@@ -398,7 +398,7 @@ function DokumenTab({ projectId }: { projectId: string }) {
           <a
             href={doc.file_url}
             target="_blank" rel="noopener noreferrer"
-            style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 7, background: C.navyLight, color: C.navy, fontSize: 12, fontWeight: 600, textDecoration: "none", flexShrink: 0 }}
+            style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", borderRadius: 6, background: C.navyLight, color: C.navy, fontSize: 12, fontWeight: 600, textDecoration: "none", flexShrink: 0 }}
           >
             <Download size={12} /> Unduh
           </a>
@@ -446,7 +446,7 @@ export default function PortalProyekDetailPage() {
   return (
     <div style={{ maxWidth: 800, margin: "0 auto" }}>
       {/* Back */}
-      <button onClick={() => router.back()} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16, background: "none", border: "none", cursor: "pointer", fontSize: 14, color: C.navy, fontWeight: 500, padding: 0 }}>
+      <button onClick={() => router.back()} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16, background: "none", border: "none", cursor: "pointer", fontSize: 13, color: C.navy, fontWeight: 500, padding: 0 }}>
         <ChevronLeft size={16} /> Kembali
       </button>
 
@@ -454,28 +454,28 @@ export default function PortalProyekDetailPage() {
       <div style={{ ...card, padding: 20, marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
           <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text, margin: 0, flex: 1 }}>{project.name}</h1>
-          <span style={{ fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 20, color: meta.color, background: meta.bg, flexShrink: 0 }}>{meta.label}</span>
+          <span style={{ fontSize: 12, fontWeight: 600, padding: "4px 8px", borderRadius: 20, color: meta.color, background: meta.bg, flexShrink: 0 }}>{meta.label}</span>
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 20px", marginTop: 10 }}>
           {project.location && (
-            <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, color: C.mid }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, color: C.mid }}>
               <MapPin size={13} /> {project.location}
             </div>
           )}
-          <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, color: C.mid }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, color: C.mid }}>
             <Calendar size={13} /> {fmtDate(project.start_date)} – {fmtDate(project.end_date)}
           </div>
         </div>
         {/* Progress bar */}
         <div style={{ marginTop: 16 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, color: C.mid }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, color: C.mid }}>
               <TrendingUp size={13} /> Progress Fisik
             </div>
             <span style={{ fontSize: 15, fontWeight: 700, color: C.navy }}>{project.progress_pct ?? 0}%</span>
           </div>
-          <div style={{ height: 8, background: "var(--border)", borderRadius: 4, overflow: "hidden" }}>
-            <div style={{ height: "100%", borderRadius: 4, width: `${project.progress_pct ?? 0}%`, background: C.navy, transition: "width 0.5s ease" }} />
+          <div style={{ height: 8, background: "var(--border)", borderRadius: 6, overflow: "hidden" }}>
+            <div style={{ height: "100%", borderRadius: 6, width: `${project.progress_pct ?? 0}%`, background: C.navy, transition: "width 0.5s ease" }} />
           </div>
         </div>
         <div style={{ marginTop: 14, padding: "12px 16px", background: C.navyLight, borderRadius: 10 }}>
@@ -491,7 +491,7 @@ export default function PortalProyekDetailPage() {
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             style={{
-              padding: "10px 16px", fontSize: 13, fontWeight: activeTab === tab.key ? 600 : 400,
+              padding: "8px 16px", fontSize: 13, fontWeight: activeTab === tab.key ? 600 : 400,
               color: activeTab === tab.key ? C.navy : C.mid,
               borderBottom: activeTab === tab.key ? `2px solid ${C.navy}` : "2px solid transparent",
               background: "none", border: "none", borderRadius: 0,
@@ -520,7 +520,7 @@ export default function PortalProyekDetailPage() {
                 <a
                   href={`https://wa.me/62${project.pm.phone.replace(/^0/, "")}`}
                   target="_blank" rel="noopener noreferrer"
-                  style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 8, padding: "6px 14px", borderRadius: 8, background: "#25D366", color: "var(--surface)", fontSize: 13, fontWeight: 500, textDecoration: "none" }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 8, padding: "6px 12px", borderRadius: 6, background: "#25D366", color: "var(--surface)", fontSize: 13, fontWeight: 500, textDecoration: "none" }}
                 >
                   💬 Hubungi via WhatsApp
                 </a>
@@ -530,14 +530,14 @@ export default function PortalProyekDetailPage() {
           {project.milestones?.length > 0 && (
             <div style={{ ...card, padding: 16 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.05em" }}>Milestone</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {project.milestones.map((m) => {
                   const ms = MILESTONE_STATUS[m.status] ?? MILESTONE_STATUS.pending;
                   return (
-                    <div key={m.id} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                    <div key={m.id} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                       <span style={{ color: ms.color, marginTop: 1, flexShrink: 0 }}>{ms.icon}</span>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 14, fontWeight: 500, color: C.text }}>{m.title}</div>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{m.title}</div>
                         {m.description && <div style={{ fontSize: 12, color: C.mid, marginTop: 1 }}>{m.description}</div>}
                         <div style={{ fontSize: 12, color: C.mid, marginTop: 2 }}>
                           Target: {fmtDateShort(m.target_date)}
@@ -553,7 +553,7 @@ export default function PortalProyekDetailPage() {
           {project.notes && (
             <div style={{ ...card, padding: 16 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>Catatan</div>
-              <div style={{ fontSize: 14, color: C.text, lineHeight: 1.6 }}>{project.notes}</div>
+              <div style={{ fontSize: 13, color: C.text, lineHeight: 1.6 }}>{project.notes}</div>
             </div>
           )}
         </div>
@@ -577,7 +577,7 @@ export default function PortalProyekDetailPage() {
                   )}
                 </div>
                 {log.pct_overall !== null && (
-                  <div style={{ fontSize: 16, fontWeight: 700, color: C.navy, background: C.navyLight, padding: "2px 10px", borderRadius: 20 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: C.navy, background: C.navyLight, padding: "2px 8px", borderRadius: 20 }}>
                     {log.pct_overall}%
                   </div>
                 )}
@@ -602,11 +602,11 @@ export default function PortalProyekDetailPage() {
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <FileText size={15} color={C.navy} />
-                      <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{inv.invoice_number}</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{inv.invoice_number}</span>
                     </div>
                     <div style={{ fontSize: 12, color: C.mid, marginTop: 4 }}>Jatuh tempo: {fmtDateShort(inv.due_date)}</div>
                   </div>
-                  <span style={{ fontSize: 11, fontWeight: 600, padding: "3px 8px", borderRadius: 20, color: st.color, background: st.bg, flexShrink: 0 }}>{st.label}</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20, color: st.color, background: st.bg, flexShrink: 0 }}>{st.label}</span>
                 </div>
                 <div style={{ marginTop: 12, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
                   <div>
@@ -620,7 +620,7 @@ export default function PortalProyekDetailPage() {
                     </div>
                   )}
                   {inv.status === "paid" && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, color: C.green, fontWeight: 600 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, color: C.green, fontWeight: 600 }}>
                       <CheckCircle2 size={15} /> Lunas
                     </div>
                   )}

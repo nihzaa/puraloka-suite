@@ -186,7 +186,7 @@ function EditDateModal({
   }
 
   const inpStyle: React.CSSProperties = {
-    width: "100%", padding: "8px 11px", fontSize: 13, borderRadius: 8,
+    width: "100%", padding: "8px 12px", fontSize: 13, borderRadius: 6,
     border: "1px solid var(--border)", outline: "none", boxSizing: "border-box",
     background: "var(--surface)", color: C.text, fontFamily: "inherit",
   };
@@ -202,20 +202,20 @@ function EditDateModal({
       style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div style={{ background: "var(--surface)", borderRadius: 16, padding: "24px 24px 20px", width: "min(560px, 94vw)", maxHeight: "90vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.18)", display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, padding: "24px 24px 20px", width: "min(560px, 94vw)", maxHeight: "90vh", overflowY: "auto", boxShadow: "var(--naik-3)", display: "flex", flexDirection: "column", gap: 16 }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Edit Timeline</h2>
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>Edit Timeline</h2>
           <p style={{ margin: "3px 0 0", fontSize: 12, color: C.mid }}>
             {task.no_urut ? `${task.no_urut}. ` : ""}{task.uraian}
           </p>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <label htmlFor="planned-start" style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Mulai Rencana</label>
             <input id="planned-start" type="date" value={plannedStart} onChange={e => setPlannedStart(e.target.value)} style={inpStyle} />
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <label htmlFor="planned-end" style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Selesai Rencana</label>
             <input id="planned-end" type="date" value={plannedEnd} onChange={e => setPlannedEnd(e.target.value)} style={inpStyle} />
           </div>
@@ -223,9 +223,9 @@ function EditDateModal({
 
         {/* Aktual info (read-only) */}
         {(task.actual_start || task.actual_end) && (
-          <div style={{ background: C.blueBg, border: `1px solid ${C.blueBorder}`, borderRadius: 8, padding: "10px 14px", fontSize: 12, color: C.blue }}>
+          <div style={{ background: C.blueBg, border: `1px solid ${C.blueBorder}`, borderRadius: 6, padding: "8px 12px", fontSize: 12, color: C.blue }}>
             <div style={{ fontWeight: 600, marginBottom: 6 }}>Tanggal Aktual (dari progress log — read only)</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
               <div>Mulai aktual: <strong>{fmtDate(task.actual_start)}</strong></div>
               {task.actual_end
                 ? <div>✅ Selesai earned: <strong>{fmtDate(task.actual_end)}</strong> <span style={{ color: "var(--info-border)", fontSize: 11 }}>(pertama kali 100%)</span></div>
@@ -257,8 +257,8 @@ function EditDateModal({
                 const checked = isChecked(t.id);
                 const rule = getRule(t.id);
                 return (
-                  <div key={t.id} style={{ borderRadius: 8, border: `1px solid ${checked ? C.navy : "var(--border)"}`, background: checked ? C.navyLight : "transparent", overflow: "hidden" }}>
-                    <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", cursor: "pointer" }}>
+                  <div key={t.id} style={{ borderRadius: 6, border: `1px solid ${checked ? C.navy : "var(--border)"}`, background: checked ? C.navyLight : "transparent", overflow: "hidden" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", cursor: "pointer" }}>
                       <input
                         type="checkbox"
                         checked={checked}
@@ -309,17 +309,17 @@ function EditDateModal({
         </div>
 
         {err && (
-          <div style={{ background: C.redBg, border: `1px solid ${C.redBorder}`, borderRadius: 8, padding: "8px 12px", fontSize: 12, color: C.red }}>
+          <div style={{ background: C.redBg, border: `1px solid ${C.redBorder}`, borderRadius: 6, padding: "8px 12px", fontSize: 12, color: C.red }}>
             {err}
           </div>
         )}
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-          <button onClick={onClose} style={{ padding: "8px 18px", fontSize: 13, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", color: C.mid }}>
+          <button onClick={onClose} style={{ padding: "8px 16px", fontSize: 13, borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", color: C.mid }}>
             Batal
           </button>
           <button onClick={handleSave} disabled={loading}
-            style={{ padding: "8px 18px", fontSize: 13, fontWeight: 600, borderRadius: 8, border: "none", background: C.navy, color: "var(--surface)", cursor: loading ? "default" : "pointer", opacity: loading ? 0.7 : 1 }}>
+            style={{ padding: "8px 16px", fontSize: 13, fontWeight: 600, borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: loading ? "default" : "pointer", opacity: loading ? 0.7 : 1 }}>
             {loading ? "Menyimpan..." : "Simpan"}
           </button>
         </div>
@@ -397,7 +397,7 @@ function GanttBar({ task, minDate, totalDays, dayWidth, warnings, taskMap, onEdi
           right: `${planRight}%`,
           top: barMarginTop,
           height: barHeight,
-          borderRadius: 4,
+          borderRadius: 6,
           border: `2px dashed ${task.level === 1 ? C.navy : task.level === 2 ? "var(--text-secondary)" : "var(--text-muted)"}`,
           background: task.level === 1 ? "var(--navy-light)" : task.level === 2 ? "var(--surface-hover)" : "var(--surface-subtle)",
           opacity: 0.8,
@@ -413,7 +413,7 @@ function GanttBar({ task, minDate, totalDays, dayWidth, warnings, taskMap, onEdi
           right: `${actRight}%`,
           top: barMarginTop + (hasPlan ? 4 : 0),
           height: barHeight - (hasPlan ? 4 : 0),
-          borderRadius: 4,
+          borderRadius: 6,
           background: hasDanger ? C.red : hasWarning
             ? C.yellow
             : task.level === 1 ? C.navy : task.level === 2 ? "var(--text-secondary)" : C.blue,
@@ -437,7 +437,7 @@ function GanttBar({ task, minDate, totalDays, dayWidth, warnings, taskMap, onEdi
               left: 6,
               top: "50%",
               transform: "translateY(-50%)",
-              fontSize: 9,
+              fontSize: 10,
               fontWeight: 700,
               color: "var(--surface)",
               letterSpacing: "0.03em",
@@ -496,12 +496,12 @@ function GanttBar({ task, minDate, totalDays, dayWidth, warnings, taskMap, onEdi
             zIndex: 100,
             background: "var(--text-primary)",
             color: "var(--surface-subtle)",
-            borderRadius: 8,
-            padding: "10px 13px",
+            borderRadius: 6,
+            padding: "8px 12px",
             fontSize: 11,
             lineHeight: 1.6,
             whiteSpace: "nowrap",
-            boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+            boxShadow: "var(--naik-2)",
             pointerEvents: "none",
           }}
         >
@@ -656,7 +656,7 @@ function TodayLine({ minDate, totalDays }: { minDate: Date; totalDays: number })
       pointerEvents: "none",
       zIndex: 5,
     }}>
-      <div style={{ position: "absolute", top: 0, left: -18, fontSize: 9, fontWeight: 700, color: C.red, whiteSpace: "nowrap", background: "var(--surface)", padding: "1px 3px", borderRadius: 3 }}>
+      <div style={{ position: "absolute", top: 0, left: -18, fontSize: 10, fontWeight: 700, color: C.red, whiteSpace: "nowrap", background: "var(--surface)", padding: "0px 2px", borderRadius: 0 }}>
         Hari ini
       </div>
     </div>
@@ -840,28 +840,28 @@ export function GanttSection({ projectId, userRole, projectStart, projectEnd }: 
             <thead>
               <tr style={{ background: "var(--surface-subtle)", borderBottom: "1px solid var(--border)" }}>
                 {["No", "Uraian Pekerjaan", "Bobot %", "Progress %", "Mulai Rencana", "Selesai Rencana", canEdit ? "Edit" : ""].map(h => (
-                  <th key={h} style={{ padding: "8px 10px", textAlign: "left", fontSize: 10, fontWeight: 600, textTransform: "uppercase", color: C.muted }}>{h}</th>
+                  <th key={h} style={{ padding: "8px 8px", textAlign: "left", fontSize: 10, fontWeight: 600, textTransform: "uppercase", color: C.muted }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {tasks.slice(0, 30).map(t => (
                 <tr key={t.id} className="gantt-row" style={{ borderBottom: "1px solid var(--surface-hover)" }}>
-                  <td style={{ padding: "7px 10px", color: C.muted, fontWeight: 600, fontSize: 11 }}>{t.no_urut ?? ""}</td>
-                  <td style={{ padding: "7px 10px", color: C.text, paddingLeft: t.level === 2 ? 24 : t.level === 3 ? 40 : 10 }}>{t.uraian}</td>
-                  <td style={{ padding: "7px 10px", color: C.mid }}>{t.weight_pct > 0 ? `${t.weight_pct.toFixed(2)}%` : "—"}</td>
-                  <td style={{ padding: "7px 10px" }}>
+                  <td style={{ padding: "6px 8px", color: C.muted, fontWeight: 600, fontSize: 11 }}>{t.no_urut ?? ""}</td>
+                  <td style={{ padding: "6px 8px", color: C.text, paddingLeft: t.level === 2 ? 24 : t.level === 3 ? 40 : 10 }}>{t.uraian}</td>
+                  <td style={{ padding: "6px 8px", color: C.mid }}>{t.weight_pct > 0 ? `${t.weight_pct.toFixed(2)}%` : "—"}</td>
+                  <td style={{ padding: "6px 8px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <div style={{ width: 48, height: 4, background: "var(--border)", borderRadius: 2 }}>
-                        <div style={{ width: `${Math.min(100, t.progress_pct)}%`, height: "100%", background: C.navy, borderRadius: 2 }} />
+                      <div style={{ width: 48, height: 4, background: "var(--border)", borderRadius: 0 }}>
+                        <div style={{ width: `${Math.min(100, t.progress_pct)}%`, height: "100%", background: C.navy, borderRadius: 0 }} />
                       </div>
                       <span style={{ fontSize: 11, color: C.mid }}>{t.progress_pct}%</span>
                     </div>
                   </td>
-                  <td style={{ padding: "7px 10px", color: t.planned_start ? C.text : C.muted }}>{fmtDate(t.planned_start)}</td>
-                  <td style={{ padding: "7px 10px", color: t.planned_end ? C.text : C.muted }}>{fmtDate(t.planned_end)}</td>
+                  <td style={{ padding: "6px 8px", color: t.planned_start ? C.text : C.muted }}>{fmtDate(t.planned_start)}</td>
+                  <td style={{ padding: "6px 8px", color: t.planned_end ? C.text : C.muted }}>{fmtDate(t.planned_end)}</td>
                   {canEdit && (
-                    <td style={{ padding: "7px 10px" }}>
+                    <td style={{ padding: "6px 8px" }}>
                       <button aria-label={`Ubah jadwal ${t.uraian}`} onClick={() => setEditingTask(t)}
                         style={{ background: "none", border: "none", cursor: "pointer", color: C.mid, padding: 4 }}>
                         <Settings2 size={13} />
@@ -897,7 +897,7 @@ export function GanttSection({ projectId, userRole, projectStart, projectEnd }: 
           <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>Gantt Chart</h3>
           <span style={{ fontSize: 12, color: C.muted }}>{tasksWithDates.length} item terjadwal</span>
           {warnings.length > 0 && showWarnings && (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600, background: C.yellowBg, color: C.yellow, border: `1px solid ${C.yellowBorder}` }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 2, padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600, background: C.yellowBg, color: C.yellow, border: `1px solid ${C.yellowBorder}` }}>
               <AlertTriangle size={11} /> {warnings.length} potensi overlap
             </span>
           )}
@@ -906,7 +906,7 @@ export function GanttSection({ projectId, userRole, projectStart, projectEnd }: 
           {warnings.length > 0 && (
             <button
               onClick={() => setShowWarnings(w => !w)}
-              style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", fontSize: 11, fontWeight: 600, borderRadius: 6, border: `1px solid ${C.yellowBorder}`, background: showWarnings ? C.yellowBg : "var(--surface)", color: C.yellow, cursor: "pointer" }}
+              style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 8px", fontSize: 11, fontWeight: 600, borderRadius: 6, border: `1px solid ${C.yellowBorder}`, background: showWarnings ? C.yellowBg : "var(--surface)", color: C.yellow, cursor: "pointer" }}
             >
               <AlertTriangle size={11} /> {showWarnings ? "Sembunyikan" : "Tampilkan"} Warning
             </button>
@@ -914,7 +914,7 @@ export function GanttSection({ projectId, userRole, projectStart, projectEnd }: 
           <div style={{ display: "flex", border: "1px solid var(--border)", borderRadius: 6, overflow: "hidden" }}>
             {(["month", "week"] as const).map(mode => (
               <button key={mode} onClick={() => setViewMode(mode)}
-                style={{ padding: "5px 12px", fontSize: 11, fontWeight: 600, border: "none", cursor: "pointer", background: viewMode === mode ? C.navy : "var(--surface)", color: viewMode === mode ? "var(--surface)" : C.mid }}>
+                style={{ padding: "4px 12px", fontSize: 11, fontWeight: 600, border: "none", cursor: "pointer", background: viewMode === mode ? C.navy : "var(--surface)", color: viewMode === mode ? "var(--surface)" : C.mid }}>
                 {mode === "month" ? "Bulan" : "Minggu"}
               </button>
             ))}
@@ -927,7 +927,7 @@ export function GanttSection({ projectId, userRole, projectStart, projectEnd }: 
         <div style={{ marginBottom: 14, display: "flex", flexDirection: "column", gap: 4 }}>
           {warnings.map((w, i) => (
             <div key={i} style={{
-              display: "flex", alignItems: "flex-start", gap: 8, padding: "7px 12px", borderRadius: 8, fontSize: 12,
+              display: "flex", alignItems: "flex-start", gap: 8, padding: "6px 12px", borderRadius: 6, fontSize: 12,
               background: w.severity === "danger" ? C.redBg : C.yellowBg,
               border: `1px solid ${w.severity === "danger" ? C.redBorder : C.yellowBorder}`,
               color: w.severity === "danger" ? C.red : C.yellow,
@@ -1068,23 +1068,23 @@ export function GanttSection({ projectId, userRole, projectStart, projectEnd }: 
         {/* Legend */}
         <div style={{ padding: "8px 16px", borderTop: "1px solid var(--border)", background: "var(--surface-subtle)", display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
           <span style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase" }}>Legenda:</span>
-          <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: C.mid }}>
-            <div style={{ width: 24, height: 8, border: `2px dashed ${C.navy}`, borderRadius: 2, background: "var(--navy-light)" }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: C.mid }}>
+            <div style={{ width: 24, height: 8, border: `2px dashed ${C.navy}`, borderRadius: 0, background: "var(--navy-light)" }} />
             Rencana
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: C.mid }}>
-            <div style={{ width: 24, height: 8, background: C.navy, borderRadius: 2 }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: C.mid }}>
+            <div style={{ width: 24, height: 8, background: C.navy, borderRadius: 0 }} />
             Aktual
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: C.mid }}>
-            <div style={{ width: 24, height: 8, background: C.yellow, borderRadius: 2 }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: C.mid }}>
+            <div style={{ width: 24, height: 8, background: C.yellow, borderRadius: 0 }} />
             Warning
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: C.mid }}>
-            <div style={{ width: 2, height: 16, background: C.red, borderRadius: 1 }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: C.mid }}>
+            <div style={{ width: 2, height: 16, background: C.red, borderRadius: 0 }} />
             Hari ini
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: C.mid }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: C.mid }}>
             <Link2 size={11} color={C.muted} />
             Ada dependency
           </div>

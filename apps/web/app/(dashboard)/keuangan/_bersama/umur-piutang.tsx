@@ -73,7 +73,7 @@ export function UmurPiutang({ buckets, total }: {
     return (
       <div style={{
         padding: "28px 16px", textAlign: "center", color: C.muted, fontSize: 13,
-        background: "var(--surface-subtle)", borderRadius: 12,
+        background: "var(--surface-subtle)", borderRadius: 10,
         border: `1px solid ${C.border}`,
       }}>
         Tidak ada piutang beredar — semua invoice sudah lunas.
@@ -89,7 +89,7 @@ export function UmurPiutang({ buckets, total }: {
   return (
     <div>
       <div style={{
-        display: "flex", alignItems: "baseline", gap: 10,
+        display: "flex", alignItems: "baseline", gap: 8,
         marginBottom: 12, flexWrap: "wrap",
       }}>
         <span style={{
@@ -100,7 +100,7 @@ export function UmurPiutang({ buckets, total }: {
         {lewat > 0 && (
           <span style={{
             marginLeft: "auto", fontSize: 12, fontWeight: 600,
-            padding: "3px 9px", borderRadius: 99,
+            padding: "2px 8px", borderRadius: 99,
             background: C.redBg, color: C.onDangerBg,
             border: `1px solid ${C.redBorder}`,
           }}>
@@ -112,7 +112,7 @@ export function UmurPiutang({ buckets, total }: {
       {/* Satu batang bertumpuk — proporsi terbaca sekaligus, tanpa mata
           harus membandingkan lima batang terpisah. */}
       <div style={{
-        display: "flex", height: 26, borderRadius: 8, overflow: "hidden",
+        display: "flex", height: 26, borderRadius: 6, overflow: "hidden",
         border: `1px solid ${C.border}`, marginBottom: 14,
       }} role="img" aria-label={
         `Umur piutang: ${data.filter((d) => d.amount > 0)
@@ -133,7 +133,7 @@ export function UmurPiutang({ buckets, total }: {
                   teks yang terpotong lebih buruk daripada tak ada teks. */}
               {pct >= 9 && (
                 <span style={{
-                  fontSize: 10.5, fontWeight: 700, color: "#fff",
+                  fontSize: 10, fontWeight: 700, color: "#fff",
                   fontVariantNumeric: "tabular-nums",
                   textShadow: "0 1px 2px rgba(0,0,0,.25)",
                 }}>{Math.round(pct)}%</span>
@@ -146,19 +146,19 @@ export function UmurPiutang({ buckets, total }: {
       {/* Rincian — bukan legenda warna, tapi daftar yang bisa dibaca sendiri.
           Legenda menuntut mata bolak-balik antara warna dan nama; daftar ini
           sudah memuat keduanya berikut angkanya. */}
-      <div style={{ display: "grid", gap: 1, background: C.border, borderRadius: 10, overflow: "hidden" }}>
+      <div style={{ display: "grid", gap: 0, background: C.border, borderRadius: 10, overflow: "hidden" }}>
         {data.map((d) => (
           <div key={d.kunci} style={{
             display: "grid",
             gridTemplateColumns: "12px minmax(0,1fr) auto auto",
-            alignItems: "center", gap: 10,
-            padding: "9px 12px", background: "var(--surface)",
+            alignItems: "center", gap: 8,
+            padding: "8px 12px", background: "var(--surface)",
             opacity: d.amount ? 1 : 0.45,
           }}>
             <span aria-hidden="true" style={{
-              width: 10, height: 10, borderRadius: 3, background: d.warna,
+              width: 10, height: 10, borderRadius: 0, background: d.warna,
             }} />
-            <span style={{ fontSize: 12.5, color: C.text, minWidth: 0 }}>
+            <span style={{ fontSize: 12, color: C.text, minWidth: 0 }}>
               {d.label}
               <span style={{ color: C.muted, fontSize: 11 }}> · {d.ket}</span>
             </span>
@@ -166,7 +166,7 @@ export function UmurPiutang({ buckets, total }: {
               fontSize: 11, color: C.muted, fontVariantNumeric: "tabular-nums",
             }}>{jumlah ? `${Math.round((d.amount / jumlah) * 100)}%` : "—"}</span>
             <span style={{
-              fontSize: 12.5, fontWeight: 600, color: d.amount ? C.text : C.muted,
+              fontSize: 12, fontWeight: 600, color: d.amount ? C.text : C.muted,
               fontVariantNumeric: "tabular-nums", minWidth: 72, textAlign: "right",
             }}>{d.amount ? rp(d.amount) : "—"}</span>
           </div>

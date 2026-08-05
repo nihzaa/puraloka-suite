@@ -24,7 +24,7 @@ const card: React.CSSProperties = {
   background: "var(--surface)",
   border: `1px solid ${C.border}`,
   borderRadius: 14,
-  boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+  boxShadow: "var(--naik-1)",
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -91,11 +91,11 @@ export function ProgressSection({
           gap: 12, marginBottom: 20,
         }}>
           <h2 style={{
-            display: "flex", alignItems: "center", gap: 10,
+            display: "flex", alignItems: "center", gap: 8,
             fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 600,
             color: C.text, margin: 0,
           }}>
-            <span style={{ width: 3, height: 16, background: C.navy, borderRadius: 2, flexShrink: 0 }} />
+            <span style={{ width: 3, height: 16, background: C.navy, borderRadius: 0, flexShrink: 0 }} />
             <TrendingUp size={16} style={{ color: C.navy }} />
             Progress Lapangan
             {total > 0 && !loading && (
@@ -113,7 +113,7 @@ export function ProgressSection({
               onClick={() => setModalOpen(true)}
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "8px 14px", borderRadius: 10, border: "none",
+                padding: "8px 12px", borderRadius: 10, border: "none",
                 background: C.navy, color: "var(--surface)",
                 fontSize: 13, fontWeight: 600, cursor: "pointer",
                 transition: "background 0.15s", flexShrink: 0,

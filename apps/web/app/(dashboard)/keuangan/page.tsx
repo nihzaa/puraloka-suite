@@ -185,7 +185,7 @@ function KeuanganContent() {
                   key={p}
                   onClick={() => setOverviewPeriod(p)}
                   style={{
-                    padding: "6px 14px", borderRadius: 99, border: `1px solid ${active ? C.navy : C.border}`,
+                    padding: "6px 12px", borderRadius: 99, border: `1px solid ${active ? C.navy : C.border}`,
                     background: active ? C.navy : "var(--surface)", color: active ? "var(--surface)" : C.mid,
                     fontSize: 12, fontWeight: active ? 700 : 400, cursor: "pointer",
                     transition: "all 0.15s",
@@ -201,14 +201,14 @@ function KeuanganContent() {
                   type="date"
                   value={overviewFrom}
                   onChange={e => setOverviewFrom(e.target.value)}
-                  style={{ padding: "5px 8px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 12, color: C.text, outline: "none" }}
+                  style={{ padding: "4px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 12, color: C.text, outline: "none" }}
                 />
                 <span style={{ color: C.muted, fontSize: 12 }}>–</span>
                 <input aria-label="Tanggal akhir"
                   type="date"
                   value={overviewTo}
                   onChange={e => setOverviewTo(e.target.value)}
-                  style={{ padding: "5px 8px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 12, color: C.text, outline: "none" }}
+                  style={{ padding: "4px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 12, color: C.text, outline: "none" }}
                 />
               </div>
             )}
@@ -223,7 +223,7 @@ function KeuanganContent() {
         {/* Alert strip */}
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
           {summary && summary.overdueCount > 0 && (
-            <div style={{ padding: "12px 16px", borderRadius: 10, background: C.redBg, border: `1px solid ${C.redBorder}`, display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ padding: "12px 16px", borderRadius: 10, background: C.redBg, border: `1px solid ${C.redBorder}`, display: "flex", alignItems: "center", gap: 8 }}>
               <AlertTriangle size={16} color={C.red} style={{ flexShrink: 0 }} />
               <span style={{ fontSize: 13, fontWeight: 600, color: C.red, flex: 1 }}>
                 {summary.overdueCount} invoice jatuh tempo · Total {fmtCompact(summary.totalOverdue)}
@@ -233,25 +233,25 @@ function KeuanganContent() {
                   `setTab("invoice") + setInvStatusFilter("overdue")` — dan
                   hasilnya tak bisa dibagikan ke siapa pun. */}
               <Link href="/keuangan/invoice?status=overdue"
-                style={{ padding: "5px 12px", borderRadius: 6, border: `1px solid ${C.redBorder}`, background: "var(--surface)", color: C.red, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", textDecoration: "none" }}>
+                style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${C.redBorder}`, background: "var(--surface)", color: C.red, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", textDecoration: "none" }}>
                 Lihat →
               </Link>
             </div>
           )}
           {summary && summary.kasbonPendingCount > 0 && (
-            <div style={{ padding: "12px 16px", borderRadius: 10, background: C.yellowBg, border: `1px solid ${C.yellowBorder}`, display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ padding: "12px 16px", borderRadius: 10, background: C.yellowBg, border: `1px solid ${C.yellowBorder}`, display: "flex", alignItems: "center", gap: 8 }}>
               <Clock size={16} color={C.yellow} style={{ flexShrink: 0 }} />
               <span style={{ fontSize: 13, fontWeight: 600, color: C.yellow, flex: 1 }}>
                 {summary.kasbonPendingCount} kasbon menunggu persetujuan · {fmtCompact(summary.kasbonPendingTotal)}
               </span>
               <Link href="/keuangan/kasbon"
-                style={{ padding: "5px 12px", borderRadius: 6, border: `1px solid ${C.yellowBorder}`, background: "var(--surface)", color: C.yellow, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", textDecoration: "none" }}>
+                style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${C.yellowBorder}`, background: "var(--surface)", color: C.yellow, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", textDecoration: "none" }}>
                 Review →
               </Link>
             </div>
           )}
           {summary && summary.wagePendingCount > 0 && (
-            <div style={{ padding: "12px 16px", borderRadius: 10, background: C.blueBg, border: `1px solid ${C.blueBorder}`, display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ padding: "12px 16px", borderRadius: 10, background: C.blueBg, border: `1px solid ${C.blueBorder}`, display: "flex", alignItems: "center", gap: 8 }}>
               <Banknote size={16} color={C.blue} style={{ flexShrink: 0 }} />
               <span style={{ fontSize: 13, fontWeight: 600, color: C.blue, flex: 1 }}>
                 {summary.wagePendingCount} laporan upah mandor siap dibayar · {fmtCompact(summary.wagePendingTotal)}
@@ -266,7 +266,7 @@ function KeuanganContent() {
             <h3 style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
               <Wallet size={14} color={C.navy} /> Saldo Kas Real-time
             </h3>
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {summary.cashAccounts.map(acc => {
                 // Bercabang pada `acc.type` langsung, bukan menebak lewat
                 // warna. Versi sebelumnya menulis
@@ -280,9 +280,9 @@ function KeuanganContent() {
                 const typeBorder = acc.type === "petty_cash" ? C.greenBorder : C.blueBorder;
                 const typeLabel = acc.type === "main" ? "Kas Utama" : acc.type === "collector" ? "Kolektor" : "Kas Kecil";
                 return (
-                  <div key={acc.id} style={{ flex: 1, minWidth: 160, padding: "14px 16px", borderRadius: 12, border: `1px solid ${typeBorder}`, background: "var(--surface)" }}>
+                  <div key={acc.id} style={{ flex: 1, minWidth: 160, padding: "12px 16px", borderRadius: 10, border: `1px solid ${typeBorder}`, background: "var(--surface)" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                      <div style={{ width: 28, height: 28, borderRadius: 8, background: typeBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <div style={{ width: 28, height: 28, borderRadius: 6, background: typeBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
                         <Wallet size={13} color={typeColor} />
                       </div>
                       <div>
@@ -290,7 +290,7 @@ function KeuanganContent() {
                         <div style={{ fontSize: 10, color: typeColor, fontWeight: 600 }}>{typeLabel}</div>
                       </div>
                     </div>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: acc.balance < 0 ? C.red : C.text, fontFamily: "var(--font-display)" }}>
+                    <div style={{ fontSize: 17, fontWeight: 800, color: acc.balance < 0 ? C.red : C.text, fontFamily: "var(--font-display)" }}>
                       {fmtCompact(Number(acc.balance))}
                     </div>
                   </div>
@@ -306,11 +306,11 @@ function KeuanganContent() {
             <h3 style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 12 }}>
               Rincian Biaya — {summary.periodLabel ?? "Periode ini"}
             </h3>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
 
               {/* Group 1: Biaya Tenaga Kerja */}
-              <div style={{ padding: "16px 18px", borderRadius: 12, border: `1px solid ${C.blueBorder}`, background: C.blueBg }}>
-                <h4 style={{ fontSize: 11, fontWeight: 700, color: C.blue, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 5 }}>
+              <div style={{ padding: "16px 16px", borderRadius: 10, border: `1px solid ${C.blueBorder}`, background: C.blueBg }}>
+                <h4 style={{ fontSize: 11, fontWeight: 700, color: C.blue, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 4 }}>
                   <Banknote size={12} color={C.blue} /> Biaya Tenaga Kerja
                 </h4>
                 {[
@@ -328,13 +328,13 @@ function KeuanganContent() {
                 ))}
                 <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 8, marginTop: 4, borderTop: `2px solid ${C.blueBorder}` }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: C.blue }}>Total Labor</span>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: C.blue, fontFamily: "var(--font-display)" }}>{fmtCompact(summary.laborCost ?? 0)}</span>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: C.blue, fontFamily: "var(--font-display)" }}>{fmtCompact(summary.laborCost ?? 0)}</span>
                 </div>
               </div>
 
               {/* Group 2: Material & Operasional */}
-              <div style={{ padding: "16px 18px", borderRadius: 12, border: `1px solid ${C.redBorder}`, background: C.redBg }}>
-                <h4 style={{ fontSize: 11, fontWeight: 700, color: C.red, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 5 }}>
+              <div style={{ padding: "16px 16px", borderRadius: 10, border: `1px solid ${C.redBorder}`, background: C.redBg }}>
+                <h4 style={{ fontSize: 11, fontWeight: 700, color: C.red, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 4 }}>
                   <Receipt size={12} color={C.red} /> Material & Operasional
                 </h4>
                 {[
@@ -352,13 +352,13 @@ function KeuanganContent() {
                 ))}
                 <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 8, marginTop: 4, borderTop: `2px solid ${C.redBorder}` }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: C.red }}>Total Non-Labor</span>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: C.red, fontFamily: "var(--font-display)" }}>{fmtCompact(summary.nonLaborCost ?? 0)}</span>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: C.red, fontFamily: "var(--font-display)" }}>{fmtCompact(summary.nonLaborCost ?? 0)}</span>
                 </div>
               </div>
 
               {/* Group 3: Advance Mandor */}
-              <div style={{ padding: "16px 18px", borderRadius: 12, border: `1px solid ${C.yellowBorder}`, background: C.yellowBg }}>
-                <h4 style={{ fontSize: 11, fontWeight: 700, color: C.yellow, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 5 }}>
+              <div style={{ padding: "16px 16px", borderRadius: 10, border: `1px solid ${C.yellowBorder}`, background: C.yellowBg }}>
+                <h4 style={{ fontSize: 11, fontWeight: 700, color: C.yellow, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 4 }}>
                   <ArrowUpRight size={12} color={C.yellow} /> Advance Mandor (Uang Muka)
                 </h4>
                 <div style={{ padding: "5px 0", borderBottom: "1px solid rgba(253,230,138,0.5)" }}>
@@ -384,7 +384,7 @@ function KeuanganContent() {
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 8, marginTop: 4, borderTop: `2px solid ${C.yellowBorder}` }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: C.yellow }}>Net Advance</span>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: C.yellow, fontFamily: "var(--font-display)" }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: C.yellow, fontFamily: "var(--font-display)" }}>
                     {fmtCompact(Math.max(0, (summary.advanceBeredar ?? 0) - (summary.kasbonSettledPeriod ?? 0)))}
                   </span>
                 </div>
@@ -396,18 +396,18 @@ function KeuanganContent() {
             <div style={{ marginTop: 12, padding: "12px 16px", borderRadius: 10, background: "var(--surface)", border: `1px solid ${C.border}`, display: "flex", gap: 24, flexWrap: "wrap" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 12, color: C.muted }}>Total Biaya Nyata:</span>
-                <span style={{ fontSize: 16, fontWeight: 800, color: C.red, fontFamily: "var(--font-display)" }}>{fmtCompact(summary.totalKeluar ?? summary.keluarThisMonth)}</span>
+                <span style={{ fontSize: 15, fontWeight: 800, color: C.red, fontFamily: "var(--font-display)" }}>{fmtCompact(summary.totalKeluar ?? summary.keluarThisMonth)}</span>
                 <span style={{ fontSize: 10, color: C.muted }}>(labor + material + ops)</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 12, color: C.muted }}>Advance Beredar:</span>
-                <span style={{ fontSize: 16, fontWeight: 800, color: C.yellow, fontFamily: "var(--font-display)" }}>{fmtCompact(summary.advanceBeredar ?? 0)}</span>
+                <span style={{ fontSize: 15, fontWeight: 800, color: C.yellow, fontFamily: "var(--font-display)" }}>{fmtCompact(summary.advanceBeredar ?? 0)}</span>
                 <span style={{ fontSize: 10, color: C.muted }}>(tidak termasuk biaya)</span>
               </div>
             </div>
 
             {/* Ringkasan Invoice di bawah breakdown */}
-            <div style={{ marginTop: 14, padding: "14px 18px", borderRadius: 12, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
+            <div style={{ marginTop: 14, padding: "12px 16px", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
               <h4 style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 10px" }}>
                 Ringkasan Invoice
               </h4>
@@ -418,7 +418,7 @@ function KeuanganContent() {
                   { label: "Belum Lunas", value: summary.totalOutstanding, color: C.yellow },
                   { label: "Jatuh Tempo", value: summary.totalOverdue, color: C.red },
                 ].map(row => (
-                  <div key={row.label} style={{ padding: "10px 12px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface-subtle)" }}>
+                  <div key={row.label} style={{ padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface-subtle)" }}>
                     <div style={{ fontSize: 10, color: C.muted, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>{row.label}</div>
                     <div style={{ fontSize: 15, fontWeight: 800, color: row.color, fontFamily: "var(--font-display)" }}>{fmtCompact(row.value)}</div>
                   </div>
@@ -433,11 +433,11 @@ function KeuanganContent() {
           <Activity size={14} color={C.navy} /> Cashflow — {summary?.periodLabel ?? "Periode ini"}
         </h3>
         {cashflow.length === 0 ? (
-          <div style={{ height: 260, display: "flex", alignItems: "center", justifyContent: "center", color: C.muted, fontSize: 13, background: "var(--surface-subtle)", borderRadius: 12, border: `1px solid ${C.border}` }}>
+          <div style={{ height: 260, display: "flex", alignItems: "center", justifyContent: "center", color: C.muted, fontSize: 13, background: "var(--surface-subtle)", borderRadius: 10, border: `1px solid ${C.border}` }}>
             {loadingSummary ? "Memuat data cashflow..." : "Tidak ada data cashflow untuk periode ini."}
           </div>
         ) : (
-          <div style={{ background: "var(--surface-subtle)", borderRadius: 12, border: `1px solid ${C.border}`, padding: "16px 8px 8px" }}>
+          <div style={{ background: "var(--surface-subtle)", borderRadius: 10, border: `1px solid ${C.border}`, padding: "16px 8px 8px" }}>
             <ResponsiveContainer width="100%" height={260}>
               <ComposedChart data={cashflow} margin={{ top: 4, right: 16, bottom: 4, left: 0 }}>
                 {/* Gradasi pada batang: pekat di pangkal, memudar ke atas.
@@ -489,7 +489,7 @@ function KeuanganContent() {
         </h3>
         {umurMemuat ? (
           <div aria-hidden="true" style={{
-            height: 190, borderRadius: 12,
+            height: 190, borderRadius: 10,
             background: "var(--surface-subtle)", border: `1px solid ${C.border}`,
           }} />
         ) : (

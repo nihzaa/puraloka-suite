@@ -185,7 +185,7 @@ export function DocumentSection({ projectId, userRole }: Props) {
     <div>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{
             width: 36, height: 36, borderRadius: 10,
             background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))",
@@ -203,7 +203,7 @@ export function DocumentSection({ projectId, userRole }: Props) {
             onClick={() => setShowUploadModal(true)}
             style={{
               display: "flex", alignItems: "center", gap: 6,
-              padding: "8px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+              padding: "8px 12px", borderRadius: 6, fontSize: 12, fontWeight: 600,
               background: C.navy, color: "var(--surface)", border: "none", cursor: "pointer",
             }}
             onMouseEnter={e => { e.currentTarget.style.background = "var(--aksen-pekat)"; }}
@@ -216,12 +216,12 @@ export function DocumentSection({ projectId, userRole }: Props) {
 
       {/* Messages */}
       {successMsg && (
-        <div style={{ marginBottom: 12, padding: "10px 14px", borderRadius: 8, background: C.greenBg, border: `1px solid ${C.greenBorder}`, fontSize: 13, color: C.green, fontWeight: 500 }}>
+        <div style={{ marginBottom: 12, padding: "8px 12px", borderRadius: 6, background: C.greenBg, border: `1px solid ${C.greenBorder}`, fontSize: 13, color: C.green, fontWeight: 500 }}>
           {successMsg}
         </div>
       )}
       {error && (
-        <div style={{ marginBottom: 12, padding: "10px 14px", borderRadius: 8, background: C.redBg, border: `1px solid ${C.redBorder}`, fontSize: 13, color: C.red }}>
+        <div style={{ marginBottom: 12, padding: "8px 12px", borderRadius: 6, background: C.redBg, border: `1px solid ${C.redBorder}`, fontSize: 13, color: C.red }}>
           {error}
         </div>
       )}
@@ -238,7 +238,7 @@ export function DocumentSection({ projectId, userRole }: Props) {
                 key={tab}
                 onClick={() => setFilterType(tab)}
                 style={{
-                  padding: "5px 10px", borderRadius: 20, fontSize: 11, fontWeight: isActive ? 700 : 500, cursor: "pointer",
+                  padding: "4px 8px", borderRadius: 20, fontSize: 11, fontWeight: isActive ? 700 : 500, cursor: "pointer",
                   border: `1px solid ${isActive ? C.navy : "var(--border)"}`,
                   background: isActive ? C.navy : "var(--surface)",
                   color: isActive ? "var(--surface)" : C.mid,
@@ -257,7 +257,7 @@ export function DocumentSection({ projectId, userRole }: Props) {
       ) : docs.length === 0 ? (
         <div style={{
           padding: "32px 24px", textAlign: "center",
-          border: "2px dashed var(--border)", borderRadius: 12, background: "var(--surface-subtle)",
+          border: "2px dashed var(--border)", borderRadius: 10, background: "var(--surface-subtle)",
           cursor: canEdit ? "pointer" : "default",
         }}
           role={canEdit ? "button" : undefined}
@@ -271,7 +271,7 @@ export function DocumentSection({ projectId, userRole }: Props) {
           }}
         >
           <FileText size={28} color={C.muted} style={{ marginBottom: 10 }} />
-          <p style={{ fontSize: 14, fontWeight: 600, color: C.text, marginBottom: 4 }}>Belum ada dokumen</p>
+          <p style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4 }}>Belum ada dokumen</p>
           <p style={{ fontSize: 12, color: C.muted }}>
             {canEdit ? "Klik untuk upload dokumen (PDF, gambar, Word)" : "Belum ada dokumen untuk proyek ini"}
           </p>
@@ -292,7 +292,7 @@ export function DocumentSection({ projectId, userRole }: Props) {
               }}>
                 {/* Icon */}
                 <div style={{
-                  width: 36, height: 36, borderRadius: 8, flexShrink: 0,
+                  width: 36, height: 36, borderRadius: 6, flexShrink: 0,
                   background: typeColor.bg, border: "1px solid var(--border)",
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
@@ -304,14 +304,14 @@ export function DocumentSection({ projectId, userRole }: Props) {
                   <p style={{ fontSize: 13, fontWeight: 600, color: C.text, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {doc.title}
                     {doc.version && doc.version !== "1.0" && (
-                      <span style={{ marginLeft: 6, fontSize: 10, background: "var(--surface-hover)", color: C.mid, padding: "1px 5px", borderRadius: 4, fontWeight: 600 }}>
+                      <span style={{ marginLeft: 6, fontSize: 10, background: "var(--surface-hover)", color: C.mid, padding: "0px 4px", borderRadius: 6, fontWeight: 600 }}>
                         v{doc.version}
                       </span>
                     )}
                   </p>
                   <p style={{ fontSize: 11, color: C.muted, margin: "3px 0 0", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                     <span style={{
-                      display: "inline-block", padding: "1px 7px", borderRadius: 10,
+                      display: "inline-block", padding: "0px 6px", borderRadius: 10,
                       background: typeColor.bg, color: typeColor.color, fontWeight: 700, fontSize: 10,
                     }}>
                       {DOC_TYPE_LABELS[doc.doc_type] ?? doc.doc_type}
@@ -323,8 +323,8 @@ export function DocumentSection({ projectId, userRole }: Props) {
                     {/* Visibility badge */}
                     {canEdit && (
                       <span style={{
-                        display: "inline-flex", alignItems: "center", gap: 3,
-                        padding: "1px 6px", borderRadius: 10, fontSize: 10, fontWeight: 600,
+                        display: "inline-flex", alignItems: "center", gap: 2,
+                        padding: "0px 6px", borderRadius: 10, fontSize: 10, fontWeight: 600,
                         background: doc.is_visible_to_client ? C.greenBg : "var(--surface-hover)",
                         color: doc.is_visible_to_client ? C.green : C.muted,
                         border: `1px solid ${doc.is_visible_to_client ? C.greenBorder : "var(--border)"}`,
@@ -336,7 +336,7 @@ export function DocumentSection({ projectId, userRole }: Props) {
                 </div>
 
                 {/* Actions */}
-                <div style={{ display: "flex", gap: 5, flexShrink: 0, alignItems: "center" }}>
+                <div style={{ display: "flex", gap: 4, flexShrink: 0, alignItems: "center" }}>
                   {/* Toggle visibility (admin/pm only) */}
                   {canEdit && (
                     <button aria-label={doc.is_visible_to_client ? "Sembunyikan dari klien" : "Tampilkan ke klien"}
@@ -362,7 +362,7 @@ export function DocumentSection({ projectId, userRole }: Props) {
                     onClick={() => logAccess(doc.id, "view")}
                     style={{
                       display: "flex", alignItems: "center", gap: 4,
-                      padding: "6px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+                      padding: "6px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600,
                       background: C.navyLight, color: C.navy, border: "none",
                       textDecoration: "none", cursor: "pointer",
                     }}
@@ -458,8 +458,8 @@ function UploadModalContent({
   const canSubmit = !!uploadFile && uploadTitle.trim().length > 0 && !uploading;
 
   const inpStyle: React.CSSProperties = {
-    width: "100%", padding: "9px 12px", border: "1px solid var(--border)",
-    borderRadius: 8, fontSize: 13, color: "var(--text-primary)", outline: "none",
+    width: "100%", padding: "8px 12px", border: "1px solid var(--border)",
+    borderRadius: 6, fontSize: 13, color: "var(--text-primary)", outline: "none",
     boxSizing: "border-box",
   };
 
@@ -473,13 +473,13 @@ function UploadModalContent({
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div style={{
-        background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 480,
-        boxShadow: "0 20px 60px rgba(0,0,0,0.18)",
+        background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 480,
+        boxShadow: "var(--naik-3)",
         display: "flex", flexDirection: "column", maxHeight: "90vh",
       }}>
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: "1px solid var(--border)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Upload size={17} color="var(--surface)" />
             </div>
@@ -515,7 +515,7 @@ function UploadModalContent({
           </div>
 
           {/* Visibility */}
-          <label htmlFor="upload-visible-klien" style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "10px 12px", borderRadius: 8, border: `1px solid ${uploadVisible ? C.greenBorder : "var(--border)"}`, background: uploadVisible ? C.greenBg : "var(--surface-subtle)" }}>
+          <label htmlFor="upload-visible-klien" style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", padding: "8px 12px", borderRadius: 6, border: `1px solid ${uploadVisible ? C.greenBorder : "var(--border)"}`, background: uploadVisible ? C.greenBg : "var(--surface-subtle)" }}>
             <input id="upload-visible-klien" type="checkbox" checked={uploadVisible} onChange={e => setUploadVisible(e.target.checked)} style={{ accentColor: C.green, width: 15, height: 15 }} />
             <div>
               <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>Tampilkan ke Klien</div>
@@ -537,7 +537,7 @@ function UploadModalContent({
               }}
             />
             {uploadFile ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderRadius: 10, background: C.greenBg, border: `1.5px solid ${C.greenBorder}` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 12px", borderRadius: 10, background: C.greenBg, border: `1.5px solid ${C.greenBorder}` }}>
                 <File size={20} color={C.green} style={{ flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{uploadFile.name}</div>
@@ -566,20 +566,20 @@ function UploadModalContent({
           </div>
 
           {uploadError && (
-            <div style={{ padding: "10px 14px", borderRadius: 8, background: C.redBg, border: `1px solid ${C.redBorder}`, fontSize: 13, color: C.red }}>
+            <div style={{ padding: "8px 12px", borderRadius: 6, background: C.redBg, border: `1px solid ${C.redBorder}`, fontSize: 13, color: C.red }}>
               {uploadError}
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div style={{ display: "flex", gap: 10, padding: "16px 24px", borderTop: "1px solid var(--surface-hover)" }}>
+        <div style={{ display: "flex", gap: 8, padding: "16px 24px", borderTop: "1px solid var(--surface-hover)" }}>
           <button onClick={onClose} disabled={uploading}
-            style={{ flex: 1, padding: "10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 13, color: "var(--text-secondary)", cursor: "pointer", fontWeight: 500 }}>
+            style={{ flex: 1, padding: "8px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 13, color: "var(--text-secondary)", cursor: "pointer", fontWeight: 500 }}>
             Batal
           </button>
           <button onClick={onSubmit} disabled={!canSubmit}
-            style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: canSubmit ? C.navy : "var(--text-muted)", color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: canSubmit ? "pointer" : "not-allowed" }}
+            style={{ flex: 2, padding: "8px", borderRadius: 6, border: "none", background: canSubmit ? C.navy : "var(--text-muted)", color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: canSubmit ? "pointer" : "not-allowed" }}
             onMouseEnter={e => { if (canSubmit) e.currentTarget.style.background = "var(--aksen-pekat)"; }}
             onMouseLeave={e => { if (canSubmit) e.currentTarget.style.background = C.navy; }}
           >

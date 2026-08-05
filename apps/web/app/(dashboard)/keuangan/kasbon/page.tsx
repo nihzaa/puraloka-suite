@@ -145,7 +145,7 @@ export default function KasbonPage() {
     <div style={{ padding: 20 }}>
       {galat && (
         <div role="alert" style={{
-          padding: "12px 14px", borderRadius: 10, marginBottom: 14,
+          padding: "12px 12px", borderRadius: 10, marginBottom: 14,
           background: C.redBg, border: `1px solid ${C.redBorder}`,
           color: C.onDangerBg, fontSize: 13,
           display: "flex", alignItems: "center", gap: 8,
@@ -153,7 +153,7 @@ export default function KasbonPage() {
           <AlertTriangle size={14} aria-hidden="true" style={{ flexShrink: 0 }} />
           {galat}
           <button onClick={() => { setGalat(null); loadKasbons(); }} style={{
-            marginLeft: "auto", padding: "2px 9px", borderRadius: 6,
+            marginLeft: "auto", padding: "2px 8px", borderRadius: 6,
             border: `1px solid ${C.redBorder}`, background: "transparent",
             color: C.onDangerBg, fontSize: 12, fontWeight: 600, cursor: "pointer",
           }}>Coba lagi</button>
@@ -163,13 +163,13 @@ export default function KasbonPage() {
 
         {/* Kasbon type switcher: Mandor vs Tukang */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-          <div style={{ display: "flex", borderRadius: 8, border: `1px solid ${C.border}`, overflow: "hidden" }}>
+          <div style={{ display: "flex", borderRadius: 6, border: `1px solid ${C.border}`, overflow: "hidden" }}>
             {(["mandor", "tukang"] as const).map(kt => (
               <button
                 key={kt}
                 onClick={() => setKasbonType(kt)}
                 style={{
-                  padding: "7px 18px", border: "none", cursor: "pointer",
+                  padding: "6px 16px", border: "none", cursor: "pointer",
                   background: kasbonType === kt ? C.navy : "var(--surface)",
                   color: kasbonType === kt ? "var(--surface)" : C.mid,
                   fontSize: 13, fontWeight: kasbonType === kt ? 700 : 400,
@@ -186,7 +186,7 @@ export default function KasbonPage() {
           <div style={{ flex: 1 }} />
           {canEdit && kasbonType === "mandor" && (
             <button onClick={() => setShowAddKasbon(true)}
-              style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, border: "none", background: C.navy, color: "var(--surface)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
               onMouseEnter={e => { e.currentTarget.style.background = "var(--aksen-pekat)"; }}
               onMouseLeave={e => { e.currentTarget.style.background = C.navy; }}>
               <Plus size={13} /> Tambah Kasbon
@@ -200,7 +200,7 @@ export default function KasbonPage() {
         <div style={{ display: "flex", alignItems: "center", gap: 0, marginBottom: 20, borderBottom: `1px solid ${C.border}` }}>
           {(["daftar", "summary"] as const).map(st => (
             <button key={st} onClick={() => setKasbonSubTab(st)} style={{
-              padding: "8px 18px", border: "none", background: "transparent", cursor: "pointer",
+              padding: "8px 16px", border: "none", background: "transparent", cursor: "pointer",
               fontSize: 13, fontWeight: kasbonSubTab === st ? 600 : 400,
               color: kasbonSubTab === st ? C.navy : C.mid,
               borderBottom: `2px solid ${kasbonSubTab === st ? C.navy : "transparent"}`,
@@ -213,14 +213,14 @@ export default function KasbonPage() {
 
         {/* Pending alert banner */}
         {kasbons.filter(k => k.status === "pending").length > 0 && (
-          <div style={{ marginBottom: 16, padding: "12px 16px", borderRadius: 10, background: C.yellowBg, border: `1px solid ${C.yellowBorder}`, display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ marginBottom: 16, padding: "12px 16px", borderRadius: 10, background: C.yellowBg, border: `1px solid ${C.yellowBorder}`, display: "flex", alignItems: "center", gap: 8 }}>
             <Clock size={15} color={C.yellow} style={{ flexShrink: 0 }} />
             <span style={{ fontSize: 13, fontWeight: 600, color: C.yellow, flex: 1 }}>
               {kasbons.filter(k => k.status === "pending").length} kasbon menunggu persetujuan Anda
               {" · "}{fmt(kasbons.filter(k => k.status === "pending").reduce((s, k) => s + Number(k.amount), 0))}
             </span>
             <button onClick={() => { setKasbonSubTab("daftar"); setKasbonStatusFilter("pending"); }}
-              style={{ padding: "5px 12px", borderRadius: 6, border: `1px solid ${C.yellowBorder}`, background: "var(--surface)", color: C.yellow, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+              style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${C.yellowBorder}`, background: "var(--surface)", color: C.yellow, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
               Review →
             </button>
           </div>
@@ -229,16 +229,16 @@ export default function KasbonPage() {
         {/* ── Sub-tab: Daftar ── */}
         {kasbonSubTab === "daftar" && (
           <>
-            <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
               <select aria-label="Saring status kasbon" value={kasbonStatusFilter} onChange={e => setKasbonStatusFilter(e.target.value)}
-                style={{ padding: "7px 11px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, color: C.text, background: "var(--surface)", outline: "none" }}>
+                style={{ padding: "6px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, color: C.text, background: "var(--surface)", outline: "none" }}>
                 <option value="all">Semua Status</option>
                 <option value="pending">Menunggu Persetujuan</option>
                 <option value="approved">Disetujui</option>
                 <option value="rejected">Ditolak</option>
                 <option value="settled">Settled</option>
               </select>
-              <button onClick={() => loadKasbons()} style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 11px", border: `1px solid ${C.border}`, borderRadius: 8, background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer" }}>
+              <button onClick={() => loadKasbons()} style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", border: `1px solid ${C.border}`, borderRadius: 6, background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer" }}>
                 <RefreshCw size={13} /> Refresh
               </button>
               {kasbons.length > 0 && (
@@ -249,7 +249,7 @@ export default function KasbonPage() {
             </div>
 
             {loadingKasbon ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {[1,2,3].map(i => <div key={i} style={{ padding: 16, borderRadius: 10, border: `1px solid ${C.border}` }}><Skeleton h={14} /></div>)}
               </div>
             ) : kasbons.length === 0 ? (
@@ -259,14 +259,14 @@ export default function KasbonPage() {
                 <p>Belum ada kasbon yang tercatat.</p>
               </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {kasbons.map(k => {
                   const ma = k.work_scopes?.mandor_assignments?.[0];
                   const project = ma?.projects;
                   const mandor = ma?.mandor;
                   return (
                     <div key={k.id} style={{
-                      padding: "14px 16px", borderRadius: 12,
+                      padding: "12px 16px", borderRadius: 10,
                       border: `1px solid ${k.status === "pending" ? C.yellowBorder : C.border}`,
                       background: k.status === "pending" ? C.yellowBg : "var(--surface-subtle)",
                     }}>
@@ -274,10 +274,10 @@ export default function KasbonPage() {
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
                             <StatusBadge status={k.status} map={KASBON_STATUS} />
-                            <span style={{ fontSize: 11, color: C.muted, background: "var(--surface-hover)", padding: "2px 8px", borderRadius: 4 }}>
+                            <span style={{ fontSize: 11, color: C.muted, background: "var(--surface-hover)", padding: "2px 8px", borderRadius: 6 }}>
                               {FUND_SOURCE_LABEL[k.fund_source] ?? k.fund_source}
                             </span>
-                            <span style={{ fontSize: 11, fontWeight: 600, color: C.navy, background: C.navyLight, padding: "2px 8px", borderRadius: 4 }}>
+                            <span style={{ fontSize: 11, fontWeight: 600, color: C.navy, background: C.navyLight, padding: "2px 8px", borderRadius: 6 }}>
                               {PURPOSE_LABEL[k.purpose] ?? k.purpose}
                             </span>
                           </div>
@@ -294,33 +294,33 @@ export default function KasbonPage() {
                             {k.approver && k.status === "approved" && <span style={{ color: C.green }}>✓ disetujui {k.approver.name}</span>}
                           </div>
                           {k.cash_account && k.status === "approved" && (
-                            <div style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, marginTop: 4, padding: "2px 8px", borderRadius: 4, background: C.navyLight, color: C.navy, fontWeight: 600 }}>
+                            <div style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, marginTop: 4, padding: "2px 8px", borderRadius: 6, background: C.navyLight, color: C.navy, fontWeight: 600 }}>
                               <Wallet size={10} /> {k.cash_account.name}
                             </div>
                           )}
                           {k.notes && <div style={{ fontSize: 12, color: C.mid, marginTop: 4, fontStyle: "italic" }}>"{k.notes}"</div>}
                         </div>
                         <div style={{ textAlign: "right", flexShrink: 0 }}>
-                          <div style={{ fontSize: 18, fontWeight: 800, color: k.status === "pending" ? C.yellow : C.text, fontFamily: "var(--font-display)", marginBottom: 8 }}>
+                          <div style={{ fontSize: 17, fontWeight: 800, color: k.status === "pending" ? C.yellow : C.text, fontFamily: "var(--font-display)", marginBottom: 8 }}>
                             {fmt(Number(k.amount))}
                           </div>
                           {canEdit && k.status === "pending" && approvingKasbonId !== k.id && (
                             <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
                               <button onClick={() => handleKasbonAction(k.id, "rejected")}
-                                style={{ padding: "5px 11px", borderRadius: 6, border: `1px solid ${C.redBorder}`, background: C.redBg, color: C.red, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+                                style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${C.redBorder}`, background: C.redBg, color: C.red, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
                                 Tolak
                               </button>
                               <button onClick={() => openKasbonApprove(k.id)}
-                                style={{ padding: "5px 11px", borderRadius: 6, border: "none", background: C.green, color: "var(--surface)", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+                                style={{ padding: "4px 12px", borderRadius: 6, border: "none", background: C.green, color: "var(--surface)", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
                                 ✓ Setujui
                               </button>
                             </div>
                           )}
                           {canEdit && k.status === "pending" && approvingKasbonId === k.id && (
-                            <div style={{ marginTop: 8, padding: "10px 12px", borderRadius: 10, background: C.greenBg, border: `1px solid ${C.greenBorder}`, textAlign: "left", minWidth: 230 }}>
+                            <div style={{ marginTop: 8, padding: "8px 12px", borderRadius: 10, background: C.greenBg, border: `1px solid ${C.greenBorder}`, textAlign: "left", minWidth: 230 }}>
                               <div style={{ fontSize: 11, fontWeight: 600, color: C.green, marginBottom: 6 }}>Potong dari kas:</div>
                               <select aria-label="Sumber kas pembayaran kasbon" value={kasbonCashAccountId} onChange={e => setKasbonCashAccountId(e.target.value)}
-                                style={{ width: "100%", padding: "7px 9px", border: `1px solid ${C.border}`, borderRadius: 7, fontSize: 12, background: "var(--surface)", outline: "none", marginBottom: 8, boxSizing: "border-box" }}>
+                                style={{ width: "100%", padding: "6px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 12, background: "var(--surface)", outline: "none", marginBottom: 8, boxSizing: "border-box" }}>
                                 <option value="">— Tanpa potong kas —</option>
                                 {kasbonCashAccounts.map(a => (
                                   <option key={a.id} value={a.id}>{a.name} · {fmtCompact(Number(a.balance))}</option>
@@ -349,7 +349,7 @@ export default function KasbonPage() {
           <div>
             {loadingKasbon ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {[1,2,3].map(i => <div key={i} style={{ height: 100, borderRadius: 12, border: `1px solid ${C.border}` }}><Skeleton h={100} /></div>)}
+                {[1,2,3].map(i => <div key={i} style={{ height: 100, borderRadius: 10, border: `1px solid ${C.border}` }}><Skeleton h={100} /></div>)}
               </div>
             ) : !kasbonSummary || kasbonSummary.summary.length === 0 ? (
               <div style={{ padding: "48px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>
@@ -359,11 +359,11 @@ export default function KasbonPage() {
             ) : (
               <>
                 {/* Grand total per kategori */}
-                <div style={{ marginBottom: 20, padding: "16px 18px", borderRadius: 12, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
+                <div style={{ marginBottom: 20, padding: "16px 16px", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
                   <h3 style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 6 }}>
                     <PieChart size={13} color={C.navy} /> Total Kasbon per Kategori (Semua Mandor)
                   </h3>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {Object.entries(kasbonSummary.grandByPurpose).sort((a,b) => b[1]-a[1]).map(([purpose, total]) => {
                       const purposeColors: Record<string, string> = {
                         gaji_tukang: C.navy, uang_makan: C.green,
@@ -371,11 +371,11 @@ export default function KasbonPage() {
                       };
                       const col = purposeColors[purpose] ?? C.mid;
                       return (
-                        <div key={purpose} style={{ flex: "1 1 140px", padding: "10px 14px", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface-subtle)" }}>
+                        <div key={purpose} style={{ flex: "1 1 140px", padding: "8px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface-subtle)" }}>
                           <div style={{ fontSize: 10, fontWeight: 700, color: col, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>
                             {PURPOSE_LABEL[purpose] ?? purpose}
                           </div>
-                          <div style={{ fontSize: 16, fontWeight: 800, color: C.text, fontFamily: "var(--font-display)" }}>
+                          <div style={{ fontSize: 15, fontWeight: 800, color: C.text, fontFamily: "var(--font-display)" }}>
                             {fmtCompact(total)}
                           </div>
                         </div>
@@ -389,17 +389,17 @@ export default function KasbonPage() {
                   {kasbonSummary.summary.map(m => {
                     const pct = m.totalApproved / (m.total || 1) * 100;
                     return (
-                      <div key={m.mandorId} style={{ padding: "16px 18px", borderRadius: 12, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
+                      <div key={m.mandorId} style={{ padding: "16px 16px", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
                         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
                           <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 2 }}>{m.mandorName}</div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 2 }}>{m.mandorName}</div>
                             <div style={{ fontSize: 11, color: C.muted }}>
                               {m.kasbonCount} kasbon · {m.projectCount} proyek
                             </div>
                             {/* Progress bar: approved vs total */}
                             <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
-                              <div style={{ flex: 1, height: 5, borderRadius: 5, background: C.border, overflow: "hidden" }}>
-                                <div style={{ height: "100%", borderRadius: 5, background: C.green, width: `${pct}%` }} />
+                              <div style={{ flex: 1, height: 5, borderRadius: 6, background: C.border, overflow: "hidden" }}>
+                                <div style={{ height: "100%", borderRadius: 6, background: C.green, width: `${pct}%` }} />
                               </div>
                               <span style={{ fontSize: 10, color: C.mid, flexShrink: 0 }}>{Math.round(pct)}% approved</span>
                             </div>
@@ -407,8 +407,8 @@ export default function KasbonPage() {
                           <div style={{ textAlign: "right" }}>
                             <div style={{ fontSize: 20, fontWeight: 800, color: C.text, fontFamily: "var(--font-display)" }}>{fmtCompact(m.total)}</div>
                             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
-                              {m.totalPending > 0 && <span style={{ fontSize: 10, color: C.yellow, fontWeight: 600, background: C.yellowBg, padding: "2px 7px", borderRadius: 4 }}>pending {fmtCompact(m.totalPending)}</span>}
-                              {m.totalApproved > 0 && <span style={{ fontSize: 10, color: C.green, fontWeight: 600, background: C.greenBg, padding: "2px 7px", borderRadius: 4 }}>approved {fmtCompact(m.totalApproved)}</span>}
+                              {m.totalPending > 0 && <span style={{ fontSize: 10, color: C.yellow, fontWeight: 600, background: C.yellowBg, padding: "2px 6px", borderRadius: 6 }}>pending {fmtCompact(m.totalPending)}</span>}
+                              {m.totalApproved > 0 && <span style={{ fontSize: 10, color: C.green, fontWeight: 600, background: C.greenBg, padding: "2px 6px", borderRadius: 6 }}>approved {fmtCompact(m.totalApproved)}</span>}
                             </div>
                           </div>
                         </div>
@@ -423,12 +423,12 @@ export default function KasbonPage() {
                             const col = purposeColors[purpose] ?? C.mid;
                             const pctOfTotal = total / (m.total || 1) * 100;
                             return (
-                              <div key={purpose} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 8, background: "var(--surface-subtle)" }}>
+                              <div key={purpose} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", borderRadius: 6, background: "var(--surface-subtle)" }}>
                                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: col, flexShrink: 0 }} />
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                   <div style={{ fontSize: 11, color: C.text, fontWeight: 600 }}>{PURPOSE_LABEL[purpose] ?? purpose}</div>
-                                  <div style={{ height: 3, borderRadius: 3, background: C.border, marginTop: 3, overflow: "hidden" }}>
-                                    <div style={{ height: "100%", borderRadius: 3, background: col, width: `${pctOfTotal}%` }} />
+                                  <div style={{ height: 3, borderRadius: 0, background: C.border, marginTop: 3, overflow: "hidden" }}>
+                                    <div style={{ height: "100%", borderRadius: 0, background: col, width: `${pctOfTotal}%` }} />
                                   </div>
                                 </div>
                                 <span style={{ fontSize: 12, fontWeight: 700, color: col, flexShrink: 0 }}>{fmtCompact(total)}</span>
@@ -443,7 +443,7 @@ export default function KasbonPage() {
                             <div style={{ fontSize: 11, color: C.muted, marginBottom: 6 }}>Per Proyek:</div>
                             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                               {m.byProject.sort((a,b) => b.total-a.total).map(p => (
-                                <span key={p.name} style={{ fontSize: 11, padding: "3px 9px", borderRadius: 6, background: C.navyLight, color: C.navy, fontWeight: 600 }}>
+                                <span key={p.name} style={{ fontSize: 11, padding: "2px 8px", borderRadius: 6, background: C.navyLight, color: C.navy, fontWeight: 600 }}>
                                   {p.name} · {fmtCompact(p.total)}
                                 </span>
                               ))}
@@ -463,14 +463,14 @@ export default function KasbonPage() {
         {/* ── Kasbon Tukang ── */}
         {kasbonType === "tukang" && (
           <>
-            <div style={{ display: "flex", gap: 10, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
               <select aria-label="Saring kasbon tukang" value={workerKasbonFilter} onChange={e => setWorkerKasbonFilter(e.target.value)}
-                style={{ padding: "7px 11px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, color: C.text, background: "var(--surface)", outline: "none" }}>
+                style={{ padding: "6px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, color: C.text, background: "var(--surface)", outline: "none" }}>
                 <option value="all">Semua</option>
                 <option value="active">Belum Lunas</option>
                 <option value="settled">Sudah Lunas</option>
               </select>
-              <button onClick={() => loadWorkerKasbons()} style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 11px", border: `1px solid ${C.border}`, borderRadius: 8, background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer" }}>
+              <button onClick={() => loadWorkerKasbons()} style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", border: `1px solid ${C.border}`, borderRadius: 6, background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer" }}>
                 <RefreshCw size={13} /> Refresh
               </button>
               {workerKasbons.length > 0 && (
@@ -483,12 +483,12 @@ export default function KasbonPage() {
             </div>
 
             {/* Info banner */}
-            <div style={{ marginBottom: 14, padding: "10px 14px", borderRadius: 8, background: C.yellowBg, border: `1px solid ${C.yellowBorder}`, fontSize: 12, color: C.yellow, fontWeight: 500 }}>
+            <div style={{ marginBottom: 14, padding: "8px 12px", borderRadius: 6, background: C.yellowBg, border: `1px solid ${C.yellowBorder}`, fontSize: 12, color: C.yellow, fontWeight: 500 }}>
               Kasbon tukang adalah advance upah individual — dilunasi via potongan laporan upah berikutnya (bukan dari kas proyek).
             </div>
 
             {loadingWorkerKasbon ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {[1, 2, 3].map(i => <div key={i} style={{ padding: 16, borderRadius: 10, border: `1px solid ${C.border}` }}><Skeleton h={14} /></div>)}
               </div>
             ) : workerKasbons.length === 0 ? (
@@ -498,13 +498,13 @@ export default function KasbonPage() {
                 <p>Belum ada advance tukang yang tercatat.</p>
               </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {workerKasbons.map(wk => {
                   const remaining = Number(wk.amount) - Number(wk.amount_settled ?? 0);
                   const pct = Number(wk.amount) > 0 ? (Number(wk.amount_settled ?? 0) / Number(wk.amount)) * 100 : 0;
                   return (
                     <div key={wk.id} style={{
-                      padding: "14px 16px", borderRadius: 12,
+                      padding: "12px 16px", borderRadius: 10,
                       border: `1px solid ${wk.is_settled ? C.border : C.yellowBorder}`,
                       background: wk.is_settled ? "var(--surface-subtle)" : C.yellowBg,
                     }}>
@@ -513,7 +513,7 @@ export default function KasbonPage() {
                           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
                             <span style={{
                               display: "inline-flex", alignItems: "center", gap: 4,
-                              padding: "3px 9px", borderRadius: 99, fontSize: 11, fontWeight: 600,
+                              padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 600,
                               color: wk.is_settled ? C.green : C.yellow,
                               background: wk.is_settled ? C.greenBg : C.yellowBg,
                               border: `1px solid ${wk.is_settled ? C.greenBorder : C.yellowBorder}`,
@@ -521,7 +521,7 @@ export default function KasbonPage() {
                               <span style={{ width: 5, height: 5, borderRadius: "50%", background: wk.is_settled ? C.green : C.yellow }} />
                               {wk.is_settled ? "Lunas" : "Beredar"}
                             </span>
-                            <span style={{ fontSize: 11, background: "var(--surface-hover)", padding: "2px 8px", borderRadius: 4, color: C.mid }}>
+                            <span style={{ fontSize: 11, background: "var(--surface-hover)", padding: "2px 8px", borderRadius: 6, color: C.mid }}>
                               {PURPOSE_LABEL[wk.purpose] ?? wk.purpose}
                             </span>
                           </div>
@@ -545,7 +545,7 @@ export default function KasbonPage() {
                           {wk.notes && <div style={{ fontSize: 12, color: C.mid, marginTop: 4, fontStyle: "italic" }}>"{wk.notes}"</div>}
                         </div>
                         <div style={{ textAlign: "right", flexShrink: 0 }}>
-                          <div style={{ fontSize: 18, fontWeight: 800, color: wk.is_settled ? C.text : C.yellow, fontFamily: "var(--font-display)" }}>
+                          <div style={{ fontSize: 17, fontWeight: 800, color: wk.is_settled ? C.text : C.yellow, fontFamily: "var(--font-display)" }}>
                             {fmt(Number(wk.amount))}
                           </div>
                           {Number(wk.amount_settled ?? 0) > 0 && !wk.is_settled && (

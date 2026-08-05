@@ -115,7 +115,7 @@ const BG = "var(--bg)";
 const styles = StyleSheet.create({
   page: {
     fontFamily: "Helvetica",
-    fontSize: 9,
+    fontSize: 10,
     color: "var(--text-primary)",
     backgroundColor: "var(--surface)",
     padding: 40,
@@ -123,14 +123,14 @@ const styles = StyleSheet.create({
   // ── Header ──
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, paddingBottom: 16, borderBottomWidth: 2, borderBottomColor: NAVY },
   logo: { width: 80, height: 56, objectFit: "contain" },
-  logoPlaceholder: { width: 80, height: 56, backgroundColor: "var(--navy-light)", borderRadius: 4, justifyContent: "center", alignItems: "center" },
-  logoPlaceholderText: { fontSize: 18, fontFamily: "Helvetica-Bold", color: NAVY },
+  logoPlaceholder: { width: 80, height: 56, backgroundColor: "var(--navy-light)", borderRadius: 6, justifyContent: "center", alignItems: "center" },
+  logoPlaceholderText: { fontSize: 17, fontFamily: "Helvetica-Bold", color: NAVY },
   companyBlock: { flex: 1, paddingLeft: 12 },
   companyName: { fontFamily: "Helvetica-Bold", fontSize: 13, color: NAVY, marginBottom: 2 },
   companyDetail: { fontSize: 8, color: MUTED, marginBottom: 1 },
   invoiceBlock: { alignItems: "flex-end" },
   invoiceTitle: { fontFamily: "Helvetica-Bold", fontSize: 20, color: NAVY, letterSpacing: 2 },
-  invoiceNumber: { fontSize: 9, color: MUTED, marginTop: 2, marginBottom: 6 },
+  invoiceNumber: { fontSize: 10, color: MUTED, marginTop: 2, marginBottom: 6 },
   invoiceMeta: { fontSize: 8, color: "var(--text-primary)", marginBottom: 1 },
 
   // ── Client + Status row ──
@@ -139,31 +139,31 @@ const styles = StyleSheet.create({
   sectionLabel: { fontSize: 7, fontFamily: "Helvetica-Bold", color: NAVY, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 },
   clientName: { fontFamily: "Helvetica-Bold", fontSize: 10, color: "var(--text-primary)", marginBottom: 1 },
   clientDetail: { fontSize: 8, color: MUTED, marginBottom: 1 },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 4, alignSelf: "flex-end" },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, alignSelf: "flex-end" },
   statusText: { fontFamily: "Helvetica-Bold", fontSize: 8, letterSpacing: 0.5 },
 
   // ── Project row ──
-  projectRow: { backgroundColor: BG, borderRadius: 4, padding: "8 12", marginBottom: 16 },
+  projectRow: { backgroundColor: BG, borderRadius: 6, padding: "8 12", marginBottom: 16 },
   projectLabel: { fontSize: 7, fontFamily: "Helvetica-Bold", color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 },
   projectName: { fontFamily: "Helvetica-Bold", fontSize: 10, color: "var(--text-primary)" },
   projectLocation: { fontSize: 8, color: MUTED, marginTop: 1 },
 
   // ── Line items ──
   table: { marginBottom: 16 },
-  tableHeader: { flexDirection: "row", backgroundColor: NAVY, padding: "6 10", borderRadius: 2, marginBottom: 0 },
+  tableHeader: { flexDirection: "row", backgroundColor: NAVY, padding: "6 10", borderRadius: 0, marginBottom: 0 },
   tableHeaderText: { fontFamily: "Helvetica-Bold", fontSize: 8, color: "var(--surface)" },
   tableRow: { flexDirection: "row", padding: "7 10", borderBottomWidth: 1, borderBottomColor: BORDER },
   tableRowAlt: { flexDirection: "row", padding: "7 10", borderBottomWidth: 1, borderBottomColor: BORDER, backgroundColor: "var(--surface-subtle)" },
   colDesc: { flex: 1 },
   colAmt: { width: 100, textAlign: "right" },
-  itemLabel: { fontSize: 9, color: "var(--text-primary)" },
+  itemLabel: { fontSize: 10, color: "var(--text-primary)" },
   itemSub: { fontSize: 7, color: MUTED, marginTop: 1 },
-  amtText: { fontSize: 9, fontFamily: "Helvetica-Bold", color: "var(--text-primary)" },
-  amtNeg: { fontSize: 9, fontFamily: "Helvetica-Bold", color: RED },
-  amtMuted: { fontSize: 9, color: MUTED },
+  amtText: { fontSize: 10, fontFamily: "Helvetica-Bold", color: "var(--text-primary)" },
+  amtNeg: { fontSize: 10, fontFamily: "Helvetica-Bold", color: RED },
+  amtMuted: { fontSize: 10, color: MUTED },
 
   // ── Total row ──
-  totalRow: { flexDirection: "row", padding: "10 10", backgroundColor: NAVY, borderRadius: 2, marginBottom: 2 },
+  totalRow: { flexDirection: "row", padding: "10 10", backgroundColor: NAVY, borderRadius: 0, marginBottom: 2 },
   totalLabel: { flex: 1, fontFamily: "Helvetica-Bold", fontSize: 10, color: "var(--surface)" },
   totalAmount: { width: 100, textAlign: "right", fontFamily: "Helvetica-Bold", fontSize: 10, color: "var(--surface)" },
 
@@ -171,16 +171,16 @@ const styles = StyleSheet.create({
   footerRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 20, borderTopWidth: 1, borderTopColor: BORDER, paddingTop: 14 },
   paymentBlock: { flex: 1 },
   payLabel: { fontSize: 7, fontFamily: "Helvetica-Bold", color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 5 },
-  payDetail: { fontSize: 8.5, color: "var(--text-primary)", marginBottom: 2 },
+  payDetail: { fontSize: 10, color: "var(--text-primary)", marginBottom: 2 },
   payBold: { fontFamily: "Helvetica-Bold" },
   signatureBlock: { alignItems: "center", minWidth: 120 },
   signatureLabel: { fontSize: 8, color: MUTED, marginBottom: 24 },
   signatureLine: { width: 100, borderBottomWidth: 1, borderBottomColor: "var(--text-primary)", marginBottom: 4 },
-  signatureName: { fontFamily: "Helvetica-Bold", fontSize: 8.5, color: "var(--text-primary)" },
+  signatureName: { fontFamily: "Helvetica-Bold", fontSize: 10, color: "var(--text-primary)" },
   qrImage: { width: 70, height: 70, marginBottom: 4 },
 
   // ── Notes ──
-  notesRow: { marginTop: 10, padding: "7 10", backgroundColor: "var(--warning-bg)", borderRadius: 4, borderWidth: 1, borderColor: "var(--warning-border)" },
+  notesRow: { marginTop: 10, padding: "7 10", backgroundColor: "var(--warning-bg)", borderRadius: 6, borderWidth: 1, borderColor: "var(--warning-border)" },
   notesText: { fontSize: 7.5, color: "var(--on-warning-bg)" },
 
   // ── Verify ──
@@ -384,7 +384,7 @@ export function InvoicePDF({ invoice, company, qrDataUrl }: InvoicePDFProps) {
                 <Text style={{ fontSize: 8, color: MUTED }}>Sudah Dibayar</Text>
                 <Text style={{ fontSize: 8, color: GREEN, fontFamily: "Helvetica-Bold" }}>-{fmtRp(Number(inv.amount_paid))}</Text>
               </View>
-              <View style={{ flexDirection: "row", padding: "5 10", justifyContent: "space-between", backgroundColor: "var(--danger-bg)", borderRadius: 2 }}>
+              <View style={{ flexDirection: "row", padding: "5 10", justifyContent: "space-between", backgroundColor: "var(--danger-bg)", borderRadius: 0 }}>
                 <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: RED }}>Sisa Tagihan</Text>
                 <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: RED }}>{fmtRp(Number(inv.amount_due))}</Text>
               </View>

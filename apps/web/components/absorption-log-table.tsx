@@ -138,13 +138,13 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
         padding: "16px 20px",
         borderBottom: collapsed ? "none" : `1px solid var(--border)`,
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{
             width: 36, height: 36, borderRadius: 10,
             background: "linear-gradient(135deg,var(--data-5),var(--data-5))",
             display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
           }}>
-            <span style={{ color: "#fff", fontSize: 16 }}>₿</span>
+            <span style={{ color: "#fff", fontSize: 15 }}>₿</span>
           </div>
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>Riwayat Serapan Dana</div>
@@ -158,8 +158,8 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           {!collapsed && canEdit && (
             <button onClick={onAddClick} style={{
-              display: "flex", alignItems: "center", gap: 5,
-              padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+              display: "flex", alignItems: "center", gap: 4,
+              padding: "6px 12px", borderRadius: 6, fontSize: 12, fontWeight: 600,
               background: "linear-gradient(135deg,var(--data-5),var(--data-5))", color: "#fff",
               border: "none", cursor: "pointer",
             }}>
@@ -169,15 +169,15 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
           )}
           {!collapsed && !loading && (
             <button aria-label="Muat ulang log serapan" onClick={load} style={{
-              display: "flex", alignItems: "center", padding: "6px 8px", borderRadius: 8,
+              display: "flex", alignItems: "center", padding: "6px 8px", borderRadius: 6,
               border: `1px solid var(--border)`, background: "transparent", cursor: "pointer", color: C.mid,
             }}>
               <RefreshCw size={13} />
             </button>
           )}
           <button onClick={() => setCollapsed(c => !c)} style={{
-            display: "flex", alignItems: "center", gap: 5,
-            padding: "6px 12px", borderRadius: 8, border: `1px solid var(--border)`,
+            display: "flex", alignItems: "center", gap: 4,
+            padding: "6px 12px", borderRadius: 6, border: `1px solid var(--border)`,
             background: "var(--surface-subtle)", cursor: "pointer", fontSize: 12, color: C.mid,
           }}>
             {collapsed ? "Tampilkan" : "Sembunyikan"}
@@ -189,7 +189,7 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
       {!collapsed && (
         <div>
           {error && (
-            <div style={{ padding: "10px 20px", background: "var(--danger-bg)", color: C.red, fontSize: 12 }}>
+            <div style={{ padding: "8px 20px", background: "var(--danger-bg)", color: C.red, fontSize: 12 }}>
               {error}
               <button onClick={() => setError(null)} style={{ float: "right", background: "none", border: "none", cursor: "pointer", color: C.red }}>×</button>
             </div>
@@ -208,7 +208,7 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
               </div>
               {canEdit && (
                 <button onClick={onAddClick} style={{
-                  padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600,
+                  padding: "8px 16px", borderRadius: 6, fontSize: 13, fontWeight: 600,
                   background: "linear-gradient(135deg,var(--data-5),var(--data-5))", color: "#fff",
                   border: "none", cursor: "pointer",
                 }}>
@@ -258,7 +258,7 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
                         style={{
                           display: "grid",
                           gridTemplateColumns: "28px 1fr 80px 72px 72px 72px 72px 80px 110px 36px",
-                          gap: 6, padding: "10px 16px",
+                          gap: 6, padding: "8px 16px",
                           background: "var(--navy-light)",
                           borderBottom: `1px solid var(--border)`,
                           cursor: "pointer", alignItems: "center",
@@ -286,7 +286,7 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
                           }}>
                             {week.totalPct.toFixed(1)}%
                           </span>
-                          <div style={{ fontSize: 9, color: C.muted }}>rata-rata/item</div>
+                          <div style={{ fontSize: 10, color: C.muted }}>rata-rata/item</div>
                         </div>
                         <div /><div />
                       </div>
@@ -331,7 +331,7 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
                             <div style={{ textAlign: "right" }}>
                               <span style={{
                                 fontWeight: 700, color: "var(--data-5)",
-                                background: "var(--warning-bg)", borderRadius: 4,
+                                background: "var(--warning-bg)", borderRadius: 6,
                                 padding: "2px 6px", fontSize: 11,
                               }}>
                                 {total.toFixed(1)}%
@@ -339,7 +339,7 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
                             </div>
                             <div style={{ fontSize: 10, color: C.muted }}>
                               {entry.logged_by_user?.name ?? "—"}
-                              <div style={{ fontSize: 9 }}>{fmtDate(entry.logged_at)}</div>
+                              <div style={{ fontSize: 10 }}>{fmtDate(entry.logged_at)}</div>
                             </div>
                             <div style={{ position: "relative" }}>
                               {canEdit && confirmDelete !== entry.id && (
@@ -349,7 +349,7 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
                                   style={{
                                     background: "none", border: "none", cursor: "pointer",
                                     padding: 4, color: C.muted, opacity: deleting === entry.id ? 0.4 : 1,
-                                    borderRadius: 4,
+                                    borderRadius: 6,
                                   }}
                                   title="Hapus entri"
                                 >
@@ -361,7 +361,7 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
                                   position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)",
                                   display: "flex", alignItems: "center", gap: 4, zIndex: 10,
                                   background: "var(--surface)", border: "1px solid var(--danger-border)",
-                                  borderRadius: 8, padding: "3px 6px", boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+                                  borderRadius: 6, padding: "2px 6px", boxShadow: "var(--naik-2)",
                                   whiteSpace: "nowrap",
                                 }}>
                                   <AlertCircle size={11} style={{ color: C.red }} />
@@ -369,14 +369,14 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
                                   <button
                                     onClick={() => handleDelete(entry.id)}
                                     style={{
-                                      padding: "2px 7px", borderRadius: 5, fontSize: 10, fontWeight: 700,
+                                      padding: "2px 6px", borderRadius: 6, fontSize: 10, fontWeight: 700,
                                       background: C.red, color: "#fff", border: "none", cursor: "pointer",
                                     }}
                                   >Ya</button>
                                   <button
                                     onClick={() => setConfirmDelete(null)}
                                     style={{
-                                      padding: "2px 7px", borderRadius: 5, fontSize: 10, fontWeight: 600,
+                                      padding: "2px 6px", borderRadius: 6, fontSize: 10, fontWeight: 600,
                                       background: "var(--surface-hover)", color: C.mid, border: "1px solid var(--border)", cursor: "pointer",
                                     }}
                                   >Batal</button>
@@ -394,7 +394,7 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
               {/* Footer total */}
               <div style={{
                 display: "grid", gridTemplateColumns: "28px 1fr 80px 72px 72px 72px 72px 80px 110px 36px",
-                gap: 6, padding: "10px 16px",
+                gap: 6, padding: "8px 16px",
                 borderTop: `2px solid var(--border)`,
                 background: "var(--bg)",
                 fontSize: 12, fontWeight: 700, color: C.text,

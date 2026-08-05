@@ -32,7 +32,7 @@ import {
   fmt, fmtCompact, fmtDate, daysUntil,
 } from "./tipe";
 export function Skeleton({ h = 20, w = "100%" }: { h?: number; w?: string | number }) {
-  return <div style={{ height: h, width: w, borderRadius: 8, background: "linear-gradient(90deg, var(--surface-hover) 0%, var(--border) 50%, var(--surface-hover) 100%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s ease-in-out infinite" }} />;
+  return <div style={{ height: h, width: w, borderRadius: 6, background: "linear-gradient(90deg, var(--surface-hover) 0%, var(--border) 50%, var(--surface-hover) 100%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s ease-in-out infinite" }} />;
 }
 
 export function InvoiceRow({ inv, onPayClick, onPdfClick, loadingPdf, canEdit }: { inv: Invoice; onPayClick: (inv: Invoice) => void; onPdfClick: (inv: Invoice) => void; loadingPdf: boolean; canEdit: boolean }) {
@@ -48,7 +48,7 @@ export function InvoiceRow({ inv, onPayClick, onPdfClick, loadingPdf, canEdit }:
       onMouseEnter={e => { if (!overdue) e.currentTarget.style.background = "var(--surface-subtle)"; }}
       onMouseLeave={e => { e.currentTarget.style.background = overdue ? "var(--surface-subtle)" : "transparent"; }}
     >
-      <td style={{ padding: "12px 14px" }}>
+      <td style={{ padding: "12px 12px" }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: C.navy, fontFamily: "var(--font-display)", marginBottom: 2 }}>
           {inv.invoice_number}
         </div>
@@ -57,37 +57,37 @@ export function InvoiceRow({ inv, onPayClick, onPdfClick, loadingPdf, canEdit }:
           {inv.termin_schedules && ` · Termin ${inv.termin_schedules.termin_number}`}
         </div>
       </td>
-      <td style={{ padding: "12px 14px" }}>
+      <td style={{ padding: "12px 12px" }}>
         <div style={{ fontSize: 13, fontWeight: 500, color: C.text, marginBottom: 2 }}>{inv.projects?.name ?? "—"}</div>
         {inv.projects?.location && <div style={{ fontSize: 11, color: C.muted }}>{inv.projects.location}</div>}
       </td>
-      <td style={{ padding: "12px 14px", textAlign: "right", fontFamily: "monospace", fontSize: 13, fontWeight: 600, color: C.text }}>
+      <td style={{ padding: "12px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 13, fontWeight: 600, color: C.text }}>
         {fmt(Number(inv.total_amount))}
       </td>
-      <td style={{ padding: "12px 14px", textAlign: "right", fontFamily: "monospace", fontSize: 13, color: C.green }}>
+      <td style={{ padding: "12px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 13, color: C.green }}>
         {fmt(Number(inv.amount_paid))}
       </td>
-      <td style={{ padding: "12px 14px", textAlign: "right", fontFamily: "monospace", fontSize: 13, fontWeight: 600, color: Number(inv.amount_due) > 0 ? C.yellow : C.green }}>
+      <td style={{ padding: "12px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 13, fontWeight: 600, color: Number(inv.amount_due) > 0 ? C.yellow : C.green }}>
         {fmt(Number(inv.amount_due))}
       </td>
-      <td style={{ padding: "12px 14px", textAlign: "right" }}>
+      <td style={{ padding: "12px 12px", textAlign: "right" }}>
         <div style={{ fontSize: 12, color: overdue ? C.red : dueSoon ? C.yellow : C.mid, fontWeight: overdue || dueSoon ? 600 : 400 }}>
           {fmtDate(inv.due_date)}
         </div>
         {overdue && <div style={{ fontSize: 10, color: C.red }}>{Math.abs(days)}h lewat</div>}
         {dueSoon && <div style={{ fontSize: 10, color: C.yellow }}>{days}h lagi</div>}
       </td>
-      <td style={{ padding: "12px 14px", textAlign: "center" }}>
+      <td style={{ padding: "12px 12px", textAlign: "center" }}>
         <StatusBadge status={overdue ? "overdue" : inv.status} map={INVOICE_STATUS} />
       </td>
-      <td style={{ padding: "12px 14px", textAlign: "center" }}>
+      <td style={{ padding: "12px 12px", textAlign: "center" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "center" }}>
           {canEdit && inv.status !== "paid" && inv.status !== "cancelled" && (
             <button
               onClick={() => onPayClick(inv)}
               style={{
                 display: "inline-flex", alignItems: "center", gap: 4,
-                padding: "5px 11px", borderRadius: 6, border: "none",
+                padding: "4px 12px", borderRadius: 6, border: "none",
                 background: C.navyLight, color: C.navy,
                 fontSize: 11, fontWeight: 600, cursor: "pointer",
                 transition: "all 0.15s", whiteSpace: "nowrap",
@@ -110,7 +110,7 @@ export function InvoiceRow({ inv, onPayClick, onPdfClick, loadingPdf, canEdit }:
             title="Download PDF"
             style={{
               display: "inline-flex", alignItems: "center", gap: 4,
-              padding: "4px 9px", borderRadius: 6,
+              padding: "4px 8px", borderRadius: 6,
               border: `1px solid ${C.border}`, background: loadingPdf ? "var(--surface-hover)" : "var(--surface)",
               color: loadingPdf ? C.muted : C.mid, fontSize: 11, cursor: loadingPdf ? "not-allowed" : "pointer",
               transition: "all 0.15s", whiteSpace: "nowrap",
@@ -123,7 +123,7 @@ export function InvoiceRow({ inv, onPayClick, onPdfClick, loadingPdf, canEdit }:
           {/* Denda: estimasi/otoritatif + pemutihan. Muncul utk invoice belum lunas telat / lunas. */}
           {inv.status !== "cancelled" && (
             <button aria-label="Denda keterlambatan" onClick={() => setDendaOpen(true)} title="Denda keterlambatan"
-              style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 9px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: overdue ? C.red : C.mid, fontSize: 11, cursor: "pointer", whiteSpace: "nowrap" }}>
+              style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: overdue ? C.red : C.mid, fontSize: 11, cursor: "pointer", whiteSpace: "nowrap" }}>
               <AlertTriangle size={11} /> Denda
             </button>
           )}
@@ -430,7 +430,7 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
   }
 
   const labelStyle: React.CSSProperties = { display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 };
-  const inputStyle: React.CSSProperties = { width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, color: C.text, background: "var(--surface)", outline: "none", boxSizing: "border-box" };
+  const inputStyle: React.CSSProperties = { width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, color: C.text, background: "var(--surface)", outline: "none", boxSizing: "border-box" };
   const inputRpStyle: React.CSSProperties = { ...inputStyle, paddingLeft: 32 };
 
   const MODE_OPTIONS: { value: InvoiceMode; label: string; desc: string; color: string; bg: string }[] = projectDetail?.contract_model === "termin"
@@ -445,11 +445,11 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
   return createPortal(
     <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.45)", backdropFilter: "blur(3px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 600, boxShadow: "0 20px 60px rgba(0,0,0,0.18)", display: "flex", flexDirection: "column", maxHeight: "94vh" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 600, boxShadow: "var(--naik-3)", display: "flex", flexDirection: "column", maxHeight: "94vh" }}>
 
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 24px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 24px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Receipt size={17} color="var(--surface)" />
             </div>
@@ -459,7 +459,7 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
         </div>
 
         {/* Body */}
-        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14, overflowY: "auto", flex: 1 }}>
+        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 12, overflowY: "auto", flex: 1 }}>
 
           {/* ── Proyek ── */}
           <div>
@@ -480,7 +480,7 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
               <div role="group" aria-labelledby="tipe-invoice" style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {MODE_OPTIONS.map(m => (
                   <button key={m.value} type="button" onClick={() => setInvoiceMode(m.value)}
-                    style={{ padding: "7px 14px", borderRadius: 8, border: `2px solid ${invoiceMode === m.value ? m.color : C.border}`,
+                    style={{ padding: "6px 12px", borderRadius: 6, border: `2px solid ${invoiceMode === m.value ? m.color : C.border}`,
                       background: invoiceMode === m.value ? m.bg : "var(--surface)", cursor: "pointer", textAlign: "left" }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: invoiceMode === m.value ? m.color : C.text }}>{m.label}</div>
                     <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>{m.desc}</div>
@@ -510,10 +510,10 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
 
             {/* ── EXPENSE BILLING: pilih + tambah item ── */}
             {isExpBilling && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
 
                 {/* Pilih dari pengeluaran */}
-                <div style={{ padding: "12px 14px", borderRadius: 8, background: "var(--success-bg)", border: "1px solid var(--success-border)" }}>
+                <div style={{ padding: "12px 12px", borderRadius: 6, background: "var(--success-bg)", border: "1px solid var(--success-border)" }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "var(--on-success-bg)", marginBottom: 8 }}>
                     Pengeluaran Tersedia ({billableExpenses.length})
                   </div>
@@ -526,7 +526,7 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
                       {billableExpenses.map(exp => {
                         const alreadyAdded = lineItems.some(li => li.expense_id === exp.id);
                         return (
-                          <div key={exp.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 10px", borderRadius: 6, background: "var(--surface)", border: `1px solid ${alreadyAdded ? "var(--success-border)" : C.border}` }}>
+                          <div key={exp.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", borderRadius: 6, background: "var(--surface)", border: `1px solid ${alreadyAdded ? "var(--success-border)" : C.border}` }}>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: 12, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                 {exp.description}
@@ -537,10 +537,10 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
                             </div>
                             <div style={{ textAlign: "right", flexShrink: 0 }}>
                               <div style={{ fontSize: 12, fontWeight: 700, color: C.green }}>{fmt(exp.remaining)}</div>
-                              {exp.billed_amount > 0 && <div style={{ fontSize: 9, color: C.muted }}>sisa dari {fmt(exp.total_amount)}</div>}
+                              {exp.billed_amount > 0 && <div style={{ fontSize: 10, color: C.muted }}>sisa dari {fmt(exp.total_amount)}</div>}
                             </div>
                             <button type="button" disabled={alreadyAdded} onClick={() => addExpenseAsLineItem(exp)}
-                              style={{ padding: "4px 10px", borderRadius: 6, border: "none", background: alreadyAdded ? C.border : C.navy, color: "var(--surface)", fontSize: 11, cursor: alreadyAdded ? "default" : "pointer", flexShrink: 0 }}>
+                              style={{ padding: "4px 8px", borderRadius: 6, border: "none", background: alreadyAdded ? C.border : C.navy, color: "var(--surface)", fontSize: 11, cursor: alreadyAdded ? "default" : "pointer", flexShrink: 0 }}>
                               {alreadyAdded ? "✓" : "+ Tambah"}
                             </button>
                           </div>
@@ -555,25 +555,25 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>Item yang Ditagihkan ({lineItems.length})</div>
                     {lineItems.map(li => (
-                      <div key={li.key} style={{ padding: "10px 12px", borderRadius: 8, border: `1px solid ${C.border}`, background: li.isManual ? "var(--warning-bg)" : "var(--bg)" }}>
+                      <div key={li.key} style={{ padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: li.isManual ? "var(--warning-bg)" : "var(--bg)" }}>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                           <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
                             {li.isManual ? (
                               <input value={li.description} onChange={e => updateLineItem(li.key, { description: e.target.value })}
-                                placeholder="Deskripsi item (wajib)" style={{ ...inputStyle, padding: "6px 10px", fontSize: 12 }} />
+                                placeholder="Deskripsi item (wajib)" style={{ ...inputStyle, padding: "6px 8px", fontSize: 12 }} />
                             ) : (
                               <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{li.description}</div>
                             )}
                             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                               {li.isManual && (<>
                                 <input type="number" min={0.001} step={0.001} value={li.qty || ""} onChange={e => updateLineItem(li.key, { qty: parseFloat(e.target.value) || 1 })}
-                                  placeholder="Qty" style={{ ...inputStyle, padding: "5px 8px", fontSize: 11, width: 64, flexShrink: 0 }} />
+                                  placeholder="Qty" style={{ ...inputStyle, padding: "4px 8px", fontSize: 11, width: 64, flexShrink: 0 }} />
                                 <input value={li.unit} onChange={e => updateLineItem(li.key, { unit: e.target.value })}
-                                  placeholder="Satuan" style={{ ...inputStyle, padding: "5px 8px", fontSize: 11, width: 72, flexShrink: 0 }} />
+                                  placeholder="Satuan" style={{ ...inputStyle, padding: "4px 8px", fontSize: 11, width: 72, flexShrink: 0 }} />
                                 <div style={{ position: "relative", flexShrink: 0, width: 120 }}>
                                   <span style={{ position: "absolute", left: 7, top: "50%", transform: "translateY(-50%)", fontSize: 10, color: C.muted }}>Rp</span>
                                   <input type="number" min={0} value={li.unit_price || ""} onChange={e => updateLineItem(li.key, { unit_price: parseFloat(e.target.value) || 0 })}
-                                    placeholder="Harga satuan" style={{ ...inputStyle, padding: "5px 8px 5px 24px", fontSize: 11 }} />
+                                    placeholder="Harga satuan" style={{ ...inputStyle, padding: "4px 8px 4px 24px", fontSize: 11 }} />
                                 </div>
                               </>)}
                               <div style={{ marginLeft: "auto", textAlign: "right", flexShrink: 0 }}>
@@ -584,11 +584,11 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
                                     max={!li.isManual && li.expense_id ? (billableExpenses.find(e => e.id === li.expense_id)?.remaining ?? undefined) : undefined}
                                     value={li.amount || ""}
                                     onChange={e => updateLineItem(li.key, { amount: parseFloat(e.target.value) || 0 })}
-                                    style={{ ...inputStyle, padding: "5px 8px 5px 24px", fontSize: 12, fontWeight: 700 }} />
+                                    style={{ ...inputStyle, padding: "4px 8px 4px 24px", fontSize: 12, fontWeight: 700 }} />
                                 </div>
                                 {!li.isManual && li.expense_id && (() => {
                                   const exp = billableExpenses.find(e => e.id === li.expense_id);
-                                  return exp ? <div style={{ fontSize: 9, color: C.muted, marginTop: 2 }}>maks {fmt(exp.remaining)}</div> : null;
+                                  return exp ? <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>maks {fmt(exp.remaining)}</div> : null;
                                 })()}
                               </div>
                             </div>
@@ -605,7 +605,7 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
 
                 {/* Tombol tambah item manual */}
                 <button type="button" onClick={addManualLineItem}
-                  style={{ padding: "8px", borderRadius: 8, border: `1px dashed ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer" }}>
+                  style={{ padding: "8px", borderRadius: 6, border: `1px dashed ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer" }}>
                   + Tambah Item Manual (upah / item tidak tercatat)
                 </button>
               </div>
@@ -613,10 +613,10 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
 
             {/* ── COMMISSION FEE: nominal fee saja ── */}
             {isCommFee && (
-              <div style={{ padding: "12px 14px", borderRadius: 8, background: "var(--navy-light)", border: "1px solid #C4B5FD", display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ padding: "12px 12px", borderRadius: 6, background: "var(--navy-light)", border: "1px solid #C4B5FD", display: "flex", flexDirection: "column", gap: 8 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "var(--aksen-pekat)" }}>Fee Komisi</div>
                 {commissionFeeSuggest && (
-                  <div style={{ background: "var(--surface)", borderRadius: 8, padding: "8px 12px", fontSize: 12, display: "flex", flexDirection: "column", gap: 4 }}>
+                  <div style={{ background: "var(--surface)", borderRadius: 6, padding: "8px 12px", fontSize: 12, display: "flex", flexDirection: "column", gap: 4 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", color: C.mid }}>
                       <span>Total pengeluaran proyek</span><span>{fmt(commissionFeeSuggest.total_expense)}</span>
                     </div>
@@ -647,9 +647,9 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
 
             {/* ── KOMISI LANGSUNG (legacy): input total pengeluaran + % ── */}
             {isCommBill && (
-              <div style={{ padding: "12px 14px", borderRadius: 8, background: "var(--warning-bg)", border: "1px solid var(--warning-border)", display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ padding: "12px 12px", borderRadius: 6, background: "var(--warning-bg)", border: "1px solid var(--warning-border)", display: "flex", flexDirection: "column", gap: 8 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "var(--on-warning-bg)" }}>Komisi Langsung</div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                   <div>
                     <label htmlFor="total-pengeluaran" style={labelStyle}>Total Pengeluaran <span style={{ color: C.red }}>*</span></label>
                     <div style={{ position: "relative" }}>
@@ -668,7 +668,7 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
                   </div>
                 </div>
                 {pengeluaran > 0 && (
-                  <div style={{ background: "var(--surface)", borderRadius: 6, padding: "8px 12px", fontSize: 12, display: "flex", flexDirection: "column", gap: 3 }}>
+                  <div style={{ background: "var(--surface)", borderRadius: 6, padding: "8px 12px", fontSize: 12, display: "flex", flexDirection: "column", gap: 2 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", color: C.mid }}><span>Pengeluaran</span><span>{fmt(pengeluaran)}</span></div>
                     <div style={{ display: "flex", justifyContent: "space-between", color: C.mid }}><span>Fee ({commissionPct || 0}%)</span><span>+ {fmt(komisiAmt)}</span></div>
                     <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, color: C.text, borderTop: `1px solid ${C.border}`, paddingTop: 4, marginTop: 2 }}><span>Subtotal</span><span>{fmt(pengeluaran + komisiAmt)}</span></div>
@@ -698,13 +698,13 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
             </div>
 
             {/* ── Retensi toggle ── */}
-            <div style={{ padding: "10px 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: useRetensi ? "var(--warning-bg)" : "var(--surface-subtle)" }}>
+            <div style={{ padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: useRetensi ? "var(--warning-bg)" : "var(--surface-subtle)" }}>
               <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13 }}>
                 <input type="checkbox" checked={useRetensi} onChange={e => setUseRetensi(e.target.checked)} style={{ width: 14, height: 14 }} />
                 <span style={{ fontWeight: 600, color: C.text }}>Terapkan Potongan Retensi</span>
               </label>
               {useRetensi && (
-                <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                   <div>
                     <label style={labelStyle}>Persentase Retensi
                       {projectDetail.retention_pct > 0 && <span style={{ fontWeight: 400 }}> (proyek: {projectDetail.retention_pct}%)</span>}
@@ -716,7 +716,7 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
                   </div>
                   <div>
                     <span style={labelStyle}>Potongan Retensi</span>
-                    <div style={{ padding: "9px 12px", background: "var(--surface-subtle)", borderRadius: 8, fontSize: 13, fontWeight: 700, color: C.red, border: `1px solid ${C.border}` }}>
+                    <div style={{ padding: "8px 12px", background: "var(--surface-subtle)", borderRadius: 6, fontSize: 13, fontWeight: 700, color: C.red, border: `1px solid ${C.border}` }}>
                       -{fmt(retensiAmt)}
                     </div>
                   </div>
@@ -726,7 +726,7 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
 
             {/* ── Potongan Uang Muka (DP recoupment) — hanya termin progres ── */}
             {dpEligible && (
-              <div style={{ padding: "10px 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: useDpDeduction ? C.blueBg : "var(--surface-subtle)" }}>
+              <div style={{ padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: useDpDeduction ? C.blueBg : "var(--surface-subtle)" }}>
                 <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13 }}>
                   <input type="checkbox" checked={useDpDeduction} onChange={e => {
                     setUseDpDeduction(e.target.checked);
@@ -775,8 +775,8 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
             {/* ── Summary footer real-time ── */}
             {base > 0 && (
               <div style={{ borderRadius: 10, border: `1px solid ${C.border}`, overflow: "hidden" }}>
-                <div style={{ background: "var(--bg)", padding: "8px 14px", fontSize: 11, fontWeight: 700, color: C.mid, textTransform: "uppercase", letterSpacing: "0.06em" }}>Ringkasan Invoice</div>
-                <div style={{ padding: "10px 14px", display: "flex", flexDirection: "column", gap: 5 }}>
+                <div style={{ background: "var(--bg)", padding: "8px 12px", fontSize: 11, fontWeight: 700, color: C.mid, textTransform: "uppercase", letterSpacing: "0.06em" }}>Ringkasan Invoice</div>
+                <div style={{ padding: "8px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
                   {isExpBilling && lineItems.map(li => (
                     <SummaryRow key={li.key} label={li.description || "Item"} value={fmt(li.amount)} />
                   ))}
@@ -789,19 +789,19 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
                   <SummaryRow label={taxLabel} value={`-${fmt(taxAmount)}`} valueColor={C.muted} />
                   <div style={{ borderTop: `2px solid ${C.border}`, marginTop: 4, paddingTop: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span style={{ fontSize: 13, fontWeight: 800, color: C.text }}>TOTAL INVOICE</span>
-                    <span style={{ fontSize: 16, fontWeight: 800, color: C.navy, fontFamily: "var(--font-display)" }}>{fmt(totalInvoice)}</span>
+                    <span style={{ fontSize: 15, fontWeight: 800, color: C.navy, fontFamily: "var(--font-display)" }}>{fmt(totalInvoice)}</span>
                   </div>
                 </div>
               </div>
             )}
           </>)}
 
-          {error && <div style={{ padding: "10px 14px", borderRadius: 8, background: C.redBg, border: `1px solid ${C.redBorder}`, fontSize: 13, color: C.red }}>{error}</div>}
+          {error && <div style={{ padding: "8px 12px", borderRadius: 6, background: C.redBg, border: `1px solid ${C.redBorder}`, fontSize: 13, color: C.red }}>{error}</div>}
 
-          <div style={{ display: "flex", gap: 10, paddingTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.text, fontSize: 13, cursor: "pointer" }}>Batal</button>
+          <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
+            <button type="button" onClick={onClose} style={{ flex: 1, padding: "8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.text, fontSize: 13, cursor: "pointer" }}>Batal</button>
             <button type="submit" disabled={loading || !projectDetail}
-              style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: (loading || !projectDetail) ? "var(--text-muted)" : C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: (loading || !projectDetail) ? "not-allowed" : "pointer" }}>
+              style={{ flex: 2, padding: "8px", borderRadius: 6, border: "none", background: (loading || !projectDetail) ? "var(--text-muted)" : C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: (loading || !projectDetail) ? "not-allowed" : "pointer" }}>
               {loading ? "Menyimpan..." : "Buat Invoice"}
             </button>
           </div>
@@ -888,11 +888,11 @@ export function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; on
   return createPortal(
     <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.45)", backdropFilter: "blur(3px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 520, boxShadow: "0 20px 60px rgba(0,0,0,0.18)", display: "flex", flexDirection: "column", maxHeight: "90vh" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 520, boxShadow: "var(--naik-3)", display: "flex", flexDirection: "column", maxHeight: "90vh" }}>
 
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: `1px solid ${C.border}` }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--warning), var(--warning))", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Banknote size={17} color="var(--surface)" />
             </div>
@@ -905,13 +905,13 @@ export function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; on
         </div>
 
         {/* Body */}
-        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14, overflowY: "auto", flex: 1 }}>
+        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 12, overflowY: "auto", flex: 1 }}>
 
           {/* Work scope (mandor + proyek) */}
           <div>
             <label htmlFor="scope-id" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Work Scope Mandor <span style={{ color: C.red }}>*</span></label>
             <select id="scope-id" aria-label="Work scope mandor yang mengajukan kasbon" value={scopeId} onChange={e => setScopeId(e.target.value)} required
-              style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, color: C.text, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
+              style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, color: C.text, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
               <option value="">-- Pilih mandor & scope --</option>
               {scopes.map(s => (
                 <option key={s.id} value={s.id}>
@@ -934,14 +934,14 @@ export function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; on
               <div style={{ position: "relative" }}>
                 <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: C.muted }}>Rp</span>
                 <input id="amount" type="number" min={1} value={amount} onChange={e => setAmount(e.target.value)} required
-                  style={{ width: "100%", padding: "9px 12px 9px 30px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }}
+                  style={{ width: "100%", padding: "8px 12px 8px 32px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box" }}
                   onFocus={e => { e.target.style.borderColor = C.navy; }} onBlur={e => { e.target.style.borderColor = C.border; }} />
               </div>
             </div>
             <div>
               <label htmlFor="kasbon-date" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Tanggal</label>
               <input id="kasbon-date" aria-label="Tanggal" type="date" value={kasbonDate} onChange={e => setKasbonDate(e.target.value)}
-                style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
             </div>
           </div>
 
@@ -950,7 +950,7 @@ export function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; on
             <div>
               <label htmlFor="purpose" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Keperluan <span style={{ color: C.red }}>*</span></label>
               <select id="purpose" aria-label="Keperluan kasbon" value={purpose} onChange={e => setPurpose(e.target.value)}
-                style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
+                style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                 <option value="gaji_tukang">Gaji Tukang</option>
                 <option value="uang_makan">Uang Makan</option>
                 <option value="pembelian_alat">Pembelian Alat</option>
@@ -961,7 +961,7 @@ export function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; on
             <div>
               <label htmlFor="fund-source" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Sumber Dana</label>
               <select id="fund-source" aria-label="Sumber dana kasbon" value={fundSource} onChange={e => setFundSource(e.target.value)}
-                style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
+                style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                 <option value="owner_advance">Dana Owner</option>
                 <option value="client_fund">Dana Klien</option>
               </select>
@@ -973,13 +973,13 @@ export function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; on
             <label htmlFor="notes-3" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Keterangan / Alasan</label>
             <textarea id="notes-3" value={notes} onChange={e => setNotes(e.target.value)} rows={2}
               placeholder="Contoh: untuk beli material rangka atap minggu ini..."
-              style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", resize: "vertical", boxSizing: "border-box", fontFamily: "inherit" }}
+              style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", resize: "vertical", boxSizing: "border-box", fontFamily: "inherit" }}
               onFocus={e => { e.target.style.borderColor = C.navy; }} onBlur={e => { e.target.style.borderColor = C.border; }} />
           </div>
 
           {/* Mode: langsung setujui vs pending */}
-          <div style={{ padding: "12px 14px", borderRadius: 10, background: autoApprove ? C.greenBg : C.yellowBg, border: `1px solid ${autoApprove ? C.greenBorder : C.yellowBorder}` }}>
-            <label htmlFor="auto-approve-invoice" style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer" }}>
+          <div style={{ padding: "12px 12px", borderRadius: 10, background: autoApprove ? C.greenBg : C.yellowBg, border: `1px solid ${autoApprove ? C.greenBorder : C.yellowBorder}` }}>
+            <label htmlFor="auto-approve-invoice" style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer" }}>
               <input id="auto-approve-invoice" type="checkbox" checked={autoApprove} onChange={e => setAutoApprove(e.target.checked)}
                 style={{ width: 16, height: 16, marginTop: 1, flexShrink: 0 }} />
               <div>
@@ -997,7 +997,7 @@ export function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; on
               <div style={{ marginTop: 12 }}>
                 <label htmlFor="cash-account-id" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Potong dari akun kas:</label>
                 <select id="cash-account-id" aria-label="Akun kas yang dipotong untuk kasbon ini" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)}
-                  style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 7, fontSize: 12, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
+                  style={{ width: "100%", padding: "8px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 12, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                   <option value="">-- Pilih akun kas --</option>
                   {cashAccounts.map(a => (
                     <option key={a.id} value={a.id}>
@@ -1014,11 +1014,11 @@ export function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; on
             )}
           </div>
 
-          {error && <div style={{ padding: "10px 14px", borderRadius: 8, background: C.redBg, border: `1px solid ${C.redBorder}`, fontSize: 13, color: C.red }}>{error}</div>}
+          {error && <div style={{ padding: "8px 12px", borderRadius: 6, background: C.redBg, border: `1px solid ${C.redBorder}`, fontSize: 13, color: C.red }}>{error}</div>}
 
-          <div style={{ display: "flex", gap: 10, paddingTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.text, fontSize: 13, cursor: "pointer" }}>Batal</button>
-            <button type="submit" disabled={loading} style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: loading ? "var(--text-muted)" : autoApprove ? C.green : C.yellow, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer" }}>
+          <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
+            <button type="button" onClick={onClose} style={{ flex: 1, padding: "8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.text, fontSize: 13, cursor: "pointer" }}>Batal</button>
+            <button type="submit" disabled={loading} style={{ flex: 2, padding: "8px", borderRadius: 6, border: "none", background: loading ? "var(--text-muted)" : autoApprove ? C.green : C.yellow, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer" }}>
               {loading ? "Menyimpan..." : autoApprove ? "Buat & Setujui Kasbon" : "Buat Kasbon (Pending)"}
             </button>
           </div>
@@ -1034,7 +1034,7 @@ export function StatusBadge({ status, map }: { status: string; map: Record<strin
   return (
     <span style={{
       display: "inline-flex", alignItems: "center", gap: 4,
-      padding: "3px 9px", borderRadius: 99, fontSize: 11, fontWeight: 600,
+      padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 600,
       color: m.color, background: m.bg, border: `1px solid ${m.border}`,
       whiteSpace: "nowrap",
     }}>
@@ -1080,7 +1080,7 @@ export function PenaltyModal({ invoiceId, invoiceNumber, onClose }: { invoiceId:
   return (
     <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 460, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", maxHeight: "90vh", overflowY: "auto" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 460, boxShadow: "var(--naik-3)", maxHeight: "90vh", overflowY: "auto" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid var(--border)" }}>
           <div>
             <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>Denda Keterlambatan</h2>
@@ -1088,11 +1088,11 @@ export function PenaltyModal({ invoiceId, invoiceNumber, onClose }: { invoiceId:
           </div>
           <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, border: "none", background: "transparent", cursor: "pointer", color: "var(--text-muted)" }}><X size={18} /></button>
         </div>
-        <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
           {loading ? <div style={{ textAlign: "center", padding: 20, color: "var(--text-muted)", fontSize: 13 }}>Memuat…</div> : (
             <>
               {info?.waived && (
-                <div style={{ padding: "10px 12px", borderRadius: 9, background: "var(--warning-bg)", border: "1px solid var(--warning-border)", fontSize: 12.5, color: "var(--text-primary)" }}>
+                <div style={{ padding: "8px 12px", borderRadius: 10, background: "var(--warning-bg)", border: "1px solid var(--warning-border)", fontSize: 12, color: "var(--text-primary)" }}>
                   <b>Denda diputihkan.</b> {info.waived_reason && <span style={{ color: "var(--text-secondary)" }}>Alasan: {info.waived_reason}</span>}
                 </div>
               )}
@@ -1100,13 +1100,13 @@ export function PenaltyModal({ invoiceId, invoiceNumber, onClose }: { invoiceId:
                 <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>Denda keterlambatan <b>nonaktif</b> untuk invoice ini. Aktifkan di Konfigurasi Keuangan atau atur per proyek.</div>
               )}
               {auth ? (
-                <div style={{ padding: "12px 14px", borderRadius: 10, background: "var(--danger-bg)", border: "1px solid var(--danger-border)" }}>
+                <div style={{ padding: "12px 12px", borderRadius: 10, background: "var(--danger-bg)", border: "1px solid var(--danger-border)" }}>
                   <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)", marginBottom: 4 }}>Denda resmi (tercatat)</div>
                   <div style={{ fontSize: 24, fontWeight: 800, color: "var(--danger)", fontFamily: "var(--font-display)" }}>{fmtIdr(Number(auth.penalty_amount))}</div>
                   <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>{auth.days_late} hari telat · basis {BASIS[auth.basis] ?? auth.basis} {fmtIdr(Number(auth.base_amount))} · per {auth.anchor_date}</div>
                 </div>
               ) : est?.enabled && (
-                <div style={{ padding: "12px 14px", borderRadius: 10, background: "var(--surface-subtle)", border: "1px dashed var(--border)" }}>
+                <div style={{ padding: "12px 12px", borderRadius: 10, background: "var(--surface-subtle)", border: "1px dashed var(--border)" }}>
                   <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)", marginBottom: 4 }}>Estimasi per {est.as_of} · belum final</div>
                   <div style={{ fontSize: 24, fontWeight: 800, color: est.applicable ? "var(--warning)" : "var(--text-muted)", fontFamily: "var(--font-display)" }}>{fmtIdr(Number(est.penaltyAmount))}</div>
                   <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>
@@ -1115,14 +1115,14 @@ export function PenaltyModal({ invoiceId, invoiceNumber, onClose }: { invoiceId:
                   <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6 }}>Estimasi tampilan — angka resmi dihitung saat invoice lunas.</div>
                 </div>
               )}
-              {err && <div style={{ fontSize: 12.5, color: "var(--danger)" }}>{err}</div>}
+              {err && <div style={{ fontSize: 12, color: "var(--danger)" }}>{err}</div>}
               {canWaive && (
                 <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-primary)", marginBottom: 6 }}>{info?.waived ? "Batalkan pemutihan" : "Putihkan denda invoice ini"}</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", marginBottom: 6 }}>{info?.waived ? "Batalkan pemutihan" : "Putihkan denda invoice ini"}</div>
                   <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Alasan (wajib — tercatat di audit)"
-                    style={{ width: "100%", padding: "9px 11px", borderRadius: 8, border: "1px solid var(--border)", fontSize: 13, boxSizing: "border-box", marginBottom: 8 }} />
+                    style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border)", fontSize: 13, boxSizing: "border-box", marginBottom: 8 }} />
                   <button onClick={() => submitWaive(!info?.waived)} disabled={busy || !reason.trim()}
-                    style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: busy || !reason.trim() ? "var(--text-muted)" : (info?.waived ? "var(--navy)" : "var(--danger)"), color: "#fff", fontSize: 13, fontWeight: 600, cursor: busy || !reason.trim() ? "not-allowed" : "pointer" }}>
+                    style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: busy || !reason.trim() ? "var(--text-muted)" : (info?.waived ? "var(--navy)" : "var(--danger)"), color: "#fff", fontSize: 13, fontWeight: 600, cursor: busy || !reason.trim() ? "not-allowed" : "pointer" }}>
                     {busy ? "Menyimpan…" : info?.waived ? "Batalkan pemutihan" : "Putihkan denda"}
                   </button>
                 </div>
@@ -1210,10 +1210,10 @@ export function PayInvoiceModal({ invoice, onClose, onSuccess }: { invoice: Invo
   return createPortal(
     <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.45)", backdropFilter: "blur(3px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.18)", display: "flex", flexDirection: "column", maxHeight: "90vh" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 480, boxShadow: "var(--naik-3)", display: "flex", flexDirection: "column", maxHeight: "90vh" }}>
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: `1px solid ${C.border}` }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--success), var(--success))", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Banknote size={17} color="var(--surface)" />
             </div>
@@ -1234,7 +1234,7 @@ export function PayInvoiceModal({ invoice, onClose, onSuccess }: { invoice: Invo
             </div>
             <div style={{ textAlign: "right" }}>
               <div style={{ fontSize: 11, color: C.green, fontWeight: 600, marginBottom: 2 }}>Total Invoice</div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: C.mid }}>{fmt(Number(invoice.total_amount))}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: C.mid }}>{fmt(Number(invoice.total_amount))}</div>
             </div>
           </div>
 
@@ -1244,19 +1244,19 @@ export function PayInvoiceModal({ invoice, onClose, onSuccess }: { invoice: Invo
               <p style={{ fontSize: 15, fontWeight: 700, color: C.green }}>Pembayaran berhasil dicatat!</p>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
                   <label htmlFor="paid-at" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Tanggal Bayar <span style={{ color: C.red }}>*</span></label>
                   <input id="paid-at" aria-label="Tanggal" type="date" value={paidAt} onChange={e => setPaidAt(e.target.value)} required
-                    style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                    style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
                 </div>
                 <div>
                   <label htmlFor="amount-paid" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Nominal <span style={{ color: C.red }}>*</span></label>
                   <div style={{ position: "relative" }}>
                     <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: C.muted }}>Rp</span>
                     <input id="amount-paid" type="number" min={1} value={amountPaid} onChange={e => setAmountPaid(e.target.value)} required
-                      style={{ width: "100%", padding: "9px 12px 9px 30px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                      style={{ width: "100%", padding: "8px 12px 8px 32px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
                   </div>
                 </div>
               </div>
@@ -1264,15 +1264,15 @@ export function PayInvoiceModal({ invoice, onClose, onSuccess }: { invoice: Invo
               {/* Kas Tujuan */}
               <div>
                 <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                     <Wallet size={12} /> Masuk ke Kas
                   </span>
                 </label>
                 {cashAccounts.length === 0 ? (
-                  <div style={{ padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 12, color: C.muted }}>Memuat...</div>
+                  <div style={{ padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 12, color: C.muted }}>Memuat...</div>
                 ) : (
                   <select aria-label="Akun kas penerima pembayaran" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)}
-                    style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
+                    style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                     <option value="">— Tidak masuk ke kas —</option>
                     {cashAccounts.map(a => (
                       <option key={a.id} value={a.id}>
@@ -1286,7 +1286,7 @@ export function PayInvoiceModal({ invoice, onClose, onSuccess }: { invoice: Invo
               <div>
                 <label htmlFor="payment-method" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Metode Pembayaran</label>
                 <select id="payment-method" aria-label="Metode pembayaran" value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}
-                  style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
+                  style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                   <option value="transfer_bank">Transfer Bank</option>
                   <option value="cash">Tunai</option>
                   <option value="qris">QRIS</option>
@@ -1299,12 +1299,12 @@ export function PayInvoiceModal({ invoice, onClose, onSuccess }: { invoice: Invo
                 <div>
                   <label htmlFor="ref-number" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>No. Referensi</label>
                   <input id="ref-number" type="text" value={refNumber} onChange={e => setRefNumber(e.target.value)} placeholder="No. TF"
-                    style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                    style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
                 </div>
                 <div>
                   <label htmlFor="bank-name" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Bank</label>
                   <input id="bank-name" type="text" value={bankName} onChange={e => setBankName(e.target.value)} placeholder="BCA, Mandiri..."
-                    style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                    style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
                 </div>
               </div>
 
@@ -1319,14 +1319,14 @@ export function PayInvoiceModal({ invoice, onClose, onSuccess }: { invoice: Invo
                   setProofFile(f);
                 }} />
                 {proofFile ? (
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 8, background: C.greenBg, border: `1px solid ${C.greenBorder}` }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 6, background: C.greenBg, border: `1px solid ${C.greenBorder}` }}>
                     <FileText size={16} color={C.green} />
                     <span style={{ flex: 1, fontSize: 12, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{proofFile.name}</span>
                     <button type="button" aria-label="Buang bukti transfer yang dipilih" onClick={() => setProofFile(null)} style={{ background: "transparent", border: "none", cursor: "pointer", color: C.red }}><X size={14} /></button>
                   </div>
                 ) : (
                   <button type="button" onClick={() => fileRef.current?.click()}
-                    style={{ width: "100%", padding: "10px", border: `2px dashed ${C.border}`, borderRadius: 8, background: "var(--surface-subtle)", color: C.mid, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                    style={{ width: "100%", padding: "8px", border: `2px dashed ${C.border}`, borderRadius: 6, background: "var(--surface-subtle)", color: C.mid, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
                     <ArrowDownLeft size={14} /> Upload bukti transfer
                   </button>
                 )}
@@ -1335,14 +1335,14 @@ export function PayInvoiceModal({ invoice, onClose, onSuccess }: { invoice: Invo
               <div>
                 <label htmlFor="notes-2" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Catatan</label>
                 <textarea id="notes-2" value={notes} onChange={e => setNotes(e.target.value)} rows={2}
-                  style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, outline: "none", resize: "vertical", boxSizing: "border-box", fontFamily: "inherit" }} />
+                  style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", resize: "vertical", boxSizing: "border-box", fontFamily: "inherit" }} />
               </div>
 
-              {error && <div style={{ padding: "10px 14px", borderRadius: 8, background: C.redBg, border: `1px solid ${C.redBorder}`, fontSize: 13, color: C.red }}>{error}</div>}
+              {error && <div style={{ padding: "8px 12px", borderRadius: 6, background: C.redBg, border: `1px solid ${C.redBorder}`, fontSize: 13, color: C.red }}>{error}</div>}
 
-              <div style={{ display: "flex", gap: 10, paddingTop: 4 }}>
-                <button type="button" onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: 13, cursor: "pointer" }}>Batal</button>
-                <button type="submit" disabled={loading} style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: loading ? "var(--text-muted)" : C.green, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer" }}>
+              <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
+                <button type="button" onClick={onClose} style={{ flex: 1, padding: "8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: 13, cursor: "pointer" }}>Batal</button>
+                <button type="submit" disabled={loading} style={{ flex: 2, padding: "8px", borderRadius: 6, border: "none", background: loading ? "var(--text-muted)" : C.green, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer" }}>
                   {loading ? "Menyimpan..." : "Catat Pembayaran"}
                 </button>
               </div>
@@ -1425,7 +1425,7 @@ export async function unduhInvoicePdf(inv: Invoice): Promise<void> {
 export function CashflowTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ name: string; value: number; color: string }>; label?: string }) {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: "var(--surface)", border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", fontSize: 12, boxShadow: "0 4px 16px rgba(0,0,0,0.10)", minWidth: 180 }}>
+    <div style={{ background: "var(--surface)", border: `1px solid ${C.border}`, borderRadius: 10, padding: "8px 12px", fontSize: 12, boxShadow: "var(--naik-2)", minWidth: 180 }}>
       <p style={{ fontWeight: 700, color: C.text, marginBottom: 8 }}>{label}</p>
       {payload.map((p, i) => (
         <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 16, marginBottom: 4 }}>

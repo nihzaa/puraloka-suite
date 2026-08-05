@@ -161,7 +161,7 @@ export default function KalenderPage() {
 
   const card: React.CSSProperties = {
     background: "var(--surface)", border: "1px solid var(--border)",
-    borderRadius: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+    borderRadius: 14, boxShadow: "var(--naik-1)",
   };
 
   // Month summary counts
@@ -176,7 +176,7 @@ export default function KalenderPage() {
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 42, height: 42, borderRadius: 12, background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ width: 42, height: 42, borderRadius: 10, background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Calendar size={20} color="#fff" />
           </div>
           <div>
@@ -192,7 +192,7 @@ export default function KalenderPage() {
             kosong: orang menyimpulkan datanya hilang, bukan menunggu. */}
         <div style={{ display: "flex", gap: 8 }}>
         {loading ? (
-          <div role="status" aria-live="polite" style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 12px", borderRadius: 20, background: "var(--surface-hover)", border: "1px solid var(--border)" }}>
+          <div role="status" aria-live="polite" style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 12px", borderRadius: 20, background: "var(--surface-hover)", border: "1px solid var(--border)" }}>
             <RefreshCw size={12} className="berputar" color="var(--text-secondary)" />
             <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Memuat agenda…</span>
           </div>
@@ -202,7 +202,7 @@ export default function KalenderPage() {
             { count: terminCnt,    label: "Termin",    ...TYPE_STYLE.termin },
             { count: progressCnt,  label: "Log",       ...TYPE_STYLE.progress },
           ].map(c => (
-            <div key={c.label} style={{ padding: "5px 12px", borderRadius: 20, background: c.bg, border: `1px solid ${c.color}22`, display: "flex", alignItems: "center", gap: 5 }}>
+            <div key={c.label} style={{ padding: "4px 12px", borderRadius: 20, background: c.bg, border: `1px solid ${c.color}22`, display: "flex", alignItems: "center", gap: 4 }}>
               <span style={{ color: c.color }}>{c.icon}</span>
               <span style={{ fontSize: 12, fontWeight: 700, color: c.color }}>{c.count}</span>
               {/* Tanpa `opacity`: warnanya sendiri sudah lulus kontras (mis. ungu
@@ -223,15 +223,15 @@ export default function KalenderPage() {
         <div style={card}>
           {/* Month nav */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid var(--border)" }}>
-            <button aria-label="Sebelumnya" onClick={prevMonth} style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <button aria-label="Sebelumnya" onClick={prevMonth} style={{ width: 32, height: 32, borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <ChevronLeft size={15} />
             </button>
             <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>{fmtMonthYear(year, month)}</span>
             <div style={{ display: "flex", gap: 4 }}>
-              <button onClick={() => { setYear(now.getFullYear()); setMonth(now.getMonth()); setSelectedDay(today); }} style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 11, cursor: "pointer", color: "var(--text-secondary)" }}>
+              <button onClick={() => { setYear(now.getFullYear()); setMonth(now.getMonth()); setSelectedDay(today); }} style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 11, cursor: "pointer", color: "var(--text-secondary)" }}>
                 Hari ini
               </button>
-              <button aria-label="Berikutnya" onClick={nextMonth} style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <button aria-label="Berikutnya" onClick={nextMonth} style={{ width: 32, height: 32, borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <ChevronRight size={15} />
               </button>
             </div>
@@ -305,8 +305,8 @@ export default function KalenderPage() {
                       const faded = ev.status && STATUS_FADED[ev.status];
                       return (
                         <div key={ev.id} style={{
-                          display: "flex", alignItems: "center", gap: 3,
-                          padding: "1px 5px", borderRadius: 4,
+                          display: "flex", alignItems: "center", gap: 2,
+                          padding: "0px 4px", borderRadius: 6,
                           background: ev.bg, opacity: faded ? 0.45 : 1,
                           overflow: "hidden",
                         }}>
@@ -332,12 +332,12 @@ export default function KalenderPage() {
         {/* Side panel — selected day detail */}
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {/* Legend */}
-          <div style={{ ...card, padding: "14px 16px" }}>
+          <div style={{ ...card, padding: "12px 16px" }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Keterangan</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {Object.entries(TYPE_STYLE).map(([type, cfg]) => (
                 <div key={type} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ width: 20, height: 20, borderRadius: 5, background: cfg.bg, display: "flex", alignItems: "center", justifyContent: "center", color: cfg.color, border: `1px solid ${cfg.color}22` }}>
+                  <div style={{ width: 20, height: 20, borderRadius: 6, background: cfg.bg, display: "flex", alignItems: "center", justifyContent: "center", color: cfg.color, border: `1px solid ${cfg.color}22` }}>
                     {cfg.icon}
                   </div>
                   <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>
@@ -379,8 +379,8 @@ export default function KalenderPage() {
                 return (
                   <a key={ev.id} href={ev.url ?? "#"} style={{ textDecoration: "none" }}>
                     <div style={{
-                      display: "flex", gap: 10, padding: "9px 8px",
-                      borderRadius: 8, marginBottom: 4,
+                      display: "flex", gap: 8, padding: "8px 8px",
+                      borderRadius: 6, marginBottom: 4,
                       background: faded ? "var(--surface-subtle)" : cfg.bg,
                       border: `1px solid ${cfg.color}22`,
                       opacity: faded ? 0.6 : 1,
@@ -421,8 +421,8 @@ export default function KalenderPage() {
                   const cfg = TYPE_STYLE[ev.type];
                   const daysLeft = Math.round((new Date(ev.date + "T12:00:00").getTime() - Date.now()) / 86400000);
                   return (
-                    <div key={ev.id} style={{ display: "flex", gap: 8, padding: "7px 8px", borderRadius: 6, marginBottom: 2 }}>
-                      <div style={{ width: 20, height: 20, borderRadius: 5, background: cfg.bg, display: "flex", alignItems: "center", justifyContent: "center", color: cfg.color, flexShrink: 0 }}>
+                    <div key={ev.id} style={{ display: "flex", gap: 8, padding: "6px 8px", borderRadius: 6, marginBottom: 2 }}>
+                      <div style={{ width: 20, height: 20, borderRadius: 6, background: cfg.bg, display: "flex", alignItems: "center", justifyContent: "center", color: cfg.color, flexShrink: 0 }}>
                         {cfg.icon}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>

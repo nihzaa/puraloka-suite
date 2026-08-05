@@ -55,12 +55,12 @@ function DaftarAkun({ kelompok, warnaTotal }: { kelompok: Kelompok; warnaTotal?:
       <div style={{
         fontSize: 11, fontWeight: 700, color: C.muted,
         textTransform: "uppercase", letterSpacing: ".05em",
-        padding: "9px 12px", background: "var(--surface-subtle)",
+        padding: "8px 12px", background: "var(--surface-subtle)",
         borderBottom: `1px solid ${C.border}`,
       }}>{kelompok.label}</div>
 
       {kelompok.akun.length === 0 ? (
-        <div style={{ padding: "14px 12px", fontSize: 12.5, color: C.muted }}>
+        <div style={{ padding: "12px 12px", fontSize: 12, color: C.muted }}>
           Belum ada saldo pada kelompok ini.
         </div>
       ) : (
@@ -68,7 +68,7 @@ function DaftarAkun({ kelompok, warnaTotal }: { kelompok: Kelompok; warnaTotal?:
           <div key={a.account_id} style={{
             display: "flex", justifyContent: "space-between", gap: 12,
             padding: "8px 12px", borderBottom: "1px solid var(--surface-hover)",
-            fontSize: 12.5,
+            fontSize: 12,
           }}>
             <span style={{ color: C.text, minWidth: 0 }}>
               <span style={{
@@ -86,7 +86,7 @@ function DaftarAkun({ kelompok, warnaTotal }: { kelompok: Kelompok; warnaTotal?:
 
       <div style={{
         display: "flex", justifyContent: "space-between", gap: 12,
-        padding: "10px 12px", borderTop: `2px solid ${C.border}`,
+        padding: "8px 12px", borderTop: `2px solid ${C.border}`,
         fontSize: 13, fontWeight: 700,
         background: "var(--surface-subtle)",
       }}>
@@ -155,7 +155,7 @@ export function NeracaLabaRugi() {
   }
 
   const gayaInput: React.CSSProperties = {
-    padding: "8px 11px", fontSize: 13, borderRadius: 8,
+    padding: "8px 12px", fontSize: 13, borderRadius: 6,
     border: `1px solid ${C.border}`, outline: "none",
     background: "var(--surface)", color: C.text, fontFamily: "inherit",
   };
@@ -166,7 +166,7 @@ export function NeracaLabaRugi() {
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
         <div>
           <label htmlFor="lap-dari" style={{
             fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
@@ -186,8 +186,8 @@ export function NeracaLabaRugi() {
         {data && (
           <button type="button" onClick={unduhCsv} style={{
             display: "flex", alignItems: "center", gap: 6,
-            padding: "8px 13px", borderRadius: 8, border: `1px solid ${C.border}`,
-            background: "var(--surface)", color: C.mid, fontSize: 12.5,
+            padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`,
+            background: "var(--surface)", color: C.mid, fontSize: 12,
             cursor: "pointer", fontFamily: "inherit",
           }}>
             <Download size={13} aria-hidden="true" /> CSV
@@ -197,13 +197,13 @@ export function NeracaLabaRugi() {
 
       {galat && (
         <div role="alert" style={{
-          padding: "12px 14px", borderRadius: 10, marginBottom: 14,
+          padding: "12px 12px", borderRadius: 10, marginBottom: 14,
           background: C.redBg, border: `1px solid ${C.redBorder}`,
           color: C.onDangerBg, fontSize: 13,
         }}>
           {galat}{" "}
           <button onClick={() => muat()} style={{
-            marginLeft: 6, padding: "2px 9px", borderRadius: 6,
+            marginLeft: 6, padding: "2px 8px", borderRadius: 6,
             border: `1px solid ${C.redBorder}`, background: "transparent",
             color: C.onDangerBg, fontSize: 12, fontWeight: 600, cursor: "pointer",
           }}>Coba lagi</button>
@@ -223,8 +223,8 @@ export function NeracaLabaRugi() {
               adalah kegagalan yang jauh lebih besar daripada tampilan
               yang jelek. */}
           <div style={{
-            display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
-            padding: "12px 15px", borderRadius: 12, marginBottom: 14,
+            display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
+            padding: "12px 16px", borderRadius: 10, marginBottom: 14,
             background: data.neraca.seimbang ? C.greenBg : C.redBg,
             border: `1px solid ${data.neraca.seimbang ? C.greenBorder : C.redBorder}`,
           }}>
@@ -246,8 +246,8 @@ export function NeracaLabaRugi() {
             )}
             {data.meta.terpotong && (
               <span style={{
-                marginLeft: "auto", fontSize: 11.5, fontWeight: 600,
-                padding: "3px 9px", borderRadius: 99,
+                marginLeft: "auto", fontSize: 11, fontWeight: 600,
+                padding: "2px 8px", borderRadius: 99,
                 background: C.yellowBg, color: C.onWarningBg,
                 border: `1px solid ${C.yellowBorder}`,
               }}>
@@ -262,9 +262,9 @@ export function NeracaLabaRugi() {
               lebih sering, jadi ditaruh lebih dulu. */}
           <h3 style={{
             fontSize: 13, fontWeight: 700, color: C.text,
-            margin: "0 0 10px", display: "flex", alignItems: "center", gap: 7,
+            margin: "0 0 10px", display: "flex", alignItems: "center", gap: 6,
           }}>
-            <span style={{ width: 3, height: 14, background: "var(--grad-aksen)", borderRadius: 2 }} />
+            <span style={{ width: 3, height: 14, background: "var(--grad-aksen)", borderRadius: 0 }} />
             Laba Rugi
           </h3>
 
@@ -277,8 +277,8 @@ export function NeracaLabaRugi() {
           </div>
 
           <div style={{
-            ...kartu, padding: "14px 16px", marginBottom: 22,
-            display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 14,
+            ...kartu, padding: "12px 16px", marginBottom: 22,
+            display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12,
           }}>
             {[
               { l: "Laba Kotor", v: rp(data.labaRugi.labaKotor), w: C.text,
@@ -300,7 +300,7 @@ export function NeracaLabaRugi() {
                   textTransform: "uppercase", letterSpacing: ".05em", marginBottom: 4,
                 }}>{k.l}</div>
                 <div style={{
-                  fontSize: 19, fontWeight: 800, color: k.w,
+                  fontSize: 20, fontWeight: 800, color: k.w,
                   fontFamily: "var(--font-display)", fontVariantNumeric: "tabular-nums",
                 }}>{k.v}</div>
                 <div style={{ fontSize: 11, color: C.muted, marginTop: 3 }}>{k.s}</div>
@@ -311,7 +311,7 @@ export function NeracaLabaRugi() {
           {/* ── Neraca ── */}
           <h3 style={{
             fontSize: 13, fontWeight: 700, color: C.text,
-            margin: "0 0 10px", display: "flex", alignItems: "center", gap: 7,
+            margin: "0 0 10px", display: "flex", alignItems: "center", gap: 6,
           }}>
             <Scale size={14} color={C.navy} aria-hidden="true" /> Neraca
           </h3>
@@ -331,7 +331,7 @@ export function NeracaLabaRugi() {
                     dan memisahkannya membuat orang lupa menjumlahkannya. */}
                 <div style={{
                   display: "flex", justifyContent: "space-between", gap: 12,
-                  padding: "9px 12px", fontSize: 12.5,
+                  padding: "8px 12px", fontSize: 12,
                   borderTop: "1px solid var(--surface-hover)",
                 }}>
                   <span style={{ color: C.text }}>Laba berjalan periode ini</span>
@@ -342,7 +342,7 @@ export function NeracaLabaRugi() {
                 </div>
                 <div style={{
                   display: "flex", justifyContent: "space-between", gap: 12,
-                  padding: "10px 12px", borderTop: `2px solid ${C.border}`,
+                  padding: "8px 12px", borderTop: `2px solid ${C.border}`,
                   fontSize: 13, fontWeight: 700, background: "var(--surface-subtle)",
                 }}>
                   <span style={{ color: C.text }}>Ekuitas + Laba</span>

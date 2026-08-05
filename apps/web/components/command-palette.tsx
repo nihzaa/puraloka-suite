@@ -161,16 +161,16 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
         style={{
           width: "100%", maxWidth: 580,
           background: "var(--surface)",
-          borderRadius: 16,
-          boxShadow: "0 24px 64px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.06)",
+          borderRadius: 14,
+          boxShadow: "var(--naik-3)",
           overflow: "hidden",
           animation: "commandIn 0.15s cubic-bezier(0.16,1,0.3,1)",
         }}
       >
         {/* Search input */}
         <div style={{
-          display: "flex", alignItems: "center", gap: 10,
-          padding: "14px 16px",
+          display: "flex", alignItems: "center", gap: 8,
+          padding: "12px 16px",
           borderBottom: `1px solid var(--border)`,
         }}>
           {loading
@@ -189,7 +189,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
             }}
           />
           <kbd style={{
-            padding: "2px 6px", borderRadius: 5,
+            padding: "2px 6px", borderRadius: 6,
             background: "var(--surface-subtle)", border: "1px solid var(--border)",
             fontSize: 11, color: "var(--text-muted)", flexShrink: 0,
           }}>Esc</kbd>
@@ -217,8 +217,8 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
               key={item.url}
               onClick={() => navigate(item.url)}
               style={{
-                display: "flex", alignItems: "center", gap: 10,
-                width: "100%", padding: "10px 16px",
+                display: "flex", alignItems: "center", gap: 8,
+                width: "100%", padding: "8px 16px",
                 background: selected === i ? "var(--surface-hover)" : "transparent",
                 border: "none", cursor: "pointer", textAlign: "left",
                 transition: "background 0.1s",
@@ -226,7 +226,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
               onMouseEnter={() => setSelected(i)}
             >
               <div style={{
-                width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                width: 28, height: 28, borderRadius: 6, flexShrink: 0,
                 background: "var(--surface-subtle)", border: "1px solid var(--border)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 color: "var(--text-secondary)",
@@ -262,8 +262,8 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                         key={result.id}
                         onClick={() => navigate(result.url)}
                         style={{
-                          display: "flex", alignItems: "center", gap: 10,
-                          width: "100%", padding: "9px 16px",
+                          display: "flex", alignItems: "center", gap: 8,
+                          width: "100%", padding: "8px 16px",
                           background: selected === idx ? "var(--surface-hover)" : "transparent",
                           border: "none", cursor: "pointer", textAlign: "left",
                           transition: "background 0.1s",
@@ -272,7 +272,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                       >
                         {/* Type badge */}
                         <div style={{
-                          width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                          width: 28, height: 28, borderRadius: 6, flexShrink: 0,
                           background: cfg.bg, color: cfg.color,
                           display: "flex", alignItems: "center", justifyContent: "center",
                         }}>
@@ -293,7 +293,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                         {result.meta && (
                           <span style={{
                             flexShrink: 0, fontSize: 10, fontWeight: 600,
-                            padding: "2px 7px", borderRadius: 99,
+                            padding: "2px 6px", borderRadius: 99,
                             color: metaColor(result.meta),
                             background: metaColor(result.meta) + "1A",
                           }}>
@@ -324,7 +324,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
             { key: "Esc", label: "tutup" },
           ].map(({ key, label }) => (
             <div key={key} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <kbd style={{ padding: "1px 5px", borderRadius: 4, background: "var(--surface)", border: "1px solid var(--border)", fontSize: 10, color: "var(--text-secondary)" }}>{key}</kbd>
+              <kbd style={{ padding: "0px 4px", borderRadius: 6, background: "var(--surface)", border: "1px solid var(--border)", fontSize: 10, color: "var(--text-secondary)" }}>{key}</kbd>
               <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{label}</span>
             </div>
           ))}

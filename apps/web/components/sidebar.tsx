@@ -193,7 +193,7 @@ function GrupCollapsible({
         style={{
           display: "flex", alignItems: "center", gap: 8,
           padding: "0 14px", margin: "1px 6px", height: 38,
-          borderRadius: 8, fontSize: 14, fontWeight: aktif ? 500 : 400,
+          borderRadius: 6, fontSize: 13, fontWeight: aktif ? 500 : 400,
           background: "transparent", border: "none",
           borderLeft: aktif ? "3px solid var(--navy)" : "3px solid transparent",
           color: aktif ? "var(--navy)" : "var(--text-secondary)",
@@ -208,7 +208,7 @@ function GrupCollapsible({
         {/* Jumlah submenu: memberi tahu ada berapa SEBELUM dibuka. Dengan 20
             grup, tanpa ini orang membuka satu per satu untuk mencari. */}
         <span style={{
-          fontSize: 10.5, fontWeight: 600, color: "var(--text-muted)",
+          fontSize: 10, fontWeight: 600, color: "var(--text-muted)",
           fontVariantNumeric: "tabular-nums", minWidth: 16, textAlign: "right",
         }}>{anak.length}</span>
         <ChevronDown
@@ -387,8 +387,8 @@ export function Sidebar() {
       justifyContent: collapsed ? "center" : "flex-start",
       margin: "1px 6px",
       height: 38,
-      borderRadius: 8,
-      fontSize: 14,
+      borderRadius: 6,
+      fontSize: 13,
       fontWeight: active ? 500 : 400,
       textDecoration: "none",
       transition: "all 0.15s",
@@ -406,11 +406,11 @@ export function Sidebar() {
     return {
       display: "flex",
       alignItems: "center",
-      gap: 7,
+      gap: 6,
       padding: "0 14px 0 34px",
       margin: "1px 6px",
       height: 34,
-      borderRadius: 8,
+      borderRadius: 6,
       fontSize: 13,
       fontWeight: active ? 500 : 400,
       textDecoration: "none",
@@ -468,9 +468,9 @@ export function Sidebar() {
             penampung sementara. Aplikasi yang memakai inisial alih-alih
             logonya sendiri terbaca sebagai belum jadi. */}
         {!collapsed && (
-          <div style={{ display: "flex", alignItems: "center", gap: 10, overflow: "hidden" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, overflow: "hidden" }}>
             <div style={{
-              width: 34, height: 34, borderRadius: 9,
+              width: 34, height: 34, borderRadius: 10,
               background: "var(--grad-aksen)", display: "flex",
               alignItems: "center", justifyContent: "center",
               flexShrink: 0, boxShadow: "0 2px 8px var(--navy-glow)",
@@ -479,7 +479,7 @@ export function Sidebar() {
               <LogoPuraloka size={17} title="" />
             </div>
             <div style={{ overflow: "hidden" }}>
-              <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14, color: "var(--text-primary)", lineHeight: 1, letterSpacing: "-0.3px", whiteSpace: "nowrap" }}>
+              <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "var(--text-primary)", lineHeight: 1, letterSpacing: "-0.3px", whiteSpace: "nowrap" }}>
                 Puraloka
               </div>
               <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2, letterSpacing: "0.05em" }}>Suite</div>
@@ -489,7 +489,7 @@ export function Sidebar() {
 
         {collapsed && (
           <div style={{
-            width: 34, height: 34, borderRadius: 9,
+            width: 34, height: 34, borderRadius: 10,
             background: "var(--grad-aksen)", display: "flex",
             alignItems: "center", justifyContent: "center",
             boxShadow: "0 2px 8px var(--navy-glow)",
@@ -528,7 +528,7 @@ export function Sidebar() {
             onClick={toggle}
             title="Buka sidebar"
             style={{
-              padding: 7, borderRadius: 8, background: "transparent", border: "none",
+              padding: 6, borderRadius: 6, background: "transparent", border: "none",
               cursor: "pointer", color: "var(--text-muted)", display: "flex", alignItems: "center",
             }}
             onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-hover)"; e.currentTarget.style.color = "var(--text-primary)"; }}
@@ -542,7 +542,7 @@ export function Sidebar() {
       {/* Navigation — struktur dari menu_items (section='main') */}
       <nav style={{ flex: 1, paddingTop: collapsed ? 4 : 8, paddingBottom: 8, overflowY: "auto", overflowX: "hidden", minHeight: 0 }}>
         {!collapsed && (
-          <div style={{ padding: "12px 14px 6px", fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+          <div style={{ padding: "12px 12px 6px", fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
             Menu
           </div>
         )}
@@ -650,7 +650,7 @@ export function Sidebar() {
         {user && !collapsed && (
           <div style={{
             display: "flex", alignItems: "center", gap: 8,
-            padding: "8px 10px", marginTop: 6,
+            padding: "8px 8px", marginTop: 6,
             borderRadius: 10, background: "var(--surface-subtle)", border: "1px solid var(--border)",
           }}>
             <div style={{
@@ -669,7 +669,7 @@ export function Sidebar() {
                 display: "inline-block", marginTop: 2,
                 fontSize: 10, textTransform: "uppercase", letterSpacing: "0.03em",
                 background: "var(--navy-light)", color: "var(--navy)",
-                borderRadius: 4, padding: "1px 5px", fontWeight: 600,
+                borderRadius: 6, padding: "0px 4px", fontWeight: 600,
               }}>
                 {roleLabel[user.role] ?? user.role}
               </div>
@@ -677,7 +677,7 @@ export function Sidebar() {
             <button aria-label="Keluar"
               onClick={handleLogout}
               title="Keluar"
-              style={{ padding: 5, borderRadius: 6, background: "transparent", border: "none", cursor: "pointer", color: "var(--text-muted)", flexShrink: 0, display: "flex", alignItems: "center" }}
+              style={{ padding: 4, borderRadius: 6, background: "transparent", border: "none", cursor: "pointer", color: "var(--text-muted)", flexShrink: 0, display: "flex", alignItems: "center" }}
               onMouseEnter={e => { e.currentTarget.style.color = "var(--danger)"; e.currentTarget.style.background = "var(--danger-bg)"; }}
               onMouseLeave={e => { e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.background = "transparent"; }}
             >
@@ -789,10 +789,10 @@ function NavItem({
           color: "var(--surface-subtle)",
           fontSize: 12,
           fontWeight: 500,
-          padding: "5px 10px",
+          padding: "4px 8px",
           borderRadius: 6,
           whiteSpace: "nowrap",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+          boxShadow: "var(--naik-2)",
           letterSpacing: "0.01em",
         }}>
           {label}
