@@ -33,37 +33,56 @@ export type WidgetKey = keyof typeof WIDGET_DEFS;
 const DEFAULT_LAYOUTS: Layouts = {
   lg: [
     { i: "kpi",       x: 0, y: 0,  w: 12, h: 2, isResizable: false },
-    { i: "cashflow",  x: 0, y: 2,  w: 7,  h: 5 },
-    { i: "status",    x: 7, y: 2,  w: 5,  h: 5 },
-    { i: "invoice",   x: 0, y: 7,  w: 7,  h: 5 },
-    { i: "milestone", x: 7, y: 7,  w: 5,  h: 5 },
-    { i: "kasbon",    x: 0, y: 12, w: 12, h: 4 },
-    { i: "tax",       x: 0, y: 16, w: 12, h: 3 },
+    // `h: 6`, bukan 5. Dengan 5, isi widget arus kas (grafik 200px +
+    // legenda + tiga metrik ringkasan) melebihi wadahnya 46px dan baris
+    // "Pemasukan · Pengeluaran est. · Selisih" TERGUNTING — diukur di
+    // peramban, bukan ditaksir. Widget status disamakan supaya kedua
+    // kolom tetap sejajar; koordinat y di bawahnya ikut digeser.
+    { i: "cashflow",  x: 0, y: 2,  w: 7,  h: 6 },
+    { i: "status",    x: 7, y: 2,  w: 5,  h: 6 },
+    { i: "invoice",   x: 0, y: 8,  w: 7,  h: 5 },
+    { i: "milestone", x: 7, y: 8,  w: 5,  h: 5 },
+    { i: "kasbon",    x: 0, y: 13, w: 12, h: 4 },
+    { i: "tax",       x: 0, y: 17, w: 12, h: 3 },
   ],
   md: [
     { i: "kpi",       x: 0, y: 0,  w: 10, h: 2, isResizable: false },
-    { i: "cashflow",  x: 0, y: 2,  w: 6,  h: 5 },
-    { i: "status",    x: 6, y: 2,  w: 4,  h: 5 },
-    { i: "invoice",   x: 0, y: 7,  w: 6,  h: 5 },
-    { i: "milestone", x: 6, y: 7,  w: 4,  h: 5 },
-    { i: "kasbon",    x: 0, y: 12, w: 10, h: 4 },
-    { i: "tax",       x: 0, y: 16, w: 10, h: 3 },
+    { i: "cashflow",  x: 0, y: 2,  w: 6,  h: 6 },
+    { i: "status",    x: 6, y: 2,  w: 4,  h: 6 },
+    { i: "invoice",   x: 0, y: 8,  w: 6,  h: 5 },
+    { i: "milestone", x: 6, y: 8,  w: 4,  h: 5 },
+    { i: "kasbon",    x: 0, y: 13, w: 10, h: 4 },
+    { i: "tax",       x: 0, y: 17, w: 10, h: 3 },
   ],
   sm: [
     { i: "kpi",       x: 0, y: 0,  w: 6, h: 4, isResizable: false },
-    { i: "cashflow",  x: 0, y: 4,  w: 6, h: 5 },
-    { i: "status",    x: 0, y: 9,  w: 6, h: 5 },
-    { i: "invoice",   x: 0, y: 14, w: 6, h: 5 },
-    { i: "milestone", x: 0, y: 19, w: 6, h: 5 },
-    { i: "kasbon",    x: 0, y: 24, w: 6, h: 4 },
-    { i: "tax",       x: 0, y: 28, w: 6, h: 3 },
+    { i: "cashflow",  x: 0, y: 4,  w: 6, h: 6 },
+    { i: "status",    x: 0, y: 10, w: 6, h: 5 },
+    { i: "invoice",   x: 0, y: 15, w: 6, h: 5 },
+    { i: "milestone", x: 0, y: 20, w: 6, h: 5 },
+    { i: "kasbon",    x: 0, y: 25, w: 6, h: 4 },
+    { i: "tax",       x: 0, y: 29, w: 6, h: 3 },
   ],
 };
 
 const BREAKPOINTS = { lg: 1100, md: 768, sm: 480 };
 const COLS = { lg: 12, md: 10, sm: 6 };
-const STORAGE_KEY = "puraloka_dashboard_layout_v2";
-const HIDDEN_KEY  = "puraloka_dashboard_hidden_v2";
+/**
+ * Kunci BERVERSI, dan versinya dinaikkan saat tata letak bawaan berubah.
+ *
+ * Tata letak tersimpan di localStorage per-pemakai. Tanpa menaikkan
+ * versi, orang yang pernah membuka dashboard akan terus memakai tata
+ * letak lamanya — jadi perbaikan tinggi widget arus kas (v2 → v3, di
+ * mana `h: 5` menggunting tiga metrik ringkasan) tak akan pernah sampai
+ * ke mereka. Yang paling parah justru pemakai LAMA: mereka yang paling
+ * sering melihat dashboard.
+ *
+ * Ongkosnya: penyesuaian tata letak yang dibuat sendiri ikut hilang.
+ * Itu sepadan — cacat yang diperbaiki adalah isi yang tergunting, dan
+ * mempertahankan tata letak yang menggunting isi bukan pilihan.
+ */
+const STORAGE_KEY = "puraloka_dashboard_layout_v3";
+const HIDDEN_KEY  = "puraloka_dashboard_hidden_v3";
 
 // ─── Persistence ──────────────────────────────────────────────────────────────
 
