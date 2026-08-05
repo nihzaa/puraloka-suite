@@ -1137,3 +1137,45 @@ TERLIHAT seperti perlindungan tetapi tidak bekerja — dan itu lebih berbahaya
 daripada tak ada perlindungan. Dua tripwire dijaga otomatis.
 
 Fase 2: 6/6. 142 berkas / 1400 test hijau. 11 penjaga arsitektural.
+
+---
+
+## 2026-08-05 — Fixture test mengungkap cacat produksi multi-tenant (R-010)
+
+**Saya salah dua kali di sesi ini, dan cara salahnya sama: fixture uji yang
+tidak menganggap dirinya berbagi basis dengan 157 berkas lain.**
+
+Fixture `menu-etag` membuat perusahaan kedua (dev hanya punya satu, jadi
+pemeriksaan isolasi tenant tak akan pernah benar-benar berjalan tanpa itu).
+Fixture itu lalu menjatuhkan `submittal-aturan` dan `t9-kelola-badan-usaha`
+— dua kali, di CI, dengan pesan yang tak ada hubungannya dengan yang mereka uji.
+
+Perbaikan pertama saya keliru arah: saya membersihkan fixture. Yang benar
+adalah membuat fixture-nya **sah menurut invariant** — diberi `owner_user_id`
+dan rantai approval — sehingga tertinggal pun tak melanggar apa pun.
+Diverifikasi dengan sengaja meninggalkannya: 29 test hijau.
+
+**Dan di situ cacat sungguhannya muncul.** `submittal-aturan` merah karena
+perusahaan baru tak punya rantai approval `submittal`. Migrasi 159 mengisinya
+untuk company yang ADA saat migrasi jalan; tak ada trigger untuk yang lahir
+sesudahnya (diverifikasi ke `pg_trigger`, bukan dibaca dari migrasi).
+
+Artinya: **pelanggan kedua dan seterusnya lahir tanpa rantai approval.**
+Fail-closed (ADR-007) bekerja persis sebagaimana mestinya — nol orang bisa
+menyetujui — jadi gejalanya `403` untuk semua orang termasuk pemilik
+perusahaannya, tanpa satu pun pesan yang menjelaskan. Ini ERP yang sedang
+dijual ke banyak perusahaan; cacat ini menunggu pelanggan kedua.
+
+Satu-satunya alasan invariant itu selama ini terpenuhi: **tak pernah ada
+company baru.** Test yang hijau karena keadaan, bukan karena kodenya benar.
+
+Dicatat sebagai **R-010** (menyentuh skema → butuh ratifikasi). Cakupannya
+mungkin lebih luas dari submittal — `approval_chains` punya beberapa
+`entity_type`, dan belum diperiksa mana saja yang punya lubang yang sama.
+Jangan diasumsikan hanya submittal.
+
+**Pelajaran yang sama muncul tiga kali hari ini:** penjaga yang tak pernah
+dibuat merah adalah teater. Tiga penjaga ternyata hijau tanpa memeriksa apa
+pun — satu `exit(0)` saat tak menemukan targetnya, satu buta terhadap bentuk
+ternary, satu membaca komentar sebagai kode. Semuanya ditemukan dengan
+mencoba membuatnya merah, bukan dengan membaca kodenya.

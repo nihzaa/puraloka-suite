@@ -97,9 +97,48 @@ beforeAll(async () => {
       await c.query(`SET session_replication_role = 'origin'`)
     }
 
+    // `owner_user_id` DIISI, bukan dibiarkan null.
+    //
+    // `t9-kelola-badan-usaha` menegakkan invariant: setiap akar grup wajib
+    // punya pemilik — akar tanpa pemilik adalah grup yang tak seorang pun
+    // bisa menambah badan usaha di dalamnya, tanpa jalan perbaikan dari UI.
+    // Ia memeriksa SELURUH tabel `companies`, jadi fixture uji yang tertinggal
+    // (run yang gugur sebelum teardown) menjatuhkannya — sudah terjadi dua
+    // kali di CI.
+    //
+    // Invariantnya benar dan tak boleh dilonggarkan (itu melemahkan penjaga,
+    // G-5). Yang diperbaiki fixture-nya: ia kini SAH menurut invariant itu,
+    // jadi tertinggal pun tak menjatuhkan siapa pun.
+    const pemilik = (await c.query(
+      `SELECT id FROM users WHERE auth_id = $1`, [userA])).rows[0]?.id
     companyB = (await c.query(
-      `INSERT INTO companies (code, name) VALUES ('uji-etag-menu', '[TEST] Tenant ETag')
-       RETURNING id`)).rows[0].id
+      `INSERT INTO companies (code, name, owner_user_id)
+       VALUES ('uji-etag-menu', '[TEST] Tenant ETag', $1)
+       RETURNING id`, [pemilik])).rows[0].id
+
+    // Rantai approval `submittal` diisi TANGAN — dan itu sendiri temuan.
+    //
+    // `submittal-aturan` menegakkan: setiap company wajib punya rantai
+    // submittal, karena tanpanya pengajuan tak bisa diputuskan siapa pun.
+    // Migrasi 159 mengisinya untuk company yang ADA saat migrasi jalan, dan
+    // TIDAK ADA trigger yang melakukannya untuk company yang lahir sesudahnya
+    // (diverifikasi ke `pg_trigger`: satu-satunya trigger di `companies`
+    // adalah `trg_company_no_casual_delete`).
+    //
+    // Artinya di SaaS multi-tenant, pelanggan kedua dan seterusnya lahir
+    // tanpa rantai submittal. Dicatat untuk ratifikasi — perbaikannya
+    // menyentuh skema, bukan berkas test ini.
+    const chain = (await c.query(
+      `INSERT INTO approval_chains (company_id, entity_type, label, is_active)
+       VALUES ($1, 'submittal', 'Persetujuan Submittal', true) RETURNING id`,
+      [companyB])).rows[0].id
+    // Rantai TANPA langkah bersifat fail-closed (ADR-007): nol orang bisa
+    // menyetujui, dan gejalanya "403" untuk semua. `submittal-aturan` menguji
+    // itu terpisah, jadi langkahnya ikut dibuat.
+    await c.query(
+      `INSERT INTO approval_steps (company_id, chain_id, level, required_permission, label)
+       VALUES ($1, $2, 1, 'submittal:decide', 'Keputusan konsultan/pemberi kerja')`,
+      [companyB, chain])
 
     const authB = (await c.query(`SELECT gen_random_uuid() id`)).rows[0].id
 
@@ -148,6 +187,11 @@ afterAll(async () => {
   // memeriksa integritas per-company dan tiba-tiba melihat tenant yang tak
   // punya rantai approval maupun pemilik grup. Dua test merah karena sebab
   // yang sama sekali tak berhubungan dengan yang mereka uji.
+  if (companyB && userBuatan) {
+    // Langkah lebih dulu (FK ke chain), lalu rantainya.
+    await c?.query(`DELETE FROM approval_steps WHERE company_id = $1`, [companyB]).catch(() => {})
+    await c?.query(`DELETE FROM approval_chains WHERE company_id = $1`, [companyB]).catch(() => {})
+  }
   if (anggotaBuatan) await c?.query(`DELETE FROM company_members WHERE id = $1`, [anggotaBuatan]).catch(() => {})
   if (userBuatan) await c?.query(`DELETE FROM users WHERE id = $1`, [userBuatan]).catch(() => {})
   if (userBuatan && companyB) {

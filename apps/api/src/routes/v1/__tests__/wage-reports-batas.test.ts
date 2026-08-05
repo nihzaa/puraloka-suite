@@ -105,20 +105,27 @@ beforeAll(async () => {
       WHERE p.company_id = $1`, [companyId])
 
   if (cukup.rows[0].n < 2) {
+    // `scope_id` ikut diambil: ia NOT NULL. Fixture tanpa kolom itu lolos di
+    // dev semata karena basisnya sudah punya ≥2 laporan sehingga cabang ini
+    // tak pernah jalan — lalu meledak di CI dengan
+    // `null value in column "scope_id" violates not-null constraint`.
+    // Cabang yang tak pernah dieksekusi di lokal adalah cabang yang belum diuji.
     const asg = await c.query(
-      `SELECT ma.id FROM mandor_assignments ma
+      `SELECT ma.id, ws.id AS scope_id
+         FROM mandor_assignments ma
          JOIN projects p ON p.id = ma.project_id
+         JOIN work_scopes ws ON ws.assignment_id = ma.id
         WHERE p.company_id = $1 LIMIT 1`, [companyId])
     if (!asg.rows[0]) {
       throw new Error(
-        'Tak ada mandor_assignment di company ini — fixture laporan upah tak bisa dibuat, ' +
-        'dan test ini tak boleh lulus diam-diam tanpa data.')
+        'Tak ada mandor_assignment ber-work_scope di company ini — fixture laporan upah ' +
+        'tak bisa dibuat, dan test ini tak boleh lulus diam-diam tanpa data.')
     }
     for (let k = 0; k < 2; k++) {
       const w = (await c.query(
-        `INSERT INTO weekly_wage_reports (assignment_id, week_start, week_end, status, subtotal, total_deduction, net_amount)
-         VALUES ($1, DATE '2020-01-06' + ($2 * 7), DATE '2020-01-12' + ($2 * 7), 'draft', 0, 0, 0)
-         RETURNING id`, [asg.rows[0].id, k])).rows[0].id
+        `INSERT INTO weekly_wage_reports (assignment_id, scope_id, week_start, week_end, status, subtotal, total_deduction, net_amount)
+         VALUES ($1, $2, DATE '2020-01-06' + ($3 * 7), DATE '2020-01-12' + ($3 * 7), 'draft', 0, 0, 0)
+         RETURNING id`, [asg.rows[0].id, asg.rows[0].scope_id, k])).rows[0].id
       laporanBuatan.push(w)
     }
   }
