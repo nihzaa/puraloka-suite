@@ -366,6 +366,7 @@ function MaterialsTab() {
       {loading ? <div style={{ textAlign: "center", padding: 48, color: C.muted }}>Memuat...</div> : (
         <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
+            <caption className="sr-only">Katalog material: nama, kategori, satuan, harga referensi, dan stok minimum. Harga referensi dipakai sebagai estimasi awal Material Request, bukan harga final PO.</caption>
             <thead>
               <tr style={{ background: C.bg }}>
                 {["Nama Material", "Kategori", "Satuan", "Harga Ref.", "Stok Min."].map(h => (
@@ -550,6 +551,7 @@ function MaterialRequestsTab() {
               <div style={{ fontWeight: 600, marginBottom: 10 }}>Daftar Material</div>
               <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
+                  <caption className="sr-only">Item dalam Material Request ini: material, jumlah yang diminta, satuan, harga estimasi, dan catatan.</caption>
                   <thead>
                     <tr style={{ background: C.bg }}>
                       {["Material", "Qty Diminta", "Satuan", "Harga Est.", "Catatan"].map(h => (
@@ -996,6 +998,7 @@ function PurchaseOrdersTab() {
               <div style={{ fontWeight: 600, marginBottom: 10 }}>Daftar Item</div>
               <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
+                  <caption className="sr-only">Item dalam Purchase Order ini beserta jumlah yang sudah diterima. Selisih Qty Order dan Diterima menunjukkan yang masih ditunggu.</caption>
                   <thead>
                     <tr style={{ background: C.bg }}>
                       {["Material", "Qty Order", "Diterima", "Satuan", "Harga/Unit", "Total"].map(h => (
@@ -1354,6 +1357,7 @@ function CreateGrModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
             <div style={{ fontWeight: 600, marginBottom: 10, fontSize: 13 }}>Qty Barang Diterima</div>
             <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
+                <caption className="sr-only">Jumlah barang yang diterima per item dalam penerimaan ini, dicocokkan dengan Purchase Order-nya.</caption>
                 <thead>
                   <tr style={{ background: C.bg }}>
                     <th style={{ padding: "8px 12px", textAlign: "left", fontWeight: 600, color: C.mid, fontSize: 11 }}>Material</th>
@@ -1691,6 +1695,7 @@ function StocksTab() {
       {loading ? <div style={{ textAlign: "center", padding: 48, color: C.muted }}>Memuat...</div> : (
         <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
+            <caption className="sr-only">Stok per material dan proyek: yang ada di tangan, batas minimum, dan yang sudah direservasi. Stok tersedia adalah di tangan dikurangi reserved.</caption>
             <thead>
               <tr style={{ background: C.bg }}>
                 {["Material", "Kategori", "Proyek", "Stok di Tangan", "Stok Min", "Reserved", "Terakhir Update"].map(h => (
@@ -1751,6 +1756,7 @@ function StocksTab() {
           ) : (
             <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
+                <caption className="sr-only">Riwayat pergerakan stok: waktu, jenis mutasi, jumlah, saldo sebelum dan sesudah, sumbernya, serta siapa yang mencatat.</caption>
                 <thead>
                   <tr style={{ background: C.bg }}>
                     {["Waktu", "Tipe", "Material", "Qty", "Sebelum", "Sesudah", "Sumber", "Dicatat oleh"].map(h => (
@@ -1988,6 +1994,7 @@ function OpnameModal({ projects, onClose, onSuccess }: {
             ) : (
               <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
+                  <caption className="sr-only">Stok material di proyek ini.</caption>
                   <thead>
                     <tr style={{ background: C.bg }}>
                       <th style={{ padding: "8px 12px", textAlign: "left", fontWeight: 600, color: C.mid, fontSize: 11, textTransform: "uppercase" }}>Material</th>
@@ -2187,6 +2194,7 @@ function LaporanPengadaanTab() {
           {loading ? <div style={{ textAlign: "center", padding: 48, color: C.muted }}>Memuat...</div> : (
             <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
+                <caption className="sr-only">Daftar Purchase Order: nomor, tanggal, supplier, proyek, status, dan nilai total.</caption>
                 <thead>
                   <tr style={{ background: C.bg }}>
                     {["No. PO", "Tanggal", "Supplier", "Proyek", "Status", "Total"].map(h => (
@@ -2247,6 +2255,7 @@ function LaporanPengadaanTab() {
           {loading ? <div style={{ textAlign: "center", padding: 48, color: C.muted }}>Memuat...</div> : (
             <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
+                <caption className="sr-only">Ringkasan tagihan supplier: total, yang sudah terbayar, dan sisanya.</caption>
                 <thead>
                   <tr style={{ background: C.bg }}>
                     {["Supplier", "Proyek", "Tgl Invoice", "Jatuh Tempo", "Hari Terlambat", "Total", "Terbayar", "Sisa"].map(h => (
