@@ -95,6 +95,8 @@ describe('logout — tak boleh menyisakan jejak pemilik sebelumnya', () => {
     localStorage.setItem('puraloka_user', JSON.stringify({ id: 'u1' }))
     localStorage.setItem('puraloka_permissions', JSON.stringify(['audit:view']))
     localStorage.setItem('puraloka_company_id', 'c1')
+    localStorage.setItem('puraloka_menu', JSON.stringify([{ key: 'proyek' }]))
+    localStorage.setItem('puraloka_menu_etag', 'W/"abc"')
 
     logout()
 
@@ -106,6 +108,18 @@ describe('logout — tak boleh menyisakan jejak pemilik sebelumnya', () => {
       localStorage.getItem('puraloka_company_id'),
       'pilihan perusahaan tertinggal — orang berikutnya mengirim x-company-id ' +
         'milik pemilik sebelumnya, ditolak 403, dan terkunci tanpa tahu sebabnya',
+    ).toBeNull()
+
+    // Menu berbeda per perusahaan (`company_menu_settings`), jadi cache yang
+    // tertinggal menampilkan struktur menu tenant SEBELUMNYA kepada orang
+    // berikutnya di perangkat ini.
+    expect(localStorage.getItem('puraloka_menu'), 'cache menu tertinggal').toBeNull()
+    // ETag lebih buruk kalau tertinggal: peramban mengirim `If-None-Match`
+    // milik tenant lama dan server bisa membalas 304, sehingga menu lama
+    // BERTAHAN alih-alih diperbarui — tanpa satu pun pesan galat.
+    expect(
+      localStorage.getItem('puraloka_menu_etag'),
+      'ETag menu tertinggal — revalidasi membalas 304 dan menu tenant lama bertahan',
     ).toBeNull()
   })
 

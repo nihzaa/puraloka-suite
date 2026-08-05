@@ -144,6 +144,17 @@ export function hasPermission(key: string): boolean {
   return getStoredPermissions().has(key);
 }
 
+/**
+ * Kunci localStorage cache menu + ETag-nya.
+ *
+ * Ada DI SINI, bukan di `sidebar.tsx` yang memakainya, karena `logout()` di
+ * berkas ini wajib membuang keduanya. Kunci yang ditulis literal di dua
+ * tempat akan berpisah saat salah satunya di-rename, dan gejalanya senyap:
+ * menu tenant lama bertahan setelah orang lain login di perangkat yang sama.
+ */
+export const MENU_CACHE_KEY = "puraloka_menu";
+export const MENU_ETAG_KEY = "puraloka_menu_etag";
+
 export function logout() {
   // Minta server hapus HttpOnly cookie
   api.post("/api/v1/auth/logout").catch(() => {});
@@ -154,6 +165,18 @@ export function logout() {
     // yang login di perangkat ini mengirim x-company-id milik user sebelumnya
     // dan langsung ditolak 403 — aman, tapi ia terkunci tanpa tahu sebabnya.
     localStorage.removeItem("puraloka_company_id");
+    // Cache menu + ETag-nya ikut dibuang.
+    //
+    // Katalog menu berbeda per perusahaan (`company_menu_settings`), jadi
+    // meninggalkannya berarti orang berikutnya yang login di perangkat ini
+    // melihat struktur menu perusahaan SEBELUMNYA sampai revalidasi selesai.
+    //
+    // Dengan ETag, membiarkannya lebih buruk lagi: peramban mengirim
+    // `If-None-Match` milik tenant lama, dan bila muatannya kebetulan sama
+    // server membalas 304 — menu lama bertahan tanpa pernah diperbarui, dan
+    // tak ada satu pun pesan galat yang memberi tahu siapa pun.
+    localStorage.removeItem(MENU_CACHE_KEY);
+    localStorage.removeItem(MENU_ETAG_KEY);
     document.cookie = "puraloka_role=;path=/;max-age=0";
   }
 }
