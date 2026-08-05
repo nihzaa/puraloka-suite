@@ -143,7 +143,10 @@ function InvoicePageInner() {
   }
 
   return (
-    <div style={{ padding: 20 }}>
+    <div style={{
+      padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
+      width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
+    }}>
       {/* ── Saringan ── */}
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
         <div style={{ flex: 1, minWidth: 220, position: "relative" }}>

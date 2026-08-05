@@ -115,7 +115,10 @@ export default function ProfitabilitasPage() {
   const adaFilter = dari || sampai || filterProyek;
 
   return (
-    <div style={{ padding: 20 }}>
+    <div style={{
+      padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
+      width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
+    }}>
       {/* ── Saringan ── */}
       <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap", alignItems: "flex-end" }}>
         <div>

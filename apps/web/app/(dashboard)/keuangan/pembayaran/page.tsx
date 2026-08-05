@@ -70,7 +70,10 @@ function PembayaranInner() {
   const total = data.reduce((s, p) => s + Number(p.amount_paid), 0);
 
   return (
-    <div style={{ padding: 20 }}>
+    <div style={{
+      padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
+      width: "100%", maxWidth: "var(--w-page)", margin: "0 auto",
+    }}>
       <div style={{ display: "flex", gap: 8, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
         <label htmlFor="pay-bulan" style={{
           fontSize: 12, fontWeight: 600, color: C.mid, whiteSpace: "nowrap",

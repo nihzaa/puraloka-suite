@@ -142,7 +142,10 @@ export default function KasbonPage() {
   }
 
   return (
-    <div style={{ padding: 20 }}>
+    <div style={{
+      padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
+      width: "100%", maxWidth: "var(--w-page)", margin: "0 auto",
+    }}>
       {galat && (
         <div role="alert" style={{
           padding: "12px 12px", borderRadius: 10, marginBottom: 14,

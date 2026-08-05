@@ -149,7 +149,10 @@ export default function ArusKasPage() {
   }
 
   return (
-    <div style={{ padding: 20 }}>
+    <div style={{
+      padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
+      width: "100%", maxWidth: "var(--w-page)", margin: "0 auto",
+    }}>
       <div style={{ padding: 24 }}>
 
         {/* Filter Bar */}
