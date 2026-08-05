@@ -303,6 +303,15 @@ describe('SERTIFIKAT — progres yang diakui tercatat di audit log', () => {
       tabel: 'invoices', recordId: invoiceId, action: 'invoice.amount',
     })
 
+    // Dua kegagalan berbeda, dipisah supaya pesannya menjelaskan yang
+    // sebenarnya terjadi. Sebelumnya `rows[0].new_values` langsung diakses:
+    // saat auditnya belum masuk (bukan saat isinya salah), galatnya berbunyi
+    // "Cannot read properties of undefined" — yang tak menyebutkan apa pun
+    // tentang IPC, dan mengirim pembacanya menelusuri arah yang keliru.
+    expect(rows.length,
+      'jejak audit invoice DP tak ditemukan — tanpa itu, pertanyaan apakah ' +
+      'angka IPC ikut tercatat tak bisa dijawab sama sekali').toBe(1)
+
     expect(rows[0].new_values.ipc_progres_pct,
       'invoice DP mencatat angka IPC — angka yang tak bermakna di sertifikat ' +
       'melatih pembacanya mengabaikan seluruh isinya').toBeUndefined()

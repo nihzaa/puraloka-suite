@@ -236,6 +236,7 @@ export default function PiutangPage() {
         </div>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
+            <caption className="sr-only">Invoice belum lunas, diurutkan dari yang paling tua. Kolom Umur dihitung dari jatuh tempo, bukan dari tanggal terbit.</caption>
             <thead><tr style={{ background: "var(--bg)" }}>
               <th style={th}>Invoice</th><th style={th}>Proyek</th><th style={th}>Klien</th>
               <th style={th}>Jatuh Tempo</th><th style={{ ...th, textAlign: "right" }}>Umur</th>
@@ -285,6 +286,7 @@ export default function PiutangPage() {
           </div>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
+              <caption className="sr-only">Retensi per proyek: yang ditahan, yang sudah dicairkan, dan sisanya. Estimasi cair dihitung dari tanggal selesai proyek ditambah hari retensi termin.</caption>
               <thead><tr style={{ background: "var(--bg)" }}>
                 <th style={th}>Proyek</th><th style={{ ...th, textAlign: "right" }}>Ditahan</th>
                 <th style={{ ...th, textAlign: "right" }}>Dicairkan</th><th style={{ ...th, textAlign: "right" }}>Sisa</th>
@@ -338,6 +340,7 @@ export default function PiutangPage() {
           </div>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
+              <caption className="sr-only">Uang muka per proyek: yang sudah dibayar klien dan berapa yang sudah dipotong dari invoice termin berikutnya.</caption>
               <thead><tr style={{ background: "var(--bg)" }}>
                 <th style={th}>Proyek</th><th style={{ ...th, textAlign: "right" }}>DP Terbayar</th>
                 <th style={{ ...th, textAlign: "right" }}>Sudah Dipotong</th><th style={th}>Progres Pemotongan</th>

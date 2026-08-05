@@ -52,11 +52,21 @@ export async function tungguAudit(
     action?: string
     /** Berapa baris yang ditunggu. Default 1. */
     minimal?: number
-    /** Batas tunggu total, ms. Default 5000. */
+    /**
+     * Batas tunggu total, ms. Default 15000.
+     *
+     * Sengaja longgar. Ini bukan penundaan tetap — polling berhenti begitu
+     * barisnya muncul (biasanya <100ms), jadi batas besar TIDAK memperlambat
+     * kasus normal. Ia hanya menentukan seberapa sabar test saat CI sedang
+     * berebut database dengan lima shard lain.
+     *
+     * 5000 sempat dipakai dan masih kurang: satu test gagal di CI sementara
+     * test kembarannya di berkas yang sama lolos.
+     */
     batasMs?: number
   },
 ): Promise<BarisAudit[]> {
-  const { tabel, recordId, action, minimal = 1, batasMs = 5000 } = opsi
+  const { tabel, recordId, action, minimal = 1, batasMs = 15000 } = opsi
 
   const syarat = action
     ? `table_name = $1 AND record_id = $2 AND action = $3`

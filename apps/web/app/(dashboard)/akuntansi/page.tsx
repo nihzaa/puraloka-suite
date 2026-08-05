@@ -265,6 +265,7 @@ function TabJurnal({
     <div style={{ ...card, overflow: "hidden" }}>
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 680, fontVariantNumeric: "tabular-nums" }}>
+          <caption className="sr-only">Daftar jurnal: nomor, tanggal, keterangan, dan status. Hanya jurnal berstatus posted yang masuk ke neraca saldo.</caption>
           <thead>
             <tr style={{ background: "var(--bg)" }}>
               {["Nomor", "Tanggal", "Keterangan", "Status", ""].map((h, i) => (
@@ -445,6 +446,7 @@ function TabNeraca({
       <div style={{ ...card, overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 620, fontVariantNumeric: "tabular-nums" }}>
+            <caption className="sr-only">Neraca saldo per akun: debit, kredit, dan saldo akhir. Disusun dari jurnal yang sudah posted; jurnal draft tidak dihitung.</caption>
             <thead>
               <tr style={{ background: "var(--bg)" }}>
                 {["Kode", "Nama Akun", "Debit", "Kredit", "Saldo"].map((h, i) => (
