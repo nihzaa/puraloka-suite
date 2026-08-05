@@ -30,6 +30,9 @@ import { ChangeOrderSection } from "@/components/change-order-section";
 import { GanttSection } from "@/components/gantt-section";
 import { LookAheadSection } from "@/components/look-ahead-section";
 import { RantaiKontrakSection } from "@/components/rantai-kontrak-section";
+import { KlaimSection } from "@/components/klaim-section";
+import { SuratSection } from "@/components/surat-section";
+import { InstruksiLapanganSection } from "@/components/instruksi-lapangan-section";
 import { PhotoGallery } from "@/components/photo-gallery";
 import { RabScheduleModal, AbsorptionLogModal } from "@/components/rab-schedule-modal";
 import { AbsorptionLogTable } from "@/components/absorption-log-table";
@@ -1127,6 +1130,7 @@ function ProjectDetailContent() {
             </div>
 
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
+              <caption className="sr-only">Termin pembayaran: nomor, label, nilai, persentase terhadap kontrak, syarat penagihan, dan status.</caption>
               <thead>
                 <tr style={{ background: "var(--surface-subtle)", borderBottom: "1px solid var(--border)" }}>
                   {["No", "Label", "Nilai", "% Kontrak", "Syarat Tagih", "Status", ""].map((h, i) => (
@@ -1217,7 +1221,7 @@ function ProjectDetailContent() {
                               display: "inline-flex", alignItems: "center", gap: 4,
                               padding: "4px 12px", borderRadius: 6, border: "none",
                               background: isOverdueTermin ? C.red : C.navyLight,
-                              color: isOverdueTermin ? "#fff" : C.navy,
+                              color: isOverdueTermin ? C.onNavy : C.navy,
                               fontSize: 11, fontWeight: 600, cursor: "pointer",
                               transition: "all 0.15s", whiteSpace: "nowrap",
                             }}
@@ -1336,6 +1340,20 @@ function ProjectDetailContent() {
             look-ahead karena keduanya soal WAKTU — dan pertanyaan "apakah kita
             kena denda?" muncul persis setelah melihat mana yang telat. */}
         <RantaiKontrakSection projectId={p.id} />
+
+        {/* Klaim: pilar KETIGA rantai yang sama. Ditaruh langsung di bawah EOT
+            karena satu peristiwa sering memicu keduanya — lahan terlambat
+            diserahkan menuntut perpanjangan waktu DAN biaya tambahan.
+            Memisahkannya ke halaman lain membuat yang kedua sering terlupa. */}
+        <KlaimSection projectId={p.id} />
+
+        {/* Surat & instruksi lapangan: sumber BUKTI untuk klaim di atas.
+            Ditaruh sesudahnya, bukan sebelum — orang datang ke sini setelah
+            bertanya "apa dasarnya?", dan urutan itu yang menentukan
+            penempatannya. Instruksi lisan bahkan sering jadi satu-satunya
+            dasar klaim yang ada. */}
+        <SuratSection projectId={p.id} />
+        <InstruksiLapanganSection projectId={p.id} />
       </div>
 
       {/* ── Change Order ── */}
@@ -1387,6 +1405,7 @@ function ProjectDetailContent() {
 
           {/* Kasbon list */}
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
+            <caption className="sr-only">Kasbon proyek ini: mandor, lingkup kerja, tujuan, jumlah, tanggal, dan status persetujuan.</caption>
             <thead>
               <tr style={{ background: "var(--surface-subtle)", borderBottom: "1px solid var(--border)" }}>
                 {["Mandor", "Scope", "Tujuan", "Jumlah", "Tanggal", "Status"].map((h, i) => (
@@ -1445,6 +1464,7 @@ function ProjectDetailContent() {
         <div id="sec-invoice" className="rise rise-5" style={{ ...card, padding: 24, marginBottom: 20 }}>
           <SectionTitle>Invoice</SectionTitle>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
+            <caption className="sr-only">Invoice proyek ini: nomor, tipe, total, jumlah dibayar, sisa, jatuh tempo, dan status.</caption>
             <thead>
               <tr style={{ background: "var(--surface-subtle)", borderBottom: "1px solid var(--border)" }}>
                 {["No Invoice", "Tipe", "Total", "Dibayar", "Sisa", "Jatuh Tempo", "Status"].map((h, i) => (

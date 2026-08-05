@@ -179,7 +179,7 @@ export default function AkuntansiPage() {
               fontSize: 13, fontWeight: 600, fontFamily: "inherit",
               border: `1px solid ${tab === k ? C.navy : C.border}`,
               background: tab === k ? C.navy : "var(--surface)",
-              color: tab === k ? "#fff" : C.mid,
+              color: tab === k ? C.onNavy : C.mid,
             }}
           >
             <Ikon size={15} /> {label}
@@ -194,7 +194,7 @@ export default function AkuntansiPage() {
               marginLeft: "auto", display: "flex", alignItems: "center", gap: 6,
               padding: "8px 16px", borderRadius: 10, cursor: "pointer",
               fontSize: 13, fontWeight: 600, fontFamily: "inherit",
-              border: "none", background: C.navy, color: "#fff",
+              border: "none", background: C.navy, color: C.onNavy,
             }}
           >
             <Plus size={15} /> Jurnal Baru
@@ -743,7 +743,7 @@ function ModalJurnal({
               padding: "8px 20px", borderRadius: 10,
               cursor: !bisaSimpan || kirim ? "not-allowed" : "pointer",
               fontSize: 13, fontWeight: 700, fontFamily: "inherit",
-              border: "none", background: C.navy, color: "#fff",
+              border: "none", background: C.navy, color: C.onNavy,
               opacity: !bisaSimpan || kirim ? 0.5 : 1,
             }}
           >

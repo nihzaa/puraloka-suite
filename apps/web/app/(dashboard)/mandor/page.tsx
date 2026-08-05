@@ -5,8 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createPortal } from "react-dom";
 import { api, getStoredUser, hasPermission } from "@/lib/api";
 import { Kosong } from "@/components/ui-dasar";
+import { Paginasi } from "@/components/paginasi";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { dapatDitekan } from "@/lib/dapat-ditekan";
+import { RetensiSection } from "@/components/retensi-section";
 import { useUnits } from "@/lib/use-units";
 import { useWorkCategories } from "@/lib/use-work-categories";
 import { useKasbonPurposes } from "@/lib/use-kasbon-purposes";
@@ -164,7 +166,7 @@ interface ScopeDetail {
 
 interface MandorUser { id: string; name: string; phone: string | null; email: string }
 
-type TabKey = "penugasan" | "laporan" | "kasbon" | "mandor-kasbon" | "tukang" | "penagihan";
+type TabKey = "penugasan" | "laporan" | "kasbon" | "mandor-kasbon" | "tukang" | "penagihan" | "retensi";
 
 interface ProgressPayment {
   id: string;
@@ -346,6 +348,16 @@ function MandorPageInner() {
   const [tab, setTab] = useState<TabKey>("laporan");
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [reports, setReports] = useState<WageReport[]>([]);
+  /**
+   * Jumlah laporan SESUNGGUHNYA di server, bukan yang terunduh.
+   *
+   * Dipakai untuk memberi tahu kalau pagar 500 memotong: tanpa ini, filter
+   * dan Export Excel bekerja atas data separuh sambil terlihat lengkap —
+   * pemakainya menyimpan berkas yang ia kira utuh.
+   */
+  const [totalReports, setTotalReports] = useState(0);
+  /** Halaman daftar laporan (paginasi di klien — lihat catatan di dekat Paginasi). */
+  const [halamanLaporan, setHalamanLaporan] = useState(1);
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [kasbons, setKasbons] = useState<WorkerKasbon[]>([]);
   const [mandorKasbons, setMandorKasbons] = useState<MandorKasbon[]>([]);
@@ -461,7 +473,7 @@ function MandorPageInner() {
     try {
       const [asgRes, rptRes, sumRes, kbRes, mkbRes, mandorRes, ppRes, cashRes] = await Promise.all([
         api.get<{ assignments: Assignment[] }>("/api/v1/mandor/assignments"),
-        api.get<{ reports: WageReport[] }>("/api/v1/mandor/wage-reports"),
+        api.get<{ reports: WageReport[]; total: number }>("/api/v1/mandor/wage-reports"),
         api.get<Summary>("/api/v1/mandor/summary"),
         api.get<{ kasbons: WorkerKasbon[] }>("/api/v1/mandor/worker-kasbons"),
         api.get<{ kasbons: MandorKasbon[] }>("/api/v1/kasbons"),
@@ -471,6 +483,7 @@ function MandorPageInner() {
       ]);
       setAssignments(asgRes.data.assignments);
       setReports(rptRes.data.reports);
+      setTotalReports(rptRes.data.total ?? rptRes.data.reports.length);
       setSummary(sumRes.data);
       setKasbons(kbRes.data.kasbons);
       setMandorKasbons(mkbRes.data.kasbons ?? []);
@@ -553,6 +566,29 @@ function MandorPageInner() {
     return true;
   });
 
+  /**
+   * Paginasi daftar laporan — di KLIEN, bukan di server.
+   *
+   * Halaman ini menyaring dengan 5 kriteria (pencarian, mandor, status, dua
+   * tanggal) dan mengekspor ke Excel, keduanya di sisi klien. Paginasi server
+   * membuat filter hanya melihat halaman aktif dan ekspor menyimpan sebagian
+   * data sambil tampak lengkap — salah tanpa satu pun gejala.
+   *
+   * Sebelum ini seluruh hasil dirender sekaligus: 4.584px, 4,6 layar gulir,
+   * dan baris yang menunggu persetujuan tenggelam di antara puluhan baris
+   * yang sudah dibayar.
+   */
+  const PER_HALAMAN = 15;
+  const totalHalamanLaporan = Math.max(1, Math.ceil(filteredReports.length / PER_HALAMAN));
+  // Filter yang menyusutkan hasil bisa meninggalkan pemakai di halaman yang
+  // tak ada lagi. Dijepit saat render, bukan lewat efek — efek merender sekali
+  // dengan daftar kosong dulu, dan itu terbaca sebagai "tidak ada data".
+  const halamanAman = Math.min(halamanLaporan, totalHalamanLaporan);
+  const laporanHalamanIni = filteredReports.slice(
+    (halamanAman - 1) * PER_HALAMAN,
+    halamanAman * PER_HALAMAN,
+  );
+
   // D1 — Export Excel
   function exportExcel() {
     const rows = filteredReports.flatMap(r => {
@@ -585,31 +621,6 @@ function MandorPageInner() {
     XLSX.utils.book_append_sheet(wb, ws, "Laporan Upah");
     XLSX.writeFile(wb, `laporan-upah-${new Date().toISOString().split("T")[0]}.xlsx`);
   }
-
-  const Tab = ({ id, label, count }: { id: TabKey; label: string; count?: number }) => (
-    <button
-      onClick={() => setTab(id)}
-      onMouseEnter={e => { if (tab !== id) e.currentTarget.style.color = C.text; }}
-      onMouseLeave={e => { if (tab !== id) e.currentTarget.style.color = C.mid; }}
-      style={{
-        display: "inline-flex", alignItems: "center", gap: 6,
-        padding: "8px 16px", background: "transparent", border: "none",
-        borderBottom: `2px solid ${tab === id ? C.navy : "transparent"}`,
-        fontSize: 13, fontWeight: tab === id ? 600 : 400,
-        color: tab === id ? C.navy : C.mid,
-        cursor: "pointer", transition: "all 0.15s", whiteSpace: "nowrap",
-      }}
-    >
-      {label}
-      {count !== undefined && count > 0 && (
-        <span style={{
-          fontSize: 10, fontWeight: 700, borderRadius: 99, padding: "0px 6px",
-          background: tab === id ? C.navyLight : "var(--surface-hover)",
-          color: tab === id ? C.navy : C.muted,
-        }}>{count}</span>
-      )}
-    </button>
-  );
 
   return (
     <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", background: C.bg, minHeight: "100vh", width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
@@ -696,12 +707,16 @@ function MandorPageInner() {
       {/* Tabs + search */}
       <div style={{ ...card, marginBottom: 16 }}>
         <div style={{ display: "flex", alignItems: "center", borderBottom: `1px solid ${C.border}`, overflowX: "auto" }}>
-          {!isMandor && <Tab id="penugasan" label="Penugasan" />}
-          <Tab id="laporan" label="Laporan Upah" count={summary?.pendingReports} />
-          <Tab id="kasbon" label="Kasbon Tukang" count={kasbons.filter(k => !k.is_settled).length} />
-          {!isMandor && <Tab id="penagihan" label="Penagihan Progress" count={progressPayments.filter(p => p.status === "pending").length} />}
-          {isMandor && <Tab id="mandor-kasbon" label="Kasbon Saya" count={mandorKasbons.filter(k => k.status === "pending").length} />}
-          <Tab id="tukang" label="Daftar Tukang" />
+          {!isMandor && <TabTombol id="penugasan" label="Penugasan" aktif={tab} pilih={setTab} />}
+          <TabTombol id="laporan" label="Laporan Upah" count={summary?.pendingReports} aktif={tab} pilih={setTab} />
+          <TabTombol id="kasbon" label="Kasbon Tukang" count={kasbons.filter(k => !k.is_settled).length} aktif={tab} pilih={setTab} />
+          {!isMandor && <TabTombol id="penagihan" label="Penagihan Progress" count={progressPayments.filter(p => p.status === "pending").length} aktif={tab} pilih={setTab} />}
+          {/* Retensi milik yang MENCAIRKAN (admin/PM), bukan mandor — mandor
+              tak bisa mencairkan jaminannya sendiri. Ditaruh bersebelahan
+              dengan Penagihan karena retensi lahir dari pembayaran progres. */}
+          {!isMandor && <TabTombol id="retensi" label="Retensi Mandor" aktif={tab} pilih={setTab} />}
+          {isMandor && <TabTombol id="mandor-kasbon" label="Kasbon Saya" count={mandorKasbons.filter(k => k.status === "pending").length} aktif={tab} pilih={setTab} />}
+          <TabTombol id="tukang" label="Daftar Tukang" aktif={tab} pilih={setTab} />
           <div style={{ flex: 1 }} />
           <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "0 12px", padding: "4px 8px", border: `1px solid ${C.border}`, borderRadius: 6, background: "var(--surface)" }}>
             <Search size={13} color={C.muted} />
@@ -755,11 +770,25 @@ function MandorPageInner() {
                   <div>Belum ada laporan upah</div>
                   <div style={{ fontSize: 12, marginTop: 4 }}>Klik "Ajukan Upah" untuk membuat laporan baru</div>
                 </div>
-              ) : filteredReports.map(r => {
+              ) : laporanHalamanIni.map(r => {
                 const st = getWageStatusBadge(r.status);
                 const canApprove = !isMandor && r.status === "submitted";
                 return (
-                  <div key={r.id} style={{ ...card, padding: "12px 16px", transition: "box-shadow 0.15s" }}>
+                  <div key={r.id} style={{
+                    ...card, padding: "12px 16px", transition: "box-shadow 0.15s",
+                    // Penanda tepi untuk baris yang MENUNGGU PUTUSAN SAYA.
+                    //
+                    // Sebelum ini setiap kartu punya bobot visual identik:
+                    // laporan yang perlu disetujui hari ini terlihat sama
+                    // seperti laporan yang sudah dibayar bulan lalu. Dengan 15
+                    // kartu per halaman yang semuanya seragam, mata tak punya
+                    // pegangan untuk memindai.
+                    //
+                    // Warnanya BUKAN satu-satunya penanda — lencana "Diajukan"
+                    // dan tombol Setujui/Tolak sudah membedakannya untuk yang
+                    // tak bisa membedakan warna (WCAG 1.4.1).
+                    borderLeft: canApprove ? `3px solid ${C.yellow}` : undefined,
+                  }}>
                     {/* `role="button"` + handler keyboard, BUKAN `<button>`:
                         isinya berisi beberapa blok bersarang yang tata letaknya
                         akan berubah kalau dibungkus tombol. Yang dibutuhkan
@@ -821,6 +850,31 @@ function MandorPageInner() {
                   </div>
                 );
               })}
+
+              <Paginasi
+                halaman={halamanAman}
+                totalHalaman={totalHalamanLaporan}
+                totalEntri={filteredReports.length}
+                satuan="laporan"
+                onPindah={setHalamanLaporan}
+              />
+
+              {/* Pagar server (500) memotong — dinyatakan, bukan disembunyikan.
+                  Filter dan Export Excel bekerja atas data yang TERUNDUH; kalau
+                  sebagian tertinggal di server, keduanya menghasilkan jawaban
+                  yang tampak lengkap padahal tidak. */}
+              {totalReports > reports.length && (
+                <div role="status" style={{
+                  marginTop: 12, padding: "10px 14px", borderRadius: 8,
+                  border: `1px solid ${C.yellowBorder}`, background: C.yellowBg,
+                  fontSize: 12, color: C.text, lineHeight: 1.5,
+                }}>
+                  Menampilkan <strong>{reports.length.toLocaleString("id-ID")}</strong> laporan
+                  terbaru dari <strong>{totalReports.toLocaleString("id-ID")}</strong>.
+                  Penyaringan dan Export Excel hanya mencakup yang termuat —
+                  persempit rentang tanggal untuk melihat sisanya.
+                </div>
+              )}
             </div>
           )}
 
@@ -1234,6 +1288,15 @@ function MandorPageInner() {
             </div>
           )}
 
+          {/* TAB: Retensi Mandor — register ditahan vs dicairkan.
+              Section-nya berdiri sendiri (memuat datanya sendiri) supaya tab
+              lain tak menanggung query yang tak dipakainya. */}
+          {tab === "retensi" && !isMandor && (
+            <div style={{ padding: 20 }}>
+              <RetensiSection />
+            </div>
+          )}
+
           {/* TAB: Penagihan Progress — admin/PM review + confirm */}
           {tab === "penagihan" && !isMandor && (() => {
             const pendingPP = progressPayments.filter(p => p.status === "pending");
@@ -1371,9 +1434,24 @@ function MandorPageInner() {
                   </div>
 
                   {filteredWorkers.length === 0 ? (
-                    <div style={{ padding: "40px 16px", textAlign: "center", color: C.muted, fontSize: 13 }}>
-                      <Users size={28} color={C.border} style={{ marginBottom: 10, display: "block", margin: "0 auto 10px" }} />
-                      Belum ada pekerja terdaftar
+                    <div style={{ padding: 16 }}>
+                      <Kosong
+                        ikon={<Users size={28} />}
+                        judul="Belum ada pekerja terdaftar"
+                        sebab={
+                          <>
+                            Laporan upah mingguan disusun per pekerja: tarif harian
+                            dan jumlah hari kerja diambil dari daftar ini. Selama
+                            kosong, mandor tak bisa mengajukan upah lewat sistem.
+                          </>
+                        }
+                        aksi={
+                          <button onClick={() => setShowWorkerForm({})}
+                            style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: C.navy, color: "var(--on-navy)", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                            <Plus size={14} /> Tambah Pekerja
+                          </button>
+                        }
+                      />
                     </div>
                   ) : (
                     filteredWorkers.map((w, idx) => {
@@ -2143,6 +2221,7 @@ function WageReportDetailModal({ data, onClose, onApprove }: {
             <div style={{ fontSize: 12, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Rincian Tukang</div>
             <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
+                <caption className="sr-only">Rincian upah per pekerja: jumlah hari, tarif harian, lembur, dan subtotal.</caption>
                 <thead>
                   <tr style={{ background: "var(--surface-subtle)" }}>
                     {["Nama", "Hari", "Tarif/Hari", "Lembur", "Subtotal"].map(h => (
@@ -2153,7 +2232,7 @@ function WageReportDetailModal({ data, onClose, onApprove }: {
                 <tbody>
                   {data.items.map((item, i) => (
                     <tr key={item.id} style={{ background: i % 2 === 0 ? "var(--surface)" : "var(--surface-subtle)" }}>
-                      <td style={{ padding: "8px 12px", fontSize: 13, color: C.text, fontWeight: 600 }}>{item.worker_name}</td>
+                      <th scope="row" style={{ textAlign: "left", padding: "8px 12px", fontSize: 13, color: C.text, fontWeight: 600 }}>{item.worker_name}</th>
                       <td style={{ padding: "8px 12px", fontSize: 13, color: C.mid }}>{item.days_worked}</td>
                       <td style={{ padding: "8px 12px", fontSize: 13, color: C.mid }}>{fmt(item.daily_rate)}</td>
                       <td style={{ padding: "8px 12px", fontSize: 12, color: C.mid }}>
@@ -3632,6 +3711,51 @@ function PPConfirmModal({ payment, cashAccounts, loading, onClose, onAction }: {
       </div>
     </div>,
     document.body
+  );
+}
+
+
+/**
+ * Tombol tab — DIDEFINISIKAN DI LEVEL MODUL, bukan di dalam render.
+ *
+ * Versi lama membuatnya di dalam , dan
+ *  menandai SETIAP pemakaiannya (6 warning,
+ * naik jadi 7 saat tab Retensi ditambahkan).
+ *
+ * Peringatannya benar, dan bukan soal gaya: komponen yang lahir ulang tiap
+ * render membuat React membongkar-pasang seluruh sub-pohonnya — state di
+ * dalamnya hilang, dan transisi CSS mulai dari nol tiap induknya render.
+ *
+ *  dan  dulu ditutup lewat closure; sekarang jadi prop.
+ */
+function TabTombol({ id, label, count, aktif, pilih }: {
+  id: TabKey; label: string; count?: number;
+  aktif: TabKey; pilih: (t: TabKey) => void;
+}) {
+  const dipilih = aktif === id;
+  return (
+    <button
+      onClick={() => pilih(id)}
+      onMouseEnter={e => { if (!dipilih) e.currentTarget.style.color = C.text; }}
+      onMouseLeave={e => { if (!dipilih) e.currentTarget.style.color = C.mid; }}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 6,
+        padding: "10px 18px", background: "transparent", border: "none",
+        borderBottom: `2px solid ${dipilih ? C.navy : "transparent"}`,
+        fontSize: 13, fontWeight: dipilih ? 600 : 400,
+        color: dipilih ? C.navy : C.mid,
+        cursor: "pointer", transition: "all 0.15s", whiteSpace: "nowrap",
+      }}
+    >
+      {label}
+      {count !== undefined && count > 0 && (
+        <span style={{
+          fontSize: 10, fontWeight: 700, borderRadius: 99, padding: "1px 6px",
+          background: dipilih ? C.navyLight : "var(--surface-hover)",
+          color: dipilih ? C.navy : C.muted,
+        }}>{count}</span>
+      )}
+    </button>
   );
 }
 

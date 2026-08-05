@@ -452,6 +452,7 @@ function ChangeOrderCard({
           {/* Items table */}
           {(co.items?.length ?? 0) > 0 && (
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
+              <caption className="sr-only">Item perubahan pekerjaan: tipe, deskripsi, satuan, harga satuan, dan dampaknya terhadap biaya.</caption>
               <thead>
                 <tr style={{ background: "var(--surface-subtle)" }}>
                   {["Tipe", "Deskripsi", "Satuan", "Vol Δ", "Harga Sat.", "Delta Biaya", ...(isDraft ? [""] : [])].map(h => (

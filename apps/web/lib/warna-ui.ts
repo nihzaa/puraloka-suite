@@ -31,6 +31,16 @@
 export const C = {
   // ── Merek ──────────────────────────────────────────────────────────────
   navy: "var(--navy)",
+  /**
+   * Teks/ikon yang duduk DI ATAS `--navy`.
+   *
+   * WAJIB dipakai alih-alih `"#fff"`. Di mode gelap `--navy` berbalik jadi
+   * biru TERANG (`#4D9FFF`), sehingga putih di atasnya cuma 2,72:1 — jauh di
+   * bawah ambang WCAG AA 4,5:1. Diukur lewat axe di 7 halaman.
+   *
+   * Tokennya berbalik sendiri: `#FFFFFF` di terang, `#0F1117` di gelap.
+   */
+  onNavy: "var(--on-navy)",
   navyLight: "var(--navy-light)",
   aksen: "var(--aksen)",
   aksenTerang: "var(--aksen-terang)",

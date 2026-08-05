@@ -379,7 +379,10 @@ function MaterialsTab() {
                 <tr><td colSpan={4} style={{ textAlign: "center", padding: 48, color: C.muted }}>Belum ada material</td></tr>
               ) : filtered.map(m => (
                 <tr key={m.id} style={{ borderTop: `1px solid ${C.border}` }}>
-                  <td style={{ padding: "8px 12px", fontWeight: 500, color: C.text }}>{m.name}</td>
+                  {/* `<th scope="row">`: nama material adalah identitas baris.
+                      Tanpa itu harga satuan dibacakan tanpa menyebut material
+                      apa — dan di daftar harga, itu angka tanpa pemilik. */}
+                  <th scope="row" style={{ textAlign: "left", padding: "8px 12px", fontWeight: 500, color: C.text }}>{m.name}</th>
                   <td style={{ padding: "8px 12px", color: C.mid }}>{m.category?.name ?? "—"}</td>
                   <td style={{ padding: "8px 12px", color: C.mid }}>{m.unit}</td>
                   <td style={{ padding: "8px 12px", color: C.text }}>{m.unit_price ? fmt(m.unit_price) : "—"}</td>
@@ -2130,7 +2133,7 @@ function LaporanPengadaanTab() {
         {([["rekap", "Rekap Pembelian"], ["aging", "Aging Hutang"]] as const).map(([key, label]) => (
           <button key={key} onClick={() => setSubTab(key)} style={{
             padding: "8px 16px", borderRadius: 6, fontSize: 13, fontWeight: subTab === key ? 600 : 400,
-            background: subTab === key ? C.navy : C.surface, color: subTab === key ? "#fff" : C.mid,
+            background: subTab === key ? C.navy : C.surface, color: subTab === key ? C.onNavy : C.mid,
             border: `1px solid ${subTab === key ? C.navy : C.border}`, cursor: "pointer",
           }}>{label}</button>
         ))}

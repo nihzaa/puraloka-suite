@@ -49,3 +49,6 @@ next-env.d.ts
 
 # Tangkapan layar untuk tinjauan — gambar tak masuk repo.
 .layar/
+
+# Hasil audit a11y runtime — artefak, bukan sumber.
+.a11y-*.json

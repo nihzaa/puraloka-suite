@@ -92,6 +92,14 @@ export default function MandorLaporanPage() {
                   {items.length > 0 ? (
                     <div style={{ overflowX: "auto" }}>
                       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
+                        {/* Tabel ini muncul di dalam baris laporan yang dibuka.
+                            Konteks itu terlihat di layar, tapi pembaca layar
+                            mengumumkan tabel lepas dari sekelilingnya — tanpa
+                            caption yang terdengar hanya "tabel, 5 kolom". */}
+                        <caption className="sr-only">
+                          Rincian upah per pekerja untuk laporan minggu ini: hari kerja,
+                          upah harian, dan jumlah yang diterima masing-masing.
+                        </caption>
                         <thead>
                           <tr style={{ background: "var(--surface-hover)" }}>
                             <th style={{ padding: "6px 8px", textAlign: "left", color: C.mid, fontWeight: 600 }}>Pekerja</th>
@@ -103,7 +111,7 @@ export default function MandorLaporanPage() {
                         <tbody>
                           {items.map((item) => (
                             <tr key={item.id} style={{ borderTop: `1px solid ${C.border}` }}>
-                              <td style={{ padding: "8px 8px", color: C.text }}>{item.worker?.name ?? "—"}</td>
+                              <th scope="row" style={{ textAlign: "left", padding: "8px 8px", color: C.text }}>{item.worker?.name ?? "—"}</th>
                               <td style={{ padding: "8px 8px", textAlign: "right", color: C.mid }}>{item.days_worked ?? 1}</td>
                               <td style={{ padding: "8px 8px", textAlign: "right", color: C.mid }}>{fmt(item.daily_rate)}</td>
                               <td style={{ padding: "8px 8px", textAlign: "right", color: C.text, fontWeight: 600 }}>{fmt(item.daily_rate * (item.days_worked ?? 1))}</td>

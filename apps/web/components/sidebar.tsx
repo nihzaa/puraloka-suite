@@ -42,7 +42,10 @@ import {
   Smartphone,
   Dot,
 } from "lucide-react";
-import { getStoredUser, logout, api, type PuralokaUser } from "@/lib/api";
+import {
+  getStoredUser, logout, api, MENU_CACHE_KEY, MENU_ETAG_KEY,
+  type PuralokaUser,
+} from "@/lib/api";
 import { SidebarFokus } from "@/components/sidebar-fokus";
 import { LogoPuraloka } from "@/components/logo-puraloka";
 import { useSidebar } from "@/lib/sidebar-context";
@@ -96,7 +99,15 @@ interface MenuNode {
   children: MenuNode[];
 }
 
-const MENU_CACHE_KEY = "puraloka_menu";
+/**
+ * Cache menu + ETag-nya. Kuncinya didefinisikan di `lib/api.ts` karena
+ * `logout()` di sana wajib membuang keduanya — lihat catatan di sana.
+ *
+ * Katalog menu ~57 KB, muatan terbesar di aplikasi ini, dan sidebar
+ * merevalidasinya tiap kali dimuat. Server membalas 304 untuk `If-None-Match`
+ * yang cocok, tapi axios tidak mengirim header itu sendiri: tanpa itu 57 KB
+ * tetap diunduh utuh dan ETag di server tak menghemat sebyte pun.
+ */
 
 /**
  * Ikon menu, didefinisikan di TINGKAT MODUL.
@@ -282,11 +293,23 @@ function GrupCollapsible({
                   : undefined}
                 style={{
                   ...subStyle(active),
-                  // Diredupkan, bukan disembunyikan: item ini menyatakan
-                  // apa yang SUDAH direncanakan, dan itu informasi yang
-                  // berguna. Yang dihindari cuma janji palsu bahwa
-                  // mengkliknya membuka halaman tersendiri.
-                  opacity: belumAdaHalaman ? 0.55 : undefined,
+                  // ⚠️ JANGAN pakai `opacity` untuk meredupkan teks di sini.
+                  //
+                  // Versi pertama memakai `opacity: 0.55`, dan audit axe-core
+                  // menemukannya sebagai 213 pelanggaran kontras di 37 halaman
+                  // — pelanggaran terbanyak di seluruh aplikasi, dari satu
+                  // baris kode.
+                  //
+                  // Diukur: teks `#5A616B` di latar `#F8FAFC` punya kontras
+                  // 5,98:1. Dengan opacity 0.55 ia menjadi 2,34:1 — jauh di
+                  // bawah ambang WCAG AA 4,5:1. Bahkan 0.85 pun gagal (4,25:1),
+                  // jadi ini bukan soal memilih angka yang lebih besar:
+                  // opacity SAMA SEKALI bukan alat yang tepat untuk ini.
+                  //
+                  // Penanda "belum ada halaman" dipindahkan ke titik kecil di
+                  // sisi kiri (lihat di bawah) — ia membawa arti yang sama
+                  // tanpa menyentuh keterbacaan labelnya.
+                  position: "relative",
                 }}
                 // Saat tertutup, submenu masih ada di DOM (untuk diukur) tapi
                 // tak boleh bisa di-Tab. Tanpa ini, keyboard "menghilang" ke
@@ -296,6 +319,21 @@ function GrupCollapsible({
                 onMouseEnter={(e) => onHover(e, active)}
                 onMouseLeave={(e) => offHover(e, active)}
               >
+                {/* Titik penanda "belum punya halaman sendiri".
+                    Dekoratif — maknanya disampaikan lewat `title` dan
+                    keterangan `sr-only` di bawah, jadi ia tak perlu
+                    memenuhi kontras teks. */}
+                {belumAdaHalaman && (
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      position: "absolute", left: 18, top: "50%",
+                      width: 4, height: 4, borderRadius: "50%",
+                      transform: "translateY(-50%)",
+                      background: "var(--text-muted)", opacity: 0.5,
+                    }}
+                  />
+                )}
                 <IkonAnak nama={child.icon} aktif={active} />
                 <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{child.label}</span>
                 {/* `title` tidak terbaca andal oleh pembaca layar dan sama
@@ -354,14 +392,36 @@ export function Sidebar() {
     ));
 
     // Menu: pakai cache dulu (render instan), lalu revalidate dari API.
+    let etagTersimpan: string | null = null;
     try {
       const cached = localStorage.getItem(MENU_CACHE_KEY);
-      if (cached) setMenu(JSON.parse(cached) as MenuNode[]);
+      if (cached) {
+        setMenu(JSON.parse(cached) as MenuNode[]);
+        // ETag hanya dikirim kalau muatannya BENAR-BENAR ada di tangan.
+        // Mengirimnya tanpa muatan berarti meminta 304 lalu tak punya apa pun
+        // untuk ditampilkan — sidebar kosong tanpa satu pun pesan galat.
+        etagTersimpan = localStorage.getItem(MENU_ETAG_KEY);
+      }
     } catch {}
-    api.get<{ menu: MenuNode[] }>("/api/v1/menu")
-      .then(({ data }) => {
+
+    api.get<{ menu: MenuNode[] }>("/api/v1/menu", {
+      headers: etagTersimpan ? { "If-None-Match": etagTersimpan } : undefined,
+      // Tanpa ini axios memperlakukan 304 sebagai galat dan jatuh ke `.catch`.
+      // Perilakunya tetap benar (cache dipakai), tapi lewat jalur penanganan
+      // galat — dan revalidasi yang berhasil tak boleh terlihat seperti gagal.
+      validateStatus: (s) => (s >= 200 && s < 300) || s === 304,
+    })
+      .then(({ status, data, headers }) => {
+        // 304 = yang dipegang masih mutakhir. Tak ada badan untuk dibaca;
+        // menyentuh `data.menu` di sini akan melempar dan mengosongkan menu.
+        if (status === 304) return;
         setMenu(data.menu);
-        try { localStorage.setItem(MENU_CACHE_KEY, JSON.stringify(data.menu)); } catch {}
+        try {
+          localStorage.setItem(MENU_CACHE_KEY, JSON.stringify(data.menu));
+          const etag = headers?.etag ?? (headers as Record<string, string>)?.["etag"];
+          if (etag) localStorage.setItem(MENU_ETAG_KEY, etag);
+          else localStorage.removeItem(MENU_ETAG_KEY);
+        } catch {}
       })
       .catch(() => { /* pakai cache; sidebar tidak boleh gagal render */ });
   }, []);

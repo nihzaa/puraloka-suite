@@ -109,7 +109,7 @@ export default function MandorPortalLayout({ children }: { children: React.React
             width: 32, height: 32, borderRadius: 6, background: C.navy,
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
-            <span style={{ color: "#fff", fontWeight: 800, fontSize: 15 }}>P</span>
+            <span style={{ color: C.onNavy, fontWeight: 800, fontSize: 15 }}>P</span>
           </div>
           <div>
             <div style={{ fontWeight: 700, fontSize: 13, color: C.text, lineHeight: 1 }}>Puraloka Suite</div>

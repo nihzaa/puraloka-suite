@@ -36,6 +36,7 @@ import {
 import { api, makeAbortController } from "@/lib/api";
 
 import { C } from "@/lib/warna-ui";
+import { Kosong } from "@/components/ui-dasar";
 
 type StatusEOT = "diajukan" | "disetujui" | "ditolak";
 
@@ -335,12 +336,23 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
         Perpanjangan waktu (EOT)
       </h3>
       {eot.length === 0 ? (
-        <p style={{ fontSize: 12, color: C.muted, margin: "0 0 14px" }}>
-          Belum ada pengajuan perpanjangan waktu.
-        </p>
+        <div style={{ marginBottom: 14 }}>
+          <Kosong
+            judul="Belum ada pengajuan perpanjangan waktu"
+            sebab={
+              <>
+                Perpanjangan waktu (EOT) mengubah tanggal selesai kontrak, dan
+                itulah yang dipakai menghitung denda keterlambatan. Selama
+                belum ada yang tercatat, tenggat yang berlaku adalah tanggal
+                kontrak asli.
+              </>
+            }
+          />
+        </div>
       ) : (
         <div style={{ overflowX: "auto", marginBottom: 14 }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 560, fontVariantNumeric: "tabular-nums" }}>
+            <caption className="sr-only">Pengajuan perpanjangan waktu: nomor, tanggal diajukan, jumlah hari, alasan, dan status.</caption>
             <thead>
               <tr style={{ background: "var(--surface-subtle)" }}>
                 {["Nomor", "Diajukan", "Hari", "Alasan", "Status", ""].map((h, i) => (
@@ -439,12 +451,21 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
       )}
 
       {bonds.length === 0 ? (
-        <p style={{ fontSize: 12, color: C.muted, margin: 0 }}>
-          Belum ada jaminan tercatat untuk proyek ini.
-        </p>
+        <Kosong
+          judul="Belum ada jaminan tercatat"
+          sebab={
+            <>
+              Jaminan pelaksanaan dan pemeliharaan punya tanggal kedaluwarsa.
+              Yang tak tercatat di sini tak ikut diingatkan saat mendekati
+              masa berakhirnya — dan jaminan yang lewat tanpa diperpanjang
+              bisa dicairkan pemberi kerja.
+            </>
+          }
+        />
       ) : (
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 560, fontVariantNumeric: "tabular-nums" }}>
+            <caption className="sr-only">Jaminan kontrak: jenis, nomor, penerbit, nilai, masa berlaku, dan status.</caption>
             <thead>
               <tr style={{ background: "var(--surface-subtle)" }}>
                 {["Jenis", "Nomor", "Penerbit", "Nilai", "Berlaku s.d.", "Status", ""].map((h, i) => (
@@ -602,7 +623,7 @@ function FormBond({ projectId, onSelesai, onBatal }: {
       <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
         <button type="submit" disabled={simpan} style={{
           padding: "6px 16px", borderRadius: 6, border: "none", background: C.navy,
-          color: "#fff", fontSize: 12, fontWeight: 600,
+          color: C.onNavy, fontSize: 12, fontWeight: 600,
           cursor: simpan ? "wait" : "pointer", opacity: simpan ? 0.7 : 1,
         }}>{simpan ? "Menyimpan…" : "Simpan"}</button>
         <button type="button" onClick={onBatal} style={{
@@ -680,7 +701,7 @@ function FormEOT({ projectId, onSelesai, onBatal }: {
       <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
         <button type="submit" disabled={simpan} style={{
           padding: "6px 16px", borderRadius: 6, border: "none", background: C.navy,
-          color: "#fff", fontSize: 12, fontWeight: 600,
+          color: C.onNavy, fontSize: 12, fontWeight: 600,
           cursor: simpan ? "wait" : "pointer", opacity: simpan ? 0.7 : 1,
         }}>
           {simpan ? "Menyimpan…" : "Ajukan"}

@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import { createHash } from 'node:crypto'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate } from '../../plugins/auth.js'
 
@@ -118,6 +119,35 @@ export default async function menuRoutes(app: FastifyInstance) {
     }
     roots.sort((a, b) => a.sort_order - b.sort_order)
     roots.forEach(sortChildren)
+
+    // ── ETag ────────────────────────────────────────────────────────────────
+    //
+    // Katalog menu 249 baris = ~57 KB JSON, muatan terbesar di seluruh
+    // aplikasi — lebih besar dari data bisnis mana pun — dan sidebar
+    // mengambilnya ulang di SETIAP halaman untuk revalidasi cache
+    // localStorage-nya. Isinya berubah saat rilis menambah menu, bukan saat
+    // orang bekerja, jadi hampir setiap unduhan itu mengirim byte yang
+    // identik dengan yang sudah dipegang peramban.
+    //
+    // Hash diambil dari `roots` — muatan AKHIR, sesudah `company_menu_settings`
+    // diterapkan — bukan dari katalog mentah. Ini yang membuatnya benar di
+    // multi-tenant: dua perusahaan dengan pengecualian berbeda menghasilkan
+    // ETag berbeda dengan sendirinya. Hash katalog mentah akan sama untuk
+    // semua tenant, dan perusahaan kedua menerima 304 lalu memakai menu
+    // perusahaan pertama dari cache-nya — kebocoran tenant lewat cache, persis
+    // jenis kegagalan yang tak menimbulkan satu pun pesan galat.
+    //
+    // `W/` (weak): yang dijanjikan sama adalah MAKNA muatan, bukan byte-nya
+    // — urutan kunci JSON tak dijamin stabil lintas versi runtime.
+    const etag = `W/"${createHash('sha1').update(JSON.stringify(roots)).digest('base64url')}"`
+    reply.header('ETag', etag)
+    // Wajib: tanpa ini proxy bersama boleh menyimpan menu satu tenant dan
+    // menyajikannya ke tenant lain. `private` menahan salinan di peramban saja.
+    reply.header('Cache-Control', 'private, no-cache')
+
+    if (request.headers['if-none-match'] === etag) {
+      return reply.status(304).send()
+    }
 
     return reply.send({ menu: roots })
   })

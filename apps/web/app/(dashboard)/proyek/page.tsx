@@ -442,7 +442,10 @@ function ProyekContent() {
                   {tab.label}
                   <span style={{
                     fontSize: 10, fontWeight: 700,
-                    background: active ? "color-mix(in srgb, var(--aksen) 18%, transparent)" : "var(--surface-hover)",
+                    // 18% → 10%: di mode gelap latar 18% terlalu terang untuk teks
+                    // `--navy` di atasnya (4,05:1, ambang 4,5). Diukur axe di
+                    // /proyek. 10% memberi 4,79:1 dengan perubahan paling kecil.
+                    background: active ? "color-mix(in srgb, var(--aksen) 10%, transparent)" : "var(--surface-hover)",
                     color: active ? C.navy : C.muted,
                     padding: "0px 6px", borderRadius: 99,
                   }}>

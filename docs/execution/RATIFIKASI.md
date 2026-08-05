@@ -945,3 +945,83 @@ Yang **tidak boleh** dilakukan: melonggarkan assertion agar hijau. Test
 `search-tenant-isolation` punya sejarahnya sendiri — assertion positif yang
 dipertahankan meski merah justru yang mengungkap `clients.name` yang tak
 pernah ada.
+
+---
+
+## R-010 · P1 · Pelanggan baru lahir TANPA rantai approval — pengajuannya tak bisa diputuskan siapa pun
+
+**Status:** terbuka · dibuka 2026-08-05 · **cacat produksi, ditemukan lewat test**
+
+### Yang terjadi
+
+Migrasi `159_submittal_register.sql` mengisi rantai approval `submittal`
+untuk company yang **ada saat migrasi dijalankan**:
+
+```sql
+INSERT INTO approval_chains (company_id, entity_type, label, is_active)
+SELECT c.id, 'submittal', 'Persetujuan Submittal', true
+  FROM companies c
+ WHERE NOT EXISTS (…);
+```
+
+Tidak ada mekanisme apa pun yang melakukan hal sama untuk company yang lahir
+**sesudahnya**. Diverifikasi ke `pg_trigger`, bukan dibaca dari migrasi:
+
+```
+trigger di companies : trg_company_no_casual_delete
+```
+
+Satu-satunya trigger adalah pelindung penghapusan. Tak ada yang menyediakan
+rantai approval.
+
+### Kenapa ini penting untuk SaaS
+
+Puraloka sedang menjadi ERP multi-tenant yang dijual ke banyak perusahaan.
+Pelanggan **kedua dan seterusnya** — yang didaftarkan lewat UI, bukan lewat
+migrasi — akan lahir tanpa rantai `submittal`.
+
+Akibatnya, menurut ADR-007 (fail-closed): rantai yang tidak ada berarti
+**nol orang** bisa menyetujui. Submittal yang diajukan tak bisa diputuskan
+siapa pun, dan gejalanya bukan pesan yang menjelaskan — melainkan `403`
+untuk semua orang, termasuk pemilik perusahaannya sendiri.
+
+Fail-closed itu **benar** (ember [C], jangan dilonggarkan). Yang salah adalah
+tenant baru tak pernah diberi rantainya.
+
+### Bagaimana ditemukan
+
+Bukan dari audit skema. Sebuah fixture test membuat perusahaan kedua, dan
+`submittal-aturan.test.ts` langsung merah:
+
+> ada company tanpa rantai submittal — pengajuannya tak bisa diputuskan
+
+Test itu menegakkan invariant yang benar. Yang ia ungkap: satu-satunya alasan
+invariant itu selama ini terpenuhi adalah **tak pernah ada company baru**.
+
+### Cakupannya mungkin lebih luas dari submittal
+
+`approval_chains` memuat beberapa `entity_type` (estimate, lessons, dan lain
+-lain — lihat migrasi 099, 111, 114, 158). Perlu diperiksa mana saja yang
+di-seed per-company lewat migrasi dan karena itu punya lubang yang sama.
+**Belum diperiksa** — jangan diasumsikan hanya submittal.
+
+### Usul perbaikan (butuh keputusan founder — menyentuh skema)
+
+1. **Trigger `AFTER INSERT ON companies`** yang menyalin rantai + langkah
+   bawaan. Otomatis dan tak bisa terlupa, tapi menambah perilaku implisit
+   pada tabel inti.
+2. **Provisioning eksplisit di jalur pembuatan company** (kode aplikasi).
+   Lebih terlihat, tapi jalur pembuatan lain (skrip, seed) bisa melewatinya.
+3. **Penjaga CI** yang menuntut setiap company punya rantai untuk tiap
+   `entity_type` wajib — ini sudah ADA untuk submittal (`submittal-aturan`),
+   dan justru itu yang menemukan cacat ini. Perlu diperluas ke entity lain.
+
+Rekomendasi: **1 + 3**. Trigger menutup lubangnya untuk semua jalur
+pembuatan; penjaga memastikan trigger itu tak pernah diam-diam berhenti
+bekerja.
+
+### Yang SUDAH dikerjakan (tidak menunggu ratifikasi)
+
+Fixture `menu-etag.test.ts` kini membuat rantai + langkahnya sendiri, jadi
+ia sah menurut seluruh invariant dan tak menjatuhkan test lain meski
+tertinggal. Itu memperbaiki CI — **bukan** memperbaiki cacat produksinya.

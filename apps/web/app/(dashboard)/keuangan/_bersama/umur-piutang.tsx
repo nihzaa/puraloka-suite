@@ -152,8 +152,18 @@ export function UmurPiutang({ buckets, total }: {
             display: "grid",
             gridTemplateColumns: "12px minmax(0,1fr) auto auto",
             alignItems: "center", gap: 8,
-            padding: "8px 12px", background: "var(--surface)",
-            opacity: d.amount ? 1 : 0.45,
+            padding: "8px 12px",
+            // ⚠️ JANGAN pakai `opacity` untuk meredupkan baris kosong.
+            //
+            // Versi sebelumnya memakai `opacity: 0.45`, dan axe menemukannya
+            // sebagai 13 pelanggaran kontras: `--text-muted` yang aslinya
+            // 5,24:1 jatuh ke 1,94:1 — teksnya praktis tak terbaca.
+            //
+            // Bucket kosong SUDAH dibedakan tanpa itu: warna angkanya
+            // memakai `C.muted` (baris di bawah) dan persentasenya "—".
+            // Latar yang sedikit lebih redup menambahkan isyarat tanpa
+            // menyentuh keterbacaan teks di atasnya.
+            background: d.amount ? "var(--surface)" : "var(--surface-subtle)",
           }}>
             <span aria-hidden="true" style={{
               width: 10, height: 10, borderRadius: 0, background: d.warna,

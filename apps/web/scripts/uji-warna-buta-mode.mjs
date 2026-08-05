@@ -70,8 +70,26 @@ const RGBA_MEREK = /rgba\(\s*0\s*,\s*51\s*,\s*102\s*,/;
  * tapi mengganti namanya adalah perubahan lain; penjaga ini tak boleh
  * memaksakannya lewat alarm palsu.)
  */
+/**
+ * Putih dipaku sebagai latar.
+ *
+ * Versi pertama menuntut putih berada di string yang dibuka TEPAT setelah
+ * `background:` — sehingga bentuk ternary lolos:
+ *
+ *     background: aktif ? "#fff" : "var(--surface)"   ← tak tertangkap
+ *
+ * Diverifikasi lewat mutasi: mengembalikan cacat asli `/audit` dalam bentuk
+ * ternary tak membuat penjaga ini merah. Padahal ternary justru bentuk yang
+ * PALING umum untuk latar tombol aktif — persis tempat cacatnya lahir.
+ *
+ * Kini kondisi ternary boleh dilewati, tapi TIDAK properti lain: jendela
+ * pencariannya berhenti di koma pemisah properti. Versi yang melompati koma
+ * melaporkan `border: "none", … background: var(--x)` sebagai putih dipaku —
+ * dan penjaga dengan temuan palsu tidak menghasilkan perbaikan, ia
+ * menghasilkan penjaga yang dimatikan.
+ */
 const PUTIH_LATAR =
-  /background(?:Color)?\s*:\s*(?:"[^"]*|`[^`]*|'[^']*)(#fff\b|#ffffff\b|\bwhite\b)/i;
+  /background(?:Color)?\s*:\s*[^,;{}]*?["'`](#fff\b|#ffffff\b|white)["'`]/i;
 
 /** Properti tempat hilangnya warna berarti hilangnya ISI. */
 const PROP_ISI = /(?:^|[^a-zA-Z])(color|background|backgroundColor|border|borderColor|fill|stroke)\s*:/;
@@ -85,9 +103,27 @@ const temuan = [];
 
 for (const f of berkas) {
   const baris = readFileSync(f, "utf8").split(/\r?\n/);
+  // Apakah baris ini berada di dalam blok komentar yang belum ditutup.
+  //
+  // Pemeriksaan per-baris tanpa memori membaca KOMENTAR sebagai kode. Nyata:
+  // komentar di `/audit` yang menerangkan bahwa `background: "#fff"` dipaku
+  // SUDAH DIPERBAIKI dilaporkan sebagai pelanggaran — penjaga menuduh
+  // catatan tentang cacat, bukan cacatnya.
+  //
+  // Menyunting komentarnya agar penjaga diam adalah menghapus penjelasan
+  // demi alat. Yang diperbaiki parsernya.
+  let dalamBlok = false;
   for (let i = 0; i < baris.length; i++) {
     const b = baris[i];
-    if (/^\s*(\/\/|\*|\/\*)/.test(b)) continue;             // komentar
+
+    if (dalamBlok) {
+      if (/\*\/|\*\/\}/.test(b)) dalamBlok = false;
+      continue;
+    }
+    // Blok yang dibuka dan TIDAK ditutup di baris yang sama.
+    if (/\{?\/\*/.test(b) && !/\*\//.test(b)) { dalamBlok = true; continue; }
+
+    if (/^\s*(\/\/|\*|\/\*|\{\/\*)/.test(b)) continue;      // komentar satu baris
     // Bayangan dikecualikan — lihat alasan di header.
     if (/boxShadow|box-shadow|textShadow|filter\s*:/.test(b)) continue;
 

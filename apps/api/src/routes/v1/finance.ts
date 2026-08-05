@@ -1119,16 +1119,27 @@ export default async function financeRoutes(app: FastifyInstance) {
         requester:users!kasbons_requested_by_fkey ( id, name ),
         approver:users!kasbons_approved_by_fkey ( id, name ),
         cash_account:cash_accounts!kasbons_cash_account_id_fkey ( id, name, type )
-      `)
+      `, { count: 'exact' })
       .order('kasbon_date', { ascending: false })
       .range(off, off + lim - 1)
 
     if (status) q = q.eq('status', status)
 
-    const { data, error } = await q
+    const { data, error, count } = await q
     if (error) return reply.status(500).send({ error: error.message })
 
-    return reply.send({ kasbons: data ?? [] })
+    // `total` ikut dikirim supaya web bisa berpaginasi.
+    //
+    // Tanpa ini, halaman kasbon meminta `limit: 200` dan merender semuanya
+    // sekaligus — 9.083px, sembilan layar gulir untuk mencari satu kasbon,
+    // dua kali lipat halaman terpanjang berikutnya. Klien tak bisa tahu ada
+    // berapa halaman kalau server tak pernah menyebutkan totalnya.
+    return reply.send({
+      kasbons: data ?? [],
+      total: count ?? 0,
+      limit: lim,
+      offset: off,
+    })
   })
 
   // ── POST /api/v1/finance/invoice/:id/pay ────────────────────────────────────

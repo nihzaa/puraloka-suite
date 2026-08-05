@@ -148,7 +148,7 @@ export default function PerusahaanPage() {
             style={{
               display: "flex", alignItems: "center", gap: 6,
               padding: "8px 12px", borderRadius: 10, border: "none",
-              background: C.navy, color: "#fff", fontSize: 13, fontWeight: 600,
+              background: C.navy, color: C.onNavy, fontSize: 13, fontWeight: 600,
               cursor: "pointer", flexShrink: 0,
             }}
           >
@@ -219,7 +219,7 @@ export default function PerusahaanPage() {
           <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
             <button type="submit" disabled={menyimpan} style={{
               padding: "8px 16px", borderRadius: 10, border: "none",
-              background: C.navy, color: "#fff", fontSize: 13, fontWeight: 600,
+              background: C.navy, color: C.onNavy, fontSize: 13, fontWeight: 600,
               cursor: menyimpan ? "wait" : "pointer", opacity: menyimpan ? 0.7 : 1,
             }}>
               {menyimpan ? "Membuat…" : "Buat badan usaha"}
