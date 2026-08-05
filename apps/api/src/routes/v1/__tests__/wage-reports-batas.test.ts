@@ -1,0 +1,189 @@
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
+import Fastify, { type FastifyInstance } from 'fastify'
+import type { Client } from 'pg'
+import { createRlsClient } from '../../../test-utils/rls-harness.js'
+import { supabaseAuth } from '../../../utils/supabase.js'
+import mandorRoutes from '../mandor.js'
+
+// ============================================================
+// GET /mandor/wage-reports — batas, total, dan bentuk balasan.
+//
+// ── Kenapa ada
+//
+// Endpoint ini dulu mengembalikan SELURUH riwayat laporan upah tenant tanpa
+// batas apa pun, dan `/mandor` merendernya sekaligus. Di basis dev (50
+// laporan) itu sudah 37 KB, 1,2 detik, dan halaman setinggi 4.584px — 4,6
+// layar gulir, dengan baris yang menunggu persetujuan tenggelam di antara
+// puluhan baris yang sudah dibayar. Ongkosnya tumbuh terus seiring pemakaian
+// dan tak pernah membaik sendiri.
+//
+// ── Kenapa diuji di sini, bukan diandalkan ke penjaga bentuk
+//
+// `uji-bentuk-balasan.mjs` menangkap kunci yang dibaca web tapi tak dikirim
+// API. Ia SENGAJA melewati panggilan di dalam `Promise.all` (alasannya
+// panjang, ada di kepala berkas itu: memasangkan hasil destructured ke
+// panggilannya butuh analisis alur yang tak andal dengan regex, dan versi
+// luasnya memberi 25 alarm palsu).
+//
+// `/mandor` memuat delapan endpoint dalam satu `Promise.all` — termasuk yang
+// ini. Diverifikasi dengan mutasi: menghapus `total` dari balasan TIDAK
+// membuat penjaga itu merah. Jadi kalau bentuknya tak diuji di sini, ia tak
+// terjaga oleh apa pun.
+// ============================================================
+
+let app: FastifyInstance
+let c: Client
+let authId: string
+
+const actAs = (a: string) =>
+  vi.spyOn(supabaseAuth.auth, 'getUser')
+    .mockResolvedValue({ data: { user: { id: a } }, error: null } as never)
+
+const ambil = (qs = '') =>
+  app.inject({
+    method: 'GET',
+    url: '/api/v1/mandor/wage-reports' + qs,
+    headers: { authorization: 'Bearer t' },
+  })
+
+beforeAll(async () => {
+  c = await createRlsClient()
+
+  // Syarat kelayakan dari `resolveCompanyId()` + `authenticate()`, bukan
+  // ditebak: `is_active` wajib true dan `users.role_id` wajib terisi.
+  // Kandidat yang cuma "punya baris di company_members" dibalas 403.
+  //
+  // Dan yang lebih halus: user harus punya CAKUPAN PROYEK. Endpoint ini
+  // menyaring lewat proyekBolehDibaca(), jadi user tanpa proyek (mis. peran
+  // 'client') menerima balasan kosong yang sah. Versi pertama test ini
+  // memakai `LIMIT 1` tanpa syarat itu, mendapat user 'client', dan
+  // melaporkan "basis punya 0 laporan" — padahal ada 50. Kesimpulan yang
+  // sepenuhnya salah, dari test yang berjalan tanpa galat.
+  //
+  // Dipilih user yang perusahaannya PUNYA proyek dengan laporan upah.
+  const r = await c.query(
+    `SELECT u.auth_id
+       FROM company_members cm
+       JOIN users u ON u.id = cm.user_id
+       LEFT JOIN roles r2 ON r2.id = u.role_id
+      WHERE u.auth_id IS NOT NULL AND cm.is_active AND u.role_id IS NOT NULL
+        AND EXISTS (
+          SELECT 1 FROM weekly_wage_reports w
+            JOIN mandor_assignments ma ON ma.id = w.assignment_id
+            JOIN projects p ON p.id = ma.project_id
+           WHERE p.company_id = cm.company_id)
+      -- Peran 'client' DIKECUALIKAN.
+      --
+      -- proyekBolehDibaca() memfilter lewat request.db.projectIds(), dan
+      -- untuk 'client' daftar itu kosong — endpoint membalas {reports: [],
+      -- total: 0} yang SAH. Test yang kebetulan memilih user client
+      -- melaporkan "basis punya 0 laporan" padahal ada 50: kesimpulan yang
+      -- sepenuhnya salah, dari test yang berjalan tanpa satu pun galat.
+      -- Terjadi sungguhan saat berkas ini ditulis.
+      AND COALESCE(r2.name, '') <> 'client'
+      -- Mandor ditaruh belakang: cabang user.role === 'mandor' mempersempit
+      -- ke assignment miliknya sendiri, dan yang diuji di sini paginasi.
+      ORDER BY (COALESCE(r2.name, '') = 'mandor'), u.email
+      LIMIT 1`)
+  if (!r.rows[0]) {
+    throw new Error('Tak ada user dengan cakupan proyek berlaporan upah — test tak bisa menguji apa pun.')
+  }
+  authId = r.rows[0].auth_id
+
+  app = Fastify()
+  await app.register(mandorRoutes)
+  await app.ready()
+}, 180_000)
+
+afterAll(async () => {
+  await app?.close()
+  await c?.end()
+})
+
+describe('wage-reports — batas & bentuk', () => {
+  it('membalas reports + total + limit + offset', async () => {
+    actAs(authId)
+    const r = await ambil()
+    expect(r.statusCode).toBe(200)
+
+    const b = JSON.parse(r.body)
+    expect(Array.isArray(b.reports)).toBe(true)
+    // `total` adalah jumlah SESUNGGUHNYA di server, bukan panjang halaman.
+    // Tanpa itu klien tak bisa membedakan "50 laporan" dari "50 pertama dari
+    // 4.000" — dan pemakainya menyimpulkan sisanya tidak ada.
+    expect(typeof b.total, 'total hilang — klien tak bisa tahu ada berapa sebenarnya').toBe('number')
+    expect(typeof b.limit).toBe('number')
+    expect(typeof b.offset).toBe('number')
+  })
+
+  it('menghormati limit', async () => {
+    actAs(authId)
+    const r = await ambil('?limit=3')
+    const b = JSON.parse(r.body)
+    expect(b.reports.length).toBeLessThanOrEqual(3)
+    expect(b.limit).toBe(3)
+  })
+
+  it('total TIDAK ikut menyusut saat limit mengecil', async () => {
+    // Inti dari keberadaan `total`, dan pemeriksaan yang paling mudah palsu.
+    //
+    // `limit` bawaan 500 sementara basis dev punya ~50 laporan, jadi
+    // membandingkan "tanpa limit" dengan "limit kecil" TIDAK membedakan
+    // `total = count` dari `total = panjang halaman` — keduanya lolos.
+    // Terbukti lewat mutasi: mengganti `count` dengan `data.length` sempat
+    // tak membuat satu test pun merah.
+    //
+    // Yang membedakan adalah memaksa keadaan TERPOTONG: minta 1 baris, lalu
+    // tuntut `total` melampauinya.
+    actAs(authId)
+    const penuh = JSON.parse((await ambil()).body)
+    if (penuh.total < 2) {
+      throw new Error(
+        `Butuh ≥2 laporan upah untuk menguji ini; basis ini punya ${penuh.total}. ` +
+        'Test ini tak boleh lulus diam-diam — tanpa data ia tak menguji apa pun.')
+    }
+
+    const satu = JSON.parse((await ambil('?limit=1')).body)
+    expect(satu.reports.length).toBe(1)
+    expect(
+      satu.total,
+      'total menyusut mengikuti limit — ia dihitung dari baris yang TERKIRIM, ' +
+      'bukan dari yang ADA. Pemakai melihat "1 dari 1" padahal ada puluhan, ' +
+      'dan paginasi berhenti di halaman pertama.',
+    ).toBe(penuh.total)
+    expect(satu.total).toBeGreaterThan(satu.reports.length)
+  })
+
+  it('offset menggeser jendela, bukan mengulang', async () => {
+    actAs(authId)
+    const h1 = JSON.parse((await ambil('?limit=2&offset=0')).body)
+    const h2 = JSON.parse((await ambil('?limit=2&offset=2')).body)
+    if (h1.total > 3) {
+      const id1 = h1.reports.map((x: { id: string }) => x.id)
+      const id2 = h2.reports.map((x: { id: string }) => x.id)
+      expect(id1.some((x: string) => id2.includes(x)), 'jendela tumpang tindih').toBe(false)
+    }
+  })
+
+  it('limit di luar akal dijepit, tidak diteruskan mentah', async () => {
+    actAs(authId)
+    // Tanpa penjepit, `limit=999999` mengembalikan seluruh riwayat tenant —
+    // yaitu persis keadaan yang hendak dihentikan pagar ini.
+    const b = JSON.parse((await ambil('?limit=999999')).body)
+    expect(b.limit).toBeLessThanOrEqual(1000)
+
+    const nol = JSON.parse((await ambil('?limit=0')).body)
+    expect(nol.limit).toBeGreaterThanOrEqual(1)
+
+    const sampah = JSON.parse((await ambil('?limit=abc')).body)
+    expect(typeof sampah.limit).toBe('number')
+    expect(Number.isNaN(sampah.limit)).toBe(false)
+  })
+
+  it('offset negatif tidak membuat balasan galat', async () => {
+    actAs(authId)
+    const r = await ambil('?offset=-5')
+    expect(r.statusCode).toBe(200)
+    expect(JSON.parse(r.body).offset).toBeGreaterThanOrEqual(0)
+  })
+})

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createPortal } from "react-dom";
 import { api, getStoredUser, hasPermission } from "@/lib/api";
 import { Kosong } from "@/components/ui-dasar";
+import { Paginasi } from "@/components/paginasi";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { dapatDitekan } from "@/lib/dapat-ditekan";
 import { RetensiSection } from "@/components/retensi-section";
@@ -347,6 +348,16 @@ function MandorPageInner() {
   const [tab, setTab] = useState<TabKey>("laporan");
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [reports, setReports] = useState<WageReport[]>([]);
+  /**
+   * Jumlah laporan SESUNGGUHNYA di server, bukan yang terunduh.
+   *
+   * Dipakai untuk memberi tahu kalau pagar 500 memotong: tanpa ini, filter
+   * dan Export Excel bekerja atas data separuh sambil terlihat lengkap —
+   * pemakainya menyimpan berkas yang ia kira utuh.
+   */
+  const [totalReports, setTotalReports] = useState(0);
+  /** Halaman daftar laporan (paginasi di klien — lihat catatan di dekat Paginasi). */
+  const [halamanLaporan, setHalamanLaporan] = useState(1);
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [kasbons, setKasbons] = useState<WorkerKasbon[]>([]);
   const [mandorKasbons, setMandorKasbons] = useState<MandorKasbon[]>([]);
@@ -462,7 +473,7 @@ function MandorPageInner() {
     try {
       const [asgRes, rptRes, sumRes, kbRes, mkbRes, mandorRes, ppRes, cashRes] = await Promise.all([
         api.get<{ assignments: Assignment[] }>("/api/v1/mandor/assignments"),
-        api.get<{ reports: WageReport[] }>("/api/v1/mandor/wage-reports"),
+        api.get<{ reports: WageReport[]; total: number }>("/api/v1/mandor/wage-reports"),
         api.get<Summary>("/api/v1/mandor/summary"),
         api.get<{ kasbons: WorkerKasbon[] }>("/api/v1/mandor/worker-kasbons"),
         api.get<{ kasbons: MandorKasbon[] }>("/api/v1/kasbons"),
@@ -472,6 +483,7 @@ function MandorPageInner() {
       ]);
       setAssignments(asgRes.data.assignments);
       setReports(rptRes.data.reports);
+      setTotalReports(rptRes.data.total ?? rptRes.data.reports.length);
       setSummary(sumRes.data);
       setKasbons(kbRes.data.kasbons);
       setMandorKasbons(mkbRes.data.kasbons ?? []);
@@ -553,6 +565,29 @@ function MandorPageInner() {
     if (filterDateTo && r.week_start > filterDateTo) return false;
     return true;
   });
+
+  /**
+   * Paginasi daftar laporan — di KLIEN, bukan di server.
+   *
+   * Halaman ini menyaring dengan 5 kriteria (pencarian, mandor, status, dua
+   * tanggal) dan mengekspor ke Excel, keduanya di sisi klien. Paginasi server
+   * membuat filter hanya melihat halaman aktif dan ekspor menyimpan sebagian
+   * data sambil tampak lengkap — salah tanpa satu pun gejala.
+   *
+   * Sebelum ini seluruh hasil dirender sekaligus: 4.584px, 4,6 layar gulir,
+   * dan baris yang menunggu persetujuan tenggelam di antara puluhan baris
+   * yang sudah dibayar.
+   */
+  const PER_HALAMAN = 15;
+  const totalHalamanLaporan = Math.max(1, Math.ceil(filteredReports.length / PER_HALAMAN));
+  // Filter yang menyusutkan hasil bisa meninggalkan pemakai di halaman yang
+  // tak ada lagi. Dijepit saat render, bukan lewat efek — efek merender sekali
+  // dengan daftar kosong dulu, dan itu terbaca sebagai "tidak ada data".
+  const halamanAman = Math.min(halamanLaporan, totalHalamanLaporan);
+  const laporanHalamanIni = filteredReports.slice(
+    (halamanAman - 1) * PER_HALAMAN,
+    halamanAman * PER_HALAMAN,
+  );
 
   // D1 — Export Excel
   function exportExcel() {
@@ -735,11 +770,25 @@ function MandorPageInner() {
                   <div>Belum ada laporan upah</div>
                   <div style={{ fontSize: 12, marginTop: 4 }}>Klik "Ajukan Upah" untuk membuat laporan baru</div>
                 </div>
-              ) : filteredReports.map(r => {
+              ) : laporanHalamanIni.map(r => {
                 const st = getWageStatusBadge(r.status);
                 const canApprove = !isMandor && r.status === "submitted";
                 return (
-                  <div key={r.id} style={{ ...card, padding: "12px 16px", transition: "box-shadow 0.15s" }}>
+                  <div key={r.id} style={{
+                    ...card, padding: "12px 16px", transition: "box-shadow 0.15s",
+                    // Penanda tepi untuk baris yang MENUNGGU PUTUSAN SAYA.
+                    //
+                    // Sebelum ini setiap kartu punya bobot visual identik:
+                    // laporan yang perlu disetujui hari ini terlihat sama
+                    // seperti laporan yang sudah dibayar bulan lalu. Dengan 15
+                    // kartu per halaman yang semuanya seragam, mata tak punya
+                    // pegangan untuk memindai.
+                    //
+                    // Warnanya BUKAN satu-satunya penanda — lencana "Diajukan"
+                    // dan tombol Setujui/Tolak sudah membedakannya untuk yang
+                    // tak bisa membedakan warna (WCAG 1.4.1).
+                    borderLeft: canApprove ? `3px solid ${C.yellow}` : undefined,
+                  }}>
                     {/* `role="button"` + handler keyboard, BUKAN `<button>`:
                         isinya berisi beberapa blok bersarang yang tata letaknya
                         akan berubah kalau dibungkus tombol. Yang dibutuhkan
@@ -801,6 +850,31 @@ function MandorPageInner() {
                   </div>
                 );
               })}
+
+              <Paginasi
+                halaman={halamanAman}
+                totalHalaman={totalHalamanLaporan}
+                totalEntri={filteredReports.length}
+                satuan="laporan"
+                onPindah={setHalamanLaporan}
+              />
+
+              {/* Pagar server (500) memotong — dinyatakan, bukan disembunyikan.
+                  Filter dan Export Excel bekerja atas data yang TERUNDUH; kalau
+                  sebagian tertinggal di server, keduanya menghasilkan jawaban
+                  yang tampak lengkap padahal tidak. */}
+              {totalReports > reports.length && (
+                <div role="status" style={{
+                  marginTop: 12, padding: "10px 14px", borderRadius: 8,
+                  border: `1px solid ${C.yellowBorder}`, background: C.yellowBg,
+                  fontSize: 12, color: C.text, lineHeight: 1.5,
+                }}>
+                  Menampilkan <strong>{reports.length.toLocaleString("id-ID")}</strong> laporan
+                  terbaru dari <strong>{totalReports.toLocaleString("id-ID")}</strong>.
+                  Penyaringan dan Export Excel hanya mencakup yang termuat —
+                  persempit rentang tanggal untuk melihat sisanya.
+                </div>
+              )}
             </div>
           )}
 

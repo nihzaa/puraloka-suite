@@ -1126,6 +1126,27 @@ export default async function mandorRoutes(app: FastifyInstance) {
   app.get('/api/v1/mandor/wage-reports', { preHandler: [authenticate] }, async (request, reply) => {
     const user = request.currentUser!
     const { project_id, assignment_id, scope_id, status } = request.query as Record<string, string>
+    const qq = request.query as Record<string, string>
+
+    // ── Batas + total ─────────────────────────────────────────────────────────
+    //
+    // Endpoint ini dulu mengembalikan SELURUH riwayat laporan upah tenant tanpa
+    // batas apa pun, dan `/mandor` merendernya sekaligus. Di basis dev (50
+    // laporan) itu sudah 37 KB, 1,2 detik, dan halaman setinggi 4.584px —
+    // 4,6 layar gulir. Ongkosnya tumbuh terus seiring pemakaian dan tak pernah
+    // membaik dengan sendirinya.
+    //
+    // `total` ikut dikirim karena tanpa itu klien tak bisa membedakan "50
+    // laporan" dari "50 pertama dari 4.000" — dan pemakainya menyimpulkan
+    // sisanya tidak ada.
+    // Bawaan 500, bukan 50: `/mandor` menyaring dan MENGEKSPOR di sisi klien
+    // (5 filter + Export Excel). Batas bawaan yang kecil membuat ekspor
+    // diam-diam hanya memuat halaman pertama — pemakainya menyimpan berkas
+    // yang tampak lengkap padahal tidak. Paginasi tampilannya di klien.
+    // Batasnya tetap ada sebagai PAGAR: tanpa itu, endpoint mengembalikan
+    // seluruh riwayat tenant dan tumbuh tanpa batas.
+    const limit = Math.min(Math.max(parseInt(qq.limit ?? '500', 10) || 500, 1), 1000)
+    const offset = Math.max(parseInt(qq.offset ?? '0', 10) || 0, 0)
 
     let q = supabase
       .from('weekly_wage_reports')
@@ -1139,7 +1160,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
         ),
         scope:work_scopes(id, scope_name, payment_system),
         reviewer:users!weekly_wage_reports_reviewed_by_fkey(id, name)
-      `)
+      `, { count: 'exact' })
       .order('week_start', { ascending: false })
 
     if (status) q = q.eq('status', status)
@@ -1153,7 +1174,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
         .select('id')
         .eq('mandor_id', user.id)
       const ids = (asgn ?? []).map((a: any) => a.id)
-      if (ids.length === 0) return reply.send({ reports: [] })
+      if (ids.length === 0) return reply.send({ reports: [], total: 0, limit, offset })
       q = q.in('assignment_id', ids)
     }
 
@@ -1164,12 +1185,12 @@ export default async function mandorRoutes(app: FastifyInstance) {
     const { data: asgnScope } = await supabase
       .from('mandor_assignments').select('id').in('project_id', idProyekWr)
     const idAsgn = (asgnScope ?? []).map((a: { id: string }) => a.id)
-    if (idAsgn.length === 0) return reply.send({ reports: [] })
+    if (idAsgn.length === 0) return reply.send({ reports: [], total: 0, limit, offset })
     q = q.in('assignment_id', idAsgn)
 
-    const { data, error } = await q
+    const { data, error, count } = await q.range(offset, offset + limit - 1)
     if (error) return reply.status(500).send({ error: error.message })
-    return reply.send({ reports: data ?? [] })
+    return reply.send({ reports: data ?? [], total: count ?? 0, limit, offset })
   })
 
   // GET /api/v1/mandor/wage-reports/:id â€” detail laporan + items + deductions
