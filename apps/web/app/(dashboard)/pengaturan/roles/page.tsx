@@ -111,6 +111,31 @@ function RolesContent() {
     loadPermissions();
   }, []);
 
+  /**
+   * Pilih role pertama begitu daftarnya datang.
+   *
+   * Tanpa ini panel kanan menampilkan "Pilih role untuk melihat
+   * permission" — kotak kosong setinggi 250px di sebelah daftar yang
+   * SUDAH berisi lima role. Layar terbuka dalam keadaan tak menampilkan
+   * apa pun, padahal tak ada satu pun keputusan yang perlu diambil
+   * pemakai lebih dulu.
+   *
+   * Pola yang sama sudah dipakai di `/mutu/ncr` untuk pemilih proyek.
+   *
+   * `queueMicrotask` memindahkan set-state ke luar badan efek —
+   * `selectRole` menyetel tiga state sekaligus, dan memanggilnya sinkron
+   * di sini memicu render berantai (`react-hooks/set-state-in-effect`).
+   */
+  useEffect(() => {
+    if (selectedRole || roles.length === 0) return;
+    const pertama = roles[0];
+    queueMicrotask(() => { void selectRole(pertama); });
+    // `selectRole` sengaja di luar deps — ia didefinisikan ulang tiap
+    // render, jadi memasukkannya membuat efek ini berjalan tanpa henti.
+    // Yang benar-benar menentukan kapan efek ini jalan adalah `roles`
+    // (baru datang) dan `selectedRole` (masih kosong), dan keduanya ada.
+  }, [roles, selectedRole]);
+
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 3500);
@@ -135,6 +160,14 @@ function RolesContent() {
         permissions: perms,
       }));
       setPermissions(groups);
+      // Semua modul TERLIPAT saat pertama dibuka.
+      //
+      // Administrator punya 114 permission di 30-an modul. Terbuka
+      // semua, halaman jadi 18.732px — orang harus menggulir sepuluh
+      // layar untuk tahu modul apa saja yang ada, dan tak pernah
+      // melihat ringkasannya. Terlipat, seluruh daftar modul muat dalam
+      // satu layar, dan yang perlu diperiksa dibuka satu per satu.
+      setCollapsedModules(new Set(groups.map((g) => g.module)));
     } catch {
       setToast({ type: "error", msg: "Gagal memuat daftar permission" });
     }

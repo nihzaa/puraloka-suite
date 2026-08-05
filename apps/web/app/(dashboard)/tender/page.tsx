@@ -117,12 +117,27 @@ export default function TenderPage() {
 
       {meta && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 12, marginBottom: 20 }}>
+          {/* Warna DITURUNKAN dari angkanya, tidak dipaku hijau.
+              Backlog nol bukan kabar baik untuk kontraktor — itu berarti
+              tak ada pekerjaan di tangan setelah proyek berjalan selesai.
+              Menampilkannya hijau membacanya sebagai "sehat", padahal ia
+              justru keadaan yang paling perlu ditindaklanjuti.
+              Pola yang sama sudah diperbaiki di /kas (saldo minus) dan
+              /keuangan/profitabilitas (margin 100%). */}
           <Kartu Icon={Wallet} label="Backlog" nilai={fmtRp(meta.backlogNilai)}
-            sub={`${meta.backlogJumlah} tender dimenangkan, belum selesai`}
-            warna={C.green} bg={C.greenBg} border={C.greenBorder} />
+            sub={meta.backlogJumlah > 0
+              ? `${meta.backlogJumlah} tender dimenangkan, belum selesai`
+              : "belum ada pekerjaan di tangan"}
+            warna={meta.backlogJumlah > 0 ? C.green : C.mid}
+            bg={meta.backlogJumlah > 0 ? C.greenBg : "var(--surface-subtle)"}
+            border={meta.backlogJumlah > 0 ? C.greenBorder : C.border} />
           <Kartu Icon={Clock} label="Pipeline" nilai={fmtRp(meta.pipelineNilai)}
-            sub={`${meta.pipelineJumlah} menunggu keputusan`}
-            warna={C.blue} bg={C.blueBg} border={C.blueBorder} />
+            sub={meta.pipelineJumlah > 0
+              ? `${meta.pipelineJumlah} menunggu keputusan`
+              : "tak ada tender yang sedang diikuti"}
+            warna={meta.pipelineJumlah > 0 ? C.blue : C.mid}
+            bg={meta.pipelineJumlah > 0 ? C.blueBg : "var(--surface-subtle)"}
+            border={meta.pipelineJumlah > 0 ? C.blueBorder : C.border} />
           <Kartu Icon={Trophy} label="Win rate"
             nilai={meta.winRatePct == null ? "—" : `${meta.winRatePct}%`}
             sub={meta.winRatePct == null
