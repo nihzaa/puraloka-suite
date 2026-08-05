@@ -4,7 +4,8 @@ import { useCallback, useEffect, useReducer, useState } from "react";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import { useParams, useRouter } from "next/navigation";
-import { api, getStoredUser, hasPermission } from "@/lib/api";
+import { api, getStoredUser } from "@/lib/api";
+import { useIzin } from "@/lib/use-izin";
 import {
   MapPin, Calendar, RefreshCw,
   User, TrendingUp,
@@ -236,6 +237,11 @@ function ProjectDetailContent() {
   const router = useRouter();
   const id = params.id as string;
   const { showToast } = useToast();
+  // Diangkat dari JSX: `hasPermission` di jalur render membuat pohon server
+  // dan klien berbeda. Detail: `lib/use-izin.ts`.
+  const bolehKontrak = useIzin("projects:contract");
+  const bolehBayarTermin = useIzin("finance:termin:pay");
+  const bolehAturMandor = useIzin("mandor:assign");
 
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
@@ -273,8 +279,8 @@ function ProjectDetailContent() {
   // permission ini tapi UI lama menyembunyikan tombolnya karena mengecek
   // `role === "admin"`. Tiap key diverifikasi ke `requirePermission` di
   // rute API-nya — bukan ditebak dari nama tombolnya.
-  const isAdmin = hasPermission("projects:delete");
-  const canEditProject = hasPermission("projects:edit");
+  const isAdmin = useIzin("projects:delete");
+  const canEditProject = useIzin("projects:edit");
 
   useEffect(() => { if (id) fetchProject(); }, [id]);
 
@@ -486,7 +492,7 @@ function ProjectDetailContent() {
 
           {/* Action buttons */}
           <div style={{ display: "flex", gap: 8, flexShrink: 0, flexWrap: "wrap" }}>
-            {hasPermission("projects:contract") && (
+            {bolehKontrak && (
               <button
                 onClick={() => setShowContractModal(true)}
                 style={{
@@ -1137,7 +1143,7 @@ function ProjectDetailContent() {
               </thead>
               <tbody>
                 {termins.map(t => {
-                  const canPay = hasPermission("finance:termin:pay") && t.status !== "paid";
+                  const canPay = bolehBayarTermin && t.status !== "paid";
                   const isOverdueTermin = overdueTermins.some(ot => ot.id === t.id);
 
                   // Keterangan syarat tagih
@@ -1362,7 +1368,7 @@ function ProjectDetailContent() {
           projectId={p.id}
           assignments={p.mandor_assignments ?? []}
           scopelessKasbons={p.scopeless_kasbons ?? []}
-          canEdit={hasPermission("mandor:assign")}
+          canEdit={bolehAturMandor}
           onRefresh={fetchProject}
         />
       </div>

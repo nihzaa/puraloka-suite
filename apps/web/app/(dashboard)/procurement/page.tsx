@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { api, hasPermission } from "@/lib/api";
+import { useIzin } from "@/lib/use-izin";
 import { useUnits } from "@/lib/use-units";
 import { createPortal } from "react-dom";
 import {
@@ -875,7 +876,7 @@ function PurchaseOrdersTab() {
   const [cancelNotes, setCancelNotes] = useState("");
   const [cancelling, setCancelling] = useState(false);
   const [kirimPo, setKirimPo] = useState<PoRingkas | null>(null);
-  const canManage = hasPermission("procurement:po:manage");
+  const canManage = useIzin("procurement:po:manage");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1208,7 +1209,7 @@ function GoodsReceiptsTab() {
   const [confirming, setConfirming] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("");
   const [showCreate, setShowCreate] = useState(false);
-  const canManage = hasPermission("procurement:po:manage");
+  const canManage = useIzin("procurement:po:manage");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1594,8 +1595,8 @@ function StocksTab() {
   // procurement.ts POST /stocks/usage & /stocks/opname). Sebelumnya UI
   // mengecek `role === admin|pm|mandor` — role kustom `direktur` yang punya
   // 7 permission procurement TIDAK melihat tombolnya (ADR-004).
-  const canEdit = hasPermission("procurement:view");
-  const canOpname = hasPermission("procurement:view");
+  const canEdit = useIzin("procurement:view");
+  const canOpname = useIzin("procurement:view");
 
   const [stocks, setStocks] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);

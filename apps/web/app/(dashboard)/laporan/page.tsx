@@ -4,6 +4,7 @@ import React, { useEffect, useReducer, useRef, useState } from "react";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { dapatDitekan } from "@/lib/dapat-ditekan";
 import { api, makeAbortController, hasPermission } from "@/lib/api";
+import { useIzin } from "@/lib/use-izin";
 import {
   FileText, BarChart3, Users, TrendingDown, Activity,
   ChevronDown, RefreshCw, Calendar, Building2, AlertTriangle,
@@ -255,7 +256,7 @@ export default function LaporanPage() {
 
 function LaporanContent() {
   // ADR-004: capability, bukan nama jabatan — diverifikasi ke `requirePermission`.
-  const canViewFinance = hasPermission("finance:tax:view");
+  const canViewFinance = useIzin("finance:tax:view");
 
   // Filter state
   const today = new Date().toISOString().split("T")[0];

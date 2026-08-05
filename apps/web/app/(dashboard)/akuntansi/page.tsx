@@ -2,7 +2,8 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
-import { api, makeAbortController, hasPermission } from "@/lib/api";
+import { api, makeAbortController } from "@/lib/api";
+import { useIzin } from "@/lib/use-izin";
 import {
   BookOpen, Plus, X, Check, Ban, Loader2, AlertTriangle,
   Scale, FileText, ChevronRight, Trash2, Landmark, TrendingUp,
@@ -76,9 +77,9 @@ export default function AkuntansiPage() {
   const [galat, setGalat] = useState<string | null>(null);
   const [bukaModal, setBukaModal] = useState(false);
 
-  const bolehKelola = hasPermission("gl:manage");
-  const bolehPosting = hasPermission("gl:post");
-  const bolehBatal = hasPermission("gl:void");
+  const bolehKelola = useIzin("gl:manage");
+  const bolehPosting = useIzin("gl:post");
+  const bolehBatal = useIzin("gl:void");
 
   const ambil = useCallback(async () => {
     const ac = makeAbortController();

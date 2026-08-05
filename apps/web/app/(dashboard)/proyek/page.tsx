@@ -2,7 +2,8 @@
 
 import { useEffect, useReducer, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { api, makeAbortController, hasPermission } from "@/lib/api";
+import { api, makeAbortController } from "@/lib/api";
+import { useIzin } from "@/lib/use-izin";
 import {
   MapPin, Calendar, ArrowRight, Search, Plus,
   Building2, RefreshCw,
@@ -194,6 +195,9 @@ export default function ProyekPage() {
 function ProyekContent() {
   const router = useRouter();
   const { showToast } = useToast();
+  // Diangkat dari JSX: `hasPermission` di jalur render membuat pohon server
+  // dan klien berbeda. Detail: `lib/use-izin.ts`.
+  const bolehBuatProyek = useIzin("projects:create");
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -306,7 +310,7 @@ function ProyekContent() {
             Kelola semua proyek konstruksi Puraloka Persada
           </p>
         </div>
-        {hasPermission("projects:create") && (
+        {bolehBuatProyek && (
           <button
             onClick={() => setShowModal(true)}
             style={{
@@ -514,7 +518,7 @@ function ProyekContent() {
             >
               Reset filter
             </button>
-          ) : hasPermission("projects:create") ? (
+          ) : bolehBuatProyek ? (
             <button
               onClick={() => setShowModal(true)}
               style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}

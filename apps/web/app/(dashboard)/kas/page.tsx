@@ -3,7 +3,8 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
-import { api, hasPermission } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useIzin } from "@/lib/use-izin";
 import {
   Wallet, ArrowRightLeft, ShoppingCart, Plus, X, RefreshCw,
   CheckCircle2, Clock, AlertTriangle, 
@@ -312,12 +313,17 @@ export default function KasPage() {
 function KasContent() {
   // ADR-004: capability, bukan nama jabatan. Diverifikasi ke
   // `requirePermission` di cash.ts — bukan ditebak dari nama tombolnya.
-  const isAdmin = hasPermission("cash:account:manage");
+  const isAdmin = useIzin("cash:account:manage");
+  // Diangkat ke sini, bukan dipanggil sebaris di JSX: `hasPermission`
+  // membaca localStorage, jadi memanggilnya di jalur render membuat pohon
+  // server dan klien berbeda. Detail: `lib/use-izin.ts`.
+  const bolehKonfirmasiTransfer = useIzin("cash:transfer:confirm");
+  const bolehApprovePengeluaran = useIzin("cash:expense:approve");
   // `canEdit` dulu satu boolean untuk transfer, konfirmasi, DAN approve
   // pengeluaran — tiga wewenang berbeda yang API pisahkan. Dipertahankan
   // sebagai "boleh menyentuh kas" (transfer), sementara konfirmasi dan
   // approve kini memakai capability-nya sendiri di tempat pemakaiannya.
-  const canEdit = hasPermission("cash:transfer:create");
+  const canEdit = useIzin("cash:transfer:create");
 
   const [tab, setTab] = useState<TabKey>("akun");
   const [summary, setSummary] = useState<CashSummary | null>(null);
@@ -683,7 +689,7 @@ function KasContent() {
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {transfers.map(t => (
-                  <TransferRow key={t.id} t={t} canConfirm={hasPermission("cash:transfer:confirm")} onConfirm={handleConfirmTransfer} onCancel={handleCancelTransfer} />
+                  <TransferRow key={t.id} t={t} canConfirm={bolehKonfirmasiTransfer} onConfirm={handleConfirmTransfer} onCancel={handleCancelTransfer} />
                 ))}
               </div>
             )}
@@ -782,7 +788,7 @@ function KasContent() {
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {expenses.map(e => (
-                  <ExpenseRow key={e.id} e={e} canReview={hasPermission("cash:expense:approve")} onApprove={handleApproveExpense} onReject={handleRejectExpense} />
+                  <ExpenseRow key={e.id} e={e} canReview={bolehApprovePengeluaran} onApprove={handleApproveExpense} onReject={handleRejectExpense} />
                 ))}
               </div>
             )}
@@ -1198,6 +1204,9 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts, onBu
   onBukaAkun: () => void;
 }) {
   useTutupEsc(onClose);
+  // Diangkat dari JSX — `hasPermission` di jalur render membuat pohon
+  // server dan klien berbeda. Detail: `lib/use-izin.ts`.
+  const bolehApprove = useIzin("cash:expense:approve");
   const [mounted, mount] = useReducer(() => true, false);
   useEffect(mount, []);
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
@@ -1508,7 +1517,7 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts, onBu
 
           {error && <div style={{ padding: "8px 12px", borderRadius: 6, background: C.redBg, border: `1px solid ${C.redBorder}`, fontSize: 13, color: C.red }}>{error}</div>}
 
-          {hasPermission("cash:expense:approve") && (
+          {bolehApprove && (
             <div style={{ padding: "8px 12px", borderRadius: 6, background: C.greenBg, border: `1px solid ${C.greenBorder}`, fontSize: 12, color: C.green }}>
               ✓ Pengeluaran akan langsung disetujui (saldo kas kecil berkurang otomatis)
             </div>

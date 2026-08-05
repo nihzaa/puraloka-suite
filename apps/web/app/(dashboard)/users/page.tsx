@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
-import { api, getStoredUser, hasPermission } from "@/lib/api";
+import { api, getStoredUser } from "@/lib/api";
+import { useIzin } from "@/lib/use-izin";
 import {
   Users, Plus, Search, UserCheck, UserX, Edit2, X,
   HardHat, Briefcase, ShieldCheck, User, Phone, Mail,
@@ -87,7 +88,7 @@ export default function UsersPage() {
 
   const counts = ROLES.map(r => ({ ...r, count: users.filter(u => u.role === r.key).length }));
   // ADR-004: capability, bukan nama jabatan — diverifikasi ke `requirePermission`.
-  const isAdmin = hasPermission("users:manage");
+  const isAdmin = useIzin("users:manage");
 
   return (
     <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-form)", margin: "0 auto" }}>

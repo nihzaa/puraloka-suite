@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
-import { api, hasPermission } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useIzin } from "@/lib/use-izin";
 import { useRouter } from "next/navigation";
 import {
   Users, Plus, Search, Building2, User, Phone, Mail,
@@ -532,7 +533,7 @@ export default function KlienPage() {
   });
 
   // ADR-004: capability, bukan nama jabatan — diverifikasi ke `requirePermission`.
-  const isAdmin = hasPermission("clients:manage");
+  const isAdmin = useIzin("clients:manage");
 
   return (
     <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>

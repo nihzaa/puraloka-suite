@@ -3,7 +3,8 @@
 import { useEffect, useReducer, useState } from "react";
 import { dapatDitekan } from "@/lib/dapat-ditekan";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
-import { api, hasPermission } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useIzin } from "@/lib/use-izin";
 import {
   Shield,
   Plus,
@@ -85,7 +86,7 @@ export default function RolesPage() {
 
 function RolesContent() {
   // ADR-004: capability, bukan nama jabatan — diverifikasi ke `requirePermission`.
-  const canManage = hasPermission("users:roles:manage");
+  const canManage = useIzin("users:roles:manage");
 
   const [roles, setRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<PermissionGroup[]>([]);

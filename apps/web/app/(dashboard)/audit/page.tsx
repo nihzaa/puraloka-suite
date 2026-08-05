@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { api, hasPermission } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useIzin } from "@/lib/use-izin";
 import { useToast } from "@/components/toast";
 import {
   ShieldCheck, Search, ChevronLeft, ChevronRight,
@@ -99,6 +100,8 @@ function DiffView({ oldVal, newVal }: { oldVal: Record<string, unknown> | null; 
 
 export default function AuditPage() {
   const { showToast } = useToast();
+  // Hook HARUS dipanggil sebelum early-return mana pun.
+  const bolehLihat = useIzin("audit:view");
 
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [meta, setMeta] = useState<Meta>({ total: 0, page: 1, limit: 50, pages: 1 });
@@ -169,7 +172,12 @@ export default function AuditPage() {
   // menanyakan hal yang SAMA, kalau tidak pemegang wewenang yang sah (mis.
   // `direktur`) ditolak di depan pintu oleh halaman yang API-nya sendiri
   // akan melayani.
-  if (!hasPermission("audit:view")) {
+  // `useIzin`, bukan `hasPermission` langsung: yang kedua membaca
+  // localStorage, jadi di server SELALU false. Gerbang ini akan
+  // menampilkan "tidak punya akses" di HTML server lalu halaman penuh di
+  // klien — dua pohon yang sama sekali berbeda, sehingga React membuang
+  // hasil SSR dan merender ulang semuanya. Detail di `lib/use-izin.ts`.
+  if (!bolehLihat) {
     return (
       <div style={{ padding: 40, textAlign: "center" }}>
         <AlertCircle size={32} style={{ color: "var(--danger)", marginBottom: 12 }} />

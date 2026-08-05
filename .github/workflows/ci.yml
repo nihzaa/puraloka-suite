@@ -751,6 +751,21 @@ jobs:
       - name: Warna buta-mode (rgba merek pada properti isi)
         run: node scripts/uji-warna-buta-mode.mjs
 
+      # `hasPermission()` membaca localStorage: false di server, true di klien.
+      # Dipanggil saat render, ia membuat pohon server dan klien berbeda —
+      # React MEMBUANG hasil SSR lalu merender ulang seluruh halaman. Terlihat
+      # sebagai "2 Issues" di overlay Next.js pada 17 halaman; ongkosnya render
+      # ganda di muat pertama, paling terasa di HP lapangan.
+      #
+      # Yang terparah gerbang akses (`if (!hasPermission(...)) return <Tolak/>`)
+      # di /audit dan /sistem: di situ SELURUH halaman berbeda.
+      #
+      # Perbaikan: `useIzin()` — `useSyncExternalStore` memang dirancang untuk
+      # nilai yang berbeda antara server dan klien. Panggilan di dalam handler
+      # tetap boleh; di sana tak ada hydration sama sekali.
+      - name: Izin-hydration (hasPermission bukan di jalur render)
+        run: node scripts/uji-izin-hydration.mjs
+
       # Kontras warna — 260 dari 296 pelanggaran WCAG itu kontras, dan sampai
       # 2026-08-01 ia SATU-SATUNYA yang tak dijaga otomatis. Catatannya berbunyi
       # "butuh browser + login, kredensial di CI ditolak sadar" — benar untuk

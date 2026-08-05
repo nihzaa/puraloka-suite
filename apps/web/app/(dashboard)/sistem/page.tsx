@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { api, hasPermission } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useIzin } from "@/lib/use-izin";
 import {
   Settings2, Bell, Mail, RefreshCw, CheckCircle, AlertCircle,
   Clock, Wallet, Receipt, FolderKanban, Target,
@@ -28,11 +29,17 @@ interface MilestoneResult {
 export default function SistemPage() {
   const [running, setRunning] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, { ok: boolean; data: unknown; ts: string }>>({});
+  // `useIzin`, bukan `hasPermission`: yang kedua membaca localStorage,
+  // jadi di server SELALU false. Gerbang ini akan merender "tidak punya
+  // akses" di HTML server lalu halaman penuh di klien — dua pohon yang
+  // berbeda total, dan React membuang hasil SSR karenanya.
+  // Hook HARUS sebelum early-return. Detail: `lib/use-izin.ts`.
+  const bolehPelihara = useIzin("notifications:milestone:check");
 
   // ADR-004: capability, bukan jabatan. Kedua tombol di halaman ini memanggil
   // rute yang dijaga `requirePermission('notifications:milestone:check')`
   // (notifications.ts:295,399) — gerbang UI menanyakan hal yang sama.
-  if (!hasPermission("notifications:milestone:check")) {
+  if (!bolehPelihara) {
     return (
       <div style={{ padding: "40px 36px", textAlign: "center" }}>
         <AlertCircle size={32} style={{ color: "var(--text-muted)", marginBottom: 12 }} />
