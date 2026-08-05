@@ -13,6 +13,7 @@ import { useCallback, useEffect, useState } from "react";
 import { PieChart, X } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
+import { marginPerluDicurigai, keandalanMargin, alasanMarginRagu } from "@/lib/margin-tepercaya";
 
 interface ProfitProject {
   id: string; name: string; contract_model: string; contract_value: number;
@@ -240,11 +241,34 @@ export default function ProfitabilitasPage() {
                         {rp(p.gross_profit)}
                       </td>
                       <td style={gaya.td}>
-                        <span style={{
-                          padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700,
-                          color: wMargin,
-                          background: p.gross_margin_pct >= 20 ? C.greenBg : p.gross_margin_pct >= 0 ? C.yellowBg : C.redBg,
-                        }}>{p.gross_margin_pct}%</span>
+                        {/* Margin yang tak bisa dipercaya TIDAK diberi warna
+                            sehat. Detail alasannya di `lib/margin-tepercaya.ts` —
+                            ringkasnya: margin kotor 100% mustahil di konstruksi,
+                            jadi ia menandakan biaya belum dicatat, bukan proyek
+                            paling untung. Menampilkannya hijau bersama proyek
+                            yang benar-benar sehat membuat keduanya tak
+                            terbedakan. */}
+                        {marginPerluDicurigai(p.gross_margin_pct, p.total_cost) ? (
+                          <span
+                            title={alasanMarginRagu(keandalanMargin(p.gross_margin_pct, p.total_cost)) ?? undefined}
+                            style={{
+                              padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700,
+                              color: C.mid, background: "var(--surface-subtle)",
+                              border: `1px dashed ${C.border}`,
+                              display: "inline-flex", alignItems: "center", gap: 4,
+                            }}
+                          >
+                            {p.gross_margin_pct}%
+                            <span aria-hidden="true">·</span>
+                            <span style={{ fontWeight: 600 }}>belum lengkap</span>
+                          </span>
+                        ) : (
+                          <span style={{
+                            padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700,
+                            color: wMargin,
+                            background: p.gross_margin_pct >= 20 ? C.greenBg : p.gross_margin_pct >= 0 ? C.yellowBg : C.redBg,
+                          }}>{p.gross_margin_pct}%</span>
+                        )}
                       </td>
                       <td style={{ ...gaya.td, color: C.yellow }}>{rp(p.advance_outstanding)}</td>
                     </tr>
@@ -267,12 +291,39 @@ export default function ProfitabilitasPage() {
                   <td style={gaya.td}>
                     {data.totals.revenue > 0 && (() => {
                       const pct = data.totals.gross_profit / data.totals.revenue * 100;
+                      // Total mengikuti aturan yang sama dengan barisnya.
+                      // Kalau tidak, ringkasan bisa berbunyi "94,1% sehat"
+                      // di atas tabel yang seluruh barisnya bertanda "biaya
+                      // belum lengkap" — dan angka ringkasanlah yang paling
+                      // sering dikutip keluar.
+                      // Total dicurigai kalau ADA baris yang dicurigai —
+                      // bukan cuma kalau totalnya sendiri melewati ambang.
+                      //
+                      // Diperiksa di layar: total 94,1% dengan HPP Rp 124jt
+                      // lolos ambang 95%, jadi tampil HIJAU di atas tabel
+                      // yang 8 dari 15 barisnya bertanda "belum lengkap".
+                      // Aturannya bekerja persis seperti ditulis, tapi
+                      // hasilnya tetap menyesatkan — dan angka ringkasan
+                      // inilah yang paling sering dikutip keluar.
+                      const raguTotal =
+                        marginPerluDicurigai(pct, data.totals.total_cost) ||
+                        data.projects.some((x) => marginPerluDicurigai(x.gross_margin_pct, x.total_cost));
                       return (
-                        <span style={{
-                          padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700,
-                          color: warnaMargin(pct),
-                          background: pct >= 20 ? C.greenBg : pct >= 0 ? C.yellowBg : C.redBg,
-                        }}>{Math.round(pct * 10) / 10}%</span>
+                        <span
+                          title={raguTotal
+                            ? (alasanMarginRagu(keandalanMargin(pct, data.totals.total_cost))
+                                ?? "Sebagian proyek belum mencatat biayanya, jadi total ini belum bisa dipakai menilai untung-rugi.")
+                            : undefined}
+                          style={{
+                            padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700,
+                            color: raguTotal ? C.mid : warnaMargin(pct),
+                            background: raguTotal
+                              ? "var(--surface-subtle)"
+                              : pct >= 20 ? C.greenBg : pct >= 0 ? C.yellowBg : C.redBg,
+                            border: raguTotal ? `1px dashed ${C.border}` : undefined,
+                          }}>
+                          {Math.round(pct * 10) / 10}%{raguTotal ? " · belum lengkap" : ""}
+                        </span>
                       );
                     })()}
                   </td>
@@ -297,13 +348,18 @@ export default function ProfitabilitasPage() {
             </h2>
             <p style={{ fontSize: 11, color: C.muted, marginBottom: 14 }}>
               Diurutkan dari margin terendah · sehat ≥20%, waspada 0–20%, merugi &lt;0%
+              {" · "}yang abu-abu biayanya belum tercatat, jadi marginnya belum berarti apa-apa
             </p>
             {[...data.projects]
               .sort((a, b) => a.gross_margin_pct - b.gross_margin_pct)
               .map((p) => {
                 const lebar = Math.min(100, Math.max(0, Math.abs(p.gross_margin_pct)));
-                const w = warnaMargin(p.gross_margin_pct);
                 const merugi = p.gross_margin_pct < 0;
+                // Margin yang biayanya belum lengkap tak boleh tampil hijau
+                // panjang penuh — itu bacaan "paling sehat", persis kebalikan
+                // dari artinya.
+                const ragu = marginPerluDicurigai(p.gross_margin_pct, p.total_cost);
+                const w = ragu ? "var(--text-muted)" : warnaMargin(p.gross_margin_pct);
                 return (
                   <div key={p.id} style={{ marginBottom: 11 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
@@ -314,8 +370,14 @@ export default function ProfitabilitasPage() {
                       }}>
                         {/* Tanda minus eksplisit: warna saja tak cukup — bagi
                             pemakai buta warna, "12%" dan "−12%" harus tetap
-                            terbedakan. */}
+                            terbedakan. Alasan sama untuk "belum lengkap":
+                            batang abu-abu saja tak menjelaskan apa pun. */}
                         {merugi ? "−" : ""}{Math.abs(p.gross_margin_pct)}%
+                        {ragu && (
+                          <span style={{ fontWeight: 600, marginLeft: 6, fontSize: 11 }}>
+                            · biaya belum lengkap
+                          </span>
+                        )}
                       </span>
                     </div>
                     <div style={{ height: 8, borderRadius: 99, background: "var(--data-diam)", overflow: "hidden" }}>
