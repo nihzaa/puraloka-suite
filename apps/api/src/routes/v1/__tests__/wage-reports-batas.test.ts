@@ -34,8 +34,11 @@ import mandorRoutes from '../mandor.js'
 let app: FastifyInstance
 let c: Client
 let authId: string
-/** Laporan yang DIBUAT berkas ini dan wajib dibongkar sendiri. */
+/** Baris yang DIBUAT berkas ini dan wajib dibongkar sendiri. */
 const laporanBuatan: string[] = []
+let scopeBuatan: string | null = null
+let asgBuatan: string | null = null
+let proyekBuatan: string | null = null
 
 const actAs = (a: string) =>
   vi.spyOn(supabaseAuth.auth, 'getUser')
@@ -110,22 +113,57 @@ beforeAll(async () => {
     // tak pernah jalan — lalu meledak di CI dengan
     // `null value in column "scope_id" violates not-null constraint`.
     // Cabang yang tak pernah dieksekusi di lokal adalah cabang yang belum diuji.
-    const asg = await c.query(
+    let asg = (await c.query(
       `SELECT ma.id, ws.id AS scope_id
          FROM mandor_assignments ma
          JOIN projects p ON p.id = ma.project_id
          JOIN work_scopes ws ON ws.assignment_id = ma.id
-        WHERE p.company_id = $1 LIMIT 1`, [companyId])
-    if (!asg.rows[0]) {
-      throw new Error(
-        'Tak ada mandor_assignment ber-work_scope di company ini — fixture laporan upah ' +
-        'tak bisa dibuat, dan test ini tak boleh lulus diam-diam tanpa data.')
+        WHERE p.company_id = $1 LIMIT 1`, [companyId])).rows[0]
+
+    // Rantai penugasan dibuat SENDIRI bila belum ada.
+    //
+    // Versi sebelumnya melempar di sini, dan CI merah: basisnya memang tak
+    // punya `mandor_assignments` ber-`work_scopes`. Bergantung pada bentuk
+    // seed adalah alasan berkas ini gugur dua kali berturut — dan tiap kali
+    // "perbaikannya" cuma menggeser asumsi ke data lain yang juga bisa hilang.
+    //
+    // Yang diuji berkas ini paginasi. Ia tak butuh seed tertentu; ia butuh
+    // dua baris. Jadi seluruh rantainya — proyek, penugasan, lingkup —
+    // disediakan sendiri dan dibongkar di `afterAll`.
+    if (!asg) {
+      const pengguna = (await c.query(
+        `SELECT id FROM users WHERE auth_id = $1`, [authId])).rows[0].id
+
+      let proyek = (await c.query(
+        `SELECT id FROM projects WHERE company_id = $1 AND is_deleted = false LIMIT 1`,
+        [companyId])).rows[0]?.id
+      if (!proyek) {
+        proyek = (await c.query(
+          `INSERT INTO projects (company_id, name, status)
+           VALUES ($1, '[TEST] Proyek batas upah', 'active') RETURNING id`,
+          [companyId])).rows[0].id
+        proyekBuatan = proyek
+      }
+
+      const idAsg = (await c.query(
+        `INSERT INTO mandor_assignments (project_id, mandor_id, assigned_by)
+         VALUES ($1, $2, $2) RETURNING id`, [proyek, pengguna])).rows[0].id
+      asgBuatan = idAsg
+
+      const idScope = (await c.query(
+        `INSERT INTO work_scopes (assignment_id, scope_name, payment_system)
+         VALUES ($1, '[TEST] Lingkup batas upah', 'harian') RETURNING id`,
+        [idAsg])).rows[0].id
+      scopeBuatan = idScope
+
+      asg = { id: idAsg, scope_id: idScope }
     }
+
     for (let k = 0; k < 2; k++) {
       const w = (await c.query(
         `INSERT INTO weekly_wage_reports (assignment_id, scope_id, week_start, week_end, status, subtotal, total_deduction, net_amount)
          VALUES ($1, $2, DATE '2020-01-06' + ($3 * 7), DATE '2020-01-12' + ($3 * 7), 'draft', 0, 0, 0)
-         RETURNING id`, [asg.rows[0].id, asg.rows[0].scope_id, k])).rows[0].id
+         RETURNING id`, [asg.id, asg.scope_id, k])).rows[0].id
       laporanBuatan.push(w)
     }
   }
@@ -139,9 +177,13 @@ afterAll(async () => {
   // Fixture yang tertinggal membuat test LAIN merah karena sebab yang tak
   // berhubungan — sudah terjadi di sesi ini (fixture perusahaan uji
   // menjatuhkan `submittal-aturan` dan `t9-kelola-badan-usaha`).
+  // Urutan terbalik dari pembuatan — FK menuntutnya.
   for (const id of laporanBuatan) {
     await c?.query(`DELETE FROM weekly_wage_reports WHERE id = $1`, [id]).catch(() => {})
   }
+  if (scopeBuatan) await c?.query(`DELETE FROM work_scopes WHERE id = $1`, [scopeBuatan]).catch(() => {})
+  if (asgBuatan) await c?.query(`DELETE FROM mandor_assignments WHERE id = $1`, [asgBuatan]).catch(() => {})
+  if (proyekBuatan) await c?.query(`DELETE FROM projects WHERE id = $1`, [proyekBuatan]).catch(() => {})
   await app?.close()
   await c?.end()
 })
