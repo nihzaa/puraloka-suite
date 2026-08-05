@@ -611,6 +611,7 @@ export default function KlienPage() {
           </div>
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
+            <caption className="sr-only">Daftar klien: nama, kontak, tipe, dan status kerja sama.</caption>
             <thead>
               <tr style={{ background: C.bg, borderBottom: `1px solid ${C.border}` }}>
                 {["Klien", "Kontak", "Tipe", "Status", ""].map((h, i) => (

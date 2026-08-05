@@ -316,6 +316,7 @@ export default function ArusKasPage() {
             {/* Tabel agregasi per periode */}
             <div style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
+                <caption className="sr-only">Arus kas per periode: uang masuk, uang keluar, dan selisih bersihnya.</caption>
                 <thead>
                   <tr style={{ background: "var(--surface-subtle)", borderBottom: `1px solid ${C.border}` }}>
                     {["Periode", "Masuk", "Keluar", "Net"].map((h, i) => (
@@ -326,7 +327,11 @@ export default function ArusKasPage() {
                 <tbody>
                   {arusChart.map((row, i) => (
                     <tr key={i} style={{ borderBottom: `1px solid var(--surface-hover)` }}>
-                      <td style={{ padding: "8px 12px", fontWeight: 600, color: C.text }}>{row.label}</td>
+                      {/* `<th scope="row">`, bukan `<td>`: tanpa kepala baris,
+                          pembaca layar membacakan "Rp 4.500.000" tanpa menyebut
+                          periode mana. Di tabel keuangan itu angka tanpa pemilik.
+                          Tampilannya tak berubah — gaya aslinya dipertahankan. */}
+                      <th scope="row" style={{ padding: "8px 12px", fontWeight: 600, color: C.text, textAlign: "left" }}>{row.label}</th>
                       <td style={{ padding: "8px 12px", textAlign: "right", color: C.green, fontWeight: 600, fontFamily: "monospace" }}>{fmtCompact(row.masuk)}</td>
                       <td style={{ padding: "8px 12px", textAlign: "right", color: C.red, fontFamily: "monospace" }}>{fmtCompact(row.keluar)}</td>
                       <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 700, fontFamily: "monospace", color: row.net >= 0 ? C.green : C.red }}>{row.net >= 0 ? "+" : ""}{fmtCompact(row.net)}</td>
@@ -367,6 +372,7 @@ export default function ArusKasPage() {
         ) : (
           <div style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
+              <caption className="sr-only">Rincian transaksi kas: tanggal, keterangan, proyek, jenis, kategori, serta nilai masuk dan keluar.</caption>
               <thead>
                 <tr style={{ background: "var(--surface-subtle)", borderBottom: `1px solid ${C.border}` }}>
                   {["Tanggal", "Keterangan", "Proyek", "Jenis", "Kategori", "Masuk", "Keluar"].map((h, i) => (

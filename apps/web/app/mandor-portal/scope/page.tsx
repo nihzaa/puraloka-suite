@@ -265,6 +265,13 @@ function ScopeItemsDetail({ scopeId }: { scopeId: string }) {
   return (
     <div style={{ padding: "0 20px 16px", overflowX: "auto" }}>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
+        {/* Rincian ini muncul di bawah lingkup kerja yang dibuka — konteks
+            yang terlihat di layar tapi tidak terdengar. Tanpa caption,
+            pembaca layar hanya mengumumkan "tabel, 5 kolom". */}
+        <caption className="sr-only">
+          Rincian item pekerjaan pada lingkup ini: satuan, target volume,
+          realisasi, dan persentase penyelesaian tiap item.
+        </caption>
         <thead>
           <tr style={{ background: "var(--surface-subtle)" }}>
             {["Item Pekerjaan", "Sat", "Target", "Realisasi", "%"].map((h) => (
@@ -277,7 +284,7 @@ function ScopeItemsDetail({ scopeId }: { scopeId: string }) {
             const pct = item.volume > 0 ? Math.round((item.volume_done / item.volume) * 100) : 0;
             return (
               <tr key={item.id} style={{ borderTop: `1px solid ${C.border}` }}>
-                <td style={{ padding: "8px 8px", color: C.text }}>{item.item_name}</td>
+                <th scope="row" style={{ textAlign: "left", padding: "8px 8px", color: C.text }}>{item.item_name}</th>
                 <td style={{ padding: "8px 8px", textAlign: "right", color: C.mid }}>{item.unit}</td>
                 <td style={{ padding: "8px 8px", textAlign: "right", color: C.mid }}>{fmt(item.volume ?? 0)}</td>
                 <td style={{ padding: "8px 8px", textAlign: "right", fontWeight: 600, color: pct >= 100 ? C.green : C.text }}>{fmt(item.volume_done ?? 0)}</td>

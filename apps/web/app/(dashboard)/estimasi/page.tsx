@@ -277,6 +277,7 @@ function KomposerTab() {
 
           <div style={{ overflowX: "auto", marginTop: 12 }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
+              <caption className="sr-only">Rekapitulasi RAB: kode, uraian pekerjaan, volume, satuan, dan jumlah biaya tiap pos.</caption>
               <thead><tr>
                 <th style={th}>Kode</th><th style={th}>Pekerjaan (assembly)</th><th style={th}>Vol</th>
                 <th style={th}>Sat</th><th style={{ ...th, textAlign: "right" }}>Jumlah</th><th style={th} />
@@ -327,6 +328,7 @@ function KomposerTab() {
                 Rekapitulasi per Kategori
               </h4>
               <table style={{ width: "100%", borderCollapse: "collapse", maxWidth: 520, fontVariantNumeric: "tabular-nums" }}>
+                <caption className="sr-only">Rekapitulasi total biaya proyek beserta komponen pembentuknya.</caption>
                 <tbody>
                   {rollup.groups.map(g => (
                     <tr key={g.name}>
@@ -474,6 +476,7 @@ function JelaskanModal({ itemId, onClose }: { itemId: string; onClose: () => voi
               </div>
               <div style={{ overflowX: "auto", border: `1px solid ${C.border}`, borderRadius: 10 }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
+                  <caption className="sr-only">Rincian analisa harga satuan pos ini: kode resource, koefisien, harga satuan, subtotal, dan sumber harganya.</caption>
                   <thead><tr style={{ background: "var(--surface-subtle)" }}>
                     {["Kode", "Koef.", "Harga satuan", "Subtotal", "Sumber"].map(h => (
                       <th key={h} style={{ padding: "6px 8px", textAlign: h === "Kode" || h === "Sumber" ? "left" : "right", fontSize: 10, color: C.mid, fontWeight: 700, textTransform: "uppercase" }}>{h}</th>
@@ -1342,6 +1345,7 @@ function RincianAnalisa({ d }: { d: HspLive }) {
 
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
+          <caption className="sr-only">Analisa harga satuan pekerjaan: uraian resource, satuan, koefisien, harga satuan, dan jumlah.</caption>
           <thead>
             <tr>
               <th style={{ ...th, width: "42%" }}>Uraian</th>
@@ -1521,6 +1525,7 @@ function AdopsiModal({ asal, onClose, onDone }: {
             Kosongkan yang tidak berubah — yang dikosongkan memakai angka aslinya.
           </p>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
+            <caption className="sr-only">Perbandingan koefisien sebelum dan sesudah penyesuaian, per uraian resource.</caption>
             <thead>
               <tr>
                 <th style={th}>Uraian</th>
@@ -1696,6 +1701,7 @@ function EditAssemblyModal({ asal, onClose, onDone }: {
             Kosongkan yang tidak berubah. Minimal satu koefisien wajib diubah.
           </p>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
+            <caption className="sr-only">Perbandingan harga satuan yang berlaku sekarang dengan yang akan diterapkan, per uraian.</caption>
             <thead>
               <tr>
                 <th style={th}>Uraian</th>
@@ -1898,6 +1904,7 @@ function RapTab() {
             </div>
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
+                <caption className="sr-only">Penyesuaian kuantitas material: qty RAB, qty disesuaikan, satuan, harga supplier, dan pagu.</caption>
                 <thead><tr>
                   <th style={th}>Material</th><th style={{ ...th, textAlign: "right" }}>Qty RAB</th>
                   <th style={{ ...th, textAlign: "right", width: 110 }}>Qty Disesuaikan</th>
@@ -1954,6 +1961,7 @@ function RapTab() {
             </div>
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
+                <caption className="sr-only">Nilai borongan per uraian pekerjaan.</caption>
                 <thead><tr>
                   <th style={th}>Uraian Pekerjaan</th><th style={{ ...th, textAlign: "right" }}>Nilai Borongan</th><th style={th} />
                 </tr></thead>
@@ -1992,6 +2000,7 @@ function RapTab() {
             {showLogTable && (
               <div style={{ overflowX: "auto", borderTop: `1px solid ${C.border}` }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
+                  <caption className="sr-only">Riwayat perubahan: waktu, kolom yang diubah, nilai lama, nilai baru, dan alasannya.</caption>
                   <thead><tr>
                     <th style={th}>Waktu</th><th style={th}>Field</th><th style={th}>Lama</th><th style={th}>Baru</th><th style={th}>Alasan</th>
                   </tr></thead>
@@ -2315,6 +2324,7 @@ function HargaTab() {
         border: `1px solid ${C.border}`, borderRadius: 10,
         ...(vhOff ? {} : { maxHeight: 560, overflowY: "auto" as const }) }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
+          <caption className="sr-only">Daftar harga resource: harga, satuan, masa berlaku, lokasi, tingkat keyakinan, status, dan aksi.</caption>
           <thead><tr>
             <th style={th}>Resource</th><th style={{ ...th, textAlign: "right" }}>Harga</th><th style={th}>Sat</th>
             <th style={th}>Berlaku</th><th style={th}>Lokasi</th><th style={th}>Keyakinan</th><th style={th}>Status</th><th style={th}>Aksi</th>
@@ -2498,6 +2508,7 @@ function OverrideProyek() {
       ) : (
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
+            <caption className="sr-only">Harga khusus per resource: nilai, masa berlaku, dan alasan penetapannya.</caption>
             <thead>
               <tr>
                 {["Resource", "Harga khusus", "Berlaku", "Alasan", ""].map((h) => (
@@ -2806,6 +2817,7 @@ function PrioritasHarga({ onIsi }: { onIsi: (r: { code: string; name: string; un
       {buka && (
         <div style={{ borderTop: `1px solid ${C.yellow}`, padding: "4px 12px 12px" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
+            <caption className="sr-only">Pemakaian bahan dan upah: nama, kategori, dan jumlah yang dipakai.</caption>
             <thead>
               <tr>
                 <th style={th}>Bahan / upah</th>
@@ -3465,6 +3477,7 @@ function VariansTab() {
             {bukaPeta && (
               <div style={{ overflowX: "auto", borderTop: `1px solid ${C.border}` }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
+                  <caption className="sr-only">Pemetaan kategori belanja ke cost code.</caption>
                   <thead>
                     <tr style={{ background: C.bg }}>
                       <th scope="col" style={TH}>Kategori belanja</th>

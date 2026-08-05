@@ -187,6 +187,7 @@ export default function TenderPage() {
       {!memuat && bids.length > 0 && (
         <div style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${C.border}` }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
+            <caption className="sr-only">Daftar tender: nama, pemberi kerja, nilai penawaran kami, nilai pemenang, selisih, tanggal diajukan, dan status.</caption>
             <thead>
               <tr style={{ background: "var(--surface-subtle)" }}>
                 {["Tender", "Pemberi kerja", "Nilai kami", "Nilai pemenang", "Selisih", "Diajukan", "Status"].map((h) => (

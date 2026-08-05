@@ -38,7 +38,19 @@ const ACTION_COLORS: Record<string, { bg: string; color: string }> = {
   insert:                   { bg: "var(--success-bg)", color: "var(--success)" },
   update:                   { bg: "var(--info-bg)", color: "var(--info)" },
   delete:                   { bg: "var(--danger-bg)", color: "var(--danger)" },
-  change_order_approved:    { bg: "var(--warning-bg)", color: "var(--data-5)" },
+  // `--warning`, BUKAN `--data-5`.
+  //
+  // `--data-5` (#EA580C) adalah token deret KATEGORI untuk grafik: ambangnya
+  // 3:1 sebagai komponen non-teks. Dipakai sebagai warna teks di atas
+  // `--warning-bg` ia menghasilkan 3,43:1 — gagal ambang teks WCAG AA 4,5:1.
+  // Diukur, bukan ditaksir.
+  //
+  // `--warning` (#B45309) memberi 4,84:1 pada latar yang sama, dan itu
+  // pasangan yang sudah dipakai `soft_delete` tiga baris di bawah — satu
+  // baris ini yang menyimpang. Kelas cacat yang sama sudah dicatat di
+  // `keuangan/arus-kas` dan `piutang`: palet grafik dipinjam untuk teks,
+  // yang syaratnya lebih ketat.
+  change_order_approved:    { bg: "var(--warning-bg)", color: "var(--warning)" },
   change_order_rejected:    { bg: "var(--danger-bg)", color: "var(--danger)" },
   soft_delete:              { bg: "var(--warning-bg)", color: "var(--warning)" },
 };

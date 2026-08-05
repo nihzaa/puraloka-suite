@@ -225,14 +225,30 @@ function TabBtn({ label, active, onClick, icon }: { label: string; active: boole
 }
 
 // ─── Table wrapper ────────────────────────────────────────────────────────────
-function DataTable({ headers, children, empty }: { headers: { label: string; align?: "left" | "right" | "center" }[]; children: React.ReactNode; empty?: boolean }) {
+/**
+ * Tabel data dengan kepala kolom seragam.
+ *
+ * `caption` WAJIB, tidak opsional. Halaman ini memakai `DataTable` delapan
+ * kali untuk delapan tabel yang isinya sama sekali berbeda — invoice, arus
+ * kas, kasbon, pengeluaran. Pembaca layar mengumumkan tabel lepas dari
+ * judul visual di atasnya, jadi tanpa caption kedelapan tabel itu terdengar
+ * identik: "tabel, 6 kolom".
+ *
+ * Dibuat wajib supaya tabel BERIKUTNYA tak bisa lahir tanpa keterangan —
+ * prop opsional yang benar untuk diisi adalah prop yang lupa diisi.
+ */
+function DataTable({ headers, children, empty, caption }: { headers: { label: string; align?: "left" | "right" | "center" }[]; children: React.ReactNode; empty?: boolean; caption: string }) {
   return (
     <div style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${C.border}` }}>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
+        <caption className="sr-only">{caption}</caption>
         <thead>
           <tr style={{ background: "var(--surface-subtle)", borderBottom: `1px solid ${C.border}` }}>
             {headers.map((h, i) => (
-              <th key={i} style={{ padding: "8px 12px", textAlign: h.align ?? "left", fontSize: 10, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>{h.label}</th>
+              // `scope="col"`: tanpa itu pembaca layar tak menghubungkan sel
+              // data dengan judul kolomnya, dan angka dibacakan tanpa tahu
+              // angka apa.
+              <th key={i} scope="col" style={{ padding: "8px 12px", textAlign: h.align ?? "left", fontSize: 10, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>{h.label}</th>
             ))}
           </tr>
         </thead>
@@ -583,6 +599,7 @@ function LaporanContent() {
                     <p style={{ fontSize: 13, fontWeight: 700, color: C.text, margin: "0 0 14px" }}>Rekap per Bulan</p>
                     <div style={{ overflowX: "auto" }}>
                       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
+                        <caption className="sr-only">Rekap pajak per periode: PPh final, PPN, total pajak, jumlah invoice, serta berapa yang sudah dan belum dilaporkan.</caption>
                         <thead>
                           <tr style={{ borderBottom: `2px solid ${C.border}` }}>
                             {["Periode", "PPh Final", "PPN", "Total Pajak", "Jumlah Invoice", "Sudah Lapor", "Belum Lapor"].map(h => (
@@ -649,6 +666,7 @@ function LaporanContent() {
                   ) : (
                     <div style={{ overflowX: "auto" }}>
                       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
+                        <caption className="sr-only">Rincian pajak per invoice: periode, proyek, nomor invoice, jenis pajak, DPP, tarif, nilai pajak, nomor e-Faktur, dan status.</caption>
                         <thead>
                           <tr style={{ borderBottom: `1px solid ${C.border}`, background: "var(--surface-hover)" }}>
                             {["Periode", "Proyek", "No Invoice", "Jenis", "DPP", "Tarif", "Pajak", "No e-Faktur", "Status", "Aksi"].map(h => (
@@ -865,7 +883,7 @@ function TabRingkasan({ data, canViewFinance }: { data: ProjectSummaryData; canV
       {canViewFinance && data.invoices && data.invoices.length > 0 && (
         <div>
           <SectionTitle icon={<FileText size={15} color={C.navy} />} title="Invoice & Pembayaran" />
-          <DataTable headers={[{ label: "No Invoice" }, { label: "Tipe" }, { label: "Total", align: "right" }, { label: "Terbayar", align: "right" }, { label: "Sisa", align: "right" }, { label: "Status" }]}>
+          <DataTable caption="Ringkasan invoice: nomor, tipe, total tagihan, jumlah terbayar, sisa, dan status pembayaran." headers={[{ label: "No Invoice" }, { label: "Tipe" }, { label: "Total", align: "right" }, { label: "Terbayar", align: "right" }, { label: "Sisa", align: "right" }, { label: "Status" }]}>
             {data.invoices.map(inv => {
               const isPaid = inv.status === "paid";
               return (
@@ -939,7 +957,7 @@ function TabKeuangan({ data }: { data: FinancialData }) {
       {byProject.length > 0 && (
         <div>
           <SectionTitle icon={<Building2 size={15} color={C.navy} />} title="Rekap per Proyek" />
-          <DataTable headers={[{ label: "Proyek" }, { label: "Invoice" }, { label: "Total Tagih", align: "right" }, { label: "Terbayar", align: "right" }, { label: "Outstanding", align: "right" }, { label: "%" }]}>
+          <DataTable caption="Piutang per proyek: invoice, total tagihan, terbayar, outstanding, dan persentase pelunasan." headers={[{ label: "Proyek" }, { label: "Invoice" }, { label: "Total Tagih", align: "right" }, { label: "Terbayar", align: "right" }, { label: "Outstanding", align: "right" }, { label: "%" }]}>
             {byProject.map(p => {
               const pct = p.invoiced > 0 ? (p.paid / p.invoiced) * 100 : 0;
               return (
@@ -965,7 +983,7 @@ function TabKeuangan({ data }: { data: FinancialData }) {
       {/* Invoice list */}
       <div>
         <SectionTitle icon={<FileText size={15} color={C.navy} />} title="Daftar Invoice" />
-        <DataTable empty={invoices.length === 0} headers={[{ label: "No Invoice" }, { label: "Proyek" }, { label: "Total", align: "right" }, { label: "Terbayar", align: "right" }, { label: "Sisa", align: "right" }, { label: "Jatuh Tempo" }, { label: "Status" }]}>
+        <DataTable caption="Daftar seluruh invoice: nomor, proyek, total, terbayar, sisa, jatuh tempo, dan status." empty={invoices.length === 0} headers={[{ label: "No Invoice" }, { label: "Proyek" }, { label: "Total", align: "right" }, { label: "Terbayar", align: "right" }, { label: "Sisa", align: "right" }, { label: "Jatuh Tempo" }, { label: "Status" }]}>
           {invoices.map(inv => {
             const overdue = inv.status !== "paid" && inv.status !== "cancelled" && new Date(inv.due_date) < new Date();
             return (
@@ -1030,7 +1048,7 @@ function TabCashflow({ data }: { data: CashflowData }) {
 
           {/* Tabel bulanan */}
           <div style={{ marginTop: 12 }}>
-            <DataTable headers={[{ label: "Periode" }, { label: "Masuk", align: "right" }, { label: "Keluar", align: "right" }, { label: "Net", align: "right" }]}>
+            <DataTable caption="Arus kas per periode: uang masuk, uang keluar, dan selisih bersihnya." headers={[{ label: "Periode" }, { label: "Masuk", align: "right" }, { label: "Keluar", align: "right" }, { label: "Net", align: "right" }]}>
               {byMonth.map((row, i) => (
                 <tr key={i} style={{ borderBottom: "1px solid var(--surface-hover)" }}>
                   <td style={{ padding: "8px 12px", fontWeight: 600, color: C.text, fontSize: 12 }}>{row.label}</td>
@@ -1117,7 +1135,7 @@ function TabMandor({ data }: { data: MandorReportData }) {
                     {mr.wages.length > 0 && (
                       <div>
                         <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, marginBottom: 8, textTransform: "uppercase" }}>Laporan Upah ({mr.wages.length})</div>
-                        <DataTable headers={[{ label: "Minggu" }, { label: "Jumlah", align: "right" }, { label: "Dibayar" }]}>
+                        <DataTable caption="Upah per minggu: jumlah yang diajukan dan status pembayarannya." headers={[{ label: "Minggu" }, { label: "Jumlah", align: "right" }, { label: "Dibayar" }]}>
                           {mr.wages.map(w => (
                             <tr key={w.id} style={{ borderBottom: "1px solid var(--surface-hover)" }}>
                               <td style={{ padding: "6px 12px", fontSize: 11 }}>{fmtDate(w.week_start)} – {fmtDate(w.week_end)}</td>
@@ -1133,7 +1151,7 @@ function TabMandor({ data }: { data: MandorReportData }) {
                     {mr.kasbons.length > 0 && (
                       <div>
                         <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, marginBottom: 8, textTransform: "uppercase" }}>Kasbon ({mr.kasbons.length})</div>
-                        <DataTable headers={[{ label: "Keperluan" }, { label: "Jumlah", align: "right" }, { label: "Disetujui" }]}>
+                        <DataTable caption="Kasbon per keperluan: jumlah yang diajukan dan status persetujuannya." headers={[{ label: "Keperluan" }, { label: "Jumlah", align: "right" }, { label: "Disetujui" }]}>
                           {mr.kasbons.map(k => (
                             <tr key={k.id} style={{ borderBottom: "1px solid var(--surface-hover)" }}>
                               <td style={{ padding: "6px 12px", fontSize: 11 }}>{PURPOSE_LABEL[k.purpose] ?? k.purpose}</td>
@@ -1249,7 +1267,7 @@ function TabPengeluaran({ data }: { data: ExpensesData }) {
       {byProject.length > 1 && (
         <div>
           <SectionTitle icon={<Building2 size={15} color={C.navy} />} title="Per Proyek" />
-          <DataTable headers={[{ label: "Proyek" }, { label: "Transaksi", align: "center" }, { label: "Total", align: "right" }, { label: "%" }]}>
+          <DataTable caption="Pengeluaran per proyek: jumlah transaksi, total nilai, dan porsinya terhadap keseluruhan." headers={[{ label: "Proyek" }, { label: "Transaksi", align: "center" }, { label: "Total", align: "right" }, { label: "%" }]}>
             {byProject.map(p => {
               const pct = summary.total > 0 ? (p.total / summary.total) * 100 : 0;
               return (
@@ -1273,7 +1291,7 @@ function TabPengeluaran({ data }: { data: ExpensesData }) {
       {/* Detail transaksi */}
       <div>
         <SectionTitle icon={<FileText size={15} color={C.navy} />} title={`Detail Pengeluaran (${expenses.length})`} />
-        <DataTable empty={expenses.length === 0} headers={[{ label: "Tanggal" }, { label: "Deskripsi" }, { label: "Kategori" }, { label: "Vendor" }, { label: "Jumlah", align: "right" }]}>
+        <DataTable caption="Rincian pengeluaran: tanggal, deskripsi, kategori, vendor, dan jumlah." empty={expenses.length === 0} headers={[{ label: "Tanggal" }, { label: "Deskripsi" }, { label: "Kategori" }, { label: "Vendor" }, { label: "Jumlah", align: "right" }]}>
           {expenses.map(e => (
             <tr key={e.id} style={{ borderBottom: "1px solid var(--surface-hover)" }}>
               <td style={{ padding: "8px 12px", fontSize: 11, color: C.muted, whiteSpace: "nowrap" }}>{fmtDate(e.expense_date)}</td>
@@ -1502,6 +1520,7 @@ function PortofolioTab() {
       ) : (
         <div style={{ overflowX: "auto", border: `1px solid ${C.border}`, borderRadius: 10 }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
+            <caption className="sr-only">Serapan anggaran per proyek: dasar pagu, nilai pagu, serapan, persentase serapan, progres fisik, deviasi, dan sisa pagu.</caption>
             <thead><tr style={{ background: "var(--surface-subtle)" }}>
               {["Proyek", "Dasar pagu", "Pagu", "Serapan", "Serapan %", "Progres %", "Deviasi", "Sisa pagu"].map(h => (
                 <th key={h} style={{
@@ -1630,6 +1649,7 @@ function WipTab() {
 
       <div style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${C.border}` }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 900, fontVariantNumeric: "tabular-nums" }}>
+          <caption className="sr-only">Pengakuan pendapatan per proyek: metode, persentase penyelesaian, nilai kontrak, pendapatan diakui, biaya, laba, CIE, dan BIE.</caption>
           <thead>
             <tr style={{ background: "var(--surface-subtle)" }}>
               {["Proyek", "Metode", "%", "Kontrak", "Diakui", "Biaya", "Laba", "CIE", "BIE"].map((h, i) => (

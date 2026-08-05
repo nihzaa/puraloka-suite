@@ -164,6 +164,13 @@ export default function PMMandorPage() {
                 {isOpen && (r.wage_items ?? []).length > 0 && (
                   <div style={{ borderTop: `1px solid ${C.border}`, padding: "12px 16px" }}>
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
+                      {/* Muncul di dalam baris laporan yang dibuka. Konteks itu
+                          hanya ada secara visual — pembaca layar mengumumkan
+                          tabel lepas dari sekelilingnya. */}
+                      <caption className="sr-only">
+                        Rincian upah per pekerja pada laporan ini: jumlah hari kerja,
+                        upah per hari, dan total yang diterima masing-masing.
+                      </caption>
                       <thead>
                         <tr style={{ background: "var(--surface-hover)" }}>
                           <th style={{ padding: "6px 8px", textAlign: "left", color: C.mid, fontWeight: 600 }}>Pekerja</th>
@@ -175,7 +182,7 @@ export default function PMMandorPage() {
                       <tbody>
                         {r.wage_items.map((wi: any) => (
                           <tr key={wi.id} style={{ borderTop: `1px solid ${C.border}` }}>
-                            <td style={{ padding: "6px 8px", color: C.text }}>{wi.worker?.name ?? "—"}</td>
+                            <th scope="row" style={{ textAlign: "left", padding: "6px 8px", color: C.text }}>{wi.worker?.name ?? "—"}</th>
                             <td style={{ padding: "6px 8px", textAlign: "right", color: C.mid }}>{wi.days_worked ?? 1}</td>
                             <td style={{ padding: "6px 8px", textAlign: "right", color: C.mid }}>{fmt(wi.daily_rate)}</td>
                             <td style={{ padding: "6px 8px", textAlign: "right", fontWeight: 600, color: C.navy }}>{fmt(wi.daily_rate * (wi.days_worked ?? 1))}</td>

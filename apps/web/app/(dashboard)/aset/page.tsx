@@ -266,6 +266,7 @@ function TabelAset({ baris }: { baris: Aset[] }) {
   return (
     <div style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface }}>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 780, fontVariantNumeric: "tabular-nums" }}>
+        <caption className="sr-only">Daftar aset: kode, nama, kategori, status, nilai perolehan, nilai buku, dan penyusutan.</caption>
         <thead>
           <tr style={{ background: "var(--surface-subtle)" }}>
             {["Kode", "Nama", "Kategori", "Status", "Perolehan", "Nilai buku", "Penyusutan"].map((h, i) => (
@@ -283,9 +284,9 @@ function TabelAset({ baris }: { baris: Aset[] }) {
             const s = STATUS[a.status] ?? STATUS.tersedia;
             return (
               <tr key={a.id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                <td style={{ padding: "8px 12px", fontWeight: 600, color: C.text, whiteSpace: "nowrap" }}>
+                <th scope="row" style={{ textAlign: "left", padding: "8px 12px", fontWeight: 600, color: C.text, whiteSpace: "nowrap" }}>
                   {a.asset_code}
-                </td>
+                </th>
                 <td style={{ padding: "8px 12px", color: C.text }}>
                   {a.name}
                   {(a.brand || a.model) && (
@@ -346,6 +347,7 @@ function TabelSewa({ baris }: { baris: Sewa[] }) {
   return (
     <div style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface }}>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 680, fontVariantNumeric: "tabular-nums" }}>
+        <caption className="sr-only">Penyewaan alat: nama alat, tarif, tanggal mulai dan selesai, status, serta biaya sampai kini.</caption>
         <thead>
           <tr style={{ background: "var(--surface-subtle)" }}>
             {["Alat", "Tarif", "Mulai", "Selesai", "Status", "Biaya s.d. kini"].map((h, i) => (

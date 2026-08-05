@@ -489,6 +489,7 @@ function DashboardContent() {
       ) : (
         <div style={{ overflowX: "auto", flex: 1 }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
+            <caption className="sr-only">Invoice yang menunggu pembayaran: nomor, proyek dan klien, sisa tagihan, dan jatuh tempo.</caption>
             <thead>
               <tr style={{ background: "var(--surface-subtle)", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
                 {["Invoice", "Proyek · Klien", "Sisa", "Jatuh Tempo"].map((h, i) => (
@@ -598,6 +599,7 @@ function DashboardContent() {
       {loading ? <div style={{ padding: "0 20px 20px" }}><Skeleton h={100} /></div> : (
         <div style={{ overflowX: "auto", flex: 1 }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
+            <caption className="sr-only">Kasbon menunggu persetujuan: mandor, proyek, tujuan, jumlah, tanggal pengajuan, dan aksi.</caption>
             <thead>
               <tr style={{ background: "var(--surface-subtle)", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
                 {["Mandor", "Proyek", "Tujuan", "Jumlah", "Tgl Ajuan", "Aksi"].map((h, i) => (

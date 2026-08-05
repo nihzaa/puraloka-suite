@@ -2206,6 +2206,7 @@ function WageReportDetailModal({ data, onClose, onApprove }: {
             <div style={{ fontSize: 12, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Rincian Tukang</div>
             <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
+                <caption className="sr-only">Rincian upah per pekerja: jumlah hari, tarif harian, lembur, dan subtotal.</caption>
                 <thead>
                   <tr style={{ background: "var(--surface-subtle)" }}>
                     {["Nama", "Hari", "Tarif/Hari", "Lembur", "Subtotal"].map(h => (
@@ -2216,7 +2217,7 @@ function WageReportDetailModal({ data, onClose, onApprove }: {
                 <tbody>
                   {data.items.map((item, i) => (
                     <tr key={item.id} style={{ background: i % 2 === 0 ? "var(--surface)" : "var(--surface-subtle)" }}>
-                      <td style={{ padding: "8px 12px", fontSize: 13, color: C.text, fontWeight: 600 }}>{item.worker_name}</td>
+                      <th scope="row" style={{ textAlign: "left", padding: "8px 12px", fontSize: 13, color: C.text, fontWeight: 600 }}>{item.worker_name}</th>
                       <td style={{ padding: "8px 12px", fontSize: 13, color: C.mid }}>{item.days_worked}</td>
                       <td style={{ padding: "8px 12px", fontSize: 13, color: C.mid }}>{fmt(item.daily_rate)}</td>
                       <td style={{ padding: "8px 12px", fontSize: 12, color: C.mid }}>
