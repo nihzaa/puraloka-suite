@@ -567,12 +567,39 @@
   --grad-navy:        linear-gradient(135deg, #001F3D 0%, #0059B3 60%, #7ABDFF 100%);
   --grad-area:        linear-gradient(180deg, rgba(122,189,255,0.28) 0%, rgba(122,189,255,0.02) 100%);
 
-  /* Deret data — dinaikkan terangnya supaya terbaca di latar gelap, dengan
-   * rona yang SEPADAN dengan mode terang: biru → teal → hijau → amber →
-   * lime. Pemakai yang berpindah mode harus mengenali grafik yang sama,
-   * bukan belajar palet kedua.
+  /* Deret data mode gelap.
    *
-   * Diuji pada normal + deutan + protan: ΔE minimum 21,1. */
+   * ── Ronanya TIDAK sepadan dengan mode terang, dan itu disengaja
+   *
+   * Komentar di sini sempat berbunyi "rona yang SEPADAN dengan mode
+   * terang". Itu tidak benar, dan diukur:
+   *
+   *     data-1  210° → 210°     0°
+   *     data-2  192° → 158°    34°
+   *     data-3  142° →  43°    99°
+   *     data-4   35° →  83°    48°
+   *     data-5   21° → 213°   168°   ← oranye jadi abu-abu kebiruan
+   *
+   * Penyebabnya bukan kelalaian, melainkan syarat yang benar-benar
+   * bertabrakan. Mode terang memakai 35° (amber) dan 21° (oranye) yang
+   * bersebelahan. Di latar gelap keduanya harus dinaikkan terangnya, dan
+   * dua rona bertetangga yang sama-sama terang menjadi tak terbedakan
+   * bagi pemakai deuteranopia.
+   *
+   * Dicari secara menyeluruh: seluruh kombinasi terang × jenuh untuk
+   * kedua rona itu, dengan syarat kontras ≥4,5:1. ΔE terbaik yang bisa
+   * dicapai sambil mempertahankan rona hanya **3,6** — jauh di bawah
+   * ambang 10 yang dipakai penjaga `uji-deret-data`. Ini batas fisik
+   * penglihatan, bukan kurang usaha.
+   *
+   * Jadi kesetiaan rona DIKORBANKAN demi keterbedaan. Itu urutan
+   * prioritas yang benar: pemakai yang tak bisa membedakan dua deret
+   * membaca grafik yang salah, sementara pemakai yang ronanya bergeser
+   * cuma perlu melihat legenda. Yang tak boleh adalah menukar keduanya
+   * diam-diam sambil mengklaim tak ada yang dikorbankan.
+   *
+   * Diuji pada normal + deutan + protan: ΔE minimum 21,1
+   * (`uji-deret-data.mjs`, membaca berkas ini langsung). */
   --data-1:           #7ABDFF;
   --data-2:           #34D399;
   --data-3:           #FBBF24;

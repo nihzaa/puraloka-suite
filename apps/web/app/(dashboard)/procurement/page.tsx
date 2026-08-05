@@ -2223,10 +2223,15 @@ function LaporanPengadaanTab() {
           {aging.buckets && (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8, marginBottom: 20 }}>
               {[
+                // Ramp urgensi, bukan deret kategori — sama seperti /piutang,
+                // alasan lengkapnya ada di sana. Dua cacat sekaligus di sini:
+                // "1–30" dan "31–60" berwarna IDENTIK (keduanya --warning),
+                // dan "61–90" memakai `--data-5` yang di mode gelap abu-abu
+                // terang, jadi bucket kedua-tertua tampil paling ringan.
                 { label: "Belum Jatuh Tempo", key: "current", color: C.success, bg: C.successBg },
-                { label: "1–30 Hari", key: "days_1_30", color: C.warning, bg: C.warningBg },
-                { label: "31–60 Hari", key: "days_31_60", color: "var(--warning)", bg: "var(--warning-bg)" },
-                { label: "61–90 Hari", key: "days_61_90", color: "var(--data-5)", bg: "var(--warning-bg)" },
+                { label: "1–30 Hari", key: "days_1_30", color: "var(--warning)", bg: C.warningBg },
+                { label: "31–60 Hari", key: "days_31_60", color: "color-mix(in srgb, var(--warning) 60%, var(--danger))", bg: "var(--warning-bg)" },
+                { label: "61–90 Hari", key: "days_61_90", color: "color-mix(in srgb, var(--warning) 25%, var(--danger))", bg: "var(--warning-bg)" },
                 { label: "> 90 Hari", key: "over_90", color: C.danger, bg: C.dangerBg },
               ].map(b => (
                 <div key={b.key} style={{ background: b.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 12px", textAlign: "center" }}>

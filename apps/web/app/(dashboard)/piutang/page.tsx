@@ -18,13 +18,36 @@ const card: React.CSSProperties = {
   borderRadius: 14, boxShadow: "var(--naik-1)",
 };
 
-// Ramp urgensi bucket — makin tua umur piutang, makin gelap merahnya.
+/**
+ * Ramp urgensi bucket — makin tua umur piutang, makin gelap merahnya.
+ *
+ * ── Kenapa BUKAN `--data-*`
+ *
+ * Bucket 31–60 hari sempat memakai `var(--data-5)`. Di mode terang itu
+ * oranye dan ramp-nya utuh; di mode gelap `--data-5` adalah `#CBD5E1`,
+ * abu-abu terang — sehingga bucket TENGAH tampil paling pucat di antara
+ * kuning dan merah. Ramp-nya putus tepat di tengah, dan seluruh
+ * Rp 119,6 juta yang jatuh di bucket itu terbaca sebagai keadaan paling
+ * ringan, bukan paling perlu ditagih.
+ *
+ * Sebabnya: `--data-*` adalah deret KATEGORI — lima warna yang dipilih
+ * supaya saling terbedakan, tanpa urutan gawat di antaranya. Mode gelap
+ * sengaja mengorbankan kesetiaan rona demi keterbedaan itu (alasan
+ * lengkap di `globals.css`). Memakainya untuk ramp berarti meminjam
+ * palet yang dirancang untuk tujuan yang berlawanan.
+ *
+ * Token semantik (`--warning`, `--danger`) punya varian gelapnya sendiri
+ * dan mempertahankan MAKNA di kedua mode — itu yang dibutuhkan di sini.
+ */
 const BUCKETS = [
   { key: "current", label: "Belum jatuh tempo", color: "var(--navy)" },
   { key: "d1_30",   label: "1–30 hari",         color: "var(--warning)" },
-  { key: "d31_60",  label: "31–60 hari",        color: "var(--data-5)" },
+  // Antara kuning dan merah: oranye. `color-mix` menurunkannya dari kedua
+  // token semantik itu, jadi ia ikut berubah sendiri saat mode berganti —
+  // tak ada hex mode-gelap kedua yang bisa lupa diperbarui.
+  { key: "d31_60",  label: "31–60 hari",        color: "color-mix(in srgb, var(--warning) 45%, var(--danger))" },
   { key: "d61_90",  label: "61–90 hari",        color: "var(--danger)" },
-  { key: "d90_plus", label: ">90 hari",         color: "#7F1D1D" },
+  { key: "d90_plus", label: ">90 hari",         color: "color-mix(in srgb, var(--danger) 60%, black)" },
 ] as const;
 type BucketKey = (typeof BUCKETS)[number]["key"];
 
@@ -287,8 +310,15 @@ export default function PiutangPage() {
                     </td>
                   </tr>
                 ))}
+                {/* `whiteSpace: normal` + `maxWidth: 0` — sama seperti sel
+                    kembarnya di Register Uang Muka: `td` bersama memakai
+                    `nowrap` supaya kolom angka tak patah, tapi kalimat
+                    penjelas lalu melebarkan tabel dan ujungnya terpotong. */}
                 {!loading && (retention ?? []).length === 0 && (
-                  <tr><td colSpan={5} style={{ ...td, textAlign: "center", color: C.mid, padding: "24px 12px" }}>
+                  <tr><td colSpan={5} style={{
+                    ...td, textAlign: "center", color: C.mid,
+                    padding: "24px 12px", whiteSpace: "normal", maxWidth: 0,
+                  }}>
                     Belum ada retensi tercatat. Retensi muncul saat invoice memakai potongan retensi.
                   </td></tr>
                 )}
@@ -336,8 +366,16 @@ export default function PiutangPage() {
                     </tr>
                   );
                 })}
+                {/* `whiteSpace: normal` — `td` bersama memakai `nowrap`
+                    supaya kolom angka tak patah, tapi kalimat penjelas
+                    sepanjang ini lalu memaksa lebar tabel melebihi wadahnya
+                    dan ujungnya terpotong tanpa scrollbar. */}
                 {!loading && (dp ?? []).length === 0 && (
-                  <tr><td colSpan={4} style={{ ...td, textAlign: "center", color: C.mid, padding: "24px 12px" }}>
+                  <tr><td colSpan={4} style={{
+                    ...td, textAlign: "center", color: C.mid,
+                    padding: "24px 12px", whiteSpace: "normal",
+                    maxWidth: 0,   // paksa sel menghormati lebar tabel
+                  }}>
                     Belum ada uang muka tercatat. DP muncul saat termin on_sign ditagih, dan dipotong lewat form invoice termin.
                   </td></tr>
                 )}

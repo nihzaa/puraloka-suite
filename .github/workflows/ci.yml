@@ -720,6 +720,22 @@ jobs:
       - name: Bentuk balasan API (kunci yang dibaca web harus dikirim)
         run: node scripts/uji-bentuk-balasan.mjs
 
+      # `--data-*` adalah deret KATEGORI: mode gelapnya sengaja mengorbankan
+      # kesetiaan rona demi keterbedaan buta warna (ΔE 3,6 adalah batas yang
+      # bisa dicapai kalau rona dipertahankan — batas fisik, bukan kurang
+      # usaha). Akibatnya `--data-5` yang oranye di mode terang menjadi
+      # abu-abu terang di mode gelap.
+      #
+      # /piutang memakainya untuk bucket umur 31–60 hari di tengah ramp
+      # warning→danger, jadi di mode gelap bucket TENGAH tampil paling pucat
+      # dan Rp 119,6 juta yang menua terbaca sebagai paling ringan.
+      # /procurement sama, plus dua bucket berwarna identik.
+      #
+      # Keduanya LOLOS `uji-deret-data` — penjaga itu memeriksa apakah kelima
+      # warna saling terbedakan, bukan apakah dipakai di tempat yang benar.
+      - name: Ramp urgensi (--data-* bukan untuk tingkatan gawat)
+        run: node scripts/uji-ramp-urgensi.mjs
+
       # Kontras warna — 260 dari 296 pelanggaran WCAG itu kontras, dan sampai
       # 2026-08-01 ia SATU-SATUNYA yang tak dijaga otomatis. Catatannya berbunyi
       # "butuh browser + login, kredensial di CI ditolak sadar" — benar untuk
