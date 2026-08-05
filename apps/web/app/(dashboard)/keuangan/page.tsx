@@ -21,6 +21,7 @@ import {
   CashflowTooltip,
   CreateInvoiceModal, 
 } from "./_bersama/komponen";
+import { UmurPiutang, type PetaUmur } from "./_bersama/umur-piutang";
 import {
   type Summary, type CashflowPoint, type ArusKasChartPoint,
   fmtCompact,
@@ -42,7 +43,17 @@ function KeuanganContent() {
   //  dihapus: bagian modul kini ditentukan URL, bukan state.
 
   // Overview period filter
-  const [overviewPeriod, setOverviewPeriod] = useState<"this_month" | "last_3_months" | "last_6_months" | "this_year" | "custom">("this_month");
+  // Bawaan 3 BULAN, bukan bulan berjalan.
+  //
+  // Dipotret 2026-08-05: dengan bawaan "Bulan Ini", grafik arus kas terbuka
+  // KOSONG bertuliskan "Tidak ada data cashflow untuk periode ini" — bukan
+  // karena rusak, tapi karena awal bulan memang belum ada transaksi. Layar
+  // pertama sebuah modul keuangan yang kosong terbaca sebagai aplikasi yang
+  // belum jadi, dan orang berhenti memercayai angkanya.
+  //
+  // Tiga bulan juga yang benar untuk melihat TREN — satu bulan tak punya
+  // bentuk untuk dibaca.
+  const [overviewPeriod, setOverviewPeriod] = useState<"this_month" | "last_3_months" | "last_6_months" | "this_year" | "custom">("last_3_months");
   const [overviewFrom, setOverviewFrom] = useState("");
   const [overviewTo, setOverviewTo] = useState("");
 
@@ -50,6 +61,16 @@ function KeuanganContent() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [cashflow, setCashflow] = useState<CashflowPoint[]>([]);
   const [loadingSummary, setLoadingSummary] = useState(true);
+
+  // Umur piutang — endpoint ar-aging sudah lama ada tapi TIDAK PERNAH dipakai
+  // UI. Ditemukan saat menyisir endpoint keuangan; kelas "API tanpa layar"
+  // yang membuat fitur terasa hilang padahal datanya siap.
+  //
+  // Dimuat terpisah dari summary karena ia tak bergantung periode: piutang
+  // yang menunggu 90 hari tetap menunggu 90 hari, apa pun rentang yang
+  // sedang dilihat di grafik arus kas.
+  const [umur, setUmur] = useState<{ buckets: PetaUmur; total_outstanding: number } | null>(null);
+  const [umurMemuat, setUmurMemuat] = useState(true);
 
   // Invoices
 
@@ -70,7 +91,19 @@ function KeuanganContent() {
 
   // Efek pemuat invoice/pembayaran/kasbon dihapus di sini: ketiganya kini
   // rute sendiri dan memuat datanya masing-masing. Halaman Ringkasan hanya
-  // butuh `summary` + `cashflow`.
+  // butuh `summary` + `cashflow` + umur piutang.
+
+  useEffect(() => {
+    // Sekali saat mount — tak bergantung periode.
+    queueMicrotask(() => {
+      void api.get<{ buckets: PetaUmur; total_outstanding: number }>("/api/v1/finance/ar-aging")
+        .then((r) => setUmur(r.data))
+        // Panel ini pelengkap, bukan angka utama. Kalau gagal, komponennya
+        // menampilkan keadaan kosong yang jujur — tak ada angka karangan.
+        .catch(() => setUmur(null))
+        .finally(() => setUmurMemuat(false));
+    });
+  }, []);
 
 
   function computePeriodDates(period: string, customFrom: string, customTo: string) {
@@ -407,17 +440,60 @@ function KeuanganContent() {
           <div style={{ background: "var(--surface-subtle)", borderRadius: 12, border: `1px solid ${C.border}`, padding: "16px 8px 8px" }}>
             <ResponsiveContainer width="100%" height={260}>
               <ComposedChart data={cashflow} margin={{ top: 4, right: 16, bottom: 4, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--surface-hover)" />
+                {/* Gradasi pada batang: pekat di pangkal, memudar ke atas.
+                    Arah yang sama dengan seluruh aplikasi, dan di sini ia
+                    punya alasan tambahan — batang yang memudar di ujung tak
+                    bersaing dengan garis Net yang melintas di atasnya. */}
+                <defs>
+                  <linearGradient id="gradMasuk" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stopColor="var(--success)" stopOpacity={0.95} />
+                    <stop offset="100%" stopColor="var(--success)" stopOpacity={0.45} />
+                  </linearGradient>
+                  <linearGradient id="gradKeluar" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stopColor="var(--danger)" stopOpacity={0.95} />
+                    <stop offset="100%" stopColor="var(--danger)" stopOpacity={0.45} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--surface-hover)" vertical={false} />
                 <XAxis dataKey="label" tick={{ fontSize: 11, fill: C.muted }} tickLine={false} axisLine={{ stroke: C.border }} />
                 <YAxis tickFormatter={v => fmtCompact(v)} tick={{ fontSize: 10, fill: C.muted }} tickLine={false} axisLine={false} width={72} />
-                <Tooltip content={<CashflowTooltip />} />
+                <Tooltip content={<CashflowTooltip />} cursor={{ fill: "var(--surface-hover)", fillOpacity: 0.5 }} />
                 <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
-                <Bar dataKey="masuk" name="Masuk" fill="var(--success)" fillOpacity={0.85} radius={[4, 4, 0, 0]} />
-                <Bar dataKey="keluar" name="Keluar" fill="var(--danger)" fillOpacity={0.85} radius={[4, 4, 0, 0]} />
-                <Line dataKey="net" name="Net" stroke={C.navy} strokeWidth={2.5} dot={{ r: 4, fill: C.navy, strokeWidth: 0 }} />
+                <Bar dataKey="masuk" name="Masuk" fill="url(#gradMasuk)" radius={[4, 4, 0, 0]} maxBarSize={38} />
+                <Bar dataKey="keluar" name="Keluar" fill="url(#gradKeluar)" radius={[4, 4, 0, 0]} maxBarSize={38} />
+                {/* Net digambar TERAKHIR supaya berada di atas batang — ia
+                    jawaban dari pertanyaan yang dibawa orang ke layar ini
+                    ("bulan ini saya untung atau rugi"), jadi ia yang harus
+                    terbaca lebih dulu. */}
+                <Line dataKey="net" name="Net" stroke={C.navy} strokeWidth={2.5}
+                  dot={{ r: 3.5, fill: "var(--surface)", stroke: C.navy, strokeWidth: 2 }}
+                  activeDot={{ r: 5.5, fill: C.navy, strokeWidth: 0 }} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
+        )}
+
+        {/* ── Umur piutang ──
+            Ditaruh SESUDAH arus kas dengan sengaja: arus kas menjawab "apa
+            yang terjadi", umur piutang menjawab "apa yang harus dikejar".
+            Urutan itu mengikuti cara orang membaca layar keuangan — melihat
+            keadaan dulu, baru mencari tindakan. */}
+        <h3 style={{
+          fontSize: 13, fontWeight: 700, color: C.text,
+          margin: "26px 0 12px", display: "flex", alignItems: "center", gap: 6,
+        }}>
+          <Clock size={14} color={C.navy} aria-hidden="true" /> Umur Piutang
+          <span style={{ fontSize: 11, fontWeight: 400, color: C.muted }}>
+            · sejak kapan uangnya menunggu
+          </span>
+        </h3>
+        {umurMemuat ? (
+          <div aria-hidden="true" style={{
+            height: 190, borderRadius: 12,
+            background: "var(--surface-subtle)", border: `1px solid ${C.border}`,
+          }} />
+        ) : (
+          <UmurPiutang buckets={umur?.buckets ?? null} total={umur?.total_outstanding ?? 0} />
         )}
     </div>
 
