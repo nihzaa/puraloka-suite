@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
+import { tungguAudit } from '../../../test-utils/tunggu-audit.js'
 import Fastify, { type FastifyInstance } from 'fastify'
 import type { Client } from 'pg'
 import { createRlsClient, authIdForRole } from '../../../test-utils/rls-harness.js'
@@ -265,13 +266,16 @@ describe('SERTIFIKAT — progres yang diakui tercatat di audit log', () => {
     const invoiceId = res.json().invoice?.id ?? res.json().id
 
     // Audit ditulis via `void logAuditEvent(...)` — sengaja tak di-await supaya
-    // tak menahan respons. Diberi jeda pendek, lalu dibaca.
-    await new Promise(r => setTimeout(r, 700))
-
-    const { rows } = await client.query(
-      `SELECT new_values FROM audit_logs
-       WHERE table_name = 'invoices' AND record_id = $1 AND action = 'invoice.amount'
-       ORDER BY created_at DESC LIMIT 1`, [invoiceId])
+    // tak menahan respons.
+    //
+    // `sleep(700)` TIDAK cukup: di CI, enam shard berbagi satu database dan
+    // insert audit bisa selesai jauh setelah itu. Gejalanya hijau lokal,
+    // merah di CI, dan yang merah berpindah tiap jalan — paling mudah salah
+    // disimpulkan sebagai "CI rewel" lalu di-retry sampai kebetulan lolos.
+    // `tungguAudit` menunggu barisnya MUNCUL, bukan menebak berapa lama.
+    const rows = await tungguAudit(client, {
+      tabel: 'invoices', recordId: invoiceId, action: 'invoice.amount',
+    })
 
     expect(rows.length,
       'tak ada jejak audit untuk invoice termin — nilai tagihan berubah tanpa ' +
@@ -295,12 +299,9 @@ describe('SERTIFIKAT — progres yang diakui tercatat di audit log', () => {
     expect(res.statusCode).toBe(201)
     const invoiceId = res.json().invoice?.id ?? res.json().id
 
-    await new Promise(r => setTimeout(r, 700))
-
-    const { rows } = await client.query(
-      `SELECT new_values FROM audit_logs
-       WHERE table_name = 'invoices' AND record_id = $1 AND action = 'invoice.amount'
-       ORDER BY created_at DESC LIMIT 1`, [invoiceId])
+    const rows = await tungguAudit(client, {
+      tabel: 'invoices', recordId: invoiceId, action: 'invoice.amount',
+    })
 
     expect(rows[0].new_values.ipc_progres_pct,
       'invoice DP mencatat angka IPC — angka yang tak bermakna di sertifikat ' +
