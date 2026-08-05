@@ -379,7 +379,10 @@ function MaterialsTab() {
                 <tr><td colSpan={4} style={{ textAlign: "center", padding: 48, color: C.muted }}>Belum ada material</td></tr>
               ) : filtered.map(m => (
                 <tr key={m.id} style={{ borderTop: `1px solid ${C.border}` }}>
-                  <td style={{ padding: "8px 12px", fontWeight: 500, color: C.text }}>{m.name}</td>
+                  {/* `<th scope="row">`: nama material adalah identitas baris.
+                      Tanpa itu harga satuan dibacakan tanpa menyebut material
+                      apa — dan di daftar harga, itu angka tanpa pemilik. */}
+                  <th scope="row" style={{ textAlign: "left", padding: "8px 12px", fontWeight: 500, color: C.text }}>{m.name}</th>
                   <td style={{ padding: "8px 12px", color: C.mid }}>{m.category?.name ?? "—"}</td>
                   <td style={{ padding: "8px 12px", color: C.mid }}>{m.unit}</td>
                   <td style={{ padding: "8px 12px", color: C.text }}>{m.unit_price ? fmt(m.unit_price) : "—"}</td>

@@ -509,7 +509,10 @@ function DashboardContent() {
                     borderLeft: overdue ? `3px solid ${C.red}` : urgent ? `3px solid ${C.yellow}` : "3px solid transparent",
                     borderBottom: "1px solid var(--border)",
                   }}>
-                    <td style={{ padding: "12px 16px", color: C.navy, fontSize: 11, fontWeight: 600 }}>{inv.invoice_number}</td>
+                    {/* `<th scope="row">`: nomor invoice adalah identitas baris.
+                        Tanpa itu pembaca layar membacakan sisa tagihan tanpa
+                        menyebut invoice mana — angka tanpa pemilik. */}
+                    <th scope="row" style={{ textAlign: "left", padding: "12px 16px", color: C.navy, fontSize: 11, fontWeight: 600 }}>{inv.invoice_number}</th>
                     <td style={{ padding: "12px 16px" }}>
                       <div style={{ color: C.text, fontWeight: 500 }}>{inv.projects?.name ?? "—"}</div>
                       <div style={{ fontSize: 10, color: C.muted }}>{inv.projects?.clients?.contact_person ?? "—"}</div>
