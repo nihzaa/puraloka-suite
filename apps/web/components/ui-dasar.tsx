@@ -309,24 +309,53 @@ export function Panel({
  * Kalau diserahkan, separuh halaman akan lupa — dan layar kosong tanpa
  * penjelasan terbaca sebagai fitur rusak, bukan sebagai "belum ada isinya".
  * Itu sudah terjadi berkali-kali di repo ini.
+ *
+ * ── `sebab` WAJIB, dan itu perubahan yang disengaja
+ *
+ * Sampai 2026-08-05 prop ini bernama `keterangan` dan opsional. Hasilnya
+ * bisa diukur: dari 161 layar kosong di web, hanya 20 yang menjelaskan
+ * KENAPA kosong. Sisanya berhenti di "Tidak ada data" — pernyataan yang
+ * tak bisa ditindaklanjuti, karena tiga keadaan yang menuntut tindakan
+ * SANGAT berbeda terbaca persis sama:
+ *
+ *     • belum pernah diisi   → buat datanya
+ *     • tersaring habis      → longgarkan saringannya
+ *     • gagal dimuat         → coba lagi / laporkan
+ *
+ * Menjadikannya wajib memindahkan keputusan itu ke waktu tulis, saat
+ * penulisnya masih tahu jawabannya. TypeScript menolak `<Kosong>` tanpa
+ * `sebab`, jadi ini bukan anjuran yang bisa dilewati diam-diam.
+ *
+ * Untuk keadaan "tersaring habis", sebutkan saringannya — "Tidak ada
+ * invoice yang cocok dengan 'dago'" jauh lebih berguna daripada "Tidak
+ * ada invoice", yang membuat orang mengira datanya hilang.
  */
 export function Kosong({
-  judul, keterangan, aksi,
-}: { judul: string; keterangan?: string; aksi?: React.ReactNode }) {
+  ikon, judul, sebab, aksi,
+}: {
+  ikon?: React.ReactNode;
+  judul: string;
+  sebab: React.ReactNode;
+  aksi?: React.ReactNode;
+}) {
   return (
     <div style={{
       padding: "28px 16px", textAlign: "center",
       border: `1px dashed ${C.border}`, borderRadius: 10, background: C.subtle,
     }}>
+      {ikon && (
+        <div aria-hidden="true" style={{
+          color: "var(--border)", marginBottom: 8,
+          display: "flex", justifyContent: "center",
+        }}>{ikon}</div>
+      )}
       <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: C.text }}>
         {judul}
       </p>
-      {keterangan && (
-        <p style={{
-          margin: "6px auto 0", fontSize: 12, color: C.mid,
-          maxWidth: 400, lineHeight: 1.55,
-        }}>{keterangan}</p>
-      )}
+      <p style={{
+        margin: "6px auto 0", fontSize: 12, color: C.mid,
+        maxWidth: "46ch", lineHeight: 1.55,
+      }}>{sebab}</p>
       {aksi && <div style={{ marginTop: 12 }}>{aksi}</div>}
     </div>
   );

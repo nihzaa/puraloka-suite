@@ -398,41 +398,25 @@ export function Tabel<T>({ kolom, data, kunciBaris, caption, kosong, tandaiBaris
  * ═══════════════════════════════════════════════════════════════════════ */
 
 /**
- * Keadaan kosong.
+ * Keadaan kosong — DIEKSPOR ULANG dari `ui-dasar.tsx`, bukan didefinisikan
+ * di sini.
  *
- * `sebab` WAJIB. Keadaan kosong yang cuma bilang "Tidak ada data" membuat
- * orang bertanya apakah aplikasinya rusak — dan pertanyaan itu tak pernah
- * terjawab. Menyebutkan sebabnya ("hanya jurnal posted yang dihitung")
- * mengubah kebingungan jadi pemahaman.
+ * Berkas ini sempat punya `Kosong` sendiri, dan itu keliru: `ui-dasar.tsx`
+ * sudah memilikinya lebih dulu. Akibatnya ada dua komponen bernama sama
+ * dengan prop berbeda (`keterangan` vs `sebab`), dan `/aset` memanggil
+ * yang satu dengan prop milik yang lain — bug yang cuma tak meledak
+ * karena kebetulan mengimpor definisi lokalnya sendiri.
+ *
+ * Membangun pustaka primitif KEDUA adalah persis masalah yang berkas ini
+ * seharusnya selesaikan. Pembagiannya sekarang tegas:
+ *
+ *     ui-dasar.tsx  → komponen VISUAL   (KartuKPI, Panel, grafik, Kosong)
+ *     dasar.tsx     → kerangka HALAMAN  (Halaman, Tabel, Medan, Tombol)
+ *
+ * Kewajiban `sebab` — kelebihan nyata dari versi berkas ini — dipindahkan
+ * ke `ui-dasar.tsx` saat penggabungan, jadi tak ada yang hilang.
  */
-export function Kosong({ ikon, judul, sebab, aksi }: {
-  ikon?: ReactNode;
-  judul: string;
-  sebab: ReactNode;
-  aksi?: ReactNode;
-}) {
-  return (
-    <div style={{
-      padding: "var(--r10) var(--r5)", textAlign: "center",
-      color: C.muted, fontSize: "var(--t-badan)",
-    }}>
-      {ikon && (
-        <div aria-hidden="true" style={{
-          color: "var(--border)", marginBottom: "var(--r3)",
-          display: "flex", justifyContent: "center",
-        }}>{ikon}</div>
-      )}
-      <p style={{
-        fontWeight: 600, color: C.text, margin: "0 0 var(--r1)",
-        fontSize: "var(--t-badan)",
-      }}>{judul}</p>
-      <p style={{ margin: 0, lineHeight: 1.55, maxWidth: "46ch", marginInline: "auto" }}>
-        {sebab}
-      </p>
-      {aksi && <div style={{ marginTop: "var(--r4)" }}>{aksi}</div>}
-    </div>
-  );
-}
+export { Kosong } from "@/components/ui-dasar";
 
 /** Rangka pemuat — tinggi yang sama dengan isi sebenarnya, supaya tak melompat. */
 export function Rangka({ tinggi = 56, jumlah = 3 }: { tinggi?: number; jumlah?: number }) {

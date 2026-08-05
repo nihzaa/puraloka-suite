@@ -149,14 +149,37 @@ describe('Panel', () => {
 })
 
 describe('Kosong — menjelaskan, bukan sekadar "tidak ada data"', () => {
-  it('menampilkan judul dan keterangan', () => {
+  it('menampilkan judul dan sebab', () => {
     render(<Kosong judul="Belum ada klaim"
-      keterangan="Catat begitu peristiwanya terjadi, bukan saat menagih." />)
+      sebab="Catat begitu peristiwanya terjadi, bukan saat menagih." />)
     expect(screen.getByText(/belum ada klaim/i)).toBeTruthy()
     expect(
       screen.getByText(/begitu peristiwanya terjadi/i),
       'layar kosong tanpa penjelasan terbaca sebagai fitur RUSAK, bukan ' +
       'sebagai "belum ada isinya"',
     ).toBeTruthy()
+  })
+
+  it('`sebab` WAJIB — dijaga TypeScript, bukan sekadar anjuran', () => {
+    // Prop ini sempat bernama `keterangan` dan opsional. Hasilnya bisa
+    // diukur: dari 161 layar kosong di web, hanya 20 yang menjelaskan
+    // KENAPA kosong. Sisanya berhenti di "Tidak ada data" — dan tiga
+    // keadaan yang menuntut tindakan sangat berbeda (belum diisi /
+    // tersaring habis / gagal dimuat) jadi terbaca persis sama.
+    //
+    // @ts-expect-error — menghilangkan `sebab` HARUS gagal kompilasi.
+    // Kalau baris ini berhenti error, kewajibannya sudah bocor.
+    const tanpaSebab = <Kosong judul="Belum ada klaim" />
+    expect(tanpaSebab).toBeTruthy()
+  })
+
+  it('aksi dirender supaya layar kosong punya jalan keluar', () => {
+    render(
+      <Kosong
+        judul="Belum ada invoice"
+        sebab="Invoice terbit dari termin yang sudah disetujui."
+        aksi={<button>Buat invoice</button>}
+      />)
+    expect(screen.getByRole('button', { name: /buat invoice/i })).toBeTruthy()
   })
 })

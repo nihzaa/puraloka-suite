@@ -24,6 +24,7 @@ import {
 } from "recharts";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
+import { Kosong } from "@/components/ui-dasar";
 import { CashflowTooltip } from "../_bersama/komponen";
 import {
   fmt, fmtCompact, fmtDate,
@@ -128,6 +129,19 @@ export default function ArusKasPage() {
     };
   }, [arusFrom, arusTo, arusProjectId, arusTypes, arusCategoryId, arusCategoryName, loadArusKas]);
 
+  /**
+   * Ada saringan selain rentang tanggal.
+   *
+   * Dipakai dua tempat: tombol Reset, dan penjelasan di layar kosong.
+   * Diangkat jadi satu ungkapan supaya keduanya tak bisa berbeda —
+   * layar kosong yang bilang "tak ada saringan aktif" sementara tombol
+   * Reset muncul akan membuat orang mengira sistemnya salah hitung.
+   *
+   * `arusTypes.length < 6` — enam adalah jumlah jenis transaksi bawaan
+   * di `useState` di atas; kurang dari itu berarti ada yang dimatikan.
+   */
+  const adaSaringanLain = Boolean(arusProjectId) || Boolean(arusCategoryId) || arusTypes.length < 6;
+
   function toggleArusType(t: string) {
     setArusTypes((prev) =>
       prev.includes(t) ? (prev.length > 1 ? prev.filter((x) => x !== t) : prev) : [...prev, t],
@@ -196,7 +210,7 @@ export default function ArusKasPage() {
               ))}
             </select>
           </div>
-          {(arusProjectId || arusCategoryId || arusTypes.length < 6) && (
+          {adaSaringanLain && (
             <div style={{ alignSelf: "flex-end" }}>
               <button onClick={() => { setArusProjectId(""); setArusCategoryId(""); setArusCategoryName(""); setArusTypes(["payment","expense","wage","kasbon","progress_payment","settlement_borongan"]); setArusFrom(awalBulan); setArusTo(hariIni); }}
                 style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: 11, fontWeight: 600, color: C.mid, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
@@ -305,9 +319,15 @@ export default function ArusKasPage() {
           </>
         )}
         {arusViewMode === "chart" && !arusChartLoading && arusChart.length === 0 && (
-          <div style={{ padding: "48px 24px", textAlign: "center", color: C.muted, fontSize: 13, background: "var(--surface-subtle)", borderRadius: 10, border: `1px solid ${C.border}` }}>
-            Tidak ada data di periode ini
-          </div>
+          <Kosong
+            judul="Tidak ada arus kas di rentang ini"
+            sebab={<>
+              Rentang aktif <strong>{fmtDate(arusFrom)} – {fmtDate(arusTo)}</strong>
+              {adaSaringanLain && <>, dengan saringan proyek/jenis/kategori aktif</>}.
+              {" "}Kosong di sini berarti tak ada transaksi yang lolos — bukan
+              berarti datanya hilang.
+            </>}
+          />
         )}
 
         {/* Mode Mutasi: tabel kronologis */}
@@ -316,9 +336,15 @@ export default function ArusKasPage() {
             {[1,2,3,4,5].map(i => <div key={i} style={{ height: 52, borderRadius: 6, background: "var(--surface-hover)" }} />)}
           </div>
         ) : !arusData || arusData.transactions.length === 0 ? (
-          <div style={{ padding: "48px 24px", textAlign: "center", color: C.muted, fontSize: 13, background: "var(--surface-subtle)", borderRadius: 10, border: `1px solid ${C.border}` }}>
-            Tidak ada transaksi di periode ini
-          </div>
+          <Kosong
+            judul="Tidak ada transaksi di rentang ini"
+            sebab={<>
+              Rentang aktif <strong>{fmtDate(arusFrom)} – {fmtDate(arusTo)}</strong>
+              {adaSaringanLain && <>, dengan saringan proyek/jenis/kategori aktif</>}.
+              {" "}Coba lebarkan rentang tanggalnya sebelum menyimpulkan tak ada
+              pergerakan kas.
+            </>}
+          />
         ) : (
           <div style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>

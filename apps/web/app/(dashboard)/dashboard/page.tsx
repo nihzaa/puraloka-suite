@@ -5,7 +5,7 @@ import { dapatDitekan } from "@/lib/dapat-ditekan";
 import { useEffect, useReducer, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, getStoredUser } from "@/lib/api";
-import { KartuKPI } from "@/components/ui-dasar";
+import { KartuKPI, Kosong } from "@/components/ui-dasar";
 import {
   AreaChart, Area, PieChart, Pie, Cell,
   XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -408,7 +408,18 @@ function DashboardContent() {
             {[1,2,3].map(i => <Skeleton key={i} h={36} />)}
           </div>
         ) : !data?.active_progress.length ? (
-          <p style={{ fontSize: 12, color: C.muted }}>Tidak ada proyek aktif.</p>
+          // "Tidak ada proyek aktif." saja ambigu — bisa berarti belum
+          // pernah ada proyek, atau semuanya sudah selesai. Dua keadaan
+          // itu menuntut tindakan yang berlawanan, jadi sebabnya disebut.
+          <Kosong
+            judul="Tidak ada proyek aktif"
+            sebab="Yang dihitung hanya proyek berstatus aktif. Proyek selesai dan ditunda tidak muncul di sini."
+            aksi={
+              <Link href="/proyek" style={{
+                fontSize: 12, fontWeight: 600, color: C.navy, textDecoration: "none",
+              }}>Lihat semua proyek →</Link>
+            }
+          />
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {data.active_progress.slice(0, 5).map(p => {
@@ -514,10 +525,26 @@ function DashboardContent() {
       <SectionHeader title="Milestone Mendatang" linkLabel="Kalender" linkHref="/kalender" />
       {loading ? <Skeleton h={160} /> :
        !data?.upcoming_milestones.length ? (
-        <div style={{ textAlign: "center", padding: "20px 0" }}>
-          <CheckCircle2 size={20} style={{ color: "var(--border)", marginBottom: 6 }} />
-          <p style={{ fontSize: 12, color: C.muted, margin: 0 }}>Tidak ada milestone mendatang.</p>
-        </div>
+        // Jendelanya disebut, dan angkanya DIVERIFIKASI ke query-nya
+        // (`dashboard.ts` — `.lte('target_date', in14DaysStr)`), bukan
+        // ditebak. Draf pertama kalimat ini menulis "30 hari"; itu salah,
+        // dan layar kosong yang menjelaskan dengan angka SALAH lebih
+        // buruk daripada yang tak menjelaskan sama sekali — orang akan
+        // menyimpulkan tak ada tenggat selama sebulan.
+        //
+        // Query-nya juga tak punya `.gte()`, jadi milestone yang sudah
+        // lewat ikut terhitung. Karena itu kalimatnya tidak menjanjikan
+        // "yang terlambat ada di tempat lain".
+        <Kosong
+          ikon={<CheckCircle2 size={20} aria-hidden="true" />}
+          judul="Tidak ada milestone mendatang"
+          sebab="Tak ada milestone belum selesai yang tenggatnya jatuh dalam 14 hari ke depan."
+          aksi={
+            <Link href="/kalender" style={{
+              fontSize: 12, fontWeight: 600, color: C.navy, textDecoration: "none",
+            }}>Buka kalender →</Link>
+          }
+        />
       ) : (
         <div style={{ position: "relative", paddingLeft: 14 }}>
           <div style={{ position: "absolute", left: 3, top: 6, bottom: 0, width: 2, background: "var(--border)" }} />

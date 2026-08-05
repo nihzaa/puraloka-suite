@@ -13,6 +13,8 @@ import {
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 import { C } from "@/lib/warna-ui";
+import { Kosong } from "@/components/ui-dasar";
+import { keadaanSaldo, labelSaldo } from "@/lib/keadaan-saldo";
 
 const card: React.CSSProperties = {
   background: "var(--surface)", border: `1px solid ${C.border}`,
@@ -154,11 +156,17 @@ function Tab({ label, active, onClick, count }: { label: string; active: boolean
 // ─── Account Card ─────────────────────────────────────────────────────────────
 function AccountCard({ acc, onClick }: { acc: CashAccount; onClick: () => void }) {
   const meta = ACCOUNT_TYPE_LABEL[acc.type];
-  const low = acc.type === "petty_cash" && acc.balance < 500_000;
+  // Aturannya di `lib/keadaan-saldo.ts` — bukan di sini. Versi sebaris
+  // sebelumnya punya cabang mati yang membuat saldo −Rp 213.695.000
+  // tampil kuning "Saldo rendah"; detail lengkapnya di berkas itu,
+  // beserta test yang mengunci perilakunya.
+  const keadaan = keadaanSaldo(acc.balance, acc.type);
+  const minus = keadaan === "minus";
+  const low = keadaan === "tipis";
   return (
     <button onClick={onClick} style={{
       width: "100%", textAlign: "left", background: "var(--surface)",
-      border: `1px solid ${low ? C.yellowBorder : C.border}`,
+      border: `1px solid ${minus ? C.redBorder : low ? C.yellowBorder : C.border}`,
       borderRadius: 10, padding: "16px 16px", cursor: "pointer",
       transition: "all 0.15s", display: "flex", alignItems: "center", gap: 12,
       boxShadow: "var(--naik-1)",
@@ -178,10 +186,17 @@ function AccountCard({ acc, onClick }: { acc: CashAccount; onClick: () => void }
         </div>
       </div>
       <div style={{ textAlign: "right", flexShrink: 0 }}>
-        <div style={{ fontSize: 17, fontWeight: 800, color: low ? C.yellow : acc.balance < 0 ? C.red : C.text, fontFamily: "var(--font-display)" }}>
+        <div style={{ fontSize: 17, fontWeight: 800, color: minus ? C.red : low ? C.yellow : C.text, fontFamily: "var(--font-display)" }}>
           {fmtCompact(acc.balance)}
         </div>
-        {low && <div style={{ fontSize: 10, color: C.yellow, fontWeight: 600 }}>Saldo rendah</div>}
+        {/* Teks DAN warna — WCAG 1.4.1. Kas kecil sering dibaca di HP di
+            bawah matahari, tempat beda kuning/merah praktis hilang. */}
+        {labelSaldo(keadaan) && (
+          <div style={{
+            fontSize: 10, color: minus ? C.red : C.yellow,
+            fontWeight: minus ? 700 : 600,
+          }}>{labelSaldo(keadaan)}</div>
+        )}
       </div>
     </button>
   );
@@ -497,7 +512,22 @@ function KasContent() {
             {[
               { label: "Total Semua Kas", value: fmtCompact(summary.totalBalance), color: C.text, border: undefined, sub: "Utama + Kolektor + Kas Kecil" },
               { label: "Kas Utama", value: fmtCompact(summary.mainBalance), color: C.navy, border: C.blueBorder, sub: `Kolektor: ${fmtCompact(summary.collectorBalance)}` },
-              { label: "Total Kas Kecil", value: fmtCompact(summary.pettyBalance), color: C.green, border: C.greenBorder, sub: "Di seluruh PM & proyek" },
+              // Warna DITURUNKAN dari angkanya, tidak dipaku ke label.
+              //
+              // Sebelumnya kartu ini selalu hijau. Di data nyata saat ini
+              // nilainya −Rp 275.025.000 — dan tetap tampil hijau, yaitu
+              // warna yang justru menandakan "sehat". Saldo kas gabungan
+              // yang minus berarti pengeluaran tercatat melebihi uang yang
+              // pernah masuk; itu perlu ditelusuri, bukan ditenangkan.
+              {
+                label: "Total Kas Kecil",
+                value: fmtCompact(summary.pettyBalance),
+                color: summary.pettyBalance < 0 ? C.red : C.green,
+                border: summary.pettyBalance < 0 ? C.redBorder : C.greenBorder,
+                sub: summary.pettyBalance < 0
+                  ? "Minus — pengeluaran melebihi setoran yang tercatat"
+                  : "Di seluruh PM & proyek",
+              },
               { label: "Pengeluaran Bulan Ini", value: fmtCompact(summary.expensesThisMonth), color: C.red, border: C.redBorder, sub: summary.pendingExpenseCount > 0 ? `${summary.pendingExpenseCount} menunggu review` : null },
             ].map(s => (
               <div key={s.label}
@@ -507,7 +537,21 @@ function KasContent() {
               >
                 <p style={{ fontSize: 11, color: C.muted, margin: "0 0 4px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{s.label}</p>
                 <p style={{ fontSize: 22, fontWeight: 800, color: s.color, margin: 0, fontFamily: "var(--font-display)" }}>{s.value}</p>
-                {s.sub && <p style={{ fontSize: 11, color: s.label === "Pengeluaran Bulan Ini" && summary.pendingExpenseCount > 0 ? C.yellow : C.muted, margin: "4px 0 0", fontWeight: s.label === "Pengeluaran Bulan Ini" && summary.pendingExpenseCount > 0 ? 600 : 400 }}>{s.sub}</p>}
+                {/* Sub-teks yang membawa PERINGATAN diberi warna & tebal;
+                    yang cuma keterangan tetap redup. Sebelumnya hanya
+                    "Pengeluaran Bulan Ini" yang dikenali, jadi peringatan
+                    saldo minus akan tampil seredup teks biasa. */}
+                {s.sub && (() => {
+                  const pentingPengeluaran = s.label === "Pengeluaran Bulan Ini" && summary.pendingExpenseCount > 0;
+                  const pentingMinus = s.label === "Total Kas Kecil" && summary.pettyBalance < 0;
+                  const warna = pentingMinus ? C.red : pentingPengeluaran ? C.yellow : C.muted;
+                  return (
+                    <p style={{
+                      fontSize: 11, color: warna, margin: "4px 0 0",
+                      fontWeight: pentingMinus || pentingPengeluaran ? 600 : 400,
+                    }}>{s.sub}</p>
+                  );
+                })()}
               </div>
             ))}
           </>
@@ -587,7 +631,14 @@ function KasContent() {
                           {meta.icon}
                           <span style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>{meta.label}</span>
                         </div>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{fmtCompact(groupTotal)}</span>
+                        {/* Total grup minus diberi warna juga. Tanpa ini,
+                            "−Rp 275.025.000" tampil hitam netral seolah
+                            angka wajar — padahal saldo kas gabungan yang
+                            negatif tak mungkin secara fisik. */}
+                        <span style={{
+                          fontSize: 13, fontWeight: 700,
+                          color: groupTotal < 0 ? C.red : C.text,
+                        }}>{fmtCompact(groupTotal)}</span>
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                         {group.map(acc => <AccountCard key={acc.id} acc={acc} onClick={() => {}} />)}
@@ -624,11 +675,11 @@ function KasContent() {
             {loadingTransfers ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{[1, 2, 3].map(i => <div key={i} style={{ padding: 16, borderRadius: 10, border: `1px solid ${C.border}` }}><Skeleton h={18} /></div>)}</div>
             ) : transfers.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "48px 0", color: C.muted }}>
-                <ArrowRightLeft size={40} style={{ color: "var(--border)", marginBottom: 12 }} />
-                <p style={{ fontWeight: 600, color: C.text, marginBottom: 4 }}>Tidak ada transfer</p>
-                <p style={{ fontSize: 13 }}>Belum ada catatan transfer dana.</p>
-              </div>
+              <Kosong
+                ikon={<ArrowRightLeft size={40} aria-hidden="true" />}
+                judul="Belum ada transfer dana"
+                sebab="Transfer mencatat perpindahan uang antar akun kas — misalnya dari rekening bank ke kas proyek. Saldo tiap akun ikut berubah begitu transfernya dicatat."
+              />
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {transfers.map(t => (
@@ -723,11 +774,11 @@ function KasContent() {
             {loadingExpenses ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{[1, 2, 3].map(i => <div key={i} style={{ padding: 16, borderRadius: 10, border: `1px solid ${C.border}` }}><Skeleton h={18} /></div>)}</div>
             ) : expenses.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "48px 0", color: C.muted }}>
-                <ShoppingCart size={40} style={{ color: "var(--border)", marginBottom: 12 }} />
-                <p style={{ fontWeight: 600, color: C.text, marginBottom: 4 }}>Tidak ada pengeluaran</p>
-                <p style={{ fontSize: 13 }}>Belum ada pengeluaran yang dicatat.</p>
-              </div>
+              <Kosong
+                ikon={<ShoppingCart size={40} aria-hidden="true" />}
+                judul="Belum ada pengeluaran dicatat"
+                sebab="Pengeluaran yang dicatat di sini mengurangi saldo akun kas sumbernya. Belanja lewat kasbon mandor tercatat terpisah, di menu Kasbon."
+              />
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {expenses.map(e => (
@@ -877,6 +928,7 @@ function KasContent() {
           onClose={() => setShowCreateExpense(false)}
           onSuccess={() => { setShowCreateExpense(false); loadExpenses(); loadSummary(); loadAccounts(); }}
           onNeedAccounts={loadAccounts}
+          onBukaAkun={() => { setShowCreateExpense(false); setTab("akun"); }}
         />
       )}
     </div>
@@ -1132,8 +1184,18 @@ function CreateTransferModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
 }
 
 // ─── Modal: Catat Pengeluaran ─────────────────────────────────────────────────
-function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
+function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts, onBukaAkun }: {
   accounts: CashAccount[]; onClose: () => void; onSuccess: () => void; onNeedAccounts: () => void;
+  /**
+   * Tutup modal dan buka tab Akun Kas.
+   *
+   * `onNeedAccounts` tidak cukup: ia hanya memuat ulang daftar akun,
+   * yang tak menolong kalau memang belum ada satu pun akun dibuat.
+   * Tanpa jalan keluar ini, orang yang sudah mengetik separuh form
+   * pengeluaran harus menebak sendiri di mana akun kas dibuat — dan
+   * yang sudah diketik hilang saat menebaknya.
+   */
+  onBukaAkun: () => void;
 }) {
   useTutupEsc(onClose);
   const [mounted, mount] = useReducer(() => true, false);
@@ -1297,8 +1359,36 @@ function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccounts }: {
             <div>
               <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Akun Kas Utama <span style={{ color: C.red }}>*</span></label>
               {mainCashAccounts.length === 0 ? (
-                <div style={{ padding: "8px 12px", borderRadius: 6, background: "var(--surface-subtle)", border: `1px solid ${C.border}`, fontSize: 12, color: C.muted }}>
-                  Tidak ada akun Kas Utama aktif
+                // Ini jalan buntu yang paling merugikan di modul kas:
+                // orang sedang DI TENGAH mengisi form pengeluaran, lalu
+                // menemui kotak abu-abu yang cuma menyatakan kekosongan.
+                // Tanpa tautan, satu-satunya jalan adalah menebak menu
+                // mana yang membuat akun kas — dan pekerjaan yang sudah
+                // diketik hilang saat menebaknya.
+                <div style={{
+                  padding: "8px 12px", borderRadius: 6,
+                  background: "var(--warning-bg)",
+                  border: `1px solid var(--warning-border)`,
+                  fontSize: 12, color: "var(--on-warning-bg)",
+                }}>
+                  Belum ada akun Kas Utama yang aktif, jadi pengeluaran ini
+                  tak punya sumber dana.{" "}
+                  {/* Akun kas dikelola di TAB halaman ini, bukan rute
+                      tersendiri — jadi jalan keluarnya memindahkan tab,
+                      bukan `<Link>`. Draf pertama menaruh href="/kas/akun";
+                      rute itu tak ada, dan mengganti jalan buntu dengan
+                      tautan rusak sama sekali bukan perbaikan. */}
+                  <button
+                    type="button"
+                    onClick={onBukaAkun}
+                    style={{
+                      background: "none", border: "none", padding: 0,
+                      font: "inherit", color: "inherit", fontWeight: 600,
+                      textDecoration: "underline", cursor: "pointer",
+                    }}
+                  >
+                    Buka tab Akun Kas untuk membuatnya →
+                  </button>
                 </div>
               ) : (
                 <select aria-label="Kas utama" value={mainCashId} onChange={e => setMainCashId(e.target.value)} required={expenseSource === "main_cash"}

@@ -35,6 +35,7 @@ import {
 import { api, makeAbortController } from "@/lib/api";
 
 import { C } from "@/lib/warna-ui";
+import { Kosong } from "@/components/ui-dasar";
 
 type StatusAset = "tersedia" | "dipakai" | "perawatan" | "rusak" | "dilepas";
 
@@ -258,7 +259,7 @@ function TabelAset({ baris }: { baris: Aset[] }) {
     return (
       <Kosong
         judul="Belum ada aset terdaftar"
-        pesan="Daftarkan alat milik perusahaan supaya lokasinya terlacak dan nilai bukunya terhitung."
+        sebab="Daftarkan alat milik perusahaan supaya lokasinya terlacak dan nilai bukunya terhitung."
       />
     );
   }
@@ -338,7 +339,7 @@ function TabelSewa({ baris }: { baris: Sewa[] }) {
     return (
       <Kosong
         judul="Belum ada sewa alat tercatat"
-        pesan="Catat sewa alat supaya biayanya terlihat per proyek — termasuk sewa yang masih berjalan."
+        sebab="Catat sewa alat supaya biayanya terlihat per proyek — termasuk sewa yang masih berjalan."
       />
     );
   }
@@ -393,19 +394,6 @@ function TabelSewa({ baris }: { baris: Sewa[] }) {
           })}
         </tbody>
       </table>
-    </div>
-  );
-}
-
-function Kosong({ judul, pesan }: { judul: string; pesan: string }) {
-  return (
-    <div style={{
-      padding: "36px 20px", textAlign: "center", borderRadius: 10,
-      border: `1px dashed ${C.border}`, background: C.surface,
-    }}>
-      <Package size={26} color={C.muted} aria-hidden="true" />
-      <p style={{ margin: "10px 0 3px", fontSize: 13, fontWeight: 600, color: C.text }}>{judul}</p>
-      <p style={{ margin: 0, fontSize: 12, color: C.mid, maxWidth: 420, marginInline: "auto" }}>{pesan}</p>
     </div>
   );
 }
