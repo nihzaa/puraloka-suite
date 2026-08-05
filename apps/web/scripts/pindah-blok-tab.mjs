@@ -26,17 +26,45 @@ if (!berkas || !tab) {
   process.exit(1)
 }
 
-const baris = readFileSync(berkas, 'utf8').split(/\r?\n/)
-const mulai = baris.findIndex((l) => l.trim().startsWith(`{tab === "${tab}"`))
-if (mulai < 0) { console.log(`✗ blok tab "${tab}" tak ditemukan`); process.exit(1) }
+// Kemunculan ke-berapa. Nama tab yang sama sering muncul DUA KALI: sekali di
+// header untuk tombol aksi (`{tab === "laporan" && <button>Ajukan Upah}`) dan
+// sekali untuk isinya. Tanpa ini, alat memungut blok tombol 3 baris dan
+// melaporkannya seolah itu seluruh tab — kesalahan yang terlihat sepele tapi
+// menghasilkan halaman kosong.
+const ke = Number(process.argv[4] ?? 1)
 
-// Penutupnya adalah `)}` pada indentasi yang SAMA dengan pembuka.
+const baris = readFileSync(berkas, 'utf8').split(/\r?\n/)
+const semua = []
+baris.forEach((l, i) => {
+  if (l.trim().startsWith(`{tab === "${tab}"`)) semua.push(i)
+})
+if (semua.length < ke) {
+  console.log(`✗ blok tab "${tab}" kemunculan ke-${ke} tak ada (hanya ${semua.length})`)
+  process.exit(1)
+}
+const mulai = semua[ke - 1]
+
+// Penutupnya pada indentasi yang SAMA dengan pembuka. Ada DUA bentuk:
+//
+//   {tab === "x" && (          →  penutup  )}
+//   {tab === "x" && (() => {   →  penutup  })()}
+//
+// Bentuk kedua dipakai kalau blok butuh variabel lokal. Alat versi pertama
+// hanya mengenali `)}`, jadi untuk blok IIFE ia terus mencari sampai
+// menemukan penutup blok BERIKUTNYA — hasilnya rentang tumpang tindih yang
+// terlihat masuk akal (angkanya berurutan) padahal salah total.
 const indent = baris[mulai].match(/^\s*/)[0]
+const iife = baris[mulai].includes('(() => {')
+const penutup = iife ? `${indent}})()}` : `${indent})}`
+
 let akhir = -1
 for (let i = mulai + 1; i < baris.length; i++) {
-  if (baris[i] === `${indent})}`) { akhir = i; break }
+  if (baris[i] === penutup) { akhir = i; break }
 }
-if (akhir < 0) { console.log('✗ penutup blok tak ditemukan'); process.exit(1) }
+if (akhir < 0) {
+  console.log(`✗ penutup blok tak ditemukan (mencari ${JSON.stringify(penutup)})`)
+  process.exit(1)
+}
 
 // Buang baris pembungkus, lalu turunkan indentasi 2 tingkat (4 spasi):
 // isi blok berada di dalam `{tab && (` DAN di dalam `<div style=...>`.

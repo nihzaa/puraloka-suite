@@ -16,7 +16,7 @@
  * Menulisnya ulang berarti mempertaruhkan alur persetujuan uang.
  */
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import {
   AlertTriangle, Banknote, Clock,
   PieChart, Plus, RefreshCw, Wallet, 
@@ -45,7 +45,14 @@ export default function KasbonPage() {
   const [kasbonCashAccounts, setKasbonCashAccounts] = useState<CashAccount[]>([]);
   const [galat, setGalat] = useState<string | null>(null);
 
-  const canEdit = hasPermission("finance:invoice:pay");
+  // `useSyncExternalStore` — lihat catatan di /keuangan/invoice:
+  // `hasPermission` membaca localStorage, jadi memanggilnya saat render
+  // pertama membuat HTML server dan klien berbeda.
+  const canEdit = useSyncExternalStore(
+    () => () => {},
+    () => hasPermission("finance:invoice:pay"),
+    () => false,
+  );
 
   const loadKasbons = useCallback(async (signal?: AbortSignal) => {
     setLoadingKasbon(true);

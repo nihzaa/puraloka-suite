@@ -43,8 +43,11 @@ function PembayaranInner() {
 
   const muat = useCallback((signal?: AbortSignal) => {
     setMemuat(true);
-    return api.get<{ payments: Payment[] }>("/api/v1/payments", {
-      params: bulan ? { month: bulan } : {}, signal,
+    // Awalan `finance/` WAJIB — sama seperti di /keuangan/invoice. Tanpa itu
+    // hasilnya 404 yang hanya terlihat di konsol, sementara halamannya tampil
+    // rapi dengan "Belum ada pembayaran". Dijaga `uji-endpoint-ada.mjs`.
+    return api.get<{ payments: Payment[] }>("/api/v1/finance/payments", {
+      params: bulan ? { limit: "100", month: bulan } : { limit: "100" }, signal,
     })
       .then((r) => { setData(r.data.payments); setGagal(null); })
       .catch((e) => {

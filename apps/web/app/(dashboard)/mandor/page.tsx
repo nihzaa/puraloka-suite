@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useReducer, useState } from "react";
+import { Suspense, useCallback, useEffect, useReducer, useState, useSyncExternalStore } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createPortal } from "react-dom";
 import { api, getStoredUser, hasPermission } from "@/lib/api";
@@ -315,7 +315,29 @@ function MandorPageInner() {
   // role_permissions), admin/pm/direktur punya. Jadi "tak bisa menugaskan"
   // = "melihat data sendiri", dan role kustom `direktur` kini ikut melihat
   // tab Penugasan yang dulu tersembunyi karena UI mengecek `role === "mandor"`.
-  const isMandor = !hasPermission("mandor:assign");
+  //
+  // ⚠️ Ditunda ke setelah mount. `hasPermission` membaca localStorage —
+  // KOSONG di server, terisi di klien — jadi memanggilnya saat render pertama
+  // membuat HTML kedua sisi berbeda: tab "Penugasan" ada di satu sisi dan
+  // tidak di sisi lain. React lalu membuang seluruh pohon dan merendernya
+  // ulang, dengan galat hidrasi di konsol dan kedipan yang terlihat.
+  //
+  // Cacat ini ada sebelum modul dipecah; ketahuan saat sapuan layar otomatis
+  // memeriksa 58 halaman sekaligus.
+  //
+  // `useSyncExternalStore`, bukan `useState`+`useEffect`: ia memang dirancang
+  // untuk "nilai yang berbeda antara server dan klien", dan argumen ketiganya
+  // ADALAH nilai server. Hasilnya tak memicu render kedua, jadi tak menambah
+  // hutang `react-hooks/set-state-in-effect` — sedangkan `useMounted()`
+  // menambah dua.
+  //
+  // Bawaan `true` (paling terbatas) disengaja: render pertama tak boleh
+  // memperlihatkan yang belum tentu boleh dilihat.
+  const isMandor = useSyncExternalStore(
+    () => () => {},                              // tak pernah berubah setelah muat
+    () => !hasPermission("mandor:assign"),       // klien: izin sebenarnya
+    () => true,                                  // server: anggap paling terbatas
+  );
   const router = useRouter();
   const searchParams = useSearchParams();
   const { labelOf: kasbonPurposeLabel } = useKasbonPurposes(); // tujuan kasbon dari master (A4)

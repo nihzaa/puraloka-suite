@@ -642,6 +642,17 @@ jobs:
       - name: Identitas merek (rona, saturasi, sinkron)
         run: node scripts/uji-token-merek.mjs
 
+      # Path API yang salah GAGAL DALAM DIAM: 404 hanya muncul di konsol
+      # peramban, sementara halamannya tampil rapi bertuliskan "Tidak ada
+      # invoice". Dua endpoint ditulis dari ingatan saat memecah modul
+      # Keuangan dan keduanya salah — ketahuan hanya karena sapuan layar
+      # otomatis, bukan karena ada yang melapor.
+      #
+      # Dijalankan dari root repo: ia membaca apps/api DAN apps/web.
+      - name: Path API di web menunjuk rute yang ada
+        run: node apps/web/scripts/uji-endpoint-ada.mjs
+        working-directory: .
+
       # Sidebar kini memuat 20 grup & 202 sub-menu (migrasi 153). Pola lama
       # menulis tinggi collapse sebagai ANGKA MATI (`maxHeight: "140px"`) —
       # cukup untuk 4 submenu Keuangan, tapi grup 18 anak butuh ±540px dan

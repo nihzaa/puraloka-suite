@@ -15,7 +15,7 @@
  * daftar penuh yang harus disaring ulang dengan tangan.
  */
 
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Receipt, RefreshCw, Search } from "lucide-react";
 import { api, hasPermission, makeAbortController } from "@/lib/api";
@@ -50,7 +50,21 @@ function InvoicePageInner() {
   const [buatBaru, setBuatBaru] = useState(false);
   const tunda = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const bolehUbah = hasPermission("finance:invoice:pay");
+  // `hasPermission` membaca localStorage — kosong di server, terisi di
+  // klien. Memanggilnya saat render pertama membuat HTML server dan klien
+  // BERBEDA (tombol "Buat Invoice" ada di satu sisi, tidak di sisi lain), dan
+  // React membuang seluruh pohon lalu merendernya ulang. Gejalanya kedipan
+  // saat halaman dibuka, dengan galat hidrasi di konsol.
+  //
+  // `useSyncExternalStore` memang dirancang untuk ini: argumen ketiganya
+  // ADALAH nilai yang dipakai server. Render pertama selalu "belum boleh",
+  // lalu izin sebenarnya masuk — tanpa render kedua, jadi tak menambah
+  // hutang `react-hooks/set-state-in-effect` seperti useState+useEffect.
+  const bolehUbah = useSyncExternalStore(
+    () => () => {},                              // izin tak berubah setelah muat
+    () => hasPermission("finance:invoice:pay"),  // klien
+    () => false,                                 // server: anggap belum boleh
+  );
 
   /** Tulis saringan ke URL. `replace`, bukan `push`: tiap huruf yang diketik
    *  tak boleh jadi satu entri riwayat — tombol Kembali harus keluar dari
@@ -66,11 +80,26 @@ function InvoicePageInner() {
 
   const muat = useCallback((signal?: AbortSignal) => {
     setMemuat(true);
-    const q: Record<string, string> = {};
+    // Awalan `finance/` WAJIB — versi pertama halaman ini menghilangkannya
+    // dan menghasilkan 404 yang hanya terlihat di konsol, sementara
+    // halamannya tampil rapi bertuliskan "Tidak ada invoice". Kegagalan yang
+    // menyamar jadi kabar baik. Dijaga `scripts/uji-endpoint-ada.mjs`.
+    const q: Record<string, string> = { limit: "200" };
     if (status !== "all") q.status = status;
-    if (cari) q.search = cari;
-    return api.get<{ invoices: Invoice[] }>("/api/v1/invoices", { params: q, signal })
-      .then((r) => { setInvoices(r.data.invoices); setGagal(null); })
+    return api.get<{ invoices: Invoice[] }>("/api/v1/finance/invoices", { params: q, signal })
+      .then((r) => {
+        // Pencarian disaring di SISI KLIEN — endpoint ini tak menerima
+        // parameter `search`, dan mengirimkannya diam-diam diabaikan.
+        // Daftar dibatasi 200 baris, jadi menyaring di sini tak berat.
+        const k = cari.trim().toLowerCase();
+        const semua = r.data.invoices;
+        setInvoices(k
+          ? semua.filter((i) =>
+              i.invoice_number.toLowerCase().includes(k) ||
+              (i.projects?.name ?? "").toLowerCase().includes(k))
+          : semua);
+        setGagal(null);
+      })
       .catch((e) => {
         if (e?.name === "CanceledError") return;
         // Daftar kosong dan daftar-yang-gagal-dimuat terlihat sama persis di
