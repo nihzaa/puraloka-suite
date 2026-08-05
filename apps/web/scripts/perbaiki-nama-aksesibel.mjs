@@ -86,7 +86,7 @@ for (const f of berkas(join(AKAR, 'app'))) {
   // Yang lebih buruk dari errornya: label yang sudah ada di sana justru LEBIH
   // BAIK ("Saring jenis harga pokok") daripada tebakan codemod ("Kategori") —
   // jadi cacat ini menimpa yang spesifik dengan yang generik.
-  isi = isi.replace(/<select\b(?![\s\S]{0,400}?\baria-label=)([\s\S]*?)>/g, (m, atribut) => {
+  isi = isi.replace(/<select\b(?![\s\S]{0,400}?\baria-label=)([\s\S]*?)>/g, (m) => {
     const nama = tebakNama(m)
     if (!nama) { laporan.dilewati.push(`${rel}  <select> — tak bisa ditebak namanya`); return m }
     laporan.diperbaiki.push(`${rel}  <select> → "${nama}"`)

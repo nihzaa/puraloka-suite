@@ -693,3 +693,29 @@ select.input-base { cursor: pointer; }
     justify-content: center;
   }
 }
+
+/* ─── Teks khusus pembaca layar ────────────────────────────────────────────
+ *
+ * Terlihat oleh pembaca layar, tak terlihat di layar. Dipakai untuk hal yang
+ * WAJIB ada demi aksesibilitas tapi akan jadi kebisingan visual:
+ * `<caption>` tabel, keterangan tombol berikon, penjelas satuan.
+ *
+ * ⚠️ `display: none` dan `visibility: hidden` TIDAK bisa dipakai — keduanya
+ * menyembunyikan elemen dari pembaca layar juga, jadi justru membatalkan
+ * tujuannya. Pola clip-rect di bawah adalah satu-satunya yang menyembunyikan
+ * secara visual sambil tetap dibacakan.
+ *
+ * `white-space: nowrap` mencegah teks panjang membuat halaman bisa digulir
+ * ke samping — cacat yang muncul kalau elemennya masih punya lebar 1px.
+ */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

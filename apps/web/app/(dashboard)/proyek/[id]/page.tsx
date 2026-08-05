@@ -126,8 +126,6 @@ const daysUntil = (d: string) =>
 const daysSince = (d: string) =>
   Math.floor((Date.now() - new Date(d).getTime()) / 86400000);
 
-const initials = (name: string) =>
-  name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
@@ -166,9 +164,6 @@ const STATUS_META: Record<string, { label: string; color: string; bg: string }> 
   inactive:    { label: "Nonaktif",    color: C.muted,   bg: "var(--surface-hover)" },
 };
 
-const PAYMENT_SYSTEM_LABEL: Record<string, string> = {
-  harian: "Harian", borongan: "Borongan", progress_pct: "Progress %",
-};
 const PURPOSE_LABEL: Record<string, string> = {
   gaji_tukang: "Upah tukang", uang_makan: "Uang makan",
   pembelian_alat: "Beli alat", operasional: "Operasional", lain_lain: "Lain-lain",
