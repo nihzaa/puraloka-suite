@@ -293,7 +293,7 @@ export default function KalenderPage() {
                     width: 24, height: 24, borderRadius: "50%", marginBottom: 4,
                     display: "flex", alignItems: "center", justifyContent: "center",
                     background: isToday ? "var(--navy)" : isSelected ? "var(--navy)" : "transparent",
-                    color: isToday || isSelected ? "#fff" : isWeekend ? "var(--text-muted)" : "var(--text-primary)",
+                    color: isToday || isSelected ? "var(--on-navy)" : isWeekend ? "var(--text-muted)" : "var(--text-primary)",
                     fontSize: 12, fontWeight: isToday || isSelected ? 700 : 400,
                   }}>
                     {dayNum}

@@ -303,10 +303,15 @@ function RolesContent() {
           <div style={{ padding: "8px 0" }}>
             {roles.map(role => {
               const isSelected = selectedRole?.id === role.id;
+              // Pembungkus baris SENGAJA tidak lagi `role="button"`.
+              // Ia memuat tombol Edit dan Hapus, dan tombol di dalam tombol
+              // adalah `nested-interactive` — axe menandainya serious, dan
+              // pembaca layar tak selalu mengumumkan yang di dalam. Peran
+              // tombol dipindahkan ke blok teksnya saja (di bawah), jadi
+              // tombol aksi berada DI LUAR area yang dapat ditekan.
               return (
                 <div
                   key={role.id}
-                  {...dapatDitekan(() => selectRole(role), `Pilih role ${role.label ?? role.name}`)}
                   style={{
                     padding: "8px 16px",
                     cursor: "pointer",
@@ -320,7 +325,10 @@ function RolesContent() {
                 >
                   {/* Color dot */}
                   <div style={{ width: 10, height: 10, borderRadius: "50%", background: role.color, flexShrink: 0 }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    {...dapatDitekan(() => selectRole(role), `Pilih role ${role.label ?? role.name}`)}
+                    style={{ flex: 1, minWidth: 0 }}
+                  >
                     <div style={{ fontSize: 13, fontWeight: 600, color: isSelected ? C.navy : C.text, display: "flex", alignItems: "center", gap: 6 }}>
                       {role.label}
                       {role.is_builtin && (

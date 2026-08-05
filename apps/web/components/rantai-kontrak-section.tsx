@@ -602,7 +602,7 @@ function FormBond({ projectId, onSelesai, onBatal }: {
       <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
         <button type="submit" disabled={simpan} style={{
           padding: "6px 16px", borderRadius: 6, border: "none", background: C.navy,
-          color: "#fff", fontSize: 12, fontWeight: 600,
+          color: C.onNavy, fontSize: 12, fontWeight: 600,
           cursor: simpan ? "wait" : "pointer", opacity: simpan ? 0.7 : 1,
         }}>{simpan ? "Menyimpan…" : "Simpan"}</button>
         <button type="button" onClick={onBatal} style={{
@@ -680,7 +680,7 @@ function FormEOT({ projectId, onSelesai, onBatal }: {
       <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
         <button type="submit" disabled={simpan} style={{
           padding: "6px 16px", borderRadius: 6, border: "none", background: C.navy,
-          color: "#fff", fontSize: 12, fontWeight: 600,
+          color: C.onNavy, fontSize: 12, fontWeight: 600,
           cursor: simpan ? "wait" : "pointer", opacity: simpan ? 0.7 : 1,
         }}>
           {simpan ? "Menyimpan…" : "Ajukan"}

@@ -139,7 +139,7 @@ function SectionHeader({
         <span style={{ width: 3, height: 16, background: C.navy, borderRadius: 0, flexShrink: 0 }} />
         <h2 style={{ fontSize: 13, fontWeight: 600, color: C.text, margin: 0 }}>{title}</h2>
         {count !== undefined && count > 0 && (
-          <span style={{ fontSize: 11, fontWeight: 700, background: C.navy, color: "#fff", borderRadius: 99, padding: "0px 6px" }}>{count}</span>
+          <span style={{ fontSize: 11, fontWeight: 700, background: C.navy, color: C.onNavy, borderRadius: 99, padding: "0px 6px" }}>{count}</span>
         )}
       </div>
       {linkHref && linkLabel && (

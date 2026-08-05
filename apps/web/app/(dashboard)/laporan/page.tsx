@@ -639,7 +639,7 @@ function LaporanContent() {
                           XLSX.writeFile(wb, `rekap-pajak-${dateFrom}-${dateTo}.xlsx`);
                         } catch { /* */ }
                       }}
-                      style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, background: C.navy, border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                      style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, background: C.navy, border: "none", color: C.onNavy, fontSize: 12, fontWeight: 600, cursor: "pointer" }}
                     >
                       <Download size={12} /> Export Excel
                     </button>

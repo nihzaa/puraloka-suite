@@ -2130,7 +2130,7 @@ function LaporanPengadaanTab() {
         {([["rekap", "Rekap Pembelian"], ["aging", "Aging Hutang"]] as const).map(([key, label]) => (
           <button key={key} onClick={() => setSubTab(key)} style={{
             padding: "8px 16px", borderRadius: 6, fontSize: 13, fontWeight: subTab === key ? 600 : 400,
-            background: subTab === key ? C.navy : C.surface, color: subTab === key ? "#fff" : C.mid,
+            background: subTab === key ? C.navy : C.surface, color: subTab === key ? C.onNavy : C.mid,
             border: `1px solid ${subTab === key ? C.navy : C.border}`, cursor: "pointer",
           }}>{label}</button>
         ))}

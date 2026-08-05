@@ -144,7 +144,7 @@ function StatusBadge({ s }: { s: string }) {
 }
 const th: React.CSSProperties = { textAlign: "left", padding: "8px 8px", fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: .4, borderBottom: `1px solid ${C.border}` };
 const td: React.CSSProperties = { padding: "8px 8px", fontSize: 13, color: C.text, borderBottom: `1px solid ${C.border}`, verticalAlign: "top" };
-const btnPrimary: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 6, background: C.navy, color: "#fff", border: "none", borderRadius: 6, padding: "8px 12px", fontSize: 13, fontWeight: 600, cursor: "pointer" };
+const btnPrimary: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 6, background: C.navy, color: C.onNavy, border: "none", borderRadius: 6, padding: "8px 12px", fontSize: 13, fontWeight: 600, cursor: "pointer" };
 const btnGhost: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 6, background: C.surface, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" };
 const card: React.CSSProperties = { background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, boxShadow: "var(--naik-1)" };
 const lbl: React.CSSProperties = { display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 5 };
@@ -1556,7 +1556,7 @@ function AdopsiModal({ asal, onClose, onDone }: {
         <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
           <button type="submit" disabled={simpan} style={{
             padding: "8px 16px", borderRadius: 10, border: "none", background: C.navy,
-            color: "#fff", fontSize: 13, fontWeight: 600,
+            color: C.onNavy, fontSize: 13, fontWeight: 600,
             cursor: simpan ? "wait" : "pointer", opacity: simpan ? 0.7 : 1,
           }}>
             {simpan ? "Menyalin…" : "Salin ke katalog perusahaan"}
@@ -1731,7 +1731,7 @@ function EditAssemblyModal({ asal, onClose, onDone }: {
         <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
           <button type="submit" disabled={simpan} style={{
             padding: "8px 16px", borderRadius: 10, border: "none", background: C.navy,
-            color: "#fff", fontSize: 13, fontWeight: 600,
+            color: C.onNavy, fontSize: 13, fontWeight: 600,
             cursor: simpan ? "wait" : "pointer", opacity: simpan ? 0.7 : 1,
           }}>
             {simpan ? "Menyimpan…" : "Buat versi baru (draft)"}
@@ -2750,7 +2750,7 @@ function FormOverride({ proyekId, onTutup, onSimpan }: {
               cursor: "pointer", fontFamily: "inherit" }}>Batal</button>
           <button onClick={() => void simpan()} disabled={menyimpan}
             style={{ minHeight: 40, padding: "0 15px", borderRadius: 6, fontSize: 13,
-              border: "none", background: C.navy, color: "#fff", fontWeight: 600,
+              border: "none", background: C.navy, color: C.onNavy, fontWeight: 600,
               cursor: "pointer", fontFamily: "inherit", opacity: menyimpan ? 0.6 : 1 }}>
             {menyimpan ? "Menyimpan…" : "Simpan"}
           </button>
@@ -2982,7 +2982,7 @@ function PanduanKomposer({ jumlahProyek }: { jumlahProyek: number }) {
         {langkah.map(l => (
           <li key={l.n} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
             <span aria-hidden="true" style={{ flexShrink: 0, width: 24, height: 24, borderRadius: "50%",
-              background: C.navy, color: "#fff", fontSize: 12, fontWeight: 700,
+              background: C.navy, color: C.onNavy, fontSize: 12, fontWeight: 700,
               display: "flex", alignItems: "center", justifyContent: "center" }}>
               {l.n}
             </span>

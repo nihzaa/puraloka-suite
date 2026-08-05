@@ -282,11 +282,23 @@ function GrupCollapsible({
                   : undefined}
                 style={{
                   ...subStyle(active),
-                  // Diredupkan, bukan disembunyikan: item ini menyatakan
-                  // apa yang SUDAH direncanakan, dan itu informasi yang
-                  // berguna. Yang dihindari cuma janji palsu bahwa
-                  // mengkliknya membuka halaman tersendiri.
-                  opacity: belumAdaHalaman ? 0.55 : undefined,
+                  // ⚠️ JANGAN pakai `opacity` untuk meredupkan teks di sini.
+                  //
+                  // Versi pertama memakai `opacity: 0.55`, dan audit axe-core
+                  // menemukannya sebagai 213 pelanggaran kontras di 37 halaman
+                  // — pelanggaran terbanyak di seluruh aplikasi, dari satu
+                  // baris kode.
+                  //
+                  // Diukur: teks `#5A616B` di latar `#F8FAFC` punya kontras
+                  // 5,98:1. Dengan opacity 0.55 ia menjadi 2,34:1 — jauh di
+                  // bawah ambang WCAG AA 4,5:1. Bahkan 0.85 pun gagal (4,25:1),
+                  // jadi ini bukan soal memilih angka yang lebih besar:
+                  // opacity SAMA SEKALI bukan alat yang tepat untuk ini.
+                  //
+                  // Penanda "belum ada halaman" dipindahkan ke titik kecil di
+                  // sisi kiri (lihat di bawah) — ia membawa arti yang sama
+                  // tanpa menyentuh keterbacaan labelnya.
+                  position: "relative",
                 }}
                 // Saat tertutup, submenu masih ada di DOM (untuk diukur) tapi
                 // tak boleh bisa di-Tab. Tanpa ini, keyboard "menghilang" ke
@@ -296,6 +308,21 @@ function GrupCollapsible({
                 onMouseEnter={(e) => onHover(e, active)}
                 onMouseLeave={(e) => offHover(e, active)}
               >
+                {/* Titik penanda "belum punya halaman sendiri".
+                    Dekoratif — maknanya disampaikan lewat `title` dan
+                    keterangan `sr-only` di bawah, jadi ia tak perlu
+                    memenuhi kontras teks. */}
+                {belumAdaHalaman && (
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      position: "absolute", left: 18, top: "50%",
+                      width: 4, height: 4, borderRadius: "50%",
+                      transform: "translateY(-50%)",
+                      background: "var(--text-muted)", opacity: 0.5,
+                    }}
+                  />
+                )}
                 <IkonAnak nama={child.icon} aktif={active} />
                 <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{child.label}</span>
                 {/* `title` tidak terbaca andal oleh pembaca layar dan sama

@@ -180,7 +180,7 @@ function ChainCard({ chain, perms, canManage, onToggle, onAdd, onPatch, onDelete
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
               <button disabled={!newPerm} onClick={() => { onAdd(chain.entity_type, newPerm, newMin); setAdding(false); setNewPerm(""); setNewMin(""); }}
-                style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: newPerm ? C.navy : "var(--text-muted)", color: "#fff", fontSize: 13, fontWeight: 600, cursor: newPerm ? "pointer" : "not-allowed" }}>
+                style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: newPerm ? C.navy : "var(--text-muted)", color: C.onNavy, fontSize: 13, fontWeight: 600, cursor: newPerm ? "pointer" : "not-allowed" }}>
                 Tambah level
               </button>
               <button onClick={() => { setAdding(false); setNewPerm(""); setNewMin(""); }}
@@ -209,7 +209,7 @@ function StepRow({ step, perms, canManage, isLast, connector, onPatch, onDelete 
 
   return (
     <div style={{ position: "relative", paddingLeft: 34, paddingBottom: connector ? 14 : 0 }}>
-      <div style={{ position: "absolute", left: 0, top: 2, width: 24, height: 24, borderRadius: "50%", background: C.navy, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 }}>{step.level}</div>
+      <div style={{ position: "absolute", left: 0, top: 2, width: 24, height: 24, borderRadius: "50%", background: C.navy, color: C.onNavy, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 }}>{step.level}</div>
       {connector && <div style={{ position: "absolute", left: 11, top: 26, bottom: 0, width: 2, background: C.border }} />}
 
       {editing ? (

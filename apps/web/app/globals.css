@@ -458,7 +458,14 @@
    * #8B93B2 lulus ketiganya (6,21 · 5,54 · 5,00). */
   --text-muted:       #8B93B2;
 
-  --navy:             #4D9FFF;
+  /* #4D9FFF → #5FA9FF: terang naik 65%→69%, rona & saturasi UTUH
+   * (hsl 212,100 — dalam toleransi rona merek 210°±8, saturasi ≥85%).
+   *
+   * Alasannya diukur, bukan selera: lencana `--navy` di atas
+   * `--navy-light` yang duduk di permukaan terangkat menghasilkan
+   * 4,34:1 — di bawah WCAG AA 4,5:1. Nilai baru memberi 4,84:1.
+   * Diverifikasi axe-core di /keuangan/kasbon dan /proyek. */
+  --navy:             #5FA9FF;
   /* Di mode gelap --navy adalah biru TERANG, jadi teks di atasnya harus gelap.
    * #0F1117 = 6,94:1 (lulus AAA). Memakai putih di sini memberi 2,72:1. */
   --on-navy:          #0F1117;
@@ -484,7 +491,10 @@
    * #F87171 (merah 400) lulus di SELURUH latar gelap: 6,08 surface · 6,82 bg ·
    * 5,49 raised · 6,35 subtle · 5,21 hover. Tetap jelas merah — bedanya dengan
    * --warning (#F59E0B) dan --success (#22C55E) tak berkurang. */
-  --danger:           #F87171;
+  /* #F87171 → #FB8585: 4,41:1 → 5,11:1 di atas `--danger-bg` mode
+   * gelap. Rona merah tak bergeser; hanya cukup terang untuk lolos
+   * ambang teks. */
+  --danger:           #FB8585;
   --danger-bg:        rgba(248,113,113,0.10);
   --danger-border:    rgba(248,113,113,0.25);
   --info:             #60A5FA;

@@ -186,8 +186,19 @@ export default function ArusKasPage() {
                 { key: "progress_payment",   label: "Prog %",        color: "var(--aksen)" },
                 { key: "settlement_borongan", label: "Settlement",   color: "var(--data-2)" },
               ].map(t => (
-                <label key={t.key} style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", fontSize: 11, fontWeight: 600, color: arusTypes.includes(t.key) ? t.color : C.muted, userSelect: "none" }}>
+                // Warna kategori dipakai pada KOTAK penanda, bukan pada teks.
+                //
+                // `--data-2` (3,68:1) dan `--data-5` (3,56:1) gagal ambang teks
+                // WCAG AA 4,5:1 — diukur, bukan ditaksir. Keduanya dirancang
+                // sebagai pengisi grafik, di mana ambangnya 3:1 untuk komponen
+                // non-teks. Memakainya sebagai warna teks meminjam palet untuk
+                // tujuan yang syaratnya lebih ketat.
+                //
+                // Aktif/tidak tetap terbaca dari tebal huruf + centang kotaknya,
+                // jadi tak ada informasi yang hilang.
+                <label key={t.key} style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer", fontSize: 11, fontWeight: arusTypes.includes(t.key) ? 700 : 500, color: arusTypes.includes(t.key) ? C.text : C.muted, userSelect: "none" }}>
                   <input type="checkbox" checked={arusTypes.includes(t.key)} onChange={() => toggleArusType(t.key)} style={{ accentColor: t.color, width: 12, height: 12 }} />
+                  <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 2, background: t.color, flexShrink: 0, opacity: arusTypes.includes(t.key) ? 1 : 0.35 }} />
                   {t.label}
                 </label>
               ))}
@@ -201,7 +212,12 @@ export default function ArusKasPage() {
               setArusCategoryId(id);
               setArusCategoryName(found ? found.name : "");
             }}
-              style={{ padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: "var(--surface)", minWidth: 140, opacity: arusTypes.includes("expense") ? 1 : 0.4 }}>
+              style={{ padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: "var(--surface)", minWidth: 140 }}
+              // `opacity: 0.4` dihapus: ia menjatuhkan kontras teks di
+              // dalam select di bawah ambang WCAG. Keadaan "tak berlaku"
+              // sudah disampaikan `disabled` di bawah, yang PUNYA gaya
+              // bawaan peramban dan dibacakan pembaca layar.
+              disabled={!arusTypes.includes("expense")}>
               <option value="">Semua Kategori</option>
               {arusCategories.filter(c => !c.parent_id).map(parent => (
                 <optgroup key={parent.id} label={parent.name}>

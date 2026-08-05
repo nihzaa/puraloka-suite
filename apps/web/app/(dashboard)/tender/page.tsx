@@ -105,7 +105,7 @@ export default function TenderPage() {
           onClick={() => setFormBuka((v) => !v)}
           style={{
             display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px",
-            borderRadius: 10, border: "none", background: C.navy, color: "#fff",
+            borderRadius: 10, border: "none", background: C.navy, color: C.onNavy,
             fontSize: 13, fontWeight: 600, cursor: "pointer", flexShrink: 0,
           }}
         >
@@ -304,7 +304,7 @@ function FormTender({ onSelesai }: { onSelesai: () => void }) {
       <div style={{ marginTop: 14 }}>
         <button type="submit" disabled={kirim || !judul.trim()} style={{
           padding: "8px 16px", borderRadius: 10, border: "none",
-          background: kirim || !judul.trim() ? C.muted : C.navy, color: "#fff",
+          background: kirim || !judul.trim() ? C.muted : C.navy, color: C.onNavy,
           fontSize: 13, fontWeight: 600, cursor: kirim || !judul.trim() ? "not-allowed" : "pointer",
         }}>
           {kirim ? "Menyimpan…" : "Simpan tender"}

@@ -1220,7 +1220,7 @@ function ProjectDetailContent() {
                               display: "inline-flex", alignItems: "center", gap: 4,
                               padding: "4px 12px", borderRadius: 6, border: "none",
                               background: isOverdueTermin ? C.red : C.navyLight,
-                              color: isOverdueTermin ? "#fff" : C.navy,
+                              color: isOverdueTermin ? C.onNavy : C.navy,
                               fontSize: 11, fontWeight: 600, cursor: "pointer",
                               transition: "all 0.15s", whiteSpace: "nowrap",
                             }}

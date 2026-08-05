@@ -423,7 +423,7 @@ function DetailPanel({ clientId, onClose, onEdit, onCreateProject }: {
                   </div>
                   <button
                     onClick={onCreateProject}
-                    style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, border: "none", background: C.navy, color: "#fff", fontSize: 11, fontWeight: 600, cursor: "pointer" }}
+                    style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, border: "none", background: C.navy, color: C.onNavy, fontSize: 11, fontWeight: 600, cursor: "pointer" }}
                   >
                     <Plus size={11} /> Buat Proyek
                   </button>

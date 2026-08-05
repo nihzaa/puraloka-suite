@@ -279,7 +279,7 @@ function FotoTab({ projectId }: { projectId: string }) {
           <button key={cat} onClick={() => setFilterCat(cat)} style={{
             padding: "4px 12px", borderRadius: 99, fontSize: 12,
             background: filterCat === cat ? C.navy : "var(--surface)",
-            color: filterCat === cat ? "#fff" : C.mid,
+            color: filterCat === cat ? C.onNavy : C.mid,
             border: filterCat === cat ? "none" : `1px solid ${C.border}`,
             cursor: "pointer", fontWeight: filterCat === cat ? 600 : 400,
           }}>

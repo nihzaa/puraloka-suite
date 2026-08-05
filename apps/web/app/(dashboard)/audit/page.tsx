@@ -462,7 +462,7 @@ export default function AuditPage() {
                   width: 34, height: 34, borderRadius: 6,
                   border: p === page ? "none" : "1px solid var(--border)",
                   background: p === page ? "var(--navy)" : "#fff",
-                  color: p === page ? "#fff" : "var(--text-secondary)",
+                  color: p === page ? "var(--on-navy)" : "var(--text-secondary)",
                   fontSize: 13, fontWeight: p === page ? 700 : 400, cursor: "pointer",
                 }}
               >
