@@ -22,6 +22,7 @@ import {
   PieChart, Plus, RefreshCw, Wallet, 
 } from "lucide-react";
 import { api, hasPermission, makeAbortController } from "@/lib/api";
+import { Kosong } from "@/components/ui-dasar";
 import { C } from "@/lib/warna-ui";
 import { Skeleton, StatusBadge, AddKasbonModal } from "../_bersama/komponen";
 import {
@@ -256,11 +257,11 @@ export default function KasbonPage() {
                 {[1,2,3].map(i => <div key={i} style={{ padding: 16, borderRadius: 10, border: `1px solid ${C.border}` }}><Skeleton h={14} /></div>)}
               </div>
             ) : kasbons.length === 0 ? (
-              <div style={{ padding: "48px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>
-                <Banknote size={36} style={{ color: "var(--border)", marginBottom: 12 }} />
-                <p style={{ fontWeight: 600, color: C.text, marginBottom: 4 }}>Tidak ada kasbon</p>
-                <p>Belum ada kasbon yang tercatat.</p>
-              </div>
+              <Kosong
+                ikon={<Banknote size={36} aria-hidden="true" />}
+                judul="Belum ada kasbon tercatat"
+                sebab="Kasbon diajukan mandor dari portal lapangan, lalu disetujui di sini. Yang sudah disetujui memotong saldo kas sumbernya."
+              />
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {kasbons.map(k => {
@@ -355,10 +356,11 @@ export default function KasbonPage() {
                 {[1,2,3].map(i => <div key={i} style={{ height: 100, borderRadius: 10, border: `1px solid ${C.border}` }}><Skeleton h={100} /></div>)}
               </div>
             ) : !kasbonSummary || kasbonSummary.summary.length === 0 ? (
-              <div style={{ padding: "48px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>
-                <PieChart size={36} style={{ color: "var(--border)", marginBottom: 12 }} />
-                <p style={{ fontWeight: 600, color: C.text, marginBottom: 4 }}>Belum ada data kasbon</p>
-              </div>
+              <Kosong
+                ikon={<PieChart size={36} aria-hidden="true" />}
+                judul="Belum ada data untuk diringkas"
+                sebab="Ringkasan ini mengelompokkan kasbon yang sudah disetujui menurut tujuannya. Kasbon yang masih menunggu persetujuan belum dihitung."
+              />
             ) : (
               <>
                 {/* Grand total per kategori */}
@@ -495,11 +497,11 @@ export default function KasbonPage() {
                 {[1, 2, 3].map(i => <div key={i} style={{ padding: 16, borderRadius: 10, border: `1px solid ${C.border}` }}><Skeleton h={14} /></div>)}
               </div>
             ) : workerKasbons.length === 0 ? (
-              <div style={{ padding: "48px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>
-                <Banknote size={36} style={{ color: "var(--border)", marginBottom: 12 }} />
-                <p style={{ fontWeight: 600, color: C.text, marginBottom: 4 }}>Tidak ada kasbon tukang</p>
-                <p>Belum ada advance tukang yang tercatat.</p>
-              </div>
+              <Kosong
+                ikon={<Banknote size={36} aria-hidden="true" />}
+                judul="Belum ada kasbon tukang"
+                sebab="Berbeda dari kasbon mandor: ini uang muka yang diteruskan mandor ke tukangnya sendiri, dan dipotong dari upah saat pembayaran."
+              />
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {workerKasbons.map(wk => {

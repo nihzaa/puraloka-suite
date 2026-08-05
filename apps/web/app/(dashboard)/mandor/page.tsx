@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useReducer, useState, useSyncExternal
 import { useRouter, useSearchParams } from "next/navigation";
 import { createPortal } from "react-dom";
 import { api, getStoredUser, hasPermission } from "@/lib/api";
+import { Kosong } from "@/components/ui-dasar";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { dapatDitekan } from "@/lib/dapat-ditekan";
 import { useUnits } from "@/lib/use-units";
@@ -874,10 +875,11 @@ function MandorPageInner() {
                 </div>
 
                 {groups.length === 0 ? (
-                  <div style={{ ...card, padding: 48, textAlign: "center", color: C.muted }}>
-                    <Banknote size={32} color={C.border} style={{ marginBottom: 12 }} />
-                    <div>Belum ada kasbon tukang</div>
-                  </div>
+                  <Kosong
+                    ikon={<Banknote size={32} aria-hidden="true" />}
+                    judul="Belum ada kasbon tukang"
+                    sebab="Uang muka yang diteruskan mandor ke tukangnya sendiri. Dipotong dari upah saat pembayaran, jadi ia mengurangi yang diterima tukang — bukan menambah biaya proyek."
+                  />
                 ) : groups.map(group => {
                   const totalKasbon = group.kasbons.reduce((s, k) => s + Number(k.amount), 0);
                   const totalLunas = group.kasbons.reduce((s, k) => s + Number(k.amount_settled), 0);
@@ -1278,10 +1280,11 @@ function MandorPageInner() {
             return (
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 {progressPayments.length === 0 ? (
-                  <div style={{ ...card, padding: 48, textAlign: "center", color: C.muted }}>
-                    <Banknote size={32} color={C.border} style={{ marginBottom: 12 }} />
-                    <div>Belum ada pengajuan penagihan progress</div>
-                  </div>
+                  <Kosong
+                    ikon={<Banknote size={32} aria-hidden="true" />}
+                    judul="Belum ada pengajuan penagihan"
+                    sebab="Mandor mengajukan penagihan dari portal lapangan setelah progres scope-nya naik. Yang disetujui di sini langsung jadi utang yang harus dibayar."
+                  />
                 ) : (
                   <>
                     {pendingPP.length > 0 && (

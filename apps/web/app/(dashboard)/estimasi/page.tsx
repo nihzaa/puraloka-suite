@@ -3410,8 +3410,14 @@ function VariansTab() {
                 </thead>
                 <tbody>
                   {varians.data.length === 0 && (
-                    <tr><td colSpan={5} style={{ ...TD, textAlign: "center", color: C.muted, padding: 24 }}>
-                      Belum ada belanja approved/paid di proyek ini.
+                    <tr><td colSpan={5} style={{
+                      ...TD, textAlign: "center", color: C.muted, padding: 24,
+                      whiteSpace: "normal", maxWidth: 0,
+                    }}>
+                      Belum ada belanja berstatus approved atau paid di proyek ini.
+                      Varians membandingkan anggaran dengan belanja yang SUDAH
+                      disetujui — belanja yang masih menunggu persetujuan sengaja
+                      tak dihitung, supaya angkanya tak berubah saat ditolak.
                     </td></tr>
                   )}
                   {varians.data.map(b => {

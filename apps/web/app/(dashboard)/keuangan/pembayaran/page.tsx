@@ -16,6 +16,7 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowDownLeft, RefreshCw, Wallet, X } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
+import { Kosong } from "@/components/ui-dasar";
 import { C } from "@/lib/warna-ui";
 import { Skeleton } from "../_bersama/komponen";
 import { fmt, fmtDate, type Payment } from "../_bersama/tipe";
@@ -135,13 +136,15 @@ function PembayaranInner() {
           ))}
         </div>
       ) : data.length === 0 ? (
-        <div style={{ padding: "48px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>
-          <ArrowDownLeft size={36} aria-hidden="true" style={{ color: "var(--border)", marginBottom: 12 }} />
-          <p style={{ fontWeight: 600, color: C.text, marginBottom: 4 }}>
-            {gagal ? "Riwayat tak bisa dimuat" : "Belum ada pembayaran"}
-          </p>
-          <p>{bulan ? "Tidak ada penerimaan di bulan ini." : "Penerimaan muncul di sini setelah invoice dibayar."}</p>
-        </div>
+        <Kosong
+          ikon={<ArrowDownLeft size={36} aria-hidden="true" />}
+          judul={gagal ? "Riwayat tak bisa dimuat" : "Belum ada pembayaran"}
+          sebab={gagal
+            ? "Coba muat ulang. Kalau tetap gagal, angka penerimaan di kartu atas juga belum bisa dipercaya."
+            : bulan
+              ? `Tak ada penerimaan yang tercatat di ${bulan}. Coba bulan lain sebelum menyimpulkan tak ada pembayaran masuk.`
+              : "Penerimaan muncul di sini setelah invoice ditandai dibayar — bukan saat invoice diterbitkan."}
+        />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {data.map((p) => {

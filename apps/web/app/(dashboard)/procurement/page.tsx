@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { api, hasPermission } from "@/lib/api";
+import { Kosong } from "@/components/ui-dasar";
 import { useIzin } from "@/lib/use-izin";
 import { useUnits } from "@/lib/use-units";
 import { createPortal } from "react-dom";
@@ -483,7 +484,7 @@ function MaterialRequestsTab() {
 
       {loading ? <div style={{ textAlign: "center", padding: 48, color: C.muted }}>Memuat...</div> : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {mrs.length === 0 && <div style={{ textAlign: "center", padding: 48, color: C.muted }}>Belum ada Material Request</div>}
+          {mrs.length === 0 && <Kosong judul="Belum ada permintaan material" sebab="Material Request adalah langkah PERTAMA pengadaan: lapangan meminta, lalu disetujui, baru boleh jadi Purchase Order. Tanpa MR, pembelian tak punya dasar permintaan." />}
           {mrs.map(mr => (
             <Card key={mr.id} style={{ cursor: "pointer" }} onClick={() => openDetail(mr)}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
@@ -918,7 +919,7 @@ function PurchaseOrdersTab() {
 
       {loading ? <div style={{ textAlign: "center", padding: 48, color: C.muted }}>Memuat...</div> : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {pos.length === 0 && <div style={{ textAlign: "center", padding: 48, color: C.muted }}>Belum ada Purchase Order</div>}
+          {pos.length === 0 && <Kosong judul="Belum ada Purchase Order" sebab="PO terbit dari Material Request yang sudah disetujui. Ia yang mengikat harga dan jumlah ke supplier — penerimaan barang nanti dicocokkan ke sini." />}
           {pos.map(po => (
             <Card key={po.id} style={{ cursor: "pointer" }} onClick={() => openDetail(po)}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
@@ -1239,7 +1240,7 @@ function GoodsReceiptsTab() {
 
       {loading ? <div style={{ textAlign: "center", padding: 48, color: C.muted }}>Memuat...</div> : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {grs.length === 0 && <div style={{ textAlign: "center", padding: 48, color: C.muted }}>Belum ada penerimaan barang</div>}
+          {grs.length === 0 && <Kosong judul="Belum ada penerimaan barang" sebab="Goods Receipt dicatat saat barang tiba di lokasi. Ia dicocokkan dengan PO dan tagihan supplier — tiga sisi yang harus sama sebelum pembayaran boleh jalan." />}
           {grs.map(gr => (
             <Card key={gr.id}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
@@ -1492,7 +1493,7 @@ function SupplierInvoicesTab() {
 
       {loading ? <div style={{ textAlign: "center", padding: 48, color: C.muted }}>Memuat...</div> : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {invoices.length === 0 && <div style={{ textAlign: "center", padding: 48, color: C.muted }}>Tidak ada tagihan</div>}
+          {invoices.length === 0 && <Kosong judul="Belum ada tagihan supplier" sebab="Tagihan masuk setelah barang diterima. Yang jumlahnya tak cocok dengan PO dan penerimaan akan tertahan di sini, bukan lolos diam-diam." />}
           {invoices.map(inv => (
             <Card key={inv.id}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
