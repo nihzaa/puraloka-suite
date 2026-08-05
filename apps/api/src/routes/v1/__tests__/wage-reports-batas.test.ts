@@ -34,6 +34,8 @@ import mandorRoutes from '../mandor.js'
 let app: FastifyInstance
 let c: Client
 let authId: string
+/** Laporan yang DIBUAT berkas ini dan wajib dibongkar sendiri. */
+const laporanBuatan: string[] = []
 
 const actAs = (a: string) =>
   vi.spyOn(supabaseAuth.auth, 'getUser')
@@ -62,16 +64,11 @@ beforeAll(async () => {
   //
   // Dipilih user yang perusahaannya PUNYA proyek dengan laporan upah.
   const r = await c.query(
-    `SELECT u.auth_id
+    `SELECT u.auth_id, cm.company_id
        FROM company_members cm
        JOIN users u ON u.id = cm.user_id
        LEFT JOIN roles r2 ON r2.id = u.role_id
       WHERE u.auth_id IS NOT NULL AND cm.is_active AND u.role_id IS NOT NULL
-        AND EXISTS (
-          SELECT 1 FROM weekly_wage_reports w
-            JOIN mandor_assignments ma ON ma.id = w.assignment_id
-            JOIN projects p ON p.id = ma.project_id
-           WHERE p.company_id = cm.company_id)
       -- Peran 'client' DIKECUALIKAN.
       --
       -- proyekBolehDibaca() memfilter lewat request.db.projectIds(), dan
@@ -86,9 +83,45 @@ beforeAll(async () => {
       ORDER BY (COALESCE(r2.name, '') = 'mandor'), u.email
       LIMIT 1`)
   if (!r.rows[0]) {
-    throw new Error('Tak ada user dengan cakupan proyek berlaporan upah — test tak bisa menguji apa pun.')
+    throw new Error('Tak ada user aktif dengan peran — test tak bisa menguji apa pun.')
   }
   authId = r.rows[0].auth_id
+  const companyId = r.rows[0].company_id
+
+  // ── Fixture disiapkan SENDIRI, tidak menumpang data seed ────────────────
+  //
+  // Versi pertama menuntut basisnya sudah punya laporan upah. Itu benar di
+  // dev (50 laporan) dan SALAH di CI, yang me-replay migrasi ke basis bersih:
+  // seluruh berkas gugur dengan "tak ada user dengan cakupan proyek".
+  //
+  // Yang diuji di sini paginasi, bukan data seed. Jadi test membuat dua
+  // laporan miliknya sendiri bila basisnya belum punya cukup — dan
+  // membongkarnya di `afterAll`. Test yang bergantung pada data yang mungkin
+  // tak ada bukan test yang lebih ketat, ia test yang kadang tak berjalan.
+  const cukup = await c.query(
+    `SELECT count(*)::int n FROM weekly_wage_reports w
+       JOIN mandor_assignments ma ON ma.id = w.assignment_id
+       JOIN projects p ON p.id = ma.project_id
+      WHERE p.company_id = $1`, [companyId])
+
+  if (cukup.rows[0].n < 2) {
+    const asg = await c.query(
+      `SELECT ma.id FROM mandor_assignments ma
+         JOIN projects p ON p.id = ma.project_id
+        WHERE p.company_id = $1 LIMIT 1`, [companyId])
+    if (!asg.rows[0]) {
+      throw new Error(
+        'Tak ada mandor_assignment di company ini — fixture laporan upah tak bisa dibuat, ' +
+        'dan test ini tak boleh lulus diam-diam tanpa data.')
+    }
+    for (let k = 0; k < 2; k++) {
+      const w = (await c.query(
+        `INSERT INTO weekly_wage_reports (assignment_id, week_start, week_end, status, subtotal, total_deduction, net_amount)
+         VALUES ($1, DATE '2020-01-06' + ($2 * 7), DATE '2020-01-12' + ($2 * 7), 'draft', 0, 0, 0)
+         RETURNING id`, [asg.rows[0].id, k])).rows[0].id
+      laporanBuatan.push(w)
+    }
+  }
 
   app = Fastify()
   await app.register(mandorRoutes)
@@ -96,6 +129,12 @@ beforeAll(async () => {
 }, 180_000)
 
 afterAll(async () => {
+  // Fixture yang tertinggal membuat test LAIN merah karena sebab yang tak
+  // berhubungan — sudah terjadi di sesi ini (fixture perusahaan uji
+  // menjatuhkan `submittal-aturan` dan `t9-kelola-badan-usaha`).
+  for (const id of laporanBuatan) {
+    await c?.query(`DELETE FROM weekly_wage_reports WHERE id = $1`, [id]).catch(() => {})
+  }
   await app?.close()
   await c?.end()
 })
@@ -137,11 +176,14 @@ describe('wage-reports — batas & bentuk', () => {
     // tuntut `total` melampauinya.
     actAs(authId)
     const penuh = JSON.parse((await ambil()).body)
-    if (penuh.total < 2) {
-      throw new Error(
-        `Butuh ≥2 laporan upah untuk menguji ini; basis ini punya ${penuh.total}. ` +
-        'Test ini tak boleh lulus diam-diam — tanpa data ia tak menguji apa pun.')
-    }
+    // `beforeAll` menjamin minimal 2 (membuatnya sendiri bila perlu). Kalau
+    // masih kurang, yang rusak adalah cakupan tenant endpoint-nya — bukan
+    // datanya — dan itu harus terlihat, bukan dilewati.
+    expect(
+      penuh.total,
+      'endpoint mengembalikan <2 laporan padahal fixture menjamin minimal 2 — ' +
+      'kemungkinan penyaringan tenant memotong lebih banyak dari seharusnya',
+    ).toBeGreaterThanOrEqual(2)
 
     const satu = JSON.parse((await ambil('?limit=1')).body)
     expect(satu.reports.length).toBe(1)

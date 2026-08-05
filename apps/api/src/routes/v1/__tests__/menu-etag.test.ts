@@ -102,7 +102,20 @@ beforeAll(async () => {
        RETURNING id`)).rows[0].id
 
     const authB = (await c.query(`SELECT gen_random_uuid() id`)).rows[0].id
-    const roleId = a.rows[0].role_id
+
+    // Peran NON-ADMIN, sengaja.
+    //
+    // Versi pertama menyalin `role_id` kandidat pertama — yang kebetulan
+    // admin. Akibatnya `recipient-resolution` MERAH di CI: ia menghitung
+    // admin secara GLOBAL lalu membandingkannya dengan penerima yang
+    // dibatasi satu company. User admin di company kedua masuk hitungan
+    // pertama, tidak masuk yang kedua → "expected 1 to be 2".
+    //
+    // Peran user ini tak relevan bagi test ETag — ia hanya perlu melewati
+    // `authenticate`. Jadi diambil peran yang paling tak berdampak.
+    const roleId = (await c.query(
+      `SELECT id FROM roles WHERE name <> 'admin' ORDER BY name LIMIT 1`)).rows[0]?.id
+      ?? a.rows[0].role_id
     userBuatan = (await c.query(
       `INSERT INTO users (auth_id, name, email, role_id)
        VALUES ($1, '[TEST] ETag', $2, $3) RETURNING id`,
