@@ -278,7 +278,7 @@ function NcrInner() {
           </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
               <caption className="sr-only">
                 Register ketidaksesuaian: nomor, tingkat, status, disposisi, dan penanggung jawab
               </caption>

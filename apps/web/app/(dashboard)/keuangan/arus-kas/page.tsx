@@ -282,7 +282,7 @@ export default function ArusKasPage() {
             </div>
             {/* Tabel agregasi per periode */}
             <div style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
                 <thead>
                   <tr style={{ background: "var(--surface-subtle)", borderBottom: `1px solid ${C.border}` }}>
                     {["Periode", "Masuk", "Keluar", "Net"].map((h, i) => (
@@ -321,7 +321,7 @@ export default function ArusKasPage() {
           </div>
         ) : (
           <div style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
               <thead>
                 <tr style={{ background: "var(--surface-subtle)", borderBottom: `1px solid ${C.border}` }}>
                   {["Tanggal", "Keterangan", "Proyek", "Jenis", "Kategori", "Masuk", "Keluar"].map((h, i) => (

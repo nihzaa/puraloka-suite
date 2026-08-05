@@ -1120,7 +1120,7 @@ function ProjectDetailContent() {
               </div>
             </div>
 
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
               <thead>
                 <tr style={{ background: "var(--surface-subtle)", borderBottom: "1px solid var(--border)" }}>
                   {["No", "Label", "Nilai", "% Kontrak", "Syarat Tagih", "Status", ""].map((h, i) => (
@@ -1380,7 +1380,7 @@ function ProjectDetailContent() {
           </div>
 
           {/* Kasbon list */}
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
             <thead>
               <tr style={{ background: "var(--surface-subtle)", borderBottom: "1px solid var(--border)" }}>
                 {["Mandor", "Scope", "Tujuan", "Jumlah", "Tanggal", "Status"].map((h, i) => (
@@ -1438,7 +1438,7 @@ function ProjectDetailContent() {
       {(p.invoices?.length ?? 0) > 0 && (
         <div id="sec-invoice" className="rise rise-5" style={{ ...card, padding: 24, marginBottom: 20 }}>
           <SectionTitle>Invoice</SectionTitle>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
             <thead>
               <tr style={{ background: "var(--surface-subtle)", borderBottom: "1px solid var(--border)" }}>
                 {["No Invoice", "Tipe", "Total", "Dibayar", "Sisa", "Jatuh Tempo", "Status"].map((h, i) => (

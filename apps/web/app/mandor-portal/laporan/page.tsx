@@ -91,7 +91,7 @@ export default function MandorLaporanPage() {
 
                   {items.length > 0 ? (
                     <div style={{ overflowX: "auto" }}>
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
                         <thead>
                           <tr style={{ background: "var(--surface-hover)" }}>
                             <th style={{ padding: "6px 8px", textAlign: "left", color: C.mid, fontWeight: 600 }}>Pekerja</th>

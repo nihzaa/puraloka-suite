@@ -264,7 +264,7 @@ function TabelAset({ baris }: { baris: Aset[] }) {
   }
   return (
     <div style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 780 }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 780, fontVariantNumeric: "tabular-nums" }}>
         <thead>
           <tr style={{ background: "var(--surface-subtle)" }}>
             {["Kode", "Nama", "Kategori", "Status", "Perolehan", "Nilai buku", "Penyusutan"].map((h, i) => (
@@ -344,7 +344,7 @@ function TabelSewa({ baris }: { baris: Sewa[] }) {
   }
   return (
     <div style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 680 }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 680, fontVariantNumeric: "tabular-nums" }}>
         <thead>
           <tr style={{ background: "var(--surface-subtle)" }}>
             {["Alat", "Tarif", "Mulai", "Selesai", "Status", "Biaya s.d. kini"].map((h, i) => (

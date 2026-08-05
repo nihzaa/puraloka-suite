@@ -2139,7 +2139,7 @@ function WageReportDetailModal({ data, onClose, onApprove }: {
           <div>
             <div style={{ fontSize: 12, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Rincian Tukang</div>
             <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
                 <thead>
                   <tr style={{ background: "var(--surface-subtle)" }}>
                     {["Nama", "Hari", "Tarif/Hari", "Lembur", "Subtotal"].map(h => (

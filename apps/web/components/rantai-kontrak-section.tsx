@@ -340,7 +340,7 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
         </p>
       ) : (
         <div style={{ overflowX: "auto", marginBottom: 14 }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 560 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 560, fontVariantNumeric: "tabular-nums" }}>
             <thead>
               <tr style={{ background: "var(--surface-subtle)" }}>
                 {["Nomor", "Diajukan", "Hari", "Alasan", "Status", ""].map((h, i) => (
@@ -444,7 +444,7 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
         </p>
       ) : (
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 560 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 560, fontVariantNumeric: "tabular-nums" }}>
             <thead>
               <tr style={{ background: "var(--surface-subtle)" }}>
                 {["Jenis", "Nomor", "Penerbit", "Nilai", "Berlaku s.d.", "Status", ""].map((h, i) => (

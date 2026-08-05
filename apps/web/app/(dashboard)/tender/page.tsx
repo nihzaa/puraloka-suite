@@ -171,7 +171,7 @@ export default function TenderPage() {
 
       {!memuat && bids.length > 0 && (
         <div style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${C.border}` }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
             <thead>
               <tr style={{ background: "var(--surface-subtle)" }}>
                 {["Tender", "Pemberi kerja", "Nilai kami", "Nilai pemenang", "Selisih", "Diajukan", "Status"].map((h) => (

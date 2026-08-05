@@ -270,7 +270,7 @@ export function BukuBesar({ akun }: { akun: AkunRingkas[] }) {
             borderRadius: 14, overflow: "hidden",
           }}>
             <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
                 <caption className="sr-only">
                   Buku besar akun {akunTerpilih?.code} {akunTerpilih?.name}: mutasi dan saldo berjalan
                 </caption>

@@ -207,7 +207,7 @@ export default function ProfitabilitasPage() {
 
           {/* ── Tabel per proyek ── */}
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
               <caption className="sr-only">
                 Laba kotor per proyek: pendapatan, harga pokok, dan marginnya
               </caption>

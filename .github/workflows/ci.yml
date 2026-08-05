@@ -690,6 +690,20 @@ jobs:
       - name: Aksesibilitas (kontrol wajib punya nama)
         run: node scripts/a11y-ratchet.mjs
 
+      # Tabel: 59 tabel di web, dan sampai 2026-08-05 TAK SATU PUN punya
+      # `tabular-nums`. Akibatnya kolom rupiah bergoyang — "Rp 111.111"
+      # lebih sempit daripada "Rp 888.888" meski digitnya sama — jadi
+      # besaran tak bisa dibandingkan dari panjang kolom. Untuk halaman
+      # piutang yang tugasnya "mana yang paling besar", itu menghapus
+      # gunanya tabel. Sudah ditutup semua; ambangnya NOL.
+      #
+      # `<caption>` dan `scope="row"` ratchet, bukan nol: keduanya butuh
+      # kalimat/keputusan manusia per tabel, dan penjaga yang menuntut
+      # nol pada 93 keputusan tidak menghasilkan 93 perbaikan — ia
+      # menghasilkan penjaga yang dimatikan.
+      - name: Tabel terbaca (tabular-nums nol · caption/scope ratchet)
+        run: node scripts/uji-tabel-terbaca.mjs
+
       # Kontras warna — 260 dari 296 pelanggaran WCAG itu kontras, dan sampai
       # 2026-08-01 ia SATU-SATUNYA yang tak dijaga otomatis. Catatannya berbunyi
       # "butuh browser + login, kredensial di CI ditolak sadar" — benar untuk

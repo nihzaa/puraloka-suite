@@ -227,7 +227,7 @@ function TabBtn({ label, active, onClick, icon }: { label: string; active: boole
 function DataTable({ headers, children, empty }: { headers: { label: string; align?: "left" | "right" | "center" }[]; children: React.ReactNode; empty?: boolean }) {
   return (
     <div style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${C.border}` }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
         <thead>
           <tr style={{ background: "var(--surface-subtle)", borderBottom: `1px solid ${C.border}` }}>
             {headers.map((h, i) => (
@@ -581,7 +581,7 @@ function LaporanContent() {
                   <div style={{ ...card, padding: 20 }}>
                     <p style={{ fontSize: 13, fontWeight: 700, color: C.text, margin: "0 0 14px" }}>Rekap per Bulan</p>
                     <div style={{ overflowX: "auto" }}>
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
                         <thead>
                           <tr style={{ borderBottom: `2px solid ${C.border}` }}>
                             {["Periode", "PPh Final", "PPN", "Total Pajak", "Jumlah Invoice", "Sudah Lapor", "Belum Lapor"].map(h => (
@@ -647,7 +647,7 @@ function LaporanContent() {
                     <div style={{ padding: 40, textAlign: "center", color: C.muted }}>Tidak ada data pajak di periode ini</div>
                   ) : (
                     <div style={{ overflowX: "auto" }}>
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
                         <thead>
                           <tr style={{ borderBottom: `1px solid ${C.border}`, background: "var(--surface-hover)" }}>
                             {["Periode", "Proyek", "No Invoice", "Jenis", "DPP", "Tarif", "Pajak", "No e-Faktur", "Status", "Aksi"].map(h => (
@@ -1496,7 +1496,7 @@ function PortofolioTab() {
           desc="Portofolio biaya menampilkan agregasi lintas proyek." />
       ) : (
         <div style={{ overflowX: "auto", border: `1px solid ${C.border}`, borderRadius: 10 }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
             <thead><tr style={{ background: "var(--surface-subtle)" }}>
               {["Proyek", "Dasar pagu", "Pagu", "Serapan", "Serapan %", "Progres %", "Deviasi", "Sisa pagu"].map(h => (
                 <th key={h} style={{
@@ -1624,7 +1624,7 @@ function WipTab() {
       )}
 
       <div style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${C.border}` }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 900 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 900, fontVariantNumeric: "tabular-nums" }}>
           <thead>
             <tr style={{ background: "var(--surface-subtle)" }}>
               {["Proyek", "Metode", "%", "Kontrak", "Diakui", "Biaya", "Laba", "CIE", "BIE"].map((h, i) => (

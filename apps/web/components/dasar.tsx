@@ -333,6 +333,12 @@ export function Tabel<T>({ kolom, data, kunciBaris, caption, kosong, tandaiBaris
       <table style={{
         width: "100%", borderCollapse: "collapse",
         fontSize: "var(--t-data)",
+        // Diwarisi semua sel. Tanpa ini, "Rp 111.111" dan "Rp 888.888"
+        // punya lebar berbeda meski digitnya sama — mata tak bisa lagi
+        // membandingkan besaran dari panjang kolom, harus membaca satu
+        // per satu. Untuk tabel yang tugasnya "mana yang paling besar",
+        // itu menghapus gunanya tabel.
+        fontVariantNumeric: "tabular-nums",
       }}>
         <caption className="sr-only">{caption}</caption>
         <thead>

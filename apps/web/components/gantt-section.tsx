@@ -836,7 +836,7 @@ export function GanttSection({ projectId, userRole, projectStart, projectEnd }: 
         </div>
         {/* Still show table so user can set dates */}
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
             <thead>
               <tr style={{ background: "var(--surface-subtle)", borderBottom: "1px solid var(--border)" }}>
                 {["No", "Uraian Pekerjaan", "Bobot %", "Progress %", "Mulai Rencana", "Selesai Rencana", canEdit ? "Edit" : ""].map(h => (

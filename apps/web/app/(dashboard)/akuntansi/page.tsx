@@ -263,7 +263,7 @@ function TabJurnal({
   return (
     <div style={{ ...card, overflow: "hidden" }}>
       <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 680 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 680, fontVariantNumeric: "tabular-nums" }}>
           <thead>
             <tr style={{ background: "var(--bg)" }}>
               {["Nomor", "Tanggal", "Keterangan", "Status", ""].map((h, i) => (
@@ -443,7 +443,7 @@ function TabNeraca({
 
       <div style={{ ...card, overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 620 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 620, fontVariantNumeric: "tabular-nums" }}>
             <thead>
               <tr style={{ background: "var(--bg)" }}>
                 {["Kode", "Nama Akun", "Debit", "Kredit", "Saldo"].map((h, i) => (

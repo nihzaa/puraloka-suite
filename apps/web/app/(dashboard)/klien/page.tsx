@@ -609,7 +609,7 @@ export default function KlienPage() {
             <div style={{ fontSize: 13, fontWeight: 500 }}>Tidak ada klien ditemukan</div>
           </div>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
             <thead>
               <tr style={{ background: C.bg, borderBottom: `1px solid ${C.border}` }}>
                 {["Klien", "Kontak", "Tipe", "Status", ""].map((h, i) => (

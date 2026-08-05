@@ -227,7 +227,7 @@ export default function RetensiPage() {
           </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
               <caption className="sr-only">
                 Retensi per scope pekerjaan: yang ditahan, yang sudah dicairkan, dan sisanya
               </caption>

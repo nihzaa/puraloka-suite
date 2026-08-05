@@ -212,7 +212,7 @@ export default function PiutangPage() {
           <span style={{ fontSize: 12, color: C.muted }}>{filteredRows.length} invoice</span>
         </div>
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
             <thead><tr style={{ background: "var(--bg)" }}>
               <th style={th}>Invoice</th><th style={th}>Proyek</th><th style={th}>Klien</th>
               <th style={th}>Jatuh Tempo</th><th style={{ ...th, textAlign: "right" }}>Umur</th>
@@ -261,7 +261,7 @@ export default function PiutangPage() {
             <div style={{ fontSize: 12, color: C.mid }}>Tertahan: <b style={{ color: C.text }}>{fmt(retentionOutstandingTotal)}</b></div>
           </div>
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
               <thead><tr style={{ background: "var(--bg)" }}>
                 <th style={th}>Proyek</th><th style={{ ...th, textAlign: "right" }}>Ditahan</th>
                 <th style={{ ...th, textAlign: "right" }}>Dicairkan</th><th style={{ ...th, textAlign: "right" }}>Sisa</th>
@@ -307,7 +307,7 @@ export default function PiutangPage() {
             <div style={{ fontSize: 12, color: C.mid }}>Belum dipotong: <b style={{ color: C.text }}>{fmt(dpRemainingTotal)}</b></div>
           </div>
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
               <thead><tr style={{ background: "var(--bg)" }}>
                 <th style={th}>Proyek</th><th style={{ ...th, textAlign: "right" }}>DP Terbayar</th>
                 <th style={{ ...th, textAlign: "right" }}>Sudah Dipotong</th><th style={th}>Progres Pemotongan</th>
