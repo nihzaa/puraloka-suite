@@ -66,6 +66,23 @@ export async function logAuditEvent(request: FastifyRequest, entry: AuditEntry):
   try {
     const diff = computeDiff(entry.oldValues, entry.newValues)
     const { error } = await supabase.from('audit_logs').insert({
+      // `company_id` DINYATAKAN, tidak diserahkan ke trigger.
+      //
+      // `fn_isi_company_id` (trigger BEFORE INSERT) memang mengisinya kalau
+      // kosong — TAPI hanya saat ambigu bisa dihindari: ia membaca
+      // `app.company_id`, dan bila itu kosong ia menebak dari `companies`
+      // HANYA bila tenant-nya tepat satu. Lebih dari satu → sengaja
+      // dibiarkan NULL, karena menebak akan memalsukan pemilik jejak.
+      //
+      // Trigger itu benar. Yang salah adalah memanggilnya tanpa menyatakan
+      // tenant: di dev (1 company) tebakannya berhasil dan audit tertulis;
+      // di CI (>1 company) NOT NULL menolak, `catch` di bawah menelan
+      // galatnya, dan JEJAK AUDIT HILANG TANPA SUARA.
+      //
+      // Itu bukan sekadar test merah — di lingkungan multi-tenant sungguhan,
+      // seluruh riwayat "siapa mengubah apa" tak pernah tercatat, dan tak
+      // ada satu pun gejala sampai seseorang mencarinya.
+      company_id: request.companyId ?? null,
       table_name: entry.tableName,
       record_id: entry.recordId,
       action: entry.action,
