@@ -41,7 +41,17 @@ interface Invoice {
 }
 interface Kasbon {
   id: string; amount: number; kasbon_date: string; purpose: string; status: string;
-  project?: { id: string; name: string } | null;
+  /** Peminta kasbon — `requested_by` NOT NULL, jadi selalu ada. */
+  pemohon?: { id: string; name: string } | null;
+  /**
+   * Proyek dari kolom `project_id` langsung, bukan lewat work scope.
+   *
+   * Sebelumnya bernama `project?` — field yang API TIDAK PERNAH kirim,
+   * jadi cadangan `?? k.project?.name` selalu `undefined` dan tak pernah
+   * menolong. Cadangan yang tak pernah jalan lebih buruk daripada tak
+   * ada: ia membuat kode terlihat sudah menangani kasus itu.
+   */
+  proyek_langsung?: { id: string; name: string } | null;
   work_scopes: {
     mandor_assignments: {
       mandor: { name: string } | null;
@@ -284,9 +294,15 @@ function DashboardContent() {
 
   const cashflowWidget = (
     <div style={{ padding: "20px 20px 16px", height: "100%", display: "flex", flexDirection: "column" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-        <SectionHeader title="Arus Kas" linkLabel="Lihat detail" linkHref="/kas" />
-        <span style={{ fontSize: 11, color: C.muted }}>{PERIOD_LABEL[period]}</span>
+      {/* `SectionHeader` mengatur jaraknya sendiri lewat `space-between`,
+          tapi di sini ia jadi anak flex yang menyusut ke lebar isinya —
+          sehingga "Arus Kas" dan "Lihat detail" menempel tanpa spasi.
+          `flex: 1` mengembalikan ruang yang dibutuhkannya. */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 14 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <SectionHeader title="Arus Kas" linkLabel="Lihat detail" linkHref="/kas" />
+        </div>
+        <span style={{ fontSize: 11, color: C.muted, flexShrink: 0 }}>{PERIOD_LABEL[period]}</span>
       </div>
       <div style={{ display: "flex", gap: 16, marginBottom: 12 }}>
         <LegendDot color={C.navy} label="Pemasukan" />
@@ -593,8 +609,21 @@ function DashboardContent() {
             </thead>
             <tbody>
               {data!.pending_kasbons.slice(0, 5).map(k => {
-                const mandor  = k.work_scopes?.mandor_assignments?.mandor?.name ?? "—";
-                const project = k.work_scopes?.mandor_assignments?.projects?.name ?? k.project?.name ?? "—";
+                // Kasbon tanpa work scope memutus seluruh rantai
+                // `work_scopes → mandor_assignments`, jadi mandor DAN proyek
+                // sama-sama kosong — dan tombol "Setuju" tetap muncul untuk
+                // pengeluaran yang tak diketahui siapa peminta dan untuk apa.
+                //
+                // Cadangannya dari kolom langsung di `kasbons`: `requested_by`
+                // NOT NULL di skema, `project_id` biasanya terisi. Pemohon
+                // ditandai supaya tak tertukar dengan mandor penerima —
+                // keduanya bisa berbeda orang.
+                const mandor =
+                  k.work_scopes?.mandor_assignments?.mandor?.name ??
+                  (k.pemohon?.name ? `${k.pemohon.name} (pemohon)` : "—");
+                const project =
+                  k.work_scopes?.mandor_assignments?.projects?.name ??
+                  k.proyek_langsung?.name ?? "—";
                 return (
                   <tr key={k.id} style={{ borderBottom: "1px solid var(--border)" }}>
                     <td style={{ padding: "12px 16px", fontWeight: 500, color: C.text }}>{mandor}</td>

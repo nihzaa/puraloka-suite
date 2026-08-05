@@ -117,9 +117,26 @@ export default async function dashboardRoutes(app: FastifyInstance) {
 
       allKasbonsQuery,
 
+      // `requested_by` dan `project_id` ikut diambil sebagai JALUR CADANGAN.
+      //
+      // Nama mandor & proyek biasanya datang lewat rantai
+      // `work_scopes → mandor_assignments`. Tapi `work_scope_id` boleh NULL
+      // (kasbon yang tak terikat lingkup kerja), dan untuk kasbon seperti itu
+      // seluruh rantai putus — dashboard menampilkan "—" di kolom Mandor DAN
+      // Proyek, lalu tetap menyodorkan tombol "Setuju".
+      //
+      // Menyetujui pengeluaran uang tanpa tahu siapa yang meminta dan untuk
+      // proyek apa adalah kegagalan kontrol, bukan sekadar tampilan kosong.
+      //
+      // Dan informasinya SELALU ADA: `requested_by` NOT NULL di skema, dan
+      // `project_id` terisi. Diperiksa di data nyata — kasbon Rp 1 juta yang
+      // tampil "—/—" ternyata diajukan Pak Budi Santoso untuk proyek Renovasi
+      // Rumah Pak Andi. Datanya lengkap, cuma tak pernah diambil.
       db.from('kasbons')
         .select(`
           id, amount, fund_source, purpose, kasbon_date, notes, status, created_at,
+          pemohon:users!kasbons_requested_by_fkey ( id, name ),
+          proyek_langsung:projects!kasbons_project_id_fkey ( id, name ),
           work_scopes!kasbons_work_scope_id_fkey (
             scope_name, payment_system,
             mandor_assignments!work_scopes_assignment_id_fkey (
