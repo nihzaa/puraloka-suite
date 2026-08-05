@@ -736,6 +736,21 @@ jobs:
       - name: Ramp urgensi (--data-* bukan untuk tingkatan gawat)
         run: node scripts/uji-ramp-urgensi.mjs
 
+      # `rgba(0,51,102,0.2)` — navy merek yang dipaku — tak punya varian
+      # mode gelap. Yang samar-tapi-terlihat di latar putih menjadi TAK
+      # TERLIHAT di latar #12141F: ikon lima kartu KPI /procurement hilang
+      # sepenuhnya, menyisakan kotak kosong.
+      #
+      # Tak satu pun penjaga warna yang ada menangkapnya: hex-ratchet
+      # menghitung hex mentah, uji-token-merek memeriksa pembalikan mode,
+      # kontras-hex memeriksa pasangan sebaris. Tiap penjaga mengukur satu
+      # sumbu, dan pelanggaran di sumbu lain lewat sambil semuanya hijau.
+      #
+      # `boxShadow` dikecualikan: bayangan yang hilang adalah hiasan
+      # kedalaman, bukan isi.
+      - name: Warna buta-mode (rgba merek pada properti isi)
+        run: node scripts/uji-warna-buta-mode.mjs
+
       # Kontras warna — 260 dari 296 pelanggaran WCAG itu kontras, dan sampai
       # 2026-08-01 ia SATU-SATUNYA yang tak dijaga otomatis. Catatannya berbunyi
       # "butuh browser + login, kredensial di CI ditolak sadar" — benar untuk

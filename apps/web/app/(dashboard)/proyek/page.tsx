@@ -438,7 +438,7 @@ function ProyekContent() {
                   {tab.label}
                   <span style={{
                     fontSize: 10, fontWeight: 700,
-                    background: active ? "rgba(0,51,102,0.12)" : "var(--surface-hover)",
+                    background: active ? "color-mix(in srgb, var(--aksen) 18%, transparent)" : "var(--surface-hover)",
                     color: active ? C.navy : C.muted,
                     padding: "0px 6px", borderRadius: 99,
                   }}>

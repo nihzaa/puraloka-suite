@@ -2373,7 +2373,12 @@ function ProcurementKpiBar() {
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.07em", color: "var(--text-muted)", textTransform: "uppercase" }}>{c.label}</span>
-                <span style={{ color: "rgba(0,51,102,0.2)" }}>{c.icon}</span>
+                {/* Diturunkan dari `--aksen`, bukan navy yang dipaku.
+                    `rgba(0,51,102,0.2)` adalah abu-abu samar yang disengaja
+                    di latar terang, tapi di latar mode gelap navy gelap
+                    20% praktis TAK TERLIHAT — ikonnya hilang sama sekali
+                    dan kartu KPI tampil dengan kotak kosong di pojoknya. */}
+                <span style={{ color: "color-mix(in srgb, var(--aksen) 30%, transparent)" }}>{c.icon}</span>
               </div>
               <div style={{ display: "flex", alignItems: "baseline", gap: 2 }}>
                 {c.prefix && <span style={{ fontSize: 13, fontWeight: 700, color: c.accent, lineHeight: 1 }}>{c.prefix}</span>}

@@ -709,7 +709,7 @@ function DashboardContent() {
               <button key={opt.value} onClick={() => setPeriod(opt.value)} style={{
                 padding: "4px 12px", borderRadius: 999, fontSize: 11,
                 fontWeight: active ? 600 : 400,
-                border: active ? "1px solid rgba(0,51,102,0.25)" : "1px solid var(--border)",
+                border: active ? "1px solid color-mix(in srgb, var(--aksen) 35%, transparent)" : "1px solid var(--border)",
                 background: active ? C.navyLight : "var(--surface)",
                 color: active ? C.navy : C.mid,
                 cursor: "pointer", transition: "all 0.12s",
