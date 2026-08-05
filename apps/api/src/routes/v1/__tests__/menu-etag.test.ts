@@ -81,9 +81,25 @@ beforeAll(async () => {
     userB = adaB.rows[0].auth_id
     companyB = adaB.rows[0].company_id
   } else {
+    // Sengaja TANPA `ON CONFLICT DO UPDATE`: kalau run sebelumnya mati sebelum
+    // teardown, `DO UPDATE` akan memungut perusahaan lama itu tanpa mengisi
+    // `userBuatan` — dan cleanup di `afterAll` dilewati karena bergantung
+    // padanya. Fixture jadi permanen, persis kegagalan yang sudah terjadi.
+    // Sisa dari run yang mati dibongkar dulu, lalu dibuat baru.
+    const lama = await c.query(`SELECT id FROM companies WHERE code = 'uji-etag-menu'`)
+    if (lama.rows[0]) {
+      const idLama = lama.rows[0].id
+      await c.query(`DELETE FROM company_menu_settings WHERE company_id = $1`, [idLama])
+      await c.query(`DELETE FROM company_members WHERE company_id = $1`, [idLama])
+      await c.query(`DELETE FROM users WHERE email LIKE 'uji-etag-%@example.test'`)
+      await c.query(`SET session_replication_role = 'replica'`)
+      await c.query(`DELETE FROM companies WHERE id = $1`, [idLama])
+      await c.query(`SET session_replication_role = 'origin'`)
+    }
+
     companyB = (await c.query(
       `INSERT INTO companies (code, name) VALUES ('uji-etag-menu', '[TEST] Tenant ETag')
-       ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name RETURNING id`)).rows[0].id
+       RETURNING id`)).rows[0].id
 
     const authB = (await c.query(`SELECT gen_random_uuid() id`)).rows[0].id
     const roleId = a.rows[0].role_id
@@ -112,11 +128,25 @@ afterAll(async () => {
       [companyB, kunciDisembunyikan]).catch(() => {})
   }
   // Urutan terbalik dari pembuatan — anggota lebih dulu, lalu user, lalu
-  // perusahaan. Fixture yang tertinggal akan membuat test BERIKUTNYA melihat
-  // dua perusahaan dan mengambil cabang yang berbeda.
+  // perusahaan.
+  //
+  // Fixture yang tertinggal BUKAN gangguan kecil: sudah terbukti membuat
+  // `submittal-aturan` dan `t9-kelola-badan-usaha` merah, karena keduanya
+  // memeriksa integritas per-company dan tiba-tiba melihat tenant yang tak
+  // punya rantai approval maupun pemilik grup. Dua test merah karena sebab
+  // yang sama sekali tak berhubungan dengan yang mereka uji.
   if (anggotaBuatan) await c?.query(`DELETE FROM company_members WHERE id = $1`, [anggotaBuatan]).catch(() => {})
   if (userBuatan) await c?.query(`DELETE FROM users WHERE id = $1`, [userBuatan]).catch(() => {})
-  if (userBuatan && companyB) await c?.query(`DELETE FROM companies WHERE id = $1`, [companyB]).catch(() => {})
+  if (userBuatan && companyB) {
+    // `companies` dilindungi trigger off-boarding — penghapusan tenant lewat
+    // aplikasi memang HARUS ditolak (kehilangan data lintas puluhan tabel,
+    // tak bisa di-rollback). Untuk membongkar fixture uji, trigger dimatikan
+    // HANYA di sesi ini; perilaku produksi tak tersentuh. Pola yang sama
+    // dipakai `ahsp-endpoint.test.ts`.
+    await c?.query(`SET session_replication_role = 'replica'`).catch(() => {})
+    await c?.query(`DELETE FROM companies WHERE id = $1`, [companyB]).catch(() => {})
+    await c?.query(`SET session_replication_role = 'origin'`).catch(() => {})
+  }
   await app?.close()
   await c?.end()
 })

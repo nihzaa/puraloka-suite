@@ -292,7 +292,12 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
                     style={{
                       width: 22, height: 22, borderRadius: "50%", flexShrink: 0, marginTop: 1,
                       border: `2px solid ${isSelesai ? "var(--success)" : "var(--data-diam)"}`,
-                      background: isSelesai ? "var(--success)" : "white",
+                      // `var(--surface)`, BUKAN `"white"` dipaku: di mode gelap
+                      // putih literal membuat kotak centang yang BELUM selesai
+                      // jadi bulatan terang menyala di antara UI gelap — lebih
+                      // menonjol daripada yang sudah selesai, kebalikan dari
+                      // maksudnya.
+                      background: isSelesai ? "var(--success)" : "var(--surface)",
                       display: "flex", alignItems: "center", justifyContent: "center",
                       cursor: canEdit ? "pointer" : "default",
                       transition: "background 0.2s, border-color 0.2s",

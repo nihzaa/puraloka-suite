@@ -40,11 +40,29 @@ import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { join } from "node:path";
 
-const AKAR_API = join(process.cwd(), "..", "api", "src", "routes", "v1");
+/**
+ * Akar rute API — dicari, tidak diasumsikan dari `cwd`.
+ *
+ * Versi lama menghitungnya sebagai `cwd/../api/...` lalu `exit(0)` bila tak
+ * ketemu. Dijalankan dari akar repo, ia mencetak "penjaga dilewati" dan
+ * LOLOS HIJAU tanpa memeriksa satu berkas pun — penjaga yang mati diam-diam
+ * adalah persis jenis kegagalan yang penjaga ini dibuat untuk menangkap.
+ *
+ * Kini dicoba dari beberapa titik, dan kalau benar-benar tak ada ia GAGAL —
+ * karena "tak ketemu" berarti penjaganya rusak, bukan berarti kodenya bersih.
+ */
+const KANDIDAT = [
+  join(process.cwd(), "..", "api", "src", "routes", "v1"),
+  join(process.cwd(), "apps", "api", "src", "routes", "v1"),
+  join(process.cwd(), "..", "..", "apps", "api", "src", "routes", "v1"),
+];
+const AKAR_API = KANDIDAT.find((p) => existsSync(p));
 
-if (!existsSync(AKAR_API)) {
-  console.log("⚠️  Direktori rute API tak ditemukan — penjaga dilewati.");
-  process.exit(0);
+if (!AKAR_API) {
+  console.error("❌ Direktori rute API tak ditemukan di satu pun kandidat:");
+  for (const p of KANDIDAT) console.error("   " + p);
+  console.error("   Penjaga tak bisa memeriksa apa pun — ini kegagalan, bukan izin lewat.");
+  process.exit(1);
 }
 
 /** Kunci puncak yang dikembalikan tiap path literal, dari kode API. */
@@ -96,9 +114,15 @@ function petaBentukApi() {
 }
 
 const API = petaBentukApi();
+
+// Sisi web diturunkan dari akar API yang sudah ditemukan, BUKAN dari `cwd` —
+// supaya penjaga ini memberi hasil yang sama dijalankan dari mana pun. Versi
+// lama memakai `app components` relatif dan meledak di akar repo.
+const AKAR_WEB = join(AKAR_API, "..", "..", "..", "..", "web");
 const berkasWeb = execSync(`grep -rl "api.get(" app components --include=*.tsx`, {
   encoding: "utf8",
-}).trim().split("\n").filter(Boolean);
+  cwd: AKAR_WEB,
+}).trim().split("\n").filter(Boolean).map((f) => join(AKAR_WEB, f));
 
 const temuan = [];
 
