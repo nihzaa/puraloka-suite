@@ -23,6 +23,7 @@ import { ShieldCheck, ShieldAlert, ShieldX, CalendarClock, Plus, RefreshCw } fro
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
+import { Tabel, type Kolom } from "@/components/dasar";
 
 type Proyek = { id: string; name: string };
 
@@ -93,6 +94,101 @@ const rupiah = (n: number) =>
 
 const tanggalTerbaca = (iso: string) =>
   new Date(iso + "T00:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+
+/**
+ * Kolom register polis.
+ *
+ * Di luar komponen karena tak bergantung state apa pun — hanya `STATUS_META`
+ * dan dua pemformat di atas. Menaruhnya di dalam berarti seluruh definisi
+ * kolom dibangun ulang tiap ketikan di formulir catat-polis.
+ */
+const KOLOM_POLIS: Array<Kolom<Polis>> = [
+  {
+    kunci: "polis", judul: "Polis", kepalaBaris: true,
+    render: (p) => {
+      const meta = STATUS_META[p.status];
+      const mendesak = p.status === "kadaluarsa" || p.status === "segera_berakhir";
+      return (
+        // Garis aksen kiri pindah dari `<th>` ke pembungkus isinya: gaya sel
+        // kini milik `Tabel`, dan `tandaiBaris` hanya mengatur LATAR baris.
+        // Yang terlihat sama: batang berwarna di tepi kiri untuk polis yang
+        // menuntut tindakan.
+        <span style={{
+          display: "block", paddingLeft: 9, marginLeft: -12,
+          borderLeft: mendesak ? `3px solid ${meta.warna}` : "3px solid transparent",
+        }}>
+          {p.nomor_polis}
+          <span style={{ display: "block", fontSize: 11, color: C.mid, marginTop: 2 }}>
+            {p.jenis_label} · {p.penerbit}
+          </span>
+        </span>
+      );
+    },
+  },
+  {
+    kunci: "proyek", judul: "Proyek",
+    render: (p) => <span style={{ color: C.mid }}>{p.project_name}</span>,
+  },
+  {
+    kunci: "masa", judul: "Masa berlaku",
+    render: (p) => (
+      <span style={{ color: C.mid, whiteSpace: "nowrap" }}>
+        {tanggalTerbaca(p.periode_mulai)} – {tanggalTerbaca(p.periode_selesai)}
+      </span>
+    ),
+  },
+  {
+    kunci: "sisa", judul: "Sisa", rata: "kanan",
+    render: (p) => (
+      <span style={{
+        fontWeight: 600,
+        color: p.sisa_hari < 0 ? "var(--danger)" : p.sisa_hari <= 30 ? "var(--warning-teks)" : C.mid,
+      }}>
+        {p.sisa_hari < 0 ? `lewat ${Math.abs(p.sisa_hari)} h` : `${p.sisa_hari} h`}
+      </span>
+    ),
+  },
+  {
+    kunci: "celah", judul: "Celah", rata: "kanan",
+    // null ≠ 0. null = "tanggal proyek tak diketahui", 0 = "tertanggung
+    // penuh". Kabar baik palsu kalau keduanya ditulis sama.
+    render: (p) =>
+      p.celah_hari === null ? (
+        <span style={{ fontSize: 11, color: C.muted }}>tanggal proyek kosong</span>
+      ) : p.celah_hari === 0 ? (
+        <span style={{ color: "var(--success)", fontWeight: 600 }}>tertutup penuh</span>
+      ) : (
+        <>
+          <span style={{ color: "var(--danger)", fontWeight: 700 }}>{p.celah_hari} h</span>
+          <span style={{ display: "block", fontSize: 10, color: C.muted }}>
+            {p.celah_awal > 0 && `${p.celah_awal} h di awal`}
+            {p.celah_awal > 0 && p.celah_akhir > 0 && " · "}
+            {p.celah_akhir > 0 && `${p.celah_akhir} h di akhir`}
+          </span>
+        </>
+      ),
+  },
+  {
+    kunci: "nilai", judul: "Nilai pertanggungan", rata: "kanan",
+    render: (p) =>
+      p.nilai_pertanggungan === null
+        ? <span style={{ fontSize: 11, color: C.muted }}>belum diisi</span>
+        : <span style={{ color: C.text }}>{rupiah(p.nilai_pertanggungan)}</span>,
+  },
+  {
+    kunci: "status", judul: "Status",
+    render: (p) => {
+      const meta = STATUS_META[p.status];
+      return (
+        <span title={meta.arti} style={{
+          display: "inline-block", padding: "2px 8px", borderRadius: 20,
+          fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
+          color: meta.warna, background: meta.bg, border: `1px solid ${meta.border}`,
+        }}>{meta.label}</span>
+      );
+    },
+  },
+];
 
 export default function AsuransiPage() {
   const [proyek, setProyek] = useState<Proyek[]>([]);
@@ -372,93 +468,26 @@ export default function AsuransiPage() {
                 />
               ) : (
                 <div className="rise rise-3" style={{ ...kartu, overflow: "hidden" }}>
-                  <div style={{ overflowX: "auto" }}>
-                    <table style={{
-                      width: "100%", borderCollapse: "collapse", fontSize: 13,
-                      fontVariantNumeric: "tabular-nums", minWidth: 860,
-                    }}>
-                      <caption className="sr-only">
-                        Register polis asuransi: jenis, nomor, penerbit, masa berlaku,
-                        sisa hari, celah pertanggungan terhadap masa proyek, nilai
-                        pertanggungan, dan statusnya.
-                      </caption>
-                      <thead>
-                        <tr style={{ background: "var(--surface-subtle)" }}>
-                          {[
-                            ["Polis", "left"], ["Proyek", "left"], ["Masa berlaku", "left"],
-                            ["Sisa", "right"], ["Celah", "right"],
-                            ["Nilai pertanggungan", "right"], ["Status", "left"],
-                          ].map(([h, rata]) => (
-                            <th key={h} scope="col" style={{
-                              textAlign: rata as "left" | "right", padding: "8px 12px",
-                              fontSize: 10, fontWeight: 700, color: C.muted,
-                              textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap",
-                            }}>{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {hasil.polis.map((p) => {
-                          const meta = STATUS_META[p.status];
-                          const mendesak = p.status === "kadaluarsa" || p.status === "segera_berakhir";
-                          return (
-                            <tr key={p.id} style={{ borderTop: `1px solid ${C.border}` }}>
-                              <th scope="row" style={{
-                                textAlign: "left", padding: "10px 12px", fontWeight: 500, color: C.text,
-                                borderLeft: mendesak ? `3px solid ${meta.warna}` : "3px solid transparent",
-                              }}>
-                                {p.nomor_polis}
-                                <span style={{ display: "block", fontSize: 11, color: C.mid, marginTop: 2 }}>
-                                  {p.jenis_label} · {p.penerbit}
-                                </span>
-                              </th>
-                              <td style={{ padding: "10px 12px", color: C.mid }}>{p.project_name}</td>
-                              <td style={{ padding: "10px 12px", color: C.mid, whiteSpace: "nowrap" }}>
-                                {tanggalTerbaca(p.periode_mulai)} – {tanggalTerbaca(p.periode_selesai)}
-                              </td>
-                              <td style={{
-                                textAlign: "right", padding: "10px 12px", fontWeight: 600,
-                                color: p.sisa_hari < 0 ? "var(--danger)" : p.sisa_hari <= 30 ? "var(--warning-teks)" : C.mid,
-                              }}>
-                                {p.sisa_hari < 0 ? `lewat ${Math.abs(p.sisa_hari)} h` : `${p.sisa_hari} h`}
-                              </td>
-                              <td style={{ textAlign: "right", padding: "10px 12px" }}>
-                                {/* null ≠ 0. null = "tanggal proyek tak diketahui",
-                                    0 = "tertanggung penuh". Kabar baik palsu kalau
-                                    keduanya ditulis sama. */}
-                                {p.celah_hari === null ? (
-                                  <span style={{ fontSize: 11, color: C.muted }}>tanggal proyek kosong</span>
-                                ) : p.celah_hari === 0 ? (
-                                  <span style={{ color: "var(--success)", fontWeight: 600 }}>tertutup penuh</span>
-                                ) : (
-                                  <>
-                                    <span style={{ color: "var(--danger)", fontWeight: 700 }}>{p.celah_hari} h</span>
-                                    <span style={{ display: "block", fontSize: 10, color: C.muted }}>
-                                      {p.celah_awal > 0 && `${p.celah_awal} h di awal`}
-                                      {p.celah_awal > 0 && p.celah_akhir > 0 && " · "}
-                                      {p.celah_akhir > 0 && `${p.celah_akhir} h di akhir`}
-                                    </span>
-                                  </>
-                                )}
-                              </td>
-                              <td style={{ textAlign: "right", padding: "10px 12px", color: C.text }}>
-                                {p.nilai_pertanggungan === null
-                                  ? <span style={{ fontSize: 11, color: C.muted }}>belum diisi</span>
-                                  : rupiah(p.nilai_pertanggungan)}
-                              </td>
-                              <td style={{ padding: "10px 12px" }}>
-                                <span title={meta.arti} style={{
-                                  display: "inline-block", padding: "2px 8px", borderRadius: 20,
-                                  fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
-                                  color: meta.warna, background: meta.bg, border: `1px solid ${meta.border}`,
-                                }}>{meta.label}</span>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                  {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). Caption
+                      sr-only, kolom pertama <th scope="row">, tabular-nums,
+                      dan pembungkus overflow-x sekarang dijamin komponen —
+                      empat hal yang tabel mentah harus ingat ulang tiap kali
+                      kolomnya bertambah, dan tabel ini sudah punya tujuh.
+
+                      Kepala baris = nomor polis. Itu yang dicari orang saat
+                      klaim ("polis mana yang menanggung 15 Februari?"), dan
+                      itu yang tercetak di dokumen fisiknya. Nama proyek tidak
+                      dipakai: satu proyek bisa punya beberapa polis (CAR dan
+                      TPL terpisah), jadi ia tak membedakan baris.
+
+                      `minWidth: 860` dilepas — gulir horizontal sudah datang
+                      dari pembungkus komponen. */}
+                  <Tabel<Polis>
+                    caption="Register polis asuransi: jenis, nomor, penerbit, masa berlaku, sisa hari, celah pertanggungan terhadap masa proyek, nilai pertanggungan, dan statusnya."
+                    data={hasil.polis}
+                    kunciBaris={(p) => p.id}
+                    kolom={KOLOM_POLIS}
+                  />
 
                   <p style={{
                     margin: 0, padding: "10px 14px", borderTop: `1px solid ${C.border}`,

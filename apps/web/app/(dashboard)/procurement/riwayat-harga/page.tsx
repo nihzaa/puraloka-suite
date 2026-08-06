@@ -29,6 +29,7 @@ import { TrendingUp, TrendingDown, Minus, LineChart, RefreshCw } from "lucide-re
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
+import { Tabel, type Kolom } from "@/components/dasar";
 
 type Proyek = { id: string; name: string };
 
@@ -145,6 +146,115 @@ export default function RiwayatHargaPage() {
         ? { warna: "var(--success)", Ikon: TrendingDown, kata: "turun" }
         : { warna: C.mid, Ikon: Minus, kata: "tetap" };
 
+  /**
+   * Kolom "material yang bergerak".
+   *
+   * Ditulis di dalam komponen karena `arah()` ada di sini — memindahkannya ke
+   * luar berarti menyalin peta warna/ikon ke tempat kedua, dan dua salinan
+   * arah harga adalah persis cara laporan "+20%" untuk harga yang TURUN lahir
+   * (lihat catatan kepala berkas).
+   */
+  const kolomBergerak: Array<Kolom<Material>> = [
+    {
+      kunci: "material", judul: "Material", kepalaBaris: true,
+      render: (m) => {
+        const a = arah(m.perubahan_pct);
+        return (
+          // Garis aksen kiri dipindahkan dari `<th>` ke pembungkus isinya:
+          // `Tabel` yang memiliki gaya selnya, dan `tandaiBaris` hanya bisa
+          // mengubah LATAR baris — bukan garis tepi. Yang terlihat sama:
+          // batang berwarna setinggi isi sel, di tepi kiri.
+          <span style={{
+            display: "block", paddingLeft: 9, marginLeft: -12,
+            borderLeft: `3px solid ${m.perubahan_pct === 0 ? "transparent" : a.warna}`,
+          }}>
+            {m.material_name}
+            {m.unit && <span style={{ fontSize: 11, color: C.mid }}> · {m.unit}</span>}
+            <span style={{ display: "block", fontSize: 10, color: C.muted, marginTop: 2 }}>
+              {m.titik.length} kali beli · {m.titik.map((t) => tanggalTerbaca(t.tanggal)).join(" → ")}
+            </span>
+          </span>
+        );
+      },
+    },
+    {
+      kunci: "pertama", judul: "Pertama", rata: "kanan",
+      render: (m) => <span style={{ color: C.mid }}>{rupiah(m.harga_awal)}</span>,
+    },
+    {
+      kunci: "terakhir", judul: "Terakhir", rata: "kanan",
+      render: (m) => <span style={{ color: C.text, fontWeight: 600 }}>{rupiah(m.harga_akhir)}</span>,
+    },
+    {
+      kunci: "perubahan", judul: "Perubahan", rata: "kanan",
+      render: (m) => {
+        const a = arah(m.perubahan_pct);
+        return (
+          // Ikon panah ikut serta — arah tak boleh bergantung warna saja
+          // (WCAG 1.4.1), dan kata "naik"/"turun" dibacakan pembaca layar
+          // lewat sr-only.
+          <span style={{
+            display: "inline-flex", alignItems: "center", gap: 4,
+            justifyContent: "flex-end", fontWeight: 700, color: a.warna,
+          }}>
+            <a.Ikon size={13} aria-hidden="true" />
+            <span className="sr-only">{a.kata} </span>
+            {m.perubahan_pct > 0 ? "+" : ""}{m.perubahan_pct.toFixed(1)}%
+          </span>
+        );
+      },
+    },
+    {
+      kunci: "rentang", judul: "Rentang", rata: "kanan",
+      render: (m) => <span style={{ color: C.mid }}>{m.rentang_hari} hari</span>,
+    },
+    {
+      kunci: "dasar", judul: "Dasar",
+      // Seberapa jauh angkanya bisa dipercaya, DINYATAKAN. Dua titik bisa
+      // berarti satu pembelian borongan yang kebetulan murah — bukan tren.
+      render: (m) => (
+        <span style={{
+          fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20,
+          color: m.cukup_untuk_tren ? "var(--info)" : "var(--text-secondary)",
+          background: m.cukup_untuk_tren ? "var(--info-bg)" : "var(--surface-subtle)",
+          border: `1px solid ${m.cukup_untuk_tren ? "var(--info-border)" : "var(--border)"}`,
+          whiteSpace: "nowrap",
+        }}>
+          {m.cukup_untuk_tren ? "cukup untuk tren" : `baru ${m.titik.length} titik`}
+        </span>
+      ),
+    },
+  ];
+
+  /** Kolom "baru sekali beli" — tak punya arah, jadi tak punya warna. */
+  const kolomSatuTitik: Array<Kolom<Material>> = [
+    {
+      kunci: "material", judul: "Material", kepalaBaris: true,
+      render: (m) => (
+        <>
+          {m.material_name}
+          {m.unit && <span style={{ fontSize: 11, color: C.mid }}> · {m.unit}</span>}
+        </>
+      ),
+    },
+    {
+      kunci: "harga", judul: "Harga", rata: "kanan",
+      render: (m) => <span style={{ color: C.text }}>{rupiah(m.harga_akhir)}</span>,
+    },
+    {
+      kunci: "tanggal", judul: "Tanggal",
+      render: (m) => (
+        <span style={{ color: C.mid, whiteSpace: "nowrap" }}>
+          {m.titik[0] ? tanggalTerbaca(m.titik[0].tanggal) : "—"}
+        </span>
+      ),
+    },
+    {
+      kunci: "vendor", judul: "Vendor",
+      render: (m) => <span style={{ color: C.mid }}>{m.titik[0]?.vendor_terbaik ?? "—"}</span>,
+    },
+  ];
+
   return (
     <div style={{
       padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
@@ -244,84 +354,25 @@ export default function RiwayatHargaPage() {
           {/* ── Material yang bergerak ───────────────────────────────── */}
           {bergerak.length > 0 && (
             <div className="rise rise-3" style={{ ...kartu, overflow: "hidden", marginBottom: 16 }}>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{
-                  width: "100%", borderCollapse: "collapse", fontSize: 13,
-                  fontVariantNumeric: "tabular-nums", minWidth: 700,
-                }}>
-                  <caption className="sr-only">
-                    Material yang harganya bergerak: harga pembelian pertama,
-                    harga terakhir, arah dan besar perubahan, rentang waktu,
-                    serta apakah titiknya cukup untuk disebut tren.
-                  </caption>
-                  <thead>
-                    <tr style={{ background: "var(--surface-subtle)" }}>
-                      {[
-                        ["Material", "left"], ["Pertama", "right"], ["Terakhir", "right"],
-                        ["Perubahan", "right"], ["Rentang", "right"], ["Dasar", "left"],
-                      ].map(([h, rata]) => (
-                        <th key={h} scope="col" style={{
-                          textAlign: rata as "left" | "right", padding: "8px 12px",
-                          fontSize: 10, fontWeight: 700, color: C.muted,
-                          textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap",
-                        }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {bergerak.map((m) => {
-                      const a = arah(m.perubahan_pct);
-                      return (
-                        <tr key={m.material_id} style={{ borderTop: `1px solid ${C.border}` }}>
-                          <th scope="row" style={{
-                            textAlign: "left", padding: "10px 12px", fontWeight: 500, color: C.text,
-                            borderLeft: `3px solid ${m.perubahan_pct === 0 ? "transparent" : a.warna}`,
-                          }}>
-                            {m.material_name}
-                            {m.unit && <span style={{ fontSize: 11, color: C.mid }}> · {m.unit}</span>}
-                            <span style={{ display: "block", fontSize: 10, color: C.muted, marginTop: 2 }}>
-                              {m.titik.length} kali beli · {m.titik.map((t) => tanggalTerbaca(t.tanggal)).join(" → ")}
-                            </span>
-                          </th>
-                          <td style={{ textAlign: "right", padding: "10px 12px", color: C.mid }}>
-                            {rupiah(m.harga_awal)}
-                          </td>
-                          <td style={{ textAlign: "right", padding: "10px 12px", color: C.text, fontWeight: 600 }}>
-                            {rupiah(m.harga_akhir)}
-                          </td>
-                          <td style={{ textAlign: "right", padding: "10px 12px", fontWeight: 700, color: a.warna }}>
-                            {/* Ikon panah ikut serta — arah tak boleh bergantung
-                                warna saja (WCAG 1.4.1), dan kata "naik"/"turun"
-                                dibacakan pembaca layar lewat sr-only. */}
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, justifyContent: "flex-end" }}>
-                              <a.Ikon size={13} aria-hidden="true" />
-                              <span className="sr-only">{a.kata} </span>
-                              {m.perubahan_pct > 0 ? "+" : ""}{m.perubahan_pct.toFixed(1)}%
-                            </span>
-                          </td>
-                          <td style={{ textAlign: "right", padding: "10px 12px", color: C.mid }}>
-                            {m.rentang_hari} hari
-                          </td>
-                          <td style={{ padding: "10px 12px" }}>
-                            {/* Seberapa jauh angkanya bisa dipercaya, DINYATAKAN.
-                                Dua titik bisa berarti satu pembelian borongan
-                                yang kebetulan murah — bukan tren. */}
-                            <span style={{
-                              fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20,
-                              color: m.cukup_untuk_tren ? "var(--info)" : "var(--text-secondary)",
-                              background: m.cukup_untuk_tren ? "var(--info-bg)" : "var(--surface-subtle)",
-                              border: `1px solid ${m.cukup_untuk_tren ? "var(--info-border)" : "var(--border)"}`,
-                              whiteSpace: "nowrap",
-                            }}>
-                              {m.cukup_untuk_tren ? "cukup untuk tren" : `baru ${m.titik.length} titik`}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). Caption sr-only,
+                  kolom pertama <th scope="row">, tabular-nums, dan pembungkus
+                  overflow-x sekarang dijamin komponen. `tabular-nums` penting
+                  khusus di sini: seluruh guna tabel ini adalah membandingkan
+                  "Pertama" dengan "Terakhir" sekilas, dan itu hanya bekerja
+                  bila digitnya sejajar.
+
+                  Kepala baris = nama material. Itu yang menamai barisnya;
+                  "12 Mar 2026" tidak, karena banyak material dibeli di hari
+                  yang sama dan tanggalnya tak membedakan apa pun.
+
+                  `minWidth: 700` dilepas — gulir horizontal datang dari
+                  pembungkus komponen. */}
+              <Tabel<Material>
+                caption="Material yang harganya bergerak: harga pembelian pertama, harga terakhir, arah dan besar perubahan, rentang waktu, serta apakah titiknya cukup untuk disebut tren."
+                data={bergerak}
+                kunciBaris={(m) => m.material_id}
+                kolom={kolomBergerak}
+              />
 
               <p style={{
                 margin: 0, padding: "10px 14px", borderTop: `1px solid ${C.border}`,
@@ -349,46 +400,23 @@ export default function RiwayatHargaPage() {
                   Bukan berarti harganya tetap. Belum ada pembanding sama sekali.
                 </p>
               </div>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{
-                  width: "100%", borderCollapse: "collapse", fontSize: 13,
-                  fontVariantNumeric: "tabular-nums", minWidth: 480,
-                }}>
-                  <caption className="sr-only">
-                    Material yang baru sekali dibeli: nama, harga, dan tanggal pembelian.
-                  </caption>
-                  <thead>
-                    <tr style={{ background: "var(--surface-subtle)" }}>
-                      {[["Material", "left"], ["Harga", "right"], ["Tanggal", "left"], ["Vendor", "left"]].map(([h, rata]) => (
-                        <th key={h} scope="col" style={{
-                          textAlign: rata as "left" | "right", padding: "8px 12px",
-                          fontSize: 10, fontWeight: 700, color: C.muted,
-                          textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap",
-                        }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {satuTitik.map((m) => (
-                      <tr key={m.material_id} style={{ borderTop: `1px solid ${C.border}` }}>
-                        <th scope="row" style={{ textAlign: "left", padding: "10px 12px", fontWeight: 500, color: C.text }}>
-                          {m.material_name}
-                          {m.unit && <span style={{ fontSize: 11, color: C.mid }}> · {m.unit}</span>}
-                        </th>
-                        <td style={{ textAlign: "right", padding: "10px 12px", color: C.text }}>
-                          {rupiah(m.harga_akhir)}
-                        </td>
-                        <td style={{ padding: "10px 12px", color: C.mid, whiteSpace: "nowrap" }}>
-                          {m.titik[0] ? tanggalTerbaca(m.titik[0].tanggal) : "—"}
-                        </td>
-                        <td style={{ padding: "10px 12px", color: C.mid }}>
-                          {m.titik[0]?.vendor_terbaik ?? "—"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). Caption sr-only,
+                  kolom pertama <th scope="row">, tabular-nums, dan pembungkus
+                  overflow-x sekarang dijamin komponen.
+
+                  Kepala baris = nama material, sama seperti tabel di atasnya.
+                  Kedua tabel di halaman ini menjawab pertanyaan yang sama
+                  ("material apa"), jadi keduanya harus dinamai dengan sumbu
+                  yang sama — pembaca layar yang melompat antar tabel tak
+                  perlu menyesuaikan diri.
+
+                  `minWidth: 480` dilepas — pembungkus komponen yang menggulir. */}
+              <Tabel<Material>
+                caption="Material yang baru sekali dibeli: nama, harga, dan tanggal pembelian."
+                data={satuTitik}
+                kunciBaris={(m) => m.material_id}
+                kolom={kolomSatuTitik}
+              />
             </div>
           )}
         </>

@@ -24,6 +24,7 @@ import { FileText, RefreshCw, Plus, Award } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
+import { Tabel, type Kolom } from "@/components/dasar";
 
 type Proyek = { id: string; name: string };
 
@@ -162,6 +163,81 @@ export default function RfqPage() {
     () => (tabulasi?.vendor ?? []).filter((v) => v.lengkap),
     [tabulasi],
   );
+
+  /**
+   * Kolom tabulasi — DITURUNKAN dari daftar vendor, bukan ditulis tetap.
+   *
+   * Tiap vendor jadi satu kolom, jadi jumlah kolomnya berubah per RFQ. Itu
+   * sebabnya `kolom` dibangun di sini alih-alih di luar komponen: `Tabel`
+   * menerima array biasa, dan array itu boleh sepanjang apa pun.
+   *
+   * Sel dicari lewat `find` pada `supplier_id`, bukan lewat indeks. Urutan
+   * `b.sel` datang dari API dan tak dijamin sejajar dengan `tabulasi.vendor`;
+   * mencocokkan lewat indeks membuat harga vendor A muncul di kolom vendor B
+   * tanpa satu pun tanda bahwa ada yang salah.
+   */
+  const kolomTabulasi = useMemo<Array<Kolom<BarisTabulasi>>>(() => {
+    const vendor = tabulasi?.vendor ?? [];
+    return [
+      {
+        kunci: "material", judul: "Material", kepalaBaris: true,
+        render: (b) => (
+          <>
+            {b.material_name}
+            {b.unit && <span style={{ fontSize: 11, color: C.mid }}> · {b.unit}</span>}
+          </>
+        ),
+      },
+      {
+        kunci: "qty", judul: "Qty", rata: "kanan",
+        render: (b) => <span style={{ color: C.mid }}>{angka(b.qty)}</span>,
+      },
+      ...vendor.map((v): Kolom<BarisTabulasi> => ({
+        kunci: v.supplier_id, judul: v.supplier_name, rata: "kanan",
+        render: (b) => {
+          const s = b.sel.find((x) => x.supplier_id === v.supplier_id);
+          if (!s || s.harga_satuan == null) {
+            // "Tidak menawar" ditulis sebagai KATA, bukan sel kosong: sel
+            // kosong tak bisa dibedakan dari data yang hilang.
+            return <span style={{ fontSize: 11, color: C.muted }}>tak menawar</span>;
+          }
+          return (
+            <span style={{
+              color: s.termurah ? "var(--success)" : C.text,
+              fontWeight: s.termurah ? 700 : 400,
+            }}>
+              {rupiah(s.harga_satuan)}
+              {s.termurah ? (
+                <span style={{ display: "block", fontSize: 10, fontWeight: 600, color: "var(--success)" }}>
+                  termurah
+                </span>
+              ) : s.selisih_pct != null && s.selisih_pct > 0 ? (
+                <span style={{ display: "block", fontSize: 10, fontWeight: 400, color: C.muted }}>
+                  +{s.selisih_pct.toFixed(1)}%
+                </span>
+              ) : null}
+            </span>
+          );
+        },
+      })),
+      {
+        kunci: "rentang", judul: "Rentang", rata: "kanan",
+        render: (b) => (
+          <span style={{
+            fontWeight: 700,
+            color: b.rentang_pct == null ? C.muted
+              : b.rentang_pct >= 10 ? "var(--danger)" : C.mid,
+          }}>
+            {b.rentang_pct == null ? (
+              <span style={{ fontSize: 11, fontWeight: 400 }}>
+                {b.harga_termurah == null ? "tak ada penawaran" : "1 penawar"}
+              </span>
+            ) : `${b.rentang_pct.toFixed(1)}%`}
+          </span>
+        ),
+      },
+    ];
+  }, [tabulasi]);
 
   const kartu: React.CSSProperties = {
     background: "var(--surface)", border: `1px solid ${C.border}`,
@@ -369,93 +445,28 @@ export default function RfqPage() {
 
                   {/* ── Tabulasi ──────────────────────────────────────── */}
                   <div className="rise rise-3" style={{ ...kartu, overflow: "hidden" }}>
-                    <div style={{ overflowX: "auto" }}>
-                      <table style={{
-                        width: "100%", borderCollapse: "collapse", fontSize: 13,
-                        fontVariantNumeric: "tabular-nums", minWidth: 720,
-                      }}>
-                        <caption className="sr-only">
-                          Perbandingan penawaran vendor untuk RFQ {rfqAktif?.nomor ?? "—"}:
-                          harga satuan tiap vendor per material, penanda vendor termurah,
-                          dan selisih terhadapnya.
-                        </caption>
-                        <thead>
-                          <tr style={{ background: "var(--surface-subtle)" }}>
-                            <th scope="col" style={{
-                              textAlign: "left", padding: "8px 12px", fontSize: 10, fontWeight: 700,
-                              color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em",
-                            }}>Material</th>
-                            <th scope="col" style={{
-                              textAlign: "right", padding: "8px 12px", fontSize: 10, fontWeight: 700,
-                              color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap",
-                            }}>Qty</th>
-                            {tabulasi.vendor.map((v) => (
-                              <th key={v.supplier_id} scope="col" style={{
-                                textAlign: "right", padding: "8px 12px", fontSize: 10, fontWeight: 700,
-                                color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap",
-                              }}>{v.supplier_name}</th>
-                            ))}
-                            <th scope="col" style={{
-                              textAlign: "right", padding: "8px 12px", fontSize: 10, fontWeight: 700,
-                              color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap",
-                            }}>Rentang</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {tabulasi.baris.map((b) => (
-                            <tr key={b.material_id} style={{ borderTop: `1px solid ${C.border}` }}>
-                              <th scope="row" style={{
-                                textAlign: "left", padding: "10px 12px", fontWeight: 500, color: C.text,
-                              }}>
-                                {b.material_name}
-                                {b.unit && <span style={{ fontSize: 11, color: C.mid }}> · {b.unit}</span>}
-                              </th>
-                              <td style={{ textAlign: "right", padding: "10px 12px", color: C.mid }}>
-                                {angka(b.qty)}
-                              </td>
-                              {b.sel.map((s) => (
-                                <td key={s.supplier_id} style={{
-                                  textAlign: "right", padding: "10px 12px",
-                                  color: s.harga_satuan == null ? C.muted : s.termurah ? "var(--success)" : C.text,
-                                  fontWeight: s.termurah ? 700 : 400,
-                                }}>
-                                  {s.harga_satuan == null ? (
-                                    // "Tidak menawar" ditulis sebagai KATA, bukan
-                                    // sel kosong: sel kosong tak bisa dibedakan dari
-                                    // data yang hilang.
-                                    <span style={{ fontSize: 11 }}>tak menawar</span>
-                                  ) : (
-                                    <>
-                                      {rupiah(s.harga_satuan)}
-                                      {s.termurah ? (
-                                        <span style={{ display: "block", fontSize: 10, fontWeight: 600, color: "var(--success)" }}>
-                                          termurah
-                                        </span>
-                                      ) : s.selisih_pct != null && s.selisih_pct > 0 ? (
-                                        <span style={{ display: "block", fontSize: 10, color: C.muted }}>
-                                          +{s.selisih_pct.toFixed(1)}%
-                                        </span>
-                                      ) : null}
-                                    </>
-                                  )}
-                                </td>
-                              ))}
-                              <td style={{
-                                textAlign: "right", padding: "10px 12px", fontWeight: 700,
-                                color: b.rentang_pct == null ? C.muted
-                                  : b.rentang_pct >= 10 ? "var(--danger)" : C.mid,
-                              }}>
-                                {b.rentang_pct == null ? (
-                                  <span style={{ fontSize: 11, fontWeight: 400 }}>
-                                    {b.harga_termurah == null ? "tak ada penawaran" : "1 penawar"}
-                                  </span>
-                                ) : `${b.rentang_pct.toFixed(1)}%`}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                    {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). Caption
+                        sr-only, kolom pertama <th scope="row">, tabular-nums,
+                        dan pembungkus overflow-x sekarang dijamin komponen —
+                        empat hal yang tabel mentah harus ingat ulang setiap
+                        kali, dan yang di sini justru paling mudah terlupa:
+                        jumlah kolomnya berubah tiap RFQ, jadi tak ada bentuk
+                        tetap yang bisa dihafal penyuntingnya.
+
+                        Kepala baris tetap "Material" — ia memang yang menamai
+                        barisnya. Pengguna pembaca layar yang menyusuri kolom
+                        vendor akan mendengar "Besi Ø12mm, Rp 120.000"; tanpa
+                        penandaan itu yang terdengar cuma angkanya.
+
+                        `minWidth: 720` sengaja dilepas, bukan lupa: gulir
+                        horizontal sudah datang dari pembungkus komponen, dan
+                        lebar mati tak perlu masuk ke primitif bersama. */}
+                    <Tabel<BarisTabulasi>
+                      caption={`Perbandingan penawaran vendor untuk RFQ ${rfqAktif?.nomor ?? "—"}: harga satuan tiap vendor per material, penanda vendor termurah, dan selisih terhadapnya.`}
+                      data={tabulasi.baris}
+                      kunciBaris={(b) => b.material_id}
+                      kolom={kolomTabulasi}
+                    />
 
                     <p style={{
                       margin: 0, padding: "10px 14px", borderTop: `1px solid ${C.border}`,
