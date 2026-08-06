@@ -1,25 +1,46 @@
-import { ambilKonten, teks } from '@/lib/konten'
+import type { ComponentType } from 'react'
+import { ambilKonten, type KontenSitus } from '@/lib/konten'
+import { Hero } from '@/components/seksi/Hero'
+import { Bukti } from '@/components/seksi/Bukti'
+import { Proses } from '@/components/seksi/Proses'
+import { Portofolio } from '@/components/seksi/Portofolio'
+import { Legalitas } from '@/components/seksi/Legalitas'
+import { Kontak } from '@/components/seksi/Kontak'
 
 export const revalidate = 300
 
+/**
+ * Peta kunci-seksi → komponen.
+ *
+ * Urutan dan on/off datang dari `situs_seksi` di DB, BUKAN dari urutan tulis di
+ * berkas ini. Admin mematikan sebuah seksi lewat dashboard dan ia hilang tanpa
+ * deploy — itu maksud CMS tingkat 3 (spec §4).
+ *
+ * Kunci yang tak punya komponen sengaja dilewati diam-diam: itu berarti
+ * seksinya belum dibangun, bukan datanya rusak.
+ */
+const KOMPONEN: Record<string, ComponentType<{ konten: KontenSitus }>> = {
+  hero: Hero,
+  bukti: Bukti,
+  proses: Proses,
+  portofolio: Portofolio,
+  legalitas: Legalitas,
+  kontak: Kontak,
+}
+
 export default async function Beranda() {
-  const k = await ambilKonten()
+  const konten = await ambilKonten()
+
+  const seksi = konten.seksi
+    .filter((s) => s.aktif && KOMPONEN[s.kunci])
+    .sort((a, b) => a.urutan - b.urutan)
 
   return (
-    <main id="isi" className="wadah" style={{ paddingBlock: 'var(--ritme)' }}>
-      <p className="eyebrow">Sejak {teks(k, 'merek.sejak')}</p>
-      <h1 style={{ fontSize: 'var(--ukuran-hero)', maxWidth: '18ch' }}>
-        {teks(k, 'hero.judul')}
-      </h1>
-      <p style={{ color: 'var(--pada-navy-redup)', maxWidth: '48ch', marginTop: '1.5rem' }}>
-        {teks(k, 'hero.sub')}
-      </p>
-
-      <p style={{ marginTop: 'var(--ritme)', color: 'var(--pada-navy-redup)' }}>
-        {k.kategori.length} kategori · {k.milestone.length} milestone ·{' '}
-        {k.legalitas.length} KBLI ·{' '}
-        {k.kategori.reduce((n, kat) => n + kat.media.length, 0)} foto
-      </p>
+    <main id="isi">
+      {seksi.map((s) => {
+        const Seksi = KOMPONEN[s.kunci]
+        return <Seksi key={s.kunci} konten={konten} />
+      })}
     </main>
   )
 }
