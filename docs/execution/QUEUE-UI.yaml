@@ -92,28 +92,39 @@ items:
       - "kontras-hex-ratchet tetap hijau"
     cara_verifikasi: "node scripts/kontras-hex-ratchet.mjs + periksa mode gelap"
     bobot: S
-    status: ditahan-menunggu-perbandingan-visual
+    status: dicoret
     catatan: |
-      ⏸ DITAHAN 2026-08-07. Founder tidak menolak indigo dan tidak
-      menyetujuinya — ia menolak MEMUTUSKAN WARNA DARI TEKS:
-      "tunjukkan dulu, baru saya putuskan".
+      ❌ DICORET 2026-08-07 sesudah founder MELIHAT perbandingannya.
 
-      Yang harus dikerjakan (bukan ditanyakan lagi):
-        1. dashboard versi navy vs versi indigo BERDAMPINGAN
-        2. tangkap layar keduanya di KEDUA mode (scripts/tangkap-layar.mjs)
-        3. tunjukkan gambarnya → founder memutuskan
+      Perjalanannya: founder tidak menolak indigo dan tidak menyetujuinya —
+      ia menolak MEMUTUSKAN WARNA DARI TEKS ("tunjukkan dulu, baru saya
+      putuskan"). Perbandingan dibangun (`scripts/banding-aksen.mjs`,
+      4 tangkapan: navy/indigo × terang/gelap), dilihat, lalu diputuskan:
+      **tetap navy**.
 
-      Bentrok tercatat: commit 4b199c2 menandai indigo "DISETUJUI" pada hari
-      yang sama founder menjawab "sudah lumayan cocok dengan warna ini" ke
-      sesi ini. Dua catatan berlawanan. Yang berlaku: DITAHAN sampai gambar
-      dilihat.
+      KENAPA USULNYA GAGAL — terlihat begitu dirender
 
-      Navy #003366 TETAP — itu merek. Yang ditambah aksen indigo #6366F1
-      untuk yang paling penting di layar.
+      Indigo hanya menyentuh EMPAT tempat: garis grafik arus kas, sparkline
+      KPI, irisan aktif donat, progress bar. Kartu KPI, sidebar, lencana, dan
+      tautan SEMUANYA tetap navy — mereka memakai token `--navy`, bukan
+      `--aksen`.
 
-      Riset palet mengembalikan 4 kandidat, SEMUANYA biru-di-atas-biru — dan
-      itu persis penyebab monoton hari ini. Indigo dipilih karena bertetangga
-      dengan navy (satu keluarga) tapi cukup berbeda untuk menonjol.
+      Hasilnya bukan "lebih hidup" melainkan TIDAK MENYATU: garis grafik ungu
+      di dalam kartu bertepi navy terbaca seperti komponen dari aplikasi lain.
+
+      Mode gelap lebih telak. Di sana `--aksen` navy sudah jadi biru TERANG
+      (#7ABDFF), jadi indigo terang di sebelah kartu KPI biru cerah terbaca
+      KUSAM — dua biru yang berselisih sedikit, bukan dua warna yang
+      berpasangan. Itu persis penyakit "biru-di-atas-biru" yang dokumen
+      janjikan akan disembuhkan.
+
+      Pelajarannya bukan "indigo warna jelek". Usulnya lahir dari membaca
+      DAFTAR TOKEN, bukan dari melihat berapa banyak layar yang benar-benar
+      dikendalikan token itu. Empat dari belasan elemen berwarna — terlalu
+      sedikit untuk mengubah kesan, cukup banyak untuk merusak kesatuan.
+
+      Navy #003366 TETAP jadi aksen tunggal. Nilai `--aksen*` di globals.css
+      TIDAK diubah.
 
   - id: UI-0-3
     lapis: 0

@@ -404,7 +404,7 @@ cd apps/web && for g in a11y-ratchet kontras-hex-ratchet hex-ratchet \
 
 | # | Pertanyaan | Usul saya | Keputusan |
 |---|---|---|---|
-| 1 | Palet aksen indigo `#6366F1` | indigo | ⏸ **DITAHAN** — founder minta *"tunjukkan dulu, baru saya putuskan"*. Bangun perbandingan visual, jangan tanya lagi lewat teks |
+| 1 | Palet aksen indigo `#6366F1` | indigo | ❌ **DITOLAK** sesudah dilihat — lihat §10d. Navy tetap aksen tunggal |
 | 2 | Sidebar gelap `#0B1220` permanen | ya | ❌ **DITOLAK** — *"tergantung pada mode-nya, dark atau light"*. Sidebar ikut tema. **§5d dicoret** |
 | 3 | Tab dipecah jadi halaman | ya (keuangan/mandor/kas) | ✅ **SETUJU** — keuangan **sudah selesai** (3.449 → 523 baris, 5 sub-halaman). Sisa: mandor, kas |
 | 4 | Halaman contoh mana dulu | Dashboard | ✅ **SETUJU** |
