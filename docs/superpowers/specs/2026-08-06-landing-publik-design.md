@@ -183,6 +183,12 @@ tahu sebabnya.
    > `--warning` (#B45309) lolos di putih (5,02:1) dan `--warning-bg` (4,84:1),
    > tapi GAGAL di latar biru muda #ebf2ff: 4,46:1 — kurang 0,04 dari ambang,
    > dan itu 95 pelanggaran di satu halaman.
+
+   **Validator harus sadar konteks, bukan menolak per-warna.** Kuning merek
+   `#FFD600` lulus 11,77:1 di navy pekat tapi gagal 1,41:1 di putih — warna
+   yang sama, dua verdikt. Yang divalidasi adalah **pasangan (warna, latar,
+   peran)**, bukan warna tunggal. Validator naif akan menolak warna merek
+   perusahaan sendiri.
 3. **Budget performa yang tidak bisa dilanggar.** Berapa pun setelan admin,
    adegan tetap punya batas draw call dan turun otomatis di perangkat lemah.
    Setelan admin adalah **permintaan, bukan perintah**.
@@ -212,6 +218,62 @@ Landing **mewarisi identitas merek dan metode a11y**, bukan sistem visualnya.
   `--grad-merek` di `globals.css:310-325`). Warna merek harus konsisten atau
   pengenalan rusak.
 - **Metode** pengukuran kontras terhadap latar sebenarnya.
+
+#### Kuning merek `#FFD600` — warna kedua yang wajib ada
+
+Diekstrak terukur dari compro PDF (sampling piksel 6 halaman, dpi 40):
+
+```
+#FFFFFF  putih     146.458
+#FFD600  KUNING     19.944   ← warna kedua merek
+#000000  hitam       4.053
+#003366  NAVY        2.879   ← identik dengan --navy di globals.css
+```
+
+Navy compro **persis sama** dengan `--navy` dashboard — identitas merek sudah
+konsisten. Tapi kuning memikul logo, penanda tahun, dan seluruh aksen compro,
+dan **tidak ada di dashboard**. Landing tanpa kuning tidak akan terasa seperti
+Puraloka bagi siapa pun yang pernah melihat compro atau kartu nama.
+
+Kontras terukur:
+
+| Pasangan | Rasio | Verdikt |
+|---|---|---|
+| `#FFD600` di atas `#001F3D` | 11,77:1 | LULUS AA |
+| `#FFD600` di atas `#003366` | 8,93:1 | LULUS AA |
+| `#FFD600` di atas `#0059B3` | 4,83:1 | LULUS AA (tipis) |
+| `#FFD600` di atas **putih** | **1,41:1** | **GAGAL** |
+| `#001F3D` di atas `#FFD600` | 11,77:1 | LULUS AA |
+| putih di atas `#FFD600` | 1,41:1 | GAGAL |
+
+**Konsekuensi desain — kuning hanya hidup di gelap.** Landing berlatar navy
+pekat adalah satu-satunya permukaan di seluruh produk tempat kuning merek bisa
+dipakai sebagai teks dengan aman. Itu menjelaskan kenapa ia absen dari
+dashboard yang berlatar terang, dan menjadikannya milik landing.
+
+**Aturan mengikat:**
+- Kuning sebagai teks/ikon **hanya** di atas navy `#003366` atau lebih gelap.
+- Kuning sebagai **blok** (latar) dipasangkan **hanya** dengan teks navy pekat
+  atau hitam — tidak pernah putih. Persis pola penanda "2024" di sampul compro.
+- Kuning **dilarang** sebagai teks di atas putih atau permukaan terang.
+
+**Kuning merek menggantikan amber `--warning` sebagai aksen tunggal landing.**
+Memakai keduanya menghasilkan dua kuning yang bertabrakan. Satu warna aksen,
+dipakai hemat — satu hal per layar.
+
+#### Lambang — pakai yang sudah ada
+
+`apps/web/public/puraloka-lambang.svg` sudah digambar ulang dari
+`LOGO PURALOKA PERSADA.pdf`, proporsinya disetel setelah render dibandingkan
+dengan PDF asli, dan memakai `currentColor` — bukan `#003366` mati. Artinya
+lambang bisa tampil **kuning di atas navy pekat** tanpa berkas baru. Salin apa
+adanya; jangan buat ulang.
+
+**Perisai kuning** — di sampul compro, lambang berdiri dalam perisai kuning
+berujung membulat (bentuk "tameng" dengan bahu lurus dan dasar setengah
+lingkaran). Itu bejananya, bukan lambangnya. Dipakai sebagai bentuk berulang
+landing: pembungkus lambang di header, dan penanda nomor tahap 01–05 di seksi
+proses — mengulang cara compro memakainya untuk penanda "2024".
 
 **Milik landing sendiri, dari nol:**
 skala tipografi, ritme spasi, radius, bayangan, komponen, motion.
@@ -429,6 +491,8 @@ Barat, Jawa Barat" saja di publik, alamat lengkap hanya di dokumen.
 ├──────────────────────────────────────────────────┤
 │ LEGALITAS — KBLI bersertifikat sebagai data      │
 │ mentah, tipografi teknis, bukan ikon "Layanan"   │
+│ Kuning merek dipakai di sini: blok #FFD600 +     │
+│ teks navy pekat (11,77:1), pola sampul compro    │
 ├──────────────────────────────────────────────────┤
 │ KONTAK — WhatsApp kontekstual + email + alamat   │
 └──────────────────────────────────────────────────┘
@@ -531,7 +595,8 @@ Dipenuhi tanpa diumumkan di UI:
 | 3 | Nomor migrasi & nama tabel final | Verifikasi saat implementasi |
 | 4 | Display typeface final | Uji render angka |
 | 5 | Alamat lengkap vs "Bandung Barat" | Diputuskan: tampil lengkap |
-| 6 | Halaman compro PDF sebagai gambar | `pdftoppm` belum terpasang; teks sudah terbaca penuh |
+| 6 | ~~Compro PDF sebagai gambar~~ | **Selesai** — dirender via PyMuPDF (poppler tak perlu); temuan kuning merek §5.1 |
+| 7 | ~~Logo perlu aset baru~~ | **Tidak perlu** — `apps/web/public/puraloka-lambang.svg` sudah digambar ulang dari `LOGO PURALOKA PERSADA.pdf`, proporsi disetel banding PDF asli, dan memakai `currentColor` sehingga bisa tampil kuning di atas navy. Salin apa adanya. |
 
 ---
 
@@ -548,3 +613,6 @@ membuat pembaca berikutnya mengulangi kesalahan yang sama.
 | Foto = galeri hasil akhir | Arsip proses lapangan; 15–25 layak tayang | Inspeksi foto |
 | 3D sebagai bintang halaman | Foto memikul bukti; 3D menjelaskan proses | Konsekuensi aset |
 | Landing mewarisi CSS dashboard | Hanya warna merek + metode a11y | Founder |
+| Merek = navy saja | **Kuning `#FFD600` warna kedua** — memikul logo & aksen di seluruh compro, absen dari dashboard | Render + sampling piksel PDF |
+| Aksen landing = amber `--warning` | Kuning merek menggantikannya — dua kuning akan bertabrakan | Konsekuensi temuan di atas |
+| PDF tak bisa dirender (poppler hilang) | PyMuPDF sudah terpasang dan cukup | Dicoba, bukan diasumsikan |
