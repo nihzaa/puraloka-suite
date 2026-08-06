@@ -144,8 +144,8 @@ Jantung ERP kontraktor. Lihat skor Lima Pembeda di bawah.
 | Menu | Status | Catatan |
 |---|---|---|
 | Material Request (MR) | ✅ | + approval berjenjang via engine |
-| RFQ ke vendor | 🔴 | Koreksi dari 🟡: 0 hit di kode |
-| Perbandingan penawaran (bid tabulation) | 🔴 | Koreksi dari 🟡: PO langsung dari MR |
+| RFQ ke vendor | ✅ | migrasi 195 · `/procurement/rfq` · 19 invarian |
+| Perbandingan penawaran (bid tabulation) | ✅ | satu layar dengan RFQ · `tabulasi-penawaran.ts` 14 test |
 | Purchase Order | ✅ | + cancel + auto-number (trigger) |
 | Kontrak payung / blanket order | 🔴 | |
 | Goods Receipt Note (GRN) | ✅ | Koreksi dari 🟡: create + confirm + trigger auto-stok |
@@ -165,12 +165,12 @@ Jantung ERP kontraktor. Lihat skor Lima Pembeda di bawah.
 |---|---|---|
 | Gudang proyek / site store | 🟡 | `project_stocks` per proyek; tanpa entitas gudang |
 | Stok masuk / keluar | ✅ | `stock_movements`: GR otomatis + usage/return/adjustment |
-| Transfer stok antar proyek | 🔴 | |
+| Transfer stok antar proyek | ✅ | migrasi 193 · `/gudang/transfer` · RLS dua sisi |
 | Stock opname | ✅ | `POST /stocks/opname` bulk + OpnameModal + selisih real-time |
 | Minimum stok & reorder point | 🟡 | `min_stock` + alert dashboard; reorder point/auto-PO belum |
 | **Rekonsiliasi material (teoritis vs aktual)** | ✅ | `/procurement/stocks/opname` — opname massal + selisih real-time |
 | Tracking waste / susut | 🔴 | `waste_factor` hanya kolom di `assembly_components` (DB-only) |
-| Material milik klien (free issue) | 🔴 | |
+| Material milik klien (free issue) | ✅ | migrasi 194 · `/gudang/material-klien` · tabel tersendiri (G-2 terhindar) |
 
 ---
 

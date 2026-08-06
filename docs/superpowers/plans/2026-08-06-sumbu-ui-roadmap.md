@@ -1,5 +1,34 @@
 # Sumbu UI/UX + Penjaga Status — Implementation Plan
 
+> ## ✅ SELESAI 2026-08-06 — kotak centang di bawah TIDAK ikut diperbarui
+>
+> Ketiga penjaga sudah dibangun, di-commit, dan terdaftar di CI:
+>
+> | Task | Commit |
+> |---|---|
+> | F8-1 `audit-taksonomi-vs-kode` ber-ratchet | `869bc60` |
+> | F8-2 `audit-modul-tanpa-ui` | `defb8c5` |
+> | F8-3 sebaran coverage route | `4b7df3b` |
+>
+> Kotak `- [ ]` di bawah dibiarkan apa adanya sebagai catatan sejarah. **Jangan
+> membaca kotak itu sebagai status** — ukur dengan menjalankan penjaganya:
+>
+> ```bash
+> node apps/api/scripts/audit-taksonomi-vs-kode.mjs
+> node apps/api/scripts/audit-modul-tanpa-ui.mjs
+> ```
+>
+> **Catatan nama:** judul dokumen menyebut "Sumbu UI/UX", tapi isinya penjaga
+> CI untuk *status dokumen vs kode* — **bukan** perombakan visual. Rombak
+> visual menyeluruh belum pernah dikerjakan sebagai satu pekerjaan terencana.
+>
+> **Penjaga ini langsung membayar ongkosnya.** Dijalankan 2026-08-06 sesudah
+> RFQ selesai: `basi naik 0 → 1` — "RFQ ke vendor" masih 🔴 di taksonomi
+> padahal tabelnya sudah ada. Persis kelas cacat yang ia dibuat untuk
+> menangkap, dan yang tertangkap adalah pekerjaan yang baru selesai satu jam
+> sebelumnya. Empat status dikoreksi, empat entri PETA ditambahkan, lantai
+> `takDipetakan` mengeras 33 → 29.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Menutup buta-sumbu-produk pada roadmap dengan penjaga CI yang menangkap status dokumen membusuk, modul tanpa UI, dan coverage yang tak merata.

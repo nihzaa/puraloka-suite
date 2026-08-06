@@ -53,7 +53,10 @@ const PETA = {
   'Critical path (CPM)': { berkas: ['cpm'], tabel: ['critical_path'] },
   'Resource histogram / leveling': { tabel: ['resource_histogram'] },
   'RFQ ke vendor': { tabel: ['rfq', 'rfqs'] },
-  'Perbandingan penawaran (bid tabulation)': { tabel: ['bid_tabulation'] },
+  // Tabulasi TIDAK punya tabel sendiri: ia DITURUNKAN dari `rfq_penawaran`
+  // tiap kali diminta. Menyimpannya sebagai tabel membuat angka "termurah"
+  // bisa basi diam-diam saat satu penawaran disunting.
+  'Perbandingan penawaran (bid tabulation)': { tabel: ['rfq_penawaran'], rute: ['/rfq'] },
   'Surat masuk/keluar (correspondence)': { berkas: ['surat'], tabel: ['correspondence'], web: ['/letters'] },
   'Claims management': { berkas: ['contracts'], tabel: ['claims'], web: ['/claims'] },
   'Jaminan penawaran (bid bond)': { tabel: ['contract_bonds'] },
@@ -61,9 +64,15 @@ const PETA = {
   'Kalender kerja & hari libur': { tabel: ['work_calendar', 'holidays'] },
   'Prakualifikasi vendor': { tabel: ['vendor_prequalification'] },
   'Register asuransi': { tabel: ['insurance_register'] },
+  // Empat di bawah sebelumnya TAK PUNYA entri, jadi tak pernah diperiksa —
+  // penjaga yang tak memetakan sesuatu akan hijau abadi untuknya.
+  'Tracking waste / susut': { tabel: ['waste_tracking'] },
+  'Material milik klien (free issue)': { tabel: ['penerimaan_material_klien'], rute: ['/material-klien'] },
+  'Tender & award subkontraktor': { tabel: ['subcontract_tenders'] },
+  'Evaluasi kinerja subkontraktor': { tabel: ['subcontractor_evaluations'] },
   'Cost Value Reconciliation (CVR)': { tabel: ['cvr'], rute: ['/cvr'] },
-  'Transfer stok antar proyek': { rute: ['/stocks/transfer'] },
-  'Rekonsiliasi material (teoritis vs aktual)': { rute: ['/stocks/opname'] },
+  'Transfer stok antar proyek': { tabel: ['stock_transfers'], rute: ['/transfer-stok'] },
+  'Rekonsiliasi material (teoritis vs aktual)': { rute: ['/rekonsiliasi-material'] },
   'Perusahaan / badan hukum (multi-entity)': { tabel: ['companies'], rute: ['/companies'] },
   'Revisi & transfer anggaran': { tabel: ['rap_change_log'], rute: ['/rap'] },
   'Manajemen contingency': { tabel: ['contingency'] },
