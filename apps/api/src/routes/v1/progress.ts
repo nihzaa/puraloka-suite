@@ -484,7 +484,16 @@ export default async function progressRoutes(app: FastifyInstance) {
 
     let query = request.db!
       .viaProject('project_photos', projectId)
-      .select('id, url, caption, taken_at, category, uploaded_at, progress_log_id, uploader:users!project_photos_uploaded_by_fkey(id, name)')
+      // `lintang`/`bujur`/`akurasi_m` IKUT DIKIRIM.
+      //
+      // Migrasi 190 menambahkan kolomnya dan `POST` sudah menyimpannya, tapi
+      // query ini tak pernah mengambilnya — jadi koordinat tersimpan rapi di
+      // basis dan TAK PERNAH sampai ke layar. Komponen `PenandaLokasi` sudah
+      // ada dan menganggur karena datanya tak pernah tiba.
+      //
+      // Foto tanpa koordinat tak membuktikan pekerjaan dilakukan DI LOKASI
+      // ITU — itu alasan geotag ada (triase F5-1 INTI #8).
+      .select('id, url, caption, taken_at, category, uploaded_at, progress_log_id, lintang, bujur, akurasi_m, sumber_lokasi, uploader:users!project_photos_uploaded_by_fkey(id, name)')
       .order('uploaded_at', { ascending: false })
 
     if (category && VALID_CATEGORIES.includes(category)) {

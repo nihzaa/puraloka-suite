@@ -38,7 +38,7 @@ export interface AcuanProyek {
  * jaringan untuk setiap foto di galeri, dan rumusnya sepuluh baris yang tak
  * akan berubah. Kalau suatu hari ia berubah, `uji-geotag-sinkron.mjs`
  * memerahkan CI — itu yang menjaga keduanya tetap sama. */
-function jarakMeter(
+export function jarakMeter(
   a: { lintang: number; bujur: number },
   b: { lintang: number; bujur: number },
 ): number {
@@ -52,7 +52,7 @@ function jarakMeter(
   return Math.round(2 * R * Math.asin(Math.min(1, Math.sqrt(h))));
 }
 
-function jarakTerbaca(m: number): string {
+export function jarakTerbaca(m: number): string {
   // Dibulatkan ke puluhan di bawah 1 km: GPS ponsel tak pernah setepat satu
   // meter, dan "347 m" memberi kesan presisi yang tak dimiliki angkanya.
   if (m < 1000) return `${Math.round(m / 10) * 10} m`;
@@ -65,11 +65,23 @@ const SUMBER_LABEL: Record<string, string> = {
   manual: "diketik manual — bukan bukti lokasi",
 };
 
-export function PenandaLokasi({ foto, proyek, ringkas = false }: {
+export function PenandaLokasi({ foto, proyek, ringkas = false, latarGelap = false }: {
   foto: LokasiFoto;
   proyek?: AcuanProyek | null;
   /** Bentuk pendek untuk kartu foto; bentuk penuh untuk tampilan detail. */
   ringkas?: boolean;
+  /**
+   * Penanda dipasang di atas latar GELAP terlepas dari mode tema — mis. bar
+   * bawah lightbox foto yang selalu `rgba(0,0,0,0.7)`.
+   *
+   * Diukur: token `--success`/`--warning` mode TERANG hanya 3,88:1 dan 3,87:1
+   * di atas latar itu — gagal ambang teks WCAG AA 4,5:1. Varian mode gelap
+   * memberi 8,53:1 dan 9,05:1 pada latar yang sama.
+   *
+   * Prop EKSPLISIT, bukan membaca tema: yang menentukan bukan mode yang
+   * dipilih pemakai, melainkan latar tempat komponen ini dipasang.
+   */
+  latarGelap?: boolean;
 }) {
   const punya = foto.lintang != null && foto.bujur != null;
 
@@ -78,10 +90,15 @@ export function PenandaLokasi({ foto, proyek, ringkas = false }: {
       <span title="Foto ini diunggah tanpa koordinat — bisa karena sinyal GPS tak ada, atau izin lokasi ditolak."
         style={{
           display: "inline-flex", alignItems: "center", gap: 4,
-          fontSize: 11, color: C.muted,
+          // `C.muted` di latar gelap turun jauh di bawah ambang — cabang ini
+          // ikut memakai varian gelap seperti cabang berkoordinat di bawah.
+          fontSize: 11, color: latarGelap ? "#9098B8" : C.muted,
         }}>
         <MapPinOff size={11} aria-hidden="true" />
-        {ringkas ? "—" : "tanpa lokasi"}
+        {/* "—" tak menerangkan apa pun. Foto tanpa koordinat adalah keadaan
+            yang perlu diketahui, bukan sel kosong: ia tak bisa dipakai
+            membuktikan pekerjaan dilakukan di lokasi itu. */}
+        tanpa lokasi
       </span>
     );
   }
@@ -100,10 +117,13 @@ export function PenandaLokasi({ foto, proyek, ringkas = false }: {
   const akurasiCukup = foto.akurasi_m == null || foto.akurasi_m <= radius;
   const diLokasi = jarak != null && akurasiCukup ? jarak <= radius : null;
 
-  const warna =
-    diLokasi === true ? C.green
-    : diLokasi === false ? C.yellow
-    : C.mid;
+  // Varian gelap memakai nilai token mode-gelap secara literal, bukan
+  // `var(--success)`: di latar yang selalu gelap, token yang MENGIKUTI tema
+  // akan memberi warna mode-terang saat pemakainya memilih mode terang —
+  // dan itu justru kombinasi yang gagal kontras (3,88:1).
+  const warna = latarGelap
+    ? (diLokasi === true ? "#22C55E" : diLokasi === false ? "#F59E0B" : "#9098B8")
+    : (diLokasi === true ? C.green : diLokasi === false ? C.yellow : C.mid);
 
   const judul = [
     `${foto.lintang!.toFixed(6)}, ${foto.bujur!.toFixed(6)}`,
@@ -125,6 +145,15 @@ export function PenandaLokasi({ foto, proyek, ringkas = false }: {
           ? <TriangleAlert size={11} aria-hidden="true" />
           : <MapPin size={11} aria-hidden="true" />}
         {jarak != null ? jarakTerbaca(jarak) : "ada lokasi"}
+        {/* KATA, bukan hanya ikon dan warna.
+            Foto di luar radius adalah alasan geotag ada — dan penanda yang
+            cuma berupa warna kuning + segitiga kecil tak terbaca oleh yang
+            tak bisa membedakan warna (WCAG 1.4.1), maupun oleh siapa pun yang
+            melihat "710 m" tanpa tahu radiusnya berapa. Angka tanpa vonis
+            menuntut pembacanya menghitung sendiri. */}
+        {diLokasi === false && (
+          <span style={{ fontWeight: 700 }}>· di luar lokasi</span>
+        )}
       </span>
     );
   }

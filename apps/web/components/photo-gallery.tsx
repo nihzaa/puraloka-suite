@@ -19,16 +19,29 @@ interface Photo {
   category: "progress" | "defect" | "serah_terima" | "other";
   progress_log_id: string | null;
   uploader: { id: string; name: string } | null;
+  // Geotag (migrasi 190). Nullable: foto lama tak punya, dan foto yang
+  // diunggah dari komputer memang tak membawa koordinat.
+  lintang: number | null;
+  bujur: number | null;
+  akurasi_m: number | null;
+  sumber_lokasi: "perangkat" | "exif" | "manual" | null;
 }
 
 interface Props {
   projectId: string;
   userRole?: string;
+  /** Titik acuan proyek — tanpa ini jarak foto tak bisa dihitung. */
+  proyek?: {
+    lintang: number | null;
+    bujur: number | null;
+    radius_lokasi_m: number | null;
+  } | null;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 import { C } from "@/lib/warna-ui";
+import { PenandaLokasi } from "@/components/penanda-lokasi";
 
 const CATEGORIES: { key: string; label: string; icon: React.ReactNode; color: string; bg: string }[] = [
   { key: "semua",       label: "Semua",        icon: <Images size={13} />,        color: C.navy,    bg: C.navyLight },
@@ -63,6 +76,7 @@ function LightboxContent({
   startIndex,
   canEdit,
   projectId,
+  proyek,
   onClose,
   onCategoryUpdate,
 }: {
@@ -70,6 +84,7 @@ function LightboxContent({
   startIndex: number;
   canEdit: boolean;
   projectId: string;
+  proyek: Props["proyek"];
   onClose: () => void;
   onCategoryUpdate: (photoId: string, category: string) => void;
 }) {
@@ -183,6 +198,16 @@ function LightboxContent({
             {fmtDate(photo.taken_at ?? photo.uploaded_at)}
             {photo.uploader && ` · ${photo.uploader.name}`}
           </p>
+          {/* Penanda lokasi (F5-1 INTI #8).
+              Foto tanpa koordinat tak membuktikan pekerjaan dilakukan DI
+              LOKASI ITU — dan itu dasar sengketa progres yang paling sering.
+              Komponennya sudah ada sejak migrasi 190 tapi tak pernah dipasang;
+              koordinatnya tersimpan di basis dan tak pernah sampai ke layar. */}
+          <div style={{ marginTop: 6 }}>
+            {/* `latarGelap`: bar ini `rgba(0,0,0,0.7)` terlepas dari mode
+                tema, dan warna penanda mode-terang hanya 3,88:1 di atasnya. */}
+            <PenandaLokasi foto={photo} proyek={proyek ?? null} ringkas latarGelap />
+          </div>
         </div>
 
         {/* Category badge + edit */}
@@ -239,7 +264,7 @@ function Lightbox(props: Parameters<typeof LightboxContent>[0]) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export function PhotoGallery({ projectId, userRole }: Props) {
+export function PhotoGallery({ projectId, userRole, proyek }: Props) {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState("semua");
@@ -314,7 +339,15 @@ export function PhotoGallery({ projectId, userRole }: Props) {
               >
                 {cat.icon}
                 {cat.label}
-                <span style={{ fontSize: 11, opacity: 0.8 }}>({count})</span>
+                {/* TANPA `opacity`. Jumlah foto per kategori adalah
+                    informasi, bukan hiasan — dan `opacity: 0.8` menjatuhkannya
+                    di bawah ambang kontras di mode gelap. Ukurannya (11px)
+                    sudah cukup menjadikannya sekunder.
+
+                    Ini kali KELIMA `opacity` pada teks menurunkan kontras di
+                    sesi ini; semuanya lolos pemindai statis karena kontras
+                    hanya terlihat pada nilai terhitung. */}
+                <span style={{ fontSize: 11 }}>({count})</span>
               </button>
             );
           })}
@@ -417,6 +450,7 @@ export function PhotoGallery({ projectId, userRole }: Props) {
           startIndex={lightboxIdx}
           canEdit={canEdit}
           projectId={projectId}
+          proyek={proyek}
           onClose={() => setLightboxIdx(null)}
           onCategoryUpdate={handleCategoryUpdate}
         />

@@ -57,6 +57,14 @@ export default async function projectRoutes(app: FastifyInstance) {
     const [projectRes, logsRes, invoicesRes, scopelessKasbonsRes] = await Promise.all([
       request.db!
         .from('projects')
+        // `lintang`/`bujur`/`radius_lokasi_m` — titik acuan lokasi (migrasi
+        // 190). Tanpa ketiganya koordinat foto tak punya pembanding: "300 m
+        // dari lokasi" mustahil dihitung, dan itu justru angka yang menentukan
+        // apakah foto ini bukti atau bukan.
+        //
+        // Komentar ditaruh DI SINI, bukan di dalam template `.select()`:
+        // isinya string yang dikirim apa adanya ke PostgREST, jadi `--` di
+        // dalamnya menjadi bagian daftar kolom dan seluruh query gagal.
         .select(`
           id, name, description, location, contract_model, tax_scheme,
           contract_value, commission_pct, retention_pct, retention_amount,
@@ -64,6 +72,7 @@ export default async function projectRoutes(app: FastifyInstance) {
           start_date, end_date, actual_end_date,
           status, progress_pct, notes, created_at, updated_at,
           pm_id, client_id,
+          lintang, bujur, radius_lokasi_m,
           clients ( id, contact_person, phone, email, address, client_type ),
           pm:users!projects_pm_id_fkey ( id, name, email, phone ),
           termin_schedules (

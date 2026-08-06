@@ -95,6 +95,8 @@ interface Project {
   retention_pct: number; retention_amount: number;
   start_date: string; end_date: string; actual_end_date: string | null;
   status: string; progress_pct: number; notes: string | null;
+  // Titik acuan lokasi (migrasi 190) — pembanding koordinat foto.
+  lintang: number | null; bujur: number | null; radius_lokasi_m: number | null;
   clients: Client | null; pm: PM | null;
   termin_schedules: TerminSchedule[];
   milestones: Milestone[];
@@ -1425,7 +1427,18 @@ function ProjectDetailContent() {
 
       {/* ── Galeri Foto ── */}
       <div id="sec-foto" className="rise rise-3" style={{ ...card, padding: 24, marginBottom: 20 }}>
-        <PhotoGallery projectId={p.id} userRole={currentUser?.role} />
+        {/* Titik acuan lokasi diteruskan supaya galeri bisa menghitung jarak
+            tiap foto dari lokasi proyek. Tanpa itu koordinat foto cuma dua
+            angka yang tak bisa dinilai siapa pun. */}
+        <PhotoGallery
+          projectId={p.id}
+          userRole={currentUser?.role}
+          proyek={{
+            lintang: p.lintang ?? null,
+            bujur: p.bujur ?? null,
+            radius_lokasi_m: p.radius_lokasi_m ?? null,
+          }}
+        />
       </div>
 
       {/* ── Mandor + Work scopes ── */}

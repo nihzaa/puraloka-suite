@@ -25,10 +25,22 @@
  * dibandingkan. Bukan membandingkan teks kodenya — itu akan merah karena
  * perbedaan gaya penulisan yang tak mengubah apa pun.
  *
- * Pakai (DARI ROOT REPO): node apps/web/scripts/uji-geotag-sinkron.mjs
+ * Pakai (dari mana pun): node apps/web/scripts/uji-geotag-sinkron.mjs
  */
 import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+/**
+ * Akar repo diturunkan dari LOKASI BERKAS INI, bukan dari `process.cwd()`.
+ *
+ * Versi pertama memakai path relatif tanpa jangkar, jadi ia hanya bekerja
+ * bila dijalankan dari akar repo. CI memang begitu — tapi dijalankan dari
+ * `apps/web` ia MELEDAK dengan ENOENT, bukan gagal dengan pesan yang
+ * menjelaskan. Penjaga yang cuma bisa dijalankan dengan satu cara adalah
+ * penjaga yang berhenti dijalankan orang.
+ */
+const AKAR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
 
 /** Mengambil badan fungsi `jarakMeter` dari sebuah berkas, lalu menjadikannya
  *  fungsi yang bisa dijalankan. */
@@ -60,8 +72,8 @@ function ambilFungsi(path, nama) {
   return new Function('a', 'b', `${badan.slice(1, -1)}`)
 }
 
-const apiFn = ambilFungsi(join('apps', 'api', 'src', 'lib', 'geotag.ts'), 'jarakMeter')
-const webFn = ambilFungsi(join('apps', 'web', 'components', 'penanda-lokasi.tsx'), 'jarakMeter')
+const apiFn = ambilFungsi(join(AKAR, 'apps', 'api', 'src', 'lib', 'geotag.ts'), 'jarakMeter')
+const webFn = ambilFungsi(join(AKAR, 'apps', 'web', 'components', 'penanda-lokasi.tsx'), 'jarakMeter')
 
 /** Titik uji: dekat, jauh, lintas khatulistiwa, lintas meridian, kutub. */
 const KASUS = [
