@@ -21,18 +21,32 @@
 # Kalau UI dikerjakan sampai tuntas dulu, fitur berhenti berbulan-bulan; kalau
 # fitur terus jalan, UI tak pernah kebagian.
 #
-# ── Gerbang
+# ── Gerbang — TERBUKA 2026-08-07
 #
-# Seluruh isi berkas ini MENUNGGU ratifikasi arah visual
-# (docs/design/ARAH-VISUAL-2026.md §10). Sebelum itu, status semuanya
-# `menunggu-ratifikasi` — bukan `todo`.
+# Keempat pertanyaan ARAH-VISUAL-2026.md §10 SUDAH DIJAWAB. Berkas ini tidak
+# lagi `menunggu-ratifikasi`.
+#
+#   1. aksen indigo   ⏸ DITAHAN  — "tunjukkan dulu, baru saya putuskan"
+#   2. sidebar gelap  ❌ DITOLAK  — "tergantung mode-nya, dark atau light"
+#   3. pecah tab      ✅ SETUJU   — keuangan sudah selesai; sisa mandor + kas
+#   4. halaman contoh ✅ Dashboard
+#
+# ⚠️ BATAS WILAYAH: token kerapatan (--pad-kartu, --gap-grid, --teks-*) di
+# globals.css sedang digarap SESI LAIN. Founder: "lewati kerapatan, garap
+# sisanya". UI-0-1 karena itu `dipegang-sesi-lain`, bukan `todo`.
+#
+# ⚠️ Dark mode SUDAH ADA dan jalan (blok .dark globals.css:471, next-themes,
+# toggle di topbar, 38 pasangan lulus WCAG kedua mode). Tiap token baru WAJIB
+# punya pasangan .dark dan kontras-ratchet wajib tetap hijau.
 # ============================================================================
 
 meta:
-  diperbarui: 2026-08-04
+  diperbarui: 2026-08-07
   gerbang: >
-    Menunggu jawaban founder atas empat pertanyaan di ARAH-VISUAL-2026.md §10:
-    palet aksen · sidebar gelap · pemecahan tab · halaman contoh mana dulu.
+    TERBUKA. Empat pertanyaan §10 sudah dijawab founder 2026-08-07.
+    Yang tersisa bukan pertanyaan melainkan pekerjaan: bangun perbandingan
+    visual aksen navy-vs-indigo supaya founder memutuskan dari gambar,
+    bukan dari hex di tabel.
   prinsip:
     - "Token dulu, halaman kemudian. Ubah token = 59 halaman ikut rapat serentak."
     - "Satu halaman contoh sebelum menyebar. Biaya salah = satu halaman, bukan 59."
@@ -54,8 +68,13 @@ items:
       - "nol perubahan struktur halaman"
     cara_verifikasi: "penjaga visual + tinjau 3 halaman terpadat secara visual"
     bobot: M
-    status: menunggu-ratifikasi
+    status: dipegang-sesi-lain
     catatan: |
+      ⚠️ JANGAN KERJAKAN DARI SINI — 2026-08-07.
+      Token --pad-kartu / --gap-grid / --teks-* sedang diubah di sesi lain.
+      Founder: "lewati kerapatan, garap sisanya". Mengubah globals.css dari
+      sini akan menimpa pekerjaan yang sedang berjalan.
+
       PALING BERDAMPAK, PALING MURAH. Diukur: padding 24px (standar
       data-dense 12px), font tabel 9-11px (standar 12-14px). Halaman terasa
       lemas karena longgar TAPI tulisannya kecil.
@@ -73,8 +92,22 @@ items:
       - "kontras-hex-ratchet tetap hijau"
     cara_verifikasi: "node scripts/kontras-hex-ratchet.mjs + periksa mode gelap"
     bobot: S
-    status: menunggu-ratifikasi
+    status: ditahan-menunggu-perbandingan-visual
     catatan: |
+      ⏸ DITAHAN 2026-08-07. Founder tidak menolak indigo dan tidak
+      menyetujuinya — ia menolak MEMUTUSKAN WARNA DARI TEKS:
+      "tunjukkan dulu, baru saya putuskan".
+
+      Yang harus dikerjakan (bukan ditanyakan lagi):
+        1. dashboard versi navy vs versi indigo BERDAMPINGAN
+        2. tangkap layar keduanya di KEDUA mode (scripts/tangkap-layar.mjs)
+        3. tunjukkan gambarnya → founder memutuskan
+
+      Bentrok tercatat: commit 4b199c2 menandai indigo "DISETUJUI" pada hari
+      yang sama founder menjawab "sudah lumayan cocok dengan warna ini" ke
+      sesi ini. Dua catatan berlawanan. Yang berlaku: DITAHAN sampai gambar
+      dilihat.
+
       Navy #003366 TETAP — itu merek. Yang ditambah aksen indigo #6366F1
       untuk yang paling penting di layar.
 
@@ -85,34 +118,55 @@ items:
   - id: UI-0-3
     lapis: 0
     judul: "Sidebar gelap #0B1220 + garis aksen item aktif"
-    blokir_oleh: [UI-0-2]
-    kriteria_selesai:
-      - "sidebar gelap di mode terang DAN gelap"
-      - "kontras teks sidebar >= 4.5:1 di kedua mode"
-      - "item aktif ditandai garis 3px + latar, bukan warna teks saja"
-    cara_verifikasi: "kontras-ratchet + uji keyboard nav"
+    blokir_oleh: []
+    kriteria_selesai: []
+    cara_verifikasi: "—"
     bobot: S
-    status: menunggu-ratifikasi
+    status: dicoret
     catatan: |
-      Dari referensi Buildify: sidebar gelap + konten terang = dua zona.
-      Navigasi "mundur", konten "maju" — konten terasa naik ke depan tanpa
-      bayangan tebal.
+      ❌ DICORET 2026-08-07 — founder: "sidebar itu tergantung pada mode-nya,
+      dark atau light".
 
-      #0B1220 bukan hitam murni: ia menahan rona navy, jadi terasa satu
-      keluarga dengan merek, bukan tema gelap generik.
+      Ini bukan penolakan estetika melainkan KOREKSI FAKTUAL terhadap premis
+      item ini. Usul #0B1220 permanen lahir dari asumsi saya bahwa aplikasi
+      tak punya mode gelap. Asumsi itu SALAH — diukur 2026-08-07:
+
+        blok .dark          globals.css:471 (token gelap lengkap)
+        provider            components/theme-provider.tsx (next-themes)
+        terpasang           app/layout.tsx:58
+        toggle              components/theme-toggle.tsx → topbar.tsx:199
+        sudah diaudit WCAG  kontras-ratchet: 38 pasangan, KEDUA mode
+
+      Sidebar sudah gelap dengan sendirinya saat temanya gelap. Token
+      --sidebar-* TIDAK dibuat.
+
+      Alat ukur yang membuat saya salah: `grep "dark:" apps/web/app` → 0
+      berkas. Itu mencari utility Tailwind; repo ini memakai CSS variable.
+      Salah alat, salah kesimpulan.
 
   - id: UI-0-4
     lapis: 0
     judul: "Komponen bersama: KartuKPI, PanelChart, TabelPadat, KepalaHalaman"
-    blokir_oleh: [UI-0-1, UI-0-2]
+    blokir_oleh: []
     kriteria_selesai:
       - "empat komponen + test masing-masing"
       - "angka memakai tabular-nums + font display"
       - "keadaan kosong & memuat sudah ditangani di komponennya"
-    cara_verifikasi: "vitest komponen + dipakai di halaman contoh"
+      - "NOL perubahan globals.css — token kerapatan dipegang sesi lain"
+      - "warna dari token yang SUDAH ADA; tak menambah hex mentah (hex-ratchet 49)"
+    cara_verifikasi: "vitest komponen + 8 penjaga visual tetap hijau"
     bobot: M
-    status: menunggu-ratifikasi
+    status: todo
     catatan: |
+      TITIK MULAI AUTOPILOT 2026-08-07. Tak lagi diblokir UI-0-1/UI-0-2:
+      UI-0-1 dipegang sesi lain, UI-0-2 ditahan menunggu gambar — dan
+      komponen ini bisa dibangun dengan token yang sudah ada, lalu ikut
+      rapat sendiri saat sesi lain menurunkan token kerapatan.
+
+      Justru itu yang membuatnya aman dikerjakan lebih dulu: komponen yang
+      memakai var(--pad-kartu) tak perlu diubah lagi ketika nilai token itu
+      berubah di sesi lain.
+
       Ini yang menghapus kesan "buatan sendiri": 59 halaman dibangun bertahap,
       jadi kartu dan tabel punya bentuk sedikit berbeda di tiap halaman.
 
@@ -130,12 +184,17 @@ items:
       - "pola tiga lapis: KPI → grafik → detail"
       - "4 KPI card dengan delta + spark"
       - "founder melihat dan memutuskan: sebarkan / ubah arah"
-    cara_verifikasi: "founder melihat langsung"
+    cara_verifikasi: "founder melihat langsung + 8 penjaga visual hijau"
     bobot: M
-    status: menunggu-ratifikasi
+    status: todo
     catatan: |
       GERBANG KEPUTUSAN. Kalau arahnya ditolak, biayanya SATU halaman.
       Tak ada halaman lain disentuh sebelum ini disetujui.
+
+      2026-08-07: founder memilih Dashboard sebagai halaman contoh (§10 no.4).
+      Sekaligus PEMBAWA perbandingan aksen (UI-0-2) — dashboard inilah yang
+      dirender dua versi (navy vs indigo) untuk keputusan warna. Satu
+      pekerjaan, dua pertanyaan terjawab.
 
   # ── LAPIS 2 — SEBAR ──────────────────────────────────────────────────────
   # Baru dikerjakan setelah UI-1-1 disetujui.
@@ -150,19 +209,28 @@ items:
       - "tiap halaman < 800 baris"
     cara_verifikasi: "wc -l + tautan langsung berfungsi"
     bobot: L
-    status: menunggu-ratifikasi
+    status: selesai
+    catatan: |
+      SUDAH DIKERJAKAN sebelum ratifikasi turun — diukur 2026-08-07:
+        keuangan/page.tsx  3.449 -> 523 baris
+        sub-halaman        arus-kas, invoice, kasbon, pembayaran, profitabilitas
+      Founder mengingatnya benar: "kalo ga salah pernah masuk todo".
 
   - id: UI-2-2
     lapis: 2
-    judul: "Pecah halaman mandor (3.667 baris, 7 tab) jadi dashboard + 5 halaman"
-    blokir_oleh: [UI-1-1]
+    judul: "Pecah halaman mandor (3.848 baris) jadi dashboard + sub-halaman"
+    blokir_oleh: [UI-0-4]
     kriteria_selesai:
       - "dashboard mandor: 4 KPI + grafik"
       - "penugasan · upah · kasbon · penagihan · retensi jadi halaman sendiri"
-    cara_verifikasi: "wc -l + tautan langsung berfungsi"
+    cara_verifikasi: "wc -l + tautan langsung berfungsi + penjaga hijau"
     bobot: L
-    status: menunggu-ratifikasi
+    status: todo
     catatan: |
+      Angka dokumen SUDAH BASI. Diukur ulang 2026-08-07: 3.848 baris, bukan
+      3.667 — halaman ini MEMBESAR sejak dokumen ditulis. Sudah punya 3
+      sub-halaman ([id], absensi, retensi); sisanya masih dalam satu berkas.
+
       Halaman TERBESAR di repo. Uji tab-vs-halaman: "kalau saya kirim tautan
       ini ke rekan, apa yang ia lihat?" — hari ini jawabannya bergantung tab
       mana yang terakhir dibuka. Itu tanda ia seharusnya halaman.
@@ -170,15 +238,19 @@ items:
   - id: UI-2-3
     lapis: 2
     judul: "Dashboard per menu induk — 8 menu sisanya"
-    blokir_oleh: [UI-1-1]
+    blokir_oleh: [UI-0-4, UI-1-1]
     kriteria_selesai:
       - "proyek · kas · procurement · lapangan · kontrak · aset · tender · klien"
       - "tiap satu: 4 KPI + minimal 1 grafik + daftar"
       - "semua KPI memakai API yang SUDAH ADA — nol endpoint baru"
     cara_verifikasi: "tiap halaman dibuka, KPI terisi angka nyata"
     bobot: XL
-    status: menunggu-ratifikasi
+    status: todo
     catatan: |
+      Diukur ulang 2026-08-07: 24 menu induk, 16 di antaranya SATU halaman
+      (bukan "20 dari 22" — dokumen lama). Yang sudah berlapis: pengaturan 9,
+      keuangan 6, mandor 4, proyek/procurement/lapangan/gudang 3, kontrak 2.
+
       Diukur: 20 dari 22 menu induk hanya punya SATU halaman — langsung tabel.
       Itu penyebab monoton, bukan warnanya.
 
@@ -190,14 +262,14 @@ items:
   - id: UI-3-1
     lapis: 3
     judul: "Penjaga CI: modul ber-API wajib punya UI"
-    blokir_oleh: [UI-1-1]
+    blokir_oleh: []
     kriteria_selesai:
       - "penjaga memindai endpoint vs pemakaian di apps/web"
       - "TERBUKTI bisa merah"
       - "lantai = keadaan hari ini, ratchet"
     cara_verifikasi: "suntik endpoint tanpa UI -> penjaga merah"
     bobot: M
-    status: menunggu-ratifikasi
+    status: selesai-oleh-f8-2
     catatan: |
       INI YANG SEHARUSNYA ADA SEJAK AWAL.
 

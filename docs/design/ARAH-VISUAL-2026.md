@@ -1,20 +1,26 @@
 # ARAH VISUAL 2026 — Puraloka Suite
 
-> **Status: SEBAGIAN DIRATIFIKASI — 2026-08-07.**
+> **Status: DIRATIFIKASI — 2026-08-07. Gerbang §10 TERTUTUP.**
 >
 > | §10 | Keputusan founder | Status |
 > |---|---|---|
-> | 1. Aksen indigo `#6366F1` | **DISETUJUI** | boleh dipakai |
-> | 2. Kerapatan (§4) | **sedang dikerjakan di SESI LAIN** | ⚠️ jangan disentuh dari sini |
-> | 3. Dashboard per menu induk (§5) | ditunda — PEMBEDA didahulukan | menunggu |
-> | 4. Halaman contoh | menyusul sesudah §5 diputuskan | menunggu |
+> | 1. Aksen indigo `#6366F1` | ⏸ **DITAHAN** — *"tunjukkan dulu, baru saya putuskan"* | bangun perbandingan visual, **jangan tanya lewat teks** |
+> | 2. Sidebar gelap permanen | ❌ **DITOLAK** — *"tergantung mode-nya, dark atau light"* | §5d dicoret |
+> | 3. Tab dipecah jadi halaman | ✅ **SETUJU** | keuangan sudah selesai; sisa mandor + kas |
+> | 4. Halaman contoh = Dashboard | ✅ **SETUJU** | dikerjakan |
 >
-> **⚠️ Peringatan bentrok:** token kerapatan (`--pad-kartu`, `--gap-grid`,
-> `--teks-*`) sedang diubah di sesi lain. Mengubahnya dari sini akan menimpa
-> pekerjaan yang sedang berjalan. Sesi ini HANYA memakai aksen indigo, dan
-> hanya pada halaman baru.
+> **Jangan membaca dokumen ini sebagai "usulan yang menunggu persetujuan".**
+> Keempatnya sudah dijawab (§10). Nomor 1 bukan pertanyaan terbuka melainkan
+> pekerjaan: bangun perbandingannya, tunjukkan gambarnya. Founder 2026-08-07:
+> *"jangan jadi penghalang karena terus minta keputusan saya terus"*.
 >
-> Sisa dokumen di bawah tetap USULAN sampai keputusan §10 nomor 3 dan 4 turun.
+> **⚠️ Batas wilayah:** token kerapatan (`--pad-kartu`, `--gap-grid`,
+> `--teks-*`) di `globals.css` sedang digarap **sesi lain**. Founder memutuskan
+> *"lewati kerapatan, garap sisanya"* — UI-0-1 tidak dikerjakan dari sini.
+>
+> **⚠️ Dua koreksi:** dark mode **sudah ada dan jalan** (bukan pekerjaan baru),
+> dan `2026-08-06-sumbu-ui-roadmap.md` **bukan** dokumen visual. Rinciannya
+> §10b — baca sebelum mengambil kesimpulan dari isi dokumen ini.
 >
 > ### ⚠️ Temuan 2026-08-07 — `--aksen` SUDAH ADA, dan isinya navy
 >
@@ -58,7 +64,7 @@
 |---|---|
 | **Masalahnya** | Bukan "jelek". Halaman **2× lebih longgar** dari standar data-dense, font justru **lebih kecil**, dan **20 dari 22 menu induk hanya punya satu halaman** — langsung tabel, tanpa lapisan |
 | **Yang dipertahankan** | Navy `#003366` (brand), Bricolage Grotesque + Plus Jakarta Sans (sudah bagus, bukan Inter), 105 token ber-riwayat WCAG |
-| **Yang berubah** | Kerapatan (padding 24→12), sidebar gelap, satu aksen berani, **dashboard per menu induk**, tab dipecah jadi halaman |
+| **Yang berubah** | Kerapatan (padding 24→12, *dipegang sesi lain*), **dashboard per menu induk**, tab dipecah jadi halaman. ~~sidebar gelap~~ **ditolak** · aksen **ditahan** (§10) |
 | **Cara mengukurnya** | §8 — tiap klaim di dokumen ini punya perintahnya |
 
 ---
@@ -269,7 +275,16 @@ menjawab pertanyaan yang bisa dijawab satu angka.
 
 Tiap angka di sini **sudah ada API-nya** — tak ada yang perlu dibangun dari nol.
 
-### 5d. Sidebar gelap
+### 5d. ~~Sidebar gelap~~ — ❌ DITOLAK 2026-08-07
+
+> **Jangan kerjakan bagian ini.** Founder: *"sidebar itu tergantung pada
+> mode-nya, dark atau light"* — sidebar mengikuti tema, bukan gelap permanen.
+> Ini bukan penolakan estetika melainkan **koreksi faktual**: aplikasi sudah
+> punya mode gelap yang berfungsi (§10b), jadi sidebar sudah gelap dengan
+> sendirinya saat temanya gelap. Token `--sidebar-*` di bawah **tidak dibuat**.
+>
+> `QUEUE-UI.yaml` UI-0-3 dicoret. Teks di bawah disimpan sebagai catatan
+> sejarah alasan usulnya, bukan instruksi.
 
 Dari referensi Buildify: sidebar gelap + konten terang menciptakan **dua zona**
 — navigasi "mundur", konten "maju". Itu yang membuat kontennya terasa naik ke
@@ -378,14 +393,63 @@ cd apps/web && for g in a11y-ratchet kontras-hex-ratchet hex-ratchet \
 
 ---
 
-## 10. Yang menunggu keputusan founder
+## 10. Keputusan founder — SUDAH TURUN 2026-08-07
 
-1. **Palet aksen indigo `#6366F1`** — setuju, atau ingin warna lain?
-2. **Sidebar gelap `#0B1220`** — setuju?
-3. **Tab dipecah jadi halaman** untuk keuangan/mandor/kas — setuju? (laporan &
-   estimasi sengaja tetap tab)
-4. **Halaman contoh mana dulu?** Usul saya: **Dashboard** — paling sering
-   dilihat, dan pola tiga lapisnya paling jelas terlihat di sana.
+> **Gerbang ini TERTUTUP. Jangan tanyakan ulang keempatnya.**
+>
+> Sesi sebelum ini berhenti bekerja karena membaca §10 sebagai "menunggu
+> keputusan" dan bertanya lagi. Founder 2026-08-07: *"jangan jadi penghalang
+> karena terus minta keputusan saya terus"*. Yang belum diputuskan tinggal
+> **satu**, dan bentuknya bukan pertanyaan melainkan **pekerjaan** (nomor 1).
 
-Sesudah keempatnya dijawab, saya bangun **satu halaman**, tunjukkan, dan
-Anda putuskan apakah disebarkan.
+| # | Pertanyaan | Usul saya | Keputusan |
+|---|---|---|---|
+| 1 | Palet aksen indigo `#6366F1` | indigo | ⏸ **DITAHAN** — founder minta *"tunjukkan dulu, baru saya putuskan"*. Bangun perbandingan visual, jangan tanya lagi lewat teks |
+| 2 | Sidebar gelap `#0B1220` permanen | ya | ❌ **DITOLAK** — *"tergantung pada mode-nya, dark atau light"*. Sidebar ikut tema. **§5d dicoret** |
+| 3 | Tab dipecah jadi halaman | ya (keuangan/mandor/kas) | ✅ **SETUJU** — keuangan **sudah selesai** (3.449 → 523 baris, 5 sub-halaman). Sisa: mandor, kas |
+| 4 | Halaman contoh mana dulu | Dashboard | ✅ **SETUJU** |
+
+### 10a. Nomor 1 — cara menyelesaikannya tanpa bertanya lagi
+
+Founder tidak menolak indigo, dan tidak menyetujuinya. Ia menolak **memutuskan
+warna dari teks** — keputusan yang wajar, karena hex di tabel tak memberi tahu
+apa pun tentang rasanya di layar.
+
+Catatan bentrok: commit `4b199c2` menandai indigo "DISETUJUI" pada hari yang
+sama founder menjawab *"saya sudah lumayan cocok dengan warna ini"* kepada sesi
+ini. Dua catatan berlawanan untuk satu pertanyaan. **Yang berlaku: ditahan
+sampai perbandingan visual dilihat.**
+
+Yang harus dikerjakan, bukan ditanyakan:
+
+1. bangun dashboard versi navy dan versi indigo **berdampingan**
+2. tangkap layar keduanya di **kedua mode** (`scripts/tangkap-layar.mjs`)
+3. tunjukkan gambarnya — barulah founder memutuskan
+
+### 10b. Dua koreksi — dokumen ini sempat salah
+
+**Dark mode bukan pekerjaan baru; ia sudah ada dan jalan.** Diukur 2026-08-07:
+blok `.dark` di `globals.css:471`, `theme-provider.tsx` via `next-themes`,
+terpasang di `layout.tsx:58`, tombolnya di `topbar.tsx:199`, dan
+`kontras-ratchet.mjs` sudah menguji 38 pasangan **di kedua mode**.
+
+Pengukuran `grep "dark:" apps/web/app` → 0 berkas yang sempat saya jadikan
+bukti "dark mode belum ada" memakai **alat ukur yang salah**: ia mencari
+utility Tailwind, sementara repo ini memakai CSS variable.
+
+**Mengikat:** tiap token baru WAJIB punya pasangan `.dark`, dan
+`kontras-ratchet` wajib tetap hijau.
+
+**`2026-08-06-sumbu-ui-roadmap.md` bukan pedoman visual.** Judulnya menyebut
+"Sumbu UI/UX", tapi isinya penjaga CI untuk status dokumen vs kode, dan
+ketiganya sudah selesai (`869bc60`, `defb8c5`, `4b7df3b`). Perannya di sini:
+**penjaga yang wajib tetap hijau**.
+
+### 10c. Batas wilayah kerja — token kerapatan dipegang sesi lain
+
+`--pad-kartu`, `--gap-grid`, `--teks-*` di `globals.css` sedang digarap sesi
+lain. Founder 2026-08-07 memutuskan: **lewati kerapatan, garap sisanya.**
+
+UI-0-1 karena itu **tidak dikerjakan dari sini**. Pekerjaan yang jalan hanya
+yang tak menyentuh `globals.css`: komponen bersama, dashboard per menu,
+pemecahan mandor & kas, penjaga CI.

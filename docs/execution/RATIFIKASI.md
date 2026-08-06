@@ -6,22 +6,54 @@ bawah entrinya.
 
 ---
 
-# ❓ R-012 · MENUNGGU KEPUTUSAN — arah visual 2026 + roadmap UI terpisah
-
-**Belum ada satu baris kode pun yang mengikuti ini.** Kalau ditolak, biayanya nol.
+# ✅ R-012 · DIPUTUSKAN 2026-08-07 — arah visual 2026 + roadmap UI terpisah
 
 Dokumen lengkap: [`docs/design/ARAH-VISUAL-2026.md`](../design/ARAH-VISUAL-2026.md)
-Antrean kerjanya: [`docs/execution/QUEUE-UI.yaml`](QUEUE-UI.yaml) (seluruhnya
-berstatus `menunggu-ratifikasi`)
+Antrean kerjanya: [`docs/execution/QUEUE-UI.yaml`](QUEUE-UI.yaml)
 
-## Empat pertanyaan yang saya butuhkan jawabannya
+## Jawaban founder — dan dua usul saya yang ditolak
 
-| # | Pertanyaan | Usul saya |
-|---|---|---|
-| 1 | Warna aksen | **Indigo `#6366F1`** — bertetangga dengan navy jadi terasa satu keluarga, tapi cukup berbeda untuk menonjol |
-| 2 | Sidebar gelap `#0B1220` | **Ya** — menciptakan dua zona; konten terasa maju tanpa bayangan tebal |
-| 3 | Pecah tab jadi halaman | **Ya untuk keuangan/mandor/kas**; laporan & estimasi tetap tab (tab di sana memang benar) |
-| 4 | Halaman contoh mana dulu | **Dashboard** — paling sering dilihat, pola tiga lapisnya paling jelas |
+| # | Pertanyaan | Usul saya | **Keputusan founder** |
+|---|---|---|---|
+| 1 | Warna aksen | Indigo `#6366F1` | ❌ **DITOLAK** — *"sudah lumayan cocok dengan warna ini"*. Navy `#003366` tetap aksen tunggal. **UI-0-2 dicoret.** |
+| 2 | Sidebar gelap `#0B1220` permanen | Ya | ❌ **DITOLAK** — *"tergantung pada mode-nya, dark atau light"*. Sidebar ikut tema, seperti sekarang. **UI-0-3 dicoret.** |
+| 3 | Pecah tab jadi halaman | Ya untuk keuangan/mandor/kas | ✅ **SETUJU** — tapi keuangan **sudah dikerjakan** sesudah dokumen ditulis (3.449 → 523 baris, 5 sub-halaman). Sisa: mandor + kas. |
+| 4 | Halaman contoh mana dulu | Dashboard | ✅ **SETUJU** |
+
+Cara kerja: *"autopilot dan berurutan"* — seluruh antrean dijalankan tanpa
+berhenti per item, tiap sektor ditest dan diaudit.
+
+## Dua koreksi terhadap dokumen — saya salah, kenyataan menang
+
+**1. Dark mode BUKAN pekerjaan baru. Ia sudah ada dan jalan.**
+
+Saya sempat melapor "dark mode belum ada sama sekali" berdasar
+`grep "dark:" apps/web/app` → 0 berkas. **Alat ukur itu salah**: ia mencari
+utility class Tailwind, sementara repo ini memakai strategi CSS variable.
+Yang sebenarnya ada, diukur 2026-08-07:
+
+| Bagian | Bukti |
+|---|---|
+| Token gelap lengkap | `app/globals.css:471` — blok `.dark` |
+| Provider | `components/theme-provider.tsx` (`next-themes`) |
+| Terpasang di root | `app/layout.tsx:58` |
+| Tombol toggle | `components/theme-toggle.tsx` → `components/topbar.tsx:199` |
+| Sudah diaudit WCAG | `kontras-ratchet.mjs` — 38 pasangan lulus **di kedua mode** |
+
+Bahkan ada riwayat perbaikan bug mode gelap (`--danger` `#EF4444` → `#F87171`
+→ `#FB8585`) yang ditemukan penjaga karena axe hanya menguji mode terang.
+
+**Konsekuensi mengikat:** tiap token baru yang ditambahkan pekerjaan ini
+WAJIB punya pasangan `.dark`, dan `kontras-ratchet` wajib tetap hijau.
+
+**2. `2026-08-06-sumbu-ui-roadmap.md` bukan dokumen perombakan visual.**
+
+Judulnya menyebut "Sumbu UI/UX", tapi header dokumennya sendiri mengoreksi:
+isinya penjaga CI untuk *status dokumen vs kode*. Ketiganya **sudah selesai**
+(`869bc60`, `defb8c5`, `4b7df3b`). Perannya di pekerjaan ini adalah **penjaga
+yang wajib tetap hijau**, bukan pedoman visual.
+
+Pedoman visual yang mengikat hanya: `ARAH-VISUAL-2026.md` + `QUEUE-UI.yaml`.
 
 ## Diagnosis — angka, bukan perasaan
 
