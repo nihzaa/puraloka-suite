@@ -17,6 +17,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { DashboardGrid } from "@/components/dashboard-grid";
+import { Tabel } from "@/components/dasar";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -500,46 +501,76 @@ function DashboardContent() {
         </div>
       ) : (
         <div style={{ overflowX: "auto", flex: 1 }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
-            <caption className="sr-only">Invoice yang menunggu pembayaran: nomor, proyek dan klien, sisa tagihan, dan jatuh tempo.</caption>
-            <thead>
-              <tr style={{ background: "var(--surface-subtle)", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
-                {["Invoice", "Proyek · Klien", "Sisa", "Jatuh Tempo"].map((h, i) => (
-                  <th key={h} style={{ padding: "8px 16px", textAlign: i >= 2 ? "right" : "left", fontSize: 10, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: C.muted }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {data.outstanding_invoices.slice(0, 5).map(inv => {
-                const days = daysUntil(inv.due_date);
-                const overdue = days < 0, urgent = days >= 0 && days <= 3;
-                return (
-                  <tr key={inv.id} style={{
-                    background: overdue ? C.redBg : urgent ? C.yellowBg : "transparent",
-                    borderLeft: overdue ? `3px solid ${C.red}` : urgent ? `3px solid ${C.yellow}` : "3px solid transparent",
-                    borderBottom: "1px solid var(--border)",
-                  }}>
-                    {/* `<th scope="row">`: nomor invoice adalah identitas baris.
-                        Tanpa itu pembaca layar membacakan sisa tagihan tanpa
-                        menyebut invoice mana — angka tanpa pemilik. */}
-                    <th scope="row" style={{ textAlign: "left", padding: "12px 16px", color: C.navy, fontSize: 11, fontWeight: 600 }}>{inv.invoice_number}</th>
-                    <td style={{ padding: "12px 16px" }}>
-                      <div style={{ color: C.text, fontWeight: 500 }}>{inv.projects?.name ?? "—"}</div>
-                      <div style={{ fontSize: 10, color: C.muted }}>{inv.projects?.clients?.contact_person ?? "—"}</div>
-                    </td>
-                    <td style={{ padding: "12px 16px", textAlign: "right", color: C.text, fontWeight: 600 }}>{`Rp ${fmtShort(inv.amount_due)}`}</td>
-                    <td style={{ padding: "12px 16px", textAlign: "right" }}>
-                      <span style={{ fontSize: 11, color: overdue ? C.red : urgent ? C.yellow : C.muted, fontWeight: overdue || urgent ? 600 : 400 }}>
-                        {overdue ? `${Math.abs(days)}h lalu` : days === 0 ? "Hari ini" : fmtDate(inv.due_date)}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). `<th scope="row">`
+              pada nomor invoice sekarang dijamin komponen, bukan diingat
+              per-halaman — alasannya tetap sama: tanpa itu pembaca layar
+              membacakan sisa tagihan tanpa menyebut invoice mana.
+
+              Pembungkus luar `overflowX: auto` SENGAJA dipertahankan meski
+              `Tabel` punya pembungkusnya sendiri: div itu juga memuat tombol
+              "+N invoice lainnya" di bawah tabel dan memegang `flex: 1` yang
+              membuat widget mengisi tingginya. Menghapusnya merusak tata
+              letak widget, bukan sekadar menghilangkan satu overflow.
+
+              Garis kiri tebal penanda telat/mendesak tak bisa lewat
+              `tandaiBaris` (itu hanya latar), jadi dipindah ke dalam sel
+              nomor invoice sebagai batas kiri — penandanya tetap di tepi
+              kiri baris dan tetap terbaca. */}
+          <Tabel<Invoice>
+            caption="Invoice yang menunggu pembayaran: nomor, proyek dan klien, sisa tagihan, dan jatuh tempo."
+            data={data.outstanding_invoices.slice(0, 5)}
+            kunciBaris={inv => inv.id}
+            tandaiBaris={inv => {
+              const days = daysUntil(inv.due_date);
+              return days < 0 ? C.redBg : days <= 3 ? C.yellowBg : undefined;
+            }}
+            kolom={[
+              {
+                kunci: "invoice", judul: "Invoice", kepalaBaris: true,
+                render: inv => {
+                  const days = daysUntil(inv.due_date);
+                  const overdue = days < 0, urgent = days >= 0 && days <= 3;
+                  return (
+                    <span style={{
+                      display: "inline-block",
+                      borderLeft: overdue ? `3px solid ${C.red}` : urgent ? `3px solid ${C.yellow}` : "3px solid transparent",
+                      paddingLeft: 8,
+                      color: C.navy, fontSize: 11, fontWeight: 600,
+                    }}>{inv.invoice_number}</span>
+                  );
+                },
+              },
+              {
+                kunci: "proyek", judul: "Proyek · Klien",
+                render: inv => (
+                  <>
+                    <div style={{ fontWeight: 500 }}>{inv.projects?.name ?? "—"}</div>
+                    <div style={{ fontSize: 10, color: C.muted }}>{inv.projects?.clients?.contact_person ?? "—"}</div>
+                  </>
+                ),
+              },
+              {
+                kunci: "sisa", judul: "Sisa", rata: "kanan",
+                render: inv => <span style={{ fontWeight: 600 }}>{`Rp ${fmtShort(inv.amount_due)}`}</span>,
+              },
+              {
+                kunci: "tempo", judul: "Jatuh Tempo", rata: "kanan",
+                render: inv => {
+                  const days = daysUntil(inv.due_date);
+                  const overdue = days < 0, urgent = days >= 0 && days <= 3;
+                  return (
+                    <span style={{
+                      fontSize: 11,
+                      color: overdue ? C.red : urgent ? C.yellow : C.muted,
+                      fontWeight: overdue || urgent ? 600 : 400,
+                    }}>
+                      {overdue ? `${Math.abs(days)}h lalu` : days === 0 ? "Hari ini" : fmtDate(inv.due_date)}
+                    </span>
+                  );
+                },
+              },
+            ]}
+          />
           {data.outstanding_invoices.length > 5 && (
             <div style={{ padding: "8px 16px", borderTop: "1px solid var(--border)" }}>
               <button onClick={() => router.push("/keuangan")} style={{ fontSize: 11, color: C.muted, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
@@ -618,19 +649,21 @@ function DashboardContent() {
       </div>
       {loading ? <div style={{ padding: "0 20px 20px" }}><Skeleton h={100} /></div> : (
         <div style={{ overflowX: "auto", flex: 1 }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
-            <caption className="sr-only">Kasbon menunggu persetujuan: mandor, proyek, tujuan, jumlah, tanggal pengajuan, dan aksi.</caption>
-            <thead>
-              <tr style={{ background: "var(--surface-subtle)", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
-                {["Mandor", "Proyek", "Tujuan", "Jumlah", "Tgl Ajuan", "Aksi"].map((h, i) => (
-                  <th key={h} style={{ padding: "8px 16px", textAlign: i >= 3 ? "right" : "left", fontSize: 10, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: C.muted }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {data!.pending_kasbons.slice(0, 5).map(k => {
+          {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). Enam kolom di dalam
+              widget sempit — pembungkus overflow-x yang dijamin komponen
+              justru paling terasa di sini. Pembungkus luar tetap ada karena
+              memegang `flex: 1` dan tombol "+N kasbon lainnya".
+
+              Mandor jadi kepala baris: yang disetujui di sini adalah uang
+              untuk SESEORANG, dan tombol Setuju/Tolak tak boleh dibacakan
+              tanpa menyebut siapa. */}
+          <Tabel<Kasbon>
+            caption="Kasbon menunggu persetujuan: mandor, proyek, tujuan, jumlah, tanggal pengajuan, dan aksi."
+            data={data!.pending_kasbons.slice(0, 5)}
+            kunciBaris={k => k.id}
+            kolom={[
+              {
+                kunci: "mandor", judul: "Mandor", kepalaBaris: true,
                 // Kasbon tanpa work scope memutus seluruh rantai
                 // `work_scopes → mandor_assignments`, jadi mandor DAN proyek
                 // sama-sama kosong — dan tombol "Setuju" tetap muncul untuk
@@ -640,42 +673,57 @@ function DashboardContent() {
                 // NOT NULL di skema, `project_id` biasanya terisi. Pemohon
                 // ditandai supaya tak tertukar dengan mandor penerima —
                 // keduanya bisa berbeda orang.
-                const mandor =
-                  k.work_scopes?.mandor_assignments?.mandor?.name ??
-                  (k.pemohon?.name ? `${k.pemohon.name} (pemohon)` : "—");
-                const project =
-                  k.work_scopes?.mandor_assignments?.projects?.name ??
-                  k.proyek_langsung?.name ?? "—";
-                return (
-                  <tr key={k.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                    <td style={{ padding: "12px 16px", fontWeight: 500, color: C.text }}>{mandor}</td>
-                    <td style={{ padding: "12px 16px", color: C.mid }}>{project}</td>
-                    <td style={{ padding: "12px 16px", color: C.mid }}>{PURPOSE_LABEL[k.purpose] ?? k.purpose}</td>
-                    <td style={{ padding: "12px 16px", textAlign: "right", color: C.yellow, fontWeight: 700 }}>{`Rp ${fmtShort(k.amount)}`}</td>
-                    <td style={{ padding: "12px 16px", textAlign: "right", color: C.muted }}>{fmtDate(k.kasbon_date)}</td>
-                    <td style={{ padding: "12px 16px", textAlign: "right" }}>
-                      <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                        <ActionBtn
-                          disabled={kasbonBusy === k.id}
-                          bg="var(--success-bg)" color="var(--success)" border="var(--success-border)"
-                          onClick={() => handleKasbon(k.id, "approved")}
-                        >
-                          <CheckCheck size={11} /> Setuju
-                        </ActionBtn>
-                        <ActionBtn
-                          disabled={kasbonBusy === k.id}
-                          bg="var(--danger-bg)" color="var(--danger)" border="var(--danger-border)"
-                          onClick={() => handleKasbon(k.id, "rejected")}
-                        >
-                          <X size={11} /> Tolak
-                        </ActionBtn>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                render: k => (
+                  <span style={{ fontWeight: 500 }}>
+                    {k.work_scopes?.mandor_assignments?.mandor?.name ??
+                      (k.pemohon?.name ? `${k.pemohon.name} (pemohon)` : "—")}
+                  </span>
+                ),
+              },
+              {
+                kunci: "proyek", judul: "Proyek",
+                render: k => (
+                  <span style={{ color: C.mid }}>
+                    {k.work_scopes?.mandor_assignments?.projects?.name ??
+                      k.proyek_langsung?.name ?? "—"}
+                  </span>
+                ),
+              },
+              {
+                kunci: "tujuan", judul: "Tujuan",
+                render: k => <span style={{ color: C.mid }}>{PURPOSE_LABEL[k.purpose] ?? k.purpose}</span>,
+              },
+              {
+                kunci: "jumlah", judul: "Jumlah", rata: "kanan",
+                render: k => <span style={{ color: C.yellow, fontWeight: 700 }}>{`Rp ${fmtShort(k.amount)}`}</span>,
+              },
+              {
+                kunci: "tgl", judul: "Tgl Ajuan", rata: "kanan",
+                render: k => <span style={{ color: C.muted }}>{fmtDate(k.kasbon_date)}</span>,
+              },
+              {
+                kunci: "aksi", judul: "Aksi", rata: "kanan",
+                render: k => (
+                  <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                    <ActionBtn
+                      disabled={kasbonBusy === k.id}
+                      bg="var(--success-bg)" color="var(--success)" border="var(--success-border)"
+                      onClick={() => handleKasbon(k.id, "approved")}
+                    >
+                      <CheckCheck size={11} /> Setuju
+                    </ActionBtn>
+                    <ActionBtn
+                      disabled={kasbonBusy === k.id}
+                      bg="var(--danger-bg)" color="var(--danger)" border="var(--danger-border)"
+                      onClick={() => handleKasbon(k.id, "rejected")}
+                    >
+                      <X size={11} /> Tolak
+                    </ActionBtn>
+                  </div>
+                ),
+              },
+            ]}
+          />
           {data!.pending_kasbons.length > 5 && (
             <div style={{ padding: "8px 16px", borderTop: "1px solid var(--border)" }}>
               <button onClick={() => router.push("/mandor")} style={{ fontSize: 11, color: C.muted, background: "none", border: "none", cursor: "pointer", padding: 0 }}>

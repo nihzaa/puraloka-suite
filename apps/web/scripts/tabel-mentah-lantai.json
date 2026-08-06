@@ -1,5 +1,5 @@
 {
-  "halaman": 12,
+  "halaman": 8,
   "_catatan": "diukur otomatis pada jalan pertama",
   "_diukur": "2026-08-06",
   "_riwayat": [
@@ -12,6 +12,8 @@
     "18 → 17 (otomatis)",
     "17 → 16 (otomatis)",
     "16 → 13 (otomatis)",
-    "13 → 12 (otomatis)"
+    "13 → 12 (otomatis)",
+    "12 → 10 (otomatis)",
+    "10 → 8 (otomatis)"
   ]
 }

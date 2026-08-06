@@ -55,7 +55,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Plus, Package, Wallet, Wrench, MapPin, AlertTriangle, CalendarClock,
+  Plus, Wallet, Wrench, MapPin, AlertTriangle, CalendarClock,
   CircleSlash, Clock,
 } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";

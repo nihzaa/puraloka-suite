@@ -36,6 +36,7 @@ import { InstruksiLapanganSection } from "@/components/instruksi-lapangan-sectio
 import { PhotoGallery } from "@/components/photo-gallery";
 import { RabScheduleModal, AbsorptionLogModal } from "@/components/rab-schedule-modal";
 import { AbsorptionLogTable } from "@/components/absorption-log-table";
+import { Tabel } from "@/components/dasar";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1179,125 +1180,122 @@ function ProjectDetailContent() {
               </div>
             </div>
 
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
-              <caption className="sr-only">Termin pembayaran: nomor, label, nilai, persentase terhadap kontrak, syarat penagihan, dan status.</caption>
-              <thead>
-                <tr style={{ background: "var(--surface-subtle)", borderBottom: "1px solid var(--border)" }}>
-                  {["No", "Label", "Nilai", "% Kontrak", "Syarat Tagih", "Status", ""].map((h, i) => (
-                    <th key={i} style={{
-                      padding: "8px 12px",
-                      textAlign: i >= 2 && i !== 6 ? "right" : i === 6 ? "center" : "left",
-                      fontSize: 11, fontWeight: 600, letterSpacing: "0.05em",
-                      textTransform: "uppercase", color: C.mid,
-                    }}>
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {termins.map(t => {
-                  const canPay = bolehBayarTermin && t.status !== "paid";
-                  const isOverdueTermin = overdueTermins.some(ot => ot.id === t.id);
+            {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4).
+                Yang didapat gratis dan tak perlu diingat lagi di sini:
+                caption sr-only, pembungkus overflow-x (tujuh kolom TIDAK muat
+                di ponsel — sebelumnya halamannya yang bergeser), tabular-nums
+                di seluruh sel, dan `<th scope="row">` pada kolom Label.
 
-                  // Keterangan syarat tagih
-                  let triggerLabel = "—";
-                  if (t.trigger_type === "on_sign") triggerLabel = "Saat kontrak ditandatangani";
-                  else if (t.trigger_type === "on_progress" && t.trigger_pct !== null) {
-                    const reached = p.progress_pct >= t.trigger_pct;
-                    triggerLabel = `Progress ≥ ${t.trigger_pct}%`;
-                    if (reached && t.status === "pending") triggerLabel += " ✓";
-                  }
-                  else if (t.trigger_type === "on_retention") triggerLabel = "Retensi / akhir proyek";
-
-                  return (
-                    <tr
-                      key={t.id}
-                      style={{
-                        borderBottom: "1px solid var(--surface-hover)",
-                        background: t.status === "paid"
-                          ? "var(--success-bg)"
-                          : isOverdueTermin ? "var(--danger-bg)"
-                          : "transparent",
-                      }}
-                      onMouseEnter={e => {
-                        if (t.status !== "paid" && !isOverdueTermin) e.currentTarget.style.background = "var(--surface-subtle)";
-                      }}
-                      onMouseLeave={e => {
-                        e.currentTarget.style.background = t.status === "paid"
-                          ? "var(--success-bg)"
-                          : isOverdueTermin ? "var(--danger-bg)"
-                          : "transparent";
-                      }}
-                    >
-                      <td style={{ padding: "12px 12px", color: C.muted, fontWeight: 600 }}>{t.termin_number}</td>
-                      <td style={{ padding: "12px 12px", color: C.text, fontWeight: 500 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          {t.label}
-                          {isOverdueTermin && (
-                            <span title="Belum ditagih padahal syarat sudah terpenuhi">
-                              <AlertCircle size={13} style={{ color: C.red }} />
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td style={{ padding: "12px 12px", textAlign: "right", color: C.text, fontWeight: 600, fontFamily: "monospace" }}>{fmt(Number(t.amount))}</td>
-                      <td style={{ padding: "12px 12px", textAlign: "right", color: C.mid }}>{t.pct_of_contract}%</td>
-                      <td style={{ padding: "12px 12px", textAlign: "right" }}>
-                        <span style={{
-                          fontSize: 11,
-                          color: isOverdueTermin ? C.red : C.mid,
-                          fontWeight: isOverdueTermin ? 600 : 400,
-                        }}>
-                          {triggerLabel}
+                Kolom Label yang jadi kepala baris, bukan nomor termin: "1"
+                tak menjelaskan apa-apa saat dibacakan bersama nominalnya,
+                sedangkan "Uang muka" langsung memberi tahu uang apa yang
+                sedang dibicarakan. Nomornya tetap ada sebagai kolom biasa. */}
+            <Tabel<TerminSchedule>
+              caption="Termin pembayaran: nomor, label, nilai, persentase terhadap kontrak, syarat penagihan, dan status."
+              data={termins}
+              kunciBaris={t => t.id}
+              tandaiBaris={t => t.status === "paid"
+                ? "var(--success-bg)"
+                : overdueTermins.some(ot => ot.id === t.id) ? "var(--danger-bg)"
+                : undefined}
+              kolom={[
+                {
+                  kunci: "no", judul: "No", lebar: 56,
+                  render: t => <span style={{ color: C.muted, fontWeight: 600 }}>{t.termin_number}</span>,
+                },
+                {
+                  kunci: "label", judul: "Label", kepalaBaris: true,
+                  render: t => (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 500 }}>
+                      {t.label}
+                      {overdueTermins.some(ot => ot.id === t.id) && (
+                        <span title="Belum ditagih padahal syarat sudah terpenuhi">
+                          <AlertCircle size={13} style={{ color: C.red }} />
                         </span>
-                      </td>
-                      <td style={{ padding: "12px 12px", textAlign: "right" }}>
-                        <Badge status={t.status} />
-                      </td>
-                      <td style={{ padding: "12px 12px", textAlign: "center" }}>
-                        {canPay ? (
-                          <button
-                            aria-label={`Catat pembayaran termin ${t.termin_number}`}
-                            onClick={() => setPayingTermin({
-                              id: t.id,
-                              termin_number: t.termin_number,
-                              label: t.label,
-                              amount: Number(t.amount),
-                              pct_of_contract: t.pct_of_contract,
-                              status: t.status,
-                            })}
-                            style={{
-                              display: "inline-flex", alignItems: "center", gap: 4,
-                              padding: "4px 12px", borderRadius: 6, border: "none",
-                              background: isOverdueTermin ? C.red : C.navyLight,
-                              color: isOverdueTermin ? C.onNavy : C.navy,
-                              fontSize: 11, fontWeight: 600, cursor: "pointer",
-                              transition: "all 0.15s", whiteSpace: "nowrap",
-                            }}
-                            onMouseEnter={e => {
-                              e.currentTarget.style.background = isOverdueTermin ? "var(--on-danger-bg)" : C.navy;
-                              e.currentTarget.style.color = "var(--surface)";
-                            }}
-                            onMouseLeave={e => {
-                              e.currentTarget.style.background = isOverdueTermin ? C.red : C.navyLight;
-                              e.currentTarget.style.color = isOverdueTermin ? "#fff" : C.navy;
-                            }}
-                          >
-                            <Banknote size={12} />
-                            {isOverdueTermin ? "Tagih Sekarang" : "Tandai Terbayar"}
-                          </button>
-                        ) : t.status === "paid" ? (
-                          <span style={{ fontSize: 11, color: C.green, display: "flex", alignItems: "center", gap: 4, justifyContent: "center" }}>
-                            <CheckCircle2 size={13} /> Lunas
-                          </span>
-                        ) : null}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      )}
+                    </div>
+                  ),
+                },
+                {
+                  kunci: "nilai", judul: "Nilai", rata: "kanan",
+                  render: t => <span style={{ fontWeight: 600 }}>{fmt(Number(t.amount))}</span>,
+                },
+                {
+                  kunci: "pct", judul: "% Kontrak", rata: "kanan",
+                  render: t => <span style={{ color: C.mid }}>{t.pct_of_contract}%</span>,
+                },
+                {
+                  kunci: "syarat", judul: "Syarat Tagih", rata: "kanan",
+                  render: t => {
+                    const isOverdueTermin = overdueTermins.some(ot => ot.id === t.id);
+                    let triggerLabel = "—";
+                    if (t.trigger_type === "on_sign") triggerLabel = "Saat kontrak ditandatangani";
+                    else if (t.trigger_type === "on_progress" && t.trigger_pct !== null) {
+                      const reached = p.progress_pct >= t.trigger_pct;
+                      triggerLabel = `Progress ≥ ${t.trigger_pct}%`;
+                      if (reached && t.status === "pending") triggerLabel += " ✓";
+                    }
+                    else if (t.trigger_type === "on_retention") triggerLabel = "Retensi / akhir proyek";
+                    return (
+                      <span style={{
+                        fontSize: 11,
+                        color: isOverdueTermin ? C.red : C.mid,
+                        fontWeight: isOverdueTermin ? 600 : 400,
+                      }}>{triggerLabel}</span>
+                    );
+                  },
+                },
+                {
+                  kunci: "status", judul: "Status", rata: "kanan",
+                  render: t => <Badge status={t.status} />,
+                },
+                {
+                  kunci: "aksi", judul: "", rata: "tengah",
+                  render: t => {
+                    const canPay = bolehBayarTermin && t.status !== "paid";
+                    const isOverdueTermin = overdueTermins.some(ot => ot.id === t.id);
+                    if (canPay) return (
+                      <button
+                        aria-label={`Catat pembayaran termin ${t.termin_number}`}
+                        onClick={() => setPayingTermin({
+                          id: t.id,
+                          termin_number: t.termin_number,
+                          label: t.label,
+                          amount: Number(t.amount),
+                          pct_of_contract: t.pct_of_contract,
+                          status: t.status,
+                        })}
+                        style={{
+                          display: "inline-flex", alignItems: "center", gap: 4,
+                          padding: "4px 12px", borderRadius: 6, border: "none",
+                          background: isOverdueTermin ? C.red : C.navyLight,
+                          color: isOverdueTermin ? C.onNavy : C.navy,
+                          fontSize: 11, fontWeight: 600, cursor: "pointer",
+                          transition: "all 0.15s", whiteSpace: "nowrap",
+                        }}
+                        onMouseEnter={e => {
+                          e.currentTarget.style.background = isOverdueTermin ? "var(--on-danger-bg)" : C.navy;
+                          e.currentTarget.style.color = "var(--surface)";
+                        }}
+                        onMouseLeave={e => {
+                          e.currentTarget.style.background = isOverdueTermin ? C.red : C.navyLight;
+                          e.currentTarget.style.color = isOverdueTermin ? C.onNavy : C.navy;
+                        }}
+                      >
+                        <Banknote size={12} />
+                        {isOverdueTermin ? "Tagih Sekarang" : "Tandai Terbayar"}
+                      </button>
+                    );
+                    if (t.status === "paid") return (
+                      <span style={{ fontSize: 11, color: C.green, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                        <CheckCircle2 size={13} /> Lunas
+                      </span>
+                    );
+                    return null;
+                  },
+                },
+              ]}
+            />
           </div>
         );
       })()}
@@ -1465,33 +1463,51 @@ function ProjectDetailContent() {
           </div>
 
           {/* Kasbon list */}
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
-            <caption className="sr-only">Kasbon proyek ini: mandor, lingkup kerja, tujuan, jumlah, tanggal, dan status persetujuan.</caption>
-            <thead>
-              <tr style={{ background: "var(--surface-subtle)", borderBottom: "1px solid var(--border)" }}>
-                {["Mandor", "Scope", "Tujuan", "Jumlah", "Tanggal", "Status"].map((h, i) => (
-                  <th key={h} style={{ padding: "8px 12px", textAlign: i >= 3 ? "right" : "left", fontSize: 11, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", color: C.mid }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {allKasbons.slice(0, 10).map(k => (
-                <tr key={k.id} style={{ borderBottom: "1px solid var(--surface-hover)" }}
-                  onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-subtle)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
-                >
-                  <td style={{ padding: "12px 12px", color: C.text, fontWeight: 500 }}>{(k as any).mandorName}</td>
-                  <td style={{ padding: "12px 12px", color: C.mid, fontSize: 12 }}>{(k as any).scopeName}</td>
-                  <td style={{ padding: "12px 12px", color: C.mid }}>{PURPOSE_LABEL[k.purpose] ?? k.purpose}</td>
-                  <td style={{ padding: "12px 12px", textAlign: "right", color: k.status === "approved" ? C.text : k.status === "settled" ? C.green : C.yellow, fontWeight: 600, fontFamily: "monospace" }}>{fmt(Number(k.amount))}</td>
-                  <td style={{ padding: "12px 12px", textAlign: "right", color: C.muted, fontSize: 12 }}>{fmtDateShort(k.kasbon_date)}</td>
-                  <td style={{ padding: "12px 12px", textAlign: "right" }}><Badge status={k.status} /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). Komponennya yang
+              menjamin caption sr-only, pembungkus overflow-x, tabular-nums,
+              dan kepala baris — enam kolom dengan nama mandor + nama scope
+              melebar cepat, dan sebelumnya halamanlah yang bergeser.
+
+              Mandor jadi kepala baris: kasbon adalah uang yang diambil ORANG,
+              dan itu yang pertama ingin diketahui pembaca layar sebelum
+              nominalnya. `(k as any)` di dua kolom pertama juga hilang —
+              `allKasbons` memang sudah bertipe, castnya cuma warisan. */}
+          <Tabel<(typeof allKasbons)[number]>
+            caption="Kasbon proyek ini: mandor, lingkup kerja, tujuan, jumlah, tanggal, dan status persetujuan."
+            data={allKasbons.slice(0, 10)}
+            kunciBaris={k => k.id}
+            kolom={[
+              {
+                kunci: "mandor", judul: "Mandor", kepalaBaris: true,
+                render: k => <span style={{ fontWeight: 500 }}>{k.mandorName}</span>,
+              },
+              {
+                kunci: "scope", judul: "Scope",
+                render: k => <span style={{ color: C.mid, fontSize: 12 }}>{k.scopeName}</span>,
+              },
+              {
+                kunci: "tujuan", judul: "Tujuan",
+                render: k => <span style={{ color: C.mid }}>{PURPOSE_LABEL[k.purpose] ?? k.purpose}</span>,
+              },
+              {
+                kunci: "jumlah", judul: "Jumlah", rata: "kanan",
+                render: k => (
+                  <span style={{
+                    color: k.status === "approved" ? C.text : k.status === "settled" ? C.green : C.yellow,
+                    fontWeight: 600,
+                  }}>{fmt(Number(k.amount))}</span>
+                ),
+              },
+              {
+                kunci: "tanggal", judul: "Tanggal", rata: "kanan",
+                render: k => <span style={{ color: C.muted, fontSize: 12 }}>{fmtDateShort(k.kasbon_date)}</span>,
+              },
+              {
+                kunci: "status", judul: "Status", rata: "kanan",
+                render: k => <Badge status={k.status} />,
+              },
+            ]}
+          />
           {allKasbons.length > 10 && (
             <p style={{ textAlign: "center", fontSize: 12, color: C.muted, marginTop: 12 }}>
               + {allKasbons.length - 10} kasbon lainnya
@@ -1524,42 +1540,68 @@ function ProjectDetailContent() {
       {(p.invoices?.length ?? 0) > 0 && (
         <div id="sec-invoice" className="rise rise-5" style={{ ...card, padding: 24, marginBottom: 20 }}>
           <SectionTitle>Invoice</SectionTitle>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
-            <caption className="sr-only">Invoice proyek ini: nomor, tipe, total, jumlah dibayar, sisa, jatuh tempo, dan status.</caption>
-            <thead>
-              <tr style={{ background: "var(--surface-subtle)", borderBottom: "1px solid var(--border)" }}>
-                {["No Invoice", "Tipe", "Total", "Dibayar", "Sisa", "Jatuh Tempo", "Status"].map((h, i) => (
-                  <th key={h} style={{ padding: "8px 12px", textAlign: i >= 2 ? "right" : "left", fontSize: 11, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", color: C.mid }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {(p.invoices ?? []).map(inv => {
-                const invDays = daysUntil(inv.due_date);
-                const invOverdue = inv.status !== "paid" && invDays < 0;
-                return (
-                  <tr key={inv.id} style={{ borderBottom: "1px solid var(--surface-hover)", background: invOverdue ? "var(--danger-bg)" : "transparent" }}
-                    onMouseEnter={e => { if (!invOverdue) e.currentTarget.style.background = "var(--surface-subtle)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = invOverdue ? "var(--danger-bg)" : "transparent"; }}
-                  >
-                    <td style={{ padding: "12px 12px", color: C.navy, fontFamily: "var(--font-display)", fontSize: 11, fontWeight: 600 }}>{inv.invoice_number}</td>
-                    <td style={{ padding: "12px 12px", color: C.mid }}>{INVOICE_TYPE_LABEL[inv.invoice_type] ?? inv.invoice_type}</td>
-                    <td style={{ padding: "12px 12px", textAlign: "right", color: C.text, fontWeight: 600, fontFamily: "monospace" }}>{fmt(Number(inv.total_amount))}</td>
-                    <td style={{ padding: "12px 12px", textAlign: "right", color: C.green, fontFamily: "monospace" }}>{fmt(Number(inv.amount_paid))}</td>
-                    <td style={{ padding: "12px 12px", textAlign: "right", color: Number(inv.amount_due) > 0 ? C.yellow : C.green, fontWeight: 600, fontFamily: "monospace" }}>{fmt(Number(inv.amount_due))}</td>
-                    <td style={{ padding: "12px 12px", textAlign: "right", color: invOverdue ? C.red : C.mid, fontSize: 12 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 2, justifyContent: "flex-end" }}>
-                        <Clock size={10} />{fmtDateShort(inv.due_date)}
-                      </div>
-                    </td>
-                    <td style={{ padding: "12px 12px", textAlign: "right" }}><Badge status={inv.status} /></td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). Tujuh kolom uang —
+              paling butuh tabular-nums dan rata kanan yang dijamin komponen,
+              supaya Total/Dibayar/Sisa bisa dibandingkan sekilas tanpa
+              membaca digitnya satu per satu.
+
+              Nomor invoice jadi kepala baris: ia identitas resmi baris ini,
+              nomor yang dicari orang keuangan dan disebut di telepon. */}
+          <Tabel<Invoice>
+            caption="Invoice proyek ini: nomor, tipe, total, jumlah dibayar, sisa, jatuh tempo, dan status."
+            data={p.invoices ?? []}
+            kunciBaris={inv => inv.id}
+            tandaiBaris={inv => inv.status !== "paid" && daysUntil(inv.due_date) < 0
+              ? "var(--danger-bg)" : undefined}
+            kolom={[
+              {
+                kunci: "nomor", judul: "No Invoice", kepalaBaris: true,
+                render: inv => (
+                  <span style={{ color: C.navy, fontFamily: "var(--font-display)", fontSize: 11, fontWeight: 600 }}>
+                    {inv.invoice_number}
+                  </span>
+                ),
+              },
+              {
+                kunci: "tipe", judul: "Tipe",
+                render: inv => <span style={{ color: C.mid }}>{INVOICE_TYPE_LABEL[inv.invoice_type] ?? inv.invoice_type}</span>,
+              },
+              {
+                kunci: "total", judul: "Total", rata: "kanan",
+                render: inv => <span style={{ fontWeight: 600 }}>{fmt(Number(inv.total_amount))}</span>,
+              },
+              {
+                kunci: "dibayar", judul: "Dibayar", rata: "kanan",
+                render: inv => <span style={{ color: C.green }}>{fmt(Number(inv.amount_paid))}</span>,
+              },
+              {
+                kunci: "sisa", judul: "Sisa", rata: "kanan",
+                render: inv => (
+                  <span style={{ color: Number(inv.amount_due) > 0 ? C.yellow : C.green, fontWeight: 600 }}>
+                    {fmt(Number(inv.amount_due))}
+                  </span>
+                ),
+              },
+              {
+                kunci: "tempo", judul: "Jatuh Tempo", rata: "kanan",
+                render: inv => {
+                  const invOverdue = inv.status !== "paid" && daysUntil(inv.due_date) < 0;
+                  return (
+                    <span style={{
+                      display: "inline-flex", alignItems: "center", gap: 2,
+                      color: invOverdue ? C.red : C.mid, fontSize: 12,
+                    }}>
+                      <Clock size={10} />{fmtDateShort(inv.due_date)}
+                    </span>
+                  );
+                },
+              },
+              {
+                kunci: "status", judul: "Status", rata: "kanan",
+                render: inv => <Badge status={inv.status} />,
+              },
+            ]}
+          />
         </div>
       )}
 

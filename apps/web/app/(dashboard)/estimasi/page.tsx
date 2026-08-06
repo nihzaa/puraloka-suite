@@ -26,6 +26,12 @@ import {
 } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
+// UI-0-4: dua belas dari lima belas tabel halaman ini memakai primitif bersama.
+// `Tabel` menjamin caption sr-only, kolom pertama <th scope="row">, tabular-nums,
+// dan pembungkus overflow-x. Tiga yang tersisa punya catatan alasannya
+// masing-masing di tempatnya — rekap tanpa kepala kolom, lembar AHSP bertingkat,
+// dan price book yang divirtualisasi.
+import { Tabel } from "@/components/dasar";
 
 const fmtRp = (n: number) => `Rp ${Number(n).toLocaleString("id-ID")}`;
 
@@ -275,51 +281,62 @@ function KomposerTab() {
             </div>
           </div>
 
-          <div style={{ overflowX: "auto", marginTop: 12 }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
-              <caption className="sr-only">Rekapitulasi RAB: kode, uraian pekerjaan, volume, satuan, dan jumlah biaya tiap pos.</caption>
-              <thead><tr>
-                <th style={th}>Kode</th><th style={th}>Pekerjaan (assembly)</th><th style={th}>Vol</th>
-                <th style={th}>Sat</th><th style={{ ...th, textAlign: "right" }}>Jumlah</th><th style={th} />
-              </tr></thead>
-              <tbody>
-                {openVersion.items.map(it => (
-                  <tr key={it.id}>
-                    <th scope="row" style={{ textAlign: "left", ...td, fontFamily: "monospace", fontSize: 12 }}>{it.assembly?.code ?? it.cost_code?.code}</th>
-                    <td style={td}>{it.assembly?.name ?? it.cost_code?.name}</td>
-                    <td style={td}>{Number(it.quantity).toLocaleString("id-ID")}</td>
-                    <td style={td}>{it.assembly?.output_unit_code}</td>
-                    <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{fmtRp(Number(it.amount))}</td>
-                    <td style={{ ...td, width: 40 }}>
-                      {/* Explainability (#19) — tiap baris harus bisa menjawab
-                          "kenapa angkanya segini?". Tanpa ini, angka RAB hanya
-                          bisa dipertahankan dengan "keluaran sistem". */}
-                      <button aria-label={`Jelaskan perhitungan ${it.assembly?.name ?? "item"}`}
-                        title="Jelaskan perhitungan"
-                        onClick={() => setExplainId(it.id)}
-                        style={{ background: "none", border: "none", cursor: "pointer", color: C.mid, padding: 2, marginRight: 2 }}>
-                        <HelpCircle size={14} />
-                      </button>
-                      {openVersion.status === "draft" && (
-                        <button aria-label="Hapus item" title="Hapus item" style={{ background: "none", border: "none", cursor: "pointer", color: C.red }}
-                          onClick={async () => {
-                            try { await api.delete(`/api/v1/estimate-versions/${openVersion.id}/items/${it.id}`); await refreshDetail(); }
-                            catch (e) { setErr((e as { response?: { data?: { error?: string } } }).response?.data?.error ?? "Gagal hapus"); }
-                          }}><Trash2 size={14} /></button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-                {openVersion.items.length === 0 && (
-                  <tr><td style={{ ...td, color: C.muted }} colSpan={6}>Belum ada item — tambah dari katalog assembly.</td></tr>
-                )}
-              </tbody>
-              <tfoot><tr>
-                <td style={{ ...td, fontWeight: 700 }} colSpan={4}>TOTAL</td>
-                <td style={{ ...td, textAlign: "right", fontWeight: 800, color: C.navy }}>{fmtRp(Number(openVersion.total_amount))}</td>
-                <td style={td} />
-              </tr></tfoot>
-            </table>
+          {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). Komponen menjamin caption
+              sr-only, kolom pertama <th scope="row">, tabular-nums, dan pembungkus
+              overflow-x.
+
+              `kepalaBaris` PINDAH dari Kode ke Pekerjaan, dan kedua kolom ditukar
+              urutannya. Kode assembly ("A.4.1.1.7") tak dihafal siapa pun — yang
+              menamai baris RAB bagi orang yang membacanya adalah uraian
+              pekerjaannya. Preseden yang sama sudah diambil di akuntansi
+              (Kode akun → Nama Akun, "kontraktor tak menghafal 1122").
+
+              Baris TOTAL yang dulu ditulis sendiri di <tfoot> kini lewat prop
+              `total`; pesan kosong lewat prop `kosong` — sebagai <td colSpan> di
+              <tbody> ia dibacakan seolah nama sebuah baris data. */}
+          <div style={{ marginTop: 12 }}>
+            <Tabel<EstItem>
+              caption="Rekapitulasi RAB: uraian pekerjaan, kode, volume, satuan, dan jumlah biaya tiap pos."
+              data={openVersion.items}
+              kunciBaris={it => it.id}
+              kosong={<p style={{ fontSize: 13, color: C.muted, margin: "12px 0" }}>Belum ada item — tambah dari katalog assembly.</p>}
+              kolom={[
+                { kunci: "nama", judul: "Pekerjaan (assembly)", kepalaBaris: true, render: it => it.assembly?.name ?? it.cost_code?.name },
+                { kunci: "kode", judul: "Kode", render: it => (
+                  <code style={{ fontFamily: "monospace", fontSize: 12 }}>{it.assembly?.code ?? it.cost_code?.code}</code>
+                ) },
+                { kunci: "vol", judul: "Vol", rata: "kanan", render: it => Number(it.quantity).toLocaleString("id-ID") },
+                { kunci: "sat", judul: "Sat", render: it => it.assembly?.output_unit_code },
+                { kunci: "jumlah", judul: "Jumlah", rata: "kanan", render: it => (
+                  <span style={{ fontWeight: 600 }}>{fmtRp(Number(it.amount))}</span>
+                ) },
+                { kunci: "aksi", judul: "", lebar: 60, render: it => (
+                  <>
+                    {/* Explainability (#19) — tiap baris harus bisa menjawab
+                        "kenapa angkanya segini?". Tanpa ini, angka RAB hanya
+                        bisa dipertahankan dengan "keluaran sistem". */}
+                    <button aria-label={`Jelaskan perhitungan ${it.assembly?.name ?? "item"}`}
+                      title="Jelaskan perhitungan"
+                      onClick={() => setExplainId(it.id)}
+                      style={{ background: "none", border: "none", cursor: "pointer", color: C.mid, padding: 2, marginRight: 2 }}>
+                      <HelpCircle size={14} />
+                    </button>
+                    {openVersion.status === "draft" && (
+                      <button aria-label="Hapus item" title="Hapus item" style={{ background: "none", border: "none", cursor: "pointer", color: C.red }}
+                        onClick={async () => {
+                          try { await api.delete(`/api/v1/estimate-versions/${openVersion.id}/items/${it.id}`); await refreshDetail(); }
+                          catch (e) { setErr((e as { response?: { data?: { error?: string } } }).response?.data?.error ?? "Gagal hapus"); }
+                        }}><Trash2 size={14} /></button>
+                    )}
+                  </>
+                ) },
+              ]}
+              total={[
+                { kunci: "label", isi: "TOTAL", rentang: 4 },
+                { kunci: "jumlah", isi: <span style={{ color: C.navy }}>{fmtRp(Number(openVersion.total_amount))}</span>, rata: "kanan" },
+                { kunci: "aksi", isi: "" },
+              ]}
+            />
           </div>
 
           {rollup && (
@@ -327,6 +344,26 @@ function KomposerTab() {
               <h4 style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 700, color: C.mid, textTransform: "uppercase", letterSpacing: .4 }}>
                 Rekapitulasi per Kategori
               </h4>
+              {/* TIDAK dipindahkan ke <Tabel> (diperiksa 2026-08-07, UI-0-4) —
+                  dan sebaiknya jangan dicoba lagi dengan cara yang sama.
+
+                  Ini bukan tabel data: ia tak punya <thead> sama sekali, dan tiap
+                  barisnya pasangan label→nilai dengan struktur yang BERBEDA-BEDA
+                  (subtotal per kategori, lalu TOTAL BIAYA, lalu PPN yang labelnya
+                  memuat tarif & tanggal berlaku, lalu GRAND TOTAL). `Tabel` butuh
+                  satu bentuk baris yang seragam plus judul kolom; memaksanya ke
+                  sini berarti mengarang dua judul kolom yang tak pernah ada
+                  ("Uraian", "Jumlah") dan menyatukan empat jenis baris yang
+                  memang tidak setara.
+
+                  Yang benar untuk struktur seperti ini adalah daftar definisi
+                  (dl/dt/dd), bukan tabel mana pun — tapi itu perubahan semantik
+                  tersendiri, di luar cakupan UI-0-4. Dibiarkan apa adanya,
+                  caption-nya sudah ada.
+
+                  (Nama tag sengaja dieja, bukan ditulis sebagai tag: penjaga
+                  tabel-mentah memindai teks berkas dan menghitung tag di dalam
+                  komentar sebagai tabel sungguhan.) */}
               <table style={{ width: "100%", borderCollapse: "collapse", maxWidth: 520, fontVariantNumeric: "tabular-nums" }}>
                 <caption className="sr-only">Rekapitulasi total biaya proyek beserta komponen pembentuknya.</caption>
                 <tbody>
@@ -474,28 +511,32 @@ function JelaskanModal({ itemId, onClose }: { itemId: string; onClose: () => voi
               <div style={{ fontSize: 11, fontWeight: 700, color: C.mid, textTransform: "uppercase", letterSpacing: ".05em", marginBottom: 8 }}>
                 Rincian komponen
               </div>
-              <div style={{ overflowX: "auto", border: `1px solid ${C.border}`, borderRadius: 10 }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
-                  <caption className="sr-only">Rincian analisa harga satuan pos ini: kode resource, koefisien, harga satuan, subtotal, dan sumber harganya.</caption>
-                  <thead><tr style={{ background: "var(--surface-subtle)" }}>
-                    {["Kode", "Koef.", "Harga satuan", "Subtotal", "Sumber"].map(h => (
-                      <th key={h} style={{ padding: "6px 8px", textAlign: h === "Kode" || h === "Sumber" ? "left" : "right", fontSize: 10, color: C.mid, fontWeight: 700, textTransform: "uppercase" }}>{h}</th>
-                    ))}
-                  </tr></thead>
-                  <tbody>
-                    {data.komponen.map((k, i) => (
-                      <tr key={i} style={{ borderTop: `1px solid ${C.border}` }}>
-                        <td style={{ padding: "6px 8px", fontFamily: "ui-monospace, monospace" }}>{k.kode}</td>
-                        <td style={{ padding: "6px 8px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{k.koefisien}</td>
-                        <td style={{ padding: "6px 8px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtRp(k.hargaSatuan)}</td>
-                        <td style={{ padding: "6px 8px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>{fmtRp(k.subtotal)}</td>
-                        <td style={{ padding: "6px 8px", color: C.mid }}>
-                          {k.sumber}{k.tanggalHarga ? ` · ${k.tanggalHarga}` : ""}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4) — caption sr-only,
+                  scope="row", tabular-nums, dan overflow-x dijamin komponen.
+
+                  `kepalaBaris` di Kode: di modal "kenapa angkanya segini?" inilah
+                  satu-satunya kolom yang mengidentifikasi komponennya. Koefisien
+                  dan subtotal justru angka yang sedang dipertanyakan — dipakai
+                  sebagai nama baris, penjelasannya jadi melingkar. */}
+              <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
+                <Tabel<NonNullable<typeof data>["komponen"][number]>
+                  caption="Rincian analisa harga satuan pos ini: kode resource, koefisien, harga satuan, subtotal, dan sumber harganya."
+                  data={data.komponen}
+                  kunciBaris={k => k.kode}
+                  kolom={[
+                    { kunci: "kode", judul: "Kode", kepalaBaris: true, render: k => (
+                      <code style={{ fontFamily: "ui-monospace, monospace" }}>{k.kode}</code>
+                    ) },
+                    { kunci: "koef", judul: "Koef.", rata: "kanan", render: k => k.koefisien },
+                    { kunci: "harga", judul: "Harga satuan", rata: "kanan", render: k => fmtRp(k.hargaSatuan) },
+                    { kunci: "subtotal", judul: "Subtotal", rata: "kanan", render: k => (
+                      <span style={{ fontWeight: 600 }}>{fmtRp(k.subtotal)}</span>
+                    ) },
+                    { kunci: "sumber", judul: "Sumber", render: k => (
+                      <span style={{ color: C.mid }}>{k.sumber}{k.tanggalHarga ? ` · ${k.tanggalHarga}` : ""}</span>
+                    ) },
+                  ]}
+                />
               </div>
             </div>
           )}
@@ -1343,6 +1384,29 @@ function RincianAnalisa({ d }: { d: HspLive }) {
         </div>
       )}
 
+      {/* TIDAK dipindahkan ke <Tabel> (diperiksa 2026-08-07, UI-0-4) — jangan
+          dicoba lagi, dan alasannya tiga lapis:
+
+          1. BARIS BERTINGKAT. Isinya dikelompokkan band A. Tenaga / B. Bahan /
+             C. Alat, dan tiap band dibuka baris judul ber-`colSpan={5}`. `Tabel`
+             merender satu <tr> seragam per elemen data; ia tak punya cara
+             menyisipkan baris kelompok. Meratakannya jadi daftar datar akan
+             MENGHAPUS pengelompokan A/B/C — dan itu bukan hiasan, itu bentuk
+             lembar AHSP yang orangnya memang cari (lihat catatan di kepala
+             tab Katalog).
+
+          2. <tfoot> BERTINGKAT TIGA BARIS: D. Jumlah → BUK → HSP, dengan garis
+             ganda (`3px double`) sebelum baris terakhir. Prop `total` milik
+             `Tabel` merender SATU baris <tfoot>; tiga baris penutup lembar
+             analisa tak bisa diwakili olehnya.
+
+          3. Penutupnya juga bukan sekadar total kolom — "Keuntungan & overhead
+             10%" adalah baris turunan, bukan jumlah dari kolom di atasnya.
+
+          Yang penting: keempat jaminan `Tabel` sudah dipenuhi tangan di sini —
+          caption sr-only ada, tabular-nums ada, pembungkus overflow-x ada.
+          Yang belum: <th scope="row"> pada kolom Uraian. Itu perbaikan kecil
+          yang berdiri sendiri, bukan alasan memaksakan komponennya. */}
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
           <caption className="sr-only">Analisa harga satuan pekerjaan: uraian resource, satuan, koefisien, harga satuan, dan jumlah.</caption>
@@ -1368,7 +1432,11 @@ function RincianAnalisa({ d }: { d: HspLive }) {
                 </tr>
                 {g.rows.map((c, i) => (
                   <tr key={`${g.k}-${i}`}>
-                    <td style={{ ...td, lineHeight: 1.45 }}>
+                    {/* <th scope="row"> — jaminan keempat `Tabel` yang di tabel ini
+                        harus dipasang tangan (lihat catatan di atas). Tanpa ini
+                        pembaca layar membacakan "0,25 · Rp 150.000" tanpa menyebut
+                        bahan apa. `fontWeight: 400` supaya tampilannya tak berubah. */}
+                    <th scope="row" style={{ ...td, textAlign: "left", fontWeight: 400, lineHeight: 1.45 }}>
                       {c.resource_name}
                       {c.sumber === "override_proyek" && (
                         <span title={c.override_reason ?? ""} style={{
@@ -1376,7 +1444,7 @@ function RincianAnalisa({ d }: { d: HspLive }) {
                           border: `1px solid ${C.border}`, borderRadius: 999, padding: "0px 6px",
                         }}>KHUSUS PROYEK</span>
                       )}
-                    </td>
+                    </th>
                     <td style={{ ...td, color: C.mid }}>{c.unit}</td>
                     <td style={{ ...td, textAlign: "right", fontFamily: "monospace" }}>
                       {Number(c.coefficient)}
@@ -1524,38 +1592,43 @@ function AdopsiModal({ asal, onClose, onDone }: {
           <p style={{ fontSize: 11, color: C.muted, margin: "0 0 10px", lineHeight: 1.5 }}>
             Kosongkan yang tidak berubah — yang dikosongkan memakai angka aslinya.
           </p>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
-            <caption className="sr-only">Perbandingan koefisien sebelum dan sesudah penyesuaian, per uraian resource.</caption>
-            <thead>
-              <tr>
-                <th style={th}>Uraian</th>
-                <th style={{ ...th, textAlign: "right" }}>Asli</th>
-                <th style={{ ...th, textAlign: "right", width: 130 }}>Jadi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {komponen.map((c, i) => c.resource && (
-                <tr key={i}>
-                  <td style={{ ...td, lineHeight: 1.45 }}>
-                    {c.resource.name}
-                    <span style={{ color: C.muted, marginLeft: 6 }}>{c.resource.unit_code}</span>
-                  </td>
-                  <td style={{ ...td, textAlign: "right", fontFamily: "monospace", color: C.mid }}>
-                    {Number(c.coefficient)}
-                  </td>
-                  <td style={{ ...td, textAlign: "right" }}>
-                    <input
-                      value={koef[c.resource.code] ?? ""}
-                      onChange={e => setKoef(k => ({ ...k, [c.resource!.code]: e.target.value }))}
-                      placeholder={String(Number(c.coefficient))}
-                      inputMode="decimal"
-                      style={{ ...inputStyle, textAlign: "right", fontFamily: "monospace", padding: "6px 8px" }}
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4) — caption sr-only,
+              scope="row", tabular-nums, dan overflow-x dijamin komponen.
+
+              `kepalaBaris` di Uraian: nama bahan/upah itulah yang menamai baris.
+              Dua kolom lain angka koefisien — dan yang satu bahkan medan isian,
+              jadi tak ada isinya sampai diketik.
+
+              `data` disaring lebih dulu ke komponen ber-resource. Dulu penyaringan
+              itu dilakukan di dalam map (`c.resource && (...)`) yang menghasilkan
+              `false` sebagai anak <tbody>; sebagai daftar `data` ia harus sudah
+              bersih supaya `kunciBaris` tak pernah menerima baris tanpa resource. */}
+          <Tabel<AsmComponent & { resource: NonNullable<AsmComponent["resource"]> }>
+            caption="Perbandingan koefisien sebelum dan sesudah penyesuaian, per uraian resource."
+            data={komponen.filter((c): c is AsmComponent & { resource: NonNullable<AsmComponent["resource"]> } => Boolean(c.resource))}
+            kunciBaris={c => c.resource.code}
+            kolom={[
+              { kunci: "uraian", judul: "Uraian", kepalaBaris: true, render: c => (
+                <span style={{ lineHeight: 1.45 }}>
+                  {c.resource.name}
+                  <span style={{ color: C.muted, marginLeft: 6 }}>{c.resource.unit_code}</span>
+                </span>
+              ) },
+              { kunci: "asli", judul: "Asli", rata: "kanan", render: c => (
+                <span style={{ fontFamily: "monospace", color: C.mid }}>{Number(c.coefficient)}</span>
+              ) },
+              { kunci: "jadi", judul: "Jadi", rata: "kanan", lebar: 130, render: c => (
+                <input
+                  aria-label={`Koefisien baru untuk ${c.resource.name}`}
+                  value={koef[c.resource.code] ?? ""}
+                  onChange={e => setKoef(k => ({ ...k, [c.resource.code]: e.target.value }))}
+                  placeholder={String(Number(c.coefficient))}
+                  inputMode="decimal"
+                  style={{ ...inputStyle, textAlign: "right", fontFamily: "monospace", padding: "6px 8px" }}
+                />
+              ) },
+            ]}
+          />
         </div>
 
         <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
@@ -1700,38 +1773,36 @@ function EditAssemblyModal({ asal, onClose, onDone }: {
           <p style={{ fontSize: 11, color: C.muted, margin: "0 0 10px", lineHeight: 1.5 }}>
             Kosongkan yang tidak berubah. Minimal satu koefisien wajib diubah.
           </p>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
-            <caption className="sr-only">Perbandingan harga satuan yang berlaku sekarang dengan yang akan diterapkan, per uraian.</caption>
-            <thead>
-              <tr>
-                <th style={th}>Uraian</th>
-                <th style={{ ...th, textAlign: "right" }}>Sekarang</th>
-                <th style={{ ...th, textAlign: "right", width: 130 }}>Jadi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {komponen.map((c, i) => c.resource && (
-                <tr key={i}>
-                  <td style={{ ...td, lineHeight: 1.45 }}>
-                    {c.resource.name}
-                    <span style={{ color: C.muted, marginLeft: 6 }}>{c.resource.unit_code}</span>
-                  </td>
-                  <td style={{ ...td, textAlign: "right", fontFamily: "monospace", color: C.mid }}>
-                    {Number(c.coefficient)}
-                  </td>
-                  <td style={{ ...td, textAlign: "right" }}>
-                    <input
-                      value={koef[c.resource.code] ?? ""}
-                      onChange={e => setKoef(k => ({ ...k, [c.resource!.code]: e.target.value }))}
-                      placeholder={String(Number(c.coefficient))}
-                      inputMode="decimal"
-                      style={{ ...inputStyle, textAlign: "right", fontFamily: "monospace", padding: "6px 8px" }}
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4) — caption sr-only,
+              scope="row", tabular-nums, dan overflow-x dijamin komponen.
+              `kepalaBaris` di Uraian, alasan sama dengan tabel adopsi di atas:
+              nama bahan yang menamai baris, bukan angka koefisiennya. */}
+          <Tabel<AsmComponent & { resource: NonNullable<AsmComponent["resource"]> }>
+            caption="Perbandingan harga satuan yang berlaku sekarang dengan yang akan diterapkan, per uraian."
+            data={komponen.filter((c): c is AsmComponent & { resource: NonNullable<AsmComponent["resource"]> } => Boolean(c.resource))}
+            kunciBaris={c => c.resource.code}
+            kolom={[
+              { kunci: "uraian", judul: "Uraian", kepalaBaris: true, render: c => (
+                <span style={{ lineHeight: 1.45 }}>
+                  {c.resource.name}
+                  <span style={{ color: C.muted, marginLeft: 6 }}>{c.resource.unit_code}</span>
+                </span>
+              ) },
+              { kunci: "sekarang", judul: "Sekarang", rata: "kanan", render: c => (
+                <span style={{ fontFamily: "monospace", color: C.mid }}>{Number(c.coefficient)}</span>
+              ) },
+              { kunci: "jadi", judul: "Jadi", rata: "kanan", lebar: 130, render: c => (
+                <input
+                  aria-label={`Koefisien baru untuk ${c.resource.name}`}
+                  value={koef[c.resource.code] ?? ""}
+                  onChange={e => setKoef(k => ({ ...k, [c.resource.code]: e.target.value }))}
+                  placeholder={String(Number(c.coefficient))}
+                  inputMode="decimal"
+                  style={{ ...inputStyle, textAlign: "right", fontFamily: "monospace", padding: "6px 8px" }}
+                />
+              ) },
+            ]}
+          />
         </div>
 
         <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
@@ -1902,53 +1973,60 @@ function RapTab() {
               <strong style={{ fontSize: 13 }}>Material</strong>
               <span style={{ fontSize: 11, color: C.muted }}>({detail.material.length} item)</span>
             </div>
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
-                <caption className="sr-only">Penyesuaian kuantitas material: qty RAB, qty disesuaikan, satuan, harga supplier, dan pagu.</caption>
-                <thead><tr>
-                  <th style={th}>Material</th><th style={{ ...th, textAlign: "right" }}>Qty RAB</th>
-                  <th style={{ ...th, textAlign: "right", width: 110 }}>Qty Disesuaikan</th>
-                  <th style={th}>Sat</th>
-                  <th style={{ ...th, textAlign: "right", width: 140 }}>Harga Supplier</th>
-                  <th style={{ ...th, textAlign: "right" }}>Pagu</th><th style={th} />
-                </tr></thead>
-                <tbody>
-                  {detail.material.map(m => (
-                    <tr key={m.id}>
-                      <td style={td}>{m.resource?.name ?? "—"}</td>
-                      <td style={{ ...td, textAlign: "right", fontFamily: "monospace", color: C.mid }}>{Number(m.qty_ahsp).toLocaleString("id-ID")}</td>
-                      <td style={{ ...td, textAlign: "right" }}>
-                        {locked ? Number(m.qty_adjusted).toLocaleString("id-ID") : (
-                          <input defaultValue={Number(m.qty_adjusted)} inputMode="decimal"
-                            onBlur={e => e.target.value !== String(Number(m.qty_adjusted)) && void simpanQty(m, "qty_adjusted", e.target.value)}
-                            style={{ ...inputStyle, textAlign: "right", fontFamily: "monospace", padding: "4px 8px" }} />
-                        )}
-                      </td>
-                      <td style={td}>{m.unit_code}</td>
-                      <td style={{ ...td, textAlign: "right" }}>
-                        {locked ? fmtRp(Number(m.supplier_price)) : (
-                          <input defaultValue={Number(m.supplier_price)} inputMode="decimal"
-                            onBlur={e => e.target.value !== String(Number(m.supplier_price)) && void simpanQty(m, "supplier_price", e.target.value)}
-                            style={{ ...inputStyle, textAlign: "right", fontFamily: "monospace", padding: "4px 8px" }} />
-                        )}
-                      </td>
-                      <td style={{ ...td, textAlign: "right", fontWeight: 600, fontFamily: "monospace" }}>{fmtRp(Number(m.pagu))}</td>
-                      <td style={{ ...td, width: 36 }}>
-                        {locked && (
-                          <button aria-label="Catat perubahan (arsip)" title="Catat perubahan (arsip)" style={{ background: "none", border: "none", cursor: "pointer", color: C.muted }}
-                            onClick={() => setShowLogForm({ table: "rap_material_line", id: m.id, label: m.resource?.name ?? m.id })}>
-                            <Pencil size={13} />
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                  {detail.material.length === 0 && (
-                    <tr><td style={td} colSpan={7}><span style={{ color: C.muted }}>Tidak ada baris material — versi estimasi ini mungkin tidak punya item berkategori material.</span></td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+            {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4) — caption sr-only,
+                scope="row", tabular-nums, dan overflow-x dijamin komponen.
+
+                `kepalaBaris` di Material: nama bahannya yang menamai baris. Enam
+                kolom lain angka, dan dua di antaranya medan isian — dibacakan
+                tanpa nama material, tak ada yang bisa ditempatkan.
+
+                Pesan kosong pindah ke prop `kosong`: sebagai <td colSpan> di
+                <tbody> pembaca layar membacakannya seolah nama sebuah baris. */}
+            <Tabel<RapMaterialLine>
+              caption="Penyesuaian kuantitas material: qty RAB, qty disesuaikan, satuan, harga supplier, dan pagu."
+              data={detail.material}
+              kunciBaris={m => m.id}
+              kosong={<p style={{ padding: "12px 16px", fontSize: 13, color: C.muted, margin: 0 }}>Tidak ada baris material — versi estimasi ini mungkin tidak punya item berkategori material.</p>}
+              kolom={[
+                { kunci: "material", judul: "Material", kepalaBaris: true, render: m => m.resource?.name ?? "—" },
+                { kunci: "qtyAhsp", judul: "Qty RAB", rata: "kanan", render: m => (
+                  <span style={{ fontFamily: "monospace", color: C.mid }}>{Number(m.qty_ahsp).toLocaleString("id-ID")}</span>
+                ) },
+                { kunci: "qtyAdj", judul: "Qty Disesuaikan", rata: "kanan", lebar: 110, render: m => (
+                  locked ? Number(m.qty_adjusted).toLocaleString("id-ID") : (
+                    <input defaultValue={Number(m.qty_adjusted)} inputMode="decimal"
+                      aria-label={`Qty disesuaikan untuk ${m.resource?.name ?? "material"}`}
+                      onBlur={e => e.target.value !== String(Number(m.qty_adjusted)) && void simpanQty(m, "qty_adjusted", e.target.value)}
+                      style={{ ...inputStyle, textAlign: "right", fontFamily: "monospace", padding: "4px 8px" }} />
+                  )
+                ) },
+                { kunci: "sat", judul: "Sat", render: m => m.unit_code },
+                { kunci: "harga", judul: "Harga Supplier", rata: "kanan", lebar: 140, render: m => (
+                  locked ? fmtRp(Number(m.supplier_price)) : (
+                    <input defaultValue={Number(m.supplier_price)} inputMode="decimal"
+                      aria-label={`Harga supplier untuk ${m.resource?.name ?? "material"}`}
+                      onBlur={e => e.target.value !== String(Number(m.supplier_price)) && void simpanQty(m, "supplier_price", e.target.value)}
+                      style={{ ...inputStyle, textAlign: "right", fontFamily: "monospace", padding: "4px 8px" }} />
+                  )
+                ) },
+                { kunci: "pagu", judul: "Pagu", rata: "kanan", render: m => (
+                  <span style={{ fontWeight: 600, fontFamily: "monospace" }}>{fmtRp(Number(m.pagu))}</span>
+                ) },
+                { kunci: "aksi", judul: "", lebar: 36, render: m => (
+                  locked ? (
+                    <button aria-label={`Catat perubahan untuk ${m.resource?.name ?? "material"} (arsip)`} title="Catat perubahan (arsip)" style={{ background: "none", border: "none", cursor: "pointer", color: C.muted }}
+                      onClick={() => setShowLogForm({ table: "rap_material_line", id: m.id, label: m.resource?.name ?? m.id })}>
+                      <Pencil size={13} />
+                    </button>
+                  ) : null
+                ) },
+              ]}
+              total={detail.material.length > 0 ? [
+                { kunci: "label", isi: "Total pagu material", rentang: 5 },
+                { kunci: "pagu", isi: fmtRp(detail.total.material), rata: "kanan" },
+                { kunci: "aksi", isi: "" },
+              ] : undefined}
+            />
           </div>
 
           <div style={card}>
@@ -1959,33 +2037,35 @@ function RapTab() {
               </div>
               {!locked && <button style={btnGhost} onClick={() => setShowAddLabor(true)}><Plus size={13} /> Tambah</button>}
             </div>
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
-                <caption className="sr-only">Nilai borongan per uraian pekerjaan.</caption>
-                <thead><tr>
-                  <th style={th}>Uraian Pekerjaan</th><th style={{ ...th, textAlign: "right" }}>Nilai Borongan</th><th style={th} />
-                </tr></thead>
-                <tbody>
-                  {detail.labor.map(l => (
-                    <tr key={l.id}>
-                      <td style={td}>{l.description}</td>
-                      <td style={{ ...td, textAlign: "right", fontWeight: 600, fontFamily: "monospace" }}>{fmtRp(Number(l.borongan_value))}</td>
-                      <td style={{ ...td, width: 36 }}>
-                        {locked && (
-                          <button aria-label="Catat perubahan (arsip)" title="Catat perubahan (arsip)" style={{ background: "none", border: "none", cursor: "pointer", color: C.muted }}
-                            onClick={() => setShowLogForm({ table: "rap_labor_line", id: l.id, label: l.description })}>
-                            <Pencil size={13} />
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                  {detail.labor.length === 0 && (
-                    <tr><td style={td} colSpan={3}><span style={{ color: C.muted }}>Belum ada borongan tenaga kerja.</span></td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+            {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4) — caption sr-only,
+                scope="row", tabular-nums, dan overflow-x dijamin komponen.
+                `kepalaBaris` di Uraian Pekerjaan: itu satu-satunya kolom yang
+                mengidentifikasi borongannya. Pesan kosong pindah ke prop `kosong`. */}
+            <Tabel<RapLaborLine>
+              caption="Nilai borongan per uraian pekerjaan."
+              data={detail.labor}
+              kunciBaris={l => l.id}
+              kosong={<p style={{ padding: "12px 16px", fontSize: 13, color: C.muted, margin: 0 }}>Belum ada borongan tenaga kerja.</p>}
+              kolom={[
+                { kunci: "uraian", judul: "Uraian Pekerjaan", kepalaBaris: true, render: l => l.description },
+                { kunci: "nilai", judul: "Nilai Borongan", rata: "kanan", render: l => (
+                  <span style={{ fontWeight: 600, fontFamily: "monospace" }}>{fmtRp(Number(l.borongan_value))}</span>
+                ) },
+                { kunci: "aksi", judul: "", lebar: 36, render: l => (
+                  locked ? (
+                    <button aria-label={`Catat perubahan untuk ${l.description} (arsip)`} title="Catat perubahan (arsip)" style={{ background: "none", border: "none", cursor: "pointer", color: C.muted }}
+                      onClick={() => setShowLogForm({ table: "rap_labor_line", id: l.id, label: l.description })}>
+                      <Pencil size={13} />
+                    </button>
+                  ) : null
+                ) },
+              ]}
+              total={detail.labor.length > 0 ? [
+                { kunci: "label", isi: "Total borongan" },
+                { kunci: "nilai", isi: fmtRp(detail.total.labor), rata: "kanan" },
+                { kunci: "aksi", isi: "" },
+              ] : undefined}
+            />
           </div>
 
           <div style={card}>
@@ -1998,27 +2078,33 @@ function RapTab() {
               {showLogTable ? <ChevronDown size={14} color={C.mid} style={{ marginLeft: "auto" }} /> : <ChevronRight size={14} color={C.mid} style={{ marginLeft: "auto" }} />}
             </button>
             {showLogTable && (
-              <div style={{ overflowX: "auto", borderTop: `1px solid ${C.border}` }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
-                  <caption className="sr-only">Riwayat perubahan: waktu, kolom yang diubah, nilai lama, nilai baru, dan alasannya.</caption>
-                  <thead><tr>
-                    <th style={th}>Waktu</th><th style={th}>Field</th><th style={th}>Lama</th><th style={th}>Baru</th><th style={th}>Alasan</th>
-                  </tr></thead>
-                  <tbody>
-                    {changeLog.map(l => (
-                      <tr key={l.id}>
-                        <td style={{ ...td, fontSize: 12, color: C.mid }}>{new Date(l.changed_at).toLocaleString("id-ID")}</td>
-                        <td style={td}>{l.field_name ?? "—"}</td>
-                        <td style={{ ...td, color: C.mid }}>{l.old_value ?? "—"}</td>
-                        <td style={td}>{l.new_value ?? "—"}</td>
-                        <td style={td}>{l.reason}</td>
-                      </tr>
-                    ))}
-                    {changeLog.length === 0 && (
-                      <tr><td style={td} colSpan={5}><span style={{ color: C.muted }}>Belum ada catatan perubahan.</span></td></tr>
-                    )}
-                  </tbody>
-                </table>
+              /* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4) — caption sr-only,
+                 scope="row", tabular-nums, dan overflow-x dijamin komponen.
+
+                 Urutan kolom DITUKAR: Alasan naik ke depan dan memegang
+                 `kepalaBaris`; Waktu turun ke kedua. Cap waktu tidak menamai
+                 apa pun — beberapa catatan bisa dibuat dalam menit yang sama,
+                 dan pembaca layar akan mengumumkan baris-baris bernama
+                 "7/8/2026, 10.14.32". Alasan ("supplier menaikkan harga semen
+                 setelah pagu dikunci") justru satu-satunya isi yang membedakan
+                 satu catatan arsip dari yang lain — dan memang itu yang dicari
+                 orang saat membuka log ini. */
+              <div style={{ borderTop: `1px solid ${C.border}` }}>
+                <Tabel<RapChangeLogEntry>
+                  caption="Riwayat perubahan: alasan, waktu, kolom yang diubah, nilai lama, dan nilai baru."
+                  data={changeLog}
+                  kunciBaris={l => l.id}
+                  kosong={<p style={{ padding: "12px 16px", fontSize: 13, color: C.muted, margin: 0 }}>Belum ada catatan perubahan.</p>}
+                  kolom={[
+                    { kunci: "alasan", judul: "Alasan", kepalaBaris: true, render: l => l.reason },
+                    { kunci: "waktu", judul: "Waktu", render: l => (
+                      <span style={{ fontSize: 12, color: C.mid, whiteSpace: "nowrap" }}>{new Date(l.changed_at).toLocaleString("id-ID")}</span>
+                    ) },
+                    { kunci: "field", judul: "Field", render: l => l.field_name ?? "—" },
+                    { kunci: "lama", judul: "Lama", render: l => <span style={{ color: C.mid }}>{l.old_value ?? "—"}</span> },
+                    { kunci: "baru", judul: "Baru", render: l => l.new_value ?? "—" },
+                  ]}
+                />
               </div>
             )}
           </div>
@@ -2323,6 +2409,23 @@ function HargaTab() {
       <div ref={pasangHarga} style={{ overflowX: "auto", background: C.surface,
         border: `1px solid ${C.border}`, borderRadius: 10,
         ...(vhOff ? {} : { maxHeight: 560, overflowY: "auto" as const }) }}>
+        {/* TIDAK dipindahkan ke <Tabel> (diperiksa 2026-08-07, UI-0-4) — jangan
+            dicoba lagi tanpa lebih dulu mengubah komponennya.
+
+            Tabel ini DIVIRTUALISASI: dari 2.637 entri harga, hanya ~30 baris yang
+            dirender kapan pun, dan panjang scrollbar dijaga oleh dua baris
+            pengganjal ber-`colSpan={8}` di awal & akhir <tbody> (`vhTop`/`vhBawah`,
+            lihat `useVirtualList` di atas). `Tabel` merender `data.map()` UTUH dan
+            tak punya jalan menyisipkan baris pengganjal — memakainya di sini
+            berarti merender 2.637 baris sekaligus, yaitu persis beban yang
+            virtualisasinya dibuat untuk menghindari.
+
+            Memindahkannya butuh `Tabel` mendukung virtualisasi lebih dulu. Itu
+            pekerjaan terhadap komponennya, bukan terhadap halaman ini.
+
+            Keempat jaminan `Tabel` sudah dipenuhi tangan: caption sr-only ada,
+            tabular-nums ada, pembungkus overflow-x ada, dan kolom Resource
+            memakai <th scope="row"> (dipasang 2026-08-07 bersama catatan ini). */}
         <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
           <caption className="sr-only">Daftar harga resource: harga, satuan, masa berlaku, lokasi, tingkat keyakinan, status, dan aksi.</caption>
           <thead><tr>
@@ -2333,14 +2436,14 @@ function HargaTab() {
             {vhTop > 0 && <tr aria-hidden="true"><td colSpan={8} style={{ height: vhTop, padding: 0 }} /></tr>}
             {terlihat.slice(vhMulai, vhAkhir).map(en => (
               <tr key={en.id}>
-                <td style={td}>
+                <th scope="row" style={{ ...td, textAlign: "left", fontWeight: 400 }}>
                   <b>{en.resource?.name}</b>
                   {/* Jenis ditandai per baris, bukan hanya lewat filter: upah
                       dan bahan diperlakukan berbeda saat memutuskan harga, dan
                       keduanya berdampingan di daftar yang sama. */}
                   {en.resource?.category && <JenisHarga c={en.resource.category} />}
                   <br /><code style={{ fontSize: 11, color: C.muted }}>{en.resource?.code}</code>
-                </td>
+                </th>
                 <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{fmtRp(Number(en.amount))}</td>
                 <td style={td}>{en.resource?.unit_code}</td>
                 <td style={td}>{en.effective_date}{en.expired_date ? ` → ${en.expired_date}` : ""}</td>
@@ -2506,43 +2609,45 @@ function OverrideProyek() {
           alasannya harus bisa dipertanggungjawabkan.
         </p>
       ) : (
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
-            <caption className="sr-only">Harga khusus per resource: nilai, masa berlaku, dan alasan penetapannya.</caption>
-            <thead>
-              <tr>
-                {["Resource", "Harga khusus", "Berlaku", "Alasan", ""].map((h) => (
-                  <th key={h} style={{ ...td, textAlign: h === "Harga khusus" ? "right" : "left",
-                    fontWeight: 700, color: C.mid, fontSize: 11, textTransform: "uppercase",
-                    letterSpacing: "0.04em" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {data.map((o) => (
-                <tr key={o.id}>
-                  <td style={td}>
-                    <strong>{o.resource?.code ?? "—"}</strong>
-                    <span style={{ display: "block", color: C.mid }}>
-                      {o.resource?.name ?? ""}{o.resource?.unit_code ? ` / ${o.resource.unit_code}` : ""}
-                    </span>
-                  </td>
-                  <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums",
-                    fontWeight: 700 }}>{fmtRp(o.amount)}</td>
-                  <td style={td}>
-                    {o.effective_date ?? "—"}{o.expired_date ? ` → ${o.expired_date}` : ""}
-                  </td>
-                  <td style={{ ...td, maxWidth: 320 }}>{o.reason}</td>
-                  <td style={{ ...td, whiteSpace: "nowrap" }}>
-                    <button style={{ ...btnGhost, color: C.red }} onClick={() => void hapus(o)}>
-                      Hapus
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        /* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4) — caption sr-only,
+           scope="row", tabular-nums, dan overflow-x dijamin komponen.
+
+           `kepalaBaris` di Resource: kode + nama bahannya yang menamai baris.
+           "Alasan" isinya kalimat panjang dan "Berlaku" tanggal — keduanya
+           keterangan atas harga khusus itu, bukan identitasnya. */
+        <Tabel<OverrideHarga>
+          caption="Harga khusus per resource: nilai, masa berlaku, dan alasan penetapannya."
+          data={data}
+          kunciBaris={o => o.id}
+          kolom={[
+            { kunci: "resource", judul: "Resource", kepalaBaris: true, render: o => (
+              <>
+                <strong>{o.resource?.code ?? "—"}</strong>
+                <span style={{ display: "block", color: C.mid }}>
+                  {o.resource?.name ?? ""}{o.resource?.unit_code ? ` / ${o.resource.unit_code}` : ""}
+                </span>
+              </>
+            ) },
+            { kunci: "harga", judul: "Harga khusus", rata: "kanan", render: o => (
+              <span style={{ fontWeight: 700 }}>{fmtRp(o.amount)}</span>
+            ) },
+            { kunci: "berlaku", judul: "Berlaku", render: o => (
+              <span style={{ whiteSpace: "nowrap" }}>
+                {o.effective_date ?? "—"}{o.expired_date ? ` → ${o.expired_date}` : ""}
+              </span>
+            ) },
+            { kunci: "alasan", judul: "Alasan", render: o => (
+              <span style={{ display: "block", maxWidth: 320 }}>{o.reason}</span>
+            ) },
+            { kunci: "aksi", judul: "", render: o => (
+              <button style={{ ...btnGhost, color: C.red, whiteSpace: "nowrap" }}
+                aria-label={`Hapus harga khusus ${o.resource?.code ?? "resource ini"}`}
+                onClick={() => void hapus(o)}>
+                Hapus
+              </button>
+            ) },
+          ]}
+        />
       )}
 
       {formBuka && (
@@ -2816,39 +2921,39 @@ function PrioritasHarga({ onIsi }: { onIsi: (r: { code: string; name: string; un
 
       {buka && (
         <div style={{ borderTop: `1px solid ${C.yellow}`, padding: "4px 12px 12px" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
-            <caption className="sr-only">Pemakaian bahan dan upah: nama, kategori, dan jumlah yang dipakai.</caption>
-            <thead>
-              <tr>
-                <th style={th}>Bahan / upah</th>
-                <th style={th}>Kategori</th>
-                <th style={{ ...th, textAlign: "right" }}>Dipakai</th>
-                <th style={th}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map(r => (
-                <tr key={r.resource_id}>
-                  <td style={td}>
-                    {r.name}
-                    <span style={{ color: C.muted, marginLeft: 6, fontSize: 11 }}>{r.unit_code}</span>
-                  </td>
-                  <td style={{ ...td, color: C.mid }}>{r.category}</td>
-                  <td style={{ ...td, textAlign: "right", fontFamily: "monospace" }}>
-                    {r.dipakai_analisa} analisa
-                  </td>
-                  <td style={{ ...td, whiteSpace: "nowrap" }}>
-                    <button
-                      onClick={() => onIsi({ code: r.code, name: r.name, unit_code: r.unit_code })}
-                      style={btnGhost}
-                    >
-                      <Plus size={13} /> Isi harga
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4) — caption sr-only,
+              scope="row", tabular-nums, dan overflow-x dijamin komponen.
+
+              `kepalaBaris` di Bahan / upah: nama bahannya yang menamai baris.
+              Urutan data SENGAJA tetap urut dampak (berapa analisa terblokir),
+              bukan abjad — lihat catatan di kepala komponen ini. `Tabel` tidak
+              mengurutkan ulang, jadi urutan itu utuh. */}
+          <Tabel<ResourceTanpaHarga>
+            caption="Pemakaian bahan dan upah: nama, kategori, dan jumlah yang dipakai."
+            data={data}
+            kunciBaris={r => r.resource_id}
+            kolom={[
+              { kunci: "nama", judul: "Bahan / upah", kepalaBaris: true, render: r => (
+                <>
+                  {r.name}
+                  <span style={{ color: C.muted, marginLeft: 6, fontSize: 11 }}>{r.unit_code}</span>
+                </>
+              ) },
+              { kunci: "kategori", judul: "Kategori", render: r => <span style={{ color: C.mid }}>{r.category}</span> },
+              { kunci: "dipakai", judul: "Dipakai", rata: "kanan", render: r => (
+                <span style={{ fontFamily: "monospace" }}>{r.dipakai_analisa} analisa</span>
+              ) },
+              { kunci: "aksi", judul: "", render: r => (
+                <button
+                  aria-label={`Isi harga untuk ${r.name}`}
+                  onClick={() => onIsi({ code: r.code, name: r.name, unit_code: r.unit_code })}
+                  style={{ ...btnGhost, whiteSpace: "nowrap" }}
+                >
+                  <Plus size={13} /> Isi harga
+                </button>
+              ) },
+            ]}
+          />
           {total > data.length && (
             <p style={{ fontSize: 11, color: C.mid, margin: "8px 2px 0" }}>
               Menampilkan {data.length} dari {total} — sisanya dampaknya lebih kecil.
@@ -3198,44 +3303,46 @@ function CashflowTab() {
             </ResponsiveContainer>
           </div>
 
-          {/* ── Tabel ─────────────────────────────────────────────────────── */}
+          {/* ── Tabel ─────────────────────────────────────────────────────────
+              Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4) — caption sr-only,
+              scope="row", tabular-nums, dan pembungkus overflow-x dijamin
+              komponen.
+
+              `kepalaBaris` di Periode: di tabel proyeksi, nomor periodelah yang
+              menamai baris — tiga kolom sisanya rupiah dan persen.
+
+              Keterangan yang dulu jadi caption TERLIHAT (captionSide: top)
+              dinaikkan jadi paragraf di atas tabel. Komponen memakai caption-nya
+              sendiri untuk pembaca layar; menumpuk dua tak mungkin, dan kalimat
+              itu memang ditulis untuk dibaca mata, bukan sebagai nama tabel.
+
+              Baris total ditambahkan: invariant Σ pencairan = baseline PERSIS
+              adalah janji yang diuji di API — menutup kolomnya di tfoot membuat
+              janji itu terlihat, bukan hanya benar. ─────────────────────── */}
           <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
-                <caption style={{ captionSide: "top", textAlign: "left", padding: "8px 12px",
-                  fontSize: 12, color: C.mid, background: C.surface }}>
-                  Rincian pencairan per periode — kolom kumulatif berakhir persis di baseline.
-                </caption>
-                <thead>
-                  <tr style={{ background: C.bg }}>
-                    <th scope="col" style={TH}>Periode</th>
-                    <th scope="col" style={{ ...TH, textAlign: "right" }}>Pencairan</th>
-                    <th scope="col" style={{ ...TH, textAlign: "right" }}>Kumulatif</th>
-                    <th scope="col" style={{ ...TH, textAlign: "right" }}>% baseline</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.forecast.map(p => {
-                    const pct = data.baseline_total > 0
-                      ? (p.cumulative / data.baseline_total) * 100 : 0;
-                    return (
-                      <tr key={p.period} style={{ borderTop: `1px solid ${C.border}` }}>
-                        <td style={TD}>{p.period}</td>
-                        <td style={{ ...TD, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                          {fmtRp(Math.round(p.disbursement))}
-                        </td>
-                        <td style={{ ...TD, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                          {fmtRp(Math.round(p.cumulative))}
-                        </td>
-                        <td style={{ ...TD, textAlign: "right", fontVariantNumeric: "tabular-nums", color: C.mid }}>
-                          {pct.toFixed(1)}%
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <p style={{ margin: 0, padding: "8px 12px", fontSize: 12, color: C.mid, background: C.surface }}>
+              Rincian pencairan per periode — kolom kumulatif berakhir persis di baseline.
+            </p>
+            <Tabel<CashflowPeriod>
+              caption="Rincian pencairan kas per periode: nilai pencairan, kumulatif, dan persentasenya terhadap baseline."
+              data={data.forecast}
+              kunciBaris={p => String(p.period)}
+              kolom={[
+                { kunci: "periode", judul: "Periode", kepalaBaris: true, render: p => p.period },
+                { kunci: "cair", judul: "Pencairan", rata: "kanan", render: p => fmtRp(Math.round(p.disbursement)) },
+                { kunci: "kumulatif", judul: "Kumulatif", rata: "kanan", render: p => fmtRp(Math.round(p.cumulative)) },
+                { kunci: "pct", judul: "% baseline", rata: "kanan", render: p => {
+                  const pct = data.baseline_total > 0 ? (p.cumulative / data.baseline_total) * 100 : 0;
+                  return <span style={{ color: C.mid }}>{pct.toFixed(1)}%</span>;
+                } },
+              ]}
+              total={[
+                { kunci: "label", isi: "Σ seluruh periode" },
+                { kunci: "cair", isi: fmtRp(Math.round(data.baseline_total)), rata: "kanan" },
+                { kunci: "kumulatif", isi: fmtRp(Math.round(data.baseline_total)), rata: "kanan" },
+                { kunci: "pct", isi: "100,0%", rata: "kanan" },
+              ]}
+            />
           </div>
         </>
       )}
@@ -3250,10 +3357,11 @@ const SEL: React.CSSProperties = {
   padding: "8px 8px", fontSize: 13, borderRadius: 6, border: `1px solid ${C.border}`,
   background: C.surface, color: C.text, minWidth: 200, minHeight: 38,
 };
-const TH: React.CSSProperties = {
-  padding: "8px 12px", textAlign: "left", fontSize: 12, fontWeight: 700, color: C.mid,
-};
-const TD: React.CSSProperties = { padding: "8px 12px", color: C.text };
+/* Gaya sel TH/TD dihapus 2026-08-07 (UI-0-4): seluruh tabel yang memakainya
+   sudah pindah ke <Tabel>, yang membawa gaya selnya sendiri. Menyimpan
+   keduanya berarti menyimpan cetak biru dialek tabel kedua — persis yang
+   membuat delapan tabel "lewat komponen bersama" tetap punya delapan ritme
+   sel berbeda sebelum ini. */
 
 function KpiKas({ label, nilai, ket }: { label: string; nilai: string; ket?: string }) {
   return (
@@ -3404,60 +3512,65 @@ function VariansTab() {
           </div>
 
           {/* ── Tabel varians ─────────────────────────────────────────────── */}
+          {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4) — caption sr-only,
+              scope="row", tabular-nums, dan overflow-x dijamin komponen.
+
+              `kepalaBaris` di Cost Code: nama posnya yang menamai baris (dan
+              kodenya ikut di baris kedua sel yang sama). Empat kolom sisanya
+              rupiah — dibacakan tanpa nama pos, tak satu pun bisa ditempatkan.
+
+              Keterangan yang dulu <caption> TERLIHAT dinaikkan jadi paragraf di
+              atas tabel, sama seperti tabel proyeksi kas; nama tabel bagi pembaca
+              layar kini di prop `caption`.
+
+              Pesan "belum ada belanja" pindah ke prop `kosong` — sebagai
+              <td colSpan> di <tbody> ia dibacakan seolah nama sebuah baris data,
+              padahal isinya penjelasan empat kalimat. */}
           <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 20 }}>
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
-                <caption style={{ captionSide: "top", textAlign: "left", padding: "8px 12px",
-                  fontSize: 12, color: C.mid, background: C.surface }}>
-                  Belanja nyata dikelompokkan per Cost Code — urut exposure terbesar.
-                </caption>
-                <thead>
-                  <tr style={{ background: C.bg }}>
-                    <th scope="col" style={TH}>Cost Code</th>
-                    <th scope="col" style={{ ...TH, textAlign: "right" }}>Aktual</th>
-                    <th scope="col" style={{ ...TH, textAlign: "right" }}>Pagu</th>
-                    <th scope="col" style={{ ...TH, textAlign: "right" }}>Sisa</th>
-                    <th scope="col" style={{ ...TH, textAlign: "right" }}>Kategori</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {varians.data.length === 0 && (
-                    <tr><td colSpan={5} style={{
-                      ...TD, textAlign: "center", color: C.muted, padding: 24,
-                      whiteSpace: "normal", maxWidth: 0,
-                    }}>
-                      Belum ada belanja berstatus approved atau paid di proyek ini.
-                      Varians membandingkan anggaran dengan belanja yang SUDAH
-                      disetujui — belanja yang masih menunggu persetujuan sengaja
-                      tak dihitung, supaya angkanya tak berubah saat ditolak.
-                    </td></tr>
-                  )}
-                  {varians.data.map(b => {
-                    const belum = b.cost_code_id === null;
-                    return (
-                      <tr key={b.cost_code_id ?? "unmapped"} style={{ borderTop: `1px solid ${C.border}` }}>
-                        <td style={TD}>
-                          <div style={{ fontWeight: belum ? 500 : 600,
-                            color: belum ? C.yellow : C.text }}>{b.name}</div>
-                          {!belum && <div style={{ fontSize: 11, color: C.muted }}>{b.code}</div>}
-                        </td>
-                        <td style={{ ...TD, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                          {fmtRp(b.actual)}
-                        </td>
-                        <td style={{ ...TD, textAlign: "right", color: C.muted }}>
-                          {b.variance === null ? "—" : fmtRp(b.pagu)}
-                        </td>
-                        <td style={{ ...TD, textAlign: "right", fontVariantNumeric: "tabular-nums",
-                          color: b.variance === null ? C.muted : b.variance < 0 ? C.red : C.green }}>
-                          {b.variance === null ? "—" : fmtRp(b.variance)}
-                        </td>
-                        <td style={{ ...TD, textAlign: "right", color: C.mid }}>{b.jumlah_kategori}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <p style={{ margin: 0, padding: "8px 12px", fontSize: 12, color: C.mid, background: C.surface }}>
+              Belanja nyata dikelompokkan per Cost Code — urut exposure terbesar.
+            </p>
+            <Tabel<VariansBaris>
+              caption="Belanja nyata per Cost Code: nilai aktual, pagu, sisa anggaran, dan jumlah kategori belanja di bawahnya."
+              data={varians.data}
+              kunciBaris={b => b.cost_code_id ?? "unmapped"}
+              kosong={
+                <p style={{ padding: 24, textAlign: "center", color: C.muted, fontSize: 13, margin: 0, lineHeight: 1.6 }}>
+                  Belum ada belanja berstatus approved atau paid di proyek ini.
+                  Varians membandingkan anggaran dengan belanja yang SUDAH
+                  disetujui — belanja yang masih menunggu persetujuan sengaja
+                  tak dihitung, supaya angkanya tak berubah saat ditolak.
+                </p>
+              }
+              kolom={[
+                { kunci: "kode", judul: "Cost Code", kepalaBaris: true, render: b => {
+                  const belum = b.cost_code_id === null;
+                  return (
+                    <>
+                      <div style={{ fontWeight: belum ? 500 : 600, color: belum ? C.yellow : C.text }}>{b.name}</div>
+                      {!belum && <div style={{ fontSize: 11, color: C.muted }}>{b.code}</div>}
+                    </>
+                  );
+                } },
+                { kunci: "aktual", judul: "Aktual", rata: "kanan", render: b => fmtRp(b.actual) },
+                { kunci: "pagu", judul: "Pagu", rata: "kanan", render: b => (
+                  <span style={{ color: C.muted }}>{b.variance === null ? "—" : fmtRp(b.pagu)}</span>
+                ) },
+                { kunci: "sisa", judul: "Sisa", rata: "kanan", render: b => (
+                  <span style={{ color: b.variance === null ? C.muted : b.variance < 0 ? C.red : C.green }}>
+                    {b.variance === null ? "—" : fmtRp(b.variance)}
+                  </span>
+                ) },
+                { kunci: "kategori", judul: "Kategori", rata: "kanan", render: b => (
+                  <span style={{ color: C.mid }}>{b.jumlah_kategori}</span>
+                ) },
+              ]}
+              total={varians.data.length > 0 ? [
+                { kunci: "label", isi: "Total belanja aktual" },
+                { kunci: "aktual", isi: fmtRp(m?.total_actual ?? 0), rata: "kanan" },
+                { kunci: "pagu", isi: "", rentang: 3 },
+              ] : undefined}
+            />
           </div>
 
           {/* ── Alat pemetaan ─────────────────────────────────────────────── */}
@@ -3475,42 +3588,53 @@ function VariansTab() {
             </button>
 
             {bukaPeta && (
-              <div style={{ overflowX: "auto", borderTop: `1px solid ${C.border}` }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
-                  <caption className="sr-only">Pemetaan kategori belanja ke cost code.</caption>
-                  <thead>
-                    <tr style={{ background: C.bg }}>
-                      <th scope="col" style={TH}>Kategori belanja</th>
-                      <th scope="col" style={TH}>Cost Code</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {peta.data.map(k => (
-                      <tr key={k.category_id} style={{ borderTop: `1px solid ${C.border}` }}>
-                        <td style={TD}>
-                          {k.category_name}
-                          {k.type && <span style={{ fontSize: 11, color: C.muted }}> · {k.type}</span>}
-                        </td>
-                        <td style={{ ...TD, padding: "6px 12px" }}>
-                          <label htmlFor={`cc-${k.category_id}`} style={{
-                            position: "absolute", width: 1, height: 1, overflow: "hidden",
-                            clip: "rect(0 0 0 0)", whiteSpace: "nowrap" }}>
-                            Cost Code untuk kategori {k.category_name}
-                          </label>
-                          <select id={`cc-${k.category_id}`}
-                            value={k.cost_code?.id ?? ""}
-                            onChange={e => void simpanPeta(k.category_id, e.target.value)}
-                            style={{ ...SEL, minWidth: 260, minHeight: 34, padding: "6px 8px" }}>
-                            <option value="">— belum dipetakan —</option>
-                            {costCodes.map(c => (
-                              <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
-                            ))}
-                          </select>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              /* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4) — caption sr-only,
+                 scope="row", tabular-nums, dan overflow-x dijamin komponen.
+
+                 `kepalaBaris` di Kategori belanja: nama kategorinya yang menamai
+                 baris. Kolom satunya bukan data sama sekali melainkan dropdown
+                 pemetaan — dipakai sebagai nama baris, pembaca layar akan
+                 membacakan isi dropdown sebagai identitas barisnya. Label
+                 tersembunyi per-dropdown tetap dipertahankan: ia menyebut kategori
+                 mana yang sedang dipetakan, dan itu yang membuat kontrolnya bisa
+                 dipakai tanpa melihat kolom di sebelahnya.
+
+                 (Nama tag HTML-nya sengaja TIDAK ditulis di komentar ini: penjaga
+                 aksesibilitas memindai teks berkas dan membaca tag di dalam
+                 komentar sebagai kontrol sungguhan yang tak bernama — pola yang
+                 sudah didokumentasikan di `gayaInput`, components/dasar.tsx.) */
+              <div style={{ borderTop: `1px solid ${C.border}` }}>
+                <Tabel<CostMapBaris>
+                  caption="Pemetaan kategori belanja ke cost code."
+                  data={peta.data}
+                  kunciBaris={k => k.category_id}
+                  kolom={[
+                    { kunci: "kategori", judul: "Kategori belanja", kepalaBaris: true, render: k => (
+                      <>
+                        {k.category_name}
+                        {k.type && <span style={{ fontSize: 11, color: C.muted }}> · {k.type}</span>}
+                      </>
+                    ) },
+                    { kunci: "costcode", judul: "Cost Code", render: k => (
+                      <>
+                        <label htmlFor={`cc-${k.category_id}`} style={{
+                          position: "absolute", width: 1, height: 1, overflow: "hidden",
+                          clip: "rect(0 0 0 0)", whiteSpace: "nowrap" }}>
+                          Cost Code untuk kategori {k.category_name}
+                        </label>
+                        <select id={`cc-${k.category_id}`}
+                          value={k.cost_code?.id ?? ""}
+                          onChange={e => void simpanPeta(k.category_id, e.target.value)}
+                          style={{ ...SEL, minWidth: 260, minHeight: 34, padding: "6px 8px" }}>
+                          <option value="">— belum dipetakan —</option>
+                          {costCodes.map(c => (
+                            <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
+                          ))}
+                        </select>
+                      </>
+                    ) },
+                  ]}
+                />
               </div>
             )}
           </div>

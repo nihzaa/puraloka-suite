@@ -18,6 +18,10 @@ import {
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 import { C } from "@/lib/warna-ui";
+// UI-0-4: kelima tabel halaman ini memakai primitif bersama, termasuk delapan
+// yang dulu lewat wrapper `DataTable` lokal. `Tabel` menjamin caption sr-only,
+// kolom pertama <th scope="row">, tabular-nums, dan pembungkus overflow-x.
+import { Tabel } from "@/components/dasar";
 
 const card: React.CSSProperties = {
   background: "var(--surface)", border: `1px solid ${C.border}`,
@@ -224,43 +228,21 @@ function TabBtn({ label, active, onClick, icon }: { label: string; active: boole
   );
 }
 
-// ─── Table wrapper ────────────────────────────────────────────────────────────
 /**
- * Tabel data dengan kepala kolom seragam.
+ * `DataTable` DIHAPUS 2026-08-07 (UI-0-4) — delapan pemakainya kini memakai
+ * `<Tabel>` dari `@/components/dasar`.
  *
- * `caption` WAJIB, tidak opsional. Halaman ini memakai `DataTable` delapan
- * kali untuk delapan tabel yang isinya sama sekali berbeda — invoice, arus
- * kas, kasbon, pengeluaran. Pembaca layar mengumumkan tabel lepas dari
- * judul visual di atasnya, jadi tanpa caption kedelapan tabel itu terdengar
- * identik: "tabel, 6 kolom".
+ * Wrapper lokal ini sudah benar soal caption wajib dan `scope="col"`, tapi ia
+ * pustaka tabel KEDUA: ia tak pernah memberi `scope="row"` pada kolom pertama,
+ * dan barisnya ditulis pemanggil sebagai `<tr><td>` mentah — jadi tiap pemakai
+ * tetap menentukan sendiri padding, perataan, dan `tabular-nums` per sel.
+ * Itulah sebabnya delapan tabel di berkas ini punya delapan ritme sel yang
+ * sedikit berbeda meski lewat "wrapper bersama".
  *
- * Dibuat wajib supaya tabel BERIKUTNYA tak bisa lahir tanpa keterangan —
- * prop opsional yang benar untuk diisi adalah prop yang lupa diisi.
+ * Keadaan kosong yang dulu dirender sebagai `<td colSpan>` di dalam `<tbody>`
+ * ikut hilang bersamanya: pembaca layar membacakannya seolah "Tidak ada data"
+ * adalah nama sebuah baris. Prop `kosong` milik `Tabel` menggantikannya.
  */
-function DataTable({ headers, children, empty, caption }: { headers: { label: string; align?: "left" | "right" | "center" }[]; children: React.ReactNode; empty?: boolean; caption: string }) {
-  return (
-    <div style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${C.border}` }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
-        <caption className="sr-only">{caption}</caption>
-        <thead>
-          <tr style={{ background: "var(--surface-subtle)", borderBottom: `1px solid ${C.border}` }}>
-            {headers.map((h, i) => (
-              // `scope="col"`: tanpa itu pembaca layar tak menghubungkan sel
-              // data dengan judul kolomnya, dan angka dibacakan tanpa tahu
-              // angka apa.
-              <th key={i} scope="col" style={{ padding: "8px 12px", textAlign: h.align ?? "left", fontSize: 10, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>{h.label}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {empty ? (
-            <tr><td colSpan={headers.length} style={{ padding: "32px", textAlign: "center", color: C.muted }}>Tidak ada data</td></tr>
-          ) : children}
-        </tbody>
-      </table>
-    </div>
-  );
-}
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function LaporanPage() {
@@ -597,31 +579,33 @@ function LaporanContent() {
                 {taxData.summary_by_month.length > 0 && (
                   <div style={{ ...card, padding: 20 }}>
                     <p style={{ fontSize: 13, fontWeight: 700, color: C.text, margin: "0 0 14px" }}>Rekap per Bulan</p>
-                    <div style={{ overflowX: "auto" }}>
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
-                        <caption className="sr-only">Rekap pajak per periode: PPh final, PPN, total pajak, jumlah invoice, serta berapa yang sudah dan belum dilaporkan.</caption>
-                        <thead>
-                          <tr style={{ borderBottom: `2px solid ${C.border}` }}>
-                            {["Periode", "PPh Final", "PPN", "Total Pajak", "Jumlah Invoice", "Sudah Lapor", "Belum Lapor"].map(h => (
-                              <th key={h} style={{ padding: "8px 8px", textAlign: h === "Periode" ? "left" : "right", color: C.muted, fontWeight: 600, whiteSpace: "nowrap" }}>{h}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {taxData.summary_by_month.map((m: TaxData["summary_by_month"][0], i: number) => (
-                            <tr key={m.period} style={{ borderBottom: `1px solid ${C.border}`, background: i % 2 === 0 ? "transparent" : "var(--surface-hover)" }}>
-                              <td style={{ padding: "8px 8px", fontWeight: 600, color: C.text }}>{m.period}</td>
-                              <td style={{ padding: "8px 8px", textAlign: "right", color: C.navy }}>{fmtCompact(m.pph)}</td>
-                              <td style={{ padding: "8px 8px", textAlign: "right", color: C.blue }}>{fmtCompact(m.ppn)}</td>
-                              <td style={{ padding: "8px 8px", textAlign: "right", color: C.text, fontWeight: 700 }}>{fmtCompact(m.total)}</td>
-                              <td style={{ padding: "8px 8px", textAlign: "right", color: C.muted }}>{m.count}</td>
-                              <td style={{ padding: "8px 8px", textAlign: "right", color: C.green }}>{m.reported}</td>
-                              <td style={{ padding: "8px 8px", textAlign: "right", color: m.pending > 0 ? C.yellow : C.muted }}>{m.pending}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                    {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). Komponen menjamin
+                        caption sr-only, kolom pertama <th scope="row">, tabular-nums,
+                        dan pembungkus overflow-x — empat hal yang tabel mentah harus
+                        ingat sendiri tiap kali, dan yang riwayat repo ini menunjukkan
+                        TIDAK diingat.
+
+                        `kepalaBaris` jatuh ke Periode: itu yang menamai barisnya.
+                        Sisanya angka; tak ada kolom lain yang bisa dipakai pembaca
+                        layar untuk menyebut baris mana yang sedang dibacakan.
+
+                        Belang ganjil-genap yang dulu ada di sini SENGAJA hilang —
+                        `Tabel` memilih garis tipis + sorot hover, karena pada tabel
+                        padat belang menambah kebisingan tanpa menambah keterbacaan. */}
+                    <Tabel<TaxData["summary_by_month"][number]>
+                      caption="Rekap pajak per periode: PPh final, PPN, total pajak, jumlah invoice, serta berapa yang sudah dan belum dilaporkan."
+                      data={taxData.summary_by_month}
+                      kunciBaris={m => m.period}
+                      kolom={[
+                        { kunci: "periode", judul: "Periode", kepalaBaris: true, render: m => m.period },
+                        { kunci: "pph", judul: "PPh Final", rata: "kanan", render: m => <span style={{ color: C.navy }}>{fmtCompact(m.pph)}</span> },
+                        { kunci: "ppn", judul: "PPN", rata: "kanan", render: m => <span style={{ color: C.blue }}>{fmtCompact(m.ppn)}</span> },
+                        { kunci: "total", judul: "Total Pajak", rata: "kanan", render: m => <span style={{ fontWeight: 700 }}>{fmtCompact(m.total)}</span> },
+                        { kunci: "count", judul: "Jumlah Invoice", rata: "kanan", render: m => <span style={{ color: C.muted }}>{m.count}</span> },
+                        { kunci: "reported", judul: "Sudah Lapor", rata: "kanan", render: m => <span style={{ color: C.green }}>{m.reported}</span> },
+                        { kunci: "pending", judul: "Belum Lapor", rata: "kanan", render: m => <span style={{ color: m.pending > 0 ? C.yellow : C.muted }}>{m.pending}</span> },
+                      ]}
+                    />
                   </div>
                 )}
 
@@ -661,67 +645,67 @@ function LaporanContent() {
                       <Download size={12} /> Export Excel
                     </button>
                   </div>
-                  {taxData.records.length === 0 ? (
-                    <div style={{ padding: 40, textAlign: "center", color: C.muted }}>Tidak ada data pajak di periode ini</div>
-                  ) : (
-                    <div style={{ overflowX: "auto" }}>
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
-                        <caption className="sr-only">Rincian pajak per invoice: periode, proyek, nomor invoice, jenis pajak, DPP, tarif, nilai pajak, nomor e-Faktur, dan status.</caption>
-                        <thead>
-                          <tr style={{ borderBottom: `1px solid ${C.border}`, background: "var(--surface-hover)" }}>
-                            {["Periode", "Proyek", "No Invoice", "Jenis", "DPP", "Tarif", "Pajak", "No e-Faktur", "Status", "Aksi"].map(h => (
-                              <th key={h} style={{ padding: "8px 8px", textAlign: h === "DPP" || h === "Pajak" ? "right" : "left", color: C.muted, fontWeight: 600, whiteSpace: "nowrap" }}>{h}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {taxData.records.map((r: TaxRecord, i: number) => (
-                            <tr key={r.id} style={{ borderBottom: `1px solid ${C.border}`, background: i % 2 === 0 ? "transparent" : "var(--surface-hover)" }}>
-                              <td style={{ padding: "8px 8px", color: C.muted, whiteSpace: "nowrap" }}>{r.period_month?.slice(0, 7)}</td>
-                              <td style={{ padding: "8px 8px", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.invoice?.project?.name ?? "—"}</td>
-                              <td style={{ padding: "8px 8px", color: C.navy, fontWeight: 500 }}>{r.invoice?.invoice_number ?? "—"}</td>
-                              <td style={{ padding: "8px 8px" }}>
-                                <span style={{ padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 700, background: r.tax_type === "pph_final" ? C.navyLight : C.blueBg, color: r.tax_type === "pph_final" ? C.navy : C.blue }}>
-                                  {r.tax_type === "pph_final" ? "PPh Final" : "PPN"}
-                                </span>
-                              </td>
-                              <td style={{ padding: "8px 8px", textAlign: "right" }}>{fmtCompact(r.base_amount)}</td>
-                              <td style={{ padding: "8px 8px", textAlign: "center", color: C.muted }}>{r.rate_pct}%</td>
-                              <td style={{ padding: "8px 8px", textAlign: "right", fontWeight: 700, color: C.text }}>{fmtCompact(r.tax_amount)}</td>
-                              <td style={{ padding: "8px 8px", color: C.muted, fontFamily: "monospace", fontSize: 11 }}>{r.efaktur_number ?? "—"}</td>
-                              <td style={{ padding: "8px 8px" }}>
-                                <span style={{ padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 700, background: r.status === "reported" ? C.greenBg : C.yellowBg, color: r.status === "reported" ? C.green : C.yellow }}>
-                                  {r.status === "reported" ? "Lapor" : "Pending"}
-                                </span>
-                              </td>
-                              <td style={{ padding: "8px 8px" }}>
-                                {r.status === "pending" && hasPermission("finance:tax:submit") && (
-                                  <button
-                                    aria-label="Tandai catatan pajak ini sudah dilaporkan"
-                                    disabled={taxStatusUpdating === r.id}
-                                    onClick={async () => {
-                                      setTaxStatusUpdating(r.id);
-                                      try {
-                                        await api.patch(`/api/v1/reports/rekap-pajak/${r.id}/status`, { status: "reported" });
-                                        setTaxData(prev => prev ? {
-                                          ...prev,
-                                          records: prev.records.map(rec => rec.id === r.id ? { ...rec, status: "reported" } : rec),
-                                          totals: { ...prev.totals, pending_count: prev.totals.pending_count - 1, reported_count: prev.totals.reported_count + 1 },
-                                        } : prev);
-                                      } catch { /* */ } finally { setTaxStatusUpdating(null); }
-                                    }}
-                                    style={{ padding: "2px 8px", borderRadius: 6, border: `1px solid ${C.green}`, background: "transparent", color: C.green, fontSize: 11, fontWeight: 600, cursor: "pointer" }}
-                                  >
-                                    {taxStatusUpdating === r.id ? "..." : "Tandai Lapor"}
-                                  </button>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+                  {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4) — caption sr-only,
+                      scope="row", tabular-nums, dan overflow-x dijamin komponen.
+
+                      `kepalaBaris` PINDAH dari Periode (kolom pertama semula) ke
+                      No Invoice, dan urutan kolomnya ikut ditukar. Periode "2026-07"
+                      berulang di puluhan baris — dipakai sebagai nama baris, pembaca
+                      layar mengumumkan sepuluh baris berturut bernama sama dan tak
+                      ada yang bisa dibedakan. Nomor invoice unik, dan itu yang
+                      dicari orang saat mencocokkan setoran pajak ke tagihannya.
+                      Preseden yang sama: akuntansi (Kode akun → Nama Akun),
+                      gudang/material-klien (Tanggal → Material).
+
+                      Keadaan kosong pindah ke prop `kosong`: sebagai <td colSpan>
+                      di <tbody> ia dibacakan seolah nama sebuah baris data. */}
+                  <Tabel<TaxRecord>
+                    caption="Rincian pajak per invoice: nomor invoice, periode, proyek, jenis pajak, DPP, tarif, nilai pajak, nomor e-Faktur, dan status."
+                    data={taxData.records}
+                    kunciBaris={r => r.id}
+                    kosong={<div style={{ padding: 40, textAlign: "center", color: C.muted }}>Tidak ada data pajak di periode ini</div>}
+                    kolom={[
+                      { kunci: "invoice", judul: "No Invoice", kepalaBaris: true, render: r => <span style={{ color: C.navy, fontWeight: 500 }}>{r.invoice?.invoice_number ?? "—"}</span> },
+                      { kunci: "periode", judul: "Periode", render: r => <span style={{ color: C.muted, whiteSpace: "nowrap" }}>{r.period_month?.slice(0, 7)}</span> },
+                      { kunci: "proyek", judul: "Proyek", render: r => <span style={{ display: "block", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.invoice?.project?.name ?? "—"}</span> },
+                      { kunci: "jenis", judul: "Jenis", render: r => (
+                        <span style={{ padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 700, background: r.tax_type === "pph_final" ? C.navyLight : C.blueBg, color: r.tax_type === "pph_final" ? C.navy : C.blue }}>
+                          {r.tax_type === "pph_final" ? "PPh Final" : "PPN"}
+                        </span>
+                      ) },
+                      { kunci: "dpp", judul: "DPP", rata: "kanan", render: r => fmtCompact(r.base_amount) },
+                      { kunci: "tarif", judul: "Tarif", rata: "tengah", render: r => <span style={{ color: C.muted }}>{r.rate_pct}%</span> },
+                      { kunci: "pajak", judul: "Pajak", rata: "kanan", render: r => <span style={{ fontWeight: 700 }}>{fmtCompact(r.tax_amount)}</span> },
+                      { kunci: "efaktur", judul: "No e-Faktur", render: r => <span style={{ color: C.muted, fontFamily: "monospace", fontSize: 11 }}>{r.efaktur_number ?? "—"}</span> },
+                      { kunci: "status", judul: "Status", render: r => (
+                        <span style={{ padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 700, background: r.status === "reported" ? C.greenBg : C.yellowBg, color: r.status === "reported" ? C.green : C.yellow }}>
+                          {r.status === "reported" ? "Lapor" : "Pending"}
+                        </span>
+                      ) },
+                      { kunci: "aksi", judul: "Aksi", render: r => (
+                        r.status === "pending" && hasPermission("finance:tax:submit") ? (
+                          <button
+                            aria-label="Tandai catatan pajak ini sudah dilaporkan"
+                            disabled={taxStatusUpdating === r.id}
+                            onClick={async () => {
+                              setTaxStatusUpdating(r.id);
+                              try {
+                                await api.patch(`/api/v1/reports/rekap-pajak/${r.id}/status`, { status: "reported" });
+                                setTaxData(prev => prev ? {
+                                  ...prev,
+                                  records: prev.records.map(rec => rec.id === r.id ? { ...rec, status: "reported" } : rec),
+                                  totals: { ...prev.totals, pending_count: prev.totals.pending_count - 1, reported_count: prev.totals.reported_count + 1 },
+                                } : prev);
+                              } catch { /* */ } finally { setTaxStatusUpdating(null); }
+                            }}
+                            style={{ padding: "2px 8px", borderRadius: 6, border: `1px solid ${C.green}`, background: "transparent", color: C.green, fontSize: 11, fontWeight: 600, cursor: "pointer" }}
+                          >
+                            {taxStatusUpdating === r.id ? "..." : "Tandai Lapor"}
+                          </button>
+                        ) : null
+                      ) },
+                    ]}
+                  />
                 </div>
               </>
             )}
@@ -883,21 +867,25 @@ function TabRingkasan({ data, canViewFinance }: { data: ProjectSummaryData; canV
       {canViewFinance && data.invoices && data.invoices.length > 0 && (
         <div>
           <SectionTitle icon={<FileText size={15} color={C.navy} />} title="Invoice & Pembayaran" />
-          <DataTable caption="Ringkasan invoice: nomor, tipe, total tagihan, jumlah terbayar, sisa, dan status pembayaran." headers={[{ label: "No Invoice" }, { label: "Tipe" }, { label: "Total", align: "right" }, { label: "Terbayar", align: "right" }, { label: "Sisa", align: "right" }, { label: "Status" }]}>
-            {data.invoices.map(inv => {
-              const isPaid = inv.status === "paid";
-              return (
-                <tr key={inv.id} style={{ borderBottom: "1px solid var(--surface-hover)" }}>
-                  <td style={{ padding: "8px 12px", fontWeight: 600, color: C.navy, fontSize: 12 }}>{inv.invoice_number}</td>
-                  <td style={{ padding: "8px 12px", fontSize: 11, color: C.mid }}>{inv.invoice_type === "termin_billing" ? "Termin" : inv.invoice_type}</td>
-                  <td style={{ padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12 }}>{fmtCompact(Number(inv.total_amount))}</td>
-                  <td style={{ padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, color: C.green }}>{fmtCompact(Number(inv.amount_paid))}</td>
-                  <td style={{ padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, color: Number(inv.amount_due) > 0 ? C.yellow : C.green }}>{fmtCompact(Number(inv.amount_due))}</td>
-                  <td style={{ padding: "8px 12px" }}><StatusBadge label={isPaid ? "Lunas" : "Belum Lunas"} color={isPaid ? C.green : C.yellow} bg={isPaid ? C.greenBg : C.yellowBg} /></td>
-                </tr>
-              );
-            })}
-          </DataTable>
+          {/* Dipindahkan dari DataTable lokal ke <Tabel> bersama 2026-08-07 (UI-0-4).
+              `kepalaBaris` di No Invoice — nomor tagihanlah yang menamai barisnya,
+              dan itu pula yang dicocokkan orang ke bukti setoran. */}
+          <Tabel<Invoice>
+            caption="Ringkasan invoice: nomor, tipe, total tagihan, jumlah terbayar, sisa, dan status pembayaran."
+            data={data.invoices}
+            kunciBaris={inv => inv.id}
+            kolom={[
+              { kunci: "nomor", judul: "No Invoice", kepalaBaris: true, render: inv => <span style={{ fontWeight: 600, color: C.navy }}>{inv.invoice_number}</span> },
+              { kunci: "tipe", judul: "Tipe", render: inv => <span style={{ fontSize: 11, color: C.mid }}>{inv.invoice_type === "termin_billing" ? "Termin" : inv.invoice_type}</span> },
+              { kunci: "total", judul: "Total", rata: "kanan", render: inv => fmtCompact(Number(inv.total_amount)) },
+              { kunci: "terbayar", judul: "Terbayar", rata: "kanan", render: inv => <span style={{ color: C.green }}>{fmtCompact(Number(inv.amount_paid))}</span> },
+              { kunci: "sisa", judul: "Sisa", rata: "kanan", render: inv => <span style={{ color: Number(inv.amount_due) > 0 ? C.yellow : C.green }}>{fmtCompact(Number(inv.amount_due))}</span> },
+              { kunci: "status", judul: "Status", render: inv => {
+                const isPaid = inv.status === "paid";
+                return <StatusBadge label={isPaid ? "Lunas" : "Belum Lunas"} color={isPaid ? C.green : C.yellow} bg={isPaid ? C.greenBg : C.yellowBg} />;
+              } },
+            ]}
+          />
         </div>
       )}
 
@@ -957,54 +945,70 @@ function TabKeuangan({ data }: { data: FinancialData }) {
       {byProject.length > 0 && (
         <div>
           <SectionTitle icon={<Building2 size={15} color={C.navy} />} title="Rekap per Proyek" />
-          <DataTable caption="Piutang per proyek: invoice, total tagihan, terbayar, outstanding, dan persentase pelunasan." headers={[{ label: "Proyek" }, { label: "Invoice" }, { label: "Total Tagih", align: "right" }, { label: "Terbayar", align: "right" }, { label: "Outstanding", align: "right" }, { label: "%" }]}>
-            {byProject.map(p => {
-              const pct = p.invoiced > 0 ? (p.paid / p.invoiced) * 100 : 0;
-              return (
-                <tr key={p.id} style={{ borderBottom: "1px solid var(--surface-hover)" }}>
-                  <td style={{ padding: "8px 12px", fontWeight: 600, color: C.text, fontSize: 12 }}>{p.name}</td>
-                  <td style={{ padding: "8px 12px", fontSize: 11, color: C.mid, textAlign: "center" }}>{p.count}</td>
-                  <td style={{ padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12 }}>{fmtCompact(p.invoiced)}</td>
-                  <td style={{ padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, color: C.green }}>{fmtCompact(p.paid)}</td>
-                  <td style={{ padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, color: p.due > 0 ? C.yellow : C.green }}>{fmtCompact(p.due)}</td>
-                  <td style={{ padding: "8px 12px", width: 100 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <div style={{ flex: 1 }}><ProgressBar pct={pct} color={pct >= 80 ? C.green : C.yellow} height={6} /></div>
-                      <span style={{ fontSize: 10, fontWeight: 600, color: C.mid, width: 30, textAlign: "right" }}>{pct.toFixed(0)}%</span>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </DataTable>
+          {/* Dipindahkan dari DataTable lokal ke <Tabel> bersama 2026-08-07 (UI-0-4).
+              `kepalaBaris` di Proyek — nama proyek yang menamai barisnya. */}
+          <Tabel<FinancialData["byProject"][number]>
+            caption="Piutang per proyek: invoice, total tagihan, terbayar, outstanding, dan persentase pelunasan."
+            data={byProject}
+            kunciBaris={p => p.id}
+            kolom={[
+              { kunci: "nama", judul: "Proyek", kepalaBaris: true, render: p => <span style={{ fontWeight: 600 }}>{p.name}</span> },
+              { kunci: "count", judul: "Invoice", rata: "tengah", render: p => <span style={{ fontSize: 11, color: C.mid }}>{p.count}</span> },
+              { kunci: "invoiced", judul: "Total Tagih", rata: "kanan", render: p => fmtCompact(p.invoiced) },
+              { kunci: "paid", judul: "Terbayar", rata: "kanan", render: p => <span style={{ color: C.green }}>{fmtCompact(p.paid)}</span> },
+              { kunci: "due", judul: "Outstanding", rata: "kanan", render: p => <span style={{ color: p.due > 0 ? C.yellow : C.green }}>{fmtCompact(p.due)}</span> },
+              { kunci: "pct", judul: "%", lebar: 100, render: p => {
+                const pct = p.invoiced > 0 ? (p.paid / p.invoiced) * 100 : 0;
+                return (
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <div style={{ flex: 1 }}><ProgressBar pct={pct} color={pct >= 80 ? C.green : C.yellow} height={6} /></div>
+                    <span style={{ fontSize: 10, fontWeight: 600, color: C.mid, width: 30, textAlign: "right" }}>{pct.toFixed(0)}%</span>
+                  </div>
+                );
+              } },
+            ]}
+          />
         </div>
       )}
 
       {/* Invoice list */}
       <div>
         <SectionTitle icon={<FileText size={15} color={C.navy} />} title="Daftar Invoice" />
-        <DataTable caption="Daftar seluruh invoice: nomor, proyek, total, terbayar, sisa, jatuh tempo, dan status." empty={invoices.length === 0} headers={[{ label: "No Invoice" }, { label: "Proyek" }, { label: "Total", align: "right" }, { label: "Terbayar", align: "right" }, { label: "Sisa", align: "right" }, { label: "Jatuh Tempo" }, { label: "Status" }]}>
-          {invoices.map(inv => {
-            const overdue = inv.status !== "paid" && inv.status !== "cancelled" && new Date(inv.due_date) < new Date();
-            return (
-              <tr key={inv.id} style={{ borderBottom: "1px solid var(--surface-hover)", background: overdue ? "var(--surface-subtle)" : "transparent" }}>
-                <td style={{ padding: "8px 12px", fontWeight: 600, color: C.navy, fontSize: 12 }}>{inv.invoice_number}</td>
-                <td style={{ padding: "8px 12px", fontSize: 11, color: C.mid }}>{(inv as unknown as { projects?: { name: string } }).projects?.name ?? "—"}</td>
-                <td style={{ padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12 }}>{fmtCompact(Number(inv.total_amount))}</td>
-                <td style={{ padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, color: C.green }}>{fmtCompact(Number(inv.amount_paid))}</td>
-                <td style={{ padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, color: Number(inv.amount_due) > 0 ? C.yellow : C.green }}>{fmtCompact(Number(inv.amount_due))}</td>
-                <td style={{ padding: "8px 12px", fontSize: 11, color: overdue ? C.red : C.mid }}>{fmtDate(inv.due_date)}</td>
-                <td style={{ padding: "8px 12px" }}>
-                  {overdue
-                    ? <StatusBadge label="Overdue" color={C.red} bg={C.redBg} />
-                    : inv.status === "paid"
-                      ? <StatusBadge label="Lunas" color={C.green} bg={C.greenBg} />
-                      : <StatusBadge label="Belum Lunas" color={C.yellow} bg={C.yellowBg} />}
-                </td>
-              </tr>
-            );
-          })}
-        </DataTable>
+        {/* Dipindahkan dari DataTable lokal ke <Tabel> bersama 2026-08-07 (UI-0-4).
+            Sorotan baris jatuh tempo pindah ke `tandaiBaris` — komponen memakainya
+            sebagai latar tetap, jadi hover tak menghapus penandanya seperti dulu.
+            Pesan "Tidak ada data" yang dulu <td colSpan> di <tbody> pindah ke prop
+            `kosong`: di dalam <tbody> pembaca layar membacakannya seolah itu nama
+            sebuah baris data. */}
+        <Tabel<Invoice>
+          caption="Daftar seluruh invoice: nomor, proyek, total, terbayar, sisa, jatuh tempo, dan status."
+          data={invoices}
+          kunciBaris={inv => inv.id}
+          kosong={<div style={{ padding: 32, textAlign: "center", color: C.muted, fontSize: 12 }}>Tidak ada data</div>}
+          tandaiBaris={inv => (
+            inv.status !== "paid" && inv.status !== "cancelled" && new Date(inv.due_date) < new Date()
+              ? "var(--surface-subtle)" : undefined
+          )}
+          kolom={[
+            { kunci: "nomor", judul: "No Invoice", kepalaBaris: true, render: inv => <span style={{ fontWeight: 600, color: C.navy }}>{inv.invoice_number}</span> },
+            { kunci: "proyek", judul: "Proyek", render: inv => <span style={{ fontSize: 11, color: C.mid }}>{(inv as unknown as { projects?: { name: string } }).projects?.name ?? "—"}</span> },
+            { kunci: "total", judul: "Total", rata: "kanan", render: inv => fmtCompact(Number(inv.total_amount)) },
+            { kunci: "terbayar", judul: "Terbayar", rata: "kanan", render: inv => <span style={{ color: C.green }}>{fmtCompact(Number(inv.amount_paid))}</span> },
+            { kunci: "sisa", judul: "Sisa", rata: "kanan", render: inv => <span style={{ color: Number(inv.amount_due) > 0 ? C.yellow : C.green }}>{fmtCompact(Number(inv.amount_due))}</span> },
+            { kunci: "tempo", judul: "Jatuh Tempo", render: inv => {
+              const overdue = inv.status !== "paid" && inv.status !== "cancelled" && new Date(inv.due_date) < new Date();
+              return <span style={{ fontSize: 11, color: overdue ? C.red : C.mid }}>{fmtDate(inv.due_date)}</span>;
+            } },
+            { kunci: "status", judul: "Status", render: inv => {
+              const overdue = inv.status !== "paid" && inv.status !== "cancelled" && new Date(inv.due_date) < new Date();
+              return overdue
+                ? <StatusBadge label="Overdue" color={C.red} bg={C.redBg} />
+                : inv.status === "paid"
+                  ? <StatusBadge label="Lunas" color={C.green} bg={C.greenBg} />
+                  : <StatusBadge label="Belum Lunas" color={C.yellow} bg={C.yellowBg} />;
+            } },
+          ]}
+        />
       </div>
     </div>
   );
@@ -1048,16 +1052,33 @@ function TabCashflow({ data }: { data: CashflowData }) {
 
           {/* Tabel bulanan */}
           <div style={{ marginTop: 12 }}>
-            <DataTable caption="Arus kas per periode: uang masuk, uang keluar, dan selisih bersihnya." headers={[{ label: "Periode" }, { label: "Masuk", align: "right" }, { label: "Keluar", align: "right" }, { label: "Net", align: "right" }]}>
-              {byMonth.map((row, i) => (
-                <tr key={i} style={{ borderBottom: "1px solid var(--surface-hover)" }}>
-                  <td style={{ padding: "8px 12px", fontWeight: 600, color: C.text, fontSize: 12 }}>{row.label}</td>
-                  <td style={{ padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, color: C.green }}>{fmtCompact(row.masuk)}</td>
-                  <td style={{ padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, color: C.red }}>{fmtCompact(row.keluar)}</td>
-                  <td style={{ padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: row.net >= 0 ? C.green : C.red }}>{row.net >= 0 ? "+" : ""}{fmtCompact(row.net)}</td>
-                </tr>
-              ))}
-            </DataTable>
+            {/* Dipindahkan dari DataTable lokal ke <Tabel> bersama 2026-08-07 (UI-0-4).
+                `kepalaBaris` di Periode: di tabel arus kas, periodelah yang menamai
+                barisnya — tiga kolom sisanya angka murni. Berbeda dari tabel pajak
+                di atas, label periode di sini unik per baris.
+
+                Baris total DITAMBAHKAN lewat prop `total` (jadi <tfoot>): angkanya
+                sudah dihitung server di `summary`, tapi dulu hanya tampil sebagai
+                KPI di atas grafik dan tak pernah menutup kolomnya sendiri. */}
+            <Tabel<CashflowData["byMonth"][number]>
+              caption="Arus kas per periode: uang masuk, uang keluar, dan selisih bersihnya."
+              data={byMonth}
+              kunciBaris={row => row.period}
+              kolom={[
+                { kunci: "label", judul: "Periode", kepalaBaris: true, render: row => <span style={{ fontWeight: 600 }}>{row.label}</span> },
+                { kunci: "masuk", judul: "Masuk", rata: "kanan", render: row => <span style={{ color: C.green }}>{fmtCompact(row.masuk)}</span> },
+                { kunci: "keluar", judul: "Keluar", rata: "kanan", render: row => <span style={{ color: C.red }}>{fmtCompact(row.keluar)}</span> },
+                { kunci: "net", judul: "Net", rata: "kanan", render: row => (
+                  <span style={{ fontWeight: 700, color: row.net >= 0 ? C.green : C.red }}>{row.net >= 0 ? "+" : ""}{fmtCompact(row.net)}</span>
+                ) },
+              ]}
+              total={[
+                { kunci: "label", isi: "Total periode" },
+                { kunci: "masuk", isi: fmtCompact(summary.totalIn), rata: "kanan" },
+                { kunci: "keluar", isi: fmtCompact(summary.totalOut), rata: "kanan" },
+                { kunci: "net", isi: `${summary.netFlow >= 0 ? "+" : ""}${fmtCompact(summary.netFlow)}`, rata: "kanan" },
+              ]}
+            />
           </div>
         </div>
       )}
@@ -1136,15 +1157,26 @@ function TabMandor({ data }: { data: MandorReportData }) {
                     {mr.wages.length > 0 && (
                       <div>
                         <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, marginBottom: 8, textTransform: "uppercase" }}>Laporan Upah ({mr.wages.length})</div>
-                        <DataTable caption="Upah per minggu: jumlah yang diajukan dan status pembayarannya." headers={[{ label: "Minggu" }, { label: "Jumlah", align: "right" }, { label: "Dibayar" }]}>
-                          {mr.wages.map(w => (
-                            <tr key={w.id} style={{ borderBottom: "1px solid var(--surface-hover)" }}>
-                              <td style={{ padding: "6px 12px", fontSize: 11 }}>{fmtDate(w.week_start)} – {fmtDate(w.week_end)}</td>
-                              <td style={{ padding: "6px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: C.blue }}>{fmtCompact(Number(w.net_amount))}</td>
-                              <td style={{ padding: "6px 12px", fontSize: 11, color: C.muted }}>{fmtDate(w.paid_at)}</td>
-                            </tr>
-                          ))}
-                        </DataTable>
+                        {/* Dipindahkan dari DataTable lokal ke <Tabel> bersama 2026-08-07 (UI-0-4).
+                            `kepalaBaris` di Minggu — rentang minggunya yang menamai
+                            baris upah; "Dibayar" juga tanggal, tapi ia jawaban, bukan
+                            identitas. Total ditambahkan supaya kolom jumlah punya
+                            penutup di <tfoot>, bukan hanya angka di kepala kartu. */}
+                        <Tabel<WageReport>
+                          caption="Upah per minggu: jumlah yang diajukan dan status pembayarannya."
+                          data={mr.wages}
+                          kunciBaris={w => w.id}
+                          kolom={[
+                            { kunci: "minggu", judul: "Minggu", kepalaBaris: true, render: w => <span style={{ fontSize: 11 }}>{fmtDate(w.week_start)} – {fmtDate(w.week_end)}</span> },
+                            { kunci: "jumlah", judul: "Jumlah", rata: "kanan", render: w => <span style={{ fontWeight: 700, color: C.blue }}>{fmtCompact(Number(w.net_amount))}</span> },
+                            { kunci: "dibayar", judul: "Dibayar", render: w => <span style={{ fontSize: 11, color: C.muted }}>{fmtDate(w.paid_at)}</span> },
+                          ]}
+                          total={[
+                            { kunci: "label", isi: "Total upah" },
+                            { kunci: "jumlah", isi: fmtCompact(mr.totalWage), rata: "kanan" },
+                            { kunci: "sisa", isi: "" },
+                          ]}
+                        />
                       </div>
                     )}
 
@@ -1152,15 +1184,24 @@ function TabMandor({ data }: { data: MandorReportData }) {
                     {mr.kasbons.length > 0 && (
                       <div>
                         <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, marginBottom: 8, textTransform: "uppercase" }}>Kasbon ({mr.kasbons.length})</div>
-                        <DataTable caption="Kasbon per keperluan: jumlah yang diajukan dan status persetujuannya." headers={[{ label: "Keperluan" }, { label: "Jumlah", align: "right" }, { label: "Disetujui" }]}>
-                          {mr.kasbons.map(k => (
-                            <tr key={k.id} style={{ borderBottom: "1px solid var(--surface-hover)" }}>
-                              <td style={{ padding: "6px 12px", fontSize: 11 }}>{PURPOSE_LABEL[k.purpose] ?? k.purpose}</td>
-                              <td style={{ padding: "6px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: C.yellow }}>{fmtCompact(Number(k.amount))}</td>
-                              <td style={{ padding: "6px 12px", fontSize: 11, color: C.muted }}>{fmtDate(k.approved_at)}</td>
-                            </tr>
-                          ))}
-                        </DataTable>
+                        {/* Dipindahkan dari DataTable lokal ke <Tabel> bersama 2026-08-07 (UI-0-4).
+                            `kepalaBaris` di Keperluan — itu yang menamai kasbonnya
+                            ("Gaji Tukang", "Uang Makan"); tanggal persetujuan tidak. */}
+                        <Tabel<Kasbon>
+                          caption="Kasbon per keperluan: jumlah yang diajukan dan status persetujuannya."
+                          data={mr.kasbons}
+                          kunciBaris={k => k.id}
+                          kolom={[
+                            { kunci: "keperluan", judul: "Keperluan", kepalaBaris: true, render: k => <span style={{ fontSize: 11 }}>{PURPOSE_LABEL[k.purpose] ?? k.purpose}</span> },
+                            { kunci: "jumlah", judul: "Jumlah", rata: "kanan", render: k => <span style={{ fontWeight: 700, color: C.yellow }}>{fmtCompact(Number(k.amount))}</span> },
+                            { kunci: "disetujui", judul: "Disetujui", render: k => <span style={{ fontSize: 11, color: C.muted }}>{fmtDate(k.approved_at)}</span> },
+                          ]}
+                          total={[
+                            { kunci: "label", isi: "Total kasbon" },
+                            { kunci: "jumlah", isi: fmtCompact(mr.totalKasbon), rata: "kanan" },
+                            { kunci: "sisa", isi: "" },
+                          ]}
+                        />
                       </div>
                     )}
                   </div>
@@ -1268,43 +1309,70 @@ function TabPengeluaran({ data }: { data: ExpensesData }) {
       {byProject.length > 1 && (
         <div>
           <SectionTitle icon={<Building2 size={15} color={C.navy} />} title="Per Proyek" />
-          <DataTable caption="Pengeluaran per proyek: jumlah transaksi, total nilai, dan porsinya terhadap keseluruhan." headers={[{ label: "Proyek" }, { label: "Transaksi", align: "center" }, { label: "Total", align: "right" }, { label: "%" }]}>
-            {byProject.map(p => {
-              const pct = summary.total > 0 ? (p.total / summary.total) * 100 : 0;
-              return (
-                <tr key={p.id} style={{ borderBottom: "1px solid var(--surface-hover)" }}>
-                  <td style={{ padding: "8px 12px", fontWeight: 600, fontSize: 12 }}>{p.name}</td>
-                  <td style={{ padding: "8px 12px", textAlign: "center", color: C.muted, fontSize: 11 }}>{p.count}</td>
-                  <td style={{ padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, color: C.red }}>{fmtCompact(p.total)}</td>
-                  <td style={{ padding: "8px 12px", width: 100 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <div style={{ flex: 1 }}><ProgressBar pct={pct} color={C.red} height={6} /></div>
-                      <span style={{ fontSize: 10, width: 28, textAlign: "right", color: C.muted }}>{pct.toFixed(0)}%</span>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </DataTable>
+          {/* Dipindahkan dari DataTable lokal ke <Tabel> bersama 2026-08-07 (UI-0-4).
+              `kepalaBaris` di Proyek. Baris total ditambahkan lewat prop `total`:
+              angkanya sudah ada di `summary`, dan kolom "Total" yang tak pernah
+              dijumlahkan mengundang orang menjumlahkannya sendiri di kepala. */}
+          <Tabel<ExpensesData["byProject"][number]>
+            caption="Pengeluaran per proyek: jumlah transaksi, total nilai, dan porsinya terhadap keseluruhan."
+            data={byProject}
+            kunciBaris={p => p.id}
+            kolom={[
+              { kunci: "nama", judul: "Proyek", kepalaBaris: true, render: p => <span style={{ fontWeight: 600 }}>{p.name}</span> },
+              { kunci: "count", judul: "Transaksi", rata: "tengah", render: p => <span style={{ color: C.muted, fontSize: 11 }}>{p.count}</span> },
+              { kunci: "total", judul: "Total", rata: "kanan", render: p => <span style={{ color: C.red }}>{fmtCompact(p.total)}</span> },
+              { kunci: "pct", judul: "%", lebar: 100, render: p => {
+                const pct = summary.total > 0 ? (p.total / summary.total) * 100 : 0;
+                return (
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <div style={{ flex: 1 }}><ProgressBar pct={pct} color={C.red} height={6} /></div>
+                    <span style={{ fontSize: 10, width: 28, textAlign: "right", color: C.muted }}>{pct.toFixed(0)}%</span>
+                  </div>
+                );
+              } },
+            ]}
+            total={[
+              { kunci: "label", isi: "Seluruh proyek", rentang: 2 },
+              { kunci: "total", isi: fmtCompact(summary.total), rata: "kanan" },
+              { kunci: "pct", isi: "100%", rata: "kanan" },
+            ]}
+          />
         </div>
       )}
 
       {/* Detail transaksi */}
       <div>
         <SectionTitle icon={<FileText size={15} color={C.navy} />} title={`Detail Pengeluaran (${expenses.length})`} />
-        <DataTable caption="Rincian pengeluaran: tanggal, deskripsi, kategori, vendor, dan jumlah." empty={expenses.length === 0} headers={[{ label: "Tanggal" }, { label: "Deskripsi" }, { label: "Kategori" }, { label: "Vendor" }, { label: "Jumlah", align: "right" }]}>
-          {expenses.map(e => (
-            <tr key={e.id} style={{ borderBottom: "1px solid var(--surface-hover)" }}>
-              <td style={{ padding: "8px 12px", fontSize: 11, color: C.muted, whiteSpace: "nowrap" }}>{fmtDate(e.expense_date)}</td>
-              <td style={{ padding: "8px 12px", fontSize: 12, fontWeight: 500, color: C.text, maxWidth: 200 }}>{e.description}</td>
-              <td style={{ padding: "8px 12px", fontSize: 11, color: C.mid }}>
-                {e.category_label ?? e.category?.name ?? "—"}
-              </td>
-              <td style={{ padding: "8px 12px", fontSize: 11, color: C.muted }}>{e.vendor_name ?? "—"}</td>
-              <td style={{ padding: "8px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: C.red }}>{fmtCompact(Number(e.total_amount))}</td>
-            </tr>
-          ))}
-        </DataTable>
+        {/* Dipindahkan dari DataTable lokal ke <Tabel> bersama 2026-08-07 (UI-0-4).
+
+            Urutan kolom DITUKAR: Deskripsi naik ke depan, Tanggal turun ke kedua,
+            dan `kepalaBaris` jatuh ke Deskripsi. Tanggal tidak menamai apa pun —
+            selusin pengeluaran bisa jatuh di hari yang sama, dan pembaca layar
+            akan membacakan dua belas baris yang semuanya bernama "3 Agu 2026".
+            Deskripsi ("Semen 50 sak", "Sewa molen") itulah yang dicari orang saat
+            mencocokkan nota. Preseden yang sama sudah diambil di
+            gudang/material-klien (Tanggal → Material).
+
+            Baris total ditambahkan lewat prop `total`. */}
+        <Tabel<Expense>
+          caption="Rincian pengeluaran: deskripsi, tanggal, kategori, vendor, dan jumlah."
+          data={expenses}
+          kunciBaris={e => e.id}
+          kosong={<div style={{ padding: 32, textAlign: "center", color: C.muted, fontSize: 12 }}>Tidak ada data</div>}
+          kolom={[
+            { kunci: "deskripsi", judul: "Deskripsi", kepalaBaris: true, render: e => (
+              <span style={{ display: "block", fontWeight: 500, maxWidth: 240 }}>{e.description}</span>
+            ) },
+            { kunci: "tanggal", judul: "Tanggal", render: e => <span style={{ fontSize: 11, color: C.muted, whiteSpace: "nowrap" }}>{fmtDate(e.expense_date)}</span> },
+            { kunci: "kategori", judul: "Kategori", render: e => <span style={{ fontSize: 11, color: C.mid }}>{e.category_label ?? e.category?.name ?? "—"}</span> },
+            { kunci: "vendor", judul: "Vendor", render: e => <span style={{ fontSize: 11, color: C.muted }}>{e.vendor_name ?? "—"}</span> },
+            { kunci: "jumlah", judul: "Jumlah", rata: "kanan", render: e => <span style={{ fontWeight: 700, color: C.red }}>{fmtCompact(Number(e.total_amount))}</span> },
+          ]}
+          total={expenses.length > 0 ? [
+            { kunci: "label", isi: `Total ${summary.count} transaksi`, rentang: 4 },
+            { kunci: "jumlah", isi: fmtCompact(summary.total), rata: "kanan" },
+          ] : undefined}
+        />
       </div>
     </div>
   );
@@ -1515,52 +1583,53 @@ function PortofolioTab() {
         </div>
       )}
 
-      {data.length === 0 ? (
-        <EmptyState icon={<Layers size={32} color={C.muted} />} title="Belum ada proyek"
-          desc="Serapan anggaran dihitung dari pagu tiap proyek dibandingkan biaya yang sudah keluar. Tabel ini terisi sendiri begitu ada proyek dengan RAB — tak ada yang perlu disiapkan di sini." />
-      ) : (
-        <div style={{ overflowX: "auto", border: `1px solid ${C.border}`, borderRadius: 10 }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
-            <caption className="sr-only">Serapan anggaran per proyek: dasar pagu, nilai pagu, serapan, persentase serapan, progres fisik, deviasi, dan sisa pagu.</caption>
-            <thead><tr style={{ background: "var(--surface-subtle)" }}>
-              {["Proyek", "Dasar pagu", "Pagu", "Serapan", "Serapan %", "Progres %", "Deviasi", "Sisa pagu"].map(h => (
-                <th key={h} style={{
-                  padding: "8px 12px", fontSize: 10, fontWeight: 700, color: C.mid,
-                  textTransform: "uppercase", letterSpacing: ".04em", whiteSpace: "nowrap",
-                  textAlign: h === "Proyek" || h === "Dasar pagu" ? "left" : "right",
-                }}>{h}</th>
-              ))}
-            </tr></thead>
-            <tbody>
-              {data.map(d => (
-                <tr key={d.projectId} style={{ borderTop: `1px solid ${C.border}` }}>
-                  <td style={{ padding: "8px 12px", fontWeight: 600, color: C.text }}>{d.nama}</td>
-                  {/* Dasar pagu ditulis, bukan disembunyikan: "serapan 40%" ber-
-                      arti berbeda kalau pembandingnya harga jual vs rencana belanja. */}
-                  <td style={{ padding: "8px 12px", fontSize: 11, color: d.dasarPembanding === "rap_locked" ? C.green : C.mid }}>
-                    {DASAR_LABEL[d.dasarPembanding] ?? d.dasarPembanding}
-                  </td>
-                  <td style={{ padding: "8px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{d.pagu > 0 ? fmtCompact(d.pagu) : "—"}</td>
-                  <td style={{ padding: "8px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtCompact(d.serapan)}</td>
-                  <td style={{ padding: "8px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600,
-                    color: d.serapanPct == null ? C.muted : d.serapanPct > 100 ? C.red : C.text }}>
-                    {d.serapanPct == null ? "—" : `${d.serapanPct}%`}
-                  </td>
-                  <td style={{ padding: "8px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: C.mid }}>{d.progressPct}%</td>
-                  <td style={{ padding: "8px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600,
-                    color: d.deviasiPoin == null ? C.muted : d.deviasiPoin > 10 ? C.red : d.deviasiPoin < 0 ? C.green : C.text }}>
-                    {d.deviasiPoin == null ? "—" : `${d.deviasiPoin > 0 ? "+" : ""}${d.deviasiPoin}`}
-                  </td>
-                  <td style={{ padding: "8px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums",
-                    color: d.sisaPagu == null ? C.muted : d.sisaPagu < 0 ? C.red : C.text }}>
-                    {d.sisaPagu == null ? "—" : fmtCompact(d.sisaPagu)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). Yang dijamin komponen:
+          caption sr-only, kolom pertama <th scope="row">, tabular-nums pada kolom
+          rata kanan, dan pembungkus overflow-x.
+
+          `kepalaBaris` jatuh ke Proyek — nama proyek yang menamai barisnya bagi
+          pembaca layar. Kolom lain semuanya angka; "40%" tanpa nama proyek tak
+          memberi tahu apa pun.
+
+          Keadaan kosong pindah ke prop `kosong`, jadi `EmptyState` tak lagi perlu
+          percabangan terpisah di sini. */}
+      <Tabel<(typeof data)[number]>
+        caption="Serapan anggaran per proyek: dasar pagu, nilai pagu, serapan, persentase serapan, progres fisik, deviasi, dan sisa pagu."
+        data={data}
+        kunciBaris={d => d.projectId}
+        kosong={
+          <EmptyState icon={<Layers size={32} color={C.muted} />} title="Belum ada proyek"
+            desc="Serapan anggaran dihitung dari pagu tiap proyek dibandingkan biaya yang sudah keluar. Tabel ini terisi sendiri begitu ada proyek dengan RAB — tak ada yang perlu disiapkan di sini." />
+        }
+        kolom={[
+          { kunci: "nama", judul: "Proyek", kepalaBaris: true, render: d => <span style={{ fontWeight: 600 }}>{d.nama}</span> },
+          // Dasar pagu ditulis, bukan disembunyikan: "serapan 40%" berarti berbeda
+          // kalau pembandingnya harga jual vs rencana belanja.
+          { kunci: "dasar", judul: "Dasar pagu", render: d => (
+            <span style={{ fontSize: 11, color: d.dasarPembanding === "rap_locked" ? C.green : C.mid }}>
+              {DASAR_LABEL[d.dasarPembanding] ?? d.dasarPembanding}
+            </span>
+          ) },
+          { kunci: "pagu", judul: "Pagu", rata: "kanan", render: d => (d.pagu > 0 ? fmtCompact(d.pagu) : "—") },
+          { kunci: "serapan", judul: "Serapan", rata: "kanan", render: d => fmtCompact(d.serapan) },
+          { kunci: "serapanPct", judul: "Serapan %", rata: "kanan", render: d => (
+            <span style={{ fontWeight: 600, color: d.serapanPct == null ? C.muted : d.serapanPct > 100 ? C.red : C.text }}>
+              {d.serapanPct == null ? "—" : `${d.serapanPct}%`}
+            </span>
+          ) },
+          { kunci: "progres", judul: "Progres %", rata: "kanan", render: d => <span style={{ color: C.mid }}>{d.progressPct}%</span> },
+          { kunci: "deviasi", judul: "Deviasi", rata: "kanan", render: d => (
+            <span style={{ fontWeight: 600, color: d.deviasiPoin == null ? C.muted : d.deviasiPoin > 10 ? C.red : d.deviasiPoin < 0 ? C.green : C.text }}>
+              {d.deviasiPoin == null ? "—" : `${d.deviasiPoin > 0 ? "+" : ""}${d.deviasiPoin}`}
+            </span>
+          ) },
+          { kunci: "sisa", judul: "Sisa pagu", rata: "kanan", render: d => (
+            <span style={{ color: d.sisaPagu == null ? C.muted : d.sisaPagu < 0 ? C.red : C.text }}>
+              {d.sisaPagu == null ? "—" : fmtCompact(d.sisaPagu)}
+            </span>
+          ) },
+        ]}
+      />
     </div>
   );
 }
@@ -1648,83 +1717,76 @@ function WipTab() {
         </>
       )}
 
-      <div style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${C.border}` }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 900, fontVariantNumeric: "tabular-nums" }}>
-          <caption className="sr-only">Pengakuan pendapatan per proyek: metode, persentase penyelesaian, nilai kontrak, pendapatan diakui, biaya, laba, CIE, dan BIE.</caption>
-          <thead>
-            <tr style={{ background: "var(--surface-subtle)" }}>
-              {["Proyek", "Metode", "%", "Kontrak", "Diakui", "Biaya", "Laba", "CIE", "BIE"].map((h, i) => (
-                <th key={h} scope="col" style={{
-                  padding: "8px 12px", textAlign: i >= 3 ? "right" : "left",
-                  fontSize: 10, fontWeight: 700, color: C.mid,
-                  textTransform: "uppercase", letterSpacing: 0.4,
-                  borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap",
-                }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((w) => {
-              const rugi = (w.labaDiakui ?? 0) < 0;
-              return (
-                <tr key={w.projectId} style={{
-                  borderBottom: `1px solid ${C.border}`,
-                  background: rugi ? "var(--danger-bg)" : undefined,
-                }}>
-                  <td style={{ padding: "8px 12px", color: C.text }}>
-                    {w.nama}
-                    {w.peringatan.length > 0 && (
-                      <span style={{ display: "block", fontSize: 10, color: C.mid, marginTop: 2 }}>
-                        {w.peringatan[0]}
-                      </span>
-                    )}
-                  </td>
-                  <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>
-                    {/* Metode dibedakan TEKS, bukan warna saja — WCAG 1.4.1.
-                        "fisik" lebih lemah di mata auditor, jadi harus terbaca. */}
-                    <span style={{
-                      padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 600,
-                      color: w.metode === "cost_to_cost" ? C.green : C.mid,
-                      background: w.metode === "cost_to_cost" ? "var(--success-bg)" : "var(--surface-subtle)",
-                      border: `1px solid ${w.metode === "cost_to_cost" ? "var(--success-border)" : C.border}`,
-                    }}>
-                      {w.metode === "cost_to_cost" ? "cost-to-cost" : w.metode === "fisik" ? "fisik" : "—"}
-                    </span>
-                  </td>
-                  <td style={{ padding: "8px 12px", color: C.text, whiteSpace: "nowrap" }}>
-                    {w.persenDipakai == null ? "—" : `${w.persenDipakai}%`}
-                  </td>
-                  <td style={{ padding: "8px 12px", textAlign: "right", color: C.mid, whiteSpace: "nowrap" }}>
-                    {fmtCompact(w.nilaiKontrak)}
-                  </td>
-                  <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 600, color: C.text, whiteSpace: "nowrap" }}>
-                    {w.pendapatanDiakui == null ? "—" : fmtCompact(w.pendapatanDiakui)}
-                  </td>
-                  <td style={{ padding: "8px 12px", textAlign: "right", color: C.mid, whiteSpace: "nowrap" }}>
-                    {fmtCompact(w.biayaTerjadi)}
-                  </td>
-                  <td style={{
-                    padding: "8px 12px", textAlign: "right", fontWeight: 700, whiteSpace: "nowrap",
-                    color: rugi ? C.red : C.text,
-                  }}>
-                    {w.labaDiakui == null ? "—" : fmtCompact(w.labaDiakui)}
-                  </td>
-                  <td style={{ padding: "8px 12px", textAlign: "right", color: w.cie > 0 ? C.green : C.muted, whiteSpace: "nowrap" }}>
-                    {w.cie > 0 ? fmtCompact(w.cie) : "—"}
-                  </td>
-                  <td style={{
-                    padding: "8px 12px", textAlign: "right", whiteSpace: "nowrap",
-                    fontWeight: w.bie > 0 ? 700 : 400,
-                    color: w.bie > 0 ? C.red : C.muted,
-                  }}>
-                    {w.bie > 0 ? fmtCompact(w.bie) : "—"}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4) — caption sr-only, scope="row",
+          tabular-nums, dan overflow-x dijamin komponen.
+
+          `kepalaBaris` jatuh ke Proyek: nama proyeklah yang menamai barisnya.
+          Delapan kolom sisanya angka pengakuan pendapatan — dibacakan tanpa nama
+          proyek, tak satu pun bisa ditempatkan.
+
+          Baris proyek RUGI tetap disorot, lewat `tandaiBaris` — komponen memakai
+          latarnya sebagai penanda permanen (bukan hover), persis perilaku lama.
+
+          `minWidth: 900` yang dulu dipaku di sini DILEPAS: pembungkus overflow-x
+          milik komponen sudah menggeser tabel lebar tanpa mendorong halaman, dan
+          lebar minimum yang dipaku justru memaksa scroll horizontal di layar
+          sempit meski isinya muat. */}
+      <Tabel<(typeof data)[number]>
+        caption="Pengakuan pendapatan per proyek: metode, persentase penyelesaian, nilai kontrak, pendapatan diakui, biaya, laba, CIE, dan BIE."
+        data={data}
+        kunciBaris={w => w.projectId}
+        tandaiBaris={w => ((w.labaDiakui ?? 0) < 0 ? "var(--danger-bg)" : undefined)}
+        kolom={[
+          { kunci: "nama", judul: "Proyek", kepalaBaris: true, render: w => (
+            <>
+              {w.nama}
+              {w.peringatan.length > 0 && (
+                <span style={{ display: "block", fontSize: 10, color: C.mid, marginTop: 2 }}>
+                  {w.peringatan[0]}
+                </span>
+              )}
+            </>
+          ) },
+          // Metode dibedakan TEKS, bukan warna saja — WCAG 1.4.1.
+          // "fisik" lebih lemah di mata auditor, jadi harus terbaca.
+          { kunci: "metode", judul: "Metode", render: w => (
+            <span style={{
+              display: "inline-block", whiteSpace: "nowrap",
+              padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 600,
+              color: w.metode === "cost_to_cost" ? C.green : C.mid,
+              background: w.metode === "cost_to_cost" ? "var(--success-bg)" : "var(--surface-subtle)",
+              border: `1px solid ${w.metode === "cost_to_cost" ? "var(--success-border)" : C.border}`,
+            }}>
+              {w.metode === "cost_to_cost" ? "cost-to-cost" : w.metode === "fisik" ? "fisik" : "—"}
+            </span>
+          ) },
+          { kunci: "persen", judul: "%", render: w => (
+            <span style={{ whiteSpace: "nowrap" }}>{w.persenDipakai == null ? "—" : `${w.persenDipakai}%`}</span>
+          ) },
+          { kunci: "kontrak", judul: "Kontrak", rata: "kanan", render: w => (
+            <span style={{ color: C.mid, whiteSpace: "nowrap" }}>{fmtCompact(w.nilaiKontrak)}</span>
+          ) },
+          { kunci: "diakui", judul: "Diakui", rata: "kanan", render: w => (
+            <span style={{ fontWeight: 600, whiteSpace: "nowrap" }}>{w.pendapatanDiakui == null ? "—" : fmtCompact(w.pendapatanDiakui)}</span>
+          ) },
+          { kunci: "biaya", judul: "Biaya", rata: "kanan", render: w => (
+            <span style={{ color: C.mid, whiteSpace: "nowrap" }}>{fmtCompact(w.biayaTerjadi)}</span>
+          ) },
+          { kunci: "laba", judul: "Laba", rata: "kanan", render: w => (
+            <span style={{ fontWeight: 700, whiteSpace: "nowrap", color: (w.labaDiakui ?? 0) < 0 ? C.red : C.text }}>
+              {w.labaDiakui == null ? "—" : fmtCompact(w.labaDiakui)}
+            </span>
+          ) },
+          { kunci: "cie", judul: "CIE", rata: "kanan", render: w => (
+            <span style={{ color: w.cie > 0 ? C.green : C.muted, whiteSpace: "nowrap" }}>{w.cie > 0 ? fmtCompact(w.cie) : "—"}</span>
+          ) },
+          { kunci: "bie", judul: "BIE", rata: "kanan", render: w => (
+            <span style={{ whiteSpace: "nowrap", fontWeight: w.bie > 0 ? 700 : 400, color: w.bie > 0 ? C.red : C.muted }}>
+              {w.bie > 0 ? fmtCompact(w.bie) : "—"}
+            </span>
+          ) },
+        ]}
+      />
     </div>
   );
 }
