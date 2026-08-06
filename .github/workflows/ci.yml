@@ -763,7 +763,6 @@ jobs:
       # di situ meredupkan memang cara yang benar.
       - name: opacity bukan pada teks
         run: node scripts/uji-opacity-teks.mjs
-        working-directory: .
 
       # Sidebar kini memuat 20 grup & 202 sub-menu (migrasi 153). Pola lama
       # menulis tinggi collapse sebagai ANGKA MATI (`maxHeight: "140px"`) —
