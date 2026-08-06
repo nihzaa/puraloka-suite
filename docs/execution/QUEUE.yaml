@@ -824,6 +824,37 @@ items:
   # padahal belum — keduanya membuat orang mengerjakan hal yang salah.
   # Ukur di HEAD sebelum mulai, jangan baca dari catatan.
 
+  - id: F5-INTI-1
+    fase: 5
+    judul: "Laporan keuangan — neraca & laba-rugi"
+    kriteria_selesai:
+      - "UI: tab 'Neraca & Laba-Rugi' di /akuntansi menampilkan neraca DAN laba-rugi dari satu panggilan data"
+      - "ketidakseimbangan neraca TERLIHAT di layar (bukan disamarkan), bukan hanya di respons API"
+      - "margin laba-rugi tampil, dan laporan bisa diekspor CSV dari UI"
+      - "endpoint /api/v1/gl/laporan dipanggil dari apps/web (bukan hanya terdaftar)"
+    cara_verifikasi: "buka /akuntansi tab 'Neraca & Laba-Rugi' + baca apps/web/components/neraca-laba-rugi.tsx"
+    bobot: M
+    status: done
+    catatan: |
+      STATUS TERKOREKSI 2026-08-06 (Task 3, sesi ini): brief awal task ini
+      menuliskan status `wip` ("halaman akuntansi live, tapi laporan
+      neraca/L-R belum dibangun") — itu SALAH, dan diperbaiki di sini per
+      aturan "kenyataan menang atas dokumen".
+
+      Diukur ulang di HEAD: apps/web/components/neraca-laba-rugi.tsx ADA
+      (365 baris), literally berkomentar "NERACA & LABA-RUGI (INTI #1)" di
+      headernya sendiri, dipanggil dari tab "laporan" di
+      apps/web/app/(dashboard)/akuntansi/page.tsx (bukan hanya tab "Neraca
+      Saldo" yang lebih sederhana). Mengonsumsi /api/v1/gl/laporan yang
+      menghitung neraca dan laba-rugi dari SATU sumber sengaja (supaya
+      angkanya tak pernah berbeda antar rentang tanggal). Indikator seimbang/
+      tidak seimbang ada di posisi paling atas, margin laba-rugi dihitung,
+      tombol ekspor CSV (ikon Download) tersedia.
+
+      Komentar di baris 787-789 dokumen ini (ditulis sesi lain, commit
+      b84dcbf) sudah lebih dulu mencatat ini sebagai selesai — item queue
+      ini menyusulkan entrinya yang tadinya hilang.
+
   - id: F5-INTI-2
     fase: 5
     judul: "IPC — gerbang progres termin + sertifikat progres yang diakui"
@@ -910,6 +941,77 @@ items:
       diperbaiki dengan disiplin, yang kedua tidak.
 
       Migrasi 184 · 20 test unit + 13 endpoint · 5 mutasi 5 tertangkap.
+
+  - id: F5-INTI-5
+    fase: 5
+    judul: "Surat masuk/keluar — arah menentukan siapa yang lalai"
+    kriteria_selesai:
+      - "UI: <SuratSection> tampil di halaman proyek (/proyek/[id]), bisa mencatat surat masuk & keluar"
+      - "endpoint /api/v1/projects/{id}/letters dipanggil dari apps/web (bukan hanya terdaftar)"
+    cara_verifikasi: "buka /proyek/[id] + baca apps/web/components/surat-section.tsx"
+    bobot: M
+    status: done
+    catatan: |
+      SENGAJA tidak punya halaman sendiri: surat selalu milik satu proyek,
+      jadi tempatnya di halaman proyek itu, bukan menu tersendiri. Diverifikasi
+      di layar (SuratSection dipasang di apps/web/app/(dashboard)/proyek/[id]/
+      page.tsx), bukan dari nama berkas — pencarian "halaman bernama surat"
+      sempat memberi NOL dan hampir menghasilkan catatan "belum ada" untuk
+      fitur yang sudah hidup.
+
+  - id: F5-INTI-6
+    fase: 5
+    judul: "Instruksi lapangan — perintah lisan akhirnya berjejak"
+    kriteria_selesai:
+      - "UI: <InstruksiLapanganSection> di halaman proyek, bisa mencatat & mengonfirmasi instruksi"
+      - "endpoint /api/v1/projects/{id}/field-instructions dan /field-instructions/{id}/konfirmasi dipanggil dari apps/web"
+    cara_verifikasi: "buka /proyek/[id] + baca apps/web/components/instruksi-lapangan-section.tsx"
+    bobot: M
+    status: done
+    catatan: |
+      Sama seperti #5: SENGAJA tidak punya halaman sendiri, instruksi selalu
+      milik satu proyek. InstruksiLapanganSection dipasang berdampingan dengan
+      SuratSection di apps/web/app/(dashboard)/proyek/[id]/page.tsx.
+
+  - id: F5-INTI-7
+    fase: 5
+    judul: "NCR — siklus tutup ketidaksesuaian mutu"
+    kriteria_selesai:
+      - "UI: halaman NCR (app/(dashboard)/mutu/ncr/page.tsx) bisa membuat, memberi disposisi, dan menampilkan riwayat"
+      - "endpoint /api/v1/projects/{id}/ncr dan /ncr/{id}/disposisi dipanggil dari apps/web (bukan hanya terdaftar)"
+    cara_verifikasi: "buka /mutu/ncr + baca apps/web/app/(dashboard)/mutu/ncr/page.tsx"
+    bobot: M
+    status: done
+
+  - id: F5-INTI-8
+    fase: 5
+    judul: "Geotag foto — lokasi pengambilan foto lapangan terverifikasi"
+    kriteria_selesai:
+      - "UI: <PenandaLokasi> tampil di lightbox galeri foto (photo-gallery.tsx), menampilkan jarak dari titik proyek"
+      - "vonis 'di luar lokasi' tampil di UI bila melewati radius, bukan hanya tersimpan di kolom DB"
+    cara_verifikasi: "buka galeri foto proyek + baca apps/web/components/penanda-lokasi.tsx"
+    bobot: S
+    status: done
+    catatan: |
+      Kolom, endpoint, dan komponen PenandaLokasi semuanya sudah ada sejak
+      migrasi 190_geotag_foto.sql — yang sempat hilang cuma SAMBUNGANNYA:
+      `select` di photo-gallery tak mengambil kolomnya dan komponennya tak
+      pernah dipasang. Selesai 2026-08-06 dengan penyambungan itu.
+
+  - id: F5-INTI-9
+    fase: 5
+    judul: "Absensi lapangan — sumber days_worked yang tidak lagi diketik dari ingatan"
+    kriteria_selesai:
+      - "UI: halaman /mandor/absensi bisa mencatat kehadiran harian per pekerja"
+      - "formulir upah punya tombol 'Ambil dari absensi' yang menarik days_worked dari data absensi, bukan diketik manual"
+      - "endpoint /api/v1/absensi dipanggil dari apps/web (bukan hanya terdaftar)"
+    cara_verifikasi: "buka /mandor/absensi + baca apps/web/app/(dashboard)/mandor/absensi/page.tsx"
+    bobot: M
+    status: done
+    catatan: |
+      Migrasi 191 + /api/v1/absensi + /mandor/absensi. 14 invarian, mutasi
+      membuktikan constraint + RLS-nya nyata. Sebelum ini, days_worked pada
+      formulir upah diketik dari ingatan mandor — sumber yang tak bisa diaudit.
 
   - id: F7-2
     fase: 7
