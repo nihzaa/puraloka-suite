@@ -150,11 +150,17 @@ export default function ArusKasPage() {
   }
 
   return (
+    // Padding disediakan `keuangan/layout.tsx` — lihat catatan di sana.
+    // Menambahkannya lagi di sini membuat jaraknya ganda dan berbeda-beda
+    // antar bagian (diukur: 74px / 37px / 1px sebelum diseragamkan).
     <div style={{
-      padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
       width: "100%", maxWidth: "var(--w-page)", margin: "0 auto",
     }}>
-      <div style={{ padding: 24 }}>
+      {/* Pembungkus TANPA padding — sisa pola lama saat tiap bagian
+          mengatur jaraknya sendiri. `keuangan/layout.tsx` kini yang
+          menyediakannya; menyisakan 24px di sini membuat arus-kas menjorok
+          49px sementara bagian lain 25px. */}
+      <div>
 
         {/* Filter Bar */}
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20, alignItems: "flex-end" }}>

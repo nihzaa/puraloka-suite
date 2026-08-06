@@ -93,8 +93,8 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | Dokumen | Peran | RM | Isi |
 |---|---|:-:|---|
 | [2026-07-15-warm-clay-design-system](superpowers/plans/2026-07-15-warm-clay-design-system.md) | acuan | ✓ | Warm Clay Design System (Phase 1) Implementation Plan |
-| [2026-08-06-sumbu-ui-roadmap](superpowers/plans/2026-08-06-sumbu-ui-roadmap.md) | antrean |  | Sumbu UI/UX + Penjaga Status — Implementation Plan |
-| [2026-08-07-landing-publik-tahap-1](superpowers/plans/2026-08-07-landing-publik-tahap-1.md) | antrean |  | Landing Publik Tahap 1 — Implementation Plan |
+| [2026-08-06-sumbu-ui-roadmap](superpowers/plans/2026-08-06-sumbu-ui-roadmap.md) | antrean | ✓ | Sumbu UI/UX + Penjaga Status — Implementation Plan |
+| [2026-08-07-landing-publik-tahap-1](superpowers/plans/2026-08-07-landing-publik-tahap-1.md) | antrean | ✓ | Landing Publik Tahap 1 — Implementation Plan |
 
 ### `docs/superpowers/specs`
 
@@ -102,7 +102,7 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 |---|---|:-:|---|
 | [2026-07-15-warm-clay-redesign-design](superpowers/specs/2026-07-15-warm-clay-redesign-design.md) | acuan |  | Warm Clay — Redesign UI/UX Puraloka Suite (2026) |
 | [2026-08-06-landing-publik-design](superpowers/specs/2026-08-06-landing-publik-design.md) | acuan |  | Landing Publik — Compro Puraloka Persada + Halaman Jual ERP |
-| [2026-08-06-sumbu-ui-roadmap-design](superpowers/specs/2026-08-06-sumbu-ui-roadmap-design.md) | acuan |  | Sumbu UI/UX + penjaga status — desain |
+| [2026-08-06-sumbu-ui-roadmap-design](superpowers/specs/2026-08-06-sumbu-ui-roadmap-design.md) | acuan | ✓ | Sumbu UI/UX + penjaga status — desain |
 
 ### `docs/superpowers/specs/2026-07-18-enterprise-architecture`
 

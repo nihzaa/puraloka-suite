@@ -143,8 +143,10 @@ function InvoicePageInner() {
   }
 
   return (
+    // Padding disediakan `keuangan/layout.tsx` — lihat catatan di sana.
+    // Menambahkannya lagi di sini membuat jaraknya ganda dan berbeda-beda
+    // antar bagian (diukur: 74px / 37px / 1px sebelum diseragamkan).
     <div style={{
-      padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
       width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
     }}>
       {/* ── Saringan ── */}

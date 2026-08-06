@@ -92,16 +92,31 @@ interface MandorProfile {
 export default function MandorProfilePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  // `dimuat` menyimpan id yang datanya sudah tiba, BUKAN bendera boolean.
+  //
+  // Dulu efek ini memanggil `setLoading(true)` sinkron di badan efek: render
+  // bertingkat, dan lint menandainya. Tapi menghapusnya begitu saja lebih buruk
+  // daripada warning-nya — saat pindah dari satu mandor ke mandor lain, layar
+  // akan menampilkan profil mandor SEBELUMNYA sambil memuat yang baru. Nama,
+  // KPI, dan kasbon milik ORANG YANG SALAH, tanpa satu pun gejala.
+  //
+  // Membandingkan `dimuat !== id` menutup keduanya: nol setState sinkron, dan
+  // data lama tak pernah tampil di bawah id yang baru.
   const [data, setData] = useState<MandorProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [dimuat, setDimuat] = useState<string | null>(null);
+  // Galat juga disimpan PER-ID, dengan alasan yang sama. Kalau ia cuma bendera
+  // boolean, mandor yang gagal dimuat akan membuat mandor BERIKUTNYA langsung
+  // tampil galat tanpa pernah dicoba — dan menekan muat ulang tak menolong,
+  // karena bendera itu tak pernah direset.
+  const [gagal, setGagal] = useState<string | null>(null);
+  const loading = dimuat !== id && gagal !== id;
 
   useEffect(() => {
-    setLoading(true);
+    let batal = false;
     api.get<MandorProfile>(`/api/v1/mandor/profile/${id}`)
-      .then(r => setData(r.data))
-      .catch(() => setError("Gagal memuat profil mandor"))
-      .finally(() => setLoading(false));
+      .then(r => { if (!batal) { setData(r.data); setDimuat(id); } })
+      .catch(() => { if (!batal) setGagal(id); })
+    return () => { batal = true; };
   }, [id]);
 
   if (loading) return (
@@ -109,9 +124,12 @@ export default function MandorProfilePage() {
       Memuat profil mandor...
     </div>
   );
-  if (error || !data) return (
+  // Syaratnya `dimuat !== id`, BUKAN `!data`: sesudah mandor A berhasil dimuat,
+  // `data` tetap terisi: kalau B gagal, `!data` bernilai false dan layar akan
+  // menampilkan profil A di bawah id B.
+  if (gagal === id || dimuat !== id || !data) return (
     <div style={{ padding: "60px 32px", textAlign: "center", color: C.red, background: C.bg, minHeight: "100vh" }}>
-      {error || "Data tidak ditemukan"}
+      {gagal === id ? "Gagal memuat profil mandor" : "Data tidak ditemukan"}
     </div>
   );
 

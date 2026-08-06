@@ -12,10 +12,10 @@
  * sebaris, dan peringatan pagar 500 dari server.
  */
 
-import { Suspense, useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createPortal } from "react-dom";
-import { api, hasPermission } from "@/lib/api";
+import { api } from "@/lib/api";
 import { Paginasi } from "@/components/paginasi";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import * as XLSX from "xlsx";
@@ -31,23 +31,6 @@ import {
 import { CreateWageReportModal, WageReportDetailModal } from "../_bersama/komponen";
 
 function LaporanUpahInner() {
-  // ADR-004: capability, bukan nama jabatan.
-  //
-  // ⚠️ KODE MATI: /mandor hanya untuk admin (middleware.ts:53) — cabang
-  // isMandor tak pernah jalan. Lihat laporan 2026-08-07.
-  //
-  // Ditunda ke setelah mount lewat `useSyncExternalStore`: `hasPermission`
-  // membaca localStorage — KOSONG di server, terisi di klien — jadi
-  // memanggilnya saat render pertama membuat HTML kedua sisi berbeda.
-  // Argumen ketiga ADALAH nilai server, dan bawaan `true` (paling terbatas)
-  // disengaja: render pertama tak boleh memperlihatkan yang belum tentu
-  // boleh dilihat.
-  const isMandor = useSyncExternalStore(
-    () => () => {},
-    () => !hasPermission("mandor:assign"),
-    () => true,
-  );
-
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -264,10 +247,7 @@ function LaporanUpahInner() {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {/* Filter bar */}
-          {/* ⚠️ KODE MATI: /mandor hanya untuk admin (middleware.ts:53) —
-              cabang isMandor tak pernah jalan. Lihat laporan 2026-08-07. */}
-          {!isMandor && (
-            <div style={{ ...card, padding: "12px 16px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ ...card, padding: "12px 16px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               <select aria-label="Mandor" value={filterMandorId} onChange={e => { setFilterMandorId(e.target.value); updateFilter("mandor_id", e.target.value); }}
                 style={{ padding: "6px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: "var(--surface)", outline: "none", color: C.text, minWidth: 160 }}>
                 <option value="">Semua Mandor</option>
@@ -294,8 +274,7 @@ function LaporanUpahInner() {
                 style={{ marginLeft: "auto", padding: "6px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: 12, color: C.text, cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontWeight: 500 }}>
                 <Download size={13} /> Export Excel
               </button>
-            </div>
-          )}
+          </div>
           {filteredReports.length === 0 ? (
             <div style={{ ...card, padding: 48, textAlign: "center", color: C.muted }}>
               <FileText size={32} color={C.border} style={{ marginBottom: 12 }} />
@@ -304,7 +283,7 @@ function LaporanUpahInner() {
             </div>
           ) : laporanHalamanIni.map(r => {
             const st = getWageStatusBadge(r.status);
-            const canApprove = !isMandor && r.status === "submitted";
+            const canApprove = r.status === "submitted";
             return (
               <div key={r.id} style={{
                 ...card, padding: "12px 16px", transition: "box-shadow 0.15s",

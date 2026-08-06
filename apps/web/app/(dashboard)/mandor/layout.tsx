@@ -105,6 +105,9 @@ export default function MandorLayout({ children }: { children: React.ReactNode }
 
   const bagian: Bagian[] = [
     { href: "/mandor", label: "Ringkasan" },
+    // Tender mendahului Penugasan karena begitulah urutan kerjanya: borongan
+    // ditenderkan lebih dulu, yang ditugaskan adalah pemenangnya.
+    { href: "/mandor/tender", label: "Tender" },
     { href: "/mandor/penugasan", label: "Penugasan" },
     {
       href: "/mandor/upah", label: "Laporan Upah",

@@ -37,7 +37,7 @@ import {
   X, Trash2, Check, Camera,
   CalendarCheck,
 } from "lucide-react";
-import { api, getStoredUser, hasPermission } from "@/lib/api";
+import { api } from "@/lib/api";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { useUnits } from "@/lib/use-units";
 import { useWorkCategories } from "@/lib/use-work-categories";
@@ -77,16 +77,15 @@ export function CreateWageReportModal({ onClose, onSuccess }: {
   const mounted = useMounted();
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
 
-  const isMandor = !hasPermission("mandor:assign");
-
   // Load assignments fresh di dalam modal
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loadingAssignments, setLoadingAssignments] = useState(true);
   // Load kasbons fresh saat modal buka (bukan dari prop, agar selalu up-to-date)
   const [kasbons, setKasbons] = useState<WorkerKasbon[]>([]);
 
+  // `loadingAssignments` sudah lahir `true`; efek ini hanya jalan sekali ([]),
+  // jadi menyetelnya ulang di sini cuma memicu render bertingkat.
   useEffect(() => {
-    setLoadingAssignments(true);
     Promise.all([
       api.get<{ assignments: Assignment[] }>("/api/v1/mandor/assignments"),
       api.get<{ kasbons: WorkerKasbon[] }>("/api/v1/mandor/worker-kasbons"),
@@ -276,9 +275,12 @@ export function CreateWageReportModal({ onClose, onSuccess }: {
 
         <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
           {/* Mandor + scope + minggu */}
-          {/* Mandor / Assignment — hide jika mandor hanya punya 1 (auto-selected) */}
-          {!(isMandor && assignments.length === 1) && (
-            <div>
+          {/* Mandor / Assignment — selalu tampil.
+              Dulu disembunyikan saat `isMandor && assignments.length === 1`,
+              tapi `/mandor` adalah layar ADMIN: cabang itu tak pernah jalan
+              (diukur 2026-08-07, nol dari 5 peran). Mandor mengajukan lewat
+              `/mandor-portal`, yang punya layarnya sendiri. */}
+          <div>
               <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>
                 Mandor / Proyek <span style={{ color: C.red }}>*</span>
               </label>
@@ -296,15 +298,7 @@ export function CreateWageReportModal({ onClose, onSuccess }: {
                   ))}
                 </select>
               )}
-            </div>
-          )}
-
-          {/* Info auto-selected jika mandor hanya 1 assignment */}
-          {isMandor && assignments.length === 1 && assignmentId && (
-            <div style={{ padding: "8px 12px", background: C.navyLight, borderRadius: 6, fontSize: 13, color: C.navy, fontWeight: 500 }}>
-              Proyek: <strong>{assignments[0].project?.name}</strong>
-            </div>
-          )}
+          </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
@@ -789,24 +783,20 @@ export function WorkerFormModal({ mandorId: initialMandorId, mandorName: initial
   const mounted = useMounted();
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
 
-  const currentUser = getStoredUser();
-  const isMandor = !hasPermission("mandor:assign");
   const isEdit = !!worker;
 
   const [mandorOptions, setMandorOptions] = useState<{ id: string; name: string }[]>(
     initialMandorId ? [{ id: initialMandorId, name: initialMandorName ?? "" }] : []
   );
   useEffect(() => {
-    if (!initialMandorId && !isMandor) {
+    if (!initialMandorId) {
       api.get<{ mandors: { id: string; name: string; phone: string | null; email: string }[] }>("/api/v1/mandor/list")
         .then(r => setMandorOptions(r.data.mandors ?? []))
         .catch(() => {});
     }
-  }, [initialMandorId, isMandor]);
+  }, [initialMandorId]);
 
-  const [mandorId, setMandorId] = useState(
-    isMandor ? (currentUser?.id ?? "") : (initialMandorId || worker?.mandor?.id || "")
-  );
+  const [mandorId, setMandorId] = useState(initialMandorId || worker?.mandor?.id || "");
   const [name, setName] = useState(worker?.name ?? "");
   const [tipe, setTipe] = useState<string>(worker?.tipe ?? "");
   const [phone, setPhone] = useState(worker?.phone ?? "");
@@ -838,7 +828,7 @@ export function WorkerFormModal({ mandorId: initialMandorId, mandorName: initial
           tipe: tipe || undefined,
           phone: phone || undefined,
           skills,
-          mandor_id: isMandor ? undefined : (mandorId || undefined),
+          mandor_id: mandorId || undefined,
         });
       }
       onSuccess();
@@ -871,8 +861,8 @@ export function WorkerFormModal({ mandorId: initialMandorId, mandorName: initial
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {/* Mandor selector — hanya jika dibuka dari header (bukan dari grup) dan bukan mandor */}
-          {!isMandor && !initialMandorId && !isEdit && (
+          {/* Mandor selector — hanya saat dibuka dari header (bukan dari grup mandor). */}
+          {!initialMandorId && !isEdit && (
             <div>
               <label htmlFor="mandor-id" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Mandor <span style={{ color: C.red }}>*</span></label>
               <select id="mandor-id" aria-label="Mandor" value={mandorId} onChange={e => setMandorId(e.target.value)} style={inputStyle}>
@@ -996,11 +986,19 @@ export function AddKasbonModal({ assignments, onClose, onSuccess }: {
     if (!assignmentId) return;
     const asgn = assignments.find(a => a.id === assignmentId);
     if (!asgn?.mandor?.id) return;
-    setWorkers([]);
-    setWorkerId("");
+    // Pengosongan dipindah ke dalam `.then()`: menyetelnya sinkron di badan efek
+    // memicu render bertingkat, DAN membuat daftar berkedip kosong dulu sebelum
+    // yang baru datang. Pilihan tukang ikut direset di sana — daftar berganti,
+    // jadi id lama belum tentu ada di dalamnya.
+    let batal = false;
     api.get<{ workers: Worker[] }>(`/api/v1/mandor/workers?mandor_id=${asgn.mandor.id}`)
-      .then(r => setWorkers(r.data.workers))
+      .then(r => {
+        if (batal) return;
+        setWorkers(r.data.workers);
+        setWorkerId(prev => (r.data.workers.some(w => w.id === prev) ? prev : ""));
+      })
       .catch(() => {});
+    return () => { batal = true; };
   }, [assignmentId]);
 
   async function handleSubmit(e: React.FormEvent) {

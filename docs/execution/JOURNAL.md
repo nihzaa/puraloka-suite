@@ -5,6 +5,178 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-07 (lanjutan 4) — UI tender subkon: PEMBEDA 10/12 tuntas, dan tiga angka yang menolak jadi kabar baik
+
+### Halaman `/mandor/tender` — dinilai lewat POTRET, bukan diklaim
+
+Backend sudah ada sejak migrasi 201. Yang dibangun hari ini layarnya, plus
+migrasi 203 yang mengarahkan menu `sk-tender` dari `/m/sk-tender` (rute
+"belum dibangun") ke halaman nyata.
+
+Data uji dibuat lebih dulu — **tiga skenario yang sengaja menyulitkan**, bukan
+tiga baris rapi yang membuat setiap kesalahan tampilan tak terlihat:
+
+| Tender | Kasus yang diuji |
+|---|---|
+| TND-001 | pemenang BUKAN termurah (selisih Rp 12jt, ada alasan tertulis) |
+| TND-002 | penawaran −28,5% dari perkiraan — termurah TAPI berbahaya |
+| TND-003 | tender sah tanpa satu pun penawaran |
+
+Terbukti di potret (terang **dan** gelap):
+
+- Bebeng tampil **"tidak menawar"**, bukan "Rp 0" — ia tidak menang sebagai
+  termurah
+- Rp 118jt ditandai **"Terlalu rendah"** meski ia yang termurah
+- **pemenang bukan termurah** dinyatakan + alasan tertulisnya ditampilkan
+
+### Tiga cacat yang hanya ketahuan dengan MELIHAT
+
+Ketiganya tak akan pernah muncul dari membaca kode sendiri:
+
+1. **Layar membuka pada tender KOSONG.** API mengurutkan `tanggal DESC`, jadi
+   tender termuda menang — dan yang termuda justru paling mungkin belum ada
+   penawarannya. Layar perbandingan yang disambut "belum ada penawaran"
+   terbaca seperti fiturnya belum jalan. Diperbaiki: API mengirim
+   `penawaran_subkon(count)`, halaman memilih tender yang PUNYA isi.
+
+2. **"PENAWARAN MASUK 2" padahal 3 baris.** Benar secara definisi (2 menawar,
+   1 tidak) tapi pembacanya mengira ada yang belum termuat. Diganti
+   **"MENGAJUKAN HARGA 3 dari 3"**.
+
+3. **KPI "Termurah" memajang angka berbahaya sebagai nilai netral.** Rp 118jt
+   adalah termurah DAN −28,5% dari perkiraan; dipajang polos di antara tiga
+   KPI lain, yang paling berisiko justru terbaca paling menarik — persis
+   salah-baca yang banner di bawahnya berusaha cegah. Kini kartunya ikut
+   oranye dengan keterangan "periksa lingkupnya".
+
+### `catatan` tak pernah sampai ke layar — ditemukan sebelum ditampilkan
+
+`BarisPenawaranSubkon` punya `catatan` sebagai input, tapi `PenawaranTerhitung`
+tidak meneruskannya. Kolom "Catatan" akan **selalu kosong tanpa satu pun
+galat** — dan yang hilang justru kalimat yang menjelaskan kenapa sebuah
+penawaran jauh di bawah perkiraan ("harga tidak menyebut talang dan
+flashing"). Diperbaiki + test + mutation-test (mengembalikan `catatan: null`
+membuatnya merah).
+
+### Penjaga potret yang tak pernah bisa jalan
+
+`tangkap-layar.mjs` memakai `BASIS = http://localhost:3001` — itu **port API**,
+bukan web. Setiap upaya memotret gagal dengan "menunggu #login-email", seolah
+halaman loginnya rusak.
+
+**Saya menebak tiga kali sebelum mengukur**: `networkidle`, `addInitScript`,
+lalu `deviceScaleFactor`. Ketiganya diuji satu per satu dan ketiganya salah.
+Yang menemukan adalah membaca nilai `BASIS`. Perubahan `networkidle` yang
+terlanjur saya buat dikembalikan — ia bukan perbaikan, dan komentar
+pembenarannya tidak terbukti.
+
+### Bukti
+
+    165 berkas test, 1735 lulus, 2 dilewati, 0 gagal (274s)
+    axe-core WCAG 2.1 AA — tender & contingency, terang & gelap: NOL pelanggaran
+    16 penjaga web ✅ · seluruh penjaga API ✅ · ratchet API & web ✅
+    pnpm build web ✅ — /mandor/tender terdaftar
+
+### Catatan jujur
+
+API yang berjalan di terminal founder dijalankan `tsx src/index.ts` **tanpa
+watch**, jadi perubahan endpoint (`penawaran_subkon(count)`) belum termuat
+saat potret diambil. Dropdown masih menulis "belum ada penawaran" untuk tender
+yang punya 3, dan kolom Catatan masih "—". Kodenya diverifikasi benar lewat
+PostgREST langsung: `[{count:3},{count:3},{count:0}]`. **Keduanya akan benar
+begitu API di-restart** — bukan diklaim sudah benar sekarang.
+
+---
+
+## 2026-08-07 (lanjutan 3) — SAYA SALAH: 9 migrasi PEMBEDA melanggar ADR-004 yang saya kutip sendiri
+
+### Temuan utama: RLS literal peran 68 → 86, dan 18 dari 18 berasal dari saya
+
+`audit-rls-literal-peran.mjs` merah. Bukan warisan lama — diukur per-tabel,
+**seluruh 18 kenaikan** berasal dari sembilan migrasi PEMBEDA yang saya tulis
+sendiri (193–201). Semuanya memakai bentuk:
+
+    auth_role() = ANY (ARRAY['admin','pm'])
+
+Itu melanggar ADR-004 Rule #2 — aturan yang `CLAUDE.md` §5.1 kutip, dan yang
+saya sendiri rujuk saat menulis migrasi-migrasi itu. **Saya salah**: saya
+menegakkan aturan permission-bukan-peran di lapisan rute (`requirePermission`)
+tapi melanggarnya di lapisan RLS, di berkas yang sama.
+
+Ini bukan pelanggaran teoretis. Diukur di database ini:
+
+| peran | punya 5 permission? | policy lama `['admin','pm']` |
+|---|---|---|
+| admin | 5/5 | lolos |
+| pm | 5/5 | lolos |
+| **direktur** | **5/5** | **DIBLOKIR** |
+| mandor | 2/5 | diblokir |
+| client | 1/5 | diblokir |
+
+Peran `direktur` sudah ada, sudah punya seluruh permission-nya, dan policy
+saya memblokirnya total. Layar tender/contingency/RFQ akan **kosong** —
+bukan galat, bukan "tidak berwenang", kosong. Persis kegagalan senyap yang
+ADR-004 tulis untuk dicegah.
+
+Perbaikan: migrasi `202_rls_permission_bukan_peran.sql` mengganti 18 policy.
+Key permission-nya **disalin dari `requirePermission(...)` di rute masing-masing**,
+bukan ditebak dari nama tabel. Sesudahnya: 86 → 68 (kembali ke lantai),
+`has_permission()` 150 → 168. Policy `tenant_isolation` RESTRICTIVE tidak
+disentuh — ia tetap di-AND-kan, permission tak pernah bisa menembus company.
+
+### Utang lint yang masuk tanpa CI menangkapnya
+
+`react-hooks/set-state-in-effect` di HEAD = **71**, ambang 68. Dibuktikan
+dengan mengukur di pohon kerja bersih (stash penuh), bukan menebak: bukan dari
+perubahan sesi ini, bukan dari sesi lain yang belum commit. Artinya penjaga ini
+pernah dilewati.
+
+Ketiganya diperbaiki di modul `mandor/`, dan **dua menutup bug nyata**:
+
+1. `_bersama/komponen.tsx` — ganti mandor tidak mereset `workerId`. Tukang
+   dari mandor lama tetap terpilih meski daftarnya sudah berganti.
+2. `[id]/page.tsx` — `loading` sebagai bendera boolean membuat profil mandor
+   **sebelumnya** tampil di bawah id yang baru. Nama, KPI, kasbon milik orang
+   yang salah. Diganti menyimpan id yang datanya sudah tiba (`dimuat === id`),
+   plus galat per-id (`gagal === id`) supaya satu kegagalan tak mewarisi ke
+   mandor berikutnya.
+
+Lima ambang lain ikut dikencangkan karena ratchet sendiri memintanya:
+click-events 63→61, static-interactions 72→68, explicit-any 191→180,
+exhaustive-deps 24→22, unescaped-entities 28→18.
+
+### Kode mati `isMandor` dihapus (keputusan founder)
+
+30 cabang di 5 berkas + halaman `kasbon-saya` yang tak ditautkan siapa pun.
+Sebelum menghapus, dibuktikan dulu — bukan diasumsikan:
+
+- nol tautan masuk ke `kasbon-saya`
+- `/mandor-portal/kasbon` memakai endpoint **yang sama** (`/api/v1/kasbons`)
+  dan bisa mengajukan, bahkan lewat `kirimLapangan` yang mendukung offline
+
+`pm-portal/layout.tsx` punya `isMandor` juga tapi **tidak disentuh** — di sana
+peran mandor memang bisa masuk, jadi cabangnya hidup.
+
+Sisa penutup tak sengaja itu diganti penjaga yang disengaja:
+`uji-peran-lihat-layar-admin.mjs` — peran yang bisa membuka layar admin wajib
+punya permission-nya. Mutation-tested (peran kustom tanpa `mandor:assign` →
+merah).
+
+### Yang saya keliru sepanjang sesi ini, selain di atas
+
+- Menyebut penjaga `uji-izin-rute-lengkap.mjs` "hilang". Ia ada — di
+  `apps/web/scripts/`, bukan `apps/api/scripts/`. Loop saya menjalankan 64
+  penjaga dari satu direktori. Diukur ulang per-workspace: **nol hilang**.
+
+### Bukti
+
+    165 berkas test, 1734 lulus, 2 dilewati, 0 gagal (285s)
+    ratchet API ✅ 0 error 234 warning · ratchet web ✅ 0 error 472 warning
+    61 penjaga CI hijau (3 alat CI butuh argumen, dikecualikan)
+    pnpm build web ✅
+
+---
+
 ## 2026-08-07 (lanjutan 2) — Tender subkon (backend), dan dokumen yang menandai "belum" padahal sudah
 
 ### PEMBEDA 10/12 — backend selesai, UI menyusul

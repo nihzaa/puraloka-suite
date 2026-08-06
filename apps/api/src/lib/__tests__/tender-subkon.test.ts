@@ -190,4 +190,28 @@ describe('susunTender — jalan lain di mana angkanya bisa menyesatkan', () => {
     expect(h.penawaran[0].selisih_perkiraan_pct).toBeNull()
     expect(h.penawaran[0].penilaian).toBe('termurah')
   })
+
+  // Catatan penawar diteruskan APA ADANYA.
+  //
+  // Ditemukan 2026-08-07 saat membangun layarnya: `catatan` ada di input
+  // tapi tak pernah sampai ke output. Kolom "Catatan" di UI akan SELALU
+  // kosong, tanpa satu pun galat — dan yang hilang justru kalimat yang
+  // menjelaskan kenapa sebuah penawaran jauh di bawah perkiraan.
+  it('catatan penawar diteruskan ke hasil, termasuk pada yang tak menawar', () => {
+    const h = susunTender([
+      P({ id: 'rendah', nilai_penawaran: 100_000_000,
+          catatan: 'Harga tidak menyebut talang dan flashing.' }),
+      P({ id: 'wajar', nilai_penawaran: 160_000_000 }),
+      P({ id: 'absen', nilai_penawaran: 0, tidak_menawar: true,
+          catatan: 'Sedang mengerjakan dua proyek lain.' }),
+    ], 165_000_000)
+
+    const per = (id: string) => h.penawaran.find((p) => p.id === id)!
+    expect(per('rendah').catatan).toBe('Harga tidak menyebut talang dan flashing.')
+    expect(per('absen').catatan).toBe('Sedang mengerjakan dua proyek lain.')
+    // Tanpa catatan tetap `null`, bukan undefined — UI membedakan keduanya.
+    expect(per('wajar').catatan).toBeNull()
+    // Dan catatan tidak mengubah penilaian: yang rendah tetap ditandai rendah.
+    expect(per('rendah').penilaian).toBe('terlalu_rendah')
+  })
 })

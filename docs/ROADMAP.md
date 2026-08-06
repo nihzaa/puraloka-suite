@@ -523,6 +523,9 @@ mekanisme.
 |---|---|
 | `design/ARAH-VISUAL-2026.md` | diagnosis terukur, palet, kerapatan, pola layout, aturan tab-vs-halaman |
 | `execution/QUEUE-UI.yaml` | 9 item dalam 4 lapis — dikerjakan **berselang** dengan roadmap utama, bukan menggantikannya |
+| `superpowers/plans/2026-08-06-sumbu-ui-roadmap.md` | rencana pelaksanaan sumbu UI — urutan garapan per-sumbu, turunan dari QUEUE-UI |
+| `superpowers/specs/2026-08-06-sumbu-ui-roadmap-design.md` | spesifikasi desain untuk rencana di atas |
+| `superpowers/plans/2026-08-07-landing-publik-tahap-1.md` | halaman publik tahap 1 — pintu masuk sebelum login, prasyarat penjualan |
 
 Diagnosisnya singkat: **bukan warna atau font yang salah**. Padding 2× lebih
 longgar dari standar data-dense sementara font justru lebih kecil, 20 dari 22
