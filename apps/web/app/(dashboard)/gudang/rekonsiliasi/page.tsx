@@ -31,6 +31,7 @@ import { PackageSearch, RefreshCw, AlertTriangle, Info } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
+import { Tabel, type Kolom } from "@/components/dasar";
 
 type Proyek = { id: string; name: string; status?: string };
 
@@ -103,6 +104,151 @@ const STATUS_META: Record<Status, { label: string; warna: string; bg: string; bo
 
 const angka = (n: number) =>
   new Intl.NumberFormat("id-ID", { maximumFractionDigits: 2 }).format(n);
+
+/**
+ * Kolom tabel rekonsiliasi.
+ *
+ * Ditaruh di tingkat modul, bukan di dalam komponen: isinya tak bergantung
+ * pada satu pun state, jadi menyusunnya ulang tiap render hanya membuat
+ * `Tabel` menerima array baru tanpa ada yang berubah.
+ *
+ * Empat sumber angka (RAB · dibeli · dipakai · sisa) plus dua yang
+ * MENJELASKAN selisih (pindah proyek · dari klien) berdiri sebagai kolom
+ * terpisah — itu inti guna halaman ini, dan tak satu pun boleh dilebur.
+ */
+const KOLOM: Array<Kolom<Baris>> = [
+  {
+    kunci: "material", judul: "Material", kepalaBaris: true,
+    render: (b) => (
+      // Pita kiri adalah isyarat "periksa ini". Digambar di DALAM sel, bukan
+      // lewat `borderLeft` sel seperti dulu: `Tabel` memiliki gaya selnya
+      // sendiri, dan menempelkannya lewat prop akan memaksa primitif bersama
+      // tahu soal status rekonsiliasi.
+      //
+      // `belum_dibeli` ikut tanpa pita, sama seperti `wajar`. Baris RAB yang
+      // belum digarap tak perlu diperiksa, ia hanya perlu tidak disebut
+      // beres — dan kata di kolom status sudah mengerjakan itu.
+      <span style={{
+        display: "block", paddingLeft: 9,
+        borderLeft: b.status === "wajar" || b.status === "belum_dibeli"
+          ? "3px solid transparent"
+          : `3px solid ${STATUS_META[b.status].warna}`,
+      }}>
+        {b.material_name}
+        {b.unit && <span style={{ fontSize: 11, color: C.mid }}> · {b.unit}</span>}
+      </span>
+    ),
+  },
+  {
+    kunci: "teoritis", judul: "RAB", rata: "kanan",
+    render: (b) => (
+      <span style={{ color: b.teoritis > 0 ? C.mid : C.muted }}>
+        {b.teoritis > 0 ? angka(b.teoritis) : "—"}
+      </span>
+    ),
+  },
+  {
+    kunci: "dibeli", judul: "Dibeli", rata: "kanan",
+    render: (b) => <span style={{ color: C.text }}>{angka(b.dibeli)}</span>,
+  },
+  {
+    kunci: "dipakai", judul: "Dipakai", rata: "kanan",
+    render: (b) => <span style={{ color: C.mid }}>{angka(b.dipakai)}</span>,
+  },
+  {
+    kunci: "sisa", judul: "Sisa", rata: "kanan",
+    render: (b) => <span style={{ color: C.mid }}>{angka(b.sisa)}</span>,
+  },
+  {
+    kunci: "transfer_keluar", judul: "Pindah", rata: "kanan",
+    // Material yang PINDAH proyek — bukan hilang. Ditulis di kolomnya sendiri,
+    // bukan diam-diam dikurangkan dari selisih: pembaca yang menjumlah sendiri
+    // (dibeli − dipakai − sisa) akan mendapat angka lain, dan laporan yang tak
+    // bisa dicocokkan dengan tangan berhenti dipercaya.
+    render: (b) => (
+      <span style={{ color: b.transfer_keluar === 0 ? C.muted : C.mid }}>
+        {b.transfer_keluar === 0 ? "—" : (
+          <>
+            {b.transfer_keluar > 0 ? "" : "+"}{angka(Math.abs(b.transfer_keluar))}
+            <span style={{ display: "block", fontSize: 10, color: C.muted }}>
+              {b.transfer_keluar > 0 ? "ke proyek lain" : "dari proyek lain"}
+            </span>
+          </>
+        )}
+      </span>
+    ),
+  },
+  {
+    kunci: "dari_klien", judul: "Dari klien", rata: "kanan",
+    // Material dari klien (free issue) — BUKAN pembelian kita. Kolomnya
+    // sendiri, tak dilebur ke "Dibeli": meleburnya menggelembungkan penyebut
+    // susut DAN membuat perusahaan tampak memborong material yang tak pernah
+    // ia beli sesen pun.
+    render: (b) => (
+      <span style={{ color: b.dari_klien === 0 ? C.muted : C.mid }}>
+        {b.dari_klien === 0 ? "—" : (
+          <>
+            {angka(b.dari_klien)}
+            <span style={{ display: "block", fontSize: 10, color: C.muted }}>
+              dipasok owner
+            </span>
+          </>
+        )}
+      </span>
+    ),
+  },
+  {
+    kunci: "selisih", judul: "Selisih", rata: "kanan",
+    // Selisih NEGATIF tidak diwarnai sebagai kerugian. "−92" merah terbaca
+    // sebagai "92 hilang" — persis salah-baca yang kolom status berusaha
+    // cegah. Yang sebenarnya terjadi adalah penerimaan yang belum tercatat,
+    // jadi angkanya ditulis netral dan diberi keterangan; warna disimpan
+    // untuk susut sungguhan.
+    render: (b) => (
+      <span style={{
+        fontWeight: 700,
+        color: b.selisih > 0 ? STATUS_META[b.status].warna : C.mid,
+      }}>
+        {b.selisih > 0 ? "+" : ""}{angka(b.selisih)}
+        {b.selisih < 0 && (
+          <span style={{ display: "block", fontSize: 10, fontWeight: 500, color: C.muted }}>
+            belum tercatat
+          </span>
+        )}
+      </span>
+    ),
+  },
+  {
+    kunci: "susut_pct", judul: "Susut", rata: "kanan",
+    // Persentase NEGATIF tidak ditampilkan sebagai angka. "−6,0%" terbaca
+    // sebagai susut yang lebih baik daripada nol — kabar baik palsu. Yang
+    // sebenarnya terjadi: terpakai + sisa melebihi yang masuk, yaitu
+    // pencatatan yang belum lengkap. Kolom Selisih di sebelahnya sudah
+    // menyebutkannya, jadi di sini cukup dinyatakan tak bisa dihitung.
+    render: (b) => (
+      <span style={{ color: C.mid }}>
+        {b.susut_pct == null || b.susut_pct < 0 ? "—" : `${b.susut_pct.toFixed(1)}%`}
+      </span>
+    ),
+  },
+  {
+    kunci: "status", judul: "Status",
+    render: (b) => {
+      const meta = STATUS_META[b.status];
+      // Status sebagai KATA, bukan hanya warna baris — yang tak bisa
+      // membedakan warna, dan pembaca layar, sama-sama butuh teksnya.
+      return (
+        <span title={meta.arti} style={{
+          display: "inline-block", padding: "2px 8px", borderRadius: 20,
+          fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
+          color: meta.warna, background: meta.bg, border: `1px solid ${meta.border}`,
+        }}>
+          {meta.label}
+        </span>
+      );
+    },
+  },
+];
 
 export default function RekonsiliasiMaterialPage() {
   const [proyek, setProyek] = useState<Proyek[]>([]);
@@ -345,131 +491,27 @@ export default function RekonsiliasiMaterialPage() {
 
           {/* ── Tabel ──────────────────────────────────────────────────── */}
           <div className="rise rise-3" style={{ ...kartu, overflow: "hidden" }}>
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums", minWidth: 760 }}>
-                <caption className="sr-only">
-                  Rekonsiliasi material proyek {proyekAktif?.name ?? "—"}: kebutuhan RAB,
-                  jumlah dibeli, dipakai, sisa gudang, selisih yang tak terjelaskan,
-                  dan status penilaiannya per material.
-                </caption>
-                <thead>
-                  <tr style={{ background: "var(--surface-subtle)" }}>
-                    {[
-                      ["Material", "left"], ["RAB", "right"], ["Dibeli", "right"],
-                      ["Dipakai", "right"], ["Sisa", "right"], ["Pindah", "right"], ["Dari klien", "right"], ["Selisih", "right"],
-                      ["Susut", "right"], ["Status", "left"],
-                    ].map(([h, rata]) => (
-                      <th key={h} scope="col" style={{
-                        textAlign: rata as "left" | "right", padding: "8px 12px",
-                        fontSize: 10, fontWeight: 700, color: C.muted,
-                        textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap",
-                      }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {terlihat.map((b) => {
-                    const meta = STATUS_META[b.status];
-                    return (
-                      <tr key={b.material_id} style={{ borderTop: `1px solid ${C.border}` }}>
-                        <th scope="row" style={{
-                          textAlign: "left", padding: "10px 12px", fontWeight: 500, color: C.text,
-                          // `belum_dibeli` ikut tanpa pita, sama seperti `wajar`.
-                          // Pita kiri adalah isyarat "periksa ini"; baris RAB
-                          // yang belum digarap tak perlu diperiksa, ia hanya
-                          // perlu tidak disebut beres. Kata di kolom status
-                          // sudah mengerjakan itu.
-                          borderLeft: b.status === "wajar" || b.status === "belum_dibeli"
-                            ? "3px solid transparent"
-                            : `3px solid ${meta.warna}`,
-                        }}>
-                          {b.material_name}
-                          {b.unit && <span style={{ fontSize: 11, color: C.mid }}> · {b.unit}</span>}
-                        </th>
-                        <td style={{ textAlign: "right", padding: "10px 12px", color: b.teoritis > 0 ? C.mid : C.muted }}>
-                          {b.teoritis > 0 ? angka(b.teoritis) : "—"}
-                        </td>
-                        <td style={{ textAlign: "right", padding: "10px 12px", color: C.text }}>{angka(b.dibeli)}</td>
-                        <td style={{ textAlign: "right", padding: "10px 12px", color: C.mid }}>{angka(b.dipakai)}</td>
-                        <td style={{ textAlign: "right", padding: "10px 12px", color: C.mid }}>{angka(b.sisa)}</td>
-                        {/* Material yang PINDAH proyek — bukan hilang.
-                            Ditulis di kolomnya sendiri, bukan diam-diam
-                            dikurangkan dari selisih: pembaca yang menjumlah
-                            sendiri (dibeli − dipakai − sisa) akan mendapat
-                            angka lain, dan laporan yang tak bisa dicocokkan
-                            dengan tangan berhenti dipercaya. */}
-                        <td style={{ textAlign: "right", padding: "10px 12px", color: b.transfer_keluar === 0 ? C.muted : C.mid }}>
-                          {b.transfer_keluar === 0 ? "—" : (
-                            <>
-                              {b.transfer_keluar > 0 ? "" : "+"}{angka(Math.abs(b.transfer_keluar))}
-                              <span style={{ display: "block", fontSize: 10, color: C.muted }}>
-                                {b.transfer_keluar > 0 ? "ke proyek lain" : "dari proyek lain"}
-                              </span>
-                            </>
-                          )}
-                        </td>
-                        {/* Material dari klien (free issue) — BUKAN pembelian
-                            kita. Kolomnya sendiri, tak dilebur ke "Dibeli":
-                            meleburnya menggelembungkan penyebut susut DAN
-                            membuat perusahaan tampak memborong material yang
-                            tak pernah ia beli sesen pun. */}
-                        <td style={{ textAlign: "right", padding: "10px 12px", color: b.dari_klien === 0 ? C.muted : C.mid }}>
-                          {b.dari_klien === 0 ? "—" : (
-                            <>
-                              {angka(b.dari_klien)}
-                              <span style={{ display: "block", fontSize: 10, color: C.muted }}>
-                                dipasok owner
-                              </span>
-                            </>
-                          )}
-                        </td>
-                        {/* Selisih NEGATIF tidak diwarnai sebagai kerugian.
-                            "−92" merah terbaca sebagai "92 hilang" — persis
-                            salah-baca yang kolom status berusaha cegah. Yang
-                            sebenarnya terjadi adalah penerimaan yang belum
-                            tercatat, jadi angkanya ditulis netral dan diberi
-                            keterangan; warna disimpan untuk susut sungguhan. */}
-                        <td style={{
-                          textAlign: "right", padding: "10px 12px", fontWeight: 700,
-                          color: b.selisih > 0 ? meta.warna : C.mid,
-                        }}>
-                          {b.selisih > 0 ? "+" : ""}{angka(b.selisih)}
-                          {b.selisih < 0 && (
-                            <span style={{ display: "block", fontSize: 10, fontWeight: 500, color: C.muted }}>
-                              belum tercatat
-                            </span>
-                          )}
-                        </td>
-                        <td style={{ textAlign: "right", padding: "10px 12px", color: C.mid }}>
-                          {/* Persentase NEGATIF tidak ditampilkan sebagai angka.
-                              "−6,0%" terbaca sebagai susut yang lebih baik
-                              daripada nol — kabar baik palsu. Yang sebenarnya
-                              terjadi: terpakai + sisa melebihi yang masuk,
-                              yaitu pencatatan yang belum lengkap. Kolom
-                              Selisih di sebelahnya sudah menyebutkannya, jadi
-                              di sini cukup dinyatakan tak bisa dihitung. */}
-                          {b.susut_pct == null || b.susut_pct < 0
-                            ? "—"
-                            : `${b.susut_pct.toFixed(1)}%`}
-                        </td>
-                        <td style={{ padding: "10px 12px" }}>
-                          {/* Status sebagai KATA, bukan hanya warna baris —
-                              yang tak bisa membedakan warna, dan pembaca
-                              layar, sama-sama butuh teksnya. */}
-                          <span title={meta.arti} style={{
-                            display: "inline-block", padding: "2px 8px", borderRadius: 20,
-                            fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
-                            color: meta.warna, background: meta.bg, border: `1px solid ${meta.border}`,
-                          }}>
-                            {meta.label}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). Caption sr-only,
+                kolom pertama <th scope="row">, tabular-nums, dan pembungkus
+                overflow-x sekarang dijamin komponen — empat hal yang tabel
+                mentah harus ingat sendiri setiap kali, dan yang riwayat repo
+                ini tunjukkan TIDAK selalu diingat.
+
+                Yang TIDAK berubah, dan memang tak boleh: sepuluh kolomnya
+                utuh. Halaman ini mengadu empat sumber angka dan menyebut dua
+                penjelasan sahnya (pindah proyek, dipasok owner) — melebur
+                satu pun di antaranya membuat selisihnya tak bisa dicocokkan
+                dengan tangan, dan laporan yang begitu berhenti dipercaya.
+
+                `minWidth: 760` sengaja dilepas, bukan lupa: komponen sudah
+                membungkus dengan overflow-x, jadi gulir horizontalnya tetap
+                ada tanpa memaksa lebar mati ke primitif bersama. */}
+            <Tabel<Baris>
+              caption={`Rekonsiliasi material proyek ${proyekAktif?.name ?? "—"}: kebutuhan RAB, jumlah dibeli, dipakai, sisa gudang, yang pindah proyek, yang dipasok klien, selisih yang tak terjelaskan, dan status penilaiannya per material.`}
+              data={terlihat}
+              kunciBaris={(b) => b.material_id}
+              kolom={KOLOM}
+            />
 
             {terlihat.length === 0 && (
               <div style={{ padding: "28px 16px", textAlign: "center", fontSize: 13, color: C.mid }}>

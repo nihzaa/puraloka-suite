@@ -26,6 +26,7 @@ import { CheckCircle2, Gavel, Plus, RefreshCw } from "lucide-react";
 import { api, hasPermission, makeAbortController } from "@/lib/api";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { C } from "@/lib/warna-ui";
+import { Tabel } from "@/components/dasar";
 
 interface Ncr {
   id: string; nomor: string; judul: string; deskripsi: string | null;
@@ -284,104 +285,121 @@ function NcrInner() {
             </p>
           </div>
         ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
-              <caption className="sr-only">
-                Register ketidaksesuaian: nomor, tingkat, status, disposisi, dan penanggung jawab
-              </caption>
-              <thead>
-                <tr style={{ background: "var(--surface-subtle)", borderBottom: `1px solid ${C.border}` }}>
-                  {["NCR", "Tingkat", "Status", "Disposisi", "Ditugaskan", "Target", ""].map((h, i) => (
-                    <th key={h || i} scope="col" style={{
-                      padding: "8px 12px", textAlign: "left",
-                      fontSize: 10, fontWeight: 700, letterSpacing: ".05em",
-                      textTransform: "uppercase", color: C.mid, whiteSpace: "nowrap",
-                    }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {data.map((n) => {
+          /* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). Caption sr-only, kolom
+             pertama <th scope="row">, tabular-nums, dan pembungkus overflow-x
+             sekarang dijamin komponen — empat hal yang tabel mentah harus
+             ingat sendiri setiap kali, dan yang riwayat repo ini tunjukkan
+             TIDAK selalu diingat.
+
+             Kepala baris tetap di kolom NCR, dan itu pilihan sadar: nomor NCR
+             yang dibacakan bersama judulnya adalah SATU-SATUNYA hal yang
+             membedakan satu ketidaksesuaian dari yang lain. "Kritis" atau
+             "Terbuka" dibacakan tanpa nomornya tak memberi tahu apa pun
+             tentang temuan mana yang dimaksud.
+
+             Penandaan baris "menunggu keputusan" pindah dari `style` inline ke
+             `tandaiBaris` — perilakunya persis sama (latar, bukan warna teks,
+             karena di tabel padat warna teks tenggelam). */
+          <Tabel<Ncr>
+            caption="Register ketidaksesuaian: nomor, tingkat, status, disposisi, dan penanggung jawab"
+            data={data}
+            kunciBaris={(n) => n.id}
+            tandaiBaris={(n) => (n.status === "terbuka" ? "var(--surface-subtle)" : undefined)}
+            kolom={[
+              {
+                kunci: "ncr", judul: "NCR", kepalaBaris: true,
+                render: (n) => (
+                  <>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                      <span style={{
+                        fontWeight: 700, color: C.navy, fontVariantNumeric: "tabular-nums",
+                      }}>{n.nomor}</span>
+                    </div>
+                    <div style={{ fontSize: 13, color: C.text, fontWeight: 500 }}>{n.judul}</div>
+                    {(n.lokasi || n.acuan) && (
+                      <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                        {n.lokasi}
+                        {n.lokasi && n.acuan && " · "}
+                        {n.acuan && <span>acuan: {n.acuan}</span>}
+                      </div>
+                    )}
+                  </>
+                ),
+              },
+              {
+                kunci: "tingkat", judul: "Tingkat",
+                render: (n) => {
                   const sev = SEVERITY[n.severity] ?? SEVERITY.minor;
-                  const st = STATUS[n.status] ?? STATUS.terbuka;
-                  const perluPutus = n.status === "terbuka";
                   return (
-                    <tr key={n.id} style={{
-                      borderBottom: "1px solid var(--surface-hover)",
-                      // Baris yang menunggu keputusan diberi LATAR, bukan cuma
-                      // teks berwarna — di tabel padat, warna teks tenggelam.
-                      background: perluPutus ? "var(--surface-subtle)" : "transparent",
-                    }}>
-                      <th scope="row" style={{ padding: "12px 12px", textAlign: "left", fontWeight: 400 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                          <span style={{
-                            fontWeight: 700, color: C.navy, fontVariantNumeric: "tabular-nums",
-                          }}>{n.nomor}</span>
-                        </div>
-                        <div style={{ fontSize: 13, color: C.text, fontWeight: 500 }}>{n.judul}</div>
-                        {(n.lokasi || n.acuan) && (
-                          <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
-                            {n.lokasi}
-                            {n.lokasi && n.acuan && " · "}
-                            {n.acuan && <span>acuan: {n.acuan}</span>}
-                          </div>
-                        )}
-                      </th>
-                      <td style={{ padding: "12px 12px" }}>
-                        <span style={{
-                          fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6,
-                          background: sev.latar, color: sev.warna,
-                          border: `1px solid ${sev.tepi}`, whiteSpace: "nowrap",
-                        }}>{sev.label}</span>
-                      </td>
-                      <td style={{ padding: "12px 12px" }}>
-                        <span style={{
-                          fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 6,
-                          background: st.latar, color: st.warna, whiteSpace: "nowrap",
-                        }}>{st.label}</span>
-                      </td>
-                      <td style={{ padding: "12px 12px", color: C.mid }}>
-                        {n.disposisi ? (
-                          <span title={n.disposisi_catatan ?? undefined}>
-                            {DISPOSISI[n.disposisi]?.label ?? n.disposisi}
-                            {n.pemutus && (
-                              <span style={{ color: C.muted, fontSize: 11 }}> · {n.pemutus.name}</span>
-                            )}
-                          </span>
-                        ) : (
-                          <span style={{ color: C.muted, fontStyle: "italic" }}>belum diputuskan</span>
-                        )}
-                      </td>
-                      <td style={{ padding: "12px 12px", color: C.mid }}>
-                        {n.petugas?.name ?? "—"}
-                      </td>
-                      <td style={{
-                        padding: "12px 12px", color: C.mid, whiteSpace: "nowrap",
-                        fontVariantNumeric: "tabular-nums",
-                      }}>
-                        {n.target_selesai
-                          ? new Date(n.target_selesai).toLocaleDateString("id-ID",
-                              { day: "2-digit", month: "short" })
-                          : "—"}
-                      </td>
-                      <td style={{ padding: "12px 12px", textAlign: "right" }}>
-                        {bolehDisposisi && perluPutus && (
-                          <button onClick={() => setPutuskan(n)} style={{
-                            display: "inline-flex", alignItems: "center", gap: 4,
-                            padding: "4px 12px", borderRadius: 6, border: "none",
-                            background: "var(--grad-aksen)", color: "var(--on-aksen)",
-                            fontSize: 11, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
-                          }}>
-                            <Gavel size={12} aria-hidden="true" /> Putuskan
-                          </button>
-                        )}
-                      </td>
-                    </tr>
+                    <span style={{
+                      fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6,
+                      background: sev.latar, color: sev.warna,
+                      border: `1px solid ${sev.tepi}`, whiteSpace: "nowrap",
+                    }}>{sev.label}</span>
                   );
-                })}
-              </tbody>
-            </table>
-          </div>
+                },
+              },
+              {
+                kunci: "status", judul: "Status",
+                render: (n) => {
+                  const st = STATUS[n.status] ?? STATUS.terbuka;
+                  return (
+                    <span style={{
+                      fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 6,
+                      background: st.latar, color: st.warna, whiteSpace: "nowrap",
+                    }}>{st.label}</span>
+                  );
+                },
+              },
+              {
+                kunci: "disposisi", judul: "Disposisi",
+                render: (n) => (
+                  <span style={{ color: C.mid }}>
+                    {n.disposisi ? (
+                      <span title={n.disposisi_catatan ?? undefined}>
+                        {DISPOSISI[n.disposisi]?.label ?? n.disposisi}
+                        {n.pemutus && (
+                          <span style={{ color: C.muted, fontSize: 11 }}> · {n.pemutus.name}</span>
+                        )}
+                      </span>
+                    ) : (
+                      <span style={{ color: C.muted, fontStyle: "italic" }}>belum diputuskan</span>
+                    )}
+                  </span>
+                ),
+              },
+              {
+                kunci: "petugas", judul: "Ditugaskan",
+                render: (n) => <span style={{ color: C.mid }}>{n.petugas?.name ?? "—"}</span>,
+              },
+              {
+                kunci: "target", judul: "Target",
+                render: (n) => (
+                  <span style={{ color: C.mid, whiteSpace: "nowrap" }}>
+                    {n.target_selesai
+                      ? new Date(n.target_selesai).toLocaleDateString("id-ID",
+                          { day: "2-digit", month: "short" })
+                      : "—"}
+                  </span>
+                ),
+              },
+              {
+                kunci: "aksi", judul: "", rata: "kanan",
+                render: (n) => (
+                  bolehDisposisi && n.status === "terbuka" ? (
+                    <button onClick={() => setPutuskan(n)} style={{
+                      display: "inline-flex", alignItems: "center", gap: 4,
+                      padding: "4px 12px", borderRadius: 6, border: "none",
+                      background: "var(--grad-aksen)", color: "var(--on-aksen)",
+                      fontSize: 11, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
+                    }}>
+                      <Gavel size={12} aria-hidden="true" /> Putuskan
+                    </button>
+                  ) : null
+                ),
+              },
+            ]}
+          />
         )}
       </div>
 

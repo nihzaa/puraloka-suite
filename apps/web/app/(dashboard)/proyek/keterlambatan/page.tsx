@@ -25,6 +25,7 @@ import { AlertTriangle, CalendarClock, Clock, FileCheck2, RefreshCw } from "luci
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
+import { Tabel, type Kolom } from "@/components/dasar";
 
 type Proyek = { id: string; name: string };
 
@@ -158,6 +159,127 @@ export default function KeterlambatanPage() {
     () => (hasil?.baris ?? []).some((b) => b.estimasi_paparan !== null),
     [hasil],
   );
+
+  /**
+   * Kolom tabel — disusun di sini, bukan di JSX, karena satu di antaranya
+   * MUNCUL BERSYARAT. Menyaring array kolom jauh lebih sulit salah daripada
+   * versi lama yang menyisipkan `...(syarat ? [[...]] : [])` di `<thead>` DAN
+   * `{syarat && <td>}` di `<tbody>`: dua tempat yang harus sepakat, dan kalau
+   * tidak, seluruh baris bergeser satu kolom tanpa satu pun galat.
+   */
+  const kolom = useMemo<Array<Kolom<Baris>>>(() => {
+    const daftar: Array<Kolom<Baris> | null> = [
+      {
+        kunci: "milestone", judul: "Milestone", kepalaBaris: true,
+        render: (b) => {
+          const meta = STATUS_META[b.status];
+          const menonjol = b.status === "berjalan_terlambat" || b.status === "selesai_terlambat";
+          return (
+            // Pita kiri adalah isyarat "periksa ini". Ia digambar di dalam sel
+            // (bukan lewat `borderLeft` sel seperti dulu) karena `Tabel`
+            // memiliki gaya selnya sendiri — dan menempelkannya lewat prop
+            // akan memaksa primitif bersama tahu soal status keterlambatan.
+            <span style={{
+              display: "block", paddingLeft: 9,
+              borderLeft: menonjol ? `3px solid ${meta.warna}` : "3px solid transparent",
+            }}>
+              {b.title}
+              <span style={{ display: "block", fontSize: 11, color: C.mid, marginTop: 2 }}>
+                {b.project_name}
+              </span>
+            </span>
+          );
+        },
+      },
+      {
+        kunci: "tenggat", judul: "Tenggat",
+        render: (b) => (
+          <span style={{ color: C.mid, whiteSpace: "nowrap" }}>{tanggalTerbaca(b.target_date)}</span>
+        ),
+      },
+      {
+        kunci: "selesai", judul: "Selesai",
+        render: (b) => (
+          <span style={{ color: b.completed_at ? C.mid : C.muted, whiteSpace: "nowrap" }}>
+            {b.completed_at ? tanggalTerbaca(b.completed_at) : "belum selesai"}
+          </span>
+        ),
+      },
+      {
+        kunci: "telat", judul: "Telat", rata: "kanan",
+        render: (b) => (
+          <span style={{ color: C.mid }}>{b.telat_kotor === 0 ? "—" : `${b.telat_kotor} h`}</span>
+        ),
+      },
+      {
+        kunci: "eot", judul: "EOT", rata: "kanan",
+        render: (b) => (
+          <span style={{ color: b.eot_hari > 0 ? "var(--info)" : C.muted }}>
+            {b.eot_hari === 0 ? "—" : `−${b.eot_hari} h`}
+          </span>
+        ),
+      },
+      {
+        kunci: "telat_efektif", judul: "Telat efektif", rata: "kanan",
+        render: (b) => (
+          <span style={{
+            fontWeight: 700,
+            color: b.telat_efektif === 0 ? C.mid : STATUS_META[b.status].warna,
+          }}>
+            {b.telat_efektif === 0 ? "0" : `${b.telat_efektif} h`}
+            {/* "Masih bertambah" ditulis sebagai KATA: angka yang masih
+                tumbuh berbeda maknanya dari angka final. */}
+            {b.masih_bertambah && (
+              <span style={{ display: "block", fontSize: 10, fontWeight: 500, color: C.muted }}>
+                masih bertambah
+              </span>
+            )}
+          </span>
+        ),
+      },
+      // Kolom paparan DIHILANGKAN kalau tak satu pun bisa dihitung — 39 baris
+      // berbunyi "denda belum aktif" adalah kalimat yang sama diulang 39 kali,
+      // dan banner di atas sudah menyatakannya sekali.
+      adaPaparanTerhitung
+        ? {
+            kunci: "paparan", judul: "Estimasi paparan", rata: "kanan",
+            render: (b) =>
+              // null ≠ 0. null = "tak bisa dihitung" (denda belum aktif);
+              // 0 = "sudah dihitung, hasilnya nol".
+              b.estimasi_paparan === null ? (
+                <span style={{ fontSize: 11, color: C.muted }}>denda belum aktif</span>
+              ) : b.estimasi_paparan === 0 ? (
+                <span style={{ color: C.mid }}>—</span>
+              ) : (
+                <>
+                  {rupiah(b.estimasi_paparan)}
+                  {b.kena_cap && (
+                    <span style={{ display: "block", fontSize: 10, color: C.muted }}>
+                      batas atas kontrak
+                    </span>
+                  )}
+                </>
+              ),
+          }
+        : null,
+      {
+        kunci: "status", judul: "Status",
+        render: (b) => {
+          const meta = STATUS_META[b.status];
+          return (
+            <span title={meta.arti} style={{
+              display: "inline-block", padding: "2px 8px", borderRadius: 20,
+              fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
+              color: meta.warna, background: meta.bg, border: `1px solid ${meta.border}`,
+            }}>
+              {meta.label}
+            </span>
+          );
+        },
+      },
+    ];
+    return daftar.filter((k): k is Kolom<Baris> => k !== null);
+  }, [adaPaparanTerhitung]);
 
   const kartu: React.CSSProperties = {
     background: "var(--surface)", border: `1px solid ${C.border}`,
@@ -320,111 +442,26 @@ export default function KeterlambatanPage() {
 
           {/* ── Tabel ────────────────────────────────────────────────── */}
           <div className="rise rise-3" style={{ ...kartu, overflow: "hidden" }}>
-            <div style={{ overflowX: "auto" }}>
-              <table style={{
-                width: "100%", borderCollapse: "collapse", fontSize: 13,
-                fontVariantNumeric: "tabular-nums", minWidth: 820,
-              }}>
-                <caption className="sr-only">
-                  Analisa keterlambatan milestone: tenggat, tanggal selesai, hari telat
-                  kotor, perpanjangan waktu yang disetujui, telat efektif sesudah EOT,
-                  estimasi paparan rupiah, dan statusnya.
-                </caption>
-                <thead>
-                  <tr style={{ background: "var(--surface-subtle)" }}>
-                    {[
-                      ["Milestone", "left"], ["Tenggat", "left"], ["Selesai", "left"],
-                      ["Telat", "right"], ["EOT", "right"], ["Telat efektif", "right"],
-                      // Kolom paparan DIHILANGKAN kalau tak satu pun bisa
-                      // dihitung — 39 baris berbunyi "denda belum aktif"
-                      // adalah kalimat yang sama diulang 39 kali, dan
-                      // banner di atas sudah menyatakannya sekali.
-                      ...(adaPaparanTerhitung ? [["Estimasi paparan", "right"]] : []),
-                      ["Status", "left"],
-                    ].map(([h, rata]) => (
-                      <th key={h} scope="col" style={{
-                        textAlign: rata as "left" | "right", padding: "8px 12px",
-                        fontSize: 10, fontWeight: 700, color: C.muted,
-                        textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap",
-                      }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {terlihat.map((b) => {
-                    const meta = STATUS_META[b.status];
-                    const menonjol = b.status === "berjalan_terlambat" || b.status === "selesai_terlambat";
-                    return (
-                      <tr key={b.milestone_id} style={{ borderTop: `1px solid ${C.border}` }}>
-                        <th scope="row" style={{
-                          textAlign: "left", padding: "10px 12px", fontWeight: 500, color: C.text,
-                          borderLeft: menonjol ? `3px solid ${meta.warna}` : "3px solid transparent",
-                        }}>
-                          {b.title}
-                          <span style={{ display: "block", fontSize: 11, color: C.mid, marginTop: 2 }}>
-                            {b.project_name}
-                          </span>
-                        </th>
-                        <td style={{ padding: "10px 12px", color: C.mid, whiteSpace: "nowrap" }}>
-                          {tanggalTerbaca(b.target_date)}
-                        </td>
-                        <td style={{ padding: "10px 12px", color: b.completed_at ? C.mid : C.muted, whiteSpace: "nowrap" }}>
-                          {b.completed_at ? tanggalTerbaca(b.completed_at) : "belum selesai"}
-                        </td>
-                        <td style={{ textAlign: "right", padding: "10px 12px", color: C.mid }}>
-                          {b.telat_kotor === 0 ? "—" : `${b.telat_kotor} h`}
-                        </td>
-                        <td style={{ textAlign: "right", padding: "10px 12px", color: b.eot_hari > 0 ? "var(--info)" : C.muted }}>
-                          {b.eot_hari === 0 ? "—" : `−${b.eot_hari} h`}
-                        </td>
-                        <td style={{
-                          textAlign: "right", padding: "10px 12px", fontWeight: 700,
-                          color: b.telat_efektif === 0 ? C.mid : meta.warna,
-                        }}>
-                          {b.telat_efektif === 0 ? "0" : `${b.telat_efektif} h`}
-                          {/* "Masih bertambah" ditulis sebagai KATA: angka yang
-                              masih tumbuh berbeda maknanya dari angka final. */}
-                          {b.masih_bertambah && (
-                            <span style={{ display: "block", fontSize: 10, fontWeight: 500, color: C.muted }}>
-                              masih bertambah
-                            </span>
-                          )}
-                        </td>
-                        {adaPaparanTerhitung && (
-                        <td style={{ textAlign: "right", padding: "10px 12px", color: C.text }}>
-                          {/* null ≠ 0. null = "tak bisa dihitung" (denda belum
-                              aktif); 0 = "sudah dihitung, hasilnya nol". */}
-                          {b.estimasi_paparan === null ? (
-                            <span style={{ fontSize: 11, color: C.muted }}>denda belum aktif</span>
-                          ) : b.estimasi_paparan === 0 ? (
-                            <span style={{ color: C.mid }}>—</span>
-                          ) : (
-                            <>
-                              {rupiah(b.estimasi_paparan)}
-                              {b.kena_cap && (
-                                <span style={{ display: "block", fontSize: 10, color: C.muted }}>
-                                  batas atas kontrak
-                                </span>
-                              )}
-                            </>
-                          )}
-                        </td>
-                        )}
-                        <td style={{ padding: "10px 12px" }}>
-                          <span title={meta.arti} style={{
-                            display: "inline-block", padding: "2px 8px", borderRadius: 20,
-                            fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
-                            color: meta.warna, background: meta.bg, border: `1px solid ${meta.border}`,
-                          }}>
-                            {meta.label}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). Caption sr-only,
+                kolom pertama <th scope="row">, tabular-nums, dan pembungkus
+                overflow-x sekarang dijamin komponen — empat hal yang tabel
+                mentah harus ingat sendiri setiap kali, dan yang riwayat repo
+                ini tunjukkan TIDAK selalu diingat.
+
+                Kolomnya disusun di `useMemo` di atas, bukan sebaris di sini:
+                kolom "Estimasi paparan" muncul bersyarat, dan menyatukannya
+                dalam SATU daftar menghapus kemungkinan kepala dan isi tabel
+                tak sepakat berapa kolom yang ada.
+
+                `minWidth: 820` sengaja dilepas, bukan lupa: komponen sudah
+                membungkus dengan overflow-x, jadi gulir horizontalnya tetap
+                ada tanpa memaksa lebar mati ke primitif bersama. */}
+            <Tabel<Baris>
+              caption="Analisa keterlambatan milestone: tenggat, tanggal selesai, hari telat kotor, perpanjangan waktu yang disetujui, telat efektif sesudah EOT, estimasi paparan rupiah, dan statusnya."
+              data={terlihat}
+              kunciBaris={(b) => b.milestone_id}
+              kolom={kolom}
+            />
 
             {terlihat.length === 0 && (
               <div style={{ padding: "28px 16px", textAlign: "center", fontSize: 13, color: C.mid }}>

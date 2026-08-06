@@ -25,6 +25,7 @@ import { ArrowLeftRight, ArrowRight, PackageSearch, RefreshCw } from "lucide-rea
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
+import { Tabel } from "@/components/dasar";
 
 type Proyek = { id: string; name: string };
 type Material = { id: string; name: string; unit: string | null };
@@ -356,49 +357,64 @@ export default function TransferStokPage() {
                 </span>
               </div>
             ) : (
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums", minWidth: 720 }}>
-                  <caption className="sr-only">
-                    Riwayat perpindahan material antar proyek: tanggal, material,
-                    jumlah, proyek asal, proyek tujuan, dan alasannya.
-                  </caption>
-                  <thead>
-                    <tr style={{ background: "var(--surface-subtle)" }}>
-                      {[
-                        ["Tanggal", "left"], ["Material", "left"], ["Jumlah", "right"],
-                        ["Dari", "left"], ["Ke", "left"], ["Alasan", "left"],
-                      ].map(([h, rata]) => (
-                        <th key={h} scope="col" style={{
-                          textAlign: rata as "left" | "right", padding: "8px 12px",
-                          fontSize: 10, fontWeight: 700, color: C.muted,
-                          textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap",
-                        }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {transfer.map((t) => (
-                      <tr key={t.id} style={{ borderTop: `1px solid ${C.border}` }}>
-                        <td style={{ padding: "10px 12px", color: C.mid, whiteSpace: "nowrap" }}>
-                          {tanggalTerbaca(t.tanggal)}
-                        </td>
-                        <th scope="row" style={{ textAlign: "left", padding: "10px 12px", fontWeight: 500, color: C.text }}>
-                          {t.material?.name ?? "—"}
-                          {t.material?.unit && <span style={{ fontSize: 11, color: C.mid }}> · {t.material.unit}</span>}
-                        </th>
-                        <td style={{ textAlign: "right", padding: "10px 12px", fontWeight: 700, color: C.text }}>
-                          {angka(t.qty)}
-                        </td>
-                        <td style={{ padding: "10px 12px", color: C.mid }}>{t.asal?.name ?? "—"}</td>
-                        <td style={{ padding: "10px 12px", color: C.mid }}>{t.tujuan?.name ?? "—"}</td>
-                        <td style={{ padding: "10px 12px", color: t.alasan ? C.mid : C.muted }}>
-                          {t.alasan || "—"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              /* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). Caption sr-only,
+                 kolom pertama <th scope="row">, tabular-nums, dan pembungkus
+                 overflow-x sekarang dijamin komponen — empat hal yang tabel
+                 mentah harus ingat sendiri setiap kali.
+
+                 Kolom pertama berpindah dari "Tanggal" ke "Material": yang
+                 menamai baris bagi pembaca layar seharusnya barang yang
+                 pindah, bukan tanggalnya. Sepuluh transfer di hari yang sama
+                 membuat "12 Agu 2026" jadi nama baris yang tak membedakan
+                 apa pun — dan halaman ini justru dibuka untuk melacak SATU
+                 material tertentu.
+
+                 `minWidth: 720` sengaja dilepas, bukan lupa: komponen sudah
+                 membungkus dengan overflow-x, jadi gulir horizontalnya tetap
+                 ada tanpa memaksa lebar mati ke primitif bersama. */
+              <Tabel<Transfer>
+                caption="Riwayat perpindahan material antar proyek: material, jumlah, tanggal, proyek asal, proyek tujuan, dan alasannya."
+                data={transfer}
+                kunciBaris={(t) => t.id}
+                kolom={[
+                  {
+                    kunci: "material", judul: "Material", kepalaBaris: true,
+                    render: (t) => (
+                      <>
+                        {t.material?.name ?? "—"}
+                        {t.material?.unit && <span style={{ fontSize: 11, color: C.mid }}> · {t.material.unit}</span>}
+                      </>
+                    ),
+                  },
+                  {
+                    kunci: "qty", judul: "Jumlah", rata: "kanan",
+                    render: (t) => <span style={{ fontWeight: 700 }}>{angka(t.qty)}</span>,
+                  },
+                  {
+                    kunci: "tanggal", judul: "Tanggal",
+                    render: (t) => (
+                      <span style={{ color: C.mid, whiteSpace: "nowrap" }}>{tanggalTerbaca(t.tanggal)}</span>
+                    ),
+                  },
+                  {
+                    kunci: "asal", judul: "Dari",
+                    render: (t) => <span style={{ color: C.mid }}>{t.asal?.name ?? "—"}</span>,
+                  },
+                  {
+                    kunci: "tujuan", judul: "Ke",
+                    render: (t) => <span style={{ color: C.mid }}>{t.tujuan?.name ?? "—"}</span>,
+                  },
+                  {
+                    kunci: "alasan", judul: "Alasan",
+                    // Nilai kosong sengaja lebih pudar daripada nilai terisi:
+                    // "—" yang sepekat data membuat mata berhenti di tempat
+                    // yang tak berisi apa-apa.
+                    render: (t) => (
+                      <span style={{ color: t.alasan ? C.mid : C.muted }}>{t.alasan || "—"}</span>
+                    ),
+                  },
+                ]}
+              />
             )}
           </div>
         </>

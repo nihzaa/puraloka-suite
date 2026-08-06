@@ -36,6 +36,7 @@ import { api, makeAbortController } from "@/lib/api";
 
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
+import { Tabel } from "@/components/dasar";
 
 type StatusAset = "tersedia" | "dipakai" | "perawatan" | "rusak" | "dilepas";
 
@@ -264,74 +265,102 @@ function TabelAset({ baris }: { baris: Aset[] }) {
     );
   }
   return (
-    <div style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 780, fontVariantNumeric: "tabular-nums" }}>
-        <caption className="sr-only">Daftar aset: kode, nama, kategori, status, nilai perolehan, nilai buku, dan penyusutan.</caption>
-        <thead>
-          <tr style={{ background: "var(--surface-subtle)" }}>
-            {["Kode", "Nama", "Kategori", "Status", "Perolehan", "Nilai buku", "Penyusutan"].map((h, i) => (
-              <th key={h} scope="col" style={{
-                padding: "8px 12px", textAlign: i >= 4 ? "right" : "left",
-                fontSize: 11, fontWeight: 700, color: C.mid,
-                textTransform: "uppercase", letterSpacing: 0.4,
-                borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap",
-              }}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {baris.map((a) => {
+    /* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). Caption sr-only, kolom
+       pertama <th scope="row">, tabular-nums, dan pembungkus overflow-x
+       sekarang dijamin komponen — empat hal yang tabel mentah harus ingat
+       sendiri setiap kali, dan yang riwayat repo ini tunjukkan TIDAK selalu
+       diingat.
+
+       Kepala baris pindah dari "Kode" ke "Nama", dan kolomnya ikut ditukar
+       urutannya supaya yang pertama tetap yang menamai. Alasannya: "AST-014"
+       tidak memberi tahu alat apa itu. Pengguna pembaca layar yang menyusuri
+       kolom "Nilai buku" akan mendengar "AST-014, Rp 42 jt" — dan harus
+       mengingat pemetaan kode ke alat di kepalanya. "Molen Semen 350L,
+       Rp 42 jt" langsung terbaca. Kodenya tetap ada, jadi kolom kedua.
+
+       `minWidth: 780` sengaja dilepas, bukan lupa: pembungkus overflow-x dari
+       komponen sudah memberi gulir horizontal tanpa memaksa lebar mati masuk
+       ke primitif bersama. */
+    <Tabel<Aset>
+      caption="Daftar aset: nama, kode, kategori, status, nilai perolehan, nilai buku, dan penyusutan."
+      data={baris}
+      kunciBaris={(a) => a.id}
+      kolom={[
+        {
+          kunci: "nama", judul: "Nama", kepalaBaris: true,
+          render: (a) => (
+            <span style={{ color: C.text, fontWeight: 600 }}>
+              {a.name}
+              {(a.brand || a.model) && (
+                <span style={{ color: C.muted, fontSize: 11, display: "block", fontWeight: 400 }}>
+                  {[a.brand, a.model].filter(Boolean).join(" ")}
+                </span>
+              )}
+            </span>
+          ),
+        },
+        {
+          kunci: "kode", judul: "Kode",
+          render: (a) => (
+            <span style={{ color: C.mid, whiteSpace: "nowrap" }}>{a.asset_code}</span>
+          ),
+        },
+        {
+          kunci: "kategori", judul: "Kategori",
+          render: (a) => (
+            <span style={{ color: C.mid, whiteSpace: "nowrap" }}>
+              {KATEGORI[a.category] ?? a.category}
+            </span>
+          ),
+        },
+        {
+          kunci: "status", judul: "Status",
+          render: (a) => {
             const s = STATUS[a.status] ?? STATUS.tersedia;
             return (
-              <tr key={a.id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                <th scope="row" style={{ textAlign: "left", padding: "8px 12px", fontWeight: 600, color: C.text, whiteSpace: "nowrap" }}>
-                  {a.asset_code}
-                </th>
-                <td style={{ padding: "8px 12px", color: C.text }}>
-                  {a.name}
-                  {(a.brand || a.model) && (
-                    <span style={{ color: C.muted, fontSize: 11, display: "block" }}>
-                      {[a.brand, a.model].filter(Boolean).join(" ")}
-                    </span>
-                  )}
-                </td>
-                <td style={{ padding: "8px 12px", color: C.mid, whiteSpace: "nowrap" }}>
-                  {KATEGORI[a.category] ?? a.category}
-                </td>
-                <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>
-                  {/* Warna DAN teks — WCAG 1.4.1 */}
-                  <span style={{
-                    display: "inline-flex", alignItems: "center", gap: 4,
-                    padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600,
-                    color: s.warna, background: s.bg, border: `1px solid ${s.border}`,
-                  }}>
-                    {a.status === "dipakai" && <MapPin size={10} aria-hidden="true" />}
-                    {s.teks}
-                  </span>
-                </td>
-                <td style={{ padding: "8px 12px", textAlign: "right", color: C.mid, whiteSpace: "nowrap" }}>
-                  {fmtRp(a.purchase_price)}
-                  <span style={{ display: "block", fontSize: 11, color: C.muted }}>
-                    {fmtTgl(a.purchase_date)}
-                  </span>
-                </td>
-                <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 700, color: C.text, whiteSpace: "nowrap" }}>
-                  {fmtRp(a.nilai_buku)}
-                </td>
-                <td style={{ padding: "8px 12px", textAlign: "right", whiteSpace: "nowrap" }}>
-                  {a.sudah_disusutkan ? (
-                    <span style={{ color: C.mid }}>{fmtRp(a.akumulasi_penyusutan)}</span>
-                  ) : (
-                    /* Dibedakan dari "Rp 0" — belum dicatat bukan berarti nol. */
-                    <span style={{ color: C.muted, fontSize: 11, fontStyle: "italic" }}>belum dicatat</span>
-                  )}
-                </td>
-              </tr>
+              // Warna DAN teks — WCAG 1.4.1
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: 4,
+                padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600,
+                color: s.warna, background: s.bg, border: `1px solid ${s.border}`,
+                whiteSpace: "nowrap",
+              }}>
+                {a.status === "dipakai" && <MapPin size={10} aria-hidden="true" />}
+                {s.teks}
+              </span>
             );
-          })}
-        </tbody>
-      </table>
-    </div>
+          },
+        },
+        {
+          kunci: "perolehan", judul: "Perolehan", rata: "kanan",
+          render: (a) => (
+            <span style={{ color: C.mid, whiteSpace: "nowrap" }}>
+              {fmtRp(a.purchase_price)}
+              <span style={{ display: "block", fontSize: 11, color: C.muted }}>
+                {fmtTgl(a.purchase_date)}
+              </span>
+            </span>
+          ),
+        },
+        {
+          kunci: "nilai_buku", judul: "Nilai buku", rata: "kanan",
+          render: (a) => (
+            <span style={{ fontWeight: 700, color: C.text, whiteSpace: "nowrap" }}>
+              {fmtRp(a.nilai_buku)}
+            </span>
+          ),
+        },
+        {
+          kunci: "penyusutan", judul: "Penyusutan", rata: "kanan",
+          render: (a) => (
+            a.sudah_disusutkan
+              ? <span style={{ color: C.mid, whiteSpace: "nowrap" }}>{fmtRp(a.akumulasi_penyusutan)}</span>
+              // Dibedakan dari "Rp 0" — belum dicatat bukan berarti nol.
+              : <span style={{ color: C.muted, fontSize: 11, fontStyle: "italic" }}>belum dicatat</span>
+          ),
+        },
+      ]}
+    />
   );
 }
 
@@ -345,58 +374,81 @@ function TabelSewa({ baris }: { baris: Sewa[] }) {
     );
   }
   return (
-    <div style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 680, fontVariantNumeric: "tabular-nums" }}>
-        <caption className="sr-only">Penyewaan alat: nama alat, tarif, tanggal mulai dan selesai, status, serta biaya sampai kini.</caption>
-        <thead>
-          <tr style={{ background: "var(--surface-subtle)" }}>
-            {["Alat", "Tarif", "Mulai", "Selesai", "Status", "Biaya s.d. kini"].map((h, i) => (
-              <th key={h} scope="col" style={{
-                padding: "8px 12px", textAlign: i >= 5 ? "right" : "left",
-                fontSize: 11, fontWeight: 700, color: C.mid,
-                textTransform: "uppercase", letterSpacing: 0.4,
-                borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap",
-              }}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {baris.map((r) => {
+    /* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). Caption sr-only, kolom
+       pertama <th scope="row">, tabular-nums, dan pembungkus overflow-x
+       sekarang dijamin komponen.
+
+       Di sini `scope="row"` bukan sekadar dipindahkan — ia BARU. Versi
+       mentahnya merender seluruh baris sebagai <td>, jadi pembaca layar
+       membacakan "Rp 12 jt" tanpa pernah menyebut alat mana yang menagihnya.
+       Kolom "Alat" memang yang menamai baris, jadi tak ada urutan yang perlu
+       ditukar — cuma penandaannya yang hilang.
+
+       `minWidth: 680` dilepas dengan alasan yang sama seperti tabel aset:
+       gulir horizontal sudah datang dari pembungkus komponen. */
+    <Tabel<Sewa>
+      caption="Penyewaan alat: nama alat, tarif, tanggal mulai dan selesai, status, serta biaya sampai kini."
+      data={baris}
+      kunciBaris={(r) => r.id}
+      kolom={[
+        {
+          kunci: "alat", judul: "Alat", kepalaBaris: true,
+          render: (r) => <span style={{ color: C.text, fontWeight: 600 }}>{r.item_name}</span>,
+        },
+        {
+          kunci: "tarif", judul: "Tarif",
+          render: (r) => (
+            <span style={{ color: C.mid, whiteSpace: "nowrap" }}>
+              {fmtRp(r.rate)} <span style={{ color: C.muted }}>/ {r.rate_unit}</span>
+            </span>
+          ),
+        },
+        {
+          kunci: "mulai", judul: "Mulai",
+          render: (r) => (
+            <span style={{ color: C.mid, whiteSpace: "nowrap" }}>{fmtTgl(r.start_date)}</span>
+          ),
+        },
+        {
+          kunci: "selesai", judul: "Selesai",
+          render: (r) => (
+            <span style={{ color: C.mid, whiteSpace: "nowrap" }}>
+              {r.end_date ? fmtTgl(r.end_date) : <span style={{ color: C.muted, fontStyle: "italic" }}>berjalan</span>}
+            </span>
+          ),
+        },
+        {
+          kunci: "status", judul: "Status",
+          render: (r) => {
             const berjalan = r.status === "berjalan";
             return (
-              <tr key={r.id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                <td style={{ padding: "8px 12px", color: C.text, fontWeight: 600 }}>{r.item_name}</td>
-                <td style={{ padding: "8px 12px", color: C.mid, whiteSpace: "nowrap" }}>
-                  {fmtRp(r.rate)} <span style={{ color: C.muted }}>/ {r.rate_unit}</span>
-                </td>
-                <td style={{ padding: "8px 12px", color: C.mid, whiteSpace: "nowrap" }}>{fmtTgl(r.start_date)}</td>
-                <td style={{ padding: "8px 12px", color: C.mid, whiteSpace: "nowrap" }}>
-                  {r.end_date ? fmtTgl(r.end_date) : <span style={{ color: C.muted, fontStyle: "italic" }}>berjalan</span>}
-                </td>
-                <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>
-                  <span style={{
-                    padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600,
-                    color: berjalan ? C.yellow : C.mid,
-                    background: berjalan ? C.yellowBg : "var(--surface-subtle)",
-                    border: `1px solid ${berjalan ? C.yellowBorder : C.border}`,
-                  }}>
-                    {berjalan ? "Berjalan" : r.status === "selesai" ? "Selesai" : "Batal"}
-                  </span>
-                </td>
-                <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 700, color: C.text, whiteSpace: "nowrap" }}>
-                  {fmtRp(r.biaya_sampai_kini)}
-                  {berjalan && (
-                    <span style={{ display: "block", fontSize: 10, color: C.muted, fontWeight: 400 }}>
-                      masih bertambah
-                    </span>
-                  )}
-                </td>
-              </tr>
+              <span style={{
+                padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600,
+                color: berjalan ? C.yellow : C.mid,
+                background: berjalan ? C.yellowBg : "var(--surface-subtle)",
+                border: `1px solid ${berjalan ? C.yellowBorder : C.border}`,
+                whiteSpace: "nowrap",
+              }}>
+                {berjalan ? "Berjalan" : r.status === "selesai" ? "Selesai" : "Batal"}
+              </span>
             );
-          })}
-        </tbody>
-      </table>
-    </div>
+          },
+        },
+        {
+          kunci: "biaya", judul: "Biaya s.d. kini", rata: "kanan",
+          render: (r) => (
+            <span style={{ fontWeight: 700, color: C.text, whiteSpace: "nowrap" }}>
+              {fmtRp(r.biaya_sampai_kini)}
+              {r.status === "berjalan" && (
+                <span style={{ display: "block", fontSize: 10, color: C.muted, fontWeight: 400 }}>
+                  masih bertambah
+                </span>
+              )}
+            </span>
+          ),
+        },
+      ]}
+    />
   );
 }
 
