@@ -84,6 +84,22 @@
    * #9A3412 lolos di ketiganya: 7,31 putih · 7,05 warning-bg · 6,50 #ebf2ff.
    * Latar yang benar harus DIUKUR, bukan diasumsikan putih. */
   --warning-teks:     #9A3412;
+
+  /* ── Teks di atas latar yang SELALU GELAP ────────────────────────────────
+   *
+   * Beberapa permukaan gelap terlepas dari mode tema — bar bawah lightbox
+   * foto `rgba(0,0,0,0.7)`, overlay video, kartu bergradien pekat.
+   *
+   * Token biasa TIDAK berlaku di situ: `--success` mode terang (#15803d)
+   * hanya 3,88:1 di atas latar itu, dan `--warning` 3,87:1. Keduanya gagal
+   * ambang teks 4,5:1 justru saat pemakainya memilih mode TERANG.
+   *
+   * Nilainya sama di kedua mode — yang menentukan bukan tema yang dipilih
+   * pemakai, melainkan latar tempat teksnya berada.
+   * Diukur di atas rgb(13,13,13): 8,53:1 · 9,05:1 · 6,90:1. */
+  --pada-gelap-baik:     #22C55E;
+  --pada-gelap-perhatian:#F59E0B;
+  --pada-gelap-redup:    #9098B8;
   --danger:           #B91C1C;
   --danger-bg:        #FEF2F2;
   --danger-border:    #FECACA;

@@ -92,7 +92,7 @@ export function PenandaLokasi({ foto, proyek, ringkas = false, latarGelap = fals
           display: "inline-flex", alignItems: "center", gap: 4,
           // `C.muted` di latar gelap turun jauh di bawah ambang — cabang ini
           // ikut memakai varian gelap seperti cabang berkoordinat di bawah.
-          fontSize: 11, color: latarGelap ? "#9098B8" : C.muted,
+          fontSize: 11, color: latarGelap ? "var(--pada-gelap-redup)" : C.muted,
         }}>
         <MapPinOff size={11} aria-hidden="true" />
         {/* "—" tak menerangkan apa pun. Foto tanpa koordinat adalah keadaan
@@ -122,7 +122,9 @@ export function PenandaLokasi({ foto, proyek, ringkas = false, latarGelap = fals
   // akan memberi warna mode-terang saat pemakainya memilih mode terang —
   // dan itu justru kombinasi yang gagal kontras (3,88:1).
   const warna = latarGelap
-    ? (diLokasi === true ? "#22C55E" : diLokasi === false ? "#F59E0B" : "#9098B8")
+    ? (diLokasi === true ? "var(--pada-gelap-baik)"
+       : diLokasi === false ? "var(--pada-gelap-perhatian)"
+       : "var(--pada-gelap-redup)")
     : (diLokasi === true ? C.green : diLokasi === false ? C.yellow : C.mid);
 
   const judul = [
