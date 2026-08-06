@@ -764,6 +764,20 @@ jobs:
       - name: opacity bukan pada teks
         run: node scripts/uji-opacity-teks.mjs
 
+      # Halaman yang sudah jadi tapi TAK BISA DIBUKA SIAPA PUN.
+      #
+      # `middleware.ts` menyaring per-prefiks lewat daftar tulis-tangan. Membuat
+      # halaman baru berarti menyentuh dua berkas berjauhan, dan yang kedua tak
+      # punya satu pun sinyal kalau terlewat — build, test, dan typecheck semua
+      # hijau, lalu halamannya diarahkan diam-diam ke home tanpa 404 dan tanpa
+      # log.
+      #
+      # Persis itu yang menimpa `/gudang/rekonsiliasi` (2026-08-06): endpoint
+      # jalan, tenancy terjaga, menu terarah — dan yang muncul `/dashboard`.
+      # Ditemukan hanya karena halamannya dibuka dengan mata sendiri.
+      - name: Setiap rute punya izin di middleware
+        run: node scripts/uji-izin-rute-lengkap.mjs
+
       # Sidebar kini memuat 20 grup & 202 sub-menu (migrasi 153). Pola lama
       # menulis tinggi collapse sebagai ANGKA MATI (`maxHeight: "140px"`) —
       # cukup untuk 4 submenu Keuangan, tapi grup 18 anak butuh ±540px dan

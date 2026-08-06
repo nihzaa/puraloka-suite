@@ -16,7 +16,7 @@ memuat **setiap** dokumen, tanpa kecuali.
 | **acuan** | aturan/keputusan yang dirujuk saat bekerja | dibaca saat mengerjakan hal terkait; tak "selesai" |
 | **riwayat** | catatan fase yang sudah lewat | bukti apa yang pernah terjadi; jangan dikutip sebagai rencana |
 
-**Total 263 dokumen** — antrean 11 · acuan 194 · riwayat 58.
+**Total 265 dokumen** — antrean 12 · acuan 195 · riwayat 58.
 
 Kolom **RM** = disebut langsung di `ROADMAP.md`.
 
@@ -93,12 +93,14 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | Dokumen | Peran | RM | Isi |
 |---|---|:-:|---|
 | [2026-07-15-warm-clay-design-system](superpowers/plans/2026-07-15-warm-clay-design-system.md) | acuan | ✓ | Warm Clay Design System (Phase 1) Implementation Plan |
+| [2026-08-06-sumbu-ui-roadmap](superpowers/plans/2026-08-06-sumbu-ui-roadmap.md) | antrean |  | Sumbu UI/UX + Penjaga Status — Implementation Plan |
 
 ### `docs/superpowers/specs`
 
 | Dokumen | Peran | RM | Isi |
 |---|---|:-:|---|
 | [2026-07-15-warm-clay-redesign-design](superpowers/specs/2026-07-15-warm-clay-redesign-design.md) | acuan |  | Warm Clay — Redesign UI/UX Puraloka Suite (2026) |
+| [2026-08-06-sumbu-ui-roadmap-design](superpowers/specs/2026-08-06-sumbu-ui-roadmap-design.md) | acuan |  | Sumbu UI/UX + penjaga status — desain |
 
 ### `docs/superpowers/specs/2026-07-18-enterprise-architecture`
 

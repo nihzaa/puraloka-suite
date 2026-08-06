@@ -5,6 +5,81 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-06 — Halaman jadi yang tak bisa dibuka siapa pun, dan "Wajar" sebagai jawaban bawaan
+
+### Rekonsiliasi material selesai (F5 PEMBEDA — pembeda terlemah, 1,5/5)
+
+`PETA-PRIORITAS-ERP.md` menyebutnya "titik kebocoran terbesar kontraktor".
+Keempat angkanya sudah tersimpan di basis bertahun-tahun dan **tak pernah
+sekali pun diadu**: kebutuhan RAB, penerimaan barang, pemakaian lapangan,
+sisa gudang.
+
+Selesai: fungsi murni + 22 test, endpoint read-only bergerbang tenancy,
+halaman `/gudang/rekonsiliasi`. Suite penuh **159 berkas, 1619 lulus, 2
+dilewati**; a11y **41 halaman, nol pelanggaran, kedua mode**; 11 penjaga
+hijau.
+
+### Cacat kelas baru: halaman selesai yang diarahkan diam-diam ke home
+
+Halaman rekonsiliasi selesai — endpoint jalan, tenancy terjaga, typecheck
+hijau, menu terarah. Dibuka di browser: yang muncul `/dashboard`.
+
+`middleware.ts` menyaring per-prefiks lewat daftar tulis-tangan, dan
+`/gudang` tak pernah ditambahkan. **Tak ada 404, tak ada pesan, tak ada
+log.** Membuat halaman baru menuntut menyentuh dua berkas berjauhan, dan
+yang kedua tak punya satu pun sinyal kalau terlewat.
+
+Diukur: 24 direktori rute, 23 sudah terdaftar — hanya `/gudang` yang
+tertinggal. Bukan kelalaian besar, tapi **tak ada apa pun yang mencegahnya**.
+Penjaga baru `uji-izin-rute-lengkap.mjs` (3 mutasi disuntik, 3 tertangkap)
+menukar "harus ingat" dengan "tak bisa lupa".
+
+### "Wajar" sebagai nilai bawaan — arah gagal yang salah
+
+Pada data sungguhan: Batu Split direncanakan 200 m3, tak pernah dibeli
+sebutir pun, dan laporan menyebutnya **"Wajar"**. Begitu pula material yang
+nol di keempat sumber.
+
+Sebabnya `wajar` adalah nilai awal yang dipakai kalau tak ada satu cabang pun
+cocok. Pada laporan yang gunanya **memunculkan masalah**, gagal ke arah
+"beres" berarti setiap keadaan yang tak dikenali kode tampil sebagai
+sudah-diperiksa. Ditambah status `belum_dibeli` (label UI "Belum ada
+transaksi" — sebab ia menampung dua keadaan, dan label yang menyebut RAB
+akan berbohong untuk separuhnya).
+
+### Kartu ringkasan yang menjumlahkan satuan tak sebanding
+
+Versi pertama memajang "Total dibeli 437" — hasil menjumlahkan m3, batang,
+sak, dan buah jadi satu angka. Angkanya berubah kalau semen dijual per ton,
+tanpa ada yang berubah di lapangan. Diganti jadi **cacahan material per
+keadaan**; kuantitas tetap ada di tabel, di samping satuannya.
+
+Selisih negatif juga berhenti diwarnai merah: "-92" merah terbaca sebagai
+"92 hilang", persis salah-baca yang kolom status berusaha cegah.
+
+### Saya salah — dua kali
+
+**Satu.** Saya jalankan audit a11y "mode gelap" lewat `colorScheme: 'dark'`
+Playwright dan melaporkan nol pelanggaran. Aplikasi ini memakai kelas
+`.dark` (next-themes), **bukan** `prefers-color-scheme` — jadi yang dipindai
+adalah halaman terang. Ketahuan hanya karena potret "gelap"-nya identik
+dengan yang terang. Penjaga resmi `audit-a11y-runtime.mjs` sejak awal sudah
+benar (ia menyetel `localStorage.theme`); yang cacat skrip sekali-pakai saya.
+**Angka dari alat yang saya rakit sendiri di tempat bukan bukti** — itulah
+gunanya penjaga yang sudah ada.
+
+**Dua.** Uji urutan `belum_dibeli` saya tulis dengan pembanding
+`susut_tinggi`. Mutasi "naikkan `belum_dibeli` ke peringkat 0" **lolos** —
+keduanya jadi seri, dan pemecah seri kebetulan mempertahankan urutan yang
+sama. Testnya menegaskan hal yang benar tapi tak bisa membedakan dua
+peringkat. Diganti pembanding `lebih_beli`; mutasi langsung tertangkap.
+
+Dua mutasi lain yang lolos **diperiksa, bukan ditambal**: keduanya mutan
+setara (membuangnya tak mengubah keluaran apa pun), dan alasannya ditulis di
+kode supaya tak diperdebatkan ulang.
+
+---
+
 ## 2026-08-04 — INTI #2–#4, dan CI yang membuat saya hampir salah diagnosis
 
 ### Tiga INTI selesai

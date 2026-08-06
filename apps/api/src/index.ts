@@ -37,6 +37,7 @@ import changeOrderRoutes from './routes/v1/change-orders.js'
 import punchListRoutes from './routes/v1/punch-list.js'
 import ncrRoutes from './routes/v1/ncr.js'
 import absensiRoutes from './routes/v1/absensi.js'
+import rekonsiliasiMaterialRoutes from './routes/v1/rekonsiliasi-material.js'
 import inspeksiRoutes from './routes/v1/inspeksi.js'
 import rfiRoutes from './routes/v1/rfi.js'
 import submittalRoutes from './routes/v1/submittal.js'
@@ -274,6 +275,7 @@ await app.register(changeOrderRoutes)
 await app.register(punchListRoutes)
 await app.register(ncrRoutes)
 await app.register(absensiRoutes)
+await app.register(rekonsiliasiMaterialRoutes)
 await app.register(inspeksiRoutes)
 await app.register(rfiRoutes)
 await app.register(submittalRoutes)
