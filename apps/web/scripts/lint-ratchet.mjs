@@ -78,7 +78,7 @@ const AMBANG = {
   // diikuti percabangan (`? :`), kontrolnya ada di dalam cabang. `htmlFor`
   // statis akan MATI di salah satu cabang — cacat yang sudah terbukti sekali
   // di `progress-log-modal`. Butuh penilaian per-kasus.
-  'jsx-a11y/label-has-associated-control': 22,
+  'jsx-a11y/label-has-associated-control': 21,  // 22 → 21 (2026-08-07, pemecahan halaman)
   // 117 → 112 → 104 → 102 → 98 → 93 → 88 → 86 (2026-08-01/02): 5 foto di `progress-log-list` yang semula
   // `<img onClick>` — bisa diklik tetikus, TAK BISA dijangkau keyboard sama
   // sekali. Diganti `<button>`, bukan ditambal `role`+`tabIndex`+`onKeyDown`:
@@ -106,18 +106,18 @@ const AMBANG = {
   // `lib/dapat-ditekan.ts` supaya `role`+`tabIndex`+Enter/Space selalu lengkap
   // — separuh implementasi (umumnya Enter ditangani, Space tidak) terasa rusak
   // sesekali, dan itu lebih membingungkan daripada rusak konsisten.
-  'jsx-a11y/no-static-element-interactions': 68,  // 72 → 68 (2026-08-07)   // 74 -> 73 (2026-08-04, KPICard lama dihapus)   // 94 → 74, ikut turun bersama click-events
+  'jsx-a11y/no-static-element-interactions': 66,  // 68 → 66 (2026-08-07)  // 72 → 68 (2026-08-07)   // 74 -> 73 (2026-08-04, KPICard lama dihapus)   // 94 → 74, ikut turun bersama click-events
   'jsx-a11y/no-noninteractive-element-interactions': 6,
 
   // ── Hutang lint lain ────────────────────────────────────────────────────
-  '@typescript-eslint/no-explicit-any': 180, // 194 → 191 (2026-08-01) → 180 (2026-08-07)
+  '@typescript-eslint/no-explicit-any': 100, // 194 → 191 (2026-08-01) → 180 (2026-08-07)
   // 71 → 70 (HargaTab) → 69 (2026-08-01, klien) → 68.
   //
   // 2026-08-07: ditemukan HEAD sudah 71 — utang naik 3 tanpa CI menangkapnya,
   // artinya penjaga ini pernah dilewati. Ketiganya diperbaiki di modul
   // `mandor/`, dan dua di antaranya menutup bug nyata (daftar tukang tak
   // direset saat ganti mandor; profil mandor lama tampil di bawah id baru).
-  'react-hooks/set-state-in-effect': 68,
+  'react-hooks/set-state-in-effect': 58,  // 68 → 58 (2026-08-07, saringan dioper lewat parameter)
   // turun 71 → 67 (.ds-sync diabaikan) → 15 (2026-08-01).
   //
   // Sebagian besar adalah 50 impor ikon/helper yatim yang menumpuk saat
