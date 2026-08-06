@@ -5,6 +5,15 @@ import { api } from "@/lib/api";
 import { AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
+import { Tabel } from "@/components/dasar";
+
+/** Satu baris upah pekerja di dalam laporan mingguan. */
+interface WageItem {
+  id: string;
+  worker?: { name?: string } | null;
+  days_worked?: number | null;
+  daily_rate: number;
+}
 
 function fmt(n: number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
@@ -54,7 +63,7 @@ export default function MandorLaporanPage() {
         {reports.map((r) => {
           const meta = STATUS_META[r.status] ?? STATUS_META.draft;
           const isOpen = expanded[r.id] ?? false;
-          const items: any[] = r.wage_items ?? [];
+          const items: WageItem[] = r.wage_items ?? [];
           const totalWage = items.reduce((s, i) => s + (i.daily_rate * (i.days_worked ?? 1)), 0) || r.total_amount;
 
           return (
@@ -90,40 +99,31 @@ export default function MandorLaporanPage() {
                   )}
 
                   {items.length > 0 ? (
-                    <div style={{ overflowX: "auto" }}>
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
-                        {/* Tabel ini muncul di dalam baris laporan yang dibuka.
-                            Konteks itu terlihat di layar, tapi pembaca layar
-                            mengumumkan tabel lepas dari sekelilingnya — tanpa
-                            caption yang terdengar hanya "tabel, 5 kolom". */}
-                        <caption className="sr-only">
-                          Rincian upah per pekerja untuk laporan minggu ini: hari kerja,
-                          upah harian, dan jumlah yang diterima masing-masing.
-                        </caption>
-                        <thead>
-                          <tr style={{ background: "var(--surface-hover)" }}>
-                            <th style={{ padding: "6px 8px", textAlign: "left", color: C.mid, fontWeight: 600 }}>Pekerja</th>
-                            <th style={{ padding: "6px 8px", textAlign: "right", color: C.mid, fontWeight: 600 }}>Hari Kerja</th>
-                            <th style={{ padding: "6px 8px", textAlign: "right", color: C.mid, fontWeight: 600 }}>Rate/Hari</th>
-                            <th style={{ padding: "6px 8px", textAlign: "right", color: C.mid, fontWeight: 600 }}>Subtotal</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {items.map((item) => (
-                            <tr key={item.id} style={{ borderTop: `1px solid ${C.border}` }}>
-                              <th scope="row" style={{ textAlign: "left", padding: "8px 8px", color: C.text }}>{item.worker?.name ?? "—"}</th>
-                              <td style={{ padding: "8px 8px", textAlign: "right", color: C.mid }}>{item.days_worked ?? 1}</td>
-                              <td style={{ padding: "8px 8px", textAlign: "right", color: C.mid }}>{fmt(item.daily_rate)}</td>
-                              <td style={{ padding: "8px 8px", textAlign: "right", color: C.text, fontWeight: 600 }}>{fmt(item.daily_rate * (item.days_worked ?? 1))}</td>
-                            </tr>
-                          ))}
-                          <tr style={{ borderTop: `2px solid ${C.border}`, background: "var(--surface-subtle)" }}>
-                            <td colSpan={3} style={{ padding: "8px", textAlign: "right", fontWeight: 700, color: C.text }}>Total</td>
-                            <td style={{ padding: "8px", textAlign: "right", fontWeight: 700, color: C.navy, fontSize: 13 }}>{fmt(r.total_amount ?? totalWage)}</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
+                    /* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). Caption,
+                       scope="row", tabular-nums, dan overflow-x sekarang
+                       dijamin komponen — empat hal yang tabel mentah harus
+                       ingat sendiri, dan yang riwayat repo ini tunjukkan
+                       TIDAK diingat. Baris totalnya pindah ke <tfoot>: di
+                       <tbody> ia terbaca sebagai data biasa. */
+                    <Tabel<WageItem>
+                      caption="Rincian upah per pekerja untuk laporan minggu ini: hari kerja, upah harian, dan jumlah yang diterima masing-masing."
+                      data={items}
+                      kunciBaris={(i) => i.id}
+                      kolom={[
+                        { kunci: "pekerja", judul: "Pekerja", kepalaBaris: true,
+                          render: (i) => i.worker?.name ?? "—" },
+                        { kunci: "hari", judul: "Hari Kerja", rata: "kanan",
+                          render: (i) => i.days_worked ?? 1 },
+                        { kunci: "rate", judul: "Rate/Hari", rata: "kanan",
+                          render: (i) => fmt(i.daily_rate) },
+                        { kunci: "subtotal", judul: "Subtotal", rata: "kanan",
+                          render: (i) => fmt(i.daily_rate * (i.days_worked ?? 1)) },
+                      ]}
+                      total={[
+                        { kunci: "label", isi: "Total", rata: "kanan", rentang: 3 },
+                        { kunci: "nilai", isi: fmt(r.total_amount ?? totalWage), rata: "kanan" },
+                      ]}
+                    />
                   ) : (
                     <div style={{ fontSize: 13, color: C.mid, textAlign: "center", padding: "12px 0" }}>
                       Total upah: <strong style={{ color: C.navy }}>{fmt(r.total_amount ?? 0)}</strong>

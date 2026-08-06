@@ -6,6 +6,15 @@ import { api } from "@/lib/api";
 import { CheckCircle, XCircle, Clock, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
+import { Tabel } from "@/components/dasar";
+
+/** Satu baris upah pekerja di dalam laporan mingguan. */
+interface WageItem {
+  id: string;
+  worker?: { name?: string } | null;
+  days_worked?: number | null;
+  daily_rate: number;
+}
 
 function fmt(n: number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
@@ -163,33 +172,28 @@ export default function PMMandorPage() {
                 </div>
                 {isOpen && (r.wage_items ?? []).length > 0 && (
                   <div style={{ borderTop: `1px solid ${C.border}`, padding: "12px 16px" }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
-                      {/* Muncul di dalam baris laporan yang dibuka. Konteks itu
-                          hanya ada secara visual — pembaca layar mengumumkan
-                          tabel lepas dari sekelilingnya. */}
-                      <caption className="sr-only">
-                        Rincian upah per pekerja pada laporan ini: jumlah hari kerja,
-                        upah per hari, dan total yang diterima masing-masing.
-                      </caption>
-                      <thead>
-                        <tr style={{ background: "var(--surface-hover)" }}>
-                          <th style={{ padding: "6px 8px", textAlign: "left", color: C.mid, fontWeight: 600 }}>Pekerja</th>
-                          <th style={{ padding: "6px 8px", textAlign: "right", color: C.mid, fontWeight: 600 }}>Hari</th>
-                          <th style={{ padding: "6px 8px", textAlign: "right", color: C.mid, fontWeight: 600 }}>Rate</th>
-                          <th style={{ padding: "6px 8px", textAlign: "right", color: C.mid, fontWeight: 600 }}>Total</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {r.wage_items.map((wi: any) => (
-                          <tr key={wi.id} style={{ borderTop: `1px solid ${C.border}` }}>
-                            <th scope="row" style={{ textAlign: "left", padding: "6px 8px", color: C.text }}>{wi.worker?.name ?? "—"}</th>
-                            <td style={{ padding: "6px 8px", textAlign: "right", color: C.mid }}>{wi.days_worked ?? 1}</td>
-                            <td style={{ padding: "6px 8px", textAlign: "right", color: C.mid }}>{fmt(wi.daily_rate)}</td>
-                            <td style={{ padding: "6px 8px", textAlign: "right", fontWeight: 600, color: C.navy }}>{fmt(wi.daily_rate * (wi.days_worked ?? 1))}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4) — caption,
+                        scope="row", tabular-nums, dan overflow-x dijamin
+                        komponen. Pembungkus overflow-x adalah tambahan nyata
+                        di sini: versi mentahnya tak punya, jadi tabel empat
+                        kolom ini mendorong seluruh halaman ke samping pada
+                        layar ponsel — dan halaman PM-portal memang dibuka
+                        dari HP. */}
+                    <Tabel<WageItem>
+                      caption="Rincian upah per pekerja pada laporan ini: jumlah hari kerja, upah per hari, dan total yang diterima masing-masing."
+                      data={r.wage_items as WageItem[]}
+                      kunciBaris={(wi) => wi.id}
+                      kolom={[
+                        { kunci: "pekerja", judul: "Pekerja", kepalaBaris: true,
+                          render: (wi) => wi.worker?.name ?? "—" },
+                        { kunci: "hari", judul: "Hari", rata: "kanan",
+                          render: (wi) => wi.days_worked ?? 1 },
+                        { kunci: "rate", judul: "Rate", rata: "kanan",
+                          render: (wi) => fmt(wi.daily_rate) },
+                        { kunci: "total", judul: "Total", rata: "kanan",
+                          render: (wi) => fmt(wi.daily_rate * (wi.days_worked ?? 1)) },
+                      ]}
+                    />
                   </div>
                 )}
               </div>

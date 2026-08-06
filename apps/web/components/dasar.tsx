@@ -305,6 +305,15 @@ export interface Kolom<T> {
   kepalaBaris?: boolean;
 }
 
+/** Satu sel pada baris total. */
+export interface SelTotal {
+  kunci: string;
+  isi: ReactNode;
+  rata?: "kiri" | "kanan" | "tengah";
+  /** `colSpan` — untuk label "Total" yang membentang beberapa kolom. */
+  rentang?: number;
+}
+
 /**
  * Tabel data.
  *
@@ -316,8 +325,13 @@ export interface Kolom<T> {
  * · pembungkus `overflow-x` — tabel lebar tak pernah menggeser halaman
  * · baris ganjil-genap TIDAK diberi warna belang: pada tabel padat, itu
  *   menambah kebisingan. Yang dipakai garis tipis + sorot saat hover.
+ * · baris total di `<tfoot>`, bukan `<tbody>` — lihat catatan prop `total`
+ *
+ * Keempat jaminan pertama bukan lagi klaim komentar: `dasar.test.tsx`
+ * mengujinya satu per satu. Sampai 2026-08-07 berkas ini tak punya test
+ * sama sekali, padahal seluruh argumen UI-0-4 bersandar padanya.
  */
-export function Tabel<T>({ kolom, data, kunciBaris, caption, kosong, tandaiBaris }: {
+export function Tabel<T>({ kolom, data, kunciBaris, caption, kosong, tandaiBaris, total }: {
   kolom: Array<Kolom<T>>;
   data: T[];
   kunciBaris: (baris: T) => string;
@@ -325,6 +339,18 @@ export function Tabel<T>({ kolom, data, kunciBaris, caption, kosong, tandaiBaris
   kosong?: ReactNode;
   /** Latar khusus untuk baris yang menuntut tindakan. */
   tandaiBaris?: (baris: T) => string | undefined;
+  /**
+   * Baris total — dirender di `<tfoot>`, BUKAN sebagai baris data terakhir.
+   *
+   * Bedanya bukan kosmetik. Baris total yang duduk di `<tbody>` diperlakukan
+   * sebagai data: pembaca layar mengumumkannya seperti baris biasa, dan saat
+   * tabel diurutkan totalnya ikut berpindah ke tengah. `<tfoot>` menyatakan
+   * "ini ringkasan kolomnya", dan peramban menjaganya tetap di bawah.
+   *
+   * Enam halaman menulis baris total sendiri dengan `colSpan` di `<tbody>`
+   * (diukur 2026-08-07) — semuanya mewarisi cacat itu.
+   */
+  total?: SelTotal[];
 }) {
   if (data.length === 0 && kosong) return <>{kosong}</>;
 
@@ -388,6 +414,24 @@ export function Tabel<T>({ kolom, data, kunciBaris, caption, kosong, tandaiBaris
             );
           })}
         </tbody>
+        {total && total.length > 0 && (
+          <tfoot>
+            <tr style={{
+              borderTop: `2px solid ${C.border}`,
+              background: "var(--surface-subtle)",
+            }}>
+              {total.map((sel) => (
+                <td key={sel.kunci} colSpan={sel.rentang} style={{
+                  padding: "10px var(--r3)",
+                  textAlign: sel.rata === "kanan" ? "right" : sel.rata === "tengah" ? "center" : "left",
+                  fontVariantNumeric: sel.rata === "kanan" ? "tabular-nums" : undefined,
+                  fontWeight: 700,
+                  color: C.text,
+                }}>{sel.isi}</td>
+              ))}
+            </tr>
+          </tfoot>
+        )}
       </table>
     </div>
   );

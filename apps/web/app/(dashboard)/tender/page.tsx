@@ -24,6 +24,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Plus, Trophy, XCircle, Clock, Wallet, AlertTriangle } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
+import { Tabel } from "@/components/dasar";
 
 import { C } from "@/lib/warna-ui";
 
@@ -64,6 +65,20 @@ const fmtRp = (n: number | null) =>
 
 const fmtTgl = (s: string | null) =>
   s ? new Date(s).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "2-digit" }) : "—";
+
+/**
+ * Selisih harga kami terhadap pemenang, dalam persen.
+ *
+ * Sengaja memakai uji KEBENARAN (`&&`), bukan `!= null`: nilai pemenang 0
+ * berarti "belum diisi dengan benar", dan membaginya menghasilkan Infinity —
+ * yang akan tampil sebagai "+Infinity%" dan terbaca seolah kita menawar tak
+ * terhingga lebih mahal. Perilaku ini dibawa apa adanya dari versi tabel
+ * mentahnya, di mana perhitungan ini menempel di dalam perulangan baris.
+ */
+const selisihPersen = (b: Bid): number | null =>
+  b.bid_value && b.winner_value
+    ? ((b.bid_value - b.winner_value) / b.winner_value) * 100
+    : null;
 
 export default function TenderPage() {
   const [bids, setBids] = useState<Bid[]>([]);
@@ -185,47 +200,72 @@ export default function TenderPage() {
       )}
 
       {!memuat && bids.length > 0 && (
-        <div style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${C.border}` }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
-            <caption className="sr-only">Daftar tender: nama, pemberi kerja, nilai penawaran kami, nilai pemenang, selisih, tanggal diajukan, dan status.</caption>
-            <thead>
-              <tr style={{ background: "var(--surface-subtle)" }}>
-                {["Tender", "Pemberi kerja", "Nilai kami", "Nilai pemenang", "Selisih", "Diajukan", "Status"].map((h) => (
-                  <th key={h} style={{ textAlign: h.startsWith("Nilai") || h === "Selisih" ? "right" : "left", padding: "8px 12px", fontSize: 11, fontWeight: 700, color: C.mid, textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {bids.map((b) => {
-                const s = STATUS_LABEL[b.status];
-                const selisih = b.bid_value && b.winner_value
-                  ? ((b.bid_value - b.winner_value) / b.winner_value) * 100 : null;
-                return (
-                  <tr key={b.id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                    <th scope="row" style={{ textAlign: "left", padding: "8px 12px" }}>
-                      <div style={{ fontWeight: 600, color: C.text }}>{b.title}</div>
-                      {b.bid_number && <div style={{ fontSize: 11, color: C.muted, fontFamily: "ui-monospace, monospace" }}>{b.bid_number}</div>}
-                    </th>
-                    <td style={{ padding: "8px 12px", color: C.mid }}>{b.owner_name ?? "—"}</td>
-                    <td style={{ padding: "8px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtRp(b.bid_value)}</td>
-                    <td style={{ padding: "8px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: C.mid }}>{fmtRp(b.winner_value)}</td>
-                    <td style={{ padding: "8px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: selisih == null ? C.muted : selisih > 0 ? C.red : C.green, fontWeight: selisih == null ? 400 : 600 }}>
+        <div style={{ borderRadius: 10, border: `1px solid ${C.border}`, overflow: "hidden" }}>
+          {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4) — caption sr-only,
+              kolom pertama <th scope="row">, tabular-nums, dan pembungkus
+              overflow-x kini dijamin komponen, bukan diingat per halaman.
+              Yang paling penting di sini justru tabular-nums: seluruh alasan
+              halaman ini berbentuk tabel adalah MEMBANDINGKAN angka antar-baris
+              (lihat catatan kepala berkas), dan itu runtuh begitu digit "1"
+              lebih sempit daripada "8". */}
+          <Tabel<Bid>
+            caption="Daftar tender: nama, pemberi kerja, nilai penawaran kami, nilai pemenang, selisih, tanggal diajukan, dan status."
+            data={bids}
+            kunciBaris={(b) => b.id}
+            kolom={[
+              {
+                kunci: "tender", judul: "Tender", kepalaBaris: true,
+                render: (b) => (
+                  <>
+                    <div style={{ fontWeight: 600, color: C.text }}>{b.title}</div>
+                    {b.bid_number && <div style={{ fontSize: 11, color: C.muted, fontFamily: "ui-monospace, monospace" }}>{b.bid_number}</div>}
+                  </>
+                ),
+              },
+              {
+                kunci: "pemberi", judul: "Pemberi kerja",
+                render: (b) => <span style={{ color: C.mid }}>{b.owner_name ?? "—"}</span>,
+              },
+              {
+                kunci: "nilai_kami", judul: "Nilai kami", rata: "kanan",
+                render: (b) => fmtRp(b.bid_value),
+              },
+              {
+                kunci: "nilai_pemenang", judul: "Nilai pemenang", rata: "kanan",
+                render: (b) => <span style={{ color: C.mid }}>{fmtRp(b.winner_value)}</span>,
+              },
+              {
+                kunci: "selisih", judul: "Selisih", rata: "kanan",
+                render: (b) => {
+                  const selisih = selisihPersen(b);
+                  return (
+                    <span style={{
+                      color: selisih == null ? C.muted : selisih > 0 ? C.red : C.green,
+                      fontWeight: selisih == null ? 400 : 600,
+                    }}>
                       {selisih == null ? "—" : `${selisih > 0 ? "+" : ""}${selisih.toFixed(1)}%`}
-                    </td>
-                    <td style={{ padding: "8px 12px", color: C.mid, whiteSpace: "nowrap" }}>{fmtTgl(b.submitted_at)}</td>
-                    <td style={{ padding: "8px 12px" }}>
-                      {/* Status ditulis, bukan diwakili warna saja — WCAG 1.4.1. */}
-                      <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 700, color: s.warna, background: s.bg, border: `1px solid ${s.border}`, whiteSpace: "nowrap" }}>
-                        {s.teks}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                    </span>
+                  );
+                },
+              },
+              {
+                kunci: "diajukan", judul: "Diajukan",
+                render: (b) => <span style={{ color: C.mid, whiteSpace: "nowrap" }}>{fmtTgl(b.submitted_at)}</span>,
+              },
+              {
+                kunci: "status", judul: "Status",
+                // Status ditulis, bukan diwakili warna saja — WCAG 1.4.1.
+                render: (b) => {
+                  const s = STATUS_LABEL[b.status];
+                  return (
+                    <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 700, color: s.warna, background: s.bg, border: `1px solid ${s.border}`, whiteSpace: "nowrap" }}>
+                      {s.teks}
+                    </span>
+                  );
+                },
+              },
+            ]}
+          />
         </div>
       )}
     </div>

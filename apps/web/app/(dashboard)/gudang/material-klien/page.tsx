@@ -26,6 +26,7 @@ import { PackageSearch, HandCoins, RefreshCw } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
+import { Tabel } from "@/components/dasar";
 
 type Proyek = { id: string; name: string };
 type Material = { id: string; name: string; unit: string | null };
@@ -289,61 +290,76 @@ export default function MaterialKlienPage() {
               </button>
             </div>
 
-            {penerimaan.length === 0 ? (
-              <div style={{ padding: "28px 16px", textAlign: "center", fontSize: 13, color: C.mid, lineHeight: 1.6 }}>
-                Belum ada material dari klien yang tercatat.<br />
-                <span style={{ fontSize: 12, color: C.muted }}>
-                  Yang dicatat di sini menambah stok gudang, tapi tidak pernah
-                  dihitung sebagai pembelian di Rekonsiliasi Material.
-                </span>
-              </div>
-            ) : (
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums", minWidth: 760 }}>
-                  <caption className="sr-only">
-                    Riwayat penerimaan material milik klien: tanggal, material,
-                    jumlah, proyek penerima, pemasok dari owner, dan nomor surat jalan.
-                  </caption>
-                  <thead>
-                    <tr style={{ background: "var(--surface-subtle)" }}>
-                      {[
-                        ["Tanggal", "left"], ["Material", "left"], ["Jumlah", "right"],
-                        ["Proyek", "left"], ["Pemasok owner", "left"], ["Surat jalan", "left"],
-                      ].map(([h, rata]) => (
-                        <th key={h} scope="col" style={{
-                          textAlign: rata as "left" | "right", padding: "8px 12px",
-                          fontSize: 10, fontWeight: 700, color: C.muted,
-                          textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap",
-                        }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {penerimaan.map((p) => (
-                      <tr key={p.id} style={{ borderTop: `1px solid ${C.border}` }}>
-                        <td style={{ padding: "10px 12px", color: C.mid, whiteSpace: "nowrap" }}>
-                          {tanggalTerbaca(p.tanggal)}
-                        </td>
-                        <th scope="row" style={{ textAlign: "left", padding: "10px 12px", fontWeight: 500, color: C.text }}>
-                          {p.material?.name ?? "—"}
-                          {p.material?.unit && <span style={{ fontSize: 11, color: C.mid }}> · {p.material.unit}</span>}
-                        </th>
-                        <td style={{ textAlign: "right", padding: "10px 12px", fontWeight: 700, color: C.text }}>
-                          {angka(p.qty)}
-                        </td>
-                        <td style={{ padding: "10px 12px", color: C.mid }}>{p.proyek?.name ?? "—"}</td>
-                        <td style={{ padding: "10px 12px", color: p.pemasok ? C.mid : C.muted }}>
-                          {p.pemasok || "—"}
-                        </td>
-                        <td style={{ padding: "10px 12px", color: p.nomor_surat_jalan ? C.mid : C.muted }}>
-                          {p.nomor_surat_jalan || "—"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). Caption sr-only,
+                kolom pertama <th scope="row">, tabular-nums, dan pembungkus
+                overflow-x sekarang dijamin komponen — empat hal yang tabel
+                mentah harus ingat sendiri setiap kali, dan yang riwayat repo
+                ini tunjukkan TIDAK selalu diingat.
+
+                Kolom pertama berpindah dari "Tanggal" ke "Material": yang
+                menamai baris bagi pembaca layar seharusnya barangnya, bukan
+                tanggalnya. Dua penerimaan di hari yang sama membuat "12 Agu
+                2026" jadi nama baris yang tak membedakan apa pun.
+
+                `minWidth: 760` sengaja dilepas, bukan lupa: komponen sudah
+                membungkus dengan overflow-x, jadi gulir horizontalnya tetap
+                ada tanpa memaksa lebar mati ke primitif bersama. */}
+            <Tabel<Penerimaan>
+              caption="Riwayat penerimaan material milik klien: material, jumlah, tanggal, proyek penerima, pemasok dari owner, dan nomor surat jalan."
+              data={penerimaan}
+              kunciBaris={(p) => p.id}
+              kolom={[
+                {
+                  kunci: "material", judul: "Material", kepalaBaris: true,
+                  render: (p) => (
+                    <>
+                      {p.material?.name ?? "—"}
+                      {p.material?.unit && <span style={{ fontSize: 11, color: C.mid }}> · {p.material.unit}</span>}
+                    </>
+                  ),
+                },
+                {
+                  kunci: "qty", judul: "Jumlah", rata: "kanan",
+                  render: (p) => <span style={{ fontWeight: 700 }}>{angka(p.qty)}</span>,
+                },
+                {
+                  kunci: "tanggal", judul: "Tanggal",
+                  render: (p) => (
+                    <span style={{ color: C.mid, whiteSpace: "nowrap" }}>{tanggalTerbaca(p.tanggal)}</span>
+                  ),
+                },
+                {
+                  kunci: "proyek", judul: "Proyek",
+                  render: (p) => <span style={{ color: C.mid }}>{p.proyek?.name ?? "—"}</span>,
+                },
+                {
+                  kunci: "pemasok", judul: "Pemasok owner",
+                  // Nilai kosong sengaja lebih pudar daripada nilai terisi:
+                  // "—" yang sepekat data membuat mata berhenti di tempat
+                  // yang tak berisi apa-apa.
+                  render: (p) => (
+                    <span style={{ color: p.pemasok ? C.mid : C.muted }}>{p.pemasok || "—"}</span>
+                  ),
+                },
+                {
+                  kunci: "surat_jalan", judul: "Surat jalan",
+                  render: (p) => (
+                    <span style={{ color: p.nomor_surat_jalan ? C.mid : C.muted }}>
+                      {p.nomor_surat_jalan || "—"}
+                    </span>
+                  ),
+                },
+              ]}
+              kosong={
+                <div style={{ padding: "28px 16px", textAlign: "center", fontSize: 13, color: C.mid, lineHeight: 1.6 }}>
+                  Belum ada material dari klien yang tercatat.<br />
+                  <span style={{ fontSize: 12, color: C.muted }}>
+                    Yang dicatat di sini menambah stok gudang, tapi tidak pernah
+                    dihitung sebagai pembelian di Rekonsiliasi Material.
+                  </span>
+                </div>
+              }
+            />
 
             <p style={{
               margin: 0, padding: "10px 14px", borderTop: `1px solid ${C.border}`,

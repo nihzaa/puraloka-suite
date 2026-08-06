@@ -146,26 +146,50 @@ items:
 
   - id: UI-0-4
     lapis: 0
-    judul: "Komponen bersama: KartuKPI, PanelChart, TabelPadat, KepalaHalaman"
+    judul: "SEBARKAN komponen bersama (bukan bangun — sudah ada, cuma tak dipakai)"
     blokir_oleh: []
     kriteria_selesai:
-      - "empat komponen + test masing-masing"
-      - "angka memakai tabular-nums + font display"
-      - "keadaan kosong & memuat sudah ditangani di komponennya"
+      - "penjaga `tabel-mentah-ratchet` ada, ber-lantai, TERBUKTI bisa merah"
+      - "jumlah halaman ber-<table> mentah TURUN dari lantai 28"
       - "NOL perubahan globals.css — token kerapatan dipegang sesi lain"
-      - "warna dari token yang SUDAH ADA; tak menambah hex mentah (hex-ratchet 49)"
-    cara_verifikasi: "vitest komponen + 8 penjaga visual tetap hijau"
+      - "tak menambah hex mentah (hex-ratchet 49) & 8 penjaga visual hijau"
+      - "tiap halaman yang dipindahkan tetap lulus a11y kedua mode"
+    cara_verifikasi: "node scripts/tabel-mentah-ratchet.mjs + vitest + 8 penjaga"
     bobot: M
     status: todo
     catatan: |
-      TITIK MULAI AUTOPILOT 2026-08-07. Tak lagi diblokir UI-0-1/UI-0-2:
-      UI-0-1 dipegang sesi lain, UI-0-2 ditahan menunggu gambar — dan
-      komponen ini bisa dibangun dengan token yang sudah ada, lalu ikut
-      rapat sendiri saat sesi lain menurunkan token kerapatan.
+      ⚠️ PREMIS ITEM INI SALAH — dikoreksi 2026-08-07.
 
-      Justru itu yang membuatnya aman dikerjakan lebih dulu: komponen yang
-      memakai var(--pad-kartu) tak perlu diubah lagi ketika nilai token itu
-      berubah di sesi lain.
+      Judul lama menyuruh MEMBANGUN empat komponen. Keempatnya SUDAH ADA,
+      dan berkualitas tinggi (a11y dijaga di dalam komponen, lengkap dengan
+      catatan alasannya):
+
+        KartuKPI        components/ui-dasar.tsx:123
+        Panel + grafik  components/ui-dasar.tsx:260, 382, 448
+        Tabel<T>        components/dasar.tsx:320
+        KepalaHalaman   components/dasar.tsx:82
+
+      Membangunnya lagi akan menciptakan pustaka primitif KETIGA — persis
+      cacat yang sudah tercatat di komentar `dasar.tsx:419` (dua `Kosong`
+      berbeda prop, `/aset` memanggil salah satu dengan prop milik yang lain).
+
+      MASALAH SEBENARNYA — diukur 2026-08-07, dan angkanya tajam:
+
+        halaman total              75
+        memakai komponen bersama   19  (25%)
+        memakai <Tabel>             1  ← satu
+        menulis <table> mentah     28  ← dua puluh delapan
+
+      Komponennya dibangun bagus lalu nyaris tak dipakai. ITU penyebab
+      "tiap halaman terasa buatan sendiri" — bukan ketiadaan komponen.
+
+      Karena itu pekerjaannya berubah jadi PENYEBARAN + PENJAGA. Tanpa
+      penjaga, rasio 1-dari-28 akan pulih ke keadaan semula dalam beberapa
+      minggu; pola yang sama sudah terbukti pada audit-triase-submenu
+      ("aturan yang tak dijaga mesin akan dilanggar, sebaik apa pun niatnya").
+
+      Penyebaran didahulukan pada halaman yang JUGA akan dipecah (mandor,
+      kas) supaya satu berkas tak disentuh dua kali.
 
       Ini yang menghapus kesan "buatan sendiri": 59 halaman dibangun bertahap,
       jadi kartu dan tabel punya bentuk sedikit berbeda di tiap halaman.

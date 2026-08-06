@@ -767,6 +767,21 @@ jobs:
       - name: Tata letak (token lebar halaman)
         run: node scripts/tata-letak-ratchet.mjs
 
+      # UI-0-4 — halaman yang menulis `<table>` sendiri, bukan `<Tabel>`.
+      #
+      # ARAH-VISUAL-2026 menyuruh "bangun komponen bersama". Diukur 2026-08-07,
+      # premis itu SALAH: komponennya sudah ada dan bagus. Yang tak ada adalah
+      # pemakaiannya — 1 halaman memakai <Tabel>, 28 menulis <table> mentah.
+      #
+      # Bukan soal rupa. <Tabel> menjaga caption, scope="row", tabular-nums,
+      # dan overflow-x; tiap tabel mentah adalah empat kesempatan melupakannya.
+      # Riwayat repo membuktikan itu TIDAK diingat: commit 16164e9 memperbaiki
+      # 24 tabel tanpa caption, ed3a55d + 0adb5b9 menurunkan scope="row" yang
+      # hilang dari 55 → 14. Tiga commit untuk cacat yang komponennya sudah
+      # cegah sejak awal.
+      - name: Tabel mentah (pakai <Tabel>, bukan <table>)
+        run: node scripts/tabel-mentah-ratchet.mjs
+
       # F4-1 — warna wajib lewat token, bukan hex di komponen.
       #
       # Alasannya bukan kerapian: WHITE-LABEL PER TENANT. Selama warna ditulis
