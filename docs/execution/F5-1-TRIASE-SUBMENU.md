@@ -336,6 +336,20 @@ pindah, bukan hilang.
 | **Tender & award subkontraktor** | Menutup rantai owner → kontraktor → subkon | L |
 | **Register asuransi** | Bukti pertanggungan saat klaim; sering disyaratkan kontrak | S |
 
+**SELESAI** (`/kontrak/asuransi`, migrasi 199). Diukur lebih dulu: NOL tabel
+dan NOL kolom asuransi di seluruh basis.
+
+SENGAJA tidak memakai `contract_bonds` walau polanya mirip — isinya jaminan
+BANK (CHECK membatasi ke penawaran/pelaksanaan/uang_muka/pemeliharaan).
+Memaksa polis ke sana berarti melonggarkan CHECK jaminan, dan sesudah itu tak
+ada yang membedakan "jaminan cair" dari "polis kadaluarsa".
+
+Yang membuatnya berguna bukan daftarnya, melainkan **celah pertanggungan**:
+polis 1 Mar–30 Jun pada proyek 1 Feb–31 Jul meninggalkan **59 hari tanpa
+penanggung** (28 awal, 31 akhir). Dihitung dua arah terpisah — telat di depan
+tidak tertutup oleh lebih di belakang. 8 mutasi perhitungan + 5 mutasi skema,
+seluruhnya tertangkap.
+
 ### Procurement berbasis penawaran — 2 item
 
 **KEDUANYA SELESAI** (`/procurement/rfq`, migrasi 195). Diukur lebih dulu pada

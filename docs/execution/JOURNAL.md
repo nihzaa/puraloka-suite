@@ -5,6 +5,90 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-07 — Register asuransi: bukan daftar polis, melainkan CELAH-nya
+
+### PEMBEDA 8/12 selesai
+
+Diukur lebih dulu: **NOL tabel dan NOL kolom asuransi** di seluruh basis.
+Kontrak konstruksi hampir selalu mensyaratkan polis (CAR/TPL/Jamsostek), dan
+saat klaim yang ditanya pertama adalah nomor polis + masa berlakunya. Tanpa
+register, jawabannya ada di map fisik seseorang.
+
+### Kenapa TIDAK memakai `contract_bonds`
+
+Tabel itu polanya mirip persis — `issuer`, `amount`, `issued_date`,
+`expiry_date`, `status`, bahkan CHECK tanggalnya. Godaan untuk memakainya
+ulang besar.
+
+Tapi isinya **jaminan bank**: CHECK-nya membatasi `bond_type` ke
+penawaran/pelaksanaan/uang_muka/pemeliharaan. Asuransi berbeda pihaknya
+(perusahaan asuransi, bukan bank), berbeda gunanya (menanggung kerugian,
+bukan menjamin kewajiban), dan berbeda yang ditanyakan saat klaim.
+
+Memaksa polis ke sana berarti melonggarkan CHECK jaminan — dan sesudah itu
+tak ada lagi yang membedakan "jaminan pelaksanaan cair" dari "polis CAR
+kadaluarsa" pada laporan mana pun.
+
+### Yang membuatnya berguna: CELAH, bukan daftar
+
+Daftar polis hanya menjawab "punya atau tidak". Yang menentukan saat klaim
+adalah **apakah tanggal kejadiannya tertanggung** — pertanyaan tentang
+periode, bukan tentang keberadaan dokumen.
+
+Dibuktikan e2e pada data nyata:
+
+```
+polis   1 Mar 2026 .. 30 Jun 2026
+proyek  1 Feb 2026 .. 31 Jul 2026
+        → celah 59 hari (28 di awal, 31 di akhir)
+```
+
+Dokumen itu terlihat sah di lemari dan tak berguna di dua ujungnya.
+
+**Celah dihitung DUA ARAH, terpisah.** Ini jebakan yang paling mudah luput:
+polis yang telat 10 hari di depan tapi lebih 10 hari di belakang akan terbaca
+"pas" kalau dihitung sebagai satu selisih — padahal 10 hari pertama proyek
+benar-benar tak tertanggung. Mutasi yang menggabungkannya langsung merah.
+
+### `proyek tanpa polis` dinyatakan — kebalikan risiko yang sama
+
+Diukur: **14 proyek belum punya satu polis pun**. Tanpa menyebutkannya,
+"nol polis kadaluarsa" terbaca sebagai "semuanya aman".
+
+Ini bentuk lain dari pola `null` ≠ `0` yang berulang sepanjang sesi ini:
+angka yang secara teknis benar tapi menyesatkan karena yang tak ada tidak
+ikut dihitung.
+
+### Mutasi: 8 perhitungan + 5 skema
+
+Delapan mutasi perhitungan, delapan tertangkap. Yang kedelapan sempat
+**LOLOS**: uji urutan saya memakai dua polis yang celahnya sama, sehingga ia
+lulus lewat pemecah seri berikutnya — bukan lewat status. Diperkuat dengan
+memberi polis AKTIF celah yang jauh lebih besar; kalau urutannya tak lagi
+menimbang status, ia naik ke atas.
+
+Lima mutasi skema, lima tertangkap (periode, keunikan, nilai negatif,
+`jenis_lain`, RLS).
+
+### "AKTIF 0" berwarna hijau — untuk keempat kalinya
+
+Potret memperlihatkan kartu **"AKTIF 0"** dengan hijau besar. Nol polis aktif
+adalah kabar BURUK; hijau membuatnya terbaca sebagai capaian.
+
+Kejadian keempat dari kelas yang sama dalam dua hari:
+
+| # | Angka | Salah bacanya |
+|---|---|---|
+| 1 | susut −6% | "lebih baik dari nol" |
+| 2 | selisih −92 merah | "92 hilang" |
+| 3 | vendor "Rp 0" | "paling murah" |
+| 4 | aktif 0 hijau | "aman" |
+
+Semuanya angka yang benar secara aritmetika, dan menyesatkan secara warna
+atau tanda.
+
+---
+
 ## 2026-08-06 (lanjutan 5) — Analisa keterlambatan: menyambung, bukan membangun
 
 ### PEMBEDA 7/12 selesai

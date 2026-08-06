@@ -572,6 +572,20 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
+      # Polis asuransi — bukti pertanggungan saat klaim.
+      #
+      # Yang paling dijaga: periode TERBALIK. Ia membuat seluruh perhitungan
+      # celah pertanggungan menghasilkan angka negatif yang terbaca "lebih
+      # dari cukup" — dokumen terlihat sah, dan klaimnya ditolak.
+      #
+      # Juga menjaga keunikan (proyek+penerbit+nomor): salinan kedua membuat
+      # nilai pertanggungan terhitung dua kali, dan perusahaan tampak lebih
+      # terlindungi daripada kenyataannya.
+      - name: Invarian polis asuransi
+        run: node scripts/uji-invarian-asuransi.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
       - name: Invarian NCR
         run: node scripts/uji-invarian-ncr.mjs
         env:
