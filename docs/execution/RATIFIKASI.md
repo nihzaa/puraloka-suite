@@ -23,6 +23,63 @@ Antrean kerjanya: [`docs/execution/QUEUE-UI.yaml`](QUEUE-UI.yaml)
 Cara kerja: *"autopilot dan berurutan"* — seluruh antrean dijalankan tanpa
 berhenti per item, tiap sektor ditest dan diaudit.
 
+## Yang dikerjakan sesudah keputusan turun — 2026-08-07
+
+| | Sebelum | Sesudah |
+|---|---|---|
+| halaman ber-`<table>` mentah | 28 | **13** |
+| tabel mentah | 63 | **44** |
+| `mandor/page.tsx` | 3.848 baris | **324** |
+| `kas/page.tsx` | 1.537 baris | **398** |
+| modal tanpa jalan keluar Esc | 2 | **0** |
+
+Penjaga baru: `tabel-mentah-ratchet.mjs` (terbukti bisa merah lewat mutasi,
+terdaftar di CI). Test baru: `dasar.test.tsx` — 13 test untuk berkas yang
+memuat `Tabel<T>` dan sebelumnya **tak punya test sama sekali**, padahal
+seluruh argumen UI-0-4 bersandar pada klaim komentarnya.
+
+Verifikasi: `vitest` 21 berkas / 216 test lulus · `tsc --noEmit` bersih ·
+8 dari 9 penjaga visual hijau. Yang merah `tata-letak-ratchet`, pelanggarnya
+`keuangan/contingency/page.tsx` — halaman milik sesi lain, tidak disentuh.
+
+### Cacat yang ketahuan justru karena dipindahkan
+
+- `TabelSewa` di `/aset` **tak punya kepala baris sama sekali** — pembaca
+  layar membacakan "Rp 12 jt" tanpa menyebut alat mana yang menagihnya
+- Neraca saldo memakai kode akun `1122` sebagai nama baris, padahal halaman
+  itu sendiri menulis *"kontraktor tak menghafal 1122"*
+- `/procurement/rfq` memetakan harga ke kolom vendor lewat **urutan array**
+  sementara headernya dari sumber lain — kalau API mengubah urutan, harga
+  vendor A muncul di kolom vendor B tanpa satu pun tanda. Pada tabel
+  pembanding penawaran, itu salah pilih pemenang tender
+- `/proyek/keterlambatan` mendefinisikan kolom bersyarat di **dua tempat** —
+  bentuk yang melahirkan header dan body berselisih diam-diam
+
+### Cacat visual yang hanya ketahuan dengan MELIHAT
+
+Tangkap layar dashboard (kedua mode) menunjukkan dua widget memotong isinya
+di tengah huruf. Bukan sekadar jelek — baris terpenggal terbaca sebagai
+halaman rusak, bukan "ada lagi di bawah", jadi orang berhenti menggulir.
+Pada widget Milestone yang isinya semua tenggat mendekat, itu berarti
+**menyembunyikan tenggat**.
+
+## ❓ Satu hal yang masih menunggu Anda
+
+**Kode mati di `/mandor`.** `middleware.ts:53` mendaftarkan `/mandor` hanya
+di bawah `admin`. Setiap cabang `isMandor` di halaman itu — termasuk seluruh
+bekas tab "Kasbon Saya" (kini `mandor/kasbon-saya/page.tsx`, sengaja tidak
+ditautkan di nav) — **tak pernah bisa dieksekusi siapa pun**.
+
+Semua dipertahankan apa adanya + ditandai komentar. Dua pilihan, dan
+keduanya sah:
+
+1. **Hapus** — kode yang tak pernah jalan adalah beban baca bagi setiap
+   orang yang membuka berkas itu
+2. **Beri akses mandor ke `/mandor`** — kalau memang seharusnya bisa dibuka
+   mandor, yang salah bukan kodenya melainkan `middleware.ts`
+
+Saya tidak menebak yang mana. Diam berarti dibiarkan apa adanya.
+
 ## Dua koreksi terhadap dokumen — saya salah, kenyataan menang
 
 **1. Dark mode BUKAN pekerjaan baru. Ia sudah ada dan jalan.**

@@ -156,7 +156,18 @@ items:
       - "tiap halaman yang dipindahkan tetap lulus a11y kedua mode"
     cara_verifikasi: "node scripts/tabel-mentah-ratchet.mjs + vitest + 8 penjaga"
     bobot: M
-    status: todo
+    status: berjalan
+    hasil_2026_08_07: |
+      penjaga tabel-mentah-ratchet.mjs DIBANGUN, terbukti bisa merah lewat
+      mutasi, terdaftar di ci.yml. dasar.test.tsx dibuat (13 test) — berkas
+      itu tak punya test sama sekali padahal seluruh argumen UI-0-4
+      bersandar pada klaim komentarnya. Prop `total` -> <tfoot> ditambahkan.
+
+        halaman ber-<table>  28 -> 13
+        tabel mentah         63 -> 44
+
+      Sisa 13 halaman: estimasi (15 tabel), procurement (9), laporan (5),
+      proyek/[id] (3), dashboard (2), dan 8 lainnya berisi 1 tabel.
     catatan: |
       ⚠️ PREMIS ITEM INI SALAH — dikoreksi 2026-08-07.
 
@@ -249,7 +260,18 @@ items:
       - "penugasan · upah · kasbon · penagihan · retensi jadi halaman sendiri"
     cara_verifikasi: "wc -l + tautan langsung berfungsi + penjaga hijau"
     bobot: L
-    status: todo
+    status: selesai
+    hasil_2026_08_07: |
+      page.tsx 3.848 -> 324 baris. Sub-halaman: upah 463, penugasan 310,
+      kasbon 288, tukang 253, kasbon-saya 197, penagihan 168, layout 194.
+      _bersama/tipe.ts 286 + komponen.tsx 1.951 (12 modal dipindahkan APA
+      ADANYA — menulis ulang isinya akan menyelundupkan perubahan perilaku
+      ke pemindahan yang harus netral).
+
+      KODE MATI TERKONFIRMASI: middleware.ts:53 mendaftarkan /mandor hanya
+      di bawah `admin`. Setiap cabang isMandor tak pernah bisa dieksekusi,
+      termasuk seluruh bekas tab "Kasbon Saya". Dipertahankan + ditandai
+      komentar; penghapusan menunggu keputusan founder.
     catatan: |
       Angka dokumen SUDAH BASI. Diukur ulang 2026-08-07: 3.848 baris, bukan
       3.667 — halaman ini MEMBESAR sejak dokumen ditulis. Sudah punya 3
@@ -270,6 +292,13 @@ items:
     cara_verifikasi: "tiap halaman dibuka, KPI terisi angka nyata"
     bobot: XL
     status: todo
+    catatan_2026_08_07: |
+      Kas SUDAH selesai di luar item ini (1.537 -> 398 baris + akun/transfer/
+      pengeluaran + layout). KPI-nya memakai 2 endpoint yang sudah ada, nol
+      endpoint baru.
+
+      Sisa 7 menu: proyek · procurement · lapangan · kontrak · aset ·
+      tender · klien.
     catatan: |
       Diukur ulang 2026-08-07: 24 menu induk, 16 di antaranya SATU halaman
       (bukan "20 dari 22" — dokumen lama). Yang sudah berlapis: pengaturan 9,
