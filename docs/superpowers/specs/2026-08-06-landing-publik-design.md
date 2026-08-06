@@ -308,11 +308,23 @@ yang komentarnya sudah menyatakan prinsipnya:
 > "yang menentukan bukan tema yang dipilih pemakai, melainkan latar tempat
 > teksnya berada."
 
-**Catatan teknis wajib — color space.** Gradient CSS diinterpolasi di sRGB;
-Three.js bekerja di linear space. Hex yang sama dipakai mentah di keduanya
-**akan** terlihat berbeda. Harus ditangani eksplisit (konversi linear +
-`outputColorSpace` benar), atau muncul gejala "kok warnanya agak lain" yang
-sulit dilacak.
+**Catatan teknis — color space. ⚠️ KOREKSI 2026-08-07 (saat implementasi).**
+
+Paragraf ini semula menyuruh "konversi linear eksplisit". **Itu salah, dan
+mengikutinya menghasilkan cacat nyata.** Three.js r152+ sudah memakai manajemen
+warna otomatis: `THREE.Color` menganggap hex sebagai sRGB dan mengonversinya
+sendiri saat render. Memanggil `convertSRGBToLinear()` membuat konversinya
+terjadi **dua kali**, dan warnanya jauh lebih gelap dari yang ditulis.
+
+Biayanya nyata: empat percobaan perbaikan yang semuanya salah sasaran (menaikkan
+hex tiga kali, menambah `hemisphereLight`) sebelum penyebabnya ketemu dengan
+mengganti material ke `meshBasicMaterial` — yang mengabaikan cahaya sepenuhnya
+dan membuktikan cahaya tak pernah jadi masalah.
+
+**Aturan yang benar:** pakai hex sRGB apa adanya di `THREE.Color`, jangan
+konversi manual. Yang tetap perlu diperhatikan: warna 3D **tidak** bisa disalin
+mentah dari token CSS — material yang disinari terlihat berbeda dari bidang
+datar, jadi nilainya disetel dengan melihat render, bukan diturunkan dari token.
 
 ### 5.2 Tipografi
 

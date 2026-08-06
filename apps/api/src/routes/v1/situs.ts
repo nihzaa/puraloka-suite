@@ -246,6 +246,45 @@ export default async function situsRoutes(app: FastifyInstance) {
     },
   )
 
+  // ── POST /api/v1/situs/revalidate ─────────────────────────────────────────
+  //
+  // Memberi tahu situs publik bahwa kontennya berubah. Tanpa ini, pengunjung
+  // tetap menerima HTML lama sampai jendela ISR 5 menit habis — dan admin yang
+  // baru menyimpan mengira perubahannya tidak tersimpan.
+  //
+  // Balas 200 dengan `direvalidasi: false` bila belum dikonfigurasi, BUKAN
+  // galat: situs publik boleh saja belum terpasang di lingkungan ini, dan
+  // penyimpanan kontennya sendiri sudah berhasil.
+  app.post(
+    '/api/v1/situs/revalidate',
+    { preHandler: [authenticate, requirePermission('situs:manage')] },
+    async (request, reply) => {
+      const url = process.env.SITUS_REVALIDATE_URL
+      const rahasia = process.env.SITUS_REVALIDATE_SECRET
+
+      if (!url || !rahasia) {
+        request.log.warn('revalidate situs dilewati — URL/secret belum diset')
+        return reply.send({ data: { direvalidasi: false, alasan: 'belum dikonfigurasi' } })
+      }
+
+      try {
+        const r = await fetch(url, {
+          method: 'POST',
+          headers: { 'x-revalidate-secret': rahasia },
+        })
+        if (!r.ok) {
+          request.log.error({ status: r.status }, 'revalidate situs ditolak')
+          return reply.status(502).send({ error: 'Gagal menyegarkan situs publik' })
+        }
+      } catch (err) {
+        request.log.error({ err }, 'revalidate situs tak terjangkau')
+        return reply.status(502).send({ error: 'Situs publik tidak merespons' })
+      }
+
+      return reply.send({ data: { direvalidasi: true } })
+    },
+  )
+
   // ── GET /api/v1/public/situs ───────────────────────────────────────────────
   //
   // PENGECUALIAN BERNAMA (QUEUE.yaml:434): tanpa auth, field dibatasi, rate

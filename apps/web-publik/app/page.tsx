@@ -7,7 +7,17 @@ import { Portofolio } from '@/components/seksi/Portofolio'
 import { Legalitas } from '@/components/seksi/Legalitas'
 import { Kontak } from '@/components/seksi/Kontak'
 
-export const revalidate = 300
+// SENGAJA tidak memakai `export const revalidate = <detik>`.
+//
+// Angka itu membuat halaman punya jadwal kedaluwarsanya SENDIRI, terpisah dari
+// tag cache `fetch` di dalamnya — dan `revalidateTag('situs')` tak menyentuhnya.
+// Gejalanya persis yang saya temukan saat menguji: DB sudah berubah, API sudah
+// mengembalikan nilai baru, endpoint revalidate membalas `{direvalidasi:true}`,
+// tapi halaman tetap menyajikan HTML lama sampai 5 menit habis.
+//
+// Tanpa baris itu, kesegaran halaman ditentukan sepenuhnya oleh tag pada
+// `fetch` di `ambilKonten()` — satu sumber kebenaran, dan admin melihat
+// perubahannya seketika.
 
 /**
  * Peta kunci-seksi → komponen.

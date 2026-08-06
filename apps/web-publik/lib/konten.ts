@@ -85,9 +85,18 @@ export async function ambilKonten(): Promise<KontenSitus> {
   if (!base) throw new Error('NEXT_PUBLIC_API_URL belum diset.')
 
   const r = await fetch(`${base}/api/v1/public/situs`, {
-    // Tag dipakai revalidate-on-save: admin menyimpan → API memanggil
-    // /api/revalidate → tag ini dibuang → pengunjung berikutnya dapat versi baru.
-    next: { revalidate: 300, tags: ['situs'] },
+    // Hanya TAG, tanpa `revalidate: <detik>`.
+    //
+    // Keduanya bersamaan membuat entri punya dua penentu kesegaran, dan yang
+    // berbasis waktu menang: `revalidateTag('situs')` membalas sukses sementara
+    // halaman tetap menyajikan HTML lama sampai jendela waktunya habis. Itu
+    // terbukti saat pengujian — DB berubah, API benar, revalidate 200, halaman
+    // tak bergerak.
+    //
+    // Dengan tag saja: konten bertahan di cache sampai admin menyimpan, lalu
+    // langsung terbit. Tak ada permintaan DB per pengunjung, dan tak ada jeda
+    // yang membuat admin mengira simpanannya gagal.
+    next: { tags: ['situs'] },
   })
   if (!r.ok) throw new Error(`API situs menjawab ${r.status}`)
 

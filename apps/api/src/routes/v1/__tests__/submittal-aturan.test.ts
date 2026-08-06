@@ -182,9 +182,25 @@ describe('Submittal — constraint yang menjaga arti keputusan', () => {
 
 describe('Submittal — memakai Workflow Engine, bukan mekanisme keempat', () => {
   it('rantai approval `submittal` ADA untuk tiap company', async () => {
+    // `is_active` — company NONAKTIF sengaja dikecualikan.
+    //
+    // `situs.test.ts` meninggalkan `[UJI] Tenant Kedua` dalam keadaan nonaktif
+    // (penjaga repo melarang MENGHAPUS company, jadi ia dimatikan). Company
+    // yang tak aktif tak menerima pengajuan apa pun, jadi ketiadaan rantainya
+    // bukan cacat.
+    //
+    // Ini MENYEMPITKAN lingkup, bukan melemahkannya: company aktif tetap wajib
+    // punya rantai, dan sebuah company yang diaktifkan kembali langsung
+    // membuat test ini merah lagi — persis saat rantainya memang diperlukan.
+    //
+    // Sempat diperbaiki dari arah yang salah (2026-08-07): rantai disalin ke
+    // tenant nonaktif lewat migrasi. Itu membuat test ini hijau dan MERUSAK
+    // dua test lain, yang sama-sama menghitung level lintas company dengan
+    // asumsi hanya ada satu.
     const kurang = await c.query(
       `SELECT c.id FROM companies c
-        WHERE NOT EXISTS (SELECT 1 FROM approval_chains ac
+        WHERE c.is_active
+          AND NOT EXISTS (SELECT 1 FROM approval_chains ac
                            WHERE ac.company_id = c.id AND ac.entity_type = 'submittal')`)
     expect(kurang.rowCount, 'ada company tanpa rantai submittal — pengajuannya tak bisa diputuskan')
       .toBe(0)

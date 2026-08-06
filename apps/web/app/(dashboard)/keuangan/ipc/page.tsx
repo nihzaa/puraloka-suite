@@ -321,7 +321,7 @@ export default function SertifikatIpcPage() {
           {/* Pemilih + muat ulang */}
           <div className="rise rise-2" style={{
             ...kartu, padding: "12px 16px", marginBottom: 16,
-            display: "flex", gap: 16, alignItems: "flex-end", flexWrap: "wrap",
+            display: "flex", gap: "var(--gap-bagian)", alignItems: "flex-end", flexWrap: "wrap",
           }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 280, flex: "1 1 320px" }}>
               <label htmlFor="ipc-pilih" style={{ fontSize: 12, fontWeight: 600, color: C.mid }}>
@@ -393,7 +393,7 @@ export default function SertifikatIpcPage() {
           </div>
 
           {/* Lapis 1: keadaan */}
-          <div className="rise rise-3" style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
+          <div className="rise rise-3" style={{ display: "flex", gap: "var(--gap-grid)", flexWrap: "wrap", marginBottom: 16 }}>
             <Kpi
               label="Progres diakui"
               nilai={persen(aktif.progres_diakui_pct)}
