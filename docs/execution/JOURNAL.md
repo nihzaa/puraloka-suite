@@ -5,6 +5,28 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-07 (lanjutan 6) — catatan riwayat: pekerjaan IPC masuk lewat commit sesi lain
+
+Pekerjaan INTI #2 (migrasi 204, `lib/sertifikat-ipc.ts`, rute, penjaga,
+`/keuangan/ipc`, dan seluruh pembaruan dokumen) **ter-commit oleh sesi lain**
+yang berjalan paralel, tercakup di `6e4fd66 feat(situs): endpoint admin konten`
+dan dua commit `feat(situs)` sebelumnya.
+
+Isinya utuh — diverifikasi satu per satu ada di HEAD, termasuk entri jurnal
+lanjutan 5 dan pendaftaran penjaga di `ci.yml`. Yang hilang hanya pesan
+commit yang menjelaskan **kenapa** IPC dibangun; entri lanjutan 5 di atas
+adalah catatan lengkapnya.
+
+Riwayat sesi lain **tidak ditulis ulang**. Menyunting commit yang sudah dibuat
+sesi paralel berisiko membuang pekerjaan yang belum saya lihat — biayanya jauh
+lebih besar daripada pesan commit yang kurang tepat.
+
+Pelajarannya untuk sesi berikutnya: dengan dua sesi menulis ke satu pohon
+kerja, `git add -A` bukan milik siapa pun. Stage berkas **dengan nama**, dan
+periksa `git log` sebelum menyimpulkan pekerjaan sendiri belum ter-commit.
+
+---
+
 ## 2026-08-07 (lanjutan 5) — INTI #2 IPC: gerbangnya sudah ada, angkanya tak pernah disimpan
 
 ### Celah yang ditutup — dan kenapa ia tak pernah menimbulkan galat
