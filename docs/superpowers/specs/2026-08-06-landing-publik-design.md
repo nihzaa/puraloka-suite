@@ -408,10 +408,24 @@ Peta lengkap nama berkas: `scratchpad/peta-foto.json`.
    jadi tidak perlu kurasi ulang dari nol. Ini menghapus beban kurasi terbesar.
 2. **Estimasi "15–25 layak tayang" di §6.1 terkoreksi jadi 28 tervalidasi**,
    plus 47 kandidat cadangan.
-3. **Renovasi Rumah & Beton Pracetak tidak punya foto tercocok.** Dua
-   kemungkinan: gambarnya di bawah ambang ukuran, atau berasal dari sumber di
-   luar `Foto Proyek/`. Perlu konfirmasi founder — jangan diterbitkan sebagai
-   kategori kosong.
+3. **Renovasi Rumah & Beton Pracetak: file asli TIDAK ADA di mesin ini.**
+   Ditelusuri: `Renovrumahmu` (62 gambar), `Puraloka Panel` (2), `Proyek Lapang
+   LPKIA`, `Dapur Makan Gratis` — **nol kecocokan**. Bukan soal ambang ukuran:
+   gambar di hal. 17 dan 19 berukuran penuh (mis. 1529×3226, 1400×840).
+
+   Halaman 19 (Beton Pracetak) diperiksa visual: **12 foto nyata dan kuat** —
+   u-ditch, panel pagar precast diangkat crane, saluran terpasang, kanstin.
+   Kualitasnya di atas rata-rata isi `Foto Proyek/`. Sayang kalau hilang.
+
+   Tiga jalan, keputusan founder:
+   - **Ekstrak dari PDF** — resolusi asli masih utuh di dalamnya (bukan versi
+     layar). Paling cepat, dan cukup untuk web.
+   - Founder menunjuk lokasi file asli (hard disk lain / HP).
+   - Dua kategori dilewati di landing.
+
+   **Rencana kerja memakai opsi ekstrak-dari-PDF** sebagai default, karena
+   tidak memblokir dan hasilnya memadai. Bila file asli muncul, tinggal
+   ditukar — pipeline media tidak berubah.
 4. **Struktur portofolio mengikuti kategori pekerjaan**, dengan proyek bernama
    (Top Torch, Kijang Mas, Jaya Cemerlang) sebagai atribut di dalamnya. Ini juga
    lebih jujur: satu foto pemasangan baja bisa milik proyek pabrik mana pun,
