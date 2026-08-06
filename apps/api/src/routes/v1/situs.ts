@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
+import { supabase } from '../../utils/supabase.js'
 import { validasiAksen, validasiPasangan } from '../../lib/situs-warna.js'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -242,6 +243,100 @@ export default async function situsRoutes(app: FastifyInstance) {
       })
 
       return reply.send({ data: data[0] })
+    },
+  )
+
+  // ── GET /api/v1/public/situs ───────────────────────────────────────────────
+  //
+  // PENGECUALIAN BERNAMA (QUEUE.yaml:434): tanpa auth, field dibatasi, rate
+  // limit. Mengikuti preseden `/api/v1/public/invoice/:id` di settings.ts.
+  //
+  // ⚠️ Memakai `supabase` mentah, BUKAN `request.db` — tak ada user, jadi tak
+  // ada konteks tenant untuk disaring wrapper. Konsekuensinya: filter
+  // `company_id` WAJIB eksplisit di SETIAP query di bawah. RLS tidak bisa
+  // menolong di sini; `auth_company_id()` bernilai NULL tanpa sesi, sehingga
+  // policy RESTRICTIVE justru menolak semuanya. Satu query yang lupa filter =
+  // konten tenant lain terbit di halaman publik tenant ini.
+  //
+  // Daftar kolom sengaja ditulis satu per satu, bukan `select('*')`: `*` akan
+  // ikut menerbitkan kolom apa pun yang ditambahkan seseorang di kemudian hari,
+  // termasuk yang tak pernah dimaksudkan publik.
+  app.get(
+    '/api/v1/public/situs',
+    { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const companyId = process.env.SITUS_COMPANY_ID
+      if (!companyId) {
+        request.log.error('SITUS_COMPANY_ID belum diset — situs publik mati')
+        return reply.status(503).send({ error: 'Situs belum dikonfigurasi' })
+      }
+
+      const [konten, kategori, media, milestone, legalitas, seksi, merek] =
+        await Promise.all([
+          supabase.from('situs_konten')
+            .select('kunci, nilai').eq('company_id', companyId),
+          supabase.from('situs_kategori')
+            .select('id, kunci, judul, ringkasan, lokasi, lingkup, urutan')
+            .eq('company_id', companyId).eq('tampil', true)
+            .order('urutan', { ascending: true }),
+          supabase.from('situs_media')
+            .select('kategori_id, path_storage, alt, lebar, tinggi, urutan')
+            .eq('company_id', companyId).eq('tampil', true)
+            .order('urutan', { ascending: true }),
+          supabase.from('situs_milestone')
+            .select('tahun, judul, keterangan, urutan')
+            .eq('company_id', companyId).eq('tampil', true)
+            .order('urutan', { ascending: true }),
+          supabase.from('situs_legalitas')
+            .select('kode, judul, urutan')
+            .eq('company_id', companyId).eq('tampil', true)
+            .order('urutan', { ascending: true }),
+          supabase.from('situs_seksi')
+            .select('kunci, aktif, urutan, varian')
+            .eq('company_id', companyId)
+            .order('urutan', { ascending: true }),
+          supabase.from('situs_merek')
+            .select('warna_utama, warna_aksen, logo_path')
+            .eq('company_id', companyId).maybeSingle(),
+        ])
+
+      // Tiap bagian diperiksa. Membiarkan satu error lewat menghasilkan halaman
+      // yang kehilangan seksi tanpa ada yang tahu kenapa.
+      for (const [nama, hasil] of Object.entries({
+        konten, kategori, media, milestone, legalitas, seksi, merek,
+      })) {
+        if (hasil.error) {
+          request.log.error(
+            { err: hasil.error, bagian: nama },
+            'gagal memuat bagian situs publik',
+          )
+          return reply.status(500).send({ error: 'Gagal memuat situs' })
+        }
+      }
+
+      const petaKonten: Record<string, unknown> = {}
+      for (const baris of konten.data ?? []) petaKonten[baris.kunci] = baris.nilai
+
+      // Media ditempelkan ke kategorinya, lalu `id` dan `kategori_id` DIBUANG.
+      // Keduanya uuid internal: klien tak memakainya, dan menerbitkannya cuma
+      // memperbesar permukaan tebak-tebakan.
+      const daftarKategori = (kategori.data ?? []).map(({ id, ...sisaKategori }) => ({
+        ...sisaKategori,
+        media: (media.data ?? [])
+          .filter((m) => m.kategori_id === id)
+          .map(({ kategori_id: _buang, ...sisaMedia }) => sisaMedia),
+      }))
+
+      return reply.send({
+        data: {
+          konten: petaKonten,
+          kategori: daftarKategori,
+          milestone: milestone.data ?? [],
+          legalitas: legalitas.data ?? [],
+          seksi: seksi.data ?? [],
+          merek: merek.data ?? null,
+        },
+      })
     },
   )
 }

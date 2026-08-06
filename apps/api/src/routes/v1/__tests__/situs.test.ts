@@ -206,3 +206,175 @@ describe('PATCH /api/v1/situs/seksi — rem varian', () => {
     expect(r.statusCode).toBe(404)
   })
 })
+
+describe('GET /api/v1/public/situs — pengecualian bernama tanpa auth', () => {
+  const publik = () => app.inject({ method: 'GET', url: '/api/v1/public/situs' })
+
+  // Tanpa baris nyata, test kebocoran hijau HANYA karena tak ada yang bisa
+  // bocor — mutation-test membuktikannya: mengganti daftar kolom dengan
+  // `select('*')` tetap lolos 15/15 sampai seed ini ada.
+  //
+  // Seed TIDAK bisa lewat client `c`: transaksinya belum di-commit, sementara
+  // endpoint publik membaca lewat koneksi `supabase` yang terpisah — baris di
+  // dalam transaksi tak terlihat dari sana. Jadi dipakai koneksi sendiri yang
+  // meng-commit, dengan pembersihan eksplisit di afterAll. Baris uji diberi
+  // prefiks `uji-publik-` supaya sapuannya sempit dan tak menyentuh data lain.
+  let cSeed: Client
+
+  beforeAll(async () => {
+    const cid = process.env.SITUS_COMPANY_ID
+    if (!cid) throw new Error('prasyarat gagal: SITUS_COMPANY_ID belum diset')
+
+    cSeed = await createRlsClient()
+
+    const { rows } = await cSeed.query(
+      `INSERT INTO situs_kategori (company_id, kunci, judul, ringkasan, urutan, tampil)
+       VALUES ($1, 'uji-publik-tampil', '[UJI] Kategori', 'ringkasan uji', 900, true)
+       ON CONFLICT (company_id, kunci) DO UPDATE SET judul = EXCLUDED.judul
+       RETURNING id`,
+      [cid],
+    )
+    await cSeed.query(
+      `INSERT INTO situs_media
+         (company_id, kategori_id, path_storage, alt, lebar, tinggi, urutan, tampil)
+       VALUES ($1, $2, 'uji-publik/foto', 'foto uji', 1920, 1080, 0, true)
+       ON CONFLICT (company_id, path_storage) DO UPDATE SET alt = EXCLUDED.alt`,
+      [cid, rows[0].id],
+    )
+    await cSeed.query(
+      `INSERT INTO situs_kategori (company_id, kunci, judul, urutan, tampil)
+       VALUES ($1, 'uji-publik-sembunyi', '[UJI] Disembunyikan', 901, false)
+       ON CONFLICT (company_id, kunci) DO UPDATE SET tampil = false`,
+      [cid],
+    )
+  }, 60_000)
+
+  afterAll(async () => {
+    await cSeed
+      ?.query(
+        `DELETE FROM situs_media WHERE path_storage LIKE 'uji-publik/%';
+         DELETE FROM situs_kategori WHERE kunci LIKE 'uji-publik-%';`,
+      )
+      .catch(() => {})
+    await cSeed?.end().catch(() => {})
+  })
+
+  it('prasyarat: payload benar-benar berisi baris — bukan hijau karena kosong', async () => {
+    const { kategori } = (await publik()).json().data
+    expect(kategori.length).toBeGreaterThan(0)
+    expect(kategori.some((k: { media: unknown[] }) => k.media.length > 0)).toBe(true)
+  })
+
+  it('menyembunyikan baris tampil=false', async () => {
+    const { kategori } = (await publik()).json().data
+    const kunci = kategori.map((k: { kunci: string }) => k.kunci)
+    expect(kunci).toContain('uji-publik-tampil')
+    expect(kunci).not.toContain('uji-publik-sembunyi')
+  })
+
+  it('bisa diakses TANPA header authorization', async () => {
+    const r = await publik()
+    expect(r.statusCode).toBe(200)
+  })
+
+  it('mengembalikan seluruh bagian yang dipakai halaman publik', async () => {
+    const b = (await publik()).json().data
+    for (const bagian of [
+      'konten', 'kategori', 'milestone', 'legalitas', 'seksi', 'merek',
+    ]) {
+      expect(b).toHaveProperty(bagian)
+    }
+  })
+
+  // Endpoint ini berjalan tanpa konteks auth, jadi RLS tak menyaring apa pun —
+  // yang menahan hanya daftar kolom di `select`. Test ini yang akan merah kalau
+  // seseorang menggantinya dengan `select('*')` di kemudian hari.
+  it('tidak membocorkan company_id maupun uuid internal', async () => {
+    const teks = JSON.stringify((await publik()).json())
+    expect(teks).not.toMatch(/company_id/)
+    expect(teks).not.toMatch(/kategori_id/)
+    // uuid v4 apa pun — id baris tak punya guna di klien.
+    expect(teks).not.toMatch(
+      /[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i,
+    )
+  })
+
+  it('menyertakan hanya baris tampil=true', async () => {
+    const { kategori, milestone, legalitas } = (await publik()).json().data
+    for (const daftar of [kategori, milestone, legalitas]) {
+      expect(Array.isArray(daftar)).toBe(true)
+      for (const baris of daftar) expect(baris.tampil).toBeUndefined()
+    }
+  })
+
+  it('media tertempel di kategorinya, bukan sebagai daftar terpisah', async () => {
+    const { kategori } = (await publik()).json().data
+    for (const k of kategori) expect(Array.isArray(k.media)).toBe(true)
+  })
+
+  // ── Isolasi tenant di endpoint TANPA auth ────────────────────────────────
+  //
+  // Test ini ada karena mutation-test menemukan lubangnya: menghapus
+  // `.eq('company_id', …)` dari query kategori TIDAK memerahkan satu test pun.
+  // Sebabnya hari ini cuma ada satu company, jadi filternya tak mengubah apa
+  // pun — dan justru itu bahayanya. Pada hari tenant kedua lahir, konten
+  // perusahaan lain terbit di halaman publik ini tanpa satu pun galat.
+  //
+  // RLS tak bisa menolong: endpoint ini berjalan tanpa sesi, `auth_company_id()`
+  // NULL, dan policy RESTRICTIVE justru menolak semuanya — sehingga jalur ini
+  // memakai service role. Yang tersisa sebagai penjaga hanya filter eksplisit.
+  it('TIDAK menerbitkan konten milik company lain', async () => {
+    const cid = process.env.SITUS_COMPANY_ID!
+
+    // Company kedua dibuat di dalam TRANSAKSI yang selalu di-ROLLBACK.
+    //
+    // Bukan pilihan gaya: percobaan pertama memakai DELETE dan ditolak trigger
+    // repo — "Company tidak boleh dihapus. Nonaktifkan atau jalankan prosedur
+    // off-boarding." Penjaga itu benar (hapus tenant = kehilangan data lintas
+    // puluhan tabel), jadi yang berubah cara test-nya, bukan penjaganya.
+    //
+    // Endpoint publik membaca lewat koneksi `supabase` terpisah, jadi baris
+    // dalam transaksi ini TAK terlihat olehnya — dan itu justru menghasilkan
+    // pengujian yang benar: kalau filter company_id dihapus, query akan
+    // mengembalikan baris dari company mana pun yang SUDAH ter-commit.
+    // Karena itu barisnya di-commit dulu, diuji, lalu dibatalkan lewat
+    // savepoint di koneksi yang sama.
+    await cSeed.query('BEGIN')
+    try {
+      // ON CONFLICT, bukan INSERT polos: company uji tak bisa DIHAPUS (penjaga
+      // repo), jadi sisa run sebelumnya masih ada dan INSERT kedua akan kena
+      // companies_code_unique. Dipakai ulang saja.
+      const { rows: co } = await cSeed.query(
+        `INSERT INTO companies (code, name, owner_user_id, created_by, is_active)
+         SELECT 'uji-publik-tenant2', '[UJI] Tenant Kedua', owner_user_id, created_by, true
+           FROM companies WHERE id = $1
+         ON CONFLICT (code) DO UPDATE SET is_active = true
+         RETURNING id`,
+        [cid],
+      )
+      await cSeed.query(
+        `INSERT INTO situs_kategori (company_id, kunci, judul, urutan, tampil)
+         VALUES ($1, 'uji-publik-milik-tenant2', '[UJI] MILIK TENANT LAIN', 902, true)`,
+        [co[0].id],
+      )
+      await cSeed.query('COMMIT')
+
+      const { kategori } = (await publik()).json().data
+      const kunci = kategori.map((k: { kunci: string }) => k.kunci)
+
+      expect(kunci).toContain('uji-publik-tampil')           // milik kita: ada
+      expect(kunci).not.toContain('uji-publik-milik-tenant2') // milik lain: TIDAK
+    } finally {
+      // Kategori boleh dihapus (bukan company). Company uji dinonaktifkan,
+      // mengikuti jalur yang penjaga DB izinkan.
+      await cSeed
+        .query(`DELETE FROM situs_kategori WHERE kunci = 'uji-publik-milik-tenant2'`)
+        .catch(() => {})
+      await cSeed
+        .query(
+          `UPDATE companies SET is_active = false WHERE code = 'uji-publik-tenant2'`,
+        )
+        .catch(() => {})
+    }
+  }, 60_000)
+})
