@@ -734,7 +734,7 @@ jobs:
       # layar bilang "800 m dari lokasi" untuk foto yang SAMA, dan tak ada
       # yang tahu mana yang benar.
       - name: Rumus jarak geotag sinkron (web ↔ api)
-        run: node apps/web/scripts/uji-geotag-sinkron.mjs
+        run: node scripts/uji-geotag-sinkron.mjs
 
       # Token deret grafik (`--data-1`…`--data-8`) dipakai sebagai warna TEKS.
       #
@@ -747,7 +747,7 @@ jobs:
       # ini ada. Tiap perbaikan benar, dan tiap kali yang berikutnya muncul
       # lagi — karena tak ada yang menolaknya di pintu masuk.
       - name: Token grafik bukan warna teks
-        run: node apps/web/scripts/uji-token-grafik-bukan-teks.mjs
+        run: node scripts/uji-token-grafik-bukan-teks.mjs
 
       # `opacity` pada teks — kelas cacat paling produktif di repo ini.
       #
@@ -762,7 +762,7 @@ jobs:
       # `disabled`, ikon, bilah warna, dan pemisah satu karakter dikecualikan:
       # di situ meredupkan memang cara yang benar.
       - name: opacity bukan pada teks
-        run: node apps/web/scripts/uji-opacity-teks.mjs
+        run: node scripts/uji-opacity-teks.mjs
         working-directory: .
 
       # Sidebar kini memuat 20 grup & 202 sub-menu (migrasi 153). Pola lama
