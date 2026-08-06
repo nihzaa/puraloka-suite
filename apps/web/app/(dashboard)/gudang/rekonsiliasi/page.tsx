@@ -45,6 +45,7 @@ type Baris = {
   dipakai: number;
   sisa: number;
   transfer_keluar: number;
+  dari_klien: number;
   selisih: number;
   susut_pct: number | null;
   lebih_beli: number;
@@ -58,6 +59,7 @@ type Hasil = {
   total_sisa: number;
   total_selisih: number;
   total_transfer_keluar: number;
+  total_dari_klien: number;
   susut_pct_keseluruhan: number | null;
   jumlah_susut_tinggi: number;
   jumlah_lebih_beli: number;
@@ -354,7 +356,7 @@ export default function RekonsiliasiMaterialPage() {
                   <tr style={{ background: "var(--surface-subtle)" }}>
                     {[
                       ["Material", "left"], ["RAB", "right"], ["Dibeli", "right"],
-                      ["Dipakai", "right"], ["Sisa", "right"], ["Pindah", "right"], ["Selisih", "right"],
+                      ["Dipakai", "right"], ["Sisa", "right"], ["Pindah", "right"], ["Dari klien", "right"], ["Selisih", "right"],
                       ["Susut", "right"], ["Status", "left"],
                     ].map(([h, rata]) => (
                       <th key={h} scope="col" style={{
@@ -406,6 +408,21 @@ export default function RekonsiliasiMaterialPage() {
                             </>
                           )}
                         </td>
+                        {/* Material dari klien (free issue) — BUKAN pembelian
+                            kita. Kolomnya sendiri, tak dilebur ke "Dibeli":
+                            meleburnya menggelembungkan penyebut susut DAN
+                            membuat perusahaan tampak memborong material yang
+                            tak pernah ia beli sesen pun. */}
+                        <td style={{ textAlign: "right", padding: "10px 12px", color: b.dari_klien === 0 ? C.muted : C.mid }}>
+                          {b.dari_klien === 0 ? "—" : (
+                            <>
+                              {angka(b.dari_klien)}
+                              <span style={{ display: "block", fontSize: 10, color: C.muted }}>
+                                dipasok owner
+                              </span>
+                            </>
+                          )}
+                        </td>
                         {/* Selisih NEGATIF tidak diwarnai sebagai kerugian.
                             "−92" merah terbaca sebagai "92 hilang" — persis
                             salah-baca yang kolom status berusaha cegah. Yang
@@ -424,7 +441,16 @@ export default function RekonsiliasiMaterialPage() {
                           )}
                         </td>
                         <td style={{ textAlign: "right", padding: "10px 12px", color: C.mid }}>
-                          {b.susut_pct == null ? "—" : `${b.susut_pct.toFixed(1)}%`}
+                          {/* Persentase NEGATIF tidak ditampilkan sebagai angka.
+                              "−6,0%" terbaca sebagai susut yang lebih baik
+                              daripada nol — kabar baik palsu. Yang sebenarnya
+                              terjadi: terpakai + sisa melebihi yang masuk,
+                              yaitu pencatatan yang belum lengkap. Kolom
+                              Selisih di sebelahnya sudah menyebutkannya, jadi
+                              di sini cukup dinyatakan tak bisa dihitung. */}
+                          {b.susut_pct == null || b.susut_pct < 0
+                            ? "—"
+                            : `${b.susut_pct.toFixed(1)}%`}
                         </td>
                         <td style={{ padding: "10px 12px" }}>
                           {/* Status sebagai KATA, bukan hanya warna baris —
@@ -455,7 +481,7 @@ export default function RekonsiliasiMaterialPage() {
               margin: 0, padding: "10px 14px", borderTop: `1px solid ${C.border}`,
               background: "var(--surface-subtle)", fontSize: 11, color: C.mid, lineHeight: 1.55,
             }}>
-              Selisih = dibeli − dipakai − sisa − yang pindah proyek. Hanya penerimaan barang yang
+              Selisih = (dibeli + dari klien) − dipakai − sisa − yang pindah proyek. Material dipasok owner masuk hitungan sebagai barang yang ADA di gudang, tapi TIDAK sebagai pembelian — jadi ia tak menggelembungkan “beli melebihi RAB”. Hanya penerimaan barang yang
               sudah <strong>dikonfirmasi</strong> dihitung sebagai pembelian, dan
               material yang dibeli tanpa ada di RAB tetap ditampilkan — pembelian
               di luar rencana justru yang paling perlu dilihat.
@@ -468,7 +494,7 @@ export default function RekonsiliasiMaterialPage() {
                   dan di sini peringatannya ikut terbaca bersamanya. */}
               Angka susut keseluruhan{" "}
               <strong>
-                {hasil.susut_pct_keseluruhan == null
+                {hasil.susut_pct_keseluruhan == null || hasil.susut_pct_keseluruhan < 0
                   ? "belum bisa dihitung"
                   : `${hasil.susut_pct_keseluruhan.toFixed(1)}%`}
               </strong>{" "}

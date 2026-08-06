@@ -263,8 +263,28 @@ angka yang menuduh orang.
 assembly yang dipakai proyek nyata, DAN ada relasi assembly→material. Sampai
 itu ada, pembandingnya hanya bisa ditebak.
 
-**BERIKUTNYA — "Transfer stok antar proyek".** Dipilih karena bukan hanya
-item tersendiri, tapi **cacat yang merusak halaman yang baru dibangun**:
+**SELESAI — "Transfer stok antar proyek"** (`/gudang/transfer`, migrasi 193).
+Ia menutup cacat yang merusak halaman rekonsiliasi: material yang PINDAH
+terbaca sebagai HILANG. Dibuktikan dengan angka — 10 batang besi mengubah
+baris dari `susut 0%` jadi `susut 5%`, satu batang lagi dari "Susut tinggi".
+
+**SELESAI — "Material milik klien (free issue)"** (`/gudang/material-klien`,
+migrasi 194). Owner memasok sendiri material tertentu; tanpa jalur tersendiri
+ia masuk lewat penerimaan pembelian dan merusak dua angka: penyebut susut,
+DAN `lebih_beli` terhadap RAB (perusahaan tampak memborong material yang tak
+pernah ia beli).
+
+> Rancangan pertamanya menaruh penanda di `goods_receipts` dan **dibatalkan
+> oleh uji invariannya sendiri**: `po_id`/`supplier_id` di sana NOT NULL, jadi
+> jalur itu menuntut `DROP NOT NULL` pada tabel data finansial hidup —
+> Gerbang Keras G-2. Diganti tabel tersendiri sebelum satu baris pun ditulis.
+> Tripwire-nya permanen di CI.
+
+Dengan keduanya, kelompok **rekonsiliasi material (1,5/5 — paling lemah)
+tuntas 3/3**.
+
+**Catatan atas item asal "Transfer stok antar proyek"** — dipilih karena bukan
+hanya item tersendiri, tapi **cacat yang merusak halaman yang baru dibangun**:
 
 ```
 stock_movements  punya project_id, TIDAK punya lawan-proyeknya

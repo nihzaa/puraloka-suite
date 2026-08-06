@@ -99,6 +99,24 @@ export default async function rekonsiliasiMaterialRoutes(app: FastifyInstance) {
       dibeli.push(...((data ?? []) as typeof dibeli))
     }
 
+    // ── 2b. Material MILIK KLIEN (free issue) — bukan pembelian kita ───────
+    //
+    // Tabel tersendiri, bukan penanda di `goods_receipts`: penerimaan material
+    // owner memang bukan penerimaan pembelian — tak punya PO, tak punya
+    // supplier, tak pernah dibayar. Rinciannya di migrasi 194.
+    //
+    // Dipisahkan, bukan DIBUANG: barangnya nyata ada di gudang, jadi kalau ia
+    // hilang dari laporan, `sisa` akan terbaca sebagai kelebihan yang tak
+    // berasal dari mana pun.
+    const { data: klien, error: eKlien } = await db
+      .viaProject('penerimaan_material_klien', projectId)
+      .select('material_id, qty')
+
+    if (eKlien) return reply.status(500).send({ error: eKlien.message })
+
+    const dariKlien = ((klien ?? []) as Array<{ material_id: string; qty: number | string | null }>)
+      .map((k) => ({ material_id: k.material_id, qty_received: k.qty }))
+
     // ── 3. Yang dipakai ────────────────────────────────────────────────────
     const { data: gerak, error: e3 } = await db
       .viaProject('stock_movements', projectId)
@@ -152,6 +170,7 @@ export default async function rekonsiliasiMaterialRoutes(app: FastifyInstance) {
       ((gerak ?? []) as Array<{ material_id: string; qty: number | string | null }>),
       ((sisa ?? []) as Array<{ material_id: string; qty_on_hand: number | string | null }>),
       ((pindah ?? []) as Array<{ material_id: string; qty: number | string | null }>),
+      dariKlien,
       {
         ambangSusutPct: parseAmbang(q.ambang_susut),
         ambangLebihBeliPct: parseAmbang(q.ambang_lebih_beli),

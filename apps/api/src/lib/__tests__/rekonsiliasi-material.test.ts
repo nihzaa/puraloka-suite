@@ -232,7 +232,7 @@ describe('hitungRekonsiliasi — total & urutan', () => {
 
     expect(hitungRekonsiliasi(teoritis, dibeli, dipakai, []).baris[0].status)
       .toBe('susut_tinggi')
-    expect(hitungRekonsiliasi(teoritis, dibeli, dipakai, [], [], { ambangSusutPct: 10 }).baris[0].status)
+    expect(hitungRekonsiliasi(teoritis, dibeli, dipakai, [], [], [], { ambangSusutPct: 10 }).baris[0].status)
       .toBe('wajar')
   })
 
@@ -433,6 +433,97 @@ describe('hitungRekonsiliasi — transfer antar proyek bukan susut', () => {
       [{ material_id: 'm1', qty: '-10' }, { material_id: 'm1', qty: '-10' }],
     )
     expect(h.baris[0].transfer_keluar).toBe(20)
+    expect(h.baris[0].selisih).toBe(0)
+  })
+})
+
+describe('hitungRekonsiliasi — material milik klien (free issue)', () => {
+  const KERAMIK = {
+    material_id: 'm-keramik', material_name: 'Keramik 60×60', unit: 'm²', rab_quantity: 100,
+  }
+
+  it('material klien TIDAK menggelembungkan penyebut susut sebagai pembelian', () => {
+    // Kita beli 100, owner memasok 100. Susut 8 dari gudang berisi 200 memang
+    // 4% — itu benar, dan penyebutnya memang seluruh barang masuk.
+    //
+    // Yang TIDAK boleh: 200 itu terbaca sebagai pembelian KITA. Kolomnya
+    // berdiri sendiri supaya pembaca tahu separuhnya bukan uang kita.
+    const h = hitungRekonsiliasi(
+      [KERAMIK],
+      [{ material_id: 'm-keramik', qty_received: 100 }],
+      [{ material_id: 'm-keramik', qty: -150 }],
+      [{ material_id: 'm-keramik', qty_on_hand: 42 }],
+      [],
+      [{ material_id: 'm-keramik', qty_received: 100 }],
+    )
+    expect(h.baris[0].dibeli).toBe(100)       // pembelian kita, TIDAK 200
+    expect(h.baris[0].dari_klien).toBe(100)
+    expect(h.baris[0].selisih).toBe(8)        // 200 − 150 − 42
+    expect(h.baris[0].susut_pct).toBe(4)
+  })
+
+  it('material klien TIDAK membuat perusahaan tampak beli melebihi RAB', () => {
+    // RAB 100, kita beli 100 (pas), owner memasok 100 lagi. Tanpa pemisahan,
+    // `lebih_beli` = 200 − 100 = 100 → "beli 100% melebihi RAB" untuk
+    // material yang tak pernah kita beli sesen pun melebihi rencana.
+    const h = hitungRekonsiliasi(
+      [KERAMIK],
+      [{ material_id: 'm-keramik', qty_received: 100 }],
+      [], [{ material_id: 'm-keramik', qty_on_hand: 200 }],
+      [],
+      [{ material_id: 'm-keramik', qty_received: 100 }],
+    )
+    expect(h.baris[0].lebih_beli).toBe(0)
+    expect(h.baris[0].status).not.toBe('lebih_beli')
+  })
+
+  it('material klien yang tersisa utuh BUKAN "belum lengkap"', () => {
+    // Kalau barang owner tak ikut di sisi masuk, 100 m² yang tersisa utuh
+    // menghasilkan `selisih −100` — "data belum lengkap" pada data yang
+    // justru lengkap. Ia harus masuk, bukan diabaikan.
+    const h = hitungRekonsiliasi(
+      [], [], [], [{ material_id: 'm-keramik', qty_on_hand: 100 }],
+      [],
+      [{ material_id: 'm-keramik', qty_received: 100 }],
+    )
+    expect(h.baris[0].selisih).toBe(0)
+    expect(h.baris[0].status).not.toBe('belum_lengkap')
+    expect(h.baris[0].status).toBe('wajar')
+  })
+
+  it('susut pada material milik klien tetap terdeteksi', () => {
+    // Barang owner yang hilang tetap hilang — dan justru lebih gawat, sebab
+    // yang harus diganti adalah milik orang lain.
+    const h = hitungRekonsiliasi(
+      [], [], [{ material_id: 'm-keramik', qty: -50 }], [{ material_id: 'm-keramik', qty_on_hand: 30 }],
+      [],
+      [{ material_id: 'm-keramik', qty_received: 100 }],
+    )
+    expect(h.baris[0].selisih).toBe(20)
+    expect(h.baris[0].susut_pct).toBe(20)
+    expect(h.baris[0].status).toBe('susut_tinggi')
+  })
+
+  it('total dari klien ikut di penyebut total, tapi tidak di total_dibeli', () => {
+    const h = hitungRekonsiliasi(
+      [], [{ material_id: 'm1', qty_received: 100 }],
+      [], [{ material_id: 'm1', qty_on_hand: 190 }],
+      [],
+      [{ material_id: 'm1', qty_received: 100 }],
+    )
+    expect(h.total_dibeli).toBe(100)
+    expect(h.total_dari_klien).toBe(100)
+    expect(h.total_selisih).toBe(10)
+    expect(h.susut_pct_keseluruhan).toBe(5)   // 10 dari 200, bukan dari 100
+  })
+
+  it('NUMERIC sebagai string tetap dijumlahkan sebagai angka', () => {
+    const h = hitungRekonsiliasi(
+      [], [], [], [{ material_id: 'm1', qty_on_hand: '100' }],
+      [],
+      [{ material_id: 'm1', qty_received: '60' }, { material_id: 'm1', qty_received: '40' }],
+    )
+    expect(h.baris[0].dari_klien).toBe(100)
     expect(h.baris[0].selisih).toBe(0)
   })
 })

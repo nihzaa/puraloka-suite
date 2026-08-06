@@ -79,6 +79,17 @@ export interface BarisTransfer {
   qty: number | string | null
 }
 
+/**
+ * Material yang DIPASOK KLIEN (free issue) — bukan pembelian kita.
+ *
+ * Bentuknya sama dengan `BarisDibeli` karena sumbernya sama
+ * (`goods_receipt_items`); yang berbeda adalah GR-nya bertanda `milik_klien`.
+ */
+export interface BarisDariKlien {
+  material_id: string
+  qty_received: number | string | null
+}
+
 /** Seberapa jauh sebuah material menyimpang, dan ke arah mana. */
 export type StatusRekonsiliasi =
   | 'wajar'          // susut dalam ambang
@@ -124,7 +135,15 @@ export interface BarisRekonsiliasi {
    */
   transfer_keluar: number
   /**
-   * dibeli − dipakai − sisa − transfer_keluar.
+   * Material yang DIPASOK KLIEN (free issue), bukan dibeli.
+   *
+   * Berdiri sebagai kolomnya sendiri, tidak dilebur ke `dibeli`. Meleburnya
+   * menggelembungkan penyebut susut DAN membuat perusahaan tampak memborong
+   * material yang tak pernah ia beli sesen pun.
+   */
+  dari_klien: number
+  /**
+   * dibeli + dari_klien − dipakai − sisa − transfer_keluar.
    *
    * Positif = material hilang: dibeli tapi tak terpakai dan tak ada di
    * gudang. Negatif = tercatat terpakai lebih banyak daripada yang dibeli —
@@ -141,9 +160,23 @@ export interface BarisRekonsiliasi {
    * Laporan ini menuduh orang. Menuduh mandor atas barang yang ia kirim ke
    * proyek sebelah, atas perintah kantor, adalah kesalahan yang paling mahal
    * yang bisa dibuat layar ini.
+   *
+   * ── Kenapa `dari_klien` DITAMBAHKAN, bukan diabaikan
+   *
+   * Barang owner nyata ada di gudang dan nyata terpakai — ia muncul di
+   * `dipakai` dan `sisa`. Kalau ia tak ikut di sisi masuk, persamaannya
+   * timpang: 100 sak milik owner yang tersisa utuh akan terbaca sebagai
+   * `selisih −100`, yaitu "belum lengkap" pada data yang justru lengkap.
    */
   selisih: number
-  /** `selisih / dibeli × 100`. null bila belum ada pembelian. */
+  /**
+   * `selisih / (dibeli + dari_klien) × 100`. null bila tak ada barang masuk.
+   *
+   * Penyebutnya SELURUH barang yang masuk, bukan hanya yang kita beli:
+   * susut 8 sak dari gudang berisi 200 sak memang 4%, dari mana pun asalnya.
+   * Yang tak boleh adalah barang owner ikut dihitung sebagai PEMBELIAN kita
+   * — itu urusan `lebih_beli`, dan di sana ia memang tidak ikut.
+   */
   susut_pct: number | null
   /** `dibeli − teoritis`. Positif = beli melebihi kebutuhan RAB. */
   lebih_beli: number
@@ -159,6 +192,8 @@ export interface HasilRekonsiliasi {
   total_selisih: number
   /** Bersih material yang pindah proyek, seluruh material. */
   total_transfer_keluar: number
+  /** Material dari klien (free issue), seluruh material. */
+  total_dari_klien: number
   /** Rata-rata TERTIMBANG, bukan rata-rata dari persentase per baris. */
   susut_pct_keseluruhan: number | null
   jumlah_susut_tinggi: number
@@ -216,6 +251,9 @@ export function hitungRekonsiliasi(
   // sah tanpa argumen ini, dan berperilaku persis seperti sebelumnya —
   // `transfer_keluar` 0, `selisih` tak berubah.
   transfer?: BarisTransfer[],
+  // OPSIONAL, seperti `transfer`: pemanggil lama tetap sah dan berperilaku
+  // persis seperti sebelumnya.
+  dariKlien?: BarisDariKlien[],
   opsi?: { ambangSusutPct?: number; ambangLebihBeliPct?: number },
 ): HasilRekonsiliasi {
   const ambangSusut = opsi?.ambangSusutPct ?? AMBANG_SUSUT_PCT
@@ -230,13 +268,14 @@ export function hitungRekonsiliasi(
     dipakai: number
     sisa: number
     transfer_keluar: number
+    dari_klien: number
   }
   const peta = new Map<string, Akumulator>()
 
   const ambil = (id: string): Akumulator => {
     let e = peta.get(id)
     if (!e) {
-      e = { material_id: id, material_name: '—', unit: null, teoritis: 0, dibeli: 0, dipakai: 0, sisa: 0, transfer_keluar: 0 }
+      e = { material_id: id, material_name: '—', unit: null, teoritis: 0, dibeli: 0, dipakai: 0, sisa: 0, transfer_keluar: 0, dari_klien: 0 }
       peta.set(id, e)
     }
     return e
@@ -258,10 +297,18 @@ export function hitungRekonsiliasi(
   // jadi dinegasikan supaya "keluar" bernilai positif; `transfer_in` positif
   // akan menjadi negatif, dan itu benar: proyek ini menerima, bukan kehilangan.
   for (const t of transfer ?? []) ambil(t.material_id).transfer_keluar += -angka(t.qty)
+  for (const k of dariKlien ?? []) ambil(k.material_id).dari_klien += angka(k.qty_received)
 
   const baris: BarisRekonsiliasi[] = [...peta.values()].map((e) => {
-    const selisih = e.dibeli - e.dipakai - e.sisa - e.transfer_keluar
-    const susut_pct = e.dibeli > 0 ? (selisih / e.dibeli) * 100 : null
+    // Seluruh barang MASUK — dibeli sendiri maupun dipasok owner. Keduanya
+    // nyata ada di gudang, jadi keduanya harus berdiri di sisi masuk agar
+    // persamaannya tidak timpang.
+    const masuk = e.dibeli + e.dari_klien
+    const selisih = masuk - e.dipakai - e.sisa - e.transfer_keluar
+    const susut_pct = masuk > 0 ? (selisih / masuk) * 100 : null
+    // `lebih_beli` SENGAJA memakai `e.dibeli` saja, bukan `masuk`: material
+    // owner bukan pembelian kita, jadi ia tak boleh membuat perusahaan tampak
+    // memborong melebihi RAB.
     const lebih_beli = e.dibeli - e.teoritis
 
     let status: StatusRekonsiliasi = 'wajar'
@@ -313,6 +360,7 @@ export function hitungRekonsiliasi(
       dipakai: e.dipakai,
       sisa: e.sisa,
       transfer_keluar: e.transfer_keluar,
+      dari_klien: e.dari_klien,
       selisih,
       susut_pct,
       lebih_beli,
@@ -338,7 +386,9 @@ export function hitungRekonsiliasi(
   const total_dipakai = baris.reduce((s, b) => s + b.dipakai, 0)
   const total_sisa = baris.reduce((s, b) => s + b.sisa, 0)
   const total_transfer_keluar = baris.reduce((s, b) => s + b.transfer_keluar, 0)
-  const total_selisih = total_dibeli - total_dipakai - total_sisa - total_transfer_keluar
+  const total_dari_klien = baris.reduce((s, b) => s + b.dari_klien, 0)
+  const total_masuk = total_dibeli + total_dari_klien
+  const total_selisih = total_masuk - total_dipakai - total_sisa - total_transfer_keluar
 
   return {
     baris,
@@ -347,9 +397,10 @@ export function hitungRekonsiliasi(
     total_sisa,
     total_selisih,
     total_transfer_keluar,
+    total_dari_klien,
     // TERTIMBANG: rata-rata dari persentase per baris membuat satu material
     // kecil yang susut 90% menenggelamkan seratus material besar yang wajar.
-    susut_pct_keseluruhan: total_dibeli > 0 ? (total_selisih / total_dibeli) * 100 : null,
+    susut_pct_keseluruhan: total_masuk > 0 ? (total_selisih / total_masuk) * 100 : null,
     jumlah_susut_tinggi: baris.filter((b) => b.status === 'susut_tinggi').length,
     jumlah_lebih_beli: baris.filter((b) => b.status === 'lebih_beli').length,
     jumlah_belum_lengkap: baris.filter((b) => b.status === 'belum_lengkap').length,

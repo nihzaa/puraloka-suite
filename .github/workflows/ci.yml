@@ -540,6 +540,24 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
+      # Material milik klien (free issue). Selain invarian nilainya, penjaga ini
+      # memuat TRIPWIRE: `goods_receipts.po_id` dan `supplier_id` harus tetap
+      # NOT NULL.
+      #
+      # Rancangan pertama fitur ini menaruh penanda `milik_klien` di
+      # `goods_receipts` — dan uji invariannya langsung merah, sebab material
+      # owner tak punya PO maupun supplier. Melanjutkannya berarti
+      # `DROP NOT NULL` pada tabel berisi data finansial hidup (Gerbang Keras
+      # G-2), dan `supplier-invoices` sudah membandingkan `gr.supplier_id`
+      # sehingga null di sana merambat tanpa ada yang menyadarinya.
+      #
+      # Rancangannya diganti jadi tabel tersendiri. Tripwire ini menjaga agar
+      # tak ada yang diam-diam menempuh jalur lama itu lagi.
+      - name: Invarian material milik klien (+ tripwire G-2 goods_receipts)
+        run: node scripts/uji-invarian-material-klien.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
       - name: Invarian NCR
         run: node scripts/uji-invarian-ncr.mjs
         env:

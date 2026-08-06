@@ -5,6 +5,75 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-06 (lanjutan 2) — Free issue, dan rancangan yang dibatalkan uji sendiri
+
+### Material milik klien selesai (PEMBEDA 3/12)
+
+Pada kontrak konstruksi, owner sering memasok sendiri material tertentu
+(keramik, sanitair, lift) dan kontraktor hanya memasangnya. Diukur lebih dulu:
+**NOL penanda kepemilikan** di seluruh tabel material.
+
+Tanpa jalur tersendiri, barang itu hanya bisa masuk lewat penerimaan
+pembelian — dan di `/gudang/rekonsiliasi` ia merusak DUA angka sekaligus:
+
+1. **penyebut susut** — 100 sak milik owner membuat susut 8 sak dari 100 sak
+   MILIK KITA terbaca 4% dari 200, bukan 8% dari 100
+2. **`lebih_beli` terhadap RAB** — perusahaan tampak memborong material yang
+   tak pernah ia beli sesen pun
+
+Dibuktikan e2e setelah perbaikan, pada 50 m² material owner:
+
+```
+dibeli 0 · dari_klien 50 · sisa 50 · lebih_beli 0 · selisih 0 · wajar
+```
+
+Tanpa pemisahan, baris itu berbunyi `dibeli 50 / lebih_beli 50`.
+
+### Rancangan pertama SALAH — dan uji invariannya yang membuktikan
+
+Saya menaruh penanda `milik_klien` di `goods_receipts`. Sebelum itu saya
+menulis, dengan yakin, bahwa "GR tanpa PO sudah mungkin secara struktur" —
+setelah membaca definisi FK-nya.
+
+**Definisi FK tidak menyatakan nullability.** Saya menyimpulkan yang tak
+tertulis. `po_id` dan `supplier_id` keduanya **NOT NULL**, dan uji invarian
+langsung merah pada percobaan pertama.
+
+Melanjutkan jalur itu berarti `DROP NOT NULL` pada tabel berisi data
+finansial hidup — **Gerbang Keras G-2** — dan `supplier-invoices` sudah
+membandingkan `gr.supplier_id !== body.supplier_id`, jadi null di sana
+merambat tanpa ada yang menyadarinya.
+
+Rancangannya diganti jadi **tabel tersendiri** (`penerimaan_material_klien`)
+sebelum satu baris pun ditulis. Kolom yang terlanjur saya tambahkan dihapus
+setelah diverifikasi **nol baris memakainya**; `goods_receipts` kembali utuh
+8 baris.
+
+Tabel tersendiri juga lebih jujur: penerimaan material owner memang BUKAN
+penerimaan pembelian — tak punya PO, tak punya supplier, tak pernah dibayar.
+
+**Uji itu membayar ongkosnya sendiri di menit pertama.** Ia dipasang untuk
+menjaga constraint, dan yang ia tangkap justru rancangannya.
+
+Tripwire-nya kini permanen di CI: `po_id` dan `supplier_id` harus tetap
+NOT NULL, supaya tak ada yang diam-diam menempuh jalur lama itu lagi.
+
+### Persentase susut negatif berhenti ditampilkan
+
+Potret memperlihatkan baris ber-`susut −6,0%`. Angka itu terbaca sebagai susut
+yang LEBIH BAIK daripada nol — kabar baik palsu, persis yang komentar di
+pustaka saya sendiri peringatkan. Yang sebenarnya terjadi: terpakai + sisa
+melebihi barang yang masuk, yaitu pencatatan yang belum lengkap. Kolom
+Selisih di sebelahnya sudah menyebutkannya; persentasenya kini "—".
+
+### Tak ada kolom harga di layar material klien
+
+Disengaja. Material owner tak pernah kita bayar; menyediakan kolom harganya
+mengundang seseorang mengisinya, dan angka itu akan mengalir ke laporan biaya
+sebagai pengeluaran yang tak pernah terjadi.
+
+---
+
 ## 2026-08-06 (lanjutan) — Transfer stok, dan cacat yang saya buat sendiri kemarin
 
 ### Transfer stok antar proyek selesai (PEMBEDA 2/12)
