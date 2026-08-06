@@ -224,7 +224,30 @@ skor hari ini (`PETA-PRIORITAS-ERP.md` §6).
 | **Profitabilitas per cost code** (🟡 per proyek sudah hidup di `/finance/profitability`) | Laba per **cost code**, bukan hanya per proyek — inilah yang menunjukkan pekerjaan mana yang merugi | S |
 | **Manajemen contingency** | Cadangan risiko terlacak, bukan hilang ke dalam "biaya lain-lain" | M |
 | **Analisa keterlambatan** | Menghubungkan keterlambatan ke biaya — dasar klaim EOT | M |
-| **Eskalasi harga** | Kenaikan harga material terhadap kontrak lama | S |
+| **Eskalasi harga** → dibangun sebagai **Riwayat Harga Material** | Pergerakan harga material sepanjang waktu | S |
+
+**SELESAI** (`/procurement/riwayat-harga`, migrasi 197) — **dengan nama yang
+diganti, dan itu bagian dari temuannya.**
+
+Diukur pada data nyata, arah pergerakannya KEBALIKAN dari yang saya klaim:
+
+```
+Besi Beton Ø12mm SNI   17 Mar 120.000 → 04 Agu 100.000   TURUN 16,7%
+Besi Beton Ø10mm SNI   17 Mar  85.000 → 04 Agu  80.000   TURUN  5,9%
+```
+
+Saya sempat melaporkan "+20%" karena menghitung `max − min` tanpa
+memperhatikan urutan waktu. Layar bernama "Eskalasi" menjanjikan kenaikan;
+pembacanya akan menyimpulkan kenaikan bahkan saat angkanya turun.
+
+Dua jebakan lain yang ditemukan saat mengukur:
+
+- **`materials.unit_price` bukan acuan kontrak** — ia harga TERKINI, ditimpa
+  tiap kali diperbarui. Membandingkan PO terhadapnya akan selalu melaporkan
+  0%: layar yang selamanya bilang "aman".
+- **Beda harga bisa berarti beda VENDOR** — `Pasir Pasang` punya dua harga di
+  tanggal yang SAMA dari dua supplier. Itu rentang penawaran (urusan RFQ),
+  bukan pergerakan harga.
 
 ### Rekonsiliasi material (1,5/5 — paling lemah) — 3 item
 

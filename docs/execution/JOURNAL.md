@@ -5,6 +5,99 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-06 (lanjutan 4) — Saya salah: besi TURUN, bukan naik
+
+### Koreksi terhadap klaim saya sendiri, sebelum kodenya ditulis
+
+Di commit RFQ dan di beberapa laporan sesi ini saya menulis:
+
+> "Besi Beton Ø12mm SNI — 3 supplier, Rp100.000..Rp120.000, **+20%**"
+
+Sebagai **rentang antar-vendor** itu benar, dan RFQ memang menjawabnya. Tapi
+saya lalu memakai angka yang sama untuk mengusulkan **eskalasi harga**, seolah
+harganya naik 20% dari Maret ke Agustus. **Itu salah arah.**
+
+Diukur ulang, kali ini URUT WAKTU:
+
+```
+Besi Beton Ø12mm SNI
+   17 Mar 2026   120.000   jangkar   Toko Bangunan Maju
+   10 Mei 2026   120.000   jangkar   UD Besi Kuat Mandiri
+   04 Agu 2026   100.000   −16,7%    CV Sinar Abadi Beton
+```
+
+Harganya **TURUN 16,7%**, bukan naik 20%. Yang saya lakukan adalah
+`max − min` tanpa memperhatikan urutan — dan `min..max` memang "20%", tapi
+arahnya kebalikan dari yang saya klaim.
+
+Kalau ini tak ketahuan, saya akan membangun layar "Eskalasi Harga" yang
+memajang kenaikan yang tak pernah terjadi, di atas data yang membuktikan
+sebaliknya.
+
+### Dua temuan lain yang mengubah rancangan
+
+**`materials.unit_price` bukan harga acuan kontrak — ia harga TERKINI.**
+Besi Ø12mm: acuan 120.000, tertinggi dibeli 120.000 → "0% naik", padahal
+riwayatnya jelas berubah. Master price sudah ditimpa ke harga baru, jadi
+kenaikannya hilang. Membandingkan PO terhadap kolom itu akan **selalu**
+melaporkan 0% — layar yang selamanya bilang "aman".
+
+**Beda harga bisa berarti beda VENDOR, bukan eskalasi.** `Pasir Pasang`
+punya dua harga (185.000 dan 195.000) di **tanggal yang sama** dari dua
+supplier. Menghitungnya sebagai kenaikan 5,4% adalah salah baca: itu rentang
+antar-vendor — urusan RFQ, bukan eskalasi.
+
+### Akibatnya untuk rencana kerja
+
+Eskalasi harga TIDAK bisa dibangun sebagai "PO vs harga acuan": acuannya
+sudah tercemar, dan sebagian selisihnya bukan eskalasi. Yang bisa dipercaya
+hanya **riwayat PO urut waktu, dipisahkan per vendor** — dan pada data hari
+ini hanya **2 material** yang punya lebih dari satu tanggal beli.
+
+### Keputusan: dibangun sebagai **Riwayat Harga Material**, bukan "Eskalasi"
+
+Founder memilih membangunnya netral-arah daripada menundanya. Layar bernama
+"Eskalasi" menjanjikan kenaikan, dan pembacanya akan menyimpulkan kenaikan
+bahkan saat angkanya turun — jadi nama menunya ikut diganti (migrasi 197).
+
+Selesai: `lib/riwayat-harga.ts` + 15 test, endpoint read-only, halaman
+`/procurement/riwayat-harga`. TANPA tabel baru — seluruh datanya sudah ada di
+`purchase_order_items` + `purchase_orders`, dan menyalinnya ke tabel riwayat
+tersendiri menciptakan sumber kebenaran kedua yang bisa berselisih dengan
+PO-nya.
+
+Dibuktikan e2e pada data nyata:
+
+```
+naik=0  turun=2  satu-titik=5  beda-vendor=1
+
+Besi Beton Ø12mm SNI   120.000 → 100.000   −16,7%   3 titik   tren=true
+Besi Beton Ø10mm SNI    85.000 →  80.000    −5,9%   3 titik   tren=true
+Pasir Pasang           (1 titik, 2 vendor — sebaran, BUKAN kenaikan)
+```
+
+Tujuh mutasi disuntikkan, enam tertangkap. Yang terpenting: **membalik urutan
+tanggal** — persis kesalahan yang saya buat sendiri — langsung merah.
+
+Satu mutasi (membuang `titik.length >= 2` dari `perubahan_pct`) **mutan
+setara**: dengan satu titik `awal === akhir`, jadi rumusnya menghasilkan tepat
+0 dengan atau tanpa syarat itu. Dibuktikan untuk harga 0, 1, dan 999.000. Tak
+ada test yang bisa menangkapnya, dan ketiadaan testnya bukan lubang — yang
+menjaga pembacanya adalah `jumlah_satu_titik` dan `cukup_untuk_tren`, keduanya
+tertangkap saat dimutasi.
+
+Uji pertama saya untuk kasus itu juga LOLOS mutasi: ia menegaskan
+`perubahan_pct === 0`, yang benar tapi tak membedakan apa pun. Diperkuat jadi
+menegaskan pencacahnya.
+
+### Ambang tren: TIGA titik, bukan dua
+
+Dua titik bisa berarti satu pembelian borongan yang kebetulan murah. Layar
+menyatakan "baru 2 titik" alih-alih memajang persentase yang terlihat pasti —
+pembaca berhak tahu seberapa jauh angkanya bisa dipercaya.
+
+---
+
 ## 2026-08-06 (lanjutan 3) — RFQ, dan penjaga CI yang menggantung tanpa suara
 
 ### RFQ + perbandingan penawaran selesai (PEMBEDA 4/12)
