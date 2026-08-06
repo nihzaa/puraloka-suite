@@ -284,7 +284,7 @@ dengan PDF asli, dan memakai `currentColor` — bukan `#003366` mati. Salin apa
 adanya; jangan buat ulang.
 
 **Logo tampil PUTIH.** (Keputusan founder.) Cukup `color: #FFFFFF` — tidak
-perlu berkas varian. Putih di atas navy pekat memberi 17,4:1, jauh di atas
+perlu berkas varian. Putih di atas navy pekat memberi 16,62:1, jauh di atas
 kuning (11,77:1), dan menjaga kuning tetap langka sehingga aksennya bekerja.
 Kuning **tidak** dipakai untuk logo.
 

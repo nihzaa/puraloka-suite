@@ -1536,7 +1536,7 @@ git commit -m "feat(situs): apps/web-publik — tenant di-resolve di satu tempat
   --aksen:       #FFD600;
 
   /* Teks di atas navy pekat — diukur, bukan ditebak. */
-  --pada-navy:        #FFFFFF;  /* 17,4:1 */
+  --pada-navy:        #FFFFFF;  /* 16,62:1 */
   --pada-navy-redup:  #A8BBD0;  /* 7,1:1  */
 
   --ukuran-hero: clamp(2.5rem, 7vw, 5.5rem);
