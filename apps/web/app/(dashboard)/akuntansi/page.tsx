@@ -67,8 +67,34 @@ const STATUS_META: Record<string, { label: string; warna: string; bg: string; bo
   void: { label: "Dibatalkan", warna: C.mid, bg: "var(--bg)", border: C.border },
 };
 
+type TabAkuntansi = "jurnal" | "akun" | "neraca" | "besar" | "laporan";
+
+/**
+ * Judul halaman per tab.
+ *
+ * Halaman ini memuat lima hal yang berbeda, dan judulnya dulu dipaku
+ * "Buku Besar" — nama SATU tab dipakai untuk seluruh halaman. Akibatnya
+ * neraca & laba-rugi, yang menurut triase F5-1 adalah "pertanyaan pertama
+ * tiap calon pelanggan", tersembunyi di balik judul yang menyebut hal lain.
+ */
+const JUDUL_TAB: Record<TabAkuntansi, string> = {
+  jurnal:  "Jurnal Umum",
+  akun:    "Bagan Akun",
+  neraca:  "Neraca Saldo",
+  besar:   "Buku Besar",
+  laporan: "Neraca & Laba-Rugi",
+};
+
+const SUBJUDUL_TAB: Record<TabAkuntansi, string> = {
+  jurnal:  "Catatan transaksi berpasangan. Hanya jurnal terposting yang masuk laporan.",
+  akun:    "Daftar akun badan usaha ini beserta kelompok dan saldo normalnya.",
+  neraca:  "Saldo tiap akun — debit dan kredit wajib sama besar.",
+  besar:   "Mutasi per akun beserta saldo berjalannya.",
+  laporan: "Posisi keuangan dan hasil usaha badan usaha ini pada satu periode.",
+};
+
 export default function AkuntansiPage() {
-  const [tab, setTab] = useState<"jurnal" | "akun" | "neraca" | "besar" | "laporan">("jurnal");
+  const [tab, setTab] = useState<TabAkuntansi>("jurnal");
   const [akun, setAkun] = useState<Akun[]>([]);
   const [jurnal, setJurnal] = useState<Jurnal[]>([]);
   const [neraca, setNeraca] = useState<BarisNeraca[]>([]);
@@ -140,11 +166,18 @@ export default function AkuntansiPage() {
     <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
       {/* Header */}
       <div className="rise" style={{ marginBottom: 24 }}>
+        {/* Judul mengikuti TAB AKTIF, tidak dipaku "Buku Besar".
+            "Buku Besar" adalah nama salah satu dari lima tab di halaman ini,
+            dan memakainya sebagai judul seluruh halaman menyembunyikan yang
+            paling dicari: neraca dan laba-rugi — menurut triase F5-1 itu
+            "pertanyaan pertama tiap calon pelanggan". Orang yang membuka
+            laporan keuangan melihat judul "Buku Besar" dan menyangka salah
+            halaman. */}
         <h1 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700, color: C.text, margin: 0 }}>
-          Buku Besar
+          {JUDUL_TAB[tab]}
         </h1>
         <p style={{ fontSize: 13, color: C.mid, margin: "6px 0 0" }}>
-          Bagan akun, jurnal, dan neraca saldo badan usaha ini.
+          {SUBJUDUL_TAB[tab]}
         </p>
       </div>
 

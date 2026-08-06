@@ -52,22 +52,74 @@ try {
   process.exit(2)
 }
 
+/**
+ * Contoh nilai untuk rute dinamis (`[id]`), lewat env.
+ *
+ * ── Kenapa perlu
+ *
+ * Versi lama MELEWATI seluruh rute `[...]`. Akibatnya `/proyek/[id]` — 20
+ * bagian, 12.554px, halaman terkaya di aplikasi ini — tak pernah sekali pun
+ * diaudit. Cacat nyata bersembunyi di sana: lencana EVM memakai
+ * `opacity: 0.7` yang menjatuhkan kontras 4,79:1 → 2,82:1, kelas cacat
+ * persis yang dulu menyumbang 227 dari 235 pelanggaran lewat sidebar.
+ *
+ * Audit yang melewati halaman terpenting lalu melaporkan "nol pelanggaran"
+ * memberi rasa aman yang tidak dibayar dengan pemeriksaan apa pun.
+ *
+ * Nilainya lewat env supaya tak ada UUID yang dipaku di berkas ini —
+ * basis berbeda punya id berbeda, dan id yang basi membuat audit memindai
+ * halaman 404 sambil tampak berhasil.
+ */
+const CONTOH_ID = {
+  '/proyek/[id]': process.env.LAYAR_ID_PROYEK,
+  '/mandor/[id]': process.env.LAYAR_ID_MANDOR,
+  '/portal/proyek/[id]': process.env.LAYAR_ID_PROYEK,
+  '/pm-portal/proyek/[id]': process.env.LAYAR_ID_PROYEK,
+}
+
 function halamanDariBerkas() {
   const akar = join(process.cwd(), 'apps', 'web', 'app')
   const hasil = []
   const telusuri = (dir, rute) => {
     for (const isi of readdirSync(dir, { withFileTypes: true })) {
       if (isi.isDirectory()) {
-        if (isi.name.startsWith('[') || isi.name.startsWith('_')) continue
+        if (isi.name.startsWith('_')) continue
         telusuri(join(dir, isi.name), rute + (isi.name.startsWith('(') ? '' : `/${isi.name}`))
       } else if (isi.name === 'page.tsx') hasil.push(rute || '/')
     }
   }
   telusuri(akar, '')
-  return [...new Set(hasil)].sort()
+
+  return [...new Set(hasil)]
+    .map((r) => {
+      if (!r.includes('[')) return r
+      const contoh = CONTOH_ID[r]
+      // Rute dinamis tanpa contoh id tetap dilewati — tapi itu kini pilihan
+      // yang bisa dilihat (dilaporkan di ringkasan), bukan penghilangan diam.
+      return contoh ? r.replace(/\[[^\]]+\]/, contoh) : null
+    })
+    .filter(Boolean)
+    .sort()
 }
 
 const HALAMAN = URL_TUNGGAL ? [URL_TUNGGAL] : halamanDariBerkas()
+
+// Rute dinamis yang dilewati karena tak diberi contoh id — dinyatakan, bukan
+// dihilangkan diam-diam.
+const DINAMIS_TERLEWAT = URL_TUNGGAL ? [] : (() => {
+  const akar = join(process.cwd(), 'apps', 'web', 'app')
+  const semua = []
+  const telusuri = (dir, rute) => {
+    for (const isi of readdirSync(dir, { withFileTypes: true })) {
+      if (isi.isDirectory()) {
+        if (isi.name.startsWith('_')) continue
+        telusuri(join(dir, isi.name), rute + (isi.name.startsWith('(') ? '' : `/${isi.name}`))
+      } else if (isi.name === 'page.tsx' && rute.includes('[')) semua.push(rute)
+    }
+  }
+  telusuri(akar, '')
+  return [...new Set(semua)].filter((r) => !CONTOH_ID[r]).sort()
+})()
 
 const peramban = await chromium.launch()
 const konteks = await peramban.newContext({
@@ -139,6 +191,12 @@ const total = dipindai.reduce((n, s) => n + s.langgar.reduce((m, v) => m + v.jum
 console.log(`\n══ AUDIT A11Y RUNTIME (axe-core · WCAG 2.1 AA · mode ${mode}) ══\n`)
 console.log(`  halaman dipindai : ${dipindai.length}`)
 if (dialihkan.length) console.log(`  dialihkan        : ${dialihkan.length} (bukan halaman ini)`)
+if (DINAMIS_TERLEWAT.length) {
+  // Cakupan yang berkurang HARUS terlihat. "Nol pelanggaran" dari audit yang
+  // diam-diam melewati halaman terpenting adalah rasa aman yang tak dibayar.
+  console.log(`  rute dinamis TERLEWAT : ${DINAMIS_TERLEWAT.length} — beri contoh id lewat env untuk memindainya`)
+  for (const r of DINAMIS_TERLEWAT) console.log(`     ${r}`)
+}
 console.log(`  pelanggaran      : ${total}\n`)
 
 // Kelompokkan per rule — itu yang menentukan berapa PERBAIKAN, bukan berapa node.

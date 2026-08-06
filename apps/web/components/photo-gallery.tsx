@@ -400,7 +400,7 @@ export function PhotoGallery({ projectId, userRole }: Props) {
                       {photo.caption}
                     </p>
                   )}
-                  <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 10, margin: 0 }}>
+                  <p style={{ color: "color-mix(in srgb, var(--on-navy) 80%, transparent)", fontSize: 10, margin: 0 }}>
                     {fmtDate(photo.taken_at ?? photo.uploaded_at)}
                   </p>
                 </div>

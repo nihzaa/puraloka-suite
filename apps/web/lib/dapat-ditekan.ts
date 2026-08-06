@@ -56,6 +56,49 @@ export interface AtributDapatDitekan {
   onKeyDown?: (e: KeyboardEvent) => void
 }
 
+/**
+ * Varian TERPISAH untuk baris yang isinya memuat kontrol lain.
+ *
+ * ── Masalah yang diselesaikan
+ *
+ * `dapatDitekan()` memasang `role="button"` pada elemen yang menerima
+ * kliknya. Kalau elemen itu BARIS yang di dalamnya ada `<input>` — seperti
+ * baris kategori RAB dengan kotak serapan — hasilnya `nested-interactive`:
+ * kontrol di dalam tombol. Audit menemukan 21 node begini di satu halaman.
+ *
+ * `stopPropagation` pada selnya memperbaiki PERILAKU (Space tak lagi
+ * melipat baris saat orang mengetik) tapi tidak STRUKTURNYA — pembaca layar
+ * tetap melihat input bersarang di dalam tombol, dan sebagian membacakan
+ * seluruh isi baris sebagai nama tombolnya.
+ *
+ * Fungsi ini memisahkan keduanya:
+ *   • `pemicu` — atribut ARIA + keyboard, dipasang pada sel SEMPIT
+ *     (mis. chevron) yang tak memuat kontrol apa pun.
+ *   • `baris`  — hanya `onClick`, tanpa `role`, sehingga seluruh baris tetap
+ *     bisa diklik tikus seperti sebelumnya.
+ *
+ * Pemakai keyboard menekan chevron; pemakai tikus tetap bisa menekan di mana
+ * saja. Tak ada yang kehilangan apa pun.
+ */
+export function dapatDitekanTerpisah(
+  aksi: ((e: MouseEvent | KeyboardEvent) => void) | null | undefined,
+  label: string,
+  opsi?: { terbuka?: boolean },
+): { pemicu: AtributDapatDitekan; baris: { onClick?: (e: MouseEvent) => void; style?: never } } {
+  if (!aksi) return { pemicu: {}, baris: {} }
+
+  const penuh = dapatDitekan(aksi, label, opsi)
+  // `onClick` sengaja TIDAK ikut ke `pemicu`: klik pada chevron akan
+  // menggelembung ke baris dan memicu aksinya dua kali — melipat lalu
+  // membuka lagi, yang terlihat seperti tombol yang tak berfungsi.
+  const pemicu: AtributDapatDitekan = { ...penuh }
+  delete pemicu.onClick
+  return {
+    pemicu,
+    baris: { onClick: (e) => aksi(e) },
+  }
+}
+
 export function dapatDitekan(
   aksi: ((e: MouseEvent | KeyboardEvent) => void) | null | undefined,
   label: string,

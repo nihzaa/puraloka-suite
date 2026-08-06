@@ -390,7 +390,15 @@ function ProjectDetailContent() {
       {/* ── Sticky section navigator ── */}
       <div style={{
         position: "sticky", top: 0, zIndex: 40,
-        background: "rgba(var(--bg-rgb, 248,249,250), 0.92)",
+        // `--bg-rgb` TIDAK PERNAH didefinisikan di globals.css — diperiksa,
+        // nol hasil. Jadi fallback `248,249,250` (nilai mode TERANG) selalu
+        // yang dipakai, dan bilah navigasi ini tetap hampir putih di mode
+        // gelap sementara teksnya ikut menjadi terang: 20 pelanggaran kontras
+        // dari satu baris, semuanya hanya terlihat di mode gelap.
+        //
+        // `color-mix` atas `--bg` yang memang beradaptasi mode memberi efek
+        // transparan yang sama tanpa menebak nilai RGB-nya.
+        background: "color-mix(in srgb, var(--bg) 92%, transparent)",
         backdropFilter: "blur(8px)",
         borderBottom: "1px solid var(--border)",
         marginBottom: 20, marginLeft: -36, marginRight: -36,
@@ -572,21 +580,54 @@ function ProjectDetailContent() {
               <span style={{ color, opacity: 0.7 }}>{icon}</span>
             </div>
             <div style={{ fontSize: 17, fontWeight: 800, color, fontFamily: "var(--font-display)", lineHeight: 1 }}>{value}</div>
-            {sub && <div style={{ fontSize: 10, color, opacity: 0.65 }}>{sub}</div>}
+            {/* TANPA `opacity`. Kartu ini dirender enam kali per halaman, dan
+                `opacity: 0.65` menjatuhkan tiap keterangan di bawah ambang
+                kontras — 16 pelanggaran dari satu baris. Kelas cacat yang
+                sama dengan `opacity: 0.55` di sidebar dulu (227 dari 235).
+                Warnanya sudah membedakan kartu; keterangan tak perlu
+                diredupkan lagi untuk terlihat sekunder — ukurannya (10px)
+                sudah melakukan itu. */}
+            {sub && <div style={{ fontSize: 10, color }}>{sub}</div>}
           </div>
         );
 
+        /**
+         * Lencana indeks EVM.
+         *
+         * ── Kenapa ada BATAS ATAS
+         *
+         * Aturan lama hanya `v >= 1` → "Baik", tanpa batas atas. Diukur di
+         * layar: proyek dengan biaya belum tercatat menampilkan **CPI 24,00
+         * "Baik"**. CPI sehat berkisar 0,9–1,1; angka 24 berarti EV jauh
+         * melampaui AC — yaitu biaya belum masuk, bukan efisiensi luar biasa.
+         *
+         * Melabelinya "Baik" adalah kebohongan yang menenangkan, dan di layar
+         * keuangan proyek itu berbahaya: orang menyimpulkan proyeknya hemat
+         * padahal angkanya belum bisa dibaca sama sekali.
+         *
+         * Ambang 1,5 dipilih karena CPI di atas itu praktis tak terjadi pada
+         * proyek dengan pembukuan lengkap — kalau muncul, yang benar adalah
+         * mencurigai datanya, bukan merayakannya.
+         */
         const EVMBadge = ({ label, val, good }: { label: string; val: number | null; good: (v: number) => boolean }) => {
           if (val === null) return null;
-          const ok = good(val);
-          const warn = !ok && Math.abs(val - 1) < 0.2;
+          const takMasukAkal = val > 1.5;
+          const ok = good(val) && !takMasukAkal;
+          const warn = takMasukAkal || (!ok && Math.abs(val - 1) < 0.2);
           const color = ok ? C.green : warn ? C.yellow : C.red;
           const bg = ok ? C.greenBg : warn ? C.yellowBg : C.redBg;
+          const status = takMasukAkal ? "Cek data" : ok ? "Baik" : warn ? "Perhatian" : "Kritis";
           return (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 12px", borderRadius: 10, background: bg, border: `1px solid ${color}33`, minWidth: 80 }}>
               <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", color, letterSpacing: "0.05em", marginBottom: 4 }}>{label}</span>
               <span style={{ fontSize: 17, fontWeight: 800, color, lineHeight: 1 }}>{val.toFixed(2)}</span>
-              <span style={{ fontSize: 10, color, marginTop: 3, opacity: 0.7 }}>{ok ? "Baik" : warn ? "Perhatian" : "Kritis"}</span>
+              {/* TANPA `opacity`. Diukur: teks hijau di atas latar hijau muda
+                  turun dari 4,79:1 ke 2,82:1 pada `opacity: 0.7` — gagal
+                  WCAG AA 4,5:1. Kelas cacat yang sama pernah menyumbang 227
+                  dari 235 pelanggaran a11y lewat `opacity: 0.55` di sidebar.
+                  Axe tak menangkapnya di sini karena lencana ini hanya muncul
+                  bila ada data EVM, dan halaman `[id]` dilewati pemindai. */}
+              <span style={{ fontSize: 10, color, marginTop: 3 }}>{status}</span>
             </div>
           );
         };
@@ -624,7 +665,14 @@ function ProjectDetailContent() {
                 label="Kasbon Beredar"
                 value={fmtCompact(kasbonBeredar)}
                 sub="Status: approved"
-                color={kasbonBeredar > 0 ? "var(--data-5)" : C.muted}
+                // Token "--warning", BUKAN "--data-5".
+                //
+                // "--data-5" adalah deret KATEGORI untuk grafik: ambangnya 3:1
+                // sebagai komponen non-teks. Dipakai sebagai warna teks di atas
+                // "--warning-bg" ia menghasilkan 3,43:1 — gagal ambang teks
+                // WCAG AA 4,5:1. Kelas cacat yang sama sudah diperbaiki di
+                // /audit, keuangan/arus-kas, dan piutang; ini pemakaian keempat.
+                color={kasbonBeredar > 0 ? "var(--warning)" : C.muted}
                 bg={kasbonBeredar > 0 ? "var(--warning-bg)" : "var(--surface-subtle)"}
               />
               <FinCard
@@ -867,7 +915,7 @@ function ProjectDetailContent() {
                       </div>
                       {serapanPct === null
                         ? <span style={{ display: "inline-block", width: 40, height: 16, borderRadius: 6, background: "linear-gradient(90deg,var(--warning-border),var(--warning-bg),var(--warning-border))", backgroundSize: "200% 100%", animation: "shimmer 1.5s ease-in-out infinite" }} />
-                        : <span style={{ fontSize: 15, fontWeight: 800, color: "var(--data-5)", lineHeight: 1 }}>{serap.toFixed(1)}%</span>
+                        : <span style={{ fontSize: 15, fontWeight: 800, color: "var(--warning)", lineHeight: 1 }}>{serap.toFixed(1)}%</span>
                       }
                     </div>
                     {/* Segmented bar */}

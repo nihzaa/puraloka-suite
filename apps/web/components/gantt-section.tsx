@@ -651,8 +651,17 @@ function TodayLine({ minDate, totalDays }: { minDate: Date; totalDays: number })
       top: 0,
       bottom: 0,
       width: 2,
-      background: C.red,
-      opacity: 0.7,
+      // Transparansi ada di WARNA GARIS, bukan `opacity` pada wadahnya.
+      //
+      // `opacity` diwariskan ke seluruh anak — termasuk label "Hari ini" di
+      // bawah, yang warnanya sendiri lolos 4,83:1 lalu jatuh di bawah ambang
+      // karena diredupkan induknya. Garisnya memang boleh samar (ia penanda,
+      // bukan teks: ambangnya 3:1); labelnya tidak.
+      //
+      // Ini kali KETIGA `opacity` menurunkan kontras teks di sesi ini, dan
+      // ketiganya lolos seluruh pemindai statis — kontras hanya terlihat
+      // setelah nilai terhitung, bukan dari token di sumber.
+      background: "color-mix(in srgb, var(--danger) 70%, transparent)",
       pointerEvents: "none",
       zIndex: 5,
     }}>
@@ -977,6 +986,13 @@ export function GanttSection({ projectId, userRole, projectStart, projectEnd }: 
                 >
                   {hasChildren ? (
                     <button
+                      // Tombol berisi IKON saja — tanpa nama, pembaca layar
+                      // mengumumkan "tombol" tanpa memberi tahu tombol apa,
+                      // dan di Gantt ada satu per baris pekerjaan. Audit
+                      // menemukan 19 tombol tanpa nama di halaman ini.
+                      // Namanya menyebut uraian barisnya, bukan cuma "Lipat".
+                      aria-label={`${isCollapsed ? "Buka" : "Lipat"} sub-pekerjaan ${task.uraian}`}
+                      aria-expanded={!isCollapsed}
                       onClick={() => setCollapsed(s => {
                         const next = new Set(s);
                         if (next.has(task.id)) next.delete(task.id);

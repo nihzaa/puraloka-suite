@@ -36,7 +36,7 @@ export default function PortalProfilPage() {
           </div>
           <div>
             <div style={{ fontSize: 17, fontWeight: 700, color: "var(--surface)" }}>{user.name}</div>
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", marginTop: 2 }}>Klien</div>
+            <div style={{ fontSize: 13, color: "color-mix(in srgb, var(--on-navy) 80%, transparent)", marginTop: 2 }}>Klien</div>
           </div>
         </div>
 

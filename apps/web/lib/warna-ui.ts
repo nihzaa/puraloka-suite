@@ -103,8 +103,22 @@ export const C = {
   // `purple` khususnya: ungu bukan warna merek Puraloka. Ia sisa desain
   // lama yang sudah disapu dari 9 halaman; alias ini menampung pemakaian
   // yang tertinggal supaya mereka ikut memakai palet yang benar.
+  // ⚠️ `orange` menunjuk `--data-5`, dan `--data-5` adalah warna DERET GRAFIK:
+  // ambangnya 3:1 sebagai komponen non-teks. Sebagai warna TEKS di atas
+  // `orangeBg` ia menghasilkan 3,43:1 — gagal WCAG AA 4,5:1. Diukur, bukan
+  // ditaksir.
+  //
+  // Alias itu tetap dipertahankan untuk PENANDA (ikon, titik, isi bar), yang
+  // memang cuma butuh 3:1. Untuk TEKS pakai `orangeTeks` di bawah.
+  //
+  // Pemisahan ini lahir dari empat perbaikan berulang di tempat berbeda —
+  // /audit, keuangan/arus-kas, piutang, lalu proyek/[id] — yang semuanya
+  // cacat yang sama. Selama satu alias melayani dua ambang yang berbeda,
+  // kesalahan yang sama akan lahir lagi di tempat kelima.
   orange: "var(--data-5)", orangeBg: "var(--warning-bg)",
   orangeLight: "var(--warning-bg)",
+  /** Varian TEKS dari `orange` — memenuhi 4,5:1 di atas `orangeBg`. */
+  orangeTeks: "var(--warning)",
   purple: "var(--data-3)", purpleBg: "var(--surface-subtle)",
   purpleBorder: "var(--border)",
 

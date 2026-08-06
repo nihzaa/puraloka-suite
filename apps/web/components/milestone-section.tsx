@@ -316,8 +316,13 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
                     <p style={{
                       fontSize: 13, fontWeight: 600, color: isSelesai ? "var(--success)" : "var(--text-primary)",
                       margin: "0 0 4px",
+                      // TANPA `opacity`: coretan sudah menandai "selesai", dan
+                      // warna `--success` sendiri lolos 5,02:1. `opacity: 0.75`
+                      // menjatuhkannya di bawah ambang — kelas cacat yang sama
+                      // muncul EMPAT kali di sesi ini (sidebar, lencana EVM,
+                      // kartu finansial, garis "Hari ini"), dan tak satu pun
+                      // terlihat oleh pemindai statis.
                       textDecoration: isSelesai ? "line-through" : "none",
-                      opacity: isSelesai ? 0.75 : 1,
                     }}>
                       {m.title}
                     </p>

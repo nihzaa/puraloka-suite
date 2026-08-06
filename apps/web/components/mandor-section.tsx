@@ -191,12 +191,16 @@ export function MandorSection({
       {totalKasbon > 0 && (
         <div style={{
           marginBottom: 16, padding: "12px 16px",
-          background: C.orangeBg, border: `1px solid #FED7AA`,
+          // Token, bukan `#FED7AA` dipaku: hex literal tak beradaptasi mode
+          // gelap dan lolos seluruh penjaga token karena ia bukan warna teks.
+          background: C.orangeBg, border: `1px solid var(--warning-border)`,
           borderRadius: 10, display: "flex", alignItems: "center", gap: 12,
         }}>
           <CreditCard size={16} color={C.orange} style={{ flexShrink: 0 }} />
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: C.orange, marginBottom: 4 }}>
+            {/* `orangeTeks`, bukan `orange`: yang kedua adalah warna deret
+                grafik (ambang 3:1) dan gagal ambang teks di latar ini. */}
+            <div style={{ fontSize: 12, fontWeight: 600, color: C.orangeTeks, marginBottom: 4 }}>
               Total Kasbon Beredar di Proyek Ini: {fmt(totalKasbon)}
             </div>
             <div style={{ display: "flex", gap: 12, fontSize: 11, color: C.mid, flexWrap: "wrap" }}>
@@ -227,15 +231,22 @@ export function MandorSection({
           return (
             <div key={asgn.id} style={{ border: `1px solid ${C.border}`, borderRadius: 10, background: "var(--surface)", overflow: "hidden" }}>
               {/* Assignment header */}
+              {/* `role="button"` ada di CHEVRON, bukan di baris ini.
+                  Baris memuat tombol "Nonaktifkan"; menandai seluruh baris
+                  sebagai tombol membuat tombol bersarang di dalam tombol
+                  (`nested-interactive`) — pembaca layar sebagian membacakan
+                  seluruh isi baris sebagai nama tombolnya. Klik tikus tetap
+                  di seluruh baris. */}
+              {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions --
+                  Aturan ini benar untuk elemen yang HANYA bisa diklik. Di sini
+                  jalur keyboardnya ADA, di chevron beberapa baris di bawah
+                  (`role="button"` + Enter/Space + `aria-expanded`). Baris ini
+                  adalah PELENGKAP TIKUS: memperbesar target klik tanpa
+                  menambah perhentian Tab kedua ke aksi yang sama.
+                  Memberinya `role`+`tabIndex` justru mengembalikan
+                  `nested-interactive` yang baru saja diperbaiki — tombol
+                  "Nonaktifkan" ada di dalam baris ini. */}
               <div
-                role="button"
-                tabIndex={0}
-                onKeyDown={e => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault()   // Spasi jangan menggulir daftar mandor
-                    toggleExpand(asgn.id)
-                  }
-                }}
                 style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", cursor: "pointer", background: isExpanded ? C.navyLight : "var(--surface)", transition: "background 0.15s" }}
                 onClick={() => toggleExpand(asgn.id)}
               >
@@ -249,7 +260,7 @@ export function MandorSection({
                     <span>Assign: {new Date(asgn.assigned_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</span>
                     <span> · {scopes.length} scope</span>
                     {mandorKasbon > 0 && (
-                      <span style={{ color: C.orange }}> · Kasbon: {fmt(mandorKasbon)}</span>
+                      <span style={{ color: C.orangeTeks }}> · Kasbon: {fmt(mandorKasbon)}</span>
                     )}
                   </div>
                 </div>
@@ -263,7 +274,24 @@ export function MandorSection({
                       Nonaktifkan
                     </button>
                   )}
-                  {isExpanded ? <ChevronDown size={16} color={C.mid} /> : <ChevronRight size={16} color={C.mid} />}
+                  {/* Pemicu keyboard: menyebut mandornya, bukan sekadar
+                      "Buka" — ada satu chevron per baris penugasan. */}
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`${isExpanded ? "Tutup" : "Buka"} rincian penugasan ${asgn.mandor?.name ?? "mandor"}`}
+                    aria-expanded={isExpanded}
+                    onClick={e => { e.stopPropagation(); toggleExpand(asgn.id); }}
+                    onKeyDown={e => {
+                      if (e.key !== "Enter" && e.key !== " ") return;
+                      e.preventDefault();   // Spasi jangan menggulir daftar mandor
+                      e.stopPropagation();
+                      toggleExpand(asgn.id);
+                    }}
+                    style={{ display: "flex", alignItems: "center", cursor: "pointer" }}
+                  >
+                    {isExpanded ? <ChevronDown size={16} color={C.mid} /> : <ChevronRight size={16} color={C.mid} />}
+                  </span>
                 </div>
               </div>
 

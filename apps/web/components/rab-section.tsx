@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Upload, BarChart2, ChevronDown, ChevronRight, RefreshCw, Percent, CheckCircle } from "lucide-react";
 import { api } from "@/lib/api";
-import { dapatDitekan } from "@/lib/dapat-ditekan";
+import { dapatDitekan, dapatDitekanTerpisah } from "@/lib/dapat-ditekan";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -413,8 +413,16 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 2, alignItems: "flex-end" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          {/* `aria-label` menyebut BARISNYA, bukan sekadar "Serapan".
+              Satu halaman RAB memuat puluhan input identik; label yang sama
+              untuk semuanya membuat pembaca layar mengumumkan "serapan,
+              serapan, serapan" tanpa satu pun petunjuk sedang mengisi
+              pekerjaan yang mana. Audit menemukan 85 input tanpa label di
+              halaman ini — halaman yang tak pernah dipindai karena rutenya
+              dinamis (`/proyek/[id]`). */}
           <input
             type="number" min="0" max="100" step="1"
+            aria-label={`Serapan anggaran (%) untuk ${item.name}`}
             value={isEditing ? editVal : currentSerapan.toFixed(1)}
             onFocus={onFocus}
             onChange={e => onChange(e.target.value)}
@@ -469,6 +477,9 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
                 <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
                   <input
                     type="number" min="0" max="100" step="0.5"
+                    // Label memuat NAMA KOMPONEN dan NAMA BARIS: empat input
+                    // berdampingan (upah/bahan/alat/lain) dikali puluhan baris.
+                    aria-label={`Porsi ${label} (%) untuk ${item.name}`}
                     value={editing[key as keyof typeof editing]}
                     onChange={e => setEditingKomponen(prev => ({ ...prev, [item.id]: { ...prev[item.id], [key]: e.target.value } }))}
                     style={{
@@ -539,17 +550,24 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
       const children = items.filter(it => it.parent_id === cat.id);
       const hasChildren = children.length > 0;
 
+      // `role="button"` di SEL CHEVRON, bukan di barisnya.
+      //
+      // Baris ini memuat kotak serapan; menandai seluruh baris sebagai tombol
+      // membuat input bersarang di dalam tombol (`nested-interactive`) — 21
+      // node begini ditemukan di halaman ini. Kliknya tetap di seluruh baris.
+      const lipat = dapatDitekanTerpisah(
+        hasChildren ? () => toggleCollapse(cat.id) : null,
+        `${isCollapsed ? "Buka" : "Lipat"} kategori ${cat.name}`,
+        { terbuka: !isCollapsed },
+      );
+
       return (
         <div key={cat.id}>
           <div
             style={{ display: "grid", gridTemplateColumns: gridCols, gap: 6, alignItems: "center", padding: "8px 12px", background: C.navyLight, borderBottom: "1px solid var(--border-strong)", cursor: hasChildren ? "pointer" : "default" }}
-            {...dapatDitekan(
-              hasChildren ? () => toggleCollapse(cat.id) : null,
-              `${isCollapsed ? "Buka" : "Lipat"} kategori ${cat.name}`,
-              { terbuka: !isCollapsed },
-            )}
+            {...lipat.baris}
           >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }} {...lipat.pemicu}>
               {hasChildren ? (isCollapsed ? <ChevronRight size={13} color={C.navy} /> : <ChevronDown size={13} color={C.navy} />) : null}
             </div>
             <div><span style={{ fontSize: 12, fontWeight: 700, color: C.navy }}>{cat.category_code ? `${cat.category_code}. ` : ""}{cat.name}</span></div>
@@ -566,17 +584,20 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
             if (child.level === "subcategory") {
               const subChildren = items.filter(it => it.parent_id === child.id);
               const subCollapsed = collapsed.has(child.id);
+              // Alasan sama dengan baris kategori di atas: pemicu di sel
+              // chevron supaya kotak serapan tak bersarang di dalam tombol.
+              const lipatSub = dapatDitekanTerpisah(
+                subChildren.length > 0 ? () => toggleCollapse(child.id) : null,
+                `${subCollapsed ? "Buka" : "Lipat"} sub-kategori ${child.name}`,
+                { terbuka: !subCollapsed },
+              );
               return (
                 <div key={child.id}>
                   <div
                     style={{ display: "grid", gridTemplateColumns: gridCols, gap: 6, alignItems: "center", padding: "8px 12px 8px 28px", background: "var(--bg)", borderBottom: "1px solid var(--border)", cursor: subChildren.length > 0 ? "pointer" : "default" }}
-                    {...dapatDitekan(
-                      subChildren.length > 0 ? () => toggleCollapse(child.id) : null,
-                      `${subCollapsed ? "Buka" : "Lipat"} sub-kategori ${child.name}`,
-                      { terbuka: !subCollapsed },
-                    )}
+                    {...lipatSub.baris}
                   >
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }} {...lipatSub.pemicu}>
                       {subChildren.length > 0 ? (subCollapsed ? <ChevronRight size={12} color={C.mid} /> : <ChevronDown size={12} color={C.mid} />) : null}
                     </div>
                     <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{child.category_code ? `${child.category_code}. ` : ""}{child.name}</span>
@@ -763,7 +784,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
       {hasData && categories.length > 0 && (
         <div style={{ marginBottom: 16, padding: "12px 16px", borderRadius: 10, background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))", display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
           <div>
-            <p style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", margin: "0 0 2px" }}>Serapan Dana (Weighted)</p>
+            <p style={{ fontSize: 11, color: "color-mix(in srgb, var(--on-navy) 80%, transparent)", margin: "0 0 2px" }}>Serapan Dana (Weighted)</p>
             <p style={{ fontSize: 28, fontWeight: 700, color: "#fff", margin: 0, lineHeight: 1 }}>{overallSerapan.toFixed(1)}%</p>
           </div>
           <div style={{ flex: 1, minWidth: 120 }}>

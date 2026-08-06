@@ -784,9 +784,27 @@ items:
   # Diturunkan dari docs/execution/F5-1-TRIASE-SUBMENU.md §3. Nomor mengikuti
   # nomor INTI di dokumen itu, BUKAN urutan pengerjaan.
   #
-  # Selesai sejauh ini: #2 IPC · #3 retensi · #4 klaim.
-  # Belum: #1 laporan keuangan (neraca & L/R) · #5 surat masuk/keluar ·
-  #        #6 instruksi lapangan · #7 NCR · #8 geotag · #9 absensi lapangan.
+  # Selesai (DIUKUR di HEAD 2026-08-05 — endpoint DAN halamannya, bukan salah satu):
+  #   #1 laporan keuangan · /gl/laporan + tab "Neraca & Laba-Rugi" di /akuntansi,
+  #      lengkap dengan penanda seimbang, margin, dan ekspor CSV.
+  #      Catatan ini SEMPAT menyatakan #1 belum ada — itu salah, dan salahnya
+  #      membuat item INTI paling penting tampak belum tersentuh sama sekali.
+  #   #2 IPC · #3 retensi · #4 klaim · #7 NCR (/api/v1/ncr + /mutu/ncr)
+  #   #5 surat     · /api/v1/letters + <SuratSection> di /proyek/[id]
+  #   #6 instruksi · /api/v1/field-instructions + <InstruksiLapanganSection>
+  #                  di /proyek/[id]
+  #
+  #      Keduanya SENGAJA tidak punya halaman sendiri: surat dan instruksi
+  #      selalu milik satu proyek, jadi tempatnya di halaman proyek itu.
+  #      Diverifikasi di layar, bukan dari nama berkas — pencarian "halaman
+  #      bernama surat/instruksi" sempat memberi NOL dan hampir menghasilkan
+  #      catatan "belum ada" untuk fitur yang sudah hidup.
+  #
+  # Belum digarap:
+  #   #8 geotag    · 8 kolom koordinat SUDAH ada (ncr_photos, project_photos,
+  #                  projects). Triase menulis "0 kolom hari ini" — sudah usang.
+  #                  Yang belum: tampilan peta / verifikasi lokasi di UI.
+  #   #9 absensi lapangan · nol rute, nol halaman.
 
   - id: F5-INTI-2
     fase: 5

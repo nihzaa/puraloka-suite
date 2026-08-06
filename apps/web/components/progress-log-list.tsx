@@ -281,7 +281,7 @@ function LogCard({
           <span style={{ fontSize: 22, fontWeight: 800, color: "var(--surface)", lineHeight: 1.1, fontFamily: "var(--font-display)" }}>
             {day}
           </span>
-          <span style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.7)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+          <span style={{ fontSize: 10, fontWeight: 600, color: "color-mix(in srgb, var(--on-navy) 80%, transparent)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
             {month}
           </span>
         </div>
