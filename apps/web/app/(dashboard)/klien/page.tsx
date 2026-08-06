@@ -1,494 +1,70 @@
 "use client";
 
-import { useEffect, useState } from "react";
+/**
+ * KLIEN — RINGKASAN. Dashboard modul, bukan langsung tabel (UI-2-3).
+ *
+ * ── Dua lapis, BUKAN tiga — dan itu keputusan, bukan pekerjaan yang terputus
+ *
+ *   LAPIS 1  tiga kartu KPI        "apa yang terjadi?"
+ *   LAPIS 3  daftar klien + saringan
+ *
+ * Lapis 2 (grafik) SENGAJA tidak ada. `/api/v1/clients` mengirim persis satu
+ * baris `clients` per klien: nama, kontak, tipe, aktif/nonaktif, tanggal
+ * dibuat. Tak ada nilai, tak ada jumlah proyek, tak ada piutang. Dari data
+ * yang seluruhnya kategoris seperti itu, satu-satunya grafik yang bisa
+ * digambar adalah donat "perorangan vs perusahaan" — yang menggambar ulang
+ * angka yang sudah tertulis utuh di kartu KPI dan di tombol saringan tepat di
+ * bawahnya. Grafik yang menggambar ulang daftar adalah tinta tanpa informasi,
+ * jadi tak ada grafik di sini.
+ *
+ * ── KPI yang DIPERTIMBANGKAN lalu dibuang, dengan alasannya
+ *
+ * "Klien dengan piutang jatuh tempo" adalah KPI yang paling berguna untuk
+ * menu ini — dan ia TIDAK dibangun. Bukan karena datanya tak ada di mana pun:
+ * `/api/v1/finance/ar-aging` memang memulangkan `client.id` per invoice.
+ * Masalahnya izin. Rute itu menuntut `finance:view:all`, sementara `/klien`
+ * dijaga `clients:manage` (dan middleware membukanya untuk admin). Artinya
+ * ada pengguna nyata yang boleh membuka halaman ini tapi ditolak endpoint
+ * itu — dan bentuk penolakannya 403 yang, kalau ditelan, menampilkan
+ * "0 klien menunggak" dengan percaya diri.
+ *
+ * Angka nol yang berarti "saya tak boleh tahu" tak bisa dibedakan dari nol
+ * yang berarti "semua sudah bayar", dan hanya salah satunya kabar baik.
+ * Piutang per klien sudah punya rumahnya di /keuangan/piutang, yang izinnya
+ * memang finance. Yang tersisa di sini: tautan ke sana, dan panel detail
+ * per-klien yang sudah memuat ringkasan invoice lewat `/clients/:id`
+ * (dengan izin yang sama seperti halaman ini).
+ *
+ * "Klien tanpa proyek" juga dibuang — `/api/v1/clients` tak mengirim jumlah
+ * proyek, dan menghitungnya berarti satu permintaan `/clients/:id` per baris.
+ *
+ * ── Kenapa "kontak tak lengkap" layak jadi KPI
+ *
+ * Ia satu-satunya angka yang MENUNTUT TINDAKAN yang bisa dihitung jujur dari
+ * respons ini, dan tindakannya jelas: lengkapi datanya. Klien tanpa email tak
+ * bisa dikirimi invoice tanpa mengetik ulang alamatnya dari tempat lain, dan
+ * yang tanpa NPWP/NIK menahan penerbitan faktur pajak — dua hal yang selalu
+ * ketahuan pada saat yang paling buruk, yaitu saat invoicenya harus keluar.
+ */
+
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useTutupEsc } from "@/lib/use-tutup-esc";
-import { createPortal } from "react-dom";
 import { api } from "@/lib/api";
 import { useIzin } from "@/lib/use-izin";
 import { useRouter } from "next/navigation";
 import {
-  Users, Plus, Search, Building2, User, Phone, Mail,
-  MapPin, Edit2, X, ChevronRight, FolderKanban,
+  Users, Plus, Search, Building2, User, ChevronRight, FolderKanban,
   ToggleLeft, ToggleRight, FileText, MessageCircle, ExternalLink,
+  AlertTriangle, Edit2,
 } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
-import { Kosong } from "@/components/ui-dasar";
+import { KartuKPI, Kosong } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
-
-interface Client {
-  id: string;
-  contact_person: string;
-  company_name: string | null;
-  phone: string;
-  email: string | null;
-  address: string | null;
-  npwp: string | null;
-  id_number: string | null;
-  client_type: "perorangan" | "perusahaan";
-  notes: string | null;
-  is_active: boolean;
-  created_at: string;
-}
-
-interface ClientProject {
-  id: string;
-  name: string;
-  status: string;
-  contract_value: number | null;
-  start_date: string | null;
-  end_date: string | null;
-  progress_pct?: number;
-}
-
-interface ClientDetail extends Client {
-  projects: ClientProject[];
-  summary: {
-    total_projects: number;
-    total_contract_value: number;
-    invoice_total: number;
-    invoice_outstanding: number;
-    invoice_overdue: number;
-    invoice_paid: number;
-  };
-}
-
-function useMount() {
-  const [m, setM] = useState(false);
-  useEffect(() => setM(true), []);
-  return m;
-}
-
-function fmtCurrency(n: number) {
-  if (n >= 1_000_000_000) return `Rp ${(n / 1_000_000_000).toFixed(1).replace(/\.0$/, "")} M`;
-  if (n >= 1_000_000) return `Rp ${(n / 1_000_000).toFixed(0)} jt`;
-  return `Rp ${n.toLocaleString("id-ID")}`;
-}
-
-const STATUS_COLORS: Record<string, { color: string; bg: string; label: string }> = {
-  planning:  { color: C.mid,    bg: "var(--surface-hover)", label: "Perencanaan" },
-  active:    { color: C.green,  bg: C.greenBg, label: "Aktif" },
-  on_hold:   { color: C.yellow, bg: "var(--warning-bg)", label: "Ditahan" },
-  completed: { color: "var(--info)", bg: "var(--info-bg)", label: "Selesai" },
-  cancelled: { color: C.red,   bg: C.redBg,   label: "Dibatalkan" },
-};
-
-function ClientModal({
-  client, onClose, onSaved,
-}: {
-  client: Client | null;
-  onClose: () => void;
-  onSaved: (c: Client) => void;
-}) {
-  useTutupEsc(onClose);
-  const [form, setForm] = useState({
-    contact_person: client?.contact_person ?? "",
-    phone: client?.phone ?? "",
-    company_name: client?.company_name ?? "",
-    email: client?.email ?? "",
-    address: client?.address ?? "",
-    npwp: client?.npwp ?? "",
-    id_number: client?.id_number ?? "",
-    client_type: client?.client_type ?? "perorangan",
-    notes: client?.notes ?? "",
-  });
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const mounted = useMount();
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!form.contact_person.trim()) { setError("Nama kontak wajib diisi"); return; }
-    if (!form.phone.trim()) { setError("Nomor telepon wajib diisi"); return; }
-    setSaving(true);
-    setError("");
-    try {
-      const payload = {
-        contact_person: form.contact_person.trim(),
-        phone: form.phone.trim(),
-        company_name: form.company_name.trim() || null,
-        email: form.email.trim() || null,
-        address: form.address.trim() || null,
-        npwp: form.npwp.trim() || null,
-        id_number: form.id_number.trim() || null,
-        client_type: form.client_type,
-        notes: form.notes.trim() || null,
-      };
-      let res: { data: { client: Client } };
-      if (client) {
-        res = await api.patch(`/api/v1/clients/${client.id}`, payload);
-      } else {
-        res = await api.post("/api/v1/clients", payload);
-      }
-      onSaved(res.data.client);
-      onClose();
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setError(msg ?? "Gagal menyimpan");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
-    setForm(f => ({ ...f, [k]: e.target.value }));
-
-  const inputStyle: React.CSSProperties = {
-    width: "100%", padding: "8px 12px", borderRadius: 6,
-    border: `1px solid ${C.border}`, fontSize: 13, color: C.text,
-    background: "var(--surface)", outline: "none",
-  };
-  const labelStyle: React.CSSProperties = { display: "block", fontSize: 12, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 5 };
-
-  if (!mounted) return null;
-
-  return createPortal(
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-      <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 540, maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: "var(--naik-3)" }}>
-        <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
-          <h2 style={{ fontFamily: "var(--font-display)", fontSize: 17, fontWeight: 700, color: C.text }}>
-            {client ? "Edit Klien" : "Tambah Klien"}
-          </h2>
-          <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, border: "none", background: "none", cursor: "pointer", color: C.mid, borderRadius: 6 }}>
-            <X size={18} />
-          </button>
-        </div>
-        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
-          {/* Tipe klien */}
-          <div>
-            <span id="tipe-klien" style={labelStyle}>Tipe Klien</span>
-            <div role="group" aria-labelledby="tipe-klien" style={{ display: "flex", gap: 8 }}>
-              {(["perorangan", "perusahaan"] as const).map(t => (
-                <button
-                  key={t} type="button"
-                  onClick={() => setForm(f => ({ ...f, client_type: t }))}
-                  style={{
-                    flex: 1, padding: "8px", borderRadius: 6, border: `1.5px solid ${form.client_type === t ? C.navy : C.border}`,
-                    background: form.client_type === t ? C.navyLight : "var(--surface)",
-                    color: form.client_type === t ? C.navy : C.mid, fontSize: 13, fontWeight: 500, cursor: "pointer",
-                  }}
-                >
-                  {t === "perorangan" ? "Perorangan" : "Perusahaan"}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <div style={{ gridColumn: "1 / -1" }}>
-              <label htmlFor="contact-person" style={labelStyle}>Nama Kontak <span style={{ color: C.red }}>*</span></label>
-              <input id="contact-person" value={form.contact_person} onChange={set("contact_person")} required style={inputStyle} placeholder="Nama lengkap" />
-            </div>
-            {form.client_type === "perusahaan" && (
-              <div style={{ gridColumn: "1 / -1" }}>
-                <label htmlFor="company-name" style={labelStyle}>Nama Perusahaan</label>
-                <input id="company-name" value={form.company_name} onChange={set("company_name")} style={inputStyle} placeholder="CV / PT / UD ..." />
-              </div>
-            )}
-            <div>
-              <label htmlFor="phone" style={labelStyle}>No. Telepon <span style={{ color: C.red }}>*</span></label>
-              <input id="phone" value={form.phone} onChange={set("phone")} required style={inputStyle} placeholder="08xx..." />
-            </div>
-            <div>
-              <label htmlFor="email" style={labelStyle}>Email</label>
-              <input id="email" type="email" value={form.email} onChange={set("email")} style={inputStyle} placeholder="email@..." />
-            </div>
-            <div style={{ gridColumn: "1 / -1" }}>
-              <label htmlFor="address" style={labelStyle}>Alamat</label>
-              <input id="address" value={form.address} onChange={set("address")} style={inputStyle} placeholder="Jl. ..." />
-            </div>
-            <div>
-              <label style={labelStyle}>{form.client_type === "perusahaan" ? "NPWP" : "NIK"}</label>
-              <input
-                value={form.client_type === "perusahaan" ? form.npwp : form.id_number}
-                onChange={set(form.client_type === "perusahaan" ? "npwp" : "id_number")}
-                style={inputStyle}
-                placeholder={form.client_type === "perusahaan" ? "00.000.000.0-000.000" : "16 digit NIK"}
-              />
-            </div>
-            <div>
-              <label htmlFor="notes" style={labelStyle}>Catatan</label>
-              <input id="notes" value={form.notes} onChange={set("notes")} style={inputStyle} placeholder="Opsional..." />
-            </div>
-          </div>
-
-          {error && (
-            <div style={{ fontSize: 12, color: C.red, background: C.redBg, border: `1px solid ${C.redBorder}`, borderRadius: 6, padding: "8px 12px" }}>
-              {error}
-            </div>
-          )}
-        </form>
-        <div style={{ padding: "16px 24px", borderTop: `1px solid ${C.border}`, display: "flex", justifyContent: "flex-end", gap: 8, flexShrink: 0 }}>
-          <button onClick={onClose} style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: 13, cursor: "pointer", color: C.mid }}>
-            Batal
-          </button>
-          <button
-            onClick={handleSubmit as unknown as React.MouseEventHandler}
-            disabled={saving}
-            style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: saving ? "#4D7AB5" : C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer" }}
-          >
-            {saving ? "Menyimpan..." : client ? "Simpan Perubahan" : "Tambah Klien"}
-          </button>
-        </div>
-      </div>
-    </div>,
-    document.body
-  );
-}
-
-function waLink(phone: string) {
-  const digits = phone.replace(/\D/g, "");
-  const normalized = digits.startsWith("0") ? "62" + digits.slice(1) : digits.startsWith("62") ? digits : "62" + digits;
-  return `https://wa.me/${normalized}`;
-}
-
-function DetailPanel({ clientId, onClose, onEdit, onCreateProject }: {
-  clientId: string;
-  onClose: () => void;
-  onEdit: () => void;
-  onCreateProject: () => void;
-}) {
-  useTutupEsc(onClose);
-  const [detail, setDetail] = useState<ClientDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const mounted = useMount();
-
-  useEffect(() => {
-    if (!clientId) return;
-    setLoading(true);
-    api.get<{ client: Client; projects: ClientProject[]; summary: ClientDetail["summary"] }>(`/api/v1/clients/${clientId}`)
-      .then(r => setDetail({ ...r.data.client, projects: r.data.projects, summary: r.data.summary }))
-      .finally(() => setLoading(false));
-  }, [clientId]);
-
-  if (!mounted) return null;
-
-  return createPortal(
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 9998, display: "flex", alignItems: "center", justifyContent: "flex-end" }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ width: 440, height: "100%", background: "var(--surface)", boxShadow: "-8px 0 32px rgba(0,0,0,0.12)", display: "flex", flexDirection: "column" }}>
-
-        {/* Header */}
-        <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
-          <h2 style={{ fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 700, color: C.text }}>Detail Klien</h2>
-          <div style={{ display: "flex", gap: 4 }}>
-            <button aria-label="Edit klien"
-              onClick={onEdit}
-              title="Edit klien"
-              style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", border: `1px solid ${C.border}`, background: "var(--surface)", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 500, color: C.mid }}
-              onMouseEnter={e => { e.currentTarget.style.color = C.navy; e.currentTarget.style.borderColor = C.navy; }}
-              onMouseLeave={e => { e.currentTarget.style.color = C.mid; e.currentTarget.style.borderColor = C.border; }}
-            >
-              <Edit2 size={12} /> Edit
-            </button>
-            <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, border: "none", background: "none", cursor: "pointer", color: C.mid, borderRadius: 6 }}><X size={16} /></button>
-          </div>
-        </div>
-
-        <div style={{ flex: 1, overflowY: "auto" }}>
-          {loading ? (
-            <div style={{ padding: 24, color: C.muted, fontSize: 13 }}>Memuat...</div>
-          ) : detail ? (
-            <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
-
-              {/* Avatar + info dasar */}
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                <div style={{ width: 48, height: 48, borderRadius: 14, background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  {detail.client_type === "perusahaan" ? <Building2 size={22} color={C.navy} /> : <User size={22} color={C.navy} />}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 15, color: C.text, marginBottom: 2 }}>{detail.contact_person}</div>
-                  {detail.company_name && <div style={{ fontSize: 12, color: C.mid, marginBottom: 4 }}>{detail.company_name}</div>}
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: detail.client_type === "perusahaan" ? "var(--info-bg)" : C.greenBg, color: detail.client_type === "perusahaan" ? "var(--info)" : C.green, fontWeight: 500 }}>
-                      {detail.client_type === "perusahaan" ? "Perusahaan" : "Perorangan"}
-                    </span>
-                    <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: detail.is_active ? C.greenBg : "var(--surface-hover)", color: detail.is_active ? C.green : C.muted, fontWeight: 500 }}>
-                      {detail.is_active ? "Aktif" : "Nonaktif"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Kontak — dengan WA + email link */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {/* Telepon + WA */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: C.text }}>
-                    <Phone size={14} style={{ color: C.muted, flexShrink: 0 }} />
-                    <span>{detail.phone}</span>
-                  </div>
-                  <a
-                    href={waLink(detail.phone)}
-                    target="_blank" rel="noopener noreferrer"
-                    style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, background: "var(--success-bg)", color: "var(--success)", fontSize: 11, fontWeight: 600, textDecoration: "none", flexShrink: 0 }}
-                  >
-                    <MessageCircle size={11} /> WhatsApp
-                  </a>
-                </div>
-                {/* Email */}
-                {detail.email && (
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: C.text, minWidth: 0 }}>
-                      <Mail size={14} style={{ color: C.muted, flexShrink: 0 }} />
-                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{detail.email}</span>
-                    </div>
-                    <a
-                      href={`mailto:${detail.email}`}
-                      style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, background: "var(--info-bg)", color: "var(--info)", fontSize: 11, fontWeight: 600, textDecoration: "none", flexShrink: 0 }}
-                    >
-                      <ExternalLink size={11} /> Email
-                    </a>
-                  </div>
-                )}
-                {/* Alamat */}
-                {detail.address && (
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13, color: C.mid }}>
-                    <MapPin size={14} style={{ flexShrink: 0, marginTop: 1 }} />
-                    <span style={{ lineHeight: 1.5 }}>{detail.address}</span>
-                  </div>
-                )}
-                {/* NIK / NPWP */}
-                {(detail.npwp || detail.id_number) && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: C.mid }}>
-                    <FileText size={14} style={{ flexShrink: 0 }} />
-                    <span>{detail.npwp ? `NPWP: ${detail.npwp}` : `NIK: ${detail.id_number}`}</span>
-                  </div>
-                )}
-                {/* Notes */}
-                {detail.notes && (
-                  <div style={{ marginTop: 4, padding: "8px 12px", background: "var(--surface-subtle)", borderRadius: 6, fontSize: 12, color: C.mid, lineHeight: 1.5, borderLeft: `3px solid ${C.border}` }}>
-                    {detail.notes}
-                  </div>
-                )}
-              </div>
-
-              {/* Summary KPIs */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                {[
-                  { label: "Total Proyek", value: String(detail.summary.total_projects), color: C.navy },
-                  { label: "Nilai Kontrak", value: fmtCurrency(detail.summary.total_contract_value), color: C.text },
-                ].map(s => (
-                  <div key={s.label} style={{ background: C.bg, borderRadius: 10, padding: "12px 12px", border: `1px solid ${C.border}` }}>
-                    <div style={{ fontSize: 10, color: C.muted, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>{s.label}</div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: s.color }}>{s.value}</div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Invoice summary */}
-              {(detail.summary.invoice_total > 0) && (
-                <div style={{ background: C.bg, borderRadius: 10, padding: "12px", border: `1px solid ${C.border}` }}>
-                  <div style={{ fontSize: 10, color: C.muted, marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700 }}>Ringkasan Invoice</div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ fontSize: 12, color: C.mid }}>Total tagihan</span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{fmtCurrency(detail.summary.invoice_total)}</span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ fontSize: 12, color: C.mid }}>Sudah dibayar</span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: C.green }}>{fmtCurrency(detail.summary.invoice_paid)}</span>
-                    </div>
-                    {detail.summary.invoice_outstanding > 0 && (
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 8px", background: detail.summary.invoice_overdue > 0 ? C.redBg : C.yellowBg, borderRadius: 6, marginTop: 2 }}>
-                        <span style={{ fontSize: 12, color: detail.summary.invoice_overdue > 0 ? C.red : C.yellow, fontWeight: 500 }}>
-                          {detail.summary.invoice_overdue > 0 ? "⚠ Overdue" : "Belum lunas"}
-                        </span>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: detail.summary.invoice_overdue > 0 ? C.red : C.yellow }}>
-                          {fmtCurrency(detail.summary.invoice_outstanding)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  {/* Progres bayar */}
-                  <div style={{ marginTop: 10 }}>
-                    <div style={{ height: 5, background: "var(--border)", borderRadius: 99, overflow: "hidden" }}>
-                      <div style={{
-                        height: "100%",
-                        width: `${Math.min((detail.summary.invoice_paid / detail.summary.invoice_total) * 100, 100)}%`,
-                        background: C.green, borderRadius: 99,
-                      }} />
-                    </div>
-                    <div style={{ fontSize: 10, color: C.muted, marginTop: 4 }}>
-                      {Math.round((detail.summary.invoice_paid / detail.summary.invoice_total) * 100)}% terbayar
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Proyek */}
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                    Proyek Terkait
-                  </div>
-                  <button
-                    onClick={onCreateProject}
-                    style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, border: "none", background: C.navy, color: C.onNavy, fontSize: 11, fontWeight: 600, cursor: "pointer" }}
-                  >
-                    <Plus size={11} /> Buat Proyek
-                  </button>
-                </div>
-                {detail.projects.length === 0 ? (
-                  <div style={{ fontSize: 13, color: C.muted, padding: "16px 0", textAlign: "center" }}>
-                    Belum ada proyek untuk klien ini
-                  </div>
-                ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {detail.projects.map(p => {
-                      const s = STATUS_COLORS[p.status] ?? STATUS_COLORS.planning;
-                      const pct = (p as ClientProject & { progress_pct?: number }).progress_pct ?? 0;
-                      return (
-                        // `<Link>`: bisa difokus, ditekan Enter, dibuka di tab
-                        // baru, dan tautannya bisa disalin — semuanya hilang
-                        // kalau navigasi ditulis sebagai `onClick` pada `<div>`.
-                        <Link
-                          key={p.id}
-                          href={`/proyek/${p.id}`}
-                          style={{ padding: "12px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", transition: "box-shadow 0.12s" }}
-                          onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,51,102,0.08)"; }}
-                          onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; }}
-                        >
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 8 }}>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: 13, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
-                              {p.contract_value && (
-                                <div style={{ fontSize: 11, color: C.mid, marginTop: 2 }}>{fmtCurrency(Number(p.contract_value))}</div>
-                              )}
-                            </div>
-                            <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: s.bg, color: s.color, fontWeight: 500, flexShrink: 0 }}>
-                              {s.label}
-                            </span>
-                          </div>
-                          {p.status === "active" && (
-                            <div>
-                              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: C.muted, marginBottom: 3 }}>
-                                <span>Progress</span>
-                                <span style={{ fontWeight: 600, color: C.navy }}>{pct}%</span>
-                              </div>
-                              <div style={{ height: 4, background: "var(--surface-hover)", borderRadius: 99, overflow: "hidden" }}>
-                                <div style={{ height: "100%", width: `${pct}%`, background: C.navy, borderRadius: 99 }} />
-                              </div>
-                            </div>
-                          )}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-            </div>
-          ) : (
-            <div style={{ padding: 24, color: C.red, fontSize: 13 }}>Klien tidak ditemukan</div>
-          )}
-        </div>
-      </div>
-    </div>,
-    document.body
-  );
-}
+import { medanKurang, ringkasKlien } from "@/lib/ringkasan-klien";
+// Dipecah ke `_bersama/` 2026-08-07 (UI-2-3) mengikuti pola `kas/_bersama/`:
+// halaman ini melewati 800 baris setelah lapis ringkasan ditambahkan.
+import { ClientModal, DetailPanel, waLink, type Client } from "./_bersama/komponen";
 
 export default function KlienPage() {
   const router = useRouter();
@@ -500,6 +76,14 @@ export default function KlienPage() {
   const [editClient, setEditClient] = useState<Client | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  /**
+   * Saringan "hanya yang datanya belum lengkap" — dinyalakan dari kartu KPI.
+   *
+   * Kartu yang menyebut angka tapi tak bisa menunjukkan BARIS-nya memaksa
+   * orang membuka klien satu per satu untuk mencari yang mana. Angka yang
+   * tak bisa ditelusuri ke daftarnya adalah angka yang tak bisa dikerjakan.
+   */
+  const [hanyaTakLengkap, setHanyaTakLengkap] = useState(false);
 
 
   async function load() {
@@ -527,11 +111,17 @@ export default function KlienPage() {
     });
   }
 
+  // Ringkasan dihitung dari SELURUH klien, bukan dari `filtered`. Angka KPI
+  // yang ikut berubah saat orang mengetik di kotak cari terbaca seolah
+  // keadaan perusahaan berubah, padahal cuma tampilannya.
+  const ringkas = useMemo(() => ringkasKlien(clients), [clients]);
+
   const filtered = clients.filter(c => {
     const q = search.toLowerCase();
     const matchSearch = !q || c.contact_person.toLowerCase().includes(q) || (c.company_name ?? "").toLowerCase().includes(q) || (c.email ?? "").toLowerCase().includes(q) || c.phone.includes(q);
     const matchType = filterType === "all" || c.client_type === filterType;
-    return matchSearch && matchType;
+    const matchLengkap = !hanyaTakLengkap || (c.is_active && medanKurang(c).length > 0);
+    return matchSearch && matchType && matchLengkap;
   });
 
   // ADR-004: capability, bukan nama jabatan — diverifikasi ke `requirePermission`.
@@ -604,6 +194,31 @@ export default function KlienPage() {
       ),
     },
     {
+      // Kolom ini yang membuat angka "data belum lengkap" bisa dikerjakan:
+      // ia menyebut medan APA yang kurang, bukan cuma menandai barisnya.
+      // Tanda tanpa isi memaksa orang membuka modal edit untuk menebak.
+      kunci: "kelengkapan", judul: "Kelengkapan",
+      render: c => {
+        const kurang = c.is_active ? medanKurang(c) : [];
+        if (kurang.length === 0) {
+          return <span style={{ fontSize: 11, color: C.muted }}>—</span>;
+        }
+        return (
+          <span style={{
+            display: "inline-flex", alignItems: "center", gap: 4,
+            fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
+            padding: "2px 8px", borderRadius: 99,
+            background: C.yellowBg, color: C.onWarningBg,
+            border: `1px solid ${C.yellowBorder}`,
+          }}>
+            <AlertTriangle size={10} aria-hidden="true" />
+            {/* Medan disebut namanya — "kurang 2" tak memberi tahu apa pun. */}
+            {kurang.join(", ")}
+          </span>
+        );
+      },
+    },
+    {
       kunci: "status", judul: "Status",
       render: c => (
         <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: c.is_active ? C.greenBg : "var(--surface-hover)", color: c.is_active ? C.green : C.mid, fontWeight: 500 }}>
@@ -673,8 +288,10 @@ export default function KlienPage() {
           <h1 style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 700, color: C.text, marginBottom: 4 }}>
             Klien
           </h1>
+          {/* Cacah klien pindah ke kartu KPI — mengulanginya di sini membuat
+              angka yang sama tampil dua kali dalam satu layar. */}
           <p style={{ fontSize: 13, color: C.mid }}>
-            {clients.filter(c => c.is_active).length} klien aktif · {clients.length} total
+            Pemberi kerja, kelengkapan datanya, lalu daftarnya
           </p>
         </div>
         <button
@@ -685,28 +302,60 @@ export default function KlienPage() {
         </button>
       </div>
 
-      {/* KPI strip */}
-      {!loading && clients.length > 0 && (() => {
-        const active = clients.filter(c => c.is_active).length;
-        const perorangan = clients.filter(c => c.client_type === "perorangan").length;
-        const perusahaan = clients.filter(c => c.client_type === "perusahaan").length;
-        return (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 20 }}>
-            {[
-              { label: "Klien Aktif", value: String(active), sub: `dari ${clients.length} total`, color: C.navy },
-              { label: "Perorangan", value: String(perorangan), sub: "tipe perorangan", color: C.text },
-              { label: "Perusahaan", value: String(perusahaan), sub: "tipe badan usaha", color: C.text },
-              { label: "Nonaktif", value: String(clients.length - active), sub: "diarsipkan", color: clients.length - active > 0 ? C.muted : C.green },
-            ].map(k => (
-              <div key={k.label} style={{ background: "var(--surface)", border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 16px", boxShadow: "var(--naik-1)" }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>{k.label}</div>
-                <div style={{ fontSize: 24, fontWeight: 800, color: k.color, lineHeight: 1, fontFamily: "var(--font-display)" }}>{k.value}</div>
-                <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{k.sub}</div>
-              </div>
-            ))}
+      {/* ── LAPIS 1 — KEADAAN ──
+          TIGA kartu, bukan empat. Versi sebelumnya memakai empat: aktif,
+          perorangan, perusahaan, nonaktif. Tiga di antaranya cacah tipe yang
+          SUDAH terbaca dari tombol saringan tepat di bawahnya, dan tak satu
+          pun menuntut tindakan — "18 perorangan" tak mengubah rencana siapa
+          pun. Yang menggantikannya adalah satu-satunya angka di respons ini
+          yang bisa ditindaklanjuti: data yang belum lengkap. */}
+      {!loading && clients.length > 0 && (
+        <div className="rise rise-1" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginBottom: 20 }}>
+          <KartuKPI
+            sorot
+            label="Klien Aktif"
+            nilai={String(ringkas.aktif)}
+            nilaiAngka={ringkas.aktif}
+            ikon={<Users size={15} />}
+            keterangan={`${ringkas.perusahaan} perusahaan · ${ringkas.perorangan} perorangan${ringkas.nonaktif > 0 ? ` · ${ringkas.nonaktif} nonaktif` : ""}`}
+          />
+          <KartuKPI
+            label="Data Belum Lengkap"
+            nilai={String(ringkas.takLengkap)}
+            nilaiAngka={ringkas.takLengkap}
+            naikBagus={false}
+            ikon={<FileText size={15} />}
+            onClick={ringkas.takLengkap > 0 ? () => setHanyaTakLengkap(v => !v) : undefined}
+            keterangan={ringkas.takLengkap === 0
+              ? "seluruh klien aktif punya kontak & identitas pajak"
+              : `${ringkas.tanpaEmail} tanpa email · ${ringkas.tanpaIdentitasPajak} tanpa NPWP/NIK — menahan penerbitan invoice`}
+          />
+          {/* Piutang TIDAK ditampilkan di sini, dan kartunya menjelaskan
+              kenapa alih-alih diam. Lihat catatan kepala berkas: endpoint
+              piutang menuntut izin finance yang tak dimiliki setiap pemakai
+              halaman ini, dan angka nol yang berarti "tak boleh tahu" tak
+              bisa dibedakan dari nol yang berarti "semua sudah bayar". */}
+          <div style={{
+            padding: "var(--pad-kartu-lega)", borderRadius: 14,
+            background: C.surface, border: `1px dashed ${C.border}`,
+            display: "flex", flexDirection: "column", justifyContent: "center",
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: ".03em", textTransform: "uppercase", color: C.muted, marginBottom: 6 }}>
+              Piutang per Klien
+            </div>
+            <p style={{ margin: 0, fontSize: 11, color: C.mid, lineHeight: 1.5 }}>
+              Tidak dihitung di sini — datanya butuh izin keuangan, dan angka
+              yang kosong karena izin terbaca sama seperti angka nol.
+            </p>
+            <Link href="/keuangan/piutang" style={{
+              marginTop: 8, fontSize: 11, fontWeight: 700, color: C.navy,
+              textDecoration: "none", whiteSpace: "nowrap",
+            }}>
+              Buka umur piutang →
+            </Link>
           </div>
-        );
-      })()}
+        </div>
+      )}
 
       {/* Filter bar */}
       <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
@@ -727,6 +376,27 @@ export default function KlienPage() {
             </button>
           ))}
         </div>
+
+        {/* Saringan kelengkapan — hanya muncul kalau ada yang tak lengkap.
+            Tombol yang selalu ada tapi selalu menghasilkan nol baris cuma
+            menambah kebisingan pada halaman yang datanya sudah rapi. */}
+        {ringkas.takLengkap > 0 && (
+          <button
+            aria-pressed={hanyaTakLengkap}
+            onClick={() => setHanyaTakLengkap(v => !v)}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "8px 12px", borderRadius: 6, cursor: "pointer",
+              fontSize: 12, fontWeight: hanyaTakLengkap ? 600 : 400,
+              border: `1px solid ${hanyaTakLengkap ? C.yellowBorder : C.border}`,
+              background: hanyaTakLengkap ? C.yellowBg : "var(--surface)",
+              color: hanyaTakLengkap ? C.onWarningBg : C.mid,
+            }}
+          >
+            <FileText size={13} aria-hidden="true" />
+            Belum lengkap ({ringkas.takLengkap})
+          </button>
+        )}
       </div>
 
       {/* Table */}
@@ -766,13 +436,14 @@ export default function KlienPage() {
                 sebab={
                   <>
                     Ada {clients.length.toLocaleString("id-ID")}{" "}klien terdaftar,
-                    tapi tak satu pun lolos saringan yang sedang aktif. Kosongkan
-                    kata kunci atau kembalikan tipe ke &ldquo;semua&rdquo;.
+                    tapi tak satu pun lolos saringan yang sedang aktif
+                    {hanyaTakLengkap && " — termasuk saringan “belum lengkap”"}.
+                    Kosongkan kata kunci atau kembalikan tipe ke &ldquo;semua&rdquo;.
                   </>
                 }
                 aksi={
                   <button
-                    onClick={() => { setSearch(""); setFilterType("all"); }}
+                    onClick={() => { setSearch(""); setFilterType("all"); setHanyaTakLengkap(false); }}
                     style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.text, fontSize: 13, fontWeight: 600, cursor: "pointer" }}
                   >
                     Kosongkan saringan
@@ -795,7 +466,7 @@ export default function KlienPage() {
              dibacakan pembaca layar sebagai kolom berisi data, padahal
              isinya tombol. Perilakunya sama persis dengan versi mentah. */
           <Tabel<Client>
-            caption="Daftar klien: nama, kontak, tipe, dan status kerja sama."
+            caption="Daftar klien: nama, kontak, tipe, kelengkapan data, dan status kerja sama."
             data={filtered}
             kunciBaris={c => c.id}
             kolom={kolomKlien}

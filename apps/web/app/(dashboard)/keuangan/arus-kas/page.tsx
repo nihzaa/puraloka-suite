@@ -25,6 +25,7 @@ import {
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
+import { Tabel } from "@/components/dasar";
 import { CashflowTooltip } from "../_bersama/komponen";
 import {
   fmt, fmtCompact, fmtDate,
@@ -320,31 +321,47 @@ export default function ArusKasPage() {
               </ResponsiveContainer>
             </div>
             {/* Tabel agregasi per periode */}
-            <div style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
-                <caption className="sr-only">Arus kas per periode: uang masuk, uang keluar, dan selisih bersihnya.</caption>
-                <thead>
-                  <tr style={{ background: "var(--surface-subtle)", borderBottom: `1px solid ${C.border}` }}>
-                    {["Periode", "Masuk", "Keluar", "Net"].map((h, i) => (
-                      <th key={i} style={{ padding: "8px 12px", textAlign: i === 0 ? "left" : "right", fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {arusChart.map((row, i) => (
-                    <tr key={i} style={{ borderBottom: `1px solid var(--surface-hover)` }}>
-                      {/* `<th scope="row">`, bukan `<td>`: tanpa kepala baris,
-                          pembaca layar membacakan "Rp 4.500.000" tanpa menyebut
-                          periode mana. Di tabel keuangan itu angka tanpa pemilik.
-                          Tampilannya tak berubah — gaya aslinya dipertahankan. */}
-                      <th scope="row" style={{ padding: "8px 12px", fontWeight: 600, color: C.text, textAlign: "left" }}>{row.label}</th>
-                      <td style={{ padding: "8px 12px", textAlign: "right", color: C.green, fontWeight: 600, fontFamily: "monospace" }}>{fmtCompact(row.masuk)}</td>
-                      <td style={{ padding: "8px 12px", textAlign: "right", color: C.red, fontFamily: "monospace" }}>{fmtCompact(row.keluar)}</td>
-                      <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 700, fontFamily: "monospace", color: row.net >= 0 ? C.green : C.red }}>{row.net >= 0 ? "+" : ""}{fmtCompact(row.net)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). Kepala baris tetap
+                kolom Periode, dengan alasan yang sama seperti sebelum
+                perpindahan: tanpa itu pembaca layar membacakan "Rp 4.500.000"
+                tanpa menyebut periode mana, dan di tabel keuangan itu angka
+                tanpa pemilik. Bedanya sekarang komponen yang menjaminnya —
+                termasuk tabular-nums, yang membuat Masuk/Keluar/Net bisa
+                dibandingkan sebagai kolom, bukan dibaca satu-satu.
+
+                Prop `total` (→ `<tfoot>`) sengaja TIDAK dipakai: tabel ini
+                memang tak punya baris jumlah, dan menambahkannya sekarang
+                berarti memperkenalkan angka baru lewat pekerjaan yang
+                seharusnya nol-perubahan-perilaku. Ringkasan periodenya sudah
+                ada di kartu KPI di atas chart. */}
+            <div style={{ borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)", overflow: "hidden" }}>
+              <Tabel<ArusKasChartPoint>
+                caption="Arus kas per periode: uang masuk, uang keluar, dan selisih bersihnya."
+                data={arusChart}
+                kunciBaris={row => row.label}
+                kolom={[
+                  {
+                    kunci: "periode", judul: "Periode", kepalaBaris: true,
+                    render: row => <span style={{ fontWeight: 600 }}>{row.label}</span>,
+                  },
+                  {
+                    kunci: "masuk", judul: "Masuk", rata: "kanan",
+                    render: row => <span style={{ color: C.green, fontWeight: 600 }}>{fmtCompact(row.masuk)}</span>,
+                  },
+                  {
+                    kunci: "keluar", judul: "Keluar", rata: "kanan",
+                    render: row => <span style={{ color: C.red }}>{fmtCompact(row.keluar)}</span>,
+                  },
+                  {
+                    kunci: "net", judul: "Net", rata: "kanan",
+                    render: row => (
+                      <span style={{ fontWeight: 700, color: row.net >= 0 ? C.green : C.red }}>
+                        {row.net >= 0 ? "+" : ""}{fmtCompact(row.net)}
+                      </span>
+                    ),
+                  },
+                ]}
+              />
             </div>
           </>
         )}
@@ -376,6 +393,20 @@ export default function ArusKasPage() {
             </>}
           />
         ) : (
+          // ⚠️ TIDAK bisa dipindahkan ke <Tabel> — diperiksa 2026-08-07
+          // (UI-0-4). Jangan mencobanya lagi tanpa lebih dulu menambah
+          // kemampuan barisnya ke `components/dasar.tsx`.
+          //
+          // Sebabnya: setiap transaksi merender DUA <tr> dalam satu
+          // React.Fragment — baris datanya, lalu (kalau `arusExpandedId`
+          // cocok) baris rincian ber-colSpan 7 yang memuat seluruh
+          // `tx.meta`. `Tabel` memetakan satu elemen data ke tepat satu
+          // baris dan tak punya jalan untuk menyisipkan baris kedua;
+          // colSpan hanya ada di prop `total`, yang isinya <tfoot> dan
+          // cuma satu baris untuk seluruh tabel.
+          //
+          // Memaksakannya berarti menghapus fitur "klik untuk lihat
+          // rincian" — itu perubahan produk, bukan perapian UI.
           <div style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
               <caption className="sr-only">Rincian transaksi kas: tanggal, keterangan, proyek, jenis, kategori, serta nilai masuk dan keluar.</caption>
@@ -409,10 +440,16 @@ export default function ArusKasPage() {
                         onMouseLeave={e => { if (!expanded) e.currentTarget.style.background = "transparent"; }}
                       >
                         <td style={{ padding: "8px 12px", color: C.mid, whiteSpace: "nowrap", fontSize: 11 }}>{dateStr}</td>
-                        <td style={{ padding: "8px 12px", maxWidth: 240 }}>
+                        {/* `<th scope="row">` pada Keterangan, bukan pada
+                            Tanggal: yang MENAMAI baris ini bagi pembaca layar
+                            adalah "Pembayaran termin 2 — Ruko Cimahi", bukan
+                            "3 Agu" (yang berulang di banyak baris dan tak
+                            membedakan apa pun). Preseden yang sama dipakai
+                            gudang/material-klien: Tanggal → Material. */}
+                        <th scope="row" style={{ padding: "8px 12px", maxWidth: 240, textAlign: "left", fontWeight: 400 }}>
                           <div style={{ fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tx.label}</div>
                           {tx.sub_label && <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>{tx.sub_label}</div>}
-                        </td>
+                        </th>
                         <td style={{ padding: "8px 12px", color: C.mid, fontSize: 11, whiteSpace: "nowrap" }}>{tx.project?.name ?? "—"}</td>
                         <td style={{ padding: "8px 12px" }}>
                           <span style={{ display: "inline-flex", alignItems: "center", padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 600, color: tm.color, background: tm.bg, border: `1px solid ${tm.border}`, whiteSpace: "nowrap" }}>

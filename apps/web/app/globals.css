@@ -485,20 +485,45 @@
    * #8B93B2 lulus ketiganya (6,21 · 5,54 · 5,00). */
   --text-muted:       #8B93B2;
 
-  /* #4D9FFF → #5FA9FF: terang naik 65%→69%, rona & saturasi UTUH
-   * (hsl 212,100 — dalam toleransi rona merek 210°±8, saturasi ≥85%).
+  /* ── #5FA9FF → #4D9FFF, dan alpha lencana 0,12 → 0,06 ─────────────────
+   * Founder 2026-08-07: navy mode gelap terasa TERLALU TERANG.
    *
-   * Alasannya diukur, bukan selera: lencana `--navy` di atas
-   * `--navy-light` yang duduk di permukaan terangkat menghasilkan
-   * 4,34:1 — di bawah WCAG AA 4,5:1. Nilai baru memberi 4,84:1.
-   * Diverifikasi axe-core di /keuangan/kasbon dan /proyek. */
-  --navy:             #5FA9FF;
+   * Riwayatnya perlu dibaca sebelum menyentuh baris ini, karena arahnya
+   * bolak-balik dan alasannya tidak sama:
+   *
+   *   #4D9FFF  →  #5FA9FF   (2026-08-01) dinaikkan karena lencana gagal AA
+   *   #5FA9FF  →  #4D9FFF   (2026-08-07) diturunkan lagi — TAPI dengan
+   *                          alpha lencana ikut turun, yang membuat
+   *                          kegagalan lamanya tidak terulang
+   *
+   * Kenapa dulu gagal, dan kenapa sekarang tidak: pasangan paling ketat
+   * BUKAN navy di atas permukaan polos (itu 5,30:1 — longgar), melainkan
+   * teks `--navy` di atas LENCANA `--navy-light`, yang warnanya komposit
+   * dari rgba di atas permukaan. Makin pekat lencananya, makin dekat ia
+   * ke warna teksnya sendiri.
+   *
+   *   #4D9FFF @ alpha 0,12  →  4,38:1   GAGAL  (keadaan sebelum 08-01)
+   *   #5FA9FF @ alpha 0,12  →  4,88:1   lulus  (tambalan 08-01)
+   *   #4D9FFF @ alpha 0,06  →  4,84:1   lulus  ← yang dipakai sekarang
+   *
+   * Jadi yang menyelesaikan bukan menaikkan terang teksnya, melainkan
+   * menipiskan latarnya. Cadangannya setara dengan tambalan lama (4,84
+   * vs 4,88) sambil mengembalikan navy dua tingkat lebih gelap.
+   *
+   * Rona & saturasi UTUH: hsl(212,100) — dalam toleransi rona merek
+   * 210°±8, saturasi ≥85%. Dijaga `uji-token-merek.mjs`.
+   *
+   * Diukur pada KELIMA permukaan gelap (bg · surface · raised · subtle ·
+   * hover); angka di atas adalah yang TERENDAH dari kelimanya, bukan
+   * rata-rata. Menurunkannya lagi tanpa menurunkan alpha akan mengulang
+   * kegagalan 2026-08-01. */
+  --navy:             #4D9FFF;
   /* Di mode gelap --navy adalah biru TERANG, jadi teks di atasnya harus gelap.
    * #0F1117 = 6,94:1 (lulus AAA). Memakai putih di sini memberi 2,72:1. */
   --on-navy:          #0F1117;
-  --navy-mid:         #6EB3FF;
-  --navy-light:       rgba(77,159,255,0.12);
-  --navy-glow:        rgba(77,159,255,0.10);
+  --navy-mid:         #5FA9FF;
+  --navy-light:       rgba(77,159,255,0.06);
+  --navy-glow:        rgba(77,159,255,0.08);
 
   --success:          #22C55E;
   --success-bg:       rgba(34,197,94,0.10);

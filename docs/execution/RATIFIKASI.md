@@ -6,6 +6,70 @@ bawah entrinya.
 
 ---
 
+# 📌 SERAH-TERIMA SESI UI — 2026-08-07, dibaca SEBELUM melanjutkan
+
+> **Untuk sesi mana pun yang melanjutkan di `feat/sumbu-ui-roadmap`.**
+> Sesi UI selesai penuh dan sudah digabung. Tak ada pekerjaan menggantung,
+> tak ada worktree yang perlu ditunggu. Tapi **tiga hal berubah** yang bisa
+> membuat pekerjaan Anda merah kalau tak diketahui.
+
+### 1. `globals.css` — token navy mode gelap berubah
+
+```
+--navy         #5FA9FF → #4D9FFF      (founder: "terlalu terang")
+--navy-mid     #6EB3FF → #5FA9FF
+--navy-light   alpha 0,12 → 0,06
+--navy-glow    alpha 0,10 → 0,08
+```
+
+Kalau Anda sedang menggarap berkas ini dari salinan lama, **baca ulang
+sebelum menulis**. Alasan lengkapnya ada di komentar di atas barisnya —
+riwayatnya bolak-balik (`#4D9FFF` → `#5FA9FF` → `#4D9FFF`) dan tiap arah
+punya sebab berbeda. Jangan menyimpulkan dari nilainya saja.
+
+Yang menyelesaikan bukan terang teksnya, melainkan **alpha latarnya**:
+pasangan paling ketat adalah teks `--navy` di atas lencana `--navy-light`,
+yang warnanya komposit. Menipiskan lencana memberi cadangan setara (4,84
+vs 4,88) sambil mengembalikan navy dua tingkat lebih gelap.
+
+### 2. Empat ambang `lint-ratchet` DIKENCANGKAN
+
+```
+@typescript-eslint/no-explicit-any            180 → 100
+react-hooks/set-state-in-effect                68 →  58
+jsx-a11y/no-static-element-interactions        68 →  66
+jsx-a11y/label-has-associated-control          22 →  21
+```
+
+Kode baru ber-`any` yang dulu lolos **sekarang merah**. Menaikkan ambang
+kembali butuh ratifikasi (Gerbang Keras G-5).
+
+`set-state-in-effect` turun 10 karena pola baru: **saringan dioper lewat
+parameter**, bukan dibaca dari closure — `useEffect(() => { void load(f); },
+[f])`. Itu membuat `set-state-in-effect` DAN `exhaustive-deps` sama-sama diam
+tanpa satu pun `eslint-disable`. Pakai pola itu untuk halaman baru.
+
+### 3. Dua penjaga BARU di CI
+
+| Penjaga | Lantai | Yang dijaga |
+|---|---|---|
+| `tabel-mentah-ratchet.mjs` | 8 halaman | halaman baru wajib `<Tabel>` dari `@/components/dasar`, bukan `<table>` mentah |
+| `kerapatan-ratchet.mjs` | 358 | padding/gap ≥16px wajib lewat token (`--pad-kartu`, `--gap-grid`, `--gap-bagian`) |
+
+Keduanya sudah menangkap pelanggaran nyata: `tabel-mentah` menangkap
+`keuangan/contingency/page.tsx` — halaman yang ditulis **sesudah** penjaganya
+dipasang. Itu memang gunanya.
+
+**Cara cepat memeriksa sebelum commit:**
+```bash
+cd apps/web
+node scripts/kerapatan-ratchet.mjs
+node scripts/tabel-mentah-ratchet.mjs
+node scripts/lint-ratchet.mjs
+```
+
+---
+
 # ✅ R-012 · DIPUTUSKAN 2026-08-07 — arah visual 2026 + roadmap UI terpisah
 
 Dokumen lengkap: [`docs/design/ARAH-VISUAL-2026.md`](../design/ARAH-VISUAL-2026.md)

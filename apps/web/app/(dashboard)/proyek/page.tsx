@@ -1,198 +1,80 @@
 "use client";
 
-import { useEffect, useReducer, useState, useRef } from "react";
+/**
+ * PROYEK — RINGKASAN. Dashboard modul, bukan langsung daftar (UI-2-3).
+ *
+ * ── Tiga lapis (ARAH-VISUAL-2026 §5b)
+ *
+ *   LAPIS 1  empat kartu KPI          "apa yang terjadi?"
+ *   LAPIS 2  satu grafik selisih      "yang mana yang bermasalah?"
+ *   LAPIS 3  daftar proyek + saringan "apa yang harus saya kerjakan?"
+ *
+ * Berbeda dengan `/kas`, lapis ketiga di sini TETAP daftar penuhnya, bukan
+ * pintu ke sub-halaman. Alasannya: `/proyek` sudah menjadi tempat orang
+ * mencari satu proyek untuk dibuka, dan memindahkan daftarnya ke rute lain
+ * berarti menambah satu klik ke perjalanan yang paling sering ditempuh di
+ * seluruh aplikasi. Yang ditambahkan di atasnya adalah jawaban atas
+ * pertanyaan yang SELAMA INI tak bisa dijawab daftar itu.
+ *
+ * ── Dari mana KPI-nya (§5c: aktif · progres rata-rata · telat · selesai
+ *    bulan ini) — NOL endpoint baru
+ *
+ * Keempatnya turunan dari SATU respons `/api/v1/projects`, yang sudah
+ * mengirim `status`, `progress_pct`, `start_date`, `end_date`,
+ * `actual_end_date`, dan `contract_value`. Hitungannya ada di
+ * `lib/ringkasan-proyek.ts` — di sana ia bisa diuji tanpa merender halaman,
+ * dan batas tanggalnya (yang paling sunyi kalau salah) sudah punya 35 test.
+ *
+ * ── Kenapa KPI ketiga disebut "LEWAT TENGGAT", bukan "TELAT"
+ *
+ * Ini bukan pelembutan bahasa. Keterlambatan yang sudah dimaafkan lewat EOT
+ * secara kontrak BUKAN keterlambatan, dan data EOT (`contract_eot`) tidak
+ * dikirim oleh `/api/v1/projects` — ia hanya ada di
+ * `/api/v1/analisa-keterlambatan`, yang menghitung per-MILESTONE, bukan
+ * per-proyek. Menyebut angka di sini "telat" berarti aplikasi punya dua
+ * angka keterlambatan yang berbeda, dan yang tanpa EOT selalu menuduh lebih
+ * berat. Karena itu kartunya menyatakan fakta tanggal, lalu menunjuk ke
+ * halaman yang punya bahan untuk memberi vonis.
+ *
+ * ── Kenapa "serapan anggaran", bukan "progres"
+ *
+ * `projects.progress_pct` adalah bobot RAB yang terserap, bukan kemajuan
+ * fisik lapangan — keduanya sumber independen di basis ini. Menyebutnya
+ * "progres" membuat orang mengira 40% berarti bangunannya sudah 40% berdiri.
+ */
+
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import {
+  AlertTriangle, Building2, CalendarClock, CheckCircle2, Clock,
+  LayoutGrid, List, Plus, RefreshCw, Search, TrendingDown, TrendingUp,
+} from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { useIzin } from "@/lib/use-izin";
-import {
-  MapPin, Calendar, ArrowRight, Search, Plus,
-  Building2, RefreshCw,
-  LayoutGrid, List, TrendingUp, Wallet, AlertTriangle, Clock,
-  User,
-} from "lucide-react";
+import { C } from "@/lib/warna-ui";
+import { KartuKPI, Kosong, Panel } from "@/components/ui-dasar";
 import { ProjectModal } from "@/components/project-modal";
 import { useToast } from "@/components/toast";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface Client { id: string; contact_person: string; phone: string; client_type: string }
-interface PM { id: string; name: string; email: string; phone: string }
-interface Project {
-  id: string;
-  name: string;
-  description: string | null;
-  location: string;
-  contract_model: "termin" | "komisi";
-  tax_scheme: "pph_final" | "ppn";
-  contract_value: number;
-  commission_pct: number | null;
-  start_date: string;
-  end_date: string;
-  actual_end_date: string | null;
-  status: "draft" | "active" | "on_hold" | "completed" | "cancelled";
-  progress_pct: number;
-  notes: string | null;
-  created_at: string;
-  clients: Client | null;
-  pm: PM | null;
-}
+import {
+  hariIniWIB, palingTertinggal, ringkasProyek, type BarisSelisih,
+} from "@/lib/ringkasan-proyek";
+import {
+  ProjectCardGrid, ProjectCardList, Skeleton, fmtCompact, kartu, type Project,
+} from "./_bersama/kartu-proyek";
 
 type SortKey = "newest" | "value_desc" | "progress_desc" | "deadline_asc";
 type StatusFilter = "all" | "active" | "completed" | "on_hold" | "draft";
 type ViewMode = "grid" | "list";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const fmt = (n: number) =>
-  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
-
-const fmtCompact = (n: number) => {
-  if (n >= 1_000_000_000) return `Rp ${(n / 1_000_000_000).toFixed(1)}M`;
-  if (n >= 1_000_000) return `Rp ${(n / 1_000_000).toFixed(0)}jt`;
-  return fmt(n);
-};
-
-const fmtDate = (d: string) =>
-  new Date(d).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
-
-const fmtDateShort = (d: string) =>
-  new Date(d).toLocaleDateString("id-ID", { day: "numeric", month: "short" });
-
-const daysUntil = (d: string) =>
-  Math.ceil((new Date(d).getTime() - Date.now()) / 86400000);
-
-const initials = (name: string) =>
-  name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
-
-// ─── Design tokens ────────────────────────────────────────────────────────────
-
-import { C } from "@/lib/warna-ui";
-
-const card: React.CSSProperties = {
-  background: "var(--surface)",
-  border: "1px solid var(--border)",
-  borderRadius: 14,
-  boxShadow: "var(--naik-1)",
-};
-
-const STATUS_META: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  active:      { label: "Aktif",       color: C.navy,   bg: C.navyLight,  border: "var(--info-border)" },
-  in_progress: { label: "Berlangsung", color: C.navy,   bg: C.navyLight,  border: "var(--info-border)" },
-  completed:   { label: "Selesai",     color: C.green,  bg: C.greenBg,   border: C.greenBorder },
-  on_hold:     { label: "Ditunda",     color: C.yellow, bg: C.yellowBg,  border: C.yellowBorder },
-  draft:       { label: "Draft",       color: C.muted,  bg: "var(--surface-hover)",   border: "var(--border)" },
-  cancelled:   { label: "Batal",       color: C.red,    bg: C.redBg,     border: C.redBorder },
-};
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-function Skeleton({ h = 20, w = "100%" }: { h?: number; w?: string | number }) {
-  return (
-    <div style={{
-      height: h, width: w, borderRadius: 6,
-      background: "linear-gradient(90deg, var(--surface-hover) 0%, var(--border) 50%, var(--surface-hover) 100%)",
-      backgroundSize: "200% 100%",
-      animation: "shimmer 1.5s ease-in-out infinite",
-    }} />
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const m = STATUS_META[status] ?? { label: status, color: C.muted, bg: "var(--surface-hover)", border: "var(--border)" };
-  return (
-    <span style={{
-      display: "inline-flex", alignItems: "center", gap: 4,
-      padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 600,
-      color: m.color, background: m.bg, border: `1px solid ${m.border}`,
-    }}>
-      <span style={{ width: 5, height: 5, borderRadius: "50%", background: m.color, flexShrink: 0 }} />
-      {m.label}
-    </span>
-  );
-}
-
-function ModelBadge({ model }: { model: "termin" | "komisi" }) {
-  return (
-    <span style={{
-      display: "inline-block", padding: "2px 8px", borderRadius: 6,
-      fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase",
-      background: "var(--surface-hover)", color: C.mid, border: "1px solid var(--border)",
-    }}>
-      {model === "termin" ? "TERMIN" : "KOMISI"}
-    </span>
-  );
-}
-
-function Avatar({ name, size = 28 }: { name: string; size?: number }) {
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: "50%",
-      background: C.navyLight, color: C.navy,
-      display: "flex", alignItems: "center", justifyContent: "center",
-      fontSize: size * 0.36, fontWeight: 700, flexShrink: 0,
-      border: "1.5px solid var(--info-border)",
-    }}>
-      {initials(name)}
-    </div>
-  );
-}
-
-function ProgressBar({ pct, color = C.navy }: { pct: number; color?: string }) {
-  return (
-    <div style={{ height: 6, background: "var(--surface-hover)", borderRadius: 0, overflow: "hidden" }}>
-      <div style={{
-        height: "100%", width: `${Math.min(pct, 100)}%`,
-        background: `linear-gradient(90deg, ${color}, ${color}CC)`,
-        borderRadius: 0, transition: "width 0.5s ease",
-      }} />
-    </div>
-  );
-}
-
-// Summary KPI card
-function SummaryCard({ label, value, sub, icon, accent }: {
-  label: string; value: string; sub?: string; icon: React.ReactNode; accent?: string;
-}) {
-  return (
-    <div
-      style={{
-        flex: 1, background: "var(--surface)", borderRadius: 10, padding: "16px 16px",
-        border: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 12,
-        boxShadow: "var(--naik-1)", transition: "all 0.15s",
-      }}
-      onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 6px 18px rgba(0,51,102,0.10)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-      onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.05)"; e.currentTarget.style.transform = "translateY(0)"; }}
-    >
-      <div style={{
-        width: 42, height: 42, borderRadius: 10, flexShrink: 0,
-        background: accent ? `${accent}15` : C.navyLight,
-        display: "flex", alignItems: "center", justifyContent: "center",
-      }}>
-        {icon}
-      </div>
-      <div style={{ minWidth: 0 }}>
-        <p style={{ fontSize: 11, color: C.muted, margin: "0 0 2px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-          {label}
-        </p>
-        <p style={{ fontSize: 20, fontWeight: 800, color: accent ?? C.text, margin: "0 0 1px", fontFamily: "var(--font-display)" }}>
-          {value}
-        </p>
-        {sub && <p style={{ fontSize: 11, color: C.muted, margin: 0 }}>{sub}</p>}
-      </div>
-    </div>
-  );
-}
-
-// ─── Main component ───────────────────────────────────────────────────────────
-
 export default function ProyekPage() {
   const [mounted, mount] = useReducer(() => true, false);
   useEffect(mount, [mount]);
   if (!mounted) return null;
-  return <ProyekContent />;
+  return <ProyekRingkasan />;
 }
 
-function ProyekContent() {
+function ProyekRingkasan() {
   const router = useRouter();
   const { showToast } = useToast();
   // Diangkat dari JSX: `hasPermission` di jalur render membuat pohon server
@@ -213,15 +95,22 @@ function ProyekContent() {
   const [sort, setSort] = useState<SortKey>("newest");
   const [showModal, setShowModal] = useState(false);
 
+  // Tanggal acuan DIBEKUKAN saat halaman dipasang, bukan dibaca ulang tiap
+  // render. Kalau tidak, kartu KPI dan daftar di bawahnya bisa memakai
+  // tanggal berbeda saat halaman dibuka melewati tengah malam — dan angka
+  // yang tak cocok dengan daftarnya sendiri adalah cara tercepat membuat
+  // orang berhenti memercayai keduanya.
+  const [hariIni] = useState(() => hariIniWIB());
+
   useEffect(() => {
-    fetchProjects();
+    void muatProyek();
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
       abortRef.current?.abort();
     };
   }, []);
 
-  async function fetchProjects() {
+  async function muatProyek() {
     abortRef.current?.abort();
     abortRef.current = makeAbortController();
     setLoading(true);
@@ -246,12 +135,16 @@ function ProyekContent() {
   }
 
   function handleCreateSuccess() {
-    fetchProjects();
+    void muatProyek();
     showToast("success", "Proyek berhasil dibuat!");
   }
 
-  // Filter + sort
-  const filtered = projects
+  // ── LAPIS 1 & 2 — dihitung dari respons yang SAMA dengan daftarnya ────────
+  const ringkas = useMemo(() => ringkasProyek(projects, hariIni), [projects, hariIni]);
+  const tertinggal = useMemo(() => palingTertinggal(projects, hariIni), [projects, hariIni]);
+
+  // ── LAPIS 3 — saringan & urutan, dipertahankan utuh dari versi sebelumnya ─
+  const filtered = useMemo(() => projects
     .filter((p) => {
       if (statusFilter !== "all" && p.status !== statusFilter) return false;
       if (search) {
@@ -269,9 +162,8 @@ function ProyekContent() {
       if (sort === "value_desc") return Number(b.contract_value) - Number(a.contract_value);
       if (sort === "progress_desc") return Number(b.progress_pct) - Number(a.progress_pct);
       if (sort === "deadline_asc") return new Date(a.end_date).getTime() - new Date(b.end_date).getTime();
-      // "newest" — sort by created_at descending
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-    });
+    }), [projects, statusFilter, search, sort]);
 
   const STATUS_TABS: { key: StatusFilter; label: string }[] = [
     { key: "all",       label: "Semua" },
@@ -287,27 +179,40 @@ function ProyekContent() {
     return acc;
   }, {});
 
-  // Summary aggregations
-  const totalContract = projects.reduce((s, p) => s + Number(p.contract_value), 0);
-  const activeCount = projects.filter(p => p.status === "active").length;
-  const overdueCount = projects.filter(p => p.status !== "completed" && daysUntil(p.end_date) < 0).length;
-  const avgProgress = projects.length > 0
-    ? projects.filter(p => p.status === "active").reduce((s, p) => s + Number(p.progress_pct), 0) / Math.max(activeCount, 1)
-    : 0;
-
   const isFiltered = search.trim() !== "" || statusFilter !== "all";
 
-  return (
-    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
+  /**
+   * Menyaring daftar ke proyek yang lewat tenggat — dipakai spanduk peringatan.
+   *
+   * `status: "all"` DIPERTAHANKAN, bukan diubah ke "active": proyek `on_hold`
+   * yang melewati tenggatnya justru yang paling menuntut keputusan, dan
+   * menyaringnya ke "active" akan menyembunyikannya persis saat ia diklik.
+   */
+  function lompatKeLewatTenggat() {
+    setStatusFilter("all");
+    setSearchInput("");
+    setSearch("");
+    setSort("deadline_asc");
+    document.getElementById("daftar-proyek")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
-      {/* ── Header ── */}
-      <div className="rise" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+  return (
+    <div style={{
+      padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
+      width: "100%", maxWidth: "var(--w-page)", margin: "0 auto",
+    }}>
+      {/* ── Kepala ── */}
+      <div className="rise" style={{
+        display: "flex", justifyContent: "space-between", alignItems: "flex-start",
+        gap: 12, flexWrap: "wrap", marginBottom: 20,
+      }}>
         <div>
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700, color: C.text, marginBottom: 4 }}>
-            Proyek
-          </h1>
+          <h1 style={{
+            fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700,
+            color: C.text, marginBottom: 4,
+          }}>Proyek</h1>
           <p style={{ fontSize: 13, color: C.mid }}>
-            Kelola semua proyek konstruksi Puraloka Persada
+            Keadaan seluruh portofolio, lalu daftarnya
           </p>
         </div>
         {bolehBuatProyek && (
@@ -316,60 +221,166 @@ function ProyekContent() {
             style={{
               display: "flex", alignItems: "center", gap: 6,
               padding: "8px 16px", borderRadius: 6, border: "none",
-              background: C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600,
+              background: C.navy, color: C.onNavy, fontSize: 13, fontWeight: 600,
               cursor: "pointer", transition: "background 0.15s",
             }}
             onMouseEnter={e => { e.currentTarget.style.background = "var(--aksen-pekat)"; }}
             onMouseLeave={e => { e.currentTarget.style.background = C.navy; }}
           >
-            <Plus size={15} />
+            <Plus size={15} aria-hidden="true" />
             Tambah Proyek
           </button>
         )}
       </div>
 
-      {/* ── Summary KPI bar ── */}
-      {!loading && projects.length > 0 && (
-        <div className="rise rise-1" style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
-          <SummaryCard
-            label="Total Kontrak"
-            value={fmtCompact(totalContract)}
-            sub={`${projects.length} proyek total`}
-            icon={<Wallet size={20} color={C.navy} />}
-          />
-          <SummaryCard
-            label="Proyek Aktif"
-            value={String(activeCount)}
-            sub={`${counts.completed ?? 0} selesai`}
-            icon={<Building2 size={20} color={C.navy} />}
-          />
-          <SummaryCard
-            label="Avg Progress"
-            value={`${avgProgress.toFixed(1)}%`}
-            sub="rata-rata proyek aktif"
-            icon={<TrendingUp size={20} color={C.navy} />}
-          />
-          {overdueCount > 0 && (
-            <SummaryCard
-              label="Terlambat"
-              value={String(overdueCount)}
-              sub="melebihi tenggat"
-              icon={<AlertTriangle size={20} color={C.red} />}
-              accent={C.red}
-            />
-          )}
+      {/* ── Galat ── */}
+      {error && (
+        <div style={{
+          background: C.redBg, border: `1px solid ${C.redBorder}`, borderRadius: 10,
+          padding: "12px 16px", color: C.onDangerBg, fontSize: 13, marginBottom: 20,
+          display: "flex", alignItems: "center", gap: 8,
+        }}>
+          <AlertTriangle size={15} aria-hidden="true" />
+          {error}
+          <button onClick={() => void muatProyek()} style={{
+            color: C.navy, background: "none", border: "none", cursor: "pointer",
+            fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4,
+            fontWeight: 600, marginLeft: "auto",
+          }}>
+            <RefreshCw size={11} aria-hidden="true" /> Coba lagi
+          </button>
         </div>
       )}
 
-      {/* ── Filter bar ── */}
-      <div className="rise rise-2" style={{ ...card, padding: "12px 16px", marginBottom: 20 }}>
-        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-          {/* Search */}
-          <div style={{ flex: 1, position: "relative" }}>
-            <Search size={14} style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: C.muted, pointerEvents: "none" }} />
+      {/* ── LAPIS 1 — KEADAAN ── */}
+      <div className="rise rise-1" style={{
+        display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))",
+        gap: 12, marginBottom: 20,
+      }}>
+        {loading ? (
+          Array.from({ length: 4 }, (_, i) => (
+            <div key={i} aria-hidden="true" style={{
+              height: 118, borderRadius: 14,
+              background: "var(--surface-subtle)", border: `1px solid ${C.border}`,
+            }} />
+          ))
+        ) : (
+          <>
+            <KartuKPI
+              sorot
+              label="Proyek Aktif"
+              nilai={String(ringkas.aktif)}
+              nilaiAngka={ringkas.aktif}
+              ikon={<Building2 size={15} />}
+              keterangan={`${fmtCompact(ringkas.nilaiAktif)} nilai kontrak berjalan · ${ringkas.total} proyek total`}
+            />
+            <KartuKPI
+              label="Serapan Rata-rata"
+              // Angka yang tak ada TIDAK ditulis "0%". Nol berarti "proyek
+              // jalan tapi belum satu pun bergerak" — pernyataan yang sangat
+              // berbeda dari "tak ada proyek aktif", dan hanya salah satunya
+              // menuntut panggilan telepon.
+              nilai={ringkas.progresRata === null ? "—" : `${ringkas.progresRata.toFixed(1)}%`}
+              ikon={<TrendingUp size={15} />}
+              keterangan={ringkas.progresRata === null
+                ? "belum ada proyek aktif untuk dirata-ratakan"
+                : "bobot RAB terserap pada proyek aktif — bukan kemajuan fisik"}
+            />
+            <KartuKPI
+              label="Lewat Tenggat"
+              nilai={String(ringkas.lewatTenggat)}
+              nilaiAngka={ringkas.lewatTenggat}
+              naikBagus={false}
+              ikon={<AlertTriangle size={15} />}
+              onClick={ringkas.lewatTenggat > 0 ? lompatKeLewatTenggat : undefined}
+              keterangan={ringkas.lewatTenggat === 0
+                ? "tak ada proyek melewati tanggal akhir kontraknya"
+                : `${ringkas.segeraJatuhTempo} lagi jatuh tempo ≤14 hari · EOT belum diperhitungkan`}
+            />
+            <KartuKPI
+              label="Selesai Bulan Ini"
+              nilai={String(ringkas.selesaiBulanIni)}
+              nilaiAngka={ringkas.selesaiBulanIni}
+              ikon={<CheckCircle2 size={15} />}
+              keterangan={`${counts.completed ?? 0} selesai sepanjang riwayat`}
+            />
+          </>
+        )}
+      </div>
+
+      {/* Yang menuntut tindakan — spanduk, bukan kartu KPI kelima. Kartu KPI
+          menyatakan keadaan; spanduk ini menyatakan bahwa ada sesuatu yang
+          harus dikerjakan HARI INI, dan karena itu ia menghilang saat tak ada. */}
+      {!loading && ringkas.segeraJatuhTempo > 0 && (
+        <div className="rise rise-1" style={{
+          display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
+          padding: "12px 16px", borderRadius: 10, marginBottom: 20,
+          background: C.yellowBg, border: `1px solid ${C.yellowBorder}`,
+        }}>
+          <CalendarClock size={16} aria-hidden="true" style={{ color: C.onWarningBg, flexShrink: 0 }} />
+          <span style={{ fontSize: 12, color: C.onWarningBg, fontWeight: 600 }}>
+            {ringkas.segeraJatuhTempo} proyek jatuh tempo dalam 14 hari ke depan —
+            masih bisa dikejar, dan tak akan terlihat di angka &ldquo;lewat tenggat&rdquo;.
+          </span>
+          <button onClick={lompatKeLewatTenggat} style={{
+            marginLeft: "auto", fontSize: 11, color: C.onWarningBg, fontWeight: 700,
+            background: "none", border: "none", cursor: "pointer", whiteSpace: "nowrap",
+          }}>
+            Urutkan menurut tenggat →
+          </button>
+        </div>
+      )}
+
+      {/* ── LAPIS 2 — POLA ──
+          Pertanyaan yang dijawab: "proyek mana yang paling jauh dari target?"
+
+          Grafik batang biasa (nilai kontrak per proyek, jumlah per status)
+          sengaja TIDAK dipilih: keduanya hanya menggambar ulang angka yang
+          sudah terbaca dari daftar di bawah, dan grafik yang mengulang daftar
+          adalah hiasan. Yang tak bisa dibaca dari daftar mana pun adalah
+          SELISIH antara serapan nyata dan garis jadwal — dua angka yang harus
+          dibandingkan proyek per proyek dengan kalkulator kalau tak digambar. */}
+      <div className="rise rise-2" style={{ marginBottom: 20 }}>
+        <Panel
+          judul="Paling Tertinggal dari Jadwal"
+          keterangan="serapan RAB dibanding waktu kontrak yang sudah berjalan · proyek aktif"
+          aksi={
+            <Link href="/proyek/keterlambatan" style={{
+              fontSize: 11, fontWeight: 600, color: C.navy, textDecoration: "none",
+              whiteSpace: "nowrap",
+            }}>
+              Analisa keterlambatan (dengan EOT) →
+            </Link>
+          }
+        >
+          {loading ? (
+            <div aria-hidden="true" style={{ height: 180, borderRadius: 10, background: "var(--surface-subtle)" }} />
+          ) : tertinggal.length === 0 ? (
+            <Kosong
+              ikon={<TrendingDown size={32} aria-hidden="true" />}
+              judul={ringkas.aktif === 0 ? "Belum ada proyek aktif" : "Tak ada yang tertinggal dari jadwal"}
+              sebab={ringkas.aktif === 0
+                ? "Perbandingan ini hanya menghitung proyek berstatus aktif. Proyek draft dan yang ditunda belum punya jadwal berjalan untuk dibandingkan."
+                : "Seluruh proyek aktif serapannya sama atau di atas garis waktu kontrak. Garis itu lurus dan konstruksi tidak lurus, jadi ini bukan jaminan — tapi tak ada satu pun yang menonjol tertinggal."}
+            />
+          ) : (
+            <GrafikSelisih baris={tertinggal} />
+          )}
+        </Panel>
+      </div>
+
+      {/* ── LAPIS 3 — DETAIL ── */}
+      <div id="daftar-proyek" className="rise rise-3" style={{ ...kartu, padding: "12px 16px", marginBottom: 20 }}>
+        <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+          <div style={{ flex: 1, minWidth: 220, position: "relative" }}>
+            <Search size={14} aria-hidden="true" style={{
+              position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)",
+              color: C.muted, pointerEvents: "none",
+            }} />
             <input
               value={searchInput}
               onChange={e => handleSearchChange(e.target.value)}
+              aria-label="Cari proyek"
               placeholder="Cari nama proyek, klien, PM, atau lokasi..."
               style={{
                 width: "100%", padding: "8px 12px 8px 32px",
@@ -378,11 +389,10 @@ function ProyekContent() {
                 outline: "none", transition: "border-color 0.15s, box-shadow 0.15s",
                 boxSizing: "border-box",
               }}
-              onFocus={e => { e.target.style.borderColor = C.navy; e.target.style.boxShadow = "0 0 0 3px rgba(0,51,102,0.08)"; }}
+              onFocus={e => { e.target.style.borderColor = C.navy; e.target.style.boxShadow = "0 0 0 3px var(--info-bg)"; }}
               onBlur={e => { e.target.style.borderColor = "var(--border)"; e.target.style.boxShadow = "none"; }}
             />
           </div>
-          {/* Sort */}
           <select aria-label="Urutan"
             value={sort}
             onChange={e => setSort(e.target.value as SortKey)}
@@ -397,13 +407,13 @@ function ProyekContent() {
             <option value="progress_desc">Serapan Tertinggi</option>
             <option value="deadline_asc">Tenggat Terdekat</option>
           </select>
-          {/* View toggle */}
           <div style={{ display: "flex", border: "1px solid var(--border)", borderRadius: 6, overflow: "hidden" }}>
             {(["grid", "list"] as ViewMode[]).map(v => (
-              <button aria-label={v === "grid" ? "Grid" : "List"}
+              <button aria-label={v === "grid" ? "Tampilan grid" : "Tampilan daftar"}
                 key={v}
+                aria-pressed={viewMode === v}
                 onClick={() => setViewMode(v)}
-                title={v === "grid" ? "Grid" : "List"}
+                title={v === "grid" ? "Grid" : "Daftar"}
                 style={{
                   width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center",
                   border: "none", cursor: "pointer", transition: "all 0.12s",
@@ -411,33 +421,32 @@ function ProyekContent() {
                   color: viewMode === v ? C.navy : C.muted,
                 }}
               >
-                {v === "grid" ? <LayoutGrid size={15} /> : <List size={15} />}
+                {v === "grid" ? <LayoutGrid size={15} aria-hidden="true" /> : <List size={15} aria-hidden="true" />}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Status tabs + count */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
             {STATUS_TABS.map(tab => {
-              const active = statusFilter === tab.key;
+              const aktif = statusFilter === tab.key;
               return (
                 <button
                   key={tab.key}
                   aria-label={`Tampilkan proyek berstatus ${tab.label}`}
-                  aria-pressed={active}
+                  aria-pressed={aktif}
                   onClick={() => setStatusFilter(tab.key)}
                   style={{
                     display: "inline-flex", alignItems: "center", gap: 4,
                     padding: "4px 12px", borderRadius: 6, border: "none",
-                    fontSize: 12, fontWeight: active ? 600 : 400,
+                    fontSize: 12, fontWeight: aktif ? 600 : 400,
                     cursor: "pointer", transition: "all 0.12s",
-                    background: active ? C.navyLight : "transparent",
-                    color: active ? C.navy : C.mid,
+                    background: aktif ? C.navyLight : "transparent",
+                    color: aktif ? C.navy : C.mid,
                   }}
-                  onMouseEnter={e => { if (!active) { e.currentTarget.style.background = "var(--surface-hover)"; e.currentTarget.style.color = C.text; } }}
-                  onMouseLeave={e => { if (!active) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.mid; } }}
+                  onMouseEnter={e => { if (!aktif) { e.currentTarget.style.background = "var(--surface-hover)"; e.currentTarget.style.color = C.text; } }}
+                  onMouseLeave={e => { if (!aktif) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.mid; } }}
                 >
                   {tab.label}
                   <span style={{
@@ -445,8 +454,8 @@ function ProyekContent() {
                     // 18% → 10%: di mode gelap latar 18% terlalu terang untuk teks
                     // `--navy` di atasnya (4,05:1, ambang 4,5). Diukur axe di
                     // /proyek. 10% memberi 4,79:1 dengan perubahan paling kecil.
-                    background: active ? "color-mix(in srgb, var(--aksen) 10%, transparent)" : "var(--surface-hover)",
-                    color: active ? C.navy : C.muted,
+                    background: aktif ? "color-mix(in srgb, var(--aksen) 10%, transparent)" : "var(--surface-hover)",
+                    color: aktif ? C.navy : C.muted,
                     padding: "0px 6px", borderRadius: 99,
                   }}>
                     {counts[tab.key] ?? 0}
@@ -463,38 +472,26 @@ function ProyekContent() {
                 </span>
               )}
               <button
-                onClick={fetchProjects}
-                style={{ background: "transparent", border: "none", cursor: "pointer", color: C.muted, display: "flex", alignItems: "center", gap: 4, fontSize: 12, padding: "4px 8px", borderRadius: 6 }}
+                onClick={() => void muatProyek()}
+                style={{
+                  background: "transparent", border: "none", cursor: "pointer", color: C.muted,
+                  display: "flex", alignItems: "center", gap: 4, fontSize: 12,
+                  padding: "4px 8px", borderRadius: 6,
+                }}
                 onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-hover)"; e.currentTarget.style.color = C.text; }}
                 onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.muted; }}
               >
-                <RefreshCw size={12} /> Refresh
+                <RefreshCw size={12} aria-hidden="true" /> Muat ulang
               </button>
             </div>
           )}
         </div>
       </div>
 
-      {/* ── Error ── */}
-      {error && (
-        <div style={{
-          background: C.redBg, border: `1px solid ${C.redBorder}`, borderRadius: 10,
-          padding: "12px 16px", color: C.red, fontSize: 13, marginBottom: 20,
-          display: "flex", alignItems: "center", gap: 8,
-        }}>
-          <AlertTriangle size={15} />
-          {error}
-          <button onClick={fetchProjects} style={{ color: C.navy, background: "none", border: "none", cursor: "pointer", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 600, marginLeft: "auto" }}>
-            <RefreshCw size={11} /> Coba lagi
-          </button>
-        </div>
-      )}
-
-      {/* ── Content ── */}
       {loading ? (
         <div style={{ display: "grid", gridTemplateColumns: viewMode === "grid" ? "repeat(2, 1fr)" : "1fr", gap: 12 }}>
           {[1, 2, 3, 4].map(i => (
-            <div key={i} style={{ ...card, padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
+            <div key={i} style={{ ...kartu, padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
               <div style={{ display: "flex", gap: 8 }}><Skeleton h={22} w={70} /><Skeleton h={22} w={55} /></div>
               <Skeleton h={20} w="70%" />
               <Skeleton h={14} w="45%" />
@@ -504,47 +501,50 @@ function ProyekContent() {
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div style={{ ...card, padding: "56px 32px", textAlign: "center" }}>
-          <Building2 size={40} style={{ color: "var(--border)", marginBottom: 12 }} />
-          <p style={{ fontSize: 15, fontWeight: 600, color: C.text, marginBottom: 6 }}>
-            {isFiltered ? "Tidak ada proyek yang cocok" : "Belum ada proyek"}
-          </p>
-          <p style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>
-            {isFiltered
-              ? "Coba ubah filter atau kata kunci pencarian."
-              : "Mulai tambahkan proyek pertama Anda."}
-          </p>
-          {isFiltered ? (
+        <Kosong
+          ikon={<Building2 size={32} aria-hidden="true" />}
+          judul={isFiltered ? "Tidak ada proyek yang cocok" : "Belum ada proyek"}
+          sebab={isFiltered
+            ? `Saringan yang sedang aktif${search.trim() ? ` — pencarian "${search.trim()}"` : ""}${statusFilter !== "all" ? ` — status "${STATUS_TABS.find(t => t.key === statusFilter)?.label}"` : ""} tak menyisakan satu pun dari ${projects.length} proyek. Datanya tidak hilang; longgarkan saringannya.`
+            : "Belum ada satu pun proyek tercatat di perusahaan ini. Angka di kartu ringkasan di atas akan terisi begitu proyek pertama dibuat."}
+          aksi={isFiltered ? (
             <button
               onClick={() => { setSearch(""); setSearchInput(""); setStatusFilter("all"); }}
-              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.text, fontSize: 13, cursor: "pointer" }}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px",
+                borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)",
+                color: C.text, fontSize: 13, cursor: "pointer",
+              }}
             >
-              Reset filter
+              Reset saringan
             </button>
           ) : bolehBuatProyek ? (
             <button
               onClick={() => setShowModal(true)}
-              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px",
+                borderRadius: 6, border: "none", background: C.navy, color: C.onNavy,
+                fontSize: 13, fontWeight: 600, cursor: "pointer",
+              }}
             >
-              <Plus size={14} /> Tambah Proyek
+              <Plus size={14} aria-hidden="true" /> Tambah Proyek
             </button>
-          ) : null}
-        </div>
+          ) : undefined}
+        />
       ) : viewMode === "grid" ? (
-        <div className="rise rise-3" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
+        <div className="rise rise-3" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(340px,1fr))", gap: 16 }}>
           {filtered.map(p => (
-            <ProjectCardGrid key={p.id} project={p} onClick={() => router.push(`/proyek/${p.id}`)} />
+            <ProjectCardGrid key={p.id} project={p} hariIni={hariIni} onClick={() => router.push(`/proyek/${p.id}`)} />
           ))}
         </div>
       ) : (
         <div className="rise rise-3" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {filtered.map(p => (
-            <ProjectCardList key={p.id} project={p} onClick={() => router.push(`/proyek/${p.id}`)} />
+            <ProjectCardList key={p.id} project={p} hariIni={hariIni} onClick={() => router.push(`/proyek/${p.id}`)} />
           ))}
         </div>
       )}
 
-      {/* ── Create modal ── */}
       {showModal && (
         <ProjectModal
           mode="create"
@@ -556,233 +556,75 @@ function ProyekContent() {
   );
 }
 
-// ─── Grid card ────────────────────────────────────────────────────────────────
-
-function ProjectCardGrid({ project: p, onClick }: { project: Project; onClick: () => void }) {
-  const days = daysUntil(p.end_date);
-  const overdue = p.status !== "completed" && days < 0;
-  const dueSoon = !overdue && p.status !== "completed" && days >= 0 && days <= 14;
-
+/**
+ * Batang menyamping: serapan nyata vs garis jadwal, per proyek.
+ *
+ * ── Kenapa menyamping, bukan `GrafikBatang` tegak yang sudah ada
+ *
+ * `GrafikBatang` menggambar SATU nilai per label; yang harus terbaca di sini
+ * adalah DUA nilai dan jaraknya. Batang menyamping juga memberi ruang untuk
+ * nama proyek utuh — nama proyek konstruksi panjang ("Renovasi Gedung B
+ * Tahap 2"), dan pada batang tegak ia terpotong jadi tak terbaca, yang
+ * menghapus gunanya grafik yang tugasnya menunjuk proyek tertentu.
+ *
+ * ── Kenapa selisihnya disebut angka, bukan cuma digambar
+ *
+ * Panjang batang menyatakan besaran; angka menyatakan berapa persisnya. Yang
+ * pertama untuk memindai, yang kedua untuk ditulis di notulen rapat.
+ */
+function GrafikSelisih({ baris }: { baris: BarisSelisih[] }) {
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={onClick}
-      onKeyDown={e => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault()   // Spasi jangan menggulir daftar proyek
-          onClick()
-        }
-      }}
-      style={{
-        ...card, padding: 20, cursor: "pointer",
-        transition: "all 0.15s ease",
-        borderColor: overdue ? C.redBorder : dueSoon ? C.yellowBorder : "var(--border)",
-      }}
-      onMouseEnter={e => {
-        e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,51,102,0.10)";
-        e.currentTarget.style.transform = "translateY(-2px)";
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.boxShadow = "0 1px 4px rgba(0,0,0,0.06)";
-        e.currentTarget.style.transform = "translateY(0)";
-      }}
-    >
-      {/* Top: badges + deadline pill */}
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
-        <StatusBadge status={p.status} />
-        <ModelBadge model={p.contract_model} />
-        {overdue && (
-          <span style={{
-            marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 2,
-            padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 700,
-            background: C.redBg, color: C.red, border: `1px solid ${C.redBorder}`,
-          }}>
-            <AlertTriangle size={9} /> {Math.abs(days)}h terlambat
-          </span>
-        )}
-        {dueSoon && (
-          <span style={{
-            marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 2,
-            padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 700,
-            background: C.yellowBg, color: C.yellow, border: `1px solid ${C.yellowBorder}`,
-          }}>
-            <Clock size={9} /> {days}h lagi
-          </span>
-        )}
-      </div>
-
-      {/* Name */}
-      <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 4, lineHeight: 1.35 }}>
-        {p.name}
-      </h3>
-
-      {/* Location */}
-      <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 14 }}>
-        <MapPin size={11} style={{ color: C.muted, flexShrink: 0 }} />
-        <span style={{ fontSize: 12, color: C.muted }}>{p.location}</span>
-      </div>
-
-      {/* Client + PM */}
-      <div style={{
-        display: "flex", alignItems: "center", gap: 12,
-        paddingBottom: 14, borderBottom: "1px solid var(--surface-hover)", marginBottom: 14,
-      }}>
-        {p.clients && (
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>
-            <Avatar name={p.clients.contact_person} size={26} />
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 10, color: C.muted }}>Klien</div>
-              <div style={{ fontSize: 12, fontWeight: 500, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {p.clients.contact_person}
-              </div>
-            </div>
-          </div>
-        )}
-        {p.clients && p.pm && <div style={{ width: 1, height: 28, background: "var(--surface-hover)", flexShrink: 0 }} />}
-        {p.pm && (
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>
-            <Avatar name={p.pm.name} size={26} />
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 10, color: C.muted }}>PM</div>
-              <div style={{ fontSize: 12, fontWeight: 500, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {p.pm.name}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Serapan progress */}
-      <div style={{ marginBottom: 14 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-          <span style={{ fontSize: 11, color: C.muted }}>Serapan Anggaran</span>
-          <span style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>{Number(p.progress_pct).toFixed(1)}%</span>
-        </div>
-        <ProgressBar pct={Number(p.progress_pct)} color="var(--info)" />
-      </div>
-
-      {/* Bottom: value + deadline + arrow */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-        <div>
-          <div style={{ fontSize: 10, color: C.muted, marginBottom: 2 }}>Nilai Kontrak</div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{fmtCompact(Number(p.contract_value))}</div>
-        </div>
-        <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 10, color: C.muted, marginBottom: 2 }}>Tenggat</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: overdue ? C.red : C.mid, fontWeight: overdue ? 600 : 400 }}>
-            <Calendar size={11} />
-            {fmtDate(p.end_date)}
-          </div>
-        </div>
-        <div style={{
-          width: 30, height: 30, borderRadius: 6, flexShrink: 0,
-          background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center",
-        }}>
-          <ArrowRight size={13} style={{ color: C.navy }} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── List card ────────────────────────────────────────────────────────────────
-
-function ProjectCardList({ project: p, onClick }: { project: Project; onClick: () => void }) {
-  const days = daysUntil(p.end_date);
-  const overdue = p.status !== "completed" && days < 0;
-  const dueSoon = !overdue && p.status !== "completed" && days >= 0 && days <= 14;
-
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={onClick}
-      onKeyDown={e => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault()   // Spasi jangan menggulir daftar
-          onClick()
-        }
-      }}
-      style={{
-        ...card, padding: "16px 20px", cursor: "pointer",
-        display: "grid",
-        gridTemplateColumns: "1fr 160px 160px 120px 36px",
-        alignItems: "center", gap: 16,
-        transition: "all 0.15s ease",
-        borderColor: overdue ? C.redBorder : "var(--border)",
-      }}
-      onMouseEnter={e => {
-        e.currentTarget.style.boxShadow = "0 4px 14px rgba(0,51,102,0.09)";
-        e.currentTarget.style.borderColor = overdue ? C.redBorder : "var(--info-border)";
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.boxShadow = "0 1px 4px rgba(0,0,0,0.06)";
-        e.currentTarget.style.borderColor = overdue ? C.redBorder : "var(--border)";
-      }}
-    >
-      {/* Col 1: name + location + badges */}
-      <div style={{ minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5, flexWrap: "wrap" }}>
-          <StatusBadge status={p.status} />
-          <ModelBadge model={p.contract_model} />
-        </div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {p.name}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <span style={{ display: "flex", alignItems: "center", gap: 2, fontSize: 11, color: C.muted }}>
-            <MapPin size={10} /> {p.location}
-          </span>
-          {p.clients && (
-            <span style={{ display: "flex", alignItems: "center", gap: 2, fontSize: 11, color: C.muted }}>
-              <User size={10} /> {p.clients.contact_person}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Col 2: contract value + PM */}
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 3 }}>
-          {fmtCompact(Number(p.contract_value))}
-        </div>
-        {p.pm && (
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <Avatar name={p.pm.name} size={18} />
-            <span style={{ fontSize: 11, color: C.mid, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {p.pm.name}
+    <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 14 }}>
+      {baris.map((b, i) => (
+        <li key={b.id}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 5 }}>
+            <Link href={`/proyek/${b.id}`} style={{
+              fontSize: 12, fontWeight: 600, color: C.text, textDecoration: "none",
+              flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            }}>{b.name}</Link>
+            <span style={{
+              fontSize: 11, fontWeight: 700, color: C.red,
+              fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap",
+            }}>
+              {b.selisih.toFixed(1)} poin
             </span>
           </div>
-        )}
-      </div>
 
-      {/* Col 3: serapan progress */}
-      <div>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-          <span style={{ fontSize: 10, color: C.muted }}>Serapan</span>
-          <span style={{ fontSize: 11, fontWeight: 700, color: C.navy }}>{Number(p.progress_pct).toFixed(1)}%</span>
-        </div>
-        <ProgressBar pct={Number(p.progress_pct)} color="var(--info)" />
-      </div>
+          {/* Dua batang bertumpuk pada landasan yang sama: yang pucat adalah
+              garis jadwal, yang pekat adalah serapan nyata. Jarak yang terlihat
+              di antara ujung keduanya ADALAH selisihnya — tak perlu dihitung. */}
+          <div
+            role="img"
+            aria-label={`${b.name}: serapan ${b.nyata.toFixed(1)} persen, garis jadwal ${b.seharusnya.toFixed(1)} persen, tertinggal ${Math.abs(b.selisih).toFixed(1)} poin`}
+            style={{ position: "relative", height: 14, background: "var(--surface-hover)", borderRadius: 4, overflow: "hidden" }}
+          >
+            <div style={{
+              position: "absolute", inset: 0, width: `${b.seharusnya}%`,
+              background: "var(--data-diam)",
+            }} />
+            <div style={{
+              position: "absolute", top: 3, bottom: 3, left: 0, width: `${b.nyata}%`,
+              // Hanya baris TERPARAH yang bergradasi — aturan "satu aksen per
+              // layar" (`ui-dasar.tsx`). Kalau enam batang bergradasi, tak ada
+              // yang menonjol dan daftar urut kehilangan gunanya.
+              background: i === 0 ? "var(--grad-aksen)" : "var(--aksen)",
+              borderRadius: 3, transition: "width 500ms cubic-bezier(.16,1,.3,1)",
+            }} />
+          </div>
 
-      {/* Col 4: deadline */}
-      <div style={{ textAlign: "right" }}>
-        <div style={{ fontSize: 10, color: C.muted, marginBottom: 3 }}>Tenggat</div>
-        <div style={{ fontSize: 12, fontWeight: overdue ? 600 : 400, color: overdue ? C.red : dueSoon ? C.yellow : C.mid }}>
-          {fmtDateShort(p.end_date)}
-        </div>
-        {overdue && <div style={{ fontSize: 10, color: C.red, marginTop: 2 }}>{Math.abs(days)}h terlambat</div>}
-        {dueSoon && <div style={{ fontSize: 10, color: C.yellow, marginTop: 2 }}>{days}h lagi</div>}
-      </div>
+          <div style={{ display: "flex", gap: 12, marginTop: 4, fontSize: 10, color: C.muted }}>
+            <span>serapan {b.nyata.toFixed(1)}%</span>
+            <span>jadwal {b.seharusnya.toFixed(1)}%</span>
+          </div>
+        </li>
+      ))}
 
-      {/* Col 5: arrow */}
-      <div style={{
-        width: 30, height: 30, borderRadius: 6,
-        background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center",
-      }}>
-        <ArrowRight size={13} style={{ color: C.navy }} />
-      </div>
-    </div>
+      <li style={{ fontSize: 10, color: C.muted, lineHeight: 1.5, marginTop: 2 }}>
+        <Clock size={10} aria-hidden="true" style={{ verticalAlign: "-1px", marginRight: 4 }} />
+        Garis jadwal dihitung lurus dari tanggal mulai ke tanggal akhir kontrak.
+        Konstruksi berjalan kurva S, bukan lurus — jadi angka ini mengurutkan
+        mana yang paling perlu ditanya, bukan memvonis sudah terlambat.
+      </li>
+    </ul>
   );
 }

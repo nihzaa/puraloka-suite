@@ -126,7 +126,7 @@ function KurvaSTab({ projectId }: { projectId: string }) {
   const devColor = meta.deviasi >= 0 ? C.green : C.red;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         {[
           { label: "Progress Fisik", value: `${meta.latestActualPct.toFixed(1)}%`, color: C.navy },
@@ -140,7 +140,7 @@ function KurvaSTab({ projectId }: { projectId: string }) {
           </div>
         ))}
       </div>
-      <div style={{ ...card, padding: 20 }}>
+      <div style={{ ...card, padding: "var(--pad-kartu)" }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 16 }}>Kurva S — Rencana vs Progress Fisik</div>
         <ResponsiveContainer width="100%" height={280}>
           <ComposedChart data={chartData} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
@@ -189,7 +189,7 @@ function GanttTab({ projectId }: { projectId: string }) {
   const barColor = ["var(--navy)", "var(--navy)", "var(--aksen-terang)", "var(--info)"];
 
   return (
-    <div style={{ ...card, padding: 20, overflowX: "auto" }}>
+    <div style={{ ...card, padding: "var(--pad-kartu)", overflowX: "auto" }}>
       <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 4 }}>Jadwal Pelaksanaan (Gantt)</div>
       <div style={{ fontSize: 11, color: C.muted, marginBottom: 16 }}>Rencana — read only</div>
       <div style={{ minWidth: 600 }}>
@@ -272,7 +272,7 @@ function FotoTab({ projectId }: { projectId: string }) {
   if (loading) return <div style={{ textAlign: "center", padding: 60, color: C.mid }}>Memuat foto...</div>;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       {/* Filter */}
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
         {cats.map(cat => (
@@ -451,7 +451,7 @@ export default function PortalProyekDetailPage() {
       </button>
 
       {/* Header card */}
-      <div style={{ ...card, padding: 20, marginBottom: 16 }}>
+      <div style={{ ...card, padding: "var(--pad-kartu-lega)", marginBottom: "var(--gap-bagian)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
           <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text, margin: 0, flex: 1 }}>{project.name}</h1>
           <span style={{ fontSize: 12, fontWeight: 600, padding: "4px 8px", borderRadius: 20, color: meta.color, background: meta.bg, flexShrink: 0 }}>{meta.label}</span>
@@ -511,9 +511,9 @@ export default function PortalProyekDetailPage() {
 
       {/* Tab: Ringkasan */}
       {activeTab === "overview" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
           {project.pm && (
-            <div style={{ ...card, padding: 16 }}>
+            <div style={{ ...card, padding: "var(--pad-kartu)" }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>Project Manager</div>
               <div style={{ fontSize: 15, fontWeight: 600, color: C.text }}>{project.pm.name}</div>
               {project.pm.phone && (
@@ -528,7 +528,7 @@ export default function PortalProyekDetailPage() {
             </div>
           )}
           {project.milestones?.length > 0 && (
-            <div style={{ ...card, padding: 16 }}>
+            <div style={{ ...card, padding: "var(--pad-kartu)" }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.05em" }}>Milestone</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {project.milestones.map((m) => {
@@ -551,7 +551,7 @@ export default function PortalProyekDetailPage() {
             </div>
           )}
           {project.notes && (
-            <div style={{ ...card, padding: 16 }}>
+            <div style={{ ...card, padding: "var(--pad-kartu)" }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>Catatan</div>
               <div style={{ fontSize: 13, color: C.text, lineHeight: 1.6 }}>{project.notes}</div>
             </div>
@@ -566,7 +566,7 @@ export default function PortalProyekDetailPage() {
             <div style={{ ...card, padding: 40, textAlign: "center", color: C.mid }}>Belum ada log progress</div>
           )}
           {project.progress_logs?.map((log) => (
-            <div key={log.id} style={{ ...card, padding: 16 }}>
+            <div key={log.id} style={{ ...card, padding: "var(--pad-kartu)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                 <div style={{ fontSize: 13, color: C.mid }}>
                   <Calendar size={13} style={{ display: "inline", marginRight: 4 }} />
@@ -597,7 +597,7 @@ export default function PortalProyekDetailPage() {
           {project.invoices?.map((inv) => {
             const st = INVOICE_STATUS[inv.status] ?? INVOICE_STATUS.unpaid;
             return (
-              <div key={inv.id} style={{ ...card, padding: 16 }}>
+              <div key={inv.id} style={{ ...card, padding: "var(--pad-kartu)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>

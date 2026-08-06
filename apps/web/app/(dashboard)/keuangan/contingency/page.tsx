@@ -25,6 +25,7 @@ import { PiggyBank, AlertTriangle, TrendingDown, ShieldCheck, Plus, RefreshCw } 
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
+import { Tabel, type Kolom } from "@/components/dasar";
 
 type Proyek = { id: string; name: string };
 
@@ -85,6 +86,111 @@ const rupiah = (n: number) =>
 
 const tanggalTerbaca = (iso: string) =>
   new Date(iso + "T00:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+
+/** Pos yang menuntut tindakan — dipakai untuk pita kiri sekaligus latar baris. */
+const mendesak = (p: Pos) => p.status === "terlampaui" || p.status === "kritis";
+
+/**
+ * Kolom tabel pos cadangan.
+ *
+ * Di tingkat modul, bukan di dalam komponen: isinya tak bergantung pada satu
+ * pun state, jadi menyusunnya ulang tiap render hanya membuat `Tabel`
+ * menerima array baru tanpa ada yang berubah.
+ *
+ * ── Kenapa kepala barisnya nama pos DAN nama proyek, bukan nama pos saja
+ *
+ * Nama pos hanya unik PER PROYEK — API menolak duplikat dengan pesan
+ * "sudah ada di proyek ini" (`routes/v1/contingency.ts`), bukan secara
+ * global. Jadi "Cadangan Risiko Utama" akan muncul berkali-kali begitu ada
+ * beberapa proyek. Kepala baris yang cuma menyebut nama pos membuat pembaca
+ * layar mengumumkan tiga baris berbeda dengan nama yang sama persis, dan
+ * angka defisitnya tak bisa lagi ditelusuri ke proyek mana.
+ *
+ * Proyeknya sendiri tidak dijadikan kepala baris: satu proyek boleh punya
+ * beberapa pos, jadi ia juga tak menamai baris secara unik. Yang menamai
+ * baris adalah pasangannya — dan keduanya memang sudah tampil di sel ini
+ * sejak awal.
+ */
+const KOLOM: Array<Kolom<Pos>> = [
+  {
+    kunci: "pos", judul: "Pos cadangan", kepalaBaris: true,
+    render: (p) => (
+      // Pita kiri digambar di DALAM sel, bukan lewat `borderLeft` sel seperti
+      // versi tabel mentahnya: `Tabel` memiliki gaya selnya sendiri, dan
+      // menempelkannya lewat prop akan memaksa primitif bersama tahu soal
+      // status contingency. (Preseden: `gudang/rekonsiliasi`.)
+      <span style={{
+        display: "block", paddingLeft: 9,
+        borderLeft: mendesak(p)
+          ? `3px solid ${STATUS_META[p.status].warna}`
+          : "3px solid transparent",
+      }}>
+        {p.nama}
+        <span style={{ display: "block", fontSize: 11, color: C.mid, marginTop: 2 }}>
+          {p.project_name}
+          {p.jumlah_penarikan > 0 && ` · ${p.jumlah_penarikan}× tarik`}
+          {p.penarikan_terakhir && ` · terakhir ${tanggalTerbaca(p.penarikan_terakhir)}`}
+        </span>
+      </span>
+    ),
+  },
+  {
+    kunci: "nilai", judul: "Cadangan", rata: "kanan",
+    render: (p) => <span style={{ color: C.mid }}>{rupiah(p.nilai)}</span>,
+  },
+  {
+    kunci: "terpakai", judul: "Terpakai", rata: "kanan",
+    render: (p) => (
+      <>
+        {rupiah(p.terpakai)}
+        <span style={{ display: "block", fontSize: 10, color: C.muted }}>
+          {p.terpakai_pct.toFixed(1)}%
+        </span>
+      </>
+    ),
+  },
+  {
+    kunci: "sisa", judul: "Sisa", rata: "kanan",
+    // NEGATIF dipertahankan dan diberi warna bahaya — meratakannya ke nol
+    // menyembunyikan kejadian yang paling mahal (lihat kepala berkas).
+    render: (p) => (
+      <span style={{ fontWeight: 700, color: p.sisa < 0 ? "var(--danger)" : C.text }}>
+        {rupiah(p.sisa)}
+        {p.sisa < 0 && (
+          <span style={{ display: "block", fontSize: 10, fontWeight: 600, color: "var(--danger)" }}>
+            defisit
+          </span>
+        )}
+      </span>
+    ),
+  },
+  {
+    kunci: "porsi", judul: "Porsi kontrak", rata: "kanan",
+    render: (p) => (
+      <span style={{ color: C.mid }}>
+        {/* null ≠ 0: null = kontraknya tak diketahui. */}
+        {p.porsi_kontrak_pct === null
+          ? <span style={{ fontSize: 11, color: C.muted }}>kontrak kosong</span>
+          : `${p.porsi_kontrak_pct.toFixed(1)}%`}
+      </span>
+    ),
+  },
+  {
+    kunci: "status", judul: "Status",
+    render: (p) => {
+      const meta = STATUS_META[p.status];
+      // Status sebagai KATA, bukan hanya warna baris — yang tak bisa
+      // membedakan warna, dan pembaca layar, sama-sama butuh teksnya.
+      return (
+        <span title={meta.arti} style={{
+          display: "inline-block", padding: "2px 8px", borderRadius: 20,
+          fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
+          color: meta.warna, background: meta.bg, border: `1px solid ${meta.border}`,
+        }}>{meta.label}</span>
+      );
+    },
+  },
+];
 
 export default function ContingencyPage() {
   const [proyek, setProyek] = useState<Proyek[]>([]);
@@ -329,86 +435,28 @@ export default function ContingencyPage() {
                 />
               ) : (
                 <div className="rise rise-3" style={{ ...kartu, overflow: "hidden" }}>
-                  <div style={{ overflowX: "auto" }}>
-                    <table style={{
-                      width: "100%", borderCollapse: "collapse", fontSize: 13,
-                      fontVariantNumeric: "tabular-nums", minWidth: 840,
-                    }}>
-                      <caption className="sr-only">
-                        Pos cadangan risiko: nama, proyek, nilai cadangan, jumlah terpakai,
-                        sisa, porsi terhadap nilai kontrak, dan statusnya.
-                      </caption>
-                      <thead>
-                        <tr style={{ background: "var(--surface-subtle)" }}>
-                          {[
-                            ["Pos cadangan", "left"], ["Cadangan", "right"], ["Terpakai", "right"],
-                            ["Sisa", "right"], ["Porsi kontrak", "right"], ["Status", "left"],
-                          ].map(([h, rata]) => (
-                            <th key={h} scope="col" style={{
-                              textAlign: rata as "left" | "right", padding: "8px 12px",
-                              fontSize: 10, fontWeight: 700, color: C.muted,
-                              textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap",
-                            }}>{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {hasil.pos.map((p) => {
-                          const meta = STATUS_META[p.status];
-                          const mendesak = p.status === "terlampaui" || p.status === "kritis";
-                          return (
-                            <tr key={p.id} style={{ borderTop: `1px solid ${C.border}` }}>
-                              <th scope="row" style={{
-                                textAlign: "left", padding: "10px 12px", fontWeight: 500, color: C.text,
-                                borderLeft: mendesak ? `3px solid ${meta.warna}` : "3px solid transparent",
-                              }}>
-                                {p.nama}
-                                <span style={{ display: "block", fontSize: 11, color: C.mid, marginTop: 2 }}>
-                                  {p.project_name}
-                                  {p.jumlah_penarikan > 0 && ` · ${p.jumlah_penarikan}× tarik`}
-                                  {p.penarikan_terakhir && ` · terakhir ${tanggalTerbaca(p.penarikan_terakhir)}`}
-                                </span>
-                              </th>
-                              <td style={{ textAlign: "right", padding: "10px 12px", color: C.mid }}>
-                                {rupiah(p.nilai)}
-                              </td>
-                              <td style={{ textAlign: "right", padding: "10px 12px", color: C.text }}>
-                                {rupiah(p.terpakai)}
-                                <span style={{ display: "block", fontSize: 10, color: C.muted }}>
-                                  {p.terpakai_pct.toFixed(1)}%
-                                </span>
-                              </td>
-                              <td style={{
-                                textAlign: "right", padding: "10px 12px", fontWeight: 700,
-                                // NEGATIF dipertahankan dan diberi warna bahaya.
-                                color: p.sisa < 0 ? "var(--danger)" : C.text,
-                              }}>
-                                {rupiah(p.sisa)}
-                                {p.sisa < 0 && (
-                                  <span style={{ display: "block", fontSize: 10, fontWeight: 600, color: "var(--danger)" }}>
-                                    defisit
-                                  </span>
-                                )}
-                              </td>
-                              <td style={{ textAlign: "right", padding: "10px 12px", color: C.mid }}>
-                                {/* null ≠ 0: null = kontraknya tak diketahui. */}
-                                {p.porsi_kontrak_pct === null
-                                  ? <span style={{ fontSize: 11, color: C.muted }}>kontrak kosong</span>
-                                  : `${p.porsi_kontrak_pct.toFixed(1)}%`}
-                              </td>
-                              <td style={{ padding: "10px 12px" }}>
-                                <span title={meta.arti} style={{
-                                  display: "inline-block", padding: "2px 8px", borderRadius: 20,
-                                  fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
-                                  color: meta.warna, background: meta.bg, border: `1px solid ${meta.border}`,
-                                }}>{meta.label}</span>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                  {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). Caption sr-only,
+                      kolom pertama <th scope="row">, tabular-nums, dan pembungkus
+                      overflow-x sekarang dijamin komponen — empat hal yang tabel
+                      mentah harus ingat sendiri setiap kali, dan yang riwayat repo
+                      ini tunjukkan TIDAK selalu diingat (16164e9, ed3a55d, 0adb9b9).
+
+                      `minWidth: 840` sengaja dilepas, bukan lupa: komponen sudah
+                      membungkus dengan overflow-x, jadi gulir horizontalnya tetap
+                      ada tanpa memaksa lebar mati ke primitif bersama. Preseden:
+                      `gudang/material-klien`, `aset`.
+
+                      Baris mendesak kini ditandai DUA cara — pita kiri di sel
+                      pertama dan latar barisnya lewat `tandaiBaris` — tapi kata
+                      statusnya tetap ada di kolom terakhir, karena keduanya warna
+                      dan warna saja tak terbaca (WCAG 1.4.1). */}
+                  <Tabel<Pos>
+                    caption="Pos cadangan risiko: nama, proyek, nilai cadangan, jumlah terpakai, sisa, porsi terhadap nilai kontrak, dan statusnya."
+                    data={hasil.pos}
+                    kunciBaris={(p) => p.id}
+                    kolom={KOLOM}
+                    tandaiBaris={(p) => (mendesak(p) ? STATUS_META[p.status].bg : undefined)}
+                  />
 
                   <p style={{
                     margin: 0, padding: "10px 14px", borderTop: `1px solid ${C.border}`,

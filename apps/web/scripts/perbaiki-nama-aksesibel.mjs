@@ -96,7 +96,7 @@ for (const f of berkas(join(AKAR, 'app'))) {
   // ── <input type="date"> tanpa nama ───────────────────────────────────────
   // Tanggal hampir selalu berpasangan (dari–sampai); yang membedakan biasanya
   // nama state-nya, jadi itu yang dibaca.
-  isi = isi.replace(/<input\b(?![^>]*\baria-label=)([^>]*?type="date"[^>]*?)\/?>/g, (m, atribut) => {
+  isi = isi.replace(/<input\b(?![^>]*\baria-label=)([^>]*?type="date"[^>]*?)\/?>/g, (m, _atribut) => {
     const v = m.match(/value=\{(?:[a-zA-Z]+\.)?([a-zA-Z]+)/)
     let nama = null
     if (v) {

@@ -1,7 +1,13 @@
 "use client";
 
 /**
- * REGISTER TENDER — halaman pra-konstruksi (ROADMAP #22).
+ * REGISTER TENDER — RINGKASAN. Dashboard modul, bukan langsung tabel (UI-2-3).
+ *
+ * ── Tiga lapis (ARAH-VISUAL-2026 §5b)
+ *
+ *   LAPIS 1  empat kartu KPI          "apa yang terjadi?"
+ *   LAPIS 2  penawaran menggantung    "mana yang harus saya tagih jawabannya?"
+ *   LAPIS 3  tabel tender + saringan  "apa yang harus saya kerjakan?"
  *
  * ── Yang dijawab halaman ini
  *
@@ -13,6 +19,27 @@
  *    dimenangkan tapi belum selesai — beban kapasitas yang paling sering
  *    terlupa.
  *
+ * ── Dari mana KPI-nya — NOL endpoint baru
+ *
+ * Keempat kartu memakai `meta` yang SUDAH dikirim `/api/v1/bids`, dihitung
+ * `apps/api/src/lib/bid-backlog.ts` dan teruji di sana. Web sengaja TIDAK
+ * menghitung ulang backlog/win-rate: dua sumber untuk angka yang sama berarti
+ * saat keduanya menyimpang, tak ada yang tahu mana yang benar.
+ *
+ * Yang DITAMBAHKAN web hanya satu hal yang `meta` memang tak punya, karena
+ * `meta` sengaja tak sadar waktu: berapa LAMA sebuah penawaran menggantung
+ * (`lib/ringkasan-tender.ts`).
+ *
+ * ── Kenapa "menggantung", dan kenapa ia menggeser "pipeline" dari kartu
+ *
+ * "12 tender menunggu keputusan" tak menuntut tindakan apa pun — menunggu
+ * memang pekerjaan tender. Yang menuntut tindakan adalah berapa di antaranya
+ * sudah menunggu terlalu lama: tender yang menggantung >45 hari biasanya sudah
+ * diputuskan tanpa kita diberi tahu, dan selama statusnya tetap "diajukan",
+ * nilainya ikut menggelembungkan pipeline yang dipakai memutuskan sanggup
+ * atau tidaknya mengambil kerja baru. Nilai pipeline tetap ada — ia pindah ke
+ * keterangan kartu yang sama, tempat ia jadi konteks, bukan angka utama.
+ *
  * ── Kenapa tabel, bukan kanban
  *
  * Kanban mengundang pemakaian sebagai pipeline CRM, dan CRM penuh sengaja
@@ -21,10 +48,17 @@
  * halaman ini.
  */
 
-import { useCallback, useEffect, useState } from "react";
-import { Plus, Trophy, XCircle, Clock, Wallet, AlertTriangle } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Plus, Trophy, XCircle, Clock, Wallet, AlertTriangle, Hourglass,
+} from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { Tabel } from "@/components/dasar";
+import { KartuKPI, Panel } from "@/components/ui-dasar";
+import {
+  hariIniWIB, penawaranMenggantung, ringkasTender,
+  type BarisMenggantung,
+} from "@/lib/ringkasan-tender";
 
 import { C } from "@/lib/warna-ui";
 
@@ -88,13 +122,54 @@ export default function TenderPage() {
   const [saring, setSaring] = useState<string>("");
   const [formBuka, setFormBuka] = useState(false);
 
+  /**
+   * Seluruh tender yang berstatus `diajukan`, TERLEPAS dari saringan.
+   *
+   * Dipisah dari `bids` dengan sengaja. `bids` disaring di SERVER lewat
+   * `?status=`, jadi begitu pengguna memilih "Menang", `bids` tak lagi memuat
+   * satu pun penawaran yang menunggu — dan KPI "menggantung" akan berkedip
+   * jadi nol. Angka ringkasan yang berubah karena saringan daftar adalah
+   * cacat yang sama seperti KPI yang mengikuti pencarian: pembacanya mengira
+   * keadaan perusahaan berubah, padahal cuma tampilannya.
+   *
+   * Karena itu lapis 1 & 2 memakai deret ini, dan lapis 3 memakai `bids`.
+   * Keduanya endpoint yang SAMA — tak ada rute baru, hanya satu permintaan
+   * tambahan tanpa parameter status.
+   */
+  const [bidsAju, setBidsAju] = useState<Bid[]>([]);
+
+  // Tanggal acuan dibekukan saat halaman dipasang — lihat catatan yang sama
+  // di `/proyek` dan `/aset`.
+  const [hariIni] = useState(() => hariIniWIB());
+
   const muat = useCallback((signal?: AbortSignal) => {
     const url = saring ? `/api/v1/bids?status=${saring}` : "/api/v1/bids";
-    return api.get<{ data: Bid[]; meta: Meta }>(url, { signal })
-      .then(({ data }) => { setBids(data.data ?? []); setMeta(data.meta); setGalat(null); })
+    return Promise.all([
+      api.get<{ data: Bid[]; meta: Meta }>(url, { signal }),
+      // TANPA parameter status — lihat catatan `bidsAju` di atas.
+      api.get<{ data: Bid[]; meta: Meta }>("/api/v1/bids", { signal }),
+    ])
+      .then(([daftar, penuh]) => {
+        setBids(daftar.data.data ?? []);
+        setBidsAju(penuh.data.data ?? []);
+        // `meta` diambil dari respons PENUH, bukan yang tersaring.
+        //
+        // `hitungBacklog` di API menghitung dari baris yang dipulangkan query
+        // itu saja. Saat pengguna memilih "Menang", respons tersaring hanya
+        // memuat tender menang — dan `meta`-nya melaporkan win rate 100% dan
+        // pipeline Rp 0. Angka itu tak salah hitung; ia menjawab pertanyaan
+        // yang berbeda dari yang dibaca orang di kartu KPI.
+        setMeta(penuh.data.meta);
+        setGalat(null);
+      })
       .catch((e) => { if (e?.name !== "CanceledError") setGalat("Gagal memuat register tender"); })
       .finally(() => setMemuat(false));
   }, [saring]);
+
+  // ── LAPIS 1 & 2 ───────────────────────────────────────────────────────────
+  const ringkas = useMemo(() => ringkasTender(bidsAju, hariIni), [bidsAju, hariIni]);
+  const menggantung = useMemo(
+    () => penawaranMenggantung(bidsAju, hariIni), [bidsAju, hariIni]);
 
   useEffect(() => {
     const ac = makeAbortController();
@@ -130,50 +205,112 @@ export default function TenderPage() {
 
       {formBuka && <FormTender onSelesai={() => { setFormBuka(false); muat(); }} />}
 
+      {/* ── LAPIS 1 — KEADAAN ── */}
       {meta && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 12, marginBottom: 20 }}>
-          {/* Warna DITURUNKAN dari angkanya, tidak dipaku hijau.
-              Backlog nol bukan kabar baik untuk kontraktor — itu berarti
-              tak ada pekerjaan di tangan setelah proyek berjalan selesai.
-              Menampilkannya hijau membacanya sebagai "sehat", padahal ia
-              justru keadaan yang paling perlu ditindaklanjuti.
+        <div className="rise rise-1" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginBottom: 20 }}>
+          {/* Backlog disorot: ia satu-satunya angka di halaman ini yang
+              menjawab "sanggup tidak saya ambil kerja baru". Backlog nol
+              BUKAN kabar baik untuk kontraktor — itu berarti tak ada pekerjaan
+              di tangan setelah proyek berjalan selesai — jadi keterangannya
+              menyatakan keadaan itu dengan kalimat, bukan mewarnainya hijau.
               Pola yang sama sudah diperbaiki di /kas (saldo minus) dan
               /keuangan/profitabilitas (margin 100%). */}
-          <Kartu Icon={Wallet} label="Backlog" nilai={fmtRp(meta.backlogNilai)}
-            sub={meta.backlogJumlah > 0
+          <KartuKPI
+            sorot
+            label="Backlog"
+            nilai={fmtRp(meta.backlogNilai)}
+            ikon={<Wallet size={15} />}
+            keterangan={meta.backlogJumlah > 0
               ? `${meta.backlogJumlah} tender dimenangkan, belum selesai`
-              : "belum ada pekerjaan di tangan"}
-            warna={meta.backlogJumlah > 0 ? C.green : C.mid}
-            bg={meta.backlogJumlah > 0 ? C.greenBg : "var(--surface-subtle)"}
-            border={meta.backlogJumlah > 0 ? C.greenBorder : C.border} />
-          <Kartu Icon={Clock} label="Pipeline" nilai={fmtRp(meta.pipelineNilai)}
-            sub={meta.pipelineJumlah > 0
-              ? `${meta.pipelineJumlah} menunggu keputusan`
-              : "tak ada tender yang sedang diikuti"}
-            warna={meta.pipelineJumlah > 0 ? C.blue : C.mid}
-            bg={meta.pipelineJumlah > 0 ? C.blueBg : "var(--surface-subtle)"}
-            border={meta.pipelineJumlah > 0 ? C.blueBorder : C.border} />
-          <Kartu Icon={Trophy} label="Win rate"
+              : "belum ada pekerjaan di tangan setelah proyek berjalan selesai"}
+          />
+          <KartuKPI
+            label="Menunggu Terlalu Lama"
+            nilai={String(ringkas.menggantung)}
+            nilaiAngka={ringkas.menggantung}
+            naikBagus={false}
+            ikon={<Hourglass size={15} />}
+            keterangan={
+              ringkas.diajukan === 0
+                ? "tak ada penawaran yang sedang menunggu keputusan"
+                : ringkas.menggantung === 0
+                  ? `${ringkas.diajukan} penawaran menunggu, semuanya <45 hari`
+                  // Nilai pipeline pindah ke sini: sebagai konteks ia memberi
+                  // tahu SEBERAPA BESAR yang rapuh, tanpa jadi angka utama
+                  // yang tak menuntut tindakan.
+                  : `${fmtRp(ringkas.nilaiMenggantung)} dari ${fmtRp(meta.pipelineNilai)} pipeline · >45 hari sejak diajukan`}
+          />
+          <KartuKPI
+            label="Win rate"
             nilai={meta.winRatePct == null ? "—" : `${meta.winRatePct}%`}
-            sub={meta.winRatePct == null
+            ikon={<Trophy size={15} />}
+            keterangan={meta.winRatePct == null
               // "belum pernah ikut" ≠ "selalu kalah" — 0% akan terbaca sebagai
               // yang kedua, jadi keadaan ini dinyatakan dengan kalimat.
               ? "belum ada tender yang diputuskan"
               : `${meta.menang} menang · ${meta.kalah} kalah`}
-            warna={C.navy} bg="var(--navy-light)" border={C.border} />
-          <Kartu Icon={XCircle} label="Selisih vs pemenang"
+          />
+          <KartuKPI
+            label="Selisih vs Pemenang"
             nilai={meta.selisihHargaRataPct == null ? "—" : `${meta.selisihHargaRataPct > 0 ? "+" : ""}${meta.selisihHargaRataPct}%`}
-            sub={meta.selisihHargaRataPct == null
-              ? "nilai pemenang belum pernah diisi"
+            naikBagus={false}
+            ikon={<XCircle size={15} />}
+            keterangan={meta.selisihHargaRataPct == null
+              ? "nilai pemenang belum pernah diisi — selisih tak bisa dihitung"
               : meta.selisihHargaRataPct > 0
-                ? `rata-rata kita lebih mahal (${meta.kalahDenganPembanding} tender)`
-                : `kita lebih murah tapi tetap kalah — bukan soal harga`}
-            warna={meta.selisihHargaRataPct != null && meta.selisihHargaRataPct > 0 ? C.red : C.mid}
-            bg={meta.selisihHargaRataPct != null && meta.selisihHargaRataPct > 0 ? C.redBg : "var(--surface-subtle)"}
-            border={meta.selisihHargaRataPct != null && meta.selisihHargaRataPct > 0 ? C.redBorder : C.border} />
+                ? `rata-rata kita lebih mahal (${meta.kalahDenganPembanding} tender kalah)`
+                : "kita lebih murah tapi tetap kalah — bukan soal harga"}
+          />
         </div>
       )}
 
+      {/* Tender `diajukan` yang tanggal pengajuannya kosong. Spanduk, bukan
+          kartu: ia menyatakan ada DATA yang harus dilengkapi, bukan keadaan
+          bisnis. Kenapa layak disebut sama sekali — tender ini tak pernah bisa
+          masuk hitungan "menunggu terlalu lama" karena umurnya tak terhitung,
+          jadi ia tak muncul di angka mana pun. Yang tak terlihat di mana pun
+          tak akan pernah ditagih jawabannya. */}
+      {!memuat && ringkas.tanpaTanggalAju > 0 && (
+        <div className="rise rise-1" style={{
+          display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
+          padding: "12px 16px", borderRadius: 10, marginBottom: 20,
+          background: C.yellowBg, border: `1px solid ${C.yellowBorder}`,
+        }}>
+          <AlertTriangle size={16} aria-hidden="true" style={{ color: C.onWarningBg, flexShrink: 0 }} />
+          <span style={{ fontSize: 12, color: C.onWarningBg, fontWeight: 600 }}>
+            {ringkas.tanpaTanggalAju} tender berstatus &ldquo;diajukan&rdquo; belum
+            punya tanggal pengajuan — umurnya tak terhitung, jadi ia tak akan
+            pernah muncul sebagai penawaran yang menggantung.
+          </span>
+        </div>
+      )}
+
+      {/* ── LAPIS 2 — POLA ──
+          Pertanyaan yang dijawab: "penawaran mana yang harus saya tagih
+          jawabannya, dan mana dulu?"
+
+          Grafik batang nilai penawaran per tender sengaja TIDAK dipilih: ia
+          hanya menggambar ulang kolom "Nilai kami" yang sudah ada di tabel.
+          Yang tak bisa dibaca dari tabel adalah UMUR penawaran — tabel
+          menampilkan tanggal pengajuan, dan mengubah "12 Mei" jadi "87 hari
+          lalu" adalah pengurangan kalender yang harus dilakukan baris per
+          baris dengan kalkulator.
+
+          Panjang batang di sini menyatakan umur relatif terhadap yang tertua,
+          jadi "jauh lebih lama dari yang lain" terbaca sebelum angkanya
+          dibaca. */}
+      {!memuat && menggantung.length > 0 && (
+        <div className="rise rise-2" style={{ marginBottom: 20 }}>
+          <Panel
+            judul="Penawaran yang Menggantung"
+            keterangan="sudah diajukan >45 hari dan belum ada keputusan — yang terlama di atas"
+          >
+            <DaftarMenggantung baris={menggantung} tertua={ringkas.umurTertua ?? 1} />
+          </Panel>
+        </div>
+      )}
+
+      {/* ── LAPIS 3 — DETAIL ── */}
       <div style={{ marginBottom: 14 }}>
         <label htmlFor="saring-status" style={{ fontSize: 12, color: C.mid, marginRight: 8 }}>Status</label>
         <select id="saring-status" value={saring} onChange={(e) => { setMemuat(true); setSaring(e.target.value); }}
@@ -272,18 +409,71 @@ export default function TenderPage() {
   );
 }
 
-function Kartu({ Icon, label, nilai, sub, warna, bg, border }: {
-  Icon: typeof Wallet; label: string; nilai: string; sub: string;
-  warna: string; bg: string; border: string;
-}) {
+/**
+ * Batang menyamping: umur penawaran yang menggantung.
+ *
+ * ── Kenapa menyamping, bukan `GrafikBatang` tegak yang sudah ada
+ *
+ * Judul tender panjang ("Pembangunan Gedung Serbaguna Tahap 2"), dan pada
+ * batang tegak label itu terpotong jadi tak terbaca — yang menghapus gunanya
+ * grafik yang tugasnya menunjuk tender TERTENTU untuk ditelepon hari ini.
+ *
+ * ── Kenapa umurnya ditulis, bukan cuma digambar
+ *
+ * Panjang batang untuk memindai mana yang paling parah; angkanya untuk ditulis
+ * di notulen dan disebut saat menelepon panitia.
+ */
+function DaftarMenggantung({ baris, tertua }: { baris: BarisMenggantung[]; tertua: number }) {
   return (
-    <div style={{ padding: "12px 16px", borderRadius: 10, background: bg, border: `1px solid ${border}` }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-        <Icon size={13} aria-hidden="true" /> {label}
-      </div>
-      <div style={{ fontSize: 20, fontWeight: 800, color: warna, fontFamily: "var(--font-display, inherit)", marginTop: 3, fontVariantNumeric: "tabular-nums" }}>{nilai}</div>
-      <div style={{ fontSize: 11, color: C.mid, marginTop: 2 }}>{sub}</div>
-    </div>
+    <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 12 }}>
+      {baris.map((b, i) => (
+        <li key={b.id}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 5 }}>
+            <span style={{
+              fontSize: 12, fontWeight: 600, color: C.text,
+              flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            }}>{b.judul}</span>
+            <span style={{ fontSize: 11, color: C.mid, whiteSpace: "nowrap" }}>
+              {b.nilai == null
+                // "Rp 0" akan terbaca sebagai penawaran tanpa nilai, padahal
+                // nilainya hanya belum diisi.
+                ? <span style={{ color: C.muted, fontStyle: "italic" }}>nilai belum diisi</span>
+                : fmtRp(b.nilai)}
+            </span>
+            <span style={{
+              fontSize: 11, fontWeight: 700, color: C.red,
+              fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap",
+            }}>
+              {b.umurHari} hari
+            </span>
+          </div>
+
+          <div
+            role="img"
+            aria-label={`${b.judul}: menggantung ${b.umurHari} hari sejak diajukan`}
+            style={{ position: "relative", height: 10, background: "var(--surface-hover)", borderRadius: 4, overflow: "hidden" }}
+          >
+            <div style={{
+              position: "absolute", inset: 0,
+              width: `${Math.max(2, (b.umurHari / Math.max(tertua, 1)) * 100)}%`,
+              // Hanya baris TERPARAH yang bergradasi — aturan "satu aksen per
+              // layar" (`ui-dasar.tsx`). Kalau enam batang bergradasi, tak ada
+              // yang menonjol dan daftar urut kehilangan gunanya.
+              background: i === 0 ? "var(--grad-aksen)" : "var(--aksen)",
+              borderRadius: 4, transition: "width 500ms cubic-bezier(.16,1,.3,1)",
+            }} />
+          </div>
+        </li>
+      ))}
+
+      <li style={{ fontSize: 10, color: C.muted, lineHeight: 1.5, marginTop: 2 }}>
+        <Clock size={10} aria-hidden="true" style={{ verticalAlign: "-1px", marginRight: 4 }} />
+        Panjang batang relatif terhadap penawaran tertua di daftar ini.
+        Tender yang menggantung selama ini sering sudah diputuskan tanpa kita
+        diberi tahu — selama statusnya belum diubah, nilainya masih ikut
+        terhitung sebagai pipeline.
+      </li>
+    </ul>
   );
 }
 

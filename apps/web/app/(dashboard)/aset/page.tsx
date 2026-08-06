@@ -1,18 +1,43 @@
 "use client";
 
 /**
- * ASET & ALAT — register, mutasi, penyusutan, sewa (ROADMAP #23 · migrasi 149).
+ * ASET & ALAT — RINGKASAN. Dashboard modul, bukan langsung tabel (UI-2-3).
  *
- * ── Yang dijawab halaman ini
+ * ── Tiga lapis (ARAH-VISUAL-2026 §5b)
  *
- * 1. **Alat kita ada di mana?** Kolom lokasi menunjukkan proyek atau gudang.
- *    Sebelumnya jawabannya cuma ada di kepala orang.
- * 2. **Berapa nilai alat kita sekarang?** Nilai buku, bukan harga beli — molen
- *    yang dibeli 5 tahun lalu bukan lagi seharga waktu itu.
- * 3. **Alat mana yang menganggur?** Utilisasi rendah = uang tertidur; alat yang
- *    tak terpakai lebih baik disewakan atau dijual.
- * 4. **Berapa yang keluar untuk sewa?** Termasuk sewa yang SEDANG berjalan —
- *    supaya tak muncul mendadak sebagai lonjakan saat ditutup.
+ *   LAPIS 1  empat kartu KPI       "apa yang terjadi?"
+ *   LAPIS 2  sewa perlu diputuskan "yang mana yang menuntut keputusan?"
+ *   LAPIS 3  tabel milik/sewa      "apa yang harus saya kerjakan?"
+ *
+ * ── Kenapa KPI-nya BUKAN "total aset"
+ *
+ * §5c tak memberi daftar KPI untuk menu ini, jadi keempatnya diturunkan dari
+ * field yang benar-benar dikirim `/api/v1/assets` + `/api/v1/asset-rentals`.
+ * Aturan yang dipakai memilih: angka yang MENGUBAH RENCANA, bukan angka yang
+ * sudah terbaca dari tabel di bawah.
+ *
+ *   "47 aset milik"       → sudah tertulis di label tab. Tidak dipakai.
+ *   "3 alat rusak"        → menentukan apakah proyek minggu depan bisa jalan.
+ *   "2 sewa jatuh tempo"  → menentukan perpanjang atau kembalikan, pekan ini.
+ *
+ * ── Kenapa "sewa lewat tanggal" jadi spanduk, bukan kartu
+ *
+ * `biayaSewa` di API menghitung sewa berjalan SAMPAI HARI INI. Sewa yang
+ * tanggal selesainya sudah lewat tapi statusnya masih "berjalan" karena itu
+ * terus menambah biaya tiap hari atas alat yang mungkin sudah lama kembali —
+ * dan angka yang membengkak diam-diam tak pernah dipertanyakan. Ia dijadikan
+ * spanduk karena ia menuntut tindakan HARI INI, dan karena itu ia menghilang
+ * saat tak ada.
+ *
+ * ── Yang SENGAJA tidak ada: utilisasi alat
+ *
+ * "Alat mana yang menganggur" adalah pertanyaan yang tepat, tapi jawabannya
+ * TIDAK ada di endpoint ini. Utilisasi hanya dihitung di
+ * `/api/v1/assets/:id/movements` — satu permintaan PER ASET. Menghitungnya di
+ * sini berarti 40 permintaan sebelum satu angka muncul, dan syarat kerja ini
+ * nol endpoint baru. Status `tersedia` juga bukan penggantinya: alat yang di
+ * gudang seminggu antara dua proyek bukan uang tertidur, dan daftar ini tak
+ * bisa membedakannya dari yang menganggur delapan bulan.
  *
  * ── Dua tab, bukan dua halaman
  *
@@ -28,15 +53,20 @@
  * warna tipis praktis hilang.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Plus, Package, Wallet, TrendingDown, Wrench, MapPin, AlertTriangle,
+  Plus, Wallet, Wrench, MapPin, AlertTriangle, CalendarClock,
+  CircleSlash, Clock,
 } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 
 import { C } from "@/lib/warna-ui";
-import { Kosong } from "@/components/ui-dasar";
+import { KartuKPI, Kosong, Panel } from "@/components/ui-dasar";
 import { Tabel } from "@/components/dasar";
+import {
+  hariIniWIB, ringkasAset, sewaPerluDiputuskan,
+  type BarisSewaPerhatian,
+} from "@/lib/ringkasan-aset";
 
 type StatusAset = "tersedia" | "dipakai" | "perawatan" | "rusak" | "dilepas";
 
@@ -101,6 +131,13 @@ export default function AsetPage() {
   const [galat, setGalat] = useState<string | null>(null);
   const [formBuka, setFormBuka] = useState(false);
 
+  // Tanggal acuan DIBEKUKAN saat halaman dipasang, bukan dibaca ulang tiap
+  // render. Kalau tidak, kartu KPI dan tabel di bawahnya bisa memakai tanggal
+  // berbeda saat halaman dibuka melewati tengah malam — dan angka yang tak
+  // cocok dengan daftarnya sendiri adalah cara tercepat membuat orang berhenti
+  // memercayai keduanya.
+  const [hariIni] = useState(() => hariIniWIB());
+
   // `setMemuat(true)` SENGAJA tidak di sini. Fungsi ini dipanggil dari effect,
   // dan set-state sinkron di dalam effect memicu render tambahan sebelum data
   // sempat datang (`react-hooks/set-state-in-effect`). Keadaan awal sudah
@@ -130,6 +167,17 @@ export default function AsetPage() {
   const muatUlang = useCallback(() => { setMemuat(true); return muat(); }, [muat]);
 
   const asetMilik = aset.filter((a) => a.ownership === "milik");
+
+  // ── LAPIS 1 & 2 — dihitung dari respons yang SAMA dengan tabelnya ─────────
+  const ringkas = useMemo(() => ringkasAset(aset, sewa, hariIni), [aset, sewa, hariIni]);
+  const perluDiputuskan = useMemo(
+    () => sewaPerluDiputuskan(sewa, hariIni), [sewa, hariIni]);
+
+  /** Pindah ke tab sewa lalu gulirkan — dipakai KPI & spanduk yang bisa diklik. */
+  function lompatKeSewa() {
+    setTab("sewa");
+    document.getElementById("daftar-aset")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   return (
     <div style={{
@@ -165,37 +213,108 @@ export default function AsetPage() {
         />
       )}
 
-      {/* KPI — dipilih menurut keputusan yang dibantu, bukan sekadar angka yang tersedia */}
+      {/* ── LAPIS 1 — KEADAAN ──
+          Keempatnya dipilih karena MENGUBAH RENCANA. "Total aset" sengaja
+          tidak ada: angkanya sudah tertulis di label tab tepat di bawah, dan
+          KPI yang mengulang angka yang sudah terlihat tak menambah apa pun. */}
       {metaAset && metaSewa && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 12, marginBottom: 20 }}>
-          <Kartu Icon={Package} label="Aset milik" nilai={String(metaAset.milik)}
-            sub={`${metaAset.dipakai} sedang di proyek · ${metaAset.perawatan} perawatan`}
-            warna={C.navy} bg="var(--navy-light)" border={C.border} />
-          <Kartu Icon={Wallet} label="Nilai buku" nilai={fmtRp(metaAset.nilai_buku)}
-            sub={metaAset.nilai_perolehan > 0
-              ? `dari perolehan ${fmtRp(metaAset.nilai_perolehan)}`
-              : "harga perolehan belum diisi"}
-            warna={C.green} bg={C.greenBg} border={C.greenBorder} />
-          <Kartu Icon={TrendingDown} label="Akumulasi penyusutan"
-            nilai={fmtRp(asetMilik.reduce((s, a) => s + (a.akumulasi_penyusutan ?? 0), 0))}
-            sub={asetMilik.some((a) => a.sudah_disusutkan)
-              ? `${asetMilik.filter((a) => a.sudah_disusutkan).length} aset sudah dicatat`
-              // "belum pernah dicatat" ≠ "penyusutannya nol" — yang kedua akan
-              // membuat nilai buku terlihat sehat padahal belum dihitung.
-              : "belum ada penyusutan yang dicatat"}
-            warna={C.mid} bg="var(--surface-subtle)" border={C.border} />
-          <Kartu Icon={Wrench} label="Sewa berjalan" nilai={fmtRp(metaSewa.biaya_berjalan)}
-            sub={metaSewa.berjalan > 0
-              ? `${metaSewa.berjalan} alat disewa saat ini`
-              : "tak ada sewa berjalan"}
-            warna={metaSewa.berjalan > 0 ? C.yellow : C.muted}
-            bg={metaSewa.berjalan > 0 ? C.yellowBg : "var(--surface-subtle)"}
-            border={metaSewa.berjalan > 0 ? C.yellowBorder : C.border} />
+        <div className="rise rise-1" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginBottom: 20 }}>
+          <KartuKPI
+            sorot
+            label="Nilai Buku Alat"
+            nilai={fmtRp(ringkas.nilaiBuku)}
+            ikon={<Wallet size={15} />}
+            keterangan={ringkas.tanpaHargaPerolehan > 0
+              // Angka yang belum lengkap MENGAKU begitu. Tanpa kalimat ini,
+              // total yang terlalu kecil terbaca sebagai fakta.
+              ? `${ringkas.tanpaHargaPerolehan} aset belum diisi harga perolehannya — belum masuk hitungan`
+              : `dari perolehan ${fmtRp(ringkas.nilaiPerolehan)} · ${ringkas.milik} aset milik`}
+          />
+          <KartuKPI
+            label="Alat Tak Siap Pakai"
+            nilai={String(ringkas.takSiap)}
+            nilaiAngka={ringkas.takSiap}
+            naikBagus={false}
+            ikon={<CircleSlash size={15} />}
+            keterangan={ringkas.takSiap === 0
+              ? `seluruh ${ringkas.milik} alat milik siap dipakai`
+              : `${ringkas.rusak} rusak · ${ringkas.perawatan} perawatan — tak bisa dijadwalkan ke proyek`}
+          />
+          <KartuKPI
+            label="Sewa Jatuh Tempo"
+            nilai={String(ringkas.sewaJatuhTempo)}
+            nilaiAngka={ringkas.sewaJatuhTempo}
+            naikBagus={false}
+            ikon={<CalendarClock size={15} />}
+            onClick={ringkas.sewaJatuhTempo > 0 ? lompatKeSewa : undefined}
+            keterangan={ringkas.sewaJatuhTempo === 0
+              ? "tak ada sewa yang berakhir dalam 30 hari"
+              : "berakhir ≤30 hari — perpanjang atau kembalikan"}
+          />
+          <KartuKPI
+            label="Biaya Sewa Berjalan"
+            nilai={fmtRp(ringkas.biayaSewaBerjalan)}
+            ikon={<Wrench size={15} />}
+            keterangan={ringkas.sewaBerjalan === 0
+              ? "tak ada sewa berjalan"
+              // Angka ini BERTAMBAH sendiri tiap hari — dinyatakan supaya
+              // tak dikira nilai tetap yang bisa dicatat lalu dilupakan.
+              : `${ringkas.sewaBerjalan} alat disewa · masih bertambah tiap hari`}
+          />
         </div>
       )}
 
+      {/* Sewa yang tanggalnya sudah lewat tapi statusnya masih berjalan.
+          Spanduk, bukan kartu KPI kelima: kartu menyatakan keadaan, spanduk
+          menyatakan ada yang harus DIBERESKAN, dan karena itu ia menghilang
+          saat tak ada. Yang membuatnya mendesak: biayanya sedang bertambah
+          tiap hari atas alat yang mungkin sudah lama dikembalikan. */}
+      {!memuat && ringkas.sewaLewat > 0 && (
+        <div className="rise rise-1" style={{
+          display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
+          padding: "12px 16px", borderRadius: 10, marginBottom: 20,
+          background: C.redBg, border: `1px solid ${C.redBorder}`,
+        }}>
+          <AlertTriangle size={16} aria-hidden="true" style={{ color: C.onDangerBg, flexShrink: 0 }} />
+          <span style={{ fontSize: 12, color: C.onDangerBg, fontWeight: 600 }}>
+            {ringkas.sewaLewat} sewa masih berstatus berjalan padahal tanggal
+            selesainya sudah lewat — biayanya terus bertambah tiap hari.
+          </span>
+          <button onClick={lompatKeSewa} style={{
+            marginLeft: "auto", fontSize: 11, color: C.onDangerBg, fontWeight: 700,
+            background: "none", border: "none", cursor: "pointer", whiteSpace: "nowrap",
+          }}>
+            Lihat daftar sewa →
+          </button>
+        </div>
+      )}
+
+      {/* ── LAPIS 2 — YANG MENUNTUT KEPUTUSAN ──
+          Pertanyaan yang dijawab: "sewa mana yang harus saya putuskan pekan
+          ini, dan mana dulu?"
+
+          Ini BUKAN grafik, dan itu disengaja. Grafik batang biaya sewa per
+          alat hanya akan menggambar ulang kolom "Biaya s.d. kini" yang sudah
+          ada di tabel — tinta tanpa informasi. Yang tak bisa dibaca dari tabel
+          mana pun adalah URUTAN MENDESAK-nya: tabel diurutkan tanggal mulai,
+          sementara yang menentukan adalah sisa hari ke tanggal selesai,
+          dengan yang sudah lewat naik ke atas. Itu perbandingan tiga keadaan
+          (lewat · segera · tanpa akhir) yang harus dilakukan baris per baris
+          dengan kalender di tangan kalau tak dihitung kodenya. */}
+      {!memuat && perluDiputuskan.length > 0 && (
+        <div className="rise rise-2" style={{ marginBottom: 20 }}>
+          <Panel
+            judul="Sewa yang Perlu Diputuskan"
+            keterangan="berakhir ≤30 hari, sudah lewat tanggal, atau berjalan tanpa tanggal selesai — yang paling mendesak di atas"
+          >
+            <DaftarSewaPerhatian baris={perluDiputuskan} />
+          </Panel>
+        </div>
+      )}
+
+      {/* ── LAPIS 3 — DETAIL ── */}
       {/* Tab */}
-      <div role="tablist" aria-label="Jenis aset" style={{ display: "flex", gap: 4, marginBottom: 14, borderBottom: `1px solid ${C.border}` }}>
+      <div id="daftar-aset" role="tablist" aria-label="Jenis aset" style={{ display: "flex", gap: 4, marginBottom: 14, borderBottom: `1px solid ${C.border}` }}>
         {([["milik", `Milik (${metaAset?.milik ?? 0})`], ["sewa", `Sewa (${metaSewa?.total ?? 0})`]] as const).map(([k, label]) => (
           <button
             key={k} role="tab" aria-selected={tab === k}
@@ -235,23 +354,77 @@ export default function AsetPage() {
   );
 }
 
-function Kartu({ Icon, label, nilai, sub, warna, bg, border }: {
-  Icon: typeof Package; label: string; nilai: string; sub: string;
-  warna: string; bg: string; border: string;
-}) {
+/**
+ * Daftar sewa yang menuntut keputusan, terparah di atas.
+ *
+ * ── Kenapa daftar, bukan batang
+ *
+ * Yang dibandingkan di sini bukan BESARAN melainkan KEADAAN: "lewat 18 hari"
+ * dan "sisa 3 hari" tak berada pada satu sumbu yang bisa digambar berdampingan
+ * secara jujur, dan "tanpa tanggal selesai" tak punya angka sama sekali.
+ * Memaksakan ketiganya ke satu batang berarti memilih angka yang salah untuk
+ * dua di antaranya.
+ *
+ * ── Kenapa keadaannya ditulis, bukan cuma diwarnai
+ *
+ * WCAG 1.4.1. Merah dan kuning di bawah sinar matahari di lapangan praktis
+ * sama, dan halaman ini justru dibuka di sana.
+ */
+function DaftarSewaPerhatian({ baris }: { baris: BarisSewaPerhatian[] }) {
   return (
-    <div style={{ padding: "12px 16px", borderRadius: 10, background: bg, border: `1px solid ${border}` }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 7 }}>
-        <Icon size={14} color={warna} aria-hidden="true" />
-        <span style={{ fontSize: 11, fontWeight: 700, color: warna, textTransform: "uppercase", letterSpacing: 0.4 }}>
-          {label}
-        </span>
-      </div>
-      <div style={{ fontSize: 20, fontWeight: 800, color: C.text, fontFamily: "var(--font-display, inherit)" }}>
-        {nilai}
-      </div>
-      <div style={{ fontSize: 11, color: C.mid, marginTop: 3 }}>{sub}</div>
-    </div>
+    <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+      {baris.map((b) => {
+        const lewat = b.sisaHari !== null && b.sisaHari < 0;
+        const terbuka = b.sisaHari === null;
+        const keadaan = lewat
+          ? `Lewat ${Math.abs(b.sisaHari!)} hari`
+          : terbuka
+            ? "Tanpa tanggal selesai"
+            : b.sisaHari === 0 ? "Berakhir hari ini" : `Sisa ${b.sisaHari} hari`;
+
+        return (
+          <li key={b.id} style={{
+            display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+            padding: "10px 12px", borderRadius: 10,
+            background: lewat ? C.redBg : terbuka ? "var(--surface-subtle)" : C.yellowBg,
+            border: `1px solid ${lewat ? C.redBorder : terbuka ? C.border : C.yellowBorder}`,
+          }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: C.text, flex: 1, minWidth: 140 }}>
+              {b.nama}
+            </span>
+
+            {/* Keadaan: ikon + teks + warna, bukan warna saja. */}
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: 4,
+              fontSize: 11, fontWeight: 700, whiteSpace: "nowrap",
+              color: lewat ? C.onDangerBg : terbuka ? C.mid : C.onWarningBg,
+            }}>
+              {lewat ? <AlertTriangle size={11} aria-hidden="true" />
+                : terbuka ? <Clock size={11} aria-hidden="true" />
+                : <CalendarClock size={11} aria-hidden="true" />}
+              {keadaan}
+            </span>
+
+            <span style={{ fontSize: 11, color: C.mid, whiteSpace: "nowrap" }}>
+              {fmtRp(b.tarif)} / {b.satuan}
+            </span>
+
+            <span style={{
+              fontSize: 12, fontWeight: 700, color: C.text, whiteSpace: "nowrap",
+              fontVariantNumeric: "tabular-nums", minWidth: 84, textAlign: "right",
+            }}>
+              {fmtRp(b.biaya)}
+            </span>
+          </li>
+        );
+      })}
+
+      <li style={{ fontSize: 10, color: C.muted, lineHeight: 1.5, marginTop: 2 }}>
+        <Clock size={10} aria-hidden="true" style={{ verticalAlign: "-1px", marginRight: 4 }} />
+        Biaya dihitung sampai hari ini, jadi baris yang sudah lewat tanggal
+        masih terus bertambah selama statusnya belum ditutup.
+      </li>
+    </ul>
   );
 }
 

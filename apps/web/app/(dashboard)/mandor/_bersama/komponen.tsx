@@ -19,12 +19,15 @@
  * Isinya dipindahkan APA ADANYA. Yang berubah hanya `export` di depan tiap
  * fungsi dan impor yang dulu berbagi lingkup berkas.
  *
- * ⚠️ `<table>` mentah di `WageReportDetailModal` sengaja TIDAK diubah jadi
- * `<Tabel>` dalam pemecahan ini. Menukar komponen tabel adalah perubahan
- * perilaku (markup, gaya, urutan sel) yang tak boleh menyelinap ke dalam
- * pekerjaan yang seharusnya nol-perubahan-perilaku. `tabel-mentah-ratchet`
- * menghitung BERKAS, dan berkas ini menggantikan `page.tsx` lama sebagai
- * satu-satunya pemilik tabel itu — jumlahnya tak naik.
+ * `<table>` mentah di `WageReportDetailModal` sempat dibiarkan apa adanya di
+ * sini, dengan alasan yang benar untuk saat itu: menukar komponen tabel
+ * adalah perubahan perilaku (markup, gaya, urutan sel) yang tak boleh
+ * menyelinap ke dalam pemecahan berkas yang seharusnya nol-perubahan.
+ *
+ * UI-0-4 (2026-08-07) adalah pekerjaan yang berwenang melakukannya, dan
+ * tabel itu sekarang memakai `<Tabel>`. Alasan tiap perbedaan tampilan
+ * ditulis di komentar tepat di atas komponennya, bukan di sini — supaya
+ * yang membacanya sedang melihat kodenya.
  */
 
 import { useEffect, useReducer, useState } from "react";
@@ -41,8 +44,9 @@ import { useWorkCategories } from "@/lib/use-work-categories";
 import { useKasbonPurposes } from "@/lib/use-kasbon-purposes";
 import { uploadKasbonPhoto } from "@/lib/storage";
 import { C } from "@/lib/warna-ui";
+import { Tabel } from "@/components/dasar";
 import {
-  type Assignment, type Worker, type WorkerKasbon,
+  type Assignment, type Worker, type WorkerKasbon, type WageItem,
   type WageReportDetail, type MandorScope, type ScopeDetail,
   type ProgressPayment, type CashAccount, type SettlementModalState,
   type MandorUser, type ScopeItem,
@@ -555,30 +559,53 @@ export function WageReportDetailModal({ data, onClose, onApprove }: {
           {/* Rincian tukang */}
           <div>
             <div style={{ fontSize: 12, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Rincian Tukang</div>
+            {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4) — mencabut catatan
+                "sengaja tidak diubah" di kepala berkas: itu ditulis untuk
+                pemecahan berkas yang harus nol-perubahan-perilaku, dan
+                UI-0-4 justru pekerjaan yang berwenang menukarnya.
+
+                Nama pekerja tetap kepala baris — upah adalah uang untuk
+                ORANG, dan angkanya tak berarti tanpa nama pemiliknya.
+
+                Dua perbedaan tampilan yang DISENGAJA, bukan kelalaian:
+                · belang ganjil-genap hilang. `Tabel` memakai garis tipis +
+                  sorot saat hover, karena pada tabel padat belang menambah
+                  kebisingan tanpa menambah keterbacaan.
+                · angka rata KANAN. Tiga kolom terakhir nominal upah, dan di
+                  modal ini mandor membandingkan subtotal antar tukang —
+                  rata kiri membuat digitnya tak pernah sejajar. */}
             <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
-                <caption className="sr-only">Rincian upah per pekerja: jumlah hari, tarif harian, lembur, dan subtotal.</caption>
-                <thead>
-                  <tr style={{ background: "var(--surface-subtle)" }}>
-                    {["Nama", "Hari", "Tarif/Hari", "Lembur", "Subtotal"].map(h => (
-                      <th key={h} style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: C.muted, textAlign: "left", borderBottom: `1px solid ${C.border}` }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.items.map((item, i) => (
-                    <tr key={item.id} style={{ background: i % 2 === 0 ? "var(--surface)" : "var(--surface-subtle)" }}>
-                      <th scope="row" style={{ textAlign: "left", padding: "8px 12px", fontSize: 13, color: C.text, fontWeight: 600 }}>{item.worker_name}</th>
-                      <td style={{ padding: "8px 12px", fontSize: 13, color: C.mid }}>{item.days_worked}</td>
-                      <td style={{ padding: "8px 12px", fontSize: 13, color: C.mid }}>{fmt(item.daily_rate)}</td>
-                      <td style={{ padding: "8px 12px", fontSize: 12, color: C.mid }}>
+              <Tabel<WageItem>
+                caption="Rincian upah per pekerja: jumlah hari, tarif harian, lembur, dan subtotal."
+                data={data.items}
+                kunciBaris={item => item.id}
+                kolom={[
+                  {
+                    kunci: "nama", judul: "Nama", kepalaBaris: true,
+                    render: item => <span style={{ fontWeight: 600 }}>{item.worker_name}</span>,
+                  },
+                  {
+                    kunci: "hari", judul: "Hari", rata: "kanan",
+                    render: item => <span style={{ color: C.mid }}>{item.days_worked}</span>,
+                  },
+                  {
+                    kunci: "tarif", judul: "Tarif/Hari", rata: "kanan",
+                    render: item => <span style={{ color: C.mid }}>{fmt(item.daily_rate)}</span>,
+                  },
+                  {
+                    kunci: "lembur", judul: "Lembur", rata: "kanan",
+                    render: item => (
+                      <span style={{ color: C.mid, fontSize: 12 }}>
                         {item.overtime_hours > 0 ? `${item.overtime_hours}j × ${fmt(item.overtime_rate)}` : "—"}
-                      </td>
-                      <td style={{ padding: "8px 12px", fontSize: 13, fontWeight: 600, color: C.text }}>{fmt(item.subtotal)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </span>
+                    ),
+                  },
+                  {
+                    kunci: "subtotal", judul: "Subtotal", rata: "kanan",
+                    render: item => <span style={{ fontWeight: 600 }}>{fmt(item.subtotal)}</span>,
+                  },
+                ]}
+              />
             </div>
           </div>
 

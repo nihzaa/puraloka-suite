@@ -828,6 +828,20 @@ jobs:
       - name: Tabel mentah (pakai <Tabel>, bukan <table>)
         run: node scripts/tabel-mentah-ratchet.mjs
 
+      # UI-0-1 — padding & gap wajib lewat token kerapatan.
+      #
+      # Token kerapatannya SUDAH bernilai benar (--pad-kartu 12px dari 24px,
+      # --gap-grid 8px dari 16-20px), tapi diukur 2026-08-07 hanya TIGA berkas
+      # memakainya sementara 184 padding besar ditulis langsung di kode.
+      #
+      # Ini kelas cacat KETIGA yang sama dalam satu hari: Tabel<T> dibangun
+      # lalu 1 halaman memakainya, token kerapatan disetel lalu 3 berkas
+      # memakainya, KartuKPI dibangun lalu 2 halaman memakainya. Tiap kali
+      # fondasinya selesai dan penyebarannya tidak — dan halaman ke-N+1
+      # disalin dari yang ke-N, jadi memperbaiki sekali tak menyelesaikannya.
+      - name: Kerapatan (token, bukan padding dipaku)
+        run: node scripts/kerapatan-ratchet.mjs
+
       # F4-1 — warna wajib lewat token, bukan hex di komponen.
       #
       # Alasannya bukan kerapian: WHITE-LABEL PER TENANT. Selama warna ditulis
