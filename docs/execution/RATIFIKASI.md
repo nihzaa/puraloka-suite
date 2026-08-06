@@ -6,116 +6,65 @@ bawah entrinya.
 
 ---
 
-# ⚠️ UNTUK SESI COMPRO — 6 kegagalan senyap di `situs.ts`, CI MERAH
+# ✅ SELESAI 2026-08-07 — tiga temuan pasca-merge, dan R-011 tanpa menaikkan plafon
 
-> Ditemukan 2026-08-07 sesudah `git merge feat/ui-lanjutan`. **Tidak saya
-> perbaiki**: berkas ini punya perubahan belum-commit dari sesi yang sedang
-> berjalan, dan menyuntingnya berarti menimpa pekerjaan orang lain
-> (CLAUDE.md §8a.1 poin 1).
+> Sesi compro berhenti; ketiga temuan yang tak bisa saya sentuh saat itu kini
+> selesai. Dicatat di sini karena satu di antaranya menyentuh **Gerbang Keras
+> G-5**, dan Anda yang memutuskan jalannya.
 
-`audit-kegagalan-senyap.mjs` **192 vs ambang 186** — naik 6, dan keenamnya
-dari `situs.ts`, seluruhnya di endpoint publik `/api/v1/public/situs`:
+### 1. Ratchet supabase mentah 373 → **366** (tepat di plafon, plafon TIDAK dinaikkan)
 
-```
-situs.ts:318  for (const baris of konten.data ?? []) petaKonten[...] = ...
-situs.ts:323  const daftarKategori = (kategori.data ?? []).map(...)
-situs.ts:325  media: (media.data ?? [])
-situs.ts:334  milestone: milestone.data ?? [],
-situs.ts:335  legalitas: legalitas.data ?? [],
-situs.ts:336  seksi: seksi.data ?? [],
-```
+`GET /api/v1/public/situs` memakai tujuh query mentah. Alasannya sah — endpoint
+publik tak punya sesi, jadi `auth_company_id()` NULL dan wrapper tak punya
+konteks. Tapi `PLAFON_R011` tak menerima alasan; itulah gunanya.
 
-**Kenapa ini bukan sekadar angka ratchet.** Halaman compro adalah wajah
-publik perusahaan. Kalau salah satu query gagal — kolom di-rename, RLS
-menolak, tabel belum ada di lingkungan baru — `?? []` mengubah kegagalan itu
-jadi **nol baris yang terlihat sah**. Halaman tetap terbit, hanya saja tanpa
-milestone, tanpa legalitas, atau tanpa seksi apa pun. Tak ada galat, tak ada
-log, tak ada gejala; yang terlihat cuma halaman yang lebih pendek.
+**Keputusan Anda: bangun VIEW.** Hasilnya `v_situs_publik` (migrasi 209):
 
-Ini persis kelas cacat yang melahirkan penjaganya: `kurva-s.ts` kehilangan
-Rp 631,7 juta dari AC selama berbulan-bulan karena `.select('amount')`
-(kolomnya `total_amount`) gagal diam-diam.
+| | Sebelum | Sesudah |
+|---|---|---|
+| Query di endpoint publik | 7 | **1** |
+| Akses supabase mentah (total repo) | 373 | **366** |
+| Penyaringan `tampil`/`aktif` | diulang tiap query | sekali, di skema |
+| Kolom yang boleh publik | tersebar di 7 `select` | terkunci di definisi view |
 
-**Perbaikannya**, bukan menaikkan ambang:
+Satu akses lagi dihabiskan di tempat terpisah: `menu.ts` membaca `menu_items`
+(kategori A, katalog bersama) di belakang `authenticate` — diganti
+`db.shared('menu_items')`, yang hanya menerima kategori A/AB sehingga niat
+"ini memang global" jadi diperiksa compiler.
 
-```ts
-const { data, error } = await …
-if (error) {
-  request.log.error({ err: error }, 'gagal memuat <bagian> situs')
-  return reply.status(500).send({ error: 'Gagal memuat konten situs' })
-}
-```
+### 2. Enam kegagalan senyap di `situs.ts` — sudah Anda perbaiki sendiri
 
-Untuk endpoint publik, `return 500` mungkin terlalu keras — halaman utuh
-gagal karena satu bagian. Kalau begitu **tetap periksa `error` dan catat
-log**-nya, lalu putuskan sadar bagian mana yang boleh kosong. Yang dilarang
-adalah tak pernah melihat error-nya sama sekali.
+Commit `696acac`. Tak ada yang perlu dikerjakan lagi.
 
-## Dan satu lagi: ratchet supabase mentah **373 vs plafon 366**
+### 3. Tiga penjaga web dari `pengaturan/situs/page.tsx`
 
-`tenancy-ratchet.test.ts` merah. `situs.ts` memakai **8 akses supabase mentah**
-— melewati `request.db` yang sadar-tenant.
+Ketiganya selesai. Yang `hex-ratchet` ternyata bukan soal token: dua hex itu
+**nilai default warna merek yang menduplikasi `DEFAULT` kolom di migrasi 205**.
+Dua sumber kebenaran untuk satu nilai, dan yang salah adalah yang terlihat
+pengguna. Diganti string kosong — defaultnya kini hanya ada di skema.
 
-**Plafon ini tak bisa dinaikkan.** Ia `PLAFON_R011`, diratifikasi founder
-dengan syarat eksplisit bahwa 364→366 adalah **satu-satunya** kenaikan, dan
-test-nya punya tripwire yang merah kalau angkanya sendiri diubah. Menaikkannya
-adalah Gerbang Keras **G-5**.
+### Dua cacat yang ikut ketahuan, dan diperbaiki di generatornya
 
-Untuk endpoint publik, memakai supabase mentah mungkin memang disengaja —
-`/api/v1/public/situs` tak punya sesi, jadi tak punya konteks tenant. Kalau
-begitu, jalan keluarnya sudah tertulis di header test itu sendiri:
+**`gen-tenant-map.mjs` tak pernah melihat VIEW.** `table_type='BASE TABLE'`
+mengecualikannya, jadi view apa pun tak akan pernah terklasifikasi — dan
+`tenancy-ratchet` memeriksa setiap nama yang dibaca lewat `.from()`, termasuk
+view. Sekarang view ikut.
 
-> Bangun VIEW database yang mengagregasi + menjamin tenancy di lapisan SQL,
-> lalu baca view itu lewat `request.db`. Query mentahnya hilang sama sekali,
-> dan angka ini justru TURUN.
+**Dan klasifikasinya salah begitu ikut.** View tak punya constraint, jadi
+`information_schema` selalu melaporkan `is_nullable = YES` — yang oleh aturan
+lama berarti **AB (katalog bersama)**. Setiap view akan salah dikategorikan
+sebagai data yang boleh dibaca lintas tenant. Sekarang: view ber-`company_id`
+→ B, tanpa → D (butuh keputusan sadar). `critical_audit_events` yang sudah ada
+sejak lama ikut terklasifikasi untuk pertama kalinya.
 
-Untuk situs publik, bentuknya kira-kira `v_situs_publik` yang sudah menyaring
-`company_id = <pemilik situs>` di dalam view — sehingga satu pembacaan
-menggantikan enam, dan pemilihan tenant-nya jadi bagian dari skema, bukan
-bergantung pada satu variabel env yang bisa salah isi.
+Salah kategori di gerbang tenancy lebih berbahaya daripada tak terklasifikasi:
+yang kedua merah di CI, yang pertama diam.
 
-Yang tak boleh: menaikkan `PLAFON_R011`, atau mengubah `hitungSupabaseMentah`
-supaya berkas ini tak ikut terhitung.
+### Keadaan sekarang
 
-## Dan tiga penjaga web, dari `pengaturan/situs/page.tsx`
-
-Halaman itu belum ter-commit saat ini ditulis, jadi angkanya bisa berubah.
-Diukur 2026-08-07:
-
-| Penjaga | Keadaan |
-|---|---|
-| `tata-letak-ratchet` | container halaman tak memakai token lebar — pakai `--w-form` (formulir satu kolom), `--w-page`, atau `--w-luas` |
-| `hex-ratchet` | hex literal 50 vs lantai 48 — pakai token warna, bukan `#RRGGBB` |
-| `kerapatan-ratchet` | padding/gap dipaku — pakai `--pad-kartu`, `--pad-kartu-lega`, `--gap-grid`, `--gap-bagian` |
-
-Pola container yang lolos ketiganya:
-
-```tsx
-<div style={{ width: "100%", maxWidth: "var(--w-form)", margin: "0 auto" }}>
-```
-
-## Yang sudah diperbaiki dari sisi ini
-
-**Rantai approval company nonaktif.** `submittal-aturan.test.ts` merah sesudah
-merge: `[UJI] Tenant Kedua` (dibuat `situs.test.ts`, sengaja ditinggalkan
-nonaktif) tak punya rantai approval.
-
-Sempat saya perbaiki dari **arah yang salah** — menyalin rantai ke tenant itu
-lewat migrasi. Test-nya jadi hijau dan **dua test lain rusak**, karena
-keduanya menghitung level approval lintas company dengan asumsi hanya ada
-satu. Migrasi itu dibatalkan seluruhnya.
-
-Yang benar: `submittal-aturan.test.ts` kini menyaring `is_active`. Company
-nonaktif tak menerima pengajuan apa pun, jadi ketiadaan rantainya bukan cacat
-— dan begitu ia diaktifkan kembali, test merah lagi persis saat rantainya
-memang diperlukan.
-
-## Keadaan akhir sesudah merge
-
-    1785 dari 1788 test lulus (2 dilewati, 1 merah = ratchet supabase di atas)
-    seluruh penjaga API hijau kecuali audit-kegagalan-senyap (situs.ts)
-    seluruh penjaga web hijau kecuali tiga di atas (pengaturan/situs)
-    typecheck web bersih; typecheck API merah hanya di situs.ts (AuditEntry.entity)
+    168 berkas test, 1786 lulus, 2 dilewati, 0 gagal
+    seluruh penjaga CI hijau (API + web)
+    pnpm build web lolos
 
 ---
 

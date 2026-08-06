@@ -113,6 +113,78 @@ byte-hash gagal total karena PDF mengompres ulang saat menyisipkan.
 
 ---
 
+## 2026-08-07 (lanjutan 8) — R-011 diselesaikan tanpa menaikkan plafon, dan dua cacat di generator peta tenancy
+
+### VIEW `v_situs_publik` — 7 query jadi 1
+
+Sesi compro berhenti, jadi tiga temuan yang tak bisa saya sentuh jadi milik
+saya. Yang terbesar: ratchet supabase mentah **373 vs plafon 366**.
+
+Founder memilih membangun VIEW (bukan mengecualikan endpoint publik dari
+hitungan, bukan menaikkan plafon). Migrasi 209:
+
+    query di endpoint publik      7 → 1
+    akses supabase mentah repo  373 → 366   (plafon TIDAK dinaikkan)
+
+Satu akses terakhir dihabiskan di tempat lain: `menu.ts` membaca `menu_items`
+(kategori A) di belakang `authenticate` → `db.shared('menu_items')`, yang
+hanya menerima kategori A/AB sehingga "ini memang katalog global" jadi
+diperiksa compiler, bukan diyakini pembaca.
+
+Yang didapat selain angka: penyaringan `tampil`/`aktif` pindah ke skema
+(dulu tiap query mengingatnya sendiri; satu yang lupa menerbitkan draf ke
+publik), dan daftar kolom publik terkunci di definisi view — kolom baru yang
+ditambahkan besok tidak ikut terbit.
+
+### Dua cacat di `gen-tenant-map.mjs`, ketahuan karena view pertama
+
+**1. Generator tak pernah melihat VIEW.** `table_type='BASE TABLE'`
+mengecualikannya. Tapi `tenancy-ratchet` memeriksa setiap nama yang dibaca
+lewat `.from()`, dan itu termasuk view — jadi view apa pun akan merah selamanya
+tanpa cara memperbaikinya lewat generator.
+
+**2. Dan klasifikasinya salah begitu ikut.** View tak punya constraint, jadi
+`information_schema` melaporkan `is_nullable = YES` untuk seluruh kolomnya —
+yang oleh aturan lama berarti **AB, katalog bersama**. Setiap view akan
+diklasifikasi sebagai data yang boleh dibaca lintas tenant.
+
+Sekarang: view ber-`company_id` → B, tanpa → D. `critical_audit_events` yang
+sudah ada sejak lama ikut terklasifikasi untuk pertama kalinya (D — butuh
+keputusan sadar).
+
+**Salah kategori di gerbang tenancy lebih berbahaya daripada tak
+terklasifikasi**: yang kedua merah di CI, yang pertama diam.
+
+### Penanda `view: true`, dan kenapa itu bukan pelemahan
+
+Kategori B menuntut policy `tenant_isolation` (T5a, T7-L2). View **tidak bisa**
+punya policy RLS — jadi satu-satunya "perbaikan" yang tersedia tanpa penanda
+ini adalah menurunkan kategorinya, yaitu berbohong tentang tenancy-nya.
+
+Peta kini menuliskan `view: true`, dan kedua test menyaringnya. Dibuktikan
+tidak melemahkan lewat mutasi: melepas `tenant_isolation` dari `sertifikat_ipc`
+(tabel nyata) tetap merah.
+
+### Tiga penjaga web — dan hex yang ternyata bukan soal token
+
+`pengaturan/situs/page.tsx`: container tanpa token lebar, 5 padding dipaku,
+dan 2 hex literal.
+
+Yang hex menarik: keduanya **nilai default warna merek yang menduplikasi
+`DEFAULT` kolom di migrasi 205**. Dua sumber kebenaran untuk satu nilai, dan
+yang salah adalah yang terlihat pengguna. Menggantinya jadi token juga salah —
+token adalah warna aplikasi, ini warna perusahaan pelanggan. Diganti string
+kosong; defaultnya kini hanya ada di skema.
+
+### Bukti
+
+    168 berkas test, 1786 lulus, 2 dilewati, 0 gagal
+    seluruh penjaga CI hijau (API + web) — nol gagal
+    pnpm build web lolos
+    mutasi policy tenant: TERTANGKAP
+
+---
+
 ## 2026-08-07 (lanjutan 7) — merge `feat/ui-lanjutan`, dan perbaikan dari arah yang salah
 
 ### Merge: bukan fast-forward, dan gabungannya tidak hijau

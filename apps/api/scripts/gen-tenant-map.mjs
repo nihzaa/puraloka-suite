@@ -116,10 +116,33 @@ async function bangunPeta() {
   const c = new pg.Client({ connectionString: loadUrl() })
   await c.connect()
   try {
+    // VIEW ikut, bukan hanya BASE TABLE.
+    //
+    // `tenancy-ratchet.test.ts` memeriksa setiap nama yang dibaca lewat
+    // `.from('...')`, dan itu termasuk view. Sebuah view yang tak ada di peta
+    // adalah nama yang dipakai tanpa kategori tenancy — persis lubang yang
+    // gerbang P3 (ADR-011 §9.5) ada untuk mencegah.
+    //
+    // Ditemukan 2026-08-07 saat `v_situs_publik` dibuat: view mengagregasi
+    // tujuh tabel situs, membawa `company_id`, dan dibaca endpoint publik.
+    // Tanpa perubahan ini ia tak akan pernah terklasifikasi, dan kategorinya
+    // tak pernah ditinjau siapa pun.
     const tables = (await c.query(
       `SELECT table_name FROM information_schema.tables
-       WHERE table_schema='public' AND table_type='BASE TABLE' ORDER BY 1`
+       WHERE table_schema='public' AND table_type IN ('BASE TABLE','VIEW')
+       ORDER BY 1`
     )).rows.map((r) => r.table_name)
+
+    // Nama VIEW dipisahkan: klasifikasinya TIDAK boleh mengikuti
+    // `is_nullable`. View tak punya constraint, jadi `information_schema`
+    // selalu melaporkan `YES` untuk kolomnya — dan aturan di bawah akan
+    // menyimpulkan AB (katalog bersama) untuk setiap view, termasuk yang
+    // isinya murni milik tenant. Salah kategori pada gerbang tenancy jauh
+    // lebih berbahaya daripada tak terklasifikasi: yang kedua merah di CI,
+    // yang pertama diam.
+    const views = new Set((await c.query(
+      `SELECT table_name FROM information_schema.views WHERE table_schema='public'`
+    )).rows.map((r) => r.table_name))
 
     const kolomCompany = Object.fromEntries((await c.query(
       `SELECT table_name, is_nullable FROM information_schema.columns
@@ -190,6 +213,17 @@ async function bangunPeta() {
       if (KATEGORI_D[t]) { peta[t] = { kategori: 'D', catatan: KATEGORI_D[t] }; continue }
 
       const nullability = kolomCompany[t]
+
+      // VIEW: punya `company_id` → B (milik tenant, wajib disaring).
+      // Tanpa `company_id` → D (butuh keputusan manusia; ia tak punya jalur
+      // tenancy yang bisa diturunkan dari FK, karena view tak punya FK).
+      if (views.has(t)) {
+        peta[t] = kolomCompany[t]
+          ? { kategori: 'B', view: true }
+          : { kategori: 'D', view: true, catatan: 'VIEW tanpa company_id — tentukan tenancy-nya secara sadar' }
+        continue
+      }
+
       if (nullability === 'NO') { peta[t] = { kategori: 'B' }; continue }
       if (nullability === 'YES') { peta[t] = { kategori: 'AB' }; continue }
 
@@ -217,7 +251,7 @@ function render(peta) {
   const ringkas = Object.entries(hitung).sort().map(([k, n]) => `${k}=${n}`).join(' · ')
 
   const baris = Object.entries(peta).sort(([a], [b]) => a.localeCompare(b)).map(([t, v]) => {
-    const ekstra = v.lewat ? `, lewat: '${v.lewat}'` : ''
+    const ekstra = (v.lewat ? `, lewat: '${v.lewat}'` : '') + (v.view ? ', view: true' : '')
     const komentar = v.jalur ? `  // ${v.jalur}` : (v.catatan ? `  // ${v.catatan}` : '')
     return `  '${t}': { kategori: '${v.kategori}'${ekstra} },${komentar}`
   }).join('\n')
@@ -245,6 +279,18 @@ export interface EntriTenancy {
   kategori: KategoriTenancy
   /** Untuk kategori C: kolom FK yang menuju induknya. */
   lewat?: string
+  /**
+   * \`true\` bila ini VIEW, bukan tabel.
+   *
+   * Penting bagi pemeriksaan yang menuntut artefak yang hanya dimiliki tabel:
+   * view TIDAK BISA punya policy RLS maupun \`relrowsecurity\`. Tanpa penanda
+   * ini, sebuah view berkategori B akan membuat T5a dan T7-L2 merah selamanya,
+   * dan satu-satunya "perbaikan" yang tersedia adalah salah kategori.
+   *
+   * Keamanannya datang dari tempat lain: daftar kolom terkunci di definisi
+   * view, dan pemanggilnya wajib menyaring \`company_id\`.
+   */
+  view?: true
 }
 
 export const PETA_TENANCY = {

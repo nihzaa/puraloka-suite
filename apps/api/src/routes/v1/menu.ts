@@ -1,6 +1,5 @@
 import type { FastifyInstance } from 'fastify'
 import { createHash } from 'node:crypto'
-import { supabase } from '../../utils/supabase.js'
 import { authenticate } from '../../plugins/auth.js'
 
 // Menu Registry (Sub-Fase 1B.2). Struktur menu sidebar dari DB.
@@ -30,8 +29,14 @@ export default async function menuRoutes(app: FastifyInstance) {
   app.get('/api/v1/menu', {
     preHandler: [authenticate],
   }, async (request, reply) => {
-    const { data, error } = await supabase
-      .from('menu_items')
+    // `db.shared()`, bukan `supabase` mentah.
+    //
+    // `menu_items` berkategori A (katalog bersama) di peta tenancy, dan
+    // `.shared()` hanya menerima kategori A/AB — jadi niat "ini memang global"
+    // jadi eksplisit dan diperiksa compiler, bukan sekadar diyakini pembaca.
+    // Perilakunya identik: katalog A tak disaring company_id.
+    const { data, error } = await request.db!
+      .shared('menu_items')
       .select('id, key, label, href, icon, parent_id, required_permissions, sort_order, section')
       .eq('is_active', true)
       .order('section', { ascending: true })

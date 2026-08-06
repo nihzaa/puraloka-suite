@@ -25,8 +25,20 @@ import { PETA_TENANCY } from '../../../utils/tenant-map.generated.js'
 
 let c: Client
 
+// VIEW dikecualikan: ia TIDAK BISA punya policy RLS.
+//
+// `v_situs_publik` (migrasi 210) berkategori B — isinya memang milik tenant,
+// dan pemanggilnya wajib menyaring `company_id`. Tapi menuntut
+// `tenant_isolation` padanya mustahil dipenuhi, dan satu-satunya "perbaikan"
+// yang tersedia adalah salah kategori — persis yang paling berbahaya di
+// gerbang tenancy.
+//
+// Keamanan view datang dari tempat lain, dan itu diperiksa terpisah: daftar
+// kolomnya terkunci di definisi view (tak ada kolom internal yang bocor), dan
+// `tenancy-ratchet` memastikan namanya tetap terklasifikasi.
 const BER_TENANT = Object.entries(PETA_TENANCY)
   .filter(([, v]) => ['ANCHOR', 'B', 'AB', 'C'].includes(v.kategori))
+  .filter(([, v]) => !('view' in v && v.view))
   .map(([t]) => t)
 
 beforeAll(async () => {

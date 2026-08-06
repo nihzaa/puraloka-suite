@@ -58,8 +58,13 @@ describe('L2 · kriteria 1 — company_id di seluruh tabel transaksional', () =>
 
 describe('L2 · kriteria 2 — dual-axis RLS aktif', () => {
   it('axis company terpasang di seluruh tabel ber-tenant', async () => {
+    // VIEW dikecualikan — ia tak bisa punya policy RLS. Alasan lengkapnya di
+    // `t5a-policy-tenant.test.ts`; ringkasnya: menuntutnya pada view membuat
+    // salah-kategori jadi satu-satunya jalan keluar, dan salah kategori di
+    // gerbang tenancy adalah cacat yang diam.
     const berTenant = Object.entries(PETA_TENANCY)
       .filter(([, v]) => ['ANCHOR', 'B', 'AB', 'C'].includes(v.kategori))
+      .filter(([, v]) => !('view' in v && v.view))
       .map(([t]) => t)
     const punya = new Set(
       (await c.query(

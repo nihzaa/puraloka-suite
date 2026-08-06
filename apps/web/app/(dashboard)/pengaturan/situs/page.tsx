@@ -90,8 +90,17 @@ function SitusContent() {
 
   const [konten, setKonten] = useState<Record<string, string>>({});
   const [seksi, setSeksi] = useState<Seksi[]>([]);
+  // Kosong, BUKAN "#003366"/"#FFD600".
+  //
+  // Default warna merek sudah ada satu-satunya di skema
+  // (`situs_merek.warna_utama DEFAULT '#003366'`, migrasi 205). Menuliskannya
+  // lagi di sini membuat dua sumber kebenaran yang bisa berbeda diam-diam —
+  // dan yang salah adalah yang terlihat pengguna.
+  //
+  // Aman untuk input terkendali: komponen ini `return` lebih dulu selama
+  // `loading`, jadi saat form dirender nilainya sudah datang dari API.
   const [merek, setMerek] = useState<Merek>({
-    warna_utama: "#003366", warna_aksen: "#FFD600", logo_path: null,
+    warna_utama: "", warna_aksen: "", logo_path: null,
   });
   const [loading, setLoading] = useState(true);
   const [simpan, setSimpan] = useState<string | null>(null);
@@ -181,14 +190,20 @@ function SitusContent() {
   };
 
   if (loading) {
-    return <div style={{ padding: 24, color: C.muted }}>Memuat konten situs…</div>;
+    return <div style={{ padding: "var(--pad-kartu-lega)", color: C.muted }}>Memuat konten situs…</div>;
   }
 
   const kunciKonten = Object.keys(LABEL).filter((k) => k in konten);
 
   return (
-    <div style={{ padding: "24px 28px", maxWidth: 980 }}>
-      <header style={{ marginBottom: 24 }}>
+    // `--w-form`: halaman ini formulir satu kolom, bukan tabel padat.
+    // Padding & lebar lewat token supaya white-label dan penyetelan kerapatan
+    // berlaku di sini juga (penjaga `tata-letak-ratchet` + `kerapatan-ratchet`).
+    <div style={{
+      padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
+      width: "100%", maxWidth: "var(--w-form)", margin: "0 auto",
+    }}>
+      <header style={{ marginBottom: "var(--gap-bagian)" }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, display: "flex", alignItems: "center", gap: 10 }}>
           <Globe size={22} /> Situs Publik
         </h1>
@@ -202,7 +217,7 @@ function SitusContent() {
         <div
           role="status"
           style={{
-            ...card, padding: "12px 14px", marginBottom: 18, display: "flex", gap: 10,
+            ...card, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)", display: "flex", gap: 10,
             alignItems: "flex-start", fontSize: 13,
             borderColor: toast.type === "success" ? "var(--success-border)" : "var(--danger-border)",
             background: toast.type === "success" ? "var(--success-bg)" : "var(--danger-bg)",
@@ -222,7 +237,7 @@ function SitusContent() {
       )}
 
       {/* ── Seksi ─────────────────────────────────────────────────────────── */}
-      <section style={{ ...card, padding: 18, marginBottom: 20 }}>
+      <section style={{ ...card, padding: "var(--pad-kartu-lega)", marginBottom: "var(--gap-bagian)" }}>
         <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Seksi halaman</h2>
         <p style={{ color: C.muted, fontSize: 12, marginBottom: 14 }}>
           Matikan seksi untuk menyembunyikannya dari pengunjung. Urutan menentukan
@@ -271,14 +286,14 @@ function SitusContent() {
       </section>
 
       {/* ── Merek ─────────────────────────────────────────────────────────── */}
-      <section style={{ ...card, padding: 18, marginBottom: 20 }}>
+      <section style={{ ...card, padding: "var(--pad-kartu-lega)", marginBottom: "var(--gap-bagian)" }}>
         <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Warna merek</h2>
         <p style={{ color: C.muted, fontSize: 12, marginBottom: 14, maxWidth: "70ch" }}>
           Warna yang kontrasnya terlalu rendah akan ditolak — halaman publik harus
           tetap terbaca di semua latar. Pesan penolakan menyebut angka dan latar
           yang gagal.
         </p>
-        <div style={{ display: "flex", gap: 18, flexWrap: "wrap", alignItems: "flex-end" }}>
+        <div style={{ display: "flex", gap: "var(--gap-bagian)", flexWrap: "wrap", alignItems: "flex-end" }}>
           {([
             ["warna_utama", "Warna utama (latar)"],
             ["warna_aksen", "Warna aksen (garis, nomor)"],
@@ -320,7 +335,7 @@ function SitusContent() {
       </section>
 
       {/* ── Konten teks ───────────────────────────────────────────────────── */}
-      <section style={{ ...card, padding: 18 }}>
+      <section style={{ ...card, padding: "var(--pad-kartu-lega)" }}>
         <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Teks halaman</h2>
         <p style={{ color: C.muted, fontSize: 12, marginBottom: 14 }}>
           Ubah lalu simpan per baris. Yang tersimpan langsung terbit.

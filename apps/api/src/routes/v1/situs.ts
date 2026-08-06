@@ -312,58 +312,40 @@ export default async function situsRoutes(app: FastifyInstance) {
         return reply.status(503).send({ error: 'Situs belum dikonfigurasi' })
       }
 
-      const [konten, kategori, media, milestone, legalitas, seksi, merek] =
-        await Promise.all([
-          supabase.from('situs_konten')
-            .select('kunci, nilai').eq('company_id', companyId),
-          supabase.from('situs_kategori')
-            .select('id, kunci, judul, ringkasan, lokasi, lingkup, urutan')
-            .eq('company_id', companyId).eq('tampil', true)
-            .order('urutan', { ascending: true }),
-          supabase.from('situs_media')
-            .select('kategori_id, path_storage, alt, lebar, tinggi, urutan')
-            .eq('company_id', companyId).eq('tampil', true)
-            .order('urutan', { ascending: true }),
-          supabase.from('situs_milestone')
-            .select('tahun, judul, keterangan, urutan')
-            .eq('company_id', companyId).eq('tampil', true)
-            .order('urutan', { ascending: true }),
-          supabase.from('situs_legalitas')
-            .select('kode, judul, urutan')
-            .eq('company_id', companyId).eq('tampil', true)
-            .order('urutan', { ascending: true }),
-          supabase.from('situs_seksi')
-            .select('kunci, aktif, urutan, varian')
-            .eq('company_id', companyId)
-            .order('urutan', { ascending: true }),
-          supabase.from('situs_merek')
-            .select('warna_utama, warna_aksen, logo_path')
-            .eq('company_id', companyId).maybeSingle(),
-        ])
+      // SATU pembacaan, bukan tujuh — lewat `v_situs_publik` (migrasi 210).
+      //
+      // Dulu tujuh query `supabase.from(...)` terpisah. Kodenya benar, tapi
+      // `tenancy-ratchet.test.ts` merah: 373 vs `PLAFON_R011` 366, dan plafon
+      // itu diratifikasi founder sebagai satu-satunya kenaikan (G-5).
+      //
+      // View memindahkan tiga hal ke lapisan SQL:
+      //   • penyaringan `tampil`/`aktif` — dulu tiap query mengingatnya
+      //     sendiri, dan satu yang lupa menerbitkan draf ke publik
+      //   • daftar kolom yang boleh publik — kolom baru yang ditambahkan
+      //     besok TIDAK ikut terbit
+      //   • agregasinya, jadi satu perjalanan ke database
+      //
+      // Yang TETAP kewajiban di sini: `eq('company_id', …)`. View sengaja
+      // mengembalikan satu baris PER COMPANY, bukan satu baris global —
+      // "situs milik siapa" adalah keputusan aplikasi, bukan skema.
+      const { data, error } = await supabase
+        .from('v_situs_publik')
+        .select('konten, kategori, media, milestone, legalitas, seksi, merek')
+        .eq('company_id', companyId)
+        .maybeSingle()
 
-      // Tiap bagian diperiksa SEBELUM datanya dipakai. Membiarkan satu error
-      // lewat menghasilkan halaman yang kehilangan seksi tanpa ada yang tahu
-      // kenapa — dan `?? []` sesudahnya akan mengubah kegagalan itu menjadi
-      // "nol baris yang sah", persis cacat yang dijaga
-      // `audit-kegagalan-senyap.mjs`.
-      for (const [nama, hasil] of Object.entries({
-        konten, kategori, media, milestone, legalitas, seksi, merek,
-      })) {
-        if (hasil.error) {
-          request.log.error(
-            { err: hasil.error, bagian: nama },
-            'gagal memuat bagian situs publik',
-          )
-          return reply.status(500).send({ error: 'Gagal memuat situs' })
-        }
+      if (error) {
+        request.log.error({ err: error }, 'gagal memuat situs publik')
+        return reply.status(500).send({ error: 'Gagal memuat situs' })
+      }
+      // `null` = company-nya tak ada atau tak aktif. Dibedakan dari galat:
+      // yang ini konfigurasi salah, bukan basis bermasalah.
+      if (!data) {
+        request.log.error({ companyId }, 'SITUS_COMPANY_ID tak cocok company aktif mana pun')
+        return reply.status(503).send({ error: 'Situs belum dikonfigurasi' })
       }
 
-      // Setelah gerbang di atas, `error` mustahil dan `data` pasti array.
-      // Ditulis tanpa `?? []` dengan sengaja: fallback itu akan menutupi
-      // kegagalan yang seharusnya sudah tertangkap, dan membuat gerbang di
-      // atas kehilangan gunanya.
-      const barisKonten = konten.data as Array<{ kunci: string; nilai: unknown }>
-      const barisKategori = kategori.data as Array<{
+      const barisKategori = data.kategori as Array<{
         id: string
         kunci: string
         judul: string
@@ -372,7 +354,7 @@ export default async function situsRoutes(app: FastifyInstance) {
         lingkup: string | null
         urutan: number
       }>
-      const barisMedia = media.data as Array<{
+      const barisMedia = data.media as Array<{
         kategori_id: string | null
         path_storage: string
         alt: string
@@ -380,9 +362,6 @@ export default async function situsRoutes(app: FastifyInstance) {
         tinggi: number
         urutan: number
       }>
-
-      const petaKonten: Record<string, unknown> = {}
-      for (const baris of barisKonten) petaKonten[baris.kunci] = baris.nilai
 
       // Media ditempelkan ke kategorinya, lalu `id` dan `kategori_id` DIBUANG.
       // Keduanya uuid internal: klien tak memakainya, dan menerbitkannya cuma
@@ -396,12 +375,12 @@ export default async function situsRoutes(app: FastifyInstance) {
 
       return reply.send({
         data: {
-          konten: petaKonten,
+          konten: data.konten,
           kategori: daftarKategori,
-          milestone: milestone.data,
-          legalitas: legalitas.data,
-          seksi: seksi.data,
-          merek: merek.data,
+          milestone: data.milestone,
+          legalitas: data.legalitas,
+          seksi: data.seksi,
+          merek: data.merek,
         },
       })
     },
