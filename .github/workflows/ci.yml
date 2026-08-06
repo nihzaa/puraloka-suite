@@ -659,6 +659,9 @@ jobs:
           node scripts/gabung-coverage.mjs
           node scripts/coverage-ratchet.mjs
 
+      - name: Route ber-coverage NOL (F8-3)
+        run: node scripts/audit-route-coverage-nol.mjs
+
   # ── A1 (STATUS.md §AUDIT) — apps/web SEBELUMNYA SAMA SEKALI DI LUAR CI ─────
   # Sampai 2026-07-31 hanya job `api` yang ada: frontend bisa rusak (tsc error,
   # build gagal, lint error baru) tanpa CI tahu, dan seluruh aturan WCAG yang

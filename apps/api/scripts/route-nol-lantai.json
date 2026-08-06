@@ -1,0 +1,5 @@
+{
+  "_catatan": "Jumlah berkas routes/v1/*.ts ber-coverage NOL. Boleh turun, TIDAK boleh naik.",
+  "_diukur": "2026-08-06 — diukur ulang; daftar 27 di COVERAGE-BASELINE.md sudah basi (F1-8 menutup companies.ts).",
+  "routeNol": 27
+}
