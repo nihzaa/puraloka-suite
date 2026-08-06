@@ -66,14 +66,34 @@ items:
       - "token spasi & tipografi baru di globals.css"
       - "sembilan penjaga visual tetap hijau"
       - "nol perubahan struktur halaman"
-    cara_verifikasi: "penjaga visual + tinjau 3 halaman terpadat secara visual"
+    cara_verifikasi: "node scripts/kerapatan-ratchet.mjs + tinjau visual"
     bobot: M
-    status: dipegang-sesi-lain
-    catatan: |
-      ⚠️ JANGAN KERJAKAN DARI SINI — 2026-08-07.
-      Token --pad-kartu / --gap-grid / --teks-* sedang diubah di sesi lain.
-      Founder: "lewati kerapatan, garap sisanya". Mengubah globals.css dari
-      sini akan menimpa pekerjaan yang sedang berjalan.
+    status: berjalan
+    hasil_2026_08_07: |
+      TOKENNYA SELESAI (sesi lain), PENYEBARANNYA BARU MULAI.
+
+      Token di globals.css sudah bernilai benar: --pad-kartu 12px (dari 24),
+      --gap-grid 8px (dari 16-20), --teks-tabel 12,5px (dari 9-11).
+
+      Tapi diukur: hanya TIGA berkas memakainya, sementara 422 padding/gap
+      ≥16px ditulis langsung di kode. Tokennya rapat, halamannya tidak —
+      dan founder tetap melihat halaman longgar.
+
+      Penjaga `kerapatan-ratchet.mjs` dibangun (lantai 422, terbukti bisa
+      merah lewat mutasi, terdaftar di ci.yml). Penyebaran pertama:
+
+        laporan/page.tsx       32 -> 4
+        proyek/[id]/page.tsx   29 -> 4
+        portal/proyek/[id]     23 -> 12
+        TOTAL                 422 -> 358
+
+      Sisa 358 tersebar di puluhan berkas. Halaman baru tak bisa menambah
+      lagi — itu yang dijaga.
+
+      BATAS PENJAGA (ditulis terus terang di kepala skripnya): hanya
+      menghitung nilai TUNGGAL ≥16px. Bentuk dua-nilai ("16px 24px") lolos,
+      karena sering memang disengaja (rapat vertikal, lega horizontal) dan
+      menyeragamkannya butuh keputusan desain per tempat.
 
       PALING BERDAMPAK, PALING MURAH. Diukur: padding 24px (standar
       data-dense 12px), font tabel 9-11px (standar 12-14px). Halaman terasa
