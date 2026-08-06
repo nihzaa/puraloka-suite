@@ -2,6 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> ✅ **SELESAI 2026-08-07.** Seluruh 11 task dikerjakan. Nomor migrasi nyata
+> 205-208 (bukan 200-202 seperti perkiraan plan — migrasi bergerak ke 204
+> sebelum eksekusi mulai, dan langkah verifikasi di Task 1 menangkapnya).
+> Bukti + koreksi: `docs/execution/JOURNAL.md` 2026-08-07 (lanjutan 5).
+
 **Goal:** Menerbitkan compro Puraloka Persada di `apps/web-publik` dengan seluruh konten dikelola dari dashboard admin — nol string konten di berkas `.tsx`.
 
 **Architecture:** Aplikasi Next.js terpisah dalam workspace pnpm yang sama. Konten disimpan di tabel ber-`company_id` dengan RLS aktif, dibaca lewat endpoint publik read-only ber-rate-limit, dirender ISR dengan revalidate-on-save. Resolusi tenant dipusatkan di satu fungsi yang hari ini mengembalikan konstanta.
@@ -66,14 +71,14 @@ apps/web/app/(dashboard)/pengaturan/situs/
 **Interfaces:**
 - Produces: tabel `situs_konten`, `situs_kategori`, `situs_media`, `situs_milestone`, `situs_legalitas`, `situs_seksi`, `situs_merek` — semua ber-`company_id uuid NOT NULL REFERENCES companies(id)`, RLS aktif.
 
-- [ ] **Step 1: Verifikasi nomor migrasi bebas**
+- [x] **Step 1: Verifikasi nomor migrasi bebas**
 
 ```bash
 ls db/migrations/*.sql | tail -1
 ```
 Expected: `199_register_asuransi.sql`. Bila lebih tinggi, pakai nomor berikutnya dan sesuaikan seluruh nama berkas di task ini.
 
-- [ ] **Step 2: Tulis migrasi**
+- [x] **Step 2: Tulis migrasi**
 
 Ikuti pola header `199_register_asuransi.sql`: jelaskan *kenapa*, bukan hanya *apa*.
 
@@ -231,7 +236,7 @@ CREATE INDEX situs_konten_kunci_idx   ON situs_konten (company_id, kunci);
 COMMIT;
 ```
 
-- [ ] **Step 3: Jalankan migrasi**
+- [x] **Step 3: Jalankan migrasi**
 
 ```bash
 node scripts/db/introspect.mjs identity
@@ -243,14 +248,14 @@ node scripts/db/introspect.mjs tables | grep situs_
 ```
 Expected: 7 tabel, `rls_aktif  true`, `jml_policy  3`.
 
-- [ ] **Step 4: Verifikasi ledger**
+- [x] **Step 4: Verifikasi ledger**
 
 ```bash
 node scripts/db/ledger-diff.mjs
 ```
 Expected: tidak ada entri buku tanpa artefak fisik.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add db/migrations/200_situs_konten.sql
@@ -274,7 +279,7 @@ git commit -m "feat(situs): tabel konten publik — company_id sejak baris perta
   - `LATAR_LANDING: readonly string[]` — `['#001F3D', '#003366', '#0059B3']`
   - `validasiAksen(hex: string): HasilValidasi[]`
 
-- [ ] **Step 1: Tulis test yang gagal**
+- [x] **Step 1: Tulis test yang gagal**
 
 ```typescript
 // apps/api/src/lib/__tests__/situs-warna.test.ts
@@ -343,14 +348,14 @@ describe('validasiAksen', () => {
 })
 ```
 
-- [ ] **Step 2: Jalankan test — pastikan gagal**
+- [x] **Step 2: Jalankan test — pastikan gagal**
 
 ```bash
 cd apps/api && npx vitest run src/lib/__tests__/situs-warna.test.ts
 ```
 Expected: FAIL — `Cannot find module '../situs-warna.js'`
 
-- [ ] **Step 3: Implementasi**
+- [x] **Step 3: Implementasi**
 
 ```typescript
 // apps/api/src/lib/situs-warna.ts
@@ -444,14 +449,14 @@ export function validasiAksen(hex: string): HasilValidasi[] {
 }
 ```
 
-- [ ] **Step 4: Jalankan test — pastikan lulus**
+- [x] **Step 4: Jalankan test — pastikan lulus**
 
 ```bash
 cd apps/api && npx vitest run src/lib/__tests__/situs-warna.test.ts
 ```
 Expected: PASS, 11 test.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/api/src/lib/situs-warna.ts apps/api/src/lib/__tests__/situs-warna.test.ts
@@ -471,11 +476,11 @@ git commit -m "feat(situs): kontras dinilai per PASANGAN warna-latar-peran"
 - Consumes: `validasiAksen`, `validasiPasangan` dari Task 2; tabel Task 1.
 - Produces: `GET|PUT /api/v1/situs/konten`, `GET|PUT /api/v1/situs/merek`, `GET|POST|PATCH|DELETE /api/v1/situs/kategori`, `GET|PATCH /api/v1/situs/seksi`.
 
-- [ ] **Step 1: Baca pola route yang sudah ada**
+- [x] **Step 1: Baca pola route yang sudah ada**
 
 Baca `apps/api/src/routes/v1/units.ts` seluruhnya — itu contoh CRUD terkecil di repo. Tiru: cara `request.db` dipakai, cara error di-log (`request.log.error({ err }, '…')`), cara `logAuditEvent` dipanggil. Penjaga CI `audit-kegagalan-senyap.mjs` dan `audit-tulis-tanpa-periksa.mjs` akan menolak query yang errornya tak diperiksa.
 
-- [ ] **Step 2: Tulis test yang gagal**
+- [x] **Step 2: Tulis test yang gagal**
 
 ```typescript
 // apps/api/src/routes/v1/__tests__/situs.test.ts
@@ -585,14 +590,14 @@ ls apps/api/src/test-utils/ 2>/dev/null || grep -rl "buatAppUji\|createTestApp\|
 ```
 Pakai helper yang benar-benar ada — jangan membuat helper baru.
 
-- [ ] **Step 3: Jalankan test — pastikan gagal**
+- [x] **Step 3: Jalankan test — pastikan gagal**
 
 ```bash
 cd apps/api && npx vitest run src/routes/v1/__tests__/situs.test.ts
 ```
 Expected: FAIL — 404 pada semua rute.
 
-- [ ] **Step 4: Implementasi route**
+- [x] **Step 4: Implementasi route**
 
 ```typescript
 // apps/api/src/routes/v1/situs.ts
@@ -797,7 +802,7 @@ export default async function situsRoutes(app: FastifyInstance) {
 }
 ```
 
-- [ ] **Step 5: Daftarkan route**
+- [x] **Step 5: Daftarkan route**
 
 Di `apps/api/src/index.ts`, tambahkan import mengikuti urutan yang ada (baris ~10-60):
 
@@ -811,14 +816,14 @@ Lalu registrasikan di tempat rute lain didaftarkan — cari `app.register(settin
 app.register(situsRoutes)
 ```
 
-- [ ] **Step 6: Jalankan test — pastikan lulus**
+- [x] **Step 6: Jalankan test — pastikan lulus**
 
 ```bash
 cd apps/api && npx vitest run src/routes/v1/__tests__/situs.test.ts
 ```
 Expected: PASS, 6 test. Bila gagal karena permission `situs.baca`/`situs.kelola` tak ada, tambahkan keduanya lewat migrasi permission mengikuti pola yang dipakai permission lain di repo — jangan mengganti `requirePermission` dengan cek peran literal (ADR-004).
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add apps/api/src/routes/v1/situs.ts apps/api/src/routes/v1/__tests__/situs.test.ts apps/api/src/index.ts
@@ -836,14 +841,14 @@ git commit -m "feat(situs): endpoint admin konten — kontras ditolak di pintu m
 **Interfaces:**
 - Produces: `GET /api/v1/public/situs` — satu payload berisi seluruh konten terbit.
 
-- [ ] **Step 1: Baca preseden endpoint publik**
+- [x] **Step 1: Baca preseden endpoint publik**
 
 ```bash
 grep -n "api/v1/public" apps/api/src/routes/v1/settings.ts | head
 ```
 Baca `/api/v1/public/invoice/:id` seluruhnya. Endpoint publik memakai `supabase` mentah (bukan `request.db`) karena tak ada user — konsekuensinya **filter company_id harus eksplisit di query**, sebab RLS tak punya konteks auth.
 
-- [ ] **Step 2: Tulis test yang gagal**
+- [x] **Step 2: Tulis test yang gagal**
 
 Tambahkan ke `situs.test.ts`:
 
@@ -880,14 +885,14 @@ describe('GET /api/v1/public/situs', () => {
 })
 ```
 
-- [ ] **Step 3: Jalankan test — pastikan gagal**
+- [x] **Step 3: Jalankan test — pastikan gagal**
 
 ```bash
 cd apps/api && npx vitest run src/routes/v1/__tests__/situs.test.ts -t "public"
 ```
 Expected: FAIL — 404.
 
-- [ ] **Step 4: Implementasi**
+- [x] **Step 4: Implementasi**
 
 Tambahkan ke `situs.ts`, di dalam `situsRoutes`:
 
@@ -986,7 +991,7 @@ import { supabase } from '../../utils/supabase.js'
       }))
 ```
 
-- [ ] **Step 5: Set env**
+- [x] **Step 5: Set env**
 
 Tambahkan ke `apps/api/.env` dan `apps/api/.env.example`:
 
@@ -1000,14 +1005,14 @@ node -e "require('./scripts/db/_koneksi.mjs')" 2>/dev/null || \
   psql "$DIRECT_URL" -c "select id, name from companies limit 5"
 ```
 
-- [ ] **Step 6: Jalankan test — pastikan lulus**
+- [x] **Step 6: Jalankan test — pastikan lulus**
 
 ```bash
 cd apps/api && npx vitest run src/routes/v1/__tests__/situs.test.ts
 ```
 Expected: PASS, 10 test.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add apps/api/src/routes/v1/situs.ts apps/api/src/routes/v1/__tests__/situs.test.ts apps/api/.env.example
@@ -1025,14 +1030,14 @@ git commit -m "feat(situs): endpoint publik read-only — company_id eksplisit, 
 - Consumes: tabel Task 1.
 - Produces: baris konten, milestone, kategori, legalitas, seksi untuk Puraloka.
 
-- [ ] **Step 1: Ambil uuid company**
+- [x] **Step 1: Ambil uuid company**
 
 ```bash
 node scripts/db/introspect.mjs identity
 ```
 Lalu dapatkan uuid company Puraloka. Seed memakai subquery, bukan uuid literal — supaya migrasi tetap benar di lingkungan mana pun.
 
-- [ ] **Step 2: Tulis seed**
+- [x] **Step 2: Tulis seed**
 
 ```sql
 -- ════════════════════════════════════════════════════════════════════════════
@@ -1115,7 +1120,7 @@ ON CONFLICT (company_id) DO NOTHING;
 COMMIT;
 ```
 
-- [ ] **Step 3: Terapkan dan verifikasi**
+- [x] **Step 3: Terapkan dan verifikasi**
 
 ```bash
 node scripts/db/ledger-diff.mjs
@@ -1126,7 +1131,7 @@ psql "$DIRECT_URL" -c "select count(*) from situs_milestone; select count(*) fro
 ```
 Expected: 11 milestone, 7 kategori.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add db/migrations/201_situs_seed_puraloka.sql
@@ -1143,14 +1148,14 @@ git commit -m "feat(situs): seed dari compro — fakta dipakai, prosanya ditulis
 **Interfaces:**
 - Produces: berkas terunggah ke Supabase Storage bucket `situs`, baris di `situs_media`.
 
-- [ ] **Step 1: Verifikasi sharp tersedia**
+- [x] **Step 1: Verifikasi sharp tersedia**
 
 ```bash
 cd apps/api && node -e "import('sharp').then(s => console.log('sharp', s.default.versions.vips))"
 ```
 Bila gagal: `pnpm --filter api add sharp` (sudah ada di `allowBuilds` dan override `>=0.35.0`).
 
-- [ ] **Step 2: Tulis skrip**
+- [x] **Step 2: Tulis skrip**
 
 ```javascript
 #!/usr/bin/env node
@@ -1279,7 +1284,7 @@ main().catch((e) => {
 })
 ```
 
-- [ ] **Step 3: Tambahkan UNIQUE untuk upsert**
+- [x] **Step 3: Tambahkan UNIQUE untuk upsert**
 
 `onConflict: 'company_id,path_storage'` butuh unique constraint. Tambahkan migrasi 202:
 
@@ -1289,7 +1294,7 @@ ALTER TABLE situs_media
   ADD CONSTRAINT situs_media_path_unik UNIQUE (company_id, path_storage);
 ```
 
-- [ ] **Step 4: Buat bucket dan jalankan**
+- [x] **Step 4: Buat bucket dan jalankan**
 
 Buat bucket `situs` (public read) di Supabase Storage, lalu:
 
@@ -1301,7 +1306,7 @@ node scripts/impor-media-compro.mjs
 ```
 Expected: 28 media masuk (5 kategori). `renovasi-rumah` dan `beton-pracetak` kosong — sudah diketahui (spec §6.2 poin 3).
 
-- [ ] **Step 5: Verifikasi EXIF benar-benar hilang**
+- [x] **Step 5: Verifikasi EXIF benar-benar hilang**
 
 ```bash
 node -e "
@@ -1314,7 +1319,7 @@ import('sharp').then(async ({default:s})=>{
 ```
 Expected: `exif: TIDAK ADA (benar)`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/api/scripts/impor-media-compro.mjs db/migrations/202_situs_media_unik.sql
@@ -1336,7 +1341,7 @@ git commit -m "feat(situs): pipeline media — EXIF dibuang, orientasi diterapka
   - `type KontenSitus = { konten: Record<string, unknown>; kategori: Kategori[]; milestone: Milestone[]; legalitas: Legalitas[]; seksi: Seksi[]; merek: Merek | null }`
   - `ambilKonten(): Promise<KontenSitus>`
 
-- [ ] **Step 1: package.json**
+- [x] **Step 1: package.json**
 
 ```json
 {
@@ -1367,7 +1372,7 @@ git commit -m "feat(situs): pipeline media — EXIF dibuang, orientasi diterapka
 
 Versi `next`/`react` **dipaku sama dengan `apps/web`** — dua versi React dalam satu workspace pnpm menghasilkan galat hook yang sulit dilacak. Samakan devDependencies dengan `apps/web/package.json` bila berbeda.
 
-- [ ] **Step 2: Test resolusi tenant yang gagal**
+- [x] **Step 2: Test resolusi tenant yang gagal**
 
 ```typescript
 // apps/web-publik/lib/__tests__/tenant.test.ts
@@ -1391,14 +1396,14 @@ describe('resolveTenant', () => {
 })
 ```
 
-- [ ] **Step 3: Jalankan — pastikan gagal**
+- [x] **Step 3: Jalankan — pastikan gagal**
 
 ```bash
 cd apps/web-publik && npx vitest run
 ```
 Expected: FAIL — modul tak ada.
 
-- [ ] **Step 4: Implementasi tenant.ts**
+- [x] **Step 4: Implementasi tenant.ts**
 
 ```typescript
 // apps/web-publik/lib/tenant.ts
@@ -1423,7 +1428,7 @@ export function resolveTenant(): string {
 }
 ```
 
-- [ ] **Step 5: Implementasi konten.ts**
+- [x] **Step 5: Implementasi konten.ts**
 
 ```typescript
 // apps/web-publik/lib/konten.ts
@@ -1465,14 +1470,14 @@ export async function ambilKonten(): Promise<KontenSitus> {
 }
 ```
 
-- [ ] **Step 6: Jalankan test — pastikan lulus**
+- [x] **Step 6: Jalankan test — pastikan lulus**
 
 ```bash
 cd apps/web-publik && npx vitest run
 ```
 Expected: PASS, 2 test.
 
-- [ ] **Step 7: Halaman minimal yang membuktikan rantai data**
+- [x] **Step 7: Halaman minimal yang membuktikan rantai data**
 
 ```tsx
 // apps/web-publik/app/page.tsx
@@ -1491,14 +1496,14 @@ export default async function Beranda() {
 }
 ```
 
-- [ ] **Step 8: Jalankan dan lihat**
+- [x] **Step 8: Jalankan dan lihat**
 
 ```bash
 cd apps/web-publik && pnpm dev
 ```
 Buka `http://localhost:3002`. Expected: judul dan sub dari DB — bukan string di kode.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add apps/web-publik
@@ -1518,7 +1523,7 @@ git commit -m "feat(situs): apps/web-publik — tenant di-resolve di satu tempat
 - Consumes: `KontenSitus`, `teks` dari Task 7.
 - Produces: tiap komponen menerima `{ konten: KontenSitus }` dan mengembalikan `JSX.Element | null` (null bila seksinya non-aktif).
 
-- [ ] **Step 1: Token CSS landing**
+- [x] **Step 1: Token CSS landing**
 
 ```css
 /* apps/web-publik/app/globals.css */
@@ -1564,7 +1569,7 @@ body {
 }
 ```
 
-- [ ] **Step 2: Hero**
+- [x] **Step 2: Hero**
 
 ```tsx
 // apps/web-publik/components/seksi/Hero.tsx
@@ -1596,7 +1601,7 @@ export function Hero({ konten }: { konten: KontenSitus }) {
 }
 ```
 
-- [ ] **Step 3: Portofolio**
+- [x] **Step 3: Portofolio**
 
 ```tsx
 // apps/web-publik/components/seksi/Portofolio.tsx
@@ -1649,7 +1654,7 @@ export function Portofolio({ konten }: { konten: KontenSitus }) {
 }
 ```
 
-- [ ] **Step 4: Kontak — WhatsApp kontekstual**
+- [x] **Step 4: Kontak — WhatsApp kontekstual**
 
 ```tsx
 // apps/web-publik/components/seksi/Kontak.tsx
@@ -1705,7 +1710,7 @@ export function Kontak({ konten, topik }: { konten: KontenSitus; topik?: string 
 }
 ```
 
-- [ ] **Step 5: Test `keFormatWa`**
+- [x] **Step 5: Test `keFormatWa`**
 
 ```typescript
 // apps/web-publik/components/seksi/__tests__/kontak.test.ts
@@ -1731,7 +1736,7 @@ cd apps/web-publik && npx vitest run
 ```
 Expected: PASS.
 
-- [ ] **Step 6: Rangkai di page.tsx**
+- [x] **Step 6: Rangkai di page.tsx**
 
 ```tsx
 // apps/web-publik/app/page.tsx
@@ -1767,7 +1772,7 @@ export default async function Beranda() {
 }
 ```
 
-- [ ] **Step 7: Verifikasi visual + a11y**
+- [x] **Step 7: Verifikasi visual + a11y**
 
 ```bash
 cd apps/web-publik && pnpm build && pnpm start
@@ -1778,7 +1783,7 @@ Periksa di `http://localhost:3002`:
 - Tab keyboard → fokus terlihat (outline kuning)
 - Foto tampil dengan `alt` yang bermakna
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add apps/web-publik
@@ -1797,14 +1802,14 @@ git commit -m "feat(situs): seksi compro — urutan dan on/off dari DB"
 - Consumes: `tahap: { kunci: string; judul: string }[]`, `progress: number` (0–1).
 - Produces: `<Massing tahap={…} progress={…} />` — geometri prosedural, nol berkas model.
 
-- [ ] **Step 1: Pasang dependensi**
+- [x] **Step 1: Pasang dependensi**
 
 ```bash
 pnpm --filter web-publik add three @react-three/fiber @react-three/drei
 pnpm --filter web-publik add -D @types/three
 ```
 
-- [ ] **Step 2: Komponen massing**
+- [x] **Step 2: Komponen massing**
 
 ```tsx
 // apps/web-publik/components/adegan/Massing.tsx
@@ -1861,7 +1866,7 @@ export function Massing({ tahap, progress }: { tahap: Tahap[]; progress: number 
 }
 ```
 
-- [ ] **Step 3: Bungkus dengan fallback**
+- [x] **Step 3: Bungkus dengan fallback**
 
 ```tsx
 // apps/web-publik/components/seksi/Proses.tsx
@@ -1952,11 +1957,11 @@ export function Proses({ konten: _konten }: { konten: KontenSitus }) {
 }
 ```
 
-- [ ] **Step 4: Daftarkan seksi**
+- [x] **Step 4: Daftarkan seksi**
 
 Di `app/page.tsx`, tambahkan `proses: Proses` ke `KOMPONEN`.
 
-- [ ] **Step 5: Verifikasi fallback benar-benar bekerja**
+- [x] **Step 5: Verifikasi fallback benar-benar bekerja**
 
 Uji tiga kondisi:
 ```
@@ -1966,14 +1971,14 @@ Uji tiga kondisi:
 ```
 Di DevTools: Rendering → "Emulate CSS prefers-reduced-motion".
 
-- [ ] **Step 6: Ukur bundle**
+- [x] **Step 6: Ukur bundle**
 
 ```bash
 cd apps/web-publik && pnpm build
 ```
 Expected: chunk `three` terpisah, tidak masuk bundle awal halaman.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add apps/web-publik
@@ -1990,11 +1995,11 @@ git commit -m "feat(situs): massing prosedural — halaman tetap utuh tanpa WebG
 **Interfaces:**
 - Consumes: endpoint Task 3.
 
-- [ ] **Step 1: Baca pola halaman pengaturan**
+- [x] **Step 1: Baca pola halaman pengaturan**
 
 Baca `apps/web/app/(dashboard)/pengaturan/satuan/page.tsx` seluruhnya — tiru cara fetch, penanganan galat, dan komponen form yang dipakai. Jangan memperkenalkan pola baru.
 
-- [ ] **Step 2: Halaman**
+- [x] **Step 2: Halaman**
 
 Bangun mengikuti pola tersebut, dengan empat blok:
 
@@ -2012,7 +2017,7 @@ await fetch(`${API}/api/v1/situs/revalidate`, {
 })
 ```
 
-- [ ] **Step 3: Endpoint revalidate**
+- [x] **Step 3: Endpoint revalidate**
 
 Tambahkan ke `apps/api/src/routes/v1/situs.ts`:
 
@@ -2057,7 +2062,7 @@ export async function POST(request: Request) {
 }
 ```
 
-- [ ] **Step 4: Uji rantai penuh**
+- [x] **Step 4: Uji rantai penuh**
 
 ```
 1. Ubah hero.judul di /pengaturan/situs
@@ -2066,7 +2071,7 @@ export async function POST(request: Request) {
 4. Judul berubah TANPA deploy ulang
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/web/app/\(dashboard\)/pengaturan/situs apps/api/src/routes/v1/situs.ts apps/web-publik/app/api
@@ -2081,7 +2086,7 @@ git commit -m "feat(situs): UI admin + revalidate — ubah konten, halaman publi
 - Modify: `.github/workflows/ci.yml`
 - Modify: `docs/execution/QUEUE.yaml`, `docs/execution/JOURNAL.md`
 
-- [ ] **Step 1: Jalankan seluruh penjaga**
+- [x] **Step 1: Jalankan seluruh penjaga**
 
 ```bash
 cd apps/api && npx vitest run && npm run lint:ratchet
@@ -2094,19 +2099,19 @@ cd ../.. && node scripts/gen-indeks-docs.mjs --check
 ```
 Semua harus lulus. **Bila `audit-gerbang-tenancy.mjs` menghitung `/api/v1/public/situs` sebagai pelanggaran**, jangan naikkan angka ratchet — daftarkan sebagai pengecualian bernama mengikuti cara `/api/v1/public/invoice/:id` didaftarkan, dengan alasan tertulis.
 
-- [ ] **Step 2: Tambahkan web-publik ke CI**
+- [x] **Step 2: Tambahkan web-publik ke CI**
 
 Di `.github/workflows/ci.yml`, tambahkan langkah lint/typecheck/build untuk `web-publik` mengikuti persis pola `apps/web` yang sudah ada.
 
-- [ ] **Step 3: Catat di JOURNAL**
+- [x] **Step 3: Catat di JOURNAL**
 
 Tambahkan entri: pekerjaan di luar QUEUE atas keputusan founder, apa yang dibangun, dan koreksi yang ditemukan (portofolio per jenis pekerjaan bukan per proyek; kuning merek `#FFD600` sebagai warna kedua).
 
-- [ ] **Step 4: Tambahkan item ke QUEUE.yaml**
+- [x] **Step 4: Tambahkan item ke QUEUE.yaml**
 
 Agar antrean merefleksikan kenyataan — prinsip "kalau kenyataan tidak cocok dengan dokumen, kenyataan yang menang".
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add .github/workflows/ci.yml docs/execution

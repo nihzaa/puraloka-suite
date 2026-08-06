@@ -141,10 +141,19 @@ export function Proses({ konten }: { konten: KontenSitus }) {
                     gap: '1.25rem',
                     padding: '1.1rem 0',
                     borderTop: '1px solid var(--garis)',
-                    // Transisi halus, dan dimatikan oleh prefers-reduced-motion
-                    // lewat aturan global di globals.css.
-                    transition: 'opacity 240ms ease',
-                    opacity: nyala ? 1 : 0.45,
+                    // ── SENGAJA tanpa `opacity` untuk meredupkan teks ────────
+                    // `opacity` mencampur warna teks dengan latarnya, sehingga
+                    // kontras yang benar pada token-nya bisa jatuh jauh di
+                    // bawah ambang tanpa terdeteksi pemindai statis. Versi
+                    // pertama memakai opacity 0,45 — itu akan membuat teks
+                    // tahap yang belum menyala 3,4:1, gagal AA.
+                    //
+                    // Kelas cacat yang sama tercatat enam kali di apps/web
+                    // (sidebar 0,55 sendirian menghasilkan 227 pelanggaran)
+                    // dan sudah punya penjaga CI di sana. Penjaga itu belum
+                    // menjangkau app ini, jadi aturannya ditegakkan manual.
+                    // Yang diredupkan WARNA-nya, bukan lapisan seluruh baris.
+                    transition: 'color 240ms ease',
                   }}
                 >
                   <span
@@ -161,7 +170,20 @@ export function Proses({ konten }: { konten: KontenSitus }) {
                     {String(i + 1).padStart(2, '0')}
                   </span>
                   <div>
-                    <p style={{ fontWeight: 600 }}>{t.judul}</p>
+                    <p
+                      style={{
+                        fontWeight: 600,
+                        // Kedua keadaan memakai token yang kontrasnya SUDAH
+                        // lulus AA di latar navy (16,62:1 dan 7,52:1). Yang
+                        // membedakan tahap sudah/belum adalah tingkat warnanya,
+                        // bukan transparansi — jadi tak ada keadaan yang
+                        // terbaca lebih redup dari yang seharusnya.
+                        color: nyala ? 'var(--pada-navy)' : 'var(--pada-navy-redup)',
+                        transition: 'color 240ms ease',
+                      }}
+                    >
+                      {t.judul}
+                    </p>
                     <p
                       style={{
                         color: 'var(--pada-navy-redup)',

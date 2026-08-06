@@ -1021,3 +1021,57 @@ items:
     cara_verifikasi: "review arsitektur auth"
     bobot: M
     status: blocked
+
+  # ── Situs publik (compro) ──────────────────────────────────────────────────
+  # DI LUAR fase 0-8: keputusan sadar founder 2026-08-07, bukan kelalaian
+  # perencanaan. Tidak menyentuh GL, jadi tak melanggar larangan R-001.
+  # Spec: docs/superpowers/specs/2026-08-06-landing-publik-design.md
+  # Plan: docs/superpowers/plans/2026-08-07-landing-publik-tahap-1.md
+  - id: SITUS-1
+    fase: null
+    judul: "Compro publik Puraloka Persada — konten 100% dari dashboard"
+    kriteria_selesai:
+      - "7 tabel situs_* ber-company_id + RLS aktif (migrasi 205)"
+      - "permission situs:view/situs:manage dibuat DAN ter-assign (206)"
+      - "endpoint publik read-only, field dibatasi, rate-limit (situs.ts)"
+      - "seed dari compro PDF: 24 konten, 11 milestone, 7 kategori, 13 KBLI (207)"
+      - "28 foto di Storage, EXIF+GPS dibuang, orientasi diterapkan"
+      - "apps/web-publik terbit: 6 seksi, massing 3D, fallback tanpa WebGL"
+      - "UI admin /pengaturan/situs + menu terdaftar (208)"
+      - "revalidate-on-save terbukti: ubah DB -> halaman berubah tanpa deploy"
+    cara_verifikasi: >-
+      node scripts/db/introspect.mjs tables | grep situs_ (7 tabel, rls true,
+      3 policy) · cd apps/api && npx vitest run src/routes/v1/__tests__/situs.test.ts
+      src/lib/__tests__/situs-warna.test.ts (36 hijau) · cd apps/web-publik &&
+      npx next build && npx vitest run (8 hijau)
+    bobot: L
+    status: done
+
+  - id: SITUS-2
+    fase: null
+    judul: "Halaman jual ERP (tahap 2) — spec terpisah"
+    blokir_oleh: [SITUS-1]
+    kriteria_selesai:
+      - "materi jual dikurasi founder (screenshot, cerita, harga)"
+      - "TIDAK menjanjikan multi-company sebagai fitur siap pakai — gerbang
+         tenant kedua masih terkunci sampai Tahap 4 & 5 (STATUS.md)"
+    cara_verifikasi: "review konten vs kondisi produk yang terukur"
+    bobot: M
+    status: todo
+
+  - id: SITUS-3
+    fase: null
+    judul: "Foto Renovasi Rumah & Beton Pracetak — berkas asli belum ditemukan"
+    kriteria_selesai:
+      - "dua kategori punya foto, ATAU diputuskan dilewati"
+    cara_verifikasi: >-
+      SELECT k.kunci, count(m.id) FROM situs_kategori k
+      LEFT JOIN situs_media m ON m.kategori_id = k.id GROUP BY k.kunci
+    catatan: >-
+      Gambar galeri di compro PDF hal. 17 & 19 NYATA dan bagus (12 foto beton
+      pracetak: u-ditch, panel pagar diangkat crane). Yang tak ada berkas
+      aslinya — ditelusuri di Foto Proyek, Renovrumahmu, Puraloka Panel, Proyek
+      Lapang LPKIA: nol kecocokan pHash. Bisa diekstrak dari PDF bila founder
+      setuju; resolusinya masih memadai untuk web.
+    bobot: S
+    status: todo

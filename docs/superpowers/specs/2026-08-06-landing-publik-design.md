@@ -1,7 +1,9 @@
 # Landing Publik — Compro Puraloka Persada + Halaman Jual ERP
 
 **Tanggal:** 2026-08-06
-**Status:** DESAIN — menunggu review founder
+**Status:** ✅ **TAHAP 1 TERIMPLEMENTASI** (2026-08-07) — compro terbit di
+`apps/web-publik`. Tahap 2 (halaman jual ERP) belum: QUEUE `SITUS-2`.
+Jurnal: `docs/execution/JOURNAL.md` 2026-08-07 (lanjutan 5).
 **Fase:** Di luar QUEUE.yaml (lihat §12 — Posisi terhadap CHARTER)
 
 ---

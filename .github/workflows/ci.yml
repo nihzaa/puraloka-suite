@@ -1261,3 +1261,61 @@ jobs:
           name: jejak-playwright
           path: test-results/
           retention-days: 7
+
+  # ── Situs publik (compro) — apps/web-publik ────────────────────────────────
+  #
+  # App terpisah dari dashboard: pengunjung anonim, dirender ISR, bundle harus
+  # kecil, dan satu-satunya tempat Three.js dipakai. Ia punya siklus rusak
+  # sendiri — build web-publik bisa gagal tanpa menyentuh apps/web sama sekali.
+  #
+  # SENGAJA tanpa `needs:` — sama dengan job `web`, kegagalan frontend harus
+  # terlihat cepat dan tak menunggu test DB.
+  #
+  # Belum punya ratchet sendiri (lint/tata-letak/hex) karena app-nya baru dan
+  # nol pelanggaran hari ini; menambahkannya sekarang berarti mengunci angka
+  # yang belum berarti apa-apa. Yang dijaga dulu yang bisa runtuh: tipe, build,
+  # dan test murni.
+  web-publik:
+    name: Situs publik — typecheck, test, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web-publik
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.8.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: .
+
+      # Binari langsung, bukan `pnpm run` — alasan sama dengan job `web`:
+      # ERR_PNPM_MISSING_TARBALL_INTEGRITY pada `xlsx` di CI.
+      - name: Typecheck
+        run: pnpm exec tsc --noEmit
+
+      # Test murni (tanpa DB, tanpa jaringan): resolusi tenant dan format
+      # nomor WhatsApp. Keduanya gagal DALAM DIAM kalau salah — tenant yang
+      # tak ter-resolve merender halaman kosong, dan nomor salah format
+      # membuka WhatsApp ke nomor yang tak ada.
+      - name: Test
+        run: pnpm exec vitest run
+
+      # Build memerlukan env: `ambilKonten()` dipanggil saat prerender.
+      # Nilai di sini hanya untuk memuaskan pemeriksaan bentuk — build
+      # menoleransi API yang tak terjangkau, dan halaman akan di-render ulang
+      # saat runtime.
+      - name: Build
+        run: pnpm exec next build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:3001
+          NEXT_PUBLIC_SUPABASE_URL: https://contoh.supabase.co
+          SITUS_COMPANY_ID: 00000000-0000-0000-0000-000000000000

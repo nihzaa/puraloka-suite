@@ -1,6 +1,6 @@
 # STATUS — Puraloka Suite (penunjuk satu pintu)
 
-**Diperbarui:** 2026-08-02 (rev-20: **mandat otonomi penuh** — Fase 0 "Pemulihan Kepercayaan" berjalan. Alat introspeksi DB kanonik lahir; tujuh angka audit diverifikasi ulang (dua salah); **cacat P0 baru: tabrakan definisi GL 047↔167** → GL tenant-blind di lingkungan baru, menunggu ratifikasi. Coverage akhirnya diukur: 31,98%. Sebelumnya rev-19: `created_at` bisa ditulis ulang di dev; migrasi 166 memulihkan.)
+**Diperbarui:** 2026-08-07 (rev-21: **compro publik terbit** — `apps/web-publik` hidup dari CMS, 7 tabel situs_* ber-RLS, 28 foto ber-EXIF-bersih, revalidate-on-save terbukti end-to-end. Empat cacat UI dan dua cacat cache hanya ketahuan lewat potret & uji rantai penuh; tiga penjaga repo menangkap kelalaian, nol yang dilemahkan. Di luar QUEUE atas keputusan founder — item SITUS-1/2/3 ditambahkan. Sebelumnya rev-20: alat introspeksi DB kanonik; cacat P0 tabrakan GL 047/167.)
 — penunjuk TIPIS, bukan duplikasi konten. Update tanggal + baris "Fase aktif" setiap
 kali keadaan berubah; detail selalu di dokumen rujukan.
 
@@ -31,6 +31,24 @@ kali keadaan berubah; detail selalu di dokumen rujukan.
 > branch `fix/search-…`, bukan `main` — 8 commit GL belum ter-merge), R-004
 > (penarikan rekomendasi `rekonsiliasi --tulis`), R-005 (3 angka jangkar golden
 > file tak dikenali sumbernya).
+
+> ### 🌐 SITUS PUBLIK — 2026-08-07 (SITUS-1 selesai)
+>
+> Compro Puraloka Persada terbit di `apps/web-publik` (port 3002), seluruh
+> isinya dari DB lewat `/pengaturan/situs`. **Nol string konten di kode.**
+>
+> | Bukti | Angka |
+> |---|---|
+> | Tabel `situs_*` | 7, RLS aktif, 3 policy masing-masing (205) |
+> | Permission | `situs:view`/`situs:manage` dibuat **dan** ter-assign (206) |
+> | Konten | 24 teks · 11 milestone · 7 kategori · 13 KBLI (207) |
+> | Foto | 28 di Storage — EXIF **dan** GPS dibuang, orientasi diterapkan |
+> | Test | 36 API + 8 web-publik, semua hijau |
+> | Penjaga | 5 audit arsitektural LULUS · `lint:ratchet` 0 error |
+>
+> **Menunggu founder:** SITUS-2 (halaman jual ERP — materi jual belum
+> dikurasi) dan SITUS-3 (foto Renovasi Rumah & Beton Pracetak: gambar di
+> compro PDF nyata, berkas aslinya tak ditemukan di mesin ini).
 
 ## Fase aktif
 

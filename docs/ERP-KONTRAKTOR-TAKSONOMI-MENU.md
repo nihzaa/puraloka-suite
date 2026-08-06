@@ -614,6 +614,10 @@ Ditemukan saat verifikasi (bukti = route/UI nyata):
 - **Command palette / global search** (Ctrl+K, role-aware)
 - **Kalender proyek** (milestone/termin/progress/start-end)
 - **Financial config effective-dated + UI** (`/pengaturan/keuangan`)
+- **Situs publik (compro) berbasis CMS** (205-208, `/pengaturan/situs`) —
+  seluruh teks, foto, urutan seksi, dan warna merek halaman depan diedit dari
+  dashboard; nol string konten di kode. Endpoint publik read-only ber-rate-limit,
+  revalidate-on-save. App terpisah `apps/web-publik`.
 
 ---
 

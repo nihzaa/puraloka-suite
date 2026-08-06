@@ -5,6 +5,114 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-07 (lanjutan 5) — compro publik terbit, dan empat kali saya salah mendiagnosis warna
+
+Founder meminta landing page compro + halaman jual ERP, konten 100% dari
+dashboard. Tahap 1 (compro) selesai. Spec `2026-08-06-landing-publik-design.md`,
+plan `2026-08-07-landing-publik-tahap-1.md`.
+
+**Di luar QUEUE, dan itu disengaja.** Keputusan founder, bukan kelalaian
+perencanaan. Tidak menyentuh GL sehingga tak melanggar larangan R-001. Item
+SITUS-1/2/3 ditambahkan ke `QUEUE.yaml` supaya antrean merefleksikan kenyataan.
+
+### Yang terbukti, dengan angka
+
+```
+migrasi 205-208 · 7 tabel situs_*, rls_aktif=true, 3 policy masing-masing
+schema_hash      8c3c196dbac9e983 (134 -> 147 tabel)
+test             36 API hijau + 8 web-publik hijau
+penjaga          5 audit arsitektural LULUS · lint:ratchet 0 error, 234 warning
+konten           24 teks · 11 milestone · 7 kategori · 13 KBLI · 28 foto
+a11y             desktop & mobile: 0 gulir-horizontal, 0 img tanpa alt,
+                 0 img gagal, 1 h1, 0 pageerror
+fallback         reduced-motion: canvas=0, seluruh tahap tetap terbaca
+```
+
+### Empat percobaan salah sasaran untuk satu cacat warna
+
+Massing 3D tampil sebagai tumpukan hitam. Saya menaikkan hex warna pelat TIGA
+KALI (`#0A3A6B` -> `#2F4F73` -> `#4E7098` -> `#5F80A6`) dan menambah
+`hemisphereLight`, semuanya dari kesimpulan "adegannya kurang cahaya" yang saya
+tarik dengan melihat potret HALAMAN.
+
+Yang akhirnya menemukannya: memotret CANVAS-nya sendiri — lantai bawah ternyata
+sudah biru terang, jadi pencahayaan tak pernah bermasalah. Lalu mengganti
+seluruh material dengan `meshBasicMaterial` yang mengabaikan cahaya sepenuhnya.
+Pelat TETAP gelap.
+
+Penyebabnya `convertSRGBToLinear()`: Three.js r152+ sudah mengonversi sRGB
+otomatis, jadi panggilan itu membuatnya terjadi dua kali. **Spec §5.1 yang
+menyuruhnya** — spec-nya salah, dan sudah dikoreksi di tempat.
+
+Pelajarannya sudah ditulis di header berkasnya: kalau perbaikan ketiga masih
+tidak bekerja, berhenti menebak dan matikan variabelnya satu per satu.
+
+### Revalidate: dua cacat berlapis yang sama-sama membalas SUKSES
+
+Rantai "admin simpan -> halaman publik berubah" diuji end-to-end, bukan
+diasumsikan. Dua kali ia membalas `{direvalidasi:true}` sementara halaman tak
+bergerak sedikit pun:
+
+1. `export const revalidate = 300` memberi halaman jadwal kedaluwarsanya
+   SENDIRI, yang tak disentuh `revalidateTag`.
+2. Setelah itu pun gagal. Headernya yang menjawab — `x-nextjs-cache: HIT`,
+   `s-maxage=31536000`: halaman di-prerender penuh, dan HTML-nya duduk di
+   lapisan cache yang BERBEDA dari cache fetch. Ditambahkan
+   `revalidatePath('/')`.
+
+Bukti akhir: DB diubah -> halaman masih lama -> revalidate -> halaman berubah.
+
+### Tiga penjaga repo menangkap kelalaian saya
+
+Semuanya bekerja persis seperti maksudnya, dan tak satu pun dilemahkan:
+
+- **`has_permission` vs `auth_role`.** Rancangan awal migrasi 205 memakai
+  `auth_role() = 'admin'` — pelanggaran ADR-004 yang sama dengan pelajaran
+  migrasi 202. Ketahuan saat membaca pola migrasi 204 sebelum menulis.
+- **Permission dibuat tapi tak di-assign.** Migrasi 205 membuat
+  `situs:view`/`situs:manage`; tanpa 206, `has_permission()` menolak SEMUA
+  orang termasuk admin, tanpa satu pun galat. Gejalanya cuma "layar kosong".
+- **`audit-kegagalan-senyap.mjs`** menandai 6 baris `data ?? []` di situs.ts,
+  dan ia benar: fallback itu mengubah kegagalan query jadi "nol baris yang
+  sah". Ambang ratchet TIDAK dinaikkan; kodenya yang diperbaiki (G-5).
+
+Ditambah `TenantDbError`: tujuh tabel `situs_*` belum terklasifikasi tenancy,
+lima test merah 500 sampai `gen-tenant-map.mjs` dijalankan. Semua kategori B.
+
+### Empat cacat UI yang hanya ketahuan dengan MELIHAT
+
+1. progress selalu 0 — rumusnya berasumsi seksi lebih tinggi dari viewport.
+2. massing gelap (di atas).
+3. bangunan seperti piramida — penyusutan 0,15/lantai terlalu agresif.
+4. kuning dipakai 18 kali dalam satu gulir (13 kode KBLI + 5 garis kategori),
+   melanggar aturan "satu elemen kuning per layar" yang **saya tetapkan
+   sendiri** di spec §5.1.
+
+Satu koreksi penilaian: "19 dari 28 gambar gagal" pada potret pertama BUKAN
+cacat — itu `loading="lazy"` bekerja. Setelah digulir, 28/28 memuat.
+
+### Temuan yang mengubah desain
+
+Compro PDF disampling pikselnya: **merek Puraloka dua warna, bukan satu.**
+`#FFD600` (19.944 piksel) memikul logo dan seluruh aksen, dan sama sekali tak
+ada di dashboard. Terjawab kenapa: kuning GAGAL di atas putih (1,41:1) tapi
+11,77:1 di atas navy pekat. Dashboard berlatar terang — landing berlatar navy
+adalah satu-satunya permukaan tempat warna merek ini aman sebagai teks.
+
+Portofolio juga bukan per proyek bernama melainkan **per jenis pekerjaan**
+(galeri compro hal. 13-19), dan 28 fotonya **sudah dikurasi founder** untuk
+compro cetak. Pemetaannya dibuktikan dengan perceptual hash, jarak Hamming 0 —
+byte-hash gagal total karena PDF mengompres ulang saat menyisipkan.
+
+### Yang belum selesai
+
+- **SITUS-2** halaman jual ERP: menunggu materi jual dikurasi founder.
+- **SITUS-3** Renovasi Rumah & Beton Pracetak nol foto — berkas aslinya tak
+  ada di mesin ini (ditelusuri 4 folder, nol kecocokan). Gambar di PDF-nya
+  nyata dan bagus; bisa diekstrak dari PDF bila founder setuju.
+
+---
+
 ## 2026-08-07 (lanjutan 7) — merge `feat/ui-lanjutan`, dan perbaikan dari arah yang salah
 
 ### Merge: bukan fast-forward, dan gabungannya tidak hijau
