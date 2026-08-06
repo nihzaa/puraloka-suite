@@ -224,6 +224,29 @@ skor hari ini (`PETA-PRIORITAS-ERP.md` §6).
 | **Profitabilitas per cost code** (🟡 per proyek sudah hidup di `/finance/profitability`) | Laba per **cost code**, bukan hanya per proyek — inilah yang menunjukkan pekerjaan mana yang merugi | S |
 | **Manajemen contingency** | Cadangan risiko terlacak, bukan hilang ke dalam "biaya lain-lain" | M |
 
+#### DITUNDA berdasar ukuran — CVR (diukur ulang 2026-08-07)
+
+CVR mengadu **biaya terpakai** vs **nilai terpasang**. Sisi kanan sudah ada
+(373 `rab_items`). Sisi kiri belum:
+
+```
+project_expenses      0 baris    ← sumber biaya yang seharusnya dipakai
+goods_receipts        8 baris    ┐ biaya nyata tersebar di sini,
+progress_payments     5 baris    ┘ tanpa satu pun cost code yang mengikat
+cost_codes           44 baris    ← kerangkanya ada, isinya belum
+```
+
+Membangun layar CVR di atas `project_expenses` yang kosong menghasilkan
+halaman yang **selalu menampilkan nol** — dan nol di layar rekonsiliasi biaya
+tak terbaca sebagai "belum ada data", melainkan sebagai "tidak ada selisih".
+Itu kabar baik palsu tentang angka yang paling menentukan untung-rugi proyek.
+
+**Prasyaratnya bukan kode, melainkan pemakaian**: biaya proyek harus benar-
+benar dicatat ke `project_expenses` dengan cost code. Sampai itu terjadi, yang
+bisa dibangun hanya cangkang.
+
+Diukur ulang 2026-08-07 — angkanya **tidak berubah** sejak penundaan pertama.
+
 **SELESAI** (`/keuangan/contingency`, migrasi 200). Diukur: NOL kolom
 contingency di seluruh basis, padahal CO-001 sudah menyetujui Rp 50 juta pada
 kontrak Rp 570 juta tanpa jejak cadangan mana yang berkurang.
