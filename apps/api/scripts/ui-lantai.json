@@ -1,0 +1,5 @@
+{
+  "_catatan": "Lantai modul INTI tanpa UI. Boleh turun, TIDAK boleh naik.",
+  "_diukur": "2026-08-06 — ukuran pertama sempat 2 (pola '#8 Geotag foto' salah pakai latitude/longitude padahal penanda-lokasi.tsx pakai lintang/bujur); setelah peta diperbaiki, 1 (sisa #2 IPC).",
+  "tanpaUi": 1
+}

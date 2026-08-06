@@ -364,6 +364,23 @@ jobs:
       - name: Status sub-menu vs kode (F8-1)
         run: node scripts/audit-taksonomi-vs-kode.mjs
 
+      # F8-2 — CLAUDE.md §8: "Kolom DB sudah ada BUKAN selesai." Commit
+      # db463d9: lima modul berturut-turut dibangun sampai endpoint lalu
+      # dilaporkan "INTI #N selesai" — endpoint `retensi-register` yang
+      # dibanggakan di situ tak pernah dipanggil dari mana pun. Larangan di
+      # CLAUDE.md tanpa penjaga hanya konvensi; ini penjaganya.
+      #
+      # Peta modul→endpoint ditulis tangan (bukan pola `/api/v1/<modul>`):
+      # Klaim/Surat/Instruksi bersarang di `/api/v1/projects/{id}/claims` dkk,
+      # dan pola naif akan merah palsu di modul yang sehat.
+      #
+      # Lantai 1 (sisa INTI #2 IPC). Ukuran pertama sempat 2: peta #8 Geotag
+      # semula memakai `latitude`/`longitude`, padahal komponennya sendiri
+      # (penanda-lokasi.tsx) menamai fieldnya `lintang`/`bujur` — penjaga ini
+      # nyaris merah palsu pada dirinya sendiri.
+      - name: Modul INTI tanpa UI (F8-2)
+        run: node scripts/audit-modul-tanpa-ui.mjs
+
       - name: Indeks dokumen mutakhir
         run: node scripts/gen-indeks-docs.mjs --check
 
