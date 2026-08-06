@@ -76,8 +76,17 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
     }
   }, [projectId]);
 
-  useEffect(() => { load(); }, [load]);
-  useEffect(() => { if (refreshKey) load(); }, [refreshKey, load]);
+  // SATU efek, bukan dua.
+  //
+  // Efek kedua dulu berbunyi `if (refreshKey) load()` dengan dependensi
+  // `[refreshKey, load]` — dan `load` ada di kedua daftar. Akibatnya tiap kali
+  // `load` berubah (mis. `projectId` berganti) keduanya menyala: dua panggilan
+  // API untuk satu perubahan, dan yang kedua menimpa hasil yang pertama.
+  //
+  // Tak ada gejala yang terlihat — datanya sama, hanya diminta dua kali. Yang
+  // membuatnya ketahuan justru lint, karena `void load(...)` di satu efek
+  // menghilangkan pola yang ditandainya.
+  useEffect(() => { void load(); }, [load, refreshKey]);
 
   async function handleDelete(id: string) {
     setDeleting(id);

@@ -213,6 +213,24 @@ export default function ProfitabilitasPage() {
 
           {/* ── Tabel per proyek ── */}
           <div style={{ overflowX: "auto" }}>
+            {/* SENGAJA tabel mentah, bukan komponen bersama — dan ini bukan
+                utang yang menunggu dibayar.
+
+                Sel Margin dan baris TOTAL memuat logika `margin-tepercaya`
+                yang berbeda satu sama lain: baris memakai ambangnya sendiri,
+                sedangkan total ditandai ragu kalau ADA SATU baris yang ragu.
+                Aturan kedua itu lahir dari cacat yang benar-benar terjadi —
+                total 94,1% tampil hijau di atas tabel yang 8 dari 15 barisnya
+                bertanda "belum lengkap", dan angka ringkasan itulah yang
+                paling sering dikutip keluar.
+
+                Menuangkannya ke `total={[...]}` berarti memisahkan aturan
+                total dari aturan barisnya ke dua tempat berbeda — persis
+                bentuk yang membuat keduanya bisa berselisih diam-diam lagi.
+
+                Jaminan yang biasanya datang dari komponen tetap dipenuhi di
+                sini: caption tersembunyi, `th scope="row"`, `tabular-nums`,
+                dan pembungkus `overflow-x` di elemen induknya. */}
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
               <caption className="sr-only">
                 Laba kotor per proyek: pendapatan, harga pokok, dan marginnya

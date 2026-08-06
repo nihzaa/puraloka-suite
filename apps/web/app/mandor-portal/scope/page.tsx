@@ -6,6 +6,22 @@ import { ChevronDown, ChevronUp, AlertCircle, TrendingUp } from "lucide-react";
 import Link from "next/link";
 
 import { C } from "@/lib/warna-ui";
+import { Tabel, type Kolom } from "@/components/dasar";
+
+/** Satu item pekerjaan di dalam sebuah lingkup. */
+type ItemPekerjaan = {
+  id: string;
+  item_name: string;
+  unit: string | null;
+  volume: number | null;
+  volume_done: number | null;
+};
+
+/** Persentase penyelesaian. Volume 0 -> 0%, bukan NaN atau Infinity. */
+function persen(i: ItemPekerjaan) {
+  const v = i.volume ?? 0;
+  return v > 0 ? Math.round(((i.volume_done ?? 0) / v) * 100) : 0;
+}
 
 function fmt(n: number) {
   return new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(n);
@@ -250,7 +266,7 @@ export default function MandorScopePage() {
 }
 
 function ScopeItemsDetail({ scopeId }: { scopeId: string }) {
-  const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useState<ItemPekerjaan[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -260,42 +276,43 @@ function ScopeItemsDetail({ scopeId }: { scopeId: string }) {
   }, [scopeId]);
 
   if (loading) return <div style={{ padding: "12px 20px", color: C.mid, fontSize: 12 }}>Memuat rincian...</div>;
+  // Komponen `<Tabel>` menggantikan tabel mentah. Yang didapat bukan
+  // kerapian: caption tersembunyi, `th scope="row"` di kolom pertama,
+  // `tabular-nums`, dan pembungkus `overflow-x` kini dijamin komponen dan
+  // diuji di `dasar.test.tsx` — bukan diulang benar di tiap halaman dan
+  // salah di satu.
+  const kolomItem: Array<Kolom<ItemPekerjaan>> = [
+    { kunci: "item", judul: "Item Pekerjaan", kepalaBaris: true, render: (i) => i.item_name },
+    { kunci: "sat", judul: "Sat", rata: "kanan", render: (i) => i.unit ?? "—" },
+    { kunci: "target", judul: "Target", rata: "kanan", render: (i) => fmt(i.volume ?? 0) },
+    {
+      kunci: "realisasi", judul: "Realisasi", rata: "kanan",
+      render: (i) => (
+        <span style={{ fontWeight: 600, color: persen(i) >= 100 ? C.green : C.text }}>
+          {fmt(i.volume_done ?? 0)}
+        </span>
+      ),
+    },
+    {
+      kunci: "pct", judul: "%", rata: "kanan",
+      render: (i) => (
+        <span style={{ fontSize: 11, fontWeight: 600, color: persen(i) >= 100 ? C.green : C.navy }}>
+          {persen(i)}%
+        </span>
+      ),
+    },
+  ];
+
   if (items.length === 0) return <div style={{ padding: "12px 20px", color: C.muted, fontSize: 12 }}>Belum ada item pekerjaan</div>;
 
   return (
     <div style={{ padding: "0 20px 16px", overflowX: "auto" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
-        {/* Rincian ini muncul di bawah lingkup kerja yang dibuka — konteks
-            yang terlihat di layar tapi tidak terdengar. Tanpa caption,
-            pembaca layar hanya mengumumkan "tabel, 5 kolom". */}
-        <caption className="sr-only">
-          Rincian item pekerjaan pada lingkup ini: satuan, target volume,
-          realisasi, dan persentase penyelesaian tiap item.
-        </caption>
-        <thead>
-          <tr style={{ background: "var(--surface-subtle)" }}>
-            {["Item Pekerjaan", "Sat", "Target", "Realisasi", "%"].map((h) => (
-              <th key={h} style={{ padding: "6px 8px", textAlign: h === "Item Pekerjaan" ? "left" : "right", color: C.mid, fontWeight: 600 }}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((item) => {
-            const pct = item.volume > 0 ? Math.round((item.volume_done / item.volume) * 100) : 0;
-            return (
-              <tr key={item.id} style={{ borderTop: `1px solid ${C.border}` }}>
-                <th scope="row" style={{ textAlign: "left", padding: "8px 8px", color: C.text }}>{item.item_name}</th>
-                <td style={{ padding: "8px 8px", textAlign: "right", color: C.mid }}>{item.unit}</td>
-                <td style={{ padding: "8px 8px", textAlign: "right", color: C.mid }}>{fmt(item.volume ?? 0)}</td>
-                <td style={{ padding: "8px 8px", textAlign: "right", fontWeight: 600, color: pct >= 100 ? C.green : C.text }}>{fmt(item.volume_done ?? 0)}</td>
-                <td style={{ padding: "8px 8px", textAlign: "right" }}>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: pct >= 100 ? C.green : C.navy }}>{pct}%</span>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <Tabel<ItemPekerjaan>
+        caption="Rincian item pekerjaan pada lingkup ini: satuan, target volume, realisasi, dan persentase penyelesaian tiap item."
+        kolom={kolomItem}
+        data={items}
+        kunciBaris={(i) => i.id}
+      />
     </div>
   );
 }

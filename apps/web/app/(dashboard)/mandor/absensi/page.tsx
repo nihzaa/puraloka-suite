@@ -376,6 +376,17 @@ export default function AbsensiPage() {
             )}
           </div>
 
+          {/* SENGAJA tabel mentah. Ini FORMULIR dalam bentuk tabel, bukan tabel
+              data: tiap sel porsi berisi tombol ber-`aria-pressed` dan ber-status
+              `disabled` yang menulis langsung ke absensi hari itu.
+
+              `<Tabel>` bisa merendernya lewat `render()`, tapi yang ditukar
+              bukan kerapian melainkan risiko: ini layar entri data yang dipakai
+              mandor di lapangan, dan salah render satu status tombol berarti
+              upah hari itu tercatat salah tanpa gejala.
+
+              Jaminan a11y-nya tetap dipenuhi di sini: caption tersembunyi,
+              `th scope="row"` di kolom nama, dan pembungkus `overflow-x`. */}
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
             <caption className="sr-only">
               Absensi {tanggalPanjang(tanggal)} pada lingkup {scopeAktif?.scope_name ?? "—"}:

@@ -113,6 +113,70 @@ byte-hash gagal total karena PDF mengompres ulang saat menyisipkan.
 
 ---
 
+## 2026-08-07 (lanjutan 9) — antrean UI, dan hook yang saya bangun lalu batalkan sendiri
+
+### Tabel mentah 8 → 7 halaman
+
+`mandor-portal/scope` dikonversi ke `<Tabel>` — 32 baris, nol fitur khusus,
+plus satu `any[]` hilang jadi tipe eksplisit.
+
+Empat halaman lain **sengaja tetap tabel mentah**, dan kini semuanya punya
+alasan tertulis (dua sudah punya, dua saya tambahkan):
+
+- **profitabilitas** — sel Margin dan baris TOTAL memuat logika
+  `margin-tepercaya` yang BERBEDA satu sama lain: baris memakai ambangnya
+  sendiri, total ditandai ragu kalau ADA SATU baris yang ragu. Aturan kedua
+  lahir dari cacat nyata (total 94,1% hijau di atas tabel yang 8 dari 15
+  barisnya "belum lengkap"). Memisahkannya ke `total={[...]}` mengembalikan
+  bentuk yang membuat keduanya bisa berselisih diam-diam.
+- **absensi** — ini formulir dalam bentuk tabel: tiap sel berisi tombol
+  ber-`aria-pressed` yang menulis langsung ke absensi hari itu. Salah render
+  satu status = upah hari itu tercatat salah tanpa gejala.
+
+### Satu panggilan API ganda yang ketahuan lewat lint
+
+`absorption-log-table.tsx` punya dua efek yang sama-sama memanggil `load`,
+dan `load` ada di kedua daftar dependensi. Tiap `projectId` berganti,
+keduanya menyala: dua panggilan API untuk satu perubahan, yang kedua menimpa
+yang pertama. Tak ada gejala — datanya sama, hanya diminta dua kali.
+
+Digabung jadi satu efek dengan pola `void load()`. Ratchet turun 59 → 58.
+
+### SAYA SALAH: hook `useToastOtomatis` tak menyelesaikan masalahnya
+
+Pola toast-auto-tutup disalin di 17 halaman dan `set-state-in-effect`
+menandai semuanya. Saya bangun hook bersama untuk menggantikannya — lengkap
+dengan 5 test dan 4 mutasi tertangkap.
+
+Lalu diukur: **59 dengan maupun tanpa konversi.** Lint menandai pemanggilan
+hook apa pun yang setter-nya bisa dilacak balik ke `setState`, terlepas dari
+bentuknya. Saya menebak tiga bentuk yang "akan lolos" — argumen inline,
+`useCallback`, fungsi biasa — dan ketiganya ditandai.
+
+Konversi 8 halaman itu dibatalkan. Hook dan test-nya tetap ada: perilakunya
+benar dan terbukti (termasuk closure basi dan timer yang bocor saat unmount),
+jadi ia berguna untuk halaman baru. Yang tidak benar adalah klaim bahwa ia
+membayar utang lint.
+
+### Dan satu kesalahan cara mengukur
+
+Mutation test hook itu tiga kali melaporkan "LOLOS", dan saya tiga kali
+menyimpulkan test-nya lemah lalu menulis ulang. Sebenarnya **skrip mutasinya**
+yang salah: `replace(..., 1)` mengganti kemunculan PERTAMA, yang ada di
+komentar, bukan kode. Mutasinya tak pernah menyentuh apa pun.
+
+Versi ketiga test (`vi.getTimerCount()`) sudah benar sejak awal. Dua penulisan
+ulang sebelumnya tak perlu — tapi keduanya meninggalkan catatan tentang
+kenapa versi sebelumnya gagal menjaga, dan itu tetap berguna.
+
+### Bukti
+
+    web: 29 berkas test, 389 lulus (naik 5 dari hook baru), 0 gagal
+    seluruh penjaga CI hijau (API + web) — nol gagal
+    pnpm build web lolos
+
+---
+
 ## 2026-08-07 (lanjutan 8) — R-011 diselesaikan tanpa menaikkan plafon, dan dua cacat di generator peta tenancy
 
 ### VIEW `v_situs_publik` — 7 query jadi 1
