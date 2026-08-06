@@ -220,14 +220,18 @@ export default function AbsensiPage() {
   };
 
   return (
+    // Padding disediakan `mandor/layout.tsx` — lihat catatan di sana.
+    // Menambahkannya lagi di sini membuat jaraknya ganda.
     <div style={{
-      padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
       width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
     }}>
       <div className="rise" style={{ marginBottom: 20 }}>
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700, color: C.text, margin: 0 }}>
+        {/* `<h2>`, bukan `<h1>`: judul halaman ("Mandor") sekarang milik
+            layout modul. Dua `<h1>` dalam satu dokumen membuat pembaca layar
+            kehilangan tingkatan yang seharusnya menuntunnya. */}
+        <h2 style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700, color: C.text, margin: 0 }}>
           Absensi Lapangan
-        </h1>
+        </h2>
         <p style={{ fontSize: 13, color: C.mid, margin: "6px 0 0", maxWidth: "64ch", lineHeight: 1.55 }}>
           Catatan harian yang menjadi sumber jumlah hari kerja di laporan upah.
           Tanpa ini, angka upah disusun dari ingatan — dan selisihnya baru

@@ -1,0 +1,170 @@
+"use client";
+
+/**
+ * KAS — kerangka modul: judul, aksi global, dan navigasi antar-bagian.
+ *
+ * ── Kenapa layout, bukan tab di satu berkas
+ *
+ * Sebelum ini seluruh modul hidup dalam SATU berkas 1.537 baris dengan tiga
+ * tab. Yang rusak dari itu bukan cuma ukurannya:
+ *
+ *   • Tab tak ada di URL — muat ulang kembali ke Akun Kas, dan "lihat
+ *     pengeluaran yang menunggu" tak bisa dikirim sebagai tautan.
+ *   • Membuka Akun Kas tetap mengunduh kode ketiga tab, termasuk pemuat
+ *     pengeluaran yang menembak lima endpoint sekaligus.
+ *   • Tiga tab terbuka semuanya bertuliskan "Kas" di bilah tab peramban.
+ *
+ * Rute nyata memperbaiki ketiganya, dan Next.js memberi pemecahan kode per
+ * rute tanpa diminta. Polanya mengikuti `keuangan/layout.tsx` persis — modul
+ * kedua yang dipecah tak boleh memperkenalkan pola ketiga.
+ *
+ * ── Kenapa tombol aksi di layout
+ *
+ * "Transfer" dan "Catat Pengeluaran" adalah aksi terhadap MODUL, bukan
+ * terhadap bagian yang sedang dibuka — itu sebabnya di versi tab pun keduanya
+ * berada di atas deretan tab. Menaruhnya di sini membuat keduanya tetap
+ * terjangkau dari bagian mana pun, termasuk dari halaman Akun Kas tempat
+ * orang baru menyadari saldonya tipis.
+ *
+ * ── Kenapa lencana dimuat di sini
+ *
+ * Angka "menunggu" di navigasi berasal dari `/api/v1/cash/summary`, satu
+ * panggilan yang menjawab seluruh modul. Kalau tiap halaman memanggilnya
+ * sendiri, lencananya berkedip tiap kali orang berpindah bagian — dan angka
+ * yang berkedip membuat orang ragu apakah datanya berubah.
+ */
+
+import { useCallback, useEffect, useState } from "react";
+import { ArrowRightLeft, Plus } from "lucide-react";
+import { api, makeAbortController } from "@/lib/api";
+import { useIzin } from "@/lib/use-izin";
+import { C } from "@/lib/warna-ui";
+import { NavBagian, type Bagian } from "@/components/nav-bagian";
+import { CreateExpenseModal, CreateTransferModal } from "./_bersama/modal";
+import type { CashAccount, CashSummary } from "./_bersama/tipe";
+
+export default function KasLayout({ children }: { children: React.ReactNode }) {
+  // ADR-004: capability, bukan nama jabatan. Diverifikasi ke `requirePermission`
+  // di `routes/v1/cash.ts` — bukan ditebak dari nama tombolnya.
+  const bolehTransfer = useIzin("cash:transfer:create");
+
+  const [ringkas, setRingkas] = useState<CashSummary | null>(null);
+  const [akun, setAkun] = useState<CashAccount[]>([]);
+  const [bukaTransfer, setBukaTransfer] = useState(false);
+  const [bukaPengeluaran, setBukaPengeluaran] = useState(false);
+
+  const muatRingkas = useCallback((signal?: AbortSignal) => {
+    return api.get<CashSummary>("/api/v1/cash/summary", { signal })
+      .then((r) => setRingkas(r.data))
+      // Lencana adalah pelengkap, bukan angka utama. Kalau gagal, navigasi
+      // tetap tampil TANPA lencana — nol yang dikarang jauh lebih buruk
+      // daripada lencana yang absen, karena "0 menunggu" terbaca sebagai
+      // "tidak ada yang perlu saya kerjakan".
+      .catch((e) => { if (e?.name !== "CanceledError") setRingkas(null); });
+  }, []);
+
+  const muatAkun = useCallback(() => {
+    return api.get<{ accounts: CashAccount[] }>("/api/v1/cash/accounts")
+      .then((r) => setAkun(r.data.accounts))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const ac = makeAbortController();
+    void muatRingkas(ac.signal);
+    return () => ac.abort();
+  }, [muatRingkas]);
+
+  const bagian: Bagian[] = [
+    { href: "/kas", label: "Ringkasan" },
+    { href: "/kas/akun", label: "Akun Kas" },
+    {
+      href: "/kas/transfer", label: "Transfer Dana",
+      jumlah: ringkas?.pendingTransferCount,
+    },
+    {
+      href: "/kas/pengeluaran", label: "Pengeluaran",
+      jumlah: ringkas?.pendingExpenseCount,
+      // Pengeluaran menunggu = uang yang belum keluar karena menunggu SAYA.
+      // Itu satu-satunya angka di navigasi ini yang menuntut tindakan hari
+      // ini, jadi ia satu-satunya yang boleh merah.
+      mendesak: (ringkas?.pendingExpenseCount ?? 0) > 0,
+    },
+  ];
+
+  return (
+    <div style={{
+      padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
+      width: "100%", maxWidth: "var(--w-page)", margin: "0 auto",
+    }}>
+      <div className="rise" style={{
+        display: "flex", justifyContent: "space-between", alignItems: "flex-start",
+        gap: 12, flexWrap: "wrap", marginBottom: 20,
+      }}>
+        <div>
+          <h1 style={{
+            fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700,
+            color: C.text, marginBottom: 4,
+          }}>Manajemen Kas</h1>
+          <p style={{ fontSize: 13, color: C.mid }}>
+            Akun kas, perpindahan dana, dan pengeluaran proyek
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          {bolehTransfer && (
+            <button onClick={() => setBukaTransfer(true)} style={{
+              display: "flex", alignItems: "center", gap: 6, padding: "8px 16px",
+              borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)",
+              color: C.text, fontSize: 13, fontWeight: 500, cursor: "pointer",
+            }}>
+              <ArrowRightLeft size={14} /> Transfer
+            </button>
+          )}
+          <button onClick={() => setBukaPengeluaran(true)} style={{
+            display: "flex", alignItems: "center", gap: 6, padding: "8px 16px",
+            borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)",
+            fontSize: 13, fontWeight: 600, cursor: "pointer",
+          }}
+            onMouseEnter={e => { e.currentTarget.style.background = "var(--aksen-pekat)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = C.navy; }}
+          >
+            <Plus size={14} /> Catat Pengeluaran
+          </button>
+        </div>
+      </div>
+
+      <div className="rise rise-2" style={{
+        background: "var(--surface)", border: `1px solid ${C.border}`,
+        borderRadius: 14, boxShadow: "var(--naik-1)", overflow: "hidden",
+      }}>
+        <div style={{ padding: "0 8px" }}>
+          <NavBagian bagian={bagian} />
+        </div>
+
+        {/* Padding isi ADA DI SINI, satu tempat untuk seluruh bagian — pelajaran
+            langsung dari `keuangan/layout.tsx`, tempat tiap bagian sempat
+            menyediakan paddingnya sendiri dan menghasilkan tiga jarak berbeda. */}
+        <div style={{ padding: "20px 24px 24px" }}>
+          {children}
+        </div>
+      </div>
+
+      {bukaTransfer && bolehTransfer && (
+        <CreateTransferModal
+          accounts={akun}
+          onClose={() => setBukaTransfer(false)}
+          onSuccess={() => { setBukaTransfer(false); void muatRingkas(); void muatAkun(); }}
+          onNeedAccounts={muatAkun}
+        />
+      )}
+      {bukaPengeluaran && (
+        <CreateExpenseModal
+          accounts={akun.filter(a => a.type === "petty_cash" && a.is_active)}
+          onClose={() => setBukaPengeluaran(false)}
+          onSuccess={() => { setBukaPengeluaran(false); void muatRingkas(); void muatAkun(); }}
+          onNeedAccounts={muatAkun}
+        />
+      )}
+    </div>
+  );
+}

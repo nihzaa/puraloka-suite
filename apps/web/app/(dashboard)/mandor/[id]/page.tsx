@@ -121,7 +121,9 @@ export default function MandorProfilePage() {
   );
 
   return (
-    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", background: C.bg, minHeight: "100vh", width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
+    // Padding disediakan `mandor/layout.tsx` — lihat catatan di sana.
+    // Menambahkannya lagi di sini membuat jaraknya ganda.
+    <div style={{ width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "flex-start", gap: 16, marginBottom: 28 }}>
         <button
@@ -135,7 +137,10 @@ export default function MandorProfilePage() {
           </div>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <h1 style={{ fontSize: 22, fontWeight: 800, color: C.text, margin: 0 }}>{mandor.name}</h1>
+              {/* `<h2>`, bukan `<h1>`: judul halaman ("Mandor") sekarang
+                  milik layout modul. Dua `<h1>` dalam satu dokumen membuat
+                  pembaca layar kehilangan tingkatan yang menuntunnya. */}
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: C.text, margin: 0 }}>{mandor.name}</h2>
               {!mandor.is_active && (
                 <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6, background: "var(--surface-hover)", color: C.muted }}>Nonaktif</span>
               )}

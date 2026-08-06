@@ -102,8 +102,9 @@ export default function RetensiPage() {
   );
 
   return (
+    // Padding disediakan `mandor/layout.tsx` — lihat catatan di sana.
+    // Menambahkannya lagi di sini membuat jaraknya ganda.
     <div style={{
-      padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
       width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
     }}>
       <div className="rise" style={{
@@ -111,10 +112,13 @@ export default function RetensiPage() {
         alignItems: "flex-start", gap: 16, marginBottom: 18, flexWrap: "wrap",
       }}>
         <div>
-          <h1 style={{
-            fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 700,
-            color: C.text, marginBottom: 4,
-          }}>Retensi Subkontraktor</h1>
+          {/* `<h2>`, bukan `<h1>`: judul halaman ("Mandor") sekarang milik
+              layout modul. Dua `<h1>` dalam satu dokumen membuat pembaca
+              layar kehilangan tingkatan yang seharusnya menuntunnya. */}
+          <h2 style={{
+            fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700,
+            color: C.text, margin: "0 0 4px",
+          }}>Retensi Subkontraktor</h2>
           <p style={{ fontSize: 13, color: C.mid, maxWidth: 620 }}>
             Uang mandor yang ditahan sebagai jaminan mutu, dan berapa yang sudah dicairkan.
             Angka di sini adalah <strong>utang perusahaan</strong> — bukan kas bebas.
