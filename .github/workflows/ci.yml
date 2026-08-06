@@ -478,6 +478,35 @@ jobs:
         env:
           FP_URL: ${{ secrets.CI_DIRECT_URL }}
 
+      # ── Invarian skema: constraint yang benar-benar menolak ────────────────
+      #
+      # Constraint yang ditulis di migrasi bisa saja tak pernah aktif: salah
+      # nama kolom, sintaks yang diterima tapi selalu benar, atau tabelnya
+      # sudah ada lebih dulu sehingga `CREATE TABLE IF NOT EXISTS` melewatinya
+      # DIAM-DIAM. Satu-satunya cara tahu adalah mencoba melanggarnya.
+      #
+      # Ketiganya sudah ada sejak modulnya lahir tapi TAK PERNAH DIDAFTARKAN —
+      # hanya dijalankan tangan. Penjaga yang tak pernah dijalankan otomatis
+      # adalah penjaga yang berhenti dijalankan.
+      #
+      # Absensi yang terdepan di antara ketiganya: ia menentukan `days_worked`
+      # di laporan upah, jadi constraint yang bocor di sana adalah uang yang
+      # salah bayar tanpa satu pun gejala di layar.
+      - name: Invarian absensi (porsi, lembur, tanggal, anti dobel-absen)
+        run: node scripts/uji-invarian-absensi.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      - name: Invarian NCR
+        run: node scripts/uji-invarian-ncr.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      - name: Invarian geotag
+        run: node scripts/uji-invarian-geotag.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
       # Fase 0 (0.5) — test SEKALIGUS mengukur coverage.
       #
       # Coverage digabung ke langkah Test yang sudah ada, BUKAN langkah terpisah:

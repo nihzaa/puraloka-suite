@@ -4,7 +4,7 @@
 // Penegak: `node scripts/gen-tenant-map.mjs check` (CI) — build MERAH kalau
 // ada tabel yang belum terklasifikasi (ADR-011 §9.5 P3).
 //
-// 127 tabel · A=10 · AB=14 · ANCHOR=1 · B=27 · C=69 · D=6
+// 130 tabel · A=10 · AB=14 · ANCHOR=1 · B=27 · C=72 · D=6
 //
 // Arti kategori (ADR-011 §5 + audit T1):
 //   ANCHOR akar tenancy (projects) — company_id NOT NULL
@@ -24,6 +24,7 @@ export interface EntriTenancy {
 }
 
 export const PETA_TENANCY = {
+  'absensi_harian': { kategori: 'C', lewat: 'scope_id' },  // absensi_harian.scope_id → work_scopes.assignment_id → mandor_assignments.project_id
   'accounts': { kategori: 'B' },
   'ahsp_editions': { kategori: 'A' },
   'approval_chains': { kategori: 'B' },
@@ -92,6 +93,8 @@ export const PETA_TENANCY = {
   'milestones': { kategori: 'C', lewat: 'project_id' },  // milestones.project_id
   'modules': { kategori: 'AB' },
   'mr_quota_override': { kategori: 'C', lewat: 'project_id' },  // mr_quota_override.project_id
+  'ncr_items': { kategori: 'C', lewat: 'project_id' },  // ncr_items.project_id
+  'ncr_photos': { kategori: 'C', lewat: 'ncr_id' },  // ncr_photos.ncr_id → ncr_items.project_id
   'notification_rule_targets': { kategori: 'B' },
   'notification_rules': { kategori: 'B' },
   'notifications': { kategori: 'B' },
@@ -111,8 +114,6 @@ export const PETA_TENANCY = {
   'project_rab_materials': { kategori: 'C', lewat: 'project_id' },  // project_rab_materials.project_id
   'project_stocks': { kategori: 'C', lewat: 'project_id' },  // project_stocks.project_id
   'projects': { kategori: 'ANCHOR' },
-  'ncr_items': { kategori: 'C', lewat: 'project_id' },  // ncr_items.project_id
-  'ncr_photos': { kategori: 'C', lewat: 'ncr_id' },  // ncr_photos.ncr_id → ncr_items.project_id
   'punch_item_photos': { kategori: 'C', lewat: 'punch_item_id' },  // punch_item_photos.punch_item_id → punch_items.project_id
   'punch_items': { kategori: 'C', lewat: 'project_id' },  // punch_items.project_id
   'purchase_order_items': { kategori: 'C', lewat: 'po_id' },  // purchase_order_items.po_id → purchase_orders.project_id

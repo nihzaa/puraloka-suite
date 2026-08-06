@@ -27,13 +27,16 @@ const { Client } = require('pg')
 
 const AKAR = join(dirname(fileURLToPath(import.meta.url)), '..')
 const env = {}
+// Env var LEBIH DULU, `.env` cadangan: di CI tak ada `apps/api/.env`, dan
+// `readFileSync` akan melempar sebelum satu pun invarian diuji.
+if (!process.env.DIRECT_URL)
 for (const baris of readFileSync(join(AKAR, '.env'), 'utf8').replace(/^﻿/, '').split(/\r?\n/)) {
   const m = baris.match(/^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(.*)$/)
   if (m) env[m[1]] = m[2].trim().replace(/^["']|["']$/g, '')
 }
 
 const db = new Client({
-  connectionString: env.DIRECT_URL || env.DATABASE_URL,
+  connectionString: process.env.DIRECT_URL || env.DIRECT_URL || env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 })
 await db.connect()
