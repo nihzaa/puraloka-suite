@@ -36,7 +36,9 @@ export default async function situsRoutes(app: FastifyInstance) {
       }
 
       const peta: Record<string, unknown> = {}
-      for (const baris of data ?? []) peta[baris.kunci] = baris.nilai
+      // Tanpa `?? []`: gerbang error di atas sudah menjamin data ada, dan
+      // fallback di sini justru akan menyembunyikan kegagalan yang lolos.
+      for (const baris of data) peta[baris.kunci] = baris.nilai
       return reply.send({ data: peta })
     },
   )
@@ -72,10 +74,10 @@ export default async function situsRoutes(app: FastifyInstance) {
         return reply.status(500).send({ error: 'Gagal menyimpan konten situs' })
       }
 
-      await logAuditEvent(request, {
-        action: 'situs.konten.simpan',
-        entity: 'situs_konten',
-        entityId: kunci,
+      void logAuditEvent(request, {
+        tableName: 'situs_konten', recordId: kunci, action: 'situs.konten.simpan',
+        actorId: request.currentUser!.id,
+        newValues: data as Record<string, unknown>, severity: 'info',
       })
 
       return reply.send({ data })
@@ -162,10 +164,10 @@ export default async function situsRoutes(app: FastifyInstance) {
         return reply.status(500).send({ error: 'Gagal menyimpan merek situs' })
       }
 
-      await logAuditEvent(request, {
-        action: 'situs.merek.simpan',
-        entity: 'situs_merek',
-        entityId: data.warna_aksen,
+      void logAuditEvent(request, {
+        tableName: 'situs_merek', recordId: data.warna_aksen, action: 'situs.merek.simpan',
+        actorId: request.currentUser!.id,
+        newValues: data as Record<string, unknown>, severity: 'info',
       })
 
       return reply.send({ data })
@@ -186,7 +188,7 @@ export default async function situsRoutes(app: FastifyInstance) {
         request.log.error({ err: error }, 'gagal memuat seksi situs')
         return reply.status(500).send({ error: 'Gagal memuat seksi situs' })
       }
-      return reply.send({ data: data ?? [] })
+      return reply.send({ data })
     },
   )
 
@@ -236,10 +238,10 @@ export default async function situsRoutes(app: FastifyInstance) {
         return reply.status(404).send({ error: `Seksi "${kunci}" tidak ada.` })
       }
 
-      await logAuditEvent(request, {
-        action: 'situs.seksi.ubah',
-        entity: 'situs_seksi',
-        entityId: kunci,
+      void logAuditEvent(request, {
+        tableName: 'situs_seksi', recordId: kunci, action: 'situs.seksi.ubah',
+        actorId: request.currentUser!.id,
+        newValues: data[0] as Record<string, unknown>, severity: 'info',
       })
 
       return reply.send({ data: data[0] })
@@ -339,8 +341,11 @@ export default async function situsRoutes(app: FastifyInstance) {
             .eq('company_id', companyId).maybeSingle(),
         ])
 
-      // Tiap bagian diperiksa. Membiarkan satu error lewat menghasilkan halaman
-      // yang kehilangan seksi tanpa ada yang tahu kenapa.
+      // Tiap bagian diperiksa SEBELUM datanya dipakai. Membiarkan satu error
+      // lewat menghasilkan halaman yang kehilangan seksi tanpa ada yang tahu
+      // kenapa — dan `?? []` sesudahnya akan mengubah kegagalan itu menjadi
+      // "nol baris yang sah", persis cacat yang dijaga
+      // `audit-kegagalan-senyap.mjs`.
       for (const [nama, hasil] of Object.entries({
         konten, kategori, media, milestone, legalitas, seksi, merek,
       })) {
@@ -353,15 +358,38 @@ export default async function situsRoutes(app: FastifyInstance) {
         }
       }
 
+      // Setelah gerbang di atas, `error` mustahil dan `data` pasti array.
+      // Ditulis tanpa `?? []` dengan sengaja: fallback itu akan menutupi
+      // kegagalan yang seharusnya sudah tertangkap, dan membuat gerbang di
+      // atas kehilangan gunanya.
+      const barisKonten = konten.data as Array<{ kunci: string; nilai: unknown }>
+      const barisKategori = kategori.data as Array<{
+        id: string
+        kunci: string
+        judul: string
+        ringkasan: string | null
+        lokasi: string | null
+        lingkup: string | null
+        urutan: number
+      }>
+      const barisMedia = media.data as Array<{
+        kategori_id: string | null
+        path_storage: string
+        alt: string
+        lebar: number
+        tinggi: number
+        urutan: number
+      }>
+
       const petaKonten: Record<string, unknown> = {}
-      for (const baris of konten.data ?? []) petaKonten[baris.kunci] = baris.nilai
+      for (const baris of barisKonten) petaKonten[baris.kunci] = baris.nilai
 
       // Media ditempelkan ke kategorinya, lalu `id` dan `kategori_id` DIBUANG.
       // Keduanya uuid internal: klien tak memakainya, dan menerbitkannya cuma
       // memperbesar permukaan tebak-tebakan.
-      const daftarKategori = (kategori.data ?? []).map(({ id, ...sisaKategori }) => ({
+      const daftarKategori = barisKategori.map(({ id, ...sisaKategori }) => ({
         ...sisaKategori,
-        media: (media.data ?? [])
+        media: barisMedia
           .filter((m) => m.kategori_id === id)
           .map(({ kategori_id: _buang, ...sisaMedia }) => sisaMedia),
       }))
@@ -370,10 +398,10 @@ export default async function situsRoutes(app: FastifyInstance) {
         data: {
           konten: petaKonten,
           kategori: daftarKategori,
-          milestone: milestone.data ?? [],
-          legalitas: legalitas.data ?? [],
-          seksi: seksi.data ?? [],
-          merek: merek.data ?? null,
+          milestone: milestone.data,
+          legalitas: legalitas.data,
+          seksi: seksi.data,
+          merek: merek.data,
         },
       })
     },
