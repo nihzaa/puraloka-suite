@@ -251,29 +251,48 @@ pekat adalah satu-satunya permukaan di seluruh produk tempat kuning merek bisa
 dipakai sebagai teks dengan aman. Itu menjelaskan kenapa ia absen dari
 dashboard yang berlatar terang, dan menjadikannya milik landing.
 
-**Aturan mengikat:**
-- Kuning sebagai teks/ikon **hanya** di atas navy `#003366` atau lebih gelap.
-- Kuning sebagai **blok** (latar) dipasangkan **hanya** dengan teks navy pekat
-  atau hitam — tidak pernah putih. Persis pola penanda "2024" di sampul compro.
-- Kuning **dilarang** sebagai teks di atas putih atau permukaan terang.
+**Peran kuning: AKSEN TIPIS — bukan warna bidang.** (Keputusan founder.)
 
-**Kuning merek menggantikan amber `--warning` sebagai aksen tunggal landing.**
-Memakai keduanya menghasilkan dua kuning yang bertabrakan. Satu warna aksen,
-dipakai hemat — satu hal per layar.
+Warna utama landing adalah **gradasi navy** `#001F3D → #003366 → #0059B3`,
+sama persis dengan dashboard. Kuning hanya menyentuh permukaan kecil:
+
+| Boleh | Tidak boleh |
+|---|---|
+| Garis/rule penanda | Blok latar besar |
+| Nomor tahap 01–05 | Panel atau kartu berlatar kuning |
+| Satu angka kunci per layar | Latar seksi |
+| Garis bawah tautan aktif | Logo (logo **putih**) |
+| Titik penanda (pola "• • •" compro) | Tombol utama |
+
+**Ambang pemakaian: satu elemen kuning per layar.** Kalau di satu layar ada dua
+hal berwarna kuning, salah satunya salah.
+
+**Aturan kontras (tetap mengikat):**
+- Kuning **hanya** di atas navy `#003366` atau lebih gelap (≥ 8,93:1).
+- Kuning **dilarang** di atas putih/permukaan terang (1,41:1).
+- Bila kuning dipakai sebagai latar kecil (mis. pil nomor tahap), teksnya
+  **navy pekat atau hitam** — tidak pernah putih.
+
+**Kuning merek menggantikan amber `--warning` sebagai aksen landing.** Memakai
+keduanya menghasilkan dua kuning yang bertabrakan.
 
 #### Lambang — pakai yang sudah ada
 
 `apps/web/public/puraloka-lambang.svg` sudah digambar ulang dari
 `LOGO PURALOKA PERSADA.pdf`, proporsinya disetel setelah render dibandingkan
-dengan PDF asli, dan memakai `currentColor` — bukan `#003366` mati. Artinya
-lambang bisa tampil **kuning di atas navy pekat** tanpa berkas baru. Salin apa
+dengan PDF asli, dan memakai `currentColor` — bukan `#003366` mati. Salin apa
 adanya; jangan buat ulang.
 
-**Perisai kuning** — di sampul compro, lambang berdiri dalam perisai kuning
-berujung membulat (bentuk "tameng" dengan bahu lurus dan dasar setengah
-lingkaran). Itu bejananya, bukan lambangnya. Dipakai sebagai bentuk berulang
-landing: pembungkus lambang di header, dan penanda nomor tahap 01–05 di seksi
-proses — mengulang cara compro memakainya untuk penanda "2024".
+**Logo tampil PUTIH.** (Keputusan founder.) Cukup `color: #FFFFFF` — tidak
+perlu berkas varian. Putih di atas navy pekat memberi 17,4:1, jauh di atas
+kuning (11,77:1), dan menjaga kuning tetap langka sehingga aksennya bekerja.
+Kuning **tidak** dipakai untuk logo.
+
+**Perisai** — di sampul compro, lambang berdiri dalam perisai berujung membulat
+(bahu lurus, dasar setengah lingkaran). Bentuk itu dipakai ulang di landing
+sebagai pembungkus lambang dan penanda nomor tahap 01–05, tapi **diisi navy
+dengan tepi kuning tipis**, bukan blok kuning penuh — konsisten dengan peran
+kuning sebagai aksen.
 
 **Milik landing sendiri, dari nol:**
 skala tipografi, ritme spasi, radius, bayangan, komponen, motion.
@@ -491,8 +510,7 @@ Barat, Jawa Barat" saja di publik, alamat lengkap hanya di dokumen.
 ├──────────────────────────────────────────────────┤
 │ LEGALITAS — KBLI bersertifikat sebagai data      │
 │ mentah, tipografi teknis, bukan ikon "Layanan"   │
-│ Kuning merek dipakai di sini: blok #FFD600 +     │
-│ teks navy pekat (11,77:1), pola sampul compro    │
+│ Kuning hanya sebagai rule tipis pemisah kolom    │
 ├──────────────────────────────────────────────────┤
 │ KONTAK — WhatsApp kontekstual + email + alamat   │
 └──────────────────────────────────────────────────┘
