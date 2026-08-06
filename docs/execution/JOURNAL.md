@@ -1229,3 +1229,40 @@ Diukur di HEAD: `/gl/laporan` hidup, tab "Neraca & Laba-Rugi" ada di
 menyatakan pekerjaan penting "belum ada" sama merusaknya dengan yang
 menyatakan pekerjaan "sudah selesai" padahal belum — keduanya membuat orang
 mengerjakan hal yang salah.
+
+---
+
+## 2026-08-06 — INTI 9/9 selesai, dan dua kelas cacat akhirnya berpenjaga
+
+**INTI #9 absensi lapangan dibangun dari nol.** `wage_items.days_worked` dulu
+angka yang diketik mandor dari ingatan — triase menyebutnya "sumber selisih
+paling sering". Sekarang ada catatan harian di baliknya, dan formulir upah
+punya tombol "Ambil dari absensi". Diuji di peramban: Agung 2,5 hari
+(setengah hari Selasa terbawa persis), subtotal terhitung sendiri.
+
+Yang dijaga bukan sekadar tabelnya: 14 invarian, dan yang paling mahal adalah
+**dobel-absen** — satu hari tercatat dua kali berarti upah ganda yang tak
+terlihat di layar mana pun sampai seseorang menjumlahkan ulang. Mutasi
+membuktikan constraint-nya nyata: mencopot CHECK + unique index → 4 bocor.
+
+**INTI #8 geotag ternyata hanya butuh disambungkan.** Kolom, endpoint, dan
+komponen `PenandaLokasi` semuanya sudah ada sejak migrasi 190. Yang hilang:
+`select` tak mengambil kolomnya, dan komponennya tak pernah dipasang. Jadi
+koordinat tersimpan rapi dan tak pernah sampai ke layar — bentuk paling halus
+dari "kolom DB sudah ada bukan berarti selesai".
+
+**Dua kelas cacat kontras akhirnya berpenjaga.** Token deret grafik dipakai
+sebagai warna teks: LIMA kali. `opacity` pada teks: ENAM kali. Tiap perbaikan
+benar, dan tiap kali yang berikutnya lahir lagi — karena tak ada yang
+menolaknya di pintu masuk. Dua penjaga baru menemukan 16 pemakaian lagi yang
+belum terlihat, termasuk di portal mandor yang baru bisa diperiksa kemarin.
+
+**Yang paling saya ingat dari hari ini:** `--warning` lolos 5,02:1 di putih
+dan 4,84:1 di `--warning-bg`, lalu GAGAL 4,46:1 di baris RAB berlatar biru
+muda. Kurang 0,04, dan itu 95 pelanggaran di satu halaman. Latar yang benar
+harus diukur, bukan diasumsikan putih — dan saya baru tahu itu setelah
+meminta axe menyebutkan warna latar yang sebenarnya ia hitung.
+
+**Dua dari sembilan INTI ternyata sudah selesai sebelum diperiksa.** Dokumen
+yang menyatakan pekerjaan penting "belum ada" sama merusaknya dengan yang
+menyatakan "sudah selesai" padahal belum. Ukur di HEAD sebelum mulai.

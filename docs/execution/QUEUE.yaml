@@ -805,9 +805,24 @@ items:
   #      formulir upah punya tombol "Ambil dari absensi". 14 invarian, mutasi
   #      membuktikan constraint + RLS-nya nyata.
   #
-  # Belum digarap:
-  #   #8 geotag    · 8 kolom koordinat SUDAH ada. Yang belum: tampilan peta /
-  #                  verifikasi lokasi di UI.
+  #   #8 geotag    · SELESAI 2026-08-06. Kolom, endpoint, dan komponen
+  #                  `PenandaLokasi` semuanya sudah ada sejak migrasi 190 —
+  #                  yang hilang cuma SAMBUNGANNYA: `select` tak mengambil
+  #                  kolomnya dan komponennya tak pernah dipasang. Kini
+  #                  jarak foto dari titik proyek tampil di lightbox, dengan
+  #                  vonis "di luar lokasi" bila melewati radius.
+  #
+  # ── INTI 9/9 SELESAI (2026-08-06) ─────────────────────────────────────────
+  #
+  # Aturan CHARTER "INTI habis dulu, baru PEMBEDA" terpenuhi. Berikutnya:
+  # PEMBEDA (12 item) — lihat docs/execution/F5-1-TRIASE-SUBMENU.md §4.
+  #
+  # Catatan yang perlu dibawa: DUA dari sembilan INTI ternyata sudah selesai
+  # sebelum diperiksa (#1 laporan keuangan, #5+#6 surat & instruksi), dan
+  # #8 hanya butuh penyambungan. Dokumen yang menyatakan pekerjaan penting
+  # "belum ada" sama merusaknya dengan yang menyatakan "sudah selesai"
+  # padahal belum — keduanya membuat orang mengerjakan hal yang salah.
+  # Ukur di HEAD sebelum mulai, jangan baca dari catatan.
 
   - id: F5-INTI-2
     fase: 5
