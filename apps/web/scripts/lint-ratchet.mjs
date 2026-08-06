@@ -100,18 +100,24 @@ const AMBANG = {
   // Keduanya memberi hal yang sama pada pemakai keyboard: bisa difokus,
   // diaktifkan Enter/Spasi, dan dikenali pembaca layar. `e.preventDefault()`
   // pada Spasi wajib — tanpa itu halaman ikut menggulir saat tombol ditekan.
-  'jsx-a11y/click-events-have-key-events': 63,
+  'jsx-a11y/click-events-have-key-events': 61,   // 63 → 61 (2026-08-07)
   // 115 → 108 → 106 (2026-08-01; `rab-section`, lalu kartu proyek jadi `<Link>`): baris kategori/sub-kategori yang
   // bisa dilipat, sel komponen biaya, dan area seret-jatuh. Dipakai helper
   // `lib/dapat-ditekan.ts` supaya `role`+`tabIndex`+Enter/Space selalu lengkap
   // — separuh implementasi (umumnya Enter ditangani, Space tidak) terasa rusak
   // sesekali, dan itu lebih membingungkan daripada rusak konsisten.
-  'jsx-a11y/no-static-element-interactions': 72,   // 74 -> 73 (2026-08-04, KPICard lama dihapus)   // 94 → 74, ikut turun bersama click-events
+  'jsx-a11y/no-static-element-interactions': 68,  // 72 → 68 (2026-08-07)   // 74 -> 73 (2026-08-04, KPICard lama dihapus)   // 94 → 74, ikut turun bersama click-events
   'jsx-a11y/no-noninteractive-element-interactions': 6,
 
   // ── Hutang lint lain ────────────────────────────────────────────────────
-  '@typescript-eslint/no-explicit-any': 191, // turun dari 194 (2026-08-01)
-  'react-hooks/set-state-in-effect': 68, // 71 → 70 (HargaTab) → 69 (2026-08-01, klien)
+  '@typescript-eslint/no-explicit-any': 180, // 194 → 191 (2026-08-01) → 180 (2026-08-07)
+  // 71 → 70 (HargaTab) → 69 (2026-08-01, klien) → 68.
+  //
+  // 2026-08-07: ditemukan HEAD sudah 71 — utang naik 3 tanpa CI menangkapnya,
+  // artinya penjaga ini pernah dilewati. Ketiganya diperbaiki di modul
+  // `mandor/`, dan dua di antaranya menutup bug nyata (daftar tukang tak
+  // direset saat ganti mandor; profil mandor lama tampil di bawah id baru).
+  'react-hooks/set-state-in-effect': 68,
   // turun 71 → 67 (.ds-sync diabaikan) → 15 (2026-08-01).
   //
   // Sebagian besar adalah 50 impor ikon/helper yatim yang menumpuk saat
@@ -143,8 +149,8 @@ const AMBANG = {
   //   garis "hari ini" memakai top/bottom, jadi tinggi yang dihitung
   //   pemanggil akan menyimpang diam-diam begitu jumlah baris berubah.
   '@typescript-eslint/no-unused-vars': 1,
-  'react-hooks/exhaustive-deps': 24,
-  'react/no-unescaped-entities': 28,
+  'react-hooks/exhaustive-deps': 22,   // 24 → 22 (2026-08-07)
+  'react/no-unescaped-entities': 18,   // 28 → 18 (2026-08-07)
   // 14 → 8 (2026-08-04): `Tab` di halaman mandor diangkat ke level modul.
   // Ia dulu dibuat DI DALAM render, jadi tiap pemakaiannya dihitung — 6
   // warning, dan naik jadi 7 begitu satu tab ditambahkan. Mengangkatnya

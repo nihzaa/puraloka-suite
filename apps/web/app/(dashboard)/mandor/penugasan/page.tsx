@@ -12,9 +12,9 @@
  * rincian item, dan tautan ke profil mandor.
  */
 
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { api, hasPermission } from "@/lib/api";
+import { api } from "@/lib/api";
 import { dapatDitekan } from "@/lib/dapat-ditekan";
 import { HardHat, Plus, ChevronRight, RefreshCw, Search, Phone } from "lucide-react";
 import { C } from "@/lib/warna-ui";
@@ -30,16 +30,6 @@ import {
 } from "../_bersama/komponen";
 
 export default function PenugasanPage() {
-  // ADR-004: capability, bukan nama jabatan. `mandor:assign` adalah pembedanya.
-  //
-  // ⚠️ KODE MATI: /mandor hanya untuk admin (middleware.ts:53) — cabang
-  // isMandor tak pernah jalan. Lihat laporan 2026-08-07.
-  const isMandor = useSyncExternalStore(
-    () => () => {},
-    () => !hasPermission("mandor:assign"),
-    () => true,
-  );
-
   const router = useRouter();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [mandorList, setMandorList] = useState<MandorUser[]>([]);
@@ -105,13 +95,9 @@ export default function PenugasanPage() {
         <button onClick={load} style={{ padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: C.mid }}>
           <RefreshCw size={14} /> Refresh
         </button>
-        {/* ⚠️ KODE MATI: /mandor hanya untuk admin (middleware.ts:53) —
-            cabang isMandor tak pernah jalan. Lihat laporan 2026-08-07. */}
-        {!isMandor && (
-          <button onClick={() => setShowAddAssignment(true)} style={{ padding: "8px 12px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600 }}>
+        <button onClick={() => setShowAddAssignment(true)} style={{ padding: "8px 12px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600 }}>
             <Plus size={14} /> Assign Mandor
-          </button>
-        )}
+        </button>
       </div>
 
       {loading ? (
@@ -241,10 +227,7 @@ export default function PenugasanPage() {
                             )}
                           </div>
                           <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                            {/* ⚠️ KODE MATI: /mandor hanya untuk admin
-                                (middleware.ts:53) — cabang isMandor tak pernah
-                                jalan. Lihat laporan 2026-08-07. */}
-                            {sc.payment_system === "borongan" && sc.status === "active" && !isMandor && (
+                            {sc.payment_system === "borongan" && sc.status === "active" && (
                               <button
                                 onClick={() => {
                                   setSettlementModal({

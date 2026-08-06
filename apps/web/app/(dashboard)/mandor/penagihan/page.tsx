@@ -8,8 +8,8 @@
  * sendiri: "tinjau yang di /mandor/penagihan" bisa dikirim apa adanya.
  */
 
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
-import { api, hasPermission } from "@/lib/api";
+import { useCallback, useEffect, useState } from "react";
+import { api } from "@/lib/api";
 import { Kosong } from "@/components/ui-dasar";
 import { Banknote, RefreshCw } from "lucide-react";
 import { C } from "@/lib/warna-ui";
@@ -60,14 +60,6 @@ function PPCard({ p, isAction, onTinjau }: {
 }
 
 export default function PenagihanPage() {
-  // ⚠️ KODE MATI: /mandor hanya untuk admin (middleware.ts:53) — cabang
-  // isMandor tak pernah jalan. Lihat laporan 2026-08-07.
-  const isMandor = useSyncExternalStore(
-    () => () => {},
-    () => !hasPermission("mandor:assign"),
-    () => true,
-  );
-
   const [progressPayments, setProgressPayments] = useState<ProgressPayment[]>([]);
   const [cashAccounts, setCashAccounts] = useState<CashAccount[]>([]);
   const [loading, setLoading] = useState(true);
@@ -126,11 +118,8 @@ export default function PenagihanPage() {
                 Menunggu Konfirmasi ({pendingPP.length})
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {/* ⚠️ KODE MATI: /mandor hanya untuk admin (middleware.ts:53)
-                    — cabang isMandor tak pernah jalan. Lihat laporan
-                    2026-08-07. */}
                 {pendingPP.map(p => (
-                  <PPCard key={p.id} p={p} isAction={!isMandor}
+                  <PPCard key={p.id} p={p} isAction
                     onTinjau={(pp) => setPpConfirmModal({ payment: pp })} />
                 ))}
               </div>

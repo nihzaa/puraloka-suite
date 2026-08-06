@@ -71,8 +71,10 @@ function PembayaranInner() {
   const total = data.reduce((s, p) => s + Number(p.amount_paid), 0);
 
   return (
+    // Padding disediakan `keuangan/layout.tsx` — lihat catatan di sana.
+    // Menambahkannya lagi di sini membuat jaraknya ganda dan berbeda-beda
+    // antar bagian (diukur: 74px / 37px / 1px sebelum diseragamkan).
     <div style={{
-      padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
       width: "100%", maxWidth: "var(--w-page)", margin: "0 auto",
     }}>
       <div style={{ display: "flex", gap: 8, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>

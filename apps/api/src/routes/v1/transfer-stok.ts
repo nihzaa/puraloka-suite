@@ -1,7 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { proyekMilikTenant } from '../../utils/tenant-guard.js'
-import { supabase } from '../../utils/supabase.js'
 
 /**
  * TRANSFER STOK ANTAR PROYEK (F5 PEMBEDA — rekonsiliasi material 1,5/5)

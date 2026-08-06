@@ -5,6 +5,95 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-07 (lanjutan 3) — SAYA SALAH: 9 migrasi PEMBEDA melanggar ADR-004 yang saya kutip sendiri
+
+### Temuan utama: RLS literal peran 68 → 86, dan 18 dari 18 berasal dari saya
+
+`audit-rls-literal-peran.mjs` merah. Bukan warisan lama — diukur per-tabel,
+**seluruh 18 kenaikan** berasal dari sembilan migrasi PEMBEDA yang saya tulis
+sendiri (193–201). Semuanya memakai bentuk:
+
+    auth_role() = ANY (ARRAY['admin','pm'])
+
+Itu melanggar ADR-004 Rule #2 — aturan yang `CLAUDE.md` §5.1 kutip, dan yang
+saya sendiri rujuk saat menulis migrasi-migrasi itu. **Saya salah**: saya
+menegakkan aturan permission-bukan-peran di lapisan rute (`requirePermission`)
+tapi melanggarnya di lapisan RLS, di berkas yang sama.
+
+Ini bukan pelanggaran teoretis. Diukur di database ini:
+
+| peran | punya 5 permission? | policy lama `['admin','pm']` |
+|---|---|---|
+| admin | 5/5 | lolos |
+| pm | 5/5 | lolos |
+| **direktur** | **5/5** | **DIBLOKIR** |
+| mandor | 2/5 | diblokir |
+| client | 1/5 | diblokir |
+
+Peran `direktur` sudah ada, sudah punya seluruh permission-nya, dan policy
+saya memblokirnya total. Layar tender/contingency/RFQ akan **kosong** —
+bukan galat, bukan "tidak berwenang", kosong. Persis kegagalan senyap yang
+ADR-004 tulis untuk dicegah.
+
+Perbaikan: migrasi `202_rls_permission_bukan_peran.sql` mengganti 18 policy.
+Key permission-nya **disalin dari `requirePermission(...)` di rute masing-masing**,
+bukan ditebak dari nama tabel. Sesudahnya: 86 → 68 (kembali ke lantai),
+`has_permission()` 150 → 168. Policy `tenant_isolation` RESTRICTIVE tidak
+disentuh — ia tetap di-AND-kan, permission tak pernah bisa menembus company.
+
+### Utang lint yang masuk tanpa CI menangkapnya
+
+`react-hooks/set-state-in-effect` di HEAD = **71**, ambang 68. Dibuktikan
+dengan mengukur di pohon kerja bersih (stash penuh), bukan menebak: bukan dari
+perubahan sesi ini, bukan dari sesi lain yang belum commit. Artinya penjaga ini
+pernah dilewati.
+
+Ketiganya diperbaiki di modul `mandor/`, dan **dua menutup bug nyata**:
+
+1. `_bersama/komponen.tsx` — ganti mandor tidak mereset `workerId`. Tukang
+   dari mandor lama tetap terpilih meski daftarnya sudah berganti.
+2. `[id]/page.tsx` — `loading` sebagai bendera boolean membuat profil mandor
+   **sebelumnya** tampil di bawah id yang baru. Nama, KPI, kasbon milik orang
+   yang salah. Diganti menyimpan id yang datanya sudah tiba (`dimuat === id`),
+   plus galat per-id (`gagal === id`) supaya satu kegagalan tak mewarisi ke
+   mandor berikutnya.
+
+Lima ambang lain ikut dikencangkan karena ratchet sendiri memintanya:
+click-events 63→61, static-interactions 72→68, explicit-any 191→180,
+exhaustive-deps 24→22, unescaped-entities 28→18.
+
+### Kode mati `isMandor` dihapus (keputusan founder)
+
+30 cabang di 5 berkas + halaman `kasbon-saya` yang tak ditautkan siapa pun.
+Sebelum menghapus, dibuktikan dulu — bukan diasumsikan:
+
+- nol tautan masuk ke `kasbon-saya`
+- `/mandor-portal/kasbon` memakai endpoint **yang sama** (`/api/v1/kasbons`)
+  dan bisa mengajukan, bahkan lewat `kirimLapangan` yang mendukung offline
+
+`pm-portal/layout.tsx` punya `isMandor` juga tapi **tidak disentuh** — di sana
+peran mandor memang bisa masuk, jadi cabangnya hidup.
+
+Sisa penutup tak sengaja itu diganti penjaga yang disengaja:
+`uji-peran-lihat-layar-admin.mjs` — peran yang bisa membuka layar admin wajib
+punya permission-nya. Mutation-tested (peran kustom tanpa `mandor:assign` →
+merah).
+
+### Yang saya keliru sepanjang sesi ini, selain di atas
+
+- Menyebut penjaga `uji-izin-rute-lengkap.mjs` "hilang". Ia ada — di
+  `apps/web/scripts/`, bukan `apps/api/scripts/`. Loop saya menjalankan 64
+  penjaga dari satu direktori. Diukur ulang per-workspace: **nol hilang**.
+
+### Bukti
+
+    165 berkas test, 1734 lulus, 2 dilewati, 0 gagal (285s)
+    ratchet API ✅ 0 error 234 warning · ratchet web ✅ 0 error 472 warning
+    61 penjaga CI hijau (3 alat CI butuh argumen, dikecualikan)
+    pnpm build web ✅
+
+---
+
 ## 2026-08-07 (lanjutan 2) — Tender subkon (backend), dan dokumen yang menandai "belum" padahal sudah
 
 ### PEMBEDA 10/12 — backend selesai, UI menyusul

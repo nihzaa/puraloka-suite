@@ -102,6 +102,7 @@ export default function KeuanganLayout({ children }: { children: React.ReactNode
     },
     { href: "/keuangan/arus-kas", label: "Arus Kas" },
     { href: "/keuangan/profitabilitas", label: "Profitabilitas" },
+    { href: "/keuangan/contingency", label: "Contingency" },
   ];
 
   return (
@@ -169,7 +170,21 @@ export default function KeuanganLayout({ children }: { children: React.ReactNode
         <div style={{ padding: "0 8px" }}>
           <NavBagian bagian={bagian} />
         </div>
-        {children}
+
+        {/* Padding isi ADA DI SINI, satu tempat untuk seluruh bagian.
+            Diukur 2026-08-07, tiap bagian menyediakan padding-nya sendiri
+            dan hasilnya tiga jarak berbeda:
+
+              arus-kas        74px
+              profitabilitas  37px
+              contingency      1px   ← mepet ke tepi kartu
+
+            Menambalnya per halaman berarti jarak keempat menyusul di halaman
+            berikutnya. Yang benar: kartu pembungkus yang menentukan jaraknya,
+            dan halaman bagian cukup mengisi. */}
+        <div style={{ padding: "20px 24px 24px" }}>
+          {children}
+        </div>
       </div>
     </div>
   );
