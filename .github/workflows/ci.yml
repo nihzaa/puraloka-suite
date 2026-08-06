@@ -353,6 +353,17 @@ jobs:
       - name: Sub-menu belum digarap sudah ditriase
         run: node scripts/audit-triase-submenu.mjs
 
+      # Status sub-menu yang membusuk sementara kode maju. Terbukti terjadi
+      # TUJUH kali (F5-1 §3a satu item, §3b enam item) tanpa satu pun penjaga
+      # menabraknya — skrip ini sudah ada sejak lama tetapi tak pernah
+      # dijalankan CI, dan keenam modul basi tak punya entri PETA sehingga
+      # ia melaporkan "BASI: 0" dengan percaya diri.
+      #
+      # Ratchet dua angka: `basi` (🔴 tapi buktinya ada) dan `takDipetakan`
+      # (belum punya entri PETA, jadi tak terperiksa sama sekali).
+      - name: Status sub-menu vs kode (F8-1)
+        run: node scripts/audit-taksonomi-vs-kode.mjs
+
       - name: Indeks dokumen mutakhir
         run: node scripts/gen-indeks-docs.mjs --check
 

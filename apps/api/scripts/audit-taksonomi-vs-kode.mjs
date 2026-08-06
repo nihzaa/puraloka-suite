@@ -25,7 +25,7 @@
 // diam-diam dihitung sebagai belum ada.
 // ════════════════════════════════════════════════════════════════════════════
 
-import { readFileSync, readdirSync, existsSync } from 'node:fs'
+import { readFileSync, readdirSync, existsSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const AKAR = new URL('../../..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')
@@ -40,7 +40,8 @@ const D_SQL = join(AKAR, 'db/migrations')
  *
  * berkas : nama berkas di routes/v1 atau lib (tanpa .ts)
  * tabel  : nama tabel yang harus ada `CREATE TABLE`-nya di migrasi
- * rute   : potongan path endpoint
+ * rute   : potongan path endpoint API
+ * web    : potongan path endpoint yang dicari di sumber apps/web/** (bukti UI-nya ADA, bukan cuma API)
  */
 const PETA = {
   'WIP / persentase penyelesaian (PSAK)': { berkas: ['wip', 'wip-psak'], rute: ['/reports/wip'] },
@@ -53,8 +54,8 @@ const PETA = {
   'Resource histogram / leveling': { tabel: ['resource_histogram'] },
   'RFQ ke vendor': { tabel: ['rfq', 'rfqs'] },
   'Perbandingan penawaran (bid tabulation)': { tabel: ['bid_tabulation'] },
-  'Surat masuk/keluar (correspondence)': { tabel: ['correspondence'] },
-  'Claims management': { tabel: ['claims'] },
+  'Surat masuk/keluar (correspondence)': { berkas: ['surat'], tabel: ['correspondence'], web: ['/letters'] },
+  'Claims management': { berkas: ['contracts'], tabel: ['claims'], web: ['/claims'] },
   'Jaminan penawaran (bid bond)': { tabel: ['contract_bonds'] },
   'Eskalasi harga': { tabel: ['price_escalation'] },
   'Kalender kerja & hari libur': { tabel: ['work_calendar', 'holidays'] },
@@ -76,6 +77,10 @@ const PETA = {
   'Analisa markup, margin, contingency': { rute: ['/estimate-versions'] },
   'Profitabilitas per proyek / per cost code': { rute: ['/cost-analytics'] },
   'Earned Value Management': { rute: ['/kurva-s'] },
+  'Retensi subkontrak': { berkas: ['mandor'], web: ['/mandor/retensi'] },
+  'Instruksi lapangan': { berkas: ['instruksi-lapangan'], web: ['/field-instructions'] },
+  'Non-Conformance Report (NCR)': { berkas: ['ncr'], web: ['/ncr'] },
+  'Absensi lapangan': { berkas: ['absensi'], web: ['/absensi'] },
 }
 
 const berkasApi = new Set([
@@ -91,6 +96,25 @@ const sqlAll = (existsSync(D_SQL) ? readdirSync(D_SQL) : [])
   .filter(n => n.endsWith('.sql'))
   .map(n => readFileSync(join(D_SQL, n), 'utf8')).join('\n').toLowerCase()
 
+const D_WEB_SRC = [join(AKAR, 'apps/web/app'), join(AKAR, 'apps/web/components')]
+
+/** Baca rekursif semua .tsx/.ts di apps/web, LEWATI .next (artefak build). */
+function sumberWeb(dirs) {
+  const out = []
+  const walk = (d) => {
+    if (!existsSync(d)) return
+    for (const e of readdirSync(d, { withFileTypes: true })) {
+      if (e.name === '.next' || e.name === 'node_modules') continue
+      const p = join(d, e.name)
+      if (e.isDirectory()) walk(p)
+      else if (/\.tsx?$/.test(e.name)) out.push(readFileSync(p, 'utf8'))
+    }
+  }
+  dirs.forEach(walk)
+  return out.join('\n')
+}
+const teksWeb = sumberWeb(D_WEB_SRC)
+
 function bukti(spec) {
   const b = []
   for (const f of spec.berkas ?? []) if (berkasApi.has(f)) b.push(`berkas:${f}.ts`)
@@ -98,6 +122,7 @@ function bukti(spec) {
     if (new RegExp(`create table (if not exists )?(public\\.)?${t}\\b`).test(sqlAll)) b.push(`tabel:${t}`)
   }
   for (const r of spec.rute ?? []) if (sumberApi.includes(r)) b.push(`rute:${r}`)
+  for (const w of spec.web ?? []) if (teksWeb.includes(w)) b.push(`web:${w}`)
   return b
 }
 
@@ -132,3 +157,27 @@ if (takDipetakan.length) {
   console.log('\n— Belum punya entri di PETA (tambahkan supaya ikut terperiksa):')
   for (const n of takDipetakan.slice(0, 40)) console.log(`   ${n}`)
 }
+
+// ── Ratchet: `basi` dan `takDipetakan` boleh turun, TIDAK boleh naik.
+// Lihat catatan di scripts/status-lantai.json.
+const LANTAI = join(AKAR, 'apps/api/scripts/status-lantai.json')
+const naikkan = process.argv.includes('--naikkan')
+const lantai = JSON.parse(readFileSync(LANTAI, 'utf8'))
+const kini = { basi: basi.length, takDipetakan: takDipetakan.length }
+
+if (naikkan) {
+  writeFileSync(LANTAI, JSON.stringify({ ...lantai, ...kini }, null, 2) + '\n')
+  console.log(`Lantai diperbarui: basi=${kini.basi} takDipetakan=${kini.takDipetakan}`)
+  process.exit(0)
+}
+
+let merah = false
+for (const k of ['basi', 'takDipetakan']) {
+  if (kini[k] > lantai[k]) {
+    console.error(`MERAH: ${k} naik ${lantai[k]} -> ${kini[k]}`)
+    merah = true
+  } else if (kini[k] < lantai[k]) {
+    console.log(`Turun: ${k} ${lantai[k]} -> ${kini[k]}. Kunci: --naikkan`)
+  }
+}
+process.exit(merah ? 1 : 0)
