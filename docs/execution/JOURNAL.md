@@ -1179,3 +1179,53 @@ dibuat merah adalah teater. Tiga penjaga ternyata hijau tanpa memeriksa apa
 pun — satu `exit(0)` saat tak menemukan targetnya, satu buta terhadap bentuk
 ternary, satu membaca komentar sebagai kode. Semuanya ditemukan dengan
 mencoba membuatnya merah, bukan dengan membaca kodenya.
+
+---
+
+## 2026-08-05 (lanjutan) — Audit yang melewati halaman terpenting, lalu melaporkan nol
+
+**Akun uji portal dibuat**, dan 19 halaman portal akhirnya terlihat untuk
+pertama kalinya. Temuan pertamanya sepele tapi tiap hari: `split(" ")[0]`
+menyapa **lima dari enam mandor** dengan "Halo, Pak". Cacat yang sama ada di
+lima tempat, termasuk dashboard utama.
+
+**Yang lebih besar: penjaga a11y saya sendiri melewati rute dinamis.**
+`/proyek/[id]` — 20 bagian, 12.554px, halaman terkaya di aplikasi — tak
+pernah sekali pun dipindai, sementara laporan berbunyi "39 halaman, nol
+pelanggaran". Begitu disertakan: **141 pelanggaran**, termasuk 85 input tanpa
+label dan 19 tombol tanpa nama.
+
+Saya sudah menulis "nol pelanggaran" tiga kali hari ini. Angka itu benar
+untuk halaman yang dipindai, dan menyesatkan tentang aplikasinya. Audit yang
+melewati halaman terpenting lalu melaporkan nol memberi rasa aman yang tidak
+dibayar dengan pemeriksaan apa pun.
+
+**`opacity` pada teks muncul EMPAT kali lagi** — lencana EVM, kartu
+finansial, garis Gantt, judul milestone. Kelas yang dulu menyumbang 227 dari
+235 pelanggaran lewat sidebar. Semuanya lolos setiap pemindai statis, karena
+kontras hanya terlihat pada nilai terhitung.
+
+**`--bg-rgb` yang tidak pernah didefinisikan.** Bilah navigasi memakai
+`rgba(var(--bg-rgb, 248,249,250), 0.92)` — fallback nilai mode TERANG selalu
+yang dipakai, jadi bilah tetap putih di mode gelap. 20 pelanggaran dari satu
+baris, semuanya hanya terlihat di mode gelap.
+
+**Fixture company yatim: tiga kali dalam satu hari.** `t9` menuntut setiap
+akar grup punya pemilik. Ia memeriksa SELURUH tabel, dan enam shard berbagi
+satu basis — jadi fixture berkas A menjatuhkan test berkas B. Dua kali saya
+"memperbaikinya" dengan membersihkan fixture. Itu salah: `afterAll` tak
+berjalan kalau prosesnya mati. Yang benar adalah membuat fixture SAH SEJAK
+LAHIR, dan sekarang ada penjaga yang menolak yang ke-16.
+
+**Saya salah menomori R-010.** Nomor itu sudah dipakai untuk definisi
+INTI/PEMBEDA/TUNDA yang diratifikasi 2026-08-04; R-011 dan R-012 juga
+terpakai. Temuan rantai approval kini **R-013**. Kesalahan yang sama persis
+dengan yang berkali-kali saya temukan di kode hari ini: menulis angka tanpa
+mengukur dulu.
+
+**Dan INTI #1 ternyata sudah selesai.** QUEUE menyatakannya belum digarap.
+Diukur di HEAD: `/gl/laporan` hidup, tab "Neraca & Laba-Rugi" ada di
+`/akuntansi`, lengkap dengan penanda seimbang dan ekspor CSV. Dokumen yang
+menyatakan pekerjaan penting "belum ada" sama merusaknya dengan yang
+menyatakan pekerjaan "sudah selesai" padahal belum — keduanya membuat orang
+mengerjakan hal yang salah.
