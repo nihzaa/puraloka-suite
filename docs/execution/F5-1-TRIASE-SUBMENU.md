@@ -306,6 +306,18 @@ pindah, bukan hilang.
 
 ### Procurement berbasis penawaran — 2 item
 
+**KEDUANYA SELESAI** (`/procurement/rfq`, migrasi 195). Diukur lebih dulu pada
+data nyata: material yang sama dibeli dari 3 supplier dengan rentang 20%
+(Rp100.000..Rp120.000), dan 5 dari 7 PO lahir langsung dari MR — harga datang
+dari satu vendor langganan, bukan dari perbandingan.
+
+RFQ dan tabulasi digabung dalam SATU layar: perbandingan tanpa RFQ-nya adalah
+tabel angka tanpa konteks (tak terlihat kapan diminta, sampai kapan batasnya,
+dan vendor mana yang diundang tapi diam).
+
+> `bids` yang sudah ada ternyata sisi **JUAL** (kita menawar ke owner), bukan
+> sisi beli — tak ada yang bisa dipakai ulang.
+
 | Sub-menu | Yang dinaikkan | Bobot |
 |---|---|---|
 | **RFQ ke vendor** | Harga dari perbandingan, bukan dari satu vendor langganan | M |

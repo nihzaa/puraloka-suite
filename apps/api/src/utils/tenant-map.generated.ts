@@ -4,7 +4,7 @@
 // Penegak: `node scripts/gen-tenant-map.mjs check` (CI) — build MERAH kalau
 // ada tabel yang belum terklasifikasi (ADR-011 §9.5 P3).
 //
-// 132 tabel · A=10 · AB=14 · ANCHOR=1 · B=27 · C=74 · D=6
+// 134 tabel · A=10 · AB=14 · ANCHOR=1 · B=27 · C=76 · D=6
 //
 // Arti kategori (ADR-011 §5 + audit T1):
 //   ANCHOR akar tenancy (projects) — company_id NOT NULL
@@ -63,7 +63,7 @@ export const PETA_TENANCY = {
   'estimate_items': { kategori: 'C', lewat: 'estimate_version_id' },  // estimate_items.estimate_version_id → estimate_versions.scenario_id → scenarios.project_id
   'estimate_versions': { kategori: 'C', lewat: 'scenario_id' },  // estimate_versions.scenario_id → scenarios.project_id
   'expense_category_templates': { kategori: 'AB' },
-  'expense_items': { kategori: 'C', lewat: 'expense_report_id' },  // expense_items.expense_report_id → expense_reports.project_id
+  'expense_items': { kategori: 'C', lewat: 'category_id' },  // expense_items.category_id → project_expense_categories.project_id
   'expense_reports': { kategori: 'C', lewat: 'project_id' },  // expense_reports.project_id
   'feature_flags': { kategori: 'AB' },
   'field_instructions': { kategori: 'C', lewat: 'project_id' },  // field_instructions.project_id
@@ -78,7 +78,7 @@ export const PETA_TENANCY = {
   'invoice_penalties': { kategori: 'C', lewat: 'invoice_id' },  // invoice_penalties.invoice_id → invoices.project_id
   'invoices': { kategori: 'C', lewat: 'project_id' },  // invoices.project_id
   'journal_entries': { kategori: 'B' },
-  'journal_entry_lines': { kategori: 'C', lewat: 'entry_id' },  // journal_entry_lines.entry_id
+  'journal_entry_lines': { kategori: 'C', lewat: 'account_id' },  // journal_entry_lines.account_id
   'kasbon_purposes': { kategori: 'AB' },
   'kasbons': { kategori: 'B' },
   'lesson_propagation_proposals': { kategori: 'C', lewat: 'lesson_id' },  // lesson_propagation_proposals.lesson_id → lessons_learned_records.project_id
@@ -115,7 +115,7 @@ export const PETA_TENANCY = {
   'project_rab_materials': { kategori: 'C', lewat: 'project_id' },  // project_rab_materials.project_id
   'project_stocks': { kategori: 'C', lewat: 'project_id' },  // project_stocks.project_id
   'projects': { kategori: 'ANCHOR' },
-  'punch_item_photos': { kategori: 'C', lewat: 'punch_item_id' },  // punch_item_photos.punch_item_id → punch_items.project_id
+  'punch_item_photos': { kategori: 'C', lewat: 'photo_id' },  // punch_item_photos.photo_id → project_photos.project_id
   'punch_items': { kategori: 'C', lewat: 'project_id' },  // punch_items.project_id
   'purchase_order_items': { kategori: 'C', lewat: 'po_id' },  // purchase_order_items.po_id → purchase_orders.project_id
   'purchase_orders': { kategori: 'C', lewat: 'project_id' },  // purchase_orders.project_id
@@ -128,6 +128,8 @@ export const PETA_TENANCY = {
   'rap_material_line': { kategori: 'C', lewat: 'rap_budget_id' },  // rap_material_line.rap_budget_id → rap_budget.project_id
   'rebar_takeoff': { kategori: 'C', lewat: 'estimate_item_id' },  // rebar_takeoff.estimate_item_id → estimate_items.estimate_version_id → estimate_versions.scenario_id → scenarios.project_id
   'resources': { kategori: 'A' },
+  'rfq': { kategori: 'C', lewat: 'project_id' },  // rfq.project_id
+  'rfq_penawaran': { kategori: 'C', lewat: 'rfq_id' },  // rfq_penawaran.rfq_id → rfq.project_id
   'role_permissions': { kategori: 'AB' },
   'roles': { kategori: 'AB' },
   'root_cause_analyses': { kategori: 'C', lewat: 'lesson_id' },  // root_cause_analyses.lesson_id → lessons_learned_records.project_id
@@ -136,7 +138,7 @@ export const PETA_TENANCY = {
   'stock_movements': { kategori: 'C', lewat: 'project_id' },  // stock_movements.project_id
   'stock_transfers': { kategori: 'C', lewat: 'project_asal_id' },  // stock_transfers.project_asal_id
   'subcontract_retention_releases': { kategori: 'B' },
-  'submittal_documents': { kategori: 'C', lewat: 'submittal_id' },  // submittal_documents.submittal_id → submittals.project_id
+  'submittal_documents': { kategori: 'C', lewat: 'document_id' },  // submittal_documents.document_id → documents.project_id
   'submittals': { kategori: 'C', lewat: 'project_id' },  // submittals.project_id
   'supplier_invoices': { kategori: 'B' },
   'supplier_payment_allocations': { kategori: 'B' },

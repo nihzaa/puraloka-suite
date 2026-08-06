@@ -558,6 +558,20 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
+      # RFQ & penawaran vendor — tabel yang MEMILIH VENDOR.
+      #
+      # Yang paling dijaga: harga 0 tanpa penanda `tidak_menawar`. Nol SELALU
+      # menang sebagai termurah, jadi tanpa pagar itu PO bisa terbit ke vendor
+      # yang tak menawarkan apa pun — dan tabulasinya tetap terlihat rapi.
+      #
+      # Juga menjaga keunikan (vendor+material sekali per RFQ; nomor RFQ
+      # unik): penawaran revisi yang masuk sebagai baris kedua membuat satu
+      # vendor terhitung dua kali dengan dua harga berbeda.
+      - name: Invarian RFQ & penawaran vendor
+        run: node scripts/uji-invarian-rfq.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
       - name: Invarian NCR
         run: node scripts/uji-invarian-ncr.mjs
         env:

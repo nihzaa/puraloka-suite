@@ -488,9 +488,27 @@ export function Sidebar() {
     [hrefBerbagi, wakilHref],
   );
 
+  /**
+   * Cocok DI BATAS SEGMEN, bukan `startsWith` mentah.
+   *
+   * `startsWith` membocorkan sorotan ke rute yang kebetulan berawalan sama:
+   * membuka `/procurement/rfq` menyalakan SETIAP menu ber-href `/procurement`
+   * — dan ada 12 di antaranya, tersebar di lima grup berbeda (Master Data,
+   * Pengadaan, Gudang & Material, Keuangan). Akibatnya grup yang menyala
+   * adalah yang kebetulan ditemukan lebih dulu, bukan yang benar: membuka
+   * RFQ menyalakan "Master Data".
+   *
+   * Cacat yang sama sudah diperbaiki di `middleware.ts` dengan `cocokRute`
+   * (`/proyek` vs `/proyeksi-kas`). Ini penerapan gagasan yang sama di
+   * sidebar.
+   *
+   * Yang cocok: href itu sendiri (`/procurement`) dan anaknya
+   * (`/procurement/rfq`). Yang tidak: saudara berawalan sama
+   * (`/procurement-lama`).
+   */
   function isActive(href: string) {
     if (href === "/dashboard") return pathname === "/dashboard";
-    return pathname.startsWith(href);
+    return pathname === href || pathname.startsWith(href + "/");
   }
 
   // Match-ANY: tampil jika tanpa permission (array kosong) ATAU punya salah satu.

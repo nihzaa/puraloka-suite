@@ -126,18 +126,60 @@ async function bangunPeta() {
        WHERE table_schema='public' AND column_name='company_id'`
     )).rows.map((r) => [r.table_name, r.is_nullable]))
 
+    // ── FK dibaca dari `pg_catalog`, BUKAN `information_schema` ────────────
+    //
+    // Versi lama menggabung EMPAT view `information_schema`
+    // (table_constraints + key_column_usage + constraint_column_usage +
+    // columns). View-view itu sendiri adalah kueri berat di atas katalog, dan
+    // gabungannya tumbuh sangat cepat seiring jumlah tabel.
+    //
+    // Diukur 2026-08-06 pada 134 tabel / 415 FK:
+    //
+    //   3-join information_schema   6.505 ms
+    //   4-join (yang dipakai di sini)  TAK PERNAH SELESAI — melewati
+    //                                  statement_timeout 90 detik
+    //   pg_catalog (di bawah)          50 ms   ← 130× lebih cepat
+    //
+    // Akibatnya penjaga ini menggantung tanpa satu pun pesan: `gen-tenant-map
+    // check` di CI akan mati kena timeout job, dan kelihatannya seperti
+    // masalah jaringan. Ia sempat berhasil beberapa kali di awal sesi lalu
+    // berhenti sama sekali — degradasi bertahap, bukan kegagalan yang jelas.
+    //
+    // Hasil keduanya DIBUKTIKAN IDENTIK sebelum ditukar: 415 baris sama
+    // persis, nol beda pada `nullable`. Penjaga yang dipercepat tapi hasilnya
+    // berubah lebih buruk daripada penjaga yang lambat — ia akan
+    // mengklasifikasikan tabel secara berbeda tanpa ada yang menyatakannya.
+    //
+    // `unnest(conkey)` menggantikan `key_column_usage`: satu FK bisa memuat
+    // beberapa kolom, dan tiap kolomnya jadi satu baris — sama seperti view
+    // lama.
+    //
+    // ── `ORDER BY` BUKAN kosmetik ──────────────────────────────────────────
+    //
+    // Tabel yang punya DUA jalur FK sama-sama sah (mis. `expense_items` lewat
+    // `category_id` ATAU `expense_report_id`, keduanya NOT NULL) akan
+    // diklasifikasikan menurut FK mana yang lebih dulu ditemui. Tanpa urutan
+    // yang pasti, Postgres bebas mengembalikannya dalam urutan berbeda tiap
+    // kali — dan peta ini ikut berubah TANPA satu pun perubahan skema.
+    //
+    // Terjadi dua kali di sesi 2026-08-06: empat tabel berpindah `lewat`
+    // bolak-balik. Nol kode memakainya, jadi tak ada perilaku yang rusak —
+    // tapi `gen-tenant-map check` di CI akan merah tanpa sebab yang bisa
+    // dijelaskan siapa pun, dan penjaga yang merah tanpa sebab adalah penjaga
+    // yang akan dimatikan orang.
     const fks = (await c.query(
-      `SELECT tc.table_name AS src, kcu.column_name AS col, ccu.table_name AS tgt,
-              col.is_nullable AS nullable
-       FROM information_schema.table_constraints tc
-       JOIN information_schema.key_column_usage kcu
-         ON kcu.constraint_name=tc.constraint_name AND kcu.table_schema='public'
-       JOIN information_schema.constraint_column_usage ccu
-         ON ccu.constraint_name=tc.constraint_name AND ccu.table_schema='public'
-       JOIN information_schema.columns col
-         ON col.table_schema='public' AND col.table_name=tc.table_name
-        AND col.column_name=kcu.column_name
-       WHERE tc.constraint_type='FOREIGN KEY' AND tc.table_schema='public'`
+      `SELECT src.relname AS src,
+              a.attname   AS col,
+              tgt.relname AS tgt,
+              CASE WHEN a.attnotnull THEN 'NO' ELSE 'YES' END AS nullable
+         FROM pg_constraint co
+         JOIN pg_class src   ON src.oid = co.conrelid
+         JOIN pg_class tgt   ON tgt.oid = co.confrelid
+         JOIN pg_namespace n ON n.oid = src.relnamespace AND n.nspname = 'public'
+         JOIN LATERAL unnest(co.conkey) AS k(attnum) ON true
+         JOIN pg_attribute a ON a.attrelid = co.conrelid AND a.attnum = k.attnum
+        WHERE co.contype = 'f'
+        ORDER BY src.relname, a.attname, tgt.relname`
     )).rows
     const fkByTable = {}
     for (const f of fks) (fkByTable[f.src] ??= []).push(f)

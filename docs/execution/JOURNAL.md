@@ -5,6 +5,94 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-06 (lanjutan 3) — RFQ, dan penjaga CI yang menggantung tanpa suara
+
+### RFQ + perbandingan penawaran selesai (PEMBEDA 4/12)
+
+Diukur lebih dulu pada data nyata — material yang SAMA dibeli dari beberapa
+supplier dengan harga berbeda, tanpa satu pun jejak alasannya:
+
+```
+Besi Beton Ø12mm SNI   3 supplier   Rp100.000 .. Rp120.000   (+20%)
+Pasir Pasang           2 supplier   Rp185.000 .. Rp195.000
+Besi Beton Ø10mm SNI   3 supplier   Rp 80.000 .. Rp 85.000
+```
+
+5 dari 7 PO lahir langsung dari MR. Saat auditor bertanya "kenapa vendor
+ini", yang tersedia hanya ingatan orang.
+
+`bids` yang sudah ada ternyata **sisi JUAL** (`owner_name`, `bid_value` — kita
+menawar KE owner), jadi tak ada yang bisa dipakai ulang.
+
+Selesai: migrasi 195 (`rfq` + `rfq_penawaran`, RLS dua-duanya), pustaka murni
+`tabulasi-penawaran.ts` + 14 test, endpoint, halaman `/procurement/rfq`,
+uji invarian 19 hijau. Enam mutasi perhitungan + empat mutasi skema,
+seluruhnya tertangkap.
+
+Yang paling penting dari keenam mutasi itu: **membuang `angka()`** membuat
+harga dibandingkan sebagai TEKS, dan `"100000" < "99000"` — vendor termahal
+menang sebagai "termurah", dengan tabel yang tetap terlihat masuk akal.
+
+### Penjaga CI yang menggantung — bukan lambat, TIDAK PERNAH SELESAI
+
+`gen-tenant-map` mulai menggantung. Saya sempat menduga kontensi (lima proses
+menumpuk), lalu BOM di `.env`, lalu perulangan tak berujung di klasifikasi.
+**Ketiganya salah.** Diukur satu per satu:
+
+```
+kueri tables                      66 ms
+kueri kolom company_id           202 ms
+FK 3-join information_schema   6.505 ms
+FK 4-join (yang dipakai)       TAK PERNAH SELESAI — lewat statement_timeout 90 s
+```
+
+Empat view `information_schema` digabung; tiap view itu sendiri kueri berat di
+atas katalog. Diganti `pg_catalog`: **50 ms — 130× lebih cepat.**
+
+Hasil keduanya DIBUKTIKAN IDENTIK sebelum ditukar (415 baris sama persis, nol
+beda `nullable`). Penjaga yang dipercepat tapi hasilnya berubah lebih buruk
+daripada penjaga yang lambat.
+
+Ia sempat berhasil beberapa kali di awal sesi lalu berhenti sama sekali —
+degradasi bertahap, bukan kegagalan yang jelas. Di CI ia akan mati kena
+timeout job dan terlihat seperti masalah jaringan.
+
+### `ORDER BY` yang bukan kosmetik
+
+Empat tabel (`expense_items`, `journal_entry_lines`, `punch_item_photos`,
+`submittal_documents`) berpindah kolom `lewat` bolak-balik DUA KALI hari ini
+tanpa satu pun perubahan skema — keduanya punya dua jalur FK sama-sama sah,
+dan Postgres bebas mengembalikannya dalam urutan berbeda.
+
+Nol kode memakainya, jadi tak ada perilaku yang rusak. Tapi `gen-tenant-map
+check` akan merah di CI tanpa sebab yang bisa dijelaskan siapa pun — dan
+**penjaga yang merah tanpa sebab adalah penjaga yang akan dimatikan orang.**
+Ditambah `ORDER BY`; dibuktikan stabil lewat 4 kali jalan berturut-turut,
+byte-identik.
+
+### Sorotan sidebar bocor ke rute berawalan sama
+
+Membuka `/procurement/rfq` menyalakan grup **"Master Data"**. Sebabnya
+`isActive` memakai `pathname.startsWith(href)` mentah, dan ada **12 menu
+ber-href `/procurement`** tersebar di lima grup berbeda.
+
+Cacat kelas yang sama sudah diperbaiki di `middleware.ts` (`cocokRute`,
+`/proyek` vs `/proyeksi-kas`). Diterapkan gagasan yang sama di sidebar;
+203 test web tetap hijau.
+
+### "Rp 0" sebagai judul kartu vendor
+
+Potret memperlihatkan vendor yang TIDAK menawar apa pun dipajang **"Rp 0"**
+besar-besar, dengan peringatan kecil di bawahnya. Mata membaca angka besar
+lebih dulu, dan nol terbaca sebagai PALING MURAH — persis salah-baca yang
+peringatannya berusaha cegah. Diganti kata: "Belum menawar".
+
+Ini kejadian KETIGA dalam sesi ini dari kelas yang sama (susut negatif,
+selisih negatif, dan kini nol) — angka yang secara teknis benar tapi terbaca
+sebagai kabar baik.
+
+---
+
 ## 2026-08-06 (lanjutan 2) — Free issue, dan rancangan yang dibatalkan uji sendiri
 
 ### Material milik klien selesai (PEMBEDA 3/12)
