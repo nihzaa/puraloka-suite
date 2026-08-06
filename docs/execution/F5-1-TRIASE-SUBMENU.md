@@ -234,6 +234,49 @@ skor hari ini (`PETA-PRIORITAS-ERP.md` §6).
 | **Transfer stok antar proyek** | Material pindah proyek tanpa jejak = selisih yang tak pernah terjelaskan | M |
 | **Material milik klien (free issue)** | Material owner tercampur material sendiri | S |
 
+#### Kemajuan & satu penundaan berdasar ukuran — 2026-08-06
+
+**SELESAI — "Tracking waste / susut"** dibangun sebagai halaman
+**Rekonsiliasi Material** (`/gudang/rekonsiliasi`, commit `3d5a38b`). Ia
+mengadu keempat sumber angka yang selama ini tak pernah dibandingkan: RAB,
+penerimaan barang, pemakaian lapangan, sisa gudang.
+
+**DITUNDA — "rencana susut vs susut nyata".** Rencananya melengkapi halaman di
+atas dengan pembanding: bukan sekadar "12% hilang", tapi "12% hilang padahal
+yang dianggarkan 5%". Diukur lebih dulu, dan datanya belum ada:
+
+```
+assemblies                              3.043 baris
+  waste_factor > 0                          1 baris   ← 1 dari 3.043
+tabel ber-assembly_id DAN material_id   (tak ada)     ← tak ada jalur
+                                                         assembly → material
+```
+
+`waste_factor` hidup di `assemblies` (AHSP) dan memang dipakai kode
+(`routes/v1/ahsp.ts`), tapi **tak ada jalur** dari sana ke material di RAB
+proyek. Membangun layar "rencana vs nyata" di atas kolom yang kosong pada
+3.042 dari 3.043 baris menghasilkan layar yang tampak berwibawa dan tak
+mengatakan apa-apa — persis jenis kepercayaan palsu yang paling mahal pada
+angka yang menuduh orang.
+
+**Pemicu untuk membangunnya:** `waste_factor` terisi pada bagian berarti dari
+assembly yang dipakai proyek nyata, DAN ada relasi assembly→material. Sampai
+itu ada, pembandingnya hanya bisa ditebak.
+
+**BERIKUTNYA — "Transfer stok antar proyek".** Dipilih karena bukan hanya
+item tersendiri, tapi **cacat yang merusak halaman yang baru dibangun**:
+
+```
+stock_movements  punya project_id, TIDAK punya lawan-proyeknya
+movement_type    dipakai: usage · goods_receipt · adjustment  (nol 'transfer')
+material di >1 proyek                     4 material          ← sudah nyata
+```
+
+Material yang pindah proyek hanya bisa tercatat sebagai dua baris yang tak
+saling mengenal — dan di Rekonsiliasi Material ia muncul sebagai **susut tak
+terjelaskan di proyek asal**. Menuduh orang atas material yang sebenarnya
+pindah, bukan hilang.
+
 ### Rantai kontrak (4/5) — 2 item
 
 | Sub-menu | Yang dinaikkan | Bobot |

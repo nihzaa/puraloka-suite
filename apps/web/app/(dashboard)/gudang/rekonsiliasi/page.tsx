@@ -44,6 +44,7 @@ type Baris = {
   dibeli: number;
   dipakai: number;
   sisa: number;
+  transfer_keluar: number;
   selisih: number;
   susut_pct: number | null;
   lebih_beli: number;
@@ -56,6 +57,7 @@ type Hasil = {
   total_dipakai: number;
   total_sisa: number;
   total_selisih: number;
+  total_transfer_keluar: number;
   susut_pct_keseluruhan: number | null;
   jumlah_susut_tinggi: number;
   jumlah_lebih_beli: number;
@@ -352,7 +354,7 @@ export default function RekonsiliasiMaterialPage() {
                   <tr style={{ background: "var(--surface-subtle)" }}>
                     {[
                       ["Material", "left"], ["RAB", "right"], ["Dibeli", "right"],
-                      ["Dipakai", "right"], ["Sisa", "right"], ["Selisih", "right"],
+                      ["Dipakai", "right"], ["Sisa", "right"], ["Pindah", "right"], ["Selisih", "right"],
                       ["Susut", "right"], ["Status", "left"],
                     ].map(([h, rata]) => (
                       <th key={h} scope="col" style={{
@@ -388,6 +390,22 @@ export default function RekonsiliasiMaterialPage() {
                         <td style={{ textAlign: "right", padding: "10px 12px", color: C.text }}>{angka(b.dibeli)}</td>
                         <td style={{ textAlign: "right", padding: "10px 12px", color: C.mid }}>{angka(b.dipakai)}</td>
                         <td style={{ textAlign: "right", padding: "10px 12px", color: C.mid }}>{angka(b.sisa)}</td>
+                        {/* Material yang PINDAH proyek — bukan hilang.
+                            Ditulis di kolomnya sendiri, bukan diam-diam
+                            dikurangkan dari selisih: pembaca yang menjumlah
+                            sendiri (dibeli − dipakai − sisa) akan mendapat
+                            angka lain, dan laporan yang tak bisa dicocokkan
+                            dengan tangan berhenti dipercaya. */}
+                        <td style={{ textAlign: "right", padding: "10px 12px", color: b.transfer_keluar === 0 ? C.muted : C.mid }}>
+                          {b.transfer_keluar === 0 ? "—" : (
+                            <>
+                              {b.transfer_keluar > 0 ? "" : "+"}{angka(Math.abs(b.transfer_keluar))}
+                              <span style={{ display: "block", fontSize: 10, color: C.muted }}>
+                                {b.transfer_keluar > 0 ? "ke proyek lain" : "dari proyek lain"}
+                              </span>
+                            </>
+                          )}
+                        </td>
                         {/* Selisih NEGATIF tidak diwarnai sebagai kerugian.
                             "−92" merah terbaca sebagai "92 hilang" — persis
                             salah-baca yang kolom status berusaha cegah. Yang
@@ -437,7 +455,7 @@ export default function RekonsiliasiMaterialPage() {
               margin: 0, padding: "10px 14px", borderTop: `1px solid ${C.border}`,
               background: "var(--surface-subtle)", fontSize: 11, color: C.mid, lineHeight: 1.55,
             }}>
-              Selisih = dibeli − dipakai − sisa. Hanya penerimaan barang yang
+              Selisih = dibeli − dipakai − sisa − yang pindah proyek. Hanya penerimaan barang yang
               sudah <strong>dikonfirmasi</strong> dihitung sebagai pembelian, dan
               material yang dibeli tanpa ada di RAB tetap ditampilkan — pembelian
               di luar rencana justru yang paling perlu dilihat.

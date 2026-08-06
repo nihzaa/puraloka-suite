@@ -508,6 +508,21 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
+      # Transfer stok menyentuh saldo DUA proyek sekaligus. Yang dijaga bukan
+      # hanya nilai buruk (qty ≤ 0, asal = tujuan), tapi juga bahwa policy
+      # RESTRICTIVE-nya memeriksa KEDUA sisi: policy yang hanya melihat proyek
+      # asal membuat material bisa didorong ke proyek tenant LAIN — barangnya
+      # hilang dari kartu stok kita dengan alasan yang terlihat sah, dan muncul
+      # di tenant yang tak pernah memintanya. Tak ada satu pun layar yang akan
+      # menunjukkannya.
+      #
+      # Diuji-mutasi 2026-08-06: melepas tiap CHECK, menjadikan RLS satu sisi,
+      # dan mematikan RLS — keempatnya membuat penjaga ini merah.
+      - name: Invarian transfer stok (qty, beda proyek, RLS dua sisi)
+        run: node scripts/uji-invarian-transfer-stok.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
       - name: Invarian NCR
         run: node scripts/uji-invarian-ncr.mjs
         env:

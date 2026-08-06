@@ -232,7 +232,7 @@ describe('hitungRekonsiliasi — total & urutan', () => {
 
     expect(hitungRekonsiliasi(teoritis, dibeli, dipakai, []).baris[0].status)
       .toBe('susut_tinggi')
-    expect(hitungRekonsiliasi(teoritis, dibeli, dipakai, [], { ambangSusutPct: 10 }).baris[0].status)
+    expect(hitungRekonsiliasi(teoritis, dibeli, dipakai, [], [], { ambangSusutPct: 10 }).baris[0].status)
       .toBe('wajar')
   })
 
@@ -347,5 +347,92 @@ describe('hitungRekonsiliasi — baris RAB yang belum tersentuh', () => {
     )
     expect(h.baris[0].status).toBe('lebih_beli')
     expect(h.baris[1].status).toBe('belum_dibeli')
+  })
+})
+
+describe('hitungRekonsiliasi — transfer antar proyek bukan susut', () => {
+  const T = [{ material_id: 'm1', material_name: 'Besi Ø10', unit: 'batang', rab_quantity: 0 }]
+
+  it('material yang DIKIRIM ke proyek lain tidak dihitung sebagai susut', () => {
+    // Diukur pada data sungguhan 2026-08-06: memindahkan 10 batang mengubah
+    // barisnya dari `selisih 0 / susut 0%` menjadi `selisih 10 / susut 5%`.
+    // Barangnya terbukti masih ada di perusahaan — hanya di proyek sebelah.
+    const h = hitungRekonsiliasi(
+      T,
+      [{ material_id: 'm1', qty_received: 200 }],
+      [{ material_id: 'm1', qty: -115 }],
+      [{ material_id: 'm1', qty_on_hand: 75 }],
+      [{ material_id: 'm1', qty: -10 }],   // transfer_out: NEGATIF
+    )
+    expect(h.baris[0].transfer_keluar).toBe(10)
+    expect(h.baris[0].selisih).toBe(0)
+    expect(h.baris[0].susut_pct).toBe(0)
+    expect(h.baris[0].status).toBe('wajar')
+  })
+
+  it('tanpa memperhitungkan transfer, baris yang sama JADI susut', () => {
+    // Pembanding langsung: masukan identik, hanya transfernya tak diberikan.
+    // Menegaskan bahwa argumen barunya benar-benar yang mengubah hasil —
+    // bukan kebetulan angka.
+    const h = hitungRekonsiliasi(
+      T,
+      [{ material_id: 'm1', qty_received: 200 }],
+      [{ material_id: 'm1', qty: -115 }],
+      [{ material_id: 'm1', qty_on_hand: 75 }],
+    )
+    expect(h.baris[0].selisih).toBe(10)
+    expect(h.baris[0].susut_pct).toBe(5)
+  })
+
+  it('material yang DITERIMA dari proyek lain tidak menutupi susut sungguhan', () => {
+    // `transfer_in` positif → `transfer_keluar` negatif → selisih NAIK.
+    // Kalau tandanya diabaikan (mis. dipakai Math.abs), kiriman masuk akan
+    // MENGURANGI susut, dan proyek yang bocor bisa menyembunyikannya cukup
+    // dengan meminta kiriman dari proyek sebelah.
+    const h = hitungRekonsiliasi(
+      T,
+      [{ material_id: 'm1', qty_received: 100 }],
+      [{ material_id: 'm1', qty: -50 }],
+      [{ material_id: 'm1', qty_on_hand: 20 }],
+      [{ material_id: 'm1', qty: 20 }],    // transfer_in: POSITIF
+    )
+    expect(h.baris[0].transfer_keluar).toBe(-20)
+    expect(h.baris[0].selisih).toBe(50)     // 100 − 50 − 20 − (−20)
+    expect(h.baris[0].status).toBe('susut_tinggi')
+  })
+
+  it('keluar dan masuk pada material sama dijumlahkan bersih', () => {
+    const h = hitungRekonsiliasi(
+      T,
+      [{ material_id: 'm1', qty_received: 100 }],
+      [], [{ material_id: 'm1', qty_on_hand: 100 }],
+      [{ material_id: 'm1', qty: -30 }, { material_id: 'm1', qty: 30 }],
+    )
+    expect(h.baris[0].transfer_keluar).toBe(0)
+    expect(h.baris[0].selisih).toBe(0)
+  })
+
+  it('total transfer ikut dikurangkan dari total selisih', () => {
+    const h = hitungRekonsiliasi(
+      T,
+      [{ material_id: 'm1', qty_received: 100 }],
+      [], [{ material_id: 'm1', qty_on_hand: 90 }],
+      [{ material_id: 'm1', qty: -10 }],
+    )
+    expect(h.total_transfer_keluar).toBe(10)
+    expect(h.total_selisih).toBe(0)
+    expect(h.susut_pct_keseluruhan).toBe(0)
+  })
+
+  it('NUMERIC sebagai string tetap dijumlahkan sebagai angka', () => {
+    // Driver Postgres mengirim NUMERIC sebagai string: "-10" + "-10" = "-10-10".
+    const h = hitungRekonsiliasi(
+      T,
+      [{ material_id: 'm1', qty_received: '100' }],
+      [], [{ material_id: 'm1', qty_on_hand: '80' }],
+      [{ material_id: 'm1', qty: '-10' }, { material_id: 'm1', qty: '-10' }],
+    )
+    expect(h.baris[0].transfer_keluar).toBe(20)
+    expect(h.baris[0].selisih).toBe(0)
   })
 })

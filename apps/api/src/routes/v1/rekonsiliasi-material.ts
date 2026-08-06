@@ -114,6 +114,24 @@ export default async function rekonsiliasiMaterialRoutes(app: FastifyInstance) {
 
     if (e4) return reply.status(500).send({ error: e4.message })
 
+    // ── 5. Yang PINDAH ke/dari proyek lain ─────────────────────────────────
+    //
+    // Tanpa ini, material yang dikirim ke proyek sebelah terbaca sebagai susut.
+    // Diukur pada data sungguhan (2026-08-06): memindahkan 10 batang besi
+    // mengubah barisnya dari `selisih 0 / susut 0%` jadi `selisih 10 / susut
+    // 5%` — satu batang lagi dan ia jadi "Susut tinggi", menuduh mandor atas
+    // barang yang ia kirim atas perintah kantor.
+    //
+    // Kedua arah diambil: `transfer_out` (negatif) DAN `transfer_in` (positif).
+    // Mengambil hanya sisi keluar membuat proyek penerima tampak punya barang
+    // yang tak pernah dibeli.
+    const { data: pindah, error: ePindah } = await db
+      .viaProject('stock_movements', projectId)
+      .select('material_id, qty, movement_type')
+      .in('movement_type', ['transfer_out', 'transfer_in'])
+
+    if (ePindah) return reply.status(500).send({ error: ePindah.message })
+
     type BarisRab = {
       material_id: string
       rab_quantity: number | string
@@ -133,6 +151,7 @@ export default async function rekonsiliasiMaterialRoutes(app: FastifyInstance) {
       dibeli,
       ((gerak ?? []) as Array<{ material_id: string; qty: number | string | null }>),
       ((sisa ?? []) as Array<{ material_id: string; qty_on_hand: number | string | null }>),
+      ((pindah ?? []) as Array<{ material_id: string; qty: number | string | null }>),
       {
         ambangSusutPct: parseAmbang(q.ambang_susut),
         ambangLebihBeliPct: parseAmbang(q.ambang_lebih_beli),

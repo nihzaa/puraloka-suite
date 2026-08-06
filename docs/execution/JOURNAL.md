@@ -5,6 +5,101 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-06 (lanjutan) — Transfer stok, dan cacat yang saya buat sendiri kemarin
+
+### Transfer stok antar proyek selesai (PEMBEDA 2/12)
+
+`stock_movements` punya SATU `project_id`. Material yang pindah dari proyek A
+ke B hanya bisa dicatat sebagai dua baris yang tak saling mengenal — tak ada
+yang menjamin sisi lawannya ada, apalagi sama besar.
+
+Selesai: migrasi 193 (`stock_transfers`, RLS RESTRICTIVE dua sisi), endpoint
+POST/GET, halaman `/gudang/transfer`, uji invarian 11 hijau.
+
+`transfer_in`/`transfer_out` ternyata **sudah ada** di CHECK `movement_type`
+sejak awal — nol baris, tak pernah dipakai. Kosakatanya sudah ada; yang belum
+ada kepalanya.
+
+### Cacat yang saya BUAT SENDIRI kemarin, dan baru terlihat hari ini
+
+Rekonsiliasi material (commit `3d5a38b`) menghitung susut dari
+`dibeli − dipakai − sisa`. Transfer tak masuk hitungan, jadi material yang
+PINDAH terbaca sebagai **hilang**.
+
+Dibuktikan dengan angka, bukan dikira-kira — memindahkan 10 batang besi:
+
+```
+sebelum transfer : selisih  0  susut 0,0%  wajar
+sesudah transfer : selisih 10  susut 5,0%  ← satu batang lagi = "Susut tinggi"
+sesudah diperbaiki: selisih 0  susut 0,0%  pindah 10 "ke proyek lain"
+```
+
+Ini kesalahan paling mahal yang bisa dibuat layar itu: **menuduh mandor atas
+barang yang ia kirim ke proyek sebelah atas perintah kantor.** Fiturnya sudah
+"selesai" kemarin, ber-test, ber-mutasi, nol pelanggaran a11y — dan tetap
+salah, karena yang belum ada bukan kodenya melainkan konsep "material bisa
+pindah".
+
+Perbaikannya di lapis perhitungan (`selisih` ikut mengurangi
+`transfer_keluar`), + 6 test, + 4 mutasi seluruhnya tertangkap — termasuk
+mutasi `Math.abs` pada transfer, yang akan membuat proyek bocor bisa
+menyembunyikan susutnya cukup dengan MEMINTA kiriman dari proyek sebelah.
+
+Kolom **Pindah** ditulis terpisah di tabel, bukan diam-diam dikurangkan:
+pembaca yang menjumlah sendiri harus mendapat angka yang sama.
+
+### Tracking Waste DITUNDA — diukur dulu, bukan dibangun dulu
+
+Rencananya melengkapi rekonsiliasi dengan "rencana susut vs susut nyata".
+Diukur lebih dulu:
+
+```
+assemblies                            3.043 baris
+  waste_factor > 0                        1 baris   ← 1 dari 3.043
+tabel ber-assembly_id DAN material_id  (tak ada)    ← tak ada jalur
+```
+
+Layar "rencana vs nyata" di atas kolom yang kosong pada 3.042 dari 3.043 baris
+akan tampak berwibawa dan tak mengatakan apa-apa. Alasan + pemicunya dicatat
+di `F5-1-TRIASE-SUBMENU.md`.
+
+### Tiga penjaga menangkap saya hari ini
+
+| Penjaga | Yang ditangkap |
+|---|---|
+| `gen-tenant-map check` | tabel baru lahir tanpa kategori tenancy |
+| ratchet T4f | 9 akses `supabase` mentah baru (366 → 375) |
+| `lint:ratchet` | `setState` sinkron di badan efek |
+
+Ratchet T4f saya perbaiki dengan **memindahkan penulisan ke wrapper
+sadar-tenant**, bukan menaikkan ambang — dan satu query yang memang tak bisa
+(`viaProject` menyaring satu kolom, daftar transfer butuh dua) memakai
+`unsafe()` dengan alasan tertulis di tempat kejadian.
+
+### Saya salah — dan penjaganya yang benar
+
+Saya sempat menulis `requirePermission('procurement:stock:manage')`. Permission
+itu **tidak ada**. Gerbang gagal-tertutup akan menolak SEMUA orang, dan
+endpoint yang sudah jadi tak bisa dipakai siapa pun tanpa satu pun pesan.
+Ketahuan karena saya periksa ke tabel `permissions` sebelum lanjut, bukan
+karena ada yang gagal.
+
+Saya juga sempat memakai `s.material_id` untuk hasil `/procurement/stocks` —
+endpoint itu tak mengembalikan kolom tersebut. Daftar material akan tetap
+tampil, tapi tak satu pun bisa dipilih.
+
+Keduanya jenis yang sama: **menebak bentuk sesuatu yang bisa dibaca.**
+
+### Peta tenancy: tiga tabel berpindah `lewat` tanpa saya sentuh
+
+`expense_items`, `journal_entry_lines`, `punch_item_photos` berganti kolom
+`lewat` saat di-regenerate. Diperiksa: ketiganya punya DUA jalur FK yang
+sama-sama NOT NULL, jadi generator memang punya dua pilihan sah tanpa pemecah
+seri yang stabil. Nol kode memakai `viaProject` pada ketiganya, jadi tak ada
+perilaku yang berubah. Dicatat di sini supaya diff-nya tak dikira kelalaian.
+
+---
+
 ## 2026-08-06 — Halaman jadi yang tak bisa dibuka siapa pun, dan "Wajar" sebagai jawaban bawaan
 
 ### Rekonsiliasi material selesai (F5 PEMBEDA — pembeda terlemah, 1,5/5)

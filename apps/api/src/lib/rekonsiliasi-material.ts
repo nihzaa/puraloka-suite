@@ -65,6 +65,20 @@ export interface BarisSisa {
   qty_on_hand: number | string | null
 }
 
+/**
+ * Mutasi transfer antar proyek (`transfer_out` / `transfer_in`).
+ *
+ * Tandanya mengikuti konvensi `stock_movements`: keluar NEGATIF, masuk
+ * POSITIF (`routes/v1/transfer-stok.ts`). Di sini `Math.abs` TIDAK dipakai —
+ * justru tandanya yang membawa arahnya, dan menghilangkannya akan membuat
+ * kiriman MASUK ikut mengurangi susut seolah barangnya pergi.
+ */
+export interface BarisTransfer {
+  material_id: string
+  /** Negatif untuk `transfer_out`, positif untuk `transfer_in`. */
+  qty: number | string | null
+}
+
 /** Seberapa jauh sebuah material menyimpang, dan ke arah mana. */
 export type StatusRekonsiliasi =
   | 'wajar'          // susut dalam ambang
@@ -102,12 +116,31 @@ export interface BarisRekonsiliasi {
   dipakai: number
   sisa: number
   /**
-   * dibeli − dipakai − sisa.
+   * Bersih material yang PINDAH proyek: keluar − masuk.
+   *
+   * Positif = lebih banyak keluar daripada masuk. Barangnya tidak hilang —
+   * ia ada di proyek lain, dan ada kepala `stock_transfers` yang menunjuk ke
+   * mana. Negatif = proyek ini justru menerima kiriman.
+   */
+  transfer_keluar: number
+  /**
+   * dibeli − dipakai − sisa − transfer_keluar.
    *
    * Positif = material hilang: dibeli tapi tak terpakai dan tak ada di
    * gudang. Negatif = tercatat terpakai lebih banyak daripada yang dibeli —
    * itu bukan "susut negatif", itu tanda pencatatan yang tak konsisten
    * (mis. stok awal tak dicatat), dan ditandai `belum_lengkap`.
+   *
+   * ── Kenapa transfer ikut dikurangkan (2026-08-06)
+   *
+   * Diukur pada data sungguhan: memindahkan 10 batang besi ke proyek sebelah
+   * mengubah baris ini dari `selisih 0 / susut 0%` menjadi `selisih 10 /
+   * susut 5%` — material yang terbukti masih ada di perusahaan terbaca
+   * sebagai hilang, dan satu batang lagi akan mendorongnya ke "Susut tinggi".
+   *
+   * Laporan ini menuduh orang. Menuduh mandor atas barang yang ia kirim ke
+   * proyek sebelah, atas perintah kantor, adalah kesalahan yang paling mahal
+   * yang bisa dibuat layar ini.
    */
   selisih: number
   /** `selisih / dibeli × 100`. null bila belum ada pembelian. */
@@ -124,6 +157,8 @@ export interface HasilRekonsiliasi {
   total_dipakai: number
   total_sisa: number
   total_selisih: number
+  /** Bersih material yang pindah proyek, seluruh material. */
+  total_transfer_keluar: number
   /** Rata-rata TERTIMBANG, bukan rata-rata dari persentase per baris. */
   susut_pct_keseluruhan: number | null
   jumlah_susut_tinggi: number
@@ -177,6 +212,10 @@ export function hitungRekonsiliasi(
   dibeli: BarisDibeli[],
   dipakai: BarisDipakai[],
   sisa: BarisSisa[],
+  // OPSIONAL dengan sengaja: pemanggil lama (dan 22 test yang sudah ada) tetap
+  // sah tanpa argumen ini, dan berperilaku persis seperti sebelumnya —
+  // `transfer_keluar` 0, `selisih` tak berubah.
+  transfer?: BarisTransfer[],
   opsi?: { ambangSusutPct?: number; ambangLebihBeliPct?: number },
 ): HasilRekonsiliasi {
   const ambangSusut = opsi?.ambangSusutPct ?? AMBANG_SUSUT_PCT
@@ -190,13 +229,14 @@ export function hitungRekonsiliasi(
     dibeli: number
     dipakai: number
     sisa: number
+    transfer_keluar: number
   }
   const peta = new Map<string, Akumulator>()
 
   const ambil = (id: string): Akumulator => {
     let e = peta.get(id)
     if (!e) {
-      e = { material_id: id, material_name: '—', unit: null, teoritis: 0, dibeli: 0, dipakai: 0, sisa: 0 }
+      e = { material_id: id, material_name: '—', unit: null, teoritis: 0, dibeli: 0, dipakai: 0, sisa: 0, transfer_keluar: 0 }
       peta.set(id, e)
     }
     return e
@@ -214,9 +254,13 @@ export function hitungRekonsiliasi(
   // negatif oleh `procurement.ts`, tapi basis ini memuat kedua tanda.
   for (const p of dipakai) ambil(p.material_id).dipakai += Math.abs(angka(p.qty))
   for (const s of sisa) ambil(s.material_id).sisa += angka(s.qty_on_hand)
+  // TANPA `Math.abs` — tandanya yang membawa arah. `transfer_out` negatif,
+  // jadi dinegasikan supaya "keluar" bernilai positif; `transfer_in` positif
+  // akan menjadi negatif, dan itu benar: proyek ini menerima, bukan kehilangan.
+  for (const t of transfer ?? []) ambil(t.material_id).transfer_keluar += -angka(t.qty)
 
   const baris: BarisRekonsiliasi[] = [...peta.values()].map((e) => {
-    const selisih = e.dibeli - e.dipakai - e.sisa
+    const selisih = e.dibeli - e.dipakai - e.sisa - e.transfer_keluar
     const susut_pct = e.dibeli > 0 ? (selisih / e.dibeli) * 100 : null
     const lebih_beli = e.dibeli - e.teoritis
 
@@ -268,6 +312,7 @@ export function hitungRekonsiliasi(
       dibeli: e.dibeli,
       dipakai: e.dipakai,
       sisa: e.sisa,
+      transfer_keluar: e.transfer_keluar,
       selisih,
       susut_pct,
       lebih_beli,
@@ -292,7 +337,8 @@ export function hitungRekonsiliasi(
   const total_dibeli = baris.reduce((s, b) => s + b.dibeli, 0)
   const total_dipakai = baris.reduce((s, b) => s + b.dipakai, 0)
   const total_sisa = baris.reduce((s, b) => s + b.sisa, 0)
-  const total_selisih = total_dibeli - total_dipakai - total_sisa
+  const total_transfer_keluar = baris.reduce((s, b) => s + b.transfer_keluar, 0)
+  const total_selisih = total_dibeli - total_dipakai - total_sisa - total_transfer_keluar
 
   return {
     baris,
@@ -300,6 +346,7 @@ export function hitungRekonsiliasi(
     total_dipakai,
     total_sisa,
     total_selisih,
+    total_transfer_keluar,
     // TERTIMBANG: rata-rata dari persentase per baris membuat satu material
     // kecil yang susut 90% menenggelamkan seratus material besar yang wajar.
     susut_pct_keseluruhan: total_dibeli > 0 ? (total_selisih / total_dibeli) * 100 : null,
