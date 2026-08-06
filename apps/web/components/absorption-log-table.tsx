@@ -282,7 +282,20 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
                         <div style={{ textAlign: "right" }}>
                           <span style={{
                             fontSize: 12, fontWeight: 700,
-                            color: week.totalPct > 0 ? "var(--data-5)" : C.muted,
+                            // `#9A3412`, bukan `--data-5` maupun `--warning`.
+                            //
+                            // Diukur pada latar SESUNGGUHNYA — baris kategori
+                            // RAB berlatar biru muda `#ebf2ff`, bukan putih:
+                            //   --data-5 #EA580C → 3,43:1   gagal
+                            //   --warning #B45309 → 4,46:1  gagal (kurang 0,04)
+                            //   #9A3412           → 6,50:1  lolos
+                            //
+                            // Angka ini dirender ~95 kali di halaman proyek
+                            // besar, jadi satu baris = 95 pelanggaran. Dan
+                            // `--warning` yang lolos di putih (5,02:1) TETAP
+                            // gagal di sini — latar yang benar harus diukur,
+                            // bukan diasumsikan putih.
+                            color: week.totalPct > 0 ? "var(--warning-teks)" : C.muted,
                           }}>
                             {week.totalPct.toFixed(1)}%
                           </span>
@@ -330,7 +343,7 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
                             </div>
                             <div style={{ textAlign: "right" }}>
                               <span style={{
-                                fontWeight: 700, color: "var(--data-5)",
+                                fontWeight: 700, color: "var(--warning)",
                                 background: "var(--warning-bg)", borderRadius: 6,
                                 padding: "2px 6px", fontSize: 11,
                               }}>
@@ -401,7 +414,7 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
               }}>
                 <div /><div>Total</div>
                 <div /><div /><div /><div /><div />
-                <div style={{ textAlign: "right", color: "var(--data-5)" }}>
+                <div style={{ textAlign: "right", color: "var(--warning)" }}>
                   {entries.reduce((s, e) => s + e.material_pct + e.upah_pct + e.alat_pct + e.other_pct, 0).toFixed(1)}%
                 </div>
                 <div /><div />

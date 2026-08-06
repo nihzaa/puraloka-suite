@@ -31,7 +31,7 @@ const TYPE_CONFIG: Record<string, {
   project:   { icon: <FolderKanban size={13} />, label: "Proyek",   color: "var(--navy)", bg: "var(--navy-light)" },
   client:    { icon: <Contact size={13} />,      label: "Klien",    color: "#0F766E", bg: "var(--success-bg)" },
   invoice:   { icon: <Receipt size={13} />,      label: "Invoice",  color: "var(--success)", bg: "var(--success-bg)" },
-  kasbon:    { icon: <Wallet size={13} />,        label: "Kasbon",   color: "var(--data-5)", bg: "var(--warning-bg)" },
+  kasbon:    { icon: <Wallet size={13} />,        label: "Kasbon",   color: "var(--warning)", bg: "var(--warning-bg)" },
   milestone: { icon: <Target size={13} />,        label: "Milestone",color: "var(--aksen)", bg: "var(--navy-light)" },
   user:      { icon: <Users size={13} />,         label: "User",     color: "var(--text-secondary)", bg: "var(--surface-hover)" },
 };

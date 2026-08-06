@@ -73,6 +73,17 @@
   --warning:          #B45309;
   --warning-bg:       #FFFBEB;
   --warning-border:   #FDE68A;
+  /* Varian TEKS — untuk oranye di atas latar terang APA PUN, bukan hanya
+   * putih dan `--warning-bg`.
+   *
+   * `--warning` (#B45309) lolos di putih (5,02:1) dan di `--warning-bg`
+   * (4,84:1), tapi GAGAL di baris kategori RAB yang berlatar biru muda
+   * #ebf2ff: 4,46:1 — kurang 0,04 dari ambang, dan itu 95 pelanggaran di
+   * satu halaman proyek besar.
+   *
+   * #9A3412 lolos di ketiganya: 7,31 putih · 7,05 warning-bg · 6,50 #ebf2ff.
+   * Latar yang benar harus DIUKUR, bukan diasumsikan putih. */
+  --warning-teks:     #9A3412;
   --danger:           #B91C1C;
   --danger-bg:        #FEF2F2;
   --danger-border:    #FECACA;
@@ -479,6 +490,10 @@
   --warning:          #F59E0B;
   --warning-bg:       rgba(245,158,11,0.10);
   --warning-border:   rgba(245,158,11,0.25);
+  /* Di mode gelap `--warning` sendiri sudah 7,83:1 di atas `--surface`
+   * (#1A1D27), jadi varian teksnya sama. Alias ini tetap ada supaya
+   * pemakainya tak perlu tahu mode mana yang butuh nilai berbeda. */
+  --warning-teks:     #F59E0B;
   /* #EF4444 sampai 2026-08-01 — GAGAL WCAG AA di mode gelap: 4,47 di
    * --surface, 4,04 di --surface-raised, 3,83 di --surface-hover. Syaratnya
    * 4,5:1.

@@ -184,7 +184,7 @@ export default function ArusKasPage() {
                 { key: "wage",               label: "Upah",          color: C.blue },
                 { key: "kasbon",             label: "Kasbon",        color: C.yellow },
                 { key: "progress_payment",   label: "Prog %",        color: "var(--aksen)" },
-                { key: "settlement_borongan", label: "Settlement",   color: "var(--data-2)" },
+                { key: "settlement_borongan", label: "Settlement",   color: "var(--info)" },
               ].map(t => (
                 // Warna kategori dipakai pada KOTAK penanda, bukan pada teks.
                 //
@@ -389,7 +389,7 @@ export default function ArusKasPage() {
                     wage:                { label: "Upah",          color: C.blue,    bg: C.blueBg,    border: C.blueBorder },
                     kasbon:              { label: "Kasbon",        color: C.yellow,  bg: C.yellowBg,  border: C.yellowBorder },
                     progress_payment:    { label: "Progress %",    color: "var(--aksen)", bg: "var(--navy-light)",   border: "var(--info-border)" },
-                    settlement_borongan: { label: "Settlement",    color: "var(--data-2)", bg: "var(--success-bg)",   border: "#A5F3FC" },
+                    settlement_borongan: { label: "Settlement",    color: "var(--info)", bg: "var(--success-bg)",   border: "#A5F3FC" },
                   };
                   const tm = typeMeta[tx.type] ?? { label: tx.type, color: C.muted, bg: "var(--surface-hover)", border: C.border };
                   const dateStr = fmtDate(tx.date);

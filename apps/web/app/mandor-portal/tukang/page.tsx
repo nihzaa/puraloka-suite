@@ -11,7 +11,7 @@ import { C } from "@/lib/warna-ui";
 const TIPE_META: Record<string, { label: string; color: string }> = {
   tukang: { label: "Tukang",  color: "var(--info)" },
   laden:  { label: "Laden",   color: "var(--aksen)" },
-  kenek:  { label: "Kenek",   color: "var(--data-2)" },
+  kenek:  { label: "Kenek",   color: "var(--info)" },
 };
 
 interface Worker {

@@ -144,11 +144,11 @@ export default function RiwayatPembayaranPage() {
           background: `linear-gradient(135deg, ${C.navy} 0%, var(--aksen-terang) 100%)`,
           borderRadius: 14, padding: "16px 20px", marginBottom: 20, color: "var(--surface)",
         }}>
-          <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 6 }}>
+          <div style={{ fontSize: 12, marginBottom: 6 }}>
             Total Diterima {filter === "all" ? "Semua" : TYPE_META[filter]?.label}
           </div>
           <div style={{ fontSize: 28, fontWeight: 700 }}>{fmtRp(totalReceived)}</div>
-          <div style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}>{filtered.length} transaksi</div>
+          <div style={{ fontSize: 12, marginTop: 4 }}>{filtered.length} transaksi</div>
         </div>
       )}
 

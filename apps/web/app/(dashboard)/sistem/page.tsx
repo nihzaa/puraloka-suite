@@ -160,7 +160,7 @@ export default function SistemPage() {
         <div style={card}>
           <div style={{ display: "flex", gap: 12 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--warning-bg)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <Mail size={16} style={{ color: "var(--data-5)" }} />
+              <Mail size={16} style={{ color: "var(--warning)" }} />
             </div>
             <div>
               <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 6 }}>Email Notifikasi via Resend</div>

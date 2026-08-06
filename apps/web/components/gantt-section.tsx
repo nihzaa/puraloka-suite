@@ -427,7 +427,17 @@ function GanttBar({ task, minDate, totalDays, dayWidth, warnings, taskMap, onEdi
             top: 0,
             bottom: 0,
             width: `${Math.min(100, progressWidth)}%`,
-            background: "rgba(255,255,255,0.25)",
+            // 0,15 — BUKAN 0,25.
+            //
+            // Lapisan ini mencerahkan bar untuk menandai bagian yang sudah
+            // dikerjakan, dan label persen berwarna putih berada DI ATASNYA.
+            // Diukur: pada 0,25 latar menjadi #567ae2 dan putih di atasnya
+            // hanya 3,98:1 — gagal. Pada 0,15 → 4,89:1.
+            //
+            // Bar tanpa lapisan sama sekali memberi 6,70:1, tapi lapisannya
+            // bukan hiasan: tanpa itu bagian progres tak terbedakan dari
+            // sisanya. Yang dikurangi kepekatannya, bukan keberadaannya.
+            background: "rgba(255,255,255,0.15)",
             transition: "width 0.4s ease",
           }} />
           {/* Progress % label */}
@@ -944,7 +954,7 @@ export function GanttSection({ projectId, userRole, projectStart, projectEnd }: 
             }}>
               <AlertTriangle size={13} style={{ flexShrink: 0, marginTop: 1 }} />
               <div>{w.message}</div>
-              <div style={{ marginLeft: "auto", fontSize: 10, fontWeight: 600, opacity: 0.7 }}>
+              <div style={{ marginLeft: "auto", fontSize: 10, fontWeight: 600 }}>
                 {w.severity === "danger" ? "KRITIS" : "PERHATIAN"}
               </div>
             </div>

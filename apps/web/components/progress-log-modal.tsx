@@ -342,7 +342,7 @@ export function ProgressLogModal({
                   <opt.icon size={14} />
                   <div style={{ textAlign: "left" }}>
                     <div style={{ fontSize: 12, fontWeight: 600 }}>{opt.label}</div>
-                    <div style={{ fontSize: 10, opacity: 0.75 }}>{opt.desc}</div>
+                    <div style={{ fontSize: 10 }}>{opt.desc}</div>
                   </div>
                 </button>
               ))}

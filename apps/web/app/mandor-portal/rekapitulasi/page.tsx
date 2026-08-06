@@ -124,7 +124,7 @@ export default function RekapitulasiPage() {
             background: `linear-gradient(135deg, ${C.navy} 0%, var(--aksen-terang) 100%)`,
             borderRadius: 14, padding: "20px 24px", color: "var(--surface)",
           }}>
-            <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            <div style={{ fontSize: 12, marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>
               Sisa Bersih Setelah Kasbon
             </div>
             <div style={{ fontSize: 32, fontWeight: 800, lineHeight: 1.1 }}>
@@ -136,12 +136,12 @@ export default function RekapitulasiPage() {
               </div>
             )}
             {data.sisa_bersih >= 0 && data.sisa_bersih > 0 && (
-              <div style={{ marginTop: 6, fontSize: 12, opacity: 0.8 }}>
+              <div style={{ marginTop: 6, fontSize: 12 }}>
                 Dana yang dapat dicairkan setelah semua kasbon dilunasi
               </div>
             )}
             {data.sisa_bersih === 0 && data.total_earned === 0 && (
-              <div style={{ marginTop: 6, fontSize: 12, opacity: 0.7 }}>
+              <div style={{ marginTop: 6, fontSize: 12 }}>
                 Belum ada pekerjaan yang dihitung
               </div>
             )}

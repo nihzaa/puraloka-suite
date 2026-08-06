@@ -240,7 +240,7 @@ export function NeracaLabaRugi() {
                 : `Neraca TIDAK seimbang · selisih ${rp(data.neraca.selisih)}`}
             </span>
             {!data.neraca.seimbang && (
-              <span style={{ fontSize: 12, color: C.onDangerBg, opacity: 0.85 }}>
+              <span style={{ fontSize: 12, color: C.onDangerBg }}>
                 Ada jurnal yang debit dan kreditnya tak sama. Periksa Buku Besar.
               </span>
             )}
