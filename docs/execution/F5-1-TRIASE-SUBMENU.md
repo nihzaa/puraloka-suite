@@ -224,6 +224,15 @@ skor hari ini (`PETA-PRIORITAS-ERP.md` §6).
 | **Profitabilitas per cost code** (🟡 per proyek sudah hidup di `/finance/profitability`) | Laba per **cost code**, bukan hanya per proyek — inilah yang menunjukkan pekerjaan mana yang merugi | S |
 | **Manajemen contingency** | Cadangan risiko terlacak, bukan hilang ke dalam "biaya lain-lain" | M |
 | **Analisa keterlambatan** | Menghubungkan keterlambatan ke biaya — dasar klaim EOT | M |
+
+**SELESAI** (`/proyek/keterlambatan`, migrasi 198) — **tanpa tabel baru.**
+Ketiga bahannya sudah ada dan tak pernah diadu: `milestones.target_date`,
+`contract_eot.days_approved`, `projects.penalty_*`.
+
+Diukur: 16 milestone telat (12 berjalan, 4 selesai-terlambat), terparah 67
+hari. Yang paling dijaga: **EOT yang disetujui MEMBEBASKAN** — menuduh atas
+keterlambatan yang sudah dimaafkan bisa dibantah dengan satu lembar surat.
+Delapan mutasi, delapan tertangkap.
 | **Eskalasi harga** → dibangun sebagai **Riwayat Harga Material** | Pergerakan harga material sepanjang waktu | S |
 
 **SELESAI** (`/procurement/riwayat-harga`, migrasi 197) — **dengan nama yang

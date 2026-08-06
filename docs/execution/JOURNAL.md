@@ -5,6 +5,72 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-06 (lanjutan 5) — Analisa keterlambatan: menyambung, bukan membangun
+
+### PEMBEDA 7/12 selesai
+
+Ketiga bahannya SUDAH ADA di basis dan tak pernah diadu satu sama lain:
+
+```
+milestones.target_date / completed_at   kapan seharusnya vs kapan nyata
+contract_eot.days_approved              perpanjangan waktu yang DISETUJUI
+projects.penalty_*                      tarif/hari + grace + cap + basis
+```
+
+Diukur: **16 milestone telat** (12 masih berjalan, 4 selesai-terlambat),
+terparah **67 hari**. Tak satu pun layar menghubungkannya ke EOT atau rupiah.
+
+Pola yang sama dengan tiga fitur sebelumnya: yang kurang bukan datanya,
+melainkan satu layar yang mengadunya. `lib/penalty.ts` yang sudah ada sengaja
+TIDAK ditulis ulang — ia menghitung denda *invoice* telat, urusan berbeda.
+
+### Yang paling dijaga: EOT membebaskan
+
+Melaporkan "telat 67 hari" pada proyek yang EOT-nya disetujui 60 hari adalah
+menuduh atas keterlambatan yang **secara kontrak tak pernah terjadi** — dan
+tuduhan itu bisa dibantah dengan satu lembar surat.
+
+Delapan mutasi disuntikkan, **delapan tertangkap**, termasuk:
+
+| Mutasi | Akibat kalau lolos |
+|---|---|
+| EOT diabaikan | menuduh yang sudah dimaafkan |
+| telat efektif boleh negatif | "lebih cepat 20 hari", mengurangi total proyek lain |
+| denda mati tetap dihitung | "paparan Rp0" terbaca "tak ada risiko" |
+| berjalan diukur dari target | keterlambatan berhenti tumbuh, padahal masih jalan |
+| terparah pakai telat kotor | angka utama mengabaikan EOT |
+
+Hanya EOT ber-status `disetujui` yang mengurangi. Yang masih `diajukan` belum
+mengubah kewajiban apa pun — memakainya membuat proyek tampak bebas hanya
+karena suratnya sudah dikirim.
+
+### `null` ≠ `0` — untuk ketiga kalinya di sesi ini
+
+Delapan proyek punya milestone telat tapi **dendanya tak aktif**. Paparannya
+`null` ("tak bisa dihitung"), bukan `0` ("sudah dihitung, hasilnya nol").
+Kalau ditulis 0, layarnya bilang "tak ada risiko" padahal yang benar
+"tarifnya belum diisi" — dan itu dinyatakan sebagai banner, bukan disembunyikan.
+
+### Revisi sesudah melihat potretnya
+
+Versi pertama menampilkan **39 baris, 2.970px**. Dua puluh tiga di antaranya
+"Tepat waktu"/"Belum jatuh tempo" — tak butuh tindakan apa pun, tapi berbagi
+ruang dengan yang telat 67 hari. Kolom "Estimasi paparan" berbunyi "denda
+belum aktif" **39 kali**, mengulang kalimat yang sudah ada di banner.
+
+Diperbaiki: bawaan jadi **"Perlu tindakan"**, dan kolom paparan hilang
+sendiri kalau tak satu pun bisa dihitung.
+
+```
+39 baris → 16 baris
+2.970px → 1.613px   (−46%)
+8 kolom → 7 kolom
+```
+
+Yang beres tetap bisa dilihat lewat saringan — hanya tak lagi jadi bawaan.
+
+---
+
 ## 2026-08-06 (lanjutan 4) — Saya salah: besi TURUN, bukan naik
 
 ### Koreksi terhadap klaim saya sendiri, sebelum kodenya ditulis

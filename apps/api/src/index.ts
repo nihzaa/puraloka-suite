@@ -42,6 +42,7 @@ import transferStokRoutes from './routes/v1/transfer-stok.js'
 import materialKlienRoutes from './routes/v1/material-klien.js'
 import rfqRoutes from './routes/v1/rfq.js'
 import riwayatHargaRoutes from './routes/v1/riwayat-harga.js'
+import analisaKeterlambatanRoutes from './routes/v1/analisa-keterlambatan.js'
 import inspeksiRoutes from './routes/v1/inspeksi.js'
 import rfiRoutes from './routes/v1/rfi.js'
 import submittalRoutes from './routes/v1/submittal.js'
@@ -284,6 +285,7 @@ await app.register(transferStokRoutes)
 await app.register(materialKlienRoutes)
 await app.register(rfqRoutes)
 await app.register(riwayatHargaRoutes)
+await app.register(analisaKeterlambatanRoutes)
 await app.register(inspeksiRoutes)
 await app.register(rfiRoutes)
 await app.register(submittalRoutes)
