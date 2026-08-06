@@ -162,7 +162,7 @@ function Skeleton({ h = 20, w = "100%" }: { h?: number; w?: string | number }) {
 function KpiCard({ label, value, sub, icon, accent, border }: { label: string; value: string; sub?: string; icon: React.ReactNode; accent?: string; border?: string }) {
   return (
     <div
-      style={{ flex: 1, minWidth: 160, background: "var(--surface)", borderRadius: 10, padding: "16px 16px", border: `1px solid ${border ?? C.border}`, display: "flex", alignItems: "center", gap: 12, boxShadow: "var(--naik-1)", transition: "all 0.15s" }}
+      style={{ flex: 1, minWidth: 160, background: "var(--surface)", borderRadius: 10, padding: "var(--pad-kartu-lega)", border: `1px solid ${border ?? C.border}`, display: "flex", alignItems: "center", gap: 12, boxShadow: "var(--naik-1)", transition: "all 0.15s" }}
       onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 6px 18px rgba(0,51,102,0.10)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
       onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.05)"; e.currentTarget.style.transform = "translateY(0)"; }}
     >
@@ -481,7 +481,7 @@ function LaporanContent() {
 
         {/* Loading state */}
         {loading && (
-          <div style={{ padding: 32 }}>
+          <div style={{ padding: "var(--pad-kartu)" }}>
             <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
               {[1,2,3,4].map(i => <div key={i} style={{ flex: 1, height: 80, borderRadius: 10, background: "var(--surface-hover)" }} />)}
             </div>
@@ -493,7 +493,7 @@ function LaporanContent() {
 
         {/* ── Tab: Ringkasan Proyek ── */}
         {!loading && tab === "ringkasan" && (
-          <div style={{ padding: 24 }}>
+          <div style={{ padding: "var(--pad-kartu)" }}>
             {!projectId ? (
               <EmptyState icon={<Building2 size={32} color={C.muted} />} title="Pilih proyek" desc="Pilih proyek dari filter di atas untuk melihat ringkasan" />
             ) : !summaryData ? (
@@ -506,7 +506,7 @@ function LaporanContent() {
 
         {/* ── Tab: Keuangan ── */}
         {!loading && tab === "keuangan" && (
-          <div style={{ padding: 24 }}>
+          <div style={{ padding: "var(--pad-kartu)" }}>
             {!financialData ? (
               <EmptyState icon={<RefreshCw size={32} color={C.muted} />} title="Memuat data..." desc="" />
             ) : (
@@ -517,7 +517,7 @@ function LaporanContent() {
 
         {/* ── Tab: Arus Kas ── */}
         {!loading && tab === "cashflow" && (
-          <div style={{ padding: 24 }}>
+          <div style={{ padding: "var(--pad-kartu)" }}>
             {!cashflowData ? (
               <EmptyState icon={<RefreshCw size={32} color={C.muted} />} title="Memuat data..." desc="" />
             ) : (
@@ -528,7 +528,7 @@ function LaporanContent() {
 
         {/* ── Tab: Mandor & Upah ── */}
         {!loading && tab === "mandor" && (
-          <div style={{ padding: 24 }}>
+          <div style={{ padding: "var(--pad-kartu)" }}>
             {!mandorData ? (
               <EmptyState icon={<RefreshCw size={32} color={C.muted} />} title="Memuat data..." desc="" />
             ) : (
@@ -539,7 +539,7 @@ function LaporanContent() {
 
         {/* ── Tab: Pengeluaran ── */}
         {!loading && tab === "pengeluaran" && (
-          <div style={{ padding: 24 }}>
+          <div style={{ padding: "var(--pad-kartu)" }}>
             {!expenseData ? (
               <EmptyState icon={<RefreshCw size={32} color={C.muted} />} title="Memuat data..." desc="" />
             ) : (
@@ -550,7 +550,7 @@ function LaporanContent() {
 
         {/* ── Tab: Progress & Foto ── */}
         {!loading && tab === "progress" && (
-          <div style={{ padding: 24 }}>
+          <div style={{ padding: "var(--pad-kartu)" }}>
             {!projectId ? (
               <EmptyState icon={<Building2 size={32} color={C.muted} />} title="Pilih proyek" desc="Pilih proyek dari filter di atas untuk melihat progress" />
             ) : !progressData ? (
@@ -563,7 +563,7 @@ function LaporanContent() {
 
         {/* ── Tab: Rekap Pajak ── */}
         {!loading && tab === "pajak" && (
-          <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 20 }}>
+          <div style={{ padding: "var(--pad-kartu)", display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
             {!taxData ? (
               <EmptyState icon={<RefreshCw size={32} color={C.muted} />} title="Memuat data pajak..." desc="" />
             ) : (
@@ -577,7 +577,7 @@ function LaporanContent() {
                 </div>
 
                 {taxData.summary_by_month.length > 0 && (
-                  <div style={{ ...card, padding: 20 }}>
+                  <div style={{ ...card, padding: "var(--pad-kartu)" }}>
                     <p style={{ fontSize: 13, fontWeight: 700, color: C.text, margin: "0 0 14px" }}>Rekap per Bulan</p>
                     {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). Komponen menjamin
                         caption sr-only, kolom pertama <th scope="row">, tabular-nums,
@@ -737,14 +737,14 @@ function TabRingkasan({ data, canViewFinance }: { data: ProjectSummaryData; canV
   const contractPct = project.contract_value > 0 ? (summary.totalInvoiced / Number(project.contract_value)) * 100 : 0;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
 
       {/* Project header card */}
       <div style={{ padding: "20px 24px", borderRadius: 10, border: `1px solid ${C.border}`, // `#fff` yang dipaku membuat kartu ini tetap PUTIH TERANG di mode
         // gelap, sementara teks di atasnya ikut menjadi terang — nama proyek
         // di sisi kanan nyaris tak terbaca. `--surface` punya varian gelapnya
         // sendiri, jadi gradasinya ikut berbalik.
-        background: "linear-gradient(135deg, var(--surface-subtle) 0%, var(--surface) 100%)", display: "flex", gap: 24, flexWrap: "wrap", alignItems: "flex-start" }}>
+        background: "linear-gradient(135deg, var(--surface-subtle) 0%, var(--surface) 100%)", display: "flex", gap: "var(--gap-bagian)", flexWrap: "wrap", alignItems: "flex-start" }}>
         <div style={{ flex: 1, minWidth: 240 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
             <StatusBadge label={statusMeta.label} color={statusMeta.color} bg={statusMeta.bg} />
@@ -752,7 +752,7 @@ function TabRingkasan({ data, canViewFinance }: { data: ProjectSummaryData; canV
           </div>
           <h2 style={{ fontSize: 22, fontWeight: 800, color: C.text, margin: "0 0 4px", fontFamily: "var(--font-display)" }}>{project.name}</h2>
           <p style={{ fontSize: 13, color: C.mid, margin: "0 0 12px" }}>{project.location}</p>
-          <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "var(--gap-bagian)", flexWrap: "wrap" }}>
             {project.clients && <div style={{ fontSize: 11 }}><span style={{ color: C.muted }}>Klien: </span><span style={{ fontWeight: 600, color: C.text }}>{project.clients.contact_person}</span></div>}
             {project.pm && <div style={{ fontSize: 11 }}><span style={{ color: C.muted }}>PM: </span><span style={{ fontWeight: 600, color: C.text }}>{project.pm.name}</span></div>}
             {project.start_date && <div style={{ fontSize: 11 }}><span style={{ color: C.muted }}>Mulai: </span><span style={{ fontWeight: 600 }}>{fmtDate(project.start_date)}</span></div>}
@@ -779,15 +779,15 @@ function TabRingkasan({ data, canViewFinance }: { data: ProjectSummaryData; canV
       </div>
 
       {/* Progress bars */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        <div style={{ padding: "16px 16px", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--gap-grid)" }}>
+        <div style={{ padding: "var(--pad-kartu-lega)", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Progress Fisik</span>
             <span style={{ fontSize: 13, fontWeight: 800, color: C.green }}>{summary.latestProgress.toFixed(1)}%</span>
           </div>
           <ProgressBar pct={summary.latestProgress} color={C.green} height={10} />
         </div>
-        <div style={{ padding: "16px 16px", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
+        <div style={{ padding: "var(--pad-kartu-lega)", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Serapan Anggaran</span>
             <span style={{ fontSize: 13, fontWeight: 800, color: C.blue }}>{summary.serapan.toFixed(1)}%</span>
@@ -920,7 +920,7 @@ function TabKeuangan({ data }: { data: FinancialData }) {
   const collectionRate = summary.totalInvoiced > 0 ? (summary.totalPaid / summary.totalInvoiced) * 100 : 0;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       {/* KPI */}
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
         <KpiCard label="Total Tagihan" value={fmtCompact(summary.totalInvoiced)} sub={`${invoices.length} invoice`} icon={<FileText size={20} color={C.navy} />} accent={C.navy} />
@@ -929,7 +929,7 @@ function TabKeuangan({ data }: { data: FinancialData }) {
       </div>
 
       {/* Collection rate bar */}
-      <div style={{ padding: "16px 16px", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
+      <div style={{ padding: "var(--pad-kartu-lega)", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Collection Rate</span>
           <span style={{ fontSize: 13, fontWeight: 800, color: collectionRate >= 80 ? C.green : C.yellow }}>{collectionRate.toFixed(1)}%</span>
@@ -1018,14 +1018,14 @@ function TabKeuangan({ data }: { data: FinancialData }) {
 function TabCashflow({ data }: { data: CashflowData }) {
   const { summary, byMonth } = data;
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       {/* KPI */}
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
         <KpiCard label="Total Masuk" value={fmtCompact(summary.totalIn)} sub="pembayaran klien" icon={<ArrowDownLeft size={20} color={C.green} />} accent={C.green} border={C.greenBorder} />
         <KpiCard label="Pengeluaran" value={fmtCompact(summary.totalExpense)} sub="pengeluaran proyek" icon={<TrendingDown size={20} color={C.red} />} accent={C.red} border={C.redBorder} />
         <KpiCard label="Upah Mandor" value={fmtCompact(summary.totalWage)} sub="dibayarkan" icon={<Users size={20} color={C.blue} />} accent={C.blue} border={C.blueBorder} />
         <KpiCard label="Kasbon" value={fmtCompact(summary.totalKasbon)} sub="disetujui" icon={<Calendar size={20} color={C.yellow} />} accent={C.yellow} border={C.yellowBorder} />
-        <div style={{ flex: 1, minWidth: 160, padding: "16px 16px", borderRadius: 10, border: `1px solid ${summary.netFlow >= 0 ? C.greenBorder : C.redBorder}`, background: summary.netFlow >= 0 ? C.greenBg : C.redBg, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+        <div style={{ flex: 1, minWidth: 160, padding: "var(--pad-kartu-lega)", borderRadius: 10, border: `1px solid ${summary.netFlow >= 0 ? C.greenBorder : C.redBorder}`, background: summary.netFlow >= 0 ? C.greenBg : C.redBg, display: "flex", flexDirection: "column", justifyContent: "center" }}>
           <p style={{ fontSize: 11, fontWeight: 600, color: C.muted, margin: "0 0 4px", textTransform: "uppercase" }}>Net Flow</p>
           <p style={{ fontSize: 22, fontWeight: 800, color: summary.netFlow >= 0 ? C.green : C.red, margin: 0, fontFamily: "var(--font-display)" }}>{summary.netFlow >= 0 ? "+" : ""}{fmtCompact(summary.netFlow)}</p>
         </div>
@@ -1092,7 +1092,7 @@ function TabMandor({ data }: { data: MandorReportData }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       {/* KPI */}
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
         <KpiCard label="Total Mandor" value={String(summary.totalMandor)} sub="assignment aktif" icon={<Users size={20} color={C.navy} />} accent={C.navy} />
@@ -1221,7 +1221,7 @@ function TabPengeluaran({ data }: { data: ExpensesData }) {
   const [expandedCat, setExpandedCat] = React.useState<string | null>(null);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       {/* KPI */}
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
         <KpiCard label="Total Pengeluaran" value={fmtCompact(summary.total)} sub={`${summary.count} transaksi`} icon={<TrendingDown size={20} color={C.red} />} accent={C.red} border={C.redBorder} />
@@ -1230,7 +1230,7 @@ function TabPengeluaran({ data }: { data: ExpensesData }) {
 
       {/* Breakdown per kategori + pie */}
       {byCategory.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--gap-grid)" }}>
           <div>
             <SectionTitle icon={<Layers size={15} color={C.navy} />} title="Per Kategori" />
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -1387,7 +1387,7 @@ function TabProgress({ data }: { data: ProgressData }) {
   useTutupEsc(lightboxUrl ? () => setLightboxUrl(null) : null);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       {/* KPI */}
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
         <KpiCard label="Progress Terkini" value={`${latestProgress.toFixed(0)}%`} sub={`${progressLogs.length} entri log`} icon={<Activity size={20} color={C.green} />} accent={C.green} border={C.greenBorder} />
@@ -1396,7 +1396,7 @@ function TabProgress({ data }: { data: ProgressData }) {
       </div>
 
       {/* Progress bar */}
-      <div style={{ padding: "16px 16px", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
+      <div style={{ padding: "var(--pad-kartu-lega)", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Progress Fisik — {project.name}</span>
           <span style={{ fontSize: 15, fontWeight: 800, color: C.green }}>{latestProgress.toFixed(1)}%</span>
@@ -1549,11 +1549,11 @@ function PortofolioTab() {
     tak_ada: "— tak ada",
   };
 
-  if (memuat) return <div style={{ padding: 24, color: C.mid, fontSize: 13 }}>Memuat portofolio…</div>;
-  if (galat) return <div style={{ padding: 24, color: C.red, fontSize: 13 }}>{galat}</div>;
+  if (memuat) return <div style={{ padding: "var(--pad-kartu)", color: C.mid, fontSize: 13 }}>Memuat portofolio…</div>;
+  if (galat) return <div style={{ padding: "var(--pad-kartu)", color: C.red, fontSize: 13 }}>{galat}</div>;
 
   return (
-    <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ padding: "var(--pad-kartu)", display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       {meta && (
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <KpiCard label="Total pagu" value={fmtCompact(meta.totalPagu)}
@@ -1677,11 +1677,11 @@ function WipTab() {
       .finally(() => setMemuat(false));
   }, []);
 
-  if (memuat) return <div style={{ padding: 24, color: C.mid, fontSize: 13 }}>Memuat laporan WIP…</div>;
-  if (galat) return <div style={{ padding: 24, color: C.red, fontSize: 13 }}>{galat}</div>;
+  if (memuat) return <div style={{ padding: "var(--pad-kartu)", color: C.mid, fontSize: 13 }}>Memuat laporan WIP…</div>;
+  if (galat) return <div style={{ padding: "var(--pad-kartu)", color: C.red, fontSize: 13 }}>{galat}</div>;
 
   return (
-    <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ padding: "var(--pad-kartu)", display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       {meta && (
         <>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>

@@ -333,12 +333,12 @@ function ProjectDetailContent() {
   if (loading) {
     return (
       <div style={{ padding: "32px 36px" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
           <Skeleton h={32} w={300} />
-          <div style={{ ...card, padding: 24 }}><div style={{ display: "flex", flexDirection: "column", gap: 12 }}><Skeleton h={24} w="50%" /><Skeleton h={16} w="30%" /><Skeleton h={100} /></div></div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-            <div style={{ ...card, padding: 24 }}><Skeleton h={200} /></div>
-            <div style={{ ...card, padding: 24 }}><Skeleton h={200} /></div>
+          <div style={{ ...card, padding: "var(--pad-kartu)" }}><div style={{ display: "flex", flexDirection: "column", gap: 12 }}><Skeleton h={24} w="50%" /><Skeleton h={16} w="30%" /><Skeleton h={100} /></div></div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--gap-grid)" }}>
+            <div style={{ ...card, padding: "var(--pad-kartu)" }}><Skeleton h={200} /></div>
+            <div style={{ ...card, padding: "var(--pad-kartu)" }}><Skeleton h={200} /></div>
           </div>
         </div>
       </div>
@@ -472,8 +472,8 @@ function ProjectDetailContent() {
       </div>
 
       {/* ── Header card ── */}
-      <div className="rise rise-1" style={{ ...card, padding: 24, marginBottom: 20 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
+      <div className="rise rise-1" style={{ ...card, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "var(--gap-bagian)", flexWrap: "wrap" }}>
           <div style={{ flex: 1 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
               <Badge status={p.status} />
@@ -766,9 +766,9 @@ function ProjectDetailContent() {
       })()}
 
       {/* ── Info grid + Progress ring ── */}
-      <div id="sec-info" className="rise rise-3" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
+      <div id="sec-info" className="rise rise-3" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--gap-grid)", marginBottom: "var(--gap-bagian)" }}>
         {/* Left: project info */}
-        <div style={{ ...card, padding: 24 }}>
+        <div style={{ ...card, padding: "var(--pad-kartu)" }}>
           <SectionTitle>Informasi Proyek</SectionTitle>
           <InfoRow icon={<User size={14} />} label="Klien" value={
             <div>
@@ -825,7 +825,7 @@ function ProjectDetailContent() {
           }
 
           return (
-            <div style={{ ...card, padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ ...card, padding: "var(--pad-kartu-lega)", display: "flex", flexDirection: "column", gap: 12 }}>
               {/* Header row */}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <SectionTitle style={{ margin: 0 }}>Status Progress</SectionTitle>
@@ -844,7 +844,7 @@ function ProjectDetailContent() {
               </div>
 
               {/* Dual ring + metrics */}
-              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--gap-bagian)" }}>
                 {/* SVG dual ring */}
                 <div style={{ flexShrink: 0, position: "relative" }}>
                   <svg width={96} height={96} style={{ transform: "rotate(-90deg)" }}>
@@ -1057,7 +1057,7 @@ function ProjectDetailContent() {
           .slice(0, 8);
 
         return (
-          <div className="rise rise-3b" style={{ ...card, padding: 20, marginBottom: 20 }}>
+          <div className="rise rise-3b" style={{ ...card, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Activity size={15} style={{ color: C.navy }} />
@@ -1113,7 +1113,7 @@ function ProjectDetailContent() {
         });
 
         return (
-          <div className="rise rise-3" style={{ ...card, padding: 24, marginBottom: 20 }}>
+          <div className="rise rise-3" style={{ ...card, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)" }}>
             {/* Header */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1301,7 +1301,7 @@ function ProjectDetailContent() {
       })()}
 
       {/* ── RAB ── */}
-      <div id="sec-rab" className="rise rise-3" style={{ ...card, padding: 24, marginBottom: 20 }}>
+      <div id="sec-rab" className="rise rise-3" style={{ ...card, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: rabCollapsed ? 0 : 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -1344,7 +1344,7 @@ function ProjectDetailContent() {
       />
 
       {/* ── Gantt Chart ── */}
-      <div id="sec-gantt" className="rise rise-3" style={{ ...card, padding: 24, marginBottom: 20 }}>
+      <div id="sec-gantt" className="rise rise-3" style={{ ...card, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: ganttCollapsed ? 0 : 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -1381,7 +1381,7 @@ function ProjectDetailContent() {
           Ditaruh TEPAT SESUDAH Gantt, bukan di bawah Kurva-S: keduanya membaca
           `planned_start/end` yang sama, dan pertanyaan "harus siapkan apa?"
           muncul persis setelah orang melihat jadwalnya. */}
-      <div id="sec-lookahead" className="rise rise-3" style={{ ...card, padding: 24, marginBottom: 20 }}>
+      <div id="sec-lookahead" className="rise rise-3" style={{ ...card, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)" }}>
         <LookAheadSection projectId={p.id} />
 
         {/* Rantai kontrak: EOT + denda keterlambatan + jaminan. Ditaruh SESUDAH
@@ -1405,7 +1405,7 @@ function ProjectDetailContent() {
       </div>
 
       {/* ── Change Order ── */}
-      <div id="sec-co" className="rise rise-3" style={{ ...card, padding: 24, marginBottom: 20 }}>
+      <div id="sec-co" className="rise rise-3" style={{ ...card, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)" }}>
         <ChangeOrderSection
           projectId={p.id}
           userRole={currentUser?.role}
@@ -1414,17 +1414,17 @@ function ProjectDetailContent() {
       </div>
 
       {/* ── Kurva S ── */}
-      <div id="sec-kurvas" className="rise rise-3" style={{ ...card, padding: 24, marginBottom: 20 }}>
+      <div id="sec-kurvas" className="rise rise-3" style={{ ...card, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)" }}>
         <KurvaSSection projectId={p.id} userRole={currentUser?.role} />
       </div>
 
       {/* ── Dokumen ── */}
-      <div id="sec-dokumen" className="rise rise-3" style={{ ...card, padding: 24, marginBottom: 20 }}>
+      <div id="sec-dokumen" className="rise rise-3" style={{ ...card, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)" }}>
         <DocumentSection projectId={p.id} userRole={currentUser?.role} />
       </div>
 
       {/* ── Galeri Foto ── */}
-      <div id="sec-foto" className="rise rise-3" style={{ ...card, padding: 24, marginBottom: 20 }}>
+      <div id="sec-foto" className="rise rise-3" style={{ ...card, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)" }}>
         {/* Titik acuan lokasi diteruskan supaya galeri bisa menghitung jarak
             tiap foto dari lokasi proyek. Tanpa itu koordinat foto cuma dua
             angka yang tak bisa dinilai siapa pun. */}
@@ -1440,7 +1440,7 @@ function ProjectDetailContent() {
       </div>
 
       {/* ── Mandor + Work scopes ── */}
-      <div id="sec-mandor" className="rise rise-3" style={{ ...card, padding: 24, marginBottom: 20 }}>
+      <div id="sec-mandor" className="rise rise-3" style={{ ...card, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)" }}>
         <MandorSection
           projectId={p.id}
           assignments={p.mandor_assignments ?? []}
@@ -1452,7 +1452,7 @@ function ProjectDetailContent() {
 
       {/* ── Kasbon summary ── */}
       {allKasbons.length > 0 && (
-        <div id="sec-kasbon" className="rise rise-4" style={{ ...card, padding: 24, marginBottom: 20 }}>
+        <div id="sec-kasbon" className="rise rise-4" style={{ ...card, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)" }}>
           <SectionTitle>Ringkasan Kasbon</SectionTitle>
 
           {/* Summary pills */}
@@ -1538,7 +1538,7 @@ function ProjectDetailContent() {
 
       {/* ── Invoices ── */}
       {(p.invoices?.length ?? 0) > 0 && (
-        <div id="sec-invoice" className="rise rise-5" style={{ ...card, padding: 24, marginBottom: 20 }}>
+        <div id="sec-invoice" className="rise rise-5" style={{ ...card, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)" }}>
           <SectionTitle>Invoice</SectionTitle>
           {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). Tujuh kolom uang —
               paling butuh tabular-nums dan rata kanan yang dijamin komponen,
@@ -1607,7 +1607,7 @@ function ProjectDetailContent() {
 
       {/* ── Notes ── */}
       {p.notes && (
-        <div className="rise rise-6" style={{ ...card, padding: 24, marginBottom: 20 }}>
+        <div className="rise rise-6" style={{ ...card, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)" }}>
           <SectionTitle>Catatan</SectionTitle>
           <p style={{ fontSize: 13, color: C.mid, lineHeight: 1.7 }}>{p.notes}</p>
         </div>
@@ -2000,7 +2000,7 @@ function ActivityFeed({ project: p }: { project: Project }) {
   };
 
   return (
-    <div className="rise rise-6" style={{ ...card, padding: 24 }}>
+    <div className="rise rise-6" style={{ ...card, padding: "var(--pad-kartu)" }}>
       <SectionTitle>Aktivitas Terbaru</SectionTitle>
       {items.length === 0 ? (
         <p style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "16px 0" }}>
