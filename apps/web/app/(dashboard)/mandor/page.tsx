@@ -18,6 +18,7 @@ import {
   HardHat, Plus, ChevronRight, RefreshCw, Clock,
   XCircle, AlertTriangle, Banknote, User, Users, FileText,
   Calendar, Search, X, Trash2, Check, Download, Camera, Phone,
+  CalendarCheck,
 } from "lucide-react";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -1859,6 +1860,62 @@ function CreateWageReportModal({ onClose, onSuccess }: {
     selectedAssignment && k.project?.id === selectedAssignment.project?.id
   );
 
+  const [memuatAbsensi, setMemuatAbsensi] = useState(false);
+
+  /**
+   * Isi rincian tukang dari catatan absensi minggu ini.
+   *
+   * Ini alasan modul absensi ada: `days_worked` seharusnya BERASAL dari
+   * catatan harian, bukan diketik ulang dari ingatan. Formulir ini lahir
+   * dengan default keras `"7"` — angka yang benar hanya kalau tak seorang
+   * pun libur sepanjang minggu.
+   *
+   * MENGGANTI, bukan menambah: dua sumber angka untuk hal yang sama akan
+   * berbeda suatu hari, dan yang salah tak akan ketahuan sampai tukang
+   * menagih. Tarif harian yang sudah diisi DIPERTAHANKAN — absensi mencatat
+   * kehadiran, bukan upah.
+   */
+  async function ambilDariAbsensi() {
+    if (!scopeId) return;
+    setMemuatAbsensi(true);
+    setError("");
+    try {
+      const akhir = new Date(weekStart);
+      akhir.setDate(akhir.getDate() + 6);
+      const r = await api.get<{
+        rekap: Array<{ worker_id: string; nama: string; hari: number; lembur: number }>;
+      }>("/api/v1/absensi/rekap", {
+        params: { scope_id: scopeId, dari: weekStart, sampai: akhir.toISOString().slice(0, 10) },
+      });
+      const rekap = r.data.rekap ?? [];
+      if (rekap.length === 0) {
+        // Kekosongan dinyatakan, bukan dibiarkan terlihat seperti "berhasil
+        // tapi tak ada yang berubah". Tanpa pesan ini, orang menekan tombolnya
+        // berkali-kali dan menyimpulkan fiturnya rusak.
+        setError("Belum ada absensi tercatat untuk minggu ini. Isi di menu Absensi Lapangan lebih dulu.");
+        return;
+      }
+      // Tarif lama dipertahankan per NAMA — mandor sering sudah mengisi tarif
+      // sebelum menekan tombol ini.
+      const tarifLama = new Map(items.map((i) => [i.worker_name, i]));
+      setItems(rekap.map((k) => {
+        const lama = tarifLama.get(k.nama);
+        return {
+          worker_name: k.nama,
+          days_worked: String(k.hari),
+          daily_rate: lama?.daily_rate ?? "125000",
+          overtime_hours: k.lembur > 0 ? String(k.lembur) : "",
+          overtime_rate: lama?.overtime_rate ?? "15000",
+        };
+      }));
+    } catch (e: unknown) {
+      const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      setError(m ?? "Gagal mengambil rekap absensi");
+    } finally {
+      setMemuatAbsensi(false);
+    }
+  }
+
   function addItem() {
     setItems(prev => [...prev, { worker_name: "", days_worked: "7", daily_rate: "125000", overtime_hours: "", overtime_rate: "15000" }]);
   }
@@ -2011,9 +2068,32 @@ function CreateWageReportModal({ onClose, onSuccess }: {
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: C.mid }}>Rincian Tukang <span style={{ color: C.red }}>*</span></span>
-              <button type="button" onClick={addItem} style={{ fontSize: 12, color: C.navy, border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontWeight: 600 }}>
-                <Plus size={12} /> Tambah Tukang
-              </button>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                {/* Inti dari modul absensi: jumlah hari kerja DIAMBIL dari
+                    catatan harian, bukan diketik ulang. Formulir ini lahir
+                    dengan `days_worked: "7"` sebagai default keras — angka
+                    yang benar hanya kalau tak seorang pun libur. */}
+                <button
+                  type="button"
+                  onClick={ambilDariAbsensi}
+                  disabled={!scopeId || memuatAbsensi}
+                  title={!scopeId ? "Pilih lingkup kerja lebih dulu" : "Isi hari kerja & lembur dari catatan absensi minggu ini"}
+                  style={{
+                    fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 6,
+                    border: `1px solid ${scopeId ? C.navy : C.border}`,
+                    background: "transparent",
+                    color: scopeId ? C.navy : C.muted,
+                    cursor: scopeId && !memuatAbsensi ? "pointer" : "not-allowed",
+                    display: "flex", alignItems: "center", gap: 4,
+                  }}
+                >
+                  <CalendarCheck size={12} aria-hidden="true" />
+                  {memuatAbsensi ? "Mengambil…" : "Ambil dari absensi"}
+                </button>
+                <button type="button" onClick={addItem} style={{ fontSize: 12, color: C.navy, border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontWeight: 600 }}>
+                  <Plus size={12} /> Tambah Tukang
+                </button>
+              </div>
             </div>
 
             {/* Header kolom */}

@@ -800,11 +800,14 @@ items:
   #      bernama surat/instruksi" sempat memberi NOL dan hampir menghasilkan
   #      catatan "belum ada" untuk fitur yang sudah hidup.
   #
+  #   #9 absensi lapangan · SELESAI 2026-08-06 (migrasi 191 + /api/v1/absensi
+  #      + /mandor/absensi). Sumber days_worked yang dulu diketik dari ingatan;
+  #      formulir upah punya tombol "Ambil dari absensi". 14 invarian, mutasi
+  #      membuktikan constraint + RLS-nya nyata.
+  #
   # Belum digarap:
-  #   #8 geotag    · 8 kolom koordinat SUDAH ada (ncr_photos, project_photos,
-  #                  projects). Triase menulis "0 kolom hari ini" — sudah usang.
-  #                  Yang belum: tampilan peta / verifikasi lokasi di UI.
-  #   #9 absensi lapangan · nol rute, nol halaman.
+  #   #8 geotag    · 8 kolom koordinat SUDAH ada. Yang belum: tampilan peta /
+  #                  verifikasi lokasi di UI.
 
   - id: F5-INTI-2
     fase: 5
