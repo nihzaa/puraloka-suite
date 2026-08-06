@@ -184,10 +184,100 @@ kutip. Parser env buatan sendiri harus melucuti keduanya — atau cukup pakai
 - Ragu antara dua kesimpulan? **Ukur**, jangan pilih yang lebih nyaman.
 - Salah? Tulis "saya salah" di `JOURNAL.md`, perbaiki, lanjut.
 
+## 8a. Cara kerja yang diminta founder (berlaku di SETIAP sesi)
+
+> Ditetapkan 2026-08-06. Ini bukan saran — ini cara kerja default di repo ini.
+> Tak perlu diminta ulang tiap prompt.
+
+### 8a.1 Autopilot — kerjakan terus, jangan tanya untuk hal biasa
+
+Ambil keputusan teknis biasa sendiri. Jangan berhenti menanyakan "lanjut?",
+"boleh saya kerjakan?", atau melapor progres di tengah jalan. Pecah pekerjaan
+jadi **todo yang banyak dan spesifik**, lalu habiskan.
+
+**Berhenti HANYA untuk lima hal ini:**
+
+1. **Ada sesi/agent lain menulis di checkout yang sama.** Tanda-tandanya:
+   berkas hilang dari disk padahal `git status` bersih, commit muncul yang
+   bukan buatan Anda, `docs/` atau `.superpowers/` lenyap. **Terjadi 3×
+   pada 2026-08-06.** Jangan "jangan berhenti" sampai menimpa kerja orang.
+2. Akan **menghapus/menimpa kerja yang belum di-commit**.
+3. **Migrasi destruktif** (DROP, truncate, backfill tak bisa mundur).
+4. Butuh **keputusan founder** → `RATIFIKASI.md`, bukan ditebak sendiri.
+5. **Gerbang Keras** CHARTER (G-2 buku migrasi, G-5 pelemahan penjaga).
+
+Di luar lima itu: jalan terus.
+
+### 8a.2 Tiap sektor WAJIB ditest dan diaudit
+
+Selesai ≠ kode jalan. Selesai = **ada buktinya**:
+
+- test yang benar-benar dijalankan, ringkasannya ditempel (CHARTER §7);
+- penjaga arsitektural terkait dijalankan, exit code-nya ditempel;
+- penjaga baru **wajib dibuktikan bisa merah** lewat mutasi sengaja —
+  suntik pelanggaran → MERAH → pulihkan → HIJAU. Penjaga yang tak pernah
+  merah adalah hiasan.
+
+### 8a.3 UI/UX — pedoman WAJIB dibaca sebelum menulis kode visual
+
+Untuk pekerjaan apa pun yang menyentuh tampilan (komponen, halaman,
+warna, tipografi, layout, animasi), **baca lebih dulu**:
+
+| Berkas | Isi |
+|---|---|
+| `docs/design/ARAH-VISUAL-2026.md` | **arah visual resmi** — patuhi, jangan karang sendiri |
+| `docs/superpowers/specs/2026-08-06-sumbu-ui-roadmap-design.md` | spec sumbu UI |
+| `docs/superpowers/plans/2026-08-06-sumbu-ui-roadmap.md` | rencana + status penjaga |
+
+Skill yang dipakai: `frontend-design`, `ui-ux-pro-max`, `design-system`,
+`ui-animation`, `a11y-audit` (WCAG 2.1 AA — **bukan opsional**, banyak
+pengguna berperangkat lama/literasi digital rendah).
+
+**Nilai sendiri hasilnya.** Kalau tampilannya kurang bagus menurut Anda,
+**revisi** — jangan serahkan hasil yang Anda sendiri tak puas. Tapi
+penilaian selera tak boleh melanggar `ARAH-VISUAL-2026.md`.
+
+⚠️ Judul `2026-08-06-sumbu-ui-roadmap.md` menyebut "Sumbu UI/UX" tetapi
+isinya **penjaga CI status-dokumen**, bukan rombak visual. Jangan tertukar.
+
+### 8a.4 Dokumen tak boleh tertinggal dari kode
+
+Sesudah menyelesaikan sesuatu, **perbarui dokumennya di commit yang sama**:
+`QUEUE.yaml` · `ERP-KONTRAKTOR-TAKSONOMI-MENU.md` · `F5-1-TRIASE-SUBMENU.md`
+· `JOURNAL.md` · `docs/INDEKS-DOKUMEN.md`.
+
+Ini cacat paling sering di repo ini: **tujuh sub-menu** pernah ditandai 🔴
+padahal UI-nya sudah hidup berbulan-bulan (`F5-1` §3a dan §3b). Penjaga
+`audit-taksonomi-vs-kode.mjs` sekarang merahkan CI kalau terulang —
+jangan matikan, perbaiki statusnya.
+
+Sebelum menyatakan sesuatu "belum dikerjakan", **ukur dulu ke kode**.
+
+### 8a.5 Data & schema — boleh diubah, dengan syarat
+
+Seluruh isi basis saat ini **data dummy**, jadi:
+
+- Boleh **menambah kolom** yang seharusnya ada — lewat migrasi maju
+  bernomor, idempoten, dengan blok verifikasi di akhir (pola migrasi 142).
+  Bukan mengedit migrasi lama (§5.5).
+- Boleh **membuat data dummy** untuk menguji jalur nyata.
+- Tetap tunduk §5.4: nominal `numeric`, waktu `timestamptz`.
+- **Menghapus/mengubah data yang sudah ada tetap butuh konfirmasi** —
+  "dummy" bukan izin untuk merusak.
+
+### 8a.6 Selalu rujuk `docs/`
+
+Sebelum memutuskan sesuatu, cek apakah `docs/` sudah menjawabnya.
+Indeksnya: `docs/INDEKS-DOKUMEN.md`.
+
+---
+
 ## 9. Dokumen rujukan
 
 | Kebutuhan | Berkas |
 |---|---|
+| **Cara kerja default (autopilot, UI/UX, docs)** | **§8a dokumen ini** |
+| Arah visual 2026 | `docs/design/ARAH-VISUAL-2026.md` |
 | Kewenangan, fase, gerbang | `docs/execution/CHARTER.md` |
 | Antrean kerja | `docs/execution/QUEUE.yaml` |
 | Menunggu founder | `docs/execution/RATIFIKASI.md` |
