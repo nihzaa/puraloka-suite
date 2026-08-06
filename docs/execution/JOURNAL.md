@@ -5,6 +5,79 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-07 (lanjutan 7) — merge `feat/ui-lanjutan`, dan perbaikan dari arah yang salah
+
+### Merge: bukan fast-forward, dan gabungannya tidak hijau
+
+Laporan sesi UI menyebut "fast-forward, tanpa konflik, 384 test lulus".
+Diukur sebelum menjalankan: **bukan fast-forward** — 2 commit sisi ini belum
+ada di sana (endpoint situs + jurnal IPC), 10 commit mereka belum ada di sini.
+Merge tetap bersih, tapi menghasilkan commit gabungan.
+
+Yang lebih penting: **gabungannya tidak hijau**, dan itu tak terlihat dari
+sisi mana pun secara terpisah. Sesi UI tak punya pekerjaan IPC saya; saya tak
+punya penjaga baru mereka.
+
+### SAYA SALAH: memperbaiki rantai approval dari arah yang salah
+
+`submittal-aturan.test.ts` merah — ada company tanpa rantai approval.
+Company itu `[UJI] Tenant Kedua`, dan saya menyimpulkan terlalu cepat bahwa
+yang kurang adalah rantainya.
+
+Saya menulis migrasi 208 (menyalin rantai), lalu menemukan level 2 tak ikut
+tersalin, lalu menulis 209 untuk memperbaikinya. Hasilnya: test submittal
+hijau, dan **dua test lain rusak**.
+
+Sebabnya baru terlihat sesudah membaca test-nya sendiri:
+`approval-chain-berjenjang.test.ts` menghitung level lintas SELURUH company
+dan mengharapkan `[1, 2]`. Dengan dua rantai, ia membaca `[1, 1, 2, 2]`.
+
+Dan akar sebenarnya ada di tempat lain lagi: `[UJI] Tenant Kedua` dibuat
+`situs.test.ts` dan **sengaja ditinggalkan nonaktif** — penjaga repo melarang
+menghapus company, jadi ia dimatikan. Company nonaktif tak menerima pengajuan
+apa pun.
+
+Perbaikan yang benar satu baris: saring `is_active` di test itu. Kedua migrasi
+dibatalkan, beserta 7 rantai + 7 langkah yang terlanjur masuk.
+
+**Pelajarannya**: saya memperbaiki gejala (test merah) sebelum memahami
+sebabnya, dua kali berturut-turut, dan tiap "perbaikan" menambah kerusakan.
+Yang menghentikannya adalah membaca test yang gagal — bukan menebak apa yang
+dimaui angkanya.
+
+### Tiga temuan yang TIDAK saya perbaiki
+
+Semuanya di `situs.ts` dan `pengaturan/situs/`, berkas yang sedang ditulis
+sesi compro. Menyuntingnya berarti menimpa pekerjaan berjalan
+(CLAUDE.md §8a.1 poin 1). Dicatat di RATIFIKASI.md paling atas, lengkap
+dengan jalan keluarnya:
+
+1. **6 kegagalan senyap** — `?? []` tanpa memeriksa `error` di enam query
+   `/api/v1/public/situs`. Halaman publik tetap terbit tanpa milestone,
+   legalitas, atau seksi, tanpa satu pun gejala. 192 vs ambang 186.
+2. **Ratchet supabase mentah 373 vs plafon 366.** Plafon ini `PLAFON_R011`,
+   diratifikasi founder sebagai satu-satunya kenaikan, dengan tripwire yang
+   merah kalau angkanya sendiri diubah — G-5. Jalan keluarnya sudah tertulis
+   di header test: VIEW yang menjamin tenancy di lapisan SQL.
+3. **Tiga penjaga web** dari `pengaturan/situs/page.tsx` (tata letak, hex,
+   kerapatan).
+
+### Yang saya perbaiki
+
+- `kerapatan-ratchet` (penjaga baru dari cabang yang di-merge) naik 2 karena
+  dua halaman sesi ini → token `--gap-bagian` dan `--gap-grid`
+- kode baru sesi ini sudah patuh ketiga standar baru tanpa penyesuaian:
+  nol `<table>` mentah, nol `any`, nol `set-state-in-effect`
+
+### Bukti
+
+    1785 dari 1788 test lulus, 2 dilewati, 1 merah (ratchet supabase situs.ts)
+    seluruh penjaga API hijau kecuali audit-kegagalan-senyap (situs.ts)
+    seluruh penjaga web hijau kecuali tiga di atas (pengaturan/situs)
+    typecheck web bersih
+
+---
+
 ## 2026-08-07 (lanjutan 6) — catatan riwayat: pekerjaan IPC masuk lewat commit sesi lain
 
 Pekerjaan INTI #2 (migrasi 204, `lib/sertifikat-ipc.ts`, rute, penjaga,
