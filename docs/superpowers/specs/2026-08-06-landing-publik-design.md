@@ -366,8 +366,10 @@ tanpa bukti nyata terbaca sebagai kompensasi.
 diperiksa: tukang mengukur profil baja WF, gording biru bertumpuk, tabung las,
 terpal. Satu foto **terbalik** (EXIF rotation tidak diterapkan).
 
-Estimasi realistis: **15–25 foto layak tayang** setelah kurasi, crop, koreksi
-rotasi dan warna.
+Estimasi awal "15–25 layak tayang" **terkoreksi oleh §6.2**: 28 foto sudah
+tervalidasi founder (dipakai di compro cetak), 47 sisanya jadi cadangan. Yang
+tetap dibutuhkan hanya crop, koreksi rotasi, dan koreksi warna — bukan seleksi
+dari nol.
 
 **Ini kekuatan, bukan kelemahan.** Compro kontraktor kebanyakan memakai render
 mengkilap atau foto stok. Halaman yang menampilkan proses lapangan sebenarnya
@@ -375,16 +377,45 @@ lebih dipercaya pembeli konstruksi — mereka mengenali bedanya. Dan itu menyatu
 dengan konsep massing "urutan membangun": foto menjadi bukti untuk tiap tahap
 yang diperagakan model 3D.
 
-### 6.2 Dugaan pemetaan foto → proyek
+### 6.2 Pemetaan foto → kategori (TERBUKTI, bukan dugaan)
 
-**DUGAAN, BUKAN FAKTA.** Dikonfirmasi founder lewat UI kurasi.
+**Portofolio compro dikelompokkan per JENIS PEKERJAAN, bukan per proyek
+bernama.** Halaman 13–19 PDF adalah galeri berisi 72 gambar dengan tujuh judul.
+Ini menggantikan dugaan periode-waktu di draf sebelumnya — yang salah kerangka.
 
-| Periode | Jumlah | Kemungkinan proyek |
-|---|---|---|
-| 2021-08 → 2021-11 | 14 | Gudang PT Sinarmaju / Home 88 |
-| 2022-05 → 2022-12 | 18 | Workshop Home 88 |
-| 2023-01 → 2023-07 | 35 | Pabrik Sepatu PT Top Torch (Juli 2023: 16 foto struktur baja) |
-| 2023-12 → 2024-09 | 15 | Supermarket PT Kijang Mas |
+Pemetaan diperoleh dengan mencocokkan **perceptual hash** gambar galeri PDF
+terhadap berkas di `Foto Proyek/`. Byte-hash gagal (0 kecocokan — PDF mengompres
+ulang saat menyisipkan), pHash berhasil dengan **jarak Hamming 0** untuk
+mayoritas: kecocokan sempurna, bukan kemiripan.
+
+| Kategori (judul PDF) | Foto tercocok |
+|---|---|
+| Pembangunan Pabrik | 14 |
+| Pematangan Lahan | 4 |
+| Konstruksi Baja | 4 |
+| Pembangunan Rumah Mewah | 3 |
+| Pembangunan Perumahan | 3 |
+| Renovasi Rumah | 0 |
+| Beton Pracetak | 0 |
+| **Terpakai di compro** | **28** |
+| Tidak dipakai di compro | 47 |
+
+Peta lengkap nama berkas: `scratchpad/peta-foto.json`.
+
+**Konsekuensi:**
+
+1. **28 foto sudah tervalidasi founder** — sudah dipilih untuk compro cetak,
+   jadi tidak perlu kurasi ulang dari nol. Ini menghapus beban kurasi terbesar.
+2. **Estimasi "15–25 layak tayang" di §6.1 terkoreksi jadi 28 tervalidasi**,
+   plus 47 kandidat cadangan.
+3. **Renovasi Rumah & Beton Pracetak tidak punya foto tercocok.** Dua
+   kemungkinan: gambarnya di bawah ambang ukuran, atau berasal dari sumber di
+   luar `Foto Proyek/`. Perlu konfirmasi founder — jangan diterbitkan sebagai
+   kategori kosong.
+4. **Struktur portofolio mengikuti kategori pekerjaan**, dengan proyek bernama
+   (Top Torch, Kijang Mas, Jaya Cemerlang) sebagai atribut di dalamnya. Ini juga
+   lebih jujur: satu foto pemasangan baja bisa milik proyek pabrik mana pun,
+   sementara kategori pekerjaannya pasti benar.
 
 ### 6.3 Pipeline media
 
@@ -470,14 +501,20 @@ Puri Cipageran Indah 2 Blok D13/12
 RT 002 / RW 022, Tanimulya, Ngamprah
 Kabupaten Bandung Barat 40552
 
+0813-1108-1813
 puralokapersada@gmail.com
 NIB 2110240218547
 ```
 
 ### 8.2 Dua keputusan privasi
 
-**Nomor WhatsApp — BELUM ADA.** Tidak tercantum di compro PDF. Konten CMS wajib
-diisi sebelum terbit. Sebaiknya nomor bisnis, bukan pribadi. **Tidak dikarang.**
+**Nomor WhatsApp: `0813-1108-1813`** — dari halaman 20 compro PDF ("LET'S
+CONNECT WITH US"), dikonfirmasi founder. Ekstraksi awal melewatkannya karena
+hanya membaca 150 baris pertama; halaman kontak ada di akhir.
+
+**Disimpan sebagai konten CMS, bukan konstanta di kode.** Nilai di atas adalah
+isi seed awal — bisa diganti dari dashboard tanpa menyentuh kode, sesuai aturan
+nol-hardcode.
 
 **NPWP `27.924.367.9-421.000` sengaja TIDAK ditampilkan publik.** NIB cukup
 sebagai bukti legalitas; NPWP lebih tepat di dokumen penawaran. Menyebarnya di
@@ -608,8 +645,10 @@ Dipenuhi tanpa diumumkan di UI:
 
 | # | Hal | Butuh |
 |---|---|---|
-| 1 | Nomor WhatsApp bisnis | Founder |
-| 2 | Kurasi 75 foto → proyek bernama | Founder (via UI kurasi) |
+| 1 | ~~Nomor WhatsApp~~ | **Selesai** — `0813-1108-1813` (hal. 20 PDF) |
+| 2 | ~~Kurasi foto~~ | **Selesai** — 28 foto terpetakan via pHash (§6.2); 47 sisanya cadangan |
+| 2b | Renovasi Rumah & Beton Pracetak nol foto tercocok | Founder — sumber lain, atau kategori dilewati? |
+| 2c | Lokasi & lingkup tiap kategori (mis. "gudang baja 1.200 m²") | Founder — menyusul, tak memblokir |
 | 3 | Nomor migrasi & nama tabel final | Verifikasi saat implementasi |
 | 4 | Display typeface final | Uji render angka |
 | 5 | Alamat lengkap vs "Bandung Barat" | Diputuskan: tampil lengkap |
@@ -634,3 +673,6 @@ membuat pembaca berikutnya mengulangi kesalahan yang sama.
 | Merek = navy saja | **Kuning `#FFD600` warna kedua** — memikul logo & aksen di seluruh compro, absen dari dashboard | Render + sampling piksel PDF |
 | Aksen landing = amber `--warning` | Kuning merek menggantikannya — dua kuning akan bertabrakan | Konsekuensi temuan di atas |
 | PDF tak bisa dirender (poppler hilang) | PyMuPDF sudah terpasang dan cukup | Dicoba, bukan diasumsikan |
+| Portofolio dikelompokkan per **proyek bernama** | Compro mengelompokkan per **jenis pekerjaan** (7 kategori, hal. 13–19) | Founder → dibuktikan pHash |
+| Kurasi 75 foto beban terbesar founder | 28 foto **sudah** dikurasi founder untuk compro cetak — tinggal dipetakan | pHash, jarak Hamming 0 |
+| Nomor WhatsApp tak ada di PDF | Ada di hal. 20; ekstraksi awal berhenti di baris 150 | Founder |
