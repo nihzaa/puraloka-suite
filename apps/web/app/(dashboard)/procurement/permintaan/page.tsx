@@ -145,11 +145,27 @@ export default function PermintaanPage() {
             />
           )}
           {mrs.map(mr => (
-            <Card key={mr.id} style={{ cursor: "pointer" }} onClick={() => void openDetail(mr)}>
+            // Kartu TIDAK lagi ber-`onClick`. Ia berisi tombol Submit/Setujui/
+            // Tolak, dan kontrol di dalam kontrol membuat pembaca layar
+            // mengumumkan keduanya bertumpuk (`nested-interactive`, WCAG 4.1.2).
+            // Pemicu detail dipindah ke nomor MR di bawah — "buka MR-001" jauh
+            // lebih jelas daripada "tombol" untuk seluruh kartu.
+            <Card key={mr.id}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontWeight: 700, color: C.navy }}>{mr.mr_number}</span>
+                    <button
+                      type="button"
+                      onClick={() => void openDetail(mr)}
+                      style={{
+                        fontWeight: 700, color: C.navy, background: "none", border: "none",
+                        padding: 0, font: "inherit", cursor: "pointer", textAlign: "left",
+                        textDecoration: "underline", textUnderlineOffset: 3,
+                      }}
+                    >
+                      {mr.mr_number}
+                      <span className="sr-only"> — buka rincian permintaan</span>
+                    </button>
                     <Badge status={mr.status} />
                   </div>
                   <div style={{ fontSize: 13, color: C.mid, marginTop: 4 }}>
@@ -165,7 +181,9 @@ export default function PermintaanPage() {
                     ))}
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: 6 }} onClick={e => e.stopPropagation()}>
+                {/* `stopPropagation` dihapus bersama `onClick` kartu — tak ada
+                    lagi handler induk yang perlu ditahan. */}
+                <div style={{ display: "flex", gap: 6 }}>
                   {mr.status === "draft" && (
                     <Btn loading={submitting === mr.id} onClick={() => void submit(mr.id)}>Submit</Btn>
                   )}

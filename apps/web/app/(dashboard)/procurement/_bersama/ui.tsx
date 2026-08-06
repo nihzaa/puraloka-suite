@@ -94,6 +94,26 @@ export function Badge({ status }: { status: string }) {
 // KARTU
 // ═══════════════════════════════════════════════════════════════════════════
 
+/**
+ * Kartu isi. Bisa diklik lewat `onClick` — TAPI jangan pakai itu kalau di
+ * dalamnya ada kontrol lain.
+ *
+ * ── Kenapa ada peringatan ini
+ *
+ * Diukur 2026-08-07 (`audit-a11y-runtime`): 9 pelanggaran `nested-interactive`
+ * di `/procurement/permintaan` dan `/procurement/pesanan`. Kartunya bisa
+ * diklik untuk membuka detail, dan di dalamnya ada tombol Submit/Setujui/Tolak.
+ *
+ * `stopPropagation` menangani tetikus dengan benar, jadi tak ada gejala yang
+ * terlihat. Tapi pembaca layar mengumumkan kontrol di dalam kontrol — dan
+ * pengguna papan tik menemukan fokus berpindah ke tempat yang tak diumumkan
+ * sama sekali.
+ *
+ * Kalau kartunya berisi tombol: JANGAN beri `onClick` di sini. Jadikan satu
+ * elemen di dalamnya (biasanya nomor dokumen) sebagai tombol pembuka —
+ * "buka MR-001" jauh lebih jelas diumumkan daripada "tombol" untuk seluruh
+ * kartu.
+ */
 export function Card({ children, style, onClick }: {
   children: React.ReactNode; style?: React.CSSProperties; onClick?: () => void;
 }) {

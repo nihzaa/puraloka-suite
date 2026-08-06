@@ -153,11 +153,26 @@ export default function PesananPage() {
             />
           )}
           {pos.map(po => (
-            <Card key={po.id} style={{ cursor: "pointer" }} onClick={() => void openDetail(po)}>
+            // Kartu TIDAK lagi ber-`onClick` — ia berisi tombol aksi, dan
+            // kontrol di dalam kontrol membuat pembaca layar mengumumkan
+            // keduanya bertumpuk (`nested-interactive`, WCAG 4.1.2). Pemicu
+            // detail dipindah ke nomor PO.
+            <Card key={po.id}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontWeight: 700, color: C.navy }}>{po.po_number}</span>
+                    <button
+                      type="button"
+                      onClick={() => void openDetail(po)}
+                      style={{
+                        fontWeight: 700, color: C.navy, background: "none", border: "none",
+                        padding: 0, font: "inherit", cursor: "pointer", textAlign: "left",
+                        textDecoration: "underline", textUnderlineOffset: 3,
+                      }}
+                    >
+                      {po.po_number}
+                      <span className="sr-only"> — buka rincian pesanan</span>
+                    </button>
                     <Badge status={po.status} />
                   </div>
                   <div style={{ fontSize: 13, color: C.mid, marginTop: 4 }}>
@@ -175,7 +190,8 @@ export default function PesananPage() {
                     ))}
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }} onClick={e => e.stopPropagation()}>
+                {/* `stopPropagation` dihapus bersama `onClick` kartu. */}
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {po.status === "draft" && canManage && (
                     <Btn onClick={() => void updateStatus(po.id, "sent")} style={{ fontSize: 12 }}>
                       <Truck size={13} aria-hidden="true" /> Kirim ke Supplier

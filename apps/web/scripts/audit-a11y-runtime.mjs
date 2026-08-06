@@ -75,6 +75,12 @@ const CONTOH_ID = {
   '/mandor/[id]': process.env.LAYAR_ID_MANDOR,
   '/portal/proyek/[id]': process.env.LAYAR_ID_PROYEK,
   '/pm-portal/proyek/[id]': process.env.LAYAR_ID_PROYEK,
+  // Ditambahkan 2026-08-07. Keduanya sebelumnya selalu "TERLEWAT", dan
+  // rute yang tak pernah dipindai adalah rute yang cacatnya tak pernah
+  // ketahuan — audit yang melaporkan "0 pelanggaran" sambil melewati enam
+  // halaman terbaca seperti cakupan penuh.
+  '/m/[key]': process.env.LAYAR_KUNCI_MENU,
+  '/verify/invoice/[id]': process.env.LAYAR_ID_INVOICE,
 }
 
 function halamanDariBerkas() {

@@ -893,6 +893,18 @@ jobs:
         run: node apps/web/scripts/uji-rute-terdaftar.mjs
         working-directory: .
 
+      # Audit a11y runtime (axe-core) MELEWATI rute dinamis yang tak diberi
+      # contoh id — dan tetap melaporkan "0 pelanggaran". Diukur 2026-08-07:
+      # enam halaman terlewat selama ini, dan outputnya terbaca sebagai
+      # cakupan penuh.
+      #
+      # Penjaga ini statis (hanya membaca berkas), jadi ia bisa jalan tanpa
+      # server web maupun peramban. Yang dijaganya: halaman dinamis BARU yang
+      # ditambahkan tanpa contoh id, lalu tak pernah dipindai siapa pun.
+      - name: Tiap rute dinamis bisa diaudit a11y
+        run: node apps/web/scripts/uji-rute-dinamis-teraudit.mjs
+        working-directory: .
+
       # Rumus jarak geotag ada di DUA tempat (api/lib/geotag.ts dan
       # web/components/penanda-lokasi.tsx) — digandakan supaya galeri foto tak
       # perlu satu permintaan jaringan per foto.

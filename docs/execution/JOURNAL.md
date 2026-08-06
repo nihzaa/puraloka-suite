@@ -113,6 +113,80 @@ byte-hash gagal total karena PDF mengompres ulang saat menyisipkan.
 
 ---
 
+## 2026-08-07 (lanjutan 10) — audit a11y runtime: 9 pelanggaran yang audit manual saya lewatkan
+
+### Audit manual saya sendiri melewatkannya
+
+Saya memindai 7 dashboard baru dengan axe, kedua mode: **14 dari 14 bersih**.
+Lalu menjalankan `audit-a11y-runtime.mjs` yang memindai **69 halaman** —
+dan menemukan **9 pelanggaran serius** yang tak masuk pilihan saya.
+
+Pelajarannya bukan "audit lebih banyak halaman", melainkan: alat yang
+menemukan halamannya sendiri dari berkas tak bisa lupa, sedangkan daftar yang
+saya ketik bisa.
+
+### `nested-interactive` — kontrol di dalam kontrol
+
+`/procurement/permintaan` dan `/procurement/pesanan`: kartu ber-`onClick`
+untuk membuka detail, berisi tombol Submit/Setujui/Tolak.
+
+`stopPropagation` menangani tetikus dengan benar, jadi **tak ada gejala yang
+terlihat**. Tapi pembaca layar mengumumkan kontrol bertumpuk, dan pengguna
+papan tik menemukan fokus berpindah ke tempat yang tak diumumkan sama sekali
+(WCAG 4.1.2).
+
+Diperbaiki dengan memindahkan pemicu: kartu berhenti jadi tombol, nomor
+dokumen yang jadi tombol pembuka. "Buka MR-001" jauh lebih jelas diumumkan
+daripada "tombol" untuk seluruh kartu. `stopPropagation` ikut dihapus — tak
+ada lagi handler induk yang perlu ditahan.
+
+Peringatannya ditulis di komponen `Card` supaya pemakaian berikutnya tak
+mengulanginya.
+
+### Enam halaman yang tak pernah dipindai siapa pun
+
+Audit melaporkan `rute dinamis TERLEWAT: 6` — dan tetap menutup dengan
+**"pelanggaran: 0"**. Skripnya jujur; yang tidak jujur adalah cara angka itu
+terbaca. "0 pelanggaran" di baris terakhir mengalahkan daftar terlewat di
+baris keenam.
+
+Keenamnya diberi contoh id dari data nyata. Hasil akhirnya:
+
+    72 halaman × 2 mode = 144 pemindaian
+    nol rute terlewat
+    0 pelanggaran
+
+Dua di antaranya (`/m/[key]`, `/verify/invoice/[id]`) memang bersih — tapi itu
+baru diketahui SESUDAH dipindai.
+
+### Penjaga baru: `uji-rute-dinamis-teraudit.mjs`
+
+Audit runtime butuh server web dan peramban; CI belum punya keduanya, jadi
+mendaftarkannya di sana adalah pekerjaan infrastruktur tersendiri.
+
+Yang bisa dijaga hari ini murni statis: **tiap rute dinamis wajib punya entri
+`CONTOH_ID`**. Halaman dinamis baru tanpa contoh id akan merah di CI, bukan
+diam-diam tak pernah dipindai.
+
+Aturan penelusuran berkasnya sengaja disamakan dengan `halamanDariBerkas()`
+di audit-nya — kalau keduanya menyimpang, penjaga ini menjaga daftar yang
+berbeda dari yang benar-benar dipindai, dan itu lebih buruk daripada tak ada
+penjaga.
+
+Mutation-test, dua arah:
+
+    contoh id dihapus              -> MERAH
+    halaman dinamis BARU tanpa id  -> MERAH
+
+### Bukti
+
+    a11y runtime: 72 halaman, terang & gelap, 0 pelanggaran, 0 rute terlewat
+    web: 29 berkas test, 389 lulus, 0 gagal
+    seluruh penjaga CI hijau — nol gagal
+    pnpm build web lolos
+
+---
+
 ## 2026-08-07 (lanjutan 9) — antrean UI, dan hook yang saya bangun lalu batalkan sendiri
 
 ### Tabel mentah 8 → 7 halaman
