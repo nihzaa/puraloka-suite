@@ -136,6 +136,64 @@ function WidgetShell({
   hidden: boolean;
   onToggleHide: () => void;
 }) {
+  const areaGulir = useRef<HTMLDivElement>(null);
+  const [adaLagi, setAdaLagi] = useState(false);
+
+  /**
+   * Adakah isi yang belum terlihat di bawah?
+   *
+   * Toleransi 2px, bukan `> 0`: pembulatan sub-piksel pada layar retina
+   * membuat `scrollHeight` kadang 0,5px lebih besar dari tinggi terlihat
+   * meski sudah mentok bawah — tanpa toleransi, bayangannya tak pernah
+   * hilang dan justru jadi kebohongan permanen.
+   */
+  const periksaGulir = useCallback(() => {
+    const el = areaGulir.current;
+    if (!el) return;
+    const sisa = (n: Element) => n.scrollHeight - n.scrollTop - n.clientHeight;
+
+    // Diperiksa pada `el` DAN pada keturunannya yang menggulir sendiri.
+    //
+    // Sebagian widget menggulir di dalam dirinya (milestone: `overflowY`
+    // pada pembungkusnya sendiri; status: pada bagian "Progress Aktif"),
+    // sehingga `el` tak pernah meluap dan penandanya takkan menyala kalau
+    // hanya `el` yang diperiksa — persis kegagalan percobaan pertama.
+    if (sisa(el) > 2) { setAdaLagi(true); return; }
+    for (const anak of el.querySelectorAll("*")) {
+      const g = getComputedStyle(anak).overflowY;
+      if ((g === "auto" || g === "scroll") && sisa(anak) > 2) { setAdaLagi(true); return; }
+    }
+    setAdaLagi(false);
+  }, []);
+
+  // Widget bisa diubah ukurannya lewat drag, dan isinya datang belakangan
+  // dari API — jadi "muat/tak muat" berubah SESUDAH render pertama.
+  // ResizeObserver menangkap keduanya; memeriksa sekali saat mount saja
+  // akan salah pada setiap widget yang datanya masih dimuat.
+  useEffect(() => {
+    const el = areaGulir.current;
+    if (!el) return;
+    periksaGulir();
+
+    const pengamat = new ResizeObserver(periksaGulir);
+    pengamat.observe(el);
+
+    // MutationObserver, bukan hanya ResizeObserver pada anak pertama.
+    //
+    // Percobaan pertama mengamati `el.firstElementChild` dan TIDAK PERNAH
+    // menyala. Sebabnya: isi tiap widget membungkus dirinya dengan
+    // `height: "100%"`, jadi anak pertama selalu setinggi areanya — yang
+    // meluap adalah CUCUNYA. Tingginya tak pernah berubah, jadi tak ada
+    // yang diamati.
+    //
+    // Yang menandai data tiba adalah perubahan pohon DOM (kerangka memuat
+    // diganti daftar sungguhan), bukan perubahan ukuran.
+    const pengintai = new MutationObserver(periksaGulir);
+    pengintai.observe(el, { childList: true, subtree: true, characterData: true });
+
+    return () => { pengamat.disconnect(); pengintai.disconnect(); };
+  }, [periksaGulir]);
+
   return (
     <div
       style={{
@@ -207,14 +265,48 @@ function WidgetShell({
           Di sini larangan itu tidak berlaku: perhentian tab-nya JUSTRU yang
           membuat kontennya terbaca. axe mencerminkan dampak ke pengguna nyata,
           jadi ia yang dimenangkan — dimatikan satu baris, bukan rule-nya. */}
-      <div
-        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
-        tabIndex={0}
-        role="region"
-        aria-label={title}
-        style={{ flex: 1, overflow: "auto", minHeight: 0 }}
-      >
-        {children}
+      {/* ── Penanda gulir ────────────────────────────────────────────────
+          Widget yang isinya melebihi tingginya memotong baris terakhir di
+          TENGAH HURUF. Tanpa tanda apa pun, itu terbaca sebagai halaman
+          rusak — bukan sebagai "ada lagi di bawah". Terlihat jelas di
+          tangkapan layar dashboard 2026-08-07: "Tambah Ruang Pak Andi —
+          Cicendo 80%" dan "Finishing & cat selesai" keduanya terpenggal.
+
+          Bayangan ini hanya muncul saat memang ada isi tersembunyi, dan
+          hilang begitu digulir sampai bawah. Penanda yang selalu tampak
+          akan berbohong pada widget yang isinya sudah muat.
+
+          `pointer-events: none` supaya ia tak pernah mencegat klik pada
+          isi di bawahnya. */}
+      <div style={{ position: "relative", flex: 1, minHeight: 0, display: "flex" }}>
+        <div
+          // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+          tabIndex={0}
+          role="region"
+          aria-label={title}
+          ref={areaGulir}
+          // `onScrollCapture`, bukan `onScroll`: event scroll TIDAK
+          // menggelembung, jadi gulir di dalam widget yang punya area
+          // gulirnya sendiri (milestone, progress aktif) tak akan pernah
+          // sampai ke sini lewat handler biasa — dan bayangannya akan
+          // tertinggal menyala setelah pemakai sampai di dasar.
+          onScrollCapture={periksaGulir}
+          style={{ flex: 1, overflow: "auto", minHeight: 0 }}
+        >
+          {children}
+        </div>
+        {adaLagi && (
+          <div
+            aria-hidden="true"
+            style={{
+              position: "absolute", left: 0, right: 0, bottom: 0, height: 28,
+              // Ke `--surface`, bukan putih: di mode gelap putih akan
+              // menyala seperti garis terang di dasar setiap widget.
+              background: "linear-gradient(to bottom, transparent, var(--surface))",
+              pointerEvents: "none",
+            }}
+          />
+        )}
       </div>
     </div>
   );

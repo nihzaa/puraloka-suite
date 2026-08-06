@@ -418,7 +418,18 @@ function DashboardContent() {
           </div>
         )}
       </div>
-      <div style={{ flex: 1 }}>
+      {/* `minHeight: 0` + `overflowY: auto` — 2026-08-07.
+          Tanpa `minHeight: 0`, anak flex menolak menyusut di bawah tinggi
+          isinya, jadi daftar proyek memanjang melewati dasar widget dan
+          proyek terakhir terpotong DI TENGAH HURUF. Terlihat jelas di
+          tangkapan layar: "Tambah Ruang Pak Andi — Cicendo 80%".
+
+          Itu bukan cuma jelek — ia berbohong. Baris terpenggal terbaca
+          sebagai halaman rusak, bukan sebagai "ada proyek lain di bawah",
+          jadi orang berhenti menggulir dan mengira daftarnya sampai situ.
+          Dengan keduanya, sisanya bisa dicapai dan `WidgetShell` memberi
+          bayangan penanda. */}
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
         <SectionHeader title="Progress Aktif" linkLabel="Semua" linkHref="/proyek" />
         {loading ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -542,7 +553,12 @@ function DashboardContent() {
   );
 
   const milestoneWidget = (
-    <div style={{ padding: 20, height: "100%" }}>
+    /* `overflowY: auto` — 2026-08-07. Sama seperti Progress Aktif: dengan
+       `height: 100%` saja, milestone kelima terpotong di tengah huruf
+       ("Finishing & cat selesai") dan tak ada cara mencapainya. Daftar ini
+       memang bisa panjang — semua tenggat yang mendekat — jadi memotongnya
+       diam-diam berarti menyembunyikan tenggat. */
+    <div style={{ padding: 20, height: "100%", overflowY: "auto" }}>
       <SectionHeader title="Milestone Mendatang" linkLabel="Kalender" linkHref="/kalender" />
       {loading ? <Skeleton h={160} /> :
        !data?.upcoming_milestones.length ? (

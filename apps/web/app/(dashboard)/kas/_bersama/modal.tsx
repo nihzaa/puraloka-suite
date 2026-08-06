@@ -39,6 +39,15 @@ function Bingkai({ judul, ikon, gradasi, lebar, onClose, children }: {
   judul: string; ikon: React.ReactNode; gradasi: string; lebar: number;
   onClose: () => void; children: React.ReactNode;
 }) {
+  // Komentar di atas SUDAH menjanjikan "tutup lewat Esc" sejak berkas ini
+  // lahir, tapi pemanggilannya tak pernah ikut terbawa saat memecah halaman
+  // kas — janji di komentar, bukan di kode. Ditangkap modal-esc-ratchet
+  // 2026-08-07, bukan oleh review.
+  //
+  // Tanpa ini modal MENJEBAK pemakai keyboard: Tab berputar di dalamnya dan
+  // satu-satunya jalan keluar adalah mengambil tetikus. WCAG 2.1.2 Level A.
+  useTutupEsc(onClose);
+
   return (
     <div style={{
       // Nilai asli dari versi tab dipertahankan: belum ada token tirai di

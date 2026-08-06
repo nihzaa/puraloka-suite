@@ -21,6 +21,7 @@ import { api } from "@/lib/api";
 import { Tabel, Kosong } from "@/components/dasar";
 import { Plus, RefreshCw, Users, Search } from "lucide-react";
 import { C } from "@/lib/warna-ui";
+import { useTutupEsc } from "@/lib/use-tutup-esc";
 import {
   type Worker,
   TIPE_LABELS, TIPE_COLORS, SKILL_LABELS,
@@ -44,6 +45,17 @@ export default function DaftarTukangPage() {
   const [showWorkerForm, setShowWorkerForm] = useState<{ mandorId?: string; mandorName?: string; worker?: Worker } | null>(null);
   const [deleteWorkerConfirm, setDeleteWorkerConfirm] = useState<Worker | null>(null);
   const [deletingWorkerId, setDeletingWorkerId] = useState<string | null>(null);
+
+  // Dialog konfirmasi hapus TIDAK punya jalan keluar Esc saat halaman ini
+  // dipecah dari tab — ditangkap modal-esc-ratchet 2026-08-07. Tanpa ini
+  // pemakai keyboard terjebak: Tab berputar di dalam dialog dan satu-satunya
+  // jalan keluar adalah mengambil tetikus (WCAG 2.1.2 Level A).
+  //
+  // `null` saat penghapusan berjalan: Esc di tengah proses akan menutup
+  // dialog sementara permintaan masih terbang, sehingga pemakai kehilangan
+  // satu-satunya tempat hasilnya dilaporkan — pada tindakan yang TIDAK BISA
+  // dibatalkan.
+  useTutupEsc(deleteWorkerConfirm && !deletingWorkerId ? () => setDeleteWorkerConfirm(null) : null);
 
   const loadWorkers = useCallback(() => {
     setLoading(true);
