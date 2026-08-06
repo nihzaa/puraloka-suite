@@ -210,10 +210,10 @@ export default function KasbonTukangPage() {
       {showModal && (
         <div style={{
           position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000,
-          display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
+          display: "flex", alignItems: "center", justifyContent: "center", padding: "var(--pad-kartu-lega)",
         }} onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}>
           <div style={{
-            background: "var(--surface)", borderRadius: 14, padding: 24, width: "100%", maxWidth: 480,
+            background: "var(--surface)", borderRadius: 14, padding: "var(--pad-kartu-lega)", width: "100%", maxWidth: 480,
             boxShadow: "var(--naik-3)",
           }}>
             <h2 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: "0 0 20px" }}>Ajukan Kasbon Tukang</h2>

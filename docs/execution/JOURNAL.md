@@ -113,6 +113,49 @@ byte-hash gagal total karena PDF mengompres ulang saat menyisipkan.
 
 ---
 
+## 2026-08-07 (lanjutan 11) — padding dipaku 358 → 307, dan ekor panjang yang sengaja ditinggal
+
+### Yang dikerjakan
+
+Delapan berkas penyumbang terbesar dialihkan ke token kerapatan:
+`--pad-kartu`, `--pad-kartu-lega`, `--gap-grid`, `--gap-bagian`.
+
+    358 → 307   (lantai ikut turun, terkunci)
+
+### Yang TIDAK dikerjakan, dan kenapa
+
+Sisa 307 tersebar di **112 berkas** — rata-rata kurang dari 3 per berkas.
+Menghabiskannya berarti menyunting 112 berkas dengan nilai per suntingan yang
+kecil dan risiko regresi visual yang nyata di tiap satu.
+
+Dan sebagian memang **bukan** kerapatan kartu:
+`portal/proyek/[id]` didominasi `padding: 40/60/80` untuk keadaan kosong dan
+pemuatan — token kartu tak berlaku di sana, dan memaksakannya justru membuat
+layar kosong jadi sempit.
+
+Ratchet-nya sudah menjaga sisanya: angka hari ini adalah lantai, dan halaman
+baru tak bisa menambah.
+
+### Verifikasi visual, karena mengganti padding tanpa melihat itu ceroboh
+
+Potret dashboard di 1500px menampilkan kartu KPI keempat terpotong, dan saya
+sempat menyimpulkan tata letaknya rusak. **Diukur, bukan disimpulkan**:
+`scrollWidth === innerWidth` dengan maupun tanpa perubahan saya — nol geseran
+horizontal di kedua keadaan.
+
+Potret ulang di 1920px menunjukkan keempat KPI muat dan panel Status &
+Progress lengkap dengan angkanya. Yang terlihat terpotong adalah batas
+viewport potretnya, bukan cacat.
+
+### Bukti
+
+    kerapatan: 358 → 307, lantai terkunci
+    web: 29 berkas test, 389 lulus, 0 gagal
+    seluruh penjaga CI hijau — nol gagal
+    pnpm build web lolos
+
+---
+
 ## 2026-08-07 (lanjutan 10) — audit a11y runtime: 9 pelanggaran yang audit manual saya lewatkan
 
 ### Audit manual saya sendiri melewatkannya

@@ -129,7 +129,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
           <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>{title}</h3>
           <button aria-label="Tutup" onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted }}><X size={18} /></button>
         </div>
-        <div style={{ padding: 16 }}>{children}</div>
+        <div style={{ padding: "var(--pad-kartu-lega)" }}>{children}</div>
       </div>
     </div>, document.body);
 }
@@ -220,7 +220,7 @@ function KomposerTab() {
 
       <div style={{ display: "grid", gap: 12 }}>
         {scenarios.map(sc => (
-          <div key={sc.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: 12 }}>
+          <div key={sc.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "var(--pad-kartu)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
               <div>
                 <strong style={{ fontSize: 13, color: C.text }}>{sc.name}</strong>
@@ -251,7 +251,7 @@ function KomposerTab() {
       </div>
 
       {openVersion && (
-        <div style={{ marginTop: 18, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: 16 }}>
+        <div style={{ marginTop: "var(--gap-bagian)", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "var(--pad-kartu-lega)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <Layers size={16} color={C.navy} />
@@ -471,7 +471,7 @@ function JelaskanModal({ itemId, onClose }: { itemId: string; onClose: () => voi
           {data && <p style={{ margin: "4px 0 0", fontSize: 12, color: C.mid }}>{data.nama}</p>}
         </div>
 
-        <div style={{ padding: 20 }}>
+        <div style={{ padding: "var(--pad-kartu-lega)" }}>
           {memuat && <div style={{ color: C.mid, fontSize: 13 }}>Memuat penjelasan…</div>}
           {galat && <div style={{ color: C.red, fontSize: 13 }}>{galat}</div>}
 
@@ -1547,7 +1547,7 @@ function AdopsiModal({ asal, onClose, onDone }: {
         display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
       }} onClick={onClose}>
       <form onClick={e => e.stopPropagation()} onSubmit={kirim} style={{
-        ...card, width: "100%", maxWidth: 660, maxHeight: "88vh", overflowY: "auto", padding: 20,
+        ...card, width: "100%", maxWidth: 660, maxHeight: "88vh", overflowY: "auto", padding: "var(--pad-kartu-lega)",
       }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
           <div>
@@ -1704,7 +1704,7 @@ function EditAssemblyModal({ asal, onClose, onDone }: {
         display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
       }} onClick={onClose}>
       <form onClick={e => e.stopPropagation()} onSubmit={kirim} style={{
-        ...card, width: "100%", maxWidth: 660, maxHeight: "88vh", overflowY: "auto", padding: 20,
+        ...card, width: "100%", maxWidth: 660, maxHeight: "88vh", overflowY: "auto", padding: "var(--pad-kartu-lega)",
       }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
           <div>
@@ -1936,8 +1936,8 @@ function RapTab() {
       )}
 
       {detail && (
-        <div style={{ display: "grid", gap: 16 }}>
-          <div style={{ ...card, padding: 16 }}>
+        <div style={{ display: "grid", gap: "var(--gap-grid)" }}>
+          <div style={{ ...card, padding: "var(--pad-kartu-lega)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <ClipboardList size={16} color={C.navy} />

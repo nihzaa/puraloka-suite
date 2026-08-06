@@ -306,7 +306,7 @@ function DashboardContent() {
         </div>
         <span style={{ fontSize: 11, color: C.muted, flexShrink: 0 }}>{PERIOD_LABEL[period]}</span>
       </div>
-      <div style={{ display: "flex", gap: 16, marginBottom: 12 }}>
+      <div style={{ display: "flex", gap: "var(--gap-grid)", marginBottom: 12 }}>
         <LegendDot color={C.navy} label="Pemasukan" />
         <LegendDot color={C.red}  label="Pengeluaran" />
       </div>
@@ -364,11 +364,11 @@ function DashboardContent() {
   );
 
   const statusWidget = (
-    <div style={{ padding: 20, height: "100%", display: "flex", flexDirection: "column", gap: 12 }}>
+    <div style={{ padding: "var(--pad-kartu-lega)", height: "100%", display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
         <SectionHeader title="Status Proyek" />
         {loading ? <Skeleton h={120} /> : (
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--gap-grid)" }}>
             <div style={{ position: "relative", flexShrink: 0 }}>
               <PieChart width={110} height={110}>
                 {/* ── Gradasi HANYA pada irisan "aktif" (R-012) ───────────
@@ -589,7 +589,7 @@ function DashboardContent() {
        ("Finishing & cat selesai") dan tak ada cara mencapainya. Daftar ini
        memang bisa panjang — semua tenggat yang mendekat — jadi memotongnya
        diam-diam berarti menyembunyikan tenggat. */
-    <div style={{ padding: 20, height: "100%", overflowY: "auto" }}>
+    <div style={{ padding: "var(--pad-kartu-lega)", height: "100%", overflowY: "auto" }}>
       <SectionHeader title="Milestone Mendatang" linkLabel="Kalender" linkHref="/kalender" />
       {loading ? <Skeleton h={160} /> :
        !data?.upcoming_milestones.length ? (
@@ -737,7 +737,7 @@ function DashboardContent() {
   ) : null;
 
   const taxWidget = (
-    <div style={{ padding: 20 }}>
+    <div style={{ padding: "var(--pad-kartu-lega)" }}>
       <SectionHeader title="Ringkasan Pajak (PPh Final)" />
       <TaxDeadlineBanner />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
@@ -752,7 +752,7 @@ function DashboardContent() {
     <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="rise" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24, gap: 16 }}>
+      <div className="rise" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24, gap: "var(--gap-grid)" }}>
         <div>
           <p style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>
             {new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}

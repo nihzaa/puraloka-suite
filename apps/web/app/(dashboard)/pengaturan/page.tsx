@@ -211,11 +211,11 @@ function PengaturanContent() {
               </div>
             </div>
 
-            <div style={{ padding: 24 }}>
+            <div style={{ padding: "var(--pad-kartu-lega)" }}>
               {/* Logo upload */}
               <div style={{ marginBottom: 24 }}>
                 <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 10 }}>Logo Perusahaan</label>
-                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--gap-grid)" }}>
                   {/* Preview area */}
                   <div
                     role="button"
@@ -274,7 +274,7 @@ function PengaturanContent() {
               </div>
 
               {/* Form fields grid */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--gap-grid)" }}>
                 <Field label="Nama Perusahaan" required value={profile.company_name} onChange={v => setField("company_name", v)} disabled={!isAdmin} span={2} />
                 <Field label="Tagline / Slogan" value={profile.tagline} onChange={v => setField("tagline", v)} disabled={!isAdmin} span={2} placeholder="Mis: Membangun Kepercayaan, Mewujudkan Impian" />
                 <Field label="Alamat Lengkap" value={profile.address} onChange={v => setField("address", v)} disabled={!isAdmin} span={2} textarea rows={2} placeholder="Jl. Contoh No. 123, Kelurahan, Kecamatan" />
@@ -300,8 +300,8 @@ function PengaturanContent() {
               </div>
             </div>
 
-            <div style={{ padding: 24 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <div style={{ padding: "var(--pad-kartu-lega)" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--gap-grid)" }}>
                 <Field label="Nama Bank" value={profile.bank_name} onChange={v => setField("bank_name", v)} disabled={!isAdmin} placeholder="BCA / Mandiri / BRI" />
                 <Field label="Nomor Rekening" value={profile.bank_account} onChange={v => setField("bank_account", v)} disabled={!isAdmin} placeholder="1234567890" />
                 <Field label="Nama Pemilik Rekening" value={profile.bank_account_name} onChange={v => setField("bank_account_name", v)} disabled={!isAdmin} span={2} placeholder="PT Puraloka Persada" />

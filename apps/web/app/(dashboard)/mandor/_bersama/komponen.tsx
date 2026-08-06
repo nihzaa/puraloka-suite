@@ -273,7 +273,7 @@ export function CreateWageReportModal({ onClose, onSuccess }: {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
+        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
           {/* Mandor + scope + minggu */}
           {/* Mandor / Assignment — selalu tampil.
               Dulu disembunyikan saat `isMandor && assignments.length === 1`,
@@ -555,7 +555,7 @@ export function WageReportDetailModal({ data, onClose, onApprove }: {
           </div>
         </div>
 
-        <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16, maxHeight: "70vh", overflowY: "auto" }}>
+        <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: "var(--gap-grid)", maxHeight: "70vh", overflowY: "auto" }}>
           {/* Rincian tukang */}
           <div>
             <div style={{ fontSize: 12, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Rincian Tukang</div>
@@ -845,7 +845,7 @@ export function WorkerFormModal({ mandorId: initialMandorId, mandorName: initial
   if (!mounted) return null;
   return createPortal(
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
-      <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 460, padding: 24, boxShadow: "var(--naik-3)" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 460, padding: "var(--pad-kartu-lega)", boxShadow: "var(--naik-3)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
           <div>
             <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>
@@ -1036,7 +1036,7 @@ export function AddKasbonModal({ assignments, onClose, onSuccess }: {
   if (!mounted) return null;
   return createPortal(
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ background: "var(--surface)", borderRadius: 14, width: 480, padding: 24, boxShadow: "var(--naik-3)", maxHeight: "90vh", overflowY: "auto" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, width: 480, padding: "var(--pad-kartu-lega)", boxShadow: "var(--naik-3)", maxHeight: "90vh", overflowY: "auto" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
           <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>Catat Kasbon Tukang</h2>
           <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
@@ -1203,7 +1203,7 @@ export function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () =>
 
   if (!mounted) return null;
   return createPortal(
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "var(--pad-kartu-lega)" }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 480, boxShadow: "var(--naik-3)", display: "flex", flexDirection: "column", maxHeight: "90vh" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: `1px solid ${C.border}` }}>
@@ -1398,7 +1398,7 @@ export function AddAssignmentModal({ mandors, onClose, onSuccess }: {
 
   if (!mounted) return null;
   return createPortal(
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "var(--pad-kartu-lega)" }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 460, boxShadow: "var(--naik-3)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: `1px solid ${C.border}` }}>
@@ -1489,7 +1489,7 @@ export function AddScopeModal({ assignmentId, onClose, onSuccess }: {
 
   if (!mounted) return null;
   return createPortal(
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "var(--pad-kartu-lega)" }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 480, boxShadow: "var(--naik-3)", maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: `1px solid ${C.border}` }}>
@@ -1616,7 +1616,7 @@ export function ScopeDetailModal({ data, loading: isLoading, onClose, onRefresh,
         </div>
 
         {!isLoading && items.length > 0 && (
-          <div style={{ padding: "12px 24px", background: "var(--bg)", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ padding: "12px 24px", background: "var(--bg)", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: "var(--gap-grid)" }}>
             <div style={{ flex: 1 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
                 <span style={{ fontSize: 12, color: C.muted }}>Progress Keseluruhan</span>
@@ -1779,7 +1779,7 @@ export function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
 
   if (!mounted) return null;
   return createPortal(
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "var(--pad-kartu-lega)" }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 560, boxShadow: "var(--naik-3)", display: "flex", flexDirection: "column", maxHeight: "92vh" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: `1px solid ${C.border}` }}>
@@ -1926,7 +1926,7 @@ export function SettlementBoronganModal({ data, cashAccounts, onClose, onSuccess
 
   if (!mounted) return null;
   return createPortal(
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1500, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1500, display: "flex", alignItems: "center", justifyContent: "center", padding: "var(--pad-kartu-lega)" }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 480, boxShadow: "var(--naik-3)", maxHeight: "90vh", overflow: "auto" }}>
         <div style={{ padding: "20px 24px", borderBottom: `1px solid ${C.border}` }}>
@@ -2008,7 +2008,7 @@ export function PPConfirmModal({ payment, cashAccounts, loading, onClose, onActi
 
   if (!mounted) return null;
   return createPortal(
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1500, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1500, display: "flex", alignItems: "center", justifyContent: "center", padding: "var(--pad-kartu-lega)" }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 440, boxShadow: "var(--naik-3)" }}>
         <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border)" }}>

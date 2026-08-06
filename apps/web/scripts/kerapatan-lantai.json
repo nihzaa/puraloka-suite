@@ -1,11 +1,12 @@
 {
-  "nilai": 358,
+  "nilai": 307,
   "_catatan": "diukur otomatis pada jalan pertama",
   "_diukur": "2026-08-06",
   "_riwayat": [
     "422 → 422",
     "422 → 394 (otomatis)",
     "394 → 369 (otomatis)",
-    "369 → 358 (otomatis)"
+    "369 → 358 (otomatis)",
+    "358 → 307 (otomatis)"
   ]
 }

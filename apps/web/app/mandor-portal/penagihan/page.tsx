@@ -195,7 +195,7 @@ export default function PenagihanProgressPage() {
       )}
 
       {/* Scopes */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
         {scopes.map((scope) => {
           const contractValue = scope.contract_value ?? 0;
           const totalPaid = scope.total_progress_paid ?? 0;
@@ -330,10 +330,10 @@ export default function PenagihanProgressPage() {
       {showModal && selectedScope && (
         <div style={{
           position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000,
-          display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
+          display: "flex", alignItems: "center", justifyContent: "center", padding: "var(--pad-kartu-lega)",
         }} onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}>
           <div style={{
-            background: "var(--surface)", borderRadius: 14, padding: 24, width: "100%", maxWidth: 460,
+            background: "var(--surface)", borderRadius: 14, padding: "var(--pad-kartu-lega)", width: "100%", maxWidth: 460,
             boxShadow: "var(--naik-3)",
           }}>
             <div style={{ marginBottom: 20 }}>

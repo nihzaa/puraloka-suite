@@ -247,7 +247,7 @@ export default function KeuanganSettingsPage() {
       {loading ? (
         <div style={{ textAlign: "center", padding: 60, color: C.muted, fontSize: 13 }}>Memuat…</div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 20 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)", marginTop: 20 }}>
           {FINANCE_KEYS.map(({ key, label, hint, format }) => {
             const history = byKey[key] ?? [];
             const active = activeRow(key);
@@ -317,7 +317,7 @@ export default function KeuanganSettingsPage() {
           <p style={{ margin: "4px 0 14px", fontSize: 13, color: C.mid }}>
             Nilai awal yang otomatis terisi saat membuat proyek — tetap bisa diubah per proyek.
           </p>
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "var(--gap-grid)", flexWrap: "wrap" }}>
             <label style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1, minWidth: 160 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Uang muka (DP) default</span>
               <div style={{ position: "relative" }}>
@@ -349,7 +349,7 @@ export default function KeuanganSettingsPage() {
       {/* Batas Kasbon — toggle enforcement (Q2, default OFF) */}
       {!loading && (
         <div style={{ ...card, padding: "16px 20px", marginTop: 16 }}>
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--gap-grid)" }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 15, fontWeight: 600, color: C.text }}>Batas Kasbon</div>
               <p style={{ margin: "4px 0 0", fontSize: 13, color: C.mid, lineHeight: 1.5 }}>
@@ -387,7 +387,7 @@ export default function KeuanganSettingsPage() {
       {/* Denda Keterlambatan — config effective-dated, DEFAULT OFF */}
       {!loading && penalty && (
         <div style={{ ...card, padding: "16px 20px", marginTop: 16 }}>
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--gap-grid)" }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 15, fontWeight: 600, color: C.text }}>Denda Keterlambatan</span>
@@ -431,7 +431,7 @@ export default function KeuanganSettingsPage() {
       {/* Modal aturan denda */}
       {pModal && (
         <div onClick={(e) => { if (e.target === e.currentTarget) setPModal(false); }}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "var(--pad-kartu-lega)" }}>
           <div style={{ ...card, width: "100%", maxWidth: 480, padding: 0, maxHeight: "92vh", overflowY: "auto" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: `1px solid ${C.border}` }}>
               <div>
@@ -440,7 +440,7 @@ export default function KeuanganSettingsPage() {
               </div>
               <button aria-label="Tutup pengaturan denda keterlambatan" onClick={() => setPModal(false)} style={{ padding: 6, background: "transparent", border: "none", cursor: "pointer", color: C.muted }}><X size={18} /></button>
             </div>
-            <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ padding: "var(--pad-kartu-lega)", display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
               {/* Enabled toggle */}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                 <div>
@@ -505,7 +505,7 @@ export default function KeuanganSettingsPage() {
       {/* Modal ubah tarif */}
       {editKey && (
         <div onClick={(e) => { if (e.target === e.currentTarget) setEditKey(null); }}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "var(--pad-kartu-lega)" }}>
           <div style={{ ...card, width: "100%", maxWidth: 440, padding: 0 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: `1px solid ${C.border}` }}>
               <div>
@@ -516,7 +516,7 @@ export default function KeuanganSettingsPage() {
               </div>
               <button aria-label="Tutup pengaturan tarif" onClick={() => setEditKey(null)} style={{ padding: 6, background: "transparent", border: "none", cursor: "pointer", color: C.muted }}><X size={18} /></button>
             </div>
-            <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ padding: "var(--pad-kartu-lega)", display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
               <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Tarif (%)</span>
                 <input type="number" step="0.01" min="0" max="100" value={pct} onChange={(e) => setPct(e.target.value)} placeholder="mis. 11"

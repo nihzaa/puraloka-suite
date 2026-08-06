@@ -443,7 +443,7 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
 
   if (!mounted) return null;
   return createPortal(
-    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.45)", backdropFilter: "blur(3px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.45)", backdropFilter: "blur(3px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "var(--pad-kartu-lega)" }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 600, boxShadow: "var(--naik-3)", display: "flex", flexDirection: "column", maxHeight: "94vh" }}>
 
@@ -886,7 +886,7 @@ export function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; on
 
   if (!mounted) return null;
   return createPortal(
-    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.45)", backdropFilter: "blur(3px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.45)", backdropFilter: "blur(3px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "var(--pad-kartu-lega)" }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 520, boxShadow: "var(--naik-3)", display: "flex", flexDirection: "column", maxHeight: "90vh" }}>
 
@@ -1079,7 +1079,7 @@ export function PenaltyModal({ invoiceId, invoiceNumber, onClose }: { invoiceId:
   const est = info?.estimate;
   return (
     <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1200, display: "flex", alignItems: "center", justifyContent: "center", padding: "var(--pad-kartu-lega)" }}>
       <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 460, boxShadow: "var(--naik-3)", maxHeight: "90vh", overflowY: "auto" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid var(--border)" }}>
           <div>
@@ -1088,8 +1088,8 @@ export function PenaltyModal({ invoiceId, invoiceNumber, onClose }: { invoiceId:
           </div>
           <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, border: "none", background: "transparent", cursor: "pointer", color: "var(--text-muted)" }}><X size={18} /></button>
         </div>
-        <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
-          {loading ? <div style={{ textAlign: "center", padding: 20, color: "var(--text-muted)", fontSize: 13 }}>Memuat…</div> : (
+        <div style={{ padding: "var(--pad-kartu-lega)", display: "flex", flexDirection: "column", gap: 12 }}>
+          {loading ? <div style={{ textAlign: "center", padding: "var(--pad-kartu-lega)", color: "var(--text-muted)", fontSize: 13 }}>Memuat…</div> : (
             <>
               {info?.waived && (
                 <div style={{ padding: "8px 12px", borderRadius: 10, background: "var(--warning-bg)", border: "1px solid var(--warning-border)", fontSize: 12, color: "var(--text-primary)" }}>
@@ -1208,7 +1208,7 @@ export function PayInvoiceModal({ invoice, onClose, onSuccess }: { invoice: Invo
 
   if (!mounted) return null;
   return createPortal(
-    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.45)", backdropFilter: "blur(3px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.45)", backdropFilter: "blur(3px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "var(--pad-kartu-lega)" }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 480, boxShadow: "var(--naik-3)", display: "flex", flexDirection: "column", maxHeight: "90vh" }}>
         {/* Header */}
@@ -1428,7 +1428,7 @@ export function CashflowTooltip({ active, payload, label }: { active?: boolean; 
     <div style={{ background: "var(--surface)", border: `1px solid ${C.border}`, borderRadius: 10, padding: "8px 12px", fontSize: 12, boxShadow: "var(--naik-2)", minWidth: 180 }}>
       <p style={{ fontWeight: 700, color: C.text, marginBottom: 8 }}>{label}</p>
       {payload.map((p, i) => (
-        <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 16, marginBottom: 4 }}>
+        <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: "var(--gap-grid)", marginBottom: 4 }}>
           <span style={{ color: C.mid }}>{p.name}</span>
           <span style={{ fontWeight: 600, color: p.color }}>{fmtCompact(p.value)}</span>
         </div>
