@@ -249,7 +249,8 @@ describe('approval_chains — UNIQUE per company (migrasi 158)', () => {
     // estimasi, semuanya beku.
     await c.query('SAVEPOINT s8')
     const b = await c.query(
-      `INSERT INTO companies (code, name) VALUES ('uji-158-t','Tenant B') RETURNING id`)
+      `INSERT INTO companies (code, name, owner_user_id)
+       VALUES ('uji-158-t','Tenant B', (SELECT id FROM users ORDER BY created_at LIMIT 1)) RETURNING id`)
     let bisa = false
     try {
       await c.query(
@@ -269,7 +270,8 @@ describe('approval_chains — UNIQUE per company (migrasi 158)', () => {
   it('ganda DALAM satu company tetap ditolak', async () => {
     await c.query('SAVEPOINT s9')
     const b = await c.query(
-      `INSERT INTO companies (code, name) VALUES ('uji-158-u','Tenant C') RETURNING id`)
+      `INSERT INTO companies (code, name, owner_user_id)
+       VALUES ('uji-158-u','Tenant C', (SELECT id FROM users ORDER BY created_at LIMIT 1)) RETURNING id`)
     await c.query(
       `INSERT INTO approval_chains (company_id, entity_type, label, is_active)
        VALUES ($1,'kasbon','satu',true)`, [b.rows[0].id])

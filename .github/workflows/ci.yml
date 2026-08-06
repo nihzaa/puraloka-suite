@@ -223,6 +223,24 @@ jobs:
       - name: State bersama uji (nama tetap yang dihapus di setup)
         run: node scripts/audit-state-bersama-test.mjs
 
+      # Kelas yang sama dengan penjaga di atas, sumbu berbeda: fixture yang
+      # SAH bagi dirinya sendiri tapi melanggar invariant yang ditegakkan
+      # berkas LAIN.
+      #
+      # `t9-kelola-badan-usaha` menuntut setiap akar grup punya pemilik —
+      # akar tanpa pemilik adalah grup yang tak seorang pun bisa menambah
+      # badan usaha di dalamnya. Invariant itu benar. Tapi ia memeriksa
+      # SELURUH tabel `companies`, jadi perusahaan uji tanpa `owner_user_id`
+      # dari berkas mana pun menjatuhkannya, dengan pesan yang tak ada
+      # hubungannya dengan apa yang diuji berkas itu.
+      #
+      # Terjadi TIGA KALI dalam satu hari, dari fixture berbeda-beda. Tiap
+      # kali "perbaikannya" hanya membersihkan fixture yang itu. Membersihkan
+      # bukan perbaikan: `afterAll` tak berjalan kalau prosesnya mati.
+      # Fixture harus SAH SEJAK LAHIR.
+      - name: Fixture company yatim (akar grup uji tanpa pemilik)
+        run: node scripts/audit-fixture-company-yatim.mjs
+
       # Sisi TULIS: `update`/`delete`/`insert` yang hasilnya dibuang. Kegagalan
       # apa pun — constraint, RLS, kolom salah — lewat tanpa jejak; request tetap
       # 200 dan datanya tak berubah. Tiga ditemukan 2026-08-01: settlement

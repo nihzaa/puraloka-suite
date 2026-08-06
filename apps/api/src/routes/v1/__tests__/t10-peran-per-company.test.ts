@@ -69,7 +69,7 @@ beforeAll(async () => {
   companyA = (await c.query(
     `SELECT id FROM companies ORDER BY created_at LIMIT 1`)).rows[0].id
   companyB = (await c.query(
-    `INSERT INTO companies (code, name) VALUES ('uji-t10-peran', 'Tenant B (T10)')
+    `INSERT INTO companies (code, name, owner_user_id) VALUES ('uji-t10-peran', 'Tenant B (T10)', (SELECT id FROM users ORDER BY created_at LIMIT 1))
      RETURNING id`)).rows[0].id
 
   // User dengan peran GLOBAL `mandor` — sengaja yang paling sedikit haknya,

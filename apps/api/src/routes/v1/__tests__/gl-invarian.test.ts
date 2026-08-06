@@ -86,7 +86,8 @@ beforeAll(async () => {
   ctx = { adminId: u[0].id } as SeedProjectContext
 
   const { rows: co } = await client.query(
-    `INSERT INTO companies (code, name) VALUES ('gl-test', '[TEST] GL Co') RETURNING id`)
+    `INSERT INTO companies (code, name, owner_user_id)
+       VALUES ('gl-test', '[TEST] GL Co', (SELECT id FROM users ORDER BY created_at LIMIT 1)) RETURNING id`)
   companyId = co[0].id
 
   const akun = async (code: string, name: string, type: string) => {
@@ -257,7 +258,8 @@ describe('GL · invarian 3 — akun milik badan usaha lain', () => {
     // Celah yang tak bisa dinyatakan FK: tenancy kepala jurnal benar, tapi
     // angkanya masuk ke bagan akun badan usaha lain.
     const { rows: co2 } = await client.query(
-      `INSERT INTO companies (code, name) VALUES ('gl-test-b', '[TEST] GL Co B') RETURNING id`)
+      `INSERT INTO companies (code, name, owner_user_id)
+       VALUES ('gl-test-b', '[TEST] GL Co B', (SELECT id FROM users ORDER BY created_at LIMIT 1)) RETURNING id`)
     const { rows: ak2 } = await client.query(
       `INSERT INTO accounts (company_id, code, name, type, created_by)
        VALUES ($1, '1111', 'Kas Tenant B', 'asset', $2) RETURNING id`,
@@ -295,7 +297,8 @@ describe('GL · Chart of Accounts', () => {
     // Dua badan usaha boleh sama-sama punya '1111 Kas Kantor'. Kalau unik
     // global, badan usaha kedua tak bisa memakai bagan akun standar.
     const { rows: co3 } = await client.query(
-      `INSERT INTO companies (code, name) VALUES ('gl-test-c', '[TEST] GL Co C') RETURNING id`)
+      `INSERT INTO companies (code, name, owner_user_id)
+       VALUES ('gl-test-c', '[TEST] GL Co C', (SELECT id FROM users ORDER BY created_at LIMIT 1)) RETURNING id`)
 
     await expect(
       client.query(

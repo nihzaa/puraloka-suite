@@ -41,7 +41,7 @@ beforeAll(async () => {
     `SELECT id FROM projects WHERE company_id = $1 LIMIT 1`, [companyA])).rows[0].id
 
   companyB = (await c.query(
-    `INSERT INTO companies (code, name) VALUES ('uji-t6-nomor', 'Tenant B (T6)')
+    `INSERT INTO companies (code, name, owner_user_id) VALUES ('uji-t6-nomor', 'Tenant B (T6)', (SELECT id FROM users ORDER BY created_at LIMIT 1))
      RETURNING id`)).rows[0].id
   const klienB = (await c.query(
     `INSERT INTO clients (contact_person, phone, created_by, company_id)

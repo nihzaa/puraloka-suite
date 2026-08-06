@@ -132,7 +132,8 @@ describe('CoA — seed idempoten & per-company', () => {
     // Inti kenapa seed dibuat sebagai FUNGSI, bukan INSERT sekali jalan:
     // badan usaha kedua lahir sesudah migrasi dijalankan.
     const { rows: co } = await client.query(
-      `INSERT INTO companies (code, name) VALUES ('coa-test', '[TEST] CoA Co') RETURNING id`)
+      `INSERT INTO companies (code, name, owner_user_id)
+       VALUES ('coa-test', '[TEST] CoA Co', (SELECT id FROM users ORDER BY created_at LIMIT 1)) RETURNING id`)
     try {
       const { rows: n } = await client.query(
         'SELECT fn_seed_coa_kontraktor($1) AS n', [co[0].id])
