@@ -72,7 +72,7 @@ lapisan mana yang sudah ada.
 | **Quantity takeoff / BOQ** | 🟡 | Read-model `GET /estimate-versions/:id/boq` ada (tanpa UI); CRUD takeoff belum; RAB produksi via upload Excel |
 | Skenario penawaran (what-if) | 🟡 | Tabel `scenarios` (110) DB-only, 0 endpoint |
 | Analisa markup, margin, contingency | 🟡 | markup & margin ada di `/estimate-versions`; contingency belum terpisah |
-| Eskalasi harga | 🔴 | |
+| Eskalasi harga | ✅ | migrasi 197 · `/procurement/riwayat-harga` — dibangun sebagai **Riwayat Harga Material** (arahnya netral; data nyata justru TURUN 16,7%) |
 | Generate proposal / dokumen penawaran | 🟡 | Baru kontrak SPK PDF; proposal penawaran belum |
 | Jaminan penawaran (bid bond) | 🟡 | tabel `contract_bonds` (migrasi 152) — register jaminan ada; alur bid bond khusus belum |
 | Analisa menang/kalah | ✅ | `winner_value` memisahkan "kalah karena harga" dari "kalah karena syarat"; win-rate `null` (bukan 0) saat belum ada yang diputus |
@@ -92,7 +92,7 @@ lapisan mana yang sudah ada.
 | Extension of Time (EOT) | ✅ | **2026-08-01** (migrasi 152): `contract_eot` + ajukan/setujui/tolak + UI. `days_approved` (bukan `days_requested`) yang menggeser tanggal — kalau tidak, kontraktor menentukan tenggatnya sendiri |
 | Denda keterlambatan (LD) | ✅ | **2026-08-01** (migrasi 152) — ~~arah terbalik~~ **DITUTUP**. Kini ADA DUA arah dan sengaja terpisah: 091 = klien telat BAYAR · 152 = kontraktor telat SELESAI. Dihitung dari tanggal **efektif sesudah EOT**, bukan `end_date` mentah. DEFAULT OFF; capability waiver-nya terpisah (`contract:ld:waive` vs `finance:penalty:waive`) — memaafkan denda klien dan denda sendiri adalah dua wewenang berbeda |
 | Bank garansi & bond register | ✅ | **2026-08-01** (migrasi 152): `contract_bonds` 4 jenis (penawaran/pelaksanaan/uang muka/pemeliharaan) + peringatan kadaluarsa ≤30 hari. Jaminan kadaluarsa tanpa diperpanjang = uang hilang, jadi yang ditonjolkan bukan totalnya melainkan yang segera jatuh tempo |
-| Register asuransi | 🔴 | |
+| Register asuransi | ✅ | migrasi 199 · `/kontrak/asuransi` · 18 invarian · celah pertanggungan 2 arah |
 | Surat masuk/keluar (correspondence) | 🟡 | UI hidup: `surat-section.tsx` → `/api/v1/projects/{id}/letters` (diukur 2026-08-06) |
 | Kontrak subkontraktor | 🟡 | `work_scopes` + rencana signing internal (Modul 11b ERP_MASTER_PLAN) |
 
@@ -111,7 +111,7 @@ lapisan mana yang sudah ada.
 | Look-ahead schedule | ✅ | `rab-schedule.ts` + tabel `rab_schedule` |
 | Milestone tracking | ✅ | |
 | **Earned Value Management** | ✅ | `routes/v1/kurva-s.ts` `meta.evm` (BAC/AC/EV/PV/CPI/SPI/EAC/ETC/VAC/TCPI) + `kurva-s-section.tsx` EVM cards |
-| Analisa keterlambatan | 🔴 | |
+| Analisa keterlambatan | ✅ | migrasi 198 · `/proyek/keterlambatan` · EOT disetujui mengurangi telat · 8/8 mutasi |
 | Method statement | 🔴 | |
 
 ---
@@ -129,7 +129,7 @@ Jantung ERP kontraktor. Lihat skor Lima Pembeda di bawah.
 | Actual Cost Ledger (ACL) | 🟡 | ⚠️ Koreksi: 112 = `cost_code_category_map` (mapping, anti-corruption layer), BUKAN ledger; actual cost tersebar, diagregasi ad-hoc di `kurva-s.ts` |
 | Cost-to-complete forecast | ✅ | `/cashflow-forecast` + `/cost-analytics` — Proyeksi Kas di `/laporan` |
 | **Cashflow forecast** | 🟡 | `lib/cashflow-forecast.ts` + endpoint `/estimate-versions/:id/cashflow-forecast` — **tanpa UI**. Cashflow aktual (✅) terpisah di `finance.ts` |
-| Manajemen contingency | 🔴 | |
+| Manajemen contingency | ✅ | migrasi 200 · `/keuangan/contingency` · 21 invarian · sisa dihitung, tak disimpan |
 | Analisa varians (budget vs commit vs aktual) | ✅ | `/cost-analytics` — tab Varians Biaya di `/estimasi` |
 | Profitabilitas per proyek / per cost code | 🟡 | `/finance/profitability` per proyek ✅; per cost code 🔴 |
 | **WIP / persentase penyelesaian (PSAK)** | ✅ | `lib/wip-psak.ts` + `routes/v1/wip.ts` + `/api/v1/reports/wip`, dipanggil `/laporan` |
@@ -179,7 +179,7 @@ Jantung ERP kontraktor. Lihat skor Lima Pembeda di bawah.
 | Menu | Status | Catatan |
 |---|---|---|
 | Paket subkontrak | 🟡 | Via work_scopes mandor |
-| Tender & award subkontraktor | 🔴 | |
+| Tender & award subkontraktor | 🟡 | migrasi 201 · backend + 22 invarian SELESAI · **UI menyusul** (apps/web dipegang sesi lain 2026-08-07) |
 | Kontrak subkontrak + BOQ | 🟡 | |
 | Work order ke subkontraktor | 🟡 | |
 | **Opname / berita acara bersama** | 🟡 | `field_opname_reports` (044) = 🔵 skema-mati; hard-lock opname→pembayaran = rencana Modul 11a |

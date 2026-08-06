@@ -223,6 +223,17 @@ skor hari ini (`PETA-PRIORITAS-ERP.md` §6).
 | **Cost Value Reconciliation (CVR)** | Membandingkan biaya terpakai vs nilai terpasang; inilah yang membedakan ERP kontraktor dari pencatat biaya | L |
 | **Profitabilitas per cost code** (🟡 per proyek sudah hidup di `/finance/profitability`) | Laba per **cost code**, bukan hanya per proyek — inilah yang menunjukkan pekerjaan mana yang merugi | S |
 | **Manajemen contingency** | Cadangan risiko terlacak, bukan hilang ke dalam "biaya lain-lain" | M |
+
+**SELESAI** (`/keuangan/contingency`, migrasi 200). Diukur: NOL kolom
+contingency di seluruh basis, padahal CO-001 sudah menyetujui Rp 50 juta pada
+kontrak Rp 570 juta tanpa jejak cadangan mana yang berkurang.
+
+Dua tabel, bukan satu kolom: `pos_contingency` (berapa disisihkan) +
+`penggunaan_contingency` (tiap penarikan, alasannya WAJIB). Sisa **dihitung**,
+tidak disimpan — kolom sisa yang basi dipakai menyetujui pengeluaran
+berikutnya. Penarikan melebihi cadangan tetap diterima basis lalu ditandai
+`terlampaui`: menolaknya akan menyembunyikan kejadian yang paling perlu
+dilihat. 9 mutasi perhitungan + 5 mutasi skema, seluruhnya tertangkap.
 | **Analisa keterlambatan** | Menghubungkan keterlambatan ke biaya — dasar klaim EOT | M |
 
 **SELESAI** (`/proyek/keterlambatan`, migrasi 198) — **tanpa tabel baru.**
@@ -334,6 +345,33 @@ pindah, bukan hilang.
 | Sub-menu | Yang dinaikkan | Bobot |
 |---|---|---|
 | **Tender & award subkontraktor** | Menutup rantai owner → kontraktor → subkon | L |
+
+**BACKEND SELESAI** (migrasi 201) — **UI menyusul**, `apps/web` sedang
+dipegang sesi lain (2026-08-07).
+
+Diukur: 20 lingkup kerja Rp 15jt–280jt, SELURUHNYA `unsigned`, tanpa satu pun
+jejak bagaimana mandornya dipilih.
+
+Memakai `workers` (mandor = padanan lokal subkon), BUKAN tabel
+`subcontractors` baru: membuat daftar terpisah menciptakan dua sumber
+kebenaran tentang siapa mengerjakan apa.
+
+Yang paling dijaga — dan dibuktikan e2e pada data nyata:
+
+```
+perkiraan  Rp 100.000.000
+Agung       Rp  60.000.000   terlalu_rendah  (−40%)  ← BUKAN "termurah"
+Bebeng      Rp  95.000.000   wajar           (−5%)
+Suswoyo     tak menawar
+
+pemenang Bebeng · BUKAN-termurah=true · selisih Rp 35.000.000
+```
+
+Penawaran terendah justru yang paling berisiko: 40% di bawah perkiraan
+biasanya berarti ada lingkup tak terhitung, dan itu kembali sebagai klaim
+tambah atau pekerjaan mangkrak. 8 mutasi perhitungan + 5 mutasi skema,
+seluruhnya tertangkap; 22 invarian basis hijau (termasuk **dua pemenang
+ditolak** lewat index unik parsial).
 | **Register asuransi** | Bukti pertanggungan saat klaim; sering disyaratkan kontrak | S |
 
 **SELESAI** (`/kontrak/asuransi`, migrasi 199). Diukur lebih dulu: NOL tabel

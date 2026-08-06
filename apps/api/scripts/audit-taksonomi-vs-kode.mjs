@@ -60,23 +60,30 @@ const PETA = {
   'Surat masuk/keluar (correspondence)': { berkas: ['surat'], tabel: ['correspondence'], web: ['/letters'] },
   'Claims management': { berkas: ['contracts'], tabel: ['claims'], web: ['/claims'] },
   'Jaminan penawaran (bid bond)': { tabel: ['contract_bonds'] },
-  'Eskalasi harga': { tabel: ['price_escalation'] },
   'Kalender kerja & hari libur': { tabel: ['work_calendar', 'holidays'] },
   'Prakualifikasi vendor': { tabel: ['vendor_prequalification'] },
-  'Register asuransi': { tabel: ['insurance_register'] },
+  // Diperbaiki 2026-08-07: nama tabel yang SEBENARNYA dibangun, bukan tebakan.
+  // Entri lama menebak `insurance_register`/`contingency`/`delay_analysis` —
+  // tak satu pun ada, jadi penjaga ini hijau abadi untuk kelimanya.
+  // CVR belum dibangun — TERTUNDA dengan alasan terukur: `project_expenses`
+  // nol baris, jadi "biaya terpakai" tak ada untuk dibandingkan dengan "nilai
+  // terpasang". Entri tetap ada supaya ia ikut terhitung sebagai "benar belum
+  // ada", bukan hilang dari pemeriksaan.
+  'Cost Value Reconciliation (CVR)': { tabel: ['cvr'], rute: ['/cvr'] },
+  'Register asuransi': { tabel: ['polis_asuransi'], rute: ['/asuransi'] },
+  'Manajemen contingency': { tabel: ['pos_contingency'], rute: ['/contingency'] },
+  'Analisa keterlambatan': { tabel: ['contract_eot'], rute: ['/analisa-keterlambatan'] },
+  'Eskalasi harga': { rute: ['/riwayat-harga'] },
+  'Tender & award subkontraktor': { tabel: ['tender_subkon'], rute: ['/tender-subkon'] },
   // Empat di bawah sebelumnya TAK PUNYA entri, jadi tak pernah diperiksa —
   // penjaga yang tak memetakan sesuatu akan hijau abadi untuknya.
   'Tracking waste / susut': { tabel: ['waste_tracking'] },
   'Material milik klien (free issue)': { tabel: ['penerimaan_material_klien'], rute: ['/material-klien'] },
-  'Tender & award subkontraktor': { tabel: ['subcontract_tenders'] },
   'Evaluasi kinerja subkontraktor': { tabel: ['subcontractor_evaluations'] },
-  'Cost Value Reconciliation (CVR)': { tabel: ['cvr'], rute: ['/cvr'] },
   'Transfer stok antar proyek': { tabel: ['stock_transfers'], rute: ['/transfer-stok'] },
   'Rekonsiliasi material (teoritis vs aktual)': { rute: ['/rekonsiliasi-material'] },
   'Perusahaan / badan hukum (multi-entity)': { tabel: ['companies'], rute: ['/companies'] },
   'Revisi & transfer anggaran': { tabel: ['rap_change_log'], rute: ['/rap'] },
-  'Manajemen contingency': { tabel: ['contingency'] },
-  'Analisa keterlambatan': { tabel: ['delay_analysis'] },
   'Method statement': { tabel: ['method_statements'] },
   'Evaluasi kinerja vendor': { tabel: ['vendor_performance'] },
   'Kontrak payung / blanket order': { tabel: ['blanket_orders'] },

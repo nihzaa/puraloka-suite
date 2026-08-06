@@ -44,6 +44,8 @@ import rfqRoutes from './routes/v1/rfq.js'
 import riwayatHargaRoutes from './routes/v1/riwayat-harga.js'
 import analisaKeterlambatanRoutes from './routes/v1/analisa-keterlambatan.js'
 import asuransiRoutes from './routes/v1/asuransi.js'
+import contingencyRoutes from './routes/v1/contingency.js'
+import tenderSubkonRoutes from './routes/v1/tender-subkon.js'
 import inspeksiRoutes from './routes/v1/inspeksi.js'
 import rfiRoutes from './routes/v1/rfi.js'
 import submittalRoutes from './routes/v1/submittal.js'
@@ -288,6 +290,8 @@ await app.register(rfqRoutes)
 await app.register(riwayatHargaRoutes)
 await app.register(analisaKeterlambatanRoutes)
 await app.register(asuransiRoutes)
+await app.register(contingencyRoutes)
+await app.register(tenderSubkonRoutes)
 await app.register(inspeksiRoutes)
 await app.register(rfiRoutes)
 await app.register(submittalRoutes)

@@ -586,6 +586,35 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
+      # Cadangan risiko (contingency) — sisa cadangan adalah dasar keputusan
+      # "boleh ambil lagi atau tidak".
+      #
+      # Yang paling dijaga: `alasan` WAJIB terisi. Cadangan yang terpakai tanpa
+      # jejak adalah persis "hilang ke dalam biaya lain-lain" yang modul ini
+      # dibuat untuk mengakhiri — dan CHECK-nya memakai `btrim` supaya spasi
+      # kosong tak lolos sebagai alasan.
+      #
+      # Penarikan MELEBIHI cadangan sengaja TETAP diterima basis: secara fisik
+      # itu mungkin (uang keluar sebelum ada yang memeriksa). Menolaknya di
+      # sini akan menyembunyikan kejadian yang paling perlu dilihat; yang
+      # benar adalah menandainya di lapis perhitungan sebagai `terlampaui`.
+      - name: Invarian contingency
+        run: node scripts/uji-invarian-contingency.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      # Tender subkontraktor — borongan Rp 15jt–280jt per lingkup kerja.
+      #
+      # Dua invarian yang paling mahal kalau bocor:
+      #   • DUA pemenang dalam satu tender → dua kontrak untuk pekerjaan yang
+      #     sama, baru ketahuan saat keduanya menagih (index unik parsial)
+      #   • yang TAK MENAWAR bisa menang → pelaksana yang tak pernah
+      #     mengajukan harga ditunjuk lewat satu salah klik
+      - name: Invarian tender subkontraktor
+        run: node scripts/uji-invarian-tender-subkon.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
       - name: Invarian NCR
         run: node scripts/uji-invarian-ncr.mjs
         env:

@@ -4,7 +4,7 @@
 // Penegak: `node scripts/gen-tenant-map.mjs check` (CI) — build MERAH kalau
 // ada tabel yang belum terklasifikasi (ADR-011 §9.5 P3).
 //
-// 135 tabel · A=10 · AB=14 · ANCHOR=1 · B=27 · C=77 · D=6
+// 139 tabel · A=10 · AB=14 · ANCHOR=1 · B=27 · C=81 · D=6
 //
 // Arti kategori (ADR-011 §5 + audit T1):
 //   ANCHOR akar tenancy (projects) — company_id NOT NULL
@@ -99,11 +99,14 @@ export const PETA_TENANCY = {
   'notification_rules': { kategori: 'B' },
   'notifications': { kategori: 'B' },
   'payments': { kategori: 'C', lewat: 'invoice_id' },  // payments.invoice_id → invoices.project_id
+  'penawaran_subkon': { kategori: 'C', lewat: 'tender_id' },  // penawaran_subkon.tender_id → tender_subkon.project_id
   'penerimaan_material_klien': { kategori: 'C', lewat: 'project_id' },  // penerimaan_material_klien.project_id
+  'penggunaan_contingency': { kategori: 'C', lewat: 'pos_id' },  // penggunaan_contingency.pos_id → pos_contingency.project_id
   'permission_scopes': { kategori: 'A' },
   'permissions': { kategori: 'A' },
   'po_delivery_log': { kategori: 'C', lewat: 'project_id' },  // po_delivery_log.project_id
   'polis_asuransi': { kategori: 'C', lewat: 'project_id' },  // polis_asuransi.project_id
+  'pos_contingency': { kategori: 'C', lewat: 'project_id' },  // pos_contingency.project_id
   'price_book_entries': { kategori: 'AB' },
   'productivity_records': { kategori: 'AB' },
   'progress_logs': { kategori: 'C', lewat: 'project_id' },  // progress_logs.project_id
@@ -146,6 +149,7 @@ export const PETA_TENANCY = {
   'supplier_payments': { kategori: 'B' },
   'suppliers': { kategori: 'B' },
   'tax_records': { kategori: 'C', lewat: 'invoice_id' },  // tax_records.invoice_id → invoices.project_id
+  'tender_subkon': { kategori: 'C', lewat: 'project_id' },  // tender_subkon.project_id
   'termin_schedules': { kategori: 'C', lewat: 'project_id' },  // termin_schedules.project_id
   'units': { kategori: 'A' },
   'users': { kategori: 'D' },  // Identitas lintas-tenant. Satu orang bisa jadi anggota >1 company dengan peran berbeda — keanggotaan hidup di company_members (ADR-011 D6), bukan di users.

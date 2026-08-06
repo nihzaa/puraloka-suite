@@ -5,6 +5,196 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-07 (lanjutan 2) — Tender subkon (backend), dan dokumen yang menandai "belum" padahal sudah
+
+### PEMBEDA 10/12 — backend selesai, UI menyusul
+
+`apps/web` sedang dipegang sesi lain, jadi sesi ini bekerja **backend penuh**:
+migrasi, pustaka murni, endpoint, uji invarian. UI dan audit a11y menyusul
+begitu berkas sesi lain selesai — dan itu dicatat terang-terangan, bukan
+diklaim hijau.
+
+Diukur: **20 lingkup kerja Rp 15jt–280jt, SELURUHNYA `unsigned`**, tanpa satu
+pun jejak bagaimana mandornya dipilih. Kesenjangan yang persis sama dengan
+yang ditutup RFQ, tapi di sisi subkontraktor.
+
+Memakai `workers` (mandor = padanan lokal subkon), BUKAN tabel
+`subcontractors` baru — daftar terpisah menciptakan dua sumber kebenaran
+tentang siapa mengerjakan apa.
+
+### Yang paling dijaga: penawaran terendah adalah RISIKO, bukan kemenangan
+
+Dibuktikan e2e dengan data dummy yang realistis:
+
+```
+perkiraan  Rp 100.000.000
+Agung       Rp  60.000.000   terlalu_rendah  (−40%)  ← BUKAN "termurah"
+Bebeng      Rp  95.000.000   wajar           (−5%)
+Suswoyo     tak menawar
+
+pemenang Bebeng · BUKAN-termurah=true · selisih Rp 35.000.000
+```
+
+Penawaran 40% di bawah perkiraan biasanya berarti ada lingkup tak terhitung,
+dan itu kembali sebagai klaim tambah atau pekerjaan mangkrak. Menandainya
+"termurah" saja membuat yang paling berbahaya terlihat paling menarik.
+
+`pemenang_bukan_termurah` dinyatakan terang-terangan: sering ada alasan sah
+(rekam jejak, kapasitas), tapi alasan itu **tak pernah ditanyakan** kalau tak
+ada yang menandainya.
+
+Delapan mutasi perhitungan + lima mutasi skema, seluruhnya tertangkap.
+**Uji urutan tertangkap sejak percobaan pertama** kali ini — pelajaran dari
+dua kegagalan sebelumnya terpakai: tegaskan urutan PENUH
+(`['murah','mahal','takmenawar','gugur']`), bukan satu posisi saja.
+
+Dua invarian basis yang paling mahal kalau bocor, keduanya terbukti menolak:
+**dua pemenang** (index unik parsial) dan **yang tak menawar bisa menang**.
+
+### Dokumen yang menandai "belum" padahal sudah — permintaan founder
+
+Founder minta memastikan tak ada dokumen yang menandai pekerjaan selesai
+sebagai belum dikerjakan. Diperiksa, dan **lima ditemukan**:
+
+```
+Eskalasi harga              🔴 → ✅   (migrasi 197, sudah jalan)
+Register asuransi           🔴 → ✅   (migrasi 199)
+Analisa keterlambatan       🔴 → ✅   (migrasi 198)
+Manajemen contingency       🔴 → ✅   (migrasi 200)
+Tender & award subkon       🔴 → 🟡   (backend selesai, UI menyusul)
+```
+
+**Kenapa penjaga F8-1 tak menangkapnya?** Karena PETA-nya menebak nama tabel
+yang tak pernah ada: `insurance_register`, `contingency`, `delay_analysis`,
+`price_escalation`, `subcontract_tenders`. Nol dari lima cocok dengan tabel
+yang sebenarnya dibangun — jadi penjaganya hijau abadi untuk kelimanya.
+
+Ini pelajaran tentang penjaga: **memetakan sesuatu ke nama yang salah sama
+saja dengan tidak memetakannya**, tapi lebih berbahaya — sebab ia terlihat
+seperti sudah diperiksa.
+
+PETA diperbaiki ke nama tabel yang nyata. Entri CVR sengaja DIPERTAHANKAN
+walau modulnya belum ada, supaya ia terhitung sebagai "benar belum ada"
+alih-alih hilang dari pemeriksaan — dan penjaga langsung menangkap saat saya
+sempat membuangnya (`takDipetakan 29 → 30`).
+
+Hasil akhir: 🔴 turun **46 → 41**, basi tetap 0, lantai ratchet utuh.
+
+### CVR & Tracking Waste: diukur ulang, tetap ditunda
+
+```
+project_expenses         0 baris   ← CVR tetap tak punya "biaya terpakai"
+assemblies.waste_factor  1 dari 3.043  ← Tracking Waste tetap kosong
+```
+
+Keduanya tak berubah sejak pengukuran pertama. Membangunnya sekarang
+menghasilkan layar berwibawa yang tak mengatakan apa-apa.
+
+---
+
+## 2026-08-07 (lanjutan) — Contingency, dan jarak isi yang tak pernah seragam
+
+### PEMBEDA 9/12 selesai
+
+Diukur: **NOL kolom contingency** di seluruh basis. Cadangan risiko adalah
+bagian nilai kontrak yang sengaja disisihkan; tanpa dilacak ia tak hilang —
+ia terpakai diam-diam, dan baru ketahuan habis saat dibutuhkan.
+
+Buktinya sudah ada: **CO-001 disetujui Rp 50.000.000** pada proyek berkontrak
+Rp 570.000.000, tanpa satu pun catatan cadangan mana yang berkurang.
+
+Dibuktikan e2e sesudah dibangun:
+
+```
+cadangan   Rp 28.500.000
+terpakai   Rp 32.000.000  (112,3%)
+sisa      −Rp  3.500.000  ← DEFISIT, dipertahankan negatif
+porsi kontrak 5,0%
+```
+
+### Dua keputusan yang menentukan
+
+**Sisa DIHITUNG, tidak disimpan.** Kolom sisa yang disimpan bisa basi
+diam-diam saat satu penarikan disunting — dan angka "cadangan masih aman"
+yang basi dipakai untuk menyetujui pengeluaran berikutnya.
+
+**Penarikan melebihi cadangan TETAP diterima basis.** Secara fisik itu
+mungkin: uang keluar sebelum ada yang memeriksa. Menolaknya di basis akan
+MENYEMBUNYIKAN kejadian yang paling perlu dilihat; yang benar adalah
+menandainya di lapis perhitungan sebagai `terlampaui` — dipisahkan dari
+`kritis`, sebab 112% menuntut sumber dana lain sedangkan 95% cukup dijawab
+dengan berhenti menarik.
+
+Sembilan mutasi perhitungan + lima mutasi skema, seluruhnya tertangkap.
+
+### Uji urutan yang lolos — untuk KEDUA kalinya
+
+Mutasi "buang urutan status" lolos, persis seperti di register asuransi hari
+sebelumnya. Sebabnya sama: uji saya memakai pasangan yang **searah** (101% vs
+99%), sehingga urutannya sama entah ditentukan status atau persentase.
+
+Percobaan perbaikan pertama juga salah — saya menulis 100,0001% dan 99,9%,
+lalu menegaskan yang pertama LEBIH KECIL. Aritmetika saya keliru; testnya
+merah di basis.
+
+Yang akhirnya membedakan: pos **DITUTUP** dengan persentase TERTINGGI (200%).
+Statusnya berperingkat terakhir sementara persentasenya terbesar — dua sinyal
+berlawanan, dan hanya urutan-menurut-status yang menempatkannya di bawah.
+
+**Pelajaran yang berulang:** uji urutan yang pembandingnya searah tidak
+membuktikan apa pun. Ia harus memakai kasus di mana dua kriteria itu
+BERTENTANGAN.
+
+### Jarak isi yang tak pernah seragam — ditemukan founder
+
+Founder melihat halaman contingency "mepet banget ke pinggir". Benar, dan itu
+salah saya: saya membuang padding tanpa memeriksa dari mana padding isi
+datang.
+
+Diukur, ternyata bukan cuma halaman saya:
+
+```
+arus-kas        74px
+profitabilitas  37px
+contingency      1px   ← mepet
+```
+
+**Tiga bagian, tiga jarak berbeda.** `keuangan/layout.tsx` membungkus
+`{children}` dalam kartu tanpa padding, jadi tiap halaman menyediakan
+sendiri — dan tak ada yang menyamakannya.
+
+Diperbaiki di SATU tempat: padding pindah ke layout, enam halaman
+dibersihkan dari padding gandanya. Hasilnya seragam **25px**. Menambalnya
+per halaman hanya akan melahirkan jarak keempat di halaman berikutnya.
+
+### Tab atau halaman? — sudah dijawab dokumen, dan sudah benar
+
+Founder bertanya apakah keuangan sebaiknya dipecah jadi halaman.
+`ARAH-VISUAL-2026.md` §6 sudah menjawabnya, dan **sudah dikerjakan**:
+
+```
+7 berkas rute terpisah · 191–606 baris  (dulu monolit 3.449 baris)
+```
+
+Yang terlihat seperti tab sebenarnya navigasi antar-HALAMAN: URL-nya berubah,
+`/keuangan/contingency` bisa dikirim sebagai tautan. Dokumen itu juga menyebut
+dua yang sengaja TETAP tab (`laporan`, `estimasi`) — di sana tab memang benar.
+
+### Bentrok sesi lain: build web merah, dan itu BUKAN dari saya
+
+`mandor/_bersama/komponen.tsx` (berkas untracked, sesi lain sedang memecah
+modul mandor) membuat typecheck merah, sehingga build dan audit a11y tak bisa
+dijalankan dari sesi ini.
+
+Diverifikasi: **nol berkas mandor yang saya ubah**, dan typecheck atas berkas
+`keuangan/*` bersih. Yang bisa dijalankan tetap dijalankan — web suite 216
+lulus, lint ratchet hijau (hutang `no-explicit-any` malah turun 191 → 189),
+penjaga rute hijau, 21 invarian contingency hijau.
+
+Audit a11y halaman baru menyusul begitu berkas sesi lain selesai.
+
+---
+
 ## 2026-08-07 — Register asuransi: bukan daftar polis, melainkan CELAH-nya
 
 ### PEMBEDA 8/12 selesai
