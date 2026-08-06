@@ -15,6 +15,7 @@ import {
 
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
+import { Tabel, type Kolom } from "@/components/dasar";
 
 interface Client {
   id: string;
@@ -536,6 +537,133 @@ export default function KlienPage() {
   // ADR-004: capability, bukan nama jabatan — diverifikasi ke `requirePermission`.
   const isAdmin = useIzin("clients:manage");
 
+  // Definisi kolom hidup di dalam komponen karena setiap render sel memanggil
+  // state halaman (`setDetailId`, `togglingId`, `isAdmin`). Mengangkatnya ke
+  // luar berarti mengoper lima argumen ke tiap kolom — lebih panjang, dan
+  // salah satunya pasti lupa diperbarui saat tombol baru ditambah.
+  const kolomKlien: Array<Kolom<Client>> = [
+    {
+      kunci: "klien", judul: "Klien", kepalaBaris: true,
+      render: c => (
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ width: 34, height: 34, borderRadius: 10, background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            {c.client_type === "perusahaan" ? <Building2 size={15} color={C.navy} /> : <User size={15} color={C.navy} />}
+          </div>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{c.contact_person}</div>
+            {c.company_name && <div style={{ fontSize: 11, color: C.mid }}>{c.company_name}</div>}
+            {c.notes && (
+              <div style={{ fontSize: 11, color: C.muted, marginTop: 2, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={c.notes}>
+                {c.notes}
+              </div>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      kunci: "kontak", judul: "Kontak",
+      render: c => (
+        <>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 13, color: C.text }}>{c.phone}</span>
+            <a
+              href={waLink(c.phone)}
+              target="_blank" rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()}
+              title="Hubungi via WhatsApp"
+              aria-label={`Hubungi ${c.contact_person} via WhatsApp`}
+              style={{ color: "var(--success)", lineHeight: 0 }}
+            >
+              <MessageCircle size={13} />
+            </a>
+          </div>
+          {c.email && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 11, color: C.mid }}>{c.email}</span>
+              <a
+                href={`mailto:${c.email}`}
+                onClick={e => e.stopPropagation()}
+                title="Kirim email"
+                aria-label={`Kirim email ke ${c.contact_person}`}
+                style={{ color: "var(--info)", lineHeight: 0 }}
+              >
+                <ExternalLink size={11} />
+              </a>
+            </div>
+          )}
+        </>
+      ),
+    },
+    {
+      kunci: "tipe", judul: "Tipe",
+      render: c => (
+        <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: c.client_type === "perusahaan" ? "var(--info-bg)" : "var(--success-bg)", color: c.client_type === "perusahaan" ? "var(--info)" : C.green, fontWeight: 500 }}>
+          {c.client_type === "perusahaan" ? "Perusahaan" : "Perorangan"}
+        </span>
+      ),
+    },
+    {
+      kunci: "status", judul: "Status",
+      render: c => (
+        <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: c.is_active ? C.greenBg : "var(--surface-hover)", color: c.is_active ? C.green : C.mid, fontWeight: 500 }}>
+          {c.is_active ? "Aktif" : "Nonaktif"}
+        </span>
+      ),
+    },
+    {
+      kunci: "aksi", judul: "", rata: "kanan",
+      render: c => (
+        <div style={{ display: "flex", alignItems: "center", gap: 4, justifyContent: "flex-end" }}>
+          <button aria-label={`Lihat proyek ${c.company_name ?? c.contact_person}`}
+            onClick={() => setDetailId(c.id)}
+            title="Lihat proyek"
+            style={{ padding: 6, border: "none", background: "none", cursor: "pointer", color: C.muted, borderRadius: 6, display: "flex" }}
+            onMouseEnter={e => { e.currentTarget.style.color = C.navy; e.currentTarget.style.background = C.navyLight; }}
+            onMouseLeave={e => { e.currentTarget.style.color = C.muted; e.currentTarget.style.background = "none"; }}
+          >
+            <FolderKanban size={14} />
+          </button>
+          <button aria-label={`Edit ${c.company_name ?? c.contact_person}`}
+            onClick={() => { setEditClient(c); setShowModal(true); }}
+            title="Edit"
+            style={{ padding: 6, border: "none", background: "none", cursor: "pointer", color: C.muted, borderRadius: 6, display: "flex" }}
+            onMouseEnter={e => { e.currentTarget.style.color = C.navy; e.currentTarget.style.background = C.navyLight; }}
+            onMouseLeave={e => { e.currentTarget.style.color = C.muted; e.currentTarget.style.background = "none"; }}
+          >
+            <Edit2 size={14} />
+          </button>
+          {isAdmin && (
+            <button aria-label={c.is_active ? `Nonaktifkan ${c.company_name ?? c.contact_person}` : `Aktifkan ${c.company_name ?? c.contact_person}`}
+              onClick={() => toggleActive(c)}
+              disabled={togglingId === c.id}
+              title={c.is_active ? "Nonaktifkan" : "Aktifkan"}
+              style={{ padding: 6, border: "none", background: "none", cursor: "pointer", color: c.is_active ? C.green : C.muted, borderRadius: 6, display: "flex", opacity: togglingId === c.id ? 0.5 : 1 }}
+              onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-hover)"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "none"; }}
+            >
+              {c.is_active ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
+            </button>
+          )}
+          {/* Namanya menyertakan nama klien, bukan sekadar "Lihat
+              detail": tombol ini berulang di setiap baris, dan
+              pembaca layar yang menelusuri tombol satu per satu
+              akan mendengar "lihat detail" sepuluh kali tanpa tahu
+              detail SIAPA. */}
+          <button
+            aria-label={`Lihat detail ${c.company_name ?? c.contact_person}`}
+            onClick={() => setDetailId(c.id)}
+            style={{ padding: 6, border: "none", background: "none", cursor: "pointer", color: C.muted, borderRadius: 6, display: "flex" }}
+            onMouseEnter={e => { e.currentTarget.style.color = C.navy; }}
+            onMouseLeave={e => { e.currentTarget.style.color = C.muted; }}
+          >
+            <ChevronRight size={14} />
+          </button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
 
@@ -654,135 +782,24 @@ export default function KlienPage() {
             )}
           </div>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
-            <caption className="sr-only">Daftar klien: nama, kontak, tipe, dan status kerja sama.</caption>
-            <thead>
-              <tr style={{ background: C.bg, borderBottom: `1px solid ${C.border}` }}>
-                {["Klien", "Kontak", "Tipe", "Status", ""].map((h, i) => (
-                  <th key={i} style={{ padding: "8px 16px", fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.07em", textAlign: "left" }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((c, i) => (
-                <tr
-                  key={c.id}
-                  style={{ borderBottom: i < filtered.length - 1 ? `1px solid ${C.border}` : "none", transition: "background 0.1s" }}
-                  onMouseEnter={e => (e.currentTarget.style.background = C.bg)}
-                  onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-                >
-                  {/* Nama */}
-                  <th scope="row" style={{ textAlign: "left", padding: "12px 16px", fontWeight: 400 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{ width: 34, height: 34, borderRadius: 10, background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                        {c.client_type === "perusahaan" ? <Building2 size={15} color={C.navy} /> : <User size={15} color={C.navy} />}
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{c.contact_person}</div>
-                        {c.company_name && <div style={{ fontSize: 11, color: C.mid }}>{c.company_name}</div>}
-                        {c.notes && (
-                          <div style={{ fontSize: 11, color: C.muted, marginTop: 2, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={c.notes}>
-                            {c.notes}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </th>
-                  {/* Kontak */}
-                  <td style={{ padding: "12px 16px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <span style={{ fontSize: 13, color: C.text }}>{c.phone}</span>
-                      <a
-                        href={waLink(c.phone)}
-                        target="_blank" rel="noopener noreferrer"
-                        onClick={e => e.stopPropagation()}
-                        title="Hubungi via WhatsApp"
-                        style={{ color: "var(--success)", lineHeight: 0 }}
-                      >
-                        <MessageCircle size={13} />
-                      </a>
-                    </div>
-                    {c.email && (
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <span style={{ fontSize: 11, color: C.mid }}>{c.email}</span>
-                        <a
-                          href={`mailto:${c.email}`}
-                          onClick={e => e.stopPropagation()}
-                          title="Kirim email"
-                          style={{ color: "var(--info)", lineHeight: 0 }}
-                        >
-                          <ExternalLink size={11} />
-                        </a>
-                      </div>
-                    )}
-                  </td>
-                  {/* Tipe */}
-                  <td style={{ padding: "12px 16px" }}>
-                    <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: c.client_type === "perusahaan" ? "var(--info-bg)" : "var(--success-bg)", color: c.client_type === "perusahaan" ? "var(--info)" : C.green, fontWeight: 500 }}>
-                      {c.client_type === "perusahaan" ? "Perusahaan" : "Perorangan"}
-                    </span>
-                  </td>
-                  {/* Status */}
-                  <td style={{ padding: "12px 16px" }}>
-                    <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: c.is_active ? C.greenBg : "var(--surface-hover)", color: c.is_active ? C.green : C.mid, fontWeight: 500 }}>
-                      {c.is_active ? "Aktif" : "Nonaktif"}
-                    </span>
-                  </td>
-                  {/* Actions */}
-                  <td style={{ padding: "12px 16px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 4, justifyContent: "flex-end" }}>
-                      <button aria-label="Lihat proyek"
-                        onClick={() => setDetailId(c.id)}
-                        title="Lihat proyek"
-                        style={{ padding: 6, border: "none", background: "none", cursor: "pointer", color: C.muted, borderRadius: 6, display: "flex" }}
-                        onMouseEnter={e => { e.currentTarget.style.color = C.navy; e.currentTarget.style.background = C.navyLight; }}
-                        onMouseLeave={e => { e.currentTarget.style.color = C.muted; e.currentTarget.style.background = "none"; }}
-                      >
-                        <FolderKanban size={14} />
-                      </button>
-                      <button aria-label="Edit"
-                        onClick={() => { setEditClient(c); setShowModal(true); }}
-                        title="Edit"
-                        style={{ padding: 6, border: "none", background: "none", cursor: "pointer", color: C.muted, borderRadius: 6, display: "flex" }}
-                        onMouseEnter={e => { e.currentTarget.style.color = C.navy; e.currentTarget.style.background = C.navyLight; }}
-                        onMouseLeave={e => { e.currentTarget.style.color = C.muted; e.currentTarget.style.background = "none"; }}
-                      >
-                        <Edit2 size={14} />
-                      </button>
-                      {isAdmin && (
-                        <button aria-label={c.is_active ? "Nonaktifkan" : "Aktifkan"}
-                          onClick={() => toggleActive(c)}
-                          disabled={togglingId === c.id}
-                          title={c.is_active ? "Nonaktifkan" : "Aktifkan"}
-                          style={{ padding: 6, border: "none", background: "none", cursor: "pointer", color: c.is_active ? C.green : C.muted, borderRadius: 6, display: "flex", opacity: togglingId === c.id ? 0.5 : 1 }}
-                          onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-hover)"; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = "none"; }}
-                        >
-                          {c.is_active ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
-                        </button>
-                      )}
-                      {/* Namanya menyertakan nama klien, bukan sekadar "Lihat
-                          detail": tombol ini berulang di setiap baris, dan
-                          pembaca layar yang menelusuri tombol satu per satu
-                          akan mendengar "lihat detail" sepuluh kali tanpa tahu
-                          detail SIAPA. */}
-                      <button
-                        aria-label={`Lihat detail ${c.company_name ?? c.contact_person}`}
-                        onClick={() => setDetailId(c.id)}
-                        style={{ padding: 6, border: "none", background: "none", cursor: "pointer", color: C.muted, borderRadius: 6, display: "flex" }}
-                        onMouseEnter={e => { e.currentTarget.style.color = C.navy; }}
-                        onMouseLeave={e => { e.currentTarget.style.color = C.muted; }}
-                      >
-                        <ChevronRight size={14} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          /* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). Caption sr-only,
+             kolom pertama <th scope="row">, tabular-nums, dan pembungkus
+             overflow-x sekarang dijamin komponen — empat hal yang tabel
+             mentah di sini harus ingat sendiri, dan yang paling mudah
+             hilang saat kolom ditambah belakangan.
+
+             Kolom "Klien" tetap kepala baris — ia memang yang menamai
+             barisnya. Tak ada penukaran urutan yang perlu di sini.
+
+             Kolom aksi berjudul string kosong: judul yang terbaca akan
+             dibacakan pembaca layar sebagai kolom berisi data, padahal
+             isinya tombol. Perilakunya sama persis dengan versi mentah. */
+          <Tabel<Client>
+            caption="Daftar klien: nama, kontak, tipe, dan status kerja sama."
+            data={filtered}
+            kunciBaris={c => c.id}
+            kolom={kolomKlien}
+          />
         )}
       </div>
 

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
+import { Tabel, type Kolom } from "@/components/dasar";
 
 const card: React.CSSProperties = {
   background: "var(--surface)", border: "1px solid var(--border)",
@@ -121,9 +122,111 @@ export default function PiutangPage() {
   const retentionOutstandingTotal = (retention ?? []).reduce((s, r) => s + r.outstanding, 0);
   const dpRemainingTotal = (dp ?? []).reduce((s, r) => s + r.remaining_to_recoup, 0);
 
-  const th: React.CSSProperties = { padding: "8px 12px", fontSize: 11, fontWeight: 700, color: C.mid, textAlign: "left", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" };
-  const td: React.CSSProperties = { padding: "8px 12px", fontSize: 13, color: C.text, borderTop: `1px solid ${C.border}`, whiteSpace: "nowrap" };
   const sectionTitle: React.CSSProperties = { fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 700, color: C.text, display: "flex", alignItems: "center", gap: 8 };
+
+  // `th`/`td` bersama sudah tak ada: padding, ukuran teks, dan garis antar
+  // baris kini datang dari <Tabel>. Yang tersisa hanya gaya yang benar-benar
+  // khas isi selnya — warna merah untuk umur lewat tempo, bar progres DP.
+
+  const kolomInvoice: Array<Kolom<AgingRow>> = [
+    {
+      kunci: "invoice", judul: "Invoice", kepalaBaris: true,
+      render: r => (
+        <>
+          <div style={{ fontWeight: 600 }}>{r.invoice_number}</div>
+          <div style={{ fontSize: 11, color: C.muted }}>{INVOICE_TYPE_LABEL[r.invoice_type] ?? r.invoice_type}</div>
+        </>
+      ),
+    },
+    { kunci: "proyek", judul: "Proyek", render: r => r.project?.name ?? "—" },
+    { kunci: "klien", judul: "Klien", render: r => r.client?.name ?? "—" },
+    { kunci: "jatuh_tempo", judul: "Jatuh Tempo", render: r => fmtDate(r.due_date) },
+    {
+      kunci: "umur", judul: "Umur", rata: "kanan",
+      // Merah hanya bila sudah lewat tempo — warna dipakai saat angkanya
+      // PUNYA arah buruk, bukan sebagai hiasan kolom.
+      render: r => (
+        <span style={{ color: r.days_past_due > 0 ? C.red : C.mid }}>
+          {r.days_past_due > 0 ? `${r.days_past_due} hari` : "belum"}
+        </span>
+      ),
+    },
+    {
+      kunci: "bucket", judul: "Bucket",
+      render: r => {
+        const b = BUCKETS.find(x => x.key === r.bucket)!;
+        return (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+            <span style={{ width: 9, height: 9, borderRadius: 0, background: b.color }} />{b.label}
+          </span>
+        );
+      },
+    },
+    {
+      kunci: "sisa", judul: "Sisa Tagihan", rata: "kanan",
+      render: r => <span style={{ fontWeight: 700 }}>{fmt(r.amount_due)}</span>,
+    },
+  ];
+
+  const kolomRetensi: Array<Kolom<RetentionRow>> = [
+    {
+      kunci: "proyek", judul: "Proyek", kepalaBaris: true,
+      render: r => (
+        <>
+          <div style={{ fontWeight: 600 }}>{r.project.name}</div>
+          <div style={{ fontSize: 11, color: C.muted }}>{r.client?.name ?? "—"}{r.retention_pct ? ` · retensi ${r.retention_pct}%` : ""}</div>
+        </>
+      ),
+    },
+    { kunci: "ditahan", judul: "Ditahan", rata: "kanan", render: r => fmt(r.withheld) },
+    {
+      kunci: "dicairkan", judul: "Dicairkan", rata: "kanan",
+      render: r => <span style={{ color: C.green }}>{r.released > 0 ? fmt(r.released) : "—"}</span>,
+    },
+    {
+      kunci: "sisa", judul: "Sisa", rata: "kanan",
+      render: r => <span style={{ fontWeight: 700 }}>{fmt(r.outstanding)}</span>,
+    },
+    {
+      kunci: "estimasi", judul: "Estimasi Cair",
+      render: r => r.estimated_release_due ? (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: r.is_due_estimate ? C.red : C.mid, fontWeight: r.is_due_estimate ? 700 : 400 }}>
+          {r.is_due_estimate && <AlertTriangle size={12} />}
+          {fmtDate(r.estimated_release_due)}{r.is_due_estimate ? " — siap ditagih" : ""}
+        </span>
+      ) : <span style={{ fontSize: 12, color: C.muted }}>—</span>,
+    },
+  ];
+
+  const kolomDp: Array<Kolom<DpRow>> = [
+    {
+      kunci: "proyek", judul: "Proyek", kepalaBaris: true,
+      render: r => (
+        <>
+          <div style={{ fontWeight: 600 }}>{r.project.name}</div>
+          <div style={{ fontSize: 11, color: C.muted }}>{r.client?.name ?? "—"}</div>
+        </>
+      ),
+    },
+    { kunci: "dp_paid", judul: "DP Terbayar", rata: "kanan", render: r => fmt(r.dp_paid) },
+    { kunci: "recouped", judul: "Sudah Dipotong", rata: "kanan", render: r => fmt(r.recouped) },
+    {
+      kunci: "progres", judul: "Progres Pemotongan", lebar: 160,
+      render: r => {
+        const pct = r.dp_paid > 0 ? Math.min((r.recouped / r.dp_paid) * 100, 100) : 0;
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 160 }}>
+            <div style={{ flex: 1, height: 7, borderRadius: 6, background: "var(--surface-hover)", overflow: "hidden" }}>
+              <div style={{ width: `${pct}%`, height: "100%", background: pct >= 100 ? C.green : C.navy, borderRadius: 6 }} />
+            </div>
+            <span style={{ fontSize: 11, fontWeight: 700, color: r.remaining_to_recoup > 0 ? C.text : C.green, whiteSpace: "nowrap" }}>
+              {r.remaining_to_recoup > 0 ? `sisa ${fmt(r.remaining_to_recoup)}` : "selesai"}
+            </span>
+          </div>
+        );
+      },
+    },
+  ];
 
   if (forbidden) {
     return (
@@ -234,46 +337,33 @@ export default function PiutangPage() {
           </div>
           <span style={{ fontSize: 12, color: C.muted }}>{filteredRows.length} invoice</span>
         </div>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
-            <caption className="sr-only">Invoice belum lunas, diurutkan dari yang paling tua. Kolom Umur dihitung dari jatuh tempo, bukan dari tanggal terbit.</caption>
-            <thead><tr style={{ background: "var(--bg)" }}>
-              <th style={th}>Invoice</th><th style={th}>Proyek</th><th style={th}>Klien</th>
-              <th style={th}>Jatuh Tempo</th><th style={{ ...th, textAlign: "right" }}>Umur</th>
-              <th style={th}>Bucket</th><th style={{ ...th, textAlign: "right" }}>Sisa Tagihan</th>
-            </tr></thead>
-            <tbody>
-              {filteredRows.map(r => {
-                const b = BUCKETS.find(x => x.key === r.bucket)!;
-                return (
-                  <tr key={r.id}>
-                    <td style={td}>
-                      <div style={{ fontWeight: 600 }}>{r.invoice_number}</div>
-                      <div style={{ fontSize: 11, color: C.muted }}>{INVOICE_TYPE_LABEL[r.invoice_type] ?? r.invoice_type}</div>
-                    </td>
-                    <td style={td}>{r.project?.name ?? "—"}</td>
-                    <td style={td}>{r.client?.name ?? "—"}</td>
-                    <td style={td}>{fmtDate(r.due_date)}</td>
-                    <td style={{ ...td, textAlign: "right", color: r.days_past_due > 0 ? C.red : C.mid }}>
-                      {r.days_past_due > 0 ? `${r.days_past_due} hari` : "belum"}
-                    </td>
-                    <td style={td}>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12 }}>
-                        <span style={{ width: 9, height: 9, borderRadius: 0, background: b.color }} />{b.label}
-                      </span>
-                    </td>
-                    <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{fmt(r.amount_due)}</td>
-                  </tr>
-                );
-              })}
-              {!loading && filteredRows.length === 0 && (
-                <tr><td colSpan={7} style={{ ...td, textAlign: "center", color: C.mid, padding: "24px 12px" }}>
-                  {bucketFilter ? "Tidak ada invoice di bucket ini." : "Tidak ada invoice terbuka."}
-                </td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). Caption sr-only,
+            kolom pertama <th scope="row">, tabular-nums, dan pembungkus
+            overflow-x sekarang dijamin komponen — empat hal yang tabel
+            mentah harus ingat sendiri setiap kali kolom bertambah.
+
+            Kepala baris = nomor invoice. Itu yang menamai baris bagi
+            pembaca layar; "12 Agu 2026" tidak, karena beberapa invoice
+            bisa jatuh tempo di hari yang sama dan namanya jadi tak
+            membedakan apa pun.
+
+            Baris "tidak ada invoice" berpindah dari <tbody> ke prop
+            `kosong`: sebagai baris data, pesan itu dibacakan pembaca
+            layar seolah invoice bernama "Tidak ada invoice terbuka".
+            Ia hanya muncul setelah muat selesai — persis seperti
+            sebelumnya, supaya pesan "kosong" tak menyalip data yang
+            masih dalam perjalanan. */}
+        <Tabel<AgingRow>
+          caption="Invoice belum lunas, diurutkan dari yang paling tua. Kolom Umur dihitung dari jatuh tempo, bukan dari tanggal terbit."
+          data={filteredRows}
+          kunciBaris={r => r.id}
+          kolom={kolomInvoice}
+          kosong={loading ? undefined : (
+            <div style={{ padding: "24px 12px", textAlign: "center", fontSize: 13, color: C.mid }}>
+              {bucketFilter ? "Tidak ada invoice di bucket ini." : "Tidak ada invoice terbuka."}
+            </div>
+          )}
+        />
       </div>
 
       {/* ── Register Retensi + Register Uang Muka ── */}
@@ -284,49 +374,29 @@ export default function PiutangPage() {
             <div style={sectionTitle}><Landmark size={16} style={{ color: C.navy }} /> Register Retensi</div>
             <div style={{ fontSize: 12, color: C.mid }}>Tertahan: <b style={{ color: C.text }}>{fmt(retentionOutstandingTotal)}</b></div>
           </div>
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
-              <caption className="sr-only">Retensi per proyek: yang ditahan, yang sudah dicairkan, dan sisanya. Estimasi cair dihitung dari tanggal selesai proyek ditambah hari retensi termin.</caption>
-              <thead><tr style={{ background: "var(--bg)" }}>
-                <th style={th}>Proyek</th><th style={{ ...th, textAlign: "right" }}>Ditahan</th>
-                <th style={{ ...th, textAlign: "right" }}>Dicairkan</th><th style={{ ...th, textAlign: "right" }}>Sisa</th>
-                <th style={th}>Estimasi Cair</th>
-              </tr></thead>
-              <tbody>
-                {(retention ?? []).map(r => (
-                  <tr key={r.project.id}>
-                    <td style={td}>
-                      <div style={{ fontWeight: 600 }}>{r.project.name}</div>
-                      <div style={{ fontSize: 11, color: C.muted }}>{r.client?.name ?? "—"}{r.retention_pct ? ` · retensi ${r.retention_pct}%` : ""}</div>
-                    </td>
-                    <td style={{ ...td, textAlign: "right" }}>{fmt(r.withheld)}</td>
-                    <td style={{ ...td, textAlign: "right", color: C.green }}>{r.released > 0 ? fmt(r.released) : "—"}</td>
-                    <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{fmt(r.outstanding)}</td>
-                    <td style={td}>
-                      {r.estimated_release_due ? (
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: r.is_due_estimate ? C.red : C.mid, fontWeight: r.is_due_estimate ? 700 : 400 }}>
-                          {r.is_due_estimate && <AlertTriangle size={12} />}
-                          {fmtDate(r.estimated_release_due)}{r.is_due_estimate ? " — siap ditagih" : ""}
-                        </span>
-                      ) : <span style={{ fontSize: 12, color: C.muted }}>—</span>}
-                    </td>
-                  </tr>
-                ))}
-                {/* `whiteSpace: normal` + `maxWidth: 0` — sama seperti sel
-                    kembarnya di Register Uang Muka: `td` bersama memakai
-                    `nowrap` supaya kolom angka tak patah, tapi kalimat
-                    penjelas lalu melebarkan tabel dan ujungnya terpotong. */}
-                {!loading && (retention ?? []).length === 0 && (
-                  <tr><td colSpan={5} style={{
-                    ...td, textAlign: "center", color: C.mid,
-                    padding: "24px 12px", whiteSpace: "normal", maxWidth: 0,
-                  }}>
-                    Belum ada retensi tercatat. Retensi muncul saat invoice memakai potongan retensi.
-                  </td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). Caption sr-only,
+              kolom pertama <th scope="row">, tabular-nums, dan pembungkus
+              overflow-x sekarang dijamin komponen.
+
+              Kepala baris = nama proyek: retensi ditahan PER PROYEK, jadi
+              itulah yang menamai barisnya.
+
+              Baris pesan-kosong berpindah ke prop `kosong`, dan bersamanya
+              hilang pula tambalan `whiteSpace: normal` + `maxWidth: 0`.
+              Tambalan itu hanya perlu karena `td` bersama memakai `nowrap`
+              demi kolom angka; di luar tabel kalimatnya membungkus
+              sendiri tanpa melebarkan apa pun. */}
+          <Tabel<RetentionRow>
+            caption="Retensi per proyek: yang ditahan, yang sudah dicairkan, dan sisanya. Estimasi cair dihitung dari tanggal selesai proyek ditambah hari retensi termin."
+            data={retention ?? []}
+            kunciBaris={r => r.project.id}
+            kolom={kolomRetensi}
+            kosong={loading ? undefined : (
+              <div style={{ padding: "24px 12px", textAlign: "center", fontSize: 13, color: C.mid }}>
+                Belum ada retensi tercatat. Retensi muncul saat invoice memakai potongan retensi.
+              </div>
+            )}
+          />
           <div style={{ padding: "8px 20px 12px", fontSize: 11, color: C.muted }}>
             Estimasi cair = tanggal selesai proyek + hari retensi termin (bukan tanggal resmi — BAST formal belum dicatat sistem).
           </div>
@@ -338,53 +408,28 @@ export default function PiutangPage() {
             <div style={sectionTitle}><HandCoins size={16} style={{ color: C.navy }} /> Register Uang Muka (DP)</div>
             <div style={{ fontSize: 12, color: C.mid }}>Belum dipotong: <b style={{ color: C.text }}>{fmt(dpRemainingTotal)}</b></div>
           </div>
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
-              <caption className="sr-only">Uang muka per proyek: yang sudah dibayar klien dan berapa yang sudah dipotong dari invoice termin berikutnya.</caption>
-              <thead><tr style={{ background: "var(--bg)" }}>
-                <th style={th}>Proyek</th><th style={{ ...th, textAlign: "right" }}>DP Terbayar</th>
-                <th style={{ ...th, textAlign: "right" }}>Sudah Dipotong</th><th style={th}>Progres Pemotongan</th>
-              </tr></thead>
-              <tbody>
-                {(dp ?? []).map(r => {
-                  const pct = r.dp_paid > 0 ? Math.min((r.recouped / r.dp_paid) * 100, 100) : 0;
-                  return (
-                    <tr key={r.project.id}>
-                      <td style={td}>
-                        <div style={{ fontWeight: 600 }}>{r.project.name}</div>
-                        <div style={{ fontSize: 11, color: C.muted }}>{r.client?.name ?? "—"}</div>
-                      </td>
-                      <td style={{ ...td, textAlign: "right" }}>{fmt(r.dp_paid)}</td>
-                      <td style={{ ...td, textAlign: "right" }}>{fmt(r.recouped)}</td>
-                      <td style={{ ...td, minWidth: 160 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <div style={{ flex: 1, height: 7, borderRadius: 6, background: "var(--surface-hover)", overflow: "hidden" }}>
-                            <div style={{ width: `${pct}%`, height: "100%", background: pct >= 100 ? C.green : C.navy, borderRadius: 6 }} />
-                          </div>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: r.remaining_to_recoup > 0 ? C.text : C.green, whiteSpace: "nowrap" }}>
-                            {r.remaining_to_recoup > 0 ? `sisa ${fmt(r.remaining_to_recoup)}` : "selesai"}
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {/* `whiteSpace: normal` — `td` bersama memakai `nowrap`
-                    supaya kolom angka tak patah, tapi kalimat penjelas
-                    sepanjang ini lalu memaksa lebar tabel melebihi wadahnya
-                    dan ujungnya terpotong tanpa scrollbar. */}
-                {!loading && (dp ?? []).length === 0 && (
-                  <tr><td colSpan={4} style={{
-                    ...td, textAlign: "center", color: C.mid,
-                    padding: "24px 12px", whiteSpace: "normal",
-                    maxWidth: 0,   // paksa sel menghormati lebar tabel
-                  }}>
-                    Belum ada uang muka tercatat. DP muncul saat termin on_sign ditagih, dan dipotong lewat form invoice termin.
-                  </td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). Caption sr-only,
+              kolom pertama <th scope="row">, tabular-nums, dan pembungkus
+              overflow-x sekarang dijamin komponen.
+
+              Kepala baris = nama proyek, seperti Register Retensi di
+              sebelahnya: DP dipotong per proyek, bukan per tanggal.
+
+              Sama seperti tabel kembarnya, pesan-kosong pindah ke prop
+              `kosong` dan tambalan `whiteSpace: normal` + `maxWidth: 0`
+              ikut terhapus — di luar tabel tak ada `nowrap` yang perlu
+              dilawan. */}
+          <Tabel<DpRow>
+            caption="Uang muka per proyek: yang sudah dibayar klien dan berapa yang sudah dipotong dari invoice termin berikutnya."
+            data={dp ?? []}
+            kunciBaris={r => r.project.id}
+            kolom={kolomDp}
+            kosong={loading ? undefined : (
+              <div style={{ padding: "24px 12px", textAlign: "center", fontSize: 13, color: C.mid }}>
+                Belum ada uang muka tercatat. DP muncul saat termin on_sign ditagih, dan dipotong lewat form invoice termin.
+              </div>
+            )}
+          />
           <div style={{ padding: "8px 20px 12px", fontSize: 11, color: C.muted }}>
             Sisa DP dipotong dari invoice termin berikutnya lewat form Buat Invoice di halaman Keuangan.
           </div>

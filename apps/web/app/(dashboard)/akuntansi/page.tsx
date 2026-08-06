@@ -34,6 +34,7 @@ import {
 import { C } from "@/lib/warna-ui";
 import { BukuBesar } from "@/components/buku-besar";
 import { NeracaLabaRugi } from "@/components/neraca-laba-rugi";
+import { Tabel, type Kolom } from "@/components/dasar";
 
 const card: React.CSSProperties = {
   background: "var(--surface)", border: `1px solid ${C.border}`,
@@ -294,76 +295,92 @@ function TabJurnal({
     );
   }
 
+  const kolom: Array<Kolom<Jurnal>> = [
+    {
+      kunci: "nomor", judul: "Nomor", kepalaBaris: true,
+      render: j => <span style={{ fontWeight: 600, whiteSpace: "nowrap" }}>{j.entry_number}</span>,
+    },
+    {
+      kunci: "tanggal", judul: "Tanggal",
+      render: j => (
+        <span style={{ color: C.mid, whiteSpace: "nowrap" }}>
+          {new Date(j.entry_date).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}
+        </span>
+      ),
+    },
+    {
+      kunci: "keterangan", judul: "Keterangan",
+      render: j => (
+        <>
+          {j.description}
+          {j.notes && (
+            <span style={{ display: "block", fontSize: 11, color: C.mid, marginTop: 2 }}>
+              {j.notes}
+            </span>
+          )}
+        </>
+      ),
+    },
+    {
+      kunci: "status", judul: "Status",
+      render: j => {
+        const st = STATUS_META[j.status] ?? STATUS_META.draft;
+        return (
+          <span style={{
+            display: "inline-block", padding: "2px 8px", borderRadius: 20,
+            fontSize: 11, fontWeight: 700,
+            color: st.warna, background: st.bg, border: `1px solid ${st.border}`,
+            whiteSpace: "nowrap",
+          }}>{st.label}</span>
+        );
+      },
+    },
+    {
+      kunci: "aksi", judul: "", rata: "kanan",
+      render: j => (
+        <span style={{ whiteSpace: "nowrap" }}>
+          {j.status === "draft" && bolehPosting && (
+            <button
+              type="button"
+              onClick={() => onPosting(j.id)}
+              style={tombolKecil(C.green, C.greenBg, C.greenBorder)}
+            >
+              <Check size={12} /> Posting
+            </button>
+          )}
+          {j.status === "posted" && bolehBatal && (
+            <button
+              type="button"
+              onClick={() => onBatal(j.id)}
+              style={tombolKecil(C.red, C.redBg, C.redBorder)}
+            >
+              <Ban size={12} /> Batalkan
+            </button>
+          )}
+        </span>
+      ),
+    },
+  ];
+
   return (
     <div style={{ ...card, overflow: "hidden" }}>
-      <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 680, fontVariantNumeric: "tabular-nums" }}>
-          <caption className="sr-only">Daftar jurnal: nomor, tanggal, keterangan, dan status. Hanya jurnal berstatus posted yang masuk ke neraca saldo.</caption>
-          <thead>
-            <tr style={{ background: "var(--bg)" }}>
-              {["Nomor", "Tanggal", "Keterangan", "Status", ""].map((h, i) => (
-                <th key={h || i} style={{
-                  padding: "8px 12px", textAlign: i === 4 ? "right" : "left",
-                  fontSize: 11, fontWeight: 700, color: C.mid,
-                  textTransform: "uppercase", letterSpacing: 0.3,
-                  borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap",
-                }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {jurnal.map(j => {
-              const st = STATUS_META[j.status] ?? STATUS_META.draft;
-              return (
-                <tr key={j.id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                  <th scope="row" style={{ textAlign: "left", padding: "12px 12px", fontSize: 12, fontWeight: 600, color: C.text, whiteSpace: "nowrap" }}>
-                    {j.entry_number}
-                  </th>
-                  <td style={{ padding: "12px 12px", fontSize: 12, color: C.mid, whiteSpace: "nowrap" }}>
-                    {new Date(j.entry_date).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}
-                  </td>
-                  <td style={{ padding: "12px 12px", fontSize: 12, color: C.text }}>
-                    {j.description}
-                    {j.notes && (
-                      <span style={{ display: "block", fontSize: 11, color: C.mid, marginTop: 2 }}>
-                        {j.notes}
-                      </span>
-                    )}
-                  </td>
-                  <td style={{ padding: "12px 12px" }}>
-                    <span style={{
-                      display: "inline-block", padding: "2px 8px", borderRadius: 20,
-                      fontSize: 11, fontWeight: 700,
-                      color: st.warna, background: st.bg, border: `1px solid ${st.border}`,
-                      whiteSpace: "nowrap",
-                    }}>{st.label}</span>
-                  </td>
-                  <td style={{ padding: "12px 12px", textAlign: "right", whiteSpace: "nowrap" }}>
-                    {j.status === "draft" && bolehPosting && (
-                      <button
-                        type="button"
-                        onClick={() => onPosting(j.id)}
-                        style={tombolKecil(C.green, C.greenBg, C.greenBorder)}
-                      >
-                        <Check size={12} /> Posting
-                      </button>
-                    )}
-                    {j.status === "posted" && bolehBatal && (
-                      <button
-                        type="button"
-                        onClick={() => onBatal(j.id)}
-                        style={tombolKecil(C.red, C.redBg, C.redBorder)}
-                      >
-                        <Ban size={12} /> Batalkan
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). Caption sr-only,
+          kolom pertama <th scope="row">, tabular-nums, dan pembungkus
+          overflow-x sekarang dijamin komponen.
+
+          Kepala baris tetap nomor jurnal — itu identitas yang dipakai
+          akuntan saat merujuk satu ayat, dan tanggal tak bisa
+          menggantikannya karena satu hari bisa memuat banyak jurnal.
+
+          `minWidth: 680` dilepas, bukan lupa: komponen sudah membungkus
+          dengan overflow-x, jadi gulir horizontalnya tetap ada tanpa
+          memaksa lebar mati ke primitif bersama. */}
+      <Tabel<Jurnal>
+        caption="Daftar jurnal: nomor, tanggal, keterangan, dan status. Hanya jurnal berstatus posted yang masuk ke neraca saldo."
+        data={jurnal}
+        kunciBaris={j => j.id}
+        kolom={kolom}
+      />
     </div>
   );
 }
@@ -453,6 +470,60 @@ function TabNeraca({
 
   const seimbang = (meta?.selisih ?? 0) === 0;
 
+  const kolomNeraca: Array<Kolom<BarisNeraca>> = [
+    {
+      kunci: "nama", judul: "Nama Akun", kepalaBaris: true,
+      render: b => (
+        <>
+          {b.name}
+          <span style={{ fontSize: 11, color: C.muted, marginLeft: 7 }}>
+            {TIPE_LABEL[b.type] ?? b.type}
+          </span>
+        </>
+      ),
+    },
+    {
+      kunci: "kode", judul: "Kode",
+      render: b => (
+        <span style={{ fontWeight: 700, color: C.navy, fontVariantNumeric: "tabular-nums" }}>
+          {b.code}
+        </span>
+      ),
+    },
+    // Angka rata KANAN: kolom uang harus sejajar digitnya, kalau tidak mata
+    // sulit membandingkan besarannya. `tabular-nums` datang dari <Tabel>.
+    {
+      kunci: "debit", judul: "Debit", rata: "kanan",
+      render: b => <span style={{ color: C.mid }}>{b.debit ? rupiah(b.debit) : "—"}</span>,
+    },
+    {
+      kunci: "kredit", judul: "Kredit", rata: "kanan",
+      render: b => <span style={{ color: C.mid }}>{b.credit ? rupiah(b.credit) : "—"}</span>,
+    },
+    {
+      kunci: "saldo", judul: "Saldo", rata: "kanan",
+      render: b => <span style={{ fontWeight: 700 }}>{rupiah(b.saldo)}</span>,
+    },
+  ];
+
+  /**
+   * Total kolom debit & kredit — di `<tfoot>`, bukan baris data.
+   *
+   * Angkanya sudah tampil di panel seimbang/tak-seimbang di atas, tapi di
+   * sana ia berperan sebagai VONIS ("selisih nol atau tidak"). Di kaki tabel
+   * ia berperan sebagai jumlah kolom yang ada tepat di atasnya — dan itu
+   * yang dicari mata saat menelusuri deretan angka sampai habis.
+   *
+   * Kolom Saldo sengaja tak dijumlahkan: saldo bertanda campuran menurut
+   * saldo normal tiap akun, jadi jumlahnya bukan angka yang berarti.
+   */
+  const totalNeraca = meta ? [
+    { kunci: "label", isi: "Total", rata: "kanan" as const, rentang: 2 },
+    { kunci: "debit", isi: rupiah(meta.total_debit), rata: "kanan" as const },
+    { kunci: "kredit", isi: rupiah(meta.total_credit), rata: "kanan" as const },
+    { kunci: "saldo", isi: "", rata: "kanan" as const },
+  ] : undefined;
+
   return (
     <div style={{ display: "grid", gap: 12 }}>
       {/* Selisih ditampilkan MENYOLOK kalau tak nol: neraca yang tak seimbang
@@ -477,49 +548,28 @@ function TabNeraca({
       </div>
 
       <div style={{ ...card, overflow: "hidden" }}>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 620, fontVariantNumeric: "tabular-nums" }}>
-            <caption className="sr-only">Neraca saldo per akun: debit, kredit, dan saldo akhir. Disusun dari jurnal yang sudah posted; jurnal draft tidak dihitung.</caption>
-            <thead>
-              <tr style={{ background: "var(--bg)" }}>
-                {["Kode", "Nama Akun", "Debit", "Kredit", "Saldo"].map((h, i) => (
-                  <th key={h} style={{
-                    padding: "8px 12px", textAlign: i >= 2 ? "right" : "left",
-                    fontSize: 11, fontWeight: 700, color: C.mid,
-                    textTransform: "uppercase", letterSpacing: 0.3,
-                    borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap",
-                  }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {baris.map(b => (
-                <tr key={b.account_id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                  <td style={{ padding: "8px 12px", fontSize: 12, fontWeight: 700, color: C.navy, fontVariantNumeric: "tabular-nums" }}>
-                    {b.code}
-                  </td>
-                  <td style={{ padding: "8px 12px", fontSize: 12, color: C.text }}>
-                    {b.name}
-                    <span style={{ fontSize: 11, color: C.muted, marginLeft: 7 }}>
-                      {TIPE_LABEL[b.type] ?? b.type}
-                    </span>
-                  </td>
-                  {/* Angka rata KANAN + tabular-nums: kolom uang harus sejajar
-                      digitnya, kalau tidak mata sulit membandingkan besarannya. */}
-                  <td style={{ padding: "8px 12px", textAlign: "right", fontSize: 12, color: C.mid, fontVariantNumeric: "tabular-nums" }}>
-                    {b.debit ? rupiah(b.debit) : "—"}
-                  </td>
-                  <td style={{ padding: "8px 12px", textAlign: "right", fontSize: 12, color: C.mid, fontVariantNumeric: "tabular-nums" }}>
-                    {b.credit ? rupiah(b.credit) : "—"}
-                  </td>
-                  <td style={{ padding: "8px 12px", textAlign: "right", fontSize: 12, fontWeight: 700, color: C.text, fontVariantNumeric: "tabular-nums" }}>
-                    {rupiah(b.saldo)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). Caption sr-only,
+            kolom pertama <th scope="row">, tabular-nums, dan pembungkus
+            overflow-x sekarang dijamin komponen.
+
+            Urutan kolom DITUKAR: "Nama Akun" naik ke depan dan jadi kepala
+            baris, "Kode" turun ke belakangnya. Alasannya sama dengan yang
+            sudah ditulis di kepala halaman ini — kontraktor tak menghafal
+            '1122', mereka mengenal 'Uang Muka Mandor'. Pembaca layar yang
+            mendengar "1122, Rp 4.500.000" harus menerjemahkan kodenya
+            sendiri; "Uang Muka Mandor, Rp 4.500.000" langsung terpakai.
+            Kodenya tetap ditampilkan karena itu yang dipakai saat bicara
+            dengan konsultan pajak — hanya pindah kolom, bukan hilang.
+
+            `minWidth: 620` dilepas: komponen sudah membungkus dengan
+            overflow-x, jadi gulirnya tetap ada tanpa lebar mati. */}
+        <Tabel<BarisNeraca>
+          caption="Neraca saldo per akun: nama akun, kode, debit, kredit, dan saldo akhir. Disusun dari jurnal yang sudah posted; jurnal draft tidak dihitung."
+          data={baris}
+          kunciBaris={b => b.account_id}
+          kolom={kolomNeraca}
+          total={totalNeraca}
+        />
       </div>
     </div>
   );
