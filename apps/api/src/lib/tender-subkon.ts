@@ -73,6 +73,15 @@ export interface PenawaranTerhitung {
   selisih_perkiraan_pct: number | null
   penilaian: PenilaianPenawaran
   menang: boolean
+  /**
+   * Catatan penawar, diteruskan apa adanya.
+   *
+   * Bukan hiasan: di sinilah tertulis "harga tidak menyebut talang dan
+   * flashing" — kalimat yang menjelaskan KENAPA sebuah penawaran jauh di
+   * bawah perkiraan. Tanpa diteruskan, layar hanya menandai angkanya ganjil
+   * tanpa pernah menunjukkan sebabnya, dan pembacanya harus menebak.
+   */
+  catatan: string | null
 }
 
 export interface HasilTender {
@@ -177,6 +186,7 @@ export function susunTender(
       selisih_perkiraan_pct: selisihPerkiraan,
       penilaian,
       menang: status === 'menang',
+      catatan: p.catatan ?? null,
     }
   })
 

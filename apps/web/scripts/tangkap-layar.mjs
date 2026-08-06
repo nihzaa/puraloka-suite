@@ -35,7 +35,15 @@ const GELAP = ARG.includes('--gelap')
 const urlIdx = ARG.indexOf('--url')
 const URL_TUNGGAL = urlIdx >= 0 ? ARG[urlIdx + 1] : null
 
-const BASIS = process.env.LAYAR_BASIS ?? 'http://localhost:3001'
+// :3000 — WEB. Bukan :3001, yang itu API.
+//
+// Sampai 2026-08-07 nilai ini `http://localhost:3001`, dan tiap upaya
+// memotret gagal dengan pesan yang menyesatkan: "menunggu #login-email"
+// — seolah halaman loginnya yang rusak, padahal skrip ini memuat API yang
+// memang tak punya form. Menebak-nebak `networkidle`, `addInitScript`, dan
+// `deviceScaleFactor` lebih dulu tak menemukan apa pun; yang menemukan
+// adalah membaca nilainya.
+const BASIS = process.env.LAYAR_BASIS ?? 'http://localhost:3000'
 const EMAIL = process.env.LAYAR_EMAIL
 const SANDI = process.env.LAYAR_SANDI
 
@@ -115,7 +123,7 @@ async function login() {
     console.log('   Halaman yang butuh sesi akan menampilkan layar masuk.')
     return false
   }
-  await hal.goto(`${BASIS}/login`, { waitUntil: 'networkidle' })
+  await hal.goto(`${BASIS}/login`, { waitUntil: 'domcontentloaded' })
 
   // Pakai `id`, bukan `input[type=...]`, dan TUNGGU elemennya siap.
   // Percobaan pertama memakai selektor tipe + fill langsung: medannya tetap
@@ -148,7 +156,9 @@ await login()
 
 for (const h of HALAMAN) {
   galat.length = 0
-  await hal.goto(`${BASIS}${h.url}`, { waitUntil: 'networkidle', timeout: 30_000 })
+  await hal.goto(`${BASIS}${h.url}`, { waitUntil: 'domcontentloaded', timeout: 30_000 })
+  // Jeda tetap: cukup untuk data pertama tiba sesudah hidrasi.
+  await hal.waitForTimeout(2_500)
     .catch((e) => console.log(`⚠️  ${h.url}: ${e.message.split('\n')[0]}`))
 
   // Beri waktu animasi masuk selesai (kartu KPI naik 300ms, hitung-naik 400ms).

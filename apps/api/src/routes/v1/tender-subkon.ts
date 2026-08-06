@@ -48,10 +48,18 @@ export default async function tenderSubkonRoutes(app: FastifyInstance) {
     let kueri = db
       .unsafe('tender_subkon', 'daftar lintas-proyek; viaProject butuh satu project sebagai konteks')
       .select(
+        // `penawaran_subkon(count)` — jumlah penawaran per tender.
+        //
+        // Bukan hiasan: tanpa angka ini layar tak punya cara memilih tender
+        // mana yang dibuka lebih dulu, dan urutan `tanggal DESC` membuat
+        // tender TERBARU yang menang — yang justru paling mungkin belum ada
+        // penawarannya. Pengguna membuka layar perbandingan dan disambut
+        // "belum ada penawaran", padahal tender lain penuh isinya.
         `id, nomor, judul, lingkup_kerja, nilai_perkiraan, tanggal, batas_masuk,
          status, alasan_pilih, created_at,
          proyek:projects ( id, name ),
-         pembuat:users ( id, name )`,
+         pembuat:users ( id, name ),
+         penawaran_subkon ( count )`,
         { count: 'exact' },
       )
       .in('project_id', idProyek)

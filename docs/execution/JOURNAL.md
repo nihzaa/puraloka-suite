@@ -5,6 +5,89 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-07 (lanjutan 4) — UI tender subkon: PEMBEDA 10/12 tuntas, dan tiga angka yang menolak jadi kabar baik
+
+### Halaman `/mandor/tender` — dinilai lewat POTRET, bukan diklaim
+
+Backend sudah ada sejak migrasi 201. Yang dibangun hari ini layarnya, plus
+migrasi 203 yang mengarahkan menu `sk-tender` dari `/m/sk-tender` (rute
+"belum dibangun") ke halaman nyata.
+
+Data uji dibuat lebih dulu — **tiga skenario yang sengaja menyulitkan**, bukan
+tiga baris rapi yang membuat setiap kesalahan tampilan tak terlihat:
+
+| Tender | Kasus yang diuji |
+|---|---|
+| TND-001 | pemenang BUKAN termurah (selisih Rp 12jt, ada alasan tertulis) |
+| TND-002 | penawaran −28,5% dari perkiraan — termurah TAPI berbahaya |
+| TND-003 | tender sah tanpa satu pun penawaran |
+
+Terbukti di potret (terang **dan** gelap):
+
+- Bebeng tampil **"tidak menawar"**, bukan "Rp 0" — ia tidak menang sebagai
+  termurah
+- Rp 118jt ditandai **"Terlalu rendah"** meski ia yang termurah
+- **pemenang bukan termurah** dinyatakan + alasan tertulisnya ditampilkan
+
+### Tiga cacat yang hanya ketahuan dengan MELIHAT
+
+Ketiganya tak akan pernah muncul dari membaca kode sendiri:
+
+1. **Layar membuka pada tender KOSONG.** API mengurutkan `tanggal DESC`, jadi
+   tender termuda menang — dan yang termuda justru paling mungkin belum ada
+   penawarannya. Layar perbandingan yang disambut "belum ada penawaran"
+   terbaca seperti fiturnya belum jalan. Diperbaiki: API mengirim
+   `penawaran_subkon(count)`, halaman memilih tender yang PUNYA isi.
+
+2. **"PENAWARAN MASUK 2" padahal 3 baris.** Benar secara definisi (2 menawar,
+   1 tidak) tapi pembacanya mengira ada yang belum termuat. Diganti
+   **"MENGAJUKAN HARGA 3 dari 3"**.
+
+3. **KPI "Termurah" memajang angka berbahaya sebagai nilai netral.** Rp 118jt
+   adalah termurah DAN −28,5% dari perkiraan; dipajang polos di antara tiga
+   KPI lain, yang paling berisiko justru terbaca paling menarik — persis
+   salah-baca yang banner di bawahnya berusaha cegah. Kini kartunya ikut
+   oranye dengan keterangan "periksa lingkupnya".
+
+### `catatan` tak pernah sampai ke layar — ditemukan sebelum ditampilkan
+
+`BarisPenawaranSubkon` punya `catatan` sebagai input, tapi `PenawaranTerhitung`
+tidak meneruskannya. Kolom "Catatan" akan **selalu kosong tanpa satu pun
+galat** — dan yang hilang justru kalimat yang menjelaskan kenapa sebuah
+penawaran jauh di bawah perkiraan ("harga tidak menyebut talang dan
+flashing"). Diperbaiki + test + mutation-test (mengembalikan `catatan: null`
+membuatnya merah).
+
+### Penjaga potret yang tak pernah bisa jalan
+
+`tangkap-layar.mjs` memakai `BASIS = http://localhost:3001` — itu **port API**,
+bukan web. Setiap upaya memotret gagal dengan "menunggu #login-email", seolah
+halaman loginnya rusak.
+
+**Saya menebak tiga kali sebelum mengukur**: `networkidle`, `addInitScript`,
+lalu `deviceScaleFactor`. Ketiganya diuji satu per satu dan ketiganya salah.
+Yang menemukan adalah membaca nilai `BASIS`. Perubahan `networkidle` yang
+terlanjur saya buat dikembalikan — ia bukan perbaikan, dan komentar
+pembenarannya tidak terbukti.
+
+### Bukti
+
+    165 berkas test, 1735 lulus, 2 dilewati, 0 gagal (274s)
+    axe-core WCAG 2.1 AA — tender & contingency, terang & gelap: NOL pelanggaran
+    16 penjaga web ✅ · seluruh penjaga API ✅ · ratchet API & web ✅
+    pnpm build web ✅ — /mandor/tender terdaftar
+
+### Catatan jujur
+
+API yang berjalan di terminal founder dijalankan `tsx src/index.ts` **tanpa
+watch**, jadi perubahan endpoint (`penawaran_subkon(count)`) belum termuat
+saat potret diambil. Dropdown masih menulis "belum ada penawaran" untuk tender
+yang punya 3, dan kolom Catatan masih "—". Kodenya diverifikasi benar lewat
+PostgREST langsung: `[{count:3},{count:3},{count:0}]`. **Keduanya akan benar
+begitu API di-restart** — bukan diklaim sudah benar sekarang.
+
+---
+
 ## 2026-08-07 (lanjutan 3) — SAYA SALAH: 9 migrasi PEMBEDA melanggar ADR-004 yang saya kutip sendiri
 
 ### Temuan utama: RLS literal peran 68 → 86, dan 18 dari 18 berasal dari saya

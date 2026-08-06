@@ -179,7 +179,7 @@ Jantung ERP kontraktor. Lihat skor Lima Pembeda di bawah.
 | Menu | Status | Catatan |
 |---|---|---|
 | Paket subkontrak | 🟡 | Via work_scopes mandor |
-| Tender & award subkontraktor | 🟡 | migrasi 201 · backend + 22 invarian SELESAI · **UI menyusul** (apps/web dipegang sesi lain 2026-08-07) |
+| Tender & award subkontraktor | ✅ | migrasi 201 + 203 · backend 22 invarian · `/mandor/tender` (2026-08-07) · perbandingan penawaran, penanda pemenang-bukan-termurah & penawaran terlalu rendah · a11y nol pelanggaran kedua mode |
 | Kontrak subkontrak + BOQ | 🟡 | |
 | Work order ke subkontraktor | 🟡 | |
 | **Opname / berita acara bersama** | 🟡 | `field_opname_reports` (044) = 🔵 skema-mati; hard-lock opname→pembayaran = rencana Modul 11a |

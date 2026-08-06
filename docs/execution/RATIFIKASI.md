@@ -63,22 +63,37 @@ halaman rusak, bukan "ada lagi di bawah", jadi orang berhenti menggulir.
 Pada widget Milestone yang isinya semua tenggat mendekat, itu berarti
 **menyembunyikan tenggat**.
 
-## ❓ Satu hal yang masih menunggu Anda
+## ✅ TERJAWAB 2026-08-07 — kode mati di `/mandor`
 
-**Kode mati di `/mandor`.** `middleware.ts:53` mendaftarkan `/mandor` hanya
-di bawah `admin`. Setiap cabang `isMandor` di halaman itu — termasuk seluruh
-bekas tab "Kasbon Saya" (kini `mandor/kasbon-saya/page.tsx`, sengaja tidak
-ditautkan di nav) — **tak pernah bisa dieksekusi siapa pun**.
+Founder memilih **opsi 1: hapus**, dengan alasan *"mandor sudah punya
+portal"*. Dikerjakan hari itu juga: 30 cabang `isMandor` di 5 berkas +
+`mandor/kasbon-saya/page.tsx`.
 
-Semua dipertahankan apa adanya + ditandai komentar. Dua pilihan, dan
-keduanya sah:
+Sebelum menghapus, dua hal **dibuktikan** — bukan diasumsikan:
 
-1. **Hapus** — kode yang tak pernah jalan adalah beban baca bagi setiap
-   orang yang membuka berkas itu
-2. **Beri akses mandor ke `/mandor`** — kalau memang seharusnya bisa dibuka
-   mandor, yang salah bukan kodenya melainkan `middleware.ts`
+- nol tautan masuk ke `kasbon-saya` dari mana pun
+- `/mandor-portal/kasbon` memakai endpoint yang **sama** (`/api/v1/kasbons`)
+  dan bisa mengajukan, bahkan lewat `kirimLapangan` yang mendukung mode
+  offline — jadi fungsinya tidak hilang, ia sudah ada di tempat yang benar
 
-Saya tidak menebak yang mana. Diam berarti dibiarkan apa adanya.
+`pm-portal/layout.tsx` punya `isMandor` juga tapi **tidak disentuh**: di sana
+peran mandor memang bisa masuk, jadi cabangnya hidup.
+
+### Yang lebih penting, ditemukan saat membuktikan cabang itu mati
+
+`middleware.ts` memperlakukan role **KUSTOM** berbeda: ia hanya memblokir
+tiga portal (`/portal`, `/mandor-portal`, `/pm-portal`). Rute lain **bebas**,
+termasuk `/mandor`.
+
+Artinya peran kustom baru tanpa `mandor:assign` bisa membuka layar admin itu
+dan melihat seluruh mandor, upah, dan kasbon lintas-proyek. Selama ini cabang
+`isMandor` menutupinya **secara tak sengaja** — ia menyembunyikan bagian layar
+dari yang tak punya permission itu. Menghapusnya melenyapkan penutup itu.
+
+Penutup tak sengaja diganti yang disengaja:
+`apps/api/scripts/uji-peran-lihat-layar-admin.mjs` — peran yang bisa membuka
+layar admin wajib punya permission-nya. Di-mutation-test: peran kustom tanpa
+`mandor:assign` membuatnya merah.
 
 ## Dua koreksi terhadap dokumen — saya salah, kenyataan menang
 

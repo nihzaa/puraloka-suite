@@ -346,8 +346,22 @@ pindah, bukan hilang.
 |---|---|---|
 | **Tender & award subkontraktor** | Menutup rantai owner → kontraktor → subkon | L |
 
-**BACKEND SELESAI** (migrasi 201) — **UI menyusul**, `apps/web` sedang
-dipegang sesi lain (2026-08-07).
+**SELESAI 2026-08-07** — backend (migrasi 201, 22 invarian) **dan** UI
+(`/mandor/tender`, menu diarahkan migrasi 203).
+
+Layar menolak menampilkan tiga hal sebagai kabar baik, dan ketiganya
+diperiksa lewat potret pada data uji, bukan diklaim:
+
+- yang menyatakan tidak menawar tampil **"tidak menawar"**, bukan "Rp 0" —
+  nol adalah angka terkecil, dan di kolom yang sedang dibandingkan besarannya
+  ia menang sebagai termurah sebelum satu kata pun dibaca
+- penawaran **−28,5% dari perkiraan** ditandai "Terlalu rendah" oranye
+  meski ia yang termurah; kartu KPI "Termurah" ikut berubah oranye dengan
+  keterangan "periksa lingkupnya"
+- **pemenang bukan termurah** dinyatakan terang-terangan beserta selisih
+  rupiahnya, dan alasan tertulisnya ditampilkan — atau ketiadaannya ditagih
+
+axe-core WCAG 2.1 AA: **nol pelanggaran, mode terang dan gelap**.
 
 Diukur: 20 lingkup kerja Rp 15jt–280jt, SELURUHNYA `unsigned`, tanpa satu pun
 jejak bagaimana mandornya dipilih.
