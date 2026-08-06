@@ -88,12 +88,12 @@ lapisan mana yang sudah ada.
 | Termin & syarat pembayaran | ✅ | |
 | Retensi (retention) | ✅ | `retention_pct` + trigger amount + potongan invoice + `invoice_type='retention_release'` + config 087. Kurang: register/jadwal pelepasan |
 | **Change Order / Variation Order** | ✅ | Lengkap: CRUD + items + submit + approve berjenjang (engine ADR-007) + baseline snapshot + update `contract_value` + audit critical |
-| Claims management | 🔴 | |
+| Claims management | 🟡 | UI hidup: `klaim-section.tsx` → `/api/v1/projects/{id}/claims` (diukur 2026-08-06) |
 | Extension of Time (EOT) | ✅ | **2026-08-01** (migrasi 152): `contract_eot` + ajukan/setujui/tolak + UI. `days_approved` (bukan `days_requested`) yang menggeser tanggal — kalau tidak, kontraktor menentukan tenggatnya sendiri |
 | Denda keterlambatan (LD) | ✅ | **2026-08-01** (migrasi 152) — ~~arah terbalik~~ **DITUTUP**. Kini ADA DUA arah dan sengaja terpisah: 091 = klien telat BAYAR · 152 = kontraktor telat SELESAI. Dihitung dari tanggal **efektif sesudah EOT**, bukan `end_date` mentah. DEFAULT OFF; capability waiver-nya terpisah (`contract:ld:waive` vs `finance:penalty:waive`) — memaafkan denda klien dan denda sendiri adalah dua wewenang berbeda |
 | Bank garansi & bond register | ✅ | **2026-08-01** (migrasi 152): `contract_bonds` 4 jenis (penawaran/pelaksanaan/uang muka/pemeliharaan) + peringatan kadaluarsa ≤30 hari. Jaminan kadaluarsa tanpa diperpanjang = uang hilang, jadi yang ditonjolkan bukan totalnya melainkan yang segera jatuh tempo |
 | Register asuransi | 🔴 | |
-| Surat masuk/keluar (correspondence) | 🔴 | |
+| Surat masuk/keluar (correspondence) | 🟡 | UI hidup: `surat-section.tsx` → `/api/v1/projects/{id}/letters` (diukur 2026-08-06) |
 | Kontrak subkontraktor | 🟡 | `work_scopes` + rencana signing internal (Modul 11b ERP_MASTER_PLAN) |
 
 ---
@@ -184,7 +184,7 @@ Jantung ERP kontraktor. Lihat skor Lima Pembeda di bawah.
 | Work order ke subkontraktor | 🟡 | |
 | **Opname / berita acara bersama** | 🟡 | `field_opname_reports` (044) = 🔵 skema-mati; hard-lock opname→pembayaran = rencana Modul 11a |
 | Progress claim / payment certificate | 🟡 | `progress_payments` ada; sertifikat formal belum |
-| Retensi subkontrak | 🔴 | |
+| Retensi subkontrak | 🟡 | UI hidup: `mandor/retensi/page.tsx` + `retensi-section.tsx` (diukur 2026-08-06) |
 | Back-charge / potongan | 🟡 | Potongan kasbon di settlement + `wage_deductions` ada; back-charge formal belum |
 | Evaluasi kinerja subkontraktor | 🔴 | |
 | Kepatuhan (izin, asuransi, pajak) | 🔴 | |
@@ -203,11 +203,11 @@ Jantung ERP kontraktor. Lihat skor Lima Pembeda di bawah.
 | Log tenaga kerja harian | 🟡 | `worker_count` agregat, bukan per orang |
 | Log pemakaian alat | 🔴 | |
 | Log cuaca | 🟡 | Field `weather` di progress_logs |
-| Instruksi lapangan | 🔴 | |
+| Instruksi lapangan | 🟡 | UI hidup: `instruksi-lapangan-section.tsx` → `/field-instructions` (diukur 2026-08-06) |
 | Izin kerja (work permit) | 🔴 | |
 | **Request for Inspection (RFI)** | ✅ | Migrasi 157 · `/lapangan/inspeksi` · pemeriksa terpisah dari pemohon; gagal → temuan punch list |
 | **Submittal register** | ✅ | Migrasi 159 · `/lapangan/submittal` · lewat Workflow Engine; revisi dirantai ke pengajuan pertama |
-| Non-Conformance Report (NCR) | 🔴 | |
+| Non-Conformance Report (NCR) | 🟡 | UI hidup: `mutu/ncr/page.tsx` (diukur 2026-08-06) |
 | Punch list / daftar cacat | ✅ | Migrasi 156 · `/lapangan/punch-list` · `punch:verify` terpisah dari `punch:manage` |
 | Dokumentasi foto | ✅ | Live sejak 097/098 (bucket privat + all-or-nothing); **geotag 🔴** (0 kolom GPS) |
 | Serah terima (PHO/FHO) | 🟡 | BAST hanya sebagai jenis dokumen upload; proses tidak ada |
@@ -366,7 +366,7 @@ Semua 🔴 — terkonfirmasi.
 | Mode offline | 🟡 | **Naik dari 🔴 2026-08-04 (F4-3).** `lib/antrean-offline.ts` + `lib/kirim-lapangan.ts` + `components/StatusAntrean.tsx`; terpasang di 6 jalur tulis portal mandor. Empat jaminan diuji + mutation-test (6/6 tertangkap): tersimpan · tak-ganda (Idempotency-Key) · berurutan · berkunci company. **Belum 5/5**: foto belum ikut diantre (butuh IndexedDB), dan pembacaan belum offline — mandor masih perlu sinyal untuk MELIHAT data |
 | Input laporan harian | 🟡 | Screen input progress + foto ada |
 | Foto + geotag | 🟡 | Foto ✅, geotag 🔴 |
-| Absensi lapangan | 🔴 | |
+| Absensi lapangan | 🟡 | UI hidup: `mandor/absensi/page.tsx` (diukur 2026-08-06) |
 | Material request | 🔴 | Direncanakan ERP_MASTER_PLAN Mobile Phase 1, belum ada |
 | Approval mobile | 🟡 | Approve/reject inline dari notifikasi |
 | Checklist inspeksi | 🔴 | |

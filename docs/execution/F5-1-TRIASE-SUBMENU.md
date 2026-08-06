@@ -162,13 +162,13 @@ menyempurnakan yang sudah hidup — dua item INTI ternyata yang kedua (§2c).
 |---|---|---|---|---|---|---|
 | 1 | **Laporan keuangan** — neraca & L/R | 14 Keuangan | Owner tak bisa melihat posisi perusahaan; ini pertanyaan pertama tiap calon pelanggan | 🟡 arus kas ✅ · **GL sudah sehat** (§3a) | akun diklasifikasi neraca/L-R | **M** |
 | 2 | **Interim Payment Certificate (IPC)** | 15 Penagihan | Termin tak bisa ditagih secara formal ke owner proyek; ini pintu masuk UANG | 🔴 nol | progress terverifikasi + retensi | L |
-| 3 | **Retensi subkontrak** | 8 Subkontraktor | Retensi mandor/subkon tak terlacak → dibayar penuh padahal harus ditahan; kebocoran uang langsung | 🔴 nol | kontrak subkon + termin | M |
-| 4 | **Claims management** | 3 Kontrak | Klaim tambah-kurang tak punya jejak; saat sengketa, tak ada bukti | 🔴 nol | kontrak + variation order | L |
-| 5 | **Surat masuk/keluar (correspondence)** | 3 Kontrak | Korespondensi kontraktual tak terdaftar → notifikasi keterlambatan tak bisa dibuktikan | 🔴 nol | register dokumen | M |
-| 6 | **Instruksi lapangan** | 9 Lapangan | Perintah lisan tak berjejak; dasar klaim biaya tambahan hilang | 🔴 nol | proyek + scope | S |
-| 7 | **Non-Conformance Report (NCR)** | 9 Lapangan | Ketidaksesuaian mutu tak punya siklus tutup; tender pemerintah mensyaratkannya | 🔴 nol | punch list (✅ ada) | M |
-| 8 | **Geotag foto** | 20 Mobile | Foto tanpa koordinat tak membuktikan pekerjaan dilakukan **di lokasi itu** — dasar sengketa progres | 🟡 foto sudah hidup (097/098) | kolom GPS (0 kolom hari ini) | S |
-| 9 | **Absensi lapangan** | 20 Mobile | Upah harian dihitung dari ingatan mandor; ini sumber selisih paling sering | 🔴 nol | worker + assignment (✅ ada) | M |
+| 3 | **Retensi subkontrak** | 8 Subkontraktor | Retensi mandor/subkon tak terlacak → dibayar penuh padahal harus ditahan; kebocoran uang langsung | 🟡 UI hidup (2026-08-06) | kontrak subkon + termin | M |
+| 4 | **Claims management** | 3 Kontrak | Klaim tambah-kurang tak punya jejak; saat sengketa, tak ada bukti | 🟡 UI hidup (2026-08-06) | kontrak + variation order | L |
+| 5 | **Surat masuk/keluar (correspondence)** | 3 Kontrak | Korespondensi kontraktual tak terdaftar → notifikasi keterlambatan tak bisa dibuktikan | 🟡 UI hidup (2026-08-06) | register dokumen | M |
+| 6 | **Instruksi lapangan** | 9 Lapangan | Perintah lisan tak berjejak; dasar klaim biaya tambahan hilang | 🟡 UI hidup (2026-08-06) | proyek + scope | S |
+| 7 | **Non-Conformance Report (NCR)** | 9 Lapangan | Ketidaksesuaian mutu tak punya siklus tutup; tender pemerintah mensyaratkannya | 🟡 UI hidup (2026-08-06) | punch list (✅ ada) | M |
+| 8 | **Geotag foto** | 20 Mobile | Foto tanpa koordinat tak membuktikan pekerjaan dilakukan **di lokasi itu** — dasar sengketa progres | 🟡 UI + migrasi 190 | kolom GPS (0 kolom hari ini) | S |
+| 9 | **Absensi lapangan** | 20 Mobile | Upah harian dihitung dari ingatan mandor; ini sumber selisih paling sering | 🟡 UI hidup (2026-08-06) | worker + assignment (✅ ada) | M |
 
 ### 3a. INTI #1 TIDAK terblokir — koreksi, saya salah menyatakannya
 
@@ -197,6 +197,17 @@ CPM, resource histogram, atau tanda tangan elektronik memang membuat produk
 lebih baik — tapi tak ada kontraktor yang membatalkan pembelian karena
 ketiadaannya. Menaruhnya di INTI membuat kata "INTI" kehilangan arti, dan
 daftar yang semuanya prioritas sama dengan tidak punya prioritas.
+
+### 3b. Koreksi kedua — enam item, 2026-08-06
+
+§3a mencatat satu item salah status. Diukur ulang 2026-08-06: **enam item lagi**
+(#3,4,5,6,7,9) ditulis "🔴 nol" padahal UI-nya hidup, dan #8 sudah punya migrasi
+190 + `penanda-lokasi.tsx`.
+
+Sekali adalah kekeliruan; tujuh kali adalah cacat sistemik tanpa penjaga.
+`audit-taksonomi-vs-kode.mjs` sebenarnya bisa mendeteksinya, tetapi keenam modul
+itu **tak punya entri `PETA`** sehingga tak pernah diperiksa — ia melaporkan
+"status BASI: 0" dengan percaya diri. F8-1 menutup lubang itu.
 
 ---
 
