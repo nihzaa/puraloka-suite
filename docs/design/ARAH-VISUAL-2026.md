@@ -1,6 +1,48 @@
 # ARAH VISUAL 2026 — Puraloka Suite
 
-> **Status: USULAN. Belum diratifikasi, belum ada kode yang mengikutinya.**
+> **Status: SEBAGIAN DIRATIFIKASI — 2026-08-07.**
+>
+> | §10 | Keputusan founder | Status |
+> |---|---|---|
+> | 1. Aksen indigo `#6366F1` | **DISETUJUI** | boleh dipakai |
+> | 2. Kerapatan (§4) | **sedang dikerjakan di SESI LAIN** | ⚠️ jangan disentuh dari sini |
+> | 3. Dashboard per menu induk (§5) | ditunda — PEMBEDA didahulukan | menunggu |
+> | 4. Halaman contoh | menyusul sesudah §5 diputuskan | menunggu |
+>
+> **⚠️ Peringatan bentrok:** token kerapatan (`--pad-kartu`, `--gap-grid`,
+> `--teks-*`) sedang diubah di sesi lain. Mengubahnya dari sini akan menimpa
+> pekerjaan yang sedang berjalan. Sesi ini HANYA memakai aksen indigo, dan
+> hanya pada halaman baru.
+>
+> Sisa dokumen di bawah tetap USULAN sampai keputusan §10 nomor 3 dan 4 turun.
+>
+> ### ⚠️ Temuan 2026-08-07 — `--aksen` SUDAH ADA, dan isinya navy
+>
+> Diukur di `globals.css`:
+>
+> ```
+> --aksen:         #003366   ← navy, BUKAN indigo
+> --aksen-terang:  #0059B3   ← biru
+> --aksen-pekat:   #001F3D
+> --aksen-lembut:  #E8F0F8
+> ```
+>
+> Inilah "biru-di-atas-biru" yang §3a sebut sebagai penyebab monoton — token
+> bernama *aksen* yang nilainya sama keluarga dengan warna merek.
+>
+> **Belum diubah, dan itu disengaja.** `--aksen*` dipakai di 8+ halaman
+> (dashboard 9×, kas 4×, kalender 3×, arus kas, kasbon, laporan, audit),
+> sebagian sebagai gradien grafik. Menukarnya jadi indigo akan mengubah
+> seluruh halaman itu sekaligus — dan token kerapatan di berkas yang SAMA
+> sedang digarap sesi lain.
+>
+> **Cara menerapkannya nanti** (satu perubahan, satu sesi, tanpa bentrok):
+>
+> 1. tukar keempat nilai `--aksen*` ke indigo (§3b)
+> 2. jalankan `uji-token-grafik-bukan-teks.mjs` — indigo `#6366F1` adalah
+>    token DATA (ambang 3:1), bukan warna teks (4,5:1)
+> 3. audit a11y kedua mode: 47 halaman harus tetap nol pelanggaran
+> 4. periksa gradien dashboard secara visual — di sanalah aksen paling terlihat
 >
 > Dokumen ini menjawab keluhan founder 2026-08-04:
 > *"kurang dapet wah-nya, kurang punya taste desain"* dan
