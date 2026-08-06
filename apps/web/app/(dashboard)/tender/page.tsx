@@ -204,10 +204,10 @@ export default function TenderPage() {
                   ? ((b.bid_value - b.winner_value) / b.winner_value) * 100 : null;
                 return (
                   <tr key={b.id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                    <td style={{ padding: "8px 12px" }}>
+                    <th scope="row" style={{ textAlign: "left", padding: "8px 12px" }}>
                       <div style={{ fontWeight: 600, color: C.text }}>{b.title}</div>
                       {b.bid_number && <div style={{ fontSize: 11, color: C.muted, fontFamily: "ui-monospace, monospace" }}>{b.bid_number}</div>}
-                    </td>
+                    </th>
                     <td style={{ padding: "8px 12px", color: C.mid }}>{b.owner_name ?? "—"}</td>
                     <td style={{ padding: "8px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtRp(b.bid_value)}</td>
                     <td style={{ padding: "8px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: C.mid }}>{fmtRp(b.winner_value)}</td>

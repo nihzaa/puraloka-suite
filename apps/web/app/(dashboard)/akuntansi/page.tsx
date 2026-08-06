@@ -316,9 +316,9 @@ function TabJurnal({
               const st = STATUS_META[j.status] ?? STATUS_META.draft;
               return (
                 <tr key={j.id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                  <td style={{ padding: "12px 12px", fontSize: 12, fontWeight: 600, color: C.text, whiteSpace: "nowrap" }}>
+                  <th scope="row" style={{ textAlign: "left", padding: "12px 12px", fontSize: 12, fontWeight: 600, color: C.text, whiteSpace: "nowrap" }}>
                     {j.entry_number}
-                  </td>
+                  </th>
                   <td style={{ padding: "12px 12px", fontSize: 12, color: C.mid, whiteSpace: "nowrap" }}>
                     {new Date(j.entry_date).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}
                   </td>

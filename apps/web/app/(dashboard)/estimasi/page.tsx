@@ -285,7 +285,7 @@ function KomposerTab() {
               <tbody>
                 {openVersion.items.map(it => (
                   <tr key={it.id}>
-                    <td style={{ ...td, fontFamily: "monospace", fontSize: 12 }}>{it.assembly?.code ?? it.cost_code?.code}</td>
+                    <th scope="row" style={{ textAlign: "left", ...td, fontFamily: "monospace", fontSize: 12 }}>{it.assembly?.code ?? it.cost_code?.code}</th>
                     <td style={td}>{it.assembly?.name ?? it.cost_code?.name}</td>
                     <td style={td}>{Number(it.quantity).toLocaleString("id-ID")}</td>
                     <td style={td}>{it.assembly?.output_unit_code}</td>

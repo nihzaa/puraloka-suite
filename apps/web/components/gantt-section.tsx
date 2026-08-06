@@ -867,7 +867,7 @@ export function GanttSection({ projectId, userRole, projectStart, projectEnd }: 
             <tbody>
               {tasks.slice(0, 30).map(t => (
                 <tr key={t.id} className="gantt-row" style={{ borderBottom: "1px solid var(--surface-hover)" }}>
-                  <td style={{ padding: "6px 8px", color: C.muted, fontWeight: 600, fontSize: 11 }}>{t.no_urut ?? ""}</td>
+                  <th scope="row" style={{ textAlign: "left", padding: "6px 8px", color: C.muted, fontWeight: 600, fontSize: 11 }}>{t.no_urut ?? ""}</th>
                   <td style={{ padding: "6px 8px", color: C.text, paddingLeft: t.level === 2 ? 24 : t.level === 3 ? 40 : 10 }}>{t.uraian}</td>
                   <td style={{ padding: "6px 8px", color: C.mid }}>{t.weight_pct > 0 ? `${t.weight_pct.toFixed(2)}%` : "—"}</td>
                   <td style={{ padding: "6px 8px" }}>

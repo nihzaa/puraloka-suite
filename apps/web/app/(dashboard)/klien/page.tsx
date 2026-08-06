@@ -674,7 +674,7 @@ export default function KlienPage() {
                   onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                 >
                   {/* Nama */}
-                  <td style={{ padding: "12px 16px" }}>
+                  <th scope="row" style={{ textAlign: "left", padding: "12px 16px", fontWeight: 400 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <div style={{ width: 34, height: 34, borderRadius: 10, background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         {c.client_type === "perusahaan" ? <Building2 size={15} color={C.navy} /> : <User size={15} color={C.navy} />}
@@ -689,7 +689,7 @@ export default function KlienPage() {
                         )}
                       </div>
                     </div>
-                  </td>
+                  </th>
                   {/* Kontak */}
                   <td style={{ padding: "12px 16px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>

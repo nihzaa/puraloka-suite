@@ -369,9 +369,9 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
                 const s = STATUS_EOT[e.status];
                 return (
                   <tr key={e.id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                    <td style={{ padding: "8px 12px", color: C.text, whiteSpace: "nowrap" }}>
+                    <th scope="row" style={{ textAlign: "left", padding: "8px 12px", color: C.text, whiteSpace: "nowrap" }}>
                       {e.eot_number ?? <span style={{ color: C.muted }}>—</span>}
-                    </td>
+                    </th>
                     <td style={{ padding: "8px 12px", color: C.mid, whiteSpace: "nowrap" }}>
                       {fmtTgl(e.submitted_at)}
                     </td>
