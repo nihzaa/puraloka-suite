@@ -25,6 +25,7 @@ import cashRoutes from './routes/v1/cash.js'
 import mandorRoutes from './routes/v1/mandor.js'
 import reportsRoutes from './routes/v1/reports.js'
 import settingsRoutes from './routes/v1/settings.js'
+import situsRoutes from './routes/v1/situs.js'
 import companiesRoutes from './routes/v1/companies.js'
 import rapRoutes from './routes/v1/rap.js'
 import costControlRoutes from './routes/v1/cost-control.js'
@@ -46,6 +47,7 @@ import analisaKeterlambatanRoutes from './routes/v1/analisa-keterlambatan.js'
 import asuransiRoutes from './routes/v1/asuransi.js'
 import contingencyRoutes from './routes/v1/contingency.js'
 import tenderSubkonRoutes from './routes/v1/tender-subkon.js'
+import sertifikatIpcRoutes from './routes/v1/sertifikat-ipc.js'
 import inspeksiRoutes from './routes/v1/inspeksi.js'
 import rfiRoutes from './routes/v1/rfi.js'
 import submittalRoutes from './routes/v1/submittal.js'
@@ -271,6 +273,7 @@ await app.register(cashRoutes)
 await app.register(mandorRoutes)
 await app.register(reportsRoutes)
 await app.register(settingsRoutes)
+await app.register(situsRoutes)
 await app.register(companiesRoutes)
 await app.register(rapRoutes)
 await app.register(costControlRoutes)
@@ -292,6 +295,7 @@ await app.register(analisaKeterlambatanRoutes)
 await app.register(asuransiRoutes)
 await app.register(contingencyRoutes)
 await app.register(tenderSubkonRoutes)
+await app.register(sertifikatIpcRoutes)
 await app.register(inspeksiRoutes)
 await app.register(rfiRoutes)
 await app.register(submittalRoutes)

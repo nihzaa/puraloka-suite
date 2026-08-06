@@ -161,7 +161,7 @@ menyempurnakan yang sudah hidup — dua item INTI ternyata yang kedua (§2c).
 | # | Sub-menu | Kelompok | Rusak kalau tak ada | Mulai dari | Prasyarat data | Bobot |
 |---|---|---|---|---|---|---|
 | 1 | **Laporan keuangan** — neraca & L/R | 14 Keuangan | Owner tak bisa melihat posisi perusahaan; ini pertanyaan pertama tiap calon pelanggan | 🟡 arus kas ✅ · **GL sudah sehat** (§3a) | akun diklasifikasi neraca/L-R | **M** |
-| 2 | **Interim Payment Certificate (IPC)** | 15 Penagihan | Termin tak bisa ditagih secara formal ke owner proyek; ini pintu masuk UANG | 🔴 nol | progress terverifikasi + retensi | L |
+| 2 | **Interim Payment Certificate (IPC)** | 15 Penagihan | Termin tak bisa ditagih secara formal ke owner proyek; ini pintu masuk UANG | ✅ **SELESAI 2026-08-07** (§3b) | progress terverifikasi + retensi | L |
 | 3 | **Retensi subkontrak** | 8 Subkontraktor | Retensi mandor/subkon tak terlacak → dibayar penuh padahal harus ditahan; kebocoran uang langsung | 🟡 UI hidup (2026-08-06) | kontrak subkon + termin | M |
 | 4 | **Claims management** | 3 Kontrak | Klaim tambah-kurang tak punya jejak; saat sengketa, tak ada bukti | 🟡 UI hidup (2026-08-06) | kontrak + variation order | L |
 | 5 | **Surat masuk/keluar (correspondence)** | 3 Kontrak | Korespondensi kontraktual tak terdaftar → notifikasi keterlambatan tak bisa dibuktikan | 🟡 UI hidup (2026-08-06) | register dokumen | M |

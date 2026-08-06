@@ -295,7 +295,7 @@ sebagai kategori B/C. 045 dibiarkan di tempatnya — riwayat tak diubah.
 |---|---|---|
 | Progress billing / payment application | ✅ | Berbasis termin; bukan per kuantitas BOQ terpasang |
 | Termin | ✅ | |
-| Interim Payment Certificate (IPC) | 🔴 | Koreksi dari 🟡: 0 hit |
+| Interim Payment Certificate (IPC) | ✅ | migrasi 204 · `/keuangan/ipc` (2026-08-07) · 22 invarian skema · 15 test + 7 mutasi · progres yang diakui DIBEKUKAN, retensi dari nilai periode bukan kumulatif · a11y nol pelanggaran kedua mode |
 | Pelepasan retensi | ✅ | 2026-07-28: `retention_release` + **register retensi** (`GET /finance/retention-register`: ditahan vs dicairkan per proyek + estimasi jatuh tempo `end_date + due_days`, DILABELI estimasi karena BAST formal belum ada) di `/piutang` |
 | Pemotongan uang muka | ✅ | 2026-07-28: recoupment DP di invoice progres HIDUP — migration 124 (`invoices.dp_deduction_amount/pct`), validasi saldo = DP TERBAYAR − sudah dipotong (`lib/ar-register.ts`), toggle di form invoice termin + register DP (`GET /finance/dp-register`) di `/piutang`. ⚠️ Terbuka: perlakuan pajak atas porsi DP yang dipotong (lihat DEVELOPMENT_LOG 2026-07-28) |
 | Penagihan pekerjaan tambah | 🟡 | Via CO→contract_value→termin manual |

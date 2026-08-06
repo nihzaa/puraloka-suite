@@ -90,6 +90,9 @@ export default function KeuanganLayout({ children }: { children: React.ReactNode
 
   const bagian: Bagian[] = [
     { href: "/keuangan", label: "Ringkasan" },
+    // IPC mendahului Invoice karena begitulah urutan kerjanya: progres diakui
+    // dan disertifikasi dulu, penagihan menyusul dari sertifikat itu.
+    { href: "/keuangan/ipc", label: "Sertifikat IPC" },
     { href: "/keuangan/invoice", label: "Invoice" },
     { href: "/keuangan/pembayaran", label: "Pembayaran Masuk" },
     {

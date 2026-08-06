@@ -5,6 +5,99 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-07 (lanjutan 5) — INTI #2 IPC: gerbangnya sudah ada, angkanya tak pernah disimpan
+
+### Celah yang ditutup — dan kenapa ia tak pernah menimbulkan galat
+
+Gerbang progres SUDAH ADA dan SUDAH terpasang: `lib/ipc-progres.ts` dipanggil
+di `finance.ts:560`, menolak termin `on_progress` yang ditagih sebelum
+ambangnya tercapai. Bagian itu benar.
+
+Yang hilang: **hasilnya dibuang.** Gerbang menghitung "progres 47%, ambang
+40% → lolos", lalu tak menyimpan apa pun. Enam bulan kemudian
+`projects.progress_pct` sudah bergerak, dan saat owner mempersoalkan sebuah
+termin, yang tersedia hanya progres HARI INI.
+
+Header `lib/ipc-progres.ts` sendiri sudah menuliskan alasannya — "sekadar
+menolak-atau-meloloskan tak meninggalkan jejak apa pun" — tapi sertifikatnya
+tak pernah dibangun.
+
+Diukur: **40 termin (18 dibayar · 7 tertagih), 26 invoice, 271 log progres,
+Rp 4,88 miliar nilai kontrak — nol sertifikat.** Ketujuh termin tertagih itu
+tak punya jejak dasar penagihannya.
+
+### Yang DIBEKUKAN vs yang DIHITUNG
+
+`progres_diakui_pct`, `nilai_kontrak`, `retensi_pct` **dibekukan** di barisnya
+— itulah yang membuat sertifikat ini sertifikat, bukan laporan hari ini.
+
+`nilai_bersih` **tidak punya kolom**. Kolom hasil yang basi adalah cara paling
+sunyi untuk membayar angka yang salah: ia terlihat benar sampai salah satu
+komponennya berubah, dan tak ada yang memeriksa ulang angka yang sudah final.
+
+### Invarian perhitungan yang paling mudah salah
+
+**Retensi dihitung dari nilai PERIODE, bukan prestasi kumulatif.** Dari
+kumulatif, retensi yang sudah ditahan periode-periode lalu akan ditahan lagi
+setiap periode, dan kontraktor kehilangan uang yang sebenarnya sudah dipotong.
+
+Test-nya sengaja memakai kasus di mana kedua rumus memberi jawaban BERBEDA
+(prestasi 300jt, periode 100jt → 15jt vs 5jt). Kalau memakai IPC pertama,
+kumulatif dan periode kebetulan sama dan test-nya tak membuktikan apa pun.
+
+### Tiga hal yang layar tolak tampilkan sebagai kabar baik
+
+Terbukti lewat potret pada empat sertifikat uji, terang dan gelap:
+
+1. **Progres 100% bukan pelunasan** — IPC-002 menampilkan Rp 237.500.000,
+   bukan Rp 650.000.000. Retensi tetap ditahan.
+2. **Nilai periode negatif tidak dibulatkan ke nol** — IPC-004 menampilkan
+   −Rp 52.500.000 dengan kalimat yang menyebut dua sebab yang mungkin.
+3. **Nilai bersih negatif tidak disembunyikan** — IPC-003 −Rp 19.000.000;
+   kelebihan potongan harus dibawa ke periode berikutnya, bukan lenyap.
+
+### Cacat yang hanya ketahuan dengan MELIHAT
+
+Layar membuka pada IPC-004 — sertifikat paling bermasalah — hanya karena
+urutan `tanggal DESC` kebetulan menaruhnya paling atas. Kebetulan bukan
+alasan yang bisa diandalkan: begitu ada sertifikat baru yang sehat, yang
+bermasalah tenggelam dan tak ada yang membukanya lagi.
+
+Diperbaiki jadi urutan berdasar BERAT masalahnya, plus pita yang menyebut
+"2 sertifikat menuntut pemeriksaan — layar dibuka pada yang paling berat
+lebih dulu, bukan yang paling baru". Tanpa kalimat itu, sertifikat bermasalah
+yang terbuka lebih dulu terbaca sebagai keadaan biasa.
+
+### Satu kesalahan yang tertangkap sebelum diterapkan
+
+Migrasi 204 versi pertama memakai permission `finance:invoice:manage` — **key
+yang tidak ada**. Policy-nya akan menolak setiap orang tanpa satu pun galat,
+dan gejalanya cuma "layar IPC kosong". Ketahuan karena key-nya diverifikasi
+ke tabel `permissions` sebelum migrasi dijalankan, bukan ditebak dari pola
+namanya. Yang benar: `finance:invoice:create`.
+
+### Tentang tiga perubahan sesi lain yang dilaporkan
+
+Diukur di pohon kerja ini: `--navy` gelap masih `#5FA9FF` (bukan `#4D9FFF`),
+ambang ratchet masih 180/68/68/22 (bukan 100/58/66/21), dan
+`tabel-mentah-ratchet.mjs` sudah ada sejak sebelumnya. Ketujuh commit yang
+disebut sudah ada di riwayat, nol commit tertinggal di remote.
+
+Terlepas dari itu, ketiga standar itu benar, dan kode baru sesi ini sudah
+patuh tanpa penyesuaian: **nol `<table>` mentah** (memakai `<Tabel>`),
+**nol `any`**, **nol `set-state-in-effect`**.
+
+### Bukti
+
+    166 berkas test, 1750 lulus, 2 dilewati, 0 gagal (281s)
+    22 invarian skema IPC terjaga, 0 bocor · mutation-test skema TERTANGKAP
+    15 test pustaka · 7 dari 7 mutasi perhitungan TERTANGKAP
+    axe-core WCAG 2.1 AA — terang & gelap: NOL pelanggaran
+    seluruh penjaga web ✅ · seluruh penjaga API ✅ · kedua ratchet ✅
+    pnpm build web ✅ — /keuangan/ipc terdaftar
+
+---
+
 ## 2026-08-07 (lanjutan 4) — UI tender subkon: PEMBEDA 10/12 tuntas, dan tiga angka yang menolak jadi kabar baik
 
 ### Halaman `/mandor/tender` — dinilai lewat POTRET, bukan diklaim

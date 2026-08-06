@@ -615,6 +615,23 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
+      # Sertifikat IPC — pintu masuk uang dari owner proyek.
+      #
+      # Diukur 2026-08-07: 40 termin (18 dibayar · 7 tertagih), Rp 4,88 miliar
+      # nilai kontrak, nol jejak dasar penagihannya.
+      #
+      # Empat invarian yang paling mahal kalau bocor:
+      #   • progres > 100%            → menagih lebih dari nilai kontrak
+      #   • DUA sertifikat / termin   → termin yang sama ditagih dua kali,
+      #     baru ketahuan saat owner menolak invoice kedua (index unik parsial)
+      #   • "disetujui" tanpa penyetuju → tanda tangan kosong
+      #   • potongan lain tanpa alasan  → kolom yang menyerap selisih apa pun
+      #     tanpa pernah ditanyakan
+      - name: Invarian sertifikat IPC
+        run: node scripts/uji-invarian-sertifikat-ipc.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
       - name: Invarian NCR
         run: node scripts/uji-invarian-ncr.mjs
         env:
