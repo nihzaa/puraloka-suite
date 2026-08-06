@@ -1,0 +1,44 @@
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [{ "name": "next" }],
+    "paths": {
+      "@/*": ["./*"],
+      // ── Kunci React ke SATU salinan tipe ────────────────────────────────
+      // Diwarisi apa adanya dari apps/web/tsconfig.json, dan bukan salin-tempel
+      // tanpa alasan: monorepo ini punya DUA @types/react hidup berdampingan
+      // (web 19, apps/mobile 18 — Expo belum mendukung 19). TypeScript memuat
+      // @types dengan MEMINDAI DIREKTORI, bukan lewat pohon dependency, jadi
+      // versi 18 ikut termuat walau bukan dependency app ini. Akibatnya
+      // `LegacyRef` 18 bentrok dengan `Ref` 19 → error TS2322 pada kode yang
+      // benar. apps/web membayar mahal untuk menemukan ini; tak ada gunanya
+      // app baru mengulangi penemuannya.
+      "react": ["./node_modules/@types/react"],
+      "react-dom": ["./node_modules/@types/react-dom"],
+      "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime"],
+      "react/jsx-dev-runtime": ["./node_modules/@types/react/jsx-dev-runtime"]
+    },
+    "typeRoots": ["./node_modules/@types"],
+    "types": ["react", "react-dom", "node"]
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
+}

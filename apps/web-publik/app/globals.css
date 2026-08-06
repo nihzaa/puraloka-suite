@@ -1,0 +1,137 @@
+@import "tailwindcss";
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Token landing — MILIK SENDIRI, bukan warisan dashboard.
+
+   Yang diwarisi dari apps/web hanya dua hal: identitas merek (gradasi navy)
+   dan METODE a11y-nya (kontras diukur terhadap latar sebenarnya, bukan
+   diasumsikan putih). Skala tipografi, ritme spasi, radius, dan motion
+   dirancang untuk tugas yang berbeda — dashboard dipelototi delapan jam,
+   landing punya tiga detik.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Gradasi merek — diekstrak terukur dari compro PDF, identik --grad-navy
+     di apps/web/app/globals.css. Tiga titik hentinya juga jadi ramp warna
+     shader di adegan 3D, supaya DOM dan canvas berbagi gradasi yang sama
+     secara matematis, bukan mirip-mirip. */
+  --navy-pekat: #001f3d;
+  --navy: #003366;
+  --navy-terang: #0059b3;
+  --grad-navy: linear-gradient(135deg, #001f3d 0%, #003366 60%, #0059b3 100%);
+
+  /* AKSEN TIPIS — satu elemen per layar. Diukur: 11,77:1 di navy pekat,
+     8,93:1 di navy, 4,83:1 di navy terang, dan 1,41:1 di putih (HARAM). */
+  --aksen: #ffd600;
+
+  /* Teks di atas latar navy. Angka diukur terhadap --navy-pekat. */
+  --pada-navy: #ffffff;        /* 16,62:1 — dipakai logo dan judul */
+  --pada-navy-redup: #a8bbd0;  /*  7,52:1 — teks pendukung, masih lulus AA */
+  --garis: rgba(255, 255, 255, 0.14);
+  --garis-kuat: rgba(255, 255, 255, 0.28);
+
+  /* Tipografi teknis: angka tabular berbaris presisi. Dunia subjeknya gambar
+     kerja dan tabel volume — bukan majalah. */
+  --font-tampil: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-teks: "Inter", system-ui, -apple-system, sans-serif;
+
+  --ukuran-hero: clamp(2.25rem, 6.5vw, 5rem);
+  --ukuran-judul: clamp(1.5rem, 3.2vw, 2.75rem);
+  --ukuran-label: 0.75rem;
+
+  --ritme: clamp(4rem, 9vh, 7.5rem);
+  --tepi: clamp(1.25rem, 5vw, 5rem);
+  --lebar-maks: 78rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--navy-pekat);
+  color: var(--pada-navy);
+  font-family: var(--font-teks);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-tampil);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin: 0;
+  text-wrap: balance;
+}
+
+p {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+/* Angka berbaris — dipakai tahun milestone, kode KBLI, nomor tahap. */
+.angka {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Eyebrow: label kecil di atas judul. Satu-satunya tempat kuning muncul
+   sebagai teks, dan hanya di atas navy. */
+.eyebrow {
+  font-size: var(--ukuran-label);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--aksen);
+  font-weight: 600;
+}
+
+.wadah {
+  max-width: var(--lebar-maks);
+  margin-inline: auto;
+  padding-inline: var(--tepi);
+}
+
+/* ── Lantai kualitas — bukan tambahan opsional ──────────────────────────── */
+
+:focus-visible {
+  outline: 3px solid var(--aksen);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* Lewati navigasi — pengguna keyboard tak perlu menyusuri seluruh header. */
+.lewati {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--aksen);
+  color: var(--navy-pekat);
+  padding: 0.75rem 1.25rem;
+  font-weight: 600;
+  z-index: 100;
+}
+.lewati:focus {
+  left: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Gambar tak pernah meluber — halaman tak boleh menggulir horizontal. */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
