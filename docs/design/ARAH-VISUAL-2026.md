@@ -569,3 +569,90 @@ lain. Founder 2026-08-07 memutuskan: **lewati kerapatan, garap sisanya.**
 UI-0-1 karena itu **tidak dikerjakan dari sini**. Pekerjaan yang jalan hanya
 yang tak menyentuh `globals.css`: komponen bersama, dashboard per menu,
 pemecahan mandor & kas, penjaga CI.
+
+---
+
+## 11. Situs publik (`apps/web-publik`) — arah TERPISAH
+
+> Ditetapkan 2026-08-08 sesudah founder melihat situsnya:
+> *"terlalu generik, kurang interaktif"*.
+
+**Dokumen ini sampai §10 hanya berlaku untuk dashboard.** Situs publik punya
+tugas yang berbeda, dan menyalin arah dashboard ke sana akan salah:
+
+| | Dashboard | Situs publik |
+|---|---|---|
+| Dipelototi | delapan jam | tiga detik |
+| Tugasnya | kepadatan informasi | membuktikan "kami membangun ini" |
+| Pembacanya | staf yang hafal | pembeli yang belum percaya |
+| Yang dijual | kecepatan kerja | bukti fisik |
+
+### 11a. Arah: industrial-documentary
+
+Foto lapangan adalah **bahan desain**, bukan hiasan. Diukur 2026-08-08: 28 foto
+pabrik, konstruksi baja, dan pematangan lahan sudah ada di basis dan termuat
+sempurna — tapi tak satu pun muncul sebelum orang menggulir. Tiga detik pertama
+dihabiskan untuk kalimat yang bisa ditulis kontraktor mana pun.
+
+Aturan yang mengikat:
+
+1. **Bukti sebelum klaim.** Foto asli lapangan muncul di layar pertama.
+   Render, ilustrasi, dan stock photo dilarang — situs ini menjual pekerjaan
+   nyata, dan gambar yang jelas bukan miliknya merusak persis itu.
+2. **Interaksi punya alasan.** Saring dan perbesar ada karena orang datang
+   bertanya *"pernahkah mereka bikin gudang sebesar punya saya"*. Animasi yang
+   tak menjawab pertanyaan siapa pun tidak dibangun.
+3. **Nol em-dash.** Dijaga `scripts/audit-em-dash.mjs` (berkas + 7 tabel DB).
+   Situs ini menjual kredibilitas; kalimat yang berbunyi seperti keluaran mesin
+   merusak yang sedang dijualnya.
+
+### 11b. Ritme terang-gelap — satu tema, bukan dua
+
+```
+hero        navy    ← merek memimpin
+bukti       navy
+proses      navy    ← WebGL massing 3D
+portofolio  TERANG  ← foto jadi subjek
+legalitas   TERANG  ← daftar teknis, paling terbaca di terang
+kontak      navy
+```
+
+Dikendalikan kolom `situs_seksi.nada` (migrasi 236), bukan hardcode: admin
+menukarnya tanpa deploy. **`nada` terpisah dari `varian`** — yang satu WARNA,
+yang lain BENTUK; keduanya sumbu ortogonal.
+
+Caranya: `.seksi-terang` **menukar nilai token**, bukan menimpa warna per
+elemen. Warna tersebar di 21 tempat lintas 6 berkas; mengganti satu per satu
+berarti 21 kesempatan melewatkan satu, dan yang terlewat jadi teks putih di
+latar terang tanpa berbunyi.
+
+### 11c. Kuning tetap langka — dijaga fisika warna, bukan disiplin
+
+`--aksen: #ffd600` hanya **1,30:1** di atas kanvas terang. Ia mustahil dipakai
+di seksi terang tanpa memerahkan CI lebih dulu. Penjaga `kontras-situs.mjs`
+justru **MENUNTUT ia tetap gagal** di sana — kalau suatu saat lolos, artinya
+seseorang mencerahkan kuningnya dan aturan satu-aksen bocor.
+
+### 11d. Cara mengukur — jangan percaya angka di bagian ini
+
+```bash
+node apps/web-publik/scripts/kontras-situs.mjs   # 11 pasangan + pagar aksen
+node apps/web-publik/scripts/audit-em-dash.mjs   # berkas + seluruh tabel situs_*
+cd apps/web-publik && npx vitest run             # logika saring & navigasi
+```
+
+**Angka kontras di komentar `globals.css` pernah salah tiga kali** (16,84 /
+5,92 / 9,71 — semuanya taksiran, semuanya meleset). Itu sebabnya penjaga
+menghitungnya lagi di CI: taksiran yang kebetulan lolos hari ini tak menjamin
+apa pun besok.
+
+### 11e. Satu hal yang TIDAK bisa dibangun jujur
+
+**Sebelum-sesudah** diminta founder, dan saya tak membangunnya. Diukur: foto
+pematangan lahan bertanggal 2022, foto pabrik 2021 dan 2023 — **bukan proyek
+yang sama**, dan sebagian pematangan justru terjadi *sesudah* foto pabriknya.
+
+Menyandingkannya sebagai "lahan ini → jadi pabrik ini" adalah klaim palsu di
+situs perusahaan, dan itu jenis kebohongan yang paling mudah ketahuan oleh
+calon klien yang bertanya. Yang disiapkan hanya mekanismenya; begitu ada
+pasangan foto proyek yang sama, tinggal ditandai tanpa menulis kode lagi.

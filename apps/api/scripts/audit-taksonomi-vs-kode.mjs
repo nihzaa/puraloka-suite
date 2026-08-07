@@ -105,6 +105,39 @@ const PETA = {
   // yang tuntas adalah penjaga yang tahu baris mana yang BELUM dipetakan.
   // Itu ada di bawah, sesudah PETA.
   'Rekonsiliasi bank': { tabel: ['rekening_koran'], rute: ['/kas/rekonsiliasi'] },
+
+  // ── CECEP: lima baris yang mengaku "DB-only" padahal terpakai ──────────
+  //
+  // Ditambahkan 2026-08-08 sesudah koreksi status basi ke-12 s.d. ke-15.
+  // Taksonomi menyebut kelimanya "0 route/UI", "DB-only", atau "0 endpoint".
+  // Diukur ke kode DAN ke basis, empat dari lima SALAH:
+  //
+  //     cost_codes          3 query API · 12 rujukan UI ·    44 baris
+  //     resources           7 query API · 90 rujukan UI · 2.830 baris
+  //     price_book_entries 10 query API ·  dipakai /estimasi · 3.025 baris
+  //     scenarios           5 query API · 16 rujukan UI ·   208 baris
+  //     wbs_nodes           0 · 0 · 0   ← satu-satunya yang benar DB-only
+  //
+  // Klaim "belum dibangun" yang salah lebih berbahaya daripada yang benar:
+  // ia membuat orang membangun ulang sesuatu yang sudah ada, atau
+  // menganggap produknya lebih jauh dari selesai daripada kenyataannya.
+  'Struktur Cost Code / CBS': { tabel: ['cost_codes'], rute: ['/varians'] },
+  'Master Resource (tenaga/bahan/alat)': { tabel: ['resources'], rute: ['/cecep/resources'] },
+  'Price Book / rate library': { tabel: ['price_book_entries'], rute: ['/cecep/price-book'] },
+  'Skenario penawaran (what-if)': { tabel: ['scenarios'], rute: ['/estimate-versions'] },
+  // `wbs_nodes` dipetakan lewat RUTE, bukan tabel.
+  //
+  // Memetakannya ke `tabel: ['wbs_nodes']` membuat penjaga langsung merah:
+  // tabelnya MEMANG ada di migrasi 109, jadi "bukti" ditemukan dan barisnya
+  // dilaporkan sebagai status basi. Padahal diukur, ia nol query API, nol
+  // rujukan UI, dan NOL BARIS di basis — tabel yang ada tapi tak pernah
+  // dipakai.
+  //
+  // Pelajarannya: `CREATE TABLE` adalah bukti yang terlalu lemah untuk baris
+  // yang mengaku "belum dibangun". Yang membedakan "dibangun" dari "ada
+  // tabelnya" adalah jalan masuknya. Karena itu bukti yang dituntut di sini
+  // rutenya, dan rute itu memang belum ada.
+  'WBS template': { rute: ['/wbs'] },
   'Perusahaan / badan hukum (multi-entity)': { tabel: ['companies'], rute: ['/companies'] },
   'Revisi & transfer anggaran': { tabel: ['rap_change_log'], rute: ['/rap'] },
   'Method statement': { tabel: ['method_statement'] },

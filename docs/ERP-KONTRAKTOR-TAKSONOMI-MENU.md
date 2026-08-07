@@ -40,10 +40,10 @@ lapisan mana yang sudah ada.
 |---|---|---|
 | Perusahaan / badan hukum (multi-entity) | 🟡 | tabel `companies` + `/api/v1/companies` (migrasi 127) — badan usaha & keanggotaan hidup; UI pengelolaannya belum |
 | Chart of Accounts (COA) | 🔵 | Migration 047 (`accounts`, view `trial_balance`) — 0 referensi kode. Keputusan GL: lihat PETA-PRIORITAS |
-| Struktur Cost Code / CBS | 🟡 | CECEP 102/108: tabel + test lengkap, **0 route/UI** |
-| WBS template | 🟡 | CECEP 109 (`wbs_nodes`) DB-only; "WBS" di Gantt UI = pohon `rab_items`, bukan `wbs_nodes` |
-| Master Resource (tenaga/bahan/alat) | 🟡 | CECEP 103 (`resources`) DB-only; yang ber-endpoint hanya `materials` (bahan) via procurement |
-| Price Book / rate library | 🟡 | CECEP 104, versioned + effective-dated, DB+test only, 0 endpoint |
+| Struktur Cost Code / CBS | ✅ | **Koreksi dari 🟡 (2026-08-08)** — klaim "0 route/UI" salah. Diukur: **3 query API** + **12 rujukan UI** di `/estimasi` · 44 baris `cost_codes` terisi. Laba per cost code juga hidup (`lib/varians-cost-code.ts` 12 test + `GET /projects/:id/varians`). |
+| WBS template | 🔴 | **Satu-satunya klaim DB-only yang TERBUKTI (2026-08-08)**: `wbs_nodes` nol query API, nol rujukan UI, **nol baris di basis**. "WBS" di Gantt UI memang pohon `rab_items`, bukan tabel ini. Belum terpakai sama sekali. |
+| Master Resource (tenaga/bahan/alat) | ✅ | **Koreksi dari 🟡 (2026-08-08)** — klaim "DB-only" salah. Diukur: **7 query API** + **90 rujukan UI** · **2.830 baris** `resources` terisi. Ia justru salah satu tabel paling terpakai di modul estimasi. |
+| Price Book / rate library | ✅ | **Koreksi dari 🟡 (2026-08-08)** — klaim "0 endpoint" salah. Diukur: **10 query API** (`/api/v1/cecep/price-book` GET/POST/PATCH status) + dipanggil `/estimasi` · **3.025 harga** terisi (2.943 active, 81 draft, 0 bentrok). Sisa yang menunggu founder: apakah 81 draft diaktifkan (E9/E10/E12). |
 | Satuan (Unit of Measure) | ✅ | `units` (090) + `dimension` (115/116) + route `units.ts` + UI `/pengaturan/satuan` |
 | Master Supplier/Vendor | ✅ | CRUD + edit + credit_limit di `procurement.ts`; prakualifikasi tidak ada |
 | Prakualifikasi vendor | ✅ | migrasi 210 · `/procurement/kualifikasi` (2026-08-07) · skor berbobot 4 dimensi · **vendor "lolos" dengan izin kedaluwarsa ditandai TIDAK boleh diundang** · 26 invarian, 14 test, 4 mutasi |
@@ -70,7 +70,7 @@ lapisan mana yang sudah ada.
 | Dokumen prakualifikasi | ✅ | migrasi 210 · `dokumen_prakualifikasi` 9 jenis (NIB/SIUJK/SBU/…) dengan masa berlaku · peringatan 60 hari sebelum habis |
 | **Estimating / AHSP** | 🟡 | CECEP: engine (`lib/ahsp-engine.ts`) + 17 tabel + 500+ test; **UI `/estimasi` kini hidup** (2026-07-30 — sebelumnya tak terjangkau `middleware.ts`) + tombol "kenapa angkanya segini?" (2026-08-01). Sisa: seed AHSP diblokir gate CI isolation + review founder |
 | **Quantity takeoff / BOQ** | 🟡 | Read-model `GET /estimate-versions/:id/boq` ada (tanpa UI); CRUD takeoff belum; RAB produksi via upload Excel |
-| Skenario penawaran (what-if) | 🟡 | Tabel `scenarios` (110) DB-only, 0 endpoint |
+| Skenario penawaran (what-if) | ✅ | **Koreksi dari 🟡 (2026-08-08)** — klaim "DB-only, 0 endpoint" salah. Diukur: **5 query API** + **16 rujukan UI** · **208 baris** `scenarios` terisi. |
 | Analisa markup, margin, contingency | 🟡 | markup & margin ada di `/estimate-versions`; contingency belum terpisah |
 | Eskalasi harga | ✅ | migrasi 197 · `/procurement/riwayat-harga` — dibangun sebagai **Riwayat Harga Material** (arahnya netral; data nyata justru TURUN 16,7%) |
 | Generate proposal / dokumen penawaran | 🟡 | Baru kontrak SPK PDF; proposal penawaran belum |

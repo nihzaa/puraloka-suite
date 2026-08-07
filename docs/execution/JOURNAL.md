@@ -5,6 +5,111 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-08 — Situs publik dirombak; empat klaim "DB-only" ternyata salah
+
+### Situs: "terlalu generik, kurang interaktif"
+
+Founder melihat sendiri dan keluhannya tepat. Dikerjakan di bawah skill
+`design-taste-frontend`, mode **REDESIGN-PRESERVE** (merek navy, IA, dan voice
+konten dipertahankan). WebGL 3D di seksi Proses **tidak disentuh** — dipastikan
+hidup: canvas 520×414, massing tumbuh mengikuti tahap aktif.
+
+**Yang diukur lebih dulu:**
+
+```
+hero        teks berhenti di ~40% lebar, sisanya gradien polos
+            NOL foto sebelum orang menggulir, padahal 28 foto lapangan
+            sudah ada di basis dan termuat sempurna
+portofolio  grid mati: tak bisa diklik, diperbesar, disaring
+token       SELURUH palet hanya punya keluarga GELAP
+halaman     8.380px navy tanpa satu pun penanda pindah bagian
+```
+
+**Dua commit:** `8b040bb` (hero + portofolio interaktif) dan `8039704` (ritme
+warna + CTA hero).
+
+### Enam cacat yang saya temukan sendiri sesudah melihat hasilnya
+
+| Cacat | Perbaikan |
+|---|---|
+| judul hero 4 baris | dua kali salah ukur (6,5vw → 4,2vw → 3,1vw) sebelum 2 |
+| `maxWidth: 17ch` | warisan hero satu-kolom yang menjepit judul jadi 3 baris |
+| foto `brightness 0.82` | terlalu redup, buktinya terkubur → 0,94 |
+| dialog menempel kiri | `<dialog>` TIDAK memusat sendiri; `margin: auto` bawaannya hilang begitu `padding`/`border` ditimpa |
+| CTA menempel subtext | `margin-top` pada `inline-flex` di aliran teks tak menghasilkan jarak; 21px → 44px |
+| warna dipaku `rgba(255,255,255,.04)` | tak terlihat di kanvas terang → token `--dasar-media` yang ikut berubah |
+
+### Tiga penjaga baru, semuanya terbukti bisa MERAH
+
+**`kontras-situs.mjs`** — 11 pasangan warna **dihitung**, bukan ditaksir.
+Taksiran saya meleset di tiga tempat (16,84→16,99 · 5,92→7,41 · 9,71→11,64).
+Termasuk satu **pagar**: kuning wajib tetap GAGAL di latar terang, supaya
+kelangkaannya dijaga fisika warna, bukan disiplin penyuntingnya.
+
+Lalu axe menemukan cacat yang penjaga token **tak bisa lihat**:
+`.porto-jumlah { opacity: 0.7 }` aman di navy, jadi pelanggaran
+`color-contrast` serious begitu portofolio berubah terang. Penjaga melaporkan
+11/11 hijau sepanjang waktu itu — karena ia menghitung nilai TOKEN, dan
+opacity mengubah warna EFEKTIF di luar jangkauannya. Pemeriksaan itu
+ditambahkan.
+
+**`audit-em-dash.mjs`** — 27 em-dash dibersihkan dari 4 tabel. Ini butuh tiga
+percobaan: versi pertama memeriksa **1 dari 7 tabel** dan melaporkan hijau
+sementara tiganya tampil di layar; versi kedua **gagal diam** karena
+`array_agg` mengembalikan string, tertangkap `catch`, lalu keluar 0.
+
+**Migrasi 236** — kolom `nada`, bukan menumpang `varian`. Percobaan pertama
+ditolak CHECK constraint, dan penolakan itu benar: `varian` = BENTUK,
+`nada` = WARNA. Cacat kedua nyaris lolos: `v_situs_publik` memilih kolomnya
+satu per satu, jadi kolom baru tak ikut terbit — kolomnya ada, nilainya benar,
+migrasi sukses, halaman tetap navy tanpa satu pun galat.
+
+### Status basi KE-12 s.d. KE-15 — empat klaim "DB-only" yang salah
+
+Menjawab *"apakah di web ERP-nya sudah dikerjakan semua?"*, saya ukur ke kode.
+Dari 192 baris taksonomi: **112 ✅ · 58 🟡 · 11 🔴 · 6 ⛔ · 5 🔵**.
+
+Tujuh dari 11 merah adalah **SDM yang taksonomi sendiri sarankan eksternal**
+(payroll, BPJS, PPh 21, cuti, rekrutmen, tutup buku, report builder) — dan
+diukur, nol tabel SDM di basis. CVR terblokir data, bukan kode.
+
+Yang menarik justru di kuning. Lima baris CECEP mengaku *"0 route/UI"*,
+*"DB-only"*, *"0 endpoint"*. Diukur ke kode DAN ke basis:
+
+| Baris | query API | rujukan UI | baris DB | klaim |
+|---|---|---|---|---|
+| `cost_codes` | 3 | 12 | 44 | ❌ salah |
+| `resources` | 7 | 90 | 2.830 | ❌ salah |
+| `price_book_entries` | 10 | dipakai `/estimasi` | 3.025 | ❌ salah |
+| `scenarios` | 5 | 16 | 208 | ❌ salah |
+| `wbs_nodes` | 0 | 0 | 0 | ✅ benar |
+
+**Klaim "belum dibangun" yang salah lebih berbahaya daripada yang benar**: ia
+membuat orang membangun ulang yang sudah ada, atau mengira produknya jauh
+lebih tertinggal daripada kenyataannya.
+
+Kelimanya dipetakan ke penjaga. Entri `WBS template` sengaja lewat **RUTE**,
+bukan tabel: memetakannya ke `tabel: ['wbs_nodes']` langsung memerahkan
+penjaga, karena tabelnya memang ada di migrasi 109. `CREATE TABLE` adalah
+bukti yang terlalu lemah untuk baris yang mengaku belum dibangun — yang
+membedakan "dibangun" dari "ada tabelnya" adalah jalan masuknya.
+
+### Bukti
+
+```
+axe-core            halaman 0 · DIALOG TERBUKA 0 ✅
+kontras-situs       11 pasangan + pagar kuning ✅ · mutasi opacity MERAH
+audit-em-dash       0 (berkas + 7 tabel DB) ✅ · mutasi lewat DB MERAH
+vitest web-publik   18/18 ✅ · 3 mutasi logika MERAH
+migrasi 236         idempoten 3× · verifikasi view lolos
+taksonomi           basi 0 · mutasi Price Book → MERAH → pulih
+desktop 1440        ritme navy·navy·navy·TERANG·TERANG·navy terukur
+mobile 390          CTA 44px terlihat tanpa gulir · pil 44px · nol geser
+tsc · next build    exit 0 ✅
+```
+
+---
+
 ## 2026-08-08 — `qty: "abc"` meracuni SUM seluruh laporan, dan membalas 201
 
 Menyisir route yang menghitung uang tanpa test. `cash.ts` menonjol: 933 baris,
