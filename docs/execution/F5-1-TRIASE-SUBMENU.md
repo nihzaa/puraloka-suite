@@ -482,21 +482,29 @@ alat, berarti menebak bentuk dari nol contoh nyata — dan bentuk yang salah
 lebih mahal daripada belum ada: ia harus dirawat selamanya sambil menghalangi
 bentuk yang benar.
 
-### Dua yang PALING DEKAT, dan cara membangunkannya
+### Dua yang PALING DEKAT — KEDUANYA SUDAH SELESAI (2026-08-07)
+
+> **Bagian ini ditulis saat 25 item masih menunggu.** Analisisnya tetap
+> berlaku dan sengaja tak dihapus: ia menjelaskan KENAPA kedua item ini yang
+> paling siap dikerjakan lebih dulu. Yang berubah cuma status keduanya.
 
 **1. Dua item mobile (permintaan bahan & checklist mutu di lapangan)** —
-pemicunya "setelah mode offline penuh". F4-3 sudah `done`, tapi ia menutup **jalur TULIS** saja
+pemicunya "setelah mode offline penuh". F4-3 menutup **jalur TULIS** saja
 (progress, kasbon, kasbon-tukang, laporan-upah, penagihan, tukang). Yang
-kurang: **membaca offline** — daftar material dan checklist harus bisa dibuka
-tanpa sinyal, bukan cuma dikirim.
+kurang: **membaca offline**.
 
-> **Cara melanjutkan:** perluas `antrean-offline` ke sisi baca (cache daftar
-> material + checklist di IndexedDB). Ini pekerjaan yang bisa saya kerjakan
-> tanpa keputusan founder — dan satu-satunya item TUNDA yang begitu.
+> ✅ **SELESAI.** `lib/cache-baca.ts` (IndexedDB) menutup sisi baca; kedua
+> halaman tersambung dan dibuktikan lewat peramban nyata
+> (`uji-baca-offline.mjs`) — bukan test unit saja. Bukti itulah yang
+> menemukan bahwa daftar PROYEK juga harus di-cache: tanpanya halaman
+> inspeksi tetap kosong meski checklistnya sudah tersimpan.
 
 **2. Jalur kritis & perataan sumber daya** — 39 milestone sudah ada, dan itu
 bahan mentahnya. Yang belum: **ketergantungan antar-milestone** (A selesai
 baru B mulai). Tanpa itu, perhitungan jalur kritis tak punya yang dihitung.
+
+> ✅ **SELESAI.** Migrasi 212 menambahkan `milestone_dependencies` (FS/SS/FF/SF
+> + jeda), dan `lib/cpm.ts` menghitungnya dalam HARI KERJA.
 
 > **Cara melanjutkan:** butuh keputusan founder — apakah proyek Anda memang
 > punya jadwal yang dinegosiasikan owner dengan denda keterlambatan per-
@@ -518,7 +526,7 @@ dan saya kerjakan dengan bentuk yang diturunkan dari kasus nyata itu.
 
 ---
 
-## 5. TUNDA — 25 item, dengan pemicunya (2 tersisa)
+## 5. TUNDA — 25 item, dengan pemicunya (0 tersisa — SELESAI SEMUA)
 
 Tak dikerjakan sampai pemicunya nyata. **Kalau pemicu terjadi, item pindah ke
 INTI atau PEMBEDA — bukan langsung dikerjakan** dari daftar ini.
@@ -538,8 +546,8 @@ INTI atau PEMBEDA — bukan langsung dikerjakan** dari daftar ini.
 | ~~Tanda tangan elektronik~~ | ~~1~~ | 🟡 **SEBAGIAN 2026-08-07** — sidik SHA-256 isi dokumen dihitung DI SERVER dan terkunci constraint hex-64. e-meterai tersertifikasi Peruri belum; itu yang tersisa |
 | ~~Distribusi laporan terjadwal~~ | ~~1~~ | 🟡 **SEBAGIAN 2026-08-07** — jadwal + deteksi MACET hidup (gagal 3× berturut ATAU telat >2× irama, meski nol galat). Pengiriman surel otomatisnya belum dijalankan |
 | ~~Nota kredit~~ | ~~1~~ | ✅ **SELESAI 2026-08-07** — pemutus wajib berbeda dari pengaju; `disetujui` dan `diterapkan` dua kejadian terpisah, dan jarak di antaranya ditandai (uang hilang dengan persetujuan lengkap) |
-| Material request (mobile) · Checklist inspeksi (mobile) | 2 | Setelah mode offline penuh — F4-3 baru menutup jalur TULIS |
-| | **2** | vendor (3) + alat (4) + jadwal (4) + dokumen (6) + kepatuhan (3) + pengadaan (3) selesai 2026-08-07 |
+| ~~Material request (mobile) · Checklist inspeksi (mobile)~~ | ~~2~~ | ✅ **SELESAI 2026-08-07** — sisi BACA ditutup (`cache-baca.ts`, IndexedDB). Jaringan dulu, cache saat gagal, data cache SELALU bertanda beserta usianya. Dibuktikan lewat peramban nyata (`uji-baca-offline.mjs`), bukan test unit saja |
+| | **0** | SELURUH 25 item TUNDA selesai 2026-08-07 |
 
 ### Tiga yang TIDAK dihitung di sini — sudah 🟡, bukan merah
 

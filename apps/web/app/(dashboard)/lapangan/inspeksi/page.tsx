@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import { bacaDenganCache, type HasilBaca } from "@/lib/cache-baca";
+import { PenandaCache } from "@/components/PenandaCache";
 import { api } from "@/lib/api";
 import { useToast } from "@/components/toast";
 import {
@@ -94,6 +96,12 @@ const tanggalJam = (d: string | null) =>
     day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
   }) : null;
 
+/** Company aktif — kunci cache, sama seperti `antrean-offline.ts`. */
+function companyAktif(): string {
+  if (typeof localStorage === "undefined") return "";
+  return localStorage.getItem("puraloka_company_id") ?? "";
+}
+
 export default function InspeksiPage() {
   const { showToast } = useToast();
   const [proyek, setProyek] = useState<Array<{ id: string; name: string }>>([]);
@@ -102,22 +110,42 @@ export default function InspeksiPage() {
   const [meta, setMeta] = useState<MetaInspeksi | null>(null);
   const [memuat, setMemuat] = useState(true);
   const [galat, setGalat] = useState<string | null>(null);
+  // Keadaan cache dipisah dari datanya: layar perlu tahu checklist ini SEGAR
+  // atau TERSIMPAN, dan sejak kapan. Inspeksi yang diputuskan dari daftar
+  // lama bisa menutup pekerjaan yang sudah berubah statusnya.
+  const [asal, setAsal] = useState<Omit<HasilBaca<unknown>, "data">>({
+    dariCache: false, diambil: null, usiaMenit: null, basi: false,
+  });
   const [formTerbuka, bukaForm] = useState(false);
   const [sedangUbah, setSedangUbah] = useState<string | null>(null);
   const batalRef = useRef<AbortController | null>(null);
 
+  // Daftar proyek ikut di-cache — ia PRASYARAT halaman ini.
+  //
+  // Ketahuan dari `uji-baca-offline.mjs`, bukan dari test unit: checklistnya
+  // sudah tersimpan dengan benar, tapi halaman tetap kosong offline karena
+  // tanpa proyek terpilih `muat()` tak pernah berjalan. Cache di lapisan
+  // dalam tak berguna kalau lapisan luarnya gagal lebih dulu.
   useEffect(() => {
     let batal = false;
-    api.get("/api/v1/projects")
-      .then((r) => {
+    void bacaDenganCache<Array<{ id: string; name: string }>>(
+      companyAktif(), "/api/v1/projects",
+      async () => {
+        const r = await api.get("/api/v1/projects");
+        return (r.data?.projects ?? []) as Array<{ id: string; name: string }>;
+      },
+    )
+      .then((h) => {
         if (batal) return;
-        const daftar = (r.data?.projects ?? []) as Array<{ id: string; name: string }>;
-        setProyek(daftar);
-        setProyekId((kini) => kini || daftar[0]?.id || "");
-        if (daftar.length === 0) setMemuat(false);
+        setProyek(h.data);
+        setProyekId((kini) => kini || h.data[0]?.id || "");
+        if (h.data.length === 0) setMemuat(false);
       })
       .catch(() => {
-        if (!batal) { setGalat("Daftar proyek tidak bisa dimuat."); setMemuat(false); }
+        if (!batal) {
+          setGalat("Daftar proyek tidak bisa dimuat, dan belum ada salinan tersimpan di perangkat ini.");
+          setMemuat(false);
+        }
       });
     return () => { batal = true; };
   }, []);
@@ -130,16 +158,34 @@ export default function InspeksiPage() {
     setMemuat(true);
     setGalat(null);
     try {
-      const r = await api.get(`/api/v1/projects/${pid}/inspections`, { signal: ac.signal });
-      setItems(r.data?.data ?? []);
-      setMeta(r.data?.meta ?? null);
+      // Jaringan DULU, simpanan di perangkat hanya saat gagal.
+      //
+      // Checklist inspeksi dibuka DI LOKASI, dan lokasi proyek adalah tempat
+      // sinyal paling sering hilang. Sebelum ini, layarnya kosong dengan
+      // pesan "periksa koneksi" — benar, tapi tak menolong orang yang sedang
+      // berdiri di depan pekerjaan yang harus diperiksa.
+      const h = await bacaDenganCache<{ data: unknown[]; meta: unknown }>(
+        companyAktif(), `/api/v1/projects/${pid}/inspections`,
+        async () => {
+          const r = await api.get(`/api/v1/projects/${pid}/inspections`, { signal: ac.signal });
+          return { data: r.data?.data ?? [], meta: r.data?.meta ?? null };
+        },
+      );
+      setItems(h.data.data as typeof items);
+      setMeta(h.data.meta as typeof meta);
+      setAsal({ dariCache: h.dariCache, diambil: h.diambil, usiaMenit: h.usiaMenit, basi: h.basi });
     } catch (e) {
+      // Pembatalan BUKAN kegagalan — ia terjadi tiap kali proyek berganti,
+      // dan menampilkan galat untuknya membuat layar berkedip merah saat
+      // pengguna cuma memilih proyek lain.
       if ((e as { name?: string }).name === "CanceledError") return;
-      setGalat("Daftar permintaan tidak bisa dimuat. Periksa koneksi lalu muat ulang.");
+      setGalat("Daftar permintaan tidak bisa dimuat, dan belum ada salinan tersimpan di perangkat ini. Periksa koneksi lalu muat ulang.");
+      setAsal({ dariCache: false, diambil: null, usiaMenit: null, basi: false });
     } finally {
       if (!ac.signal.aborted) setMemuat(false);
     }
   }, []);
+
 
   // setState dipanggil asinkron, bukan sinkron di badan efek — render berantai
   // terasa sebagai jeda pada HP lapangan.
@@ -277,6 +323,16 @@ export default function InspeksiPage() {
           )}
         </section>
       )}
+
+      {/* Penanda cache SEBELUM daftar, bukan sesudahnya.
+          Yang membacanya harus tahu checklist ini tersimpan SEBELUM ia
+          memutuskan lolos/gagal — peringatan di bawah sampai terlambat. */}
+      <PenandaCache
+        dariCache={asal.dariCache}
+        usiaMenit={asal.usiaMenit}
+        basi={asal.basi}
+        perihal="Daftar permintaan inspeksi"
+      />
 
       {galat ? (
         <div className="in-galat" role="alert">

@@ -16,7 +16,7 @@ memuat **setiap** dokumen, tanpa kecuali.
 | **acuan** | aturan/keputusan yang dirujuk saat bekerja | dibaca saat mengerjakan hal terkait; tak "selesai" |
 | **riwayat** | catatan fase yang sudah lewat | bukti apa yang pernah terjadi; jangan dikutip sebagai rencana |
 
-**Total 267 dokumen** — antrean 13 · acuan 196 · riwayat 58.
+**Total 267 dokumen** — antrean 13 · acuan 195 · riwayat 59.
 
 Kolom **RM** = disebut langsung di `ROADMAP.md`.
 
@@ -76,7 +76,7 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | [CI-BUKTI](execution/CI-BUKTI.md) | acuan | ✓ | CI-BUKTI — Setiap Penjaga Terbukti Bisa MERAH |
 | [CI-PROFIL](execution/CI-PROFIL.md) | acuan | ✓ | CI-PROFIL — Durasi Nyata, Diukur Bukan Diperkirakan |
 | [COVERAGE-BASELINE](execution/COVERAGE-BASELINE.md) | acuan |  | Coverage Baseline — Angka Sesungguhnya (C-6) |
-| [F5-1-TRIASE-SUBMENU](execution/F5-1-TRIASE-SUBMENU.md) | acuan | ✓ | F5-1 — Triase sub-menu: INTI / PEMBEDA / TUNDA |
+| [F5-1-TRIASE-SUBMENU](execution/F5-1-TRIASE-SUBMENU.md) | riwayat | ✓ | F5-1 — Triase sub-menu: INTI / PEMBEDA / TUNDA |
 | [GOLDEN-FILE-INVESTIGASI](execution/GOLDEN-FILE-INVESTIGASI.md) | acuan | ✓ | Investigasi Golden File — Angka Jangkar (C-5 / R-005) |
 | [JOURNAL](execution/JOURNAL.md) | riwayat | ✓ | JOURNAL — Catatan Sesi |
 | [LEDGER-DIFF](execution/LEDGER-DIFF.md) | acuan |  | LEDGER-DIFF — Buku Migrasi vs Artefak Fisik |

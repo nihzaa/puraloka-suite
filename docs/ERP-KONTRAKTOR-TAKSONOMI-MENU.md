@@ -363,13 +363,13 @@ Semua 🔴 — terkonfirmasi.
 
 | Menu | Status | Catatan |
 |---|---|---|
-| Mode offline | 🟡 | **Naik dari 🔴 2026-08-04 (F4-3).** `lib/antrean-offline.ts` + `lib/kirim-lapangan.ts` + `components/StatusAntrean.tsx`; terpasang di 6 jalur tulis portal mandor. Empat jaminan diuji + mutation-test (6/6 tertangkap): tersimpan · tak-ganda (Idempotency-Key) · berurutan · berkunci company. **Belum 5/5**: foto belum ikut diantre (butuh IndexedDB), dan pembacaan belum offline — mandor masih perlu sinyal untuk MELIHAT data |
+| Mode offline | 🟡 | **TULIS: F4-3** (`antrean-offline.ts`, localStorage, 6 jalur, 4 jaminan, mutasi 6/6). **BACA: 2026-08-07** (`cache-baca.ts`, IndexedDB — bertahan saat aplikasi ditutup, beda dari `data-cache.ts` F4-2 yang `Map` di memori). Jaringan DULU, cache hanya saat gagal; data dari cache selalu BERTANDA (`PenandaCache`) beserta usianya, karena data lama yang tak ditandai lebih berbahaya daripada layar kosong. 19 test · 11/11 mutasi · bukti perilaku browser nyata (`uji-baca-offline.mjs`). **Belum 5/5**: foto belum ikut diantre |
 | Input laporan harian | 🟡 | Screen input progress + foto ada |
 | Foto + geotag | 🟡 | Foto ✅, geotag 🔴 |
 | Absensi lapangan | 🟡 | UI hidup: `mandor/absensi/page.tsx` (diukur 2026-08-06) |
-| Material request | 🔴 | Direncanakan ERP_MASTER_PLAN Mobile Phase 1, belum ada |
+| Material request | ✅ | `/procurement/permintaan` terbaca **tanpa sinyal** sejak 2026-08-07 — 9 MR lengkap (nomor, proyek, tanggal dibutuhkan, item) tampil dari IndexedDB dengan pita penanda. Sebelumnya `.catch(() => null)` menampilkan daftar KOSONG, yang di lokasi terbaca "tak ada permintaan" padahal ada belasan menunggu persetujuan |
 | Approval mobile | 🟡 | Approve/reject inline dari notifikasi |
-| Checklist inspeksi | 🔴 | |
+| Checklist inspeksi | ✅ | `/lapangan/inspeksi` terbaca **tanpa sinyal** sejak 2026-08-07. Daftar PROYEK ikut di-cache — ia prasyarat halaman ini, dan tanpanya `muat()` tak pernah berjalan sehingga layar tetap kosong meski checklistnya sudah tersimpan. Ketahuan dari `uji-baca-offline.mjs`, BUKAN dari test unit |
 | *(Total: 9 screen Expo)* | | dashboard, proyek×2, progress, kasbon×2, mandor, notifikasi, login |
 
 ---

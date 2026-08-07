@@ -5,6 +5,87 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-07 (lanjutan 11) — TUNDA kelompok G: baca offline. SELURUH 25 ITEM TUNDA SELESAI.
+
+Dua item terakhir: material request & checklist inspeksi terbaca tanpa sinyal.
+**TUNDA: 2 → 0.**
+
+### Yang terbukti, dengan angka
+
+```
+pustaka          lib/cache-baca.ts (IndexedDB) · 19 test · 11/11 mutasi
+komponen         components/PenandaCache.tsx
+bukti perilaku   uji-baca-offline.mjs — peramban NYATA, jaringan API diputus
+web              30 berkas · 408 test hijau · lint 0 error, 334 warning
+penjaga UI       8 ratchet: LULUS
+a11y             axe-core WCAG 2.1 AA: 0 pelanggaran ×
+                 2 halaman × 2 mode = 4 kombinasi
+```
+
+### Cacat yang ditutup: layar kosong yang terbaca "tak ada data"
+
+Sebelum ini, `/procurement/permintaan` menelan galat dengan `.catch(() =>
+null)` lalu menampilkan daftar KOSONG. Di lokasi tanpa sinyal itu terbaca
+**"tak ada permintaan material"** — padahal ada sembilan yang menunggu
+persetujuan. Mandor lalu menebak nomor MR dari ingatan, atau menunda
+pekerjaannya sampai kembali ke tempat bersinyal.
+
+Sekarang: sembilan MR lengkap (nomor, proyek, tanggal dibutuhkan, item
+beserta kuantitas) terbaca dari IndexedDB, dengan pita kuning yang menyatakan
+data ini dari simpanan perangkat beserta usianya.
+
+### Empat jaminan, dan kenapa masing-masing ada
+
+1. **TERBACA** — jawaban terakhir tersimpan, dipakai saat jaringan gagal.
+2. **BERTANDA** — data cache SELALU menampilkan usianya. Data lama yang tak
+   ditandai lebih berbahaya daripada layar kosong: layar kosong membuat orang
+   mencari sinyal, data lama membuat orang mengambil keputusan.
+3. **BERKUNCI COMPANY** — kunci `company::url`, sama seperti antrean tulis.
+4. **BERKEDALUWARSA TAPI TAK DIBUANG** — di atas 60 menit ditandai lebih
+   keras, TIDAK dihapus. Menghapusnya mengembalikan layar kosong yang justru
+   dihindari.
+
+### Bukti PERILAKU menemukan cacat yang 19 test unit lewatkan
+
+`uji-baca-offline.mjs` memuat halaman di peramban nyata, memutus `**/api/v1/**`,
+lalu memuat ulang. Hasil putaran pertama:
+
+```
+/procurement/permintaan  ✅ pita muncul, daftar terbaca
+/lapangan/inspeksi       ❌ pita TIDAK muncul
+```
+
+Sebabnya bukan cache-nya — IndexedDB terisi 2 jawaban. Halaman inspeksi
+memuat daftar **PROYEK** lebih dulu, dan itu belum di-cache; tanpa proyek
+terpilih, `muat()` tak pernah berjalan sehingga checklist yang sudah
+tersimpan tak pernah dibaca. Layarnya menampilkan "Daftar proyek tidak bisa
+dimuat".
+
+**Pelajarannya: cache di lapisan dalam tak berguna kalau lapisan luarnya
+gagal lebih dulu** — dan sambungan yang lupa dipasang lolos seluruh test unit
+karena test unit menguji pustakanya, bukan pemakaiannya.
+
+### Keputusan yang saya ambil dan alasannya
+
+**Tak memasang `fake-indexeddb`.** Yang diuji cuma tiga operasi pada satu
+object store; menambah dependensi berarti menambah rantai pasok yang harus
+diaudit dan dirawat selamanya demi permukaan yang muat di 60 baris. Tiruannya
+ditulis di dalam test, dan SENGAJA tak lengkap — kalau `cache-baca.ts` kelak
+memakai index atau rentang kunci, test akan gagal keras, dan itu sinyal untuk
+memasang pustaka sungguhan, bukan menambal tiruan sampai jadi setengah-IndexedDB.
+
+**IndexedDB, bukan localStorage.** `antrean-offline.ts` memilih localStorage
+dengan alasan tertulis (kiriman JSON kecil, sinkron menguntungkan). Sisi BACA
+berbeda: daftar material ratusan baris, dan menulis sebesar itu secara sinkron
+membekukan antarmuka di ponsel lama yang justru banyak dipakai di lapangan.
+
+**Bukan pengganti `data-cache.ts` (F4-2).** Diperiksa langsung, bukan
+diasumsikan: `data-cache.ts:49` memakai `new Map()` — cache di MEMORI, hilang
+saat tab ditutup. Yang berguna saat mandor membuka aplikasi lagi di lokasi
+tanpa sinyal adalah yang di DISK. Keduanya melengkapi.
+
+---
+
 ## 2026-08-07 (lanjutan 10) — TUNDA kelompok F: pengadaan lanjutan, dan tiga cacat visual yang hanya ketahuan dengan MELIHAT
 
 Tiga item TUNDA: kontrak payung (blanket order), expediting & logistik,

@@ -12,6 +12,8 @@
  */
 
 import { useEffect, useState } from "react";
+import { bacaDenganCache, type HasilBaca } from "@/lib/cache-baca";
+import { PenandaCache } from "@/components/PenandaCache";
 import { Check, Plus, X } from "lucide-react";
 
 import { api, hasPermission } from "@/lib/api";
@@ -47,6 +49,12 @@ interface MaterialRequest {
 
 const STATUS_MR = ["draft", "submitted", "approved", "rejected", "partially_ordered", "fully_ordered"];
 
+/** Company aktif — kunci cache, sama seperti `antrean-offline.ts`. */
+function companyAktif(): string {
+  if (typeof localStorage === "undefined") return "";
+  return localStorage.getItem("puraloka_company_id") ?? "";
+}
+
 export default function PermintaanPage() {
   const [mrs, setMrs] = useState<MaterialRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,6 +65,12 @@ export default function PermintaanPage() {
   const [rejectNotes, setRejectNotes] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [detailMr, setDetailMr] = useState<MaterialRequest | null>(null);
+  // Keadaan cache dipisah dari datanya: layar perlu tahu data ini SEGAR atau
+  // TERSIMPAN, dan sejak kapan. Tanpa itu, daftar dari simpanan terlihat
+  // persis seperti daftar hari ini — dan yang membacanya mengambil keputusan.
+  const [asal, setAsal] = useState<Omit<HasilBaca<unknown>, "data">>({
+    dariCache: false, diambil: null, usiaMenit: null, basi: false,
+  });
 
   // Pemuat ditulis sebagai fungsi biasa yang menerima saringannya lewat
   // PARAMETER, bukan `useCallback` yang membacanya dari closure. Dua alasan,
@@ -76,11 +90,36 @@ export default function PermintaanPage() {
   async function load(status: string) {
     await tundaSatuTick(); // lihat catatannya di `_bersama/ui.tsx`
     setLoading(true);
-    const res = await api.get<{ material_requests: MaterialRequest[] }>(
-      "/api/v1/procurement/material-requests",
-      { params: status ? { status } : {} },
-    ).catch(() => null);
-    setMrs(res?.data?.material_requests ?? []);
+
+    // Jaringan DULU, cache hanya saat gagal.
+    //
+    // Versi sebelumnya menelan galat dengan `.catch(() => null)` lalu
+    // menampilkan daftar KOSONG — di lokasi tanpa sinyal itu terbaca "tak ada
+    // permintaan material", padahal ada belasan yang menunggu persetujuan.
+    // Sekarang jawaban terakhir tersimpan di perangkat dan dipakai, DENGAN
+    // penanda kapan ia diambil.
+    const url = `/api/v1/procurement/material-requests${status ? `?status=${status}` : ""}`;
+    try {
+      const h = await bacaDenganCache<MaterialRequest[]>(
+        companyAktif(), url,
+        async () => {
+          const res = await api.get<{ material_requests: MaterialRequest[] }>(
+            "/api/v1/procurement/material-requests",
+            { params: status ? { status } : {} },
+          );
+          return res.data?.material_requests ?? [];
+        },
+      );
+      setMrs(h.data);
+      setAsal({ dariCache: h.dariCache, diambil: h.diambil, usiaMenit: h.usiaMenit, basi: h.basi });
+    } catch {
+      // Jaringan gagal DAN tak ada simpanan: daftar kosong, tapi penandanya
+      // tetap "segar" — supaya tak ada pita yang menjanjikan data tersimpan
+      // yang sebenarnya tak ada.
+      setMrs([]);
+      setAsal({ dariCache: false, diambil: null, usiaMenit: null, basi: false });
+    }
+
     setLoading(false);
   }
 
@@ -122,6 +161,16 @@ export default function PermintaanPage() {
 
   return (
     <div style={{ width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
+      {/* Penanda cache DI ATAS saringan, bukan di bawah daftar.
+          Yang membacanya harus tahu data ini tersimpan SEBELUM ia mulai
+          membaca isinya — peringatan di bawah daftar sampai terlambat. */}
+      <PenandaCache
+        dariCache={asal.dariCache}
+        usiaMenit={asal.usiaMenit}
+        basi={asal.basi}
+        perihal="Permintaan material"
+      />
+
       <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap", justifyContent: "space-between" }}>
         <select
           aria-label="Saring status permintaan material" value={statusFilter}
