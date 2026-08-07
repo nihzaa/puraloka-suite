@@ -34,18 +34,29 @@ import { chromium } from '@playwright/test'
 
 const BASIS = 'http://localhost:3000'
 
-// Sengaja mencakup ketiga bentuk: item lepas (Beranda), anak kelompok satu
-// segmen, dan anak kelompok dua segmen.
+// Sengaja mencakup semua bentuk: item lepas (Beranda), anak kelompok satu
+// segmen, anak kelompok dua segmen, dan sub-menu yang dibedakan query.
+//
+// `/jadwal` polos TIDAK diuji: sesudah migrasi 233 halaman itu tak lagi punya
+// link tanpa query — ketiga modulnya (CPM, histogram, method) masing-masing
+// punya linknya sendiri. Membukanya langsung tanpa `?bagian=` memang tak
+// menyalakan apa pun, dan itu benar: tak ada menu yang menunjuk ke sana.
 const HALAMAN = [
   '/dashboard',
   '/proyek',
-  '/jadwal',
   '/keuangan/invoice',
   '/procurement/pesanan',
   '/mandor/upah',
   '/lapangan/inspeksi',
   '/pengaturan/roles',
   '/peta-modul',
+  // Sub-menu yang alamatnya dibedakan query (migrasi 233). Inilah yang paling
+  // rawan: dua link ke halaman yang sama, dibedakan hanya oleh `?bagian=`.
+  '/dokumen/kendali?bagian=notulen',
+  '/dokumen/kendali?bagian=transmittal',
+  '/akuntansi?tab=besar',
+  '/jadwal?bagian=histogram',
+  '/kepatuhan?bagian=evaluasi',
 ]
 
 const peramban = await chromium.launch()

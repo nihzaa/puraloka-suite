@@ -73,3 +73,48 @@ export function rutenyaAktif(pathname: string, href: string): boolean {
 export function rutenyaAktifPersis(pathname: string, href: string): boolean {
   return pathname === href;
 }
+
+/**
+ * Cocok persis TERMASUK query string.
+ *
+ * ── Kenapa perlu fungsi ketiga
+ *
+ * Migrasi 233 mengangkat 18 tab yang isinya modul terpisah jadi sub-menu:
+ * "Transmittal" dan "Notulen Rapat" punya link sendiri, dibedakan hanya oleh
+ * `?bagian=`. Keduanya menunjuk halaman yang sama.
+ *
+ * `usePathname()` mengembalikan `/dokumen/kendali` untuk KEDUANYA — query tak
+ * termasuk. Jadi `rutenyaAktifPersis` tak pernah cocok, dan uji perilaku
+ * melaporkan "aktif=0" untuk kelima sub-menu tab: tak satu pun menyala.
+ *
+ * ── Kenapa membandingkan query, bukan mengabaikannya
+ *
+ * Mengabaikan query akan membuat KELIMA link menyala sekaligus di halaman yang
+ * sama — persis yang dikeluhkan founder. Yang membedakan mereka memang hanya
+ * query itu, jadi query harus ikut dibandingkan.
+ *
+ * Urutan parameter di URL tak dijamin (`?a=1&b=2` sama artinya dengan
+ * `?b=2&a=1`), jadi dibandingkan sebagai pasangan yang diurutkan — bukan
+ * sebagai teks mentah.
+ *
+ * @param pathname  dari `usePathname()` — tanpa query
+ * @param query     dari `useSearchParams()` — boleh null
+ * @param href      href menu, boleh memuat `?…`
+ */
+export function rutenyaAktifPenuh(
+  pathname: string,
+  query: URLSearchParams | null,
+  href: string,
+): boolean {
+  const [jalur, kueri] = href.split("?");
+  if (pathname !== jalur) return false;
+  // Menu tanpa query cocok hanya bila URL juga tanpa query yang berarti —
+  // kalau tidak, "Kendali Dokumen" akan menyala di semua tab-nya.
+  if (!kueri) return !query || [...query.keys()].length === 0;
+
+  const diminta = new URLSearchParams(kueri);
+  for (const [k, v] of diminta) {
+    if ((query?.get(k) ?? null) !== v) return false;
+  }
+  return true;
+}

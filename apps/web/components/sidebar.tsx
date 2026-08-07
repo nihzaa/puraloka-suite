@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { rutenyaAktifPersis } from "@/lib/rute-aktif";
+import { rutenyaAktifPenuh } from "@/lib/rute-aktif";
 import {
   LayoutDashboard,
   FolderKanban,
@@ -356,6 +356,9 @@ function GrupCollapsible({
 
 export function Sidebar() {
   const pathname = usePathname();
+  // Query IKUT menentukan menu aktif: migrasi 233 membuat "Transmittal" dan
+  // "Notulen Rapat" dua link ke halaman yang sama, dibedakan `?bagian=`.
+  const params = useSearchParams();
   const router = useRouter();
   const { collapsed, toggle, dipaksaCiut } = useSidebar();
   const [user, setUser] = useState<PuralokaUser | null>(null);
@@ -528,7 +531,7 @@ export function Sidebar() {
    * memuat halaman aktif.
    */
   function isActive(href: string) {
-    return rutenyaAktifPersis(pathname, href);
+    return rutenyaAktifPenuh(pathname, params, href);
   }
 
   // Match-ANY: tampil jika tanpa permission (array kosong) ATAU punya salah satu.
@@ -805,7 +808,7 @@ export function Sidebar() {
                 // Sebelumnya blok ini memakai aturan berbeda dari sidebar
                 // utama di berkas yang sama — dan `/pengaturan/roles`
                 // menyalakan dua link sekaligus.
-                isActive={(href) => rutenyaAktifPersis(pathname, href)}
+                isActive={(href) => rutenyaAktifPenuh(pathname, params, href)}
                 belumAdaHalamanSendiri={belumAdaHalamanSendiri}
                 subStyle={subStyle}
                 onHover={onHover}

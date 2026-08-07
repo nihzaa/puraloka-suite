@@ -1,10 +1,10 @@
 {
   "_catatan": "Lantai drift peta-menu.ts vs menu_items. Boleh turun, TIDAK boleh naik.",
-  "_diukur": "2026-08-07, sesudah migrasi 232 (sidebar dirombak: satu route satu link).",
+  "_diukur": "2026-08-07, sesudah migrasi 233 (18 tab modul jadi sub-menu).",
   "hrefBeda": 0,
   "labelBeda": 0,
-  "hanyaDb": 88,
+  "hanyaDb": 101,
   "_hrefBeda": "NOL, dan sekarang inilah yang benar-benar dijaga: kalau katalog dan sidebar menyebut tujuan berbeda untuk key yang sama, salah satunya membohongi pembacanya.",
-  "_hanyaDb": "88 = seluruh entri sidebar. Sesudah 232 kedua sumber SENGAJA berbeda perannya: peta-menu.ts katalog 203 modul (sumber /peta-modul), menu_items 88 link sidebar (hanya halaman yang ada). Angka ini bukan cacat, melainkan ukuran sidebar itu sendiri.",
+  "_hanyaDb": "Seluruh entri sidebar. Kedua sumber SENGAJA berbeda perannya sesudah 232: peta-menu.ts katalog 203 modul (sumber /peta-modul), menu_items link sidebar (hanya halaman yang ada). Naik karena 233 memecah 5 halaman multi-modul jadi 18 sub-menu. Bukan cacat.",
   "_berbagiItem": "Tidak lagi di-ratchet. audit-menu-berbagi-href.mjs kini LARANGAN MUTLAK: nol href boleh dipakai lebih dari satu link."
 }
