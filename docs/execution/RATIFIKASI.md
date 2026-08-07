@@ -6,6 +6,233 @@ bawah entrinya.
 
 ---
 
+# 🔗 APAKAH SEMUA DI `/docs` SUDAH TEREGISTER? — diukur 2026-08-07
+
+> Menjawab dua pertanyaan sekaligus: *"apakah semua menu di taksonomi sudah
+> terealisasikan?"* dan *"apakah semua yang ada di /docs sudah terimplementasi
+> dan teregister ke semua roadmap?"*
+
+## Menu taksonomi: BELUM semua, dan itu disengaja
+
+**84 dari 191 selesai end-to-end.** Rinciannya di bagian berikutnya, tapi
+angka pentingnya: dari 38 yang 🔴, **nol adalah INTI**. Sebelas sudah Anda
+putuskan tidak dibangun, 25 menunggu pemicunya, 2 ditunda dengan angka.
+
+## Dokumen ke ROADMAP: SUDAH, nol terlantar
+
+`audit-docs-vs-roadmap.mjs` dijalankan hari ini:
+
+    Dokumen .md di docs/       268
+    disebut langsung ROADMAP    37
+    acuan/riwayat/arsip        231  -> semuanya terdaftar di INDEKS-DOKUMEN.md
+    RENCANA TERLANTAR            0
+
+Tak ada rencana kerja yang terputus dari ROADMAP. Penjaga ini merah kalau ada
+dokumen berisi rencana yang tak dirujuk — dan hari ini hijau.
+
+## Satu celah yang perlu Anda tahu: 28 sub-menu tak terperiksa penjaga
+
+`audit-taksonomi-vs-kode.mjs` melaporkan **28 sub-menu belum punya entri di
+PETA**-nya. Artinya statusnya **tak diverifikasi ke kode oleh siapa pun** —
+kalau suatu hari salah satunya dibangun, taksonomi bisa tetap menandainya 🔴
+tanpa ada yang protes.
+
+Itu bukan cacat teoretis: **tujuh sub-menu pernah ditandai 🔴 padahal UI-nya
+sudah hidup berbulan-bulan** (F5-1 §3a/§3b), dan penjaga ini dibuat justru
+untuk itu.
+
+Diperiksa hari ini, ke-28 itu **persis irisan**:
+
+- 11 yang **JANGAN DIBANGUN** — tak akan pernah punya tabel, jadi tak ada yang
+  bisa diperiksa
+- 17 **TUNDA** yang belum punya tabel sama sekali
+
+Jadi tak ada yang tercecer. Tapi begitu salah satunya mulai dibangun, entrinya
+**wajib ditambahkan ke PETA di commit yang sama** — kalau tidak, ia masuk ke
+kelas cacat yang sudah pernah terjadi.
+
+## Ringkas
+
+| Pertanyaan | Jawaban |
+|---|---|
+| Semua menu taksonomi terealisasi? | **Belum** — 84/191. Tapi nol INTI tersisa. |
+| Semua docs terimplementasi? | **Tidak semuanya**, dan itu benar: 231 dari 268 adalah acuan/riwayat/arsip, bukan rencana. |
+| Semua teregister ke ROADMAP? | **Ya** — nol rencana terlantar, dijaga CI. |
+
+---
+
+# ✅ REKOMENDASI SAYA — urut prioritas, 2026-08-07
+
+> Menjawab: *"hal yang menunggu saya itu bisa kamu rekomendasikan?"*
+>
+> Diurutkan bukan menurut besarnya, melainkan menurut **apa yang paling
+> menahan yang lain**.
+
+## 1. E10 — aktifkan 81 harga draft ⏱️ paling cepat, dampak paling besar
+
+**Rekomendasi: AKTIFKAN SEMUANYA.**
+
+81 harga hasil ekstraksi sheet Cibuluh masuk sebagai `draft` supaya bisa
+dibedakan dari yang diverifikasi manusia. Begitu diaktifkan, **112 analisa
+perusahaan langsung hidup**.
+
+Kenapa saya yakin: harga draft **tidak dipakai menghitung HSP**, jadi
+mengaktifkannya tak bisa merusak angka yang sudah ada — ia hanya menambah yang
+tadinya kosong. Dan kalau ada satu-dua yang keliru, memperbaikinya satu baris.
+
+Ini rasio hasil-per-usaha terbaik dari seluruh daftar.
+
+## 2. E9 — 19 harga bentrok ⏱️ butuh Anda melihat, tak bisa ditebak
+
+**Rekomendasi: putuskan 3 yang paling menyebar dulu, sisanya menyusul.**
+
+Contoh nyata: `Kaso-Kaso 5/7` punya empat harga — Rp 3jt / 6jt / 9,7jt /
+**16 juta** per m³. Selisih lima kali lipat itu jelas **jenis kayu berbeda
+dengan nama sama**, bukan salah ketik.
+
+Saya **tidak boleh menebaknya**: satu tebakan salah menyebar ke belasan
+analisa, dan salahnya baru ketahuan saat penawaran kalah atau proyek rugi.
+
+Yang saya butuhkan dari Anda cuma: untuk tiap nama yang bentrok, mana yang
+dipakai — atau apakah namanya perlu dipecah (`Kaso 5/7 Meranti` vs
+`Kaso 5/7 Borneo`). Datanya sudah tersaji lengkap.
+
+## 3. F7-1 langganan ⏱️ satu-satunya penghalang produk bisa ditagih
+
+**Rekomendasi: satu paket, satu batas, peringatkan-jangan-tolak.**
+
+- kolom `paket` + `batas_proyek` di `companies` — tanpa tabel baru
+- penghitung proyek aktif (sudah bisa dihitung dari `projects`)
+- lewat batas → spanduk peringatan, **bukan** penolakan
+
+Alasannya: menolak pembuatan proyek karena batas membuat pelanggan **berhenti
+bekerja**, dan itu perlu diuji dengan pelanggan nyata lebih dulu. Menagih
+kelebihan tanpa pernah menolak jauh lebih mudah diperbaiki daripada
+sebaliknya.
+
+Kalau Anda setuju, saya bangun lengkap dengan penjaganya — sehari.
+
+## 4. F4-2 lapis data ⏱️ pilih pustaka, saya kerjakan sisanya
+
+**Rekomendasi: TanStack Query.**
+
+93 dari 96 halaman masih `useEffect`-fetch. Alasan memilihnya di atas SWR:
+invalidasi terarah (`invalidateQueries`) yang justru dibutuhkan sesudah
+approval berjenjang, dan devtools yang membuat cache bisa dilihat — pada 93
+halaman, "kenapa data ini basi" harus bisa dijawab tanpa menebak.
+
+Bukan pekerjaan sehari, tapi bisa bertahap: modul per modul, dengan ratchet
+yang menurun.
+
+## 5. SITUS-2 & SITUS-3 ⏱️ butuh materi dari Anda
+
+- **SITUS-2**: screenshot, cerita proyek, harga. Saya tak bisa mengarang
+  harga, dan screenshot palsu adalah janji yang tak bisa ditepati.
+- **SITUS-3**: dua kategori tanpa foto. Berkas aslinya sudah ditelusuri ke
+  empat sumber, nol kecocokan pHash. **Bisa diekstrak dari PDF compro hal.
+  17 & 19** kalau Anda izinkan — kualitasnya turun tapi ada.
+
+## 6. R-006 pg_dump ⏱️ tiket ke Supabase Support
+
+**Rekomendasi: buka tiket, tapi jangan panik.**
+
+Data Anda **punya cadangan** — diuji hari ini: 147 tabel, 58.430 baris, 105
+detik. Yang mustahil hanyalah pemulihan lewat jalur resmi Supabase.
+
+Yang perlu disampaikan ke Support: *"fungsi `trigger_calc_retention_amount_probe`
+(oid 2840878) menunjuk namespace 2840025 yang sudah dihapus; `pg_dump` berhenti
+di sana. Semua jalan DDL biasa sudah dicoba."*
+
+## Yang TIDAK saya rekomendasikan sekarang
+
+**AI/WhatsApp** — bukan karena tak bisa, tapi karena urutannya. Alasan
+lengkapnya di bagian berikutnya; ringkasnya: AI di atas data yang bolong
+menjawab dengan percaya diri dan salah.
+
+Kalau Anda tetap ingin AI lebih dulu, katakan — saya kerjakan, dengan catatan
+risiko itu tertulis.
+
+---
+
+# 🤖 KAPAN AI & ASISTEN WHATSAPP — diukur 2026-08-07
+
+> Menjawab: *"apakah sudah masuk ke fase mengintegrasikan ai? saya mau ada
+> asisten di WA saya."*
+
+**Belum, dan itu keputusan Anda sendiri** (`KEPUTUSAN-SCOPE-ERP-AI.md` §4,
+2026-08-01): *"selesaikan 8 item ROADMAP sisa lebih dulu, baru AI."*
+
+## Kenapa urutan itu tepat, dan bukan sekadar preferensi
+
+Dua dari delapan item itu adalah **data yang justru akan dibaca AI**:
+
+- **#15 WIP/PSAK** — tanpa ini, L/R per proyek tak bermakna. AI yang ditanya
+  *"proyek mana yang rugi?"* menjawab dari pembukuan yang belum benar:
+  **percaya diri dan salah**, kelas kesalahan paling berbahaya untuk sistem
+  pengambil keputusan.
+- **#16 Rantai kontrak** — denda, EOT, jaminan. Uang nyata yang belum terekam
+  berarti AI menghitung dari basis yang bolong.
+
+Prinsip doc 06 *"AI tidak pernah mengarang jawaban saat tidak yakin"* tak bisa
+ditegakkan kalau datanya sendiri bolong — AI tak punya cara tahu bahwa angka
+yang dibacanya belum lengkap.
+
+## Delapan item itu sekarang — diukur, bukan diperkirakan
+
+| # | Item | Status |
+|---|---|---|
+| 15 | WIP / PSAK | ✅ SELESAI |
+| 16 | Rantai kontrak (LD, EOT, jaminan) | ✅ SELESAI |
+| 17 | Paritas golden RAB nyata | ✅ SELESAI |
+| 23 | Aset & alat penuh | ✅ SELESAI |
+| 20 | Laporan antar-edisi AHSP | ⛔ DICORET Anda 2026-08-01 |
+| 14 | 468 akses supabase mentah | 🟡 celah nyata **tertutup**; sisa utang adopsi — turun lagi 373→366 hari ini |
+| 24 | Capability Tier-2 | 🟡 **4 dari 5**; sisanya HSE, sengaja di Gelombang 2 |
+| E9/E10/E12 | Harga & edisi AHSP | ❓ **MENUNGGU ANDA** — lihat di bawah |
+
+**Jadi yang benar-benar menahan tinggal E9/E10/E12** — dan ketiganya keputusan
+harga, bukan kode.
+
+## Urutan sampai WhatsApp (dari §5 dokumen scope)
+
+```
+SEKARANG    → sisa 8 item (praktis: E9/E10/E12 + utang adopsi #14)
+GELOMBANG 2 → GL in-app · QA/QC+HSE · payroll · aset
+GELOMBANG 3 → mobile lapangan penuh + offline
+GELOMBANG 4 → AI: pilot read-only → WhatsApp Gateway → 13 automation "Next"
+              gerbang eksternal: akun WA Business + kredensial API (ANDA)
+```
+
+Di kode hari ini: **nol baris AI, nol dependensi** (`openai`/`anthropic`/
+`langchain`/`pgvector` — nihil). Fase 6 yang saya selesaikan kemarin adalah
+**prasyaratnya** (event log, jejak keputusan), bukan fiturnya — CHARTER
+menyebutnya tegas: *"Prasyarat AI (bukan fitur AI)"*.
+
+## Lima aturan yang sudah mengikat saat AI dibangun
+
+Diwarisi dari doc 06, dicatat supaya tak perlu dibaca ulang:
+
+1. **No silent write** — automation yang mengubah data finansial/kontraktual
+   berhenti di approval manusia, tanpa kecuali.
+2. **WhatsApp = client baru, bukan jalan pintas** — lewat API dan permission
+   engine yang SAMA. Tak ada bypass otorisasi.
+3. **Spending limit + rate limit per agent.**
+4. **Explainability wajib** — tiap jawaban finansial menyebut sumbernya
+   (*"berdasarkan 12 invoice bulan ini"*), bukan angka telanjang.
+5. **Pilot pertama read-only** — boleh ditanya, tak boleh menulis.
+
+## Kalau Anda ingin mempercepat
+
+Satu-satunya yang mempercepat adalah **menjawab E9/E10/E12** (19 harga bentrok,
+81 harga draft, 2 edisi AHSP kosong). Sesudah itu Gelombang 2 dan 3 adalah
+pekerjaan saya, dan Gelombang 4 butuh akun WA Business Anda.
+
+Kalau Anda mau AI lebih awal dari urutan ini, katakan — tapi saya sarankan
+tidak, dengan alasan di bagian atas: AI di atas data yang bolong menjawab
+dengan percaya diri dan salah.
+
+---
+
 # 📊 SELURUH `/docs`: apa yang belum dikerjakan — diukur 2026-08-07
 
 > Menjawab "dari seluruh yang ada di /docs apa yang belum dikerjakan?".
