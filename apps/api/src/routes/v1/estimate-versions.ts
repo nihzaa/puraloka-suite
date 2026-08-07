@@ -4,8 +4,7 @@ import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import {
-  evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain,
-} from '../../utils/approval.js'
+  evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain, idAlurPersetujuan } from '../../utils/approval.js'
 import { computeRab, computeBoq, type EstimateItemRow } from '../../lib/rab-readmodel.js'
 import { forecastCashflow } from '../../lib/cashflow-forecast.js'
 import { petakanKeRab } from '../../lib/estimate-ke-rab.js'
@@ -918,6 +917,11 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
 
       void logAuditEvent(request, {
         tableName: 'estimate_versions', recordId: id, action: 'estimate.submitted',
+        // `workflowId` mengikat SELURUH langkah alur ini, lintas request.
+        // `correlation_id` hanya mengikat dalam satu request; persetujuan
+        // berjenjang terjadi di request berbeda, oleh orang berbeda, di hari
+        // berbeda. Lihat `idAlurPersetujuan` di utils/approval.ts.
+        workflowId: idAlurPersetujuan(id),
         actorId: request.currentUser!.id, newValues: { status: 'under_review' }, severity: 'warning',
       })
       return reply.send({ ok: true, status: 'under_review' })
@@ -979,6 +983,11 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
           const next = decision.applicable.find(s => s.level > decision.step!.level)
           void logAuditEvent(request, {
             tableName: 'estimate_versions', recordId: id, action: 'estimate.approval.level',
+        // `workflowId` mengikat SELURUH langkah alur ini, lintas request.
+        // `correlation_id` hanya mengikat dalam satu request; persetujuan
+        // berjenjang terjadi di request berbeda, oleh orang berbeda, di hari
+        // berbeda. Lihat `idAlurPersetujuan` di utils/approval.ts.
+        workflowId: idAlurPersetujuan(id),
             actorId: user.id, newValues: { level: decision.step.level, of: decision.applicable.length },
             severity: 'critical',
           })
@@ -996,6 +1005,11 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
 
       void logAuditEvent(request, {
         tableName: 'estimate_versions', recordId: id, action: 'estimate.approved',
+        // `workflowId` mengikat SELURUH langkah alur ini, lintas request.
+        // `correlation_id` hanya mengikat dalam satu request; persetujuan
+        // berjenjang terjadi di request berbeda, oleh orang berbeda, di hari
+        // berbeda. Lihat `idAlurPersetujuan` di utils/approval.ts.
+        workflowId: idAlurPersetujuan(id),
         actorId: user.id, newValues: { status: 'approved', total_amount: v.total_amount }, severity: 'critical',
       })
       return reply.send({ ok: true, status: 'approved' })
@@ -1039,6 +1053,11 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
 
       void logAuditEvent(request, {
         tableName: 'estimate_versions', recordId: id, action: 'estimate.rejected',
+        // `workflowId` mengikat SELURUH langkah alur ini, lintas request.
+        // `correlation_id` hanya mengikat dalam satu request; persetujuan
+        // berjenjang terjadi di request berbeda, oleh orang berbeda, di hari
+        // berbeda. Lihat `idAlurPersetujuan` di utils/approval.ts.
+        workflowId: idAlurPersetujuan(id),
         actorId: user.id,
         newValues: { status: 'draft', reason: request.body?.reason ?? null },
         // `reason` DI KOLOMNYA SENDIRI, bukan hanya di dalam `newValues`.

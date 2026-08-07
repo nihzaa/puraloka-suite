@@ -641,6 +641,29 @@ jobs:
       - name: Alasan keputusan di kolomnya sendiri
         run: node scripts/audit-alasan-di-kolomnya.mjs
 
+      # F6-1: langkah rantai persetujuan wajib membawa `workflowId`.
+      #
+      # `correlation_id` hanya mengikat dalam SATU request. Persetujuan
+      # berjenjang terjadi di request berbeda, oleh orang berbeda, di hari
+      # berbeda — tanpa `workflow_id`, merunutnya berarti menebak dari
+      # record_id dan waktu. Diukur 2026-08-07: 0 dari 21.005 baris terisi.
+      #
+      # Penjaga ini menemukan DUA titik yang pencarian tangan saya lewatkan
+      # (procurement, submittal) — itu justru alasannya ada.
+      - name: Rantai persetujuan terikat workflow_id
+        run: node scripts/audit-alur-persetujuan-terikat.mjs
+
+      # Akhir baris: LF tetap LF.
+      #
+      # Terjadi DUA KALI pada 2026-08-07: skrip penyunting memakai
+      # `io.open(f,'w')` (akhir baris platform), dan 11 berkas berubah
+      # LF -> CRLF. Akibatnya `submittal-aturan.test.ts` merah dengan pesan
+      # yang menunjuk ke tempat salah, dan diff 70 baris membengkak jadi
+      # 5.764 — perubahan nyata tenggelam di antara baris palsu.
+      - name: Akhir baris tak berubah (LF tetap LF)
+        run: node apps/api/scripts/audit-akhir-baris.mjs
+        working-directory: .
+
       - name: Invarian NCR
         run: node scripts/uji-invarian-ncr.mjs
         env:

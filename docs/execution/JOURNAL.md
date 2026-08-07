@@ -113,6 +113,84 @@ byte-hash gagal total karena PDF mengompres ulang saat menyisipkan.
 
 ---
 
+## 2026-08-07 (lanjutan 13) — F6-1 SELESAI, F7-1 terbuka; dan skrip saya diam-diam mengubah 8 berkas jadi CRLF
+
+### `workflow_id`: 0 dari 21.005 jadi terikat di 12 langkah
+
+Sisa terakhir F6-1. `correlation_id` mengikat event dalam SATU request —
+tapi persetujuan berjenjang bukan satu request: level 1 hari ini, level 2
+besok, oleh orang berbeda.
+
+Diukur: **tiga estimasi punya dua langkah persetujuan** masing-masing, dan
+tiga event tiap alurnya (`submitted` → `approval.level` → `approved`) tak
+punya satu pun penanda bersama. Merunutnya berarti menebak dari `record_id`
+dan waktu.
+
+`idAlurPersetujuan(entityId)` memakai id entitas apa adanya — deterministik,
+unik per-alur, sudah bertipe uuid. Membuat uuid baru berarti menambah tabel
+pemetaan yang tak menjawab pertanyaan tambahan apa pun.
+
+Konsekuensi yang disengaja: entitas yang ditolak lalu diajukan ulang memakai
+`workflow_id` sama. Itu benar — pengajuan ulang adalah kelanjutan alur yang
+sama, dan justru itu yang ingin dilihat saat menanyakan "kenapa dokumen ini
+bolak-balik".
+
+### Penjaga menemukan dua titik yang pencarian tangan saya lewatkan
+
+Saya memasang `workflowId` di 10 titik dari pencarian sendiri. Penjaga
+`audit-alur-persetujuan-terikat.mjs` melaporkan **12 langkah, 2 tanpa
+workflowId** — `procurement.ts` dan `submittal.ts`.
+
+Keduanya tak muncul di grep saya karena pola aksinya berbeda. Inilah gunanya
+penjaga ditulis dari aturan, bukan dari daftar yang saya ketik.
+
+### SAYA SALAH: skrip Python mengubah 8 berkas jadi CRLF
+
+`submittal-aturan.test.ts` merah sesudah suntingan saya. Ia memeriksa TEKS
+SUMBER dengan `toContain("...(request, {
+        entityType: 'submittal'")`
+— memakai `
+`.
+
+Berkasnya di HEAD ber-LF. Skrip `io.open(f,'w')` saya menulis dengan akhir
+baris platform (CRLF di Windows), jadi seluruh berkas berubah — dan pola
+ber-`
+` tak akan pernah cocok lagi.
+
+Diukur, dan bukan cuma satu: **delapan berkas** berubah LF → CRLF. Selain
+memecahkan test, itu membuat seluruh berkas tampak berubah di diff —
+menyembunyikan perubahan sebenarnya di antara ratusan baris palsu.
+
+Dipulihkan dengan menulis ulang `
+` → `
+` secara biner, tanpa
+membatalkan perubahan isinya. Lalu terjadi **ketiga kalinya** pada
+`JOURNAL.md`, `QUEUE.yaml`, dan `ci.yml`.
+
+Karena itu penjaganya dibuat: `audit-akhir-baris.mjs` membandingkan pohon
+kerja vs HEAD dan merah kalau ada yang berubah LF → CRLF. Mutation-tested.
+Dan sejak itu tiap penulisan lewat skrip memakai mode BINER
+(`io.open(f,'wb')`), bukan `'w'` yang mengikuti akhir baris platform.
+
+Yang menyelamatkan: peringatan git
+"CRLF will be replaced by LF" yang selama ini saya lewati sebagai kebisingan.
+
+### F6-1 `done`, F7-1 `todo`
+
+Ketiga kriteria terpenuhi dan masing-masing punya penjaga yang terbukti bisa
+merah. F7-1 — provisioning tenant + penagihan, item yang menentukan produk
+bisa dijual — kini tak lagi terblokir.
+
+### Bukti
+
+    API: 170 berkas test, 1794 lulus, 2 dilewati, 0 gagal
+    alur-persetujuan.test.ts            4 test · mutasi randomUUID TERTANGKAP
+    audit-alur-persetujuan-terikat.mjs  12/12 langkah · mutasi TERTANGKAP
+    seluruh penjaga CI hijau — nol gagal
+    pnpm build web lolos
+
+---
+
 ## 2026-08-07 (lanjutan 12) — F6-1 tak pernah terblokir, dan 1.260 keputusan yang alasannya tak bisa dicari
 
 ### Status yang usang, bukan pekerjaan yang mustahil

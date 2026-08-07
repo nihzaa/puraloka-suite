@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { validateMime } from '../../utils/mime.js'
-import { evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain } from '../../utils/approval.js'
+import { evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain, idAlurPersetujuan } from '../../utils/approval.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { proyekBolehDibaca, proyekMilikTenant } from '../../utils/tenant-guard.js'
 import { gerbangIdempotensi, catatIdempotensi } from '../../utils/idempotency.js'
@@ -673,6 +673,11 @@ export default async function cashRoutes(app: FastifyInstance) {
         const next = expenseDecision.applicable.find(s => s.level > step.level)
         void logAuditEvent(request, {
           tableName: 'project_expenses', recordId: id, action: 'project_expense.approval.level',
+        // `workflowId` mengikat SELURUH langkah alur ini, lintas request.
+        // `correlation_id` hanya mengikat dalam satu request; persetujuan
+        // berjenjang terjadi di request berbeda, oleh orang berbeda, di hari
+        // berbeda. Lihat `idAlurPersetujuan` di utils/approval.ts.
+        workflowId: idAlurPersetujuan(id),
           actorId: (request as any).currentUser!.id,
           newValues: { level: step.level, of: expenseDecision.applicable.length },
           severity: 'critical',

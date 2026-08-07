@@ -767,7 +767,7 @@ items:
     kriteria_selesai: ["event dapat dibaca ulang", "alasan approval/override/variance tersimpan"]
     cara_verifikasi: "pipa data jalan"
     bobot: XL
-    status: wip
+    status: done
     catatan: |
       Bangun PIPA-nya, bukan fiturnya. AI di atas data kosong = percaya diri
       dan salah.
@@ -802,20 +802,34 @@ items:
       + 624 `estimate.approved` tercatat NOL beralasan. Ketiganya diperbaiki,
       dan `audit-alasan-di-kolomnya.mjs` mencegah terulang (mutation-tested).
 
-      SISA sebelum `done`: `workflow_id` masih nol pemakaian - belum ada
-      konsep alur multi-langkah yang mengikatnya. Itu pekerjaan tersendiri,
-      bukan tambalan.
+      KRITERIA 3 - `workflow_id` terikat: SELESAI 2026-08-07.
+
+      `correlation_id` hanya mengikat event dalam SATU request. Persetujuan
+      berjenjang bukan satu request: level 1 hari ini, level 2 besok, oleh
+      orang berbeda. Diukur: tiga estimasi punya dua langkah masing-masing,
+      dan tiga event tiap alurnya (submitted -> approval.level -> approved)
+      tak punya satu pun penanda bersama.
+
+      `idAlurPersetujuan(entityId)` di utils/approval.ts memakai id entitas
+      apa adanya - deterministik, unik per-alur, sudah bertipe uuid. Terpasang
+      di 12 langkah pada 7 berkas. Dua di antaranya (procurement, submittal)
+      ditemukan PENJAGA, bukan pencarian tangan.
+
+      Dijaga:
+        alur-persetujuan.test.ts            4 test, mutasi randomUUID TERTANGKAP
+        audit-alur-persetujuan-terikat.mjs  12/12 langkah, mutasi TERTANGKAP
 
   - id: F7-1
     fase: 7
     judul: "Provisioning tenant, onboarding, langganan, batas paket"
-    # Tetap menunggu F6-1 selesai penuh (workflow_id belum terpakai), tapi
-    # rantainya sudah bergerak: F5-1 done -> F6-1 wip -> F7-1.
-    blokir_oleh: [F6-1]
+    # F6-1 SELESAI 2026-08-07 - pemblokirnya lepas. Rantai F5-1 -> F6-1 -> F7-1
+    # kini terbuka seluruhnya, dan item inilah yang menentukan produk bisa
+    # dijual (provisioning tenant + penagihan).
+    blokir_oleh: []
     kriteria_selesai: ["tenant baru sekali klik", "penagihan jalan"]
     cara_verifikasi: "e2e onboarding"
     bobot: XL
-    status: blocked
+    status: todo
 
   # ── INTI (F5-1 · diratifikasi R-010) — INTI habis dulu, baru PEMBEDA ──────
   #

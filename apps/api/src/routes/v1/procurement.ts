@@ -3,7 +3,7 @@ import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission, hasPermission } from '../../plugins/auth.js'
 import { createNotification, createNotifications } from '../../utils/notifications.js'
 import { resolveRecipients } from '../../utils/notification-routing.js'
-import { evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain } from '../../utils/approval.js'
+import { evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain, idAlurPersetujuan } from '../../utils/approval.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { computeMrAmount } from '../../lib/mr-amount.js'
 import { grValueAtPoPrices, validateInvoiceCeiling } from '../../lib/three-way-match.js'
@@ -755,6 +755,9 @@ export default async function procurementRoutes(app: FastifyInstance) {
           const next = decision.applicable.find(s => s.level > decision.step!.level)
           void logAuditEvent(request, {
             tableName: 'material_requests', recordId: id, action: 'material_request.approval.level',
+            // `workflowId` mengikat SELURUH langkah alur ini, lintas request.
+            // Lihat `idAlurPersetujuan` di utils/approval.ts.
+            workflowId: idAlurPersetujuan(id),
             actorId: request.currentUser!.id,
             newValues: { level: decision.step.level, of: decision.applicable.length },
             severity: 'critical',

@@ -3,8 +3,7 @@ import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import {
-  evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain,
-} from '../../utils/approval.js'
+  evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain, idAlurPersetujuan } from '../../utils/approval.js'
 
 // CECEP Milestone 4 — Lessons Learned WRITE-BACK, lewat engine approval ADR-007
 // (titik ke-3 dari `47` §3). Company Intelligence Loop DENGAN gerbang manusia:
@@ -40,6 +39,11 @@ export default async function lessonsLearnedRoutes(app: FastifyInstance) {
       if (error) return reply.status(500).send({ error: error.message })
       void logAuditEvent(request, {
         tableName: 'lessons_learned_records', recordId: id, action: 'lessons.submitted',
+        // `workflowId` mengikat SELURUH langkah alur ini, lintas request.
+        // `correlation_id` hanya mengikat dalam satu request; persetujuan
+        // berjenjang terjadi di request berbeda, oleh orang berbeda, di hari
+        // berbeda. Lihat `idAlurPersetujuan` di utils/approval.ts.
+        workflowId: idAlurPersetujuan(id),
         actorId: request.currentUser!.id, newValues: { status: 'under_review' }, severity: 'warning',
       })
       return reply.send({ ok: true, status: 'under_review' })
@@ -91,6 +95,11 @@ export default async function lessonsLearnedRoutes(app: FastifyInstance) {
           const next = decision.applicable.find(s => s.level > decision.step!.level)
           void logAuditEvent(request, {
             tableName: 'lessons_learned_records', recordId: id, action: 'lessons.approval.level',
+        // `workflowId` mengikat SELURUH langkah alur ini, lintas request.
+        // `correlation_id` hanya mengikat dalam satu request; persetujuan
+        // berjenjang terjadi di request berbeda, oleh orang berbeda, di hari
+        // berbeda. Lihat `idAlurPersetujuan` di utils/approval.ts.
+        workflowId: idAlurPersetujuan(id),
             actorId: user.id, newValues: { level: decision.step.level, of: decision.applicable.length }, severity: 'critical',
           })
           return reply.send({ ok: true, pending_next_level: true,
@@ -152,6 +161,11 @@ export default async function lessonsLearnedRoutes(app: FastifyInstance) {
       if (error) return reply.status(500).send({ error: error.message })
       void logAuditEvent(request, {
         tableName: 'lessons_learned_records', recordId: id, action: 'lessons.rejected',
+        // `workflowId` mengikat SELURUH langkah alur ini, lintas request.
+        // `correlation_id` hanya mengikat dalam satu request; persetujuan
+        // berjenjang terjadi di request berbeda, oleh orang berbeda, di hari
+        // berbeda. Lihat `idAlurPersetujuan` di utils/approval.ts.
+        workflowId: idAlurPersetujuan(id),
         actorId: user.id,
         newValues: { status: 'draft', reason: request.body?.reason ?? null },
         // Kolom `reason`, bukan hanya di dalam JSON — lihat catatan di

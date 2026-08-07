@@ -112,6 +112,34 @@ export async function canParticipateInChain(
   return { ok: steps.some(s => perms.has(s.required_permission)) }
 }
 
+/**
+ * `workflow_id` untuk seluruh event dalam satu rantai persetujuan.
+ *
+ * ── Kenapa id entitas, bukan uuid baru
+ *
+ * `correlation_id` mengikat event dalam SATU request. Persetujuan berjenjang
+ * bukan satu request: level 1 disetujui hari ini, level 2 besok, oleh orang
+ * berbeda — dan `correlation_id` keduanya berbeda, sebagaimana mestinya.
+ *
+ * Yang hilang adalah ikatan ANTAR-request itu. Diukur 2026-08-07: tiga
+ * estimasi punya dua langkah persetujuan masing-masing, dan tiga event
+ * mereka (`submitted` → `approval.level` → `approved`) tak punya satu pun
+ * penanda bersama. Merunutnya berarti menebak dari `record_id` dan waktu.
+ *
+ * Id entitas dipakai apa adanya karena ia SUDAH memenuhi syaratnya:
+ * deterministik (tak perlu disimpan di mana pun), unik per-alur, dan
+ * bertipe uuid seperti kolomnya. Membuat uuid baru berarti menambah tabel
+ * pemetaan yang tak menjawab pertanyaan tambahan apa pun.
+ *
+ * Konsekuensi yang disengaja: entitas yang DITOLAK lalu diajukan ulang
+ * memakai `workflow_id` yang sama. Itu benar — pengajuan ulang adalah
+ * kelanjutan alur yang sama, bukan alur baru, dan justru itu yang ingin
+ * dilihat saat menanyakan "kenapa ini bolak-balik".
+ */
+export function idAlurPersetujuan(entityId: string): string {
+  return entityId
+}
+
 /** Catat persetujuan satu level (idempoten via UNIQUE(entity_type, entity_id, level)). */
 export async function recordApproval(params: {
   entityType: ApprovalEntityType

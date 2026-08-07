@@ -5,7 +5,7 @@ import { createNotifications } from '../../utils/notifications.js'
 import { resolveRecipients } from '../../utils/notification-routing.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { enforceKasbonLimit } from '../../utils/kasbon-limit.js'
-import { evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain } from '../../utils/approval.js'
+import { evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain, idAlurPersetujuan } from '../../utils/approval.js'
 
 export default async function kasbonRoutes(app: FastifyInstance) {
 
@@ -358,6 +358,11 @@ export default async function kasbonRoutes(app: FastifyInstance) {
         const next = decision.applicable.find(s => s.level > decision.step!.level)
         void logAuditEvent(request, {
           tableName: 'kasbons', recordId: id, action: 'kasbon.approval.level',
+        // `workflowId` mengikat SELURUH langkah alur ini, lintas request.
+        // `correlation_id` hanya mengikat dalam satu request; persetujuan
+        // berjenjang terjadi di request berbeda, oleh orang berbeda, di hari
+        // berbeda. Lihat `idAlurPersetujuan` di utils/approval.ts.
+        workflowId: idAlurPersetujuan(id),
           actorId: user.id, newValues: { level: decision.step.level, of: decision.applicable.length },
           severity: 'critical',
         })

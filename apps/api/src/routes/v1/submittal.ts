@@ -4,8 +4,7 @@ import type { TenantDb } from '../../utils/tenant-db.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import {
-  evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain,
-} from '../../utils/approval.js'
+  evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain, idAlurPersetujuan } from '../../utils/approval.js'
 
 // Submittal Register — ROADMAP #24c.
 //
@@ -508,6 +507,9 @@ export default async function submittalRoutes(app: FastifyInstance) {
           const berikut = decision.applicable.find((s) => s.level > decision.step!.level)
           await logAuditEvent(request, {
             tableName: 'submittals', recordId: id, action: 'submittal.approval.level',
+            // `workflowId` mengikat SELURUH langkah alur ini, lintas request.
+            // Lihat `idAlurPersetujuan` di utils/approval.ts.
+            workflowId: idAlurPersetujuan(id),
             actorId: request.currentUser!.id,
             newValues: { level: decision.step.level, of: decision.applicable.length },
             severity: 'critical',
