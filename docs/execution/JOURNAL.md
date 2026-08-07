@@ -5,6 +5,128 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-08 — Sidebar dirombak total, lalu modul pertama dibangun di atasnya
+
+### Founder membatalkan seluruh aturan sebelumnya, dan itu benar
+
+> *"rombak lagi aja sidebar dan routingnya biar disiplin. ketika 1 halaman
+> dibuka, link di sidebarnya harus aktif dan menu induknya terbuka, tapi kalo
+> link sidebar yg aktifnya 2 kan jadi aneh. gapapa untuk tidak mengikuti aturan
+> sebelumnya."*
+
+Sepanjang 2026-08-07 saya menambal bertahap: 144 item berbagi href → 23. Sisa 23
+saya pertahankan dengan alasan yang masuk akal (*"staf HR mencari upah di
+kelompok SDM, pelaksana di Mandor"*).
+
+**Alasan itu benar tapi menyelesaikan masalah yang salah.** Selama satu route
+bisa dicapai dari dua tempat, penanda aktif tak punya jawaban tunggal — dan
+`menu-berbagi-href.ts` hanya memilih salah satu untuk disorot. Menyembunyikan
+gejala.
+
+### Tiga aturan, tanpa pengecualian (migrasi 232)
+
+```
+R-1  satu route = tepat satu link
+R-2  kelompok adalah WADAH: href NULL
+R-3  menu hanya untuk halaman yang ADA
+
+sebelum  228 item · 108 menunjuk "segera hadir"
+sesudah   88 item · 13 kelompok + 75 link ke halaman nyata
+```
+
+Taksonominya dibangkitkan dari route yang BENAR-BENAR ADA, bukan daftar ideal.
+
+**R-2 sempat LOLOS uji mutasi** — bukan karena aturannya salah, melainkan karena
+`ON CONFLICT DO UPDATE` menyetel `href=NULL` secara paksa, jadi mutasinya
+terhapus sendiri. Pemeriksaan yang bergantung pada konvensi penamaan
+(`key LIKE 'g-%'`) diganti pemeriksaan STRUKTUR (punya anak).
+
+### Founder menemukan dalam sekali lihat apa yang audit saya lewatkan
+
+> *"/dashboard juga malah ke dashboard eksekutif di sidebarnya"*
+
+`/dashboard` — halaman yang dibuka SETIAP kali orang masuk — satu-satunya jalan
+masuknya bernama "Dashboard Eksekutif", `sort_order` **1801**, paling bawah.
+
+Audit saya memeriksa duplikasi, link mati, dan halaman yatim. Yang tak pernah
+saya tanyakan: **"apa yang paling sering dipakai, dan di mana letaknya?"**
+
+### 18 tab jadi sub-menu, lalu 38 tab dihapus — dua pertanyaan berturut
+
+> *"jadi yg tab tab ituu dijadiin sub menu kah?"*
+
+Belum, dan itu akibat sampingan 232 yang saya tak sadari: menghapus semua
+`?tab=` membuat 26 tab kehilangan jalan masuk. Garisnya saya uji — *"kalau
+aplikasi dipecah jadi produk terpisah, apakah tab ini ikut pindah utuh?"*
+18 diangkat (Transmittal, Notulen, CPM, …), 17 tidak (`/laporan` 9 potongan
+laporan yang sama).
+
+> *"kalo di sidebar jadi submenu ya di sidebar aja ngga usah ada tab lagi?"*
+
+Saya menjawab "tab tetap perlu sebagai penunjuk posisi". **Lalu diukur: 38 dari
+39 tab-bagian duplikat sidebar.** Angkanya membalik pendapat saya. Dihapus dari
+enam layout.
+
+### Cacat yang lahir dari perbaikan itu, ketahuan karena diuji
+
+Sesudah tab hilang, `<h1>` layout jadi satu-satunya judul — dan ia menyebut
+MODUL: membuka "Rekonsiliasi Bank" berjudul "Manajemen Kas". Menghapusnya juga
+bukan pilihan: 4 dari 5 halaman anak tak punya `<h1>` sendiri.
+
+`components/judul-bagian.tsx` mengambil judul dari MENU — sumber yang sudah
+dijaga satu-route-satu-link, bukan daftar tulis-tangan kedua.
+
+### Modul pertama di atas sidebar baru: rekonsiliasi bank
+
+Founder memilih "bangun fitur yang belum ada". Katalog mencatat 19 modul
+`rencana`, dan **6 di antaranya BASI** — Claims, Surat, Instruksi Lapangan,
+Riwayat Harga, Revisi Anggaran sudah hidup.
+
+Agen menilai "tutup buku" dan "rekonsiliasi bank" sama-sama TINGGI, dan menaruh
+tutup buku lebih dulu. **Saya balik urutannya sesudah mengukur isi tabelnya:**
+
+```
+journal_entries    0 baris   -> tutup buku SELALU berhasil tanpa membuktikan apa pun
+33 transaksi kas nyata       -> rekonsiliasi punya masukan sungguhan
+```
+
+Membangun di atas tabel kosong menghasilkan layar yang selalu hijau — pelajaran
+yang sama dengan CVR.
+
+```
+234  4 tabel + RLS forced + 3 permission
+235  menu masuk kelompok Kas & Bank
+     pustaka 22 test · integrasi 15 test · 28 invarian · halaman a11y 0
+```
+
+**Dua cacat yang ditemukan uji, bukan pembacaan ulang:**
+
+1. `request.user.id` adalah **auth_id Supabase**, bukan `users.id` — jadi
+   `dikunci_oleh` null dan constraint saya sendiri menolaknya. Constraint
+   bekerja persis seperti seharusnya.
+2. Key permission `finance:cash:*` **tak ada**. Verifikasi migrasi kini juga
+   memastikan permission TERPASANG ke role: ter-seed tanpa pemilik membuat
+   seluruh endpoint tertutup dengan gejala "403 tanpa sebab".
+
+**Penjaga tak bisa menguji dirinya sendiri.** Blok verifikasi migrasi 234 tak
+bisa menguji RLS: migrasi itu menjalankan `ALTER TABLE ... FORCE` beberapa baris
+DI ATAS blok verifikasinya, jadi mutasi apa pun dipulihkannya sendiri. Diuji,
+dan mutasinya memang lolos. Penjaganya dipisah jadi skrip tersendiri.
+
+### Bukti
+
+```
+web       31 berkas · 418 test hijau · tsc bersih
+API       rekonsiliasi 37 test · 28 invarian DB
+a11y      /kas/rekonsiliasi · /keuangan/invoice · /peta-modul -> 0 pelanggaran
+perilaku  uji-sidebar-disiplin 13/13 · judul 10/10 tepat satu
+penjaga   nav-yatim ✅ berbagi-href ✅ drift ✅ rute-terdaftar ✅
+          sidebar-ratchet ✅ tata-letak ✅ akhir-baris ✅
+migrasi   232-235 idempoten (3x) + seluruh mutasi ditolak
+```
+
+---
+
 ## 2026-08-07 (lanjutan 15) — 87 item ternyata bukan satu masalah, melainkan empat
 
 Founder: *"jadi 87 item itu gimana solusinya, dan saya percayakan kepada kamu

@@ -292,7 +292,7 @@ export const PETA_MENU: GrupMenu[] = [
       { key: 'fn-ap', label: 'Utang Supplier', status: 'hidup', href: '/procurement/hutang', guna: 'Tagihan supplier, umur utang, dan jadwal bayar.' },
       { key: 'fn-ar', label: 'Piutang Klien', status: 'hidup', href: '/piutang', guna: 'Tagihan ke klien, umur piutang, dan tindak lanjutnya.' },
       { key: 'fn-kas', label: 'Kas & Bank', status: 'hidup', href: '/kas', guna: 'Saldo akun kas, transfer, dan pengeluaran.' },
-      { key: 'fn-rekonsiliasi', label: 'Rekonsiliasi Bank', status: 'rencana', guna: 'Mencocokkan catatan kas dengan rekening koran.', catatan: 'Idealnya otomatis lewat integrasi bank.' },
+      { key: 'fn-rekonsiliasi', label: 'Rekonsiliasi Bank', status: 'hidup', href: '/kas/rekonsiliasi', guna: 'Mencocokkan catatan kas dengan rekening koran.', catatan: 'Migrasi 234 (rekening_koran + baris + pencocokan + penyesuaian, RLS forced) · lib/rekonsiliasi-bank.ts 22 test · routes/v1/rekonsiliasi-bank.ts 15 test integrasi · 28 invarian DB · halaman /kas/rekonsiliasi. Impor CSV/Excel koran; integrasi API bank BUKAN prasyarat — kontraktor segmen ini mengunduh koran dari internet banking.' },
       { key: 'fn-petty', label: 'Kas Kecil', status: 'hidup', href: '/kas', guna: 'Pengeluaran kecil harian di lapangan.' },
       { key: 'fn-aset-tetap', label: 'Aset Tetap', status: 'sebagian', href: '/aset', guna: 'Nilai perolehan & penyusutan aset di neraca.', catatan: 'Register & penyusutan sudah ada; pencatatan ke neraca menunggu GL.' },
       { key: 'fn-pajak', label: 'PPN & PPh', status: 'hidup', href: '/laporan?tab=pajak', guna: 'Rekap pajak per invoice & per periode.' },

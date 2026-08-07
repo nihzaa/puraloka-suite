@@ -1,6 +1,8 @@
 # Rancangan sidebar disiplin — satu route, satu link
 
-> **Status:** rancangan, menunggu dilihat founder sebelum dieksekusi.
+> **Status: SELESAI DIEKSEKUSI 2026-08-08** — migrasi 232 (sidebar disiplin),
+> 233 (18 tab jadi sub-menu), 235 (rekonsiliasi bank). Rancangan aslinya
+> disimpan apa adanya di bawah; hasil & penyimpangannya dicatat di §7.
 > Diminta 2026-08-07: *"rombak lagi aja sidebar dan routingnya biar disiplin.
 > ketika 1 halaman dibuka, link di sidebarnya harus aktif dan menu induknya
 > terbuka, tapi kalo link sidebar yg aktifnya 2 kan jadi aneh. jadi menurut
@@ -208,3 +210,49 @@ mengecewakan saat diklik.
 4. **`/peta-modul`** sebagai pengganti 108 item — cukup?
 
 Kalau tak ada yang perlu diubah, saya jalankan seluruhnya beserta penjaganya.
+
+
+---
+
+## 7. Hasil eksekusi & penyimpangan dari rancangan
+
+### Yang berjalan sesuai rancangan
+
+| | rancangan | hasil |
+|---|---|---|
+| R-1 satu route satu link | ya | **nol** href dipakai >1 link, dijaga larangan mutlak |
+| R-2 kelompok = wadah | ya | 13 kelompok, `href` NULL, diukur dari struktur |
+| R-3 menu hanya halaman yang ada | ya | 108 item "segera hadir" hilang dari sidebar |
+| `/peta-modul` | ya | 203 modul, bisa disaring & dicari, a11y 0 |
+
+### Tiga penyimpangan, dan alasannya
+
+**1. Sidebar 74 → 102 item, bukan 74.** Rancangan menaruh satu link per
+halaman. Founder menanyakan tab: *"jadi yg tab tab ituu dijadiin sub menu
+kah?"* — dan benar, 26 tab kehilangan jalan masuk. 18 di antaranya modul
+terpisah (Transmittal, Notulen, CPM, Neraca & L/R), jadi diangkat jadi sub-menu
+lewat `?bagian=`/`?tab=`. R-1 tetap utuh: alamatnya berbeda.
+
+**2. Tab-bagian DIHAPUS seluruhnya**, tak ada di rancangan. Diukur sesudah
+founder bertanya: **38 dari 39 tab-bagian duplikat sidebar** — dua navigasi
+bernama sama, tampil bersamaan. Enam layout dibersihkan.
+
+**3. `JudulBagian` dibuat**, tak ada di rancangan. Akibat langsung nomor 2:
+sesudah tab hilang, `<h1>` layout jadi satu-satunya judul dan ia menyebut MODUL
+("Manajemen Kas" untuk halaman Rekonsiliasi Bank). Menghapusnya bukan pilihan —
+4 dari 5 halaman anak tak punya judul sendiri. Judul kini diambil dari MENU.
+
+### Yang membuktikannya
+
+```
+uji-sidebar-disiplin.mjs   13/13 halaman: tepat satu link aktif, induk terbuka
+judul                      10/10 halaman: tepat satu <h1>, menyebut halaman aktif
+audit-menu-berbagi-href    LARANGAN MUTLAK (bukan ratchet lagi): nol
+audit-nav-yatim            nol halaman tak terjangkau, nol link mati
+```
+
+### Modul pertama yang dibangun di atasnya
+
+**Rekonsiliasi bank** (migrasi 234–235) — dipilih karena prasyaratnya lunas
+(33 transaksi kas nyata), sementara "tutup buku" yang dinilai sama tingginya
+akan berdiri di atas `journal_entries` yang masih **0 baris**.
