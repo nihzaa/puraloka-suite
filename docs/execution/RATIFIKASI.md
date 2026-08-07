@@ -6,6 +6,89 @@ bawah entrinya.
 
 ---
 
+# 📊 SELURUH `/docs`: apa yang belum dikerjakan — diukur 2026-08-07
+
+> Menjawab "dari seluruh yang ada di /docs apa yang belum dikerjakan?".
+> Dihitung dari **kolom Status** taksonomi (satu-satunya dokumen yang
+> statusnya diverifikasi ke kode dan dijaga CI), lalu tiap item merah
+> dicocokkan ke triase F5-1.
+
+## Taksonomi: 191 baris menu
+
+| Status | Jumlah |
+|---|---|
+| ✅ selesai end-to-end | **84** |
+| 🟡 sebagian | 58 |
+| 🔴 belum | **38** |
+| 🔵 skema-mati | 5 |
+| ⛔ dicoret | 6 |
+
+## Ke-38 yang "belum" — nol di antaranya INTI
+
+| Golongan | Jumlah | Artinya |
+|---|---|---|
+| **JANGAN DIBANGUN** | **11** | Keputusan 2026-08-01, bukan utang. Payroll/BPJS/PPh 21 (aturan pajak berubah tiap tahun; salah hitung = urusan hukum), rekonsiliasi bank & tutup buku (software akuntansi lebih baik), report builder (membangun Excel di dalam ERP), 4 item HRIS. |
+| **TUNDA** | **25** | Berguna, tapi **belum ada pemakai nyata yang menunggunya**. Membangunnya berarti menebak bentuk — dan bentuk yang salah lebih mahal daripada belum ada. CHARTER: tak dikerjakan sampai ada pemicu tertulis. |
+| **PEMBEDA** | **2** | CVR & tracking waste — ditunda dengan **angka**, bukan dengan diam (lihat di bawah). |
+| **INTI** | **0** | Habis. Kesembilannya selesai. |
+
+## Dua PEMBEDA yang ditunda, dan angkanya
+
+**CVR** — sisi "nilai terpasang" sudah ada (373 `rab_items`), sisi "biaya
+terpakai" belum:
+
+    project_expenses      0 baris    <- sumber yang seharusnya dipakai
+    goods_receipts        8 baris    biaya nyata tersebar di sini,
+    progress_payments     5 baris    tanpa cost code yang mengikat
+
+Layar CVR di atas nol baris akan **selalu menampilkan nol** — dan nol di layar
+rekonsiliasi biaya tak terbaca "belum ada data", melainkan "tidak ada
+selisih". Prasyaratnya bukan kode melainkan pemakaian.
+
+**Tracking waste rencana-vs-nyata** — `waste_factor > 0` hanya **1 dari
+3.043** assemblies, dan tak ada jalur dari sana ke material RAB proyek.
+
+Keduanya diukur ulang 2026-08-07: **angkanya tidak berubah** sejak penundaan
+pertama.
+
+## Kesimpulan
+
+Yang tersisa bukan "pekerjaan yang belum dikerjakan", melainkan **pekerjaan
+yang menunggu keputusan atau pemakai**. Daftar yang benar-benar menunggu Anda
+ada di bagian berikutnya.
+
+---
+
+# 📋 YANG MENUNGGU ANDA — daftar lengkap, diukur 2026-08-07
+
+> Dibuat menjawab pertanyaan "apa yang menunggu saya? seluruh pekerjaan semua
+> fase udah selesai?". Jawabannya: **belum**, tapi sisanya sedikit dan
+> sebagian besar bukan pekerjaan saya.
+
+**QUEUE: 47 dari 52 selesai.** Lima sisanya:
+
+| Item | Status | Menunggu siapa |
+|---|---|---|
+| **F7-1** langganan & batas paket | wip | **ANDA** — 4 pertanyaan di bawah |
+| **F4-2** lapis data terpusat | wip | **ANDA** — pilih pustaka (93 dari 96 halaman kena) |
+| **F7-2** SSO | blocked | otomatis lepas begitu F7-1 selesai |
+| **SITUS-2** halaman jual ERP | todo | **ANDA** — materi jual: screenshot, cerita, harga |
+| **SITUS-3** foto 2 kategori | todo | **ANDA** — berkas asli tak ditemukan |
+
+**Ratifikasi yang masih terbuka:**
+
+| | Perkara | Mendesak? |
+|---|---|---|
+| **R-006** | `pg_dump` mati — butuh Supabase Support | Sedang. Data **ada cadangannya** (diuji hari ini: 147 tabel, 58.430 baris), tapi pemulihan lewat jalur resmi masih mustahil |
+| **R-007** | Bentuk grup/holding: eliminasi, transfer alat, harga transfer | Rendah — belum ada pelanggan multi-PT |
+
+**Yang TIDAK menunggu Anda** — sudah selesai dan terjaga:
+Fase 0–6 penuh, INTI 9/9, PEMBEDA 10/12 (dua ditunda dengan angka: CVR butuh
+`project_expenses` terisi, tracking-waste butuh `waste_factor` > 1 dari 3.043),
+73 penjaga CI hijau, 1.797 test API + 389 web lulus.
+
+---
+
 # ❓ MENUNGGU ANDA — bentuk langganan & batas paket (F7-1)
 
 > Satu-satunya hal yang tersisa sebelum produk bisa dijual. Sisa F7-1
@@ -790,6 +873,21 @@ version IN ('163',…,'174')`. Reversibel penuh; belum ada produksi.
 ## R-006 · P0 · Database TIDAK BISA dicadangkan — butuh tindakan Supabase
 
 **Status:** menunggu founder · dibuka 2026-08-03
+**Diukur ulang 2026-08-07:** fungsi yatimnya **MASIH ADA** (oid 2840878,
+namespace 2840025 yang sudah hilang), jadi `pg_dump` tetap mati.
+
+**Tapi datanya TIDAK tanpa cadangan.** `scripts/db/cadangan-darurat.mjs`
+dijalankan hari ini dan berhasil:
+
+    147 tabel · 58.430 baris · 105 detik
+
+`COPY … TO STDOUT` tak pernah menelusuri `pg_depend`, jadi ia lolos dari
+fungsi yatim itu. Yang TIDAK ikut: struktur — dipulihkan dari
+`db/migrations/*.sql`.
+
+Artinya ini **bukan lagi keadaan darurat tanpa jaring**, tapi tetap perlu
+diselesaikan: perkakas pemulihan Supabase sendiri memakai `pg_dump`, jadi
+pemulihan lewat jalur resmi masih mustahil.
 
 ### Yang terjadi
 

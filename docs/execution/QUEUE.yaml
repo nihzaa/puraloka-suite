@@ -654,6 +654,19 @@ items:
     cara_verifikasi: "grep useEffect di page.tsx + ukur navigasi"
     bobot: XL
     status: wip
+    catatan: |
+      `blokir_oleh: [F3-1]` SUDAH USANG - F3-1 berstatus `done`, jadi
+      pemblokirnya lepas. Sama seperti F6-1 yang sempat tampak tak bisa
+      disentuh padahal bisa (2026-08-07).
+
+      Tapi kriterianya memang BELUM terpenuhi. Diukur 2026-08-07:
+
+        halaman page.tsx              96
+        yang memakai useEffect-fetch  93   <- kriteria: "turun drastis"
+
+      Ini pekerjaan XL yang nyata, bukan status yang perlu dikoreksi.
+      Butuh keputusan pustaka lebih dulu (TanStack Query atau SWR), dan itu
+      menyentuh 93 halaman sekaligus - lihat RATIFIKASI.
 
   - id: F4-3
     fase: 4
