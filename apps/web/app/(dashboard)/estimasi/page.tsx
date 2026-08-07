@@ -7,7 +7,8 @@
 // Paritas C1: BUK & pembulatan SELALU terlihat & dikirim eksplisit dari form —
 // tidak ada angka bisnis tersembunyi di kode UI.
 
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useTabUrl } from "@/lib/use-tab-url";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import {
@@ -3654,8 +3655,28 @@ const TABS = [
   { key: "varians", label: "Varians Biaya", icon: Scale },
 ] as const;
 
+// Nilai sah untuk `?tab=` DITURUNKAN dari TABS, bukan disalin. Daftar kedua
+// yang disalin tangan akan menyimpang begitu satu tab ditambah.
+const TAB_SAH = TABS.map((t) => t.key);
+
+/**
+ * `useTabUrl` memakai `useSearchParams`, yang memaksa render sisi klien —
+ * Next menuntut batas Suspense untuk itu, kalau tidak `pnpm build` gagal
+ * saat prerender.
+ */
 export default function EstimasiPage() {
-  const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("komposer");
+  return (
+    <Suspense fallback={null}>
+      <IsiEstimasi />
+    </Suspense>
+  );
+}
+
+function IsiEstimasi() {
+  // Tab hidup di URL: itu yang membuat "Price Book", "Analisa Varians", dan
+  // "Cost Code / CBS" bisa menunjuk tab yang mereka janjikan, alih-alih
+  // sama-sama mendarat di Komposer.
+  const [tab, setTab] = useTabUrl<(typeof TABS)[number]["key"]>(TAB_SAH, "komposer");
   // Lebar `--w-luas` (E11): tabel di sini padat kolom — katalog, harga,
   // varians — jadi ia masuk kelompok "luas" bersama procurement/piutang/
   // laporan, bukan `--w-page` yang dipakai halaman berkartu.
@@ -3670,11 +3691,16 @@ export default function EstimasiPage() {
           RAB dari analisa AHSP ber-edisi × price book — setiap rupiah bisa ditelusuri ke koefisien &amp; harga sumbernya.
         </p>
       </div>
-      <div style={{ display: "flex", gap: 4, borderBottom: `1px solid ${C.border}`, margin: "16px 0 18px" }}>
+      {/* `role="tab"` MENUNTUT induk `role="tablist"` (WCAG / ARIA). Tanpa itu
+          axe-core melaporkan `aria-required-parent` sebagai pelanggaran CRITICAL —
+          dan pembaca layar tak mengumumkan "tab 3 dari 6". Ditemukan audit a11y,
+          bukan saat menulis. */}
+      <div role="tablist" aria-label="Bagian estimasi" style={{ display: "flex", gap: 4, borderBottom: `1px solid ${C.border}`, margin: "16px 0 18px" }}>
         {TABS.map(t => {
           const Icon = t.icon; const active = tab === t.key;
           return (
             <button key={t.key} onClick={() => setTab(t.key)}
+              role="tab" aria-selected={active} data-tab={t.key}
               style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 12px", fontSize: 13,
                 fontWeight: active ? 700 : 500, color: active ? C.navy : C.mid, background: "none", border: "none",
                 borderBottom: active ? `2px solid ${C.navy}` : "2px solid transparent", cursor: "pointer", marginBottom: -1 }}>

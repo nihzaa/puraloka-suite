@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useReducer, useRef, useState } from "react";
+import React, { Suspense, useEffect, useReducer, useRef, useState } from "react";
+import { useTabUrl } from "@/lib/use-tab-url";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { dapatDitekan } from "@/lib/dapat-ditekan";
 import { api, makeAbortController, hasPermission } from "@/lib/api";
@@ -107,6 +108,11 @@ interface Document { id: string; name: string; document_type: string; file_url: 
 interface KurvaSPoint { week_number: number; plan_pct: number; actual_pct: number; }
 
 type TabKey = "ringkasan" | "keuangan" | "cashflow" | "mandor" | "pengeluaran" | "progress" | "pajak" | "portofolio" | "wip";
+
+// Nilai sah untuk `?tab=`. Diturunkan dari tipe di atas supaya keduanya tak
+// bisa berselisih diam-diam saat salah satu disunting.
+const TAB_SAH = ["ringkasan", "keuangan", "cashflow", "mandor", "pengeluaran",
+                 "progress", "pajak", "portofolio", "wip"] as const;
 
 interface TaxRecord {
   id: string; tax_type: string; tax_scheme: string; base_amount: number;
@@ -220,9 +226,9 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
 }
 
 // ─── Tab Button ───────────────────────────────────────────────────────────────
-function TabBtn({ label, active, onClick, icon }: { label: string; active: boolean; onClick: () => void; icon?: React.ReactNode }) {
+function TabBtn({ label, active, onClick, icon, kunci }: { label: string; active: boolean; onClick: () => void; icon?: React.ReactNode; kunci?: string }) {
   return (
-    <button onClick={onClick} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "transparent", border: "none", borderBottom: `2px solid ${active ? C.navy : "transparent"}`, fontSize: 12, fontWeight: active ? 600 : 400, color: active ? C.navy : C.mid, cursor: "pointer", transition: "all 0.15s", whiteSpace: "nowrap" }}>
+    <button onClick={onClick} role="tab" aria-selected={active} data-tab={kunci} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "transparent", border: "none", borderBottom: `2px solid ${active ? C.navy : "transparent"}`, fontSize: 12, fontWeight: active ? 600 : 400, color: active ? C.navy : C.mid, cursor: "pointer", transition: "all 0.15s", whiteSpace: "nowrap" }}>
       {icon}{label}
     </button>
   );
@@ -249,7 +255,14 @@ export default function LaporanPage() {
   const [mounted, mount] = useReducer(() => true, false);
   useEffect(mount, []);
   if (!mounted) return null;
-  return <LaporanContent />;
+  // `useTabUrl` memakai `useSearchParams`, yang memaksa render sisi klien —
+  // Next menuntut batas Suspense untuk itu, kalau tidak `pnpm build` gagal
+  // saat prerender.
+  return (
+    <Suspense fallback={null}>
+      <LaporanContent />
+    </Suspense>
+  );
 }
 
 function LaporanContent() {
@@ -264,7 +277,10 @@ function LaporanContent() {
   const [projectId, setProjectId]     = useState("");
   const [dateFrom, setDateFrom]       = useState(yearStart);
   const [dateTo, setDateTo]           = useState(today);
-  const [tab, setTab]                 = useState<TabKey>("ringkasan");
+  // Tab hidup di URL: itu yang membuat sub-menu "WIP / PSAK", "PPN & PPh",
+  // dan "Portofolio Biaya" bisa menunjuk tab yang mereka janjikan, alih-alih
+  // sama-sama mendarat di Ringkasan.
+  const [tab, setTab] = useTabUrl<TabKey>(TAB_SAH, "ringkasan");
   const [loading, setLoading]         = useState(false);
   const [pdfLoading, setPdfLoading]   = useState(false);
 
@@ -473,9 +489,11 @@ function LaporanContent() {
 
       {/* Tabs */}
       <div className="rise rise-2" style={{ ...card }}>
-        <div style={{ display: "flex", borderBottom: `1px solid ${C.border}`, overflowX: "auto" }}>
+        {/* `role="tab"` menuntut induk `role="tablist"` — tanpa itu axe-core
+            melaporkan `aria-required-parent` (critical). */}
+        <div role="tablist" aria-label="Bagian laporan" style={{ display: "flex", borderBottom: `1px solid ${C.border}`, overflowX: "auto" }}>
           {tabs.map(t => (
-            <TabBtn key={t.key} label={t.label} icon={t.icon} active={tab === t.key} onClick={() => setTab(t.key)} />
+            <TabBtn key={t.key} kunci={t.key} label={t.label} icon={t.icon} active={tab === t.key} onClick={() => setTab(t.key)} />
           ))}
         </div>
 

@@ -229,6 +229,10 @@ function IsiAkuntansi() {
             type="button"
             onClick={() => setTab(k)}
             aria-pressed={tab === k}
+            // `data-tab` membuat tab aktif bisa DIUJI. Pola ARIA-nya sengaja
+            // dibiarkan `aria-pressed` (tombol-tekan), bukan diubah jadi
+            // role="tab" — keduanya sah, dan yang ini sudah lulus audit a11y.
+            data-tab={k}
             style={{
               display: "flex", alignItems: "center", gap: 6,
               padding: "8px 16px", borderRadius: 10, cursor: "pointer",

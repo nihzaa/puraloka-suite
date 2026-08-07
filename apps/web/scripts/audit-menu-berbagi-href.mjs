@@ -91,7 +91,23 @@ if (baris.length) {
 }
 
 // ── Ratchet ─────────────────────────────────────────────────────────────────
-const kini = { berbagiHref: baris.length, berbagiItem: item }
+// ── Yang diukur: JUMLAH ITEM, bukan jumlah href ────────────────────────────
+//
+// `berbagiHref` (banyaknya href yang dipakai >1 item) terlihat masuk akal, tapi
+// ia BERGERAK KE ARAH SALAH saat keadaan membaik. Contoh nyata 2026-08-07:
+// memecah 8 item `/laporan` ke tiga tab berbeda menurunkan item 96 → 87 —
+// perbaikan jelas — sementara jumlah href-nya justru NAIK 23 → 25, karena
+// `?tab=wip` dan `?tab=pajak` adalah dua href baru yang masing-masing dipakai
+// dua item.
+//
+// Penjaga yang merah saat pekerjaan membaik akan dimatikan orang, dan penjaga
+// yang dimatikan tak menjaga apa pun. Yang benar-benar merugikan pengguna
+// adalah **berapa banyak item yang mendarat di tempat yang tak mereka minta** —
+// dan itu `berbagiItem`.
+//
+// `berbagiHref` tetap DILAPORKAN (berguna untuk membaca sebarannya) tapi tidak
+// lagi di-ratchet.
+const kini = { berbagiItem: item }
 
 let lantai
 try {
@@ -100,7 +116,10 @@ try {
   lantai = {}
 }
 
-if (lantai.berbagiHref === undefined) {
+// Kunci yang diperiksa, BUKAN kunci lama `berbagiHref` yang sudah dibuang.
+// Menguji kunci yang tak ada membuat penjaga menimpa lantainya diam-diam pada
+// setiap run — dan sejak itu ia tak pernah merah lagi, apa pun yang terjadi.
+if (lantai.berbagiItem === undefined) {
   writeFileSync(LANTAI, JSON.stringify({ ...lantai, ...kini }, null, 2) + '\n')
   console.log('\nLantai dibuat pertama kali.')
   process.exit(0)
