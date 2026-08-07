@@ -5,6 +5,105 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-07 (lanjutan 12) — Saya melaporkan penghalang yang sudah tidak ada. Lalu menemukan 4 halaman yang tak bisa dibuka siapa pun.
+
+### Saya salah
+
+Founder bertanya "apa emang keputusannya yg harus diambil?" tentang penyusutan→GL.
+Saya menjawab bahwa itu menunggu ratifikasi **R-001**.
+
+**Tidak ada yang menunggu.** R-001 SELESAI (`RATIFIKASI.md:904`), dan `F5-1` §3a
+sudah menyatakannya sejak 2026-08-04 — bahkan `RATIFIKASI.md:811` menamai
+kekeliruan ini secara harfiah: *"'INTI #1 terblokir R-001' — **SALAH**."*
+
+Saya membaca peringatan basi di `CLAUDE.md` §5.5 ("jangan bangun apa pun di atas
+GL") dan tidak mengukurnya. Pembuka CLAUDE.md sendiri melarang persis ini:
+*"kalau sebuah fakta bisa basi, jangan tulis faktanya — tulis cara mengukurnya."*
+Ternyata **peringatan pun bisa basi**, dan larangan yang penyebabnya sudah
+diperbaiki lebih berbahaya daripada angka basi: ia menghentikan pekerjaan.
+
+Peringatan itu dicabut, diganti cara mengukurnya.
+
+### Kekeliruan status ke-8 sampai ke-16
+
+Mengukur seluruh INTI + PEMBEDA ke kode (bukan membaca status):
+
+```
+21 item diukur → 20 SUDAH LENGKAP 4 lapis (DB · pustaka · API · UI)
+                  1 benar-benar nol: CVR — dan itu memang ditunda karena
+                    project_expenses 0 baris, bukan lalai
+```
+
+Yang paling menyakitkan: **INTI #1 "Laporan keuangan — neraca & L/R"** ditandai
+🔴 selama berminggu-minggu, dan taksonomi bahkan MENYARANKAN memakai aplikasi
+akuntansi eksternal — padahal `lib/laporan-keuangan.ts` (13 test),
+`GET /api/v1/gl/laporan`, dan `neraca-laba-rugi.tsx` semuanya hidup. Item
+**paling penting di seluruh antrean** dinyatakan belum ada.
+
+Penyebabnya bukan kelalaian orang: `audit-taksonomi-vs-kode.mjs` melaporkan
+"status BASI: 0" dengan percaya diri sambil **tak memeriksa 29 sub-menu** yang
+tak punya entri PETA. Daftar-putih yang tak lengkap adalah penjaga yang berbohong.
++3 entri PETA, lantai takDipetakan 29 → 13, diuji mutasi MERAH→HIJAU.
+
+### Yang jauh lebih berat daripada status dokumen
+
+Founder menyebut sidebar "banyak keanehan". Diaudit ke **database nyata** (bukan
+replay migrasi statis), dan temuan terberatnya bukan duplikasi:
+
+```
+/jadwal · /kepatuhan · /aset/operasional · /dokumen/kendali   → YATIM
+```
+
+Keempatnya saya selesaikan **kemarin** — halaman, endpoint, pustaka, test,
+penjaga invarian merah-lalu-hijau. Yang tidak saya kerjakan: memindahkan 20 entri
+menunya dari `/m/<key>`. Jadi pengguna yang mengklik "Jalur Kritis (CPM)" mendarat
+di halaman yang **menyatakan CPM belum digarap** — padahal CPM-nya lengkap dengan
+44 invarian terjaga.
+
+**Status dokumen yang basi membohongi kita. Menu yang basi membohongi pengguna.**
+
+Nol test gagal. Nol penjaga berbunyi. Karena tak ada yang pernah menanyakan:
+*halaman ini bisa dicapai dari mana?* — `gen-migrasi-menu.mjs` bahkan sudah
+meramalkannya harfiah; risikonya diprediksi, generatornya ditulis, penjaganya tidak.
+
+### Yang dibuat
+
+```
+migrasi 220           20 menu → halaman nyata. coming-soon 73 → 53
+                      idempoten (3× sama) · mutasi key karangan DITOLAK
+audit-nav-yatim.mjs   mutasi 2 arah: halaman tanpa tautan → MERAH
+                                     menu tanpa halaman  → MERAH
+                      keduanya pulih HIJAU. Terdaftar di CI.
+uji-nav-terjangkau    peramban nyata: 5 halaman terjangkau & berisi
+RENCANA-PERBAIKAN-SIDEBAR.md   T-3..T-7 dengan ukuran & urutan
+```
+
+Cacat pada migrasi saya sendiri yang tertangkap sebelum dipakai: versi pertama
+memakai key **tebakan** (`pg-payung`, `pg-expediting`, `pg-nota-kredit`) — tak
+satu pun ada. `UPDATE` terhadap key karangan mengenai nol baris **tanpa galat**,
+jadi migrasi akan melapor sukses sambil membiarkan halamannya tetap yatim. Key
+sebenarnya dibaca dari DB. Blok verifikasi kini memeriksa keberadaan key.
+
+### Yang ditahan, dan kenapa
+
+**T-3 — 144 item menu berbagi 27 href** (`/proyek` dipakai 22 item). Ini yang
+paling menentukan rasa pakai, tapi memperbaikinya berarti memutuskan arah produk:
+item yang isinya belum ada sebaiknya dikembalikan ke "segera hadir" (jujur) atau
+dijadikan anchor halaman induk (mulus)? Saya condong ke yang pertama, tapi itu
+keputusan founder — dan saya butuh **satu** aturan, bukan 144 keputusan.
+
+### Verifikasi
+
+```
+API      177 berkas · 1945 hijau · 2 skip · 0 gagal
+web      30 berkas · 408 hijau · tsc --noEmit bersih
+penjaga  taksonomi ✅ triase ✅ rancangan ✅ tenancy ✅ kegagalan-senyap ✅
+         skema-dipaku ✅ rute-terdaftar ✅ sidebar-ratchet ✅ nav-yatim ✅
+         tata-letak ✅ indeks-docs ✅ akhir-baris ✅
+```
+
+---
+
 ## 2026-08-07 (lanjutan 11) — TUNDA kelompok G: baca offline. SELURUH 25 ITEM TUNDA SELESAI.
 
 Dua item terakhir: material request & checklist inspeksi terbaca tanpa sinyal.
