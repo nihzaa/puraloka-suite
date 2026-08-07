@@ -632,6 +632,15 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
+      # F6-1: alasan keputusan HARUS di kolom `reason`, bukan dikubur di dalam
+      # `newValues`. Diukur 2026-08-07: 636 `estimate.rejected` dan 624
+      # `estimate.approved` tercatat NOL beralasan — bukan karena tak dicatat,
+      # melainkan dicatat di tempat yang tak bisa dicari.
+      #
+      # Statis, tak butuh database.
+      - name: Alasan keputusan di kolomnya sendiri
+        run: node scripts/audit-alasan-di-kolomnya.mjs
+
       - name: Invarian NCR
         run: node scripts/uji-invarian-ncr.mjs
         env:

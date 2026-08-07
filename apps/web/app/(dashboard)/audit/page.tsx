@@ -21,6 +21,11 @@ interface AuditLog {
   new_values: Record<string, unknown> | null;
   created_at: string;
   user: { id: string; name: string; email: string; role: string } | null;
+  /** Alasan keputusan. `null` = tak diberikan — dan itu informasi, bukan kekosongan. */
+  reason: string | null;
+  severity: "info" | "warning" | "critical" | null;
+  /** Satu request = satu id. Semua event di dalamnya berbagi nilai ini. */
+  correlation_id: string | null;
 }
 
 interface Meta { total: number; page: number; limit: number; pages: number }
@@ -355,7 +360,32 @@ export default function AuditPage() {
                       <span style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>
                         {log.record_id.slice(0, 8)}…
                       </span>
+                      {/* `critical` ditandai KATA, bukan hanya warna (WCAG 1.4.1).
+                          Hanya `critical` yang diberi penanda: menandai ketiga
+                          tingkat membuat tak ada yang menonjol, dan `info`
+                          adalah mayoritas mutlak. */}
+                      {log.severity === "critical" && (
+                        <span style={{
+                          padding: "1px 7px", borderRadius: 99, fontSize: 10, fontWeight: 700,
+                          background: "var(--danger-bg)", color: "var(--danger)",
+                          border: "1px solid var(--danger-border)", textTransform: "uppercase",
+                        }}>kritis</span>
+                      )}
                     </div>
+
+                    {/* ALASAN — inilah yang membuat jejak bisa dibaca ulang.
+                        Diukur 2026-08-07: 636 penolakan estimasi tersimpan,
+                        dan alasannya tak pernah sampai ke layar karena
+                        endpoint tak mengambil kolomnya. */}
+                    {log.reason && (
+                      <div style={{
+                        fontSize: 11, color: "var(--text-secondary)", marginTop: 3,
+                        fontStyle: "italic", overflow: "hidden", textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}>
+                        “{log.reason}”
+                      </div>
+                    )}
                     <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
                       {log.new_values ? (
                         Object.keys(log.new_values).slice(0, 4).join(", ") +

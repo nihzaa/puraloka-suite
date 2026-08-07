@@ -11,6 +11,14 @@ export default async function auditRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const {
       table_name, action, user_id, project_id,
+      // `correlation_id` — satu request menghasilkan BANYAK event, dan
+      // semuanya berbagi id ini (`logAuditEvent` mengisinya dari `request.id`).
+      // Tanpa saringan ini, jejaknya tersimpan tapi tak bisa dirunut: yang
+      // terbaca cuma daftar datar 21 ribu baris.
+      correlation_id,
+      // `severity` — memisahkan `critical` dari `info` adalah pertanyaan
+      // pertama saat ada yang mempersoalkan sebuah perubahan.
+      severity,
       from, to,
       page = '1', limit = '50',
     } = request.query as Record<string, string>
@@ -24,11 +32,18 @@ export default async function auditRoutes(app: FastifyInstance) {
     // Tanpa ini, admin tenant A membaca SELURUH jejak audit semua tenant: diff
     // nilai kontrak, pemutihan denda, perubahan role — data paling sensitif
     // yang ada di sistem.
+    // `reason`, `severity`, `correlation_id` ikut diambil di `select` bawah.
+    //
+    // Ketiganya sudah lama diisi `logAuditEvent`, tapi tak pernah sampai ke
+    // pembacanya — kolom yang terisi dan tak pernah terbaca sama saja dengan
+    // kolom kosong, hanya lebih menyesatkan: pemeriksaan skema melaporkannya
+    // "ada", jadi tak ada yang mencurigainya.
     let q = supabase
       .from('audit_logs')
       .select(`
         id, table_name, record_id, action,
         old_values, new_values, created_at,
+        reason, severity, correlation_id,
         user:users!audit_logs_user_id_fkey(id, name, email, roles:role_id(name))
       `, { count: 'exact' })
       .eq('company_id', request.companyId!)
@@ -38,6 +53,8 @@ export default async function auditRoutes(app: FastifyInstance) {
     if (table_name) q = q.eq('table_name', table_name)
     if (action)     q = q.eq('action', action)
     if (user_id)    q = q.eq('user_id', user_id)
+    if (severity)   q = q.eq('severity', severity)
+    if (correlation_id) q = q.eq('correlation_id', correlation_id)
     if (from)       q = q.gte('created_at', from)
     if (to)         q = q.lte('created_at', to + 'T23:59:59Z')
 

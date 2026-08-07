@@ -763,16 +763,54 @@ items:
   - id: F6-1
     fase: 6
     judul: "Prasyarat AI: event log terpadu + jejak keputusan + struktur semantik"
-    blokir_oleh: [F5-1]
+    blokir_oleh: []
     kriteria_selesai: ["event dapat dibaca ulang", "alasan approval/override/variance tersimpan"]
     cara_verifikasi: "pipa data jalan"
     bobot: XL
-    status: blocked
-    catatan: "Bangun PIPA-nya, bukan fiturnya. AI di atas data kosong = percaya diri dan salah."
+    status: wip
+    catatan: |
+      Bangun PIPA-nya, bukan fiturnya. AI di atas data kosong = percaya diri
+      dan salah.
+
+      TIDAK LAGI TERBLOKIR (2026-08-07). `blokir_oleh: [F5-1]` sudah usang —
+      F5-1 berstatus `done`, jadi pemblokirnya lepas sejak saat itu. Status
+      `blocked` yang bertahan sesudah pemblokirnya selesai membuat item ini
+      tampak tak bisa disentuh, padahal bisa.
+
+      DIUKUR di basis 2026-08-07 (bukan dibaca dari dokumen):
+
+        public.audit_logs        21.005 baris, rentang 14 Jun - 5 Agu
+        company_id terisi        21.005 / 21.005
+        correlation_id terisi        30 / 21.005   <- 20.975 sisanya data seed
+        reason terisi             2.559 / 21.005
+        workflow_id terisi            0 / 21.005
+
+      Yang 30 itu justru kabar baik: seluruhnya event yang lewat
+      `logAuditEvent` (mis. `estimate.version_created`), dan helper-nya memang
+      mengisi `correlation_id` otomatis dari `request.id`. Pipanya benar;
+      sisanya seed yang ditulis langsung ke tabel.
+
+      KRITERIA 1 - "event dapat dibaca ulang": SELESAI 2026-08-07.
+      `GET /api/v1/audit` dulu tak mengambil `reason`/`severity`/
+      `correlation_id` dan tak punya saringan untuk keduanya - jejaknya
+      tersimpan tapi tak bisa dirunut. Kini ketiganya ikut, plus saringan
+      `correlation_id` (merunut satu request) dan `severity`.
+      Dijaga `audit-jejak-terbaca.test.ts` (4 test, 3 mutasi tertangkap).
+
+      KRITERIA 2 - "alasan tersimpan": SEBAGIAN. Tiga pemanggil menaruh alasan
+      di `newValues` alih-alih kolom `reason`, sehingga 636 `estimate.rejected`
+      + 624 `estimate.approved` tercatat NOL beralasan. Ketiganya diperbaiki,
+      dan `audit-alasan-di-kolomnya.mjs` mencegah terulang (mutation-tested).
+
+      SISA sebelum `done`: `workflow_id` masih nol pemakaian - belum ada
+      konsep alur multi-langkah yang mengikatnya. Itu pekerjaan tersendiri,
+      bukan tambalan.
 
   - id: F7-1
     fase: 7
     judul: "Provisioning tenant, onboarding, langganan, batas paket"
+    # Tetap menunggu F6-1 selesai penuh (workflow_id belum terpakai), tapi
+    # rantainya sudah bergerak: F5-1 done -> F6-1 wip -> F7-1.
     blokir_oleh: [F6-1]
     kriteria_selesai: ["tenant baru sekali klik", "penagihan jalan"]
     cara_verifikasi: "e2e onboarding"

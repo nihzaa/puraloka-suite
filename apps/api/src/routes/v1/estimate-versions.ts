@@ -1039,7 +1039,19 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
 
       void logAuditEvent(request, {
         tableName: 'estimate_versions', recordId: id, action: 'estimate.rejected',
-        actorId: user.id, newValues: { status: 'draft', reason: request.body?.reason ?? null }, severity: 'critical',
+        actorId: user.id,
+        newValues: { status: 'draft', reason: request.body?.reason ?? null },
+        // `reason` DI KOLOMNYA SENDIRI, bukan hanya di dalam `newValues`.
+        //
+        // Diukur 2026-08-07: 636 `estimate.rejected` dan 624 `estimate.approved`
+        // di basis, dan NOL di antaranya punya `reason` terisi — karena
+        // alasannya dikubur di dalam JSON. Kolom `reason` ada justru supaya
+        // pertanyaan "keputusan mana yang tak beralasan" bisa dijawab satu
+        // kueri; menaruhnya di JSON membuat jawabannya SELALU "semuanya".
+        //
+        // `newValues` tetap memuatnya agar bentuk riwayat lama tak berubah.
+        reason: request.body?.reason ?? undefined,
+        severity: 'critical',
       })
       return reply.send({ ok: true, status: 'draft' })
     })

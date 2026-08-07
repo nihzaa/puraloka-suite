@@ -113,6 +113,104 @@ byte-hash gagal total karena PDF mengompres ulang saat menyisipkan.
 
 ---
 
+## 2026-08-07 (lanjutan 12) — F6-1 tak pernah terblokir, dan 1.260 keputusan yang alasannya tak bisa dicari
+
+### Status yang usang, bukan pekerjaan yang mustahil
+
+`QUEUE.yaml` menandai F6-1 `blocked` oleh F5-1 — padahal **F5-1 sudah
+`done`**. Pemblokirnya lepas entah sejak kapan, dan status yang bertahan
+membuat item XL ini tampak tak bisa disentuh. F7-1 (yang menentukan produk
+bisa dijual) menunggu di belakangnya.
+
+Persis cacat yang §8a.4 larang: dokumen tertinggal dari kenyataan.
+
+### Diukur ke basis, bukan dibaca dari dokumen
+
+    public.audit_logs        21.005 baris, 14 Jun - 5 Agu
+    company_id terisi        21.005 / 21.005
+    correlation_id terisi        30 / 21.005
+    reason terisi             2.559 / 21.005
+    workflow_id terisi            0 / 21.005
+
+Angka 30 itu sempat terlihat seperti kegagalan. Ditelusuri: **seluruhnya
+event yang lewat `logAuditEvent`** (`estimate.version_created` dst), dan
+helper-nya memang mengisi `correlation_id` otomatis dari `request.id`.
+20.975 sisanya data seed yang ditulis langsung ke tabel. **Pipanya benar.**
+
+### Kriteria 1 — jejak tersimpan tapi tak bisa dirunut
+
+`GET /api/v1/audit` tak mengambil `reason`, `severity`, maupun
+`correlation_id`, dan tak punya saringan untuk keduanya. Satu request
+menghasilkan banyak event yang berbagi id — tapi tak ada cara memakainya.
+Yang terbaca cuma daftar datar 21 ribu baris.
+
+Kolom yang terisi dan tak pernah terbaca sama saja dengan kolom kosong —
+hanya lebih menyesatkan, karena pemeriksaan skema melaporkannya "ada".
+
+Ditutup: ketiganya ikut di balasan, plus saringan `correlation_id` dan
+`severity`. Dijaga `audit-jejak-terbaca.test.ts` — 4 test, dan **3 dari 3
+mutasi tertangkap** (kolom dibuang, tiap saringan dilepas).
+
+### Kriteria 2 — 1.260 keputusan yang alasannya tak bisa dicari
+
+    estimate.rejected          0 dari 636 punya reason
+    estimate.approved          0 dari 624
+    approval.step.create       0 dari 368
+    change_order_approved    358 dari 359   <- yang benar
+
+Sebabnya bukan alasannya tak dicatat, melainkan **dicatat di tempat yang
+salah**: `newValues: { reason: ... }`, di dalam JSON. Tiga pemanggil
+melakukannya — penolakan estimasi, pemaafan denda, penolakan lessons.
+
+Bedanya menentukan. Kolom `reason` ada supaya "keputusan mana yang tak
+beralasan" bisa dijawab satu kueri. Dengan alasan terkubur di JSON, jawabannya
+SELALU "semuanya" — dan laporan kepatuhan yang membacanya melaporkan nol
+kepatuhan pada sistem yang sebenarnya patuh.
+
+Ketiganya diperbaiki (kolom DAN `newValues`, supaya riwayat lama tak berubah
+bentuk), dan `audit-alasan-di-kolomnya.mjs` mencegah terulang —
+mutation-tested.
+
+### UI — dan satu hal yang hampir terlewat
+
+Kolom yang sampai ke API tapi tak tampil di layar sama saja tak ada. Halaman
+audit kini menampilkan alasan (huruf miring, di bawah aksinya) dan penanda
+**KRITIS**.
+
+Hanya `critical` yang diberi penanda, bukan ketiga tingkat: ARAH-VISUAL §3d —
+kalau tiga hal berwarna, tak ada yang menonjol. Dan `info` adalah mayoritas
+mutlak.
+
+Diverifikasi lewat potret kedua mode, bukan diklaim. axe-core: **nol
+pelanggaran terang dan gelap**.
+
+### Satu kekeliruan cara kerja yang berulang
+
+Instance API uji yang saya jalankan di latar **dua kali** memuat kode lama,
+dan dua kali saya menyimpulkan "kolomnya tak sampai" dari situ. `pkill -f
+"PORT=3099"` tak mengenai prosesnya karena pola itu tak ada di command
+line-nya. Yang menyelesaikan: menjalankan di port yang belum pernah dipakai.
+
+Kalau saja saya berhenti di kesimpulan pertama, saya akan "memperbaiki" kode
+yang sudah benar.
+
+### Status F6-1 sesudah ini: `wip`, bukan `done`
+
+`workflow_id` masih **nol pemakaian** — belum ada konsep alur multi-langkah
+yang mengikatnya. Itu pekerjaan tersendiri, bukan tambalan, dan menandai
+F6-1 `done` tanpa itu berarti mengulangi persis kesalahan yang entri ini
+perbaiki.
+
+### Bukti
+
+    API: 169 berkas test, 1790 lulus, 2 dilewati, 0 gagal
+    web:  29 berkas test,  389 lulus, 0 gagal
+    seluruh penjaga CI hijau — nol gagal
+    axe-core halaman audit: nol pelanggaran, terang & gelap
+    pnpm build web lolos
+
+---
+
 ## 2026-08-07 (lanjutan 11) — padding dipaku 358 → 307, dan ekor panjang yang sengaja ditinggal
 
 ### Yang dikerjakan

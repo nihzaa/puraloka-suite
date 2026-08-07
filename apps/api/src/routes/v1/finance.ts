@@ -1385,6 +1385,9 @@ export default async function financeRoutes(app: FastifyInstance) {
       actorId: request.currentUser!.id,
       oldValues: { penalty_waived: prev.penalty_waived ?? false },
       newValues: { penalty_waived: waived, reason: String(body.reason).trim() },
+      // Memaafkan denda adalah uang yang tidak jadi ditagih. Alasannya wajib
+      // bisa DICARI, bukan hanya tersimpan di dalam JSON riwayat.
+      reason: String(body.reason).trim(),
       severity: 'critical',
     })
     return reply.send({ ok: true, penalty_waived: waived })

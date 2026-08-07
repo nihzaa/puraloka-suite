@@ -152,7 +152,12 @@ export default async function lessonsLearnedRoutes(app: FastifyInstance) {
       if (error) return reply.status(500).send({ error: error.message })
       void logAuditEvent(request, {
         tableName: 'lessons_learned_records', recordId: id, action: 'lessons.rejected',
-        actorId: user.id, newValues: { status: 'draft', reason: request.body?.reason ?? null }, severity: 'warning',
+        actorId: user.id,
+        newValues: { status: 'draft', reason: request.body?.reason ?? null },
+        // Kolom `reason`, bukan hanya di dalam JSON — lihat catatan di
+        // `estimate-versions.ts` (penolakan tanpa alasan yang bisa dicari).
+        reason: request.body?.reason ?? undefined,
+        severity: 'warning',
       })
       return reply.send({ ok: true, status: 'draft' })
     })
