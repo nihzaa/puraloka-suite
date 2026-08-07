@@ -257,6 +257,16 @@ jobs:
       - name: Catch senyap (error ditelan tanpa jejak)
         run: node scripts/audit-catch-senyap.mjs
 
+      # Nominal dari permintaan yang dibaca `parseFloat` mentah. Rantai cacatnya
+      # dibuktikan 2026-08-08 di Node DAN di Postgres: `qty: "abc"` → NaN → cek
+      # saldo LOLOS (setiap perbandingan dengan NaN bernilai false) → Postgres
+      # `numeric` MENERIMA NaN → `SELECT sum(...)` seluruh laporan jadi NaN.
+      # Requestnya membalas 201, jadi tak ada yang tahu sampai laporan dibuka
+      # berminggu-minggu kemudian. Ratchet: yang lama boleh tinggal, yang baru
+      # wajib lewat `lib/nominal.ts`.
+      - name: Nominal mentah (parseFloat atas nilai dari permintaan)
+        run: node scripts/audit-nominal-mentah.mjs
+
       # `to_regclass('nama')` tanpa skema mengikuti search_path, dan pencarian
       # itu MENEMBUS ke schema lain. Guard yang bermaksud "objek ini ada di
       # sini?" jadi menjawab "ada di mana pun?" — di production keduanya sama,

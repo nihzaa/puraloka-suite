@@ -1,0 +1,5 @@
+{
+  "_catatan": "Lantai nominal mentah. Boleh turun, TIDAK boleh naik. Lihat audit-nominal-mentah.mjs.",
+  "_diukur": "2026-08-08, sesudah cash.ts (pengeluaran + transfer) dan finance.ts (pembayaran invoice) dipindah ke bacaNominal.",
+  "parseFloat": 21
+}

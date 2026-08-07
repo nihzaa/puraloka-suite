@@ -5,6 +5,87 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-08 — `qty: "abc"` meracuni SUM seluruh laporan, dan membalas 201
+
+Menyisir route yang menghitung uang tanpa test. `cash.ts` menonjol: 933 baris,
+nol impor pustaka ber-test, dan menghitung sendiri.
+
+### Rantai cacatnya — diukur, bukan dibayangkan
+
+```
+const qtyNum = parseFloat(qty ?? '1')
+const total  = parseFloat((qtyNum * priceNum).toFixed(2))
+if (Number(acc.balance) < total) return 400 'Saldo tidak mencukupi'
+```
+
+Kirim `qty: "abc"`, lalu diukur di Node **dan** di Postgres:
+
+| # | Yang terjadi | Bukti |
+|---|---|---|
+| 1 | `parseFloat('abc')` → NaN | Node |
+| 2 | `0 < NaN` = **false** → cek saldo LOLOS, berapa pun saldonya | Node |
+| 3 | Postgres `numeric` **MENERIMA NaN** — NOT NULL tak menahannya | `INSERT` ke temp table berhasil |
+| 4 | `CHECK (qty > 0)` juga lolos | perbandingan NaN di Postgres true |
+| 5 | `sum()` atas (100, 250, NaN) = **NaN** | query langsung |
+
+Langkah 5 yang paling mahal. **Satu baris rusak membuat total seluruh laporan
+tak punya angka sama sekali** — bukan salah sedikit. Dan requestnya membalas
+201, layar bilang tersimpan, dan yang membuka laporan sebulan kemudian melihat
+"NaN" tanpa tahu dari mana.
+
+Jalur transfer punya cacat kembar: `!body.amount` melewatkan string `"abc"`
+(tak falsy), lalu `Number(saldo) < "abc"` juga false — dan trigger
+`trg_cash_transfer_balance` memindahkan NaN ke saldo **dua rekening sekaligus**.
+
+### Dikerjakan
+
+`lib/nominal.ts` — satu pintu masuk, 7 invarian, 22 test. Menolak NaN,
+Infinity, teks separuh-angka, string kosong, negatif, dan nilai di luar batas
+wajar. `bulatkanRupiah` terpisah karena membaca dan membulatkan adalah dua
+keputusan; ia memeriksa hasil lagi, sebab **dua angka sah bisa menghasilkan
+Infinity saat dikalikan**.
+
+Diterapkan ke `cash.ts` (pengeluaran + transfer) dan `finance.ts` (pembayaran
+invoice). `finance.ts` sebenarnya sudah memeriksa `isNaN` — jalurnya TIDAK
+bercacat seperti `cash.ts`. Yang ditambah: `Infinity` (yang lolos `isNaN`),
+batas atas, dan penolakan `'12abc'` yang `parseFloat` baca sebagai 12.
+
+Penjaga `audit-nominal-mentah.mjs` (ratchet 21, turun dari 24) menahan pola ini
+kembali. `Number()` sengaja TIDAK dijaga — ratusan pemakaiannya membaca nilai
+dari basis, dan penjaga yang merah abadi akan diabaikan.
+
+### Tiga kekeliruan saat menulis testnya
+
+Semua di sisi test, bukan kode — dan ketiganya menghasilkan **hijau palsu**
+kalau tak diperiksa:
+
+1. **JSON ke endpoint multipart.** `POST /cash/expenses` memanggil
+   `request.parts()`; kiriman JSON membuat handler keluar sebelum satu pun
+   pemeriksaan berjalan, dan membalas 200.
+2. **Tanpa `Idempotency-Key`.** `POST /cash/transfers` melewati
+   `gerbangIdempotensi` lebih dulu, dan gerbang itu MENGULANG balasan pertama.
+   200 yang saya lihat adalah replay, bukan penerimaan.
+3. **Fixture kategori tak ada.** Basis punya nol `project_expense_categories`,
+   jadi handler menolak dengan "category_id wajib diisi" — 400 yang benar
+   untuk alasan yang SALAH.
+
+### Bukti
+
+```
+lib/nominal.test.ts              22/22 ✅
+cash-nominal.test.ts             11/11 ✅  (Postgres nyata)
+  M1 kembalikan parseFloat mentah  3 MERAH
+  M2 transfer pakai body.amount    3 MERAH
+  dipulihkan                       HIJAU
+audit-nominal-mentah             ratchet 21 · mutasi +1 → MERAH → pulih ✅
+6 berkas test tersentuh          92/92 ✅
+tsc · lint-ratchet · 5 penjaga   exit 0 ✅
+```
+
+Penjaga baru didaftarkan ke `.github/workflows/ci.yml`.
+
+---
+
 ## 2026-08-08 — Upah tukang dihitung kode yang tak satu pun test menyentuhnya
 
 Menyisir 12 baris "belum dipetakan" dari penjaga taksonomi. Sepuluh di

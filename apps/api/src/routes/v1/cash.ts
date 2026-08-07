@@ -6,6 +6,7 @@ import { evaluateEntityApproval, recordApproval, clearApprovalProgress, canParti
 import { logAuditEvent } from '../../utils/audit.js'
 import { proyekBolehDibaca, proyekMilikTenant } from '../../utils/tenant-guard.js'
 import { gerbangIdempotensi, catatIdempotensi } from '../../utils/idempotency.js'
+import { bacaNominal, bulatkanRupiah } from '../../lib/nominal.js'
 
 const ALLOWED_IMAGE_PDF = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
 
@@ -230,12 +231,22 @@ export default async function cashRoutes(app: FastifyInstance) {
       notes?: string
     }
 
-    if (!body.from_account_id || !body.to_account_id || !body.amount) {
+    if (!body.from_account_id || !body.to_account_id) {
       return reply.status(400).send({ error: 'from_account_id, to_account_id, dan amount wajib diisi' })
     }
     if (body.from_account_id === body.to_account_id) {
       return reply.status(400).send({ error: 'Akun asal dan tujuan tidak boleh sama' })
     }
+
+    // `!body.amount` TIDAK cukup: string `"abc"` bukan falsy, jadi ia lolos
+    // pemeriksaan itu, lalu `Number(saldo) < "abc"` bernilai false dan cek
+    // saldo di bawah ikut lolos. Transfer tersimpan dengan jumlah NaN, dan
+    // trigger `trg_cash_transfer_balance` memindahkan NaN ke saldo KEDUA
+    // rekening — dua akun sekaligus kehilangan angkanya. Nol boleh ditolak
+    // di sini karena transfer bernilai nol tak memindahkan apa pun.
+    const hJumlah = bacaNominal(body.amount, { nama: 'amount', bolehNol: false })
+    if (!hJumlah.ok) return reply.status(400).send({ error: hJumlah.alasan })
+    const jumlah = hJumlah.nilai
 
     // Cek saldo akun asal (jika langsung confirmed)
     const targetStatus = body.status ?? 'pending'
@@ -252,9 +263,9 @@ export default async function cashRoutes(app: FastifyInstance) {
       if (!fromAcc) {
         return reply.status(404).send({ error: 'Akun kas asal tidak ditemukan' })
       }
-      if (Number(fromAcc.balance) < body.amount) {
+      if (Number(fromAcc.balance) < jumlah) {
         return reply.status(400).send({
-          error: `Saldo ${fromAcc.name} tidak mencukupi (saldo: Rp ${Number(fromAcc.balance).toLocaleString('id-ID')}, dibutuhkan: Rp ${body.amount.toLocaleString('id-ID')})`
+          error: `Saldo ${fromAcc.name} tidak mencukupi (saldo: Rp ${Number(fromAcc.balance).toLocaleString('id-ID')}, dibutuhkan: Rp ${jumlah.toLocaleString('id-ID')})`
         })
       }
     }
@@ -264,7 +275,10 @@ export default async function cashRoutes(app: FastifyInstance) {
       .insert({
         from_account_id: body.from_account_id,
         to_account_id: body.to_account_id,
-        amount: body.amount,
+        // `jumlah`, bukan `body.amount`: yang diperiksa harus yang disimpan.
+        // Memeriksa satu nilai lalu menyimpan nilai lain adalah cara paling
+        // rapi untuk membuat pemeriksaannya sia-sia tanpa terlihat.
+        amount: jumlah,
         transfer_date: body.transfer_date ?? new Date().toISOString().split('T')[0],
         status: targetStatus,
         ref_number: body.ref_number ?? null,
@@ -480,9 +494,34 @@ export default async function cashRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'main_cash_id wajib jika expense_source = main_cash' })
     }
 
-    const qtyNum = parseFloat(qty ?? '1')
-    const priceNum = parseFloat(unit_price)
-    const total = parseFloat((qtyNum * priceNum).toFixed(2))
+    // ── Nominal lewat `bacaNominal`, BUKAN `parseFloat`
+    //
+    // Versi sebelumnya: `parseFloat(qty ?? '1')`. Kirim `qty: "abc"` dan
+    // seluruh rantai di bawah runtuh tanpa satu pun gejala — diukur di Node
+    // DAN di Postgres pada 2026-08-08:
+    //
+    //   parseFloat('abc') → NaN  →  total NaN
+    //   `Number(saldo) < NaN` = false   → CEK SALDO LOLOS, berapa pun saldonya
+    //   Postgres numeric MENERIMA NaN   → kolom NOT NULL tak menahannya
+    //   `CHECK (qty > 0)` juga lolos    → perbandingan NaN bernilai true
+    //   SELECT sum(...) atas kolom itu  → **NaN untuk SELURUH laporan**
+    //
+    // Yang terakhir paling mahal: satu baris rusak membuat total laporan tak
+    // punya angka sama sekali, dan request-nya membalas 201 seolah sukses.
+    const hQty = bacaNominal(qty, { nama: 'qty', bawaan: 1, bolehNol: false })
+    if (!hQty.ok) return reply.status(400).send({ error: hQty.alasan })
+
+    const hHarga = bacaNominal(unit_price, { nama: 'unit_price' })
+    if (!hHarga.ok) return reply.status(400).send({ error: hHarga.alasan })
+
+    // Pembulatan diperiksa TERPISAH: dua angka yang sah bisa menghasilkan
+    // Infinity saat dikalikan, dan Infinity tersimpan sama diamnya dengan NaN.
+    const hTotal = bulatkanRupiah(hQty.nilai * hHarga.nilai)
+    if (!hTotal.ok) return reply.status(400).send({ error: hTotal.alasan })
+
+    const qtyNum = hQty.nilai
+    const priceNum = hHarga.nilai
+    const total = hTotal.nilai
 
     // Cek saldo kas kecil jika dari petty cash
     if (source === 'petty_cash' && petty_cash_id) {

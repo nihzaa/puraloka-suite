@@ -13,6 +13,7 @@ import {
   type PemicuTermin,
 } from '../../lib/ipc-progres.js'
 import { proyekBolehDibaca, proyekMilikTenant } from '../../utils/tenant-guard.js'
+import { bacaNominal } from '../../lib/nominal.js'
 import { gerbangIdempotensi, catatIdempotensi } from '../../utils/idempotency.js'
 
 const ALLOWED_IMAGE_PDF = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
@@ -1218,14 +1219,27 @@ export default async function financeRoutes(app: FastifyInstance) {
       }
     }
 
-    const amountPaid = parseFloat(fields.amount_paid ?? '0')
     const paidAt = fields.paid_at
     const paymentMethod = fields.payment_method ?? 'transfer_bank'
     const cashAccountId = fields.cash_account_id || null
 
-    if (!paidAt || isNaN(amountPaid) || amountPaid <= 0) {
+    if (!paidAt) {
       return reply.status(400).send({ error: 'paid_at dan amount_paid wajib diisi' })
     }
+
+    // Pemeriksaan lama (`isNaN(x) || x <= 0`) sudah menahan NaN — jalur ini
+    // TIDAK bercacat seperti `cash.ts`. Yang ditambah `bacaNominal`:
+    //
+    //   • `Infinity` lolos `isNaN` (isNaN(Infinity) === false) dan diterima
+    //     Postgres numeric sama seperti NaN
+    //   • tak ada batas atas — salah ketik nol beruntun tersimpan apa adanya
+    //   • `parseFloat('12abc')` = 12, dibaca separuh tanpa protes
+    //
+    // Pesannya juga jadi menyebut apa yang salah, bukan "wajib diisi" untuk
+    // nilai yang sebenarnya ADA tapi cacat.
+    const hBayar = bacaNominal(fields.amount_paid, { nama: 'amount_paid', bolehNol: false })
+    if (!hBayar.ok) return reply.status(400).send({ error: hBayar.alasan })
+    const amountPaid = hBayar.nilai
 
     // Validasi cash account jika disertakan
     if (cashAccountId) {
