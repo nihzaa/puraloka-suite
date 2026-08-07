@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { scopeIdsTenant } from '../../utils/tenant-guard.js'
 import { logAuditEvent } from '../../utils/audit.js'
+import { rekapAbsensi } from '../../lib/rekap-absensi.js'
 
 /**
  * ABSENSI LAPANGAN (F5-1 INTI #9)
@@ -214,28 +215,27 @@ export default async function absensiRoutes(app: FastifyInstance) {
       worker?: { id: string; name: string; tipe: string | null } | { id: string; name: string; tipe: string | null }[] | null
     }
 
-    const per = new Map<string, { worker_id: string; nama: string; tipe: string | null; hari: number; lembur: number }>()
-    for (const b of (data ?? []) as Baris[]) {
+    // Aritmetikanya di `lib/rekap-absensi.ts` — murni dan ber-test (15 test).
+    //
+    // Sampai 2026-08-08 ia hidup di sini, dan NOL test menyentuh `porsi_hari`
+    // maupun `jam_lembur`. Kodenya sudah sadar akan jebakan NUMERIC-string dan
+    // menulis komentar yang tepat tentangnya — tapi kesadaran yang tak diuji
+    // bukan jaminan: siapa pun boleh menghapus `Number()` saat menyunting, dan
+    // yang berubah cuma nominal di slip upah.
+    //
+    // Yang dipindah HANYA hitungannya. Tenancy tetap di sini: `scopeIdsTenant`
+    // di atas, `viaProject` pada query. Pustaka murni tak boleh tahu tenant.
+    const hasil = rekapAbsensi(((data ?? []) as Baris[]).map((b) => {
       const w = Array.isArray(b.worker) ? b.worker[0] : b.worker
-      const kunci = b.worker_id
-      if (!per.has(kunci)) {
-        per.set(kunci, { worker_id: kunci, nama: w?.name ?? '—', tipe: w?.tipe ?? null, hari: 0, lembur: 0 })
+      return {
+        worker_id: b.worker_id,
+        porsi_hari: b.porsi_hari,
+        jam_lembur: b.jam_lembur,
+        nama: w?.name ?? null,
+        tipe: w?.tipe ?? null,
       }
-      const e = per.get(kunci)!
-      // `Number()` eksplisit: Postgres numeric datang sebagai STRING lewat
-      // driver ini. `+` pada string menyambung, bukan menjumlah — "1" + "1"
-      // menjadi "11", dan itu masuk ke laporan upah sebagai 11 hari kerja.
-      e.hari += Number(b.porsi_hari)
-      e.lembur += Number(b.jam_lembur)
-    }
+    }))
 
-    const rekap = [...per.values()].sort((a, b) => a.nama.localeCompare(b.nama, 'id'))
-    return reply.send({
-      rekap,
-      dari,
-      sampai,
-      total_hari: rekap.reduce((s, r) => s + r.hari, 0),
-      total_lembur: rekap.reduce((s, r) => s + r.lembur, 0),
-    })
+    return reply.send({ ...hasil, dari, sampai })
   })
 }

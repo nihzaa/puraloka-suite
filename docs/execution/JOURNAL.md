@@ -5,6 +5,65 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-08 — Upah tukang dihitung kode yang tak satu pun test menyentuhnya
+
+Menyisir 12 baris "belum dipetakan" dari penjaga taksonomi. Sepuluh di
+antaranya modul SDM (payroll, cuti, BPJS, PPh 21) — diukur: **nol tabel SDM di
+basis**, jadi statusnya jujur. Tapi satu baris lain menarik perhatian.
+
+### Yang ditemukan
+
+`Absensi lapangan` bertahan 🟡 sejak 2026-08-06 dengan catatan "UI hidup".
+Diukur ke kode: 4 endpoint, UI 518 baris, tabel `absensi_harian` — dan **nol
+test**. Yang dijaganya bukan hal remeh:
+
+> `porsi_hari` dan `jam_lembur` adalah dua besaran yang menentukan **upah
+> tukang**. Modul ini dibangun justru untuk menggantikan angka yang "diketik
+> mandor dari ingatan" (F5-1 INTI #9).
+
+Handler-nya bahkan sudah menulis komentar yang tepat tentang jebakan
+NUMERIC-string (`"1" + "1"` = `"11"`, dan 11 hari kerja masuk slip upah tanpa
+satu pun error). **Tapi kesadaran yang tak diuji bukan jaminan** — siapa pun
+boleh menghapus `Number()` saat menyunting, dan yang berubah cuma nominalnya.
+
+### Dikerjakan
+
+Aritmetikanya diangkat keluar dari route jadi `lib/rekap-absensi.ts` — murni,
+7 invarian, 15 test. Tenancy TIDAK ikut pindah: `scopeIdsTenant` dan
+`viaProject` tetap di handler, karena pustaka murni tak boleh tahu tenant.
+
+Lalu 14 test endpoint ke Postgres nyata, menutup yang tak bisa dijawab pustaka:
+upsert benar-benar menimpa (bukan menggandakan — mandor sering memperbaiki
+absensi hari yang sama, dan baris ganda membayar dua kali), validasi menolak
+lewat jalur HTTP dengan pesan yang bisa dibaca mandor, lingkup tenant lain
+membalas 404.
+
+### Bukti
+
+```
+lib/rekap-absensi.test.ts        15/15 ✅
+  M1 Number() dilepas             2 MERAH
+  M2 lembur dilebur ke hari       3 MERAH
+  M3 hari = jumlah catatan        7 MERAH
+  M4 pekerja tanpa nama dibuang   3 MERAH
+  M5 NaN dibiarkan merambat       1 MERAH
+absensi-endpoint.test.ts         14/14 ✅
+  E1 upsert → insert              2 MERAH
+  E2 validasi porsi dilepas       2 MERAH
+  E3 gerbang tenancy dilepas      1 MERAH
+  seluruhnya dipulihkan → HIJAU
+tsc · lint-ratchet · 4 penjaga arsitektural   exit 0 ✅
+```
+
+### Satu kekeliruan saat menulis test
+
+Fixture pertama memakai tanggal 2019 dan **seluruh POST membalas 500**:
+constraint `absensi_tanggal_masuk_akal` (migrasi 191) menolak apa pun sebelum
+2020-01-01. Itu bukan cacat — itu constraint yang bekerja. Fixture digeser ke
+2020, dan alasannya ditulis di header test supaya tak diulang.
+
+---
+
 ## 2026-08-08 — Penjaga taksonomi mencari 14 tabel yang tak pernah ada
 
 Melanjutkan penyisiran. Sesudah mengoreksi status basi kesembilan, saya
