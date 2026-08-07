@@ -1,12 +1,10 @@
 {
-  "_catatan": "Lantai drift & berbagi-href nav. Boleh turun, TIDAK boleh naik.",
-  "_diukur": "2026-08-07, sesudah migrasi 221-231.",
-  "hrefBeda": 61,
+  "_catatan": "Lantai drift peta-menu.ts vs menu_items. Boleh turun, TIDAK boleh naik.",
+  "_diukur": "2026-08-07, sesudah migrasi 232 (sidebar dirombak: satu route satu link).",
+  "hrefBeda": 0,
   "labelBeda": 0,
-  "hanyaDb": 26,
-  "berbagiItem": 23,
-  "_berbagiItem": "23 tersisa, dan NOL di antaranya duplikat dalam satu kelompok — diukur, bukan diklaim. Seluruh 23 adalah SINONIM LINTAS-KELOMPOK: satu halaman dicari dari dua kelompok berbeda oleh peran berbeda. Contoh: /mandor/upah dicari staf HR di kelompok 'SDM & Payroll' dan pelaksana di 'Mandor & Subkon'; /users dicari dari 'SDM & Payroll', 'Master Data', dan 'Administrasi'. Menghapus salah satunya membuat satu peran kehilangan jalan masuk, dan ia tak akan menebak harus mencari di kelompok orang lain. Yang menyala di sidebar diatur lib/menu-berbagi-href.ts.",
-  "_hrefBeda": "Naik tiap kali menu dipindah ke /m/<key> (migrasi 230, 231): peta-menu.ts masih menulis href halaman induknya sementara DB sudah menunjuk /m/. Itu arah yang benar — peta yang menyusul, bukan sebaliknya.",
-  "_hanyaDb": "26 key di DB tanpa entri peta-menu.ts. Bukan cacat aktif: dibuktikan di peramban, /m/<key> untuk yang paling mencurigakan menampilkan judul yang benar, bukan 'Menu tidak dikenal'. Turunkan saat menyentuhnya.",
-  "_metrik": "Yang di-ratchet berbagiItem, BUKAN berbagiHref: memecah item ke beberapa tab menurunkan item tapi menaikkan jumlah href unik. Penjaga yang merah saat keadaan membaik akan dimatikan orang."
+  "hanyaDb": 88,
+  "_hrefBeda": "NOL, dan sekarang inilah yang benar-benar dijaga: kalau katalog dan sidebar menyebut tujuan berbeda untuk key yang sama, salah satunya membohongi pembacanya.",
+  "_hanyaDb": "88 = seluruh entri sidebar. Sesudah 232 kedua sumber SENGAJA berbeda perannya: peta-menu.ts katalog 203 modul (sumber /peta-modul), menu_items 88 link sidebar (hanya halaman yang ada). Angka ini bukan cacat, melainkan ukuran sidebar itu sendiri.",
+  "_berbagiItem": "Tidak lagi di-ratchet. audit-menu-berbagi-href.mjs kini LARANGAN MUTLAK: nol href boleh dipakai lebih dari satu link."
 }

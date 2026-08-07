@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { rutenyaAktif, rutenyaAktifPersis } from "@/lib/rute-aktif";
+import { rutenyaAktifPersis } from "@/lib/rute-aktif";
 import {
   LayoutDashboard,
   FolderKanban,
@@ -50,7 +50,6 @@ import {
 import { SidebarFokus } from "@/components/sidebar-fokus";
 import { LogoPuraloka } from "@/components/logo-puraloka";
 import { useSidebar } from "@/lib/sidebar-context";
-import { hitungHref, pilihWakil, belumPunyaHalaman } from "@/lib/menu-berbagi-href";
 
 const roleLabel: Record<string, string> = {
   admin: "Administrator",
@@ -481,14 +480,18 @@ export function Sidebar() {
   // butuh tiga percobaan untuk benar (semua perwakilan, tak ada
   // perwakilan, perwakilan yang bernama salah), jadi ia diangkat ke
   // fungsi murni supaya bisa dikunci test.
-  const hrefBerbagi = useMemo(() => hitungHref(menu), [menu]);
-  const wakilHref = useMemo(() => pilihWakil(menu), [menu]);
-
-  const belumAdaHalamanSendiri = useCallback(
-    (href: string | null | undefined, key?: string) =>
-      belumPunyaHalaman(href, key, hrefBerbagi, wakilHref),
-    [hrefBerbagi, wakilHref],
-  );
+  /**
+   * Sesudah migrasi 232 tak ada lagi href yang dipakai lebih dari satu link,
+   * dan tak ada lagi menu yang menunjuk halaman "segera hadir" — keduanya
+   * dijaga di tingkat data oleh verifikasi migrasi itu sendiri.
+   *
+   * `lib/menu-berbagi-href.ts` (100 baris + 9 test) DIHAPUS bersamanya. Ia
+   * menyelesaikan gejalanya dengan baik: saat satu href dipakai 22 item, ia
+   * memilih satu wakil untuk disorot dan meredupkan sisanya. Tapi gejalanya
+   * kini tak ada, dan kode yang menjaga keadaan mustahil hanya membuat
+   * pembaca berikutnya mengira keadaan itu masih mungkin.
+   */
+  const belumAdaHalamanSendiri = useCallback(() => false, []);
 
   /**
    * Cocok DI BATAS SEGMEN, bukan `startsWith` mentah.
@@ -508,11 +511,24 @@ export function Sidebar() {
    * (`/procurement/rfq`). Yang tidak: saudara berawalan sama
    * (`/procurement-lama`).
    */
+  /**
+   * SATU aturan, tanpa cabang: cocok PERSIS.
+   *
+   * Sebelum migrasi 232, sidebar memakai aturan "anak menyalakan induk"
+   * (`pathname.startsWith(href + "/")`). Itu perlu ketika satu route bisa
+   * dicapai dari beberapa link — induk jadi penanda "Anda ada di bagian ini".
+   *
+   * Sesudah 232 aturannya satu route = satu link, jadi tiap halaman SUDAH
+   * punya linknya sendiri. Aturan-anak kini justru merugikan: membuka
+   * `/procurement/pesanan` menyalakan "Ringkasan Pengadaan" DAN "Purchase
+   * Order" sekaligus — dua link menyala, persis yang dikeluhkan founder.
+   *
+   * Kelompok induk tak ikut dihitung: ia tak punya href sama sekali (R-2),
+   * dan keterbukaannya diatur efek terpisah yang membuka kelompok yang
+   * memuat halaman aktif.
+   */
   function isActive(href: string) {
-    // `/dashboard` (Beranda) cocok PERSIS: ia halaman berdiri sendiri, dan
-    // aturan-anak akan menyalakannya di setiap rute `/dashboard/...`.
-    if (href === "/dashboard") return rutenyaAktifPersis(pathname, href);
-    return rutenyaAktif(pathname, href);
+    return rutenyaAktifPersis(pathname, href);
   }
 
   // Match-ANY: tampil jika tanpa permission (array kosong) ATAU punya salah satu.
@@ -782,15 +798,14 @@ export function Sidebar() {
                 aktif={pathname.startsWith("/pengaturan")}
                 terbuka={grupTerbuka.has(pengaturanNode.key)}
                 onToggle={() => toggleGrup(pengaturanNode.key)}
-                // `/pengaturan` sendiri adalah halaman profil, jadi ia harus
-                // cocok PERSIS — kalau tidak, seluruh submenu ikut menyala.
-                // `/pengaturan` punya isinya sendiri (profil perusahaan), jadi
-                // ia cocok-persis; anaknya pakai aturan biasa. Sebelumnya cabang
-                // kedua memakai `startsWith` MENTAH — beda dari isActive utama
-                // di berkas yang sama.
-                isActive={(href) => (href === "/pengaturan"
-                  ? rutenyaAktifPersis(pathname, href)
-                  : rutenyaAktif(pathname, href))}
+                // Aturan yang SAMA dengan isActive utama: cocok persis.
+                //
+                // Sesudah migrasi 232 tiap route punya tepat satu link, jadi
+                // tak ada lagi alasan induk menyala saat anaknya dibuka.
+                // Sebelumnya blok ini memakai aturan berbeda dari sidebar
+                // utama di berkas yang sama — dan `/pengaturan/roles`
+                // menyalakan dua link sekaligus.
+                isActive={(href) => rutenyaAktifPersis(pathname, href)}
                 belumAdaHalamanSendiri={belumAdaHalamanSendiri}
                 subStyle={subStyle}
                 onHover={onHover}

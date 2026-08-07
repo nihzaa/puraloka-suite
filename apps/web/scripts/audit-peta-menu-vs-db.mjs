@@ -49,6 +49,23 @@
  *
  * Pakai (dari akar repo): node apps/web/scripts/audit-peta-menu-vs-db.mjs
  *                         node apps/web/scripts/audit-peta-menu-vs-db.mjs --naikkan
+ *
+ * ── PERUBAHAN PERAN sesudah migrasi 232
+ *
+ * Sampai 232, `peta-menu.ts` dan `menu_items` seharusnya mencerminkan hal yang
+ * SAMA — dan selisihnya adalah cacat. Sesudah 232 keduanya sengaja berbeda:
+ *
+ *   peta-menu.ts   203 modul — KATALOG seluruh rencana produk, sumber
+ *                  halaman /peta-modul
+ *   menu_items      88 entri — SIDEBAR, hanya halaman yang benar-benar ada
+ *
+ * Jadi "ada di DB tidak di TS" tak lagi berarti cacat: 88 entri sidebar memang
+ * tak punya padanan katalog, karena katalog berbicara tentang MODUL sementara
+ * sidebar berbicara tentang HALAMAN.
+ *
+ * Yang masih dijaga dan tetap penting: **href dan label yang berbeda** untuk
+ * key yang sama. Kalau katalog menyebut "Kalender Kerja → /kalender" sementara
+ * sidebar menunjuk /jadwal, salah satunya membohongi pembacanya.
  */
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'

@@ -1075,7 +1075,10 @@ jobs:
       # di daftar proyek biasa. Pengguna belajar sub-menu tak bisa dipercaya,
       # lalu berhenti memakainya — dan taksonomi 191 sub-menu kehilangan gunanya.
       # Ratchet: sub-menu baru wajib punya tujuan sendiri, atau /m/<key> yang jujur.
-      - name: Menu berbagi href tak bertambah
+      # Sesudah migrasi 232 ini LARANGAN MUTLAK, bukan ratchet: satu route =
+      # satu link sidebar. Founder: "kalo link sidebar yg aktifnya 2 kan jadi
+      # aneh" — dan tak ada penjelasan yang membuatnya tidak aneh.
+      - name: Satu route satu link sidebar
         run: node apps/web/scripts/audit-menu-berbagi-href.mjs
         working-directory: .
         env:

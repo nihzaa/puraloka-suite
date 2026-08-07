@@ -90,58 +90,29 @@ if (baris.length) {
   if (baris.length > 12) console.log(`   … dan ${baris.length - 12} href lagi`)
 }
 
-// ── Ratchet ─────────────────────────────────────────────────────────────────
-// ── Yang diukur: JUMLAH ITEM, bukan jumlah href ────────────────────────────
+// ── LARANGAN MUTLAK, bukan ratchet lagi ─────────────────────────────────────
 //
-// `berbagiHref` (banyaknya href yang dipakai >1 item) terlihat masuk akal, tapi
-// ia BERGERAK KE ARAH SALAH saat keadaan membaik. Contoh nyata 2026-08-07:
-// memecah 8 item `/laporan` ke tiga tab berbeda menurunkan item 96 → 87 —
-// perbaikan jelas — sementara jumlah href-nya justru NAIK 23 → 25, karena
-// `?tab=wip` dan `?tab=pajak` adalah dua href baru yang masing-masing dipakai
-// dua item.
+// Sampai migrasi 232 ini ratchet: angka hari ini jadi lantai, boleh turun,
+// tak boleh naik. Itu tepat selama 144 item berbagi href dan menurunkannya
+// butuh berhari-hari — menuntut nol seketika hanya akan membuat penjaga ini
+// dimatikan pada hari pertama.
 //
-// Penjaga yang merah saat pekerjaan membaik akan dimatikan orang, dan penjaga
-// yang dimatikan tak menjaga apa pun. Yang benar-benar merugikan pengguna
-// adalah **berapa banyak item yang mendarat di tempat yang tak mereka minta** —
-// dan itu `berbagiItem`.
-//
-// `berbagiHref` tetap DILAPORKAN (berguna untuk membaca sebarannya) tapi tidak
-// lagi di-ratchet.
-const kini = { berbagiItem: item }
+// Migrasi 232 merombak sidebar jadi satu route = satu link, dan angkanya kini
+// NOL. Ratchet kehilangan gunanya: yang dijaga bukan lagi "jangan bertambah"
+// melainkan "jangan ada sama sekali". Aturan yang boleh dilanggar sedikit
+// bukan aturan.
 
-let lantai
-try {
-  lantai = JSON.parse(readFileSync(LANTAI, 'utf8'))
-} catch {
-  lantai = {}
+if (baris.length > 0) {
+  console.error(`\nMERAH: ${item} item menu berbagi ${baris.length} href.`)
+  console.error('  Aturan sesudah migrasi 232: SATU route = SATU link sidebar.')
+  console.error('  Kalau dua peran mencari halaman yang sama, letakkan di satu')
+  console.error('  tempat — peran lain menemukannya lewat pencarian, bukan lewat')
+  console.error('  link kedua yang membuat dua item menyala bersamaan.')
+  console.error('')
+  console.error('  Kalau halamannya belum ada, JANGAN taut dari sidebar sama')
+  console.error('  sekali — daftarnya ada di /peta-modul.')
+  process.exit(1)
 }
 
-// Kunci yang diperiksa, BUKAN kunci lama `berbagiHref` yang sudah dibuang.
-// Menguji kunci yang tak ada membuat penjaga menimpa lantainya diam-diam pada
-// setiap run — dan sejak itu ia tak pernah merah lagi, apa pun yang terjadi.
-if (lantai.berbagiItem === undefined) {
-  writeFileSync(LANTAI, JSON.stringify({ ...lantai, ...kini }, null, 2) + '\n')
-  console.log('\nLantai dibuat pertama kali.')
-  process.exit(0)
-}
-
-if (process.argv.includes('--naikkan')) {
-  writeFileSync(LANTAI, JSON.stringify({ ...lantai, ...kini }, null, 2) + '\n')
-  console.log(`\nLantai diperbarui: ${JSON.stringify(kini)}`)
-  process.exit(0)
-}
-
-let merah = false
-for (const k of Object.keys(kini)) {
-  if (kini[k] > lantai[k]) {
-    console.error(`\nMERAH: ${k} naik ${lantai[k]} -> ${kini[k]}`)
-    console.error('  Sub-menu baru wajib punya tujuan sendiri. Kalau halamannya')
-    console.error('  belum ada, arahkan ke /m/<key> — itu jujur, dan tak dihitung.')
-    merah = true
-  } else if (kini[k] < lantai[k]) {
-    console.log(`Turun: ${k} ${lantai[k]} -> ${kini[k]}. Kunci dengan --naikkan`)
-  }
-}
-if (!merah) console.log('\n✅ Tidak bertambah.')
-console.log()
-process.exit(merah ? 1 : 0)
+console.log('\n✅ Nol href dipakai lebih dari satu link.\n')
+process.exit(0)
