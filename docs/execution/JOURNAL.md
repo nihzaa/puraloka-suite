@@ -5,6 +5,107 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-07 (lanjutan 8) — TUNDA kelompok D: kendali dokumen, dan CACAT P1 penomoran yang saya sempat sebut "tak bisa diperbaiki"
+
+Enam item TUNDA sekaligus: transmittal, register gambar, notulen rapat,
+matriks distribusi, tanda tangan elektronik, distribusi laporan terjadwal.
+**TUNDA: 14 → 8.**
+
+### Yang terbukti, dengan angka
+
+```
+migrasi 215      8 tabel · 24 policy · RLS aktif+dipaksa · InitPlan sejak awal
+migrasi 216      13 policy diseragamkan jadi `tenant_isolation`
+migrasi 217      CACAT P1 — LPAD memangkas nomor MR/PO/GR
+invarian         76 terjaga, 0 bocor (uji-invarian-dokumen.mjs)
+mutasi invarian  9/9 tertangkap, termasuk mutasi RLS-telanjang
+pustaka          23 test · 11/11 mutasi tertangkap (2 mutan terbukti SETARA)
+penjaga baru     audit-lpad-memangkas.mjs — mutation-tested MERAH lalu HIJAU
+API              175 berkas · 1887 test HIJAU, 2 skip, NOL gagal
+web              389 test hijau · lint 0 error, 334 warning
+penjaga          16 audit arsitektural + 13 ratchet UI + 3 rute: LULUS
+build            /dokumen/kendali terdaftar
+a11y             axe-core WCAG 2.1 AA: 0 pelanggaran, terang DAN gelap
+seed             5 gambar · 3 transmittal · 5 tindakan · 5 distribusi · 3 jadwal
+                 — dijalankan 2×, angka tak bergerak
+```
+
+### SAYA SALAH — dan koreksinya penting
+
+Di entri sebelumnya (lanjutan 7) saya menulis bahwa
+`gr-create-kontrak-body.test.ts` gagal karena cacat "PRA-ADA dan FLAKY", lalu
+menyimpulkan **"penyebab sebenarnya belum ketemu"** dan meninggalkannya sebagai
+temuan terbuka. Itu benar soal *pra-ada*, tapi salah soal *tak bisa dicari*.
+
+Penyebabnya ketemu hari ini, dan ini **cacat P1 di produksi**:
+
+```
+LPAD('646',  3, '0') → '646'    ✓
+LPAD('1001', 3, '0') → '100'    ✗ Postgres MEMANGKAS, bukan cuma menambal
+```
+
+`generate_mr_number`, `generate_po_number`, dan `generate_gr_number`
+membentuk nomor dengan `LPAD(counter::TEXT, 3, '0')`. Begitu counter sebuah
+tenant melewati 999, nomor dokumen mulai **BERULANG** — 1001, 1002, 1003
+semuanya jadi `…-100` — dan unique index menolak setiap INSERT berikutnya.
+
+**Tenant mana pun yang mencatat lebih dari seribu dokumen setahun berhenti
+bisa menerima barang, tanpa satu baris kode pun berubah.** Basis dev sudah di
+counter 1021; itu sebabnya kegagalannya terlihat "flaky" — ia hanya muncul
+saat counter kebetulan melewati ambang di tengah run.
+
+Gejalanya menyesatkan sempurna: yang muncul `duplicate key value violates
+unique constraint`, bukan "nomor terpangkas". Yang membacanya akan mencari
+data ganda dan tak menemukan apa pun — nomornya memang belum pernah dipakai,
+ia baru saja DIBUAT bertabrakan.
+
+Diperbaiki migrasi 217 (`CASE WHEN v_urut < 1000 THEN LPAD(...) ELSE ... END`
+— nomor lama `001`–`999` tak berubah bentuk), plus penjaga
+`audit-lpad-memangkas.mjs` yang menguji PERILAKUNYA (urut 7 → `007`,
+1001 → `1001`), bukan bentuk kodenya. Dibuktikan bisa merah dengan
+mengembalikan satu fungsi ke LPAD telanjang.
+
+**Pelajarannya bukan "saya salah menyimpulkan", melainkan: "belum ketemu"
+tak sama dengan "tak bisa ketemu", dan menandai sesuatu sebagai flaky adalah
+cara berhenti mencari.** Yang menemukan: menjejaki nomor GR yang benar-benar
+ada di basis, bukan menerima label flaky.
+
+### Cacat kedua: nama policy yang menyimpang
+
+`t5a-policy-tenant.test.ts` dan `t7-exit-criteria-l2.test.ts` merah: 13 tabel
+dari migrasi 212 & 215 menamai policy RESTRICTIVE-nya `<tabel>_tenant`,
+sementara **142 tabel lain** memakai `tenant_isolation`. Isolasinya sendiri
+tidak bocor — tapi penjaga lintas-repo hanya bisa diandalkan kalau ada SATU
+nama yang dicari; nama bervariasi memaksa penjaganya menebak pola, dan
+penjaga yang menebak akan melewatkan tabel yang polanya sedikit berbeda.
+Diperbaiki migrasi 216 **dan** di berkas 212/215 supaya lingkungan baru tak
+mengulanginya.
+
+Kelompok B (211) ternyata sudah benar; yang menyimpang hanya C dan D.
+
+### Yang layar temukan, lagi
+
+Tabel butir tindakan mengurutkan butir **selesai di atas** butir yang sudah
+lewat tenggat — kebalikan dari yang dibutuhkan pembacanya. Ketahuan dari
+memotret halamannya. Pengurutan (lewat tenggat → terbuka → selesai)
+dipindahkan ke API, bukan ke layar, supaya konsumen lain (ekspor, notifikasi)
+mendapat urutan yang sama. Register gambar juga: yang USANG naik ke atas.
+
+### Dua mutan terbukti SETARA, bukan celah test
+
+Mutasi "revisi tertinggi lintas seluruh proyek" awalnya lolos — ternyata
+karena data test-nya terurut naik, sehingga "nilai terakhir" dan "nilai
+maksimum" kebetulan sama. Test diperkuat dengan urutan MENURUN (register
+nyata jarang urut), dan mutan itu tertangkap.
+
+Mutasi "NUMERIC string tak dikonversi" juga lolos, dan itu **memang setara**:
+`>=` di JavaScript selalu memaksa string jadi angka, jadi menghapus
+konversinya menghasilkan perilaku identik untuk semua masukan. Dikeluarkan
+dari daftar mutasi dengan alasan tertulis, bukan dibiarkan terlihat seperti
+celah. Komentar test yang salah (mengklaim `'10' < 3`) ikut dikoreksi.
+
+---
+
 ## 2026-08-07 (lanjutan 7) — TUNDA kelompok C: CPM & kalender kerja, dan lima cacat yang test/build/layar temukan
 
 Empat item TUNDA sekaligus: jalur kritis (CPM), histogram & leveling sumber
@@ -99,6 +200,16 @@ ke tempat yang salah. Kini memilih milestone yang belum berelasi.
 Dicatat apa adanya sebagai temuan terbuka, bukan diklaim hijau dan bukan
 diklaim akibat kelompok ini. Perbaikannya butuh penelusuran modul procurement
 tersendiri.
+
+> **KOREKSI (lanjutan 8, hari yang sama).** Kalimat "penyebab sebenarnya
+> belum ketemu" di atas benar saat ditulis, tapi kesimpulan praktisnya salah:
+> saya memperlakukan label *flaky* sebagai titik berhenti. Penyebabnya ketemu
+> beberapa jam kemudian dan ternyata **cacat P1** — `LPAD('1001',3,'0')`
+> mengembalikan `'100'` karena Postgres MEMANGKAS, sehingga nomor MR/PO/GR
+> berulang begitu counter melewati 999. Rinciannya di entri lanjutan 8.
+>
+> Yang menemukan: menjejaki nomor GR yang benar-benar ada di basis. Yang
+> menghalangi: menerima "flaky" sebagai penjelasan.
 
 ---
 

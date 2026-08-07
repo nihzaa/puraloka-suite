@@ -201,12 +201,16 @@ BEGIN
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);
     EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', t);
 
-    EXECUTE format('DROP POLICY IF EXISTS %I ON %I', t || '_tenant', t);
+    -- `tenant_isolation`, BUKAN `<tabel>_tenant`: 142 tabel lain memakai
+    -- nama itu, dan `t5a-policy-tenant.test.ts` mencarinya secara harfiah.
+    -- Nama yang bervariasi memaksa penjaganya menebak pola — dan penjaga
+    -- yang menebak akan melewatkan tabel yang polanya sedikit berbeda.
+    EXECUTE format('DROP POLICY IF EXISTS tenant_isolation ON %I', t);
     EXECUTE format(
       'CREATE POLICY %I ON %I AS RESTRICTIVE FOR ALL
          USING (company_id = auth_company_id())
          WITH CHECK (company_id = auth_company_id())',
-      t || '_tenant', t);
+      t);
 
     EXECUTE format('DROP POLICY IF EXISTS %I ON %I', t || '_baca', t);
     EXECUTE format(

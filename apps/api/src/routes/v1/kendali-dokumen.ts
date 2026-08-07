@@ -1,0 +1,516 @@
+import type { FastifyInstance } from 'fastify'
+import { createHash } from 'node:crypto'
+import { authenticate, requirePermission } from '../../plugins/auth.js'
+import {
+  nilaiRegisterGambar, nilaiTransmittal, nilaiTindakan, nilaiJadwalLaporan,
+  type Gambar, type Transmittal, type Tindakan, type JadwalLaporan,
+} from '../../lib/kendali-dokumen.js'
+
+/**
+ * KENDALI DOKUMEN (TUNDA kelompok D)
+ *
+ * ── Yang dijawab modul ini
+ *
+ * "Gambar revisi berapa yang BERLAKU sekarang, siapa sudah menerimanya, dan
+ * butir rapat mana yang belum dikerjakan?"
+ *
+ * ── Kenapa status DIHITUNG, bukan cuma dibaca dari kolom
+ *
+ * Kolom `status` gambar hanya benar kalau ada yang ingat memperbaruinya saat
+ * revisi baru terbit. Yang tidak lupa: membandingkan revisi baris ini dengan
+ * revisi TERTINGGI nomor yang sama. Gambar rev-2 berstatus 'berlaku' yang
+ * sudah punya rev-3 ditandai usang, apa pun kata kolomnya — dan itulah
+ * keadaan yang membuat pekerjaan dibongkar.
+ *
+ * ── `db.unsafe` dengan alasan tertulis
+ *
+ * Kedelapan tabel berkategori B (`company_id` NOT NULL), disaring
+ * `eq('company_id', …)` di baris berikutnya.
+ */
+export default async function kendaliDokumenRoutes(app: FastifyInstance) {
+  const hariIni = () => new Date().toISOString().slice(0, 10)
+
+  // ── GET /api/v1/kendali-dokumen ─────────────────────────────────────────
+  //
+  // Satu panggilan mengembalikan seluruh yang dibutuhkan layar. Dipisah jadi
+  // enam endpoint akan membuat layar menampilkan angka dari enam titik waktu
+  // berbeda — dan "gambar usang" adalah perbandingan LINTAS baris, jadi
+  // datanya harus tiba bersamaan.
+  app.get('/api/v1/kendali-dokumen', {
+    preHandler: [authenticate, requirePermission('projects:view')],
+  }, async (request, reply) => {
+    const db = request.db!
+    const cid = request.companyId!
+    const t = hariIni()
+    const { project_id } = request.query as { project_id?: string }
+    const alasan = 'kategori B; disaring company_id di baris berikutnya'
+
+    const q = <T>(x: T) => x
+
+    const [gambar, transmittal, notulen, tindakan, distribusi, jadwal, ttd] =
+      await Promise.all([
+        q(db.unsafe('register_gambar', alasan)
+          .select('id, project_id, nomor, judul, disiplin, revisi, tahap, status, digantikan_oleh, tanggal_terbit, file_url')
+          .eq('company_id', cid).order('nomor')),
+        q(db.unsafe('transmittal', alasan)
+          .select('id, project_id, nomor, perihal, tujuan_nama, tujuan_organisasi, maksud, status, dikirim_pada, diterima_pada, diterima_oleh')
+          .eq('company_id', cid).order('nomor', { ascending: false })),
+        q(db.unsafe('notulen_rapat', alasan)
+          .select('id, project_id, nomor, judul, tanggal, jenis, status, tempat, disahkan_pada')
+          .eq('company_id', cid).order('tanggal', { ascending: false })),
+        // Diurutkan `tenggat` ASC dengan NULL di BELAKANG.
+        //
+        // Default Postgres menaruh NULL terakhir pada ASC, tapi dinyatakan
+        // eksplisit karena urutan di sini menentukan apa yang dibaca lebih
+        // dulu — dan layar yang menaruh butir SELESAI di atas butir yang
+        // sudah lewat tenggat adalah kebalikan dari yang dibutuhkan.
+        // Pengurutan akhir (lewat tenggat dulu) dilakukan sesudah dinilai.
+        q(db.unsafe('notulen_tindakan', alasan)
+          .select('id, notulen_id, urutan, uraian, pj_nama, pj_user_id, tenggat, status, selesai_pada')
+          .eq('company_id', cid).order('tenggat', { ascending: true, nullsFirst: false })),
+        q(db.unsafe('matriks_distribusi', alasan)
+          .select('id, project_id, jenis_dokumen, penerima_nama, penerima_email, organisasi, peran, aktif')
+          .eq('company_id', cid).order('jenis_dokumen')),
+        q(db.unsafe('jadwal_distribusi_laporan', alasan)
+          .select('id, project_id, nama, jenis_laporan, irama, hari_ke, jam, aktif, terakhir_dikirim, gagal_berturut, galat_terakhir')
+          .eq('company_id', cid).order('nama')),
+        q(db.unsafe('tanda_tangan_elektronik', alasan)
+          .select('id, jenis_objek, objek_id, penanda_tangan, peran_penanda, ditandatangani_pada')
+          .eq('company_id', cid)),
+      ])
+
+    // Diperiksa satu per satu dengan menyebut namanya, BUKAN lewat loop atas
+    // array: query kedelapan yang ditambahkan nanti dan lupa dimasukkan ke
+    // array itu akan gagal tanpa suara, lalu `?? []` mengubahnya jadi "nol
+    // baris" yang sah — cacat yang membuat kurva-s kehilangan Rp 631,7 juta.
+    if (gambar.error) return reply.status(500).send({ error: gambar.error.message })
+    if (transmittal.error) return reply.status(500).send({ error: transmittal.error.message })
+    if (notulen.error) return reply.status(500).send({ error: notulen.error.message })
+    if (tindakan.error) return reply.status(500).send({ error: tindakan.error.message })
+    if (distribusi.error) return reply.status(500).send({ error: distribusi.error.message })
+    if (jadwal.error) return reply.status(500).send({ error: jadwal.error.message })
+    if (ttd.error) return reply.status(500).send({ error: ttd.error.message })
+
+    type Baris = Record<string, unknown>
+    const saring = <T extends Baris>(rows: T[] | null): T[] =>
+      (rows ?? []).filter((r) => !project_id || r.project_id == null || r.project_id === project_id)
+
+    const ringkasGambar = nilaiRegisterGambar(
+      saring(gambar.data as Baris[]) as unknown as Gambar[])
+
+    // Gambar USANG naik ke atas — itu satu-satunya baris di tabel ini yang
+    // menuntut tindakan hari ini. Sisanya tetap urut nomor lalu revisi,
+    // supaya register tetap bisa dibaca sebagai register.
+    ringkasGambar.gambar.sort((a, b) => {
+      if (a.usang !== b.usang) return a.usang ? -1 : 1
+      if (a.nomor !== b.nomor) return a.nomor < b.nomor ? -1 : 1
+      return Number(a.revisi) - Number(b.revisi)
+    })
+    const ringkasTransmittal = nilaiTransmittal(
+      saring(transmittal.data as Baris[]) as unknown as Transmittal[], t)
+    const ringkasTindakan = nilaiTindakan(
+      (tindakan.data ?? []) as unknown as Tindakan[], t)
+
+    // Yang menuntut tindakan naik ke atas: lewat tenggat → terbuka →
+    // selesai/dibatalkan. Diurutkan DI SINI, bukan di layar, supaya
+    // konsumen lain (ekspor, notifikasi) mendapat urutan yang sama.
+    //
+    // Ketahuan saat MEMOTRET halamannya: butir selesai muncul di baris
+    // teratas sementara yang lewat tenggat tenggelam di bawah — kebalikan
+    // dari yang dibutuhkan pembacanya.
+    const bobotTindakan = (x: { lewatTenggat: boolean; status: string }) =>
+      x.lewatTenggat ? 0 : x.status === 'terbuka' ? 1 : 2
+    ringkasTindakan.tindakan.sort((a, b) => {
+      const d = bobotTindakan(a) - bobotTindakan(b)
+      if (d !== 0) return d
+      // Dalam kelompok yang sama: tenggat terdekat lebih dulu, tanpa
+      // tenggat paling belakang.
+      if (!a.tenggat && !b.tenggat) return 0
+      if (!a.tenggat) return 1
+      if (!b.tenggat) return -1
+      return a.tenggat < b.tenggat ? -1 : 1
+    })
+    const ringkasJadwal = nilaiJadwalLaporan(
+      saring(jadwal.data as Baris[]) as unknown as JadwalLaporan[], t)
+
+    return reply.send({
+      tanggal: t,
+      gambar: ringkasGambar,
+      transmittal: ringkasTransmittal,
+      notulen: saring(notulen.data as Baris[]),
+      tindakan: ringkasTindakan,
+      distribusi: saring(distribusi.data as Baris[]),
+      jadwalLaporan: ringkasJadwal,
+      tandaTangan: ttd.data ?? [],
+    })
+  })
+
+  // ── POST /api/v1/kendali-dokumen/gambar ─────────────────────────────────
+  app.post('/api/v1/kendali-dokumen/gambar', {
+    preHandler: [authenticate, requirePermission('documents:manage')],
+  }, async (request, reply) => {
+    const b = request.body as {
+      project_id?: string
+      nomor?: string
+      judul?: string
+      disiplin?: string
+      revisi?: number
+      tahap?: string
+      file_url?: string
+      tanggal_terbit?: string
+      catatan?: string
+    }
+
+    if (!b.project_id || !b.nomor || !b.judul) {
+      return reply.status(400).send({ error: 'project_id, nomor, dan judul wajib diisi' })
+    }
+
+    const db = request.db!
+    const cid = request.companyId!
+
+    const { data: proyek } = await db
+      .unsafe('projects', 'memastikan proyek milik tenant sebelum gambarnya didaftarkan')
+      .select('id').eq('id', b.project_id).eq('company_id', cid).maybeSingle()
+    if (!proyek) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+
+    const revisi = b.revisi ?? 0
+
+    const { data, error } = await db
+      .unsafe('register_gambar', 'menyimpan gambar; proyek sudah diverifikasi milik tenant')
+      .insert({
+        company_id: cid,
+        project_id: b.project_id,
+        nomor: b.nomor,
+        judul: b.judul,
+        disiplin: b.disiplin ?? 'arsitektur',
+        revisi,
+        tahap: b.tahap ?? 'IFR',
+        file_url: b.file_url ?? null,
+        tanggal_terbit: b.tanggal_terbit ?? null,
+        catatan: b.catatan ?? null,
+        created_by: request.currentUser!.id,
+      })
+      .select('id, nomor, revisi, status')
+      .single()
+
+    if (error) {
+      if (error.code === '23505') {
+        return reply.status(409).send({
+          error: `Gambar ${b.nomor} revisi ${revisi} sudah terdaftar di proyek ini`,
+        })
+      }
+      if (error.code === '23514') {
+        return reply.status(422).send({
+          error: 'Revisi tak boleh negatif, dan disiplin/tahap harus salah satu yang dikenal',
+        })
+      }
+      return reply.status(500).send({ error: error.message })
+    }
+
+    // Revisi baru MENGGANTIKAN revisi lama pada nomor yang sama.
+    //
+    // Kalau langkah ini dilewatkan, register menyimpan dua baris 'berlaku'
+    // untuk satu gambar — dan yang membacanya harus menebak mana yang
+    // dipakai. Kegagalannya DICATAT, bukan ditelan: gambar yang baru masuk
+    // tetap sah, tapi keadaan setengah-jadi ini harus bisa dilacak.
+    const { error: gagalGanti } = await db
+      .unsafe('register_gambar', 'menandai revisi lama digantikan; nomor & proyek sama')
+      .update({ status: 'digantikan', digantikan_oleh: data!.id, updated_at: new Date().toISOString() })
+      .eq('company_id', cid).eq('project_id', b.project_id)
+      .eq('nomor', b.nomor).eq('status', 'berlaku').lt('revisi', revisi)
+
+    if (gagalGanti) {
+      request.log.error({ err: gagalGanti, nomor: b.nomor, revisi },
+        'revisi baru tersimpan tapi revisi lama gagal ditandai digantikan')
+    }
+
+    return reply.status(201).send({ gambar: data })
+  })
+
+  // ── POST /api/v1/kendali-dokumen/transmittal ────────────────────────────
+  app.post('/api/v1/kendali-dokumen/transmittal', {
+    preHandler: [authenticate, requirePermission('documents:manage')],
+  }, async (request, reply) => {
+    const b = request.body as {
+      project_id?: string
+      nomor?: string
+      perihal?: string
+      tujuan_nama?: string
+      tujuan_organisasi?: string
+      maksud?: string
+      catatan?: string
+      items?: Array<{ gambar_id?: string; document_id?: string; uraian?: string; jumlah_lembar?: number }>
+    }
+
+    if (!b.project_id || !b.nomor || !b.perihal || !b.tujuan_nama) {
+      return reply.status(400).send({
+        error: 'project_id, nomor, perihal, dan tujuan_nama wajib diisi',
+      })
+    }
+    if (!b.items?.length) {
+      // Transmittal tanpa isi adalah bukti kirim atas ketiadaan.
+      return reply.status(400).send({ error: 'Transmittal harus memuat minimal satu item' })
+    }
+
+    const db = request.db!
+    const cid = request.companyId!
+
+    const { data: proyek } = await db
+      .unsafe('projects', 'memastikan proyek milik tenant sebelum transmittal dibuat')
+      .select('id').eq('id', b.project_id).eq('company_id', cid).maybeSingle()
+    if (!proyek) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+
+    const { data, error } = await db
+      .unsafe('transmittal', 'menyimpan transmittal; proyek sudah diverifikasi milik tenant')
+      .insert({
+        company_id: cid,
+        project_id: b.project_id,
+        nomor: b.nomor,
+        perihal: b.perihal,
+        tujuan_nama: b.tujuan_nama,
+        tujuan_organisasi: b.tujuan_organisasi ?? null,
+        maksud: b.maksud ?? 'untuk_informasi',
+        catatan: b.catatan ?? null,
+        created_by: request.currentUser!.id,
+      })
+      .select('id, nomor, status')
+      .single()
+
+    if (error) {
+      if (error.code === '23505') {
+        return reply.status(409).send({ error: `Transmittal ${b.nomor} sudah ada` })
+      }
+      if (error.code === '23514') {
+        return reply.status(422).send({ error: 'Maksud transmittal tak dikenal' })
+      }
+      return reply.status(500).send({ error: error.message })
+    }
+
+    const { error: galatItem } = await db
+      .unsafe('transmittal_item', 'menyimpan isi transmittal yang baru dibuat')
+      .insert(b.items.map((i) => ({
+        company_id: cid,
+        transmittal_id: data!.id,
+        gambar_id: i.gambar_id ?? null,
+        document_id: i.document_id ?? null,
+        uraian: i.uraian ?? null,
+        jumlah_lembar: i.jumlah_lembar ?? null,
+      })))
+
+    if (galatItem) {
+      // Transmittal tanpa isi tak berguna — dan lebih buruk daripada tak ada,
+      // karena ia terlihat seperti bukti kirim. Dibatalkan seluruhnya.
+      //
+      // Hasil pembatalannya DIPERIKSA: kalau `delete` ini pun gagal, yang
+      // tertinggal adalah transmittal kosong yang tak seorang pun tahu harus
+      // dihapus. Diamnya di sini persis kelas cacat yang dijaga
+      // `audit-tulis-tanpa-periksa.mjs`, dan penjaga itu memang merahkannya.
+      const { error: galatBatal } = await db
+        .unsafe('transmittal', 'membatalkan transmittal yang isinya gagal disimpan')
+        .delete().eq('id', data!.id).eq('company_id', cid)
+
+      if (galatBatal) {
+        request.log.error({ err: galatBatal, transmittal: data!.id, nomor: b.nomor },
+          'transmittal kosong TERTINGGAL — isinya ditolak dan pembatalannya gagal')
+        return reply.status(500).send({
+          error: `Isi transmittal ditolak, dan transmittal ${b.nomor} gagal dibatalkan. Hapus manual sebelum membuat ulang — transmittal tanpa isi terlihat seperti bukti kirim.`,
+        })
+      }
+
+      return reply.status(422).send({
+        error: 'Isi transmittal ditolak — setiap item harus merujuk gambar/dokumen atau punya uraian',
+      })
+    }
+
+    return reply.status(201).send({ transmittal: data })
+  })
+
+  // ── PATCH /api/v1/kendali-dokumen/transmittal/:id/kirim ─────────────────
+  app.patch('/api/v1/kendali-dokumen/transmittal/:id/kirim', {
+    preHandler: [authenticate, requirePermission('documents:manage')],
+  }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const db = request.db!
+
+    const { data, error } = await db
+      .unsafe('transmittal', 'kategori B; disaring company_id di baris berikutnya')
+      .update({ status: 'dikirim', dikirim_pada: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq('id', id).eq('company_id', request.companyId!)
+      .select('id, nomor, status, dikirim_pada')
+      .maybeSingle()
+
+    if (error) return reply.status(500).send({ error: error.message })
+    if (!data) return reply.status(404).send({ error: 'Transmittal tidak ditemukan' })
+    return reply.send({ transmittal: data })
+  })
+
+  // ── PATCH /api/v1/kendali-dokumen/transmittal/:id/terima ────────────────
+  app.patch('/api/v1/kendali-dokumen/transmittal/:id/terima', {
+    preHandler: [authenticate, requirePermission('documents:manage')],
+  }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const b = request.body as { diterima_oleh?: string }
+    const db = request.db!
+
+    const { data, error } = await db
+      .unsafe('transmittal', 'kategori B; disaring company_id di baris berikutnya')
+      .update({
+        status: 'diterima',
+        diterima_pada: new Date().toISOString(),
+        diterima_oleh: b.diterima_oleh ?? null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id).eq('company_id', request.companyId!)
+      .select('id, nomor, status, diterima_pada')
+      .maybeSingle()
+
+    if (error) {
+      if (error.code === '23514') {
+        return reply.status(422).send({
+          error: 'Transmittal ini belum pernah dikirim — tak bisa ditandai diterima',
+        })
+      }
+      return reply.status(500).send({ error: error.message })
+    }
+    if (!data) return reply.status(404).send({ error: 'Transmittal tidak ditemukan' })
+    return reply.send({ transmittal: data })
+  })
+
+  // ── POST /api/v1/kendali-dokumen/notulen ────────────────────────────────
+  app.post('/api/v1/kendali-dokumen/notulen', {
+    preHandler: [authenticate, requirePermission('documents:manage')],
+  }, async (request, reply) => {
+    const b = request.body as {
+      project_id?: string
+      nomor?: string
+      judul?: string
+      tanggal?: string
+      jenis?: string
+      tempat?: string
+      hadir?: string
+      pembahasan?: string
+      tindakan?: Array<{ uraian?: string; pj_nama?: string; pj_user_id?: string; tenggat?: string }>
+    }
+
+    if (!b.project_id || !b.nomor || !b.judul) {
+      return reply.status(400).send({ error: 'project_id, nomor, dan judul wajib diisi' })
+    }
+
+    const db = request.db!
+    const cid = request.companyId!
+
+    const { data: proyek } = await db
+      .unsafe('projects', 'memastikan proyek milik tenant sebelum notulen dibuat')
+      .select('id').eq('id', b.project_id).eq('company_id', cid).maybeSingle()
+    if (!proyek) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+
+    const { data, error } = await db
+      .unsafe('notulen_rapat', 'menyimpan notulen; proyek sudah diverifikasi milik tenant')
+      .insert({
+        company_id: cid,
+        project_id: b.project_id,
+        nomor: b.nomor,
+        judul: b.judul,
+        tanggal: b.tanggal ?? hariIni(),
+        jenis: b.jenis ?? 'mingguan',
+        tempat: b.tempat ?? null,
+        hadir: b.hadir ?? null,
+        pembahasan: b.pembahasan ?? null,
+        created_by: request.currentUser!.id,
+      })
+      .select('id, nomor, tanggal, status')
+      .single()
+
+    if (error) {
+      if (error.code === '23505') {
+        return reply.status(409).send({ error: `Notulen ${b.nomor} sudah ada` })
+      }
+      if (error.code === '23514') {
+        return reply.status(422).send({ error: 'Jenis rapat tak dikenal' })
+      }
+      return reply.status(500).send({ error: error.message })
+    }
+
+    if (b.tindakan?.length) {
+      const { error: galatTindakan } = await db
+        .unsafe('notulen_tindakan', 'menyimpan butir tindakan notulen yang baru dibuat')
+        .insert(b.tindakan.map((t, i) => ({
+          company_id: cid,
+          notulen_id: data!.id,
+          urutan: i + 1,
+          uraian: t.uraian ?? '',
+          pj_nama: t.pj_nama ?? null,
+          pj_user_id: t.pj_user_id ?? null,
+          tenggat: t.tenggat ?? null,
+        })))
+
+      if (galatTindakan) {
+        // Notulen tetap tersimpan — ringkasan rapatnya sendiri berguna.
+        // Tapi butir yang gagal masuk HARUS terdengar: keputusan tanpa
+        // penanggung jawab adalah keputusan yang tak pernah dikerjakan.
+        request.log.error({ err: galatTindakan, notulen: data!.id },
+          'notulen tersimpan tapi butir tindakannya ditolak')
+        return reply.status(422).send({
+          error: 'Notulen tersimpan, tetapi butir tindakan ditolak — setiap butir wajib punya penanggung jawab dan uraian',
+          notulen: data,
+        })
+      }
+    }
+
+    return reply.status(201).send({ notulen: data })
+  })
+
+  // ── POST /api/v1/kendali-dokumen/tanda-tangan ───────────────────────────
+  app.post('/api/v1/kendali-dokumen/tanda-tangan', {
+    preHandler: [authenticate, requirePermission('documents:manage')],
+  }, async (request, reply) => {
+    const b = request.body as {
+      jenis_objek?: string
+      objek_id?: string
+      isi?: string
+      peran_penanda?: string
+      alasan?: string
+    }
+
+    if (!b.jenis_objek || !b.objek_id || !b.isi) {
+      return reply.status(400).send({ error: 'jenis_objek, objek_id, dan isi wajib diisi' })
+    }
+
+    // Sidik dihitung DI SERVER dari isi yang dikirim, bukan diterima jadi.
+    //
+    // Kalau klien yang mengirim hash-nya, ia bisa mengirim hash dokumen lain
+    // — dan tanda tangannya jadi bukti atas sesuatu yang tak pernah dibaca
+    // penandatangannya.
+    const sidik = createHash('sha256').update(b.isi, 'utf8').digest('hex')
+
+    const db = request.db!
+    const { data, error } = await db
+      .unsafe('tanda_tangan_elektronik', 'kategori B; company_id diisi dari sesi')
+      .insert({
+        company_id: request.companyId!,
+        jenis_objek: b.jenis_objek,
+        objek_id: b.objek_id,
+        penanda_tangan: request.currentUser!.id,
+        peran_penanda: b.peran_penanda ?? null,
+        sidik_isi: sidik,
+        alasan: b.alasan ?? null,
+        ip_penanda: request.ip ?? null,
+      })
+      .select('id, jenis_objek, objek_id, sidik_isi, ditandatangani_pada')
+      .single()
+
+    if (error) {
+      if (error.code === '23505') {
+        return reply.status(409).send({
+          error: 'Anda sudah menandatangani dokumen ini — tanda tangan ganda membuat "siapa yang mengesahkan" jadi ambigu',
+        })
+      }
+      if (error.code === '23514') {
+        return reply.status(422).send({ error: 'Jenis objek tak dikenal' })
+      }
+      return reply.status(500).send({ error: error.message })
+    }
+
+    return reply.status(201).send({ tandaTangan: data })
+  })
+}

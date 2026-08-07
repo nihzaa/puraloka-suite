@@ -715,6 +715,36 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
+      # Kendali dokumen (TUNDA kelompok D).
+      #
+      # Yang paling mahal kalau bocor:
+      #   • gambar "digantikan" tanpa menyebut penggantinya — yang membacanya
+      #     tahu gambar ini mati tapi tak tahu mana yang hidup, lalu tetap
+      #     mengerjakan yang lama
+      #   • transmittal "diterima" tanpa tanggal — klaim tanpa bukti, dan
+      #     bukti itulah seluruh gunanya transmittal
+      #   • butir rapat tanpa penanggung jawab — keputusan yang tak pernah
+      #     dikerjakan, dan rapat berikutnya membahasnya lagi
+      #   • tanda tangan tanpa sidik SHA-256 sah — tak bisa diverifikasi ulang
+      - name: Invarian kendali dokumen
+        run: node scripts/uji-invarian-dokumen.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      # LPAD MEMANGKAS nomor dokumen (cacat P1, ditemukan 2026-08-07).
+      #
+      # `LPAD('1001', 3, '0')` = '100' — Postgres memangkas, bukan hanya
+      # menambal. Begitu counter sebuah tenant melewati 999, nomor MR/PO/GR
+      # mulai BERULANG dan unique index menolak setiap INSERT berikutnya:
+      # penerimaan barang berhenti bisa dicatat sama sekali.
+      #
+      # Gejalanya menyesatkan — yang muncul "duplicate key", bukan "nomor
+      # terpangkas". Diperbaiki migrasi 217.
+      - name: Nomor dokumen tak terpangkas LPAD
+        run: node scripts/audit-lpad-memangkas.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
       - name: Invarian NCR
         run: node scripts/uji-invarian-ncr.mjs
         env:

@@ -4,7 +4,7 @@
 // Penegak: `node scripts/gen-tenant-map.mjs check` (CI) — build MERAH kalau
 // ada tabel yang belum terklasifikasi (ADR-011 §9.5 P3).
 //
-// 162 tabel · A=10 · AB=14 · ANCHOR=1 · B=48 · C=82 · D=7
+// 170 tabel · A=10 · AB=14 · ANCHOR=1 · B=56 · C=82 · D=7
 //
 // Arti kategori (ADR-011 §5 + audit T1):
 //   ANCHOR akar tenancy (projects) — company_id NOT NULL
@@ -94,6 +94,7 @@ export const PETA_TENANCY = {
   'invoice_line_items': { kategori: 'C', lewat: 'invoice_id' },  // invoice_line_items.invoice_id → invoices.project_id
   'invoice_penalties': { kategori: 'C', lewat: 'invoice_id' },  // invoice_penalties.invoice_id → invoices.project_id
   'invoices': { kategori: 'C', lewat: 'project_id' },  // invoices.project_id
+  'jadwal_distribusi_laporan': { kategori: 'B' },
   'jadwal_perawatan': { kategori: 'B' },
   'journal_entries': { kategori: 'B' },
   'journal_entry_lines': { kategori: 'C', lewat: 'account_id' },  // journal_entry_lines.account_id
@@ -108,6 +109,7 @@ export const PETA_TENANCY = {
   'material_request_items': { kategori: 'C', lewat: 'mr_id' },  // material_request_items.mr_id → material_requests.project_id
   'material_requests': { kategori: 'C', lewat: 'project_id' },  // material_requests.project_id
   'materials': { kategori: 'AB' },
+  'matriks_distribusi': { kategori: 'B' },
   'menu_items': { kategori: 'A' },
   'method_statement': { kategori: 'B' },
   'milestone_dependencies': { kategori: 'B' },
@@ -119,6 +121,8 @@ export const PETA_TENANCY = {
   'notification_rule_targets': { kategori: 'B' },
   'notification_rules': { kategori: 'B' },
   'notifications': { kategori: 'B' },
+  'notulen_rapat': { kategori: 'B' },
+  'notulen_tindakan': { kategori: 'B' },
   'payments': { kategori: 'C', lewat: 'invoice_id' },  // payments.invoice_id → invoices.project_id
   'pemakaian_alat': { kategori: 'B' },
   'penawaran_subkon': { kategori: 'C', lewat: 'tender_id' },  // penawaran_subkon.tender_id → tender_subkon.project_id
@@ -156,6 +160,7 @@ export const PETA_TENANCY = {
   'rap_labor_line': { kategori: 'C', lewat: 'rap_budget_id' },  // rap_labor_line.rap_budget_id → rap_budget.project_id
   'rap_material_line': { kategori: 'C', lewat: 'rap_budget_id' },  // rap_material_line.rap_budget_id → rap_budget.project_id
   'rebar_takeoff': { kategori: 'C', lewat: 'estimate_item_id' },  // rebar_takeoff.estimate_item_id → estimate_items.estimate_version_id → estimate_versions.scenario_id → scenarios.project_id
+  'register_gambar': { kategori: 'B' },
   'resources': { kategori: 'A' },
   'rfq': { kategori: 'C', lewat: 'project_id' },  // rfq.project_id
   'rfq_penawaran': { kategori: 'C', lewat: 'rfq_id' },  // rfq_penawaran.rfq_id → rfq.project_id
@@ -182,9 +187,12 @@ export const PETA_TENANCY = {
   'supplier_payment_allocations': { kategori: 'B' },
   'supplier_payments': { kategori: 'B' },
   'suppliers': { kategori: 'B' },
+  'tanda_tangan_elektronik': { kategori: 'B' },
   'tax_records': { kategori: 'C', lewat: 'invoice_id' },  // tax_records.invoice_id → invoices.project_id
   'tender_subkon': { kategori: 'C', lewat: 'project_id' },  // tender_subkon.project_id
   'termin_schedules': { kategori: 'C', lewat: 'project_id' },  // termin_schedules.project_id
+  'transmittal': { kategori: 'B' },
+  'transmittal_item': { kategori: 'B' },
   'units': { kategori: 'A' },
   'users': { kategori: 'D' },  // Identitas lintas-tenant. Satu orang bisa jadi anggota >1 company dengan peran berbeda — keanggotaan hidup di company_members (ADR-011 D6), bukan di users.
   'v_situs_publik': { kategori: 'B', view: true },

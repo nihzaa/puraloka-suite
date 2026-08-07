@@ -321,12 +321,12 @@ export const PETA_MENU: GrupMenu[] = [
     key: 'g-dokumen', label: 'Dokumen', icon: 'FolderOpen', urutan: 160,
     items: [
       { key: 'dk-register', label: 'Register Dokumen', status: 'sebagian', href: '/proyek', tabProyek: 'dokumen', guna: 'Daftar dokumen proyek beserta versinya.' },
-      { key: 'dk-transmittal', label: 'Transmittal', status: 'rencana', guna: 'Bukti serah terima dokumen antar pihak.', catatan: 'Penting saat sengketa: siapa menerima apa, kapan.' },
-      { key: 'dk-gambar', label: 'Register Gambar', status: 'rencana', guna: 'Gambar kerja beserta revisinya.', catatan: 'Memakai gambar revisi lama adalah penyebab rework yang mahal.' },
-      { key: 'dk-notulen', label: 'Notulen Rapat', status: 'rencana', guna: 'Catatan rapat & keputusan yang diambil.', catatan: 'Sekarang tersebar di WhatsApp.' },
+      { key: 'dk-transmittal', label: 'Transmittal', status: 'hidup', href: '/dokumen/kendali', guna: 'Bukti serah terima dokumen antar pihak.', catatan: 'Bukti KIRIM dan bukti TERIMA disimpan terpisah — keduanya klaim berbeda, dan selisihnya yang diperdebatkan saat pekerjaan salah gambar dibongkar. Yang tak berjawab >7 hari ditandai menggantung.' },
+      { key: 'dk-gambar', label: 'Register Gambar', status: 'hidup', href: '/dokumen/kendali', guna: 'Gambar kerja beserta revisinya.', catatan: 'Gambar berstatus `berlaku` yang sudah punya revisi lebih tinggi ditandai USANG — dihitung dari perbandingan revisi, bukan dari kolom status yang mudah lupa diperbarui.' },
+      { key: 'dk-notulen', label: 'Notulen Rapat', status: 'hidup', href: '/dokumen/kendali', guna: 'Catatan rapat & keputusan yang diambil.', catatan: 'Butir tindakan WAJIB punya penanggung jawab (constraint DB). Butir terbuka TANPA tenggat dihitung terpisah — ia tak akan pernah muncul sebagai `lewat tenggat`, hanya mengendap.' },
       { key: 'dk-approval', label: 'Approval Dokumen', status: 'hidup', href: '/pengaturan/approval', guna: 'Rantai persetujuan berjenjang yang bisa dikonfigurasi.' },
-      { key: 'dk-distribusi', label: 'Matriks Distribusi', status: 'rencana', guna: 'Siapa menerima dokumen jenis apa.', catatan: 'Menghindari dokumen penting tak sampai ke yang butuh.' },
-      { key: 'dk-esign', label: 'Tanda Tangan Elektronik', status: 'rencana', guna: 'Pengesahan dokumen tanpa cetak.', catatan: 'Butuh penyedia e-meterai/e-sign tersertifikasi.' },
+      { key: 'dk-distribusi', label: 'Matriks Distribusi', status: 'hidup', href: '/dokumen/kendali', guna: 'Siapa menerima dokumen jenis apa.', catatan: 'Penerima WAJIB bisa dihubungi: akun sistem ATAU surel ber-@ (constraint DB). Penerima yang tak bisa dihubungi bukan penerima.' },
+      { key: 'dk-esign', label: 'Tanda Tangan Elektronik', status: 'sebagian', href: '/dokumen/kendali', guna: 'Pengesahan dokumen tanpa cetak.', catatan: 'Yang disimpan SIDIK SHA-256 isi dokumen saat ditandatangani (dihitung di server, bukan diterima dari klien) — bisa dibuktikan dokumennya tak berubah sesudahnya. e-meterai tersertifikasi Peruri BELUM; itu yang menjadikannya sebagian.' },
     ],
   },
   {
@@ -350,7 +350,7 @@ export const PETA_MENU: GrupMenu[] = [
       { key: 'bi-kpi', label: 'KPI Perusahaan', status: 'sebagian', href: '/laporan', guna: 'CPI, SPI, margin, umur piutang, dan backlog.' },
       { key: 'bi-builder', label: 'Report Builder', status: 'rencana', guna: 'Menyusun laporan sendiri tanpa menunggu dibuatkan.', catatan: 'Berguna saat kebutuhan laporan mulai beragam.' },
       { key: 'bi-export', label: 'Ekspor Excel & PDF', status: 'hidup', href: '/laporan', guna: 'Mengunduh laporan untuk dibawa ke luar sistem.' },
-      { key: 'bi-terjadwal', label: 'Laporan Terjadwal', status: 'rencana', guna: 'Kirim laporan otomatis tiap periode.', catatan: 'Butuh integrasi email yang sudah disiapkan di halaman Sistem.' },
+      { key: 'bi-terjadwal', label: 'Laporan Terjadwal', status: 'sebagian', href: '/dokumen/kendali', guna: 'Kirim laporan otomatis tiap periode.', catatan: 'Jadwal + deteksi MACET hidup (gagal 3x berturut ATAU telat >2x iramanya, meski nol galat tercatat — proses penjadwal yang mati tak meninggalkan galat). Pengiriman surel otomatisnya sendiri belum dijalankan.' },
     ],
   },
   {

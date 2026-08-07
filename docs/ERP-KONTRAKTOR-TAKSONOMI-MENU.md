@@ -310,12 +310,12 @@ sebagai kategori B/C. 045 dibiarkan di tempatnya — riwayat tak diubah.
 | Menu | Status | Catatan |
 |---|---|---|
 | Register dokumen + kontrol revisi | 🟡 | Kolom `version` saja, tanpa riwayat revisi |
-| Transmittal | 🔴 | `document_access_logs` = jejak baca, bukan transmittal |
-| Register gambar | 🔴 | |
-| Notulen rapat | 🔴 | |
+| Transmittal | ✅ | Migrasi 215 · `transmittal` + `transmittal_item` · `/dokumen/kendali`. Bukti KIRIM dan bukti TERIMA disimpan terpisah — keduanya klaim berbeda, dan selisihnya yang diperdebatkan saat pekerjaan salah gambar dibongkar. Constraint menolak `diterima` tanpa tanggal, dan terima-sebelum-kirim. Yang tak berjawab >7 hari ditandai menggantung |
+| Register gambar | ✅ | Migrasi 215 · `register_gambar` · `/dokumen/kendali`. Gambar berstatus `berlaku` yang sudah punya revisi lebih tinggi ditandai **USANG** — dihitung dari perbandingan revisi, bukan dari kolom status yang mudah lupa diperbarui. Constraint menolak `digantikan` tanpa menyebut penggantinya |
+| Notulen rapat | ✅ | Migrasi 215 · `notulen_rapat` + `notulen_tindakan` · `/dokumen/kendali`. Butir tindakan WAJIB punya penanggung jawab (constraint DB). Butir terbuka TANPA tenggat dihitung terpisah — ia tak akan pernah muncul sebagai `lewat tenggat`, hanya mengendap sampai rapat berikutnya membahasnya lagi |
 | Approval workflow dokumen | ✅ | Engine Program B |
-| Matriks distribusi | 🔴 | |
-| Tanda tangan elektronik | 🔴 | Rencana signing internal = Modul 11b ERP_MASTER_PLAN |
+| Matriks distribusi | ✅ | Migrasi 215 · `matriks_distribusi` · `/dokumen/kendali`. Penerima WAJIB bisa dihubungi: akun sistem ATAU surel ber-@ (constraint DB). Penerima yang tak bisa dihubungi bukan penerima |
+| Tanda tangan elektronik | 🟡 | Migrasi 215 · `tanda_tangan_elektronik` · `/dokumen/kendali`. Yang disimpan **sidik SHA-256** isi dokumen saat ditandatangani, dihitung DI SERVER (klien tak bisa mengirim hash dokumen lain) — bisa dibuktikan dokumennya tak berubah sesudahnya. e-meterai tersertifikasi Peruri BELUM; itu yang menjadikannya sebagian |
 
 ---
 
@@ -336,7 +336,7 @@ Semua 🔴 — terkonfirmasi.
 | KPI: CPI, SPI, margin, DSO, backlog | 🟡 | Koreksi dari 🔴: CPI/SPI ✅ per proyek; margin ✅; DSO/backlog 🔴 |
 | Report builder | 🔴 | Rekomendasi: jangan dibangun |
 | Export Excel / PDF | ✅ | Keduanya ada (XLSX + `reports/export-pdf` + invoice PDF) |
-| Distribusi laporan terjadwal | 🔴 | |
+| Distribusi laporan terjadwal | 🟡 | Migrasi 215 · `jadwal_distribusi_laporan` · `/dokumen/kendali`. Jadwal + deteksi **MACET** hidup: gagal 3× berturut ATAU telat >2× iramanya sendiri meski nol galat tercatat (proses penjadwal yang mati tak meninggalkan galat). Pengiriman surel otomatisnya sendiri belum dijalankan |
 
 ---
 
