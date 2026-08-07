@@ -108,8 +108,17 @@ for (const [key, db] of petaDb) {
   // `/m/<key>` di DB berarti "belum punya halaman sendiri" — dan peta-menu.ts
   // menyatakan hal yang sama dengan TIDAK memberi href sama sekali. Keduanya
   // sepakat; bentuknya saja berbeda.
-  const dbHref = db.href === `/m/${key}` ? null : db.href
-  if ((ts.href ?? null) !== (dbHref ?? null)) {
+  // Query string dibuang: `?tab=besar` menentukan tab yang terbuka, bukan
+  // halaman yang dituju. Membandingkannya akan melaporkan drift untuk menu
+  // yang justru BARU SAJA diperbaiki supaya menunjuk tab yang tepat.
+  // Dipangkas di KEDUA sisi. Memangkas satu sisi saja hanya memindahkan
+  // selisihnya: `/akuntansi` (DB terpangkas) vs `/akuntansi?tab=besar` (TS
+  // utuh) tetap terhitung berbeda, dan angkanya tak pernah turun.
+  const potong = (h) => (h ? h.split('?')[0] : h)
+  const hrefTanpaQuery = potong(db.href)
+  const tsHref = potong(ts.href ?? null)
+  const dbHref = hrefTanpaQuery === `/m/${key}` ? null : hrefTanpaQuery
+  if ((tsHref ?? null) !== (dbHref ?? null)) {
     hrefBeda.push({ key, ts: ts.href ?? '(tanpa href)', db: db.href })
   }
   if (ts.label && db.label && ts.label !== db.label) {

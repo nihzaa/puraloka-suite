@@ -1,6 +1,6 @@
 {
   "_catatan": "Lantai drift peta-menu.ts vs menu_items. Boleh turun, TIDAK boleh naik.",
-  "hrefBeda": 18,
+  "hrefBeda": 16,
   "labelBeda": 0,
   "hanyaDb": 25,
   "_diukur": "2026-08-07, sesudah migrasi 221-226 + sinkronisasi peta-menu.",

@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense } from "react";
+import { useTabUrl } from "@/lib/use-tab-url";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { api, makeAbortController } from "@/lib/api";
 import { useIzin } from "@/lib/use-izin";
@@ -70,6 +72,10 @@ const STATUS_META: Record<string, { label: string; warna: string; bg: string; bo
 
 type TabAkuntansi = "jurnal" | "akun" | "neraca" | "besar" | "laporan";
 
+// Daftar nilai yang sah untuk `?tab=`. Diturunkan dari tipe di atas supaya
+// keduanya tak bisa berselisih diam-diam saat salah satu disunting.
+const TAB_SAH = ["jurnal", "akun", "neraca", "besar", "laporan"] as const;
+
 /**
  * Judul halaman per tab.
  *
@@ -94,8 +100,24 @@ const SUBJUDUL_TAB: Record<TabAkuntansi, string> = {
   laporan: "Posisi keuangan dan hasil usaha badan usaha ini pada satu periode.",
 };
 
+/**
+ * `useSearchParams` (lewat `useTabUrl`) memaksa render sisi klien, dan Next
+ * menuntut batas Suspense untuk itu — tanpa ini `pnpm build` gagal saat
+ * prerender. Sudah pernah terjadi di `/jadwal`.
+ */
 export default function AkuntansiPage() {
-  const [tab, setTab] = useState<TabAkuntansi>("jurnal");
+  return (
+    <Suspense fallback={null}>
+      <IsiAkuntansi />
+    </Suspense>
+  );
+}
+
+function IsiAkuntansi() {
+  // Tab hidup di URL, bukan hanya di state: itulah yang membuat sub-menu
+  // "Buku Besar" dan "Jurnal Umum" bisa menunjuk tab yang mereka janjikan,
+  // alih-alih sama-sama mendarat di tab pertama.
+  const [tab, setTab] = useTabUrl<TabAkuntansi>(TAB_SAH, "jurnal");
   const [akun, setAkun] = useState<Akun[]>([]);
   const [jurnal, setJurnal] = useState<Jurnal[]>([]);
   const [neraca, setNeraca] = useState<BarisNeraca[]>([]);

@@ -97,8 +97,16 @@ for (const f of layouts) {
   }
 }
 
-const sidebar = new Set(menu.map((r) => r.href))
-const nav = new Set([...sidebar, ...tab.keys()])
+// Query string DIBUANG sebelum dibandingkan dengan daftar halaman.
+//
+// `/akuntansi?tab=besar` dan `/akuntansi` adalah halaman yang SAMA; yang
+// berbeda hanya tab yang terbuka (`lib/use-tab-url.ts`). Tanpa pemangkasan
+// ini, penjaga melaporkan empat "link mati" untuk halaman yang jelas ada —
+// dan penjaga yang merah karena hal yang benar akan dimatikan orang.
+const tanpaQuery = (h) => (h ? h.split('?')[0].split('#')[0] : h)
+
+const sidebar = new Set(menu.map((r) => tanpaQuery(r.href)))
+const nav = new Set([...sidebar, ...[...tab.keys()].map(tanpaQuery)])
 
 // ── route nyata ─────────────────────────────────────────────────────────────
 const rute = execSync('find apps/web/app -name page.tsx', { cwd: AKAR, encoding: 'utf8' })
