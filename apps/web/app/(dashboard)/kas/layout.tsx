@@ -39,7 +39,7 @@ import { ArrowRightLeft, Plus } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { useIzin } from "@/lib/use-izin";
 import { C } from "@/lib/warna-ui";
-import { NavBagian, type Bagian } from "@/components/nav-bagian";
+import { JudulBagian } from "@/components/judul-bagian";
 import { CreateExpenseModal, CreateTransferModal } from "./_bersama/modal";
 import type { CashAccount, CashSummary } from "./_bersama/tipe";
 
@@ -75,71 +75,41 @@ export default function KasLayout({ children }: { children: React.ReactNode }) {
     return () => ac.abort();
   }, [muatRingkas]);
 
-  const bagian: Bagian[] = [
-    { href: "/kas", label: "Ringkasan" },
-    { href: "/kas/akun", label: "Akun Kas" },
-    {
-      href: "/kas/transfer", label: "Transfer Dana",
-      jumlah: ringkas?.pendingTransferCount,
-    },
-    {
-      href: "/kas/pengeluaran", label: "Pengeluaran",
-      jumlah: ringkas?.pendingExpenseCount,
-      // Pengeluaran menunggu = uang yang belum keluar karena menunggu SAYA.
-      // Itu satu-satunya angka di navigasi ini yang menuntut tindakan hari
-      // ini, jadi ia satu-satunya yang boleh merah.
-      mendesak: (ringkas?.pendingExpenseCount ?? 0) > 0,
-    },
-  ];
 
   return (
     <div style={{
       padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
       width: "100%", maxWidth: "var(--w-page)", margin: "0 auto",
     }}>
-      <div className="rise" style={{
-        display: "flex", justifyContent: "space-between", alignItems: "flex-start",
-        gap: 12, flexWrap: "wrap", marginBottom: 20,
-      }}>
-        <div>
-          <h1 style={{
-            fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700,
-            color: C.text, marginBottom: 4,
-          }}>Manajemen Kas</h1>
-          <p style={{ fontSize: 13, color: C.mid }}>
-            Akun kas, perpindahan dana, dan pengeluaran proyek
-          </p>
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          {bolehTransfer && (
-            <button onClick={() => setBukaTransfer(true)} style={{
+      <JudulBagian
+        cadangan="Manajemen Kas"
+        aksi={<>
+            {bolehTransfer && (
+              <button onClick={() => setBukaTransfer(true)} style={{
+                display: "flex", alignItems: "center", gap: 6, padding: "8px 16px",
+                borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)",
+                color: C.text, fontSize: 13, fontWeight: 500, cursor: "pointer",
+              }}>
+                <ArrowRightLeft size={14} /> Transfer
+              </button>
+            )}
+            <button onClick={() => setBukaPengeluaran(true)} style={{
               display: "flex", alignItems: "center", gap: 6, padding: "8px 16px",
-              borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)",
-              color: C.text, fontSize: 13, fontWeight: 500, cursor: "pointer",
-            }}>
-              <ArrowRightLeft size={14} /> Transfer
+              borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)",
+              fontSize: 13, fontWeight: 600, cursor: "pointer",
+            }}
+              onMouseEnter={e => { e.currentTarget.style.background = "var(--aksen-pekat)"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = C.navy; }}
+            >
+              <Plus size={14} /> Catat Pengeluaran
             </button>
-          )}
-          <button onClick={() => setBukaPengeluaran(true)} style={{
-            display: "flex", alignItems: "center", gap: 6, padding: "8px 16px",
-            borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)",
-            fontSize: 13, fontWeight: 600, cursor: "pointer",
-          }}
-            onMouseEnter={e => { e.currentTarget.style.background = "var(--aksen-pekat)"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = C.navy; }}
-          >
-            <Plus size={14} /> Catat Pengeluaran
-          </button>
-        </div>
-      </div>
+        </>}
+      />
 
       <div className="rise rise-2" style={{
         background: "var(--surface)", border: `1px solid ${C.border}`,
         borderRadius: 14, boxShadow: "var(--naik-1)", overflow: "hidden",
       }}>
-        <div style={{ padding: "0 8px" }}>
-          <NavBagian bagian={bagian} />
-        </div>
 
         {/* Padding isi ADA DI SINI, satu tempat untuk seluruh bagian — pelajaran
             langsung dari `keuangan/layout.tsx`, tempat tiap bagian sempat

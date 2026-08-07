@@ -39,6 +39,7 @@ import punchListRoutes from './routes/v1/punch-list.js'
 import ncrRoutes from './routes/v1/ncr.js'
 import absensiRoutes from './routes/v1/absensi.js'
 import rekonsiliasiMaterialRoutes from './routes/v1/rekonsiliasi-material.js'
+import rekonsiliasiBankRoutes from './routes/v1/rekonsiliasi-bank.js'
 import transferStokRoutes from './routes/v1/transfer-stok.js'
 import materialKlienRoutes from './routes/v1/material-klien.js'
 import rfqRoutes from './routes/v1/rfq.js'
@@ -293,6 +294,7 @@ await app.register(punchListRoutes)
 await app.register(ncrRoutes)
 await app.register(absensiRoutes)
 await app.register(rekonsiliasiMaterialRoutes)
+await app.register(rekonsiliasiBankRoutes)
 await app.register(transferStokRoutes)
 await app.register(materialKlienRoutes)
 await app.register(rfqRoutes)

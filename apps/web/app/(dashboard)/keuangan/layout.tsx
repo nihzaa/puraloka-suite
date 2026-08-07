@@ -29,7 +29,7 @@ import { useEffect, useState } from "react";
 import { Wallet, TrendingUp, TrendingDown, ArrowUpRight, Clock, Banknote } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
-import { NavBagian, type Bagian } from "@/components/nav-bagian";
+import { JudulBagian } from "@/components/judul-bagian";
 
 interface RingkasKeuangan {
   totalKas: number; totalKasMain: number; totalKasCollector: number;
@@ -88,25 +88,6 @@ export default function KeuanganLayout({ children }: { children: React.ReactNode
     return () => ac.abort();
   }, []);
 
-  const bagian: Bagian[] = [
-    { href: "/keuangan", label: "Ringkasan" },
-    // IPC mendahului Invoice karena begitulah urutan kerjanya: progres diakui
-    // dan disertifikasi dulu, penagihan menyusul dari sertifikat itu.
-    { href: "/keuangan/ipc", label: "Sertifikat IPC" },
-    { href: "/keuangan/invoice", label: "Invoice" },
-    { href: "/keuangan/pembayaran", label: "Pembayaran Masuk" },
-    {
-      href: "/keuangan/kasbon", label: "Kasbon",
-      jumlah: ringkas?.kasbonPendingCount,
-      // Kasbon menunggu = uang yang belum keluar karena menunggu SAYA.
-      // Itu satu-satunya angka di navigasi ini yang menuntut tindakan hari
-      // ini, jadi ia satu-satunya yang boleh merah.
-      mendesak: (ringkas?.kasbonPendingCount ?? 0) > 0,
-    },
-    { href: "/keuangan/arus-kas", label: "Arus Kas" },
-    { href: "/keuangan/profitabilitas", label: "Profitabilitas" },
-    { href: "/keuangan/contingency", label: "Contingency" },
-  ];
 
   return (
     <div style={{
@@ -114,13 +95,7 @@ export default function KeuanganLayout({ children }: { children: React.ReactNode
       width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
     }}>
       <div className="rise" style={{ marginBottom: 20 }}>
-        <h1 style={{
-          fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700,
-          color: C.text, marginBottom: 4,
-        }}>Keuangan</h1>
-        <p style={{ fontSize: 13, color: C.mid }}>
-          Invoice, pembayaran, kasbon, dan arus kas proyek
-        </p>
+        <JudulBagian cadangan="Keuangan" keterangan="Invoice, pembayaran, kasbon, dan arus kas proyek" />
       </div>
 
       {/* KPI modul — hanya disembunyikan kalau gagal dimuat. Menampilkan
@@ -170,9 +145,6 @@ export default function KeuanganLayout({ children }: { children: React.ReactNode
         borderRadius: 14, boxShadow: "var(--naik-1)",
         overflow: "hidden",
       }}>
-        <div style={{ padding: "0 8px" }}>
-          <NavBagian bagian={bagian} />
-        </div>
 
         {/* Padding isi ADA DI SINI, satu tempat untuk seluruh bagian.
             Diukur 2026-08-07, tiap bagian menyediakan padding-nya sendiri

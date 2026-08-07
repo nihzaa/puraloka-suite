@@ -31,7 +31,7 @@ import { useCallback, useEffect, useState } from "react";
 import { HardHat, Clock, Banknote, Users, AlertTriangle, FileText } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
-import { NavBagian, type Bagian } from "@/components/nav-bagian";
+import { JudulBagian } from "@/components/judul-bagian";
 import { fmt, type Summary, type WorkerKasbon, type ProgressPayment } from "./_bersama/tipe";
 
 /**
@@ -103,26 +103,6 @@ export default function MandorLayout({ children }: { children: React.ReactNode }
     return () => ac.abort();
   }, [muat]);
 
-  const bagian: Bagian[] = [
-    { href: "/mandor", label: "Ringkasan" },
-    // Tender mendahului Penugasan karena begitulah urutan kerjanya: borongan
-    // ditenderkan lebih dulu, yang ditugaskan adalah pemenangnya.
-    { href: "/mandor/tender", label: "Tender" },
-    { href: "/mandor/penugasan", label: "Penugasan" },
-    {
-      href: "/mandor/upah", label: "Laporan Upah",
-      jumlah: ringkas?.pendingReports,
-      // Laporan menunggu = upah yang belum sampai ke tukang karena menunggu
-      // SAYA. Itu satu-satunya angka di navigasi ini yang menuntut tindakan
-      // hari ini, jadi ia satu-satunya yang boleh merah.
-      mendesak: (ringkas?.pendingReports ?? 0) > 0,
-    },
-    { href: "/mandor/kasbon", label: "Kasbon Tukang", jumlah: kasbonAktif },
-    { href: "/mandor/penagihan", label: "Penagihan Progress", jumlah: penagihanMenunggu },
-    { href: "/mandor/retensi", label: "Retensi" },
-    { href: "/mandor/absensi", label: "Absensi" },
-    { href: "/mandor/tukang", label: "Daftar Tukang" },
-  ];
 
   return (
     <div style={{
@@ -139,13 +119,7 @@ export default function MandorLayout({ children }: { children: React.ReactNode }
           <HardHat size={20} color={C.navy} />
         </div>
         <div style={{ minWidth: 0 }}>
-          <h1 style={{
-            fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700,
-            color: C.text, margin: 0, lineHeight: 1.15,
-          }}>Mandor</h1>
-          <p style={{ fontSize: 13, color: C.mid, margin: "2px 0 0" }}>
-            Penugasan, laporan upah, kasbon tukang, dan manajemen tenaga kerja
-          </p>
+        <JudulBagian cadangan="Mandor" keterangan="Penugasan, laporan upah, kasbon tukang, dan manajemen tenaga kerja" />
         </div>
       </div>
 
@@ -195,9 +169,6 @@ export default function MandorLayout({ children }: { children: React.ReactNode }
         borderRadius: 14, boxShadow: "var(--naik-1)",
         overflow: "hidden",
       }}>
-        <div style={{ padding: "0 8px" }}>
-          <NavBagian bagian={bagian} />
-        </div>
 
         {/* Padding isi ADA DI SINI, satu tempat untuk seluruh bagian —
             supaya tak lahir tiga jarak berbeda seperti yang terjadi di modul

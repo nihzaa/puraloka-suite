@@ -38,7 +38,7 @@
 import { useEffect, useState } from "react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
-import { NavBagian, type Bagian } from "@/components/nav-bagian";
+import { JudulBagian } from "@/components/judul-bagian";
 import type { KpiProcurement } from "./_bersama/tipe";
 
 export default function ProcurementLayout({ children }: { children: React.ReactNode }) {
@@ -56,31 +56,6 @@ export default function ProcurementLayout({ children }: { children: React.ReactN
     return () => ac.abort();
   }, []);
 
-  const bagian: Bagian[] = [
-    { href: "/procurement", label: "Ringkasan" },
-    {
-      href: "/procurement/permintaan", label: "Permintaan",
-      jumlah: kpi?.mr_pending_approval,
-      // MR menunggu persetujuan = pekerjaan lapangan yang berhenti menunggu
-      // SAYA. Itu satu-satunya angka di navigasi ini yang menuntut tindakan
-      // hari ini, jadi ia satu-satunya yang boleh merah.
-      mendesak: (kpi?.mr_pending_approval ?? 0) > 0,
-    },
-    { href: "/procurement/pesanan",    label: "Pesanan" },
-    { href: "/procurement/penerimaan", label: "Penerimaan" },
-    // Lanjutan menyusul Penerimaan: kontrak payung mendahului PO, dan
-    // expediting melacak PO yang barangnya belum diterima. Urutannya
-    // mengikuti urutan kerja, bukan urutan pembuatan halamannya.
-    { href: "/procurement/lanjutan",   label: "Kontrak & Logistik" },
-    { href: "/procurement/hutang",     label: "Hutang Supplier", jumlah: kpi?.overdue_invoices },
-    { href: "/procurement/stok",       label: "Stok",            jumlah: kpi?.low_stock_count },
-    { href: "/procurement/supplier",   label: "Supplier" },
-    // Kualifikasi menyusul Supplier: yang dinilai adalah supplier yang sudah
-    // terdaftar, jadi urutannya mengikuti urutan kerjanya.
-    { href: "/procurement/kualifikasi", label: "Kualifikasi Vendor" },
-    { href: "/procurement/material",   label: "Material" },
-    { href: "/procurement/laporan",    label: "Laporan" },
-  ];
 
   return (
     <div style={{
@@ -92,22 +67,13 @@ export default function ProcurementLayout({ children }: { children: React.ReactN
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
 
       <div className="rise" style={{ marginBottom: 20 }}>
-        <h1 style={{
-          fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700,
-          color: C.text, marginBottom: 4,
-        }}>Pengadaan &amp; Persediaan</h1>
-        <p style={{ fontSize: 13, color: C.mid }}>
-          Permintaan material, pesanan ke supplier, penerimaan barang, dan hutang
-        </p>
+        <JudulBagian cadangan="Pengadaan & Persediaan" keterangan="Permintaan material, pesanan ke supplier, penerimaan barang, dan hutang" />
       </div>
 
       <div className="rise rise-2" style={{
         background: "var(--surface)", border: `1px solid ${C.border}`,
         borderRadius: 14, boxShadow: "var(--naik-1)", overflow: "hidden",
       }}>
-        <div style={{ padding: "0 8px" }}>
-          <NavBagian bagian={bagian} />
-        </div>
 
         {/* Padding isi ADA DI SINI, satu tempat untuk seluruh bagian —
             pelajaran langsung dari `keuangan/layout.tsx`, tempat tiap bagian

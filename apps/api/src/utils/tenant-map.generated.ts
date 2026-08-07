@@ -4,7 +4,7 @@
 // Penegak: `node scripts/gen-tenant-map.mjs check` (CI) — build MERAH kalau
 // ada tabel yang belum terklasifikasi (ADR-011 §9.5 P3).
 //
-// 178 tabel · A=10 · AB=14 · ANCHOR=1 · B=64 · C=82 · D=7
+// 182 tabel · A=10 · AB=14 · ANCHOR=1 · B=67 · C=83 · D=7
 //
 // Arti kategori (ADR-011 §5 + audit T1):
 //   ANCHOR akar tenancy (projects) — company_id NOT NULL
@@ -134,8 +134,10 @@ export const PETA_TENANCY = {
   'payments': { kategori: 'C', lewat: 'invoice_id' },  // payments.invoice_id → invoices.project_id
   'pemakaian_alat': { kategori: 'B' },
   'penawaran_subkon': { kategori: 'C', lewat: 'tender_id' },  // penawaran_subkon.tender_id → tender_subkon.project_id
+  'pencocokan_bank': { kategori: 'B' },
   'penerimaan_material_klien': { kategori: 'C', lewat: 'project_id' },  // penerimaan_material_klien.project_id
   'penggunaan_contingency': { kategori: 'C', lewat: 'pos_id' },  // penggunaan_contingency.pos_id → pos_contingency.project_id
+  'penyesuaian_rekonsiliasi': { kategori: 'B' },
   'penyusutan_alat': { kategori: 'B' },
   'permission_scopes': { kategori: 'A' },
   'permissions': { kategori: 'A' },
@@ -169,6 +171,8 @@ export const PETA_TENANCY = {
   'rap_material_line': { kategori: 'C', lewat: 'rap_budget_id' },  // rap_material_line.rap_budget_id → rap_budget.project_id
   'rebar_takeoff': { kategori: 'C', lewat: 'estimate_item_id' },  // rebar_takeoff.estimate_item_id → estimate_items.estimate_version_id → estimate_versions.scenario_id → scenarios.project_id
   'register_gambar': { kategori: 'B' },
+  'rekening_koran': { kategori: 'B' },
+  'rekening_koran_baris': { kategori: 'C', lewat: 'koran_id' },  // rekening_koran_baris.koran_id
   'resources': { kategori: 'A' },
   'rfq': { kategori: 'C', lewat: 'project_id' },  // rfq.project_id
   'rfq_penawaran': { kategori: 'C', lewat: 'rfq_id' },  // rfq_penawaran.rfq_id → rfq.project_id
