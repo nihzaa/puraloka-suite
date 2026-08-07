@@ -186,8 +186,8 @@ Jantung ERP kontraktor. Lihat skor Lima Pembeda di bawah.
 | Progress claim / payment certificate | 🟡 | `progress_payments` ada; sertifikat formal belum |
 | Retensi subkontrak | 🟡 | UI hidup: `mandor/retensi/page.tsx` + `retensi-section.tsx` (diukur 2026-08-06) |
 | Back-charge / potongan | 🟡 | Potongan kasbon di settlement + `wage_deductions` ada; back-charge formal belum |
-| Evaluasi kinerja subkontraktor | 🔴 | |
-| Kepatuhan (izin, asuransi, pajak) | 🔴 | |
+| Evaluasi kinerja subkontraktor | ✅ | Migrasi 218 · `evaluasi_subkon` · `/kepatuhan`. Lima dimensi berbobot (K3 25%, kepatuhan 20% — sengaja besar). **Kecelakaan kerja MENGGUGURKAN**, bukan diratakan: subkon berskor K3 90 dengan satu kecelakaan bukan subkon yang aman, dan rata-rata lima dimensi menelan kejadian itu sepenuhnya |
+| Kepatuhan (izin, asuransi, pajak) | ✅ | Migrasi 218 · `dokumen_kepatuhan` · `/kepatuhan`. 15 jenis (NIB/SIUJK/SBU/BPJS/asuransi CAR-TPL-CPM/SMK3/ISO…). Dokumen bercentang `terverifikasi` yang masa berlakunya HABIS ditandai khusus — centang itu hanya berarti seseorang **pernah** memeriksanya. Jawaban gabungan `bolehBekerja` menyatukan dokumen + kinerja: data nyata di dev, PT berskor 89,1 (tertinggi) TIDAK boleh bekerja karena asuransinya mati |
 | **Manajemen mandor** | ✅ | |
 | Kasbon mandor & tukang | ✅ | |
 | Upah harian / borongan / progress | ✅ | |
@@ -204,7 +204,7 @@ Jantung ERP kontraktor. Lihat skor Lima Pembeda di bawah.
 | Log pemakaian alat | ✅ | Migrasi 211 · `pemakaian_alat` · `/aset/operasional`. Meter terkini diambil dari pembacaan **tertinggi**, bukan entri terbaru — koreksi mundur tak boleh membuat alat terlihat belum waktunya diservis. `UNIQUE(asset_id, tanggal)` mencegah jam operasi terhitung dua kali |
 | Log cuaca | 🟡 | Field `weather` di progress_logs |
 | Instruksi lapangan | 🟡 | UI hidup: `instruksi-lapangan-section.tsx` → `/field-instructions` (diukur 2026-08-06) |
-| Izin kerja (work permit) | 🔴 | |
+| Izin kerja (work permit) | ✅ | Migrasi 218 · `izin_kerja` · `/kepatuhan`. 9 jenis pekerjaan berisiko. **Pemutus WAJIB berbeda dari pengaju** — constraint DB + permission terpisah `k3:permit:decide`; dua lapis untuk satu aturan karena inilah yang pertama ditanya saat ada kecelakaan. Izin berstatus `disetujui` yang jendela waktunya lewat ditandai TIDAK BERIZIN: izin kerja bukan dokumen abadi |
 | **Request for Inspection (RFI)** | ✅ | Migrasi 157 · `/lapangan/inspeksi` · pemeriksa terpisah dari pemohon; gagal → temuan punch list |
 | **Submittal register** | ✅ | Migrasi 159 · `/lapangan/submittal` · lewat Workflow Engine; revisi dirantai ke pengajuan pertama |
 | Non-Conformance Report (NCR) | 🟡 | UI hidup: `mutu/ncr/page.tsx` (diukur 2026-08-06) |

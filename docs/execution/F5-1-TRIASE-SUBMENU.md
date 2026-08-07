@@ -518,7 +518,7 @@ dan saya kerjakan dengan bentuk yang diturunkan dari kasus nyata itu.
 
 ---
 
-## 5. TUNDA — 25 item, dengan pemicunya (8 tersisa)
+## 5. TUNDA — 25 item, dengan pemicunya (5 tersisa)
 
 Tak dikerjakan sampai pemicunya nyata. **Kalau pemicu terjadi, item pindah ke
 INTI atau PEMBEDA — bukan langsung dikerjakan** dari daftar ini.
@@ -526,20 +526,20 @@ INTI atau PEMBEDA — bukan langsung dikerjakan** dari daftar ini.
 | Sub-menu | Jml | Pemicu yang membangunkannya |
 |---|---|---|
 | ~~Prakualifikasi vendor · Dokumen prakualifikasi~~ | ~~2~~ | ✅ **SELESAI 2026-08-07** — dibangun atas keputusan founder meski pemicu (>30 vendor) belum menyala; basis belum operasional, jadi bentuknya diturunkan dari praktik pengadaan konstruksi |
-| Evaluasi kinerja subkontraktor · Kepatuhan (izin, asuransi, pajak) | 2 | Subkon formal ber-kontrak mulai dipakai (hari ini sistemnya mandor) |
+| ~~Evaluasi kinerja subkontraktor · Kepatuhan (izin, asuransi, pajak)~~ | ~~2~~ | ✅ **SELESAI 2026-08-07** — jawaban gabungan `bolehBekerja` menyatukan dokumen + kinerja. Kecelakaan kerja MENGGUGURKAN, bukan diratakan skor. Dokumen bercentang `terverifikasi` yang sudah kedaluwarsa ditandai khusus |
 | ~~Kalender kerja & hari libur~~ | ~~1~~ | ✅ **SELESAI 2026-08-07** — pola mingguan + hari libur per-company/proyek. Libur ber-`tetap_bekerja` TETAP hari kerja: jejaknya disimpan (menentukan tarif upah) tanpa menggeser jadwal |
 | ~~Critical path (CPM) · Resource histogram / leveling · Method statement~~ | ~~3~~ | ✅ **SELESAI 2026-08-07** — CPM 4 relasi (FS/SS/FF/SF) + jeda, durasi HARI KERJA. Lingkaran dependensi dinyatakan, jalur kritis dikosongkan bukan dikarang. Histogram melaporkan PUNCAK bukan rata-rata. Method statement: penolakan wajib beralasan + keputusan wajib bertanggal (constraint DB) |
 | Kontrak payung / blanket order · Expediting & logistik | 2 | Volume pengadaan berulang dari vendor yang sama |
 | ~~Evaluasi kinerja vendor~~ | ~~1~~ | ✅ **SELESAI 2026-08-07** — skor berbobot, titik lemah per-dimensi, daftar hitam beralasan |
 | ~~Log pemakaian alat · Maintenance terjadwal · Biaya operasional per alat (BBM, operator)~~ | ~~3~~ | ✅ **SELESAI 2026-08-07** — dibangun atas keputusan founder meski pemicu (>5 alat milik sendiri) belum menyala. Interval ganda **jam ATAU hari**, mana yang lebih dulu; biaya per jam bernilai "—" saat jam operasi nol, bukan hasil bagi-nol |
 | ~~Integrasi penyusutan → GL~~ | ~~1~~ | 🟡 **SEBAGIAN 2026-08-07** — tabel `penyusutan_alat` + `journal_entry_id` hidup dan terisi (migrasi 211), constraint menolak jurnal setengah jadi. Penjurnalan **otomatis** ke GL masih menunggu **R-001** (bentrok 047/167) — bukan menunggu aset |
-| Izin kerja (work permit) | 1 | Proyek dengan syarat K3 formal dari owner |
+| ~~Izin kerja (work permit)~~ | ~~1~~ | ✅ **SELESAI 2026-08-07** — pemutus WAJIB berbeda dari pengaju (constraint DB + permission `k3:permit:decide`). Izin `disetujui` yang jendelanya lewat ditandai TIDAK BERIZIN |
 | ~~Transmittal · Register gambar · Notulen rapat · Matriks distribusi~~ | ~~4~~ | ✅ **SELESAI 2026-08-07** — gambar `berlaku` yang sudah punya revisi lebih tinggi ditandai USANG dari perbandingan revisi (bukan kolom status); bukti kirim & bukti terima terpisah; butir rapat wajib berpenanggung jawab |
 | ~~Tanda tangan elektronik~~ | ~~1~~ | 🟡 **SEBAGIAN 2026-08-07** — sidik SHA-256 isi dokumen dihitung DI SERVER dan terkunci constraint hex-64. e-meterai tersertifikasi Peruri belum; itu yang tersisa |
 | ~~Distribusi laporan terjadwal~~ | ~~1~~ | 🟡 **SEBAGIAN 2026-08-07** — jadwal + deteksi MACET hidup (gagal 3× berturut ATAU telat >2× irama, meski nol galat). Pengiriman surel otomatisnya belum dijalankan |
 | Nota kredit | 1 | Ada retur/koreksi tagihan pertama |
 | Material request (mobile) · Checklist inspeksi (mobile) | 2 | Setelah mode offline penuh — F4-3 baru menutup jalur TULIS |
-| | **8** | vendor (3) + alat (4) + jadwal (4) + dokumen (6) selesai 2026-08-07 |
+| | **5** | vendor (3) + alat (4) + jadwal (4) + dokumen (6) + kepatuhan (3) selesai 2026-08-07 |
 
 ### Tiga yang TIDAK dihitung di sini — sudah 🟡, bukan merah
 

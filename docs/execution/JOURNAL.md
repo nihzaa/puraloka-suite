@@ -5,6 +5,93 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-07 (lanjutan 9) — TUNDA kelompok E: kepatuhan & K3, dan constraint yang menolak seed saya sendiri
+
+Tiga item TUNDA: evaluasi kinerja subkontraktor, kepatuhan izin/asuransi/pajak,
+izin kerja (work permit). **TUNDA: 8 → 5.**
+
+### Yang terbukti, dengan angka
+
+```
+migrasi 218      3 tabel · 9 policy · 5 permission · RLS dipaksa · InitPlan
+invarian         52 terjaga, 0 bocor (uji-invarian-kepatuhan.mjs)
+mutasi invarian  10/10 tertangkap, termasuk mutasi PENCABUTAN permission
+pustaka          29 test · 17/17 mutasi tertangkap
+API              176 berkas · 1916 test HIJAU, 2 skip, NOL gagal
+web              lint 0 error, 334 warning · build /kepatuhan terdaftar
+penjaga          9 audit arsitektural + 13 ratchet UI + 3 rute: LULUS
+a11y             axe-core WCAG 2.1 AA: 0 pelanggaran, terang DAN gelap
+seed             9 dokumen · 4 evaluasi · 4 izin kerja — dijalankan 2×,
+                 angka tak bergerak
+```
+
+### Cacat inti yang ditutup: jawaban benar yang saling bertentangan
+
+Tiga sudut — kinerja, dokumen, izin kerja — dijawab **bersamaan**, bukan di
+layar terpisah. Data nyata di dev membuktikan kenapa itu penting:
+
+```
+PT Baja Perkasa   skor 89,1 (TERTINGGI)  →  TIDAK boleh bekerja
+                                            (asuransi CAR mati 98 hari lalu,
+                                             kolom `terverifikasi` masih hijau)
+CV Karya Mandiri  skor 73,7              →  TIDAK boleh bekerja
+                                            (1 kecelakaan kerja)
+PT Sinar          skor 44,4              →  TIDAK boleh bekerja
+                                            (daftar hitam, 6 pelanggaran K3)
+```
+
+Layar yang hanya membaca skor akan merekomendasikan PT Baja Perkasa. Itulah
+cacat yang modul ini ada untuk menutupnya.
+
+### Constraint menolak seed saya sendiri — dan itu kabar baik
+
+`izin_pemutus_bukan_pengaju` menolak seed pada percobaan pertama. Penyebabnya
+bukan constraint yang terlalu ketat, melainkan seed saya:
+
+```sql
+SELECT id INTO v_u1 FROM users ORDER BY created_at LIMIT 1;
+SELECT id INTO v_u2 FROM users ORDER BY created_at OFFSET 1 LIMIT 1;
+```
+
+Seluruh pengguna seed punya `created_at` **identik**, sehingga urutannya tak
+stabil dan kedua kueri mengembalikan **baris yang sama**. Diperbaiki jadi
+`ORDER BY created_at, id`. Constraint-nya bekerja persis seperti maunya:
+izin kerja yang disetujui sendiri oleh pengajunya bukan pengendalian apa pun.
+
+Pemisahan tugas ini dijaga **dua lapis** — constraint DB *dan* permission
+terpisah `k3:permit:decide` — karena inilah yang pertama ditanya saat ada
+kecelakaan.
+
+### Dua cacat yang hanya ketahuan dengan MELIHAT layarnya
+
+**1. `ASURANSI_CAR kedaluwarsa`** — kunci mentah ber-garis-bawah, padahal
+tabel di bawahnya menulis "Asuransi CAR" dengan rapi. Pemetaan label
+dipindah ke **pustaka**, bukan layar: alasan larangan dirakit di sana dan
+ikut terkirim ke notifikasi & ekspor. Kalau pemetaannya cuma di satu layar,
+konsumen lain menampilkan nama mentah.
+
+**2. Kartu kesiapan tak terurut** — semuanya "TIDAK boleh bekerja", tapi
+PT Baja (89,1) di tengah. Diperbaiki: skor tertinggi lebih awal, karena
+pihak berskor 89 yang terhalang **satu dokumen kedaluwarsa** adalah yang
+paling mudah dipulihkan — perbarui polisnya, ia bisa bekerja besok. Yang
+berskor 44 dan masuk daftar hitam tak pulih dengan mengurus berkas.
+
+Perbaikan kedua sempat **tidak berpengaruh** meski pustakanya sudah benar:
+rute punya pengurutannya sendiri yang menimpanya (tak-boleh-bekerja dulu,
+lalu ABJAD). Ketahuan lagi-lagi dari memotret. Pengurutan ganda dibuang —
+dua tempat mengurutkan hal yang sama berarti yang belakangan menang
+diam-diam.
+
+### Penjaga yang memeriksa PERMISSION, bukan cuma tabel
+
+`uji-invarian-kepatuhan.mjs` ikut memastikan kelima permission baru
+benar-benar terpasang ke setidaknya satu peran. Permission yang tak dimiliki
+siapa pun membuat halamannya **lahir terkunci**, dan gejalanya layar kosong —
+bukan "akses ditolak". Dibuktikan bisa merah dengan mencabut
+`k3:permit:decide` dari semua peran, lalu memulihkannya.
+
+---
+
 ## 2026-08-07 (lanjutan 8) — TUNDA kelompok D: kendali dokumen, dan CACAT P1 penomoran yang saya sempat sebut "tak bisa diperbaiki"
 
 Enam item TUNDA sekaligus: transmittal, register gambar, notulen rapat,

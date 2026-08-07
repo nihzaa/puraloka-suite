@@ -4,7 +4,7 @@
 // Penegak: `node scripts/gen-tenant-map.mjs check` (CI) — build MERAH kalau
 // ada tabel yang belum terklasifikasi (ADR-011 §9.5 P3).
 //
-// 170 tabel · A=10 · AB=14 · ANCHOR=1 · B=56 · C=82 · D=7
+// 173 tabel · A=10 · AB=14 · ANCHOR=1 · B=59 · C=82 · D=7
 //
 // Arti kategori (ADR-011 §5 + audit T1):
 //   ANCHOR akar tenancy (projects) — company_id NOT NULL
@@ -74,9 +74,11 @@ export const PETA_TENANCY = {
   'document_access_logs': { kategori: 'C', lewat: 'document_id' },  // document_access_logs.document_id → documents.project_id
   'document_number_series': { kategori: 'D' },  // Counter penomoran per company; di-scope eksplisit oleh pemakainya.
   'documents': { kategori: 'C', lewat: 'project_id' },  // documents.project_id
+  'dokumen_kepatuhan': { kategori: 'B' },
   'dokumen_prakualifikasi': { kategori: 'B' },
   'estimate_items': { kategori: 'C', lewat: 'estimate_version_id' },  // estimate_items.estimate_version_id → estimate_versions.scenario_id → scenarios.project_id
   'estimate_versions': { kategori: 'C', lewat: 'scenario_id' },  // estimate_versions.scenario_id → scenarios.project_id
+  'evaluasi_subkon': { kategori: 'B' },
   'evaluasi_vendor': { kategori: 'B' },
   'expense_category_templates': { kategori: 'AB' },
   'expense_items': { kategori: 'C', lewat: 'category_id' },  // expense_items.category_id → project_expense_categories.project_id
@@ -94,6 +96,7 @@ export const PETA_TENANCY = {
   'invoice_line_items': { kategori: 'C', lewat: 'invoice_id' },  // invoice_line_items.invoice_id → invoices.project_id
   'invoice_penalties': { kategori: 'C', lewat: 'invoice_id' },  // invoice_penalties.invoice_id → invoices.project_id
   'invoices': { kategori: 'C', lewat: 'project_id' },  // invoices.project_id
+  'izin_kerja': { kategori: 'B' },
   'jadwal_distribusi_laporan': { kategori: 'B' },
   'jadwal_perawatan': { kategori: 'B' },
   'journal_entries': { kategori: 'B' },

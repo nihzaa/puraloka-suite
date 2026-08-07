@@ -745,6 +745,25 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
+      # Kepatuhan & K3 (TUNDA kelompok E).
+      #
+      # Yang paling mahal kalau bocor — dan ini soal nyawa, bukan uang:
+      #   • izin kerja disetujui SENDIRI oleh pengajunya — bukan pengendalian
+      #     apa pun; ini yang pertama ditanya saat terjadi kecelakaan
+      #   • izin disetujui TANPA pengendalian risiko — tanda tangan atas
+      #     dokumen kosong
+      #   • "terverifikasi" tanpa siapa & kapan — klaim yang tak bisa
+      #     ditelusuri saat dipersoalkan
+      #   • daftar hitam tanpa alasan — menutup pintu rezeki orang tanpa jejak
+      #
+      # Ikut memeriksa 5 permission baru benar-benar terpasang ke peran:
+      # permission yang tak dimiliki siapa pun membuat halamannya lahir
+      # TERKUNCI, dan gejalanya layar kosong — bukan "akses ditolak".
+      - name: Invarian kepatuhan & K3
+        run: node scripts/uji-invarian-kepatuhan.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
       - name: Invarian NCR
         run: node scripts/uji-invarian-ncr.mjs
         env:

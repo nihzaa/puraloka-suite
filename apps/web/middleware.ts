@@ -46,11 +46,11 @@ const ROLE_ALLOWED: Record<string, string[]> = {
   // Apa yang boleh DILAKUKAN di sana tetap dijaga permission (`ncr:manage`,
   // `ncr:disposisi`, `ncr:verify`) — middleware hanya mengatur siapa yang
   // boleh membuka halamannya.
-  pm:      ["/pm-portal", "/proyek", "/dokumen", "/jadwal", "/verify", "/estimasi", "/tender", "/piutang", "/aset", "/mutu", "/lapangan", "/kontrak", "/m"],
+  pm:      ["/pm-portal", "/proyek", "/kepatuhan", "/dokumen", "/jadwal", "/verify", "/estimasi", "/tender", "/piutang", "/aset", "/mutu", "/lapangan", "/kontrak", "/m"],
   // `/gudang` = rekonsiliasi material. Ditahan di admin: angkanya menuduh —
   // "susut 12%" pada material yang dipegang mandor tertentu. Yang dituduh
   // tidak boleh jadi yang pertama membacanya.
-  admin:   ["/dashboard", "/proyek", "/dokumen", "/jadwal", "/keuangan", "/akuntansi", "/mandor", "/laporan", "/notifications", "/kas", "/users", "/klien", "/procurement", "/pengaturan", "/kalender", "/audit", "/sistem", "/estimasi", "/tender", "/piutang", "/aset", "/mutu", "/lapangan", "/kontrak", "/gudang", "/m"],
+  admin:   ["/dashboard", "/proyek", "/kepatuhan", "/dokumen", "/jadwal", "/keuangan", "/akuntansi", "/mandor", "/laporan", "/notifications", "/kas", "/users", "/klien", "/procurement", "/pengaturan", "/kalender", "/audit", "/sistem", "/estimasi", "/tender", "/piutang", "/aset", "/mutu", "/lapangan", "/kontrak", "/gudang", "/m"],
 };
 
 /**
