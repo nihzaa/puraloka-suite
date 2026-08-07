@@ -197,6 +197,40 @@ await seed('asset (bahan uji invarian alat)', async () => {
   if (rows[0].n === 0) throw new Error('assets tetap kosong sesudah seed')
 })
 
+// 2 milestone BELUM BERELASI — dibutuhkan `uji-invarian-jadwal.mjs`.
+//
+// Sama alasannya dengan seed `assets` di atas: tanpa bahan, skrip invarian itu
+// melewati dirinya sendiri ("butuh minimal 2 milestone yang belum berelasi —
+// dilewati") lalu exit 0. Penjaga yang selalu hijau karena tak pernah punya
+// bahan uji memberi rasa aman yang salah.
+//
+// Keduanya di SATU proyek: pasangan lintas-proyek ditolak endpoint dengan
+// alasan berbeda, dan itu akan mengaburkan invarian yang sedang diperiksa.
+await seed('milestone x2 (bahan uji invarian jadwal)', async () => {
+  const { rows: pr } = await c.query(
+    `SELECT id FROM projects ORDER BY created_at LIMIT 1`)
+  if (!pr.length) throw new Error('tak ada proyek untuk dipasangi milestone')
+
+  for (const [judul, urut] of [['CI seed milestone A', 901], ['CI seed milestone B', 902]]) {
+    await c.query(
+      `INSERT INTO milestones (project_id, title, target_date, sort_order, created_by)
+       SELECT $1, $2, CURRENT_DATE + ($3 - 900) * 30, $3,
+              (SELECT id FROM public.users WHERE email='ci-admin@puraloka.test' LIMIT 1)
+       WHERE NOT EXISTS (SELECT 1 FROM milestones WHERE title = $2)`,
+      [pr[0].id, judul, urut])
+  }
+
+  // Verifikasi, bukan asumsi — dan yang diperiksa persis syarat skripnya:
+  // dua milestone SATU proyek yang belum punya dependensi.
+  const { rows } = await c.query(`
+    SELECT count(*)::int n FROM milestones m
+     WHERE m.project_id = $1
+       AND NOT EXISTS (SELECT 1 FROM milestone_dependencies d
+                        WHERE d.milestone_id = m.id OR d.bergantung_pada = m.id)`,
+    [pr[0].id])
+  if (rows[0].n < 2) throw new Error(`hanya ${rows[0].n} milestone bebas-relasi`)
+})
+
 // FIXTURE DEMO — dibutuhkan photo-attach-ownership.test.ts (progress_log milik mandor X +
 // mandor Y yang JUGA ditugaskan di proyek yang sama) & recipient-resolution.test.ts
 // (1 proyek ber-PM). Idempoten. Ini mengganti data demo yang di-skip (024) dgn yang minimal-lengkap.

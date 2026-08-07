@@ -54,7 +54,7 @@ lapisan mana yang sudah ada.
 | Gudang / lokasi | 🟡 | Stok per proyek (`project_stocks`) ada; entitas gudang/multi-lokasi tidak |
 | Mata uang & kurs (multi-currency) | ⛔ | Dicoret owner. Syarat tersisa TERPENUHI: uang 100% NUMERIC (verifikasi: nol FLOAT di seluruh migration) |
 | Konfigurasi pajak | ✅ | `financial_config` effective-dated (086) + `lib/tax-calculation.ts` + guardrail test |
-| Kalender kerja & hari libur | 🔴 | Tunda sampai ada pemakainya |
+| Kalender kerja & hari libur | ✅ | Migrasi 212 · `pola_kerja` + `hari_libur` · `/jadwal`. Pola mingguan per-company/proyek; libur ber-`tetap_bekerja` TETAP hari kerja (jejaknya disimpan karena menentukan tarif upah, tapi jadwalnya berjalan). Constraint menolak pola tanpa satu pun hari kerja — pola begitu membuat SETIAP durasi tak terhingga. Migrasi 213 menutup cacat `UNIQUE` yang tak mengikat saat `project_id` NULL |
 | Penomoran dokumen (numbering series) | 🟡 | Mayoritas HARDCODED: MR/PO/GR di trigger DB (041), `CO-001` di TS; invoice semi-config (prefix dari company_profile) |
 | Template dokumen | 🟡 | Kontrak SPK PDF ada (`contracts.ts`); template lain tidak |
 
@@ -105,14 +105,14 @@ lapisan mana yang sudah ada.
 | WBS proyek | 🟡 | UI Gantt pakai pohon `rab_items`; `wbs_nodes` CECEP DB-only |
 | Master schedule + baseline | ✅ | `rab-schedule.ts` + tabel `rab_schedule` — rencana per item/minggu jadi baseline PV berjenjang |
 | Gantt chart | 🟡 | Custom renderer: dual-bar plan/aktual, SVG dependency arrows, soft-dependency + threshold (054); tanpa lag/lead/constraint |
-| Critical path (CPM) | 🔴 | |
+| Critical path (CPM) | ✅ | Migrasi 212 · `milestone_dependencies` · `apps/api/src/lib/cpm.ts` · `/jadwal`. Empat jenis relasi (FS/SS/FF/SF) + jeda. Durasi dalam HARI KERJA, bukan hari kalender. **Lingkaran dependensi dinyatakan** dan jalur kritisnya dikosongkan, bukan dikarang. Float negatif sebanding dengan besar keterlambatan — bukan −1 untuk semua. 33 test · 14 mutasi tertangkap |
 | Kurva S (rencana vs aktual) | ✅ | 3 garis (`kurva-s.ts` 376 baris) |
-| Resource histogram / leveling | 🔴 | |
+| Resource histogram / leveling | ✅ | Migrasi 212 · `kebutuhan_sumber_daya` · `/jadwal`. Yang dilaporkan **PUNCAK**, bukan rata-rata: 40 orang di minggu 7 dan 4 di minggu 8 punya rata-rata 22 — angka yang tak pernah terjadi dan menyembunyikan kekurangan 15 orang. Kuantitas dianggap serentak (10 tukang × 5 hari = 10, bukan 50). Minggu kelebihan beban ditandai |
 | Look-ahead schedule | ✅ | `rab-schedule.ts` + tabel `rab_schedule` |
 | Milestone tracking | ✅ | |
 | **Earned Value Management** | ✅ | `routes/v1/kurva-s.ts` `meta.evm` (BAC/AC/EV/PV/CPI/SPI/EAC/ETC/VAC/TCPI) + `kurva-s-section.tsx` EVM cards |
 | Analisa keterlambatan | ✅ | migrasi 198 · `/proyek/keterlambatan` · EOT disetujui mengurangi telat · 8/8 mutasi |
-| Method statement | 🔴 | |
+| Method statement | ✅ | Migrasi 212 · `method_statement` · `/jadwal`. Penolakan WAJIB beralasan (≥10 huruf) dan keputusan wajib bertanggal — **constraint DB**, bukan aturan UI. Kolom pengendalian risiko K3 ditandai merah kalau kosong: method statement tanpa itu adalah jadwal kerja yang menyamar, dan justru bagian itu yang ditanya saat ada kecelakaan |
 
 ---
 

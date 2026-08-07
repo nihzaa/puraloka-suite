@@ -518,7 +518,7 @@ dan saya kerjakan dengan bentuk yang diturunkan dari kasus nyata itu.
 
 ---
 
-## 5. TUNDA — 25 item, dengan pemicunya (18 tersisa)
+## 5. TUNDA — 25 item, dengan pemicunya (14 tersisa)
 
 Tak dikerjakan sampai pemicunya nyata. **Kalau pemicu terjadi, item pindah ke
 INTI atau PEMBEDA — bukan langsung dikerjakan** dari daftar ini.
@@ -527,8 +527,8 @@ INTI atau PEMBEDA — bukan langsung dikerjakan** dari daftar ini.
 |---|---|---|
 | ~~Prakualifikasi vendor · Dokumen prakualifikasi~~ | ~~2~~ | ✅ **SELESAI 2026-08-07** — dibangun atas keputusan founder meski pemicu (>30 vendor) belum menyala; basis belum operasional, jadi bentuknya diturunkan dari praktik pengadaan konstruksi |
 | Evaluasi kinerja subkontraktor · Kepatuhan (izin, asuransi, pajak) | 2 | Subkon formal ber-kontrak mulai dipakai (hari ini sistemnya mandor) |
-| Kalender kerja & hari libur | 1 | Penjadwalan mulai dipakai untuk komitmen kontraktual |
-| Critical path (CPM) · Resource histogram / leveling · Method statement | 3 | Proyek dengan jadwal yang benar-benar dinegosiasikan owner |
+| ~~Kalender kerja & hari libur~~ | ~~1~~ | ✅ **SELESAI 2026-08-07** — pola mingguan + hari libur per-company/proyek. Libur ber-`tetap_bekerja` TETAP hari kerja: jejaknya disimpan (menentukan tarif upah) tanpa menggeser jadwal |
+| ~~Critical path (CPM) · Resource histogram / leveling · Method statement~~ | ~~3~~ | ✅ **SELESAI 2026-08-07** — CPM 4 relasi (FS/SS/FF/SF) + jeda, durasi HARI KERJA. Lingkaran dependensi dinyatakan, jalur kritis dikosongkan bukan dikarang. Histogram melaporkan PUNCAK bukan rata-rata. Method statement: penolakan wajib beralasan + keputusan wajib bertanggal (constraint DB) |
 | Kontrak payung / blanket order · Expediting & logistik | 2 | Volume pengadaan berulang dari vendor yang sama |
 | ~~Evaluasi kinerja vendor~~ | ~~1~~ | ✅ **SELESAI 2026-08-07** — skor berbobot, titik lemah per-dimensi, daftar hitam beralasan |
 | ~~Log pemakaian alat · Maintenance terjadwal · Biaya operasional per alat (BBM, operator)~~ | ~~3~~ | ✅ **SELESAI 2026-08-07** — dibangun atas keputusan founder meski pemicu (>5 alat milik sendiri) belum menyala. Interval ganda **jam ATAU hari**, mana yang lebih dulu; biaya per jam bernilai "—" saat jam operasi nol, bukan hasil bagi-nol |
@@ -539,7 +539,7 @@ INTI atau PEMBEDA — bukan langsung dikerjakan** dari daftar ini.
 | Distribusi laporan terjadwal | 1 | Ada penerima tetap yang memintanya |
 | Nota kredit | 1 | Ada retur/koreksi tagihan pertama |
 | Material request (mobile) · Checklist inspeksi (mobile) | 2 | Setelah mode offline penuh — F4-3 baru menutup jalur TULIS |
-| | **18** | tiga item vendor + empat item alat selesai 2026-08-07 |
+| | **14** | vendor (3) + alat (4) + jadwal (4) selesai 2026-08-07 |
 
 ### Tiga yang TIDAK dihitung di sini — sudah 🟡, bukan merah
 

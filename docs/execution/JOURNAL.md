@@ -5,6 +5,103 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-07 (lanjutan 7) — TUNDA kelompok C: CPM & kalender kerja, dan lima cacat yang test/build/layar temukan
+
+Empat item TUNDA sekaligus: jalur kritis (CPM), histogram & leveling sumber
+daya, method statement, kalender kerja. **TUNDA: 18 → 14.**
+
+### Yang terbukti, dengan angka
+
+```
+migrasi 212      5 tabel · 15 policy · RLS aktif+dipaksa · 0 literal peran
+migrasi 213      menutup cacat UNIQUE yang tak mengikat saat project_id NULL
+migrasi 214      15 policy dibungkus (SELECT ...) -> InitPlan
+invarian         44 terjaga, 0 bocor (uji-invarian-jadwal.mjs)
+mutasi invarian  6/6 tertangkap — DROP constraint -> MERAH, pulihkan -> HIJAU
+pustaka cpm.ts   33 test · 14/14 mutasi tertangkap
+API              174 berkas · 1863 test hijau, 2 skip, 1 gagal (pra-ada, §bawah)
+web              29 berkas · 389 test hijau
+penjaga          14 audit arsitektural + 12 ratchet UI + 3 rute: LULUS
+lint             web 0 error, 334 warning (di bawah ambang)
+build            /jadwal terdaftar, prerender lolos
+a11y             axe-core WCAG 2.1 AA: 0 pelanggaran, terang DAN gelap
+seed             4 dependensi · 18 libur · 1 pola · 9 sumber daya · 2 MS
+                 — dijalankan 2x, angka tak bergerak
+```
+
+### Lima cacat, masing-masing ditemukan alat yang berbeda
+
+**1. `UNIQUE` yang tak mengikat — ditemukan skrip invarian, percobaan pertama.**
+Migrasi 212 menulis `UNIQUE (company_id, project_id, tanggal)` dan saya kira
+itu mencegah libur ganda. Tidak: di Postgres NULL tak pernah sama dengan NULL,
+sehingga SELURUH libur nasional (yang `project_id`-nya NULL — dan itu
+mayoritasnya) lolos berkali-kali tanpa satu pun galat. Diperbaiki migrasi 213
+dengan `NULLS NOT DISTINCT`. Constraint yang "terlihat benar" dan constraint
+yang MENOLAK adalah dua hal berbeda — itu justru alasan skrip invarian ada.
+
+**2. Helper RLS dipanggil per-BARIS — ditemukan test yang sudah ada.**
+`rls-initplan.test.ts` dan `t7-exit-criteria-l2.test.ts` merah: 15 policy
+migrasi 212 memanggil `has_permission()`/`auth_company_id()` telanjang, jadi
+dievaluasi sekali per baris. Pada tabel 50.000 baris itu 50.000 pemanggilan
+untuk pertanyaan yang jawabannya sama sepanjang query. Migrasi 211 (alat)
+sudah membungkusnya; 212 luput. Diperbaiki migrasi 214. Ini bukan sekadar
+optimasi: RLS yang lambat berakhir **dimatikan**.
+
+**3. Deteksi lingkaran menelusuri arah TERBALIK — ditemukan test baru.**
+`menutupLingkaran(RANTAI, 'A', 'C')` untuk A→B→C menjawab `false` — lingkaran
+paling jelas yang ada. Saya menelusuri penerus, seharusnya pendahulu. Kalau
+lolos, setiap lingkaran panjang masuk ke basis dan seluruh jadwal berhenti
+bisa dihitung, tanpa pesan galat.
+
+**4. Float −1 untuk proyek telat lima minggu — ditemukan saat menjalankan
+atas DATA NYATA.** `hitungHariKerja(ms, lm) - 1` mengembalikan 0 untuk rentang
+terbalik, sehingga SETIAP proyek yang melewati tenggat melaporkan float −1.
+Terbaca "telat sehari", dan tak ada yang panik. Sekaligus: "kritis" yang
+berarti `float === 0` membuat proyek yang PALING genting menampilkan jalur
+kritis KOSONG — layarnya paling tenang saat keadaannya paling buruk. Kini
+`float <= 0`.
+
+**5. `useSearchParams` tanpa Suspense — ditemukan `pnpm build`.** Typecheck
+lolos, dev server jalan, build gagal saat prerender. Dibungkus `<Suspense>`.
+
+### Saya salah — tiga kali, dan dua di antaranya soal menebak angka
+
+**Menebak tanggal, dua kali berturut-turut.** Ekspektasi test kalender saya
+tulis 22 Agustus, lalu 26, lalu 24 — dua yang pertama salah. Kodenya benar
+sejak awal; saya yang salah berhitung "hari kerja ke-9". Baru berhenti
+setelah MENGUKUR deretnya (`n=0..10`) dan memakai angka hasil ukur.
+
+**Menebak nilai `status` proyek.** Saya membuat default halaman memilih
+proyek `'in_progress'` supaya layar pertama tidak kosong. Diukur: nilainya
+`'active'`, dan 11 dari 15 proyek memakainya — jadi penyaringan itu tak
+membedakan apa pun. Yang menentukan informatif-tidaknya ternyata ADA-TIDAKNYA
+dependensi, dan itu baru diketahui SESUDAH data diambil. Default dikembalikan;
+yang diperbaiki akhirnya kejujuran layarnya: banner yang menyatakan "0
+pekerjaan kritis" **bukan kabar baik** melainkan tanda dependensinya belum
+dicatat.
+
+**Skrip invarian saya sendiri rapuh.** Ia mengambil dua milestone tertua
+begitu saja, lalu gagal 23505 begitu seed mengisi relasi di antara keduanya —
+yang gagal INSERT penyiapannya, bukan invariannya, dan pesan galatnya menunjuk
+ke tempat yang salah. Kini memilih milestone yang belum berelasi.
+
+### Satu test gagal, dan itu BUKAN dari pekerjaan ini
+
+`gr-create-kontrak-body.test.ts` › "harga yang dikirim klien DIABAIKAN" gagal
+500 `duplicate key ... uq_gr_number_per_project`. Ditelusuri:
+
+- Saya tidak menyentuh satu pun berkas procurement (`git diff --name-only`).
+- Gagal juga pada pohon BERSIH (`git stash`), tanpa perubahan kelompok C.
+- **Flaky**: 3 kali dijalankan berturut — lolos, gagal, gagal.
+- Counter `document_number_series` monoton naik dan tak bentrok dengan nomor
+  mana pun yang ada; penyebab sebenarnya belum ketemu.
+
+Dicatat apa adanya sebagai temuan terbuka, bukan diklaim hijau dan bukan
+diklaim akibat kelompok ini. Perbaikannya butuh penelusuran modul procurement
+tersendiri.
+
+---
+
 ## 2026-08-07 (lanjutan 6) — TUNDA kelompok B: operasional alat, dan tiga cacat yang hanya ketahuan dengan MELIHAT
 
 Founder: *"kerjakan aja semuanya sekalian sekaligus, termasuk yg ditunda. jika

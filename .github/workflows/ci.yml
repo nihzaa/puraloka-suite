@@ -699,6 +699,22 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
+      # Jadwal: CPM · kalender · sumber daya · method statement (TUNDA kelompok C).
+      #
+      # Yang paling mahal kalau bocor:
+      #   • pekerjaan menunggu DIRINYA SENDIRI — jadwal yang tak pernah bisa
+      #     dimulai, tapi daftarnya terlihat rapi
+      #   • pola kerja TANPA satu pun hari kerja — setiap durasi jadi tak
+      #     terhingga; perhitungan tak pernah selesai, tanpa gejala
+      #   • method statement ditolak tanpa alasan — pelaksana mengajukan
+      #     dokumen yang sama berulang, dan siklusnya tak putus
+      #   • libur nasional kembar — `UNIQUE` biasa TIDAK mengikat saat
+      #     `project_id` NULL (NULL <> NULL); ditutup migrasi 213
+      - name: Invarian jadwal CPM & kalender
+        run: node scripts/uji-invarian-jadwal.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
       - name: Invarian NCR
         run: node scripts/uji-invarian-ncr.mjs
         env:

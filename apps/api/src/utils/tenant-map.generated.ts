@@ -4,7 +4,7 @@
 // Penegak: `node scripts/gen-tenant-map.mjs check` (CI) — build MERAH kalau
 // ada tabel yang belum terklasifikasi (ADR-011 §9.5 P3).
 //
-// 157 tabel · A=10 · AB=14 · ANCHOR=1 · B=43 · C=82 · D=7
+// 162 tabel · A=10 · AB=14 · ANCHOR=1 · B=48 · C=82 · D=7
 //
 // Arti kategori (ADR-011 §5 + audit T1):
 //   ANCHOR akar tenancy (projects) — company_id NOT NULL
@@ -87,6 +87,7 @@ export const PETA_TENANCY = {
   'formula_definitions': { kategori: 'A' },
   'goods_receipt_items': { kategori: 'C', lewat: 'gr_id' },  // goods_receipt_items.gr_id → goods_receipts.project_id
   'goods_receipts': { kategori: 'C', lewat: 'project_id' },  // goods_receipts.project_id
+  'hari_libur': { kategori: 'B' },
   'idempotency_keys': { kategori: 'B' },
   'information_requests': { kategori: 'C', lewat: 'project_id' },  // information_requests.project_id
   'inspection_requests': { kategori: 'C', lewat: 'project_id' },  // inspection_requests.project_id
@@ -98,6 +99,7 @@ export const PETA_TENANCY = {
   'journal_entry_lines': { kategori: 'C', lewat: 'account_id' },  // journal_entry_lines.account_id
   'kasbon_purposes': { kategori: 'AB' },
   'kasbons': { kategori: 'B' },
+  'kebutuhan_sumber_daya': { kategori: 'B' },
   'lesson_propagation_proposals': { kategori: 'C', lewat: 'lesson_id' },  // lesson_propagation_proposals.lesson_id → lessons_learned_records.project_id
   'lessons_learned_records': { kategori: 'C', lewat: 'project_id' },  // lessons_learned_records.project_id
   'mandor_assignments': { kategori: 'C', lewat: 'project_id' },  // mandor_assignments.project_id
@@ -107,6 +109,8 @@ export const PETA_TENANCY = {
   'material_requests': { kategori: 'C', lewat: 'project_id' },  // material_requests.project_id
   'materials': { kategori: 'AB' },
   'menu_items': { kategori: 'A' },
+  'method_statement': { kategori: 'B' },
+  'milestone_dependencies': { kategori: 'B' },
   'milestones': { kategori: 'C', lewat: 'project_id' },  // milestones.project_id
   'modules': { kategori: 'AB' },
   'mr_quota_override': { kategori: 'C', lewat: 'project_id' },  // mr_quota_override.project_id
@@ -124,6 +128,7 @@ export const PETA_TENANCY = {
   'permission_scopes': { kategori: 'A' },
   'permissions': { kategori: 'A' },
   'po_delivery_log': { kategori: 'C', lewat: 'project_id' },  // po_delivery_log.project_id
+  'pola_kerja': { kategori: 'B' },
   'polis_asuransi': { kategori: 'C', lewat: 'project_id' },  // polis_asuransi.project_id
   'pos_contingency': { kategori: 'C', lewat: 'project_id' },  // pos_contingency.project_id
   'prakualifikasi_vendor': { kategori: 'B' },
