@@ -146,6 +146,7 @@ Jantung ERP kontraktor. Lihat skor Lima Pembeda di bawah.
 | Material Request (MR) | ✅ | + approval berjenjang via engine |
 | RFQ ke vendor | ✅ | migrasi 195 · `/procurement/rfq` · 19 invarian |
 | Perbandingan penawaran (bid tabulation) | ✅ | satu layar dengan RFQ · `tabulasi-penawaran.ts` 14 test |
+| Putusan RFQ → terbitkan PO | ✅ | `POST /rfq/:id/putuskan` · `putusan-rfq.ts` 17 test + 13 test endpoint · alasan WAJIB saat bukan termurah (2026-08-08) |
 | Purchase Order | ✅ | + cancel + auto-number (trigger) |
 | Kontrak payung / blanket order | ✅ | Migrasi 219 · `kontrak_payung` + `kontrak_payung_item` · `/procurement/lanjutan`. Kuota per-item dijaga **constraint DB** (`terpakai <= kuota`) — INSERT maupun UPDATE ditolak, jadi PO tak bisa menarik 1.200 ton dari kontrak 1.000 ton. Kontrak berstatus `aktif` yang kuota/masanya habis ditandai **tak bisa dipakai**: PO berikutnya ditagih di luar harga kontrak, dan itu baru ketahuan saat tagihannya datang. `purchase_orders.kontrak_payung_id` menautkan PO ke kontraknya |
 | Goods Receipt Note (GRN) | ✅ | Koreksi dari 🟡: create + confirm + trigger auto-stok |

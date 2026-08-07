@@ -47,8 +47,8 @@
  *
  * Jalankan: node apps/web/scripts/tata-letak-ratchet.mjs
  */
-import { readFileSync, readdirSync } from 'node:fs'
-import { join, relative } from 'node:path'
+import { readFileSync, readdirSync, existsSync } from 'node:fs'
+import { join, relative, dirname } from 'node:path'
 
 const AKAR = join(import.meta.dirname, '..')
 const DASHBOARD = join(AKAR, 'app', '(dashboard)')
@@ -75,8 +75,55 @@ function berkasHalaman(dir) {
   return hasil
 }
 
+/**
+ * Apakah salah satu `layout.tsx` DI ATAS halaman ini sudah memasang tokennya?
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KOREKSI KEDUA — 2026-08-08
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Empat modul (`kas`, `keuangan`, `mandor`, `procurement`) punya `layout.tsx`
+ * yang memasang token lebar, padding, DAN pembungkus kartu untuk seluruh
+ * halaman anaknya. Halaman anak yang memasangnya lagi menghasilkan batas
+ * dalam batas — dan judul dalam judul, karena layout yang sama juga merender
+ * `JudulBagian`.
+ *
+ * Versi sebelumnya hanya membaca berkas halamannya. Akibatnya halaman yang
+ * SUDAH dipusatkan dengan benar lewat layout tetap dituduh melanggar, dan
+ * "perbaikan"-nya adalah menempelkan `maxWidth` yang tak berpengaruh apa pun
+ * — diukur di peramban: layout membatasi 2200px, token halaman menyatakan
+ * 2200px, dan yang kedua tak pernah menggigit.
+ *
+ * Sepuluh halaman procurement melakukan persis itu. Bukan karena penulisnya
+ * ceroboh, melainkan karena penjaga inilah yang memintanya. Penjaga yang
+ * memaksa ritual kosong mengajari orang menulis kode yang tak berarti supaya
+ * CI hijau — persis kebalikan dari gunanya.
+ *
+ * Yang ditegakkan tetap sama: **halaman memusat pada lebar terkontrol.**
+ * Yang berubah: di mana boleh dinyatakan.
+ */
+function dipusatkanLayoutInduk(berkasHalamanAbs) {
+  let dir = dirname(berkasHalamanAbs)
+  // Berhenti di `app/(dashboard)` — di atasnya layout root, yang memang tak
+  // boleh membatasi lebar (sidebar dan bilah atas mengisi seluruh layar).
+  while (dir.length >= DASHBOARD.length) {
+    const l = join(dir, 'layout.tsx')
+    if (existsSync(l)) {
+      const isiLayout = readFileSync(l, 'utf8')
+      const t = TOKEN_SAH.find(
+        (x) => isiLayout.includes(`maxWidth: "var(${x})"`) || new RegExp(`max-width:\\s*var\\(${x}\\)`).test(isiLayout),
+      )
+      if (t) return t
+    }
+    if (dir === DASHBOARD) break
+    dir = dirname(dir)
+  }
+  return null
+}
+
 const halaman = berkasHalaman(DASHBOARD)
 const pelanggaran = []
+let lewatLayout = 0
 const pakai = { '--w-form': 0, '--w-page': 0, '--w-luas': 0 }
 
 for (const f of halaman) {
@@ -97,6 +144,13 @@ for (const f of halaman) {
     (t) => isi.includes(`maxWidth: "var(${t})"`) || new RegExp(`max-width:\\s*var\\(${t}\\)`).test(isi),
   )
   if (!token) {
+    // Sebelum menuduh: apakah layout induknya sudah memusatkannya?
+    const dariLayout = dipusatkanLayoutInduk(f)
+    if (dariLayout) {
+      pakai[dariLayout]++
+      lewatLayout++
+      continue
+    }
     pelanggaran.push(
       `${rel}\n      container halaman tak memakai token lebar. ` +
       `Pakai salah satu: ${TOKEN_SAH.join(' · ')}`,
@@ -139,7 +193,10 @@ if (pelanggaran.length) {
 
 console.log(
   `✅ Tata letak: ${halaman.length} halaman patuh ` +
-  `(form ${pakai['--w-form']} · normal ${pakai['--w-page']} · luas ${pakai['--w-luas']})`,
+  `(form ${pakai['--w-form']} · normal ${pakai['--w-page']} · luas ${pakai['--w-luas']})` +
+  // Dinyatakan, bukan disembunyikan: kalau angka ini melonjak, itu tanda
+  // banyak halaman bergantung pada layout induk — sah, tapi perlu diketahui.
+  (lewatLayout ? `\n   ${lewatLayout} di antaranya dipusatkan oleh layout induknya (tak perlu token sendiri).` : ''),
 )
 
 // ── Penjaga JALAN MASUK halaman (§9a) ──────────────────────────────────────

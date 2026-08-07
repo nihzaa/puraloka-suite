@@ -20,7 +20,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { FileText, RefreshCw, Plus, Award } from "lucide-react";
+import { FileText, RefreshCw, Plus, Award, Gavel, CheckCircle2, TriangleAlert, ArrowRight } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
@@ -36,6 +36,8 @@ type Rfq = {
   status: "draft" | "terkirim" | "selesai" | "batal";
   catatan: string | null;
   alasan_pilih: string | null;
+  /** Terisi begitu RFQ diputuskan; jadi penanda tunggal "siapa menang". */
+  po_id: string | null;
   proyek: Proyek | null;
 };
 
@@ -75,6 +77,16 @@ type Tabulasi = {
   jumlah_tanpa_penawaran: number;
 };
 
+type HasilPutusan = {
+  purchase_order: { id: string; po_number: string; total: number };
+  putusan: {
+    supplier_name: string;
+    jumlah_item: number;
+    seluruhnya_termurah: boolean;
+    selisih_total: number;
+  };
+};
+
 const STATUS_META: Record<Rfq["status"], { label: string; warna: string; bg: string; border: string }> = {
   draft: { label: "Draft", warna: "var(--text-secondary)", bg: "var(--surface-subtle)", border: "var(--border)" },
   terkirim: { label: "Menunggu penawaran", warna: "var(--info)", bg: "var(--info-bg)", border: "var(--info-border)" },
@@ -91,6 +103,93 @@ const angka = (n: number) =>
 const tanggalTerbaca = (iso: string) =>
   new Date(iso + "T00:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
 
+/**
+ * Ringkasan keputusan yang SUDAH diambil.
+ *
+ * Menggantikan form putusan, bukan mendampinginya: RFQ yang sudah punya PO
+ * tak boleh diputuskan lagi (server menolak 409), dan tombol yang tetap
+ * terlihat lalu ditolak adalah janji palsu.
+ *
+ * `hasil` hanya ada tepat setelah keputusan di sesi ini — ia membawa nomor PO
+ * dan selisihnya. Saat halaman dibuka kembali, yang tersisa dari basis adalah
+ * `alasan_pilih`, dan itu memang yang paling penting untuk dibaca ulang.
+ */
+function PutusanTerekam({
+  rfq, hasil, kartu,
+}: {
+  rfq: Rfq;
+  hasil: HasilPutusan | null;
+  kartu: React.CSSProperties;
+}) {
+  return (
+    <div className="rise rise-3" style={{
+      ...kartu, padding: "14px 16px", marginTop: 16,
+      borderColor: "var(--success-border)", background: "var(--success-bg)",
+    }}>
+      <h2 style={{
+        fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 700,
+        color: "var(--success)", margin: 0, display: "flex", alignItems: "center", gap: 7,
+      }}>
+        <CheckCircle2 size={15} aria-hidden="true" />
+        Sudah diputuskan
+      </h2>
+
+      {hasil && (
+        <p style={{ fontSize: 13, color: C.text, margin: "8px 0 0", lineHeight: 1.6 }}>
+          <strong>{hasil.putusan.supplier_name}</strong> menang ·{" "}
+          PO <strong>{hasil.purchase_order.po_number}</strong> terbit dengan{" "}
+          {hasil.putusan.jumlah_item} material, total{" "}
+          <strong>{rupiah(hasil.purchase_order.total)}</strong>.
+          {!hasil.putusan.seluruhnya_termurah && (
+            <>
+              {" "}Lebih mahal {rupiah(hasil.putusan.selisih_total)} daripada
+              mengambil tiap material dari vendor termurahnya.
+            </>
+          )}
+        </p>
+      )}
+
+      {/* PO-nya bisa dibuka dari sini.
+          Tanpa tautan, satu-satunya cara memeriksa pesanan yang baru terbit
+          adalah menghafal nomornya lalu mencarinya di daftar PO — dan yang
+          paling ingin memeriksanya justru orang yang baru saja menekan
+          tombolnya. Tautan mengarah ke DAFTAR, bukan ke detail: `/procurement/
+          pesanan` adalah rute yang benar-benar ada; halaman detail per-PO
+          belum, dan tautan ke halaman yang tak ada lebih buruk daripada tak
+          ada tautan. */}
+      <a
+        href="/procurement/pesanan"
+        style={{
+          display: "inline-flex", alignItems: "center", gap: 6, marginTop: 10,
+          fontSize: 12.5, fontWeight: 600, color: "var(--success)",
+          textDecoration: "underline", textUnderlineOffset: 3,
+        }}
+      >
+        Lihat di daftar Purchase Order
+        <ArrowRight size={13} aria-hidden="true" />
+      </a>
+
+      {rfq.alasan_pilih ? (
+        <div style={{ marginTop: hasil ? 10 : 8 }}>
+          <div style={{
+            fontSize: 11, fontWeight: 700, color: C.muted,
+            textTransform: "uppercase", letterSpacing: "0.05em",
+          }}>
+            Alasan pemilihan
+          </div>
+          <p style={{ fontSize: 13, color: C.text, margin: "4px 0 0", lineHeight: 1.6, maxWidth: "72ch" }}>
+            {rfq.alasan_pilih}
+          </p>
+        </div>
+      ) : (
+        <p style={{ fontSize: 12, color: C.mid, margin: "8px 0 0", lineHeight: 1.55 }}>
+          Vendor yang menang adalah yang termurah, jadi tak ada yang perlu dijelaskan.
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function RfqPage() {
   const [proyek, setProyek] = useState<Proyek[]>([]);
   const [daftar, setDaftar] = useState<Rfq[]>([]);
@@ -104,6 +203,12 @@ export default function RfqPage() {
   const [buatProyek, setBuatProyek] = useState("");
   const [buatNomor, setBuatNomor] = useState("");
   const [membuat, setMembuat] = useState(false);
+
+  const [vendorPilihan, setVendorPilihan] = useState("");
+  const [alasanPilih, setAlasanPilih] = useState("");
+  const [memutuskan, setMemutuskan] = useState(false);
+  const [hasilPutusan, setHasilPutusan] = useState<HasilPutusan | null>(null);
+  const [galatPutusan, setGalatPutusan] = useState<string | null>(null);
 
   useEffect(() => {
     const ac = makeAbortController();
@@ -163,6 +268,73 @@ export default function RfqPage() {
     () => (tabulasi?.vendor ?? []).filter((v) => v.lengkap),
     [tabulasi],
   );
+
+  /**
+   * Material yang dimenangkan vendor terpilih PADAHAL ada yang lebih murah.
+   *
+   * ── Kenapa dihitung ulang di klien, padahal server sudah memutuskan
+   *
+   * Bukan untuk menggantikan pemeriksaan server — itu tetap satu-satunya yang
+   * menentukan (`lib/putusan-rfq.ts`, dan endpointnya menolak 400). Ini supaya
+   * formnya bisa memberi tahu **sebelum** tombol ditekan bahwa alasan akan
+   * diminta, dan menyebut di material mana lebih mahalnya.
+   *
+   * Menunggu 400 dari server untuk mengetahuinya membuat orang menekan tombol,
+   * ditolak, lalu mengarang alasan supaya lolos — persis kebiasaan yang modul
+   * ini dibangun untuk mencegahnya. Yang dibaca auditor setahun kemudian adalah
+   * alasan itu.
+   *
+   * Rumusnya SENGAJA sama dengan server (`harga > harga_termurah`), bukan
+   * `!sel.termurah`: dua vendor pada harga yang persis sama sama-sama sah
+   * menang tanpa alasan.
+   */
+  const lebihMahalDi = useMemo(() => {
+    if (!vendorPilihan || !tabulasi) return [];
+    return tabulasi.baris.flatMap((b) => {
+      const sel = b.sel.find((s) => s.supplier_id === vendorPilihan);
+      if (!sel || sel.harga_satuan == null) return [];
+      if (b.harga_termurah == null || sel.harga_satuan <= b.harga_termurah) return [];
+      return [{
+        material_name: b.material_name,
+        selisih: (sel.harga_satuan - b.harga_termurah) * b.qty,
+      }];
+    });
+  }, [vendorPilihan, tabulasi]);
+
+  /** Material yang benar-benar akan masuk PO — yang tak ditawar tidak ikut. */
+  const jumlahItemPo = useMemo(() => {
+    if (!vendorPilihan || !tabulasi) return 0;
+    return tabulasi.baris.filter((b) => {
+      const s = b.sel.find((x) => x.supplier_id === vendorPilihan);
+      return s?.harga_satuan != null && b.qty > 0;
+    }).length;
+  }, [vendorPilihan, tabulasi]);
+
+  const alasanWajib = lebihMahalDi.length > 0;
+  const alasanCukup = alasanPilih.trim().length >= 10;
+  const bolehPutuskan =
+    !!vendorPilihan && jumlahItemPo > 0 && (!alasanWajib || alasanCukup) && !memutuskan;
+
+  async function putuskan() {
+    if (!idEfektif || !bolehPutuskan) return;
+    setMemutuskan(true);
+    setGalatPutusan(null);
+    try {
+      const r = await api.post<HasilPutusan>(`/api/v1/rfq/${idEfektif}/putuskan`, {
+        supplier_id: vendorPilihan,
+        alasan: alasanPilih.trim() || undefined,
+      });
+      setHasilPutusan(r.data);
+      setVendorPilihan("");
+      setAlasanPilih("");
+      setMuatUlangKe((n) => n + 1);
+    } catch (e) {
+      const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      setGalatPutusan(m ?? "Gagal memutuskan pemenang");
+    } finally {
+      setMemutuskan(false);
+    }
+  }
 
   /**
    * Kolom tabulasi — DITURUNKAN dari daftar vendor, bukan ditulis tetap.
@@ -253,20 +425,23 @@ export default function RfqPage() {
   };
 
   return (
-    <div style={{
-      padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
-      width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
-    }}>
-      <div className="rise" style={{ marginBottom: 20 }}>
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700, color: C.text, margin: 0 }}>
-          RFQ &amp; Perbandingan Penawaran
-        </h1>
-        <p style={{ fontSize: 13, color: C.mid, margin: "6px 0 0", maxWidth: "68ch", lineHeight: 1.55 }}>
-          Harga datang dari perbandingan, bukan dari satu vendor langganan.
-          Tabulasinya adalah bukti pemilihan vendor — jawaban saat seseorang
-          bertanya kenapa yang lebih mahal yang dipilih.
-        </p>
-      </div>
+    // ── Tanpa <h1>, tanpa maxWidth, tanpa padding halaman
+    //
+    // `procurement/layout.tsx` sudah menyediakan ketiganya: `JudulBagian`
+    // (judulnya diambil dari menu, jadi "RFQ & Tabulasi" — nama yang sama
+    // dengan yang diklik di sidebar), pembungkus kartu, dan padding isi.
+    //
+    // Halaman ini sempat menyediakannya sendiri, dan hasilnya terlihat di
+    // tangkapan layar 2026-08-08: DUA judul bertumpuk ("RFQ & Tabulasi" lalu
+    // "RFQ & Perbandingan Penawaran") dan kartu di dalam kartu. Diukur, 10
+    // dari 12 halaman procurement sudah benar — yang menyimpang hanya di sini
+    // dan `riwayat-harga`.
+    <div>
+      <p style={{ fontSize: 13, color: C.mid, margin: "0 0 18px", maxWidth: "68ch", lineHeight: 1.55 }}>
+        Harga datang dari perbandingan, bukan dari satu vendor langganan.
+        Tabulasinya adalah bukti pemilihan vendor — jawaban saat seseorang
+        bertanya kenapa yang lebih mahal yang dipilih.
+      </p>
 
       {galat && (
         <div role="alert" style={{
@@ -494,6 +669,151 @@ export default function RfqPage() {
                       )}
                     </p>
                   </div>
+
+                  {/* ── Putusan ───────────────────────────────────────────
+                      Ditaruh SESUDAH tabulasi, bukan di kepala halaman:
+                      keputusan diambil setelah perbandingannya dibaca, dan
+                      tombol yang muncul lebih dulu mengundang orang memutuskan
+                      sebelum melihat angkanya. */}
+                  {rfqAktif?.status === "selesai" || rfqAktif?.po_id ? (
+                    <PutusanTerekam rfq={rfqAktif} hasil={hasilPutusan} kartu={kartu} />
+                  ) : (
+                    <form
+                      className="rise rise-3"
+                      onSubmit={(e) => { e.preventDefault(); void putuskan(); }}
+                      style={{ ...kartu, padding: "14px 16px", marginTop: 16 }}
+                    >
+                      <h2 style={{
+                        fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 700,
+                        color: C.text, margin: "0 0 3px", display: "flex", alignItems: "center", gap: 7,
+                      }}>
+                        <Gavel size={15} aria-hidden="true" />
+                        Putuskan pemenang
+                      </h2>
+                      <p style={{ fontSize: 12, color: C.mid, margin: "0 0 12px", maxWidth: "72ch", lineHeight: 1.55 }}>
+                        PO terbit langsung dari penawaran vendor yang dipilih — harganya
+                        tak diketik ulang, jadi yang dipesan persis yang dibandingkan di atas.
+                      </p>
+
+                      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 240 }}>
+                          <label htmlFor="rq-vendor" style={labelGaya}>Vendor yang menang</label>
+                          <select
+                            id="rq-vendor" value={vendorPilihan}
+                            onChange={(e) => { setVendorPilihan(e.target.value); setGalatPutusan(null); }}
+                            style={isianGaya}
+                          >
+                            <option value="">— pilih vendor —</option>
+                            {tabulasi.vendor.map((v) => (
+                              <option key={v.supplier_id} value={v.supplier_id} disabled={v.jumlah_ditawar === 0}>
+                                {v.supplier_name}
+                                {v.jumlah_ditawar === 0
+                                  ? " — tak menawar apa pun"
+                                  : ` — menawar ${v.jumlah_ditawar} item`}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {vendorPilihan && (
+                          <p style={{ fontSize: 12, color: C.mid, margin: 0, paddingBottom: 9 }}>
+                            {jumlahItemPo} material masuk PO
+                            {jumlahItemPo < tabulasi.baris.length && (
+                              <span style={{ color: C.muted }}>
+                                {" "}· {tabulasi.baris.length - jumlahItemPo} tak ditawar, tidak ikut
+                              </span>
+                            )}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Peringatan muncul SEBELUM tombol ditekan, bukan sesudah
+                          ditolak server. Menunggu 400 melatih orang mengarang
+                          alasan supaya lolos — dan alasan itulah yang dibaca
+                          auditor setahun kemudian. */}
+                      {alasanWajib && (
+                        <div style={{
+                          marginTop: 12, padding: "10px 12px", borderRadius: 8,
+                          border: "1px solid var(--warning-border)", background: "var(--warning-bg)",
+                        }}>
+                          <p style={{
+                            margin: 0, fontSize: 12.5, fontWeight: 700, color: "var(--warning-teks)",
+                            display: "flex", alignItems: "center", gap: 6,
+                          }}>
+                            <TriangleAlert size={13} aria-hidden="true" />
+                            Bukan yang termurah di {lebihMahalDi.length} material
+                          </p>
+                          <ul style={{ margin: "6px 0 0", paddingLeft: 20, fontSize: 12, color: C.mid, lineHeight: 1.6 }}>
+                            {lebihMahalDi.slice(0, 4).map((x) => (
+                              <li key={x.material_name}>
+                                {x.material_name} — lebih mahal {rupiah(x.selisih)}
+                              </li>
+                            ))}
+                            {lebihMahalDi.length > 4 && (
+                              <li style={{ color: C.muted }}>dan {lebihMahalDi.length - 4} material lain</li>
+                            )}
+                          </ul>
+                        </div>
+                      )}
+
+                      {vendorPilihan && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 12 }}>
+                          <label htmlFor="rq-alasan" style={labelGaya}>
+                            Alasan pemilihan {alasanWajib ? "(wajib)" : "(opsional)"}
+                          </label>
+                          <textarea
+                            id="rq-alasan" rows={2} value={alasanPilih}
+                            onChange={(e) => { setAlasanPilih(e.target.value); setGalatPutusan(null); }}
+                            aria-describedby="rq-alasan-bantu"
+                            placeholder="mis. stok siap kirim 2 hari; vendor termurah inden 3 minggu"
+                            style={{ ...isianGaya, resize: "vertical", fontFamily: "inherit", lineHeight: 1.5 }}
+                          />
+                          <p id="rq-alasan-bantu" style={{ fontSize: 11, color: C.muted, margin: 0, lineHeight: 1.5 }}>
+                            {alasanWajib
+                              ? `Minimal 10 huruf. Inilah yang dibaca saat seseorang bertanya kenapa yang lebih mahal yang dipilih${alasanPilih.trim().length > 0 && !alasanCukup ? ` — baru ${alasanPilih.trim().length} huruf` : ""}.`
+                              : "Vendor ini termurah di semua material yang ia tawar, jadi alasan tak diminta. Isi bila ada yang perlu dicatat."}
+                          </p>
+                        </div>
+                      )}
+
+                      {galatPutusan && (
+                        <div role="alert" style={{
+                          marginTop: 12, padding: "9px 12px", borderRadius: 8, fontSize: 12.5,
+                          border: `1px solid ${C.redBorder}`, background: C.redBg, color: C.red,
+                        }}>
+                          {galatPutusan}
+                        </div>
+                      )}
+
+                      <button
+                        type="submit" disabled={!bolehPutuskan}
+                        style={{
+                          marginTop: 14, padding: "11px 22px", borderRadius: 6,
+                          fontSize: 14, fontWeight: 700, border: "none",
+                          // ── Kenapa BUKAN warna aksen yang berbeda
+                          //
+                          // ARAH-VISUAL §3d menyebut "tombol aksi utama, satu
+                          // per layar" boleh memakai aksen. Tapi §3b mencatat
+                          // indigo #6366F1 DITOLAK (kontras 4,47; butuh 4,5),
+                          // dan `--aksen` sekarang #003366 — warna yang SAMA
+                          // dengan tombol "Buat RFQ" di atas.
+                          //
+                          // Jadi pembedanya ukuran dan posisi, bukan rona:
+                          // padding lebih besar, huruf 14 vs 13, dan berdiri
+                          // sendiri di ujung alur. Mengarang warna keempat demi
+                          // "menonjol" akan melanggar aturan satu-aksen yang
+                          // justru sedang dipatuhi.
+                          background: bolehPutuskan ? "var(--aksen)" : C.border,
+                          color: bolehPutuskan ? "var(--on-aksen)" : C.mid,
+                          cursor: bolehPutuskan ? "pointer" : "not-allowed",
+                          display: "flex", alignItems: "center", gap: 7,
+                        }}
+                      >
+                        <Gavel size={14} aria-hidden="true" />
+                        {memutuskan ? "Menerbitkan PO…" : "Putuskan & terbitkan PO"}
+                      </button>
+                    </form>
+                  )}
                 </>
               )}
             </>

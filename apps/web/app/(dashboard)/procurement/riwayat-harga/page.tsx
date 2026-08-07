@@ -256,20 +256,16 @@ export default function RiwayatHargaPage() {
   ];
 
   return (
-    <div style={{
-      padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
-      width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
-    }}>
-      <div className="rise" style={{ marginBottom: 20 }}>
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700, color: C.text, margin: 0 }}>
-          Riwayat Harga Material
-        </h1>
-        <p style={{ fontSize: 13, color: C.mid, margin: "6px 0 0", maxWidth: "68ch", lineHeight: 1.55 }}>
-          Bagaimana harga tiap material bergerak sepanjang waktu — naik maupun
-          turun. Beda harga antar vendor pada tanggal yang sama bukan pergerakan
-          harga; itu rentang penawaran, dan tempatnya di RFQ.
-        </p>
-      </div>
+    // Judul, lebar, dan padding datang dari `procurement/layout.tsx` — lihat
+    // catatan yang sama di `rfq/page.tsx`. Halaman ini menyediakan ketiganya
+    // sendiri sampai 2026-08-08, dan hasilnya dua judul bertumpuk plus kartu
+    // di dalam kartu.
+    <div>
+      <p style={{ fontSize: 13, color: C.mid, margin: "0 0 18px", maxWidth: "68ch", lineHeight: 1.55 }}>
+        Bagaimana harga tiap material bergerak sepanjang waktu — naik maupun
+        turun. Beda harga antar vendor pada tanggal yang sama bukan pergerakan
+        harga; itu rentang penawaran, dan tempatnya di RFQ.
+      </p>
 
       {galat && (
         <div role="alert" style={{

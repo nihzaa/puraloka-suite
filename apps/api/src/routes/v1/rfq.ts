@@ -1,7 +1,9 @@
-import type { FastifyInstance } from 'fastify'
+import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { proyekMilikTenant } from '../../utils/tenant-guard.js'
 import { susunTabulasi, type BarisPenawaran } from '../../lib/tabulasi-penawaran.js'
+import { susunPutusan } from '../../lib/putusan-rfq.js'
+import { logAuditEvent } from '../../utils/audit.js'
 
 /**
  * RFQ KE VENDOR + PERBANDINGAN PENAWARAN (F5 PEMBEDA)
@@ -25,6 +27,88 @@ import { susunTabulasi, type BarisPenawaran } from '../../lib/tabulasi-penawaran
  * disunting — dan yang paling berkepentingan menyuntingnya adalah orang yang
  * vendornya sedang kalah.
  */
+type BarisMentahPenawaran = {
+  supplier_id: string
+  material_id: string
+  qty: number | string
+  harga_satuan: number | string
+  tidak_menawar: boolean | null
+  waktu_kirim_hari: number | null
+  supplier?: { id: string; name: string } | { id: string; name: string }[] | null
+  material?:
+    | { id: string; name: string; unit: string | null }
+    | { id: string; name: string; unit: string | null }[]
+    | null
+}
+
+/** PostgREST mengembalikan relasi sebagai objek ATAU array, tergantung bentuk join. */
+const satuRelasi = <T,>(v: T | T[] | null | undefined): T | null =>
+  Array.isArray(v) ? (v[0] ?? null) : (v ?? null)
+
+/**
+ * Bentuk baris penawaran mentah jadi masukan `susunTabulasi`.
+ *
+ * Diangkat jadi fungsi karena dipakai DUA kali: saat menampilkan tabulasi, dan
+ * saat memutuskan pemenang. Kalau keduanya membentuk barisnya sendiri-sendiri,
+ * putusan bisa dihitung dari tabulasi yang berbeda dengan yang dilihat pemakai
+ * di layar — dan yang berbeda hanyalah harga, yang tak akan terlihat sampai PO
+ * terbit ke vendor yang salah.
+ */
+function bentukBaris(mentah: BarisMentahPenawaran[]): BarisPenawaran[] {
+  return mentah.map((p) => {
+    const s = satuRelasi(p.supplier)
+    const m = satuRelasi(p.material)
+    return {
+      supplier_id: p.supplier_id,
+      supplier_name: s?.name,
+      material_id: p.material_id,
+      material_name: m?.name,
+      unit: m?.unit ?? null,
+      qty: p.qty,
+      harga_satuan: p.harga_satuan,
+      tidak_menawar: p.tidak_menawar,
+      waktu_kirim_hari: p.waktu_kirim_hari,
+    }
+  })
+}
+
+/**
+ * Batalkan PO yang baru terbit — item dulu, lalu kepalanya.
+ *
+ * ── Kenapa hasil hapusnya DIPERIKSA
+ *
+ * Ini jalur pemulihan: ia hanya dipanggil setelah sesuatu sudah gagal. Kalau
+ * pemulihannya ikut gagal DAN diam, yang tertinggal adalah PO yatim — pesanan
+ * yang tak berasal dari keputusan mana pun, tak muncul di RFQ mana pun, dan
+ * baru ketahuan saat vendor menanyakan barang yang tak pernah dipesan siapa
+ * pun. Penjaga `audit-tulis-tanpa-periksa.mjs` menandai persis pola ini, dan
+ * ia benar.
+ *
+ * Yang tak bisa dilakukan di sini: menjamin pemulihannya berhasil. Tak ada
+ * transaksi lintas-tabel lewat PostgREST. Yang BISA: mengembalikan kalimat
+ * yang menyebut nomor PO-nya, supaya pesan galat memberi tahu apa yang
+ * tertinggal, alih-alih berpura-pura semuanya bersih.
+ *
+ * @returns null bila bersih; kalimat peringatan bila ada yang tertinggal.
+ */
+async function batalkanPo(
+  db: NonNullable<FastifyRequest['db']>,
+  projectId: string,
+  poId: string,
+): Promise<string | null> {
+  const { error: eItem } = await db
+    .viaProject('purchase_order_items', poId).delete().eq('po_id', poId)
+  const { error: ePo } = await db
+    .viaProject('purchase_orders', projectId).delete().eq('id', poId)
+
+  if (!eItem && !ePo) return null
+  return `PERHATIAN: PO ${poId} gagal dibatalkan dan mungkin tertinggal tanpa keputusan — hapus manual. (${[eItem?.message, ePo?.message].filter(Boolean).join('; ')})`
+}
+
+const PILIH_PENAWARAN =
+  `supplier_id, material_id, qty, harga_satuan, tidak_menawar, waktu_kirim_hari, catatan,
+   supplier:suppliers ( id, name ), material:materials ( id, name, unit )`
+
 export default async function rfqRoutes(app: FastifyInstance) {
   // ── GET /api/v1/rfq ──────────────────────────────────────────────────────
   app.get('/api/v1/rfq', {
@@ -95,40 +179,11 @@ export default async function rfqRoutes(app: FastifyInstance) {
 
     const { data: penawaran, error: e2 } = await db
       .viaProject('rfq_penawaran', id)
-      .select(`supplier_id, material_id, qty, harga_satuan, tidak_menawar, waktu_kirim_hari, catatan,
-               supplier:suppliers ( id, name ), material:materials ( id, name, unit )`)
+      .select(PILIH_PENAWARAN)
 
     if (e2) return reply.status(500).send({ error: e2.message })
 
-    type BarisMentah = {
-      supplier_id: string
-      material_id: string
-      qty: number | string
-      harga_satuan: number | string
-      tidak_menawar: boolean | null
-      waktu_kirim_hari: number | null
-      supplier?: { id: string; name: string } | { id: string; name: string }[] | null
-      material?: { id: string; name: string; unit: string | null } | { id: string; name: string; unit: string | null }[] | null
-    }
-
-    const satu = <T,>(v: T | T[] | null | undefined): T | null =>
-      Array.isArray(v) ? (v[0] ?? null) : (v ?? null)
-
-    const baris: BarisPenawaran[] = ((penawaran ?? []) as BarisMentah[]).map((p) => {
-      const s = satu(p.supplier)
-      const m = satu(p.material)
-      return {
-        supplier_id: p.supplier_id,
-        supplier_name: s?.name,
-        material_id: p.material_id,
-        material_name: m?.name,
-        unit: m?.unit ?? null,
-        qty: p.qty,
-        harga_satuan: p.harga_satuan,
-        tidak_menawar: p.tidak_menawar,
-        waktu_kirim_hari: p.waktu_kirim_hari,
-      }
-    })
+    const baris = bentukBaris((penawaran ?? []) as unknown as BarisMentahPenawaran[])
 
     return reply.send({ rfq: kepala, tabulasi: susunTabulasi(baris) })
   })
@@ -271,5 +326,213 @@ export default async function rfqRoutes(app: FastifyInstance) {
     }
 
     return reply.status(201).send({ penawaran: data })
+  })
+
+  // ── POST /api/v1/rfq/:id/putuskan — menangkan vendor & terbitkan PO ──────
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // UJUNG YANG SELAMA INI TAK ADA
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Migrasi 195 menyiapkan `rfq.po_id` dan `rfq.alasan_pilih` sejak awal, dan
+  // dua endpoint di atas MEMBACA keduanya. Diukur 2026-08-08: tak ada satu
+  // baris pun yang MENULISNYA. Status `selesai` ada di CHECK constraint dan
+  // tak pernah tercapai; halaman RFQ menjanjikan *"keputusannya tercatat"*
+  // tanpa punya tombol untuk mencatatnya.
+  //
+  // ── Kenapa PO diterbitkan di sini, bukan disuruh dibuat manual
+  //
+  // Menyuruh orang menyalin harga dari tabulasi ke form PO membuat angka bisa
+  // berbeda dari yang dibandingkan — dan itu menghapus seluruh guna RFQ:
+  // tabulasinya jadi bukti untuk keputusan yang tidak benar-benar diambil.
+  // Item PO di sini datang dari penawaran vendor yang menang, apa adanya.
+  //
+  // ── Urutan tulis: PO dulu, RFQ belakangan, dan kenapa itu yang benar
+  //
+  // Tak ada transaksi lintas-tabel lewat PostgREST. Dua urutan yang mungkin,
+  // dua kegagalan yang berbeda:
+  //
+  //   RFQ dulu → RFQ `selesai` menunjuk `po_id` yang tak ada. Layar bilang
+  //              "sudah diputuskan", PO-nya tak pernah terbit, dan tak ada
+  //              yang tahu sampai vendor menanyakan pesanannya.
+  //   PO dulu  → PO terbit tapi RFQ masih `terkirim`. Terlihat SEGERA: RFQ
+  //              masih menawarkan tombol putuskan, dan percobaan kedua
+  //              ditolak nomor PO ganda… tidak, nomornya digenerate DB.
+  //
+  // Karena itu jalur PO-dulu ditutup rapat: bila penandaan RFQ gagal, PO yang
+  // baru terbit DIHAPUS lagi, dan pemanggil menerima 500 yang jujur. PO
+  // yatim tak pernah tertinggal di basis.
+  app.post('/api/v1/rfq/:id/putuskan', {
+    preHandler: [authenticate, requirePermission('procurement:po:manage')],
+  }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const b = request.body as {
+      supplier_id?: string
+      alasan?: string
+      expected_delivery_date?: string
+      delivery_address?: string
+      catatan?: string
+    }
+
+    if (!b.supplier_id) {
+      return reply.status(400).send({ error: 'supplier_id wajib diisi' })
+    }
+
+    const db = request.db!
+    const idProyek = await db.projectIds()
+    if (idProyek.length === 0) return reply.status(404).send({ error: 'RFQ tidak ditemukan' })
+
+    const { data: rfq, error: eRfq } = await db
+      .unsafe('rfq', 'verifikasi kepemilikan RFQ lewat projectIds sebelum menerbitkan PO')
+      .select('id, nomor, project_id, status, po_id')
+      .eq('id', id)
+      .in('project_id', idProyek)
+      .maybeSingle()
+
+    if (eRfq) return reply.status(500).send({ error: eRfq.message })
+    if (!rfq) return reply.status(404).send({ error: 'RFQ tidak ditemukan' })
+
+    // Putusan ganda menerbitkan PO KEDUA untuk RFQ yang sama: vendor menerima
+    // dua pesanan, dan `po_id` hanya menyimpan yang terakhir — yang pertama
+    // jadi PO tanpa asal-usul yang bisa ditelusuri.
+    if (rfq.status === 'selesai' || rfq.po_id) {
+      return reply.status(409).send({
+        error: `RFQ ${rfq.nomor} sudah diputuskan. Batalkan PO-nya lebih dulu bila keputusannya berubah.`,
+      })
+    }
+    if (rfq.status === 'batal') {
+      return reply.status(400).send({ error: `RFQ ${rfq.nomor} sudah dibatalkan` })
+    }
+
+    const { data: penawaran, error: ePen } = await db
+      .viaProject('rfq_penawaran', id)
+      .select(PILIH_PENAWARAN)
+
+    if (ePen) return reply.status(500).send({ error: ePen.message })
+
+    // Tabulasi dihitung dari sumber yang SAMA dengan yang dilihat pemakai —
+    // lihat `bentukBaris`.
+    const tabulasi = susunTabulasi(bentukBaris((penawaran ?? []) as unknown as BarisMentahPenawaran[]))
+    const hasil = susunPutusan(tabulasi, { supplier_id: b.supplier_id, alasan: b.alasan })
+
+    if (!hasil.ok) {
+      // 400, bukan 422: yang ditolak adalah ISI permintaan (vendor yang tak
+      // menawar, alasan yang kosong), dan pesannya sudah dirancang untuk
+      // dibaca langsung di layar oleh yang menekan tombolnya.
+      return reply.status(400).send({ error: hasil.alasan })
+    }
+
+    const { rencana } = hasil
+
+    // `payment_terms` disalin dari supplier, mengikuti pola pembuatan PO di
+    // `procurement.ts` — syarat bayar yang berlaku adalah yang disepakati saat
+    // PO terbit, bukan yang berlaku saat GR datang berbulan-bulan kemudian.
+    const { data: sup } = await db
+      .from('suppliers').select('payment_terms').eq('id', rencana.supplier_id).maybeSingle()
+
+    const { data: po, error: ePo } = await db
+      .viaProject('purchase_orders', rfq.project_id)
+      .insert({
+        project_id: rfq.project_id,
+        supplier_id: rencana.supplier_id,
+        created_by: request.currentUser!.id,
+        expected_delivery_date: b.expected_delivery_date ?? null,
+        delivery_address: b.delivery_address ?? null,
+        payment_terms: sup?.payment_terms ?? 'cod',
+        total_amount: rencana.total,
+        // Nomor PO dihasilkan trigger `generate_po_number` per-company
+        // (migrasi 135, diperbaiki 217). Mengarangnya di sini akan bertabrakan
+        // dengan penomoran tenant lain.
+        po_number: '',
+        notes: b.catatan ?? `Dari RFQ ${rfq.nomor}`,
+      })
+      .select('id, po_number')
+      .single()
+
+    if (ePo) return reply.status(500).send({ error: ePo.message })
+
+    const item = rencana.item.map((i) => ({
+      po_id: po.id,
+      material_id: i.material_id,
+      qty_ordered: i.qty_ordered,
+      unit: i.unit,
+      unit_price: i.unit_price,
+    }))
+
+    const { error: eItem } = await db
+      .viaProject('purchase_order_items', po.id)
+      .insert(item)
+
+    if (eItem) {
+      // PO tanpa item adalah PO yang tak bisa diterima barangnya dan tak bisa
+      // ditagih — lebih buruk daripada tak ada PO sama sekali, karena ia
+      // menghitung `total_amount` yang tak punya rincian.
+      const sisa = await batalkanPo(db, rfq.project_id, po.id)
+      return reply.status(500).send({
+        error: `Gagal menulis item PO: ${eItem.message}${sisa ? ` — ${sisa}` : ''}`,
+      })
+    }
+
+    const { data: rfqBaru, error: eTandai } = await db
+      .viaProject('rfq', rfq.project_id)
+      .update({
+        status: 'selesai',
+        po_id: po.id,
+        alasan_pilih: (b.alasan ?? '').trim() || null,
+      })
+      .eq('id', id)
+      .select('id, status, po_id, alasan_pilih')
+      .maybeSingle()
+
+    // Hasil update DIPERIKSA, bukan diabaikan. `update` yang tak mengenai satu
+    // baris pun tidak menghasilkan error di PostgREST — ia mengembalikan nol
+    // baris dengan tenang, dan tanpa pemeriksaan ini RFQ tetap `terkirim`
+    // sementara PO sudah terbit.
+    if (eTandai || !rfqBaru) {
+      const sisa = await batalkanPo(db, rfq.project_id, po.id)
+      return reply.status(500).send({
+        error: [
+          'Gagal menandai RFQ selesai; PO dibatalkan supaya tak ada pesanan tanpa keputusan.',
+          eTandai?.message,
+          sisa,
+        ].filter(Boolean).join(' '),
+      })
+    }
+
+    await logAuditEvent(request, {
+      tableName: 'rfq',
+      recordId: id,
+      action: 'procurement.rfq_diputuskan',
+      actorId: request.currentUser!.id,
+      // `severity: 'warning'` saat yang menang BUKAN termurah. Inilah baris
+      // yang dicari auditor, dan mencarinya di antara ratusan entri `info`
+      // berarti tak akan ditemukan.
+      severity: rencana.seluruhnya_termurah ? 'info' : 'warning',
+      reason: rencana.seluruhnya_termurah
+        ? undefined
+        : `Vendor bukan termurah; selisih ${rencana.selisih_total}`,
+      newValues: {
+        rfq_nomor: rfq.nomor,
+        po_id: po.id,
+        po_number: po.po_number,
+        supplier_id: rencana.supplier_id,
+        supplier_name: rencana.supplier_name,
+        total: rencana.total,
+        seluruhnya_termurah: rencana.seluruhnya_termurah,
+        selisih_total: rencana.selisih_total,
+        alasan_pilih: (b.alasan ?? '').trim() || null,
+      },
+    })
+
+    return reply.status(201).send({
+      rfq: rfqBaru,
+      purchase_order: { id: po.id, po_number: po.po_number, total: rencana.total },
+      putusan: {
+        supplier_name: rencana.supplier_name,
+        jumlah_item: rencana.item.length,
+        seluruhnya_termurah: rencana.seluruhnya_termurah,
+        selisih_total: rencana.selisih_total,
+      },
+    })
   })
 }

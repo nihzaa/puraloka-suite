@@ -521,6 +521,39 @@ dan vendor mana yang diundang tapi diam).
 | **RFQ ke vendor** | Harga dari perbandingan, bukan dari satu vendor langganan | M |
 | **Perbandingan penawaran (bid tabulation)** | Bukti pemilihan vendor — dasar audit pengadaan | M |
 
+**SELESAI 2026-08-08** (`/procurement/rfq`, migrasi 195 + `lib/putusan-rfq.ts`).
+
+Keduanya sebenarnya sudah dibangun lebih awal — migrasi 195, `rfq.ts`
+(4 endpoint), `lib/tabulasi-penawaran.ts` (14 test), dan halaman UI 505 baris
+sudah ada saat dokumen ini masih menandainya belum dikerjakan. Diukur ke kode
+2026-08-08, bukan ditebak dari status.
+
+**Tapi rantainya tak punya UJUNG, dan itu cacat yang sesungguhnya.** Migrasi
+195 menyiapkan `rfq.po_id` dan `rfq.alasan_pilih` sejak awal, dan dua endpoint
+MEMBACA keduanya — tak ada satu baris pun yang MENULISNYA. Status `selesai` ada
+di CHECK constraint dan tak pernah tercapai. Halaman RFQ menutup dirinya dengan
+kalimat *"Yang penting keputusannya tercatat — termasuk saat yang lebih mahal
+sengaja dipilih"*: janji yang tak punya tombol.
+
+Komentar di migrasi 195 bahkan sudah menuliskan aturannya — *"`alasan_pilih`
+WAJIB diisi lewat aplikasi saat vendor termurah TIDAK dipilih"* — dan aturan itu
+hanya kalimat di dalam berkas SQL selama tak ada kode yang menegakkannya.
+
+Yang ditambahkan:
+
+| Lapis | Isi |
+|---|---|
+| Pustaka | `lib/putusan-rfq.ts` — 6 invarian (vendor tak-menawar tak bisa menang; material tak ditawar tak masuk PO; alasan wajib saat bukan termurah; alasan basa-basi ditolak; alasan TIDAK diminta saat memang termurah; NUMERIC string dihitung sebagai angka) |
+| Test | 17 test pustaka + 13 test endpoint terhadap Postgres nyata |
+| Mutasi | 4 mutasi pustaka + 3 mutasi endpoint, semuanya MERAH lalu pulih |
+| API | `POST /api/v1/rfq/:id/putuskan` — terbitkan PO (nomor dari trigger DB), tulis itemnya, tandai RFQ `selesai`, catat audit `severity: warning` bila pemenangnya bukan termurah |
+| UI | Panel putusan: peringatan muncul SEBELUM tombol ditekan dan menyebut material mana yang lebih mahal beserta selisih rupiahnya |
+
+**Kenapa peringatannya di klien, padahal server sudah memutuskan.** Menunggu
+400 dari server melatih orang menekan tombol, ditolak, lalu mengarang alasan
+supaya lolos — persis kebiasaan yang modul ini dibangun untuk mencegahnya.
+Yang dibaca auditor setahun kemudian adalah alasan itu.
+
 **Kenapa EVM dan WIP/PSAK tak muncul di sini.** Keduanya sudah 3,5/5 dan 4/5 —
 sudah hidup, tinggal disempurnakan (WIP menunggu GL yang sama dengan INTI #1).
 Yang butuh item baru adalah tiga pembeda yang masih rendah.

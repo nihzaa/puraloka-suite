@@ -5,6 +5,104 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-08 — RFQ akhirnya punya ujung; dua penjaga yang menuntut hal keliru
+
+### Yang dicari: pekerjaan yang benar-benar belum ada
+
+Antrean formal habis — dua sisa `todo` (SITUS-2, SITUS-3) menunggu keputusan
+founder. Jadi saya ukur ke kode, bukan membaca status. Temuannya:
+
+> `rfq.po_id` dan `rfq.alasan_pilih` ADA di migrasi 195, DIBACA oleh dua
+> endpoint, dan **tak pernah ditulis satu baris pun**. Status `selesai` ada di
+> CHECK constraint dan tak pernah tercapai.
+
+Halaman RFQ menutup dirinya dengan kalimat *"Yang penting keputusannya
+tercatat — termasuk saat yang lebih mahal sengaja dipilih"*. Janji tanpa tombol.
+Komentar migrasi 195 bahkan sudah menuliskan aturannya (*"`alasan_pilih` WAJIB
+diisi lewat aplikasi saat vendor termurah TIDAK dipilih"*) — dan aturan itu
+hanya kalimat di dalam berkas SQL selama tak ada kode yang menegakkannya.
+
+Ini bentuk "belum selesai" yang paling sulit dilihat: setiap bagiannya ada,
+hanya sambungannya yang tidak.
+
+### Dibangun
+
+```
+lib/putusan-rfq.ts        6 invarian · 17 test · 4 mutasi MERAH
+POST /rfq/:id/putuskan    13 test ke Postgres nyata · 3 mutasi MERAH
+UI panel putusan          peringatan SEBELUM tombol, bukan 400 sesudahnya
+```
+
+Alasannya diminta di klien lebih dulu **bukan** untuk menggantikan server (yang
+tetap menolak 400), melainkan karena menunggu penolakan melatih orang menekan
+tombol → ditolak → mengarang alasan supaya lolos. Yang dibaca auditor setahun
+kemudian adalah alasan itu.
+
+Alur diuji end-to-end di peramban: pilih vendor → peringatan "bukan termurah di
+1 material, lebih mahal Rp 1.080.000" → tombol mati → alasan diketik → tombol
+nyala → **PO-2026-328 terbit**.
+
+### Satu mutasi LOLOS, dan itu jujur
+
+M3 menukar `harga > harga_termurah` jadi `!sel.termurah`: nol test merah.
+Diperiksa, dan mutasinya memang **bukan mutasi sah** — `susunTabulasi` menandai
+`termurah: true` pada SETIAP sel yang seri (`tabulasi-penawaran.ts:197`), jadi
+kedua rumus setara. Yang salah adalah komentar yang sudah saya tulis di kode,
+mengklaim `!sel.termurah` akan menuntut alasan pada harga seri. Komentarnya
+diperbaiki; perbandingan angka dipertahankan karena kesetaraan itu bergantung
+pada satu baris di modul lain.
+
+### Dua penjaga menuntut hal yang keliru
+
+**`tata-letak-ratchet` menuduh palsu.** Ia menuntut tiap `page.tsx` memasang
+token lebar sendiri — tapi empat modul (`kas`, `keuangan`, `mandor`,
+`procurement`) punya `layout.tsx` yang sudah memasang lebar, padding, DAN
+`JudulBagian`. Halaman anak yang mematuhinya menghasilkan **judul dalam judul
+dan kartu dalam kartu** — terlihat di tangkapan layar 2K.
+
+Sepuluh halaman procurement "mematuhi" dengan menempelkan `maxWidth` yang tak
+berpengaruh apa pun (layout membatasi 2200px, token halaman menyatakan 2200px,
+yang kedua tak pernah menggigit). Penjaga yang memaksa ritual kosong mengajari
+orang menulis kode tak berarti supaya CI hijau.
+
+Diajari menelusuri layout induk. Bukan ditambahi pengecualian — pengecualian
+akan menyembunyikan cacatnya, sementara ini memperbaiki aturannya. Dibuktikan
+masih bisa merah lewat mutasi pada halaman yang memang tak punya layout modul.
+
+**`tulis-tanpa-periksa` benar, dan menangkap saya.** Tiga `delete()` rollback
+saya tak memeriksa hasilnya. Ia benar: rollback yang gagal DIAM meninggalkan PO
+yatim — pesanan yang tak berasal dari keputusan mana pun. Diperbaiki jadi
+`batalkanPo()` yang mengembalikan peringatan bernomor PO.
+
+Angkanya lalu 18 > ambang 17 — dan diukur dengan `git stash`, **18 juga tanpa
+perubahan saya**: hutangnya pra-ada. Melemahkan ambang adalah G-5, jadi saya
+bayar satu hutang: rollback koran di `rekonsiliasi-bank.ts:336` (yang saya
+tulis sendiri sesi lalu, cacat yang sama persis). Kembali 17, exit 0.
+
+### Bukti
+
+```
+vitest (5 berkas tersentuh)   81/81 ✅
+  putusan-rfq                 17 · mutasi M2/M4/M5/M6 MERAH → pulih
+  rfq-putusan (endpoint)      13 · mutasi E1/E2/E3 MERAH → pulih
+  tabulasi-penawaran          14
+  rekonsiliasi (lib+endpoint) 37
+tsc --noEmit (api & web)      exit 0 ✅
+lint-ratchet                  0 error, 234 warning ✅
+audit-tulis-tanpa-periksa     17 (dari 18) ✅
+audit-kegagalan-senyap        186/186 ✅
+audit-catch-senyap            0 ✅
+audit-gerbang-tenancy         exit 0 ✅
+tata-letak-ratchet            79 patuh · mutasi MERAH → pulih ✅
+audit-tab-seragam             ✅
+audit-a11y-runtime            77 halaman · 0 pelanggaran ✅
+```
+
+Data dummy RFQ/2026/001 & 002 dibuat untuk menguji jalur nyata (seluruh isi
+basis memang dummy).
+
+---
+
 ## 2026-08-08 — Lebar halaman ikut layar; satu cacat CSS, satu cacat JavaScript
 
 ### Keluhannya satu kalimat, sebabnya dua hal berbeda

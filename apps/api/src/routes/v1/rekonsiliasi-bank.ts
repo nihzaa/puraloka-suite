@@ -333,9 +333,18 @@ export default async function rekonsiliasiBankRoutes(app: FastifyInstance) {
     if (eBaris) {
       // Baris gagal masuk berarti koran ini setengah jadi. Membiarkannya
       // menghasilkan entri kosong yang terlihat sah di daftar.
-      await db.from('rekening_koran').delete().eq('id', koranId)
+      //
+      // Hasil hapusnya DIPERIKSA, bukan diabaikan: ini jalur pemulihan, dan
+      // pemulihan yang gagal DIAM meninggalkan persis benda yang sedang
+      // dicegah — koran kosong yang tak seorang pun tahu harus diapakan.
+      // Tak ada transaksi lintas-tabel lewat PostgREST, jadi yang bisa
+      // dijamin bukan keberhasilannya melainkan bahwa kegagalannya terbaca.
+      const { error: eBatal } = await db.from('rekening_koran').delete().eq('id', koranId)
       return reply.status(400).send({
-        error: `Baris koran ditolak: ${eBaris.message}. Impor dibatalkan seluruhnya.`,
+        error: [
+          `Baris koran ditolak: ${eBaris.message}. Impor dibatalkan seluruhnya.`,
+          eBatal && `PERHATIAN: koran ${koranId} gagal dihapus dan mungkin tertinggal kosong — hapus manual. (${eBatal.message})`,
+        ].filter(Boolean).join(' '),
       })
     }
 
