@@ -16,7 +16,7 @@ memuat **setiap** dokumen, tanpa kecuali.
 | **acuan** | aturan/keputusan yang dirujuk saat bekerja | dibaca saat mengerjakan hal terkait; tak "selesai" |
 | **riwayat** | catatan fase yang sudah lewat | bukti apa yang pernah terjadi; jangan dikutip sebagai rencana |
 
-**Total 268 dokumen** — antrean 13 · acuan 196 · riwayat 59.
+**Total 268 dokumen** — antrean 13 · acuan 195 · riwayat 60.
 
 Kolom **RM** = disebut langsung di `ROADMAP.md`.
 
@@ -81,7 +81,7 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | [JOURNAL](execution/JOURNAL.md) | riwayat | ✓ | JOURNAL — Catatan Sesi |
 | [LEDGER-DIFF](execution/LEDGER-DIFF.md) | acuan |  | LEDGER-DIFF — Buku Migrasi vs Artefak Fisik |
 | [RATIFIKASI](execution/RATIFIKASI.md) | riwayat | ✓ | RATIFIKASI — Satu-satunya Berkas yang Perlu Dibaca Founder |
-| [RENCANA-PERBAIKAN-SIDEBAR](execution/RENCANA-PERBAIKAN-SIDEBAR.md) | acuan |  | Rencana perbaikan navigasi — sidebar, tab-bagian, dan route |
+| [RENCANA-PERBAIKAN-SIDEBAR](execution/RENCANA-PERBAIKAN-SIDEBAR.md) | riwayat |  | Rencana perbaikan navigasi — sidebar, tab-bagian, dan route |
 
 ### `docs/ops`
 

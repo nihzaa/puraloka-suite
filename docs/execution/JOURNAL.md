@@ -5,6 +5,63 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-07 (lanjutan 14) — Perbaikan saya melahirkan cacat a11y; auditnya sendiri yang menangkap
+
+Melanjutkan sesudah todo habis, sesuai arahan founder. Pola `useTabUrl` sudah
+terbukti di `/akuntansi`, jadi dipasang di dua kelompok berbagi-href terbesar.
+
+```
+/laporan     8 item menu ·  9 tab   → semuanya membuka Ringkasan
+/estimasi   11 item menu ·  6 tab   → semuanya membuka Komposer
+
+berbagi href: 96 → 87 item
+```
+
+### Cacat yang saya buat sendiri
+
+Menambahkan `role="tab"` supaya tab aktif bisa diumumkan pembaca layar —
+tapi tanpa induk `role="tablist"`, dan itu melanggar ARIA. Audit axe-core:
+**9 pelanggaran CRITICAL di `/laporan`, 6 di `/estimasi`**.
+
+Saya menambahkannya justru untuk memperbaiki aksesibilitas, dan hasilnya
+memperburuk. Yang menyelamatkan: audit a11y dijalankan sebelum commit, bukan
+dianggap sudah pasti aman karena "cuma menambah atribut". Sesudah `tablist`
+dipasang: **0 · 0 · 0**.
+
+### Penjaga saya sendiri bergerak ke arah salah
+
+`berbagiHref` (banyaknya href dipakai >1 item) **NAIK 23 → 25** justru karena
+keadaan membaik — memecah 8 item `/laporan` ke tiga tab melahirkan dua href
+baru yang masing-masing dipakai dua item. Sementara itemnya turun 96 → 87.
+
+Penjaga yang merah saat pekerjaan membaik akan dimatikan orang, dan penjaga
+yang dimatikan tak menjaga apa pun. Metriknya diganti ke `berbagiItem`.
+
+Bug kedua di penjaga yang sama, ketahuan saat memperbaiki yang pertama: ia
+menguji `lantai.berbagiHref` yang baru saja dibuang — jadi ia akan **menimpa
+lantainya diam-diam tiap run** dan tak pernah merah lagi, apa pun yang terjadi.
+
+### Uji perilaku saya punya jalur longgar
+
+Versi pertama `uji-tab-dari-url.mjs` hanya memeriksa `aria-selected`, jadi
+`/akuntansi` (yang memakai `aria-pressed`) jatuh ke pemeriksaan cadangan
+"judul ada" — **HIJAU meski tabnya tak berpindah sama sekali**. Ini kedua
+kalinya hari ini uji saya lolos palsu; yang pertama `body.includes("Neraca")`.
+
+Pelajarannya sama: uji yang memeriksa "halaman termuat" bukan uji yang
+memeriksa "yang saya minta terjadi".
+
+### Bukti
+
+```
+web      32 berkas · 423 test hijau · tsc bersih
+a11y     /laporan · /estimasi · /akuntansi → 0 pelanggaran
+penjaga  7 lulus · migrasi 227 & 228 idempoten (3×) + mutasi ditolak
+perilaku uji-tab-dari-url: 6 kasus + 2 nilai ngawur → LULUS
+```
+
+---
+
 ## 2026-08-07 (lanjutan 13) — Menahan pekerjaan demi keputusan yang jawabannya sudah jelas
 
 ### Saya salah, lagi — kali ini soal cara kerja

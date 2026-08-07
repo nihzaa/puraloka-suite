@@ -39,7 +39,7 @@ antara keduanya** yang melahirkan cacat menu yatim kemarin.
 |---|---|---|---|---|
 | T-1 | Menu menunjuk "segera hadir" padahal halaman ada | 20 item | **cacat** | ✅ **SELESAI** — migrasi 220 |
 | T-2 | Halaman yatim (tak bisa dicapai) | 11 → 0 | **cacat** | ✅ **SELESAI** — dijaga `audit-nav-yatim.mjs` |
-| T-3 | Satu href dipakai banyak item sidebar | 144 → **96** | struktur | ✅ **SELESAI** — 223, 224 |
+| T-3 | Satu href dipakai banyak item sidebar | 144 → **87** | struktur | ✅ **SELESAI** — 223, 224, 227, 228 |
 | T-4 | Href sama muncul di sidebar **dan** tab-bagian | 13 → 6 | struktur | ✅ **SELESAI** — 225 |
 | T-5 | Tiga aturan "aktif" berbeda di tiga berkas | 3 → **1** | konsistensi | ✅ **SELESAI** — `lib/rute-aktif.ts` |
 | T-6 | Label identik berulang di sidebar | 3 → **1** | salah tulis | ✅ **SELESAI** — 222 |
@@ -279,5 +279,37 @@ terhubung — bukan diam-diam hijau.
   bertambah, dan `menu-berbagi-href.ts` menandainya di layar.
 - **18 drift href** — seluruhnya `peta-menu.ts` menulis `/proyek` sementara DB
   menunjuk `/m/<key>`; itu justru arah yang benar (migrasi 224).
-- **Tab dari URL** (`?tab=`) belum ada: nol halaman membaca `useSearchParams`
-  untuk tab. Itu pekerjaan kode per-halaman, bukan migrasi.
+### Tab dari URL — SELESAI untuk tiga halaman terbesar
+
+`lib/use-tab-url.ts` (7 test) membuat tab hidup di URL. Dipasang di:
+
+| Halaman | Item menu | Tab | Migrasi |
+|---|---:|---:|---|
+| `/akuntansi` | 2 | 5 | 227 |
+| `/laporan` | 8 | 9 | 228 |
+| `/estimasi` | 11 | 6 | 228 |
+
+Dibuktikan di peramban (`uji-tab-dari-url.mjs`): `?tab=wip` memilih tab WIP,
+`?tab=varians` memilih Varians Biaya, `?tab=ngawur` tak merusak halaman.
+
+**Cacat a11y yang lahir dari perbaikan ini, lalu ditangkap auditnya sendiri:**
+`role="tab"` tanpa induk `role="tablist"` melanggar ARIA — 9 pelanggaran
+CRITICAL di `/laporan`, 6 di `/estimasi`. Sesudah `tablist` dipasang: nol.
+
+**Metrik penjaga diperbaiki.** `berbagiHref` NAIK 23 → 25 justru karena keadaan
+membaik (memecah item ke tiga tab melahirkan href baru). Yang di-ratchet
+sekarang `berbagiItem` — berapa banyak item yang mendarat di tempat yang tak
+diminta. Penjaga yang merah saat pekerjaan membaik akan dimatikan orang.
+
+### Sisa 87 item, kelompok terbesar
+
+| href | Item | Kenapa belum |
+|---|---:|---|
+| `/mandor` | 8 | belum punya tab; halaman tunggal |
+| `/aset` | 7 | belum punya tab |
+| `/procurement` | 6 | belum punya tab |
+| `/dokumen/kendali` | 6 | satu halaman, enam modul di dalamnya |
+| `/tender` | 5 | belum punya tab |
+| `/piutang` | 5 | belum punya tab |
+
+Polanya sudah terbukti; yang dibutuhkan tab di halaman-halaman itu lebih dulu.
