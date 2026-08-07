@@ -277,7 +277,7 @@ export const PETA_MENU: GrupMenu[] = [
       { key: 'as-register', label: 'Register Aset', status: 'hidup', href: '/aset', guna: 'Daftar alat milik perusahaan beserta kondisinya.' },
       { key: 'as-mutasi', label: 'Mutasi Antar Proyek', status: 'hidup', href: '/aset', guna: 'Perpindahan alat, lengkap dengan kondisi serah terima.' },
       { key: 'as-penyusutan', label: 'Penyusutan', status: 'hidup', href: '/aset', guna: 'Nilai buku alat — garis lurus atau saldo menurun.' },
-      { key: 'as-sewa', label: 'Sewa Alat', status: 'hidup', href: '/aset', guna: 'Alat yang disewa, beserta biaya berjalannya.' },
+      { key: 'as-sewa', label: 'Sewa Alat', status: 'hidup', href: '/aset?tab=sewa', guna: 'Alat yang disewa, beserta biaya berjalannya.' },
       { key: 'as-utilisasi', label: 'Utilisasi', status: 'hidup', href: '/aset', guna: 'Seberapa sering alat terpakai — alat menganggur = uang tertidur.' },
       { key: 'as-maintenance', label: 'Maintenance Terjadwal', status: 'hidup', href: '/aset/operasional', guna: 'Jadwal servis berkala agar alat tak rusak di tengah proyek.', catatan: 'Interval ganda: jam meter ATAU hari, mana yang tercapai lebih dulu. Kolom "dipicu oleh" menyebut yang mana — excavator 300 jam/bulan butuh oli meski jadwal 180-harinya baru separuh.' },
       { key: 'as-opex', label: 'Biaya Operasional Alat', status: 'hidup', href: '/aset/operasional', guna: 'BBM, operator, dan suku cadang per alat.', catatan: 'Biaya per jam bernilai "—" saat jam operasi nol, bukan angka hasil bagi-nol yang terlihat masuk akal.' },

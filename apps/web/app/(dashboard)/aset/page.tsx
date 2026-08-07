@@ -330,7 +330,7 @@ function IsiAset() {
       <div id="daftar-aset" role="tablist" aria-label="Jenis aset" style={{ display: "flex", gap: 4, marginBottom: 14, borderBottom: `1px solid ${C.border}` }}>
         {([["milik", `Milik (${metaAset?.milik ?? 0})`], ["sewa", `Sewa (${metaSewa?.total ?? 0})`]] as const).map(([k, label]) => (
           <button
-            key={k} role="tab" aria-selected={tab === k}
+            key={k} role="tab" aria-selected={tab === k} data-tab={k}
             onClick={() => setTab(k)}
             style={{
               padding: "8px 16px", border: "none", background: "none", cursor: "pointer",

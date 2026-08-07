@@ -44,6 +44,7 @@ const KASUS = [
   { url: '/procurement/lanjutan', tab: 'nota', param: 'bagian' },
   { url: '/jadwal', tab: 'histogram', param: 'bagian' },
   { url: '/jadwal', tab: 'method', param: 'bagian' },
+  { url: '/aset', tab: 'sewa' },
 ]
 
 const peramban = await chromium.launch()
