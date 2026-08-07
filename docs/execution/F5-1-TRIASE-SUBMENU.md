@@ -160,7 +160,7 @@ menyempurnakan yang sudah hidup — dua item INTI ternyata yang kedua (§2c).
 
 | # | Sub-menu | Kelompok | Rusak kalau tak ada | Mulai dari | Prasyarat data | Bobot |
 |---|---|---|---|---|---|---|
-| 1 | **Laporan keuangan** — neraca & L/R | 14 Keuangan | Owner tak bisa melihat posisi perusahaan; ini pertanyaan pertama tiap calon pelanggan | 🟡 arus kas ✅ · **GL sudah sehat** (§3a) | akun diklasifikasi neraca/L-R | **M** |
+| 1 | **Laporan keuangan** — neraca & L/R | 14 Keuangan | Owner tak bisa melihat posisi perusahaan; ini pertanyaan pertama tiap calon pelanggan | ✅ **SELESAI** (§3c) | — sudah terpenuhi | **M** |
 | 2 | **Interim Payment Certificate (IPC)** | 15 Penagihan | Termin tak bisa ditagih secara formal ke owner proyek; ini pintu masuk UANG | ✅ **SELESAI 2026-08-07** (§3b) | progress terverifikasi + retensi | L |
 | 3 | **Retensi subkontrak** | 8 Subkontraktor | Retensi mandor/subkon tak terlacak → dibayar penuh padahal harus ditahan; kebocoran uang langsung | 🟡 UI hidup (2026-08-06) | kontrak subkon + termin | M |
 | 4 | **Claims management** | 3 Kontrak | Klaim tambah-kurang tak punya jejak; saat sengketa, tak ada bukti | 🟡 UI hidup (2026-08-06) | kontrak + variation order | L |
@@ -197,6 +197,37 @@ CPM, resource histogram, atau tanda tangan elektronik memang membuat produk
 lebih baik — tapi tak ada kontraktor yang membatalkan pembelian karena
 ketiadaannya. Menaruhnya di INTI membuat kata "INTI" kehilangan arti, dan
 daftar yang semuanya prioritas sama dengan tidak punya prioritas.
+
+### 3c. Koreksi KETIGA — INTI #1 sudah lengkap, 2026-08-07
+
+Delapan kali. §3a mencatat satu, §3b enam, dan hari ini **INTI #1 sendiri** —
+item yang §3a susah payah bebaskan dari tuduhan terblokir — ternyata bukan cuma
+tak terblokir, melainkan **sudah jadi**.
+
+Diukur, bukan dibaca:
+
+| Lapis | Bukti |
+|---|---|
+| Pustaka | `apps/api/src/lib/laporan-keuangan.ts` — `hitungNeraca` (:111), `hitungLabaRugi` (:82) |
+| Test | `laporan-keuangan.test.ts` — **13 test, dijalankan 2026-08-07, hijau** |
+| API | `GET /api/v1/gl/laporan` (`routes/v1/gl.ts:443`) — neraca + L/R dari SATU perhitungan saldo |
+| UI | `components/neraca-laba-rugi.tsx` (365 baris), dipakai `akuntansi/page.tsx:258` |
+
+Klasifikasi akun yang dicatat sebagai prasyarat pun sudah ada sejak awal:
+`accounts.type` dengan `CHECK` lima nilai (asset/liability/equity/revenue/expense).
+Prasyarat itu **tak pernah benar-benar hilang** — hanya tak pernah diperiksa.
+
+**Akibat nyata, bukan sekadar dokumen keliru:** pada 2026-08-07 saya melaporkan
+ke founder bahwa penyusutan→GL menunggu ratifikasi R-001 — padahal R-001 sudah
+selesai (`RATIFIKASI.md:904`) dan §3a di dokumen INI sudah menyatakannya. Saya
+membaca peringatan basi di `CLAUDE.md` §5.5 dan tidak mengukurnya. Saya salah;
+peringatan itu sudah dicabut di commit yang sama dengan koreksi ini.
+
+**Pola yang berulang delapan kali ini bukan kelalaian orang, melainkan
+ketiadaan penjaga.** `audit-taksonomi-vs-kode.mjs` hanya memeriksa sub-menu yang
+punya entri `PETA`; item tanpa entri lolos tanpa suara — persis seperti INTI #1.
+
+---
 
 ### 3b. Koreksi kedua — enam item, 2026-08-06
 

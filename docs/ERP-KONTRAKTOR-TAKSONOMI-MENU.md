@@ -282,7 +282,7 @@ sebagai kategori B/C. 045 dibiarkan di tempatnya — riwayat tak diubah.
 | e-Faktur / e-Bupot | 🟡 | Koreksi dari 🔴: pencatatan nomor + rekap pajak + status ada; generate = pakai Coretax (jangan dibangun) |
 | Multi-currency & revaluasi FX | ⛔ | Dicoret owner |
 | Transaksi antar-perusahaan | ⛔ | Relevan lagi hanya jika multi-company terpicu |
-| **Laporan keuangan** | 🟡 | Arus kas ✅; Neraca & L/R 🔴 (rekomendasi: eksternal) |
+| **Laporan keuangan** | ✅ | Arus kas ✅; **Neraca & L/R ✅** — `lib/laporan-keuangan.ts` (13 test) · `GET /api/v1/gl/laporan` (`gl.ts:443`) · `components/neraca-laba-rugi.tsx` dipakai `akuntansi/page.tsx:258`. Diukur 2026-08-07; status 🔴 sebelumnya SALAH (F5-1 §3c). Neraca & L/R dari SATU perhitungan saldo — dua endpoint terpisah membuat laba di neraca bisa beda dari laba di L/R |
 | **Pengakuan pendapatan / persentase penyelesaian (PSAK)** | ✅ | **2026-08-01** (ROADMAP #15): `lib/wip-psak.ts` + `GET /reports/wip` + tab **WIP / Pengakuan** di Laporan. Dua metode berdampingan — cost-to-cost (standar audit) & fisik; selisih besar = sinyal, bukan bug. **CIE/BIE dipisah** (aset vs liabilitas, tak saling menghapus). Kerugian diakui SEKARANG sesuai PSAK. ⚠️ Ini **laporan, bukan jurnal** — belum masuk buku besar (menunggu Modul 10 GL) |
 | Tutup buku periode | 🔴 | Eksternal |
 | Audit trail | ✅ | + correlation_id + severity + diff + **append-only AKTIF**. ~~Gap: trigger 073 dorman~~ **KELIRU, dikoreksi 2026-08-01**: `trg_audit_logs_no_update` & `trg_audit_logs_no_delete` `tgenabled='O'` di DB — di-apply via PR #13 (`d9ea114`) setelah founder menyetujui. Klaim "dorman" berasal dari komentar di berkas migrasi 073 yang tak pernah diperbarui setelah gerbangnya dibuka |

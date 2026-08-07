@@ -97,6 +97,20 @@ const PETA = {
   'Instruksi lapangan': { berkas: ['instruksi-lapangan'], web: ['/field-instructions'] },
   'Non-Conformance Report (NCR)': { berkas: ['ncr'], web: ['/ncr'] },
   'Absensi lapangan': { berkas: ['absensi'], web: ['/absensi'] },
+
+  // Ditambahkan 2026-08-07 sesudah kekeliruan KEDELAPAN (F5-1 §3c).
+  //
+  // 'Laporan keuangan' tertulis 🔴 selama berminggu-minggu — dan taksonomi
+  // bahkan MENYARANKAN memakai aplikasi akuntansi eksternal — padahal
+  // pustaka, 13 test, endpoint, dan komponennya sudah hidup. Ia lolos karena
+  // tak punya entri di sini: penjaga melaporkan "status BASI: 0" dengan
+  // percaya diri sambil tak memeriksanya sama sekali.
+  //
+  // Daftar-putih yang tak lengkap adalah penjaga yang berbohong. Setiap item
+  // INTI wajib punya entri di sini — itu yang membuatnya ikut terperiksa.
+  'Laporan keuangan': { berkas: ['laporan-keuangan'], rute: ['/gl/laporan'], web: ['/akuntansi'] },
+  'Interim Payment Certificate (IPC)': { berkas: ['ipc'], web: ['/keuangan/ipc'] },
+  'Geotag foto': { web: ['/lapangan'] },
 }
 
 const berkasApi = new Set([

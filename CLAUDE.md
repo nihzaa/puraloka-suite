@@ -139,11 +139,16 @@ Buku itu menentukan apa yang di-replay CI; entri palsu = migrasi dilewati senyap
 selamanya. Verdict "sudah jalan" hanya sah bila **artefak fisiknya terbukti ada**
 (`ledger-diff.mjs`), bukan dari penebakan nama.
 
-> ⚠️ **Cacat P0 aktif:** migrasi 047 dan 167 sama-sama mendefinisikan `accounts`/
-> `journal_entries` dengan bentuk tak kompatibel (047 single-tenant, 167 ber-`company_id`).
-> Di lingkungan baru, 047 jalan lebih dulu lalu 167 **no-op senyap** → GL tenant-blind
-> tanpa satu pun pesan galat. Detail + usul perbaikan: `RATIFIKASI.md` **R-001**.
-> **Jangan bangun apa pun di atas GL sebelum ini selesai.**
+> ✅ **Cacat P0 047↔167 SUDAH SELESAI** (R-001). 047 dipensiunkan jadi no-op
+> berkomentar, penegas bentuk `175_gl_penegas_bentuk.sql` terpasang, dan ketiganya
+> terbukti lulus di lingkungan bersih. **GL boleh dibangun di atasnya** — ukur
+> sendiri: `node scripts/db/introspect.mjs columns | grep accounts`.
+>
+> Peringatan "jangan bangun di atas GL" pernah bertahan di sini **setelah**
+> penyebabnya diperbaiki, lalu menyesatkan sesi berikutnya (2026-08-07: saya
+> melaporkan ke founder bahwa penyusutan→GL menunggu ratifikasi, padahal tidak).
+> Pelajaran yang sama dengan pembuka dokumen ini: **peringatan pun bisa basi.**
+> Kalau sebuah larangan punya syarat pencabutan, tulis cara mengukur syaratnya.
 
 ## 6. Penjaga CI (jangan dilemahkan — G-5)
 

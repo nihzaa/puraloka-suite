@@ -1,7 +1,7 @@
 {
   "_catatan": "Lantai status-vs-kode. Boleh turun, TIDAK boleh naik. Lihat audit-taksonomi-vs-kode.mjs.",
-  "_diukur": "2026-08-06, sesudah koreksi enam status basi (Task 1).",
-  "_riwayat": "Nilai awal diisi lewat --naikkan pada run pertama.",
+  "_diukur": "2026-08-07, sesudah koreksi status basi KEDELAPAN (INTI #1 Laporan keuangan, F5-1 §3c).",
+  "_riwayat": "takDipetakan 29 -> 13 sesudah +3 entri PETA (Laporan keuangan, IPC, Geotag). Entri Laporan keuangan diuji-mutasi 2026-08-07: taksonomi disetel 🔴 -> penjaga MERAH exit 1 -> dipulihkan -> HIJAU exit 0.",
   "basi": 0,
-  "takDipetakan": 29
+  "takDipetakan": 13
 }
