@@ -35,12 +35,14 @@
  * KEADAAN (4 KPI) → POLA (peringatan) → DETAIL (tabel).
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { PackageSearch, RefreshCw, FileMinus, Truck, Boxes } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
+import { TabBagian } from "@/components/tab-bagian";
+import { useTabUrl } from "@/lib/use-tab-url";
 
 type StatusPayung = "aktif" | "kuota_habis" | "segera_berakhir" | "kedaluwarsa" | "belum_mulai" | "tak_aktif";
 
@@ -242,7 +244,22 @@ function BatangKuota({ i }: { i: ItemPayung }) {
   );
 }
 
+// Tiga modul di halaman ini. Ketiganya dibaca bersama (nota kredit lahir
+// dari kiriman yang diperiksa expediting), jadi tetap satu halaman — tapi
+// tiap modul punya alamatnya sendiri supaya menu sidebar bisa menunjuknya.
+const BAGIAN = ["payung", "expediting", "nota"] as const;
+type Bagian = (typeof BAGIAN)[number];
+
 export default function PengadaanLanjutanPage() {
+  return (
+    <Suspense fallback={null}>
+      <IsiPengadaanLanjutan />
+    </Suspense>
+  );
+}
+
+function IsiPengadaanLanjutan() {
+  const [bagian, setBagian] = useTabUrl<Bagian>(BAGIAN, "payung", "bagian");
   const [data, setData] = useState<Data | null>(null);
   const [galat, setGalat] = useState("");
   const [muatUlangKe, setMuatUlangKe] = useState(0);
@@ -566,7 +583,17 @@ export default function PengadaanLanjutanPage() {
           )}
 
           {/* Lapis 2b — kontrak payung sebagai kartu */}
-          {data.kontrakPayung.kontrak.length > 0 && (
+          <TabBagian
+            label="Modul pengadaan lanjutan"
+            aktif={bagian}
+            onPilih={setBagian}
+            bagian={[
+              { kunci: "payung", label: "Kontrak Payung", jumlah: data.kontrakPayung.aktifTapiTakBisaDipakai, mendesak: true },
+              { kunci: "expediting", label: "Expediting", jumlah: data.expediting.janjiSudahTelat, mendesak: true },
+              { kunci: "nota", label: "Nota Kredit", jumlah: data.notaKredit.menggantung, mendesak: true },
+            ] as const}
+          />
+          {bagian === "payung" && data.kontrakPayung.kontrak.length > 0 && (
             <div className="rise rise-3" style={{ marginBottom: "var(--gap-bagian)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                 <Boxes size={15} aria-hidden="true" style={{ color: C.mid }} />
@@ -634,7 +661,7 @@ export default function PengadaanLanjutanPage() {
           )}
 
           {/* Lapis 3 — detail */}
-          {data.expediting.kiriman.length > 0 && (
+          {bagian === "expediting" && data.expediting.kiriman.length > 0 && (
             <div className="rise rise-4" style={{ ...kartu, overflow: "hidden", marginBottom: "var(--gap-bagian)" }}>
               <div style={{ padding: "var(--pad-kartu-lega)", borderBottom: `1px solid ${C.border}` }}>
                 <h3 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: 0 }}>
@@ -655,7 +682,7 @@ export default function PengadaanLanjutanPage() {
             </div>
           )}
 
-          {data.notaKredit.nota.length > 0 && (
+          {bagian === "nota" && data.notaKredit.nota.length > 0 && (
             <div className="rise rise-4" style={{ ...kartu, overflow: "hidden" }}>
               <div style={{ padding: "var(--pad-kartu-lega)", borderBottom: `1px solid ${C.border}` }}>
                 <h3 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: 0 }}>

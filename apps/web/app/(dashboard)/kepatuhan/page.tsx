@@ -36,12 +36,14 @@
  * KEADAAN (4 KPI) → POLA (peringatan + kesiapan pihak) → DETAIL (tabel).
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { ShieldAlert, RefreshCw, TriangleAlert, HardHat, FileWarning, UserX } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
+import { TabBagian } from "@/components/tab-bagian";
+import { useTabUrl } from "@/lib/use-tab-url";
 
 type StatusDokumen = "berlaku" | "segera_habis" | "kedaluwarsa" | "tanpa_masa" | "belum_diverifikasi";
 
@@ -265,7 +267,22 @@ function KartuKesiapan({ p }: { p: Kesiapan }) {
   );
 }
 
+// Tiga modul di halaman ini. Ketiganya dibaca bersama saat menilai apakah
+// sebuah pihak boleh bekerja hari ini, jadi tetap satu halaman — tapi tiap
+// modul punya alamatnya sendiri supaya menu sidebar bisa menunjuknya.
+const BAGIAN = ["kesiapan", "dokumen", "evaluasi"] as const;
+type Bagian = (typeof BAGIAN)[number];
+
 export default function KepatuhanPage() {
+  return (
+    <Suspense fallback={null}>
+      <IsiKepatuhan />
+    </Suspense>
+  );
+}
+
+function IsiKepatuhan() {
+  const [bagian, setBagian] = useTabUrl<Bagian>(BAGIAN, "kesiapan", "bagian");
   const [data, setData] = useState<DataKepatuhan | null>(null);
   const [izin, setIzin] = useState<DataIzin | null>(null);
   const [galat, setGalat] = useState("");
@@ -643,7 +660,17 @@ export default function KepatuhanPage() {
             />
           )}
 
-          {data.kesiapan.length > 0 && (
+          <TabBagian
+            label="Modul kepatuhan"
+            aktif={bagian}
+            onPilih={setBagian}
+            bagian={[
+              { kunci: "kesiapan", label: "Kesiapan & Izin Kerja" },
+              { kunci: "dokumen", label: "Dokumen Kepatuhan", jumlah: data.dokumen.hijauTapiMati, mendesak: true },
+              { kunci: "evaluasi", label: "Evaluasi Subkon" },
+            ] as const}
+          />
+          {bagian === "kesiapan" && data.kesiapan.length > 0 && (
             <div className="rise rise-3" style={{ marginBottom: "var(--gap-bagian)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                 <TriangleAlert size={15} aria-hidden="true" style={{ color: C.mid }} />
@@ -684,7 +711,7 @@ export default function KepatuhanPage() {
             </div>
           )}
 
-          {data.dokumen.total > 0 && (
+          {bagian === "dokumen" && data.dokumen.total > 0 && (
             <div className="rise rise-4" style={{ ...kartu, overflow: "hidden", marginBottom: "var(--gap-bagian)" }}>
               <div style={{ padding: "var(--pad-kartu-lega)", borderBottom: `1px solid ${C.border}` }}>
                 <h3 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: 0 }}>
@@ -704,7 +731,7 @@ export default function KepatuhanPage() {
             </div>
           )}
 
-          {data.evaluasi.length > 0 && (
+          {bagian === "evaluasi" && data.evaluasi.length > 0 && (
             <div className="rise rise-4" style={{ ...kartu, overflow: "hidden" }}>
               <div style={{ padding: "var(--pad-kartu-lega)", borderBottom: `1px solid ${C.border}` }}>
                 <h3 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: 0 }}>

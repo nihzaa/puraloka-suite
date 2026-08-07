@@ -28,6 +28,9 @@ import { chromium } from '@playwright/test'
 
 const BASIS = 'http://localhost:3000'
 
+// Dua nama parameter, karena dua jenis pemisahan:
+//   `tab`     — bagian dari halaman yang memang sudah bertab sejak awal
+//   `bagian`  — modul di halaman yang memuat beberapa modul sekaligus
 const KASUS = [
   { url: '/akuntansi', tab: 'besar' },
   { url: '/akuntansi', tab: 'laporan' },
@@ -35,6 +38,12 @@ const KASUS = [
   { url: '/laporan', tab: 'pajak' },
   { url: '/estimasi', tab: 'harga' },
   { url: '/estimasi', tab: 'varians' },
+  { url: '/dokumen/kendali', tab: 'notulen', param: 'bagian' },
+  { url: '/dokumen/kendali', tab: 'transmittal', param: 'bagian' },
+  { url: '/kepatuhan', tab: 'evaluasi', param: 'bagian' },
+  { url: '/procurement/lanjutan', tab: 'nota', param: 'bagian' },
+  { url: '/jadwal', tab: 'histogram', param: 'bagian' },
+  { url: '/jadwal', tab: 'method', param: 'bagian' },
 ]
 
 const peramban = await chromium.launch()
@@ -51,7 +60,7 @@ await hal.waitForURL((u) => !u.pathname.includes('/login'), { timeout: 90_000 })
 let gagal = 0
 
 for (const k of KASUS) {
-  await hal.goto(`${BASIS}${k.url}?tab=${k.tab}`, { waitUntil: 'networkidle', timeout: 60_000 })
+  await hal.goto(`${BASIS}${k.url}?${k.param ?? 'tab'}=${k.tab}`, { waitUntil: 'networkidle', timeout: 60_000 })
   await hal.waitForTimeout(1200)
 
   // Dua pola penanda, keduanya sah dan keduanya lulus a11y:
@@ -68,12 +77,12 @@ for (const k of KASUS) {
       .getAttribute('data-tab').catch(() => null))
 
   const ok = terpilih === k.tab
-  console.log(`  ${(k.url + '?tab=' + k.tab).padEnd(28)} terpilih=${String(terpilih).padEnd(12)} ${ok ? '✅' : '❌'}`)
+  console.log(`  ${(k.url + '?' + (k.param ?? 'tab') + '=' + k.tab).padEnd(38)} terpilih=${String(terpilih).padEnd(12)} ${ok ? '✅' : '❌'}`)
   if (!ok) gagal++
 }
 
 // Nilai tak dikenal TIDAK boleh merusak halaman: URL datang dari luar.
-for (const u of ['/laporan', '/estimasi']) {
+for (const u of ['/laporan', '/estimasi', '/kepatuhan']) {
   await hal.goto(`${BASIS}${u}?tab=ngawur`, { waitUntil: 'networkidle', timeout: 60_000 })
   await hal.waitForTimeout(1000)
   const isi = await hal.locator('body').innerText()

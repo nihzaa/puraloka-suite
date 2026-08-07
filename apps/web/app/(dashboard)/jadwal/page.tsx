@@ -48,6 +48,7 @@ import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
+import { TabBagian } from "@/components/tab-bagian";
 
 type Pekerjaan = {
   id: string;
@@ -249,6 +250,25 @@ function IsiJadwal() {
   // proyek X" harus disampaikan sebagai instruksi klik, bukan tautan — dan
   // halaman ini juga jadi mustahil dipotret untuk proyek tertentu.
   const dariUrl = params.get("proyek") ?? "";
+
+  // Tiga modul di halaman ini, masing-masing punya alamatnya sendiri supaya
+  // menu "Jalur Kritis (CPM)", "Histogram Sumber Daya", dan "Method
+  // Statement" tak sama-sama mendarat di puncak halaman.
+  //
+  // Dibaca langsung dari `params` yang sudah ada, bukan lewat `useTabUrl`:
+  // halaman ini sudah punya router & searchParams sendiri untuk memilih
+  // proyek, dan menambah hook kedua berarti dua sumber kebenaran untuk
+  // satu URL yang sama.
+  const BAGIAN = ["cpm", "histogram", "method"] as const;
+  const bagianUrl = params.get("bagian");
+  const bagian = (BAGIAN as readonly string[]).includes(bagianUrl ?? "")
+    ? (bagianUrl as (typeof BAGIAN)[number])
+    : "cpm";
+  const setBagian = (bg: (typeof BAGIAN)[number]) => {
+    const q = new URLSearchParams(Array.from(params.entries()));
+    q.set("bagian", bg);
+    router.replace(`/jadwal?${q.toString()}`, { scroll: false });
+  };
   const [jadwal, setJadwal] = useState<Jadwal | null>(null);
   const [galat, setGalat] = useState("");
   const [muatUlangKe, setMuatUlangKe] = useState(0);
@@ -609,7 +629,7 @@ function IsiJadwal() {
             </div>
           )}
 
-          {jadwal.histogram.length > 0 && (
+          {bagian === "histogram" && jadwal.histogram.length > 0 && (
             <div className="rise rise-3" style={{ marginBottom: "var(--gap-bagian)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                 <Users size={15} aria-hidden="true" style={{ color: C.mid }} />
@@ -627,7 +647,17 @@ function IsiJadwal() {
           )}
 
           {/* Lapis 3 — detail */}
-          <div className="rise rise-4" style={{ ...kartu, overflow: "hidden", marginBottom: "var(--gap-bagian)" }}>
+          <TabBagian
+            label="Modul jadwal"
+            aktif={bagian}
+            onPilih={setBagian}
+            bagian={[
+              { kunci: "cpm", label: "Jalur Kritis (CPM)" },
+              { kunci: "histogram", label: "Histogram Sumber Daya" },
+              { kunci: "method", label: "Method Statement" },
+            ] as const}
+          />
+          {bagian === "cpm" && (<div className="rise rise-4" style={{ ...kartu, overflow: "hidden", marginBottom: "var(--gap-bagian)" }}>
             <div style={{ padding: "var(--pad-kartu-lega)", borderBottom: `1px solid ${C.border}` }}>
               <h3 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: 0 }}>
                 Pekerjaan & kelonggaran
@@ -644,9 +674,9 @@ function IsiJadwal() {
               kunciBaris={(p) => p.id}
               tandaiBaris={(p) => (p.kritis ? "var(--danger-bg)" : undefined)}
             />
-          </div>
+          </div>)}
 
-          {jadwal.methodStatement.length > 0 && (
+          {bagian === "method" && jadwal.methodStatement.length > 0 && (
             <div className="rise rise-4" style={{ ...kartu, overflow: "hidden" }}>
               <div style={{ padding: "var(--pad-kartu-lega)", borderBottom: `1px solid ${C.border}` }}>
                 <h3 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: 0 }}>

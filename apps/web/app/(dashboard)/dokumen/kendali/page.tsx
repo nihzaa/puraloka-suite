@@ -37,12 +37,14 @@
  * KEADAAN (4 KPI) → POLA (peringatan) → DETAIL (tabel).
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { FileStack, RefreshCw, TriangleAlert, Send, ListChecks, MailWarning } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
+import { TabBagian } from "@/components/tab-bagian";
+import { useTabUrl } from "@/lib/use-tab-url";
 
 type Gambar = {
   id: string;
@@ -160,7 +162,26 @@ function Peringatan({ ikon, judul, isi, nada }: {
   );
 }
 
+// Nilai sah untuk `?bagian=`. Empat modul di halaman ini.
+const BAGIAN = ["gambar", "transmittal", "notulen", "jadwal"] as const;
+type Bagian = (typeof BAGIAN)[number];
+
+/**
+ * `useTabUrl` memakai `useSearchParams`, yang memaksa render sisi klien —
+ * Next menuntut batas Suspense untuk itu.
+ */
 export default function KendaliDokumenPage() {
+  return (
+    <Suspense fallback={null}>
+      <IsiKendaliDokumen />
+    </Suspense>
+  );
+}
+
+function IsiKendaliDokumen() {
+  // Modul yang terbuka hidup di URL, supaya menu sidebar bisa menunjuknya:
+  // "Notulen Rapat" -> ?bagian=notulen, bukan mendarat di puncak halaman.
+  const [bagian, setBagian] = useTabUrl<Bagian>(BAGIAN, "gambar", "bagian");
   const [data, setData] = useState<Data | null>(null);
   const [galat, setGalat] = useState("");
   const [muatUlangKe, setMuatUlangKe] = useState(0);
@@ -561,8 +582,23 @@ export default function KendaliDokumenPage() {
             />
           )}
 
-          {/* Lapis 3 — detail */}
-          {data.gambar.total > 0 && (
+          {/* Lapis 3 — detail, dipisah per modul.
+              Empat modul ini SALING DIBACA BERSAMA (transmittal merujuk
+              register gambar), jadi ia tetap satu halaman — tapi tiap modul
+              kini punya alamatnya sendiri (`?bagian=transmittal`), supaya
+              menu sidebar bisa menunjuknya. */}
+          <TabBagian
+            label="Modul kendali dokumen"
+            aktif={bagian}
+            onPilih={setBagian}
+            bagian={[
+              { kunci: "gambar", label: "Register Gambar", jumlah: data.gambar.usang, mendesak: true },
+              { kunci: "transmittal", label: "Transmittal", jumlah: data.transmittal.menggantung, mendesak: true },
+              { kunci: "notulen", label: "Notulen Rapat", jumlah: data.tindakan.tanpaTenggat, mendesak: true },
+              { kunci: "jadwal", label: "Laporan Terjadwal", jumlah: data.jadwalLaporan.macet, mendesak: true },
+            ] as const}
+          />
+          {bagian === "gambar" && data.gambar.total > 0 && (
             <div className="rise rise-4" style={{ ...kartu, overflow: "hidden", marginBottom: "var(--gap-bagian)" }}>
               <div style={{ padding: "var(--pad-kartu-lega)", borderBottom: `1px solid ${C.border}` }}>
                 <h3 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: 0 }}>
@@ -583,7 +619,7 @@ export default function KendaliDokumenPage() {
             </div>
           )}
 
-          {data.transmittal.transmittal.length > 0 && (
+          {bagian === "transmittal" && data.transmittal.transmittal.length > 0 && (
             <div className="rise rise-4" style={{ ...kartu, overflow: "hidden", marginBottom: "var(--gap-bagian)" }}>
               <div style={{ padding: "var(--pad-kartu-lega)", borderBottom: `1px solid ${C.border}` }}>
                 <h3 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: 0 }}>
@@ -603,7 +639,7 @@ export default function KendaliDokumenPage() {
             </div>
           )}
 
-          {data.tindakan.tindakan.length > 0 && (
+          {bagian === "notulen" && data.tindakan.tindakan.length > 0 && (
             <div className="rise rise-4" style={{ ...kartu, overflow: "hidden", marginBottom: "var(--gap-bagian)" }}>
               <div style={{ padding: "var(--pad-kartu-lega)", borderBottom: `1px solid ${C.border}` }}>
                 <h3 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: 0 }}>
@@ -623,7 +659,7 @@ export default function KendaliDokumenPage() {
             </div>
           )}
 
-          {data.jadwalLaporan.jadwal.length > 0 && (
+          {bagian === "jadwal" && data.jadwalLaporan.jadwal.length > 0 && (
             <div className="rise rise-4" style={{ ...kartu, overflow: "hidden" }}>
               <div style={{ padding: "var(--pad-kartu-lega)", borderBottom: `1px solid ${C.border}` }}>
                 <h3 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: 0 }}>
