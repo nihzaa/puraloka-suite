@@ -829,7 +829,41 @@ items:
     kriteria_selesai: ["tenant baru sekali klik", "penagihan jalan"]
     cara_verifikasi: "e2e onboarding"
     bobot: XL
-    status: todo
+    status: wip
+    catatan: |
+      DIUKUR 2026-08-07 (bukan diperkirakan):
+
+      SUDAH ADA - provisioning tenant:
+        POST /api/v1/companies        buat badan usaha (validasi kode, cek
+                                      keunikan global, penjagaan grup)
+        POST .../members              tambah anggota + peran
+        PATCH .../members/:userId     ubah peran
+        PATCH /my/companies/:id/default  ganti company aktif
+        UI /pengaturan/perusahaan
+
+      DITUTUP 2026-08-07 - tenant lahir dengan alur persetujuan MATI:
+        company kedua punya 0 dari 7 jenis rantai approval. Pengajuan tetap
+        masuk, lalu tak pernah bisa diputuskan siapa pun - tak ada galat,
+        hanya antrean yang tak bergerak. Ketahuannya pun kebetulan, lewat
+        satu test yang hanya menutupi 1 dari 7 jenis.
+
+        `siapkanRantaiApproval` kini bagian dari pendirian. Disalin dari
+        company contoh, bukan dari daftar di kode - dua sumber kebenaran
+        akan membusuk begitu ada jenis rantai baru lewat migrasi.
+
+        Dijaga: pendirian-tenant-lengkap.test.ts (3 test, 2 mutasi
+        tertangkap) + audit-pendirian-tenant.mjs (statis, mutasi tertangkap).
+
+      BELUM ADA - langganan & batas paket:
+        NOL tabel langganan di skema public. (`subscription` yang muncul di
+        pg_stat_user_tables milik skema `realtime` bawaan Supabase, bukan
+        aplikasi - jangan tertukar.)
+
+        Ini kriteria "penagihan jalan", dan ia butuh keputusan produk lebih
+        dulu: paket apa saja, batas apa yang ditegakkan, siklus tagih, dan
+        apa yang terjadi saat lewat batas. Membangun tabelnya tanpa jawaban
+        itu berarti menebak bentuk - dan bentuk yang salah lebih mahal
+        daripada belum ada.
 
   # ── INTI (F5-1 · diratifikasi R-010) — INTI habis dulu, baru PEMBEDA ──────
   #

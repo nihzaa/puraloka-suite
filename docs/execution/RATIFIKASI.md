@@ -6,6 +6,49 @@ bawah entrinya.
 
 ---
 
+# ❓ MENUNGGU ANDA — bentuk langganan & batas paket (F7-1)
+
+> Satu-satunya hal yang tersisa sebelum produk bisa dijual. Sisa F7-1
+> (provisioning tenant) sudah selesai dan diuji.
+
+**Diukur 2026-08-07: NOL tabel langganan** di skema aplikasi. Yang muncul
+sebagai `subscription` di statistik milik skema `realtime` bawaan Supabase —
+bukan punya kita.
+
+Saya **tidak membangunnya**, dan itu disengaja. Tabel langganan tanpa jawaban
+atas empat pertanyaan di bawah berarti menebak bentuk — dan bentuk yang salah
+lebih mahal daripada belum ada: ia harus dirawat selamanya sambil menghalangi
+bentuk yang benar.
+
+### Empat yang perlu Anda putuskan
+
+| # | Pertanyaan | Kenapa ini menentukan skema |
+|---|---|---|
+| 1 | **Paket apa saja?** | Satu paket = kolom di `companies`. Banyak paket = tabel `paket` + `langganan` tersendiri. |
+| 2 | **Batas apa yang DITEGAKKAN?** | Jumlah proyek? pengguna? penyimpanan? Tiap batas butuh penghitungnya sendiri, dan penghitung yang tak dipakai adalah beban. |
+| 3 | **Siklus tagih** | Bulanan? tahunan? per-proyek? Ini menentukan apakah butuh tabel periode atau cukup tanggal di langganan. |
+| 4 | **Apa yang terjadi saat lewat batas?** | Tolak? peringatkan? tagih kelebihan? Ini yang paling menentukan — dan yang paling mudah salah dibangun. |
+
+### Rekomendasi saya, kalau Anda ingin yang paling murah dulu
+
+Mulai dari **satu paket, satu batas, peringatkan-jangan-tolak**:
+
+- kolom `paket` + `batas_proyek` di `companies` — tanpa tabel baru
+- penghitung proyek aktif per company (sudah bisa dihitung dari `projects`)
+- lewat batas → spanduk peringatan, bukan penolakan
+
+Alasannya: menolak pembuatan proyek karena batas adalah keputusan yang
+membuat pelanggan berhenti bekerja, dan itu perlu diuji dengan pelanggan
+nyata lebih dulu. Menagih kelebihan tanpa pernah menolak jauh lebih mudah
+diperbaiki daripada sebaliknya.
+
+Kalau Anda setuju arah ini, saya bangun lengkap dengan penjaganya. Kalau
+tidak, sebutkan jawaban keempat pertanyaan di atas dan saya ikuti.
+
+**Diam berarti dibiarkan** — F7-1 tetap `wip` dan produk belum bisa ditagih.
+
+---
+
 # ✅ SELESAI 2026-08-07 — tiga temuan pasca-merge, dan R-011 tanpa menaikkan plafon
 
 > Sesi compro berhenti; ketiga temuan yang tak bisa saya sentuh saat itu kini

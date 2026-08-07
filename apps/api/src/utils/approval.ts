@@ -163,6 +163,94 @@ export async function recordApproval(params: {
   return { ok: true }
 }
 
+/**
+ * Siapkan rantai approval untuk company yang BARU dibuat.
+ *
+ * ── Kenapa ini bagian dari pembuatan company, bukan tugas terpisah
+ *
+ * Diukur 2026-08-07: `[UJI] Tenant Kedua` punya **0 dari 7** jenis rantai.
+ * Company kedua di basis ini lahir tanpa satu pun, dan tak ada yang tahu
+ * sampai `submittal-aturan.test.ts` merah — itu pun hanya untuk satu jenis
+ * dari tujuh, karena hanya `submittal` yang punya test.
+ *
+ * Enam sisanya akan gagal SENYAP: pengajuan masuk, lalu tak pernah bisa
+ * diputuskan siapa pun karena tak ada rantai yang menentukan siapa berwenang.
+ * Tak ada galat — hanya antrean yang tak pernah bergerak.
+ *
+ * Itu bukan cacat data, melainkan cacat PENYEDIAAN: F7-1 mensyaratkan
+ * "tenant baru sekali klik", dan tenant yang alur persetujuannya mati sejak
+ * hari pertama tidak memenuhinya.
+ *
+ * ── Disalin dari company contoh, bukan dari daftar yang ditulis di sini
+ *
+ * Menuliskan rantai bawaan sebagai konstanta berarti dua sumber kebenaran:
+ * satu di kode, satu di basis. Yang pertama membusuk diam-diam begitu ada
+ * jenis rantai baru ditambahkan lewat migrasi.
+ *
+ * Menyalin dari company yang sudah ada membuat tenant baru selalu memulai
+ * dengan konfigurasi yang SAMA dengan yang sedang berjalan — termasuk
+ * jenis-jenis yang belum ada saat fungsi ini ditulis.
+ *
+ * ── Kalau tak ada contoh sama sekali
+ *
+ * Mengembalikan `{ ok: true, disalin: 0 }`, bukan galat. Pada basis kosong
+ * (company pertama) memang tak ada yang bisa disalin, dan menggagalkan
+ * pendirian company pertama karena itu jelas salah.
+ */
+export async function siapkanRantaiApproval(companyId: string): Promise<{
+  ok: boolean
+  disalin: number
+  error?: string
+}> {
+  const { data: contoh, error: eBaca } = await supabase
+    .from('approval_chains')
+    .select('id, entity_type, label, is_active, company_id')
+    .neq('company_id', companyId)
+    .order('created_at', { ascending: true })
+
+  if (eBaca) return { ok: false, disalin: 0, error: eBaca.message }
+  if (!contoh?.length) return { ok: true, disalin: 0 }
+
+  // Satu contoh per jenis — company yang lebih dulu dibuat jadi acuannya.
+  const perJenis = new Map<string, (typeof contoh)[number]>()
+  for (const c of contoh) if (!perJenis.has(c.entity_type)) perJenis.set(c.entity_type, c)
+
+  let disalin = 0
+  for (const [entityType, asal] of perJenis) {
+    const { data: rantai, error: eRantai } = await supabase
+      .from('approval_chains')
+      .insert({ entity_type: entityType, label: asal.label, is_active: asal.is_active, company_id: companyId })
+      .select('id')
+      .single()
+    // 23505 = sudah ada (dijalankan dua kali) → aman dilewati, bukan galat.
+    if (eRantai) {
+      if ((eRantai as { code?: string }).code === '23505') continue
+      return { ok: false, disalin, error: eRantai.message }
+    }
+
+    const { data: langkah, error: eLangkah } = await supabase
+      .from('approval_steps')
+      .select('level, required_permission, min_amount, label')
+      .eq('chain_id', asal.id)
+      .order('level', { ascending: true })
+
+    if (eLangkah) return { ok: false, disalin, error: eLangkah.message }
+
+    // Rantai TANPA langkah lebih buruk daripada tak ada rantai: ia membuat
+    // pemeriksaan "punya rantai?" lolos, sementara pengajuannya tetap tak
+    // punya siapa pun yang berwenang memutuskan.
+    if (langkah?.length) {
+      const { error: eIsi } = await supabase.from('approval_steps').insert(
+        langkah.map((l) => ({ ...l, chain_id: rantai.id, company_id: companyId })),
+      )
+      if (eIsi) return { ok: false, disalin, error: eIsi.message }
+    }
+    disalin++
+  }
+
+  return { ok: true, disalin }
+}
+
 /** Bersihkan jejak persetujuan (dipakai saat entitas ditolak → rantai diulang dari awal). */
 export async function clearApprovalProgress(
   entityType: ApprovalEntityType,

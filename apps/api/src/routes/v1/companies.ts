@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
+import { siapkanRantaiApproval } from '../../utils/approval.js'
 
 // ============================================================
 // T9 — KELOLA BADAN USAHA (L2 penuh dari UI).
@@ -154,12 +155,40 @@ export default async function companiesRoutes(app: FastifyInstance) {
       })
     }
 
+    // Rantai approval — bagian dari PENDIRIAN, bukan tugas menyusul.
+    //
+    // Diukur 2026-08-07: company kedua di basis ini punya 0 dari 7 jenis
+    // rantai. Konsekuensinya bukan "belum dikonfigurasi" melainkan alur
+    // persetujuan yang MATI: pengajuan masuk, lalu tak pernah bisa
+    // diputuskan siapa pun. Tak ada galat — hanya antrean yang tak bergerak.
+    //
+    // Kegagalannya TIDAK membatalkan company, berbeda dari keanggotaan di
+    // atas. Alasannya: company tanpa anggota tak bisa dimasuki sama sekali,
+    // sedangkan company tanpa rantai tetap bisa dipakai untuk hal lain dan
+    // rantainya bisa disusulkan lewat pengaturan. Yang tak boleh adalah
+    // kegagalan itu LEWAT TANPA JEJAK.
+    const rantai = await siapkanRantaiApproval(baru.id)
+    if (!rantai.ok) {
+      request.log.error(
+        { err: rantai.error, companyId: baru.id },
+        'badan usaha dibuat TAPI rantai approval gagal disiapkan — alur persetujuan mati sampai diperbaiki',
+      )
+      await logAuditEvent(request, {
+        tableName: 'companies', recordId: baru.id, action: 'company.rantai_approval_gagal',
+        actorId: request.currentUser!.id, severity: 'critical',
+        reason: `Rantai approval gagal disiapkan: ${rantai.error ?? 'sebab tak diketahui'}`,
+      })
+    }
+
     await logAuditEvent(request, {
       tableName: 'companies',
       recordId: baru.id,
       action: 'create',
       actorId: request.currentUser!.id,
-      newValues: { code: baru.code, name: baru.name, parent_company_id: indukId },
+      newValues: {
+        code: baru.code, name: baru.name, parent_company_id: indukId,
+        rantai_approval_disalin: rantai.disalin,
+      },
       reason: 'Pendirian badan usaha baru oleh pemilik grup (T9)',
     })
 

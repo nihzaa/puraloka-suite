@@ -664,6 +664,15 @@ jobs:
         run: node apps/api/scripts/audit-akhir-baris.mjs
         working-directory: .
 
+      # F7-1: tenant baru lahir dengan alur persetujuan yang HIDUP.
+      #
+      # Diukur 2026-08-07: company kedua punya 0 dari 7 jenis rantai approval.
+      # Pengajuan tetap masuk, lalu tak pernah bisa diputuskan siapa pun —
+      # tak ada galat, hanya antrean yang tak bergerak. Ketahuannya pun
+      # kebetulan, lewat satu test yang hanya menutupi 1 dari 7 jenis.
+      - name: Pendirian tenant menyiapkan rantai approval
+        run: node scripts/audit-pendirian-tenant.mjs
+
       - name: Invarian NCR
         run: node scripts/uji-invarian-ncr.mjs
         env:

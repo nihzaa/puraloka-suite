@@ -113,6 +113,67 @@ byte-hash gagal total karena PDF mengompres ulang saat menyisipkan.
 
 ---
 
+## 2026-08-07 (lanjutan 14) — F7-1: tenant yang lahir dengan alur persetujuan MATI
+
+### Celah yang paling menentukan "tenant baru sekali klik"
+
+Provisioning ternyata sudah matang: buat badan usaha (validasi kode, cek
+keunikan global, penjagaan grup), tambah anggota, atur peran, ganti company
+aktif, plus UI `/pengaturan/perusahaan`. Endpoint-nya bahkan sudah punya pola
+yang benar — kalau keanggotaan gagal, company-nya dibatalkan: *"lebih baik tak
+jadi dibuat daripada lahir mati"*.
+
+Tapi satu langkah hilang. **Company baru tidak mendapat rantai approval.**
+
+Diukur: company kedua di basis ini punya **0 dari 7** jenis rantai. Ia lahir
+tanpa satu pun, dan pengajuan tetap masuk — lalu tak pernah bisa diputuskan
+siapa pun karena tak ada yang menentukan siapa berwenang. Tak ada galat, tak
+ada log; hanya antrean yang tak bergerak.
+
+Ketahuannya pun **kebetulan**: `submittal-aturan.test.ts` merah untuk satu
+jenis dari tujuh, karena hanya `submittal` yang punya test. Enam sisanya tak
+akan pernah berteriak.
+
+### Disalin dari basis, bukan dari daftar di kode
+
+`siapkanRantaiApproval` menyalin dari company contoh yang sudah ada, bukan
+dari konstanta. Menuliskan rantai bawaan di kode berarti dua sumber kebenaran
+— dan yang di kode membusuk diam-diam begitu ada jenis rantai baru
+ditambahkan lewat migrasi.
+
+Kegagalannya **tidak** membatalkan company, berbeda dari keanggotaan. Company
+tanpa anggota tak bisa dimasuki sama sekali; company tanpa rantai masih bisa
+dipakai untuk hal lain dan rantainya bisa disusulkan. Yang tak boleh adalah
+kegagalan itu lewat tanpa jejak — jadi ia dicatat sebagai audit `critical`.
+
+### Yang TIDAK saya bangun, dan kenapa
+
+**Langganan dan batas paket: nol tabel.** Ada `subscription` di statistik,
+tapi itu milik skema `realtime` bawaan Supabase — bukan aplikasi. Sempat
+terlihat seperti "sudah ada sebagian"; pengukuran kolomnya (nol kolom di
+`public`) yang membongkar.
+
+Membangunnya sekarang berarti menebak bentuk: paket apa saja, batas apa yang
+ditegakkan, siklus tagih, dan apa yang terjadi saat lewat batas. Keempatnya
+keputusan produk. Dicatat di `RATIFIKASI.md` beserta rekomendasi konkret
+(satu paket, satu batas, peringatkan-jangan-tolak) — bukan pertanyaan
+terbuka.
+
+Alasan rekomendasi itu: menolak pembuatan proyek karena batas membuat
+pelanggan berhenti bekerja, dan itu perlu diuji dengan pelanggan nyata lebih
+dulu. Menagih kelebihan tanpa pernah menolak jauh lebih mudah diperbaiki
+daripada sebaliknya.
+
+### Bukti
+
+    API: 171 berkas test, 1797 lulus, 2 dilewati, 0 gagal
+    pendirian-tenant-lengkap.test.ts   3 test · 2 mutasi TERTANGKAP
+    audit-pendirian-tenant.mjs         statis · mutasi TERTANGKAP
+    73 penjaga CI dijalankan — nol gagal
+    pnpm build web lolos
+
+---
+
 ## 2026-08-07 (lanjutan 13) — F6-1 SELESAI, F7-1 terbuka; dan skrip saya diam-diam mengubah 8 berkas jadi CRLF
 
 ### `workflow_id`: 0 dari 21.005 jadi terikat di 12 langkah
