@@ -4,7 +4,7 @@
 // Penegak: `node scripts/gen-tenant-map.mjs check` (CI) — build MERAH kalau
 // ada tabel yang belum terklasifikasi (ADR-011 §9.5 P3).
 //
-// 149 tabel · A=10 · AB=14 · ANCHOR=1 · B=35 · C=82 · D=7
+// 157 tabel · A=10 · AB=14 · ANCHOR=1 · B=43 · C=82 · D=7
 //
 // Arti kategori (ADR-011 §5 + audit T1):
 //   ANCHOR akar tenancy (projects) — company_id NOT NULL
@@ -49,6 +49,7 @@ export const PETA_TENANCY = {
   'asset_rentals': { kategori: 'B' },
   'assets': { kategori: 'B' },
   'audit_logs': { kategori: 'D' },  // Punya company_id NOT NULL tapi ditulis langsung (tak pernah lewat join) supaya trail tetap terbaca meski baris induk hilang. Append-only (073).
+  'biaya_operasional_alat': { kategori: 'B' },
   'bids': { kategori: 'B' },
   'borongan_settlements': { kategori: 'C', lewat: 'work_scope_id' },  // borongan_settlements.work_scope_id → work_scopes.assignment_id → mandor_assignments.project_id
   'cash_accounts': { kategori: 'B' },
@@ -73,8 +74,10 @@ export const PETA_TENANCY = {
   'document_access_logs': { kategori: 'C', lewat: 'document_id' },  // document_access_logs.document_id → documents.project_id
   'document_number_series': { kategori: 'D' },  // Counter penomoran per company; di-scope eksplisit oleh pemakainya.
   'documents': { kategori: 'C', lewat: 'project_id' },  // documents.project_id
+  'dokumen_prakualifikasi': { kategori: 'B' },
   'estimate_items': { kategori: 'C', lewat: 'estimate_version_id' },  // estimate_items.estimate_version_id → estimate_versions.scenario_id → scenarios.project_id
   'estimate_versions': { kategori: 'C', lewat: 'scenario_id' },  // estimate_versions.scenario_id → scenarios.project_id
+  'evaluasi_vendor': { kategori: 'B' },
   'expense_category_templates': { kategori: 'AB' },
   'expense_items': { kategori: 'C', lewat: 'category_id' },  // expense_items.category_id → project_expense_categories.project_id
   'expense_reports': { kategori: 'C', lewat: 'project_id' },  // expense_reports.project_id
@@ -90,6 +93,7 @@ export const PETA_TENANCY = {
   'invoice_line_items': { kategori: 'C', lewat: 'invoice_id' },  // invoice_line_items.invoice_id → invoices.project_id
   'invoice_penalties': { kategori: 'C', lewat: 'invoice_id' },  // invoice_penalties.invoice_id → invoices.project_id
   'invoices': { kategori: 'C', lewat: 'project_id' },  // invoices.project_id
+  'jadwal_perawatan': { kategori: 'B' },
   'journal_entries': { kategori: 'B' },
   'journal_entry_lines': { kategori: 'C', lewat: 'account_id' },  // journal_entry_lines.account_id
   'kasbon_purposes': { kategori: 'AB' },
@@ -112,14 +116,17 @@ export const PETA_TENANCY = {
   'notification_rules': { kategori: 'B' },
   'notifications': { kategori: 'B' },
   'payments': { kategori: 'C', lewat: 'invoice_id' },  // payments.invoice_id → invoices.project_id
+  'pemakaian_alat': { kategori: 'B' },
   'penawaran_subkon': { kategori: 'C', lewat: 'tender_id' },  // penawaran_subkon.tender_id → tender_subkon.project_id
   'penerimaan_material_klien': { kategori: 'C', lewat: 'project_id' },  // penerimaan_material_klien.project_id
   'penggunaan_contingency': { kategori: 'C', lewat: 'pos_id' },  // penggunaan_contingency.pos_id → pos_contingency.project_id
+  'penyusutan_alat': { kategori: 'B' },
   'permission_scopes': { kategori: 'A' },
   'permissions': { kategori: 'A' },
   'po_delivery_log': { kategori: 'C', lewat: 'project_id' },  // po_delivery_log.project_id
   'polis_asuransi': { kategori: 'C', lewat: 'project_id' },  // polis_asuransi.project_id
   'pos_contingency': { kategori: 'C', lewat: 'project_id' },  // pos_contingency.project_id
+  'prakualifikasi_vendor': { kategori: 'B' },
   'price_book_entries': { kategori: 'AB' },
   'productivity_records': { kategori: 'AB' },
   'progress_logs': { kategori: 'C', lewat: 'project_id' },  // progress_logs.project_id
@@ -147,6 +154,7 @@ export const PETA_TENANCY = {
   'resources': { kategori: 'A' },
   'rfq': { kategori: 'C', lewat: 'project_id' },  // rfq.project_id
   'rfq_penawaran': { kategori: 'C', lewat: 'rfq_id' },  // rfq_penawaran.rfq_id → rfq.project_id
+  'riwayat_perawatan': { kategori: 'B' },
   'role_permissions': { kategori: 'AB' },
   'roles': { kategori: 'AB' },
   'root_cause_analyses': { kategori: 'C', lewat: 'lesson_id' },  // root_cause_analyses.lesson_id → lessons_learned_records.project_id

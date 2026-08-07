@@ -684,6 +684,21 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
+      # Operasional alat (TUNDA kelompok B).
+      #
+      # Yang paling mahal kalau bocor:
+      #   • meter mundur / pemakaian ganda sehari — jam operasi salah, lalu
+      #     jadwal perawatan jatuh tempo lebih cepat atau lebih lambat dari
+      #     nyata. Alat berhenti di tengah proyek, dan pekerjaan ikut berhenti.
+      #   • jadwal TANPA interval — jadwal yang tak pernah jatuh tempo, dan
+      #     terlihat persis seperti alat yang terawat
+      #   • akumulasi penyusutan < nilai bulan ini — beban melebihi totalnya
+      #     sendiri; neraca tak akan pernah cocok
+      - name: Invarian operasional alat
+        run: node scripts/uji-invarian-alat.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
       - name: Invarian NCR
         run: node scripts/uji-invarian-ncr.mjs
         env:

@@ -5,6 +5,112 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-07 (lanjutan 6) — TUNDA kelompok B: operasional alat, dan tiga cacat yang hanya ketahuan dengan MELIHAT
+
+Founder: *"kerjakan aja semuanya sekalian sekaligus, termasuk yg ditunda. jika
+butuh data silahkan masukkan ke db karena ini belum berjalan secara operasional."*
+Kelompok A (vendor) selesai lebih dulu; ini kelompok B — 4 item TUNDA sekaligus:
+log pemakaian alat, maintenance terjadwal, biaya operasional per alat,
+integrasi penyusutan → GL.
+
+### Yang terbukti, dengan angka
+
+```
+migrasi 211      5 tabel · 15 policy · RLS aktif+dipaksa di kelimanya
+invarian         42 terjaga, 0 bocor (uji-invarian-alat.mjs)
+mutasi invarian  4/4 tertangkap — DROP constraint -> MERAH, pulihkan -> HIJAU
+pustaka          20 test · 8/8 mutasi tertangkap
+API              173 berkas · 1831 test hijau, 2 skip
+web              29 berkas · 389 test hijau
+penjaga          14 audit arsitektural + 12 ratchet UI: semua LULUS
+lint             web 0 error, 334 warning (di bawah ambang)
+build            96 halaman · /aset/operasional terdaftar
+a11y             axe-core WCAG 2.1 AA: 0 pelanggaran, mode terang DAN gelap
+seed             4 alat · 30 pemakaian · 5 jadwal · 11 riwayat · 24 biaya
+                 · 12 penyusutan — dijalankan 3x, angka tak bergerak
+```
+
+### Tiga cacat yang tak satu pun penjaga bisa temukan
+
+Ketiganya baru terlihat sesudah **memotret halamannya dan melihat gambarnya**.
+Semua test hijau, semua ratchet di lantai, axe-core nol pelanggaran.
+
+**1. Rp 0 untuk alat yang paling mahal perawatannya.** Dump truck dengan empat
+kerusakan mendadak senilai Rp 19,85 juta tampil "Rp 0" — biaya servis tinggal
+di `riwayat_perawatan`, sedangkan `ringkasBiayaAlat` hanya membaca
+`biaya_operasional_alat`. Alat yang paling sering rusak jadi terlihat PALING
+MURAH; peringkatnya terbalik. Total halaman Rp 33,2 juta, seharusnya Rp 66,2.
+Diperbaiki di pustaka + 3 test + 1 mutasi.
+
+**2. Kolom kosong justru di baris terpenting.** Excavator EXC-001 — contoh
+utama "jam mengalahkan kalender" di seluruh halaman — menampilkan "belum ada
+servis" karena seed saya lalai memberinya riwayat.
+
+**3. Seed saya mengaku idempoten, dan tidak.** Header berkasnya menulis
+"idempoten: aman dijalankan berulang", padahal `ON CONFLICT DO NOTHING` pada
+`riwayat_perawatan`/`biaya_operasional_alat` tak mengikat apa pun: kedua tabel
+sengaja TIDAK punya unique constraint (satu alat memang boleh diisi BBM dua
+kali sehari). Menjalankannya dua kali menggandakan 24 baris jadi 48, dan biaya
+per jam ikut berlipat — tanpa satu pun pesan galat. Diganti penjaga blok
+`IF EXISTS ... RETURN`, dibuktikan dengan menjalankannya 2× berturut-turut.
+
+### Saya salah — empat kali
+
+**Menyalahkan test padahal mutasinya yang meleset.** Mutasi "NUMERIC string
+digabung sebagai teks" dilaporkan LOLOS. Alih-alih langsung memperkuat test,
+saya periksa dulu apakah mutasinya benar-benar mengubah perilaku — ternyata
+tidak: `Math.round("01000000")` tetap `1000000` karena hanya ada SATU elemen.
+Percobaan kedua (`jam` tak dikonversi) juga mutan setara: JavaScript memaksa
+string jadi angka pada `/` dan `>`, jadi `'50'` dan `50` identik. Yang
+benar-benar butuh konversi hanyalah `+`. Test diperkuat jadi dua baris, mutasi
+diarahkan ke sana, tertangkap. *(Pelajaran ini persis kasus `useToastOtomatis`
+di sesi sebelumnya — saat itu saya menulis ulang test tiga kali sebelum sadar
+skrip mutasinya yang salah. Kali ini memeriksa lebih dulu.)*
+
+**Menulis penjaga yang memeriksa error lewat loop.** `for (const r of [aset,
+pemakaian, ...]) if (r.error)` terlihat ringkas dan LULUS logika saya, tapi
+`audit-kegagalan-senyap.mjs` merahkannya (192 > ambang 186). Penjaganya benar:
+query ketujuh yang ditambahkan nanti dan lupa dimasukkan ke array akan gagal
+tanpa suara, lalu `?? []` mengubahnya jadi "nol baris" yang sah. Diganti enam
+`if` yang menyebut namanya masing-masing.
+
+**Membuat `db/seed/` padahal repo memakai `db/seeds/`.** Konvensi kedua yang
+tak perlu; dipindahkan sebelum sempat menyebar.
+
+**Mengira `@/components/dasar` tak ada.** Mencarinya sebagai direktori, padahal
+itu berkas `dasar.tsx`. Juga menebak propnya `baris`, nyatanya `data` —
+diperbaiki dengan membaca tanda tangannya, bukan menebak lagi.
+
+### Penjaga baru: `uji-invarian-alat.mjs` (42 invarian)
+
+Dibuktikan bisa MERAH lewat mutasi sengaja terhadap schema — DROP constraint,
+jalankan, harap merah, pulihkan, harap hijau. Empat constraint diuji begitu:
+meter mundur · jadwal tanpa interval · akumulasi < nilai · biaya nol.
+
+Didaftarkan ke CI. **Dan CI diberi seed `assets`** — tanpa itu skrip ini
+melewati dirinya sendiri ("butuh minimal 1 baris di assets — dilewati") lalu
+exit 0. Penjaga yang selalu hijau karena tak pernah punya bahan uji adalah
+hiasan, dan itu lebih buruk daripada tak ada penjaga: ia memberi rasa aman
+yang salah.
+
+### Yang TIDAK saya klaim selesai
+
+`Integrasi penyusutan → GL` ditandai **🟡 sebagian**, bukan ✅. Tabel
+`penyusutan_alat` hidup, `journal_entry_id` ada, constraint menolak jurnal
+setengah jadi — tapi penjurnalan OTOMATIS ke GL masih terblokir **R-001**
+(bentrok definisi `accounts`/`journal_entries` migrasi 047 vs 167). Menandainya
+hijau akan jadi persis cacat yang CLAUDE.md §8a.4 peringatkan.
+
+Sekalian mengoreksi daftar "TAHAN sampai ada pemicu" di taksonomi: tertulis
+"18 item" lalu memuat 26 nama, dan 13 di antaranya sudah hidup berbulan-bulan
+(tender subkon, transfer stok, material klien, rekonsiliasi material, eskalasi
+harga, backup & restore, absensi...). Diukur ulang ke kode — tiap ✅ punya
+route DAN halaman. Angka di depan daftar dibuang; yang mengikat tanda per-nama.
+
+**TUNDA: 22 → 18.**
+
+---
+
 ## 2026-08-07 (lanjutan 5) — compro publik terbit, dan empat kali saya salah mendiagnosis warna
 
 Founder meminta landing page compro + halaman jual ERP, konten 100% dari

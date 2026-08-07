@@ -201,7 +201,7 @@ Jantung ERP kontraktor. Lihat skor Lima Pembeda di bawah.
 |---|---|---|
 | Laporan harian proyek (DPR) | 🟡 | `progress_logs` (weather, worker_count, foto, notes) = bahan DPR; tanpa format/cetak DPR resmi |
 | Log tenaga kerja harian | 🟡 | `worker_count` agregat, bukan per orang |
-| Log pemakaian alat | 🔴 | |
+| Log pemakaian alat | ✅ | Migrasi 211 · `pemakaian_alat` · `/aset/operasional`. Meter terkini diambil dari pembacaan **tertinggi**, bukan entri terbaru — koreksi mundur tak boleh membuat alat terlihat belum waktunya diservis. `UNIQUE(asset_id, tanggal)` mencegah jam operasi terhitung dua kali |
 | Log cuaca | 🟡 | Field `weather` di progress_logs |
 | Instruksi lapangan | 🟡 | UI hidup: `instruksi-lapangan-section.tsx` → `/field-instructions` (diukur 2026-08-06) |
 | Izin kerja (work permit) | 🔴 | |
@@ -256,9 +256,9 @@ migrasi 149/150/151).
 | Penyusutan | ✅ | Garis lurus & saldo menurun ganda; metode di-**snapshot** per baris log (mengubah metode tak menulis ulang sejarah). `journal_entry_id` sudah disiapkan untuk GL |
 | Sewa alat | ✅ | `asset_rentals`; biaya sewa **berjalan** ikut dihitung, tak muncul mendadak saat ditutup |
 | Utilisasi | ✅ | Diturunkan dari mutasi; periode tumpang tindih dihitung sekali (mencegah >100%) |
-| Maintenance terjadwal | 🔴 | Belum — status `perawatan` ada, jadwalnya belum |
-| Biaya operasional per alat (BBM, operator) | 🔴 | Belum |
-| Integrasi penyusutan → GL | 🔴 | Menunggu Modul 10 (GL in-app) — kolomnya sudah ada |
+| Maintenance terjadwal | ✅ | Migrasi 211 · `jadwal_perawatan` + `riwayat_perawatan` · `/aset/operasional`. Interval **ganda**: `setiap_jam` ATAU `setiap_hari`, mana yang tercapai lebih dulu — excavator 300 jam/bulan butuh oli meski jadwal 180-harinya baru separuh. Kolom "dipicu oleh" menyebut yang mana. Rasio servis mendadak ≥50% ditandai **preventif tak bekerja** — "sering dirawat" ≠ terawat |
+| Biaya operasional per alat (BBM, operator) | ✅ | Migrasi 211 · `biaya_operasional_alat` · `/aset/operasional`. Biaya **perawatan ikut dijumlah** — tanpa itu alat yang paling sering rusak justru terlihat paling murah. Biaya per jam bernilai "—" saat jam operasi nol, bukan hasil bagi-nol yang terlihat masuk akal |
+| Integrasi penyusutan → GL | 🟡 | Migrasi 211 · `penyusutan_alat` + `journal_entry_id` hidup & terisi; constraint menolak jurnal setengah jadi (`journal_entry_id` ada tapi `dijurnal_pada` kosong) dan penyusutan ganda per periode. **Penjurnalan otomatis** menunggu R-001 (bentrok definisi 047/167), bukan menunggu Modul 10 |
 
 ⚠️ Forward-draft **045 TIDAK dipakai apa adanya**: ditulis sebelum multi-tenant
 (nol `company_id`, nol RLS, `asset_code UNIQUE` global). 149 menulis ulang
@@ -398,17 +398,34 @@ pencatat biasa** — Lima Pembeda #1. Kelompok kontrak & klaim adalah bukti saat
 sengketa; nilainya baru terasa ketika dibutuhkan, dan saat itu terlambat
 membangunnya.
 
-### 🟡 TAHAN sampai ada pemicu — 18 item
+### 🟡 TAHAN sampai ada pemicu
 
-prakualifikasi vendor · dokumen prakualifikasi · kalender kerja · eskalasi
-harga · resource histogram · kontrak payung · expediting · transfer stok antar
-proyek · rekonsiliasi material · tracking waste · material milik klien · tender
-subkontraktor · kepatuhan subkon · log pemakaian alat · maintenance terjadwal ·
-biaya operasional alat · register gambar · notulen rapat · transmittal ·
-matriks distribusi · distribusi laporan terjadwal · backup & restore ·
-mode offline · absensi lapangan · material request mobile · checklist inspeksi
+> **Daftar ini pernah basi.** Ditulis "18 item" lalu memuat 26 nama, dan
+> sebagian di antaranya sudah hidup berbulan-bulan. Angka di depan daftar
+> dibuang: yang mengikat adalah tanda ✅ per nama, dan jumlah resminya
+> diukur di `F5-1-TRIASE-SUBMENU.md` §6 — bukan disalin dari sini.
 
-Semuanya berguna, tapi **tak ada yang menunggunya sekarang**. Membangun sebelum
+**Sudah dikerjakan meski pemicunya belum menyala** (keputusan founder
+2026-08-07, basis belum operasional sehingga bentuknya diturunkan dari
+praktik lapangan, bukan dari pemakai nyata):
+
+✅ prakualifikasi vendor · ✅ dokumen prakualifikasi · ✅ evaluasi kinerja
+vendor · ✅ log pemakaian alat · ✅ maintenance terjadwal · ✅ biaya
+operasional alat · ✅ tender subkontraktor · ✅ transfer stok antar proyek ·
+✅ material milik klien · ✅ rekonsiliasi material · ✅ eskalasi harga ·
+✅ backup & restore · ✅ absensi lapangan
+
+Diukur ke kode 2026-08-07, bukan diingat: tiap ✅ punya route di
+`apps/api/src/routes/v1/` **dan** halaman di `apps/web/app/`.
+
+**Masih menunggu pemicunya:**
+
+kalender kerja · resource histogram · kontrak payung · expediting ·
+tracking waste · kepatuhan subkon · register gambar · notulen rapat ·
+transmittal · matriks distribusi · distribusi laporan terjadwal ·
+mode offline (baca) · material request mobile · checklist inspeksi mobile
+
+Sisanya berguna, tapi **tak ada yang menunggunya sekarang**. Membangun sebelum
 ada pemakai berarti menebak bentuknya — dan bentuk yang salah lebih mahal
 daripada belum ada.
 

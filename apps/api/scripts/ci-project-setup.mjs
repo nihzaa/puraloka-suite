@@ -175,6 +175,28 @@ await seed('cost_code', async () => {
      WHERE NOT EXISTS (SELECT 1 FROM cost_codes WHERE code='CC-CI-SEED')`)
 })
 
+// 1 asset (alat) — dibutuhkan `uji-invarian-alat.mjs`.
+//
+// Tanpa ini skrip invarian itu MELEWATI DIRI SENDIRI dengan pesan "butuh
+// minimal 1 baris di assets — dilewati", lalu exit 0. Penjaga yang selalu
+// hijau karena tak pernah punya bahan untuk diuji adalah hiasan, dan itu
+// lebih buruk daripada tak ada penjaga: ia memberi rasa aman yang salah.
+await seed('asset (bahan uji invarian alat)', async () => {
+  await c.query(
+    `INSERT INTO assets (company_id, asset_code, name, category, purchase_price,
+                         residual_value, useful_life_months, created_by)
+     SELECT (SELECT id FROM companies WHERE is_active ORDER BY created_at LIMIT 1),
+            'CI-EXC-001', 'CI seed excavator', 'alat_berat', 1000000000, 100000000, 96,
+            (SELECT id FROM public.users WHERE email='ci-admin@puraloka.test' LIMIT 1)
+     WHERE NOT EXISTS (SELECT 1 FROM assets WHERE asset_code='CI-EXC-001')
+       AND EXISTS (SELECT 1 FROM companies WHERE is_active)`)
+
+  // Verifikasi, bukan asumsi — seed "berhasil" tapi nol baris adalah persis
+  // cara penjaga ini bisa mati diam-diam.
+  const { rows } = await c.query(`SELECT count(*)::int n FROM assets`)
+  if (rows[0].n === 0) throw new Error('assets tetap kosong sesudah seed')
+})
+
 // FIXTURE DEMO — dibutuhkan photo-attach-ownership.test.ts (progress_log milik mandor X +
 // mandor Y yang JUGA ditugaskan di proyek yang sama) & recipient-resolution.test.ts
 // (1 proyek ber-PM). Idempoten. Ini mengganti data demo yang di-skip (024) dgn yang minimal-lengkap.

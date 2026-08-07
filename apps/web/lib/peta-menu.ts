@@ -219,7 +219,7 @@ export const PETA_MENU: GrupMenu[] = [
     items: [
       { key: 'lp-dpr', label: 'Laporan Harian', status: 'sebagian', href: '/proyek', tabProyek: 'progress', guna: 'Catatan harian: pekerjaan, tenaga, cuaca, kendala.' },
       { key: 'lp-tenaga', label: 'Log Tenaga Kerja', status: 'sebagian', href: '/mandor', guna: 'Jumlah pekerja per hari per proyek.' },
-      { key: 'lp-alat', label: 'Log Pemakaian Alat', status: 'rencana', guna: 'Jam pakai alat, dasar hitung biaya & utilisasi.', catatan: 'Register aset sudah ada; log jam pakainya belum.' },
+      { key: 'lp-alat', label: 'Log Pemakaian Alat', status: 'hidup', href: '/aset/operasional', guna: 'Jam pakai alat, dasar hitung biaya & utilisasi.', catatan: 'Meter terkini diambil dari pembacaan TERTINGGI, bukan entri terbaru — koreksi mundur tak boleh membuat alat terlihat belum waktunya diservis.' },
       { key: 'lp-cuaca', label: 'Log Cuaca', status: 'sebagian', href: '/proyek', tabProyek: 'progress', guna: 'Catatan cuaca — bukti pendukung pengajuan EOT.' },
       { key: 'lp-instruksi', label: 'Instruksi Lapangan', status: 'rencana', guna: 'Perintah tertulis dari pengawas ke pelaksana.', catatan: 'Sekarang lewat WhatsApp, tak berjejak.' },
       { key: 'lp-permit', label: 'Izin Kerja', status: 'rencana', guna: 'Work permit untuk pekerjaan berisiko tinggi.', catatan: 'Wajib pada proyek yang menerapkan K3 formal.' },
@@ -279,9 +279,9 @@ export const PETA_MENU: GrupMenu[] = [
       { key: 'as-penyusutan', label: 'Penyusutan', status: 'hidup', href: '/aset', guna: 'Nilai buku alat — garis lurus atau saldo menurun.' },
       { key: 'as-sewa', label: 'Sewa Alat', status: 'hidup', href: '/aset', guna: 'Alat yang disewa, beserta biaya berjalannya.' },
       { key: 'as-utilisasi', label: 'Utilisasi', status: 'hidup', href: '/aset', guna: 'Seberapa sering alat terpakai — alat menganggur = uang tertidur.' },
-      { key: 'as-maintenance', label: 'Maintenance Terjadwal', status: 'rencana', guna: 'Jadwal servis berkala agar alat tak rusak di tengah proyek.', catatan: 'Status `perawatan` sudah ada; penjadwalannya belum.' },
-      { key: 'as-opex', label: 'Biaya Operasional Alat', status: 'rencana', guna: 'BBM, operator, dan suku cadang per alat.', catatan: 'Menentukan biaya sesungguhnya per jam pakai.' },
-      { key: 'as-gl', label: 'Penyusutan → Jurnal', status: 'rencana', guna: 'Mengirim beban penyusutan ke buku besar.', catatan: 'Kolom `journal_entry_id` sudah disiapkan; menunggu Modul 10 (GL).' },
+      { key: 'as-maintenance', label: 'Maintenance Terjadwal', status: 'hidup', href: '/aset/operasional', guna: 'Jadwal servis berkala agar alat tak rusak di tengah proyek.', catatan: 'Interval ganda: jam meter ATAU hari, mana yang tercapai lebih dulu. Kolom "dipicu oleh" menyebut yang mana — excavator 300 jam/bulan butuh oli meski jadwal 180-harinya baru separuh.' },
+      { key: 'as-opex', label: 'Biaya Operasional Alat', status: 'hidup', href: '/aset/operasional', guna: 'BBM, operator, dan suku cadang per alat.', catatan: 'Biaya per jam bernilai "—" saat jam operasi nol, bukan angka hasil bagi-nol yang terlihat masuk akal.' },
+      { key: 'as-gl', label: 'Penyusutan → Jurnal', status: 'sebagian', href: '/aset/operasional', guna: 'Mengirim beban penyusutan ke buku besar.', catatan: 'Tabel `penyusutan_alat` + kolom `journal_entry_id` sudah ada dan terisi (migrasi 211); penjurnalan otomatis ke GL menunggu R-001 (bentrok migrasi 047/167) diselesaikan.' },
     ],
   },
   {

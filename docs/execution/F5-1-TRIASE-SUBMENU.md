@@ -518,7 +518,7 @@ dan saya kerjakan dengan bentuk yang diturunkan dari kasus nyata itu.
 
 ---
 
-## 5. TUNDA — 25 item, dengan pemicunya
+## 5. TUNDA — 25 item, dengan pemicunya (18 tersisa)
 
 Tak dikerjakan sampai pemicunya nyata. **Kalau pemicu terjadi, item pindah ke
 INTI atau PEMBEDA — bukan langsung dikerjakan** dari daftar ini.
@@ -531,15 +531,15 @@ INTI atau PEMBEDA — bukan langsung dikerjakan** dari daftar ini.
 | Critical path (CPM) · Resource histogram / leveling · Method statement | 3 | Proyek dengan jadwal yang benar-benar dinegosiasikan owner |
 | Kontrak payung / blanket order · Expediting & logistik | 2 | Volume pengadaan berulang dari vendor yang sama |
 | ~~Evaluasi kinerja vendor~~ | ~~1~~ | ✅ **SELESAI 2026-08-07** — skor berbobot, titik lemah per-dimensi, daftar hitam beralasan |
-| Log pemakaian alat · Maintenance terjadwal · Biaya operasional per alat (BBM, operator) | 3 | Alat **milik sendiri** > 5 unit (hari ini mayoritas sewa) |
-| Integrasi penyusutan → GL | 1 | Register aset terisi — GL-nya sendiri **sudah sehat** (§3a), yang belum ada asetnya |
+| ~~Log pemakaian alat · Maintenance terjadwal · Biaya operasional per alat (BBM, operator)~~ | ~~3~~ | ✅ **SELESAI 2026-08-07** — dibangun atas keputusan founder meski pemicu (>5 alat milik sendiri) belum menyala. Interval ganda **jam ATAU hari**, mana yang lebih dulu; biaya per jam bernilai "—" saat jam operasi nol, bukan hasil bagi-nol |
+| ~~Integrasi penyusutan → GL~~ | ~~1~~ | 🟡 **SEBAGIAN 2026-08-07** — tabel `penyusutan_alat` + `journal_entry_id` hidup dan terisi (migrasi 211), constraint menolak jurnal setengah jadi. Penjurnalan **otomatis** ke GL masih menunggu **R-001** (bentrok 047/167) — bukan menunggu aset |
 | Izin kerja (work permit) | 1 | Proyek dengan syarat K3 formal dari owner |
 | Transmittal · Register gambar · Notulen rapat · Matriks distribusi | 4 | Proyek dengan pertukaran dokumen formal berlapis |
 | Tanda tangan elektronik | 1 | Dokumen mulai ditolak karena butuh tanda tangan sah |
 | Distribusi laporan terjadwal | 1 | Ada penerima tetap yang memintanya |
 | Nota kredit | 1 | Ada retur/koreksi tagihan pertama |
 | Material request (mobile) · Checklist inspeksi (mobile) | 2 | Setelah mode offline penuh — F4-3 baru menutup jalur TULIS |
-| | **22** | tiga item vendor selesai 2026-08-07 |
+| | **18** | tiga item vendor + empat item alat selesai 2026-08-07 |
 
 ### Tiga yang TIDAK dihitung di sini — sudah 🟡, bukan merah
 

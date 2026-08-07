@@ -49,6 +49,7 @@ import contingencyRoutes from './routes/v1/contingency.js'
 import tenderSubkonRoutes from './routes/v1/tender-subkon.js'
 import sertifikatIpcRoutes from './routes/v1/sertifikat-ipc.js'
 import vendorKualifikasiRoutes from './routes/v1/vendor-kualifikasi.js'
+import alatOperasionalRoutes from './routes/v1/alat-operasional.js'
 import inspeksiRoutes from './routes/v1/inspeksi.js'
 import rfiRoutes from './routes/v1/rfi.js'
 import submittalRoutes from './routes/v1/submittal.js'
@@ -298,6 +299,7 @@ await app.register(contingencyRoutes)
 await app.register(tenderSubkonRoutes)
 await app.register(sertifikatIpcRoutes)
 await app.register(vendorKualifikasiRoutes)
+await app.register(alatOperasionalRoutes)
 await app.register(inspeksiRoutes)
 await app.register(rfiRoutes)
 await app.register(submittalRoutes)
