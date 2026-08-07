@@ -450,6 +450,74 @@ Yang butuh item baru adalah tiga pembeda yang masih rendah.
 
 ---
 
+## 5a. Pemicu diukur ke DATA — 2026-08-07
+
+> Menjawab *"sisa yang ditunda sekarang berapa? kenapa ditunda? gimana agar
+> bisa lanjut?"*
+>
+> **Masih 25** — tak satu pun berubah, karena tak satu pun dikerjakan. Yang
+> dikerjakan sejak triase ini ditulis datang dari daftar INTI/PEMBEDA/fase,
+> bukan dari sini.
+
+Tabel di §5 menyebut pemicunya. Berikut **jaraknya ke ambang**, diukur ke
+basis hari ini — bukan diperkirakan:
+
+| Pemicu | Ambang | Hari ini | Jarak |
+|---|---|---|---|
+| Vendor banyak | > 30 | **5 supplier** | jauh |
+| Alat milik sendiri | > 5 unit | **0 aset** | belum mulai |
+| Subkon formal ber-kontrak | ada 1 | **0** `work_scopes` ber-`contract_status='signed'` | belum mulai |
+| Pengadaan berulang | vendor sama berkali-kali | **7 PO ke 5 vendor** | hampir tak berulang |
+| Retur/koreksi tagihan | ada 1 | **0** — jenis invoice yang ada cuma `termin_billing`, `commission_billing` | belum pernah |
+| Pertukaran dokumen formal | ada | **0 dokumen** | belum mulai |
+| Syarat K3 formal owner | ada | **0 jaminan**, **0 polis** | belum mulai |
+| Jadwal dinegosiasikan owner | ada | **39 milestone** di 15 proyek | **satu-satunya yang berisi** |
+| Mode offline penuh | baca + tulis | F4-3 `done` — tapi **TULIS saja** (6 jalur) | separuh |
+
+### Kesimpulan: 24 dari 25 belum terpicu, dan itu bukan kelambatan
+
+Yang menahan bukan kapasitas kerja, melainkan **kenyataan bisnis**. Membangun
+prakualifikasi vendor untuk 5 supplier, atau maintenance terjadwal untuk nol
+alat, berarti menebak bentuk dari nol contoh nyata — dan bentuk yang salah
+lebih mahal daripada belum ada: ia harus dirawat selamanya sambil menghalangi
+bentuk yang benar.
+
+### Dua yang PALING DEKAT, dan cara membangunkannya
+
+**1. Dua item mobile (permintaan bahan & checklist mutu di lapangan)** —
+pemicunya "setelah mode offline penuh". F4-3 sudah `done`, tapi ia menutup **jalur TULIS** saja
+(progress, kasbon, kasbon-tukang, laporan-upah, penagihan, tukang). Yang
+kurang: **membaca offline** — daftar material dan checklist harus bisa dibuka
+tanpa sinyal, bukan cuma dikirim.
+
+> **Cara melanjutkan:** perluas `antrean-offline` ke sisi baca (cache daftar
+> material + checklist di IndexedDB). Ini pekerjaan yang bisa saya kerjakan
+> tanpa keputusan founder — dan satu-satunya item TUNDA yang begitu.
+
+**2. Jalur kritis & perataan sumber daya** — 39 milestone sudah ada, dan itu
+bahan mentahnya. Yang belum: **ketergantungan antar-milestone** (A selesai
+baru B mulai). Tanpa itu, perhitungan jalur kritis tak punya yang dihitung.
+
+> **Cara melanjutkan:** butuh keputusan founder — apakah proyek Anda memang
+> punya jadwal yang dinegosiasikan owner dengan denda keterlambatan per-
+> milestone? Kalau tidak, CPM adalah alat untuk masalah yang belum ada.
+
+### Sisanya: cara membangunkannya sama untuk semua
+
+Pemicu itu **keadaan bisnis, bukan tombol**. Ia menyala sendiri saat:
+
+- vendor ke-31 didaftarkan → prakualifikasi jadi masuk akal
+- alat keenam dibeli → log pemakaian & maintenance punya yang dilacak
+- satu subkon ditandatangani formal → evaluasi kinerja punya yang dinilai
+- satu retur pertama terjadi → nota kredit punya kasus nyata
+
+**Yang perlu Anda lakukan: tidak ada.** Kalau salah satu keadaan itu terjadi,
+katakan — item terkait pindah dari TUNDA ke INTI/PEMBEDA (CHARTER: *"kalau
+pemicu terjadi, item pindah — bukan langsung dikerjakan dari daftar ini"*),
+dan saya kerjakan dengan bentuk yang diturunkan dari kasus nyata itu.
+
+---
+
 ## 5. TUNDA — 25 item, dengan pemicunya
 
 Tak dikerjakan sampai pemicunya nyata. **Kalau pemicu terjadi, item pindah ke
