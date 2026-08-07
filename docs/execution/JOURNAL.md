@@ -5,6 +5,82 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-07 (lanjutan 15) — 87 item ternyata bukan satu masalah, melainkan empat
+
+Founder: *"jadi 87 item itu gimana solusinya, dan saya percayakan kepada kamu
+untuk putusan prioritasnya, yg penting semuanya dikerjakan."*
+
+### Yang saya lakukan lebih dulu: mengukur, bukan memilih
+
+Godaan pertamanya adalah memilih kelompok terbesar (`/mandor` 8 item) lalu
+mulai. Yang saya lakukan: mendaftar **seluruh 87** beserta status tiap itemnya,
+dan pola yang muncul mengubah rencana sepenuhnya.
+
+```
+B. halaman multi-modul   13  ->  bangun tab             migrasi 229
+D. isinya belum ada      22  ->  /m/<key> yang jujur    migrasi 230
+A. sinonim sah           49  ->  biarkan
+C. halaman tunggal        3  ->  tab dari URL
+
+87 -> 49 berbagi href
+```
+
+Kalau saya memaksakan satu solusi untuk semuanya, **sebagiannya justru rusak**.
+
+### Tiga keputusan yang saya ambil, dan alasannya
+
+**Tab, bukan pecah jadi halaman terpisah.** Empat halaman memuat beberapa modul
+bertumpuk. Memecahnya terasa lebih rapi, tapi modul-modulnya SALING DIBACA
+BERSAMA — transmittal merujuk register gambar yang dikirimnya; nota kredit lahir
+dari kiriman yang diperiksa expediting. Memecahnya memaksa bolak-balik, dan KPI
+di puncak halaman kehilangan gunanya karena ia meringkas seluruh modul.
+
+**`/aset/operasional` sengaja TIDAK diberi tab**, meski 4 menu menunjuknya.
+Keempat menunya adalah empat cara menyebut SATU tabel yang sudah memuat meter,
+perawatan terdekat, dan biaya per jam sekaligus. Tab di situ cuma memecah satu
+tabel jadi empat tampilan yang menyembunyikan kolom satu sama lain.
+
+**22 menu dikembalikan ke "segera hadir"** — terasa mundur, dan memang mundur
+kalau diukur dari jumlah menu yang "punya halaman". Tapi "Work Order" menunjuk
+`/mandor` dan halaman itu tak punya work order. Yang hilang cuma KESAN bahwa
+fiturnya ada, dan kesan itu tak pernah benar.
+
+### Penjaga kemarin menangkap kesalahan hari ini
+
+Versi pertama migrasi 230 memindahkan KETIGA menu `/proyek` — termasuk
+"Dashboard per Proyek", satu-satunya jalan masuk ke daftar proyek.
+`audit-nav-yatim.mjs` langsung merah.
+
+Tanpa penjaga yang dibuat kemarin, daftar proyek hanya bisa dibuka dengan
+mengetik URL, dan **tak satu pun test akan gagal**. Ini kedua kalinya penjaga
+itu membayar dirinya sendiri.
+
+### Uji mutasi saya salah sasaran, lagi
+
+Percobaan pertama menyisipkan key karangan ke `UPDATE` tapi TIDAK ke daftar
+verifikasi — jadi "mutasi lolos" karena yang diperiksa bukan yang diubah.
+Ujinya yang cacat, bukan penjaganya. Sesudah dibetulkan, keduanya ditolak.
+
+### Dan klaim saya sendiri terlalu longgar
+
+Di pesan commit saya menulis 49 sisa "seluruhnya sinonim sah". Diperiksa satu
+per satu sesudahnya: **42 berstatus `hidup`, 6 `sebagian`, 1 `gerbang`**.
+Ketujuh yang bukan `hidup` tetap sah tinggal — alasannya ada di catatan
+`peta-menu.ts` masing-masing — tapi "seluruhnya" itu tidak akurat, dan catatan
+lantai sudah diperbaiki supaya menyebut angka sebenarnya.
+
+### Bukti
+
+```
+web      32 berkas · 423 test hijau · tsc bersih
+a11y     4 halaman bertab baru -> 0 pelanggaran
+perilaku uji-tab-dari-url: 12 kasus + 3 nilai ngawur -> LULUS
+         21 halaman /m/ dibuka -> semuanya menampilkan judulnya
+penjaga  6 lulus · migrasi 229 & 230 idempoten (3x) + mutasi ditolak
+```
+
+---
+
 ## 2026-08-07 (lanjutan 14) — Perbaikan saya melahirkan cacat a11y; auditnya sendiri yang menangkap
 
 Melanjutkan sesudah todo habis, sesuai arahan founder. Pola `useTabUrl` sudah

@@ -39,7 +39,7 @@ antara keduanya** yang melahirkan cacat menu yatim kemarin.
 |---|---|---|---|---|
 | T-1 | Menu menunjuk "segera hadir" padahal halaman ada | 20 item | **cacat** | ✅ **SELESAI** — migrasi 220 |
 | T-2 | Halaman yatim (tak bisa dicapai) | 11 → 0 | **cacat** | ✅ **SELESAI** — dijaga `audit-nav-yatim.mjs` |
-| T-3 | Satu href dipakai banyak item sidebar | 144 → **87** | struktur | ✅ **SELESAI** — 223, 224, 227, 228 |
+| T-3 | Satu href dipakai banyak item sidebar | 144 → **49** | struktur | ✅ **SELESAI** — 223, 224, 227–230 |
 | T-4 | Href sama muncul di sidebar **dan** tab-bagian | 13 → 6 | struktur | ✅ **SELESAI** — 225 |
 | T-5 | Tiga aturan "aktif" berbeda di tiga berkas | 3 → **1** | konsistensi | ✅ **SELESAI** — `lib/rute-aktif.ts` |
 | T-6 | Label identik berulang di sidebar | 3 → **1** | salah tulis | ✅ **SELESAI** — 222 |
@@ -301,15 +301,46 @@ membaik (memecah item ke tiga tab melahirkan href baru). Yang di-ratchet
 sekarang `berbagiItem` — berapa banyak item yang mendarat di tempat yang tak
 diminta. Penjaga yang merah saat pekerjaan membaik akan dimatikan orang.
 
-### Sisa 87 item, kelompok terbesar
+### T-3 tuntas — 87 item dipilah jadi empat jenis
 
-| href | Item | Kenapa belum |
-|---|---:|---|
-| `/mandor` | 8 | belum punya tab; halaman tunggal |
-| `/aset` | 7 | belum punya tab |
-| `/procurement` | 6 | belum punya tab |
-| `/dokumen/kendali` | 6 | satu halaman, enam modul di dalamnya |
-| `/tender` | 5 | belum punya tab |
-| `/piutang` | 5 | belum punya tab |
+Founder mempercayakan putusan prioritasnya. Diukur seluruhnya lebih dulu, dan
+ternyata ini **bukan satu masalah** — empat jenis, masing-masing butuh solusi
+berbeda. Memaksakan satu solusi untuk semuanya justru merusak sebagian.
 
-Polanya sudah terbukti; yang dibutuhkan tab di halaman-halaman itu lebih dulu.
+| Jenis | Item | Solusi | Migrasi |
+|---|---:|---|---|
+| **B. Halaman multi-modul** | 13 | bangun tab, arahkan ke modulnya | 229 |
+| **D. Isinya belum ada** | 22 | kembalikan ke `/m/<key>` yang jujur | 230 |
+| **A. Sinonim sah** | 49 | biarkan — dua nama untuk satu halaman berisi | — |
+| **C. Halaman tunggal** | 3 | tab dari URL (`/aset` milik/sewa) | — |
+
+**Jenis B — tab, bukan pecah jadi halaman.** Empat halaman memuat beberapa
+modul bertumpuk: `/dokumen/kendali` (4), `/kepatuhan` (3),
+`/procurement/lanjutan` (3), `/jadwal` (3). Modul-modulnya **saling dibaca
+bersama** — transmittal merujuk register gambar yang dikirimnya; nota kredit
+lahir dari kiriman yang diperiksa expediting. Memecahnya jadi halaman terpisah
+memaksa bolak-balik, dan KPI di puncak kehilangan gunanya karena ia meringkas
+seluruh modul. `components/tab-bagian.tsx` menjawab keduanya.
+
+**`/aset/operasional` sengaja TIDAK diberi tab.** Empat menunya adalah empat
+cara menyebut satu tabel yang sudah memuat meter, perawatan, dan biaya per jam
+sekaligus. Tab di situ hanya memecah satu tabel jadi empat tampilan yang
+menyembunyikan kolom satu sama lain.
+
+**Jenis D — mundur yang jujur.** "Work Order" menunjuk `/mandor`, dan halaman
+itu tak punya work order. `/m/<key>` bukan "coming soon" kosong: ia menjawab
+APA yang akan dikerjakan, KENAPA belum ada, dan KE MANA sementara ini. Yang
+hilang cuma kesan bahwa fiturnya ada — kesan yang tak pernah benar.
+
+**Jenis A — 49 sisa, diperiksa satu per satu.** 42 berstatus `hidup`; 7 sisanya
+`sebagian`/`gerbang` tapi tetap sah tinggal, dengan alasan tertulis di
+`peta-menu.ts` masing-masing (mis. `md-resource` — *"Hidup di tab Katalog
+halaman Estimasi"*). Melarang sinonim memaksa salah satu kelompok kehilangan
+jalan masuk.
+
+### Yang menangkap kesalahan di tengah jalan
+
+Versi pertama migrasi 230 memindahkan **ketiga** menu `/proyek`, termasuk satu-
+satunya jalan masuk ke daftar proyek. `audit-nav-yatim.mjs` langsung merah.
+Tanpa penjaga itu, daftar proyek hanya bisa dibuka dengan mengetik URL — dan
+tak satu pun test akan gagal.
