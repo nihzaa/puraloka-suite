@@ -9,6 +9,7 @@
 
 import { Fragment, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useTabUrl } from "@/lib/use-tab-url";
+import { TabBagian } from "@/components/tab-bagian";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import {
@@ -3691,24 +3692,16 @@ function IsiEstimasi() {
           RAB dari analisa AHSP ber-edisi × price book — setiap rupiah bisa ditelusuri ke koefisien &amp; harga sumbernya.
         </p>
       </div>
-      {/* `role="tab"` MENUNTUT induk `role="tablist"` (WCAG / ARIA). Tanpa itu
-          axe-core melaporkan `aria-required-parent` sebagai pelanggaran CRITICAL —
-          dan pembaca layar tak mengumumkan "tab 3 dari 6". Ditemukan audit a11y,
-          bukan saat menulis. */}
-      <div role="tablist" aria-label="Bagian estimasi" style={{ display: "flex", gap: 4, borderBottom: `1px solid ${C.border}`, margin: "16px 0 18px" }}>
-        {TABS.map(t => {
-          const Icon = t.icon; const active = tab === t.key;
-          return (
-            <button key={t.key} onClick={() => setTab(t.key)}
-              role="tab" aria-selected={active} data-tab={t.key}
-              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 12px", fontSize: 13,
-                fontWeight: active ? 700 : 500, color: active ? C.navy : C.mid, background: "none", border: "none",
-                borderBottom: active ? `2px solid ${C.navy}` : "2px solid transparent", cursor: "pointer", marginBottom: -1 }}>
-              <Icon size={15} /> {t.label}
-            </button>
-          );
+      {/* Komponen BERSAMA — gaya tab tak lagi ditulis per halaman. */}
+      <TabBagian
+        label="Bagian estimasi"
+        aktif={tab}
+        onPilih={setTab}
+        bagian={TABS.map((t) => {
+          const Ikon = t.icon;
+          return { kunci: t.key, label: t.label, ikon: <Ikon size={14} aria-hidden="true" /> };
         })}
-      </div>
+      />
       {tab === "komposer" && <KomposerTab />}
       {tab === "katalog" && <KatalogTab />}
       {tab === "harga" && <HargaTab />}

@@ -1084,6 +1084,19 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
 
+      # Founder 2026-08-08: "style tab nya konsisten ga yaa?" — tidak. Diukur:
+      # 22 berkas merender tab dengan EMPAT pola, dan tiga menghasilkan bentuk
+      # visual berlainan (tombol kotak navy · garis bawah 12px · garis bawah
+      # 14px). Tak ada alasan di balik perbedaannya; ia lahir karena ketiga
+      # halaman ditulis pada waktu berbeda.
+      #
+      # `aria-pressed` sengaja TIDAK diperiksa: sebelas pemakainya bukan tab
+      # (nilai kehadiran, saklar denda, pengurutan). Memaksanya jadi role="tab"
+      # membuat pembaca layar mengumumkan "tab 1 dari 3" untuk sebuah nilai.
+      - name: Tab lewat komponen bersama
+        run: node apps/web/scripts/audit-tab-seragam.mjs
+        working-directory: .
+
       # Audit a11y runtime (axe-core) MELEWATI rute dinamis yang tak diberi
       # contoh id — dan tetap melaporkan "0 pelanggaran". Diukur 2026-08-07:
       # enam halaman terlewat selama ini, dan outputnya terbaca sebagai

@@ -2,6 +2,7 @@
 
 import React, { Suspense, useEffect, useReducer, useRef, useState } from "react";
 import { useTabUrl } from "@/lib/use-tab-url";
+import { TabBagian } from "@/components/tab-bagian";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { dapatDitekan } from "@/lib/dapat-ditekan";
 import { api, makeAbortController, hasPermission } from "@/lib/api";
@@ -226,13 +227,6 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
 }
 
 // ─── Tab Button ───────────────────────────────────────────────────────────────
-function TabBtn({ label, active, onClick, icon, kunci }: { label: string; active: boolean; onClick: () => void; icon?: React.ReactNode; kunci?: string }) {
-  return (
-    <button onClick={onClick} role="tab" aria-selected={active} data-tab={kunci} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "transparent", border: "none", borderBottom: `2px solid ${active ? C.navy : "transparent"}`, fontSize: 12, fontWeight: active ? 600 : 400, color: active ? C.navy : C.mid, cursor: "pointer", transition: "all 0.15s", whiteSpace: "nowrap" }}>
-      {icon}{label}
-    </button>
-  );
-}
 
 /**
  * `DataTable` DIHAPUS 2026-08-07 (UI-0-4) — delapan pemakainya kini memakai
@@ -489,12 +483,17 @@ function LaporanContent() {
 
       {/* Tabs */}
       <div className="rise rise-2" style={{ ...card }}>
-        {/* `role="tab"` menuntut induk `role="tablist"` — tanpa itu axe-core
-            melaporkan `aria-required-parent` (critical). */}
-        <div role="tablist" aria-label="Bagian laporan" style={{ display: "flex", borderBottom: `1px solid ${C.border}`, overflowX: "auto" }}>
-          {tabs.map(t => (
-            <TabBtn key={t.key} kunci={t.key} label={t.label} icon={t.icon} active={tab === t.key} onClick={() => setTab(t.key)} />
-          ))}
+        {/* Komponen BERSAMA `TabBagian` — gaya tab tak lagi ditulis ulang
+            per halaman. Sampai 2026-08-08 halaman ini punya `TabBtn` sendiri,
+            akuntansi punya tombol berkotak, dan /dokumen/kendali punya bentuk
+            ketiga. Tiga bentuk visual untuk hal yang sama. */}
+        <div style={{ padding: "0 8px" }}>
+          <TabBagian
+            label="Bagian laporan"
+            aktif={tab}
+            onPilih={setTab}
+            bagian={tabs.map((t) => ({ kunci: t.key, label: t.label, ikon: t.icon }))}
+          />
         </div>
 
         {/* Loading state */}

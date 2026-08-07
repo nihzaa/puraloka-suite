@@ -62,6 +62,7 @@ import { api, makeAbortController } from "@/lib/api";
 
 import { C } from "@/lib/warna-ui";
 import { useTabUrl } from "@/lib/use-tab-url";
+import { TabBagian } from "@/components/tab-bagian";
 import { KartuKPI, Kosong, Panel } from "@/components/ui-dasar";
 import { Tabel } from "@/components/dasar";
 import {
@@ -327,22 +328,20 @@ function IsiAset() {
 
       {/* ── LAPIS 3 — DETAIL ── */}
       {/* Tab */}
-      <div id="daftar-aset" role="tablist" aria-label="Jenis aset" style={{ display: "flex", gap: 4, marginBottom: 14, borderBottom: `1px solid ${C.border}` }}>
-        {([["milik", `Milik (${metaAset?.milik ?? 0})`], ["sewa", `Sewa (${metaSewa?.total ?? 0})`]] as const).map(([k, label]) => (
-          <button
-            key={k} role="tab" aria-selected={tab === k} data-tab={k}
-            onClick={() => setTab(k)}
-            style={{
-              padding: "8px 16px", border: "none", background: "none", cursor: "pointer",
-              fontSize: 13, fontWeight: tab === k ? 700 : 500,
-              color: tab === k ? C.navy : C.mid,
-              borderBottom: `2px solid ${tab === k ? C.navy : "transparent"}`,
-              marginBottom: -1,
-            }}
-          >
-            {label}
-          </button>
-        ))}
+      {/* Komponen BERSAMA. Jumlahnya dipindah dari dalam label ke prop
+          `jumlah`: "Milik (47)" memaksa angka ikut menebal saat tab aktif,
+          dan angka tebal terbaca sebagai penekanan yang tak dimaksudkan.
+          Sebagai lencana terpisah ia tetap terbaca tanpa ikut menonjol. */}
+      <div id="daftar-aset">
+        <TabBagian
+          label="Jenis aset"
+          aktif={tab}
+          onPilih={setTab}
+          bagian={[
+            { kunci: "milik", label: "Milik", jumlah: metaAset?.milik ?? 0 },
+            { kunci: "sewa",  label: "Sewa",  jumlah: metaSewa?.total ?? 0 },
+          ] as const}
+        />
       </div>
 
       {galat && (

@@ -52,6 +52,15 @@ import { C } from "@/lib/warna-ui";
 export interface BagianTab<T extends string> {
   kunci: T;
   label: string;
+  /**
+   * Ikon opsional di kiri label.
+   *
+   * Dipakai halaman yang tabnya menandai JENIS berbeda (jurnal vs neraca vs
+   * buku besar), bukan potongan dari hal yang sama. Di situ ikon membantu
+   * membedakan; di tab sejenis ("Register Gambar" vs "Transmittal") ia hanya
+   * menambah kebisingan — itu sebabnya opsional, bukan wajib.
+   */
+  ikon?: React.ReactNode;
   /** Angka kecil di sebelah label — mis. jumlah baris yang menuntut tindakan. */
   jumlah?: number;
   /** `true` bila angkanya perlu ditandai merah, bukan abu. */
@@ -100,6 +109,7 @@ export function TabBagian<T extends string>({
               marginBottom: -1, cursor: "pointer", whiteSpace: "nowrap",
             }}
           >
+            {b.ikon}
             {b.label}
             {b.jumlah !== undefined && b.jumlah > 0 && (
               <span

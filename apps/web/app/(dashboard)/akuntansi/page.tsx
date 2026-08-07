@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Suspense } from "react";
 import { useTabUrl } from "@/lib/use-tab-url";
+import { TabBagian } from "@/components/tab-bagian";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { api, makeAbortController } from "@/lib/api";
 import { useIzin } from "@/lib/use-izin";
@@ -215,43 +216,29 @@ function IsiAkuntansi() {
         </div>
       )}
 
-      {/* Tab */}
-      <div style={{ display: "flex", gap: 6, marginBottom: 18, flexWrap: "wrap" }}>
-        {([
-          ["jurnal", "Jurnal", FileText],
-          ["akun", "Bagan Akun", BookOpen],
-          ["neraca", "Neraca Saldo", Scale],
-          ["besar", "Buku Besar", Landmark],
-          ["laporan", "Neraca & Laba-Rugi", TrendingUp],
-        ] as const).map(([k, label, Ikon]) => (
-          <button
-            key={k}
-            type="button"
-            onClick={() => setTab(k)}
-            aria-pressed={tab === k}
-            // `data-tab` membuat tab aktif bisa DIUJI. Pola ARIA-nya sengaja
-            // dibiarkan `aria-pressed` (tombol-tekan), bukan diubah jadi
-            // role="tab" — keduanya sah, dan yang ini sudah lulus audit a11y.
-            data-tab={k}
-            style={{
-              display: "flex", alignItems: "center", gap: 6,
-              padding: "8px 16px", borderRadius: 10, cursor: "pointer",
-              fontSize: 13, fontWeight: 600, fontFamily: "inherit",
-              border: `1px solid ${tab === k ? C.navy : C.border}`,
-              background: tab === k ? C.navy : "var(--surface)",
-              color: tab === k ? C.onNavy : C.mid,
-            }}
-          >
-            <Ikon size={15} /> {label}
-          </button>
-        ))}
+      {/* Tab — komponen BERSAMA `TabBagian`.
 
+          Sampai 2026-08-08 halaman ini menggambar tabnya sendiri: tombol
+          berkotak dengan latar navy penuh, sementara /dokumen/kendali dan
+          /kepatuhan memakai garis bawah. Dua bentuk visual untuk hal yang
+          sama, dan tak ada satu pun alasan di balik perbedaannya — ia lahir
+          karena kedua halaman ditulis pada waktu berbeda.
+
+          Diukur: 22 berkas merender tab dengan EMPAT pola berbeda. */}
+      {/* Tombol aksi DIPISAH dari tab.
+
+          Sebelumnya keduanya berbagi satu baris flex, jadi "Jurnal Baru"
+          terdorong ke tepi kanan dan menempel pada tab terakhir — pada layar
+          sempit ia bahkan terpotong. Tab adalah NAVIGASI, tombol adalah
+          TINDAKAN; menaruhnya dalam satu baris membuat keduanya terbaca
+          sebagai satu kelompok yang sama. */}
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
         {tab === "jurnal" && bolehKelola && (
           <button
             type="button"
             onClick={() => setBukaModal(true)}
             style={{
-              marginLeft: "auto", display: "flex", alignItems: "center", gap: 6,
+              display: "flex", alignItems: "center", gap: 6,
               padding: "8px 16px", borderRadius: 10, cursor: "pointer",
               fontSize: 13, fontWeight: 600, fontFamily: "inherit",
               border: "none", background: C.navy, color: C.onNavy,
@@ -261,6 +248,19 @@ function IsiAkuntansi() {
           </button>
         )}
       </div>
+
+        <TabBagian
+          label="Bagian akuntansi"
+          aktif={tab}
+          onPilih={setTab}
+          bagian={[
+            { kunci: "jurnal",  label: "Jurnal",             ikon: <FileText size={14} aria-hidden="true" /> },
+            { kunci: "akun",    label: "Bagan Akun",         ikon: <BookOpen size={14} aria-hidden="true" /> },
+            { kunci: "neraca",  label: "Neraca Saldo",       ikon: <Scale size={14} aria-hidden="true" /> },
+            { kunci: "besar",   label: "Buku Besar",         ikon: <Landmark size={14} aria-hidden="true" /> },
+            { kunci: "laporan", label: "Neraca & Laba-Rugi", ikon: <TrendingUp size={14} aria-hidden="true" /> },
+          ] as const}
+        />
 
       {muat ? (
         <div style={{ ...card, padding: 40, textAlign: "center", color: C.mid }}>
