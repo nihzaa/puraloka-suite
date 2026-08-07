@@ -1,4 +1,5 @@
 import { teks, srcSetMedia, urlMedia, type KontenSitus } from '@/lib/konten'
+import { PortofolioInteraktif } from './PortofolioInteraktif'
 
 /**
  * Portofolio — dokumentasi proses, bukan galeri hasil akhir.
@@ -18,6 +19,10 @@ export function Portofolio({ konten }: { konten: KontenSitus }) {
 
   const judul = teks(konten, 'porto.judul')
   const sub = teks(konten, 'porto.sub')
+  // Dari konten, bukan literal di berkas ini (aturan spec §1: nol string
+  // konten di .tsx). Cadangan 'Semua' hanya dipakai bila kuncinya belum ada
+  // di basis — bukan sebagai nilai tetap.
+  const labelSemua = teks(konten, 'porto.saring_semua', 'Semua')
 
   return (
     <section
@@ -40,80 +45,90 @@ export function Portofolio({ konten }: { konten: KontenSitus }) {
           </p>
         )}
 
-        {berisi.map((k, i) => (
-          <article key={k.kunci} style={{ marginTop: 'calc(var(--ritme) * 0.8)' }}>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'baseline',
-                gap: '1rem',
-                // Garis kuning HANYA di kategori pertama. Percobaan pertama
-                // memberi garis aksen ke setiap kategori — lima garis kuning
-                // dalam satu gulir, dan aksennya berhenti berarti apa pun.
-                // Sisanya memakai garis netral yang sama dengan seksi lain.
-                borderTop:
-                  i === 0 ? '2px solid var(--aksen)' : '1px solid var(--garis-kuat)',
-                paddingTop: '1rem',
-              }}
-            >
-              <h3 style={{ fontSize: 'clamp(1.15rem, 2vw, 1.5rem)' }}>{k.judul}</h3>
-              <span
-                className="angka"
+        {/* ── Lapisan interaktif ────────────────────────────────────────
+            Saring + perbesar hidup di client island. Yang TIDAK pindah ke
+            sana: judul, ringkasan, dan grid statis di bawah — keduanya tetap
+            dirender server supaya mesin pencari membacanya, dan supaya foto
+            tetap ada bila bundle JS gagal dimuat. Situs kontraktor yang
+            kehilangan seluruh buktinya karena satu berkas JS gagal adalah
+            kegagalan yang jauh lebih mahal daripada saringan yang absen. */}
+        <PortofolioInteraktif kategori={berisi} labelSemua={labelSemua || 'Semua'} />
+
+        <noscript>
+          {berisi.map((k, i) => (
+            <article key={k.kunci} style={{ marginTop: 'calc(var(--ritme) * 0.8)' }}>
+              <div
                 style={{
-                  color: 'var(--pada-navy-redup)',
-                  fontSize: '0.8rem',
-                  letterSpacing: '0.06em',
+                  display: 'flex',
+                  alignItems: 'baseline',
+                  gap: '1rem',
+                  // Garis kuning HANYA di kategori pertama. Percobaan pertama
+                  // memberi garis aksen ke setiap kategori: lima garis kuning
+                  // dalam satu gulir, dan aksennya berhenti berarti apa pun.
+                  borderTop:
+                    i === 0 ? '2px solid var(--aksen)' : '1px solid var(--garis-kuat)',
+                  paddingTop: '1rem',
                 }}
               >
-                {k.media.length} FOTO
-              </span>
-            </div>
-
-            {k.ringkasan && (
-              <p
-                style={{
-                  color: 'var(--pada-navy-redup)',
-                  marginTop: '0.75rem',
-                  maxWidth: '62ch',
-                  fontSize: '0.95rem',
-                }}
-              >
-                {k.ringkasan}
-              </p>
-            )}
-
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns:
-                  'repeat(auto-fill, minmax(min(100%, 19rem), 1fr))',
-                gap: '0.75rem',
-                marginTop: '1.5rem',
-              }}
-            >
-              {k.media.map((m) => (
-                <img
-                  key={m.path_storage}
-                  src={urlMedia(m.path_storage, 1280)}
-                  srcSet={srcSetMedia(m.path_storage)}
-                  sizes="(max-width: 40rem) 100vw, (max-width: 70rem) 50vw, 19rem"
-                  alt={m.alt}
-                  // Dimensi asli — mencegah halaman melompat saat gambar dimuat.
-                  width={m.lebar}
-                  height={m.tinggi}
-                  loading="lazy"
-                  decoding="async"
+                <h3 style={{ fontSize: 'clamp(1.15rem, 2vw, 1.5rem)' }}>{k.judul}</h3>
+                <span
+                  className="angka"
                   style={{
-                    width: '100%',
-                    aspectRatio: '4 / 3',
-                    objectFit: 'cover',
-                    background: 'rgba(255,255,255,0.04)',
+                    color: 'var(--pada-navy-redup)',
+                    fontSize: '0.8rem',
+                    letterSpacing: '0.06em',
                   }}
-                />
-              ))}
-            </div>
-          </article>
-        ))}
+                >
+                  {k.media.length} FOTO
+                </span>
+              </div>
+
+              {k.ringkasan && (
+                <p
+                  style={{
+                    color: 'var(--pada-navy-redup)',
+                    marginTop: '0.75rem',
+                    maxWidth: '62ch',
+                    fontSize: '0.95rem',
+                  }}
+                >
+                  {k.ringkasan}
+                </p>
+              )}
+
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns:
+                    'repeat(auto-fill, minmax(min(100%, 19rem), 1fr))',
+                  gap: '0.75rem',
+                  marginTop: '1.5rem',
+                }}
+              >
+                {k.media.map((m) => (
+                  <img
+                    key={m.path_storage}
+                    src={urlMedia(m.path_storage, 1280)}
+                    srcSet={srcSetMedia(m.path_storage)}
+                    sizes="(max-width: 40rem) 100vw, (max-width: 70rem) 50vw, 19rem"
+                    alt={m.alt}
+                    // Dimensi asli — mencegah halaman melompat saat gambar dimuat.
+                    width={m.lebar}
+                    height={m.tinggi}
+                    loading="lazy"
+                    decoding="async"
+                    style={{
+                      width: '100%',
+                      aspectRatio: '4 / 3',
+                      objectFit: 'cover',
+                      background: 'rgba(255,255,255,0.04)',
+                    }}
+                  />
+                ))}
+              </div>
+            </article>
+          ))}
+        </noscript>
       </div>
     </section>
   )

@@ -1535,6 +1535,23 @@ jobs:
       - name: Test
         run: pnpm exec vitest run
 
+      # Kontras DIHITUNG, bukan ditaksir. Saat menambah keluarga token terang
+      # (2026-08-08) saya menulis tiga angka kontras dari taksiran dan
+      # KETIGANYA meleset. Penjaga ini menghitung 11 pasangan warna yang
+      # benar-benar dipakai bersama, termasuk satu PAGAR: aksen kuning wajib
+      # tetap GAGAL di latar terang, supaya kelangkaannya dijaga fisika warna
+      # dan bukan disiplin penyuntingnya.
+      - name: Kontras token situs
+        run: node scripts/kontras-situs.mjs
+
+      # Em-dash adalah tanda tangan tulisan mesin, dan situs ini menjual
+      # kredibilitas kontraktor yang benar-benar membangun pabrik. Memeriksa
+      # berkas SAJA tidak cukup: seluruh teksnya tinggal di tabel `situs_*`
+      # dan bisa disunting lewat UI admin tanpa deploy. Tanpa DB, langkah ini
+      # menyatakan bagian yang dilewatinya alih-alih diam-diam lulus.
+      - name: Em-dash (berkas + konten DB)
+        run: node scripts/audit-em-dash.mjs
+
       # Build memerlukan env: `ambilKonten()` dipanggil saat prerender.
       # Nilai di sini hanya untuk memuaskan pemeriksaan bentuk — build
       # menoleransi API yang tak terjangkau, dan halaman akan di-render ulang

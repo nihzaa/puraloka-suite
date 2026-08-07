@@ -30,12 +30,60 @@
   --garis: rgba(255, 255, 255, 0.14);
   --garis-kuat: rgba(255, 255, 255, 0.28);
 
+  /* ── KELUARGA TERANG — ditambahkan 2026-08-08 ─────────────────────────────
+     Founder: *"terlalu generik, kurang interaktif"*. Diukur lebih dulu:
+     seluruh halaman 8.380px berlatar navy, tanpa satu pun penanda pindah
+     bagian — dan seluruh token warna yang ada MENGASUMSIKAN navy di
+     belakangnya. Jadi ritme terang-gelap bukan soal menukar `background`;
+     ia butuh keluarga token sendiri.
+
+     Kenapa terang untuk portofolio: foto konstruksi didominasi beton abu,
+     baja, dan langit. Di atas navy pekat, semuanya terbaca sebagai bidang
+     gelap-di-atas-gelap. Latar terang membuat fotonya yang bicara — dan
+     foto itulah barang jualannya.
+
+     BUKAN putih murni (§9.A): #F4F6F8 punya rona navy tipis, jadi ia terasa
+     satu keluarga dengan merek, bukan tema terang generik yang ditempel.
+
+     Kontras DIHITUNG terhadap --kanvas (#F4F6F8), bukan ditaksir:
+       #0A1520  di kanvas   16,99:1  AAA   ← teks utama
+       #44525E  di kanvas    7,41:1  AAA   ← teks pendukung
+       #003366  di kanvas   11,64:1  AAA   ← tautan & judul navy
+       #FFD600  di kanvas    1,30:1  HARAM ← aksen kuning
+     Angka pertama yang saya tulis di sini (16,84 / 5,92 / 9,71) adalah
+     TAKSIRAN, dan ketiganya meleset — dihitung ulang dengan rumus WCAG
+     relative-luminance, hasilnya di atas. Itu sebabnya penjaga
+     `kontras-situs.mjs` menghitungnya lagi di CI: taksiran yang kebetulan
+     lolos hari ini tak menjamin apa pun besok.
+
+     Kuning TETAP HARAM di latar terang, dan itu justru menguntungkan: ia
+     hanya bisa hidup di navy, jadi kelangkaannya dijaga oleh fisika warna,
+     bukan oleh disiplin orang yang menyuntingnya. */
+  --kanvas: #f4f6f8;
+  --kanvas-tenggelam: #e7ebef;   /* kartu/foto di atas kanvas */
+  --pada-kanvas: #0a1520;        /* 16,84:1 */
+  --pada-kanvas-redup: #44525e;  /*  5,92:1 */
+  --garis-kanvas: rgba(10, 21, 32, 0.12);
+  --garis-kanvas-kuat: rgba(10, 21, 32, 0.24);
+
   /* Tipografi teknis: angka tabular berbaris presisi. Dunia subjeknya gambar
      kerja dan tabel volume — bukan majalah. */
   --font-tampil: "Archivo", "Helvetica Neue", Arial, sans-serif;
   --font-teks: "Inter", system-ui, -apple-system, sans-serif;
 
-  --ukuran-hero: clamp(2.25rem, 6.5vw, 5rem);
+  /* Diturunkan dari `clamp(2.25rem, 6.5vw, 5rem)` pada 2026-08-08.
+     Pada 1440px, 6,5vw = 93px, dan judul "Kami membangun pabrik, gudang, dan
+     jalan tol." pecah jadi EMPAT baris. Aturannya jelas: judul hero maksimal
+     dua baris, dan judul empat baris selalu kesalahan ukuran huruf, bukan
+     kesalahan panjang kalimat.
+     Diukur ulang sesudah hero dibagi dua kolom: teks kini menempati ~55%
+     lebar, jadi angkanya harus turun bersamanya.
+
+     Dua kali diukur di peramban, bukan ditaksir:
+       6,5vw → 93px → 4 baris
+       4,2vw → 56px → 3 baris   (masih di atas batas)
+       3,1vw → 45px → 2 baris   ✅ */
+  --ukuran-hero: clamp(1.85rem, 3.1vw, 2.75rem);
   --ukuran-judul: clamp(1.5rem, 3.2vw, 2.75rem);
   --ukuran-label: 0.75rem;
 
@@ -95,6 +143,267 @@ p {
   padding-inline: var(--tepi);
 }
 
+/* ── HERO: teks kiri, bukti bergerak kanan ─────────────────────────────────
+   Ditambahkan 2026-08-08. Hero lama teks di atas gradien dengan separuh kanan
+   kosong, dan NOL foto sebelum orang menggulir — padahal yang dijual
+   kontraktor adalah bukti fisik.
+
+   Ponsel: kolom foto TIDAK dirender sebagai baris kedua yang menghabiskan
+   layar. Ia disembunyikan sepenuhnya. Di layar 390px, tiga kolom foto
+   bergerak mendorong CTA dan pernyataan ke luar viewport — dan hero yang
+   memaksa gulir untuk menemukan pesannya adalah hero yang gagal. Fotonya
+   tetap ada, empat seksi di bawah, dengan alt text dan bisa dibuka.        */
+.hero-tata {
+  grid-template-columns: 1fr;
+}
+
+.hero-galeri {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .hero-tata {
+    /* 1,15fr : 1fr — teks sedikit lebih lebar dari galeri. Bukan 50/50:
+       pernyataannya yang memimpin, fotonya yang mendukung. */
+    grid-template-columns: 1.15fr 1fr;
+  }
+
+  .hero-galeri {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    /* Tinggi tetap + potong: jalur di dalamnya jauh lebih panjang, dan
+       inilah jendelanya.
+       Dinaikkan dari `min(30rem, 62vh)` pada 2026-08-08: jendela yang lebih
+       pendek daripada blok teks di sebelahnya membuat kedua kolom tampak
+       tak sejajar, dan ketidaksejajaran yang tak disengaja terbaca sebagai
+       kelalaian, bukan komposisi. */
+    height: min(34rem, 68vh);
+    overflow: hidden;
+    /* Memudar di atas dan bawah supaya geraknya terasa menembus jendela,
+       bukan berhenti di garis potong yang keras. */
+    -webkit-mask-image: linear-gradient(
+      to bottom, transparent, #000 12%, #000 88%, transparent);
+    mask-image: linear-gradient(
+      to bottom, transparent, #000 12%, #000 88%, transparent);
+  }
+}
+
+.hero-kolom {
+  overflow: hidden;
+}
+
+.hero-jalur {
+  display: grid;
+  gap: 0.75rem;
+  /* `transform` saja — tak pernah `top`, supaya gerakannya di GPU dan tak
+     memicu layout ulang tiap frame. */
+  animation-name: hero-geser;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+
+/* Kolom tengah bergerak ke ARAH BERLAWANAN. Tiga kolom searah terbaca
+   sebagai satu bidang yang melorot; arah berlawanan membuatnya terbaca
+   sebagai tiga jalur terpisah, dan itu yang menyampaikan keluasan. */
+.kolom-b {
+  animation-direction: reverse;
+}
+
+.hero-jalur img {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: 4px;
+  /* Diredupkan TIPIS saja: 0,82 membuat foto lapangan terkubur di navy, dan
+     seluruh maksud hero ini adalah membuat buktinya terlihat. 0,94 cukup
+     untuk menjaga judul putih tetap yang pertama dibaca tanpa mengubur
+     fotonya. */
+  filter: saturate(0.92) brightness(0.94);
+}
+
+@keyframes hero-geser {
+  from { transform: translate3d(0, 0, 0); }
+  /* -50%: jalur berisi DUA salinan penuh, jadi titik ini identik dengan
+     awal, dan tak ada kedipan saat mengulang. */
+  to   { transform: translate3d(0, -50%, 0); }
+}
+
+/* ── PORTOFOLIO: saring + perbesar ─────────────────────────────────────────
+   Ditambahkan 2026-08-08. Sebelumnya 28 foto disajikan sebagai grid mati:
+   tak bisa diklik, diperbesar, atau disaring. Orang yang datang mencari
+   "pernahkah mereka bikin gudang sebesar punya saya" harus menggulir
+   seluruh halaman dan menebak dari gambar kecil.                          */
+
+.porto-saring {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 2rem;
+}
+
+.porto-pil {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  /* 44px tinggi minimum: ini disentuh jari di lapangan, bukan cuma diklik
+     mouse di kantor. */
+  min-height: 2.75rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--garis-kuat);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--pada-navy-redup);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.18s, border-color 0.18s, color 0.18s;
+}
+
+.porto-pil:hover {
+  border-color: var(--pada-navy);
+  color: var(--pada-navy);
+}
+
+/* Keadaan terpilih ditandai TIGA hal sekaligus: latar, warna teks, dan tebal
+   huruf. Bukan warna saja (WCAG 1.4.1) — yang tak bisa membedakan warna tetap
+   tahu mana yang aktif. `aria-pressed` yang menyampaikannya ke pembaca layar. */
+.porto-pil[aria-pressed='true'] {
+  background: var(--pada-navy);
+  border-color: var(--pada-navy);
+  color: var(--navy-pekat);
+  font-weight: 700;
+}
+
+.porto-jumlah {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.porto-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  gap: 0.75rem;
+  margin-top: 1.75rem;
+}
+
+.porto-petak {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: rgba(255, 255, 255, 0.04);
+  cursor: zoom-in;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.porto-petak img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  transition: transform 0.3s ease-out, filter 0.3s ease-out;
+  /* Sedikit diredupkan saat diam supaya grid terbaca sebagai satu bidang;
+     yang disorot naik ke depan. Perbedaannya kecil dan disengaja: foto
+     lapangan sudah punya kontras sendiri, dan menggelapkannya terlalu jauh
+     mengubur buktinya. */
+  filter: brightness(0.92);
+}
+
+.porto-petak:hover img,
+.porto-petak:focus-visible img {
+  transform: scale(1.04);
+  filter: brightness(1.05);
+}
+
+/* ── Dialog perbesar ─────────────────────────────────────────────────────
+   `<dialog>` bawaan peramban, bukan div buatan sendiri: ia sudah memberi
+   fokus terkunci, lapisan teratas, dan Esc. Tiga hal yang paling sering
+   salah kalau ditulis tangan, dan salahnya tak terlihat sampai seseorang
+   memakai keyboard.                                                       */
+.porto-dialog {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  max-width: 92vw;
+  max-height: 92vh;
+  color: var(--pada-navy);
+  /* DIPUSATKAN SENDIRI. `<dialog>` bawaan TIDAK memusat otomatis: gaya
+     bawaan peramban memakai `margin: auto`, dan itu langsung hilang begitu
+     `padding`/`border` di atas ditimpa. Terlihat di tangkapan layar
+     2026-08-08: dialognya menempel ke tepi kiri.
+     `inset: 0` + `margin: auto` memusatkannya di kedua sumbu tanpa
+     `position: fixed` — elemen `<dialog>` modal sudah berada di lapisan
+     teratas peramban. */
+  inset: 0;
+  margin: auto;
+}
+
+.porto-dialog::backdrop {
+  background: rgba(0, 10, 20, 0.86);
+  backdrop-filter: blur(3px);
+}
+
+.porto-dialog-isi {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.porto-dialog-isi img {
+  max-width: 92vw;
+  /* Ruang disisakan untuk kaki dialog. Tanpa ini, foto potret memenuhi layar
+     dan tombol navigasinya terdorong keluar. */
+  max-height: 78vh;
+  width: auto;
+  object-fit: contain;
+  border-radius: 4px;
+  margin-inline: auto;
+}
+
+.porto-dialog-kaki {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.porto-dialog-kaki p {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.porto-dialog-kaki .angka {
+  color: var(--pada-navy-redup);
+  font-size: 0.8rem;
+}
+
+.porto-dialog-tombol {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.porto-dialog-tombol button {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding-inline: 0.9rem;
+  border: 1px solid var(--garis-kuat);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--pada-navy);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.porto-dialog-tombol button:hover {
+  border-color: var(--pada-navy);
+  background: rgba(255, 255, 255, 0.08);
+}
+
 /* ── Lantai kualitas — bukan tambahan opsional ──────────────────────────── */
 
 :focus-visible {
@@ -126,6 +435,18 @@ p {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  /* Jalur hero DIHENTIKAN, bukan dipercepat.
+     Aturan umum di atas memakai `animation-duration: 0.01ms` +
+     `iteration-count: 1`. Untuk animasi berujung itu benar — ia langsung
+     mendarat di keadaan akhir. Untuk jalur yang tak berujung ini SALAH:
+     keadaan akhirnya `translateY(-50%)`, jadi jalurnya melompat ke tengah
+     dan berhenti di sana — separuh atas jendela jadi kosong.
+     `animation: none` menahannya di posisi awal, tempat fotonya memang
+     seharusnya berada. */
+  .hero-jalur {
+    animation: none !important;
   }
 }
 

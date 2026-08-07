@@ -21,7 +21,7 @@ const Massing = dynamic(
  */
 const TAHAP = [
   { kunci: 'pondasi', judul: 'Pondasi', ket: 'Galian, pembesian, pengecoran.' },
-  { kunci: 'struktur', judul: 'Struktur', ket: 'Kolom, balok, pelat — atau rangka baja.' },
+  { kunci: 'struktur', judul: 'Struktur', ket: 'Kolom, balok, pelat, atau rangka baja.' },
   { kunci: 'arsitektur', judul: 'Arsitektur', ket: 'Dinding, atap, lantai, fasad.' },
   { kunci: 'mep', judul: 'MEP', ket: 'Listrik, air, dan sanitasi.' },
   { kunci: 'serah', judul: 'Serah terima', ket: 'Uji fungsi, perbaikan cacat, dokumen.' },
