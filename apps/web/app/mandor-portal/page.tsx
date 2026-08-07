@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api, getStoredUser } from "@/lib/api";
+import { type Penugasan, type Kasbon, type LaporanUpah } from "./_bersama/tipe";
 import { Briefcase, Wallet, Clock, CheckCircle, ChevronRight, CreditCard, ClipboardList, AlertCircle } from "lucide-react";
 import Link from "next/link";
 
@@ -43,19 +44,19 @@ const REPORT_STATUS: Record<string, { label: string; color: string }> = {
 };
 
 export default function MandorDashboardPage() {
-  const [assignments, setAssignments] = useState<any[]>([]);
-  const [kasbons, setKasbons] = useState<any[]>([]);
-  const [workerKasbons, setWorkerKasbons] = useState<any[]>([]);
-  const [recentReports, setRecentReports] = useState<any[]>([]);
+  const [assignments, setAssignments] = useState<Penugasan[]>([]);
+  const [kasbons, setKasbons] = useState<Kasbon[]>([]);
+  const [workerKasbons, setWorkerKasbons] = useState<Kasbon[]>([]);
+  const [recentReports, setRecentReports] = useState<LaporanUpah[]>([]);
   const [loading, setLoading] = useState(true);
   const user = getStoredUser();
 
   useEffect(() => {
     Promise.all([
-      api.get("/api/v1/mandor/assignments"),
-      api.get("/api/v1/kasbons"),
-      api.get("/api/v1/mandor/worker-kasbons"),
-      api.get("/api/v1/mandor/wage-reports"),
+      api.get<{ assignments: Penugasan[] }>("/api/v1/mandor/assignments"),
+      api.get<{ kasbons: Kasbon[] }>("/api/v1/kasbons"),
+      api.get<{ kasbons: Kasbon[] }>("/api/v1/mandor/worker-kasbons"),
+      api.get<{ reports: LaporanUpah[] }>("/api/v1/mandor/wage-reports"),
     ]).then(([aRes, kRes, wkRes, rRes]) => {
       setAssignments(aRes.data?.assignments ?? []);
       setKasbons(kRes.data?.kasbons ?? []);
@@ -64,10 +65,10 @@ export default function MandorDashboardPage() {
     }).finally(() => setLoading(false));
   }, []);
 
-  const allScopes = assignments.flatMap((a: any) => (a.work_scopes ?? []).map((s: any) => ({ ...s, project: a.project })));
+  const allScopes = assignments.flatMap((a) => (a.work_scopes ?? []).map((s) => ({ ...s, project: a.project })));
   const activeScopes = allScopes.filter((s) => s.status === "active");
   const pendingKasbons = kasbons.filter((k) => k.status === "pending");
-  const totalKasbonPending = pendingKasbons.reduce((s, k) => s + (k.amount ?? 0), 0);
+  const totalKasbonPending = pendingKasbons.reduce((s, k) => s + Number(k.amount ?? 0), 0);
   const pendingWorkerKasbons = workerKasbons.filter((k) => !k.is_settled);
   const recentKasbons = kasbons.slice(0, 3);
 
@@ -170,7 +171,7 @@ export default function MandorDashboardPage() {
                         </span>
                       </div>
                       <div style={{ fontSize: 12, color: C.mid }}>
-                        {s.project?.name} · {PAYMENT_LABEL[s.payment_system] ?? s.payment_system}
+                        {s.project?.name} · {PAYMENT_LABEL[s.payment_system ?? ""] ?? s.payment_system}
                       </div>
                     </div>
                     <ChevronRight size={16} color={C.muted} />
@@ -203,7 +204,7 @@ export default function MandorDashboardPage() {
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {recentReports.map((r) => {
-              const meta = REPORT_STATUS[r.status] ?? REPORT_STATUS.submitted;
+              const meta = REPORT_STATUS[r.status ?? ""] ?? REPORT_STATUS.submitted;
               return (
                 <div key={r.id} style={{
                   background: C.surface, borderRadius: 10, padding: "12px 16px",
@@ -212,10 +213,10 @@ export default function MandorDashboardPage() {
                 }}>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{r.scope?.scope_name ?? "—"}</div>
-                    <div style={{ fontSize: 11, color: C.mid }}>{fmtDate(r.week_start)} – {fmtDate(r.week_end)}</div>
+                    <div style={{ fontSize: 11, color: C.mid }}>{fmtDate(r.week_start ?? null)} – {fmtDate(r.week_end ?? null)}</div>
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{fmt(r.net_amount ?? 0)}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{fmt(Number(r.net_amount ?? 0))}</div>
                     <div style={{ fontSize: 11, color: meta.color, fontWeight: 500 }}>{meta.label}</div>
                   </div>
                 </div>
@@ -273,7 +274,7 @@ export default function MandorDashboardPage() {
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {recentKasbons.map((k) => {
-            const meta = KASBON_STATUS[k.status] ?? KASBON_STATUS.pending;
+            const meta = KASBON_STATUS[k.status ?? ""] ?? KASBON_STATUS.pending;
             return (
               <div key={k.id} style={{
                 background: C.surface, borderRadius: 10, padding: "12px 16px",
@@ -282,13 +283,13 @@ export default function MandorDashboardPage() {
               }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{fmt(k.amount)}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{fmt(Number(k.amount ?? 0))}</span>
                     <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20, color: meta.color, background: meta.bg }}>
                       {meta.label}
                     </span>
                   </div>
                   <div style={{ fontSize: 12, color: C.mid }}>
-                    {k.work_scope?.scope_name ?? "—"} · {fmtDate(k.kasbon_date)}
+                    {k.work_scopes?.scope_name ?? "—"} · {fmtDate(k.kasbon_date ?? null)}
                   </div>
                 </div>
                 {k.status === "approved" && <CheckCircle size={16} color={C.green} />}

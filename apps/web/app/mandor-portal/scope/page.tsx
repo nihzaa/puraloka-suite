@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { type Penugasan, type LingkupKerja } from "../_bersama/tipe";
 import { ChevronDown, ChevronUp, AlertCircle, TrendingUp } from "lucide-react";
 import Link from "next/link";
 
@@ -46,29 +47,29 @@ function ProgressBar({ pct, color, height = 6 }: { pct: number; color: string; h
 }
 
 export default function MandorScopePage() {
-  const [scopes, setScopes] = useState<any[]>([]);
+  const [scopes, setScopes] = useState<LingkupKerja[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     // Coba endpoint my-scopes dulu, fallback ke assignments jika belum ada
-    api.get("/api/v1/mandor/my-scopes").then((res) => {
+    api.get<{ scopes: LingkupKerja[] }>("/api/v1/mandor/my-scopes").then((res) => {
       const list = res.data?.scopes ?? [];
       setScopes(list);
       // Auto-expand scope aktif
       const init: Record<string, boolean> = {};
-      list.forEach((s: any) => { if (s.status === "active") init[s.id] = true; });
+      list.forEach((s) => { if (s.status === "active") init[s.id] = true; });
       setExpanded(init);
     }).catch(() => {
       // Fallback: ambil dari assignments
-      api.get("/api/v1/mandor/assignments").then((r) => {
+      api.get<{ assignments: Penugasan[] }>("/api/v1/mandor/assignments").then((r) => {
         const asgns = r.data?.assignments ?? [];
-        const allScopes = asgns.flatMap((a: any) =>
-          (a.work_scopes ?? []).map((s: any) => ({ ...s, project: a.project, assignment_id: a.id, contract_value: s.borongan_value ?? 0, total_kasbon: 0, total_progress_paid: 0, financial_pct: 0, settlement: null }))
+        const allScopes = asgns.flatMap((a) =>
+          (a.work_scopes ?? []).map((s) => ({ ...s, project: a.project, assignment_id: a.id, contract_value: s.borongan_value ?? 0, total_kasbon: 0, total_progress_paid: 0, financial_pct: 0, settlement: null }))
         );
         setScopes(allScopes);
         const init: Record<string, boolean> = {};
-        allScopes.forEach((s: any) => { if (s.status === "active") init[s.id] = true; });
+        allScopes.forEach((s) => { if (s.status === "active") init[s.id] = true; });
         setExpanded(init);
       });
     }).finally(() => setLoading(false));
@@ -195,7 +196,7 @@ export default function MandorScopePage() {
                                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                                   <span style={{ fontSize: 11, color: C.mid }}>Kasbon / Kontrak</span>
                                   <span style={{ fontSize: 11, fontWeight: 600, color: C.yellow }}>
-                                    {fmtRp(scope.total_kasbon ?? 0)} / {fmtRp(contractValue)} ({financialPct}%)
+                                    {fmtRp(Number(scope.total_kasbon ?? 0))} / {fmtRp(contractValue)} ({financialPct}%)
                                   </span>
                                 </div>
                                 <ProgressBar pct={financialPct} color={C.yellow} height={4} />
@@ -208,7 +209,7 @@ export default function MandorScopePage() {
                                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                                   <span style={{ fontSize: 11, color: C.mid }}>Sudah Dibayar</span>
                                   <span style={{ fontSize: 11, fontWeight: 600, color: C.green }}>
-                                    {fmtRp(scope.total_progress_paid ?? 0)} ({Math.min(100, Math.round(((scope.total_progress_paid ?? 0) / contractValue) * 100))}%)
+                                    {fmtRp(Number(scope.total_progress_paid ?? 0))} ({Math.min(100, Math.round(((scope.total_progress_paid ?? 0) / contractValue) * 100))}%)
                                   </span>
                                 </div>
                                 <ProgressBar pct={Math.min(100, ((scope.total_progress_paid ?? 0) / contractValue) * 100)} color={C.green} height={4} />
@@ -221,7 +222,7 @@ export default function MandorScopePage() {
                             <div style={{ marginTop: 10, padding: "8px 12px", borderRadius: 6, background: C.greenBg, border: `1px solid ${C.green}20`, display: "flex", alignItems: "center", gap: 8 }}>
                               <TrendingUp size={14} color={C.green} />
                               <span style={{ fontSize: 12, color: C.green, fontWeight: 500 }}>
-                                Settlement selesai · {fmtRp(scope.settlement.net_payment ?? 0)} dibayarkan
+                                Settlement selesai · {fmtRp(Number(scope.settlement.net_payment ?? 0))} dibayarkan
                               </span>
                             </div>
                           )}
@@ -284,12 +285,12 @@ function ScopeItemsDetail({ scopeId }: { scopeId: string }) {
   const kolomItem: Array<Kolom<ItemPekerjaan>> = [
     { kunci: "item", judul: "Item Pekerjaan", kepalaBaris: true, render: (i) => i.item_name },
     { kunci: "sat", judul: "Sat", rata: "kanan", render: (i) => i.unit ?? "—" },
-    { kunci: "target", judul: "Target", rata: "kanan", render: (i) => fmt(i.volume ?? 0) },
+    { kunci: "target", judul: "Target", rata: "kanan", render: (i) => fmt(Number(i.volume ?? 0)) },
     {
       kunci: "realisasi", judul: "Realisasi", rata: "kanan",
       render: (i) => (
         <span style={{ fontWeight: 600, color: persen(i) >= 100 ? C.green : C.text }}>
-          {fmt(i.volume_done ?? 0)}
+          {fmt(Number(i.volume_done ?? 0))}
         </span>
       ),
     },

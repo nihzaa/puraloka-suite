@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { type LaporanUpah, pesanGalat } from "../_bersama/tipe";
 import { kirimLapangan } from "@/lib/kirim-lapangan";
 import { ClipboardList, Plus, Trash2, CheckCircle, Clock, XCircle } from "lucide-react";
 
@@ -45,7 +46,7 @@ interface WageRow {
 
 export default function LaporanUpahPage() {
   const [tab, setTab] = useState<"riwayat" | "buat">("riwayat");
-  const [reports, setReports] = useState<any[]>([]);
+  const [reports, setReports] = useState<LaporanUpah[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,15 +62,15 @@ export default function LaporanUpahPage() {
 
   useEffect(() => {
     Promise.all([
-      api.get("/api/v1/mandor/wage-reports"),
-      api.get("/api/v1/mandor/assignments"),
-      api.get("/api/v1/mandor/workers"),
+      api.get<{ reports: LaporanUpah[] }>("/api/v1/mandor/wage-reports"),
+      api.get<{ assignments: Assignment[] }>("/api/v1/mandor/assignments"),
+      api.get<{ workers: Worker[] }>("/api/v1/mandor/workers"),
     ]).then(([rRes, aRes, wRes]) => {
       const rpts = rRes.data?.reports ?? [];
       // Filter hanya scope harian
-      setReports(rpts.filter((r: any) => r.scope?.payment_system === "harian"));
-      const asgns = (aRes.data?.assignments ?? []).filter((a: any) =>
-        (a.work_scopes ?? []).some((s: any) => s.payment_system === "harian")
+      setReports(rpts.filter((r) => r.scope?.payment_system === "harian"));
+      const asgns = (aRes.data?.assignments ?? []).filter((a) =>
+        (a.work_scopes ?? []).some((s) => s.payment_system === "harian")
       );
       setAssignments(asgns);
       setWorkers(wRes.data?.workers ?? []);
@@ -122,13 +123,13 @@ export default function LaporanUpahPage() {
       setTab("riwayat");
       if (hasil.terkirim) {
         const res = await api.get("/api/v1/mandor/wage-reports");
-        setReports((res.data?.reports ?? []).filter((r: any) => r.scope?.payment_system === "harian"));
+        setReports((res.data?.reports ?? []).filter((r: LaporanUpah) => r.scope?.payment_system === "harian"));
       }
       // Reset form
       setSelectedAssignment(""); setSelectedScope(""); setWeekStart(""); setNotes("");
       setRows([{ worker_name: "", days_worked: 0, daily_rate: 0, overtime_hours: 0, overtime_rate: 0 }]);
-    } catch (err: any) {
-      setToast({ msg: err.response?.data?.error ?? "Gagal mengirim laporan", ok: false });
+    } catch (err) {
+      setToast({ msg: pesanGalat(err, "Gagal mengirim laporan"), ok: false });
     } finally {
       setSubmitting(false);
     }
@@ -203,7 +204,7 @@ export default function LaporanUpahPage() {
           )}
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {reports.map((r) => {
-              const meta = STATUS_META[r.status] ?? STATUS_META.submitted;
+              const meta = STATUS_META[r.status ?? ""] ?? STATUS_META.submitted;
               const Icon = meta.icon;
               return (
                 <div key={r.id} style={{
@@ -216,7 +217,7 @@ export default function LaporanUpahPage() {
                         {r.scope?.scope_name ?? "—"}
                       </div>
                       <div style={{ fontSize: 12, color: C.mid, marginTop: 2 }}>
-                        {r.assignment?.project?.name ?? "—"} · {fmtDate(r.week_start)} – {fmtDate(r.week_end)}
+                        {r.assignment?.project?.name ?? "—"} · {fmtDate(r.week_start ?? null)} – {fmtDate(r.week_end ?? null)}
                       </div>
                     </div>
                     <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20, color: meta.color, background: meta.bg, display: "flex", alignItems: "center", gap: 4 }}>
@@ -225,13 +226,13 @@ export default function LaporanUpahPage() {
                   </div>
                   <div style={{ marginTop: 10, display: "flex", gap: 16 }}>
                     <div style={{ fontSize: 12, color: C.mid }}>
-                      Subtotal: <span style={{ fontWeight: 600, color: C.text }}>{fmt(r.subtotal ?? 0)}</span>
+                      Subtotal: <span style={{ fontWeight: 600, color: C.text }}>{fmt(Number(r.subtotal ?? 0))}</span>
                     </div>
                     <div style={{ fontSize: 12, color: C.mid }}>
-                      Potongan: <span style={{ fontWeight: 600, color: C.red }}>−{fmt(r.total_deduction ?? 0)}</span>
+                      Potongan: <span style={{ fontWeight: 600, color: C.red }}>−{fmt(Number(r.total_deduction ?? 0))}</span>
                     </div>
                     <div style={{ fontSize: 12, color: C.mid }}>
-                      Bersih: <span style={{ fontWeight: 700, color: C.green }}>{fmt(r.net_amount ?? 0)}</span>
+                      Bersih: <span style={{ fontWeight: 700, color: C.green }}>{fmt(Number(r.net_amount ?? 0))}</span>
                     </div>
                   </div>
                   {r.review_notes && (

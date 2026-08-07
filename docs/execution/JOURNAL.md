@@ -113,6 +113,77 @@ byte-hash gagal total karena PDF mengompres ulang saat menyisipkan.
 
 ---
 
+## 2026-08-07 (lanjutan 15) — `any` 99 → 59, dan TIGA field yang tak pernah tampil di layar
+
+### Yang dikerjakan, dan kenapa ini bukan kerapian
+
+43 dari 99 `any` tersisa ada di `mandor-portal`, hampir seluruhnya turunan
+dari `useState<any[]>`. Tipe bersama dibuat di `_bersama/tipe.ts` — sekali
+akarnya bertipe, belasan `.map((a: any) => …)` hilang sendiri.
+
+Yang tak saya duga: **compiler langsung menemukan tiga cacat nyata** yang
+selama ini disembunyikan `any`.
+
+### 1. `workers_count` — jumlah pekerja tak pernah tampil
+
+Halaman progres membaca `log.workers_count`. API mengirim **`worker_count`**
+(tanpa `s`). Nilainya selalu `undefined`, jadi
+`{log.workers_count && <span>… pekerja</span>}` **tak pernah merender apa
+pun**. Tak ada galat — `any` membuat salah ketik itu tak terlihat compiler.
+
+### 2. `work_scope` — nama lingkup kerja di kartu kasbon selalu "—"
+
+Ringkasan portal membaca `k.work_scope?.scope_name`. Embed API bernama
+**`work_scopes`** (jamak). Setiap kartu kasbon menampilkan `"—"` alih-alih
+nama lingkupnya, dan tak ada yang tahu.
+
+### 3. `filter(Boolean)` tidak menyempitkan tipe
+
+`assignments.map(a => a.project).filter(Boolean)` tetap bertipe
+`(ProyekRingkas | null | undefined)[]` di TypeScript. Baris berikutnya
+memakai `p.id` — akan meledak pada penugasan tanpa proyek. Selama akarnya
+`any[]`, hal itu tak pernah terlihat.
+
+### Yang juga ketahuan: NUMERIC datang sebagai string
+
+Belasan galat `Operator '+' cannot be applied to 'number' and 'string |
+number'`. Postgres mengirim `numeric` sebagai string, dan `any` membuat
+`total + kasbon.amount` menghasilkan penggabungan teks alih-alih penjumlahan
+— diam-diam, tanpa gejala, sampai nominalnya cukup ganjil untuk dicurigai.
+
+Seluruhnya kini `Number(x ?? 0)` eksplisit.
+
+### Ratchet
+
+    no-explicit-any                      99 -> 59  (lantai dikencangkan)
+    click-events-have-key-events         61 -> 59
+    no-static-element-interactions       66 -> 64
+
+### Yang saya ukur dan TIDAK kerjakan
+
+**#14 utang adopsi supabase mentah.** Diukur: 366 akses, dan
+`audit-gerbang-tenancy` melaporkan 6 rute tanpa gerbang. Diperiksa satu per
+satu — **keenamnya SAH**: `notifications` disaring `id = user.id`, `roles`
+membaca katalog global `permissions`, `auth` memang pra-sesi.
+
+Jadi **nol celah tenancy nyata**. Sisanya murni utang adopsi wrapper, dan
+menurunkannya lebih jauh butuh menyentuh 166 rute — pekerjaan tersendiri,
+bukan tambalan.
+
+Sempat saya kira `user.role === 'mandor'` di `mandor.ts` adalah pelanggaran
+ADR-004. **Saya salah**: di sana peran memilih KOLOM mana yang dibandingkan
+(`mandor_id` vs `pm_id`), bukan memutuskan akses — capability-nya sudah
+dijaga `requirePermission` di preHandler. Penjaganya benar tidak menandainya.
+
+### Bukti
+
+    API: 171 berkas test, 1797 lulus, 2 dilewati, 0 gagal
+    web:  29 berkas test,  389 lulus, 0 gagal
+    73 penjaga CI dijalankan — nol gagal
+    pnpm build web lolos · nol galat runtime di portal
+
+---
+
 ## 2026-08-07 (lanjutan 14) — F7-1: tenant yang lahir dengan alur persetujuan MATI
 
 ### Celah yang paling menentukan "tenant baru sekali klik"

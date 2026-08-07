@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { api } from "@/lib/api";
+import { type Penugasan, type LingkupKerja, type PembayaranProgres, pesanGalat } from "../_bersama/tipe";
 import { kirimLapangan } from "@/lib/kirim-lapangan";
 import { TrendingUp, Plus, Clock, CheckCircle, XCircle, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 
@@ -31,8 +32,8 @@ const PAYMENT_STATUS: Record<string, { label: string; color: string; bg: string;
 };
 
 export default function PenagihanProgressPage() {
-  const [scopes, setScopes] = useState<any[]>([]);
-  const [payments, setPayments] = useState<any[]>([]);
+  const [scopes, setScopes] = useState<LingkupKerja[]>([]);
+  const [payments, setPayments] = useState<PembayaranProgres[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [showModal, setShowModal] = useState(false);
@@ -55,15 +56,15 @@ export default function PenagihanProgressPage() {
       // Ambil scopes bertipe progress_pct dari my-scopes
       const [sRes, pRes] = await Promise.all([
         api.get("/api/v1/mandor/my-scopes").catch(() =>
-          api.get("/api/v1/mandor/assignments").then((r) => {
+          api.get<{ assignments: Penugasan[] }>("/api/v1/mandor/assignments").then((r) => {
             const asgns = r.data?.assignments ?? [];
-            const all = asgns.flatMap((a: any) =>
-              (a.work_scopes ?? []).map((s: any) => ({ ...s, project: a.project, contract_value: 0, total_progress_paid: 0 }))
+            const all = asgns.flatMap((a) =>
+              (a.work_scopes ?? []).map((s) => ({ ...s, project: a.project, contract_value: 0, total_progress_paid: 0 }))
             );
             return { data: { scopes: all } };
           })
         ),
-        api.get("/api/v1/mandor/progress-payments"),
+        api.get<{ payments: PembayaranProgres[] }>("/api/v1/mandor/progress-payments"),
       ]);
 
       const allScopes: any[] = sRes.data?.scopes ?? [];
@@ -71,7 +72,7 @@ export default function PenagihanProgressPage() {
       setScopes(progressScopes);
 
       const init: Record<string, boolean> = {};
-      progressScopes.forEach((s: any) => { if (s.status === "active") init[s.id] = true; });
+      progressScopes.forEach((s) => { if (s.status === "active") init[s.id] = true; });
       setExpanded(init);
 
       setPayments(pRes.data?.payments ?? []);
@@ -80,10 +81,10 @@ export default function PenagihanProgressPage() {
     }
   }
 
-  function openModal(scope: any) {
+  function openModal(scope: LingkupKerja) {
     setSelectedScope(scope);
     const currentPct = scope.progress_pct_done ?? 0;
-    const contractValue = scope.contract_value ?? 0;
+    const contractValue = Number(scope.contract_value ?? 0);
     const totalPaid = scope.total_progress_paid ?? 0;
     const remaining = Math.max(0, contractValue - totalPaid);
     setForm({
@@ -119,8 +120,8 @@ export default function PenagihanProgressPage() {
       if (!hasil.aman) return;
       setShowModal(false);
       if (hasil.terkirim) await loadData();
-    } catch (err: any) {
-      setToast({ msg: err.response?.data?.error ?? "Gagal mengajukan penagihan", ok: false });
+    } catch (err) {
+      setToast({ msg: pesanGalat(err, "Gagal mengajukan penagihan"), ok: false });
     } finally {
       setSubmitting(false);
     }
@@ -141,7 +142,7 @@ export default function PenagihanProgressPage() {
   }
 
   const pendingCount = payments.filter((p) => p.status === "pending").length;
-  const totalPending = payments.filter((p) => p.status === "pending").reduce((s, p) => s + (p.gross_payment ?? 0), 0);
+  const totalPending = payments.filter((p) => p.status === "pending").reduce((s, p) => s + Number(p.gross_payment ?? 0), 0);
 
   return (
     <div style={{ maxWidth: 800, margin: "0 auto" }}>
@@ -197,7 +198,7 @@ export default function PenagihanProgressPage() {
       {/* Scopes */}
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
         {scopes.map((scope) => {
-          const contractValue = scope.contract_value ?? 0;
+          const contractValue = Number(scope.contract_value ?? 0);
           const totalPaid = scope.total_progress_paid ?? 0;
           const paidPct = contractValue > 0 ? Math.min(100, Math.round((totalPaid / contractValue) * 100)) : 0;
           const physicalPct = scope.progress_pct_done ?? 0;
@@ -296,16 +297,16 @@ export default function PenagihanProgressPage() {
                     Riwayat Penagihan
                   </div>
                   {scopePayments.map((p) => {
-                    const meta = PAYMENT_STATUS[p.status] ?? PAYMENT_STATUS.pending;
+                    const meta = PAYMENT_STATUS[p.status ?? ""] ?? PAYMENT_STATUS.pending;
                     return (
                       <div key={p.id} style={{
                         padding: "8px 20px", borderTop: `1px solid ${C.border}`,
                         display: "flex", justifyContent: "space-between", alignItems: "center",
                       }}>
                         <div>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{fmtRp(p.gross_payment ?? 0)}</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{fmtRp(Number(p.gross_payment ?? 0))}</div>
                           <div style={{ fontSize: 11, color: C.mid, marginTop: 2 }}>
-                            Progress {p.pct_done}% · {fmtDate(p.created_at)}
+                            Progress {p.pct_done}% · {fmtDate(p.created_at ?? null)}
                             {p.notes && ` · ${p.notes}`}
                           </div>
                         </div>
@@ -352,7 +353,7 @@ export default function PenagihanProgressPage() {
               </div>
               <div>
                 <div style={{ fontSize: 10, color: C.mid, marginBottom: 2 }}>Sudah Dibayar</div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: C.green }}>{fmtRp(selectedScope.total_progress_paid ?? 0)}</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: C.green }}>{fmtRp(Number(selectedScope.total_progress_paid ?? 0))}</div>
               </div>
               <div>
                 <div style={{ fontSize: 10, color: C.mid, marginBottom: 2 }}>Sisa Kontrak</div>
@@ -393,7 +394,7 @@ export default function PenagihanProgressPage() {
                   placeholder="0"
                   style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }}
                 />
-                {selectedScope.contract_value > 0 && (
+                {Number(selectedScope.contract_value ?? 0) > 0 && (
                   <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>
                     Maks sisa kontrak: {fmtRp(Math.max(0, (selectedScope.contract_value ?? 0) - (selectedScope.total_progress_paid ?? 0)))}
                   </div>

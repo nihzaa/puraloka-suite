@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { api } from "@/lib/api";
+import { type Kasbon, type Tukang, type Penugasan, pesanGalat } from "../_bersama/tipe";
 import { kirimLapangan } from "@/lib/kirim-lapangan";
 import { CreditCard, Plus } from "lucide-react";
 
@@ -22,9 +23,9 @@ const PURPOSE_LABELS: Record<string, string> = {
 };
 
 export default function KasbonTukangPage() {
-  const [kasbons, setKasbons] = useState<any[]>([]);
-  const [workers, setWorkers] = useState<any[]>([]);
-  const [assignments, setAssignments] = useState<any[]>([]);
+  const [kasbons, setKasbons] = useState<Kasbon[]>([]);
+  const [workers, setWorkers] = useState<Tukang[]>([]);
+  const [assignments, setAssignments] = useState<Penugasan[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   // Modal di portal ini tak punya prop `onClose` — ia dikendalikan state
@@ -49,9 +50,9 @@ export default function KasbonTukangPage() {
     setLoading(true);
     try {
       const [kRes, wRes, aRes] = await Promise.all([
-        api.get("/api/v1/mandor/worker-kasbons"),
-        api.get("/api/v1/mandor/workers"),
-        api.get("/api/v1/mandor/assignments"),
+        api.get<{ kasbons: Kasbon[] }>("/api/v1/mandor/worker-kasbons"),
+        api.get<{ workers: Tukang[] }>("/api/v1/mandor/workers"),
+        api.get<{ assignments: Penugasan[] }>("/api/v1/mandor/assignments"),
       ]);
       setKasbons(kRes.data?.kasbons ?? []);
       setWorkers(wRes.data?.workers ?? []);
@@ -91,8 +92,8 @@ export default function KasbonTukangPage() {
       setShowModal(false);
       setForm({ worker_id: "", project_id: "", scope_id: "", amount: "", purpose: "gaji_tukang", kasbon_date: "", notes: "" });
       if (hasil.terkirim) await loadData();
-    } catch (err: any) {
-      setToast({ msg: err.response?.data?.error ?? "Gagal mengajukan kasbon", ok: false });
+    } catch (err) {
+      setToast({ msg: pesanGalat(err, "Gagal mengajukan kasbon"), ok: false });
     } finally {
       setSubmitting(false);
     }
@@ -179,17 +180,17 @@ export default function KasbonTukangPage() {
               <div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{k.worker?.name ?? "—"}</div>
                 <div style={{ fontSize: 12, color: C.mid, marginTop: 2 }}>
-                  {PURPOSE_LABELS[k.purpose] ?? k.purpose} · {k.project?.name ?? "—"} · {fmtDate(k.kasbon_date)}
+                  {PURPOSE_LABELS[k.purpose ?? ""] ?? k.purpose} · {k.project?.name ?? "—"} · {fmtDate(k.kasbon_date ?? null)}
                 </div>
               </div>
               <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{fmt(k.amount)}</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{fmt(Number(k.amount))}</div>
                 <div style={{ fontSize: 11, color: k.is_settled ? C.green : C.yellow, fontWeight: 500, marginTop: 2 }}>
                   {k.is_settled ? "✓ Lunas" : `Sisa ${fmt(Number(k.amount) - Number(k.amount_settled ?? 0))}`}
                 </div>
               </div>
             </div>
-            {k.amount_settled > 0 && !k.is_settled && (
+            {Number(k.amount_settled ?? 0) > 0 && !k.is_settled && (
               <div style={{ marginTop: 8 }}>
                 <div style={{ height: 4, background: C.border, borderRadius: 6, overflow: "hidden" }}>
                   <div style={{
@@ -198,7 +199,7 @@ export default function KasbonTukangPage() {
                   }} />
                 </div>
                 <div style={{ fontSize: 11, color: C.mid, marginTop: 3 }}>
-                  Dicicil {fmt(k.amount_settled)} dari {fmt(k.amount)}
+                  Dicicil {fmt(Number(k.amount_settled ?? 0))} dari {fmt(Number(k.amount))}
                 </div>
               </div>
             )}
@@ -244,7 +245,7 @@ export default function KasbonTukangPage() {
                   <select id="scope-id" aria-label="Lingkup" value={form.scope_id} onChange={(e) => setForm((f) => ({ ...f, scope_id: e.target.value }))}
                     style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13 }}>
                     <option value="">Semua scope</option>
-                    {scopesForProject.map((s: any) => (
+                    {scopesForProject.map((s) => (
                       <option key={s.id} value={s.id}>{s.scope_name}</option>
                     ))}
                   </select>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import { api } from "@/lib/api";
+import { type Penugasan, type LogProgres, type ProyekRingkas, pesanGalat } from "../_bersama/tipe";
 import { kirimLapangan } from "@/lib/kirim-lapangan";
 import { uploadProgressPhoto, attachProgressPhoto } from "@/lib/storage";
 import { Plus, Image, X, Check, Loader2, AlertCircle, Calendar } from "lucide-react";
@@ -25,8 +26,8 @@ const WEATHER_OPTIONS = [
 interface PhotoEntry { id: string; file: File; previewUrl: string; caption: string; uploading: boolean; uploadedUrl: string | null; error: string | null; }
 
 export default function MandorProgressPage() {
-  const [assignments, setAssignments] = useState<any[]>([]);
-  const [logs, setLogs] = useState<any[]>([]);
+  const [assignments, setAssignments] = useState<Penugasan[]>([]);
+  const [logs, setLogs] = useState<LogProgres[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   // Modal di portal ini tak punya prop `onClose` — ia dikendalikan state
@@ -73,11 +74,18 @@ export default function MandorProgressPage() {
   useEffect(() => { loadData(); }, []);
 
   // Available projects from assignments
-  const projects = assignments.map((a: any) => a.project).filter(Boolean).filter((p, i, arr) => arr.findIndex((x) => x.id === p.id) === i);
+  // `filter(Boolean)` TIDAK menyempitkan tipe di TypeScript — ia tetap
+  // `(ProyekRingkas | null | undefined)[]`. Selama `assignments` bertipe
+  // `any[]`, hal itu tak terlihat; begitu bertipe, compiler menunjukkan bahwa
+  // `p.id` di baris berikutnya bisa meledak pada penugasan tanpa proyek.
+  const projects = assignments
+    .map((a) => a.project)
+    .filter((p): p is ProyekRingkas => Boolean(p))
+    .filter((p, i, arr) => arr.findIndex((x) => x.id === p.id) === i);
 
   // Scopes for selected project
   const projectScopes = projectId
-    ? assignments.filter((a: any) => a.project?.id === projectId).flatMap((a: any) => (a.work_scopes ?? []).filter((s: any) => s.status === "active"))
+    ? assignments.filter((a) => a.project?.id === projectId).flatMap((a) => (a.work_scopes ?? []).filter((s) => s.status === "active"))
     : [];
 
   function handlePhotoAdd(e: React.ChangeEvent<HTMLInputElement>) {
@@ -205,8 +213,8 @@ export default function MandorProgressPage() {
         showToast("Progress berhasil dicatat");
       }
       loadLogs(projectId);
-    } catch (err: any) {
-      showToast(err?.response?.data?.error ?? err?.message ?? "Gagal menyimpan progress", false);
+    } catch (err: unknown) {
+      showToast(pesanGalat(err, "Gagal menyimpan progress"), false);
     } finally {
       setSaving(false);
     }
@@ -261,7 +269,7 @@ export default function MandorProgressPage() {
           style={{ padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, color: C.text, background: "var(--surface)", minWidth: 220 }}
         >
           <option value="">Pilih proyek untuk lihat history</option>
-          {projects.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
       </div>
 
@@ -278,16 +286,16 @@ export default function MandorProgressPage() {
           <div key={log.id} style={{ background: C.surface, borderRadius: 10, padding: "16px 20px", border: `1px solid ${C.border}`, boxShadow: "var(--naik-1)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
               <Calendar size={14} color={C.mid} />
-              <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{fmtDate(log.log_date)}</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{fmtDate(log.log_date ?? null)}</span>
               {log.weather && <span style={{ fontSize: 12, color: C.mid }}>· {log.weather}</span>}
-              {log.workers_count && <span style={{ fontSize: 12, color: C.mid }}>· {log.workers_count} pekerja</span>}
+              {log.worker_count && <span style={{ fontSize: 12, color: C.mid }}>· {log.worker_count} pekerja</span>}
             </div>
             <p style={{ fontSize: 13, color: C.text, margin: "0 0 8px", lineHeight: 1.6 }}>{log.notes}</p>
             {(log.project_photos ?? []).length > 0 && (
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {log.project_photos.map((ph: any) => (
-                  <a key={ph.id} href={ph.photo_url} target="_blank" rel="noopener noreferrer">
-                    <img src={ph.photo_url} alt={ph.caption ?? "foto"} style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 6, border: `1px solid ${C.border}` }} />
+                {(log.project_photos ?? []).map((ph) => (
+                  <a key={ph.id} href={ph.photo_url ?? undefined} target="_blank" rel="noopener noreferrer">
+                    <img src={ph.photo_url ?? undefined} alt={ph.caption ?? "foto"} style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 6, border: `1px solid ${C.border}` }} />
                   </a>
                 ))}
               </div>
@@ -315,7 +323,7 @@ export default function MandorProgressPage() {
                   style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, color: C.text, background: "var(--surface)" }}
                 >
                   <option value="">Pilih proyek...</option>
-                  {projects.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               </div>
 
@@ -328,7 +336,7 @@ export default function MandorProgressPage() {
                     style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, color: C.text, background: "var(--surface)" }}
                   >
                     <option value="">Semua scope</option>
-                    {projectScopes.map((s: any) => <option key={s.id} value={s.id}>{s.scope_name}</option>)}
+                    {projectScopes.map((s) => <option key={s.id} value={s.id}>{s.scope_name}</option>)}
                   </select>
                 </div>
               )}
