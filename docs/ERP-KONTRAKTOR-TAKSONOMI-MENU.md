@@ -276,7 +276,7 @@ sebagai kategori B/C. 045 dibiarkan di tempatnya — riwayat tak diubah.
 | **Accounts Payable** | ✅ | Koreksi dari 🟡: supplier invoice + payment + aging + FIFO + overdue |
 | **Accounts Receivable** | ✅ | Koreksi dari 🟡 (2026-07-28): invoice + payment + notif overdue + **aging bucket 30/60/90** (`GET /finance/ar-aging`, `lib/ar-register.ts` ber-test, halaman `/piutang`) |
 | Bank & kas | ✅ | |
-| Rekonsiliasi bank | 🔴 | Rekomendasi: eksternal |
+| Rekonsiliasi bank | ✅ | **Koreksi dari 🔴 (2026-08-08)** — status itu sudah salah sejak modulnya dibangun. Nyatanya: migrasi 234 (`rekening_koran`, `rekening_koran_baris`, `penyesuaian_rekonsiliasi`) · `lib/rekonsiliasi-bank.ts` 22 test · 6 endpoint · halaman `/kas/rekonsiliasi` (15 test endpoint). Rekomendasi lama "eksternal" tak lagi berlaku: pencocokan otomatis butuh akses ke buku kas internal, dan itu justru yang tak dimiliki alat eksternal. |
 | Kas kecil / petty cash | ✅ | |
 | Aset tetap & penyusutan | 🔵 | Migration 045, 0 kode |
 | Pajak: PPN, PPh | ✅ | Effective-dated + guardrail test |

@@ -569,20 +569,29 @@ Yang butuh item baru adalah tiga pembeda yang masih rendah.
 > dikerjakan sejak triase ini ditulis datang dari daftar INTI/PEMBEDA/fase,
 > bukan dari sini.
 
-Tabel di §5 menyebut pemicunya. Berikut **jaraknya ke ambang**, diukur ke
-basis hari ini — bukan diperkirakan:
+Tabel di §5 menyebut pemicunya. Berikut **jaraknya ke ambang** — dengan
+perintah pengukurnya, bukan hanya angkanya.
 
-| Pemicu | Ambang | Hari ini | Jarak |
+> ⚠️ **Angka di kolom "terakhir diukur" MEMBUSUK.** Dua di antaranya sudah
+> terbukti basi pada 2026-08-08: "0 aset" ternyata 4, dan "7 PO" ternyata 8
+> (satu PO baru terbit dari putusan RFQ hari itu). Selisihnya kecil dan tak
+> mengubah kesimpulan — tapi itu justru bahayanya: angka basi yang masih
+> terdengar masuk akal tak akan diperiksa siapa pun.
+>
+> Aturan pembuka `CLAUDE.md` berlaku di sini: **kalau sebuah fakta bisa basi,
+> tulis cara mengukurnya.** Jalankan perintahnya sebelum memakai angkanya.
+
+| Pemicu | Ambang | Perintah ukur | Terakhir diukur (2026-08-08) |
 |---|---|---|---|
-| Vendor banyak | > 30 | **5 supplier** | jauh |
-| Alat milik sendiri | > 5 unit | **0 aset** | belum mulai |
-| Subkon formal ber-kontrak | ada 1 | **0** `work_scopes` ber-`contract_status='signed'` | belum mulai |
-| Pengadaan berulang | vendor sama berkali-kali | **7 PO ke 5 vendor** | hampir tak berulang |
-| Retur/koreksi tagihan | ada 1 | **0** — jenis invoice yang ada cuma `termin_billing`, `commission_billing` | belum pernah |
-| Pertukaran dokumen formal | ada | **0 dokumen** | belum mulai |
-| Syarat K3 formal owner | ada | **0 jaminan**, **0 polis** | belum mulai |
-| Jadwal dinegosiasikan owner | ada | **39 milestone** di 15 proyek | **satu-satunya yang berisi** |
-| Mode offline penuh | baca + tulis | F4-3 `done` — tapi **TULIS saja** (6 jalur) | separuh |
+| Vendor banyak | > 30 | `SELECT count(*) FROM suppliers` | 5 |
+| Alat milik sendiri | > 5 unit | `SELECT count(*) FROM assets` | 4 |
+| Subkon formal ber-kontrak | ≥ 1 | `SELECT count(*) FROM work_scopes WHERE contract_status='signed'` | 0 |
+| Pengadaan berulang | vendor sama berkali-kali | `SELECT count(*) FROM (SELECT supplier_id FROM purchase_orders GROUP BY 1 HAVING count(*)>1) t` | 3 vendor dari 8 PO |
+| Retur/koreksi tagihan | ≥ 1 | `SELECT DISTINCT type FROM invoices` | 0 (hanya `termin_billing`, `commission_billing`) |
+| Pertukaran dokumen formal | ada | `SELECT count(*) FROM documents` | 0 |
+| Syarat K3 formal owner | ada | `SELECT count(*) FROM guarantees` · `FROM insurance_policies` | 0 · 0 |
+| Jadwal dinegosiasikan owner | ada | `SELECT count(*) FROM milestones` · `FROM milestone_dependencies` | 39 · 4 |
+| Mode offline penuh | baca + tulis | ✅ keduanya tertutup (`lib/cache-baca.ts`) | — |
 
 ### Kesimpulan: 24 dari 25 belum terpicu, dan itu bukan kelambatan
 

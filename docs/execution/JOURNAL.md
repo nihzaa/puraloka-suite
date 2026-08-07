@@ -5,6 +5,63 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-08 — Mencari kerja berikutnya, menemukan tiga angka basi
+
+Sesudah RFQ selesai, saya menyisir antrean untuk pekerjaan berikutnya. Yang
+ditemukan bukan fitur, melainkan **dokumen yang berbohong tanpa niat**.
+
+### Status basi KESEMBILAN — Rekonsiliasi bank
+
+`audit-taksonomi-vs-kode.mjs` mencetak *"Rekonsiliasi bank — 🔴 belum
+dimulai"*, padahal saya sendiri membangunnya sesi lalu: migrasi 234 (3 tabel),
+`lib/rekonsiliasi-bank.ts` 22 test, 6 endpoint, halaman `/kas/rekonsiliasi`
+dengan 15 test endpoint. Taksonomi bahkan masih menyarankan *"eksternal"*.
+
+**Penjaganya tidak buta — ratchetnya bekerja.** Barisnya masuk hitungan
+`takDipetakan` (13), bukan `basi` (0), jadi exit 0 adalah perilaku yang benar:
+angkanya tidak naik. Yang kurang cuma entri di `PETA`. Ditambahkan → 13 → 12,
+lantai diturunkan.
+
+Diuji-mutasi dua arah, dan **percobaan pertama saya keliru**: menghapus entri
+PETA saja tak memerahkan apa pun, karena barisnya sudah saya koreksi jadi ✅
+dan tak lagi masuk hitungan 🔴. Mutasi yang sah harus menyentuh statusnya:
+
+```
+M1  taksonomi → 🔴, entri PETA tetap    basi 1 > lantai 0     MERAH exit 1
+M2  🔴 DAN entri PETA dihapus            takDipetakan 13 > 12  MERAH exit 1
+    keduanya dipulihkan                                        HIJAU exit 0
+```
+
+### Dua angka data yang membusuk di dokumen perencanaan
+
+`F5-1 §5a` menyatakan **"0 aset"** (nyatanya 4) dan **"7 PO ke 5 vendor"**
+(nyatanya 8 — satu PO baru terbit dari putusan RFQ hari ini). `ROADMAP.md`
+menyebut **"236 dokumen"**; indeksnya 269.
+
+Selisihnya kecil dan tak mengubah satu pun kesimpulan — **itu justru
+bahayanya**: angka basi yang masih terdengar masuk akal tak akan diperiksa
+siapa pun. Ketiganya diganti dengan perintah pengukurnya, sesuai aturan
+pembuka `CLAUDE.md`.
+
+Saya sempat mempertimbangkan penjaga CI yang menjalankan query DB untuk
+memeriksa angka semacam ini. Diukur dulu: **hanya 2 dokumen** yang memuat
+angka data bisnis. Membangun penjaga DB-di-CI untuk dua kasus tak sepadan —
+dokumen yang membawa perintah ukurnya sendiri sudah menyelesaikannya.
+
+### Yang diperiksa dan ternyata TIDAK perlu dikerjakan
+
+Diukur ke kode/data, bukan dibaca dari status:
+
+| Kandidat | Hasil ukur |
+|---|---|
+| CVR (PEMBEDA sisa) | `project_expenses` **0 baris**, dan kolom `cost_code_id` **tak ada**. Penundaan masih sah. |
+| Profitabilitas per cost code | `lib/varians-cost-code.ts` (12 test) + `GET /projects/:id/varians` + tab Varians di `/estimasi` — **sudah lengkap** |
+| Builder edisi AHSP | **nol endpoint**, tapi terblokir **gerbang founder E9/E10/E12** (RATIFIKASI.md:191) — keputusan harga, bukan kode |
+| 423 assembly tanpa edisi | seluruhnya milik company, bukan global — analisa milik tenant memang wajar tanpa edisi nasional. **Bukan cacat.** |
+| 25 pemicu TUNDA | diukur ulang: vendor 5 (ambang >30) · aset 4 (>5) · subkon signed 0 · dokumen 0. **Masih jauh** — bukan kelambatan, melainkan kenyataan bisnis. |
+
+---
+
 ## 2026-08-08 — RFQ akhirnya punya ujung; dua penjaga yang menuntut hal keliru
 
 ### Yang dicari: pekerjaan yang benar-benar belum ada

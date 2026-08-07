@@ -469,10 +469,18 @@ datanya yang bisa.
 > Dihasilkan `apps/api/scripts/gen-indeks-docs.mjs`, jalankan ulang tiap
 > `docs/` berubah.
 
-Dari **236 dokumen** `.md` di `docs/`, **13 memuat pekerjaan terbuka** dan
-sebelumnya tak dirujuk ROADMAP sama sekali. Sisanya sengaja tidak dituntut
-masuk: arsip/riwayat, aturan tetap (Engineering-Constitution, ADR), dan
-laporan status — dokumen yang dirujuk, bukan dikerjakan.
+Sebagian dokumen `.md` di `docs/` memuat pekerjaan terbuka dan sebelumnya tak
+dirujuk ROADMAP sama sekali. Sisanya sengaja tidak dituntut masuk: arsip/
+riwayat, aturan tetap (Engineering-Constitution, ADR), dan laporan status —
+dokumen yang dirujuk, bukan dikerjakan.
+
+> **Jumlahnya diukur, tidak ditulis di sini.** Baris ini pernah menyebut
+> "236 dokumen"; per 2026-08-08 indeksnya 269 — basi tanpa satu pun gejala,
+> persis pola yang dilarang pembuka `CLAUDE.md`. Angka yang berlaku:
+>
+> ```bash
+> node apps/api/scripts/gen-indeks-docs.mjs --check   # jumlah + kemutakhiran
+> ```
 
 Penjaganya: `apps/api/scripts/audit-docs-vs-roadmap.mjs`.
 

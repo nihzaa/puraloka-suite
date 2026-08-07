@@ -82,6 +82,17 @@ const PETA = {
   'Evaluasi kinerja subkontraktor': { tabel: ['subcontractor_evaluations'] },
   'Transfer stok antar proyek': { tabel: ['stock_transfers'], rute: ['/transfer-stok'] },
   'Rekonsiliasi material (teoritis vs aktual)': { rute: ['/rekonsiliasi-material'] },
+  // Ditambahkan 2026-08-08 — dan pelajarannya SAMA PERSIS dengan komentar
+  // enam baris di atas, yang saya tulis sendiri saat menambah empat entri
+  // sebelumnya. "Rekonsiliasi bank" bertahan 🔴 di taksonomi sementara
+  // migrasi 234, `lib/rekonsiliasi-bank.ts` (22 test), 6 endpoint, dan
+  // halaman `/kas/rekonsiliasi` sudah hidup — dan penjaga ini exit 0 setiap
+  // kali, karena barisnya memang tak pernah ada di peta.
+  //
+  // Menambah entri satu per satu saat ketahuan bukan perbaikan yang tuntas;
+  // yang tuntas adalah penjaga yang tahu baris mana yang BELUM dipetakan.
+  // Itu ada di bawah, sesudah PETA.
+  'Rekonsiliasi bank': { tabel: ['rekening_koran'], rute: ['/kas/rekonsiliasi'] },
   'Perusahaan / badan hukum (multi-entity)': { tabel: ['companies'], rute: ['/companies'] },
   'Revisi & transfer anggaran': { tabel: ['rap_change_log'], rute: ['/rap'] },
   'Method statement': { tabel: ['method_statements'] },

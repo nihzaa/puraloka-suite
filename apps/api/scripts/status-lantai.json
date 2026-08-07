@@ -1,7 +1,7 @@
 {
   "_catatan": "Lantai status-vs-kode. Boleh turun, TIDAK boleh naik. Lihat audit-taksonomi-vs-kode.mjs.",
-  "_diukur": "2026-08-07, sesudah koreksi status basi KEDELAPAN (INTI #1 Laporan keuangan, F5-1 §3c).",
-  "_riwayat": "takDipetakan 29 -> 13 sesudah +3 entri PETA (Laporan keuangan, IPC, Geotag). Entri Laporan keuangan diuji-mutasi 2026-08-07: taksonomi disetel 🔴 -> penjaga MERAH exit 1 -> dipulihkan -> HIJAU exit 0.",
+  "_diukur": "2026-08-08, sesudah koreksi status basi KESEMBILAN (Rekonsiliasi bank).",
+  "_riwayat": "takDipetakan 29 -> 13 sesudah +3 entri PETA (Laporan keuangan, IPC, Geotag). Entri Laporan keuangan diuji-mutasi 2026-08-07: taksonomi disetel 🔴 -> penjaga MERAH exit 1 -> dipulihkan -> HIJAU exit 0. || 2026-08-08: 13 -> 12 (+entri Rekonsiliasi bank). Modulnya SUDAH hidup sejak migrasi 234 (22+15 test, 6 endpoint, /kas/rekonsiliasi) sementara taksonomi menandainya 🔴 dan penjaga tetap exit 0 — karena barisnya masuk hitungan takDipetakan, bukan basi. Ratchet bekerja sebagaimana dirancang; yang kurang adalah entri petanya. Diuji-mutasi DUA arah: (M1) taksonomi dikembalikan 🔴 sementara entri PETA tetap -> basi 1 > lantai 0 -> MERAH exit 1; (M2) 🔴 DAN entri PETA dihapus -> takDipetakan 13 > lantai 12 -> MERAH exit 1. Keduanya dipulihkan -> HIJAU exit 0. Percobaan pertama saya keliru: menghapus entri PETA saja TIDAK memerahkan apa pun, karena barisnya sudah ✅ dan tak lagi masuk hitungan 🔴 — mutasi harus menyentuh statusnya, bukan hanya petanya.",
   "basi": 0,
-  "takDipetakan": 13
+  "takDipetakan": 12
 }
