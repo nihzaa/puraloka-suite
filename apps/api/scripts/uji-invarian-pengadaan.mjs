@@ -51,7 +51,16 @@ await db.connect()
 
 const { rows: sp } = await db.query(`SELECT id, company_id FROM suppliers LIMIT 1`)
 const { rows: us } = await db.query(`SELECT id FROM users ORDER BY created_at, id LIMIT 2`)
-const { rows: po } = await db.query(`SELECT id FROM purchase_orders LIMIT 1`)
+// PO yang BELUM punya catatan expediting.
+//
+// Versi pertama mengambil PO pertama begitu saja, lalu gagal 23505 begitu
+// `seed_pengadaan_lanjutan.sql` memberi PO itu catatan pelacakan — yang gagal
+// PENYIAPANNYA, bukan invariannya, dan pesan galatnya menunjuk ke tempat yang
+// salah. Pelajaran yang sama dengan `uji-invarian-jadwal.mjs`.
+const { rows: po } = await db.query(`
+  SELECT p.id FROM purchase_orders p
+   WHERE NOT EXISTS (SELECT 1 FROM expediting e WHERE e.po_id = p.id)
+   ORDER BY p.created_at, p.id LIMIT 1`)
 
 if (!sp.length || us.length < 2) {
   console.log('⚠️  Butuh 1 pemasok dan 2 pengguna berbeda. Dilewati.')
