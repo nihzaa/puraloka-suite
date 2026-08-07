@@ -53,6 +53,7 @@ import alatOperasionalRoutes from './routes/v1/alat-operasional.js'
 import jadwalCpmRoutes from './routes/v1/jadwal-cpm.js'
 import kendaliDokumenRoutes from './routes/v1/kendali-dokumen.js'
 import kepatuhanK3Routes from './routes/v1/kepatuhan-k3.js'
+import pengadaanLanjutanRoutes from './routes/v1/pengadaan-lanjutan.js'
 import inspeksiRoutes from './routes/v1/inspeksi.js'
 import rfiRoutes from './routes/v1/rfi.js'
 import submittalRoutes from './routes/v1/submittal.js'
@@ -306,6 +307,7 @@ await app.register(alatOperasionalRoutes)
 await app.register(jadwalCpmRoutes)
 await app.register(kendaliDokumenRoutes)
 await app.register(kepatuhanK3Routes)
+await app.register(pengadaanLanjutanRoutes)
 await app.register(inspeksiRoutes)
 await app.register(rfiRoutes)
 await app.register(submittalRoutes)

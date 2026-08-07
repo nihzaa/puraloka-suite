@@ -5,6 +5,95 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-07 (lanjutan 10) — TUNDA kelompok F: pengadaan lanjutan, dan tiga cacat visual yang hanya ketahuan dengan MELIHAT
+
+Tiga item TUNDA: kontrak payung (blanket order), expediting & logistik,
+nota kredit. **TUNDA: 5 → 2.**
+
+### Yang terbukti, dengan angka
+
+```
+migrasi 219      5 tabel + 1 kolom (purchase_orders.kontrak_payung_id)
+                 15 policy · RLS dipaksa · InitPlan sejak awal
+invarian         58 terjaga, 0 bocor (uji-invarian-pengadaan.mjs)
+mutasi invarian  8/8 tertangkap, termasuk mutasi PEMBUANGAN KOLOM
+pustaka          29 test · 16/16 mutasi tertangkap
+API              177 berkas · 1945 test HIJAU, 2 skip, NOL gagal
+web              lint 0 error, 334 warning · build /procurement/lanjutan
+penjaga          10 audit arsitektural + 13 ratchet UI + 3 rute: LULUS
+a11y             axe-core WCAG 2.1 AA: 0 pelanggaran, terang DAN gelap
+seed             3 kontrak (6 item) · 3 expediting · 4 nota kredit
+                 — dijalankan 2×, angka tak bergerak
+```
+
+### Empat cacat yang modul ini tutup
+
+**1. Kontrak payung "aktif" yang kuotanya habis.** Data nyata: BO-2026-001
+berstatus `aktif`, kedua itemnya nol sisa. PO berikutnya ditagih **di luar
+harga kontrak**, dan itu baru ketahuan saat tagihannya datang dengan harga
+berbeda. Constraint `terpakai <= kuota` menolak INSERT *dan* UPDATE — diuji
+keduanya, karena penarikan kuota terjadi lewat UPDATE.
+
+**2. Telat diukur dari JANJI VENDOR, bukan kebutuhan kita.** Vendor
+menjanjikan tanggal yang sudah 12 hari lebih lambat dari yang dibutuhkan;
+barang datang "tepat janji" dan telat 19 hari sekaligus. Keduanya disimpan
+terpisah (`expected_delivery_date` di PO vs `janji_vendor` di expediting) dan
+ditampilkan bersama — vendor yang menepati janjinya tapi janjinya sudah
+terlambat sejak awal bukan vendor yang mengecewakan; yang salah
+penjadwalannya, dan itu tindakan yang berbeda.
+
+**3. Nota kredit disetujui yang tak pernah diterapkan.** Rp 28,4 juta
+disepakati 30 hari lalu, tagihan penuh tetap dibayar. Uang hilang dengan
+seluruh persetujuan lengkap. `disetujui` dan `diterapkan` sengaja dua
+endpoint terpisah, dan jaraknya ditandai.
+
+**4. Rata-rata keterlambatan.** Yang dilaporkan TERPARAH — sembilan PO tepat
+waktu dan satu tertahan tiga minggu punya rata-rata 2 hari, dan yang
+menghentikan pekerjaan adalah yang satu itu.
+
+### Tiga cacat visual, semuanya dari MEMOTRET halamannya
+
+**1. DUA judul bertumpuk.** `procurement/layout.tsx` sudah menyediakan
+`<h1>` "Pengadaan & Persediaan" beserta 10 tab; halaman saya menambahkan
+`<h2>` "Pengadaan Lanjutan" di bawahnya. Halaman juga belum terdaftar sebagai
+tab, jadi ia melayang di dalam modul tanpa navigasi. Diperbaiki: tab
+"Kontrak & Logistik" didaftarkan sesudah Penerimaan (urutan kerja: pesan →
+terima → lacak), judul kedua dibuang.
+
+Token lebar sempat ikut saya buang — dan `tata-letak-ratchet.mjs`
+merahkannya. Penjaganya benar: token lebar adalah konvensi repo yang berlaku
+per-halaman, terpisah dari lebar layout.
+
+**2. Batang kuota berlawanan arah dengan angkanya.** Batang menggambarkan
+`persenTerpakai`, sementara teks di sebelahnya menyebut *sisa*. Item bersisa
+960 dari 12.000 punya batang HAMPIR PENUH — pembacanya harus membalik
+sendiri. Kini batang menggambarkan sisa.
+
+**3. Data dummy yang aritmetikanya benar tapi ceritanya omong kosong.**
+Seed pertama memakai `CURRENT_DATE` untuk perkiraan tiba, sementara PO-nya
+bertanggal Maret — hasilnya "telat 143 hari" untuk PO dengan perkiraan tiba
+minggu depan. Perhitungannya betul; seed-nya yang tak masuk akal. Tanggal
+kini diturunkan dari `expected_delivery_date` PO itu sendiri (telat 19 dan
+26 hari), plus satu PO tiba tepat waktu sebagai pembanding.
+
+### Satu cacat tenancy yang tertangkap sebelum dijalankan
+
+`purchase_orders` **kategori C** — mewarisi tenancy lewat `project_id`, tak
+punya `company_id` sendiri. Versi pertama rute menyaringnya dengan
+`eq('company_id', …)` di tiga tempat; itu akan gagal dengan galat
+kolom-tak-ada, dan `?? []` mengubah kegagalan jadi "nol PO" yang terlihat
+sah. Ketahuan dari MENGUKUR bentuk tabelnya sebelum typecheck, bukan dari
+menjalankannya.
+
+### CI diberi seed supplier + purchase_order
+
+Tanpa keduanya, `uji-invarian-pengadaan.mjs` melewati dirinya sendiri lalu
+exit 0. Pola yang sama dengan seed `assets` (kelompok B) dan `milestones`
+(kelompok C): penjaga yang selalu hijau karena tak pernah punya bahan uji
+memberi rasa aman yang salah.
+
+---
+
 ## 2026-08-07 (lanjutan 9) — TUNDA kelompok E: kepatuhan & K3, dan constraint yang menolak seed saya sendiri
 
 Tiga item TUNDA: evaluasi kinerja subkontraktor, kepatuhan izin/asuransi/pajak,

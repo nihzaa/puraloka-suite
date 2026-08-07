@@ -4,7 +4,7 @@
 // Penegak: `node scripts/gen-tenant-map.mjs check` (CI) — build MERAH kalau
 // ada tabel yang belum terklasifikasi (ADR-011 §9.5 P3).
 //
-// 173 tabel · A=10 · AB=14 · ANCHOR=1 · B=59 · C=82 · D=7
+// 178 tabel · A=10 · AB=14 · ANCHOR=1 · B=64 · C=82 · D=7
 //
 // Arti kategori (ADR-011 §5 + audit T1):
 //   ANCHOR akar tenancy (projects) — company_id NOT NULL
@@ -80,6 +80,8 @@ export const PETA_TENANCY = {
   'estimate_versions': { kategori: 'C', lewat: 'scenario_id' },  // estimate_versions.scenario_id → scenarios.project_id
   'evaluasi_subkon': { kategori: 'B' },
   'evaluasi_vendor': { kategori: 'B' },
+  'expediting': { kategori: 'B' },
+  'expediting_jejak': { kategori: 'B' },
   'expense_category_templates': { kategori: 'AB' },
   'expense_items': { kategori: 'C', lewat: 'category_id' },  // expense_items.category_id → project_expense_categories.project_id
   'expense_reports': { kategori: 'C', lewat: 'project_id' },  // expense_reports.project_id
@@ -104,6 +106,8 @@ export const PETA_TENANCY = {
   'kasbon_purposes': { kategori: 'AB' },
   'kasbons': { kategori: 'B' },
   'kebutuhan_sumber_daya': { kategori: 'B' },
+  'kontrak_payung': { kategori: 'B' },
+  'kontrak_payung_item': { kategori: 'B' },
   'lesson_propagation_proposals': { kategori: 'C', lewat: 'lesson_id' },  // lesson_propagation_proposals.lesson_id → lessons_learned_records.project_id
   'lessons_learned_records': { kategori: 'C', lewat: 'project_id' },  // lessons_learned_records.project_id
   'mandor_assignments': { kategori: 'C', lewat: 'project_id' },  // mandor_assignments.project_id
@@ -121,6 +125,7 @@ export const PETA_TENANCY = {
   'mr_quota_override': { kategori: 'C', lewat: 'project_id' },  // mr_quota_override.project_id
   'ncr_items': { kategori: 'C', lewat: 'project_id' },  // ncr_items.project_id
   'ncr_photos': { kategori: 'C', lewat: 'ncr_id' },  // ncr_photos.ncr_id → ncr_items.project_id
+  'nota_kredit': { kategori: 'B' },
   'notification_rule_targets': { kategori: 'B' },
   'notification_rules': { kategori: 'B' },
   'notifications': { kategori: 'B' },

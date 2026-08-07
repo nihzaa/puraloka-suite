@@ -175,12 +175,12 @@ export const PETA_MENU: GrupMenu[] = [
       { key: 'pr-rfq', label: 'RFQ ke Vendor', status: 'rencana', guna: 'Meminta penawaran harga ke beberapa vendor sekaligus.', catatan: 'Sekarang PO dibuat langsung dari MR tanpa tahap penawaran.' },
       { key: 'pr-tabulasi', label: 'Perbandingan Penawaran', status: 'rencana', guna: 'Menjajarkan penawaran vendor untuk memilih yang terbaik.', catatan: 'Butuh RFQ lebih dulu.' },
       { key: 'pr-po', label: 'Purchase Order', status: 'hidup', href: '/procurement', guna: 'Pesanan resmi ke supplier, terkirim & berjejak.' },
-      { key: 'pr-blanket', label: 'Kontrak Payung', status: 'rencana', guna: 'Harga tetap untuk pembelian berulang sepanjang periode.', catatan: 'Menghemat waktu untuk material yang dibeli terus-menerus.' },
+      { key: 'pr-blanket', label: 'Kontrak Payung', status: 'hidup', href: '/procurement/lanjutan', guna: 'Harga tetap untuk pembelian berulang sepanjang periode.', catatan: 'Kuota per-item dijaga constraint DB (`terpakai <= kuota`) — PO tak bisa menarik 1.200 ton dari kontrak 1.000 ton. Kontrak berstatus `aktif` yang kuota/masanya habis ditandai TAK BISA DIPAKAI: PO berikutnya ditagih di luar harga kontrak.' },
       { key: 'pr-grn', label: 'Goods Receipt', status: 'hidup', href: '/procurement', guna: 'Penerimaan barang, otomatis menambah stok.' },
       { key: 'pr-3way', label: '3-Way Match', status: 'hidup', href: '/procurement', guna: 'Mencocokkan PO, penerimaan, dan tagihan sebelum bayar.' },
       { key: 'pr-evaluasi', label: 'Evaluasi Kinerja Vendor', status: 'rencana', guna: 'Menilai ketepatan waktu & mutu tiap supplier.', catatan: 'Datanya sudah terkumpul di GR; penilaiannya belum.' },
       { key: 'pr-jadwal-bayar', label: 'Jadwal Bayar Vendor', status: 'hidup', href: '/procurement', guna: 'Utang supplier beserta jatuh temponya.' },
-      { key: 'pr-expediting', label: 'Expediting & Logistik', status: 'rencana', guna: 'Mengejar pengiriman yang terlambat.', catatan: 'Relevan saat material didatangkan dari luar kota.' },
+      { key: 'pr-expediting', label: 'Expediting & Logistik', status: 'hidup', href: '/procurement/lanjutan', guna: 'Mengejar pengiriman yang terlambat.', catatan: 'Telat diukur dari KEBUTUHAN kita, bukan janji vendor — keduanya ditampilkan supaya selisihnya terlihat. Yang dilaporkan telat TERPARAH, bukan rata-rata. Bukan `po_delivery_log` (itu jejak kirim dokumen PO, bukan pelacakan barang).' },
     ],
   },
   {
@@ -314,7 +314,7 @@ export const PETA_MENU: GrupMenu[] = [
       { key: 'tg-tambah', label: 'Tagihan Pekerjaan Tambah', status: 'sebagian', href: '/keuangan', guna: 'Menagih change order yang sudah disetujui.' },
       { key: 'tg-invoice', label: 'Invoice & Faktur Pajak', status: 'hidup', href: '/keuangan', guna: 'Penerbitan invoice lengkap dengan pajaknya.' },
       { key: 'tg-followup', label: 'Follow-Up Penagihan', status: 'hidup', href: '/piutang', guna: 'Mengejar invoice yang lewat jatuh tempo.' },
-      { key: 'tg-nota-kredit', label: 'Nota Kredit', status: 'rencana', guna: 'Pengurangan tagihan yang sudah terbit.', catatan: 'Diperlukan saat ada koreksi setelah invoice dikirim.' },
+      { key: 'tg-nota-kredit', label: 'Nota Kredit', status: 'hidup', href: '/procurement/lanjutan', guna: 'Pengurangan tagihan yang sudah terbit.', catatan: 'Pemutus WAJIB berbeda dari pengaju (constraint DB). `disetujui` dan `diterapkan` adalah dua kejadian terpisah — jarak di antaranya persis yang membuat uang hilang dengan persetujuan lengkap, dan itu ditandai.' },
     ],
   },
   {

@@ -231,6 +231,46 @@ await seed('milestone x2 (bahan uji invarian jadwal)', async () => {
   if (rows[0].n < 2) throw new Error(`hanya ${rows[0].n} milestone bebas-relasi`)
 })
 
+// 1 supplier — dibutuhkan `uji-invarian-pengadaan.mjs` (kontrak payung &
+// nota kredit selalu berpemasok) dan `uji-invarian-kepatuhan.mjs`.
+//
+// Sama alasannya dengan seed `assets` dan `milestones` di atas: tanpa bahan,
+// skrip invarian melewati dirinya sendiri lalu exit 0 — penjaga yang selalu
+// hijau karena tak pernah punya bahan uji memberi rasa aman yang salah.
+await seed('supplier (bahan uji invarian pengadaan)', async () => {
+  await c.query(
+    `INSERT INTO suppliers (company_id, code, name, contact_person, phone, created_by)
+     SELECT (SELECT id FROM companies WHERE is_active ORDER BY created_at LIMIT 1),
+            'SUP-CI-001', 'CI seed supplier', 'CI Contact', '0800000001',
+            (SELECT id FROM public.users WHERE email='ci-admin@puraloka.test' LIMIT 1)
+     WHERE NOT EXISTS (SELECT 1 FROM suppliers WHERE code='SUP-CI-001')
+       AND EXISTS (SELECT 1 FROM companies WHERE is_active)`)
+
+  const { rows } = await c.query(`SELECT count(*)::int n FROM suppliers`)
+  if (rows[0].n === 0) throw new Error('suppliers tetap kosong sesudah seed')
+})
+
+// 1 purchase_order — dibutuhkan uji `expediting` (satu catatan pelacakan per
+// PO). Tanpa PO, seluruh blok expediting dilewati diam-diam.
+await seed('purchase_order (bahan uji expediting)', async () => {
+  const { rows: pr } = await c.query(`SELECT id FROM projects ORDER BY created_at LIMIT 1`)
+  const { rows: sp } = await c.query(`SELECT id FROM suppliers ORDER BY created_at LIMIT 1`)
+  if (!pr.length || !sp.length) throw new Error('butuh 1 proyek & 1 supplier lebih dulu')
+
+  // `po_number` diisi trigger `generate_po_number` (BEFORE INSERT), jadi
+  // dikirim kosong — sama seperti jalur produksi di `procurement.ts`.
+  await c.query(
+    `INSERT INTO purchase_orders (po_number, project_id, supplier_id, status,
+                                  order_date, expected_delivery_date, total_amount, created_by)
+     SELECT '', $1, $2, 'sent', CURRENT_DATE - 30, CURRENT_DATE - 10, 5000000,
+            (SELECT id FROM public.users WHERE email='ci-admin@puraloka.test' LIMIT 1)
+     WHERE NOT EXISTS (SELECT 1 FROM purchase_orders WHERE project_id = $1)`,
+    [pr[0].id, sp[0].id])
+
+  const { rows } = await c.query(`SELECT count(*)::int n FROM purchase_orders`)
+  if (rows[0].n === 0) throw new Error('purchase_orders tetap kosong sesudah seed')
+})
+
 // FIXTURE DEMO — dibutuhkan photo-attach-ownership.test.ts (progress_log milik mandor X +
 // mandor Y yang JUGA ditugaskan di proyek yang sama) & recipient-resolution.test.ts
 // (1 proyek ber-PM). Idempoten. Ini mengganti data demo yang di-skip (024) dgn yang minimal-lengkap.

@@ -764,6 +764,25 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
+      # Pengadaan lanjutan (TUNDA kelompok F).
+      #
+      # Yang paling mahal kalau bocor:
+      #   • terpakai > kuota — PO menarik 1.200 ton dari kontrak 1.000 ton;
+      #     kelebihannya ditagih di luar harga kontrak dan baru ketahuan saat
+      #     rekonsiliasi akhir tahun
+      #   • nota kredit DITERAPKAN tanpa pernah disetujui — uang hilang tanpa
+      #     satu pun tanda tangan
+      #   • pemutus nota kredit = pengajunya — potongan yang disetujui sendiri
+      #   • "sudah tiba" tanpa tanggal — keterlambatan jadi tak bisa dihitung
+      #
+      # Ikut memeriksa `purchase_orders.kontrak_payung_id` ada: tanpa kolom
+      # itu, PO tak bisa ditautkan ke kontrak dan penarikan kuota kehilangan
+      # jejaknya.
+      - name: Invarian pengadaan lanjutan
+        run: node scripts/uji-invarian-pengadaan.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
       - name: Invarian NCR
         run: node scripts/uji-invarian-ncr.mjs
         env:

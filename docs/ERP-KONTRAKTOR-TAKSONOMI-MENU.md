@@ -147,13 +147,13 @@ Jantung ERP kontraktor. Lihat skor Lima Pembeda di bawah.
 | RFQ ke vendor | ✅ | migrasi 195 · `/procurement/rfq` · 19 invarian |
 | Perbandingan penawaran (bid tabulation) | ✅ | satu layar dengan RFQ · `tabulasi-penawaran.ts` 14 test |
 | Purchase Order | ✅ | + cancel + auto-number (trigger) |
-| Kontrak payung / blanket order | 🔴 | |
+| Kontrak payung / blanket order | ✅ | Migrasi 219 · `kontrak_payung` + `kontrak_payung_item` · `/procurement/lanjutan`. Kuota per-item dijaga **constraint DB** (`terpakai <= kuota`) — INSERT maupun UPDATE ditolak, jadi PO tak bisa menarik 1.200 ton dari kontrak 1.000 ton. Kontrak berstatus `aktif` yang kuota/masanya habis ditandai **tak bisa dipakai**: PO berikutnya ditagih di luar harga kontrak, dan itu baru ketahuan saat tagihannya datang. `purchase_orders.kontrak_payung_id` menautkan PO ke kontraknya |
 | Goods Receipt Note (GRN) | ✅ | Koreksi dari 🟡: create + confirm + trigger auto-stok |
 | **3-way match (PO–GRN–Invoice)** | ✅ | Ketiga celah DITUTUP 2026-07-27 (PR feat/procurement-3way-match): (a) invoice manual wajib ter-link `goods_receipt_id` + supplier dicek cocok GR + insert whitelist field, (b) total invoice ≤ nilai GR pada HARGA PO (`lib/three-way-match.ts`, murni ber-test), (c) anti-dobel 3 lapis — satu GR satu invoice (409), nomor faktur unik per supplier (409), auto-invoice saat GR confirm cek invoice existing; backstop DB migration 121 (2 partial unique index). Guard over-receipt GR vs PO tetap. Test: 24 (unit+integration+route, positif & negatif, mutation-tested) |
 | Evaluasi kinerja vendor | ✅ | migrasi 210 · skor berbobot vs rata polos bersanding · titik lemah per-dimensi dinyatakan · daftar hitam WAJIB beralasan |
 | Jadwal pembayaran vendor | ✅ | Koreksi dari 🟡: aging + overdue + alokasi FIFO |
 | Impor & kepabeanan | ⛔ | Dicoret (scope domestik) |
-| Expediting & logistik | 🔴 | |
+| Expediting & logistik | ✅ | Migrasi 219 · `expediting` + `expediting_jejak` · `/procurement/lanjutan`. Telat diukur dari **kebutuhan kita** (`purchase_orders.expected_delivery_date`), BUKAN dari `janji_vendor` — keduanya disimpan terpisah dan ditampilkan bersama supaya selisihnya terlihat. Yang dilaporkan telat **terparah**, bukan rata-rata. BUKAN `po_delivery_log` (itu jejak kirim dokumen PO ke vendor, bukan pelacakan barangnya) |
 
 ---
 
@@ -301,7 +301,7 @@ sebagai kategori B/C. 045 dibiarkan di tempatnya — riwayat tak diubah.
 | Penagihan pekerjaan tambah | 🟡 | Via CO→contract_value→termin manual |
 | Invoice & faktur pajak | ✅ | + PDF + QR verifikasi publik (`/verify/invoice/[id]`) |
 | Follow-up penagihan | ✅ | Koreksi dari 🟡 (2026-07-28): notif + email overdue + AR aging bucket 30/60/90 di `/piutang` |
-| Nota kredit | 🔴 | |
+| Nota kredit | ✅ | Migrasi 219 · `nota_kredit` · `/procurement/lanjutan`. Pemutus WAJIB berbeda dari pengaju (constraint DB, pola sama dengan izin kerja 218). `disetujui` dan `diterapkan` adalah **dua kejadian terpisah** — constraint menolak `diterapkan` tanpa `diputuskan_pada`, dan jarak di antaranya ditandai: potongan yang disepakati tapi belum mengurangi tagihan adalah uang hilang dengan persetujuan lengkap |
 
 ---
 

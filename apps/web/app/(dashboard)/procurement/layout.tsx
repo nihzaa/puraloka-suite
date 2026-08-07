@@ -68,6 +68,10 @@ export default function ProcurementLayout({ children }: { children: React.ReactN
     },
     { href: "/procurement/pesanan",    label: "Pesanan" },
     { href: "/procurement/penerimaan", label: "Penerimaan" },
+    // Lanjutan menyusul Penerimaan: kontrak payung mendahului PO, dan
+    // expediting melacak PO yang barangnya belum diterima. Urutannya
+    // mengikuti urutan kerja, bukan urutan pembuatan halamannya.
+    { href: "/procurement/lanjutan",   label: "Kontrak & Logistik" },
     { href: "/procurement/hutang",     label: "Hutang Supplier", jumlah: kpi?.overdue_invoices },
     { href: "/procurement/stok",       label: "Stok",            jumlah: kpi?.low_stock_count },
     { href: "/procurement/supplier",   label: "Supplier" },
