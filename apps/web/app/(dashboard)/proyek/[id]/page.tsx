@@ -330,6 +330,30 @@ function ProjectDetailContent() {
     showToast("success", "Proyek berhasil diperbarui!");
   }
 
+  // ── Gulir ke bagian yang diminta URL (#sec-kurvas, #sec-gantt, …) ─────────
+  //
+  // Peramban memproses hash SEKALI, saat dokumen pertama dimuat — dan pada saat
+  // itu halaman ini masih menampilkan skeleton. Bagian yang dituju baru ada di
+  // DOM beberapa ratus milidetik kemudian, jadi tanpa efek ini setiap tautan
+  // ber-anchor mendarat di puncak halaman.
+  //
+  // Itu bukan kekurangan teoretis: 19 menu ("Kurva S", "Gantt Chart", "Change
+  // Order", …) menautkan ke sini lewat `/m/<key>`, dan seluruhnya tampak
+  // "membuka proyek tapi tak ke bagian yang saya klik".
+  //
+  // Digantung pada `loading` — bukan array kosong — karena yang ditunggu adalah
+  // munculnya bagian itu, bukan sekadar mount pertama.
+  useEffect(() => {
+    if (loading) return;
+    const id = window.location.hash.slice(1);
+    if (!id) return;
+    // Satu frame setelah render supaya elemennya benar-benar terpasang.
+    const t = window.setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+    return () => window.clearTimeout(t);
+  }, [loading]);
+
   if (loading) {
     return (
       <div style={{ padding: "32px 36px" }}>

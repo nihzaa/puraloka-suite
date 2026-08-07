@@ -107,9 +107,23 @@ export default function HalamanMenu() {
   useEffect(() => {
     if (!butuhProyek) { setMemuatProyek(false); return; }
     const ac = makeAbortController();
-    api.get<{ data: Proyek[] }>("/api/v1/projects", { signal: ac.signal })
-      .then(({ data }) => setProyek((data.data ?? []).slice(0, 12)))
-      .catch(() => { /* daftar proyek opsional — halaman tetap berguna tanpanya */ })
+    // `GET /api/v1/projects` menjawab `{ total, projects }` — BUKAN `{ data }`.
+    //
+    // Versi pertama membaca `data.data`, yang selamanya `undefined`, lalu
+    // `?? []` mengubahnya jadi daftar kosong yang terlihat sah. Halaman
+    // menampilkan "Belum ada proyek. Buat proyek dulu." pada basis berisi 15
+    // proyek — dan karena itu kalimat yang masuk akal, tak seorang pun curiga.
+    //
+    // Bentuknya diukur dari respons yang sesungguhnya lewat peramban, bukan
+    // dibaca dari tipe: tipe generiknya justru yang mengarang bentuk itu.
+    api.get<{ total: number; projects: Proyek[] }>("/api/v1/projects", { signal: ac.signal })
+      .then(({ data }) => setProyek((data.projects ?? []).slice(0, 12)))
+      // Galat TIDAK ditelan diam-diam. Daftar proyek memang opsional bagi
+      // halaman ini, tapi kegagalan yang tak pernah terlihat adalah persis
+      // yang membuat cacat di atas bertahan.
+      .catch((e) => {
+        if (!ac.signal.aborted) console.error("gagal memuat daftar proyek", e);
+      })
       .finally(() => setMemuatProyek(false));
     return () => ac.abort();
   }, [butuhProyek]);
