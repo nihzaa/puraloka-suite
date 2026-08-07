@@ -49,7 +49,30 @@ export default async function Beranda() {
     <main id="isi">
       {seksi.map((s) => {
         const Seksi = KOMPONEN[s.kunci]
-        return <Seksi key={s.kunci} konten={konten} />
+
+        // ── Ritme terang-gelap, dikendalikan DB
+        //
+        // `situs_seksi.nada` (migrasi 236), BUKAN `varian`. Percobaan pertama
+        // menumpangkan 'terang' ke `varian`, dan CHECK constraint menolaknya —
+        // penolakan yang benar: `varian` mengatur BENTUK (grid | carousel |
+        // split), `nada` mengatur WARNA. Dua sumbu ortogonal.
+        //
+        // Dari DB, bukan dari berkas ini: admin bisa menukar seksi mana yang
+        // terang tanpa deploy, sama seperti ia menukar urutan dan on/off.
+        //
+        // Pembungkusnya `<div>`, bukan diteruskan sebagai prop: komponen
+        // seksi tak perlu tahu apa-apa soal ritme warna. Kelasnya menukar
+        // NILAI token di lingkupnya, jadi `var(--pada-navy)` yang tersebar
+        // di 21 tempat lintas 6 berkas ikut berubah tanpa satu pun disunting.
+        const terang = s.nada === 'terang'
+
+        return terang ? (
+          <div key={s.kunci} className="seksi-terang">
+            <Seksi konten={konten} />
+          </div>
+        ) : (
+          <Seksi key={s.kunci} konten={konten} />
+        )
       })}
     </main>
   )

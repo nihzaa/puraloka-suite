@@ -65,6 +65,7 @@ export function Hero({ konten }: { konten: KontenSitus }) {
   const sub = teks(konten, 'hero.sub')
   const sejak = teks(konten, 'merek.sejak')
   const nama = teks(konten, 'merek.nama')
+  const cta = teks(konten, 'hero.cta')
 
   if (!judul) return null
 
@@ -144,6 +145,22 @@ export function Hero({ konten }: { konten: KontenSitus }) {
             >
               {sub}
             </p>
+          )}
+
+          {/* SATU tautan, dan maksudnya BUKAN "hubungi kami".
+              Seksi kontak sudah punya CTA WhatsApp; menambah ajakan
+              menghubungi kedua di sini adalah duplikasi maksud, dan halaman
+              yang meminta hal yang sama dua kali terbaca sebagai mendesak,
+              bukan meyakinkan.
+              Yang dituju: bukti. Orang yang baru membaca "kami membangun
+              pabrik, gudang, dan jalan tol" ingin melihatnya, bukan langsung
+              mengirim pesan. */}
+          {cta && (
+            <div className="hero-aksi">
+              <a href="#porto-judul" className="hero-tautan">
+                {cta}
+              </a>
+            </div>
           )}
         </div>
 

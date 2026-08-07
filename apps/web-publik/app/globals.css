@@ -61,10 +61,16 @@
      bukan oleh disiplin orang yang menyuntingnya. */
   --kanvas: #f4f6f8;
   --kanvas-tenggelam: #e7ebef;   /* kartu/foto di atas kanvas */
-  --pada-kanvas: #0a1520;        /* 16,84:1 */
-  --pada-kanvas-redup: #44525e;  /*  5,92:1 */
+  --pada-kanvas: #0a1520;        /* 16,99:1 — dihitung, lihat blok di atas */
+  --pada-kanvas-redup: #44525e;  /*  7,41:1 — dihitung, lihat blok di atas */
   --garis-kanvas: rgba(10, 21, 32, 0.12);
   --garis-kanvas-kuat: rgba(10, 21, 32, 0.24);
+
+  /* Dasar di balik gambar yang belum termuat. IKUT BERUBAH bersama nada
+     seksinya (`.seksi-terang` menimpanya di bawah), karena warna yang dipaku
+     adalah warna yang tak ikut berubah saat ritmenya berubah — dan di kanvas
+     terang, putih transparan sama sekali tak terlihat. */
+  --dasar-media: rgba(255, 255, 255, 0.06);
 
   /* Tipografi teknis: angka tabular berbaris presisi. Dunia subjeknya gambar
      kerja dan tabel volume — bukan majalah. */
@@ -189,6 +195,46 @@ p {
   }
 }
 
+/* Tautan hero: garis bawah bergerak, BUKAN tombol berisi.
+   Tombol penuh di sini akan bersaing dengan CTA WhatsApp di seksi kontak —
+   dua tombol menonjol pada satu halaman membuat keduanya berhenti menonjol.
+   Yang ini navigasi ke bukti; yang di kontak baru ajakan bertindak. */
+/* Pembungkus BLOK, bukan margin pada tautannya.
+   `margin-top` pada elemen `inline-flex` di dalam aliran teks tak menghasilkan
+   jarak vertikal — terlihat di tangkapan layar 2026-08-08: tautannya menempel
+   ke subtext dan terbaca sebagai baris ketiga paragraf, bukan tautan. */
+.hero-aksi {
+  margin-top: 2.25rem;
+}
+
+.hero-tautan {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  /* 44px: disentuh jari, bukan cuma diklik mouse. `padding-block` yang
+     memberinya tinggi — `min-height` pada inline-flex tak menambah area
+     sentuh bila isinya lebih pendek. */
+  padding: 0.6rem 0;
+  color: var(--pada-navy);
+  font-weight: 600;
+  font-size: 1rem;
+  text-decoration: none;
+  border-bottom: 2px solid var(--aksen);
+  transition: gap 0.18s ease-out;
+}
+
+/* Panah dibuat CSS, bukan glyph di JSX: ia dekorasi arah, dan pembaca layar
+   tak perlu mengejanya. */
+.hero-tautan::after {
+  content: '\2193';
+  font-size: 1.1em;
+  line-height: 1;
+}
+
+.hero-tautan:hover {
+  gap: 0.85rem;
+}
+
 .hero-kolom {
   overflow: hidden;
 }
@@ -228,6 +274,66 @@ p {
   /* -50%: jalur berisi DUA salinan penuh, jadi titik ini identik dengan
      awal, dan tak ada kedipan saat mengulang. */
   to   { transform: translate3d(0, -50%, 0); }
+}
+
+/* ── RITME TERANG-GELAP ────────────────────────────────────────────────────
+   Ditambahkan 2026-08-08. Sebelumnya seluruh halaman 8.380px berlatar navy
+   tanpa satu pun penanda pindah bagian: mata tak punya jeda, dan tak ada
+   yang memberi tahu "Anda sudah masuk bagian lain".
+
+   ── Kenapa MENUKAR TOKEN, bukan menimpa warna per elemen
+
+   Warna tersebar sebagai `var(--pada-navy)` di 21 tempat lintas 6 berkas
+   (diukur). Mengganti satu per satu berarti 21 kesempatan melewatkan satu,
+   dan yang terlewat akan jadi teks putih di atas latar terang: tak terbaca,
+   dan tak berbunyi di mana pun.
+
+   Kelas ini menukar NILAI tokennya di lingkupnya sendiri. Komponen tetap
+   menulis `var(--pada-navy)` seperti biasa; yang berubah cuma isinya. Satu
+   tempat, nol kesempatan terlewat.
+
+   ── Kenapa ini BUKAN pelanggaran "satu tema per halaman"
+
+   Halamannya tetap satu tema: navy adalah warna merek dan tetap memimpin
+   (hero, proses, kontak). Yang terang adalah dua seksi tempat FOTO dan
+   DAFTAR IZIN jadi subjeknya, dan keduanya memang lebih terbaca di latar
+   terang. Ini ritme di dalam satu tema, bukan dua tema yang bergantian.
+
+   Aksen kuning TIDAK ikut ditukar: ia 1,30:1 di kanvas terang (dihitung
+   `scripts/kontras-situs.mjs`), jadi ia otomatis mustahil dipakai di sini.
+   Kelangkaannya dijaga fisika warna, bukan disiplin penyuntingnya.       */
+.seksi-terang {
+  --pada-navy: var(--pada-kanvas);
+  --pada-navy-redup: var(--pada-kanvas-redup);
+  --garis: var(--garis-kanvas);
+  --garis-kuat: var(--garis-kanvas-kuat);
+  --dasar-media: var(--kanvas-tenggelam);
+
+  background: var(--kanvas);
+  color: var(--pada-kanvas);
+}
+
+/* Pil terpilih: navy pekat di latar terang, kebalikan dari versi gelapnya.
+   Dihitung 11,64:1 — sama amannya, arah berlawanan. */
+.seksi-terang .porto-pil[aria-pressed='true'] {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: #ffffff;
+}
+
+.seksi-terang .porto-pil:hover {
+  border-color: var(--navy);
+  color: var(--navy);
+}
+
+/* Dialog TIDAK ikut terang. Ia mengambang di atas seluruh halaman dengan
+   backdrop gelap; membuatnya terang akan menyilaukan saat dibuka dari seksi
+   navy, dan foto konstruksi lebih terbaca di atas gelap saat diperbesar. */
+.seksi-terang .porto-dialog {
+  --pada-navy: #ffffff;
+  --pada-navy-redup: #a8bbd0;
+  --garis-kuat: rgba(255, 255, 255, 0.28);
+  color: #ffffff;
 }
 
 /* ── PORTOFOLIO: saring + perbesar ─────────────────────────────────────────
@@ -278,7 +384,22 @@ p {
 
 .porto-jumlah {
   font-size: 0.75rem;
-  opacity: 0.7;
+  /* `opacity: 0.7` DIBUANG.
+     Ia lolos penjaga token — `kontras-situs.mjs` menghitung nilai token, dan
+     opacity mengubah warna EFEKTIF di luar jangkauannya. Di latar navy angka
+     itu masih terbaca; sesudah seksi portofolio jadi terang, axe-core
+     menangkapnya sebagai `color-contrast` serious.
+     Pelajarannya: opacity pada teks adalah warna yang tak terdaftar. Kalau
+     teks perlu lebih redup, pakai token redup yang kontrasnya sudah dihitung. */
+  color: var(--pada-navy-redup);
+}
+
+/* Di dalam pil TERPILIH, latarnya berbalik jadi pekat — token redup di sana
+   justru tenggelam. Warnanya diwarisi dari tombolnya, dengan tebal huruf
+   yang membedakannya dari label. */
+.porto-pil[aria-pressed='true'] .porto-jumlah {
+  color: inherit;
+  font-weight: 600;
 }
 
 .porto-grid {
@@ -292,7 +413,7 @@ p {
   display: block;
   padding: 0;
   border: 0;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--dasar-media);
   cursor: zoom-in;
   overflow: hidden;
   border-radius: 4px;

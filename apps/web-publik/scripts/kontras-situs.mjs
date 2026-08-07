@@ -84,6 +84,37 @@ const PASANGAN = [
   { teks: 'aksen', latar: 'kanvas', maks: 3, guna: 'PAGAR — kuning tak boleh terpakai di terang' },
 ]
 
+/**
+ * `opacity` pada teks adalah WARNA YANG TAK TERDAFTAR.
+ *
+ * Penjaga ini menghitung nilai token. `opacity` mengubah warna EFEKTIF di luar
+ * jangkauan perhitungan itu, jadi teks bisa lolos di sini dan tetap gagal di
+ * axe-core.
+ *
+ * Terjadi 2026-08-08: `.porto-jumlah { opacity: 0.7 }` aman di latar navy,
+ * lalu jadi pelanggaran `color-contrast` serious begitu seksi portofolio
+ * berubah terang. Penjaga token melaporkan 11/11 hijau sepanjang waktu itu.
+ *
+ * Yang dilarang: `opacity` pada aturan yang juga menyetel `color` atau
+ * `font-size` — tanda ia mengatur TEKS. `opacity` pada gambar, lapisan, dan
+ * elemen dekoratif tetap sah dan tak diperiksa.
+ */
+function opacityPadaTeks() {
+  const temuan = []
+  // Tiap blok aturan: `.pemilih { ... }`
+  for (const m of CSS.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const pemilih = m[1].trim()
+    const isi = m[2]
+    if (!/(^|\s|;)opacity\s*:/.test(isi)) continue
+    // Hanya yang jelas mengatur teks.
+    if (!/(^|\s|;)(color|font-size)\s*:/.test(isi)) continue
+    const nilai = (isi.match(/opacity\s*:\s*([\d.]+)/) || [])[1]
+    if (Number(nilai) >= 1) continue
+    temuan.push(`${pemilih.split('\n').pop().trim()}  opacity: ${nilai}`)
+  }
+  return temuan
+}
+
 console.log('\n══ Kontras situs publik ═══════════════════════════════════════')
 
 const gagal = []
@@ -102,6 +133,12 @@ for (const p of PASANGAN) {
   const ok = r >= p.min
   console.log(`  ${ok ? '✅' : '❌'} ${label} ${nilai.padStart(6)}  (min ${p.min})     ${p.guna}`)
   if (!ok) gagal.push(`${label} ${nilai} < ${p.min} — ${p.guna}`)
+}
+
+const opacity = opacityPadaTeks()
+if (opacity.length) {
+  console.log(`\n  opacity pada teks : ${opacity.length}`)
+  for (const o of opacity) gagal.push(`opacity pada teks — ${o}`)
 }
 
 if (gagal.length) {

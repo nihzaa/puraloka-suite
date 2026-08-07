@@ -121,7 +121,12 @@ export function Portofolio({ konten }: { konten: KontenSitus }) {
                       width: '100%',
                       aspectRatio: '4 / 3',
                       objectFit: 'cover',
-                      background: 'rgba(255,255,255,0.04)',
+                      // Token, bukan `rgba(255,255,255,0.04)` yang dipaku.
+                      // Putih transparan tak terlihat sama sekali di kanvas
+                      // terang, dan seksi ini bernada terang sejak migrasi
+                      // 236. Warna dipaku adalah warna yang tak ikut berubah
+                      // saat ritmenya berubah.
+                      background: 'var(--dasar-media)',
                     }}
                   />
                 ))}

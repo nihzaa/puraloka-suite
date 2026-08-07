@@ -34,7 +34,24 @@ export type Milestone = {
 }
 
 export type Legalitas = { kode: string; judul: string; urutan: number }
-export type Seksi = { kunci: string; aktif: boolean; urutan: number; varian: string }
+/**
+ * `varian` = BENTUK (baku | grid | carousel | split).
+ * `nada`   = WARNA  (navy | terang) — sumbu TERPISAH, ditambahkan migrasi 236.
+ *
+ * Dipisah karena keduanya ortogonal: satu seksi bisa 'grid' DAN 'terang'
+ * sekaligus. Memaksakannya ke satu kolom membuat tiap kombinasi butuh
+ * nilainya sendiri, dan daftarnya tumbuh berlipat tiap sumbu baru.
+ *
+ * `nada` opsional di tipe ini supaya payload lama (sebelum 236 ter-deploy)
+ * tetap terbaca — halaman jatuh ke navy, bukan gagal.
+ */
+export type Seksi = {
+  kunci: string
+  aktif: boolean
+  urutan: number
+  varian: string
+  nada?: 'navy' | 'terang'
+}
 export type Merek = {
   warna_utama: string
   warna_aksen: string
