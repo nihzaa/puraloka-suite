@@ -64,13 +64,24 @@ const LANTAI = join(AKAR, 'apps', 'web', 'scripts', 'lantai-nav.json')
 // rantai bundler ikut hidup — biaya besar untuk membaca daftar literal.
 const src = readFileSync(join(AKAR, 'apps', 'web', 'lib', 'peta-menu.ts'), 'utf8')
 
+// Dibaca PER BARIS, satu entri satu baris — bukan dengan pola `{…}` yang
+// melintasi kurung.
+//
+// Versi pertama memakai pola yang berhenti di `}` PERTAMA yang ditemuinya, jadi
+// entri yang memuat `}` di dalam teks `guna:` atau `catatan:` terpotong,
+// href-nya tak terbaca, lalu dilaporkan "ada di DB tapi tidak di peta-menu.ts".
+// Dua puluh entri dituduh hilang padahal semuanya ada — dibuktikan dengan
+// membuka `/m/<key>` di peramban: ketujuh yang paling mencurigakan menampilkan
+// judul yang benar, bukan "Menu tidak dikenal".
+//
+// Laporan palsu lebih berbahaya daripada tidak melapor: ia melatih orang
+// mengabaikan penjaga ini.
 const petaTs = new Map()
-for (const m of src.matchAll(/\{\s*key:\s*'([a-z0-9-]+)'[^}]*?\}/g)) {
-  const blok = m[0]
-  const key = m[1]
-  const href = blok.match(/href:\s*'([^']*)'/)?.[1] ?? null
-  const label = blok.match(/label:\s*'((?:\\'|[^'])*)'/)?.[1]?.replace(/\\'/g, "'") ?? null
-  petaTs.set(key, { href, label })
+for (const baris of src.split(/\r?\n/)) {
+  const m = baris.match(/\{ key: '([a-z0-9-]+)', label: '(.*?)',/)
+  if (!m) continue
+  const href = baris.match(/href: '(.*?)'/)?.[1] ?? null
+  petaTs.set(m[1], { href, label: m[2] })
 }
 
 // ── Sisi DB ─────────────────────────────────────────────────────────────────

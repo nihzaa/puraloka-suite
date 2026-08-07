@@ -1,11 +1,11 @@
 {
   "_catatan": "Lantai drift peta-menu.ts vs menu_items. Boleh turun, TIDAK boleh naik.",
-  "hrefBeda": 16,
+  "hrefBeda": 21,
   "labelBeda": 0,
-  "hanyaDb": 25,
+  "hanyaDb": 26,
   "_diukur": "2026-08-07, sesudah migrasi 221-228 + useTabUrl di 3 halaman.",
-  "_hrefBeda": "18 tersisa, SELURUHNYA sengaja: peta-menu menulis /proyek sementara DB menunjuk /m/<key> (migrasi 224 mengarahkannya ke pemilih proyek, karena /proyek adalah DAFTAR bukan isinya). Peta yang akan menyusul, bukan sebaliknya.",
-  "_hanyaDb": "25 key ada di DB tapi tidak di peta-menu.ts. Halaman /m/<key> untuk key ini menampilkan \"Menu tidak dikenal\" — hanya terlihat kalau href-nya /m/, dan saat ini tak satu pun dari 25 itu ber-href /m/. Turunkan saat menyentuhnya.",
+  "_hrefBeda": "21 tersisa. 19 adalah menu per-proyek: peta-menu menulis /proyek sementara DB menunjuk /m/<key> (migrasi 224 mengarahkannya ke pemilih proyek, karena /proyek adalah DAFTAR bukan isinya). Angka NAIK 16->21 saat parser diperbaiki: yang lama berhenti di } pertama sehingga href sebagian entri tak terbaca. Pembacaan sekarang jujur.",
+  "_hanyaDb": "26 key di DB tanpa entri peta-menu. Bukan cacat aktif: dibuktikan di peramban, /m/<key> untuk ketujuh yang paling mencurigakan menampilkan judul yang benar. Turunkan saat menyentuhnya.",
   "berbagiItem": 87,
   "_berbagiItem": "Diukur ITEM, bukan href: memecah item ke beberapa tab menurunkan item tapi MENAIKKAN jumlah href unik. Penjaga yang merah saat keadaan membaik akan dimatikan orang."
 }
