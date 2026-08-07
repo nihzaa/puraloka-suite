@@ -245,6 +245,44 @@ penilaian selera tak boleh melanggar `ARAH-VISUAL-2026.md`.
 ⚠️ Judul `2026-08-06-sumbu-ui-roadmap.md` menyebut "Sumbu UI/UX" tetapi
 isinya **penjaga CI status-dokumen**, bukan rombak visual. Jangan tertukar.
 
+#### Batas wilayah dua skill desain (ditetapkan 2026-08-08)
+
+| Wilayah | Skill | Kenapa |
+|---|---|---|
+| `app/(dashboard)/`, `mandor-portal/`, `login/` — **ERP** | `impeccable`, mode **Operate** | scanability & konsistensi di atas ekspresi; data-dense |
+| compro + halaman jual SaaS (**belum dibangun**) | `design-taste-frontend` + `impeccable` mode **Persuade** | halaman persuasi, bukan alat kerja |
+
+`design-taste-frontend` menyatakan sendiri wilayahnya: *"Not dashboards, not
+data tables, not multi-step product UI."* **Jangan memakainya untuk modul ERP** —
+baseline dial-nya `DESIGN_VARIANCE: 8` (10 = "artsy chaos"), arah yang salah
+untuk pengguna berliterasi digital rendah.
+
+Di wilayah compro, `ARAH-VISUAL-2026.md` hanya mengikat pada **navy `#003366`**
+(identitas merek, §2) dan pasangan font. Sisanya bebas.
+
+#### Skill boleh mengusulkan lebih baik dari brief — lewat gambar, bukan diam-diam
+
+Brief bisa punya kekurangan, dan skill desain memang dipasang supaya hasilnya
+lebih baik. Tapi **usul yang bertentangan dengan keputusan founder yang sudah
+turun** (`ARAH-VISUAL-2026.md` §10) **dibangun sebagai perbandingan visual
+berdampingan, bukan diterapkan.** Founder memutuskan dari gambar.
+
+Polanya sudah ada dan terbukti: `apps/web/scripts/banding-aksen.mjs` —
+4 tangkapan (2 kandidat × 2 mode). Itulah yang **membunuh usul indigo** (§10d):
+di atas kertas argumennya rapi, begitu dirender ia tidak menyatu.
+
+**Wajib dijawab sebelum mengusulkan warna/token apa pun:** *token ini
+mengendalikan berapa persen permukaan yang terlihat?* Usul indigo gagal justru
+karena lahir dari membaca daftar token, bukan dari mengukur jangkauannya —
+`--aksen` ternyata hanya menyentuh 4 tempat.
+
+Brief menang atas **penerapan**, tidak atas **usulan**.
+
+⚠️ `impeccable` menulis `PRODUCT.md`/`DESIGN.md` dan punya hook yang auto-jalan
+sesudah edit berkas UI. **Hook sengaja TIDAK diaktifkan.** Jangan menyalakannya
+(`$impeccable hooks on`) tanpa ratifikasi — CI repo ini sudah punya 9 penjaga
+visual, dan `DESIGN.md` versi skill **tidak menggantikan** `ARAH-VISUAL-2026.md`.
+
 ### 8a.4 Dokumen tak boleh tertinggal dari kode
 
 Sesudah menyelesaikan sesuatu, **perbarui dokumennya di commit yang sama**:

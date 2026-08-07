@@ -4,15 +4,17 @@
 >
 > | §10 | Keputusan founder | Status |
 > |---|---|---|
-> | 1. Aksen indigo `#6366F1` | ⏸ **DITAHAN** — *"tunjukkan dulu, baru saya putuskan"* | bangun perbandingan visual, **jangan tanya lewat teks** |
+> | 1. Aksen indigo `#6366F1` | ❌ **DITOLAK sesudah dilihat** (`a38cb0d`) | perbandingan dibangun & dilihat; **navy tetap aksen tunggal** — §10d |
 > | 2. Sidebar gelap permanen | ❌ **DITOLAK** — *"tergantung mode-nya, dark atau light"* | §5d dicoret |
-> | 3. Tab dipecah jadi halaman | ✅ **SETUJU** | keuangan sudah selesai; sisa mandor + kas |
+> | 3. Tab dipecah jadi halaman | ✅ **SETUJU** | **selesai** — keuangan, mandor, kas ketiganya dipecah (ukur: §1c) |
 > | 4. Halaman contoh = Dashboard | ✅ **SETUJU** | dikerjakan |
 >
 > **Jangan membaca dokumen ini sebagai "usulan yang menunggu persetujuan".**
-> Keempatnya sudah dijawab (§10). Nomor 1 bukan pertanyaan terbuka melainkan
-> pekerjaan: bangun perbandingannya, tunjukkan gambarnya. Founder 2026-08-07:
-> *"jangan jadi penghalang karena terus minta keputusan saya terus"*.
+> Keempatnya sudah dijawab (§10), dan **keempatnya sudah selesai** — termasuk
+> nomor 1, yang sempat berumur pendek sebagai "pekerjaan": perbandingannya
+> dibangun (`apps/web/scripts/banding-aksen.mjs`), dilihat, lalu ditolak.
+> Founder 2026-08-07: *"jangan jadi penghalang karena terus minta keputusan
+> saya terus"*.
 >
 > **⚠️ Batas wilayah:** token kerapatan (`--pad-kartu`, `--gap-grid`,
 > `--teks-*`) di `globals.css` sedang digarap **sesi lain**. Founder memutuskan
@@ -36,19 +38,15 @@
 > Inilah "biru-di-atas-biru" yang §3a sebut sebagai penyebab monoton — token
 > bernama *aksen* yang nilainya sama keluarga dengan warna merek.
 >
-> **Belum diubah, dan itu disengaja.** `--aksen*` dipakai di 8+ halaman
-> (dashboard 9×, kas 4×, kalender 3×, arus kas, kasbon, laporan, audit),
-> sebagian sebagai gradien grafik. Menukarnya jadi indigo akan mengubah
-> seluruh halaman itu sekaligus — dan token kerapatan di berkas yang SAMA
-> sedang digarap sesi lain.
+> **Dan tetap navy — bukan karena belum sempat, melainkan karena sudah diuji
+> dan ditolak** (`a38cb0d`, §10d). Jangan menukarnya ke indigo. Empat langkah
+> penerapan yang dulu tertulis di sini sudah dicabut bersama keputusannya.
 >
-> **Cara menerapkannya nanti** (satu perubahan, satu sesi, tanpa bentrok):
->
-> 1. tukar keempat nilai `--aksen*` ke indigo (§3b)
-> 2. jalankan `uji-token-grafik-bukan-teks.mjs` — indigo `#6366F1` adalah
->    token DATA (ambang 3:1), bukan warna teks (4,5:1)
-> 3. audit a11y kedua mode: 47 halaman harus tetap nol pelanggaran
-> 4. periksa gradien dashboard secara visual — di sanalah aksen paling terlihat
+> Yang **masih berlaku** dari temuan ini: token bernama *aksen* yang nilainya
+> sekeluarga dengan warna merek memang tidak memberi kontras apa pun. Tetapi
+> §10d membuktikan penyelesaiannya bukan menukar nilai token itu — melainkan
+> memperbaiki **berapa banyak layar yang dikendalikannya**. Lihat §10d
+> sebelum mengusulkan warna aksen apa pun lagi.
 >
 > Dokumen ini menjawab keluhan founder 2026-08-04:
 > *"kurang dapet wah-nya, kurang punya taste desain"* dan
@@ -91,8 +89,16 @@ banyak per layar**. Itu yang membuat Linear dan Ramp terasa mahal.
 ### 1b. Monoton karena tak ada lapisan
 
 ```
-20 dari 22 menu induk = 1 halaman saja
+18 dari 28 menu induk = 1 halaman saja     ← diukur ulang 2026-08-08
 ```
+
+> Angka lama di sini ("20 dari 22") ditulis 2026-08-04 dan sudah dua kali
+> basi — `df6557d` mengoreksinya jadi "16 dari 24", dan itu pun kini keliru.
+> Ukur sendiri, jangan percaya baris di atas:
+> ```bash
+> for d in "apps/web/app/(dashboard)"/*/; do
+>   echo "$(basename $d) $(find $d -name page.tsx | wc -l)"; done
+> ```
 
 Klik "Keuangan" → langsung tabel. Klik "Kas" → langsung tabel. Tak ada
 ringkasan, tak ada grafik, tak ada "keadaan hari ini". Tiap menu terasa sama
@@ -100,18 +106,31 @@ karena **memang** sama bentuknya.
 
 ### 1c. Tab menyembunyikan aplikasi di dalam halaman
 
-| Halaman | Rujukan tab | Baris |
-|---|---|---|
-| **keuangan** | 26 | **3.449** |
-| **mandor** | 15 | **3.667** |
-| laporan | 14 | 1.713 |
-| kas | 14 | 1.447 |
-| procurement | — | 2.448 |
-| proyek/[id] | — | 2.006 |
+Diukur 2026-08-04 (angka asli diagnosis), dan **diukur ulang 2026-08-08**:
+
+| Halaman | Baris 08-04 | Baris 08-08 | Keterangan |
+|---|---|---|---|
+| **estimasi** | — | **3.713** | ← **terbesar sekarang**; §6b menyebutnya "tetap tab ✅" |
+| laporan | 1.713 | 1.809 | naik sedikit |
+| dashboard | — | 944 | |
+| **keuangan** | 3.449 | **sudah dipecah** | UI-2-1 selesai — 5 sub-halaman |
+| **mandor** | 3.667 | **sudah dipecah** | tak lagi di daftar terbesar |
+| kas | 1.447 | **sudah dipecah** | |
 
 Halaman 3.400 baris bukan halaman — itu aplikasi yang disembunyikan di balik
 tab. Orang tak tahu ada apa di dalamnya sampai mengklik, dan mesin pencari
 internal tak bisa menemukannya.
+
+> **Yang berubah sejak diagnosis ditulis:** tiga halaman terbesar (keuangan,
+> mandor, kas) sudah dipecah — §10 nomor 3 selesai seluruhnya, bukan "sisa
+> mandor + kas" seperti tertulis di header. Tapi **estimasi 3.713 baris**
+> kini memegang rekor, dan §6b menggolongkannya "tetap tab ✅" dengan alasan
+> tahapan satu alur kerja. Alasan itu mungkin masih benar; **ukurannya tidak
+> lagi bisa diabaikan**. Ini pekerjaan terbuka, bukan keputusan yang sudah turun.
+>
+> ```bash
+> wc -l "apps/web/app/(dashboard)"/*/page.tsx | sort -rn | head -8
+> ```
 
 ---
 
@@ -153,7 +172,13 @@ Referensi Buildify yang founder kirim menyelesaikannya dengan cara berbeda:
 **satu ungu pekat, sisanya abu-abu diam**. Keberaniannya dibelanjakan di SATU
 tempat.
 
-### 3b. Palet usulan
+### 3b. Palet usulan — ⚠️ blok AKSEN di bawah **DITOLAK**, jangan disalin
+
+> **Baca §10d sebelum blok ini.** Bagian `AKSEN BARU` adalah usul yang sudah
+> dibangun, dilihat, dan **ditolak** (`a38cb0d`). Nilai `--aksen*` yang berlaku
+> di `globals.css` adalah **navy**, bukan indigo. Blok ini disimpan sebagai
+> catatan sejarah — menyalinnya ke kode berarti menerapkan keputusan yang
+> sudah dicabut.
 
 ```
 IDENTITAS (tak berubah)
@@ -161,16 +186,16 @@ IDENTITAS (tak berubah)
   --navy-mid        #0050A0
   --navy-light      #EBF2FF
 
-AKSEN BARU — dipakai HEMAT, hanya untuk yang paling penting di layar
+AKSEN BARU — ❌ DITOLAK 2026-08-07 (§10d), TIDAK dipakai
   --aksen           #6366F1   indigo
   --aksen-terang    #818CF8
   --aksen-lembut    #EEF0FF
   --aksen-pekat     #4338CA
 
-DATA (grafik & visualisasi — deret yang bisa dibedakan buta warna)
-  --data-1          #003366   navy      (nilai utama)
-  --data-2          #6366F1   indigo    (pembanding)
-  --data-3          #0891B2   cyan      (deret ketiga)
+DATA — ⚠️ blok di bawah TAK PERNAH DITERAPKAN; yang berlaku ada di kode
+  --data-1          #003366   navy      (nilai utama)     ← ini saja yang cocok
+  --data-2          #6366F1   indigo    (pembanding)      ← ditolak (§10d)
+  --data-3          #0891B2   cyan      (deret ketiga)    ← nyatanya --data-2
   --data-4          #B45309   amber     (perhatian)
   --data-5          #7C3AED   ungu      (deret kelima)
 
@@ -178,15 +203,39 @@ SEMANTIK (tak berubah — sudah lolos WCAG)
   --success #15803d · --warning #B45309 · --danger #B91C1C · --info #1D4ED8
 ```
 
-### 3c. Kenapa indigo, bukan ungu seperti Buildify
+**Deret DATA yang sungguh berlaku** — diukur 2026-08-08 di `globals.css:353`
+(terang) dan `:669` (gelap). Ia berbeda dari usul di atas, dan yang di kode
+yang menang:
 
-Tiga alasan, dan yang ketiga menentukan:
+```
+                 TERANG      GELAP
+  --data-1       #003366     #7ABDFF     navy / biru terang
+  --data-2       #0891B2     #34D399     cyan / hijau
+  --data-3       #15803D     #FBBF24     hijau / amber
+  --data-4       #A16207     #A3E635     amber / hijau-lime
+  --data-5       #EA580C     #CBD5E1     oranye / abu
+```
+
+Ukur ulang kapan saja: `grep -nE "^\s*--data-[0-9]" apps/web/app/globals.css`
+
+### 3c. ~~Kenapa indigo, bukan ungu seperti Buildify~~ — argumen yang kalah oleh render
+
+> **Dipertahankan sebagai catatan sejarah.** Ketiga alasan di bawah terdengar
+> masuk akal di atas kertas dan tetap tidak menyelamatkan usulnya begitu
+> dirender (§10d). Itu justru gunanya disimpan: **argumen roda warna tidak
+> memprediksi hasil di layar.**
 
 1. **Bertetangga dengan navy** di roda warna — terasa satu keluarga, bukan
    tempelan.
 2. **Cukup berbeda** untuk menonjol: navy pekat gelap, indigo terang berjenuh.
 3. **Ungu Buildify (`#7C3AED`) terlalu jauh dari navy** — dipakai bersama, ia
    membuat navy terlihat kusam. Indigo menaikkan navy, bukan menenggelamkannya.
+
+**Yang sebenarnya terjadi:** alasan 1 dan 2 saling meniadakan di layar — cukup
+dekat untuk terbaca sebagai "navy yang salah", cukup jauh untuk tidak menyatu.
+Ada pula sebab kedua yang independen dan terukur, tercatat di
+[rfq/page.tsx:797](apps/web/app/(dashboard)/procurement/rfq/page.tsx#L797):
+indigo `#6366F1` berkontras **4,47** — di bawah ambang teks 4,5.
 
 ### 3d. Aturan pemakaian aksen — ini yang paling mudah dilanggar
 
@@ -450,25 +499,48 @@ cd apps/web && for g in a11y-ratchet kontras-hex-ratchet hex-ratchet \
 |---|---|---|---|
 | 1 | Palet aksen indigo `#6366F1` | indigo | ❌ **DITOLAK** sesudah dilihat — lihat §10d. Navy tetap aksen tunggal |
 | 2 | Sidebar gelap `#0B1220` permanen | ya | ❌ **DITOLAK** — *"tergantung pada mode-nya, dark atau light"*. Sidebar ikut tema. **§5d dicoret** |
-| 3 | Tab dipecah jadi halaman | ya (keuangan/mandor/kas) | ✅ **SETUJU** — keuangan **sudah selesai** (3.449 → 523 baris, 5 sub-halaman). Sisa: mandor, kas |
+| 3 | Tab dipecah jadi halaman | ya (keuangan/mandor/kas) | ✅ **SETUJU — dan sudah SELESAI ketiganya** (2026-08-08). Terbuka baru: estimasi 3.713 baris, §1c |
 | 4 | Halaman contoh mana dulu | Dashboard | ✅ **SETUJU** |
 
-### 10a. Nomor 1 — cara menyelesaikannya tanpa bertanya lagi
+### 10a. Nomor 1 — riwayat keputusannya, karena sempat tercatat tiga kali berbeda
 
-Founder tidak menolak indigo, dan tidak menyetujuinya. Ia menolak **memutuskan
-warna dari teks** — keputusan yang wajar, karena hex di tabel tak memberi tahu
-apa pun tentang rasanya di layar.
+Satu pertanyaan, tiga catatan berlawanan dalam 26 jam. Ditulis di sini supaya
+tak ada sesi yang menghidupkannya kembali:
 
-Catatan bentrok: commit `4b199c2` menandai indigo "DISETUJUI" pada hari yang
-sama founder menjawab *"saya sudah lumayan cocok dengan warna ini"* kepada sesi
-ini. Dua catatan berlawanan untuk satu pertanyaan. **Yang berlaku: ditahan
-sampai perbandingan visual dilihat.**
+| Waktu | Catatan | Berlaku? |
+|---|---|---|
+| `4b199c2` 2026-08-07 00:29 | indigo **DISETUJUI** | ❌ dicabut — persetujuan dari membaca teks, bukan melihat |
+| `df6557d` 2026-08-07 00:38 | indigo **DITAHAN** — *"tunjukkan dulu"* | ❌ sudah terlampaui — perbandingannya lalu dibangun |
+| `a38cb0d` 2026-08-07 02:43 | indigo **DITOLAK sesudah dilihat** | ✅ **inilah yang berlaku** |
 
-Yang harus dikerjakan, bukan ditanyakan:
+Founder benar menolak memutuskan warna dari teks: hex di tabel tak memberi tahu
+apa pun tentang rasanya di layar. Perbandingannya dibangun, dilihat, diputuskan.
+**Selesai — jangan tanyakan ulang, jangan terapkan diam-diam.**
 
-1. bangun dashboard versi navy dan versi indigo **berdampingan**
-2. tangkap layar keduanya di **kedua mode** (`scripts/tangkap-layar.mjs`)
-3. tunjukkan gambarnya — barulah founder memutuskan
+### 10d. Kenapa indigo gagal — dan pelajaran yang berlaku untuk usul warna berikutnya
+
+> Ini bagian yang sempat dirujuk §10 tetapi tak pernah ditulis, sehingga dokumen
+> menunjuk ke ruang kosong selama sehari. Isinya dipulihkan dari `a38cb0d`.
+
+Perbandingan dibangun dengan `apps/web/scripts/banding-aksen.mjs` — empat
+tangkapan: navy × indigo, terang × gelap. Sesudah dilihat, indigo ditolak.
+
+**Sebabnya terlihat begitu dirender:** indigo hanya menyentuh **empat tempat**
+(garis grafik, sparkline, irisan donat, progress bar). Kartu KPI, sidebar,
+lencana, dan tautan semuanya tetap navy karena memakai token `--navy`, **bukan**
+`--aksen`. Hasilnya bukan "lebih hidup" melainkan **tidak menyatu** — garis ungu
+di dalam kartu bertepi navy terbaca seperti komponen aplikasi lain.
+
+Mode gelap lebih telak: di sana `--aksen` navy sudah biru terang, jadi indigo di
+sebelahnya menjadi **dua biru yang berselisih sedikit** — persis gejala
+"biru-di-atas-biru" yang §3a keluhkan, hanya dengan satu biru tambahan.
+
+> **Pelajarannya bukan "indigo warna jelek".** Usulnya lahir dari membaca
+> **daftar token**, bukan dari mengukur berapa banyak layar yang benar-benar
+> dikendalikan token itu. Usul warna berikutnya — dari sesi mana pun, dari skill
+> mana pun — harus lebih dulu menjawab: **token ini mengendalikan berapa persen
+> permukaan yang terlihat?** Kalau jawabannya "empat tempat", warnanya tak akan
+> menyelamatkan apa pun.
 
 ### 10b. Dua koreksi — dokumen ini sempat salah
 
