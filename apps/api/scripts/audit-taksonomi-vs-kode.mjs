@@ -50,18 +50,18 @@ const PETA = {
   'Cost-to-complete forecast': { rute: ['/cashflow-forecast', '/cost-analytics'] },
   'Commitment tracking (PO + borongan)': { tabel: ['purchase_orders'], rute: ['/procurement/purchase-orders'] },
   'Analisa varians (budget vs commit vs aktual)': { rute: ['/cost-analytics'] },
-  'Critical path (CPM)': { berkas: ['cpm'], tabel: ['critical_path'] },
+  'Critical path (CPM)': { berkas: ['cpm'], tabel: ['milestone_dependencies'] },
   'Resource histogram / leveling': { tabel: ['resource_histogram'] },
-  'RFQ ke vendor': { tabel: ['rfq', 'rfqs'] },
+  'RFQ ke vendor': { tabel: ['rfq', 'rfq_penawaran'] },
   // Tabulasi TIDAK punya tabel sendiri: ia DITURUNKAN dari `rfq_penawaran`
   // tiap kali diminta. Menyimpannya sebagai tabel membuat angka "termurah"
   // bisa basi diam-diam saat satu penawaran disunting.
   'Perbandingan penawaran (bid tabulation)': { tabel: ['rfq_penawaran'], rute: ['/rfq'] },
-  'Surat masuk/keluar (correspondence)': { berkas: ['surat'], tabel: ['correspondence'], web: ['/letters'] },
-  'Claims management': { berkas: ['contracts'], tabel: ['claims'], web: ['/claims'] },
+  'Surat masuk/keluar (correspondence)': { berkas: ['surat-korespondensi'], tabel: ['project_letters'] },
+  'Claims management': { berkas: ['klaim-kontraktual'], tabel: ['contract_claims'] },
   'Jaminan penawaran (bid bond)': { tabel: ['contract_bonds'] },
-  'Kalender kerja & hari libur': { tabel: ['work_calendar', 'holidays'] },
-  'Prakualifikasi vendor': { tabel: ['vendor_prequalification'] },
+  'Kalender kerja & hari libur': { tabel: ['hari_libur'] },
+  'Prakualifikasi vendor': { tabel: ['prakualifikasi_vendor'] },
   // Diperbaiki 2026-08-07: nama tabel yang SEBENARNYA dibangun, bukan tebakan.
   // Entri lama menebak `insurance_register`/`contingency`/`delay_analysis` —
   // tak satu pun ada, jadi penjaga ini hijau abadi untuk kelimanya.
@@ -77,9 +77,21 @@ const PETA = {
   'Tender & award subkontraktor': { tabel: ['tender_subkon'], rute: ['/tender-subkon'] },
   // Empat di bawah sebelumnya TAK PUNYA entri, jadi tak pernah diperiksa —
   // penjaga yang tak memetakan sesuatu akan hijau abadi untuknya.
-  'Tracking waste / susut': { tabel: ['waste_tracking'] },
+  // ⚠️ `waste_tracking` TIDAK PERNAH ADA — diukur ke basis 2026-08-08.
+  //
+  // Entri ini saya tulis sendiri dengan menebak nama tabel dari nama barisnya,
+  // dan tebakan itu membuat penjaga mencari benda yang tak pernah dibangun:
+  // modulnya nyata (`/gudang/rekonsiliasi`, 552 baris, `lib/rekonsiliasi-
+  // material.ts` 34 test), hanya namanya berbeda. Hasilnya taksonomi bertahan
+  // 🔴 sementara penjaga setuju — dua sumber sepakat pada hal yang salah.
+  //
+  // Pelajaran yang lebih umum: entri PETA harus dibuat dari ARTEFAK YANG
+  // TERBUKTI ADA, bukan dari nama yang terdengar masuk akal. Nama yang
+  // ditebak menghasilkan penjaga yang hijau abadi — bentuk kebutaan yang
+  // paling sulit dilihat, karena angkanya terlihat sehat.
+  'Tracking waste / susut': { rute: ['/gudang/rekonsiliasi'] },
   'Material milik klien (free issue)': { tabel: ['penerimaan_material_klien'], rute: ['/material-klien'] },
-  'Evaluasi kinerja subkontraktor': { tabel: ['subcontractor_evaluations'] },
+  'Evaluasi kinerja subkontraktor': { tabel: ['evaluasi_subkon'] },
   'Transfer stok antar proyek': { tabel: ['stock_transfers'], rute: ['/transfer-stok'] },
   'Rekonsiliasi material (teoritis vs aktual)': { rute: ['/rekonsiliasi-material'] },
   // Ditambahkan 2026-08-08 — dan pelajarannya SAMA PERSIS dengan komentar
@@ -95,11 +107,11 @@ const PETA = {
   'Rekonsiliasi bank': { tabel: ['rekening_koran'], rute: ['/kas/rekonsiliasi'] },
   'Perusahaan / badan hukum (multi-entity)': { tabel: ['companies'], rute: ['/companies'] },
   'Revisi & transfer anggaran': { tabel: ['rap_change_log'], rute: ['/rap'] },
-  'Method statement': { tabel: ['method_statements'] },
-  'Evaluasi kinerja vendor': { tabel: ['vendor_performance'] },
-  'Kontrak payung / blanket order': { tabel: ['blanket_orders'] },
+  'Method statement': { tabel: ['method_statement'] },
+  'Evaluasi kinerja vendor': { tabel: ['evaluasi_vendor'] },
+  'Kontrak payung / blanket order': { tabel: ['kontrak_payung'] },
   'Expediting & logistik': { tabel: ['expediting'] },
-  'Dokumen prakualifikasi': { tabel: ['vendor_prequalification'] },
+  'Dokumen prakualifikasi': { tabel: ['dokumen_prakualifikasi'] },
   'Master Subkontraktor': { tabel: ['subcontractors'] },
   'Analisa markup, margin, contingency': { rute: ['/estimate-versions'] },
   'Profitabilitas per proyek / per cost code': { rute: ['/cost-analytics'] },
@@ -156,15 +168,52 @@ function sumberWeb(dirs) {
 }
 const teksWeb = sumberWeb(D_WEB_SRC)
 
+const adaTabel = (t) =>
+  new RegExp(`create table (if not exists )?(public\\.)?${t}\\b`).test(sqlAll)
+
 function bukti(spec) {
   const b = []
   for (const f of spec.berkas ?? []) if (berkasApi.has(f)) b.push(`berkas:${f}.ts`)
-  for (const t of spec.tabel ?? []) {
-    if (new RegExp(`create table (if not exists )?(public\\.)?${t}\\b`).test(sqlAll)) b.push(`tabel:${t}`)
-  }
+  for (const t of spec.tabel ?? []) if (adaTabel(t)) b.push(`tabel:${t}`)
   for (const r of spec.rute ?? []) if (sumberApi.includes(r)) b.push(`rute:${r}`)
   for (const w of spec.web ?? []) if (teksWeb.includes(w)) b.push(`web:${w}`)
   return b
+}
+
+/**
+ * PEMERIKSAAN DIRI — nama tabel di PETA yang tak pernah dibuat migrasi mana pun.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA PENJAGA INI MEMERIKSA DIRINYA SENDIRI
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Diukur 2026-08-08: **14 dari 29 nama tabel di PETA tidak ada di basis**, dan
+ * sembilan di antaranya karena namanya DITEBAK dalam bahasa Inggris sementara
+ * tabel nyatanya berbahasa Indonesia:
+ *
+ *     claims          → contract_claims        method_statements → method_statement
+ *     rfqs            → rfq                    holidays          → hari_libur
+ *     correspondence  → surat_korespondensi    blanket_orders    → kontrak_payung
+ *     vendor_performance → evaluasi_vendor     subcontractor_evaluations → evaluasi_subkon
+ *     vendor_prequalification → prakualifikasi_vendor
+ *
+ * Akibatnya modul yang SUDAH HIDUP dicari lewat nama yang tak pernah ada,
+ * penjaga setuju dengan taksonomi yang bilang 🔴, dan dua sumber sepakat pada
+ * hal yang salah. Kebutaan yang paling sulit dilihat: angkanya terlihat sehat.
+ *
+ * Sisanya (`critical_path`, `cvr`, `resource_histogram`, `subcontractors`,
+ * `work_calendar`) memang belum dibangun — itu SAH, dan entrinya sengaja
+ * dipertahankan supaya ikut terhitung "benar belum ada" alih-alih hilang dari
+ * pemeriksaan. Karena itu daftar ini bersifat LAPORAN, bukan kegagalan: yang
+ * membedakan "belum dibangun" dari "salah nama" adalah mata manusia.
+ *
+ * Yang dituntut: siapa pun yang menambah entri PETA melihat namanya di sini
+ * dan memastikan itu memang benda yang belum ada — bukan tebakan.
+ */
+function tabelHantu() {
+  const semua = new Set()
+  for (const spec of Object.values(PETA)) for (const t of spec.tabel ?? []) semua.add(t)
+  return [...semua].filter((t) => !adaTabel(t)).sort()
 }
 
 const baris = readFileSync(join(AKAR, 'docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md'), 'utf8').split('\n')
@@ -197,6 +246,14 @@ if (basi.length) {
 if (takDipetakan.length) {
   console.log('\n— Belum punya entri di PETA (tambahkan supaya ikut terperiksa):')
   for (const n of takDipetakan.slice(0, 40)) console.log(`   ${n}`)
+}
+
+const hantu = tabelHantu()
+if (hantu.length) {
+  console.log('\n— Nama tabel di PETA yang TAK ADA di migrasi mana pun:')
+  console.log('   (sah bila modulnya memang belum dibangun; CACAT bila modulnya')
+  console.log('    hidup dengan nama lain — lihat `tabelHantu`)')
+  for (const t of hantu) console.log(`   ${t}`)
 }
 
 // ── Ratchet: `basi` dan `takDipetakan` boleh turun, TIDAK boleh naik.

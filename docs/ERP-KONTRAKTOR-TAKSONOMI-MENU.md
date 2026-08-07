@@ -131,7 +131,7 @@ Jantung ERP kontraktor. Lihat skor Lima Pembeda di bawah.
 | **Cashflow forecast** | 🟡 | `lib/cashflow-forecast.ts` + endpoint `/estimate-versions/:id/cashflow-forecast` — **tanpa UI**. Cashflow aktual (✅) terpisah di `finance.ts` |
 | Manajemen contingency | ✅ | migrasi 200 · `/keuangan/contingency` · 21 invarian · sisa dihitung, tak disimpan |
 | Analisa varians (budget vs commit vs aktual) | ✅ | `/cost-analytics` — tab Varians Biaya di `/estimasi` |
-| Profitabilitas per proyek / per cost code | 🟡 | `/finance/profitability` per proyek ✅; per cost code 🔴 |
+| Profitabilitas per proyek / per cost code | ✅ | **Koreksi dari 🟡 (2026-08-08)** — per proyek `/finance/profitability` ✅ **dan** per cost code ✅: `lib/varians-cost-code.ts` (12 test) · `GET /api/v1/projects/:projectId/varians` (`cost-control.ts:296`) · tab Varians Biaya di `/estimasi`. Catatan "per cost code 🔴" sudah salah sejak F5-1 §3d mencatatnya hidup. |
 | **WIP / persentase penyelesaian (PSAK)** | ✅ | `lib/wip-psak.ts` + `routes/v1/wip.ts` + `/api/v1/reports/wip`, dipanggil `/laporan` |
 | **Cost Value Reconciliation (CVR)** | 🔴 | |
 | Pagu belanja per material | ✅ | Live bersama RAP — `rap_material_line.pagu` kolom GENERATED (`qty_adjusted × supplier_price`), beku setelah lock |
@@ -170,7 +170,7 @@ Jantung ERP kontraktor. Lihat skor Lima Pembeda di bawah.
 | Stock opname | ✅ | `POST /stocks/opname` bulk + OpnameModal + selisih real-time |
 | Minimum stok & reorder point | 🟡 | `min_stock` + alert dashboard; reorder point/auto-PO belum |
 | **Rekonsiliasi material (teoritis vs aktual)** | ✅ | `/procurement/stocks/opname` — opname massal + selisih real-time |
-| Tracking waste / susut | 🔴 | `waste_factor` hanya kolom di `assembly_components` (DB-only) |
+| Tracking waste / susut | ✅ | **Koreksi dari 🔴 (2026-08-08)** — dibangun sebagai **Rekonsiliasi Material** `/gudang/rekonsiliasi` (552 baris) · `lib/rekonsiliasi-material.ts` (34 test) · `GET /api/v1/projects/:projectId/rekonsiliasi-material`. Ia mengadu empat sumber angka yang tak pernah dibandingkan: RAB · penerimaan · pemakaian lapangan · sisa gudang. **Tanpa tabel `waste_tracking`** — dan itu sebabnya status ini bertahan salah: yang dicari nama tabelnya, bukan gunanya. Sisa yang memang DITUNDA: "rencana susut vs susut nyata" (`waste_factor` terisi di 1 dari 3.043 assembly — F5-1 §4). |
 | Material milik klien (free issue) | ✅ | migrasi 194 · `/gudang/material-klien` · tabel tersendiri (G-2 terhindar) |
 
 ---

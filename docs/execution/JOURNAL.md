@@ -5,6 +5,73 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-08 — Penjaga taksonomi mencari 14 tabel yang tak pernah ada
+
+Melanjutkan penyisiran. Sesudah mengoreksi status basi kesembilan, saya
+menemukan dua lagi — dan sebabnya ternyata satu cacat di penjaganya sendiri.
+
+### Status basi KESEPULUH & KESEBELAS
+
+```
+Profitabilitas per cost code   🟡 "per cost code 🔴"
+  nyatanya  lib/varians-cost-code.ts (12 test) + GET /projects/:id/varians
+            + tab Varians Biaya di /estimasi
+
+Tracking waste / susut          🔴 "waste_factor hanya kolom (DB-only)"
+  nyatanya  /gudang/rekonsiliasi (552 baris) + lib/rekonsiliasi-material.ts
+            (34 test) + GET /projects/:id/rekonsiliasi-material
+```
+
+### Sebabnya: penjaga mencari nama yang ditebak
+
+`Tracking waste` dipetakan ke tabel **`waste_tracking`** — yang tak pernah ada.
+Modulnya nyata, hanya namanya berbeda (dibangun sebagai Rekonsiliasi Material,
+tanpa tabel khusus). Jadi penjaga *setuju* dengan taksonomi yang bilang 🔴:
+**dua sumber sepakat pada hal yang salah.**
+
+Entri itu saya tulis sendiri, dengan menebak nama tabel dari nama barisnya.
+Jadi saya periksa seluruh PETA ke basis — dan hasilnya jauh lebih besar dari
+dugaan:
+
+> **14 dari 29 nama tabel di PETA tidak ada di basis.** Sembilan karena
+> ditebak dalam bahasa Inggris sementara tabel nyatanya berbahasa Indonesia.
+
+```
+claims                  → contract_claims        rfqs               → rfq
+correspondence          → project_letters        holidays           → hari_libur
+method_statements       → method_statement       blanket_orders     → kontrak_payung
+vendor_performance      → evaluasi_vendor        critical_path      → milestone_dependencies
+vendor_prequalification → prakualifikasi_vendor  subcontractor_evaluations → evaluasi_subkon
+```
+
+Sebelas nama diperbaiki. Sisa tiga (`cvr`, `resource_histogram`,
+`subcontractors`) memang belum dibangun — itu SAH, dan entrinya sengaja
+dipertahankan supaya ikut terhitung "benar belum ada".
+
+### Penjaga sekarang memeriksa DIRINYA
+
+`tabelHantu()` melaporkan tiap nama tabel di PETA yang tak dibuat migrasi mana
+pun. Sengaja LAPORAN, bukan kegagalan: yang membedakan "belum dibangun" dari
+"salah nama" adalah mata manusia. Yang dituntut cuma satu — siapa pun yang
+menambah entri melihat namanya di sana dan memastikan itu memang benda yang
+belum ada.
+
+Ini pola yang sama untuk ketiga kalinya di berkas yang sama: entri yang tak
+ada → hijau abadi (2026-08-07, komentar saya sendiri), entri yang tak dipetakan
+→ hijau abadi (kemarin), dan sekarang entri yang salah nama → hijau abadi.
+Ketiganya bentuk kebutaan yang paling sulit dilihat: **angkanya terlihat sehat.**
+
+### Bukti
+
+```
+M1  'contract_claims' → 'claims'          muncul di daftar hantu ✅
+M2  taksonomi waste → 🔴                  basi 1 > lantai 0 · MERAH exit 1 ✅
+    keduanya dipulihkan                   basi 0 · takDipetakan 12 · HIJAU ✅
+tabel hantu                               14 → 3 (ketiganya sah)
+```
+
+---
+
 ## 2026-08-08 — Mencari kerja berikutnya, menemukan tiga angka basi
 
 Sesudah RFQ selesai, saya menyisir antrean untuk pekerjaan berikutnya. Yang
