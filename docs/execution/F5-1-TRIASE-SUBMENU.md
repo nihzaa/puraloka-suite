@@ -525,11 +525,12 @@ INTI atau PEMBEDA — bukan langsung dikerjakan** dari daftar ini.
 
 | Sub-menu | Jml | Pemicu yang membangunkannya |
 |---|---|---|
-| Prakualifikasi vendor · Dokumen prakualifikasi | 2 | Vendor > 30, atau ada tender yang mensyaratkan |
+| ~~Prakualifikasi vendor · Dokumen prakualifikasi~~ | ~~2~~ | ✅ **SELESAI 2026-08-07** — dibangun atas keputusan founder meski pemicu (>30 vendor) belum menyala; basis belum operasional, jadi bentuknya diturunkan dari praktik pengadaan konstruksi |
 | Evaluasi kinerja subkontraktor · Kepatuhan (izin, asuransi, pajak) | 2 | Subkon formal ber-kontrak mulai dipakai (hari ini sistemnya mandor) |
 | Kalender kerja & hari libur | 1 | Penjadwalan mulai dipakai untuk komitmen kontraktual |
 | Critical path (CPM) · Resource histogram / leveling · Method statement | 3 | Proyek dengan jadwal yang benar-benar dinegosiasikan owner |
-| Kontrak payung / blanket order · Expediting & logistik · Evaluasi kinerja vendor | 3 | Volume pengadaan berulang dari vendor yang sama |
+| Kontrak payung / blanket order · Expediting & logistik | 2 | Volume pengadaan berulang dari vendor yang sama |
+| ~~Evaluasi kinerja vendor~~ | ~~1~~ | ✅ **SELESAI 2026-08-07** — skor berbobot, titik lemah per-dimensi, daftar hitam beralasan |
 | Log pemakaian alat · Maintenance terjadwal · Biaya operasional per alat (BBM, operator) | 3 | Alat **milik sendiri** > 5 unit (hari ini mayoritas sewa) |
 | Integrasi penyusutan → GL | 1 | Register aset terisi — GL-nya sendiri **sudah sehat** (§3a), yang belum ada asetnya |
 | Izin kerja (work permit) | 1 | Proyek dengan syarat K3 formal dari owner |
@@ -538,7 +539,7 @@ INTI atau PEMBEDA — bukan langsung dikerjakan** dari daftar ini.
 | Distribusi laporan terjadwal | 1 | Ada penerima tetap yang memintanya |
 | Nota kredit | 1 | Ada retur/koreksi tagihan pertama |
 | Material request (mobile) · Checklist inspeksi (mobile) | 2 | Setelah mode offline penuh — F4-3 baru menutup jalur TULIS |
-| | **25** | |
+| | **22** | tiga item vendor selesai 2026-08-07 |
 
 ### Tiga yang TIDAK dihitung di sini — sudah 🟡, bukan merah
 

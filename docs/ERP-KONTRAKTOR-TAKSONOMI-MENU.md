@@ -46,7 +46,7 @@ lapisan mana yang sudah ada.
 | Price Book / rate library | 🟡 | CECEP 104, versioned + effective-dated, DB+test only, 0 endpoint |
 | Satuan (Unit of Measure) | ✅ | `units` (090) + `dimension` (115/116) + route `units.ts` + UI `/pengaturan/satuan` |
 | Master Supplier/Vendor | ✅ | CRUD + edit + credit_limit di `procurement.ts`; prakualifikasi tidak ada |
-| Prakualifikasi vendor | 🔴 | |
+| Prakualifikasi vendor | ✅ | migrasi 210 · `/procurement/kualifikasi` (2026-08-07) · skor berbobot 4 dimensi · **vendor "lolos" dengan izin kedaluwarsa ditandai TIDAK boleh diundang** · 26 invarian, 14 test, 4 mutasi |
 | Master Subkontraktor | 🟡 | Sistem mandor ✅ (padanan lokal); subkon formal ber-kontrak 🔴 |
 | Master Klien | ✅ | `clients.ts` CRUD + toggle + NPWP + link user |
 | Master Karyawan | 🟡 | `users` (akun) + `workers` (tukang); bukan master HR |
@@ -67,7 +67,7 @@ lapisan mana yang sudah ada.
 | Pipeline lead / prospek | 🟡 | `bids.status='prospek'` (147) — satu status di register tender, belum pipeline lead tersendiri |
 | Register tender / bid | ✅ | Migrasi 147 + `/tender` (2026-08-01), end-to-end |
 | Keputusan Go / No-Go | ✅ | `bids.status` go/no_go + `decision_note`; `no_go`/`batal` sengaja dikeluarkan dari win-rate |
-| Dokumen prakualifikasi | 🔴 | |
+| Dokumen prakualifikasi | ✅ | migrasi 210 · `dokumen_prakualifikasi` 9 jenis (NIB/SIUJK/SBU/…) dengan masa berlaku · peringatan 60 hari sebelum habis |
 | **Estimating / AHSP** | 🟡 | CECEP: engine (`lib/ahsp-engine.ts`) + 17 tabel + 500+ test; **UI `/estimasi` kini hidup** (2026-07-30 — sebelumnya tak terjangkau `middleware.ts`) + tombol "kenapa angkanya segini?" (2026-08-01). Sisa: seed AHSP diblokir gate CI isolation + review founder |
 | **Quantity takeoff / BOQ** | 🟡 | Read-model `GET /estimate-versions/:id/boq` ada (tanpa UI); CRUD takeoff belum; RAB produksi via upload Excel |
 | Skenario penawaran (what-if) | 🟡 | Tabel `scenarios` (110) DB-only, 0 endpoint |
@@ -150,7 +150,7 @@ Jantung ERP kontraktor. Lihat skor Lima Pembeda di bawah.
 | Kontrak payung / blanket order | 🔴 | |
 | Goods Receipt Note (GRN) | ✅ | Koreksi dari 🟡: create + confirm + trigger auto-stok |
 | **3-way match (PO–GRN–Invoice)** | ✅ | Ketiga celah DITUTUP 2026-07-27 (PR feat/procurement-3way-match): (a) invoice manual wajib ter-link `goods_receipt_id` + supplier dicek cocok GR + insert whitelist field, (b) total invoice ≤ nilai GR pada HARGA PO (`lib/three-way-match.ts`, murni ber-test), (c) anti-dobel 3 lapis — satu GR satu invoice (409), nomor faktur unik per supplier (409), auto-invoice saat GR confirm cek invoice existing; backstop DB migration 121 (2 partial unique index). Guard over-receipt GR vs PO tetap. Test: 24 (unit+integration+route, positif & negatif, mutation-tested) |
-| Evaluasi kinerja vendor | 🔴 | |
+| Evaluasi kinerja vendor | ✅ | migrasi 210 · skor berbobot vs rata polos bersanding · titik lemah per-dimensi dinyatakan · daftar hitam WAJIB beralasan |
 | Jadwal pembayaran vendor | ✅ | Koreksi dari 🟡: aging + overdue + alokasi FIFO |
 | Impor & kepabeanan | ⛔ | Dicoret (scope domestik) |
 | Expediting & logistik | 🔴 | |

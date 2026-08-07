@@ -673,6 +673,17 @@ jobs:
       - name: Pendirian tenant menyiapkan rantai approval
         run: node scripts/audit-pendirian-tenant.mjs
 
+      # Prakualifikasi & evaluasi vendor (TUNDA kelompok A).
+      #
+      # Dua invarian yang paling mahal kalau bocor:
+      #   • ditolak/daftar-hitam TANPA alasan — keputusan yang menutup pintu
+      #     rezeki orang, lalu tak ada yang bisa dijawab saat ditanya
+      #   • skor di luar 0-100 — peringkat vendor jadi omong kosong
+      - name: Invarian kualifikasi vendor
+        run: node scripts/uji-invarian-vendor.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
       - name: Invarian NCR
         run: node scripts/uji-invarian-ncr.mjs
         env:

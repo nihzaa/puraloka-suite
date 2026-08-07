@@ -113,6 +113,67 @@ byte-hash gagal total karena PDF mengompres ulang saat menyisipkan.
 
 ---
 
+## 2026-08-07 (lanjutan 16) — TUNDA mulai dikerjakan: kelompok A (vendor) 25 → 22
+
+### Keputusan founder mengubah aturan mainnya
+
+25 item TUNDA menunggu **pemicu bisnis**, dan 24 di antaranya belum menyala.
+Founder memutuskan membangun semuanya sekarang dengan data dummy — basis ini
+belum operasional sama sekali, jadi tak ada risiko merusak apa pun.
+
+Yang berubah karena itu: bentuk modul diturunkan dari **praktik pengadaan
+konstruksi**, bukan dari kasus nyata di basis. Konsekuensinya dicatat di
+migrasi 210 terang-terangan — begitu vendor nyata masuk, bentuknya WAJIB
+ditinjau ulang.
+
+### Kelompok A — tiga item vendor
+
+`prakualifikasi_vendor` · `dokumen_prakualifikasi` · `evaluasi_vendor`.
+
+Prakualifikasi dan evaluasi **sengaja dipisah** meski keduanya "menilai
+vendor": yang pertama menjawab *"boleh ikut tender?"* sekali di depan, yang
+kedua *"masih layak dipakai lagi?"* berulang sesudah tiap pekerjaan.
+Menyatukannya berarti satu skor untuk dua pertanyaan berbeda — dan vendor
+yang lulus lalu mengecewakan akan terlihat sama dengan yang belum pernah
+dinilai.
+
+### Tiga hal yang layar tolak tampilkan sebagai kabar baik
+
+**1. Vendor "lolos" yang izinnya sudah mati.** Diukur pada data uji: UD Besi
+Kuat Mandiri berstatus hijau dengan skor 72, dan SIUJK-nya habis Maret 2026.
+Tanpa kolom "Boleh diundang?", ia akan diundang tender — lalu penawarannya
+gugur di meja panitia, dan itu baru ketahuan sesudah berkas dikirim.
+
+**2. Rata-rata yang menyembunyikan satu dimensi nol.** Vendor dengan mutu 100
+dan ketepatan waktu 0 punya rata-rata sama dengan yang serba-75. Layar
+menampilkan **skor berbobot bersanding dengan rata polos**, plus lencana
+titik lemah per-dimensi.
+
+**3. Daftar hitam yang tenggelam di skor rendah.** Skor 46 karena sekali telat
+berbeda dari 46 karena mengirim barang palsu lalu menolak retur. Daftar hitam
+punya lencana sendiri dan **mengalahkan skor berapa pun** — vendor 95 yang
+masuk daftar hitam tetap tak boleh dipakai.
+
+### Yang saya revisi sendiri sesudah melihat layar
+
+Potret pertama menunjukkan KPI "Izin segera habis" bernilai **0** — jalur
+peringatan kuning tak pernah teruji. Saya tambahkan satu vendor dengan SBU
+yang habis 42 hari lagi, supaya ketiga jalur peringatan (merah/kuning/hitam)
+punya kasusnya masing-masing.
+
+### Bukti
+
+    26 invarian skema, 0 bocor · mutasi constraint TERTANGKAP
+    14 test pustaka · 4 dari 4 mutasi perhitungan TERTANGKAP
+    API: 172 berkas test, 1811 lulus, 2 dilewati, 0 gagal
+    web: 389 lulus · 6 penjaga UI hijau
+    axe-core: nol pelanggaran terang & gelap
+    pnpm build lolos — /procurement/kualifikasi terdaftar
+
+    TUNDA: 25 → 22 · taksonomi: 3 baris 🔴 → ✅
+
+---
+
 ## 2026-08-07 (lanjutan 15) — `any` 99 → 59, dan TIGA field yang tak pernah tampil di layar
 
 ### Yang dikerjakan, dan kenapa ini bukan kerapian

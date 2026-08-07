@@ -71,6 +71,9 @@ export default function ProcurementLayout({ children }: { children: React.ReactN
     { href: "/procurement/hutang",     label: "Hutang Supplier", jumlah: kpi?.overdue_invoices },
     { href: "/procurement/stok",       label: "Stok",            jumlah: kpi?.low_stock_count },
     { href: "/procurement/supplier",   label: "Supplier" },
+    // Kualifikasi menyusul Supplier: yang dinilai adalah supplier yang sudah
+    // terdaftar, jadi urutannya mengikuti urutan kerjanya.
+    { href: "/procurement/kualifikasi", label: "Kualifikasi Vendor" },
     { href: "/procurement/material",   label: "Material" },
     { href: "/procurement/laporan",    label: "Laporan" },
   ];
