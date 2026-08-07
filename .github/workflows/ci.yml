@@ -1044,6 +1044,23 @@ jobs:
         run: node apps/web/scripts/uji-rute-terdaftar.mjs
         working-directory: .
 
+      # Penjaga di atas menanyakan "rute ini terdaftar di middleware?".
+      # Penjaga di bawah menanyakan hal yang BERBEDA dan sama pentingnya:
+      # "halaman ini bisa dicapai dari mana?"
+      #
+      # 2026-08-07: empat halaman lengkap (/jadwal, /kepatuhan,
+      # /aset/operasional, /dokumen/kendali) hanya bisa dibuka dengan mengetik
+      # URL — 20 entri menunya masih menunjuk halaman "segera hadir" yang
+      # MENYATAKAN fitur itu belum ada. Rutenya terdaftar, jadi penjaga di atas
+      # hijau. Test hijau. Nol yang berbunyi.
+      #
+      # Butuh DIRECT_URL: sidebar membaca `menu_items` di DB, bukan peta-menu.ts.
+      - name: Halaman yatim & link mati di navigasi
+        run: node apps/web/scripts/audit-nav-yatim.mjs
+        working-directory: .
+        env:
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+
       # Audit a11y runtime (axe-core) MELEWATI rute dinamis yang tak diberi
       # contoh id — dan tetap melaporkan "0 pelanggaran". Diukur 2026-08-07:
       # enam halaman terlewat selama ini, dan outputnya terbaca sebagai

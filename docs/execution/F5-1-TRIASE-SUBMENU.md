@@ -162,13 +162,13 @@ menyempurnakan yang sudah hidup — dua item INTI ternyata yang kedua (§2c).
 |---|---|---|---|---|---|---|
 | 1 | **Laporan keuangan** — neraca & L/R | 14 Keuangan | Owner tak bisa melihat posisi perusahaan; ini pertanyaan pertama tiap calon pelanggan | ✅ **SELESAI** (§3c) | — sudah terpenuhi | **M** |
 | 2 | **Interim Payment Certificate (IPC)** | 15 Penagihan | Termin tak bisa ditagih secara formal ke owner proyek; ini pintu masuk UANG | ✅ **SELESAI 2026-08-07** (§3b) | progress terverifikasi + retensi | L |
-| 3 | **Retensi subkontrak** | 8 Subkontraktor | Retensi mandor/subkon tak terlacak → dibayar penuh padahal harus ditahan; kebocoran uang langsung | 🟡 UI hidup (2026-08-06) | kontrak subkon + termin | M |
-| 4 | **Claims management** | 3 Kontrak | Klaim tambah-kurang tak punya jejak; saat sengketa, tak ada bukti | 🟡 UI hidup (2026-08-06) | kontrak + variation order | L |
-| 5 | **Surat masuk/keluar (correspondence)** | 3 Kontrak | Korespondensi kontraktual tak terdaftar → notifikasi keterlambatan tak bisa dibuktikan | 🟡 UI hidup (2026-08-06) | register dokumen | M |
-| 6 | **Instruksi lapangan** | 9 Lapangan | Perintah lisan tak berjejak; dasar klaim biaya tambahan hilang | 🟡 UI hidup (2026-08-06) | proyek + scope | S |
-| 7 | **Non-Conformance Report (NCR)** | 9 Lapangan | Ketidaksesuaian mutu tak punya siklus tutup; tender pemerintah mensyaratkannya | 🟡 UI hidup (2026-08-06) | punch list (✅ ada) | M |
-| 8 | **Geotag foto** | 20 Mobile | Foto tanpa koordinat tak membuktikan pekerjaan dilakukan **di lokasi itu** — dasar sengketa progres | 🟡 UI + migrasi 190 | kolom GPS (0 kolom hari ini) | S |
-| 9 | **Absensi lapangan** | 20 Mobile | Upah harian dihitung dari ingatan mandor; ini sumber selisih paling sering | 🟡 UI hidup (2026-08-06) | worker + assignment (✅ ada) | M |
+| 3 | **Retensi subkontrak** | 8 Subkontraktor | Retensi mandor/subkon tak terlacak → dibayar penuh padahal harus ditahan; kebocoran uang langsung | ✅ **SELESAI** (§3d) | kontrak subkon + termin | M |
+| 4 | **Claims management** | 3 Kontrak | Klaim tambah-kurang tak punya jejak; saat sengketa, tak ada bukti | ✅ **SELESAI** (§3d) | kontrak + variation order | L |
+| 5 | **Surat masuk/keluar (correspondence)** | 3 Kontrak | Korespondensi kontraktual tak terdaftar → notifikasi keterlambatan tak bisa dibuktikan | ✅ **SELESAI** (§3d) | register dokumen | M |
+| 6 | **Instruksi lapangan** | 9 Lapangan | Perintah lisan tak berjejak; dasar klaim biaya tambahan hilang | ✅ **SELESAI** (§3d) | proyek + scope | S |
+| 7 | **Non-Conformance Report (NCR)** | 9 Lapangan | Ketidaksesuaian mutu tak punya siklus tutup; tender pemerintah mensyaratkannya | ✅ **SELESAI** (§3d) | punch list (✅ ada) | M |
+| 8 | **Geotag foto** | 20 Mobile | Foto tanpa koordinat tak membuktikan pekerjaan dilakukan **di lokasi itu** — dasar sengketa progres | ✅ **SELESAI** (§3d) | — migrasi 190 menambah 5 kolom | S |
+| 9 | **Absensi lapangan** | 20 Mobile | Upah harian dihitung dari ingatan mandor; ini sumber selisih paling sering | ✅ **SELESAI** (§3d) | worker + assignment (✅ ada) | M |
 
 ### 3a. INTI #1 TIDAK terblokir — koreksi, saya salah menyatakannya
 
@@ -239,6 +239,52 @@ Sekali adalah kekeliruan; tujuh kali adalah cacat sistemik tanpa penjaga.
 `audit-taksonomi-vs-kode.mjs` sebenarnya bisa mendeteksinya, tetapi keenam modul
 itu **tak punya entri `PETA`** sehingga tak pernah diperiksa — ia melaporkan
 "status BASI: 0" dengan percaya diri. F8-1 menutup lubang itu.
+
+### 3d. Koreksi KEEMPAT — seluruh INTI sudah hidup, 2026-08-07
+
+Sesudah §3c, saya mengukur **kesembilan INTI dan kedua belas PEMBEDA** ke kode
+sekaligus — bukan satu per satu saat kebetulan tersandung. Hasilnya:
+
+**20 dari 21 item sudah lengkap empat lapis** (DB · pustaka · API · UI).
+
+Delapan lagi ditandai 🟡 padahal lengkap:
+
+| # | Item | Bukti yang membantahnya |
+|---|---|---|
+| 3 | Retensi subkontrak | migrasi 183 · `lib/retensi-subkontrak.ts` (18 test) · 2 endpoint · `mandor/retensi/page.tsx` |
+| 4 | Claims management | migrasi 184 · `lib/klaim-kontraktual.ts` (20 test) · 3 endpoint · `klaim-section.tsx` di `proyek/[id]:1396` |
+| 5 | Surat masuk/keluar | migrasi 185 · `lib/surat-korespondensi.ts` (21 test) · 3 endpoint · `surat-section.tsx` di `proyek/[id]:1403` |
+| 6 | Instruksi lapangan | migrasi 186 · `lib/instruksi-lapangan.ts` (16 test) · 3 endpoint · `instruksi-lapangan-section.tsx` di `proyek/[id]:1404` |
+| 7 | NCR | migrasi 189 · 5 endpoint · `mutu/ncr/page.tsx` |
+| 8 | Geotag foto | migrasi 190 menambah `lintang`/`bujur`/`akurasi_m`/`sumber_lokasi` · `lib/geotag.ts` (17 test) · `penanda-lokasi.tsx` |
+| 9 | Absensi lapangan | migrasi 191 · 3 endpoint · `mandor/absensi/page.tsx` |
+| P#11 | Profitabilitas per cost code | `lib/varians-cost-code.ts` (12 test) · `GET /projects/:id/varians` · tab Varians Biaya |
+
+Prasyarat INTI #8 yang tertulis **"kolom GPS (0 kolom hari ini)"** khususnya:
+migrasi 190 menambahkan lima kolom, dan API sudah menerima serta mengembalikannya.
+
+**Yang benar-benar masih nol: satu item — CVR.** Dan dokumen sudah benar
+menandainya ditunda berdasar ukuran (`project_expenses` 0 baris), bukan lalai.
+
+### 3e. Yang JAUH lebih penting daripada delapan status yang salah
+
+Kesembilan INTI hidup — tetapi pada hari yang sama ditemukan bahwa **empat
+halaman lengkap tak bisa dicapai siapa pun**: `/jadwal`, `/kepatuhan`,
+`/aset/operasional`, `/dokumen/kendali`. Dua puluh entri menunya masih menunjuk
+`/m/<key>`, halaman yang **menyatakan fiturnya belum digarap**.
+
+Jadi selama berminggu-minggu, pengguna yang mengklik "Jalur Kritis (CPM)" di
+sidebar membaca kalimat bahwa CPM belum ada — sementara CPM-nya lengkap dengan
+kalender hari kerja, empat jenis relasi, dan 44 invarian terjaga.
+
+Ini bukan sekadar dokumen yang keliru. **Status dokumen yang basi hanya
+membohongi kita; menu yang basi membohongi pengguna.**
+
+Diperbaiki migrasi **220**, dan dijaga permanen oleh `audit-nav-yatim.mjs`
+(diuji mutasi dua arah: halaman tanpa tautan → MERAH; menu tanpa halaman →
+MERAH; keduanya pulih HIJAU).
+
+---
 
 ---
 
