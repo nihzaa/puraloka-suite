@@ -1,11 +1,12 @@
 {
-  "_catatan": "Lantai drift peta-menu.ts vs menu_items. Boleh turun, TIDAK boleh naik.",
-  "hrefBeda": 21,
+  "_catatan": "Lantai drift & berbagi-href nav. Boleh turun, TIDAK boleh naik.",
+  "_diukur": "2026-08-07, sesudah migrasi 221-230 (klasifikasi 87 item jadi 4 jenis).",
+  "hrefBeda": 42,
   "labelBeda": 0,
   "hanyaDb": 26,
-  "_diukur": "2026-08-07, sesudah migrasi 221-228 + useTabUrl di 3 halaman.",
-  "_hrefBeda": "21 tersisa. 19 adalah menu per-proyek: peta-menu menulis /proyek sementara DB menunjuk /m/<key> (migrasi 224 mengarahkannya ke pemilih proyek, karena /proyek adalah DAFTAR bukan isinya). Angka NAIK 16->21 saat parser diperbaiki: yang lama berhenti di } pertama sehingga href sebagian entri tak terbaca. Pembacaan sekarang jujur.",
-  "_hanyaDb": "26 key di DB tanpa entri peta-menu. Bukan cacat aktif: dibuktikan di peramban, /m/<key> untuk ketujuh yang paling mencurigakan menampilkan judul yang benar. Turunkan saat menyentuhnya.",
-  "berbagiItem": 74,
-  "_berbagiItem": "Diukur ITEM, bukan href: memecah item ke beberapa tab menurunkan item tapi MENAIKKAN jumlah href unik. Penjaga yang merah saat keadaan membaik akan dimatikan orang."
+  "berbagiItem": 49,
+  "_hrefBeda": "Naik saat menu dipindah ke /m/<key> (migrasi 230): peta-menu.ts masih menulis href halaman induknya. Itu justru arah yang benar — peta yang akan menyusul, bukan sebaliknya.",
+  "_hanyaDb": "26 key di DB tanpa entri peta-menu.ts. Bukan cacat aktif: dibuktikan di peramban, /m/<key> untuk yang paling mencurigakan menampilkan judul yang benar, bukan 'Menu tidak dikenal'. Turunkan saat menyentuhnya.",
+  "_berbagiItem": "49 tersisa, dan seluruhnya SINONIM SAH: item berstatus 'hidup' yang isinya benar-benar ada di halaman induk — dua nama untuk satu halaman (mis. 'Kas & Bank' dan 'Kas Kecil' sama-sama menuju /kas, dan keduanya benar). Yang berstatus 'sebagian' sudah dipindah ke /m/<key> lewat migrasi 230. Yang menyala di sidebar diatur lib/menu-berbagi-href.ts.",
+  "_metrik": "Yang di-ratchet berbagiItem, BUKAN berbagiHref: memecah item ke beberapa tab menurunkan item tapi menaikkan jumlah href unik. Penjaga yang merah saat keadaan membaik akan dimatikan orang."
 }

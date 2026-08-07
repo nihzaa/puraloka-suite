@@ -53,7 +53,7 @@
  * warna tipis praktis hilang.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Plus, Wallet, Wrench, MapPin, AlertTriangle, CalendarClock,
   CircleSlash, Clock,
@@ -61,6 +61,7 @@ import {
 import { api, makeAbortController } from "@/lib/api";
 
 import { C } from "@/lib/warna-ui";
+import { useTabUrl } from "@/lib/use-tab-url";
 import { KartuKPI, Kosong, Panel } from "@/components/ui-dasar";
 import { Tabel } from "@/components/dasar";
 import {
@@ -121,8 +122,20 @@ const fmtRp = (n: number | null) =>
 const fmtTgl = (s: string | null) =>
   s ? new Date(s).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "2-digit" }) : "—";
 
+const TAB_ASET = ['milik', 'sewa'] as const;
+
 export default function AsetPage() {
-  const [tab, setTab] = useState<"milik" | "sewa">("milik");
+  return (
+    <Suspense fallback={null}>
+      <IsiAset />
+    </Suspense>
+  );
+}
+
+function IsiAset() {
+  // Tab hidup di URL supaya menu "Sewa Alat" bisa menunjuknya langsung,
+  // bukan mendarat di tab Milik lalu menuntut satu klik lagi.
+  const [tab, setTab] = useTabUrl<"milik" | "sewa">(TAB_ASET, "milik");
   const [aset, setAset] = useState<Aset[]>([]);
   const [metaAset, setMetaAset] = useState<MetaAset | null>(null);
   const [sewa, setSewa] = useState<Sewa[]>([]);
