@@ -5,10 +5,14 @@
 > 1 route ditrangani 2 link sidebar, silahkan audit dan verifikasi dulu lalu
 > buat kan rencana perbaikannya."*
 >
-> Satu kelompok temuan **sudah dieksekusi** karena ia cacat, bukan pilihan
-> desain: 20 menu yang menunjuk halaman "segera hadir" padahal halamannya jadi
-> (migrasi 220, commit `cbdb1fd`). Sisanya di dokumen ini menyangkut **struktur
-> navigasi** — dan struktur adalah keputusan produk, bukan perbaikan bug.
+> **PEMBARUAN 2026-08-07 — SELURUHNYA SUDAH DIKERJAKAN.**
+>
+> Dokumen ini semula menahan T-3 sambil menunggu satu keputusan founder.
+> Founder menjawab: *"yaa perbaiki aja kan?"* dan *"kenapa T-3 ditahan padahal
+> itu yg terbesar?"* — pertanyaan yang benar. Menahan pekerjaan demi keputusan
+> yang jawabannya sudah jelas adalah bentuk lain dari tidak mengerjakannya.
+>
+> Status tiap temuan ada di §1. Migrasi 220–226 + tiga perbaikan kode.
 
 ---
 
@@ -35,12 +39,15 @@ antara keduanya** yang melahirkan cacat menu yatim kemarin.
 |---|---|---|---|---|
 | T-1 | Menu menunjuk "segera hadir" padahal halaman ada | 20 item | **cacat** | ✅ **SELESAI** — migrasi 220 |
 | T-2 | Halaman yatim (tak bisa dicapai) | 11 → 0 | **cacat** | ✅ **SELESAI** — dijaga `audit-nav-yatim.mjs` |
-| T-3 | Satu href dipakai banyak item sidebar | **27 href / 144 item** | struktur | 🔵 rencana di bawah |
-| T-4 | Href sama muncul di sidebar **dan** tab-bagian | 13 href | struktur | 🔵 rencana di bawah |
-| T-5 | Tiga aturan "aktif" berbeda di tiga berkas | 3 implementasi | konsistensi | 🔵 rencana di bawah |
-| T-6 | Label identik berulang di sidebar | 3 pasang | salah tulis | 🟢 murah, bisa segera |
-| T-7 | Drift `peta-menu.ts` ↔ `menu_items` tak terjaga | ~23 href | proses | 🔵 rencana di bawah |
-| T-8 | Link mati (nav → halaman tak ada) | **0** | — | ✅ nol, kini dijaga |
+| T-3 | Satu href dipakai banyak item sidebar | 144 → **96** | struktur | ✅ **SELESAI** — 223, 224 |
+| T-4 | Href sama muncul di sidebar **dan** tab-bagian | 13 → 6 | struktur | ✅ **SELESAI** — 225 |
+| T-5 | Tiga aturan "aktif" berbeda di tiga berkas | 3 → **1** | konsistensi | ✅ **SELESAI** — `lib/rute-aktif.ts` |
+| T-6 | Label identik berulang di sidebar | 3 → **1** | salah tulis | ✅ **SELESAI** — 222 |
+| T-7 | Drift `peta-menu.ts` ↔ `menu_items` tak terjaga | 39 → **18** | proses | ✅ **SELESAI** — dijaga ratchet |
+| T-8 | Link mati (nav → halaman tak ada) | **0** | — | ✅ nol, dijaga |
+| T-9 | Beranda tak ada di sidebar (`/dashboard` di urutan 1801) | 1 | **cacat** | ✅ **SELESAI** — 221 |
+| T-10 | 13 anak menu naik ke tingkat atas (induk dimatikan) | 13 → **0** | **cacat** | ✅ **SELESAI** — 222 |
+| T-11 | Rantai menu per-proyek putus di tiga tempat | 3 cacat | **cacat** | ✅ **SELESAI** — kode |
 
 **Yang paling menentukan pengalaman pengguna adalah T-3.** Sisanya membuat
 kode sulit dirawat; T-3 membuat sidebar terasa membingungkan saat dipakai.
@@ -217,3 +224,60 @@ T-1 dan T-2 sudah selesai.
   tapi menu per-tenant adalah kebutuhan nyata multi-tenant — sebuah PT bisa
   mematikan modul yang tak dibelinya. Yang perlu diperbaiki adalah penjagaan
   drift-nya (T-7), bukan sumbernya.
+
+
+---
+
+## 9. Yang benar-benar dikerjakan (2026-08-07)
+
+### Migrasi
+
+| # | Isi | Uji mutasi |
+|---|---|---|
+| 220 | 20 menu TUNDA → halaman nyata | key karangan DITOLAK |
+| 221 | Beranda `sort_order 10`, Dashboard Eksekutif dipensiunkan | 2 mutasi DITOLAK |
+| 222 | 13 anak yatim struktural (10 mati, 3 pindah) | halaman kehilangan jalan masuk DITOLAK |
+| 223 | 18 menu → halaman khusus yang sudah ada | key tak ada DITOLAK (menangkap `fn-kasbon`) |
+| 224 | 19 menu per-proyek → pemilih `/m/<key>` | href bukan `/m/<key>` DITOLAK |
+| 225 | 7 nama sidebar disamakan dengan tab | label meleset DITOLAK |
+| 226 | 4 menu terakhir yang masih "segera hadir" | masih `/m/` DITOLAK |
+
+Ketujuhnya idempoten — dibuktikan dengan menjalankan 3× dan membandingkan hasil.
+
+### Cacat kode yang hanya ketahuan karena diuji di peramban
+
+Penyelesaian untuk menu per-proyek ternyata **sudah dibangun lengkap** di
+`m/[key]/page.tsx` — pilih proyek, lalu tautkan ke `/proyek/<id>#<anchor>`.
+Komentarnya bahkan menjelaskan niatnya. Ia tak pernah dipanggil, dan ketiga
+bagiannya rusak:
+
+1. **`data.data` padahal API menjawab `{ total, projects }`** — selamanya
+   `undefined`, lalu `?? []` mengubahnya jadi *"Belum ada proyek. Buat proyek
+   dulu."* pada basis berisi 15 proyek. Kalimatnya masuk akal, jadi tak seorang
+   pun curiga. Galatnya pun ditelan `.catch(() => {})`.
+2. **`tabProyek` tak cocok dengan anchor** — `'kurva-s'` vs `id="sec-kurvas"`,
+   `'change-order'` vs `id="sec-co"`. Tak satu pun dari 19 tautan cocok.
+3. **Halaman proyek nol penanganan hash** — peramban memproses hash saat
+   dokumen dimuat, dan saat itu halaman masih skeleton.
+
+### Penjaga baru
+
+| Penjaga | Yang dijaga | Mutasi |
+|---|---|---|
+| `audit-nav-yatim.mjs` | halaman tak tertaut · nav tanpa halaman | 2 arah MERAH → HIJAU |
+| `audit-peta-menu-vs-db.mjs` | drift `peta-menu.ts` ↔ `menu_items` | label diubah tanpa migrasi → MERAH |
+| `audit-menu-berbagi-href.mjs` | jumlah item berbagi href (ratchet) | sub-menu baru tanpa tujuan → MERAH |
+| `lib/rute-aktif.ts` + 8 test | satu aturan "aktif", cocok di batas segmen | test menangkap `href="/"` menyala di mana-mana |
+
+Ketiganya terdaftar di CI, dan **melewati diri dengan suara** saat DB tak
+terhubung — bukan diam-diam hijau.
+
+### Sisa yang sengaja
+
+- **96 item masih berbagi href.** Sebagian sah (dua kelompok mencari hal yang
+  sama), sebagian menunggu halamannya dibangun. Ratchet menjaga agar tak
+  bertambah, dan `menu-berbagi-href.ts` menandainya di layar.
+- **18 drift href** — seluruhnya `peta-menu.ts` menulis `/proyek` sementara DB
+  menunjuk `/m/<key>`; itu justru arah yang benar (migrasi 224).
+- **Tab dari URL** (`?tab=`) belum ada: nol halaman membaca `useSearchParams`
+  untuk tab. Itu pekerjaan kode per-halaman, bukan migrasi.

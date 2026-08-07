@@ -1,0 +1,11 @@
+{
+  "_catatan": "Lantai drift peta-menu.ts vs menu_items. Boleh turun, TIDAK boleh naik.",
+  "hrefBeda": 18,
+  "labelBeda": 0,
+  "hanyaDb": 25,
+  "_diukur": "2026-08-07, sesudah migrasi 221-226 + sinkronisasi peta-menu.",
+  "_hrefBeda": "18 tersisa, SELURUHNYA sengaja: peta-menu menulis /proyek sementara DB menunjuk /m/<key> (migrasi 224 mengarahkannya ke pemilih proyek, karena /proyek adalah DAFTAR bukan isinya). Peta yang akan menyusul, bukan sebaliknya.",
+  "_hanyaDb": "25 key ada di DB tapi tidak di peta-menu.ts. Halaman /m/<key> untuk key ini menampilkan \"Menu tidak dikenal\" — hanya terlihat kalau href-nya /m/, dan saat ini tak satu pun dari 25 itu ber-href /m/. Turunkan saat menyentuhnya.",
+  "berbagiHref": 23,
+  "berbagiItem": 96
+}

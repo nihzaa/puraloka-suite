@@ -1061,6 +1061,26 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
 
+      # Dua sumber kebenaran untuk menu: `peta-menu.ts` (halaman "segera hadir")
+      # dan tabel `menu_items` (sidebar). `gen-migrasi-menu.mjs` meramalkan
+      # keduanya akan berpisah diam-diam — dan itu terjadi: 23 href berbeda,
+      # yang melahirkan empat halaman lengkap tak bisa dicapai siapa pun.
+      - name: Drift peta-menu.ts vs menu_items
+        run: node apps/web/scripts/audit-peta-menu-vs-db.mjs
+        working-directory: .
+        env:
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+
+      # 144 item menu pernah berbagi 27 href: klik "Cost Baseline (BAC)" mendarat
+      # di daftar proyek biasa. Pengguna belajar sub-menu tak bisa dipercaya,
+      # lalu berhenti memakainya — dan taksonomi 191 sub-menu kehilangan gunanya.
+      # Ratchet: sub-menu baru wajib punya tujuan sendiri, atau /m/<key> yang jujur.
+      - name: Menu berbagi href tak bertambah
+        run: node apps/web/scripts/audit-menu-berbagi-href.mjs
+        working-directory: .
+        env:
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+
       # Audit a11y runtime (axe-core) MELEWATI rute dinamis yang tak diberi
       # contoh id — dan tetap melaporkan "0 pelanggaran". Diukur 2026-08-07:
       # enam halaman terlewat selama ini, dan outputnya terbaca sebagai

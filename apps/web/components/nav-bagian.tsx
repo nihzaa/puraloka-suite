@@ -28,6 +28,7 @@
  */
 
 import Link from "next/link";
+import { rutenyaAktif, rutenyaAktifPersis } from "@/lib/rute-aktif";
 import { usePathname } from "next/navigation";
 
 export interface Bagian {

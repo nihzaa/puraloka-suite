@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { rutenyaAktif, rutenyaAktifPersis } from "@/lib/rute-aktif";
 import {
   LayoutDashboard,
   FolderKanban,
@@ -288,6 +289,7 @@ function GrupCollapsible({
               <Link
                 key={child.key}
                 href={child.href ?? "#"}
+                aria-current={active ? "page" : undefined}
                 title={belumAdaHalaman
                   ? `${child.label} belum punya halaman sendiri — tautannya membuka halaman bersama grup ini.`
                   : undefined}
@@ -507,8 +509,10 @@ export function Sidebar() {
    * (`/procurement-lama`).
    */
   function isActive(href: string) {
-    if (href === "/dashboard") return pathname === "/dashboard";
-    return pathname === href || pathname.startsWith(href + "/");
+    // `/dashboard` (Beranda) cocok PERSIS: ia halaman berdiri sendiri, dan
+    // aturan-anak akan menyalakannya di setiap rute `/dashboard/...`.
+    if (href === "/dashboard") return rutenyaAktifPersis(pathname, href);
+    return rutenyaAktif(pathname, href);
   }
 
   // Match-ANY: tampil jika tanpa permission (array kosong) ATAU punya salah satu.
@@ -780,7 +784,13 @@ export function Sidebar() {
                 onToggle={() => toggleGrup(pengaturanNode.key)}
                 // `/pengaturan` sendiri adalah halaman profil, jadi ia harus
                 // cocok PERSIS — kalau tidak, seluruh submenu ikut menyala.
-                isActive={(href) => (href === "/pengaturan" ? pathname === "/pengaturan" : pathname.startsWith(href))}
+                // `/pengaturan` punya isinya sendiri (profil perusahaan), jadi
+                // ia cocok-persis; anaknya pakai aturan biasa. Sebelumnya cabang
+                // kedua memakai `startsWith` MENTAH — beda dari isActive utama
+                // di berkas yang sama.
+                isActive={(href) => (href === "/pengaturan"
+                  ? rutenyaAktifPersis(pathname, href)
+                  : rutenyaAktif(pathname, href))}
                 belumAdaHalamanSendiri={belumAdaHalamanSendiri}
                 subStyle={subStyle}
                 onHover={onHover}
@@ -791,7 +801,7 @@ export function Sidebar() {
 
           if (!collapsed) {
             return (
-              <Link href={pengaturanHref} style={navStyle(pathname.startsWith("/pengaturan"))} onMouseEnter={e => onHover(e, pathname.startsWith("/pengaturan"))} onMouseLeave={e => offHover(e, pathname.startsWith("/pengaturan"))}>
+              <Link href={pengaturanHref} style={navStyle(pathname.startsWith("/pengaturan"))} aria-current={pathname === pengaturanHref ? "page" : undefined} onMouseEnter={e => onHover(e, pathname.startsWith("/pengaturan"))} onMouseLeave={e => offHover(e, pathname.startsWith("/pengaturan"))}>
                 <PIcon size={16} strokeWidth={1.75} style={{ flexShrink: 0 }} />
                 <span style={{ flex: 1 }}>{pengaturanNode.label}</span>
               </Link>
@@ -899,6 +909,17 @@ function NavItem({
       <Link
         href={href}
         style={navStyle(active)}
+        // `aria-current="page"` bukan hiasan. Halaman aktif ditandai lewat
+        // warna latar dan titik kecil — keduanya TAK TERLIHAT bagi pemakai
+        // pembaca layar. Tanpa atribut ini, sidebar (navigasi UTAMA aplikasi)
+        // tak pernah menyebutkan di mana orang sedang berada.
+        //
+        // `nav-bagian.tsx:71` sudah memakainya sejak awal; sidebar tertinggal.
+        //
+        // Dibuktikan bisa hilang: mencabut baris ini membuat Beranda yang
+        // sedang dibuka melaporkan `aria-current=page : 0` — halaman aktif
+        // berhenti diumumkan sama sekali.
+        aria-current={active ? "page" : undefined}
         onMouseEnter={e => onHover(e, active)}
         onMouseLeave={e => offHover(e, active)}
       >
@@ -914,6 +935,7 @@ function NavItem({
       <Link
         href={href}
         style={navStyle(active)}
+        aria-current={active ? "page" : undefined}
         onMouseEnter={e => {
           const rect = wrapRef.current?.getBoundingClientRect();
           if (rect) setTooltipTop(rect.top + rect.height / 2);
