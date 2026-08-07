@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { ResponsiveGridLayout: RGLResponsive, useContainerWidth } = require("react-grid-layout");
+const { ResponsiveGridLayout: RGLResponsive } = require("react-grid-layout");
 // Cast to avoid @types/react-grid-layout v1 vs react-grid-layout v2 prop mismatch
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ResponsiveGridLayout = RGLResponsive as React.ComponentType<any>;
@@ -312,6 +312,74 @@ function WidgetShell({
   );
 }
 
+// ─── Lebar kontainer ──────────────────────────────────────────────────────────
+
+/**
+ * Lebar wadah grid, DIAMATI terus — bukan diukur sekali saat pasang.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA BUKAN `useContainerWidth` BAWAAN react-grid-layout
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Hook bawaannya mengukur wadah pada render pertama dan menyimpan angkanya.
+ * `ResponsiveGridLayout` menempatkan tiap widget dengan lebar piksel MUTLAK
+ * yang dihitung dari angka itu, jadi begitu wadahnya berubah sesudah render
+ * pertama, seluruh widget tertinggal di lebar lama — dan tak ada satu pun
+ * pesan galat, karena secara teknis tak ada yang gagal.
+ *
+ * Diukur di peramban pada 2026-08-08, layar 2560×1440, tata letak BAWAAN
+ * (localStorage sudah dikosongkan, jadi ini bukan sisa percobaan):
+ *
+ *     wadah `.react-grid-layout`   2128px
+ *     tiap widget (w:12 = penuh)   1280px   ← 848px menganggur
+ *
+ * 1280 itu lebar wadah SEBELUM `--w-luas` melebar ke 2200px. Halaman
+ * memuat, hook mengukur 1280, CSS lebar baru menyusul, wadah melebar —
+ * dan RGL tak pernah diberi tahu. Menggeser-ubah ukuran jendela pun tak
+ * memperbaikinya: angkanya tidak pernah diukur ulang.
+ *
+ * Gejalanya persis keluhan founder ("kanan kirinya ada jarak yg lumayan
+ * banyak"), tapi SEBABNYA berbeda dari halaman lain: di sana batas
+ * `max-width` yang terlalu kecil, di sini lebar yang basi. Melebarkan token
+ * CSS saja tak menyentuh dashboard sama sekali.
+ *
+ * `ResizeObserver` menutup keduanya: ia menyala pada perubahan ukuran apa
+ * pun — CSS termuat belakangan, sidebar menciut, jendela digeser — tanpa
+ * satu pun media query atau pendengar `resize` global.
+ */
+function useLebarKontainer(siap: boolean) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState<number | undefined>(undefined);
+
+  // `siap` WAJIB ada di daftar kebergantungan.
+  //
+  // `DashboardGrid` menahan render dengan `if (!mounted) return null` sampai
+  // tata letak selesai dibaca dari localStorage. Efek ini menyala lebih dulu,
+  // menemukan `containerRef.current === null`, lalu berhenti — dan tanpa
+  // `siap` di sini ia TAK PERNAH dijalankan lagi sesudah div-nya benar-benar
+  // ada. Akibatnya `width` abadi `undefined` dan RGL memakai lebar cadangan
+  // 1200px di layar selebar apa pun.
+  //
+  // Ini kegagalan diam-diam yang khas: tak ada galat, halaman tampil utuh,
+  // hanya lebarnya salah — dan salahnya masuk akal, jadi mudah dikira sengaja.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    // Pembulatan ke bawah: lebar pecahan (2128.44px) membuat RGL menghitung
+    // posisi widget terakhir melewati tepi wadah beberapa sub-piksel, dan
+    // itu memunculkan geser mendatar yang sulit dilacak asalnya.
+    const ukur = () => setWidth(Math.floor(el.getBoundingClientRect().width));
+
+    ukur();
+    const pengamat = new ResizeObserver(ukur);
+    pengamat.observe(el);
+    return () => pengamat.disconnect();
+  }, [siap]);
+
+  return { containerRef, width };
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function DashboardGrid({ widgets }: DashboardGridProps) {
@@ -320,7 +388,7 @@ export function DashboardGrid({ widgets }: DashboardGridProps) {
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [showCustomizer, setShowCustomizer] = useState(false);
   const customizerRef = useRef<HTMLDivElement>(null);
-  const { containerRef, width } = useContainerWidth();
+  const { containerRef, width } = useLebarKontainer(mounted);
 
   useEffect(() => {
     setLayouts(loadLayouts());

@@ -532,7 +532,26 @@ function ProyekRingkasan() {
           ) : undefined}
         />
       ) : viewMode === "grid" ? (
-        <div className="rise rise-3" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(340px,1fr))", gap: 16 }}>
+        <div
+          className="rise rise-3"
+          style={{
+            display: "grid",
+            // `auto-fill` + batas atas, BUKAN `auto-fit` + `1fr`.
+            //
+            // Sesudah --w-page melebar ke 1800px di layar 2K, `1fr` membagi
+            // habis sisa ruang ke kolom yang sudah ada: kartu membengkak jadi
+            // ~420px, dan yang melebar hanya bidang kosong di dalamnya — nama
+            // proyek dan angkanya tetap di tempat semula.
+            //
+            // `auto-fill` menambah KOLOM saat ruang cukup, dan batas atas 400px
+            // menahan kartu di lebar yang dirancang.
+            gridTemplateColumns: "repeat(auto-fill,minmax(340px,400px))",
+            // Sisa ruang yang tak cukup untuk satu kolom lagi dibagi rata jadi
+            // jarak antar-kartu, bukan ditumpuk jadi rongga di ujung kanan.
+            justifyContent: "space-between",
+            gap: 16,
+          }}
+        >
           {filtered.map(p => (
             <ProjectCardGrid key={p.id} project={p} hariIni={hariIni} onClick={() => router.push(`/proyek/${p.id}`)} />
           ))}

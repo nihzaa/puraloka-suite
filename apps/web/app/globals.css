@@ -192,7 +192,7 @@
   /** DEFAULT untuk halaman biasa: kartu, daftar, ringkasan campuran.
    *  1280 dipilih supaya di layar 1440 (paling umum di kantor) batasnya
    *  belum menggigit — halaman terasa lapang, bukan terjepit. */
-  --w-page:          min(1280px, 100%);
+  --w-page:          min(clamp(1280px, 82vw, 1800px), 100%);
 
   /** Halaman bertabel padat (estimasi, procurement, piutang, laporan):
    *  kolomnya banyak dan memaksakan 1280 membuatnya berdesakan. Tetap
@@ -202,7 +202,7 @@
    *  pada layar 1920 — terlalu mepet, dan tepi yang nyaris tersentuh terbaca
    *  sebagai kelalaian, bukan keputusan. 1500 memberi 100px, cukup untuk
    *  terlihat sengaja berhenti, tanpa mengorbankan lebar kolom yang berarti. */
-  --w-luas:          min(1500px, 100%);
+  --w-luas:          min(clamp(1500px, 92vw, 2200px), 100%);
 
   /** Padding tepi halaman — IKUT LEBAR LAYAR, bukan angka mati.
    *

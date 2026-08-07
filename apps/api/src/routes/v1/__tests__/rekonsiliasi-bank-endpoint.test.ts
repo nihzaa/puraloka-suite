@@ -25,7 +25,6 @@ import rekonsiliasiBankRoutes from '../rekonsiliasi-bank.js'
 let app: FastifyInstance
 let client: Client
 let adminAuth: string | null
-let companyId: string
 let akunId: string
 let koranId: string
 
@@ -49,10 +48,13 @@ beforeAll(async () => {
   client = await createRlsClient()
   adminAuth = await authIdForRole(client, 'admin')
 
+  // `company_id IS NOT NULL` tetap jadi syarat — akun tanpa tenant akan
+  // ditolak gerbang tenancy dan seluruh berkas ini merah karena alasan yang
+  // tak ada hubungannya dengan rekonsiliasi. Nilainya sendiri tak dibaca:
+  // tenant diturunkan dari sesi, bukan dititipkan uji.
   const { rows: c } = await client.query(
-    `SELECT id, company_id FROM cash_accounts WHERE company_id IS NOT NULL LIMIT 1`)
+    `SELECT id FROM cash_accounts WHERE company_id IS NOT NULL LIMIT 1`)
   akunId = c[0].id
-  companyId = c[0].company_id
 
   await purge()
 

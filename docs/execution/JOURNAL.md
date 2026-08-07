@@ -5,6 +5,78 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-08 — Lebar halaman ikut layar; satu cacat CSS, satu cacat JavaScript
+
+### Keluhannya satu kalimat, sebabnya dua hal berbeda
+
+> *"di layar saya, pake resolusi 2k jadi kanan kiri nyaa ada jarak yg lumayan
+> banyak"* — lalu: *"buat bisa flexible agar bisa di semua layar monitor"*.
+
+Diukur di peramban pada 2560×1440, sebelum disentuh:
+
+```
+/proyek      tersedia 2340 · isi 1280  → 1060px KOSONG
+/dashboard   tersedia 2340 · isi 1500  →  840px KOSONG
+```
+
+**Cacat pertama — token CSS.** `--w-page: min(1280px, 100%)`. Angka 1280 lahir
+dari aturan "±75 karakter per baris". Aturan itu benar untuk **prosa**, dan
+tetap dipakai (`--w-form` 900px tak diubah sama sekali). Tapi ia diterapkan ke
+halaman **grid KPI dan tabel**, yang tak punya "baris" untuk dijaga panjangnya.
+Jadi keduanya diberi `clamp()`: ikut layar, dengan langit-langit 1800/2200 —
+tanpa batas, satu baris tabel di 4K jadi 3600px dan mata kehilangan pasangan
+kolom-kiri↔kolom-kanan.
+
+**Cacat kedua — dan ini yang tak akan ketemu kalau berhenti di CSS.** Sesudah
+token diperbaiki, dashboard TIDAK BERUBAH. `react-grid-layout` menempatkan
+widget dengan lebar piksel **mutlak** dari hitungan JavaScript; melebarkan CSS
+tak menyentuhnya. `useContainerWidth` bawaannya mengukur wadah sekali, dan
+`DashboardGrid` menahan render dengan `if (!mounted) return null` — jadi saat
+efeknya menyala, ref masih `null`, dan **efeknya tak pernah dijalankan lagi**.
+Hasilnya: wadah 2128px, seluruh widget 1280px, 848px menganggur, nol galat.
+
+Diganti `useLebarKontainer` (ResizeObserver) dengan `siap` di daftar
+kebergantungan — komentarnya di kode menjelaskan kenapa `siap` wajib ada.
+
+### Saya salah dua kali sebelum benar
+
+1. **Melaporkan "CSS tidak berlaku"** padahal berkasnya sudah benar. Yang basi
+   adalah proses `next dev` lama (PID 29332) yang masih menyajikan chunk lama.
+   Bukan cacat kode — cacat cara saya memverifikasi.
+2. **Menulis uji dengan tabel ambang tebakan** ("di 1920 sisa boleh 400px").
+   Angka itu saya karang dari pengukuran SEBELUM perbaikan, jadi ia menguji
+   ingatan saya soal tata letak lama. Ia langsung salah menuduh `/proyek`
+   boros padahal `82vw` bekerja persis sebagaimana dirancang. Diganti:
+   uji menghitung ulang `clamp()`-nya sendiri lalu menuntut kecocokan ±2px.
+
+### Bukti
+
+```
+uji-lebar-responsif.mjs   5 resolusi × 3 halaman → 15/15 ✅  (rgl-sisa=0 semua)
+  mutasi token --w-page          → 3 MERAH  → dipulihkan → HIJAU
+  mutasi deps [siap] → []        → 3 MERAH  → dipulihkan → HIJAU
+tata-letak-ratchet.mjs    79 halaman patuh (form 13 · normal 20 · luas 46) ✅
+audit-a11y-runtime.mjs    77 halaman · 0 pelanggaran ✅
+tsc --noEmit (web)        exit 0 ✅
+lint-ratchet (api)        0 error, 234 warning ✅
+vitest rekonsiliasi       37/37 ✅
+```
+
+Lint ratchet sempat MERAH (`no-unused-vars` 11 > ambang 10) — `companyId` di
+`rekonsiliasi-bank-endpoint.test.ts` yang saya tulis sesi ini, diisi tapi tak
+pernah dibaca. Dihapus; `company_id IS NOT NULL` tetap jadi syarat query karena
+akun tanpa tenant akan ditolak gerbang tenancy.
+
+### Satu penyesuaian visual, dari menilai tangkapan layar sendiri
+
+Sesudah `/proyek` melebar ke 1800px, kartu proyeknya ikut membengkak ke ~420px
+karena `auto-fit` + `1fr` membagi habis sisa ruang ke kolom yang sudah ada —
+yang melebar cuma bidang kosong di dalam kartu. Diganti `auto-fill` +
+`minmax(340px, 400px)` + `justify-content: space-between`: ruang lebih jadi
+KOLOM baru, bukan kartu gembung.
+
+---
+
 ## 2026-08-08 — Sidebar dirombak total, lalu modul pertama dibangun di atasnya
 
 ### Founder membatalkan seluruh aturan sebelumnya, dan itu benar

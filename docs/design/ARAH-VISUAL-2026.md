@@ -228,6 +228,50 @@ TIPOGRAFI — NAIK, bukan turun
 kontradiksi — itu justru rahasianya. Ruang yang dihemat dari padding dipakai
 untuk teks yang lebih terbaca.
 
+### 4a. Lebar halaman — ikut layar, dengan langit-langit
+
+> Ditetapkan 2026-08-08 sesudah founder melaporkan, memakai layar 2K:
+> *"kanan kirinya ada jarak yg lumayan banyak"*. Diukur, dan benar.
+
+```
+                SEBELUM              SESUDAH
+--w-form    min(900px, 100%)     (tetap)
+--w-page    min(1280px, 100%)    min(clamp(1280px, 82vw, 1800px), 100%)
+--w-luas    min(1500px, 100%)    min(clamp(1500px, 92vw, 2200px), 100%)
+```
+
+**Kenapa berubah.** Batas 1280 lahir dari aturan "±75 karakter per baris".
+Aturan itu benar untuk **prosa satu kolom** dan tetap dipakai — `--w-form`
+sengaja TIDAK ikut melebar, karena 900px adalah batas mata dan itu tak
+berubah walau monitornya 4K. Tapi `--w-page` dan `--w-luas` dipakai halaman
+**grid KPI dan tabel**, di mana tak ada "baris" untuk dijaga panjangnya.
+Memaksakan batas baca ke grid hanya menyempitkan kolom tanpa satu pun
+manfaat. Terukur di 2560px sebelum perbaikan:
+
+```
+/proyek      tersedia 2340 · isi 1280  → 1060px KOSONG
+/dashboard   tersedia 2340 · isi 1500  →  840px KOSONG
+```
+
+**Kenapa tetap ada langit-langit** (1800 / 2200), bukan `100%`: di 4K tanpa
+batas, satu baris tabel jadi 3600px dan mata kehilangan pasangan
+kolom-kiri↔kolom-kanan. Yang dicari bukan "selebar mungkin", melainkan
+"selebar yang masih bisa dipindai".
+
+**Dua sumber lebar, dan yang kedua tak tersentuh CSS.** Dashboard memakai
+`react-grid-layout`, yang menempatkan widget dengan **lebar piksel mutlak**
+hasil hitungan JavaScript — melebarkan token CSS tak menyentuhnya sama
+sekali. Cacatnya: lebar wadah diukur sekali saat halaman dimuat lalu tak
+pernah diukur ulang, jadi seluruh widget mandek di 1280px sementara
+wadahnya 2128px. Tak ada galat, halaman tampil utuh, hanya 848px yang
+menganggur. Perbaikannya `ResizeObserver` di `components/dashboard-grid.tsx`
+(`useLebarKontainer`).
+
+**Dijaga oleh** `apps/web/scripts/uji-lebar-responsif.mjs`: 5 resolusi ×
+3 halaman, membandingkan lebar terukur dengan `clamp()` yang dihitung ulang
+di skripnya — bukan dengan ambang tebakan. Sudah dibuktikan bisa merah
+(mutasi token → 3 merah; mutasi daftar kebergantungan efek → 3 merah).
+
 ---
 
 ## 5. Layout — dashboard per menu induk
