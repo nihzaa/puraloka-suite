@@ -6,6 +6,11 @@ import {
   type BarisPos,
   type BarisPenggunaan,
 } from '../../lib/contingency.js'
+import {
+  coLayakJadiSumber,
+  ringkasCoSumber,
+  type ChangeOrderRingkas,
+} from '../../lib/co-sumber-contingency.js'
 
 /**
  * MANAJEMEN CONTINGENCY (F5 PEMBEDA)
@@ -27,6 +32,49 @@ import {
  * daripada tak ada angka: ia dipakai untuk menyetujui pengeluaran berikutnya.
  */
 export default async function contingencyRoutes(app: FastifyInstance) {
+  // ── GET /api/v1/contingency/co-sumber?project_id= ────────────────────────
+  //
+  // Change order mana di proyek ini yang boleh jadi DASAR penarikan cadangan.
+  //
+  // Ditemukan 2026-08-08 oleh `audit-kolom-tak-tersambung.mjs`:
+  // `sumber_change_order_id` diterima di body penarikan tapi UI tak punya
+  // cara mengirimnya — jadi tiap penarikan lahir tanpa dasar tertulis, dan
+  // kolom yang menyimpan dasarnya selamanya NULL.
+  //
+  // Ditaruh SEBELUM rute ber-`:id` mana pun — kalau di bawahnya, "co-sumber"
+  // dibaca sebagai id pos dan membalas 404 yang membingungkan.
+  app.get('/api/v1/contingency/co-sumber', {
+    preHandler: [authenticate, requirePermission('projects:view')],
+  }, async (request, reply) => {
+    const { project_id } = request.query as Record<string, string>
+    if (!project_id) return reply.status(400).send({ error: 'project_id wajib diisi' })
+
+    if (!(await proyekMilikTenant(request, project_id))) {
+      return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    }
+
+    const { data, error } = await request.db!
+      .viaProject('change_orders', project_id)
+      .select('id, co_number, status, project_id, title, description, total_amount_delta')
+      .order('created_at', { ascending: false })
+      .limit(200)
+
+    if (error) return reply.status(500).send({ error: error.message })
+
+    // Tipe eksplisit, bukan `?? []`: pola itu ditandai penjaga
+    // `audit-kegagalan-senyap` karena menyamarkan galat yang belum diperiksa
+    // jadi daftar kosong. Di sini `error` SUDAH diperiksa di atas.
+    const daftar = (data ?? []) as unknown as ChangeOrderRingkas[]
+    const hasil = ringkasCoSumber(daftar, project_id)
+
+    return reply.send({
+      layak: hasil.layak,
+      tak_layak: hasil.tak_layak,
+      // Penyebutnya dibawa: "1" tak bisa dinilai, "1 dari 2" bisa.
+      jumlah_co: daftar.length,
+    })
+  })
+
   // ── GET /api/v1/contingency ──────────────────────────────────────────────
   app.get('/api/v1/contingency', {
     preHandler: [authenticate, requirePermission('projects:view')],
@@ -206,6 +254,32 @@ export default async function contingencyRoutes(app: FastifyInstance) {
       return reply.status(400).send({
         error: 'Pos cadangan sudah ditutup — tidak menerima penarikan baru',
       })
+    }
+
+    // `sumber_change_order_id` sudah lama diterima di sini dan LANGSUNG
+    // di-insert tanpa diperiksa sama sekali. Ditemukan 2026-08-08 oleh
+    // `audit-kolom-tak-tersambung.mjs`, bersama alasan kenapa ia tak pernah
+    // ketahuan: UI tak punya cara mengirimnya, jadi celahnya tak terpakai.
+    //
+    // Yang dijaga: CO harus ADA, milik proyek yang sama, dan DISETUJUI.
+    // Penarikan cadangan yang mengaku bersumber dari CO yang ditolak adalah
+    // jejak audit yang berbohong — dan itu lebih buruk daripada tak ada
+    // jejak sama sekali, karena ia dipercaya.
+    if (b.sumber_change_order_id) {
+      const { data: co, error: eCo } = await db
+        .viaProject('change_orders', pos.project_id)
+        .select('id, co_number, status, project_id, title, description, total_amount_delta')
+        .eq('id', b.sumber_change_order_id)
+        .maybeSingle()
+      if (eCo) return reply.status(500).send({ error: eCo.message })
+
+      const nilaiCo = coLayakJadiSumber(co as ChangeOrderRingkas | null, pos.project_id)
+      if (!nilaiCo.layak) {
+        // Sebabnya diteruskan apa adanya: "DITOLAK" dan "belum disetujui"
+        // adalah dua keadaan berlawanan, dan pesan generik membuat orang
+        // menunggu persetujuan yang tak akan pernah datang.
+        return reply.status(400).send({ error: nilaiCo.sebab })
+      }
     }
 
     const { data, error } = await db

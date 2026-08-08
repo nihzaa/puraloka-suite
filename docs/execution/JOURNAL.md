@@ -5,6 +5,111 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-08 — penjaga yang baru dipasang langsung menemukan cacat pertamanya, dan cacatnya lebih dalam dari yang ia laporkan
+
+### Temuan pertama penjaga, beberapa jam sesudah dipasang
+
+`audit-kolom-tak-tersambung.mjs` melaporkan `sumber_change_order_id`:
+diterima di body `POST /contingency/:id/penggunaan`, nol rujukan di UI.
+
+Diperiksa, dan **celahnya lebih dalam daripada yang dilaporkan**: halaman
+`/keuangan/contingency` hanya bisa MEMBUAT POS. Tak ada satu pun jalur
+penarikan di seluruh UI. Kolom `terpakai` dan `sisa` yang dihitung rapi di
+layar — beserta status Aman/Menipis/Kritis/Terlampaui yang diturunkan darinya
+— **selalu nol karena tak ada yang bisa mengisinya.**
+
+Penjaga hanya bisa melihat sebanyak yang ia ukur. Ia menunjuk arah yang benar;
+kedalamannya tetap harus diperiksa manusia.
+
+### Yang saya lewati lebih dulu, dan kenapa
+
+Kandidat pertama dari antrean penjaga adalah `inspection_request_id` (NCR ←
+permintaan inspeksi). Diukur: `inspection_requests` **nol baris**.
+
+Menyambungkannya akan menghasilkan dropdown yang selalu kosong — persis cacat
+"layar berisi pekerjaan rumah" yang saya perbaiki di cost-map pagi ini, hanya
+dalam bentuk lain. Dilewati.
+
+`change_orders` punya **2 baris nyata** (CO-001 `approved`, CO-002 `rejected`),
+dan justru dua status berlawanan itu membuatnya kasus yang bagus: ada aturan
+kelayakan yang perlu dijaga, bukan sekadar dropdown.
+
+### Kenapa CO, dan kenapa hanya yang DISETUJUI
+
+`alasan` sudah wajib di server sejak awal. Tapi alasan berbentuk kalimat bebas
+tak bisa ditelusuri ke apa pun. Change order bisa — ia punya nomor, nilai, dan
+persetujuan bertanggal.
+
+Penarikan yang mengaku bersumber dari CO yang **DITOLAK** adalah jejak audit
+yang berbohong, dan itu **lebih buruk daripada tak ada jejak sama sekali,
+karena ia dipercaya.** Server menolaknya; layar tak menawarkannya sejak awal
+supaya penolakan itu tak pernah perlu terjadi.
+
+Daftar PUTIH (`approved` saja), bukan daftar hitam. Yang lolos di sini adalah
+pembenaran palsu untuk uang yang keluar.
+
+### Mutation testing menemukan pengaman saya sendiri yang tak dijaga
+
+Enam mutasi pada pustaka; lima MERAH, satu **HIJAU**:
+
+```
+❌ HIJAU  "NaN dibiarkan lolos"  — Number.isFinite(n) ? n : null  →  n
+```
+
+Saya menulis pengaman NaN dan tak menulis testnya. Pengaman yang tak diuji
+adalah pengaman yang bisa hilang tanpa ada yang tahu — dan di repo ini
+Postgres `numeric` terbukti MENERIMA NaN, satu baris meracuni SUM() seluruh
+laporan. Ditambahkan 3 test; mutasi yang sama sekarang MERAH.
+
+Ini persis gunanya mutation testing: bukan membuktikan test lulus, melainkan
+menemukan bagian yang **tak dijaga apa pun**.
+
+### Cacat UI yang hanya ketahuan dari peramban
+
+Versi pertama menyetel `co = null` di `.catch` — sama persis dengan keadaan
+awal. Diuji di peramban: layar berhenti di **"Memuat change order…"
+selamanya**, dan tak ada cara mengetahui itu kegagalan.
+
+Keterangan yang berbohong lebih buruk daripada pesan galat. Ditambah state
+`coGagal` terpisah.
+
+Cacat ini tak akan ketemu dari test unit maupun dari membaca kode: keduanya
+tak membedakan "null karena belum" dari "null karena gagal".
+
+### Penjaga mendeteksi perbaikannya sendiri
+
+```
+sebelum UI dibangun : ditemukan 20, lantai 20
+sesudah             : ✅ TURUN dari 20 ke 19
+```
+
+Lantai diturunkan. Ini yang membedakan ratchet yang hidup dari daftar yang
+membusuk — ia bergerak dua arah.
+
+### Bukti
+
+```
+vitest  79 lulus seluruh kerja sesi ini
+        (14 co-sumber + 12 endpoint contingency + 24 mr-layak
+         + 11 endpoint rfq + 18 saran-cost-map)
+mutasi  11 dari 11 MERAH untuk kerja ini (6 pustaka + 5 endpoint)
+axe     0 pelanggaran DENGAN DIALOG TERBUKA — yang tak pernah
+        diperiksa pada 37 modal lama; Esc menutup
+layar   "CO-001 · Penambahan Struktur Lantai 3" muncul,
+        CO-002 (rejected) TIDAK · "1 dari 2 CO bisa jadi dasar"
+        "Nilai CO ini Rp 50.000.000 · penarikan ini Rp 2.500.000"
+jalur   Rp 28.500.000 → tarik Rp 2.500.000 → terpakai 8,8%,
+        sisa Rp 26.000.000, "1× tarik · terakhir 8 Agu 2026"
+tsc     api exit=0 · web exit=0
+penjaga 18 audit, semua exit=0
+```
+
+Data dummy: satu pos "Cadangan Risiko Utama" Rp 28.500.000 (5% nilai kontrak)
+dibuat untuk menguji jalur nyata — §8a.5 mengizinkannya, dan tanpa pos tak ada
+yang bisa ditarik.
+
+---
+
 ## 2026-08-08 — pola yang lolos tiga kali akhirnya punya penjaga
 
 ### Kenapa ini yang dikerjakan berikutnya

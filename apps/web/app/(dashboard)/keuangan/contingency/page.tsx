@@ -26,6 +26,7 @@ import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
+import { ContingencyTarikModal } from "@/components/contingency-tarik-modal";
 
 type Proyek = { id: string; name: string };
 
@@ -192,6 +193,42 @@ const KOLOM: Array<Kolom<Pos>> = [
   },
 ];
 
+/**
+ * Kolom + tombol tarik.
+ *
+ * Dibuat sebagai FUNGSI, bukan konstanta seperti `KOLOM`, karena tombolnya
+ * perlu memanggil state halaman. Konstanta modul tak bisa.
+ *
+ * Pos yang `ditutup` tak diberi tombol sama sekali — server menolaknya
+ * (`contingency.ts`: "sudah ditutup — tidak menerima penarikan baru"), dan
+ * tombol yang pasti ditolak adalah jalan buntu yang baru ketahuan setelah
+ * seseorang mengisi seluruh formnya.
+ */
+function kolomDenganAksi(onTarik: (p: Pos) => void): Array<Kolom<Pos>> {
+  return [
+    ...KOLOM,
+    {
+      kunci: "aksi", judul: "", rata: "kanan",
+      render: (p) =>
+        p.status === "ditutup" ? (
+          <span style={{ fontSize: 11, color: C.muted }}>ditutup</span>
+        ) : (
+          <button
+            type="button" onClick={() => onTarik(p)}
+            style={{
+              padding: "7px 12px", borderRadius: 6, fontSize: 12, fontWeight: 700,
+              minHeight: 36, whiteSpace: "nowrap",
+              border: `1px solid ${C.navy}`, background: "transparent", color: C.navy,
+              cursor: "pointer",
+            }}
+          >
+            Tarik
+          </button>
+        ),
+    },
+  ];
+}
+
 export default function ContingencyPage() {
   const [proyek, setProyek] = useState<Proyek[]>([]);
   const [hasil, setHasil] = useState<Hasil | null>(null);
@@ -205,6 +242,9 @@ export default function ContingencyPage() {
   const [fNama, setFNama] = useState("");
   const [fNilai, setFNilai] = useState("");
   const [fDasar, setFDasar] = useState("");
+
+  /** Pos yang sedang ditarik. `null` = modal tertutup. */
+  const [posTarik, setPosTarik] = useState<Pos | null>(null);
 
   useEffect(() => {
     const ac = makeAbortController();
@@ -454,7 +494,7 @@ export default function ContingencyPage() {
                     caption="Pos cadangan risiko: nama, proyek, nilai cadangan, jumlah terpakai, sisa, porsi terhadap nilai kontrak, dan statusnya."
                     data={hasil.pos}
                     kunciBaris={(p) => p.id}
-                    kolom={KOLOM}
+                    kolom={kolomDenganAksi(setPosTarik)}
                     tandaiBaris={(p) => (mendesak(p) ? STATUS_META[p.status].bg : undefined)}
                   />
 
@@ -475,6 +515,18 @@ export default function ContingencyPage() {
           )}
         </>
       )}
+
+      {/* Modal penarikan. Dirender di luar cabang kondisional supaya ia tak
+          ikut hilang saat daftar dimuat ulang — `terbuka` dikendalikan
+          `posTarik`, bukan oleh posisi dalam pohon. */}
+      <ContingencyTarikModal
+        pos={posTarik}
+        onTutup={() => setPosTarik(null)}
+        onBerhasil={() => {
+          setSukses("Penarikan tercatat. Sisa pos dihitung ulang dari seluruh penarikan.");
+          setMuatUlangKe((n) => n + 1);
+        }}
+      />
     </div>
   );
 }
