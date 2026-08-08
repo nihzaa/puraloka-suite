@@ -16,7 +16,7 @@ memuat **setiap** dokumen, tanpa kecuali.
 | **acuan** | aturan/keputusan yang dirujuk saat bekerja | dibaca saat mengerjakan hal terkait; tak "selesai" |
 | **riwayat** | catatan fase yang sudah lewat | bukti apa yang pernah terjadi; jangan dikutip sebagai rencana |
 
-**Total 269 dokumen** — antrean 13 · acuan 196 · riwayat 60.
+**Total 270 dokumen** — antrean 13 · acuan 197 · riwayat 60.
 
 Kolom **RM** = disebut langsung di `ROADMAP.md`.
 
@@ -67,6 +67,7 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | Dokumen | Peran | RM | Isi |
 |---|---|:-:|---|
 | [ARAH-VISUAL-2026](design/ARAH-VISUAL-2026.md) | acuan | ✓ | ARAH VISUAL 2026 — Puraloka Suite |
+| [DESIGN-BRIEF](design/DESIGN-BRIEF.md) | acuan |  | DESIGN BRIEF — Redesign Web Puraloka Suite ("Command Center") |
 
 ### `docs/execution`
 

@@ -3,7 +3,9 @@
 > **Fase 0 — Discovery & Brainstorm. Belum ada kode.**
 > Dokumen ini menjawab megaprompt redesign 2026-08-08 §12 (bagian A–H).
 >
-> **Status: MENUNGGU RATIFIKASI (Gerbang 1).** Blok ratifikasi di akhir.
+> **Status: DIRATIFIKASI 2026-08-08 — GERBANG 1 TERTUTUP.**
+> Kelima keputusan sudah turun (§C.0). Jangan tanyakan ulang; yang tersisa
+> adalah pekerjaan, bukan pertanyaan.
 >
 > ⚠️ **Aturan angka.** Setiap angka di dokumen ini punya perintah untuk
 > mengukurnya ulang, sesuai `CLAUDE.md` §1. Matriks §F **tidak ditulis tangan** —
@@ -151,12 +153,92 @@ visual × 2 mode tema — mode ketiga menjadikannya 4 kombinasi.
 
 ---
 
-## C. Rekomendasi
+## C. Rekomendasi — dan keputusan founder yang mengoreksinya
 
-> **Arah 2 ("Rapat & Fokus") untuk shell — dengan signature Arah 1 dipindahkan
-> ke dalam drawer.** Hybrid, dan bukan kompromi malas: yang diambil dari Arah 1
-> adalah *isinya* (antrean keputusan lintas modul), yang ditolak adalah
-> *biaya lebar tetapnya*.
+### C.0 KEPUTUSAN FOUNDER 2026-08-08 (mengikat)
+
+> **Gerbang 1 TERTUTUP.** Kelimanya sudah dijawab. Yang tertulis di §C.1 ke
+> bawah adalah usul saya **sebelum** keputusan turun — disimpan sebagai catatan
+> alasan, bukan instruksi. **Kalau §C.1 dan §C.0 berbeda, §C.0 yang berlaku.**
+
+| # | Keputusan | Bunyi |
+|---|---|---|
+| 1 | **Shell** | ❌ Bukan Arah 1 **atau** 2 — **satu AppShell dengan slot rail opsional** |
+| 2 | **Portal** | ✅ Ikut dirombak, **shell sendiri**; dikerjakan **sesudah** grup dashboard |
+| 3 | **`kerapatan-ratchet`** | ✅ **Perbaiki dulu, PR tersendiri, sebelum PR 1** |
+| 4 | **Mode kepadatan** (Arah 3) | ❌ **DITOLAK** — 4 kombinasi penjaga, tak sebanding |
+| 5 | **Sparkline** | ✅ **Tambah endpoint deret historis — 6 KPI beranda saja** |
+
+### C.0a Keputusan 1 — kenapa usul saya keliru, dan ini perbaikannya
+
+Founder: *"Argumen 1366px itu nyata, tapi hanya berlaku untuk halaman tabel.
+Dashboard, detail proyek, dan ringkasan laporan tidak punya tabel 12 kolom —
+di sana rail 300px tidak mengorbankan apa pun."*
+
+**Benar, dan ini mengoreksi cacat nyata di §C.1.** Saya mencampur dua pertanyaan
+berbeda: *"tata letak mana"* dengan *"halaman jenis apa"*. Lalu saya memakai
+kendala halaman **tabel** (1366px, 12 kolom) untuk membuang rail di halaman
+**ikhtisar** — yang justru tak punya kendala itu, dan justru di situlah kesan
+"mirip referensi" dinilai.
+
+**Yang dibangun: satu `AppShell`, satu prop.**
+
+```
+<AppShell rail={<RailIkhtisar/>}>   ← halaman IKHTISAR
+<AppShell>                          ← halaman TABEL: rail mati,
+                                       Bilah Keputusan + drawer
+```
+
+| Rail AKTIF (ikhtisar) | Rail MATI (tabel) |
+|---|---|
+| `/dashboard` | RAB, buku besar, daftar upah |
+| `/proyek/[id]` | 16 halaman Administrasi |
+| ringkasan `/laporan` | daftar transaksi, tabel padat |
+| dashboard per grup | halaman pengaturan |
+
+**Kenapa ini bukan "mode ketiga"** — dan kenapa itu penting: mode kepadatan
+(Arah 3) berarti **satu halaman punya dua tampilan**, jadi tiap penjaga visual
+harus hijau di 2 kepadatan × 2 tema = 4 kombinasi. Slot rail tidak begitu:
+satu halaman selalu punya satu bentuk, ditentukan saat halaman ditulis.
+**Nol permukaan uji tambahan.** Itu sebabnya nomor 1 diterima dan nomor 4 tidak.
+
+**Bilah Keputusan tetap dibangun** — founder: *"ide itu bagus dan memang lebih
+baik dari referensi"*. Di halaman ikhtisar ia hidup **di dalam rail**; di
+halaman tabel ia jadi bilah tipis + drawer.
+
+### C.0b Keputusan 5 — sparkline: DIUKUR, dan datanya ADA
+
+Founder benar menyebut ini **celah API, bukan keputusan desain**. Saya sempat
+membuangnya dengan alasan "endpoint KPI hanya mengembalikan satu angka" — itu
+benar tentang **endpoint**, dan diam-diam saya perlakukan seolah benar tentang
+**data**. Dua hal berbeda.
+
+Diukur langsung ke basis (kolom tanggal **bisnis**, bukan `created_at` yang
+hanya jejak seeding):
+
+| KPI beranda | Baris | Bulan berbeda | Rentang |
+|---|---|---|---|
+| Proyek aktif | 15 | **9** | 2025-09 → 2026-05 |
+| Nilai kontrak | 15 | **9** | 2025-09 → 2026-05 |
+| Invoice outstanding | 26 | **8** | 2025-10 → 2026-06 |
+| Kas (payments) | 23 | **8** | 2025-10 → 2026-06 |
+| Kasbon | 56 | **8** | 2025-11 → 2026-06 |
+| Progres fisik | 271 | **8** | 2025-11 → 2026-06 |
+
+**Keenam-enamnya punya 8–9 bulan riwayat nyata.** Jadi sparkline di beranda
+**bukan** garis karangan — ia riwayat yang memang ada dan belum pernah
+ditanyakan. Aturan Emas §9 brief tetap utuh.
+
+> **Batas yang tetap saya pegang:** 6 endpoint deret **hanya untuk beranda**.
+> Di halaman lain, kartu KPI tanpa riwayat tampil **tanpa** sparkline —
+> bukan dengan garis datar hiasan. Kalau nanti sebuah KPI ternyata tak punya
+> deret, yang dihapus adalah sparkline-nya, bukan kejujurannya.
+
+### C.1 Usul saya sebelum keputusan turun (catatan sejarah)
+
+> Bagian ini **sudah dilampaui** oleh §C.0. Disimpan karena alasannya masih
+> menjelaskan kenapa Bilah Keputusan ada, dan kenapa rail permanen ditolak
+> untuk halaman tabel.
 
 **Alasan terhadap pengguna nyata:**
 
@@ -174,7 +256,7 @@ visual × 2 mode tema — mode ketiga menjadikannya 4 kombinasi.
 |---|---|
 | Rail kanan permanen | Pajak 300px; diganti drawer + Bilah Keputusan |
 | Ilustrasi hero | Stock art merusak kredibilitas (§11a ARAH-VISUAL) |
-| Sparkline di semua kartu KPI | Hanya kalau data historis benar-benar ada (§9 brief). Terukur: sebagian besar endpoint KPI mengembalikan **satu angka**, bukan deret |
+| Sparkline **di semua** kartu KPI | Hanya di tempat yang datanya ada. ⚠️ **Dikoreksi §C.0b:** alasan awal saya ("endpoint cuma satu angka") benar tentang *endpoint*, salah tentang *data* — 6 KPI beranda terbukti punya riwayat 8–9 bulan, jadi sparkline beranda **DIBANGUN** |
 | Badge "✨ AI" bertebaran | Maks 2/halaman; deterministik dilabeli "Peringatan Sistem" |
 | Segmented Weekly/Monthly/Quarterly/Yearly di semua halaman | Hanya `/laporan` yang datanya benar-benar berperiode |
 
@@ -394,14 +476,25 @@ integrasi cuaca → `API-GAPS.md`.
 
 | PR | Isi | Gate |
 |---|---|---|
-| 0 | Dokumen ini + ADR-011 + `peta-redesign.mjs` | **Gerbang 1** |
+| 0 | Dokumen ini + ADR-011 + `peta-redesign.mjs` | ✅ **Gerbang 1 TERTUTUP** |
+| **0b** | **`kerapatan-ratchet` dihijaukan** — PR tersendiri *(keputusan 3)* | — |
 | 1 | `lib/format.ts` + penjaga `format-ratchet` (lantai 83) | — |
 | 2 | `KepalaHalaman` disebar ke 105 halaman + penjaga | — |
 | 3 | `--data-6..8` (kalau lolos kontras) + `chart-tema.ts` | — |
-| 4 | Shell: sidebar 216, drawer, Bilah Keputusan | — |
-| 5 | **Pilot `/dashboard`** + screenshot 1440/1180/768/390 | **Gerbang 2** |
-| 6+ | Rollout per grup (22 grup, terbesar dulu) | — |
+| 4 | `AppShell` + **slot rail opsional** + Bilah Keputusan + drawer | — |
+| 4b | **6 endpoint deret historis KPI beranda** + `Sparkline` *(keputusan 5)* | — |
+| 5 | **Pilot `/dashboard`** (rail AKTIF) + screenshot 1440/1180/768/390 | **Gerbang 2** |
+| 6+ | Rollout per grup dashboard (18 grup, terbesar dulu) | — |
+| akhir-1 | **Tiga portal** — shell sendiri, token & komponen sama *(keputusan 2)* | — |
 | akhir | QA konsistensi + `DESIGN-SYSTEM.md` | — |
+
+**PR 0b didahulukan atas segalanya** *(keputusan 3)*. Alasannya bukan kerapian:
+penjaga itu persis yang melindungi `--pad-kartu` 12px — token paling
+diperdebatkan di redesign ini. Masuk redesign dengan penjaga itu merah berarti
+kehilangan sinyal untuk membedakan kerusakan **baru** dari yang **lama**.
+
+**Portal dikerjakan di akhir, bukan paralel** *(keputusan 2)* — supaya token dan
+komponen sudah stabil saat shell portal disentuh.
 
 **PR 1 & 2 didahulukan** karena keduanya menyentuh 105 halaman sekaligus dengan
 risiko paling rendah — dan PR 2 langsung menjawab "tiap halaman terasa buatan
@@ -437,50 +530,47 @@ menuliskannya di sini supaya tidak ada kejutan di tengah jalan.
 
 ---
 
-## Keputusan yang saya butuhkan (maks 7)
+## Keputusan — SEMUA SUDAH TURUN
 
-Empat sudah terjawab di sesi ini dan **tidak perlu diulang**:
+> **Nol pertanyaan terbuka.** Gerbang 1 tertutup 2026-08-08.
 
-| # | Pertanyaan | Jawaban Anda |
+| # | Pertanyaan | Keputusan |
 |---|---|---|
 | 1 | Primitif: perluas vs bangun baru | ✅ **Perluas yang ada** |
-| 2 | Token bentrok | ✅ **Hormati keputusan lama**; chart kategorikal jadi token terpisah |
+| 2 | Token bentrok | ✅ **Hormati keputusan lama**; kategorikal chart token terpisah |
 | 3 | Cakupan | ✅ **Semua 105 halaman** |
-| 4 | Kedalaman & bentuk matriks | ✅ **Digenerate; rombak penuh per halaman** |
-
-Yang tersisa — **tiga**:
-
-| # | Pertanyaan | Rekomendasi saya |
-|---|---|---|
-| 5 | **Arah shell**: 1 (rail permanen) · 2 (drawer + Bilah Keputusan) · 3 (dua mode kepadatan) | **Arah 2** — §C |
-| 6 | **Tiga portal** ikut dirombak, atau dikunci dulu? | **Ikut, tapi shell sendiri** — jangan dipaksa 3 kolom |
-| 7 | **`kerapatan-ratchet` merah**: perbaiki dulu sebelum PR 1, atau jalan paralel? | **Perbaiki dulu** — CI merah membuat semua PR berikutnya sulit dinilai |
+| 4 | Bentuk & kedalaman matriks | ✅ **Digenerate; rombak penuh per halaman** |
+| 5 | Arah shell | ✅ **Satu AppShell, slot rail opsional** — bukan Arah 1/2/3 |
+| 6 | Tiga portal | ✅ **Ikut, shell sendiri, sesudah grup dashboard** |
+| 7 | `kerapatan-ratchet` merah | ✅ **Perbaiki dulu — PR 0b** |
+| 8 | Mode kepadatan (Arah 3) | ❌ **DITOLAK** — 4 kombinasi penjaga |
+| 9 | Sparkline | ✅ **6 endpoint deret, beranda saja** — data terbukti ada |
 
 ---
 
-## RATIFIKASI — Gerbang 1
+## RATIFIKASI — Gerbang 1 ✅ TERTUTUP 2026-08-08
 
-**Yang diminta disetujui:**
+**Yang disetujui:**
 
-1. **Arah desain** — Arah 2 "Rapat & Fokus": rail kanan jadi drawer, signature
-   "Bilah Keputusan". *(pertanyaan 5)*
-2. **Menolak §4.3 brief** (padding kartu 20px) — mempertahankan `--pad-kartu`
-   12px yang sudah diratifikasi dan dijaga CI.
-3. **Menolak §6 brief** (~40 primitif baru) — memperluas `Tabel`/`KartuKPI`/
+1. ✅ **Satu `AppShell` dengan slot rail opsional** — rail aktif di halaman
+   ikhtisar, mati di halaman tabel. Bilah Keputusan tetap dibangun.
+2. ✅ **Menolak §4.3 brief** (padding 20px) — `--pad-kartu` 12px dipertahankan.
+3. ✅ **Menolak §6 brief** (~40 primitif baru) — memperluas `Tabel`/`KartuKPI`/
    `KepalaHalaman` yang sudah ada.
-4. **Menolak §8.10–8.12 brief** sebagai "halaman baru" — `/klien`,
-   `/pengaturan`, `/estimasi` sudah ada; yang dikerjakan adalah merombaknya.
-5. **Memperpanjang `--data-*` jadi 8** (bukan keluarga `--chart-*` baru),
-   dengan hak berhenti di jumlah yang lolos kontras.
-6. **Urutan PR**: `lib/format.ts` → `KepalaHalaman` → token chart → shell →
-   pilot `/dashboard`.
-7. **Perbaiki `kerapatan-ratchet` merah lebih dulu** *(pertanyaan 7)*.
+4. ✅ **Menolak §8.10–8.12 brief** sebagai "halaman baru" — `/klien`,
+   `/pengaturan`, `/estimasi` sudah ada; yang dikerjakan merombaknya.
+5. ✅ **Memperpanjang `--data-*` jadi 8**, dengan hak berhenti di jumlah yang
+   lolos kontras.
+6. ✅ **Menolak mode kepadatan** Nyaman/Rapat — biaya 4 kombinasi penjaga.
+7. ✅ **Sparkline dibangun** untuk 6 KPI beranda; riwayat 8–9 bulan terbukti ada.
+8. ✅ **Portal ikut dirombak dengan shell sendiri**, sesudah grup dashboard.
+9. ✅ **Urutan PR**: 0b kerapatan → format → KepalaHalaman → token → shell →
+   deret KPI → pilot → grup → portal.
 
-**Yang TIDAK diminta sekarang:** nilai hex `--data-6..8` (diusulkan sesudah
-diuji kontras, bukan dari kepala), dan detail per-halaman untuk 105 halaman
-(digenerate, bukan diratifikasi baris per baris).
+**Yang TIDAK diratifikasi baris-per-baris:** nilai hex `--data-6..8` (diusulkan
+sesudah diuji kontras, bukan dari kepala) dan detail 105 halaman (digenerate).
 
-**Kalau ditolak, biayanya nol** — belum ada satu baris kode UI pun ditulis.
+**Fase 1 boleh dimulai dari PR 0b.**
 
 ---
 

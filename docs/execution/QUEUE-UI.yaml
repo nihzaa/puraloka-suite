@@ -240,6 +240,147 @@ items:
       kalau diserahkan, separuh halaman akan lupa, dan layar kosong tanpa
       penjelasan terbaca sebagai fitur rusak.
 
+  # ── LAPIS 0R — REDESIGN "COMMAND CENTER" ─────────────────────────────────
+  # Gerbang 1 ditutup 2026-08-08. Sumber: docs/design/DESIGN-BRIEF.md §C.0.
+  # Sembilan keputusan founder ada di sana; JANGAN tanyakan ulang.
+
+  - id: UIR-0B
+    lapis: 0
+    judul: "Hijaukan kerapatan-ratchet SEBELUM redesign menyentuh halaman"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "node apps/web/scripts/kerapatan-ratchet.mjs exit 0"
+      - "lantai TIDAK dinaikkan — pelanggarannya diperbaiki, bukan diampuni"
+      - "8 penjaga visual lain tetap hijau"
+    cara_verifikasi: "node apps/web/scripts/kerapatan-ratchet.mjs; echo $?"
+    bobot: S
+    status: todo
+    catatan: |
+      DIUKUR 2026-08-08: penjaga ini SUDAH MERAH di feat/sumbu-ui-roadmap,
+      dan BUKAN karena sesi redesign. Dibuktikan dengan memindahkan berkas
+      baru keluar sampai `git status` bersih persis HEAD — penjaga tetap
+      exit 1 ("BERTAMBAH 1"). Ia hanya memindai .tsx.
+
+      Founder 2026-08-08 memutuskan ini dikerjakan LEBIH DULU, PR tersendiri.
+      Alasannya bukan kerapian: penjaga inilah yang melindungi --pad-kartu
+      12px — token yang paling diperdebatkan di redesign (brief §4.3 mengusul
+      20px, ditolak). Masuk redesign dengan penjaga merah = kehilangan sinyal
+      untuk membedakan kerusakan BARU dari yang LAMA.
+
+  - id: UIR-1
+    lapis: 0
+    judul: "lib/format.ts — 83 panggilan format ad-hoc di 51 halaman"
+    blokir_oleh: [UIR-0B]
+    kriteria_selesai:
+      - "lib/format.ts: rupiah, rupiahSingkat (rb/jt/M/T), persen, tanggal, relatif"
+      - "penjaga format-ratchet ber-lantai 83, TERBUKTI bisa merah lewat mutasi"
+      - "desimal koma, ribuan titik, zona Asia/Jakarta"
+    cara_verifikasi: "node apps/web/scripts/format-ratchet.mjs + vitest"
+    bobot: M
+    status: todo
+    catatan: |
+      Celah PALING NYATA dari brief redesign, dan satu-satunya bagian §6 yang
+      premisnya benar: komponen sudah ada, format TIDAK. Diukur 105 halaman:
+      51 memanggil toLocaleString/Intl langsung, total 83 panggilan.
+
+      Dilarang "Cr"/"L" (skala India dari gambar referensi). Skala Indonesia:
+      rb / jt / M / T.
+
+  - id: UIR-2
+    lapis: 0
+    judul: "Sebarkan KepalaHalaman — dipakai 0 dari 105 halaman"
+    blokir_oleh: [UIR-0B]
+    kriteria_selesai:
+      - "halaman ber-KepalaHalaman NAIK dari lantai 0"
+      - "penjaga ber-lantai, terbukti bisa merah"
+      - "tinggi header seragam di seluruh grup"
+    cara_verifikasi: "node apps/web/scripts/peta-redesign.mjs --ringkas"
+    bobot: M
+    status: todo
+    catatan: |
+      TEMUAN 2026-08-08, dan ini perbaikan TERMURAH di seluruh redesign:
+      KepalaHalaman ADA di components/dasar.tsx:82, berkualitas baik, dan
+      dipakai NOL dari 105 halaman. Artinya tiap halaman menulis judulnya
+      sendiri — sumber paling langsung dari "tiap halaman terasa buatan
+      sendiri", tanpa perlu menyentuh isi halaman satu pun.
+
+      Pola yang sama dengan UI-0-4: yang gagal PENYEBARAN, bukan komponennya.
+
+  - id: UIR-4
+    lapis: 1
+    judul: "AppShell + SLOT RAIL OPSIONAL + Bilah Keputusan"
+    blokir_oleh: [UIR-1, UIR-2]
+    kriteria_selesai:
+      - "satu AppShell; rail lewat SATU prop, bukan mode global"
+      - "rail AKTIF di halaman ikhtisar, MATI di halaman tabel"
+      - "Bilah Keputusan: antrean approval lintas modul, aksi inline"
+      - "NOL kombinasi penjaga tambahan (bukan mode kepadatan)"
+    cara_verifikasi: "8 penjaga visual + a11y kedua mode"
+    bobot: L
+    status: todo
+    catatan: |
+      KEPUTUSAN FOUNDER 2026-08-08 — bukan Arah 1 (rail permanen) maupun
+      Arah 2 (rail dibuang), melainkan SLOT.
+
+      Founder mengoreksi cacat nyata di usul saya: argumen 1366px hanya
+      berlaku untuk halaman TABEL. Dashboard, detail proyek, dan ringkasan
+      laporan tak punya tabel 12 kolom — di sana rail 300px tak mengorbankan
+      apa pun, dan justru di situlah kesan "mirip referensi" dinilai.
+
+      Bukan mode ketiga: satu halaman selalu punya SATU bentuk, ditentukan
+      saat halaman ditulis. Nol permukaan uji tambahan — inilah yang
+      membedakannya dari mode kepadatan yang DITOLAK.
+
+  - id: UIR-4B
+    lapis: 1
+    judul: "6 endpoint deret historis KPI beranda + Sparkline"
+    blokir_oleh: [UIR-4]
+    kriteria_selesai:
+      - "6 endpoint deret, HANYA untuk beranda"
+      - "sparkline hanya tampil bila deretnya benar-benar ada"
+      - "nol garis karangan — Aturan Emas §9 brief"
+    cara_verifikasi: "vitest integration + periksa layar"
+    bobot: M
+    status: todo
+    catatan: |
+      Founder benar menyebut ini CELAH API, bukan keputusan desain. Saya
+      sempat membuang sparkline dengan alasan "endpoint hanya mengembalikan
+      satu angka" — benar tentang ENDPOINT, lalu diam-diam saya perlakukan
+      seolah benar tentang DATA. Dua hal berbeda.
+
+      DIUKUR ke basis 2026-08-08, memakai kolom tanggal BISNIS (bukan
+      created_at yang cuma jejak seeding):
+
+        proyek/nilai kontrak  15 baris   9 bulan   2025-09 -> 2026-05
+        invoice               26 baris   8 bulan   2025-10 -> 2026-06
+        payments              23 baris   8 bulan   2025-10 -> 2026-06
+        kasbon                56 baris   8 bulan   2025-11 -> 2026-06
+        progress_logs        271 baris   8 bulan   2025-11 -> 2026-06
+
+      Keenamnya punya riwayat NYATA. Sparkline di beranda bukan hiasan.
+
+  - id: UIR-9
+    lapis: 3
+    judul: "Tiga portal — bahasa sama, shell BEDA"
+    blokir_oleh: [UIR-4]
+    kriteria_selesai:
+      - "token, kartu, badge, format angka, gaya tabel SAMA dengan dashboard"
+      - "shell portal TETAP milik sendiri — tanpa sidebar 216px"
+      - "diuji di lebar 390px"
+    cara_verifikasi: "8 penjaga + a11y + periksa di lebar HP"
+    bobot: L
+    status: todo
+    catatan: |
+      Diukur: mandor-portal 11 halaman, pm-portal 5, portal klien 4 — semuanya
+      punya layout.tsx sendiri dengan NOL referensi ke Sidebar/Topbar dashboard.
+
+      Founder 2026-08-08: "Konsisten artinya token, kartu, badge, format angka,
+      gaya tabel yang sama — bukan sidebar yang sama. Portal mandor di HP
+      dengan sidebar 216px justru merusak."
+
+      DIKERJAKAN SESUDAH grup dashboard, jangan paralel — supaya token dan
+      komponen sudah stabil saat shell portal disentuh.
+
   # ── LAPIS 1 — HALAMAN CONTOH ─────────────────────────────────────────────
 
   - id: UI-1-1

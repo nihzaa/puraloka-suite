@@ -5,6 +5,138 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-08 — Fase 0 redesign: empat premis brief meleset, dan alat ukur saya sendiri salah empat kali
+
+Founder mengirim megaprompt redesign total (`apps/web`) + 5 gambar referensi
+ERP komersial, meminta output §12 (A–H) tanpa kode. Ditulis:
+`docs/design/DESIGN-BRIEF.md`. **Gerbang 1 kini TERTUTUP** — 9 keputusan turun.
+
+### Yang saya lakukan sebelum menulis satu paragraf pun: mengukur
+
+Brief-nya rapi dan sebagian besar arahnya benar. Tapi empat premisnya tak cocok
+dengan kode, dan dua di antaranya akan **membatalkan keputusan founder sendiri**
+kalau diikuti mentah-mentah:
+
+```
+brief §8    12 halaman                    nyatanya 105 (22 grup)
+brief §8    /clients /pengaturan /estimasi "baru"   ketiganya SUDAH ADA
+brief §6    bangun ~40 primitif baru      primitifnya ada; yang gagal PENYEBARAN
+brief §4.3  padding kartu 20px            --pad-kartu 12px, dijaga CI
+```
+
+§6 akan menciptakan pustaka primitif **ketiga** (cacat yang sudah tercatat di
+`dasar.tsx:419`), dan §4.3 memerahkan `kerapatan-ratchet` sekaligus membatalkan
+UI-0-1 yang sedang berjalan.
+
+### Saya salah empat kali — di alat ukur yang saya bangun sendiri
+
+Matriks §F digenerate (`apps/web/scripts/peta-redesign.mjs`), bukan ditulis
+tangan, karena 105 baris tulis tangan akan basi pada halaman ke-106. Tapi
+skripnya sendiri salah empat kali, dan **tiga di antaranya menghasilkan angka
+yang terlalu BURUK** — jenis kesalahan paling mudah lolos, karena terbaca
+sebagai "banyak kerjaan":
+
+| Cacat | Akibat | Sesudah |
+|---|---|---|
+| `[\s>]` menolak `<Tabel<Generic>` | 35 dari 41 | 41 = 41 |
+| href ber-query dibanding literal | **24 "tautan mati"** | **0 — semuanya palsu** |
+| grup disimpulkan dari href | `/audit`, `/akuntansi` salah petak | benar |
+| `split('\n')` +1 | 3.955 | 3.954 (cocok `wc -l`) |
+
+Yang kedua paling berbahaya: kalau lolos, sesi berikutnya akan membangun 24
+halaman yang **sudah ada**. Tiap kolom akhirnya disilangkan dengan grep
+independen — 105/0/11/41/6/10/51 semuanya cocok.
+
+**Pelajarannya:** angka yang terlalu buruk tak terasa seperti kesalahan. Ia
+terasa seperti pekerjaan.
+
+### Dua temuan yang mengubah rencana
+
+**`KepalaHalaman` dipakai 0 dari 105 halaman.** Komponennya ada di
+`dasar.tsx:82` dan bagus. Artinya tiap halaman menulis judulnya sendiri —
+sumber paling langsung dari "tiap halaman terasa buatan sendiri", dan
+perbaikan **termurah** di seluruh redesign.
+
+**Ada EMPAT shell, bukan satu.** dashboard 84 · mandor-portal 11 · pm-portal 5 ·
+portal klien 4. Ketiga portal punya `layout.tsx` sendiri dengan **nol**
+referensi ke Sidebar/Topbar dashboard. AppShell 3 kolom tak boleh dipaksakan
+ke sana — itu justru pengguna paling rapuh (HP, sinyal buruk).
+
+### `a38cb0d` TIDAK menolak warna seri chart
+
+Founder minta dicek, jangan diasumsikan — dan itu instruksi yang tepat. Yang
+ditolak `--aksen` (tombol/nav/link/lencana), alasannya spesifik untuk aksen.
+`--data-1..5` sudah multi-rona di **kedua** mode (`globals.css:353`, `:669`),
+dan `ARAH-VISUAL` §3d sudah memisahkan *"garis grafik nilai utama"* dari
+*"seluruh deret grafik"*. Jadi seri chart multi-warna adalah praktik yang
+**sudah berlaku**, bukan pembukaan keputusan lama. Fase 1 tidak terblokir.
+
+Usul `--chart-1..8` diganti **memperpanjang `--data-*` jadi 8** — dua keluarga
+paralel untuk satu pekerjaan mengulang cacat yang sama dengan pustaka primitif
+ketiga.
+
+### Founder mengoreksi usul shell saya, dan koreksinya benar
+
+Saya mengusulkan membuang rail kanan (Arah 2), berdalih tabel 12 kolom tak muat
+di 1366px. Founder:
+
+> *"Argumen 1366px itu nyata, tapi hanya berlaku untuk halaman tabel.
+> Dashboard, detail proyek, dan ringkasan laporan tidak punya tabel 12 kolom —
+> di sana rail 300px tidak mengorbankan apa pun."*
+
+**Saya mencampur dua pertanyaan**: "tata letak mana" dengan "halaman jenis apa",
+lalu memakai kendala halaman tabel untuk membuang rail di halaman ikhtisar —
+yang justru tak punya kendala itu. Hasilnya: **satu AppShell, satu prop rail
+opsional.** Bukan mode ketiga — satu halaman selalu punya satu bentuk, jadi nol
+permukaan uji tambahan. Mode kepadatan Nyaman/Rapat **ditolak** karena justru
+itu yang bikin 4 kombinasi penjaga.
+
+### Sparkline: saya membuangnya karena alasan yang salah
+
+Saya membuang sparkline dengan alasan "endpoint KPI cuma mengembalikan satu
+angka". Benar tentang **endpoint** — lalu diam-diam saya perlakukan seolah
+benar tentang **data**. Founder menyebutnya tepat: *"itu celah API, bukan
+keputusan desain"*.
+
+Diukur ke basis, memakai kolom tanggal **bisnis** (bukan `created_at` yang
+cuma jejak seeding):
+
+```
+proyek / nilai kontrak   15 baris   9 bulan   2025-09 -> 2026-05
+invoice                  26 baris   8 bulan   2025-10 -> 2026-06
+payments                 23 baris   8 bulan   2025-10 -> 2026-06
+kasbon                   56 baris   8 bulan   2025-11 -> 2026-06
+progress_logs           271 baris   8 bulan   2025-11 -> 2026-06
+```
+
+Keenamnya punya riwayat nyata. Sparkline beranda dibangun — bukan garis
+karangan. Batasnya tetap: **6 endpoint, beranda saja**; KPI tanpa deret tampil
+tanpa sparkline, bukan dengan garis datar hiasan.
+
+### `kerapatan-ratchet` merah — dan BUKAN karena sesi ini
+
+Dibuktikan: berkas baru dipindah keluar sampai `git status` bersih persis HEAD,
+penjaga tetap `exit 1` ("BERTAMBAH 1"); ia hanya memindai `.tsx`. Dilaporkan di
+§H.4, **tidak ditambal diam-diam**. Founder memutuskan ini PR tersendiri
+**sebelum** PR 1 — alasannya bukan kerapian: penjaga itu persis yang melindungi
+`--pad-kartu` 12px, token paling diperdebatkan di redesign. Masuk redesign
+dengan penjaga merah = kehilangan sinyal untuk membedakan kerusakan baru dari
+yang lama.
+
+### Verifikasi
+
+```
+7 penjaga visual HIJAU   hex · tabel-mentah · tata-letak · a11y
+                         kontras · modal-esc · sidebar
+kerapatan-ratchet MERAH  sudah merah SEBELUM sesi ini (dibuktikan)
+10 token warna matriks   diverifikasi ada di globals.css, kedua mode
+QUEUE-UI.yaml            15 item, YAML valid, nol duplikat id
+```
+
+Nol baris kode UI ditulis. Kalau arah ini ditolak, biayanya nol.
+
+---
+
 ## 2026-08-08 — CVR dibangun: merah terakhir yang bukan "jangan dibangun"
 
 ### Penundaan yang dicabut SEBAGIAN, karena separuh alasannya sudah tak berlaku
