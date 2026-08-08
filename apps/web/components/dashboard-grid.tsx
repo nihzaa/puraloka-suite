@@ -17,11 +17,10 @@ type Layouts = Record<string, Layout[]>;
 // ─── Widget registry ──────────────────────────────────────────────────────────
 
 export const WIDGET_DEFS: Record<string, { label: string; defaultH: number }> = {
-  kpi:       { label: "KPI Cards",             defaultH: 3 },
+  kpi:       { label: "KPI Cards",             defaultH: 5 },
   cashflow:  { label: "Grafik Arus Kas",        defaultH: 5 },
   status:    { label: "Status & Progress",      defaultH: 5 },
   invoice:   { label: "Invoice Belum Lunas",    defaultH: 5 },
-  milestone: { label: "Milestone Mendatang",    defaultH: 5 },
   kasbon:    { label: "Kasbon Pending",         defaultH: 4 },
   tax:       { label: "Ringkasan Pajak",        defaultH: 3 },
 };
@@ -36,34 +35,33 @@ const DEFAULT_LAYOUTS: Layouts = {
     // isinya 107px — keterangan di bawah angka ("sedang berjalan",
     // "3 lewat jatuh tempo", dst.) TERGUNTING di SEMUA kartu, di semua
     // halaman yang memakai grid ini. Diukur di peramban: 46 kejadian.
-    { i: "kpi",       x: 0, y: 0,  w: 12, h: 3, isResizable: false },
+    { i: "kpi",       x: 0, y: 0,  w: 12, h: 5, isResizable: false },
     // `h: 6`, bukan 5. Dengan 5, isi widget arus kas (grafik 200px +
     // legenda + tiga metrik ringkasan) melebihi wadahnya 46px dan baris
     // "Pemasukan · Pengeluaran est. · Selisih" TERGUNTING — diukur di
     // peramban, bukan ditaksir. Widget status disamakan supaya kedua
     // kolom tetap sejajar; koordinat y di bawahnya ikut digeser.
-    { i: "cashflow",  x: 0, y: 3,  w: 7,  h: 6 },
-    { i: "status",    x: 7, y: 3,  w: 5,  h: 6 },
-    { i: "invoice",   x: 0, y: 9,  w: 7,  h: 5 },
-    { i: "milestone", x: 7, y: 9,  w: 5,  h: 5 },
-    { i: "kasbon",    x: 0, y: 14, w: 12, h: 4 },
-    { i: "tax",       x: 0, y: 18, w: 12, h: 3 },
+    // y digeser +2 mengikuti kpi h:3 -> h:5 (enam kartu = dua baris).
+    // Tanpa ini widget arus kas TUMPANG TINDIH dengan kartu KPI.
+    { i: "cashflow",  x: 0, y: 5,  w: 7,  h: 6 },
+    { i: "status",    x: 7, y: 5,  w: 5,  h: 6 },
+    { i: "invoice",   x: 0, y: 11, w: 7,  h: 5 },
+    { i: "kasbon",    x: 0, y: 16, w: 12, h: 4 },
+    { i: "tax",       x: 0, y: 20, w: 12, h: 3 },
   ],
   md: [
-    { i: "kpi",       x: 0, y: 0,  w: 10, h: 3, isResizable: false },
-    { i: "cashflow",  x: 0, y: 3,  w: 6,  h: 6 },
-    { i: "status",    x: 6, y: 3,  w: 4,  h: 6 },
-    { i: "invoice",   x: 0, y: 9,  w: 6,  h: 5 },
-    { i: "milestone", x: 6, y: 9,  w: 4,  h: 5 },
-    { i: "kasbon",    x: 0, y: 14, w: 10, h: 4 },
-    { i: "tax",       x: 0, y: 18, w: 10, h: 3 },
+    { i: "kpi",       x: 0, y: 0,  w: 10, h: 5, isResizable: false },
+    { i: "cashflow",  x: 0, y: 5,  w: 6,  h: 6 },
+    { i: "status",    x: 6, y: 5,  w: 4,  h: 6 },
+    { i: "invoice",   x: 0, y: 11, w: 6,  h: 5 },
+    { i: "kasbon",    x: 0, y: 16, w: 10, h: 4 },
+    { i: "tax",       x: 0, y: 20, w: 10, h: 3 },
   ],
   sm: [
-    { i: "kpi",       x: 0, y: 0,  w: 6, h: 4, isResizable: false },
-    { i: "cashflow",  x: 0, y: 4,  w: 6, h: 6 },
-    { i: "status",    x: 0, y: 10, w: 6, h: 5 },
-    { i: "invoice",   x: 0, y: 15, w: 6, h: 5 },
-    { i: "milestone", x: 0, y: 20, w: 6, h: 5 },
+    { i: "kpi",       x: 0, y: 0,  w: 6, h: 11, isResizable: false },
+    { i: "cashflow",  x: 0, y: 11, w: 6, h: 6 },
+    { i: "status",    x: 0, y: 17, w: 6, h: 5 },
+    { i: "invoice",   x: 0, y: 22, w: 6, h: 5 },
     { i: "kasbon",    x: 0, y: 25, w: 6, h: 4 },
     { i: "tax",       x: 0, y: 29, w: 6, h: 3 },
   ],
@@ -85,8 +83,24 @@ const COLS = { lg: 12, md: 10, sm: 6 };
  * Itu sepadan — cacat yang diperbaiki adalah isi yang tergunting, dan
  * mempertahankan tata letak yang menggunting isi bukan pilihan.
  */
-const STORAGE_KEY = "puraloka_dashboard_layout_v4";
-const HIDDEN_KEY  = "puraloka_dashboard_hidden_v4";
+/*
+ * v4 → v5 (2026-08-08, rombak dashboard).
+ *
+ * `milestone` DIHAPUS dari registry: isinya pindah ke rail kanan, dan widget
+ * tengahnya menampilkan daftar yang sama dua kali dalam satu halaman.
+ *
+ * Kenapa versinya HARUS naik, bukan sekadar entrinya dibuang: `loadLayouts()`
+ * hanya menolak tata letak tersimpan bila ada kunci yang HILANG — kunci
+ * BERLEBIH lolos. Jadi tanpa naik versi, pemakai yang pernah membuka
+ * dashboard tetap membawa slot `milestone` di localStorage-nya, dan RGL
+ * memesan ruang untuk widget yang tak pernah dirender. Cacatnya sunyi: satu
+ * lubang di tata letak, tanpa galat apa pun.
+ *
+ * Ongkosnya sama seperti v3 → v4: penyesuaian tata letak buatan pemakai
+ * hilang. Tetap sepadan — lubang di tata letak lebih buruk.
+ */
+const STORAGE_KEY = "puraloka_dashboard_layout_v5";
+const HIDDEN_KEY  = "puraloka_dashboard_hidden_v5";
 
 // ─── Persistence ──────────────────────────────────────────────────────────────
 

@@ -5,6 +5,75 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-08 — Rombak total beranda: builder ternyata sekutu, dan tiga cacat yang cuma mata bisa lihat
+
+Founder minta beranda dirombak total supaya isinya sepadan dengan referensi,
+lalu bertanya empat hal sekaligus. Keempatnya saya ukur dulu, tak ada yang
+ditebak.
+
+### "Dashboard builder jadi penghalang?" — justru sebaliknya
+
+`dashboard-grid.tsx` sudah punya registry widget, kunci berversi, dan fallback
+saat kunci tak lengkap. Menambah widget = satu baris + naikkan versi.
+
+Dan ia **nilai lebih yang referensi tidak punya**: susunan BuildAxis mati,
+punya Puraloka bisa diatur pengguna sendiri.
+
+### Tiga cacat yang hanya terlihat di layar — semuanya saya buat sendiri
+
+**Hero tak terbaca.** Teks navy di atas gradasi navy. Token `--on-merek` sudah
+ada persis untuk kasus ini; saya memakai `C.text`. **Nol penjaga statis bisa
+melihatnya** — keduanya token yang sah, dan hanya pasangannya yang salah.
+
+**Kartu KPI tergunting.** Enam kartu tak muat di `h:3`; "Rp 120 Jt" dan "48%"
+terpotong. Dinaikkan ke `h:5`, dan koordinat `y` semua widget di bawahnya harus
+digeser +2 — kalau tidak, arus kas menimpa KPI.
+
+**Gambar nyaris hilang.** Opasitas yang pas di latar terang terlalu rendah di
+atas gradasi gelap.
+
+> Ketiganya lolos typecheck, lolos 12 penjaga, lolos 490 test. Yang menangkap
+> hanya **melihat gambarnya**. Ini kali kedua dalam satu hari verifikasi visual
+> membayar dirinya sendiri.
+
+### Cacat keempat, warisan UIR-4
+
+`milestone` masih terdaftar di `WIDGET_DEFS` padahal widgetnya sudah saya hapus
+— jadi ada **toggle mati** di menu "Sesuaikan". Dibersihkan, versi v4→v5.
+
+Versinya **harus** naik, bukan cukup entrinya dibuang: `loadLayouts()` hanya
+menolak tata letak bila ada kunci yang **hilang** — kunci **berlebih** lolos.
+Tanpa naik versi, pemakai lama membawa slot hantu di localStorage-nya, dan RGL
+memesan ruang untuk widget yang tak pernah dirender. Sunyi, tanpa galat.
+
+### Yang sengaja berbeda dari referensi
+
+Founder minta *"sepersis mungkin"*, dan sebagian besar memang ditiru. Empat hal
+tidak, dan alasannya bukan selera:
+
+| Referensi | Kita | Kenapa |
+|---|---|---|
+| Ilustrasi kartun berhelm | SVG geometris buatan sendiri | §11a + craft-floor; dipilih founder |
+| "78/100 Project Success Probability" | kartu "SEGERA" + keadaan jujur | angkanya karangan; belum ada endpoint AI |
+| Cuaca | tidak ada | sumbernya belum ada |
+| — | Pajak PPh · Kasbon inline · Arus Kas | khas kontraktor Indonesia, **dipertahankan atas permintaan founder** |
+
+Yang terakhir penting dicatat: founder eksplisit meminta KPI yang **kita punya
+tapi referensi tidak** jangan dihilangkan. Tak satu pun dihapus.
+
+### Verifikasi
+
+```
+12 penjaga visual  SEMUA HIJAU
+axe-core WCAG AA   0 pelanggaran — terang DAN gelap
+next build         exit 0
+tsc                exit 0
+vitest             36 berkas · 490 test LULUS
+diperiksa di layar 3 kali putaran: cacat → perbaikan → konfirmasi
+```
+
+---
+
 ## 2026-08-08 — UIR-4B: sparkline hidup, dan nyaris saya bangun untuk kedua kalinya
 
 Founder membandingkan tangkapan layar dengan gambar referensi: *"style dan isi

@@ -646,7 +646,46 @@ items:
       - "a11y 2 mode nol pelanggaran · 12 penjaga hijau"
     cara_verifikasi: "audit-a11y-runtime --url /dashboard (terang & gelap) + periksa layar"
     bobot: M
-    status: todo
+    status: selesai
+    hasil_2026_08_08: |
+      ✅ ROMBAK TOTAL BERANDA. Hero bergambar · KPI 4→6 · Pintasan 7 · rail
+      4 kartu. Diperiksa di layar, bukan diklaim.
+
+      DASHBOARD BUILDER BUKAN PENGHALANG — justru jalannya. `dashboard-grid`
+      sudah punya registry widget, kunci berversi, dan fallback saat kunci tak
+      lengkap. Menambah widget = satu baris registry + naikkan versi. Builder
+      malah jadi nilai lebih yang REFERENSI TIDAK PUNYA: susunan BuildAxis mati,
+      punya kita bisa diatur pengguna.
+
+      TIGA CACAT YANG HANYA TERLIHAT DI LAYAR (semua saya buat sendiri):
+
+        1. Hero TAK TERBACA — teks navy di atas gradasi navy. Token `--on-merek`
+           sudah ada persis untuk ini; saya memakai `C.text`. Nol penjaga statis
+           bisa melihatnya: keduanya token yang sah.
+        2. Kartu KPI TERGUNTING — 6 kartu tak muat di `h:3`. Dinaikkan ke `h:5`
+           (lg/md) dan `h:11` (sm), koordinat y di bawahnya digeser +2.
+        3. Gambar nyaris tak terlihat — opasitas yang benar untuk latar terang
+           terlalu rendah di atas gradasi gelap.
+
+      CACAT KEEMPAT, WARISAN UIR-4: `milestone` masih terdaftar di WIDGET_DEFS
+      padahal widgetnya sudah dihapus — toggle mati di menu "Sesuaikan".
+      Dibersihkan, versi v4→v5. Alasan versi HARUS naik: `loadLayouts()` hanya
+      menolak kunci yang HILANG, kunci BERLEBIH lolos — jadi pemakai lama akan
+      membawa slot hantu di localStorage-nya.
+
+      YANG SENGAJA BEDA DARI REFERENSI, dan bukan kekurangan:
+        - gambar GEOMETRIS buatan sendiri, bukan ilustrasi kartun stok
+          (ARAH-VISUAL §11a; craft-floor "real illustration or none")
+        - kartu asisten berlabel "SEGERA" + keadaan kosong jujur, BUKAN
+          "78/100 Project Success Probability" yang angkanya karangan
+        - tanpa cuaca — sumbernya belum ada, dan mengarang suhu di alat kerja
+          merusak kepercayaan pada angka di sebelahnya
+        - KPI khas Indonesia DIPERTAHANKAN atas permintaan founder: Pajak PPh
+          Final, Kasbon dengan aksi inline, Arus Kas 8 minggu. Referensi tak
+          punya karena mereka bukan kontraktor Indonesia.
+
+      VERIFIKASI: 12 penjaga HIJAU · axe-core 0 pelanggaran (terang & gelap) ·
+      next build exit 0 · tsc exit 0 · vitest 36 berkas / 490 test.
     catatan: |
       DIMINTA FOUNDER 2026-08-08 sesudah membandingkan tangkapan layar dengan
       gambar referensi: "style dan isi dari dashboard belum sama kaya referensi

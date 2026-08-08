@@ -14,7 +14,7 @@ import {
   Building2, TrendingUp, FileText, BarChart2,
   AlertTriangle, CheckCircle2, Clock, CheckCheck,
   X, RefreshCw, Landmark, ArrowRight, Target,
-  ChevronRight,
+  ChevronRight, Coins, Wallet, ShoppingCart, HardHat,
 } from "lucide-react";
 import { DashboardGrid } from "@/components/dashboard-grid";
 import { Tabel } from "@/components/dasar";
@@ -110,12 +110,32 @@ const daysUntil = (d: string) =>
 
 import { C } from "@/lib/warna-ui";
 import { namaSapaan } from "@/lib/nama-sapaan";
-import { formatRupiah } from "@/lib/format";
+import { formatRupiah, formatPersen, formatTanggalPanjang } from "@/lib/format";
 import { HalamanIkhtisar } from "@/components/shell/halaman-ikhtisar";
 import { Rail } from "@/components/shell/rail";
 import { RailFokus } from "@/components/shell/rail-fokus";
 import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
 import { hitungDelta } from "@/lib/deret";
+import { GambarHero } from "@/components/shell/gambar-hero";
+import { RailAsisten } from "@/components/shell/rail-asisten";
+
+/**
+ * Pintasan beranda — tujuh tempat yang paling sering dituju DARI sini.
+ *
+ * Tiap `href` DIPERIKSA ke disk 2026-08-08. Pintasan yang mengirim orang ke
+ * 404 lebih buruk daripada tak ada pintasan sama sekali — persis cacat yang
+ * sudah tertangkap di rail (`/kontrak/klaim` dan `/lapangan/instruksi`
+ * ternyata tak pernah ada).
+ */
+const PINTASAN: { href: string; label: string; ikon: React.ReactNode }[] = [
+  { href: "/proyek",            label: "Proyek",      ikon: <Building2 size={16} /> },
+  { href: "/keuangan/invoice",  label: "Invoice",     ikon: <FileText size={16} /> },
+  { href: "/kas/pengeluaran",   label: "Pengeluaran", ikon: <Wallet size={16} /> },
+  { href: "/mandor/kasbon",     label: "Kasbon",      ikon: <Coins size={16} /> },
+  { href: "/procurement",       label: "Pengadaan",   ikon: <ShoppingCart size={16} /> },
+  { href: "/lapangan",          label: "Lapangan",    ikon: <HardHat size={16} /> },
+  { href: "/laporan",           label: "Laporan",     ikon: <BarChart2 size={16} /> },
+];
 
 const STATUS_COLOR: Record<string, string> = {
   active: C.navy, completed: C.green, on_hold: C.yellow,
@@ -308,6 +328,21 @@ function DashboardContent() {
   /** Persen delta, atau `null` bila tak bisa dihitung jujur. Diuji di `lib/deret.test.ts`. */
   const deltaDari = (n: number[] | undefined) => hitungDelta(n ?? [])?.persen ?? null;
 
+  /*
+   * Rata-rata progres fisik — DIHITUNG di sini dari `active_progress`, bukan
+   * diminta ke server.
+   *
+   * Ini rata-rata SEDERHANA, bukan tertimbang nilai kontrak. Disengaja: yang
+   * ditanyakan kartu ini "seberapa jauh pekerjaan berjalan", bukan "berapa
+   * persen nilai proyek yang sudah jadi" — dan menimbangnya dengan nilai
+   * kontrak membuat satu proyek besar menenggelamkan lima proyek kecil yang
+   * mandek. Untuk pertanyaan itu sudah ada kartu Serapan Anggaran.
+   */
+  const proyekBerjalan = data?.active_progress ?? [];
+  const rataProgres = proyekBerjalan.length
+    ? proyekBerjalan.reduce((s, p) => s + (Number(p.progress_pct) || 0), 0) / proyekBerjalan.length
+    : 0;
+
   const kpiWidget = (
     <div style={{
       padding: "var(--pad-kartu-lega)",
@@ -370,6 +405,32 @@ function DashboardContent() {
         // Disorot hanya bila TAK ada yang lebih mendesak — satu sorot per layar.
         sorot={!adaOverdue}
         onClick={() => router.push("/kas")}
+      />
+      {/*
+        KPI ke-5 & ke-6 (UIR-5). Referensi memakai 6 kartu; kita sempat 4.
+        Keduanya dari data yang SUDAH dimuat — nol permintaan tambahan.
+      */}
+      <KartuKPI
+        label="Kasbon beredar"
+        nilai={loading ? "—" : `Rp ${fmtShort(data?.kpis.kasbon_active_total ?? 0)}`}
+        keterangan={(alerts?.kasbon_pending ?? 0) > 0
+          ? `${alerts!.kasbon_pending} menunggu persetujuan`
+          : "tak ada yang menunggu"}
+        ikon={<Coins size={15} />}
+        spark={d?.kasbon}
+        delta={deltaDari(d?.kasbon)}
+        // Kasbon yang MENUMPUK itu buruk — uang perusahaan di tangan mandor.
+        naikBagus={false}
+        onClick={() => router.push("/mandor/kasbon")}
+      />
+      <KartuKPI
+        label="Rata-rata progres fisik"
+        nilai={loading ? "—" : formatPersen(rataProgres, { sudahPersen: true, desimal: 0 })}
+        nilaiAngka={loading ? undefined : rataProgres}
+        keterangan={`dari ${data?.active_progress.length ?? 0} proyek berjalan`}
+        ikon={<Target size={15} />}
+        naikBagus
+        onClick={() => router.push("/proyek")}
       />
     </div>
   );
@@ -837,49 +898,97 @@ function DashboardContent() {
               />
             ))}
           </KartuRail>
+
+          <RailAsisten />
         </Rail>
       }
     >
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="rise" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24, gap: "var(--gap-grid)" }}>
-        <div>
-          <p style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>
-            {new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+      {/* ── Period pills ───────────────────────────────────────────────────── */}
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 4, marginBottom: "var(--gap-grid)" }}>
+        {PERIODS.map(opt => {
+          const active = period === opt.value;
+          return (
+            <button key={opt.value} onClick={() => setPeriod(opt.value)} style={{
+              padding: "4px 12px", borderRadius: 999, fontSize: 11,
+              fontWeight: active ? 600 : 400,
+              border: active ? "1px solid color-mix(in srgb, var(--aksen) 35%, transparent)" : "1px solid var(--border)",
+              background: active ? C.navyLight : "var(--surface)",
+              color: active ? C.navy : C.mid,
+              cursor: "pointer", transition: "all 0.12s",
+            }}>
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/*
+        ── HERO ──────────────────────────────────────────────────────────────
+
+        Bentuknya mengikuti referensi (sapaan + gambar + kartu ringkas di
+        kanan), dengan tiga penyimpangan yang disengaja:
+
+        1. GAMBAR GEOMETRIS, bukan ilustrasi kartun. `ARAH-VISUAL` §11a dan
+           `craft-floor` sama-sama melarang stok/figur; geometri justru
+           first-class. Lihat `components/shell/gambar-hero.tsx`.
+
+        2. KARTU KANAN DILABELI JUJUR. Referensi menulis "AI Project Insights
+           — 78/100 Project Success Probability". Angka itu karangan. Yang di
+           sini DIHITUNG dari data nyata (proyek telat vs total), jadi ia
+           "Peringatan Sistem" — bukan AI. Wadah AI-nya menyusul saat modelnya
+           benar-benar ada (`API-GAPS.md`, KEPUTUSAN-SCOPE-ERP-AI §4).
+
+        3. TANPA CUACA. Referensi menampilkannya; kita belum punya sumbernya,
+           dan mengarang suhu di alat kerja adalah kebohongan kecil yang
+           merusak kepercayaan pada angka di sebelahnya.
+      */}
+      <section className="rise" style={{
+        display: "grid", gridTemplateColumns: "minmax(0,1fr) auto",
+        gap: "var(--gap-grid)", alignItems: "stretch",
+        marginBottom: "var(--gap-bagian)",
+        background: "var(--grad-merek)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--rad-besar)",
+        overflow: "hidden",
+      }}>
+        {/*
+          Teks memakai `--on-merek`, BUKAN `C.text`.
+
+          Percobaan pertama memakai warna teks biasa di atas `--grad-merek` —
+          dan seluruh sapaan JADI TAK TERBACA: navy gelap di atas gradasi navy
+          gelap. Ketahuan hanya karena tangkapan layar diperiksa; tak satu pun
+          penjaga statis bisa melihatnya, karena keduanya token yang sah.
+
+          `--on-merek` ada persis untuk ini, dan ia berpasangan dengan
+          gradasinya — jadi ia ikut benar di mode gelap.
+        */}
+        <div style={{ padding: "var(--pad-kartu-lega)", display: "flex", flexDirection: "column", justifyContent: "center", minWidth: 0 }}>
+          <p style={{ fontSize: 11, color: "var(--on-merek)", opacity: 0.75, margin: "0 0 6px" }}>
+            {formatTanggalPanjang(new Date())}
           </p>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: C.text, lineHeight: 1.1, margin: "0 0 4px" }}>
-            Selamat datang{user && <span style={{ color: C.navy }}>, {namaSapaan(user.name)}</span>}
+          <h1 style={{
+            fontFamily: "var(--font-display)", fontSize: "var(--t-halaman)",
+            fontWeight: 700, letterSpacing: "-0.02em",
+            color: "var(--on-merek)", lineHeight: 1.15, margin: "0 0 6px",
+          }}>
+            Selamat datang{user && <>, {namaSapaan(user.name)}</>}
           </h1>
-          {loading
-            ? <Skeleton h={13} w={260} />
-            : data && (
-              <p style={{ fontSize: 12, color: C.mid, margin: 0 }}>
-                {data.kpis.active_projects} proyek aktif · nilai kontrak {fmtShort(data.kpis.total_contract_value)}
-                {totalAlerts > 0 && <span style={{ color: C.yellow, fontWeight: 600 }}> · {totalAlerts} perlu perhatian</span>}
-              </p>
-            )
-          }
+          {loading ? <Skeleton h={13} w={260} /> : data && (
+            <p style={{ fontSize: "var(--t-badan)", color: "var(--on-merek)", opacity: 0.85, margin: 0, lineHeight: 1.5 }}>
+              {data.kpis.active_projects} proyek aktif · nilai kontrak {fmtShort(data.kpis.total_contract_value)}
+              {totalAlerts > 0 && (
+                <span style={{ fontWeight: 700 }}> · {totalAlerts} perlu perhatian</span>
+              )}
+            </p>
+          )}
         </div>
 
-        {/* Period pills */}
-        <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-          {PERIODS.map(opt => {
-            const active = period === opt.value;
-            return (
-              <button key={opt.value} onClick={() => setPeriod(opt.value)} style={{
-                padding: "4px 12px", borderRadius: 999, fontSize: 11,
-                fontWeight: active ? 600 : 400,
-                border: active ? "1px solid color-mix(in srgb, var(--aksen) 35%, transparent)" : "1px solid var(--border)",
-                background: active ? C.navyLight : "var(--surface)",
-                color: active ? C.navy : C.mid,
-                cursor: "pointer", transition: "all 0.12s",
-              }}>
-                {opt.label}
-              </button>
-            );
-          })}
+        {/* Gambar memakai `--on-merek` supaya garisnya terbaca di atas gradasi. */}
+        <div style={{ display: "flex", alignItems: "flex-end", paddingInlineEnd: 4, color: "var(--on-merek)" }}>
+          <GambarHero />
         </div>
-      </div>
+      </section>
 
       {/* ── Alert banners ──────────────────────────────────────────────────── */}
       {alerts && (alerts.invoice_overdue > 0 || alerts.kasbon_pending > 0 || alerts.milestone_late > 0) && (
@@ -931,6 +1040,60 @@ function DashboardContent() {
         yang memang pas untuk kolom 300px, dan membebaskan lebar tengah untuk
         grafik & tabel yang benar-benar membutuhkannya.
       */}
+      {/*
+        ── PINTASAN ──────────────────────────────────────────────────────────
+
+        "Quick Links" di referensi. Isinya BUKAN salinan menu sidebar —
+        sidebar sudah memuat semuanya, jadi mengulanginya di sini hanya
+        menambah baris tanpa menambah kemampuan.
+
+        Yang dipilih: tujuh tempat yang paling sering dituju DARI beranda,
+        dan tiap satu punya halaman nyata (diperiksa ke disk). Pintasan yang
+        mengirim orang ke 404 lebih buruk daripada tak ada pintasan.
+      */}
+      <nav aria-label="Pintasan" style={{
+        display: "grid", gap: "var(--gap-grid)", marginBottom: "var(--gap-bagian)",
+        gridTemplateColumns: "repeat(auto-fit, minmax(132px, 1fr))",
+      }}>
+        {PINTASAN.map((p) => (
+          <Link
+            key={p.href}
+            href={p.href}
+            style={{
+              display: "flex", alignItems: "center", gap: 10,
+              padding: "var(--pad-kartu)",
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--rad-besar)",
+              textDecoration: "none",
+              transition: "box-shadow 150ms ease, transform 150ms ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.boxShadow = "var(--naik-2)";
+              e.currentTarget.style.transform = "translateY(-1px)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.boxShadow = "none";
+              e.currentTarget.style.transform = "translateY(0)";
+            }}
+          >
+            <span aria-hidden="true" style={{
+              display: "grid", placeItems: "center", flexShrink: 0,
+              width: 32, height: 32, borderRadius: "var(--rad-sedang)",
+              background: "var(--navy-light)", color: "var(--navy)",
+            }}>
+              {p.ikon}
+            </span>
+            <span style={{
+              fontSize: "var(--t-badan)", fontWeight: 600, color: C.text,
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            }}>
+              {p.label}
+            </span>
+          </Link>
+        ))}
+      </nav>
+
       <DashboardGrid widgets={{
         kpi:       kpiWidget,
         cashflow:  cashflowWidget,
