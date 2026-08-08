@@ -119,6 +119,7 @@ import { hitungDelta } from "@/lib/deret";
 import { GambarHero } from "@/components/shell/gambar-hero";
 import { RailAsisten } from "@/components/shell/rail-asisten";
 import { RailKalender } from "@/components/shell/rail-kalender";
+import { WidgetSerapan } from "@/components/shell/widget-serapan";
 import { KartuKesehatan } from "@/components/shell/kartu-kesehatan";
 
 /**
@@ -1177,6 +1178,10 @@ function DashboardContent() {
 
       <DashboardGrid widgets={{
         kpi:       kpiWidget,
+        // Widget serapan memuat datanya SENDIRI (`/cost-analytics/portfolio`),
+        // jadi ia tak menunggu `data` halaman ini dan tak menjatuhkannya kalau
+        // gagal — kelambatan satu endpoint tak boleh menahan seluruh dashboard.
+        serapan:   <WidgetSerapan />,
         cashflow:  cashflowWidget,
         status:    statusWidget,
         invoice:   invoiceWidget,

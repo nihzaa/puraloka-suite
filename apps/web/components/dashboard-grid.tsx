@@ -18,6 +18,7 @@ type Layouts = Record<string, Layout[]>;
 
 export const WIDGET_DEFS: Record<string, { label: string; defaultH: number }> = {
   kpi:       { label: "KPI Cards",             defaultH: 3 },
+  serapan:   { label: "Serapan Anggaran",       defaultH: 6 },
   cashflow:  { label: "Grafik Arus Kas",        defaultH: 5 },
   status:    { label: "Status & Progress",      defaultH: 5 },
   invoice:   { label: "Invoice Belum Lunas",    defaultH: 5 },
@@ -39,13 +40,18 @@ const DEFAULT_LAYOUTS: Layouts = {
       kali tinggi kartu berubah.
     */
     { i: "kpi",       x: 0, y: 0,  w: 12, h: 3, isResizable: false },
-    // `h: 6`, bukan 5. Dengan 5, isi widget arus kas (grafik 200px +
-    // legenda + tiga metrik ringkasan) melebihi wadahnya 46px dan baris
-    // "Pemasukan · Pengeluaran est. · Selisih" TERGUNTING — diukur di
-    // peramban, bukan ditaksir. Widget status disamakan supaya kedua
-    // kolom tetap sejajar; koordinat y di bawahnya ikut digeser.
-    { i: "cashflow",  x: 0, y: 3,  w: 7,  h: 6 },
-    { i: "status",    x: 7, y: 3,  w: 5,  h: 6 },
+    /*
+      BARIS TIGA WIDGET — bentuk referensi (Budget · Timeline · Site-wise).
+      Di sini isinya: serapan anggaran · arus kas · status per proyek.
+
+      `h: 6`, bukan 5. Dengan 5, isi widget arus kas (grafik 200px +
+      legenda + tiga metrik ringkasan) melebihi wadahnya 46px dan baris
+      "Pemasukan · Pengeluaran est. · Selisih" TERGUNTING — diukur di
+      peramban, bukan ditaksir. Ketiganya disamakan supaya sejajar.
+    */
+    { i: "serapan",   x: 0, y: 3,  w: 4,  h: 6 },
+    { i: "cashflow",  x: 4, y: 3,  w: 4,  h: 6 },
+    { i: "status",    x: 8, y: 3,  w: 4,  h: 6 },
     { i: "invoice",   x: 0, y: 9,  w: 7,  h: 5 },
     { i: "kasbon",    x: 0, y: 14, w: 12, h: 4 },
     { i: "tax",       x: 0, y: 18, w: 12, h: 3 },
@@ -66,19 +72,46 @@ const DEFAULT_LAYOUTS: Layouts = {
       ulang terhadap lebar wadah SEBENARNYA, bukan lebar layar.
     */
     { i: "kpi",       x: 0, y: 0,  w: 10, h: 4, isResizable: false },
-    { i: "cashflow",  x: 0, y: 4,  w: 6,  h: 6 },
-    { i: "status",    x: 6, y: 4,  w: 4,  h: 6 },
-    { i: "invoice",   x: 0, y: 10, w: 6,  h: 5 },
-    { i: "kasbon",    x: 0, y: 15, w: 10, h: 4 },
-    { i: "tax",       x: 0, y: 19, w: 10, h: 3 },
+    /*
+      TINGGI SERAPAN DIUKUR, BUKAN DITAKSIR — dan saya salah dua kali dulu.
+
+      Isi widget (judul + donat 110px + tiga baris angka + tautan) berhenti
+      di 228px. `h: 5` (356px) menyisakan ~130px kosong; `h: 3` (208px)
+      justru MENGGUNTING 20px. `h: 4` (282px) pas, dengan napas.
+
+      Ruang kosongnya tak terbaca sebagai bug saat dilihat sekilas: tautan
+      ber-`marginTop:auto` menempel ke dasar, jadi celahnya menganga di
+      TENGAH, bukan di bawah. Cacat serupa pernah terjadi pada widget KPI
+      di v5→v6 — dan sekali lagi yang menemukannya adalah mengukur.
+
+      Lebar `w: 4` (~380px pada wadah 992px): cukup untuk donat + angka,
+      dan menyisakan `w: 6` bagi arus kas di sampingnya. Jadi baris
+      tiga-widget referensi tetap terwujud, hanya pembagiannya 4/6/4
+      (serapan · arus kas · status) alih-alih 4/4/4 — wadah `md` di beranda
+      992px, sementara referensi punya ~1180px karena tak memakai rail.
+    */
+    { i: "serapan",   x: 0, y: 4,  w: 4,  h: 4 },
+    { i: "cashflow",  x: 4, y: 4,  w: 6,  h: 6 },
+    /*
+      `h: 7` untuk status, bukan 6. Diukur: isinya 487px sementara wadah
+      `h: 6` hanya 430px — 57px TERGUNTING, dan yang hilang adalah baris
+      progres proyek paling bawah. Cacat ini sudah ada SEBELUM perubahan
+      hari ini (widget status memang selalu `h: 6`); ketahuan justru karena
+      pengukuran dijalankan untuk menyetel widget baru di sebelahnya.
+    */
+    { i: "status",    x: 0, y: 7,  w: 4,  h: 7 },
+    { i: "invoice",   x: 0, y: 14, w: 6,  h: 5 },
+    { i: "kasbon",    x: 0, y: 19, w: 10, h: 4 },
+    { i: "tax",       x: 0, y: 23, w: 10, h: 3 },
   ],
   sm: [
     { i: "kpi",       x: 0, y: 0,  w: 6, h: 8, isResizable: false },
-    { i: "cashflow",  x: 0, y: 8,  w: 6, h: 6 },
-    { i: "status",    x: 0, y: 14, w: 6, h: 5 },
-    { i: "invoice",   x: 0, y: 19, w: 6, h: 5 },
-    { i: "kasbon",    x: 0, y: 25, w: 6, h: 4 },
-    { i: "tax",       x: 0, y: 29, w: 6, h: 3 },
+    { i: "serapan",   x: 0, y: 8,  w: 6, h: 6 },
+    { i: "cashflow",  x: 0, y: 14, w: 6, h: 6 },
+    { i: "status",    x: 0, y: 20, w: 6, h: 5 },
+    { i: "invoice",   x: 0, y: 25, w: 6, h: 5 },
+    { i: "kasbon",    x: 0, y: 31, w: 6, h: 4 },
+    { i: "tax",       x: 0, y: 35, w: 6, h: 3 },
   ],
 };
 
@@ -99,6 +132,17 @@ const COLS = { lg: 12, md: 10, sm: 6 };
  * mempertahankan tata letak yang menggunting isi bukan pilihan.
  */
 /*
+ * v7 → v8 (2026-08-08): widget `serapan` DITAMBAHKAN (baris tiga-sebaris
+ * referensi: serapan · arus kas · status).
+ *
+ * Wajib naik versi, dan alasannya kebalikan dari kasus `milestone` di v4→v5:
+ * `loadLayouts()` menolak tata letak tersimpan yang KEKURANGAN kunci, jadi
+ * pemakai lama sebenarnya akan otomatis jatuh ke bawaan. Tapi mengandalkan
+ * itu berarti bergantung pada perilaku yang tak pernah diuji untuk kasus ini,
+ * dan kalau kelak pemeriksaannya dilonggarkan, widget baru diam-diam tak
+ * pernah tampil bagi pemakai lama — yaitu orang yang paling sering membuka
+ * dashboard. Naikkan versinya; ongkosnya cuma tata letak buatan sendiri.
+ *
  * v5 → v6 (2026-08-08): tinggi widget KPI berubah mengikuti kartu yang
  * diramping-kan (159px → ~92px, enam sebaris). Tanpa naik versi, pemakai lama
  * terkunci di tinggi lama dan kartunya mengambang di ruang kosong.
@@ -118,8 +162,8 @@ const COLS = { lg: 12, md: 10, sm: 6 };
  * Ongkosnya sama seperti v3 → v4: penyesuaian tata letak buatan pemakai
  * hilang. Tetap sepadan — lubang di tata letak lebih buruk.
  */
-const STORAGE_KEY = "puraloka_dashboard_layout_v7";
-const HIDDEN_KEY  = "puraloka_dashboard_hidden_v7";
+const STORAGE_KEY = "puraloka_dashboard_layout_v8";
+const HIDDEN_KEY  = "puraloka_dashboard_hidden_v8";
 
 // ─── Persistence ──────────────────────────────────────────────────────────────
 

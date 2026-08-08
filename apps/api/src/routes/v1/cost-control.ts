@@ -95,14 +95,37 @@ export default async function costControlRoutes(app: FastifyInstance) {
       // Tiga sumber, diambil sekaligus lalu diagregasi di memori. Dipilih
       // begitu karena jumlah proyek puluhan, bukan ribuan — dan satu query
       // per proyek akan jadi N+1 yang menyakitkan begitu portofolio tumbuh.
+      /*
+       * ⚠️ `db.unsafe()`, BUKAN `db.from()` — dan ini perbaikan cacat, bukan
+       * pelonggaran.
+       *
+       * Ketiga tabel di bawah berkategori C (tenancy diwarisi lewat project),
+       * dan `db.from()` MENOLAKNYA di titik `from()`. Akibatnya endpoint ini
+       * selalu 500 sejak ditulis:
+       *
+       *   TenantDbError: 'rab_items' mewarisi tenancy lewat project —
+       *   pakai db.viaProject('rab_items', projectId).
+       *
+       * `viaProject()` pun tak berlaku: ia menuntut SATU projectId, sementara
+       * ini layar LINTAS-PROYEK. Jadi pintu yang sah adalah `unsafe()` dengan
+       * alasan tercatat — pola yang sama dipakai `/dashboard/fokus`,
+       * `/dashboard/deret`, dan `/ai/insight`.
+       *
+       * Saringannya sendiri SUDAH benar sejak awal (`.in('project_id', ids)`,
+       * dan `ids` berasal dari query projects yang sudah ter-scope tenant di
+       * atas) — yang salah cuma jalurnya. Cacat ini tak pernah tertangkap test
+       * karena tak ada test yang memanggil endpointnya.
+       */
+      const ALASAN = 'analitik biaya lintas-proyek milik company; sudah disaring .in(project_id, ids) dari query projects ter-scope tenant di atas'
+
       const [rabRes, rapRes, expRes] = await Promise.all([
-        request.db!.from('rab_items')
+        request.db!.unsafe('rab_items', ALASAN)
           .select('project_id, total_price, level')
           .in('project_id', ids).eq('level', 'category'),
-        request.db!.from('rap_budget')
+        request.db!.unsafe('rap_budget', ALASAN)
           .select('id, project_id, status, rap_material_line(pagu), rap_labor_line(borongan_value)')
           .in('project_id', ids).eq('status', 'locked'),
-        request.db!.from('project_expenses')
+        request.db!.unsafe('project_expenses', ALASAN)
           .select('project_id, total_amount')
           .in('project_id', ids).eq('status', 'approved'),
       ])
