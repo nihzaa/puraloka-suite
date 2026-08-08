@@ -71,6 +71,8 @@ const ENV_API = [
   { k: 'VAPID_PUBLIC_KEY', wajib: false, bukti: 'web push mati kalau kosong' },
   { k: 'VAPID_PRIVATE_KEY', wajib: false, bukti: 'web push mati kalau kosong' },
   { k: 'OTEL_ENABLED', wajib: false, bukti: "utils/observability.ts:56 — aktif hanya bila 'true'" },
+  { k: 'ANTHROPIC_API_KEY', wajib: false, bukti: "routes/v1/ai.ts — kosong = kartu jatuh ke teks deterministik" },
+  { k: 'ANTHROPIC_MODEL', wajib: false, bukti: "routes/v1/ai.ts — default 'claude-opus-5'" },
 ]
 
 const ENV_WEB = [

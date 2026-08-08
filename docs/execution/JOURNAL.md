@@ -5,6 +5,76 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-08 — AI pertama masuk produk, dan kunci API nyaris ikut ter-commit
+
+Founder mengirim gambar kartu "AI Project Insights — 78/100 Project Success
+Probability" dari referensi: *"kaya gini ai analysis nya, yg nanti akan saya
+inegrasikan ke api claude"*. Jadi endpoint AI pertama di repo ini dibangun
+hari ini — `/api/v1/ai/insight`, dipakai kartu Kesehatan Portofolio.
+
+### Yang dibagi: skor tetap dihitung, model hanya menjelaskan
+
+Angka 78 di referensi karangan — tak ada model di baliknya, dan kata
+"probability" menjanjikan ramalan yang tak pernah dihitung. Pembagian di sini
+ditegakkan di SKEMA jawaban, bukan cuma di niat: `SKEMA_JAWABAN` hanya punya
+**dua field teks**, jadi model tak punya tempat menaruh angka. Skornya tetap
+dari `lib/kesehatan.ts`. Ada test yang merah kalau ada yang menambahkan field
+angka ke skema itu kelak.
+
+### Kunci API bocor DUA KALI, dan yang kedua nyaris permanen
+
+Pertama: founder menempelkannya di chat. Saya peringatkan, dan tak memakainya.
+
+Kedua — dan ini yang lebih berbahaya — kunci yang sama muncul di
+**`apps/api/.env.example`**, berkas yang **DILACAK git**. Satu commit lagi dan
+ia terdorong ke GitHub, tempat pencabutan tak menghapus riwayat. Tertangkap
+sebelum `git add`; diverifikasi nol jejak `sk-ant-` di seluruh pohon kerja.
+
+Pelajarannya bukan "hati-hati": `.env.example` **terlihat** seperti berkas
+contoh yang aman justru karena namanya. Sekarang ada peringatan tertulis di
+berkas itu sendiri, di baris tepat sebelum tempat orang akan mengetik.
+
+### "Gagal" bukan 500 — dan itu keputusan, bukan kelalaian
+
+Kunci kosong, kuota habis, model menolak, jawaban kepanjangan: semuanya balas
+**200** dengan `sumber: "deterministik"`, dan kartu memakai kalimat hitungannya
+sendiri. Kalau ini 500, satu panggilan pihak ketiga yang mati akan menampilkan
+pesan galat di beranda — padahal SELURUH angka di halaman itu masih benar.
+Galatnya tidak ditelan: dicatat `log.warn` dengan sebabnya, dan `alasan` di
+muatan menyebut penyebabnya.
+
+Jawaban yang tak layak **ditolak, bukan dipotong**. Kalimat terpotong di tengah
+("Segera tagih invoice PT Sur…") terbaca sebagai aplikasi rusak — lebih buruk
+daripada kalimat deterministik yang utuh.
+
+### Empat kali saya memotret hal yang salah
+
+Bukti visual hari ini mahal, dan tiap kegagalan mengajarkan hal berbeda:
+
+1. **HTTP 200 dari port yang salah.** `localhost:3000` menjawab 200, jadi saya
+   anggap itu Puraloka. Ternyata **proyek lain** — "TJS Industrial Adhesive".
+   Yang menemukan bukan status code, tapi *melihat gambarnya*.
+2. **Login berhasil, halamannya salah.** `wardianto` = mandor → portal mandor.
+   `rizky` = PM → portal PM. Kartunya cuma ada di dashboard admin.
+3. **Proxy menelan badan permintaan.** Stub uji saya meneruskan method dan
+   header tapi bukan body — POST login langsung mati.
+4. **Mode gelap yang isinya putih.** `colorScheme: 'dark'` tidak cukup;
+   next-themes membaca `localStorage`. Sudah tertulis di komentar
+   `tangkap-layar.mjs:101` — saya menulis skrip sendiri tanpa membacanya.
+
+### Jalur AI dibuktikan sungguhan, bukan diasumsikan
+
+Dengan kunci terpasang di `.env`: `sumber: "ai"`, model `claude-opus-5`, dan
+Claude menyebut **6 proyek lewat tenggat** dan **3 invoice** — angka yang ada
+di faktanya, tak satu pun dikarang. Blok "Saran" terbukti tampil di layar pada
+kedua mode, axe 0 pelanggaran di keduanya.
+
+**Yang paling saya ingat:** penjaga statis dan test tak satu pun bisa
+menangkap kunci di `.env.example`. Yang menangkapnya adalah membaca ulang
+diff sebelum commit — kebiasaan, bukan alat.
+
+---
+
 ## 2026-08-08 — Rombak total beranda: builder ternyata sekutu, dan tiga cacat yang cuma mata bisa lihat
 
 Founder minta beranda dirombak total supaya isinya sepadan dengan referensi,

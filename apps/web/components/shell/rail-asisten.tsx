@@ -10,9 +10,16 @@
  * Founder: *"nantinya memang akan diintegrasikan dengan AI"* — jadi tempatnya
  * disiapkan sekarang supaya tata letak tak perlu dirombak lagi nanti.
  *
- * Tapi diukur 2026-08-08: **belum ada satu pun endpoint AI** di `apps/api`,
- * dan `KEPUTUSAN-SCOPE-ERP-AI.md` §4 mencatat founder sendiri memutuskan
- * **ROADMAP dulu, baru AI**.
+ * Diukur 2026-08-08 dan DIPERBARUI hari yang sama: endpoint AI pertama sudah
+ * ada — `/api/v1/ai/insight`, dipakai kartu Kesehatan Portofolio di beranda.
+ * Yang belum ada adalah **asisten percakapan**, yaitu yang dijanjikan panel
+ * ini: tempat bertanya bebas, bukan satu kalimat penjelas yang sudah tampil
+ * di tempat lain.
+ *
+ * Jadi lencananya tetap "SEGERA", tetapi sekarang atas alasan yang sempit dan
+ * bisa diperiksa — bukan "AI belum ada sama sekali", yang sudah tidak benar.
+ * Peringatan yang basi menyesatkan sesi berikutnya persis seperti angka yang
+ * basi (CLAUDE.md §5.5).
  *
  * Referensi mengisi panel ini dengan "78/100 Project Success Probability" dan
  * empat chip saran yang bisa diklik. Kalau ditiru apa adanya, kita memasang
@@ -80,8 +87,10 @@ export function RailAsisten() {
         <p style={{
           margin: 0, fontSize: "var(--t-badan)", color: C.mid, lineHeight: 1.5,
         }}>
-          Asisten belum aktif. Sementara ini, angka yang bisa dihitung langsung
-          dari data sudah tampil sebagai{" "}
+          Tanya-jawab bebas belum aktif. Sementara ini, pembacaan AI atas
+          kondisi portofolio sudah tampil di{" "}
+          <strong style={{ color: C.text, fontWeight: 600 }}>Kesehatan portofolio</strong>{" "}
+          di beranda, dan hal yang menunggu keputusan ada di{" "}
           <strong style={{ color: C.text, fontWeight: 600 }}>Perlu keputusan</strong>{" "}
           di atas.
         </p>

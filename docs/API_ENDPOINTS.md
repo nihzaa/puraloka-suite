@@ -52,8 +52,26 @@
 | Method | Path | Auth | Role | Description |
 |--------|------|------|------|-------------|
 | GET | `/api/v1/dashboard` | Yes | admin,pm | Aggregation data (period filter) |
+| GET | `/api/v1/dashboard/fokus` | Yes | — | Hal yang menunggu keputusan + yang sudah lewat tenggat (widget rail) |
+| GET | `/api/v1/dashboard/deret` | Yes | — | Deret bulanan 8 bulan untuk sparkline KPI |
 
 **Period params**: `last_30_days`, `last_3_months`, `last_6_months`, `this_year`, `all_time`
+
+### AI
+| Method | Path | Auth | Role | Description |
+|--------|------|------|------|-------------|
+| GET | `/api/v1/ai/insight` | Yes | — | Penjelasan kesehatan portofolio dari Claude (kartu beranda) |
+
+**Skor tidak datang dari model.** Ia dihitung deterministik dari fakta yang
+dibaca endpoint ini sendiri; model hanya menulis dua kalimat (penilaian +
+rekomendasi), dan skema jawabannya tak punya field angka sama sekali.
+
+**Selalu 200, tak pernah 500 karena AI.** Kunci kosong / kuota habis / model
+menolak / jawaban tak layak → `sumber: "deterministik"` + `wawasan: null` +
+`alasan` yang menyebut penyebabnya. Web menampilkan kalimat hitungannya sendiri.
+
+Env: `ANTHROPIC_API_KEY` (opsional), `ANTHROPIC_MODEL` (bawaan `claude-opus-5`).
+Batas laju 20/menit — panggilan berbayar ke pihak ketiga.
 
 ### Notifications
 | Method | Path | Auth | Role | Description |
