@@ -384,6 +384,25 @@ jobs:
       - name: Kolom yang diterima API punya jalan pengisian di UI
         run: node scripts/audit-kolom-tak-tersambung.mjs
 
+      # `viaProject(tabel, id)` menyusun `.eq(kolom, id)` dengan `kolom` dari
+      # `lewat:` di peta tenancy. 22 tabel mewarisi lewat kolom BUKAN
+      # `project_id` (`assignment_id`, `invoice_id`, `rap_budget_id`, …), dan
+      # mengoper `projectId` ke sana membandingkan dua jenis id berbeda:
+      # NOL BARIS, tanpa satu pun error.
+      #
+      # Bug ini sudah TERULANG meski sudah didokumentasikan panjang lebar di
+      # tempat kejadiannya:
+      #   2026-07-30  rap.ts:102       estimate_items ← projectId
+      #   2026-08-08  cost-control.ts  weekly_wage_reports ← projectId
+      #               (menyembunyikan Rp 243 juta upah dari laporan biaya)
+      #
+      # Dokumentasi yang bagus tidak mencegah pengulangan. Terbukti bisa merah
+      # lewat dua mutasi: panggilan salah disuntik, dan peta tenancy diubah
+      # bentuknya (penjaga exit 2 — menolak berjalan buta, bukan melaporkan
+      # "0 pelanggaran" dengan percaya diri).
+      - name: Argumen viaProject cocok dengan kolom tenancy-nya
+        run: node scripts/audit-viaproject-argumen.mjs
+
       # Status sub-menu yang membusuk sementara kode maju. Terbukti terjadi
       # TUJUH kali (F5-1 §3a satu item, §3b enam item) tanpa satu pun penjaga
       # menabraknya — skrip ini sudah ada sejak lama tetapi tak pernah

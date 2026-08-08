@@ -5,6 +5,7 @@ import { proyekMilikTenant } from '../../utils/tenant-guard.js'
 import { analisaProyek, ringkasPortofolio, urutkanPerhatian, type BarisProyek } from '../../lib/cost-analytics.js'
 import { agregasiVarians, type CostCodeRef } from '../../lib/varians-cost-code.js'
 import { sarankanPemetaan } from '../../lib/saran-cost-map.js'
+import { rangkumBelanjaAktual, type BarisSumber } from '../../lib/belanja-aktual.js'
 
 // ============================================================
 // ROADMAP #9 — Commitment & Varians per Cost Code.
@@ -216,6 +217,118 @@ export default async function costControlRoutes(app: FastifyInstance) {
         belum_dipetakan: data.filter((d) => !d.cost_code).length,
       })
     })
+
+  // ── GET /projects/:projectId/belanja-aktual ──────────────────────────────
+  //
+  // Biaya yang SUNGGUH keluar, disatukan dari tabel tempat ia benar-benar
+  // tercatat.
+  //
+  // ── Cacat yang ditutup, diukur 2026-08-08
+  //
+  //   upah mingguan `paid`      43 baris   Rp 243.600.100
+  //   faktur supplier            5 baris   Rp  50.485.000
+  //   PO (komitmen)              8 baris   Rp  11.095.000
+  //   `project_expenses`         0 baris   Rp           0  ← dipakai laporan
+  //
+  // Seluruh laporan biaya membaca `project_expenses`, dan tabel itu NOL BARIS.
+  // Tab Varians menampilkan "Belanja aktual Rp 0" di sebelah "Commitment
+  // Rp 11.095.000" — bukan karena belum ada belanja, melainkan karena melihat
+  // ke tabel yang salah. Hampir Rp 300 juta tak masuk laporan mana pun.
+  //
+  // ── Kenapa endpoint BARU, bukan mengubah varians per-cost-code
+  //
+  // Varians per cost code sengaja melaporkan `null` untuk baris yang jembatan
+  // resource↔cost_code-nya belum ada — dan itu keputusan yang benar
+  // (`DISCOVERY-RAP-VS-REALISASI.md`). Upah dan faktur TIDAK punya cost code
+  // sama sekali, jadi menaruhnya di baris cost code mana pun adalah menebak.
+  //
+  // Endpoint ini menjawab pertanyaan yang berbeda dan bisa dijawab jujur:
+  // "berapa yang sudah keluar di proyek ini, seluruhnya?" — tanpa mengklaim
+  // tahu ke cost code mana ia jatuh.
+  app.get<{ Params: { projectId: string } }>(
+    '/api/v1/projects/:projectId/belanja-aktual',
+    { preHandler: [authenticate, requirePermission('projects:view')] },
+    async (request, reply) => {
+      const { projectId } = request.params
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
+
+      // ⚠️ `viaProject('weekly_wage_reports', projectId)` SALAH — dan salahnya
+      // tak berbunyi.
+      //
+      // Peta tenancy mendaftarkannya `lewat: 'assignment_id'`, sehingga
+      // `viaProject` menyusun `.eq('assignment_id', projectId)` — membandingkan
+      // id penugasan dengan id proyek. Dua jenis id berbeda: **nol baris,
+      // tanpa satu pun error.** Rp 243 juta upah hilang dari laporan sambil
+      // terlihat seperti "memang belum ada upah".
+      //
+      // Bug yang sama sudah pernah ditemukan 2026-07-30 di `rap.ts:102`
+      // (`estimate_items` diberi `projectId`), didokumentasikan panjang di
+      // sana, dan **terulang di sini** karena tak ada penjaga yang
+      // mencegahnya. Test `belanja-aktual-endpoint.test.ts` yang menangkapnya:
+      // `jumlah_baris.upah` nol padahal barisnya baru saja disisipkan.
+      //
+      // Yang benar: kumpulkan id penugasan lebih dulu dari sisi yang MEMANG
+      // ber-scope proyek, lalu saring dengan itu.
+      const { data: penugasan, error: ePen } = await request.db!
+        .viaProject('mandor_assignments', projectId)
+        .select('id')
+      if (ePen) return reply.status(500).send({ error: ePen.message })
+      const idPenugasan = (penugasan as { id: string }[]).map((x) => x.id)
+
+      // `supplier_invoices` kategori B (punya `company_id` langsung), jadi ia
+      // memakai `.from()` lalu disaring `project_id` — bukan `viaProject`,
+      // yang hanya untuk kategori C.
+      const [upahRes, fakturRes, belanjaRes, poRes] = await Promise.all([
+        idPenugasan.length > 0
+          ? request.db!
+              .unsafe('weekly_wage_reports',
+                'disaring lewat idPenugasan yang sudah ber-scope tenant via viaProject(mandor_assignments)')
+              .select('id, net_amount, status')
+              .in('assignment_id', idPenugasan)
+          : Promise.resolve({ data: [], error: null }),
+        request.db!.from('supplier_invoices')
+          .select('id, total_amount, status')
+          .eq('project_id', projectId),
+        request.db!.viaProject('project_expenses', projectId)
+          .select('id, total_amount, status'),
+        request.db!.viaProject('purchase_orders', projectId)
+          .select('id, total_amount, status'),
+      ])
+
+      for (const r of [upahRes, fakturRes, belanjaRes, poRes]) {
+        if (r.error) return reply.status(500).send({ error: r.error.message })
+      }
+
+      type Nilai = { id: string; net_amount?: unknown; total_amount?: unknown; status: string }
+      const petakan = (rows: unknown, sumber: BarisSumber['sumber'], kolom: 'net_amount' | 'total_amount') =>
+        (rows as Nilai[]).map((r) => ({
+          sumber, nilai: r[kolom] as number | string | null, status: r.status, ref: r.id,
+        }))
+
+      const hasil = rangkumBelanjaAktual([
+        ...petakan(upahRes.data, 'upah', 'net_amount'),
+        ...petakan(fakturRes.data, 'faktur', 'total_amount'),
+        ...petakan(belanjaRes.data, 'belanja', 'total_amount'),
+        ...petakan(poRes.data, 'po', 'total_amount'),
+      ])
+
+      return reply.send({
+        ...hasil,
+        // Jumlah baris per sumber dibawa supaya "Rp 0" bisa dibedakan:
+        // nol dari nol baris = belum ada apa-apa; nol dari 5 baris = semuanya
+        // berstatus yang tak dihitung. Dua keadaan yang menuntut tindakan
+        // berbeda.
+        jumlah_baris: {
+          upah: (upahRes.data as unknown[]).length,
+          faktur: (fakturRes.data as unknown[]).length,
+          belanja: (belanjaRes.data as unknown[]).length,
+          po: (poRes.data as unknown[]).length,
+        },
+      })
+    },
+  )
 
   // ── GET /projects/:projectId/cost-map/saran — USULKAN, jangan terapkan ────
   //

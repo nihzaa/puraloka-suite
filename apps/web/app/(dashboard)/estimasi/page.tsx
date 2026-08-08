@@ -66,6 +66,26 @@ interface SaranBaris {
   cost_code_id: string; cost_code_code: string; cost_code_name: string
   skor: number
 }
+/**
+ * Belanja aktual yang SESUNGGUHNYA — disatukan dari empat tabel.
+ *
+ * Diukur 2026-08-08: laporan biaya selama ini membaca `project_expenses`
+ * yang NOL BARIS, sementara Rp 243 juta upah dan Rp 50 juta faktur supplier
+ * tercatat di tabelnya masing-masing. Kartu "Belanja aktual Rp 0" bukan
+ * berarti belum ada belanja — ia melihat ke tabel yang salah.
+ */
+interface BelanjaAktual {
+  total: number;
+  komitmen: number;
+  exposure: number;
+  /** Sudah pasti jadi biaya, belum disetujui. Tak masuk total. */
+  menunggu: number;
+  per_sumber: { upah: number; faktur: number; belanja: number; po: number };
+  jumlah_baris: { upah: number; faktur: number; belanja: number; po: number };
+  tak_dikenal: number;
+  nilai_cacat: number;
+}
+
 interface SaranResponse {
   saran: SaranBaris[]
   jumlah_kategori: number
@@ -3409,6 +3429,7 @@ function VariansTab() {
   const [projectId, setProjectId] = useState("");
   const [peta, setPeta] = useState<CostMapResponse | null>(null);
   const [saran, setSaran] = useState<SaranResponse | null>(null);
+  const [belanja, setBelanja] = useState<BelanjaAktual | null>(null);
   /** Kategori yang sedang diterapkan — tombolnya dikunci supaya tak ganda. */
   const [menerapkan, setMenerapkan] = useState<string | null>(null);
   const [varians, setVarians] = useState<VariansResponse | null>(null);
@@ -3428,7 +3449,7 @@ function VariansTab() {
     if (!pid) return;
     setMemuat(true); setErr("");
     try {
-      const [p, v, sr] = await Promise.all([
+      const [p, v, sr, ba] = await Promise.all([
         api.get<CostMapResponse>(`/api/v1/projects/${pid}/cost-map`),
         api.get<VariansResponse>(`/api/v1/projects/${pid}/varians`),
         // Saran DIMUAT BERSAMA, bukan lewat tombol "cari saran": yang perlu
@@ -3439,8 +3460,12 @@ function VariansTab() {
           // menggagalkan seluruh tab karena usulannya tak termuat jauh lebih
           // merugikan daripada usulan yang absen.
           .catch(() => ({ data: null as SaranResponse | null })),
+        // Belanja aktual dari SELURUH sumbernya, bukan `project_expenses` saja.
+        // Sama seperti saran: gagal memuatnya tak boleh menggagalkan tab.
+        api.get<BelanjaAktual>(`/api/v1/projects/${pid}/belanja-aktual`)
+          .catch(() => ({ data: null as BelanjaAktual | null })),
       ]);
-      setPeta(p.data); setVarians(v.data); setSaran(sr.data);
+      setPeta(p.data); setVarians(v.data); setSaran(sr.data); setBelanja(ba.data);
     } catch (e) {
       setErr((e as { response?: { data?: { error?: string } } }).response?.data?.error
         ?? "Gagal memuat data varians");
@@ -3518,16 +3543,69 @@ function VariansTab() {
           {/* ── KPI ───────────────────────────────────────────────────────── */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
             gap: 8, marginBottom: 16 }}>
-            <KpiKas label="Belanja aktual" nilai={fmtRp(m?.total_actual ?? 0)}
-              ket="expense approved/paid" />
-            <KpiKas label="Commitment (PO)" nilai={fmtRp(m?.commitment_total ?? 0)}
+            {/* Belanja aktual dari SELURUH sumbernya.
+                
+                Sebelum 2026-08-08 kartu ini membaca `total_actual` — yang
+                bersumber dari `project_expenses`, tabel yang NOL BARIS. Ia
+                menampilkan "Rp 0" tepat di sebelah "Commitment Rp 11 juta",
+                dan itu terbaca sebagai "proyek ini belum belanja apa-apa"
+                padahal Rp 243 juta upah dan Rp 50 juta faktur sudah keluar.
+                
+                Angka yang salah lebih berbahaya daripada angka yang absen:
+                yang absen membuat orang bertanya, yang salah membuat orang
+                memutuskan. */}
+            <KpiKas
+              label="Belanja aktual"
+              nilai={fmtRp(belanja?.total ?? m?.total_actual ?? 0)}
+              ket={belanja
+                ? [
+                    belanja.per_sumber.upah > 0 ? `upah ${fmtRp(belanja.per_sumber.upah)}` : null,
+                    belanja.per_sumber.faktur > 0 ? `faktur ${fmtRp(belanja.per_sumber.faktur)}` : null,
+                    belanja.per_sumber.belanja > 0 ? `belanja ${fmtRp(belanja.per_sumber.belanja)}` : null,
+                  ].filter(Boolean).join(" · ") || "belum ada yang tercatat"
+                : "expense approved/paid"}
+            />
+            <KpiKas label="Commitment (PO)" nilai={fmtRp(belanja?.komitmen ?? m?.commitment_total ?? 0)}
               ket={`${m?.jumlah_po_mengikat ?? 0} PO mengikat — uang belum keluar`} />
-            <KpiKas label="Exposure" nilai={fmtRp(m?.exposure_total ?? 0)}
+            <KpiKas label="Exposure" nilai={fmtRp(belanja?.exposure ?? m?.exposure_total ?? 0)}
               ket="aktual + commitment" />
             <KpiKas label="Kategori dipetakan"
               nilai={`${m?.kategori_dipetakan ?? 0} / ${m?.kategori_total ?? 0}`}
               ket="makin lengkap, makin tajam laporannya" />
           </div>
+
+          {/* Dari mana belanja aktual berasal — dan apa yang TIDAK ikut.
+              
+              Angka gabungan tanpa asal-usulnya tak bisa diperiksa siapa pun.
+              Yang menunggu persetujuan disebut terpisah supaya jelas ia
+              BUKAN bagian dari total: laporan tak boleh berubah saat sesuatu
+              ditolak. */}
+          {belanja && (
+            <div style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "8px 12px",
+              background: C.bg, border: `1px solid ${C.border}`, borderRadius: 6,
+              fontSize: 12, color: C.mid, marginBottom: 10, lineHeight: 1.55 }}>
+              <Info size={14} style={{ flexShrink: 0, marginTop: 2 }} aria-hidden="true" />
+              <span>
+                Belanja aktual dihitung dari <strong>upah mingguan terbayar</strong>,{" "}
+                <strong>faktur supplier terbit</strong>, dan{" "}
+                <strong>belanja proyek disetujui</strong> — tiga tabel tempat biaya
+                benar-benar tercatat, bukan dari satu tabel saja.
+                {belanja.menunggu > 0 && (
+                  <> Ada <strong>{fmtRp(belanja.menunggu)}</strong> yang menunggu
+                  persetujuan dan sengaja <em>belum</em> dihitung, supaya angkanya
+                  tak berubah saat ditolak.</>
+                )}
+                {belanja.nilai_cacat > 0 && (
+                  // Baris bernilai tak terbaca DINYATAKAN, bukan ditelan. Satu
+                  // nilai NaN di `numeric` meracuni SUM seluruh laporan; yang
+                  // dilewati harus terlihat supaya bisa diperbaiki.
+                  <> <span style={{ color: "var(--warning-teks)" }}>
+                    {belanja.nilai_cacat} baris nilainya tak terbaca dan dilewati.
+                  </span></>
+                )}
+              </span>
+            </div>
+          )}
 
           {/* ── Kenapa kolom pagu & commitment per baris kosong ──────────── */}
           <div style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "8px 12px",
@@ -3567,12 +3645,41 @@ function VariansTab() {
               data={varians.data}
               kunciBaris={b => b.cost_code_id ?? "unmapped"}
               kosong={
-                <p style={{ padding: 24, textAlign: "center", color: C.muted, fontSize: 13, margin: 0, lineHeight: 1.6 }}>
-                  Belum ada belanja berstatus approved atau paid di proyek ini.
-                  Varians membandingkan anggaran dengan belanja yang SUDAH
-                  disetujui — belanja yang masih menunggu persetujuan sengaja
-                  tak dihitung, supaya angkanya tak berubah saat ditolak.
-                </p>
+                /* Kalimat kosong ini pernah MEMBANTAH kartu di atasnya.
+                   
+                   Terlihat saat menilai tangkapan layar 2026-08-08: kartu
+                   menyatakan "Belanja aktual Rp 168.165.100" dan tepat di
+                   bawahnya tabel berbunyi "Belum ada belanja di proyek ini".
+                   Keduanya benar menurut sumbernya sendiri — tabel ini hanya
+                   melihat `project_expenses` yang nol baris — tapi pembacanya
+                   tak tahu itu, dan yang ia lihat adalah kontradiksi.
+                   
+                   Yang salah bukan angkanya, melainkan kalimat yang mengaku
+                   bicara tentang "proyek ini" padahal bicara tentang satu
+                   tabel. */
+                <div style={{ padding: 24, textAlign: "center", color: C.muted, fontSize: 13, lineHeight: 1.6 }}>
+                  {belanja && belanja.total > 0 ? (
+                    <>
+                      <p style={{ margin: "0 0 8px", color: C.text, fontWeight: 600 }}>
+                        Belanja proyek ini {fmtRp(belanja.total)} — tapi belum bisa
+                        dipecah per Cost Code.
+                      </p>
+                      <p style={{ margin: 0 }}>
+                        Upah dan faktur supplier tidak menyimpan Cost Code, jadi
+                        menaruhnya di baris mana pun adalah menebak. Tabel ini hanya
+                        memuat belanja yang lewat kategori belanja proyek — dan itu
+                        yang belum ada.
+                      </p>
+                    </>
+                  ) : (
+                    <p style={{ margin: 0 }}>
+                      Belum ada belanja berstatus approved atau paid di proyek ini.
+                      Varians membandingkan anggaran dengan belanja yang SUDAH
+                      disetujui — belanja yang masih menunggu persetujuan sengaja
+                      tak dihitung, supaya angkanya tak berubah saat ditolak.
+                    </p>
+                  )}
+                </div>
               }
               kolom={[
                 { kunci: "kode", judul: "Cost Code", kepalaBaris: true, render: b => {

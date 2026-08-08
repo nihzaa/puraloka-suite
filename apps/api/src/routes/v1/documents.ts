@@ -236,7 +236,12 @@ export default async function documentRoutes(app: FastifyInstance) {
       // Fire-and-forget, tidak pernah throw ke caller
       ;(async () => {
         try {
-          await request.db!.viaProject('document_access_logs', docTenant.project_id).insert({
+          // `document_access_logs` mewarisi lewat `document_id`, bukan
+          // `project_id` — argumen kedua HARUS id dokumen. Sama seperti
+          // `payments` di `termin-payment.ts`: `.insert()` mengabaikan
+          // saringannya sehingga log tetap tercatat; yang diperbaiki polanya,
+          // supaya penyalinan berikutnya ke `.select()` tak gagal senyap.
+          await request.db!.viaProject('document_access_logs', documentId).insert({
             document_id: documentId,
             user_id:     request.currentUser!.id,
             action,

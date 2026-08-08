@@ -234,8 +234,19 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
       // `trg_update_cash_balance_on_payment` (migrasi 019, dipasang ulang di 162 —
       // fungsinya ada tapi trigger-nya hilang, sehingga Rp 627 juta pembayaran tak
       // pernah masuk saldo). Dijaga `__tests__/alur-uang-pembayaran.test.ts`.
+      // `payments` mewarisi tenancy lewat `invoice_id`, bukan `project_id`
+      // (`tenant-map.generated.ts`). Argumen kedua `viaProject` HARUS id
+      // invoice — mengoper `projectId` menyusun `.eq('invoice_id', <uuid
+      // proyek>)`, perbandingan dua jenis id yang berbeda.
+      //
+      // Di `.insert()` saringan itu diabaikan, jadi pembayaran tetap tersimpan
+      // dan tak ada yang rusak hari ini. Yang diperbaiki adalah POLANYA:
+      // siapa pun yang menyalin baris ini ke `.select()` mendapat nol baris
+      // tanpa satu pun error. Itu sudah terjadi dua kali (`rap.ts`
+      // 2026-07-30; `cost-control.ts` 2026-08-08 — Rp 243 juta upah hilang
+      // dari laporan), dan `audit-viaproject-argumen.mjs` kini menjaganya.
       const { data: payment, error: payErr } = await request.db!
-        .viaProject('payments', projectId)
+        .viaProject('payments', invoiceId)
         .insert({
           invoice_id: invoiceId,
           amount_paid: amountNum,

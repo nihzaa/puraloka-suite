@@ -33,7 +33,7 @@ dipercaya tanpa cek) · **SELESAI** (tugasnya tuntas, jadi arsip) · **ASPIRASIO
 ### Root repo
 | Dokumen | Status | Catatan |
 |---|---|---|
-| `CLAUDE.md` | **STALE sebagian** | Masih bilang "migration 001-058"; nyatanya 116. Konten fitur lama akurat, konten skala basi |
+| `CLAUDE.md` | **AKTIF** | **Koreksi dari "STALE sebagian" (2026-08-08)** — alasan STALE-nya ("masih bilang migration 001-058") sudah tak berlaku: dokumen itu **ditulis ulang justru untuk membuang seluruh angka**, dan satu-satunya penyebutan "001-058" yang tersisa adalah **kutipan sejarah** yang menjelaskan kenapa. Tiap angka kini diganti **perintah untuk mengukurnya** (`scripts/db/introspect.mjs`). Verifikasi: `grep -n "001-058" CLAUDE.md` → 1 baris, di dalam blok kutipan pembuka. ⚠️ Registry ini menandai dokumen lain STALE; **status di sini pun bisa basi** — tandanya persis kasus ini, alasan yang sudah diperbaiki tapi labelnya tertinggal |
 | `AUTOPILOT.md` | **AKTIF** | Charter operasi otonom + Red-Line. `STATUS.md` yang diwajibkan §2 kini DIBUAT (lihat root) |
 | `DOMAIN.md` | **AKTIF** | Otoritas domain + jawaban owner 2026-07-24 |
 | `HARDCODE-CENSUS.md` | **AKTIF** | Ember [A]/[B]/[C] |
@@ -45,9 +45,9 @@ dipercaya tanpa cek) · **SELESAI** (tugasnya tuntas, jadi arsip) · **ASPIRASIO
 | Dokumen | Status | Catatan |
 |---|---|---|
 | `ERP_MASTER_PLAN.md` (v2.0) | **CAMPURAN** | Header = keputusan founder 2026-07-26 "CECEP Option 2" → **AKTIF & MENGIKAT**. Badan dokumen (13 Modul, Fase 0–7, tabel status) = **STALE** (2026-06-17, pra-CECEP; tabel statusnya kontradiktif internal — Modul 4 "✅" di header tapi "🔴" di tabel). ⚠️ Penomorannya ("Fase 7 = GL") TABRAKAN dengan roadmap EA ("Phase 7 = multi-company") — selalu sebut sumbernya |
-| `MODULE_STATUS.md` | **STALE** | Tracker fitur per 2026-06-17, pra-CECEP/pra-Program A/B |
-| `DATABASE_SCHEMA.md` | **STALE** | Klaim "RLS AKTIF" tanpa nuansa dormant; pra-102–116 |
-| `API_ENDPOINTS.md` | **STALE** | Pra-CECEP |
+| `MODULE_STATUS.md` | **STALE** | Tracker fitur per 2026-06-17, pra-CECEP/pra-Program A/B. **Diverifikasi 2026-08-08**: dokumen itu sudah memasang peringatan sendiri di kepalanya (*"SUDAH BASI — jangan dipakai sebagai acuan status"*) dan menunjuk `ERP-KONTRAKTOR-TAKSONOMI-MENU.md`. Aman ditinggalkan apa adanya — tak perlu diperbaiki, cukup tak dipakai |
+| `DATABASE_SCHEMA.md` | **STALE** | Klaim "RLS AKTIF" tanpa nuansa dormant; pra-102–116. **Diverifikasi 2026-08-08**: kepalanya sudah menyatakan *"TIDAK LENGKAP — 28 dari 119 tabel"* dan menunjuk katalog Postgres sebagai sumber kebenaran. Ukur sendiri: `node scripts/db/introspect.mjs tables` |
+| `API_ENDPOINTS.md` | **STALE** | Pra-CECEP. **Diverifikasi 2026-08-08**: kepalanya menyatakan *"TIDAK LENGKAP — 169 dari 366 rute"* dan menunjuk `routes/v1/*.ts` sebagai sumber. **Sengaja TIDAK ditambal** — menambahkan rute baru ke daftar yang bolong 197 memberi kesan lengkap yang salah |
 | `DEVELOPMENT_LOG.md` | **AKTIF** | Log berjalan de-facto (entry terakhir 2026-07-25) — sumber status harian terbaik |
 | `ERP-KONTRAKTOR-TAKSONOMI-MENU.md` | **AKTIF (terverifikasi)** | Dikoreksi sesi ini; kembaran di folder EA identik |
 | `KEPUTUSAN-MULTI-COMPANY.md` | **AKTIF (rekomendasi)** | Menunggu ack owner → lalu jadi ADR |

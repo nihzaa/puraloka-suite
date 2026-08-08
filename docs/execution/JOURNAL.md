@@ -5,6 +5,131 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-08 — "Belanja aktual Rp 0" di sebelah "Commitment Rp 11 juta"; dan bug yang terulang meski sudah didokumentasikan
+
+### Pertanyaan founder yang membuka semuanya
+
+*"Di taksonomi dan peta-modul sudah selesai semua?"*
+
+Diukur, bukan dijawab dari ingatan: **119 dari 186 baris ✅ (64%)**. Dari 12
+merah, 10 sudah diputuskan JANGAN DIBANGUN (HR/payroll/report-builder), 1
+TUNDA (WBS template), dan **1 yang benar-benar tersisa: CVR**.
+
+Peta-modul juga belum — dan registry-nya sendiri ternyata basi.
+
+### Registry yang menandai dokumen lain STALE, sementara statusnya sendiri basi
+
+`PETA-PRIORITAS-ERP.md` §1 menandai `CLAUDE.md` **"STALE sebagian — masih
+bilang migration 001-058"**. Diperiksa: satu-satunya penyebutan "001-058" di
+CLAUDE.md adalah **kutipan sejarah** di blok pembuka yang menjelaskan kenapa
+seluruh angka dibuang.
+
+Alasan STALE-nya sudah diperbaiki; labelnya tertinggal. Dikoreksi jadi AKTIF,
+dan barisnya kini memuat peringatan bahwa registry ini pun bisa basi — dengan
+kasus ini sebagai contohnya.
+
+Tiga baris STALE lain (`MODULE_STATUS`, `DATABASE_SCHEMA`, `API_ENDPOINTS`)
+diverifikasi: labelnya **benar**, dan ketiganya sudah memasang peringatan
+sendiri di kepalanya masing-masing sambil menunjuk sumber yang sahih.
+Catatannya disegarkan supaya sesi berikutnya tak mengulang audit yang sama.
+
+### Cacat yang ditemukan: Rp 294 juta tak masuk laporan mana pun
+
+```
+upah mingguan `paid`      43 baris   Rp 243.600.100
+faktur supplier            5 baris   Rp  50.485.000
+PO (komitmen)              8 baris   Rp  11.095.000
+project_expenses           0 baris   Rp           0   ← YANG DIPAKAI LAPORAN
+```
+
+Tab Varians menampilkan **"Belanja aktual Rp 0"** tepat di sebelah
+**"Commitment Rp 11.095.000"**. Bukan karena belum ada belanja — karena
+**melihat ke tabel yang salah**.
+
+Dan inilah yang memblokir CVR: ia membandingkan biaya terpakai vs nilai
+terpasang, dan sisi "biaya terpakai"-nya selama ini kosong.
+
+### Bug yang TERULANG meski sudah didokumentasikan panjang lebar
+
+Saat menyambungkan upah, test saya merah dengan `expected 0 to be greater
+than 0`. Sebabnya:
+
+```ts
+viaProject('weekly_wage_reports', projectId)
+// → .eq('assignment_id', <uuid PROYEK>)   NOL BARIS, tanpa satu pun error
+```
+
+`weekly_wage_reports` mewarisi tenancy lewat `assignment_id`, bukan
+`project_id`. **22 tabel** punya bentuk yang sama.
+
+Yang membuat ini layak dicatat: bug identik sudah ditemukan **2026-07-30** di
+`rap.ts:102` (`estimate_items` diberi `projectId`), diperbaiki, dan
+didokumentasikan lengkap tepat di tempatnya —
+
+> *"BUG DITEMUKAN 2026-07-30 (verifikasi E2E, bukan laporan) … `items` selalu
+> kosong, gagal SENYAP (bukan error, endpoint tetap 201)."*
+
+— lalu **terulang di sesi ini**, oleh saya, yang sudah membaca komentar itu
+beberapa jam sebelumnya.
+
+> **Dokumentasi yang bagus tidak mencegah pengulangan. Penjaga mencegahnya.**
+
+`audit-viaproject-argumen.mjs` dibangun, dan langsung menemukan **dua kasus
+lama**: `termin-payment.ts` (`payments` ← `projectId`) dan `documents.ts`
+(`document_access_logs` ← `project_id`). Keduanya `.insert()`, yang mengabaikan
+saringan — **tak berbahaya hari ini**, tapi siapa pun yang menyalinnya ke
+`.select()` mendapat nol baris senyap. Diperbaiki polanya.
+
+Penjaga terbukti bisa merah lewat dua mutasi, dan yang kedua yang paling saya
+hargai: **peta tenancy diubah bentuknya → penjaga exit 2**, menolak berjalan
+buta alih-alih melaporkan "0 pelanggaran" dengan percaya diri.
+
+### Test yang salah dengan cara yang sama dengan kodenya tetap hijau
+
+Versi pertama pustaka menebak status PO `['approved','sent','partial',
+'received']` dari ingatan. Test saya memakai `'approved'` yang sama. **Keduanya
+hijau** — sampai saya mengukur ke basis: nilai nyatanya
+`fully_received:4 confirmed:1 draft:1 sent:1 cancelled:1`, dan tak satu pun
+tebakan itu benar kecuali `sent`.
+
+Menebak nilai enum menghasilkan komitmen Rp 0 yang terlihat persis seperti
+"memang belum ada PO".
+
+### Cacat visual yang saya temukan dari tangkapan layar sendiri
+
+Sesudah kartu menampilkan Rp 168 juta, tabel di bawahnya masih berbunyi
+**"Belum ada belanja berstatus approved atau paid di proyek ini."** Dua
+kalimat yang saling membantah dalam satu layar.
+
+Keduanya benar menurut sumbernya masing-masing — tabel itu memang hanya
+melihat `project_expenses` — tapi pembacanya tak tahu itu. Diganti:
+*"Belanja proyek ini Rp 168.165.100 — tapi belum bisa dipecah per Cost Code"*,
+beserta alasannya (upah dan faktur tak menyimpan cost code, jadi menaruhnya di
+baris mana pun adalah menebak).
+
+### Bukti
+
+```
+vitest  31 lulus (16 pustaka + 7 endpoint Postgres nyata + 8 alur-uang)
+mutasi  14 MERAH (8 pustaka + 6 endpoint) + 2 untuk penjaga baru
+axe     0 pelanggaran — /estimasi tab Varians
+layar   Rp 0 → Rp 168.165.100 (upah Rp 126.600.100 · faktur Rp 41.565.000)
+        commitment Rp 46.765.000 · exposure Rp 214.930.100
+        "Rp 11.200.000 menunggu persetujuan, sengaja belum dihitung"
+tsc     api exit=0 · web exit=0
+penjaga 10 audit backend, semua exit=0 — termasuk yang baru
+```
+
+### Yang TIDAK saya ubah, dan kenapa
+
+Varians **per cost code** tetap membaca `project_expenses`. Itu benar: upah
+dan faktur tak menyimpan cost code sama sekali, dan menaruhnya di baris mana
+pun adalah menebak — kegagalan yang sama yang `DISCOVERY-RAP-VS-REALISASI.md`
+sudah putuskan untuk dihindari. Endpoint baru menjawab pertanyaan berbeda yang
+bisa dijawab jujur: *"berapa yang sudah keluar di proyek ini, seluruhnya?"*
+
+---
+
 ## 2026-08-08 — geotag: semua ada kecuali dua mata rantai; dan tiga putaran mutasi menemukan cacat di test saya sendiri
 
 ### Pola yang sama, KEEMPAT kalinya
