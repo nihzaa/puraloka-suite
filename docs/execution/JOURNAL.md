@@ -5,6 +5,62 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-08 — Rail permanen: satu properti CSS yang menentukan segalanya
+
+Founder minta rail menempel di kanan, setinggi layar, tak ikut ter-scroll,
+dengan isi yang berganti per halaman kecuali AI dan pengingat.
+
+### Yang membuatnya bekerja bukan `sticky`, melainkan tinggi shell
+
+Saya sempat mengira ini soal `position: sticky`. Bukan. Selama rail berada di
+dalam `<main>` yang scroll, ia mustahil diam — sticky hanya menempel di dalam
+wadah scroll-nya sendiri, dan wadah itulah yang bergerak. Jadi rail harus jadi
+**saudara** `<main>`, bukan anaknya.
+
+Lalu satu properti yang tak kelihatan: shell memakai `minHeight: 100vh`. Dengan
+itu, shell boleh tumbuh melebihi layar, `overflowY: auto` pada `<main>` tak
+pernah aktif, dan yang scroll adalah SELURUH DOKUMEN. Diukur:
+`main.clientHeight` 2811px pada viewport 1000px. Sesudah diganti
+`height: 100dvh` + `overflow: hidden`: 944px dengan `scrollHeight` 2656px.
+
+Pengujiannya bukan "lihat, diam kok" — konten digulung 1400px lalu posisi rail
+diukur ulang. Tanpa itu saya akan melaporkan berhasil pada tangkapan layar
+pertama, yang memang selalu terlihat benar.
+
+### Aturan "selalu ada" ditegakkan oleh bentuk komponen
+
+`RailIsi` cuma menerima bagian ATAS; AI dan Pengingat ditambahkan komponen itu
+sendiri. Kalau tiap halaman menyusun sendiri, "AI selalu ada" jadi sembilan
+kesempatan untuk lupa — dan halaman yang lupa tak terlihat salah, ia cuma
+kekurangan dua kartu.
+
+### Empat cacat, semuanya dari menganggap tahu
+
+**Kartu kosong hanya berisi judul.** `{daftar.map(...)}` menghasilkan children
+berupa array-berisi-array-kosong, jadi `children.length > 0` membacanya sebagai
+"ada isi": tanpa baris, tanpa kalimat kosong. Ketahuan di layar pada kartu
+Notifikasi.
+
+**Tiga tautan mati** — `/klien/{id}`, `/kontrak/jaminan`, `/procurement/po`.
+Ketiganya saya tulis dari asumsi; ketiganya tak ada.
+
+**Nilai status yang saya karang.** Filter aset `status !== "digunakan"` —
+nilainya `dipakai`. Akibatnya seluruh aset yang sedang dipakai masuk daftar
+"tak siap pakai". TypeScript diam karena perbandingan string apa pun sah.
+
+**Kartu "Recent Updates" kosong permanen.** Query-nya menyaring 7 hari
+terakhir, sementara catatan progres terbaru berumur dua bulan — 271 baris data
+yang tak pernah tampil. Batas itu dibuang; sekarang 10 terakhir dengan
+tanggalnya ditampilkan, karena "lapangan sudah lama tak melapor" adalah kabar
+yang berguna, bukan sesuatu yang perlu disembunyikan.
+
+**Yang paling saya ingat:** tiga kali hari ini saya menguji ulang kode lama
+karena `pkill` tak benar-benar membunuh proses lama, dan tiga kali saya nyaris
+menyimpulkan "perbaikannya tak bekerja". Yang menyelamatkan adalah membaca log
+dan menemukan `EADDRINUSE` — bukan menebak.
+
+---
+
 ## 2026-08-08 — "Topbar dan sidebar sudah kamu samakan?" — belum, dan pertanyaannya tepat
 
 Saya menutup empat celah referensi lalu melaporkannya selesai. Founder

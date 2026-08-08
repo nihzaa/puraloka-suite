@@ -62,6 +62,9 @@ export default async function dashboardRoutes(app: FastifyInstance) {
     const db = request.db!
     const [idProyek, idInvoice] = await Promise.all([db.projectIds(), db.invoiceIds()])
 
+    /** Alasan tercatat untuk `db.unsafe()` — wajib, dan itu memang gunanya. */
+    const ALASAN_LINTAS = 'dashboard lintas-proyek milik company; disaring lewat idProyek dari db.projectIds()'
+
     // Build payment and kasbon queries scoped to period
     let paymentsQuery = supabase.from('payments').select('amount_paid, paid_at')
       .in('invoice_id', idInvoice)
@@ -148,16 +151,32 @@ export default async function dashboardRoutes(app: FastifyInstance) {
         .eq('status', 'pending')
         .order('created_at', { ascending: false }),
 
-      supabase.from('progress_logs')
+      /*
+       * "Kabar terbaru dari lapangan" — 10 catatan progres TERAKHIR.
+       *
+       * ── Kenapa batas 7 hari DIBUANG
+       *
+       * Sebelumnya query ini menyaring `logged_at` ke 7 hari terakhir, dan
+       * akibatnya kartunya KOSONG PERMANEN begitu lapangan berhenti melapor
+       * seminggu saja. Diukur 2026-08-08: ada 271 catatan progres, terbaru
+       * 15 Juni — dua bulan lalu. Jadi kartu itu tak pernah menampilkan apa
+       * pun, padahal datanya ada.
+       *
+       * Kosong karena "belum ada yang melapor MINGGU INI" dan kosong karena
+       * "tak ada data sama sekali" terlihat persis sama di layar, dan yang
+       * pertama justru kabar yang perlu dibaca. Sekarang selalu 10 terakhir;
+       * tanggalnya ikut dikirim supaya web bisa berkata "3 minggu lalu"
+       * alih-alih berpura-pura itu baru terjadi.
+       */
+      db.unsafe('progress_logs', ALASAN_LINTAS)
         .select(`
           id, pct_overall, weather, worker_count, notes, logged_at,
           projects!progress_logs_project_id_fkey ( id, name ),
           reporter:users!reported_by ( name )
         `)
         .in('project_id', idProyek)
-        .gte('logged_at', sevenDaysAgoStr + 'T00:00:00+07:00')
-        .lte('logged_at', todayStr + 'T23:59:59+07:00')
-        .order('logged_at', { ascending: false }),
+        .order('logged_at', { ascending: false })
+        .limit(10),
 
       supabase.from('milestones')
         .select(`

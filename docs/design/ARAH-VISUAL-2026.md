@@ -504,6 +504,48 @@ cd apps/web && for g in a11y-ratchet kontras-hex-ratchet hex-ratchet \
 | 5 | Sidebar: item aktif jadi **pill navy pekat** (kandidat B) | B | ✅ **SETUJU sesudah dilihat** 2026-08-08 — lihat §10e |
 | 6 | Topbar: pencarian pindah ke **kiri**, lebar | ya | ✅ **SETUJU** 2026-08-08 — lihat §10e |
 
+### 10f. Rail kanan permanen — cakupan & isi, 2026-08-08
+
+Founder: rail harus **menempel di kanan, setinggi layar, dan tidak ikut
+ter-scroll**; isinya kalender · My Task · notifikasi · AI · smart reminder,
+dengan **AI dan reminder SELALU ada** dan tiga sisanya diganti sesuai halaman.
+
+**Cakupan: 9 halaman dashboard, bukan 105.** Diputuskan sesudah menimbang —
+rail 300px permanen menyisakan ~840px untuk tabel 12 kolom di laptop 1366px,
+dan itu halaman kerja harian. Konsisten dengan `DESIGN-BRIEF` §C.0a.
+
+**Rail pindah dari halaman ke shell.** `sticky` hanya menempel di dalam wadah
+scroll-nya sendiri, jadi selama rail ada di dalam `<main>` ia mustahil diam.
+Kini ia saudara `<main>` di `layout.tsx`; halaman mengisinya lewat
+`lib/rail-context.tsx`. Kuncinya `height: 100dvh` + `overflow: hidden` pada
+shell — dengan `minHeight: 100vh`, yang scroll adalah seluruh dokumen.
+
+**Aturan "selalu ada" dipaksa oleh BENTUK, bukan ingatan.** `RailIsi` hanya
+menerima bagian atas; AI + Pengingat ditambahkan komponen itu sendiri.
+
+| Halaman | Isi atas rail |
+|---|---|
+| beranda | kalender · perlu keputusan · notifikasi |
+| proyek | tenggat terdekat · belum bergerak |
+| lapangan | paling tertinggal |
+| kontrak | jaminan segera habis |
+| tender | penawaran menunggu keputusan |
+| klien | klien terbaru |
+| kas | saldo per jenis |
+| procurement | PO paling lama lewat janji kirim |
+| aset | alat tak siap pakai |
+
+**Pengingat**: angkanya DIHITUNG dari tenggat nyata (lewat + ≤14 hari),
+bukan "7" seperti referensi.
+
+**Quick Links**: ubin bertumpuk → pil mendatar, dan posisinya pindah dari
+atas-KPI ke **bawah baris tiga widget** (urutan referensi).
+
+**Materi referensi yang TIDAK diduplikasi**, karena sudah punya rumah:
+*Critical Issue Alerts* = spanduk peringatan di atas · *Upcoming Deadlines* =
+kartu milestone di rail. Yang memang belum ada dan kini dibangun:
+*Recent Project Updates* → widget **Kabar Lapangan**.
+
 ### 10e. Sidebar & topbar — diputuskan dari gambar, 2026-08-08
 
 Founder bertanya *"topbar dan sidebar sudah kamu samakan?"* dan jawabannya

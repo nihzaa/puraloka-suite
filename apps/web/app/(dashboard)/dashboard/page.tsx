@@ -77,8 +77,26 @@ interface JawabanDeret {
   };
 }
 
+/**
+ * Satu catatan progres lapangan — "Recent Project Updates" di referensi.
+ *
+ * `logged_at` DIPAKAI dan ditampilkan, bukan diabaikan: server kini mengirim
+ * 10 catatan TERAKHIR tanpa batas 7 hari (kartunya dulu kosong permanen
+ * begitu lapangan berhenti melapor seminggu). Tanpa tanggalnya, catatan
+ * berumur dua bulan akan terbaca seolah baru terjadi.
+ */
+interface AktivitasLapangan {
+  id: string;
+  pct_overall: number | null;
+  notes: string | null;
+  logged_at: string | null;
+  projects: { id: string; name: string } | null;
+  reporter: { name: string } | null;
+}
+
 interface DashboardData {
   kpis: KPIs;
+  today_activity: AktivitasLapangan[];
   alerts: { kasbon_pending: number; invoice_overdue: number; milestone_late: number };
   cashflow_8w: CashflowWeek[];
   status_distribution: StatusDist[];
@@ -110,7 +128,7 @@ const daysUntil = (d: string) =>
 
 import { C } from "@/lib/warna-ui";
 import { namaSapaan } from "@/lib/nama-sapaan";
-import { formatRupiah, formatPersen, formatTanggalPanjang } from "@/lib/format";
+import { formatRupiah, formatPersen, formatTanggalPanjang, formatRelatif } from "@/lib/format";
 import { HalamanIkhtisar } from "@/components/shell/halaman-ikhtisar";
 import { RailFokus } from "@/components/shell/rail-fokus";
 import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
@@ -860,6 +878,72 @@ function DashboardContent() {
     </div>
   ) : null;
 
+  /*
+    ── KABAR LAPANGAN — "Recent Project Updates" referensi ────────────────────
+
+    Bagian terakhir referensi yang belum ada di sini. Sumbernya
+    `today_activity` (catatan progres lapangan), yang SUDAH dikirim endpoint
+    dashboard — nol permintaan baru.
+
+    Tanggalnya ditampilkan dan tidak disembunyikan. Server mengirim 10 catatan
+    TERAKHIR tanpa batas 7 hari, jadi isinya bisa berumur berminggu-minggu; itu
+    fakta yang berguna ("lapangan sudah lama tak melapor"), bukan sesuatu yang
+    perlu ditutupi dengan menghilangkan kartunya.
+  */
+  const kabarWidget = (
+    <div style={{ padding: "var(--pad-kartu-lega)" }}>
+      <SectionHeader title="Kabar Lapangan" />
+      {loading ? (
+        <Skeleton h={140} />
+      ) : (data?.today_activity?.length ?? 0) === 0 ? (
+        <p style={{ margin: 0, fontSize: 13, color: C.mid, lineHeight: 1.5 }}>
+          Belum ada catatan progres dari lapangan.
+        </p>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          {(data?.today_activity ?? []).slice(0, 6).map((a, i) => (
+            <div
+              key={a.id}
+              style={{
+                display: "flex", alignItems: "flex-start", gap: 10,
+                padding: "10px 0",
+                borderTop: i === 0 ? "none" : `1px solid ${C.border}`,
+              }}
+            >
+              <span aria-hidden="true" style={{
+                display: "grid", placeItems: "center", flexShrink: 0,
+                width: 26, height: 26, borderRadius: "var(--rad-kecil)",
+                background: "var(--navy-light)", color: "var(--navy)",
+              }}>
+                <HardHat size={13} />
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontSize: 13, fontWeight: 600, color: C.text,
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                }}>
+                  {a.projects?.name ?? "Proyek tak dikenal"}
+                </div>
+                <div style={{
+                  fontSize: 11, color: C.mid, marginTop: 2,
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                }}>
+                  {a.notes?.trim() || `Progres ${Number(a.pct_overall ?? 0).toFixed(1)}%`}
+                  {a.reporter?.name ? ` · ${a.reporter.name}` : ""}
+                </div>
+              </div>
+              <span style={{
+                fontSize: 11, color: C.muted, flexShrink: 0, whiteSpace: "nowrap",
+              }}>
+                {formatRelatif(a.logged_at)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   const taxWidget = (
     <div style={{ padding: "var(--pad-kartu-lega)" }}>
       <SectionHeader title="Ringkasan Pajak (PPh Final)" />
@@ -1148,6 +1232,7 @@ function DashboardContent() {
         cashflow:  cashflowWidget,
         status:    statusWidget,
         pintasan:  <PintasanWidget />,
+        kabar:     kabarWidget,
         invoice:   invoiceWidget,
         ...(kasbonWidget ? { kasbon: kasbonWidget } : {}),
         tax:       taxWidget,
