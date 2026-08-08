@@ -5,6 +5,106 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-08 — UIR-1: `lib/format.ts`, dan codemod yang saya tulis sendiri sempat merusak dua berkas
+
+Celah paling nyata dari brief redesign, dan satu-satunya bagian §6-nya yang
+premisnya benar: komponennya sudah ada, **formatnya tidak**. Diukur: 141
+pemanggilan `toLocaleString`/`Intl` tersebar.
+
+### Tiga jebakan yang diselesaikan sekali, bukan di 141 tempat
+
+**Spasi tak-putus.** ICU mengeluarkan U+00A0 di `Rp 1.000`, bukan spasi biasa.
+Perbandingan string gagal dengan cara yang **di layar terlihat identik** — jenis
+kegagalan paling membuang waktu. Ditemukan saat menulis test, bukan saat debug.
+
+**`numeric` Postgres tiba sebagai STRING.** Driver mengirimnya begitu supaya
+presisi tak hilang. Kalau helper hanya menerima `number`, tiap pemanggil menulis
+`Number(...)` sendiri — dan sebagian akan lupa, menghasilkan `Rp NaN` di layar.
+
+**Zona waktu.** Jam tanpa zona ikut zona **mesin**. Server UTC menampilkan jam
+berbeda dari yang dilihat mandor di lapangan, dan selisih itu tak pernah muncul
+sebagai galat — hanya sebagai angka yang salah.
+
+Nilai kosong jadi `—`, **bukan `0`**. Nol adalah fakta ("kas Rp 0");
+tak-ada-data keadaan yang berbeda. Menyamakannya persis cacat `d66956d`.
+
+### Test ditulis sebelum implementasi
+
+34 test, dan urutannya bukan formalitas: berkas ini menggantikan format di
+seluruh aplikasi sekaligus, jadi kalau perilakunya bergeser sedikit saja
+(spasi, pembulatan, tanda negatif), yang berubah adalah **setiap nominal**.
+Dijalankan sebelum implementasi → gagal karena modul belum ada. Sesudah →
+34 lulus.
+
+### Codemod saya sendiri merusak dua berkas
+
+Penyebaran lewat codemod, bukan tangan — 60+ berkas disunting manual berarti 60
+kesempatan salah ketik pada kode yang menampilkan **nominal**.
+
+Tapi pola penyisipan impornya salah:
+
+```
+/^import .*$/m   ← mencocokkan BARIS PEMBUKA impor multi-baris
+```
+
+Akibatnya impor baru disisipkan **di tengah daftar nama**, menghasilkan
+`import {` diikuti `import … from` — dua berkas gagal parse total
+(TS1003/TS1005 beruntun). Ketahuan `tsc` langsung sesudah codemod, di-revert
+`git checkout -- apps/web/app`, polanya diperbaiki jadi menuntut penutup
+`from "...";`.
+
+> **Pelajarannya:** codemod dipilih justru untuk menghindari salah ketik
+> manual — lalu ia membuat kesalahan yang *lebih* seragam. Yang menyelamatkan
+> bukan kehati-hatian menulis polanya, melainkan **typecheck yang dijalankan
+> segera sesudahnya**.
+
+### Hasil
+
+```
+141 → 123 panggilan   (18 pembungkus rupiah, 17 berkas)
+page.tsx: 83 → 70
+```
+
+Nama lokal dipertahankan (`const rupiah = formatRupiah`), jadi seluruh
+pemanggilan di dalam berkas tak perlu disentuh — permukaan perubahan **1 baris
+per berkas**, bukan 127.
+
+Sengaja **tidak** disentuh: pembungkus yang sudah punya penanganan null atau
+tangga M/jt sendiri (`aset`, `kepatuhan`). Perilakunya belum tentu sama persis,
+dan menyamakannya diam-diam berarti mengubah tampilan tanpa ada yang
+memutuskannya. Keduanya tetap terhitung ratchet — turun bertahap, bukan sekali
+sapu.
+
+### `next build` gagal — dan bukan karena UIR-1
+
+Diverifikasi dengan men-*stash* seluruh perubahan sampai pohon = HEAD bersih:
+build **tetap gagal** dengan galat identik.
+
+```
+⨯ useSearchParams() should be wrapped in a suspense boundary
+  at page "/procurement/lanjutan"
+```
+
+Berkas itu tak saya sentuh. Didaftarkan **UIR-0C** dan dianjurkan dikerjakan
+sebelum UIR-4 — DoD redesign menuntut "build lolos" per halaman, dan selama
+build merah kita kehilangan sinyal yang sama seperti kasus `kerapatan-ratchet`:
+tak bisa membedakan kerusakan baru dari yang lama.
+
+### Verifikasi
+
+```
+mutasi (§8a.2)   +1 toLocaleString = MERAH (exit 1)
+                 dipulihkan        = HIJAU (exit 0)
+
+10 penjaga visual  format · kerapatan · hex · tabel-mentah · tata-letak
+                   a11y · kontras · kontras-hex · modal-esc · sidebar  HIJAU
+tsc --noEmit       exit 0
+vitest             33 berkas · 462 test LULUS (428 + 34 baru)
+next build         MERAH — pra-sesi, UIR-0C
+```
+
+---
+
 ## 2026-08-08 — UIR-0B: penjaga kerapatan hijau, dan merahnya ternyata tak pernah ada yang menyebabkan
 
 PR pertama Fase 1. Founder menaruhnya di depan segalanya, alasannya bukan

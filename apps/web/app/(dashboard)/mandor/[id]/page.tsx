@@ -9,14 +9,14 @@ import {
 } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
+import { formatRupiah } from "@/lib/format";
 
 const card: React.CSSProperties = {
   background: "var(--surface)", border: `1px solid ${C.border}`,
   borderRadius: 14, boxShadow: "var(--naik-1)",
 };
 
-const fmt = (n: number) =>
-  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+const fmt = formatRupiah;
 const fmtDate = (s: string) =>
   new Date(s).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
 const fmtDateShort = (s: string) =>

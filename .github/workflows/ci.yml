@@ -1043,6 +1043,20 @@ jobs:
       - name: Kerapatan (token, bukan padding dipaku)
         run: node scripts/kerapatan-ratchet.mjs
 
+      # UIR-1 — nominal & tanggal wajib lewat lib/format.ts.
+      #
+      # Diukur 2026-08-08: 141 pemanggilan toLocaleString/Intl tersebar, dua
+      # bentuk mendominasi (53 formatter rupiah, 51 pemisah ribuan). Tiap
+      # penyalinan adalah kesempatan berbeda satu detail — dan nominal yang
+      # formatnya berbeda antar halaman tidak terbaca sebagai ketidakrapian,
+      # melainkan sebagai aplikasi yang tak bisa dipercaya.
+      #
+      # Tiga jebakan diselesaikan sekali di lib/format.ts, bukan di 141 tempat:
+      # spasi tak-putus ICU (U+00A0), `numeric` Postgres yang tiba sebagai
+      # STRING, dan jam yang ikut zona MESIN alih-alih WIB.
+      - name: Format (lib/format.ts, bukan Intl langsung)
+        run: node scripts/format-ratchet.mjs
+
       # F4-1 — warna wajib lewat token, bukan hex di komponen.
       #
       # Alasannya bukan kerapian: WHITE-LABEL PER TENANT. Selama warna ditulis

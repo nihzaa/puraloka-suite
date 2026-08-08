@@ -30,6 +30,7 @@ import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
+import { formatRupiah } from "@/lib/format";
 
 type Proyek = { id: string; name: string };
 
@@ -62,8 +63,7 @@ type Hasil = {
   jumlah_beda_vendor: number;
 };
 
-const rupiah = (n: number) =>
-  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+const rupiah = formatRupiah;
 
 const tanggalTerbaca = (iso: string) =>
   new Date(iso + "T00:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });

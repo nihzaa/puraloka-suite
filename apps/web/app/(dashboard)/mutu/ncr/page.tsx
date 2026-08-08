@@ -27,6 +27,7 @@ import { api, hasPermission, makeAbortController } from "@/lib/api";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { C } from "@/lib/warna-ui";
 import { Tabel } from "@/components/dasar";
+import { formatRupiah } from "@/lib/format";
 
 interface Ncr {
   id: string; nomor: string; judul: string; deskripsi: string | null;
@@ -80,8 +81,7 @@ const DISPOSISI: Record<string, { label: string; ket: string }> = {
   ubah_spek: { label: "Ubah Spesifikasi", ket: "spesifikasinya yang berubah" },
 };
 
-const rp = (n: number) =>
-  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+const rp = formatRupiah;
 
 function NcrInner() {
   const router = useRouter();

@@ -38,6 +38,7 @@ import { C } from "@/lib/warna-ui";
 import { BukuBesar } from "@/components/buku-besar";
 import { NeracaLabaRugi } from "@/components/neraca-laba-rugi";
 import { Tabel, type Kolom } from "@/components/dasar";
+import { formatRupiah } from "@/lib/format";
 
 const card: React.CSSProperties = {
   background: "var(--surface)", border: `1px solid ${C.border}`,
@@ -57,8 +58,7 @@ type BarisNeraca = {
   debit: number; credit: number; saldo: number
 };
 
-const rupiah = (n: number) =>
-  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+const rupiah = formatRupiah;
 
 const TIPE_LABEL: Record<string, string> = {
   asset: "Aset", liability: "Liabilitas", equity: "Ekuitas",

@@ -109,8 +109,7 @@ interface Project {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const fmt = (n: number) =>
-  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+const fmt = formatRupiah;
 
 const fmtCompact = (n: number): string => {
   const abs = Math.abs(n);
@@ -137,6 +136,7 @@ const daysSince = (d: string) =>
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
 import { C } from "@/lib/warna-ui";
+import { formatRupiah } from "@/lib/format";
 
 const card: React.CSSProperties = {
   background: "var(--surface)",

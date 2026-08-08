@@ -78,8 +78,7 @@ interface DashboardData {
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
-const fmt = (n: number) =>
-  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+const fmt = formatRupiah;
 
 const fmtShort = (n: number) => {
   if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1).replace(".0", "")} M`;
@@ -98,6 +97,7 @@ const daysUntil = (d: string) =>
 
 import { C } from "@/lib/warna-ui";
 import { namaSapaan } from "@/lib/nama-sapaan";
+import { formatRupiah } from "@/lib/format";
 
 const STATUS_COLOR: Record<string, string> = {
   active: C.navy, completed: C.green, on_hold: C.yellow,

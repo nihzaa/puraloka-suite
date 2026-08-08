@@ -13,6 +13,7 @@ import {
 
 import { C } from "@/lib/warna-ui";
 import { Tabel, type Kolom } from "@/components/dasar";
+import { formatRupiah } from "@/lib/format";
 
 const card: React.CSSProperties = {
   background: "var(--surface)", border: "1px solid var(--border)",
@@ -76,8 +77,7 @@ interface DpRow {
   dp_billed: number; dp_paid: number; recouped: number; remaining_to_recoup: number;
 }
 
-const fmt = (n: number) =>
-  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+const fmt = formatRupiah;
 const fmtDate = (d: string) =>
   new Date(d).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
 

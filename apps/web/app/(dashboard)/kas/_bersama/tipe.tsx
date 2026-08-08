@@ -13,6 +13,7 @@ import {
   Wallet, Banknote, Building2, User, Package, Wrench, Circle, TrendingDown,
 } from "lucide-react";
 import { C } from "@/lib/warna-ui";
+import { formatRupiah } from "@/lib/format";
 
 // ─── Tipe data ────────────────────────────────────────────────────────────────
 
@@ -71,8 +72,7 @@ export interface TitikArusKas {
 
 // ─── Format ───────────────────────────────────────────────────────────────────
 
-export const fmt = (n: number) =>
-  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+export const fmt = formatRupiah;
 
 export const fmtCompact = (n: number) => {
   if (n >= 1_000_000_000) return `Rp ${(n / 1_000_000_000).toFixed(1)}M`;

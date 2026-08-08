@@ -54,6 +54,7 @@ import {
   REPORT_STATUS, PAYMENT_SYSTEM, CATEGORY_LABELS, CATEGORY_COLORS,
   SKILL_OPTIONS, getPaymentSystemBadge, getProgressColor,
 } from "./tipe";
+import { formatRupiah } from "@/lib/format";
 
 /**
  * Penjaga pemasangan modal.
@@ -1899,7 +1900,7 @@ export function SettlementBoronganModal({ data, cashAccounts, onClose, onSuccess
   const tk = Number(totalKasbon) || 0;
   const toe = Number(totalOtherExpense) || 0;
   const netPayment = Math.max(0, bv - tk - toe);
-  const fmtLocal = (n: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+  const fmtLocal = formatRupiah;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -2003,7 +2004,7 @@ export function PPConfirmModal({ payment, cashAccounts, loading, onClose, onActi
   const [cashAccountId, setCashAccountId] = useState("");
   const [notes, setNotes] = useState("");
   const [mode, setMode] = useState<"approve" | "reject">("approve");
-  const fmtLocal = (n: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+  const fmtLocal = formatRupiah;
   const inputStyle: React.CSSProperties = { width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box", background: "var(--surface)" };
 
   if (!mounted) return null;

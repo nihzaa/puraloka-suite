@@ -26,6 +26,7 @@ import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
 import { RfqPenawaranModal } from "@/components/rfq-penawaran-modal";
+import { formatRupiah } from "@/lib/format";
 
 type Proyek = { id: string; name: string };
 
@@ -127,8 +128,7 @@ const STATUS_META: Record<Rfq["status"], { label: string; warna: string; bg: str
   batal: { label: "Dibatalkan", warna: "var(--text-secondary)", bg: "var(--surface-subtle)", border: "var(--border)" },
 };
 
-const rupiah = (n: number) =>
-  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+const rupiah = formatRupiah;
 
 const angka = (n: number) =>
   new Intl.NumberFormat("id-ID", { maximumFractionDigits: 2 }).format(n);

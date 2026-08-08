@@ -31,6 +31,7 @@ import {
   INVOICE_STATUS, INVOICE_TYPE_LABEL, ACCOUNT_TYPE_LABEL,
   fmt, fmtCompact, fmtDate, daysUntil,
 } from "./tipe";
+import { formatRupiah } from "@/lib/format";
 export function Skeleton({ h = 20, w = "100%" }: { h?: number; w?: string | number }) {
   return <div style={{ height: h, width: w, borderRadius: 6, background: "linear-gradient(90deg, var(--surface-hover) 0%, var(--border) 50%, var(--surface-hover) 100%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s ease-in-out infinite" }} />;
 }
@@ -1052,7 +1053,7 @@ export function PenaltyModal({ invoiceId, invoiceNumber, onClose }: { invoiceId:
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const canWaive = (() => { try { return (JSON.parse(localStorage.getItem("puraloka_permissions") || "[]") as string[]).includes("finance:penalty:waive"); } catch { return false; } })();
-  const fmtIdr = (n: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+  const fmtIdr = formatRupiah;
   const BASIS: Record<string, string> = { invoice_telat: "nilai invoice telat", outstanding_proyek: "sisa outstanding", kontrak_total: "nilai kontrak" };
 
   const loadInfo = () => {

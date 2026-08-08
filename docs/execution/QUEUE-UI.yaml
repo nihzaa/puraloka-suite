@@ -289,6 +289,38 @@ items:
       VERIFIKASI: 9 penjaga visual HIJAU · tsc --noEmit exit 0 ·
       vitest 32 berkas / 428 test LULUS.
 
+  - id: UIR-0C
+    lapis: 0
+    judul: "next build GAGAL — useSearchParams tanpa Suspense di /procurement/lanjutan"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "npx next build exit 0"
+      - "useSearchParams dibungkus <Suspense> (atau halaman jadi dinamis)"
+      - "tak ada halaman lain ikut berubah perilakunya"
+    cara_verifikasi: "cd apps/web && npx next build; echo $?"
+    bobot: S
+    status: todo
+    catatan: |
+      DITEMUKAN 2026-08-08 saat memverifikasi UIR-1, dan BUKAN disebabkan olehnya.
+
+      Dibuktikan: seluruh perubahan UIR-1 di-stash sampai pohon = HEAD bersih,
+      lalu `npx next build` dijalankan — GAGAL dengan galat IDENTIK:
+
+        ⨯ useSearchParams() should be wrapped in a suspense boundary
+          at page "/procurement/lanjutan"
+        Export encountered an error on /(dashboard)/keuangan/contingency/page
+
+      Berkas itu tidak disentuh UIR-1 (dicek: `git status | grep lanjutan` = 0).
+
+      KENAPA PENTING SEKARANG: DoD redesign (brief §13) menuntut "pnpm build
+      lolos" untuk tiap halaman. Selama build merah, TIAP PR redesign berikutnya
+      tak bisa membuktikan kriteria itu — dan kita kehilangan sinyal yang sama
+      seperti kasus kerapatan-ratchet (UIR-0B): tak bisa membedakan kerusakan
+      BARU dari yang LAMA.
+
+      Sebaiknya dikerjakan sebelum UIR-4 (shell), karena shell menyentuh layout
+      yang dipakai SEMUA halaman — dan build merah saat itu paling mahal.
+
   - id: UIR-1
     lapis: 0
     judul: "lib/format.ts — 83 panggilan format ad-hoc di 51 halaman"
@@ -299,14 +331,55 @@ items:
       - "desimal koma, ribuan titik, zona Asia/Jakarta"
     cara_verifikasi: "node apps/web/scripts/format-ratchet.mjs + vitest"
     bobot: M
-    status: todo
-    catatan: |
-      Celah PALING NYATA dari brief redesign, dan satu-satunya bagian §6 yang
-      premisnya benar: komponen sudah ada, format TIDAK. Diukur 105 halaman:
-      51 memanggil toLocaleString/Intl langsung, total 83 panggilan.
+    status: selesai
+    hasil_2026_08_08: |
+      ✅ lib/format.ts + 34 test (ditulis SEBELUM implementasi) + penjaga
+      terdaftar di ci.yml.
 
-      Dilarang "Cr"/"L" (skala India dari gambar referensi). Skala Indonesia:
-      rb / jt / M / T.
+      TIGA JEBAKAN yang diselesaikan sekali, bukan di 141 tempat:
+
+        1. ICU mengeluarkan SPASI TAK-PUTUS (U+00A0) di "Rp 1.000". Perbandingan
+           string gagal dengan cara yang DI LAYAR TERLIHAT IDENTIK. Dinormalkan.
+        2. `numeric` Postgres tiba sebagai STRING (driver menjaga presisi).
+           Helper menerima number|string — kalau tidak, tiap pemanggil menulis
+           Number() sendiri dan sebagian lupa → "Rp NaN".
+        3. Jam tanpa zona ikut zona MESIN. Dipaku Asia/Jakarta.
+
+      Nilai kosong → "—", BUKAN "0". Nol adalah FAKTA ("kas Rp 0"); tak-ada-data
+      keadaan lain. Menyamakannya persis cacat d66956d (laporan menampilkan
+      Rp 0 untuk biaya yang sebenarnya tak terbaca).
+
+      PENYEBARAN LEWAT CODEMOD, bukan tangan (pindah-format.mjs):
+
+        141 → 123 panggilan   (18 pembungkus rupiah lokal, 17 berkas)
+        page.tsx: 83 → 70
+
+      Diganti hanya SATU bentuk — pembungkus rupiah satu baris — dengan NAMA
+      LOKAL DIPERTAHANKAN (`const rupiah = formatRupiah`), jadi seluruh
+      pemanggilan di berkas itu tak perlu disentuh. Permukaan perubahan 1 baris
+      per berkas, bukan 127.
+
+      SENGAJA TIDAK disentuh: pembungkus yang sudah punya penanganan null /
+      tangga M-jt sendiri (aset, kepatuhan) — perilakunya belum tentu sama
+      persis, dan menyamakannya diam-diam = mengubah tampilan tanpa keputusan.
+      Serta `toLocaleString` polos, yang dipakai untuk kuantitas/luas (bukan
+      uang). Keduanya tetap terhitung ratchet, jadi turun bertahap.
+
+      CACAT CODEMOD YANG SAYA BUAT DAN PERBAIKI: pola impor /^import .*$/m
+      mencocokkan BARIS PEMBUKA impor multi-baris, lalu menyisipkan impor baru
+      di TENGAH daftar nama — 2 berkas gagal parse (TS1003/TS1005 beruntun).
+      Ketahuan typecheck, di-revert, pola diperbaiki menuntut penutup
+      `from "...";`. Jadi alasan codemod diverifikasi typecheck, bukan dipercaya.
+
+      MUTASI (§8a.2): +1 toLocaleString = MERAH (exit 1); dipulihkan = HIJAU.
+
+      VERIFIKASI: 10 penjaga visual HIJAU · tsc exit 0 · vitest 33 berkas /
+      462 test LULUS (428 + 34 baru).
+
+      ⚠️ TEMUAN TERPISAH — `next build` GAGAL, dan BUKAN karena UIR-1:
+      /procurement/lanjutan memakai useSearchParams() tanpa <Suspense>.
+      Dibuktikan dengan stash seluruh perubahan → build di HEAD bersih gagal
+      dengan galat IDENTIK. Berkas itu tak saya sentuh. Didaftarkan UIR-0C.
 
   - id: UIR-2
     lapis: 0

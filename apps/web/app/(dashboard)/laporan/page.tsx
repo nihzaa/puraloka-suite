@@ -24,6 +24,7 @@ import { C } from "@/lib/warna-ui";
 // yang dulu lewat wrapper `DataTable` lokal. `Tabel` menjamin caption sr-only,
 // kolom pertama <th scope="row">, tabular-nums, dan pembungkus overflow-x.
 import { Tabel } from "@/components/dasar";
+import { formatRupiah } from "@/lib/format";
 
 const card: React.CSSProperties = {
   background: "var(--surface)", border: `1px solid ${C.border}`,
@@ -131,8 +132,7 @@ interface TaxData {
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-const fmt = (n: number) =>
-  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+const fmt = formatRupiah;
 
 const fmtCompact = (n: number) => {
   if (n >= 1_000_000_000) return `Rp ${(n / 1_000_000_000).toFixed(1)}M`;
