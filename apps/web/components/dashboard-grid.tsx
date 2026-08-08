@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { ResponsiveGridLayout: RGLResponsive } = require("react-grid-layout");
 // Cast to avoid @types/react-grid-layout v1 vs react-grid-layout v2 prop mismatch
@@ -31,6 +32,17 @@ export const WIDGET_DEFS: Record<string, { label: string; defaultH: number }> = 
 };
 
 export type WidgetKey = keyof typeof WIDGET_DEFS;
+
+/**
+ * Id elemen tempat tombol "Sesuaikan" dititipkan lewat portal.
+ *
+ * Diekspor supaya halaman yang menyediakan wadahnya memakai konstanta yang
+ * SAMA, bukan mengetik ulang string-nya. Salah ketik satu huruf berarti
+ * `getElementById` mengembalikan null dan tombolnya diam-diam kembali ke atas
+ * grid — tanpa error, tanpa peringatan, dan itu jenis kegagalan yang baru
+ * ketahuan berbulan-bulan kemudian.
+ */
+export const ID_WADAH_KONTROL = "wadah-kontrol-dashboard";
 
 // ─── Default layouts ──────────────────────────────────────────────────────────
 
@@ -513,10 +525,23 @@ export function DashboardGrid({ widgets }: DashboardGridProps) {
   const customizerRef = useRef<HTMLDivElement>(null);
   const { containerRef, width } = useLebarKontainer(mounted);
 
+  /*
+    Wadah tujuan portal untuk tombol "Sesuaikan" — elemen di dalam hero.
+    `null` berarti halaman ini tak menyediakannya, dan tombol jatuh kembali ke
+    tempat lamanya di atas grid.
+
+    Dicari lewat `useState` + efek, BUKAN `document.getElementById` langsung
+    saat render: elemennya milik komponen lain, jadi pada render pertama ia
+    belum tentu sudah ada di DOM. Membacanya saat render juga memecah SSR —
+    `document` tak ada di server.
+  */
+  const [wadahKontrol, setWadahKontrol] = useState<HTMLElement | null>(null);
+
   useEffect(() => {
     setLayouts(loadLayouts());
     setHidden(loadHidden());
     setMounted(true);
+    setWadahKontrol(document.getElementById(ID_WADAH_KONTROL));
   }, []);
 
   // Close customizer on outside click
@@ -599,92 +624,168 @@ export function DashboardGrid({ widgets }: DashboardGridProps) {
     ])
   );
 
+  /*
+   * Pemicu "Sesuaikan" + menunya, sebagai satu satuan.
+   *
+   * Diekstrak jadi variabel supaya bisa dirender di DUA tempat tanpa
+   * digandakan: di dalam hero lewat portal (keadaan normal), atau di atas
+   * grid kalau wadah hero tak ada. Menyalinnya jadi dua blok JSX berarti
+   * dua tempat yang harus diubah setiap kali menunya bertambah.
+   *
+   * `position: relative` di pembungkus TIDAK boleh dilepas — menu
+   * dropdown di dalamnya memakai `position: absolute` terhadapnya.
+   */
+  const pemicuSesuaikan = (
+    <div style={{ position: "relative" }} ref={customizerRef}>
+        <button
+          onClick={() => setShowCustomizer(p => !p)}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 4,
+            /*
+              Bentuknya MENGIKUTI pil saringan periode di sebelahnya —
+              `borderRadius: 999`, latar transparan, garis tepi tipis. Sesudah
+              pindah ke dalam hero, gaya lamanya (kotak putih `--surface` +
+              `--border`) akan terbaca sebagai tempelan asing di atas gradasi
+              navy: satu-satunya kotak putih di seluruh hero.
+
+              `--on-merek`, bukan `--on-navy`: teks ini duduk di atas gradasi
+              merek, bukan di atas pil navy. Salah pilih di antara keduanya
+              LOLOS di mode terang (keduanya putih) dan baru gagal di mode
+              gelap — cacat yang persis pernah terjadi pada pil periode ini,
+              tercatat beberapa baris di bawah di `dashboard/page.tsx`.
+            */
+            padding: "4px 12px", borderRadius: 999,
+            border: "1px solid color-mix(in srgb, var(--on-merek) 30%, transparent)",
+            background: "transparent",
+            fontSize: 11, color: "var(--on-merek)", cursor: "pointer",
+            fontWeight: 500,
+          }}
+        >
+          <LayoutGrid size={13} /> Sesuaikan
+          {hidden.size > 0 && (
+            <span style={{
+              marginLeft: 2, padding: "0px 4px", borderRadius: 99,
+              background: "var(--navy)", color: "var(--on-navy)", fontSize: 10, fontWeight: 700,
+            }}>
+              {hidden.size}
+            </span>
+          )}
+        </button>
+
+        {showCustomizer && (
+          <div style={{
+            position: "absolute", top: "calc(100% + 6px)", right: 0,
+            background: "var(--surface)", border: "1px solid var(--border)",
+            borderRadius: 10, boxShadow: "var(--naik-2)",
+            padding: 12, zIndex: 100, minWidth: 220,
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
+              Widget
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {Object.entries(WIDGET_DEFS).map(([key, def]) => {
+                const isHidden = hidden.has(key);
+                return (
+                  <div
+                    key={key}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => toggleHide(key)}
+                    onKeyDown={e => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault()   // Spasi jangan menggulir dashboard
+                        toggleHide(key)
+                      }
+                    }}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 8,
+                      padding: "6px 8px", borderRadius: 6, cursor: "pointer",
+                      background: isHidden ? "var(--surface-subtle)" : "transparent",
+                      border: "1px solid var(--border)",
+                      opacity: isHidden ? 0.6 : 1,
+                      transition: "all 0.1s",
+                    }}
+                  >
+                    <span style={{ color: isHidden ? "var(--text-muted)" : "var(--navy)" }}>
+                      {isHidden ? <EyeOff size={13} /> : <Eye size={13} />}
+                    </span>
+                    <span style={{ flex: 1, fontSize: 12, color: "var(--text-primary)", fontWeight: 500 }}>
+                      {def.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--border)" }}>
+              <button
+                onClick={resetLayout}
+                style={{
+                  width: "100%", padding: "6px 0", borderRadius: 6,
+                  border: "1px solid var(--border)", background: "var(--surface-subtle)",
+                  fontSize: 11, color: "var(--text-muted)", cursor: "pointer",
+                }}
+              >
+                Reset ke Default
+              </button>
+            </div>
+          </div>
+        )}
+    </div>
+  );
+
   return (
     <div ref={containerRef} style={{ position: "relative" }}>
-      {/* Customizer trigger */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
-        <div style={{ position: "relative" }} ref={customizerRef}>
-          <button
-            onClick={() => setShowCustomizer(p => !p)}
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 4,
-              padding: "4px 12px", borderRadius: 6,
-              border: "1px solid var(--border)", background: "var(--surface)",
-              fontSize: 11, color: "var(--text-secondary)", cursor: "pointer",
-              fontWeight: 500,
-            }}
-          >
-            <LayoutGrid size={13} /> Sesuaikan
-            {hidden.size > 0 && (
-              <span style={{
-                marginLeft: 2, padding: "0px 4px", borderRadius: 99,
-                background: "var(--navy)", color: "#fff", fontSize: 10, fontWeight: 700,
-              }}>
-                {hidden.size}
-              </span>
-            )}
-          </button>
+      {/*
+        PEMICU "SESUAIKAN" — pindah ke dalam hero.
 
-          {showCustomizer && (
-            <div style={{
-              position: "absolute", top: "calc(100% + 6px)", right: 0,
-              background: "var(--surface)", border: "1px solid var(--border)",
-              borderRadius: 10, boxShadow: "var(--naik-2)",
-              padding: 12, zIndex: 100, minWidth: 220,
-            }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
-                Widget
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {Object.entries(WIDGET_DEFS).map(([key, def]) => {
-                  const isHidden = hidden.has(key);
-                  return (
-                    <div
-                      key={key}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => toggleHide(key)}
-                      onKeyDown={e => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault()   // Spasi jangan menggulir dashboard
-                          toggleHide(key)
-                        }
-                      }}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 8,
-                        padding: "6px 8px", borderRadius: 6, cursor: "pointer",
-                        background: isHidden ? "var(--surface-subtle)" : "transparent",
-                        border: "1px solid var(--border)",
-                        opacity: isHidden ? 0.6 : 1,
-                        transition: "all 0.1s",
-                      }}
-                    >
-                      <span style={{ color: isHidden ? "var(--text-muted)" : "var(--navy)" }}>
-                        {isHidden ? <EyeOff size={13} /> : <Eye size={13} />}
-                      </span>
-                      <span style={{ flex: 1, fontSize: 12, color: "var(--text-primary)", fontWeight: 500 }}>
-                        {def.label}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-              <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--border)" }}>
-                <button
-                  onClick={resetLayout}
-                  style={{
-                    width: "100%", padding: "6px 0", borderRadius: 6,
-                    border: "1px solid var(--border)", background: "var(--surface-subtle)",
-                    fontSize: 11, color: "var(--text-muted)", cursor: "pointer",
-                  }}
-                >
-                  Reset ke Default
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+        Founder 2026-08-09: *"tombol sesuaikan disana agak mengganggu"*.
+        Diukur: baris pembungkusnya memakai tinggi penuh + `marginBottom: 10`
+        semata-mata untuk satu tombol 24px, dan ia duduk persis di antara hero
+        dan KPI — tempat mata jatuh pertama kali sesudah membaca sapaan.
+
+        Halaman ini sudah pernah memutuskan hal yang sama untuk saringan
+        periode (lihat `dashboard/page.tsx`: *"saringan periode DI DALAM hero,
+        bukan melayang di atasnya"*). Tombol ini melanggar aturan itu, jadi
+        yang diperbaiki adalah konsistensinya.
+
+        Kenapa BUKAN topbar: "Sesuaikan" hanya berlaku di dashboard, sedangkan
+        topbar hadir di 105 halaman. Kontrol khusus satu halaman yang dipasang
+        di topbar akan mati di 104 halaman lain.
+
+        TIGA percobaan MENGAMBANGKAN tombol ini gagal lebih dulu, dan ketiganya
+        ketahuan dari tangkapan layar — bukan dari menghitung di kepala:
+
+          `top:-34` kanan   menabrak tepi bawah kartu "Kesehatan portofolio"
+          `top:-26` kanan   masih menempel di sudut kartu yang sama
+          `top:-28` kiri    menabrak sudut kiri-bawah hero
+
+        Kesimpulannya bukan "koordinatnya belum pas" melainkan **tak ada ruang
+        mengambang yang benar-benar kosong di sini**. Setiap posisi bertetangga
+        dengan sesuatu, karena hero dan kartu Kesehatan mengisi seluruh lebar
+        tepat di atas grid.
+
+        Jadi tombolnya tidak lagi mengambang: ia DIPINDAHKAN ke dalam hero
+        lewat portal (`wadahKontrol`), duduk sebaris dengan saringan periode —
+        satu-satunya baris kontrol yang memang sudah ada di halaman ini.
+        Halaman ini pernah mengambil keputusan yang sama persis untuk saringan
+        periode: *"DI DALAM hero, bukan melayang di atasnya"*.
+
+        Portal, bukan mengangkat state ke halaman: seluruh keadaan customizer
+        (menu terbuka, daftar widget tersembunyi, penyimpanan localStorage)
+        hidup di komponen ini. Portal memindah TEMPAT RENDER tanpa memindah
+        kepemilikan state — perubahan satu baris, bukan bedah komponen.
+
+        Kalau wadahnya tak ada (halaman lain memakai grid ini tanpa hero),
+        tombol jatuh kembali ke tempat lamanya di atas grid. Fail-safe, bukan
+        hilang diam-diam.
+      */}
+      {wadahKontrol
+        ? createPortal(pemicuSesuaikan, wadahKontrol)
+        : (
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+            {pemicuSesuaikan}
+          </div>
+        )}
 
       {/* Grid */}
       <ResponsiveGridLayout

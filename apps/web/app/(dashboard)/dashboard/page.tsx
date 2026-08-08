@@ -15,7 +15,7 @@ import {
   X, RefreshCw, Landmark, Target,
   ChevronRight, Coins, Wallet, ShoppingCart, HardHat, Users,
 } from "lucide-react";
-import { DashboardGrid } from "@/components/dashboard-grid";
+import { DashboardGrid, ID_WADAH_KONTROL } from "@/components/dashboard-grid";
 import { Tabel } from "@/components/dasar";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -133,7 +133,7 @@ import { RailFokus } from "@/components/shell/rail-fokus";
 import { hitungDelta } from "@/lib/deret";
 import { GambarHero } from "@/components/shell/gambar-hero";
 import { RailIsi } from "@/components/shell/rail-isi";
-import { RailRingkas } from "@/components/shell/rail-ringkas";
+import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
 import { susunPeringatan } from "@/lib/peringatan";
 import { usePasangRail } from "@/lib/rail-context";
 import { RailKalender } from "@/components/shell/rail-kalender";
@@ -1151,50 +1151,12 @@ function DashboardContent() {
       konteks={
         <>
           {/*
-            PERINGATAN KRITIS DI PUNCAK RAIL.
+            "Perlu keputusan" TETAP SATU BARIS di puncak.
 
-            Founder 2026-08-09: *"untuk critical issues yg di tengah tetp ada,
-            tapi tetep bisa langsung ke notice juga"*. Yang di tengah menjawab
-            "apa masalahnya" dengan ruang untuk satu kalimat penjelas; yang di
-            sini menjawab "berapa banyak, ke mana" — terjangkau tanpa scroll,
-            karena rail tak ikut ter-scroll.
-
-            Keduanya membaca `susunPeringatan()` yang sama, jadi angkanya tak
-            bisa berbeda.
-
-            SATU BARIS, bukan daftar — founder 2026-08-09: *"bikin 1 baris aja,
-            gausah kasih detail isinya apa aja nya"*. Rinciannya memang sudah
-            ada persis di kartu tengah; menyalinnya ke kolom 300px cuma
-            mendorong kalender dan asisten turun keluar layar.
-          */}
-          <RailRingkas
-            judul="Peringatan kritis"
-            jumlah={peringatan.length}
-            satuan="hal mendesak"
-            /*
-              Ke kartu tengah, bukan ke salah satu tujuan peringatan: dari satu
-              angka, pertanyaan berikutnya selalu "apa saja" — dan itu yang
-              dijawab kartu tengah. Melompat langsung ke /keuangan/invoice akan
-              menyembunyikan dua peringatan lain.
-            */
-            href="#peringatan"
-            nada={peringatan.some((p) => p.tingkat === "tinggi") ? "bahaya" : "normal"}
-            ikon={<AlertTriangle size={15} />}
-            kosong="Tak ada yang mendesak"
-          />
-
-          {/*
-            "My Tasks" referensi = hal yang menunggu SAYA. Di sini itu
-            `RailFokus` (kasbon menunggu persetujuan, invoice jatuh tempo,
-            klaim lewat batas) — pekerjaan nyata yang menunggu keputusan,
-            bukan daftar tugas yang harus diketik sendiri.
-
-            LETAKNYA TEPAT DI BAWAH PERINGATAN, bukan di bawah kalender —
-            founder 2026-08-09: *"yg warning ini paling atas ajaa taronya
-            semua"*. Dua kartu bernada mendesak yang dipisah oleh kalender
-            membuat rail terbaca sebagai tiga bagian tak berhubungan; berdempet,
-            keduanya jadi satu blok "yang butuh perhatian" dan kalender
-            memulai blok berikutnya.
+            Founder 2026-08-09: *"yg warning ini paling atas ajaa taronya
+            semua"*, lalu *"bikin 1 baris aja, gausah kasih detail isinya apa
+            aja nya"*. Kartu ini memang cukup satu angka: rinciannya per-jenis
+            tak menambah keputusan apa pun yang tak bisa diambil dari totalnya.
           */}
           <RailFokus />
 
@@ -1206,11 +1168,40 @@ function DashboardContent() {
             deh"*), dan keduanya memang yang paling lemah di kolom ini:
             notifikasi kosong pada data uji sehingga cuma menyumbang satu
             strip tipis, dan milestone mengulang informasi yang sudah dijawab
-            kalender persis di atasnya. Rail sekarang lima kartu, bukan tujuh.
+            kalender persis di atasnya.
           */}
           <RailKalender
             tanggalPenting={(data?.upcoming_milestones ?? []).map((m) => m.target_date)}
           />
+
+          {/*
+            PERINGATAN KRITIS — DIBUKA, dan letaknya DI BAWAH kalender.
+
+            Dua koreksi founder 2026-08-09 sekaligus: *"peringatan kritis itu
+            dibuka aja biar ga kosong, buka dibawah kalender"*.
+
+            Kenapa yang ini dibuka sementara "Perlu keputusan" tetap satu baris:
+            di bawah kalender tersisa ruang kosong yang cukup besar, dan satu
+            baris "3 hal mendesak" di sana membuat rail terlihat berhenti
+            separuh jalan. Kartu ini juga yang paling pantas diurai — tiga
+            peringatannya menuju TIGA halaman berbeda, jadi rinciannya bukan
+            sekadar hiasan melainkan tiga sasaran klik yang berbeda. "Perlu
+            keputusan" sebaliknya bermuara ke satu tautan yang sama.
+
+            Isinya `susunPeringatan()` yang sama dengan kartu tengah, jadi
+            angkanya tak bisa berbeda.
+          */}
+          <KartuRail judul="Peringatan kritis" kosong="Tak ada yang mendesak saat ini.">
+            {peringatan.map((p, i) => (
+              <BarisRail
+                key={p.id}
+                pertama={i === 0}
+                utama={p.judul}
+                sub={p.sub}
+                href={p.href}
+              />
+            ))}
+          </KartuRail>
 
           {/*
             "Progres proyek aktif" DICABUT dari rail 2026-08-09.
@@ -1323,7 +1314,25 @@ function DashboardContent() {
             lima pil kecil, dan mendorong seluruh isi halaman ke bawah.
             Referensi menaruh kontrolnya sebaris dengan judul; ini padanannya.
           */}
-          <div role="group" aria-label="Rentang waktu" style={{ display: "flex", gap: 4, marginTop: 12, flexWrap: "wrap" }}>
+          {/*
+            Satu baris kontrol: saringan periode + tombol "Sesuaikan".
+
+            Tombol Sesuaikan tidak dirender di sini — ia dititipkan
+            `DashboardGrid` lewat portal ke `#wadah-kontrol-dashboard` di
+            ujung baris ini. Founder 2026-08-09: *"tombol sesuaikan disana
+            agak mengganggu"*, dan tiga percobaan mengambangkannya di atas
+            grid semuanya menabrak tetangganya (lihat catatan panjang di
+            `dashboard-grid.tsx`).
+
+            Di sini ia punya rumah: baris yang memang untuk kontrol, sejajar
+            dengan saringan periode, di dalam hero — persis aturan yang sudah
+            dipakai saringan periode sendiri.
+          */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: 10,
+            marginTop: 12, flexWrap: "wrap",
+          }}>
+          <div role="group" aria-label="Rentang waktu" style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
             {PERIODS.map(opt => {
               const active = period === opt.value;
               return (
@@ -1349,6 +1358,14 @@ function DashboardContent() {
                 </button>
               );
             })}
+          </div>
+
+            {/*
+              Wadah portal. `marginInlineStart: auto` mendorongnya ke ujung
+              kanan baris, jadi saringan periode dan tombol Sesuaikan berada
+              di dua ujung — bukan berdempet dan terbaca sebagai satu grup.
+            */}
+            <div id={ID_WADAH_KONTROL} style={{ marginInlineStart: "auto" }} />
           </div>
         </div>
 
