@@ -5,6 +5,95 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-08 — UIR-4: elemen signature yang saya usulkan ternyata sudah saya bangun sebulan lalu
+
+Slot rail jadi dan dipasang di `/dashboard`. Tapi temuan utamanya bukan itu.
+
+### "Bilah Keputusan" sudah ada
+
+Di `DESIGN-BRIEF.md` §C saya mengusulkannya sebagai **elemen signature** —
+satu-satunya hal yang membuat Puraloka tak tertukar dengan ERP lain. Founder
+menyetujuinya, dan saya memasukkannya ke rencana UIR-4.
+
+Sebelum menulis kode, saya mengukur endpoint apa yang tersedia. `SidebarFokus`
+muncul — dan ia **sudah** melakukan persis yang saya spesifikasikan: antrean
+keputusan lintas modul, "lewat tenggat" dipisah dari "menunggu", hadir di
+setiap halaman, nol diperlakukan sebagai kabar baik.
+
+> Saya menulis brief yang mengusulkan membangun sesuatu yang sudah ada di repo
+> ini. Kalau saya langsung mengetik, hasilnya pustaka kedua untuk satu
+> pekerjaan — cacat yang persis kami tolak di Gerbang 1, dilakukan oleh orang
+> yang menulis penolakannya.
+
+Dilaporkan ke founder, bukan dibangun ulang. Keputusannya: **dua tingkat
+kerincian dari satu sumber.**
+
+```
+SIDEBAR  ~196px · 2 angka total   · hadir di SETIAP halaman
+RAIL     ~300px · 5 baris terurai · hanya halaman IKHTISAR
+```
+
+Sidebar tak dicabut justru karena rail bisa mati — di halaman tabel orang
+paling lama bekerja, dan di situlah yang mendesak harus tetap terlihat.
+
+### Nol endpoint baru
+
+`/api/v1/dashboard/fokus` sudah lama mengirim `rincian` lima angka terpisah;
+UI-nya yang membuangnya karena sidebar ~196px memang tak muat. Jadi rail hanya
+menampilkan data yang sudah ada — Aturan Emas §9 utuh, tak ada yang dikarang.
+
+### Dua tautan yang saya tebak ternyata 404
+
+`/kontrak/klaim` dan `/lapangan/instruksi` **tak ada di disk** — keduanya hidup
+di dalam halaman induknya. Ketahuan karena testnya memeriksa tiap `href` ke
+disk, bukan karena saya membacanya ulang.
+
+Ironinya tajam: widget yang dibuat untuk mempercepat orang justru akan
+mengirim mereka ke halaman kosong.
+
+### Penjaga diperluas, bukan dilemahkan
+
+`tata-letak-ratchet` merah — benar, karena token lebar pindah ke wadah bersama
+dan halaman tak lagi menyatakannya sendiri.
+
+Godaannya: masukkan `dashboard/page.tsx` ke daftar pengecualian. Yang saya
+lakukan: mengajari penjaga bahwa **wadah bersama itu sah** — dan tokennya
+**diperiksa ke berkas komponennya**, bukan dipercaya dari daftar. Dibuktikan
+mutasi: token dihapus dari wadah → penjaga **merah** untuk halaman yang
+memakainya, bukan diam.
+
+Komentar penjaga itu sendiri yang mengarahkan: *"tuduhan palsu membuat orang
+berhenti memercayai penjaganya lalu mengecualikan berkasnya."*
+
+### Yang BELUM diverifikasi — dan saya tak mengklaimnya
+
+Dashboard di balik login, dan repo tak punya kredensial uji terdokumentasi.
+Tangkapan layar hanya menghasilkan **halaman masuk**, bukan dashboard.
+
+Jadi: strukturnya diuji (4 test komponen — slot aktif/mati, `<aside>` ber-label
+supaya bisa dilompati pembaca layar), tapi **rupanya belum saya lihat.** Server
+dev ditinggalkan hidup di `:3000` supaya founder bisa menilai sendiri. Saya
+tidak menyatakan "tampilannya bagus" atas sesuatu yang belum saya lihat.
+
+### Verifikasi
+
+```
+mutasi           token lebar dihapus dari wadah → tata-letak MERAH
+                 dipulihkan                     → HIJAU
+
+12 penjaga visual  SEMUA HIJAU
+next build         exit 0
+tsc --noEmit       exit 0
+vitest             35 berkas · 478 test LULUS (465 + 13 baru)
+```
+
+Skill `impeccable` mode Operate dipakai dari awal; `craft-floor` dibaca sebelum
+menyentuh UI. Token yang saya karang (`--border-sub`, `--t-label`) ketahuan tak
+ada saat diperiksa ke `globals.css`, diganti yang benar (`--border`, `--t-kecil`)
+— bukan ditambahkan sebagai token baru.
+
+---
+
 ## 2026-08-08 — UIR-2: 27 varian judul jadi satu, dan enam "cacat" yang ternyata cuma komentar
 
 `KepalaHalaman` **0 → 10 halaman**; `<h1>` tangan **61 → 51**. Gelombang

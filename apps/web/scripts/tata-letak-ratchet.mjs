@@ -57,6 +57,25 @@ const DASHBOARD = join(AKAR, 'app', '(dashboard)')
 const TOKEN_SAH = ['--w-form', '--w-page', '--w-luas']
 
 /**
+ * Wadah bersama yang MENETAPKAN lebar di dalam dirinya.
+ *
+ * Halaman yang memakainya tak perlu (dan tak boleh) menyalin blok container
+ * lagi — lihat alasan lengkap di titik pemakaiannya di bawah.
+ *
+ * ⚠️ Tokennya DIPERIKSA ke berkas komponennya, bukan dipercaya dari daftar ini.
+ * Kalau tidak, seseorang bisa menghapus `--w-luas` dari `HalamanIkhtisar` dan
+ * penjaga tetap hijau untuk SEMUA halaman yang memakainya — kebocoran senyap
+ * yang persis dilarang penjaga ini.
+ */
+const WADAH_BERSAMA = [
+  { komponen: 'HalamanIkhtisar', berkas: 'components/shell/halaman-ikhtisar.tsx', token: '--w-luas' },
+].filter((w) => {
+  const p = join(AKAR, w.berkas)
+  if (!existsSync(p)) return false
+  return readFileSync(p, 'utf8').includes(`maxWidth: "var(${w.token})"`)
+})
+
+/**
  * Halaman yang sengaja DIKECUALIKAN, dengan alasan tertulis.
  * Daftar ini harus tetap pendek — kalau memanjang, itu sendiri sinyal bahwa
  * tokennya yang salah, bukan halamannya.
@@ -144,6 +163,28 @@ for (const f of halaman) {
     (t) => isi.includes(`maxWidth: "var(${t})"`) || new RegExp(`max-width:\\s*var\\(${t}\\)`).test(isi),
   )
   if (!token) {
+    /*
+     * Sebelum menuduh: apakah halaman memakai WADAH BERSAMA yang sudah
+     * memusatkannya?
+     *
+     * `HalamanIkhtisar` (UIR-4) menetapkan `--w-luas` di dalam dirinya, persis
+     * supaya 105 halaman tak menyalin ulang blok container yang sama. Halaman
+     * yang memakainya PATUH — ia justru bentuk kepatuhan yang lebih kuat
+     * daripada menyalin token, karena tak bisa menyimpang diam-diam.
+     *
+     * Tanpa pengecualian ini, penjaga menuduh halaman yang paling benar. Itu
+     * kelas kesalahan yang sudah diperingatkan komentar di atas: "tuduhan
+     * palsu membuat orang berhenti memercayai penjaganya lalu mengecualikan
+     * berkasnya" — dan pengecualian permanen jauh lebih mahal daripada
+     * memperbarui pola.
+     */
+    const dariWadah = WADAH_BERSAMA.find((w) => new RegExp(`<${w.komponen}[\\s>]`).test(isi))
+    if (dariWadah) {
+      pakai[dariWadah.token]++
+      lewatLayout++
+      continue
+    }
+
     // Sebelum menuduh: apakah layout induknya sudah memusatkannya?
     const dariLayout = dipusatkanLayoutInduk(f)
     if (dariLayout) {

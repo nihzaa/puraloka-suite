@@ -511,7 +511,54 @@ items:
       - "NOL kombinasi penjaga tambahan (bukan mode kepadatan)"
     cara_verifikasi: "8 penjaga visual + a11y kedua mode"
     bobot: L
-    status: todo
+    status: berjalan
+    hasil_2026_08_08: |
+      ✅ SLOT RAIL JADI, dipasang di /dashboard (pilot). Bukan mode global —
+      satu prop per halaman, nol kombinasi penjaga tambahan.
+
+        components/shell/halaman-ikhtisar.tsx   wadah: konten + rail opsional
+        components/shell/rail.tsx               <aside> ber-label, bisa dilompati
+        components/shell/rail-fokus.tsx         5 baris terurai
+        lib/fokus.ts                            bentuk baris + urutan (9 test)
+        globals.css                             --rail-w 300px + .ikhtisar-grid
+
+      TEMUAN YANG MENGHENTIKAN SEPARUH RENCANA: "Bilah Keputusan" — elemen
+      signature yang saya usulkan di DESIGN-BRIEF §C dan founder setujui —
+      TERNYATA SUDAH ADA sebagai `components/sidebar-fokus.tsx`. Ia memakai
+      endpoint yang sama, memisahkan "lewat tenggat" dari "menunggu", dan
+      menangani nol sebagai kabar baik. Membangunnya lagi = pustaka kedua
+      untuk satu pekerjaan, persis cacat yang ditolak di Gerbang 1.
+
+      Dilaporkan ke founder, BUKAN dibangun ulang. Keputusannya: dua tingkat
+      kerincian dari SATU sumber —
+
+        SIDEBAR  ~196px · 2 angka total   · hadir di SETIAP halaman
+        RAIL     ~300px · 5 baris terurai · hanya halaman IKHTISAR
+
+      Sidebar tak dicabut karena rail bisa mati: di halaman tabel orang paling
+      lama bekerja, dan di situlah yang mendesak justru harus tetap terlihat.
+
+      NOL ENDPOINT BARU. `/api/v1/dashboard/fokus` SUDAH mengirim `rincian`
+      lima angka terpisah sejak lama — UI-nya yang membuangnya karena sidebar
+      memang tak muat. Aturan Emas §9 utuh: tak ada data karangan.
+
+      DUA TAUTAN YANG SAYA TEBAK TERNYATA 404: `/kontrak/klaim` dan
+      `/lapangan/instruksi` tak ada di disk — keduanya hidup DI DALAM halaman
+      induknya. Ditemukan karena test memeriksa tiap href ke disk, bukan
+      karena dibaca ulang. Widget yang dibuat untuk mempercepat justru akan
+      mengirim orang ke halaman kosong.
+
+      PENJAGA DIPERLUAS, BUKAN DILEMAHKAN: `tata-letak-ratchet` merah karena
+      token lebar pindah ke wadah bersama. Diperbaiki dengan mengajari penjaga
+      bahwa wadah bersama SAH — dan tokennya DIPERIKSA ke berkas komponennya,
+      bukan dipercaya dari daftar. Dibuktikan lewat mutasi: token dihapus dari
+      wadah → penjaga MERAH untuk halaman yang memakainya, bukan diam.
+
+      BELUM DIVERIFIKASI MATA: dashboard di balik login, dan repo tak punya
+      kredensial uji terdokumentasi. Tangkapan layar hanya menghasilkan halaman
+      masuk. Struktur diuji lewat 4 test komponen; RUPA-nya menunggu founder
+      melihat langsung (server dev ditinggalkan hidup di :3000).
+
     catatan: |
       KEPUTUSAN FOUNDER 2026-08-08 — bukan Arah 1 (rail permanen) maupun
       Arah 2 (rail dibuang), melainkan SLOT.

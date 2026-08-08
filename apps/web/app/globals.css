@@ -229,6 +229,14 @@
   --sidebar-w:         220px;
   --sidebar-w-ciut:     64px;
 
+  /* Rail kanan — hanya di halaman IKHTISAR (UIR-4, DESIGN-BRIEF §C.0a).
+   *
+   * 300px diambil dari referensi dan diperiksa terhadap isinya: baris
+   * "Instruksi belum dikonfirmasi" + angka + chevron butuh ~280px sebelum
+   * membungkus. Lebih sempit membuat label terpotong; lebih lebar memakan
+   * kolom tabel tanpa menambah keterbacaan. */
+  --rail-w:            300px;
+
   /* ═══════════════════════════════════════════════════════════════════
    * ARAH VISUAL 2026 — aksen gradasi & kerapatan (R-012)
    * ═══════════════════════════════════════════════════════════════════
@@ -1014,4 +1022,33 @@ select.input-base { cursor: pointer; }
   padding: 12px 18px 16px;
   border-top: 1px solid var(--border);
   background: var(--surface-subtle);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * IKHTISAR — konten + rail kanan (UIR-4)
+ *
+ * Rail hanya dipasang di halaman IKHTISAR (dashboard, detail proyek, ringkasan
+ * laporan) dan sengaja MATI di halaman tabel — keputusan founder 2026-08-08,
+ * `DESIGN-BRIEF.md` §C.0a.
+ *
+ * Ambang 1280px BUKAN selera: `ARAH-VISUAL-2026.md` §4a menetapkan `--w-page`
+ * mulai dari 1280px. Di bawah itu, dua kolom membuat konten utama menyempit
+ * di bawah ~950px — cukup untuk meremas grid KPI dashboard jadi berdesakan.
+ *
+ * Di bawah ambang rail TURUN KE BAWAH, bukan HILANG. Menghilangkannya berarti
+ * informasi yang sama lenyap tergantung lebar layar, dan orang yang bekerja di
+ * laptop kecil tak pernah tahu ia ada.
+ *
+ * Media query dipakai (bukan gaya sebaris) karena inline style tak bisa
+ * menyatakan breakpoint sama sekali.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.ikhtisar-grid {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 1280px) {
+  .ikhtisar-grid {
+    grid-template-columns: minmax(0, 1fr) var(--rail-w);
+  }
 }

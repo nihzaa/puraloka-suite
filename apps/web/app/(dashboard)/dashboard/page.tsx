@@ -98,6 +98,9 @@ const daysUntil = (d: string) =>
 import { C } from "@/lib/warna-ui";
 import { namaSapaan } from "@/lib/nama-sapaan";
 import { formatRupiah } from "@/lib/format";
+import { HalamanIkhtisar } from "@/components/shell/halaman-ikhtisar";
+import { Rail } from "@/components/shell/rail";
+import { RailFokus } from "@/components/shell/rail-fokus";
 
 const STATUS_COLOR: Record<string, string> = {
   active: C.navy, completed: C.green, on_hold: C.yellow,
@@ -749,7 +752,13 @@ function DashboardContent() {
   );
 
   return (
-    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
+    /*
+      HALAMAN IKHTISAR — rail kanan AKTIF di sini (UIR-4, pilot).
+      Halaman tabel tidak memakai `rail`, dan itu disengaja: 300px yang tak
+      berarti apa-apa di sini akan memotong tabel 12 kolom di layar 1366px.
+      Lihat `components/shell/halaman-ikhtisar.tsx`.
+    */
+    <HalamanIkhtisar rail={<Rail><RailFokus /></Rail>}>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="rise" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24, gap: "var(--gap-grid)" }}>
@@ -839,7 +848,7 @@ function DashboardContent() {
       }} />
 
 
-    </div>
+    </HalamanIkhtisar>
   );
 }
 
