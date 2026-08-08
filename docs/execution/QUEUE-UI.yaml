@@ -817,14 +817,35 @@ items:
       - "semua KPI memakai API yang SUDAH ADA — nol endpoint baru"
     cara_verifikasi: "tiap halaman dibuka, KPI terisi angka nyata"
     bobot: XL
-    status: todo
-    catatan_2026_08_07: |
-      Kas SUDAH selesai di luar item ini (1.537 -> 398 baris + akun/transfer/
-      pengeluaran + layout). KPI-nya memakai 2 endpoint yang sudah ada, nol
-      endpoint baru.
+    status: selesai
+    catatan_2026_08_08: |
+      SELESAI — dan ternyata sudah selesai SEBELUM diperiksa hari ini.
 
-      Sisa 7 menu: proyek · procurement · lapangan · kontrak · aset ·
-      tender · klien.
+      Diukur di peramban 2026-08-08 (bukan dari kode saja): kedelapan halaman
+      induk dibuka satu per satu sebagai admin, dengan hasil
+
+        proyek       h1 "Proyek"              5 kartu angka
+        kas          h1 "Ringkasan Kas"       5 kartu angka
+        procurement  h1 "Ringkasan Pengadaan" 5 kartu angka
+        lapangan     h1 "Lapangan"            4 kartu angka
+        kontrak      h1 "Kontrak"             4 kartu angka
+        aset         h1 "Aset & Alat"         5 kartu angka
+        tender       h1 "Register Tender"     3 kartu angka
+        klien        h1 "Klien"               3 kartu angka
+
+      Nol 404, nol galat konsol, dan axe-core 0 pelanggaran di ketujuh
+      halaman yang diuji ulang hari ini.
+
+      Catatan 2026-08-07 di bawah ("sisa 7 menu") sudah BASI. Kalau saya
+      percaya begitu saja, saya akan membangun ulang delapan halaman yang
+      sudah hidup — persis cacat "tujuh sub-menu ditandai 🔴 padahal UI-nya
+      sudah jalan berbulan-bulan" (F5-1 §3a). CLAUDE.md §8a.4: ukur dulu ke
+      kode sebelum menyatakan sesuatu belum dikerjakan.
+
+      Yang MEMANG belum: sebagian halaman jujur menyatakan angka lintas-proyek
+      tertentu tak tersedia (mis. Lapangan untuk RFI/punch/NCR terbuka) alih-
+      alih mengarangnya. Itu keadaan yang benar, bukan pekerjaan tertinggal —
+      endpointnya per-proyek, dan agregatnya butuh keputusan tersendiri.
     catatan: |
       Diukur ulang 2026-08-07: 24 menu induk, 16 di antaranya SATU halaman
       (bukan "20 dari 22" — dokumen lama). Yang sudah berlapis: pengaturan 9,

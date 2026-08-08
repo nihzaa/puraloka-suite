@@ -5,6 +5,72 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-08 — Empat sisa referensi: tiga dibangun, satu ternyata sudah ada
+
+Menutup celah terakhir terhadap referensi. Tiga dibangun; yang keempat sudah
+hidup sejak lama dan hampir saya bangun ulang.
+
+### Yang dibangun
+
+**Kalender rail** (13 test). Titik di bawah tanggal, bukan pemilih tanggal —
+daftar milestone di bawahnya sudah menyebut APA saja; yang tak bisa
+disampaikan daftar adalah SEBARANNYA. Tiga jebakan diuji: minggu mulai Senin
+(`getDay()` menomori Minggu = 0 → seluruh bulan geser satu kolom, dan tetap
+terlihat rapi), zona waktu (`kunciTanggal()` memotong string, tak mengurai
+jadi `Date`), dan kabisat.
+
+**Widget serapan** (7 test). Persentase portofolio HARUS tertimbang rupiah.
+Rata-rata persen antar proyek membuat proyek Rp 1 juta yang habis menyeret
+portofolio Rp 1 miliar ke "50% terpakai" — angka yang salah dan sangat masuk
+akal. Satu test khusus menjaganya.
+
+**Buat Cepat** (9 test). Disaring permission, dan tiap `href` DIPERIKSA KE
+DISK oleh test — cacat "menu menuju 404" sudah pernah terjadi di rail.
+
+### Dua cacat lama ketahuan karena akhirnya ada yang memakai
+
+**`/api/v1/cost-analytics/portfolio` SELALU 500 sejak ditulis.** Ia memanggil
+`db.from('rab_items')` — tabel kategori C yang ditolak penjaga tenancy.
+Saringannya sudah benar; yang salah cuma pintunya. Tak pernah ketahuan karena
+**tak ada satu pun pemanggil**. Endpoint tanpa pemakai adalah endpoint tanpa
+bukti.
+
+**Widget status MENGGUNTING 57px.** Isi 487px di wadah 430px, dan yang hilang
+baris progres paling bawah. Sudah begitu sejak sebelum hari ini; ketahuan
+karena saya mengukur untuk menyetel widget baru di sebelahnya.
+
+### Token yang salah dan tak terlihat di mode terang
+
+Saya memakai `--on-merek` untuk teks di atas `--navy`. Keduanya putih di mode
+TERANG — jadi salah pilih sama sekali tak bergejala di sana. Di mode gelap
+`--navy` jadi biru terang `#4D9FFF` dan putih di atasnya 2,72:1 (axe: serious).
+
+`--on-navy` sudah ada, dipakai lima komponen lain, dan komentarnya di
+`globals.css` menyebut angka **2,72 itu persis**. Saya melewatkan token yang
+dokumentasinya sudah menuliskan jawabannya. Cacat yang sama ada di kalender
+kemarin — axe melewatkannya karena angka tanggal masuk ambang teks besar.
+
+### Yang TIDAK dibangun, dan itu keputusan yang benar
+
+**Delapan dashboard grup ternyata sudah ada semua.** QUEUE-UI `UI-2-3` masih
+`status: todo` dengan catatan "sisa 7 menu" tertanggal 2026-08-07. Saya ukur
+di peramban lebih dulu: kedelapannya punya kartu KPI berisi angka nyata, nol
+404, nol galat, axe 0 pelanggaran.
+
+Kalau catatan itu saya percaya begitu saja, saya membangun ulang delapan
+halaman yang sudah hidup. Ini persis cacat "tujuh sub-menu ditandai 🔴 padahal
+UI-nya sudah jalan berbulan-bulan" (F5-1 §3a) — dan kali ini dokumennya yang
+basi, bukan kodenya. Status diperbarui jadi `selesai` dengan bukti pengukuran.
+
+**Yang paling saya ingat:** dua kali hari ini yang menyelamatkan adalah
+MENGUKUR, bukan membaca. Dokumen bilang "belum dikerjakan" (salah). Taksiran
+tinggi widget salah dua kali berturut-turut sebelum diukur. Dan satu potret
+layar sempat menunjukkan widget bertumpuk yang ternyata cuma artefak waktu
+tangkap — kalau saya percaya gambar itu, saya akan "memperbaiki" tata letak
+yang tidak rusak.
+
+---
+
 ## 2026-08-08 — AI pertama masuk produk, dan kunci API nyaris ikut ter-commit
 
 Founder mengirim gambar kartu "AI Project Insights — 78/100 Project Success
