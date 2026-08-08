@@ -146,7 +146,14 @@ export function KartuKPI({
       onClick={onClick}
       style={{
         display: "block", width: "100%", textAlign: "left",
-        padding: "var(--pad-kartu-lega)",
+        // `--pad-kartu` (12px), BUKAN `--pad-kartu-lega` (16px).
+        // Diukur 2026-08-08: kartu kita 159px sementara referensi ~92px, dan
+        // enam kartu proporsi itu tak muat sebaris di konten 992px (rail
+        // memakan 300px). Padding adalah sumber tinggi ekstra pertama.
+        padding: "var(--pad-kartu)",
+        // Ruang bawah ekstra: sparkline duduk di dasar kartu sebagai latar,
+        // dan tanpa bantalan ini baris keterangan bertabrakan dengannya.
+        paddingBottom: "calc(var(--pad-kartu) + 8px)",
         borderRadius: 14, position: "relative", overflow: "hidden",
         cursor: onClick ? "pointer" : "default",
         // Gradasi HANYA pada kartu yang disorot. Ini yang membuatnya menonjol
@@ -168,7 +175,7 @@ export function KartuKPI({
     >
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        gap: 8, marginBottom: 8,
+        gap: 8, marginBottom: 6,
       }}>
         <span style={{
           fontSize: 11, fontWeight: 600, letterSpacing: ".03em",
@@ -214,13 +221,32 @@ export function KartuKPI({
 
       {keterangan && (
         <div style={{
-          fontSize: 11, marginTop: 5,
+          fontSize: 11, marginTop: 3,
           color: sorot ? "rgba(255,255,255,.7)" : C.muted,
         }}>{keterangan}</div>
       )}
 
+      {/*
+        Sparkline jadi LATAR, bukan baris tersendiri.
+
+        Sebagai baris ia menambah 26px + 9px margin ke setiap kartu — dan
+        itulah sumber tinggi ekstra terbesar (159px vs ~92px referensi).
+        Referensi menaruhnya persis begini: garis tipis di dasar kartu, di
+        BELAKANG angka, sehingga tak memakan tinggi sama sekali.
+
+        `pointer-events: none` supaya ia tak pernah mencuri klik dari kartunya.
+      */}
       {spark && spark.length > 1 && (
-        <Sparkline data={spark} sorot={sorot} />
+        <span aria-hidden="true" style={{
+          position: "absolute", insetInline: 0, bottom: 0,
+          // 22px, bukan 34: pada 34 garisnya naik sampai ke baris keterangan
+          // dan MENCORET teks "surplus"/"3 menunggu persetujuan" — terlihat
+          // di layar, tak terlihat di kode. Opasitas juga diturunkan supaya
+          // ia jadi latar, bukan elemen yang bersaing dengan angkanya.
+          height: 22, opacity: 0.28, pointerEvents: "none",
+        }}>
+          <Sparkline data={spark} sorot={sorot} />
+        </span>
       )}
     </Pembungkus>
   );
@@ -241,7 +267,7 @@ function Sparkline({ data, sorot }: { data: number[]; sorot?: boolean }) {
     <svg
       viewBox="0 0 100 100" preserveAspectRatio="none"
       aria-hidden="true"
-      style={{ width: "100%", height: 26, marginTop: 9, display: "block" }}
+      style={{ width: "100%", height: "100%", display: "block" }}
     >
       <polyline
         points={titik} fill="none"

@@ -1052,3 +1052,21 @@ select.input-base { cursor: pointer; }
     grid-template-columns: minmax(0, 1fr) var(--rail-w);
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * KPI STRIP — enam kartu sebaris (rombak dashboard 2026-08-08)
+ *
+ * Diukur: kartu kita 185x159px sementara referensi ~230x92px, dan `auto-fit`
+ * memilih LIMA kolom di konten 992px sehingga kartu keenam turun. Dua baris
+ * itulah yang membuat beranda terasa longgar dan tak seperti referensi.
+ *
+ * Titik pembungkusan DIPUTUSKAN di sini, bukan ditebak `auto-fit`.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 1400px) {
+  .kpi-strip { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+}
+
+@media (max-width: 700px) {
+  .kpi-strip { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}

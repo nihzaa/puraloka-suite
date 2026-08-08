@@ -17,7 +17,7 @@ type Layouts = Record<string, Layout[]>;
 // ─── Widget registry ──────────────────────────────────────────────────────────
 
 export const WIDGET_DEFS: Record<string, { label: string; defaultH: number }> = {
-  kpi:       { label: "KPI Cards",             defaultH: 5 },
+  kpi:       { label: "KPI Cards",             defaultH: 3 },
   cashflow:  { label: "Grafik Arus Kas",        defaultH: 5 },
   status:    { label: "Status & Progress",      defaultH: 5 },
   invoice:   { label: "Invoice Belum Lunas",    defaultH: 5 },
@@ -31,23 +31,24 @@ export type WidgetKey = keyof typeof WIDGET_DEFS;
 
 const DEFAULT_LAYOUTS: Layouts = {
   lg: [
-    // `h: 3`, bukan 2. Dengan 2, kartu KPI hanya setinggi 69px sementara
-    // isinya 107px — keterangan di bawah angka ("sedang berjalan",
-    // "3 lewat jatuh tempo", dst.) TERGUNTING di SEMUA kartu, di semua
-    // halaman yang memakai grid ini. Diukur di peramban: 46 kejadian.
-    { i: "kpi",       x: 0, y: 0,  w: 12, h: 5, isResizable: false },
+    /*
+      `h: 3` = 3x60 + 2x14 margin = 208px, dan strip KPI terukur 176px.
+      Bukan tebakan: `h: 2` hanya 148px dan MENGGUNTING baris keterangan;
+      `h: 5` (percobaan sebelumnya) menyisakan ~150px ruang kosong karena
+      kartu sudah diramping-kan. Angka ini diukur ulang di peramban setiap
+      kali tinggi kartu berubah.
+    */
+    { i: "kpi",       x: 0, y: 0,  w: 12, h: 3, isResizable: false },
     // `h: 6`, bukan 5. Dengan 5, isi widget arus kas (grafik 200px +
     // legenda + tiga metrik ringkasan) melebihi wadahnya 46px dan baris
     // "Pemasukan · Pengeluaran est. · Selisih" TERGUNTING — diukur di
     // peramban, bukan ditaksir. Widget status disamakan supaya kedua
     // kolom tetap sejajar; koordinat y di bawahnya ikut digeser.
-    // y digeser +2 mengikuti kpi h:3 -> h:5 (enam kartu = dua baris).
-    // Tanpa ini widget arus kas TUMPANG TINDIH dengan kartu KPI.
-    { i: "cashflow",  x: 0, y: 5,  w: 7,  h: 6 },
-    { i: "status",    x: 7, y: 5,  w: 5,  h: 6 },
-    { i: "invoice",   x: 0, y: 11, w: 7,  h: 5 },
-    { i: "kasbon",    x: 0, y: 16, w: 12, h: 4 },
-    { i: "tax",       x: 0, y: 20, w: 12, h: 3 },
+    { i: "cashflow",  x: 0, y: 3,  w: 7,  h: 6 },
+    { i: "status",    x: 7, y: 3,  w: 5,  h: 6 },
+    { i: "invoice",   x: 0, y: 9,  w: 7,  h: 5 },
+    { i: "kasbon",    x: 0, y: 14, w: 12, h: 4 },
+    { i: "tax",       x: 0, y: 18, w: 12, h: 3 },
   ],
   md: [
     { i: "kpi",       x: 0, y: 0,  w: 10, h: 5, isResizable: false },
@@ -58,10 +59,10 @@ const DEFAULT_LAYOUTS: Layouts = {
     { i: "tax",       x: 0, y: 20, w: 10, h: 3 },
   ],
   sm: [
-    { i: "kpi",       x: 0, y: 0,  w: 6, h: 11, isResizable: false },
-    { i: "cashflow",  x: 0, y: 11, w: 6, h: 6 },
-    { i: "status",    x: 0, y: 17, w: 6, h: 5 },
-    { i: "invoice",   x: 0, y: 22, w: 6, h: 5 },
+    { i: "kpi",       x: 0, y: 0,  w: 6, h: 8, isResizable: false },
+    { i: "cashflow",  x: 0, y: 8,  w: 6, h: 6 },
+    { i: "status",    x: 0, y: 14, w: 6, h: 5 },
+    { i: "invoice",   x: 0, y: 19, w: 6, h: 5 },
     { i: "kasbon",    x: 0, y: 25, w: 6, h: 4 },
     { i: "tax",       x: 0, y: 29, w: 6, h: 3 },
   ],
@@ -84,6 +85,10 @@ const COLS = { lg: 12, md: 10, sm: 6 };
  * mempertahankan tata letak yang menggunting isi bukan pilihan.
  */
 /*
+ * v5 → v6 (2026-08-08): tinggi widget KPI berubah mengikuti kartu yang
+ * diramping-kan (159px → ~92px, enam sebaris). Tanpa naik versi, pemakai lama
+ * terkunci di tinggi lama dan kartunya mengambang di ruang kosong.
+ *
  * v4 → v5 (2026-08-08, rombak dashboard).
  *
  * `milestone` DIHAPUS dari registry: isinya pindah ke rail kanan, dan widget
@@ -99,8 +104,8 @@ const COLS = { lg: 12, md: 10, sm: 6 };
  * Ongkosnya sama seperti v3 → v4: penyesuaian tata letak buatan pemakai
  * hilang. Tetap sepadan — lubang di tata letak lebih buruk.
  */
-const STORAGE_KEY = "puraloka_dashboard_layout_v5";
-const HIDDEN_KEY  = "puraloka_dashboard_hidden_v5";
+const STORAGE_KEY = "puraloka_dashboard_layout_v7";
+const HIDDEN_KEY  = "puraloka_dashboard_hidden_v7";
 
 // ─── Persistence ──────────────────────────────────────────────────────────────
 

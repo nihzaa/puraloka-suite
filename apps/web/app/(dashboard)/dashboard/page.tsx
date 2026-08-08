@@ -344,11 +344,37 @@ function DashboardContent() {
     : 0;
 
   const kpiWidget = (
-    <div style={{
-      padding: "var(--pad-kartu-lega)",
+    <div className="kpi-strip" style={{
+      padding: "var(--pad-kartu)",
       display: "grid", gap: "var(--gap-grid)",
-      gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-      height: "100%", alignContent: "start",
+      /*
+        Enam kolom DIPAKSA, bukan `auto-fit`.
+
+        `auto-fit minmax(180px, …)` menghitung sendiri berapa kolom yang muat,
+        dan di konten 992px (rail memakan 300px) ia memilih LIMA — kartu
+        keenam turun ke baris kedua, dan dua baris itulah yang membuat
+        halaman terasa longgar dan tak seperti referensi.
+
+        Layar sempit diurus media query `.kpi-strip` di globals.css, bukan
+        `auto-fit` — supaya titik pembungkusannya diputuskan, bukan ditebak.
+      */
+      gridTemplateColumns: "repeat(6, minmax(0, 1fr))",
+      /*
+        `alignItems: start` — TANPA ini kartu diregangkan setinggi wadahnya.
+        Diukur: kartu jadi 152px padahal isinya cuma ~100px, dan sisanya ruang
+        kosong di dalam kartu. `height: 100%` dibuang karena justru itu yang
+        menyuruh strip mengisi tinggi widget.
+      */
+      /*
+        `alignItems: stretch` (bawaan) DIPERTAHANKAN supaya keenam kartu
+        SAMA TINGGI — diukur, isinya bervariasi 105-152px karena jumlah baris
+        keterangan berbeda, dan tepi bawah yang bergerigi terbaca sebagai
+        tak dirawat.
+
+        Yang dibuang cuma `height: 100%` pada wadahnya: itu yang dulu
+        menyuruh strip mengisi seluruh tinggi widget, bukan setinggi isinya.
+      */
+      alignContent: "start",
     }}>
       {/*
         `spark` & `delta` per METRIK (UIR-4B) — dari `/api/v1/dashboard/deret`.
@@ -904,25 +930,6 @@ function DashboardContent() {
       }
     >
 
-      {/* ── Period pills ───────────────────────────────────────────────────── */}
-      <div style={{ display: "flex", justifyContent: "flex-end", gap: 4, marginBottom: "var(--gap-grid)" }}>
-        {PERIODS.map(opt => {
-          const active = period === opt.value;
-          return (
-            <button key={opt.value} onClick={() => setPeriod(opt.value)} style={{
-              padding: "4px 12px", borderRadius: 999, fontSize: 11,
-              fontWeight: active ? 600 : 400,
-              border: active ? "1px solid color-mix(in srgb, var(--aksen) 35%, transparent)" : "1px solid var(--border)",
-              background: active ? C.navyLight : "var(--surface)",
-              color: active ? C.navy : C.mid,
-              cursor: "pointer", transition: "all 0.12s",
-            }}>
-              {opt.label}
-            </button>
-          );
-        })}
-      </div>
-
       {/*
         ── HERO ──────────────────────────────────────────────────────────────
 
@@ -982,6 +989,31 @@ function DashboardContent() {
               )}
             </p>
           )}
+
+          {/*
+            Saringan periode DI DALAM hero, bukan melayang di atasnya.
+
+            Sebelumnya ia baris tersendiri — memakan tinggi penuh hanya untuk
+            lima pil kecil, dan mendorong seluruh isi halaman ke bawah.
+            Referensi menaruh kontrolnya sebaris dengan judul; ini padanannya.
+          */}
+          <div role="group" aria-label="Rentang waktu" style={{ display: "flex", gap: 4, marginTop: 12, flexWrap: "wrap" }}>
+            {PERIODS.map(opt => {
+              const active = period === opt.value;
+              return (
+                <button key={opt.value} onClick={() => setPeriod(opt.value)} aria-pressed={active} style={{
+                  padding: "4px 12px", borderRadius: 999, fontSize: 11,
+                  fontWeight: active ? 700 : 500,
+                  border: `1px solid ${active ? "transparent" : "color-mix(in srgb, var(--on-merek) 30%, transparent)"}`,
+                  background: active ? "var(--on-merek)" : "transparent",
+                  color: active ? "var(--navy)" : "var(--on-merek)",
+                  cursor: "pointer", transition: "all 0.12s",
+                }}>
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Gambar memakai `--on-merek` supaya garisnya terbaca di atas gradasi. */}
