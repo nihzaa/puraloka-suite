@@ -51,12 +51,26 @@ const DEFAULT_LAYOUTS: Layouts = {
     { i: "tax",       x: 0, y: 18, w: 12, h: 3 },
   ],
   md: [
-    { i: "kpi",       x: 0, y: 0,  w: 10, h: 5, isResizable: false },
-    { i: "cashflow",  x: 0, y: 5,  w: 6,  h: 6 },
-    { i: "status",    x: 6, y: 5,  w: 4,  h: 6 },
-    { i: "invoice",   x: 0, y: 11, w: 6,  h: 5 },
-    { i: "kasbon",    x: 0, y: 16, w: 10, h: 4 },
-    { i: "tax",       x: 0, y: 20, w: 10, h: 3 },
+    /*
+      ⚠️ INILAH BREAKPOINT YANG AKTIF DI BERANDA, bukan `lg`.
+
+      Rail kanan (300px) menyempitkan wadah RGL jadi 992px pada layar 1600px —
+      di bawah ambang `lg: 1100`. Jadi seluruh penyetelan tinggi yang ditulis di
+      blok `lg` TIDAK PERNAH berlaku di halaman yang punya rail.
+
+      Ini menghabiskan beberapa putaran: `DEFAULT_LAYOUTS.lg` benar, localStorage
+      benar, profil peramban bersih sama saja, build produksi sama saja — karena
+      yang dibaca memang blok yang berbeda.
+
+      Pelajarannya: sesudah menambah rail, ambang breakpoint harus diperiksa
+      ulang terhadap lebar wadah SEBENARNYA, bukan lebar layar.
+    */
+    { i: "kpi",       x: 0, y: 0,  w: 10, h: 3, isResizable: false },
+    { i: "cashflow",  x: 0, y: 3,  w: 6,  h: 6 },
+    { i: "status",    x: 6, y: 3,  w: 4,  h: 6 },
+    { i: "invoice",   x: 0, y: 9,  w: 6,  h: 5 },
+    { i: "kasbon",    x: 0, y: 14, w: 10, h: 4 },
+    { i: "tax",       x: 0, y: 18, w: 10, h: 3 },
   ],
   sm: [
     { i: "kpi",       x: 0, y: 0,  w: 6, h: 8, isResizable: false },
@@ -427,10 +441,38 @@ export function DashboardGrid({ widgets }: DashboardGridProps) {
     return () => document.removeEventListener("mousedown", handler);
   }, [showCustomizer]);
 
+  /*
+   * Tinggi widget yang TIDAK boleh diubah pemakai dipulihkan dari
+   * `DEFAULT_LAYOUTS` sebelum disimpan.
+   *
+   * KENAPA. `kpi` bertanda `isResizable: false`, tapi RGL tetap MENULIS ulang
+   * tingginya di `onLayoutChange` — dan handler ini menyimpan apa pun yang
+   * ditulisnya. Akibatnya `h` bawaan kita tertimpa pada render PERTAMA, lalu
+   * nilai tertimpa itu dimuat lagi di kunjungan berikutnya.
+   *
+   * Gejalanya menipu: `DEFAULT_LAYOUTS` benar, localStorage bahkan sempat
+   * berisi nilai yang benar, tetapi yang dirender selalu tinggi lama. Ditelusuri
+   * dengan mengesampingkan cache dev, build produksi, dan profil peramban bersih
+   * — ketiganya sama — sampai tersisa satu-satunya jalan yang menulis: handler
+   * ini sendiri.
+   */
   const onLayoutChange = useCallback(
     (_: Layout[], allLayouts: Layouts) => {
-      setLayouts(allLayouts);
-      saveLayouts(allLayouts);
+      const dikunci = new Set(
+        DEFAULT_LAYOUTS.lg.filter((l) => l.isResizable === false).map((l) => l.i),
+      );
+      const dipulihkan: Layouts = Object.fromEntries(
+        Object.entries(allLayouts).map(([bp, items]) => [
+          bp,
+          (items as Layout[]).map((l) => {
+            if (!dikunci.has(l.i)) return l;
+            const bawaan = (DEFAULT_LAYOUTS[bp] ?? []).find((d) => d.i === l.i);
+            return bawaan ? { ...l, h: bawaan.h } : l;
+          }),
+        ]),
+      );
+      setLayouts(dipulihkan);
+      saveLayouts(dipulihkan);
     },
     []
   );
