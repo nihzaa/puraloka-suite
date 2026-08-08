@@ -254,18 +254,40 @@ items:
       - "8 penjaga visual lain tetap hijau"
     cara_verifikasi: "node apps/web/scripts/kerapatan-ratchet.mjs; echo $?"
     bobot: S
-    status: todo
-    catatan: |
-      DIUKUR 2026-08-08: penjaga ini SUDAH MERAH di feat/sumbu-ui-roadmap,
-      dan BUKAN karena sesi redesign. Dibuktikan dengan memindahkan berkas
-      baru keluar sampai `git status` bersih persis HEAD — penjaga tetap
-      exit 1 ("BERTAMBAH 1"). Ia hanya memindai .tsx.
+    status: selesai
+    hasil_2026_08_08: |
+      ✅ HIJAU. 308 -> 307, lantai TIDAK dinaikkan.
 
-      Founder 2026-08-08 memutuskan ini dikerjakan LEBIH DULU, PR tersendiri.
-      Alasannya bukan kerapian: penjaga inilah yang melindungi --pad-kartu
-      12px — token yang paling diperdebatkan di redesign (brief §4.3 mengusul
-      20px, ditolak). Masuk redesign dengan penjaga merah = kehilangan sinyal
-      untuk membedakan kerusakan BARU dari yang LAMA.
+      SEBAB SEBENARNYA — bukan "ada yang menambah":
+
+      Ditelusuri mundur 40 commit, angkanya SELALU 308. Lalu diperiksa
+      commit yang menulis lantainya sendiri (3a96902, "358 -> 307"): di
+      pohon commit ITU pun kenyataannya sudah 308 sementara lantai tercatat
+      307. Jadi penjaga ini MERAH SEJAK LANTAINYA DITULIS — tak pernah ada
+      regresi yang perlu dicari.
+
+      Penyebabnya mekanisme auto-turun penjaga sendiri (baris 138-144):
+      lantai ikut turun saat hitungan turun. Satu jalan yang membaca 307
+      mengunci angka itu, sementara pohon yang di-commit mengukur 308.
+
+      PERBAIKANNYA NYATA, BUKAN PENGAMPUNAN:
+
+        components/document-section.tsx:494
+        gap: 16  ->  gap: "var(--gap-bagian)"
+
+      --gap-bagian bernilai 16px (globals.css:374) — nilai IDENTIK, jadi
+      NOL perubahan visual. Yang berubah hanya: angkanya kini dibaca dari
+      token, sehingga ikut berubah kalau kerapatan disetel ulang nanti.
+
+      Dipilih karena konteksnya memang benar: jarak vertikal antar-bidang
+      di badan modal = --gap-bagian. Bukan padding keadaan-kosong, yang
+      sengaja TIDAK disentuh 3a96902 ("token kartu tak berlaku di sana").
+
+      MUTASI (§8a.2): gap token -> 16 dipaku = MERAH (exit 1);
+      dipulihkan = HIJAU (exit 0). Penjaga terbukti masih bisa merah.
+
+      VERIFIKASI: 9 penjaga visual HIJAU · tsc --noEmit exit 0 ·
+      vitest 32 berkas / 428 test LULUS.
 
   - id: UIR-1
     lapis: 0

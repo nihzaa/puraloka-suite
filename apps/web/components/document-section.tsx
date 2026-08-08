@@ -491,7 +491,7 @@ function UploadModalContent({
         </div>
 
         {/* Body */}
-        <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16, overflowY: "auto" }}>
+        <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: "var(--gap-bagian)", overflowY: "auto" }}>
           {/* Judul */}
           <div>
             <label htmlFor="upload-title" style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6 }}>

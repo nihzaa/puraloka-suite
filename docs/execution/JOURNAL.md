@@ -5,6 +5,72 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-08 — UIR-0B: penjaga kerapatan hijau, dan merahnya ternyata tak pernah ada yang menyebabkan
+
+PR pertama Fase 1. Founder menaruhnya di depan segalanya, alasannya bukan
+kerapian: `kerapatan-ratchet` persis yang melindungi `--pad-kartu` 12px — token
+paling diperdebatkan di redesign (brief §4.3 mengusul 20px, ditolak). Masuk
+redesign dengan penjaga merah berarti kehilangan sinyal untuk membedakan
+kerusakan **baru** dari yang **lama**.
+
+### Saya mencari regresi yang tidak pernah ada
+
+Gejalanya "BERTAMBAH 1" — 308 vs lantai 307. Kata "bertambah" mengarahkan ke
+satu kesimpulan: ada commit yang menambah. Ditelusuri mundur **40 commit**,
+angkanya **selalu 308**.
+
+Lalu diperiksa commit yang menulis lantainya sendiri (`3a96902`, *"358 → 307"*).
+Di pohon commit **itu pun** kenyataannya sudah **308** sementara lantai tercatat
+**307**.
+
+> **Penjaga ini merah sejak lantainya ditulis.** Tak pernah ada regresi.
+
+Sebabnya mekanisme auto-turun penjaga itu sendiri (`kerapatan-ratchet.mjs:138`):
+lantai ikut turun begitu hitungan turun. Satu jalan yang kebetulan membaca 307
+mengunci angka itu, sementara pohon yang di-commit mengukur 308.
+
+**Pelajarannya:** pesan galat penjaga ikut membentuk arah pencarian. "BERTAMBAH"
+membuat saya mencari pelaku selama beberapa putaran, padahal pertanyaan yang
+benar sejak awal adalah *"apakah lantainya pernah benar?"*.
+
+### Perbaikannya nyata, bukan pengampunan
+
+```
+components/document-section.tsx:494
+  gap: 16  ->  gap: "var(--gap-bagian)"
+```
+
+`--gap-bagian` bernilai **16px** (`globals.css:374`) — nilai **identik**, jadi
+**nol perubahan visual**. Yang berubah hanya: angkanya kini dibaca dari token,
+sehingga ikut berubah saat kerapatan disetel ulang nanti.
+
+Dipilih karena konteksnya memang benar — jarak vertikal antar-bidang di badan
+modal *adalah* `--gap-bagian`. Bukan padding keadaan-kosong, yang sengaja tak
+disentuh `3a96902` (*"token kartu tak berlaku di sana, dan memaksakannya justru
+membuat layar kosong jadi sempit"*).
+
+**Lantai TIDAK dinaikkan.** Menaikkannya adalah persis hal yang UIR-0B larang,
+dan itu akan mengubah penjaga jadi stempel.
+
+### Verifikasi
+
+```
+mutasi (§8a.2)     token -> 16 dipaku = MERAH (exit 1)
+                   dipulihkan         = HIJAU (exit 0)
+
+9 penjaga visual   kerapatan · hex · tabel-mentah · tata-letak · a11y
+                   kontras · kontras-hex · modal-esc · sidebar   SEMUA HIJAU
+gen-indeks-docs    HIJAU
+tsc --noEmit       exit 0
+vitest             32 berkas · 428 test · SEMUA LULUS
+```
+
+Catatan proses: dua berkas (`menu-berbagi-href.ts`) sempat ter-`git add` oleh
+loop bisect saya sendiri — terdeteksi lewat `git status`, dibatalkan sebelum
+commit. Pohon kerja bersih.
+
+---
+
 ## 2026-08-08 — Fase 0 redesign: empat premis brief meleset, dan alat ukur saya sendiri salah empat kali
 
 Founder mengirim megaprompt redesign total (`apps/web`) + 5 gambar referensi
