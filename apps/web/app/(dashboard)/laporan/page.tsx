@@ -23,7 +23,7 @@ import { C } from "@/lib/warna-ui";
 // UI-0-4: kelima tabel halaman ini memakai primitif bersama, termasuk delapan
 // yang dulu lewat wrapper `DataTable` lokal. `Tabel` menjamin caption sr-only,
 // kolom pertama <th scope="row">, tabular-nums, dan pembungkus overflow-x.
-import { Tabel } from "@/components/dasar";
+import { Tabel, KepalaHalaman } from "@/components/dasar";
 import { formatRupiah } from "@/lib/format";
 
 const card: React.CSSProperties = {
@@ -404,10 +404,10 @@ function LaporanContent() {
     <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
 
       {/* Header */}
-      <div className="rise" style={{ marginBottom: 24 }}>
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700, color: C.text, marginBottom: 4 }}>Laporan</h1>
-        <p style={{ fontSize: 13, color: C.mid }}>Ringkasan, keuangan, arus kas, mandor, pengeluaran, dan dokumentasi progress proyek</p>
-      </div>
+      <KepalaHalaman
+        judul="Laporan"
+        keterangan="Ringkasan, keuangan, arus kas, mandor, pengeluaran, dan dokumentasi progress proyek"
+      />
 
       {/* Filter Bar */}
       <div className="rise rise-1" style={{ ...card, padding: "16px 20px", marginBottom: 20, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>

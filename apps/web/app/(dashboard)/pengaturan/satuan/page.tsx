@@ -7,6 +7,7 @@ import type { UnitRow } from "@/lib/use-units";
 
 // ─── Design tokens (konsisten dgn /pengaturan) ─────────────────────────────────
 import { C } from "@/lib/warna-ui";
+import { KepalaHalaman } from "@/components/dasar";
 
 const card: React.CSSProperties = {
   background: "var(--surface)", border: "1px solid var(--border)",
@@ -85,17 +86,11 @@ function SatuanContent() {
 
       {/* Header */}
       <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ width: 40, height: 40, borderRadius: 10, background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Ruler size={19} color={C.navy} />
-        </div>
-        <div>
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 700, color: C.text, margin: 0 }}>
-            Master Satuan
-          </h1>
-          <p style={{ fontSize: 13, color: C.mid, margin: 0 }}>
-            Sumber tunggal satuan untuk dropdown Mandor & Pengadaan. Ubah di sini, berlaku di semua form.
-          </p>
-        </div>
+        <KepalaHalaman
+        judul="Master Satuan"
+        keterangan="Sumber tunggal satuan untuk dropdown Mandor & Pengadaan. Ubah di sini, berlaku di semua form."
+        ikon={<Ruler size={19} />}
+      />
       </div>
 
       {!canManage && (

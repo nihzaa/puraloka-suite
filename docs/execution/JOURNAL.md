@@ -5,6 +5,90 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-08 — UIR-2: 27 varian judul jadi satu, dan enam "cacat" yang ternyata cuma komentar
+
+`KepalaHalaman` **0 → 10 halaman**; `<h1>` tangan **61 → 51**. Gelombang
+pertama; ratchet menahan sisanya.
+
+### Yang diukur lebih dulu, dan kenapa itu mengubah rencana
+
+Rencana awal: "sebarkan `KepalaHalaman` ke 105 halaman". Begitu diukur,
+angkanya menolak rencana itu:
+
+```
+66 halaman menulis <h1> sendiri — dalam 27 VARIAN gaya berbeda
+30 halaman SUDAH benar — judulnya dari layout lewat <JudulBagian>
+13 halaman memakai UBIN IKON di kiri judul
+ 8 memang tanpa judul (callback, redirect — semestinya begitu)
+```
+
+Jadi sasarannya bukan 105, melainkan 66 — dan 30 di antaranya justru **akan
+rusak** kalau disentuh, karena judulnya sudah datang dari layout.
+
+Varian gayanya sendiri layak dicatat: `fontSize` 20/22/24/26/28, `fontWeight`
+700/800, tiga sumber warna berbeda. Itu bukan "kurang rapi", itu **27 keputusan
+desain berbeda untuk satu elemen yang sama**.
+
+### Dua koreksi yang mencegah kerusakan
+
+**`KepalaHalaman` tak punya prop ikon.** Memindahkan 13 halaman ber-ubin apa
+adanya berarti **menghapus** penanda kategori yang justru diminta brief §3.3.
+Prop `ikon` ditambahkan lebih dulu — dengan test ditulis sebelum implementasi,
+dan `aria-hidden` karena ikon di sebelah judul yang sudah menyebut halamannya
+hanya menambah kebisingan bagi pembaca layar.
+
+**Enam halaman sempat terukur "punya dua `<h1>`".** Kalau benar, itu cacat a11y
+nyata. Diperiksa satu per satu: **keenamnya artefak komentar** — catatan
+seperti *"menulis `<h1>` lagi di sini menghasilkan DUA `<h1>`"*, yang justru
+ditulis orang yang sudah memperbaikinya. Nol yang nyata.
+
+> Kalau saya percaya angka itu, enam halaman yang **sudah benar** akan
+> "diperbaiki" jadi rusak. Cacat sejenis muncul di `suspense-ratchet` sehari
+> sebelumnya — kali ini saya memeriksanya sebelum bertindak, bukan sesudah.
+
+### Codemod-nya salah tiga kali
+
+1. **Impor tak ditambahkan.** `includes('@/components/dasar')` bernilai `true`
+   karena berkasnya sudah mengimpor `Tabel` dari modul yang sama —
+   pemeriksaannya benar, kesimpulannya salah. TS2304 di lima berkas.
+2. **`POLA_IKON` cocok nol kali.** `[^}]*` berhenti pada `}}` milik style wadah
+   luar, jadi polanya tak pernah sampai ke ubin.
+3. **Gerbang berkas hanya menguji pola polos**, sehingga lima halaman
+   `/pengaturan/*` yang hanya cocok pola ikon tak pernah diperiksa — codemod
+   melaporkan "0 berkas" dengan polos.
+
+Ketiganya ketahuan `tsc` atau pratinjau, bukan sesudah commit. Ini kali kedua
+berturut-turut codemod saya salah di bagian impor; yang menyelamatkan tetap
+sama — **typecheck segera sesudah menulis, bukan membaca ulang polanya**.
+
+### Sisa 51 sengaja ditinggalkan
+
+Sebagian memang **bukan judul halaman**: sapaan dinamis di beranda ("Selamat
+datang, {nama}"), judul di portal yang shell-nya berbeda, judul dengan tombol
+aksi yang butuh keputusan per halaman. Melarang hari ini berarti menolak kode
+yang benar. Ratchet menahan supaya tak bertambah.
+
+### Verifikasi
+
+```
+mutasi (§8a.2)   +1 <h1>            → MERAH (exit 1)
+                 dipulihkan          → HIJAU (exit 0)
+                 komentar ber-<h1>   → tetap HIJAU (komentar diabaikan)
+
+12 penjaga visual  judul · suspense · format · kerapatan · hex · tabel-mentah
+                   tata-letak · a11y · kontras · kontras-hex · modal-esc
+                   sidebar                                          HIJAU
+next build         exit 0
+tsc --noEmit       exit 0
+vitest             33 berkas · 465 test LULUS (462 + 3 baru)
+```
+
+Skill `impeccable` (mode Operate) dipakai sesuai §8a.3; `craft-floor` dibaca
+sebelum menyentuh UI. Hook-nya **tidak** diaktifkan — CLAUDE.md melarangnya
+tanpa ratifikasi.
+
+---
+
 ## 2026-08-08 — UIR-0C: build hijau, dan galatnya selama ini menunjuk berkas yang salah
 
 `next build` akhirnya **exit 0** — build hijau pertama di cabang ini.

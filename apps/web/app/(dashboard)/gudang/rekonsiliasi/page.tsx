@@ -31,7 +31,7 @@ import { PackageSearch, RefreshCw, AlertTriangle, Info } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
-import { Tabel, type Kolom } from "@/components/dasar";
+import { Tabel, type Kolom, KepalaHalaman } from "@/components/dasar";
 
 type Proyek = { id: string; name: string; status?: string };
 
@@ -314,17 +314,10 @@ export default function RekonsiliasiMaterialPage() {
       padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
       width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
     }}>
-      <div className="rise" style={{ marginBottom: 20 }}>
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700, color: C.text, margin: 0 }}>
-          Rekonsiliasi Material
-        </h1>
-        <p style={{ fontSize: 13, color: C.mid, margin: "6px 0 0", maxWidth: "68ch", lineHeight: 1.55 }}>
-          Kebutuhan RAB diadu dengan yang dibeli, dipakai, dan tersisa di gudang.
-          Selisihnya adalah material yang tak bisa dipertanggungjawabkan — dan
-          tanpa layar ini, ia terlihat persis sama dengan material yang habis
-          terpakai.
-        </p>
-      </div>
+      <KepalaHalaman
+        judul="Rekonsiliasi Material"
+        keterangan="Kebutuhan RAB diadu dengan yang dibeli, dipakai, dan tersisa di gudang. Selisihnya adalah material yang tak bisa dipertanggungjawabkan — dan tanpa layar ini, ia terlihat persis sama dengan material yang habis terpakai."
+      />
 
       {/* ── Pemilih proyek ─────────────────────────────────────────────── */}
       <div className="rise rise-2" style={{

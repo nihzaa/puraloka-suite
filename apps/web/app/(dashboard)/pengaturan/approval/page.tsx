@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { GitBranch, Plus, Trash2, Check, X, AlertTriangle, Info } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
+import { KepalaHalaman } from "@/components/dasar";
 
 const card: React.CSSProperties = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, boxShadow: "var(--naik-1)" };
 const input: React.CSSProperties = { width: "100%", padding: "8px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", background: "var(--surface)", color: C.text, boxSizing: "border-box", fontFamily: "inherit" };
@@ -83,13 +84,11 @@ function Content() {
       )}
 
       <div style={{ marginBottom: 20, display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ width: 40, height: 40, borderRadius: 10, background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <GitBranch size={19} color={C.navy} />
-        </div>
-        <div>
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 700, color: C.text, margin: 0 }}>Rantai Approval</h1>
-          <p style={{ fontSize: 13, color: C.mid, margin: 0 }}>Atur berapa level persetujuan tiap modul dan siapa yang berhak — tanpa deploy.</p>
-        </div>
+        <KepalaHalaman
+        judul="Rantai Approval"
+        keterangan="Atur berapa level persetujuan tiap modul dan siapa yang berhak — tanpa deploy."
+        ikon={<GitBranch size={19} />}
+      />
       </div>
 
       <div style={{ ...card, display: "flex", gap: 8, padding: "12px 16px", marginBottom: 18, background: C.navyLight, borderColor: "var(--navy-light)" }}>

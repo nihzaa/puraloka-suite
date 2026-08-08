@@ -6,6 +6,7 @@ import { Coins, Plus, Check, X, AlertTriangle, Save, EyeOff, Eye } from "lucide-
 import type { KasbonPurposeRow } from "@/lib/use-kasbon-purposes";
 
 import { C } from "@/lib/warna-ui";
+import { KepalaHalaman } from "@/components/dasar";
 
 const card: React.CSSProperties = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, boxShadow: "var(--naik-1)" };
 const inputStyle: React.CSSProperties = { width: "100%", padding: "8px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", background: "var(--surface)", color: C.text, boxSizing: "border-box", fontFamily: "inherit" };
@@ -45,13 +46,11 @@ function Content() {
         </div>
       )}
       <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ width: 40, height: 40, borderRadius: 10, background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Coins size={19} color={C.navy} />
-        </div>
-        <div>
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 700, color: C.text, margin: 0 }}>Tujuan Kasbon</h1>
-          <p style={{ fontSize: 13, color: C.mid, margin: 0 }}>Sumber tunggal tujuan pengajuan kasbon. Ubah di sini, berlaku di semua form kasbon.</p>
-        </div>
+        <KepalaHalaman
+        judul="Tujuan Kasbon"
+        keterangan="Sumber tunggal tujuan pengajuan kasbon. Ubah di sini, berlaku di semua form kasbon."
+        ikon={<Coins size={19} />}
+      />
       </div>
 
       {!canManage && (

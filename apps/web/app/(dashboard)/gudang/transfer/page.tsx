@@ -25,7 +25,7 @@ import { ArrowLeftRight, ArrowRight, PackageSearch, RefreshCw } from "lucide-rea
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
-import { Tabel } from "@/components/dasar";
+import { Tabel, KepalaHalaman } from "@/components/dasar";
 
 type Proyek = { id: string; name: string };
 type Material = { id: string; name: string; unit: string | null };
@@ -182,16 +182,10 @@ export default function TransferStokPage() {
       padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
       width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
     }}>
-      <div className="rise" style={{ marginBottom: 20 }}>
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700, color: C.text, margin: 0 }}>
-          Transfer Stok Antar Proyek
-        </h1>
-        <p style={{ fontSize: 13, color: C.mid, margin: "6px 0 0", maxWidth: "68ch", lineHeight: 1.55 }}>
-          Material yang pindah proyek dicatat sebagai satu peristiwa dengan dua
-          sisi. Tanpa ini, barang yang dikirim ke proyek sebelah terbaca sebagai
-          susut yang tak bisa dijelaskan di proyek asalnya.
-        </p>
-      </div>
+      <KepalaHalaman
+        judul="Transfer Stok Antar Proyek"
+        keterangan="Material yang pindah proyek dicatat sebagai satu peristiwa dengan dua sisi. Tanpa ini, barang yang dikirim ke proyek sebelah terbaca sebagai susut yang tak bisa dijelaskan di proyek asalnya."
+      />
 
       {galat && (
         <div role="alert" style={{

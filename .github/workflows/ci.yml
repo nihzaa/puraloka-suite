@@ -1071,6 +1071,20 @@ jobs:
       - name: Suspense (useSearchParams wajib berbatas)
         run: node scripts/suspense-ratchet.mjs
 
+      # UIR-2 — judul halaman wajib lewat <KepalaHalaman>.
+      #
+      # Diukur 2026-08-08: KepalaHalaman dipakai 0 dari 105 halaman, padahal
+      # komponennya ada, bertoken penuh, dan ber-test. Akibatnya 27 VARIAN
+      # gaya <h1> berbeda — 20-28px, bobot 700/800, tiga sumber warna. Itu
+      # sumber paling langsung dari "tiap halaman terasa buatan sendiri",
+      # dan paling murah diperbaiki karena tak menyentuh isi halaman.
+      #
+      # Penjaganya membuang komentar lebih dulu: repo ini berkomentar padat,
+      # dan enam halaman sempat tercatat "punya dua <h1>" yang KEENAMNYA
+      # artefak komentar. Tanpa itu, halaman yang sudah benar akan "diperbaiki".
+      - name: Judul (KepalaHalaman, bukan <h1> sendiri)
+        run: node scripts/judul-ratchet.mjs
+
       # F4-1 — warna wajib lewat token, bukan hex di komponen.
       #
       # Alasannya bukan kerapian: WHITE-LABEL PER TENANT. Selama warna ditulis

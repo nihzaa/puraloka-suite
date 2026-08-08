@@ -439,9 +439,58 @@ items:
       - "halaman ber-KepalaHalaman NAIK dari lantai 0"
       - "penjaga ber-lantai, terbukti bisa merah"
       - "tinggi header seragam di seluruh grup"
-    cara_verifikasi: "node apps/web/scripts/peta-redesign.mjs --ringkas"
+    cara_verifikasi: "node apps/web/scripts/judul-ratchet.mjs"
     bobot: M
-    status: todo
+    status: berjalan
+    hasil_2026_08_08: |
+      ✅ GELOMBANG PERTAMA. KepalaHalaman 0 → 10 halaman; <h1> tangan 61 → 51.
+      Penjaga `judul-ratchet` ber-lantai 51, terbukti bisa merah, terdaftar CI.
+
+      DIUKUR LEBIH DULU — dan hasilnya mengubah rencana:
+
+        66 halaman menulis <h1> sendiri, dalam 27 VARIAN gaya berbeda
+           fontSize 20 · 22 · 24 · 26 · 28
+           fontWeight 700 · 800
+           warna C.text · var(--text-primary) · campuran
+        30 halaman SUDAH benar — judulnya dari layout lewat <JudulBagian>
+        13 halaman memakai UBIN IKON di kiri judul
+         8 memang tanpa judul (callback, redirect — semestinya begitu)
+
+      DUA KOREKSI yang mencegah kerusakan:
+
+      1. KepalaHalaman TAK PUNYA prop ikon. Memindahkan 13 halaman ber-ubin
+         apa adanya berarti MENGHAPUS penanda kategori yang justru diminta
+         brief §3.3. Prop `ikon` ditambahkan lebih dulu, dengan 3 test (TDD),
+         `aria-hidden` (ikon di sebelah judul yang sudah menyebut halamannya
+         hanya menambah kebisingan pembaca layar).
+
+      2. Enam halaman sempat terukur "punya DUA <h1>" — cacat a11y nyata kalau
+         benar. Diperiksa: KEENAMNYA artefak KOMENTAR (catatan "jangan tulis
+         <h1> di sini, layout sudah menyediakannya"). Nol yang nyata. Kalau
+         dipercaya, enam halaman yang SUDAH BENAR akan "diperbaiki" jadi rusak.
+         Cacat sejenis muncul di suspense-ratchet sehari sebelumnya — karena
+         itu judul-ratchet membuang komentar lebih dulu, dan itu diuji.
+
+      CODEMOD, dan TIGA cacatnya yang ketahuan sebelum masuk commit:
+        a. impor tak ditambahkan — `includes('@/components/dasar')` bernilai
+           true karena berkasnya sudah mengimpor `Tabel` dari modul yang sama.
+           Pemeriksaannya benar, kesimpulannya salah → TS2304 di 5 berkas.
+           Diperbaiki jadi menyisipkan nama ke daftar impor yang sudah ada.
+        b. POLA_IKON cocok NOL kali — `[^}]*` berhenti pada `}}` milik style
+           wadah luar. Diperbaiki dengan memulai pola dari UBIN-nya.
+        c. gerbang berkas hanya menguji POLA polos, jadi 5 halaman
+           /pengaturan/* yang hanya cocok POLA_IKON tak pernah diperiksa.
+        Ketiganya ketahuan `tsc`/pratinjau, bukan sesudah commit.
+
+      SISA 51 SENGAJA DITINGGALKAN: sebagian memang bukan judul halaman
+      (sapaan dinamis beranda "Selamat datang, {nama}"), sebagian di portal
+      yang shell-nya berbeda, sebagian punya tombol aksi yang butuh keputusan
+      per halaman. Ratchet menahan supaya tak bertambah; gelombang berikutnya
+      menurunkannya.
+
+      VERIFIKASI: 12 penjaga visual HIJAU · next build exit 0 · tsc exit 0 ·
+      vitest 33 berkas / 465 test LULUS (462 + 3 baru).
+
     catatan: |
       TEMUAN 2026-08-08, dan ini perbaikan TERMURAH di seluruh redesign:
       KepalaHalaman ADA di components/dasar.tsx:82, berkualitas baik, dan

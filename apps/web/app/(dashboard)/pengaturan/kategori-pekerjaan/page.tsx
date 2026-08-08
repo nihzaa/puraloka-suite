@@ -6,6 +6,7 @@ import { Layers, Plus, Check, X, AlertTriangle, Save, EyeOff, Eye } from "lucide
 import type { WorkCategoryRow } from "@/lib/use-work-categories";
 
 import { C } from "@/lib/warna-ui";
+import { KepalaHalaman } from "@/components/dasar";
 
 const card: React.CSSProperties = {
   background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, boxShadow: "var(--naik-1)",
@@ -50,13 +51,11 @@ function KategoriContent() {
         </div>
       )}
       <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ width: 40, height: 40, borderRadius: 10, background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Layers size={19} color={C.navy} />
-        </div>
-        <div>
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 700, color: C.text, margin: 0 }}>Kategori Pekerjaan</h1>
-          <p style={{ fontSize: 13, color: C.mid, margin: 0 }}>Sumber tunggal kategori untuk rincian pekerjaan mandor. Ubah di sini, berlaku di semua form.</p>
-        </div>
+        <KepalaHalaman
+        judul="Kategori Pekerjaan"
+        keterangan="Sumber tunggal kategori untuk rincian pekerjaan mandor. Ubah di sini, berlaku di semua form."
+        ikon={<Layers size={19} />}
+      />
       </div>
 
       {!canManage && (

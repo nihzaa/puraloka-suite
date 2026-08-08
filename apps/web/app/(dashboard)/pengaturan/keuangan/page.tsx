@@ -6,6 +6,7 @@ import { Landmark, Plus, Check, X, CalendarClock, AlertTriangle, Info } from "lu
 
 // ─── Design tokens (konsisten Architectural Precision, sama dgn /pengaturan/roles) ──
 import { C } from "@/lib/warna-ui";
+import { KepalaHalaman } from "@/components/dasar";
 
 const card: React.CSSProperties = {
   background: "var(--surface)", border: "1px solid var(--border)",
@@ -222,17 +223,11 @@ export default function KeuanganSettingsPage() {
     <div style={{ maxWidth: "var(--w-form)", margin: "0 auto", width: "100%", padding: "8px 4px 60px" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
-        <div style={{ width: 40, height: 40, borderRadius: 10, background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <Landmark size={20} color={C.navy} />
-        </div>
-        <div>
-          <h1 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700, color: C.text, letterSpacing: "-0.3px" }}>
-            Konfigurasi Keuangan
-          </h1>
-          <p style={{ margin: "2px 0 0", fontSize: 13, color: C.muted }}>
-            Tarif pajak berlaku per tanggal. Dokumen memakai tarif yang berlaku saat diterbitkan — mengubah tarif tidak mengubah dokumen lama.
-          </p>
-        </div>
+        <KepalaHalaman
+        judul="Konfigurasi Keuangan"
+        keterangan="Tarif pajak berlaku per tanggal. Dokumen memakai tarif yang berlaku saat diterbitkan — mengubah tarif tidak mengubah dokumen lama."
+        ikon={<Landmark size={20} />}
+      />
       </div>
 
       {!canEdit && (

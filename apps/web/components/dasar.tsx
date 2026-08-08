@@ -79,32 +79,61 @@ export function Halaman({ children, lebar = "luas" }: {
  * setelah membaca judul, dan menempatkannya di bawah membuat tombol utama
  * bersaing dengan isi halaman.
  */
-export function KepalaHalaman({ judul, keterangan, aksi }: {
+export function KepalaHalaman({ judul, keterangan, aksi, ikon }: {
   judul: string;
   keterangan?: ReactNode;
   aksi?: ReactNode;
+  /**
+   * Ubin ikon di kiri judul — penanda kategori halaman (brief redesign §3.3).
+   *
+   * Diukur 2026-08-08: 13 dari 66 halaman ber-judul sudah memakainya, dengan
+   * ubin buatan sendiri. Tanpa prop ini, memindahkan mereka ke sini berarti
+   * MENGHAPUS elemen yang justru diminta — penyeragaman yang diam-diam
+   * menghilangkan informasi.
+   *
+   * Diberi `aria-hidden`: ikon di sebelah judul yang sudah menyebut halamannya
+   * hanya menambah kebisingan bagi pembaca layar.
+   */
+  ikon?: ReactNode;
 }) {
   return (
     <div className="rise" style={{
       display: "flex", justifyContent: "space-between", alignItems: "flex-start",
       gap: "var(--r4)", flexWrap: "wrap",
     }}>
-      <div style={{ minWidth: 0 }}>
-        <h1 style={{
-          fontFamily: "var(--font-display)",
-          fontSize: "var(--t-halaman)",
-          fontWeight: 700,
-          letterSpacing: "-0.02em",
-          color: C.text,
-          margin: 0,
-          lineHeight: 1.15,
-        }}>{judul}</h1>
-        {keterangan && (
-          <p style={{
-            fontSize: "var(--t-badan)", color: C.mid,
-            margin: "var(--r1) 0 0", lineHeight: 1.55, maxWidth: "68ch",
-          }}>{keterangan}</p>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: "var(--r3)", minWidth: 0 }}>
+        {ikon && (
+          <span
+            data-ubin-ikon
+            aria-hidden="true"
+            style={{
+              display: "grid", placeItems: "center", flexShrink: 0,
+              width: 40, height: 40,
+              borderRadius: "var(--rad-sedang)",
+              background: "var(--navy-light)",
+              color: "var(--navy)",
+            }}
+          >
+            {ikon}
+          </span>
         )}
+        <div style={{ minWidth: 0 }}>
+          <h1 style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "var(--t-halaman)",
+            fontWeight: 700,
+            letterSpacing: "-0.02em",
+            color: C.text,
+            margin: 0,
+            lineHeight: 1.15,
+          }}>{judul}</h1>
+          {keterangan && (
+            <p style={{
+              fontSize: "var(--t-badan)", color: C.mid,
+              margin: "var(--r1) 0 0", lineHeight: 1.55, maxWidth: "68ch",
+            }}>{keterangan}</p>
+          )}
+        </div>
       </div>
       {aksi && (
         <div style={{ display: "flex", gap: "var(--r2)", flexWrap: "wrap", flexShrink: 0 }}>

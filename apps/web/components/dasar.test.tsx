@@ -180,6 +180,35 @@ describe('KepalaHalaman', () => {
     render(<KepalaHalaman judul="Laporan" keterangan="Minggu ini" />)
     expect(screen.getByText('Minggu ini')).toBeTruthy()
   })
+
+  /*
+   * Diukur 2026-08-08: 13 dari 66 halaman ber-judul menaruh ubin ikon di kiri
+   * judul. Tanpa prop ini, memindahkan mereka ke KepalaHalaman berarti
+   * MENGHAPUS elemen yang justru diminta brief §3.3 sebagai penanda kategori —
+   * penyeragaman yang diam-diam menghilangkan informasi.
+   */
+  it('ubin ikon ditampilkan bila diberikan', () => {
+    const { container } = render(
+      <KepalaHalaman judul="Audit Trail" ikon={<svg data-uji="ikon" />} />,
+    )
+    expect(container.querySelector('[data-uji="ikon"]')).toBeTruthy()
+  })
+
+  it('tanpa ikon, tak ada wadah ubin yang tersisa', () => {
+    const { container } = render(<KepalaHalaman judul="Audit Trail" />)
+    expect(container.querySelector('[data-ubin-ikon]')).toBeNull()
+  })
+
+  /*
+   * Ikon adalah hiasan di samping judul yang SUDAH menyebut halamannya.
+   * Dibacakan ulang oleh pembaca layar, ia hanya menambah kebisingan.
+   */
+  it('ubin ikon disembunyikan dari pembaca layar', () => {
+    const { container } = render(
+      <KepalaHalaman judul="Audit Trail" ikon={<svg />} />,
+    )
+    expect(container.querySelector('[data-ubin-ikon]')?.getAttribute('aria-hidden')).toBe('true')
+  })
 })
 
 describe('Lencana — status tak boleh mengandalkan warna saja', () => {

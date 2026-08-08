@@ -26,7 +26,7 @@ import { PackageSearch, HandCoins, RefreshCw } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
-import { Tabel } from "@/components/dasar";
+import { Tabel, KepalaHalaman } from "@/components/dasar";
 
 type Proyek = { id: string; name: string };
 type Material = { id: string; name: string; unit: string | null };
@@ -144,17 +144,10 @@ export default function MaterialKlienPage() {
       padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
       width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
     }}>
-      <div className="rise" style={{ marginBottom: 20 }}>
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700, color: C.text, margin: 0 }}>
-          Material Milik Klien
-        </h1>
-        <p style={{ fontSize: 13, color: C.mid, margin: "6px 0 0", maxWidth: "68ch", lineHeight: 1.55 }}>
-          Material yang dipasok owner (free issue) masuk gudang dan terpakai
-          seperti material lain — tapi bukan pembelian kita. Dicatat terpisah
-          supaya ia tidak menggelembungkan angka susut, dan tidak membuat
-          perusahaan tampak memborong melebihi RAB.
-        </p>
-      </div>
+      <KepalaHalaman
+        judul="Material Milik Klien"
+        keterangan="Material yang dipasok owner (free issue) masuk gudang dan terpakai seperti material lain — tapi bukan pembelian kita. Dicatat terpisah supaya ia tidak menggelembungkan angka susut, dan tidak membuat perusahaan tampak memborong melebihi RAB."
+      />
 
       {galat && (
         <div role="alert" style={{

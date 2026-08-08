@@ -25,7 +25,7 @@ import { AlertTriangle, CalendarClock, Clock, FileCheck2, RefreshCw } from "luci
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
-import { Tabel, type Kolom } from "@/components/dasar";
+import { Tabel, type Kolom, KepalaHalaman } from "@/components/dasar";
 import { formatRupiah } from "@/lib/format";
 
 type Proyek = { id: string; name: string };
@@ -295,17 +295,10 @@ export default function KeterlambatanPage() {
       padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
       width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
     }}>
-      <div className="rise" style={{ marginBottom: 20 }}>
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700, color: C.text, margin: 0 }}>
-          Analisa Keterlambatan
-        </h1>
-        <p style={{ fontSize: 13, color: C.mid, margin: "6px 0 0", maxWidth: "68ch", lineHeight: 1.55 }}>
-          Tenggat milestone diadu dengan tanggal selesai, dikurangi perpanjangan
-          waktu (EOT) yang sudah disetujui. Keterlambatan yang sudah dimaafkan
-          EOT bukan keterlambatan — dan menuduhnya bisa dibantah dengan satu
-          lembar surat.
-        </p>
-      </div>
+      <KepalaHalaman
+        judul="Analisa Keterlambatan"
+        keterangan="Tenggat milestone diadu dengan tanggal selesai, dikurangi perpanjangan waktu (EOT) yang sudah disetujui. Keterlambatan yang sudah dimaafkan EOT bukan keterlambatan — dan menuduhnya bisa dibantah dengan satu lembar surat."
+      />
 
       {galat && (
         <div role="alert" style={{
