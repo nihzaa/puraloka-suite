@@ -1070,3 +1070,19 @@ select.input-base { cursor: pointer; }
 @media (max-width: 700px) {
   .kpi-strip { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
 }
+
+/* Hero + kartu kesehatan berdampingan — pola referensi (hero | insight).
+ *
+ * ⚠️ Ambangnya 900px, BUKAN 1100px. Media query mengukur LEBAR LAYAR, sedangkan
+ * kolom konten beranda hanya 992px karena rail memakan 300px. Ambang 1100
+ * karena itu TAK PERNAH terpenuhi di layar 1600px, dan kartunya turun ke bawah
+ * hero — persis kesalahan yang sama dengan breakpoint RGL (lihat catatan
+ * `md` di `dashboard-grid.tsx`).
+ *
+ * Dua kali cacat yang sama dalam satu hari: sesudah menambah rail, tiap ambang
+ * WAJIB diperiksa terhadap lebar WADAH, bukan lebar layar. */
+.hero-baris { grid-template-columns: 1fr; }
+
+@media (min-width: 900px) {
+  .hero-baris { grid-template-columns: minmax(0, 1fr) 280px; }
+}

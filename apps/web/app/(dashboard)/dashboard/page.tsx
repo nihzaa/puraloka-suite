@@ -118,6 +118,7 @@ import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
 import { hitungDelta } from "@/lib/deret";
 import { GambarHero } from "@/components/shell/gambar-hero";
 import { RailAsisten } from "@/components/shell/rail-asisten";
+import { KartuKesehatan } from "@/components/shell/kartu-kesehatan";
 
 /**
  * Pintasan beranda — tujuh tempat yang paling sering dituju DARI sini.
@@ -950,14 +951,18 @@ function DashboardContent() {
            dan mengarang suhu di alat kerja adalah kebohongan kecil yang
            merusak kepercayaan pada angka di sebelahnya.
       */}
+      <div className="hero-baris" style={{
+        display: "grid", gap: "var(--gap-grid)",
+        alignItems: "stretch", marginBottom: "var(--gap-bagian)",
+      }}>
       <section className="rise" style={{
         display: "grid", gridTemplateColumns: "minmax(0,1fr) auto",
         gap: "var(--gap-grid)", alignItems: "stretch",
-        marginBottom: "var(--gap-bagian)",
         background: "var(--grad-merek)",
         border: "1px solid var(--border)",
         borderRadius: "var(--rad-besar)",
         overflow: "hidden",
+        minWidth: 0,
       }}>
         {/*
           Teks memakai `--on-merek`, BUKAN `C.text`.
@@ -1010,7 +1015,7 @@ function DashboardContent() {
 
                     Percobaan pertama menaruh teks `--navy` di atas latar
                     `--on-merek` (putih) — dan di MODE GELAP `--navy` berbalik
-                    jadi biru terang #4D9FFF, sehingga terang-di-atas-terang.
+                    jadi biru TERANG, sehingga terang-di-atas-terang.
                     axe-core menangkapnya sebagai color-contrast serious; mode
                     terang lolos, jadi ia tak akan ketahuan tanpa audit dua mode.
                   */
@@ -1031,6 +1036,18 @@ function DashboardContent() {
           <GambarHero />
         </div>
       </section>
+
+      {/*
+        Kartu kesehatan DI SAMPING hero — posisi kartu "AI Insights" referensi.
+        Angkanya dihitung (`lib/kesehatan.ts`), bukan dikarang; lihat catatan
+        di `components/shell/kartu-kesehatan.tsx`.
+      */}
+      <KartuKesehatan masukan={{
+        invoiceLewatTempo: alerts?.invoice_overdue ?? 0,
+        milestoneTelat: alerts?.milestone_late ?? 0,
+        proyek: proyekBerjalan,
+      }} />
+      </div>
 
       {/* ── Alert banners ──────────────────────────────────────────────────── */}
       {alerts && (alerts.invoice_overdue > 0 || alerts.kasbon_pending > 0 || alerts.milestone_late > 0) && (
