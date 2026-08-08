@@ -53,6 +53,25 @@ interface CostMapBaris {
   cost_code: CostCodeRingkas | null;
 }
 interface CostMapResponse { data: CostMapBaris[]; belum_dipetakan: number }
+
+/**
+ * Usulan pemetaan dari `GET /projects/:id/cost-map/saran`.
+ *
+ * `skor` 0..1 dibawa ke layar dengan sengaja: pemetaan ini menentukan ke cost
+ * code mana biaya jatuh, dan yang menyetujuinya berhak tahu seberapa yakin
+ * mesinnya. Usul berskor 0,46 dan 0,93 tak boleh terlihat sama.
+ */
+interface SaranBaris {
+  category_id: string; category_name: string
+  cost_code_id: string; cost_code_code: string; cost_code_name: string
+  skor: number
+}
+interface SaranResponse {
+  saran: SaranBaris[]
+  jumlah_kategori: number
+  sudah_dipetakan: number
+  tanpa_saran: number
+}
 interface VariansBaris {
   cost_code_id: string | null; code: string; name: string; status: string;
   pagu: number; commitment: number; actual: number; exposure: number;
@@ -3389,6 +3408,9 @@ function VariansTab() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectId, setProjectId] = useState("");
   const [peta, setPeta] = useState<CostMapResponse | null>(null);
+  const [saran, setSaran] = useState<SaranResponse | null>(null);
+  /** Kategori yang sedang diterapkan — tombolnya dikunci supaya tak ganda. */
+  const [menerapkan, setMenerapkan] = useState<string | null>(null);
   const [varians, setVarians] = useState<VariansResponse | null>(null);
   const [costCodes, setCostCodes] = useState<CostCodeRingkas[]>([]);
   const [bukaPeta, setBukaPeta] = useState(false);
@@ -3406,11 +3428,19 @@ function VariansTab() {
     if (!pid) return;
     setMemuat(true); setErr("");
     try {
-      const [p, v] = await Promise.all([
+      const [p, v, sr] = await Promise.all([
         api.get<CostMapResponse>(`/api/v1/projects/${pid}/cost-map`),
         api.get<VariansResponse>(`/api/v1/projects/${pid}/varians`),
+        // Saran DIMUAT BERSAMA, bukan lewat tombol "cari saran": yang perlu
+        // memetakan sedang melihat layar ini sekarang, dan tombol tambahan
+        // hanya menambah satu langkah sebelum ia melihat bahwa bantuannya ada.
+        api.get<SaranResponse>(`/api/v1/projects/${pid}/cost-map/saran`)
+          // Saran adalah PELENGKAP. Kalau gagal, pemetaan manual tetap jalan —
+          // menggagalkan seluruh tab karena usulannya tak termuat jauh lebih
+          // merugikan daripada usulan yang absen.
+          .catch(() => ({ data: null as SaranResponse | null })),
       ]);
-      setPeta(p.data); setVarians(v.data);
+      setPeta(p.data); setVarians(v.data); setSaran(sr.data);
     } catch (e) {
       setErr((e as { response?: { data?: { error?: string } } }).response?.data?.error
         ?? "Gagal memuat data varians");
@@ -3606,6 +3636,110 @@ function VariansTab() {
                  komentar sebagai kontrol sungguhan yang tak bernama — pola yang
                  sudah didokumentasikan di `gayaInput`, components/dasar.tsx.) */
               <div style={{ borderTop: `1px solid ${C.border}` }}>
+                {/* ── USULAN, bukan penerapan ──────────────────────────────
+                    Pemetaan ini menentukan ke cost code mana biaya jatuh, dan
+                    itu mengalir ke laporan varians yang dipakai menilai
+                    untung-rugi. Karena itu tiap usul disetujui SATU PER SATU,
+                    dengan skornya terlihat — bukan tombol "terapkan semua"
+                    yang membuat orang menyetujui sepuluh tebakan sekaligus
+                    tanpa membaca satu pun.
+
+                    Endpointnya pun GET dan sudah dibuktikan tak menulis
+                    (test `TIDAK MENULIS apa pun ke basis`). */}
+                {saran && saran.saran.length > 0 && (
+                  <div style={{
+                    padding: "12px", borderBottom: `1px solid ${C.border}`,
+                    background: C.subtle,
+                  }}>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                      <strong style={{ fontSize: 12.5, color: C.text }}>
+                        {saran.saran.length} usulan pemetaan
+                      </strong>
+                      <span style={{ fontSize: 11.5, color: C.mid }}>
+                        dari kemiripan nama. Periksa dulu, lalu setujui satu per satu.
+                        {saran.tanpa_saran > 0 && (
+                          <> {saran.tanpa_saran} kategori tak punya usulan dan tetap manual.</>
+                        )}
+                      </span>
+                    </div>
+
+                    <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 6 }}>
+                      {saran.saran.map((u) => (
+                        <li key={u.category_id} style={{
+                          display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+                          padding: "8px 10px", background: C.surface,
+                          border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 12.5,
+                        }}>
+                          <span style={{ color: C.text, fontWeight: 600 }}>{u.category_name}</span>
+                          <span aria-hidden="true" style={{ color: C.muted }}>&rarr;</span>
+                          <span style={{ color: C.text }}>
+                            {u.cost_code_name}
+                            <span style={{ color: C.muted, fontSize: 11 }}> · {u.cost_code_code}</span>
+                          </span>
+
+                          {/* Skor sebagai KATA, bukan angka telanjang. "0,46"
+                              tak berarti apa pun bagi yang menyetujuinya;
+                              "perlu diperiksa" berarti. Angkanya tetap ada di
+                              title untuk yang ingin tahu persis. */}
+                          <span
+                            title={`Skor kemiripan ${u.skor}`}
+                            style={{
+                              marginLeft: "auto", fontSize: 11, fontWeight: 700,
+                              padding: "2px 8px", borderRadius: 999,
+                              color: u.skor >= 0.8 ? "var(--success)" : "var(--warning-teks)",
+                              background: u.skor >= 0.8 ? "var(--success-bg)" : "var(--warning-bg)",
+                              border: `1px solid ${u.skor >= 0.8 ? "var(--success-border)" : "var(--warning-border)"}`,
+                            }}
+                          >
+                            {u.skor >= 0.8 ? "cocok jelas" : "perlu diperiksa"}
+                          </span>
+
+                          {/* Tombol yang YAKIN penuh hanya untuk usulan yang
+                              yakin. Versi pertama memberi navy pekat pada
+                              keenam barisnya, dan sederet enam ajakan
+                              sama-kuat membaca sebagai "tekan semua" —
+                              justru borongan diam-diam yang dihindari modul
+                              ini, hanya dipindah ke jari pemakainya.
+
+                              Yang "perlu diperiksa" turun jadi sekunder:
+                              tetap sepenuhnya bisa ditekan, tapi tak
+                              mengundang. Bebannya pindah ke yang layak
+                              menanggung, yakni yang ragu. */}
+                          <button
+                            type="button"
+                            disabled={menerapkan === u.category_id}
+                            onClick={async () => {
+                              setMenerapkan(u.category_id);
+                              try { await simpanPeta(u.category_id, u.cost_code_id); }
+                              finally { setMenerapkan(null); }
+                            }}
+                            style={{
+                              // 40px, bukan 34: ini tombol yang MENULIS ke
+                              // basis, dan target sentuh yang terlalu kecil
+                              // membuat orang salah tekan usulan di
+                              // sebelahnya. Tak sampai 44 karena baris
+                              // usulannya sendiri padat; 40 kompromi yang
+                              // terukur, bukan angka yang kebetulan.
+                              padding: "9px 14px", borderRadius: 6, fontSize: 12,
+                              fontWeight: 700, minHeight: 40, marginLeft: 4,
+                              border: u.skor >= 0.8 ? "none" : `1px solid ${C.navy}`,
+                              background: menerapkan === u.category_id
+                                ? C.border
+                                : u.skor >= 0.8 ? C.navy : "transparent",
+                              color: menerapkan === u.category_id
+                                ? C.mid
+                                : u.skor >= 0.8 ? "var(--on-navy)" : C.navy,
+                              cursor: menerapkan === u.category_id ? "not-allowed" : "pointer",
+                            }}
+                          >
+                            {menerapkan === u.category_id ? "Menerapkan…" : "Terapkan"}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 <Tabel<CostMapBaris>
                   caption="Pemetaan kategori belanja ke cost code."
                   data={peta.data}

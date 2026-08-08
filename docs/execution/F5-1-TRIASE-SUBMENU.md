@@ -681,6 +681,41 @@ ia berjalan sebagai penyempurnaan — bukan item baru yang menunggu pemicu:
 
 ---
 
+### 5b. TUNDA yang muncul BELAKANGAN — 1 item, 2026-08-08
+
+Daftar §5 ditutup 2026-08-07 dengan "0 tersisa". Ia tidak salah saat ditulis;
+item ini menjadi 🔴 sesudahnya, ketika audit DB-only 2026-08-08 memeriksa empat
+klaim "tabel ada tapi tak terpakai" dan menemukan **tiga di antaranya keliru** —
+tabelnya ternyata dipakai. Yang keempat bertahan, dan itulah baris ini.
+
+Ditulis terpisah, bukan disisipkan ke tabel §5, supaya angka "25 selesai" di
+sana tetap bisa dibaca sebagai catatan sejarah yang benar. Daftar yang ditutup
+lalu diam-diam ditambahi adalah daftar yang tak bisa dipercaya.
+
+| Sub-menu | Jml | Pemicu yang membangunkannya |
+|---|---|---|
+| **WBS template** | 1 | **Proyek kedua yang struktur pekerjaannya mengulang proyek pertama.** Sampai itu terjadi, menyalin pohon `rab_items` sekali per proyek lebih murah daripada memelihara tabel template kedua |
+
+**Kenapa TUNDA, bukan INTI.** Diukur 2026-08-08 — `wbs_nodes` nol query API,
+nol rujukan UI, nol baris di basis. Satu-satunya penyebutan namanya di kode
+adalah `tenant-map.generated.ts` (berkas ter-generate, bukan pemakaian):
+
+```bash
+node scripts/db/introspect.mjs columns | grep wbs_nodes     # kolom ada
+grep -rn "wbs_nodes" apps/api/src apps/web --include=*.ts --include=*.tsx \
+  | grep -v __tests__                                        # 1 baris, generated
+```
+
+Gantt sudah bekerja **tanpa** tabel ini: "WBS" yang tampil di sana adalah pohon
+`rab_items`, dan itu bukan tambalan sementara — struktur pekerjaan memang
+lahir dari RAB. Membangun `wbs_nodes` sekarang berarti dua pohon yang harus
+dijaga tetap sinkron, untuk keuntungan yang belum ada yang memintanya.
+
+**Bahaya yang dijaga triase ini.** Kolomnya sudah terlanjur ada, dan kolom yang
+ada mengundang seseorang mengisinya. Kalau itu terjadi sebelum pemicunya nyata,
+Gantt punya dua sumber kebenaran tanpa aturan mana yang menang — persis bentuk
+cacat yang §3e sebut "paling mahal karena terlihat rapi".
+
 ## 6. Cara mengukur ulang — jangan salin angka dari sini
 
 ```bash

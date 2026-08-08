@@ -5,6 +5,126 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-08 — peta yang punya UI berbulan-bulan dan nol baris; enam tombol biru yang jadi borongan
+
+### Yang dicari, dan yang ditemukan
+
+Niat awal: impor BOQ → RFQ. Tak bisa dikerjakan dengan jujur — `computeBoq()`
+menghasilkan `cost_code_id`, `rfq_penawaran` butuh `material_id`, dan jembatan
+di antaranya (`cost_code_category_map`) **nol baris**.
+
+Jadi jembatannya yang dikerjakan. Diukur: endpoint `GET/PUT /cost-map` ada, UI
+di `/estimasi` ada, keduanya sudah berbulan-bulan. Yang tak ada: satu pun baris
+terisi.
+
+Itu sendiri informasi, dan bukan tentang kemalasan siapa pun. Layar yang
+menampilkan sepuluh dropdown kosong tanpa petunjuk adalah **pekerjaan rumah,
+bukan alat**. Yang tak disarankan tak akan diisi.
+
+### Kenapa menyarankan, bukan mengisi
+
+Peta ini menentukan ke cost code mana sebuah biaya jatuh, dan itu mengalir ke
+laporan varians yang dipakai menilai untung-rugi proyek. Tebakan mesin yang
+diterapkan diam-diam menghasilkan laporan yang **terlihat benar** dan salah di
+tempat yang tak seorang pun periksa.
+
+`lib/saran-cost-map.ts` karena itu tidak menulis apa pun. Test yang menjaganya
+adalah yang terpenting dari 24: *"TIDAK MENULIS apa pun ke basis"* — panggil
+endpoint dua kali, jumlah baris peta harus tetap.
+
+Kemiripan **kata**, bukan jarak huruf. Levenshtein menganggap "Beton" dan
+"Besi" mirip (beda dua huruf) — padahal bahan yang sama sekali berbeda, dan
+salah memetakannya membuat biaya besi jatuh ke pekerjaan beton.
+
+### TDD menemukan satu cacat nyata, dan satu test yang salah
+
+Test #1 menuntut `skorKemiripan('Beton & Semen','Beton') < 1`. Merah. **Yang
+salah testnya**: penyebut sengaja nama TERPENDEK, karena memakai yang terpanjang
+menghukum cost code bernama jelas seperti "Pekerjaan Beton Bertulang K-250".
+
+Test #2 merah karena **kodenya**: "Beton Pracetak" mendapat skor 1 terhadap
+"Beton" *maupun* "Beton Pracetak" (1/1 dan 2/2), jadi padanan yang jelas lebih
+tepat tak pernah menang. Ditambahkan bonus kelengkapan maks 0,15 — cukup untuk
+memutus seri, tak cukup menaikkan padanan lemah melewati ambang.
+
+### `status = 'active'` mengembalikan nol saran
+
+Ambil daftar cost code dengan `status = 'active'` → nol usulan. Diukur, bukan
+ditebak: **nol** cost code `active`, 43 `draft`, 1 `deprecated`. Diganti
+`.neq('status','deprecated')`.
+
+Kalau saja saya percaya pada nama status alih-alih mengukurnya, fiturnya akan
+"jalan" dan selalu kosong.
+
+### Saya sendiri yang membuat borongan itu, lalu memperbaikinya
+
+Versi pertama panel memberi tombol navy pekat pada keenam usulan. Melihat
+tangkapan layarnya: sederet enam ajakan sama-kuat terbaca sebagai **"tekan
+semua"** — justru borongan diam-diam yang seluruh modul ini hindari, hanya
+dipindah ke jari pemakainya.
+
+Diperbaiki: yang **"cocok jelas"** tetap navy pekat; yang **"perlu diperiksa"**
+turun jadi sekunder (garis tepi). Tetap sepenuhnya bisa ditekan — bebannya
+pindah ke yang layak menanggung, yakni yang ragu.
+
+Kontras diukur, bukan diasumsikan: navy `#003366` di atas `#FFFFFF` = **12,61:1**;
+mode gelap `#4D9FFF` di atas `#1A1D27` = **6,18:1**. Keduanya AAA.
+
+Target sentuh dinaikkan 34 → 40px. Tak sampai 44 karena baris usulannya padat;
+40 kompromi yang terukur, bukan angka yang kebetulan.
+
+### Bukti
+
+```
+vitest  24 lulus (18 pustaka + 6 endpoint terhadap Postgres nyata)
+axe     0 pelanggaran — /estimasi tab Varians, panel saran terbuka
+jalur   6 usulan → terapkan satu → 5 usulan, "1/10 terpetakan"
+tsc     exit=0
+penjaga uji-rute-dinamis-teraudit · audit-modal-dialog · audit-tab-seragam ·
+        audit-taksonomi-vs-kode · audit-rancangan-submenu · kontras-ratchet ·
+        kontras-hex-ratchet · hex-ratchet · uji-token-merek ·
+        uji-warna-buta-mode · uji-token-grafik-bukan-teks   — semua exit=0
+```
+
+Basis sesudahnya: **1 baris peta** — "Besi & Baja → CC-SE47-baja", hasil
+persetujuan lewat UI. Test membersihkan fixture-nya sendiri; tak ada sisa.
+
+### `audit-triase-submenu` merah — WBS template
+
+Bukan dari kerja ini, tapi merah tetap merah. "WBS template" jadi 🔴 sesudah
+daftar TUNDA ditutup 2026-08-07 dengan "0 tersisa", ketika audit DB-only
+2026-08-08 memeriksa empat klaim "tabel ada tapi tak terpakai" dan menemukan
+**tiga di antaranya keliru**. Yang keempat bertahan.
+
+Ditriase **TUNDA** di §5b — bagian baru, bukan disisipkan ke tabel §5. Daftar
+yang ditutup lalu diam-diam ditambahi adalah daftar yang tak bisa dipercaya;
+angka "25 selesai" di sana tetap harus terbaca sebagai catatan sejarah yang benar.
+
+Pemicunya: **proyek kedua yang struktur pekerjaannya mengulang proyek pertama.**
+Sampai itu, Gantt sudah bekerja memakai pohon `rab_items`, dan itu bukan
+tambalan — struktur pekerjaan memang lahir dari RAB.
+
+### Dua hal yang saya tak bisa buktikan di sesi ini
+
+1. **Penjaga a11y penuh (106 pelanggaran seluruh dashboard).** Angka lama, tak
+   bergerak oleh perubahan ini — axe langsung pada halaman yang saya sentuh
+   memberi 0. Penjaga ini juga **tidak dipanggil CI** (butuh server + peramban);
+   penggantinya di CI adalah `uji-rute-dinamis-teraudit.mjs`, yang hijau.
+2. **Tangkapan layar mode gelap panel saran.** `apps/web/.env.local` menunjuk
+   tunnel Cloudflare yang mati, jadi login peramban gagal dengan *"Tidak dapat
+   terhubung ke server"*. Konfigurasi founder — tak saya ubah. Next 16 melarang
+   dev server kedua, dan `next build` gagal di `/keuangan/contingency` (cacat
+   lain, di luar lingkup ini). Kontras mode gelap karena itu **dihitung**, bukan
+   difoto.
+
+Satu catatan kecil yang layak diingat: skrip diagnostik saya mencari pesan galat
+dengan pola `gagal|invalid|salah|error` dan mengembalikan `null` — padahal
+pesannya terpampang jelas di layar, berbunyi *"Tidak dapat terhubung"*. Tangkapan
+layar yang menemukannya. **Memeriksa dengan mata mengalahkan memeriksa dengan
+pola kata.**
+
+---
+
 ## 2026-08-08 — RFQ tak punya cara memasukkan penawaran; 37 modal tanpa `<dialog>`
 
 ### Celah di modul yang saya bangun sendiri kemarin
