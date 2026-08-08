@@ -5,6 +5,96 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-08 — UIR-0C: build hijau, dan galatnya selama ini menunjuk berkas yang salah
+
+`next build` akhirnya **exit 0** — build hijau pertama di cabang ini.
+
+### Galat yang menyalahkan korban, bukan pelaku
+
+Build melaporkan dua halaman:
+
+```
+⨯ /procurement/lanjutan
+⨯ /keuangan/contingency
+```
+
+Diperiksa: **keduanya tak memakai `useSearchParams` sama sekali.** Bahkan
+`/procurement/lanjutan` tak ada dalam daftar 12 halaman yang memakainya — dan
+kedua belas halaman itu **sudah** punya Suspense sejak awal.
+
+Penyebabnya dua komponen bersama:
+
+```
+components/sidebar.tsx        dirender (dashboard)/layout.tsx
+                              → SELURUH halaman dashboard mewarisinya
+components/judul-bagian.tsx   dipakai 5 pemanggil, 4 di antaranya layout.tsx
+```
+
+Satu titik, gejala di mana-mana, penunjuk salah alamat — yang disalahkan
+hanyalah halaman yang kebetulan diprerender lebih dulu.
+
+> Sesi lalu saya mencatatnya sebagai *"masalah di /procurement/lanjutan"*.
+> Itu keliru, dan saya baru tahu setelah mengukur — bukan setelah membaca
+> pesan galatnya lebih teliti. Pesan galat build **bukan** bukti lokasi.
+
+### Batas Suspense ditanggung komponen, bukan pemanggil
+
+Diukur: **kelima** pemanggil `JudulBagian` lupa membungkusnya, dan empat di
+antaranya `layout.tsx` — satu kelupaan menjatuhkan seluruh cabang halaman di
+bawahnya. Jadi batasnya dipindah **ke dalam** komponen; pemanggil tak bisa lupa
+sesuatu yang tak perlu mereka ingat.
+
+Pola yang sama sudah dipakai `Tabel`/`Kosong` di `dasar.tsx`, dengan alasan
+identik: *"kalau diserahkan ke pemanggil, separuh halaman akan lupa"* — dan itu
+hasil pengukuran, bukan kekhawatiran.
+
+Fallback dibuat **selebar sidebar aslinya**: shell memesan `marginLeft` sebesar
+`--sidebar-w`, jadi rangka yang lebih sempit membuat seluruh halaman melompat
+saat hidrasi.
+
+### Kausalitas dibuktikan, bukan diasumsikan
+
+Suspense dilepas dari `<Sidebar />` → build **merah dengan galat identik di
+kedua halaman yang sama**; dipulihkan → exit 0. Jadi perbaikannya memang yang
+menyelesaikan, bukan kebetulan.
+
+### Penjaga barunya cacat dua kali, dan mutasi yang menemukannya
+
+`scripts/suspense-ratchet.mjs` — **larangan**, bukan ratchet: satu pelanggaran
+= build merah = tak ada yang bisa dirilis, jadi tak ada lantai yang masuk akal.
+
+Tapi penjaganya sendiri salah dua kali:
+
+1. `/\bSuspense\b/` juga cocok pada **komentar** — batas bisa dihapus dari kode
+   sementara penjaga tetap hijau, diselamatkan kalimat penjelasannya sendiri.
+2. Setelah diperketat jadi `/<Suspense[\s>]/`, sisi **deteksi**-nya masih
+   membaca komentar — `layout.tsx` dilaporkan melanggar padahal hanya
+   *menyebut* `useSearchParams` di komentar.
+
+Diperbaiki dengan membuang komentar lebih dulu, **dua arah**.
+
+> Repo ini sengaja berkomentar padat. Penjaga yang membaca komentar sebagai kode
+> akan salah justru pada berkas yang **paling dijelaskan** — dan keduanya
+> ketahuan hanya karena mutasi dijalankan, bukan karena penjaga dibaca ulang.
+
+### Verifikasi
+
+```
+kausalitas       Suspense dilepas → build MERAH (galat identik)
+                 dipulihkan       → exit 0
+mutasi penjaga   berkas pelanggar → MERAH · dihapus → HIJAU
+                 tag dilepas, komentar utuh → MERAH (sesudah diperketat)
+
+11 penjaga visual  suspense · format · kerapatan · hex · tabel-mentah
+                   tata-letak · a11y · kontras · kontras-hex · modal-esc
+                   sidebar                                        HIJAU
+next build         exit 0   ← hijau pertama di cabang ini
+tsc --noEmit       exit 0
+vitest             33 berkas · 462 test LULUS
+```
+
+---
+
 ## 2026-08-08 — UIR-1: `lib/format.ts`, dan codemod yang saya tulis sendiri sempat merusak dua berkas
 
 Celah paling nyata dari brief redesign, dan satu-satunya bagian §6-nya yang

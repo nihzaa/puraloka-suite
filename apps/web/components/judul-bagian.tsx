@@ -29,7 +29,7 @@
 // begitu satu label diubah — dan yang menyimpang tak akan berbunyi.
 // ============================================================================
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { api, MENU_CACHE_KEY } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
@@ -66,7 +66,7 @@ function ratakan(n: NodeMenu[]): NodeMenu[] {
   return hasil;
 }
 
-export function JudulBagian({ cadangan, keterangan, aksi }: JudulBagianProps) {
+function JudulBagianIsi({ cadangan, keterangan, aksi }: JudulBagianProps) {
   const pathname = usePathname();
   const params = useSearchParams();
   const [menu, setMenu] = useState<NodeMenu[]>([]);
@@ -112,6 +112,59 @@ export function JudulBagian({ cadangan, keterangan, aksi }: JudulBagianProps) {
           color: C.text, margin: 0,
         }}>
           {judul}
+        </h1>
+        {keterangan && (
+          <p style={{ fontSize: 13, color: C.mid, margin: "6px 0 0", maxWidth: "70ch", lineHeight: 1.55 }}>
+            {keterangan}
+          </p>
+        )}
+      </div>
+      {aksi && <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{aksi}</div>}
+    </div>
+  );
+}
+
+/**
+ * Batas Suspense DITANGGUNG KOMPONEN, bukan diserahkan ke pemanggil.
+ *
+ * `JudulBagianIsi` memanggil `useSearchParams()` — sub-menu tab dibedakan
+ * query (migrasi 233) — dan Next 16 menolak prerender halaman mana pun yang
+ * memuatnya tanpa batas Suspense.
+ *
+ * Kalau batas itu diserahkan ke pemanggil, ia akan terlupa: diukur 2026-08-08,
+ * KELIMA pemanggil melupakannya, dan empat di antaranya `layout.tsx` — jadi
+ * satu kelupaan menjatuhkan seluruh cabang halaman di bawahnya. Galatnya pun
+ * muncul di halaman yang kebetulan diprerender lebih dulu, bukan di berkas
+ * yang bersalah, sehingga penyebabnya sulit ditemukan.
+ *
+ * Pola yang sama sudah dipakai `Tabel`/`Kosong` di `dasar.tsx`: keadaan yang
+ * mudah terlupa ditangani DI DALAM komponen, karena "separuh halaman akan
+ * lupa" bukan kemungkinan melainkan hasil pengukuran.
+ *
+ * Fallback memakai `cadangan` — judul yang sudah wajib diisi pemanggil — jadi
+ * tak ada kedipan kosong dan tinggi barisnya tetap sama.
+ */
+export function JudulBagian(props: JudulBagianProps) {
+  return (
+    <Suspense fallback={<JudulBagianRangka {...props} />}>
+      <JudulBagianIsi {...props} />
+    </Suspense>
+  );
+}
+
+/** Bentuk yang sama persis, memakai judul cadangan — nol pergeseran tata letak. */
+function JudulBagianRangka({ cadangan, keterangan, aksi }: JudulBagianProps) {
+  return (
+    <div style={{
+      display: "flex", justifyContent: "space-between", alignItems: "flex-start",
+      gap: 12, flexWrap: "wrap", marginBottom: "var(--gap-bagian)",
+    }}>
+      <div>
+        <h1 style={{
+          fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700,
+          color: C.text, margin: 0,
+        }}>
+          {cadangan}
         </h1>
         {keterangan && (
           <p style={{ fontSize: 13, color: C.mid, margin: "6px 0 0", maxWidth: "70ch", lineHeight: 1.55 }}>

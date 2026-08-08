@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { rutenyaAktifPenuh } from "@/lib/rute-aktif";
 import {
   LayoutDashboard,
@@ -354,7 +354,7 @@ function GrupCollapsible({
   );
 }
 
-export function Sidebar() {
+function SidebarIsi() {
   const pathname = usePathname();
   // Query IKUT menentukan menu aktif: migrasi 233 membuat "Transmittal" dan
   // "Notulen Rapat" dua link ke halaman yang sama, dibedakan `?bagian=`.
@@ -902,6 +902,50 @@ export function Sidebar() {
         )}
       </div>
     </aside>
+  );
+}
+
+/**
+ * Batas Suspense DITANGGUNG DI SINI, bukan di `(dashboard)/layout.tsx`.
+ *
+ * `SidebarIsi` memanggil `useSearchParams()` — menu aktif dibedakan `?bagian=`
+ * sejak migrasi 233 — dan Next 16 menolak prerender halaman mana pun yang
+ * memuatnya tanpa batas Suspense.
+ *
+ * Kenapa di komponen, bukan di layout: sidebar dipakai layout yang membungkus
+ * SELURUH halaman dashboard. Saat batasnya hilang, build gagal di halaman yang
+ * kebetulan diprerender lebih dulu (`/procurement/lanjutan`,
+ * `/keuangan/contingency`) — dua berkas yang tak memakai `useSearchParams`
+ * sama sekali. Penunjuk yang salah alamat itu sempat membuat cacatnya tercatat
+ * sebagai "masalah dua halaman", padahal satu titik.
+ *
+ * Ditanggung komponen = tak ada pemanggil yang bisa lupa. Pola yang sama
+ * dipakai `judul-bagian.tsx`, dan dijaga `scripts/suspense-ratchet.mjs`.
+ *
+ * Fallback selebar sidebar aslinya: shell memesan `marginLeft` sebesar
+ * `--sidebar-w`, jadi rangka yang lebih sempit membuat halaman melompat saat
+ * hidrasi.
+ */
+export function Sidebar() {
+  const { collapsed } = useSidebar();
+  return (
+    <Suspense
+      fallback={
+        <aside
+          aria-hidden
+          style={{
+            width: collapsed ? "var(--sidebar-w-ciut)" : "var(--sidebar-w)",
+            position: "fixed",
+            insetBlock: 0,
+            insetInlineStart: 0,
+            background: "var(--surface)",
+            borderInlineEnd: "1px solid var(--border)",
+          }}
+        />
+      }
+    >
+      <SidebarIsi />
+    </Suspense>
   );
 }
 

@@ -22,6 +22,16 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         color: "var(--text-primary)",
       }}
     >
+      {/*
+        `Sidebar` menanggung batas Suspense-nya SENDIRI — lihat catatan di
+        `components/sidebar.tsx`. Ia memanggil `useSearchParams()`, dan tanpa
+        batas itu build Next gagal di halaman yang kebetulan diprerender lebih
+        dulu, bukan di berkas yang bersalah.
+
+        Sengaja TIDAK dibungkus lagi di sini: dua batas untuk satu komponen
+        membuat pemilik tanggung jawabnya kabur, dan yang di layout paling
+        mudah terlupa saat shell dirombak (UIR-4). Dijaga `suspense-ratchet.mjs`.
+      */}
       <Sidebar />
       <div
         style={{

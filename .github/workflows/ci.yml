@@ -1057,6 +1057,20 @@ jobs:
       - name: Format (lib/format.ts, bukan Intl langsung)
         run: node scripts/format-ratchet.mjs
 
+      # UIR-0C — useSearchParams() wajib punya batas <Suspense>.
+      #
+      # Next 16 menolak PRERENDER halaman mana pun yang memuatnya tanpa batas
+      # itu — build gagal, bukan sekadar memberi peringatan. Dan galatnya
+      # menunjuk halaman yang kebetulan diprerender lebih dulu, BUKAN berkas
+      # yang bersalah: 2026-08-08 build menyalahkan /procurement/lanjutan dan
+      # /keuangan/contingency, padahal keduanya tak memakai useSearchParams
+      # sama sekali — penyebabnya components/sidebar.tsx yang dirender layout.
+      #
+      # Penjaga ini menunjuk berkas yang benar-benar memanggil, jadi diagnosis
+      # tak lagi dimulai dari nama halaman yang salah alamat.
+      - name: Suspense (useSearchParams wajib berbatas)
+        run: node scripts/suspense-ratchet.mjs
+
       # F4-1 — warna wajib lewat token, bukan hex di komponen.
       #
       # Alasannya bukan kerapian: WHITE-LABEL PER TENANT. Selama warna ditulis

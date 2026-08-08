@@ -299,7 +299,57 @@ items:
       - "tak ada halaman lain ikut berubah perilakunya"
     cara_verifikasi: "cd apps/web && npx next build; echo $?"
     bobot: S
-    status: todo
+    status: selesai
+    hasil_2026_08_08: |
+      ✅ `next build` exit 0 — build HIJAU pertama di cabang ini.
+
+      GALATNYA MENUNJUK BERKAS YANG SALAH, dan itu inti pelajarannya.
+
+      Build menyalahkan /procurement/lanjutan dan /keuangan/contingency.
+      Diperiksa: KEDUANYA tak memakai useSearchParams sama sekali. Bahkan
+      /procurement/lanjutan tidak ada dalam daftar 12 halaman yang memakainya —
+      dan kedua belas halaman itu SUDAH punya Suspense.
+
+      Penyebab sebenarnya DUA komponen bersama:
+
+        components/sidebar.tsx       dirender (dashboard)/layout.tsx
+                                     -> SELURUH halaman dashboard mewarisinya
+        components/judul-bagian.tsx  dipakai 5 pemanggil, 4 di antaranya layout
+
+      Jadi satu titik, gejala di mana-mana, dan penunjuknya salah alamat —
+      halaman yang disalahkan hanyalah yang kebetulan diprerender lebih dulu.
+
+      PERBAIKAN: batas Suspense ditanggung DI DALAM komponen, bukan diserahkan
+      ke pemanggil. Diukur: kelima pemanggil JudulBagian lupa, dan empat di
+      antaranya layout.tsx — satu kelupaan menjatuhkan seluruh cabang halaman.
+      Pola yang sama dengan Tabel/Kosong di dasar.tsx: keadaan yang mudah
+      terlupa ditangani di komponen, karena "separuh pemanggil akan lupa"
+      bukan kemungkinan melainkan hasil pengukuran.
+
+      Fallback dibuat SELEBAR sidebar aslinya — shell memesan marginLeft
+      sebesar --sidebar-w, jadi rangka lebih sempit membuat halaman melompat
+      saat hidrasi.
+
+      KAUSALITAS DIBUKTIKAN: Suspense dilepas dari <Sidebar /> -> build MERAH
+      dengan galat IDENTIK di KEDUA halaman yang sama; dipulihkan -> exit 0.
+
+      PENJAGA BARU: scripts/suspense-ratchet.mjs, terdaftar di ci.yml. LARANGAN
+      (nol toleransi), bukan ratchet — satu pelanggaran = build merah = tak ada
+      yang bisa dirilis, jadi tak ada lantai yang masuk akal.
+
+      PENJAGA ITU SENDIRI CACAT DUA KALI, ketahuan saat diuji mutasi:
+        1. /\bSuspense\b/ juga cocok pada KOMENTAR -> batas bisa dihapus
+           sementara penjaga tetap hijau, diselamatkan kalimat penjelasnya.
+        2. Sesudah diperketat jadi /<Suspense[\s>]/, sisi DETEKSI-nya masih
+           membaca komentar -> layout.tsx dilaporkan melanggar padahal hanya
+           MENYEBUT useSearchParams di komentar.
+      Diperbaiki: komentar dibuang lebih dulu, DUA arah. Repo ini berkomentar
+      padat, jadi penjaga yang membaca komentar sebagai kode akan salah justru
+      pada berkas yang paling dijelaskan.
+
+      VERIFIKASI: 11 penjaga visual HIJAU · next build exit 0 · tsc exit 0 ·
+      vitest 33 berkas / 462 test LULUS.
+
     catatan: |
       DITEMUKAN 2026-08-08 saat memverifikasi UIR-1, dan BUKAN disebabkan olehnya.
 
