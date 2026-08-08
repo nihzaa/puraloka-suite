@@ -166,6 +166,38 @@ for (const h of HALAMAN) {
   // pemakai sungguhan.
   await hal.waitForTimeout(1200)
 
+  /*
+   * TUNGGU `react-grid-layout` SELESAI MENGUKUR ULANG.
+   *
+   * Dashboard menempatkan widget dengan lebar PIKSEL MUTLAK hasil hitungan JS
+   * (`useLebarKontainer` + ResizeObserver, lihat `ARAH-VISUAL-2026.md` §4a).
+   * Jeda tetap di atas cukup saat wadahnya selebar halaman — tetapi begitu
+   * wadahnya menyempit (rail kanan, UIR-4), pengukuran ulang datang SESUDAH
+   * jepretan.
+   *
+   * Akibatnya nyata dan sangat menyesatkan: 2026-08-08 tangkapan layar
+   * menunjukkan dua widget TUMPANG TINDIH di atas grafik dan tabel. Diperiksa
+   * di browser sesudah tenang — nol tumpang tindih. Gambarnya salah, bukan
+   * halamannya. Nyaris memicu "perbaikan" atas cacat yang tak ada.
+   *
+   * Karena itu yang ditunggu adalah KEADAAN, bukan waktu: posisi seluruh
+   * widget harus berhenti berubah selama dua pemeriksaan berturut-turut.
+   */
+  await hal.waitForFunction(
+    () => {
+      const el = [...document.querySelectorAll('.react-grid-item')]
+      if (el.length === 0) return true // halaman tanpa RGL — tak ada yang ditunggu
+      const kini = el.map((e) => {
+        const b = e.getBoundingClientRect()
+        return `${Math.round(b.x)},${Math.round(b.y)},${Math.round(b.width)}`
+      }).join('|')
+      const stabil = window.__tataLetakTerakhir === kini
+      window.__tataLetakTerakhir = kini
+      return stabil
+    },
+    { timeout: 15_000, polling: 400 },
+  ).catch(() => console.log(`⚠️  ${h.url}: tata letak widget belum tenang — gambar bisa menyesatkan`))
+
   const nama = `${h.nama}${GELAP ? '-gelap' : ''}.png`
   await hal.screenshot({ path: join(KELUAR, nama), fullPage: true })
   console.log(`✓ ${nama}${galat.length ? `   ⚠️ ${galat.length} galat konsol` : ''}`)
