@@ -65,12 +65,12 @@ const DEFAULT_LAYOUTS: Layouts = {
       Pelajarannya: sesudah menambah rail, ambang breakpoint harus diperiksa
       ulang terhadap lebar wadah SEBENARNYA, bukan lebar layar.
     */
-    { i: "kpi",       x: 0, y: 0,  w: 10, h: 3, isResizable: false },
-    { i: "cashflow",  x: 0, y: 3,  w: 6,  h: 6 },
-    { i: "status",    x: 6, y: 3,  w: 4,  h: 6 },
-    { i: "invoice",   x: 0, y: 9,  w: 6,  h: 5 },
-    { i: "kasbon",    x: 0, y: 14, w: 10, h: 4 },
-    { i: "tax",       x: 0, y: 18, w: 10, h: 3 },
+    { i: "kpi",       x: 0, y: 0,  w: 10, h: 4, isResizable: false },
+    { i: "cashflow",  x: 0, y: 4,  w: 6,  h: 6 },
+    { i: "status",    x: 6, y: 4,  w: 4,  h: 6 },
+    { i: "invoice",   x: 0, y: 10, w: 6,  h: 5 },
+    { i: "kasbon",    x: 0, y: 15, w: 10, h: 4 },
+    { i: "tax",       x: 0, y: 19, w: 10, h: 3 },
   ],
   sm: [
     { i: "kpi",       x: 0, y: 0,  w: 6, h: 8, isResizable: false },

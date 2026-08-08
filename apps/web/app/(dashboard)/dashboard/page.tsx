@@ -1004,9 +1004,19 @@ function DashboardContent() {
                 <button key={opt.value} onClick={() => setPeriod(opt.value)} aria-pressed={active} style={{
                   padding: "4px 12px", borderRadius: 999, fontSize: 11,
                   fontWeight: active ? 700 : 500,
+                  /*
+                    Pil aktif memakai pasangan `--navy` / `--on-navy`, BUKAN
+                    `--on-merek` / `--navy`.
+
+                    Percobaan pertama menaruh teks `--navy` di atas latar
+                    `--on-merek` (putih) — dan di MODE GELAP `--navy` berbalik
+                    jadi biru terang #4D9FFF, sehingga terang-di-atas-terang.
+                    axe-core menangkapnya sebagai color-contrast serious; mode
+                    terang lolos, jadi ia tak akan ketahuan tanpa audit dua mode.
+                  */
                   border: `1px solid ${active ? "transparent" : "color-mix(in srgb, var(--on-merek) 30%, transparent)"}`,
-                  background: active ? "var(--on-merek)" : "transparent",
-                  color: active ? "var(--navy)" : "var(--on-merek)",
+                  background: active ? "var(--navy)" : "transparent",
+                  color: active ? "var(--on-navy)" : "var(--on-merek)",
                   cursor: "pointer", transition: "all 0.12s",
                 }}>
                   {opt.label}
@@ -1083,48 +1093,58 @@ function DashboardContent() {
         dan tiap satu punya halaman nyata (diperiksa ke disk). Pintasan yang
         mengirim orang ke 404 lebih buruk daripada tak ada pintasan.
       */}
-      <nav aria-label="Pintasan" style={{
-        display: "grid", gap: "var(--gap-grid)", marginBottom: "var(--gap-bagian)",
-        gridTemplateColumns: "repeat(auto-fit, minmax(132px, 1fr))",
+      {/*
+        PINTASAN — SATU kartu berisi tujuh ikon, bukan tujuh kartu terpisah.
+
+        Referensi ("Quick Links") membungkusnya dalam satu permukaan dengan
+        judul. Tujuh kartu berdiri sendiri terbaca sebagai tujuh hal setara
+        dengan widget di bawahnya, padahal ia satu kelompok navigasi.
+      */}
+      <section style={{
+        background: "var(--surface)", border: "1px solid var(--border)",
+        borderRadius: "var(--rad-besar)", padding: "var(--pad-kartu)",
+        marginBottom: "var(--gap-bagian)",
       }}>
-        {PINTASAN.map((p) => (
-          <Link
-            key={p.href}
-            href={p.href}
-            style={{
-              display: "flex", alignItems: "center", gap: 10,
-              padding: "var(--pad-kartu)",
-              background: "var(--surface)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--rad-besar)",
-              textDecoration: "none",
-              transition: "box-shadow 150ms ease, transform 150ms ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.boxShadow = "var(--naik-2)";
-              e.currentTarget.style.transform = "translateY(-1px)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.boxShadow = "none";
-              e.currentTarget.style.transform = "translateY(0)";
-            }}
-          >
-            <span aria-hidden="true" style={{
-              display: "grid", placeItems: "center", flexShrink: 0,
-              width: 32, height: 32, borderRadius: "var(--rad-sedang)",
-              background: "var(--navy-light)", color: "var(--navy)",
-            }}>
-              {p.ikon}
-            </span>
-            <span style={{
-              fontSize: "var(--t-badan)", fontWeight: 600, color: C.text,
-              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-            }}>
-              {p.label}
-            </span>
-          </Link>
-        ))}
-      </nav>
+        <h2 style={{
+          margin: "0 0 10px", fontSize: "var(--t-kecil)", fontWeight: 700,
+          letterSpacing: ".04em", textTransform: "uppercase", color: C.mid,
+        }}>
+          Pintasan
+        </h2>
+        <nav aria-label="Pintasan" style={{
+          display: "grid", gap: "var(--gap-grid)",
+          gridTemplateColumns: "repeat(auto-fit, minmax(112px, 1fr))",
+        }}>
+          {PINTASAN.map((p) => (
+            <Link
+              key={p.href}
+              href={p.href}
+              style={{
+                display: "flex", flexDirection: "column", alignItems: "center",
+                gap: 6, padding: "10px 6px", borderRadius: "var(--rad-sedang)",
+                textDecoration: "none", transition: "background 150ms ease",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "var(--surface-hover)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+            >
+              <span aria-hidden="true" style={{
+                display: "grid", placeItems: "center", flexShrink: 0,
+                width: 36, height: 36, borderRadius: "var(--rad-sedang)",
+                background: "var(--navy-light)", color: "var(--navy)",
+              }}>
+                {p.ikon}
+              </span>
+              <span style={{
+                fontSize: 11.5, fontWeight: 600, color: C.text,
+                textAlign: "center", overflow: "hidden",
+                textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%",
+              }}>
+                {p.label}
+              </span>
+            </Link>
+          ))}
+        </nav>
+      </section>
 
       <DashboardGrid widgets={{
         kpi:       kpiWidget,

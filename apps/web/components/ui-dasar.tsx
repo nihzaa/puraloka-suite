@@ -153,7 +153,7 @@ export function KartuKPI({
         padding: "var(--pad-kartu)",
         // Ruang bawah ekstra: sparkline duduk di dasar kartu sebagai latar,
         // dan tanpa bantalan ini baris keterangan bertabrakan dengannya.
-        paddingBottom: "calc(var(--pad-kartu) + 8px)",
+        paddingBottom: "calc(var(--pad-kartu) + 4px)",
         borderRadius: 14, position: "relative", overflow: "hidden",
         cursor: onClick ? "pointer" : "default",
         // Gradasi HANYA pada kartu yang disorot. Ini yang membuatnya menonjol
@@ -173,21 +173,35 @@ export function KartuKPI({
         e.currentTarget.style.boxShadow = "none";
       }}
     >
+      {/*
+        UBIN IKON DI KIRI, bukan ikon telanjang di kanan.
+
+        Ini penanda visual paling khas referensi: tiap kartu KPI dibuka ubin
+        bulat bertint warna, dan label duduk di sebelahnya. Versi lama menaruh
+        ikon abu-abu kecil di kanan — nyaris tak terbaca sebagai penanda
+        kategori, dan itu salah satu sebab kartu kita terasa "polos"
+        dibandingkan referensi.
+
+        Ubinnya `aria-hidden`: ia mengulang makna label yang sudah ada di
+        sebelahnya, dan dibacakan pembaca layar hanya jadi kebisingan.
+      */}
       <div style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        gap: 8, marginBottom: 6,
+        display: "flex", alignItems: "center",
+        gap: 7, marginBottom: 4,
       }}>
-        <span style={{
-          fontSize: 11, fontWeight: 600, letterSpacing: ".03em",
-          textTransform: "uppercase",
-          color: sorot ? "rgba(255,255,255,.78)" : C.muted,
-        }}>{label}</span>
         {ikon && (
           <span aria-hidden="true" style={{
-            color: sorot ? "rgba(255,255,255,.7)" : C.muted,
-            display: "flex", flexShrink: 0,
+            display: "grid", placeItems: "center", flexShrink: 0,
+            width: 22, height: 22, borderRadius: 7,
+            background: sorot ? "rgba(255,255,255,.18)" : "var(--navy-light)",
+            color: sorot ? "var(--on-aksen)" : "var(--navy)",
           }}>{ikon}</span>
         )}
+        <span style={{
+          fontSize: 11, fontWeight: 600, letterSpacing: ".03em",
+          textTransform: "uppercase", minWidth: 0,
+          color: sorot ? "rgba(255,255,255,.78)" : C.muted,
+        }}>{label}</span>
       </div>
 
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
