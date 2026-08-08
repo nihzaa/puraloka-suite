@@ -112,12 +112,13 @@ import { C } from "@/lib/warna-ui";
 import { namaSapaan } from "@/lib/nama-sapaan";
 import { formatRupiah, formatPersen, formatTanggalPanjang } from "@/lib/format";
 import { HalamanIkhtisar } from "@/components/shell/halaman-ikhtisar";
-import { Rail } from "@/components/shell/rail";
 import { RailFokus } from "@/components/shell/rail-fokus";
 import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
 import { hitungDelta } from "@/lib/deret";
 import { GambarHero } from "@/components/shell/gambar-hero";
-import { RailAsisten } from "@/components/shell/rail-asisten";
+import { RailNotifikasi } from "@/components/shell/rail-notifikasi";
+import { RailIsi } from "@/components/shell/rail-isi";
+import { usePasangRail } from "@/lib/rail-context";
 import { RailKalender } from "@/components/shell/rail-kalender";
 import { WidgetSerapan } from "@/components/shell/widget-serapan";
 import { KartuKesehatan } from "@/components/shell/kartu-kesehatan";
@@ -871,34 +872,49 @@ function DashboardContent() {
     </div>
   );
 
-  return (
-    /*
-      HALAMAN IKHTISAR — rail kanan AKTIF di sini (UIR-4, pilot).
-      Halaman tabel tidak memakai `rail`, dan itu disengaja: 300px yang tak
-      berarti apa-apa di sini akan memotong tabel 12 kolom di layar 1366px.
-      Lihat `components/shell/halaman-ikhtisar.tsx`.
-    */
-    <HalamanIkhtisar
-      rail={
-        <Rail>
-          <RailFokus />
+  /*
+    RAIL DIPASANG LEWAT KONTEKS, bukan prop.
 
+    Founder 2026-08-08: rail harus menempel di kanan setinggi layar dan TIDAK
+    ikut ter-scroll. Itu mustahil selama ia anak halaman — `sticky` cuma
+    menempel di dalam wadah scroll-nya sendiri. Jadi kolomnya hidup di
+    `layout.tsx` dan halaman mengisinya dari sini (`lib/rail-context.tsx`).
+
+    Rail tetap HANYA di halaman dashboard: 300px yang tak berarti apa-apa di
+    sini akan memotong tabel 12 kolom di laptop 1366px.
+  */
+  usePasangRail(
+    <RailIsi
+      tanggalTenggat={(data?.upcoming_milestones ?? []).map((m) => m.target_date)}
+      konteks={
+        <>
           {/*
-            KALENDER — titiknya berasal dari `upcoming_milestones` yang sama
-            dengan daftar tepat di bawahnya. Ditaruh DI ATAS daftar itu, persis
-            urutan referensi, dan urutan itu benar: kalender menjawab "kapan
-            padatnya", daftar menjawab "apa saja" — pertanyaan sebaran datang
-            lebih dulu.
+            URUTAN REFERENSI: Kalender · My Tasks · Notifikasi — lalu Asisten
+            dan Pengingat ditambahkan `RailIsi` (selalu ada, di halaman mana
+            pun rail hidup).
+
+            Semua kartu di sini memakai data yang SUDAH dimuat halaman ini,
+            kecuali notifikasi yang punya endpointnya sendiri. Nol angka
+            karangan (Aturan Emas §9).
           */}
           <RailKalender
             tanggalPenting={(data?.upcoming_milestones ?? []).map((m) => m.target_date)}
           />
 
           {/*
-            Ketiga kartu di bawah memakai data yang SUDAH dimuat halaman ini
-            (`data.upcoming_milestones`, `data.active_progress`) — nol
-            permintaan jaringan tambahan, nol endpoint baru, nol angka karangan.
-            Aturan Emas §9 brief.
+            "My Tasks" referensi = hal yang menunggu SAYA. Di sini itu
+            `RailFokus` (kasbon menunggu persetujuan, invoice jatuh tempo,
+            klaim lewat batas) — pekerjaan nyata yang menunggu keputusan,
+            bukan daftar tugas yang harus diketik sendiri.
+          */}
+          <RailFokus />
+
+          <RailNotifikasi />
+
+          {/*
+            Milestone mendatang TIDAK ikut naik ke tiga teratas: kalender di
+            atas sudah menjawab "kapan padatnya", dan daftar ini menjawab "apa
+            saja". Ia tetap ada, hanya di bawah tiga kartu referensi.
           */}
           <KartuRail
             judul="Milestone mendatang"
@@ -938,11 +954,14 @@ function DashboardContent() {
               />
             ))}
           </KartuRail>
-
-          <RailAsisten />
-        </Rail>
+        </>
       }
-    >
+    />,
+    [data],
+  );
+
+  return (
+    <HalamanIkhtisar>
 
       {/*
         ── HERO ──────────────────────────────────────────────────────────────
@@ -1113,68 +1132,12 @@ function DashboardContent() {
         grafik & tabel yang benar-benar membutuhkannya.
       */}
       {/*
-        ── PINTASAN ──────────────────────────────────────────────────────────
-
-        "Quick Links" di referensi. Isinya BUKAN salinan menu sidebar —
-        sidebar sudah memuat semuanya, jadi mengulanginya di sini hanya
-        menambah baris tanpa menambah kemampuan.
-
-        Yang dipilih: tujuh tempat yang paling sering dituju DARI beranda,
-        dan tiap satu punya halaman nyata (diperiksa ke disk). Pintasan yang
-        mengirim orang ke 404 lebih buruk daripada tak ada pintasan.
+        PINTASAN sekarang jadi WIDGET di dalam grid, bukan bagian tetap di
+        atasnya — lihat `pintasanWidget` di bawah dan posisinya di
+        `dashboard-grid.tsx`. Referensi menaruh "Quick Links" SESUDAH baris
+        tiga widget, dan urutan itu masuk akal: pintasan adalah tempat pergi
+        SESUDAH membaca keadaan, bukan sebelum.
       */}
-      {/*
-        PINTASAN — SATU kartu berisi tujuh ikon, bukan tujuh kartu terpisah.
-
-        Referensi ("Quick Links") membungkusnya dalam satu permukaan dengan
-        judul. Tujuh kartu berdiri sendiri terbaca sebagai tujuh hal setara
-        dengan widget di bawahnya, padahal ia satu kelompok navigasi.
-      */}
-      <section style={{
-        background: "var(--surface)", border: "1px solid var(--border)",
-        borderRadius: "var(--rad-besar)", padding: "var(--pad-kartu)",
-        marginBottom: "var(--gap-bagian)",
-      }}>
-        <h2 style={{
-          margin: "0 0 10px", fontSize: "var(--t-kecil)", fontWeight: 700,
-          letterSpacing: ".04em", textTransform: "uppercase", color: C.mid,
-        }}>
-          Pintasan
-        </h2>
-        <nav aria-label="Pintasan" style={{
-          display: "grid", gap: "var(--gap-grid)",
-          gridTemplateColumns: "repeat(auto-fit, minmax(112px, 1fr))",
-        }}>
-          {PINTASAN.map((p) => (
-            <Link
-              key={p.href}
-              href={p.href}
-              style={{
-                display: "flex", flexDirection: "column", alignItems: "center",
-                gap: 6, padding: "10px 6px", borderRadius: "var(--rad-sedang)",
-                textDecoration: "none", transition: "background 150ms ease",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "var(--surface-hover)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-            >
-              <span aria-hidden="true" style={{
-                display: "grid", placeItems: "center", flexShrink: 0,
-                width: 36, height: 36, borderRadius: "var(--rad-sedang)",
-                background: "var(--navy-light)", color: "var(--navy)",
-              }}>
-                {p.ikon}
-              </span>
-              <span style={{
-                fontSize: 11.5, fontWeight: 600, color: C.text,
-                textAlign: "center", overflow: "hidden",
-                textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%",
-              }}>
-                {p.label}
-              </span>
-            </Link>
-          ))}
-        </nav>
-      </section>
 
       <DashboardGrid widgets={{
         kpi:       kpiWidget,
@@ -1184,13 +1147,87 @@ function DashboardContent() {
         serapan:   <WidgetSerapan />,
         cashflow:  cashflowWidget,
         status:    statusWidget,
+        pintasan:  <PintasanWidget />,
         invoice:   invoiceWidget,
         ...(kasbonWidget ? { kasbon: kasbonWidget } : {}),
         tax:       taxWidget,
       }} />
 
-
     </HalamanIkhtisar>
+  );
+}
+
+/**
+ * PINTASAN — "Quick Links" referensi, sebagai widget grid.
+ *
+ * Isinya BUKAN salinan menu sidebar: sidebar sudah memuat semuanya, jadi
+ * mengulanginya di sini cuma menambah baris tanpa menambah kemampuan. Yang
+ * dipilih tujuh tempat yang paling sering dituju DARI beranda, dan tiap satu
+ * punya halaman nyata (diperiksa ke disk oleh test) — pintasan yang mengirim
+ * orang ke 404 lebih buruk daripada tak ada pintasan.
+ */
+function PintasanWidget() {
+  return (
+      <div style={{
+        padding: "var(--pad-kartu)", height: "100%",
+      }}>
+        {/*
+          BENTUK REFERENSI: pil MENDATAR berbingkai — ikon dan label
+          BERDAMPINGAN, bukan ubin bertumpuk.
+
+          Sebelumnya tiap pintasan adalah ubin 112px dengan ikon di atas label.
+          Bedanya bukan selera: ubin bertumpuk memaksa tinggi ~70px dan
+          menghabiskan sebaris penuh untuk tujuh tautan, sementara pil mendatar
+          setinggi 38px menyampaikan hal yang sama dalam separuh ruang — dan
+          ruang di beranda adalah barang langka yang justru sedang diperebutkan
+          hero, KPI, dan tiga widget.
+
+          `flexWrap` bukan grid: jumlah pintasan bisa berubah, dan grid
+          `auto-fit` akan meregangkan pil terakhir jadi selebar sisa baris.
+          Pil yang lebarnya mengikuti panjang labelnya lebih mudah dipindai.
+        */}
+        <nav aria-label="Pintasan" style={{
+          display: "flex", flexWrap: "wrap", gap: 8,
+        }}>
+          {PINTASAN.map((p) => (
+            <Link
+              key={p.href}
+              href={p.href}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 8,
+                height: 38, padding: "0 14px 0 10px",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--rad-sedang)",
+                background: "var(--surface)",
+                textDecoration: "none",
+                transition: "border-color 150ms ease, background 150ms ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = "var(--navy)";
+                e.currentTarget.style.background = "var(--surface-hover)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = "var(--border)";
+                e.currentTarget.style.background = "var(--surface)";
+              }}
+            >
+              <span aria-hidden="true" style={{
+                display: "grid", placeItems: "center", flexShrink: 0,
+                width: 24, height: 24, borderRadius: "var(--rad-kecil)",
+                background: "var(--navy-light)", color: "var(--navy)",
+              }}>
+                {p.ikon}
+              </span>
+              <span style={{
+                fontSize: 12.5, fontWeight: 600, color: C.text,
+                whiteSpace: "nowrap",
+              }}>
+                {p.label}
+              </span>
+            </Link>
+          ))}
+        </nav>
+      </div>
   );
 }
 

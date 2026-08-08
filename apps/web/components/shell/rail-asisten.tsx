@@ -1,44 +1,60 @@
 "use client";
 
 /**
- * ASISTEN — wadah untuk AI, dengan keadaan yang JUJUR.
+ * ASISTEN — kartu AI di rail, bentuk referensi dengan isi yang jujur.
  *
  * ══════════════════════════════════════════════════════════════════════════
- * KENAPA WADAHNYA DIBANGUN SEKARANG, ISINYA BELUM
+ * APA YANG SUDAH NYATA, APA YANG BELUM
  * ══════════════════════════════════════════════════════════════════════════
  *
- * Founder: *"nantinya memang akan diintegrasikan dengan AI"* — jadi tempatnya
- * disiapkan sekarang supaya tata letak tak perlu dirombak lagi nanti.
+ * Referensi: sapaan, empat chip saran, dan kolom "Type your question...".
+ * Bentuk itu ditiru — tapi hanya bagian yang benar-benar bekerja.
  *
- * Diukur 2026-08-08 dan DIPERBARUI hari yang sama: endpoint AI pertama sudah
- * ada — `/api/v1/ai/insight`, dipakai kartu Kesehatan Portofolio di beranda.
- * Yang belum ada adalah **asisten percakapan**, yaitu yang dijanjikan panel
- * ini: tempat bertanya bebas, bukan satu kalimat penjelas yang sudah tampil
- * di tempat lain.
+ *   SUDAH NYATA   pembacaan AI atas kondisi portofolio, lewat
+ *                 `/api/v1/ai/insight` (Claude, `claude-opus-5`). Kalimat
+ *                 yang tampil di sini datang dari sana.
+ *   BELUM ADA     tanya-jawab bebas. Tak ada endpoint percakapan, tak ada
+ *                 riwayat, tak ada konteks.
  *
- * Jadi lencananya tetap "SEGERA", tetapi sekarang atas alasan yang sempit dan
- * bisa diperiksa — bukan "AI belum ada sama sekali", yang sudah tidak benar.
- * Peringatan yang basi menyesatkan sesi berikutnya persis seperti angka yang
- * basi (CLAUDE.md §5.5).
+ * Karena itu **kolom input tidak dipasang**. Kolom teks yang tak bisa dikirim
+ * adalah janji yang tak ditepati sejak piksel pertama — dan itu persis cacat
+ * "View Full AI Analysis" di referensi yang sedang kita hindari (§9).
  *
- * Referensi mengisi panel ini dengan "78/100 Project Success Probability" dan
- * empat chip saran yang bisa diklik. Kalau ditiru apa adanya, kita memasang
- * tombol yang tak melakukan apa pun dan angka yang tak dihitung dari apa pun.
- * Itu bukan fitur — itu maket. Brief §7.1 menyebutnya terus terang:
- * *"bangun wadahnya, jangan palsukan isinya."*
+ * Chip saran juga tidak: keempatnya di referensi memicu percakapan, dan tanpa
+ * percakapan ia cuma tombol yang tak melakukan apa-apa.
  *
- * ── Yang TIDAK kosong: peringatan deterministik
+ * ── Yang tampil sebagai gantinya
  *
- * Brief §7.2 memberi jalan tengah yang jujur: apa pun yang bisa **dihitung**
- * dari data nyata boleh tampil sekarang — dan namanya bukan "AI", melainkan
- * **Peringatan Sistem**. Itulah yang dilakukan `RailFokus` di atasnya, dan
- * itu sebabnya kartu ini tak perlu berpura-pura pintar untuk berguna.
+ * Satu kalimat pembacaan AI + tautan ke kartu Kesehatan Portofolio yang
+ * memuat angkanya. Lebih sedikit daripada referensi, tetapi seluruhnya bisa
+ * ditindaklanjuti.
  */
 
-import { Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { ArrowRight, Sparkles } from "lucide-react";
+import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 
+interface JawabanWawasan {
+  sumber: "ai" | "deterministik";
+  wawasan: { penilaian: string; rekomendasi: string } | null;
+}
+
 export function RailAsisten() {
+  const [wawasan, setWawasan] = useState<JawabanWawasan["wawasan"]>(null);
+  const [selesai, setSelesai] = useState(false);
+
+  useEffect(() => {
+    const ac = makeAbortController();
+    api
+      .get<JawabanWawasan>("/api/v1/ai/insight", { signal: ac.signal })
+      .then((r) => setWawasan(r.data?.wawasan ?? null))
+      .catch(() => setWawasan(null))
+      .finally(() => setSelesai(true));
+    return () => ac.abort();
+  }, []);
+
   return (
     <section
       aria-labelledby="rail-asisten-judul"
@@ -47,6 +63,7 @@ export function RailAsisten() {
         border: "1px solid var(--border)",
         borderRadius: "var(--rad-besar)",
         overflow: "hidden",
+        flexShrink: 0,
       }}
     >
       <header style={{
@@ -67,33 +84,60 @@ export function RailAsisten() {
         }}>
           Asisten
         </h2>
-        {/*
-          Lencana "Segera" — bukan "Beta" seperti referensi. "Beta" menyiratkan
-          ada yang bisa dicoba; di sini belum ada apa-apa untuk dicoba, dan
-          menyiratkan sebaliknya adalah janji yang tak ditepati sejak hari
-          pertama.
-        */}
-        <span style={{
-          marginInlineStart: "auto", flexShrink: 0,
-          padding: "1px 7px", borderRadius: "var(--rad-pil)",
-          background: "var(--surface-hover)", color: C.mid,
-          fontSize: 10, fontWeight: 700, letterSpacing: ".03em",
-        }}>
-          SEGERA
-        </span>
       </header>
 
       <div style={{ padding: "var(--pad-kartu)" }}>
-        <p style={{
-          margin: 0, fontSize: "var(--t-badan)", color: C.mid, lineHeight: 1.5,
-        }}>
-          Tanya-jawab bebas belum aktif. Sementara ini, pembacaan AI atas
-          kondisi portofolio sudah tampil di{" "}
-          <strong style={{ color: C.text, fontWeight: 600 }}>Kesehatan portofolio</strong>{" "}
-          di beranda, dan hal yang menunggu keputusan ada di{" "}
-          <strong style={{ color: C.text, fontWeight: 600 }}>Perlu keputusan</strong>{" "}
-          di atas.
-        </p>
+        {!selesai ? (
+          <div style={{
+            height: 34, borderRadius: "var(--rad-sedang)",
+            background: "var(--surface-hover)",
+          }} />
+        ) : wawasan ? (
+          <>
+            <p style={{
+              margin: 0, fontSize: "var(--t-badan)", color: C.text, lineHeight: 1.5,
+            }}>
+              {wawasan.penilaian}
+            </p>
+            <p style={{
+              margin: "8px 0 0", padding: "8px 10px",
+              borderRadius: "var(--rad-sedang)", background: "var(--navy-light)",
+              fontSize: 12, color: C.text, lineHeight: 1.45,
+            }}>
+              <strong style={{ fontWeight: 700 }}>Saran:</strong> {wawasan.rekomendasi}
+            </p>
+          </>
+        ) : (
+          /*
+            AI tak menjawab (kunci belum dipasang, kuota habis, jaringan
+            putus). Kartunya berkata terus terang alih-alih menghilang —
+            widget yang lenyap terbaca sebagai aplikasi rusak.
+          */
+          <p style={{
+            margin: 0, fontSize: "var(--t-badan)", color: C.mid, lineHeight: 1.5,
+          }}>
+            Pembacaan AI belum tersedia saat ini. Angka portofolio tetap
+            dihitung dan tampil di{" "}
+            <strong style={{ color: C.text, fontWeight: 600 }}>Kesehatan portofolio</strong>.
+          </p>
+        )}
+
+        {/*
+          Tak ada kolom input dan tak ada chip saran — keduanya butuh endpoint
+          percakapan yang belum ada. Yang dipasang cuma tautan ke tempat
+          angkanya bisa ditelusuri, dan tautan itu benar-benar bekerja.
+        */}
+        <Link
+          href="/proyek"
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 4, marginTop: 10,
+            fontSize: "var(--t-kecil)", fontWeight: 600, color: "var(--navy)",
+            textDecoration: "none",
+          }}
+        >
+          Telusuri proyek
+          <ArrowRight size={13} aria-hidden="true" />
+        </Link>
       </div>
     </section>
   );

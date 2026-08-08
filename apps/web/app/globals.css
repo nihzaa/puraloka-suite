@@ -1054,6 +1054,27 @@ select.input-base { cursor: pointer; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+ * RAIL SHELL — kolom kanan yang TIDAK ikut scroll (2026-08-08)
+ *
+ * Ia hidup di `layout.tsx` sebagai saudara `<main>`, bukan anak halaman.
+ * Itulah yang membuatnya diam saat konten digulung; penjelasan lengkap ada di
+ * `lib/rail-context.tsx`.
+ *
+ * Di bawah 1280px ia DISEMBUNYIKAN, bukan diturunkan ke bawah konten.
+ *
+ * Ini berbeda dari perilaku rail versi lama (turun ke bawah), dan sengaja:
+ * rail sekarang berisi kalender, daftar tugas, notifikasi, asisten, dan
+ * pengingat — kalau semuanya ditumpuk di bawah konten pada layar sempit,
+ * orang harus menggulung melewati lima kartu sebelum sampai ke akhir halaman.
+ * Isinya tetap terjangkau lewat jalur aslinya (menu Kalender, lonceng
+ * notifikasi), jadi tak ada informasi yang benar-benar hilang.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 1279px) {
+  .rail-shell { display: none !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
  * KPI STRIP — enam kartu sebaris (rombak dashboard 2026-08-08)
  *
  * Diukur: kartu kita 185x159px sementara referensi ~230x92px, dan `auto-fit`

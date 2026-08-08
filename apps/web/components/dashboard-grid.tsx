@@ -21,6 +21,7 @@ export const WIDGET_DEFS: Record<string, { label: string; defaultH: number }> = 
   serapan:   { label: "Serapan Anggaran",       defaultH: 6 },
   cashflow:  { label: "Grafik Arus Kas",        defaultH: 5 },
   status:    { label: "Status & Progress",      defaultH: 5 },
+  pintasan:  { label: "Pintasan",               defaultH: 2 },
   invoice:   { label: "Invoice Belum Lunas",    defaultH: 5 },
   kasbon:    { label: "Kasbon Pending",         defaultH: 4 },
   tax:       { label: "Ringkasan Pajak",        defaultH: 3 },
@@ -52,9 +53,18 @@ const DEFAULT_LAYOUTS: Layouts = {
     { i: "serapan",   x: 0, y: 3,  w: 4,  h: 6 },
     { i: "cashflow",  x: 4, y: 3,  w: 4,  h: 6 },
     { i: "status",    x: 8, y: 3,  w: 4,  h: 6 },
-    { i: "invoice",   x: 0, y: 9,  w: 7,  h: 5 },
-    { i: "kasbon",    x: 0, y: 14, w: 12, h: 4 },
-    { i: "tax",       x: 0, y: 18, w: 12, h: 3 },
+    /*
+      PINTASAN sesudah baris tiga widget — urutan referensi, dan urutan itu
+      masuk akal: pintasan adalah tempat PERGI sesudah membaca keadaan, bukan
+      sebelum. Sebelumnya ia bagian tetap di atas KPI.
+
+      `h: 2` (148px): pil mendatar setinggi 38px + judul + padding. Ubin
+      bertumpuk yang lama butuh `h: 3`.
+    */
+    { i: "pintasan",  x: 0, y: 9,  w: 12, h: 2 },
+    { i: "invoice",   x: 0, y: 11, w: 7,  h: 5 },
+    { i: "kasbon",    x: 0, y: 16, w: 12, h: 4 },
+    { i: "tax",       x: 0, y: 20, w: 12, h: 3 },
   ],
   md: [
     /*
@@ -100,18 +110,22 @@ const DEFAULT_LAYOUTS: Layouts = {
       pengukuran dijalankan untuk menyetel widget baru di sebelahnya.
     */
     { i: "status",    x: 0, y: 7,  w: 4,  h: 7 },
-    { i: "invoice",   x: 0, y: 14, w: 6,  h: 5 },
-    { i: "kasbon",    x: 0, y: 19, w: 10, h: 4 },
-    { i: "tax",       x: 0, y: 23, w: 10, h: 3 },
+    // `h: 3` di sini, bukan 2: wadah `md` 992px sudah menyempit lagi karena
+    // rail kini permanen, jadi tujuh pil membungkus jadi dua baris.
+    { i: "pintasan",  x: 0, y: 14, w: 10, h: 3 },
+    { i: "invoice",   x: 0, y: 17, w: 6,  h: 5 },
+    { i: "kasbon",    x: 0, y: 22, w: 10, h: 4 },
+    { i: "tax",       x: 0, y: 26, w: 10, h: 3 },
   ],
   sm: [
     { i: "kpi",       x: 0, y: 0,  w: 6, h: 8, isResizable: false },
     { i: "serapan",   x: 0, y: 8,  w: 6, h: 6 },
     { i: "cashflow",  x: 0, y: 14, w: 6, h: 6 },
     { i: "status",    x: 0, y: 20, w: 6, h: 5 },
-    { i: "invoice",   x: 0, y: 25, w: 6, h: 5 },
-    { i: "kasbon",    x: 0, y: 31, w: 6, h: 4 },
-    { i: "tax",       x: 0, y: 35, w: 6, h: 3 },
+    { i: "pintasan",  x: 0, y: 25, w: 6, h: 4 },
+    { i: "invoice",   x: 0, y: 29, w: 6, h: 5 },
+    { i: "kasbon",    x: 0, y: 34, w: 6, h: 4 },
+    { i: "tax",       x: 0, y: 38, w: 6, h: 3 },
   ],
 };
 
@@ -132,6 +146,11 @@ const COLS = { lg: 12, md: 10, sm: 6 };
  * mempertahankan tata letak yang menggunting isi bukan pilihan.
  */
 /*
+ * v8 → v9 (2026-08-08): `pintasan` masuk grid sebagai widget, dan posisinya
+ * pindah dari ATAS KPI ke BAWAH baris tiga widget — urutan referensi.
+ *
+ * Bentuknya juga berubah: ubin bertumpuk 112px jadi pil mendatar 38px.
+ *
  * v7 → v8 (2026-08-08): widget `serapan` DITAMBAHKAN (baris tiga-sebaris
  * referensi: serapan · arus kas · status).
  *
@@ -162,8 +181,8 @@ const COLS = { lg: 12, md: 10, sm: 6 };
  * Ongkosnya sama seperti v3 → v4: penyesuaian tata letak buatan pemakai
  * hilang. Tetap sepadan — lubang di tata letak lebih buruk.
  */
-const STORAGE_KEY = "puraloka_dashboard_layout_v8";
-const HIDDEN_KEY  = "puraloka_dashboard_hidden_v8";
+const STORAGE_KEY = "puraloka_dashboard_layout_v9";
+const HIDDEN_KEY  = "puraloka_dashboard_hidden_v9";
 
 // ─── Persistence ──────────────────────────────────────────────────────────────
 

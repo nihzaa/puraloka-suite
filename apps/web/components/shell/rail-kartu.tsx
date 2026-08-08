@@ -22,7 +22,7 @@
  * `Tabel`/`Kosong` di `dasar.tsx` dengan alasan identik.
  */
 
-import type { ReactNode } from "react";
+import { Children, type ReactNode } from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { C } from "@/lib/warna-ui";
@@ -41,7 +41,20 @@ export function KartuRail({
   kosong?: string;
   children?: ReactNode;
 }) {
-  const adaIsi = Array.isArray(children) ? children.length > 0 : Boolean(children);
+  /*
+   * Deteksi "ada isi" harus DIRATAKAN lebih dulu.
+   *
+   * `{daftar.map(...)}` di dalam JSX menghasilkan children berupa ARRAY BERISI
+   * SATU ARRAY KOSONG saat daftarnya kosong — bukan array kosong. Versi
+   * sebelumnya memeriksa `children.length > 0` sehingga membacanya sebagai
+   * "ada isi", lalu merender kartu yang HANYA berisi judul: tanpa daftar,
+   * tanpa kalimat kosong, tanpa penjelasan apa pun.
+   *
+   * Ketahuan di layar pada kartu Notifikasi (data uji memang nol baris).
+   * `React.Children.toArray` sekaligus membuang `null`/`false`/`undefined`,
+   * jadi `{kondisi && <Baris/>}` yang bernilai false juga terhitung kosong.
+   */
+  const adaIsi = Children.toArray(children).length > 0;
 
   return (
     <section
