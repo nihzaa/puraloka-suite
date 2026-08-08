@@ -5,6 +5,93 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-08 — UIR-4B: sparkline hidup, dan nyaris saya bangun untuk kedua kalinya
+
+Founder membandingkan tangkapan layar dengan gambar referensi: *"style dan isi
+dari dashboard belum sama kaya referensi yaa? atau nanti ada fasenya?"*
+
+Jawabannya saya pecah tiga — dan sebagiannya tidak enak: ada yang memang
+menunggu fase, ada yang **sengaja tidak akan sama**, dan ada yang **belum
+pernah masuk antrean sama sekali** (kelalaian perencanaan saya, bukan
+penundaan). Yang ketiga jadi UIR-5: Quick Action bar, KPI 6 kartu, Quick Create.
+
+### Untuk ketiga kalinya, saya nyaris membangun yang sudah ada
+
+Rencana saya: bikin komponen `Sparkline` + `Delta`. Sudah saya tulis lengkap
+dengan test. Lalu saya periksa `KartuKPI` — dan ia **sudah punya** `spark`,
+`delta`, **dan** `naikBagus` (arah baik per metrik), lengkap dengan perlakuan
+ikon+tanda untuk WCAG 1.4.1.
+
+Komponen duplikat saya hapus. Pekerjaan yang sebenarnya bukan "bangun
+sparkline" melainkan **mengisi prop yang sudah ada**:
+
+```
+sebelum:  delta 0 dari 4 kartu · spark 2 dari 4
+sesudah:  delta 4 dari 4       · spark 4 dari 4
+```
+
+Dan dua spark yang lama itu keduanya dari `cashflow_8w` — arus kas mingguan.
+Benar untuk kartu kas, **salah** untuk "Proyek aktif" yang tak punya hubungan
+apa pun dengan arus kas.
+
+> Pola ini sudah berulang tiga kali dalam dua hari: Bilah Keputusan, lalu
+> `KepalaHalaman`, sekarang Sparkline. Repo ini **kaya komponen dan miskin
+> pemakaian** — dan refleks saya masih "bangun", bukan "cari dulu".
+
+### Cacat yang hanya terlihat di layar
+
+Sesudah endpoint jadi, keempat sparkline muncul — tapi **delta tak satu pun
+tampil**. Diperiksa: data dummy berhenti Juni, jadi Juli & Agustus bernilai 0.
+
+Dua akibatnya, dan keduanya serius:
+
+- setiap sparkline **menukik ke nol di tepi kanan** — terbaca sebagai "usaha
+  sedang ambruk", padahal artinya "bulannya belum berjalan";
+- delta selalu dihitung dari 0 ke 0, jadi `hitungDelta` benar menolaknya.
+
+Diperbaiki **di sumbernya**, bukan di tampilan: nol di **ujung** dibuang, nol
+di **tengah** dipertahankan — di sana ia memang fakta ("bulan itu tak ada
+invoice terbit"). Deret yang seluruhnya nol jadi array kosong, dan kartunya
+tampil tanpa sparkline — bukan dengan garis datar hiasan.
+
+Sesudah diperbaiki, deltanya benar dan warnanya bisa dibuktikan:
+**−66,7% merah · −89,5% merah · +2.488,5% hijau.**
+
+### Arah "baik" diisi sadar, bukan dibiarkan default
+
+`invoice_belum_lunas` diberi `naikBagus={false}` — piutang yang menumpuk itu
+buruk. Menghijaukan setiap kenaikan akan membuat "kasbon naik 40%" tampil hijau,
+dan itu memberi rasa aman yang salah pada angka yang justru memburuk.
+
+### Aturan tetap baru dari founder
+
+*"untuk dokumen dokumen dan kalo sekarang menabrak, ubah aja dokumennya
+mengikuti referensi yg ada."*
+
+Ditulis sebagai §C.0d. Dua hal tetap **tidak** dicabut, dan alasannya bukan
+selera: aturan yang lahir dari **pengukuran** (kontras WCAG, ratchet kerapatan),
+dan **Aturan Emas §9**. Yang kedua perlu dinyatakan terus terang — referensi
+terlihat "penuh" sebagian besar **karena angkanya karangan**; menirunya berarti
+membangun demo, bukan alat kerja.
+
+### Verifikasi
+
+```
+12 penjaga visual   SEMUA HIJAU
+axe-core WCAG AA    /dashboard  0 pelanggaran  terang DAN gelap
+next build          exit 0
+tsc web & api       exit 0
+vitest              36 berkas · 490 test LULUS (478 + 12 baru)
+diperiksa di layar  4 sparkline + 4 delta, warna sesuai arah metrik
+```
+
+Catatan proses: satu putaran penjaga sempat melaporkan **12 merah sekaligus** —
+ternyata `cd` saya mendarat di `apps/web/apps/web`, direktori nyasar bikinan
+skrip tangkapan layar. Dua belas merah serentak bukan dua belas regresi; itu
+tanda alat ukurnya yang salah tempat.
+
+---
+
 ## 2026-08-08 — UIR-4: elemen signature yang saya usulkan ternyata sudah saya bangun sebulan lalu
 
 Slot rail jadi dan dipasang di `/dashboard`. Tapi temuan utamanya bukan itu.

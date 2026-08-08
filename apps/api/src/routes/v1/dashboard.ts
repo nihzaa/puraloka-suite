@@ -413,6 +413,131 @@ export default async function dashboardRoutes(app: FastifyInstance) {
       },
     }
   })
+
+  // ── GET /api/v1/dashboard/deret — riwayat bulanan untuk sparkline KPI ─────
+  //
+  // ── Kenapa ada, dan kenapa BARU sekarang
+  //
+  // Kartu KPI beranda menampilkan SATU angka: "Rp 120 Jt invoice belum lunas".
+  // Angka itu tak memberi tahu hal yang paling ingin diketahui orang — apakah
+  // ia MEMBAIK atau MEMBURUK. Sparkline menjawabnya tanpa memakan ruang.
+  //
+  // Sempat saya buang dengan alasan "endpoint KPI hanya mengembalikan satu
+  // angka". Itu benar tentang ENDPOINT, dan diam-diam saya perlakukan seolah
+  // benar tentang DATA. Founder mengoreksinya: itu celah API, bukan keputusan
+  // desain. Diukur 2026-08-08 memakai kolom tanggal BISNIS (bukan `created_at`
+  // yang cuma jejak seeding): 8-9 bulan riwayat nyata ada di kelima sumber.
+  //
+  // ── Kenapa SATU endpoint, bukan enam
+  //
+  // Enam permintaan untuk satu baris kartu berarti enam kali ongkos jaringan
+  // dan enam kesempatan sebagian gagal — kartu ke-3 bergaris sementara kartu
+  // ke-4 kosong, tanpa alasan yang bisa dijelaskan ke pemakai. Satu muatan
+  // kecil (5 deret x 8 angka) jauh lebih murah daripada kerumitan itu.
+  //
+  // ── Kenapa 8 bulan
+  //
+  // Sparkline selebar ~60px; lebih dari 8 titik jadi bubur dan tak lagi
+  // menunjukkan arah apa pun. Delta dihitung dari dua titik TERAKHIR, jadi
+  // yang dibutuhkan hanya cukup titik untuk membaca bentuknya.
+  app.get('/api/v1/dashboard/deret', {
+    preHandler: [authenticate],
+  }, async (request) => {
+    const db = request.db!
+    const BULAN = 8
+
+    // Batas bawah: awal bulan, BULAN-1 bulan ke belakang (termasuk bulan ini).
+    const kini = new Date()
+    const mulai = new Date(Date.UTC(kini.getUTCFullYear(), kini.getUTCMonth() - (BULAN - 1), 1))
+    const mulaiISO = mulai.toISOString().split('T')[0]
+
+    /** Kunci bulan `YYYY-MM` — dasar pengelompokan seluruh deret di sini. */
+    const kunciBulan = (d: string | null): string | null =>
+      d ? d.slice(0, 7) : null
+
+    /*
+     * Deret 8 bulan berurutan — dengan BULAN KOSONG DI UJUNG DIBUANG.
+     *
+     * Kenapa dibuang, dan ini bukan kosmetik:
+     *
+     * Bulan di ujung yang belum punya data sama sekali bernilai 0, dan nol
+     * itu ARTINYA BERBEDA dari nol yang sesungguhnya. Diukur 2026-08-08:
+     * data berhenti di Juni, sehingga Juli & Agustus semuanya 0. Akibatnya
+     *
+     *   - setiap sparkline MENUKIK ke nol di tepi kanan — terbaca sebagai
+     *     "usaha sedang ambruk", padahal artinya "bulannya belum berjalan";
+     *   - delta selalu dihitung dari 0 ke 0, jadi TAK PERNAH tampil.
+     *
+     * Yang dibuang hanya nol di UJUNG. Nol di tengah dipertahankan — di sana
+     * ia memang fakta ("bulan itu tak ada invoice terbit").
+     *
+     * Deret yang seluruhnya nol menjadi array kosong, dan itu benar: tak ada
+     * riwayat untuk digambar, jadi kartunya tampil tanpa sparkline — bukan
+     * dengan garis datar hiasan (Aturan Emas §9 brief).
+     */
+    const rataUrut = (peta: Map<string, number>): number[] => {
+      const keluar: number[] = []
+      for (let i = 0; i < BULAN; i++) {
+        const d = new Date(Date.UTC(mulai.getUTCFullYear(), mulai.getUTCMonth() + i, 1))
+        keluar.push(peta.get(d.toISOString().slice(0, 7)) ?? 0)
+      }
+      let akhir = keluar.length
+      while (akhir > 0 && keluar[akhir - 1] === 0) akhir--
+      return keluar.slice(0, akhir)
+    }
+
+    // Tabel kategori C (tenancy diwarisi lewat project) tak bisa lewat
+    // `db.from()`. Pola yang sah — sama persis dengan `/fokus` di atas —
+    // adalah `db.unsafe()` dengan alasan tercatat, BUKAN `supabase` mentah
+    // yang menghindari pencatatan itu sama sekali.
+    const ALASAN = 'deret historis lintas-proyek milik company; disaring lewat idProyek dari db.projectIds()'
+    const idProyek = await db.projectIds()
+
+    const [proyek, invoice, bayar, kasbon] = await Promise.all([
+      db.from('projects').select('start_date, contract_value').gte('start_date', mulaiISO),
+      db.unsafe('invoices', ALASAN).select('issued_date, amount_due')
+        .in('project_id', idProyek).gte('issued_date', mulaiISO),
+      db.unsafe('payments', ALASAN).select('paid_at, amount_paid')
+        .in('invoice_id', await db.invoiceIds()).gte('paid_at', mulaiISO),
+      db.from('kasbons').select('kasbon_date, amount').gte('kasbon_date', mulaiISO),
+    ])
+
+    // Kegagalan query TIDAK ditelan: deret yang diam-diam kosong terbaca
+    // sebagai "tak ada aktivitas" — kebohongan yang menenangkan.
+    for (const [nama, hasil] of Object.entries({ proyek, invoice, bayar, kasbon })) {
+      if (hasil.error) {
+        request.log.error({ err: hasil.error, deret: nama }, 'gagal memuat deret dashboard')
+        throw new Error(`deret ${nama}: ${hasil.error.message}`)
+      }
+    }
+
+    const hitung = <T extends Record<string, unknown>>(
+      baris: T[] | null,
+      kolomTanggal: keyof T,
+      kolomNilai?: keyof T,
+    ): number[] => {
+      const peta = new Map<string, number>()
+      for (const b of baris ?? []) {
+        const k = kunciBulan(b[kolomTanggal] as string | null)
+        if (!k) continue
+        const tambah = kolomNilai ? Number(b[kolomNilai] ?? 0) : 1
+        peta.set(k, (peta.get(k) ?? 0) + (Number.isFinite(tambah) ? tambah : 0))
+      }
+      return rataUrut(peta)
+    }
+
+    return {
+      bulan: BULAN,
+      mulai: mulai.toISOString().slice(0, 7),
+      deret: {
+        proyek_aktif: hitung(proyek.data as Record<string, unknown>[], 'start_date'),
+        nilai_kontrak: hitung(proyek.data as Record<string, unknown>[], 'start_date', 'contract_value'),
+        invoice_belum_lunas: hitung(invoice.data as Record<string, unknown>[], 'issued_date', 'amount_due'),
+        kas_masuk: hitung(bayar.data as Record<string, unknown>[], 'paid_at', 'amount_paid'),
+        kasbon: hitung(kasbon.data as Record<string, unknown>[], 'kasbon_date', 'amount'),
+      },
+    }
+  })
 }
 
 function buildCashflowWeeks(

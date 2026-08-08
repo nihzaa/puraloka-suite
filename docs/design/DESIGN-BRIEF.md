@@ -169,6 +169,31 @@ visual × 2 mode tema — mode ketiga menjadikannya 4 kombinasi.
 | 4 | **Mode kepadatan** (Arah 3) | ❌ **DITOLAK** — 4 kombinasi penjaga, tak sebanding |
 | 5 | **Sparkline** | ✅ **Tambah endpoint deret historis — 6 KPI beranda saja** |
 
+### C.0d Aturan tetap 2026-08-08 — dokumen mengikuti referensi, bukan sebaliknya
+
+Founder: *"untuk dokumen dokumen dan kalo sekarang menabrak, ubah aja
+dokumennya mengikuti referensi yg ada."*
+
+Ini **rombak total, bukan poles**. Kalau sebuah aturan lama menghalangi arah
+referensi, yang direvisi adalah **aturannya** — ditulis ulang beserta alasan
+pencabutannya, bukan didiamkan dan bukan jadi alasan menolak pekerjaan.
+Preseden: §C.0c mencabut "ikhtisar vs tabel" karena premisnya sudah runtuh.
+
+**Dua hal yang TETAP tidak dicabut**, dan alasannya bukan selera:
+
+1. **Aturan yang lahir dari pengukuran.** Ambang kontras WCAG, `--pad-kartu`
+   yang dijaga ratchet, larangan float untuk nominal. Referensi tidak
+   mengukurnya; kita mengukurnya. Menyamakan diri di sini berarti memerahkan
+   CI dan/atau merugikan pengguna nyata.
+
+2. **Aturan Emas §9 — nol data karangan.** Ini pembeda yang paling menentukan,
+   dan perlu dinyatakan terus terang: **referensi terlihat "penuh" sebagian
+   besar karena angkanya karangan.** Menirunya berarti membangun demo, bukan
+   alat kerja. Widget tanpa data tampil sebagai keadaan kosong yang jujur, dan
+   celahnya dicatat di `API-GAPS.md`.
+
+Di luar dua itu: **referensi menang atas dokumen lama.**
+
 ### C.0a Keputusan 1 — kenapa usul saya keliru, dan ini perbaikannya
 
 Founder: *"Argumen 1366px itu nyata, tapi hanya berlaku untuk halaman tabel.

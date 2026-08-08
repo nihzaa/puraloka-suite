@@ -4,7 +4,7 @@ import Link from "next/link";
 import { dapatDitekan } from "@/lib/dapat-ditekan";
 import { useEffect, useReducer, useState } from "react";
 import { useRouter } from "next/navigation";
-import { api, getStoredUser } from "@/lib/api";
+import { api, getStoredUser, makeAbortController } from "@/lib/api";
 import { KartuKPI, Kosong } from "@/components/ui-dasar";
 import {
   AreaChart, Area, PieChart, Pie, Cell,
@@ -64,6 +64,19 @@ interface Milestone {
   id: string; title: string; target_date: string;
   projects: { id: string; name: string } | null;
 }
+/** Jawaban `GET /api/v1/dashboard/deret` — riwayat 8 bulan per metrik (UIR-4B). */
+interface JawabanDeret {
+  bulan: number;
+  mulai: string;
+  deret: {
+    proyek_aktif: number[];
+    nilai_kontrak: number[];
+    invoice_belum_lunas: number[];
+    kas_masuk: number[];
+    kasbon: number[];
+  };
+}
+
 interface DashboardData {
   kpis: KPIs;
   alerts: { kasbon_pending: number; invoice_overdue: number; milestone_late: number };
@@ -102,6 +115,7 @@ import { HalamanIkhtisar } from "@/components/shell/halaman-ikhtisar";
 import { Rail } from "@/components/shell/rail";
 import { RailFokus } from "@/components/shell/rail-fokus";
 import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
+import { hitungDelta } from "@/lib/deret";
 
 const STATUS_COLOR: Record<string, string> = {
   active: C.navy, completed: C.green, on_hold: C.yellow,
@@ -209,8 +223,34 @@ function DashboardContent() {
   const [error, setError] = useState("");
   const [period, setPeriod] = useState<Period>("last_3_months");
   const [kasbonBusy, setKasbonBusy] = useState<string | null>(null);
+  const [deret, setDeret] = useState<JawabanDeret | null>(null);
 
   useEffect(() => { fetchData(period); }, [period]);
+
+  /*
+   * Deret DIPISAH dari muatan utama, dan itu disengaja.
+   *
+   * Sparkline adalah pelengkap: kalau `/deret` gagal, kartu KPI harus tetap
+   * tampil dengan angkanya — hanya tanpa garis. Menggabungkannya ke
+   * `fetchData` membuat satu kegagalan kecil menjatuhkan SELURUH dashboard.
+   *
+   * Ia juga tak bergantung `period`: deretnya selalu 8 bulan terakhir, karena
+   * yang ditanyakan sparkline adalah "arahnya ke mana", bukan "berapa pada
+   * rentang yang sedang dipilih".
+   */
+  useEffect(() => {
+    const ac = makeAbortController();
+    api.get<JawabanDeret>("/api/v1/dashboard/deret", { signal: ac.signal })
+      .then((r) => setDeret(r.data))
+      .catch((e) => {
+        if (e?.name === "CanceledError") return;
+        // Sengaja tidak menampilkan galat: kartu tanpa sparkline sudah
+        // menyampaikan keadaannya sendiri, dan pesan merah untuk hiasan yang
+        // hilang justru mengalihkan perhatian dari angka yang penting.
+        setDeret(null);
+      });
+    return () => ac.abort();
+  }, []);
 
   async function fetchData(p: Period) {
     setLoading(true); setError("");
@@ -252,6 +292,22 @@ function DashboardContent() {
   const sparkMasuk = (data?.cashflow_8w ?? []).map((w) => w.income);
   const sparkBersih = (data?.cashflow_8w ?? []).map((w) => w.income - w.expense);
 
+  /*
+   * Deret BULANAN per metrik (UIR-4B) — `GET /api/v1/dashboard/deret`.
+   *
+   * Berbeda dari `sparkMasuk`/`sparkBersih` di atas, yang keduanya berasal
+   * dari `cashflow_8w` — arus kas mingguan. Itu tren yang BENAR untuk kartu
+   * kas, tetapi salah untuk "Proyek aktif" dan "Nilai kontrak": keduanya tak
+   * punya hubungan dengan arus kas mingguan sama sekali.
+   *
+   * `delta` sengaja dihitung dari deret yang SAMA dengan sparkline-nya. Kalau
+   * berbeda sumber, garis bisa menanjak sementara deltanya merah — dan tak
+   * ada pemakai yang bisa menebak mana yang benar.
+   */
+  const d = deret?.deret;
+  /** Persen delta, atau `null` bila tak bisa dihitung jujur. Diuji di `lib/deret.test.ts`. */
+  const deltaDari = (n: number[] | undefined) => hitungDelta(n ?? [])?.persen ?? null;
+
   const kpiWidget = (
     <div style={{
       padding: "var(--pad-kartu-lega)",
@@ -259,12 +315,22 @@ function DashboardContent() {
       gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
       height: "100%", alignContent: "start",
     }}>
+      {/*
+        `spark` & `delta` per METRIK (UIR-4B) — dari `/api/v1/dashboard/deret`.
+
+        `naikBagus` WAJIB diisi sadar, bukan dibiarkan default: invoice belum
+        lunas yang NAIK bukan kabar baik, dan menghijaukannya memberi rasa aman
+        yang salah pada angka yang justru memburuk (brief §3.4).
+      */}
       <KartuKPI
         label="Proyek aktif"
         nilai={loading ? "—" : String(data?.kpis.active_projects ?? 0)}
         nilaiAngka={loading ? undefined : data?.kpis.active_projects ?? 0}
         keterangan="sedang berjalan"
         ikon={<Building2 size={15} />}
+        spark={d?.proyek_aktif}
+        delta={deltaDari(d?.proyek_aktif)}
+        naikBagus
         onClick={() => router.push("/proyek")}
       />
       <KartuKPI
@@ -272,6 +338,9 @@ function DashboardContent() {
         nilai={loading ? "—" : `Rp ${fmtShort(data?.kpis.total_contract_value ?? 0)}`}
         keterangan={PERIOD_LABEL[period]}
         ikon={<TrendingUp size={15} />}
+        spark={d?.nilai_kontrak}
+        delta={deltaDari(d?.nilai_kontrak)}
+        naikBagus
         onClick={() => router.push("/proyek")}
       />
       <KartuKPI
@@ -281,7 +350,10 @@ function DashboardContent() {
           ? `${alerts!.invoice_overdue} lewat jatuh tempo`
           : "semua masih dalam tenggat"}
         ikon={<FileText size={15} />}
-        spark={sparkMasuk.length > 1 ? sparkMasuk : undefined}
+        spark={d?.invoice_belum_lunas}
+        delta={deltaDari(d?.invoice_belum_lunas)}
+        // Piutang yang MENUMPUK itu buruk — turun berarti tertagih.
+        naikBagus={false}
         sorot={adaOverdue}
         onClick={() => router.push("/keuangan")}
       />
@@ -290,7 +362,11 @@ function DashboardContent() {
         nilai={loading ? "—" : `Rp ${fmtShort(Math.abs(kasBersih))}`}
         keterangan={kasBersih >= 0 ? "surplus" : "defisit"}
         ikon={<BarChart2 size={15} />}
+        // Kas bersih memang paling tepat dibaca dari arus kas MINGGUAN, bukan
+        // deret bulanan — jadi sumber lamanya dipertahankan dengan sengaja.
         spark={sparkBersih.length > 1 ? sparkBersih : undefined}
+        delta={deltaDari(d?.kas_masuk)}
+        naikBagus
         // Disorot hanya bila TAK ada yang lebih mendesak — satu sorot per layar.
         sorot={!adaOverdue}
         onClick={() => router.push("/kas")}

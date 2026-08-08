@@ -582,9 +582,44 @@ items:
       - "nol garis karangan — Aturan Emas §9 brief"
     cara_verifikasi: "vitest integration + periksa layar"
     bobot: M
-    status: todo
-    catatan: |
-      Founder benar menyebut ini CELAH API, bukan keputusan desain. Saya
+    status: selesai
+    hasil_2026_08_08: |
+      ✅ SELESAI. Keempat kartu KPI beranda kini bersparkline + delta berwarna.
+      Diverifikasi DI LAYAR: −66,7% merah · −89,5% merah · +2.488,5% hijau.
+
+      SATU ENDPOINT, BUKAN ENAM: `GET /api/v1/dashboard/deret` mengirim 5 deret
+      bulanan sekaligus. Enam permintaan untuk satu baris kartu berarti enam
+      kesempatan sebagian gagal — kartu ke-3 bergaris sementara ke-4 kosong,
+      tanpa alasan yang bisa dijelaskan.
+
+      KOREKSI RENCANA: saya nyaris membangun komponen Sparkline BARU. Diperiksa
+      lebih dulu — `KartuKPI` SUDAH punya prop `spark`, `delta`, DAN `naikBagus`
+      (arah baik per metrik), lengkap dengan perlakuan ikon+tanda untuk WCAG
+      1.4.1. Komponen duplikat yang sempat saya tulis DIHAPUS.
+
+      Jadi pekerjaannya bukan "bangun sparkline" melainkan MENGISI prop yang
+      sudah ada dengan deret per-metrik. Sebelumnya: delta dipakai 0 dari 4
+      kartu, spark 2 dari 4 — dan kedua spark itu dari `cashflow_8w` (arus kas
+      mingguan), yang benar untuk kartu kas tapi salah untuk "Proyek aktif".
+
+      CACAT YANG HANYA TERLIHAT DI LAYAR — bulan kosong di ujung deret:
+
+      Data dummy berhenti Juni, jadi Juli & Agustus bernilai 0. Akibatnya
+      SETIAP sparkline menukik ke nol di tepi kanan (terbaca "usaha ambruk",
+      padahal artinya "bulannya belum berjalan"), dan delta selalu dihitung
+      dari 0 ke 0 sehingga TAK PERNAH tampil.
+
+      Diperbaiki di sumbernya: nol di UJUNG dibuang, nol di TENGAH
+      dipertahankan (di sana ia memang fakta). Deret yang seluruhnya nol jadi
+      array kosong → kartu tampil TANPA sparkline, bukan dengan garis datar
+      hiasan (Aturan Emas §9).
+
+      ARAH "BAIK" DIISI SADAR per kartu: invoice belum lunas `naikBagus={false}`
+      — piutang yang menumpuk itu buruk. Menghijaukan setiap kenaikan memberi
+      rasa aman yang salah pada angka yang justru memburuk.
+
+      VERIFIKASI: 12 penjaga HIJAU · axe-core 0 pelanggaran (terang & gelap) ·
+      next build exit 0 · tsc web & api exit 0 · vitest 36 berkas / 490 test. Saya
       sempat membuang sparkline dengan alasan "endpoint hanya mengembalikan
       satu angka" — benar tentang ENDPOINT, lalu diam-diam saya perlakukan
       seolah benar tentang DATA. Dua hal berbeda.
@@ -599,6 +634,45 @@ items:
         progress_logs        271 baris   8 bulan   2025-11 -> 2026-06
 
       Keenamnya punya riwayat NYATA. Sparkline di beranda bukan hiasan.
+
+  - id: UIR-5
+    lapis: 1
+    judul: "Quick Action bar + KPI strip 6 kartu + Quick Create di topbar"
+    blokir_oleh: [UIR-4B]
+    kriteria_selesai:
+      - "baris aksi cepat di bawah KPI beranda (maks 6, semua bertujuan nyata)"
+      - "KPI strip 4 → 6 kartu, keduanya dari data yang SUDAH ada"
+      - "tombol Quick Create di topbar, hadir di semua halaman"
+      - "a11y 2 mode nol pelanggaran · 12 penjaga hijau"
+    cara_verifikasi: "audit-a11y-runtime --url /dashboard (terang & gelap) + periksa layar"
+    bobot: M
+    status: todo
+    catatan: |
+      DIMINTA FOUNDER 2026-08-08 sesudah membandingkan tangkapan layar dengan
+      gambar referensi: "style dan isi dari dashboard belum sama kaya referensi
+      yaa?"
+
+      Jawabannya jujur: sebagian memang menunggu fase (sparkline → UIR-4B),
+      TAPI ketiga hal di bawah BELUM PERNAH MASUK ANTREAN sama sekali. Itu
+      kelalaian perencanaan saya, bukan penundaan yang disengaja.
+
+      Diukur 2026-08-08 di /dashboard:
+
+        Quick Action bar (brief §3.5)   TIDAK ADA sama sekali
+        KPI strip                       4 kartu (referensi & brief §8.1: 6)
+        Quick Create di topbar (§3.2)   TIDAK ADA
+
+      KPI ke-5 dan ke-6 yang ditambahkan memakai data yang SUDAH dimuat:
+      kasbon menunggu persetujuan + rata-rata progres fisik (brief §8.1).
+
+      Quick Create menyentuh topbar — dipakai 105 halaman. Karena itu ia
+      dikerjakan SESUDAH shell stabil, bukan bersamaan dengan rail.
+
+      ⚠️ Yang TIDAK dikejar dari referensi, dan bukan kekurangan:
+      ilustrasi hero (ARAH-VISUAL §11a), badge AI bertebaran (§7 brief),
+      lokalisasi India, aksen indigo (ditolak a38cb0d), dan layar penuh angka
+      karangan (Aturan Emas §9). Referensi terlihat "penuh" sebagian besar
+      KARENA angkanya karangan — itu yang sengaja tak ditiru.
 
   - id: UIR-9
     lapis: 3
