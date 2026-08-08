@@ -7,6 +7,7 @@ import { NotificationPanel } from "@/components/notification-panel";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { CommandPalette } from "@/components/command-palette";
 import { CompanySwitcher } from "@/components/company-switcher";
+import { BuatCepat } from "@/components/buat-cepat";
 
 /**
  * Rute → nama yang ditampilkan di breadcrumb.
@@ -196,6 +197,16 @@ export function Topbar() {
             </kbd>
           </button>
 
+          {/*
+            "Buat" ditaruh SESUDAH pencarian dan SEBELUM tema/notifikasi.
+            Referensi menaruh Quick Create paling kiri di gugus kanan, dan
+            urutan itu benar: mencari & membuat adalah aksi yang dituju
+            sengaja, sementara tema dan lonceng adalah kontrol sekunder.
+
+            Ia menyembunyikan dirinya sendiri kalau pemakai tak berhak
+            membuat apa pun — lihat `BuatCepat`.
+          */}
+          <BuatCepat />
           <ThemeToggle />
           <NotificationPanel
             unreadCount={unreadCount}

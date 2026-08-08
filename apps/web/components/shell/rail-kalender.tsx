@@ -167,7 +167,10 @@ export function RailKalender({
                       // Hari ini dibalik warnanya (bukan sekadar tebal): di kisi
                       // 42 kotak, tebal saja hampir tak terlihat.
                       background: s.hariIni ? "var(--navy)" : "transparent",
-                      color: s.hariIni ? "var(--on-merek)" : C.text,
+                      // `--on-navy`, bukan `--on-merek` — lihat catatan di `buat-cepat.tsx`:
+                      // di mode gelap `--navy` jadi biru terang, dan hanya
+                      // `--on-navy` yang ikut berbalik jadi teks gelap.
+                      color: s.hariIni ? "var(--on-navy)" : C.text,
                       fontWeight: s.hariIni ? 700 : 400,
                     }}
                   >
@@ -180,7 +183,7 @@ export function RailKalender({
                           width: 4, height: 4, borderRadius: "50%",
                           // Di kotak "hari ini" yang berlatar navy, titik navy
                           // takkan terlihat — dibalik jadi warna teks di atasnya.
-                          background: s.hariIni ? "var(--on-merek)" : "var(--danger)",
+                          background: s.hariIni ? "var(--on-navy)" : "var(--danger)",
                         }}
                       />
                     )}
