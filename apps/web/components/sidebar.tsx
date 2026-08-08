@@ -664,9 +664,23 @@ function SidebarIsi() {
         transition: "width 0.2s ease",
       }}
     >
-      {/* Logo + toggle */}
+      {/*
+        Logo + toggle — TINGGINYA DIPATOK 56px, sama persis dengan topbar.
+
+        Founder 2026-08-09: *"ketinggian topbar dan area logo di sidebar ini
+        berasa kurang menyatu"*. Diukur, dan ia benar: topbar 56px, kepala
+        sidebar 65px. Selisih 9px membuat garis bawah keduanya tak sejajar —
+        cukup untuk terasa salah, terlalu kecil untuk langsung ketahuan
+        sebabnya.
+
+        Dipatok `height`, bukan diatur lewat padding: padding menghasilkan
+        tinggi TURUNAN dari isinya, jadi ia akan menyimpang lagi begitu ukuran
+        logo atau font berubah. Tinggi eksplisit membuat kedua sisi shell
+        terikat pada satu angka yang sama.
+      */}
       <div style={{
-        padding: collapsed ? "16px 0" : "16px 12px 14px",
+        height: 56,
+        padding: collapsed ? "0" : "0 12px",
         borderBottom: "1px solid var(--border)",
         display: "flex",
         alignItems: "center",

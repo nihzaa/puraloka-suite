@@ -68,6 +68,25 @@ export function RailKalender({
         border: "1px solid var(--border)",
         borderRadius: "var(--rad-besar)",
         overflow: "hidden",
+        /*
+          `flexShrink: 0` — TANPA INI KALENDER GEPENG JADI 2px.
+
+          Founder 2026-08-09: *"pastikan kalender itu jangan kepotong"*.
+          Diukur di tiga tinggi layar, dan cacatnya jauh lebih buruk daripada
+          "terpotong": pada layar 800px kartu ini menyusut dari 146px menjadi
+          **2px** — kisi tanggalnya hilang seluruhnya, menyisakan garis tipis.
+
+          Sebabnya rail adalah kolom flex, dan `flex-shrink` bernilai 1 secara
+          bawaan. Begitu isi rail melebihi tinggi layar, browser MENGECILKAN
+          anak yang boleh mengecil alih-alih menggulirkannya. Semua kartu lain
+          kebetulan sudah ber-`flexShrink: 0`; kalender satu-satunya yang
+          tidak, jadi seluruh kelebihan tinggi ditimpakan kepadanya sendirian.
+
+          Itu sebabnya cacat ini tak terlihat di layar 1000px — di sana rail
+          masih muat, tak ada yang perlu dikecilkan. Ia hanya muncul pada
+          laptop, tempat sebagian besar orang justru bekerja.
+        */
+        flexShrink: 0,
       }}
     >
       <header style={{

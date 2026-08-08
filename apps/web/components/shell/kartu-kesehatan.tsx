@@ -103,13 +103,27 @@ export function KartuKesehatan({ masukan }: { masukan: MasukanKesehatan }) {
 
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
         {/*
-          Ring: dua lingkaran bertumpuk — jalur redup + busur berwarna.
-          `aria-hidden` karena angkanya sudah ditulis sebagai teks di sebelahnya;
-          dibacakan dua kali hanya jadi kebisingan.
+          ANGKANYA DI DALAM LINGKARAN.
+
+          Founder 2026-08-09: *"angka 21/100 nya di dalam lingkaran aja
+          kayanya"* — dan itu memang bentuk yang benar untuk ring progres:
+          lingkaran adalah gauge, dan gauge membaca nilainya di pusatnya.
+          Versi sebelumnya menaruh angka di samping, sehingga ring jadi hiasan
+          tanpa label dan kolom teks di kanannya harus memuat DUA hal (angka +
+          kalimat) dalam lebar yang cuma cukup untuk satu.
+
+          Teks SVG, bukan div ber-`position:absolute` di atasnya: satu elemen,
+          ikut menskala dengan `viewBox`, dan tak bisa bergeser dari pusat
+          ring kalau ukuran kartunya berubah.
+
+          `aria-hidden` pada ring TETAP — skor dibacakan sekali lewat
+          `aria-label` di pembungkusnya, supaya pembaca layar tak mendengar
+          "21" lalu "100" sebagai dua angka lepas.
         */}
         <svg
           width={UKURAN} height={UKURAN} viewBox={`0 0 ${UKURAN} ${UKURAN}`}
-          aria-hidden="true" focusable="false" style={{ flexShrink: 0 }}
+          role="img" aria-label={`Skor kesehatan ${h.skor} dari 100`}
+          focusable="false" style={{ flexShrink: 0 }}
         >
           <circle
             cx={UKURAN / 2} cy={UKURAN / 2} r={R}
@@ -122,18 +136,31 @@ export function KartuKesehatan({ masukan }: { masukan: MasukanKesehatan }) {
             transform={`rotate(-90 ${UKURAN / 2} ${UKURAN / 2})`}
             style={{ transition: "stroke-dasharray 600ms cubic-bezier(0.16,1,0.3,1)" }}
           />
+          {/*
+            `dominantBaseline="central"` bukan `middle`: `middle` menyejajarkan
+            ke tengah x-height sehingga angka terlihat turun beberapa piksel
+            dari pusat ring — cukup untuk terbaca miring pada lingkaran.
+          */}
+          <text
+            x={UKURAN / 2} y={UKURAN / 2 - 4}
+            textAnchor="middle" dominantBaseline="central"
+            style={{
+              fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 700,
+              fill: C.text, fontVariantNumeric: "tabular-nums",
+            }}
+          >
+            {h.skor}
+          </text>
+          <text
+            x={UKURAN / 2} y={UKURAN / 2 + 15}
+            textAnchor="middle" dominantBaseline="central"
+            style={{ fontSize: 11, fontWeight: 500, fill: C.mid }}
+          >
+            /100
+          </text>
         </svg>
 
         <div style={{ minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
-            <span style={{
-              fontFamily: "var(--font-display)", fontSize: 30, fontWeight: 700,
-              lineHeight: 1, color: C.text, fontVariantNumeric: "tabular-nums",
-            }}>
-              {h.skor}
-            </span>
-            <span style={{ fontSize: 13, color: C.mid, fontWeight: 500 }}>/100</span>
-          </div>
           {/*
             Kalimat penilaian. Versi AI kalau ada, versi hitungan kalau tidak —
             dan keduanya sama-sama sah, jadi tak ada keadaan "sedang memuat"
@@ -177,23 +204,29 @@ export function KartuKesehatan({ masukan }: { masukan: MasukanKesehatan }) {
 
         Tautannya ke /proyek, DIPERIKSA ke disk — bukan halaman analisis khayalan.
       */}
-      <div style={{
-        display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
-        paddingTop: 8, borderTop: "1px solid var(--border)",
-      }}>
-        <p style={{ margin: 0, fontSize: 11, color: C.muted, lineHeight: 1.45, flex: 1, minWidth: 140 }}>
-          Dihitung dari invoice lewat tempo, milestone telat, proyek mandek, dan
-          proyek lewat tenggat.
-        </p>
+      {/*
+        SATU TAUTAN, bukan paragraf penjelasan.
+
+        Sebelumnya di sini ada kalimat "Dihitung dari invoice lewat tempo,
+        milestone telat, proyek mandek, dan proyek lewat tenggat." — empat baris
+        pada kolom selebar ini. Founder benar bahwa itu berlebihan: kartunya
+        ikut memanjang, dan karena hero di sebelahnya meregang menyamai tinggi
+        tetangganya, HERO ikut jadi 386px untuk isi yang cuma ~200px.
+
+        Penjelasan cara hitungnya tidak dibuang, hanya dipindah ke tempat yang
+        memang untuk membaca panjang — halaman analisis. Yang tersisa di sini
+        satu tautan, persis "View Full AI Analysis" referensi.
+      */}
+      <div style={{ paddingTop: 8, borderTop: "1px solid var(--border)" }}>
         <Link
           href="/proyek"
           style={{
-            display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0,
+            display: "inline-flex", alignItems: "center", gap: 4,
             fontSize: "var(--t-kecil)", fontWeight: 600, color: "var(--navy)",
             textDecoration: "none",
           }}
         >
-          Telusuri proyek
+          Lihat analisis lengkap
           <ArrowRight size={13} aria-hidden="true" />
         </Link>
       </div>

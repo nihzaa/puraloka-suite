@@ -534,10 +534,105 @@ sebelum membuang, bukan sesudah:
 
 - `SidebarFokus` ("3 lewat tenggat · 3 menunggu putusan") hadir di **setiap**
   halaman, bukan cuma beranda.
-- Kartu "Perlu keputusan" di rail memuat rinciannya.
+- Kartu "Perlu keputusan" di rail — sejak 2026-08-09 **satu baris** (angka +
+  tautan), bukan lagi lima baris terurai. Lihat §10h.
 
 Kalau salah satunya dicabut kelak, peringatan mendesak kehilangan tempat
 terakhirnya yang selalu terlihat.
+
+### 10h. Rail dirampingkan — lima kartu, dua di antaranya satu baris, 2026-08-09
+
+Founder menilai hasil §10f langsung dari layar, dan empat koreksinya berturut-turut
+mengubah bentuk rail seluruhnya:
+
+| Kata founder | Yang berubah |
+|---|---|
+| *"panel kanan jadinya pada gepeng gini"* | tiap `KartuRail` diberi `minHeight: 88` |
+| *"milestone dan notifikasi hilangkan aja deh"* | dua kartu dicabut |
+| *"bikin 1 baris aja, gausah kasih detail isinya apa aja nya"* | Peringatan Kritis + Perlu Keputusan → `RailRingkas` |
+| *"yg warning ini paling atas ajaa taronya semua"* | dua kartu mendesak berdempet di puncak, kalender menyusul |
+
+**Susunan rail sekarang** (dari atas): Peringatan Kritis · Perlu Keputusan ·
+Kalender · Asisten · Pengingat. Dua kartu terakhir tetap **selalu** ada di
+halaman mana pun rail hidup (§10f) — itu tak berubah.
+
+**"Progres proyek aktif" ikut dicabut**, dan alasannya bukan permintaan
+founder melainkan pengukuran: kartu itu merender
+`active_progress.slice(0, 5)` — **lima proyek yang sama persis** dengan widget
+progres di kolom tengah. Dua salinan daftar identik, terlihat bersamaan tanpa
+scroll.
+
+#### Cacat yang ditemukan saat mengukur: kalender gepeng jadi 2px
+
+Founder: *"pastikan kalender itu jangan kepotong"*. Diukur di tiga tinggi
+layar, dan kenyataannya lebih buruk daripada terpotong:
+
+| Viewport | Tinggi kartu Kalender |
+|---|---|
+| 1600×1000 | 146px |
+| 1600×800 | **2px** |
+| 1600×720 | **2px** |
+
+Rail adalah kolom flex, dan `flex-shrink` bernilai **1** secara bawaan. Begitu
+isi rail melebihi tinggi layar, browser **mengecilkan** anak yang boleh
+mengecil alih-alih menggulirkannya. Empat kartu rail lain kebetulan sudah
+ber-`flexShrink: 0`; kalender satu-satunya yang tidak, sehingga seluruh
+kelebihan tinggi ditimpakan kepadanya sendirian — kisi tanggalnya lenyap
+seluruhnya.
+
+**Cacat ini tak terlihat di layar besar.** Pada 1600×1000 rail masih muat, tak
+ada yang perlu dikecilkan, dan kalender tampil normal. Ia hanya muncul di
+laptop — tempat sebagian besar orang justru bekerja. Itu sebabnya ia lolos
+dari setiap tangkapan layar sebelumnya.
+
+Dijaga `apps/web/scripts/uji-rail-tak-gepeng.mjs` (CI). Penjaganya sendiri
+butuh **dua putaran uji mutasi** sebelum benar-benar bisa merah:
+
+1. Putaran pertama: properti dicabut, penjaga tetap hijau — komentar di berkas
+   yang sama memuat frasa `flexShrink: 0` tiga kali. Pencarian teks menemukan
+   *penjelasannya*, bukan kodenya. (Pola identik pernah terjadi pada
+   `hex-ratchet`; arah salahnya berlawanan, sebabnya sama.)
+2. Putaran kedua: komentar sudah dibuang, penjaga **masih** hijau — berkas yang
+   sama punya `flexShrink: 0` sah di tempat lain (div tombol geser bulan).
+   Pemeriksaan tingkat-berkas tak bisa membedakan kotak kartu dari elemen di
+   dalamnya.
+
+Versi final membaca **hanya blok gaya kotak terluar**, dan barulah merah pada
+mutasi. Pelajarannya sama dengan §10d: penjaga yang belum pernah merah bukan
+penjaga.
+
+#### Skor kesehatan pindah ke dalam ring
+
+Founder: *"angka 21/100 nya di dalam lingkaran aja kayanya"*. Ring progres
+adalah gauge, dan gauge membaca nilainya di pusatnya. Versi sebelumnya menaruh
+angka di samping, sehingga ring jadi hiasan tanpa label sementara kolom teks di
+kanannya harus memuat dua hal dalam lebar yang cuma cukup untuk satu.
+
+Ditulis sebagai `<text>` SVG, bukan `div` ber-`position:absolute` — satu
+elemen, ikut menskala dengan `viewBox`, dan tak bisa bergeser dari pusat ring
+saat ukuran kartu berubah. `aria-label` dipindah ke `<svg role="img">` supaya
+pembaca layar mendengar "Skor kesehatan 21 dari 100", bukan dua angka lepas.
+
+#### Topbar dan kepala sidebar disamakan 56px
+
+Founder: *"ketinggian topbar dan area logo di sidebar ini berasa kurang
+menyatu"*. Diukur: topbar 56px, kepala sidebar **65px**. Selisih 9px membuat
+garis bawah keduanya tak sejajar — cukup untuk terasa salah, terlalu kecil
+untuk langsung ketahuan sebabnya.
+
+Dipatok `height: 56`, bukan diatur lewat padding: padding menghasilkan tinggi
+**turunan** dari isinya, jadi ia akan menyimpang lagi begitu ukuran logo atau
+font berubah.
+
+#### Pintasan: kisi tetap, jumlah kelipatan empat
+
+Founder: *"bagian ini kurang simetris"*. Sebabnya `flex-wrap` dengan tujuh pil
+selebar labelnya masing-masing: tanpa kolom, ujung kanan tiap baris berhenti di
+tempat acak, dan tiga pil di baris kedua menyisakan sel kosong.
+
+Diganti kisi `repeat(4, minmax(0, 1fr))` dan ditambah satu tujuan nyata
+(Klien) supaya jumlahnya delapan. **Kalau daftar ini diubah lagi, jaga
+jumlahnya kelipatan empat** — atau kisinya ragged lagi.
 
 **Tingkat ditulis, bukan cuma diwarnai** ("Tinggi"/"Sedang") — WCAG 1.4.1,
 aturan yang sama dengan halaman aset dan lapangan. Beranda dibuka di HP di

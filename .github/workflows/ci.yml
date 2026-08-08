@@ -1215,6 +1215,23 @@ jobs:
         run: node apps/web/scripts/uji-rute-dinamis-teraudit.mjs
         working-directory: .
 
+      # Kartu rail wajib `flexShrink: 0`. Rail adalah kolom flex, dan
+      # `flex-shrink` bawaan bernilai 1 — begitu isinya melebihi tinggi layar,
+      # browser MENGECILKAN anaknya alih-alih menggulirkan.
+      #
+      # Diukur 2026-08-09: pada viewport 1600x800 kartu Kalender menyusut dari
+      # 146px menjadi 2px — seluruh kisi tanggal lenyap. Empat kartu rail lain
+      # kebetulan sudah ber-`flexShrink: 0`; kalender tidak, jadi seluruh
+      # kelebihan tinggi ditimpakan kepadanya sendirian.
+      #
+      # Kenapa perlu penjaga, bukan sekadar diperbaiki: cacatnya TAK TERLIHAT
+      # di layar besar (pada 1600x1000 rail masih muat, kalender normal). Ia
+      # hanya muncul di laptop — tempat sebagian besar orang bekerja. Kartu
+      # rail berikutnya akan mewarisi jebakan yang sama tanpa ada yang tahu.
+      - name: Kartu rail tak bisa digepengkan flexbox
+        run: node apps/web/scripts/uji-rail-tak-gepeng.mjs
+        working-directory: .
+
       # Rumus jarak geotag ada di DUA tempat (api/lib/geotag.ts dan
       # web/components/penanda-lokasi.tsx) — digandakan supaya galeri foto tak
       # perlu satu permintaan jaringan per foto.

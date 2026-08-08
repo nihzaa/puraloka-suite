@@ -1,46 +1,49 @@
 "use client";
 
 /**
- * RAIL FOKUS — versi TERURAI dari "Fokus hari ini".
+ * RAIL FOKUS — "Perlu keputusan", SATU BARIS.
  *
  * ══════════════════════════════════════════════════════════════════════════
  * KENAPA ADA, PADAHAL SIDEBAR SUDAH PUNYA
  * ══════════════════════════════════════════════════════════════════════════
  *
  * `SidebarFokus` dan komponen ini membaca endpoint yang SAMA
- * (`/api/v1/dashboard/fokus`) dan sengaja hidup berdampingan, dengan pembagian
- * kerja yang tegas:
+ * (`/api/v1/dashboard/fokus`) dan sengaja hidup berdampingan:
  *
  *   SIDEBAR   ~196px · dua angka total · hadir di SETIAP halaman
- *   RAIL      ~300px · lima baris terurai · hanya di halaman DASHBOARD
+ *   RAIL      ~300px · satu angka + tautan · hanya di halaman DASHBOARD
  *
  * Sidebar tak dicabut justru karena rail bisa mati: di halaman DAFTAR (invoice,
- * upah, transaksi) rail tidak dipasang, dan di situlah orang paling
- * lama bekerja. Kalau fokus hanya hidup di rail, yang mendesak menghilang
- * persis saat orang sedang tenggelam dalam pekerjaan lain.
+ * upah, transaksi) rail tidak dipasang, dan di situlah orang paling lama
+ * bekerja. Kalau fokus hanya hidup di rail, yang mendesak menghilang persis
+ * saat orang sedang tenggelam dalam pekerjaan lain.
  *
- * Yang berubah hanya KERINCIAN, bukan sumbernya. Server sudah lama mengirim
- * lima angka terpisah; sidebar membuangnya karena memang tak muat.
+ * ── Dulu lima baris terurai, sekarang satu (2026-08-09)
  *
- * ── Yang dijaga di sini
+ * Founder: *"perlu keputusan itu bikin 1 baris aja, gausah kasih detail isinya
+ * apa aja nya"*. Rincian per-jenis tetap dihitung server dan tetap terbaca di
+ * halaman tujuan — yang dibuang cuma penyalinannya ke kolom 300px, tempat
+ * lima baris itu mendorong kalender dan asisten turun keluar layar.
  *
- * **Nol adalah kabar baik, dan harus terlihat begitu.** Widget yang menghilang
- * saat kosong membuat orang bertanya apakah ia rusak. Aturan ini diwarisi dari
- * `SidebarFokus`, dan sengaja tidak ditafsir ulang.
+ * Yang berubah KERINCIAN tampilan, bukan sumbernya: `barisFokus`/`totalFokus`
+ * masih dipakai, karena totalnya harus dihitung dengan aturan yang sama
+ * dengan sidebar. Menjumlahkan sendiri di sini adalah cara termudah membuat
+ * dua angka berbeda untuk data yang sama.
+ *
+ * ── Yang tetap dijaga
+ *
+ * **Nol adalah kabar baik, dan harus terlihat begitu** — `RailRingkas` yang
+ * memaksanya lewat prop `kosong` yang wajib.
  *
  * **Gagal memuat ≠ tidak ada yang menunggu.** Menampilkan "0" pada data yang
  * tak terbaca adalah kebohongan yang menenangkan — kartunya disembunyikan.
- *
- * **Angka pakai `tabular-nums`.** Lima baris angka yang tak sejajar terbaca
- * sebagai daftar yang tak dirawat.
  */
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
-import { AlertTriangle, CheckCircle2, ChevronRight, Clock } from "lucide-react";
+import { ListChecks } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { barisFokus, totalFokus, type RincianFokus } from "@/lib/fokus";
-import { C } from "@/lib/warna-ui";
+import { RailRingkas } from "./rail-ringkas";
 
 interface Jawaban {
   lewat: number;
@@ -72,101 +75,33 @@ export function RailFokus() {
   if (gagal || !data) return null;
 
   const baris = barisFokus(data.rincian);
-  const { lewat } = totalFokus(baris);
+  const { lewat, menunggu } = totalFokus(baris);
+  const total = lewat + menunggu;
 
+  /*
+    Nada merah HANYA kalau ada yang sudah LEWAT tenggat, bukan sekadar ada
+    antrean. Perbedaannya penting: "4 hal menunggu keputusan" adalah keadaan
+    kerja normal, sedangkan "ada yang lewat tenggat" adalah kegagalan. Kalau
+    keduanya merah, merah berhenti berarti apa-apa.
+
+    Angka yang ditampilkan tetap TOTAL, sedangkan warnanya ditentukan `lewat` —
+    jadi satu baris ini masih membedakan dua keadaan itu tanpa baris kedua.
+  */
   return (
-    <section
-      aria-labelledby="rail-fokus-judul"
-      style={{
-        background: "var(--surface)",
-        border: "1px solid var(--border)",
-        borderRadius: "var(--rad-besar)",
-        overflow: "hidden",
-      }}
-    >
-      <header
-        style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          gap: 8, padding: "var(--pad-kartu)",
-          borderBottom: baris.length ? "1px solid var(--border)" : "none",
-        }}
-      >
-        <h2
-          id="rail-fokus-judul"
-          style={{
-            margin: 0, fontSize: "var(--t-kecil)", fontWeight: 700,
-            letterSpacing: ".04em", textTransform: "uppercase",
-            color: C.mid,
-          }}
-        >
-          Perlu keputusan
-        </h2>
-        {lewat > 0 && (
-          <span
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 4,
-              padding: "2px 8px", borderRadius: "var(--rad-pil)",
-              background: "var(--danger-bg)", color: "var(--danger)",
-              fontSize: 11, fontWeight: 700, fontVariantNumeric: "tabular-nums",
-            }}
-          >
-            <AlertTriangle size={11} aria-hidden="true" />
-            {lewat} lewat
-          </span>
-        )}
-      </header>
-
-      {baris.length === 0 ? (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "var(--pad-kartu)" }}>
-          <CheckCircle2 size={16} color="var(--success)" aria-hidden="true" />
-          <span style={{ fontSize: "var(--t-badan)", color: C.mid }}>
-            Tidak ada yang menunggu keputusan
-          </span>
-        </div>
-      ) : (
-        <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-          {baris.map((b, i) => (
-            <li key={b.kunci} style={{ borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
-              <Link
-                href={b.href}
-                style={{
-                  display: "flex", alignItems: "center", gap: 10,
-                  padding: "10px var(--pad-kartu)", textDecoration: "none",
-                  transition: "background 150ms ease",
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "var(--surface-hover)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-              >
-                {/*
-                  Ikon MENGULANG informasi nada, bukan menggantikannya — lencana
-                  angka di kanan sudah berwarna, dan warna saja tak boleh jadi
-                  satu-satunya pembawa makna (WCAG 1.4.1). Labelnya pun sudah
-                  menyebut "jatuh tempo" / "menunggu".
-                */}
-                {b.nada === "lewat"
-                  ? <AlertTriangle size={14} color="var(--danger)" aria-hidden="true" style={{ flexShrink: 0 }} />
-                  : <Clock size={14} color={C.mid} aria-hidden="true" style={{ flexShrink: 0 }} />}
-
-                <span style={{
-                  flex: 1, minWidth: 0, fontSize: "var(--t-badan)",
-                  color: C.text, lineHeight: 1.35,
-                }}>
-                  {b.label}
-                </span>
-
-                <span style={{
-                  fontSize: 13, fontWeight: 700, fontVariantNumeric: "tabular-nums",
-                  color: b.nada === "lewat" ? "var(--danger)" : C.text,
-                  flexShrink: 0,
-                }}>
-                  {b.jumlah}
-                </span>
-                <ChevronRight size={13} color={C.mid} aria-hidden="true" style={{ flexShrink: 0 }} />
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
+    <RailRingkas
+      judul="Perlu keputusan"
+      jumlah={total}
+      satuan={lewat > 0 ? `menunggu · ${lewat} lewat tenggat` : "menunggu keputusan"}
+      /*
+        Tautan datang dari SERVER (`/keuangan` bila ada yang lewat tenggat,
+        `/mandor` bila tidak) — bukan ditebak di sini. Cadangannya `/keuangan`
+        karena rute itu terbukti ada; sebelumnya di sini tertulis
+        `/persetujuan`, halaman yang tak pernah dibangun.
+      */
+      href={data.tautan || "/keuangan"}
+      nada={lewat > 0 ? "bahaya" : "normal"}
+      ikon={<ListChecks size={15} />}
+      kosong="Tidak ada yang menunggu keputusan"
+    />
   );
 }

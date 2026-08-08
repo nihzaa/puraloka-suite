@@ -63,6 +63,21 @@ export function KartuRail({
         border: "1px solid var(--border)",
         borderRadius: "var(--rad-besar)",
         overflow: "hidden",
+        /*
+          TINGGI MINIMUM — founder 2026-08-09: *"panel kanan jadinya pada
+          gepeng gini"*.
+
+          Diukur: kartu Notifikasi menyusut jadi 47px dan "Perlu keputusan"
+          79px saat isinya kosong, sehingga rail terbaca sebagai tumpukan
+          strip tipis alih-alih kolom kartu. Penyebabnya bukan gaya melainkan
+          isi: keadaan kosong hanya satu kalimat.
+
+          88px = header (~40px) + satu baris kalimat + napas. Cukup untuk
+          membuat kartu tetap terbaca sebagai KARTU, dan tak cukup besar
+          untuk memaksa ruang kosong pada kartu yang memang berisi.
+        */
+        minHeight: 88,
+        flexShrink: 0,
       }}
     >
       <header

@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { dapatDitekan } from "@/lib/dapat-ditekan";
 import { useEffect, useReducer, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, getStoredUser, makeAbortController } from "@/lib/api";
@@ -13,8 +12,8 @@ import {
 import {
   Building2, TrendingUp, FileText, BarChart2,
   AlertTriangle, CheckCircle2, Clock, CheckCheck,
-  X, RefreshCw, Landmark, ArrowRight, Target,
-  ChevronRight, Coins, Wallet, ShoppingCart, HardHat,
+  X, RefreshCw, Landmark, Target,
+  ChevronRight, Coins, Wallet, ShoppingCart, HardHat, Users,
 } from "lucide-react";
 import { DashboardGrid } from "@/components/dashboard-grid";
 import { Tabel } from "@/components/dasar";
@@ -131,11 +130,11 @@ import { namaSapaan } from "@/lib/nama-sapaan";
 import { formatRupiah, formatPersen, formatTanggalPanjang, formatRelatif } from "@/lib/format";
 import { HalamanIkhtisar } from "@/components/shell/halaman-ikhtisar";
 import { RailFokus } from "@/components/shell/rail-fokus";
-import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
 import { hitungDelta } from "@/lib/deret";
 import { GambarHero } from "@/components/shell/gambar-hero";
-import { RailNotifikasi } from "@/components/shell/rail-notifikasi";
 import { RailIsi } from "@/components/shell/rail-isi";
+import { RailRingkas } from "@/components/shell/rail-ringkas";
+import { susunPeringatan } from "@/lib/peringatan";
 import { usePasangRail } from "@/lib/rail-context";
 import { RailKalender } from "@/components/shell/rail-kalender";
 import { WidgetSerapan } from "@/components/shell/widget-serapan";
@@ -157,6 +156,18 @@ const PINTASAN: { href: string; label: string; ikon: React.ReactNode }[] = [
   { href: "/procurement",       label: "Pengadaan",   ikon: <ShoppingCart size={16} /> },
   { href: "/lapangan",          label: "Lapangan",    ikon: <HardHat size={16} /> },
   { href: "/laporan",           label: "Laporan",     ikon: <BarChart2 size={16} /> },
+  /*
+    DELAPAN, bukan tujuh — dan itu bukan kebetulan.
+
+    Founder 2026-08-09: *"bagian ini kurang simetris"*. Penyebabnya jumlah
+    ganjil di kisi 4 kolom: tiga pil di baris kedua menyisakan satu sel kosong
+    yang terbaca sebagai kesalahan tata letak. Ditambah satu tujuan yang
+    memang sering dibuka dari beranda (bukan pengisi), kisinya jadi 4×2 penuh.
+
+    Kalau daftar ini diubah lagi, jaga jumlahnya kelipatan 4 — atau kisinya
+    akan ragged lagi.
+  */
+  { href: "/klien",             label: "Klien",       ikon: <Users size={16} /> },
 ];
 
 const STATUS_COLOR: Record<string, string> = {
@@ -331,16 +342,15 @@ function DashboardContent() {
   const kasBersih = data?.kpis.net_cash_estimate ?? 0;
 
   // Tren 8 minggu dari data yang SUDAH ADA — tak ada endpoint baru.
-  const sparkMasuk = (data?.cashflow_8w ?? []).map((w) => w.income);
   const sparkBersih = (data?.cashflow_8w ?? []).map((w) => w.income - w.expense);
 
   /*
    * Deret BULANAN per metrik (UIR-4B) — `GET /api/v1/dashboard/deret`.
    *
-   * Berbeda dari `sparkMasuk`/`sparkBersih` di atas, yang keduanya berasal
-   * dari `cashflow_8w` — arus kas mingguan. Itu tren yang BENAR untuk kartu
-   * kas, tetapi salah untuk "Proyek aktif" dan "Nilai kontrak": keduanya tak
-   * punya hubungan dengan arus kas mingguan sama sekali.
+   * Berbeda dari `sparkBersih` di atas, yang berasal dari `cashflow_8w` —
+   * arus kas mingguan. Itu tren yang BENAR untuk kartu kas, tetapi salah
+   * untuk "Proyek aktif" dan "Nilai kontrak": keduanya tak punya hubungan
+   * dengan arus kas mingguan sama sekali.
    *
    * `delta` sengaja dihitung dari deret yang SAMA dengan sparkline-nya. Kalau
    * berbeda sumber, garis bisa menanjak sementara deltanya merah — dan tak
@@ -962,40 +972,25 @@ function DashboardContent() {
     beranda dibuka di HP di bawah sinar matahari, tempat merah dan kuning
     praktis sama.
   */
-  const peringatan: Array<{
-    id: string; judul: string; sub: string; href: string;
-    tingkat: "tinggi" | "sedang";
-  }> = [];
-  if ((alerts?.invoice_overdue ?? 0) > 0) {
-    peringatan.push({
-      id: "invoice",
-      judul: `${alerts!.invoice_overdue} invoice lewat jatuh tempo`,
-      sub: "Uang yang seharusnya sudah masuk",
-      href: "/keuangan/invoice",
-      tingkat: "tinggi",
-    });
-  }
-  if ((alerts?.milestone_late ?? 0) > 0) {
-    peringatan.push({
-      id: "milestone",
-      judul: `${alerts!.milestone_late} milestone terlambat`,
-      sub: "Pekerjaan meleset dari janji ke klien",
-      href: "/kalender",
-      tingkat: "tinggi",
-    });
-  }
-  if ((alerts?.kasbon_pending ?? 0) > 0) {
-    peringatan.push({
-      id: "kasbon",
-      judul: `${alerts!.kasbon_pending} kasbon menunggu persetujuan`,
-      sub: "Mandor menunggu keputusan Anda",
-      href: "/mandor/kasbon",
-      tingkat: "sedang",
-    });
-  }
+  /*
+    Daftarnya disusun `lib/peringatan.ts`, BUKAN di sini.
+
+    Founder 2026-08-09 minta peringatan tetap ada di tengah *"tapi tetep bisa
+    langsung ke notice juga"* — artinya ia tampil di dua tempat. Dua tempat
+    yang menghitung sendiri-sendiri pasti menyimpang cepat atau lambat, dan
+    saat menyimpang tak ada yang tahu mana yang benar. Aturannya (termasuk
+    URUTAN mendesak) hidup di satu fungsi ber-test.
+  */
+  const peringatan = susunPeringatan(alerts);
 
   const peringatanWidget = (
-    <div style={{ padding: "var(--pad-kartu-lega)" }}>
+    /*
+      `id` DIPAKAI: kartu ringkas di rail menaut ke `#peringatan`. Kalau id ini
+      dihapus, tautan itu diam-diam jadi tak berfungsi — tak ada 404, cuma klik
+      yang tak melakukan apa-apa. `scrollMarginTop` supaya judulnya tidak
+      tersembunyi di balik topbar 56px saat dilompati.
+    */
+    <div id="peringatan" style={{ padding: "var(--pad-kartu-lega)", scrollMarginTop: 72 }}>
       <SectionHeader title="Peringatan Kritis" />
       {loading ? (
         <Skeleton h={140} />
@@ -1156,16 +1151,36 @@ function DashboardContent() {
       konteks={
         <>
           {/*
-            URUTAN REFERENSI: Kalender · My Tasks · Notifikasi — lalu Asisten
-            dan Pengingat ditambahkan `RailIsi` (selalu ada, di halaman mana
-            pun rail hidup).
+            PERINGATAN KRITIS DI PUNCAK RAIL.
 
-            Semua kartu di sini memakai data yang SUDAH dimuat halaman ini,
-            kecuali notifikasi yang punya endpointnya sendiri. Nol angka
-            karangan (Aturan Emas §9).
+            Founder 2026-08-09: *"untuk critical issues yg di tengah tetp ada,
+            tapi tetep bisa langsung ke notice juga"*. Yang di tengah menjawab
+            "apa masalahnya" dengan ruang untuk satu kalimat penjelas; yang di
+            sini menjawab "berapa banyak, ke mana" — terjangkau tanpa scroll,
+            karena rail tak ikut ter-scroll.
+
+            Keduanya membaca `susunPeringatan()` yang sama, jadi angkanya tak
+            bisa berbeda.
+
+            SATU BARIS, bukan daftar — founder 2026-08-09: *"bikin 1 baris aja,
+            gausah kasih detail isinya apa aja nya"*. Rinciannya memang sudah
+            ada persis di kartu tengah; menyalinnya ke kolom 300px cuma
+            mendorong kalender dan asisten turun keluar layar.
           */}
-          <RailKalender
-            tanggalPenting={(data?.upcoming_milestones ?? []).map((m) => m.target_date)}
+          <RailRingkas
+            judul="Peringatan kritis"
+            jumlah={peringatan.length}
+            satuan="hal mendesak"
+            /*
+              Ke kartu tengah, bukan ke salah satu tujuan peringatan: dari satu
+              angka, pertanyaan berikutnya selalu "apa saja" — dan itu yang
+              dijawab kartu tengah. Melompat langsung ke /keuangan/invoice akan
+              menyembunyikan dua peringatan lain.
+            */
+            href="#peringatan"
+            nada={peringatan.some((p) => p.tingkat === "tinggi") ? "bahaya" : "normal"}
+            ikon={<AlertTriangle size={15} />}
+            kosong="Tak ada yang mendesak"
           />
 
           {/*
@@ -1173,54 +1188,45 @@ function DashboardContent() {
             `RailFokus` (kasbon menunggu persetujuan, invoice jatuh tempo,
             klaim lewat batas) — pekerjaan nyata yang menunggu keputusan,
             bukan daftar tugas yang harus diketik sendiri.
+
+            LETAKNYA TEPAT DI BAWAH PERINGATAN, bukan di bawah kalender —
+            founder 2026-08-09: *"yg warning ini paling atas ajaa taronya
+            semua"*. Dua kartu bernada mendesak yang dipisah oleh kalender
+            membuat rail terbaca sebagai tiga bagian tak berhubungan; berdempet,
+            keduanya jadi satu blok "yang butuh perhatian" dan kalender
+            memulai blok berikutnya.
           */}
           <RailFokus />
 
-          <RailNotifikasi />
+          {/*
+            Kalender — kartu kedua referensi.
+
+            Notifikasi dan "Milestone mendatang" DIBUANG atas permintaan
+            founder 2026-08-09 (*"milestone dan notifikasi hilangkan aja
+            deh"*), dan keduanya memang yang paling lemah di kolom ini:
+            notifikasi kosong pada data uji sehingga cuma menyumbang satu
+            strip tipis, dan milestone mengulang informasi yang sudah dijawab
+            kalender persis di atasnya. Rail sekarang lima kartu, bukan tujuh.
+          */}
+          <RailKalender
+            tanggalPenting={(data?.upcoming_milestones ?? []).map((m) => m.target_date)}
+          />
 
           {/*
-            Milestone mendatang TIDAK ikut naik ke tiga teratas: kalender di
-            atas sudah menjawab "kapan padatnya", dan daftar ini menjawab "apa
-            saja". Ia tetap ada, hanya di bawah tiga kartu referensi.
-          */}
-          <KartuRail
-            judul="Milestone mendatang"
-            tautan="/kalender"
-            labelTautan="Kalender"
-            kosong="Tak ada milestone dalam waktu dekat."
-          >
-            {(data?.upcoming_milestones ?? []).slice(0, 5).map((m, i) => {
-              const sisa = daysUntil(m.target_date);
-              return (
-                <BarisRail
-                  key={m.id}
-                  pertama={i === 0}
-                  utama={m.title}
-                  sub={m.projects?.name}
-                  kanan={sisa < 0 ? `${Math.abs(sisa)}h lalu` : `${sisa}h`}
-                  nadaKanan={sisa < 0 ? "bahaya" : "normal"}
-                  href={m.projects?.id ? `/proyek/${m.projects.id}` : undefined}
-                />
-              );
-            })}
-          </KartuRail>
+            "Progres proyek aktif" DICABUT dari rail 2026-08-09.
 
-          <KartuRail
-            judul="Progres proyek aktif"
-            tautan="/proyek"
-            kosong="Belum ada proyek berjalan."
-          >
-            {(data?.active_progress ?? []).slice(0, 5).map((p, i) => (
-              <BarisRail
-                key={p.id}
-                pertama={i === 0}
-                utama={p.name}
-                kanan={`${Math.round(p.progress_pct)}%`}
-                nadaKanan={p.progress_pct >= 100 ? "baik" : "normal"}
-                href={`/proyek/${p.id}`}
-              />
-            ))}
-          </KartuRail>
+            Bukan karena kartunya jelek, melainkan karena ia menampilkan
+            `active_progress.slice(0, 5)` — LIMA PROYEK YANG SAMA PERSIS yang
+            sudah dirender widget progres di kolom tengah. Dua salinan daftar
+            yang identik, terlihat bersamaan tanpa perlu scroll.
+
+            Yang memaksa keputusan ini: sesudah kalender diperbaiki (tak lagi
+            digepengkan jadi 2px, kembali ke 301px penuh), isi rail menjadi
+            1082px di kolom setinggi 944px — Asisten dan Pengingat terdorong
+            keluar layar pada 1600x1000, padahal keduanya justru yang founder
+            minta SELALU ada. Sesuatu harus pergi, dan yang paling pantas
+            pergi adalah satu-satunya kartu yang tak menyampaikan apa pun baru.
+          */}
         </>
       }
     />,
@@ -1274,19 +1280,35 @@ function DashboardContent() {
           `--on-merek` ada persis untuk ini, dan ia berpasangan dengan
           gradasinya — jadi ia ikut benar di mode gelap.
         */}
+        {/*
+          ISI HERO DIPERBESAR 2026-08-09.
+
+          Founder: *"isi di hero nya kayanya bisa di bikin lebih besar?"* — dan
+          diukur, ia benar: wadah hero 386px sementara isinya hanya ~200px.
+          Tingginya bukan ditentukan hero, melainkan kartu Kesehatan di
+          sebelahnya (kolom grid meregang menyamai yang tertinggi).
+
+          Dua sisi dikerjakan: kartu itu diringkas (footer empat baris jadi satu
+          tautan), dan teks di sini dinaikkan supaya proporsinya benar. Yang
+          naik adalah HIERARKINYA, bukan semuanya — tanggal tetap kecil, judul
+          dan ringkasan yang membesar.
+        */}
         <div style={{ padding: "var(--pad-kartu-lega)", display: "flex", flexDirection: "column", justifyContent: "center", minWidth: 0 }}>
-          <p style={{ fontSize: 11, color: "var(--on-merek)", opacity: 0.75, margin: "0 0 6px" }}>
+          <p style={{ fontSize: 12, color: "var(--on-merek)", opacity: 0.75, margin: "0 0 8px" }}>
             {formatTanggalPanjang(new Date())}
           </p>
           <h1 style={{
-            fontFamily: "var(--font-display)", fontSize: "var(--t-halaman)",
+            fontFamily: "var(--font-display)",
+            // `clamp` bukan angka mati: hero ikut menyempit saat rail hadir,
+            // dan ukuran tetap akan membungkus nama panjang jadi tiga baris.
+            fontSize: "clamp(28px, 3.2vw, 40px)",
             fontWeight: 700, letterSpacing: "-0.02em",
-            color: "var(--on-merek)", lineHeight: 1.15, margin: "0 0 6px",
+            color: "var(--on-merek)", lineHeight: 1.12, margin: "0 0 10px",
           }}>
             Selamat datang{user && <>, {namaSapaan(user.name)}</>}
           </h1>
-          {loading ? <Skeleton h={13} w={260} /> : data && (
-            <p style={{ fontSize: "var(--t-badan)", color: "var(--on-merek)", opacity: 0.85, margin: 0, lineHeight: 1.5 }}>
+          {loading ? <Skeleton h={16} w={300} /> : data && (
+            <p style={{ fontSize: 15, color: "var(--on-merek)", opacity: 0.88, margin: 0, lineHeight: 1.5 }}>
               {data.kpis.active_projects} proyek aktif · nilai kontrak {fmtShort(data.kpis.total_contract_value)}
               {totalAlerts > 0 && (
                 <span style={{ fontWeight: 700 }}> · {totalAlerts} perlu perhatian</span>
@@ -1453,20 +1475,41 @@ function PintasanWidget() {
           ruang di beranda adalah barang langka yang justru sedang diperebutkan
           hero, KPI, dan tiga widget.
 
-          `flexWrap` bukan grid: jumlah pintasan bisa berubah, dan grid
-          `auto-fit` akan meregangkan pil terakhir jadi selebar sisa baris.
-          Pil yang lebarnya mengikuti panjang labelnya lebih mudah dipindai.
+          ── KISI TETAP, bukan `flexWrap` (diubah 2026-08-09)
+
+          Versi sebelumnya memakai `flex-wrap` dengan alasan yang terdengar
+          benar: pil selebar labelnya lebih mudah dipindai daripada pil yang
+          diregangkan. Yang tak diperhitungkan: lebar yang berbeda-beda berarti
+          TAK ADA kolom, sehingga ujung kanan tiap baris berhenti di tempat
+          acak. Founder menyebutnya *"kurang simetris"*, dan penyebabnya persis
+          itu — bukan jarak, bukan padding.
+
+          `1fr` empat kolom memulihkan tepi kiri DAN kanan yang lurus. Harga
+          yang dibayar (pil "Klien" selebar pil "Pengeluaran") jauh lebih murah
+          daripada kisi yang terlihat miring.
+
+          `minmax(0,1fr)`, bukan `1fr` telanjang: tanpa `min` nol, label panjang
+          memaksa kolom melebar dan keempatnya berhenti sama lebar.
         */}
         <nav aria-label="Pintasan" style={{
-          display: "flex", flexWrap: "wrap", gap: 8,
+          display: "grid",
+          gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+          gap: 8,
         }}>
           {PINTASAN.map((p) => (
             <Link
               key={p.href}
               href={p.href}
               style={{
-                display: "inline-flex", alignItems: "center", gap: 8,
-                height: 38, padding: "0 14px 0 10px",
+                /*
+                  `flex`, bukan `inline-flex`: di dalam sel kisi, `inline-flex`
+                  menyusut ke lebar isinya sehingga selnya lurus tetapi PIL-nya
+                  tidak — persis cacat yang sedang diperbaiki, hanya berpindah
+                  satu lapis ke dalam.
+                */
+                display: "flex", alignItems: "center", gap: 8,
+                minWidth: 0,
+                height: 38, padding: "0 12px 0 10px",
                 border: "1px solid var(--border)",
                 borderRadius: "var(--rad-sedang)",
                 background: "var(--surface)",
@@ -1492,6 +1535,13 @@ function PintasanWidget() {
               <span style={{
                 fontSize: 12.5, fontWeight: 600, color: C.text,
                 whiteSpace: "nowrap",
+                /*
+                  Dipotong, tidak dibungkus: pil setinggi 38px tak muat dua
+                  baris, dan label yang membungkus akan mendorong tinggi satu
+                  pil saja sehingga barisnya tak lagi rata — cacat yang sama
+                  lagi, dari arah lain.
+                */
+                overflow: "hidden", textOverflow: "ellipsis", minWidth: 0,
               }}>
                 {p.label}
               </span>

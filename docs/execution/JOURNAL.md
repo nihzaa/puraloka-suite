@@ -5,6 +5,105 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-09 — Kalender itu tidak "kepotong". Ia gepeng jadi 2px.
+
+Founder menyisir hasil rail dari layar, dan koreksinya datang berturut-turut:
+kartu rail *"pada gepeng"*, milestone dan notifikasi *"hilangkan aja deh"*,
+peringatan dan perlu-keputusan *"bikin 1 baris aja"*, warning *"paling atas
+ajaa taronya semua"*, skor *"di dalam lingkaran aja"*, dan satu kalimat yang
+ternyata paling berharga: **"pastikan kalender itu jangan kepotong"**.
+
+Saya membuka `rail-kalender.tsx` dan tak menemukan apa pun yang memotong — ia
+merender keenam baris minggunya, dan rail punya scroll sendiri. Godaannya
+besar untuk menjawab "sudah aman, rail-nya bisa di-scroll". Saya mengukur.
+
+Hasilnya bukan terpotong. **Pada viewport 1600×800 kartu kalender setinggi
+2px** — turun dari 146px. Kisi tanggalnya lenyap seluruhnya, menyisakan garis.
+
+| Viewport | Tinggi Kalender |
+|---|---|
+| 1600×1000 | 146px |
+| 1600×800 | **2px** |
+| 1600×720 | **2px** |
+
+Sebabnya satu properti yang tak ada. Rail adalah kolom flex; `flex-shrink`
+bawaan bernilai 1. Begitu isi rail melebihi tinggi layar, browser
+**mengecilkan** anaknya alih-alih menggulirkan. Empat kartu rail lain
+kebetulan sudah ber-`flexShrink: 0`. Kalender tidak — jadi seluruh kelebihan
+tinggi ditimpakan kepadanya sendirian.
+
+**Yang membuat ini pantas dicatat:** cacatnya tak terlihat di layar besar. Di
+1600×1000 rail masih muat, tak ada yang perlu dikecilkan, kalender normal
+146px. Setiap tangkapan layar yang pernah saya ambil sesi ini diambil di
+1600×1000. Ia hanya muncul di laptop — tempat sebagian besar orang bekerja.
+
+Kalau saya menjawab dari membaca kode ("tak ada yang memotong"), cacat ini
+selamat. Yang menemukannya cuma mengukur di tiga tinggi layar.
+
+### Penjaganya butuh DUA putaran mutasi sebelum bisa merah
+
+`uji-rail-tak-gepeng.mjs` dibuat supaya kartu rail berikutnya tak mewarisi
+jebakan yang sama. Versi pertamanya hiasan:
+
+1. **Putaran 1** — properti dicabut dari kalender, penjaga tetap **hijau**.
+   Sebabnya komentar yang SAYA TULIS SENDIRI di berkas itu, menjelaskan kenapa
+   `flexShrink: 0` wajib, memuat frasanya tiga kali. Pencarian teks menemukan
+   penjelasannya, bukan kodenya. Repo ini pernah kena pola identik di
+   `hex-ratchet` — arah salahnya berlawanan, sebabnya sama persis.
+2. **Putaran 2** — komentar sudah dibuang, penjaga **masih hijau**. Berkas yang
+   sama punya `flexShrink: 0` yang sah di tempat lain (div tombol geser bulan).
+   Pemeriksaan tingkat-berkas tak bisa membedakan kotak kartu dari elemen di
+   dalamnya.
+
+Versi final membaca hanya blok gaya kotak terluar (hitung kurung kurawal dari
+`borderRadius` kartu), dan barulah merah. Kalau saya berhenti di putaran satu,
+repo ini akan punya satu penjaga lagi yang tak pernah menjaga apa pun.
+
+### Satu kartu dicabut tanpa diminta, karena angkanya menuntut
+
+Sesudah kalender kembali 301px penuh, isi rail jadi 1082px di kolom 944px —
+Asisten dan Pengingat terdorong keluar layar, padahal keduanya justru yang
+founder minta SELALU ada. Sesuatu harus pergi.
+
+Yang pergi "Progres proyek aktif", dan bukan karena selera: ia merender
+`active_progress.slice(0, 5)` — **lima proyek yang sama persis** dengan widget
+progres di kolom tengah. Dua salinan daftar identik, terlihat bersamaan tanpa
+perlu scroll. Sesudah dicabut: 944/944, pas.
+
+### Yang lain
+
+- **Topbar 56 vs kepala sidebar 65.** Founder benar bahwa keduanya *"kurang
+  menyatu"*; selisih 9px membuat garis bawahnya tak sejajar. Dipatok `height`,
+  bukan padding — padding menghasilkan tinggi turunan yang akan menyimpang
+  lagi begitu logo atau font berubah.
+- **Pintasan tak simetris** karena `flex-wrap` + jumlah ganjil. Diganti kisi
+  4 kolom, ditambah satu tujuan nyata (Klien) jadi delapan.
+- **Skor masuk ke dalam ring** sebagai `<text>` SVG. `aria-label` pindah ke
+  `<svg role="img">` supaya terbaca "Skor kesehatan 21 dari 100", bukan dua
+  angka lepas.
+- **`susunPeringatan()` dipisah ke `lib/peringatan.ts`** (7 test) karena
+  peringatan kini tampil di dua tempat, dan dua tempat yang menghitung
+  sendiri-sendiri pasti menyimpang.
+- Tiga variabel mati lama (`dapatDitekan`, `ArrowRight`, `sparkMasuk`) dibuang;
+  `no-unused-vars` turun 15 → 12.
+
+### Bukti
+
+```
+tsc --noEmit                          bersih
+vitest run                            41 berkas · 536 test · semua lulus
+axe-core mode terang                  78 halaman · 0 pelanggaran
+axe-core mode gelap                   78 halaman · 0 pelanggaran
+17 penjaga visual                     semua exit 0
+uji-rail-tak-gepeng (mutasi)          MERAH saat dicabut → HIJAU saat pulih
+rail 1600x1000                        944/944 — muat pas, kalender 301px utuh
+```
+
+`lint-ratchet` masih merah pada enam aturan — **angkanya identik dengan
+baseline** (diverifikasi dengan `git stash`), jadi bukan tambahan sesi ini.
+
+---
+
 ## 2026-08-09 — "Kaya di referensi gimana?" — dan referensinya memang tak punya spanduk
 
 Founder mengusulkan spanduk peringatan di atas KPI diganti kartu Critical
