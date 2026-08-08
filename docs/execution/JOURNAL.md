@@ -103,15 +103,30 @@ penjaga 15 audit, semua exit=0
 **Taksonomi: 🔴 turun 12 → 11**, dan kesebelasnya kini seluruhnya "JANGAN
 DIBANGUN" (10 HR/payroll/report-builder) atau TUNDA beralasan (WBS template).
 
-### Yang saya lihat tapi TIDAK kerjakan di sini
+### Dugaan saya yang KELIRU, dan pengukuran yang membatalkannya
 
-Kartu KPI modul Keuangan di atas halaman ini berbunyi *"Biaya keluar Rp 0 ·
-Upah Rp 0"* — sementara halaman di bawahnya menyatakan Rp 80 juta upah
-terbayar. **Cacat yang sama** dengan yang diperbaiki pagi ini di tab Varians,
-hanya di layar berbeda: `/api/v1/finance/summary` membaca sumber yang salah.
+Melihat tangkapan layar, saya mencatat kartu KPI modul Keuangan berbunyi
+*"Biaya keluar Rp 0 · Upah Rp 0"* di atas halaman yang menyatakan Rp 80 juta
+upah terbayar, dan menyimpulkan itu **cacat yang sama** dengan tab Varians:
+`/api/v1/finance/summary` membaca sumber yang salah.
 
-Memperbaikinya di commit ini akan membuatnya terlalu besar untuk ditinjau.
-Dicatat sebagai pekerjaan berikutnya.
+**Salah.** Diukur:
+
+```
+upah `paid` di basis   : 9 Nov 2025 – 7 Jun 2026 (43 baris)
+periode KPI di layar   : 31 Jul – 30 Agu 2026
+```
+
+`finance/summary` SUDAH menyertakan upah (`wageThisMonth`), dan menyaringnya
+`paid_at` dalam periode. Rp 0 itu **benar** — tak ada upah dibayar bulan ini —
+dan kartunya bahkan sudah menyebut periodenya sendiri.
+
+Dua angka yang berbeda di dua layar bukan otomatis kontradiksi: yang satu
+"biaya bulan ini", yang lain "biaya sejak awal proyek". Saya nyaris
+memperbaiki sesuatu yang tidak rusak.
+
+Pelajaran yang sama dengan tunnel-Cloudflare pagi ini: **dugaan pertama yang
+terdengar masuk akal harus tetap diukur.**
 
 ---
 
