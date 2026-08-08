@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { rutenyaAktifPenuh } from "@/lib/rute-aktif";
+import { tujuanGrup } from "@/lib/tujuan-grup";
 import {
   LayoutDashboard,
   FolderKanban,
@@ -206,50 +207,122 @@ function GrupCollapsible({
   const durasi = kurangiGerak ? 0 : terbuka ? 200 : 150;
   const idPanel = `grup-${node.key}`;
 
+  /*
+    SATU KLIK = BUKA HALAMAN + EXPAND.
+
+    Founder 2026-08-09: *"klik menu itu harusnya bisa sekaligus link halaman
+    dan expand, ngga dipisah"*. Sebelumnya baris ini murni toggle, sehingga
+    `/keuangan` — halaman yang sudah lama jadi — hanya bisa dicapai lewat dua
+    klik: buka grup, lalu klik anak "Ringkasan Keuangan".
+
+    Tujuannya DIPINJAM dari anak, bukan href baru untuk induk. Alasan lengkap
+    di `lib/tujuan-grup.ts`; ringkasnya: memberi induk href sendiri melanggar
+    migrasi 232 R-1 ("satu route = tepat satu link") dan menghidupkan lagi
+    cacat "dua link aktif sekaligus" yang justru dibereskan migrasi itu.
+
+    `null` = grup ini memang tak punya halaman ringkasan (mis. Gudang, yang
+    semua anaknya halaman kerja). Barisnya tetap `<button>` toggle seperti
+    semula — tidak menebak, tidak mengirim orang ke halaman acak.
+  */
+  /*
+    `anak`, BUKAN `node.children`.
+
+    `anak` sudah disaring izin oleh pemanggil (`visibleChildren`);
+    `node.children` belum. Memakai yang belum disaring berarti baris induk bisa
+    mengarahkan orang ke halaman yang tak boleh ia buka — gagal-terbuka, dan
+    jenis kebocoran yang tak terlihat sampai ada pemakai berperan terbatas
+    yang mencobanya.
+  */
+  const tujuan = tujuanGrup({ children: anak });
+
+  const isiBaris = (
+    <>
+      <IkonGrup nama={node.icon} aktif={aktif} />
+      <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis" }}>{node.label}</span>
+      {/* Jumlah submenu: memberi tahu ada berapa SEBELUM dibuka. Dengan 20
+          grup, tanpa ini orang membuka satu per satu untuk mencari. */}
+      <span style={{
+        fontSize: 10, fontWeight: 600, color: "var(--text-muted)",
+        fontVariantNumeric: "tabular-nums", minWidth: 16, textAlign: "right",
+      }}>{anak.length}</span>
+      <ChevronDown
+        size={14}
+        aria-hidden="true"
+        style={{
+          flexShrink: 0,
+          transform: terbuka ? "rotate(180deg)" : "rotate(0deg)",
+          transition: `transform ${durasi}ms cubic-bezier(0.4, 0, 0.2, 1)`,
+          color: aktif ? "var(--navy)" : "var(--text-muted)",
+        }}
+      />
+    </>
+  );
+
+  const gayaBaris: React.CSSProperties = {
+    display: "flex", alignItems: "center", gap: 8,
+    padding: "0 14px", margin: "2px 6px", height: 40,
+    borderRadius: 8, fontSize: 13, fontWeight: aktif ? 600 : 400,
+    // Tombol grup TIDAK diberi pill navy pekat, hanya teks navy.
+    //
+    // Sengaja berbeda dari `navStyle`/`subStyle`: yang aktif di sini
+    // berarti "salah satu ANAK saya sedang dibuka", bukan "inilah
+    // halaman yang Anda lihat". Memberi pill penuh pada keduanya
+    // membuat DUA blok navy menyala sekaligus — grup dan anaknya —
+    // dan pemakai tak lagi tahu mana yang sebenarnya halaman aktif.
+    background: "transparent", border: "none",
+    color: aktif ? "var(--navy)" : "var(--text-secondary)",
+    cursor: "pointer", width: "calc(100% - 12px)", textAlign: "left",
+    transition: "all 0.15s", whiteSpace: "nowrap",
+    textDecoration: "none",
+  };
+
+  const masuk = (e: React.MouseEvent<HTMLElement>) => {
+    if (!aktif) { e.currentTarget.style.color = "var(--text-primary)"; e.currentTarget.style.background = "var(--surface-hover)"; }
+  };
+  const keluar = (e: React.MouseEvent<HTMLElement>) => {
+    if (!aktif) { e.currentTarget.style.color = "var(--text-secondary)"; e.currentTarget.style.background = "transparent"; }
+  };
+
   return (
     <div>
-      <button
-        onClick={onToggle}
-        aria-expanded={terbuka}
-        aria-controls={idPanel}
-        style={{
-          display: "flex", alignItems: "center", gap: 8,
-          padding: "0 14px", margin: "2px 6px", height: 40,
-          borderRadius: 8, fontSize: 13, fontWeight: aktif ? 600 : 400,
-          // Tombol grup TIDAK diberi pill navy pekat, hanya teks navy.
-          //
-          // Sengaja berbeda dari `navStyle`/`subStyle`: yang aktif di sini
-          // berarti "salah satu ANAK saya sedang dibuka", bukan "inilah
-          // halaman yang Anda lihat". Memberi pill penuh pada keduanya
-          // membuat DUA blok navy menyala sekaligus — grup dan anaknya —
-          // dan pemakai tak lagi tahu mana yang sebenarnya halaman aktif.
-          background: "transparent", border: "none",
-          color: aktif ? "var(--navy)" : "var(--text-secondary)",
-          cursor: "pointer", width: "calc(100% - 12px)", textAlign: "left",
-          transition: "all 0.15s", whiteSpace: "nowrap",
-        }}
-        onMouseEnter={(e) => { if (!aktif) { e.currentTarget.style.color = "var(--text-primary)"; e.currentTarget.style.background = "var(--surface-hover)"; } }}
-        onMouseLeave={(e) => { if (!aktif) { e.currentTarget.style.color = "var(--text-secondary)"; e.currentTarget.style.background = "transparent"; } }}
-      >
-        <IkonGrup nama={node.icon} aktif={aktif} />
-        <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis" }}>{node.label}</span>
-        {/* Jumlah submenu: memberi tahu ada berapa SEBELUM dibuka. Dengan 20
-            grup, tanpa ini orang membuka satu per satu untuk mencari. */}
-        <span style={{
-          fontSize: 10, fontWeight: 600, color: "var(--text-muted)",
-          fontVariantNumeric: "tabular-nums", minWidth: 16, textAlign: "right",
-        }}>{anak.length}</span>
-        <ChevronDown
-          size={14}
-          aria-hidden="true"
-          style={{
-            flexShrink: 0,
-            transform: terbuka ? "rotate(180deg)" : "rotate(0deg)",
-            transition: `transform ${durasi}ms cubic-bezier(0.4, 0, 0.2, 1)`,
-            color: aktif ? "var(--navy)" : "var(--text-muted)",
-          }}
-        />
-      </button>
+      {tujuan ? (
+        /*
+          `<Link>`, bukan `<button onClick={router.push}>`: navigasi harus
+          tetap bekerja dengan klik-tengah, Ctrl+klik, dan "buka di tab baru".
+          Tombol ber-handler membuang ketiganya diam-diam.
+
+          `onClick` di SINI hanya meng-expand — navigasinya urusan `<Link>`.
+          Keduanya berjalan pada klik yang sama, dan itulah yang diminta:
+          "sekaligus link halaman dan expand, ngga dipisah".
+
+          Sengaja hanya MEMBUKA, tak pernah menutup: kalau klik yang sama juga
+          bisa menutup, orang yang mengklik "Keuangan" saat grupnya sudah
+          terbuka akan pindah halaman DAN kehilangan daftar anaknya sekaligus.
+          Menutupnya tetap bisa lewat klik saat grup itu bukan grup aktif.
+        */
+        <Link
+          href={tujuan}
+          onClick={() => { if (!terbuka) onToggle(); }}
+          aria-expanded={terbuka}
+          aria-controls={idPanel}
+          style={gayaBaris}
+          onMouseEnter={masuk}
+          onMouseLeave={keluar}
+        >
+          {isiBaris}
+        </Link>
+      ) : (
+        <button
+          onClick={onToggle}
+          aria-expanded={terbuka}
+          aria-controls={idPanel}
+          style={gayaBaris}
+          onMouseEnter={masuk}
+          onMouseLeave={keluar}
+        >
+          {isiBaris}
+        </button>
+      )}
       <div
         id={idPanel}
         style={{

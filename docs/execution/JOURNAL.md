@@ -5,6 +5,123 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-09 (sore) — Permintaan founder bertentangan dengan aturannya sendiri, dan itu bisa diselesaikan tanpa melanggar keduanya
+
+Founder: *"klik menu itu harusnya bisa sekaligus link halaman dan expand,
+ngga dipisah"*.
+
+Diukur lebih dulu, dan keadaannya memang seburuk yang ia rasakan: `/keuangan`
+sudah lama jadi, tetapi satu-satunya cara ke sana adalah membuka grupnya lalu
+mengklik anak "Ringkasan Keuangan". Dua klik untuk halaman yang seharusnya
+satu. Berlaku di **13 grup induk**.
+
+Penyebabnya dua lapis:
+
+| Lapis | Keadaan |
+|---|---|
+| DB `menu_items.href` untuk induk | **NULL, ke-13-nya** |
+| API | sudah mengirim `href` — tidak salah |
+| Tipe `MenuNode` | sudah punya `href` — tidak salah |
+| Kode sidebar | `children.length > 0` → toggle, `href` **dibuang** |
+
+### Godaan yang saya tolak
+
+Perbaikan paling jelas: isi 13 href itu lewat migrasi. Saya hampir
+menulisnya, lalu membaca migrasi 232 — dan menemukan bahwa itu melanggar
+keputusan founder sendiri:
+
+> R-1  satu route = tepat satu link
+> R-2  kelompok adalah WADAH: `href` NULL
+
+Alasannya tercatat di migrasi itu, dari founder juga:
+
+> *"ketika 1 halaman dibuka, link di sidebarnya harus aktif dan menu induknya
+> terbuka, tapi kalo link sidebar yg aktifnya 2 kan jadi aneh."*
+
+Kalau induk `g-keuangan` DAN anak `keuangan` sama-sama menunjuk `/keuangan`,
+penanda aktif kembali punya dua kandidat — persis cacat yang dibereskan
+migrasi 232, dihidupkan lagi sepuluh bulan kemudian.
+
+### Jalan keluarnya: PINJAM href anak, jangan menduplikasinya
+
+Tiap grup sudah punya satu anak yang memegang halaman ikhtisarnya. Baris
+induk tidak diberi href baru — ia mengarahkan ke href anak itu.
+
+Hasilnya memenuhi keduanya: satu klik membuka halaman **sekaligus** expand,
+dan route tetap dimiliki tepat satu item menu. Dibuktikan, bukan diklaim:
+`uji-sidebar-disiplin` menguji 13 halaman dan semuanya **tepat satu link
+aktif**.
+
+### Aturan pemilihannya salah di percobaan pertama
+
+Versi awal `tujuanGrup()` menuntut kandidat satu-ruas itu TUNGGAL. Lolos di
+test sintetis, lalu **gagal pada 3 dari 13 grup** saat diukur di sidebar
+sungguhan:
+
+```
+Kontrak    /kontrak + /tender                   → 2 akar, ditolak
+Estimasi   /estimasi + /laporan + /akuntansi    → 3 akar, ditolak
+Proyek     /proyek + /jadwal + /kalender + …    → 4 akar, ditolak
+```
+
+Padahal ketiganya jelas punya ikhtisar. Yang membedakan bukan jumlah kandidat
+melainkan **berapa anak yang berada di bawahnya**: `/kontrak` menaungi
+`/kontrak/rfi` dan `/kontrak/asuransi`; `/tender` tak menaungi apa pun.
+
+Sesudah aturannya diganti jadi "menaungi terbanyak": **10 dari 13** bisa
+diklik, naik dari 7. Tujuh kasus nyata dari DOM sidebar disalin apa adanya
+jadi test — karena test sintetis yang saya tulis sendiri sudah terbukti
+gagal menangkap ini.
+
+### Penjaga untuk pertanyaan ketiga founder
+
+*"kalo nanti ada menu lain dari taksonomi menu yg emang perlu dashboard biar
+ga lupa dibangun halaman dashboard nya gimana?"*
+
+`uji-induk-punya-ikhtisar.mjs`, ratchet lantai 3 (Estimasi & Biaya, Gudang,
+Mutu & Kepatuhan memang belum punya).
+
+Versi pertamanya membaca DOM lewat Playwright — angkanya lebih jujur, tapi
+**CI repo ini tak menjalankan satu pun penjaga berbasis peramban**; bahkan
+`audit-a11y-runtime` dan `uji-sidebar-disiplin` pun manual. Penjaga yang
+butuh server hidup akan merah di CI karena servernya tak ada, lalu dimatikan
+orang — dan yang dimatikan tidak menjaga apa-apa. Ditulis ulang jadi statis
+(membaca migrasi + berkas halaman).
+
+Versi statis memberi angka **identik** dengan versi peramban — 13 grup, 10
+punya, 3 belum, grup yang sama persis. Aturannya di-import dari
+`lib/tujuan-grup.ts`, bukan disalin: dua salinan aturan pasti menyimpang.
+
+Dua jalur deteksinya diuji mutasi, keduanya merah:
+
+```
+lantai 3 → 2                    exit 1  ✓
+keuangan/page.tsx disembunyikan exit 1  ✓  ("mengklik grup → 404")
+dipulihkan                      exit 0  ✓
+```
+
+### Dua koreksi dashboard di sesi yang sama
+
+- **Peringatan kritis dibuka, pindah ke bawah kalender** (*"biar ga kosong"*).
+  "Perlu keputusan" tetap satu baris — pembedanya: peringatan kritis bermuara
+  ke tiga halaman berbeda, jadi rinciannya adalah tiga sasaran klik.
+- **Tombol "Sesuaikan" masuk ke hero.** Tiga percobaan mengambangkannya gagal,
+  semuanya ketahuan dari tangkapan layar bukan dari menghitung. Sebabnya bukan
+  koordinat: tak ada ruang mengambang yang kosong di sana.
+
+### Bukti
+
+```
+tsc --noEmit                     bersih
+vitest run                       42 berkas · 551 test · lulus
+axe terang / gelap               78 halaman · 0 pelanggaran (keduanya)
+uji-sidebar-disiplin             13 halaman · tepat satu link aktif
+uji-induk-punya-ikhtisar         13 grup · 10 punya ikhtisar · lantai 3
+8 penjaga visual                 exit 0
+```
+
+---
+
 ## 2026-08-09 — Kalender itu tidak "kepotong". Ia gepeng jadi 2px.
 
 Founder menyisir hasil rail dari layar, dan koreksinya datang berturut-turut:

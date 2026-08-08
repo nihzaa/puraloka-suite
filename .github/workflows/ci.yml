@@ -1232,6 +1232,32 @@ jobs:
         run: node apps/web/scripts/uji-rail-tak-gepeng.mjs
         working-directory: .
 
+      # Menu induk yang punya anak wajib punya HALAMAN IKHTISAR — halaman
+      # satu-ruas yang menaungi anak-anaknya (/keuangan bagi /keuangan/invoice).
+      #
+      # Founder 2026-08-09: "kalo nanti ada menu lain dari taksonomi menu yg
+      # emang perlu dashboard biar ga lupa dibangun halaman dashboard nya
+      # gimana?" — dan jawabannya harus penjaga, bukan catatan. Repo ini sudah
+      # membuktikannya: TUJUH sub-menu pernah bertanda merah di taksonomi
+      # padahal UI-nya sudah hidup berbulan-bulan (F5-1 §3a/§3b).
+      #
+      # Aturan pemilihannya dipinjam dari `lib/tujuan-grup.ts` — sumber yang
+      # SAMA dengan yang dipakai sidebar untuk memutuskan apakah baris induk
+      # bisa diklik. Kalau penjaga memakai aturannya sendiri, ia bisa hijau
+      # untuk grup yang di layar tetap tak bisa diklik.
+      #
+      # RATCHET: 3 grup memang belum punya ikhtisar hari ini (Estimasi & Biaya,
+      # Gudang, Mutu & Kepatuhan). Angkanya lantai — tak boleh bertambah.
+      #
+      # STATIS (membaca migrasi menu + berkas halaman), bukan lewat peramban:
+      # CI ini tak menjalankan satu pun penjaga berbasis peramban — bahkan
+      # `audit-a11y-runtime` dan `uji-sidebar-disiplin` pun dijalankan manual.
+      # Penjaga yang butuh server hidup akan merah di CI karena servernya tak
+      # ada, lalu dimatikan orang. Yang dimatikan tidak menjaga apa-apa.
+      - name: Menu induk punya halaman ikhtisar (ratchet)
+        run: node apps/web/scripts/uji-induk-punya-ikhtisar.mjs
+        working-directory: .
+
       # Rumus jarak geotag ada di DUA tempat (api/lib/geotag.ts dan
       # web/components/penanda-lokasi.tsx) — digandakan supaya galeri foto tak
       # perlu satu permintaan jaringan per foto.
