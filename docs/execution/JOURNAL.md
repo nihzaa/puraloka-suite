@@ -5,6 +5,116 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-08 — CVR dibangun: merah terakhir yang bukan "jangan dibangun"
+
+### Penundaan yang dicabut SEBAGIAN, karena separuh alasannya sudah tak berlaku
+
+F5-1 menunda CVR 2026-08-07 dengan alasan yang benar saat itu:
+
+> *"Prasyaratnya bukan kode, melainkan pemakaian: biaya proyek harus
+> benar-benar dicatat ke `project_expenses` dengan cost code. Sampai itu
+> terjadi, yang bisa dibangun hanya cangkang."*
+
+Diukur ulang hari ini, sesudah `belanja-aktual` selesai:
+
+```
+sisi BIAYA                        ✅  Rp 168 juta terbukti di layar
+per COST CODE                     ❌  work_scopes.rab_category_id 0 dari 20
+per SCOPE BORONGAN                ✅  weekly_wage_reports.scope_id 50/50
+```
+
+Jadi yang dibangun adalah CVR **per scope borongan** — yang bisa dijawab jujur
+hari ini. Ruang lingkupnya dinyatakan di layar, bukan disamarkan.
+
+**Pemicu penundaan diperbarui** di F5-1, karena yang lama sudah salah: bukan
+lagi "biaya dicatat ke `project_expenses`", melainkan **"scope mandor mulai
+dikaitkan ke kategori RAB saat dibuat"**. Beserta perintah mengukurnya.
+
+Dan itu **bukan cacat kode**: dropdown "Kaitkan ke Sub-Kategori RAB" sudah ada
+(`mandor-section.tsx:635`), API menerimanya, 24 kategori tersedia. Kolomnya
+kosong karena 20 scope itu dibuat sebelum kolomnya ada.
+
+### Nilai TERPASANG, bukan nilai kontrak
+
+Yang diadu `borongan × progres`, bukan nilai borongan mentah. Membandingkan
+biaya-sampai-hari-ini dengan nilai-kontrak-penuh membuat **setiap** pekerjaan
+tampak untung besar sampai hampir selesai — lalu tiba-tiba rugi di akhir, saat
+sudah terlambat berbuat apa pun.
+
+### Enam keadaan, bukan dua
+
+`untung` / `rugi` saja menyembunyikan dua hal yang menuntut tindakan berbeda:
+
+- **`tanpa_biaya`** — progres berjalan, NOL upah tercatat. Selisihnya besar dan
+  positif, dan itu justru **tanda bahaya**: biayanya ada di suatu tempat yang
+  tak terbaca laporan ini. Diukur nyata: "Renovasi 2 Kamar Mandi" 80% progres,
+  nol upah.
+- **`impas`** — margin nol di tengah jalan berarti sisa pekerjaan dikerjakan
+  tanpa cadangan sama sekali. Bukan kabar baik.
+
+### Cacat yang ditemukan dari LAYAR, bukan dari test
+
+Tangkapan layar pertama menunjukkan **"Pekerjaan merugi 0"** di sebelah
+**"Selisih −Rp 2.600.100"** berwarna merah, dengan keterangan *"seluruh
+pekerjaan di atas biayanya"*. Tiga pernyataan, dua di antaranya saling
+membantah.
+
+Diukur: dua scope **harian** menyumbang Rp 46,6 juta biaya **tanpa nilai
+terpasang**. Perhitungan per-baris benar; **totalnya** yang mencampur dua hal
+yang tak bisa dijumlahkan.
+
+Diperbaiki: total hanya dari scope yang CVR-nya berlaku, dan biaya harian
+dilaporkan **terpisah** — bukan dibuang, karena membuangnya diam-diam membuat
+total biaya di layar ini berbeda dari `/estimasi` untuk proyek yang sama.
+
+Sesudahnya: biaya terpakai Rp 126,6jt → **Rp 80.000.100**, selisih
+**+Rp 43.999.900**, dengan keterangan *"Rp 46.600.000 lagi di scope harian, di
+luar hitungan ini"*.
+
+Dua test ditambahkan untuk mengunci pemisahan itu.
+
+### Penjaga taksonomi menangkap asumsinya sendiri
+
+`audit-taksonomi-vs-kode.mjs` merah begitu CVR hidup: `PETA`-nya menuntut tabel
+bernama `cvr` yang tak pernah ada. **CVR dihitung, tidak disimpan** — alasan
+yang sama dengan tabulasi RFQ, yang sudah dijelaskan persis di bawahnya di
+berkas yang sama. Entri diperbaiki ke `work_scopes` × `weekly_wage_reports`.
+
+### Halaman, bukan tab
+
+`ARAH-VISUAL-2026.md` §6a: *tab = sudut pandang berbeda atas data yang sama;
+halaman = entitas berbeda*. CVR menjawab "pekerjaan mana yang merugi" —
+pertanyaan yang dikirim ke orang lain. Jadi `/keuangan/cvr`, bersaudara dengan
+`/keuangan/profitabilitas`.
+
+### Bukti
+
+```
+vitest  30 lulus (22 pustaka + 8 endpoint Postgres nyata)
+mutasi  16 MERAH (10 pustaka + 6 endpoint)
+axe     0 pelanggaran — /keuangan/cvr
+layar   Rp 124.000.000 terpasang · Rp 80.000.100 terpakai
+        selisih +Rp 43.999.900 · 0 merugi dari 4 scope
+        "Rp 46.600.000 lagi di scope harian, di luar hitungan ini"
+tsc     api exit=0 · web exit=0
+penjaga 15 audit, semua exit=0
+```
+
+**Taksonomi: 🔴 turun 12 → 11**, dan kesebelasnya kini seluruhnya "JANGAN
+DIBANGUN" (10 HR/payroll/report-builder) atau TUNDA beralasan (WBS template).
+
+### Yang saya lihat tapi TIDAK kerjakan di sini
+
+Kartu KPI modul Keuangan di atas halaman ini berbunyi *"Biaya keluar Rp 0 ·
+Upah Rp 0"* — sementara halaman di bawahnya menyatakan Rp 80 juta upah
+terbayar. **Cacat yang sama** dengan yang diperbaiki pagi ini di tab Varians,
+hanya di layar berbeda: `/api/v1/finance/summary` membaca sumber yang salah.
+
+Memperbaikinya di commit ini akan membuatnya terlalu besar untuk ditinjau.
+Dicatat sebagai pekerjaan berikutnya.
+
+---
+
 ## 2026-08-08 — "Belanja aktual Rp 0" di sebelah "Commitment Rp 11 juta"; dan bug yang terulang meski sudah didokumentasikan
 
 ### Pertanyaan founder yang membuka semuanya

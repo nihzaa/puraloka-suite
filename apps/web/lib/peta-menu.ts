@@ -163,7 +163,7 @@ export const PETA_MENU: GrupMenu[] = [
       { key: 'cc-varians', label: 'Analisa Varians', status: 'hidup', href: '/estimasi?tab=varians', guna: 'Anggaran vs komitmen vs aktual, per cost code.' },
       { key: 'cc-profit', label: 'Profitabilitas Proyek', status: 'hidup', href: '/keuangan/profitabilitas', guna: 'Laba per proyek dan per pos biaya.' },
       { key: 'cc-wip', label: 'WIP / PSAK', status: 'hidup', href: '/laporan?tab=wip', guna: 'Pengakuan pendapatan sesuai kemajuan pekerjaan.' },
-      { key: 'cc-cvr', label: 'Cost Value Reconciliation', status: 'rencana', guna: 'Mencocokkan nilai pekerjaan dengan biaya yang terjadi.', catatan: 'Laporan bulanan standar kontraktor besar Inggris/Australia.' },
+      { key: 'cc-cvr', label: 'Cost Value Reconciliation', status: 'sebagian', href: '/keuangan/cvr', guna: 'Mencocokkan nilai pekerjaan yang terpasang dengan biaya yang terjadi — pekerjaan mana yang merugi SEKARANG.', catatan: '2026-08-08 · `lib/cvr.ts` (20 test) + `GET /projects/:id/cvr` (8 test) + `/keuangan/cvr`. **Sebagian**: cakupannya UPAH BORONGAN saja — material & faktur supplier belum bisa dipecah per pekerjaan (`work_scopes.rab_category_id` 0 dari 20). Cakupan itu dinyatakan di layar, bukan disamarkan. Nilai terpasang = borongan × progres, bukan nilai kontrak penuh.' },
       { key: 'cc-pagu-material', label: 'Pagu Belanja Material', status: 'hidup', href: '/procurement/material', guna: 'Batas belanja per material, dipakai menjaga kuota MR.' },
       { key: 'cc-bac', label: 'Cost Baseline (BAC)', status: 'hidup', href: '/proyek', tabProyek: 'sec-kurvas', guna: 'Dasar pembanding EVM — diambil dari pagu RAP terkunci.' },
     ],

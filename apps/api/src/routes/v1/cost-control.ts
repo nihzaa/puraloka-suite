@@ -6,6 +6,7 @@ import { analisaProyek, ringkasPortofolio, urutkanPerhatian, type BarisProyek } 
 import { agregasiVarians, type CostCodeRef } from '../../lib/varians-cost-code.js'
 import { sarankanPemetaan } from '../../lib/saran-cost-map.js'
 import { rangkumBelanjaAktual, type BarisSumber } from '../../lib/belanja-aktual.js'
+import { ringkasCvr, type BarisScope } from '../../lib/cvr.js'
 
 // ============================================================
 // ROADMAP #9 — Commitment & Varians per Cost Code.
@@ -325,6 +326,121 @@ export default async function costControlRoutes(app: FastifyInstance) {
           faktur: (fakturRes.data as unknown[]).length,
           belanja: (belanjaRes.data as unknown[]).length,
           po: (poRes.data as unknown[]).length,
+        },
+      })
+    },
+  )
+
+  // ── GET /projects/:projectId/cvr ─────────────────────────────────────────
+  //
+  // Cost Value Reconciliation — biaya terpakai vs NILAI TERPASANG, per scope
+  // borongan mandor.
+  //
+  // ── Kenapa per SCOPE, bukan per cost code
+  //
+  // CVR adalah 🔴 terakhir di taksonomi yang bukan "jangan dibangun", dan
+  // ditunda 2026-08-07 dengan alasan yang benar saat itu: sisi biaya kosong.
+  // Diukur ulang 2026-08-08, separuh alasannya sudah tidak berlaku:
+  //
+  //   sisi BIAYA           ✅ Rp 168 juta terbukti (`belanja-aktual`)
+  //   per COST CODE        ❌ `work_scopes.rab_category_id` 0 dari 20
+  //   per SCOPE BORONGAN   ✅ `weekly_wage_reports.scope_id` 50/50 terisi
+  //
+  // Yang dibangun karena itu adalah CVR yang bisa dijawab JUJUR hari ini.
+  // Ruang lingkupnya dibawa di `meta.cakupan` dan WAJIB ditampilkan — pembaca
+  // yang mengira ini mencakup seluruh biaya proyek akan salah menyimpulkan,
+  // dan salahnya di angka untung-rugi.
+  app.get<{ Params: { projectId: string } }>(
+    '/api/v1/projects/:projectId/cvr',
+    { preHandler: [authenticate, requirePermission('reports:view')] },
+    async (request, reply) => {
+      const { projectId } = request.params
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
+
+      // Rantainya: work_scopes → mandor_assignments → projects.
+      // `viaProject('work_scopes', projectId)` SALAH — petanya menyatakan
+      // `lewat: 'assignment_id'`, jadi ia akan menyusun
+      // `.eq('assignment_id', <uuid proyek>)`: nol baris tanpa error.
+      // Dijaga `audit-viaproject-argumen.mjs` sejak 2026-08-08.
+      const { data: penugasan, error: ePen } = await request.db!
+        .viaProject('mandor_assignments', projectId)
+        .select('id')
+      if (ePen) return reply.status(500).send({ error: ePen.message })
+      const idPenugasan = (penugasan as { id: string }[]).map((x) => x.id)
+
+      if (idPenugasan.length === 0) {
+        return reply.send({
+          baris: [], total_nilai_terpasang: 0, total_terpakai: 0, total_selisih: 0,
+          terpakai_harian: 0,
+          jumlah_rugi: 0, jumlah_tanpa_biaya: 0, jumlah_tak_berlaku: 0,
+          meta: { cakupan: 'upah borongan mandor', jumlah_scope: 0 },
+        })
+      }
+
+      const [scopeRes, upahRes] = await Promise.all([
+        request.db!
+          .unsafe('work_scopes',
+            'disaring lewat idPenugasan yang sudah ber-scope tenant via viaProject(mandor_assignments)')
+          .select('id, scope_name, borongan_value, borongan_value_override, progress_pct_done')
+          .in('assignment_id', idPenugasan),
+        request.db!
+          .unsafe('weekly_wage_reports',
+            'disaring lewat idPenugasan yang sudah ber-scope tenant via viaProject(mandor_assignments)')
+          .select('scope_id, net_amount, status')
+          .in('assignment_id', idPenugasan),
+      ])
+      for (const r of [scopeRes, upahRes]) {
+        if (r.error) return reply.status(500).send({ error: r.error.message })
+      }
+
+      // Hanya upah `paid` yang dihitung — aturan yang SAMA dengan
+      // `belanja-aktual.ts`. Dua angka biaya yang berbeda di dua layar untuk
+      // proyek yang sama adalah cara tercepat kehilangan kepercayaan pemakai.
+      type Upah = { scope_id: string | null; net_amount: unknown; status: string }
+      const perScope = new Map<string, { total: number; n: number }>()
+      for (const u of upahRes.data as Upah[]) {
+        if (u.status !== 'paid' || !u.scope_id) continue
+        const n = Number(u.net_amount)
+        const kini = perScope.get(u.scope_id) ?? { total: 0, n: 0 }
+        // NaN dilewati, bukan dijumlahkan — satu baris meracuni seluruh scope.
+        perScope.set(u.scope_id, {
+          total: kini.total + (Number.isFinite(n) ? n : 0),
+          n: kini.n + 1,
+        })
+      }
+
+      type Scope = {
+        id: string; scope_name: string
+        borongan_value: unknown; borongan_value_override: unknown
+        progress_pct_done: unknown
+      }
+      const baris: BarisScope[] = (scopeRes.data as Scope[]).map((sc) => {
+        const pakai = perScope.get(sc.id) ?? { total: 0, n: 0 }
+        return {
+          scope_id: sc.id,
+          scope_name: sc.scope_name,
+          // `override` menang bila ada: itulah nilai yang benar-benar
+          // disepakati, dan `borongan_value` jadi angka rencana yang tertinggal.
+          borongan_value: (sc.borongan_value_override ?? sc.borongan_value) as number | string | null,
+          progress_pct: sc.progress_pct_done as number | string | null,
+          terpakai: pakai.total,
+          jumlah_laporan: pakai.n,
+        }
+      })
+
+      const hasil = ringkasCvr(baris)
+      return reply.send({
+        ...hasil,
+        meta: {
+          // Cakupan DINYATAKAN, bukan disamarkan. Ini CVR upah borongan —
+          // material dan faktur supplier belum bisa dipecah per scope.
+          cakupan: 'upah borongan mandor',
+          keterbatasan:
+            'Hanya upah borongan. Material dan faktur supplier belum bisa dipecah ' +
+            'per pekerjaan karena tak menyimpan cost code — lihat F5-1 §PEMBEDA CVR.',
+          jumlah_scope: baris.length,
         },
       })
     },

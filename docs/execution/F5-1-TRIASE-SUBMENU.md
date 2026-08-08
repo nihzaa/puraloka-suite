@@ -324,6 +324,55 @@ bisa dibangun hanya cangkang.
 
 Diukur ulang 2026-08-07 — angkanya **tidak berubah** sejak penundaan pertama.
 
+#### Diukur ULANG 2026-08-08 — separuh alasannya sudah tidak berlaku
+
+**Sisi kiri (biaya) TIDAK lagi kosong.** Alasan penundaan di atas menyebut
+`project_expenses` 0 baris, dan itu masih benar — tapi kesimpulannya ("yang
+bisa dibangun hanya cangkang") sudah tidak. Biaya nyata ADA, hanya di tabel
+lain:
+
+```
+upah mingguan `paid`      43 baris   Rp 243.600.100
+faktur supplier            5 baris   Rp  50.485.000
+```
+
+Ditutup 2026-08-08 (`lib/belanja-aktual.ts` + `GET /projects/:id/belanja-aktual`).
+Dibuktikan di layar: proyek Pak Andi **Rp 0 → Rp 168.165.100**.
+
+**Yang MASIH memblokir, dan ini yang sesungguhnya:**
+
+```
+work_scopes.rab_category_id      0 dari 20   ← jembatan upah → pos pekerjaan
+rab_items level=category        24 baris     ← kandidat isinya ADA
+```
+
+CVR mengadu biaya vs nilai **per pos pekerjaan**. Belanja aktual total sudah
+bisa dijawab jujur; pemecahannya per pos belum, karena upah tak tahu ia untuk
+pekerjaan RAB yang mana.
+
+**Dan ini BUKAN cacat kode.** Diverifikasi: dropdown "Kaitkan ke Sub-Kategori
+RAB" sudah ada di `mandor-section.tsx:635`, API menerimanya
+(`mandor.ts:616`), 24 kategori tersedia sebagai pilihan. Kolomnya kosong
+karena **20 scope itu dibuat sebelum kolomnya ada**, dan isiannya opsional.
+
+**Pemicu yang benar sekarang** — bukan "biaya dicatat ke `project_expenses`",
+melainkan: **scope mandor mulai dikaitkan ke kategori RAB saat dibuat.** Ukur
+sendiri:
+
+```bash
+node --input-type=module -e '
+import { buatClient } from "./scripts/db/_koneksi.mjs"
+const c = buatClient(); await c.connect()
+const { rows } = await c.query(`SELECT count(*)::int total, count(rab_category_id)::int terkait
+  FROM work_scopes`)
+console.log(rows[0]); await c.end()'
+```
+
+Selama `terkait` masih 0, layar CVR akan menampilkan nol di setiap pos — dan
+**nol di layar rekonsiliasi biaya tak terbaca sebagai "belum ada data",
+melainkan sebagai "tidak ada selisih".** Itu kabar baik palsu tentang angka
+yang paling menentukan untung-rugi proyek.
+
 **SELESAI** (`/keuangan/contingency`, migrasi 200). Diukur: NOL kolom
 contingency di seluruh basis, padahal CO-001 sudah menyetujui Rp 50 juta pada
 kontrak Rp 570 juta tanpa jejak cadangan mana yang berkurang.

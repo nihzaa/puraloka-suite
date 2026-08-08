@@ -69,7 +69,18 @@ const PETA = {
   // nol baris, jadi "biaya terpakai" tak ada untuk dibandingkan dengan "nilai
   // terpasang". Entri tetap ada supaya ia ikut terhitung sebagai "benar belum
   // ada", bukan hilang dari pemeriksaan.
-  'Cost Value Reconciliation (CVR)': { tabel: ['cvr'], rute: ['/cvr'] },
+  // CVR TIDAK punya tabel sendiri — alasan yang sama dengan tabulasi RFQ di
+  // atas: ia DITURUNKAN dari `work_scopes` × `weekly_wage_reports` tiap kali
+  // diminta. Menyimpannya membuat angka untung-rugi bisa basi diam-diam saat
+  // satu laporan upah disunting — dan yang paling berkepentingan
+  // menyuntingnya adalah orang yang angkanya sedang buruk.
+  //
+  // Entri lama menuntut tabel `cvr` yang tak pernah ada, dan penjaga ini
+  // melaporkannya sebagai "tabel hantu" begitu CVR dibangun (2026-08-08).
+  // Yang salah entrinya, bukan kodenya.
+  'Cost Value Reconciliation (CVR)': {
+    berkas: ['cvr'], tabel: ['work_scopes', 'weekly_wage_reports'], rute: ['/cvr'],
+  },
   'Register asuransi': { tabel: ['polis_asuransi'], rute: ['/asuransi'] },
   'Manajemen contingency': { tabel: ['pos_contingency'], rute: ['/contingency'] },
   'Analisa keterlambatan': { tabel: ['contract_eot'], rute: ['/analisa-keterlambatan'] },
