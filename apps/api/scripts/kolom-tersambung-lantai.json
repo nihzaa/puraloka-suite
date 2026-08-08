@@ -1,0 +1,26 @@
+{
+  "jumlah": 20,
+  "kolom": {
+    "asset_id": "modul aset dipilih lewat penelusuran, bukan field id di body",
+    "bid_id": "HALAMAN BELUM ADA — rantai kontrak (tender subkon) belum punya layar",
+    "cbs_node_id": "HALAMAN ADA (estimasi) — CBS belum dipakai; sejalan dengan wbs_node_id",
+    "derived_from_assembly_id": "HALAMAN BELUM ADA — turunan assembly AHSP dibentuk server saat menyalin edisi, bukan dipilih manusia",
+    "document_id": "HALAMAN ADA (lapangan/submittal) — sambungan hilang, kandidat kerja seperti mr_id",
+    "dokumen_id": "HALAMAN BELUM ADA — modul surat belum punya layar; bukan sambungan putus",
+    "goods_receipt_id": "HALAMAN ADA (procurement) — GR dirujuk lewat penelusuran per-PO, bukan id yang dikirim body",
+    "inspection_request_id": "HALAMAN ADA (mutu/ncr) — NCR bisa lahir dari permintaan inspeksi, tapi UI tak menawarkannya. Kandidat kerja",
+    "jadwal_id": "HALAMAN BELUM ADA — jadwal operasional alat belum punya layar",
+    "koran_id": "HALAMAN BELUM ADA — rekonsiliasi bank belum punya layar",
+    "objek_id": "HALAMAN BELUM ADA — kendali dokumen belum punya layar",
+    "penerima_id": "HALAMAN BELUM ADA — penerima instruksi lapangan belum punya layar pemilih",
+    "photo_id": "foto dirujuk lewat unggahan, bukan id yang diketik",
+    "role_id": "diatur di layar peran/pengguna tersendiri, bukan dikirim form biasa — kolom yang sama muncul di UI dengan nama lain",
+    "sumber_change_order_id": "HALAMAN ADA (keuangan/contingency) — penarikan contingency dari CO belum bisa dipilih di layar. Kandidat kerja",
+    "supplier_invoice_id": "HALAMAN BELUM ADA — pengadaan lanjutan belum punya layar",
+    "surat_id": "HALAMAN BELUM ADA — modul surat belum punya layar",
+    "termin_id": "HALAMAN BELUM ADA — sertifikat IPC belum punya layar",
+    "to_project_id": "HALAMAN BELUM ADA — pemindahan aset antar-proyek belum punya layar",
+    "wbs_node_id": "HALAMAN ADA (estimasi) — tabel wbs_nodes NOL BARIS, ditriase TUNDA di F5-1 §5b; pemicunya proyek kedua yang mengulang struktur pertama"
+  },
+  "catatan": "Lantai 2026-08-08. Kolom yang rute BACA DARI BODY tapi tak satu pun berkas UI menyebutkan namanya. Turunkan saat sambungannya dibangun; jangan naikkan tanpa alasan tertulis per kolom."
+}

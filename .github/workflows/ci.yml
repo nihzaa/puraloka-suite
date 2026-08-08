@@ -363,6 +363,27 @@ jobs:
       - name: Sub-menu belum digarap sudah ditriase
         run: node scripts/audit-triase-submenu.mjs
 
+      # Kolom yang rute BACA DARI BODY tapi tak satu pun berkas UI menyebut
+      # namanya — artinya rute menunggu sesuatu yang tak akan pernah datang.
+      #
+      # Pola ini lolos TIGA KALI dalam dua hari, dengan seluruh penjaga hijau
+      # setiap kalinya:
+      #
+      #   2026-08-07  rfq.po_id     DIBACA di UI, tak pernah DITULIS siapa pun
+      #   2026-08-08  POST /rfq/:id/penawaran  ber-test, NOL tombol memanggilnya
+      #   2026-08-08  rfq.mr_id     rute menerimanya, UI nol rujukan
+      #                             → 3 dari 3 RFQ ber-mr_id NULL
+      #
+      # Ia lolos JUSTRU karena tiap bagiannya ber-test: test satuan
+      # membuktikan potongan bekerja, bukan bahwa potongan itu terhubung.
+      #
+      # Ratchet dengan ALASAN WAJIB per kolom — lantai tanpa alasan adalah
+      # daftar yang tak bisa ditinjau siapa pun. Terbukti bisa merah lewat
+      # tiga mutasi: kolom baru di body, alasan dihapus, lantai diturunkan
+      # diam-diam.
+      - name: Kolom yang diterima API punya jalan pengisian di UI
+        run: node scripts/audit-kolom-tak-tersambung.mjs
+
       # Status sub-menu yang membusuk sementara kode maju. Terbukti terjadi
       # TUJUH kali (F5-1 §3a satu item, §3b enam item) tanpa satu pun penjaga
       # menabraknya — skrip ini sudah ada sejak lama tetapi tak pernah

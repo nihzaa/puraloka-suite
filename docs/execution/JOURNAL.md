@@ -5,6 +5,98 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-08 — pola yang lolos tiga kali akhirnya punya penjaga
+
+### Kenapa ini yang dikerjakan berikutnya
+
+Tiga cacat dalam dua hari, bentuknya identik, dan **seluruh 17 penjaga CI hijau
+setiap kalinya**:
+
+```
+2026-08-07  rfq.po_id     DIBACA di UI, tak pernah DITULIS siapa pun
+2026-08-08  POST /rfq/:id/penawaran  ber-test, NOL tombol memanggilnya
+2026-08-08  rfq.mr_id     rute menerimanya, UI nol rujukan → 3/3 NULL
+```
+
+Ketiganya saya temukan secara kebetulan, sambil mengerjakan hal lain. Yang
+ketiga bahkan hanya ketemu karena dugaan saya tentang jembatan BOQ→RFQ salah
+dan saya terpaksa mengukur ulang.
+
+Menemukan cacat keempat dengan cara yang sama adalah menunggu keberuntungan.
+
+### Kenapa ia lolos — dan ini bagian yang penting
+
+**Ia lolos JUSTRU karena tiap bagiannya ber-test.** Test satuan membuktikan
+potongan bekerja; ia tak bisa membuktikan potongan itu terhubung ke apa pun.
+Semakin rapi test per-bagian, semakin meyakinkan kesan bahwa semuanya sudah
+diperiksa.
+
+Akibatnya bukan galat — tak ada yang merah, tak ada yang jatuh. Akibatnya
+kolom yang selamanya NULL dan pertanyaan yang tak pernah terjawab.
+
+### Sinyal yang dipilih, dan yang dibuang
+
+Versi pertama memeriksa semua `*_id` di `routes/` yang nol disebut di web:
+**64 temuan** — termasuk parameter path (`rfq_id`, `gr_id`) dan kolom yang
+memang diisi server. Penjaga yang berteriak 64 kali akan diabaikan, dan
+penjaga yang diabaikan sama tak bergunanya dengan penjaga yang tak ada.
+
+Dipersempit ke `b.xxx_id` / `body.xxx_id` — kolom yang rute benar-benar
+**harapkan datang dari klien**: **20 temuan**. Bisa dibaca, bisa ditindaklanjuti.
+
+Statis, tanpa koneksi basis. Alasannya bukan kemudahan: basis dev berisi data
+dummy, jadi "nol terisi" di sana tak membuktikan apa pun tentang produksi. Yang
+menentukan adalah **apakah ADA JALAN mengisinya** — pertanyaan tentang kode.
+
+### Yang ditemukan saat menulis 20 alasannya
+
+Alasan wajib per kolom bukan formalitas; menulisnya memaksa saya memeriksa satu
+per satu, dan itu membelah temuan jadi dua jenis yang berbeda:
+
+**Halaman ADA, sambungannya hilang — kandidat kerja nyata:**
+
+| Kolom | Halaman |
+|---|---|
+| `document_id` | `lapangan/submittal` |
+| `inspection_request_id` | `mutu/ncr` — NCR bisa lahir dari permintaan inspeksi, UI tak menawarkannya |
+| `sumber_change_order_id` | `keuangan/contingency` — penarikan dari CO tak bisa dipilih |
+| `cbs_node_id` · `wbs_node_id` | `estimasi` — sejalan dengan triase TUNDA §5b |
+
+**Halaman BELUM ADA — modul yang belum dibangun, bukan sambungan putus:**
+surat, sertifikat IPC, rekonsiliasi bank, rantai kontrak, jadwal alat, kendali
+dokumen, pengadaan lanjutan, pemindahan aset antar-proyek.
+
+Keduanya sama-sama "kolom kosong", tapi yang pertama adalah pekerjaan setengah
+jadi dan yang kedua adalah pekerjaan yang belum dimulai. Membedakannya di
+lantai membuat daftar itu bisa jadi antrean kerja, bukan sekadar keluhan.
+
+### Bukti penjaga bisa merah
+
+Tiga mutasi, tiga-tiganya MERAH, lalu pulih hijau:
+
+```
+1. rute menerima b.gudang_asal_id yang UI tak kenal
+   → ❌ NAIK dari 20 ke 21 · gudang_asal_id     (menyebut nama pelanggarnya)
+2. satu alasan diganti "BELUM DIJELASKAN"       → exit 1
+3. lantai diturunkan diam-diam 20 → 5           → exit 1
+pulih                                            → exit 0
+```
+
+Mutasi kedua yang paling saya hargai: ia menjaga agar lantai tidak berubah jadi
+daftar nama tanpa arti. Lantai tanpa alasan adalah daftar yang tak bisa
+ditinjau siapa pun — termasuk oleh saya di sesi berikutnya.
+
+### Bukti keseluruhan
+
+```
+vitest  53 lulus (24 mr-layak + 11 endpoint + 18 saran-cost-map)
+penjaga 8 audit backend, semua exit=0 — termasuk yang baru
+mutasi  3 dari 3 MERAH untuk penjaga baru; 14 dari 14 untuk kerja sebelumnya
+CI      terpasang di ci.yml, terbukti jalan dari `apps/api` (cwd CI)
+```
+
+---
+
 ## 2026-08-08 — jembatan yang saya kira ada ternyata tak pernah ada; dan `mr_id` yang diterima tanpa diperiksa
 
 ### Dugaan saya sendiri, dibantah oleh pengukuran
