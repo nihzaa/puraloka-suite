@@ -25,6 +25,7 @@ import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
+import { RfqPenawaranModal } from "@/components/rfq-penawaran-modal";
 
 type Proyek = { id: string; name: string };
 
@@ -204,6 +205,7 @@ export default function RfqPage() {
   const [buatNomor, setBuatNomor] = useState("");
   const [membuat, setMembuat] = useState(false);
 
+  const [formPenawaran, setFormPenawaran] = useState(false);
   const [vendorPilihan, setVendorPilihan] = useState("");
   const [alasanPilih, setAlasanPilih] = useState("");
   const [memutuskan, setMemutuskan] = useState(false);
@@ -553,10 +555,29 @@ export default function RfqPage() {
                     {STATUS_META[rfqAktif.status].label}
                   </span>
 
+                  {/* Tombol catat penawaran TIDAK ditampilkan untuk RFQ yang
+                      sudah diputuskan: endpoint penawaran menolaknya (400),
+                      dan tombol yang terlihat lalu ditolak adalah janji palsu.
+                      Aturan yang sama dipakai form putusan di bawah. */}
+                  {rfqAktif.status !== "selesai" && rfqAktif.status !== "batal" && (
+                    <button
+                      type="button" onClick={() => setFormPenawaran(true)}
+                      style={{
+                        marginLeft: "auto", padding: "7px 13px", borderRadius: 6,
+                        border: "none", background: C.navy, color: "var(--on-navy)",
+                        fontSize: 12.5, fontWeight: 700, cursor: "pointer",
+                        display: "flex", alignItems: "center", gap: 6, minHeight: 38,
+                      }}
+                    >
+                      <Plus size={13} aria-hidden="true" /> Catat penawaran
+                    </button>
+                  )}
+
                   <button
                     type="button" onClick={() => setMuatUlangKe((n) => n + 1)}
                     style={{
-                      marginLeft: "auto", padding: "5px 10px", borderRadius: 6,
+                      marginLeft: rfqAktif.status === "selesai" || rfqAktif.status === "batal" ? "auto" : 0,
+                      padding: "5px 10px", borderRadius: 6,
                       border: `1px solid ${C.border}`, background: "var(--surface)",
                       color: C.mid, fontSize: 12, cursor: "pointer",
                       display: "flex", alignItems: "center", gap: 6,
@@ -571,7 +592,30 @@ export default function RfqPage() {
                 <Kosong
                   ikon={<FileText size={28} />}
                   judul="Belum ada penawaran masuk"
-                  sebab="Perbandingan muncul begitu ada penawaran vendor yang tercatat untuk RFQ ini."
+                  sebab={
+                    <>
+                      Perbandingan muncul begitu ada penawaran vendor yang tercatat
+                      untuk RFQ ini. Catat surat penawaran yang sudah Anda terima.
+                    </>
+                  }
+                  aksi={
+                    /* Keadaan kosong yang HANYA menjelaskan adalah jalan buntu.
+                       Sampai 2026-08-08 layar ini berhenti di sini selamanya:
+                       endpoint penawaran hidup, tombolnya tak pernah ada. */
+                    <button
+                      type="button"
+                      onClick={() => setFormPenawaran(true)}
+                      style={{
+                        padding: "9px 16px", borderRadius: 6, fontSize: 13,
+                        fontWeight: 700, border: "none", background: C.navy,
+                        color: "var(--on-navy)", cursor: "pointer",
+                        display: "inline-flex", alignItems: "center", gap: 7,
+                        minHeight: 40,
+                      }}
+                    >
+                      <Plus size={14} aria-hidden="true" /> Catat penawaran
+                    </button>
+                  }
                 />
               ) : (
                 <>
@@ -819,6 +863,18 @@ export default function RfqPage() {
             </>
           )}
         </>
+      )}
+
+      {/* Dirender di luar percabangan supaya keadaannya tak ikut hilang saat
+          RFQ ditukar. `rfqAktif` dipastikan ada sebelum dibuka. */}
+      {rfqAktif && (
+        <RfqPenawaranModal
+          rfqId={rfqAktif.id}
+          nomorRfq={rfqAktif.nomor}
+          terbuka={formPenawaran}
+          onTutup={() => setFormPenawaran(false)}
+          onTersimpan={() => setMuatUlangKe((n) => n + 1)}
+        />
       )}
     </div>
   );

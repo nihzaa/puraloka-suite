@@ -1,0 +1,5 @@
+{
+  "_catatan": "Lantai overlay non-dialog. Boleh turun, TIDAK boleh naik. Lihat audit-modal-dialog.mjs.",
+  "_diukur": "2026-08-08, saat DialogBersama dibuat. Enam modal lama masih div fixed; yang baru wajib pakai <dialog>.",
+  "overlay": 37
+}

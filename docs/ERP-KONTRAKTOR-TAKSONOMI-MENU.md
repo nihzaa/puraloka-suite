@@ -128,7 +128,7 @@ Jantung ERP kontraktor. Lihat skor Lima Pembeda di bawah.
 | Commitment tracking (PO + borongan) | ✅ | tabel `purchase_orders` + `/procurement/purchase-orders`; varians per cost code di `/cost-analytics` |
 | Actual Cost Ledger (ACL) | 🟡 | ⚠️ Koreksi: 112 = `cost_code_category_map` (mapping, anti-corruption layer), BUKAN ledger; actual cost tersebar, diagregasi ad-hoc di `kurva-s.ts` |
 | Cost-to-complete forecast | ✅ | `/cashflow-forecast` + `/cost-analytics` — Proyeksi Kas di `/laporan` |
-| **Cashflow forecast** | 🟡 | `lib/cashflow-forecast.ts` + endpoint `/estimate-versions/:id/cashflow-forecast` — **tanpa UI**. Cashflow aktual (✅) terpisah di `finance.ts` |
+| **Cashflow forecast** | ✅ | **Koreksi dari 🟡 (2026-08-08)** — klaim "tanpa UI" salah. Diukur: `/estimasi` memanggil `estimate-versions/:id/cashflow-forecast` **dan** varian `?periods=`. `lib/cashflow-forecast.ts` ber-test. Cashflow aktual (✅) memang terpisah di `finance.ts`, dan itu benar: proyeksi vs realisasi adalah dua angka berbeda. |
 | Manajemen contingency | ✅ | migrasi 200 · `/keuangan/contingency` · 21 invarian · sisa dihitung, tak disimpan |
 | Analisa varians (budget vs commit vs aktual) | ✅ | `/cost-analytics` — tab Varians Biaya di `/estimasi` |
 | Profitabilitas per proyek / per cost code | ✅ | **Koreksi dari 🟡 (2026-08-08)** — per proyek `/finance/profitability` ✅ **dan** per cost code ✅: `lib/varians-cost-code.ts` (12 test) · `GET /api/v1/projects/:projectId/varians` (`cost-control.ts:296`) · tab Varians Biaya di `/estimasi`. Catatan "per cost code 🔴" sudah salah sejak F5-1 §3d mencatatnya hidup. |

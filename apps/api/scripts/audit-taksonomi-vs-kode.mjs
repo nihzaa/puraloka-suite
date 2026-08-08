@@ -138,6 +138,11 @@ const PETA = {
   // tabelnya" adalah jalan masuknya. Karena itu bukti yang dituntut di sini
   // rutenya, dan rute itu memang belum ada.
   'WBS template': { rute: ['/wbs'] },
+  // Ditambahkan bersama koreksi basi ke-16: taksonomi menyebut cashflow
+  // forecast "tanpa UI", padahal `/estimasi` memanggil endpointnya (termasuk
+  // varian `?periods=`). Dipetakan lewat RUTE, karena yang membedakan
+  // "dibangun" dari "ada pustakanya" memang jalan masuknya.
+  'Cashflow forecast': { berkas: ['cashflow-forecast'], rute: ['/cashflow-forecast'] },
   'Perusahaan / badan hukum (multi-entity)': { tabel: ['companies'], rute: ['/companies'] },
   'Revisi & transfer anggaran': { tabel: ['rap_change_log'], rute: ['/rap'] },
   'Method statement': { tabel: ['method_statement'] },

@@ -5,6 +5,91 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-08 — RFQ tak punya cara memasukkan penawaran; 37 modal tanpa `<dialog>`
+
+### Celah di modul yang saya bangun sendiri kemarin
+
+Menyisir 53 baris kuning taksonomi, dan yang ditemukan justru cacat di RFQ:
+
+> Endpoint `POST /api/v1/rfq/:id/penawaran` hidup dan ber-test. **UI tak punya
+> satu pun tombol yang memanggilnya.**
+
+Rantainya: buat RFQ ✅ → **catat penawaran ❌** → bandingkan ✅ → putuskan ✅.
+Halaman menyuruh *"Buat RFQ untuk meminta penawaran"*, lalu berhenti selamanya
+di *"Belum ada penawaran masuk"*. Satu mata rantai putus membuat tiga lainnya
+tak berguna.
+
+Kelas cacat yang sama dengan `po_id` kemarin: tiap bagian ada dan ber-test
+sendiri-sendiri, hanya sambungannya yang tidak. Dan ia lolos **justru karena**
+tiap bagiannya ber-test.
+
+### Temuan yang lebih besar: 37 modal tanpa `<dialog>`
+
+Sebelum menulis modal ke-7, saya periksa yang enam. Semuanya
+`<div style={{ position: 'fixed', inset: 0 }}>`. Disisir ke seluruh
+`app/` + `components/`: **37 overlay layar penuh, nol di antaranya `<dialog>`.**
+
+Artinya di setiap modal dashboard:
+
+| | |
+|---|---|
+| Fokus tidak terkunci | Tab dari dalam modal pindah ke halaman di belakangnya |
+| Esc tidak menutup | Satu-satunya jalan keluar: temukan tombol X dengan mouse |
+| Tak dikenali dialog | Pembaca layar membacanya sebagai bagian biasa halaman |
+
+**Kenapa tak pernah berbunyi:** `audit-a11y-runtime.mjs` memindai HALAMAN, dan
+modal baru ada di DOM sesudah dibuka. Penjaga itu tak pernah mengkliknya. Ke-37
+lolos bukan karena bersih, melainkan karena tak pernah dilihat.
+
+Itu bentuk kegagalan yang paling mahal: penjaga hijau yang membuat orang yakin
+sesuatu sudah diperiksa.
+
+### Dikerjakan
+
+`DialogBersama` — `<dialog>` bawaan, yang memberi fokus terkunci, lapisan
+teratas, dan Esc tanpa satu baris kode fokus buatan sendiri. Pola yang sama
+sudah terbukti di situs publik (axe 0 dengan dialog TERBUKA).
+
+`RfqPenawaranModal` — satu vendor per kali, beberapa material per baris. Itu
+bentuk yang sama dengan surat penawaran yang benar-benar dipegang staf
+pengadaan: penawaran datang satu vendor pada satu waktu lewat WhatsApp atau
+kertas, dan tabel yang menuntut semua vendor sekaligus memaksa yang sudah
+datang menunggu yang belum.
+
+"Tidak menawar" bisa ditandai. Tanpa itu, satu-satunya cara mencatat vendor
+yang menawar sebagian adalah mengosongkan harga — dan harga 0 memenangkan
+perbandingan sebagai "termurah".
+
+Keadaan kosong yang tadinya jalan buntu kini punya tombol.
+
+### Status basi KE-16
+
+`Cashflow forecast` ditandai 🟡 *"tanpa UI"*. Diukur: `/estimasi` memanggil
+`estimate-versions/:id/cashflow-forecast` **dan** varian `?periods=`.
+Dikoreksi dan dipetakan ke penjaga.
+
+### Satu hal yang BUKAN cacat kode
+
+Login gagal 500 saat pengujian. Sebabnya `apps/web/.env.local` menunjuk tunnel
+Cloudflare yang sudah mati (`buried-nsw-...trycloudflare.com`, HTTP 000), bukan
+`localhost:3001`. Itu konfigurasi milik founder untuk akses dari luar — saya
+menjalankan pengujian dengan env sementara alih-alih mengubah berkasnya.
+
+### Bukti
+
+```
+axe-core            halaman 0 · DIALOG TERBUKA 0 · Esc menutup ✅
+audit-a11y-runtime  77 halaman · 0 pelanggaran ✅
+audit-modal-dialog  ratchet 37 · mutasi (DialogBersama → div) → 38 MERAH → pulih
+audit-tab-seragam · tata-letak-ratchet · taksonomi   exit 0 ✅
+tsc (web)           exit 0 ✅
+alur di peramban    keadaan kosong → tombol → dialog → validasi menolak tanpa
+                    vendor → "tak menawar" menonaktifkan harga → simpan →
+                    TABULASI MUNCUL ✅
+```
+
+---
+
 ## 2026-08-08 — Situs publik dirombak; empat klaim "DB-only" ternyata salah
 
 ### Situs: "terlalu generik, kurang interaktif"
