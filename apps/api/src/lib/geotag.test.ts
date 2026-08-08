@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { jarakMeter, nilaiLokasi, jarakTerbaca } from './geotag.js'
+import { jarakMeter, nilaiLokasi, jarakTerbaca, barisGeotag } from './geotag.js'
 
 /**
  * Test geotag.
@@ -136,5 +136,81 @@ describe('jarakTerbaca', () => {
     expect(jarakTerbaca(1_000)).toBe('1.0 km')
     expect(jarakTerbaca(2_540)).toBe('2.5 km')
     expect(jarakTerbaca(118_000)).toBe('118.0 km')
+  })
+})
+
+// ════════════════════════════════════════════════════════════════════════════
+// barisGeotag — kolom geotag untuk baris INSERT foto
+// ════════════════════════════════════════════════════════════════════════════
+//
+// Diukur 2026-08-08: kolom `lintang`/`bujur`/`akurasi_m`/`sumber_lokasi` ada,
+// pustaka ini ber-test, penjaga CI `uji-invarian-geotag.mjs` ada, UI membaca
+// dan menampilkannya — dan **0 dari 36 foto punya geotag**.
+//
+// Sebabnya dua, di dua sisi:
+//   • klien tak pernah meminta koordinat dari perangkat (ditutup
+//     `apps/web/lib/lokasi-perangkat.ts`)
+//   • jalur insert laporan harian (`progress.ts` baris ~345 dan ~405)
+//     MEMBUANG koordinatnya — hanya jalur penautan (baris ~150) yang
+//     menyimpannya, dan itu jalur yang jarang dipakai
+//
+// Aturan penyaringannya ditaruh DI SINI, bukan disalin ke tiap jalur insert:
+// tiga salinan aturan yang sama akan menyimpang, dan yang menyimpang di antara
+// ketiganya adalah bukti lokasi kerja yang dipakai dalam sengketa.
+describe('barisGeotag', () => {
+  it('koordinat lengkap dan masuk akal diteruskan', () => {
+    const h = barisGeotag({ lintang: -6.9024, bujur: 107.6186, akurasi_m: 12 })
+    expect(h.lintang).toBe(-6.9024)
+    expect(h.bujur).toBe(107.6186)
+    expect(h.akurasi_m).toBe(12)
+    expect(h.lokasi_dicatat_pada).toBeTruthy()
+  })
+
+  // Foto tanpa koordinat adalah keadaan NORMAL — mandor menolak izin, di dalam
+  // gedung, perangkat lama. Ia tak boleh menghasilkan kolom berisi apa pun.
+  it('tanpa koordinat mengembalikan objek KOSONG, bukan null di tiap kolom', () => {
+    expect(barisGeotag({})).toEqual({})
+    expect(barisGeotag({ lintang: -6.9 })).toEqual({})   // bujur hilang
+    expect(barisGeotag({ bujur: 107.6 })).toEqual({})    // lintang hilang
+  })
+
+  // Constraint migrasi 190 menolak yang di luar jangkauan. Menyaring di sini
+  // membuat unggahan tak gagal total gara-gara koordinat cacat — fotonya
+  // sendiri tetap berguna. Prioritas yang sama dengan jalur penautan:
+  // "SIMPAN FOTONYA, buang koordinatnya".
+  it('koordinat di luar jangkauan bumi dibuang', () => {
+    expect(barisGeotag({ lintang: 91, bujur: 107 })).toEqual({})
+    expect(barisGeotag({ lintang: -6.9, bujur: 181 })).toEqual({})
+  })
+
+  it('koordinat NaN dibuang', () => {
+    expect(barisGeotag({ lintang: NaN, bujur: 107 })).toEqual({})
+  })
+
+  // Bawaan 'perangkat': jalur normal adalah GPS saat memotret. Menebak
+  // 'manual' akan melemahkan bukti tanpa alasan.
+  it('sumber lokasi bawaannya perangkat', () => {
+    expect(barisGeotag({ lintang: 0, bujur: 0 }).sumber_lokasi).toBe('perangkat')
+  })
+
+  it('sumber lokasi yang dinyatakan klien dihormati', () => {
+    expect(barisGeotag({ lintang: 0, bujur: 0, sumber_lokasi: 'exif' }).sumber_lokasi).toBe('exif')
+  })
+
+  // Sumber yang tak dikenal TIDAK diteruskan mentah — constraint DB akan
+  // menolaknya dan seluruh insert foto gagal. Gagal-tertutup ke bawaan.
+  it('sumber lokasi yang tak dikenal jatuh ke perangkat', () => {
+    expect(barisGeotag({ lintang: 0, bujur: 0, sumber_lokasi: 'entah' as never }).sumber_lokasi)
+      .toBe('perangkat')
+  })
+
+  // Akurasi negatif tak punya arti; nol berarti "tepat sempurna" — klaim yang
+  // tak pernah benar. Keduanya jadi null: tak diketahui.
+  it('akurasi negatif jadi null', () => {
+    expect(barisGeotag({ lintang: 0, bujur: 0, akurasi_m: -5 }).akurasi_m).toBeNull()
+  })
+
+  it('akurasi yang tak dikirim jadi null', () => {
+    expect(barisGeotag({ lintang: 0, bujur: 0 }).akurasi_m).toBeNull()
   })
 })

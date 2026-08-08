@@ -6,8 +6,9 @@ import { createPortal } from "react-dom";
 import { api } from "@/lib/api";
 import { type Penugasan, type LogProgres, type ProyekRingkas, pesanGalat } from "../_bersama/tipe";
 import { kirimLapangan } from "@/lib/kirim-lapangan";
+import { ambilLokasi } from "@/lib/lokasi-perangkat";
 import { uploadProgressPhoto, attachProgressPhoto } from "@/lib/storage";
-import { Plus, Image, X, Check, Loader2, AlertCircle, Calendar } from "lucide-react";
+import { Plus, Image, X, Check, Loader2, AlertCircle, Calendar, MapPin } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
 
@@ -49,6 +50,13 @@ export default function MandorProgressPage() {
   // Foto yang gagal terupload padahal log SUDAH tersimpan → bisa dicoba ulang
   // tanpa mengetik ulang laporan (lihat handleSubmit).
   const [retry, setRetry] = useState<{ logId: string; items: PhotoEntry[] } | null>(null);
+  /**
+   * Kenapa lokasi GAGAL diambil — ditampilkan, tidak ditelan.
+   *
+   * Mandor yang menolak izin lalu melihat fotonya tak bertitik lokasi berhak
+   * tahu sebabnya. Diam membuat orang mengira fiturnya rusak.
+   */
+  const [pesanLokasi, setPesanLokasi] = useState<string | null>(null);
 
   function showToast(msg: string, ok = true) {
     setToast({ msg, ok });
@@ -140,6 +148,21 @@ export default function MandorProgressPage() {
       // bersinyal buruk dan foto (file besar) jauh lebih rentan gagal daripada teks.
       // All-or-nothing = laporan harian hilang gara-gara foto. Foto = tabel terpisah
       // (project_photos.progress_log_id nullable) sehingga log sah tanpa foto.
+      // ── Geotag ──
+      //
+      // Diambil SEKALI untuk seluruh foto satu laporan, bukan per foto: lima
+      // foto berturut-turut di titik kerja yang sama menghasilkan lima
+      // penguncian GPS dan lima kali menunggu, untuk koordinat yang praktis
+      // identik.
+      //
+      // Diambil SEBELUM unggah, bukan sesudah: kalau sesudah, mandor sudah
+      // menunggu unggahan selesai lalu menunggu GPS lagi.
+      //
+      // Gagal TIDAK membatalkan apa pun — foto tanpa geotag tetap berguna,
+      // foto yang tak terunggah tidak (`lokasi-perangkat.ts`).
+      const lokasi = await ambilLokasi();
+      setPesanLokasi(lokasi.gagal);
+
       const uploadedPhotos: { url: string; caption: string }[] = [];
       const failedPhotos: PhotoEntry[] = [];
       for (const ph of photos) {
@@ -174,7 +197,21 @@ export default function MandorProgressPage() {
           worker_count: workersCount ? Number(workersCount) : undefined,
           notes: notes || undefined,
           logged_at: logDate ? new Date(logDate + "T08:00:00").toISOString() : undefined,
-          photos: uploadedPhotos.map((p) => ({ url: p.url, caption: p.caption || undefined })),
+          photos: uploadedPhotos.map((p) => ({
+            url: p.url,
+            caption: p.caption || undefined,
+            // Koordinat hanya disertakan bila benar-benar didapat. Server
+            // menyaringnya lagi (`barisGeotag`), tapi mengirim yang jelas
+            // kosong membuat badan permintaan penuh null tanpa arti.
+            ...(lokasi.lintang !== null && lokasi.bujur !== null
+              ? {
+                  lintang: lokasi.lintang,
+                  bujur: lokasi.bujur,
+                  akurasi_m: lokasi.akurasi_m ?? undefined,
+                  sumber_lokasi: lokasi.sumber_lokasi,
+                }
+              : {}),
+          })),
         },
         "Progress berhasil dicatat", "Gagal menyimpan progress",
       );
@@ -233,6 +270,22 @@ export default function MandorProgressPage() {
           Input Progress
         </button>
       </div>
+
+      {/* Lokasi tak terambil — dinyatakan, tidak ditelan.
+          `role="status"`, bukan `alert`: ini bukan kegagalan yang menuntut
+          tindakan. Foto sudah terkirim; yang tak ada hanya titik lokasinya,
+          dan kalimatnya sendiri sudah mengatakan itu. */}
+      {pesanLokasi && (
+        <div role="status" style={{
+          marginBottom: 14, padding: "10px 12px", borderRadius: 8, fontSize: 12.5,
+          lineHeight: 1.5, border: "1px solid var(--info-border)",
+          background: "var(--info-bg)", color: "var(--info)",
+          display: "flex", alignItems: "flex-start", gap: 8,
+        }}>
+          <MapPin size={15} style={{ flexShrink: 0, marginTop: 1 }} aria-hidden="true" />
+          <span>{pesanLokasi}</span>
+        </div>
+      )}
 
       {/* Banner: laporan sudah tersimpan, tapi sebagian foto gagal terupload.
           Mandor bisa coba ulang tanpa mengetik ulang laporan. */}

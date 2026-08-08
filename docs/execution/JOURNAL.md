@@ -5,6 +5,116 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-08 — geotag: semua ada kecuali dua mata rantai; dan tiga putaran mutasi menemukan cacat di test saya sendiri
+
+### Pola yang sama, KEEMPAT kalinya
+
+```
+lib/geotag.ts (haversine) ber-test            ✅
+penjaga CI uji-invarian-geotag.mjs            ✅
+jalur PENAUTAN foto (progress.ts ~150) menulis ✅
+UI penanda-lokasi.tsx membaca & menampilkan    ✅
+                                     hasilnya  0 dari 36 foto
+```
+
+Dua mata rantai hilang, di dua sisi berbeda:
+
+1. **Nol kode aplikasi memanggil `getCurrentPosition`.** Seluruh kecocokan
+   grep berasal dari `node_modules`.
+2. **Kedua jalur insert foto laporan harian MEMBUANG koordinatnya.** Mereka
+   menyalin `url`, `caption`, `taken_at` — dan berhenti. Hanya jalur penautan
+   yang menyimpannya, dan itu jalur yang jarang dipakai (foto menyusul saat
+   sinyal buruk).
+
+Penjaga `audit-kolom-tak-tersambung.mjs` yang dibangun pagi ini **tidak**
+menangkap yang ini: ia hanya memeriksa `*_id` di body. `lintang` bukan `*_id`.
+Batas itu disengaja — versi luasnya menghasilkan 64 temuan yang tak terpakai —
+dan konsekuensinya ini. Penjaga yang menyempit agar berguna kehilangan
+jangkauan, dan itu pertukaran yang harus dinyatakan, bukan disembunyikan.
+
+### Saya salah menyimpulkan sekali, dan pengukuran yang membetulkannya
+
+Grep pertama saya menyimpulkan "nol rute API menulis geotag". **Salah** —
+jalur penautan (`progress.ts:150`) sudah menulisnya lengkap: validasi
+jangkauan, sumber, waktu pencatatan, dan keputusan yang tepat ("SIMPAN
+FOTONYA, buang koordinatnya"). Filter grep saya yang meleset.
+
+Yang benar lebih sempit dan lebih menarik: **satu dari tiga jalur insert
+menyimpan, dua membuang.**
+
+### Tiga putaran mutation testing, tiga cacat di test saya sendiri
+
+**Putaran 1** — jalur `daily` MERAH, jalur `detail` HIJAU.
+→ Test saya hanya melewati satu dari dua jalur insert.
+
+**Putaran 2** — sesudah menambah test mode `detail`, ia **tetap HIJAU**.
+→ Diukur: proyek uji punya **nol** item RAB, jadi test `return` diam-diam
+tanpa pernah menjalankan jalur yang diujinya. `beforeAll` memakai
+`ORDER BY created_at LIMIT 1` dan mendapat proyek kosong.
+
+> **Test yang melewati dirinya sendiri terlihat sama persis dengan test yang
+> lulus.** Itu bentuk kegagalan paling mahal, dan hanya mutation testing yang
+> membedakannya.
+
+Diperbaiki: `beforeAll` memilih proyek yang **punya** item (`EXISTS`), dan
+`return` diam-diam diganti `expect(item[0]).toBeDefined()`.
+
+**Putaran 3** — kedua jalur MERAH. Selesai.
+
+Satu mutasi lain hijau dan setelah diperiksa **bukan** hiasan: menghapus
+`Number.isFinite(lat)` tetap membuat `NaN >= -90` bernilai `false`. Pemeriksaan
+itu redundan, bukan tak diuji — dibuktikan dengan melucuti seluruh syaratnya
+sekaligus, yang langsung MERAH.
+
+### Keputusan desain yang diambil
+
+- **Lokasi diambil SEKALI per laporan, bukan per foto.** Lima foto berturut di
+  titik kerja yang sama tak perlu lima penguncian GPS.
+- **Diambil SEBELUM unggah.** Kalau sesudah, mandor menunggu dua kali.
+- **Batas waktu SENDIRI (8 detik).** Tak semua peramban menghormati opsi
+  `timeout`, dan perangkat yang menggantung tanpa memanggil callback mana pun
+  membuat unggahan menunggu selamanya.
+- **`maximumAge: 60_000`.** Satu menit cukup dekat untuk satu titik kerja.
+- **`enableHighAccuracy: true`** meski lebih boros — 2 km meleset membuat
+  seluruh catatannya tak berguna dalam sengketa.
+- **Alasan gagal DIBEDAKAN** (ditolak / tak tersedia / waktu habis / tak
+  didukung): izin bisa diberikan lagi lewat pengaturan, perangkat tanpa
+  geolokasi tidak. Pesan generik membuat orang mencoba hal yang sia-sia.
+- **Sumber tak dikenal jatuh ke `perangkat`,** bukan diteruskan mentah:
+  constraint DB akan menolaknya dan menggagalkan SELURUH insert foto.
+
+### Yang tak bisa saya buktikan lewat layar
+
+`/mandor-portal/progress` mengalihkan ke `/dashboard` — akun uji saya
+administrator, bukan mandor. Yang terbukti di peramban nyata: geolokasi
+Playwright memberi `{lat:-6.9024, lng:107.6186, acc:12}` dengan izin
+diberikan. Sisi server dibuktikan 6 test terhadap Postgres nyata.
+
+### Koreksi taksonomi kelima
+
+`Register dokumen + kontrol revisi` 🟡 → ✅. Catatan "kolom `version` saja,
+tanpa riwayat revisi" sudah salah: `register_gambar` punya `revisi` +
+`digantikan_oleh`, dan USANG dihitung dari **perbandingan revisi lintas-baris**,
+bukan dari kolom status yang bisa basi.
+
+Dibuktikan di layar: **STR-101 rev 1 tampil "Usang — ada rev 2" dan naik ke
+atas daftar, padahal status DB-nya masih `berlaku`** — persis kasus berbahaya
+(dua gambar pondasi sama-sama sah, mandor bisa membangun dari yang lama).
+axe 0 pelanggaran.
+
+### Bukti
+
+```
+vitest  36 lulus geotag (10 klien + 26 pustaka) + 6 endpoint Postgres nyata
+mutasi  15 MERAH (5 lokasi-perangkat + 5 barisGeotag + 2 rute + 3 putaran)
+        — dan 3 di antaranya menemukan cacat di TEST, bukan di kode
+tsc     api exit=0 · web exit=0
+penjaga 17 audit, semua exit=0 (termasuk uji-invarian-geotag)
+layar   STR-101 rev 1 "Usang — ada rev 2" · axe 0 di /dokumen/kendali
+```
+
+---
+
 ## 2026-08-08 — penjaga yang baru dipasang langsung menemukan cacat pertamanya, dan cacatnya lebih dalam dari yang ia laporkan
 
 ### Temuan pertama penjaga, beberapa jam sesudah dipasang

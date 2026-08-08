@@ -119,3 +119,64 @@ export function jarakTerbaca(m: number): string {
   if (m < 1000) return `${Math.round(m / 10) * 10} m`
   return `${(m / 1000).toFixed(1)} km`
 }
+
+/**
+ * Kolom geotag untuk satu baris INSERT foto — atau objek KOSONG.
+ *
+ * ── Kenapa fungsi ini ada, dan kenapa DI SINI
+ *
+ * Diukur 2026-08-08: seluruh rantai geotag lengkap kecuali dua mata rantai,
+ * dan hasilnya **0 dari 36 foto punya geotag**.
+ *
+ * Salah satunya di sini: jalur insert laporan harian (`progress.ts` ~345 dan
+ * ~405) menyalin `url`, `caption`, `taken_at` — dan MEMBUANG koordinatnya.
+ * Hanya jalur penautan (~150) yang menyimpannya, dan itu jalur yang jarang
+ * dipakai (foto menyusul saat sinyal buruk).
+ *
+ * Aturan penyaringannya ditaruh di pustaka, bukan disalin ke tiga tempat:
+ * tiga salinan aturan yang sama akan menyimpang, dan yang menyimpang di
+ * antara ketiganya adalah bukti lokasi kerja yang dipakai dalam sengketa.
+ *
+ * ── Kenapa objek KOSONG, bukan null di tiap kolom
+ *
+ * `{}` yang di-spread ke baris insert tidak menyentuh kolom sama sekali,
+ * sehingga default kolom tetap berlaku. `{ lintang: null, ... }` menuliskan
+ * null secara eksplisit — hasilnya sama di sini, tapi ia menyatakan "sudah
+ * diperiksa, memang tak ada" pada kolom yang sebenarnya tak pernah dinilai.
+ *
+ * INVARIAN yang diuji:
+ *  - koordinat tak lengkap / di luar jangkauan / NaN → `{}` (foto tetap masuk)
+ *  - sumber tak dikenal → jatuh ke 'perangkat', bukan diteruskan mentah
+ *    (constraint DB akan menolaknya dan MENGGAGALKAN seluruh insert foto)
+ *  - akurasi negatif atau tak dikirim → null, bukan 0 ("tepat sempurna")
+ */
+export function barisGeotag(p: {
+  lintang?: number | null
+  bujur?: number | null
+  akurasi_m?: number | null
+  sumber_lokasi?: SumberLokasi
+}): Record<string, unknown> {
+  const { lintang, bujur, akurasi_m, sumber_lokasi } = p
+
+  const masukAkal =
+    typeof lintang === 'number' && Number.isFinite(lintang) &&
+    lintang >= -90 && lintang <= 90 &&
+    typeof bujur === 'number' && Number.isFinite(bujur) &&
+    bujur >= -180 && bujur <= 180
+
+  if (!masukAkal) return {}
+
+  const sumberSah: SumberLokasi[] = ['perangkat', 'exif', 'manual']
+
+  return {
+    lintang,
+    bujur,
+    akurasi_m:
+      typeof akurasi_m === 'number' && Number.isFinite(akurasi_m) && akurasi_m >= 0
+        ? akurasi_m
+        : null,
+    sumber_lokasi:
+      sumber_lokasi && sumberSah.includes(sumber_lokasi) ? sumber_lokasi : 'perangkat',
+    lokasi_dicatat_pada: new Date().toISOString(),
+  }
+}

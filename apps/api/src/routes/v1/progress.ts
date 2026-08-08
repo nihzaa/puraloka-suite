@@ -4,6 +4,7 @@ import { supabase } from '../../utils/supabase.js'
 import { authenticate, hasPermission } from '../../plugins/auth.js'
 import { bubbleUpProgress } from '../../lib/rab-aggregation.js'
 import { validateMime } from '../../utils/mime.js'
+import { barisGeotag } from '../../lib/geotag.js'
 
 const PHOTO_BUCKET = 'project-photos'
 const PHOTO_ALLOWED = ['image/jpeg', 'image/png', 'image/webp']
@@ -233,7 +234,15 @@ export default async function progressRoutes(app: FastifyInstance) {
       // mode=detail fields
       rab_item_id?: string
       pct_completion?: number
-      photos?: Array<{ url: string; caption?: string; taken_at?: string }>
+      photos?: Array<{
+        url: string; caption?: string; taken_at?: string
+        // Geotag. Diukur 2026-08-08: kolomnya ada, rute penautan (baris ~150)
+        // sudah menulisnya, pustaka `lib/geotag.ts` ber-test, penjaga CI ada,
+        // UI membacanya — tapi JALUR INI membuang koordinatnya, dan inilah
+        // jalur yang dipakai laporan harian. Hasilnya 0 dari 36 foto ber-geotag.
+        lintang?: number; bujur?: number; akurasi_m?: number
+        sumber_lokasi?: 'perangkat' | 'exif' | 'manual'
+      }>
     }
 
     const mode = body.mode ?? 'daily'
@@ -349,6 +358,7 @@ export default async function progressRoutes(app: FastifyInstance) {
           caption: p.caption ?? null,
           taken_at: p.taken_at ?? null,
           uploaded_by: reportedBy,
+          ...barisGeotag(p),
         }))
         const { error: photoError } = await request.db!.viaProject('project_photos', projectId).insert(photoRows)
         if (photoError) app.log.error({ photoError }, 'Failed to insert photos')
@@ -408,6 +418,7 @@ export default async function progressRoutes(app: FastifyInstance) {
         caption: p.caption ?? null,
         taken_at: p.taken_at ?? null,
         uploaded_by: reportedBy,
+        ...barisGeotag(p),
       }))
       const { error: photoError } = await request.db!.viaProject('project_photos', projectId).insert(photoRows)
       if (photoError) app.log.error({ photoError }, 'Failed to insert project_photos')
