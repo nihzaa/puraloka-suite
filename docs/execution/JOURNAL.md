@@ -5,6 +5,118 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-08 — jembatan yang saya kira ada ternyata tak pernah ada; dan `mr_id` yang diterima tanpa diperiksa
+
+### Dugaan saya sendiri, dibantah oleh pengukuran
+
+Sesudah panel saran cost-map selesai, saya kembali ke impor BOQ → RFQ dengan
+anggapan peta itulah jembatannya. Diukur:
+
+```
+cost_codes punya material_id?  → 0
+tabel yang punya cost_code_id DAN material_id  → NOL
+```
+
+**Jembatan `cost_code → material` tidak ada di schema mana pun.** Dugaan saya
+keliru, dan kalau tidak diukur lebih dulu saya akan membangun konversi di atas
+hubungan yang tak pernah ada.
+
+Yang benar ada: `material_request_items.material_id`, 19 baris terisi. Dan
+alurnya lebih masuk akal secara bisnis — MR menyatakan apa yang dibutuhkan
+lapangan, RFQ meminta harga untuk kebutuhan itu.
+
+### Kelas cacat yang sama, ketiga kalinya
+
+```
+rfq.mr_id             ADA di schema
+POST /rfq             sudah menerima mr_id (rfq.ts:223)
+UI                    NOL rujukan mr_id
+hasilnya              3 dari 3 RFQ ber-mr_id NULL
+```
+
+Sama dengan `po_id` yang dibaca-tapi-tak-pernah-ditulis, sama dengan endpoint
+penawaran yang tak punya tombol. Tiap bagian ada dan ber-test sendiri-sendiri;
+hanya sambungannya yang tidak. Dan ia lolos **justru karena** tiap bagiannya
+ber-test.
+
+Akibatnya "RFQ ini untuk kebutuhan apa?" tak terjawab selamanya.
+
+### Celah yang baru ketahuan saat menyambungkannya
+
+`mr_id` diterima dan **langsung di-insert tanpa diperiksa sama sekali**. Selama
+UI tak pernah mengirimnya, celahnya tak terpakai — dan saya baru saja membuat
+UI yang mengirimnya.
+
+Tanpa validasi, RFQ proyek A bisa menunjuk kebutuhan proyek B. Karena `mr_id`
+hanya dibaca saat seseorang bertanya "ini untuk apa", salahnya baru ketahuan
+jauh setelah PO terbit. Ditutup, dan mutasi yang melucutinya terbukti MERAH.
+
+### SISA, bukan qty penuh
+
+Diukur pada data nyata: MR-2026-003 `partially_ordered` — 115 diminta, 85 sudah
+dipesan. RFQ dengan qty penuh meminta vendor menghargai 85 unit yang sudah
+dibeli. **Vendor menjawab dengan benar, angkanya salah, dan RFQ-nya tetap
+terlihat rapi.**
+
+Layar sekarang menampilkan `MR-2026-003 · 1 bahan, sisa 30` — bukan 115, dan
+"1 bahan" bukan 2 karena item yang sudah dipesan penuh tidak ikut.
+
+Daftar putih untuk status (`approved`, `partially_ordered`), bukan daftar hitam:
+status baru yang belum dipertimbangkan otomatis tidak layak. Gagal-tertutup.
+
+### Tiga cacat visual yang saya temukan dari tangkapan layar sendiri
+
+Bukan dari axe — axe memberi 0 sejak awal. Dari melihat gambarnya:
+
+1. **"Buat RFQ" abu-abu di sebelah MR yang baru dipilih** terbaca seolah
+   memilih MR yang mematikannya. Yang kurang sebenarnya nomor RFQ, dan tak ada
+   yang mengatakannya. Ditambah keterangan `aria-live="polite"`:
+   *"Isi nomor RFQ dulu"*.
+2. **"Lihat RFQ" terlempar ke baris kedua** oleh `marginLeft:auto` begitu kolom
+   MR menambah lebar, lalu berdiri tepat di bawah kolom pembuatan — dua
+   kelompok yang tujuannya berlawanan jadi terbaca satu kolom. Dipisah ke
+   barisnya sendiri dengan garis pemisah.
+3. **Nomor MR terulang** di panel rincian padahal dropdown di atasnya sudah
+   menyebutnya. Dibuang.
+
+### Cara saya akhirnya bisa memverifikasi di peramban
+
+Tiga percobaan gagal sebelum sebabnya ketemu, dan sebabnya bukan yang saya kira:
+
+- login membalas *"Tidak dapat terhubung ke server"* → saya sangka tunnel
+  Cloudflare di `.env.local` yang mati
+- ternyata login menembak `localhost:3000/api/v1/auth/login` — **path relatif**,
+  di-rewrite Next di SISI SERVER, jadi `route()` di peramban tak pernah
+  melihatnya
+- dan penyebab sesungguhnya: **API Fastify tidak berjalan sama sekali.** Port
+  3001 ditempati instance Next lain
+
+Dijalankan sendiri di port 3009, permintaan `/api/**` dialihkan ke sana di
+lapisan peramban. Tak ada berkas maupun proses milik founder yang tersentuh.
+
+**Pelajarannya**: saya menghabiskan tiga percobaan pada dugaan pertama yang
+terdengar masuk akal (tunnel mati) alih-alih memeriksa yang paling dasar
+(apakah API-nya hidup). Gejalanya sama persis; sebabnya sama sekali berbeda.
+
+### Bukti
+
+```
+vitest  35 lulus — 24 pustaka + 11 endpoint terhadap Postgres nyata
+mutasi  14 dari 14 MERAH (9 pustaka + 5 endpoint), termasuk:
+          · qty penuh alih-alih sisa
+          · draft ikut lolos (gagal-terbuka)
+          · validasi mr_id dilucuti  ← celah semula
+          · mr_id dicari lintas-proyek
+axe     0 pelanggaran — /procurement/rfq dengan MR terpilih
+        label terhubung, aria-describedby menunjuk keterangan
+layar   "MR-2026-003 · 1 bahan, sisa 30" · "3 dari 4 MR bisa ditawarkan"
+        rincian: "Keramik Dinding 25×40cm — 30 m²"
+tsc     api exit=0 · web exit=0
+penjaga 17 audit, semua exit=0
+```
+
+---
+
 ## 2026-08-08 — peta yang punya UI berbulan-bulan dan nol baris; enam tombol biru yang jadi borongan
 
 ### Yang dicari, dan yang ditemukan

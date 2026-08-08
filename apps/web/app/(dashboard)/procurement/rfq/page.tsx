@@ -29,6 +29,38 @@ import { RfqPenawaranModal } from "@/components/rfq-penawaran-modal";
 
 type Proyek = { id: string; name: string };
 
+/**
+ * MR yang layak dimintakan penawaran.
+ *
+ * `qty` adalah SISA (diminta − dipesan), bukan yang semula diminta.
+ * MR-2026-003 di data nyata: 115 diminta, 85 sudah dipesan. Menawarkan 115
+ * berarti meminta vendor menghargai 85 unit yang sudah dibeli — vendor
+ * menjawab dengan benar, angkanya salah, dan RFQ-nya tetap terlihat rapi.
+ */
+type MrItemLayak = {
+  material_id: string;
+  material_name: string;
+  unit: string | null;
+  qty: number;
+  qty_diminta: number;
+};
+
+type MrLayak = {
+  id: string;
+  mr_number: string;
+  status: string;
+  item: MrItemLayak[];
+  total_sisa: number;
+  tanpa_material: number;
+};
+
+type MrLayakResponse = {
+  layak: MrLayak[];
+  /** Yang tidak layak DIHITUNG, bukan dihilangkan diam-diam. */
+  tak_layak: number;
+  jumlah_mr: number;
+};
+
 type Rfq = {
   id: string;
   nomor: string;
@@ -203,6 +235,8 @@ export default function RfqPage() {
 
   const [buatProyek, setBuatProyek] = useState("");
   const [buatNomor, setBuatNomor] = useState("");
+  const [buatMr, setBuatMr] = useState("");
+  const [mrLayak, setMrLayak] = useState<MrLayakResponse | null>(null);
   const [membuat, setMembuat] = useState(false);
 
   const [formPenawaran, setFormPenawaran] = useState(false);
@@ -229,6 +263,22 @@ export default function RfqPage() {
     return () => ac.abort();
   }, [muatUlangKe]);
 
+  // MR layak dimuat begitu proyek dipilih. Bukan di awal halaman: daftarnya
+  // per-proyek, dan memuat semuanya lebih dulu berarti sembilan permintaan
+  // untuk satu yang dipakai.
+  useEffect(() => {
+    setBuatMr("");
+    if (!buatProyek) { setMrLayak(null); return; }
+    const ac = makeAbortController();
+    api.get<MrLayakResponse>(`/api/v1/rfq/mr-layak?project_id=${buatProyek}`, { signal: ac.signal })
+      .then((r) => setMrLayak(r.data))
+      // Gagal memuat MR TIDAK boleh memblokir pembuatan RFQ — RFQ tanpa MR
+      // tetap sah. Yang hilang hanya kenyamanannya, dan itu bukan alasan
+      // menghentikan pekerjaan orang.
+      .catch((e) => { if (e?.name !== "CanceledError") setMrLayak(null); });
+    return () => ac.abort();
+  }, [buatProyek]);
+
   // RFQ pertama dipilih sendiri — DITURUNKAN saat render, bukan lewat
   // efek+setState yang membuat halaman berkedip dari kosong ke isinya.
   const idEfektif = terpilih || daftar[0]?.id || "";
@@ -254,8 +304,13 @@ export default function RfqPage() {
     try {
       const r = await api.post<{ rfq: { id: string } }>("/api/v1/rfq", {
         project_id: buatProyek, nomor: buatNomor.trim(),
+        // Dikirim hanya bila dipilih. `mr_id: ""` akan ditolak server sebagai
+        // MR yang tak ditemukan — dan itu galat yang membingungkan untuk
+        // sesuatu yang memang tak diisi.
+        ...(buatMr ? { mr_id: buatMr } : {}),
       });
       setBuatNomor("");
+      setBuatMr("");
       setTerpilih(r.data.rfq.id);
       setMuatUlangKe((n) => n + 1);
     } catch (e) {
@@ -485,34 +540,158 @@ export default function RfqPage() {
               />
             </div>
 
-            <button
-              type="button" onClick={buatRfq}
-              disabled={!buatProyek || !buatNomor.trim() || membuat}
-              style={{
-                padding: "9px 16px", borderRadius: 6, fontSize: 13, fontWeight: 700,
-                border: "none",
-                background: !buatProyek || !buatNomor.trim() || membuat ? C.border : C.navy,
-                color: !buatProyek || !buatNomor.trim() || membuat ? C.mid : "var(--on-navy)",
-                cursor: !buatProyek || !buatNomor.trim() || membuat ? "not-allowed" : "pointer",
-                display: "flex", alignItems: "center", gap: 7,
-              }}
-            >
-              <Plus size={14} aria-hidden="true" />
-              {membuat ? "Membuat…" : "Buat RFQ"}
-            </button>
+            {/* Kebutuhan (MR) — opsional, tapi inilah yang menjawab
+                "RFQ ini untuk apa?".
 
-            {daftar.length > 0 && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 240, marginLeft: "auto" }}>
-                <label htmlFor="rq-pilih" style={labelGaya}>Lihat RFQ</label>
-                <select id="rq-pilih" value={idEfektif} onChange={(e) => setTerpilih(e.target.value)} style={isianGaya}>
-                  {daftar.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.nomor} — {r.proyek?.name ?? "—"}
+                Diukur 2026-08-08: `rfq.mr_id` ada di schema dan rute API
+                sudah menerimanya, tapi 3 dari 3 RFQ ber-`mr_id` NULL —
+                halaman ini tak punya satu pun cara mengisinya. */}
+            {buatProyek && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 260 }}>
+                <label htmlFor="rq-mr" style={labelGaya}>
+                  Untuk kebutuhan (MR){" "}
+                  <span style={{ fontWeight: 400, color: C.mid }}>— opsional</span>
+                </label>
+                <select
+                  id="rq-mr" value={buatMr} onChange={(e) => setBuatMr(e.target.value)}
+                  style={isianGaya}
+                  disabled={!mrLayak || mrLayak.layak.length === 0}
+                  aria-describedby="rq-mr-ket"
+                >
+                  <option value="">— tanpa MR —</option>
+                  {(mrLayak?.layak ?? []).map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.mr_number} · {m.item.length} bahan, sisa {m.total_sisa}
                     </option>
                   ))}
                 </select>
+                <span id="rq-mr-ket" style={{ fontSize: 11, color: C.mid, lineHeight: 1.5 }}>
+                  {!mrLayak
+                    ? "Memuat kebutuhan…"
+                    : mrLayak.layak.length === 0
+                      // Angka "0" tanpa penyebutnya tak bisa dinilai: nol dari
+                      // nol berarti belum ada MR; nol dari sembilan berarti
+                      // semuanya sudah dipesan atau belum disetujui.
+                      ? mrLayak.jumlah_mr === 0
+                        ? "Belum ada MR di proyek ini."
+                        : `${mrLayak.jumlah_mr} MR ada, tapi belum ada yang bisa ditawarkan — belum disetujui atau sudah dipesan penuh.`
+                      : `${mrLayak.layak.length} dari ${mrLayak.jumlah_mr} MR bisa ditawarkan. Qty yang ditampilkan adalah SISA, bukan yang semula diminta.`}
+                </span>
               </div>
             )}
+
+            {/* Tombol mati yang tak menjelaskan sebabnya adalah jalan buntu.
+                Terlihat saat menilai tangkapan layar: begitu MR dipilih,
+                "Buat RFQ" tetap abu-abu — dan karena keduanya bersebelahan,
+                terbaca seolah MEMILIH MR yang mematikannya. Yang sebenarnya
+                kurang adalah nomor RFQ, dan tak ada yang mengatakannya. */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <button
+                type="button" onClick={buatRfq}
+                disabled={!buatProyek || !buatNomor.trim() || membuat}
+                style={{
+                  padding: "9px 16px", borderRadius: 6, fontSize: 13, fontWeight: 700,
+                  border: "none", minHeight: 40,
+                  background: !buatProyek || !buatNomor.trim() || membuat ? C.border : C.navy,
+                  color: !buatProyek || !buatNomor.trim() || membuat ? C.mid : "var(--on-navy)",
+                  cursor: !buatProyek || !buatNomor.trim() || membuat ? "not-allowed" : "pointer",
+                  display: "flex", alignItems: "center", gap: 7,
+                }}
+              >
+                <Plus size={14} aria-hidden="true" />
+                {membuat ? "Membuat…" : "Buat RFQ"}
+              </button>
+              {/* `aria-live` polite, bukan alert: ini keterangan yang menyusul
+                  perbuatan pemakai, bukan galat yang menyela. */}
+              {buatProyek && !buatNomor.trim() && !membuat && (
+                <span aria-live="polite" style={{ fontSize: 11, color: C.mid }}>
+                  Isi nomor RFQ dulu
+                </span>
+              )}
+            </div>
+
+            {/* "Lihat RFQ" dipisah ke barisnya sendiri, bukan didorong
+                `marginLeft:auto` di baris yang sama.
+
+                Terlihat saat menilai tangkapan layar: begitu kolom MR
+                menambah lebar, ia terlempar ke baris kedua dan berdiri tepat
+                di bawah kolom pembuatan — dua kelompok yang tujuannya
+                berlawanan (MEMBUAT vs MELIHAT) jadi terbaca satu kolom.
+                Yang salah bukan lebarnya, melainkan menaruhnya di sana. */}
+            {daftar.length > 0 && (
+              <div style={{
+                flexBasis: "100%", display: "flex", justifyContent: "flex-end",
+                borderTop: `1px solid ${C.border}`, paddingTop: 10, marginTop: 2,
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <label htmlFor="rq-pilih" style={{ ...labelGaya, marginBottom: 0, whiteSpace: "nowrap" }}>
+                    Lihat RFQ
+                  </label>
+                  <select
+                    id="rq-pilih" value={idEfektif} onChange={(e) => setTerpilih(e.target.value)}
+                    style={{ ...isianGaya, minWidth: 260 }}
+                  >
+                    {daftar.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.nomor} — {r.proyek?.name ?? "—"}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* Rincian MR terpilih — SELEBAR kartu, bukan sebaris.
+                Dropdown menyatakan "sisa 30"; ini menyatakan sisa APA.
+                Tanpa itu, angka 30 harus dipercaya begitu saja, dan yang
+                menekan "Buat RFQ" tak punya cara memeriksanya lebih dulu. */}
+            {(() => {
+              const dipilih = mrLayak?.layak.find((m) => m.id === buatMr);
+              if (!dipilih) return null;
+              return (
+                <div style={{
+                  flexBasis: "100%", marginTop: 4, padding: "10px 12px",
+                  background: C.subtle, border: `1px solid ${C.border}`, borderRadius: 6,
+                }}>
+                  {/* Nomor MR TIDAK diulang di sini — dropdown tepat di
+                      atasnya sudah menyebutnya, dan mengulanginya membuat
+                      mata mencari beda yang tak ada. Yang dibawa panel ini
+                      adalah yang belum terlihat: bahan dan jumlahnya. */}
+                  <div style={{ fontSize: 11.5, color: C.mid, marginBottom: 7 }}>
+                    Yang akan dimintakan harga
+                    {dipilih.tanpa_material > 0 && (
+                      // Item tanpa material tak bisa jadi baris penawaran
+                      // (`rfq_penawaran.material_id` NOT NULL). Dilewati
+                      // diam-diam membuat RFQ kekurangan baris tanpa gejala.
+                      <> · <span style={{ color: "var(--warning-teks)" }}>
+                        {dipilih.tanpa_material} item dilewati karena tak punya material
+                      </span></>
+                    )}
+                  </div>
+                  <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 4 }}>
+                    {dipilih.item.map((it) => (
+                      <li key={it.material_id} style={{
+                        display: "flex", alignItems: "baseline", gap: 8,
+                        fontSize: 12.5, color: C.text, flexWrap: "wrap",
+                      }}>
+                        <span style={{ fontWeight: 600 }}>{it.material_name}</span>
+                        <span style={{ fontVariantNumeric: "tabular-nums" }}>
+                          {it.qty}{it.unit ? ` ${it.unit}` : ""}
+                        </span>
+                        {/* Selisih dinyatakan, bukan disembunyikan. "sisa 30
+                            dari 115" adalah angka yang bisa diperiksa; "30"
+                            saja adalah angka yang harus dipercaya. */}
+                        {it.qty_diminta > it.qty && (
+                          <span style={{ fontSize: 11, color: C.mid, fontVariantNumeric: "tabular-nums" }}>
+                            sisa dari {it.qty_diminta} — {it.qty_diminta - it.qty} sudah dipesan
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })()}
           </div>
 
           {daftar.length === 0 ? (

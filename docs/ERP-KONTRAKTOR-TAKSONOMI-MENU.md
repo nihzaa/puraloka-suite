@@ -144,7 +144,7 @@ Jantung ERP kontraktor. Lihat skor Lima Pembeda di bawah.
 | Menu | Status | Catatan |
 |---|---|---|
 | Material Request (MR) | ✅ | + approval berjenjang via engine |
-| RFQ ke vendor | ✅ | migrasi 195 · `/procurement/rfq` · 19 invarian |
+| RFQ ke vendor | ✅ | migrasi 195 · `/procurement/rfq` · 19 invarian. **2026-08-08** — `rfq.mr_id` ada di schema dan `POST /rfq` sudah menerimanya, tapi diukur **3 dari 3 RFQ ber-`mr_id` NULL**: UI tak punya satu pun cara mengisinya (kelas cacat yang sama dengan `po_id` dibaca-tapi-tak-pernah-ditulis). Ditutup: `lib/mr-layak-rfq.ts` (24 test, 9 mutasi MERAH) + `GET /rfq/mr-layak` (11 test Postgres nyata, 5 mutasi MERAH) + pemilih MR di form buat RFQ. Qty yang ditawarkan adalah **SISA** (diminta − dipesan), bukan qty penuh — MR-2026-003 `partially_ordered` menawarkan 30, bukan 115. Sekalian menutup celah: `mr_id` dulu di-insert **tanpa diperiksa**, jadi RFQ proyek A bisa menunjuk kebutuhan proyek B |
 | Perbandingan penawaran (bid tabulation) | ✅ | satu layar dengan RFQ · `tabulasi-penawaran.ts` 14 test |
 | Putusan RFQ → terbitkan PO | ✅ | `POST /rfq/:id/putuskan` · `putusan-rfq.ts` 17 test + 13 test endpoint · alasan WAJIB saat bukan termurah (2026-08-08) |
 | Purchase Order | ✅ | + cancel + auto-number (trigger) |

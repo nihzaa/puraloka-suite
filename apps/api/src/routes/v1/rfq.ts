@@ -3,6 +3,7 @@ import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { proyekMilikTenant } from '../../utils/tenant-guard.js'
 import { susunTabulasi, type BarisPenawaran } from '../../lib/tabulasi-penawaran.js'
 import { susunPutusan } from '../../lib/putusan-rfq.js'
+import { ringkasKelayakan, type MrRingkas } from '../../lib/mr-layak-rfq.js'
 import { logAuditEvent } from '../../utils/audit.js'
 
 /**
@@ -152,6 +153,59 @@ export default async function rfqRoutes(app: FastifyInstance) {
     return reply.send({ rfq: data ?? [], total: count ?? 0 })
   })
 
+  // ── GET /api/v1/rfq/mr-layak?project_id= ─────────────────────────────────
+  //
+  // MR mana di proyek ini yang layak dimintakan penawaran, dan BERAPA sisanya.
+  //
+  // Diukur 2026-08-08: `rfq.mr_id` ada, rute POST sudah menerimanya, dan 3
+  // dari 3 RFQ ber-`mr_id` NULL — UI tak punya cara mengisinya. Endpoint ini
+  // yang memberi UI daftar untuk dipilih.
+  //
+  // Alasannya per-MR ikut dikirim, termasuk untuk yang TIDAK layak: layar yang
+  // hanya menampilkan yang lolos membuat orang bertanya "MR saya ke mana" dan
+  // tak menemukan jawabannya di mana pun.
+  //
+  // Ditaruh SEBELUM `/rfq/:id` — kalau di bawahnya, `:id` menangkap
+  // "mr-layak" sebagai UUID dan membalas 404 yang membingungkan.
+  app.get('/api/v1/rfq/mr-layak', {
+    preHandler: [authenticate, requirePermission('procurement:view')],
+  }, async (request, reply) => {
+    const { project_id } = request.query as Record<string, string>
+    if (!project_id) return reply.status(400).send({ error: 'project_id wajib diisi' })
+
+    if (!(await proyekMilikTenant(request, project_id))) {
+      return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    }
+
+    const { data, error } = await request.db!
+      .viaProject('material_requests', project_id)
+      .select(`
+        id, mr_number, status, needed_date,
+        items:material_request_items (
+          id, qty_requested, qty_ordered, unit,
+          material:materials ( id, name, unit )
+        )
+      `)
+      .order('needed_date', { ascending: true })
+      .limit(200)
+
+    if (error) return reply.status(500).send({ error: error.message })
+
+    // Tipe eksplisit, bukan `?? []`: penjaga `audit-kegagalan-senyap` menandai
+    // pola itu karena ia menyamarkan galat yang belum diperiksa jadi daftar
+    // kosong. Di sini `error` SUDAH diperiksa di atas, jadi `data` pasti ada.
+    const daftar = (data ?? []) as unknown as MrRingkas[]
+    const hasil = ringkasKelayakan(daftar)
+
+    return reply.send({
+      layak: hasil.layak,
+      tak_layak: hasil.tak_layak,
+      // Jumlah total dibawa supaya layar bisa mengatakan "3 dari 9", bukan
+      // hanya "3" — tanpa penyebutnya, angka itu tak bisa dinilai.
+      jumlah_mr: daftar.length,
+    })
+  })
+
   // ── GET /api/v1/rfq/:id — beserta TABULASI perbandingannya ───────────────
   app.get('/api/v1/rfq/:id', {
     preHandler: [authenticate, requirePermission('procurement:view')],
@@ -213,6 +267,26 @@ export default async function rfqRoutes(app: FastifyInstance) {
       // 404, bukan 403 — membedakan "tidak ada" dari "bukan milik Anda"
       // memberi tahu penanya bahwa proyek itu ADA di tenant lain.
       return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+    }
+
+    // `mr_id` sudah lama diterima di sini dan LANGSUNG di-insert tanpa
+    // diperiksa. Selama UI tak pernah mengirimnya (3 dari 3 RFQ ber-`mr_id`
+    // NULL), celahnya tak pernah terpakai — dan sekarang UI mulai mengirimnya.
+    //
+    // Yang dijaga: MR harus ada DAN milik proyek yang sama. Tanpa ini, RFQ
+    // proyek A bisa menunjuk kebutuhan proyek B — dan karena `mr_id` cuma
+    // dibaca saat seseorang bertanya "ini untuk apa", salahnya baru ketahuan
+    // jauh setelah PO terbit.
+    if (b.mr_id) {
+      const { data: mr, error: galatMr } = await request.db!
+        .viaProject('material_requests', b.project_id)
+        .select('id')
+        .eq('id', b.mr_id)
+        .maybeSingle()
+      if (galatMr) return reply.status(500).send({ error: galatMr.message })
+      if (!mr) {
+        return reply.status(400).send({ error: 'Material request tidak ditemukan di proyek ini' })
+      }
     }
 
     const { data, error } = await request.db!
