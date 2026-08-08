@@ -150,53 +150,27 @@ export function Topbar() {
           <div style={{ marginLeft: 10, flexShrink: 0 }}>
             <CompanySwitcher />
           </div>
+
+          {/*
+            PENCARIAN DI KIRI — diputuskan founder 2026-08-08 dari perbandingan
+            berdampingan, mengikuti referensi yang menaruhnya lebar dekat logo.
+
+            Sebelumnya ia di gugus kanan dan MENCIUT jadi ikon. Konsekuensinya:
+            fungsi yang paling sering dipakai justru jadi sasaran paling kecil.
+            Di kiri ia punya ruang untuk melebar, dan `maxWidth` menjaganya
+            tidak menelan breadcrumb di layar sedang.
+
+            Breadcrumb TIDAK dibuang meski referensi tak punya: ia menjawab
+            "saya di mana" pada aplikasi 105 halaman — referensi hanya punya
+            belasan, jadi ketiadaannya di sana bukan bukti ia tak berguna.
+          */}
+          <div style={{ marginLeft: 12, flex: 1, minWidth: 0, maxWidth: 420 }}>
+            <TombolCari onClick={() => setPaletteOpen(true)} />
+          </div>
         </div>
 
         {/* Right actions */}
         <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
-          {/* Search trigger — looks like an input bar */}
-          <button
-            onClick={() => setPaletteOpen(true)}
-            style={{
-              display: "flex", alignItems: "center", gap: 8,
-              height: 34, padding: "0 10px 0 12px",
-              borderRadius: 6,
-              background: "var(--surface-subtle)",
-              border: "1px solid var(--border)",
-              cursor: "pointer", color: "var(--text-muted)",
-              fontSize: 13, transition: "all 0.15s",
-              // Dulu `minWidth: 180` mati — penyumbang overflow terbesar di
-              // topbar. Di layar sempit tombol ini menciut jadi ikon saja
-              // (label "Cari..." + hint Ctrl-K disembunyikan lewat CSS), jadi
-              // fungsinya tetap ada dan target sentuhnya tetap ≥34px.
-              minWidth: 0,
-            }}
-            // Label teksnya lepas di layar sempit (lihat span di bawah), jadi
-            // aria-label WAJIB — tanpa itu pembaca layar hanya menemukan tombol
-            // tanpa nama. Ia juga tetap benar di layar lebar, karena isinya
-            // sama dengan label yang terlihat.
-            aria-label="Cari (Ctrl+K)"
-            onMouseEnter={e => {
-              e.currentTarget.style.borderColor = "var(--navy)";
-              e.currentTarget.style.color = "var(--text-primary)";
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.borderColor = "var(--border)";
-              e.currentTarget.style.color = "var(--text-muted)";
-            }}
-          >
-            <Search size={13} style={{ flexShrink: 0 }} />
-            <span className="e11-sembunyi-sempit" style={{ flex: 1, whiteSpace: "nowrap" }}>Cari...</span>
-            <kbd className="e11-sembunyi-sempit" style={{
-              display: "flex", alignItems: "center", gap: 2,
-              padding: "0px 4px", borderRadius: 6,
-              background: "var(--surface)", border: "1px solid var(--border)",
-              fontSize: 10, color: "var(--text-muted)", flexShrink: 0,
-            }}>
-              <Command size={9} /> K
-            </kbd>
-          </button>
-
           {/*
             "Buat" ditaruh SESUDAH pencarian dan SEBELUM tema/notifikasi.
             Referensi menaruh Quick Create paling kiri di gugus kanan, dan
@@ -217,5 +191,69 @@ export function Topbar() {
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </>
+  );
+}
+
+/**
+ * Tombol pencarian — tampil seperti kolom input, padahal membuka palet.
+ *
+ * Dipisah jadi komponen saat ia dipindah ke kiri (2026-08-08): di tempat
+ * barunya ia MELEBAR mengisi ruang, bukan lagi menciut jadi ikon di kanan.
+ *
+ * `width: 100%` di sini, `maxWidth` diatur pembungkusnya. Pembagian itu
+ * disengaja: tombolnya tak perlu tahu berapa ruang yang tersedia, dan
+ * pembungkusnya tak perlu tahu isi tombol.
+ */
+function TombolCari({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: "flex", alignItems: "center", gap: 8,
+        width: "100%", height: 34, padding: "0 10px 0 12px",
+        borderRadius: 8,
+        background: "var(--surface-subtle)",
+        border: "1px solid var(--border)",
+        cursor: "pointer", color: "var(--text-muted)",
+        fontSize: 13, transition: "all 0.15s",
+        // `minWidth: 0` tetap wajib walau kini melebar: tanpa itu anak flex
+        // menolak menyusut di bawah lebar alami isinya, dan di layar sedang
+        // ia mendorong breadcrumb keluar — cacat yang sama seperti dulu,
+        // hanya arahnya terbalik.
+        minWidth: 0,
+      }}
+      // Label teksnya lepas di layar sempit (span di bawah), jadi aria-label
+      // WAJIB — tanpa itu pembaca layar hanya menemukan tombol tanpa nama.
+      aria-label="Cari (Ctrl+K)"
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = "var(--navy)";
+        e.currentTarget.style.color = "var(--text-primary)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = "var(--border)";
+        e.currentTarget.style.color = "var(--text-muted)";
+      }}
+    >
+      <Search size={13} style={{ flexShrink: 0 }} />
+      {/*
+        Placeholder deskriptif seperti referensi ("Search projects, sites,
+        contractors...") — bukan "Cari..." yang tak memberi tahu apa yang
+        bisa dicari. Di layar sempit ia lepas dan ikonnya tetap cukup.
+      */}
+      <span className="e11-sembunyi-sempit" style={{
+        flex: 1, minWidth: 0, textAlign: "left", whiteSpace: "nowrap",
+        overflow: "hidden", textOverflow: "ellipsis",
+      }}>
+        Cari proyek, invoice, mandor, dokumen...
+      </span>
+      <kbd className="e11-sembunyi-sempit" style={{
+        display: "flex", alignItems: "center", gap: 2,
+        padding: "0px 4px", borderRadius: 6,
+        background: "var(--surface)", border: "1px solid var(--border)",
+        fontSize: 10, color: "var(--text-muted)", flexShrink: 0,
+      }}>
+        <Command size={9} /> K
+      </kbd>
+    </button>
   );
 }

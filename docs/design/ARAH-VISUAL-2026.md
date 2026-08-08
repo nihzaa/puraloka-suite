@@ -501,6 +501,44 @@ cd apps/web && for g in a11y-ratchet kontras-hex-ratchet hex-ratchet \
 | 2 | Sidebar gelap `#0B1220` permanen | ya | ❌ **DITOLAK** — *"tergantung pada mode-nya, dark atau light"*. Sidebar ikut tema. **§5d dicoret** |
 | 3 | Tab dipecah jadi halaman | ya (keuangan/mandor/kas) | ✅ **SETUJU — dan sudah SELESAI ketiganya** (2026-08-08). Terbuka baru: estimasi 3.713 baris, §1c |
 | 4 | Halaman contoh mana dulu | Dashboard | ✅ **SETUJU** |
+| 5 | Sidebar: item aktif jadi **pill navy pekat** (kandidat B) | B | ✅ **SETUJU sesudah dilihat** 2026-08-08 — lihat §10e |
+| 6 | Topbar: pencarian pindah ke **kiri**, lebar | ya | ✅ **SETUJU** 2026-08-08 — lihat §10e |
+
+### 10e. Sidebar & topbar — diputuskan dari gambar, 2026-08-08
+
+Founder bertanya *"topbar dan sidebar sudah kamu samakan?"* dan jawabannya
+saat itu **belum**: yang ditambahkan baru tombol "Buat" di topbar.
+
+Perbedaan terhadap referensi diukur, lalu **dibangun sebagai perbandingan
+berdampingan** (`apps/web/scripts/banding-shell.mjs` — 2 kandidat × 2 mode,
+digabung jadi satu gambar oleh `gabung-banding.mjs`). Pola yang sama dengan
+`banding-aksen.mjs`, dan alasannya sama: §10 mengikat, keputusan visual
+diambil dari gambar.
+
+**Yang disetujui:**
+
+| Bagian | Sebelum | Sesudah |
+|---|---|---|
+| Item nav aktif | `--navy-light` + teks navy + garis kiri 3px | **pill `--navy` pekat + teks `--on-navy`**, tanpa garis |
+| Tinggi item | 34/38px, margin 1px | 36/40px, margin 2px — lebih lega |
+| Pencarian | menciut jadi ikon di gugus KANAN | **lebar di KIRI** dekat logo, maks 420px |
+| Placeholder cari | "Cari..." | "Cari proyek, invoice, mandor, dokumen..." |
+
+**Yang TIDAK diikuti, dan alasannya:**
+
+- **Sidebar gelap permanen** — sudah ditolak (§5d). Tak dihidupkan lagi.
+- **Ikon amplop & tanda tanya** di topbar — kita belum punya kotak masuk
+  maupun pusat bantuan. Ikon yang tak melakukan apa pun adalah janji yang
+  tak ditepati; itu justru cacat yang sedang dihindari (Aturan Emas §9).
+- **Breadcrumb dibuang** — referensi tak punya, tapi ia hanya belasan
+  halaman. Kita 105; "saya di mana" adalah pertanyaan nyata di sini.
+- **Pill pada tombol GRUP** — sengaja tidak. Grup aktif berarti "salah satu
+  anak saya terbuka", bukan "inilah halaman ini". Dua blok navy menyala
+  sekaligus justru menghilangkan penanda halaman aktif.
+
+**Kontras diukur, keduanya lulus AA:** 12,61:1 (terang) · 6,94:1 (gelap).
+Token `--on-navy`, bukan `--on-merek` — hanya yang pertama ikut berbalik jadi
+teks gelap di mode gelap tempat `--navy` menjadi biru terang.
 
 ### 10a. Nomor 1 — riwayat keputusannya, karena sempat tercatat tiga kali berbeda
 

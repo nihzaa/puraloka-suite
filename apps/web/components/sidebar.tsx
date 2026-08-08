@@ -214,10 +214,16 @@ function GrupCollapsible({
         aria-controls={idPanel}
         style={{
           display: "flex", alignItems: "center", gap: 8,
-          padding: "0 14px", margin: "1px 6px", height: 38,
-          borderRadius: 6, fontSize: 13, fontWeight: aktif ? 500 : 400,
+          padding: "0 14px", margin: "2px 6px", height: 40,
+          borderRadius: 8, fontSize: 13, fontWeight: aktif ? 600 : 400,
+          // Tombol grup TIDAK diberi pill navy pekat, hanya teks navy.
+          //
+          // Sengaja berbeda dari `navStyle`/`subStyle`: yang aktif di sini
+          // berarti "salah satu ANAK saya sedang dibuka", bukan "inilah
+          // halaman yang Anda lihat". Memberi pill penuh pada keduanya
+          // membuat DUA blok navy menyala sekaligus — grup dan anaknya —
+          // dan pemakai tak lagi tahu mana yang sebenarnya halaman aktif.
           background: "transparent", border: "none",
-          borderLeft: aktif ? "3px solid var(--navy)" : "3px solid transparent",
           color: aktif ? "var(--navy)" : "var(--text-secondary)",
           cursor: "pointer", width: "calc(100% - 12px)", textAlign: "left",
           transition: "all 0.15s", whiteSpace: "nowrap",
@@ -570,16 +576,18 @@ function SidebarIsi() {
       gap: collapsed ? 0 : 8,
       padding: collapsed ? "0" : "0 14px",
       justifyContent: collapsed ? "center" : "flex-start",
-      margin: "1px 6px",
-      height: 38,
-      borderRadius: 6,
+      margin: "2px 6px",
+      height: 40,
+      borderRadius: 8,
       fontSize: 13,
-      fontWeight: active ? 500 : 400,
+      fontWeight: active ? 600 : 400,
       textDecoration: "none",
       transition: "all 0.15s",
-      borderLeft: collapsed ? "none" : (active ? "3px solid var(--navy)" : "3px solid transparent"),
-      color: active ? "var(--navy)" : "var(--text-secondary)",
-      background: active ? "var(--navy-light)" : "transparent",
+      // Pill navy pekat — sama persis dengan `subStyle`. Kalau kedua tingkat
+      // memakai perlakuan berbeda, sidebar terbaca dari dua sistem: itu yang
+      // dihindari kandidat B. Alasan token `--on-navy`: lihat `subStyle`.
+      color: active ? "var(--on-navy)" : "var(--text-secondary)",
+      background: active ? "var(--navy)" : "transparent",
       position: "relative",
       flexShrink: 0,
       overflow: "hidden",
@@ -587,22 +595,39 @@ function SidebarIsi() {
     };
   }
 
+  /**
+   * Item aktif = PILL NAVY PEKAT + teks `--on-navy`, tanpa garis kiri.
+   *
+   * Diputuskan founder 2026-08-08 dari perbandingan berdampingan
+   * (`scripts/banding-shell.mjs`, kandidat B), bukan dari daftar perbedaan
+   * di teks — aturan `ARAH-VISUAL-2026.md` §10 sesudah pelajaran indigo.
+   *
+   * Sebelumnya: `--navy-light` + teks navy + `borderLeft` 3px. Itu sorotan
+   * yang lembut; yang dipilih adalah sorotan yang tegas seperti referensi.
+   *
+   * `--on-navy`, BUKAN `--on-merek`: keduanya putih di mode terang (jadi
+   * salah pilih tak bergejala di sana), tetapi hanya `--on-navy` yang ikut
+   * berbalik jadi teks GELAP di mode gelap tempat `--navy` menjadi biru
+   * terang. Diukur: 12,61:1 terang · 6,94:1 gelap — keduanya lulus AA.
+   */
   function subStyle(active: boolean): React.CSSProperties {
     return {
       display: "flex",
       alignItems: "center",
       gap: 6,
-      padding: "0 14px 0 34px",
-      margin: "1px 6px",
-      height: 34,
-      borderRadius: 6,
+      // Padding kiri turun 34 → 30 karena garis 3px hilang; ikon anak tetap
+      // sejajar dengan ikon grup di atasnya.
+      padding: "0 14px 0 30px",
+      margin: "2px 6px",
+      // 34 → 36: "jarak antar item lebih lega" bagian dari kandidat B.
+      height: 36,
+      borderRadius: 8,
       fontSize: 13,
-      fontWeight: active ? 500 : 400,
+      fontWeight: active ? 600 : 400,
       textDecoration: "none",
       transition: "all 0.15s",
-      color: active ? "var(--navy)" : "var(--text-secondary)",
-      background: active ? "var(--navy-light)" : "transparent",
-      borderLeft: active ? "3px solid var(--navy)" : "3px solid transparent",
+      color: active ? "var(--on-navy)" : "var(--text-secondary)",
+      background: active ? "var(--navy)" : "transparent",
       whiteSpace: "nowrap",
       overflow: "hidden",
     };

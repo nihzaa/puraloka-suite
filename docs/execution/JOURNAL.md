@@ -5,6 +5,58 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-08 — "Topbar dan sidebar sudah kamu samakan?" — belum, dan pertanyaannya tepat
+
+Saya menutup empat celah referensi lalu melaporkannya selesai. Founder
+bertanya satu kalimat: *"kamu sudah yakin sudah mirip? topbar dan sidebar
+sudah kamu samakan?"*
+
+Jawabannya **belum**. Yang saya tambahkan cuma tombol "Buat" di topbar;
+sidebar tak saya sentuh sama sekali. Saya melaporkan "empat celah ditutup"
+sambil melewatkan dua permukaan yang paling sering dilihat orang — dan yang
+membuatnya luput justru karena keduanya sudah ada dan tampak wajar.
+
+### Yang berbeda, diukur bukan ditaksir
+
+Sidebar: item aktif kita `--navy-light` + teks navy + garis kiri 3px;
+referensi pill navy PEKAT + teks putih. Topbar: pencarian kita menciut jadi
+ikon di kanan; referensi lebar di kiri dekat logo.
+
+### Perbandingan berdampingan, bukan daftar perbedaan
+
+`ARAH-VISUAL-2026.md` §10 mengikat. Saya bangun `banding-shell.mjs` (2
+kandidat × 2 mode, override lewat `addStyleTag` — kode tak diubah sebutir
+pun) dan `gabung-banding.mjs` yang menempelnya jadi satu gambar. Founder
+memilih **B** dan **pencarian ke kiri** dari gambar itu.
+
+Menuliskannya sebagai daftar akan mengulang kegagalan usul indigo (§10d):
+rapi di atas kertas, lalu tak menyatu begitu dirender.
+
+### Tiga hal yang nyaris salah
+
+**`banding-shell.mjs` gagal di-parse.** `var(--navy)` di dalam template
+literal membuat parser JS membaca `--` sebagai operator decrement. Ditulis
+ulang dengan array + join.
+
+**Badge notifikasi nyaris saya bangun untuk keempat kalinya.** Ia sudah ada
+di `notification-panel.tsx`, lengkap dengan "99+". Yang saya lakukan hanya
+mengukur kontrasnya (12,61 · 6,18 — lulus) lalu tidak menyentuhnya.
+
+**`hex-ratchet` merah, dan itu SAYA — dua commit lalu.** Diukur mundur:
+48 di `799fe14`, 50 di `d20fff4`. Dua hex itu ada **di dalam komentar saya
+sendiri** yang menjelaskan bahaya `#4D9FFF` — persis kesalahan yang sudah
+saya buat sebelumnya dengan hex yang sama. Artinya commit `d20fff4` lolos
+dengan penjaga merah: saya menjalankan penjaga SEBELUM menulis komentar itu,
+lalu tak mengulanginya. Komentarnya ditulis ulang tanpa nilai heksa.
+
+**Yang paling saya ingat:** pertanyaan founder lebih murah daripada penjaga.
+Satu kalimat menemukan dua permukaan yang terlewat dan satu penjaga merah
+yang sudah dua commit umurnya — sesuatu yang tak ditemukan oleh tsc, 529
+test, maupun axe, karena tak satu pun dari mereka bertanya "apakah ini mirip
+yang diminta?".
+
+---
+
 ## 2026-08-08 — Empat sisa referensi: tiga dibangun, satu ternyata sudah ada
 
 Menutup celah terakhir terhadap referensi. Tiga dibangun; yang keempat sudah

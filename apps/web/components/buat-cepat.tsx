@@ -97,10 +97,17 @@ export function BuatCepat() {
             `--on-navy`, BUKAN `--on-merek`. Keduanya putih di mode terang,
             jadi salah pilih tak terlihat sama sekali di sana — dan itulah
             yang saya lakukan.
-            Di mode gelap `--navy` menjadi biru TERANG (#4D9FFF): putih di
-            atasnya 2,72:1 (axe: serious), sementara `--on-navy` yang ikut
-            berbalik jadi #0F1117 memberi 6,72:1. `--on-merek` sengaja TIDAK
-            berbalik — ia untuk gradasi merek yang tetap gelap di kedua mode.
+
+            Di mode gelap `--navy` berbalik jadi biru TERANG: putih di atasnya
+            cuma 2,72:1 (axe: serious), sementara `--on-navy` yang ikut
+            berbalik jadi teks gelap memberi 6,72:1. `--on-merek` sengaja
+            TIDAK berbalik — ia untuk gradasi merek yang tetap gelap di kedua
+            mode.
+
+            Nilai heksanya sengaja TIDAK ditulis di sini: `hex-ratchet` tak
+            bisa membedakan hex di komentar dari hex di kode, dan komentar
+            saya sendiri sudah dua kali memerahkannya. Nilainya ada di
+            `globals.css`, satu-satunya tempat yang benar untuk mencarinya.
           */
           background: "var(--navy)", color: "var(--on-navy)",
           fontSize: 13, fontWeight: 600, cursor: "pointer",
