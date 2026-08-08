@@ -64,6 +64,9 @@ import {
 
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
+import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
+import { RailIsi } from "@/components/shell/rail-isi";
+import { usePasangRail } from "@/lib/rail-context";
 import { KartuKPI, Kosong, Panel } from "@/components/ui-dasar";
 import { hariIniWIB } from "@/lib/ringkasan-proyek";
 import {
@@ -118,6 +121,37 @@ function ProcurementRingkasan() {
   const ringkas = useMemo(() => ringkasPo(pos, hariIni), [pos, hariIni]);
   const tertunggak = useMemo(() => palingLamaMenunggu(pos, hariIni), [pos, hariIni]);
   const konsentrasi = useMemo(() => konsentrasiVendor(pos), [pos]);
+
+  /*
+    RAIL KONTEKSTUAL — catatan lengkapnya di `app/(dashboard)/proyek/page.tsx`.
+    Yang relevan di pengadaan: PO yang paling lama lewat janji kirim. Sudah
+    dihitung `palingLamaMenunggu` untuk lapis di bawah — dipakai ulang di sini,
+    bukan dihitung ulang dengan aturan kedua yang bisa menyimpang.
+  */
+  usePasangRail(
+    <RailIsi
+      konteks={
+        <KartuRail
+          judul="Paling lama menunggu"
+          tautan="/procurement/pesanan"
+          labelTautan="Semua PO"
+          kosong="Tak ada PO yang lewat janji kirim."
+        >
+          {tertunggak.map((t, i) => (
+            <BarisRail
+              key={t.id}
+              pertama={i === 0}
+              utama={t.po_number ?? "tanpa nomor"}
+              sub={t.supplier}
+              kanan={`${t.hariLewat}h lewat`}
+              nadaKanan="bahaya"
+            />
+          ))}
+        </KartuRail>
+      }
+    />,
+    [tertunggak],
+  );
 
   return (
     // Token lebar diulang di tiap halaman bagian — `tata-letak-ratchet.mjs`

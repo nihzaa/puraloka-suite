@@ -48,6 +48,10 @@ import {
 } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
+import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
+import { RailIsi } from "@/components/shell/rail-isi";
+import { usePasangRail } from "@/lib/rail-context";
+import { formatRupiahSingkat } from "@/lib/format";
 import { GrafikBatang, KartuKPI, Kosong, Panel, type BatangData } from "@/components/ui-dasar";
 import {
   type CashSummary, type RingkasKategori, type TitikArusKas,
@@ -157,6 +161,44 @@ function KasRingkasan() {
     nilai: k.total,
     sorot: i === 0,
   }));
+
+  /*
+    RAIL KONTEKSTUAL — catatan lengkapnya di `app/(dashboard)/proyek/page.tsx`.
+
+    Halaman kas hanya punya ANGKA RINGKAS, bukan daftar baris (daftar akun
+    pindah ke `/kas/akun`). Jadi kartunya berisi saldo per jenis kas — yang
+    justru pertanyaan pertama orang di halaman ini: "uangnya ada di mana?".
+
+    `tanggalTenggat` sengaja kosong: kas tak punya tanggal jatuh tempo, dan
+    Pengingat akan berkata "tak ada tenggat" — jujur, bukan angka karangan.
+  */
+  usePasangRail(
+    <RailIsi
+      konteks={
+        <KartuRail
+          judul="Saldo per jenis"
+          tautan="/kas/akun"
+          labelTautan="Akun"
+          kosong={gagalRingkas ? "Saldo tak bisa dibaca saat ini." : "Belum ada akun kas."}
+        >
+          {ringkas ? [
+            { label: "Kas utama", nilai: ringkas.mainBalance },
+            { label: "Kas kolektor", nilai: ringkas.collectorBalance },
+            { label: "Kas kecil", nilai: ringkas.pettyBalance },
+          ].map((b, i) => (
+            <BarisRail
+              key={b.label}
+              pertama={i === 0}
+              utama={b.label}
+              kanan={formatRupiahSingkat(b.nilai)}
+              nadaKanan={b.nilai < 0 ? "bahaya" : "normal"}
+            />
+          )) : null}
+        </KartuRail>
+      }
+    />,
+    [ringkas, gagalRingkas],
+  );
 
   return (
     // Token lebar diulang di tiap halaman bagian — `tata-letak-ratchet.mjs`

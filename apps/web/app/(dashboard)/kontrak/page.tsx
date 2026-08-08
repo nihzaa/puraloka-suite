@@ -59,6 +59,9 @@ import {
 } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
+import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
+import { RailIsi } from "@/components/shell/rail-isi";
+import { usePasangRail } from "@/lib/rail-context";
 import { Galat, Lencana, Rangka, Tabel, Tombol, type Kolom } from "@/components/dasar";
 import { GrafikBatang, KartuKPI, Kosong, Panel } from "@/components/ui-dasar";
 import {
@@ -201,6 +204,45 @@ export default function KontrakRingkasanPage() {
       ),
     },
   ];
+
+  /*
+    RAIL KONTEKSTUAL — catatan lengkapnya di `app/(dashboard)/proyek/page.tsx`.
+    Yang relevan di kontrak: jaminan yang paling dekat kedaluwarsa. Jaminan
+    lewat tanggal adalah risiko kontraktual yang mahal dan mudah terlupa,
+    dan tanggalnya juga jadi sumber Pengingat di bawah.
+  */
+  usePasangRail(
+    <RailIsi
+      tanggalTenggat={jaminan.map((j) => j.expiry_date)}
+      konteks={
+        <KartuRail
+          judul="Jaminan segera habis"
+          kosong="Tak ada jaminan tercatat."
+        >
+          {[...jaminan]
+            .filter((j) => j.expiry_date)
+            .sort((a, b) => a.expiry_date.localeCompare(b.expiry_date))
+            .slice(0, 6)
+            .map((j, i) => {
+              const sisa = Math.round(
+                (new Date(j.expiry_date).getTime() - Date.now()) / 86_400_000,
+              );
+              return (
+                <BarisRail
+                  key={j.id}
+                  pertama={i === 0}
+                  utama={j.bond_number || j.bond_type}
+                  sub={j.issuer ?? undefined}
+                  kanan={sisa < 0 ? `${Math.abs(sisa)}h lewat` : `${sisa}h`}
+                  nadaKanan={sisa < 0 ? "bahaya" : sisa <= 30 ? "bahaya" : "normal"}
+                />
+              );
+            })}
+        </KartuRail>
+      }
+    />,
+    [jaminan],
+  );
 
   return (
     <div style={{

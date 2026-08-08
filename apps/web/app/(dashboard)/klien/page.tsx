@@ -60,6 +60,9 @@ import {
 
 import { C } from "@/lib/warna-ui";
 import { KartuKPI, Kosong } from "@/components/ui-dasar";
+import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
+import { RailIsi } from "@/components/shell/rail-isi";
+import { usePasangRail } from "@/lib/rail-context";
 import { Tabel, type Kolom } from "@/components/dasar";
 import { medanKurang, ringkasKlien } from "@/lib/ringkasan-klien";
 // Dipecah ke `_bersama/` 2026-08-07 (UI-2-3) mengikuti pola `kas/_bersama/`:
@@ -278,6 +281,34 @@ export default function KlienPage() {
       ),
     },
   ];
+
+  /*
+    RAIL KONTEKSTUAL — catatan lengkapnya di `app/(dashboard)/proyek/page.tsx`.
+    Yang relevan di halaman klien: klien yang baru ditambahkan. Tenggat
+    dikosongkan karena klien tak punya tanggal jatuh tempo — Pengingat akan
+    berkata "tak ada tenggat", dan itu jujur.
+  */
+  usePasangRail(
+    <RailIsi
+      konteks={
+        <KartuRail judul="Klien terbaru" kosong="Belum ada klien.">
+          {[...clients]
+            .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""))
+            .slice(0, 6)
+            .map((k, i) => (
+              <BarisRail
+                key={k.id}
+                pertama={i === 0}
+                utama={k.company_name || k.contact_person}
+                sub={k.company_name ? k.contact_person : undefined}
+                kanan={k.is_active ? undefined : "nonaktif"}
+              />
+            ))}
+        </KartuRail>
+      }
+    />,
+    [clients],
+  );
 
   return (
     <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>

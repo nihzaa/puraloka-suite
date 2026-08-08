@@ -56,6 +56,9 @@ import { C } from "@/lib/warna-ui";
 import { KartuKPI, Kosong, Panel } from "@/components/ui-dasar";
 import { ProjectModal } from "@/components/project-modal";
 import { useToast } from "@/components/toast";
+import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
+import { RailIsi } from "@/components/shell/rail-isi";
+import { usePasangRail } from "@/lib/rail-context";
 import {
   hariIniWIB, palingTertinggal, ringkasProyek, type BarisSelisih,
 } from "@/lib/ringkasan-proyek";
@@ -195,6 +198,75 @@ function ProyekRingkasan() {
     setSort("deadline_asc");
     document.getElementById("daftar-proyek")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
+
+  /*
+    RAIL KONTEKSTUAL — aturan founder 2026-08-08.
+
+    Di beranda rail berisi kalender · tugas · notifikasi. Di halaman lain
+    ketiganya DIGANTI yang relevan; AI dan Pengingat SELALU ada (dipaksa oleh
+    bentuk `RailIsi`, bukan oleh ingatan penulis halaman).
+
+    Di sini yang relevan: proyek yang tenggatnya paling dekat, dan yang
+    progresnya belum bergerak. Keduanya dari `projects` yang SUDAH dimuat
+    halaman — nol permintaan jaringan tambahan.
+  */
+  usePasangRail(
+    <RailIsi
+      tanggalTenggat={projects.map((p) => p.end_date)}
+      konteks={
+        <>
+          <KartuRail
+            judul="Tenggat terdekat"
+            tautan="/kalender"
+            labelTautan="Kalender"
+            kosong="Tak ada proyek berjalan."
+          >
+            {[...projects]
+              .filter((p) => p.status === "active" && p.end_date)
+              .sort((a, b) => a.end_date.localeCompare(b.end_date))
+              .slice(0, 5)
+              .map((p, i) => {
+                const sisa = Math.round(
+                  (new Date(p.end_date).getTime() - Date.now()) / 86_400_000,
+                );
+                return (
+                  <BarisRail
+                    key={p.id}
+                    pertama={i === 0}
+                    utama={p.name}
+                    sub={p.location}
+                    kanan={sisa < 0 ? `${Math.abs(sisa)}h lewat` : `${sisa}h`}
+                    nadaKanan={sisa < 0 ? "bahaya" : "normal"}
+                    href={`/proyek/${p.id}`}
+                  />
+                );
+              })}
+          </KartuRail>
+
+          <KartuRail
+            judul="Belum bergerak"
+            kosong="Semua proyek berjalan sudah punya progres."
+          >
+            {projects
+              .filter((p) => p.status === "active" && (p.progress_pct ?? 0) <= 0)
+              .slice(0, 5)
+              .map((p, i) => (
+                <BarisRail
+                  key={p.id}
+                  pertama={i === 0}
+                  utama={p.name}
+                  sub={p.location}
+                  kanan="0%"
+                  nadaKanan="bahaya"
+                  href={`/proyek/${p.id}`}
+                />
+              ))}
+          </KartuRail>
+        </>
+      }
+    />,
+    [projects],
+  );
 
   return (
     <div style={{

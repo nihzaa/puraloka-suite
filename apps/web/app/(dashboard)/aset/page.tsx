@@ -61,6 +61,9 @@ import {
 import { api, makeAbortController } from "@/lib/api";
 
 import { C } from "@/lib/warna-ui";
+import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
+import { RailIsi } from "@/components/shell/rail-isi";
+import { usePasangRail } from "@/lib/rail-context";
 import { useTabUrl } from "@/lib/use-tab-url";
 import { TabBagian } from "@/components/tab-bagian";
 import { KartuKPI, Kosong, Panel } from "@/components/ui-dasar";
@@ -192,6 +195,46 @@ function IsiAset() {
     setTab("sewa");
     document.getElementById("daftar-aset")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
+
+  /*
+    RAIL KONTEKSTUAL — catatan lengkapnya di `app/(dashboard)/proyek/page.tsx`.
+    Yang relevan di aset: alat yang sedang TIDAK bisa dipakai (rusak/perbaikan).
+    Itu yang menahan pekerjaan lapangan, dan paling mudah terlupa karena tak
+    ada yang menagihnya.
+  */
+  usePasangRail(
+    <RailIsi
+      konteks={
+        <KartuRail judul="Tak siap pakai" kosong="Semua aset siap dipakai.">
+          {aset
+            /*
+              Hanya `perawatan` dan `rusak` — DISEBUT satu per satu, bukan
+              "selain tersedia/dipakai". Versi pertama saya menulis
+              `!== "digunakan"`, dan nilai itu tak pernah ada (yang benar
+              `dipakai`) — jadi seluruh aset yang sedang dipakai ikut masuk
+              daftar "tak siap pakai". TypeScript tak menangkapnya karena
+              perbandingan string apa pun sah.
+
+              `dilepas` juga tak masuk: aset yang sudah dilepas bukan masalah
+              yang menunggu diperbaiki.
+            */
+            .filter((a) => a.status === "perawatan" || a.status === "rusak")
+            .slice(0, 6)
+            .map((a, i) => (
+              <BarisRail
+                key={a.id}
+                pertama={i === 0}
+                utama={a.name}
+                sub={a.asset_code}
+                kanan={a.status}
+                nadaKanan="bahaya"
+              />
+            ))}
+        </KartuRail>
+      }
+    />,
+    [aset],
+  );
 
   return (
     <div style={{

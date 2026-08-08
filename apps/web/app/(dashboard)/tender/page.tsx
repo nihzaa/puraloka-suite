@@ -55,6 +55,9 @@ import {
 import { api, makeAbortController } from "@/lib/api";
 import { Tabel } from "@/components/dasar";
 import { KartuKPI, Panel } from "@/components/ui-dasar";
+import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
+import { RailIsi } from "@/components/shell/rail-isi";
+import { usePasangRail } from "@/lib/rail-context";
 import {
   hariIniWIB, penawaranMenggantung, ringkasTender,
   type BarisMenggantung,
@@ -176,6 +179,33 @@ export default function TenderPage() {
     muat(ac.signal);
     return () => ac.abort();
   }, [muat]);
+
+  /*
+    RAIL KONTEKSTUAL — catatan lengkapnya di `app/(dashboard)/proyek/page.tsx`.
+    Yang relevan di tender: penawaran yang sudah dikirim dan belum diputus —
+    itulah yang menunggu kabar dan mudah terlupa.
+  */
+  usePasangRail(
+    <RailIsi
+      konteks={
+        <KartuRail judul="Menunggu keputusan" kosong="Tak ada penawaran menggantung.">
+          {bidsAju
+            .filter((b) => b.submitted_at && !b.decided_at)
+            .slice(0, 6)
+            .map((b, i) => (
+              <BarisRail
+                key={b.id}
+                pertama={i === 0}
+                utama={b.title}
+                sub={b.owner_name ?? undefined}
+                kanan={b.bid_number ?? undefined}
+              />
+            ))}
+        </KartuRail>
+      }
+    />,
+    [bidsAju],
+  );
 
   return (
     <div style={{

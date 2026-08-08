@@ -61,6 +61,9 @@ import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Galat, Lencana, Rangka, Tabel, Tombol, type Kolom } from "@/components/dasar";
 import { KartuKPI, Kosong, Panel } from "@/components/ui-dasar";
+import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
+import { RailIsi } from "@/components/shell/rail-isi";
+import { usePasangRail } from "@/lib/rail-context";
 import {
   KETERBATASAN_INSTRUKSI, hariIniWIB, ringkasLapangan,
   type ProyekBerjalan, type ProyekLapangan, type RincianFokus,
@@ -189,6 +192,40 @@ export default function LapanganRingkasanPage() {
       ),
     },
   ];
+
+  /*
+    RAIL KONTEKSTUAL — catatan lengkapnya di `app/(dashboard)/proyek/page.tsx`.
+    Yang relevan di halaman lapangan: proyek yang progresnya paling tertinggal,
+    karena di sinilah pekerjaan fisik dikejar.
+  */
+  usePasangRail(
+    <RailIsi
+      tanggalTenggat={proyek.map((p) => p.end_date)}
+      konteks={
+        <KartuRail
+          judul="Paling tertinggal"
+          tautan="/proyek"
+          kosong="Tak ada proyek berjalan."
+        >
+          {[...proyek]
+            .filter((p) => p.status !== "completed" && p.status !== "cancelled")
+            .sort((a, b) => Number(a.progress_pct ?? 0) - Number(b.progress_pct ?? 0))
+            .slice(0, 6)
+            .map((p, i) => (
+              <BarisRail
+                key={p.id}
+                pertama={i === 0}
+                utama={p.name}
+                kanan={`${Math.round(Number(p.progress_pct ?? 0))}%`}
+                nadaKanan={Number(p.progress_pct ?? 0) <= 0 ? "bahaya" : "normal"}
+                href={`/proyek/${p.id}`}
+              />
+            ))}
+        </KartuRail>
+      }
+    />,
+    [proyek],
+  );
 
   return (
     <div style={{
