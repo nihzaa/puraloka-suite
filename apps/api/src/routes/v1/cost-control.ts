@@ -4,6 +4,7 @@ import { logAuditEvent } from '../../utils/audit.js'
 import { proyekMilikTenant } from '../../utils/tenant-guard.js'
 import { analisaProyek, ringkasPortofolio, urutkanPerhatian, type BarisProyek } from '../../lib/cost-analytics.js'
 import { agregasiVarians, type CostCodeRef } from '../../lib/varians-cost-code.js'
+import { sarankanPemetaan } from '../../lib/saran-cost-map.js'
 
 // ============================================================
 // ROADMAP #9 — Commitment & Varians per Cost Code.
@@ -213,6 +214,123 @@ export default async function costControlRoutes(app: FastifyInstance) {
       return reply.send({
         data,
         belum_dipetakan: data.filter((d) => !d.cost_code).length,
+      })
+    })
+
+  // ── GET /projects/:projectId/cost-map/saran — USULKAN, jangan terapkan ────
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // KENAPA ENDPOINT INI ADA
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Diukur 2026-08-08: `cost_code_category_map` **nol baris**, padahal
+  // endpoint dan UI-nya sudah ada berbulan-bulan. Peta kosong itu memblokir
+  // tiga hal sekaligus:
+  //
+  //   • CVR tak punya cara menghubungkan pengeluaran ke cost code — dan
+  //     itulah alasan taksonomi menandainya "tertunda, data belum ada"
+  //   • varians per cost code kehilangan sisi "aktual"
+  //   • impor BOQ → RFQ mustahil: BOQ menghasilkan cost_code_id, RFQ butuh
+  //     material_id, dan peta inilah satu-satunya jembatan
+  //
+  // Mengisi sepuluh baris bukan pekerjaan besar. Tapi tak seorang pun
+  // melakukannya, dan itu sendiri informasi: layar berisi sepuluh dropdown
+  // kosong tanpa petunjuk adalah pekerjaan rumah, bukan alat.
+  //
+  // ── Kenapa GET, dan kenapa ia TIDAK MENULIS apa pun
+  //
+  // Pemetaan ini menentukan ke cost code mana sebuah biaya jatuh, dan itu
+  // mengalir ke laporan varians yang dipakai menilai untung-rugi proyek.
+  // Tebakan mesin yang diterapkan diam-diam menghasilkan laporan yang terlihat
+  // benar dan salah di tempat yang tak seorang pun periksa.
+  //
+  // Karena itu: `GET`, permission `view` (bukan `manage`), dan hasilnya usulan
+  // bersama SKORNYA. Yang menulis tetap `PUT /cost-map/:categoryId`, satu per
+  // satu, atas keputusan manusia.
+  app.get<{ Params: { projectId: string } }>(
+    '/api/v1/projects/:projectId/cost-map/saran',
+    { preHandler: [authenticate, requirePermission('cecep:cost_map:view')] },
+    async (request, reply) => {
+      const { projectId } = request.params
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
+
+      const { data: kategori, error: eKat } = await request.db!
+        .viaProject('project_expense_categories', projectId)
+        .select('id, name')
+        .order('name')
+      if (eKat) return reply.status(500).send({ error: eKat.message })
+
+      // Cadangan-array-kosong sengaja TIDAK dipakai di sini.
+      //
+      // `audit-kegagalan-senyap.mjs` menandai pola itu, dan ia benar meski
+      // `error` sudah diperiksa di atas: bentuk tersebut melatih pembaca
+      // berikutnya menyalin sesuatu yang MENYAMARKAN kegagalan jadi "nol
+      // baris". Errornya sudah membalas 500 beberapa baris di atas, jadi
+      // nilainya pasti array — cukup nyatakan itu lewat tipe, jangan tulis
+      // pagar yang tak menjaga apa pun tapi mengajarkan pola yang salah.
+      //
+      // (Komentar ini pun sempat memerahkan penjaga karena mengutip polanya
+      // secara harfiah. Penjaga tak membedakan komentar dari kode — dan itu
+      // pilihan yang benar: komentar yang mengutip pola berbahaya adalah
+      // tempat paling mudah untuk menyalinnya kembali.)
+      const daftarKategori = kategori as { id: string; name: string }[]
+      const ids = daftarKategori.map((k) => k.id)
+      if (ids.length === 0) return reply.send({ saran: [], jumlah_kategori: 0 })
+
+      // Yang SUDAH dipetakan dilewati — saran yang menimpa keputusan manusia
+      // adalah saran yang merusak.
+      const { data: peta, error: ePeta } = await request.db!
+        .unsafe('cost_code_category_map',
+          'disaring lewat ids kategori yang sudah ber-scope tenant via viaProject')
+        .select('category_id')
+        .in('category_id', ids)
+      if (ePeta) return reply.status(500).send({ error: ePeta.message })
+
+      // `shared`, bukan `from`: `cost_codes` kategori AB — katalog bersama
+      // lintas tenant, sama seperti endpoint `/cost-codes` di atas. Memakai
+      // `from` akan menyaringnya dengan company_id yang tak ada di tabel itu.
+      //
+      // ── Yang DIBUANG hanya `deprecated`, bukan "selain active"
+      //
+      // Percobaan pertama menyaring `status = 'active'`. Diukur ke basis:
+      // **nol cost code berstatus active** — 43 dari 44 masih `draft`, satu
+      // `deprecated`. Hasilnya endpoint mengembalikan nol saran untuk 12
+      // kategori yang jelas punya padanan, dan test-nya merah.
+      //
+      // Lifecycle-nya `draft → active → deprecated` (migrasi 102), dan
+      // registry ini memang belum pernah diaktifkan. Endpoint `/cost-codes`
+      // yang mengisi dropdown UI pun tak menyaring status sama sekali —
+      // menyaring lebih ketat di sini berarti menyarankan dari daftar yang
+      // lebih sempit daripada yang boleh dipilih manusia, dan itu
+      // membingungkan tanpa alasan.
+      //
+      // `deprecated` tetap dibuang: menyarankan kode yang sudah dipensiunkan
+      // berarti mengarahkan biaya baru ke pekerjaan yang tak dipakai lagi.
+      const { data: cc, error: eCc } = await request.db!
+        .shared('cost_codes')
+        .select('id, code, name')
+        .neq('status', 'deprecated')
+        .order('code')
+      if (eCc) return reply.status(500).send({ error: eCc.message })
+
+      const daftarPeta = peta as { category_id: string }[]
+      const daftarCc = cc as { id: string; code: string; name: string }[]
+
+      const saran = sarankanPemetaan(
+        daftarKategori,
+        daftarCc,
+        { sudahDipetakan: daftarPeta.map((p) => p.category_id) },
+      )
+
+      return reply.send({
+        saran,
+        jumlah_kategori: ids.length,
+        sudah_dipetakan: daftarPeta.length,
+        // Dinyatakan, bukan disembunyikan: yang TAK disarankan adalah daftar
+        // kerja yang tetap manual, dan pemakainya berhak tahu berapa banyak.
+        tanpa_saran: ids.length - daftarPeta.length - saran.length,
       })
     })
 
