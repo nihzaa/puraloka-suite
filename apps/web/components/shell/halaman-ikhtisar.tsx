@@ -7,12 +7,12 @@
  * KENAPA BUKAN DIPASANG DI `(dashboard)/layout.tsx`
  * ══════════════════════════════════════════════════════════════════════════
  *
- * Rail hanya hidup di halaman IKHTISAR (dashboard, detail proyek, ringkasan
- * laporan) dan sengaja MATI di halaman tabel. Menaruhnya di layout berarti
+ * Rail hanya hidup di halaman DASHBOARD (beranda + tiap menu induk) dan sengaja MATI di halaman
+ * DAFTAR/DETAIL di bawahnya. Menaruhnya di layout berarti
  * setiap halaman harus ikut memutuskan "rail saya kosong atau tidak" — dan
  * halaman yang lupa akan menyisakan kolom kosong selebar 300px.
  *
- * Dengan membungkus di tingkat HALAMAN, halaman tabel tak perlu tahu rail
+ * Dengan membungkus di tingkat HALAMAN, halaman daftar tak perlu tahu rail
  * pernah ada. Itu juga yang membuatnya bukan "mode": tak ada keadaan global
  * yang bisa salah.
  *
@@ -44,7 +44,7 @@ export function HalamanIkhtisar({
   children: ReactNode;
   /**
    * Isi rail kanan. Tak diisi = halaman satu kolom, dan itu bukan kekurangan:
-   * halaman tabel memang tak seharusnya punya rail.
+   * halaman daftar memang tak seharusnya punya rail.
    */
   rail?: ReactNode;
 }) {

@@ -229,7 +229,7 @@
   --sidebar-w:         220px;
   --sidebar-w-ciut:     64px;
 
-  /* Rail kanan — hanya di halaman IKHTISAR (UIR-4, DESIGN-BRIEF §C.0a).
+  /* Rail kanan — hanya di halaman DASHBOARD (UIR-4, DESIGN-BRIEF §C.0a).
    *
    * 300px diambil dari referensi dan diperiksa terhadap isinya: baris
    * "Instruksi belum dikonfirmasi" + angka + chevron butuh ~280px sebelum
@@ -1027,8 +1027,8 @@ select.input-base { cursor: pointer; }
 /* ═══════════════════════════════════════════════════════════════════════════
  * IKHTISAR — konten + rail kanan (UIR-4)
  *
- * Rail hanya dipasang di halaman IKHTISAR (dashboard, detail proyek, ringkasan
- * laporan) dan sengaja MATI di halaman tabel — keputusan founder 2026-08-08,
+ * Rail hanya dipasang di halaman DASHBOARD (beranda + tiap menu induk) dan sengaja MATI di halaman
+ * DAFTAR/DETAIL di bawahnya — keputusan founder 2026-08-08,
  * `DESIGN-BRIEF.md` §C.0a.
  *
  * Ambang 1280px BUKAN selera: `ARAH-VISUAL-2026.md` §4a menetapkan `--w-page`

@@ -6,9 +6,9 @@ import { Rail } from './rail'
 /**
  * Yang diuji di sini adalah KEPUTUSAN STRUKTUR, bukan rupa.
  *
- * Rail adalah slot: halaman ikhtisar mengisinya, halaman tabel tidak. Kalau
- * pembedaan itu rusak, gejalanya halus — halaman tabel menyisakan kolom kosong
- * selebar 300px, atau halaman ikhtisar kehilangan railnya tanpa galat apa pun.
+ * Rail adalah slot: halaman DASHBOARD mengisinya, halaman DAFTAR tidak. Kalau
+ * pembedaan itu rusak, gejalanya halus — halaman daftar menyisakan kolom kosong
+ * selebar 300px, atau dashboard kehilangan railnya tanpa galat apa pun.
  * Keduanya tak akan membuat test lain merah.
  */
 describe('HalamanIkhtisar', () => {
@@ -16,7 +16,7 @@ describe('HalamanIkhtisar', () => {
     const { container } = render(<HalamanIkhtisar>isi</HalamanIkhtisar>)
     expect(
       container.querySelector('.ikhtisar-grid'),
-      'halaman tabel tak boleh memakai grid dua-kolom: sisanya jadi ruang ' +
+      'halaman daftar tak boleh memakai grid dua-kolom: sisanya jadi ruang ' +
       'kosong 300px yang memotong lebar tabel tanpa memberi apa pun',
     ).toBeNull()
   })

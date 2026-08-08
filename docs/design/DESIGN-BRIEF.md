@@ -189,12 +189,54 @@ kendala halaman **tabel** (1366px, 12 kolom) untuk membuang rail di halaman
                                        Bilah Keputusan + drawer
 ```
 
-| Rail AKTIF (ikhtisar) | Rail MATI (tabel) |
+> ### ⚠️ ATURAN INI DIREVISI 2026-08-08 — baca §C.0c sebelum memakainya
+>
+> Pembedaan "ikhtisar vs tabel" di bawah **sudah dicabut**. Penggantinya:
+> **dashboard vs daftar** (§C.0c). Tabel di bawah disimpan sebagai catatan
+> alasan, bukan instruksi.
+
+| ~~Rail AKTIF (ikhtisar)~~ | ~~Rail MATI (tabel)~~ |
 |---|---|
 | `/dashboard` | RAB, buku besar, daftar upah |
 | `/proyek/[id]` | 16 halaman Administrasi |
 | ringkasan `/laporan` | daftar transaksi, tabel padat |
 | dashboard per grup | halaman pengaturan |
+
+### C.0c Revisi 2026-08-08 — "dashboard vs daftar", bukan "ikhtisar vs tabel"
+
+Founder: *"anggap aja aturan yg sebelumnya itu gaada… ini rombak total bukan
+hanya poles make up, dan setiap menu induk kan akan punya semacam dashboard
+sendiri-sendiri."*
+
+**Aturan lama saya turunkan dari argumen 1366px**, dan argumen itu lahir dari
+Arah 2 — yang mengandaikan halaman ERP = tabel besar. Begitu setiap menu induk
+punya **dashboard sendiri** (`ARAH-VISUAL-2026.md` §5a–§5c, gagasan founder yang
+sudah diratifikasi), premisnya runtuh: halamannya bukan lagi "tabel 12 kolom",
+melainkan **KPI → grafik → tabel** (pola tiga lapis §5b). Di bentuk itu rail
+300px tak memotong apa pun.
+
+Pembedaan lama juga terbukti **tak bisa dipakai**: diukur, `/laporan` punya
+25 tabel + 5 tab, jadi ia jatuh ke kategori "tabel" — padahal ia **dashboard
+grup Laporan & BI**, salah satu layar utama produk.
+
+```
+RAIL AKTIF    beranda + dashboard tiap menu induk
+              /dashboard · /keuangan · /mandor · /kas · /laporan
+              /proyek · /proyek/[id] · /procurement · /lapangan · …
+
+RAIL MATI     halaman DAFTAR/DETAIL di bawahnya
+              /keuangan/invoice · /mandor/upah · /kas/transaksi
+              /pengaturan/* · halaman formulir
+```
+
+**Ini juga lebih dekat ke referensi, bukan lebih jauh.** Di keempat gambar
+BuildAxis rail muncul di *setiap* layar utama — termasuk "Cost Reports &
+Analytics", yang penuh tabel. Yang membedakan bukan ada-tidaknya tabel,
+melainkan apakah halaman itu **pintu masuk sebuah wilayah** atau **daftar di
+dalamnya**.
+
+Yang **tidak** berubah: rail tetap **slot per halaman**, bukan mode global —
+alasan penolakan mode kepadatan (§C.0a) berlaku utuh.
 
 **Kenapa ini bukan "mode ketiga"** — dan kenapa itu penting: mode kepadatan
 (Arah 3) berarti **satu halaman punya dua tampilan**, jadi tiap penjaga visual

@@ -10,17 +10,17 @@
  * Keputusan founder 2026-08-08 (`DESIGN-BRIEF.md` §C.0a): rail bukan sesuatu
  * yang dinyalakan pengguna, melainkan **prop yang diisi halaman**.
  *
- *     halaman IKHTISAR  <Rail>…</Rail>   dashboard · detail proyek · laporan
- *     halaman TABEL     tak dipasang     RAB · buku besar · daftar upah · admin
+ *     halaman DASHBOARD  <Rail>…</Rail>  beranda · tiap menu induk
+ *     halaman DAFTAR     tak dipasang    invoice · upah · transaksi · pengaturan
  *
  * Bedanya dengan "mode kepadatan" yang DITOLAK: satu halaman selalu punya satu
  * bentuk, ditentukan saat halaman ditulis. Tak ada kombinasi baru yang harus
  * diuji — inilah alasan slot diterima dan mode ditolak.
  *
- * ── Kenapa halaman tabel tak dapat rail
+ * ── Kenapa halaman DAFTAR tak dapat rail
  *
  * Argumen founder, dan ia benar: 300px yang disandera rail tak berarti apa-apa
- * di dashboard, tetapi di halaman tabel 12 kolom pada layar 1366px — laptop
+ * di dashboard, tetapi di halaman DAFTAR bertabel padat pada layar 1366px — laptop
  * kantor yang sebenarnya — ia memotong pekerjaan utama.
  *
  * ── Perilaku sempit

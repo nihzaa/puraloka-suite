@@ -101,6 +101,7 @@ import { formatRupiah } from "@/lib/format";
 import { HalamanIkhtisar } from "@/components/shell/halaman-ikhtisar";
 import { Rail } from "@/components/shell/rail";
 import { RailFokus } from "@/components/shell/rail-fokus";
+import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
 
 const STATUS_COLOR: Record<string, string> = {
   active: C.navy, completed: C.green, on_hold: C.yellow,
@@ -586,64 +587,17 @@ function DashboardContent() {
     </div>
   );
 
-  const milestoneWidget = (
-    /* `overflowY: auto` — 2026-08-07. Sama seperti Progress Aktif: dengan
-       `height: 100%` saja, milestone kelima terpotong di tengah huruf
-       ("Finishing & cat selesai") dan tak ada cara mencapainya. Daftar ini
-       memang bisa panjang — semua tenggat yang mendekat — jadi memotongnya
-       diam-diam berarti menyembunyikan tenggat. */
-    <div style={{ padding: "var(--pad-kartu-lega)", height: "100%", overflowY: "auto" }}>
-      <SectionHeader title="Milestone Mendatang" linkLabel="Kalender" linkHref="/kalender" />
-      {loading ? <Skeleton h={160} /> :
-       !data?.upcoming_milestones.length ? (
-        // Jendelanya disebut, dan angkanya DIVERIFIKASI ke query-nya
-        // (`dashboard.ts` — `.lte('target_date', in14DaysStr)`), bukan
-        // ditebak. Draf pertama kalimat ini menulis "30 hari"; itu salah,
-        // dan layar kosong yang menjelaskan dengan angka SALAH lebih
-        // buruk daripada yang tak menjelaskan sama sekali — orang akan
-        // menyimpulkan tak ada tenggat selama sebulan.
-        //
-        // Query-nya juga tak punya `.gte()`, jadi milestone yang sudah
-        // lewat ikut terhitung. Karena itu kalimatnya tidak menjanjikan
-        // "yang terlambat ada di tempat lain".
-        <Kosong
-          ikon={<CheckCircle2 size={20} aria-hidden="true" />}
-          judul="Tidak ada milestone mendatang"
-          sebab="Tak ada milestone belum selesai yang tenggatnya jatuh dalam 14 hari ke depan."
-          aksi={
-            <Link href="/kalender" style={{
-              fontSize: 12, fontWeight: 600, color: C.navy, textDecoration: "none",
-            }}>Buka kalender →</Link>
-          }
-        />
-      ) : (
-        <div style={{ position: "relative", paddingLeft: 14 }}>
-          <div style={{ position: "absolute", left: 3, top: 6, bottom: 0, width: 2, background: "var(--border)" }} />
-          {data.upcoming_milestones.slice(0, 6).map(m => {
-            const days = daysUntil(m.target_date);
-            const overdue = days < 0, urgent = !overdue && days <= 3;
-            const c = overdue ? C.red : urgent ? C.yellow : C.green;
-            return (
-              <Link
-                key={m.id}
-                href={m.projects?.id ? `/proyek/${m.projects.id}#sec-milestone` : "#"}
-                style={{ display: "flex", gap: 8, paddingBottom: 14, cursor: "pointer", color: "inherit", textDecoration: "none" }}
-              >
-                <span style={{ width: 8, height: 8, borderRadius: "50%", background: c, flexShrink: 0, marginTop: 4, position: "relative", zIndex: 1, border: "2px solid var(--bg)" }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 500, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.title}</div>
-                  <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>{m.projects?.name ?? "—"}</div>
-                  <div style={{ fontSize: 10, fontWeight: 600, color: c, marginTop: 2 }}>
-                    {overdue ? `${Math.abs(days)}h terlambat` : days === 0 ? "Hari ini" : `${days}h lagi`}
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
+  /*
+   * `milestoneWidget` DIHAPUS 2026-08-08 (UIR-4).
+   *
+   * Isinya pindah ke rail kanan (`KartuRail` "Milestone mendatang"). Diperiksa
+   * di layar: dengan rail terisi, widget ini menampilkan DAFTAR YANG SAMA dua
+   * kali dalam satu halaman — duplikasi yang tak terlihat dari kode dan baru
+   * muncul begitu rail dipasang.
+   *
+   * Yang dipertahankan versi rail: daftar vertikal pendek memang bentuk yang
+   * pas untuk kolom 300px, dan lebar tengah dibebaskan untuk grafik & tabel.
+   */
 
   const kasbonWidget = (loading || (data?.pending_kasbons.length ?? 0) > 0) ? (
     <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
@@ -758,7 +712,58 @@ function DashboardContent() {
       berarti apa-apa di sini akan memotong tabel 12 kolom di layar 1366px.
       Lihat `components/shell/halaman-ikhtisar.tsx`.
     */
-    <HalamanIkhtisar rail={<Rail><RailFokus /></Rail>}>
+    <HalamanIkhtisar
+      rail={
+        <Rail>
+          <RailFokus />
+
+          {/*
+            Kedua kartu di bawah memakai data yang SUDAH dimuat halaman ini
+            (`data.upcoming_milestones`, `data.active_progress`) — nol
+            permintaan jaringan tambahan, nol endpoint baru, nol angka karangan.
+            Aturan Emas §9 brief.
+          */}
+          <KartuRail
+            judul="Milestone mendatang"
+            tautan="/kalender"
+            labelTautan="Kalender"
+            kosong="Tak ada milestone dalam waktu dekat."
+          >
+            {(data?.upcoming_milestones ?? []).slice(0, 5).map((m, i) => {
+              const sisa = daysUntil(m.target_date);
+              return (
+                <BarisRail
+                  key={m.id}
+                  pertama={i === 0}
+                  utama={m.title}
+                  sub={m.projects?.name}
+                  kanan={sisa < 0 ? `${Math.abs(sisa)}h lalu` : `${sisa}h`}
+                  nadaKanan={sisa < 0 ? "bahaya" : "normal"}
+                  href={m.projects?.id ? `/proyek/${m.projects.id}` : undefined}
+                />
+              );
+            })}
+          </KartuRail>
+
+          <KartuRail
+            judul="Progres proyek aktif"
+            tautan="/proyek"
+            kosong="Belum ada proyek berjalan."
+          >
+            {(data?.active_progress ?? []).slice(0, 5).map((p, i) => (
+              <BarisRail
+                key={p.id}
+                pertama={i === 0}
+                utama={p.name}
+                kanan={`${Math.round(p.progress_pct)}%`}
+                nadaKanan={p.progress_pct >= 100 ? "baik" : "normal"}
+                href={`/proyek/${p.id}`}
+              />
+            ))}
+          </KartuRail>
+        </Rail>
+      }
+    >
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="rise" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24, gap: "var(--gap-grid)" }}>
@@ -836,13 +841,25 @@ function DashboardContent() {
         </div>
       )}
 
-      {/* ── Draggable widget grid ───────────────────────────────────────────── */}
+      {/*
+        ── Draggable widget grid ─────────────────────────────────────────────
+
+        `milestone` SENGAJA TIDAK DIDAFTARKAN LAGI di sini.
+
+        Diperiksa di layar 2026-08-08: "Milestone Mendatang" tampil DUA KALI —
+        satu di rail kanan, satu sebagai widget lebar-setengah di tengah,
+        dengan isi yang persis sama. Duplikasi ini tak terlihat dari kode; ia
+        baru muncul begitu rail diisi.
+
+        Yang dipertahankan versi RAIL: isinya daftar vertikal pendek — bentuk
+        yang memang pas untuk kolom 300px, dan membebaskan lebar tengah untuk
+        grafik & tabel yang benar-benar membutuhkannya.
+      */}
       <DashboardGrid widgets={{
         kpi:       kpiWidget,
         cashflow:  cashflowWidget,
         status:    statusWidget,
         invoice:   invoiceWidget,
-        milestone: milestoneWidget,
         ...(kasbonWidget ? { kasbon: kasbonWidget } : {}),
         tax:       taxWidget,
       }} />

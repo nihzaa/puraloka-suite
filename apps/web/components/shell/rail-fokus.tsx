@@ -12,10 +12,10 @@
  * kerja yang tegas:
  *
  *   SIDEBAR   ~196px · dua angka total · hadir di SETIAP halaman
- *   RAIL      ~300px · lima baris terurai · hanya di halaman IKHTISAR
+ *   RAIL      ~300px · lima baris terurai · hanya di halaman DASHBOARD
  *
- * Sidebar tak dicabut justru karena rail bisa mati: di halaman tabel (RAB,
- * buku besar, daftar upah) rail tidak dipasang, dan di situlah orang paling
+ * Sidebar tak dicabut justru karena rail bisa mati: di halaman DAFTAR (invoice,
+ * upah, transaksi) rail tidak dipasang, dan di situlah orang paling
  * lama bekerja. Kalau fokus hanya hidup di rail, yang mendesak menghilang
  * persis saat orang sedang tenggelam dalam pekerjaan lain.
  *
