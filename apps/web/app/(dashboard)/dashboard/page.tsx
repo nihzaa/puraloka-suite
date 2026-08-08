@@ -118,6 +118,7 @@ import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
 import { hitungDelta } from "@/lib/deret";
 import { GambarHero } from "@/components/shell/gambar-hero";
 import { RailAsisten } from "@/components/shell/rail-asisten";
+import { RailKalender } from "@/components/shell/rail-kalender";
 import { KartuKesehatan } from "@/components/shell/kartu-kesehatan";
 
 /**
@@ -882,7 +883,18 @@ function DashboardContent() {
           <RailFokus />
 
           {/*
-            Kedua kartu di bawah memakai data yang SUDAH dimuat halaman ini
+            KALENDER — titiknya berasal dari `upcoming_milestones` yang sama
+            dengan daftar tepat di bawahnya. Ditaruh DI ATAS daftar itu, persis
+            urutan referensi, dan urutan itu benar: kalender menjawab "kapan
+            padatnya", daftar menjawab "apa saja" — pertanyaan sebaran datang
+            lebih dulu.
+          */}
+          <RailKalender
+            tanggalPenting={(data?.upcoming_milestones ?? []).map((m) => m.target_date)}
+          />
+
+          {/*
+            Ketiga kartu di bawah memakai data yang SUDAH dimuat halaman ini
             (`data.upcoming_milestones`, `data.active_progress`) — nol
             permintaan jaringan tambahan, nol endpoint baru, nol angka karangan.
             Aturan Emas §9 brief.
