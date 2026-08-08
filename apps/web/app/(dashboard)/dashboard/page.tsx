@@ -901,7 +901,7 @@ function DashboardContent() {
         </p>
       ) : (
         <div style={{ display: "flex", flexDirection: "column" }}>
-          {(data?.today_activity ?? []).slice(0, 6).map((a, i) => (
+          {(data?.today_activity ?? []).slice(0, 4).map((a, i) => (
             <div
               key={a.id}
               style={{
@@ -939,6 +939,189 @@ function DashboardContent() {
               </span>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+
+  /*
+    ── PERINGATAN KRITIS — "Critical Issue Alerts" referensi ──────────────────
+
+    Menggantikan tiga spanduk yang dulu menghabiskan ~150px di atas KPI.
+    Bentuknya mengikuti referensi: satu kartu, daftar baris, tiap baris punya
+    tingkat kepentingan di kanan.
+
+    Isinya sama persis dengan spanduk sebelumnya — tak ada informasi yang
+    hilang, hanya wadahnya yang berubah dari tiga blok berwarna jadi satu
+    daftar yang bisa tumbuh.
+
+    ── Kenapa "Tinggi/Sedang", bukan warna saja
+
+    WCAG 1.4.1: warna tak boleh jadi satu-satunya pembawa makna. Aturan yang
+    sama sudah dipakai halaman aset dan lapangan, dan alasannya nyata di sini —
+    beranda dibuka di HP di bawah sinar matahari, tempat merah dan kuning
+    praktis sama.
+  */
+  const peringatan: Array<{
+    id: string; judul: string; sub: string; href: string;
+    tingkat: "tinggi" | "sedang";
+  }> = [];
+  if ((alerts?.invoice_overdue ?? 0) > 0) {
+    peringatan.push({
+      id: "invoice",
+      judul: `${alerts!.invoice_overdue} invoice lewat jatuh tempo`,
+      sub: "Uang yang seharusnya sudah masuk",
+      href: "/keuangan/invoice",
+      tingkat: "tinggi",
+    });
+  }
+  if ((alerts?.milestone_late ?? 0) > 0) {
+    peringatan.push({
+      id: "milestone",
+      judul: `${alerts!.milestone_late} milestone terlambat`,
+      sub: "Pekerjaan meleset dari janji ke klien",
+      href: "/kalender",
+      tingkat: "tinggi",
+    });
+  }
+  if ((alerts?.kasbon_pending ?? 0) > 0) {
+    peringatan.push({
+      id: "kasbon",
+      judul: `${alerts!.kasbon_pending} kasbon menunggu persetujuan`,
+      sub: "Mandor menunggu keputusan Anda",
+      href: "/mandor/kasbon",
+      tingkat: "sedang",
+    });
+  }
+
+  const peringatanWidget = (
+    <div style={{ padding: "var(--pad-kartu-lega)" }}>
+      <SectionHeader title="Peringatan Kritis" />
+      {loading ? (
+        <Skeleton h={140} />
+      ) : peringatan.length === 0 ? (
+        /*
+          Nol adalah KABAR BAIK, dan harus terlihat begitu. Kartu yang
+          menghilang saat kosong membuat orang bertanya apakah ia rusak —
+          aturan yang sama dipakai `SidebarFokus` dan `RailFokus`.
+        */
+        <p style={{ margin: 0, fontSize: 13, color: C.mid, lineHeight: 1.5 }}>
+          Tak ada yang mendesak saat ini.
+        </p>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          {peringatan.map((p, i) => (
+            <Link
+              key={p.id}
+              href={p.href}
+              style={{
+                display: "flex", alignItems: "flex-start", gap: 10,
+                padding: "10px 0", textDecoration: "none",
+                borderTop: i === 0 ? "none" : `1px solid ${C.border}`,
+              }}
+            >
+              <span aria-hidden="true" style={{
+                flexShrink: 0, marginTop: 1,
+                color: p.tingkat === "tinggi" ? "var(--danger)" : "var(--warning)",
+              }}>
+                <AlertTriangle size={15} />
+              </span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{
+                  display: "block", fontSize: 13, fontWeight: 600, color: C.text,
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                }}>
+                  {p.judul}
+                </span>
+                <span style={{
+                  display: "block", fontSize: 11, color: C.mid, marginTop: 2,
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                }}>
+                  {p.sub}
+                </span>
+              </span>
+              {/* Teks, bukan cuma warna — WCAG 1.4.1. */}
+              <span style={{
+                flexShrink: 0, fontSize: 10, fontWeight: 700,
+                padding: "2px 7px", borderRadius: "var(--rad-pil)",
+                background: p.tingkat === "tinggi" ? C.redBg : C.yellowBg,
+                color: p.tingkat === "tinggi" ? "var(--danger)" : "var(--warning)",
+              }}>
+                {p.tingkat === "tinggi" ? "Tinggi" : "Sedang"}
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  /*
+    ── TENGGAT MENDATANG — "Upcoming Deadlines" referensi ─────────────────────
+
+    Kartu ketiga di baris bawah. Ia MENGULANG daftar yang ada di rail, dan itu
+    disengaja dengan syarat yang jelas: rail HILANG di bawah 1280px
+    (`.rail-shell`, globals.css), jadi di laptop kecil kartu ini satu-satunya
+    tempat tenggat terlihat.
+
+    Bedanya dengan rail bukan cuma tempat: di sini sisa harinya ditulis dengan
+    nada — merah untuk yang sudah lewat — karena kolom tengah punya ruang untuk
+    itu sementara rail 300px tidak.
+  */
+  const tenggatWidget = (
+    <div style={{ padding: "var(--pad-kartu-lega)" }}>
+      <SectionHeader title="Tenggat Mendatang" />
+      {loading ? (
+        <Skeleton h={140} />
+      ) : (data?.upcoming_milestones?.length ?? 0) === 0 ? (
+        <p style={{ margin: 0, fontSize: 13, color: C.mid, lineHeight: 1.5 }}>
+          Tak ada tenggat milestone dalam waktu dekat.
+        </p>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          {(data?.upcoming_milestones ?? []).slice(0, 4).map((m, i) => {
+            const sisa = daysUntil(m.target_date);
+            const lewat = sisa < 0;
+            return (
+              <Link
+                key={m.id}
+                href={m.projects?.id ? `/proyek/${m.projects.id}` : "/kalender"}
+                style={{
+                  display: "flex", alignItems: "flex-start", gap: 10,
+                  padding: "10px 0", textDecoration: "none",
+                  borderTop: i === 0 ? "none" : `1px solid ${C.border}`,
+                }}
+              >
+                <span aria-hidden="true" style={{
+                  display: "grid", placeItems: "center", flexShrink: 0,
+                  width: 26, height: 26, borderRadius: "var(--rad-kecil)",
+                  background: "var(--navy-light)", color: "var(--navy)",
+                }}>
+                  <Target size={13} />
+                </span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{
+                    display: "block", fontSize: 13, fontWeight: 600, color: C.text,
+                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                  }}>
+                    {m.title}
+                  </span>
+                  <span style={{
+                    display: "block", fontSize: 11, color: C.mid, marginTop: 2,
+                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                  }}>
+                    {m.projects?.name ?? "—"}
+                  </span>
+                </span>
+                <span style={{
+                  flexShrink: 0, fontSize: 11, fontWeight: 700, whiteSpace: "nowrap",
+                  color: lewat ? "var(--danger)" : C.mid,
+                }}>
+                  {lewat ? `${Math.abs(sisa)}h lewat` : `${sisa}h lagi`}
+                </span>
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>
@@ -1165,32 +1348,33 @@ function DashboardContent() {
       }} />
       </div>
 
-      {/* ── Alert banners ──────────────────────────────────────────────────── */}
-      {alerts && (alerts.invoice_overdue > 0 || alerts.kasbon_pending > 0 || alerts.milestone_late > 0) && (
-        <div className="rise rise-1" style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 20 }}>
-          {alerts.invoice_overdue > 0 && (
-            <AlertBanner color={C.red} bg={C.redBg} borderColor="var(--danger-border)" onClick={() => router.push("/keuangan")}>
-              <AlertTriangle size={14} />
-              <strong>{alerts.invoice_overdue} invoice overdue</strong> · segera tindak lanjuti pembayaran
-              <ArrowRight size={12} style={{ marginLeft: "auto" }} />
-            </AlertBanner>
-          )}
-          {alerts.kasbon_pending > 0 && (
-            <AlertBanner color={C.yellow} bg={C.yellowBg} borderColor="var(--warning-border)" onClick={() => router.push("/mandor")}>
-              <AlertTriangle size={14} />
-              <strong>{alerts.kasbon_pending} kasbon</strong> menunggu persetujuan
-              <ArrowRight size={12} style={{ marginLeft: "auto" }} />
-            </AlertBanner>
-          )}
-          {alerts.milestone_late > 0 && (
-            <AlertBanner color={C.blue} bg={C.blueBg} borderColor="var(--info-border,var(--info-border))" onClick={() => router.push("/kalender")}>
-              <Target size={14} />
-              <strong>{alerts.milestone_late} milestone</strong> terlambat
-              <ArrowRight size={12} style={{ marginLeft: "auto" }} />
-            </AlertBanner>
-          )}
-        </div>
-      )}
+      {/*
+        ── SPANDUK PERINGATAN DIBUANG 2026-08-09 ──────────────────────────────
+
+        Founder: *"kayanya spanduk yg diatas apakah ngga lebih baik jadi
+        critical alerts aja kaya di referensi? jadi lebih clean"* — lalu
+        menunjuk referensinya langsung. Dan referensi memang TIDAK punya
+        spanduk sama sekali: "Critical Issue Alerts" di sana adalah KARTU di
+        baris paling bawah, sejajar Recent Updates dan Upcoming Deadlines.
+
+        Diukur sebelum dibuang: tiga spanduk 38px + jarak = ~150px, memakai
+        tiga warna yang berteriak bersamaan (merah · kuning · biru). Saat
+        semuanya menonjol, tak ada yang menonjol — dan bentuk itu tak bisa
+        tumbuh: enam jenis peringatan berarti 300px.
+
+        ── Yang menjaga hal mendesak tetap terlihat
+
+        Membuang spanduk hanya aman karena urgensi punya DUA jalur lain yang
+        tak ikut hilang:
+
+          SIDEBAR  `SidebarFokus` — "3 lewat tenggat · 3 menunggu putusan",
+                   hadir di SETIAP halaman, bukan cuma beranda.
+          RAIL     "Perlu keputusan" — rinciannya, di halaman dashboard.
+
+        Kalau kelak salah satunya dicabut, peringatan mendesak kehilangan
+        tempat terakhirnya yang selalu terlihat. Itu yang harus diperiksa
+        sebelum menyentuh keduanya.
+      */}
 
       {error && (
         <div style={{ background: C.redBg, border: `1px solid var(--danger-border)`, borderRadius: 10, padding: "8px 16px", color: C.red, fontSize: 12, marginBottom: 20, display: "flex", alignItems: "center", gap: 8 }}>
@@ -1233,6 +1417,8 @@ function DashboardContent() {
         status:    statusWidget,
         pintasan:  <PintasanWidget />,
         kabar:     kabarWidget,
+        peringatan: peringatanWidget,
+        tenggat:   tenggatWidget,
         invoice:   invoiceWidget,
         ...(kasbonWidget ? { kasbon: kasbonWidget } : {}),
         tax:       taxWidget,
@@ -1323,26 +1509,11 @@ function PintasanWidget() {
 // mendukung delta, sparkline, gradasi sorot, dan hitung-naik — dan dipakai
 // bersama SELURUH halaman, bukan hanya dashboard.
 
-function AlertBanner({ children, color, bg, borderColor, onClick, label }: {
-  children: React.ReactNode; color: string; bg: string; borderColor: string;
-  onClick?: () => void; label?: string;
-}) {
-  return (
-    <div
-      {...dapatDitekan(onClick, label ?? "Buka rincian peringatan")}
-      style={{
-        display: "flex", alignItems: "center", gap: 8,
-        padding: "8px 16px", borderRadius: 6,
-        background: bg, border: `1px solid ${borderColor}`,
-        borderLeft: `3px solid ${color}`,
-        color, fontSize: 13, fontWeight: 400,
-        cursor: onClick ? "pointer" : "default",
-      }}
-    >
-      {children}
-    </div>
-  );
-}
+// AlertBanner DIHAPUS 2026-08-09 — tiga spanduk peringatan di atas KPI
+// digantikan kartu "Peringatan Kritis" di baris bawah, mengikuti referensi
+// yang memang tak punya spanduk sama sekali. Komponennya ikut dibuang, bukan
+// ditinggal menganggur: komponen tanpa pemakai adalah kode yang tetap harus
+// dibaca dan dipelihara setiap kali seseorang menelusuri berkas ini.
 
 function LegendDot({ color, label }: { color: string; label: string }) {
   return (

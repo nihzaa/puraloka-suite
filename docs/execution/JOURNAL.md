@@ -5,6 +5,52 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-09 — "Kaya di referensi gimana?" — dan referensinya memang tak punya spanduk
+
+Founder mengusulkan spanduk peringatan di atas KPI diganti kartu Critical
+Alerts *"kaya di referensi"*. Saya setuju, lalu menawarkan tiga posisi lewat
+pertanyaan. Jawabannya bukan salah satu dari tiga itu: **"kalo di referensi
+gimana?"** — sambil melampirkan potongan gambarnya.
+
+Itu koreksi yang tepat. Saya menawarkan opsi tanpa lebih dulu membuka lagi
+referensi yang sudah ada di tangan, dan salah satu opsi saya ("kartu di
+samping hero") bahkan tak ada di sana.
+
+Begitu dibuka: referensi **tidak punya spanduk sama sekali**. Critical Issue
+Alerts adalah kartu di baris paling bawah, sejajar Recent Project Updates dan
+Upcoming Deadlines. Pertanyaannya jadi tak perlu dijawab — jawabannya sudah
+ada di gambar.
+
+Lebih buruk lagi, catatan yang SAYA TULIS SENDIRI kemarin di
+`dashboard-grid.tsx` menyatakan alerts dan deadlines "sudah punya rumahnya
+(spanduk + rail), jadi tak perlu diduplikasi". Itu membenarkan spanduk dengan
+merujuk keberadaan spanduk — melingkar, dan salah.
+
+### Yang diperiksa SEBELUM membuang, bukan sesudah
+
+Spanduk punya satu keunggulan nyata: selalu terlihat tanpa scroll. Membuangnya
+hanya aman kalau urgensi punya jalur lain, jadi saya periksa dulu —
+`SidebarFokus` ("3 lewat tenggat · 3 menunggu putusan") ternyata hadir di
+**setiap** halaman, bukan cuma beranda. Baru sesudah itu spanduknya dibuang.
+
+`AlertBanner` ikut dihapus, bukan ditinggal menganggur.
+
+### Dua kartu tergunting, ketahuan karena diukur
+
+Kabar Lapangan −91px, Tenggat Mendatang −32px. Keduanya terlihat "penuh dan
+rapi" di tangkapan layar; yang menemukan adalah membandingkan tinggi wadah
+dengan tinggi isi. Diperbaiki dengan memangkas jadi 4 baris.
+
+Satu `sed` sempat ikut mengubah kartu di RAIL (pola stringnya sama persis) —
+tertangkap karena hasil grep menunjukkan tiga baris berubah, padahal yang
+dimaksud dua.
+
+**Yang paling saya ingat:** founder tak menjawab pertanyaan saya, ia menolak
+premisnya. Tiga opsi yang saya susun rapi jadi tak relevan begitu referensinya
+dibuka — dan referensi itu sudah ada di folder yang sama sejak awal.
+
+---
+
 ## 2026-08-08 — Rail permanen: satu properti CSS yang menentukan segalanya
 
 Founder minta rail menempel di kanan, setinggi layar, tak ikut ter-scroll,

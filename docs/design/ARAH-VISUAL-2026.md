@@ -504,6 +504,45 @@ cd apps/web && for g in a11y-ratchet kontras-hex-ratchet hex-ratchet \
 | 5 | Sidebar: item aktif jadi **pill navy pekat** (kandidat B) | B | ✅ **SETUJU sesudah dilihat** 2026-08-08 — lihat §10e |
 | 6 | Topbar: pencarian pindah ke **kiri**, lebar | ya | ✅ **SETUJU** 2026-08-08 — lihat §10e |
 
+### 10g. Spanduk peringatan DIBUANG — jadi kartu, 2026-08-09
+
+Founder: *"kayanya spanduk yg diatas apakah ngga lebih baik jadi critical
+alerts aja kaya di referensi? jadi lebih clean, menurut mu gimana?"* — lalu
+menunjuk referensinya langsung saat saya menawarkan tiga posisi.
+
+**Referensi tidak punya spanduk sama sekali.** "Critical Issue Alerts" di sana
+adalah KARTU di baris paling bawah, sejajar Recent Project Updates dan
+Upcoming Deadlines. Saya sempat salah baca ini — catatan lama di
+`dashboard-grid.tsx` menulis bahwa alerts "sudah punya rumahnya" berupa
+spanduk. Itu keliru; spanduknya buatan kita sendiri.
+
+**Diukur sebelum dibuang:** tiga spanduk 38px + jarak = ~150px, memakai tiga
+warna yang berteriak bersamaan (merah · kuning · biru). Saat semuanya
+menonjol, tak ada yang menonjol — dan bentuknya tak bisa tumbuh: enam jenis
+peringatan berarti 300px.
+
+**Baris bawah sekarang persis referensi:**
+
+| Referensi | Kita |
+|---|---|
+| Recent Project Updates | Kabar Lapangan |
+| Critical Issue Alerts | Peringatan Kritis |
+| Upcoming Deadlines | Tenggat Mendatang |
+
+**Yang menjaga urgensi tetap terlihat sesudah spanduk hilang** — diperiksa
+sebelum membuang, bukan sesudah:
+
+- `SidebarFokus` ("3 lewat tenggat · 3 menunggu putusan") hadir di **setiap**
+  halaman, bukan cuma beranda.
+- Kartu "Perlu keputusan" di rail memuat rinciannya.
+
+Kalau salah satunya dicabut kelak, peringatan mendesak kehilangan tempat
+terakhirnya yang selalu terlihat.
+
+**Tingkat ditulis, bukan cuma diwarnai** ("Tinggi"/"Sedang") — WCAG 1.4.1,
+aturan yang sama dengan halaman aset dan lapangan. Beranda dibuka di HP di
+bawah sinar matahari, tempat merah dan kuning praktis sama.
+
 ### 10f. Rail kanan permanen — cakupan & isi, 2026-08-08
 
 Founder: rail harus **menempel di kanan, setinggi layar, dan tidak ikut

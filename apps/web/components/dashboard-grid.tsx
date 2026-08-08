@@ -22,7 +22,9 @@ export const WIDGET_DEFS: Record<string, { label: string; defaultH: number }> = 
   cashflow:  { label: "Grafik Arus Kas",        defaultH: 5 },
   status:    { label: "Status & Progress",      defaultH: 5 },
   pintasan:  { label: "Pintasan",               defaultH: 2 },
-  kabar:     { label: "Kabar Lapangan",         defaultH: 5 },
+  kabar:      { label: "Kabar Lapangan",        defaultH: 5 },
+  peringatan: { label: "Peringatan Kritis",     defaultH: 5 },
+  tenggat:    { label: "Tenggat Mendatang",     defaultH: 5 },
   invoice:   { label: "Invoice Belum Lunas",    defaultH: 5 },
   kasbon:    { label: "Kasbon Pending",         defaultH: 4 },
   tax:       { label: "Ringkasan Pajak",        defaultH: 3 },
@@ -63,14 +65,21 @@ const DEFAULT_LAYOUTS: Layouts = {
       bertumpuk yang lama butuh `h: 3`.
     */
     { i: "pintasan",  x: 0, y: 9,  w: 12, h: 2 },
-    // Baris tiga kartu bawah referensi: kabar lapangan · invoice · (kasbon di
-    // bawahnya). "Critical Issue Alerts" dan "Upcoming Deadlines" referensi
-    // sudah punya rumahnya — spanduk peringatan di atas, dan kartu milestone
-    // di rail. Menduplikasinya di sini berarti dua tempat mengatakan hal sama.
-    { i: "kabar",     x: 0, y: 11, w: 5,  h: 5 },
-    { i: "invoice",   x: 5, y: 11, w: 7,  h: 5 },
-    { i: "kasbon",    x: 0, y: 16, w: 12, h: 4 },
-    { i: "tax",       x: 0, y: 20, w: 12, h: 3 },
+    /*
+      BARIS TIGA KARTU BAWAH — persis referensi:
+      Recent Project Updates · Critical Issue Alerts · Upcoming Deadlines.
+
+      Catatan sebelumnya di sini menyatakan alerts & deadlines "sudah punya
+      rumahnya" (spanduk + rail) jadi tak perlu diduplikasi. Itu SALAH BACA:
+      referensi tak punya spanduk sama sekali — alerts di sana memang kartu
+      di baris ini. Spanduknya dibuang 2026-08-09 dan digantikan kartu ini.
+    */
+    { i: "kabar",      x: 0, y: 11, w: 4, h: 5 },
+    { i: "peringatan", x: 4, y: 11, w: 4, h: 5 },
+    { i: "tenggat",    x: 8, y: 11, w: 4, h: 5 },
+    { i: "invoice",   x: 0, y: 16, w: 12, h: 5 },
+    { i: "kasbon",    x: 0, y: 21, w: 12, h: 4 },
+    { i: "tax",       x: 0, y: 25, w: 12, h: 3 },
   ],
   md: [
     /*
@@ -119,10 +128,18 @@ const DEFAULT_LAYOUTS: Layouts = {
     // `h: 3` di sini, bukan 2: wadah `md` 992px sudah menyempit lagi karena
     // rail kini permanen, jadi tujuh pil membungkus jadi dua baris.
     { i: "pintasan",  x: 0, y: 14, w: 10, h: 3 },
-    { i: "kabar",     x: 0, y: 17, w: 4,  h: 5 },
-    { i: "invoice",   x: 4, y: 17, w: 6,  h: 5 },
-    { i: "kasbon",    x: 0, y: 22, w: 10, h: 4 },
-    { i: "tax",       x: 0, y: 26, w: 10, h: 3 },
+    /*
+      Wadah `md` cuma 992px (rail memakan 300px), jadi tiga kartu sebaris
+      berarti ~320px per kartu — judul "Peringatan Kritis" + lencana
+      "Tinggi" sudah berdesakan di sana. Dibagi 5/5 lalu satu di bawah:
+      bentuk referensi tetap terbaca tanpa memaksa isi yang tak muat.
+    */
+    { i: "kabar",      x: 0, y: 17, w: 5, h: 5 },
+    { i: "peringatan", x: 5, y: 17, w: 5, h: 5 },
+    { i: "tenggat",    x: 0, y: 22, w: 5, h: 5 },
+    { i: "invoice",    x: 5, y: 22, w: 5, h: 5 },
+    { i: "kasbon",    x: 0, y: 27, w: 10, h: 4 },
+    { i: "tax",       x: 0, y: 31, w: 10, h: 3 },
   ],
   sm: [
     { i: "kpi",       x: 0, y: 0,  w: 6, h: 8, isResizable: false },
@@ -130,10 +147,12 @@ const DEFAULT_LAYOUTS: Layouts = {
     { i: "cashflow",  x: 0, y: 14, w: 6, h: 6 },
     { i: "status",    x: 0, y: 20, w: 6, h: 5 },
     { i: "pintasan",  x: 0, y: 25, w: 6, h: 4 },
-    { i: "kabar",     x: 0, y: 29, w: 6, h: 5 },
-    { i: "invoice",   x: 0, y: 34, w: 6, h: 5 },
-    { i: "kasbon",    x: 0, y: 39, w: 6, h: 4 },
-    { i: "tax",       x: 0, y: 43, w: 6, h: 3 },
+    { i: "kabar",      x: 0, y: 29, w: 6, h: 5 },
+    { i: "peringatan", x: 0, y: 34, w: 6, h: 5 },
+    { i: "tenggat",    x: 0, y: 39, w: 6, h: 5 },
+    { i: "invoice",   x: 0, y: 44, w: 6, h: 5 },
+    { i: "kasbon",    x: 0, y: 49, w: 6, h: 4 },
+    { i: "tax",       x: 0, y: 53, w: 6, h: 3 },
   ],
 };
 
@@ -189,8 +208,8 @@ const COLS = { lg: 12, md: 10, sm: 6 };
  * Ongkosnya sama seperti v3 → v4: penyesuaian tata letak buatan pemakai
  * hilang. Tetap sepadan — lubang di tata letak lebih buruk.
  */
-const STORAGE_KEY = "puraloka_dashboard_layout_v10";
-const HIDDEN_KEY  = "puraloka_dashboard_hidden_v10";
+const STORAGE_KEY = "puraloka_dashboard_layout_v11";
+const HIDDEN_KEY  = "puraloka_dashboard_hidden_v11";
 
 // ─── Persistence ──────────────────────────────────────────────────────────────
 
