@@ -174,6 +174,126 @@ export default async function aiConfigRoutes(app: FastifyInstance) {
     },
   )
 
+  // ── GET /api/v1/ai/biaya ─────────────────────────────────────────────────
+  //
+  // Riwayat pemakaian untuk halaman Pemakaian & Biaya. Terpisah dari
+  // `/ai/config` yang hanya mengirim bulan berjalan: halaman biaya menjawab
+  // "bagaimana tren-nya", dan tren butuh deret harian.
+  app.get<{ Querystring: { hari?: string } }>(
+    '/api/v1/ai/biaya',
+    { preHandler: [authenticate, requirePermission('settings:ai:view')] },
+    async (request, reply) => {
+      // Dibatasi 1–180 hari. Rentang tak terbatas membuat satu permintaan
+      // menarik seluruh riwayat tenant — dan halaman yang menggantung terbaca
+      // sebagai aplikasi rusak.
+      const diminta = Number(request.query?.hari ?? 30)
+      const hari = Number.isFinite(diminta) ? Math.min(180, Math.max(1, Math.trunc(diminta))) : 30
+
+      /*
+       * Batas dihitung dari AWAL HARI UTC, bukan dari "sekarang minus N×24 jam".
+       *
+       * Diukur 2026-08-10: baris tercatat 02:07 UTC hari ini, sementara kunci
+       * terakhir yang dibentuk deret adalah KEMARIN — karena `Date.now() - 0`
+       * menghasilkan waktu sekarang, dan `slice(0,10)`-nya bergantung pada jam
+       * berapa permintaannya datang.
+       *
+       * Akibatnya baris hari ini masuk TOTAL tapi hilang dari GRAFIK: dua angka
+       * di layar yang sama menjawab pertanyaan yang sama dengan hasil berbeda,
+       * dan tak ada galat apa pun. Yang paling sering dicari orang — lonjakan
+       * hari ini — justru yang hilang.
+       */
+      const hariIniUtc = new Date()
+      hariIniUtc.setUTCHours(0, 0, 0, 0)
+      const sejak = new Date(hariIniUtc.getTime() - (hari - 1) * 24 * 60 * 60 * 1000).toISOString()
+
+      // `hariIniUtc` adalah awal hari UTC. Baris yang tercatat HARI INI
+      // (jam berapa pun) harus ikut — dan `perHari` di bawah memuat kuncinya,
+      // jadi rentang bacanya tak boleh berhenti sebelum hari ini berakhir.
+
+      const { data, error } = await request.db!
+        .from('ai_biaya_token')
+        .select('asisten, model, biaya_idr, biaya_usd, token_masuk, token_keluar, token_cache_baca, dibuat_pada')
+        .gte('dibuat_pada', sejak)
+        .order('dibuat_pada', { ascending: true })
+
+      if (error) {
+        request.log.error({ err: error }, 'ai-biaya: gagal membaca riwayat')
+        return reply.status(500).send({ error: 'Gagal membaca riwayat biaya' })
+      }
+
+      type Baris = {
+        asisten: string; model: string
+        biaya_idr: string | number; biaya_usd: string | number
+        token_masuk: number; token_keluar: number; token_cache_baca: number
+        dibuat_pada: string
+      }
+      const baris = (data ?? []) as Baris[]
+      const angka = (n: unknown) => (Number.isFinite(Number(n)) ? Number(n) : 0)
+
+      // Deret HARIAN — termasuk hari NOL. Grafik yang melompati hari tanpa
+      // pemakaian menyiratkan garis lurus di antara dua puncak, dan itu
+      // membaca tren yang tak pernah terjadi.
+      const perHari = new Map<string, { idr: number; panggilan: number; token: number }>()
+      for (let i = 0; i < hari; i++) {
+        // Dari `hariIniUtc` yang SAMA dengan pembentuk `sejak` — dua sumber
+        // waktu yang berbeda adalah cara baris hari ini hilang dari grafik.
+        const d = new Date(hariIniUtc.getTime() - (hari - 1 - i) * 24 * 60 * 60 * 1000)
+        perHari.set(d.toISOString().slice(0, 10), { idr: 0, panggilan: 0, token: 0 })
+      }
+      for (const b of baris) {
+        const kunci = String(b.dibuat_pada).slice(0, 10)
+        const k = perHari.get(kunci)
+        if (!k) continue
+        k.idr += angka(b.biaya_idr)
+        k.panggilan += 1
+        k.token += angka(b.token_masuk) + angka(b.token_keluar)
+      }
+
+      const kelompok = (ambil: (b: Baris) => string) => {
+        const m = new Map<string, { kunci: string; idr: number; panggilan: number; token: number }>()
+        for (const b of baris) {
+          const k = ambil(b)
+          const kini = m.get(k) ?? { kunci: k, idr: 0, panggilan: 0, token: 0 }
+          kini.idr += angka(b.biaya_idr)
+          kini.panggilan += 1
+          kini.token += angka(b.token_masuk) + angka(b.token_keluar)
+          m.set(k, kini)
+        }
+        return [...m.values()]
+          .map((x) => ({ ...x, idr: Math.round(x.idr * 100) / 100 }))
+          .sort((x, y) => y.idr - x.idr)
+      }
+
+      const totalIdr = baris.reduce((a, b) => a + angka(b.biaya_idr), 0)
+      const totalCache = baris.reduce((a, b) => a + angka(b.token_cache_baca), 0)
+      const totalMasuk = baris.reduce((a, b) => a + angka(b.token_masuk), 0)
+
+      return reply.send({
+        hari,
+        total: {
+          idr: Math.round(totalIdr * 100) / 100,
+          panggilan: baris.length,
+          token: baris.reduce((a, b) => a + angka(b.token_masuk) + angka(b.token_keluar), 0),
+          // Penghematan cache DINYATAKAN. Kalau dijumlahkan diam-diam ke token
+          // biasa, penghematan itu tak akan pernah terlihat — dan yang tak
+          // terlihat tak akan dioptimalkan (alasan migrasi 250 memisahkannya).
+          cache_baca: totalCache,
+          rasio_cache: totalMasuk + totalCache > 0
+            ? Math.round((totalCache / (totalMasuk + totalCache)) * 100)
+            : 0,
+        },
+        harian: [...perHari.entries()].map(([tanggal, v]) => ({
+          tanggal,
+          idr: Math.round(v.idr * 100) / 100,
+          panggilan: v.panggilan,
+          token: v.token,
+        })),
+        per_asisten: kelompok((b) => b.asisten),
+        per_model: kelompok((b) => b.model),
+      })
+    },
+  )
+
   // ── GET /api/v1/ai/pengaturan ────────────────────────────────────────────
   //
   // Saklar mati + retensi, per tenant. Terpisah dari `/ai/config` karena

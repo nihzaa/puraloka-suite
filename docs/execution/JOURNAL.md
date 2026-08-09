@@ -5,6 +5,63 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-10 (lanjutan 6) — Halaman Biaya AI, dan cacat zona waktu yang tak melempar apa pun
+
+Menu `ai-biaya` bertanda `rencana` sejak migrasi 253. Sekarang hidup.
+
+### Kenapa halaman terpisah dari Penyedia AI
+
+Penyedia AI menjawab *berapa* bulan ini. Yang belum terjawab di mana pun:
+**kenapa** angkanya berubah. Total bulanan tak bisa menjawab "melonjaknya
+Selasa lalu karena apa" — dan itu pertanyaan yang datang **setelah** tagihan.
+
+Urutannya mengikuti cara orang menelusuri: deret harian dulu (lihat
+lonjakannya), lalu pemecahan per model dan per asisten (cari penyebabnya).
+
+### Cacat zona waktu: dua angka di layar yang sama tak sepakat
+
+Test `total idr sama dengan jumlah deret hariannya` merah dengan selisih tepat
+Rp 494 — nilai satu hari.
+
+Diukur: seed memakai `setHours`, yang memakai zona lokal mesin (WIB, +7). "Jam
+8 pagi" hari terakhir tersimpan sebagai **01:00 UTC hari berikutnya** —
+tanggal yang bahkan belum tiba. Deret harian mengelompokkan per UTC, jadi baris
+itu masuk **total** tapi hilang dari **grafik**.
+
+Tak ada galat. Tak ada baris merah. Yang terlihat hanya dua angka di layar yang
+sama menjawab pertanyaan yang sama dengan hasil berbeda — dan tak ada cara
+tahu yang mana yang benar.
+
+Test itu ada justru karena dua angka yang saling membantah adalah kelas cacat
+yang paling sulit ditemukan setelah dirilis.
+
+### Dua kesalahan saya sendiri yang ketahuan dari layar
+
+- **Lonjakan terpotong tepi kanan.** Seed menaruhnya di hari ke-8 dari akhir,
+  dan puncaknya menempel tepi grafik — padahal lonjakan terbaru justru yang
+  paling sering dicari. Margin kanan 8→16, lonjakan digeser ke tengah.
+- **UUID penanda tak sah.** `0000000bia1a` — huruf `i` bukan digit heksadesimal,
+  dan Postgres menolaknya.
+
+### Yang dijaga di rute
+
+- rentang `?hari=` dibatasi 1–180; tanpa itu satu permintaan menarik seluruh
+  riwayat tenant
+- **hari nol tetap dikirim** — grafik yang melompatinya menarik garis lurus
+  antara dua puncak, membaca tren yang tak pernah terjadi
+- penghematan cache **dinyatakan terpisah** (migrasi 250 memisahkannya justru
+  untuk ini: cache read ~0,1x harga input, dan yang tak terlihat tak akan
+  dioptimalkan)
+
+### Bukti
+
+- 167/167 test hijau (13 biaya baru, 154 sebelumnya)
+- 27/27 penjaga hijau
+- tangkapan layar 2 mode; lonjakan utuh dan langsung terbaca
+- menu `ai-biaya` `rencana` → `hidup`, katalog & DB selaras
+
+---
+
 ## 2026-08-10 (lanjutan 5) — TJS-C1 TUNTAS: isolasi tenant akhirnya BENAR-BENAR terbukti
 
 Empat kriteria C1 yang tersisa. Yang paling penting menyingkap bahwa isolasi
