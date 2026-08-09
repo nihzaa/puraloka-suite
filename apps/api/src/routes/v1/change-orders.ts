@@ -675,6 +675,21 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
       const currentRabTotal = (rabTotal ?? []).reduce((s: number, r: { total_price: number }) => s + (r.total_price ?? 0), 0)
 
       // 1. Update change_order status + save baseline snapshot
+      //
+      // ── KLAIM ATOMIK: status LAMA ikut di WHERE (TJS-A0, 2026-08-09)
+      //
+      // Tanpa `.neq('status', 'approved')`, dua approval yang tiba bersamaan
+      // sama-sama lolos sampai sini, dan LANGKAH 2 di bawah menambahkan
+      // `total_amount_delta` DUA KALI ke `contract_value` — karena keduanya
+      // membaca `project.contract_value` yang sama sebelum salah satu menulis.
+      //
+      // Akibatnya nilai kontrak membengkak tanpa satu pun error, tanpa test
+      // merah, dan tanpa gejala sampai ada yang membandingkan dengan dokumen
+      // kontrak aslinya.
+      //
+      // `.neq` (bukan `.eq('status','pending')`) karena CO bisa sah disetujui
+      // dari beberapa status awal; yang dilarang hanyalah menyetujui yang
+      // SUDAH disetujui.
       const { data: updatedCo, error: coErr } = await supabase
         .from('change_orders')
         .update({
@@ -685,20 +700,46 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
           baseline_rab_total:      currentRabTotal,
         })
         .eq('id', id)
+        .neq('status', 'approved')
         .select(CO_SELECT)
-        .single()
+        .maybeSingle()
 
       if (coErr) {
         app.log.error(coErr)
         return reply.status(500).send({ error: 'Gagal menyetujui change order' })
       }
+      if (!updatedCo) {
+        // Nol baris terkena = CO ini sudah disetujui request lain sepersekian
+        // detik lalu. BERHENTI DI SINI — langkah 2 belum berjalan, jadi
+        // `contract_value` belum tersentuh dan tak ada yang perlu dibatalkan.
+        request.log.warn({ coId: id }, 'approval change order serentak ditolak')
+        return reply.status(409).send({
+          error: 'Change order ini baru saja disetujui dari tempat lain. Muat ulang halaman.',
+        })
+      }
 
       // 2. Update projects.contract_value
+      //
+      // Aman dijalankan sekarang: langkah 1 sudah membuktikan KITA yang
+      // memenangkan klaim status, jadi hanya satu request yang pernah sampai
+      // ke baris ini untuk CO ini.
+      //
+      // Hasilnya tetap DIPERIKSA — nilai kontrak adalah angka yang dipakai
+      // seluruh laporan, dan kegagalan senyap di sini berarti CO tercatat
+      // disetujui sementara nilainya tak pernah berubah.
       const newContractValue = (project.contract_value ?? 0) + coFull.total_amount_delta
-      await request.db!
+      const { error: projErr } = await request.db!
         .from('projects')
         .update({ contract_value: newContractValue })
         .eq('id', coFull.project_id)
+      if (projErr) {
+        app.log.error({ err: projErr, coId: id, projectId: coFull.project_id },
+          'CO disetujui tetapi contract_value gagal diperbarui')
+        return reply.status(500).send({
+          error: 'Change order disetujui, tetapi nilai kontrak gagal diperbarui: ' +
+                 projErr.message + '. Periksa manual sebelum menerbitkan tagihan.',
+        })
+      }
 
       // 3. Log to audit_logs via helper terpusat (severity critical — contract.value
       //    berubah). diff/ip/user_agent diisi otomatis oleh logAuditEvent.
@@ -789,6 +830,10 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: 'Hanya change order berstatus submitted yang bisa ditolak' })
       }
 
+      // Cek `status !== 'submitted'` di atas TERPISAH dari penulisan ini, jadi
+      // ada jeda tempat request lain bisa menyetujui/menolak CO yang sama.
+      // Status ikut di WHERE supaya pemeriksaan dan penulisan jadi satu operasi
+      // di level DB (TJS-A0, 2026-08-09).
       const { data, error } = await supabase
         .from('change_orders')
         .update({
@@ -798,12 +843,19 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
           rejected_reason: request.body.reason?.trim() || null,
         })
         .eq('id', id)
+        .eq('status', 'submitted')
         .select(CO_SELECT)
-        .single()
+        .maybeSingle()
 
       if (error) {
         app.log.error(error)
         return reply.status(500).send({ error: 'Gagal menolak change order' })
+      }
+      if (!data) {
+        request.log.warn({ coId: id }, 'penolakan change order serentak ditolak')
+        return reply.status(409).send({
+          error: 'Change order ini baru saja diproses dari tempat lain. Muat ulang halaman.',
+        })
       }
 
       // Ditolak → jejak persetujuan dibersihkan supaya rantai mulai dari level 1

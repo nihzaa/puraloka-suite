@@ -425,6 +425,7 @@ export default async function kepatuhanK3Routes(app: FastifyInstance) {
         updated_at: new Date().toISOString(),
       })
       .eq('id', id).eq('company_id', cid)
+      .eq('status', 'diajukan')
       .select('id, nomor, status, diputuskan_pada')
       .maybeSingle()
 
@@ -436,7 +437,15 @@ export default async function kepatuhanK3Routes(app: FastifyInstance) {
       }
       return reply.status(500).send({ error: error.message })
     }
-    if (!data) return reply.status(404).send({ error: 'Izin kerja tidak ditemukan' })
+    // Sejak klaim status ikut di WHERE (TJS-A0, 2026-08-09), nol baris punya
+    // DUA sebab: izinnya tak ada, ATAU sudah diputus request lain. Izin sudah
+    // dibaca di atas dan terbukti ada, jadi sampai di sini sebabnya yang kedua.
+    if (!data) {
+      request.log.warn({ izinId: id }, 'keputusan izin K3 serentak ditolak')
+      return reply.status(409).send({
+        error: 'Izin ini baru saja diputus dari tempat lain. Muat ulang halaman.',
+      })
+    }
 
     return reply.send({ izin: data })
   })

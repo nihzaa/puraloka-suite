@@ -108,10 +108,20 @@ export default async function lessonsLearnedRoutes(app: FastifyInstance) {
       }
 
       // Langkah final: set approved, lalu PROPAGASI ATOMIK (fungsi DB) → propagated.
-      const { error: upErr } = await supabase.from('lessons_learned_records')
+      // Status LAMA ikut di WHERE: approve = memicu propagasi write-back, jadi
+      // dua approval bersamaan berarti propagasi berjalan dua kali
+      // (TJS-A0, 2026-08-09).
+      const { data: llApp, error: upErr } = await supabase.from('lessons_learned_records')
         .update({ status: 'approved', approved_by: user.id, updated_by: user.id }).eq('id', id)
         .in('project_id', await request.db!.projectIds())
+        .neq('status', 'approved').select('id').maybeSingle()
       if (upErr) return reply.status(500).send({ error: upErr.message })
+      if (!llApp) {
+        request.log.warn({ lessonId: id }, 'approval lesson learned serentak ditolak')
+        return reply.status(409).send({
+          error: 'Lesson ini baru saja disetujui dari tempat lain. Muat ulang halaman.',
+        })
+      }
 
       const { data: propagated, error: propErr } = await supabase.rpc('fn_propagate_lesson', {
         p_lesson_id: id, p_approver: user.id,

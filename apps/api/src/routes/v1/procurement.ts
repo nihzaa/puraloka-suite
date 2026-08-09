@@ -1643,8 +1643,21 @@ export default async function procurementRoutes(app: FastifyInstance) {
       .eq('id', id).in('project_id', await request.db!.projectIds()).maybeSingle()
     if (!po) return reply.status(404).send({ error: 'PO tidak ditemukan' })
     if (['fully_received', 'cancelled'].includes(po.status)) return reply.status(400).send({ error: `PO dengan status ${po.status} tidak bisa dibatalkan` })
-    const { error } = await supabase.from('purchase_orders').update({ status: 'cancelled', notes }).eq('id', id)
+    // Status LAMA ikut di WHERE: pemeriksaan `['fully_received','cancelled']`
+    // di atas TERPISAH dari penulisan ini. Tanpa klaim, dua pembatalan
+    // bersamaan sama-sama lolos dan MR di bawah di-revert dua kali
+    // (TJS-A0, 2026-08-09).
+    const { data: poCancel, error } = await supabase.from('purchase_orders')
+      .update({ status: 'cancelled', notes })
+      .eq('id', id).eq('status', po.status)
+      .select('id').maybeSingle()
     if (error) return reply.status(500).send({ error: error.message })
+    if (!poCancel) {
+      request.log.warn({ poId: id }, 'pembatalan PO serentak ditolak')
+      return reply.status(409).send({
+        error: 'PO ini baru saja berubah status dari tempat lain. Muat ulang halaman.',
+      })
+    }
     // Jika PO dari MR → revert MR status ke approved
     if (po.mr_id) {
       const { data: otherPos } = await supabase.from('purchase_orders').select('id, status').eq('mr_id', po.mr_id).neq('id', id)
@@ -1654,8 +1667,12 @@ export default async function procurementRoutes(app: FastifyInstance) {
         // kembali ke `approved`, ia TERSANGKUT di status "sudah jadi PO"
         // padahal PO-nya tak ada lagi — dan tak ada jalan membuat PO baru
         // darinya. Kegagalan senyap di sini menghentikan pengadaan.
+        // `.neq('status','approved')` bukan penjaga balapan melainkan penegas
+        // maksud: memulihkan MR yang SUDAH `approved` adalah operasi nol, dan
+        // menulisnya ulang hanya menambah baris audit palsu.
         const { error: errMr } = await supabase
-          .from('material_requests').update({ status: 'approved' }).eq('id', po.mr_id)
+          .from('material_requests').update({ status: 'approved' })
+          .eq('id', po.mr_id).neq('status', 'approved')
         if (errMr) {
           return reply.status(500).send({
             error: `PO dibatalkan, tapi status MR gagal dikembalikan: ${errMr.message}. ` +

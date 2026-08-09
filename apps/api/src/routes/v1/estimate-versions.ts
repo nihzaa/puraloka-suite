@@ -999,9 +999,18 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
       }
 
       // Langkah final → status jadi approved.
-      const { error } = await supabase.from('estimate_versions')
-        .update({ status: 'approved', approved_by: user.id, updated_by: user.id }).eq('id', id)
+      // Status LAMA ikut di WHERE: dua approval bersamaan tak boleh sama-sama
+      // lolos ke write-back di bawah (TJS-A0, 2026-08-09).
+      const { data: verApp, error } = await supabase.from('estimate_versions')
+        .update({ status: 'approved', approved_by: user.id, updated_by: user.id })
+        .eq('id', id).neq('status', 'approved').select('id').maybeSingle()
       if (error) return reply.status(500).send({ error: error.message })
+      if (!verApp) {
+        request.log.warn({ versiId: id }, 'approval versi estimasi serentak ditolak')
+        return reply.status(409).send({
+          error: 'Versi ini baru saja disetujui dari tempat lain. Muat ulang halaman.',
+        })
+      }
 
       void logAuditEvent(request, {
         tableName: 'estimate_versions', recordId: id, action: 'estimate.approved',

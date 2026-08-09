@@ -150,6 +150,25 @@ export default async function notificationRoutes(app: FastifyInstance) {
     let resultMessage = ''
 
     // ── approve_kasbon / reject_kasbon ──────────────────────────────────────
+    //
+    // ⚠️ UTANG TERDAFTAR: INI PINTU KEDUA KE KASBON (TJS-A3a)
+    //
+    // `kasbons.ts:263-352` menyetujui kasbon lewat mesin approval BERJENJANG
+    // (`utils/approval.ts`) — permission per level, jejak di `approval_progress`,
+    // syarat nominal dari `approval_steps.min_amount`.
+    //
+    // Endpoint ini TIDAK. Ia memeriksa satu permission lalu langsung menulis
+    // status. Konsekuensinya nyata: kasbon yang seharusnya butuh persetujuan
+    // dua level bisa lolos dengan satu ketukan dari kartu notifikasi.
+    //
+    // Ini kelas cacat yang sama yang didokumentasikan pada TJS (spec lapisan
+    // AI §5.1 C-2/C-3): *gerbang yang benar di satu jalur, bolong di jalur
+    // lain*. Puraloka punya bentuknya sendiri, dan sudah ada sejak sebelum AI.
+    //
+    // Balapan status sudah ditutup di bawah (TJS-A0). Yang BELUM: menyatukan
+    // jalurnya ke mesin approval. Itu TJS-A3a, dan sengaja tidak dikerjakan di
+    // sini supaya perubahan perilaku approval tidak menyelinap masuk lewat
+    // commit yang judulnya soal balapan.
     if (actionType === 'approve_kasbon' || actionType === 'reject_kasbon') {
       if (!(await hasPermission(request, 'mandor:kasbon:approve'))) {
         return reply.status(403).send({ error: 'Akses ditolak. Butuh permission: mandor:kasbon:approve' })
@@ -184,12 +203,29 @@ export default async function notificationRoutes(app: FastifyInstance) {
         }
       }
 
-      const { error: kErr } = await request.db!
+      // ── KLAIM ATOMIK (TJS-A0, 2026-08-09)
+      //
+      // Pemeriksaan `kasbon.status !== 'pending'` dua puluh baris di atas
+      // TERPISAH dari penulisan ini. Dua ketukan tombol notifikasi yang tiba
+      // berdekatan sama-sama lolos pemeriksaan itu, lalu sama-sama menulis —
+      // dan kasbon tercatat disetujui dua kali oleh dua orang berbeda.
+      //
+      // Polanya diambil dari `kasbons.ts:397-410`, yang sudah benar sejak lama.
+      const { data: kasbonUpd, error: kErr } = await request.db!
         .from('kasbons')
         .update(updatePayload)
         .eq('id', kasbonId)
+        .eq('status', 'pending')
+        .select('id')
+        .maybeSingle()
 
       if (kErr) return reply.status(500).send({ error: kErr.message })
+      if (!kasbonUpd) {
+        request.log.warn({ kasbonId }, 'keputusan kasbon serentak lewat notifikasi ditolak')
+        return reply.status(409).send({
+          error: 'Kasbon ini baru saja diproses dari tempat lain. Muat ulang halaman.',
+        })
+      }
 
       resultMessage = body.action === 'approve' ? 'Kasbon disetujui' : 'Kasbon ditolak'
 

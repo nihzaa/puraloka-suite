@@ -102,14 +102,12 @@ const RUTE = resolve(__dirname, '..', 'src', 'routes', 'v1')
  * berkas baru masuk = MERAH, sekalipun totalnya turun.
  */
 const LANTAI_BERKAS = {
-  'change-orders.ts': 2,
-  'estimate-versions.ts': 1,
-  'kepatuhan-k3.ts': 1,
-  'lessons-learned.ts': 1,
-  'notifications.ts': 1,
-  'pengadaan-lanjutan.ts': 1,
-  'procurement.ts': 2,
-  'rantai-kontrak.ts': 1,
+  // KOSONG — seluruh pelanggaran sudah diperbaiki 2026-08-09 (TJS-A0).
+  //
+  // Artinya ratchet ini kini AMBANG NOL: satu pelanggaran baru di berkas mana
+  // pun langsung merahkan CI. Itu memang tujuannya — daftar yang kosong jauh
+  // lebih mudah dipertahankan daripada daftar yang harus dibaca ulang tiap
+  // kali seseorang bertanya "yang ini boleh atau tidak?".
 }
 const LANTAI = Object.values(LANTAI_BERKAS).reduce((a, b) => a + b, 0)
 
@@ -364,7 +362,16 @@ for (const berkas of readdirSync(RUTE).filter((f) => f.endsWith('.ts'))) {
     if (!literal && !variabel && akumulatif.length === 0) continue
 
     // Sudah diklaim atomik lewat status ATAU lewat nilai lama kolomnya.
-    if (/\.(eq|in)\(\s*'status'/.test(teks)) continue
+    // `.eq`, `.in`, ATAU `.neq` — ketiganya membuat status lama ikut serta di
+    // WHERE, dan itulah yang menutup balapan.
+    //
+    // `.neq` ditambahkan setelah perbaikan `change-orders` yang sungguhan tetap
+    // dituduh melanggar. Di sana `.neq('status','approved')` justru pilihan
+    // yang BENAR: sebuah CO sah disetujui dari beberapa status awal, yang
+    // dilarang hanyalah menyetujui yang SUDAH disetujui. Memaksanya jadi
+    // `.eq('status','submitted')` akan mempersempit perilaku demi menyenangkan
+    // penjaga — persis arah yang salah.
+    if (/\.(eq|in|neq)\(\s*'status'/.test(teks)) continue
     if (akumulatif.some((k) => new RegExp(`\\.eq\\(\\s*'${k}'`).test(teks))) continue
 
     // Nomor baris dari teks ASLI supaya bisa diklik.

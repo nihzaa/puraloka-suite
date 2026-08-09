@@ -1194,6 +1194,15 @@ items:
   - id: TJS-A0
     fase: 6
     judul: "Klaim status atomik — utang lama, bukan soal AI"
+    status_akhir: >-
+      SELESAI 2026-08-09. Penjaga audit-klaim-status-atomik.mjs (ratchet PER
+      BERKAS, kini AMBANG NOL) + uji-mutasi-klaim-status.mjs (5/5 mutasi
+      terdeteksi), keduanya di ci.yml. Sepuluh pelanggaran diperbaiki di 9
+      berkas: change-orders x2, estimate-versions, kepatuhan-k3,
+      lessons-learned, notifications, pengadaan-lanjutan, procurement x2,
+      rantai-kontrak — plus 2 cacat UANG (finance, termin-payment) yang tak
+      dicari dan justru paling berbahaya. Suite: 2277 lulus, 2 gagal
+      pre-existing (T5A-PERMISSIVE), nol regresi.
     blokir_oleh: []
     catatan_penjaga: >-
       PENJAGA SUDAH TERPASANG 2026-08-09: audit-klaim-status-atomik.mjs,
@@ -1221,7 +1230,7 @@ items:
       yang bisa memicunya lebih sering. Tetap harus dibayar sekalipun AI
       dibatalkan.
     bobot: L
-    status: todo
+    status: done
 
   - id: TJS-A1
     fase: 6

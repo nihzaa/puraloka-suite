@@ -605,6 +605,7 @@ export default async function pengadaanLanjutanRoutes(app: FastifyInstance) {
         updated_at: new Date().toISOString(),
       })
       .eq('id', id).eq('company_id', cid)
+      .eq('status', 'diajukan')
       .select('id, nomor, status, diputuskan_pada')
       .maybeSingle()
 
@@ -616,7 +617,14 @@ export default async function pengadaanLanjutanRoutes(app: FastifyInstance) {
       }
       return reply.status(500).send({ error: error.message })
     }
-    if (!data) return reply.status(404).send({ error: 'Nota kredit tidak ditemukan' })
+    // Nota kredit sudah dibaca & diverifikasi di atas, jadi nol baris di sini
+    // berarti keputusan lain menang lebih dulu (TJS-A0, 2026-08-09).
+    if (!data) {
+      request.log.warn({ nkId: id }, 'keputusan nota kredit serentak ditolak')
+      return reply.status(409).send({
+        error: 'Nota kredit ini baru saja diputus dari tempat lain. Muat ulang halaman.',
+      })
+    }
 
     return reply.send({ notaKredit: data })
   })

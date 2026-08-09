@@ -183,11 +183,20 @@ export default async function rantaiKontrakRoutes(app: FastifyInstance) {
           decision_note: (b.decision_note as string)?.trim() || null,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', request.params.id).select().single()
+        .eq('id', request.params.id).eq('status', 'diajukan').select().maybeSingle()
 
       if (error) {
         request.log.error({ err: error }, 'gagal memutus EOT')
         return reply.status(500).send({ error: 'Gagal menyimpan keputusan' })
+      }
+      // Nol baris terkena = EOT ini sudah diputus request lain. Pemeriksaan
+      // `status !== 'diajukan'` di atas TERPISAH dari penulisan, jadi ada jeda
+      // tempat keputusan kedua bisa menyelinap (TJS-A0, 2026-08-09).
+      if (!data) {
+        request.log.warn({ eotId: request.params.id }, 'keputusan EOT serentak ditolak')
+        return reply.status(409).send({
+          error: 'EOT ini baru saja diputus dari tempat lain. Muat ulang halaman.',
+        })
       }
 
       void logAuditEvent(request, {
