@@ -54,6 +54,7 @@ import { api, makeAbortController } from "@/lib/api";
 import { useIzin } from "@/lib/use-izin";
 import { C } from "@/lib/warna-ui";
 import { KartuKPI, Kosong, Panel } from "@/components/ui-dasar";
+import { GrafikModul } from "@/components/shell/grafik-modul";
 import { ProjectModal } from "@/components/project-modal";
 import { useToast } from "@/components/toast";
 import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
@@ -379,6 +380,9 @@ function ProyekRingkasan() {
           </>
         )}
       </div>
+
+          {/* Grafik modul — lihat `components/shell/grafik-modul.tsx` */}
+          <GrafikModul modul="proyek" />
 
       {/* Yang menuntut tindakan — spanduk, bukan kartu KPI kelima. Kartu KPI
           menyatakan keadaan; spanduk ini menyatakan bahwa ada sesuatu yang

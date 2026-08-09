@@ -5,6 +5,101 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-09 (siang) — "Sudah mirip referensi?" — diukur, bukan diklaim
+
+Founder bertanya dua hal: *"selanjutnya apa? dashboard di menu induk lain
+gimana? yg tadi tadi sudah mirip dengan referensi?"*
+
+Yang kedua saya jawab dengan menulis alat penilai, bukan dari ingatan. Empat
+ciri referensi BuildAxis dihitung dari DOM: KPI strip · grafik · rail · kartu
+ringkasan.
+
+```
+/keuangan  /lapangan  /gudang     4/4   ← yang sudah dikerjakan
+/kas  /procurement                3/4   ← kurang GRAFIK
+/proyek  /kontrak  /aset          2/4   ← kurang GRAFIK
+/mandor                           2/4   ← kurang grafik DAN rail
+/piutang  /pengaturan             1/4 · 0/4
+```
+
+Jawaban jujurnya: **tiga yang saya kerjakan sudah penuh, delapan sisanya
+belum** — dan yang paling sering hilang GRAFIK (cuma 3 dari 11 punya,
+sementara referensi selalu punya minimal satu per halaman).
+
+Founder memilih menaikkan empat yang paling sering dibuka.
+
+### Satu endpoint untuk empat halaman
+
+Keempatnya butuh bentuk data yang sama (deret bulanan + komposisi), hanya
+sumbernya berbeda. Empat endpoint berarti empat tempat yang harus diperbaiki
+saat aturan tenancy berubah, dan empat tempat yang bisa menyimpang cara
+menghitung bulannya.
+
+`GET /api/v1/deret/:modul` mengembalikan bentuk IDENTIK apa pun modulnya,
+jadi satu komponen (`GrafikModul`) melayani keempat halaman. Menambah modul
+kelima kelak tak menyentuh UI sama sekali.
+
+Hasil pada data nyata:
+
+```
+proyek       9/12 bulan berisi   active 4.110jt · on_hold 630jt
+kas          8/12               gaji_tukang 472jt · alat 38jt
+procurement  4/12               fully_received 45jt · draft 31jt
+mandor       8/12               paid 244jt · submitted 16jt
+```
+
+### Pelajaran yang sudah dibayar, dipasang sejak awal
+
+Komponen bersama ini lahir dengan tiga perbaikan yang masing-masing sudah
+memakan satu putaran sebelumnya:
+
+- `margin.left: 0` bukan negatif — label sumbu terpotong (cacat grafik
+  lapangan: "9%" alih-alih "100%")
+- sumbu diringkas — "1.972.965.000" tak muat di label mana pun
+- `--aksen` DIBUANG dari palet donat — ia tampak sewarna `--navy` pada irisan
+  kecil (cacat donat kasbon di `/keuangan`)
+
+Ketiganya kini jadi bawaan, bukan sesuatu yang harus diingat tiap kali.
+
+### Tebakan yang salah, ketahuan sebelum jalan
+
+Saya memeriksa nama kolom ke schema SEBELUM menulis query — kebiasaan yang
+lahir dari dua kegagalan sebelumnya. Terbukti perlu:
+`weekly_wage_reports` ternyata `scope_id`/`net_amount`, bukan
+`work_scope_id`/`total_amount`. Dua dari dua tebakan saya meleset.
+
+`net_amount` juga yang secara makna benar — upah bersih sesudah potongan,
+yaitu uang yang benar-benar keluar. `subtotal` akan menunjukkan angka lebih
+besar daripada yang dibayar.
+
+### Yang TIDAK digabung
+
+`/mandor` sudah punya komposisi status sendiri (bilah bertumpuk), jadi donat
+dari komponen bersama menggandakannya. Dibiarkan: memberi komponen ini prop
+untuk mematikan separuh dirinya berarti empat halaman lain menanggung
+percabangan demi satu pengecualian.
+
+### Sesudahnya
+
+```
+/kas          3/4 → 4/4
+/procurement  3/4 → 4/4
+/mandor       2/4 → 4/4   (grafik + rail)
+/proyek       2/4 → 3/4   (KPI-nya masih 3, ambang 4)
+```
+
+### Bukti
+
+```
+tsc --noEmit (api + web)   bersih
+vitest web                 45 berkas · 591 test · lulus
+axe terang / gelap         79 halaman · 0 pelanggaran (keduanya)
+18 penjaga visual          exit 0
+4 penjaga arsitektur API   exit 0
+```
+
+---
+
 ## 2026-08-09 (pagi) — Tiga pertanyaan founder, dan ketiganya benar
 
 *"kamu udh yakin sama referensi belum? dan isi data yg ada di card masih ada

@@ -56,6 +56,7 @@
 | GET | `/api/v1/dashboard/deret` | Yes | — | Deret bulanan 8 bulan untuk sparkline KPI |
 | GET | `/api/v1/lapangan/ringkasan` | Yes | `projects:view` | Ikhtisar lapangan LINTAS-PROYEK: KPI, progres harian, milestone, tenaga kerja, punch/NCR/inspeksi |
 | GET | `/api/v1/keuangan/ikhtisar` | Yes | `finance:view:all` | Ikhtisar keuangan LINTAS-PROYEK: KPI, tagihan vs pembayaran bulanan, komposisi kasbon, umur piutang, per-proyek, invoice tertunggak. **Tanpa RAB** — lihat catatan di berkasnya |
+| GET | `/api/v1/deret/:modul` | Yes | — | Deret bulanan + komposisi untuk grafik halaman ikhtisar. `:modul` = `proyek` \| `kas` \| `procurement` \| `mandor`. Bentuk jawaban IDENTIK apa pun modulnya — satu komponen web melayani keempatnya |
 | GET | `/api/v1/gudang/ikhtisar` | Yes | `gudang:view` | Ikhtisar gudang: aset di gudang vs di proyek, kondisi, riwayat pergerakan, nilai buku, **proyek selesai yang materialnya belum ditarik** |
 
 **Period params**: `last_30_days`, `last_3_months`, `last_6_months`, `this_year`, `all_time`

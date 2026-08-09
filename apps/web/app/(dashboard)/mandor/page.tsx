@@ -37,6 +37,10 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { api, makeAbortController } from "@/lib/api";
 import { Kosong } from "@/components/ui-dasar";
+import { GrafikModul } from "@/components/shell/grafik-modul";
+import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
+import { RailIsi } from "@/components/shell/rail-isi";
+import { usePasangRail } from "@/lib/rail-context";
 import {
   ArrowRight, Clock, HardHat, Banknote, AlertTriangle, CheckCircle2,
 } from "lucide-react";
@@ -133,6 +137,64 @@ export default function MandorRingkasanPage() {
   const menungguPutusan = reports.filter((r) => r.status === "submitted").slice(0, 5);
   const penagihanMenunggu = payments.filter((p) => p.status === "pending").slice(0, 5);
 
+  /*
+    RAIL KANAN — `/mandor` satu-satunya dari empat halaman yang diukur
+    2026-08-09 yang belum punya sama sekali (nilai 2/4: tak ada grafik, tak
+    ada rail).
+
+    Isinya memakai nilai yang SUDAH dihitung di atas — `menungguPutusan` dan
+    `bebanPerMandor`. Menghitung ulang di sini berarti dua sumber untuk angka
+    yang sama, dan saat menyimpang tak ada yang tahu mana yang benar.
+  */
+  usePasangRail(
+    <RailIsi
+      konteks={
+        <>
+          <KartuRail
+            judul="Menunggu putusan"
+            tautan="/mandor/upah"
+            kosong="Tak ada laporan menunggu."
+          >
+            {menungguPutusan.map((r, i) => (
+              <BarisRail
+                key={r.id}
+                pertama={i === 0}
+                /*
+                  `r.assignment.mandor`, BUKAN `r.scope.assignment` — `scope`
+                  hanya punya id/nama/sistem bayar. Diperiksa ke `tipe.ts`
+                  sesudah tsc menolak tebakan pertama.
+                */
+                utama={r.assignment?.mandor?.name ?? "Mandor"}
+                sub={`Minggu ${String(r.week_start ?? "").slice(5)}`}
+                kanan={fmt(Number(r.net_amount) || 0)}
+                nadaKanan="normal"
+                href="/mandor/upah"
+              />
+            ))}
+          </KartuRail>
+
+          <KartuRail
+            judul="Kasbon belum lunas"
+            tautan="/mandor/kasbon"
+            kosong="Semua kasbon sudah dilunasi."
+          >
+            {bebanPerMandor.map(([nama, nilai], i) => (
+              <BarisRail
+                key={nama}
+                pertama={i === 0}
+                utama={nama}
+                kanan={fmt(nilai)}
+                nadaKanan={nilai > 0 ? "bahaya" : "normal"}
+                href="/mandor/kasbon"
+              />
+            ))}
+          </KartuRail>
+        </>
+      }
+    />,
+    [reports, kasbons],
+  );
+
   if (loading) {
     return (
       <div style={{ width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
@@ -149,6 +211,21 @@ export default function MandorRingkasanPage() {
       width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
       display: "flex", flexDirection: "column", gap: 20,
     }}>
+      {/*
+        GRAFIK MODUL — deret upah 12 bulan + komposisi status.
+
+        Halaman ini SUDAH punya komposisi status (bilah bertumpuk di bawah),
+        jadi yang benar-benar baru dari komponen ini adalah DERET WAKTUNYA:
+        "berapa upah keluar tiap bulan" tak terjawab di mana pun sebelumnya.
+
+        Donat komposisinya memang menggandakan bilah bertumpuk. Dibiarkan,
+        dan itu keputusan sadar: memberi komponen ini prop untuk mematikan
+        separuh dirinya berarti empat halaman lain ikut menanggung
+        percabangan demi satu pengecualian. Dua bentuk untuk data yang sama
+        di layar yang panjang lebih murah daripada komponen bercabang.
+      */}
+      <GrafikModul modul="mandor" />
+
       {/* ══ LAPIS 2 — POLA ═══════════════════════════════════════════════ */}
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
         {/* Komposisi laporan menurut status */}

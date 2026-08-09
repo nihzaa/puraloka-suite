@@ -60,6 +60,7 @@ import inspeksiRoutes from './routes/v1/inspeksi.js'
 import lapanganRoutes from './routes/v1/lapangan.js'
 import keuanganIkhtisarRoutes from './routes/v1/keuangan-ikhtisar.js'
 import gudangIkhtisarRoutes from './routes/v1/gudang-ikhtisar.js'
+import deretModulRoutes from './routes/v1/deret-modul.js'
 import rfiRoutes from './routes/v1/rfi.js'
 import submittalRoutes from './routes/v1/submittal.js'
 import suratRoutes from './routes/v1/surat.js'
@@ -319,6 +320,7 @@ await app.register(inspeksiRoutes)
 await app.register(lapanganRoutes)
 await app.register(keuanganIkhtisarRoutes)
 await app.register(gudangIkhtisarRoutes)
+await app.register(deretModulRoutes)
 await app.register(rfiRoutes)
 await app.register(submittalRoutes)
 await app.register(suratRoutes)

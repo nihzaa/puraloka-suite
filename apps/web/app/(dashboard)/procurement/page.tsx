@@ -68,6 +68,7 @@ import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
 import { RailIsi } from "@/components/shell/rail-isi";
 import { usePasangRail } from "@/lib/rail-context";
 import { KartuKPI, Kosong, Panel } from "@/components/ui-dasar";
+import { GrafikModul } from "@/components/shell/grafik-modul";
 import { hariIniWIB } from "@/lib/ringkasan-proyek";
 import {
   konsentrasiVendor, palingLamaMenunggu, ringkasPo,
@@ -221,6 +222,9 @@ function ProcurementRingkasan() {
           </>
         )}
       </div>
+
+          {/* Grafik modul — lihat `components/shell/grafik-modul.tsx` */}
+          <GrafikModul modul="procurement" />
 
       {/* Yang menuntut tindakan HARI INI — spanduk, bukan kartu KPI kelima.
           Kartu KPI menyatakan keadaan; spanduk ini menyatakan bahwa ada yang

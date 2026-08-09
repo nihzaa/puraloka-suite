@@ -53,6 +53,7 @@ import { RailIsi } from "@/components/shell/rail-isi";
 import { usePasangRail } from "@/lib/rail-context";
 import { formatRupiahSingkat } from "@/lib/format";
 import { GrafikBatang, KartuKPI, Kosong, Panel, type BatangData } from "@/components/ui-dasar";
+import { GrafikModul } from "@/components/shell/grafik-modul";
 import {
   type CashSummary, type RingkasKategori, type TitikArusKas,
   TYPE_COLOR, TYPE_LABEL, fmtCompact,
@@ -270,6 +271,9 @@ function KasRingkasan() {
           )}
         </div>
       )}
+
+      {/* Grafik modul — lihat `components/shell/grafik-modul.tsx` */}
+      <GrafikModul modul="kas" />
 
       {/* Yang menunggu keputusan — tautan, bukan tombol pemindah tab. Sekarang
           benar-benar berpindah halaman DENGAN saringan terbawa di URL, jadi
