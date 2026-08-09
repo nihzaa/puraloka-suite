@@ -1,0 +1,85 @@
+name: Pemicu Jadwal Tugas
+
+# Menggantikan manusia yang selama ini harus menekan tombol di /sistem.
+#
+# Sebelum ini, notifikasi tenggat & milestone TIDAK PERNAH TERBIT kecuali ada
+# yang membukanya dan mengklik. Itu menjelaskan kenapa banyak fitur terasa
+# "ada tapi tidak hidup".
+#
+# ── Kenapa tiap 15 menit, bukan sekali sehari pukul 07:00
+#
+# Server memutuskan sendiri tugas mana yang jatuh tempo (`lib/jadwal.ts`),
+# jadi cron ini cukup jadi DENYUT — bukan jadwalnya sendiri. Jadwal sungguhan
+# hidup di basis data, satu tempat, bisa diubah dari UI tanpa menyentuh
+# berkas ini.
+#
+# Kalau cron ini dipasang pukul 07:00 persis, maka jadwal apa pun yang
+# founder setel di jam lain tak akan pernah berjalan — dan tak ada yang
+# memberi tahu. Denyut 15 menit membuat jam berapa pun bisa dipilih.
+#
+# ── Kenapa tak apa-apa dipanggil sesering itu
+#
+# Aturan pemicunya "sudah lewat jamnya DAN belum jalan di periode ini".
+# Panggilan kedua di periode yang sama dijawab `dilewati:
+# sudah-jalan-periode-ini` — diverifikasi langsung pada sistem nyata, bukan
+# diasumsikan.
+#
+# ── Rahasia yang dibutuhkan
+#
+#   SCHEDULER_URL      https://<api>/api/v1/jadwal/jalankan
+#   SCHEDULER_SECRET   sama dengan yang di apps/api/.env
+#
+# Selama keduanya belum disetel, langkahnya DILEWATI dengan pesan jelas —
+# bukan gagal merah tiap 15 menit, yang akan melatih orang mengabaikan
+# notifikasi CI.
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  # Denyut yang menumpuk lebih buruk daripada denyut yang terlewat: dua
+  # pemicu bersamaan sama-sama membaca jadwal yang sama. Klaim atomik di
+  # endpoint sudah menutupnya, tapi tak perlu diuji tiap seperempat jam.
+  group: jadwal-tugas
+  cancel-in-progress: false
+
+jobs:
+  picu:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Picu jadwal
+        env:
+          URL:     ${{ secrets.SCHEDULER_URL }}
+          RAHASIA: ${{ secrets.SCHEDULER_SECRET }}
+        run: |
+          if [ -z "$URL" ] || [ -z "$RAHASIA" ]; then
+            echo "::notice::SCHEDULER_URL / SCHEDULER_SECRET belum disetel — dilewati."
+            echo "Setel keduanya di Settings → Secrets → Actions untuk menghidupkan penjadwal."
+            exit 0
+          fi
+
+          # `--fail-with-body` supaya badan respons ikut tercetak saat gagal —
+          # tanpa itu, kegagalan hanya terlihat sebagai kode keluar.
+          kode=$(curl -sS --fail-with-body -o hasil.json -w '%{http_code}' \
+                  -X POST "$URL" \
+                  -H "x-scheduler-secret: $RAHASIA" \
+                  -H 'content-type: application/json' \
+                  -d '{}' \
+                  --max-time 300) || {
+            echo "::error::Pemicu jadwal gagal (HTTP $kode)"
+            cat hasil.json 2>/dev/null || true
+            exit 1
+          }
+
+          cat hasil.json
+          echo ""
+
+          # Ringkasan dibaca dari responsnya sendiri, bukan dari kode HTTP:
+          # endpoint membalas 200 walau sebagian tugas gagal — karena itu
+          # memang informasi, bukan kegagalan permintaan.
+          gagal=$(node -e "const h=require('./hasil.json'); console.log(h.gagal ?? 0)")
+          if [ "$gagal" != "0" ]; then
+            echo "::warning::$gagal tugas terjadwal GAGAL — periksa terakhir_galat di tabel jadwal_tugas"
+          fi

@@ -28,6 +28,7 @@ import reportsRoutes from './routes/v1/reports.js'
 import settingsRoutes from './routes/v1/settings.js'
 import situsRoutes from './routes/v1/situs.js'
 import kredensialRoutes from './routes/v1/kredensial.js'
+import jadwalRoutes from './routes/v1/jadwal.js'
 import companiesRoutes from './routes/v1/companies.js'
 import rapRoutes from './routes/v1/rap.js'
 import costControlRoutes from './routes/v1/cost-control.js'
@@ -289,6 +290,7 @@ await app.register(reportsRoutes)
 await app.register(settingsRoutes)
 await app.register(situsRoutes)
 await app.register(kredensialRoutes)
+await app.register(jadwalRoutes)
 await app.register(companiesRoutes)
 await app.register(rapRoutes)
 await app.register(costControlRoutes)

@@ -285,6 +285,14 @@ jobs:
       - name: Kredensial tak bocor
         run: node scripts/audit-kredensial-tak-bocor.mjs
 
+      # L-4 — kolom jadwal WAJIB punya pembaca.
+      # `BackupPolicy` TJS punya kolom jadwal bertahun-tahun tanpa satu pun
+      # kode yang membacanya: "terjadwal di layar, tidak di kenyataan". UI
+      # menampilkan, basis menyimpan, dan TIDAK TERJADI APA-APA — tanpa error,
+      # tanpa test merah. Satu-satunya gejalanya adalah hal yang tidak terjadi.
+      - name: Kolom jadwal punya pembaca (L-4)
+        run: node scripts/audit-jadwal-punya-pembaca.mjs
+
       # Nominal dari permintaan yang dibaca `parseFloat` mentah. Rantai cacatnya
       # dibuktikan 2026-08-08 di Node DAN di Postgres: `qty: "abc"` → NaN → cek
       # saldo LOLOS (setiap perbandingan dengan NaN bernilai false) → Postgres
