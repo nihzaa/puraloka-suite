@@ -1191,12 +1191,42 @@ items:
   # CHARTER §5 Gerbang Keras + §6 Ember [C].
   # ══════════════════════════════════════════════════════════════════════════
 
+  - id: TJS-A0
+    fase: 6
+    judul: "Klaim status atomik di 6 modul approval — utang lama, bukan soal AI"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "pola kasbons.ts:397-401 (.eq('status','pending') ikut WHERE) diport ke
+         change_order, material_request, project_expense, estimate_version,
+         lessons_learned, submittal"
+      - "approval kedua atas entitas yang sama -> 409, bukan dobel"
+      - "change-orders: contract_value TIDAK baca-ubah-tulis"
+      - "test konkurensi: dua approval bersamaan -> tepat satu berhasil"
+    cara_verifikasi: >-
+      test: jalankan dua approval paralel atas entitas yang sama untuk KETUJUH
+      jenis; pastikan tepat satu berhasil dan nilai finansialnya berubah sekali
+    catatan: >-
+      Ditemukan saat memverifikasi P-1. kasbons.ts mengklaim status secara
+      atomik; enam modul lain tidak. Yang terburuk change-orders.ts:676-701 —
+      tanpa penjaga status, lalu contract_value + delta dengan baca-ubah-tulis:
+      DUA APPROVAL BERSAMAAN MENGGANDAKAN NILAI KONTRAK, tanpa error.
+
+      Ini risiko yang SUDAH ADA hari ini. AI hanya menambah pemanggil kedua
+      yang bisa memicunya lebih sering. Tetap harus dibayar sekalipun AI
+      dibatalkan.
+    bobot: L
+    status: todo
+
   - id: TJS-A1
     fase: 6
     judul: "Kredensial terenkripsi + UI (prasyarat semua yang lain)"
     blokir_oleh: []
     kriteria_selesai:
-      - "tabel credential_store: nilai TERENKRIPSI, company_id, RLS"
+      - "tabel credential_store: nilai TERENKRIPSI, company_id + policy RLS
+         (catatan: RLS INERT untuk jalur API sampai koneksi pindah peran —
+         F2-6; penyaringan aplikasi yang menjaga hari ini)"
+      - "supabase_vault SUDAH TERPASANG (0.3.1) — dipertimbangkan lebih dulu
+         sebelum memutuskan enkripsi di lapisan aplikasi"
       - "kolom terenkripsi TIDAK PERNAH ikut di-SELECT — bahkan untuk peran tertinggi"
       - "UI: kolom selalu mulai kosong, hanya 4 karakter terakhir terlihat"
       - "tombol Uji Koneksi menguji nilai yang SEDANG DIKETIK tanpa menyimpannya"
@@ -1211,10 +1241,18 @@ items:
 
   - id: TJS-A2
     fase: 6
-    judul: "Penjadwal (pg_cron) — menghidupkan notifikasi yang selama ini mati"
-    blokir_oleh: []
+    judul: "Penjadwal — menghidupkan notifikasi yang selama ini mati"
+    # Bergantung A1: pg_cron hanya menjalankan SQL, sementara logika notifikasi
+    # ada di TypeScript. Jalur HTTP apa pun (pg_net / cron GH Actions) butuh
+    # secret, dan secret tinggal di credential_store.
+    blokir_oleh: [TJS-A1]
     kriteria_selesai:
-      - "pg_cron aktif; jadwal tersimpan di DB, bukan di kode"
+      - "PILIH MEKANISME lebih dulu: pg_cron+pg_net, penjadwal Node internal,
+         atau cron GitHub Actions yang SUDAH ADA (tiga di antaranya jalan:
+         cadangan-harian, ci-keepalive, uji-pemulihan). Tulis alasannya."
+      - "jadwal tersimpan di DB, bukan di kode"
+      - "kalau pg_cron: job TIDAK tenant-scoped — badan job wajib melooping
+         tenant secara eksplisit"
       - "logika jadwal FUNGSI MURNI dengan now dioper — teruji tanpa DB"
       - "aturan pemicu: sudah lewat jamnya DAN belum jalan di periode ini
          (bukan jamnya sama persis) supaya cron telat tetap mengejar"
@@ -1233,21 +1271,76 @@ items:
     bobot: M
     status: todo
 
-  - id: TJS-A3
+  - id: TJS-A3a
     fase: 6
-    judul: "Inbox approval terpusat — 7 entity type dalam satu halaman"
-    blokir_oleh: []
+    judul: "Konsolidasi 5 jalur approval liar — termasuk kasbon berpintu dua"
+    blokir_oleh: [TJS-A0]
     kriteria_selesai:
-      - "satu halaman membaca approval_progress untuk KETUJUH entity type"
-      - "keputusan dari inbox memakai utils/approval.ts yang sama (bukan jalur baru)"
+      - "progress payment mandor (mandor.ts:1608, :1720) lewat mesin approval —
+         hari ini set approved_by langsung DAN menyentuh kas nyata"
+      - "borongan settlement (mandor.ts:1875) — sama, menyentuh kas nyata"
+      - "kasbon lewat notifikasi (notifications.ts:180) — PINTU KEDUA ke entitas
+         yang sama; kasbons.ts:352 pakai mesin berjenjang, endpoint ini memotongnya"
+      - "sertifikat IPC (sertifikat-ipc.ts:239)"
+      - "verifikasi dokumen K3 (kepatuhan-k3.ts:210)"
+      - "NOL kasus requested_by == approved_by pada jalur yang menyentuh kas"
+      - "penjaga: set approved_by/disetujui_oleh di luar mesin approval = CI MERAH"
+    cara_verifikasi: >-
+      mutasi: tambahkan approved_by langsung di satu route -> penjaga MERAH ->
+      pulihkan; + test tiap jalur kini menulis approval_progress
+    catatan: >-
+      mandor.ts:1607-1608 menulis requested_by: user.id lalu approved_by:
+      user.id — satu baris di bawahnya. PEMOHON MENYETUJUI DIRINYA SENDIRI, di
+      jalur yang mengurangi saldo kas. Itu bukan approval lewat mesin lain; itu
+      approval yang tak pernah ada, sekaligus pelanggaran SoD (TJS-P4) yang
+      sudah tertulis di kode hari ini.
+
+      Kasbon berpintu dua adalah persis cacat C-2/C-3 yang spec kritik pada TJS
+      ("gerbang benar di satu jalur, bolong di jalur lain") — Puraloka sudah
+      punya bentuknya sendiri, sejak sebelum ada AI.
+    bobot: L
+    status: todo
+
+  - id: TJS-A3b
+    fase: 6
+    judul: "Inbox approval terpusat — SELURUH jalur, bukan 7 dari 12"
+    blokir_oleh: [TJS-A3a]
+    kriteria_selesai:
+      - "satu halaman membaca approval_progress untuk SELURUH jenis"
+      - "keputusan dari inbox lewat RUTE yang sama dengan dashboard (bukan util —
+         lihat spec §5.0)"
       - "difilter permission (ADR-004), bukan peran"
     cara_verifikasi: >-
-      test: buat 1 entitas tertunda per jenis (7), pastikan ketujuhnya muncul;
-      approve dari inbox -> approval_progress berubah persis seperti dari modul
+      test: buat 1 entitas tertunda per jenis, pastikan SEMUA muncul; approve
+      dari inbox -> hasilnya identik dengan approve dari modul
     catatan: >-
-      Pengukuran awal keliru menyimpulkan "hanya 1 modul memakai" — grep hanya
-      mencari nama tabel, padahal 7 modul memanggilnya lewat utils/approval.ts.
-      Inbox ini karenanya akan berisi, bukan kosong.
+      Dipisah dari A3a atas temuan verifikasi: inbox yang menampilkan 7 dari 12
+      jalur LEBIH BERBAHAYA daripada tak ada inbox — approver akan percaya
+      antreannya kosong.
+    bobot: M
+    status: todo
+
+  - id: TJS-A4
+    fase: 6
+    judul: "Helper audit siap-AI: konteks bukan request, kolom via, tabel percobaan"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "logAuditEvent menerima OBJEK KONTEKS, bukan FastifyRequest — agent loop
+         dari webhook/penjadwal tak punya request"
+      - "migrasi: kolom `via` di audit_logs (ai_whatsapp | web | ...)"
+      - "tabel ai_akses_ditolak TANPA company_id — nomor tak dikenal tak punya
+         tenant, jadi mustahil masuk audit_logs (company_id NOT NULL, migrasi 127)"
+      - "percobaan dicatat TANPA isi pesan (nomor + waktu saja)"
+    cara_verifikasi: "test: catat percobaan dari nomor tak dikenal tanpa tenant apa pun"
+    catatan: >-
+      P-5 spec tak bisa dibangun dengan helper yang ada. Tiga halangan
+      terverifikasi: company_id NOT NULL, AuditEntry tanpa kolom kanal, dan
+      helper menuntut FastifyRequest. Tambahan: logAuditEvent fire-and-forget
+      dan tak pernah melempar — jadi "tiap tindakan AI pasti tercatat" tak bisa
+      dijanjikan apa adanya.
+
+      Menyentuh helper yang dipakai seluruh repo, jadi lebih murah dikerjakan
+      SEBELUM ada pemanggil baru.
     bobot: M
     status: todo
 
@@ -1258,6 +1351,9 @@ items:
     kriteria_selesai:
       - "ai_provider_config per (company, asisten) + RLS"
       - "API key TIDAK di tabel ini — di credential_store"
+      - "aturan FALLBACK kunci eksplisit: kredensial tenant -> bawaan perusahaan
+         -> env server -> mati. Tanpa ini, memindahkan /ai/insight ke
+         credential_store menuntut tiap tenant punya kuncinya sendiri."
       - "SATU sumber harga model (perbaikan C-7: TJS punya dua tabel yang tak
          sepakat, biaya Opus tercatat 3x lebih rendah dari yang admin lihat)"
       - "biaya dicatat per RONDE tool-calling, bukan per pesan"
@@ -1268,7 +1364,9 @@ items:
       - "retensi percakapan bisa diatur per tenant, bawaan terbatas (§5.7)"
       - "isi percakapan TAK PERNAH masuk audit log — metadata saja"
       - "rate limit per user, bukan hanya batas biaya bulanan: batas bulanan tak
-         menahan pembakaran token dalam satu jam"
+         menahan pembakaran token dalam satu jam (SCOPE §4 #3 menuntut
+         'spending limit + rate limit'). Catatan: rate limiter repo ini
+         global:false — per instance, tak bertahan lintas deploy multi-instance."
     cara_verifikasi: >-
       test: ganti provider dari UI -> /ai/insight memakai provider baru tanpa
       restart; lewati batas -> ditolak sebelum ada biaya keluar
@@ -1286,6 +1384,10 @@ items:
       - "isError dibawa SEMUA adaptor (perbaikan C-6: di TJS hanya Anthropic)"
       - "kemampuan dinyatakan PER MODEL (sebagian model menolak thinking adaptive)"
       - "chat() tak pernah throw — mengembalikan ok:false + alasan"
+      - "TIMEOUT & backoff ada DI KONTRAK antarmuka (TJS tak punya timeout sama
+         sekali: bawaan SDK 10 menit x 16 ronde)"
+      - "pemangkasan riwayat berbasis TOKEN, bukan jumlah pesan — satu keluaran
+         besar bisa meledakkan jendela konteks"
       - "PENJAGA L-6: nol pemanggilan SDK model di luar lapisan ini"
     cara_verifikasi: >-
       mutasi: panggil SDK langsung di satu berkas -> penjaga MERAH -> pulihkan
@@ -1315,6 +1417,15 @@ items:
       - "dibuktikan dengan DUA tenant nyata di test: tool tenant A tak pernah
          mengembalikan baris tenant B (jangan diasumsikan dari RLS)"
       - "saklar mati lapisan AI per tenant, nol dampak ke modul lain"
+      - "penjaga tenancy DIPERLUAS ke arrow-const: hari ini ia hanya cocok pada
+         `function nama(`, jadi `export const x = async () =>` TAK TERLIHAT
+         sekalipun di direktori yang dipindai"
+      - "SATU giliran per user — dua pesan bersamaan tak saling menimpa"
+      - "ACL tool diperiksa DUA KALI: saat katalog dirakit DAN saat tool
+         dieksekusi (pola TJS tools.ts:1204-1213). Pemeriksaan kedua yang
+         membuat I-1 tetap benar kalaupun katalognya salah rakit"
+      - "deteksi preview_* STRUKTURAL (dari bentuk hasil), bukan daftar prefiks
+         — daftar prefiks TJS terlupakan 3x dan patah senyap tiap kali"
       - "I-2: hasil tool dibungkus penanda DATA-bukan-instruksi; teks pengguna
          tak pernah disambung mentah ke prompt sistem (prompt injection, §5.3)"
     cara_verifikasi: >-
@@ -1339,6 +1450,17 @@ items:
       - "T-2: company_id di WHERE, BUKAN hanya ikut skor kemiripan.
          Penjaga: query RAG tanpa company_id di WHERE = CI MERAH"
       - "test dua tenant: dokumen tenant A tak pernah muncul di jawaban tenant B"
+      - "T-4: RAG mereproduksi SELURUH ACL dokumen (doc_type x peran x
+         is_visible_to_client, documents.ts:31-37) — bukan hanya company_id.
+         Mandor hari ini dibatasi 4 jenis dokumen; indeks RAG tak tahu itu."
+      - "T-5: NOL tool mengembalikan file_url. documents.ts:138 membuat signed
+         URL berumur 10 TAHUN — kalau ia sampai ke WhatsApp, ia bertahan setelah
+         hak akses dicabut, di riwayat chat di luar kendali kita."
+      - "documents kategori C (punya project_id, TANPA company_id): putuskan
+         tabel potongan RAG membawa company_id sendiri, atau menyaring lewat
+         daftar project_id. Tulis alasannya."
+      - "biaya ingest awal per tenant DIHITUNG dan masuk anggaran — onboarding
+         adalah saat pelanggan baru paling tak toleran pada tagihan"
     cara_verifikasi: >-
       korpus uji + pertanyaan yang jawabannya diketahui; ukur temu-kembali
       untuk istilah persis DAN parafrase
@@ -1365,7 +1487,11 @@ items:
       - "registry adaptor sejak awal (penambahan tak menyentuh pemanggil)"
       - "tak pernah throw — invoice tetap tersimpan meski WA gagal"
       - "nomor terverifikasi TERIKAT user_id (bukan whitelist nomor telanjang)"
-      - "percobaan dari nomor tak dikenal DICATAT (perbaikan C-9)"
+      - "percobaan dari nomor tak dikenal DICATAT (perbaikan C-9, lewat TJS-A4)"
+      - "IDEMPOTENSI keluar: webhook yang diulang tak mengirim dua kali"
+      - "sesi sintetis dibangun SATU pabrik teraudit yang meresolusi peran dari
+         company_members; JANGAN PERNAH menerima peran dari pemanggil
+         (approval.ts:62 membaca request.currentUser.role apa adanya)"
     cara_verifikasi: "mutasi: kirim WA dari berkas lain -> penjaga MERAH"
     catatan: >-
       Satu pintu diambil dari pelajaran TJS: ia baru merapikannya SETELAH
@@ -1377,15 +1503,25 @@ items:
   - id: TJS-E1
     fase: 6
     judul: "preview_setujui_* — P-1..P-7 seluruhnya terbukti"
-    blokir_oleh: [TJS-A3, TJS-D1]
+    blokir_oleh: [TJS-A3b, TJS-D1]
     kriteria_selesai:
-      - "P-1 memakai utils/approval.ts yang SAMA dengan dashboard"
+      - "P-1 memanggil RUTE yang sama dengan dashboard (dispatch internal), BUKAN
+         utils/approval.ts — keputusan approval tersebar: nominal, transisi
+         status, dan efek samping semuanya di route (spec §5.0)"
+      - "preview_setujui_* HANYA untuk entitas yang jalurnya sudah tunggal
+         (sesudah TJS-A3a). PO tak dijadwalkan: procurement.ts:914 tak punya
+         state approved sama sekali"
       - "P-2 requirePermission yang sama (ADR-004)"
       - "P-3 token sekali-pakai, kedaluwarsa, DIKLAIM ATOMIK (klaim kedua -> 409)"
       - "P-4 batas melekat pada USER, bukan nomor/kanal (perbaikan C-2)"
       - "P-5 audit menandai kanal + percobaan tak sah tercatat"
       - "P-6 batas dicek DUA KALI (preview DAN eksekusi); nominal FIELD WAJIB
-         BERTIPE, bukan tebakan nama (perbaikan C-1 & C-10)"
+         BERTIPE, bukan tebakan nama (perbaikan C-1 & C-10). Nominal tak
+         diketahui = Infinity, BUKAN null — konvensi yang sudah ada di
+         lib/mr-amount.ts:18. Usul null justru mengulang fail-open TJS."
+      - "CATATAN: approval_steps.min_amount adalah LANTAI (memilih langkah mana
+         yang berlaku), BUKAN plafon. Batas nominal AI benar-benar baru — tak
+         ada yang bisa disandari."
       - "P-7 tiap penjaga TERBUKTI MERAH lewat mutasi sengaja"
     cara_verifikasi: >-
       untuk tiap penjaga: suntik pelanggaran -> MERAH -> pulihkan -> HIJAU,
@@ -1448,7 +1584,7 @@ items:
   - id: TJS-P4
     fase: 6
     judul: "Segregation of Duties — pemisahan wewenang pengadaan"
-    blokir_oleh: [TJS-A3]
+    blokir_oleh: [TJS-A3a]
     kriteria_selesai:
       - "aturan DEKLARATIF, bukan if bertebaran"
       - "pembuat tak boleh approve miliknya sendiri (PR, PO, penerimaan barang)"

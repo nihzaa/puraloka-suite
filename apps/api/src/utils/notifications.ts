@@ -168,8 +168,15 @@ export async function createNotifications(list: NotificationParams[]): Promise<v
  * subscribe hidup, service worker terpasang. Tapi `sendWebPush()` punya **nol
  * sebutan di seluruh `src/`** (diverifikasi grep 2026-08-01). Fungsi ini
  * menulis `channel: 'push'` ke DB tanpa pernah benar-benar mengirim push, dan
- * nol dari 23 user punya `push_subscription` — konsisten, karena UI-nya juga
- * tak pernah memanggil `subscribeToPush()`.
+ * **nol** user punya `push_subscription` — konsisten, karena UI-nya juga tak
+ * pernah memanggil `subscribeToPush()`.
+ *
+ * Versi sebelumnya menulis "nol dari 23 user". Penyebutnya sudah basi (26 per
+ * 2026-08-09), dan angka mati di komentar adalah racun konteks yang CLAUDE.md
+ * peringatkan. Yang penting pembilangnya, dan cara mengukurnya:
+ *
+ *   SELECT count(*) FILTER (WHERE push_subscription IS NOT NULL), count(*)
+ *   FROM users;
  *
  * Jadi seluruh notifikasi selama ini IN-APP SAJA. Menguji di HP tak akan
  * membuktikan apa pun; yang putus adalah rantainya, bukan perangkatnya.

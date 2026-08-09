@@ -142,12 +142,82 @@ jadi gerbang CI — test yang kadang merah akan dimatikan orang, dan matinya
 membawa serta test yang sungguh menjaga), **§5.7** retensi & privasi
 percakapan.
 
+### Dua pembaca kritis — dan mereka menemukan yang saya lewatkan
+
+Satu memverifikasi tiap klaim ke kode, satu mencari lubang. Hasilnya: **8
+benar, 6 sebagian, 1 salah**, plus tujuh temuan keamanan. Empat mengubah
+rencana secara material.
+
+**A-1 — saya menjanjikan RLS sembilan kali, dan itu tidak benar.** Diperiksa
+dari dua sisi: `utils/supabase.ts:14` adalah service-role dengan header
+`Authorization` dipaksa, komentarnya sendiri menyebut tujuannya *"to bypass
+RLS"*; dan `audit-force-rls.mjs:9-15` mencatat keputusan **F2-6** sengaja TIDAK
+memaksa RLS *karena koneksi API memakai peran ber-`rolbypassrls`*. Jadi untuk
+jalur API, policy RLS **ada tapi inert** — satu-satunya perlindungan adalah
+penyaringan aplikasi. Spec kini menulis kejujurannya di kotak §5.4, dan
+rancangannya sengaja tak bersandar pada RLS.
+
+**A-2 — P-1 saya salah, dan memeriksanya menyingkap utang yang lebih besar.**
+Draf menyuruh AI memanggil `utils/approval.ts`. Tapi keputusan approval
+**tersebar**: nominal, transisi status, dan efek samping semuanya di route.
+"Panggil util yang sama" justru memberi AI separuh yang paling lemah.
+
+Dan saat memeriksa: `kasbons.ts:397-401` mengklaim status secara atomik
+(`.eq('status','pending')` ikut WHERE); **enam modul lain tidak**. Terburuk
+`change-orders.ts:676-701` — tanpa penjaga status, lalu `contract_value + delta`
+dengan baca-ubah-tulis. **Dua approval bersamaan menggandakan nilai kontrak,
+tanpa error.** Ini risiko yang sudah ada hari ini; AI hanya menambah pemicu.
+Jadi item baru TJS-A0, dan ia tetap harus dibayar sekalipun AI dibatalkan.
+
+**§6.3 premisnya batal — ada lima jalur approval liar.** Saya menulis "tinggal
+satu halaman agregasi". Salah: progress payment mandor, borongan settlement,
+sertifikat IPC, verifikasi K3, dan **kasbon lewat notifikasi** semuanya
+memotong mesin approval. Yang terakhir adalah **pintu kedua ke entitas yang
+sama** — persis cacat C-2/C-3 yang dokumen ini kritik pada TJS, dan Puraloka
+sudah punya bentuknya sendiri sejak sebelum ada AI.
+
+Lebih buruk: `mandor.ts:1607-1608` menulis `requested_by: user.id` lalu
+`approved_by: user.id` — satu baris di bawahnya. **Pemohon menyetujui dirinya
+sendiri, di jalur yang mengurangi saldo kas.** Itu bukan approval lewat mesin
+lain; itu approval yang tak pernah ada. TJS-A3 dipecah: konsolidasi (A3a)
+mendahului inbox (A3b), karena inbox yang menampilkan 7 dari 12 jalur lebih
+berbahaya daripada tak ada inbox — approver akan percaya antreannya kosong.
+
+**A-3 — P-5 tak bisa dibangun dengan helper yang ada.** `audit_logs.company_id`
+NOT NULL (migrasi 127), jadi nomor tak dikenal — yang tak punya tenant —
+mustahil ditulis ke sana. Ditambah: `AuditEntry` tak punya kolom kanal, dan
+`logAuditEvent` menuntut `FastifyRequest` yang tak dimiliki agent loop. Item
+baru TJS-A4.
+
+**A-4/A-5 — RAG bocor DI DALAM tenant, dan T-2 saya cuma menjaga lintas
+tenant.** `documents.ts:31-37` membatasi mandor ke 4 jenis dokumen, client ke 5
+(itu pun hanya `is_visible_to_client`). Indeks RAG tak tahu apa-apa soal itu:
+mandor bertanya *"berapa nilai kontrak Cibuluh?"* akan menerima isi kontrak.
+Dan `documents.ts:138` membuat signed URL berumur **10 tahun** — kalau tool
+mengembalikannya, ia sampai ke WhatsApp dan bertahan setelah hak akses dicabut.
+Ditambah T-4 dan T-5. (Repo sudah menyadari kelas risikonya: komentar T4g.)
+
+**Dan satu usul saya ternyata REGRESI.** C-10 saya perbaiki dengan
+"nominal tak diketahui = `null` eksplisit". Tapi repo ini sudah punya konvensi
+yang lebih baik: `lib/mr-amount.ts:18` mengembalikan **`Infinity`** — *"tak
+diketahui → melampaui semua ambang"*. Usul `null` justru mengulang fail-open
+TJS yang saya kritik. Diperbaiki.
+
+Koreksi angka: **66 tool → 56** (kategorinya benar, penjumlahannya salah),
+**23 → 26 user** (komentar `notifications.ts` ikut diperbaiki — diganti cara
+mengukur, bukan angka baru yang akan basi lagi), **"tidak ada scheduler"**
+dipersempit jadi "nol di dalam aplikasi" (tiga cron GitHub Actions sudah jalan),
+**`supabase_vault` sudah terpasang** dan layak dipertimbangkan sebelum memilih
+enkripsi di aplikasi. Dan **P-6 saya menyesatkan**: `min_amount` adalah LANTAI
+(memilih langkah mana berlaku), bukan PLAFON — batas nominal AI benar-benar
+baru, tak ada yang bisa disandari.
+
 ### Hasil
 
-- `docs/superpowers/specs/2026-08-09-lapisan-ai-dan-platform-design.md` (828 baris)
+- `docs/superpowers/specs/2026-08-09-lapisan-ai-dan-platform-design.md` (1021 baris)
 - `KEPUTUSAN-SCOPE-ERP-AI.md` — amandemen §5 + diagram gelombang
 - `CHARTER.md` §3 — fase 6, tanda kurung "(bukan fitur AI)" dicabut
-- `QUEUE.yaml` — 14 item TJS-*, YAML tervalidasi, nol blokir menggantung
+- `QUEUE.yaml` — 17 item TJS-*, YAML tervalidasi, nol blokir menggantung
 
 Belum satu baris kode pun. Yang berikutnya: TJS-A1 (kredensial terenkripsi),
 karena ia prasyarat semua yang lain.
