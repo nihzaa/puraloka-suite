@@ -276,6 +276,15 @@ jobs:
       - name: Uji mutasi penjaga klaim status
         run: node scripts/uji-mutasi-klaim-status.mjs
 
+      # Nilai kredensial pihak ketiga (kunci API penyedia AI, token WhatsApp)
+      # TIDAK BOLEH meninggalkan server. Yang membuat aturan itu berlaku
+      # sungguhan bukan penyembunyian di UI, melainkan kolomnya tak pernah
+      # ikut di-select. Satu `select('*')` yang ditambahkan kelak sudah cukup
+      # membocorkannya — TANPA error, tanpa test merah, dan responsnya justru
+      # terlihat lengkap. Ambang NOL, bukan ratchet.
+      - name: Kredensial tak bocor
+        run: node scripts/audit-kredensial-tak-bocor.mjs
+
       # Nominal dari permintaan yang dibaca `parseFloat` mentah. Rantai cacatnya
       # dibuktikan 2026-08-08 di Node DAN di Postgres: `qty: "abc"` → NaN → cek
       # saldo LOLOS (setiap perbandingan dengan NaN bernilai false) → Postgres

@@ -162,6 +162,7 @@ selamanya. Verdict "sudah jalan" hanya sah bila **artefak fisiknya terbukti ada*
 | `audit-tulis-tanpa-periksa.mjs` | update/delete/insert tanpa cek hasil |
 | `audit-catch-senyap.mjs` | error ditelan tanpa jejak |
 | `audit-klaim-status-atomik.mjs` | approval/pembayaran ganda — status lama wajib ikut di WHERE |
+| `audit-kredensial-tak-bocor.mjs` | nilai kredensial tak pernah keluar server (ambang NOL) |
 | `audit-migrasi-skema-dipaku.mjs` | skema tak boleh dipaku |
 | `audit-rancangan-submenu.mjs` | sub-menu berisiko wajib punya rancangan |
 | `audit-triase-submenu.mjs` | sub-menu **belum** digarap wajib punya urutan (INTI/PEMBEDA/TUNDA) |
