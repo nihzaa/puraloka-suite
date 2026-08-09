@@ -293,6 +293,16 @@ jobs:
       - name: Kolom jadwal punya pembaca (L-4)
         run: node scripts/audit-jadwal-punya-pembaca.mjs
 
+      # Keputusan persetujuan hanya lewat SATU pintu (utils/approval.ts).
+      # Menulis `approved_by` langsung berarti entitas yang menurut
+      # konfigurasi butuh dua level bisa lolos dengan satu ketukan — dan
+      # konfigurasinya tetap terlihat benar di halaman pengaturan.
+      #
+      # Ratchet PER BERKAS: ratchet berbasis jumlah lolos saat satu modul
+      # diperbaiki dan satu dirusak dalam PR yang sama.
+      - name: Approval satu pintu
+        run: node scripts/audit-approval-satu-pintu.mjs
+
       # Nominal dari permintaan yang dibaca `parseFloat` mentah. Rantai cacatnya
       # dibuktikan 2026-08-08 di Node DAN di Postgres: `qty: "abc"` → NaN → cek
       # saldo LOLOS (setiap perbandingan dengan NaN bernilai false) → Postgres

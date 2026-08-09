@@ -27,6 +27,12 @@ import mandorRoutes from '../mandor.js'
 let app: FastifyInstance
 let client: Client
 let adminAuth: string
+// Pemutus KEDUA — sejak TJS-A3a, pemohon tak boleh menyetujui pembayarannya
+// sendiri (SoD). Test yang memakai satu identitas untuk mengajukan DAN
+// mengonfirmasi memodelkan alur yang kini ditolak 403, dan penolakan itu benar:
+// satu orang yang bisa mengajukan sekaligus menyetujui berarti tak ada
+// pengendalian pada jalur yang mengurangi saldo kas.
+let pmAuth: string
 let adminUserId: string
 let mandorUserId: string
 let companyId: string
@@ -113,6 +119,7 @@ async function bacaPembayaran(id: string) {
 beforeAll(async () => {
   client = await createRlsClient()
   adminAuth = (await authIdForRole(client, 'admin')) as string
+  pmAuth = (await authIdForRole(client, 'pm')) as string
   await purge()
 
   const { rows: u } = await client.query(
@@ -207,6 +214,10 @@ describe('konfirmasi — retensi + kasbon, urutannya menentukan', () => {
        VALUES ($1, $2, 'main', 50000000, true, $3) RETURNING id`,
       [companyId, `${PREFIX} Kas`, adminUserId])
 
+    // Pemutus BERBEDA dari pengaju (SoD, TJS-A3a).
+
+    actAs(pmAuth)
+
     const res = await patch(`/api/v1/mandor/progress-payments/${payId}/confirm`, {
       status: 'approved', cash_account_id: acc[0].id, deducted_kasbon: 2_000_000,
     })
@@ -233,6 +244,10 @@ describe('konfirmasi — retensi + kasbon, urutannya menentukan', () => {
       `INSERT INTO cash_accounts (company_id, name, type, balance, is_active, created_by)
        VALUES ($1, $2, 'main', 50000000, true, $3) RETURNING id`,
       [companyId, `${PREFIX} Kas2`, adminUserId])
+
+    // Pemutus BERBEDA dari pengaju (SoD, TJS-A3a).
+
+    actAs(pmAuth)
 
     const res = await patch(`/api/v1/mandor/progress-payments/${payId}/confirm`, {
       status: 'approved', cash_account_id: acc[0].id, deducted_kasbon: 2_000_000,
@@ -261,6 +276,7 @@ describe('register + pencairan retensi', () => {
       `INSERT INTO cash_accounts (company_id, name, type, balance, is_active, created_by)
        VALUES ($1, $2, 'main', 90000000, true, $3) RETURNING id`,
       [companyId, `${PREFIX} Kas3`, adminUserId])
+    actAs(pmAuth)
     await patch(`/api/v1/mandor/progress-payments/${payId}/confirm`, {
       status: 'approved', cash_account_id: acc[0].id,
     })
@@ -287,6 +303,7 @@ describe('register + pencairan retensi', () => {
       `INSERT INTO cash_accounts (company_id, name, type, balance, is_active, created_by)
        VALUES ($1, $2, 'main', 90000000, true, $3) RETURNING id`,
       [companyId, `${PREFIX} Kas4`, adminUserId])
+    actAs(pmAuth)
     await patch(`/api/v1/mandor/progress-payments/${buat.json().payment.id}/confirm`, {
       status: 'approved', cash_account_id: acc[0].id,
     })
@@ -313,6 +330,7 @@ describe('register + pencairan retensi', () => {
       `INSERT INTO cash_accounts (company_id, name, type, balance, is_active, created_by)
        VALUES ($1, $2, 'main', 90000000, true, $3) RETURNING id`,
       [companyId, `${PREFIX} Kas5`, adminUserId])
+    actAs(pmAuth)
     await patch(`/api/v1/mandor/progress-payments/${buat.json().payment.id}/confirm`, {
       status: 'approved', cash_account_id: acc[0].id,
     })

@@ -1605,7 +1605,20 @@ export default async function mandorRoutes(app: FastifyInstance) {
         notes: body.notes ?? null,
         status: 'pending',
         requested_by: user.id,
-        approved_by: user.id,
+        // `approved_by` SENGAJA TIDAK diisi di sini (TJS-A3a, 2026-08-09).
+        //
+        // Sebelumnya baris ini berbunyi `approved_by: user.id` — tepat di
+        // bawah `requested_by: user.id`. Pemohon menyetujui dirinya sendiri,
+        // di jalur yang MENGURANGI SALDO KAS.
+        //
+        // Dan itu bukan sekadar melanggar pemisahan wewenang; ia bertentangan
+        // dengan barisnya sendiri: `status: 'pending'` berarti pembayaran ini
+        // MENUNGGU persetujuan, sementara `approved_by` sudah terisi. Laporan
+        // mana pun yang membaca "siapa menyetujui" akan menjawab dengan nama
+        // orang yang belum menyetujui apa pun.
+        //
+        // Kolomnya diisi saat approval SUNGGUHAN terjadi — lihat rute
+        // persetujuan progress payment di bawah.
       })
       .select()
       .single()
@@ -1666,7 +1679,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
       .from('progress_payments')
       // `work_scopes.retensi_pct` diambil lewat rantai: nilai retensi dihitung
       // ULANG di sini karena `actual_payment` boleh mengubah nilai brutonya.
-      .select('id, status, gross_payment, work_scope_id, work_scopes(retensi_pct)')
+      .select('id, status, gross_payment, work_scope_id, requested_by, work_scopes(retensi_pct)')
       .eq('id', id)
       .single()
     if (!existing) return reply.status(404).send({ error: 'Penagihan tidak ditemukan' })
@@ -1713,6 +1726,22 @@ export default async function mandorRoutes(app: FastifyInstance) {
       if (Number(acct.balance) < netPayment) {
         return reply.status(400).send({ error: `Saldo ${acct.name} tidak cukup. Saldo: Rp ${Number(acct.balance).toLocaleString('id-ID')}` })
       }
+    }
+
+    // ── SEGREGATION OF DUTIES (TJS-A3a, 2026-08-09)
+    //
+    // Pemohon tak boleh menyetujui pembayarannya sendiri. Ini jalur yang
+    // MENGURANGI SALDO KAS — satu orang yang bisa mengajukan sekaligus
+    // menyetujui berarti tak ada pengendalian sama sekali.
+    //
+    // Diperiksa di sini, bukan hanya di UI: UI bisa dilewati, `curl` tidak
+    // membaca tombol yang disembunyikan.
+    if (body.status === 'approved' && existing.requested_by === user.id) {
+      return reply.status(403).send({
+        error:
+          'Anda yang mengajukan pembayaran ini — pemutus harus orang lain. ' +
+          'Pembayaran yang disetujui sendiri bukan pengendalian apa pun.',
+      })
     }
 
     const update: Record<string, unknown> = {
@@ -1872,6 +1901,18 @@ export default async function mandorRoutes(app: FastifyInstance) {
         cash_account_id: body.cash_account_id ?? null,
         settled_at: new Date().toISOString().split('T')[0],
         notes: body.notes ?? null,
+        // Di sini `approved_by` berarti "yang MENGEKSEKUSI penyelesaian",
+        // bukan "yang menyetujui pengajuan orang lain" — settlement adalah
+        // tindakan sekali-jadi oleh admin/PM, tanpa pemohon terpisah, jadi tak
+        // ada dua peran yang bisa dipisahkan (TJS-A3a, 2026-08-09).
+        //
+        // Diperiksa saat menelusuri lima "jalur approval liar": yang ini
+        // ternyata BUKAN gerbang persetujuan, hanya kolomnya bernama seperti
+        // itu. Memaksanya lewat mesin approval berjenjang akan menuntut rantai
+        // persetujuan untuk tindakan yang memang tak punya pengaju.
+        //
+        // Yang menjaganya tetap aman: permission admin/PM di preHandler, cek
+        // saldo kas di atas, dan penyaringan tenant lewat `scopeIdsTenant`.
         approved_by: user.id,
       })
       .select()

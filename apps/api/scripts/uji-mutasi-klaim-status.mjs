@@ -41,7 +41,19 @@ const PENJAGA = join(AKAR, 'apps', 'api', 'scripts', 'audit-klaim-status-atomik.
  */
 const KASUS = [
   { berkas: 'kasbons.ts',        cari: ".eq('status', 'pending')",                    bentuk: '.update(variabel)' },
-  { berkas: 'notifications.ts',  cari: ".eq('status', 'pending')",                    bentuk: 'jalur kedua kasbon' },
+  // `notifications.ts` DIHAPUS dari daftar 2026-08-09 (TJS-A3a): jalur kedua
+  // kasbon di sana sudah dibongkar — endpoint itu kini MENERUSKAN ke rute
+  // kanonik alih-alih menulis status sendiri, jadi tak ada klaim atomik yang
+  // bisa dilepas di situ.
+  //
+  // Uji mutasi melaporkannya sebagai "penjaga BUTA", dan itu tepat: pola yang
+  // dicari memang tak ada lagi. Alat yang menolak menilai saat mutasinya tak
+  // tersuntik lebih berguna daripada alat yang menghijaukan asal — di sini ia
+  // justru memberi tahu bahwa daftarnya perlu diperbarui.
+  //
+  // Digantikan `estimate-versions.ts`, yang memakai `.neq` pada rantai
+  // approval berjenjang — bentuk yang belum terwakili kasus lain.
+  { berkas: 'estimate-versions.ts', cari: ".neq('status', 'approved')",                 bentuk: '.neq berjenjang' },
   { berkas: 'change-orders.ts',  cari: ".neq('status', 'approved')",                  bentuk: '.neq' },
   { berkas: 'rantai-kontrak.ts', cari: ".eq('status', 'diajukan')",                   bentuk: 'status variabel' },
   { berkas: 'finance.ts',        cari: ".eq('amount_paid', invoice.amount_paid)",     bentuk: 'kolom akumulatif' },

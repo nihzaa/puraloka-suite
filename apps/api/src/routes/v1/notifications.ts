@@ -189,42 +189,56 @@ export default async function notificationRoutes(app: FastifyInstance) {
         return reply.status(409).send({ error: `Kasbon sudah berstatus ${kasbon.status}` })
       }
 
-      const newStatus = body.action === 'approve' ? 'approved' : 'rejected'
-      const updatePayload: Record<string, unknown> = {
-        status: newStatus,
-        updated_at: new Date().toISOString(),
-      }
+      // ── UTANG DIBAYAR: satu pintu, bukan dua (TJS-A3a, 2026-08-09)
+      //
+      // Dulu blok ini menulis `status` + `approved_by` langsung — pintu KEDUA
+      // ke kasbon, memotong mesin approval berjenjang yang dipakai
+      // `kasbons.ts`. Kasbon yang menurut konfigurasi butuh dua level bisa
+      // lolos dengan satu ketukan dari kartu notifikasi.
+      //
+      // Sekarang ia MENERUSKAN ke rute kanonik. Bukan menyalin logikanya:
+      // salinan cepat atau lambat berbeda dari aslinya, dan yang berbeda
+      // diam-diam selalu salinannya — karena tak ada yang mengujinya.
+      //
+      // Yang ikut didapat gratis: evaluasi jenjang, syarat nominal
+      // `min_amount`, isolasi proyek untuk PM, jejak `approval_progress`,
+      // `workflow_id` lintas request, dan klaim status atomik.
+      const teruskan = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/kasbons/${kasbonId}/status`,
+        headers: {
+          authorization: request.headers.authorization ?? '',
+          cookie: request.headers.cookie ?? '',
+          'x-company-id': request.companyId ?? '',
+        },
+        payload: {
+          status: body.action === 'approve' ? 'approved' : 'rejected',
+          ...(body.data?.cash_account_id ? { cash_account_id: body.data.cash_account_id } : {}),
+        },
+      })
 
-      if (body.action === 'approve') {
-        updatePayload.approved_by = user.id
-        updatePayload.approved_at = new Date().toISOString()
-        if (body.data?.cash_account_id) {
-          updatePayload.cash_account_id = body.data.cash_account_id
+      if (teruskan.statusCode >= 400) {
+        // Diteruskan APA ADANYA — termasuk 403 karena level approval belum
+        // cukup. Menerjemahkannya jadi pesan sendiri akan menyembunyikan
+        // sebab yang justru perlu dibaca pengguna.
+        let pesan = 'Gagal memproses kasbon'
+        try {
+          pesan = (JSON.parse(teruskan.body) as { error?: string }).error ?? pesan
+        } catch (errParse) {
+          // Badan bukan JSON — pesan bawaan dipakai, TAPI kejadiannya dicatat.
+          // Rute kanonik selalu membalas JSON; kalau tidak, ada yang berubah di
+          // sana dan itu perlu terlihat. `catch {}` kosong di sini akan
+          // menyembunyikan perubahan kontrak antar-rute.
+          request.log.warn(
+            { err: errParse, kode: teruskan.statusCode, cuplikan: teruskan.body.slice(0, 120) },
+            'balasan rute kasbon bukan JSON — kontraknya mungkin berubah',
+          )
         }
-      }
-
-      // ── KLAIM ATOMIK (TJS-A0, 2026-08-09)
-      //
-      // Pemeriksaan `kasbon.status !== 'pending'` dua puluh baris di atas
-      // TERPISAH dari penulisan ini. Dua ketukan tombol notifikasi yang tiba
-      // berdekatan sama-sama lolos pemeriksaan itu, lalu sama-sama menulis —
-      // dan kasbon tercatat disetujui dua kali oleh dua orang berbeda.
-      //
-      // Polanya diambil dari `kasbons.ts:397-410`, yang sudah benar sejak lama.
-      const { data: kasbonUpd, error: kErr } = await request.db!
-        .from('kasbons')
-        .update(updatePayload)
-        .eq('id', kasbonId)
-        .eq('status', 'pending')
-        .select('id')
-        .maybeSingle()
-
-      if (kErr) return reply.status(500).send({ error: kErr.message })
-      if (!kasbonUpd) {
-        request.log.warn({ kasbonId }, 'keputusan kasbon serentak lewat notifikasi ditolak')
-        return reply.status(409).send({
-          error: 'Kasbon ini baru saja diproses dari tempat lain. Muat ulang halaman.',
-        })
+        request.log.warn(
+          { kasbonId, kode: teruskan.statusCode },
+          'keputusan kasbon lewat notifikasi ditolak rute kanonik',
+        )
+        return reply.status(teruskan.statusCode).send({ error: pesan })
       }
 
       resultMessage = body.action === 'approve' ? 'Kasbon disetujui' : 'Kasbon ditolak'

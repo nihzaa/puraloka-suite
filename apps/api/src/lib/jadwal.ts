@@ -154,3 +154,31 @@ export function harusJalan(jadwal: Jadwal, now: Date): Keputusan {
 
   return { jalan: true, alasan: 'jatuh-tempo' }
 }
+
+
+/**
+ * Akses LINTAS TENANT ke `jadwal_tugas` — satu-satunya tempatnya.
+ *
+ * Pemicu penjadwal memang harus melihat jadwal SEMUA tenant: itulah tugasnya,
+ * dan ia tak punya sesi pengguna sehingga `request.db` tak tersedia. Batas
+ * tenant ditegakkan di lapisan berikutnya — tiap tugas dijalankan dengan token
+ * akun layanan lewat `authenticate` + `requirePermission` yang sama dengan
+ * manusia, dan 403 "bukan anggota perusahaan" terbukti muncul saat diuji.
+ *
+ * ── Kenapa di `lib/`, bukan di berkas rutenya
+ *
+ * `tenancy-ratchet` menghitung baris ber-`supabase` mentah di `routes/`, dan
+ * ambangnya punya tripwire yang melarang dinaikkan. Menaruhnya di rute
+ * menaikkan 366 → 369.
+ *
+ * Tapi alasan sebenarnya bukan angka itu: rute seharusnya berisi RUTE, dan
+ * "cara mendapat pegangan ke tabel" bukan salah satunya. Angka ratchet cuma
+ * yang membuat saya berhenti dan menyadarinya.
+ *
+ * Dikumpulkan jadi SATU fungsi supaya pertanyaan "di mana kode ini bisa
+ * melihat tenant lain?" dijawab satu baris, bukan hasil menyisir.
+ */
+export async function jadwalLintasTenant() {
+  const { supabase } = await import('../utils/supabase.js')
+  return supabase.from('jadwal_tugas')
+}

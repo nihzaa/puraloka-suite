@@ -52,7 +52,8 @@ import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { timingSafeEqual } from 'node:crypto'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
-import { harusJalan, type Jadwal, type JenisJadwal } from '../../lib/jadwal.js'
+import { harusJalan, jadwalLintasTenant, type Jadwal, type JenisJadwal } from '../../lib/jadwal.js'
+import { tokenAkunLayanan } from '../../lib/akun-layanan.js'
 
 /**
  * Katalog tugas yang dikenal.
@@ -140,14 +141,9 @@ export default async function jadwalRoutes(app: FastifyInstance) {
         })
       }
 
-      const { supabase } = await import('../../utils/supabase.js')
       const now = new Date()
 
-      // `db.unsafe` TIDAK dipakai dan wrapper tenant juga tidak: pemicu ini
-      // memang LINTAS TENANT — itulah tugasnya. Tenant dibatasi per-baris di
-      // bawah, saat memanggil tugasnya.
-      const { data, error } = await supabase
-        .from('jadwal_tugas')
+      const { data, error } = await (await jadwalLintasTenant())
         .select('*')
         .eq('aktif', true)
 
@@ -197,8 +193,7 @@ export default async function jadwalRoutes(app: FastifyInstance) {
         // Sama seperti TJS: dicatat saat MULAI, bukan saat berhasil — supaya
         // tugas yang gagal tak diulang tiap tick.
         const mulai = Date.now()
-        const q = supabase
-          .from('jadwal_tugas')
+        const q = (await jadwalLintasTenant())
           .update({
             terakhir_jalan: now.toISOString(),
             jumlah_jalan: baris.jumlah_jalan + 1,
@@ -383,9 +378,7 @@ async function catatHasil(
   id: string,
   nilai: { terakhir_status: string; terakhir_galat: string | null; terakhir_durasi_ms: number },
 ): Promise<void> {
-  const { supabase } = await import('../../utils/supabase.js')
-  const { data, error } = await supabase
-    .from('jadwal_tugas')
+  const { data, error } = await (await jadwalLintasTenant())
     .update(nilai)
     .eq('id', id)
     .select('id')
@@ -400,40 +393,6 @@ async function catatHasil(
     request.log.error({ jadwalId: id },
       'baris jadwal hilang saat mencatat hasil — dihapus di tengah putaran?')
   }
-}
-
-/**
- * Masuk sebagai akun layanan penjadwal dan kembalikan token-nya.
- *
- * Akunnya pengguna biasa di tabel `users` — dengan peran yang bisa dilihat,
- * diaudit, dan dicabut lewat UI seperti pengguna lain. Itu disengaja: akun
- * yang tak muncul di daftar pengguna adalah akun yang tak pernah ditinjau.
- *
- * Token di-cache selama ia masih berlaku; Supabase memberi masa berlaku satu
- * jam, dan pemicu ini jalan tiap 15 menit.
- */
-let tokenCache: { nilai: string; kedaluwarsa: number } | null = null
-
-async function tokenAkunLayanan(): Promise<string> {
-  if (tokenCache && tokenCache.kedaluwarsa > Date.now() + 60_000) return tokenCache.nilai
-
-  const email = process.env.SCHEDULER_EMAIL?.trim()
-  const sandi = process.env.SCHEDULER_PASSWORD
-  if (!email || !sandi) {
-    throw new Error('SCHEDULER_EMAIL / SCHEDULER_PASSWORD belum disetel')
-  }
-
-  const { supabaseAuth } = await import('../../utils/supabase.js')
-  const { data, error } = await supabaseAuth.auth.signInWithPassword({ email, password: sandi })
-  if (error || !data.session?.access_token) {
-    throw new Error(`gagal masuk sebagai ${email}: ${error?.message ?? 'tanpa sesi'}`)
-  }
-
-  tokenCache = {
-    nilai: data.session.access_token,
-    kedaluwarsa: (data.session.expires_at ?? 0) * 1000,
-  }
-  return tokenCache.nilai
 }
 
 /**
