@@ -69,7 +69,7 @@ curl -s -o /dev/null -w "%{http_code}" http://localhost:8081/
 n8n (kalau dibutuhkan) tetap dari TJS — satu n8n bisa melayani banyak alur:
 
 ```powershell
-& "E:\Projectutomation-tjs\infra\start-n8n.ps1"
+& "E:/Project/automation-tjs/infra/start-n8n.ps1"
 ```
 
 ---
@@ -103,6 +103,40 @@ riwayat git repo TJS.
 
 Risikonya terbatas selama Evolution hanya `localhost`. Kalau kelak diekspos ke
 internet untuk webhook, kunci itu harus diganti lebih dulu.
+
+---
+
+## 2c. Penjadwal — BELUM ada yang perlu diisi (2026-08-09)
+
+Penjadwal tugas sudah dibangun (TJS-A2): notifikasi tenggat & milestone kini
+terbit sendiri, tanpa ada yang menekan tombol di `/sistem`.
+
+Menghidupkannya di produksi butuh dua secret di
+**https://github.com/nihzaa/puraloka-suite/settings/secrets/actions** —
+
+| Name | Secret |
+|---|---|
+| `SCHEDULER_SECRET` | lihat `apps/api/.env`, baris `SCHEDULER_SECRET=` |
+| `SCHEDULER_URL` | `https://<alamat-api>/api/v1/jadwal/jalankan` |
+
+**Tapi keduanya belum bisa diisi sekarang, dan itu bukan kelalaian.**
+
+Diukur 2026-08-09: API Puraloka berjalan di `localhost:3001` dan **belum
+di-deploy ke mana pun** — tak ada `vercel.json`, `fly.toml`, `railway.*`,
+maupun workflow deploy. GitHub Actions berjalan di server Microsoft; ia tak
+bisa menjangkau komputer Anda.
+
+Mengisi `SCHEDULER_SECRET` saja tak berguna: workflow menuntut **keduanya**,
+dan tanpa salah satunya ia dilewati dengan pesan — sengaja begitu, supaya
+tidak merah tiap 15 menit dan melatih orang mengabaikan notifikasi CI.
+
+**Sampai API punya alamat publik:** penjadwal tetap bisa dipicu manual dari
+`/sistem`, dan halaman `/pengaturan/jadwal` menunjukkan kapan tiap tugas
+terakhir jalan beserta hasilnya.
+
+**Begitu API di-deploy:** isi kedua secret sekaligus, lalu jalankan workflow
+"Pemicu Jadwal Tugas" sekali lewat *Run workflow* untuk membuktikannya —
+jangan menunggu 15 menit untuk tahu apakah tebakannya benar.
 
 ---
 

@@ -361,6 +361,7 @@ export const PETA_MENU: GrupMenu[] = [
       { key: 'sy-approval', label: 'Konfigurasi Approval', status: 'hidup', href: '/pengaturan/approval', guna: 'Rantai persetujuan yang bisa diubah tanpa deploy.' },
       { key: 'sy-notifikasi', label: 'Aturan Notifikasi', status: 'hidup', href: '/pengaturan/notifikasi', guna: 'Siapa mendapat pemberitahuan apa.' },
       { key: 'sy-kredensial', label: 'Kredensial & Integrasi', status: 'hidup', href: '/pengaturan/kredensial', guna: 'Kunci API penyedia AI, WhatsApp, email — tersimpan terenkripsi per perusahaan, tak pernah ditampilkan kembali.' },
+      { key: 'sy-jadwal', label: 'Jadwal Tugas', status: 'hidup', href: '/pengaturan/jadwal', guna: 'Tugas berkala yang berjalan sendiri — cek tenggat & milestone tanpa perlu ada yang menekan tombol.' },
       { key: 'sy-penomoran', label: 'Konfigurasi Penomoran', status: 'sebagian', guna: 'Format nomor dokumen per jenis.', catatan: 'Counter per-company sudah jalan; UI-nya belum.' },
       { key: 'sy-audit', label: 'Audit Log', status: 'hidup', href: '/audit', guna: 'Jejak seluruh perubahan data.' },
       { key: 'sy-api', label: 'API & Integrasi', status: 'rencana', guna: 'Sambungan ke sistem luar: akuntansi, bank, pajak.', catatan: 'Butuh kredensial pihak ketiga dari founder.' },

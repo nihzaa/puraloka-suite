@@ -84,7 +84,7 @@ interface HasilUji {
 }
 
 const SUMBER_META: Record<Sumber, { teks: string; warna: string; latar: string }> = {
-  tenant: { teks: "Dari UI", warna: "var(--sukses)", latar: "var(--sukses-lembut)" },
+  tenant: { teks: "Dari UI", warna: "var(--success)", latar: "var(--success-bg)" },
   env: { teks: "Dari server", warna: C.mid, latar: "var(--surface-subtle)" },
   "tidak-ada": { teks: "Belum disetel", warna: C.muted, latar: "var(--surface-subtle)" },
 };
@@ -217,9 +217,9 @@ function Konten() {
           style={{
             position: "fixed", top: 16, right: 16, zIndex: 60,
             padding: "var(--pad-kartu)", borderRadius: 8, fontSize: 13,
-            background: toast.tipe === "ok" ? "var(--sukses-lembut)" : "var(--bahaya-lembut)",
-            color: toast.tipe === "ok" ? "var(--sukses)" : "var(--bahaya)",
-            border: `1px solid ${toast.tipe === "ok" ? "var(--sukses)" : "var(--bahaya)"}`,
+            background: toast.tipe === "ok" ? "var(--success-bg)" : "var(--danger-bg)",
+            color: toast.tipe === "ok" ? "var(--success)" : "var(--danger)",
+            border: `1px solid ${toast.tipe === "ok" ? "var(--success)" : "var(--danger)"}`,
           }}
         >
           {toast.pesan}
@@ -238,10 +238,10 @@ function Konten() {
         <div
           style={{
             ...card, padding: 14, marginBottom: 16, display: "flex", gap: 10,
-            borderColor: "var(--bahaya)", background: "var(--bahaya-lembut)",
+            borderColor: "var(--danger)", background: "var(--danger-bg)",
           }}
         >
-          <ShieldAlert size={18} style={{ color: "var(--bahaya)", flexShrink: 0, marginTop: 1 }} />
+          <ShieldAlert size={18} style={{ color: "var(--danger)", flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 13, color: C.text, lineHeight: 1.6 }}>
             <strong>Penyimpanan kredensial dinonaktifkan.</strong> Kunci enkripsi server
             (<code>CREDENTIAL_ENCRYPTION_KEY</code>) belum disetel. Menyimpan ditolak dengan
@@ -406,7 +406,7 @@ function Konten() {
                             style={{
                               padding: "var(--pad-tombol-kcl)", borderRadius: 6,
                               border: `1px solid ${C.border}`, cursor: "pointer",
-                              background: "var(--surface)", color: "var(--bahaya)",
+                              background: "var(--surface)", color: "var(--danger)",
                             }}
                           >
                             <Trash2 size={14} aria-hidden="true" />
@@ -432,7 +432,7 @@ function Konten() {
                           style={{
                             marginTop: 8, display: "flex", gap: 6, alignItems: "flex-start",
                             fontSize: 12.5,
-                            color: hasil.ok ? "var(--sukses)" : "var(--bahaya)",
+                            color: hasil.ok ? "var(--success)" : "var(--danger)",
                           }}
                         >
                           {hasil.ok ? (

@@ -1150,6 +1150,18 @@ jobs:
       - name: Identitas merek (rona, saturasi, sinkron)
         run: node scripts/uji-token-merek.mjs
 
+      # `var(--token)` yang dipakai harus BENAR-BENAR ADA di globals.css.
+      # Dua cacat dalam satu sesi (2026-08-09): token padding bernilai string
+      # berkutip, dan enam token warna yang tak pernah ada (--sukses/--bahaya/
+      # --peringatan, mestinya --success/--danger/--warning).
+      #
+      # Keduanya lolos SELURUH penjaga: tsc bersih (ini CSS), hex-ratchet
+      # senang (tak ada hex dipaku), dan kerapatan-ratchet justru MEMUJINYA —
+      # token dipakai, angka tak dipaku. CSS tak punya kompilator yang
+      # mengeluh soal nama salah; warnanya hilang tanpa gejala.
+      - name: Token CSS yang dipakai harus ada
+        run: node scripts/uji-token-css-ada.mjs
+
       # Path API yang salah GAGAL DALAM DIAM: 404 hanya muncul di konsol
       # peramban, sementara halamannya tampil rapi bertuliskan "Tidak ada
       # invoice". Dua endpoint ditulis dari ingatan saat memecah modul
