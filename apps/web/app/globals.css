@@ -1119,3 +1119,27 @@ select.input-base { cursor: pointer; }
 @media (min-width: 900px) {
   .hero-baris { grid-template-columns: minmax(0, 1fr) 280px; }
 }
+
+/* ── Dialog POLOS: perilaku `<dialog>`, nol hiasan ─────────────────────────
+   Dipakai panel asisten mode lebar. Berbeda dari `.dialog-bersama` yang
+   membawa kepala, border, dan background sendiri — di sini isinya SUDAH
+   permukaan utuh, dan menambah bingkai kedua menghasilkan dua kepala
+   bertumpuk. Yang diambil dari `<dialog>` hanya fokus terkunci, Esc, dan
+   lapisan teratas. */
+.dialog-polos {
+  padding: 0;
+  border: none;
+  background: transparent;
+  max-width: none;
+  max-height: none;
+  /* Dipusatkan sendiri: `margin: auto` bawaan peramban hilang begitu
+     `padding` di atas ditimpa — pelajaran yang sama dengan `.dialog-bersama`,
+     yang tanpa baris ini menempel ke tepi kiri. */
+  inset: 0;
+  margin: auto;
+}
+
+.dialog-polos::backdrop {
+  background: rgba(0, 15, 30, 0.55);
+  backdrop-filter: blur(2px);
+}

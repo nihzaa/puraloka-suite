@@ -49,6 +49,7 @@ import { AlertTriangle, Bot, Maximize2, Minimize2, Send, Sparkles, X } from "luc
 import { api } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 
+
 interface Sumber {
   tool_tersedia: string[];
   entitas_dibaca: string[];
@@ -125,13 +126,18 @@ export function RailAsisten() {
     if (ukuran !== "ringkas") akhirRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [pesan, menunggu, ukuran]);
 
-  // Esc mengecilkan panel lebar — kebiasaan yang dibawa dari dialog mana pun.
-  useEffect(() => {
-    if (ukuran !== "lebar") return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setUkuran("obrolan"); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [ukuran]);
+  /*
+   * Esc TIDAK ditangani di sini lagi.
+   *
+   * Sejak mode lebar memakai `DialogPolos` (`<dialog>` + `showModal()`),
+   * Esc datang dari browser dan diteruskan lewat `onTutup`. Handler window
+   * yang tersisa akan berjalan BERBARENGAN dengan penanganan bawaan — dua
+   * jalur untuk satu tombol, dan yang kedua tak pernah diuji.
+   *
+   * Menghapus kode yang "kelihatannya tak berbahaya" seperti ini adalah
+   * bagian dari pindah ke `<dialog>`, bukan sesudahnya: listener global yang
+   * tertinggal justru penyebab Esc terasa berperilaku aneh di halaman lain.
+   */
 
   const kirim = useCallback(
     async (teks: string) => {
@@ -395,27 +401,40 @@ export function RailAsisten() {
 
   if (!lebar) return panel;
 
-  // Mode lebar: panel diangkat ke atas layar. Latar gelap bisa diklik untuk
-  // mengecilkan — sama seperti dialog mana pun, jadi tak perlu dipelajari.
+  /*
+   * Mode lebar: panel diangkat ke atas layar — lewat `DialogBersama`, BUKAN
+   * `<div position:fixed inset:0>` yang ditulis tangan.
+   *
+   * Versi pertama memakai div. Ia punya `role="dialog"` dan `aria-modal`, dan
+   * dari luar tampak setara — tapi tiga hal yang paling sering salah tak
+   * datang dari atribut, melainkan dari elemennya:
+   *
+   *   · fokus TIDAK terkunci — Tab keluar dari panel ke sidebar di belakangnya
+   *   · Esc tak menutup apa pun kecuali kita menulis handler sendiri
+   *   · z-index 80 harus menang melawan setiap lapisan lain, selamanya
+   *
+   * `<dialog>` + `showModal()` memberi ketiganya dari browser. Penjaga
+   * `audit-modal-dialog` menghitung overlay tangan sebagai hutang, dan hutang
+   * ini SAYA yang membuatnya (37 → 38) di commit sebelumnya sesi ini.
+   *
+   * ── Kenapa BUKAN `DialogBersama`
+   *
+   * Sempat memakainya, lalu dibatalkan setelah membaca CSS-nya:
+   * `DialogBersama` membawa KEPALA sendiri (judul + tombol X) dan
+   * border/background sendiri. `panel` sudah punya keduanya — hasilnya dua
+   * kepala bertumpuk dan dua bingkai. Komponen itu untuk form; ini permukaan
+   * yang sudah utuh.
+   *
+   * `DialogPolos` di bawah memberi tiga hal yang sesungguhnya dibutuhkan —
+   * fokus terkunci, Esc, lapisan teratas — tanpa hiasan yang bertabrakan.
+   * Ketiganya datang dari `<dialog>` + `showModal()`, bukan dari kode sendiri.
+   */
   return (
     <>
       {/* Tempat kartu di rail tetap terisi supaya Pengingat tak melompat naik
           saat panel diangkat keluar alirannya. */}
       <div aria-hidden style={{ height: 96, flexShrink: 0 }} />
-      <div
-        role="presentation"
-        onClick={() => setUkuran("obrolan")}
-        style={{
-          position: "fixed", inset: 0, zIndex: 80,
-          background: "rgba(15, 23, 42, 0.45)",
-          display: "grid", placeItems: "center",
-          padding: "var(--gap-bagian)",
-        }}
-      >
-        <div role="dialog" aria-modal="true" aria-label="Asisten" onClick={(e) => e.stopPropagation()}>
-          {panel}
-        </div>
-      </div>
+      <DialogPolos onTutup={() => setUkuran("obrolan")}>{panel}</DialogPolos>
     </>
   );
 }
@@ -527,5 +546,50 @@ function Gelembung({ pesan, lebar }: { pesan: Pesan; lebar: boolean }) {
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * `<dialog>` TANPA hiasan — hanya perilakunya.
+ *
+ * Tiga hal yang diberikan browser dan hampir selalu salah kalau ditulis
+ * tangan: fokus terkunci di dalam, Esc menutup, dan lapisan teratas tanpa
+ * perang z-index. Isinya dibiarkan menentukan bentuknya sendiri.
+ *
+ * `showModal()` lewat ref, bukan atribut `open`: hanya yang pertama memberi
+ * ketiga hal itu. `open` merender dialog sebagai elemen biasa dalam aliran
+ * halaman — terlihat mirip, berperilaku sama sekali berbeda.
+ */
+function DialogPolos({
+  onTutup,
+  children,
+}: {
+  onTutup: () => void;
+  children: React.ReactNode;
+}) {
+  const ref = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const d = ref.current;
+    if (d && !d.open) d.showModal();
+  }, []);
+
+  return (
+    <dialog
+      ref={ref}
+      className="dialog-polos"
+      aria-label="Asisten"
+      // Esc menutup lewat jalur bawaan browser — `onClose` yang
+      // menyelaraskannya kembali ke state React. Tanpa ini, dialognya tertutup
+      // sementara `ukuran` masih "lebar", dan membukanya lagi tak bekerja.
+      onClose={onTutup}
+      onClick={(e) => {
+        // Klik backdrop menutup. Benar HANYA saat targetnya dialog itu
+        // sendiri — isinya punya elemen sendiri yang menyerap kliknya.
+        if (e.target === e.currentTarget) ref.current?.close();
+      }}
+    >
+      {children}
+    </dialog>
   );
 }
