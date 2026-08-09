@@ -338,7 +338,38 @@ function GrupCollapsible({
           transition: `max-height ${durasi}ms cubic-bezier(0.4, 0, 0.2, 1), opacity ${durasi}ms ease`,
         }}
       >
-        <div ref={isiRef} style={{ paddingTop: 2, paddingBottom: 4 }}>
+        {/*
+          GARIS VERTIKAL sepanjang grup yang terbuka.
+
+          Founder 2026-08-09 menunjuk pola ini di proyeknya yang lain (TJS
+          Command Center): *"ada garis memanjang kebawah sepanjang
+          sidebarnya"*.
+
+          Yang dikerjakannya bukan hiasan. Dengan 17 grup dan grup terpanjang
+          berisi 14 anak (Keuangan), satu-satunya penanda hubungan induk-anak
+          selama ini adalah INDENTASI — dan indentasi berhenti terbaca begitu
+          daftarnya melewati tinggi layar: orang yang men-scroll ke tengah
+          grup Keuangan tak lagi melihat induknya, jadi tak tahu ia sedang di
+          dalam apa. Garis menempel sepanjang grup, jadi ia selalu terlihat.
+
+          `marginInlineStart: 19px` menaruhnya persis di bawah pusat ikon
+          grup (padding 14 + setengah ikon 16px ≈ 22, dikurangi lebar garis).
+          Angkanya disamakan dengan TJS karena di sana sudah terbukti sejajar.
+
+          Submenu TETAP memakai titik, bukan ikon sendiri-sendiri. Catatan di
+          `ICONS` menolak 202 ikon berbeda dengan alasan yang masih berlaku
+          pada 102: saat semuanya bergambar, mata berhenti memakai ikon
+          sebagai pembeda dan kembali membaca teks — ikonnya jadi tinta tanpa
+          informasi. Founder memilih garis-saja setelah alasan itu disampaikan.
+        */}
+        <div
+          ref={isiRef}
+          style={{
+            paddingTop: 2, paddingBottom: 4,
+            marginInlineStart: 19,
+            borderInlineStart: "1.5px solid var(--border)",
+          }}
+        >
           {anak.map((child) => {
             /**
              * Sub-menu yang BELUM punya halamannya sendiri.

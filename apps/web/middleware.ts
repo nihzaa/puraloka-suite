@@ -126,5 +126,16 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|api).*)"],
+  /*
+    `icon` DIKECUALIKAN — favicon diminta peramban SEBELUM login.
+
+    `app/icon.tsx` adalah rute yang menghasilkan gambar (logo perusahaan).
+    Tanpa pengecualian ini middleware mengalihkannya ke /login, peramban
+    menerima HTML alih-alih PNG, dan tab tampil tanpa ikon sama sekali.
+
+    Diukur: `curl /icon` membalas `307 → /login`. Aman dibuka: yang
+    diterbitkannya hanya logo dan nama perusahaan — keduanya sudah tampil di
+    situs publik dan di setiap invoice.
+  */
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon|apple-icon|api).*)"],
 };

@@ -385,4 +385,55 @@ export default async function situsRoutes(app: FastifyInstance) {
       })
     },
   )
+
+  /**
+   * GET /api/v1/public/merek — logo & nama perusahaan untuk FAVICON.
+   *
+   * Founder 2026-08-09: *"saya minta favicon nya ganti dengan logo yg
+   * diupload perusahaan"*.
+   *
+   * ── Kenapa publik, padahal favicon dipakai orang yang sudah login
+   *
+   * Favicon diminta peramban SEBELUM aplikasi memuat token — ia bagian dari
+   * dokumen HTML, bukan dari kode yang berjalan sesudah login. Endpoint
+   * ber-auth akan membalas 401 dan tab-nya kosong.
+   *
+   * Yang diterbitkan hanya dua hal yang memang sudah publik: logo (URL-nya
+   * ada di halaman situs perusahaan) dan nama badan usaha (tercetak di
+   * setiap invoice). Tak ada satu pun data operasional.
+   *
+   * ── Kolom ditulis satu per satu, bukan `select('*')`
+   *
+   * Alasan yang sama dengan `/api/v1/public/situs` di atas: `*` akan ikut
+   * menerbitkan kolom apa pun yang ditambahkan seseorang kelak — termasuk
+   * yang tak pernah dimaksudkan publik.
+   */
+  app.get(
+    '/api/v1/public/merek',
+    { config: { rateLimit: { max: 120, timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const companyId = process.env.SITUS_COMPANY_ID
+      if (!companyId) {
+        // BUKAN 503. Favicon yang gagal tak boleh membuat tab kosong —
+        // lebih baik klien memakai inisial cadangannya.
+        return reply.send({ logo_url: null, nama: 'Puraloka' })
+      }
+
+      const { data, error } = await supabase
+        .from('companies')
+        .select('name, logo_url')
+        .eq('id', companyId)
+        .maybeSingle()
+
+      if (error) {
+        request.log.error({ err: error }, 'gagal memuat merek untuk favicon')
+        return reply.send({ logo_url: null, nama: 'Puraloka' })
+      }
+
+      return reply.send({
+        logo_url: data?.logo_url ?? null,
+        nama: data?.name ?? 'Puraloka',
+      })
+    },
+  )
 }
