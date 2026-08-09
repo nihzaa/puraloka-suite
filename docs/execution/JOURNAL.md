@@ -105,9 +105,46 @@ kenyataan"*). Puraloka punya kembarannya, sudah diakui sendiri di
 `utils/notifications.ts:167`: `channel:'push'` dicatat, **0 dari 23 user**
 berlangganan.
 
+### Digodok ulang — lima bagian yang draf pertama lewatkan
+
+Founder: *"jika dirasa belum matang, maka godoklah kembali"*. Dipakai, dan
+hasilnya bukan kosmetik — lima bagian baru, dua di antaranya lubang keamanan.
+
+**Prompt injection lewat data (§5.3).** Nol sebutan di draf pertama. Diperiksa:
+`/ai/insight` hari ini aman **secara kebetulan** — ia hanya mengirim angka
+agregat, nol teks pengguna. Itu berubah total begitu asisten membaca nama
+proyek dan catatan lapangan. Dan di konstruksi bentuknya khas: pengisi catatan
+lapangan justru pengguna ber-permission **paling rendah**, sementara pembaca
+jawaban AI sering pemilik atau PM — injeksi jadi jalur naik hak akses.
+Pertahanan utamanya sama dengan approval: **kekebalan struktural**, bukan
+penyaringan kata kunci (daftar hitam bisa diparafrase, dan ia merusak data
+sah — *"abaikan instruksi gambar revisi 2"* adalah kalimat konstruksi wajar).
+
+**Penjaga tenancy buta terhadap tool AI (§5.4).** Dibaca dari skripnya:
+`audit-gerbang-tenancy.mjs` memindai `routes/v1` dan `utils` saja (baris
+80-81). Tool AI bukan rute — kalau ia tinggal di `src/ai/tools/`, penjaga itu
+**tak melihatnya sama sekali**, dan tak ada yang jadi merah. Konsekuensinya
+keputusan struktur: letak berkas tool ADALAH keputusan keamanan.
+
+**RAG dipindahkan urutannya.** Draf pertama menulis *"bisa dimulai kapan saja
+setelah B"*. Salah. Pencarian vector mengembalikan "yang paling mirip", dan
+dokumen tenant lain **bisa lebih mirip** daripada dokumen tenant sendiri. Tanpa
+`company_id` di `WHERE`, spesifikasi teknis pelanggan A muncul di jawaban
+pelanggan B — tanpa error, tanpa yang merah, **jawabannya justru terlihat
+bagus**. Ini satu-satunya kelas query yang hasilnya tetap masuk akal sekalipun
+salah tenant, jadi kebocoran lintas-tenant paling mungkin di seluruh rencana.
+RAG kini diblokir TJS-C1 (penjaga tenancy jalur AI).
+
+Ditambah tiga lagi: **§5.5** saat AI tak tersedia (aturan mengikat: tiap hal
+yang bisa lewat AI wajib tetap bisa lewat UI — AI jalan pintas, bukan
+prasyarat), **§5.6** menguji yang tak deterministik (kualitas jawaban TAK BOLEH
+jadi gerbang CI — test yang kadang merah akan dimatikan orang, dan matinya
+membawa serta test yang sungguh menjaga), **§5.7** retensi & privasi
+percakapan.
+
 ### Hasil
 
-- `docs/superpowers/specs/2026-08-09-lapisan-ai-dan-platform-design.md` (~690 baris)
+- `docs/superpowers/specs/2026-08-09-lapisan-ai-dan-platform-design.md` (828 baris)
 - `KEPUTUSAN-SCOPE-ERP-AI.md` — amandemen §5 + diagram gelombang
 - `CHARTER.md` §3 — fase 6, tanda kurung "(bukan fitur AI)" dicabut
 - `QUEUE.yaml` — 14 item TJS-*, YAML tervalidasi, nol blokir menggantung

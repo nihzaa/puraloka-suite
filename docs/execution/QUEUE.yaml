@@ -1265,6 +1265,10 @@ items:
       - "numeric bukan float (CLAUDE.md 5.4); USD + Rupiah + KURS SAAT CATAT"
       - "batas biaya diperiksa SEBELUM panggilan API"
       - "field yang divalidasi server WAJIB ada di UI (perbaikan cacat maxTokens TJS)"
+      - "retensi percakapan bisa diatur per tenant, bawaan terbatas (§5.7)"
+      - "isi percakapan TAK PERNAH masuk audit log — metadata saja"
+      - "rate limit per user, bukan hanya batas biaya bulanan: batas bulanan tak
+         menahan pembakaran token dalam satu jam"
     cara_verifikasi: >-
       test: ganti provider dari UI -> /ai/insight memakai provider baru tanpa
       restart; lewati batas -> ditolak sebelum ada biaya keluar
@@ -1306,6 +1310,13 @@ items:
       - "ACL tool fail-closed: tanpa template = nol tool"
       - "explainability wajib (SCOPE §4 #4): tiap jawaban menyebut sumbernya"
       - "NOL tool yang menulis"
+      - "T-1: tool mengambil lewat request.db (sadar tenant), bukan supabase mentah
+         — penjaga audit-gerbang-tenancy DIPERLUAS ke jalur tool"
+      - "dibuktikan dengan DUA tenant nyata di test: tool tenant A tak pernah
+         mengembalikan baris tenant B (jangan diasumsikan dari RLS)"
+      - "saklar mati lapisan AI per tenant, nol dampak ke modul lain"
+      - "I-2: hasil tool dibungkus penanda DATA-bukan-instruksi; teks pengguna
+         tak pernah disambung mentah ke prompt sistem (prompt injection, §5.3)"
     cara_verifikasi: >-
       test: tiap tool dijawab dari data nyata; penjaga nol tool tulis;
       nomor tak dikenal -> ditolak TANPA panggilan model
@@ -1315,13 +1326,19 @@ items:
   - id: TJS-C2
     fase: 6
     judul: "RAG dokumen — tsvector + vector dengan fusi skor nyata"
-    blokir_oleh: [TJS-B2]
+    # Diblokir TJS-C1, bukan hanya TJS-B2: penjaga tenancy jalur AI (T-1) harus
+    # ada lebih dulu. Draf pertama spec menulis RAG "bisa dimulai kapan saja
+    # setelah B" — itu dikoreksi, alasannya di kriteria company_id di bawah.
+    blokir_oleh: [TJS-B2, TJS-C1]
     kriteria_selesai:
       - "PIPELINE INGEST ditulis lebih dulu — TJS tak punya sama sekali"
       - "tsvector bahasa Indonesia + embedding, FUSI SKOR sungguhan
          (TJS hanya menyambung 3 hasil pencarian jadi satu string)"
       - "kegagalan salah satu jalur TERLIHAT, bukan ditelan catch kosong"
       - "pencocokan persis bekerja: nomor kontrak, SNI 2847, beton K-300"
+      - "T-2: company_id di WHERE, BUKAN hanya ikut skor kemiripan.
+         Penjaga: query RAG tanpa company_id di WHERE = CI MERAH"
+      - "test dua tenant: dokumen tenant A tak pernah muncul di jawaban tenant B"
     cara_verifikasi: >-
       korpus uji + pertanyaan yang jawabannya diketahui; ukur temu-kembali
       untuk istilah persis DAN parafrase
@@ -1330,6 +1347,12 @@ items:
       pencarian independen yang disambung — tanpa bobot, tanpa fusi, keyword-nya
       contains biasa tanpa indeks full-text. Niatnya diambil, implementasinya
       tidak.
+
+      T-2 adalah kebocoran lintas-tenant PALING MUNGKIN di seluruh rencana ini:
+      pencarian vector mengembalikan "yang paling mirip", dan dokumen tenant
+      lain BISA lebih mirip daripada dokumen tenant sendiri. Satu-satunya kelas
+      query yang hasilnya tetap MASUK AKAL sekalipun salah tenant — tak ada
+      error, tak ada yang merah, jawabannya justru terlihat bagus.
     bobot: L
     status: todo
 
