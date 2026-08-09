@@ -947,10 +947,18 @@ TAHAP B — PLATFORM AI
         limit"; batas bulanan tak menahan pembakaran token dalam satu jam).
         Catatan: rate limiter repo ini `global:false` — per instance, tak
         bertahan lintas deploy multi-instance.
-  B2  adaptor (Anthropic + custom)           → antarmuka benar sejak awal
+  B2  adaptor (Anthropic + custom)           → ✅ SELESAI, 2026-08-10
+      lib/ai-penyedia.ts (kontrak) · -anthropic.ts · -openai.ts · ai-adaptor.ts
+      /ai/insight dipindah; nol referensi SDK tersisa di rute.
+      Penjaga L-6 `audit-satu-jalan-ke-model.mjs`, 6/6 mutasi sesuai harapan.
       + timeout & backoff DI KONTRAK antarmuka (TJS tak punya timeout sama
-        sekali: bawaan SDK 10 menit × 16 ronde)
+        sekali: bawaan SDK 10 menit × 16 ronde) — TIMEOUT_BAWAAN_MS 30 dtk
       + pemangkasan riwayat berbasis TOKEN, bukan jumlah pesan
+      ⚠ PELAJARAN: refactor ini MERUSAK dua penjaga yang sudah ada, dan salah
+        satunya jadi HIJAU-KARENA-BUTA (audit-gerbang-biaya-ai berhenti melihat
+        panggilan begitu polanya berubah dari `messages.create` ke `.chat()`).
+        Sesudah memindahkan jalur berbayar, WAJIB jalankan ulang penjaga
+        terkait — bukan hanya test.
   B3  pelacakan biaya + batas                → ✅ DIGABUNG KE B1, 2026-08-10
       (lihat catatan di B1: memisahkannya meninggalkan jendela ketika config
        bisa diubah tetapi biayanya belum tercatat)

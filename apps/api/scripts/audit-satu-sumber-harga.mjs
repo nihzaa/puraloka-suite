@@ -47,16 +47,36 @@ if (!existsSync(join(SRC, 'lib', 'ai-harga.ts'))) {
   process.exit(1)
 }
 
-/** Nama kunci yang menandai "ini harga per juta token". */
+/**
+ * Nama kunci yang menandai "ini harga per juta token".
+ *
+ * `cacheTulis`/`cacheBaca` DIPINDAH ke `KUNCI_AMBIGU` karena nama yang sama
+ * dipakai untuk dua hal: harga per MTok DAN jumlah token terpakai. Adaptor
+ * OpenAI menulis `cacheTulis: 0` (gaya OpenAI tak melaporkan penulisan cache),
+ * dan penjaga versi pertama menuduhnya sebagai harga.
+ */
 const KUNCI_HARGA = [
   // `masuk`/`keluar` SENGAJA TIDAK di sini meski itu nama di `ai-harga.ts` —
   // terlalu umum. Keduanya diperiksa terpisah, hanya di berkas yang memang
   // berkonteks AI (lihat `berkonteksAi`).
-  'cacheTulis', 'cacheBaca',
   'inputPrice', 'outputPrice', 'perMTok', 'per_mtok',
   'inputPerMillion', 'outputPerMillion',
   'hargaMasuk', 'hargaKeluar',
 ]
+
+/**
+ * Kunci yang bisa berarti harga ATAU jumlah token, tergantung nilainya.
+ *
+ * Dibedakan dari NILAINYA: harga per MTok selalu pecahan (0.5, 1.25, 6.25),
+ * jumlah token selalu bulat. `cacheTulis: 6.25` harga; `cacheTulis: 0` dan
+ * `cacheTulis: 1200` jumlah token.
+ *
+ * Membedakan lewat nilai memang tidak sempurna — harga yang kebetulan bulat
+ * akan lolos. Tapi alternatifnya (mengecualikan berkas adaptor) jauh lebih
+ * buruk: berkas itu justru tempat harga paling mungkin diam-diam ditulis
+ * ulang, karena di sanalah pemakaian token dibentuk.
+ */
+const KUNCI_AMBIGU = ['cacheTulis', 'cacheBaca']
 
 /**
  * Berkas yang isinya memang tentang harga model AI.
@@ -129,6 +149,13 @@ for (const path of berkas) {
       // Penjaga yang hijau pada pelanggaran yang justru melahirkannya lebih
       // buruk daripada tak ada penjaga: ia memberi rasa aman yang keliru.
       if (new RegExp(`${k}[A-Za-z_]*\\s*:\\s*[0-9]`).test(isi)) {
+        temuan.push({ berkas: rel, baris: i + 1, pesan: `harga \`${k}\` di luar ${SUMBER}` })
+      }
+    }
+    // Kunci ambigu: hanya tersangka bila nilainya PECAHAN. Harga per MTok
+    // selalu pecahan; jumlah token selalu bulat.
+    for (const k of KUNCI_AMBIGU) {
+      if (new RegExp(`${k}[A-Za-z_]*\\s*:\\s*[0-9]+\\.[0-9]`).test(isi)) {
         temuan.push({ berkas: rel, baris: i + 1, pesan: `harga \`${k}\` di luar ${SUMBER}` })
       }
     }

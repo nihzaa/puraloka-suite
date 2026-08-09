@@ -1429,9 +1429,11 @@ items:
       (2) RATE LIMIT per user — /ai/insight punya rateLimit 20/menit, tetapi per-rute, bukan per-user, dan
       limiter repo ini global:false (per instance). Menuntaskannya berarti menyentuh infrastruktur rate limit,
       bukan lapisan AI.
-      (3) "field yang divalidasi server WAJIB ada di UI" — terpenuhi untuk model/max_token/batas/mode/aktif;
-      `penyedia` divalidasi server tapi belum punya kontrol UI karena baru ada satu penyedia. Jadi kriteria ini
-      baru bisa benar-benar dinilai di TJS-B2, saat penyedia kedua ada.
+      (3) ✅ DITUTUP 2026-08-10 oleh TJS-B2 — "field yang divalidasi server WAJIB ada di UI" kini terpenuhi
+      penuh: `penyedia` punya kontrol di halaman Penyedia AI beserta tautan ke halaman Kredensial. Sekalian
+      ketahuan bahwa `penyedia` selama ini TAK divalidasi sama sekali di PUT (kolomnya TEXT — "anthropc"
+      tersimpan tanpa keluhan lalu mematikan asisten jauh dari tempat salah ketiknya); kini divalidasi
+      terhadap daftar.
     status: wip
 
   - id: TJS-B2
@@ -1457,7 +1459,37 @@ items:
       sementara lib/ai/* adalah lapisan paralel untuk pemanggil lain. Dua jalan
       ke model berarti konfigurasi-dari-UI hanya mengendalikan sebagian.
     bobot: L
-    status: todo
+    status_akhir: >-
+      SELESAI 2026-08-10. Empat berkas lapisan: lib/ai-penyedia.ts (kontrak),
+      -anthropic.ts, -openai.ts, ai-adaptor.ts (pabrik). SELURUH kriteria terpenuhi:
+      antarmuka tunggal · Anthropic + custom OpenAI-compatible · normalisasi tool-calling
+      (input_schema vs function.parameters; argumen STRING JSON diuraikan jadi objek —
+      JSON rusak GAGAL, bukan jadi `{}`, karena tool bernama `hapus` yang dipanggil tanpa
+      argumen bertindak atas bawaannya) · isError dibawa SEMUA adaptor termasuk yang tak
+      punya field-nya (ditulis ke isi dengan awalan "TOOL GAGAL:", perbaikan C-6) ·
+      kemampuan PER MODEL dengan bawaan konservatif untuk model tak dikenal ·
+      chat() tak pernah throw (union AlasanGagal + bolehUlang, jadi pemanggil tak
+      mencocokkan teks galat) · TIMEOUT di kontrak (TIMEOUT_BAWAAN_MS 30 dtk + maxRetries
+      dinyatakan eksplisit; TJS tak punya timeout sama sekali) · pemangkasan riwayat
+      berbasis TOKEN (satu keluaran 40rb karakter memicu pangkas meski cuma 3 pesan).
+      /ai/insight DIPINDAH ke lapisan ini — nol referensi SDK tersisa di rute.
+      UI dapat kontrol Penyedia + tautan ke halaman Kredensial, jadi kriteria B1
+      "field yang divalidasi server WAJIB ada di UI" kini terpenuhi penuh; `penyedia`
+      juga divalidasi terhadap daftar di PUT (kolomnya TEXT — "anthropc" dulu tersimpan
+      tanpa keluhan lalu mematikan asisten jauh dari tempat salah ketiknya).
+      BUKTI: penjaga L-6 `audit-satu-jalan-ke-model.mjs` 6/6 mutasi sesuai harapan
+      (5 MERAH untuk pelanggaran, 1 HIJAU untuk uji-koneksi /v1/models yang memang sah).
+      59 test hijau (33 adaptor + 20 config + 6 rute). 24/24 penjaga hijau.
+      DUA penjaga lama ternyata perlu diperbaiki karena refactor ini:
+      audit-gerbang-biaya-ai berubah HIJAU-KARENA-BUTA begitu rute memakai `.chat()`
+      alih-alih `messages.create` (ketahuan dari tuduhan salah alamat ke berkas adaptor);
+      audit-satu-sumber-harga menuduh `cacheTulis: 0` di adaptor OpenAI sebagai harga,
+      padahal itu jumlah token — kini dibedakan dari nilainya (harga selalu pecahan).
+    sisa_terbuka: >-
+      C-5 (blok tool_use/tool_result disimpan dalam riwayat) TIDAK dikerjakan di sini:
+      belum ada percakapan yang disimpan sampai TJS-C1 membuatnya. Kontraknya sudah
+      menyediakan tempatnya (`PanggilanTool`, `HasilTool`), jadi C1 tinggal memakainya.
+    status: done
 
   - id: TJS-C1
     fase: 6

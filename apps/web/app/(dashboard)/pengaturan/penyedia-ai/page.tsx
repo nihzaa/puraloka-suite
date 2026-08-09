@@ -91,9 +91,18 @@ interface Rincian {
   token: number;
 }
 
+interface PenyediaTersedia {
+  id: string;
+  label: string;
+  keterangan: string;
+  kunciKredensial: string;
+  butuhBaseUrl: boolean;
+}
+
 interface Muatan {
   data: Konfigurasi[];
   model_tersedia: ModelTersedia[];
+  penyedia_tersedia: PenyediaTersedia[];
   /**
    * Kurs datang DARI SERVER, tidak dipaku di sini.
    *
@@ -565,7 +574,9 @@ function Konten() {
               const d = draf[k.asisten];
               const berubah = Boolean(d && (d.model !== undefined || d.max_token !== undefined || d.aktif !== undefined || d.penyedia !== undefined));
               const peran = PERAN[k.asisten] ?? { nama: k.asisten, kerja: "" };
+              const idPenyedia = `penyedia-${k.asisten}`;
               const idModel = `model-${k.asisten}`;
+              const metaPenyedia = muatan?.penyedia_tersedia.find((p) => p.id === k.penyedia);
               const idToken = `token-${k.asisten}`;
 
               const modelDipilih = muatan?.model_tersedia.find((m) => m.id === k.model);
@@ -620,6 +631,35 @@ function Konten() {
                     tiap asisten punya jatah sendiri.
                   */}
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>
+                    <div>
+                      <label htmlFor={idPenyedia} style={{ display: "block", fontSize: 12, fontWeight: 550, color: C.mid, marginBottom: 5 }}>
+                        Penyedia
+                      </label>
+                      <select
+                        id={idPenyedia}
+                        aria-label={`Penyedia AI untuk ${peran.nama}`}
+                        value={k.penyedia}
+                        disabled={!bolehKelola}
+                        onChange={(e) => ubah(k.asisten, { penyedia: e.target.value })}
+                        style={{ ...inputStyle, cursor: bolehKelola ? "pointer" : "not-allowed" }}
+                      >
+                        {(muatan?.penyedia_tersedia ?? []).map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.label}
+                          </option>
+                        ))}
+                      </select>
+                      {metaPenyedia && (
+                        <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
+                          Kunci <code>{metaPenyedia.kunciKredensial}</code> dipasang di{" "}
+                          <a href="/pengaturan/kredensial" style={{ color: C.aksen, textDecoration: "none" }}>
+                            halaman Kredensial
+                          </a>
+                          .
+                        </p>
+                      )}
+                    </div>
+
                     <div>
                       <label htmlFor={idModel} style={{ display: "block", fontSize: 12, fontWeight: 550, color: C.mid, marginBottom: 5 }}>
                         Model

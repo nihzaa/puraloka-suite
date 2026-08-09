@@ -54,8 +54,8 @@ const MUTASI = [
     nama: 'M2 ronde KEDUA tanpa gerbang sendiri',
     ubah: (s) =>
       s.replace(
-        /(\s+)const teks = jawab\.content\.find/,
-        '$1const jawabKedua = await anthropic.messages.create({ model, max_tokens: 8 })$1void jawabKedua$1const teks = jawab.content.find',
+        /(\s+)let wawasan: ReturnType<typeof periksaJawaban> = null/,
+        '$1const jawabKedua = await dibuat.adaptor.chat({ model, maxToken: 8, pesan: [] })$1void jawabKedua$1let wawasan: ReturnType<typeof periksaJawaban> = null',
       ),
     bukti: (s) => s.includes('jawabKedua'),
   },
@@ -68,8 +68,8 @@ const MUTASI = [
         "const gerbang = { boleh: true, konfigurasi: { model: MODEL_JATUHAN, maxToken: 1024, penyedia: 'anthropic' }, terpakaiIdr: 0, peringatan: null } as const",
       )
       return tanpaGerbang.replace(
-        /(\s+)const teks = jawab\.content\.find/,
-        "$1const telat = await periksaGerbangAi(db, 'insight')$1void telat$1const teks = jawab.content.find",
+        /(\s+)let wawasan: ReturnType<typeof periksaJawaban> = null/,
+        "$1const telat = await periksaGerbangAi(db, 'insight')$1void telat$1let wawasan: ReturnType<typeof periksaJawaban> = null",
       )
     },
     bukti: (s) => s.includes('const telat') && !s.includes("const gerbang = await periksaGerbangAi"),

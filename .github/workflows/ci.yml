@@ -338,6 +338,16 @@ jobs:
       - name: Gerbang biaya AI
         run: node scripts/audit-gerbang-biaya-ai.mjs
 
+      # L-6. Memanggil SDK model langsung melewati EMPAT hal sekaligus: timeout
+      # (TJS tak punya — bawaan SDK 10 menit x 16 ronde), `isError` (C-6:
+      # adaptor selain Anthropic menelannya, jadi model tak tahu tool-nya
+      # gagal), pemetaan alasan gagal, dan normalisasi argumen tool (gaya
+      # OpenAI mengirim STRING JSON — `args.qty` jadi undefined tanpa galat).
+      # Jalur pintas itu tetap bekerja sampai penyedianya lambat atau tool-nya
+      # gagal, jadi ia tak pernah terasa salah saat ditulis.
+      - name: Satu jalan ke model (L-6)
+        run: node scripts/audit-satu-jalan-ke-model.mjs
+
       # Nominal dari permintaan yang dibaca `parseFloat` mentah. Rantai cacatnya
       # dibuktikan 2026-08-08 di Node DAN di Postgres: `qty: "abc"` → NaN → cek
       # saldo LOLOS (setiap perbandingan dengan NaN bernilai false) → Postgres

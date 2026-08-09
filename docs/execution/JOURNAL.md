@@ -5,6 +5,90 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-10 (lanjutan) — TJS-B2: satu jalan ke model, dan dua penjaga yang ternyata rusak karenanya
+
+Lapisan adaptor selesai. Yang paling berharga dari sesi ini bukan lapisannya,
+melainkan **dua penjaga lama yang terbukti rusak justru oleh refactor ini**.
+
+### Yang dibangun
+
+`lib/ai-penyedia.ts` (kontrak) · `-anthropic.ts` · `-openai.ts` ·
+`ai-adaptor.ts` (pabrik). `/ai/insight` dipindah ke sana — nol referensi SDK
+tersisa di rute.
+
+Tiga perbedaan bentuk antar penyedia kini berhenti di lapisan ini, dan
+ketiganya gagal SENYAP kalau bocor:
+
+| Perbedaan | Kalau bocor |
+|---|---|
+| skema tool (`input_schema` vs `function.parameters`) | tool tak dikenali penyedia |
+| argumen (objek vs **STRING JSON**) | `args.qty` jadi `undefined` tanpa galat |
+| `isError` (ada vs tak ada field-nya) | model melanjutkan seolah tool berhasil |
+
+Yang ketiga adalah C-6. OpenAI tak punya tempat menandai kegagalan, jadi
+adaptornya **menuliskannya** ke isi dengan awalan `TOOL GAGAL:`. Yang dilarang
+bukan "tak punya field" melainkan menelan informasinya.
+
+JSON argumen yang rusak **gagal**, bukan jadi `{}`. Untuk tool bernama `hapus`,
+dipanggil tanpa argumen dan bertindak atas bawaannya jauh lebih buruk daripada
+gagal terang-terangan.
+
+### Dua penjaga yang rusak oleh refactor ini
+
+**`audit-gerbang-biaya-ai` berubah hijau-karena-buta.** Ia hanya mengenali
+`messages.create`; begitu rute memakai `adaptor.chat()`, ia tak melihat
+panggilan apa pun — jadi tak ada yang bisa dilanggar, dan exit 0. Yang
+menyingkapnya bukan kecurigaan saya melainkan **tuduhan salah alamatnya**: ia
+memerahkan berkas adaptor, yang memang tak boleh memanggil gerbang.
+
+Ini bentuk pembusukan yang paling berbahaya di repo ini: penjaga yang berhenti
+menjaga tanpa pernah berubah warna. Kalau saya tidak kebetulan menjalankannya
+sesudah refactor, ia akan tinggal hijau selamanya sambil tak memeriksa apa pun.
+
+**`audit-satu-sumber-harga` menuduh kode yang benar.** `cacheTulis: 0` di
+adaptor OpenAI adalah JUMLAH TOKEN, bukan harga. Nama kuncinya memang sama.
+Dibedakan sekarang dari **nilainya**: harga per MTok selalu pecahan, jumlah
+token selalu bulat. Mengecualikan berkas adaptor akan salah — berkas itu justru
+tempat harga paling mungkin diam-diam ditulis ulang.
+
+### Penjaga L-6 baru
+
+`audit-satu-jalan-ke-model.mjs`. Uji mutasinya punya **satu kasus negatif** yang
+sengaja diharapkan HIJAU: `fetch('api.anthropic.com/v1/models')` di
+`routes/v1/kredensial.ts` adalah uji-koneksi kunci, bukan inferensi — tak ada
+tool, tak ada `isError`, tak ada token ditagih.
+
+Versi pertama penjaga mencocokkan HOST dan langsung menuduhnya. Yang
+dipersempit polanya (endpoint inferensi), bukan berkasnya dikecualikan: berkas
+yang sama kelak bisa memanggil inferensi sungguhan, dan penjaga yang
+mengecualikan berkas akan diam.
+
+6/6 sesuai harapan — 5 merah untuk pelanggaran, 1 hijau untuk kode yang benar.
+Penjaga yang tak pernah merah adalah hiasan; penjaga yang menuduh kode benar
+akan dimatikan orang, dan matinya membawa serta tuduhan yang benar.
+
+### Kriteria B1 yang tertunda kini tertutup
+
+"Field yang divalidasi server WAJIB ada di UI" — `penyedia` kini punya kontrol
+di halaman Penyedia AI, lengkap dengan tautan ke halaman Kredensial yang
+menyebut nama kunci yang harus dipasang. Sekalian ditemukan bahwa `penyedia`
+selama ini **tak divalidasi sama sekali** di PUT: kolomnya TEXT, jadi
+"anthropc" tersimpan tanpa keluhan lalu mematikan asisten jauh dari tempat
+salah ketiknya terjadi.
+
+### Bukti
+
+- 59/59 test hijau (33 adaptor, 20 config, 6 rute)
+- 24/24 penjaga hijau dari root; L-6 dan gerbang biaya keduanya diuji mutasi
+- `tsc --noEmit` bersih di `apps/api` dan `apps/web`
+- tangkapan layar: tiga kontrol per kartu tetap satu baris, tak ada yang yatim
+
+C-5 (blok tool_use disimpan di riwayat) **tidak** dikerjakan — belum ada
+percakapan yang disimpan sampai C1 membuatnya. Kontraknya sudah menyediakan
+tempatnya.
+
+---
+
 ## 2026-08-10 — TJS-B1: konfigurasi penyedia AI dari UI + batas biaya yang benar-benar menahan
 
 Autopilot, lanjutan Tahap A. Inti B1 terpasang; **tiga kriteria sengaja

@@ -37,7 +37,6 @@
  */
 
 import type { FastifyInstance, FastifyRequest } from 'fastify'
-import Anthropic from '@anthropic-ai/sdk'
 import { authenticate } from '../../plugins/auth.js'
 import {
   PROMPT_SISTEM,
@@ -48,38 +47,8 @@ import {
 } from '../../lib/wawasan-ai.js'
 import { catatBiayaRonde, periksaGerbangAi } from '../../lib/ai-config.js'
 import { ambilKredensial } from '../../lib/kredensial.js'
+import { buatAdaptor, metaPenyedia } from '../../lib/ai-adaptor.js'
 
-/**
- * Klien Anthropic untuk TENANT ini.
- *
- * ── Kenapa tidak satu klien global lagi (diubah 2026-08-10, TJS-B1)
- *
- * Sampai hari ini kuncinya dibaca langsung dari `ANTHROPIC_API_KEY`, dan
- * klien-nya dibuat sekali untuk seluruh proses. Itu benar untuk satu
- * perusahaan; salah untuk SaaS. Tiap tenant menanggung tagihannya sendiri, jadi
- * kuncinya pun harus miliknya sendiri — kalau tidak, pemakaian tenant A ditagih
- * ke kartu kredit tenant B, dan tak ada satu pun angka di sistem yang
- * menunjukkannya.
- *
- * Urutan jatuhannya ditangani `ambilKredensial()`: kredensial tenant lebih
- * dulu, lalu env server. Env dipertahankan supaya pemasangan satu-perusahaan
- * yang sudah jalan tidak mendadak kehilangan asistennya.
- *
- * Cache-nya per kunci, bukan global: dua tenant dengan kunci berbeda tak boleh
- * saling memakai klien yang sama. `ambilKredensial` sendiri sudah men-cache
- * pembacaan basisnya, jadi ini hanya menghindari pembuatan objek berulang.
- */
-const klienPerKunci = new Map<string, Anthropic>()
-async function ambilKlien(request: FastifyRequest): Promise<Anthropic | null> {
-  const kunci = (await ambilKredensial(request, 'ANTHROPIC_API_KEY'))?.trim()
-  if (!kunci) return null
-  let k = klienPerKunci.get(kunci)
-  if (!k) {
-    k = new Anthropic({ apiKey: kunci })
-    klienPerKunci.set(kunci, k)
-  }
-  return k
-}
 
 /**
  * Model dipatok di env supaya bisa diganti tanpa deploy ulang kode.
@@ -197,12 +166,6 @@ export default async function aiRoutes(app: FastifyInstance) {
       fakta.proyekLewatTenggat * BOBOT.lewatTenggat
     )))
 
-    const anthropic = await ambilKlien(request)
-    if (!anthropic) {
-      // Bukan galat: kunci memang opsional. Web menampilkan kalimatnya sendiri.
-      return { sumber: 'deterministik' as const, alasan: 'kunci_belum_dipasang', fakta, wawasan: null }
-    }
-
     // ── GERBANG: config + batas biaya, SEBELUM panggilan berbayar ──────────
     //
     // Urutannya menentukan. Memeriksa setelah panggilan berarti batasnya cuma
@@ -219,68 +182,82 @@ export default async function aiRoutes(app: FastifyInstance) {
     }
 
     const model = gerbang.konfigurasi.model || MODEL_JATUHAN
-    const maxToken = gerbang.konfigurasi.maxToken
+    const penyedia = gerbang.konfigurasi.penyedia
+    const metaP = metaPenyedia(penyedia)
 
-    try {
-      const jawab = await anthropic.messages.create({
-        model,
-        max_tokens: maxToken,
-        system: PROMPT_SISTEM,
-        // Dua kalimat pendek dari fakta yang sudah jadi — tak ada yang perlu
-        // dipikirkan panjang, dan efort tinggi hanya menambah biaya + latensi
-        // pada kartu yang harus muncul cepat.
-        output_config: { effort: 'low', format: { type: 'json_schema', schema: SKEMA_JAWABAN } },
-        messages: [{ role: 'user', content: susunPrompt(fakta) }],
-      })
+    // Kunci diambil sesuai penyedianya, bukan selalu `ANTHROPIC_API_KEY` —
+    // tenant yang memilih penyedia lain memasang kuncinya di baris lain.
+    const kunci = await ambilKredensial(request, metaP?.kunciKredensial ?? 'ANTHROPIC_API_KEY')
+    const dibuat = buatAdaptor({
+      penyedia,
+      apiKey: kunci ?? '',
+      baseUrl: (await ambilKredensial(request, 'AI_PROVIDER_BASE_URL')) ?? undefined,
+    })
 
-      // Biaya dicatat SEBELUM jawabannya dinilai layak atau tidak. Token yang
-      // sudah terpakai tetap ditagih penyedia meski jawabannya ditolak atau
-      // tak terpakai — mencatatnya hanya pada jalur sukses membuat batas
-      // bulanan menghitung terlalu rendah, dan batas yang menghitung terlalu
-      // rendah tak pernah tercapai.
-      try {
-        await catatBiayaRonde(db, request.companyId!, {
-          asisten: 'insight',
-          penyedia: gerbang.konfigurasi.penyedia,
-          model,
-          pakai: {
-            masuk: jawab.usage?.input_tokens ?? 0,
-            keluar: jawab.usage?.output_tokens ?? 0,
-            cacheTulis: jawab.usage?.cache_creation_input_tokens ?? 0,
-            cacheBaca: jawab.usage?.cache_read_input_tokens ?? 0,
-          },
-        })
-      } catch (errCatat) {
-        // Gagal mencatat TIDAK membatalkan jawaban yang sudah dibayar — tapi
-        // juga tidak boleh hilang: batas bulanan bergantung padanya.
-        request.log.error({ err: errCatat, model }, 'ai/insight: biaya gagal dicatat')
+    if (!dibuat.ok) {
+      // Bukan galat 500: kunci memang opsional, dan penyedia salah ketik adalah
+      // salah konfigurasi, bukan sistem rusak. Web menampilkan kalimatnya sendiri.
+      request.log.warn({ alasan: dibuat.alasan, penyedia }, 'ai/insight: adaptor tak bisa dibuat')
+      return {
+        sumber: 'deterministik' as const,
+        alasan: dibuat.alasan === 'kunci_tak_ada' ? 'kunci_belum_dipasang' : dibuat.alasan,
+        fakta,
+        wawasan: null,
       }
-
-      // Model bisa MENOLAK menjawab (200 + stop_reason 'refusal'), dan saat itu
-      // `content` kosong. Membaca content[0] tanpa memeriksa ini melempar
-      // TypeError yang menyamar sebagai galat jaringan.
-      if (jawab.stop_reason === 'refusal') {
-        request.log.warn({ stop: jawab.stop_details }, 'ai/insight: model menolak menjawab')
-        return { sumber: 'deterministik' as const, alasan: 'ditolak_model', fakta, wawasan: null }
-      }
-
-      const teks = jawab.content.find((b) => b.type === 'text')
-      const wawasan = periksaJawaban(teks ? JSON.parse(teks.text) : null)
-
-      if (!wawasan) {
-        // Jawaban tak memenuhi syarat (kosong, kepanjangan, bentuk salah).
-        // Dicatat supaya bisa ditinjau — kalau sering, promptnya yang salah.
-        request.log.warn({ model }, 'ai/insight: jawaban model tidak layak tampil')
-        return { sumber: 'deterministik' as const, alasan: 'jawaban_tak_layak', fakta, wawasan: null }
-      }
-
-      return { sumber: 'ai' as const, model, fakta, wawasan }
-    } catch (err) {
-      // Kuota habis, jaringan putus, JSON rusak — semuanya berakhir sama.
-      // TIDAK ditelan: dicatat dengan sebabnya, dan `sumber` memberi tahu
-      // pemanggil bahwa AI tidak berjalan.
-      request.log.warn({ err, model }, 'ai/insight: panggilan Claude gagal')
-      return { sumber: 'deterministik' as const, alasan: 'panggilan_gagal', fakta, wawasan: null }
     }
+
+    // `chat()` TIDAK PERNAH melempar — tak ada try/catch di sini, dan itu
+    // disengaja. Kegagalan datang sebagai `ok: false` dengan alasan yang bisa
+    // dibedakan, jadi rute ini tak perlu mengurai teks galat penyedia.
+    const jawab = await dibuat.adaptor.chat({
+      model,
+      maxToken: gerbang.konfigurasi.maxToken,
+      sistem: PROMPT_SISTEM,
+      pesan: [{ peran: 'user', isi: susunPrompt(fakta) }],
+      skemaJawaban: SKEMA_JAWABAN,
+    })
+
+    if (!jawab.ok) {
+      request.log.warn(
+        { alasan: jawab.alasan, pesan: jawab.pesan, model, penyedia },
+        'ai/insight: panggilan penyedia gagal',
+      )
+      return { sumber: 'deterministik' as const, alasan: jawab.alasan, fakta, wawasan: null }
+    }
+
+    // Biaya dicatat SEBELUM jawabannya dinilai layak atau tidak. Token yang
+    // sudah terpakai tetap ditagih penyedia meski jawabannya tak terpakai —
+    // mencatatnya hanya pada jalur sukses membuat batas bulanan menghitung
+    // terlalu rendah, dan batas yang menghitung terlalu rendah tak pernah
+    // tercapai.
+    try {
+      await catatBiayaRonde(db, request.companyId!, {
+        asisten: 'insight',
+        penyedia,
+        model,
+        pakai: jawab.pemakaian,
+      })
+    } catch (errCatat) {
+      // Gagal mencatat TIDAK membatalkan jawaban yang sudah dibayar — tapi
+      // juga tidak boleh hilang: batas bulanan bergantung padanya.
+      request.log.error({ err: errCatat, model }, 'ai/insight: biaya gagal dicatat')
+    }
+
+    let wawasan: ReturnType<typeof periksaJawaban> = null
+    try {
+      wawasan = periksaJawaban(jawab.teks ? JSON.parse(jawab.teks) : null)
+    } catch (errUrai) {
+      // JSON rusak dari model. Dicatat, bukan ditelan — kalau sering, skemanya
+      // atau promptnya yang salah, bukan penggunanya.
+      request.log.warn({ err: errUrai, model }, 'ai/insight: jawaban bukan JSON sah')
+    }
+
+    if (!wawasan) {
+      // Jawaban tak memenuhi syarat (kosong, kepanjangan, bentuk salah).
+      request.log.warn({ model }, 'ai/insight: jawaban model tidak layak tampil')
+      return { sumber: 'deterministik' as const, alasan: 'jawaban_tak_layak', fakta, wawasan: null }
+    }
+
+    return { sumber: 'ai' as const, model, fakta, wawasan }
   })
 }

@@ -41,6 +41,7 @@ import {
   type ModeBatas,
 } from '../../lib/ai-config.js'
 import { kursUsdIdr } from '../../lib/ai-harga.js'
+import { PENYEDIA, penyediaDikenal } from '../../lib/ai-adaptor.js'
 
 const MAKS_TOKEN_TERTINGGI = 64_000
 
@@ -138,6 +139,12 @@ export default async function aiConfigRoutes(app: FastifyInstance) {
       return reply.send({
         data: konfigurasi,
         model_tersedia: daftarModel(),
+        // Daftar penyedia dikirim supaya UI punya kontrolnya. `penyedia`
+        // divalidasi server sejak B1, tetapi tanpa kontrol di UI, nilai yang
+        // ditolak server tak punya cara sah untuk diubah — kriteria B1
+        // "field yang divalidasi server WAJIB ada di UI" (perbaikan cacat
+        // maxTokens TJS) baru terpenuhi di sini.
+        penyedia_tersedia: PENYEDIA,
         // Kurs dikirim, TIDAK dipaku di komponen. Memaku `16000` di UI adalah
         // persis yang TJS lakukan, dan yang `audit-satu-sumber-harga` cegah di
         // sisi API — membiarkannya hidup di web hanya memindahkan cacatnya ke
@@ -164,6 +171,17 @@ export default async function aiConfigRoutes(app: FastifyInstance) {
 
       const badan = request.body ?? {}
       const bawaan = konfigurasiBawaan(asisten)
+
+      // Penyedia divalidasi terhadap DAFTAR. Kolomnya TEXT, jadi "anthropc"
+      // tersimpan tanpa keluhan — lalu `buatAdaptor` menolaknya saat panggilan
+      // pertama, jauh dari tempat salah ketiknya terjadi, dan asisten tenant
+      // mati tanpa sebab yang terlihat di halaman pengaturan.
+      const penyedia = (badan.penyedia ?? bawaan.penyedia).trim() || bawaan.penyedia
+      if (!penyediaDikenal(penyedia)) {
+        return reply.status(422).send({
+          error: `Penyedia '${penyedia}' tidak dikenal sistem. Yang tersedia: ${PENYEDIA.map((p) => p.id).join(', ')}.`,
+        })
+      }
 
       // Model divalidasi terhadap daftar berharga. Model tak dikenal akan
       // ditagih dengan tarif TERMAHAL oleh `hargaModel()` — perilaku yang benar
@@ -216,7 +234,7 @@ export default async function aiConfigRoutes(app: FastifyInstance) {
           {
             company_id: request.companyId!,
             asisten,
-            penyedia: (badan.penyedia ?? bawaan.penyedia).trim() || bawaan.penyedia,
+            penyedia,
             model,
             max_token: maxToken,
             aktif: badan.aktif ?? true,

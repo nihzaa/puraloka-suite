@@ -17,12 +17,25 @@
  *
  * ── Yang diperiksa
  *
- *   G-1  tiap `messages.create(` didahului `periksaGerbangAi(` di berkas yang
+ *   G-1  tiap panggilan berbayar didahului `periksaGerbangAi(` di berkas yang
  *        sama, pada baris yang LEBIH KECIL nomornya
  *   G-2  tiap berkas yang memanggil model juga memanggil `catatBiayaRonde(` —
  *        panggilan yang tak tercatat membuat batas menghitung terlalu rendah,
  *        dan batas yang menghitung terlalu rendah tak pernah tercapai
  *   G-3  `lib/ai-config.ts` ada dan mengekspor keduanya
+ *
+ * ── Apa yang dihitung "panggilan berbayar" (diperbarui 2026-08-10, TJS-B2)
+ *
+ * Sejak lapisan adaptor ada, rute tidak lagi memanggil `messages.create`
+ * langsung — ia memanggil `adaptor.chat()`. Penjaga versi pertama hanya
+ * mengenali `messages.create`, dan begitu rutenya dipindahkan ia berubah jadi
+ * HIJAU KARENA BUTA: tak melihat panggilan apa pun, jadi tak ada yang bisa
+ * dilanggar. Ketahuan karena ia justru menuduh berkas adaptor.
+ *
+ * Yang dipindai sekarang `.chat(` pada adaptor. Berkas LAPISAN ADAPTOR sendiri
+ * dikecualikan: adaptor memang tak boleh tahu soal tenant atau batas biaya —
+ * kalau ia memanggil gerbang, gerbangnya jadi tak terlihat oleh rute yang
+ * memutuskan apa yang harus dilakukan saat ditolak.
  *
  * G-1 memakai perbandingan NOMOR BARIS, bukan sekadar "kedua nama muncul di
  * berkas ini". Versi pertama penjaga ini hanya memeriksa keberadaan, dan uji
@@ -40,6 +53,20 @@ import { dirname, resolve, join } from 'node:path'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const SRC = resolve(__dirname, '..', 'src')
 const GERBANG = join(SRC, 'lib', 'ai-config.ts')
+
+/**
+ * Berkas yang MEMANG memanggil SDK model — lapisan adaptor.
+ *
+ * Dijaga terpisah oleh `audit-satu-jalan-ke-model.mjs` (L-6), yang memastikan
+ * tak ada berkas LAIN menyentuh SDK. Di sini ketiganya dikecualikan karena
+ * adaptor tak boleh tahu soal tenant maupun batas biaya.
+ */
+const LAPISAN_ADAPTOR = new Set([
+  'lib/ai-penyedia.ts',
+  'lib/ai-penyedia-anthropic.ts',
+  'lib/ai-penyedia-openai.ts',
+  'lib/ai-adaptor.ts',
+])
 
 function berkasTs(dir) {
   const hasil = []
@@ -97,6 +124,11 @@ const pemanggil = []
 for (const path of berkasTs(SRC)) {
   const rel = path.slice(SRC.length + 1).replace(/\\/g, '/')
   if (rel === 'lib/ai-config.ts') continue
+  // Lapisan adaptor DIKECUALIKAN dengan sengaja. Adaptor tak tahu tenant, dan
+  // memang tak boleh tahu — gerbang yang dipanggil dari dalam adaptor jadi tak
+  // terlihat oleh rute, padahal rutelah yang memutuskan apa yang terjadi saat
+  // panggilan ditolak (200 deterministik, 402, atau yang lain).
+  if (LAPISAN_ADAPTOR.has(rel)) continue
   // Test BOLEH memanggil model tiruan tanpa gerbang — justru itu yang diuji.
   if (rel.includes('__tests__') || rel.endsWith('.test.ts') || rel.includes('test-utils')) continue
 
@@ -110,7 +142,15 @@ for (const path of berkasTs(SRC)) {
   baris.forEach((isi, i) => {
     // `messages.create(` — pintu berbayar SDK Anthropic. Juga `.stream(`,
     // karena streaming menagih token yang sama persis.
+    // `messages.create(` — SDK langsung; kini hanya sah di dalam adaptor.
+    // `.chat({` — pintu berbayar lapisan adaptor, yang dipakai rute sejak B2.
+    //
+    // Yang kedua WAJIB ada. Tanpa itu penjaga ini berubah jadi hijau-karena-buta
+    // begitu rute dipindahkan ke adaptor: tak melihat panggilan apa pun, jadi
+    // tak ada yang bisa dilanggar. Itu benar-benar terjadi hari ini, dan yang
+    // menyingkapnya cuma tuduhan salah alamat ke berkas adaptor.
     if (/\bmessages\s*\.\s*(create|stream)\s*\(/.test(isi)) barisPanggil.push(i + 1)
+    else if (/\.\s*chat\s*\(\s*\{/.test(isi)) barisPanggil.push(i + 1)
     if (/\bperiksaGerbangAi\s*\(/.test(isi)) barisGerbang.push(i + 1)
     if (/\bcatatBiayaRonde\s*\(/.test(isi)) adaCatat = true
   })
