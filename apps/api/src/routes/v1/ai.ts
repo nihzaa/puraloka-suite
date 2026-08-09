@@ -36,7 +36,7 @@
  * dari DB dengan saringan tenant yang sama seperti `/dashboard/fokus`.
  */
 
-import type { FastifyInstance } from 'fastify'
+import type { FastifyInstance, FastifyRequest } from 'fastify'
 import Anthropic from '@anthropic-ai/sdk'
 import { authenticate } from '../../plugins/auth.js'
 import {
@@ -46,18 +46,39 @@ import {
   periksaJawaban,
   type FaktaPortofolio,
 } from '../../lib/wawasan-ai.js'
+import { catatBiayaRonde, periksaGerbangAi } from '../../lib/ai-config.js'
+import { ambilKredensial } from '../../lib/kredensial.js'
 
 /**
- * Klien dibuat sekali, malas (lazy). Membuatnya saat modul dimuat berarti API
- * gagal boot hanya karena kunci opsional belum dipasang — dan kunci ini memang
- * opsional (`.env.example` § OPSIONAL).
+ * Klien Anthropic untuk TENANT ini.
+ *
+ * ── Kenapa tidak satu klien global lagi (diubah 2026-08-10, TJS-B1)
+ *
+ * Sampai hari ini kuncinya dibaca langsung dari `ANTHROPIC_API_KEY`, dan
+ * klien-nya dibuat sekali untuk seluruh proses. Itu benar untuk satu
+ * perusahaan; salah untuk SaaS. Tiap tenant menanggung tagihannya sendiri, jadi
+ * kuncinya pun harus miliknya sendiri — kalau tidak, pemakaian tenant A ditagih
+ * ke kartu kredit tenant B, dan tak ada satu pun angka di sistem yang
+ * menunjukkannya.
+ *
+ * Urutan jatuhannya ditangani `ambilKredensial()`: kredensial tenant lebih
+ * dulu, lalu env server. Env dipertahankan supaya pemasangan satu-perusahaan
+ * yang sudah jalan tidak mendadak kehilangan asistennya.
+ *
+ * Cache-nya per kunci, bukan global: dua tenant dengan kunci berbeda tak boleh
+ * saling memakai klien yang sama. `ambilKredensial` sendiri sudah men-cache
+ * pembacaan basisnya, jadi ini hanya menghindari pembuatan objek berulang.
  */
-let klien: Anthropic | null = null
-function ambilKlien(): Anthropic | null {
-  const kunci = process.env.ANTHROPIC_API_KEY?.trim()
+const klienPerKunci = new Map<string, Anthropic>()
+async function ambilKlien(request: FastifyRequest): Promise<Anthropic | null> {
+  const kunci = (await ambilKredensial(request, 'ANTHROPIC_API_KEY'))?.trim()
   if (!kunci) return null
-  if (!klien) klien = new Anthropic({ apiKey: kunci })
-  return klien
+  let k = klienPerKunci.get(kunci)
+  if (!k) {
+    k = new Anthropic({ apiKey: kunci })
+    klienPerKunci.set(kunci, k)
+  }
+  return k
 }
 
 /**
@@ -82,11 +103,14 @@ function ambilKlien(): Anthropic | null {
  * aritmetika, tak ada keputusan. Opus dipakai untuk pekerjaan yang tak
  * seperti itu.
  *
- * Kalau kelak kualitas kalimatnya terasa turun, naikkan lewat env
- * (`ANTHROPIC_MODEL=claude-opus-5`) — tanpa menyentuh kode ini. Itu sebabnya
- * nilainya memang dibaca dari env sejak awal.
+ * ── Modelnya kini dari BASIS per tenant, bukan env (TJS-B1, 2026-08-10)
+ *
+ * Env tetap dibaca sebagai jatuhan terakhir, tetapi sumber utamanya
+ * `ai_provider_config` milik tenant. Alasannya bukan kerapian: dengan env,
+ * mengganti model berarti SELURUH tenant ikut berganti sekaligus — mustahil
+ * untuk SaaS tempat tiap pelanggan menanggung tagihannya sendiri.
  */
-const MODEL = process.env.ANTHROPIC_MODEL?.trim() || 'claude-haiku-4-5'
+const MODEL_JATUHAN = process.env.ANTHROPIC_MODEL?.trim() || 'claude-haiku-4-5'
 
 export default async function aiRoutes(app: FastifyInstance) {
   app.get('/api/v1/ai/insight', {
@@ -173,16 +197,34 @@ export default async function aiRoutes(app: FastifyInstance) {
       fakta.proyekLewatTenggat * BOBOT.lewatTenggat
     )))
 
-    const anthropic = ambilKlien()
+    const anthropic = await ambilKlien(request)
     if (!anthropic) {
       // Bukan galat: kunci memang opsional. Web menampilkan kalimatnya sendiri.
       return { sumber: 'deterministik' as const, alasan: 'kunci_belum_dipasang', fakta, wawasan: null }
     }
 
+    // ── GERBANG: config + batas biaya, SEBELUM panggilan berbayar ──────────
+    //
+    // Urutannya menentukan. Memeriksa setelah panggilan berarti batasnya cuma
+    // laporan kerusakan — uangnya sudah keluar saat barisnya muncul. Penjaga
+    // `audit-gerbang-biaya-ai.mjs` menegakkan urutan ini, karena ia gampang
+    // terbalik saat seseorang menyisipkan panggilan kedua di kemudian hari.
+    const gerbang = await periksaGerbangAi(db, 'insight')
+    if (!gerbang.boleh) {
+      request.log.warn(
+        { alasan: gerbang.alasan, terpakaiIdr: gerbang.terpakaiIdr },
+        'ai/insight: panggilan dicegah gerbang biaya',
+      )
+      return { sumber: 'deterministik' as const, alasan: gerbang.alasan, fakta, wawasan: null }
+    }
+
+    const model = gerbang.konfigurasi.model || MODEL_JATUHAN
+    const maxToken = gerbang.konfigurasi.maxToken
+
     try {
       const jawab = await anthropic.messages.create({
-        model: MODEL,
-        max_tokens: 1024,
+        model,
+        max_tokens: maxToken,
         system: PROMPT_SISTEM,
         // Dua kalimat pendek dari fakta yang sudah jadi — tak ada yang perlu
         // dipikirkan panjang, dan efort tinggi hanya menambah biaya + latensi
@@ -190,6 +232,29 @@ export default async function aiRoutes(app: FastifyInstance) {
         output_config: { effort: 'low', format: { type: 'json_schema', schema: SKEMA_JAWABAN } },
         messages: [{ role: 'user', content: susunPrompt(fakta) }],
       })
+
+      // Biaya dicatat SEBELUM jawabannya dinilai layak atau tidak. Token yang
+      // sudah terpakai tetap ditagih penyedia meski jawabannya ditolak atau
+      // tak terpakai — mencatatnya hanya pada jalur sukses membuat batas
+      // bulanan menghitung terlalu rendah, dan batas yang menghitung terlalu
+      // rendah tak pernah tercapai.
+      try {
+        await catatBiayaRonde(db, request.companyId!, {
+          asisten: 'insight',
+          penyedia: gerbang.konfigurasi.penyedia,
+          model,
+          pakai: {
+            masuk: jawab.usage?.input_tokens ?? 0,
+            keluar: jawab.usage?.output_tokens ?? 0,
+            cacheTulis: jawab.usage?.cache_creation_input_tokens ?? 0,
+            cacheBaca: jawab.usage?.cache_read_input_tokens ?? 0,
+          },
+        })
+      } catch (errCatat) {
+        // Gagal mencatat TIDAK membatalkan jawaban yang sudah dibayar — tapi
+        // juga tidak boleh hilang: batas bulanan bergantung padanya.
+        request.log.error({ err: errCatat, model }, 'ai/insight: biaya gagal dicatat')
+      }
 
       // Model bisa MENOLAK menjawab (200 + stop_reason 'refusal'), dan saat itu
       // `content` kosong. Membaca content[0] tanpa memeriksa ini melempar
@@ -205,16 +270,16 @@ export default async function aiRoutes(app: FastifyInstance) {
       if (!wawasan) {
         // Jawaban tak memenuhi syarat (kosong, kepanjangan, bentuk salah).
         // Dicatat supaya bisa ditinjau — kalau sering, promptnya yang salah.
-        request.log.warn({ model: MODEL }, 'ai/insight: jawaban model tidak layak tampil')
+        request.log.warn({ model }, 'ai/insight: jawaban model tidak layak tampil')
         return { sumber: 'deterministik' as const, alasan: 'jawaban_tak_layak', fakta, wawasan: null }
       }
 
-      return { sumber: 'ai' as const, model: MODEL, fakta, wawasan }
+      return { sumber: 'ai' as const, model, fakta, wawasan }
     } catch (err) {
       // Kuota habis, jaringan putus, JSON rusak — semuanya berakhir sama.
       // TIDAK ditelan: dicatat dengan sebabnya, dan `sumber` memberi tahu
       // pemanggil bahwa AI tidak berjalan.
-      request.log.warn({ err, model: MODEL }, 'ai/insight: panggilan Claude gagal')
+      request.log.warn({ err, model }, 'ai/insight: panggilan Claude gagal')
       return { sumber: 'deterministik' as const, alasan: 'panggilan_gagal', fakta, wawasan: null }
     }
   })

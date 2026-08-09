@@ -924,7 +924,22 @@ TAHAP A — LANTAI (tak menyentuh AI sama sekali)
            bukan dobel
 
 TAHAP B — PLATFORM AI
-  B1  ai_provider_config + UI                → permintaan eksplisit founder
+  B1  ai_provider_config + UI                → ✅ SEBAGIAN, 2026-08-10
+      ── Yang SUDAH terpasang & terbukti
+        migrasi 250 (config + biaya) · 251 (menu) · lib/ai-harga.ts SATU sumber
+        harga · lib/ai-config.ts gerbang tunggal (periksa SEBELUM panggil) ·
+        rute GET/PUT · UI /pengaturan/penyedia-ai · fallback kunci tenant→env
+        lewat ambilKredensial · 2 penjaga (6/6 dan 5/5 mutasi MERAH) ·
+        26 test hijau · gerbang terbukti MEMBLOKIR di endpoint nyata.
+      ── B3 TIDAK LAGI TERPISAH
+        "pelacakan biaya + batas" dikerjakan bersama B1, bukan sesudahnya.
+        Memisahkannya berarti ada jendela ketika config bisa diubah tetapi
+        biayanya belum tercatat — persis keadaan yang batasnya tak berdaya.
+      ── Yang DITUNDA (bukan lupa; alasannya di QUEUE `sisa_terbuka`)
+        retensi percakapan → tak ada percakapan sampai C1 membuatnya
+        rate limit per user → menyentuh infrastruktur limiter, bukan lapisan AI
+        "field tervalidasi wajib ada di UI" → `penyedia` baru bisa dinilai di B2
+      ── permintaan eksplisit founder
       + aturan fallback kunci yang EKSPLISIT: kredensial tenant → bawaan
         perusahaan → env server → mati. Tanpa ini, memindahkan /ai/insight ke
         credential_store berarti tiap tenant wajib punya kunci sendiri.
@@ -936,8 +951,13 @@ TAHAP B — PLATFORM AI
       + timeout & backoff DI KONTRAK antarmuka (TJS tak punya timeout sama
         sekali: bawaan SDK 10 menit × 16 ronde)
       + pemangkasan riwayat berbasis TOKEN, bukan jumlah pesan
-  B3  pelacakan biaya + batas                → sebelum ada yang membakar token
+  B3  pelacakan biaya + batas                → ✅ DIGABUNG KE B1, 2026-08-10
+      (lihat catatan di B1: memisahkannya meninggalkan jendela ketika config
+       bisa diubah tetapi biayanya belum tercatat)
   Gerbang: /ai/insight berjalan lewat lapisan baru; biaya tercatat & terbatas
+           → ✅ TERCAPAI untuk /ai/insight. Model, max_token, dan KUNCI kini
+             per tenant; batas terbukti memblokir dengan nol biaya baru.
+             Belum tercapai untuk penyedia selain Anthropic — itu B2.
 
 TAHAP C — ASISTEN READ-ONLY
   C1  agent loop + tool catalog read-only

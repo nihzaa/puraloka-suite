@@ -322,6 +322,22 @@ jobs:
       - name: Jejak audit tak hilang
         run: node scripts/audit-jejak-tak-hilang.mjs
 
+      # TJS punya DUA tabel harga hardcode yang tak sepakat: Opus $5/$25 dipakai
+      # MENCATAT biaya, $15/$75 dipakai UI. Biaya yang tercatat 3x lebih rendah
+      # dari yang admin lihat — dan tak ada yang salah secara teknis, keduanya
+      # "bekerja". Angka biaya yang keliru lebih berbahaya daripada tak ada
+      # angka: ia dipercaya, dan keputusan diambil di atasnya.
+      - name: Satu sumber harga AI
+        run: node scripts/audit-satu-sumber-harga.mjs
+
+      # Batas biaya yang diperiksa SESUDAH panggilan bukan batas — ia laporan
+      # kerusakan. Satu pesan bisa memicu 16 ronde tool-calling, jadi tenant
+      # berbatas Rp 100 ribu bisa tembus empat kali lipat dalam satu percakapan
+      # sebelum barisnya terlihat. Penjaga ini memeriksa URUTAN, bukan sekadar
+      # keberadaan: tiap panggilan wajib punya gerbang tersendiri sebelumnya.
+      - name: Gerbang biaya AI
+        run: node scripts/audit-gerbang-biaya-ai.mjs
+
       # Nominal dari permintaan yang dibaca `parseFloat` mentah. Rantai cacatnya
       # dibuktikan 2026-08-08 di Node DAN di Postgres: `qty: "abc"` → NaN → cek
       # saldo LOLOS (setiap perbandingan dengan NaN bernilai false) → Postgres

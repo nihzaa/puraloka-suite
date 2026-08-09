@@ -1410,7 +1410,29 @@ items:
       test: ganti provider dari UI -> /ai/insight memakai provider baru tanpa
       restart; lewati batas -> ditolak sebelum ada biaya keluar
     bobot: L
-    status: todo
+    status_akhir: >-
+      SELESAI SEBAGIAN 2026-08-10 — inti terpasang & terbukti, TIGA kriteria SENGAJA ditunda (lihat sisa_terbuka).
+      Terpasang: migrasi 250 (ai_provider_config + ai_biaya_token; numeric, USD+IDR+kurs saat catat, per RONDE, cache tulis/baca terpisah)
+      dan 251 (menu Penyedia AI, sesudah Kredensial). lib/ai-harga.ts SATU sumber harga (perbaikan C-7) — model tak dikenal
+      jatuh ke tarif TERMAHAL yang dihitung, bukan dipaku. lib/ai-config.ts gerbang tunggal: periksaGerbangAi() dipanggil
+      SEBELUM messages.create(), catatBiayaRonde() sesudahnya. /ai/insight kini memakai model + max_token per tenant dan
+      kunci per tenant lewat ambilKredensial() (jatuhan tenant -> env; kriteria FALLBACK terpenuhi).
+      UI /pengaturan/penyedia-ai: 4 asisten, batas biaya SATU kontrol (bukan per-kartu — nilainya memang global),
+      rincian pemakaian per model, peringatan saat model terlalu ringan untuk asisten yang butuh penalaran.
+      BUKTI: 2 penjaga baru, keduanya dibuktikan bisa merah — audit-satu-sumber-harga (6/6 mutasi MERAH, termasuk
+      tabel harga kedua ala TJS) dan audit-gerbang-biaya-ai (5/5 MERAH, termasuk urutan terbalik & ronde kedua
+      tanpa gerbang sendiri). Test 26/26 hijau: 20 lib + 6 rute. Gerbang terbukti MEMBLOKIR pada endpoint nyata —
+      mode blokir -> alasan 'batas_terlampaui', 200 bukan 500, dan NOL baris biaya baru. 22/22 penjaga repo hijau.
+    sisa_terbuka: >-
+      (1) RETENSI percakapan per tenant — belum ada percakapan yang disimpan, jadi tak ada yang bisa diretensi.
+      Wajar dikerjakan bersama TJS-C1 yang membuat percakapannya.
+      (2) RATE LIMIT per user — /ai/insight punya rateLimit 20/menit, tetapi per-rute, bukan per-user, dan
+      limiter repo ini global:false (per instance). Menuntaskannya berarti menyentuh infrastruktur rate limit,
+      bukan lapisan AI.
+      (3) "field yang divalidasi server WAJIB ada di UI" — terpenuhi untuk model/max_token/batas/mode/aktif;
+      `penyedia` divalidasi server tapi belum punya kontrol UI karena baru ada satu penyedia. Jadi kriteria ini
+      baru bisa benar-benar dinilai di TJS-B2, saat penyedia kedua ada.
+    status: wip
 
   - id: TJS-B2
     fase: 6

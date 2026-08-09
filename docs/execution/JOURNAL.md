@@ -5,6 +5,100 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-10 — TJS-B1: konfigurasi penyedia AI dari UI + batas biaya yang benar-benar menahan
+
+Autopilot, lanjutan Tahap A. Inti B1 terpasang; **tiga kriteria sengaja
+ditunda** dan ditulis di `sisa_terbuka` QUEUE — bukan ditandai selesai.
+
+### Yang dibangun
+
+| Bagian | Isi |
+|---|---|
+| Migrasi 250 | `ai_provider_config` + `ai_biaya_token` — numeric, USD+IDR+**kurs saat catat**, per RONDE, cache tulis/baca terpisah |
+| Migrasi 251 | menu Penyedia AI, tepat sesudah Kredensial (pasangannya) |
+| `lib/ai-harga.ts` | SATU sumber harga (perbaikan C-7 TJS) |
+| `lib/ai-config.ts` | gerbang tunggal: periksa **sebelum** panggil, catat sesudah |
+| `routes/v1/ai-config.ts` | GET/PUT config, permission `settings:ai:*` |
+| `/pengaturan/penyedia-ai` | 4 asisten, pemakaian bulan berjalan, batas biaya |
+
+`/ai/insight` kini memakai model, `max_token`, **dan kunci API milik tenant**
+(lewat `ambilKredensial`, jatuhan tenant → env). Sebelumnya ketiganya global:
+satu perusahaan berganti model berarti seluruh tenant ikut berganti, dan
+pemakaian tenant A ditagih ke kunci tenant B tanpa satu angka pun menunjukkannya.
+
+### Batas yang hanya dilaporkan bukan batas
+
+Cacat TJS yang diperbaiki di sini bukan "biaya tak tercatat" — TJS mencatatnya
+dengan benar dan menampilkannya di dashboard. Yang tak ada di sana: sesuatu
+yang **menghentikan panggilan berikutnya**.
+
+Bahayanya nyata karena satu pesan bisa memicu 16 ronde tool-calling. Kalau
+pemeriksaannya di akhir, tenant berbatas Rp 100 ribu bisa tembus empat kali
+lipat dalam satu percakapan, dan barisnya baru terlihat sesudah uangnya keluar.
+
+Dibuktikan pada endpoint nyata, bukan hanya pada fungsinya: mode blokir →
+`alasan: 'batas_terlampaui'`, status 200 (bukan 500, kartu beranda tetap utuh),
+dan **nol baris biaya baru** — panggilannya memang tak pernah terjadi.
+
+### Dua penjaga, dan keduanya sempat BUTA
+
+`audit-satu-sumber-harga` awalnya hijau saat disuntik tabel harga kedua ala
+TJS. Sebabnya `\b` di kiri pola: `\binputPrice` menuntut batas kata sebelum
+`i`, dan pada `inputPricePerMTok` huruf sebelumnya adalah huruf — batas itu tak
+pernah terbentuk. Ditambah kanan yang menuntut `:` tepat setelah nama, padahal
+nama nyatanya gabungan. Dua kelonggaran (`${k}[A-Za-z_]*`) memperbaikinya.
+
+`audit-gerbang-biaya-ai` awalnya memakai gerbang **paling awal** (`Math.min`),
+jadi panggilan kedua tanpa gerbang sendiri tetap dianggap tertutup oleh gerbang
+panggilan pertama. Kini tiap panggilan dipasangkan dengan gerbang tersendiri
+yang mendahuluinya.
+
+Keduanya ketahuan **hanya lewat uji mutasi**. Penjaga yang hijau pada
+pelanggaran yang melahirkannya lebih buruk daripada tak ada penjaga: ia memberi
+rasa aman yang keliru. Akhirnya 6/6 dan 5/5 mutasi MERAH.
+
+Satu mutasi juga terbukti **salah**: versi pertama M2 menyisipkan gerbang kedua
+bersama panggilan keduanya — itu pola yang sah, dan penjaganya benar saat
+menghijaukannya. Mutasi yang menguji pola sah tidak menguji apa pun.
+
+### Menilai UI sendiri, lalu merevisinya
+
+Tangkapan layar pertama menyingkap empat cacat yang tak terlihat dari kode:
+
+1. grid `auto-fit` dengan empat kontrol → tiga di atas, satu yatim di bawah;
+2. kartu "Asisten pemilik" berkata *"Butuh penalaran"* tepat di atas dropdown
+   bertuliskan *"Tugas ringan"* — dua kalimat saling membantah;
+3. **"Batas biaya per bulan" diulang di empat kartu padahal nilainya satu.**
+   Catatan kecil "dihitung dari seluruh asisten" tak mengalahkan bentuk: empat
+   kolom isian yang terlihat terpisah akan dibaca sebagai empat jatah;
+4. "Rp 2.057" bersebelahan dengan "Rp 113,36" — dua gaya angka dalam satu
+   kolom yang dimaksudkan untuk dipindai.
+
+Keempatnya diperbaiki. Batas kini satu kontrol di kartu Pemakaian dengan tombol
+simpannya sendiri, dan model yang terlalu ringan untuk asisten yang butuh
+penalaran diberi peringatan — peringatan, bukan larangan, karena Haiku untuk
+asisten pemilik bisa saja pilihan sadar demi biaya.
+
+### Utang penjaga yang bukan dari sesi ini
+
+`audit-peta-menu-vs-db` sudah merah **sebelum** sesi ini (diverifikasi dengan
+`git stash`: angkanya identik tanpa perubahan saya). `hrefBeda: 5` dan
+`labelBeda: 2` — katalog menyebut tujuan berbeda dari sidebar untuk key yang
+sama. Kelima href DB menunjuk halaman yang belum ada, tetapi ber-`kesiapan:
+'rencana'`, jadi bukan tautan mati yang menipu. Katalog diselaraskan ke DB;
+keduanya kini **nol**. `hanyaDb` 102→119 dinaikkan lantainya dengan alasan
+tertulis — isinya entri sidebar & grup, bukan modul yang hilang, dan catatan
+`_diukur` yang masih berbunyi 2026-08-07 ikut diperbaiki.
+
+### Bukti
+
+- test 26/26 hijau (20 `lib/ai-config`, 6 rute gerbang)
+- 22/22 penjaga repo hijau, dijalankan dari root
+- `tsc --noEmit` bersih di `apps/api` dan `apps/web`
+- tangkapan layar dua mode, termasuk keadaan batas terlampaui
+
+---
+
 ## 2026-08-09 (larut) — Tahap A tuntas: kredensial, penjadwal, approval satu pintu, inbox
 
 Autopilot. Lima item `TJS-A*` selesai dalam satu sesi lanjutan, masing-masing

@@ -11,6 +11,7 @@ import projectRoutes from './routes/v1/projects.js'
 import authRoutes from './routes/v1/auth.js'
 import dashboardRoutes from './routes/v1/dashboard.js'
 import aiRoutes from './routes/v1/ai.js'
+import aiConfigRoutes from './routes/v1/ai-config.js'
 import kasbonRoutes from './routes/v1/kasbons.js'
 import clientRoutes from './routes/v1/clients.js'
 import userRoutes from './routes/v1/users.js'
@@ -274,6 +275,7 @@ await app.register(authRoutes)
 await app.register(projectRoutes)
 await app.register(dashboardRoutes)
 await app.register(aiRoutes)
+await app.register(aiConfigRoutes)
 await app.register(kasbonRoutes)
 await app.register(clientRoutes)
 await app.register(userRoutes)
