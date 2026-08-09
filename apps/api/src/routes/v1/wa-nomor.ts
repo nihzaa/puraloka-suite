@@ -28,22 +28,23 @@ import { randomInt } from 'node:crypto'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { ambilKredensial } from '../../lib/kredensial.js'
-import { kirimWa, normalkanNomor, type KonfigurasiWa } from '../../lib/wa-kirim.js'
+import {
+  kirimWa,
+  konfigurasiKanal as muatKonfigurasi,
+  normalkanNomor,
+} from '../../lib/wa-kirim.js'
 
 const UMUR_KODE_MS = 10 * 60_000
 const MAKS_PERCOBAAN = 5
 
-/** Konfigurasi kanal dari kredensial tenant. */
-async function konfigurasiKanal(
-  request: Parameters<typeof ambilKredensial>[0],
-): Promise<KonfigurasiWa | null> {
-  const [baseUrl, apiKey, instance] = await Promise.all([
-    ambilKredensial(request, 'WA_BASE_URL'),
-    ambilKredensial(request, 'WA_API_KEY'),
-    ambilKredensial(request, 'WA_INSTANCE'),
-  ])
-  if (!baseUrl?.trim() || !apiKey?.trim() || !instance?.trim()) return null
-  return { penyedia: 'evolution', baseUrl, apiKey, instance }
+/**
+ * Konfigurasi kanal untuk request web.
+ *
+ * Pemuatannya sendiri tinggal di `wa-kirim.ts` — dipakai bersama webhook, yang
+ * tak punya bentuk `request` yang sama. Di sini hanya pengikatannya.
+ */
+function konfigurasiKanal(request: Parameters<typeof ambilKredensial>[0]) {
+  return muatKonfigurasi((kunci) => ambilKredensial(request, kunci))
 }
 
 export default async function waNomorRoutes(app: FastifyInstance) {

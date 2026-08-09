@@ -386,6 +386,22 @@ jobs:
       - name: Sesi sintetis aman
         run: node scripts/audit-sesi-sintetis-aman.mjs
 
+      # Webhook WhatsApp satu-satunya route yang tak lewat `authenticate` —
+      # penyedia bukan pengguna, ia tak punya sesi. Akibatnya tiap gerbang
+      # ditegakkan dengan tangan, dan yang ditegakkan dengan tangan hanya
+      # sekuat penjaganya.
+      #
+      # Ambangnya NOL, bukan ratchet: SATU webhook tanpa gerbang cukup untuk
+      # membuka basis ke siapa pun yang menebak URL-nya. Rujukan TJS-nya punya
+      # dedup tapi NOL verifikasi asal (diukur 2026-08-10, 158 baris, nol
+      # `signature`/`hmac`/apikey) — celah yang sengaja tak ditiru.
+      #
+      # Kelima gerbangnya terbukti bisa MERAH: `bash scripts/bukti-mutasi-webhook.sh`.
+      # G-5 sempat HIJAU-KARENA-BUTA (memotong dari baris `import`, bukan dari
+      # pemanggilan) dan hanya mutasi yang menemukannya.
+      - name: Webhook publik bergerbang
+        run: node scripts/audit-webhook-bergerbang.mjs
+
       # Nominal dari permintaan yang dibaca `parseFloat` mentah. Rantai cacatnya
       # dibuktikan 2026-08-08 di Node DAN di Postgres: `qty: "abc"` → NaN → cek
       # saldo LOLOS (setiap perbandingan dengan NaN bernilai false) → Postgres

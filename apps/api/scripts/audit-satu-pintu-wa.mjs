@@ -42,6 +42,23 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const SRC = resolve(__dirname, '..', 'src')
 const PINTU = 'lib/wa-kirim.ts'
 
+/**
+ * Berkas yang boleh MENYEBUT nama kunci WA tanpa jadi jalur kirim kedua.
+ *
+ * Hanya satu, dan alasannya sempit: `lib/kredensial.ts` adalah KATALOG
+ * kredensial. Ia harus menyebut `WA_BASE_URL`/`WA_API_KEY`/`WA_INSTANCE`
+ * supaya ketiganya muncul di halaman Kredensial dan bisa diisi tanpa menyentuh
+ * berkas `.env` — inti dari "semuanya bisa dikonfigurasi di UI".
+ *
+ * Menyebut nama kunci di katalog bukan mengirim WhatsApp. Yang dicegah W-2
+ * adalah berkas yang MEMAKAI kredensial itu untuk membangun jalur kirim
+ * sendiri; katalog tak memanggil apa pun.
+ *
+ * Daftar ini sengaja bukan pola. Satu nama berkas, ditulis penuh, supaya
+ * penambahan berikutnya terlihat di diff dan harus dijelaskan.
+ */
+const KATALOG_BOLEH_MENYEBUT = new Set(['lib/kredensial.ts'])
+
 if (!existsSync(join(SRC, PINTU))) {
   console.error(`✗ Pintu keluar WA tak ditemukan: ${PINTU}`)
   console.error('  Kalau dipindah, perbarui PINTU di penjaga ini — daftar yang')
@@ -109,8 +126,26 @@ for (const path of berkasTs(SRC)) {
         })
       }
     }
-    // Kredensial WA di luar pintu: tanda seseorang sedang membangun jalur kedua.
-    if (/apikey\s*:/i.test(isi) && /evolution|wa[_-]?api|whatsapp/i.test(src.slice(0, 2000))) {
+    /*
+     * Kredensial WA di luar pintu: tanda seseorang membangun jalur kedua.
+     *
+     * ── Kenapa yang dicari NAMA KUNCINYA, bukan kata "whatsapp"
+     *
+     * Versi pertama menuntut `apikey:` di baris ini DAN kata
+     * `evolution|wa_api|whatsapp` di mana pun dalam 2.000 karakter pertama.
+     * Pada 2026-08-10 ia menuduh `lib/ai-jalankan.ts:236` — baris
+     * `apiKey: kunci ?? ''` milik penyedia MODEL, disandingkan dengan
+     * konstanta `GAYA_WHATSAPP` (teks gaya jawaban, bukan kredensial).
+     *
+     * Dua hal salah sekaligus: `apiKey` model bukan kredensial WA, dan
+     * menyebut "WhatsApp" bukan bukti mengirim WhatsApp. Penjaga yang menuduh
+     * berdasarkan kata akan mendorong orang mengganti nama variabel supaya
+     * hijau — dan itu membuatnya lebih buta, bukan lebih tajam.
+     *
+     * Yang dicari sekarang: nama kunci kredensial WA yang sesungguhnya.
+     * Mereka hanya punya satu alasan untuk muncul di sebuah berkas.
+     */
+    if (/\bWA_(API_KEY|BASE_URL|INSTANCE)\b/.test(isi) && !KATALOG_BOLEH_MENYEBUT.has(rel)) {
       gagal.push({
         aturan: 'W-2',
         pesan: `${rel}:${i + 1} memakai kredensial WhatsApp di luar ${PINTU}`,

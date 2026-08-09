@@ -157,21 +157,43 @@ describe('array kosong ≠ NULL — ini inti "matikan semua tool"', () => {
 })
 
 describe('kode BENAR-BENAR memakainya — bukan kolom hiasan', () => {
-  const chat = readFileSync(resolve(SRC, 'routes', 'v1', 'ai-chat.ts'), 'utf8')
+  /*
+   * Dibaca dari SELURUH jalur AI, bukan satu berkas.
+   *
+   * Versi pertama test ini hanya membaca `routes/v1/ai-chat.ts`. Saat gerbang
+   * diangkat ke `lib/ai-jalankan.ts` supaya kanal WhatsApp memakai aturan yang
+   * sama, test ini merah — padahal kodenya masih ada dan masih benar, hanya
+   * pindah berkas.
+   *
+   * Itu kegagalan yang tepat (ia MEMANG menemukan kodenya hilang dari tempat
+   * yang diperiksa), tapi memperbaikinya dengan menunjuk satu berkas baru cuma
+   * menunda masalah yang sama ke pemindahan berikutnya. Yang dijaga di sini
+   * bukan "berkas X memuat baris Y", melainkan "kolom konfigurasi ini benar-
+   * benar sampai ke model" — dan itu berlaku di mana pun kodenya tinggal.
+   */
+  const jalurAi = [
+    resolve(SRC, 'routes', 'v1', 'ai-chat.ts'),
+    resolve(SRC, 'routes', 'v1', 'wa-webhook.ts'),
+    resolve(SRC, 'lib', 'ai-jalankan.ts'),
+  ]
+  const chat = jalurAi.map((p) => readFileSync(p, 'utf8')).join('\n')
 
   it('rute chat memakai maksRonde dari config, bukan konstanta', () => {
     expect(chat).toContain('maksRonde: gerbang.konfigurasi.maksRonde')
   })
 
   it('rute chat menyambung promptSistem tenant', () => {
-    expect(chat).toContain('susunPromptSistem(gerbang.konfigurasi.promptSistem)')
+    expect(chat).toContain('susunPromptSistem(gerbang.konfigurasi.promptSistem')
   })
 
   it('prompt tenant DISAMBUNG, tidak menggantikan prompt dasar', () => {
     // Kalau tenant bisa mengganti seluruh prompt, satu kalimat ceroboh
     // menghapus instruksi yang menahan injeksi — dan tak ada gejala sampai
     // seseorang mencobanya.
-    expect(chat).toMatch(/function susunPromptSistem[\s\S]*?PROMPT_DASAR,/)
+    // `dasar` = PROMPT_DASAR + gaya kanal, dan ia muncul SEBELUM tambahan
+    // tenant di array yang di-join. Urutan itulah yang menjamin instruksi
+    // tenant tak bisa mendahului batas yang ditulis pengembang.
+    expect(chat).toMatch(/function susunPromptSistem[\s\S]*?PROMPT_DASAR \+ gayaKanal[\s\S]*?\n    dasar,/)
   })
 
   it('toolAktif menyaring katalog', () => {

@@ -1657,8 +1657,38 @@ items:
       Satu pintu diambil dari pelajaran TJS: ia baru merapikannya SETELAH
       tersebar ke 10 titik di app + 30 di n8n, dan ketersebaran itu menyebabkan
       alert stok tak pernah terkirim — gagalnya senyap.
+
+      SELESAI 2026-08-10. Ketujuh kriteria terpenuhi, plus arah MASUK (webhook)
+      yang semula tak tertulis di sini tetapi tanpanya kanal ini cuma satu arah.
+
+      Yang MELEBIHI rujukan TJS, dan alasannya terukur:
+
+      (1) Verifikasi asal webhook. `automation-tjs/.../lib/wa/inbound/
+      evolution-inbound.ts` diperiksa 2026-08-10: 158 baris, NOL `signature`,
+      NOL `hmac`, NOL pemeriksaan apikey. Siapa pun yang tahu URL-nya bisa
+      mengirim pesan atas nama nomor terdaftar mana pun — dan nomor terdaftar
+      bukan rahasia. Di sini rahasia diperiksa lebih dulu, dengan perbandingan
+      yang tak bocor lewat waktu, dan penolakannya dicatat.
+
+      (2) Peran dari `company_members`, bukan daftar kontak terpisah
+      (`ownerAiContact` di TJS) — satu pencabutan berlaku di semua kanal.
+
+      (3) Gerbang biaya + saklar mati DIANGKAT ke `lib/ai-jalankan.ts`, dipakai
+      web dan WhatsApp. Menyalinnya berarti dua salinan aturan keamanan yang
+      akan berbeda diam-diam; gejala terburuknya tenant mematikan AI, web
+      patuh, WhatsApp terus menjawab, tanpa satu pun galat.
+
+      Yang SENGAJA tidak ditiru: penanda media (`[gambar]`). Asisten ini
+      menjawab pertanyaan tentang data perusahaan; membalas foto dengan tebakan
+      berdasarkan caption lebih buruk daripada diam.
+
+      Bukti: 15 test rute + 16 test parser/dedup (termasuk 5 klaim BERSAMAAN →
+      tepat satu menang), penjaga `audit-webhook-bergerbang.mjs` ambang NOL,
+      G-1..G-5 terbukti bisa merah (`bash scripts/bukti-mutasi-webhook.sh`).
+      G-5 sempat HIJAU-KARENA-BUTA — memotong dari baris `import`, bukan dari
+      pemanggilan — dan hanya mutasi yang menemukannya.
     bobot: L
-    status: todo
+    status: done
 
   - id: TJS-E1
     fase: 6

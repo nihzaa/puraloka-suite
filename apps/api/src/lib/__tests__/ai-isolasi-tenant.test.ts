@@ -69,12 +69,40 @@ beforeAll(async () => {
   const { rows: role } = await db.query(`SELECT id FROM roles WHERE name = 'admin' LIMIT 1`)
   const cap = Date.now()
 
+  /*
+   * `owner_user_id` WAJIB ikut, meski test ini tak memakainya.
+   *
+   * `t9-kelola-badan-usaha` menegakkan invariant "tiap akar grup punya
+   * pemilik". Karena CI menjalankan enam shard di atas SATU basis, company
+   * yatim dari fixture ini menjatuhkan test di BERKAS LAIN, dengan pesan yang
+   * sama sekali tak menyebut fixture ini — sudah terjadi tiga kali di repo ini,
+   * dan itulah sebabnya `audit-fixture-company-yatim.mjs` ada.
+   */
+  /*
+   * Pemiliknya HARUS orang yang sudah memiliki company lain — bukan
+   * `SELECT id FROM users LIMIT 1`.
+   *
+   * Saya sempat memakai `LIMIT 1`, dan itu membuat `t9-kelola-badan-usaha`
+   * merah HANYA saat suite penuh dijalankan: t9 memilih "user selain pemilik
+   * grup" sebagai kontrolnya, dan `LIMIT 1` kebetulan menunjuk orang itu.
+   * Kontrolnya jadi pemilik, lalu gerbang `is_group_owner` terlihat bocor —
+   * padahal yang bocor fixture ini.
+   *
+   * Memakai pemilik yang SUDAH ADA tak menambah pemilik baru, jadi tak ada
+   * berkas lain yang berubah artinya.
+   */
+  const { rows: pemilik } = await db.query(
+    `SELECT owner_user_id AS id FROM companies
+      WHERE owner_user_id IS NOT NULL
+      GROUP BY owner_user_id ORDER BY count(*) DESC LIMIT 1`,
+  )
+
   const { rows: b } = await db.query(
-    `INSERT INTO companies (code, name) VALUES ($1, $2) RETURNING id`,
+    `INSERT INTO companies (code, name, owner_user_id) VALUES ($1, $2, $3) RETURNING id`,
     // CHECK `companies_code_format`: ^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$ —
     // huruf KECIL, dan tak boleh diakhiri tanda hubung. Diukur dari
     // pg_constraint sesudah percobaan `UJI<angka>` ditolak.
-    [`uji-iso-${cap}`, `${TANDA} Karya Beton Nusantara`],
+    [`uji-iso-${cap}`, `${TANDA} Karya Beton Nusantara`, pemilik[0].id],
   )
   tenantB = b[0].id
 

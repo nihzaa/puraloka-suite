@@ -5,6 +5,103 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-10 (lanjutan 9) — Webhook masuk: kanal WhatsApp jadi dua arah (TJS-D2)
+
+Sampai kemarin kanal ini cuma bisa berbicara. Sekarang ia mendengar.
+
+### Celah TJS yang tidak ditiru — dan cara mengukurnya
+
+`automation-tjs/.../lib/wa/inbound/evolution-inbound.ts` dibaca utuh: 158 baris.
+Ia punya deduplikasi yang bagus dan dua pelajaran lapangan yang saya tiru apa
+adanya — `fromMe` harus dibuang (baris 108: "akan jadi lingkaran") dan
+`remoteJidAlt` didahulukan atas `remoteJid` (baris 114: "mengabaikannya berarti
+balasan dikirim ke nomor yang salah").
+
+Yang TIDAK ada di sana: **nol** `signature`, **nol** `hmac`, **nol** pemeriksaan
+apikey. Webhook-nya terbuka bagi siapa pun yang tahu URL-nya.
+
+Itu bukan cacat kecil. Nomor terdaftar bukan rahasia — ia tertulis di kartu
+nama. Tanpa verifikasi asal, siapa pun bisa mengirim pesan atas nama nomor mana
+pun yang terdaftar, dan asisten menjawabnya dengan data perusahaan orang itu.
+
+Di sini rahasia diperiksa lebih dulu, dengan perbandingan yang tak bocor lewat
+waktu, **sebelum** apa pun menyentuh basis. Urutan itu dijaga penjaga, bukan
+diingat.
+
+### Gerbang diangkat, bukan disalin
+
+Menambah kanal kedua memberi dua pilihan: menyalin rangkaian gerbang, atau
+mengangkatnya. Saya angkat ke `lib/ai-jalankan.ts`.
+
+Alasannya bukan kerapian. Saklar mati, gerbang biaya, dan irisan tool adalah
+aturan **keamanan**, dan salinan aturan keamanan selalu berbeda pada akhirnya —
+biasanya karena satu diperbaiki dan satunya lupa. Gejala terburuknya bisa
+dibayangkan persis: tenant mematikan AI, web patuh, WhatsApp terus menjawab.
+Tak ada galat. Tak ada yang tahu.
+
+WhatsApp memakai ember biaya `staff` yang SAMA dengan web, sengaja. Batas biaya
+milik tenant, bukan milik kanal; ember terpisah berarti tenant yang membatasi
+Rp 500rb bisa menghabiskan dua kali lipat hanya dengan berpindah kanal.
+
+### Saya salah: penjaga G-5 saya sendiri BUTA
+
+Penjaga baru `audit-webhook-bergerbang.mjs` menjaga lima hal, ambang NOL.
+G-5 memastikan percobaan dari nomor tak dikenal dicatat (C-9).
+
+Ia hijau. Mutasi membuktikan ia hijau **karena buta**: saya memotong 800
+karakter dari kemunculan `bangunSesiDariNomor` PERTAMA — yang ternyata baris
+`import`, bukan pemanggilannya. Potongan itu memuat baris import
+`catatAksesDitolak`, jadi penjaga tetap hijau meski pemanggilan sesungguhnya
+sudah dicabut.
+
+Yang membuat ini pantas dicatat: saya melakukan kesalahan yang **sama persis**
+beberapa menit sebelumnya di G-3 (temuan palsu karena `import { supabase }`),
+menemukannya, memperbaikinya, menulis komentar panjang tentangnya — lalu
+mengulanginya di pemeriksaan berikutnya yang saya tulis. Membaca ulang tak
+menemukannya; hanya mutasi yang menemukannya.
+
+Kelimanya kini terbukti bisa merah: `bash scripts/bukti-mutasi-webhook.sh`.
+
+### Test yang hijau tanpa pernah bertanya
+
+Test rute pertama memakai `LIMIT 1` untuk memilih anggota perusahaan. Ia
+mendapat seorang **client** — peran yang memang tak punya `ai:chat`. Akibatnya
+setiap kasus "nomor terdaftar" berhenti di gerbang izin, dan 13 test hijau
+tanpa satu pun yang membuktikan gerbang SESUDAHNYA bekerja.
+
+Kehijauan paling berbahaya bukan jawaban yang salah — melainkan pertanyaan yang
+tak pernah sampai. Peran kini dipilih eksplisit (`r.name = 'admin'`), dan ada
+test yang khusus menuntut jalur itu MENEMBUS gerbang izin.
+
+### Ratchet dipatuhi, bukan dinaikkan
+
+Webhook membuat ratchet T4f naik 367 > 366. Tripwire R-011 melarang kenaikan
+kedua, dan founder meratifikasinya dengan syarat itu.
+
+Penyebabnya ternyata bukan query, melainkan `const lintas = supabase` — penjaga
+menghitung baris yang berakhir dengan `supabase`. Klaim dedup dipindah ke
+`lib/wa-masuk.ts` (tempatnya yang benar), aliasnya dihapus, ambangnya tak
+disentuh.
+
+### Bukti
+
+- `npx vitest run` — 2.570 test, 13 gagal, **semuanya pra-ada** (dibuktikan
+  dengan `git stash`: 6 berkas yang sama merah di pohon bersih)
+- 15 test rute webhook + 16 test parser/dedup, termasuk 5 klaim BERSAMAAN →
+  tepat satu menang (terhadap Postgres nyata)
+- `node scripts/audit-webhook-bergerbang.mjs` → exit 0, ambang NOL
+- `bash scripts/bukti-mutasi-webhook.sh` → G-1..G-5 MERAH, pulih HIJAU
+- migrasi 258 lulus blok verifikasinya (id ganda ditolak, company_id NULL boleh,
+  nol kolom isi pesan)
+
+### Sisa untuk founder
+
+`WA_WEBHOOK_SECRET` di `apps/api/.env` (contoh + alasannya ada di
+`.env.example`), lalu daftarkan URL webhook di instance Evolution. Kosong =
+webhook MENOLAK semua (503), bukan terbuka.
+
+---
+
 ## 2026-08-10 (lanjutan 8) — Verifikasi nomor + UI Kanal WhatsApp
 
 Pintu keluar sudah ada; sekarang permukaan yang bisa dipakai.

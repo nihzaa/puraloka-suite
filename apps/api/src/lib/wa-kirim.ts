@@ -102,6 +102,32 @@ export interface KonfigurasiWa {
 }
 
 /**
+ * Memuat konfigurasi kanal dari kredensial tenant.
+ *
+ * Tinggal di sini, bukan di route, karena ada DUA route yang mengirim WA
+ * (verifikasi nomor dan balasan webhook) dan konfigurasi yang dimuat dua cara
+ * akan berbeda pada akhirnya — biasanya saat kunci ketiga ditambahkan dan
+ * hanya satu tempat yang ikut diperbarui. Gejalanya: satu jalur mengirim,
+ * satunya diam, keduanya tanpa galat.
+ *
+ * `null` berarti kanal BELUM SIAP, bukan galat. Ketiga nilainya wajib —
+ * `baseUrl` tanpa `instance` menghasilkan URL yang bentuknya benar tapi
+ * menunjuk ke ketiadaan, dan Evolution menjawabnya 404 yang terbaca seperti
+ * gangguan jaringan.
+ */
+export async function konfigurasiKanal(
+  ambil: (kunci: string) => Promise<string | null>,
+): Promise<KonfigurasiWa | null> {
+  const [baseUrl, apiKey, instance] = await Promise.all([
+    ambil('WA_BASE_URL'),
+    ambil('WA_API_KEY'),
+    ambil('WA_INSTANCE'),
+  ])
+  if (!baseUrl?.trim() || !apiKey?.trim() || !instance?.trim()) return null
+  return { penyedia: 'evolution', baseUrl, apiKey, instance }
+}
+
+/**
  * Evolution API — penyedia pertama.
  *
  * Bentuk muatannya `{ number, text }`. Itu ditulis di SATU tempat justru

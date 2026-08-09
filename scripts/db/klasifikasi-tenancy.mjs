@@ -62,6 +62,13 @@ const D_KHUSUS = new Map([
   ['notifications', 'NOT NULL — notifikasi selalu TENTANG sesuatu di satu company'],
   ['users', 'global (D5) — TANPA company_id'],
   ['lessons_learned_records', 'B — berbagi antar tenant = fitur produk butuh consent, bukan default'],
+  // Yang ditolak memang BELUM punya tenant. Nomor tak dikenal, menurut
+  // definisinya, tak terkait perusahaan mana pun — memberinya `company_id`
+  // berarti mengarang pemilik, dan memaksanya masuk `audit_logs`
+  // (company_id NOT NULL) berarti hal yang sama dengan langkah tambahan.
+  // Isinya sengaja minimal: pengenal, kanal, alasan. Tanpa isi pesan —
+  // orang tak dikenal tak pernah menyetujui apa pun. (C-9, migrasi 249.)
+  ['ai_akses_ditolak', 'TANPA company_id by design — yang ditolak belum punya tenant (C-9)'],
 ])
 
 // Akar tenancy: tabel yang MEMBAWA company_id dan jadi ujung rantai FK.
