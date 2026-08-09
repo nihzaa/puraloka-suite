@@ -1494,6 +1494,23 @@ items:
   - id: TJS-C1
     fase: 6
     judul: "Asisten AI read-only — 7 tool, nol jalur tulis"
+    kemajuan: >-
+      FONDASI TERPASANG 2026-08-10 (belum selesai — agent loop belum ada).
+      Migrasi 252: ai_pengaturan_tenant (saklar mati per tenant + retensi, bawaan 30 hari),
+      ai_percakapan (giliran_terkunci_pada untuk C-4), ai_pesan (kolom "blok" jsonb menyimpan
+      tool_use/tool_result — perbaikan C-5, dibuktikan di blok verifikasi migrasinya sendiri).
+      lib/ai-tool.ts: 4 tool READ-ONLY (daftar_proyek, ringkas_keuangan, menunggu_persetujuan,
+      stok_material), ACL fail-closed diperiksa DUA KALI (rakit + eksekusi), hasil dibungkus
+      penanda DATA-bukan-instruksi (I-2), tiap hasil membawa daftar "entitas" untuk I-4.
+      Penjaga audit-tool-ai-read-only.mjs: I-1 nol tulis, T-1 nol supabase mentah, T-1b unsafe
+      wajib bersaring, I-3 tiap tool ber-izin — 6/6 mutasi MERAH termasuk ARROW-CONST yang
+      spec tandai sebagai titik buta penjaga tenancy lama. 16 test tool + 75 test AI total.
+      EMPAT TEBAKAN SKEMA SAYA SALAH dan ketahuan karena diukur: materials tak punya kolom stok
+      (stok di gudang_stok), purchase_orders tak punya status pending_approval (tool-nya akan
+      SELALU menjawab "tidak ada yang menunggu" — jawaban yang terdengar benar), permission
+      inventory:view & approval:view tak terdaftar (yang ada gudang:view & procurement:view).
+      SISA: agent loop berbatas ronde (ronde terakhir tanpa tools, C-4), rute chat, satu giliran
+      per user, explainability C2, UI.
     blokir_oleh: [TJS-B2]
     kriteria_selesai:
       - "agent loop lewat lapisan provider (bukan SDK langsung)"

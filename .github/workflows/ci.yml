@@ -348,6 +348,15 @@ jobs:
       - name: Satu jalan ke model (L-6)
         run: node scripts/audit-satu-jalan-ke-model.mjs
 
+      # I-1 (spec §5.3). Satu-satunya pertahanan prompt injection yang TIDAK
+      # bergantung pada model berperilaku baik: tak ada tool yang menulis, jadi
+      # bujukan seberhasil apa pun tak menghasilkan tulisan. Titik lemahnya bukan
+      # modelnya melainkan sesi berikutnya yang menambah tool tulis karena
+      # kelihatan berguna — kalimat wajar, tak ada test yang merah, dan I-1
+      # lenyap dalam satu commit. Sekaligus T-1: tool wajib lewat TenantDb.
+      - name: Tool AI read-only & sadar tenant
+        run: node scripts/audit-tool-ai-read-only.mjs
+
       # Nominal dari permintaan yang dibaca `parseFloat` mentah. Rantai cacatnya
       # dibuktikan 2026-08-08 di Node DAN di Postgres: `qty: "abc"` → NaN → cek
       # saldo LOLOS (setiap perbandingan dengan NaN bernilai false) → Postgres
