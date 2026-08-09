@@ -1252,7 +1252,9 @@ items:
       test integrasi: simpan -> GET -> pastikan respons tak memuat nilai;
       mutasi sengaja (tambahkan kolom ke select) -> penjaga MERAH -> pulihkan
     bobot: M
-    status: todo
+    status_akhir: >-
+      SELESAI 2026-08-09. Migrasi 242 (app_credentials terenkripsi, RLS RESTRICTIVE, 2 permission), lib/kredensial-sandi.ts (AES-256-GCM + scrypt — KDF yang TJS lewatkan), rute 4 endpoint, penjaga audit-kredensial-tak-bocor (ambang NOL, 3 mutasi MERAH), UI /pengaturan/kredensial + migrasi 243. 30 test.
+    status: done
 
   - id: TJS-A2
     fase: 6
@@ -1284,11 +1286,23 @@ items:
       kenyataan". Puraloka punya gejala kembarnya: channel push dicatat, 0
       dari 23 user berlangganan (utils/notifications.ts:167).
     bobot: M
-    status: todo
+    status_akhir: >-
+      SELESAI 2026-08-09. lib/jadwal.ts fungsi murni (20 test deterministik: cron telat mengejar, tanggal 31 di bulan 30 hari, jalan tepat sekali per periode), migrasi 244+245, rute pemicu + akun layanan, penjaga L-4 audit-jadwal-punya-pembaca (3 mutasi MERAH), workflow cron, UI /pengaturan/jadwal + migrasi 246. Diverifikasi pada sistem NYATA: 2 sukses lalu 2 dilewati 'sudah-jalan-periode-ini'.
+    status: done
 
   - id: TJS-A3a
     fase: 6
     judul: "Konsolidasi 5 jalur approval liar — termasuk kasbon berpintu dua"
+    status_akhir: >-
+      SELESAI 2026-08-09. Self-approval mandor dihapus + SoD 403 (pemohon tak
+      boleh menyetujui sendiri); pintu kedua kasbon di notifications.ts
+      dibongkar — kini MENERUSKAN ke rute kanonik. Migrasi 247 melonggarkan
+      approved_by jadi nullable: kolomnya NOT NULL, jadi kode lama TERPAKSA
+      mengisi pemohon. Tiga sisanya ternyata BUKAN gerbang persetujuan
+      (borongan settlement tanpa pemohon terpisah; ncr & punch-list verifikasi
+      lapangan; k3 keselamatan bukan uang) — didokumentasikan di penjaga
+      audit-approval-satu-pintu.mjs. Sisa nyata: sertifikat-ipc (dasar
+      tagihan) butuh entity type baru.
     blokir_oleh: [TJS-A0]
     kriteria_selesai:
       - "progress payment mandor (mandor.ts:1608, :1720) lewat mesin approval —
@@ -1314,11 +1328,19 @@ items:
       ("gerbang benar di satu jalur, bolong di jalur lain") — Puraloka sudah
       punya bentuknya sendiri, sejak sebelum ada AI.
     bobot: L
-    status: todo
+    status: done
 
   - id: TJS-A3b
     fase: 6
     judul: "Inbox approval terpusat — SELURUH jalur, bukan 7 dari 12"
+    status_akhir: >-
+      SELESAI 2026-08-09. GET /api/v1/approval/inbox mengagregasi KETUJUH
+      entity type; katalog di lib/inbox-approval.ts (tiap kolom & status
+      diverifikasi ke information_schema, bukan ditebak — dua tebakan awal
+      SALAH dan tertangkap mekanisme `dilewati`). UI /approval-inbox +
+      migrasi 248. Penjaga audit-inbox-lengkap.mjs (ambang NOL, uji mutasi
+      2 arah MERAH) memastikan jenis baru tak bisa diam-diam tak muncul.
+      9 test integrasi; yang terpenting: `dilewati` HARUS kosong.
     blokir_oleh: [TJS-A3a]
     kriteria_selesai:
       - "satu halaman membaca approval_progress untuk SELURUH jenis"
@@ -1333,7 +1355,7 @@ items:
       jalur LEBIH BERBAHAYA daripada tak ada inbox — approver akan percaya
       antreannya kosong.
     bobot: M
-    status: todo
+    status: done
 
   - id: TJS-A4
     fase: 6

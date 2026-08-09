@@ -201,7 +201,7 @@ function Konten() {
         </div>
       )}
 
-      <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 12 }}>
+      <div style={{ marginBottom: "var(--gap-bagian)", display: "flex", alignItems: "center", gap: 12 }}>
         <KepalaHalaman
           judul="Jadwal Tugas"
           keterangan="Tugas berkala yang berjalan sendiri — tanpa perlu ada yang menekan tombol."
@@ -212,7 +212,7 @@ function Konten() {
       {!siap && (
         <div
           style={{
-            ...card, padding: "var(--pad-kartu)", marginBottom: 16,
+            ...card, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)",
             display: "flex", gap: 10,
             borderColor: "var(--warning)", background: "var(--warning-bg)",
           }}
@@ -228,7 +228,7 @@ function Konten() {
       )}
 
       {!bolehKelola && (
-        <div style={{ ...card, padding: "var(--pad-kartu)", marginBottom: 16, display: "flex", gap: 10 }}>
+        <div style={{ ...card, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)", display: "flex", gap: 10 }}>
           <Info size={18} style={{ color: C.mid, flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 13, color: C.mid, lineHeight: 1.6 }}>
             Anda bisa melihat jadwal dan riwayatnya, tetapi tidak mengubahnya.
@@ -245,7 +245,7 @@ function Konten() {
         <div
           style={{
             ...card, padding: "var(--pad-kartu)", marginBottom: 12,
-            display: "flex", flexWrap: "wrap", gap: 20, alignItems: "baseline",
+            display: "flex", flexWrap: "wrap", gap: "var(--gap-bagian)", alignItems: "baseline",
           }}
         >
           {[

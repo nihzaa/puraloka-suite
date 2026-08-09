@@ -226,7 +226,7 @@ function Konten() {
         </div>
       )}
 
-      <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 12 }}>
+      <div style={{ marginBottom: "var(--gap-bagian)", display: "flex", alignItems: "center", gap: 12 }}>
         <KepalaHalaman
           judul="Kredensial"
           keterangan="Kunci API penyedia AI, WhatsApp, dan email. Tersimpan terenkripsi dan tak pernah ditampilkan kembali."
@@ -237,7 +237,7 @@ function Konten() {
       {!enkripsiSiap && (
         <div
           style={{
-            ...card, padding: 14, marginBottom: 16, display: "flex", gap: 10,
+            ...card, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)", display: "flex", gap: 10,
             borderColor: "var(--danger)", background: "var(--danger-bg)",
           }}
         >
@@ -251,7 +251,7 @@ function Konten() {
       )}
 
       {!bolehKelola && (
-        <div style={{ ...card, padding: "var(--pad-kartu)", marginBottom: 16, display: "flex", gap: 10 }}>
+        <div style={{ ...card, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)", display: "flex", gap: 10 }}>
           <Info size={18} style={{ color: C.mid, flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 13, color: C.mid, lineHeight: 1.6 }}>
             Anda bisa melihat kredensial mana yang terpasang, tetapi tidak mengubahnya.
@@ -266,7 +266,7 @@ function Konten() {
         </div>
       ) : (
         grup.map((namaGrup) => (
-          <section key={namaGrup} style={{ marginBottom: 24 }}>
+          <section key={namaGrup} style={{ marginBottom: "var(--gap-bagian)" }}>
             <h2
               style={{
                 fontSize: 12, fontWeight: 600, letterSpacing: "0.04em",

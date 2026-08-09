@@ -5,6 +5,134 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-09 (larut) — Tahap A tuntas: kredensial, penjadwal, approval satu pintu, inbox
+
+Autopilot. Lima item `TJS-A*` selesai dalam satu sesi lanjutan, masing-masing
+dengan penjaga yang **terbukti bisa merah**.
+
+### Yang dibangun
+
+| Item | Isi |
+|---|---|
+| A1 | kredensial terenkripsi (AES-256-GCM + scrypt), rute, UI, penjaga |
+| A2 | penjadwal — notifikasi kini terbit tanpa manusia menekan tombol |
+| A3a | self-approval dihapus, pintu kedua kasbon dibongkar, migrasi 247 |
+| A3b | inbox approval terpusat — ketujuh jenis dalam satu antrean |
+
+Empat penjaga baru, semuanya ambang NOL dan semuanya diuji mutasi:
+`audit-kredensial-tak-bocor` · `audit-jadwal-punya-pembaca` (L-4) ·
+`audit-approval-satu-pintu` · `audit-inbox-lengkap` · `uji-token-css-ada`.
+
+### Cacat yang ditemukan mesin, bukan mata
+
+**33 token warna hantu.** Halaman kredensial memakai `var(--sukses)`,
+`var(--bahaya)`, `var(--peringatan)` — enam token yang **tak pernah ada**
+(nama benar `--success`/`--danger`/`--warning`). Warnanya hilang sejak
+di-commit.
+
+Lolos SELURUH penjaga: `tsc` bersih (ini CSS), `hex-ratchet` senang (tak ada
+hex dipaku), dan `kerapatan-ratchet` justru **memujinya** — token dipakai,
+angka tak dipaku. Penjaga kerapatan memuji kode yang warnanya hilang, karena
+ia hanya bertanya "apakah memakai token", bukan "apakah tokennya ada".
+
+Ini kedua kalinya dalam satu hari: sebelumnya empat token padding bernilai
+string berkutip (`"3px 8px"`), juga hilang diam-diam. Penjaga
+`uji-token-css-ada` lahir dari keduanya.
+
+**`approved_by` ternyata NOT NULL.** Test untuk perbaikan self-approval GAGAL,
+dan kegagalannya menyingkap sebab yang lebih dalam: kode lama **terpaksa**
+mengisi `approved_by` saat membuat pembayaran, karena basis tak memberi pilihan
+lain. Skemanya merancang pembayaran sebagai "sudah disetujui sejak lahir":
+
+    approved_by   NOT NULL          <- justru yang ini wajib
+    requested_by  NULL              <- justru yang ini boleh kosong
+    status        DEFAULT 'approved'
+
+Tanpa migrasi 247, perbaikan kode akan gagal saat dijalankan.
+
+**Halaman inbox belum terdaftar di `middleware.ts`.** Ditangkap
+`tata-letak-ratchet` — halaman tanpa entri di sana tak terlindungi auth.
+
+**Dua kegagalan senyap di inbox.** `audit-kegagalan-senyap` menemukan dua query
+yang errornya tak diperiksa. Yang kedua halus: kalau `approval_progress` gagal
+dibaca, `level_selesai: 0` pada dokumen yang sebenarnya sudah disetujui level 1
+adalah **angka yang salah** — dan angka salah yang tak dipertanyakan lebih
+berbahaya daripada angka yang hilang.
+
+### Dua tebakan saya yang salah, ditangkap mekanisme sendiri
+
+Inbox punya field `dilewati` yang melaporkan jenis yang gagal dibaca. Saat
+pertama dijalankan, isinya dua:
+
+    project_expense    invalid input value for enum expense_status: "pending"
+    estimate_version   column estimate_versions.project_id does not exist
+
+Keduanya tebakan saya. `expense_status` tak punya `pending` (yang benar
+`submitted`), dan `estimate_versions` tak punya kolom proyek sama sekali —
+tenancy-nya lewat `scenario_id → scenarios.project_id`, dan peta tenancy sudah
+mencatatnya jauh sebelum inbox ini ada.
+
+Yang penting: keduanya **tidak** menghasilkan baris kosong. Mereka menghasilkan
+galat yang terlihat — dan itu sebabnya `dilewati` dirancang sejak awal. Inbox
+yang tak lengkap lebih berbahaya daripada tak ada inbox: ia mengajarkan bahwa
+antrean kosong berarti tak ada pekerjaan.
+
+### Rancangan yang saya batalkan di tengah jalan
+
+Penjadwal versi pertama memakai header rahasia yang membuat `authenticate`
+melewatkan pemeriksaan sesi. Dibatalkan setelah membaca `plugins/auth.ts` — di
+sana ada peringatan panjang bahwa urutan resolusi company **load-bearing**, dan
+bahwa peran dibaca per-company justru untuk mencegah kewenangan menyeberang
+antar tenant, lengkap dengan contoh eskalasi yang pernah terjadi.
+
+Gantinya akun layanan sungguhan. Dan itu langsung terbukti benar: 50 dari 52
+jadwal gagal dengan `403 "Anda bukan anggota perusahaan tersebut"` — batas
+tenant ditegakkan, kegagalannya terbaca.
+
+(Seed 52 itu juga salah saya — 25 dari 26 tenant adalah sisa tenant uji tanpa
+anggota. Dikoreksi migrasi 245 setelah memverifikasi nol baris yang dihapus
+pernah sukses.)
+
+### UI dinilai dari gambar, tiga putaran
+
+Halaman jadwal: v1 fungsinya benar tapi "pukul 07:05" tenggelam di antara
+kontrol. v2 menambah ringkasan + kalimat jadwal, tapi keduanya mengulang hal
+yang sama. v3 menyembunyikan kontrol di balik "Ubah jadwal" — jadwal disetel
+sekali, dibaca berkali-kali.
+
+Halaman inbox: breadcrumb menampilkan **"Approval Inbox"** dalam bahasa Inggris
+di aplikasi yang seluruhnya berbahasa Indonesia. Ketahuan lewat tangkap-layar,
+bukan lewat kode.
+
+### Tiga jalur yang saya putuskan BUKAN gerbang persetujuan
+
+Ditelusuri satu per satu, bukan diasumsikan: borongan settlement (tindakan
+sekali-jadi tanpa pemohon terpisah), NCR & punch-list (verifikasi lapangan
+tanpa nominal), K3 (keselamatan, bukan uang — dan pengendaliannya sudah ada:
+pengendalian risiko wajib diisi, penolakan wajib beralasan).
+
+Memaksa punch-list lewat mesin approval menuntut rantai persetujuan untuk tiap
+penutupan temuan — birokrasi yang yang pertama dicari orang adalah jalan
+memutarnya.
+
+Sisa nyata: `sertifikat-ipc`, karena ia dasar tagihan.
+
+### Bukti
+
+    tsc --noEmit (api + web)   bersih
+    vitest api                 2342 lulus · 2 gagal (T5A-PERMISSIVE, pre-existing)
+    vitest web                 591 lulus
+    axe terang / gelap         82 halaman · 0 pelanggaran (keduanya)
+    22 penjaga                 exit 0
+    uji mutasi                 klaim-status 5/5 · inbox 2/2 arah · token CSS ·
+                               L-4 3/3 · kredensial 3/3 — semuanya MERAH lalu pulih
+    migrasi 242–248            verifikasi lolos seluruhnya
+
+Berikutnya: TJS-A4 (helper audit siap-AI), lalu Tahap B — konfigurasi provider
+AI dari UI.
+
+---
+
 ## 2026-08-09 (malam) — perencanaan lapisan AI & platform dari TJS
 
 Founder: *"untuk urusan ai saya mau tiru semua, dan termasuk konfigurasi api

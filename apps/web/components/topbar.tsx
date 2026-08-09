@@ -49,6 +49,10 @@ const breadcrumbMap: Array<[string, string]> = [
   ["/sistem",        "Sistem"],
   ["/notifications", "Notifikasi"],
   ["/pengaturan",    "Pengaturan"],
+  // Tanpa entri ini, breadcrumb menebak dari URL dan menampilkan
+  // "Approval Inbox" — bahasa Inggris di aplikasi yang seluruhnya
+  // berbahasa Indonesia. Ketahuan lewat tangkap-layar, bukan lewat kode.
+  ["/approval-inbox", "Menunggu Persetujuan"],
 ];
 
 /**
