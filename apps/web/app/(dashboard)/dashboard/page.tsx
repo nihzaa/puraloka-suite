@@ -934,13 +934,36 @@ function DashboardContent() {
                 }}>
                   {a.projects?.name ?? "Proyek tak dikenal"}
                 </div>
+                {/*
+                  PELAPOR DIPISAH dari catatan, bukan disambung dengan " · ".
+
+                  Diukur 2026-08-09: versi lama menyambung keduanya dalam satu
+                  baris ber-`nowrap` + `ellipsis`, dan karena `notes` lapangan
+                  panjang ("Progress terkini: finishing 50%. Keramik 15%, cat
+                  belum dimulai, san…"), nama pelapor SELALU terpotong lebih
+                  dulu — tak pernah sekali pun terbaca.
+
+                  Alat ukur mencatatnya sebagai teks yang berakhir 108px di
+                  luar tepi kartu. Yang salah bukan lebarnya melainkan
+                  menggabungkan dua hal berbeda ke dalam satu ruang sempit:
+                  catatan boleh dipotong (isinya masih bisa dibuka di halaman
+                  progres), nama pelapor tidak — ia justru penanda siapa yang
+                  bisa ditanya.
+                */}
                 <div style={{
                   fontSize: 11, color: C.mid, marginTop: 2,
                   overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                 }}>
                   {a.notes?.trim() || `Progres ${Number(a.pct_overall ?? 0).toFixed(1)}%`}
-                  {a.reporter?.name ? ` · ${a.reporter.name}` : ""}
                 </div>
+                {a.reporter?.name && (
+                  <div style={{
+                    fontSize: 11, color: C.muted, marginTop: 2,
+                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                  }}>
+                    {a.reporter.name}
+                  </div>
+                )}
               </div>
               <span style={{
                 fontSize: 11, color: C.muted, flexShrink: 0, whiteSpace: "nowrap",

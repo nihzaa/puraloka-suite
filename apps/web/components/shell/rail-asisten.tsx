@@ -137,8 +137,17 @@ export function RailAsisten() {
               type="button"
               onClick={mintaWawasan}
               style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                marginTop: 10,
+                /*
+                  `flex` + `width: fit-content`, BUKAN `inline-flex`.
+
+                  Pembungkusnya BLOK biasa, bukan kolom flex — jadi
+                  `alignSelf` tak berlaku dan `inline-flex` membuat tombol ini
+                  berbagi baris dengan tautan "Telusuri proyek" di bawahnya.
+                  Di rail 275px keduanya bertabrakan; di beranda tak terlihat
+                  karena kartunya lebih lebar.
+                */
+                display: "flex", width: "fit-content",
+                alignItems: "center", gap: 6, marginTop: 10,
                 padding: "6px 10px", borderRadius: "var(--rad-sedang)",
                 border: "1px solid var(--border)", background: "var(--surface-subtle)",
                 fontSize: "var(--t-kecil)", fontWeight: 600, color: "var(--navy)",
@@ -198,11 +207,20 @@ export function RailAsisten() {
           Tak ada kolom input dan tak ada chip saran — keduanya butuh endpoint
           percakapan yang belum ada. Yang dipasang cuma tautan ke tempat
           angkanya bisa ditelusuri, dan tautan itu benar-benar bekerja.
+
+          `display: flex` (blok), BUKAN `inline-flex`.
+
+          Tombol "Minta pembacaan AI" di atas juga `inline-flex`, dan di rail
+          selebar 275px keduanya berebut satu baris — tombolnya menabrak
+          tautan ini. Terlihat di tangkapan layar `/keuangan` sesudah rail
+          dipasang; di beranda tak pernah muncul karena kartunya lebih lebar.
+
+          Blok memaksa keduanya bertumpuk, apa pun lebar railnya.
         */}
         <Link
           href="/proyek"
           style={{
-            display: "inline-flex", alignItems: "center", gap: 4, marginTop: 10,
+            display: "flex", alignItems: "center", gap: 4, marginTop: 10,
             fontSize: "var(--t-kecil)", fontWeight: 600, color: "var(--navy)",
             textDecoration: "none",
           }}

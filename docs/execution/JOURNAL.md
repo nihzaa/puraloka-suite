@@ -5,6 +5,88 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-09 (pagi) — Tiga pertanyaan founder, dan ketiganya benar
+
+*"kamu udh yakin sama referensi belum? dan isi data yg ada di card masih ada
+yang mepet mepet ke cardnya, lalu dashboard keuangan belum punya panel kanan
+yaa?"*
+
+Ketiganya saya periksa dengan mengukur, bukan menjawab dari ingatan — dan
+ketiganya terbukti.
+
+### 1. Rail: benar, dua halaman tertinggal
+
+Diperiksa: `/dashboard`, `/proyek`, `/procurement`, `/aset`, `/kas`,
+`/lapangan` punya rail. `/keuangan`, `/gudang`, `/mandor` tidak. Referensi
+"Cost Reports & Analytics" justru punya rail penuh (Report Summary · AI
+Prediction · Delayed Payment Alerts · Assistant).
+
+Rail keuangan dipasang dari `_bersama/analitik.tsx`, BUKAN dari `page.tsx` —
+di sanalah datanya sudah ada. Memasangnya di halaman berarti memanggil
+`/keuangan/ikhtisar` untuk kedua kalinya.
+
+### 2. "Mepet ke card" — alat ukur menemukan yang lebih buruk
+
+Saya tulis pengukur jarak teks-ke-tepi-kartu, dan hasil terburuknya bukan
+"mepet" melainkan **−108px**: nama pelapor di Kabar Lapangan.
+
+Sebabnya `notes` dan nama pelapor disambung `" · "` dalam satu baris
+ber-`nowrap` + `ellipsis`. Karena catatan lapangan panjang ("Progress terkini:
+finishing 50%. Keramik 15%, cat belum dimulai, san…"), nama pelapor SELALU
+terpotong lebih dulu — tak pernah sekali pun terbaca sejak widget itu dibuat.
+
+Yang salah bukan lebarnya melainkan menggabungkan dua hal berbeda ke satu
+ruang sempit: catatan boleh dipotong (isinya masih bisa dibuka di halaman
+progres), nama pelapor tidak — ia justru penanda siapa yang bisa ditanya.
+
+Cacat kedua di `/gudang`: lencana kondisi + "32h lalu" berebut baris sesudah
+rail menyempitkan kolom. Ditumpuk jadi satu kolom.
+
+### 3. Ruang kosong — diukur, bukan ditaksir
+
+Pengukur kedua (jarak elemen terbawah ke dasar widget):
+
+| Widget | Kosong | Sesudah |
+|---|---|---|
+| Peringatan Kritis | 115px | 41px |
+| KPI Cards | 95px | 0px |
+| Pintasan | 93px | 0px |
+
+Catatan lama di `pintasan` menulis `h: 3` "karena tujuh pil membungkus jadi
+dua baris" — benar SAAT ditulis, tetapi Pintasan kini kisi 4 kolom tetap
+(delapan pil), bukan `flex-wrap`. Catatan yang basi lagi.
+
+Kabar Lapangan sengaja TETAP `h: 5`: isinya memang penuh. Menyeragamkan
+tinggi empat kartu terlihat rapi di kode dan justru tidak rapi di layar.
+
+Versi localStorage v11 → v12: tanpa itu pemakai lama terkunci di tinggi lama.
+
+### Cacat yang muncul KARENA perbaikan
+
+Rail menyempitkan kolom `/keuangan` ~300px, dan itu memunculkan tiga hal
+yang tak pernah terlihat sebelumnya:
+
+- **KPI pecah 5+1.** Cacat yang SAMA sudah diperbaiki dua kali (beranda,
+  lapangan). Solusinya sudah ada — kisi 6 kolom + `.kpi-strip` — saya tinggal
+  memakainya. `KartuAngka` juga masih menyimpan `flex: 1 1 180px; minWidth:
+  180` sisa versi lama, yang memaksa kisinya meluber.
+- **Tombol AI menabrak "Telusuri proyek".** Keduanya `inline-flex`, jadi
+  berbagi baris. Di beranda tak terlihat karena kartunya lebih lebar.
+- **Komentar JSX di dalam ternary** merusak parse — kesalahan yang sama
+  persis sudah saya buat beberapa jam sebelumnya di komponen keuangan.
+
+### Bukti
+
+```
+tsc --noEmit (api + web)   bersih
+vitest web                 44 berkas · 573 test · lulus
+axe terang / gelap         79 halaman · 0 pelanggaran (keduanya)
+18 penjaga visual          exit 0
+rail terpasang             /keuangan 4 kartu · /gudang 4 kartu
+```
+
+---
+
 ## 2026-08-09 (subuh) — Gudang: satu kalimat founder membalik seluruh rancangan
 
 Saya bertanya bagaimana praktik gudang di Puraloka sebelum membangun apa pun,

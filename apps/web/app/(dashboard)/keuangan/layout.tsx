@@ -56,7 +56,15 @@ function KartuAngka({ label, nilai, sub, ikon, warna, tepi }: {
 }) {
   return (
     <div style={{
-      flex: "1 1 180px", minWidth: 180,
+      /*
+        `minWidth: 0`, bukan `minWidth: 180` + `flex`.
+
+        Sisa dari versi flex-wrap. Di dalam kisi `minmax(0,1fr)`, `minWidth:
+        180` memaksa tiap kolom minimal 180px — dan enam kolom × 180px + gap
+        melebihi kolom konten yang sudah menyempit karena rail, sehingga
+        kisinya meluber. `minWidth: 0` membiarkan kisi yang memutuskan.
+      */
+      minWidth: 0,
       background: "var(--surface)", border: `1px solid ${tepi ?? C.border}`,
       borderRadius: 10, padding: "12px 16px",
     }}>
@@ -102,8 +110,26 @@ export default function KeuanganLayout({ children }: { children: React.ReactNode
           "Rp 0" pada data yang tak terbaca adalah kebohongan yang
           menenangkan, dan di layar keuangan itu berbahaya. */}
       {!gagal && (
-        <div className="rise rise-2" style={{
-          display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 18,
+        <div className="rise rise-2 kpi-strip" style={{
+          /*
+            KISI 6 KOLOM + `.kpi-strip`, bukan `flex wrap`.
+
+            Cacat yang SAMA sudah diperbaiki dua kali (beranda, lalu lapangan),
+            dan muncul lagi di sini begitu `/keuangan` mendapat rail: kolomnya
+            menyempit ~300px, enam kartu tak lagi muat sebaris, dan kartu
+            keenam ("Upah Pending Bayar") turun sendirian — terbaca sebagai
+            kartu tercecer, bukan bagian dari strip.
+
+            `flex wrap` menentukan titik pembungkusnya sendiri berdasarkan
+            lebar isi, jadi ia berubah tiap kali nominalnya bertambah digit.
+            Kisi memutuskan titik itu di muka; `.kpi-strip` (globals.css)
+            menurunkan ke 3 kolom di bawah 1400px, 2 kolom di bawah 700px.
+
+            `minmax(0, 1fr)` bukan `1fr`: tanpa `min` nol, sub-teks panjang
+            ("Utama Rp 447jt · Kolektor Rp 50jt") memaksa kolomnya melebar.
+          */
+          display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))",
+          gap: 8, marginBottom: 18,
         }}>
           {ringkas ? (
             <>
@@ -131,7 +157,7 @@ export default function KeuanganLayout({ children }: { children: React.ReactNode
             // jadi isi di bawahnya tak melompat saat data tiba.
             Array.from({ length: 6 }, (_, i) => (
               <div key={i} aria-hidden="true" style={{
-                flex: "1 1 180px", minWidth: 180, height: 96,
+                minWidth: 0, height: 96,
                 background: "var(--surface-subtle)", borderRadius: 10,
                 border: `1px solid ${C.border}`,
               }} />

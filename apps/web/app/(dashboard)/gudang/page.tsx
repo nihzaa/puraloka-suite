@@ -46,6 +46,9 @@ import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Galat, KepalaHalaman, Lencana, Rangka, Tombol } from "@/components/dasar";
 import { KartuKPI, Kosong, Panel } from "@/components/ui-dasar";
+import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
+import { RailIsi } from "@/components/shell/rail-isi";
+import { usePasangRail } from "@/lib/rail-context";
 import {
   type IkhtisarGudang, NADA_KONDISI,
   labelGerak, labelKategori, persenNilaiBuku, ringkasRp,
@@ -88,6 +91,65 @@ export default function GudangIkhtisarPage() {
   }
 
   const kpi = data?.kpi;
+
+  /*
+    RAIL KANAN — founder 2026-08-09 menanyakannya untuk keuangan, dan gudang
+    punya kekurangan yang sama.
+
+    Isinya BUKAN salinan kolom tengah. Yang di tengah menjawab "bagaimana
+    keadaannya"; rail menjawab "apa yang harus saya kerjakan":
+
+      • alat yang perlu diperbaiki (kondisi buruk / rusak / perawatan)
+      • material yang masih tertinggal di proyek selesai
+
+    Keduanya menuntut tindakan, dan keduanya mudah terlewat kalau harus
+    di-scroll.
+  */
+  usePasangRail(
+    <RailIsi
+      konteks={
+        <>
+          <KartuRail
+            judul="Perlu diperbaiki"
+            tautan="/aset"
+            kosong="Semua alat dalam kondisi layak."
+          >
+            {(data?.isi_gudang ?? [])
+              .filter((a) => a.kondisi === "buruk" || a.status === "rusak" || a.status === "perawatan")
+              .slice(0, 6)
+              .map((a, i) => (
+                <BarisRail
+                  key={a.id}
+                  pertama={i === 0}
+                  utama={a.nama}
+                  sub={a.kode}
+                  kanan={a.kondisi}
+                  nadaKanan={a.kondisi === "buruk" ? "bahaya" : "normal"}
+                  href="/aset"
+                />
+              ))}
+          </KartuRail>
+
+          <KartuRail
+            judul="Belum ditarik"
+            kosong="Semua material sudah kembali."
+          >
+            {(data?.belum_ditarik ?? []).slice(0, 6).map((b, i) => (
+              <BarisRail
+                key={b.proyek}
+                pertama={i === 0}
+                utama={b.proyek}
+                sub={`${b.jenis} jenis material`}
+                kanan={`${b.qty}`}
+                nadaKanan="bahaya"
+              />
+            ))}
+          </KartuRail>
+        </>
+      }
+    />,
+    [data],
+  );
 
   return (
     <div style={{
@@ -353,15 +415,30 @@ export default function GudangIkhtisarPage() {
                         satu tempat yang salah urutan menandai alat sehat
                         sebagai rusak.
                       */}
-                      {m.memburuk && (
-                        <Lencana nada="bahaya">
-                          {m.kondisi_sebelum} → {m.kondisi_sesudah}
-                        </Lencana>
-                      )}
+                      {/*
+                        Lencana + waktu DIBUNGKUS SATU KOLOM, bukan dua anak
+                        sejajar.
+
+                        Diukur sesudah rail dipasang: kolom tengah menyempit
+                        ~300px, dan tiga anak sebaris (teks · lencana · waktu)
+                        mendorong "32h lalu" sampai menempel garis tepi kartu.
+                        Menumpuknya membuat lebar yang dibutuhkan tinggal
+                        selebar lencana, dan waktunya tak lagi berebut ruang.
+                      */}
                       <span style={{
-                        fontSize: 11, color: C.muted, flexShrink: 0,
-                        fontVariantNumeric: "tabular-nums",
-                      }}>{m.hari_lalu !== null ? `${m.hari_lalu}h lalu` : "—"}</span>
+                        display: "flex", flexDirection: "column",
+                        alignItems: "flex-end", gap: 3, flexShrink: 0,
+                      }}>
+                        {m.memburuk && (
+                          <Lencana nada="bahaya">
+                            {m.kondisi_sebelum} → {m.kondisi_sesudah}
+                          </Lencana>
+                        )}
+                        <span style={{
+                          fontSize: 11, color: C.muted,
+                          fontVariantNumeric: "tabular-nums",
+                        }}>{m.hari_lalu !== null ? `${m.hari_lalu}h lalu` : "—"}</span>
+                      </span>
                     </li>
                   ))}
                 </ul>

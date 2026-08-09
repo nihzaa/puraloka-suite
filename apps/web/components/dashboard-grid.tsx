@@ -108,7 +108,14 @@ const DEFAULT_LAYOUTS: Layouts = {
       Pelajarannya: sesudah menambah rail, ambang breakpoint harus diperiksa
       ulang terhadap lebar wadah SEBENARNYA, bukan lebar layar.
     */
-    { i: "kpi",       x: 0, y: 0,  w: 10, h: 4, isResizable: false },
+    /*
+      `h: 3` (208px), bukan 4 — diukur ulang 2026-08-09.
+
+      Strip KPI diramping-kan jadi enam kartu sebaris; isinya berhenti di
+      ~187px sementara wadah `h: 4` memberi 282px. 95px kosong di bawah kartu
+      terbaca sebagai halaman yang belum selesai dimuat.
+    */
+    { i: "kpi",       x: 0, y: 0,  w: 10, h: 3, isResizable: false },
     /*
       TINGGI SERAPAN DIUKUR, BUKAN DITAKSIR — dan saya salah dua kali dulu.
 
@@ -137,21 +144,43 @@ const DEFAULT_LAYOUTS: Layouts = {
       pengukuran dijalankan untuk menyetel widget baru di sebelahnya.
     */
     { i: "status",    x: 0, y: 7,  w: 4,  h: 7 },
-    // `h: 3` di sini, bukan 2: wadah `md` 992px sudah menyempit lagi karena
-    // rail kini permanen, jadi tujuh pil membungkus jadi dua baris.
-    { i: "pintasan",  x: 0, y: 14, w: 10, h: 3 },
+    /*
+      `h: 2` (148px) — diukur ulang 2026-08-09.
+
+      Catatan lama di sini menulis `h: 3` "karena tujuh pil membungkus jadi
+      dua baris". Itu benar SAAT ditulis, tetapi Pintasan kini kisi 4 kolom
+      × 2 baris tetap (delapan pil), bukan `flex-wrap` — tingginya tak lagi
+      bergantung panjang label. Isinya berhenti di ~115px; `h: 3` menyisakan
+      93px kosong.
+    */
+    { i: "pintasan",  x: 0, y: 13, w: 10, h: 2 },
     /*
       Wadah `md` cuma 992px (rail memakan 300px), jadi tiga kartu sebaris
       berarti ~320px per kartu — judul "Peringatan Kritis" + lencana
       "Tinggi" sudah berdesakan di sana. Dibagi 5/5 lalu satu di bawah:
       bentuk referensi tetap terbaca tanpa memaksa isi yang tak muat.
     */
-    { i: "kabar",      x: 0, y: 17, w: 5, h: 5 },
-    { i: "peringatan", x: 5, y: 17, w: 5, h: 5 },
-    { i: "tenggat",    x: 0, y: 22, w: 5, h: 5 },
-    { i: "invoice",    x: 5, y: 22, w: 5, h: 5 },
-    { i: "kasbon",    x: 0, y: 27, w: 10, h: 4 },
-    { i: "tax",       x: 0, y: 31, w: 10, h: 3 },
+    /*
+      TINGGI DIUKUR ULANG 2026-08-09 — sebelumnya semuanya `h: 5` (356px)
+      tanpa memeriksa isinya:
+
+        Peringatan Kritis  isi 241px  → 115px kosong
+        Tenggat Mendatang  isi 300px  →  56px kosong
+        Invoice Belum Lunas isi 317px →  39px kosong
+        Kabar Lapangan     isi 356px  →   0px  (pas)
+
+      Peringatan turun ke `h: 4` (282px); Kabar TETAP `h: 5` karena isinya
+      memang penuh. Menyeragamkan tinggi empat kartu ini terlihat rapi di
+      kode dan justru TIDAK rapi di layar — dua kartu bersebelahan dengan
+      tinggi sama tetapi satu setengah kosong terbaca sebagai data yang
+      hilang, bukan sebagai kisi yang rapi.
+    */
+    { i: "kabar",      x: 0, y: 16, w: 5, h: 5 },
+    { i: "peringatan", x: 5, y: 16, w: 5, h: 4 },
+    { i: "tenggat",    x: 0, y: 21, w: 5, h: 5 },
+    { i: "invoice",    x: 5, y: 21, w: 5, h: 5 },
+    { i: "kasbon",    x: 0, y: 26, w: 10, h: 4 },
+    { i: "tax",       x: 0, y: 30, w: 10, h: 3 },
   ],
   sm: [
     { i: "kpi",       x: 0, y: 0,  w: 6, h: 8, isResizable: false },
@@ -220,8 +249,19 @@ const COLS = { lg: 12, md: 10, sm: 6 };
  * Ongkosnya sama seperti v3 → v4: penyesuaian tata letak buatan pemakai
  * hilang. Tetap sepadan — lubang di tata letak lebih buruk.
  */
-const STORAGE_KEY = "puraloka_dashboard_layout_v11";
-const HIDDEN_KEY  = "puraloka_dashboard_hidden_v11";
+/*
+  v11 → v12 (2026-08-09): tinggi KPI, Pintasan, dan Peringatan Kritis diukur
+  ulang dan diturunkan (95px + 93px + 115px ruang kosong).
+
+  Wajib naik versi. `loadLayouts()` memakai tata letak tersimpan apa adanya
+  selama kuncinya lengkap, jadi tanpa ini pemakai lama terkunci di tinggi
+  LAMA — dan merekalah yang paling sering membuka dashboard, jadi merekalah
+  yang paling lama melihat ruang kosongnya.
+
+  Ongkosnya: penyesuaian tata letak buatan sendiri ikut hilang. Sepadan.
+*/
+const STORAGE_KEY = "puraloka_dashboard_layout_v12";
+const HIDDEN_KEY  = "puraloka_dashboard_hidden_v12";
 
 // ─── Persistence ──────────────────────────────────────────────────────────────
 

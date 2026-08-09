@@ -52,6 +52,9 @@ import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Lencana, Rangka } from "@/components/dasar";
 import { Kosong, Panel } from "@/components/ui-dasar";
+import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
+import { RailIsi } from "@/components/shell/rail-isi";
+import { usePasangRail } from "@/lib/rail-context";
 import {
   type IkhtisarKeuangan, WARNA_KASBON, ringkasJt, labelBulan,
 } from "@/lib/ikhtisar-keuangan";
@@ -70,6 +73,67 @@ export function AnalitikKeuangan() {
       .finally(() => setMemuat(false));
     return () => ac.abort();
   }, []);
+
+  /*
+    RAIL KANAN — dipasang DARI SINI, bukan dari `page.tsx`.
+
+    Founder 2026-08-09: *"dashboard keuangan belum punya panel kanan yaa?"* —
+    dan benar. Diperiksa: 5 halaman punya rail (beranda, proyek, procurement,
+    aset, kas, lapangan), `/keuangan` dan `/gudang` tidak. Referensi
+    "Cost Reports & Analytics" justru punya rail penuh (Report Summary ·
+    AI Prediction · Delayed Payment Alerts · Assistant).
+
+    Dipasang di komponen ini karena DI SINILAH datanya sudah ada. Memasangnya
+    di `page.tsx` berarti halaman itu harus memanggil `/keuangan/ikhtisar`
+    untuk kedua kalinya — dua permintaan untuk data yang identik.
+
+    Isinya sengaja BUKAN salinan kartu tengah: rail menjawab "berapa dan ke
+    mana", kolom tengah menjawab "bagaimana bentuk trennya".
+  */
+  usePasangRail(
+    <RailIsi
+      tanggalTenggat={(data?.invoice_tertunggak ?? []).map((t) => t.jatuh_tempo)}
+      konteks={
+        <>
+          <KartuRail judul="Ringkasan penagihan" kosong="Belum ada tagihan.">
+            {data ? [
+              { k: "kontrak", label: "Nilai kontrak", nilai: data.kpi.nilai_kontrak, nada: "normal" as const },
+              { k: "tertagih", label: "Sudah ditagih", nilai: data.kpi.tertagih, nada: "normal" as const },
+              { k: "terbayar", label: "Sudah dibayar", nilai: data.kpi.terbayar, nada: "baik" as const },
+              { k: "piutang", label: "Belum dibayar", nilai: data.kpi.piutang, nada: "bahaya" as const },
+            ].map((b, i) => (
+              <BarisRail
+                key={b.k}
+                pertama={i === 0}
+                utama={b.label}
+                kanan={ringkasJt(Number(b.nilai))}
+                nadaKanan={Number(b.nilai) > 0 ? b.nada : "normal"}
+              />
+            )) : []}
+          </KartuRail>
+
+          <KartuRail
+            judul="Menunggak"
+            tautan="/keuangan/invoice"
+            kosong="Tak ada invoice lewat tempo."
+          >
+            {(data?.invoice_tertunggak ?? []).slice(0, 5).map((t, i) => (
+              <BarisRail
+                key={t.id}
+                pertama={i === 0}
+                utama={t.nomor}
+                sub={t.proyek ?? undefined}
+                kanan={`${t.hari_lewat}h`}
+                nadaKanan="bahaya"
+                href="/keuangan/invoice"
+              />
+            ))}
+          </KartuRail>
+        </>
+      }
+    />,
+    [data],
+  );
 
   if (memuat) return <Rangka tinggi={240} jumlah={2} />;
 
