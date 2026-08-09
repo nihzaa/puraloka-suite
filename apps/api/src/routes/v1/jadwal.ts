@@ -74,6 +74,14 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
     keterangan: 'Milestone yang mendekat (3 hari) atau sudah lewat.',
     jalur: '/api/v1/notifications/check-milestones',
   },
+  // Retensi yang tak pernah dijalankan adalah janji kosong: tenant membaca
+  // "riwayat disimpan 30 hari", menyimpulkan datanya sudah dibersihkan, dan
+  // percakapan dua tahun lalu masih utuh di basis.
+  'bersih-percakapan-ai': {
+    label: 'Bersihkan Riwayat AI',
+    keterangan: 'Menghapus percakapan asisten yang melewati batas retensi tiap tenant.',
+    jalur: '/api/v1/ai/retensi/bersihkan',
+  },
 }
 
 interface BarisJadwal {

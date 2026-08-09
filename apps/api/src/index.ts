@@ -13,6 +13,7 @@ import dashboardRoutes from './routes/v1/dashboard.js'
 import aiRoutes from './routes/v1/ai.js'
 import aiConfigRoutes from './routes/v1/ai-config.js'
 import aiChatRoutes from './routes/v1/ai-chat.js'
+import aiRetensiRoutes from './routes/v1/ai-retensi.js'
 import kasbonRoutes from './routes/v1/kasbons.js'
 import clientRoutes from './routes/v1/clients.js'
 import userRoutes from './routes/v1/users.js'
@@ -278,6 +279,7 @@ await app.register(dashboardRoutes)
 await app.register(aiRoutes)
 await app.register(aiConfigRoutes)
 await app.register(aiChatRoutes)
+await app.register(aiRetensiRoutes)
 await app.register(kasbonRoutes)
 await app.register(clientRoutes)
 await app.register(userRoutes)

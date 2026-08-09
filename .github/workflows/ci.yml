@@ -357,6 +357,16 @@ jobs:
       - name: Tool AI read-only & sadar tenant
         run: node scripts/audit-tool-ai-read-only.mjs
 
+      # T-1. AMBANG NOL, berbeda dari `audit-gerbang-tenancy` yang memakai
+      # ratchet — dan bedanya disengaja: untuk utang lama "tak boleh bertambah"
+      # masuk akal, untuk jalur AI tidak. SATU tool yang bocor sudah cukup
+      # membuat asisten tenant A menjawab dengan angka tenant B, dengan nada
+      # yang sama percaya dirinya, dan ratchet mengizinkannya selama jumlahnya
+      # tetap. Memindai PEMAKAIAN, bukan pembungkus, jadi arrow-const dan
+      # method objek sama-sama terlihat (titik buta penjaga lama).
+      - name: Tenancy jalur AI (T-1)
+        run: node scripts/audit-tenancy-jalur-ai.mjs
+
       # Nominal dari permintaan yang dibaca `parseFloat` mentah. Rantai cacatnya
       # dibuktikan 2026-08-08 di Node DAN di Postgres: `qty: "abc"` → NaN → cek
       # saldo LOLOS (setiap perbandingan dengan NaN bernilai false) → Postgres

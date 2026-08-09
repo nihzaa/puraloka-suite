@@ -1571,7 +1571,26 @@ items:
       test: tiap tool dijawab dari data nyata; penjaga nol tool tulis;
       nomor tak dikenal -> ditolak TANPA panggilan model
     bobot: L
-    status: todo
+    status_akhir: >-
+      SELESAI 2026-08-10. Empat kriteria terakhir tuntas dan TERBUKTI:
+      (1) ISOLASI DUA TENANT — 13 test. Diukur lebih dulu: basis hanya punya SATU tenant berdata,
+      lima lainnya kosong, jadi perbandingan tenant A vs B akan hijau apa pun yang terjadi.
+      Tenant kedua kini dibuat di beforeAll dan dibersihkan di afterAll, lengkap dengan proyek,
+      invoice, MR, gudang, dan stok. Termasuk jalur gudang_stok (kategori C tanpa company_id) yang
+      paling rawan. Enam kali fixture gagal karena saya menebak skema; semuanya diukur ulang.
+      Penjaga basis yang melarang DELETE companies DIHORMATI (dinonaktifkan, bukan trigger dimatikan).
+      (2) SATU GILIRAN PER USER — 8 test, perlombaan SUNGGUHAN lewat Promise.all pada DUA koneksi.
+      Berurutan atau satu koneksi akan hijau bahkan pada implementasi baca-lalu-tulis yang rusak.
+      (3) PENJAGA T-1 audit-tenancy-jalur-ai.mjs, AMBANG NOL (bukan ratchet: satu tool bocor sudah
+      cukup). Memindai PEMAKAIAN bukan pembungkus, jadi arrow-const/method-objek/IIFE sama-sama
+      terlihat. 7/7 mutasi MERAH termasuk arrow-const yang spec tandai sebagai titik buta.
+      (4) RETENSI BERJALAN — rute + tugas penjadwal `bersih-percakapan-ai`. Kolomnya ada sejak 252
+      tapi tak pernah menghapus apa pun; kini dibuktikan menghapus, pesan ikut lewat cascade,
+      retensi NULL benar-benar selamanya, dan ai_biaya_token sengaja TIDAK ikut.
+      RUJUKAN TJS: tools.ts TJS 1.217 baris dengan NOL company_id — single-tenant, jadi tak ada
+      yang bisa ditiru untuk tenancy. Ini dibangun sendiri.
+      154 test hijau, 27 penjaga hijau.
+    status: done
 
   - id: TJS-C2
     fase: 6

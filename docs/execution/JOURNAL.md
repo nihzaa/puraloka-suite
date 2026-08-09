@@ -5,6 +5,86 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-10 (lanjutan 5) — TJS-C1 TUNTAS: isolasi tenant akhirnya BENAR-BENAR terbukti
+
+Empat kriteria C1 yang tersisa. Yang paling penting menyingkap bahwa isolasi
+tenant **tak pernah teruji sama sekali**.
+
+### TJS tidak bisa dijadikan rujukan di sini — dan itu terukur
+
+`automation-tjs/admin-dashboard/lib/owner-ai/tools.ts` punya **1.217 baris**
+dan **NOL** `company_id`. TJS single-tenant; multi-tenant adalah masalah yang
+harus Puraloka pecahkan sendiri.
+
+### Isolasi tenant: test yang hijau tanpa arti
+
+Diukur: basis punya **satu** tenant berdata (15 proyek). Lima lainnya
+`[UJI] Tenant F7-1` yang seluruhnya kosong — nol proyek, nol gudang.
+
+Artinya perbandingan "tenant A vs tenant B" akan hijau apa pun yang terjadi:
+tak ada baris milik B yang bisa bocor, karena B tak punya baris. Bentuk test
+paling berbahaya — ia lulus, dan kelulusannya tak berarti apa-apa.
+
+Tenant kedua kini dibuat di `beforeAll` dan dibersihkan di `afterAll`, lengkap
+dengan proyek, invoice, MR, gudang, dan stok. **13/13 hijau**, termasuk jalur
+`gudang_stok` yang paling rawan (kategori C tanpa `company_id`; tool harus
+menyaring id gudang sendiri, dan lupanya tak menimbulkan galat).
+
+**Enam kali fixture-nya gagal karena saya menebak skema**, dan tiap kegagalan
+menyamar sebagai "test rusak" alih-alih "skema berbeda dari dugaan":
+
+| Tebakan | Kenyataan |
+|---|---|
+| `companies(name)` | `code` NOT NULL, ber-CHECK `^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$` |
+| `clients(name)` | kolomnya `company_name`; + contact_person, phone, created_by wajib |
+| `projects` sederhana | menuntut client_id, pm_id, location, created_by |
+| `invoice_type: 'progress'` | enum-nya termin_billing / expense_billing / … |
+| `termin_billing` | CHECK menuntut `termin_schedule_id` |
+| `due_date` saja | CHECK `due_date >= issued_date` |
+
+Dan satu penjaga basis yang saya **hormati alih-alih akali**: menghapus
+`companies` dilarang trigger, dengan pesan yang menjelaskan alasannya. Saya
+nonaktifkan barisnya, bukan mematikan trigger — melewatinya berarti test ini
+melubangi perlindungan data nyata demi kerapian fixture.
+
+### Satu giliran per user: perlombaan yang sungguhan
+
+8/8. Yang menentukan: dua UPDATE dijalankan **bersamaan** lewat `Promise.all`
+pada **dua koneksi berbeda**. Berurutan akan hijau bahkan pada implementasi
+baca-lalu-tulis yang rusak, dan satu koneksi diserialkan Postgres — keduanya
+menghasilkan test yang tak pernah melihat tabrakan yang hendak dibuktikan.
+
+### Penjaga T-1: ambang NOL, bukan ratchet
+
+`audit-tenancy-jalur-ai.mjs`. Bedanya dari `audit-gerbang-tenancy` disengaja:
+untuk utang lama "tak boleh bertambah" masuk akal, untuk jalur AI tidak. **Satu**
+tool yang bocor sudah cukup membuat asisten tenant A menjawab dengan angka
+tenant B, dan ratchet mengizinkannya selama jumlahnya tetap.
+
+Memindai **pemakaian**, bukan pembungkus — jadi `function`, arrow-const, method
+objek, dan IIFE sama-sama terlihat. **7/7 mutasi merah**, termasuk arrow-const
+yang spec tandai sebagai titik buta penjaga lama.
+
+### Retensi yang akhirnya BERJALAN
+
+Kolom `retensi_hari` ada sejak migrasi 252 dan halaman menampilkannya, tapi
+**tak satu pun baris pernah dihapus**. Tenant membaca "riwayat disimpan 30
+hari", menyimpulkan datanya sudah bersih, dan percakapan dua tahun lalu masih
+utuh.
+
+Rute `POST /api/v1/ai/retensi/bersihkan` + tugas `bersih-percakapan-ai` di
+katalog penjadwal. Dibuktikan: yang tua terhapus, yang baru tidak, **pesan ikut
+lewat cascade**, `retensi_hari IS NULL` benar-benar berarti selamanya, dan
+`ai_biaya_token` sengaja TIDAK ikut (catatan keuangan, bukan isi percakapan).
+
+### Bukti
+
+- 154/154 test hijau (13 isolasi, 8 giliran, 9 retensi, 124 sebelumnya)
+- 27/27 penjaga hijau; T-1 7/7 mutasi merah
+- `tsc --noEmit` bersih
+
+---
+
 ## 2026-08-10 (lanjutan 4) — Founder membalikkan tiga keputusan saya, dan ketiganya benar
 
 Empat arahan datang di tengah pengerjaan UI. Semuanya mengubah arah, dan tak

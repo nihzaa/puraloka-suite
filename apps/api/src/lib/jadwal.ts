@@ -182,3 +182,26 @@ export async function jadwalLintasTenant() {
   const { supabase } = await import('../utils/supabase.js')
   return supabase.from('jadwal_tugas')
 }
+
+/**
+ * Pengaturan AI SELURUH tenant — untuk pembersih retensi.
+ *
+ * Alasan yang sama dengan `jadwalLintasTenant`: penjadwal berjalan TANPA
+ * pengguna, jadi tak ada `auth_company_id()` yang bisa dipakai `request.db`.
+ * Ia memang harus melihat semua tenant — itu tugasnya.
+ *
+ * Dikumpulkan di sini, bukan ditulis di rutenya, supaya pertanyaan "di mana
+ * kode ini bisa melihat tenant lain?" tetap dijawab satu berkas. Menuliskannya
+ * di rute akan menambah satu `supabase` mentah ke `audit-gerbang-tenancy`,
+ * dan ratchetnya melarang kenaikan.
+ */
+export async function pengaturanAiLintasTenant() {
+  const { supabase } = await import('../utils/supabase.js')
+  return supabase.from('ai_pengaturan_tenant')
+}
+
+/** Percakapan AI seluruh tenant — hanya untuk pembersih retensi. */
+export async function percakapanAiLintasTenant() {
+  const { supabase } = await import('../utils/supabase.js')
+  return supabase.from('ai_percakapan')
+}
