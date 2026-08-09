@@ -1434,7 +1434,9 @@ items:
       ketahuan bahwa `penyedia` selama ini TAK divalidasi sama sekali di PUT (kolomnya TEXT — "anthropc"
       tersimpan tanpa keluhan lalu mematikan asisten jauh dari tempat salah ketiknya); kini divalidasi
       terhadap daftar.
-    status: wip
+      ── SELURUH sisa_terbuka DITUTUP 2026-08-10: retensi (halaman + pembersih terjadwal),
+      rate limit per user, dan kontrol penyedia di UI semuanya terpasang dan berpenguji.
+    status: done
 
   - id: TJS-B2
     fase: 6

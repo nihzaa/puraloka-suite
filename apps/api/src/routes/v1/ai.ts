@@ -87,7 +87,16 @@ export default async function aiRoutes(app: FastifyInstance) {
     config: {
       // Panggilan berbayar ke pihak ketiga. Tanpa batas, satu tab yang
       // menyegarkan otomatis bisa menghabiskan kuota sebulan dalam semalam.
-      rateLimit: { max: 20, timeWindow: '1 minute' },
+      //
+      // PER USER, bukan per IP: satu kantor di belakang satu IP akan saling
+      // memblokir, dan yang kena bukan yang boros melainkan yang kebetulan
+      // terakhir.
+      rateLimit: {
+        max: 20,
+        timeWindow: '1 minute',
+        keyGenerator: (request: { currentUser?: { id: string }; ip: string }) =>
+          request.currentUser?.id ?? request.ip,
+      },
     },
   }, async (request) => {
     const db = request.db!

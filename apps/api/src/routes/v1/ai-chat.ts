@@ -106,8 +106,31 @@ export default async function aiChatRoutes(app: FastifyInstance) {
     {
       preHandler: [authenticate, requirePermission('ai:chat')],
       config: {
-        // Batas bulanan tak menahan pembakaran token dalam satu jam.
-        rateLimit: { max: 30, timeWindow: '1 minute' },
+        /*
+         * Batas bulanan tak menahan pembakaran token dalam SATU JAM — itu
+         * sebabnya rate limit tetap perlu meski gerbang biaya sudah ada
+         * (SCOPE §4 #3: "spending limit + rate limit").
+         *
+         * ── PER USER, bukan per IP (kriteria B1)
+         *
+         * Bawaan `@fastify/rate-limit` memakai alamat IP. Untuk ERP itu
+         * salah arah: satu kantor konstruksi duduk di belakang SATU IP, jadi
+         * lima orang yang bertanya bersamaan saling memblokir — dan yang
+         * kena bukan yang boros, melainkan yang kebetulan menekan Enter
+         * paling akhir.
+         *
+         * Sebaliknya, satu orang yang membuka lima tab tetap satu kuota.
+         *
+         * `request.currentUser` sudah terisi `authenticate` di preHandler.
+         * Jatuhannya ke IP hanya untuk permintaan yang lolos tanpa user —
+         * dan itu seharusnya sudah ditolak 401 sebelum sampai sini.
+         */
+        rateLimit: {
+          max: 30,
+          timeWindow: '1 minute',
+          keyGenerator: (request: { currentUser?: { id: string }; ip: string }) =>
+            request.currentUser?.id ?? request.ip,
+        },
       },
     },
     async (request, reply) => {
