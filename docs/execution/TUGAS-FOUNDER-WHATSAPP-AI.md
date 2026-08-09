@@ -12,96 +12,97 @@ kerjakan sendiri? kan n8n dan evolution udh terinstall"*
 
 ## 0. Keadaan terukur (2026-08-09)
 
-Diukur, bukan diasumsikan.
+Founder bertanya: *"evolutionnya harus masuk ke folder tjs? bisa disimpan juga
+di puraloka ga?"* — **bisa, dan sudah dikerjakan.** Puraloka kini punya
+Evolution sendiri, terpisah total dari TJS.
 
-| Hal | Keadaan |
-|---|---|
-| Evolution API | **terpasang** di `E:/Project/automation-tjs\evolution-api` — v2.3.7, **Node asli, BUKAN Docker** (konsisten dengan WSL yang bermasalah). Sudah ter-build (`dist/main.js`) |
-| n8n | terpasang global lewat npm; datanya di **Postgres** (`tjs_ai`, schema `n8n`) |
-| Postgres 16 | **SEDANG BERJALAN** (servis `postgresql-16`, port 5432) — prasyarat Evolution sudah hidup |
-| Redis | **tidak dibutuhkan** — tak ada konfigurasi cache di `.env` Evolution |
-| Keduanya saat ini | **mati** — nol proses mendengarkan di 8080/5678 |
+| | TJS | **Puraloka** |
+|---|---|---|
+| Lokasi | `E:/Project/automation-tjs/evolution-api` | **`E:/Project/puraloka-wa`** |
+| Port | 8080 | **8081** |
+| Database | `tjs_ai` | **`puraloka_wa`** |
+| `clientName` | `evolution_tjs` | **`evolution_puraloka`** |
+| API key | `tjs_…` | **`plk_…` (baru, bukan salinan)** |
+| Instance | tjs-owner, tjs-alert, tjs-bot, tjs-staff | *(kosong — menunggu QR)* |
 
-**Penting:** Anda sudah menulis skrip penyalanya sendiri di
-`E:/Project/automation-tjs/infra/`:
+Keduanya boleh hidup bersamaan. **Diverifikasi:** Evolution Puraloka merespons
+`200` dengan `clientName: evolution_puraloka`, dan keempat instance TJS utuh —
+nol yang tersentuh.
 
-| Skrip | Isi |
-|---|---|
-| `start-evolution.ps1` | Evolution saja |
-| `start-n8n.ps1` | n8n saja |
-| `start-all.ps1` | Evolution + dashboard + sync + n8n sekaligus |
+### Kenapa terpisah, bukan menumpang instance TJS
 
-Riwayat PowerShell menunjukkan keduanya pernah dijalankan, terakhir
-**2026-08-02**.
+Founder memilih ini, dan alasannya terbukti benar saat diperiksa: **semua sesi,
+pesan, dan kontak Evolution tersimpan di Postgres**, bukan di folder. Menumpang
+berarti data WhatsApp Puraloka mendarat di database `tjs_ai` bersama data TJS —
+aman selama satu pemilik, tapi jadi masalah begitu Puraloka dijual ke
+perusahaan lain.
 
-Dan dua hal yang menghemat kerja:
+### Kenapa instalasinya di LUAR repo
 
-- **Evolution memilih instance dari basis data**, bukan dari env
-  (`lib/wa/providers/evolution.ts:162`). Satu server bisa melayani TJS dan
-  Puraloka sekaligus — cukup instance berbeda.
-- **Sesi WhatsApp lama kemungkinan masih ter-pair.** Folder
-  `evolution-api/instances/` masih menyimpan kunci auth Baileys, dan
-  `DEL_INSTANCE=false`. Log terakhir (2026-07-07) berakhir sehat: instance
-  `tjs-owner`, `CONNECTED TO WHATSAPP`.
+751 MB. Di dalam repo, satu-satunya yang mencegahnya ikut ter-commit adalah
+`.gitignore` — dan itu bisa salah edit. Di luar repo, kesalahan itu mustahil.
+
+### Kenapa Docker tak dibutuhkan
+
+Founder: *"memang tidak pakai docker karena di pc saya WSL nya masalah"*. Benar,
+dan tak perlu: Evolution jalan sebagai proses Node biasa. Prasyarat satu-satunya
+adalah **Postgres 16**, yang sudah berjalan sebagai servis Windows. Redis tidak
+dipakai.
 
 ---
 
-## 1. Nyalakan Evolution (dan n8n)
-
-Sekali per boot komputer.
+## 1. Nyalakan
 
 ```powershell
-& "E:/Project/automation-tjs/infra/start-evolution.ps1"
-& "E:/Project/automation-tjs/infra/start-n8n.ps1"
+& "E:\Project\puraloka-suite\scripts\wa\start-evolution.ps1"
 ```
 
-Berhasil kalau kedua perintah ini membalas `200`:
+Skrip itu menolak jalan kalau Postgres mati atau Evolution belum ter-build —
+jadi ia gagal dengan pesan jelas, bukan diam-diam.
+
+Berhasil kalau ini membalas `200`:
 
 ```bash
-curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/
-curl -s -o /dev/null -w "%{http_code}" http://localhost:5678/
+curl -s -o /dev/null -w "%{http_code}" http://localhost:8081/
 ```
 
-⚠️ `start-all.ps1` menuntut `infra\.env` berisi `N8N_ENCRYPTION_KEY`,
-`N8N_BASIC_AUTH_PASSWORD`, `DB_POSTGRESDB_PASSWORD`, `ANTHROPIC_API_KEY` —
-kalau tidak, ia berhenti di awal. Berkasnya ada (gitignored).
+n8n (kalau dibutuhkan) tetap dari TJS — satu n8n bisa melayani banyak alur:
 
-⚠️ `WEBHOOK_GLOBAL_ENABLED=false` sementara `WEBHOOK_GLOBAL_URL` menunjuk
-`http://localhost:5678/webhook/whatsapp`. Kalau alur n8n tampak mati sesudah
-Evolution menyala, **flag itu tempat pertama yang diperiksa.**
+```powershell
+& "E:\Projectutomation-tjs\infra\start-n8n.ps1"
+```
 
 ---
 
-## 2. Buat instance Evolution untuk Puraloka + pindai QR
+## 2. Buat instance `puraloka-bot` + pindai QR
 
 **Satu-satunya tugas yang benar-benar tak bisa saya kerjakan** — memindai QR
 menuntut ponsel di tangan Anda.
 
-- Nama instance: **`puraloka-bot`** (jangan pakai `tjs-bot`/`tjs-owner`).
-- Nomor: boleh baru, boleh nomor perusahaan yang sudah ada.
+Buka **http://localhost:8081/manager**, buat instance bernama `puraloka-bot`,
+lalu pindai QR-nya. API key-nya ada di `E:/Project/puraloka-wa/.env`
+(`AUTHENTICATION_API_KEY`).
 
-> ### ⚠️ Jangan pakai instance TJS untuk Puraloka
->
-> Satu instance = satu nomor = satu antrean pesan masuk. Kalau berbagi, pesan
-> pelanggan TJS masuk ke asisten Puraloka dan sebaliknya — dan karena keduanya
-> punya tool yang membaca data, itu **kebocoran lintas-perusahaan**, bukan
-> sekadar salah alamat.
->
-> Server-nya boleh sama. **Instance-nya harus beda.**
+Nomornya boleh baru, boleh nomor perusahaan yang sudah ada — asal **bukan**
+nomor yang sedang dipakai instance TJS.
 
-Setelah dipindai, saya butuh satu hal: **nomor WhatsApp yang dipakai**.
+Sesudah dipindai, saya butuh satu hal: **nomor WhatsApp yang dipakai**, untuk
+didaftarkan sebagai kontak pertama yang berwenang.
 
 ---
 
-## 2b. Rotasi kunci Evolution — disarankan, bukan mendesak
+## 2b. Rotasi kunci Evolution TJS — disarankan, bukan mendesak
 
-Ditemukan saat menelusuri: `start-evolution.ps1` memuat komentar bahwa API key
-dulu ditulis literal di berkas itu dan baru dihapus 2026-07-08. Artinya kunci
-`tjs_…` yang **masih dipakai hari ini** pernah masuk riwayat git repo TJS.
+**Puraloka tidak terdampak** — kuncinya dibangkitkan baru (`plk_…`), bukan
+salinan milik TJS.
 
-Risikonya terbatas (repo privat, Evolution hanya `localhost`), tapi kalau
-Evolution kelak diekspos ke internet untuk webhook, kunci itu harus diganti
-lebih dulu.
+Tapi ditemukan saat menelusuri: `start-evolution.ps1` di TJS memuat komentar
+bahwa API key-nya dulu ditulis literal di berkas itu dan baru dihapus
+2026-07-08. Artinya kunci `tjs_…` yang **masih dipakai hari ini** pernah masuk
+riwayat git repo TJS.
+
+Risikonya terbatas selama Evolution hanya `localhost`. Kalau kelak diekspos ke
+internet untuk webhook, kunci itu harus diganti lebih dulu.
 
 ---
 
@@ -145,7 +146,8 @@ Supaya jelas batasnya:
 
 | Hal | Siapa |
 |---|---|
-| Memasang n8n / Evolution | ✅ sudah, tak perlu diulang |
+| Memasang Evolution untuk Puraloka | ✅ **sudah saya kerjakan** — clone, .env, database, build, skrip penyala, dan diverifikasi merespons 200 |
+| Memasang n8n | ✅ sudah ada dari TJS, dipakai bersama |
 | Membuat workflow n8n untuk Puraloka | saya |
 | Menulis adaptor Evolution di Puraloka | saya |
 | Endpoint webhook + verifikasi rahasia | saya |
