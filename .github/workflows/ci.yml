@@ -257,6 +257,16 @@ jobs:
       - name: Catch senyap (error ditelan tanpa jejak)
         run: node scripts/audit-catch-senyap.mjs
 
+      # Transisi keputusan yang menulis status tanpa mengikutkan status LAMA di
+      # WHERE. Dua approval yang tiba bersamaan sama-sama berhasil: di
+      # `change-orders` itu MENGGANDAKAN nilai kontrak, di `invoices` itu
+      # MENGHILANGKAN satu pembayaran klien — keduanya tanpa error, tanpa
+      # gejala. `kasbons` sudah benar sejak lama dan jadi polanya.
+      # Ditemukan 2026-08-09 saat memverifikasi rencana lapisan AI; bukan
+      # risiko yang dibawa AI, hanya risiko yang AI akan picu lebih sering.
+      - name: Klaim status atomik (approval & pembayaran ganda)
+        run: node scripts/audit-klaim-status-atomik.mjs
+
       # Nominal dari permintaan yang dibaca `parseFloat` mentah. Rantai cacatnya
       # dibuktikan 2026-08-08 di Node DAN di Postgres: `qty: "abc"` → NaN → cek
       # saldo LOLOS (setiap perbandingan dengan NaN bernilai false) → Postgres

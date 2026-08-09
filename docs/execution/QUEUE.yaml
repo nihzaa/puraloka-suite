@@ -1193,8 +1193,14 @@ items:
 
   - id: TJS-A0
     fase: 6
-    judul: "Klaim status atomik di 6 modul approval — utang lama, bukan soal AI"
+    judul: "Klaim status atomik — utang lama, bukan soal AI"
     blokir_oleh: []
+    catatan_penjaga: >-
+      PENJAGA SUDAH TERPASANG 2026-08-09: audit-klaim-status-atomik.mjs,
+      terdaftar di ci.yml, ratchet PER BERKAS (bukan sekadar jumlah), dan
+      TERBUKTI MERAH lewat uji mutasi (lepas klaim di kasbons -> merah ->
+      pulihkan -> hijau). Pekerjaan tersisa: memperbaiki 8 pelanggaran yang
+      dilaporkannya.
     kriteria_selesai:
       - "pola kasbons.ts:397-401 (.eq('status','pending') ikut WHERE) diport ke
          change_order, material_request, project_expense, estimate_version,
