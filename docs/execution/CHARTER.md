@@ -33,8 +33,22 @@ dan operasional kantor.
 | **3** | Kepatuhan ADR-004: hapus literal peran + penjaga CI | Penjaga CI hijau |
 | **4** | Fondasi pengalaman: token desain, lapis data terpusat, skeleton, keyboard, realtime, offline lapangan | Penjaga hex + lapis data terpasang |
 | **5** | Triase 93 sub-menu: INTI / PEMBEDA / TUNDA. INTI habis dulu | Dokumen triase hidup |
-| **6** | Prasyarat AI (bukan fitur AI): event log, jejak keputusan, struktur semantik | Pipa data jalan |
+| **6** | Prasyarat AI + **lapisan platform AI**: event log, jejak keputusan, struktur semantik, kredensial terenkripsi, penjadwal, config provider dari UI, pelacakan biaya, asisten read-only | Pipa data jalan + biaya AI tercatat & terbatas |
 | **7** | Menjadi produk: provisioning, onboarding, langganan, batas paket, SSO tidak dihalangi | — |
+
+**Amandemen 2026-08-09 pada fase 6.** Judul lamanya berbunyi *"Prasyarat AI
+(**bukan** fitur AI)"* — tanda kurung itu dicabut. Founder memutuskan lapisan
+platform AI dibangun sekarang, dan pemisahan "prasyarat vs fitur" ternyata
+memotong di tempat yang salah: konfigurasi provider dari UI adalah *fitur* yang
+sekaligus *prasyarat*.
+
+Yang **tidak** ikut naik: tool AI yang menjawab pertanyaan finansial — itu tetap
+menunggu GL + WIP/PSAK. Rinciannya di
+`docs/superpowers/specs/2026-08-09-lapisan-ai-dan-platform-design.md` §1.1.
+
+Fase ini juga menyerap satu utang lama yang bukan soal AI: **tidak ada penjadwal
+sama sekali** di repo ini, sehingga notifikasi hanya terbit kalau ada manusia
+menekan tombol di `/sistem`.
 
 **Alasan urutan 2 mendahului `company_id`** (koreksi C-2): bentuk grup menentukan
 bentuk CoA dan jumlah tingkat kolom tenancy. Mengerjakan `company_id` lebih dulu

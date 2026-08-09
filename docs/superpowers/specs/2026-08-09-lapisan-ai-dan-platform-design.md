@@ -1,0 +1,695 @@
+# Lapisan AI & Platform — mengambil dari TJS Command Center, membangun lebih baik
+
+**Tanggal:** 2026-08-09 · **Diminta:** founder (Nizar) · **Rujukan wajib:**
+`E:/Project/automation-tjs/admin-dashboard`
+
+> Founder 2026-08-09: *"untuk urusan ai saya mau tiru semua, dan termasuk
+> konfigurasi api nya juga yg dikonfig dari ui semua. dan mulai lakukan
+> perencanaan secara keseluruhan yg diambil modulnya dari TJS … bila menabrak
+> aturan, aturannya rubahlah … jika bisa lebih baik dari yg punya nya TJS"*
+
+---
+
+## 0. Ringkasan satu paragraf
+
+TJS Command Center adalah ERP dagang/produksi milik founder yang sama. Ia sudah
+punya lapisan yang Puraloka tidak punya: **asisten AI dengan 66 tool yang bisa
+membaca dan menyiapkan tulisan ke ERP lewat WhatsApp**, konfigurasi provider AI
+dari UI, pelacakan biaya token, kredensial terenkripsi, penjadwal, dan sederet
+modul platform. Puraloka lebih kuat di domain konstruksi dan di beberapa
+mekanisme inti (approval engine, routing notifikasi, audit log). Dokumen ini
+merencanakan pengambilan yang pertama tanpa merusak yang kedua.
+
+**Yang membedakan rencana ini dari "meniru TJS":** sembilan tempat di mana
+rancangan Puraloka sengaja **berbeda dan lebih baik** (§7), dan sepuluh cacat
+TJS yang diperbaiki alih-alih ditiru (§5.1). Semuanya berasal dari membaca kode
+TJS sampai `file:line` — bukan dari kehati-hatian abstrak.
+
+**Empat di antaranya adalah kegagalan senyap yang lolos verifikasi hijau** —
+kelas cacat yang paling mahal, karena ia tak pernah mengeluh.
+
+---
+
+## 1. Dua aturan yang ditabrak, dan apa yang dilakukan terhadapnya
+
+Founder memberi izin mengubah aturan yang menghalangi. Izin itu dipakai untuk
+satu aturan dan **tidak** dipakai untuk satu lainnya. Bedanya dicatat di sini
+supaya sesi berikutnya tak menafsir ulang.
+
+### 1.1 DIUBAH — urutan gelombang (`KEPUTUSAN-SCOPE-ERP-AI.md` §5)
+
+Keputusan 2026-08-01 menempatkan AI di **Gelombang 4**, sesudah GL, QA/QC,
+payroll, dan mobile lapangan. Alasannya waktu itu benar: *"AI yang ditanya
+'proyek mana yang rugi?' akan menjawab dari angka yang pembukuannya belum benar
+— percaya diri dan salah."*
+
+Alasan itu **belum gugur**, tapi jangkauannya lebih sempit dari yang ditulis.
+Yang butuh GL matang adalah **AI yang menjawab pertanyaan laba-rugi**. Yang tidak
+butuh: konfigurasi provider dari UI, kredensial terenkripsi, pelacakan biaya
+token, penjadwal, inbox approval. Semuanya infrastruktur yang **justru harus ada
+lebih dulu** supaya AI-nya kelak bisa dibangun dengan aman.
+
+**Perubahan:** AI dipecah jadi dua. **Lapisan platform AI** (§3) naik ke sekarang;
+**tool yang menyentuh angka finansial** (§4c) tetap menunggu GL + WIP/PSAK.
+Bukan menunda AI, tapi membangun lantainya lebih dulu.
+
+### 1.2 TIDAK DIUBAH — no silent write & pilot read-only (§4 aturan 1 & 5)
+
+> §4 #1: *"Setiap automation yang mengubah data finansial, kontraktual, atau
+> status resmi berhenti di approval manusia — tanpa kecuali, sekecil apa pun
+> nilainya."*
+> §4 #5: *"Pilot pertama read-only."*
+
+Founder minta *"tiru semua"*, dan TJS punya `preview_approve_po` — AI yang
+menulis approval PO.
+
+**Penilaian: pola `preview_approve` TJS MEMENUHI aturan ini, bukan
+melanggarnya** — dan alasannya lebih kuat dari sekadar konvensi. Dibaca dari
+kodenya:
+
+> Model **secara arsitektur tidak mampu** menulis. Hanya tool `preview_*` yang
+> terdaftar di katalog; eksekutor sungguhannya, `executeConfirmedApproval`,
+> **bukan tool sama sekali** dan tak pernah terlihat oleh model. Saat manusia
+> membalas "ya", kode memanggilnya langsung — model tidak dilibatkan pada
+> eksekusi.
+
+Ini bukan "AI disuruh minta izin". Ini AI yang **tidak punya tombolnya**. Aturan
+§4 #1 berbunyi "berhenti di approval manusia"; di sini ia bahkan tak pernah
+mulai.
+
+Jadi aturannya **tak perlu diubah**. Yang perlu: membuktikan Puraloka menirunya
+dengan benar — dan **memperbaiki sepuluh cacat** yang terbaca di TJS sendiri
+(§5.1). Syarat mengikat di §5.
+
+Aturan §4 #5 ("pilot pertama read-only") **tetap berlaku sebagai urutan**: tahap
+pertama hanya `list_*`/`get_*`. Bukan karena preview-approve berbahaya, tapi
+karena kepercayaan pada jawaban AI harus terbangun sebelum ia menyentuh alur
+uang — dan cara termurah menguji kualitas jawaban adalah membiarkannya menjawab
+tanpa bisa merusak apa pun.
+
+### 1.3 Yang TIDAK ikut berubah
+
+`CHARTER.md` §5 Gerbang Keras dan §6 Ember [C] **tidak disentuh**. Keduanya
+bukan aturan urutan, melainkan pagar keselamatan. Konsekuensinya untuk rancangan
+ini ada di §5.
+
+---
+
+## 2. Keadaan awal — diukur, bukan ditebak
+
+Diukur 2026-08-09 di checkout ini.
+
+| Kapabilitas | Puraloka hari ini | Cara mengukur ulang |
+|---|---|---|
+| AI | **1 endpoint, 221 baris.** `GET /ai/insight` menulis dua kalimat naratif. Nol tool, nol tulis, nol tabel config. Model dari env. | `wc -l apps/api/src/routes/v1/ai.ts` |
+| Tabel AI | **nol** | `introspect.mjs tables \| grep ai_` |
+| Kredensial | semua di `.env` server. `pgcrypto` **aktif** tapi tak dipakai untuk kredensial | `introspect.mjs tables \| grep credential` |
+| Scheduler | **tidak ada.** `/sistem` = 2 tombol manual | `grep -rl "cron\|setInterval" apps/api/src` |
+| WhatsApp | **deep link manual** (`wa.me`), manusia menekan kirim | `apps/api/src/lib/pesan-po.ts` |
+| RAG | nol. `documents.ts` tanpa satu pun pencarian | `grep -c "embedding" apps/api/src/routes/v1/documents.ts` |
+| Push notif | infra lengkap, **0 dari 23 user berlangganan** — diakui di kode | `apps/api/src/utils/notifications.ts:167` |
+
+### 2.1 Ekstensi Postgres — semuanya tersedia di Supabase
+
+| Ekstensi | Status | Dipakai untuk |
+|---|---|---|
+| `pgcrypto` | **terpasang 1.3** | enkripsi kredensial (§6.1) |
+| `vector` | tersedia, belum dipasang | RAG dokumen (§4d) |
+| `pg_cron` | tersedia, belum dipasang | penjadwal (§6.2) |
+| `pg_net` | tersedia, belum dipasang | alternatif pemanggil HTTP dari DB |
+
+Konsekuensi: **penjadwal Puraloka tak perlu n8n.** TJS memakai n8n sebagai cron
+eksternal; Supabase menyediakan `pg_cron` di dalam basis data yang sama.
+
+### 2.2 Approval engine — lebih siap dari dugaan awal
+
+Pengukuran pertama menyimpulkan salah ("hanya 1 modul memakai"). Grep hanya
+mencari nama tabel, padahal modul memanggilnya lewat `utils/approval.ts`.
+
+**Kenyataan: tujuh modul memakai mesin yang sama** —
+`kasbon`, `change_order`, `material_request`, `project_expense`,
+`estimate_version`, `lessons_learned`, `submittal`.
+
+Ini fondasi yang penting untuk dua hal sekaligus: **inbox approval terpusat**
+(§6.3) benar-benar akan berisi, dan **tool `preview_approve_*`** punya satu
+mekanisme untuk disambungi, bukan tujuh.
+
+---
+
+## 3. Lapisan platform AI — yang dibangun sekarang
+
+Empat komponen. Ketiga yang pertama tak menyentuh angka finansial sama sekali.
+
+### 3.1 Konfigurasi provider dari UI
+
+Founder eksplisit: *"termasuk konfigurasi api nya juga yg dikonfig dari ui
+semua"*.
+
+**Bentuk:** tabel `ai_provider_config`, satu baris per (company, asisten).
+Asisten = `insight` | `owner` | `staff` | `web` — dipisah karena tugasnya beda
+dan modelnya wajar beda.
+
+**Yang bisa diatur dari UI:**
+
+| Field | Kontrol | Validasi |
+|---|---|---|
+| Penyedia | dropdown dari registry | 422 kalau tak dikenal |
+| Model | dropdown kalau penyedia punya daftar; teks bebas + `datalist` untuk `custom` | wajib diisi kecuali penyedia bawaan |
+| Aktif/nonaktif | toggle | — |
+| Batas token | angka | 1..64000 |
+| Batas biaya bulanan | angka (Rupiah) | ≥ 0 |
+| Mode batas | `blokir` \| `peringatkan` | — |
+
+**Yang TIDAK ada di tabel ini: API key** — ia tinggal di `credential_store`
+terenkripsi (§6.1). Pemisahan itu diambil dari TJS karena alasannya benar:
+tabel config dibaca banyak tempat dan gampang ikut ter-log.
+
+**Satu cacat TJS yang tidak ditiru:** `maxTokens` di TJS divalidasi server
+(1..64000) tapi **tak pernah dirender di UI** — hanya ikut terkirim sebagai
+nilai lama. Field yang divalidasi tapi tak bisa diisi adalah setengah fitur.
+Di Puraloka ia ditampilkan atau tidak ada sama sekali.
+
+**Nama tabel kredensial:** TJS menyebut `app_credentials` di komentar, tapi
+tabel nyatanya `credential_store`. Komentar basi yang menyesatkan — dicatat
+supaya tak ikut tersalin.
+
+**Beda dari TJS:** TJS single-tenant, satu baris per asisten. Puraloka
+multi-tenant → `UNIQUE (company_id, asisten)` + RLS. Tiap kontraktor memilih
+providernya sendiri.
+
+### 3.2 Adaptor provider
+
+Antarmuka tunggal, beberapa implementasi. TJS punya lima (Anthropic, OpenAI,
+Gemini, OpenRouter, custom OpenAI-compatible).
+
+**Keputusan Puraloka: mulai DUA — Anthropic + custom OpenAI-compatible.**
+Bukan pengurangan ambisi. `custom` di TJS menerima base URL bebas dan sudah
+mencakup OpenAI, OpenRouter, dan mayoritas penyedia lokal; menulis tiga adaptor
+yang semuanya berbicara protokol yang sama adalah pekerjaan yang bisa ditunda
+tanpa kehilangan kemampuan. Registry-nya dibangun sejak awal supaya penambahan
+adaptor tidak menyentuh pemanggil.
+
+Yang **tidak** ditunda: bentuk antarmukanya harus benar sejak awal, khususnya
+normalisasi **tool calling** — di situ Anthropic dan OpenAI paling berbeda, dan
+itu bagian yang paling mahal diperbaiki belakangan.
+
+**Tiga beda konkret yang wajib ditangani antarmuka** (dibaca dari adaptor TJS):
+
+| Aspek | Anthropic | OpenAI-family | Gemini |
+|---|---|---|---|
+| Skema tool | `input_schema` | `function.parameters` | `tools[0].functionDeclarations[]` |
+| Argumen tiba sebagai | objek | **string JSON** — wajib di-parse, dengan fallback saat rusak | objek |
+| Hasil dikembalikan sebagai | blok `tool_use_id` | pesan terpisah `role:"tool"` | `functionResponse.name` |
+
+**Pelajaran arsitektur terpenting dari TJS, dan ini yang paling mudah terlewat:**
+agent loop TJS **tidak memakai lapisan provider-nya sendiri** — ia memanggil SDK
+Anthropic langsung, sementara `lib/ai/*` adalah lapisan paralel yang lebih baru
+dipakai pemanggil lain. Dua jalan ke model yang hidup berdampingan.
+
+Puraloka: **satu jalan.** Agent loop wajib lewat lapisan provider yang sama.
+Kalau tidak, konfigurasi-dari-UI yang founder minta hanya akan mengendalikan
+sebagian pemanggil — dan yang tak dikendalikannya justru yang paling mahal.
+
+**Bukan streaming.** TJS tak punya streaming di mana pun. Untuk asisten WhatsApp
+itu benar — pesan WA terkirim utuh, tak ada yang menonton token mengalir. Untuk
+asisten di web nanti, streaming baru relevan; antarmukanya dibuat tak
+menghalangi, tapi tak dibangun sekarang.
+
+### 3.3 Pelacakan biaya token
+
+TJS mencatat per **ronde tool-calling**, bukan per pesan — satu pesan WA bisa
+memicu 16 panggilan API. Ia juga memisahkan `cacheCreationTokens` /
+`cacheReadTokens`, yang benar karena harga keduanya berbeda jauh dari token
+biasa.
+
+Keduanya diambil apa adanya.
+
+**Tiga beda dari TJS:**
+1. `company_id` + RLS — TJS single-tenant.
+2. Biaya `numeric`, bukan float (CLAUDE.md §5.4). TJS memakai `Decimal(10,6)`
+   yang setara; yang penting jangan turun ke float.
+3. **Simpan Rupiah di samping USD.** Tagihan Anthropic dalam USD, tapi seluruh
+   ERP ini berbahasa Rupiah dan `KEPUTUSAN-SCOPE` mencoret multi-currency
+   justru karena semuanya satu mata uang. Kurs saat pencatatan ikut disimpan —
+   biaya historis tak boleh berubah ketika kurs bergerak.
+
+**Penegakan:** `mode_batas` = `blokir` | `peringatkan`. Diperiksa **sebelum**
+panggilan API, bukan sesudah — memeriksa sesudah berarti biayanya sudah keluar.
+
+### 3.4 Model routing per kategori
+
+TJS mengklasifikasi tiap pesan ke 4 kategori dengan satu panggilan Haiku murah,
+lalu memilih model sesuai kategori. Klasifikasi sekali per pesan (bukan per
+ronde), dan gagal-nya jatuh ke kategori dengan model **paling capable** — gagal
+ke kualitas terbaik, bukan termurah.
+
+Kedua keputusan itu benar dan diambil apa adanya. **Prioritas rendah** — ini
+optimasi biaya, bukan fitur. Dibangun setelah §3.1–3.3 hidup dan tagihan
+terlihat.
+
+---
+
+## 4. Asisten AI — bertahap, tiap tahap punya gerbang
+
+### 4a. Tahap 1 — read-only (memenuhi §4 #5)
+
+Tool hanya `list_*` dan `get_*`. Menjawab dari data, tak bisa mengubah apa pun.
+
+Kandidat tool awal, dipilih dari yang **datanya sudah benar hari ini** (bukan
+yang menunggu GL):
+
+| Tool | Sumber data | Sudah ada? |
+|---|---|---|
+| `daftar_proyek`, `ringkas_proyek` | `projects`, `progress_logs` | ya |
+| `progress_lapangan` | `progress_logs`, `absensi_harian` | ya |
+| `daftar_po`, `status_po` | `purchase_orders` | ya |
+| `persetujuan_tertunda` | `approval_progress` (7 modul) | ya |
+| `daftar_invoice`, `piutang_jatuh_tempo` | `invoices` | ya |
+| `stok_material` | `gudang_stok` | ya |
+| `absensi_tukang` | `absensi_harian` | ya |
+
+Sebagai pembanding skala: TJS punya **66 tool** — 29 query, 6 preview approval,
+18 preview create/update, 3 output. Puraloka mulai dari 7 dan tumbuh mengikuti
+kebutuhan nyata, bukan mengejar angka.
+
+**Aturan §4 #4 (explainability) mengikat di sini:** tiap jawaban menyebut
+sumbernya ("berdasarkan 12 invoice bulan ini"), bukan angka telanjang.
+
+**Tool keluaran (grafik & PDF) — pola TJS yang diambil apa adanya.** Keduanya
+mengembalikan **bukan URL, bukan base64** ke model, hanya `{terkirim: true,
+judul}`. Gambarnya dirender lokal lalu dikirim langsung ke kanal, tiba
+**sebelum** teks model. Dua akibat yang benar: model tak pernah memegang
+payload besar (hemat token), dan prompt bisa memerintahkannya **tidak**
+mengulang angka yang sudah terlihat di grafik.
+
+Untuk konstruksi, kandidat keluaran: kurva S, grafik progres per proyek,
+rekap absensi mingguan, laporan progres PDF.
+
+**Definisi tool: JSON Schema tulisan tangan, bukan zod.** TJS memilih itu, dan
+untuk lintas-provider ia benar — skema harus bisa dibentuk ulang jadi
+`input_schema` (Anthropic), `function.parameters` (OpenAI), dan
+`functionDeclarations` (Gemini). Menurunkan tiga bentuk dari zod menambah lapisan
+yang tak membayar dirinya.
+
+### 4b. Tahap 2 — preview & approve
+
+Tool `preview_setujui_*` untuk tujuh entity type yang sudah ada mesinnya.
+Syarat mengikat di §5.
+
+### 4c. Tahap 3 — pertanyaan finansial (MENUNGGU GL + WIP/PSAK)
+
+Tool yang menjawab laba-rugi, WIP, profitabilitas proyek **tidak dibangun**
+sampai #15 WIP/PSAK dan #16 rantai kontrak selesai. Ini satu-satunya bagian dari
+alasan Gelombang 4 yang masih berlaku penuh, dan ia dipertahankan.
+
+### 4d. RAG dokumen
+
+Kontraktor tenggelam dokumen: spesifikasi teknis, gambar kerja, kontrak, SNI,
+AHSP. *"Apa spek beton di kontrak Cibuluh?"* adalah pertanyaan harian, dan tanpa
+RAG asisten hanya bisa membaca tabel.
+
+**Koreksi terhadap audit pertama:** retrieval TJS disebut "hibrida", tapi
+kodenya menunjukkan sesuatu yang lebih sederhana — **tiga pencarian independen
+yang hasilnya disambung jadi satu string konteks.** Tak ada pembobotan, tak ada
+fusi skor, tak ada reciprocal-rank fusion. Pencarian keyword-nya `contains`
+biasa: **tanpa `tsvector`, tanpa `ts_rank`, tanpa indeks full-text.** Dan
+kegagalan pencarian vector ditelan `catch {}` kosong.
+
+**Lebih jauh: pipeline ingest-nya tidak ada di repo TJS.** Tak ada fungsi
+chunking, tak ada `CREATE EXTENSION vector`, tak ada migrasi yang membuat tabel
+`documents` — tabelnya diisi sesuatu di luar codebase. Yang bisa diambil dari
+TJS hanyalah **separuh baca**; separuh tulisnya harus ditulis dari nol.
+
+Jadi keputusannya: **niat hibridanya benar dan diambil, implementasinya tidak.**
+Konstruksi justru kasus terburuk untuk vector murni — *"SNI 2847"*, *"beton
+K-300"*, nomor kontrak, kode AHSP semuanya butuh pencocokan persis. Yang
+dibangun: `tsvector` bahasa Indonesia + vector, dengan **fusi skor sungguhan**,
+dan kegagalan salah satu jalur **terlihat**, bukan ditelan.
+
+Ingest ditulis sebagai bagian pertama, bukan belakangan — pelajaran L-5 (§7):
+separuh yang tak pernah ditulis adalah separuh yang tak pernah ketahuan hilang.
+
+`vector` tersedia di Supabase (§2.1).
+
+---
+
+## 5. Syarat mengikat untuk `preview_setujui_*`
+
+> Tujuh syarat (P-1..P-7) + sepuluh cacat TJS yang diperbaiki (§5.1) + delapan
+> belas pola TJS yang diambil apa adanya (§5.2). Bagian terpanjang dokumen ini,
+> dan sengaja: di sinilah AI menyentuh uang.
+
+Ditulis sebagai syarat, bukan saran. Kalau salah satu tak terpenuhi, tool tulis
+tidak dinyalakan.
+
+| # | Syarat | Kenapa |
+|---|---|---|
+| **P-1** | Approval lewat AI memakai **`utils/approval.ts` yang sama** dengan dashboard — bukan jalur sendiri | §4 #2: "WhatsApp = client baru, bukan jalan pintas." Jalur kedua berarti dua tempat yang bisa berbeda perilaku, dan yang kedua tak pernah setua yang pertama |
+| **P-2** | Permission diperiksa lewat `requirePermission` yang sama (ADR-004) | Pengirim WA tetap tunduk permission-nya. Tanpa ini, nomor WA jadi cara memutar RBAC |
+| **P-3** | Konfirmasi terikat **token sekali-pakai**, kedaluwarsa, dan **diklaim atomik** (klaim = titik serialisasi, klaim kedua → 409) | TJS jalur WA hanya mencocokkan kata pertama (C-3): dua preview berdekatan berarti "ya" bisa mengenai yang salah. Jalur web TJS **sudah memakai klaim atomik** — pola itu yang diambil, sekaligus menutup balapan kirim-ganda |
+| **P-4** | Identitas terikat ke `user_id`; **batas melekat pada user, bukan pada nomor/kanal** | Nomor berpindah tangan. Dan batas yang melekat pada kanal bolong tiap kali kanal baru lahir — persis C-2 |
+| **P-5** | Jejak audit menandai kanalnya (`via: 'ai_whatsapp'`), **dan** percobaan dari nomor tak dikenal ikut tercatat | Penandaan diambil dari TJS. Pencatatan percobaan **tidak ada** di TJS (C-9) — untuk SaaS, "siapa mencoba masuk" adalah pertanyaan pelanggan |
+| **P-6** | Batas nominal + jam + budget ditegakkan di server, **dicek dua kali: saat preview DAN saat eksekusi**. Nominal adalah field wajib bertipe, bukan tebakan nama | Ditegakkan di prompt = tidak ditegakkan. Cek sekali di eksekusi (TJS, C-1) berarti draf mustahil tetap muncul; tebak-nama (C-10) berarti jenis dokumen baru melewati batas **diam-diam** |
+| **P-7** | Uji mutasi: matikan tiap penjaga satu per satu → **harus MERAH** | CLAUDE.md §8a.2. Penjaga yang tak pernah merah adalah hiasan |
+
+**P-6 memetakan ke yang sudah ada:** `approval_steps.min_amount` sudah ada di
+migrasi 099. Batas nominal AI bukan mekanisme baru, ia lapisan kedua di atas
+yang sudah berjalan.
+
+### 5.1 Sepuluh cacat TJS yang HARUS diperbaiki, bukan ditiru
+
+Founder minta *"tiru semua"*. Sepuluh hal ini adalah pengecualian yang lahir dari
+membaca kode TJS, bukan dari kehati-hatian abstrak — semuanya cacat nyata yang
+terbaca di sana.
+
+| # | Cacat di TJS | Bukti | Perbaikan di Puraloka |
+|---|---|---|---|
+| **C-1** | **Batas nominal dicek hanya saat "YA", bukan saat preview.** Satu-satunya titik penegakan ada di `executeConfirmedApproval`. Akibatnya: pengguna melihat draf lengkap PO Rp 10 M, baru ditolak di detik terakhir | `tools.ts:949-950`; tool preview tak memeriksa apa pun | Cek **dua kali**: saat preview (supaya tak pernah muncul draf yang mustahil disetujui) DAN saat eksekusi (supaya batas tak bisa diputar dengan preview lama) |
+| **C-2** | **Web AI melewati batas nominal sepenuhnya.** `web-agent-loop.ts` mengoper `waNumber:""`, sehingga `getGuardrailLimits` tak menemukan kontak dan mengembalikan semua-null | `web-agent-loop.ts:110-112` | Batas melekat pada **user**, bukan pada nomor WA. Kanal apa pun (web/WA/mobile) melewati pemeriksaan yang sama. Ini juga yang membuat P-4 wajib |
+| **C-3** | **Konfirmasi tanpa token — hanya kata pertama.** `firstWordMatches` memeriksa kata pertama pesan berikutnya terhadap daftar `["ya","ok","gas",…]`. Dua preview yang datang berdekatan berarti "ya" bisa mengenai yang salah | `agent-loop.ts:66` + `CONFIRM_WORDS:46-51` | **P-3**: token sekali-pakai + kedaluwarsa. Jalur web TJS sendiri sudah lebih baik (klaim atomik via `deleteMany`, 409 kalau sudah diklaim) — pola itu yang diambil, bukan pola WA-nya |
+| **C-4** | **Ronde habis = jawaban kosong.** Kalau 16 ronde berlalu dan `stop_reason` masih `tool_use`, `finalText` kosong → permintaan maaf kalengan. Tak ada pass terakhir yang memaksa jawaban teks | `agent-loop.ts:441` | Pada ronde terakhir, **jangan kirim `tools`** — model terpaksa menjawab dengan teks |
+| **C-5** | **Blok tool_use/tool_result tidak disimpan.** Riwayat hanya menyimpan teks user/assistant, jadi tiap pesan baru mulai tanpa konteks tool ronde sebelumnya | `agent-loop.ts:252-273` | Simpan blok tool dalam riwayat. Untuk konstruksi ini penting: *"cek stok besi"* → *"buatkan PR-nya"* adalah percakapan wajar dan tak boleh kehilangan hasil ronde pertama |
+| **C-6** | **`isError` hanya diteruskan adaptor Anthropic**; adaptor lain menelannya diam-diam | `lib/ai/*` | Antarmuka wajib membawa `isError` di **semua** adaptor. Kalau sebuah adaptor tak bisa, ia gagal jelas — bukan menelan |
+| **C-7** | **Dua tabel harga hardcode yang tak sepakat.** Biaya dicatat memakai Opus $5/$25 per MTok; UI menampilkan $15/$75 untuk model yang sama. **Biaya tercatat 3× lebih rendah dari yang admin lihat** | `model-pricing.ts:16-47` vs `providers/anthropic.ts:52-53` | **Satu sumber harga.** Tabel yang sama dibaca pencatat biaya dan UI. Penjaga CI: nol harga di luar berkas itu |
+| **C-8** | **Kurs USD→IDR ditulis mati `16000`** di komponen UI | `ai-providers/page.tsx:111-115` | Kurs dari konfigurasi, tersimpan bersama tiap catatan biaya (L-2). Kurs mati berarti biaya historis ikut berubah tiap kali angkanya disunting |
+| **C-9** | **Nomor tak terdaftar tak tercatat di mana pun.** Penolakan whitelist tak menulis log — tak ada telemetri percobaan tak sah | `synthetic-session.ts:103-105` | Catat percobaan dari nomor tak dikenal (nomor + waktu, tanpa isi pesan). Untuk SaaS multi-tenant, "siapa mencoba masuk" adalah pertanyaan pelanggan |
+| **C-10** | **Nominal diambil dari 4 nama field yang ditebak berurutan** (`totalAmount ?? totalEstimated ?? estimatedCost ?? amount`). Jenis dokumen dengan nama field kelima → `amount = null` → **batas nominal terlewati diam-diam** | `tools.ts:947` | Nominal jadi **field wajib bertipe** pada kontrak preview, bukan hasil tebakan nama. Yang tak punya nominal menyatakannya eksplisit (`nominal: null`), bukan lewat kegagalan pencarian |
+
+C-2 dan C-3 keduanya kelas yang sama: **gerbang keamanan yang benar di satu
+jalur dan bolong di jalur lain.** Persis kenapa P-1 mensyaratkan satu mesin
+approval, bukan dua.
+
+### 5.2 Yang diambil apa adanya karena memang bagus
+
+Supaya tak ikut "diperbaiki" tanpa sebab:
+
+- **Urutan jalur murah sebelum jalur berbayar.** TJS memeriksa whitelist,
+  slash-command, konfirmasi tertunda, dan budget — **semuanya sebelum**
+  memanggil model. Nomor tak dikenal dijawab tanpa biaya sepeser pun.
+- **ACL tool fail-closed.** Tanpa template → nol tool. Override eksplisit
+  selalu menang atas keanggotaan template.
+- **Error tool dikembalikan sebagai `is_error`, bukan dilempar.** Model melihat
+  kegagalannya dan bisa menyesuaikan, alih-alih percakapan mati.
+- **Kata pertama, bukan exact-match, bukan substring.** Exact-match gagal pada
+  "batal aja"; substring berarti pesan panjang yang kebetulan memuat "ok" bisa
+  meloloskan approval finansial. TJS memilih titik tengah yang tepat — dan
+  **tetap butuh token** (C-3); keduanya lapisan berbeda.
+- **Pagar keamanan di luar persona yang bisa dikonfigurasi.** Aturan approval
+  dan format ditulis mati di prompt sistem; yang bisa diubah pengguna hanya
+  nada bicara. Pagar yang bisa diedit dari UI bukan pagar.
+- **Prompt sistem menyapa nama depan saja.** Detail kecil, tapi ia yang membuat
+  percakapan terasa milik orangnya.
+- **Sesi sintetis dibangun ulang tiap pesan, bukan JWT ter-cache.** Permission
+  selalu versi terbaru dari DB. Kontak yang belum tertaut user **ditolak
+  eksplisit** — tak ada identitas default, jadi tak ada aksi tercatat atas nama
+  orang yang salah.
+- **Batas nominal fail-CLOSED, budget fail-SAFE — sengaja berbeda.** Query
+  guardrail gagal → tolak. Query budget gagal → lanjut. Alasannya di kode TJS:
+  *"memutus semua percakapan gara-gara 1 query gagal jauh lebih merugikan
+  daripada 1 pesan lewat batas."* Benar, dan bedanya harus disengaja.
+- **Konfirmasi/pembatalan tetap bisa jalan meski budget habis.** Jalur "ya"/
+  "batal" gratis dan berada sebelum pemeriksaan budget. Pengguna yang lewat
+  batas masih bisa **membatalkan** draf yang tertunda.
+- **Notifikasi 80% anti-dobel lewat compare-and-set optimistik.**
+  `updateMany` bersyarat `warnSentMonth` lama; `count === 0` berarti request
+  lain sudah mengklaim. Pola yang benar untuk dedup tanpa lock.
+- **Uji koneksi selalu 200, tak pernah 5xx.** Hasil uji yang "gagal" adalah
+  informasi yang diminta, bukan kegagalan permintaan — 5xx membuat UI
+  menampilkan galat jaringan alih-alih pesan yang bisa ditindaklanjuti.
+- **Ganti provider mengosongkan model.** Nama model khas tiap penyedia;
+  mempertahankannya saat berganti menghasilkan 404 yang membingungkan.
+- **Uji nilai yang sedang diketik TANPA menyimpannya.** Ini yang membuat "uji
+  dulu sebelum menimpa key lama" mungkin.
+- **Tombol uji `type="button"`.** Di dalam `<form>`, tombol tanpa tipe akan
+  submit dan menyimpan. Sepele, dan gampang terlewat.
+- **Menolak menyimpan kredensial saat enkripsi belum terkonfigurasi** (503)
+  — lebih baik menolak daripada menyimpan plaintext yang berakhir di backup.
+- **Beberapa model menolak `thinking: adaptive`.** TJS menemukannya saat admin
+  mengganti model dari UI dan semua pesan kategori itu gagal tanpa peringatan.
+  Kemampuan model harus dinyatakan per-model, bukan diasumsikan seragam.
+
+---
+
+## 6. Modul platform non-AI dari TJS
+
+Diurutkan menurut apa yang memblokir apa, bukan menurut daya tarik.
+
+### 6.1 Kredensial terenkripsi — PRASYARAT
+
+Tanpa ini, kunci provider AI dan kredensial WA tiap tenant tak punya tempat.
+`.env` server hanya bisa menampung satu tenant.
+
+Prinsip TJS yang diambil: **nilai kredensial tak pernah dikirim balik ke
+browser.** Dan yang membuatnya berlaku sungguhan bukan penyembunyian di UI,
+melainkan **kolom terenkripsinya tak pernah ikut di-`select`** — bahkan untuk
+peran tertinggi. Yang boleh keluar: nama key, 4 karakter terakhir, sumbernya,
+kapan terakhir diubah. Audit log pun hanya menerima metadata.
+
+Alasan TJS menyimpannya di DB alih-alih `.env`, dan ini alasan yang bagus:
+*dump DB dikirim ke Google Drive tanpa melewati proses redaksi env*, jadi
+plaintext-di-DB justru **lebih buruk** daripada `.env`. Terenkripsi-di-DB
+menyelesaikan keduanya.
+
+**Beda dari TJS:** TJS memakai AES-256-GCM di lapisan aplikasi dengan master key
+dari env, **tanpa KDF/salt**. Puraloka sudah punya `pgcrypto` aktif — tapi
+enkripsi di sisi DB berarti kunci ikut lewat parameter query dan bisa mendarat
+di log statement. Keputusan: **tetap enkripsi di aplikasi seperti TJS**, dengan
+KDF yang TJS lewatkan. Format berversi (`v1:…`) diambil, karena ia yang membuat
+rotasi algoritma mungkin tanpa migrasi besar.
+
+### 6.2 Penjadwal — akar masalah, dan bukan cuma untuk AI
+
+`/sistem` hari ini adalah pengakuan: dua tombol manual, dan kalau tak ada yang
+menekan, **notifikasi tak pernah terbit**. Ini menjelaskan kenapa banyak fitur
+Puraloka terasa "ada tapi tidak hidup".
+
+Dua pelajaran dari TJS, keduanya dari kodenya sendiri:
+
+1. **`BackupPolicy` TJS punya kolom jadwal bertahun-tahun tanpa kode yang
+   membacanya** — komentarnya menulis *"backup terjadwal selama ini ada di
+   layar, tidak di kenyataan."* Konsekuensi untuk Puraloka: kolom jadwal dan
+   pembacanya lahir di commit yang sama, atau tidak lahir sama sekali.
+2. **Aturan pemicu "sudah lewat jamnya DAN belum jalan di periode ini"**, bukan
+   "jamnya sama persis" — supaya cron telat atau server mati tetap mengejar.
+   Logikanya fungsi murni dengan `now` dioper, jadi bisa diuji tanpa DB.
+
+Keduanya diambil.
+
+**Beda dari TJS:** `pg_cron`, bukan n8n. Satu ketergantungan eksternal lebih
+sedikit, dan jadwal ikut ter-backup bersama basis datanya.
+
+### 6.3 Inbox approval terpusat
+
+Tujuh modul sudah menulis ke `approval_progress` (§2.2). Yang hilang cuma satu
+halaman yang membacanya sekaligus — approver hari ini harus membuka tiap modul
+satu per satu.
+
+Ini juga **prasyarat kualitas** untuk `preview_setujui_*`: kalau approval lewat
+WA dan approval lewat UI membaca antrean yang sama, keduanya tak bisa berbeda.
+
+### 6.4 Recycle bin
+
+Soft delete ada (`is_deleted`); **restore tidak ada** — data terhapus lunak
+hanya bisa dipulihkan lewat SQL langsung. Pola registry TJS (modul baru cukup
+mendaftar) diambil.
+
+### 6.5 Period lock / tutup buku
+
+Menu `fn-tutup-buku` sudah ada di sidebar, href-nya masih halaman generik.
+Prasyaratnya (GL) **sudah terpenuhi** — CLAUDE.md §5.5 mencatat cacat 047↔167
+selesai.
+
+Tanpa ini, **jurnal periode lampau masih bisa berubah**. Itu bukan fitur baru,
+itu pengaman untuk GL yang sudah dibangun.
+
+Pola TJS yang diambil: penegakan **lintas modul** — TJS menolak generate payroll
+dengan HTTP 423 kalau periodenya CLOSED. Period lock yang hanya dicek di modul
+akuntansi bukan period lock.
+
+### 6.6 Custom field per tenant
+
+Kebutuhan struktural SaaS: tiap kontraktor punya field khas (nomor SPK internal,
+kode cabang). Tanpa ini, tiap permintaan pelanggan = migrasi + deploy.
+
+TJS menyimpan definisi **dan nilai** (`CustomField` + `CustomFieldValue`).
+Puraloka wajib menambah `company_id` + RLS di keduanya.
+
+⚠️ Never Build List mencoret **"EAV penuh"**. Custom field terbatas
+(daftar tipe tertutup, hanya di entitas yang ditunjuk) **bukan** EAV penuh —
+tapi batas itu harus ditegakkan di schema, bukan diserahkan ke niat baik.
+
+### 6.7 Importer generik
+
+Blocker onboarding SaaS: kontraktor baru datang dengan Excel (klien, vendor,
+material, harga satuan, aset). Tanpa importer, onboarding = kerja manual.
+
+Puraloka baru punya importer RAB.
+
+Dari TJS diambil **wizard 4 tahap** (upload → mapping → preview → commit) dan
+**mapper deterministik berbasis skor kemiripan, bukan AI** — keputusan bagus
+karena nol latensi, reproducible, gratis, dan bisa dioverride manual.
+
+**Tapi jangan ambil pola per-barisnya:** wizard klasik TJS tak punya rollback,
+importer Universal-nya all-or-nothing dalam satu transaksi. TJS sendiri
+menunjukkan mana yang benar. Ambil yang transaksional.
+
+### 6.8 Segregation of Duties
+
+Konstruksi rawan fraud pengadaan. Aturan TJS hampir seluruhnya langsung
+berlaku: pembuat PR tak boleh approve PR-nya sendiri; pembuat PO tak boleh
+approve maupun mengirim ke supplier; penerima barang tak boleh approve
+penerimaan.
+
+Yang penting diambil: **override yang dicatat**. Larangan tanpa jalan keluar
+akan dimatikan orang; larangan yang bisa di-override tapi tercatat bertahan.
+
+### 6.9 Diambil belakangan
+
+Sertifikasi SKA/SKT dengan alarm kedaluwarsa (SKA kedaluwarsa = tak bisa ikut
+tender — ini risiko bisnis, bukan HR) · cuti + saldo · lembur · MFA · access log
+· template notifikasi sebagai data · backup terkelola per-tenant.
+
+### 6.10 TIDAK diambil — Puraloka lebih baik atau setara
+
+| Modul TJS | Alasan |
+|---|---|
+| Approval builder | Puraloka relasional + FK ke `permissions(key)`; TJS Json blob bebas. Salah ketik ditolak DB |
+| Routing notifikasi | Puraloka punya target `project_pm` / `project_mandors` — konsep konstruksi yang TJS tak punya |
+| Search global | Setara |
+| Report/BI builder | **TJS juga tidak punya** — 8 halaman analytics-nya semuanya dashboard tetap |
+| Komisi sales | Tak relevan untuk kontraktor |
+| Engine workflow generik | Puraloka **sudah pernah membangunnya dua kali dan men-DROP-nya** (migrasi 095, namanya harfiah "orphan"). TJS sendiri bergejala: dua engine workflow hidup berdampingan tanpa yang satu menggantikan yang lain |
+| Dashboard builder | Desain TJS terlalu lemah untuk ditiru — key by `role` saja, tanpa per-user, tanpa tenant |
+| Status builder | Bentrok Ember [C]: status yang jadi gerbang finansial tak boleh dikonfigurasi dari UI. Kalau kelak diambil, hanya untuk status deskriptif, dan pola `isSystem` TJS adalah mekanisme pemisahnya |
+
+### 6.11 Payroll — konflik dokumen yang ternyata salah kutip
+
+`peta-menu.ts:265` menandai payroll/BPJS/PPh21 `eksternal`, dengan catatan
+*"Diputuskan memakai tool eksternal (KEPUTUSAN-SCOPE §2)"*.
+
+Kutipannya **menunjuk dokumen yang isinya justru kebalikan.**
+`KEPUTUSAN-SCOPE-ERP-AI.md` §2 adalah tabel berjudul *"Apa yang BERUBAH"*, dan
+barisnya berbunyi: *Payroll staf + BPJS + PPh 21 — status LAMA ⛔ "pakai tool
+eksternal" → status BARU **MASUK***.
+
+Bukan dua keputusan founder yang bertentangan, melainkan satu kutipan yang
+merujuk versi lama dari §2. Bukti waktunya jelas:
+
+| Commit | Waktu | Isi |
+|---|---|---|
+| `7b00117` | 2026-08-01 **11:09** | keputusan scope: payroll MASUK |
+| `7d697c3` | 2026-08-01 **14:06** | peta-menu menulis `eksternal`, mengutip §2 |
+
+Peta menu ditulis **tiga jam sesudah** keputusan yang dikutipnya, dan mengutip
+isi yang sudah dibalik dokumen itu sendiri.
+
+**Diselesaikan: payroll MASUK.** `peta-menu.ts` yang keliru, dan tiga statusnya
+(`hr-payroll`, `hr-bpjs`, `hr-pph21`) diperbaiki jadi `rencana`. Ini persis
+kelas cacat yang CLAUDE.md §8a.4 peringatkan — dokumen tertinggal dari
+keputusan, lalu menyesatkan sesi berikutnya. Kali ini yang tertinggal adalah
+kode yang mengutip dokumen.
+
+Saat dibangun: ambil `pph21-ter.ts` TJS (tabel TER PMK-168/2023, 40
+bracket, 9 kategori PTKP — aset nyata yang mahal ditulis ulang) dan pola
+period-lock 423. **Jangan** ambil rate BPJS hardcode-nya — 1%/3% ditulis mati di
+kode tanpa UI, cacat serius untuk multi-tenant.
+
+---
+
+## 7. Di mana rancangan ini LEBIH BAIK dari TJS
+
+Founder minta *"jika bisa lebih baik"*. Lima tempat, masing-masing berasal dari
+kelemahan yang terbaca di kode TJS sendiri.
+
+| # | TJS | Puraloka | Kenapa lebih baik |
+|---|---|---|---|
+| **L-1** | Single-tenant: config AI, custom field, cost log semuanya tanpa `company_id` | Semua tabel baru `company_id` + RLS sejak migrasi pertama | Menambah tenancy belakangan berarti menyentuh tiap tabel dua kali. Dan sampai itu dilakukan, tenant A membaca biaya AI tenant B |
+| **L-2** | Biaya AI hanya USD | USD **+ Rupiah + kurs saat catat** | Seluruh ERP ini Rupiah. Menyimpan kurs berarti biaya historis tak berubah saat kurs bergerak |
+| **L-3** | Scheduler lewat n8n eksternal | `pg_cron` di dalam Supabase | Satu ketergantungan eksternal lebih sedikit; jadwal ikut ter-backup bersama datanya |
+| **L-4** | `BackupPolicy` punya kolom jadwal bertahun-tahun **tanpa pembaca** | Penjaga CI: kolom jadwal wajib punya pembaca | Kelas cacat yang sama dengan `channel:'push'` Puraloka (§2). Keduanya "ada di layar, tidak di kenyataan" — dan itu bisa dijaga mesin |
+| **L-5** | Backup file lulus verifikasi gzip tapi **tak ada reader-nya** — jalur pemulihan belum ditulis | Kalau backup dibangun: uji **restore** end-to-end, bukan hanya backup | Ini kegagalan senyap yang lolos verifikasi hijau — persis yang `audit-kegagalan-senyap.mjs` dibangun untuk menangkap |
+
+| **L-6** | **Dua jalan ke model.** Agent loop TJS memanggil SDK Anthropic langsung; `lib/ai/*` adalah lapisan paralel untuk pemanggil lain | **Satu jalan.** Agent loop wajib lewat lapisan provider | Kalau tidak, konfigurasi-dari-UI hanya mengendalikan sebagian pemanggil — dan yang tak dikendalikannya justru yang paling boros |
+| **L-7** | **Dua tabel harga yang tak sepakat** (C-7): biaya Opus tercatat 3× lebih rendah dari yang admin lihat | Satu sumber harga, dijaga penjaga CI | Angka biaya yang salah lebih buruk daripada tak ada angka — ia dipercaya |
+| **L-8** | **Nominal ditebak dari 4 nama field** (C-10); jenis dokumen baru dengan nama lain melewati batas nominal **diam-diam** | Nominal = field wajib bertipe pada kontrak preview | Kegagalan senyap pada gerbang uang. Kelas yang sama dengan L-4/L-5 |
+| **L-9** | Batas melekat pada **nomor WA**; jalur web tak punya kontak → tanpa batas (C-2) | Batas melekat pada **user** | Kanal bertambah seiring waktu (web, mobile, API). Batas yang melekat pada kanal akan bolong tiap kali kanal baru lahir |
+
+L-4, L-5, L-8, dan L-9 adalah **temuan paling berharga dari seluruh audit**:
+tak satu pun berupa fitur yang TJS punya dan Puraloka tidak. Semuanya **cara
+gagal** — tiga di antaranya kegagalan senyap yang lolos verifikasi hijau, persis
+kelas yang penjaga `audit-kegagalan-senyap.mjs` di repo ini dibangun untuk
+menangkap.
+
+---
+
+## 8. Urutan eksekusi
+
+Tiap tahap punya gerbang. Tahap berikutnya tak dimulai sebelum gerbangnya hijau.
+
+```
+TAHAP A — LANTAI (tak menyentuh AI sama sekali)
+  A1  kredensial terenkripsi + UI            → prasyarat semua yang lain
+  A2  penjadwal (pg_cron) + penjaga L-4      → menghidupkan yang sudah ada
+  A3  inbox approval terpusat                → prasyarat kualitas 4b
+  Gerbang: notifikasi terbit tanpa manusia menekan tombol; inbox berisi 7 jenis
+
+TAHAP B — PLATFORM AI
+  B1  ai_provider_config + UI                → permintaan eksplisit founder
+  B2  adaptor (Anthropic + custom)           → antarmuka benar sejak awal
+  B3  pelacakan biaya + batas                → sebelum ada yang membakar token
+  Gerbang: /ai/insight berjalan lewat lapisan baru; biaya tercatat & terbatas
+
+TAHAP C — ASISTEN READ-ONLY
+  C1  agent loop + tool catalog read-only
+  C2  explainability (§4 #4) sebagai syarat, bukan hiasan
+  Gerbang: menjawab benar dari data nyata; nol jalur tulis
+
+TAHAP D — WHATSAPP
+  D1  satu pintu keluar, satu provider
+  D2  verifikasi nomor → ikatan user (P-4)
+  Gerbang: gerbang eksternal founder (akun WA Business)
+
+TAHAP E — PREVIEW & APPROVE
+  E1  P-1..P-7 seluruhnya terpenuhi & terbukti merah lewat mutasi
+  Gerbang: uji mutasi hijau-merah-hijau untuk tiap penjaga
+
+PARALEL (tak memblokir & tak diblokir)
+  recycle bin · period lock · custom field · importer · SoD
+
+MENUNGGU DATA
+  tool finansial (4c) — menunggu #15 WIP/PSAK & #16 rantai kontrak
+  RAG (4d) — bisa dimulai kapan saja setelah B
+```
+
+Satu pintu keluar WA (D1) diambil dari pelajaran TJS: TJS baru merapikannya
+**setelah** tersebar ke 10 titik di app + 30 di n8n, dan ketersebaran itu
+menyebabkan bug nyata — payload berbeda bentuk membuat alert stok tak pernah
+terkirim, **dan gagalnya senyap**.
+
+---
+
+## 9. Yang belum diputuskan
+
+| # | Pertanyaan | Kenapa belum diputuskan di sini |
+|---|---|---|
+| **T-1** | Provider WA mana lebih dulu? | Konsekuensi biaya nyata per pesan. Fonnte/Wablas termurah untuk pasar Indonesia; Meta Cloud API resmi tapi butuh verifikasi bisnis Meta |
+| **T-2** | Batas biaya AI default per tenant? | Angka bisnis, bukan teknis |
+
+Keduanya punya default aman yang bisa diubah dari UI, jadi **tidak memblokir**
+tahap mana pun. Keduanya juga tak menyentuh Gerbang Keras.
+
+*(Payroll sempat tercatat di sini sebagai konflik dokumen. Ternyata salah
+kutip, bukan konflik — diselesaikan di §6.11 tanpa perlu ratifikasi.)*
+
+---
+
+## 10. Rujukan
+
+| Untuk | Berkas |
+|---|---|
+| Kode sumber rujukan | `E:/Project/automation-tjs/admin-dashboard` |
+| Aturan AI yang mengikat | `docs/KEPUTUSAN-SCOPE-ERP-AI.md` §4 |
+| Gerbang Keras & Ember [C] | `docs/execution/CHARTER.md` §5, §6 |
+| Approval engine yang sudah ada | `apps/api/src/utils/approval.ts`, migrasi 099 |
+| Routing notifikasi yang sudah ada | migrasi 101 |
+| Celah push notification | `apps/api/src/utils/notifications.ts:167` |

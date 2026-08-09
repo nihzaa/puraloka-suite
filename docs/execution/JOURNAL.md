@@ -5,6 +5,118 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-09 (malam) — perencanaan lapisan AI & platform dari TJS
+
+Founder: *"untuk urusan ai saya mau tiru semua, dan termasuk konfigurasi api
+nya juga yg dikonfig dari ui semua … bila menabrak aturan, aturannya rubahlah
+… jika bisa lebih baik dari yg punya nya TJS"*.
+
+Perencanaan, bukan implementasi. Yang dihasilkan: satu spec, dua dokumen
+keputusan diamandemen, 14 item antrean.
+
+### Dua aturan tertabrak — satu diubah, satu tidak
+
+Izin founder untuk mengubah aturan dipakai **selektif**, dan bedanya dicatat
+supaya sesi berikutnya tak menafsir ulang.
+
+**Diubah — urutan.** `KEPUTUSAN-SCOPE-ERP-AI.md` §5 menaruh seluruh AI di
+Gelombang 4, sesudah GL/QA-QC/payroll/mobile. Alasan aslinya benar (*"AI yang
+ditanya 'proyek mana yang rugi?' akan menjawab dari angka yang pembukuannya
+belum benar"*) tapi jangkauannya lebih sempit dari yang tertulis: yang
+bergantung pada GL adalah **jawaban finansialnya**, bukan konfigurasi provider,
+kredensial, penjadwal, atau asisten yang menjawab *"berapa progress Cibuluh?"*
+dari `progress_logs`. AI dipecah dua; lapisan platform naik ke sekarang, tool
+finansial tetap menunggu #15 WIP/PSAK & #16.
+
+**Tidak diubah — no silent write & pilot read-only** (§4 #1 dan #5). Dan
+alasannya bukan kehati-hatian: setelah membaca kode TJS, pola
+`preview_approve` ternyata **memenuhi** aturan itu, bukan melanggarnya. Model
+di TJS **secara arsitektur tak mampu menulis** — hanya tool `preview_*` yang
+terdaftar; eksekutornya `executeConfirmedApproval` bukan tool sama sekali dan
+tak pernah terlihat model. Bukan "AI disuruh minta izin", tapi AI yang tidak
+punya tombolnya. Aturan yang tak perlu diubah, tak diubah.
+
+### Saya salah sekali, dan koreksinya mengubah rekomendasi
+
+Pengukuran pertama menyimpulkan *"mesin approval diseed 4 jenis tapi hanya 1
+modul memakainya — inbox terpusat akan hampir kosong"*. Salah: grep saya hanya
+mencari nama tabel, padahal modul memanggilnya lewat `utils/approval.ts`.
+**Tujuh modul** memakai mesin yang sama. Inbox akan berisi, dan `preview_*`
+punya satu mekanisme untuk disambungi, bukan tujuh.
+
+### Payroll: bukan konflik keputusan, tapi salah kutip
+
+`peta-menu.ts:265` menandai payroll `eksternal` dengan catatan *"(KEPUTUSAN-SCOPE
+§2)"* — padahal §2 adalah tabel berjudul "Apa yang BERUBAH" yang barisnya
+berbunyi payroll **MASUK**. Bukti waktunya: keputusan scope commit `7b00117`
+pukul 11:09; peta-menu `7d697c3` pukul **14:06** — tiga jam sesudahnya,
+mengutip isi yang sudah dibalik dokumen itu sendiri. Diselesaikan: payroll
+MASUK, tiga status di peta-menu perlu diperbaiki jadi `rencana`. Tak perlu
+ratifikasi.
+
+### Sepuluh cacat TJS yang diperbaiki, bukan ditiru
+
+"Tiru semua" dijalankan, dengan sepuluh pengecualian yang semuanya lahir dari
+membaca kode TJS sampai `file:line` — bukan dari kehati-hatian abstrak. Empat
+di antaranya **kegagalan senyap yang lolos verifikasi hijau**:
+
+- **C-10** nominal diambil dari 4 nama field yang ditebak berurutan
+  (`totalAmount ?? totalEstimated ?? estimatedCost ?? amount`). Jenis dokumen
+  dengan nama kelima → `null` → **batas nominal terlewati diam-diam.**
+  Kegagalan senyap pada gerbang uang.
+- **C-2** Web AI mengoper `waNumber:""` → kontak tak ditemukan → semua batas
+  `null`. Gerbang yang benar di satu jalur, bolong di jalur lain.
+- **C-7** dua tabel harga hardcode yang tak sepakat: biaya Opus **tercatat 3×
+  lebih rendah** dari yang ditampilkan ke admin.
+- **C-1** batas nominal hanya dicek saat "YA", bukan saat preview — pengguna
+  melihat draf lengkap PO Rp 10 M lalu ditolak di detik terakhir.
+
+Sisanya: C-3 konfirmasi tanpa token (hanya kata pertama), C-4 ronde habis →
+balasan kosong, C-5 blok tool tak disimpan di riwayat, C-6 `isError` hanya di
+adaptor Anthropic, C-8 kurs 16.000 ditulis mati di UI, C-9 nomor tak dikenal
+tak tercatat di mana pun.
+
+### Dua koreksi terhadap audit pertama saya sendiri
+
+Audit awal menyebut RAG TJS "retrieval hibrida". Kodenya: **tiga pencarian
+independen yang disambung jadi satu string** — tanpa bobot, tanpa fusi skor,
+keyword-nya `contains` biasa tanpa indeks full-text, dan kegagalan vector
+ditelan `catch {}` kosong. Lebih jauh: **pipeline ingest-nya tidak ada di repo
+TJS** — tabelnya diisi sesuatu di luar codebase. Niat hibridanya diambil,
+implementasinya tidak.
+
+Audit awal juga menyebut "38 tool". Sebenarnya **66**.
+
+### Yang diukur, bukan ditebak
+
+`pg_cron`, `vector`, `pg_net` semuanya **tersedia di Supabase**, `pgcrypto`
+sudah aktif. Konsekuensi: penjadwal Puraloka **tak perlu n8n** seperti TJS —
+satu ketergantungan eksternal lebih sedikit, dan jadwal ikut ter-backup
+bersama datanya.
+
+### Utang yang ditemukan di sela
+
+Repo ini **tidak punya penjadwal sama sekali**. `/sistem` adalah dua tombol
+manual, dan kalau tak ada yang menekan, notifikasi tak pernah terbit. Ini
+menjelaskan kenapa banyak fitur terasa "ada tapi tidak hidup" — dan kelasnya
+sama dengan cacat TJS yang saya jadikan penjaga L-4 (`BackupPolicy` punya
+kolom jadwal bertahun-tahun tanpa pembaca: *"terjadwal di layar, tidak di
+kenyataan"*). Puraloka punya kembarannya, sudah diakui sendiri di
+`utils/notifications.ts:167`: `channel:'push'` dicatat, **0 dari 23 user**
+berlangganan.
+
+### Hasil
+
+- `docs/superpowers/specs/2026-08-09-lapisan-ai-dan-platform-design.md` (~690 baris)
+- `KEPUTUSAN-SCOPE-ERP-AI.md` — amandemen §5 + diagram gelombang
+- `CHARTER.md` §3 — fase 6, tanda kurung "(bukan fitur AI)" dicabut
+- `QUEUE.yaml` — 14 item TJS-*, YAML tervalidasi, nol blokir menggantung
+
+Belum satu baris kode pun. Yang berikutnya: TJS-A1 (kredensial terenkripsi),
+karena ia prasyarat semua yang lain.
+
+---
+
 ## 2026-08-09 (sore) — "gaada data master" — dan founder benar
 
 Founder menyisir sidebar sendiri: *"apakah sudah benar semua sesuai standar

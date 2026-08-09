@@ -16,7 +16,7 @@ memuat **setiap** dokumen, tanpa kecuali.
 | **acuan** | aturan/keputusan yang dirujuk saat bekerja | dibaca saat mengerjakan hal terkait; tak "selesai" |
 | **riwayat** | catatan fase yang sudah lewat | bukti apa yang pernah terjadi; jangan dikutip sebagai rencana |
 
-**Total 272 dokumen** — antrean 13 · acuan 199 · riwayat 60.
+**Total 273 dokumen** — antrean 13 · acuan 200 · riwayat 60.
 
 Kolom **RM** = disebut langsung di `ROADMAP.md`.
 
@@ -108,6 +108,7 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | [2026-07-15-warm-clay-redesign-design](superpowers/specs/2026-07-15-warm-clay-redesign-design.md) | acuan |  | Warm Clay — Redesign UI/UX Puraloka Suite (2026) |
 | [2026-08-06-landing-publik-design](superpowers/specs/2026-08-06-landing-publik-design.md) | acuan |  | Landing Publik — Compro Puraloka Persada + Halaman Jual ERP |
 | [2026-08-06-sumbu-ui-roadmap-design](superpowers/specs/2026-08-06-sumbu-ui-roadmap-design.md) | acuan | ✓ | Sumbu UI/UX + penjaga status — desain |
+| [2026-08-09-lapisan-ai-dan-platform-design](superpowers/specs/2026-08-09-lapisan-ai-dan-platform-design.md) | acuan |  | Lapisan AI & Platform — mengambil dari TJS Command Center, membangun lebih bai |
 
 ### `docs/superpowers/specs/2026-07-18-enterprise-architecture`
 

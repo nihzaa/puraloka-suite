@@ -4,6 +4,32 @@
 sebagian keputusan scope 2026-07-26. Dokumen ini menang atas pernyataan scope
 mana pun yang lebih lama.
 
+> ## ⚠️ AMANDEMEN 2026-08-09 — urutan §5 berubah
+>
+> Founder: *"untuk urusan ai saya mau tiru semua, dan termasuk konfigurasi api
+> nya juga yg dikonfig dari ui semua … bila menabrak aturan, aturannya
+> rubahlah."*
+>
+> **Yang berubah:** §5 menempatkan seluruh AI di Gelombang 4. **AI kini dipecah
+> dua**, dan hanya separuhnya yang tetap di sana:
+>
+> | Bagian | Gelombang | Alasan |
+> |---|---|---|
+> | Lapisan platform AI — provider config dari UI, kredensial terenkripsi, pelacakan biaya, penjadwal, inbox approval | **SEKARANG** | Tak satu pun membaca angka finansial. Semuanya justru lantai yang harus ada supaya AI kelak aman dibangun |
+> | Asisten read-only + WhatsApp + preview-approve | **SEKARANG, bertahap** | Aturan §4 #5 tetap ditegakkan sebagai urutan, bukan sebagai penundaan |
+> | **Tool yang menjawab pertanyaan finansial** (laba-rugi, WIP, profitabilitas per proyek) | **TETAP MENUNGGU** #15 WIP/PSAK & #16 rantai kontrak | Bagian §4 yang alasannya masih berlaku penuh |
+>
+> **Yang TIDAK berubah:** kelima aturan mengikat di §4 — termasuk *no silent
+> write* dan *pilot pertama read-only*. Keduanya diperiksa terhadap pola
+> `preview_approve` TJS dan **terbukti terpenuhi**: di TJS, model secara
+> arsitektur tak mampu menulis (hanya tool `preview_*` yang terdaftar;
+> eksekutornya bukan tool sama sekali). Rinciannya, beserta sepuluh cacat TJS
+> yang **diperbaiki alih-alih ditiru**, ada di:
+>
+> **`docs/superpowers/specs/2026-08-09-lapisan-ai-dan-platform-design.md`**
+>
+> Alinea "urutan mengikat" di §5 dibaca dengan amandemen ini.
+
 ---
 
 ## 1. Pernyataan tujuan
@@ -112,19 +138,39 @@ Diwarisi penuh dari doc 06, dicatat di sini supaya tak perlu dibaca ulang:
 
 ## 5. Urutan kerja yang mengikat
 
+**Diagram di bawah sudah DIAMANDEMEN 2026-08-09** (lihat kotak di kepala
+dokumen). Bentuk lamanya ada di git history.
+
 ```
 SEKARANG ─→ 8 item ROADMAP sisa (#14,15,16,17,20,23,24 + E9/E10/E12 founder)
-             ↓ termasuk #15 WIP/PSAK & #16 rantai kontrak = fondasi angka
+   ║         ↓ termasuk #15 WIP/PSAK & #16 rantai kontrak = fondasi angka
+   ║
+   ╚═ PARALEL ─→ LANTAI PLATFORM (amandemen 2026-08-09)
+                 kredensial terenkripsi → penjadwal → inbox approval
+                 → provider AI dari UI → pelacakan biaya
+                 → asisten READ-ONLY → WhatsApp → preview-approve
+                 ↑ tak satu pun membaca angka finansial, jadi tak
+                   bergantung pada 8 item di atas
+
 GELOMBANG 2 ─→ Kantong yang baru masuk: GL in-app · QA/QC+HSE · payroll · aset
              ↓ GL adalah muara integrasi antar-modul (bentuk A)
 GELOMBANG 3 ─→ Mobile lapangan penuh + offline (bentuk D)
              ↓ menutup Kriteria Kualitas #5 yang kini LEMAH
-GELOMBANG 4 ─→ AI: pilot read-only → WhatsApp Gateway → automation Next (13)
-             ↓ gerbang eksternal: akun WA Business, kredensial API
+GELOMBANG 4 ─→ TOOL AI FINANSIAL saja: laba-rugi, WIP, profitabilitas proyek
+             ↓ inilah bagian yang benar-benar membaca GL
 ```
 
-Urutan ini bukan selera. Tiap panah adalah **dependensi data**: AI membaca GL,
-GL menerima dari modul, modul menerima dari lapangan.
+Urutan ini bukan selera. Tiap panah adalah **dependensi data**.
+
+**Yang dikoreksi amandemen:** versi lama memperlakukan "AI" sebagai satu blok
+tunggal yang seluruhnya bergantung pada GL. Itu terlalu kasar. Yang bergantung
+pada GL adalah **jawaban finansialnya** — bukan konfigurasi provider, bukan
+penjadwal, bukan kredensial, bukan asisten yang menjawab *"berapa progress
+Cibuluh?"* dari `progress_logs`.
+
+Menahan seluruh lapisan platform demi satu kelas pertanyaan berarti menunda
+lantai yang justru dibutuhkan **supaya kelas pertanyaan itu kelak bisa dijawab
+dengan aman**.
 
 ---
 

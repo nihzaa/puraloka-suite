@@ -1174,3 +1174,281 @@ items:
       setuju; resolusinya masih memadai untuk web.
     bobot: S
     status: todo
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # TJS-* — LAPISAN AI & PLATFORM, diambil dari TJS Command Center
+  # ══════════════════════════════════════════════════════════════════════════
+  # Diturunkan 2026-08-09 dari permintaan founder ("tiru semua untuk urusan ai,
+  # termasuk konfigurasi api dari ui") dan audit kode TJS.
+  #
+  # Spec:  docs/superpowers/specs/2026-08-09-lapisan-ai-dan-platform-design.md
+  # Kode rujukan: E:/Project/automation-tjs/admin-dashboard
+  #
+  # Amandemen aturan yang menyertainya (izin founder eksplisit):
+  #   - KEPUTUSAN-SCOPE-ERP-AI.md §5 — AI dipecah dua; lapisan platform naik
+  #   - CHARTER.md §3 fase 6 — "(bukan fitur AI)" dicabut
+  # Yang TIDAK diubah: §4 aturan 1-5 (no silent write, pilot read-only) dan
+  # CHARTER §5 Gerbang Keras + §6 Ember [C].
+  # ══════════════════════════════════════════════════════════════════════════
+
+  - id: TJS-A1
+    fase: 6
+    judul: "Kredensial terenkripsi + UI (prasyarat semua yang lain)"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "tabel credential_store: nilai TERENKRIPSI, company_id, RLS"
+      - "kolom terenkripsi TIDAK PERNAH ikut di-SELECT — bahkan untuk peran tertinggi"
+      - "UI: kolom selalu mulai kosong, hanya 4 karakter terakhir terlihat"
+      - "tombol Uji Koneksi menguji nilai yang SEDANG DIKETIK tanpa menyimpannya"
+      - "audit log hanya menerima metadata, tak pernah nilainya"
+      - "menolak menyimpan (503) bila kunci enkripsi belum terkonfigurasi"
+      - "penjaga: nol pemanggilan yang men-SELECT kolom terenkripsi"
+    cara_verifikasi: >-
+      test integrasi: simpan -> GET -> pastikan respons tak memuat nilai;
+      mutasi sengaja (tambahkan kolom ke select) -> penjaga MERAH -> pulihkan
+    bobot: M
+    status: todo
+
+  - id: TJS-A2
+    fase: 6
+    judul: "Penjadwal (pg_cron) — menghidupkan notifikasi yang selama ini mati"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "pg_cron aktif; jadwal tersimpan di DB, bukan di kode"
+      - "logika jadwal FUNGSI MURNI dengan now dioper — teruji tanpa DB"
+      - "aturan pemicu: sudah lewat jamnya DAN belum jalan di periode ini
+         (bukan jamnya sama persis) supaya cron telat tetap mengejar"
+      - "lastRunAt ditulis saat MULAI, bukan saat berhasil — kegagalan tak
+         diulang tiap tick"
+      - "dua tombol manual di /sistem tetap ada sebagai pemicu paksa"
+      - "PENJAGA L-4: kolom jadwal wajib punya pembaca"
+    cara_verifikasi: >-
+      test unit logika jadwal (tanpa DB, now disuntik: tepat waktu, telat,
+      tanggal 31 di bulan 30 hari) + bukti notifikasi terbit tanpa manusia
+    catatan: >-
+      L-4 lahir dari cacat TJS: BackupPolicy punya kolom jadwal bertahun-tahun
+      tanpa satu pun kode yang membacanya — "terjadwal di layar, tidak di
+      kenyataan". Puraloka punya gejala kembarnya: channel push dicatat, 0
+      dari 23 user berlangganan (utils/notifications.ts:167).
+    bobot: M
+    status: todo
+
+  - id: TJS-A3
+    fase: 6
+    judul: "Inbox approval terpusat — 7 entity type dalam satu halaman"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "satu halaman membaca approval_progress untuk KETUJUH entity type"
+      - "keputusan dari inbox memakai utils/approval.ts yang sama (bukan jalur baru)"
+      - "difilter permission (ADR-004), bukan peran"
+    cara_verifikasi: >-
+      test: buat 1 entitas tertunda per jenis (7), pastikan ketujuhnya muncul;
+      approve dari inbox -> approval_progress berubah persis seperti dari modul
+    catatan: >-
+      Pengukuran awal keliru menyimpulkan "hanya 1 modul memakai" — grep hanya
+      mencari nama tabel, padahal 7 modul memanggilnya lewat utils/approval.ts.
+      Inbox ini karenanya akan berisi, bukan kosong.
+    bobot: M
+    status: todo
+
+  - id: TJS-B1
+    fase: 6
+    judul: "Konfigurasi provider AI dari UI + pelacakan biaya"
+    blokir_oleh: [TJS-A1]
+    kriteria_selesai:
+      - "ai_provider_config per (company, asisten) + RLS"
+      - "API key TIDAK di tabel ini — di credential_store"
+      - "SATU sumber harga model (perbaikan C-7: TJS punya dua tabel yang tak
+         sepakat, biaya Opus tercatat 3x lebih rendah dari yang admin lihat)"
+      - "biaya dicatat per RONDE tool-calling, bukan per pesan"
+      - "cache-write & cache-read dicatat terpisah (harganya beda jauh)"
+      - "numeric bukan float (CLAUDE.md 5.4); USD + Rupiah + KURS SAAT CATAT"
+      - "batas biaya diperiksa SEBELUM panggilan API"
+      - "field yang divalidasi server WAJIB ada di UI (perbaikan cacat maxTokens TJS)"
+    cara_verifikasi: >-
+      test: ganti provider dari UI -> /ai/insight memakai provider baru tanpa
+      restart; lewati batas -> ditolak sebelum ada biaya keluar
+    bobot: L
+    status: todo
+
+  - id: TJS-B2
+    fase: 6
+    judul: "Adaptor provider — satu jalan ke model"
+    blokir_oleh: [TJS-B1]
+    kriteria_selesai:
+      - "antarmuka tunggal; Anthropic + custom OpenAI-compatible"
+      - "normalisasi tool-calling: input_schema vs function.parameters;
+         argumen objek vs STRING JSON; bentuk pengembalian hasil"
+      - "isError dibawa SEMUA adaptor (perbaikan C-6: di TJS hanya Anthropic)"
+      - "kemampuan dinyatakan PER MODEL (sebagian model menolak thinking adaptive)"
+      - "chat() tak pernah throw — mengembalikan ok:false + alasan"
+      - "PENJAGA L-6: nol pemanggilan SDK model di luar lapisan ini"
+    cara_verifikasi: >-
+      mutasi: panggil SDK langsung di satu berkas -> penjaga MERAH -> pulihkan
+    catatan: >-
+      L-6 dari cacat TJS: agent loop-nya memanggil SDK Anthropic LANGSUNG,
+      sementara lib/ai/* adalah lapisan paralel untuk pemanggil lain. Dua jalan
+      ke model berarti konfigurasi-dari-UI hanya mengendalikan sebagian.
+    bobot: L
+    status: todo
+
+  - id: TJS-C1
+    fase: 6
+    judul: "Asisten AI read-only — 7 tool, nol jalur tulis"
+    blokir_oleh: [TJS-B2]
+    kriteria_selesai:
+      - "agent loop lewat lapisan provider (bukan SDK langsung)"
+      - "ronde TERAKHIR dikirim TANPA tools (perbaikan C-4: ronde habis di TJS
+         menghasilkan balasan kosong)"
+      - "blok tool_use/tool_result IKUT disimpan di riwayat (perbaikan C-5)"
+      - "error tool dikembalikan sebagai is_error, bukan dilempar"
+      - "jalur gratis (whitelist, konfirmasi) SEBELUM panggilan berbayar"
+      - "ACL tool fail-closed: tanpa template = nol tool"
+      - "explainability wajib (SCOPE §4 #4): tiap jawaban menyebut sumbernya"
+      - "NOL tool yang menulis"
+    cara_verifikasi: >-
+      test: tiap tool dijawab dari data nyata; penjaga nol tool tulis;
+      nomor tak dikenal -> ditolak TANPA panggilan model
+    bobot: L
+    status: todo
+
+  - id: TJS-C2
+    fase: 6
+    judul: "RAG dokumen — tsvector + vector dengan fusi skor nyata"
+    blokir_oleh: [TJS-B2]
+    kriteria_selesai:
+      - "PIPELINE INGEST ditulis lebih dulu — TJS tak punya sama sekali"
+      - "tsvector bahasa Indonesia + embedding, FUSI SKOR sungguhan
+         (TJS hanya menyambung 3 hasil pencarian jadi satu string)"
+      - "kegagalan salah satu jalur TERLIHAT, bukan ditelan catch kosong"
+      - "pencocokan persis bekerja: nomor kontrak, SNI 2847, beton K-300"
+    cara_verifikasi: >-
+      korpus uji + pertanyaan yang jawabannya diketahui; ukur temu-kembali
+      untuk istilah persis DAN parafrase
+    catatan: >-
+      Audit pertama menyebut retrieval TJS "hibrida". Kodenya menunjukkan tiga
+      pencarian independen yang disambung — tanpa bobot, tanpa fusi, keyword-nya
+      contains biasa tanpa indeks full-text. Niatnya diambil, implementasinya
+      tidak.
+    bobot: L
+    status: todo
+
+  - id: TJS-D1
+    fase: 6
+    judul: "WhatsApp — satu pintu keluar, satu provider"
+    blokir_oleh: [TJS-C1]
+    kriteria_selesai:
+      - "SATU fungsi kirim; penjaga: nol pemanggilan WA di luar itu"
+      - "registry adaptor sejak awal (penambahan tak menyentuh pemanggil)"
+      - "tak pernah throw — invoice tetap tersimpan meski WA gagal"
+      - "nomor terverifikasi TERIKAT user_id (bukan whitelist nomor telanjang)"
+      - "percobaan dari nomor tak dikenal DICATAT (perbaikan C-9)"
+    cara_verifikasi: "mutasi: kirim WA dari berkas lain -> penjaga MERAH"
+    catatan: >-
+      Satu pintu diambil dari pelajaran TJS: ia baru merapikannya SETELAH
+      tersebar ke 10 titik di app + 30 di n8n, dan ketersebaran itu menyebabkan
+      alert stok tak pernah terkirim — gagalnya senyap.
+    bobot: L
+    status: todo
+
+  - id: TJS-E1
+    fase: 6
+    judul: "preview_setujui_* — P-1..P-7 seluruhnya terbukti"
+    blokir_oleh: [TJS-A3, TJS-D1]
+    kriteria_selesai:
+      - "P-1 memakai utils/approval.ts yang SAMA dengan dashboard"
+      - "P-2 requirePermission yang sama (ADR-004)"
+      - "P-3 token sekali-pakai, kedaluwarsa, DIKLAIM ATOMIK (klaim kedua -> 409)"
+      - "P-4 batas melekat pada USER, bukan nomor/kanal (perbaikan C-2)"
+      - "P-5 audit menandai kanal + percobaan tak sah tercatat"
+      - "P-6 batas dicek DUA KALI (preview DAN eksekusi); nominal FIELD WAJIB
+         BERTIPE, bukan tebakan nama (perbaikan C-1 & C-10)"
+      - "P-7 tiap penjaga TERBUKTI MERAH lewat mutasi sengaja"
+    cara_verifikasi: >-
+      untuk tiap penjaga: suntik pelanggaran -> MERAH -> pulihkan -> HIJAU,
+      exit code ditempel
+    catatan: >-
+      C-10 adalah yang paling berbahaya: TJS mengambil nominal dari 4 nama field
+      yang ditebak berurutan. Jenis dokumen dengan nama kelima -> nominal null
+      -> batas nominal terlewati DIAM-DIAM. Kegagalan senyap pada gerbang uang.
+    bobot: L
+    status: todo
+
+  - id: TJS-P1
+    fase: 6
+    judul: "Recycle bin — soft delete sudah ada, restore tidak"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "registry: modul baru cukup mendaftar"
+      - "restore memulihkan lewat jalur yang sama dengan create/update"
+    cara_verifikasi: "test: hapus -> muncul di recycle bin -> pulihkan -> utuh"
+    bobot: M
+    status: todo
+
+  - id: TJS-P2
+    fase: 6
+    judul: "Period lock / tutup buku — pengaman untuk GL yang sudah dibangun"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "status periode + checklist sebelum tutup"
+      - "DITEGAKKAN LINTAS MODUL (423), bukan hanya di modul akuntansi"
+      - "permission terpisah untuk tutup / buka kembali"
+    cara_verifikasi: >-
+      test: tutup periode -> posting jurnal bertanggal periode itu DITOLAK 423
+      dari SETIAP modul yang bisa memposting
+    catatan: >-
+      Menu fn-tutup-buku sudah ada di sidebar (href masih halaman generik).
+      Prasyaratnya lunas: CLAUDE.md §5.5 mencatat cacat 047<->167 selesai.
+      Tanpa ini, jurnal periode lampau masih bisa berubah.
+    bobot: M
+    status: todo
+
+  - id: TJS-P3
+    fase: 6
+    judul: "Importer generik — blocker onboarding SaaS"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "wizard 4 tahap: unggah -> pemetaan -> pratinjau -> commit"
+      - "pemetaan DETERMINISTIK berbasis skor kemiripan (bukan AI), bisa dioverride"
+      - "validasi TIDAK menulis ke tabel target sama sekali"
+      - "commit ALL-OR-NOTHING dalam satu transaksi (bukan per-baris)"
+      - "template CSV ber-BOM UTF-8 (Excel Windows merusak karakter tanpanya)"
+    cara_verifikasi: >-
+      test: berkas dengan 1 baris rusak -> NOL baris masuk; perbaiki -> semua masuk
+    catatan: >-
+      TJS punya dua importer: wizard klasik (per-baris, tanpa rollback) dan
+      Universal (all-or-nothing). Ambil wizard-nya, ambil transaksinya dari yang
+      Universal — TJS sendiri menunjukkan mana yang benar.
+    bobot: L
+    status: todo
+
+  - id: TJS-P4
+    fase: 6
+    judul: "Segregation of Duties — pemisahan wewenang pengadaan"
+    blokir_oleh: [TJS-A3]
+    kriteria_selesai:
+      - "aturan DEKLARATIF, bukan if bertebaran"
+      - "pembuat tak boleh approve miliknya sendiri (PR, PO, penerimaan barang)"
+      - "override MUNGKIN tapi TERCATAT"
+    cara_verifikasi: "test per aturan + bukti override masuk audit log"
+    catatan: >-
+      Larangan tanpa jalan keluar akan dimatikan orang; larangan yang bisa
+      di-override tapi tercatat bertahan.
+    bobot: M
+    status: todo
+
+  - id: TJS-P5
+    fase: 6
+    judul: "Custom field per tenant — kebutuhan struktural SaaS"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "definisi DAN nilai, keduanya company_id + RLS"
+      - "daftar tipe TERTUTUP, hanya di entitas yang ditunjuk — ditegakkan di
+         schema, bukan diserahkan ke niat baik"
+    cara_verifikasi: "test: tipe di luar daftar DITOLAK DB, bukan hanya UI"
+    catatan: >-
+      Never Build List mencoret "EAV penuh". Custom field terbatas bukan EAV
+      penuh — tapi batas itu harus ditegakkan mesin, karena jarak antara
+      keduanya hanya sejauh satu permintaan pelanggan.
+    bobot: M
+    status: todo
