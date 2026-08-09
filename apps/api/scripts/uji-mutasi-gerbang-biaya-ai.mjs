@@ -80,7 +80,19 @@ const MUTASI = [
     bukti: (s) => !s.includes('catatBiayaRonde('),
   },
   {
-    nama: 'M5 panggilan .stream() tanpa gerbang di berkas lain',
+    // L-1: loop dikecualikan dari G-1/G-2, jadi aturan penggantinya HARUS
+    // bisa merah. Pengecualian tanpa pengganti yang teruji sama dengan
+    // pelemahan penjaga.
+    nama: 'M5 loop berhenti mencatat tiap ronde (L-1)',
+    berkasLain: resolve(__dirname, '..', 'src', 'lib', 'ai-loop.ts'),
+    ubah: (s) => s.replace(
+      'await opsi.catatRonde(jawab.pemakaian, ronde)',
+      'void jawab.pemakaian // catatRonde dihapus',
+    ),
+    bukti: (s) => !s.includes('await opsi.catatRonde('),
+  },
+  {
+    nama: 'M6 panggilan .stream() tanpa gerbang di berkas lain',
     berkasLain: resolve(__dirname, '..', 'src', 'routes', 'v1', 'ai-config.ts'),
     ubah: (s) => `${s}\n// mutasi\nasync function bocor(anthropic: any) { return anthropic.messages.stream({ model: 'x' }) }\n`,
     bukti: (s) => s.includes('async function bocor'),

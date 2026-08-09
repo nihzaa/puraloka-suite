@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
 import type { Client } from 'pg'
 import { createRlsClient } from '../../test-utils/rls-harness.js'
-import { KATALOG_TOOL, bungkusData, jalankanTool, katalogUntuk } from '../ai-tool.js'
+import { KATALOG_TOOL, STATUS_PROYEK, bungkusData, jalankanTool, katalogUntuk } from '../ai-tool.js'
 
 const SUMBER_TOOL = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'ai-tool.ts')
 
@@ -183,6 +183,30 @@ describe('tool terhadap data NYATA', () => {
     // jawaban yang terdengar benar, dan karena itu tak ada yang menyadarinya.
     const { rows } = await db.query(`SELECT DISTINCT status FROM material_requests`)
     expect(rows.map((r) => r.status)).toContain('submitted')
+  })
+
+  it('STATUS_PROYEK sama persis dengan pg_enum — tak boleh tertinggal', async () => {
+    // Diukur pada jalur nyata 2026-08-10: model mengirim 'in_progress',
+    // tebakan yang sangat wajar dari nama field, dan Postgres menolaknya.
+    // Tool gagal, model mencoba lagi, jawabannya butuh 3 ronde alih-alih 2 —
+    // tiap ronde ditagih.
+    //
+    // Kalau enum di basis bertambah dan daftar ini tidak, tool akan MENOLAK
+    // status yang sebenarnya sah. Test ini membuat ketertinggalan itu merah.
+    const { rows } = await db.query(`
+      SELECT e.enumlabel FROM pg_enum e
+      JOIN pg_type t ON t.oid = e.enumtypid
+      WHERE t.typname = 'project_status'
+      ORDER BY e.enumsortorder
+    `)
+    expect([...STATUS_PROYEK]).toEqual(rows.map((r) => r.enumlabel))
+  })
+
+  it('skema tool menyatakan enum, bukan hanya menjelaskannya', () => {
+    const t = KATALOG_TOOL.find((x) => x.nama === 'daftar_proyek')!
+    const props = (t.skema as { properties?: Record<string, { enum?: string[] }> }).properties
+    // Deskripsi bebas tak cukup — model membaca nama field lebih dulu.
+    expect(props?.status?.enum).toEqual([...STATUS_PROYEK])
   })
 
   it('katalog penuh berisi 4 tool untuk pengguna ber-izin lengkap', () => {

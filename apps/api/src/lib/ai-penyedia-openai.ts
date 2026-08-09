@@ -93,7 +93,39 @@ export class AdaptorOpenAICompatible implements AdaptorPenyedia {
 
     const pesan: Array<Record<string, unknown>> = []
     if (opsi.sistem) pesan.push({ role: 'system', content: opsi.sistem })
-    for (const p of opsi.pesan) pesan.push({ role: p.peran, content: p.isi })
+    for (const p of opsi.pesan) {
+      // Gaya OpenAI menaruh panggilan tool di `tool_calls` pada pesan asisten,
+      // bukan sebagai blok isi. Bentuknya beda dari Anthropic; tuntutannya
+      // sama — pesan `role: 'tool'` di bawah harus punya `tool_call_id` yang
+      // merujuk panggilan yang benar-benar ada di riwayat.
+      // Hasil tool DI POSISINYA — gaya OpenAI memakai pesan `role: 'tool'`
+      // terpisah per hasil, bukan satu pesan berisi banyak blok.
+      if (p.peran === 'user' && p.hasilTool?.length) {
+        for (const h of p.hasilTool) {
+          pesan.push({
+            role: 'tool',
+            tool_call_id: h.id,
+            content: h.isError ? `TOOL GAGAL: ${h.isi}` : h.isi,
+          })
+        }
+        continue
+      }
+      if (p.peran === 'assistant' && p.panggilanTool?.length) {
+        pesan.push({
+          role: 'assistant',
+          content: p.isi || null,
+          tool_calls: p.panggilanTool.map((t) => ({
+            id: t.id,
+            type: 'function',
+            // Argumen dikembalikan ke bentuk STRING JSON — itu yang gaya
+            // OpenAI harapkan, dan konversinya berhenti di adaptor ini.
+            function: { name: t.nama, arguments: JSON.stringify(t.argumen) },
+          })),
+        })
+        continue
+      }
+      pesan.push({ role: p.peran, content: p.isi })
+    }
 
     // ── C-6 pada penyedia yang tak punya `is_error` ────────────────────────
     //

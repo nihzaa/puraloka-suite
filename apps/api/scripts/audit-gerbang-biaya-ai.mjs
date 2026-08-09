@@ -68,6 +68,20 @@ const LAPISAN_ADAPTOR = new Set([
   'lib/ai-adaptor.ts',
 ])
 
+/**
+ * Agent loop — memanggil model BERULANG, dan gerbangnya ada di rute pemanggil.
+ *
+ * Dikecualikan dari G-1/G-2 tetapi TIDAK dibiarkan bebas: aturan L-1 di bawah
+ * menuntut ia menerima `catatRonde` sebagai parameter WAJIB dan memanggilnya
+ * di dalam perulangan. Itu jaminan yang setara — tiap ronde tetap tercatat,
+ * meski pemeriksaan batasnya dilakukan pemanggil.
+ *
+ * Memindahkan `periksaGerbangAi` KE DALAM loop justru salah: loop tak tahu
+ * apa yang harus terjadi saat ditolak (200 deterministik? 402? jalur lain?),
+ * dan keputusan itu milik rute.
+ */
+const LOOP = 'lib/ai-loop.ts'
+
 function berkasTs(dir) {
   const hasil = []
   for (const e of readdirSync(dir, { withFileTypes: true })) {
@@ -129,6 +143,7 @@ for (const path of berkasTs(SRC)) {
   // terlihat oleh rute, padahal rutelah yang memutuskan apa yang terjadi saat
   // panggilan ditolak (200 deterministik, 402, atau yang lain).
   if (LAPISAN_ADAPTOR.has(rel)) continue
+  if (rel === LOOP) continue
   // Test BOLEH memanggil model tiruan tanpa gerbang — justru itu yang diuji.
   if (rel.includes('__tests__') || rel.endsWith('.test.ts') || rel.includes('test-utils')) continue
 
@@ -149,8 +164,15 @@ for (const path of berkasTs(SRC)) {
     // begitu rute dipindahkan ke adaptor: tak melihat panggilan apa pun, jadi
     // tak ada yang bisa dilanggar. Itu benar-benar terjadi hari ini, dan yang
     // menyingkapnya cuma tuduhan salah alamat ke berkas adaptor.
+    // `jalankanLoop(` juga dihitung: rute yang memakainya memicu SEVERAL
+    // panggilan berbayar sekaligus. Tanpa baris ini, `routes/v1/ai-chat.ts`
+    // lolos tanpa diperiksa sama sekali — bukan karena ia benar, melainkan
+    // karena penjaga tak mengenali bentuk pemanggilannya. Itu bentuk
+    // hijau-karena-buta yang sama seperti sebelumnya, hanya bergeser satu
+    // lapis.
     if (/\bmessages\s*\.\s*(create|stream)\s*\(/.test(isi)) barisPanggil.push(i + 1)
     else if (/\.\s*chat\s*\(\s*\{/.test(isi)) barisPanggil.push(i + 1)
+    else if (/\bjalankanLoop\s*\(/.test(isi)) barisPanggil.push(i + 1)
     if (/\bperiksaGerbangAi\s*\(/.test(isi)) barisGerbang.push(i + 1)
     if (/\bcatatBiayaRonde\s*\(/.test(isi)) adaCatat = true
   })
@@ -196,6 +218,42 @@ for (const path of berkasTs(SRC)) {
         'panggilan yang tak tercatat membuat pemakaian bulan ini menghitung ' +
         'terlalu rendah — dan batas yang menghitung terlalu rendah tak pernah ' +
         'tercapai, jadi mode `blokir` pun tak akan memblokir apa pun.',
+    })
+  }
+}
+
+// ── L-1: agent loop wajib mencatat TIAP ronde ────────────────────────────
+//
+// Pengganti G-1/G-2 untuk berkas loop. Tanpa aturan ini, mengecualikan loop
+// dari G-1/G-2 sama dengan melemahkan penjaga: ia memanggil model berkali-kali
+// dan tak ada yang memeriksa apakah tiap panggilan tercatat.
+if (existsSync(join(SRC, LOOP))) {
+  const srcLoop = tanpaKomentar(readFileSync(join(SRC, LOOP), 'utf8'))
+
+  if (!/catatRonde\s*:\s*\(/.test(srcLoop) && !/catatRonde\s*:/.test(srcLoop)) {
+    gagal.push({
+      aturan: 'L-1',
+      pesan: `${LOOP} tak menerima \`catatRonde\` sebagai kontrak`,
+      akibat:
+        'loop yang memanggil model berulang tanpa kewajiban mencatat membuat ' +
+        'pemakaian bulan ini menghitung terlalu rendah — dan batas yang ' +
+        'menghitung terlalu rendah tak pernah tercapai.',
+    })
+  }
+
+  // Pemanggilannya harus DI DALAM perulangan, bukan sekali di akhir. Mencatat
+  // sekali untuk beberapa ronde menyembunyikan ronde lain — persis cacat TJS
+  // yang pencatatan per-ronde perbaiki.
+  const baris = srcLoop.split('\n')
+  const iFor = baris.findIndex((b) => /for\s*\(let ronde/.test(b))
+  const iCatat = baris.findIndex((b) => /await\s+opsi\.catatRonde\s*\(/.test(b))
+  if (iFor === -1 || iCatat === -1 || iCatat < iFor) {
+    gagal.push({
+      aturan: 'L-1',
+      pesan: `${LOOP}: \`catatRonde\` tidak dipanggil di dalam perulangan ronde`,
+      akibat:
+        'satu pencatatan untuk beberapa ronde menyembunyikan sisanya. Satu ' +
+        'pertanyaan bisa memicu beberapa ronde, dan tiap ronde ditagih.',
     })
   }
 }

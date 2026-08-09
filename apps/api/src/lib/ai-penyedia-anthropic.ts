@@ -67,10 +67,34 @@ export class AdaptorAnthropic implements AdaptorPenyedia {
     const timeoutMs = opsi.timeoutMs ?? TIMEOUT_BAWAAN_MS
 
     try {
-      const isiPesan: Anthropic.MessageParam[] = opsi.pesan.map((p) => ({
-        role: p.peran,
-        content: p.isi,
-      }))
+      const isiPesan: Anthropic.MessageParam[] = opsi.pesan.map((p) => {
+        // Pesan asisten yang MEMANGGIL tool harus membawa blok `tool_use`-nya.
+        // Tanpa itu, `tool_result` di pesan berikutnya ditolak 400 dengan
+        // pesan yang menyebut ketiadaan pasangannya — dan kegagalannya muncul
+        // di ronde 2, jauh dari tempat bloknya dibuang.
+        // Pesan `user` yang membawa hasil tool dirender sebagai blok
+        // `tool_result`, di POSISINYA dalam riwayat — bukan disusulkan di akhir.
+        if (p.peran === 'user' && p.hasilTool?.length) {
+          return {
+            role: 'user' as const,
+            content: p.hasilTool.map((h) => ({
+              type: 'tool_result' as const,
+              tool_use_id: h.id,
+              content: h.isi,
+              is_error: h.isError,
+            })),
+          }
+        }
+        if (p.peran === 'assistant' && p.panggilanTool?.length) {
+          const blok: Anthropic.ContentBlockParam[] = []
+          if (p.isi) blok.push({ type: 'text', text: p.isi })
+          for (const t of p.panggilanTool) {
+            blok.push({ type: 'tool_use', id: t.id, name: t.nama, input: t.argumen })
+          }
+          return { role: p.peran, content: blok }
+        }
+        return { role: p.peran, content: p.isi }
+      })
 
       // Hasil tool disusulkan sebagai pesan `user` berisi blok `tool_result` —
       // bentuk yang Anthropic tuntut. `is_error` DIBAWA (C-6): tanpa itu model

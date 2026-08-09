@@ -122,6 +122,19 @@ export function bungkusData(judul: string, isi: string, dipotong = 0): string {
 // TOOL — semuanya MEMBACA. Tak ada insert/update/delete/upsert di berkas ini.
 // ══════════════════════════════════════════════════════════════════════════
 
+/**
+ * Nilai enum `project_status` yang SAH.
+ *
+ * Diukur dari `pg_enum`, bukan dikarang. Tidak ada 'in_progress' — nama yang
+ * model tebak dari field `status`, dan yang membuat tool ini gagal di jalur
+ * nyata sebelum daftar ini dinyatakan di skemanya.
+ *
+ * Kalau enum di basis kelak bertambah, daftar ini akan tertinggal dan tool
+ * menolak status yang sebenarnya sah. Test `ai-tool.test.ts` membandingkannya
+ * dengan `pg_enum` supaya ketertinggalan itu merah, bukan senyap.
+ */
+export const STATUS_PROYEK = ['draft', 'active', 'on_hold', 'completed', 'cancelled'] as const
+
 const toolDaftarProyek: DefinisiToolAi = {
   nama: 'daftar_proyek',
   keterangan:
@@ -133,7 +146,16 @@ const toolDaftarProyek: DefinisiToolAi = {
     properties: {
       status: {
         type: 'string',
-        description: "Saring status, mis. 'in_progress'. Kosongkan untuk semua.",
+        // `enum` DINYATAKAN, bukan hanya dijelaskan dalam kalimat.
+        //
+        // Diukur pada jalur nyata 2026-08-10: model mengirim 'in_progress' —
+        // tebakan yang sangat wajar dari nama field — dan Postgres menolaknya
+        // dengan `invalid input value for enum project_status`. Tool-nya gagal,
+        // model mencoba lagi, dan jawabannya butuh 3 ronde alih-alih 2.
+        //
+        // Deskripsi bebas tak cukup: model membaca nama field lebih dulu.
+        enum: [...STATUS_PROYEK],
+        description: 'Saring status proyek. Kosongkan untuk semua status.',
       },
     },
   },
@@ -141,8 +163,20 @@ const toolDaftarProyek: DefinisiToolAi = {
     let q = db.from('projects')
       .select('id, name, status, progress_pct, start_date, end_date')
       .eq('is_deleted', false)
-    if (typeof argumen.status === 'string' && argumen.status) {
-      q = q.eq('status', argumen.status)
+
+    const status = typeof argumen.status === 'string' ? argumen.status.trim() : ''
+    if (status) {
+      // Divalidasi LAGI di sini, bukan hanya di skema. Model bisa mengirim
+      // apa saja, dan nilai asing membuat Postgres menolak dengan galat yang
+      // menyalahkan basis alih-alih memberi tahu model pilihan yang sah.
+      if (!(STATUS_PROYEK as readonly string[]).includes(status)) {
+        return {
+          isi: `Status '${status}' tidak dikenal. Yang tersedia: ${STATUS_PROYEK.join(', ')}.`,
+          isError: true,
+          entitas: [],
+        }
+      }
+      q = q.eq('status', status)
     }
     const { data, error } = await q
 

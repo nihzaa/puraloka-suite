@@ -45,6 +45,33 @@ export interface KemampuanModel {
 export interface PesanChat {
   peran: 'user' | 'assistant'
   isi: string
+  /**
+   * Panggilan tool yang dibuat asisten pada pesan ini.
+   *
+   * WAJIB dibawa kalau ronde berikutnya mengirim `hasilTool`. Diukur, bukan
+   * ditebak — Anthropic menolak dengan 400:
+   *
+   *   "Each `tool_result` block must have a corresponding `tool_use` block in
+   *    the previous message."
+   *
+   * Versi pertama loop mengirim teks datar `"(memanggil tool)"` sebagai
+   * pengganti, dan ronde 1 berhasil sementara ronde 2 gagal — bentuk kegagalan
+   * yang gampang disalahartikan sebagai penyedia bermasalah.
+   *
+   * Ini C-5 dalam bentuk lain: riwayat yang kehilangan blok tool bukan sekadar
+   * kehilangan konteks, ia jadi TIDAK SAH.
+   */
+  panggilanTool?: PanggilanTool[]
+  /**
+   * Hasil tool yang dibawa pesan `user` ini.
+   *
+   * Ada di PESAN, bukan hanya di `OpsiChat.hasilTool`, karena urutannya
+   * menentukan. `OpsiChat.hasilTool` selalu ditambahkan adaptor sebagai pesan
+   * TERAKHIR — benar untuk satu putaran, salah begitu ada putaran ketiga:
+   * dua `tool_use` berturut tanpa `tool_result` di antaranya, dan penyedia
+   * menolak 400.
+   */
+  hasilTool?: HasilTool[]
 }
 
 export interface DefinisiTool {
