@@ -5,6 +5,53 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-10 (lanjutan 11) — Hutang modal dibayar, dan port yang menyesatkan
+
+Commit E1 menyebut satu hutang yang saya buat sendiri: `rail-asisten.tsx`
+membangun overlay dengan `<div position:fixed inset:0>` dan menaikkan
+`audit-modal-dialog` 37 → 38. Dibayar sekarang.
+
+### Kenapa bukan `DialogBersama`
+
+Sempat memakainya, lalu dibatalkan setelah membaca CSS-nya: komponen itu
+membawa kepala sendiri (judul + tombol X) dan bingkai sendiri, sementara panel
+asisten sudah punya keduanya. Hasilnya dua kepala bertumpuk. `DialogBersama`
+dirancang untuk FORM; ini permukaan yang sudah utuh.
+
+`DialogPolos` mengambil dari `<dialog>` + `showModal()` hanya tiga hal yang
+sesungguhnya dibutuhkan — fokus terkunci, Esc, lapisan teratas. Listener Esc
+buatan sendiri ikut dihapus: dua jalur untuk satu tombol, dan yang kedua tak
+pernah diuji.
+
+### Empat jam habis untuk satu baris env
+
+Verifikasi visualnya gagal berulang kali dengan gejala yang menyesatkan:
+obrolan menjawab **"Not Found"**. Saya mengira API mati, lalu mengira
+route-nya tak terdaftar, lalu mengira proxy Next.js rusak. Semuanya salah.
+
+`apps/web/.env.local` memuat `NEXT_PUBLIC_API_URL=http://localhost:3007` —
+bukan 3001 seperti yang tertulis di `apps/api/.env` DAN di CLAUDE.md §7. Di
+port 3007 ada instance API lama yang hidup sejak entah kapan, melayani kode
+lama tanpa rute AI.
+
+Yang membuat ini mahal: tiap lapisan menjawab dengan benar untuk dirinya
+sendiri. `curl` ke 3001 → 401 (rute ada). `curl` lewat proxy → 404. Log API
+bersih. Tak ada satu pun yang salah; yang salah adalah **dua API hidup
+sekaligus dan saya memeriksa yang berbeda dari yang dipakai aplikasi**.
+
+Pelajarannya sama dengan yang berulang sepanjang sesi ini: ukur di tempat yang
+BENAR-BENAR dipakai, bukan di tempat yang dokumen bilang dipakai.
+
+### Bukti
+
+- `audit-modal-dialog` 38 → 37 (ambang 37, HIJAU)
+- Tangkapan layar mode lebar: satu kepala, satu bingkai, terpusat, backdrop
+  berblur, dan panelnya benar-benar modal
+- Asisten menjawab sungguhan lewat model: "Ada **11 proyek** yang sedang
+  berjalan", dengan panel sumber berisi 11 proyek yang benar-benar dibaca tool
+
+---
+
 ## 2026-08-10 (lanjutan 10) — Preview → Setujui: asisten menyiapkan, manusia memutuskan (TJS-E1)
 
 Satu-satunya jalur di repo ini di mana sebuah **pesan** berujung pada **uang

@@ -76,7 +76,7 @@ perusahaan — termasuk satu pemilik dengan beberapa PT. Tujuan lengkap: `CHARTE
 
 | Lapis | Teknologi |
 |---|---|
-| Backend API | Node.js + Fastify + TypeScript (port 3001) |
+| Backend API | Node.js + Fastify + TypeScript (port: **ukur**, lihat §7) |
 | Web | Next.js + Tailwind CSS v4 + TypeScript (port 3000) |
 | Mobile | React Native + Expo |
 | Database | PostgreSQL via Supabase |
@@ -178,8 +178,24 @@ Semuanya ratchet: angka hari ini adalah lantai. Melemahkannya butuh ratifikasi.
 ## 7. Menjalankan
 
 ```bash
-cd apps/api && npx tsx src/index.ts    # API  :3001
+cd apps/api && npx tsx src/index.ts    # API  — port dari apps/api/.env
 cd apps/web && pnpm dev                # Web  :3000
+
+# ⚠ PORT API BUKAN ANGKA TETAP — UKUR, jangan percaya tabel di atas.
+#
+# Yang menentukan ke mana WEB mengirim permintaan adalah SATU baris ini:
+grep NEXT_PUBLIC_API_URL apps/web/.env.local
+#
+# Pada 2026-08-10 nilainya 3007, sementara apps/api/.env berisi PORT=3001 —
+# dan dokumen ini menulis 3001 di dua tempat. Akibatnya empat jam habis
+# mengejar gejala "Not Found" di obrolan asisten: API di 3001 sehat dan
+# rutenya ada, tapi web bicara ke instance LAIN di 3007 yang menjalankan
+# kode lama.
+#
+# Tiap lapisan menjawab benar untuk dirinya sendiri, jadi tak ada satu pun
+# galat yang menunjuk penyebabnya. Sebelum menyimpulkan "route tak
+# terdaftar", pastikan dulu Anda memeriksa API yang BENAR-BENAR dipakai:
+netstat -ano | grep ':300[0-9].*LISTENING'
 cd apps/api && npx vitest run          # test (integration, butuh DB)
 ```
 
