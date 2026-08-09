@@ -27,6 +27,7 @@ import mandorRoutes from './routes/v1/mandor.js'
 import reportsRoutes from './routes/v1/reports.js'
 import settingsRoutes from './routes/v1/settings.js'
 import situsRoutes from './routes/v1/situs.js'
+import kredensialRoutes from './routes/v1/kredensial.js'
 import companiesRoutes from './routes/v1/companies.js'
 import rapRoutes from './routes/v1/rap.js'
 import costControlRoutes from './routes/v1/cost-control.js'
@@ -287,6 +288,7 @@ await app.register(mandorRoutes)
 await app.register(reportsRoutes)
 await app.register(settingsRoutes)
 await app.register(situsRoutes)
+await app.register(kredensialRoutes)
 await app.register(companiesRoutes)
 await app.register(rapRoutes)
 await app.register(costControlRoutes)
