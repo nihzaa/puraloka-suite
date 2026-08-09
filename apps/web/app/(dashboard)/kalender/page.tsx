@@ -429,7 +429,15 @@ export default function KalenderPage() {
                         <div style={{ fontSize: 11, fontWeight: 500, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.title}</div>
                         <div style={{ fontSize: 10, color: "var(--text-muted)" }}>{ev.sub}</div>
                       </div>
-                      <span style={{ fontSize: 10, color: daysLeft <= 3 ? "var(--danger)" : daysLeft <= 7 ? "var(--warning)" : "var(--text-muted)", fontWeight: daysLeft <= 7 ? 700 : 400, flexShrink: 0 }}>
+                      {/*
+                        `paddingInlineStart` — napas antara judul dan sisa
+                        hari. Judul ber-`ellipsis` mengisi kotaknya sampai
+                        penuh, jadi `gap: 8` pada pembungkus tak terlihat:
+                        "Selesai: Renovasi Fasad & Taman P…" dan "22h" terbaca
+                        menempel. Pola yang sama sudah diperbaiki di
+                        `BarisRail` — enam tempat, satu sebab.
+                      */}
+                      <span style={{ fontSize: 10, paddingInlineStart: 4, color: daysLeft <= 3 ? "var(--danger)" : daysLeft <= 7 ? "var(--warning)" : "var(--text-muted)", fontWeight: daysLeft <= 7 ? 700 : 400, flexShrink: 0 }}>
                         {daysLeft === 0 ? "Hari ini" : daysLeft === 1 ? "Besok" : `${daysLeft}h`}
                       </span>
                     </div>

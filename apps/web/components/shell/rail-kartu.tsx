@@ -178,6 +178,26 @@ export function BarisRail({
         <span style={{
           fontSize: 12, fontWeight: 700, color: warnaKanan, flexShrink: 0,
           fontVariantNumeric: "tabular-nums",
+          /*
+            `paddingInlineStart` — napas WAJIB antara teks kiri dan nilai
+            kanan.
+
+            Diukur 2026-08-09 di seluruh halaman: judul yang ter-ellipsis
+            berhenti PERSIS di titik badge mulai, sehingga "Renovasi Toko Pak
+            Rudi — S…" dan "101h lewat" terbaca menempel. Founder
+            menyebutnya "nempel", dan alat ukur mencatatnya sebagai teks yang
+            berakhir −28px sampai −53px dari tepi kartu.
+
+            `gap: 10` pada pembungkus TIDAK cukup: gap mengatur jarak antar
+            kotak, sementara teks ber-`overflow: hidden` mengisi kotaknya
+            sampai penuh — jadi jaraknya ada di antara kotak, bukan di antara
+            yang terlihat.
+
+            Diperbaiki DI SINI, bukan di tiap pemakai: pola yang sama muncul
+            di rail /proyek, /kalender, /lapangan, /gudang, /keuangan, dan
+            /mandor. Enam tempat dengan satu sebab.
+          */
+          paddingInlineStart: 4,
         }}>
           {kanan}
         </span>
