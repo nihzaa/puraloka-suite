@@ -55,6 +55,26 @@ for (const f of readdirSync(DIR_MIGRASI).filter((x) => x.endsWith(".sql")).sort(
     nonaktif.delete(m[1]);
   }
 
+  /*
+   * Koreksi `sort_order` lewat UPDATE — migrasi MAJU, bukan edit migrasi lama.
+   *
+   * Tanpa cabang ini, penjaga membaca nilai yang PERTAMA kali ditulis dan
+   * mengabaikan setiap perbaikan sesudahnya. Kepala berkas ini menjanjikan
+   * "keadaan akhir dari SELURUH migrasi, berurutan"; sebelum baris ini
+   * janji itu tak ditepati untuk sort_order.
+   *
+   * Ditemukan 2026-08-10: `g-ai` diperbaiki 185 → 150 lewat migrasi 262
+   * (185 melanggar S-4), basis sudah benar, tapi penjaga tetap merah karena
+   * masih membaca angka di migrasi 253. Satu-satunya cara menghijaukannya
+   * adalah MENGEDIT migrasi lama — persis yang dilarang §5.5. Penjaga yang
+   * memaksa pelanggaran aturan lain untuk dipuaskan adalah penjaga yang rusak.
+   */
+  for (const m of sql.matchAll(
+    /UPDATE\s+menu_items\s+SET\s+sort_order\s*=\s*(\d+)[\s\S]{0,200}?key\s*=\s*'(g-[a-z0-9-]+)'/gi)) {
+    const g = induk.get(m[2]);
+    if (g) g.urut = Number(m[1]);
+  }
+
   // Anak lewat helper: SELECT pasang_menu('key', 'Label', '/href', 'g-induk', 101[, 'kesiapan'])
   for (const m of sql.matchAll(
     /pasang_menu\(\s*'([a-z0-9-]+)'\s*,\s*'([^']*)'\s*,\s*'([^']*)'\s*,\s*'(g-[a-z0-9-]+)'\s*,\s*(\d+)\s*(?:,\s*'([a-z]+)')?\s*\)/gi)) {

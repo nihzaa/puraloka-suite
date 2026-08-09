@@ -1720,8 +1720,43 @@ items:
       C-10 adalah yang paling berbahaya: TJS mengambil nominal dari 4 nama field
       yang ditebak berurutan. Jenis dokumen dengan nama kelima -> nominal null
       -> batas nominal terlewati DIAM-DIAM. Kegagalan senyap pada gerbang uang.
+
+      SELESAI 2026-08-10 (migrasi 260, lib/ai-setujui.ts, routes/v1/ai-setujui.ts).
+
+      P-1 terbukti perlu, bukan sekadar aturan: enam rute approval diukur, dan
+      keputusannya memang TERSEBAR di rute — kasbons.ts:331 memeriksa saldo
+      rekening, :341 `enforceKasbonLimit`, :352 rantai bertingkat yang TIDAK
+      mengubah status sumber di level bukan-terakhir, :377 clearApprovalProgress
+      saat ditolak. `recordApproval` hanya mencatat SATU langkah; memanggilnya
+      langsung menghasilkan persetujuan yang tercatat tapi tak pernah terjadi.
+      Approve karena itu memakai `server.inject` ke rute yang sama dengan
+      dashboard — pola yang sudah ada dan sudah beralasan di jadwal.ts:426,
+      dengan token pemanggil apa adanya sehingga P-2 berlaku tanpa jalan pintas.
+
+      P-6/C-10 diselesaikan STRUKTURAL, bukan dengan kehati-hatian: nominal
+      dibaca dari `SUMBER_INBOX[].kolomNominal` yang dideklarasi per jenis dan
+      BERTIPE. Jenis baru tanpa deklarasi tak bisa dikompilasi — ia tak akan
+      "kebetulan nol". Tiga dari tujuh jenis memang tak punya kolom nominal;
+      ketiganya bernilai Infinity, mengikuti lib/mr-amount.ts:18.
+
+      JENIS_DIDUKUNG sengaja LEBIH SEMPIT dari yang punya rute (5 dari 7):
+      submittal lewat Workflow Engine (tak punya rute /approve), dan
+      material_request punya rute tapi nominalnya dihitung dari item — nominal
+      yang dihitung di dua tempat adalah persis cacat yang P-6 cegah.
+
+      Bukti: 18 test (termasuk 5 klaim BERSAMAAN → tepat satu menang, dan
+      plafon-diturunkan-sesudah-token-terbit → klaim tetap ditolak); penjaga
+      `audit-preview-setujui.mjs` ambang NOL; E-1..E-6 terbukti bisa merah
+      (`bash scripts/bukti-mutasi-setujui.sh`). E-6 sempat HIJAU-KARENA-BUTA:
+      ia MENGHITUNG kemunculan gerbang, dan berkas ini punya tiga rute — jadi
+      mencabut satu masih menyisakan dua. Penghitungan agregat tak bisa
+      membuktikan pernyataan "setiap".
+
+      SISA: halaman UI plafon per pengguna (`settings:ai:batas` sudah ada
+      sebagai permission; halamannya belum dibangun). Tanpa halaman itu plafon
+      hanya bisa diisi lewat SQL — dan config-first menuntut ada halamannya.
     bobot: L
-    status: todo
+    status: done
 
   - id: TJS-P1
     fase: 6

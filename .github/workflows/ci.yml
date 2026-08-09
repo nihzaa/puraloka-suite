@@ -402,6 +402,20 @@ jobs:
       - name: Webhook publik bergerbang
         run: node scripts/audit-webhook-bergerbang.mjs
 
+      # Satu-satunya jalur di mana sebuah PESAN berujung pada uang berpindah.
+      # Empat cacat TJS yang dirujuk kriteria E1 semuanya senyap: nominal
+      # ditebak dari nama field (jenis baru = null = lolos), batas melekat pada
+      # nomor (daftarkan nomor kedua = plafon ganda), token diperiksa lalu
+      # dipakai (dua klaim bersamaan = dua kali), approve memanggil
+      # `recordApproval` (saldo & rantai bertingkat terlewat).
+      #
+      # Ambang NOL. Terbukti bisa merah: `bash scripts/bukti-mutasi-setujui.sh`.
+      # E-6 sempat HIJAU-KARENA-BUTA — ia MENGHITUNG kemunculan gerbang, dan
+      # berkas ini punya tiga rute, jadi mencabut satu masih menyisakan dua.
+      # Penghitungan agregat tak bisa membuktikan pernyataan "setiap".
+      - name: Jalur preview→setujui bergerbang
+        run: node scripts/audit-preview-setujui.mjs
+
       # Nominal dari permintaan yang dibaca `parseFloat` mentah. Rantai cacatnya
       # dibuktikan 2026-08-08 di Node DAN di Postgres: `qty: "abc"` → NaN → cek
       # saldo LOLOS (setiap perbandingan dengan NaN bernilai false) → Postgres

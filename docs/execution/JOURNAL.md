@@ -5,6 +5,86 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-10 (lanjutan 10) — Preview → Setujui: asisten menyiapkan, manusia memutuskan (TJS-E1)
+
+Satu-satunya jalur di repo ini di mana sebuah **pesan** berujung pada **uang
+berpindah**. Karena itu ia dibangun paling hati-hati, dan tetap saja saya
+membuat empat kesalahan.
+
+### P-1 ternyata bukan aturan, melainkan temuan
+
+Kriteria E1 melarang memanggil `utils/approval.ts` langsung. Saya mengukur enam
+rute approval untuk tahu kenapa, dan alasannya jauh lebih kuat dari dugaan:
+keputusan approval memang **tersebar di rute**. `kasbons.ts` memeriksa saldo
+rekening (:331), menegakkan batas % earned value (:341), menangani rantai
+bertingkat yang TIDAK mengubah status sumber di level bukan-terakhir (:352),
+dan membersihkan jejak saat ditolak (:377).
+
+`recordApproval` hanya mencatat SATU langkah. Memanggilnya langsung
+menghasilkan persetujuan yang **tercatat tapi tak pernah terjadi**.
+
+Jadi approve di sini memakai `server.inject` ke rute yang sama dengan tombol
+dashboard, membawa token pemanggil apa adanya — pola yang sudah ada dan sudah
+beralasan panjang di `jadwal.ts:426`.
+
+### C-10 diselesaikan struktural, bukan dengan kehati-hatian
+
+TJS menebak nominal dari empat nama field berurutan; jenis dokumen dengan nama
+kelima menghasilkan `null`, dan batas nominal terlewati diam-diam.
+
+Di sini nominal dibaca dari `SUMBER_INBOX[].kolomNominal` — dideklarasi per
+jenis, BERTIPE. Jenis baru tanpa deklarasi tak bisa dikompilasi. Tiga dari
+tujuh jenis memang tak punya kolom nominal; ketiganya bernilai **Infinity**,
+mengikuti `lib/mr-amount.ts:18`. Test membuktikan kenapa `null` berbahaya:
+`(null as unknown as number) <= 500` bernilai **true** di JavaScript.
+
+### Empat kesalahan saya
+
+1. **Penjaga E-6 buta.** Ia MENGHITUNG kemunculan `requirePermission`, dan
+   berkas ini punya tiga rute — mencabut satu masih menyisakan dua. Penghitungan
+   agregat tak bisa membuktikan pernyataan "setiap". Hanya mutasi yang
+   menemukannya, sama seperti G-5 beberapa jam sebelumnya.
+2. **`company_members` kategori D.** Saya memanggilnya lewat `.from()`; wrapper
+   melempar `TenantDbError`, rutenya 500, dan **tangkapan layar** yang
+   menemukannya — halaman menampilkan "Belum ada anggota perusahaan" DAN toast
+   merah bersamaan, dua keadaan yang tak mungkin benar sekaligus. Log rute
+   bersih.
+3. **Amplop axios terbalik.** `api.get<T>` mengembalikan `{data: T}`; rute ini
+   membungkus barisnya dalam `data` juga, jadi barisnya di `r.data.data`.
+   Gejalanya `baris.map is not a function` — lagi-lagi hanya terlihat di layar.
+4. **Dua galat baca tak diperiksa.** `audit-kegagalan-senyap` naik 186 → 188.
+   Diperbaiki dengan memeriksa `error`-nya, bukan menaikkan ambang, dan
+   `?? []` yang jadi tak terjangkau ikut dihapus — fallback yang tersisa
+   mengatakan kepada pembaca berikutnya bahwa kosong itu wajar.
+
+### Yang ikut diperbaiki di jalan
+
+`uji-sidebar-struktur` menolak `g-ai = 185` (S-4: kelipatan 50). Migrasi 262
+memperbaikinya jadi 150 — tapi penjaganya tetap merah, karena ia membaca
+**berkas migrasi** dan tak pernah mengenali `UPDATE ... SET sort_order`.
+Satu-satunya cara menghijaukannya adalah mengedit migrasi lama, persis yang
+dilarang §5.5. Penjaga yang memaksa pelanggaran aturan lain untuk dipuaskan
+adalah penjaga yang rusak; ia kini membaca UPDATE, dan tetap terbukti merah
+untuk angka yang melanggar.
+
+### Bukti
+
+- 18 test — termasuk 5 klaim BERSAMAAN → tepat satu menang, dan plafon
+  DITURUNKAN sesudah token terbit → klaim tetap ditolak (P-6 dua kali)
+- `bash scripts/bukti-mutasi-setujui.sh` → E-1..E-6 MERAH, pulih HIJAU
+- 50/51 penjaga API hijau; satu merah pra-ada (`audit-asumsi-global-test`)
+- seluruh penjaga web yang dijalankan CI hijau
+- `npx vitest run` 2.614 lulus, 3 gagal — semuanya pra-ada
+- halaman plafon ditangkap layar dan direvisi sendiri: `5000000` → `Rp 5.000.000`
+
+### Sisa
+
+Hutang yang saya buat sendiri dan belum dibayar: `rail-asisten.tsx` menaikkan
+`audit-modal-dialog` 37 → 38 (commit sebelumnya sesi ini). Overlay-nya perlu
+pindah ke `DialogBersama`.
+
+---
+
 ## 2026-08-10 (lanjutan 9) — Webhook masuk: kanal WhatsApp jadi dua arah (TJS-D2)
 
 Sampai kemarin kanal ini cuma bisa berbicara. Sekarang ia mendengar.
