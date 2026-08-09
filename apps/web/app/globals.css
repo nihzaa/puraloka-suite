@@ -430,10 +430,22 @@
 
   /* Padding baku per jenis permukaan. Dipakai lewat nama, bukan angka —
    * "padding kartu" punya makna, "12px" tidak. */
-  --pad-baris:      "9px 12px";   /* baris tabel & daftar */
-  --pad-lencana:    "3px 8px";    /* pil status */
-  --pad-tombol:     "8px 14px";
-  --pad-tombol-kcl: "5px 11px";
+  /* Empat token ini SEMPAT bernilai string berkutip (`"9px 12px"`), dan
+   * `padding: var(--pad-baris)` karenanya menghasilkan nilai tak sah yang
+   * diabaikan browser — paddingnya hilang sama sekali, tanpa error konsol.
+   *
+   * Tak ada yang menyadarinya karena sampai 2026-08-09 NOL berkas memakainya:
+   * cacatnya baru muncul saat halaman pertama benar-benar memanggilnya, dan
+   * baru terlihat setelah halaman itu DIPOTRET (lencana terpotong, tombol
+   * saling tindih). Penjaga `kerapatan-ratchet` justru menghitungnya sebagai
+   * kepatuhan — token dipakai, angka tak dipaku, hijau.
+   *
+   * Pelajarannya bukan soal tanda kutip: token yang tak pernah dipakai tak
+   * pernah teruji, dan "sudah disediakan" bukan berarti "sudah bekerja". */
+  --pad-baris:      9px 12px;   /* baris tabel & daftar */
+  --pad-lencana:    3px 8px;    /* pil status */
+  --pad-tombol:     8px 14px;
+  --pad-tombol-kcl: 5px 11px;
   --pad-modal:      20px;
   --pad-halaman:    20px;
 
