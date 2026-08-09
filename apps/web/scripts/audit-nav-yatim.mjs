@@ -72,7 +72,7 @@ async function hrefDariDb() {
   const db = koneksi.buatClient('DIRECT_URL')
   await db.connect()
   const { rows } = await db.query(
-    `SELECT href, label FROM menu_items WHERE is_active AND href IS NOT NULL`)
+    `SELECT href, label, kesiapan FROM menu_items WHERE is_active AND href IS NOT NULL`)
   await db.end()
   return rows
 }
@@ -105,6 +105,26 @@ for (const f of layouts) {
 // dan penjaga yang merah karena hal yang benar akan dimatikan orang.
 const tanpaQuery = (h) => (h ? h.split('?')[0].split('#')[0] : h)
 
+/*
+  Menu berlabel `rencana` DIKECUALIKAN dari pemeriksaan "link mati".
+
+  Migrasi 241 mendaftarkan seluruh menu taksonomi ke sidebar — termasuk yang
+  halamannya belum dibangun — atas permintaan founder supaya yang belum
+  digarap tak terlupa. Kekhawatiran asli R-3 ("mengecewakan saat diklik")
+  dijawab dengan MENANDAI: titik abu di sidebar, dan `kesiapan = 'rencana'`
+  di basis.
+
+  Tanpa pengecualian ini penjaga melaporkan 12 "link mati" yang justru
+  DISENGAJA — dan penjaga yang merah karena hal yang benar akan dimatikan
+  orang. Persis alasan yang sama dengan pemangkasan query string di atas.
+
+  Yang TETAP dijaga: menu ber-`hidup`/`sebagian` yang halamannya hilang.
+  Itu janji yang tak ditepati, dan `uji-sidebar-struktur.mjs` S-5
+  memeriksanya dari sisi migrasi.
+*/
+const RENCANA = new Set(
+  menu.filter((r) => r.kesiapan === 'rencana').map((r) => tanpaQuery(r.href)))
+
 const sidebar = new Set(menu.map((r) => tanpaQuery(r.href)))
 const nav = new Set([...sidebar, ...[...tab.keys()].map(tanpaQuery)])
 
@@ -126,7 +146,8 @@ console.log(`  href tab-bagian     : ${tab.size}`)
 //
 // `/m/<key>` sengaja dilewati: seluruhnya dilayani satu route dinamis
 // `app/(dashboard)/m/[key]/page.tsx`.
-const mati = [...nav].filter((h) => !h.startsWith('/m/') && !adaHalaman.has(h))
+const mati = [...nav].filter(
+  (h) => !h.startsWith('/m/') && !adaHalaman.has(h) && !RENCANA.has(h))
 
 // ── 2. YATIM ────────────────────────────────────────────────────────────────
 //

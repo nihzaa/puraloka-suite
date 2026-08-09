@@ -1258,6 +1258,22 @@ jobs:
         run: node apps/web/scripts/uji-induk-punya-ikhtisar.mjs
         working-directory: .
 
+      # Struktur sidebar sesuai standar ERP — Master Data ada, akuntansi tak
+      # tercampur anggaran, master data tak tercecer di grup transaksi.
+      #
+      # Founder 2026-08-09: "apakah sudah benar semua sesuai standar ERP
+      # penempatannya seperti ini? yg saya lihat gaada data master" — dan ia
+      # benar. Tiga cacat struktural bertahan berbulan-bulan tanpa membuat
+      # satu pun test merah, karena tak ada yang membandingkan sidebar dengan
+      # dokumen taksonomi baris per baris. Persis yang perlu dijaga mesin.
+      #
+      # Statis (membaca migrasi + berkas halaman), jadi tak butuh server.
+      # Tiga mutasi dibuktikan MERAH: akuntansi dipindah ke anggaran, klien
+      # dipindah ke proyek, menu 'hidup' tanpa berkas halaman.
+      - name: Struktur sidebar sesuai standar ERP
+        run: node apps/web/scripts/uji-sidebar-struktur.mjs
+        working-directory: .
+
       # Rumus jarak geotag ada di DUA tempat (api/lib/geotag.ts dan
       # web/components/penanda-lokasi.tsx) — digandakan supaya galeri foto tak
       # perlu satu permintaan jaringan per foto.

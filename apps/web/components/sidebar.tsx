@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { rutenyaAktifPenuh } from "@/lib/rute-aktif";
 import { tujuanGrup } from "@/lib/tujuan-grup";
+import { TitikKesiapan } from "@/components/titik-kesiapan";
 import {
   LayoutDashboard,
   FolderKanban,
@@ -97,6 +98,8 @@ interface MenuNode {
   required_permissions: string[];
   sort_order: number;
   section: string;
+  /** `hidup` | `sebagian` | `rencana` — migrasi 241. Ditampilkan sebagai titik. */
+  kesiapan?: string;
   children: MenuNode[];
 }
 
@@ -416,6 +419,13 @@ function GrupCollapsible({
                 )}
                 <IkonAnak nama={child.icon} aktif={active} />
                 <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{child.label}</span>
+                {/*
+                  Titik kesiapan halaman (migrasi 241). Hanya muncul untuk
+                  `sebagian`/`rencana` — 90 dari 102 menu berstatus hidup, dan
+                  sembilan puluh titik hijau akan menenggelamkan dua belas
+                  yang benar-benar berarti. Alasan lengkap di komponennya.
+                */}
+                <TitikKesiapan kesiapan={child.kesiapan} />
                 {/* `title` tidak terbaca andal oleh pembaca layar dan sama
                     sekali tak terjangkau lewat keyboard. Keterangan ini
                     dibaca, tapi tak menambah kebisingan visual. */}

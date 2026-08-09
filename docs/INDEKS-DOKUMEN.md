@@ -16,7 +16,7 @@ memuat **setiap** dokumen, tanpa kecuali.
 | **acuan** | aturan/keputusan yang dirujuk saat bekerja | dibaca saat mengerjakan hal terkait; tak "selesai" |
 | **riwayat** | catatan fase yang sudah lewat | bukti apa yang pernah terjadi; jangan dikutip sebagai rencana |
 
-**Total 271 dokumen** — antrean 13 · acuan 198 · riwayat 60.
+**Total 272 dokumen** — antrean 13 · acuan 199 · riwayat 60.
 
 Kolom **RM** = disebut langsung di `ROADMAP.md`.
 
@@ -69,6 +69,7 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | [API-GAPS](design/API-GAPS.md) | acuan |  | API-GAPS — yang diminta redesign tetapi endpoint-nya belum ada |
 | [ARAH-VISUAL-2026](design/ARAH-VISUAL-2026.md) | acuan | ✓ | ARAH VISUAL 2026 — Puraloka Suite |
 | [DESIGN-BRIEF](design/DESIGN-BRIEF.md) | acuan |  | DESIGN BRIEF — Redesign Web Puraloka Suite ("Command Center") |
+| [STRUKTUR-SIDEBAR-ERP](design/STRUKTUR-SIDEBAR-ERP.md) | acuan |  | Struktur Sidebar — standar ERP konstruksi |
 
 ### `docs/execution`
 

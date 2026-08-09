@@ -5,6 +5,121 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-09 (sore) — "gaada data master" — dan founder benar
+
+Founder menyisir sidebar sendiri: *"apakah sudah benar semua sesuai standar
+ERP penempatannya seperti ini? yg saya lihat gaada data master"*, plus
+*"untuk estimasi & Biaya itu ganti aja, dan untuk membuat RAB itu punya
+halaman tersendiri jangan campur dengan finance"*.
+
+Diaudit terhadap `menu_items` (14 induk, 89 anak) dan taksonomi. Ketiga
+tuduhannya terbukti, dan yang pertama paling mendasar.
+
+### Tiga cacat struktural
+
+**1. Tak ada grup Master Data.** Taksonomi §1 menempatkannya sebagai kategori
+PERTAMA dengan 19 item. Sidebar tak punya grup itu sama sekali — isinya
+tersebar ke LIMA grup: Klien di Proyek, Supplier di Pengadaan, Tukang di
+Mandor, Aset di Alat&Dokumen, Satuan/Kategori/Badan Usaha di Administrasi.
+
+Akibatnya nyata: orang yang ingin menambah klien harus menebak bahwa ia ada
+di bawah "Proyek".
+
+**2. "Estimasi & Biaya" isinya akuntansi.** Enam dari tujuh anaknya milik
+taksonomi §14 (Jurnal, Bagan Akun, Neraca Saldo, Buku Besar, Neraca &
+Laba-Rugi) — hanya "Estimasi & RAB" yang benar-benar §5.
+
+**3. `sort_order` bertabrakan.** `Ringkasan Gudang` 1301 = `Pengguna & Role`
+1301. Kesalahan migrasi 240 saya sendiri, tak terlihat karena urutan dihitung
+per-grup.
+
+### Struktur baru: 17 grup, urut mengikuti ALUR KERJA
+
+```
+ 50 Master Data      ← prasyarat, bukan pengaturan
+100 CRM & Tender     ← sebelum proyek ada
+200 Proyek · 300 Kontrak · 400 Perencanaan
+500 Estimasi & Anggaran   ← RAB/RAP, TANPA akuntansi
+600 Pengadaan · 700 Gudang · 800 Mandor · 900 Lapangan · 1000 Mutu
+1100 Keuangan        ← uang BERGERAK
+1200 Akuntansi       ← PENCATATAN, dipisah
+1300 Alat · 1400 Dokumen · 1500 Pelaporan
+1600 Administrasi    ← pengaturan SISTEM saja
+```
+
+Master Data di posisi 50 karena ia prasyarat: klien harus ada sebelum proyek
+dibuat. Menaruhnya di bawah bersama audit log menyiratkan jarang disentuh —
+padahal ia yang pertama diisi perusahaan baru.
+
+Keuangan/Akuntansi dipisah karena beda pekerjaan DAN beda orang: PM bertanya
+"sudah dibayar?", akuntan bertanya "bagaimana pembukuannya?". Menyatukannya
+memaksa PM melewati Buku Besar untuk mencapai Invoice.
+
+### R-3 migrasi 232 dicabut sebagian — dengan penggantinya
+
+R-3 melarang menu tanpa halaman ("mengecewakan saat diklik"). Founder minta
+sebaliknya supaya yang belum digarap tak terlupa.
+
+Keduanya dipenuhi dengan **menandai** alih-alih menyembunyikan: kolom
+`menu_items.kesiapan` (hidup/sebagian/rencana) + titik warna di sidebar.
+Orang tahu SEBELUM mengklik.
+
+Titik hanya muncul untuk `sebagian`/`rencana` — 90 dari 102 menu berstatus
+hidup, dan sembilan puluh titik hijau akan menenggelamkan dua belas yang
+berarti. Penanda hanya berguna kalau ia menandai yang MENYIMPANG.
+
+### Kesalahan saya: key ditebak, bukan dibaca
+
+Migrasi pertama gagal dua kali karena saya menulis key baru (`akun-jurnal`)
+padahal yang ada `akuntansi-jurnal`. Akibatnya menu digandakan, bukan
+dipindah — 38 href jadi ganda, dan blok verifikasi R-1 menangkapnya.
+
+Perbaikan pertama saya lebih buruk: regex penggantinya menelan href, merusak
+39 baris. Yang benar akhirnya **membangkitkan seluruh blok anak dari peta
+href→key yang diambil dari DB** — bukan menambal satu per satu.
+
+Pelajarannya sama dengan nama kolom: jangan menebak identitas yang sudah ada
+di basis.
+
+### Penjaga baru, tiga mutasi merah
+
+`uji-sidebar-struktur.mjs` (statis, tanpa server) memeriksa lima aturan:
+grup wajib ada · akuntansi tak di grup anggaran · master data tak tercecer ·
+sort_order unik kelipatan 50 · menu 'hidup' wajib punya berkas halaman.
+
+Angkanya cocok persis dengan DB (17/102/12) — parser statisnya akurat.
+Mutasi: Jurnal→anggaran MERAH, Klien→proyek MERAH, hapus label rencana MERAH.
+
+`audit-nav-yatim` diajari mengenali `rencana` — tanpa itu ia melaporkan 12
+"link mati" yang justru disengaja, dan penjaga yang merah karena hal yang
+benar akan dimatikan orang. Sesudahnya ia **hijau untuk pertama kalinya**:
+`/keuangan/cvr` yang yatim sejak baseline kini terdaftar.
+
+### Dokumen aturan
+
+`docs/design/STRUKTUR-SIDEBAR-ERP.md` — menjawab dua pertanyaan founder yang
+lain sekaligus: kapan menu induk WAJIB punya dashboard (≥3 anak + ada
+pertanyaan lintas-anak), dan bentuk baku halaman ikhtisar supaya semua
+konsisten (urutan bagian + 9 aturan yang sudah dibayar mahal + daftar
+komponen yang wajib dipakai ulang).
+
+### Bukti
+
+```
+migrasi 241        dijalankan 2x, angka identik (17 induk, 102 anak, 12 rencana)
+tsc --noEmit       bersih (api + web)
+vitest web         45 berkas · 591 test · lulus
+axe terang/gelap   79 halaman · 0 pelanggaran (keduanya)
+19 penjaga visual  exit 0
+uji-sidebar-disiplin  13 halaman · tepat satu link aktif (R-1 utuh)
+audit-nav-yatim    HIJAU pertama kali — nol link mati, nol yatim
+```
+
+**RAB tidak urgent** (dijawab terpisah): seluruh isinya data dummy, jadi tak
+ada yang rusak di dunia nyata. Yang terdampak hanya tampilan demo.
+
+---
+
 ## 2026-08-09 (siang) — "Sudah mirip referensi?" — diukur, bukan diklaim
 
 Founder bertanya dua hal: *"selanjutnya apa? dashboard di menu induk lain

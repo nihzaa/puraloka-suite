@@ -17,6 +17,13 @@ interface MenuRow {
   required_permissions: string[]
   sort_order: number
   section: string
+  /**
+   * Kesiapan halaman: `hidup` | `sebagian` | `rencana` (migrasi 241).
+   *
+   * Sidebar menampilkannya sebagai titik warna. Dikirim server karena ia
+   * data, bukan tampilan — dua klien berbeda harus melihat status yang sama.
+   */
+  kesiapan: string
 }
 
 interface MenuNode extends MenuRow {
@@ -37,7 +44,7 @@ export default async function menuRoutes(app: FastifyInstance) {
     // Perilakunya identik: katalog A tak disaring company_id.
     const { data, error } = await request.db!
       .shared('menu_items')
-      .select('id, key, label, href, icon, parent_id, required_permissions, sort_order, section')
+      .select('id, key, label, href, icon, parent_id, required_permissions, sort_order, section, kesiapan')
       .eq('is_active', true)
       .order('section', { ascending: true })
       .order('sort_order', { ascending: true })
