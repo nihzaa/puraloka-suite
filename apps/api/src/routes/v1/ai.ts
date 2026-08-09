@@ -60,8 +60,33 @@ function ambilKlien(): Anthropic | null {
   return klien
 }
 
-/** Model dipatok di env supaya bisa diganti tanpa deploy ulang kode. */
-const MODEL = process.env.ANTHROPIC_MODEL?.trim() || 'claude-opus-5'
+/**
+ * Model dipatok di env supaya bisa diganti tanpa deploy ulang kode.
+ *
+ * ── Bawaannya HAIKU, bukan Opus — diubah 2026-08-09
+ *
+ * Founder: *"ai disini ada alternatif gak? soalnya lumayan makan biaya token
+ * api nya"*. Diukur sebelum mengubah apa pun, dan sebagian besar biayanya
+ * ternyata bukan dari kelas modelnya:
+ *
+ *   • DUA komponen memanggil endpoint ini (`kartu-kesehatan`, `rail-asisten`)
+ *     dan keduanya tampil bersamaan di beranda → 2 panggilan tiap buka
+ *   • nol cache → tiap muat ulang panggilan baru
+ *
+ * Keduanya dibereskan di sisi web (panggilan jadi manual lewat tombol).
+ * Yang dibereskan DI SINI: kelas modelnya.
+ *
+ * Tugas model di endpoint ini sangat sempit — menulis DUA KALIMAT dari fakta
+ * yang sudah dihitung deterministik, dengan skema jawaban yang hanya punya
+ * dua field teks (`SKEMA_JAWABAN`). Tak ada penalaran panjang, tak ada
+ * aritmetika, tak ada keputusan. Opus dipakai untuk pekerjaan yang tak
+ * seperti itu.
+ *
+ * Kalau kelak kualitas kalimatnya terasa turun, naikkan lewat env
+ * (`ANTHROPIC_MODEL=claude-opus-5`) — tanpa menyentuh kode ini. Itu sebabnya
+ * nilainya memang dibaca dari env sejak awal.
+ */
+const MODEL = process.env.ANTHROPIC_MODEL?.trim() || 'claude-haiku-4-5'
 
 export default async function aiRoutes(app: FastifyInstance) {
   app.get('/api/v1/ai/insight', {

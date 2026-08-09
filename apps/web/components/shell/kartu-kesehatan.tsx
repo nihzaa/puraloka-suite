@@ -39,7 +39,7 @@
  * tak menambah satu byte pun ke bundle awal.
  */
 
-import { useEffect, useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
@@ -60,22 +60,50 @@ interface JawabanWawasan {
 export function KartuKesehatan({ masukan }: { masukan: MasukanKesehatan }) {
   const h = hitungKesehatan(masukan);
   const [ai, setAi] = useState<JawabanWawasan["wawasan"]>(null);
+  const [memuatAi, setMemuatAi] = useState(false);
+  const [sudahMinta, setSudahMinta] = useState(false);
 
   /*
-   * Dipanggil terpisah dari data dashboard, dan sengaja: panggilan ke model
-   * jauh lebih lambat daripada query DB. Kalau digabung, seluruh kartu — skor
-   * termasuk — menunggu jaringan pihak ketiga sebelum tampil.
+   * ══════════════════════════════════════════════════════════════════════
+   * AI DIPANGGIL SAAT DIKLIK, BUKAN SAAT HALAMAN DIBUKA — diubah 2026-08-09
+   * ══════════════════════════════════════════════════════════════════════
    *
-   * Galat sengaja tidak ditampilkan. Yang hilang cuma kalimat penjelas, dan
-   * versi deterministiknya sudah terpasang sejak render pertama.
+   * Founder: *"ai disini ada alternatif gak? soalnya lumayan makan biaya
+   * token api nya"*.
+   *
+   * Diukur sebelum mengubah apa pun, dan sebabnya bukan satu:
+   *
+   *   1. DUA komponen memanggil endpoint yang sama — kartu ini dan
+   *      `rail-asisten` — dan keduanya tampil bersamaan di beranda.
+   *      Satu kali buka dashboard = DUA panggilan berbayar.
+   *   2. Nol cache: tiap muat ulang halaman memanggil lagi.
+   *   3. `useEffect` tanpa syarat berarti biaya keluar bahkan saat orang
+   *      cuma lewat di beranda menuju halaman lain.
+   *
+   * Yang ketiga paling boros justru karena tak terlihat: tak ada yang tahu
+   * biayanya keluar.
+   *
+   * Sekarang kartunya tampil LENGKAP tanpa AI — skor, ring, dan kalimat
+   * penilaian deterministik semuanya sudah ada sejak render pertama. AI
+   * hanya menambah satu kalimat saran, dan itu diminta secara sadar.
+   *
+   * `sudahMinta` mencegah panggilan kedua: sesudah jawabannya datang,
+   * tombolnya hilang. Kalau orang ingin memperbaruinya, muat ulang halaman —
+   * dan itu keputusan sadar juga.
    */
-  useEffect(() => {
+  const minta = useRef(false);
+
+  function mintaWawasan() {
+    if (minta.current) return;
+    minta.current = true;
+    setMemuatAi(true);
+    setSudahMinta(true);
     const ac = makeAbortController();
     api.get<JawabanWawasan>("/api/v1/ai/insight", { signal: ac.signal })
       .then((r) => setAi(r.data?.wawasan ?? null))
-      .catch(() => setAi(null));
-    return () => ac.abort();
-  }, []);
+      .catch(() => setAi(null))
+      .finally(() => setMemuatAi(false));
+  }
 
   const warna =
     h.nada === "baik" ? "var(--success)"
@@ -194,6 +222,54 @@ export function KartuKesehatan({ masukan }: { masukan: MasukanKesehatan }) {
             <strong style={{ fontWeight: 700 }}>Saran:</strong> {ai.rekomendasi}
           </p>
         </div>
+      )}
+
+      {/*
+        TOMBOL AI — hanya tampil kalau belum pernah diminta.
+
+        Labelnya menyebut "AI" secara terus terang, bukan "muat saran": orang
+        berhak tahu bahwa mengklik ini memanggil layanan berbayar. Itu
+        sebabnya ia tak dijalankan otomatis.
+
+        Sesudah dijawab, tombolnya HILANG (bukan jadi "muat ulang") —
+        menyediakan tombol ulang di sebelah jawaban yang sudah ada adalah
+        undangan mengeklik dua kali untuk kalimat yang hampir sama.
+      */}
+      {!sudahMinta && (
+        <button
+          type="button"
+          onClick={mintaWawasan}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            alignSelf: "flex-start",
+            padding: "6px 10px", borderRadius: "var(--rad-sedang)",
+            border: "1px solid var(--border)", background: "var(--surface-subtle)",
+            fontSize: "var(--t-kecil)", fontWeight: 600, color: "var(--navy)",
+            cursor: "pointer", transition: "background 150ms ease",
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "var(--surface-hover)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "var(--surface-subtle)"; }}
+        >
+          <Sparkles size={13} aria-hidden="true" />
+          Minta saran AI
+        </button>
+      )}
+
+      {memuatAi && (
+        <p style={{ margin: 0, fontSize: "var(--t-kecil)", color: C.mid }}>
+          Menyusun saran…
+        </p>
+      )}
+
+      {/*
+        AI diminta, tetapi tak menjawab. Dinyatakan, bukan didiamkan: tombol
+        yang hilang tanpa hasil apa pun terbaca sebagai aplikasi rusak.
+        Skornya sendiri tak terpengaruh — ia tak pernah datang dari AI.
+      */}
+      {sudahMinta && !memuatAi && !ai?.rekomendasi && (
+        <p style={{ margin: 0, fontSize: "var(--t-kecil)", color: C.mid }}>
+          Saran AI belum tersedia. Angka di atas tetap dihitung dari data Anda.
+        </p>
       )}
 
       {/*

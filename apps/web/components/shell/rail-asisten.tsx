@@ -11,8 +11,10 @@
  * Bentuk itu ditiru — tapi hanya bagian yang benar-benar bekerja.
  *
  *   SUDAH NYATA   pembacaan AI atas kondisi portofolio, lewat
- *                 `/api/v1/ai/insight` (Claude, `claude-opus-5`). Kalimat
- *                 yang tampil di sini datang dari sana.
+ *                 `/api/v1/ai/insight`. Kalimat yang tampil di sini datang
+ *                 dari sana. Modelnya dibaca dari env (`ANTHROPIC_MODEL`,
+ *                 bawaan Haiku) — jangan sebut nama model di komentar ini,
+ *                 ia akan basi begitu env-nya diganti.
  *   BELUM ADA     tanya-jawab bebas. Tak ada endpoint percakapan, tak ada
  *                 riwayat, tak ada konteks.
  *
@@ -30,7 +32,7 @@
  * ditindaklanjuti.
  */
 
-import { useEffect, useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
@@ -43,17 +45,43 @@ interface JawabanWawasan {
 
 export function RailAsisten() {
   const [wawasan, setWawasan] = useState<JawabanWawasan["wawasan"]>(null);
+  const [memuat, setMemuat] = useState(false);
   const [selesai, setSelesai] = useState(false);
 
-  useEffect(() => {
+  /*
+   * ══════════════════════════════════════════════════════════════════════
+   * DIPANGGIL SAAT DIKLIK, BUKAN SAAT RAIL DIRENDER — diubah 2026-08-09
+   * ══════════════════════════════════════════════════════════════════════
+   *
+   * Founder: *"ai disini ada alternatif gak? soalnya lumayan makan biaya
+   * token api nya"*.
+   *
+   * Kartu ini penyumbang biaya TERBESAR di antara dua pemanggil endpoint AI,
+   * dan sebabnya letaknya: rail hidup di beranda, jadi `useEffect` di sini
+   * memanggil model SETIAP KALI beranda dibuka — termasuk saat orang cuma
+   * lewat menuju halaman lain. Digabung kartu Kesehatan yang memanggil
+   * endpoint yang sama, satu kali buka beranda = dua panggilan berbayar.
+   *
+   * Sekarang kartunya tampil dengan tombol, dan biaya hanya keluar saat
+   * seseorang benar-benar menginginkan pembacaannya.
+   *
+   * `pemicu.jalan` (bukan state) mencegah klik ganda memanggil dua kali:
+   * state React diperbarui asinkron, jadi dua klik cepat berturut-turut bisa
+   * lolos dari penjagaan berbasis `memuat`.
+   */
+  const pemicu = useRef(false);
+
+  function mintaWawasan() {
+    if (pemicu.current) return;
+    pemicu.current = true;
+    setMemuat(true);
     const ac = makeAbortController();
     api
       .get<JawabanWawasan>("/api/v1/ai/insight", { signal: ac.signal })
       .then((r) => setWawasan(r.data?.wawasan ?? null))
       .catch(() => setWawasan(null))
-      .finally(() => setSelesai(true));
-    return () => ac.abort();
-  }, []);
+      .finally(() => { setMemuat(false); setSelesai(true); });
+  }
 
   return (
     <section
@@ -87,11 +115,55 @@ export function RailAsisten() {
       </header>
 
       <div style={{ padding: "var(--pad-kartu)" }}>
-        {!selesai ? (
-          <div style={{
-            height: 34, borderRadius: "var(--rad-sedang)",
-            background: "var(--surface-hover)",
-          }} />
+        {!selesai && !memuat ? (
+          /*
+            KEADAAN AWAL — tombol, bukan kerangka pemuatan.
+
+            Kerangka abu-abu di sini akan berbohong: ia menyiratkan sesuatu
+            sedang dimuat, padahal tak ada permintaan yang berjalan. Yang
+            benar adalah menyatakan bahwa pembacaan itu TERSEDIA dan menunggu
+            diminta.
+
+            Kalimat di atas tombol menjelaskan apa yang akan didapat, supaya
+            orang tak perlu mengklik untuk tahu apa gunanya.
+          */
+          <>
+            <p style={{
+              margin: 0, fontSize: "var(--t-badan)", color: C.mid, lineHeight: 1.5,
+            }}>
+              Minta pembacaan singkat atas kondisi portofolio Anda.
+            </p>
+            <button
+              type="button"
+              onClick={mintaWawasan}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                marginTop: 10,
+                padding: "6px 10px", borderRadius: "var(--rad-sedang)",
+                border: "1px solid var(--border)", background: "var(--surface-subtle)",
+                fontSize: "var(--t-kecil)", fontWeight: 600, color: "var(--navy)",
+                cursor: "pointer", transition: "background 150ms ease",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "var(--surface-hover)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "var(--surface-subtle)"; }}
+            >
+              <Sparkles size={13} aria-hidden="true" />
+              Minta pembacaan AI
+            </button>
+          </>
+        ) : memuat ? (
+          <div
+            role="status"
+            aria-live="polite"
+            style={{
+              height: 34, borderRadius: "var(--rad-sedang)",
+              background: "var(--surface-hover)",
+              display: "grid", placeItems: "center",
+              fontSize: "var(--t-kecil)", color: C.mid,
+            }}
+          >
+            Membaca portofolio…
+          </div>
         ) : wawasan ? (
           <>
             <p style={{

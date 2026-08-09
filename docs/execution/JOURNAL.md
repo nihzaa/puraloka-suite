@@ -5,6 +5,78 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-09 (larut) — "Ada alternatif gak? lumayan makan biaya token"
+
+Founder soal kartu AI di beranda. Sebelum mengusulkan apa pun saya mengukur,
+dan penyebab terbesarnya ternyata **bukan** kelas modelnya:
+
+| Sebab | Dampak |
+|---|---|
+| DUA komponen memanggil endpoint yang SAMA (`kartu-kesehatan` + `rail-asisten`), keduanya tampil di beranda | **2× tiap buka** |
+| Nol cache | tiap muat ulang = panggilan baru |
+| `useEffect` tanpa syarat | biaya keluar bahkan saat orang cuma LEWAT di beranda |
+
+Yang ketiga paling boros justru karena tak terlihat — tak ada yang tahu
+biayanya sedang keluar.
+
+Founder memilih dua dari empat opsi: **tombol** + **model lebih murah**.
+Keduanya diterapkan, dan keduanya menyerang sumber biaya yang berbeda.
+
+### Yang berubah
+
+- **Model → `claude-haiku-4-5`.** Tugas modelnya sempit: dua kalimat dari
+  fakta yang SUDAH dihitung deterministik, skema jawabannya cuma dua field
+  teks. Tak ada penalaran, tak ada aritmetika. Opus untuk pekerjaan lain.
+
+  ⚠️ Mengubah default di kode saja TIDAK CUKUP — `apps/api/.env` memaku
+  `ANTHROPIC_MODEL=claude-opus-5`. Hampir saja saya laporkan "sudah diganti"
+  tanpa itu berpengaruh sama sekali.
+
+- **Panggilan jadi manual.** Kedua komponen kini menampilkan tombol.
+
+  Kartu Kesehatan tetap tampil **lengkap** tanpa AI — skor, ring, dan kalimat
+  penilaian deterministik semuanya sudah ada sejak render pertama; AI hanya
+  menambah satu kalimat saran.
+
+  Rail Asisten berbeda: isinya HANYA kalimat AI, jadi keadaan awalnya diberi
+  kalimat pengantar + tombol. Kerangka abu-abu akan berbohong di sini — ia
+  menyiratkan sesuatu sedang dimuat padahal tak ada permintaan berjalan.
+
+### Diukur di peramban, bukan diklaim
+
+```
+panggilan AI saat buka dashboard : 0   (sebelumnya 2)
+tombol kartu Kesehatan           : ADA
+tombol rail Asisten              : ADA
+panggilan sesudah satu klik      : 1
+```
+
+Penghematan gabungan: dari ~2 panggilan Opus per buka beranda menjadi **nol**,
+dan yang manual pun ~5× lebih murah.
+
+### Catatan kecil yang menahan cacat lain
+
+`useState(() => ({jalan:false}))` yang saya pakai untuk mencegah klik ganda
+memicu `react-hooks/immutability` (2 warning). Diganti `useRef` — yang memang
+alatnya. Penjagaan berbasis state saja tak cukup: state React diperbarui
+asinkron, jadi dua klik cepat bisa lolos.
+
+Komentar `rail-asisten.tsx` sempat menyebut `claude-opus-5` sebagai fakta;
+diganti jadi rujukan ke env, dengan catatan **jangan menulis nama model di
+komentar** — ia basi begitu env diganti. Pelajaran yang sama dengan pembuka
+`CLAUDE.md`.
+
+### Bukti
+
+```
+tsc --noEmit (api + web)   bersih
+eslint 2 komponen          0 error, 0 warning
+vitest web                 42 berkas · 545 test · lulus
+vitest api wawasan-ai      11 test · lulus
+```
+
+---
+
 ## 2026-08-09 (malam) — Batasan yang saya tulis sendiri, dicabut karena syaratnya sudah terpenuhi
 
 Founder minta dashboard menu induk dibuat "semirip mungkin" dengan referensi
