@@ -376,6 +376,16 @@ jobs:
       - name: Satu pintu keluar WhatsApp
         run: node scripts/audit-satu-pintu-wa.mjs
 
+      # Kriteria D1 menunjuk cacat nyata: approval.ts:62 membaca
+      # request.currentUser.role apa adanya. Untuk sesi WEB itu aman —
+      # `authenticate` yang mengisinya dari basis. Untuk sesi SINTETIS tidak:
+      # pesan WhatsApp tak lewat authenticate, jadi siapa pun yang menyusun
+      # objek request-nya menentukan perannya sendiri. Satu webhook yang
+      # dipalsukan cukup mengirim `admin` untuk mendapat seluruh permission,
+      # tanpa galat apa pun.
+      - name: Sesi sintetis aman
+        run: node scripts/audit-sesi-sintetis-aman.mjs
+
       # Nominal dari permintaan yang dibaca `parseFloat` mentah. Rantai cacatnya
       # dibuktikan 2026-08-08 di Node DAN di Postgres: `qty: "abc"` → NaN → cek
       # saldo LOLOS (setiap perbandingan dengan NaN bernilai false) → Postgres
