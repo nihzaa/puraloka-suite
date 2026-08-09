@@ -595,9 +595,6 @@ function Konten() {
                   )
                 : k.perkiraan_per_panggilan_idr;
 
-              const lewatBatas =
-                k.batas_bulanan_idr !== null && terpakai >= k.batas_bulanan_idr;
-
               return (
                 <section key={k.asisten} style={{ ...card, padding: "var(--pad-kartu-lega)" }}>
                   <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, marginBottom: 4 }}>

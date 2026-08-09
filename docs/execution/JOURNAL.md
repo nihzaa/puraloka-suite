@@ -5,6 +5,114 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-10 (lanjutan 4) — Founder membalikkan tiga keputusan saya, dan ketiganya benar
+
+Empat arahan datang di tengah pengerjaan UI. Semuanya mengubah arah, dan tak
+satu pun soal selera.
+
+### 1. Halaman `/asisten` DIBATALKAN — obrolan pindah ke rail
+
+> *"obrolan dengan asisten itu harusnya di sini, ngga usah halaman khusus,
+> dan bisa diperbesar obrolannya"*
+
+Halaman khusus sudah selesai dibangun, diuji, dan ditangkap layar. Saya hapus.
+
+Alasannya kuat: asisten dipakai **sambil** melihat data. Orang membuka daftar
+invoice, melihat angka yang aneh, lalu bertanya. Halaman khusus memaksa ia
+meninggalkan angka itu — menyalin nomornya ke kepala, pindah halaman, bertanya
+dari ingatan.
+
+Tangkapan layar rail membuktikannya: pengguna melihat "11 proyek aktif" di KPI
+**dan** jawaban asisten pada layar yang sama. Itu mustahil di halaman khusus.
+
+TJS memakai halaman terpisah (`/dashboard/settings/owner-ai`). Ini titik di
+mana Puraloka sengaja tidak menirunya.
+
+Tiga ukuran, bukan dua: **ringkas** (satu tombol), **obrolan** (di dalam rail),
+**lebar** (panel besar + Esc). Dua ukuran memaksa memilih antara "terlalu
+sempit untuk dibaca" dan "menutupi data yang sedang ditanyakan" — dan keduanya
+dibutuhkan pada saat berbeda dalam satu percakapan.
+
+### 2. Menu induk sendiri, seperti TJS — tapi lebih baik
+
+> *"semua konfigurasi bikin menu induk khusus dan di bawahnya membawahi
+> sub-menu, kaya di TJS"*
+
+Dirujuk langsung ke `automation-tjs/admin-dashboard/lib/access.ts:1256-1300`.
+TJS menaruh Penyedia AI, AI Assistant Owner, dan AI Assistant Staff di section
+**"Admin & Sistem"** — bercampur dengan belasan pengaturan lain.
+
+Di sini dibuat lebih baik: grup **"AI & Otomasi"** sendiri (migrasi 253), berisi
+Penyedia AI · Perilaku Asisten · Pemakaian & Biaya · Kanal WhatsApp. Seluruh
+permukaan AI di satu tempat, bukan terserak di antara menu administrasi yang
+tak berhubungan.
+
+### 3. NOL hardcode
+
+> *"semuanya bisa dikonfigurasi di UI, gaada yang hardcode di sana"*
+
+Tiga hal yang saya paku dan kini di basis (migrasi 254):
+
+| Dulu | Sekarang |
+|---|---|
+| prompt sistem di `ai-chat.ts` | `ai_provider_config.prompt_sistem` |
+| `MAKS_RONDE = 4` di `ai-loop.ts` | `maks_ronde`, per asisten |
+| seluruh katalog selalu ditawarkan | `tool_aktif TEXT[]` |
+
+Yang ketiga paling menggigit. Sebelum ini, "matikan akses stok untuk asisten"
+hanya bisa dilakukan dengan mencabut `gudang:view` — yang **sekaligus
+menyembunyikan halaman Gudang** dari orangnya. Konfigurasi yang memaksa merusak
+hal lain bukan konfigurasi.
+
+**Dua keputusan desain yang menahan penyalahgunaan:**
+
+- Prompt tenant **disambung**, tak menggantikan. Kalau bisa mengganti, satu
+  kalimat ceroboh menghapus instruksi yang menahan injeksi — tanpa gejala
+  sampai seseorang mencobanya.
+- `tool_aktif` adalah **irisan** dengan permission pengguna, tak pernah
+  penambahan. Kalau bisa menambah, halaman pengaturan jadi jalan pintas ke data
+  yang permission-nya sengaja tak diberikan — naik hak akses lewat kotak
+  centang.
+
+Array kosong **dibedakan** dari NULL: `[]` berarti "jangan baca apa pun" (pilihan
+sadar), NULL berarti "belum diatur". Menyamakannya lewat `|| null` akan membuat
+tenant yang mematikan semua tool diam-diam mendapat semuanya kembali —
+kebalikan dari yang ia pilih. Ada test khusus untuk itu.
+
+**Yang tetap TIDAK bisa diatur, dan halaman menyatakannya:** sifat READ-ONLY.
+Ember [C] CLAUDE.md §5.3. Tak ada kolom "izinkan menulis", dan test memeriksa
+bahwa kolom semacam itu tak pernah muncul.
+
+### 4. Retensi — kriteria B1 yang tertunda, kini tertutup
+
+Saklar mati per tenant + retensi percakapan masuk halaman Perilaku Asisten.
+`sisa_terbuka` B1 tinggal rate limit per user.
+
+### Cacat yang ketahuan dari layar, bukan dari kode
+
+- **Ikon menu salah**: `Bot` tak terdaftar di `ICONS` sidebar, jadi asisten AI
+  tampil bergambar **folder**. Tak ada galat; `iconFor` diam-diam jatuh ke
+  `FolderKanban`.
+- **Markdown mentah**: model menulis `**11 proyek**` dan bintangnya tampil apa
+  adanya.
+- **Skrip tangkap layar memotret hal yang salah** — dua kali.
+  `button[type="submit"]` juga cocok dengan tombol "Buat" di topbar, dan
+  `button[aria-expanded]` juga. Skripnya lolos, melaporkan sukses, dan
+  memotret halaman kosong dengan dropdown terbuka.
+- **`colorScheme: 'dark'` tak cukup** — aplikasi memakai next-themes
+  `attribute="class"`. Pelajaran ini sudah tertulis di header
+  `tangkap-layar.mjs`; saya mengulanginya karena tak membacanya lebih dulu.
+
+### Bukti
+
+- 124/124 test hijau (18 perilaku baru, 16 loop, 18 tool, 33 adaptor, 20 config,
+  13 chat, 6 gerbang)
+- 26/26 penjaga hijau; 3 uji mutasi 6/6
+- tangkapan layar: rail ringkas, rail terisi, rail lebar, halaman perilaku
+- `tsc --noEmit` bersih di `apps/api` dan `apps/web`
+
+---
+
 ## 2026-08-10 (lanjutan 3) — TJS-C1 tuntas: asisten menjawab dari data nyata, dan menolak dibajak
 
 Agent loop + rute chat. **Asisten hidup**, diuji terhadap model sungguhan.

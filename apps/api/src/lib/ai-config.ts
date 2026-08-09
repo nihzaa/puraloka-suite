@@ -50,6 +50,24 @@ export interface KonfigurasiAi {
   aktif: boolean
   batasBulananIdr: number | null
   modeBatas: ModeBatas
+  /**
+   * Instruksi TAMBAHAN dari tenant, disambung di bawah prompt bawaan.
+   *
+   * Bukan pengganti: batas READ-ONLY dan aturan penanganan blok `<data>`
+   * ditulis pengembang dan selalu ikut. Kalau prompt tenant bisa MENGGANTI
+   * seluruhnya, satu kalimat ceroboh menghapus instruksi yang menahan injeksi.
+   */
+  promptSistem: string | null
+  /** Batas ronde tool-calling. Dulu konstanta `MAKS_RONDE`. */
+  maksRonde: number
+  /**
+   * Tool yang ditawarkan. NULL = semua yang izinnya dimiliki.
+   *
+   * Array KOSONG dibedakan dari NULL: `[]` adalah pilihan sadar "jangan baca
+   * apa pun", NULL berarti belum diatur. Menyamakan keduanya membuat tenant
+   * yang mematikan semua tool diam-diam mendapat semuanya kembali.
+   */
+  toolAktif: string[] | null
 }
 
 /**
@@ -68,6 +86,9 @@ export function konfigurasiBawaan(asisten: Asisten): KonfigurasiAi {
     aktif: true,
     batasBulananIdr: null,
     modeBatas: 'peringatkan',
+    promptSistem: null,
+    maksRonde: 4,
+    toolAktif: null,
   }
 }
 
@@ -79,6 +100,9 @@ interface BarisConfig {
   aktif: boolean
   batas_bulanan_idr: string | number | null
   mode_batas: string
+  prompt_sistem?: string | null
+  maks_ronde?: number | null
+  tool_aktif?: string[] | null
 }
 
 /** Angka dari Postgres `numeric` datang sebagai STRING lewat PostgREST. */
@@ -103,6 +127,11 @@ export function bentukKonfigurasi(baris: BarisConfig, asisten: Asisten): Konfigu
     modeBatas: (MODE_BATAS as readonly string[]).includes(baris.mode_batas)
       ? (baris.mode_batas as ModeBatas)
       : 'peringatkan',
+    promptSistem: baris.prompt_sistem?.trim() || null,
+    maksRonde: baris.maks_ronde ?? bawaan.maksRonde,
+    // `?? null` BUKAN `|| null`: array kosong itu falsy, dan `||` akan
+    // mengubah "nol tool" jadi "semua tool" — kebalikan dari yang dipilih.
+    toolAktif: baris.tool_aktif ?? null,
   }
 }
 
@@ -156,7 +185,7 @@ export async function periksaGerbangAi(
 ): Promise<KeputusanGerbang> {
   const { data, error } = await db
     .from('ai_provider_config')
-    .select('asisten, penyedia, model, max_token, aktif, batas_bulanan_idr, mode_batas')
+    .select('asisten, penyedia, model, max_token, aktif, batas_bulanan_idr, mode_batas, prompt_sistem, maks_ronde, tool_aktif')
     .eq('asisten', asisten)
     .maybeSingle()
 

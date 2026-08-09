@@ -1424,8 +1424,8 @@ items:
       tanpa gerbang sendiri). Test 26/26 hijau: 20 lib + 6 rute. Gerbang terbukti MEMBLOKIR pada endpoint nyata —
       mode blokir -> alasan 'batas_terlampaui', 200 bukan 500, dan NOL baris biaya baru. 22/22 penjaga repo hijau.
     sisa_terbuka: >-
-      (1) RETENSI percakapan per tenant — belum ada percakapan yang disimpan, jadi tak ada yang bisa diretensi.
-      Wajar dikerjakan bersama TJS-C1 yang membuat percakapannya.
+      (1) ✅ DITUTUP 2026-08-10 — retensi percakapan per tenant ada di halaman Perilaku Asisten
+      (ai_pengaturan_tenant.retensi_hari, bawaan 30 hari, NULL = selamanya), bersama saklar mati.
       (2) RATE LIMIT per user — /ai/insight punya rateLimit 20/menit, tetapi per-rute, bukan per-user, dan
       limiter repo ini global:false (per instance). Menuntaskannya berarti menyentuh infrastruktur rate limit,
       bukan lapisan AI.
@@ -1526,7 +1526,20 @@ items:
       Enum project_status dinyatakan di skema tool: 3 ronde -> 2, Rp 84 -> Rp 55 per pertanyaan.
       106 test hijau. Penjaga gerbang biaya diperbaiki LAGI (rute chat lolos tanpa diperiksa karena
       memanggil jalankanLoop, bukan .chat) + aturan L-1 baru untuk loop, 6/6 mutasi merah.
-      SISA: UI asisten.
+      UI SELESAI 2026-08-10, dengan arah yang DIBALIK founder di tengah jalan:
+      halaman /asisten khusus DIBATALKAN (sudah dibangun & diuji, lalu dihapus) — obrolan pindah
+      ke RAIL kanan, 3 ukuran: ringkas / obrolan (dalam rail) / lebar (panel + Esc). Alasannya
+      kuat: asisten dipakai SAMBIL melihat data, dan halaman khusus memaksa orang meninggalkan
+      angka yang sedang ia tanyakan. TJS memakai halaman terpisah (/dashboard/settings/owner-ai);
+      ini titik di mana Puraloka sengaja tidak menirunya.
+      Grup menu "AI & Otomasi" (migrasi 253) — dirujuk ke automation-tjs/lib/access.ts:1256-1300
+      yang menaruh menu AI bercampur di section "Admin & Sistem"; di sini dibuat grup sendiri.
+      NOL HARDCODE (migrasi 254): prompt_sistem, maks_ronde, tool_aktif per asisten, semuanya
+      dari UI dan BENAR-BENAR dipakai rute chat (ada test yang memeriksa kodenya, bukan hanya
+      kolomnya). Prompt tenant DISAMBUNG bukan menggantikan; tool_aktif adalah IRISAN dengan
+      permission pengguna, tak pernah penambahan. Array kosong dibedakan dari NULL.
+      Sifat READ-ONLY tetap TIDAK bisa diatur (ember [C]) dan halaman menyatakannya.
+      124 test hijau, 26 penjaga hijau.
     blokir_oleh: [TJS-B2]
     kriteria_selesai:
       - "agent loop lewat lapisan provider (bukan SDK langsung)"

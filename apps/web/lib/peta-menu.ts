@@ -363,6 +363,19 @@ export const PETA_MENU: GrupMenu[] = [
       { key: 'sy-notifikasi', label: 'Aturan Notifikasi', status: 'hidup', href: '/pengaturan/notifikasi', guna: 'Siapa mendapat pemberitahuan apa.' },
       { key: 'sy-kredensial', label: 'Kredensial & Integrasi', status: 'hidup', href: '/pengaturan/kredensial', guna: 'Kunci API penyedia AI, WhatsApp, email — tersimpan terenkripsi per perusahaan, tak pernah ditampilkan kembali.' },
       { key: 'sy-penyedia-ai', label: 'Penyedia AI', status: 'hidup', href: '/pengaturan/penyedia-ai', guna: 'Model, batas token, dan batas biaya bulanan per asisten — beserta berapa yang sudah terpakai bulan ini.' },
+      // Kunci sama persis dengan `menu_items.key` — penjaga
+      // `audit-peta-menu-vs-db` mencocokkan per KEY, jadi kunci bergaya katalog
+      // (`sy-asisten`) tetap terhitung drift meski entrinya ada.
+      //
+      // Halaman `/asisten` sempat ada lalu DIBATALKAN (founder 2026-08-10):
+      // obrolannya pindah ke rail kanan supaya pertanyaan dan datanya
+      // berdampingan. Yang tersisa di menu adalah pengaturannya.
+      { key: 'ai-asisten', label: 'Perilaku Asisten', status: 'hidup', href: '/pengaturan/asisten', guna: 'Instruksi tambahan, batas langkah, dan data apa yang boleh dibaca tiap asisten. Sifat READ-ONLY tak bisa diubah dari sini.' },
+      // Label & href SAMA PERSIS dengan `menu_items` — penjaga
+      // `audit-peta-menu-vs-db` membandingkan keduanya, dan katalog yang
+      // menyebut tujuan berbeda dari sidebar membohongi salah satu pembacanya.
+      { key: 'ai-biaya', label: 'Pemakaian & Biaya', status: 'sebagian', guna: 'Berapa token dan rupiah terpakai bulan ini, per asisten dan per model.', catatan: 'Datanya sudah tercatat per RONDE (ai_biaya_token) dan tampil di halaman Penyedia AI; halaman khususnya dengan grafik riwayat belum ada.' },
+      { key: 'ai-whatsapp', label: 'Kanal WhatsApp', status: 'rencana', guna: 'Bertanya ke asisten lewat WhatsApp, seperti di TJS.', catatan: 'Evolution API sudah terpasang terpisah untuk Puraloka (port 8081, DB puraloka_wa). Kanalnya belum tersambung — itu TJS-D1.' },
       { key: 'sy-jadwal', label: 'Jadwal Tugas', status: 'hidup', href: '/pengaturan/jadwal', guna: 'Tugas berkala yang berjalan sendiri — cek tenggat & milestone tanpa perlu ada yang menekan tombol.' },
       { key: 'sy-penomoran', label: 'Konfigurasi Penomoran', status: 'sebagian', guna: 'Format nomor dokumen per jenis.', catatan: 'Counter per-company sudah jalan; UI-nya belum.' },
       { key: 'sy-audit', label: 'Audit Log', status: 'hidup', href: '/audit', guna: 'Jejak seluruh perubahan data.' },

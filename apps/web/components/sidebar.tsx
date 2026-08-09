@@ -44,6 +44,7 @@ import {
   AlertTriangle,
   Smartphone,
   Dot,
+  Bot,
 } from "lucide-react";
 import {
   getStoredUser, logout, api, MENU_CACHE_KEY, MENU_ETAG_KEY,
@@ -74,6 +75,10 @@ const ICONS: Record<string, React.ElementType> = {
   Database, Gavel, FileSignature, CalendarRange, Calculator, Package,
   ClipboardList, BadgeCheck, ShieldAlert, Truck, FolderOpen, AlertTriangle,
   Smartphone, Dot,
+  // `Bot` untuk menu Asisten (migrasi 253). Tanpa entri di sini, `iconFor`
+  // jatuh ke `FolderKanban` — dan asisten AI tampil bergambar folder,
+  // penanda yang keliru dan tak menimbulkan galat apa pun.
+  Bot,
 };
 /**
  * Nama ikon (string dari DB) → komponen lucide.

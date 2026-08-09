@@ -1,89 +1,187 @@
 "use client";
 
 /**
- * ASISTEN — kartu AI di rail, bentuk referensi dengan isi yang jujur.
+ * ASISTEN — obrolan di rail, bukan halaman tersendiri.
  *
  * ══════════════════════════════════════════════════════════════════════════
- * APA YANG SUDAH NYATA, APA YANG BELUM
+ * KENAPA DI RAIL, DAN KENAPA ITU LEBIH BAIK DARIPADA HALAMAN KHUSUS
  * ══════════════════════════════════════════════════════════════════════════
  *
- * Referensi: sapaan, empat chip saran, dan kolom "Type your question...".
- * Bentuk itu ditiru — tapi hanya bagian yang benar-benar bekerja.
+ * Founder 2026-08-10: *"obrolan dengan asisten itu harusnya di sini, ngga usah
+ * halaman khusus, dan bisa diperbesar obrolannya"*.
  *
- *   SUDAH NYATA   pembacaan AI atas kondisi portofolio, lewat
- *                 `/api/v1/ai/insight`. Kalimat yang tampil di sini datang
- *                 dari sana. Modelnya dibaca dari env (`ANTHROPIC_MODEL`,
- *                 bawaan Haiku) — jangan sebut nama model di komentar ini,
- *                 ia akan basi begitu env-nya diganti.
- *   BELUM ADA     tanya-jawab bebas. Tak ada endpoint percakapan, tak ada
- *                 riwayat, tak ada konteks.
+ * Halaman `/asisten` sempat dibangun lalu DIBATALKAN, dan alasannya bukan
+ * selera. Asisten dipakai SAMBIL melihat data: orang membuka daftar invoice,
+ * melihat angka yang aneh, lalu bertanya. Halaman khusus memaksa ia
+ * meninggalkan angka itu — menyalin nomornya ke kepala, pindah halaman,
+ * bertanya dari ingatan. Rail membiarkan pertanyaan dan datanya berdampingan.
  *
- * Karena itu **kolom input tidak dipasang**. Kolom teks yang tak bisa dikirim
- * adalah janji yang tak ditepati sejak piksel pertama — dan itu persis cacat
- * "View Full AI Analysis" di referensi yang sedang kita hindari (§9).
+ * TJS memakai halaman terpisah (`/dashboard/settings/owner-ai`). Ini titik di
+ * mana Puraloka sengaja TIDAK menirunya.
  *
- * Chip saran juga tidak: keempatnya di referensi memicu percakapan, dan tanpa
- * percakapan ia cuma tombol yang tak melakukan apa-apa.
+ * ── Tiga ukuran, dan kenapa bukan dua
  *
- * ── Yang tampil sebagai gantinya
+ *   RINGKAS   satu tombol. Keadaan diam; tak memakan tinggi rail.
+ *   OBROLAN   percakapan di dalam rail (~360px). Cukup untuk tanya-jawab
+ *             pendek sambil tetap melihat halaman di sebelahnya.
+ *   LEBAR     panel besar menutupi layar. Untuk jawaban panjang dan
+ *             penelusuran sumber, saat halaman di belakangnya tak lagi
+ *             dilihat.
  *
- * Satu kalimat pembacaan AI + tautan ke kartu Kesehatan Portofolio yang
- * memuat angkanya. Lebih sedikit daripada referensi, tetapi seluruhnya bisa
- * ditindaklanjuti.
+ * Dua ukuran akan memaksa memilih antara "terlalu sempit untuk dibaca" dan
+ * "menutupi data yang sedang ditanyakan" — padahal keduanya dibutuhkan pada
+ * saat yang berbeda dalam satu percakapan yang sama.
+ *
+ * ── Posisi TETAP DI BAWAH (arahan founder)
+ *
+ * `rail-isi.tsx` menaruh Asisten lalu Pengingat, dan Pengingat ber-`marginTop:
+ * auto`. Kartu ini karena itu duduk tepat di atasnya, di dasar rail — dan
+ * TIDAK boleh dipindahkan ke atas meski isinya bertambah panjang.
+ *
+ * ── Warna
+ *
+ * `ARAH-VISUAL-2026.md` §3d: satu aksen per layar. Navy hanya untuk gelembung
+ * pesan pengguna dan tombol kirim — keduanya satu hal ("suara Anda").
  */
 
-import { useRef, useState } from "react";
-import Link from "next/link";
-import { ArrowRight, Sparkles } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AlertTriangle, Bot, Maximize2, Minimize2, Send, Sparkles, X } from "lucide-react";
+import { api } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 
-interface JawabanWawasan {
-  sumber: "ai" | "deterministik";
-  wawasan: { penilaian: string; rekomendasi: string } | null;
+interface Sumber {
+  tool_tersedia: string[];
+  entitas_dibaca: string[];
+  ada_galat_tool: boolean;
+}
+
+interface Balasan {
+  percakapan_id: string;
+  jawaban: string;
+  ronde: number;
+  sumber: Sumber;
+  peringatan: string | null;
+}
+
+interface Pesan {
+  peran: "user" | "assistant";
+  teks: string;
+  sumber?: Sumber;
+  peringatan?: string | null;
+}
+
+type Ukuran = "ringkas" | "obrolan" | "lebar";
+
+/**
+ * Merender `**tebal**` — dan HANYA itu.
+ *
+ * Model menulis markdown tanpa diminta ("Ada **11 proyek**"), dan tanpa
+ * perenderan bintangnya muncul mentah. Markdown PENUH sengaja tidak dipakai:
+ * teks ini berasal dari model, dan model bisa dibujuk lewat data yang
+ * dibacanya (§5.3). Tautan dan gambar mengubah "teks yang salah" jadi "teks
+ * yang bisa mengirim orang ke tempat lain". Penebalan tak punya sisi itu.
+ */
+function TeksJawaban({ teks }: { teks: string }) {
+  const potongan = teks.split(/\*\*(.+?)\*\*/g);
+  return (
+    <>
+      {potongan.map((p, i) =>
+        i % 2 === 1 ? <strong key={i}>{p}</strong> : <span key={i}>{p}</span>,
+      )}
+    </>
+  );
+}
+
+const CONTOH = [
+  "Berapa proyek yang sedang berjalan?",
+  "Berapa nilai invoice yang lewat tempo?",
+  "Permintaan material apa yang menunggu?",
+];
+
+function hasPerm(key: string): boolean {
+  try {
+    const raw = localStorage.getItem("puraloka_permissions");
+    return raw ? (JSON.parse(raw) as string[]).includes(key) : false;
+  } catch {
+    return false;
+  }
 }
 
 export function RailAsisten() {
-  const [wawasan, setWawasan] = useState<JawabanWawasan["wawasan"]>(null);
-  const [memuat, setMemuat] = useState(false);
-  const [selesai, setSelesai] = useState(false);
+  const [ukuran, setUkuran] = useState<Ukuran>("ringkas");
+  const [pesan, setPesan] = useState<Pesan[]>([]);
+  const [draf, setDraf] = useState("");
+  const [menunggu, setMenunggu] = useState(false);
+  const [percakapanId, setPercakapanId] = useState<string | null>(null);
+  const [galat, setGalat] = useState<string | null>(null);
+  const [bolehChat, setBolehChat] = useState(false);
+  const akhirRef = useRef<HTMLDivElement | null>(null);
 
-  /*
-   * ══════════════════════════════════════════════════════════════════════
-   * DIPANGGIL SAAT DIKLIK, BUKAN SAAT RAIL DIRENDER — diubah 2026-08-09
-   * ══════════════════════════════════════════════════════════════════════
-   *
-   * Founder: *"ai disini ada alternatif gak? soalnya lumayan makan biaya
-   * token api nya"*.
-   *
-   * Kartu ini penyumbang biaya TERBESAR di antara dua pemanggil endpoint AI,
-   * dan sebabnya letaknya: rail hidup di beranda, jadi `useEffect` di sini
-   * memanggil model SETIAP KALI beranda dibuka — termasuk saat orang cuma
-   * lewat menuju halaman lain. Digabung kartu Kesehatan yang memanggil
-   * endpoint yang sama, satu kali buka beranda = dua panggilan berbayar.
-   *
-   * Sekarang kartunya tampil dengan tombol, dan biaya hanya keluar saat
-   * seseorang benar-benar menginginkan pembacaannya.
-   *
-   * `pemicu.jalan` (bukan state) mencegah klik ganda memanggil dua kali:
-   * state React diperbarui asinkron, jadi dua klik cepat berturut-turut bisa
-   * lolos dari penjagaan berbasis `memuat`.
-   */
-  const pemicu = useRef(false);
+  // Permission dibaca sesudah mount: `localStorage` tak ada saat render server,
+  // dan membacanya langsung menghasilkan ketidakcocokan hidrasi.
+  useEffect(() => { setBolehChat(hasPerm("ai:chat")); }, []);
 
-  function mintaWawasan() {
-    if (pemicu.current) return;
-    pemicu.current = true;
-    setMemuat(true);
-    const ac = makeAbortController();
-    api
-      .get<JawabanWawasan>("/api/v1/ai/insight", { signal: ac.signal })
-      .then((r) => setWawasan(r.data?.wawasan ?? null))
-      .catch(() => setWawasan(null))
-      .finally(() => { setMemuat(false); setSelesai(true); });
-  }
+  useEffect(() => {
+    if (ukuran !== "ringkas") akhirRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [pesan, menunggu, ukuran]);
 
-  return (
+  // Esc mengecilkan panel lebar — kebiasaan yang dibawa dari dialog mana pun.
+  useEffect(() => {
+    if (ukuran !== "lebar") return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setUkuran("obrolan"); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [ukuran]);
+
+  const kirim = useCallback(
+    async (teks: string) => {
+      const isi = teks.trim();
+      if (!isi || menunggu) return;
+
+      setGalat(null);
+      setPesan((p) => [...p, { peran: "user", teks: isi }]);
+      setDraf("");
+      setMenunggu(true);
+      if (ukuran === "ringkas") setUkuran("obrolan");
+
+      try {
+        const r = await api.post<Balasan>("/api/v1/ai/chat", {
+          pesan: isi,
+          ...(percakapanId ? { percakapan_id: percakapanId } : {}),
+        });
+        setPercakapanId(r.data.percakapan_id);
+        setPesan((p) => [
+          ...p,
+          {
+            peran: "assistant",
+            teks: r.data.jawaban,
+            sumber: r.data.sumber,
+            peringatan: r.data.peringatan,
+          },
+        ]);
+      } catch (e) {
+        // Pesan server ditampilkan apa adanya — ia sudah ditulis untuk dibaca
+        // manusia ("Batas biaya AI bulan ini sudah tercapai"), dan
+        // menggantinya dengan "terjadi kesalahan" membuang satu-satunya
+        // petunjuk yang berguna.
+        setGalat(
+          (e as { response?: { data?: { error?: string } } })?.response?.data?.error ??
+            "Asisten tidak bisa dihubungi. Coba lagi sebentar lagi.",
+        );
+        // Pertanyaannya DIKEMBALIKAN ke kotak isian. Mengetik ulang karena
+        // kuota habis adalah hukuman untuk kesalahan yang bukan miliknya.
+        setDraf(isi);
+        setPesan((p) => p.slice(0, -1));
+      } finally {
+        setMenunggu(false);
+      }
+    },
+    [menunggu, percakapanId, ukuran],
+  );
+
+  const lebar = ukuran === "lebar";
+
+  const panel = (
     <section
       aria-labelledby="rail-asisten-judul"
       style={{
@@ -92,143 +190,342 @@ export function RailAsisten() {
         borderRadius: "var(--rad-besar)",
         overflow: "hidden",
         flexShrink: 0,
+        display: "flex",
+        flexDirection: "column",
+        ...(lebar
+          ? { width: "min(760px, 92vw)", height: "min(78vh, 720px)", boxShadow: "var(--naik-3, 0 20px 60px rgba(0,0,0,.28))" }
+          : {}),
       }}
     >
-      <header style={{
-        display: "flex", alignItems: "center", gap: 8,
-        padding: "var(--pad-kartu)",
-        borderBottom: "1px solid var(--border)",
-      }}>
-        <span aria-hidden="true" style={{
-          display: "grid", placeItems: "center", flexShrink: 0,
-          width: 26, height: 26, borderRadius: "var(--rad-sedang)",
-          background: "var(--navy-light)", color: "var(--navy)",
-        }}>
-          <Sparkles size={14} />
-        </span>
-        <h2 id="rail-asisten-judul" style={{
-          margin: 0, fontSize: "var(--t-kecil)", fontWeight: 700,
-          letterSpacing: ".04em", textTransform: "uppercase", color: C.mid,
-        }}>
-          Asisten
-        </h2>
-      </header>
-
-      <div style={{ padding: "var(--pad-kartu)" }}>
-        {!selesai && !memuat ? (
-          /*
-            KEADAAN AWAL — tombol, bukan kerangka pemuatan.
-
-            Kerangka abu-abu di sini akan berbohong: ia menyiratkan sesuatu
-            sedang dimuat, padahal tak ada permintaan yang berjalan. Yang
-            benar adalah menyatakan bahwa pembacaan itu TERSEDIA dan menunggu
-            diminta.
-
-            Kalimat di atas tombol menjelaskan apa yang akan didapat, supaya
-            orang tak perlu mengklik untuk tahu apa gunanya.
-          */
-          <>
-            <p style={{
-              margin: 0, fontSize: "var(--t-badan)", color: C.mid, lineHeight: 1.5,
-            }}>
-              Minta pembacaan singkat atas kondisi portofolio Anda.
-            </p>
-            <button
-              type="button"
-              onClick={mintaWawasan}
-              style={{
-                /*
-                  `flex` + `width: fit-content`, BUKAN `inline-flex`.
-
-                  Pembungkusnya BLOK biasa, bukan kolom flex — jadi
-                  `alignSelf` tak berlaku dan `inline-flex` membuat tombol ini
-                  berbagi baris dengan tautan "Telusuri proyek" di bawahnya.
-                  Di rail 275px keduanya bertabrakan; di beranda tak terlihat
-                  karena kartunya lebih lebar.
-                */
-                display: "flex", width: "fit-content",
-                alignItems: "center", gap: 6, marginTop: 10,
-                padding: "6px 10px", borderRadius: "var(--rad-sedang)",
-                border: "1px solid var(--border)", background: "var(--surface-subtle)",
-                fontSize: "var(--t-kecil)", fontWeight: 600, color: "var(--navy)",
-                cursor: "pointer", transition: "background 150ms ease",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "var(--surface-hover)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "var(--surface-subtle)"; }}
-            >
-              <Sparkles size={13} aria-hidden="true" />
-              Minta pembacaan AI
-            </button>
-          </>
-        ) : memuat ? (
-          <div
-            role="status"
-            aria-live="polite"
-            style={{
-              height: 34, borderRadius: "var(--rad-sedang)",
-              background: "var(--surface-hover)",
-              display: "grid", placeItems: "center",
-              fontSize: "var(--t-kecil)", color: C.mid,
-            }}
-          >
-            Membaca portofolio…
-          </div>
-        ) : wawasan ? (
-          <>
-            <p style={{
-              margin: 0, fontSize: "var(--t-badan)", color: C.text, lineHeight: 1.5,
-            }}>
-              {wawasan.penilaian}
-            </p>
-            <p style={{
-              margin: "8px 0 0", padding: "8px 10px",
-              borderRadius: "var(--rad-sedang)", background: "var(--navy-light)",
-              fontSize: 12, color: C.text, lineHeight: 1.45,
-            }}>
-              <strong style={{ fontWeight: 700 }}>Saran:</strong> {wawasan.rekomendasi}
-            </p>
-          </>
-        ) : (
-          /*
-            AI tak menjawab (kunci belum dipasang, kuota habis, jaringan
-            putus). Kartunya berkata terus terang alih-alih menghilang —
-            widget yang lenyap terbaca sebagai aplikasi rusak.
-          */
-          <p style={{
-            margin: 0, fontSize: "var(--t-badan)", color: C.mid, lineHeight: 1.5,
-          }}>
-            Pembacaan AI belum tersedia saat ini. Angka portofolio tetap
-            dihitung dan tampil di{" "}
-            <strong style={{ color: C.text, fontWeight: 600 }}>Kesehatan portofolio</strong>.
-          </p>
-        )}
-
-        {/*
-          Tak ada kolom input dan tak ada chip saran — keduanya butuh endpoint
-          percakapan yang belum ada. Yang dipasang cuma tautan ke tempat
-          angkanya bisa ditelusuri, dan tautan itu benar-benar bekerja.
-
-          `display: flex` (blok), BUKAN `inline-flex`.
-
-          Tombol "Minta pembacaan AI" di atas juga `inline-flex`, dan di rail
-          selebar 275px keduanya berebut satu baris — tombolnya menabrak
-          tautan ini. Terlihat di tangkapan layar `/keuangan` sesudah rail
-          dipasang; di beranda tak pernah muncul karena kartunya lebih lebar.
-
-          Blok memaksa keduanya bertumpuk, apa pun lebar railnya.
-        */}
-        <Link
-          href="/proyek"
+      <header
+        style={{
+          display: "flex", alignItems: "center", gap: 8,
+          padding: "var(--pad-kartu)",
+          borderBottom: "1px solid var(--border)",
+          flexShrink: 0,
+        }}
+      >
+        <span
+          aria-hidden="true"
           style={{
-            display: "flex", alignItems: "center", gap: 4, marginTop: 10,
-            fontSize: "var(--t-kecil)", fontWeight: 600, color: "var(--navy)",
-            textDecoration: "none",
+            display: "grid", placeItems: "center", flexShrink: 0,
+            width: 26, height: 26, borderRadius: "var(--rad-sedang)",
+            background: "var(--navy-light)", color: "var(--navy)",
           }}
         >
-          Telusuri proyek
-          <ArrowRight size={13} aria-hidden="true" />
-        </Link>
-      </div>
+          <Bot size={14} />
+        </span>
+        <h2
+          id="rail-asisten-judul"
+          style={{
+            margin: 0, fontSize: "var(--t-kecil)", fontWeight: 700,
+            letterSpacing: ".04em", textTransform: "uppercase", color: C.mid,
+            flex: 1,
+          }}
+        >
+          Asisten
+        </h2>
+
+        {ukuran !== "ringkas" && (
+          <>
+            <button
+              type="button"
+              onClick={() => setUkuran(lebar ? "obrolan" : "lebar")}
+              aria-label={lebar ? "Perkecil obrolan" : "Perbesar obrolan"}
+              style={tombolIkon}
+            >
+              {lebar ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+            </button>
+            <button
+              type="button"
+              onClick={() => setUkuran("ringkas")}
+              aria-label="Tutup obrolan"
+              style={tombolIkon}
+            >
+              <X size={13} />
+            </button>
+          </>
+        )}
+      </header>
+
+      {ukuran === "ringkas" ? (
+        <div style={{ padding: "var(--pad-kartu)" }}>
+          <p style={{ margin: 0, fontSize: "var(--t-badan)", color: C.mid, lineHeight: 1.5 }}>
+            Tanyakan apa saja tentang proyek, keuangan, dan gudang Anda.
+            Asisten hanya <strong style={{ color: C.text, fontWeight: 600 }}>membaca</strong>.
+          </p>
+          <button
+            type="button"
+            onClick={() => setUkuran("obrolan")}
+            disabled={!bolehChat}
+            style={{
+              // `flex` + `width: fit-content`, BUKAN `inline-flex` — pembungkusnya
+              // blok biasa, dan di rail 275px `inline-flex` membuat tombol
+              // berbagi baris dengan apa pun di bawahnya lalu bertabrakan.
+              display: "flex", width: "fit-content",
+              alignItems: "center", gap: 6, marginTop: 10,
+              padding: "6px 10px", borderRadius: "var(--rad-sedang)",
+              border: "1px solid var(--border)", background: "var(--surface-subtle)",
+              fontSize: "var(--t-kecil)", fontWeight: 600, color: "var(--navy)",
+              cursor: bolehChat ? "pointer" : "not-allowed",
+              opacity: bolehChat ? 1 : 0.6,
+            }}
+          >
+            <Sparkles size={13} aria-hidden="true" />
+            Mulai bertanya
+          </button>
+        </div>
+      ) : (
+        <>
+          <div
+            style={{
+              flex: 1,
+              overflowY: "auto",
+              padding: "var(--pad-kartu)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+              // Rail sempit: tinggi tetap supaya kartu tak mendorong Pengingat
+              // keluar layar. Mode lebar memakai `flex: 1` dari panelnya.
+              ...(lebar ? {} : { maxHeight: 360 }),
+            }}
+          >
+            {pesan.length === 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {CONTOH.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => kirim(c)}
+                    disabled={!bolehChat || menunggu}
+                    style={{
+                      textAlign: "left",
+                      padding: "8px 10px",
+                      borderRadius: "var(--rad-sedang)",
+                      border: "1px solid var(--border)",
+                      background: "var(--surface-subtle)",
+                      color: C.text,
+                      fontSize: 12.5,
+                      lineHeight: 1.5,
+                      fontFamily: "inherit",
+                      cursor: bolehChat && !menunggu ? "pointer" : "not-allowed",
+                    }}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {pesan.map((p, i) => (
+              <Gelembung key={i} pesan={p} lebar={lebar} />
+            ))}
+
+            {menunggu && (
+              <div style={{ fontSize: 12, color: C.muted, padding: "2px 0" }}>Membaca data…</div>
+            )}
+
+            {galat && (
+              <div
+                role="alert"
+                style={{
+                  padding: "8px 10px", borderRadius: "var(--rad-sedang)",
+                  background: "var(--danger-bg)", border: "1px solid var(--danger)",
+                  fontSize: 12, color: C.text, lineHeight: 1.55,
+                }}
+              >
+                {galat}
+              </div>
+            )}
+
+            <div ref={akhirRef} />
+          </div>
+
+          <form
+            onSubmit={(e) => { e.preventDefault(); kirim(draf); }}
+            style={{
+              display: "flex", gap: 6, alignItems: "flex-end",
+              padding: "var(--pad-kartu)",
+              borderTop: "1px solid var(--border)",
+              flexShrink: 0,
+            }}
+          >
+            <label htmlFor="rail-pesan" style={sembunyi}>Pertanyaan untuk asisten</label>
+            <textarea
+              id="rail-pesan"
+              value={draf}
+              onChange={(e) => setDraf(e.target.value)}
+              onKeyDown={(e) => {
+                // Enter mengirim, Shift+Enter baris baru — kebiasaan yang sudah
+                // dibawa dari aplikasi pesan mana pun.
+                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); kirim(draf); }
+              }}
+              placeholder="Tanyakan sesuatu…"
+              rows={lebar ? 2 : 1}
+              disabled={!bolehChat || menunggu}
+              maxLength={4000}
+              style={{
+                flex: 1, padding: "7px 9px",
+                border: `1px solid ${C.border}`, borderRadius: "var(--rad-sedang)",
+                fontSize: 12.5, lineHeight: 1.55, outline: "none",
+                background: "var(--surface)", color: C.text,
+                fontFamily: "inherit", resize: "none", boxSizing: "border-box",
+              }}
+            />
+            <button
+              type="submit"
+              disabled={!bolehChat || menunggu || !draf.trim()}
+              aria-label="Kirim pertanyaan"
+              style={{
+                display: "grid", placeItems: "center",
+                width: 32, height: 32, flexShrink: 0,
+                borderRadius: "var(--rad-sedang)", border: "1px solid transparent",
+                background: bolehChat && draf.trim() && !menunggu ? "var(--navy)" : "var(--surface-subtle)",
+                color: bolehChat && draf.trim() && !menunggu ? "#fff" : C.muted,
+                cursor: bolehChat && draf.trim() && !menunggu ? "pointer" : "not-allowed",
+              }}
+            >
+              <Send size={14} />
+            </button>
+          </form>
+        </>
+      )}
     </section>
+  );
+
+  if (!lebar) return panel;
+
+  // Mode lebar: panel diangkat ke atas layar. Latar gelap bisa diklik untuk
+  // mengecilkan — sama seperti dialog mana pun, jadi tak perlu dipelajari.
+  return (
+    <>
+      {/* Tempat kartu di rail tetap terisi supaya Pengingat tak melompat naik
+          saat panel diangkat keluar alirannya. */}
+      <div aria-hidden style={{ height: 96, flexShrink: 0 }} />
+      <div
+        role="presentation"
+        onClick={() => setUkuran("obrolan")}
+        style={{
+          position: "fixed", inset: 0, zIndex: 80,
+          background: "rgba(15, 23, 42, 0.45)",
+          display: "grid", placeItems: "center",
+          padding: "var(--gap-bagian)",
+        }}
+      >
+        <div role="dialog" aria-modal="true" aria-label="Asisten" onClick={(e) => e.stopPropagation()}>
+          {panel}
+        </div>
+      </div>
+    </>
+  );
+}
+
+const tombolIkon: React.CSSProperties = {
+  display: "grid", placeItems: "center",
+  width: 24, height: 24, flexShrink: 0,
+  borderRadius: "var(--rad-sedang)",
+  border: "1px solid var(--border)",
+  background: "var(--surface-subtle)",
+  color: C.mid,
+  cursor: "pointer",
+};
+
+const sembunyi: React.CSSProperties = {
+  position: "absolute", width: 1, height: 1,
+  overflow: "hidden", clip: "rect(0 0 0 0)",
+};
+
+function Gelembung({ pesan, lebar }: { pesan: Pesan; lebar: boolean }) {
+  const [bukaSumber, setBukaSumber] = useState(false);
+  const dariUser = pesan.peran === "user";
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: dariUser ? "flex-end" : "flex-start" }}>
+      <div
+        style={{
+          maxWidth: lebar ? "82%" : "94%",
+          padding: "8px 10px",
+          borderRadius: "var(--rad-sedang)",
+          // Navy HANYA di sini dan di tombol kirim — ARAH-VISUAL §3d.
+          background: dariUser ? "var(--navy)" : "var(--surface-subtle)",
+          color: dariUser ? "#fff" : C.text,
+          border: dariUser ? "1px solid transparent" : `1px solid ${C.border}`,
+          fontSize: 12.5,
+          lineHeight: 1.6,
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+        }}
+      >
+        {dariUser ? pesan.teks : <TeksJawaban teks={pesan.teks} />}
+      </div>
+
+      {/* I-4: peringatan MENEMPEL pada jawabannya, bukan toast yang hilang.
+          Pembaca yang menyalin angkanya harus melihatnya di layar yang sama. */}
+      {pesan.peringatan && (
+        <div
+          style={{
+            marginTop: 4, maxWidth: lebar ? "82%" : "94%",
+            padding: "6px 8px", borderRadius: "var(--rad-sedang)",
+            display: "flex", gap: 6, alignItems: "flex-start",
+            background: "var(--warning-bg)", border: "1px solid var(--warning)",
+            fontSize: 11.5, lineHeight: 1.55, color: C.text,
+          }}
+        >
+          <AlertTriangle size={12} style={{ color: "var(--warning)", flexShrink: 0, marginTop: 2 }} />
+          <span>{pesan.peringatan}</span>
+        </div>
+      )}
+
+      {/* C2 explainability: sumber bisa dibuka tanpa meninggalkan obrolan.
+          Angka yang tak bisa ditelusuri tak layak dipercaya untuk keputusan. */}
+      {pesan.sumber && (
+        <div style={{ marginTop: 4, maxWidth: lebar ? "82%" : "94%" }}>
+          <button
+            type="button"
+            onClick={() => setBukaSumber((v) => !v)}
+            aria-expanded={bukaSumber}
+            data-uji="sumber-jawaban"
+            style={{
+              background: "none", border: "none", padding: "1px 0",
+              fontSize: 11, color: C.muted, cursor: "pointer",
+              fontFamily: "inherit", textDecoration: "underline", textUnderlineOffset: 3,
+            }}
+          >
+            {bukaSumber ? "Sembunyikan sumber" : `Sumber — ${pesan.sumber.entitas_dibaca.length} data`}
+          </button>
+
+          {bukaSumber && (
+            <div
+              style={{
+                marginTop: 4, padding: "8px 10px",
+                borderRadius: "var(--rad-sedang)",
+                background: "var(--surface-subtle)", border: `1px solid ${C.border}`,
+                fontSize: 11, lineHeight: 1.6, color: C.mid,
+              }}
+            >
+              {pesan.sumber.ada_galat_tool && (
+                <p style={{ margin: "0 0 6px", color: "var(--warning)" }}>
+                  Sebagian pembacaan gagal — jawaban mungkin tak lengkap.
+                </p>
+              )}
+              {pesan.sumber.entitas_dibaca.length === 0 ? (
+                <p style={{ margin: 0 }}>Tidak ada data dibaca — jawaban ini tak bersumber dari basis.</p>
+              ) : (
+                <ul style={{ margin: 0, paddingLeft: 14 }}>
+                  {pesan.sumber.entitas_dibaca.slice(0, lebar ? 15 : 6).map((e) => (
+                    <li key={e}>{e}</li>
+                  ))}
+                  {pesan.sumber.entitas_dibaca.length > (lebar ? 15 : 6) && (
+                    <li style={{ listStyle: "none", marginLeft: -14, marginTop: 3, color: C.muted }}>
+                      …dan {pesan.sumber.entitas_dibaca.length - (lebar ? 15 : 6)} lainnya
+                    </li>
+                  )}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

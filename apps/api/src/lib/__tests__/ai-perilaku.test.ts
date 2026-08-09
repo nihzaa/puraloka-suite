@@ -1,0 +1,226 @@
+/**
+ * NOL HARDCODE — perilaku asisten benar-benar datang dari basis.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA INI BUTUH TEST SENDIRI
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Founder 2026-08-10: *"semuanya bisa dikonfigurasi di UI, gaada yang hardcode
+ * di sana"*.
+ *
+ * Menambah kolom ke basis dan halaman ke UI TIDAK membuktikan itu. Yang
+ * membuktikannya: nilai di basis benar-benar mengubah perilaku, dan nilai yang
+ * berbahaya benar-benar ditolak. Kolom yang ada tetapi tak dibaca kode adalah
+ * bentuk kebohongan yang paling meyakinkan — halamannya bekerja, tombol
+ * simpannya hijau, dan tak ada yang berubah.
+ */
+import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, resolve } from 'node:path'
+import type { Client } from 'pg'
+import { createRlsClient } from '../../test-utils/rls-harness.js'
+import { bentukKonfigurasi, konfigurasiBawaan } from '../ai-config.js'
+
+const SRC = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
+
+let db: Client
+let companyId: string
+
+beforeAll(async () => {
+  db = await createRlsClient()
+  const { rows } = await db.query(`
+    SELECT c.id FROM companies c
+    WHERE EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c.id) LIMIT 1
+  `)
+  companyId = rows[0].id
+}, 60_000)
+
+afterAll(async () => {
+  await db.query(
+    `UPDATE ai_provider_config SET prompt_sistem = NULL, maks_ronde = 4, tool_aktif = NULL
+     WHERE company_id = $1`,
+    [companyId],
+  )
+  await db.end()
+})
+
+describe('kolom perilaku ADA dan bertipe benar', () => {
+  it('prompt_sistem, maks_ronde, tool_aktif terpasang', async () => {
+    const { rows } = await db.query(`
+      SELECT column_name, data_type FROM information_schema.columns
+      WHERE table_name = 'ai_provider_config'
+        AND column_name IN ('prompt_sistem', 'maks_ronde', 'tool_aktif')
+      ORDER BY column_name
+    `)
+    expect(rows.map((r) => r.column_name)).toEqual(['maks_ronde', 'prompt_sistem', 'tool_aktif'])
+    expect(rows.find((r) => r.column_name === 'tool_aktif')?.data_type).toBe('ARRAY')
+  })
+})
+
+describe('basis MENOLAK nilai yang berbahaya', () => {
+  it('maks_ronde 99 ditolak — satu pertanyaan bisa habiskan kuota sebulan', async () => {
+    await expect(
+      db.query(`UPDATE ai_provider_config SET maks_ronde = 99 WHERE company_id = $1`, [companyId]),
+    ).rejects.toThrow()
+  })
+
+  it('maks_ronde 0 ditolak — asisten yang tak boleh melangkah tak bisa menjawab', async () => {
+    await expect(
+      db.query(`UPDATE ai_provider_config SET maks_ronde = 0 WHERE company_id = $1`, [companyId]),
+    ).rejects.toThrow()
+  })
+
+  it('prompt 9.000 karakter ditolak', async () => {
+    // Prompt dikirim ULANG tiap ronde. 8.000 karakter ≈ 2.000 token, dikali 4
+    // ronde sudah 8.000 token hanya untuk instruksi.
+    await expect(
+      db.query(
+        `UPDATE ai_provider_config SET prompt_sistem = repeat('x', 9000) WHERE company_id = $1`,
+        [companyId],
+      ),
+    ).rejects.toThrow()
+  })
+
+  it('nilai yang WAJAR diterima', async () => {
+    await db.query(
+      `UPDATE ai_provider_config SET maks_ronde = 6, prompt_sistem = 'Sebut nilai dalam jutaan.'
+       WHERE company_id = $1 AND asisten = 'staff'`,
+      [companyId],
+    )
+    const { rows } = await db.query(
+      `SELECT maks_ronde, prompt_sistem FROM ai_provider_config
+       WHERE company_id = $1 AND asisten = 'staff'`,
+      [companyId],
+    )
+    expect(rows[0].maks_ronde).toBe(6)
+    expect(rows[0].prompt_sistem).toContain('jutaan')
+  })
+})
+
+describe('array kosong ≠ NULL — ini inti "matikan semua tool"', () => {
+  it('array kosong tersimpan sebagai array kosong, bukan NULL', async () => {
+    await db.query(
+      `UPDATE ai_provider_config SET tool_aktif = '{}' WHERE company_id = $1 AND asisten = 'staff'`,
+      [companyId],
+    )
+    const { rows } = await db.query(
+      `SELECT tool_aktif FROM ai_provider_config WHERE company_id = $1 AND asisten = 'staff'`,
+      [companyId],
+    )
+    // Kalau ini NULL, tenant yang mematikan semua tool diam-diam mendapat
+    // semuanya kembali — kebalikan dari yang ia pilih.
+    expect(rows[0].tool_aktif).toEqual([])
+    expect(rows[0].tool_aktif).not.toBeNull()
+  })
+
+  it('bentukKonfigurasi mempertahankan bedanya', () => {
+    const dasar = {
+      asisten: 'staff', penyedia: 'anthropic', model: 'claude-haiku-4-5',
+      max_token: 1024, aktif: true, batas_bulanan_idr: null, mode_batas: 'peringatkan',
+    }
+
+    const kosong = bentukKonfigurasi({ ...dasar, tool_aktif: [] }, 'staff')
+    const belum = bentukKonfigurasi({ ...dasar, tool_aktif: null }, 'staff')
+
+    // `|| null` akan mengubah `[]` jadi null di sini — cacat yang tak melempar
+    // apa pun dan membalik arti pilihan pengguna.
+    expect(kosong.toolAktif).toEqual([])
+    expect(belum.toolAktif).toBeNull()
+  })
+
+  it('nilai dari basis dipakai, bukan bawaan', () => {
+    const k = bentukKonfigurasi(
+      {
+        asisten: 'staff', penyedia: 'anthropic', model: 'claude-haiku-4-5',
+        max_token: 1024, aktif: true, batas_bulanan_idr: null, mode_batas: 'peringatkan',
+        prompt_sistem: '  Jawab dalam poin.  ', maks_ronde: 9, tool_aktif: ['daftar_proyek'],
+      },
+      'staff',
+    )
+    expect(k.promptSistem).toBe('Jawab dalam poin.')
+    expect(k.maksRonde).toBe(9)
+    expect(k.toolAktif).toEqual(['daftar_proyek'])
+  })
+
+  it('bawaan dipakai saat kolomnya kosong', () => {
+    const k = bentukKonfigurasi(
+      {
+        asisten: 'staff', penyedia: 'anthropic', model: 'claude-haiku-4-5',
+        max_token: 1024, aktif: true, batas_bulanan_idr: null, mode_batas: 'peringatkan',
+      },
+      'staff',
+    )
+    expect(k.maksRonde).toBe(konfigurasiBawaan('staff').maksRonde)
+    expect(k.promptSistem).toBeNull()
+  })
+})
+
+describe('kode BENAR-BENAR memakainya — bukan kolom hiasan', () => {
+  const chat = readFileSync(resolve(SRC, 'routes', 'v1', 'ai-chat.ts'), 'utf8')
+
+  it('rute chat memakai maksRonde dari config, bukan konstanta', () => {
+    expect(chat).toContain('maksRonde: gerbang.konfigurasi.maksRonde')
+  })
+
+  it('rute chat menyambung promptSistem tenant', () => {
+    expect(chat).toContain('susunPromptSistem(gerbang.konfigurasi.promptSistem)')
+  })
+
+  it('prompt tenant DISAMBUNG, tidak menggantikan prompt dasar', () => {
+    // Kalau tenant bisa mengganti seluruh prompt, satu kalimat ceroboh
+    // menghapus instruksi yang menahan injeksi — dan tak ada gejala sampai
+    // seseorang mencobanya.
+    expect(chat).toMatch(/function susunPromptSistem[\s\S]*?PROMPT_DASAR,/)
+  })
+
+  it('toolAktif menyaring katalog', () => {
+    expect(chat).toContain('gerbang.konfigurasi.toolAktif')
+  })
+
+  it('pilihan tenant TIDAK bisa menambah tool di luar izin pengguna', () => {
+    // Kalau bisa, halaman pengaturan jadi jalan pintas ke data yang
+    // permission-nya sengaja tak diberikan — naik hak akses lewat kotak
+    // centang.
+    expect(chat).toMatch(/\[\.\.\.izinPengguna\]\.filter/)
+  })
+
+  it('TIDAK ADA saklar "izinkan menulis" di mana pun', async () => {
+    // Ember [C] CLAUDE.md §5.3: sifat READ-ONLY tak boleh bisa dikonfigurasi.
+    const { rows } = await db.query(`
+      SELECT column_name FROM information_schema.columns
+      WHERE table_name = 'ai_provider_config'
+    `)
+    const kolom = rows.map((r) => r.column_name as string)
+    for (const terlarang of ['boleh_tulis', 'izinkan_tulis', 'allow_write', 'read_only']) {
+      expect(kolom, `kolom '${terlarang}' tak boleh ada`).not.toContain(terlarang)
+    }
+  })
+})
+
+describe('saklar mati + retensi per tenant', () => {
+  it('ai_pengaturan_tenant punya kedua kolomnya', async () => {
+    const { rows } = await db.query(`
+      SELECT column_name FROM information_schema.columns
+      WHERE table_name = 'ai_pengaturan_tenant' AND column_name IN ('ai_aktif', 'retensi_hari')
+      ORDER BY column_name
+    `)
+    expect(rows.map((r) => r.column_name)).toEqual(['ai_aktif', 'retensi_hari'])
+  })
+
+  it('retensi 0 ditolak', async () => {
+    await expect(
+      db.query(`UPDATE ai_pengaturan_tenant SET retensi_hari = 0 WHERE company_id = $1`, [companyId]),
+    ).rejects.toThrow()
+  })
+
+  it('retensi NULL sah — "simpan selamanya" harus mungkin', async () => {
+    await db.query(
+      `UPDATE ai_pengaturan_tenant SET retensi_hari = NULL WHERE company_id = $1`, [companyId])
+    const { rows } = await db.query(
+      `SELECT retensi_hari FROM ai_pengaturan_tenant WHERE company_id = $1`, [companyId])
+    expect(rows[0].retensi_hari).toBeNull()
+    await db.query(
+      `UPDATE ai_pengaturan_tenant SET retensi_hari = 30 WHERE company_id = $1`, [companyId])
+  })
+})

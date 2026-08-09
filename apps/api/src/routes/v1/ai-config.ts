@@ -42,10 +42,14 @@ import {
 } from '../../lib/ai-config.js'
 import { kursUsdIdr } from '../../lib/ai-harga.js'
 import { PENYEDIA, penyediaDikenal } from '../../lib/ai-adaptor.js'
+import { KATALOG_TOOL } from '../../lib/ai-tool.js'
 
 const MAKS_TOKEN_TERTINGGI = 64_000
 
 interface BadanSimpan {
+  prompt_sistem?: string | null
+  maks_ronde?: number
+  tool_aktif?: string[] | null
   penyedia?: string
   model?: string | null
   max_token?: number
@@ -101,7 +105,7 @@ export default async function aiConfigRoutes(app: FastifyInstance) {
 
       const { data, error } = await request.db!
         .from('ai_provider_config')
-        .select('asisten, penyedia, model, max_token, aktif, batas_bulanan_idr, mode_batas')
+        .select('asisten, penyedia, model, max_token, aktif, batas_bulanan_idr, mode_batas, prompt_sistem, maks_ronde, tool_aktif')
 
       if (error) {
         request.log.error({ err: error }, 'ai-config: gagal membaca konfigurasi')
@@ -128,6 +132,9 @@ export default async function aiConfigRoutes(app: FastifyInstance) {
           mode_batas: k.modeBatas,
           tersimpan: Boolean(baris),
           perkiraan_per_panggilan_idr: perkiraanPerPanggilan(k.model, k.maxToken),
+          prompt_sistem: k.promptSistem,
+          maks_ronde: k.maksRonde,
+          tool_aktif: k.toolAktif,
         }
       })
 
@@ -145,6 +152,14 @@ export default async function aiConfigRoutes(app: FastifyInstance) {
         // "field yang divalidasi server WAJIB ada di UI" (perbaikan cacat
         // maxTokens TJS) baru terpenuhi di sini.
         penyedia_tersedia: PENYEDIA,
+        // Katalog tool dikirim supaya UI bisa menampilkannya sebagai pilihan.
+        // Tanpa ini, "tool mana yang aktif" hanya bisa diatur lewat API — dan
+        // konfigurasi yang butuh curl bukan konfigurasi dari UI.
+        tool_tersedia: KATALOG_TOOL.map((t) => ({
+          nama: t.nama,
+          keterangan: t.keterangan,
+          izin: t.izin,
+        })),
         // Kurs dikirim, TIDAK dipaku di komponen. Memaku `16000` di UI adalah
         // persis yang TJS lakukan, dan yang `audit-satu-sumber-harga` cegah di
         // sisi API — membiarkannya hidup di web hanya memindahkan cacatnya ke
@@ -156,6 +171,89 @@ export default async function aiConfigRoutes(app: FastifyInstance) {
           rincian,
         },
       })
+    },
+  )
+
+  // ── GET /api/v1/ai/pengaturan ────────────────────────────────────────────
+  //
+  // Saklar mati + retensi, per tenant. Terpisah dari `/ai/config` karena
+  // lingkupnya beda: config per-asisten, ini seluruh lapisan AI.
+  app.get(
+    '/api/v1/ai/pengaturan',
+    { preHandler: [authenticate, requirePermission('settings:ai:view')] },
+    async (request, reply) => {
+      const { data, error } = await request.db!
+        .from('ai_pengaturan_tenant')
+        .select('ai_aktif, retensi_hari')
+        .maybeSingle()
+
+      if (error) {
+        request.log.error({ err: error }, 'ai-config: gagal membaca pengaturan tenant')
+        return reply.status(500).send({ error: 'Gagal membaca pengaturan AI' })
+      }
+
+      // Tenant tanpa baris dianggap AKTIF dengan retensi bawaan — sama seperti
+      // yang ditegakkan rute chat. Dua tempat harus sepakat, kalau tidak
+      // halaman menampilkan "mati" sementara asistennya jalan.
+      return reply.send({
+        ai_aktif: (data as { ai_aktif?: boolean } | null)?.ai_aktif ?? true,
+        retensi_hari: (data as { retensi_hari?: number | null } | null)?.retensi_hari ?? 30,
+      })
+    },
+  )
+
+  // ── PUT /api/v1/ai/pengaturan ────────────────────────────────────────────
+  app.put<{ Body: { ai_aktif?: boolean; retensi_hari?: number | null } }>(
+    '/api/v1/ai/pengaturan',
+    { preHandler: [authenticate, requirePermission('settings:ai:manage')] },
+    async (request, reply) => {
+      const badan = request.body ?? {}
+
+      let retensi: number | null = null
+      if (badan.retensi_hari !== undefined && badan.retensi_hari !== null) {
+        retensi = Number(badan.retensi_hari)
+        if (!Number.isInteger(retensi) || retensi < 1 || retensi > 3650) {
+          return reply.status(422).send({ error: 'Retensi harus 1–3650 hari, atau kosong untuk selamanya' })
+        }
+      }
+
+      const { data: lama } = await request.db!
+        .from('ai_pengaturan_tenant')
+        .select('ai_aktif, retensi_hari')
+        .maybeSingle()
+
+      const { data, error } = await request.db!
+        .from('ai_pengaturan_tenant')
+        .upsert(
+          {
+            company_id: request.companyId!,
+            ai_aktif: badan.ai_aktif ?? true,
+            retensi_hari: retensi,
+            diperbarui_oleh: request.currentUser!.id,
+          },
+          { onConflict: 'company_id' },
+        )
+        .select('ai_aktif, retensi_hari')
+        .maybeSingle()
+
+      if (error) {
+        request.log.error({ err: error }, 'ai-config: gagal menyimpan pengaturan tenant')
+        return reply.status(500).send({ error: 'Gagal menyimpan pengaturan AI' })
+      }
+
+      // Mematikan lapisan AI menyentuh SELURUH asisten sekaligus. Yang
+      // melakukannya harus terlihat tanpa perlu dicari.
+      void logAuditEvent(request, {
+        tableName: 'ai_pengaturan_tenant',
+        recordId: request.companyId!,
+        action: 'ai.pengaturan.set',
+        actorId: request.currentUser!.id,
+        oldValues: lama ?? null,
+        newValues: data ?? null,
+        severity: 'critical',
+      })
+
+      return reply.send({ ok: true, ...(data as object) })
     },
   )
 
@@ -206,6 +304,34 @@ export default async function aiConfigRoutes(app: FastifyInstance) {
         return reply.status(422).send({ error: `mode_batas harus 'blokir' atau 'peringatkan'` })
       }
 
+      // Batas ronde divalidasi SERVER, bukan hanya UI. Ronde 99 berarti satu
+      // pertanyaan bisa menghabiskan kuota sebulan, dan API bisa dipanggil
+      // langsung tanpa melewati halaman pengaturan.
+      const maksRonde = Number(badan.maks_ronde ?? bawaan.maksRonde)
+      if (!Number.isInteger(maksRonde) || maksRonde < 1 || maksRonde > 12) {
+        return reply.status(422).send({ error: 'maks_ronde harus bilangan bulat 1–12' })
+      }
+
+      const promptSistem = badan.prompt_sistem?.trim() || null
+      if (promptSistem && promptSistem.length > 8000) {
+        // Prompt dikirim ULANG tiap ronde — 8.000 karakter dikali 4 ronde
+        // sudah 8.000 token hanya untuk instruksi.
+        return reply.status(422).send({ error: 'Instruksi tambahan maksimal 8.000 karakter' })
+      }
+
+      // Tool tak dikenal DITOLAK. Nama salah ketik tersimpan diam-diam lalu
+      // membuat asisten kehilangan tool tanpa sebab yang terlihat.
+      let toolAktif: string[] | null = null
+      if (Array.isArray(badan.tool_aktif)) {
+        const asing = badan.tool_aktif.filter((n) => !KATALOG_TOOL.some((t) => t.nama === n))
+        if (asing.length > 0) {
+          return reply.status(422).send({
+            error: `Tool tidak dikenal: ${asing.join(', ')}. Yang tersedia: ${KATALOG_TOOL.map((t) => t.nama).join(', ')}.`,
+          })
+        }
+        toolAktif = badan.tool_aktif
+      }
+
       let batas: number | null = null
       if (badan.batas_bulanan_idr !== undefined && badan.batas_bulanan_idr !== null) {
         batas = Number(badan.batas_bulanan_idr)
@@ -219,7 +345,7 @@ export default async function aiConfigRoutes(app: FastifyInstance) {
       // tak terjawab kalau yang tercatat cuma nilai barunya.
       const { data: lama, error: galatLama } = await request.db!
         .from('ai_provider_config')
-        .select('penyedia, model, max_token, aktif, batas_bulanan_idr, mode_batas')
+        .select('penyedia, model, max_token, aktif, batas_bulanan_idr, mode_batas, prompt_sistem, maks_ronde, tool_aktif')
         .eq('asisten', asisten)
         .maybeSingle()
 
@@ -240,11 +366,14 @@ export default async function aiConfigRoutes(app: FastifyInstance) {
             aktif: badan.aktif ?? true,
             batas_bulanan_idr: batas,
             mode_batas: modeBatas,
+            prompt_sistem: promptSistem,
+            maks_ronde: maksRonde,
+            tool_aktif: toolAktif,
             diperbarui_oleh: request.currentUser!.id,
           },
           { onConflict: 'company_id,asisten' },
         )
-        .select('asisten, penyedia, model, max_token, aktif, batas_bulanan_idr, mode_batas, diperbarui_pada')
+        .select('asisten, penyedia, model, max_token, aktif, batas_bulanan_idr, mode_batas, prompt_sistem, maks_ronde, tool_aktif, diperbarui_pada')
         .maybeSingle()
 
       if (error) {

@@ -1,10 +1,10 @@
 {
   "_catatan": "Lantai drift peta-menu.ts vs menu_items. Boleh turun, TIDAK boleh naik.",
-  "_diukur": "2026-08-10, sesudah migrasi 251 (menu Penyedia AI). Sebelumnya 2026-08-07 sesudah 233.",
+  "_diukur": "2026-08-10, sesudah migrasi 253 (grup AI & Otomasi). Sebelumnya 119 sesudah 251.",
   "hrefBeda": 0,
   "labelBeda": 0,
-  "hanyaDb": 119,
+  "hanyaDb": 120,
   "_hrefBeda": "NOL, dan sekarang inilah yang benar-benar dijaga: kalau katalog dan sidebar menyebut tujuan berbeda untuk key yang sama, salah satunya membohongi pembacanya.",
-  "_hanyaDb": "Seluruh entri sidebar. Kedua sumber SENGAJA berbeda perannya sesudah 232: peta-menu.ts katalog 203 modul (sumber /peta-modul), menu_items link sidebar (hanya halaman yang ada). Isinya entri sidebar & grup (g-*), bukan modul yang hilang dari katalog. 102 -> 119 datang dari migrasi menu sesudah 233 (243 kredensial, 246 jadwal, 248 approval-inbox, 251 penyedia-ai, dan grup-grup yang menyertainya) yang lantainya tak pernah ikut diperbarui. Bukan cacat.",
+  "_hanyaDb": "Seluruh entri sidebar. Kedua sumber SENGAJA berbeda perannya sesudah 232: peta-menu.ts katalog modul (sumber /peta-modul), menu_items link sidebar. Isinya entri sidebar & GRUP (g-*) — grup tak pernah masuk katalog modul karena ia wadah, bukan modul; 19 g-* lain sudah terhitung di sini sejak lama. 119 -> 120 hanya karena grup g-ai bertambah; ketiga SUB-menunya (penyedia, perilaku asisten, biaya, whatsapp) justru DIDAFTARKAN di katalog. Bukan cacat.",
   "_berbagiItem": "Tidak lagi di-ratchet. audit-menu-berbagi-href.mjs kini LARANGAN MUTLAK: nol href boleh dipakai lebih dari satu link."
 }
