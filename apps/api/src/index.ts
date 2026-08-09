@@ -58,6 +58,7 @@ import kepatuhanK3Routes from './routes/v1/kepatuhan-k3.js'
 import pengadaanLanjutanRoutes from './routes/v1/pengadaan-lanjutan.js'
 import inspeksiRoutes from './routes/v1/inspeksi.js'
 import lapanganRoutes from './routes/v1/lapangan.js'
+import keuanganIkhtisarRoutes from './routes/v1/keuangan-ikhtisar.js'
 import rfiRoutes from './routes/v1/rfi.js'
 import submittalRoutes from './routes/v1/submittal.js'
 import suratRoutes from './routes/v1/surat.js'
@@ -315,6 +316,7 @@ await app.register(kepatuhanK3Routes)
 await app.register(pengadaanLanjutanRoutes)
 await app.register(inspeksiRoutes)
 await app.register(lapanganRoutes)
+await app.register(keuanganIkhtisarRoutes)
 await app.register(rfiRoutes)
 await app.register(submittalRoutes)
 await app.register(suratRoutes)

@@ -22,6 +22,7 @@ import {
   CreateInvoiceModal, 
 } from "./_bersama/komponen";
 import { UmurPiutang, type PetaUmur } from "./_bersama/umur-piutang";
+import { AnalitikKeuangan } from "./_bersama/analitik";
 import {
   type Summary, type CashflowPoint, type ArusKasChartPoint,
   fmtCompact,
@@ -259,6 +260,22 @@ function KeuanganContent() {
             </div>
           )}
         </div>
+
+        {/*
+          ── ANALITIK (grafik) — bentuk referensi "Cost Reports & Analytics"
+          ─────────────────────────────────────────────────────────────────
+          Ditaruh SESUDAH spanduk peringatan dan SEBELUM saldo kas: yang
+          mendesak dibaca lebih dulu, lalu gambaran besar, baru rincian.
+
+          Komponen terpisah (`_bersama/analitik.tsx`) dengan panggilan
+          jaringannya sendiri — halaman ini sudah 523 baris, dan menyisipkan
+          empat grafik + state-nya di sini akan membuatnya tak terbaca.
+
+          Ia memuat sendiri dan MENGHILANG kalau gagal: sisanya halaman ini
+          lengkap tanpa grafik, jadi spanduk galat di puncak akan membuat
+          orang mengira seluruh modul keuangan rusak.
+        */}
+        <AnalitikKeuangan />
 
         {/* Saldo per akun kas */}
         {summary && summary.cashAccounts.length > 0 && (

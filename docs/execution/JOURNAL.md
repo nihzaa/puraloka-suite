@@ -5,6 +5,85 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-09 (dini hari) — Audit menolak rencana saya sendiri: RAB tak layak digambar
+
+Dashboard keuangan mengikuti referensi "Cost Reports & Analytics". Referensi
+itu membangun hampir seluruh layarnya di atas ANGGARAN: Total Project Cost,
+Budget Spent, Remaining Budget, donat Cost Breakdown, garis Budget vs Actual.
+
+Rencana awal saya jelas: baca `rab_items`, gambar donatnya. Audit dulu, dan
+audit itu membatalkan rencananya:
+
+| Yang diukur | Hasil |
+|---|---|
+| Proyek punya RAB | **2 dari 15** |
+| Nilai RAB vs kontraknya | **5,5×** (kontrak Rp 285jt, RAB Rp 1,58 M) |
+| `total_price` | banyak NULL |
+| Jumlah semua level | **hitung ganda** — 11,4 M vs 5,2 M kalau hanya daun |
+
+RAB-nya jelas impor lama dari proyek berbeda yang tak pernah dibersihkan. Ini
+juga yang menjelaskan widget "Serapan Anggaran" di beranda menunjukkan **0%**
+selama ini — bukan bug tampilan, melainkan data.
+
+Menggambar donat anggaran di atas itu menghasilkan grafik yang rapi dan salah.
+Saya bawa ke founder dengan tiga pilihan; ia memilih **jangan sentuh RAB**,
+bangun dari data yang sehat.
+
+### Penggantinya menjawab pertanyaan yang setara
+
+| Referensi | Di sini | Kenapa sah |
+|---|---|---|
+| Budget vs Actual | **Tagihan vs pembayaran** bulanan | Bukan rencana-vs-realisasi melainkan janji-vs-uang-masuk. Untuk kontraktor yang arus kasnya ketat, ini justru yang menentukan bisa-tidaknya menggaji minggu depan |
+| Cost Breakdown | **Komposisi kasbon** per tujuan | Uang yang benar-benar keluar ke lapangan, bukan rencana |
+| Project-wise Expense | Tabel per proyek: kontrak · tertagih · piutang | — |
+
+Nama field-nya sengaja TIDAK memakai kata "anggaran". Kalau kelak RAB
+dibereskan dan grafik anggaran sungguhan dibangun, keduanya harus bisa hidup
+berdampingan tanpa ada yang mengira sudah tergantikan.
+
+### Yang hanya bisa ditangkap dengan menjalankan
+
+- **`payments` tak punya `project_id`.** Ia tergantung invoice. Saringan
+  tenant-nya karena itu dilakukan DI MEMORI terhadap daftar invoice milik
+  company — dan baris itu tak boleh dihapus sebagai "optimasi": tanpanya,
+  angka pembayaran mencakup company lain dan tetap terlihat wajar.
+- **Kolomnya `amount_paid`/`paid_at`,** bukan `amount`/`payment_date`. Audit
+  pertama saya memakai `amount` dan Postgres menolaknya.
+- **`finance:view:all`, bukan `finance:view`.** Keduanya ada di tabel
+  permissions — diperiksa, bukan ditebak (pelajaran dari `projects:read` yang
+  saya karang kemarin dan berujung 403). Akhiran `:all` berarti lintas-proyek;
+  memberi endpoint ini `finance:view` akan membuka angka seluruh portofolio
+  kepada peran yang sengaja dibatasi per-proyek.
+
+### Dua cacat visual, keduanya ketahuan dari tangkapan layar
+
+- **Dua irisan donat berwarna sama.** `--aksen` dan `--navy` berdekatan di
+  mode terang — cukup untuk dibedakan pada teks, tak cukup pada irisan kecil
+  yang bersebelahan. Legenda malah memperburuk: dua kotak sewarna membuat
+  orang mengira ia salah baca. `--aksen` dibuang dari palet donat.
+- **`kerapatan-ratchet` naik 307 → 308** oleh satu `gap: 16` yang saya paku.
+  Diganti `var(--gap-bagian)`. Perbaikan pertamanya MERUSAK JSX — komentar
+  `{/* */}` tak boleh jadi anak pertama ekspresi ternary; dipindah ke dalam
+  objek style.
+
+### Bukti
+
+```
+tsc --noEmit (api + web)      bersih
+vitest api keuangan-ikhtisar  13 test terhadap Postgres NYATA
+vitest web                    43 berkas · 558 test · lulus
+axe terang / gelap            78 halaman · 0 pelanggaran (keduanya)
+18 penjaga visual             exit 0
+4 penjaga arsitektur API      exit 0
+```
+
+Test endpoint menguji INVARIAN, bukan angka persis: `tertagih = terbayar +
+piutang`, total umur piutang = KPI piutang, komposisi kasbon dibandingkan
+langsung ke DB. Test yang memaku `piutang === '119595000.00'` akan merah besok
+tanpa ada yang rusak, lalu dimatikan orang.
+
+---
+
 ## 2026-08-09 (larut) — "Ada alternatif gak? lumayan makan biaya token"
 
 Founder soal kartu AI di beranda. Sebelum mengusulkan apa pun saya mengukur,

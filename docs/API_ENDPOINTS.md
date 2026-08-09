@@ -55,6 +55,7 @@
 | GET | `/api/v1/dashboard/fokus` | Yes | — | Hal yang menunggu keputusan + yang sudah lewat tenggat (widget rail) |
 | GET | `/api/v1/dashboard/deret` | Yes | — | Deret bulanan 8 bulan untuk sparkline KPI |
 | GET | `/api/v1/lapangan/ringkasan` | Yes | `projects:view` | Ikhtisar lapangan LINTAS-PROYEK: KPI, progres harian, milestone, tenaga kerja, punch/NCR/inspeksi |
+| GET | `/api/v1/keuangan/ikhtisar` | Yes | `finance:view:all` | Ikhtisar keuangan LINTAS-PROYEK: KPI, tagihan vs pembayaran bulanan, komposisi kasbon, umur piutang, per-proyek, invoice tertunggak. **Tanpa RAB** — lihat catatan di berkasnya |
 
 **Period params**: `last_30_days`, `last_3_months`, `last_6_months`, `this_year`, `all_time`
 
