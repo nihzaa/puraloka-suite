@@ -71,6 +71,33 @@ export interface MetaKredensial {
 }
 
 export const KATALOG_KREDENSIAL: MetaKredensial[] = [
+  // ── WhatsApp (TJS-D1) ──────────────────────────────────────────────────
+  //
+  // Tiga bagian, bukan satu: Evolution menuntut alamat, kunci, DAN nama
+  // instance. Menggabungkannya jadi satu string berformat akan membuat salah
+  // ketik terbaca sebagai "kanal belum dikonfigurasi" alih-alih menunjuk
+  // bagian mana yang salah.
+  {
+    kunci: 'WA_BASE_URL',
+    label: 'WhatsApp — alamat server',
+    keterangan: 'Alamat Evolution API, mis. http://localhost:8081. Tanpa garis miring di akhir.',
+    env: 'WA_BASE_URL',
+    grup: 'WhatsApp',
+  },
+  {
+    kunci: 'WA_API_KEY',
+    label: 'WhatsApp — kunci API',
+    keterangan: 'Kunci global Evolution (AUTHENTICATION_API_KEY di server-nya).',
+    env: 'WA_API_KEY',
+    grup: 'WhatsApp',
+  },
+  {
+    kunci: 'WA_INSTANCE',
+    label: 'WhatsApp — nama instance',
+    keterangan: 'Nama instance yang sudah memindai QR, mis. puraloka-bot.',
+    env: 'WA_INSTANCE',
+    grup: 'WhatsApp',
+  },
   {
     kunci: 'ANTHROPIC_API_KEY',
     label: 'Anthropic (Claude)',

@@ -375,7 +375,7 @@ export const PETA_MENU: GrupMenu[] = [
       // `audit-peta-menu-vs-db` membandingkan keduanya, dan katalog yang
       // menyebut tujuan berbeda dari sidebar membohongi salah satu pembacanya.
       { key: 'ai-biaya', label: 'Pemakaian & Biaya', status: 'hidup', href: '/pengaturan/biaya-ai', guna: 'Berapa token dan rupiah terpakai bulan ini, per asisten dan per model.', },
-      { key: 'ai-whatsapp', label: 'Kanal WhatsApp', status: 'rencana', guna: 'Bertanya ke asisten lewat WhatsApp, seperti di TJS.', catatan: 'Evolution API sudah terpasang terpisah untuk Puraloka (port 8081, DB puraloka_wa). Kanalnya belum tersambung — itu TJS-D1.' },
+      { key: 'ai-whatsapp', label: 'Kanal WhatsApp', status: 'sebagian', href: '/pengaturan/whatsapp', guna: 'Nomor yang boleh bertanya ke asisten dan menerima notifikasi — terikat akun pengguna, bukan daftar putih.', catatan: 'Pendaftaran + verifikasi nomor dan pintu keluar kirim SUDAH jalan (TJS-D1). Webhook masuk (asisten menjawab lewat WhatsApp) belum — itu sisa D1/D2.' },
       { key: 'sy-jadwal', label: 'Jadwal Tugas', status: 'hidup', href: '/pengaturan/jadwal', guna: 'Tugas berkala yang berjalan sendiri — cek tenggat & milestone tanpa perlu ada yang menekan tombol.' },
       { key: 'sy-penomoran', label: 'Konfigurasi Penomoran', status: 'sebagian', guna: 'Format nomor dokumen per jenis.', catatan: 'Counter per-company sudah jalan; UI-nya belum.' },
       { key: 'sy-audit', label: 'Audit Log', status: 'hidup', href: '/audit', guna: 'Jejak seluruh perubahan data.' },

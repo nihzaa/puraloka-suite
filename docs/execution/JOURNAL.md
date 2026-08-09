@@ -5,6 +5,65 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-10 (lanjutan 8) — Verifikasi nomor + UI Kanal WhatsApp
+
+Pintu keluar sudah ada; sekarang permukaan yang bisa dipakai.
+
+### Verifikasi bukan formalitas
+
+Siapa pun bisa mengetik nomor orang lain. Tanpa verifikasi, mendaftarkan nomor
+atasan sudah cukup untuk membaca data yang jadi wewenangnya — dan jejaknya tak
+terlihat, karena sesi yang terbentuk **sah menurut sistem**.
+
+Tiga hal yang lolos "status 200" tetapi membuat verifikasi tak berarti, dan
+ketiganya diuji:
+
+| Celah | Yang menutupnya |
+|---|---|
+| kode bocor lewat API | `kode_verifikasi` tak pernah ikut di `SELECT` maupun respons |
+| 6 digit bisa ditebak habis | maksimal 5 percobaan, lalu wajib daftar ulang — yang memicu kode baru ke nomor **aslinya** |
+| kode abadi | umur 10 menit, dan kodenya **dihapus** setelah dipakai |
+
+Pendaftaran ulang **mengulang** verifikasi. Kalau tidak, nomor terverifikasi
+bisa dipindahkan ke akun lain tanpa membuktikan apa pun.
+
+### UI: kesiapan kanal dinyatakan sebelum orang mengetik
+
+Tombol "Kirim kode" yang gagal setelah diklik memberi tahu terlambat. Kalau
+kredensial Evolution belum dipasang, itu muncul di kartu paling atas lengkap
+dengan tautan ke halaman Kredensial.
+
+Tiga kredensial terpisah (`WA_BASE_URL`, `WA_API_KEY`, `WA_INSTANCE`), bukan
+satu string berformat — salah ketik pada satu bagian harus bisa ditunjuk,
+bukan terbaca sebagai "kanal belum dikonfigurasi".
+
+### Cacat visual yang ketahuan dari layar
+
+Nomor nonaktif tampil lencana hijau **"Terverifikasi"** tepat di sebelah tombol
+**"Aktifkan"** — dua tanda yang sekilas saling membantah. Yang menentukan
+bisa-tidaknya nomor dipakai adalah **keduanya**: terverifikasi DAN aktif. Jadi
+lencananya kini menyatakan hasil akhirnya (`Nonaktif (terverifikasi)`), bukan
+salah satu syaratnya.
+
+### Test yang gagal karena test-nya sendiri
+
+`nomor tak ada → 404` mengembalikan **429**: rutenya membatasi 10/menit per
+user, dan `app.inject` memakai identitas yang sama untuk seluruh berkas. Test
+ke-11 kena batas karena alasan yang tak ada hubungannya dengan yang diuji.
+
+Diperbaiki dengan instance Fastify terpisah tanpa plugin rate limit — bukan
+dengan melonggarkan batas di rutenya. Batasnya sendiri diuji di
+`ai-rate-limit.test.ts`, yang memeriksa **kuncinya** (per user, bukan per IP).
+
+### Bukti
+
+- 216/216 test hijau (14 rute nomor baru + 202 sebelumnya)
+- 29/29 penjaga hijau
+- tangkapan layar 2 mode, keadaan kosong DAN terisi (3 status berbeda)
+- menu `ai-whatsapp` `rencana` → `hidup`, katalog & DB selaras
+
+---
+
 ## 2026-08-10 (lanjutan 7) — TJS-D1: pintu keluar WhatsApp, dan dua celah TJS
 
 Evolution sudah terpasang untuk Puraloka sejak TJS-A0 (port 8081, DB
