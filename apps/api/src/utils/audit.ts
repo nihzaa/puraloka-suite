@@ -28,6 +28,14 @@ export interface AuditEntry {
   reason?: string
   correlationId?: string
   workflowId?: string
+  /**
+   * Kanal asal tindakan. Bawaan `web`.
+   *
+   * Tanpa ini, approval lewat WhatsApp tak bisa dibedakan dari approval lewat
+   * dashboard — dan kalau satu kanal ternyata disalahgunakan, tak ada cara
+   * mengetahui tindakan mana yang berasal darinya.
+   */
+  via?: 'web' | 'ai_whatsapp' | 'penjadwal' | 'api'
 }
 
 /**
@@ -84,7 +92,24 @@ export async function logAuditEvent(request: FastifyRequest, entry: AuditEntry):
       // ada satu pun gejala sampai seseorang mencarinya.
       company_id: request.companyId ?? null,
       table_name: entry.tableName,
-      record_id: entry.recordId,
+      // ── `recordId` yang BUKAN UUID masuk `record_key` (migrasi 249)
+      //
+      // `record_id` bertipe uuid, dan LIMA modul memakai `recordId` untuk
+      // identitas yang bukan UUID: kode tujuan kasbon, `event_type` aturan
+      // notifikasi, `entity_type` rantai approval, nama kunci kredensial,
+      // nama tugas terjadwal.
+      //
+      // Akibatnya insert-nya DITOLAK basis — `invalid input syntax for type
+      // uuid` — galatnya tercatat di log aplikasi, dan barisnya tak pernah
+      // sampai ke `audit_logs`. Diukur 2026-08-09: NOL baris audit untuk
+      // ketiga modul konfigurasi itu, padahal justru merekalah yang mengubah
+      // cara sistem memutuskan.
+      //
+      // Dipisah di SINI, bukan di tiap pemanggil: memperbaikinya satu per satu
+      // berarti pemanggil keenam kelak mengulang cacat yang sama.
+      record_id: asUuidOrNull(entry.recordId),
+      record_key: asUuidOrNull(entry.recordId) ? null : entry.recordId,
+      via: entry.via ?? 'web',
       action: entry.action,
       user_id: entry.actorId,
       old_values: entry.oldValues ?? null,

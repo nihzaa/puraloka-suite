@@ -167,6 +167,7 @@ selamanya. Verdict "sudah jalan" hanya sah bila **artefak fisiknya terbukti ada*
 | `uji-token-css-ada.mjs` | `var(--token)` yang dipakai wajib ada di globals.css (ambang NOL) |
 | `audit-approval-satu-pintu.mjs` | keputusan persetujuan hanya lewat `utils/approval.ts` |
 | `audit-inbox-lengkap.mjs` | tiap jenis approval wajib muncul di inbox terpusat (ambang NOL) |
+| `audit-jejak-tak-hilang.mjs` | audit ber-`recordId` bukan-UUID tak boleh gagal senyap (ambang NOL) |
 | `audit-migrasi-skema-dipaku.mjs` | skema tak boleh dipaku |
 | `audit-rancangan-submenu.mjs` | sub-menu berisiko wajib punya rancangan |
 | `audit-triase-submenu.mjs` | sub-menu **belum** digarap wajib punya urutan (INTI/PEMBEDA/TUNDA) |

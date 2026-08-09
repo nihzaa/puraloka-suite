@@ -1379,7 +1379,9 @@ items:
       Menyentuh helper yang dipakai seluruh repo, jadi lebih murah dikerjakan
       SEBELUM ada pemanggil baru.
     bobot: M
-    status: todo
+    status_akhir: >-
+      SELESAI 2026-08-09. Migrasi 249: kolom record_key + via di audit_logs, tabel ai_akses_ditolak TANPA company_id. Menyingkap CACAT YANG SUDAH AKTIF: record_id bertipe uuid sementara 5 modul memakai recordId bukan-UUID (kasbon_purposes, notification_rules, approval_chains, app_credentials, jadwal_tugas) -> NOL baris audit untuk modul yang justru mengubah cara sistem MEMUTUSKAN. Diperbaiki di logAuditEvent (satu tempat, semua pemanggil). Diverifikasi end-to-end: credential.set kini tercatat dengan record_key='RESEND_API_KEY', via='web'. Penjaga audit-jejak-tak-hilang.mjs (3 mutasi MERAH), 8 test.
+    status: done
 
   - id: TJS-B1
     fase: 6
