@@ -1,8 +1,9 @@
 {
-  "nilai": 123,
+  "nilai": 122,
   "_catatan": "Cakupan penjaga ini app/ + components/ (.ts & .tsx), MINUS lib/format.ts. Angka '83' di DESIGN-BRIEF §F adalah cakupan LAIN — hanya page.tsx — dan turun 83 → 70 oleh UIR-1. Keduanya benar; jangan disamakan.",
-  "_diukur": "2026-08-08",
+  "_diukur": "2026-08-09",
   "_riwayat": [
-    "141 → 123 (UIR-1: 18 pembungkus rupiah lokal → formatRupiah, 17 berkas)"
+    "141 → 123 (UIR-1: 18 pembungkus rupiah lokal → formatRupiah, 17 berkas)",
+    "123 → 122 (otomatis)"
   ]
 }

@@ -5,6 +5,87 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-09 (malam) — Batasan yang saya tulis sendiri, dicabut karena syaratnya sudah terpenuhi
+
+Founder minta dashboard menu induk dibuat "semirip mungkin" dengan referensi
+BuildAxis, dan menambahkan: *"kalo di aplikasi kita belum ada data untuk
+menyamakan dengan referensi, buatlah dulu."*
+
+Dikerjakan berurutan: seed data → endpoint → UI. Urutan itu bukan selera —
+membangun UI lebih dulu berarti menilai tata letak dari kartu kosong.
+
+### Halaman /lapangan pernah MENOLAK menampilkan tiga KPI, dan itu benar
+
+Versi lama halaman ini memasang spanduk kepada pemakai: *"Belum ada angka
+lintas-proyek untuk RFI terbuka, punch belum tutup, dan NCR aktif."* Alasannya
+ditulis panjang di kepala berkas: modul lapangan hanya dilayani rute bersarang
+per-proyek, jadi menghitungnya untuk seluruh perusahaan berarti N permintaan
+dari peramban.
+
+Yang membuat catatan itu **berguna** dan bukan sekadar alasan: ia menutup
+dirinya sendiri dengan syarat pencabutan yang konkret — *"butuh satu endpoint
+agregat baru (mis. GET /api/v1/lapangan/ringkasan)"*.
+
+Endpoint itu sekarang ada. Jadi batasannya dicabut **beserta spanduknya**.
+Inilah pola yang `CLAUDE.md` §5.5 minta: kalau sebuah larangan punya syarat
+pencabutan, tulis cara mengukur syaratnya — supaya ia tak bertahan setelah
+penyebabnya hilang, seperti peringatan GL yang menyesatkan sesi 2026-08-07.
+
+### Tiga kesalahan saya, semuanya ketahuan dari MENJALANKAN
+
+1. **`projects:read` → 403.** Key itu muncul di beberapa berkas tetapi tak
+   pernah di-seed. Yang benar `projects:view`. Gejalanya terbaca seperti
+   masalah peran pemakai, bukan salah ketik saya.
+
+2. **Tiga nama kolom karangan → 500.** `milestones.progress_pct`,
+   `progress_logs.tanggal`, `progress_logs.progress_pct` — tak satu pun ada.
+   Yang benar `logged_at`/`pct_overall`/`worker_count`, dan `milestones`
+   memang **tak punya kolom progres sama sekali**.
+
+   Akibatnya nyata di UI: referensi menggambar bar persen per milestone
+   ("Foundation Work 100%"); kita tak bisa, jadi kartunya menampilkan status
+   dan tenggat. Mengarang angkanya akan membuat bar itu berbohong.
+
+3. **Jendela 30 hari membuat grafik progres KOSONG** padahal ada 271 baris —
+   `progress_logs` berhenti 15 Juni. Dipisah jadi dua jendela: absensi 30
+   hari, progres 180 hari. Grafik kosong terbaca "sistem rusak".
+
+Ketiganya mustahil ditangkap test dengan mock: mock akan mengarang kolom yang
+sama salahnya. Itu sebabnya 13 test endpoint ini berjalan terhadap Postgres
+nyata, dan test pertamanya menempelkan body saat gagal — 500 di sini hampir
+selalu berarti nama kolom salah, dan pesannya tak sampai ke klien.
+
+### Tiga cacat visual, ketahuan dari tangkapan layar
+
+- **Sumbu Y terpotong** jadi "9%". Sebabnya `margin.left: -18` yang saya salin
+  dari widget dashboard — di sana sumbunya tanpa satuan, di sini "100%" tiga
+  huruf lebih panjang. Angka sumbu yang terpotong lebih buruk daripada tak ada
+  sumbu: ia terbaca sebagai nilai.
+- **Rail terlihat mengulang** — "Nat keramik tidak rata" dua kali. Datanya
+  BENAR (cacat sama di proyek berbeda), tetapi tanpa pembeda ia terbaca
+  sebagai bug duplikasi. Nomor temuan ditambahkan ke baris.
+- **KPI keenam turun sendirian.** Cacat yang sama persis dengan beranda, dan
+  solusinya sudah ada: kelas `.kpi-strip` + 6 kolom dipaksa. Saya sempat
+  hendak membuat kelas baru sebelum menemukan yang sudah ada.
+
+### Kode mati ikut dibuang
+
+`lib/ringkasan-lapangan.ts` + 17 test-nya dihapus: nol import dari luar
+sesudah halaman ditulis ulang. Kode mati yang PUNYA test justru berbahaya — ia
+membuat suite terlihat lebih besar tanpa menjaga apa pun.
+
+### Bukti
+
+```
+tsc --noEmit (api + web)      bersih
+vitest api lapangan           13 test terhadap Postgres nyata
+vitest web                    42 berkas · 545 test · lulus
+17 penjaga visual             exit 0
+4 penjaga arsitektur API      exit 0 (tenancy, kegagalan-senyap, tulis, catch)
+```
+
+---
+
 ## 2026-08-09 (sore) — Permintaan founder bertentangan dengan aturannya sendiri, dan itu bisa diselesaikan tanpa melanggar keduanya
 
 Founder: *"klik menu itu harusnya bisa sekaligus link halaman dan expand,

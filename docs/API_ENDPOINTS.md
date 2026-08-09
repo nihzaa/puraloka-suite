@@ -54,6 +54,7 @@
 | GET | `/api/v1/dashboard` | Yes | admin,pm | Aggregation data (period filter) |
 | GET | `/api/v1/dashboard/fokus` | Yes | — | Hal yang menunggu keputusan + yang sudah lewat tenggat (widget rail) |
 | GET | `/api/v1/dashboard/deret` | Yes | — | Deret bulanan 8 bulan untuk sparkline KPI |
+| GET | `/api/v1/lapangan/ringkasan` | Yes | `projects:view` | Ikhtisar lapangan LINTAS-PROYEK: KPI, progres harian, milestone, tenaga kerja, punch/NCR/inspeksi |
 
 **Period params**: `last_30_days`, `last_3_months`, `last_6_months`, `this_year`, `all_time`
 

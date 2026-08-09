@@ -200,6 +200,7 @@ Jantung ERP kontraktor. Lihat skor Lima Pembeda di bawah.
 
 | Menu | Status | Catatan |
 |---|---|---|
+| **Ikhtisar Lapangan (dashboard modul)** | ✅ | **Baru 2026-08-09** — `/lapangan` dirombak mengikuti referensi "Site Progress": 6 KPI · grafik progres harian · kehadiran tukang · milestone · temuan mutu · daftar proyek. Dilayani SATU endpoint `GET /api/v1/lapangan/ringkasan` (13 test terhadap Postgres nyata) + `lib/ringkas-lapangan.ts` (11 test). Versi lama memasang spanduk "belum ada angka lintas-proyek" untuk punch/NCR/inspeksi — batasan itu sah saat ditulis dan **dicabut bersama spanduknya** begitu endpoint agregatnya ada |
 | Laporan harian proyek (DPR) | 🟡 | `progress_logs` (weather, worker_count, foto, notes) = bahan DPR; tanpa format/cetak DPR resmi |
 | Log tenaga kerja harian | 🟡 | `worker_count` agregat, bukan per orang |
 | Log pemakaian alat | ✅ | Migrasi 211 · `pemakaian_alat` · `/aset/operasional`. Meter terkini diambil dari pembacaan **tertinggi**, bukan entri terbaru — koreksi mundur tak boleh membuat alat terlihat belum waktunya diservis. `UNIQUE(asset_id, tanggal)` mencegah jam operasi terhitung dua kali |
