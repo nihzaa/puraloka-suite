@@ -56,6 +56,7 @@
 | GET | `/api/v1/dashboard/deret` | Yes | — | Deret bulanan 8 bulan untuk sparkline KPI |
 | GET | `/api/v1/lapangan/ringkasan` | Yes | `projects:view` | Ikhtisar lapangan LINTAS-PROYEK: KPI, progres harian, milestone, tenaga kerja, punch/NCR/inspeksi |
 | GET | `/api/v1/keuangan/ikhtisar` | Yes | `finance:view:all` | Ikhtisar keuangan LINTAS-PROYEK: KPI, tagihan vs pembayaran bulanan, komposisi kasbon, umur piutang, per-proyek, invoice tertunggak. **Tanpa RAB** — lihat catatan di berkasnya |
+| GET | `/api/v1/gudang/ikhtisar` | Yes | `gudang:view` | Ikhtisar gudang: aset di gudang vs di proyek, kondisi, riwayat pergerakan, nilai buku, **proyek selesai yang materialnya belum ditarik** |
 
 **Period params**: `last_30_days`, `last_3_months`, `last_6_months`, `this_year`, `all_time`
 
@@ -72,8 +73,16 @@ rekomendasi), dan skema jawabannya tak punya field angka sama sekali.
 menolak / jawaban tak layak → `sumber: "deterministik"` + `wawasan: null` +
 `alasan` yang menyebut penyebabnya. Web menampilkan kalimat hitungannya sendiri.
 
-Env: `ANTHROPIC_API_KEY` (opsional), `ANTHROPIC_MODEL` (bawaan `claude-opus-5`).
+Env: `ANTHROPIC_API_KEY` (opsional), `ANTHROPIC_MODEL` (bawaan
+`claude-haiku-4-5` sejak 2026-08-09 — tugasnya cuma dua kalimat dari fakta
+yang sudah dihitung, dan Haiku ~5× lebih murah).
 Batas laju 20/menit — panggilan berbayar ke pihak ketiga.
+
+**Dipanggil hanya saat DIKLIK**, bukan saat halaman dibuka. Dua komponen
+memakainya (kartu Kesehatan + rail Asisten) dan keduanya tampil bersamaan di
+beranda; `useEffect` tanpa syarat berarti dua panggilan berbayar tiap kali
+beranda dibuka — termasuk saat orang cuma lewat. Diukur sesudah diperbaiki:
+**0 panggilan otomatis**, 1 per klik.
 
 ### Notifications
 | Method | Path | Auth | Role | Description |

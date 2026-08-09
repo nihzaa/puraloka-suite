@@ -5,6 +5,107 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-09 (subuh) — Gudang: satu kalimat founder membalik seluruh rancangan
+
+Saya bertanya bagaimana praktik gudang di Puraloka sebelum membangun apa pun,
+karena menebaknya berarti membangun tabel yang mungkin tak pernah dipakai.
+
+Founder: *"sekarang belum ada gudang, tapi nanti setelah proyek selesai,
+nantinya semua barang, alat-alat akan disimpan lagi ke gudang."*
+
+Itu membalik rancangannya. Referensi BuildAxis "Material Management"
+memodelkan alur **MASUK** — beli → gudang → kirim ke proyek — dan seluruh
+KPI-nya pertanyaan pembelian: reorder point, lead time, supplier performance.
+Puraloka arahnya **KELUAR-PULANG**: material dibeli langsung ke lokasi, gudang
+tempat sisa dan alat kembali.
+
+Meniru referensi apa adanya akan menghasilkan halaman berisi kartu yang tak
+satu pun bisa dijawab datanya.
+
+### Audit menemukan model datanya sudah 90% siap
+
+Sebelum menulis migrasi, saya periksa apa yang sudah ada — dan hampir
+semuanya:
+
+| Yang dibutuhkan | Sudah ada |
+|---|---|
+| Alat kembali ke gudang | `asset_movements.movement_type = 'kembali'` |
+| Kondisi saat pergi vs pulang | `condition_before` / `condition_after` |
+| Alat menganggur | `assets.status = 'tersedia'` |
+| Sisa material kembali | `stock_movements.movement_type = 'return'` |
+
+Yang benar-benar hilang cuma satu: **identitas tempatnya**. Jadi migrasi 238
+tidak membangun ulang apa pun — ia menambah `gudang`, `gudang_stok`, dan
+`assets.gudang_id`.
+
+### Keputusan founder yang berbeda dari rekomendasi saya
+
+Saya menyarankan menunda tabel lokasi (kolom yang tak pernah bervariasi
+cenderung tak pernah diisi benar). Founder memilih membangunnya sekarang, dan
+alasannya kuat: gudangnya rencana NYATA, bukan spekulasi.
+
+Yang saya lakukan supaya kekhawatiran itu tak terwujud: kolomnya nullable dan
+**bermakna sejak hari pertama** — `gudang_id IS NULL` berarti "tidak di
+gudang", bukan "belum diisi". Aset di proyek memang harus NULL. Ditambah
+constraint `assets_lokasi_tunggal`: aset tak boleh tercatat di gudang DAN di
+proyek sekaligus, karena kalau bisa, pertanyaan "di mana barang ini" tak punya
+jawaban — dan itu satu-satunya pertanyaan yang gudang ada untuk menjawabnya.
+
+### Kartu yang tak ada di referensi, dan justru paling berharga
+
+**"Material belum ditarik"** — proyek berstatus `completed` yang stoknya masih
+> 0. Data nyata langsung menemukan satu: *Carport & Pagar Bu Melati — 1 jenis,
+10 unit masih di lokasi.* Tak ada satu pun layar yang selama ini
+menunjukkannya, dan sisa material di proyek selesai adalah barang yang paling
+mudah hilang.
+
+Ditaruh paling kiri, sebelum grafik: ini satu-satunya kartu di halaman itu
+yang menuntut TINDAKAN; sisanya menyampaikan keadaan.
+
+### Empat kesalahan, semuanya ketahuan dari menjalankan
+
+1. **`permissions` butuh `module`/`label`/`sort_order`.** Percobaan pertama
+   hanya mengisi key+description → NOT NULL violation.
+2. **`menu_item_permissions` tak pernah ada.** Permission menu adalah KOLOM
+   array `required_permissions` di `menu_items`.
+3. **Peta tenancy tak tahu tabel baru** → tsc menolak `db.from('gudang')`.
+   Dibereskan dengan menjalankan `gen-tenant-map.mjs emit`, bukan mengedit
+   berkas ter-generate. Generator mengklasifikasikan persis seperti rancangan:
+   `gudang` = B, `gudang_stok` = C lewat `gudang_id`.
+4. **`Lencana` memakai kosakata `sukses`, bukan `baik`.** Dua kosakata yang
+   berdekatan artinya tetap dua kosakata berbeda.
+
+Plus satu dari penjaga: **`judul-ratchet` 51 → 52** karena saya menulis `<h1>`
+sendiri alih-alih `KepalaHalaman`. Penjaga itu benar — sebelum UIR-2 ada 27
+varian gaya `<h1>` di repo ini.
+
+### Penjaga meminta lantainya sendiri diturunkan
+
+`uji-induk-punya-ikhtisar` mendeteksi Gudang kini punya ikhtisar dan mencetak:
+*"Turun dari 3 ke 2 — TURUNKAN 'LANTAI' di berkas ini pada commit yang sama."*
+Persis rancangannya. Diturunkan, lalu diuji mutasi lagi (lantai 1 → exit 1)
+supaya ia tetap bergigi di angka baru.
+
+Sisa grup tanpa ikhtisar: Estimasi & Biaya, Mutu & Kepatuhan.
+
+### Bukti
+
+```
+tsc --noEmit (api + web)     bersih
+migrasi 238/239/240          dijalankan 2x, angka identik (idempoten)
+vitest api (3 endpoint baru) 41 test terhadap Postgres NYATA
+vitest web                   44 berkas · 573 test · lulus
+axe terang / gelap           79 halaman · 0 pelanggaran (keduanya)
+19 penjaga visual            exit 0
+4 penjaga arsitektur API     exit 0
+uji-induk-punya-ikhtisar     lantai 3 → 2, mutasi terbukti merah
+```
+
+`audit-nav-yatim` masih merah pada `/keuangan/cvr` — identik dengan baseline,
+bukan tambahan commit ini. Buku migrasi TIDAK ditulis (G-2, butuh ratifikasi).
+
+---
+
 ## 2026-08-09 (dini hari) — Audit menolak rencana saya sendiri: RAB tak layak digambar
 
 Dashboard keuangan mengikuti referensi "Cost Reports & Analytics". Referensi

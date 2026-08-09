@@ -52,13 +52,16 @@ const DIR_APP = join(AKAR, "apps", "web", "app", "(dashboard)");
 /**
  * LANTAI — jumlah grup induk yang boleh tanpa halaman ikhtisar.
  *
- * Diukur 2026-08-09 dari sidebar sungguhan DAN dari migrasi: 3 dari 13
- * (Estimasi & Biaya, Gudang, Mutu & Kepatuhan). Hanya boleh TURUN.
+ * Hanya boleh TURUN. Menurunkannya berarti sebuah grup baru saja mendapat
+ * halaman ikhtisarnya; turunkan angkanya di commit yang SAMA supaya
+ * kemunduran berikutnya merah.
  *
- * Menurunkannya berarti sebuah grup baru saja mendapat halaman ikhtisarnya —
- * turunkan angkanya di commit yang sama supaya kemunduran berikutnya merah.
+ *   3 → 2  (2026-08-09) Gudang dapat `/gudang` — dashboard ikhtisar aset &
+ *          material yang kembali sesudah proyek selesai (migrasi 238-240).
+ *
+ * Sisa 2: Estimasi & Biaya, Mutu & Kepatuhan.
  */
-const LANTAI = 3;
+const LANTAI = 2;
 
 // ── Aturan pemilihan: dipinjam dari lib/tujuan-grup.ts ──────────────────────
 //
