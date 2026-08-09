@@ -1286,7 +1286,25 @@ export default async function financeRoutes(app: FastifyInstance) {
     // kas sudah bertambah lewat trigger). Kalau update invoice gagal di sini
     // dan kegagalannya dibuang, tagihan tetap terlihat belum lunas — klien
     // ditagih untuk uang yang sudah dia bayar, dan tak ada gejala apa pun.
-    const { error: updInvErr } = await supabase
+    //
+    // ── KLAIM ATOMIK: `amount_paid` LAMA ikut di WHERE (TJS-A0, 2026-08-09)
+    //
+    // `newPaid` dihitung dari `invoice.amount_paid` yang dibaca di ATAS. Antara
+    // pembacaan itu dan penulisan ini, request lain bisa menyelesaikan siklus
+    // yang sama secara penuh. Tanpa nilai lama di WHERE, keduanya menulis
+    // `amount_paid` yang dihitung dari basis yang sama — dan yang kedua
+    // MENIMPA yang pertama.
+    //
+    // Akibatnya bukan "tercatat dua kali", tapi sebaliknya: satu pembayaran
+    // HILANG dari invoice. Barisnya tetap ada di `payments` dan saldo kas
+    // tetap bertambah dua kali lewat trigger, jadi buku kas dan invoice
+    // berselisih — tanpa satu pun error, dan tanpa gejala sampai ada yang
+    // merekonsiliasi manual.
+    //
+    // `.eq('amount_paid', invoice.amount_paid)` membuat baca-ubah-tulis ini
+    // jadi compare-and-set: kalau nilainya sudah bergeser, nol baris terkena
+    // dan kita tahu harus menghitung ulang.
+    const { data: invUpd, error: updInvErr } = await supabase
       .from('invoices')
       .update({
         amount_paid: newPaid,
@@ -1296,9 +1314,26 @@ export default async function financeRoutes(app: FastifyInstance) {
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
+      .eq('amount_paid', invoice.amount_paid)
+      .select('id')
+      .maybeSingle()
     if (updInvErr) {
       return reply.status(500).send({
         error: 'Pembayaran tersimpan tetapi status invoice gagal diperbarui: ' + updInvErr.message,
+      })
+    }
+    if (!invUpd) {
+      // Nol baris terkena = `amount_paid` berubah sejak dibaca. Pembayarannya
+      // SUDAH tersimpan, jadi ini bukan kegagalan yang boleh disembunyikan —
+      // 409 supaya pemanggil tahu angka invoice perlu dimuat ulang.
+      request.log.warn(
+        { invoiceId: id, amountPaidDibaca: invoice.amount_paid },
+        'pembayaran serentak terdeteksi: amount_paid bergeser sejak dibaca',
+      )
+      return reply.status(409).send({
+        error:
+          'Pembayaran tersimpan, tetapi invoice ini baru saja dibayar dari tempat lain. ' +
+          'Muat ulang halaman untuk melihat angka terbaru.',
       })
     }
 

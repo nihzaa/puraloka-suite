@@ -283,7 +283,15 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
         // Kalau sinkronisasi invoice gagal diam-diam, uangnya masuk tapi
         // invoice tetap tampak belum lunas — klien ditagih dua kali, dan
         // laporan piutang menampilkan angka yang sudah dibayar.
-        const { error: errInv } = await request.db!
+        //
+        // ── KLAIM ATOMIK: `amount_paid` LAMA ikut di WHERE (TJS-A0, 2026-08-09)
+        //
+        // `newAmountPaid` dihitung dari `inv.amount_paid` yang dibaca sepuluh
+        // baris di atas. Dua pembayaran termin yang tiba bersamaan sama-sama
+        // membaca nilai lama, dan yang kedua MENIMPA yang pertama — satu
+        // pembayaran hilang dari invoice meski barisnya tetap ada di
+        // `termin_payments`. Compare-and-set menutupnya.
+        const { data: invUpd, error: errInv } = await request.db!
           .viaProject('invoices', projectId)
           .update({
             amount_paid: newAmountPaid,
@@ -292,10 +300,24 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
             paid_date: newStatus === 'paid' ? paid_at : null,
           })
           .eq('id', invoiceId)
+          .eq('amount_paid', inv.amount_paid)
+          .select('id')
+          .maybeSingle()
         if (errInv) {
           return reply.status(500).send({
             error: `Pembayaran tercatat, tapi invoice gagal diperbarui: ${errInv.message}. ` +
                    `Periksa manual agar tagihan tidak terkirim ulang.`,
+          })
+        }
+        if (!invUpd) {
+          request.log.warn(
+            { invoiceId, amountPaidDibaca: inv.amount_paid },
+            'pembayaran termin serentak: amount_paid bergeser sejak dibaca',
+          )
+          return reply.status(409).send({
+            error:
+              'Pembayaran tercatat, tetapi invoice ini baru saja dibayar dari tempat lain. ' +
+              'Muat ulang halaman untuk melihat angka terbaru.',
           })
         }
 

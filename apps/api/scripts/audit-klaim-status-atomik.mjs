@@ -60,16 +60,28 @@ const RUTE = resolve(__dirname, '..', 'src', 'routes', 'v1')
 /**
  * LANTAI — turunkan seiring modul diperbaiki, jangan pernah dinaikkan.
  *
- * **8 saat lahir (2026-08-09), DIUKUR — bukan diperkirakan.**
+ * **10 pada 2026-08-09, DIUKUR — bukan diperkirakan.**
  *
- *   UANG (2)     finance.ts · termin-payment.ts
- *   APPROVAL (6) change-orders ×2 · estimate-versions · lessons-learned
- *                notifications · procurement
+ *   APPROVAL (10) change-orders ×2 · estimate-versions · kepatuhan-k3
+ *                 lessons-learned · notifications · pengadaan-lanjutan
+ *                 procurement ×2 · rantai-kontrak
  *
- * Perkiraan manual saya semula 7, dan angka itu salah dua kali sekaligus:
- * ia memuat `cash`/`submittal` yang ternyata TIDAK melanggar, dan melewatkan
- * `notifications` (jalur kedua kasbon) serta dua cacat UANG yang sama sekali
- * tak saya cari. Lantai diisi dari keluaran penjaga, bukan dari ingatan.
+ * ── Riwayat angkanya, supaya tak membingungkan sesi berikutnya
+ *
+ *   7  perkiraan manual saya. SALAH dua arah: memuat `cash`/`submittal` yang
+ *      ternyata tak melanggar, melewatkan `notifications` (jalur kedua kasbon)
+ *      dan dua cacat UANG yang tak saya cari sama sekali.
+ *   8  hasil ukur pertama: 6 APPROVAL + 2 UANG.
+ *  10  sesudah cacat pemotongan rantai diperbaiki (lihat `rantaiUpdate`).
+ *      Dua UANG hilang karena memang SUDAH diperbaiki di commit yang sama —
+ *      penjaga sebelumnya buta terhadap perbaikan itu. Empat approval baru
+ *      muncul karena rantainya kini benar-benar terbaca: `kepatuhan-k3`,
+ *      `pengadaan-lanjutan`, `procurement` (satu lagi), `rantai-kontrak`.
+ *
+ * Pelajarannya: angka yang turun belum tentu kabar baik, dan angka yang naik
+ * belum tentu kabar buruk. Yang menentukan adalah apakah alatnya melihat.
+ *
+ * Lantai diisi dari KELUARAN penjaga, bukan dari ingatan.
  *
  * `kasbons` TIDAK ada di daftar ini — ia sudah benar, dan justru jadi pola
  * yang dicontoh yang lain. Uji mutasi memakainya: lepas `.eq('status',
@@ -92,11 +104,12 @@ const RUTE = resolve(__dirname, '..', 'src', 'routes', 'v1')
 const LANTAI_BERKAS = {
   'change-orders.ts': 2,
   'estimate-versions.ts': 1,
-  'finance.ts': 1,
+  'kepatuhan-k3.ts': 1,
   'lessons-learned.ts': 1,
   'notifications.ts': 1,
-  'procurement.ts': 1,
-  'termin-payment.ts': 1,
+  'pengadaan-lanjutan.ts': 1,
+  'procurement.ts': 2,
+  'rantai-kontrak.ts': 1,
 }
 const LANTAI = Object.values(LANTAI_BERKAS).reduce((a, b) => a + b, 0)
 
@@ -229,11 +242,24 @@ function rantaiUpdate(src) {
     let i = m.index + m[0].length - 1
     let dalam = 0
     if (literalObjek) {
-      // lewati objek argumennya
+      // Lewati objek argumennya…
       for (; i < src.length; i++) {
         if (src[i] === '{') dalam++
         else if (src[i] === '}') { dalam--; if (dalam === 0) { i++; break } }
       }
+      // …LALU lewati `)` penutup `.update(`.
+      //
+      // Tanpa baris ini, `i` berhenti TEPAT di `)` itu, dan loop pemotongan di
+      // bawah langsung `break` karena melihat `)` pada kedalaman nol. Seluruh
+      // rantai `.eq(…)` sesudahnya tak pernah terbaca — artinya penjaga ini
+      // MENUDUH kode yang justru sudah benar.
+      //
+      // Ketahuan 2026-08-09 saat perbaikan `finance.ts` yang sungguhan tetap
+      // dilaporkan melanggar. Cacatnya ada sejak versi pertama; ia tak terlihat
+      // hanya karena sampai saat itu belum ada satu pun kode yang benar untuk
+      // dituduh.
+      while (i < src.length && src[i] !== ')') i++
+      i++
     } else {
       i = m.index + m[0].length      // tepat sesudah ')'
     }

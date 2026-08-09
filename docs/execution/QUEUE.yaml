@@ -1617,3 +1617,29 @@ items:
       keduanya hanya sejauh satu permintaan pelanggan.
     bobot: M
     status: todo
+
+  - id: T5A-PERMISSIVE
+    fase: 2
+    judul: "6 tabel punya policy tenant PERMISSIVE, seharusnya RESTRICTIVE"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "nol policy tenant_isolation yang permissive"
+      - "t5a-policy-tenant.test.ts hijau"
+      - "f2-3-batch3-tenancy-turunan.test.ts hijau"
+    cara_verifikasi: >-
+      cd apps/api && npx vitest run src/routes/v1/__tests__/t5a-policy-tenant.test.ts
+      src/routes/v1/__tests__/f2-3-batch3-tenancy-turunan.test.ts
+    catatan: >-
+      DUA TEST MERAH DI MAIN, ditemukan 2026-08-09 saat menjalankan suite penuh
+      untuk TJS-A0. BUKAN regresi dari pekerjaan itu — dibuktikan dengan
+      menjalankan keduanya pada kode sebelum perubahan (git stash): tetap merah.
+
+      Pesannya: "policy tenant jadi PERMISSIVE = ia MELEBARKAN akses, bukan
+      membatasi" — 6 tabel, salah satunya `pencocokan_bank`.
+
+      Kelasnya sama dengan yang dicatat di spec lapisan AI (§5.4): perlindungan
+      tenant di repo ini bertumpu pada penyaringan aplikasi, dan policy RLS-nya
+      belum bisa diandalkan sebagai lapis kedua. Ditulis sebagai item tersendiri
+      supaya tak tenggelam di antara pekerjaan AI.
+    bobot: M
+    status: todo
