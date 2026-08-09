@@ -5,6 +5,66 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-10 (lanjutan 7) — TJS-D1: pintu keluar WhatsApp, dan dua celah TJS
+
+Evolution sudah terpasang untuk Puraloka sejak TJS-A0 (port 8081, DB
+`puraloka_wa`). Sekarang jalur kirimnya ada.
+
+### Struktur TJS ditiru, dua celahnya ditutup
+
+`automation-tjs/admin-dashboard/lib/wa/` punya satu pintu keluar + registry
+adaptor. Itu ditiru apa adanya — termasuk aturan **tak pernah melempar**,
+yang alasannya benar: invoice tetap tersimpan meski WhatsApp mati.
+
+Yang TIDAK ada di TJS, dan justru kriteria D1:
+
+| Celah | Akibatnya |
+|---|---|
+| **Idempotensi keluar** | TJS punya dedup MASUK (`providerMessageId`) tapi nol untuk KELUAR. Webhook yang diulang penyedia — hal biasa — mengirim notifikasi dua kali, dan yang kedua terbaca sebagai kejadian baru |
+| **Nomor → daftar kontak** | TJS mengikat nomor ke `ownerAiContact` (`synthetic-session.ts:97`), bukan `users.id`. Orang yang dicabut aksesnya di ERP tetap bisa bertanya lewat WhatsApp sampai seseorang ingat menghapusnya dari daftar kedua |
+
+Di sini nomor terikat `users.id`, dan `UNIQUE(nomor)` berlaku **lintas tenant** —
+kalau nomor yang sama bisa terdaftar di dua tenant, pesan masuk tak punya cara
+menentukan atas nama siapa ia bertanya.
+
+### Cacat urutan yang test temukan
+
+Versi pertama memeriksa konfigurasi **sebelum** klaim kunci idempotensi.
+Akibatnya: pemanggil yang kanalnya belum siap tak pernah sampai ke klaim, jadi
+idempotensi **tak berlaku sama sekali** di jalur itu — dan begitu kanalnya
+dinyalakan, seluruh notifikasi tertunda terkirim ulang karena tak ada satu pun
+kunci tercatat.
+
+Diperbaiki: klaim dulu, konfigurasi belakangan. Konsekuensinya diterima sadar
+(kunci yang diklaim lalu gagal tak dicoba ulang otomatis) — pengiriman ulang
+massal jauh lebih berbahaya daripada satu notifikasi hilang, dan barisnya
+bertanda `berhasil = false` sehingga bisa ditelusuri.
+
+### Penjaga W-1…W-5, 5/5 mutasi merah
+
+M1 meniru cacat TJS sesungguhnya: titik kirim kedua dengan bentuk muatan
+menyimpang (`textMessage: { text }` alih-alih `text`). Di TJS bentuk itu
+membuat alert stok diam berbulan-bulan tanpa satu pun galat.
+
+W-3 memeriksa pintunya **tak melempar** — satu `throw` di sana membuat invoice
+gagal tersimpan hanya karena WhatsApp mati.
+
+### Yang sengaja tidak disimpan
+
+`wa_pesan_log` menyimpan **panjang** pesan, bukan isinya. Alasan sama dengan
+`ai_akses_ditolak` (migrasi 249): log yang menyimpan isi jadi salinan kedua
+data operasional yang retensinya tak pernah ikut diatur. Ada test yang
+memeriksa kata rahasia tak muncul di baris log mana pun.
+
+### Bukti
+
+- 191/191 test hijau (15 WhatsApp baru + 176 sebelumnya)
+- 28/28 penjaga hijau; penjaga WA 5/5 mutasi merah
+- migrasi 256 lulus blok verifikasinya sendiri (nomor tak ternormalisasi
+  ditolak, kunci ganda ditolak, log tanpa kolom isi)
+
+---
+
 ## 2026-08-10 (lanjutan 6) — Halaman Biaya AI, dan cacat zona waktu yang tak melempar apa pun
 
 Menu `ai-biaya` bertanda `rencana` sejak migrasi 253. Sekarang hidup.

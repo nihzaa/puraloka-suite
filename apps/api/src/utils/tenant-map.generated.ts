@@ -4,7 +4,7 @@
 // Penegak: `node scripts/gen-tenant-map.mjs check` (CI) — build MERAH kalau
 // ada tabel yang belum terklasifikasi (ADR-011 §9.5 P3).
 //
-// 192 tabel · A=11 · AB=14 · ANCHOR=1 · B=75 · C=84 · D=7
+// 195 tabel · A=11 · AB=14 · ANCHOR=1 · B=78 · C=84 · D=7
 //
 // Arti kategori (ADR-011 §5 + audit T1):
 //   ANCHOR akar tenancy (projects) — company_id NOT NULL
@@ -218,6 +218,9 @@ export const PETA_TENANCY = {
   'units': { kategori: 'A' },
   'users': { kategori: 'D' },  // Identitas lintas-tenant. Satu orang bisa jadi anggota >1 company dengan peran berbeda — keanggotaan hidup di company_members (ADR-011 D6), bukan di users.
   'v_situs_publik': { kategori: 'B', view: true },
+  'wa_kirim_idempotensi': { kategori: 'B' },
+  'wa_nomor_pengguna': { kategori: 'B' },
+  'wa_pesan_log': { kategori: 'B' },
   'wage_deductions': { kategori: 'C', lewat: 'report_id' },  // wage_deductions.report_id → weekly_wage_reports.assignment_id → mandor_assignments.project_id
   'wage_items': { kategori: 'C', lewat: 'report_id' },  // wage_items.report_id → weekly_wage_reports.assignment_id → mandor_assignments.project_id
   'wbs_nodes': { kategori: 'C', lewat: 'project_id' },  // wbs_nodes.project_id

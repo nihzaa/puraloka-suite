@@ -367,6 +367,15 @@ jobs:
       - name: Tenancy jalur AI (T-1)
         run: node scripts/audit-tenancy-jalur-ai.mjs
 
+      # TJS baru merapikan pengiriman WA SETELAH tersebar ke 10 titik di
+      # aplikasi + 30 di n8n. Header lib/wa/send.ts mereka mencatat akibatnya:
+      # satu titik memakai bentuk muatan yang menyimpang, Evolution menolaknya,
+      # dan alert stok TIDAK PERNAH terkirim — gagalnya senyap. Ketersebaran
+      # itu tumbuh satu titik demi satu titik, masing-masing tampak wajar saat
+      # ditulis.
+      - name: Satu pintu keluar WhatsApp
+        run: node scripts/audit-satu-pintu-wa.mjs
+
       # Nominal dari permintaan yang dibaca `parseFloat` mentah. Rantai cacatnya
       # dibuktikan 2026-08-08 di Node DAN di Postgres: `qty: "abc"` → NaN → cek
       # saldo LOLOS (setiap perbandingan dengan NaN bernilai false) → Postgres
