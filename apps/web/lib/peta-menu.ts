@@ -400,6 +400,10 @@ export const PETA_MENU: GrupMenu[] = [
       { key: 'sy-import', label: 'Impor & Ekspor Data', status: 'sebagian', href: '/estimasi', guna: 'Memasukkan data massal dari Excel.', catatan: 'Impor RAB & AHSP sudah ada; jenis data lain belum.' },
       { key: 'sy-modul', label: 'Modul & Feature Flag', status: 'hidup', href: '/pengaturan', guna: 'Menyalakan/mematikan modul tanpa deploy.' },
       { key: 'sy-sistem', label: 'Pemeliharaan Sistem', status: 'hidup', href: '/sistem', guna: 'Menjalankan pemeriksaan berkala secara manual.' },
+      // Satu-satunya item di grup ini yang TANPA izin — yang diaturnya akun
+      // pemanggil sendiri, dan mandor yang kehilangan ponsel justru yang
+      // paling butuh membukanya. Alasan lengkapnya di migrasi 278.
+      { key: 'keamanan-akun', label: 'Keamanan Akun', status: 'hidup', href: '/pengaturan/keamanan', guna: 'Verifikasi dua langkah, perangkat yang sedang masuk, dan riwayatnya — untuk akun Anda sendiri.' },
     ],
   },
   {

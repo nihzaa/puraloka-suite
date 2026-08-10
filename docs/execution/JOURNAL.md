@@ -10870,3 +10870,116 @@ semuanya sudah merah di baseline.
 `settings/security` — founder menyerahkan penilaiannya. TJS memakai auth
 sendiri (sesi aktif, riwayat login, kebijakan sandi); Puraloka memakai Supabase
 Auth, jadi mekanismenya berbeda dan tidak bisa ditiru langsung.
+
+## 2026-08-11 (lanjutan 9) — Keamanan akun: MFA nyata, dan tiga cacat yang hanya muncul saat diuji sungguhan
+
+Founder menyerahkan penilaian `settings/security` ke saya.
+
+### Dugaan saya SALAH sebelum mengukur
+
+Saya menduga halaman itu berisi "sesi aktif + riwayat login + kebijakan sandi".
+Dibaca isinya: **MFA/TOTP** — QR, kode cadangan, penonaktifan. Kalau saya
+membangun dari dugaan, hasilnya halaman yang tak ada hubungannya.
+
+### Puraloka bisa LEBIH dari TJS, tanpa menulis kripto
+
+Diukur ke basis:
+
+    auth.mfa_factors / mfa_challenges / mfa_amr_claims   ADA (0 faktor)
+    auth.sessions                                        374 baris
+    auth.audit_log_entries                               0 baris
+
+TJS menulis TOTP-nya sendiri karena auth-nya milik sendiri. Di sini Supabase
+sudah menyediakan seluruhnya — menulis ulang kripto di atas basis yang SUDAH
+punya tabelnya bukan kemandirian, melainkan permukaan serangan kedua.
+
+Yang ditiru: bentuk alurnya (QR → verifikasi → aktif). Yang tidak: kriptonya.
+Ditambah dua hal yang TJS tak punya — sesi aktif dan riwayat masuk.
+
+### Tiga cacat yang lolos typecheck, ketiganya ditemukan uji alur nyata
+
+**1. `Invalid schema: auth`.** Versi pertama membaca `auth.sessions` lewat
+PostgREST. Gagal — PostgREST memang tidak mengekspos skema `auth`, dan itu
+benar (membukanya membuat seluruh tabel kredensial terjangkau lewat REST).
+Jalannya fungsi `SECURITY DEFINER` di `public` (migrasi 277), yang memberi
+akses sama sempitnya tanpa menambah kredensial basis di proses API.
+
+**2. Percobaan KEDUA di hari yang sama selalu gagal.**
+
+    A factor with the friendly name "Puraloka 2026-08-10" already exists
+
+`friendlyName` memakai tanggal saja, dan Supabase menuntutnya unik per
+pengguna. Itu justru jalur paling umum: orang memindai QR, salah memasukkan
+kode, menutup halaman, lalu mencoba lagi. **Cacat yang hanya muncul pada
+percobaan kedua adalah cacat yang lolos dari uji sekali-jalan.**
+
+**3. Pembersihan faktor `unverified` melewatkan sebagian** — `listFactors()`
+tak selalu mengembalikan yang belum terverifikasi; `.all` dipakai bila ada.
+
+Ketiganya lolos `tsc`. Yang menemukannya `apps/api/scripts/uji-alur-mfa.mjs` —
+yang MENGHITUNG TOTP sendiri dari rahasianya, bukan memalsukan balasan. Mock
+akan lulus meski rahasianya salah encoding atau tantangannya tak pernah dibuat.
+
+    daftar    : faktor be9987a0…
+    verifikasi: ✅ ok (kode 031693)
+    status    : mfa.aktif = true | faktor: verified
+    matikan   : ✅ faktor dicabut
+    akhir     : mfa.aktif = false
+
+Akun uji dibersihkan di akhir — meninggalkannya ber-MFA aktif akan mengunci
+sesi berikutnya di luar.
+
+### Penjaga tenancy BENAR menandai rute baru saya
+
+`audit-gerbang-tenancy` naik 6 → 7. Datanya memang bukan milik perusahaan
+lain, tetapi dari kode TypeScript-nya saja tak ada yang menunjukkan batasnya.
+
+Godaan yang ditolak: menaikkan ambang, atau menyebut `companyId` yang tak
+dipakai supaya penjaga diam. Yang benar `request.db.raw` — pintu yang memang
+disediakan untuk `.rpc()` (`utils/tenant-db.ts:105`). Memakainya MENYATAKAN
+rute ini sadar-tenant alih-alih melewati mekanismenya. Kembali ke 6.
+
+### Riwayat masuk kosong, dan halaman MENGATAKANNYA
+
+`auth.audit_log_entries` nol baris — seluruhnya, bukan nol untuk satu
+pengguna. Login aplikasi pun tak dicatat; yang ada hanya `users.last_login_at`
+yang DITIMPA tiap kali.
+
+Daftar kosong tanpa penjelasan tak bisa dibedakan dari fitur rusak. API
+mengirim `riwayat_tersedia`, dan halaman menjelaskan pencatatannya belum
+dinyalakan — bukan "Anda belum pernah masuk".
+
+Hal yang sama untuk kode cadangan: Supabase tak menyediakannya untuk TOTP.
+Menampilkan kotak "kode cadangan" berisi karangan sendiri jauh lebih berbahaya
+daripada tidak menampilkannya — orang akan menyimpannya, lalu menemukan
+kodenya tak berlaku justru saat perangkatnya hilang. Halaman menyebut jalan
+pulih yang SEBENARNYA.
+
+### Migrasi 278 — menu TANPA izin, dan itu disengaja
+
+Setiap item lain di Administrasi menuntut izin. Ini tidak: yang diaturnya akun
+pemanggil SENDIRI. Mandor dan staf lapangan adalah orang yang paling mungkin
+kehilangan ponsel atau memakai perangkat bersama — mengunci halaman keamanan
+akun di balik izin administrasi berarti hanya admin yang bisa mengamankan
+akunnya. Verifikasi migrasi MENEGAKKAN itu: kalau kelak ada yang menambahkan
+izin, migrasinya merah.
+
+### Bukti
+
+    tsc (api)              0
+    tsc (web)              0
+    vitest (web)           604 lulus / 46 berkas — 0 gagal
+    pnpm build             ✓ Compiled successfully in 7.2s
+    migrasi 277            NOTICE: 2 fungsi SECURITY DEFINER, search_path dipaku,
+                           nol kebocoran hak, 20 sesi terbaca
+    migrasi 278            NOTICE: menu aktif, tingkat 2, nol izin, href unik
+    uji-alur-mfa           daftar → verifikasi → aktif → cabut, TOTP dihitung nyata
+    audit-gerbang-tenancy  6 (kembali ke ambang)
+    audit-peta-menu-vs-db  ✅ drift 0
+    esc/isian/judul        OK
+
+### Yang tersisa untuk founder
+
+API di :3007 belum memuat rute `/keamanan` — **restart `npx tsx src/index.ts`**
+untuk memakainya. Uji dijalankan di instance terpisah (:3099) yang sudah
+ditutup; :3000 dan :3007 milik founder tidak disentuh.
