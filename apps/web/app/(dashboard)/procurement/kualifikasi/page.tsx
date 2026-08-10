@@ -37,7 +37,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ShieldCheck, RefreshCw, TriangleAlert, Ban, Clock } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
-import { Kosong } from "@/components/ui-dasar";
+import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
 
 type Peringatan =
@@ -107,19 +107,13 @@ const LABEL_DIMENSI: Record<string, string> = {
   mutu: "mutu", waktu: "ketepatan waktu", harga: "harga", layanan: "layanan",
 };
 
-const kartu: React.CSSProperties = {
-  background: "var(--surface)",
-  border: `1px solid ${C.border}`,
-  borderRadius: 12,
-  boxShadow: "var(--naik-1)",
-};
 
 /** Satu angka besar dengan penjelasannya. Lapis 1 pola ARAH-VISUAL §5b. */
 function Kpi({ label, nilai, keterangan, warna }: {
   label: string; nilai: string; keterangan?: string; warna?: string;
 }) {
   return (
-    <div style={{ ...kartu, padding: "var(--pad-kartu-lega)", flex: "1 1 190px", minWidth: 175 }}>
+    <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", flex: "1 1 190px", minWidth: 175 }}>
       <div style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.04em" }}>
         {label}
       </div>
@@ -333,7 +327,7 @@ export default function KualifikasiVendorPage() {
 
       {galat && (
         <div role="alert" style={{
-          ...kartu, padding: "10px 14px", marginBottom: "var(--gap-bagian)",
+          ...GAYA_KARTU, padding: "10px 14px", marginBottom: "var(--gap-bagian)",
           borderColor: "var(--danger-border)", background: "var(--danger-bg)",
           color: "var(--danger)", fontSize: 13,
         }}>
@@ -397,7 +391,7 @@ export default function KualifikasiVendorPage() {
           {/* Peringatan yang menuntut tindakan */}
           {ringkas.lolosTapiMati > 0 && (
             <div className="rise rise-3" style={{
-              ...kartu, padding: "12px 16px", marginBottom: 12,
+              ...GAYA_KARTU, padding: "12px 16px", marginBottom: 12,
               borderColor: "var(--danger-border)", background: "var(--danger-bg)",
               display: "flex", gap: 10, alignItems: "flex-start",
             }}>
@@ -417,7 +411,7 @@ export default function KualifikasiVendorPage() {
 
           {ringkas.segeraHabis > 0 && (
             <div className="rise rise-3" style={{
-              ...kartu, padding: "12px 16px", marginBottom: 12,
+              ...GAYA_KARTU, padding: "12px 16px", marginBottom: 12,
               borderColor: "var(--warning-border)", background: "var(--warning-bg)",
               display: "flex", gap: 10, alignItems: "flex-start",
             }}>
@@ -436,7 +430,7 @@ export default function KualifikasiVendorPage() {
 
           {ringkas.daftarHitam > 0 && (
             <div className="rise rise-3" style={{
-              ...kartu, padding: "12px 16px", marginBottom: "var(--gap-bagian)",
+              ...GAYA_KARTU, padding: "12px 16px", marginBottom: "var(--gap-bagian)",
               borderColor: "var(--danger-border)", background: "var(--danger-bg)",
               display: "flex", gap: 10, alignItems: "flex-start",
             }}>
@@ -471,7 +465,7 @@ export default function KualifikasiVendorPage() {
           <h3 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: "0 0 8px" }}>
             Prakualifikasi
           </h3>
-          <div className="rise rise-4" style={{ ...kartu, padding: "4px 4px 0", overflow: "hidden", marginBottom: "var(--gap-bagian)" }}>
+          <div className="rise rise-4" style={{ ...GAYA_KARTU, padding: "4px 4px 0", overflow: "hidden", marginBottom: "var(--gap-bagian)" }}>
             <Tabel<Prakualifikasi>
               caption="Prakualifikasi vendor: skor berbobot, status, kelayakan diundang tender, dan masa berlaku dokumen."
               kolom={kolomPra}
@@ -492,7 +486,7 @@ export default function KualifikasiVendorPage() {
           <h3 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: "0 0 8px" }}>
             Evaluasi kinerja
           </h3>
-          <div className="rise rise-4" style={{ ...kartu, padding: "4px 4px 0", overflow: "hidden" }}>
+          <div className="rise rise-4" style={{ ...GAYA_KARTU, padding: "4px 4px 0", overflow: "hidden" }}>
             <Tabel<Evaluasi>
               caption="Evaluasi kinerja vendor: skor berbobot dibanding rata-rata polos, titik lemah per dimensi, dan status daftar hitam."
               kolom={kolomEval}

@@ -43,13 +43,8 @@ import { Bot, Info, Loader2, Power, Save, ShieldCheck } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
+import { GAYA_KARTU } from "@/components/ui-dasar";
 
-const card: React.CSSProperties = {
-  background: "var(--surface)",
-  border: "1px solid var(--border)",
-  borderRadius: 14,
-  boxShadow: "var(--naik-1)",
-};
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -247,7 +242,7 @@ function Konten() {
       </div>
 
       {!bolehKelola && (
-        <div style={{ ...card, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)", display: "flex", gap: 10 }}>
+        <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)", display: "flex", gap: 10 }}>
           <Info size={18} style={{ color: C.mid, flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 13, color: C.mid, lineHeight: 1.6 }}>
             Anda bisa melihat pengaturan ini, tetapi tidak mengubahnya.
@@ -257,7 +252,7 @@ function Konten() {
       )}
 
       {/* ── Batas yang TIDAK bisa diatur — dinyatakan, bukan disembunyikan ── */}
-      <section style={{ ...card, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)", display: "flex", gap: 10 }}>
+      <section style={{ ...GAYA_KARTU, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)", display: "flex", gap: 10 }}>
         <ShieldCheck size={18} style={{ color: "var(--success)", flexShrink: 0, marginTop: 1 }} />
         <div style={{ fontSize: 12.5, color: C.mid, lineHeight: 1.65 }}>
           Asisten <strong style={{ color: C.text }}>hanya bisa membaca</strong>, dan itu tidak
@@ -267,13 +262,13 @@ function Konten() {
       </section>
 
       {memuat ? (
-        <div style={{ ...card, padding: "var(--pad-kartu-lega)", textAlign: "center", color: C.muted, fontSize: 13 }}>
+        <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", textAlign: "center", color: C.muted, fontSize: 13 }}>
           Memuat…
         </div>
       ) : (
         <>
           {/* ── Saklar mati + retensi (kriteria B1 yang tertunda) ── */}
-          <section style={{ ...card, padding: "var(--pad-kartu-lega)", marginBottom: "var(--gap-bagian)" }}>
+          <section style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", marginBottom: "var(--gap-bagian)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
               <Power size={16} style={{ color: C.mid }} />
               <h2 style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: C.muted, margin: 0 }}>
@@ -378,7 +373,7 @@ function Konten() {
               const semuaAktif = aktif === null;
 
               return (
-                <section key={k.asisten} style={{ ...card, padding: "var(--pad-kartu-lega)" }}>
+                <section key={k.asisten} style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)" }}>
                   <h3 style={{ fontSize: 14, fontWeight: 600, color: C.text, margin: "0 0 14px" }}>
                     {nama}
                   </h3>

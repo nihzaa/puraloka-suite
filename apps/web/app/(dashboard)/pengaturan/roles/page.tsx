@@ -23,13 +23,8 @@ import {
 // ─── Design tokens ─────────────────────────────────────────────────────────────
 
 import { C } from "@/lib/warna-ui";
+import { GAYA_KARTU } from "@/components/ui-dasar";
 
-const card: React.CSSProperties = {
-  background: "var(--surface)",
-  border: "1px solid var(--border)",
-  borderRadius: 14,
-  boxShadow: "var(--naik-1)",
-};
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -289,7 +284,7 @@ function RolesContent() {
       <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 20, alignItems: "start" }}>
 
         {/* Left: Role list */}
-        <div style={card}>
+        <div style={GAYA_KARTU}>
           <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}` }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Semua Role</div>
             <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{roles.length} role terdaftar</div>
@@ -375,7 +370,7 @@ function RolesContent() {
 
         {/* Right: Permission matrix */}
         {selectedRole ? (
-          <div style={card}>
+          <div style={GAYA_KARTU}>
             {/* Header */}
             <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -513,7 +508,7 @@ function RolesContent() {
             )}
           </div>
         ) : (
-          <div style={{ ...card, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 60, color: C.muted }}>
+          <div style={{ ...GAYA_KARTU, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 60, color: C.muted }}>
             <Lock size={32} color={C.border} style={{ marginBottom: 12 }} />
             <div style={{ fontSize: 13, fontWeight: 600, color: C.mid }}>Pilih role untuk melihat permission</div>
             <div style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>Klik salah satu role di sebelah kiri</div>

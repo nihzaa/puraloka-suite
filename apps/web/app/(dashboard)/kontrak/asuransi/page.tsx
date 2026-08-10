@@ -22,7 +22,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ShieldCheck, ShieldAlert, ShieldX, CalendarClock, Plus, RefreshCw } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
-import { Kosong } from "@/components/ui-dasar";
+import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { Tabel, type Kolom, KepalaHalaman } from "@/components/dasar";
 import { formatRupiah } from "@/lib/format";
 
@@ -262,11 +262,7 @@ export default function AsuransiPage() {
     }
   }
 
-  const kartu: React.CSSProperties = {
-    background: "var(--surface)", border: `1px solid ${C.border}`,
-    borderRadius: 10, boxShadow: "var(--naik-1)",
-  };
-  const labelGaya: React.CSSProperties = {
+    const labelGaya: React.CSSProperties = {
     fontSize: 11, fontWeight: 700, color: C.muted,
     textTransform: "uppercase", letterSpacing: "0.05em",
   };
@@ -303,7 +299,7 @@ export default function AsuransiPage() {
       )}
 
       {memuat ? (
-        <div style={{ ...kartu, padding: 40, textAlign: "center", color: C.mid, fontSize: 13 }}>Memuat…</div>
+        <div style={{ ...GAYA_KARTU, padding: 40, textAlign: "center", color: C.mid, fontSize: 13 }}>Memuat…</div>
       ) : proyek.length === 0 ? (
         <Kosong
           ikon={<ShieldCheck size={28} />}
@@ -313,7 +309,7 @@ export default function AsuransiPage() {
       ) : (
         <>
           {/* ── Form catat polis ─────────────────────────────────────── */}
-          <div className="rise rise-2" style={{ ...kartu, padding: 16, marginBottom: 16 }}>
+          <div className="rise rise-2" style={{ ...GAYA_KARTU, padding: 16, marginBottom: 16 }}>
             <div style={{
               display: "grid", gap: 12,
               gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
@@ -423,7 +419,7 @@ export default function AsuransiPage() {
                     Ikon: ShieldCheck,
                   },
                 ].map((k) => (
-                  <div key={k.label} style={{ ...kartu, padding: "10px 14px", flex: "1 1 190px", minWidth: 178 }}>
+                  <div key={k.label} style={{ ...GAYA_KARTU, padding: "10px 14px", flex: "1 1 190px", minWidth: 178 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                       <k.Ikon size={12} aria-hidden="true" style={{ color: k.warna }} />
                       <span style={labelGaya}>{k.label}</span>
@@ -464,7 +460,7 @@ export default function AsuransiPage() {
                   sebab="Catat polis lewat formulir di atas. Celah pertanggungannya dihitung otomatis terhadap masa proyek."
                 />
               ) : (
-                <div className="rise rise-3" style={{ ...kartu, overflow: "hidden" }}>
+                <div className="rise rise-3" style={{ ...GAYA_KARTU, overflow: "hidden" }}>
                   {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). Caption
                       sr-only, kolom pertama <th scope="row">, tabular-nums,
                       dan pembungkus overflow-x sekarang dijamin komponen —

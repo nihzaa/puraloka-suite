@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { useIzin } from "@/lib/use-izin";
 import { useToast } from "@/components/toast";
 import { Paginasi } from "@/components/paginasi";
+import { GAYA_KARTU } from "@/components/ui-dasar";
 import {
   ShieldCheck, Search,
   Clock, User, Database, RefreshCw, AlertCircle, FileText,
@@ -180,11 +181,7 @@ export default function AuditPage() {
       )
     : logs;
 
-  const card: React.CSSProperties = {
-    background: "var(--surface)", border: "1px solid var(--border)",
-    borderRadius: 14, boxShadow: "var(--naik-1)",
-  };
-
+  
   // ADR-004: capability, bukan jabatan. API menjaga rute ini dengan
   // `requirePermission('audit:view')` (audit.ts:10,77) — gerbang UI harus
   // menanyakan hal yang SAMA, kalau tidak pemegang wewenang yang sah (mis.
@@ -232,7 +229,7 @@ export default function AuditPage() {
       </div>
 
       {/* Filters */}
-      <div style={{ ...card, padding: "16px 20px", marginBottom: 16, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
+      <div style={{ ...GAYA_KARTU, padding: "16px 20px", marginBottom: 16, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
         {/* Search */}
         <div style={{ position: "relative", flex: "1 1 200px", minWidth: 180 }}>
           <Search size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
@@ -307,7 +304,7 @@ export default function AuditPage() {
       </div>
 
       {/* Log table */}
-      <div style={card}>
+      <div style={GAYA_KARTU}>
         {loading ? (
           <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>Memuat...</div>
         ) : filteredLogs.length === 0 ? (

@@ -17,13 +17,8 @@ import { Building2, Plus, Users, AlertTriangle, Check, X, ArrowRightLeft } from 
 
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
+import { GAYA_KARTU } from "@/components/ui-dasar";
 
-const card: React.CSSProperties = {
-  background: "var(--surface)",
-  border: "1px solid var(--border)",
-  borderRadius: 14,
-  boxShadow: "var(--naik-1)",
-};
 
 interface BadanUsaha {
   id: string;
@@ -114,7 +109,7 @@ export default function PerusahaanPage() {
   if (ditolak) {
     return (
       <div style={{ padding: 24, maxWidth: 640 }}>
-        <div style={{ ...card, padding: 20, display: "flex", gap: 12, alignItems: "flex-start" }}>
+        <div style={{ ...GAYA_KARTU, padding: 20, display: "flex", gap: 12, alignItems: "flex-start" }}>
           <AlertTriangle size={18} style={{ color: C.amber, flexShrink: 0, marginTop: 2 }} />
           <div>
             <h2 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: "0 0 6px" }}>
@@ -155,7 +150,7 @@ export default function PerusahaanPage() {
 
       {pesan && (
         <div style={{
-          ...card,
+          ...GAYA_KARTU,
           padding: "12px 12px", marginBottom: 14,
           display: "flex", alignItems: "center", gap: 8,
           background: pesan.tipe === "ok" ? C.greenBg : C.redBg,
@@ -169,7 +164,7 @@ export default function PerusahaanPage() {
       )}
 
       {formTerbuka && (
-        <form onSubmit={simpan} style={{ ...card, padding: 20, marginBottom: 18 }}>
+        <form onSubmit={simpan} style={{ ...GAYA_KARTU, padding: 20, marginBottom: 18 }}>
           <h2 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: "0 0 4px" }}>
             Badan usaha baru
           </h2>
@@ -233,7 +228,7 @@ export default function PerusahaanPage() {
 
       <div style={{ display: "grid", gap: 8 }}>
         {daftar.map((b) => (
-          <div key={b.id} style={{ ...card, padding: "16px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+          <div key={b.id} style={{ ...GAYA_KARTU, padding: "16px 16px", display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{
               width: 38, height: 38, borderRadius: 10, flexShrink: 0,
               background: "var(--surface-subtle)", display: "flex",

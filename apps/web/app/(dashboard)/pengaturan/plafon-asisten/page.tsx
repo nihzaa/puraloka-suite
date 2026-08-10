@@ -41,13 +41,8 @@ import { ShieldCheck, Info } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
+import { GAYA_KARTU } from "@/components/ui-dasar";
 
-const card: React.CSSProperties = {
-  background: "var(--surface)",
-  border: "1px solid var(--border)",
-  borderRadius: 14,
-  boxShadow: "var(--naik-1)",
-};
 
 const input: React.CSSProperties = {
   padding: "8px 10px",
@@ -159,7 +154,7 @@ function Konten() {
       />
 
       {/* Penjelasan yang menahan salah paham paling mahal di halaman ini. */}
-      <div style={{ ...card, padding: 14, display: "flex", gap: 10, alignItems: "flex-start" }}>
+      <div style={{ ...GAYA_KARTU, padding: 14, display: "flex", gap: 10, alignItems: "flex-start" }}>
         <Info size={16} style={{ color: C.muted, marginTop: 2, flexShrink: 0 }} />
         <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.65 }}>
           <strong style={{ color: C.text }}>Plafon ini tidak menambah wewenang.</strong>{" "}
@@ -175,7 +170,7 @@ function Konten() {
         </div>
       </div>
 
-      <div style={{ ...card, overflow: "hidden" }}>
+      <div style={{ ...GAYA_KARTU, overflow: "hidden" }}>
         {memuat ? (
           <div style={{ padding: 24, color: C.muted, fontSize: 14 }}>Memuat…</div>
         ) : baris.length === 0 ? (

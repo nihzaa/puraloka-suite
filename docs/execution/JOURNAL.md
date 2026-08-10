@@ -9619,3 +9619,45 @@ data". `operate.md`: "empty states that teach the interface".
 Bukti: detektor impeccable NOL temuan · tsc bersih dua app · 5 penjaga visual
 hijau (termasuk `audit-tab-seragam`, yang mensyaratkan tab lewat `TabBagian`)
 · endpoint diuji nyata: aktif 14 · gagal 1 · jalan 24j 2 · belum pernah 12.
+
+---
+
+## 2026-08-10 (lanjutan 7) — K-2: radius kartu 10/12/14 jadi satu
+
+**K-2 sebagaimana saya rumuskan ternyata salah sasaran, dan itu ketahuan dari
+mengukur.** Rencananya "37 kartu buatan sendiri → `Panel`". Diperiksa satu
+contoh: ketiganya `<div style={card}>` **tanpa judul** — pembungkus polos.
+`Panel` wajib punya judul + garis bawah, jadi mengonversinya justru
+MENAMBAHKAN judul yang tak diminta siapa pun.
+
+Yang benar-benar cacat baru terlihat setelah membandingkan definisinya:
+**49 berkas mendefinisikan `const card` sendiri dengan 8 BENTUK BERBEDA**, dan
+yang membedakan bukan kebutuhan melainkan RADIUS — 10px di 12 berkas, 12px di
+8, 14px di 27. Ditambah `background` yang ditulis tiga cara berbeda
+(`"var(--surface)"`, `C.surface`, `C.white`) untuk warna yang sama.
+
+Itulah yang terasa saat berpindah halaman: sudut kartu berubah, dan mata
+membacanya sebagai "aplikasi yang berbeda-beda" tanpa bisa menunjuk apa yang
+salah. Pola yang persis sama dengan 27 varian `<h1>` (UIR-2) dan empat gaya
+tab (`audit-tab-seragam`) — lahir karena tiap halaman ditulis pada waktu
+berbeda dan menyalin dari tetangga terdekat.
+
+`GAYA_KARTU` di `ui-dasar` jadi satu sumber; 29 berkas dipindahkan. 14px yang
+menang: mayoritas, dan `craft-floor` menyebut rentang 12–16px untuk kartu.
+
+**Satu berkas SENGAJA dilewati:** `sistem/page.tsx` punya `padding` di
+definisinya, dan menyatukannya berarti membuang padding itu diam-diam. Halaman
+yang berubah tanpa diminta adalah kerusakan, bukan penyeragaman.
+
+**Dan kesalahan yang berulang untuk KEDUA kalinya:** penyisip import mendarat
+di TENGAH blok `import {` multi-baris — persis yang terjadi pada
+`sistem/page.tsx` saat konversi judul beberapa jam sebelumnya. Tiga berkas
+kena (`audit`, `kalender`, `kas/_bersama/komponen`), semuanya langsung merah
+di typecheck. Ditambah satu `export` yatim yang tertinggal karena konstanta
+yang dihapus ternyata diekspor.
+
+Ketiganya kerusakan yang JELAS dan langsung berbunyi — bukan yang diam. Itu
+bedanya dengan cacat yang saya kejar hari ini.
+
+Bukti: tsc bersih · 5 penjaga visual hijau · judul-ratchet tetap · bentuk
+kartu 8 → 6 (sisanya di `components/`, di luar jangkauan konversi ini).

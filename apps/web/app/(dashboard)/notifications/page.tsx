@@ -13,13 +13,8 @@ import { api } from "@/lib/api";
 // ─── Design tokens ────────────────────────────────────────────────────────────
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
+import { GAYA_KARTU } from "@/components/ui-dasar";
 
-const card: React.CSSProperties = {
-  background: C.white,
-  border: `1px solid ${C.border}`,
-  borderRadius: 14,
-  boxShadow: "var(--naik-1)",
-};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -345,7 +340,7 @@ export default function NotificationsPage() {
       {/* Bulk actions bar */}
       {selected.size > 0 && (
         <div style={{
-          ...card,
+          ...GAYA_KARTU,
           padding: "8px 16px", marginBottom: 12,
           display: "flex", alignItems: "center", gap: 12,
           borderColor: C.navy,
@@ -390,12 +385,12 @@ export default function NotificationsPage() {
 
       {/* Content */}
       {loading ? (
-        <div style={{ ...card, padding: 40, textAlign: "center", color: C.mid, fontSize: 13 }}>
+        <div style={{ ...GAYA_KARTU, padding: 40, textAlign: "center", color: C.mid, fontSize: 13 }}>
           Memuat notifikasi...
         </div>
       ) : filtered.length === 0 ? (
         <div style={{
-          ...card, padding: 60,
+          ...GAYA_KARTU, padding: 60,
           display: "flex", flexDirection: "column", alignItems: "center", gap: 12,
         }}>
           <Bell size={40} strokeWidth={1.5} color={C.muted} />
@@ -414,7 +409,7 @@ export default function NotificationsPage() {
                 {group.label}
               </div>
 
-              <div style={card}>
+              <div style={GAYA_KARTU}>
                 {group.items.map((notif, idx) => {
                   const { color, bg } = typeColors(notif.type);
                   const isLast   = idx === group.items.length - 1;

@@ -34,6 +34,7 @@ import { C } from "@/lib/warna-ui";
 // masing-masing di tempatnya — rekap tanpa kepala kolom, lembar AHSP bertingkat,
 // dan price book yang divirtualisasi.
 import { Tabel, KepalaHalaman } from "@/components/dasar";
+import { GAYA_KARTU } from "@/components/ui-dasar";
 
 const fmtRp = (n: number) => `Rp ${Number(n).toLocaleString("id-ID")}`;
 
@@ -193,7 +194,6 @@ const th: React.CSSProperties = { textAlign: "left", padding: "8px 8px", fontSiz
 const td: React.CSSProperties = { padding: "8px 8px", fontSize: 13, color: C.text, borderBottom: `1px solid ${C.border}`, verticalAlign: "top" };
 const btnPrimary: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 6, background: C.navy, color: C.onNavy, border: "none", borderRadius: 6, padding: "8px 12px", fontSize: 13, fontWeight: 600, cursor: "pointer" };
 const btnGhost: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 6, background: C.surface, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" };
-const card: React.CSSProperties = { background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, boxShadow: "var(--naik-1)" };
 const lbl: React.CSSProperties = { display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 5 };
 // Baris penutup lembar analisa: label rata kanan menempel ke angkanya, supaya
 // mata membaca "Jumlah ..... Rp X" sebagai satu baris, bukan dua kolom terpisah.
@@ -1188,7 +1188,7 @@ function KatalogTab() {
           terlihat — pengguna yang tak melihat layar tetap tahu tindakannya
           berhasil. */}
       {pesan && (
-        <div role="status" style={{ ...card, padding: "8px 12px", marginBottom: 12, display: "flex",
+        <div role="status" style={{ ...GAYA_KARTU, padding: "8px 12px", marginBottom: 12, display: "flex",
                       alignItems: "center", gap: 8, background: C.greenBg, borderColor: C.green }}>
           <CheckCircle2 size={15} color={C.green} />
           <span style={{ fontSize: 13, color: C.text }}>{pesan}</span>
@@ -1588,7 +1588,7 @@ function AdopsiModal({ asal, onClose, onDone }: {
         display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
       }} onClick={onClose}>
       <form onClick={e => e.stopPropagation()} onSubmit={kirim} style={{
-        ...card, width: "100%", maxWidth: 660, maxHeight: "88vh", overflowY: "auto", padding: "var(--pad-kartu-lega)",
+        ...GAYA_KARTU, width: "100%", maxWidth: 660, maxHeight: "88vh", overflowY: "auto", padding: "var(--pad-kartu-lega)",
       }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
           <div>
@@ -1745,7 +1745,7 @@ function EditAssemblyModal({ asal, onClose, onDone }: {
         display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
       }} onClick={onClose}>
       <form onClick={e => e.stopPropagation()} onSubmit={kirim} style={{
-        ...card, width: "100%", maxWidth: 660, maxHeight: "88vh", overflowY: "auto", padding: "var(--pad-kartu-lega)",
+        ...GAYA_KARTU, width: "100%", maxWidth: 660, maxHeight: "88vh", overflowY: "auto", padding: "var(--pad-kartu-lega)",
       }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
           <div>
@@ -1946,7 +1946,7 @@ function RapTab() {
   return (
     <div>
       {pesan && (
-        <div role="status" style={{ ...card, padding: "8px 12px", marginBottom: 12, display: "flex",
+        <div role="status" style={{ ...GAYA_KARTU, padding: "8px 12px", marginBottom: 12, display: "flex",
                       alignItems: "center", gap: 8, background: C.greenBg, borderColor: C.green }}>
           <CheckCircle2 size={15} color={C.green} />
           <span style={{ fontSize: 13, color: C.text }}>{pesan}</span>
@@ -1978,7 +1978,7 @@ function RapTab() {
 
       {detail && (
         <div style={{ display: "grid", gap: "var(--gap-grid)" }}>
-          <div style={{ ...card, padding: "var(--pad-kartu-lega)" }}>
+          <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <ClipboardList size={16} color={C.navy} />
@@ -2008,7 +2008,7 @@ function RapTab() {
             </div>
           </div>
 
-          <div style={card}>
+          <div style={GAYA_KARTU}>
             <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 8 }}>
               <Package size={15} color={C.navy} />
               <strong style={{ fontSize: 13 }}>Material</strong>
@@ -2070,7 +2070,7 @@ function RapTab() {
             />
           </div>
 
-          <div style={card}>
+          <div style={GAYA_KARTU}>
             <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <HardHat size={15} color={C.navy} />
@@ -2109,7 +2109,7 @@ function RapTab() {
             />
           </div>
 
-          <div style={card}>
+          <div style={GAYA_KARTU}>
             <button onClick={() => setShowLogTable(s => !s)}
               style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "12px 16px",
                        background: "none", border: "none", cursor: "pointer", textAlign: "left" }}>
@@ -2945,7 +2945,7 @@ function PrioritasHarga({ onIsi }: { onIsi: (r: { code: string; name: string; un
   if (total === 0) return null; // tak ada gunanya menunjukkan daftar kosong
 
   return (
-    <div style={{ ...card, marginBottom: 14, background: C.yellowBg, borderColor: C.yellow }}>
+    <div style={{ ...GAYA_KARTU, marginBottom: 14, background: C.yellowBg, borderColor: C.yellow }}>
       <button onClick={() => setBuka(b => !b)} aria-expanded={buka}
         style={{ display: "flex", width: "100%", alignItems: "center", gap: 8,
                  padding: "12px var(--pad-kartu-lega)", background: "none", border: "none", cursor: "pointer",

@@ -45,13 +45,8 @@ import { Coins, Info, Zap } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
+import { GAYA_KARTU } from "@/components/ui-dasar";
 
-const card: React.CSSProperties = {
-  background: "var(--surface)",
-  border: "1px solid var(--border)",
-  borderRadius: 14,
-  boxShadow: "var(--naik-1)",
-};
 
 interface Kelompok {
   kunci: string;
@@ -175,7 +170,7 @@ function Konten() {
         <div
           role="alert"
           style={{
-            ...card, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)",
+            ...GAYA_KARTU, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)",
             borderColor: "var(--danger)", background: "var(--danger-bg)",
             fontSize: 13, color: C.text,
           }}
@@ -185,11 +180,11 @@ function Konten() {
       )}
 
       {memuat ? (
-        <div style={{ ...card, padding: "var(--pad-kartu-lega)", textAlign: "center", color: C.muted, fontSize: 13 }}>
+        <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", textAlign: "center", color: C.muted, fontSize: 13 }}>
           Memuat…
         </div>
       ) : !adaData ? (
-        <div style={{ ...card, padding: "var(--pad-kartu-lega)", display: "flex", gap: 10 }}>
+        <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", display: "flex", gap: 10 }}>
           <Info size={18} style={{ color: C.mid, flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 13, color: C.mid, lineHeight: 1.65 }}>
             Belum ada panggilan AI dalam {hari} hari terakhir. Angka di halaman ini dihitung dari
@@ -220,7 +215,7 @@ function Konten() {
           </div>
 
           {/* ── Deret harian ── */}
-          <section style={{ ...card, padding: "var(--pad-kartu-lega)", marginBottom: "var(--gap-bagian)" }}>
+          <section style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", marginBottom: "var(--gap-bagian)" }}>
             <h2 style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: C.muted, margin: "0 0 12px" }}>
               Biaya harian
             </h2>
@@ -305,7 +300,7 @@ function Kpi({
   judul: string; nilai: string; catatan?: string; utama?: boolean; ikon?: React.ReactNode;
 }) {
   return (
-    <div style={{ ...card, padding: "var(--pad-kartu-lega)" }}>
+    <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
         {ikon && <span style={{ color: C.muted, display: "grid", placeItems: "center" }}>{ikon}</span>}
         <span style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: C.muted }}>
@@ -338,7 +333,7 @@ function Rincian({
   judul: string; data: Kelompok[]; peta?: Record<string, string>; total: number; mono?: boolean;
 }) {
   return (
-    <section style={{ ...card, padding: "var(--pad-kartu-lega)" }}>
+    <section style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)" }}>
       <h2 style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: C.muted, margin: "0 0 12px" }}>
         {judul}
       </h2>

@@ -6,8 +6,8 @@ import { api } from "@/lib/api";
 import { BellRing, Plus, Trash2, Info, ShieldCheck, UserCog, Users, HardHat } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
+import { GAYA_KARTU } from "@/components/ui-dasar";
 
-const card: React.CSSProperties = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, boxShadow: "var(--naik-1)" };
 const input: React.CSSProperties = { padding: "8px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", background: "var(--surface)", color: C.text, boxSizing: "border-box", fontFamily: "inherit" };
 
 type TargetType = "role" | "permission" | "project_pm" | "project_mandors";
@@ -96,7 +96,7 @@ function Content() {
         Tentukan siapa yang dikabari untuk setiap jenis kejadian. Perubahan langsung berlaku — tidak perlu rilis ulang.
       </p>
 
-      <div style={{ ...card, padding: "12px 12px", marginBottom: 20, display: "flex", gap: 8, alignItems: "flex-start", background: C.navyLight }}>
+      <div style={{ ...GAYA_KARTU, padding: "12px 12px", marginBottom: 20, display: "flex", gap: 8, alignItems: "flex-start", background: C.navyLight }}>
         <Info size={16} color={C.navy} style={{ marginTop: 2, flexShrink: 0 }} />
         <div style={{ fontSize: 13, color: C.mid, lineHeight: 1.6 }}>
           Menargetkan <strong>kapabilitas</strong> biasanya lebih tahan lama daripada <strong>peran</strong>: saat
@@ -105,7 +105,7 @@ function Content() {
       </div>
 
       {!canManage && (
-        <div style={{ ...card, padding: "8px 12px", marginBottom: 16, background: C.amberBg, fontSize: 13, color: C.text }}>
+        <div style={{ ...GAYA_KARTU, padding: "8px 12px", marginBottom: 16, background: C.amberBg, fontSize: 13, color: C.text }}>
           Anda dapat melihat aturan ini, tetapi tidak dapat mengubahnya.
         </div>
       )}
@@ -151,7 +151,7 @@ function RuleCard({ rule, roles, perms, canManage, onToggle, onAdd, onRemove }: 
   const needsValue = type === "role" || type === "permission";
 
   return (
-    <div style={{ ...card, padding: 16, opacity: rule.is_active ? 1 : 0.62 }}>
+    <div style={{ ...GAYA_KARTU, padding: 16, opacity: rule.is_active ? 1 : 0.62 }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
         <div>
           <div style={{ fontWeight: 600, fontSize: 15, color: C.text }}>{rule.label}</div>

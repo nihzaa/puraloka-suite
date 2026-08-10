@@ -36,7 +36,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Wrench, RefreshCw, TriangleAlert, Clock, Gauge } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
-import { Kosong } from "@/components/ui-dasar";
+import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
 
 type StatusPerawatan = "aman" | "segera" | "jatuh_tempo" | "belum_ada_acuan";
@@ -118,19 +118,13 @@ const rupiah = (n: number | string | null | undefined) => {
 const angkaJam = (n: number | null) =>
   n == null ? "—" : n.toLocaleString("id-ID", { maximumFractionDigits: 1 }) + " jam";
 
-const kartu: React.CSSProperties = {
-  background: "var(--surface)",
-  border: `1px solid ${C.border}`,
-  borderRadius: 12,
-  boxShadow: "var(--naik-1)",
-};
 
 /** Satu angka besar dengan penjelasannya. Lapis 1 pola ARAH-VISUAL §5b. */
 function Kpi({ label, nilai, keterangan, warna }: {
   label: string; nilai: string; keterangan?: string; warna?: string;
 }) {
   return (
-    <div style={{ ...kartu, padding: "var(--pad-kartu-lega)", flex: "1 1 190px", minWidth: 175 }}>
+    <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", flex: "1 1 190px", minWidth: 175 }}>
       <div style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.04em" }}>
         {label}
       </div>
@@ -419,7 +413,7 @@ export default function OperasionalAlatPage() {
 
       {galat && (
         <div role="alert" style={{
-          ...kartu, padding: "10px 14px", marginBottom: "var(--gap-bagian)",
+          ...GAYA_KARTU, padding: "10px 14px", marginBottom: "var(--gap-bagian)",
           borderColor: "var(--danger-border)", background: "var(--danger-bg)",
           color: "var(--danger)", fontSize: 13,
         }}>
@@ -482,7 +476,7 @@ export default function OperasionalAlatPage() {
           {/* Lapis 2 — pola: yang menuntut tindakan */}
           {ringkas.lewatKarenaJam > 0 && (
             <div className="rise rise-3" style={{
-              ...kartu, padding: "12px 16px", marginBottom: 12,
+              ...GAYA_KARTU, padding: "12px 16px", marginBottom: 12,
               borderColor: "var(--danger-border)", background: "var(--danger-bg)",
               display: "flex", gap: 10, alignItems: "flex-start",
             }}>
@@ -502,7 +496,7 @@ export default function OperasionalAlatPage() {
 
           {ringkas.preventifGagal > 0 && (
             <div className="rise rise-3" style={{
-              ...kartu, padding: "12px 16px", marginBottom: 12,
+              ...GAYA_KARTU, padding: "12px 16px", marginBottom: 12,
               borderColor: "var(--warning-border)", background: "var(--warning-bg)",
               display: "flex", gap: 10, alignItems: "flex-start",
             }}>
@@ -521,7 +515,7 @@ export default function OperasionalAlatPage() {
           )}
 
           {jadwalMendesak.length > 0 && (
-            <div className="rise rise-3" style={{ ...kartu, marginBottom: "var(--gap-bagian)", overflow: "hidden" }}>
+            <div className="rise rise-3" style={{ ...GAYA_KARTU, marginBottom: "var(--gap-bagian)", overflow: "hidden" }}>
               <div style={{ padding: "var(--pad-kartu-lega)", borderBottom: `1px solid ${C.border}` }}>
                 <h3 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: 0 }}>
                   Perawatan yang menuntut tindakan
@@ -542,7 +536,7 @@ export default function OperasionalAlatPage() {
           )}
 
           {/* Lapis 3 — detail */}
-          <div className="rise rise-4" style={{ ...kartu, overflow: "hidden" }}>
+          <div className="rise rise-4" style={{ ...GAYA_KARTU, overflow: "hidden" }}>
             <div style={{ padding: "var(--pad-kartu-lega)", borderBottom: `1px solid ${C.border}` }}>
               <h3 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: 0 }}>
                 Seluruh alat

@@ -39,7 +39,7 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { PackageSearch, RefreshCw, FileMinus, Truck, Boxes } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
-import { Kosong } from "@/components/ui-dasar";
+import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
 import { TabBagian } from "@/components/tab-bagian";
 import { useTabUrl } from "@/lib/use-tab-url";
@@ -158,19 +158,13 @@ const rupiah = (n: number | string | null) => {
 const angkaRingkas = (n: number) =>
   n.toLocaleString("id-ID", { maximumFractionDigits: 2 });
 
-const kartu: React.CSSProperties = {
-  background: "var(--surface)",
-  border: `1px solid ${C.border}`,
-  borderRadius: 12,
-  boxShadow: "var(--naik-1)",
-};
 
 /** Satu angka besar dengan penjelasannya. Lapis 1 pola ARAH-VISUAL §5b. */
 function Kpi({ label, nilai, keterangan, warna }: {
   label: string; nilai: string; keterangan?: string; warna?: string;
 }) {
   return (
-    <div style={{ ...kartu, padding: "var(--pad-kartu-lega)", flex: "1 1 190px", minWidth: 175 }}>
+    <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", flex: "1 1 190px", minWidth: 175 }}>
       <div style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.04em" }}>
         {label}
       </div>
@@ -192,7 +186,7 @@ function Peringatan({ ikon, judul, isi, nada }: {
 }) {
   return (
     <div className="rise rise-3" style={{
-      ...kartu, padding: "12px 16px", marginBottom: 12,
+      ...GAYA_KARTU, padding: "12px 16px", marginBottom: 12,
       borderColor: `var(--${nada}-border)`, background: `var(--${nada}-bg)`,
       display: "flex", gap: 10, alignItems: "flex-start",
     }}>
@@ -473,7 +467,7 @@ function IsiPengadaanLanjutan() {
 
       {galat && (
         <div role="alert" style={{
-          ...kartu, padding: "10px 14px", marginBottom: "var(--gap-bagian)",
+          ...GAYA_KARTU, padding: "10px 14px", marginBottom: "var(--gap-bagian)",
           borderColor: "var(--danger-border)", background: "var(--danger-bg)",
           color: "var(--danger)", fontSize: 13,
         }}>
@@ -609,7 +603,7 @@ function IsiPengadaanLanjutan() {
                   const meta = STATUS_PAYUNG[k.statusNyata];
                   return (
                     <div key={k.id} style={{
-                      ...kartu, padding: "var(--pad-kartu-lega)", flex: "1 1 330px", minWidth: 310,
+                      ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", flex: "1 1 330px", minWidth: 310,
                       borderColor: k.aktifTapiTakBisaDipakai ? "var(--danger-border)" : C.border,
                       background: k.aktifTapiTakBisaDipakai ? "var(--danger-bg)" : "var(--surface)",
                     }}>
@@ -662,7 +656,7 @@ function IsiPengadaanLanjutan() {
 
           {/* Lapis 3 — detail */}
           {bagian === "expediting" && data.expediting.kiriman.length > 0 && (
-            <div className="rise rise-4" style={{ ...kartu, overflow: "hidden", marginBottom: "var(--gap-bagian)" }}>
+            <div className="rise rise-4" style={{ ...GAYA_KARTU, overflow: "hidden", marginBottom: "var(--gap-bagian)" }}>
               <div style={{ padding: "var(--pad-kartu-lega)", borderBottom: `1px solid ${C.border}` }}>
                 <h3 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: 0 }}>
                   Expediting &amp; logistik
@@ -683,7 +677,7 @@ function IsiPengadaanLanjutan() {
           )}
 
           {bagian === "nota" && data.notaKredit.nota.length > 0 && (
-            <div className="rise rise-4" style={{ ...kartu, overflow: "hidden" }}>
+            <div className="rise rise-4" style={{ ...GAYA_KARTU, overflow: "hidden" }}>
               <div style={{ padding: "var(--pad-kartu-lega)", borderBottom: `1px solid ${C.border}` }}>
                 <h3 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: 0 }}>
                   Nota kredit

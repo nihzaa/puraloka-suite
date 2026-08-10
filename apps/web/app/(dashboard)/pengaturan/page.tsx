@@ -9,13 +9,8 @@ import { Building2, CreditCard, Upload, Save, X, Check, AlertTriangle } from "lu
 
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
+import { GAYA_KARTU } from "@/components/ui-dasar";
 
-const card: React.CSSProperties = {
-  background: "var(--surface)",
-  border: "1px solid var(--border)",
-  borderRadius: 14,
-  boxShadow: "var(--naik-1)",
-};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -196,7 +191,7 @@ function PengaturanContent() {
       ) : (
         <form onSubmit={handleSave}>
           {/* ── Card 1: Identitas Perusahaan ── */}
-          <div style={{ ...card, marginBottom: 20 }}>
+          <div style={{ ...GAYA_KARTU, marginBottom: 20 }}>
             <div style={{ padding: "16px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ width: 34, height: 34, borderRadius: 10, background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <Building2 size={16} color={C.navy} />
@@ -285,7 +280,7 @@ function PengaturanContent() {
           </div>
 
           {/* ── Card 2: Pembayaran & Invoice ── */}
-          <div style={{ ...card, marginBottom: 24 }}>
+          <div style={{ ...GAYA_KARTU, marginBottom: 24 }}>
             <div style={{ padding: "16px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ width: 34, height: 34, borderRadius: 10, background: "var(--success-bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <CreditCard size={16} color={C.green} />

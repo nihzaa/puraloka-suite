@@ -120,6 +120,46 @@ export interface KartuKPIProps {
   onClick?: () => void;
 }
 
+/**
+ * GAYA KARTU — satu sumber untuk pembungkus bergaya kartu.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA ADA
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Diukur 2026-08-10: **49 berkas** mendefinisikan `const card` sendiri, dengan
+ * **8 bentuk berbeda**. Yang membedakan bukan kebutuhan — melainkan RADIUS:
+ * 10px di 12 berkas, 12px di 8, 14px di 27. Ditambah `background` yang ditulis
+ * tiga cara (`"var(--surface)"`, `C.surface`, `C.white`) untuk warna yang sama.
+ *
+ * Tak satu pun perbedaan itu punya alasan. Ia lahir karena tiap halaman
+ * ditulis pada waktu berbeda dan menyalin dari tetangganya yang kebetulan
+ * terdekat — pola yang persis sama dengan 27 varian `<h1>` (UIR-2) dan empat
+ * gaya tab (`audit-tab-seragam`).
+ *
+ * Akibatnya terlihat justru saat berpindah halaman: sudut kartu berubah, dan
+ * mata membacanya sebagai "aplikasi yang berbeda-beda" tanpa bisa menunjuk
+ * apa yang salah.
+ *
+ * ── Kenapa 14px yang menang
+ *
+ * Mayoritas (27 dari 49), dan `craft-floor` menyebut rentang 12–16px untuk
+ * kartu. 10px terlalu tajam untuk kartu selebar panel; ia bentuk untuk kontrol
+ * kecil, bukan wadah.
+ *
+ * ── Ini BUKAN pengganti `Panel`
+ *
+ * `Panel` punya judul, garis bawah, dan badan berpadding. `GAYA_KARTU` hanya
+ * permukaannya — untuk pembungkus yang memang TAK punya judul. Memaksa
+ * semuanya jadi `Panel` akan menambahkan judul yang tak diminta siapa pun.
+ */
+export const GAYA_KARTU: React.CSSProperties = {
+  background: "var(--surface)",
+  border: "1px solid var(--border)",
+  borderRadius: 14,
+  boxShadow: "var(--naik-1)",
+};
+
 export function KartuKPI({
   label, nilai, nilaiAngka, delta, naikBagus = true,
   keterangan, ikon, spark, sorot, onClick,

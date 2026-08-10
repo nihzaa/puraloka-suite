@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { KepalaHalaman } from "@/components/dasar";
 import { api } from "@/lib/api";
+import { GAYA_KARTU } from "@/components/ui-dasar";
 import {
   ChevronLeft, ChevronRight, Calendar,
   Target, Clock, TrendingUp, RefreshCw, FileText,
@@ -160,11 +161,7 @@ export default function KalenderPage() {
 
   const selectedEvents = selectedDay ? (eventsByDay[selectedDay] ?? []) : [];
 
-  const card: React.CSSProperties = {
-    background: "var(--surface)", border: "1px solid var(--border)",
-    borderRadius: 14, boxShadow: "var(--naik-1)",
-  };
-
+  
   // Month summary counts
   const monthKey = `${year}-${String(month + 1).padStart(2, "0")}`;
   const monthEvents = events.filter(ev => ev.date.startsWith(monthKey));
@@ -218,7 +215,7 @@ export default function KalenderPage() {
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 16 }}>
         {/* Calendar grid */}
-        <div style={card}>
+        <div style={GAYA_KARTU}>
           {/* Month nav */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid var(--border)" }}>
             <button aria-label="Sebelumnya" onClick={prevMonth} style={{ width: 32, height: 32, borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -330,7 +327,7 @@ export default function KalenderPage() {
         {/* Side panel — selected day detail */}
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {/* Legend */}
-          <div style={{ ...card, padding: "12px 16px" }}>
+          <div style={{ ...GAYA_KARTU, padding: "12px 16px" }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Keterangan</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {Object.entries(TYPE_STYLE).map(([type, cfg]) => (
@@ -347,7 +344,7 @@ export default function KalenderPage() {
           </div>
 
           {/* Selected day events */}
-          <div style={{ ...card, flex: 1 }}>
+          <div style={{ ...GAYA_KARTU, flex: 1 }}>
             <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)" }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>
                 {selectedDay
@@ -404,7 +401,7 @@ export default function KalenderPage() {
           </div>
 
           {/* Upcoming events */}
-          <div style={card}>
+          <div style={GAYA_KARTU}>
             <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)" }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>Akan Datang</div>
             </div>

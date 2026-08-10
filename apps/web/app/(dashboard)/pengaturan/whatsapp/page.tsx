@@ -37,13 +37,8 @@ import {
 
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
+import { GAYA_KARTU } from "@/components/ui-dasar";
 
-const card: React.CSSProperties = {
-  background: "var(--surface)",
-  border: "1px solid var(--border)",
-  borderRadius: 14,
-  boxShadow: "var(--naik-1)",
-};
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -220,7 +215,7 @@ function Konten() {
       {!memuat && muatan && !muatan.kanal_siap && (
         <div
           style={{
-            ...card, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)",
+            ...GAYA_KARTU, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)",
             display: "flex", gap: 10,
             borderColor: "var(--warning)", background: "var(--warning-bg)",
           }}
@@ -239,7 +234,7 @@ function Konten() {
       )}
 
       {!bolehKelola && (
-        <div style={{ ...card, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)", display: "flex", gap: 10 }}>
+        <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)", display: "flex", gap: 10 }}>
           <Info size={18} style={{ color: C.mid, flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 13, color: C.mid, lineHeight: 1.6 }}>
             Anda bisa melihat nomor terdaftar, tetapi tidak mengubahnya.
@@ -249,7 +244,7 @@ function Konten() {
       )}
 
       {/* ── Daftarkan nomor ── */}
-      <section style={{ ...card, padding: "var(--pad-kartu-lega)", marginBottom: "var(--gap-bagian)" }}>
+      <section style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", marginBottom: "var(--gap-bagian)" }}>
         <h2 style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: C.muted, margin: "0 0 10px" }}>
           Daftarkan nomor
         </h2>
@@ -294,11 +289,11 @@ function Konten() {
 
       {/* ── Daftar nomor ── */}
       {memuat ? (
-        <div style={{ ...card, padding: "var(--pad-kartu-lega)", textAlign: "center", color: C.muted, fontSize: 13 }}>
+        <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", textAlign: "center", color: C.muted, fontSize: 13 }}>
           Memuat…
         </div>
       ) : daftar.length === 0 ? (
-        <div style={{ ...card, padding: "var(--pad-kartu-lega)", display: "flex", gap: 10 }}>
+        <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", display: "flex", gap: 10 }}>
           <Info size={18} style={{ color: C.mid, flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 13, color: C.mid, lineHeight: 1.65 }}>
             Belum ada nomor terdaftar. Selama daftarnya kosong, asisten hanya bisa diakses
@@ -311,7 +306,7 @@ function Konten() {
             const sudah = Boolean(n.terverifikasi_pada);
             const idKode = `kode-${n.id}`;
             return (
-              <section key={n.id} style={{ ...card, padding: "var(--pad-kartu-lega)" }}>
+              <section key={n.id} style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: sudah ? 0 : 12 }}>
                   {/* Status verifikasi PERTAMA, bukan lencana di ujung: nomor
                       yang belum terverifikasi tak berfungsi, dan itu harus
@@ -580,7 +575,7 @@ function PanelTemplate({ bolehUbah }: { bolehUbah: boolean }) {
   if (memuat) return null;
 
   return (
-    <section style={{ ...card, padding: 16, marginTop: 16 }}>
+    <section style={{ ...GAYA_KARTU, padding: 16, marginTop: 16 }}>
       <h2 style={{ fontSize: 15, fontWeight: 600, margin: "0 0 4px", color: C.text }}>
         Isi pesan
       </h2>

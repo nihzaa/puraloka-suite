@@ -24,7 +24,7 @@ import { useEffect, useMemo, useState } from "react";
 import { PiggyBank, AlertTriangle, TrendingDown, ShieldCheck, Plus, RefreshCw } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
-import { Kosong } from "@/components/ui-dasar";
+import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
 import { ContingencyTarikModal } from "@/components/contingency-tarik-modal";
 import { formatRupiah } from "@/lib/format";
@@ -293,11 +293,7 @@ export default function ContingencyPage() {
     }
   }
 
-  const kartu: React.CSSProperties = {
-    background: "var(--surface)", border: `1px solid ${C.border}`,
-    borderRadius: 10, boxShadow: "var(--naik-1)",
-  };
-  const labelGaya: React.CSSProperties = {
+    const labelGaya: React.CSSProperties = {
     fontSize: 11, fontWeight: 700, color: C.muted,
     textTransform: "uppercase", letterSpacing: "0.05em",
   };
@@ -342,7 +338,7 @@ export default function ContingencyPage() {
       )}
 
       {memuat ? (
-        <div style={{ ...kartu, padding: 40, textAlign: "center", color: C.mid, fontSize: 13 }}>Memuat…</div>
+        <div style={{ ...GAYA_KARTU, padding: 40, textAlign: "center", color: C.mid, fontSize: 13 }}>Memuat…</div>
       ) : proyek.length === 0 ? (
         <Kosong
           ikon={<PiggyBank size={28} />}
@@ -352,7 +348,7 @@ export default function ContingencyPage() {
       ) : (
         <>
           {/* ── Form pos baru ────────────────────────────────────────── */}
-          <div className="rise rise-2" style={{ ...kartu, padding: 16, marginBottom: 16 }}>
+          <div className="rise rise-2" style={{ ...GAYA_KARTU, padding: 16, marginBottom: 16 }}>
             <div style={{
               display: "grid", gap: 12,
               gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
@@ -435,7 +431,7 @@ export default function ContingencyPage() {
                     Ikon: ShieldCheck,
                   },
                 ].map((k) => (
-                  <div key={k.label} style={{ ...kartu, padding: "10px var(--pad-kartu-lega)", flex: "1 1 200px", minWidth: 190 }}>
+                  <div key={k.label} style={{ ...GAYA_KARTU, padding: "10px var(--pad-kartu-lega)", flex: "1 1 200px", minWidth: 190 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                       <k.Ikon size={12} aria-hidden="true" style={{ color: k.warna }} />
                       <span style={labelGaya}>{k.label}</span>
@@ -474,7 +470,7 @@ export default function ContingencyPage() {
                   sebab="Tetapkan cadangan lewat formulir di atas. Sisanya dihitung otomatis dari tiap penarikan — tidak disimpan, supaya tak bisa basi."
                 />
               ) : (
-                <div className="rise rise-3" style={{ ...kartu, overflow: "hidden" }}>
+                <div className="rise rise-3" style={{ ...GAYA_KARTU, overflow: "hidden" }}>
                   {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). Caption sr-only,
                       kolom pertama <th scope="row">, tabular-nums, dan pembungkus
                       overflow-x sekarang dijamin komponen — empat hal yang tabel

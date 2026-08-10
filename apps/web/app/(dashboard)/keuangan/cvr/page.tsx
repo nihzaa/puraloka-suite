@@ -40,7 +40,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Scale, TriangleAlert, Info } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
-import { Kosong } from "@/components/ui-dasar";
+import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
 
 type Keadaan = "untung" | "rugi" | "impas" | "tanpa_biaya" | "belum_mulai" | "tak_berlaku";
@@ -216,11 +216,7 @@ export default function CvrPage() {
 
   useEffect(() => { void muat(projectId); }, [projectId, muat]);
 
-  const kartu: React.CSSProperties = {
-    background: "var(--surface)", border: `1px solid ${C.border}`,
-    borderRadius: 10, boxShadow: "var(--naik-1)",
-  };
-
+  
   return (
     <div>
       <p style={{ fontSize: 13, color: C.mid, margin: "0 0 18px", maxWidth: "70ch", lineHeight: 1.55 }}>
@@ -240,7 +236,7 @@ export default function CvrPage() {
         </div>
       )}
 
-      <div className="rise" style={{ ...kartu, padding: "12px 16px", marginBottom: 16, maxWidth: 420 }}>
+      <div className="rise" style={{ ...GAYA_KARTU, padding: "12px 16px", marginBottom: 16, maxWidth: 420 }}>
         <label htmlFor="cvr-proyek" style={{
           fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
           marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
@@ -264,7 +260,7 @@ export default function CvrPage() {
           sebab="Rekonsiliasi dihitung per proyek — tiap scope borongannya diadu dengan upah yang sudah terbayar."
         />
       ) : memuat ? (
-        <div style={{ ...kartu, padding: 40, textAlign: "center", color: C.mid, fontSize: 13 }}>Memuat…</div>
+        <div style={{ ...GAYA_KARTU, padding: 40, textAlign: "center", color: C.mid, fontSize: 13 }}>Memuat…</div>
       ) : hasil ? (
         <>
           {/* Cakupan dinyatakan SEBELUM angkanya, bukan sesudah.
@@ -294,7 +290,7 @@ export default function CvrPage() {
               {/* Yang menuntut tindakan lebih dulu — bukan total yang menenangkan. */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
                 gap: 8, marginBottom: 16 }}>
-                <div style={{ ...kartu, padding: "12px 14px",
+                <div style={{ ...GAYA_KARTU, padding: "12px 14px",
                   borderColor: hasil.jumlah_rugi > 0 ? "var(--danger-border)" : C.border }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
                     textTransform: "uppercase", letterSpacing: "0.05em", display: "flex",
@@ -313,7 +309,7 @@ export default function CvrPage() {
                   </div>
                 </div>
 
-                <div style={{ ...kartu, padding: "12px 14px" }}>
+                <div style={{ ...GAYA_KARTU, padding: "12px 14px" }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
                     textTransform: "uppercase", letterSpacing: "0.05em" }}>Nilai terpasang</div>
                   <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4, color: C.text }}>
@@ -324,7 +320,7 @@ export default function CvrPage() {
                   </div>
                 </div>
 
-                <div style={{ ...kartu, padding: "12px 14px" }}>
+                <div style={{ ...GAYA_KARTU, padding: "12px 14px" }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
                     textTransform: "uppercase", letterSpacing: "0.05em" }}>Biaya terpakai</div>
                   <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4, color: C.text }}>
@@ -343,7 +339,7 @@ export default function CvrPage() {
                   </div>
                 </div>
 
-                <div style={{ ...kartu, padding: "12px 14px" }}>
+                <div style={{ ...GAYA_KARTU, padding: "12px 14px" }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
                     textTransform: "uppercase", letterSpacing: "0.05em" }}>Selisih</div>
                   <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4,
@@ -388,7 +384,7 @@ export default function CvrPage() {
                 </div>
               )}
 
-              <div className="rise rise-3" style={{ ...kartu, overflow: "hidden" }}>
+              <div className="rise rise-3" style={{ ...GAYA_KARTU, overflow: "hidden" }}>
                 <Tabel<BarisCvr>
                   caption="Rekonsiliasi biaya per scope borongan: nilai borongan, nilai terpasang, biaya terpakai, dan selisihnya."
                   data={hasil.baris}

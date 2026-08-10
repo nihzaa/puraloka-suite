@@ -40,13 +40,8 @@ import {
 
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
+import { GAYA_KARTU } from "@/components/ui-dasar";
 
-const card: React.CSSProperties = {
-  background: "var(--surface)",
-  border: "1px solid var(--border)",
-  borderRadius: 14,
-  boxShadow: "var(--naik-1)",
-};
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -237,7 +232,7 @@ function Konten() {
       {!enkripsiSiap && (
         <div
           style={{
-            ...card, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)", display: "flex", gap: 10,
+            ...GAYA_KARTU, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)", display: "flex", gap: 10,
             borderColor: "var(--danger)", background: "var(--danger-bg)",
           }}
         >
@@ -251,7 +246,7 @@ function Konten() {
       )}
 
       {!bolehKelola && (
-        <div style={{ ...card, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)", display: "flex", gap: 10 }}>
+        <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)", display: "flex", gap: 10 }}>
           <Info size={18} style={{ color: C.mid, flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 13, color: C.mid, lineHeight: 1.6 }}>
             Anda bisa melihat kredensial mana yang terpasang, tetapi tidak mengubahnya.
@@ -261,7 +256,7 @@ function Konten() {
       )}
 
       {memuat ? (
-        <div style={{ ...card, padding: "var(--pad-kartu-lega)", textAlign: "center", color: C.muted, fontSize: 13 }}>
+        <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", textAlign: "center", color: C.muted, fontSize: 13 }}>
           Memuat…
         </div>
       ) : (
@@ -286,7 +281,7 @@ function Konten() {
                   const idInput = `kred-${k.kunci}`;
 
                   return (
-                    <div key={k.kunci} style={{ ...card, padding: "var(--pad-kartu)" }}>
+                    <div key={k.kunci} style={{ ...GAYA_KARTU, padding: "var(--pad-kartu)" }}>
                       <div
                         style={{
                           display: "flex", alignItems: "baseline",

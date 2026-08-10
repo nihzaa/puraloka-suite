@@ -39,13 +39,8 @@ import { Inbox, TriangleAlert, ArrowRight, UserRound } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
+import { GAYA_KARTU } from "@/components/ui-dasar";
 
-const card: React.CSSProperties = {
-  background: "var(--surface)",
-  border: "1px solid var(--border)",
-  borderRadius: 14,
-  boxShadow: "var(--naik-1)",
-};
 
 interface Baris {
   jenis: string;
@@ -132,7 +127,7 @@ function Konten() {
       {resp && resp.dilewati.length > 0 && (
         <div
           style={{
-            ...card, padding: "var(--pad-kartu)", marginBottom: 12,
+            ...GAYA_KARTU, padding: "var(--pad-kartu)", marginBottom: 12,
             display: "flex", gap: 10,
             borderColor: "var(--danger)", background: "var(--danger-bg)",
           }}
@@ -155,7 +150,7 @@ function Konten() {
       {galat && (
         <div
           style={{
-            ...card, padding: "var(--pad-kartu)", marginBottom: 12,
+            ...GAYA_KARTU, padding: "var(--pad-kartu)", marginBottom: 12,
             color: "var(--danger)", fontSize: 13,
             borderColor: "var(--danger)", background: "var(--danger-bg)",
           }}
@@ -165,11 +160,11 @@ function Konten() {
       )}
 
       {memuat ? (
-        <div style={{ ...card, padding: "var(--pad-kartu-lega)", textAlign: "center", color: C.muted, fontSize: 13 }}>
+        <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", textAlign: "center", color: C.muted, fontSize: 13 }}>
           Memuat…
         </div>
       ) : baris.length === 0 ? (
-        <div style={{ ...card, padding: "var(--pad-kartu-lega)", textAlign: "center" }}>
+        <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", textAlign: "center" }}>
           <div style={{ fontSize: 14, color: C.text, marginBottom: 4 }}>
             Tak ada yang menunggu keputusan Anda.
           </div>
@@ -185,7 +180,7 @@ function Konten() {
               sebelum mata turun ke daftar. */}
           <div
             style={{
-              ...card, padding: "var(--pad-kartu)", marginBottom: 12,
+              ...GAYA_KARTU, padding: "var(--pad-kartu)", marginBottom: 12,
               display: "flex", flexWrap: "wrap", gap: "var(--gap-bagian)", alignItems: "baseline",
             }}
           >
@@ -214,7 +209,7 @@ function Konten() {
             </div>
           </div>
 
-          <div style={{ ...card, overflow: "hidden" }}>
+          <div style={{ ...GAYA_KARTU, overflow: "hidden" }}>
             <table
               style={{
                 width: "100%",

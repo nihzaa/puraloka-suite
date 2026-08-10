@@ -41,13 +41,8 @@ import { Bot, Info, Loader2, Save, TrendingUp, Wallet } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
+import { GAYA_KARTU } from "@/components/ui-dasar";
 
-const card: React.CSSProperties = {
-  background: "var(--surface)",
-  border: "1px solid var(--border)",
-  borderRadius: 14,
-  boxShadow: "var(--naik-1)",
-};
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -375,7 +370,7 @@ function Konten() {
       </div>
 
       {!bolehKelola && (
-        <div style={{ ...card, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)", display: "flex", gap: 10 }}>
+        <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)", display: "flex", gap: 10 }}>
           <Info size={18} style={{ color: C.mid, flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 13, color: C.mid, lineHeight: 1.6 }}>
             Anda bisa melihat konfigurasi dan biaya AI, tetapi tidak mengubahnya.
@@ -385,13 +380,13 @@ function Konten() {
       )}
 
       {memuat ? (
-        <div style={{ ...card, padding: "var(--pad-kartu-lega)", textAlign: "center", color: C.muted, fontSize: 13 }}>
+        <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", textAlign: "center", color: C.muted, fontSize: 13 }}>
           Memuat…
         </div>
       ) : (
         <>
           {/* ── Pemakaian bulan ini — pertanyaan pertama, jawaban pertama ── */}
-          <section style={{ ...card, padding: "var(--pad-kartu-lega)", marginBottom: "var(--gap-bagian)" }}>
+          <section style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", marginBottom: "var(--gap-bagian)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
               <Wallet size={16} style={{ color: C.mid }} />
               <h2 style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: C.muted, margin: 0 }}>
@@ -596,7 +591,7 @@ function Konten() {
                 : k.perkiraan_per_panggilan_idr;
 
               return (
-                <section key={k.asisten} style={{ ...card, padding: "var(--pad-kartu-lega)" }}>
+                <section key={k.asisten} style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)" }}>
                   <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, marginBottom: 4 }}>
                     <h3 style={{ fontSize: 14, fontWeight: 600, color: C.text, margin: 0 }}>
                       {peran.nama}

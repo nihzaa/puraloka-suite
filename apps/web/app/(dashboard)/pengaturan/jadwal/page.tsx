@@ -36,13 +36,8 @@ import { CalendarClock, Info, CheckCircle2, XCircle, CircleDashed, TriangleAlert
 
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
+import { GAYA_KARTU } from "@/components/ui-dasar";
 
-const card: React.CSSProperties = {
-  background: "var(--surface)",
-  border: "1px solid var(--border)",
-  borderRadius: 14,
-  boxShadow: "var(--naik-1)",
-};
 
 const kontrol: React.CSSProperties = {
   padding: "var(--pad-baris)",
@@ -212,7 +207,7 @@ function Konten() {
       {!siap && (
         <div
           style={{
-            ...card, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)",
+            ...GAYA_KARTU, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)",
             display: "flex", gap: 10,
             borderColor: "var(--warning)", background: "var(--warning-bg)",
           }}
@@ -228,7 +223,7 @@ function Konten() {
       )}
 
       {!bolehKelola && (
-        <div style={{ ...card, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)", display: "flex", gap: 10 }}>
+        <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)", display: "flex", gap: 10 }}>
           <Info size={18} style={{ color: C.mid, flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 13, color: C.mid, lineHeight: 1.6 }}>
             Anda bisa melihat jadwal dan riwayatnya, tetapi tidak mengubahnya.
@@ -244,7 +239,7 @@ function Konten() {
       {!memuat && daftar.length > 0 && (
         <div
           style={{
-            ...card, padding: "var(--pad-kartu)", marginBottom: 12,
+            ...GAYA_KARTU, padding: "var(--pad-kartu)", marginBottom: 12,
             display: "flex", flexWrap: "wrap", gap: "var(--gap-bagian)", alignItems: "baseline",
           }}
         >
@@ -277,11 +272,11 @@ function Konten() {
       )}
 
       {memuat ? (
-        <div style={{ ...card, padding: "var(--pad-kartu-lega)", textAlign: "center", color: C.muted, fontSize: 13 }}>
+        <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", textAlign: "center", color: C.muted, fontSize: 13 }}>
           Memuat…
         </div>
       ) : daftar.length === 0 ? (
-        <div style={{ ...card, padding: "var(--pad-kartu-lega)", textAlign: "center", color: C.muted, fontSize: 13 }}>
+        <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", textAlign: "center", color: C.muted, fontSize: 13 }}>
           Belum ada tugas terjadwal untuk perusahaan ini.
         </div>
       ) : (
@@ -297,7 +292,7 @@ function Konten() {
             const alasan = ALASAN[t.keputusan_sekarang.alasan];
 
             return (
-              <div key={t.tugas} style={{ ...card, padding: "var(--pad-kartu)" }}>
+              <div key={t.tugas} style={{ ...GAYA_KARTU, padding: "var(--pad-kartu)" }}>
                 <div
                   style={{
                     display: "flex", alignItems: "baseline",

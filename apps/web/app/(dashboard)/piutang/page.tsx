@@ -14,11 +14,8 @@ import {
 import { C } from "@/lib/warna-ui";
 import { Tabel, type Kolom, KepalaHalaman } from "@/components/dasar";
 import { formatRupiah } from "@/lib/format";
+import { GAYA_KARTU } from "@/components/ui-dasar";
 
-const card: React.CSSProperties = {
-  background: "var(--surface)", border: "1px solid var(--border)",
-  borderRadius: 14, boxShadow: "var(--naik-1)",
-};
 
 /**
  * Ramp urgensi bucket — makin tua umur piutang, makin gelap merahnya.
@@ -230,7 +227,7 @@ export default function PiutangPage() {
 
   if (forbidden) {
     return (
-      <div style={{ ...card, padding: 40, textAlign: "center", margin: 24 }}>
+      <div style={{ ...GAYA_KARTU, padding: 40, textAlign: "center", margin: 24 }}>
         <ShieldAlert size={28} style={{ color: C.muted, marginBottom: 10 }} />
         <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Butuh akses data finansial</div>
         <div style={{ fontSize: 13, color: C.mid, marginTop: 4 }}>Halaman ini memerlukan permission finance:view:all. Hubungi admin untuk mendapat akses.</div>
@@ -261,7 +258,7 @@ export default function PiutangPage() {
       </div>
 
       {/* ── Spektrum Umur Piutang (signature) ── */}
-      <div style={{ ...card, padding: "16px 20px" }}>
+      <div style={{ ...GAYA_KARTU, padding: "16px 20px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <div style={sectionTitle}><Receipt size={16} style={{ color: C.navy }} /> Spektrum Umur Piutang</div>
           {overdueTotal > 0 && (
@@ -321,7 +318,7 @@ export default function PiutangPage() {
       </div>
 
       {/* ── Tabel invoice terbuka ── */}
-      <div style={{ ...card, overflow: "hidden" }}>
+      <div style={{ ...GAYA_KARTU, overflow: "hidden" }}>
         <div style={{ padding: "12px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={sectionTitle}>
             Invoice Belum Lunas
@@ -366,7 +363,7 @@ export default function PiutangPage() {
       {/* ── Register Retensi + Register Uang Muka ── */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))", gap: 16 }}>
         {/* Retensi */}
-        <div style={{ ...card, overflow: "hidden" }}>
+        <div style={{ ...GAYA_KARTU, overflow: "hidden" }}>
           <div style={{ padding: "12px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={sectionTitle}><Landmark size={16} style={{ color: C.navy }} /> Register Retensi</div>
             <div style={{ fontSize: 12, color: C.mid }}>Tertahan: <b style={{ color: C.text }}>{fmt(retentionOutstandingTotal)}</b></div>
@@ -400,7 +397,7 @@ export default function PiutangPage() {
         </div>
 
         {/* Uang Muka */}
-        <div style={{ ...card, overflow: "hidden" }}>
+        <div style={{ ...GAYA_KARTU, overflow: "hidden" }}>
           <div style={{ padding: "12px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={sectionTitle}><HandCoins size={16} style={{ color: C.navy }} /> Register Uang Muka (DP)</div>
             <div style={{ fontSize: 12, color: C.mid }}>Belum dipotong: <b style={{ color: C.text }}>{fmt(dpRemainingTotal)}</b></div>

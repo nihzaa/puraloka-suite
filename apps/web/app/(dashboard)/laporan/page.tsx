@@ -25,11 +25,8 @@ import { C } from "@/lib/warna-ui";
 // kolom pertama <th scope="row">, tabular-nums, dan pembungkus overflow-x.
 import { Tabel, KepalaHalaman } from "@/components/dasar";
 import { formatRupiah } from "@/lib/format";
+import { GAYA_KARTU } from "@/components/ui-dasar";
 
-const card: React.CSSProperties = {
-  background: "var(--surface)", border: `1px solid ${C.border}`,
-  borderRadius: 14, boxShadow: "var(--naik-1)",
-};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Project { id: string; name: string; location: string; status: string; contract_model: string; contract_value: number; start_date: string; end_date: string; pm_id: string; }
@@ -410,7 +407,7 @@ function LaporanContent() {
       />
 
       {/* Filter Bar */}
-      <div className="rise rise-1" style={{ ...card, padding: "16px 20px", marginBottom: 20, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
+      <div className="rise rise-1" style={{ ...GAYA_KARTU, padding: "16px 20px", marginBottom: 20, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
         <div>
           <label htmlFor="project-id" style={{ fontSize: 10, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>Proyek</label>
           <div style={{ position: "relative" }}>
@@ -482,7 +479,7 @@ function LaporanContent() {
       </div>
 
       {/* Tabs */}
-      <div className="rise rise-2" style={{ ...card }}>
+      <div className="rise rise-2" style={{ ...GAYA_KARTU }}>
         {/* Komponen BERSAMA `TabBagian` — gaya tab tak lagi ditulis ulang
             per halaman. Sampai 2026-08-08 halaman ini punya `TabBtn` sendiri,
             akuntansi punya tombol berkotak, dan /dokumen/kendali punya bentuk
@@ -594,7 +591,7 @@ function LaporanContent() {
                 </div>
 
                 {taxData.summary_by_month.length > 0 && (
-                  <div style={{ ...card, padding: "var(--pad-kartu)" }}>
+                  <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu)" }}>
                     <p style={{ fontSize: 13, fontWeight: 700, color: C.text, margin: "0 0 14px" }}>Rekap per Bulan</p>
                     {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). Komponen menjamin
                         caption sr-only, kolom pertama <th scope="row">, tabular-nums,
@@ -626,7 +623,7 @@ function LaporanContent() {
                   </div>
                 )}
 
-                <div style={{ ...card, overflow: "hidden" }}>
+                <div style={{ ...GAYA_KARTU, overflow: "hidden" }}>
                   <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <p style={{ fontSize: 13, fontWeight: 700, color: C.text, margin: 0 }}>
                       Detail Pajak <span style={{ color: C.muted, fontWeight: 400 }}>({taxData.totals.record_count} record)</span>

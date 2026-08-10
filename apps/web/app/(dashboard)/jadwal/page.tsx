@@ -46,7 +46,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { CalendarDays, RefreshCw, TriangleAlert, Users, GitBranch } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
-import { Kosong } from "@/components/ui-dasar";
+import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
 import { TabBagian } from "@/components/tab-bagian";
 
@@ -118,19 +118,13 @@ const tanggalTerbaca = (s: string | null) =>
 const tanggalPendek = (s: string) =>
   new Date(s).toLocaleDateString("id-ID", { day: "numeric", month: "short" });
 
-const kartu: React.CSSProperties = {
-  background: "var(--surface)",
-  border: `1px solid ${C.border}`,
-  borderRadius: 12,
-  boxShadow: "var(--naik-1)",
-};
 
 /** Satu angka besar dengan penjelasannya. Lapis 1 pola ARAH-VISUAL §5b. */
 function Kpi({ label, nilai, keterangan, warna }: {
   label: string; nilai: string; keterangan?: string; warna?: string;
 }) {
   return (
-    <div style={{ ...kartu, padding: "var(--pad-kartu-lega)", flex: "1 1 190px", minWidth: 175 }}>
+    <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", flex: "1 1 190px", minWidth: 175 }}>
       <div style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.04em" }}>
         {label}
       </div>
@@ -158,7 +152,7 @@ function Histogram({ sd }: { sd: SumberDaya }) {
   const maks = Math.max(sd.puncak, sd.tersedia ?? 0) || 1;
 
   return (
-    <div style={{ ...kartu, padding: "var(--pad-kartu-lega)", flex: "1 1 320px", minWidth: 300 }}>
+    <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", flex: "1 1 320px", minWidth: 300 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
         <div>
           <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{sd.nama}</div>
@@ -484,7 +478,7 @@ function IsiJadwal() {
 
       {galat && (
         <div role="alert" style={{
-          ...kartu, padding: "10px 14px", marginBottom: "var(--gap-bagian)",
+          ...GAYA_KARTU, padding: "10px 14px", marginBottom: "var(--gap-bagian)",
           borderColor: "var(--danger-border)", background: "var(--danger-bg)",
           color: "var(--danger)", fontSize: 13,
         }}>
@@ -547,7 +541,7 @@ function IsiJadwal() {
           {/* Lapis 2 — pola & peringatan */}
           {ringkas?.tanpaDependensi && (
             <div className="rise rise-3" style={{
-              ...kartu, padding: "12px 16px", marginBottom: 12,
+              ...GAYA_KARTU, padding: "12px 16px", marginBottom: 12,
               borderColor: "var(--warning-border)", background: "var(--warning-bg)",
               display: "flex", gap: 10, alignItems: "flex-start",
             }}>
@@ -569,7 +563,7 @@ function IsiJadwal() {
 
           {jadwal.cpm.lingkaran.length > 0 && (
             <div className="rise rise-3" style={{
-              ...kartu, padding: "12px 16px", marginBottom: 12,
+              ...GAYA_KARTU, padding: "12px 16px", marginBottom: 12,
               borderColor: "var(--danger-border)", background: "var(--danger-bg)",
               display: "flex", gap: 10, alignItems: "flex-start",
             }}>
@@ -590,7 +584,7 @@ function IsiJadwal() {
 
           {ringkas?.palingTelat != null && (
             <div className="rise rise-3" style={{
-              ...kartu, padding: "12px 16px", marginBottom: 12,
+              ...GAYA_KARTU, padding: "12px 16px", marginBottom: 12,
               borderColor: "var(--danger-border)", background: "var(--danger-bg)",
               display: "flex", gap: 10, alignItems: "flex-start",
             }}>
@@ -611,7 +605,7 @@ function IsiJadwal() {
 
           {(ringkas?.msDitolak ?? 0) > 0 && (
             <div className="rise rise-3" style={{
-              ...kartu, padding: "12px 16px", marginBottom: 12,
+              ...GAYA_KARTU, padding: "12px 16px", marginBottom: 12,
               borderColor: "var(--warning-border)", background: "var(--warning-bg)",
               display: "flex", gap: 10, alignItems: "flex-start",
             }}>
@@ -657,7 +651,7 @@ function IsiJadwal() {
               { kunci: "method", label: "Method Statement" },
             ] as const}
           />
-          {bagian === "cpm" && (<div className="rise rise-4" style={{ ...kartu, overflow: "hidden", marginBottom: "var(--gap-bagian)" }}>
+          {bagian === "cpm" && (<div className="rise rise-4" style={{ ...GAYA_KARTU, overflow: "hidden", marginBottom: "var(--gap-bagian)" }}>
             <div style={{ padding: "var(--pad-kartu-lega)", borderBottom: `1px solid ${C.border}` }}>
               <h3 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: 0 }}>
                 Pekerjaan & kelonggaran
@@ -677,7 +671,7 @@ function IsiJadwal() {
           </div>)}
 
           {bagian === "method" && jadwal.methodStatement.length > 0 && (
-            <div className="rise rise-4" style={{ ...kartu, overflow: "hidden" }}>
+            <div className="rise rise-4" style={{ ...GAYA_KARTU, overflow: "hidden" }}>
               <div style={{ padding: "var(--pad-kartu-lega)", borderBottom: `1px solid ${C.border}` }}>
                 <h3 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: 0 }}>
                   Method statement

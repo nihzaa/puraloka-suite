@@ -4,6 +4,7 @@ import { useEffect, useReducer, useState, useCallback } from "react";
 import { api } from "@/lib/api";
 import { Globe, Save, Check, X, AlertTriangle, Eye, EyeOff, RefreshCw } from "lucide-react";
 import { C } from "@/lib/warna-ui";
+import { GAYA_KARTU } from "@/components/ui-dasar";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Pengaturan konten situs publik (compro) — migrasi 205/206/207.
@@ -17,10 +18,6 @@ import { C } from "@/lib/warna-ui";
 // 5 menit berlalu, dan admin mengira perubahannya tak tersimpan.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const card: React.CSSProperties = {
-  background: "var(--surface)", border: "1px solid var(--border)",
-  borderRadius: 14, boxShadow: "var(--naik-1)",
-};
 
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 6,
@@ -217,7 +214,7 @@ function SitusContent() {
         <div
           role="status"
           style={{
-            ...card, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)", display: "flex", gap: 10,
+            ...GAYA_KARTU, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)", display: "flex", gap: 10,
             alignItems: "flex-start", fontSize: 13,
             borderColor: toast.type === "success" ? "var(--success-border)" : "var(--danger-border)",
             background: toast.type === "success" ? "var(--success-bg)" : "var(--danger-bg)",
@@ -237,7 +234,7 @@ function SitusContent() {
       )}
 
       {/* ── Seksi ─────────────────────────────────────────────────────────── */}
-      <section style={{ ...card, padding: "var(--pad-kartu-lega)", marginBottom: "var(--gap-bagian)" }}>
+      <section style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", marginBottom: "var(--gap-bagian)" }}>
         <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Seksi halaman</h2>
         <p style={{ color: C.muted, fontSize: 12, marginBottom: 14 }}>
           Matikan seksi untuk menyembunyikannya dari pengunjung. Urutan menentukan
@@ -286,7 +283,7 @@ function SitusContent() {
       </section>
 
       {/* ── Merek ─────────────────────────────────────────────────────────── */}
-      <section style={{ ...card, padding: "var(--pad-kartu-lega)", marginBottom: "var(--gap-bagian)" }}>
+      <section style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", marginBottom: "var(--gap-bagian)" }}>
         <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Warna merek</h2>
         <p style={{ color: C.muted, fontSize: 12, marginBottom: 14, maxWidth: "70ch" }}>
           Warna yang kontrasnya terlalu rendah akan ditolak — halaman publik harus
@@ -335,7 +332,7 @@ function SitusContent() {
       </section>
 
       {/* ── Konten teks ───────────────────────────────────────────────────── */}
-      <section style={{ ...card, padding: "var(--pad-kartu-lega)" }}>
+      <section style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)" }}>
         <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Teks halaman</h2>
         <p style={{ color: C.muted, fontSize: 12, marginBottom: 14 }}>
           Ubah lalu simpan per baris. Yang tersimpan langsung terbit.
