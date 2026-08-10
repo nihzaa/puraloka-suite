@@ -10771,3 +10771,102 @@ dua keluaran itu dibandingkan langsung.
 Sisa yang belum digarap: `staff-ai`, `web-ai`, `owner-ai/templates`
 (perlu keputusan — Puraloka menggabungnya di `pengaturan/asisten` 502 baris),
 dan `security` (perlu disesuaikan ke Supabase Auth, bukan tiru langsung).
+
+## 2026-08-11 (lanjutan 8) — Asisten dipecah mengikuti TJS: 4.566 px → 1.044–1.540
+
+Founder: *"tetap ikuti TJS biar lebih enak"* — untuk pemisahan halaman asisten.
+Untuk `security` founder menyerahkan penilaiannya ke saya.
+
+### Kenapa pemisahan itu memang lebih enak, terukur
+
+Halaman gabungan `/pengaturan/asisten` setinggi **4.566 px** — hampir lima
+layar. Untuk mengubah asisten web, orang menggulir melewati pengaturan global,
+wawasan portofolio, asisten pemilik, dan asisten staf. Keempat kartu terlihat
+sama, jadi tak ada penanda sudah sampai di mana, dan tak ada tautan yang bisa
+dikirim ke salah satunya.
+
+Sesudah dipecah:
+
+    lapisan (indeks)  1044 px
+    pemilik           1540 px
+    staf              1540 px
+    web               1540 px
+    wawasan           1044 px
+
+Turun tiga sampai empat kali lipat.
+
+Alasan strukturalnya lebih kuat dari sekadar panjang: keempatnya **kanal yang
+berbeda**, bukan varian satu sama lain — pemilik & staf lewat WhatsApp dengan
+batas data berbeda, web di dalam dashboard mengikuti izin penanya, dan
+"wawasan" TIDAK memakai tool sama sekali. Yang terakhir hanya bisa diketahui
+dengan membaca kalimat kecil di bawah kotaknya.
+
+### Isinya SATU komponen, bukan empat salinan
+
+Sebelum pemecahan keempat asisten dirender dari satu `.map()`, jadi
+perilakunya dijamin sama. Menyalin JSX-nya ke empat berkas membuang jaminan
+itu — cacat yang lahir dari situ (satu halaman lupa `disabled`, satu lagi
+memakai label berbeda) tak terlihat sampai seseorang membandingkannya
+berdampingan. Karena itu `_bersama/kartu-asisten.tsx`, dan keempat halaman
+tinggal 18 baris.
+
+Efek samping terukur: **`isian-ratchet` turun 15 → 7** — pemecahan menghapus
+delapan gaya isian duplikat.
+
+### Migrasi 276: yang diukur SEBELUM menulisnya
+
+Rencana pertama: daftarkan empat sub-menu di bawah "Perilaku Asisten".
+Diukur dulu — sidebar hanya punya **dua tingkat** (19 grup akar + 111 anak,
+NOL cucu). Item tingkat-3 akan ada di basis data, tak pernah muncul di layar,
+dan tak satu pun galat menyebutnya.
+
+Pola yang benar sudah dipakai `/kas` dan `/keuangan`: sub-halaman didaftar
+sejajar induknya. Migrasi menyalinnya, dan verifikasinya memeriksa TIGA hal —
+keempat menu aktif, tak ada yang jatuh ke tingkat tiga, dan izinnya benar-benar
+dipegang minimal satu peran (izin yatim = fitur mati tanpa galat).
+
+G-2: entri buku migrasi ditulis **sesudah** artefaknya diperiksa ada, bukan
+sebelum.
+
+### Cacat yang ditemukan saat mengukur hasilnya
+
+Potret pertama: **tab "Lapisan AI" menyala bersamaan dengan "Asisten Pemilik"
+di keempat halaman.**
+
+`NavBagian` menyimpulkan "akar modul" dari `segmen === 1`. Itu benar untuk
+`/kas` dan `/keuangan`, tetapi `/pengaturan/asisten` punya DUA segmen — jadi
+ia memakai aturan anak-segmen dan ikut menyala di semua sub-halamannya.
+
+Yang menentukan bukan kedalaman href melainkan apakah ada tab LAIN di daftar
+yang sama yang merupakan anaknya. Diperbaiki, dan tiga test baru ditambahkan
+ke `nav-bagian.test.tsx` (9 total). Dibuktikan bisa merah: dikembalikan ke
+aturan `segmen === 1` → dua kasus MERAH, tujuh tetap hijau.
+
+Ini kedua kalinya hari ini `nav-bagian` menyimpan cacat aturan-aktif yang tak
+terlihat tanpa mengukur di peramban.
+
+### Dokumen ikut di commit yang sama
+
+`audit-peta-menu-vs-db` merah begitu migrasi jalan — persis gunanya. Penjaga
+itu menuntut `peta-menu.ts` disunting BERSAMA migrasinya (CLAUDE.md §8a.4),
+bukan salah satu saja. Kelima entri diperbarui; drift kembali nol.
+
+### Bukti
+
+    tsc --noEmit           0
+    vitest (web)           604 lulus / 46 berkas — 0 gagal  (+3 nav-bagian)
+    pnpm build             ✓ Compiled successfully in 7.7s
+    migrasi 276            NOTICE: 4 sub-menu, tingkat 2, izin dipegang 1 peran
+    audit-peta-menu-vs-db  ✅ drift 0
+    audit-menu-berbagi-href ✅ nol href dipakai >1 link
+    isian-ratchet          15 → 7 (turun, lantai terkunci)
+    esc-ratchet            OK (0)
+
+Sisa merah: kerapatan, lint, tabel-mentah, tata-letak, a11y-runtime —
+semuanya sudah merah di baseline.
+
+### Berikutnya
+
+`settings/security` — founder menyerahkan penilaiannya. TJS memakai auth
+sendiri (sesi aktif, riwayat login, kebijakan sandi); Puraloka memakai Supabase
+Auth, jadi mekanismenya berbeda dan tidak bisa ditiru langsung.

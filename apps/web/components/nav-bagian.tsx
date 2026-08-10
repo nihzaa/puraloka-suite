@@ -69,8 +69,22 @@ export function NavBagian({ bagian }: { bagian: Bagian[] }) {
         //
         // Bedanya bukan gaya: `"/pengaturan/situs-lama".startsWith("/pengaturan/situs")`
         // bernilai true, jadi membuka "Situs Lama" menyalakan menu "Situs".
-        const akarModul = b.href.split("/").filter(Boolean).length === 1;
-        const aktif = akarModul
+        // ── Kenapa "punya anak DI DAFTAR INI", bukan "jumlah segmen"
+        //
+        // Versi sebelumnya menyimpulkan akar modul dari `segmen === 1`, dan
+        // itu benar selama modulnya di akar (`/kas`, `/keuangan`). Ia salah
+        // untuk modul BERSARANG: `/pengaturan/asisten` punya dua segmen, jadi
+        // ia memakai aturan anak-segmen dan ikut menyala di keempat
+        // sub-halamannya. Diukur 2026-08-11 — tab "Lapisan AI" aktif bersamaan
+        // dengan "Asisten Pemilik" di semua halaman.
+        //
+        // Yang menentukan bukan kedalaman href, melainkan apakah ada tab LAIN
+        // di daftar yang sama yang merupakan anaknya. Kalau ada, tab ini
+        // adalah induk dan hanya boleh menyala di halamannya sendiri.
+        const punyaAnakDiDaftar = bagian.some(
+          (lain) => lain.href !== b.href && lain.href.startsWith(b.href + "/"),
+        );
+        const aktif = punyaAnakDiDaftar
           ? rutenyaAktifPersis(pathname, b.href)
           : rutenyaAktif(pathname, b.href);
 

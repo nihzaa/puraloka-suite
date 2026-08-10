@@ -1,0 +1,252 @@
+"use client";
+
+/**
+ * Isi halaman satu asisten — dipakai keempat sub-halaman.
+ *
+ * Dibuat sebagai komponen, bukan disalin empat kali: sebelum pemecahan,
+ * keempat asisten dirender dari SATU `.map()`, jadi perilakunya dijamin sama.
+ * Menyalin JSX-nya ke empat berkas akan membuang jaminan itu — dan cacat yang
+ * lahir dari situ (satu halaman lupa `disabled`, satu lagi memakai label
+ * berbeda) tak akan terlihat sampai seseorang membandingkannya berdampingan.
+ */
+
+import { useCallback, useEffect, useState } from "react";
+import { Loader2, Save } from "lucide-react";
+import { api } from "@/lib/api";
+import { useIzin } from "@/lib/use-izin";
+import { C } from "@/lib/warna-ui";
+import { GAYA_KARTU } from "@/components/ui-dasar";
+import { GAYA_ISIAN } from "@/components/isian";
+import {
+  KETERANGAN,
+  PAKAI_TOOL,
+  PERAN,
+  type Konfigurasi,
+  type Muatan,
+} from "./tipe";
+
+export function KartuAsisten({ asisten }: { asisten: string }) {
+  const bolehKelola = useIzin("settings:ai:manage");
+
+  const [muatan, setMuatan] = useState<Muatan | null>(null);
+  const [memuat, setMemuat] = useState(true);
+  const [galat, setGalat] = useState<string | null>(null);
+  const [draf, setDraf] = useState<Partial<Konfigurasi>>({});
+  const [menyimpan, setMenyimpan] = useState(false);
+  const [toast, setToast] = useState<{ tipe: "ok" | "salah"; pesan: string } | null>(null);
+
+  const ambil = useCallback(async () => {
+    setMemuat(true);
+    setGalat(null);
+    try {
+      const r = await api.get<Muatan>("/api/v1/ai/config");
+      setMuatan(r.data);
+    } catch {
+      // Kegagalan muat DITAMPILKAN, bukan jadi halaman kosong: kartu kosong
+      // tak bisa dibedakan dari "belum pernah diatur", dan orang akan mengira
+      // pengaturannya hilang.
+      setGalat("Konfigurasi asisten tidak bisa dimuat.");
+    } finally {
+      setMemuat(false);
+    }
+  }, []);
+
+  // `queueMicrotask`, bukan panggilan langsung: `ambil()` menyetel state
+  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect memicu
+  // render kedua sebelum yang pertama selesai (react-hooks/set-state-in-effect).
+  useEffect(() => { queueMicrotask(() => { void ambil(); }); }, [ambil]);
+
+  const asli = (muatan?.data ?? []).find((k) => k.asisten === asisten);
+  const k = asli ? { ...asli, ...draf } : null;
+  const berubah = Object.keys(draf).length > 0;
+  const nama = PERAN[asisten] ?? asisten;
+  const pakaiTool = PAKAI_TOOL.has(asisten);
+
+  async function simpan() {
+    if (!asli || !k) return;
+    setMenyimpan(true);
+    try {
+      await api.put(`/api/v1/ai/config/${asisten}`, {
+        prompt_sistem: k.prompt_sistem,
+        maks_ronde: k.maks_ronde,
+        tool_aktif: k.tool_aktif,
+      });
+      setDraf({});
+      await ambil();
+      setToast({ tipe: "ok", pesan: `Perilaku ${nama} tersimpan` });
+    } catch (e) {
+      const p = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      setToast({ tipe: "salah", pesan: p ?? "Gagal menyimpan" });
+    } finally {
+      setMenyimpan(false);
+    }
+  }
+
+  if (memuat) {
+    return (
+      <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", textAlign: "center", color: C.muted, fontSize: 13 }}>
+        Memuat…
+      </div>
+    );
+  }
+
+  if (galat || !k) {
+    return (
+      <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", color: C.danger, fontSize: 13 }}>
+        {galat ?? `Asisten "${asisten}" tidak ditemukan dalam konfigurasi.`}
+      </div>
+    );
+  }
+
+  // NULL = semua tool yang berizin. Ditampilkan tercentang semua supaya
+  // keadaan "belum diatur" terlihat sebagaimana ia berlaku.
+  const aktif = k.tool_aktif;
+  const semuaAktif = aktif === null;
+
+  return (
+    <section style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)" }}>
+      <h2 style={{ fontSize: 14, fontWeight: 600, color: C.text, margin: "0 0 4px" }}>{nama}</h2>
+      <p style={{ fontSize: 12, color: C.muted, lineHeight: 1.55, margin: "0 0 14px" }}>
+        {KETERANGAN[asisten]}
+      </p>
+
+      <div style={{ marginBottom: 14 }}>
+        <label htmlFor="prompt" style={{ display: "block", fontSize: 12, fontWeight: 550, color: C.mid, marginBottom: 5 }}>
+          Instruksi tambahan
+        </label>
+        <textarea
+          className="isian-fokus"
+          id="prompt"
+          aria-label={`Instruksi tambahan untuk ${nama}`}
+          rows={3}
+          maxLength={8000}
+          placeholder="Mis. sebut nilai dalam jutaan rupiah, dan selalu urutkan dari yang paling mendesak."
+          value={k.prompt_sistem ?? ""}
+          disabled={!bolehKelola}
+          onChange={(e) => setDraf((d) => ({ ...d, prompt_sistem: e.target.value || null }))}
+          style={{ ...GAYA_ISIAN, resize: "vertical", lineHeight: 1.6 }}
+        />
+        <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
+          Ditambahkan di bawah instruksi bawaan, tidak menggantikannya. Dikirim ulang tiap
+          langkah — instruksi panjang menambah biaya tiap pertanyaan.
+        </p>
+      </div>
+
+      {pakaiTool ? (
+        <>
+          <div style={{ marginBottom: 14, maxWidth: 200 }}>
+            <label htmlFor="ronde" style={{ display: "block", fontSize: 12, fontWeight: 550, color: C.mid, marginBottom: 5 }}>
+              Batas langkah
+            </label>
+            <input
+              className="isian-fokus"
+              id="ronde"
+              aria-label={`Batas langkah untuk ${nama}`}
+              type="number"
+              min={1}
+              max={12}
+              value={k.maks_ronde}
+              disabled={!bolehKelola}
+              onChange={(e) => setDraf((d) => ({ ...d, maks_ronde: Number(e.target.value) }))}
+              style={GAYA_ISIAN}
+            />
+            <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
+              Berapa kali asisten boleh membaca data sebelum wajib menjawab. Tiap langkah
+              ditagih.
+            </p>
+          </div>
+
+          <div>
+            <p style={{ fontSize: 12, fontWeight: 550, color: C.mid, margin: "0 0 6px" }}>
+              Data yang boleh dibaca
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {(muatan?.tool_tersedia ?? []).map((tool) => {
+                const dicentang = semuaAktif || (aktif?.includes(tool.nama) ?? false);
+                return (
+                  <label
+                    key={tool.nama}
+                    style={{
+                      display: "flex", alignItems: "flex-start", gap: 8,
+                      fontSize: 12.5, color: C.text, lineHeight: 1.55,
+                      cursor: bolehKelola ? "pointer" : "default",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={dicentang}
+                      disabled={!bolehKelola}
+                      onChange={(e) => {
+                        // Dari NULL, pencentangan pertama harus MEMBEKUKAN
+                        // keadaan "semua" jadi daftar nyata — kalau tidak,
+                        // mematikan satu tool terbaca sebagai mematikan
+                        // semuanya.
+                        const dasar = semuaAktif
+                          ? (muatan?.tool_tersedia ?? []).map((x) => x.nama)
+                          : [...(aktif ?? [])];
+                        const baru = e.target.checked
+                          ? [...new Set([...dasar, tool.nama])]
+                          : dasar.filter((n) => n !== tool.nama);
+                        setDraf((d) => ({ ...d, tool_aktif: baru }));
+                      }}
+                      style={{ marginTop: 3, cursor: bolehKelola ? "pointer" : "default" }}
+                    />
+                    <span>
+                      <code style={{ fontSize: 11.5 }}>{tool.nama}</code>
+                      <span style={{ display: "block", fontSize: 11.5, color: C.muted, lineHeight: 1.5 }}>
+                        {tool.keterangan}
+                      </span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+            <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "8px 0 0" }}>
+              Mematikan semuanya membuat asisten tetap menjawab, tetapi tanpa membaca data apa
+              pun. Pengguna juga tetap butuh izinnya masing-masing — mencentang di sini tidak
+              memberi akses baru.
+            </p>
+          </div>
+        </>
+      ) : (
+        <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: 0 }}>
+          Asisten ini tidak memakai tool — ia menulis dari angka yang sudah dihitung sistem,
+          jadi batas langkah dan pilihan data tidak berlaku.
+        </p>
+      )}
+
+      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 10, marginTop: 14 }}>
+        {toast && (
+          <span
+            role="status"
+            style={{ fontSize: 12, color: toast.tipe === "ok" ? C.green : C.danger }}
+          >
+            {toast.pesan}
+          </span>
+        )}
+        <button
+          type="button"
+          onClick={simpan}
+          disabled={!bolehKelola || !berubah || menyimpan}
+          style={tombolSimpan(bolehKelola && berubah)}
+        >
+          {menyimpan ? <Loader2 size={14} className="berputar" /> : <Save size={14} />}
+          Simpan
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function tombolSimpan(hidup: boolean): React.CSSProperties {
+  return {
+    display: "inline-flex", alignItems: "center", gap: 6,
+    padding: "8px 14px", borderRadius: "var(--radius-sm)",
+    border: "none",
+    background: hidup ? C.navy : "var(--surface-subtle)",
+    color: hidup ? "#fff" : C.muted,
+    fontSize: 13, fontWeight: 600,
+    cursor: hidup ? "pointer" : "not-allowed",
+    fontFamily: "inherit",
+  };
+}

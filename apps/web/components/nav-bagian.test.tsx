@@ -85,6 +85,43 @@ describe('NavBagian — menu mana yang menyala', () => {
   })
 
   /**
+   * MODUL BERSARANG — kasus yang dulu salah, ditemukan 2026-08-11.
+   *
+   * Aturan lama menyimpulkan "akar modul" dari `segmen === 1`. Itu benar untuk
+   * `/kas` dan `/keuangan`, tetapi `/pengaturan/asisten` punya DUA segmen —
+   * jadi ia memakai aturan anak-segmen dan ikut menyala di keempat
+   * sub-halamannya. Diukur di peramban: tab "Lapisan AI" aktif bersamaan
+   * dengan "Asisten Pemilik" di semua halaman.
+   *
+   * Yang menentukan bukan kedalaman href melainkan apakah ada tab LAIN di
+   * daftar yang sama yang merupakan anaknya.
+   */
+  const ASISTEN = [
+    { href: '/pengaturan/asisten', label: 'Lapisan AI' },
+    { href: '/pengaturan/asisten/pemilik', label: 'Asisten pemilik' },
+    { href: '/pengaturan/asisten/staf', label: 'Asisten staf' },
+  ]
+
+  it('induk BERSARANG tak ikut menyala di halaman anaknya', () => {
+    expect(yangAktif('/pengaturan/asisten/pemilik', ASISTEN)).toEqual(['Asisten pemilik'])
+    expect(yangAktif('/pengaturan/asisten/staf', ASISTEN)).toEqual(['Asisten staf'])
+  })
+
+  it('induk bersarang menyala di halamannya sendiri', () => {
+    expect(yangAktif('/pengaturan/asisten', ASISTEN)).toEqual(['Lapisan AI'])
+  })
+
+  /**
+   * Kebalikannya harus tetap jalan: tab yang TIDAK punya anak di daftar tetap
+   * memakai aturan anak-segmen, supaya halaman detail menyalakan bagiannya.
+   */
+  it('tab tanpa anak di daftar tetap menyala untuk halaman detailnya', () => {
+    expect(yangAktif('/pengaturan/asisten/pemilik/riwayat', ASISTEN)).toEqual([
+      'Asisten pemilik',
+    ])
+  })
+
+  /**
    * Pasangan yang sudah pernah menggigit di `sidebar.tsx`, dicatat di kepala
    * `lib/rute-aktif.ts`: `/proyeksi-kas` bukan anak `/proyek`.
    */

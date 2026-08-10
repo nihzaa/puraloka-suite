@@ -370,7 +370,20 @@ export const PETA_MENU: GrupMenu[] = [
       // Halaman `/asisten` sempat ada lalu DIBATALKAN (founder 2026-08-10):
       // obrolannya pindah ke rail kanan supaya pertanyaan dan datanya
       // berdampingan. Yang tersisa di menu adalah pengaturannya.
-      { key: 'ai-asisten', label: 'Perilaku Asisten', status: 'hidup', href: '/pengaturan/asisten', guna: 'Instruksi tambahan, batas langkah, dan data apa yang boleh dibaca tiap asisten. Sifat READ-ONLY tak bisa diubah dari sini.' },
+      // Dipecah jadi lima halaman 2026-08-11 (migrasi 276), mengikuti pemisahan
+      // TJS atas permintaan founder. Sebelumnya keempat asisten berurutan di
+      // SATU halaman setinggi 4.566 px — mengubah asisten web menuntut
+      // menggulir melewati tiga asisten lain, dan tak ada tautan yang bisa
+      // dikirim ke salah satunya.
+      //
+      // Induknya kini hanya memuat saklar & retensi milik TENANT, jadi
+      // labelnya diperjelas — "Perilaku Asisten" akan membuat orang membukanya
+      // lalu bertanya ke mana instruksinya pergi.
+      { key: 'ai-asisten', label: 'Asisten — Lapisan AI', status: 'hidup', href: '/pengaturan/asisten', guna: 'Saklar AI dan lama simpan riwayat — berlaku untuk SELURUH asisten, bukan salah satunya.' },
+      { key: 'ai-asisten-pemilik', label: 'Asisten Pemilik', status: 'hidup', href: '/pengaturan/asisten/pemilik', guna: 'Instruksi, batas langkah, dan data yang boleh dibaca asisten pemilik (kanal WhatsApp).' },
+      { key: 'ai-asisten-staf', label: 'Asisten Staf', status: 'hidup', href: '/pengaturan/asisten/staf', guna: 'Asisten untuk orang lapangan dan kantor. Kanal WhatsApp sendiri, batas datanya lebih sempit.' },
+      { key: 'ai-asisten-web', label: 'Asisten Web', status: 'hidup', href: '/pengaturan/asisten/web', guna: 'Asisten di dalam dashboard. Penanyanya siapa pun yang login — batasnya mengikuti izin orang itu.' },
+      { key: 'ai-asisten-wawasan', label: 'Wawasan Portofolio', status: 'hidup', href: '/pengaturan/asisten/wawasan', guna: 'Menulis dua kalimat penilaian di beranda dari angka yang sudah dihitung sistem. Tidak memakai tool.' },
       // Label & href SAMA PERSIS dengan `menu_items` — penjaga
       // `audit-peta-menu-vs-db` membandingkan keduanya, dan katalog yang
       // menyebut tujuan berbeda dari sidebar membohongi salah satu pembacanya.
