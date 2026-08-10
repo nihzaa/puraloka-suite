@@ -186,7 +186,95 @@ class AdaptorEvolution implements AdaptorWa {
  */
 export function buatAdaptorWa(cfg: KonfigurasiWa): AdaptorWa | null {
   if (cfg.penyedia === 'evolution') return new AdaptorEvolution(cfg)
+  if (cfg.penyedia === 'fonnte') return new AdaptorFonnte(cfg)
   return null
+}
+
+/** Penyedia yang dikenali — dipakai UI supaya pilihannya tak ditebak. */
+export const ADAPTOR_WA_DIKENAL = [
+  {
+    kunci: 'evolution',
+    label: 'Evolution API',
+    keterangan: 'Self-hosted, gratis. Butuh instance dan pemindaian QR.',
+    /** Field non-rahasia yang WAJIB diisi di UI. */
+    butuh: ['baseUrl', 'instance'] as const,
+  },
+  {
+    kunci: 'fonnte',
+    label: 'Fonnte',
+    keterangan: 'Layanan berbayar Indonesia. Cukup token — tanpa instance.',
+    butuh: [] as const,
+  },
+] as const
+
+/**
+ * Fonnte — penyedia kedua, dan alasannya bukan kelengkapan.
+ *
+ * Evolution self-hosted: kalau server-nya mati atau sesi WhatsApp-nya keluar,
+ * SELURUH notifikasi berhenti dan tak ada jalan lain. Penyedia kedua membuat
+ * pemulihannya sejauh mengganti pilihan di UI, bukan menunggu server pulih.
+ *
+ * Bentuk muatannya BERBEDA dari Evolution — `target`/`message`, bukan
+ * `number`/`text`, dan kuncinya di header `Authorization` tanpa skema. Itulah
+ * sebabnya penyedia baru butuh adaptor (kode) meski konfigurasinya data:
+ * bentuk HTTP tak bisa dikarang dari UI.
+ */
+class AdaptorFonnte implements AdaptorWa {
+  readonly nama = 'fonnte'
+  constructor(private cfg: KonfigurasiWa) {}
+
+  async kirimTeks(nomor: string, teks: string): Promise<HasilKirim> {
+    const kendali = new AbortController()
+    const jam = setTimeout(() => kendali.abort(), 15_000)
+    try {
+      const r = await fetch('https://api.fonnte.com/send', {
+        method: 'POST',
+        // Fonnte memakai token TELANJANG di Authorization — tanpa `Bearer`.
+        // Menambahkan skema membuatnya menolak dengan pesan yang tak
+        // menyebut sebabnya.
+        headers: { 'content-type': 'application/json', Authorization: this.cfg.apiKey },
+        body: JSON.stringify({ target: nomor, message: teks }),
+        signal: kendali.signal,
+      })
+
+      if (!r.ok) {
+        const detail = await r.text().catch(() => '')
+        return {
+          ok: false,
+          alasan: 'penyedia_menolak',
+          pesan: `Fonnte ${r.status}: ${detail.slice(0, 200)}`,
+        }
+      }
+
+      /*
+       * Fonnte membalas 200 SEKALIPUN gagal — `{"status": false, ...}`.
+       *
+       * Ini bentuk kegagalan senyap yang persis dijaga `audit-satu-pintu-wa`:
+       * memeriksa `r.ok` saja membuat pesan yang tak pernah terkirim tercatat
+       * sebagai terkirim.
+       */
+      const badan = (await r.json().catch(() => ({}))) as {
+        status?: boolean
+        reason?: string
+        id?: string[] | string
+      }
+      if (badan?.status === false) {
+        return {
+          ok: false,
+          alasan: 'penyedia_menolak',
+          pesan: `Fonnte menolak: ${badan.reason ?? 'tanpa alasan'}`,
+        }
+      }
+
+      const id = Array.isArray(badan?.id) ? badan.id[0] : badan?.id
+      return { ok: true, pesanId: id ?? null, dilewati: false }
+    } catch (err) {
+      const e = err as { message?: string }
+      return { ok: false, alasan: 'jaringan', pesan: e?.message ?? String(err) }
+    } finally {
+      clearTimeout(jam)
+    }
+  }
 }
 
 export interface OpsiKirim {
@@ -336,4 +424,75 @@ async function catatLog(
   // Gagal mencatat tak boleh menjatuhkan pengiriman — tapi juga tak boleh
   // hilang tanpa jejak. Dilempar ke konsol, bukan ditelan.
   if (error) console.error('[wa] gagal menulis log:', error.message)
+}
+
+/**
+ * UJI SAMBUNGAN — tanpa mengirim pesan ke siapa pun.
+ *
+ * Tinggal DI SINI, bukan di route, karena `audit-satu-pintu-wa` melarang
+ * endpoint WhatsApp disentuh di luar berkas ini — dan larangan itu benar.
+ * Versi pertama saya menaruh `fetch('https://api.fonnte.com/device')` di
+ * `routes/v1/penyedia.ts`, dan penjaga menolaknya dengan tepat: begitu satu
+ * titik di luar pintu dibiarkan, titik kedua selalu menyusul, lalu bentuk
+ * muatannya menyimpang dan pesannya berhenti terkirim tanpa satu pun galat.
+ *
+ * Yang diperiksa: endpoint menjawab DAN kredensialnya diterima. Bukan
+ * mengirim pesan — tombol "Uji" yang mengganggu orang adalah tombol yang tak
+ * pernah ditekan.
+ */
+export interface HasilUjiWa {
+  ok: boolean
+  pesan: string
+}
+
+export async function ujiSambunganWa(
+  cfg: KonfigurasiWa,
+  timeoutMs = 12_000,
+): Promise<HasilUjiWa> {
+  const kendali = new AbortController()
+  const jam = setTimeout(() => kendali.abort(), timeoutMs)
+  try {
+    if (cfg.penyedia === 'evolution') {
+      if (!cfg.baseUrl?.trim() || !cfg.instance?.trim()) {
+        return { ok: false, pesan: 'baseUrl dan instance wajib diisi.' }
+      }
+      const r = await fetch(
+        `${cfg.baseUrl.replace(/\/$/, '')}/instance/connectionState/${cfg.instance}`,
+        { headers: { apikey: cfg.apiKey }, signal: kendali.signal },
+      )
+      if (!r.ok) return { ok: false, pesan: `Evolution ${r.status}` }
+      const b = (await r.json().catch(() => ({}))) as { instance?: { state?: string } }
+      const state = b?.instance?.state ?? 'tak diketahui'
+      // `open` = sesi WhatsApp hidup. State lain berarti QR belum dipindai
+      // atau sesinya keluar — keadaan yang paling sering terjadi TANPA ada
+      // yang menyadarinya.
+      return state === 'open'
+        ? { ok: true, pesan: 'Terhubung, sesi aktif.' }
+        : { ok: false, pesan: `Instance ada, tapi sesi '${state}' — pindai QR.` }
+    }
+
+    if (cfg.penyedia === 'fonnte') {
+      const r = await fetch('https://api.fonnte.com/device', {
+        method: 'POST',
+        headers: { Authorization: cfg.apiKey },
+        signal: kendali.signal,
+      })
+      if (!r.ok) return { ok: false, pesan: `Fonnte ${r.status}` }
+      // Fonnte membalas 200 sekalipun gagal — lihat `AdaptorFonnte`.
+      const b = (await r.json().catch(() => ({}))) as { status?: boolean; reason?: string }
+      return b?.status === false
+        ? { ok: false, pesan: b.reason ?? 'Token ditolak.' }
+        : { ok: true, pesan: 'Token diterima.' }
+    }
+
+    return { ok: false, pesan: `Uji untuk penyedia '${cfg.penyedia}' belum tersedia.` }
+  } catch (e) {
+    const err = e as { name?: string; message?: string }
+    return {
+      ok: false,
+      pesan: err?.name === 'AbortError' ? 'Tak menjawab dalam 12 detik.' : (err?.message ?? 'Gagal'),
+    }
+  } finally {
+    clearTimeout(jam)
+  }
 }

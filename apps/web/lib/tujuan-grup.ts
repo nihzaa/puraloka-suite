@@ -85,6 +85,23 @@ function ruas(href: string): number {
  * `null` dipaksa jadi `"#"` atau `"/"`, orang akan dikirim ke tempat acak.
  */
 export function tujuanGrup(node: NodeMenuRingkas): string | null {
+  /*
+   * Href MILIK INDUK SENDIRI menang atas penyimpulan apa pun.
+   *
+   * Seluruh logika di bawah ini MENYIMPULKAN ikhtisar dari anak-anaknya, dan
+   * itu tepat untuk grup yang anaknya memang bersarang (`/kontrak` menaungi
+   * `/kontrak/rfi`). Ia SALAH untuk grup yang halamannya berdiri sendiri.
+   *
+   * "AI & Otomasi" contohnya: keenam anaknya tinggal di `/pengaturan/*`, jadi
+   * tak ada kandidat satu-ruas dan penyimpulannya mengembalikan `null` —
+   * padahal `/otomasi` ADA dan menu induknya menunjuk ke sana (migrasi 267).
+   *
+   * Menyiasatinya dengan memaksa anak-anak pindah ke `/otomasi/*` akan
+   * mengubah enam URL yang sudah dipakai demi memuaskan sebuah penyimpulan.
+   * Yang benar: kalau induk MENYATAKAN tujuannya, nyatakan itu yang berlaku.
+   */
+  if (typeof node.href === 'string' && node.href.startsWith('/')) return node.href
+
   const anak = (node.children ?? []).filter(
     (a): a is NodeMenuRingkas & { href: string } =>
       typeof a?.href === 'string' && a.href.startsWith('/'),

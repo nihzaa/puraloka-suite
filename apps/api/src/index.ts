@@ -17,6 +17,7 @@ import aiRetensiRoutes from './routes/v1/ai-retensi.js'
 import waNomorRoutes from './routes/v1/wa-nomor.js'
 import waWebhookRoutes from './routes/v1/wa-webhook.js'
 import aiSetujuiRoutes from './routes/v1/ai-setujui.js'
+import penyediaRoutes from './routes/v1/penyedia.js'
 import kasbonRoutes from './routes/v1/kasbons.js'
 import clientRoutes from './routes/v1/clients.js'
 import userRoutes from './routes/v1/users.js'
@@ -286,6 +287,7 @@ await app.register(aiRetensiRoutes)
 await app.register(waNomorRoutes)
 await app.register(waWebhookRoutes)
 await app.register(aiSetujuiRoutes)
+await app.register(penyediaRoutes)
 await app.register(kasbonRoutes)
 await app.register(clientRoutes)
 await app.register(userRoutes)

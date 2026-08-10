@@ -55,7 +55,10 @@ const ROLE_ALLOWED: Record<string, string[]> = {
   // `/gudang` = rekonsiliasi material. Ditahan di admin: angkanya menuduh —
   // "susut 12%" pada material yang dipegang mandor tertentu. Yang dituduh
   // tidak boleh jadi yang pertama membacanya.
-  admin:   ["/dashboard", "/proyek", "/kepatuhan", "/dokumen", "/jadwal", "/keuangan", "/akuntansi", "/mandor", "/laporan", "/notifications", "/kas", "/users", "/klien", "/procurement", "/pengaturan", "/kalender", "/audit", "/sistem", "/estimasi", "/tender", "/piutang", "/aset", "/mutu", "/lapangan", "/kontrak", "/gudang", "/approval-inbox", "/m", "/peta-modul"],
+  // `/otomasi` = ikhtisar AI & Otomasi (migrasi 267). Ditahan di admin karena
+  // isinya menyebut BIAYA bulan berjalan dan percobaan akses yang ditolak —
+  // dua hal yang jadi bahan kesimpulan tentang orang, bukan tentang pekerjaan.
+  admin:   ["/dashboard", "/proyek", "/kepatuhan", "/dokumen", "/jadwal", "/keuangan", "/akuntansi", "/mandor", "/laporan", "/notifications", "/kas", "/users", "/klien", "/procurement", "/pengaturan", "/kalender", "/audit", "/sistem", "/estimasi", "/tender", "/piutang", "/aset", "/mutu", "/lapangan", "/kontrak", "/gudang", "/approval-inbox", "/otomasi", "/m", "/peta-modul"],
 };
 
 /**

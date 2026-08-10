@@ -58,10 +58,14 @@ const DIR_APP = join(AKAR, "apps", "web", "app", "(dashboard)");
  *
  *   3 → 2  (2026-08-09) Gudang dapat `/gudang` — dashboard ikhtisar aset &
  *          material yang kembali sesudah proyek selesai (migrasi 238-240).
+ *   2 → 1  (2026-08-10) AI & Otomasi dapat `/otomasi` — kesehatan penyedia,
+ *          biaya bulan berjalan, percakapan, dan percobaan akses ditolak.
+ *          Pertanyaan "apakah otomasi saya sehat hari ini?" sebelumnya
+ *          menuntut membuka lima halaman dan mengingat isinya (migrasi 267).
  *
- * Sisa 2: Estimasi & Biaya, Mutu & Kepatuhan.
+ * Sisa 1: Mutu & Kepatuhan.
  */
-const LANTAI = 2;
+const LANTAI = 1;
 
 // ── Aturan pemilihan: dipinjam dari lib/tujuan-grup.ts ──────────────────────
 //
@@ -119,6 +123,27 @@ for (const f of berkas) {
     });
   }
 
+  /*
+   * Pemberian href lewat UPDATE — migrasi MAJU, bukan edit migrasi lama.
+   *
+   * Tanpa cabang ini, grup yang BARU mendapat halaman ikhtisarnya tetap
+   * terhitung "belum punya": penjaga hanya melihat nilai yang PERTAMA kali
+   * ditulis lewat INSERT, dan §5.5 melarang mengedit migrasi lama.
+   *
+   * Ditemukan 2026-08-10 saat `g-ai` mendapat `/otomasi` lewat migrasi 267:
+   * halamannya ada, menunya menunjuk ke sana, tapi penjaga tetap merah — dan
+   * satu-satunya cara menghijaukannya adalah melanggar §5.5. Penjaga yang
+   * memaksa pelanggaran aturan lain untuk dipuaskan adalah penjaga yang
+   * rusak. (Cacat yang SAMA sudah diperbaiki di `uji-sidebar-struktur` untuk
+   * `sort_order` beberapa jam sebelumnya — pola ini pantas dicurigai di tiap
+   * penjaga yang membaca berkas migrasi.)
+   */
+  for (const m of sql.matchAll(
+    /UPDATE\s+menu_items\s+SET\s+href\s*=\s*'([^']+)'[\s\S]{0,200}?key\s*=\s*'([a-z0-9-]+)'/gi)) {
+    const it = item.get(m[2]);
+    if (it) it.href = m[1];
+  }
+
   // Penonaktifan massal: UPDATE menu_items SET is_active = false WHERE key IN (...)
   for (const blok of sql.matchAll(/is_active\s*=\s*false[\s\S]{0,400}?key\s+IN\s*\(([^)]*)\)/gi)) {
     for (const k of blok[1].matchAll(/'([a-z0-9-]+)'/g)) {
@@ -133,6 +158,15 @@ const grup = aktif
   .filter((x) => x.induk === null)
   .map((g) => ({
     key: g.key,
+    // `href` INDUK ikut dikirim — `tujuanGrup` mendahulukannya atas
+    // penyimpulan dari anak. Tanpa baris ini, grup yang halaman ikhtisarnya
+    // BERDIRI SENDIRI (anaknya tak bersarang di bawahnya) selamanya
+    // terhitung "belum punya", betapa pun nyata halamannya.
+    //
+    // Ditemukan 2026-08-10: `g-ai` menunjuk `/otomasi`, halamannya ada,
+    // menunya bekerja — penjaga tetap merah karena node yang ia susun
+    // MEMBUANG href induknya sebelum menanyakannya.
+    href: g.href,
     children: aktif.filter((x) => x.induk === g.key).map((x) => ({ href: x.href })),
   }))
   .filter((g) => g.children.length > 0);

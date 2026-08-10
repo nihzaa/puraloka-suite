@@ -5,6 +5,119 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-10 (lanjutan 13) — Founder: "masih jauh dari TJS". Saya ukur, dan ia setengah benar.
+
+Founder menulis: *"POKOKNYA YG KAMU LAKUKAN BELUM SAMA DENGAN YG ADA DI PROJECT
+TJS, apalagi LEBIH BAIK (KAYANYA MASIH JAUH)"*.
+
+Sebelum menyanggupi apa pun saya mengukur TJS, bukan menebaknya.
+
+### Yang founder benar
+
+**38 tool vs 5.** Jurang nyata. Halaman yang belum ada: `wa-providers`,
+`wa-templates`, `ai-monitor`, `observability`, `automation`, `knowledge`.
+Dashboard menu induk belum ada. Riwayat percakapan: datanya ada sejak migrasi
+252, UI-nya nol. Workflow n8n: nol.
+
+### Satu koreksi yang mengubah rencana
+
+**TJS TIDAK bisa CRUD lewat asisten.** Dari 38 tool, yang bukan
+`list_`/`get_`/`generate_`/`search_` hanya TUJUH — dan ketujuhnya
+`preview_approve_*`, pola yang sudah dibangun di TJS-E1 kemarin. Nol `create_`,
+nol `update_`, nol `delete_`.
+
+Founder memilih **CRUD terbatas + token konfirmasi**, jadi itu akan MELAMPAUI
+TJS, bukan menyamainya.
+
+### Dan satu hal yang TJS tak punya sama sekali
+
+`grep -rl "health|kesehatan|status_check"` di seluruh `settings/` TJS: **nol
+berkas.** Status kesehatan penyedia adalah ide founder sendiri yang melampaui
+referensinya — dan ia layak ada justru karena kegagalan penyedia SENYAP:
+instance WhatsApp yang sesinya keluar tetap menerima permintaan.
+
+### Yang dibangun
+
+**Registry penyedia universal** (migrasi 266). Satu tabel untuk AI + WA + apa
+pun sesudahnya. Bedanya dengan TJS terukur: `lib/ai/registry.ts` mereka
+menuliskan sendiri cara menambah penyedia — *"buat lib/ai/providers/<nama>.ts …
+tambahkan satu baris di PENYEDIA"*. Penyedia TJS adalah KODE; menambahnya butuh
+deploy. Di sini ia DATA.
+
+Kunci API sengaja **tak punya kolom** di registry; verifikasi migrasi
+membuktikannya. Ia tinggal di `app_credentials` yang tersandi dan sudah dijaga
+penjaga berambang NOL — dua tempat rahasia berarti satu yang tak terjaga.
+
+**Adaptor WA kedua (Fonnte).** Ditemukan saat menulisnya: Fonnte membalas
+**200 sekalipun gagal** (`{"status": false}`), jadi memeriksa `r.ok` saja
+mencatat pesan yang tak terkirim sebagai terkirim.
+
+**Ikhtisar `/otomasi`** — menjawab "apakah otomasi saya sehat hari ini?", yang
+sebelumnya menuntut membuka lima halaman dan mengingat isinya.
+
+### Empat penjaga menolak kode saya, keempatnya benar
+
+1. **W-1 satu-pintu-WA** — uji koneksi saya memanggil `api.fonnte.com`
+   langsung dari route. Penjaga menolaknya tepat: begitu satu titik di luar
+   pintu dibiarkan, titik kedua menyusul, lalu bentuk muatannya menyimpang.
+   Dipindah ke `wa-kirim.ts`.
+2. **tulis-tanpa-periksa** — dua tulisan status kesehatan tanpa memeriksa
+   error. Tombol Uji yang tak mengubah apa pun tapi terlihat berhasil adalah
+   cacat yang paling lama bertahan.
+3. **kegagalan-senyap 186 → 194** — delapan `?? []`. Untuk halaman KESEHATAN
+   itu terburuk: gagal baca jadi "nol penyedia bermasalah, nol biaya, nol
+   akses ditolak". Semuanya menenangkan, semuanya bohong.
+4. **rute-terdaftar** — `/otomasi` belum di middleware, jadi Next.js
+   mengalihkannya diam-diam ke beranda. Tangkapan layar pertama saya
+   memotret dashboard tanpa saya sadari.
+
+Semuanya diperbaiki dengan MEMPERBAIKI KODE, nol ambang dinaikkan.
+
+### Dua penjaga yang BUTA — pola yang berulang lagi
+
+`uji-induk-punya-ikhtisar` tetap merah sesudah `/otomasi` ada dan menunya
+menunjuk ke sana. Dua sebab bertumpuk:
+
+- ia tak pernah membaca `UPDATE menu_items SET href` (hanya INSERT) — cacat
+  yang **sama persis** dengan yang saya perbaiki di `uji-sidebar-struktur`
+  untuk `sort_order` beberapa jam sebelumnya;
+- `tujuanGrup` MENYIMPULKAN ikhtisar dari anak-anaknya dan mengabaikan href
+  milik induk sendiri — salah untuk grup yang anaknya tak bersarang
+  (`/pengaturan/*`), dan penjaga bahkan MEMBUANG href induk sebelum
+  menanyakannya.
+
+Menyiasatinya dengan memindahkan enam URL ke `/otomasi/*` akan mengubah alamat
+yang sudah dipakai demi memuaskan sebuah penyimpulan. Yang benar: kalau induk
+MENYATAKAN tujuannya, itu yang berlaku.
+
+Lantai ikhtisar turun 2 → 1. Sisa: Mutu & Kepatuhan.
+
+### Penilaian visual sendiri, dan dua revisi
+
+Tangkapan layar menunjukkan `buk•••omor` — fungsi penyamar saya memotong
+HURUF, bukan angka, karena log berisi nilai uji `bukan-nomor`. Omong kosong
+yang terbaca seperti cacat sistem.
+
+Dan lima belas baris "gagal" identik: tak menambah informasi setelah baris
+pertama, sekaligus MENDORONG KELUAR kejadian lain dari 15 teratas. Diringkas
+jadi satu baris `×15` — yang berurutan saja, karena dua kegagalan yang
+dipisahkan keberhasilan adalah dua peristiwa berbeda.
+
+### Bukti
+
+- 51/52 penjaga API hijau; satu merah pra-ada
+- seluruh penjaga web CI hijau
+- `tsc --noEmit` bersih di kedua app
+- migrasi 266/267 lulus blok verifikasinya (registry nol kolom rahasia,
+  nama ganda ditolak, R-1 satu href satu menu)
+
+### Sisa dari enam sumbu
+
+UI registry penyedia, template pesan WA, tool 5 → ~20, CRUD terbatas,
+workflow n8n. Masih jauh — founder benar soal itu.
+
+---
+
 ## 2026-08-10 (lanjutan 12) — RAG dokumen, dan tiga test yang hijau tanpa arti (TJS-C2)
 
 Kriteria C2 menyebut sendiri taruhannya: *"T-2 adalah kebocoran lintas-tenant
