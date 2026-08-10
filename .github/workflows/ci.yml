@@ -431,6 +431,21 @@ jobs:
       - name: Jalur RAG bertenancy (T-2/T-4/T-5)
         run: node scripts/audit-rag-tenancy.mjs
 
+      # Registry penyedia adalah tempat yang PALING MENGGODA untuk menaruh
+      # kunci API: ia sudah menyimpan alamat, instance, dan nama penyedia, jadi
+      # menambahkan satu kolom `api_key` terasa seperti kerapian.
+      #
+      # Tapi kredensial di dua tempat berarti satu yang tak terjaga —
+      # `audit-kredensial-tak-bocor` berambang NOL dan hanya mengawasi
+      # `app_credentials`; ia tak tahu apa-apa tentang tabel kedua.
+      #
+      # Ambang NOL. Terbukti bisa merah: `bash scripts/bukti-mutasi-registry.sh`.
+      # P-5 sempat HIJAU-KARENA-BUTA — ia memeriksa KEMUNCULAN nama tabel, dan
+      # nama itu masih muncul di endpoint yang MEMBACA jejak. Menyebut sebuah
+      # tabel bukan menulis ke sana.
+      - name: Registry penyedia tak menyimpan rahasia
+        run: node scripts/audit-registry-penyedia.mjs
+
       # Nominal dari permintaan yang dibaca `parseFloat` mentah. Rantai cacatnya
       # dibuktikan 2026-08-08 di Node DAN di Postgres: `qty: "abc"` → NaN → cek
       # saldo LOLOS (setiap perbandingan dengan NaN bernilai false) → Postgres

@@ -5,6 +5,61 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-10 (lanjutan 14) — UI registry penyedia, dan penjaga BUTA kelima
+
+Halaman `/pengaturan/penyedia` jadi: daftar penyedia dengan lencana kesehatan,
+tombol Uji per baris, form tambah yang hanya menampilkan field yang DIBUTUHKAN
+adaptor terpilih, dan panel kanan berisi JEJAK uji.
+
+### Panel kanan menjawab yang tabel tak bisa
+
+Tabel menjawab "sekarang bagaimana". Rail menjawab "sejak kapan" — dan pada
+tangkapan layar itu terlihat sebagai pola: **sehat 4 jam lalu, lalu gagal tiga
+kali berturut-turut.** Penyedia yang gagal 3 dari 10 percobaan adalah masalah
+yang berbeda dari yang gagal 10 dari 10, dan keduanya terlihat sama persis di
+kolom status.
+
+### Penjaga BUTA kelima sesi ini — dan sekali lagi pola yang sama
+
+`audit-registry-penyedia` P-5 memeriksa `/penyedia_uji_log/.test(rute)`.
+Mutasi yang mengganti tabel tujuan `insert` tetap HIJAU, karena nama tabel itu
+masih muncul di endpoint `/log` yang MEMBACA jejak.
+
+**Menyebut sebuah tabel bukan menulis ke sana.** Ini kesalahan yang sama
+dengan G-5 di `audit-webhook-bergerbang` — memeriksa KATA, bukan PERBUATAN —
+dan itu kelima kalinya sesi ini saya menulis penjaga yang hijau tanpa arti.
+
+Yang berbeda kali ini: saya sudah menduganya. Penjaga lulus di percobaan
+pertama, dan itu justru alasan menjalankan mutasi, bukan alasan melewatinya.
+
+### Yang dijaga registry, dan kenapa
+
+Registry adalah tempat PALING MENGGODA untuk menaruh kunci API — ia sudah
+menyimpan alamat, instance, dan nama penyedia, jadi menambah kolom `api_key`
+terasa seperti kerapian. Tapi `audit-kredensial-tak-bocor` berambang NOL dan
+hanya mengawasi `app_credentials`; ia tak tahu apa-apa tentang tabel kedua.
+
+Penjaga P-1 memeriksa definisi tabel DAN `ALTER TABLE … ADD` — jalan paling
+mungkin sebuah kolom rahasia menyelinap masuk belakangan.
+
+### Bukti
+
+- 17 test rute registry: rahasia ditolak untuk ENAM nama field berbeda,
+  adaptor karangan ditolak, pasangan silang (adaptor AI untuk jenis WA)
+  ditolak, hasil uji tak memuat `sk-ant`, isolasi tenant, nama ganda ditolak
+- `bash scripts/bukti-mutasi-registry.sh` → P-1..P-5 MERAH, pulih HIJAU
+- 52/53 penjaga API hijau; satu merah pra-ada
+- seluruh penjaga web CI hijau
+- `npx vitest run` 2.653 lulus, 3 gagal — semuanya pra-ada
+- halaman ditangkap layar 2×, direvisi 1× (rail ditambahkan setelah tangkapan
+  pertama menunjukkan ruang bawah kosong)
+
+### Sisa enam sumbu
+
+Template pesan WA, tool 5 → ~20, CRUD terbatas, workflow n8n.
+
+---
+
 ## 2026-08-10 (lanjutan 13) — Founder: "masih jauh dari TJS". Saya ukur, dan ia setengah benar.
 
 Founder menulis: *"POKOKNYA YG KAMU LAKUKAN BELUM SAMA DENGAN YG ADA DI PROJECT
