@@ -350,7 +350,9 @@ export default function KeamananPage() {
                       display: "inline-flex", alignItems: "center", gap: 6,
                       padding: "8px 14px", borderRadius: "var(--radius-sm)", border: "none",
                       background: kode.length === 6 ? C.navy : "var(--surface-subtle)",
-                      color: kode.length === 6 ? "#fff" : C.muted,
+                      // `C.onNavy`, BUKAN "#fff" dipaku — lihat catatan di
+                      // tombol "Aktifkan verifikasi dua langkah" di bawah.
+                      color: kode.length === 6 ? C.onNavy : C.muted,
                       fontSize: 13, fontWeight: 600,
                       cursor: kode.length === 6 && !sedang ? "pointer" : "not-allowed",
                       fontFamily: "inherit",
@@ -381,7 +383,19 @@ export default function KeamananPage() {
                 style={{
                   display: "inline-flex", alignItems: "center", gap: 6,
                   padding: "8px 14px", borderRadius: "var(--radius-sm)", border: "none",
-                  background: C.navy, color: "#fff", fontSize: 13, fontWeight: 600,
+                  // ── `C.onNavy`, BUKAN "#fff" dipaku
+                  //
+                  // `--navy` BERBEDA per mode: #003366 di terang, #4D9FFF di
+                  // gelap. Putih di atas #4D9FFF terukur 2,72 : 1 — jauh di
+                  // bawah AA 4,5. Cacat ini tak terlihat sama sekali di mode
+                  // terang (12,61 : 1) dan hanya tertangkap saat audit runtime
+                  // dijalankan dengan `--gelap`.
+                  //
+                  // `--on-navy` sudah ada di globals.css justru untuk ini:
+                  // #FFFFFF di terang, #0F1117 di gelap → 6,94 : 1. Repo sudah
+                  // menyediakan jawabannya; yang salah hanya saya memakukan
+                  // warna alih-alih tokennya.
+                  background: C.navy, color: C.onNavy, fontSize: 13, fontWeight: 600,
                   cursor: sedang ? "not-allowed" : "pointer", fontFamily: "inherit",
                 }}
               >

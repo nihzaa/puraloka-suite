@@ -71,8 +71,51 @@ for (const dir of ['app', 'components', 'lib']) {
     if (p.replace(/\\/g, '/').endsWith('lib/warna-merek.ts')) continue
 
     const isi = readFileSync(p, 'utf8')
+
+    /**
+     * Blok komentar dilacak dengan KEADAAN, bukan per-baris.
+     *
+     * Versi pertama hanya memeriksa apakah satu baris DIMULAI dengan `//`,
+     * `*`, atau `/*`. Itu benar untuk JSDoc yang tiap barisnya diawali `*`,
+     * dan melewatkan blok yang tidak — mis. komentar JSX berindentasi:
+     *
+     *     {\/*
+     *       `opacity: 0.5` pada #111827 di atas putih menghasilkan
+     *       #888C93 — diukur 3,38 : 1, di bawah ambang AA 4,5.
+     *     *\/}
+     *
+     * Kedua baris tengahnya diawali teks biasa, jadi lolos filter dan
+     * terhitung sebagai hex di kode. Diukur 2026-08-11: dua kalimat
+     * PENJELASAN menaikkan angkanya 48 → 50 dan memerahkan penjaga.
+     *
+     * Itu persis kerusakan yang catatan ⚠️ di kepala berkas ini
+     * memperingatkan: "menuduhnya akan mengajari orang menghapus dokumentasi
+     * yang berguna" — dan hampir berhasil, karena jalan keluar termudahnya
+     * adalah membuang angka dari komentar yang justru menjelaskannya.
+     *
+     * Cacat sekeluarga sudah memakan `judul-ratchet`, `suspense-ratchet`, dan
+     * `a11y-ratchet` sebelumnya. Yang membedakan di sini: penulisnya SUDAH
+     * mengantisipasi masalahnya, hanya pelaksanaannya yang tak sadar-blok.
+     */
+    let dalamBlok = false
+
     isi.split('\n').forEach((teks, i) => {
       const bersih = teks.trim()
+
+      // Buka/tutup blok bisa terjadi di baris yang sama; yang menentukan
+      // adalah penutup TERAKHIR.
+      const buka = bersih.lastIndexOf('/*')
+      const tutup = bersih.lastIndexOf('*/')
+
+      if (dalamBlok) {
+        if (tutup !== -1 && tutup > buka) dalamBlok = false
+        return // seluruh baris di dalam blok komentar
+      }
+      if (buka !== -1 && tutup < buka) {
+        dalamBlok = true
+        return
+      }
+
       if (bersih.startsWith('//') || bersih.startsWith('*') || bersih.startsWith('/*')) return
       const cocok = teks.match(/#[0-9a-fA-F]{6}\b/g)
       if (cocok) {

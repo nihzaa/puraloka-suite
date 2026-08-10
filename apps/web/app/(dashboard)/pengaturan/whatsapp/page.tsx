@@ -307,11 +307,23 @@ export default function WhatsAppPage() {
                       style={{ color: n.aktif ? "var(--warning)" : C.muted, flexShrink: 0 }}
                     />
                   )}
+                  {/*
+                    Nomor nonaktif diredupkan lewat WARNA, bukan `opacity`.
+
+                    `opacity: 0.5` pada #111827 di atas putih menghasilkan
+                    #888C93 — diukur 3,38 : 1, di bawah ambang AA 4,5.
+                    axe menandainya `color-contrast`, dan itu benar: yang
+                    diredupkan di sini NOMOR TELEPON, satu-satunya cara
+                    membedakan baris ini dari baris lain.
+
+                    `C.muted` sudah 4,83 : 1 — lolos AA tanpa mengarang nilai
+                    baru, dan tetap terbaca jelas lebih redup dari yang aktif.
+                  */}
                   <span
                     style={{
-                      fontSize: 14, fontWeight: 600, color: C.text,
+                      fontSize: 14, fontWeight: 600,
+                      color: n.aktif ? C.text : C.muted,
                       fontFamily: "var(--font-mono, monospace)",
-                      opacity: n.aktif ? 1 : 0.5,
                     }}
                   >
                     {tampilNomor(n.nomor)}

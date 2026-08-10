@@ -22,10 +22,30 @@
  * sumbernya dibaca dari disk lalu disuntikkan — tak ada permintaan
  * keluar yang bisa gagal diam-diam dan membuat audit "hijau" palsu.
  *
- * Pakai:
- *   LAYAR_EMAIL=... LAYAR_SANDI=... node scripts/audit-a11y-runtime.mjs
+ * ── Pakai — DARI AKAR REPO, dan WAJIB berkredensial
+ *
+ *   LAYAR_EMAIL=… LAYAR_SANDI=… node apps/web/scripts/audit-a11y-runtime.mjs
  *   ... --gelap        # mode gelap
  *   ... --url /kas     # satu halaman
+ *
+ * Dua kesalahan pemakaian yang keduanya pernah terjadi pada 2026-08-11, dan
+ * keduanya kini BERBUNYI alih-alih diam:
+ *
+ *   dijalankan dari apps/web  → ENOENT apps/web/apps/web/app (jalur ganda)
+ *   tanpa kredensial          → 115 dari 118 halaman dialihkan ke /login;
+ *                               dulu tetap exit 0 dengan "2 pelanggaran"
+ *                               yang seluruhnya artefak halaman kosong
+ *
+ * Yang kedua paling menipu: angkanya terbaca seperti audit yang berhasil.
+ * Lihat pemeriksaan CAKUPAN RUNTUH di bawah.
+ *
+ * ── TIDAK dijalankan CI, dan itu disengaja
+ *
+ * CI repo ini tak menjalankan satu pun penjaga berbasis peramban (lihat
+ * `ci.yml` di sekitar `uji-induk-punya-ikhtisar`): penjaga yang butuh server
+ * hidup akan merah karena servernya tak ada, lalu dimatikan orang — dan yang
+ * dimatikan tidak menjaga apa-apa. Audit ini dijalankan MANUAL sebelum
+ * pekerjaan UI besar diserahkan.
  */
 import { chromium } from '@playwright/test'
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs'
@@ -204,6 +224,47 @@ if (DINAMIS_TERLEWAT.length) {
   for (const r of DINAMIS_TERLEWAT) console.log(`     ${r}`)
 }
 console.log(`  pelanggaran      : ${total}\n`)
+
+/**
+ * CAKUPAN yang runtuh adalah kegagalan, BUKAN kelulusan.
+ *
+ * ── Kenapa pemeriksaan ini ada
+ *
+ * Tanpa `LAYAR_EMAIL`/`LAYAR_SANDI`, tiap halaman ber-auth mengalihkan ke
+ * `/login`. Audit tetap berjalan sampai selesai dan melaporkan:
+ *
+ *     halaman dipindai : 1
+ *     dialihkan        : 117
+ *     pelanggaran      : 2
+ *
+ * — lalu keluar dengan **exit 0**. Peringatan "hanya halaman publik yang
+ * terukur" memang dicetak di awal, tetapi terkubur 120 baris di atas
+ * ringkasannya, dan angka "2 pelanggaran" terbaca seperti hasil audit yang
+ * berhasil. Dua pelanggaran itu pun artefak: `document-title` dan
+ * `html-has-lang` pada kerangka `<html><head></head><body></body></html>`
+ * yang kosong.
+ *
+ * Itu persis yang terjadi 2026-08-11: audit ini dilaporkan "MERAH" di sapuan
+ * penjaga padahal ia tak memindai apa pun. Dijalankan dengan kredensial:
+ * 97 halaman, 3 pelanggaran NYATA.
+ *
+ * Penjaga yang gagal senyap lebih berbahaya daripada penjaga yang absen —
+ * yang absen setidaknya tak memberi rasa aman palsu.
+ */
+if (dipindai.length < HALAMAN.length * 0.5) {
+  console.error(
+    `❌ CAKUPAN RUNTUH: hanya ${dipindai.length} dari ${HALAMAN.length} halaman terpindai ` +
+      `(${semua.length - dipindai.length} dialihkan).`,
+  )
+  console.error('   Angka pelanggaran di atas TIDAK BERMAKNA — sebagian besar')
+  console.error('   halaman tak pernah dilihat axe.')
+  console.error('')
+  console.error('   Hampir selalu sebabnya kredensial:')
+  console.error('     LAYAR_EMAIL=… LAYAR_SANDI=… node apps/web/scripts/audit-a11y-runtime.mjs')
+  console.error('   Jalankan dari AKAR REPO, bukan dari apps/web.')
+  await peramban.close()
+  process.exit(2)
+}
 
 // Kelompokkan per rule — itu yang menentukan berapa PERBAIKAN, bukan berapa node.
 const perRule = new Map()

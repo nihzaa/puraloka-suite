@@ -11183,3 +11183,88 @@ dan yang salah adalah pertanyaan yang saya ajukan ke pengukuran.**
 
 Sisa merah: kerapatan, lint, tabel-mentah, a11y-runtime — semuanya sudah merah
 di baseline.
+
+## 2026-08-11 (lanjutan 12) — Audit a11y yang tak pernah memindai apa pun
+
+`audit-a11y-runtime` tercatat "MERAH" di sapuan penjaga saya berkali-kali hari
+ini. Diperiksa isinya: **ia tak pernah memindai apa pun.**
+
+### Dua kesalahan pemakaian, keduanya milik saya
+
+**1. Dijalankan dari `apps/web`** → `ENOENT apps/web/apps/web/app`. Skripnya
+memang harus dari akar repo. Sapuan penjaga saya memanggilnya dengan `cd
+apps/web` seperti penjaga lain, dan "MERAH" yang tercatat sepanjang sesi ini
+adalah galat jalur, bukan pelanggaran a11y.
+
+**2. Tanpa kredensial** → 115 dari 118 halaman dialihkan ke `/login`:
+
+    halaman dipindai : 1
+    dialihkan        : 117
+    pelanggaran      : 2      ← keduanya artefak <html><head></head><body>
+
+…lalu **exit 0**. Peringatan "hanya halaman publik yang terukur" memang
+dicetak, tetapi 120 baris di atas ringkasannya, dan angka "2 pelanggaran"
+terbaca seperti audit yang berhasil.
+
+Dijalankan benar: **97 halaman, 3 pelanggaran NYATA.**
+
+### Tiga cacat a11y yang sebenarnya
+
+    link-in-text-block  penyedia-ai   2 node  tautan hanya dibedakan WARNA
+    color-contrast      whatsapp      1 node  opacity 0.5 → 3,38 : 1
+
+Yang kedua diukur, bukan dinilai: `opacity: 0.5` pada `#111827` di atas putih
+menghasilkan `#888C93` = **3,38 : 1**, di bawah AA 4,5. Dan yang diredupkan itu
+NOMOR TELEPON — satu-satunya pembeda antar baris. `C.muted` sudah 4,83 : 1,
+jadi perbaikannya memakai token yang ada, bukan mengarang nilai.
+
+### Mode GELAP menyingkap dua lagi — salah satunya buatan saya hari ini
+
+    color-contrast  biaya-ai + keamanan  2 node
+
+Sebabnya sama: `color: "#fff"` DIPAKU di atas `C.navy`/`C.aksen`. Kedua token
+itu **berbalik per mode** (#003366 → #4D9FFF), dan putih di atas #4D9FFF
+terukur **2,72 : 1**. Di mode terang 12,61 : 1 — jadi cacatnya tak terlihat
+sama sekali sampai audit dijalankan dengan `--gelap`.
+
+`--on-navy` dan `--on-aksen` SUDAH ADA di globals.css justru untuk ini
+(#FFFFFF → #0F1117, 6,94 : 1). `C.onNavy` sudah diekspor; `C.onAksen` belum,
+jadi halaman memakukan `"#fff"`. Ditambahkan.
+
+Halaman keamanan yang saya buat beberapa jam sebelumnya termasuk pelanggarnya.
+
+**Hasil: 97 halaman, 0 pelanggaran di KEDUA mode.**
+
+### Penjaga diperbaiki, bukan angkanya dinaikkan
+
+**`audit-a11y-runtime`** kini menolak cakupan yang runtuh: kalau <50% halaman
+terpindai, exit 2 dengan pesan yang menyebut sebabnya. Dibuktikan: tanpa
+kredensial → exit 2; dengan kredensial → exit 0, 97 halaman.
+
+**`hex-ratchet`** naik 48 → 50 karena komentar SAYA. Kepala berkasnya sudah
+memperingatkan: *"hex di komentar tidak dihitung — menuduhnya akan mengajari
+orang menghapus dokumentasi yang berguna."* Niatnya tepat, pelaksanaannya hanya
+mengenali komentar SATU BARIS. Komentar JSX berindentasi yang barisnya diawali
+teks biasa lolos filter.
+
+Jalan keluar termudahnya adalah membuang angka dari komentar yang justru
+menjelaskan angka itu — persis kerusakan yang peringatan itu cegah. Yang
+diperbaiki penjaganya: pelacakan blok dengan keadaan.
+
+Bukti mutasi: hex nyata di kode → MERAH (48→49); hex di komentar blok → hijau;
+angka kembali 48.
+
+Cacat sekeluarga sudah memakan `judul-ratchet`, `suspense-ratchet`, dan
+`a11y-ratchet`. Yang membedakan di sini: penulisnya SUDAH mengantisipasi
+masalahnya.
+
+### Bukti
+
+    tsc (web)            0
+    vitest (web)         604 lulus / 46 berkas — 0 gagal
+    pnpm build           nol error
+    a11y terang          97 halaman, 0 pelanggaran
+    a11y gelap           97 halaman, 0 pelanggaran
+    a11y tanpa kredensial exit 2 (cakupan runtuh) ← dulu exit 0
+    hex-ratchet          48/48, bukti mutasi 3/3
+    15 penjaga web       semuanya OK

@@ -162,7 +162,10 @@ function Konten() {
                 cursor: "pointer",
                 border: `1px solid ${aktif ? "transparent" : C.border}`,
                 background: aktif ? C.aksen : "var(--surface)",
-                color: aktif ? "#fff" : C.mid,
+                // `C.onAksen`, bukan "#fff" dipaku: `--aksen` jadi #7ABDFF di
+                // mode gelap, dan putih di atasnya 2,72 : 1 — di bawah AA.
+                // Tokennya berbalik sendiri jadi #0F1117 → 6,94 : 1.
+                color: aktif ? C.onAksen : C.mid,
               }}
             >
               {r.label}

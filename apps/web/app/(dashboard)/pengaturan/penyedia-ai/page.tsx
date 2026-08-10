@@ -618,7 +618,14 @@ export default function PenyediaAiPage() {
                       {metaPenyedia && (
                         <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
                           Kunci <code>{metaPenyedia.kunciKredensial}</code> dipasang di{" "}
-                          <a href="/pengaturan/kredensial" style={{ color: C.aksen, textDecoration: "none" }}>
+                          {/*
+                            Bergaris bawah, BUKAN hanya berwarna. Tautan di
+                            tengah kalimat yang hanya dibedakan warna tak
+                            terlihat sebagai tautan bagi pengguna buta warna —
+                            axe menandainya `link-in-text-block` (WCAG 1.4.1),
+                            dan itu benar: warnanya satu-satunya penanda.
+                          */}
+                          <a href="/pengaturan/kredensial" style={{ color: C.aksen, textDecoration: "underline" }}>
                             halaman Kredensial
                           </a>
                           .

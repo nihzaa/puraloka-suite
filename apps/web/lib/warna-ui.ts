@@ -43,6 +43,17 @@ export const C = {
   onNavy: "var(--on-navy)",
   navyLight: "var(--navy-light)",
   aksen: "var(--aksen)",
+  /**
+   * Teks/ikon DI ATAS `aksen`. Sama seperti `onNavy`: tokennya berbalik
+   * sendiri (`#FFFFFF` di terang, `#0F1117` di gelap).
+   *
+   * Tokennya sudah ada di `globals.css` sejak lama, tetapi tak pernah
+   * diekspor di sini — jadi halaman memakukan `"#fff"`. Di mode gelap
+   * `--aksen` jadi `#7ABDFF`/`#4D9FFF`, dan putih di atasnya terukur
+   * **2,72 : 1** (AA butuh 4,5). Cacatnya tak terlihat sama sekali di mode
+   * terang, dan hanya tertangkap `audit-a11y-runtime --gelap`.
+   */
+  onAksen: "var(--on-aksen)",
   aksenTerang: "var(--aksen-terang)",
 
   // ── Teks ───────────────────────────────────────────────────────────────
