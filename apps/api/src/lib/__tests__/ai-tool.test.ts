@@ -72,9 +72,23 @@ describe('ACL fail-closed', () => {
   })
 
   it('hanya tool yang izinnya dimiliki yang muncul', () => {
+    /*
+     * Yang diuji SIFATNYA, bukan JUMLAHNYA.
+     *
+     * Versi pertama menuntut `toHaveLength(1)` dan pecah begitu katalog
+     * bertambah dari 5 ke 14 — dengan pesan "expected 5 to have length 1"
+     * yang terbaca seperti ACL bocor, padahal yang basi cuma angkanya.
+     *
+     * Angka di dalam assertion membusuk. Sifatnya tidak: apa pun isi
+     * katalog, tool yang muncul WAJIB hanya yang izinnya dimiliki.
+     */
     const katalog = katalogUntuk(new Set(['projects:view']))
-    expect(katalog).toHaveLength(1)
-    expect(katalog[0].nama).toBe('daftar_proyek')
+    expect(katalog.length).toBeGreaterThan(0)
+    for (const t of katalog) expect(t.izin).toBe('projects:view')
+    expect(katalog.map((t) => t.nama)).toContain('daftar_proyek')
+
+    // Dan yang izinnya TIDAK dimiliki benar-benar absen.
+    for (const t of katalog) expect(t.izin).not.toBe('finance:view')
   })
 
   it('izin diperiksa LAGI saat eksekusi, bukan hanya saat merakit katalog', async () => {
@@ -133,9 +147,11 @@ describe('tool terhadap data NYATA', () => {
     // Satu izin per tool di katalog — `documents:manage` masuk sejak tool
     // `cari_dokumen` (TJS-C2). Daftar yang tertinggal membuat test ini merah
     // dengan pesan yang menyalahkan katalognya, bukan fixture-nya.
+    // Satu izin per tool di katalog. Daftar yang tertinggal membuat test ini
+    // merah dengan pesan yang menyalahkan KATALOG, bukan fixture-nya.
     izin = new Set([
       'projects:view', 'finance:view', 'procurement:view', 'gudang:view',
-      'documents:manage',
+      'documents:manage', 'cash:view', 'clients:view', 'mandor:view',
     ])
   })
 

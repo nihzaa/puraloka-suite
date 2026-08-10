@@ -5,6 +5,93 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-10 (lanjutan 15) — Katalog tool 5 → 14, dan enam tebakan kolom yang salah
+
+Founder: TJS punya 38 tool, Puraloka 5. Jurang itu ditutup sebagian.
+
+### Kenapa 14, bukan 38
+
+Dari 31 tool BACA milik TJS, sebagian besar milik dunia dagang/manufaktur yang
+tak punya padanan di sini: `list_sales_orders`, `list_rma_cases`,
+`list_delivery_orders`, `list_payroll`, `list_commissions`, `get_investor_kpi`.
+
+Menirunya berarti membuat tool yang membaca tabel yang TIDAK ADA — dan tool
+yang selalu menjawab "tak ada data" **lebih buruk daripada tak ada tool**:
+model tetap memanggilnya, tetap membakar satu ronde, jawabannya jadi lebih
+lambat tanpa jadi lebih benar.
+
+Yang ditambahkan hanya yang tabelnya BERISI (diukur): invoices 26, kasbons 56,
+milestones 39, progress_logs 271, punch_items 40, purchase_orders 8,
+change_orders 2, suppliers 5, clients 10.
+
+### Model TAK PERNAH menyebut project_id
+
+Sebagian besar tabel itu kategori C. Godaannya: minta model mengirim
+`project_id` sebagai argumen. Ditolak — model AKAN mengarangnya, dan UUID
+karangan yang kebetulan cocok dengan proyek tenant lain adalah pintu ke data
+mereka, dengan hasil yang tetap terlihat masuk akal.
+
+Semua tool memakai `idProyek()`: daftar proyek milik tenant, diresolusi DI
+DALAM tool. Penyaringan per-proyek lewat NAMA, dicocokkan di aplikasi (bukan
+`.ilike()`, karena teks yang model karang tak boleh menyusun sintaks filter).
+
+### Enam tebakan kolom salah — dan testnya yang menangkap
+
+`paid_amount` → `amount_paid` · `requested_at` → `kasbon_date` ·
+`milestones.name` → `title` · `progress_pct` → `pct_overall` ·
+`log_date` → `logged_at` · `punch_items.title` → `judul`
+
+Semuanya akan lolos ke produksi sebagai **"datanya tidak ada"**: PostgREST
+membalas galat, tool mengembalikan pesan gagal, model meneruskannya sebagai
+tabel kosong. Dari luar identik dengan tabel yang memang kosong.
+
+Bukti akhirnya lintas-sumber: `invoice_belum_lunas` mengembalikan
+**Rp 119.595.000 dari 3 invoice**, dan kartu KPI dashboard menampilkan
+**Rp 120 Jt · 3 lewat jatuh tempo**. Angka yang sama dari dua jalur berbeda.
+
+### Impor melingkar yang tak melempar
+
+`ai-tool.ts` meng-import katalog konstruksi, yang meng-import pembantu balik
+dari `ai-tool.ts`. Di ESM itu tak melempar — ia hanya membuat
+`TOOL_KONSTRUKSI` `undefined` saat modul diinisialisasi.
+
+Gejalanya: seluruh berkas test gagal DIMUAT dengan **"no tests"**, tanpa satu
+pun kegagalan yang menunjuk sebabnya. Diperbaiki dengan mengangkat tipe dan
+pembantu ke `ai-tool-dasar.ts` — lingkarannya putus secara struktural, bukan
+karena urutan impor yang kebetulan benar.
+
+### Cacat NYATA yang ditemukan di jalan: 18 keanggotaan tanpa `is_default`
+
+`rls-ownership-recursion` merah, dan bukan karena kode saya (terbukti: merah
+juga di pohon bersih). Sebabnya `auth_company_id()` jatuh ke keanggotaan
+`is_default`, dan **18 dari 26 keanggotaan tak punya satu pun**.
+
+Akibatnya: company aktif NULL → RLS menyembunyikan SEMUANYA. Pengguna melihat
+aplikasi kosong, tanpa satu pun galat yang menyebut sebabnya.
+
+Diisi otomatis HANYA untuk yang punya TEPAT SATU keanggotaan — tak ada yang
+perlu dipilih, jadi tak ada keputusan yang saya ambil untuk orang lain.
+
+### Assertion yang membusuk
+
+`ai-tool.test.ts` menuntut `toHaveLength(1)` untuk `projects:view`. Katalog
+bertambah, test merah dengan pesan "expected 5 to have length 1" — yang
+terbaca seperti **ACL bocor**, padahal yang basi cuma angkanya. Diganti jadi
+menguji SIFATNYA: apa pun isi katalog, yang muncul wajib hanya yang berizin.
+
+### Bukti
+
+- 21 test tool konstruksi; `it.each` atas katalog supaya tool BARU otomatis
+  ikut diuji (daftar manual akan tertinggal, dan tool yang tak pernah diuji
+  adalah tool yang rusak diam-diam)
+- vitest 2.672 lulus (naik dari 2.651); 5 gagal — **identik dengan pohon
+  bersih**, nol regresi
+- 52/53 penjaga API hijau; `audit-tool-ai-read-only`, `audit-tenancy-jalur-ai`,
+  `audit-gerbang-tenancy` semuanya hijau meski 9 tool baru memakai `unsafe`
+- `tsc --noEmit` bersih
+
+---
+
 ## 2026-08-10 (lanjutan 14) — UI registry penyedia, dan penjaga BUTA kelima
 
 Halaman `/pengaturan/penyedia` jadi: daftar penyedia dengan lencana kesehatan,
