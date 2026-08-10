@@ -1340,6 +1340,26 @@ jobs:
       - name: Isian (kosakata bersama + cincin fokus)
         run: node scripts/isian-ratchet.mjs
 
+      # WCAG 2.1.2 "No Keyboard Trap" — overlay layar-penuh wajib punya jalan
+      # keluar papan tik. Ambang NOL: tiga pelanggar terakhir dibereskan
+      # 2026-08-11 (pengaturan/keuangan 2 modal, portal/proyek lightbox,
+      # milestone-section konfirmasi hapus).
+      #
+      # Kenapa penjaga sendiri, bukan mengandalkan
+      # `jsx-a11y/click-events-have-key-events`: aturan itu melaporkan 63 titik
+      # dan 50 di antaranya modal — TERMASUK `dialog-bersama.tsx` yang justru
+      # sudah benar (memakai <dialog> asli). jsx-a11y menganggap <dialog>
+      # non-interaktif; itu batas alatnya.
+      #
+      # Lebih penting: saran harfiahnya — `role="button"` pada latar modal —
+      # MERUSAK a11y sambil terlihat memperbaikinya. Latar modal bukan tombol;
+      # pembaca layar akan mengumumkan "tombol" untuk area kosong. Penjaga ini
+      # menanyakan yang benar-benar penting: adakah jalan keluar papan tik.
+      #
+      # Bukti mutasi 6/6: apps/web/scripts/bukti-mutasi-esc.sh
+      - name: Esc (jalan keluar papan tik dari modal)
+        run: node scripts/esc-ratchet.mjs
+
       # F4-1 — warna wajib lewat token, bukan hex di komponen.
       #
       # Alasannya bukan kerapian: WHITE-LABEL PER TENANT. Selama warna ditulis

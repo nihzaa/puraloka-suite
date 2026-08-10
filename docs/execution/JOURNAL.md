@@ -10561,3 +10561,107 @@ grup — perilaku yang benar. Halamannya pun sudah menanganinya
 
 Lima aturan lint masih merah (exhaustive-deps, click-events, noninteractive,
 label-has-control, unescaped-entities) — semuanya sudah merah di baseline.
+
+## 2026-08-11 (lanjutan 6) — Menurunkan angka lint yang akan MERUSAK a11y, dan menolaknya
+
+`jsx-a11y/click-events-have-key-events`: **63 (ambang 59)**. Rencana awal:
+turunkan seperti dua aturan sebelumnya.
+
+Mengukurnya mengubah rencana itu sepenuhnya.
+
+### Yang ditemukan saat mengukur
+
+    <div>     61 dari 73 titik
+    dari itu: 41 overlay modal + 9 isi modal = 50 adalah MODAL
+
+Satu pola, bukan 50 cacat. Dan yang menentukan: **`components/dialog-bersama.tsx`
+ikut dilaporkan** — padahal ia justru yang paling benar di repo ini, memakai
+`<dialog>` asli yang Esc-nya ditangani peramban.
+
+`jsx-a11y` menganggap `<dialog>` non-interaktif. Itu **batas alatnya**, bukan
+cacat kodenya.
+
+### Saran harfiah lint adalah jawaban yang SALAH
+
+Cara termudah menurunkan 63 → 59 adalah memberi `role="button"` + `onKeyDown`
+pada latar modal. Itu yang disarankan aturannya kalau dibaca harfiah.
+
+`lib/use-tutup-esc.ts` sudah menyatakan kenapa itu salah, dan saya
+menemukannya SEBELUM menerapkannya:
+
+> *"latar modal bukan tombol. Menandainya begitu membuat pembaca layar
+> mengumumkan 'tombol' untuk area kosong, dan menambahkan satu perhentian Tab
+> yang tak berarti apa-apa. Yang dibutuhkan bukan latar yang bisa difokus —
+> melainkan jalan keluar dari papan tik."*
+
+Menurunkan angkanya dengan cara itu **merusak a11y sambil terlihat
+memperbaikinya**, dan CI akan hijau. Ditolak.
+
+### Yang benar-benar bernilai: tiga modal, bukan lima puluh
+
+Diukur ulang dengan pertanyaan yang tepat — *adakah jalan keluar papan tik* —
+bukan *apakah lint senang*:
+
+    32 berkas overlay SUDAH memakai useTutupEsc
+     2 menangani 'Escape' sendiri (command-palette, photo-gallery)
+     3 TIDAK punya jalan keluar sama sekali
+
+Tiga itu yang diperbaiki:
+
+    pengaturan/keuangan     dua modal (denda keterlambatan, edit konfigurasi)
+    portal/proyek/[id]      lightbox foto — di portal KLIEN
+    milestone-section       konfirmasi hapus (dirender dari IIFE, hook
+                            dipasang di komponen induknya)
+
+Semuanya `null` saat sedang menyimpan: menutup di tengah permintaan membuat
+orang tak tahu apakah perubahannya jadi.
+
+### Diverifikasi di peramban, dan uji-nya dibuktikan bisa merah
+
+`useTutupEsc(...)` yang terpasang tidak menjamin apa pun — syaratnya bisa
+selalu `null`, atau penangan lain memakan Esc lebih dulu. Semua itu lolos
+typecheck DAN lolos lint.
+
+`.layar/uji-esc-modal.mjs` membuka modal sungguhan lalu menekan Esc:
+
+    overlay 0→1→0  ✅ Esc menutup
+
+Lalu dibuktikan uji itu bermakna — `useTutupEsc` dimatikan sengaja:
+
+    overlay 0→1→1  ❌ TERJEBAK
+
+### Penjaga baru: `esc-ratchet` (ambang NOL)
+
+Menanyakan hal yang benar, bukan hal yang mudah dihitung: setiap berkas yang
+merender overlay `position: fixed; inset: 0` wajib punya salah satu dari
+`useTutupEsc` / `<dialog>` / penanganan `'Escape'`.
+
+**Angkanya 0** — ketiga perbaikan menghabiskan seluruhnya, lantainya terkunci
+di nol. Berkas lantai DITULIS pada jalan pertama (pelajaran dari `isian-ratchet`
+yang sempat lahir mati karena `catch` menyetel lantai tanpa menyimpannya).
+
+Bukti mutasi 6/6 (`bukti-mutasi-esc.sh`): merah untuk overlay telanjang; hijau
+untuk ketiga jalan keluar sah, untuk berkas tanpa overlay, dan untuk overlay
+yang hanya DISEBUT di komentar.
+
+### Yang TIDAK dilakukan, dinyatakan terang-terangan
+
+**`click-events-have-key-events` tetap 63 dan tetap merah.** Angka itu tak
+turun karena satu-satunya cara menurunkannya adalah merusak a11y.
+
+Ini kasus di mana penjaga yang benar dan penjaga yang ada tidak sejalan.
+Menaikkan ambang lint = melemahkan penjaga (G-5); menurunkan angkanya =
+merusak pengguna. Yang dilakukan: memperbaiki cacat SEBENARNYA, memasang
+penjaga yang mengukurnya, dan meninggalkan angka lint apa adanya.
+
+### Bukti
+
+    tsc --noEmit        0
+    vitest (web)        601 lulus / 46 berkas — 0 gagal
+    pnpm build          ✓ Compiled successfully in 10.7s
+    esc-ratchet         OK — 0 berkas (ambang NOL)
+    bukti-mutasi-esc    6/6
+    uji-esc-modal       ✅ Esc menutup (dibuktikan bisa merah)
+
+Lima aturan lint masih merah — semuanya sudah merah di baseline, dan
+`click-events` sengaja dibiarkan dengan alasan di atas.

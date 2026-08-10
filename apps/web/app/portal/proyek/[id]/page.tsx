@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import { useTutupEsc } from "@/lib/use-tutup-esc";
 import {
   MapPin, Calendar, TrendingUp, CheckCircle2, Clock,
   AlertCircle, ChevronLeft, FileText, Camera, Download,
@@ -258,6 +259,14 @@ function FotoTab({ projectId }: { projectId: string }) {
   const [loading, setLoading] = useState(true);
   const [filterCat, setFilterCat] = useState<string>("all");
   const [lightbox, setLightbox] = useState<number | null>(null);
+
+  // WCAG 2.1.2 "No Keyboard Trap". Lightbox foto ini menutupi seluruh layar
+  // dan satu-satunya cara menutupnya adalah mengkliknya — pemakai keyboard
+  // yang membukanya tak punya jalan keluar sama sekali.
+  //
+  // Ini portal KLIEN, dan kliennya membuka halaman ini dari perangkat apa
+  // saja; asumsi "pasti pakai tetikus" tak berlaku di sini.
+  useTutupEsc(lightbox !== null ? () => setLightbox(null) : null);
 
   useEffect(() => {
     api.get(`/api/v1/projects/${projectId}/photos`)

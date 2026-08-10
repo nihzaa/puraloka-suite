@@ -5,6 +5,7 @@ import { Flag, Plus, Check, MoreHorizontal, Pencil, Trash2, Loader2, CalendarDay
 import { getMilestones, updateMilestone, deleteMilestone } from "@/lib/api";
 import type { Milestone } from "@/lib/api";
 import { MilestoneModal } from "@/components/milestone-modal";
+import { useTutupEsc } from "@/lib/use-tutup-esc";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -59,6 +60,18 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const mounted = useRef(false);
+
+  // WCAG 2.1.2 "No Keyboard Trap". Modal konfirmasi hapus di bawah hanya bisa
+  // ditutup dengan mengklik latarnya — pemakai keyboard TERJEBAK: modal
+  // terbuka, Tab berputar di dalamnya, dan satu-satunya jalan keluar adalah
+  // mengambil tetikus.
+  //
+  // Dipasang di sini, bukan di dalam blok modalnya: modal itu dirender dari
+  // IIFE, dan hook tak boleh dipanggil dari sana.
+  //
+  // `null` saat sedang menghapus — menutup modal di tengah permintaan
+  // membuat orang tak tahu apakah penghapusannya jadi atau tidak.
+  useTutupEsc(deleteId && !deleting ? () => setDeleteId(null) : null);
 
   const canEdit = userRole === "admin" || userRole === "pm";
 

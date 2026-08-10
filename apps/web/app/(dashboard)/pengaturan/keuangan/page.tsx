@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
+import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { Landmark, Plus, Check, X, CalendarClock, AlertTriangle, Info } from "lucide-react";
 
 // ─── Design tokens (konsisten Architectural Precision, sama dgn /pengaturan/roles) ──
@@ -78,6 +79,15 @@ export default function KeuanganSettingsPage() {
   const [pFrom, setPFrom] = useState(todayWIB());
   const [pNote, setPNote] = useState("");
   const [savingPenalty, setSavingPenalty] = useState(false);
+
+  // WCAG 2.1.2 "No Keyboard Trap" — dua modal di halaman ini hanya bisa
+  // ditutup dengan mengklik latarnya. Pemakai keyboard terjebak: Tab berputar
+  // di dalam modal, dan satu-satunya jalan keluar adalah mengambil tetikus.
+  //
+  // `null` saat sedang menyimpan: menutup di tengah permintaan membuat orang
+  // tak tahu apakah perubahannya tersimpan.
+  useTutupEsc(pModal && !savingPenalty ? () => setPModal(false) : null);
+  useTutupEsc(editKey && !saving ? () => setEditKey(null) : null);
 
   useEffect(() => {
     setCanEdit(hasFinancePerm());
