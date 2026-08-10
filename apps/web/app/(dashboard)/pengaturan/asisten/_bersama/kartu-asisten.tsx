@@ -105,11 +105,13 @@ export function KartuAsisten({ asisten }: { asisten: string }) {
 
   return (
     <section style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)" }}>
-      <h2 style={{ fontSize: 14, fontWeight: 600, color: C.text, margin: "0 0 4px" }}>{nama}</h2>
-      <p style={{ fontSize: 12, color: C.muted, lineHeight: 1.55, margin: "0 0 14px" }}>
-        {KETERANGAN[asisten]}
-      </p>
-
+      {/*
+        Nama & keterangan asisten TIDAK diulang di sini — keduanya sudah jadi
+        judul halaman (`layout.tsx` memilihnya dari rute). Versi pertama
+        menampilkan keduanya, dan hasilnya "Asisten web" berikut kalimat yang
+        sama persis muncul dua kali berjarak 40px. Pengulangan sedekat itu
+        membuat pembaca mengira ia salah lihat, bukan memperjelas.
+      */}
       <div style={{ marginBottom: 14 }}>
         <label htmlFor="prompt" style={{ display: "block", fontSize: 12, fontWeight: 550, color: C.mid, marginBottom: 5 }}>
           Instruksi tambahan

@@ -10983,3 +10983,77 @@ izin, migrasinya merah.
 API di :3007 belum memuat rute `/keamanan` — **restart `npx tsx src/index.ts`**
 untuk memakainya. Uji dijalankan di instance terpisah (:3099) yang sudah
 ditutup; :3000 dan :3007 milik founder tidak disentuh.
+
+## 2026-08-11 (lanjutan 10) — "Visualnya sudah sama?" Diukur: bentuk ya, warna sengaja tidak
+
+Founder bertanya apakah desain visual dan tata letaknya sudah sama dengan TJS.
+Saya sudah menyamakan STRUKTUR, tapi belum pernah membandingkan visualnya
+berdampingan. Diukur.
+
+### Bentuk: hampir identik
+
+    TJS                          Puraloka
+    radius kartu  16px           14px
+    padding kartu 16px           16px          ✅
+    radius isian   8px           10px
+    tinggi isian  32px          ~34px          ≈
+    label     12px/600      12px/550           ≈
+    bayangan  0 1px 2px …0.06   0 1px 3px …0.06  ≈
+
+Selisih 1–2px di tiga tempat. Menyamakannya persis tak menambah apa pun yang
+bisa dilihat, dan `--radius-md: 14px` sudah dipakai ratusan tempat.
+
+### Warna: BERBEDA, dan itu keputusan yang sudah diambil
+
+    TJS      --primary #2954BC indigo, ikon kepala gradien indigo→cyan + glow
+    Puraloka --aksen   #003366 navy,   ikon kepala navy di latar navy-lembut
+
+`ARAH-VISUAL-2026.md` §10: **aksen indigo DITOLAK sesudah dilihat** (`a38cb0d`).
+Perbandingannya dibangun (`banding-aksen.mjs`), dirender, ditolak. Dokumennya
+menulis terang: *"Jangan menukarnya ke indigo."*
+
+### Yang saya kira cacat, ternyata KEBALIKANNYA
+
+Melihat potret, saya menilai ikon kepala Puraloka "pucat" dibanding blok warna
+pekat TJS, dan hampir mengubahnya. Diukur dulu:
+
+    Puraloka  navy #003366 di #EBF2FF   10,96 : 1
+    TJS       putih di gradien #4074FB   4,11 : 1
+
+Yang saya kira lemah justru **2,7× lebih kontras**. Ia terlihat lembut karena
+LATARNYA muda, bukan ikonnya pucat. Menirunya = menurunkan kontras dari 11 ke
+4 demi kemiripan. Tidak dilakukan.
+
+Ini kedua kalinya hari ini penilaian mata saya terbalik dari pengukuran — yang
+pertama tinggi tombol di `/pengaturan/penyedia-ai` yang ternyata sudah sejajar.
+
+### Yang MEMANG cacat, dan diperbaiki
+
+**Kelima halaman asisten berjudul sama: "Perilaku Asisten".** TJS memberi judul
+per halaman ("Asisten AI Web"). Bedanya bukan gaya — judul yang tak berubah
+membuat tab jadi SATU-SATUNYA penanda posisi, dan orang yang mendarat dari
+tautan langsung tak punya apa pun yang menyebutkan ia ada di mana.
+
+Judul, keterangan, dan IKON kini dipilih dari rute (`KEPALA` di layout). Lima
+halaman berikon sama terlihat seperti satu halaman yang gagal berpindah.
+
+Efek sampingnya langsung terlihat: nama & keterangan asisten jadi muncul DUA
+KALI berjarak 40px — sekali di kepala halaman, sekali di kartu. Yang di kartu
+dibuang; tinggi halaman turun 1.540 → 1.482 px.
+
+### Catatan kejujuran
+
+`pnpm build` sempat gagal dengan "Turbopack build failed with 15 errors" pada
+jalan pertama, sementara `tsc` lolos. Dijalankan ulang: **nol error**. Penyebab
+paling mungkin `.next` ditulis dua proses bersamaan (potret berjalan saat
+build). Dicatat karena kegagalan transient yang tak dijelaskan akan terlihat
+seperti build yang kadang rusak.
+
+### Bukti
+
+    tsc (web)              0
+    vitest (web)           604 lulus / 46 berkas — 0 gagal
+    pnpm build             ✓ Compiled successfully in 6.8s, nol error
+    judul-ratchet          31/31 (tak bertambah)
+    audit-peta-menu-vs-db  ✅ drift 0
+    tinggi halaman         1.540 → 1.482 px

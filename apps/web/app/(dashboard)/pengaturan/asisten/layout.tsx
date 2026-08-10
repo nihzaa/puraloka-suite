@@ -27,12 +27,12 @@
  * per-asisten.
  */
 
-import { ShieldCheck } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Bot, Globe, HardHat, LineChart, Power, ShieldCheck, UserCog } from "lucide-react";
 import { KepalaHalaman } from "@/components/dasar";
 import { NavBagian } from "@/components/nav-bagian";
 import { GAYA_KARTU } from "@/components/ui-dasar";
 import { C } from "@/lib/warna-ui";
-import { Bot } from "lucide-react";
 
 const BAGIAN = [
   { href: "/pengaturan/asisten", label: "Lapisan AI" },
@@ -42,7 +42,54 @@ const BAGIAN = [
   { href: "/pengaturan/asisten/wawasan", label: "Wawasan portofolio" },
 ];
 
+/**
+ * Judul, keterangan, dan ikon per rute.
+ *
+ * ── Kenapa judulnya BERUBAH, bukan "Perilaku Asisten" untuk kelimanya
+ *
+ * Versi pertama memaku satu judul di layout, dan diperiksa berdampingan dengan
+ * TJS: di sana tiap halaman punya judulnya sendiri ("Asisten AI Web", bukan
+ * "Pengaturan AI"). Bedanya bukan gaya — judul yang tak berubah membuat tab
+ * jadi SATU-SATUNYA penanda posisi, dan orang yang mendarat dari tautan
+ * langsung tak punya apa pun yang menyebutkan ia ada di mana.
+ *
+ * Ikonnya juga dibedakan dengan alasan yang sama: lima halaman berikon sama
+ * terlihat seperti satu halaman yang gagal berpindah.
+ */
+const KEPALA: Record<string, { judul: string; keterangan: string; ikon: React.ReactNode }> = {
+  "/pengaturan/asisten": {
+    judul: "Lapisan AI",
+    keterangan: "Saklar AI dan lama simpan riwayat — berlaku untuk seluruh asisten.",
+    ikon: <Power size={19} />,
+  },
+  "/pengaturan/asisten/pemilik": {
+    judul: "Asisten Pemilik",
+    keterangan: "Menjawab pertanyaan lintas proyek lewat WhatsApp dan menyiapkan tindakan untuk disetujui.",
+    ikon: <UserCog size={19} />,
+  },
+  "/pengaturan/asisten/staf": {
+    judul: "Asisten Staf",
+    keterangan: "Asisten untuk orang lapangan dan kantor. Kanal WhatsApp sendiri, batas datanya lebih sempit.",
+    ikon: <HardHat size={19} />,
+  },
+  "/pengaturan/asisten/web": {
+    judul: "Asisten Web",
+    keterangan: "Asisten di dalam dashboard. Penanyanya siapa pun yang login — batasnya mengikuti izin orang itu.",
+    ikon: <Globe size={19} />,
+  },
+  "/pengaturan/asisten/wawasan": {
+    judul: "Wawasan Portofolio",
+    keterangan: "Menulis dua kalimat penilaian di beranda dari angka yang sudah dihitung sistem.",
+    ikon: <LineChart size={19} />,
+  },
+};
+
 export default function AsistenLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  // Cadangan ke indeks: rute yang belum terdaftar lebih baik menampilkan judul
+  // induknya daripada kepala halaman kosong.
+  const kepala = KEPALA[pathname] ?? KEPALA["/pengaturan/asisten"];
+
   return (
     <div
       style={{
@@ -52,11 +99,7 @@ export default function AsistenLayout({ children }: { children: React.ReactNode 
         margin: "0 auto",
       }}
     >
-      <KepalaHalaman
-        judul="Perilaku Asisten"
-        keterangan="Instruksi, batas langkah, dan data apa yang boleh dibaca tiap asisten."
-        ikon={<Bot size={19} />}
-      />
+      <KepalaHalaman judul={kepala.judul} keterangan={kepala.keterangan} ikon={kepala.ikon} />
 
       {/*
         Sifat READ-ONLY dinyatakan sekali, di sini — bukan diulang empat kali.
