@@ -1,5 +1,5 @@
 {
-  "jumlah": 19,
+  "jumlah": 18,
   "kolom": {
     "asset_id": "modul aset dipilih lewat penelusuran, bukan field id di body",
     "bid_id": "HALAMAN BELUM ADA — rantai kontrak (tender subkon) belum punya layar",
@@ -10,7 +10,6 @@
     "goods_receipt_id": "HALAMAN ADA (procurement) — GR dirujuk lewat penelusuran per-PO, bukan id yang dikirim body",
     "inspection_request_id": "HALAMAN ADA (mutu/ncr) tapi `inspection_requests` NOL BARIS (diukur 2026-08-08) — dropdown yang selalu kosong adalah cacat \"layar berisi pekerjaan rumah\" dalam bentuk lain. Pemicu: ada permintaan inspeksi nyata",
     "jadwal_id": "HALAMAN BELUM ADA — jadwal operasional alat belum punya layar",
-    "koran_id": "HALAMAN BELUM ADA — rekonsiliasi bank belum punya layar",
     "objek_id": "HALAMAN BELUM ADA — kendali dokumen belum punya layar",
     "penerima_id": "HALAMAN BELUM ADA — penerima instruksi lapangan belum punya layar pemilih",
     "photo_id": "foto dirujuk lewat unggahan, bukan id yang diketik",

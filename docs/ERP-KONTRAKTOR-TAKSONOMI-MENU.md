@@ -234,15 +234,15 @@ Semua 🔴 — terkonfirmasi. Bangun saat tender mensyaratkan (syarat prakualifi
 | Menu | Status | Catatan |
 |---|---|---|
 | Master karyawan & struktur organisasi | 🟡 | `users` saja |
-| Rekrutmen & onboarding | 🔴 | |
-| Absensi & timesheet | 🔴 | Koreksi dari 🟡: 0 hit; `wage_items` = rekap upah, bukan absensi |
-| Cuti & izin | 🔴 | |
-| **Payroll staf** | 🔴 | Rekomendasi: tool eksternal — lihat Tugas "tidak dibangun" |
+| Rekrutmen & onboarding | 🔴 | **Masuk lingkup 2026-08-11** (R-011 — larangan dicabut founder). G2 · dari nol; `users` 26 baris sebagai titik mula. |
+| Absensi & timesheet | 🔴 | **Masuk lingkup 2026-08-11** (R-011 — larangan dicabut founder). G2 · `absensi_harian` **1.279 baris** (2026-07-10…08-08) sudah jadi fondasi — timesheet staf kantor menyusul pola yang sama. |
+| Cuti & izin | 🔴 | **Masuk lingkup 2026-08-11** (R-011 — larangan dicabut founder). G2 · dari nol; saldo cuti wajib dihitung, bukan disimpan (pola contingency). |
+| **Payroll staf** | 🔴 | **Masuk lingkup 2026-08-11** (R-011 — larangan dicabut founder). G2 · **config-first WAJIB** — tarif tak boleh jadi konstanta di kode. Sampai founder mengisinya, layar menyatakan "tarif belum ditetapkan". |
 | Upah harian mandor/tukang | ✅ | |
-| Potongan statutori (BPJS) | 🔴 | Eksternal |
-| PPh 21 | 🔴 | Eksternal |
-| Sertifikasi & kompetensi | 🔴 | `workers.skills` ada sebagai array teks |
-| Penilaian kinerja | 🔴 | |
+| Potongan statutori (BPJS) | 🔴 | **Masuk lingkup 2026-08-11** (R-011 — larangan dicabut founder). G2 · persentase BPJS jadi data ber-tanggal-berlaku di halaman pengaturan, bukan hardcode. |
+| PPh 21 | 🔴 | **Masuk lingkup 2026-08-11** (R-011 — larangan dicabut founder). G2 · PTKP + lapisan tarif jadi data ber-tanggal-berlaku. Salah hitung = urusan hukum, jadi angkanya HARUS dari founder. |
+| Sertifikasi & kompetensi | 🔴 | **Masuk lingkup 2026-08-11** (R-011 — larangan dicabut founder). G2 · `workers.skills` (array teks) sudah ada; yang belum: masa berlaku + pengingat kedaluwarsa. |
+| Penilaian kinerja | 🔴 | **Masuk lingkup 2026-08-11** (R-011 — larangan dicabut founder). G2 · dari nol. |
 | Klaim perjalanan & reimburse | 🟡 | Via `project_expenses` |
 
 ---
@@ -287,7 +287,7 @@ sebagai kategori B/C. 045 dibiarkan di tempatnya — riwayat tak diubah.
 | Transaksi antar-perusahaan | ⛔ | Relevan lagi hanya jika multi-company terpicu |
 | **Laporan keuangan** | ✅ | Arus kas ✅; **Neraca & L/R ✅** — `lib/laporan-keuangan.ts` (13 test) · `GET /api/v1/gl/laporan` (`gl.ts:443`) · `components/neraca-laba-rugi.tsx` dipakai `akuntansi/page.tsx:258`. Diukur 2026-08-07; status 🔴 sebelumnya SALAH (F5-1 §3c). Neraca & L/R dari SATU perhitungan saldo — dua endpoint terpisah membuat laba di neraca bisa beda dari laba di L/R |
 | **Pengakuan pendapatan / persentase penyelesaian (PSAK)** | ✅ | **2026-08-01** (ROADMAP #15): `lib/wip-psak.ts` + `GET /reports/wip` + tab **WIP / Pengakuan** di Laporan. Dua metode berdampingan — cost-to-cost (standar audit) & fisik; selisih besar = sinyal, bukan bug. **CIE/BIE dipisah** (aset vs liabilitas, tak saling menghapus). Kerugian diakui SEKARANG sesuai PSAK. ⚠️ Ini **laporan, bukan jurnal** — belum masuk buku besar (menunggu Modul 10 GL) |
-| Tutup buku periode | 🔴 | Eksternal |
+| Tutup buku periode | 🔴 | **Masuk lingkup 2026-08-11** (R-011 — larangan dicabut founder). G5 · `accounts` 38 baris ADA, `journal_entries` **0**. Paling berisiko: pembukuan berpasangan masuk Ember [C], tak boleh bisa dikonfigurasi. |
 | Audit trail | ✅ | + correlation_id + severity + diff + **append-only AKTIF**. ~~Gap: trigger 073 dorman~~ **KELIRU, dikoreksi 2026-08-01**: `trg_audit_logs_no_update` & `trg_audit_logs_no_delete` `tgenabled='O'` di DB — di-apply via PR #13 (`d9ea114`) setelah founder menyetujui. Klaim "dorman" berasal dari komentar di berkas migrasi 073 yang tak pernah diperbarui setelah gerbangnya dibuka |
 
 ---
@@ -337,7 +337,7 @@ Semua 🔴 — terkonfirmasi.
 | Laporan biaya | ✅ | |
 | Laporan arus kas | ✅ | |
 | KPI: CPI, SPI, margin, DSO, backlog | 🟡 | Koreksi dari 🔴: CPI/SPI ✅ per proyek; margin ✅; DSO/backlog 🔴 |
-| Report builder | 🔴 | Rekomendasi: jangan dibangun |
+| Report builder | 🔴 | **Masuk lingkup 2026-08-11** (R-011 — larangan dicabut founder). G6 · catatan lama "membangun Excel di dalam ERP" tetap jadi peringatan bentuk, bukan larangan. |
 | Export Excel / PDF | ✅ | Keduanya ada (XLSX + `reports/export-pdf` + invoice PDF) |
 | Distribusi laporan terjadwal | 🟡 | Migrasi 215 · `jadwal_distribusi_laporan` · `/dokumen/kendali`. Jadwal + deteksi **MACET** hidup: gagal 3× berturut ATAU telat >2× iramanya sendiri meski nol galat tercatat (proses penjadwal yang mati tak meninggalkan galat). Pengiriman surel otomatisnya sendiri belum dijalankan |
 

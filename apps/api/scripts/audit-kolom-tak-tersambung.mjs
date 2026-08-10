@@ -118,10 +118,44 @@ function dariBody(akar) {
   const nama = new Map()
   for (const p of akar.flatMap((a) => berkas(a, ['.ts']))) {
     const kode = tanpaKomentar(readFileSync(p, 'utf8'))
-    for (const m of kode.matchAll(/\b(?:b|body)\.([a-z][a-z0-9]*(?:_[a-z0-9]+)*_id)\b/g)) {
-      if (!nama.has(m[1])) nama.set(m[1], new Set())
-      nama.get(m[1]).add(p)
+
+    // `b`/`body` harus BENAR-BENAR berasal dari `request.body`, dan
+    // pemakaiannya harus DEKAT dengan deklarasinya.
+    //
+    // ── Dua putaran positif palsu, keduanya 2026-08-08
+    //
+    // 1. Versi pertama menangkap `b.<kolom>_id` di berkas mana pun. Tapi `b`
+    //    juga nama pendek yang lazim untuk baris hasil query, sehingga
+    //    `baris.map((b) => b.alur_id)` di `otomasi-alur.ts` tertangkap sebagai
+    //    "kolom yang diharapkan dari klien" — padahal ia properti baris yang
+    //    baru saja dibaca DARI basis.
+    //
+    // 2. Memeriksa "berkas punya `const b = request.body`" TETAP salah:
+    //    `otomasi-alur.ts` punya keduanya — deklarasi di baris ~121, dan
+    //    `map((b) => b.alur_id)` di baris ~427. Variabel `b` yang berbeda,
+    //    berkas yang sama.
+    //
+    // Yang dipakai sekarang: pemakaian dihitung hanya bila ada deklarasi
+    // `request.body` dalam 60 baris SEBELUMNYA. Bukan analisis lingkup
+    // sungguhan, tapi cukup memisahkan handler dari callback jauh di bawahnya.
+    //
+    // Kenapa ini penting: penjaga yang menuduh kode yang benar akan dimatikan
+    // orang, dan penjaga yang dimatikan tak menjaga apa pun.
+    const barisKode = kode.split('\n')
+    const dekatBody = (i) => {
+      for (let j = i; j >= Math.max(0, i - 60); j--) {
+        if (/(?:const|let)\s+(?:b|body)\s*=\s*request\.body/.test(barisKode[j])) return true
+      }
+      return false
     }
+
+    barisKode.forEach((teks, i) => {
+      if (!dekatBody(i)) return
+      for (const m of teks.matchAll(/\b(?:b|body)\.([a-z][a-z0-9]*(?:_[a-z0-9]+)*_id)\b/g)) {
+        if (!nama.has(m[1])) nama.set(m[1], new Set())
+        nama.get(m[1]).add(p)
+      }
+    })
   }
   return nama
 }

@@ -6,6 +6,70 @@ bawah entrinya.
 
 ---
 
+# 🔓 R-011 · SCOPE DIBUKA PENUH — tak ada lagi "jangan dibangun" (2026-08-11)
+
+> **Keputusan founder, diucapkan langsung:** *"saya mau semuanya dimasukkan ke
+> lingkup dan semuanya dikerjakan, gaada lagi yg 'jangan dibangun'."*
+
+Ini **mencabut** keputusan 2026-08-01 (`F5-1` §2a) dan seluruh status `gerbang`
+di `peta-menu.ts`. Yang dicabut, diukur 2026-08-11:
+
+| Sumber | Jumlah | Isi |
+|---|---|---|
+| `F5-1` §2a JANGAN DIBANGUN | 11 | payroll · BPJS · PPh 21 · rekonsiliasi bank · tutup buku · report builder · rekrutmen · cuti · penilaian kinerja · sertifikasi · absensi staf |
+| `peta-menu.ts` status `gerbang` | 21 | Mutu QA/QC (7) · K3 & Lingkungan (7) · Risiko & Kepatuhan (5) · Tracking Waste · lain-lain |
+| **Total masuk lingkup** | **34** | dalam 10 kelompok |
+
+## Urutan pengerjaan — diturunkan dari BAHAN, bukan dari selera
+
+Diukur ke basis 2026-08-11, dan dua angkanya mengubah rencana:
+
+```
+inspection_requests   24 baris   ← sesi 2026-08-08 mengukurnya NOL
+ncr_items             18 baris
+absensi_harian     1.279 baris   (2026-07-10 … 2026-08-08)
+workers               60 · users 26
+izin_kerja             4 baris
+accounts              38 · journal_entries 0
+K3/HSE            NOL TABEL
+```
+
+| # | Kelompok | Item | Kenapa urutan ini |
+|---|---|---|---|
+| **G1** | Mutu (QA/QC) | 7 | Bahan terbanyak. Sekalian menutup sambungan `inspection_request_id` yang sudah tercatat sebagai kandidat kerja di `kolom-tersambung-lantai.json` |
+| **G2** | SDM & Payroll | 8 | 1.279 baris absensi lapangan jadi fondasi timesheet — bukan mulai dari nol |
+| **G3** | Risiko & Kepatuhan | 5 | `izin_kerja` sudah ada sebagai titik mula |
+| **G4** | K3 & Lingkungan | 7 | Dari nol. SESUDAH G3 karena JSA ↔ izin kerja saling merujuk |
+| **G5** | Tutup Buku + jurnal | 1 | `accounts` 38 ada, `journal_entries` 0. Paling berisiko — pembukuan berpasangan masuk Ember [C] |
+| **G6** | Sisa | 6 | Tracking Waste · Markup & Margin · Dokumen Prakualifikasi · Baseline Schedule · Report Builder · API & Integrasi |
+
+## ⚠️ Yang MASIH butuh keputusan Anda — dan kenapa saya tak boleh menebaknya
+
+Pencabutan ini menghapus larangan **membangun**, bukan kebutuhan akan **angka
+yang benar**. Tiga item di G2 punya sifat yang berbeda dari sisanya:
+
+**Payroll staf · BPJS · PPh 21.** Alasan penolakan aslinya bukan kemalasan —
+*"aturan pajak berubah tiap tahun; salah hitung = urusan hukum, bukan bug."*
+Itu masih benar. Yang berubah: sekarang saya bangun mesinnya.
+
+Yang **tidak** akan saya lakukan: menuliskan tarif PTKP, lapisan PPh 21, atau
+persentase BPJS ke dalam kode. Slip gaji yang salah keluar dengan tampilan
+meyakinkan, dan penerimanya tak punya cara tahu.
+
+Yang **akan** saya lakukan: struktur **config-first** — seluruh tarif jadi data
+yang Anda isi lewat halaman pengaturan, dengan tanggal berlaku, sehingga
+perubahan aturan tahun depan tak menuntut deploy. Perhitungannya ber-test dan
+mutation-tested seperti modul finansial lain.
+
+Sampai tarifnya Anda isi, layarnya menyatakan *"tarif belum ditetapkan"* —
+bukan menghitung dengan angka bawaan yang kelihatan wajar.
+
+**Rekonsiliasi bank** juga dicabut larangannya. Catatan lamanya berbunyi
+*"software akuntansi mengerjakannya lebih baik"* — itu tetap benar sebagai
+saran, tapi Anda yang memutuskan, dan keputusannya sudah turun.
+
+---
+
 # 🔗 APAKAH SEMUA DI `/docs` SUDAH TEREGISTER? — diukur 2026-08-07
 
 > Menjawab dua pertanyaan sekaligus: *"apakah semua menu di taksonomi sudah

@@ -94,13 +94,31 @@ menghalangi bentuk yang benar.
 Ketiga golongan hanya berlaku untuk yang **layak dibangun**. Berikut yang sudah
 diputuskan tidak, atau ternyata sudah hidup.
 
-### 2a. Sudah diputuskan JANGAN DIBANGUN — 11 item
+### 2a. ~~Sudah diputuskan JANGAN DIBANGUN — 11 item~~ → **DICABUT 2026-08-11**
 
-Keputusan 2026-08-01 menyebut **12**; satu di antaranya (`multi-tenant`) sudah
-tak berstatus 🔴 lagi setelah koreksi §2b, jadi yang tersisa di daftar merah
-adalah 11.
+> ## 🔓 KEPUTUSAN INI SUDAH DICABUT FOUNDER
+>
+> **2026-08-11** — *"saya mau semuanya dimasukkan ke lingkup dan semuanya
+> dikerjakan, gaada lagi yg 'jangan dibangun'."* (`RATIFIKASI.md` **R-011**)
+>
+> Kesebelas item di bawah **masuk lingkup dan akan dikerjakan**, bersama 21
+> item berstatus `gerbang` di `peta-menu.ts` — total **34 item**.
+>
+> Tabel di bawah **dipertahankan apa adanya**, bukan dihapus: alasan-alasan
+> itu tetap berlaku sebagai **peringatan teknis**, hanya tak lagi berlaku
+> sebagai larangan. Yang paling penting di antaranya:
+>
+> **Payroll · BPJS · PPh 21** — *"aturan pajak berubah tiap tahun; salah
+> hitung = urusan hukum, bukan bug"* masih benar. Karena itu tarifnya
+> dibangun **config-first**: PTKP, lapisan PPh 21, dan persentase BPJS jadi
+> data yang founder isi lewat halaman pengaturan, **bukan konstanta di kode**.
+> Sampai diisi, layarnya menyatakan "tarif belum ditetapkan" — tidak menghitung
+> dengan angka bawaan yang kelihatan wajar.
+>
+> Urutan pengerjaan G1–G6 ada di `RATIFIKASI.md` R-011, diturunkan dari
+> pengukuran bahan di basis — bukan dari selera.
 
-Keputusan 2026-08-01, tidak dibuka ulang di sini:
+Keputusan 2026-08-01 yang kini dicabut, disimpan sebagai catatan teknis:
 
 | Item | Alasan singkat |
 |---|---|
