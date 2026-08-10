@@ -9576,3 +9576,46 @@ karena nama token salah tak punya gejala sama sekali di CSS.
 
 Bukti: detektor mekanis impeccable NOL temuan · tsc bersih · 4 penjaga visual
 hijau · judul-ratchet tidak bertambah.
+
+---
+
+## 2026-08-10 (lanjutan 6) — Automation Center: empat angka lalu tiga tab
+
+Founder menunjuk `localhost:3100/dashboard/automation` milik TJS dan sidebar
+Admin & Sistem-nya: "tiru aja isi halaman halamannya". Diukur bentuknya, bukan
+disalin buta: **4 KPI → 3 tab (Monitor · Katalog · Log Eksekusi) → kartu**.
+
+Diukur juga apa yang SUDAH ada di Puraloka supaya tak membangun ulang: roles,
+kredensial, penyedia AI/WA, asisten, riwayat, template WA, notifikasi —
+semuanya sudah setara. Yang belum: Automation Center, lima "perancang"
+(workflow/form/approval/status/dashboard), notif routing, WA multi-instance.
+
+**Dua endpoint baru, dan keduanya menghitung di SERVER.** Daftar alur dibatasi
+50 baris; menurunkan "gagal 24 jam" dari daftar itu akan BENAR hari ini dan
+diam-diam salah begitu alurnya lebih dari 50. Angka ringkasan yang meleset
+lebih buruk daripada tak ada angka — ia menenangkan tanpa dasar.
+
+**Monitor ≠ Katalog, dan itu yang membuat tabnya bukan hiasan.** Monitor hanya
+memuat yang MENUNTUT tindakan (gagal, menggantung, belum tersambung); Katalog
+memuat semuanya. Kalau keduanya menampilkan daftar yang sama, tab yang tak
+mengubah apa pun mengajari orang berhenti menekannya.
+
+**Nama rute bentrok, dan Fastify menolaknya saat boot.**
+`/api/v1/otomasi/ikhtisar` sudah dipakai ikhtisar menu induk (migrasi 267).
+Diganti `/otomasi/alur/ikhtisar`. Bentroknya ketahuan SEKETIKA — kalau Fastify
+diam, dua halaman berbeda akan memanggil endpoint sama dan salah satunya
+menampilkan angka milik yang lain, tanpa satu pun galat.
+
+**Dan satu token karangan lagi — yang kedua hari ini.** `var(--gap-kartu)` tak
+pernah ada; yang benar `--gap-grid`. Penjaga `uji-token-css-ada` berambang NOL
+menangkapnya, sama seperti `var(--fokus)` beberapa jam sebelumnya. Dua kali
+dalam satu hari saya mengarang nama token, dan dua kali penjaga yang sama yang
+menemukannya — bukan mata saya, bukan typecheck.
+
+Keadaan kosong tab Monitor sengaja BERBUNYI KABAR BAIK ("Semua alur sehat",
+menyebut jumlah aktifnya, lalu menunjuk ke tab Katalog) — bukan "tidak ada
+data". `operate.md`: "empty states that teach the interface".
+
+Bukti: detektor impeccable NOL temuan · tsc bersih dua app · 5 penjaga visual
+hijau (termasuk `audit-tab-seragam`, yang mensyaratkan tab lewat `TabBagian`)
+· endpoint diuji nyata: aktif 14 · gagal 1 · jalan 24j 2 · belum pernah 12.

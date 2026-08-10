@@ -325,4 +325,121 @@ export default async function otomasiAlurRoutes(app: FastifyInstance) {
       })
     },
   )
+
+  // ── GET /api/v1/otomasi/alur/ikhtisar — empat angka di kepala halaman ────
+  //
+  // Di bawah `/alur/`, BUKAN `/otomasi/ikhtisar` — nama itu sudah dipakai
+  // ikhtisar menu induk AI & Otomasi (penyedia.ts, migrasi 267). Fastify
+  // menolak rute ganda saat boot, jadi bentroknya ketahuan seketika; kalau
+  // ia diam, dua halaman berbeda akan memanggil endpoint yang sama dan salah
+  // satunya menampilkan angka milik yang lain.
+  //
+  // Dihitung di SERVER, bukan diturunkan di UI dari daftar alur.
+  //
+  // Daftar dibatasi 50 baris; menghitung "gagal 24 jam" dari 50 baris pertama
+  // menghasilkan angka yang BENAR hari ini dan diam-diam salah begitu alurnya
+  // lebih dari 50. Angka ringkasan yang meleset lebih buruk daripada tak ada
+  // angka: ia menenangkan tanpa dasar.
+  app.get(
+    '/api/v1/otomasi/alur/ikhtisar',
+    { preHandler: [authenticate, requirePermission('otomasi:alur:lihat')] },
+    async (request, reply) => {
+      const db = request.db!
+      const sejak24j = new Date(Date.now() - 24 * 60 * 60_000).toISOString()
+
+      const [alur, jalan24j] = await Promise.all([
+        db.from('otomasi_alur').select('id, aktif, kesehatan, jalan_terakhir, n8n_id, jalur_webhook'),
+        db.from('otomasi_jalan').select('status, dimulai_pada').gte('dimulai_pada', sejak24j),
+      ])
+
+      if (alur.error || jalan24j.error) {
+        request.log.error(
+          { err: alur.error ?? jalan24j.error },
+          'otomasi/ikhtisar: gagal menghitung',
+        )
+        // Angka yang gagal dihitung TIDAK dibalas sebagai nol — nol berarti
+        // "tak ada masalah", dan itu kalimat paling menyesatkan yang bisa
+        // ditampilkan saat sistemnya sedang tak bisa melihat.
+        return reply.status(500).send({ error: 'Gagal menghitung ikhtisar otomasi' })
+      }
+
+      const a = (alur.data ?? []) as Array<{
+        aktif: boolean; kesehatan: string; jalan_terakhir: string | null
+        n8n_id: string | null; jalur_webhook: string | null
+      }>
+      const j = (jalan24j.data ?? []) as Array<{ status: string }>
+
+      return reply.send({
+        aktif: a.filter((x) => x.aktif).length,
+        gagal: a.filter((x) => x.aktif && x.kesehatan === 'gagal').length,
+        jalan_24j: j.length,
+        gagal_24j: j.filter((x) => x.status === 'gagal').length,
+        // "Belum pernah jalan" dipisah dari "gagal": yang satu belum dicoba,
+        // yang satu sudah dan patah. Menyatukannya membuat alur baru terlihat
+        // seperti alur rusak.
+        belum_pernah: a.filter((x) => x.aktif && !x.jalan_terakhir).length,
+        belum_tersambung: a.filter((x) => x.aktif && !x.n8n_id && !x.jalur_webhook).length,
+        total: a.length,
+      })
+    },
+  )
+
+  // ── GET /api/v1/otomasi/alur/jalan — log eksekusi SELURUH alur ───────────
+  //
+  // Terpisah dari `/alur/:id/jalan` yang per-alur. Yang ini menjawab
+  // pertanyaan berbeda: "apa yang terjadi belakangan ini?" — dan itu tak bisa
+  // dijawab dengan membuka empat belas alur satu per satu.
+  app.get<{ Querystring: { status?: string } }>(
+    '/api/v1/otomasi/alur/jalan',
+    { preHandler: [authenticate, requirePermission('otomasi:alur:lihat')] },
+    async (request, reply) => {
+      let q = request.db!
+        .from('otomasi_jalan')
+        .select('id, alur_id, status, sumber, n8n_jalan_id, dimulai_pada, selesai_pada, durasi_ms, pesan')
+        .order('dimulai_pada', { ascending: false })
+        .limit(100)
+
+      // Saringan status: yang membuka log hampir selalu mencari yang GAGAL.
+      if (request.query?.status && ['jalan', 'sukses', 'gagal'].includes(request.query.status)) {
+        q = q.eq('status', request.query.status)
+      }
+
+      const { data, error } = await q
+      if (error) {
+        request.log.error({ err: error }, 'otomasi/jalan: gagal membaca log')
+        return reply.status(500).send({ error: 'Gagal membaca log eksekusi' })
+      }
+
+      const baris = (data ?? []) as Array<{ alur_id: string }>
+      if (baris.length === 0) return reply.send({ data: [] })
+
+      /*
+       * Nama alur ditempelkan di sini, bukan di-join.
+       *
+       * Log tanpa nama menuntut orang menghafal UUID untuk tahu alur mana yang
+       * gagal — dan yang menghafal UUID tak akan memeriksa apa pun. Diambil
+       * terpisah karena `TenantDb` tak menyusun join, dan dua query yang jelas
+       * lebih mudah diperiksa daripada satu join yang tersirat.
+       */
+      const { data: alur } = await request.db!
+        .from('otomasi_alur')
+        .select('id, nama, kode')
+        .in('id', [...new Set(baris.map((b) => b.alur_id))])
+
+      const nama = new Map(
+        ((alur ?? []) as Array<{ id: string; nama: string; kode: string }>).map((x) => [
+          x.id,
+          { nama: x.nama, kode: x.kode },
+        ]),
+      )
+
+      return reply.send({
+        data: baris.map((b) => ({
+          ...b,
+          nama_alur: nama.get(b.alur_id)?.nama ?? '(alur terhapus)',
+          kode_alur: nama.get(b.alur_id)?.kode ?? null,
+        })),
+      })
+    },
+  )
 }

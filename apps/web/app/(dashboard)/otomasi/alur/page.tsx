@@ -45,11 +45,15 @@
  */
 
 import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
-import { Workflow, Play, RefreshCw, Plus, Pencil, ChevronRight } from "lucide-react";
+import {
+  Workflow, Play, RefreshCw, Plus, Pencil, ChevronRight,
+  Radio, XCircle, Activity, PlugZap,
+} from "lucide-react";
 import { api } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman, Lencana, Tombol } from "@/components/dasar";
-import { Kosong, Panel } from "@/components/ui-dasar";
+import { Kosong, Panel, KartuKPI } from "@/components/ui-dasar";
+import { TabBagian } from "@/components/tab-bagian";
 import { BarisRail, KartuRail } from "@/components/shell/rail-kartu";
 import { RailIsi } from "@/components/shell/rail-isi";
 import { usePasangRail } from "@/lib/rail-context";
@@ -73,6 +77,24 @@ interface Alur {
   gagal_terakhir: string | null;
   pesan_gagal: string | null;
 }
+
+interface Ikhtisar {
+  aktif: number;
+  gagal: number;
+  jalan_24j: number;
+  gagal_24j: number;
+  belum_pernah: number;
+  belum_tersambung: number;
+  total: number;
+}
+
+/** Satu baris log lintas-alur — bedanya dari `Jalan`: ia menyebut alurnya. */
+interface JalanLintas extends Jalan {
+  nama_alur: string;
+  kode_alur: string | null;
+}
+
+type Bagian = "monitor" | "katalog" | "log";
 
 interface Jalan {
   id: string;
@@ -186,18 +208,38 @@ function Konten() {
   const [terbuka, setTerbuka] = useState<string | null>(null);
   const [sedang, setSedang] = useState<string | null>(null);
   const [pesan, setPesan] = useState<{ tipe: "ok" | "err"; teks: string } | null>(null);
+  const [ikhtisar, setIkhtisar] = useState<Ikhtisar | null>(null);
+  const [logLintas, setLogLintas] = useState<JalanLintas[] | null>(null);
+  const [bagian, setBagian] = useState<Bagian>("monitor");
   const [formBuka, setFormBuka] = useState(false);
   const [ubah, setUbah] = useState<AlurUntukForm | null>(null);
 
   const muat = useCallback(async () => {
     try {
-      const r = await api.get<{ data: Alur[]; n8n_siap: boolean }>("/api/v1/otomasi/alur");
+      const [r, k] = await Promise.all([
+        api.get<{ data: Alur[]; n8n_siap: boolean }>("/api/v1/otomasi/alur"),
+        api.get<Ikhtisar>("/api/v1/otomasi/alur/ikhtisar"),
+      ]);
       setDaftar(r.data.data ?? []);
       setN8nSiap(r.data.n8n_siap);
+      setIkhtisar(k.data);
     } catch {
       setPesan({ tipe: "err", teks: "Gagal memuat katalog alur" });
     } finally {
       setMemuat(false);
+    }
+  }, []);
+
+  const muatLog = useCallback(async () => {
+    try {
+      const r = await api.get<{ data: JalanLintas[] }>("/api/v1/otomasi/alur/jalan");
+      setLogLintas(r.data.data ?? []);
+    } catch {
+      setPesan({ tipe: "err", teks: "Gagal memuat log eksekusi" });
+      // Array kosong, BUKAN tetap null: null berarti "sedang memuat", dan
+      // layar yang selamanya bertuliskan "Memuat log…" tak pernah mengaku
+      // gagal.
+      setLogLintas([]);
     }
   }, []);
 
@@ -256,6 +298,26 @@ function Konten() {
       (x, y) => peringkat(x) - peringkat(y) || x.nama.localeCompare(y.nama),
     );
   }, [daftar]);
+
+  /*
+   * Monitor ≠ Katalog. Monitor menjawab "ada yang perlu saya kerjakan?",
+   * jadi ia hanya memuat yang MENUNTUT tindakan: gagal, belum tersambung,
+   * atau sedang berjalan. Katalog memuat semuanya.
+   *
+   * Kalau keduanya menampilkan daftar yang sama, tabnya cuma hiasan — dan
+   * tab yang tak mengubah apa pun mengajari orang berhenti menekannya.
+   */
+  const perluPerhatian = useMemo(
+    () =>
+      terurut.filter(
+        (a) =>
+          a.aktif &&
+          (a.kesehatan === "gagal" ||
+            a.kesehatan === "jalan" ||
+            (!a.n8n_id && !a.jalur_webhook)),
+      ),
+    [terurut],
+  );
 
   const gagal = daftar.filter((a) => a.aktif && a.kesehatan === "gagal");
   const belumTersambung = daftar.filter((a) => a.aktif && !a.n8n_id && !a.jalur_webhook);
@@ -395,9 +457,186 @@ function Konten() {
         </p>
       )}
 
-      <Panel judul="Katalog alur" padat>
+      {/*
+        EMPAT ANGKA, lalu tab. Bukan selera — `ARAH-VISUAL-2026` §5b: lapis
+        KEADAAN ("apa yang terjadi?") mendahului lapis DETAIL ("apa yang harus
+        saya kerjakan?"). Menaruh daftar di atas memaksa orang memindai empat
+        belas baris untuk menjawab pertanyaan yang bisa dijawab satu angka.
+
+        Angkanya dihitung di SERVER. Daftar dibatasi 50 baris, jadi menurunkan
+        "gagal 24 jam" dari daftar akan benar hari ini dan diam-diam salah
+        begitu alurnya lebih dari 50.
+      */}
+      <div
+        style={{
+          display: "grid", gap: "var(--gap-grid)", marginBottom: "var(--gap-bagian)",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 190px), 1fr))",
+        }}
+      >
+        <KartuKPI
+          label="Alur aktif"
+          nilai={String(ikhtisar?.aktif ?? 0)}
+          nilaiAngka={ikhtisar?.aktif ?? 0}
+          keterangan={`dari ${ikhtisar?.total ?? 0} terdaftar`}
+          ikon={<Radio size={15} />}
+        />
+        <KartuKPI
+          label="Gagal sekarang"
+          nilai={String(ikhtisar?.gagal ?? 0)}
+          nilaiAngka={ikhtisar?.gagal ?? 0}
+          keterangan="jalan terakhirnya patah"
+          ikon={<XCircle size={15} />}
+          /* Satu-satunya KPI yang disorot — §3d: satu aksen per layar. Kalau
+             empat-empatnya menonjol, tak ada yang menonjol. */
+          sorot={(ikhtisar?.gagal ?? 0) > 0}
+        />
+        <KartuKPI
+          label="Jalan 24 jam"
+          nilai={String(ikhtisar?.jalan_24j ?? 0)}
+          nilaiAngka={ikhtisar?.jalan_24j ?? 0}
+          keterangan={`${ikhtisar?.gagal_24j ?? 0} di antaranya gagal`}
+          ikon={<Activity size={15} />}
+        />
+        <KartuKPI
+          label="Belum tersambung"
+          nilai={String(ikhtisar?.belum_tersambung ?? 0)}
+          nilaiAngka={ikhtisar?.belum_tersambung ?? 0}
+          keterangan="takkan pernah dipicu"
+          ikon={<PlugZap size={15} />}
+        />
+      </div>
+
+      <TabBagian
+        label="Bagian halaman otomasi"
+        aktif={bagian}
+        onPilih={(k) => {
+          setBagian(k);
+          // Log lintas-alur diambil saat tabnya dibuka, bukan saat halaman
+          // dimuat: yang membuka Monitor tak selalu butuh 100 baris log.
+          if (k === "log" && logLintas === null) void muatLog();
+        }}
+        bagian={[
+          { kunci: "monitor", label: "Monitor", ikon: <Radio size={13} /> },
+          { kunci: "katalog", label: "Katalog", ikon: <Workflow size={13} />, jumlah: daftar.length },
+          {
+            kunci: "log",
+            label: "Log eksekusi",
+            ikon: <Activity size={13} />,
+            jumlah: ikhtisar?.gagal_24j || undefined,
+            mendesak: (ikhtisar?.gagal_24j ?? 0) > 0,
+          },
+        ] as const}
+      />
+
+      {bagian === "log" ? (
+        <Panel judul="Log eksekusi — 100 terakhir" padat>
+          {logLintas === null ? (
+            <div style={{ padding: 20, color: C.muted, fontSize: 13 }}>Memuat log…</div>
+          ) : logLintas.length === 0 ? (
+            <Kosong
+              ikon={<Activity size={18} />}
+              judul="Belum ada yang berjalan"
+              sebab="Alur yang terjadwal akan muncul di sini begitu waktunya tiba; yang manual begitu tombolnya ditekan."
+            />
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table
+                style={{
+                  width: "100%", borderCollapse: "collapse", fontSize: 12.5,
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
+                <caption
+                  style={{
+                    captionSide: "top", textAlign: "left", fontSize: 11,
+                    color: C.muted, padding: "8px var(--pad-kartu-lega)",
+                  }}
+                >
+                  Seluruh alur, terbaru dulu.
+                </caption>
+                <thead>
+                  <tr style={{ background: "var(--surface-2)" }}>
+                    {["Waktu", "Alur", "Status", "Pemicu", "Durasi", "Catatan"].map((h) => (
+                      <th
+                        key={h}
+                        scope="col"
+                        style={{
+                          textAlign: "left", padding: "7px var(--pad-kartu-lega)",
+                          fontSize: 11, fontWeight: 600, color: C.muted,
+                        }}
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {logLintas.map((j) => (
+                    <tr key={j.id} style={{ borderTop: `1px solid ${C.border}` }}>
+                      <th
+                        scope="row"
+                        style={{
+                          padding: "7px var(--pad-kartu-lega)", textAlign: "left",
+                          fontWeight: 400, color: C.muted, whiteSpace: "nowrap",
+                        }}
+                      >
+                        {sejak(j.dimulai_pada)}
+                      </th>
+                      <td style={{ padding: "7px var(--pad-kartu-lega)", color: C.text }}>
+                        {j.nama_alur}
+                      </td>
+                      <td style={{ padding: "7px var(--pad-kartu-lega)" }}>
+                        <Lencana
+                          nada={
+                            j.status === "sukses" ? "sukses"
+                              : j.status === "gagal" ? "bahaya" : "info"
+                          }
+                        >
+                          {j.status === "sukses" ? "Berhasil"
+                            : j.status === "gagal" ? "Gagal" : "Jalan"}
+                        </Lencana>
+                      </td>
+                      <td style={{ padding: "7px var(--pad-kartu-lega)", color: C.muted }}>
+                        {j.sumber}
+                      </td>
+                      <td
+                        style={{
+                          padding: "7px var(--pad-kartu-lega)", color: C.muted,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {j.durasi_ms != null ? `${j.durasi_ms} ms` : "—"}
+                      </td>
+                      <td
+                        style={{
+                          padding: "7px var(--pad-kartu-lega)", color: C.muted,
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        {j.pesan ?? "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Panel>
+      ) : (
+      <Panel judul={bagian === "monitor" ? "Perlu perhatian" : "Katalog alur"} padat>
         {memuat ? (
           <div style={{ padding: 24, color: C.muted, fontSize: 14 }}>Memuat…</div>
+        ) : bagian === "monitor" && perluPerhatian.length === 0 && terurut.length > 0 ? (
+          /*
+            Keadaan kosong yang MENGAJARI, bukan "tidak ada data".
+            Di tab Monitor, kosong berarti KABAR BAIK — dan kalimatnya harus
+            mengatakan itu, lalu menunjukkan ke mana melihat seluruhnya.
+          */
+          <Kosong
+            ikon={<Radio size={20} />}
+            judul="Semua alur sehat"
+            sebab={`${ikhtisar?.aktif ?? 0} alur aktif, tak satu pun gagal atau menggantung. Buka tab Katalog untuk melihat seluruhnya.`}
+          />
         ) : terurut.length === 0 ? (
           <Kosong
             ikon={<Workflow size={20} />}
@@ -406,7 +645,7 @@ function Konten() {
           />
         ) : (
           <div style={{ display: "grid" }}>
-            {terurut.map((a, i) => {
+            {(bagian === "monitor" ? perluPerhatian : terurut).map((a, i) => {
               const tersambung = Boolean(a.n8n_id || a.jalur_webhook);
               const bisaJalan = bolehJalankan && a.aktif && tersambung && n8nSiap;
               const isi = jejak[a.id];
@@ -721,6 +960,7 @@ function Konten() {
           </div>
         )}
       </Panel>
+      )}
 
       <AlurFormModal
         terbuka={formBuka}
