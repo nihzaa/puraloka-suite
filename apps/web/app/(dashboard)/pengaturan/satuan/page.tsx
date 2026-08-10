@@ -70,7 +70,7 @@ function SatuanContent() {
     .filter(g => g.items.length > 0);
 
   return (
-    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-form)", margin: "0 auto" }}>
+    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
       {toast && (
         <div style={{
           position: "fixed", top: 20, right: 24, zIndex: 9999,

@@ -39,7 +39,7 @@ function Content() {
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 3500); return () => clearTimeout(t); }, [toast]);
 
   return (
-    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-form)", margin: "0 auto" }}>
+    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
       {toast && (
         <div style={{ position: "fixed", top: 20, right: 24, zIndex: 9999, background: toast.type === "success" ? C.greenBg : C.redBg, border: `1px solid ${toast.type === "success" ? C.greenBorder : C.redBorder}`, borderRadius: 10, padding: "8px 16px", display: "flex", alignItems: "center", gap: 8, boxShadow: "var(--naik-2)", fontSize: 13, color: toast.type === "success" ? C.green : C.red }}>
           {toast.type === "success" ? <Check size={14} /> : <AlertTriangle size={14} />}{toast.msg}

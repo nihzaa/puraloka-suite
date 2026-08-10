@@ -10016,3 +10016,42 @@ saya sendiri hari ini. Dinonaktifkan; tersisa satu tenant nyata.
 Bukti: 6 test hijau, mutasi saklar → MERAH lalu pulih · penjaga jatuhan
 terbukti merah dengan menyebut nama kunci yang salah · 2741 test hijau
 (4 merah pre-existing, tak berubah) · 6 penjaga kredensial/tenancy hijau.
+
+---
+
+## 2026-08-11 (lanjutan) — "Bagian tengahnya mepet" ternyata masalah LAIN
+
+Founder: *"masih ada ui yg bagian tengahnya mepet, udh dikerjain belum?"*
+
+**Belum — karena yang saya kerjakan sebelumnya masalah yang BERBEDA.** Commit
+`522d40b` memperbaiki padding BARIS di dalam `<Panel padat>` (14px vs kepala
+16px). Yang founder maksud sekarang: lebar KOLOM ISI halaman.
+
+Diukur pada viewport 1600 (bukan ditebak dari kode):
+
+    /dashboard              1080 tersedia · 1080 isi · sisa    0
+    /pengaturan/kredensial  1380 tersedia ·  900 isi · sisa  480  ←
+    /pengaturan/whatsapp    1380 tersedia ·  900 isi · sisa  480  ←
+
+**480 piksel menganga**, dan penyebabnya `--w-form` (900px) yang dipakai 18
+halaman — hampir seluruh Pengaturan.
+
+**Tapi tidak semuanya salah.** Alasan `--w-form` tertulis di kodenya, dan sah:
+kalimat penjelas selebar 1380px melelahkan dibaca. Jadi yang saya lakukan
+bukan melebarkan semuanya, melainkan MEMISAHKAN berdasarkan isi — diukur,
+bukan dikira:
+
+    kredensial   7 kalimat penjelas  → tetap 900  (teks, memang harus sempit)
+    whatsapp    12 kalimat penjelas  → tetap 900
+    penyedia-ai 11 kalimat penjelas  → tetap 900
+    satuan       grid 4 kolom        → 1312  (kolomnya diperas tanpa alasan)
+    kategori     grid 4 kolom        → 1312
+    kasbon       grid 4 kolom        → 1312
+    users        grid 3 kolom        → 1312
+    notifications / sistem  daftar   → 1312
+
+Enam halaman dilebarkan; sisa 68px adalah padding, bukan ruang kosong.
+
+Melebarkan halaman ber-kalimat-padat akan MEMPERBURUK keterbacaannya — itu
+sebabnya pemisahannya diukur dari jumlah kalimat penjelas dan grid, bukan dari
+"semua halaman pengaturan".

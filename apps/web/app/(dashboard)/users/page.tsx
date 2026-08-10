@@ -92,7 +92,7 @@ export default function UsersPage() {
   const isAdmin = useIzin("users:manage");
 
   return (
-    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-form)", margin: "0 auto" }}>
+    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
       <KepalaHalaman
         judul="User Management"
         keterangan="Kelola akun pengguna aplikasi Puraloka Suite"

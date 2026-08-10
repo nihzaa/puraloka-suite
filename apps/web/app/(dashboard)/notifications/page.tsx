@@ -262,7 +262,7 @@ export default function NotificationsPage() {
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", minHeight: "100vh", background: C.bg, width: "100%", maxWidth: "var(--w-form)", margin: "0 auto" }}>
+    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", minHeight: "100vh", background: C.bg, width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
       <KepalaHalaman
         judul="Notifikasi"
         keterangan="Riwayat semua notifikasi sistem"
