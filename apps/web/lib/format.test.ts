@@ -5,6 +5,7 @@ import {
   formatAngka,
   formatPersen,
   formatVolume,
+  formatKuantitas,
   formatTanggal,
   formatTanggalPanjang,
   formatTanggalJam,
@@ -150,6 +151,32 @@ describe('formatVolume', () => {
 
   it('nilai kosong jadi tanda pisah', () => {
     expect(formatVolume(null, 'm³')).toBe('—')
+  })
+})
+
+describe('formatKuantitas', () => {
+  // Alasan fungsi ini ada: `formatVolume` memaku jumlah desimalnya, jadi
+  // kuantitas bulat di kolom `numeric(_,4)` tampil "1,0000" — nol-nol yang
+  // memenuhi tabel tanpa menyampaikan apa pun.
+  it('bulat tampil tanpa desimal', () => {
+    expect(formatKuantitas(1)).toBe('1')
+    expect(formatKuantitas(1248)).toBe('1.248')
+  })
+
+  it('pecahan tampil apa adanya, nol ujung dibuang', () => {
+    expect(formatKuantitas(0.25)).toBe('0,25')
+    expect(formatKuantitas(1.5)).toBe('1,5')
+  })
+
+  // `toLocaleString` bawaan berhenti di 3 desimal, jadi kode yang memakainya
+  // diam-diam memotong digit keempat pada kolom numeric(_,4).
+  it('digit keempat TIDAK hilang — beda dari toLocaleString bawaan', () => {
+    expect(formatKuantitas(0.1234)).toBe('0,1234')
+    expect((0.1234).toLocaleString('id-ID')).toBe('0,123')
+  })
+
+  it('nilai kosong jadi tanda pisah', () => {
+    expect(formatKuantitas(null)).toBe('—')
   })
 })
 

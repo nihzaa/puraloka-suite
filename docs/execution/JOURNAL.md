@@ -10165,3 +10165,221 @@ Enam halaman dilebarkan; sisa 68px adalah padding, bukan ruang kosong.
 Melebarkan halaman ber-kalimat-padat akan MEMPERBURUK keterbacaannya — itu
 sebabnya pemisahannya diukur dari jumlah kalimat penjelas dan grid, bukan dari
 "semua halaman pengaturan".
+
+## 2026-08-11 (lanjutan 2) — K-6: 11 bentuk isian jadi satu, dan dua penjaga yang berbohong
+
+Founder: *"untuk komponen komponen ui nya saya kurang suuka, coba untuk
+halaman konfigurasi, rujuklah ke project TJS di halaman admin & sistem nya."*
+
+**Sebabnya diukur, bukan ditebak.** Yang founder tak suka bisa ditunjuk:
+
+    bentuk `inputStyle` berbeda : 11   (di 16 halaman)
+    komponen input bersama      :  0
+    bentuk tanpa penanda fokus  :  4
+    radius seluruh varian       :  6px  — sementara kartunya 14px
+
+Radius itu yang membuat halaman terasa "tidak menyatu" tanpa bisa ditunjuk
+apa salahnya: **kontrol yang jauh lebih tajam dari wadahnya terlihat
+ditempel**, bukan bagian dari kartunya.
+
+Ini pola keempat yang SAMA hari ini — 27 varian `<h1>` (UIR-2), 8 bentuk
+kartu (K-2), 4 gaya tab, 11 bentuk isian. Sebabnya selalu sama: halaman
+ditulis pada waktu berbeda dan menyalin tetangga terdekat, dan **tak ada satu
+pun yang salah saat ditulis**.
+
+Dibangun `components/isian.tsx` mengikuti `settings/page.tsx` TJS yang founder
+tunjuk — label kecil tebal di ATAS kotak, dua kolom, cincin fokus bernada
+aksen. Radius `--radius-sm` (10px): seukuran kontrol, tetapi sekeluarga
+dengan kartunya. Diterapkan ke 13 berkas, 164 elemen.
+
+Diverifikasi DI PERAMBAN, bukan dari kode — yang menentukan adalah apa yang
+dirender:
+
+    halaman         isian  radius  fokus
+    penyedia-ai       14   10px    2px solid #003366
+    kredensial        13   10px    2px solid
+    whatsapp           5   10px    2px solid
+    users              1   10px    2px solid
+
+### Penjaga baru saya LAHIR MATI, dan bukti mutasi yang memergokinya
+
+`isian-ratchet` disalin polanya dari `judul-ratchet`. Pola itu menyetel
+`lantai = sekarang` di dalam `catch` **tanpa menyimpannya**. Akibatnya selama
+berkas lantai belum ada, lantai selalu SAMA DENGAN angka saat ini — penjaga
+tak akan pernah bisa merah, apa pun yang disuntikkan.
+
+Dua pelanggaran disuntik. Hijau dua-duanya.
+
+`judul-ratchet` lolos dari cacat yang sama **semata-mata karena berkas
+lantainya kebetulan sudah ada**. Penjaga baru mana pun yang menyalin polanya
+lahir mati, dan terlihat sehat di CI. Diperiksa: ratchet lain semuanya punya
+berkas lantai, jadi tak ada yang lain terkena.
+
+Tanpa bukti mutasi saya memasang hiasan di CI dan melaporkannya sebagai
+penjaga.
+
+### `a11y-ratchet` menuduh kode yang BENAR — dilonggarkan (G-5), lalu dibuktikan
+
+Penjaga menandai `components/isian.tsx` sebagai kontrol tanpa nama. Dua sebab,
+keduanya cacat penjaganya:
+
+1. Pengecualian pembungkus generik dipaku literal `{...props}`. Repo ini
+   menulis kodenya dalam bahasa Indonesia; `isian.tsx` menyebar `{...sisa}`.
+   Memberinya `aria-label` generik justru akan **MENIMPA nama spesifik
+   pemanggilnya di seluruh pemakaian** — persis kerusakan yang pengecualian
+   itu ada untuk mencegahnya.
+2. Komentar JSDoc satu baris yang MENYEBUT `<select>` terhitung sebagai
+   pelanggaran: pola lama menuntut `*` di awal atau sesudah spasi, sedangkan
+   pada `/**` ia didahului `/`.
+
+Godaan yang saya tolak: mengganti nama `sisa` → `props` supaya cocok regex.
+Itu cara membuat penjaga berbohong.
+
+Melonggarkan penjaga adalah **G-5**. Yang membuatnya sah bukan alasannya,
+melainkan bukti bahwa ia MASIH menangkap pelanggaran nyata —
+`bukti-mutasi-a11y.sh`, **7/7**:
+
+    MASIH MENANGKAP   <select> tanpa nama · <button> kosong · <button> ikon-saja
+    TIDAK CEREWET     {...sisa} · {...props} · JSDoc · <select aria-label>
+
+Sisanya diperbaiki, bukan dikecualikan: `pengaturan/penyedia` dua `<select>`
+diberi `id`+`htmlFor` eksplisit. **`a11y-ratchet` MERAH → HIJAU (0/0).**
+
+### Saya salah soal "docs/ hilang"
+
+Saya melaporkan ke founder bahwa `docs/` tidak ada di checkout ini dan
+menghentikan pekerjaan sesuai CLAUDE.md §8a.1 (tanda sesi lain menulis di
+checkout yang sama). **Itu salah.** `docs/` ada, 279 berkas, terlacak penuh.
+
+Sebabnya: saya menjalankan `ls docs/execution/` setelah `cd apps/web &&
+pnpm build`, dan cwd masih di `apps/web`. Jalur relatif dicari dari sana.
+Berhenti karena alarm palsu lebih murah daripada menimpa kerja orang, tapi
+pelajarannya tetap: **sebelum menyimpulkan berkas hilang, cek `git ls-files`,
+bukan hanya `ls`** — dan pastikan cwd-nya.
+
+### Bukti
+
+    tsc --noEmit          0
+    pnpm build            lolos
+    isian-ratchet         OK  (15/15)
+    bukti-mutasi-isian    3/3
+    a11y-ratchet          OK  (0/0)   ← sebelumnya MERAH
+    bukti-mutasi-a11y     7/7
+    uji-token-css-ada     0 token hantu
+
+Enam penjaga lain masih merah (format, kerapatan, lint, tabel-mentah,
+tata-letak, a11y-runtime). **Diverifikasi lewat `git stash` bahwa keenamnya
+sudah merah di baseline** — bukan akibat K-6.
+
+Commit: `a4ff5ca`
+
+## 2026-08-11 (lanjutan 3) — UIR-1 lanjutan, dan panah yang "diperbaiki" tanpa berubah
+
+Tiga ratchet melebihi lantainya (324/307, 133/122, 14/7). Diverifikasi lewat
+`git stash` bahwa ketiganya sudah merah SEBELUM kerja hari ini — tapi merah
+tetap merah, dan tak ada yang menurunkannya.
+
+`estimasi/page.tsx` muncul sebagai pelanggar terbesar di KETIGANYA (9 kerapatan,
+18 format, 3 tabel mentah). Satu berkas 3.948 baris menyumbang 30 pelanggaran.
+
+### Format: yang diganti dan yang TIDAK
+
+`fmtRp` lokal di halaman itu BUKAN sinonim `formatRupiah`. Dibandingkan
+langsung sebelum mengganti:
+
+    -450.000   `Rp -450.000`  →  `-Rp 450.000`   (konvensi Indonesia, perbaikan)
+    1234,56    `Rp 1.234,56`  →  `Rp 1.235`      (dibulatkan)
+
+Pembulatan itu sah untuk NOMINAL — 51 halaman lain memakai konvensi yang sama.
+Ia TIDAK sah untuk kuantitas. Diukur ke schema, bukan ditebak dari nama
+variabel: `estimate_items.quantity` dan `rap_material_line.qty_ahsp` bertipe
+`numeric(_,4)`. Membulatkannya menyembunyikan 0,25 m³ jadi "0".
+
+Jadi 33 pemanggilan dipisah jadi empat golongan, bukan diganti buta:
+
+    nominal    → formatRupiah        (boleh bulat)
+    cacah      → formatAngka         (length, jumlah_analisa)
+    kuantitas  → formatKuantitas     (BARU — lihat bawah)
+    tanggal    → formatTanggalJam    (zona WIB, bukan zona mesin)
+
+**`formatKuantitas` ditambahkan ke `lib/format.ts`**, bukan ditambal di
+halaman: `formatVolume` memaku jumlah desimalnya, jadi kuantitas bulat di kolom
+`numeric(_,4)` tampil "1,0000". Nol-nol itu memenuhi tabel tanpa menyampaikan
+apa pun. Temuan sampingan yang dikunci test: `toLocaleString` bawaan berhenti
+di 3 desimal — kode yang memakainya sudah diam-diam memotong digit keempat.
+
+    formatKuantitas(0.1234)          → "0,1234"
+    (0.1234).toLocaleString('id-ID') → "0,123"    ← digit hilang
+
+**format-ratchet MERAH → HIJAU: 133 → 116**, lantai ikut turun dan terkunci.
+
+Diverifikasi per-nilai, bukan dari "kelihatannya sama": setiap teks berangka di
+tiga tab direkam sebelum & sesudah (`.layar/rekam-angka.mjs`). Satu-satunya
+selisih adalah build id Next.js — nol nominal berubah. Penyaring `<script>`
+lalu ditambahkan ke perekamnya supaya selisih palsu itu tak muncul lagi.
+
+### Kerapatan: 324 → 312, dan kenapa berhenti di situ
+
+`kontrak/rfi` dan `lapangan/submittal` IDENTIK baris-per-baris di seluruh blok
+gaya — satu disalin dari yang lain. Diseragamkan ke token (`--gap-bagian`,
+`--pad-kartu-lega`).
+
+Yang TIDAK disentuh, dengan alasan:
+
+    padding 40px/48px   keadaan KOSONG — ruang lapang di sana disengaja;
+                        menyempitkannya membuat "belum ada data" terlihat sesak
+    padding 20px 24px   konvensi MODAL. Tiga berkas menyepakatinya
+                        (contract-generator-modal dll). Mengubahnya =
+                        keputusan visual seluruh aplikasi, bukan pembersihan
+    portal/*            shell portal BEDA (UIR-9) — token dashboard belum
+                        tentu berlaku di sana
+
+Sisa 5 di atas lantai. Dinyatakan, bukan disembunyikan dengan menaikkan lantai.
+
+### Panah dropdown: dua jam bisa hilang di sini
+
+Potret RFI menunjukkan panah dropdown jatuh ke bawah kotak select. Dugaan
+pertama saya: pembungkus `display: block` melebar mengikuti induk sementara
+select dibatasi 240px, jadi panah yang dipatok ke kanan PEMBUNGKUS melayang di
+luar. Masuk akal, dan saya terapkan ke empat halaman.
+
+**Diukur di peramban sesudahnya: panah TETAP di luar kotak.** Perbaikan itu
+tidak mengubah apa pun.
+
+Sebab sesungguhnya baru terlihat dari geometri yang dirender:
+
+    bungkus  display: block     ← perubahan saya tak sampai
+    ikon     position: static   ← aturannya TIDAK BERLAKU sama sekali
+
+Blok gayanya `<style jsx>` tanpa `global`. Next men-scope tiap aturan dengan
+kelas `jsx-<hash>` yang disisipkan ke elemen JSX biasa — dan ikon ini dirender
+komponen LAIN (`<ChevronDown>` dari lucide), yang tidak menerima atribut scope
+itu. Aturannya tak pernah cocok. Perbaikannya `:global(.rf-pilih-ikon)`.
+
+Empat halaman kena: rfi, submittal, inspeksi, punch-list — identik, satu
+disalin dari yang lain, cacatnya ikut tersalin. Sesudah `:global()`, keempatnya
+diukur ulang: panah di dalam kotak, menempel di kanan.
+
+Pelajarannya bukan "saya salah menebak" — tebakan pertama memang masuk akal.
+Pelajarannya: **perbaikan CSS yang tidak diukur di peramban bisa terlihat
+selesai padahal nol yang berubah.** Kalau saya berhenti di "sudah saya ganti
+jadi inline-block", empat halaman tetap rusak dan jurnal ini mencatatnya
+sebagai beres.
+
+Catatan cara: backtick di dalam komentar CSS MENGAKHIRI template literal
+`<style jsx>{`…`}`. Dua berkas sempat berhenti mem-parse, dev server 500.
+Typecheck menangkapnya.
+
+### Bukti
+
+    tsc --noEmit          0
+    vitest (web)          595 lulus / 45 berkas — 0 gagal
+    pnpm build            ✓ Compiled successfully in 7.3s
+    format-ratchet        OK   116 (dari 133) ← MERAH sebelumnya
+    a11y-ratchet          OK   0/0
+    isian-ratchet         OK   15/15
+    uji-token-css-ada     0 token hantu
+    uji-panah-select      4/4 ✅ di dalam kotak
+
+Masih merah: kerapatan (312/307), lint, tabel-mentah (11/7), tata-letak,
+a11y-runtime. Semuanya sudah merah di baseline — diverifikasi `git stash`.

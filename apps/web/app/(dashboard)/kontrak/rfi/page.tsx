@@ -473,7 +473,7 @@ export default function RfiPage() {
           width: 100%; max-width: var(--w-page); margin: 0 auto;
         }
         .rf-kepala {
-          display: flex; flex-wrap: wrap; gap: 16px;
+          display: flex; flex-wrap: wrap; gap: var(--gap-bagian);
           align-items: flex-end; justify-content: space-between; margin-bottom: 20px;
         }
         .rf-judul {
@@ -484,6 +484,16 @@ export default function RfiPage() {
         .rf-sub { margin: 4px 0 0; font-size: 14px; color: var(--text-secondary); }
         .rf-kepala-aksi { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 
+        /*
+          inline-block, bukan block. Pembungkus block melebar mengikuti
+          induknya sementara .rf-pilih di dalamnya dibatasi 240px — dan
+          panahnya dipatok ke kanan PEMBUNGKUS, jadi ia melayang di luar kotak
+          select. Di layar 1500px panah itu jatuh ke bawah dropdown, terlihat
+          seperti kontrolnya rusak.
+
+          (Tanpa backtick: blok gaya ini template literal, dan backtick di
+          dalam komentar CSS mengakhirinya — berkasnya berhenti mem-parse.)
+        */
         .rf-pilih-bungkus { position: relative; display: block; }
         .rf-pilih {
           appearance: none; min-height: 44px; padding: 0 34px 0 13px;
@@ -491,7 +501,19 @@ export default function RfiPage() {
           background: var(--surface); color: var(--text-primary);
           font-size: 14px; font-family: inherit; cursor: pointer; max-width: 240px;
         }
-        .rf-pilih-ikon {
+        /*
+          :global() WAJIB di sini. Blok ini <style jsx> tanpa "global", jadi tiap
+          aturan di-scope dengan kelas jsx-<hash> yang Next sisipkan ke elemen
+          JSX biasa. Ikon ini dirender komponen LAIN (<ChevronDown> dari lucide),
+          dan komponen React tidak menerima atribut scope itu — jadi aturannya
+          tak pernah cocok, panah tetap "position: static", dan ia jatuh ke tepi
+          kiri select alih-alih menempel di kanannya.
+        
+          Gejalanya menyesatkan: terlihat seperti pembungkusnya salah lebar.
+          Mengubah display pembungkus TIDAK memperbaikinya — diukur di peramban,
+          panahnya tetap di luar kotak.
+        */
+        :global(.rf-pilih-ikon) {
           position: absolute; right: 11px; top: 50%; transform: translateY(-50%);
           color: var(--text-muted); pointer-events: none;
         }
@@ -511,9 +533,9 @@ export default function RfiPage() {
         }
 
         .rf-ringkas {
-          display: flex; flex-wrap: wrap; align-items: center; gap: 22px;
+          display: flex; flex-wrap: wrap; align-items: center; gap: var(--gap-bagian);
           background: var(--surface); border: 1px solid var(--border);
-          border-radius: var(--radius-lg); padding: 18px 22px; margin-bottom: 22px;
+          border-radius: var(--radius-lg); padding: var(--pad-kartu-lega) 22px; margin-bottom: 22px;
         }
         .rf-angka { display: flex; align-items: baseline; gap: 9px; }
         .rf-angka-n {
@@ -644,7 +666,7 @@ export default function RfiPage() {
           .rf-kepala-aksi { width: 100%; }
           .rf-pilih { max-width: none; width: 100%; }
           .rf-pilih-bungkus { flex: 1; }
-          .rf-ringkas { gap: 16px; }
+          .rf-ringkas { gap: var(--gap-bagian); }
           .rf-pisah { display: none; }
           .rf-angka { flex-basis: 100%; }
           .rf-angka-n { font-size: 28px; }
@@ -808,7 +830,7 @@ function FormRfi({
         .fr-tirai {
           position: fixed; inset: 0; z-index: 60;
           background: rgba(17,24,39,0.45);
-          display: flex; align-items: center; justify-content: center; padding: 16px;
+          display: flex; align-items: center; justify-content: center; padding: var(--pad-kartu-lega);
         }
         .fr-panel {
           background: var(--surface); border-radius: var(--radius-lg);

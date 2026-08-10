@@ -37,7 +37,29 @@ import { Tabel, KepalaHalaman } from "@/components/dasar";
 import { GAYA_KARTU } from "@/components/ui-dasar";
 import { GAYA_ISIAN } from "@/components/isian";
 
-const fmtRp = (n: number) => `Rp ${Number(n).toLocaleString("id-ID")}`;
+/**
+ * UIR-1 — format lewat `lib/format`, bukan `toLocaleString` per halaman.
+ *
+ * `fmtRp` lokal yang dulu ada di sini BERBEDA keluarannya dari `formatRupiah`
+ * dalam dua hal, dan keduanya perbaikan:
+ *
+ *   negatif   `Rp -450.000`  →  `-Rp 450.000`   (konvensi Indonesia)
+ *   desimal   `Rp 1.234,56`  →  `Rp 1.235`      (rupiah tampil bulat)
+ *
+ * Pembulatan itu sah untuk NOMINAL — 51 halaman lain sudah memakai konvensi
+ * yang sama. Ia TIDAK sah untuk kuantitas: `estimate_items.quantity` bertipe
+ * `numeric(_,4)`, jadi 0,25 m³ akan tampil "0" kalau dibulatkan. Karena itu
+ * kuantitas di halaman ini memakai `formatVolume`/`formatAngka` dengan desimal
+ * eksplisit, bukan `formatRupiah` atau `formatAngka(n)` tanpa argumen.
+ */
+import {
+  formatRupiah,
+  formatAngka,
+  formatKuantitas,
+  formatTanggalJam,
+} from "@/lib/format";
+
+const fmtRp = formatRupiah;
 
 // ── Types (bentuk respons API CECEP) ──────────────────────────────────────────
 interface Project { id: string; name: string }
@@ -343,7 +365,7 @@ function KomposerTab() {
                 { kunci: "kode", judul: "Kode", render: it => (
                   <code style={{ fontFamily: "monospace", fontSize: 12 }}>{it.assembly?.code ?? it.cost_code?.code}</code>
                 ) },
-                { kunci: "vol", judul: "Vol", rata: "kanan", render: it => Number(it.quantity).toLocaleString("id-ID") },
+                { kunci: "vol", judul: "Vol", rata: "kanan", render: it => formatKuantitas(it.quantity) },
                 { kunci: "sat", judul: "Sat", render: it => it.assembly?.output_unit_code },
                 { kunci: "jumlah", judul: "Jumlah", rata: "kanan", render: it => (
                   <span style={{ fontWeight: 600 }}>{fmtRp(Number(it.amount))}</span>
@@ -712,7 +734,7 @@ function NewScenarioModal({ projectId, editions, onClose, onDone }:
             {e.code} — {e.name}
             {(e.jumlah_analisa ?? 0) === 0
               ? "  (belum ada analisa)"
-              : `  (${e.jumlah_analisa!.toLocaleString("id-ID")} analisa)`}
+              : `  (${formatAngka(e.jumlah_analisa!)} analisa)`}
           </option>
         ))}
       </select>
@@ -1205,16 +1227,16 @@ function KatalogTab() {
             yang akan tampil, beserta jumlahnya. */}
         <select className="isian-fokus" value={saring} onChange={e => setSaring(e.target.value)}
           aria-label="Saring katalog" style={{ ...GAYA_ISIAN, minWidth: 300 }}>
-          <option value="">Semua ({(jumlahPerSaring.semua ?? 0).toLocaleString("id-ID")})</option>
+          <option value="">Semua ({formatAngka(jumlahPerSaring.semua ?? 0)})</option>
           <option value="company">
-            Analisa perusahaan saja ({(jumlahPerSaring.company ?? 0).toLocaleString("id-ID")})
+            Analisa perusahaan saja ({formatAngka(jumlahPerSaring.company ?? 0)})
           </option>
           <option value="national">
-            Analisa nasional saja ({(jumlahPerSaring.national ?? 0).toLocaleString("id-ID")})
+            Analisa nasional saja ({formatAngka(jumlahPerSaring.national ?? 0)})
           </option>
           {editions.filter(e => (e.jumlah_analisa ?? 0) > 0).map(e => (
             <option key={e.id} value={`edition:${e.code}`}>
-              Edisi {e.code} ({e.jumlah_analisa!.toLocaleString("id-ID")})
+              Edisi {e.code} ({formatAngka(e.jumlah_analisa!)})
             </option>
           ))}
           {/* Edisi kosong tetap terlihat supaya jelas ia terdaftar tapi belum
@@ -1232,10 +1254,10 @@ function KatalogTab() {
             bukan menyimpulkan analisanya tidak ada. */}
         <span style={{ fontSize: 12, color: terpotong ? C.yellow : C.muted, whiteSpace: "nowrap" }}>
           {terpotong
-            ? `${assemblies.length} dari ${total!.toLocaleString("id-ID")} — katalog melebihi batas muat`
+            ? `${assemblies.length} dari ${formatAngka(total!)} — katalog melebihi batas muat`
             : cari.trim() || hanyaKurang
-              ? `${terlihat.length.toLocaleString("id-ID")} dari ${assemblies.length.toLocaleString("id-ID")} analisa`
-              : `${terlihat.length.toLocaleString("id-ID")} analisa`}
+              ? `${formatAngka(terlihat.length)} dari ${formatAngka(assemblies.length)} analisa`
+              : `${formatAngka(terlihat.length)} analisa`}
         </span>
         {jumlahKurang > 0 && (
           <button type="button" onClick={() => setHanyaKurang(v => !v)}
@@ -1989,7 +2011,7 @@ function RapTab() {
               )}
             </div>
             {detail.data.notes && <p style={{ fontSize: 12, color: C.mid, margin: "8px 0 0" }}>{detail.data.notes}</p>}
-            <div style={{ display: "flex", gap: 24, marginTop: 14, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: "var(--gap-bagian)", marginTop: 14, flexWrap: "wrap" }}>
               <div>
                 <div style={{ fontSize: 11, color: C.muted, textTransform: "uppercase", letterSpacing: .4 }}>Pagu Material</div>
                 <div style={{ fontSize: 17, fontWeight: 700, color: C.text, fontFamily: "monospace" }}>{fmtRp(detail.total.material)}</div>
@@ -2028,10 +2050,10 @@ function RapTab() {
               kolom={[
                 { kunci: "material", judul: "Material", kepalaBaris: true, render: m => m.resource?.name ?? "—" },
                 { kunci: "qtyAhsp", judul: "Qty RAB", rata: "kanan", render: m => (
-                  <span style={{ fontFamily: "monospace", color: C.mid }}>{Number(m.qty_ahsp).toLocaleString("id-ID")}</span>
+                  <span style={{ fontFamily: "monospace", color: C.mid }}>{formatKuantitas(m.qty_ahsp)}</span>
                 ) },
                 { kunci: "qtyAdj", judul: "Qty Disesuaikan", rata: "kanan", lebar: 110, render: m => (
-                  locked ? Number(m.qty_adjusted).toLocaleString("id-ID") : (
+                  locked ? formatKuantitas(m.qty_adjusted) : (
                     <input className="isian-fokus" defaultValue={Number(m.qty_adjusted)} inputMode="decimal"
                       aria-label={`Qty disesuaikan untuk ${m.resource?.name ?? "material"}`}
                       onBlur={e => e.target.value !== String(Number(m.qty_adjusted)) && void simpanQty(m, "qty_adjusted", e.target.value)}
@@ -2136,7 +2158,7 @@ function RapTab() {
                   kolom={[
                     { kunci: "alasan", judul: "Alasan", kepalaBaris: true, render: l => l.reason },
                     { kunci: "waktu", judul: "Waktu", render: l => (
-                      <span style={{ fontSize: 12, color: C.mid, whiteSpace: "nowrap" }}>{new Date(l.changed_at).toLocaleString("id-ID")}</span>
+                      <span style={{ fontSize: 12, color: C.mid, whiteSpace: "nowrap" }}>{formatTanggalJam(l.changed_at)}</span>
                     ) },
                     { kunci: "field", judul: "Field", render: l => l.field_name ?? "—" },
                     { kunci: "lama", judul: "Lama", render: l => <span style={{ color: C.mid }}>{l.old_value ?? "—"}</span> },
@@ -2426,10 +2448,10 @@ function HargaTab() {
           <span style={{ fontSize: 12, whiteSpace: "nowrap",
             color: terpotong ? C.yellow : C.muted }}>
             {terpotong
-              ? `${entries.length} dari ${total.toLocaleString("id-ID")} — melebihi batas muat`
+              ? `${entries.length} dari ${formatAngka(total)} — melebihi batas muat`
               : cari.trim()
-                ? `${terlihat.length.toLocaleString("id-ID")} dari ${entries.length.toLocaleString("id-ID")} harga`
-                : `${terlihat.length.toLocaleString("id-ID")} harga`}
+                ? `${formatAngka(terlihat.length)} dari ${formatAngka(entries.length)} harga`
+                : `${formatAngka(terlihat.length)} harga`}
           </span>
         )}
       </div>
@@ -3281,7 +3303,7 @@ function CashflowTab() {
         </div>
       )}
 
-      {memuat && <div style={{ padding: 24, color: C.mid, fontSize: 13 }}>Memuat proyeksi…</div>}
+      {memuat && <div style={{ padding: "var(--pad-kartu)", color: C.mid, fontSize: 13 }}>Memuat proyeksi…</div>}
 
       {data && !memuat && (
         <>
@@ -3514,7 +3536,7 @@ function VariansTab() {
         </div>
       )}
 
-      {memuat && <div style={{ padding: 24, color: C.mid, fontSize: 13 }}>Memuat…</div>}
+      {memuat && <div style={{ padding: "var(--pad-kartu)", color: C.mid, fontSize: 13 }}>Memuat…</div>}
 
       {varians && peta && !memuat && (
         <>
@@ -3654,7 +3676,7 @@ function VariansTab() {
                    Yang salah bukan angkanya, melainkan kalimat yang mengaku
                    bicara tentang "proyek ini" padahal bicara tentang satu
                    tabel. */
-                <div style={{ padding: 24, textAlign: "center", color: C.muted, fontSize: 13, lineHeight: 1.6 }}>
+                <div style={{ padding: "var(--pad-kartu)", textAlign: "center", color: C.muted, fontSize: 13, lineHeight: 1.6 }}>
                   {belanja && belanja.total > 0 ? (
                     <>
                       <p style={{ margin: "0 0 8px", color: C.text, fontWeight: 600 }}>

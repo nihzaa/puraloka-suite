@@ -485,7 +485,7 @@ export default function SubmittalPage() {
           width: 100%; max-width: var(--w-page); margin: 0 auto;
         }
         .sb-kepala {
-          display: flex; flex-wrap: wrap; gap: 16px;
+          display: flex; flex-wrap: wrap; gap: var(--gap-bagian);
           align-items: flex-end; justify-content: space-between; margin-bottom: 20px;
         }
         .sb-judul {
@@ -496,6 +496,15 @@ export default function SubmittalPage() {
         .sb-sub { margin: 4px 0 0; font-size: 14px; color: var(--text-secondary); }
         .sb-kepala-aksi { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 
+        /*
+          inline-block, bukan block — lihat catatan yang sama di
+          kontrak/rfi/page.tsx. Pembungkus block melebar mengikuti induknya
+          sementara .sb-pilih dibatasi 240px, dan panahnya dipatok ke kanan
+          PEMBUNGKUS sehingga melayang di luar kotak select.
+
+          Halaman ini dan RFI identik baris-per-baris di seluruh blok gaya —
+          satu disalin dari yang lain, cacatnya ikut tersalin.
+        */
         .sb-pilih-bungkus { position: relative; display: block; }
         .sb-pilih {
           appearance: none; min-height: 44px; padding: 0 34px 0 13px;
@@ -503,7 +512,19 @@ export default function SubmittalPage() {
           background: var(--surface); color: var(--text-primary);
           font-size: 14px; font-family: inherit; cursor: pointer; max-width: 240px;
         }
-        .sb-pilih-ikon {
+        /*
+          :global() WAJIB di sini. Blok ini <style jsx> tanpa "global", jadi tiap
+          aturan di-scope dengan kelas jsx-<hash> yang Next sisipkan ke elemen
+          JSX biasa. Ikon ini dirender komponen LAIN (<ChevronDown> dari lucide),
+          dan komponen React tidak menerima atribut scope itu — jadi aturannya
+          tak pernah cocok, panah tetap "position: static", dan ia jatuh ke tepi
+          kiri select alih-alih menempel di kanannya.
+        
+          Gejalanya menyesatkan: terlihat seperti pembungkusnya salah lebar.
+          Mengubah display pembungkus TIDAK memperbaikinya — diukur di peramban,
+          panahnya tetap di luar kotak.
+        */
+        :global(.sb-pilih-ikon) {
           position: absolute; right: 11px; top: 50%; transform: translateY(-50%);
           color: var(--text-muted); pointer-events: none;
         }
@@ -523,9 +544,9 @@ export default function SubmittalPage() {
         }
 
         .sb-ringkas {
-          display: flex; flex-wrap: wrap; align-items: center; gap: 22px;
+          display: flex; flex-wrap: wrap; align-items: center; gap: var(--gap-bagian);
           background: var(--surface); border: 1px solid var(--border);
-          border-radius: var(--radius-lg); padding: 18px 22px; margin-bottom: 22px;
+          border-radius: var(--radius-lg); padding: var(--pad-kartu-lega) 22px; margin-bottom: 22px;
         }
         .sb-angka { display: flex; align-items: baseline; gap: 9px; }
         .sb-angka-n {
@@ -645,7 +666,7 @@ export default function SubmittalPage() {
           .sb-kepala-aksi { width: 100%; }
           .sb-pilih { max-width: none; width: 100%; }
           .sb-pilih-bungkus { flex: 1; }
-          .sb-ringkas { gap: 16px; }
+          .sb-ringkas { gap: var(--gap-bagian); }
           .sb-pisah { display: none; }
           .sb-angka { flex-basis: 100%; }
           .sb-angka-n { font-size: 28px; }
@@ -811,7 +832,7 @@ function FormSubmittal({
         .fs-tirai {
           position: fixed; inset: 0; z-index: 60;
           background: rgba(17,24,39,0.45);
-          display: flex; align-items: center; justify-content: center; padding: 16px;
+          display: flex; align-items: center; justify-content: center; padding: var(--pad-kartu-lega);
         }
         .fs-panel {
           background: var(--surface); border-radius: var(--radius-lg);

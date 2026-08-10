@@ -178,6 +178,31 @@ export function formatVolume(nilai: NilaiAngka, satuan?: string, desimal = 1): s
   return satuan ? `${angka} ${satuan}` : angka
 }
 
+/**
+ * `formatKuantitas(1)` → `"1"` · `formatKuantitas(0.25)` → `"0,25"`
+ *
+ * Untuk kolom kuantitas yang skalanya besar tapi isinya sering bulat.
+ * `formatVolume` memaku jumlah desimalnya, jadi volume bulat tampil "1,0"
+ * atau — pada kolom `numeric(_,4)` — "1,0000". Di tabel dengan ratusan baris,
+ * nol-nol itu memenuhi kolom tanpa menyampaikan apa pun, dan justru
+ * menyulitkan memindai mana yang benar-benar pecahan.
+ *
+ * Bakunya 4 desimal karena itu skala terbesar yang dipakai skema
+ * (`estimate_items.quantity`, `rap_material_line.qty_ahsp`). `toLocaleString`
+ * bawaan berhenti di 3 desimal — jadi kode yang memakainya sudah diam-diam
+ * memotong digit keempat, dan pemakai tak punya cara tahu.
+ */
+export function formatKuantitas(nilai: NilaiAngka, desimalMaks = 4): string {
+  const n = keAngka(nilai)
+  if (n === null) return KOSONG
+  return spasiBiasa(
+    new Intl.NumberFormat(ID, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: desimalMaks,
+    }).format(n),
+  )
+}
+
 /* ── Tanggal ──────────────────────────────────────────────────────────── */
 
 export type NilaiTanggal = Date | string | number | null | undefined

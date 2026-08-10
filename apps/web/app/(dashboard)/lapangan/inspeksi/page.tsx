@@ -479,7 +479,19 @@ export default function InspeksiPage() {
           background: var(--surface); color: var(--text-primary);
           font-size: 14px; font-family: inherit; cursor: pointer; max-width: 240px;
         }
-        .in-pilih-ikon {
+        /*
+          :global() WAJIB di sini. Blok ini <style jsx> tanpa "global", jadi tiap
+          aturan di-scope dengan kelas jsx-<hash> yang Next sisipkan ke elemen
+          JSX biasa. Ikon ini dirender komponen LAIN (<ChevronDown> dari lucide),
+          dan komponen React tidak menerima atribut scope itu — jadi aturannya
+          tak pernah cocok, panah tetap "position: static", dan ia jatuh ke tepi
+          kiri select alih-alih menempel di kanannya.
+        
+          Gejalanya menyesatkan: terlihat seperti pembungkusnya salah lebar.
+          Mengubah display pembungkus TIDAK memperbaikinya — diukur di peramban,
+          panahnya tetap di luar kotak.
+        */
+        :global(.in-pilih-ikon) {
           position: absolute; right: 11px; top: 50%; transform: translateY(-50%);
           color: var(--text-muted); pointer-events: none;
         }
