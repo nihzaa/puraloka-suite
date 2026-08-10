@@ -9326,3 +9326,74 @@ deretan simbol itu bukan jadwal, dan yang tak terbaca tak bisa diperiksa.
 Bukti: 2724 test hijau (6 merah pre-existing yang sama sejak sebelum sumbu
 ini), `bukti-mutasi-otomasi.sh` O-1/O-1b/O-2/O-3 semuanya MERAH lalu pulih,
 7 interaksi peramban hijau.
+
+---
+
+## 2026-08-10 (lanjutan 2) — Riwayat asisten, dan izin yang punya pemegang tapi tak punya pintu
+
+**Permintaan founder yang tersisa ditutup:** "ada juga log aktivitas (termasuk
+history percakapan dengan ai assistant)". Founder TJS meminta hal yang sama
+dengan kalimatnya sendiri — tercatat di `owner-ai/activity/page.tsx`: "agar
+owner juga bisa cek apa aja yg dilakukan dia dan orang lain yg dapat akses
+asisten ini". Dua orang berbeda sampai pada kebutuhan yang sama, dan itu masuk
+akal: asisten yang bisa membaca seluruh data perusahaan adalah pihak yang
+paling tak terlihat di sistem.
+
+**Kebalikan dari cacat izin yatim kemarin.** Migrasi 270 membuat permission
+tanpa pemegang; `ai:history:view` justru sebaliknya — sudah dipegang admin
+sejak lama, dan diukur 2026-08-10 `grep -rn "ai:history:view"` di seluruh
+`apps/api/src` + `apps/web/app` mengembalikan **NOL berkas**. Izin yang tak
+pernah diperiksa siapa pun sama matinya dengan izin yang tak dipegang siapa
+pun, dan keduanya tak mengeluarkan satu pun galat. Verifikasi migrasi 274
+karena itu memeriksa DUA arah: izinnya punya pemegang, DAN menunya memakainya.
+
+**Lima sumber digabung, satu lebih banyak dari TJS.** Percakapan, pesan,
+keputusan nyata (`audit_logs` `ai.*`), entitas asing (I-4), dan BIAYA — yang
+terakhir tak ada padanannya di TJS. Alasan menggabungnya disalin dari sana
+karena tepat: supaya orang "tidak perlu buka beberapa halaman berbeda untuk
+'apa yang dibicarakan' vs 'apa yang benar-benar dieksekusi'". Keduanya bisa
+berbeda, dan bedanya itulah yang perlu terlihat.
+
+**Isi percakapan TIDAK ikut di daftar, dan itu keputusan.** Server memang tak
+mengirimkannya. Layar yang memuat potongan percakapan semua orang sekaligus
+mengubah "log aktivitas" jadi papan pengumuman: satu layar yang tak sengaja
+terlihat rekan kerja membocorkan pertanyaan orang lain tentang gaji, kasbon,
+atau sengketa. Membuka satu percakapan adalah tindakan yang DISENGAJA — dan
+kalau itu milik orang lain, **dicatat**. Halaman yang dibuat agar pemilik bisa
+mengawasi asisten tak boleh jadi jendela sepihak untuk mengintip bawahan.
+
+**Tiga kekeliruan hari ini, semuanya ditemukan dengan mengukur:**
+
+1. **Empat aksi, empat bentuk muatan berbeda** — `berhasil` punya `ringkasan`,
+   `gagal` punya `galat`, `ditolak` punya `alasan`, `entitas.asing` punya
+   `entitas_asing`. Versi pertama halaman hanya membaca dua yang pertama, jadi
+   SELURUH baris "Ditolak" tampil kosong di layar. Baris penolakan tanpa sebab
+   adalah baris paling tak berguna di halaman yang dibuka untuk mencari sebab.
+   Ketahuan dari tangkapan layar, bukan dari test.
+
+2. **`?? []` di ringkasan adalah kegagalan senyap paling berbahaya.** Penjaga
+   `audit-kegagalan-senyap` merah (192 > 186), dan ia benar: query yang gagal
+   akan menampilkan "0 entitas asing" — kalimat yang menenangkan justru saat
+   sistemnya sedang tak bisa melihat. Diganti `wajib()` yang MELEMPAR. Kembali
+   ke 186 tepat; tak ada ambang yang dinaikkan.
+
+3. **Teardown yang melempar menutupi galat aslinya.** `await app.close()` pada
+   `app` yang belum terbentuk memunculkan "Cannot read properties of
+   undefined" di layar, sementara sebab sebenarnya — `ai_percakapan.user_id`
+   NOT NULL — tenggelam. Sekarang dijaga `if (app)`, dan alasannya ditulis di
+   kodenya.
+
+**Satu test sengaja dibuat GAGAL kalau prasyaratnya hilang.** Kalau tenant uji
+hanya punya satu anggota, tak ada "orang lain" — dan test jejak-audit akan
+menguji percakapan milik sendiri lalu hijau tanpa arti. `beforeAll` melempar
+dengan pesan yang menyebut perbaikannya, alih-alih lulus diam-diam.
+
+**Dan satu mutasi yang GAGAL menemukan apa pun, lalu diperbaiki arahnya.**
+Menambahkan `teks` ke query daftar tetap hijau — karena isinya memang tak
+pernah diteruskan ke balasan. Mutasi yang benar adalah membocorkannya ke
+BALASAN, dan itu merah. Bedanya penting: yang dijaga adalah apa yang keluar
+dari server, bukan apa yang dibaca dari basis.
+
+Bukti: 9 test hijau; mutasi kebocoran isi → MERAH; mutasi cabut `.eq(company_id)`
+pada jejak keputusan → MERAH; `audit-kegagalan-senyap` kembali 186 (ambang
+186); 8 penjaga nav/rute hijau; migrasi 274 lulus verifikasi dua arah.
